@@ -430,7 +430,8 @@ namespace fan {
       return fan::make_struct_tuple_ref(*(T*)this);
     }
     constexpr auto get_tuple() const {
-      return fan::make_struct_tuple(T());
+      T t;
+      return fan::make_struct_tuple<T>(t);
     }
 
     template <std::size_t n>
@@ -469,7 +470,8 @@ namespace fan {
     }
 
     constexpr std::size_t size() const {
-      return std::tuple_size_v<decltype(get_tuple())>;
+      using T2 = decltype(get_tuple());
+      return std::tuple_size_v<T2>;
     }
 
     constexpr void get_value(size_t idx, const auto& lambda)

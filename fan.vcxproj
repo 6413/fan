@@ -103,7 +103,7 @@
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\fan\imgui</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -146,7 +146,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\fan\imgui</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -192,7 +192,7 @@
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\fan\imgui</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -235,7 +235,7 @@
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\fan\imgui</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -268,13 +268,13 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\stage_maker2.cpp" />
-    <ClCompile Include="include\imgui\imgui.cpp" />
-    <ClCompile Include="include\imgui\imgui_draw.cpp" />
-    <ClCompile Include="include\imgui\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="include\imgui\imgui_impl_win32.cpp" />
-    <ClCompile Include="include\imgui\imgui_tables.cpp" />
-    <ClCompile Include="include\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="examples\cpp\mp.cpp" />
+    <ClCompile Include="include\fan\imgui\imgui.cpp" />
+    <ClCompile Include="include\fan\imgui\imgui_draw.cpp" />
+    <ClCompile Include="include\fan\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="include\fan\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="include\fan\imgui\imgui_tables.cpp" />
+    <ClCompile Include="include\fan\imgui\imgui_widgets.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -487,14 +487,14 @@
     <ClInclude Include="include\fan\window\window.h" />
     <ClInclude Include="include\fan\window\window_input.h" />
     <ClInclude Include="include\fan\window\window_input_common.h" />
-    <ClInclude Include="include\imgui\imconfig.h" />
-    <ClInclude Include="include\imgui\imgui.h" />
-    <ClInclude Include="include\imgui\imgui_impl_opengl3.h" />
-    <ClInclude Include="include\imgui\imgui_impl_win32.h" />
-    <ClInclude Include="include\imgui\imgui_internal.h" />
-    <ClInclude Include="include\imgui\imstb_rectpack.h" />
-    <ClInclude Include="include\imgui\imstb_textedit.h" />
-    <ClInclude Include="include\imgui\imstb_truetype.h" />
+    <ClInclude Include="include\fan\imgui\imconfig.h" />
+    <ClInclude Include="include\fan\imgui\imgui.h" />
+    <ClInclude Include="include\fan\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="include\fan\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="include\fan\imgui\imgui_internal.h" />
+    <ClInclude Include="include\fan\imgui\imstb_rectpack.h" />
+    <ClInclude Include="include\fan\imgui\imstb_textedit.h" />
+    <ClInclude Include="include\fan\imgui\imstb_truetype.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="stages_compile\stage_fuel_station.h" />
   </ItemGroup>
