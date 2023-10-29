@@ -1,73 +1,29 @@
 #include fan_pch
 
-#include <algorithm>
-
-int compare(const void* a, const void* b) {
-  return (*(int*)b - *(int*)a);
-}
-
-int* f(int* v, int size, int desired) {
-  int total = 0;
-
-  // Create a max heap
-  qsort(v, size, sizeof(int), compare);
-
-  while (total != desired) {
-    // Remove the current maximum value from the heap
-    int max_val = v[0];
-    total -= max_val;
-    v[0]--;
-
-    // Restore the heap property
-    int i = 0;
-    int left, right, largest;
-    while (1) {
-      largest = i;
-      left = 2 * i + 1;
-      right = 2 * i + 2;
-
-      if (left < size && v[left] > v[largest]) {
-        largest = left;
+void common_uintptr_Balance(uintptr_t* v, uintptr_t size, uintptr_t desired) {
+  sintptr_t total = 0;
+  while (true) {
+    total = 0;
+    sintptr_t idx = -1;
+    sintptr_t m = -10000000;
+    for (sintptr_t i = 0; i < size; ++i) {
+      if (m < (int64_t)v[i]) {
+        m = v[i];
+        idx = i;
       }
-
-      if (right < size && v[right] > v[largest]) {
-        largest = right;
-      }
-
-      if (largest != i) {
-        // Swap v[i] and v[largest]
-        int temp = v[i];
-        v[i] = v[largest];
-        v[largest] = temp;
-        i = largest;
-      }
-      else {
-        break;
-      }
+      total += v[i];
     }
-
-    // Add the updated maximum value back to the heap
-    total += max_val;
+    if (total <= desired) {
+      break;
+    }
+    --v[idx];
   }
-
-  return v;
 }
-
-
-
 
 int main() {
-  int desired = 100;
-  std::vector<int> input{45, 2, 88};
-  fan::print("desired:", desired);
-  fan::print_no_endline("input:");
-  for (auto i : input) {
-    fan::print_no_endline(i);
-  }
-  auto o = f(input.data(), input.size(), desired);
-  fan::print("");
-  fan::print_no_endline("output:");
-  for (auto i : std::vector<int>(o, o + input.size())) {
-    fan::print_no_endline(i);
+  std::vector<uintptr_t> v{35, 2, 88};
+  common_uintptr_Balance(v.data(), v.size(), 100);
+  for (auto i : v) {
+    fan::print(i);
   }
 }

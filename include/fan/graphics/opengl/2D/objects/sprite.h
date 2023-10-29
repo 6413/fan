@@ -125,8 +125,6 @@ struct sb_sprite_name {
   bool load_tp(loco_t::shape_t& id, loco_t::texturepack_t::ti_t* ti) { 
     auto& im = *ti->image;
 
-    properties_t p = sb_get_properties(id);
-    
     set_image(id, &im);
     
     set(id, &vi_t::tc_position, ti->position / im.size);

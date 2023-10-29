@@ -29,8 +29,8 @@ struct texturepack_t {
     return pixel_data_list[pack_id];
   }
 
-  void open_compiled(loco_t* loco, const char* filename) {
-    auto* context = loco->get_context();
+  void open_compiled(const fan::string& filename) {
+    auto* context = gloco->get_context();
 
     texture_list.open();
     pixel_data_list.open();

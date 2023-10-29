@@ -8,7 +8,7 @@ GPP = clang++ -I C:\libs -Dstage_loader_path=. -I include/nvidia -I .
 CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtune=native \
   #-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = Source.cpp
+MAIN = examples/gui/fgm2.cpp
 
 TARGET = a.out
 
@@ -26,8 +26,8 @@ ifeq ($(OS),Windows_NT)
   FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
 	FAN_INCLUDE_PATH = C:/libs/fan/include
 	FAN_LIB += fan_windows_clang
-  CFLAGS += -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
-	CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
+  CFLAGS += -I C:\libs\fan\include\baseclasses -I C:/libs/fan/include/imgui -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
+	CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) -DWITCH_INCLUDE_PATH=C:/libs/WITCH
 else
   BASE_PATH += lib/fan/
   FAN_OBJECT_FOLDER += $(BASE_PATH)

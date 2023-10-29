@@ -23,8 +23,8 @@
   bool blending = false;
 
 #define loco_rectangle_properties_t \
-  loco_t::camera_t* camera = 0; \
-  fan::graphics::viewport_t* viewport = 0;
+  loco_t::camera_t* camera = &gloco->default_camera->camera; \
+  fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
 
 #endif
 
@@ -53,9 +53,9 @@
     bool blending = false;
 
 #define loco_sprite_properties_t \
-    loco_t::image_t* image = 0; \
-    loco_t::camera_t* camera = 0; \
-    fan::graphics::viewport_t* viewport = 0; \
+    loco_t::image_t* image = &gloco->default_texture; \
+    loco_t::camera_t* camera = &gloco->default_camera->camera; \
+    fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport; \
  \
     bool load_tp(loco_t::texturepack_t::ti_t* ti) { \
       auto& im = *ti->image; \
@@ -78,7 +78,7 @@
     fan::color color = fan::colors::white;\
     fan::color outline_color;\
     fan::vec2 tc_size;\
-    f32_t angle; \
+    f32_t angle=0; \
     f32_t pad[1];
 
   #define loco_letter_bm_properties_t \
@@ -94,8 +94,8 @@
     bool blending = true;
 
   #define loco_letter_properties_t \
-    loco_t::camera_t* camera = 0; \
-    fan::graphics::viewport_t* viewport = 0;
+    loco_t::camera_t* camera = &gloco->default_camera->camera; \
+    fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
 #endif
 
 #if defined(loco_text)
@@ -104,8 +104,8 @@
   #define loco_text_bm_properties_t loco_letter_bm_properties_t
 
   #define loco_text_properties_t \
-    loco_t::camera_t* camera = 0; \
-    fan::graphics::viewport_t* viewport = 0; \
+    loco_t::camera_t* camera = &gloco->default_camera->camera; \
+    fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport; \
     \
     fan::string text;
 
@@ -154,8 +154,8 @@
  \
   bool disable_highlight = false; \
  \
-  loco_t::camera_t* camera = 0; \
-  fan::graphics::viewport_t* viewport = 0;
+  loco_t::camera_t* camera = &gloco->default_camera->camera; \
+  fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
 
 #endif
 
@@ -191,8 +191,8 @@
     fan::vec2 original_size;
 
 #define loco_text_box_properties_t \
-    loco_t::camera_t* camera = 0; \
-    fan::graphics::viewport_t* viewport = 0; \
+    loco_t::camera_t* camera = &gloco->default_camera->camera; \
+    fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport; \
     fan::string text; \
     f32_t font_size = 0.1; \
  \
@@ -229,7 +229,7 @@
   bool blending = true;
 
 #define loco_light_properties_t \
-  loco_t::camera_t* camera = 0; \
-  fan::graphics::viewport_t* viewport = 0;
+  loco_t::camera_t* camera = &gloco->default_camera->camera; \
+  fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
 
 #endif

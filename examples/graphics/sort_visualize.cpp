@@ -3,7 +3,7 @@
 int main() {
   loco_t loco;
 
-  static constexpr f32_t count = 50;
+  static constexpr f32_t count = 10000;
   static constexpr f32_t size_x = 2.f / count;
   struct node_t {
     fan::graphics::rectangle_t r;
@@ -24,7 +24,6 @@ int main() {
   };
 
   auto shuffle_vector = [](std::vector<node_t>& v) {
-
     for (int i = v.size() - 1; i > 0; --i) {
       int j = fan::random::value_i64(0, i);
       std::swap(v[i].value, v[j].value);
@@ -55,10 +54,10 @@ int main() {
 
   int step = 0;
   fan::time::clock c;
-  c.start(fan::time::nanoseconds(1e+8));
+  c.start(fan::time::nanoseconds(0.8e+8));
   loco.loop([&] {
     loco.get_fps();
-    if (step < lines.size() && c.finished()) {
+    if (step < lines.size()) {
       for (int i = 0; i < lines.size() - 1 - step; ++i) {
         if (lines[i].value > lines[i + 1].value) {
           std::swap(lines[i].value, lines[i + 1].value);
