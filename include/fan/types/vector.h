@@ -38,6 +38,13 @@ namespace fan {
       y = y_;
     }
 
+    #if defined(loco_imgui)
+    constexpr _vec2(const ImVec2& v) {
+      x = v.x;
+      y = v.y;
+    }
+    #endif
+
 		template <typename T>
 		constexpr _vec2(const _vec2<T>& vec) : x(vec.x), y(vec.y) {}
 
@@ -344,6 +351,9 @@ namespace fan {
 		template <typename T>
 		friend std::ofstream& operator<<(std::ofstream& os, const _vec2<T>& vector);
 
+    void from_string(const fan::string& str) {
+      std::sscanf(str.c_str(), "{%f, %f}", &x, &y);
+    }
     std::string to_string(int precision = 2) const {
       return "{" + 
         fan::to_string(x, precision) + ", " + 
@@ -358,6 +368,26 @@ namespace fan {
     auto hypotenuse() const {
       return std::sqrt(x * x +  y * y);
     }
+
+    /*vec_t constrain(const vec_t& bounds) const {
+      return fan::vec2(fan::clamp(x, 0, bounds.x), fan::clamp(y, 0, bounds.y));
+    }*/
+
+    // clamps between 
+    void constrain(const vec_t& min_bounds) {
+      x = fan::clamp(x, min_bounds.x, x);
+      y = fan::clamp(y, min_bounds.y, y);
+    }
+    void constrain(const vec_t& min, const vec_t& max) {
+      x = fan::clamp(x, min.x, max.x);
+      y = fan::clamp(y, min.x, max.y);
+    }
+
+    #if defined(loco_imgui)
+    operator ImVec2() const {
+      return ImVec2(x, y);
+    }
+    #endif
 	};
 
 	template <typename _Ty = f32_t>
@@ -690,6 +720,9 @@ namespace fan {
 		template <typename T>
 		friend std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector);
 
+    void from_string(const fan::string& str) {
+      std::sscanf(str.c_str(), "{%f, %f, &f}", &x, &y, &z);
+    }
     std::string to_string(int precision = 2) const {
       return "{" +
         fan::to_string(x, precision) + ", " +
@@ -932,6 +965,9 @@ namespace fan {
     template <typename T>
 		friend std::ostream& operator<<(std::ostream& os, const _vec4<T>& vector);
 
+    void from_string(const fan::string& str) {
+      std::sscanf(str.c_str(), "{%f, %f, %f, %f}", &x, &y, &z, &w);
+    }
     std::string to_string(int precision = 2) const {
       return "{" +
         fan::to_string(x, precision) + ", " +

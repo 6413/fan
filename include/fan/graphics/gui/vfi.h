@@ -505,4 +505,48 @@ struct vfi_t {
 
     shape_list[focus.text].shape_data.text_cb(text_data);
   }
+
+  fan::vec3 get_position(shape_id_t* id) {
+    auto& shape = shape_list[*id];
+    switch (shape.shape_type) {
+      case vfi_t::shape_t::rectangle: {
+        return fan::vec3(
+          shape.shape_data.shape.rectangle->position, 
+          shape.shape_data.depth
+          );
+      }
+    }
+    fan::throw_error("invalid get_position for id");
+  }
+  void set_position(shape_id_t* id, const fan::vec3& position) {
+    auto& shape = shape_list[*id];
+    switch (shape.shape_type) {
+      case vfi_t::shape_t::rectangle: {
+        shape.shape_data.shape.rectangle->position = position;
+        shape.shape_data.depth = position.z;
+        return;
+      }
+    }
+    fan::throw_error("invalid set_position for id");
+  }
+
+  fan::vec2 get_size(shape_id_t* id) {
+    auto& shape = shape_list[*id];
+    switch (shape.shape_type) {
+      case vfi_t::shape_t::rectangle: {
+        return shape.shape_data.shape.rectangle->size;
+      }
+    }
+    fan::throw_error("invalid get_position for id");
+  }
+  void set_size(shape_id_t* id, const fan::vec2& size) {
+    auto& shape = shape_list[*id];
+    switch (shape.shape_type) {
+      case vfi_t::shape_t::rectangle: {
+        shape.shape_data.shape.rectangle->size = size;
+        return;
+      }
+    }
+    fan::throw_error("invalid set_position for id");
+  }
 };

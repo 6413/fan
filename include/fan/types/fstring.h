@@ -554,14 +554,7 @@ namespace fan {
   template <typename T>
   T string_to(const fan::string& fstring) {
     T out;
-    std::istringstream iss(fstring);
-    if constexpr (has_bracket_operator<T>::value) {
-      std::size_t i = 0;
-      while (iss >> out[i++]) { iss.ignore(); }
-    }
-    else {
-      while (iss >> out) { iss.ignore(); }
-    }
+    out.from_string(fstring);
     return out;
   }
 

@@ -64,7 +64,7 @@ namespace fan {
       uint16_t bm_id;
       uint16_t block_id;
       uint8_t instance_id;
-      uint8_t shape_type = -1;
+      uint16_t shape_type = -1;
     };
 
   }

@@ -103,7 +103,7 @@
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\imgui</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -122,7 +122,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
+      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -146,7 +146,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\imgui</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -169,7 +169,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
+      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -192,7 +192,7 @@
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\imgui</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -211,7 +211,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib</AdditionalDependencies>
+      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -225,20 +225,20 @@
     <ClCompile>
       <WarningLevel>Level1</WarningLevel>
       <FunctionLevelLinking>false</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>FAN_INCLUDE_PATH=C:/libs/fan/include;fan_pch="pch.h";WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;BX_CONFIG_DEBUG=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <OmitFramePointers>false</OmitFramePointers>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\imgui</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
@@ -259,7 +259,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;C:\libs\fan\lib\opencv;C:\libs\fan\lib\dpp;C:\libs\lib\openssl;C:\libs\lib\libuv</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;opencv_world480.lib;libssl.lib;libcrypto.lib;uv_a.lib;dpp.lib</AdditionalDependencies>
+      <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;opencv_world480.lib;libssl.lib;libcrypto.lib;uv_a.lib;dpp.lib</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -268,7 +268,13 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\sort_visualize.cpp" />
+    <ClCompile Include="examples\gui\fgm2.cpp" />
+    <ClCompile Include="include\imgui\imgui.cpp" />
+    <ClCompile Include="include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="include\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="include\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -480,6 +486,14 @@
     <ClInclude Include="include\fan\window\window.h" />
     <ClInclude Include="include\fan\window\window_input.h" />
     <ClInclude Include="include\fan\window\window_input_common.h" />
+    <ClInclude Include="include\imgui\imconfig.h" />
+    <ClInclude Include="include\imgui\imgui.h" />
+    <ClInclude Include="include\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="include\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="include\imgui\imgui_internal.h" />
+    <ClInclude Include="include\imgui\imstb_rectpack.h" />
+    <ClInclude Include="include\imgui\imstb_textedit.h" />
+    <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="stages_compile\stage_fuel_station.h" />
   </ItemGroup>

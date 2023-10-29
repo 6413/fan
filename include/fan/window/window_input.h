@@ -144,7 +144,7 @@ namespace fan {
 		key_numpad_decimal,
 		key_numpad_divide,
 		key_numpad_multiply,
-		key_numpad_substract,
+		key_numpad_subtract,
 		key_numpad_add,
 		key_numpad_enter,
 		key_numpad_equal,

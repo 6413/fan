@@ -263,9 +263,8 @@ namespace fan {
     void open_bcol();
   #endif
     using direction_e = fan::graphics::viewport_divider_t::direction_e;
-    struct camera_t;
-    static camera_t* add_camera(fan::graphics::direction_e split_direction);
-    inline camera_t* default_camera;
+    inline fan::vec2 default_camera_ortho_x{-1, 1};
+    inline fan::vec2 default_camera_ortho_y{-1, 1};
   }
 }
 
@@ -759,6 +758,22 @@ public:
   void set_viewport(fan::graphics::viewport_t* viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
     viewport->set(viewport_position, viewport_size, get_window()->get_size());
   }
+
+  struct camera_impl_t {
+
+    camera_impl_t() = default;
+    camera_impl_t(fan::graphics::direction_e split_direction) {
+      fan::graphics::viewport_divider_t::iterator_t it = gloco->viewport_divider.insert(split_direction);
+      fan::vec2 p = it.parent->position;
+      fan::vec2 s = it.parent->size;
+
+      fan::vec2 window_size = gloco->get_window()->get_size();
+      gloco->open_viewport(&viewport, (p - s / 2) * window_size, (s)*window_size);
+      gloco->open_camera(&camera, fan::graphics::default_camera_ortho_x, fan::graphics::default_camera_ortho_y);
+    }
+    loco_t::camera_t camera;
+    loco_t::viewport_t viewport;
+  };
 
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
@@ -1465,7 +1480,7 @@ public:
     #ifdef loco_window
     :
   gloco_dummy(this),
-    window(fan::vec2(800, 800)),
+    window(fan::vec2(1024, 1024)),
     #endif
     #if defined(loco_context)
     context(
@@ -1618,7 +1633,7 @@ public:
       fan::vec2 ratio = window_size.square_normalize();
       //fan::vec2 ortho = fan::vec2(1, 1) * ratio;
       //ortho *= 1.f / ortho.min();
-      default_camera.set_ortho(
+      default_camera->camera.set_ortho(
         fan::vec2(-1, 1),
         fan::vec2(-1, 1),
         &default_viewport
@@ -1848,15 +1863,44 @@ public:
 
     fan::vec2 window_size = get_window()->get_size();
     open_viewport(&default_viewport, fan::vec2(0, 0), window_size);
-    open_camera(&default_camera,
+
+    default_camera = add_camera(fan::graphics::direction_e::right);
+
+    open_camera(&default_camera->camera,
       fan::vec2(-1, 1),
       fan::vec2(-1, 1)
     );
 
-    fan::graphics::default_camera = fan::graphics::add_camera(fan::graphics::direction_e::right);
   #if defined(loco_physics)
     fan::graphics::open_bcol();
   #endif
+
+    #if defined(loco_imgui)
+    auto hwnd = get_window()->get_handle();
+
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
+
+    get_window()->add_buttons_callback([&](const auto& d) {
+      io.AddMouseButtonEvent(d.button - fan::mouse_left, (bool)d.state);
+    });
+    get_window()->add_keys_callback([&](const auto& d) {
+      ImGuiKey imgui_key = fan::window_input::fan_to_imguikey(d.key);
+      io.AddKeyEvent(imgui_key, (int)d.state);
+    });
+    get_window()->add_text_callback([&](const auto& d) {
+      io.AddInputCharacter(d.character);
+    });
+
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplWin32_Init(hwnd);
+    ImGui_ImplOpenGL3_Init();
+    #endif
+
   }
 
   #if defined(loco_vfi)
@@ -1962,8 +2006,29 @@ public:
     //get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
 
     renderQuad();
+
+    #if defined(loco_imgui)
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
+    {
+      auto it = m_imgui_draw_cb.GetNodeFirst();
+      while (it != m_imgui_draw_cb.dst) {
+        m_imgui_draw_cb.StartSafeNext(it);
+        m_imgui_draw_cb[it]();
+        it = m_imgui_draw_cb.EndSafeNext();
+      }
+    }
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    #endif
+
     #endif
     get_context()->render(get_window());
+
+
     #elif defined(loco_vulkan)
     get_context()->begin_render(get_window());
     draw_queue();
@@ -1991,18 +2056,16 @@ public:
     return position / window_size * 2 - 1;
   }
 
-  fan::vec2 get_mouse_position() {
-    // not custom ortho friendly - made for -1 1
-    //return transform_matrix(get_window()->get_mouse_position());
-    return get_window()->get_mouse_position();
-  }
-
   fan::vec2 get_mouse_position(const loco_t::camera_t& camera, const loco_t::viewport_t& viewport) {
-    fan::vec2 mouse_pos = get_mouse_position();
+    fan::vec2 mouse_pos = get_window()->get_mouse_position();
     fan::vec2 translated_pos;
     translated_pos.x = fan::math::map(mouse_pos.x, viewport.get_position().x, viewport.get_position().x + viewport.get_size().x, camera.coordinates.left, camera.coordinates.right);
     translated_pos.y = fan::math::map(mouse_pos.y, viewport.get_position().y, viewport.get_position().y + viewport.get_size().y, camera.coordinates.up, camera.coordinates.down);
     return translated_pos;
+  }
+
+  fan::vec2 get_mouse_position() {
+    return get_mouse_position(gloco->default_camera->camera, gloco->default_camera->viewport);
   }
 
 
@@ -2159,10 +2222,27 @@ protected:
   #define BLL_set_NodeDataType fan::function_t<void(loco_t*)>
   #include _FAN_PATH(BLL/BLL.h)
 public:
+#if defined(loco_imgui)
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_SafeNext 1
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_prefix imgui_draw_cb
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_Link 1
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType fan::function_t<void()>
+  #include _FAN_PATH(BLL/BLL.h)
+#endif
 
   using update_callback_nr_t = update_callback_NodeReference_t;
 
   update_callback_t m_update_callback;
+
+#if defined(loco_imgui)
+  using imgui_draw_cb_nr_t = imgui_draw_cb_NodeReference_t;
+  imgui_draw_cb_t m_imgui_draw_cb;
+#endif
 
   image_t default_texture;
 
@@ -2389,6 +2469,9 @@ public:
           if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
             data = (*shape)->get_properties(id).name; \
           }\
+        } \
+        else if constexpr (has_get_##name##_v<shape_t, loco_t::vfi_t::shape_id_t*>) {\
+          data = (*shape)->get_##name((loco_t::vfi_t::shape_id_t*)id.gdp4());\
         }\
       }\
     });\
@@ -2401,12 +2484,15 @@ public:
       if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
         (*shape)->set_##name(id, data); \
       } \
-    } \
+    }  \
+    else if constexpr (has_set_##name##_v<shape_t, loco_t::vfi_t::shape_id_t*, const rt&>) { \
+      (*shape)->set_##name((loco_t::vfi_t::shape_id_t*)id.gdp4(), data); \
+    }\
     else if constexpr (has_set_v<shape_t, loco_t::cid_nt_t&, decltype(&comma_dummy_t::member_pointer), void*>) { \
       if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
         (*shape)->set(id, &shape_t::vi_t::name, data); \
       }\
-    }, \
+    } , \
     loco_t::cid_nt_t& id, \
     const auto& data \
   );
@@ -2417,6 +2503,9 @@ public:
       if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
         (*shape)->set_##name(id, data); \
       } \
+    } \
+    else if constexpr (has_set_##name##_v<shape_t, loco_t::vfi_t::shape_id_t*, const rt&>) { \
+      (*shape)->set_##name((loco_t::vfi_t::shape_id_t*)id.gdp4(), data); \
     } \
     else if constexpr (has_set_v<shape_t, loco_t::cid_nt_t&, decltype(&comma_dummy_t::member_pointer), void*>) { \
       if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
@@ -2579,8 +2668,23 @@ public:
     );
   }
 
+  static inline std::vector<camera_impl_t*> viewport_handler;
+  camera_impl_t* add_camera(fan::graphics::direction_e split_direction) {
+    viewport_handler.push_back(new camera_impl_t(split_direction));
+    int index = 0;
+    fan::vec2 window_size = gloco->get_window()->get_size();
+    gloco->viewport_divider.iterate([&index, window_size](auto& node) {
+      viewport_handler[index]->viewport.set(
+        (node.position - node.size / 2) * window_size,
+        ((node.size) * window_size), window_size
+      );
+      index++;
+    });
+    return viewport_handler.back();
+  }
+
   loco_t::theme_t theme_deep_red = loco_t::themes::deep_red();
-  loco_t::camera_t default_camera;
+  camera_impl_t* default_camera;
   loco_t::viewport_t default_viewport;
 
   fan::graphics::viewport_divider_t viewport_divider;
@@ -2666,42 +2770,15 @@ inline void fan::opengl::viewport_t::set_viewport(const fan::vec2& viewport_posi
 
 namespace fan {
   namespace graphics {
-    inline fan::vec2 default_camera_ortho_x{-1, 1};
-    inline fan::vec2 default_camera_ortho_y{-1, 1};
 
-    struct camera_t {
-
-      camera_t() = default;
-      camera_t(fan::graphics::direction_e split_direction) {
-        fan::graphics::viewport_divider_t::iterator_t it = gloco->viewport_divider.insert(split_direction);
-        fan::vec2 p = it.parent->position;
-        fan::vec2 s = it.parent->size;
-
-        fan::vec2 window_size = gloco->get_window()->get_size();
-        gloco->open_viewport(&viewport, (p - s / 2) * window_size, (s)*window_size);
-        gloco->open_camera(&camera, default_camera_ortho_x, default_camera_ortho_y);
-      }
-      loco_t::camera_t camera;
-      loco_t::viewport_t viewport;
-    };
+    using camera_t = loco_t::camera_impl_t;
     // use bll to avoid 'new'
-    inline std::vector<camera_t*> viewport_handler;
-    static camera_t* add_camera(fan::graphics::direction_e split_direction) {
-      viewport_handler.push_back(new camera_t(split_direction));
-      int index = 0;
-      fan::vec2 window_size = gloco->get_window()->get_size();
-      gloco->viewport_divider.iterate([&index, window_size](auto& node) {
-        viewport_handler[index]->viewport.set(
-          (node.position - node.size / 2) * window_size,
-          ((node.size) * window_size), window_size
-        );
-        index++;
-      });
-      return viewport_handler.back();
+    static auto add_camera(fan::graphics::direction_e split_direction) {
+      return gloco->add_camera(split_direction);
     }
 
     struct line_properties_t {
-      fan::graphics::camera_t* camera = fan::graphics::default_camera;
+      fan::graphics::camera_t* camera = gloco->default_camera;
       fan::vec3 src = fan::vec3(0, 0, 0);
       fan::vec2 dst = fan::vec2(1, 1);
       fan::color color = fan::color(1, 1, 1, 1);
@@ -2724,7 +2801,7 @@ namespace fan {
     };
 
     struct rectangle_properties_t {
-      fan::graphics::camera_t* camera = default_camera;
+      fan::graphics::camera_t* camera = gloco->default_camera;
       fan::vec3 position = fan::vec3(0, 0, 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
       fan::color color = fan::color(1, 1, 1, 1);
@@ -2747,7 +2824,7 @@ namespace fan {
     };
 
     struct circle_properties_t {
-      fan::graphics::camera_t* camera = default_camera;
+      fan::graphics::camera_t* camera = gloco->default_camera;
       fan::vec3 position = fan::vec3(0, 0, 0);
       f32_t radius = 0.1;
       fan::color color = fan::color(1, 1, 1, 1);
@@ -2770,12 +2847,13 @@ namespace fan {
     };
 
     struct sprite_properties_t {
-      fan::graphics::camera_t* camera = default_camera;
+      fan::graphics::camera_t* camera = gloco->default_camera;
       fan::vec3 position = fan::vec3(0, 0, 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
       fan::color color = fan::color(1, 1, 1, 1);
-      loco_t::image_t* image = 0;
+      loco_t::image_t* image = &gloco->default_texture;
       bool blending = false;
+      fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
     };
 
     struct sprite_t : loco_t::shape_t {
@@ -2789,7 +2867,8 @@ namespace fan {
             .size = p.size,
             .image = p.image,
             .color = p.color,
-            .blending = p.blending
+            .blending = p.blending,
+            .rotation_vector = p.rotation_vector
           ));
       }
     };
@@ -2797,7 +2876,7 @@ namespace fan {
     #if defined(loco_text)
 
     struct letter_properties_t {
-      loco_t::camera_t* camera = &gloco->default_camera;
+      loco_t::camera_t* camera = &gloco->default_camera->camera;
       loco_t::viewport_t* viewport = &gloco->default_viewport;
       fan::color color = fan::colors::white;
       fan::vec3 position = fan::vec3(0, 0, 0);
@@ -2821,7 +2900,7 @@ namespace fan {
     };
 
     struct text_properties_t {
-      loco_t::camera_t* camera = &gloco->default_camera;
+      loco_t::camera_t* camera = &gloco->default_camera->camera;
       loco_t::viewport_t* viewport = &gloco->default_viewport;
       std::string text = "";
       fan::color color = fan::colors::white;
@@ -2849,7 +2928,7 @@ namespace fan {
     #if defined(loco_button)
     struct button_properties_t {
       loco_t::theme_t* theme = &gloco->theme_deep_red;
-      loco_t::camera_t* camera = &gloco->default_camera;
+      loco_t::camera_t* camera = &gloco->default_camera->camera;
       loco_t::viewport_t* viewport = &gloco->default_viewport;
       fan::vec3 position = fan::vec3(0, 0, 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
@@ -2872,6 +2951,188 @@ namespace fan {
         )) {}
     };
     #endif
+
+    #if defined(loco_imgui)
+    struct imgui_element_nr_t : loco_t::imgui_draw_cb_nr_t {
+      using base_t = loco_t::imgui_draw_cb_nr_t;
+
+      imgui_element_nr_t() { /**(nr_t*)this = cid_list_gnric(); should be default*/ }
+
+      imgui_element_nr_t(const imgui_element_nr_t& nr) : imgui_element_nr_t() {
+        if (nr.is_invalid()) {
+          return;
+        }
+        init();
+      }
+
+      imgui_element_nr_t(imgui_element_nr_t&& nr) {
+        NRI = nr.NRI;
+        nr.invalidate_soft();
+      }
+      ~imgui_element_nr_t() {
+        invalidate();
+      }
+
+
+      imgui_element_nr_t& operator=(const imgui_element_nr_t& id) {
+        if (!is_invalid()) {
+          invalidate();
+        }
+        if (id.is_invalid()) {
+          return *this;
+        }
+
+        if (this != &id) {
+          init();
+        }
+        return *this;
+      }
+
+      imgui_element_nr_t& operator=(imgui_element_nr_t&& id) {
+        if (!is_invalid()) {
+          invalidate();
+        }
+        if (id.is_invalid()) {
+          return *this;
+        }
+
+        if (this != &id) {
+          if (!is_invalid()) {
+            invalidate();
+          }
+          NRI = id.NRI;
+
+          id.invalidate_soft();
+        }
+        return *this;
+      }
+
+      void init() {
+        *(base_t*)this = gloco->m_imgui_draw_cb.NewNodeLast();
+      }
+
+      bool is_invalid() const {
+        return loco_t::imgui_draw_cb_inric(*this);
+      }
+
+      void invalidate_soft() {
+        *(base_t*)this = gloco->m_imgui_draw_cb.gnric();
+      }
+
+      void invalidate() {
+        if (is_invalid()) {
+          return;
+        }
+        gloco->m_imgui_draw_cb.unlrec(*this);
+        *(base_t*)this = gloco->m_imgui_draw_cb.gnric();
+      }
+
+      void set(const auto& lambda) {
+        gloco->m_imgui_draw_cb[*this] = lambda;
+      }
+    };
+
+    struct imgui_element_t : imgui_element_nr_t {
+      imgui_element_t() = default;
+      imgui_element_t(const auto& lambda) {
+        imgui_element_nr_t::init();
+        imgui_element_nr_t::set(lambda);
+      }
+    };
+
+    struct imgui_shape_element_t : imgui_element_t, loco_t::shape_t {
+      imgui_shape_element_t(const auto& properties, const auto& lambda)
+        : imgui_element_t(lambda), loco_t::shape_t(properties) {
+      }
+    };
+    #endif
+
+    // REQUIRES to be allocated by new since lambda captures this
+    // also container that it's stored in, must not change pointers
+    struct vfi_root_t {
+      //vfi_root_t() = default;
+
+      void set_root(const loco_t::vfi_t::properties_t& p) {
+        loco_t::vfi_t::properties_t in = p;
+        in.shape_type = loco_t::vfi_t::shape_t::rectangle;
+        in.shape.rectangle->viewport = &gloco->default_camera->viewport;
+        in.shape.rectangle->camera = &gloco->default_camera->camera;
+        in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {
+          if (d.key == fan::key_c && 
+            (d.keyboard_state == fan::keyboard_state::press ||
+            d.keyboard_state == fan::keyboard_state::repeat)) {
+            this->resize = true;
+            return user_cb(d);
+          }
+          this->resize = false;
+          return 0;
+        };
+        in.mouse_button_cb = [this, user_cb = p.mouse_button_cb](const auto& d) -> int {
+          if (d.button != fan::mouse_left) {
+            return 0;
+          }
+          if (d.button_state != fan::mouse_state::press) {
+            this->move = false;
+            d.flag->ignore_move_focus_check = false;
+            return 0;
+          }
+          if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+            return 0;
+          }
+          d.flag->ignore_move_focus_check = true;
+          this->move = true;
+          this->click_offset = fan::vec2(get_position()) - d.position;
+          gloco->vfi.set_focus_keyboard(d.vfi->focus.mouse);
+          return user_cb(d);
+        };
+        in.mouse_move_cb = [this, user_cb = p.mouse_move_cb](const auto& d) -> int {
+          if (this->resize && this->move) {
+            fan::vec2 new_size = (d.position - fan::vec2(get_position()));
+            static constexpr fan::vec2 min_size(10, 10);
+            new_size.constrain(min_size);
+            this->set_size(new_size.x);
+            return user_cb(d);
+          }
+          else if (this->move) {
+            fan::vec3 p = get_position();
+            this->set_position(fan::vec3(d.position + click_offset, p.z));
+            return user_cb(d);
+          }
+          return 0;
+        };
+        vfi_root = in;
+      }
+      void push_child(const loco_t::shape_t& shape) {
+        children.push_back(shape);
+      }
+      fan::vec3 get_position() {
+        return vfi_root.get_position();
+      }
+      void set_position(const fan::vec3& position) {
+        fan::vec2 root_pos = vfi_root.get_position();
+        fan::vec2 offset = fan::vec2(position) - root_pos;
+        vfi_root.set_position(fan::vec3(root_pos + offset, position.z));
+        for (auto& child : children) {
+          child.set_position(fan::vec3(fan::vec2(child.get_position()) + offset, position.z));
+        }
+      }
+      fan::vec2 get_size() {
+        return vfi_root.get_size();
+      }
+      void set_size(const fan::vec2& size) {
+        fan::vec2 root_pos = vfi_root.get_size();
+        fan::vec2 offset = size - root_pos;
+        vfi_root.set_size(root_pos + offset);
+        for (auto& child : children) {
+          child.set_size(fan::vec2(child.get_size()) + offset);
+      }
+    }
+    fan::vec2 click_offset = 0;
+    bool move = false;
+    bool resize = false;
+    loco_t::shape_t vfi_root;
+    std::vector<loco_t::shape_t> children;
+    };
   }
 }
 

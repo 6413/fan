@@ -75,7 +75,7 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 		case 0x47: { return fan::input::key_numpad_7; }
 		case 0x48: { return fan::input::key_numpad_8; }
 		case 0x49: { return fan::input::key_numpad_9; }
-		case 0x4A: { return fan::input::key_numpad_substract; }
+		case 0x4A: { return fan::input::key_numpad_subtract; }
 		case 0x4B: { return fan::input::key_numpad_4; }
 		case 0x4C: { return fan::input::key_numpad_5; }
 		case 0x4D: { return fan::input::key_numpad_6; }
@@ -84,7 +84,7 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 		case 0x50: { return fan::input::key_numpad_2; }
 		case 0x51: { return fan::input::key_numpad_3; }
 		case 0x52: { return fan::input::key_numpad_0; }
-		case 0x53: { return fan::input::key_numpad_substract; }
+		case 0x53: { return fan::input::key_numpad_subtract; }
     case 0x56: { return fan::input::key_less_than; }
     case 0x156: { return fan::input::key_greater_than; }
 
@@ -186,7 +186,7 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 		case 0x47: { return fan::input::key_numpad_7; }
 		case 0x48: { return fan::input::key_numpad_8; }
 		case 0x49: { return fan::input::key_numpad_9; }
-		case 0x4A: { return fan::input::key_numpad_substract; }
+		case 0x4A: { return fan::input::key_numpad_subtract; }
 		case 0x4B: { return fan::input::key_numpad_4; }
 		case 0x4C: { return fan::input::key_numpad_5; }
 		case 0x4D: { return fan::input::key_numpad_6; }
@@ -195,7 +195,7 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 		case 0x50: { return fan::input::key_numpad_2; }
 		case 0x51: { return fan::input::key_numpad_3; }
 		case 0x52: { return fan::input::key_numpad_0; }
-		case 0x53: { return fan::input::key_numpad_substract; }
+		case 0x53: { return fan::input::key_numpad_subtract; }
     case 0x56: { return fan::input::key_less_than; }
     case 0xe056: { return fan::input::key_greater_than; }
 
@@ -318,7 +318,7 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
 	case fan::input::key_numpad_7: { return 0x47; }
 	case fan::input::key_numpad_8: { return 0x48; }
 	case fan::input::key_numpad_9: { return 0x49; }
-	case fan::input::key_numpad_substract: { return 0x4A; }
+	case fan::input::key_numpad_subtract: { return 0x4A; }
 	case fan::input::key_numpad_4: { return 0x4B; }
 	case fan::input::key_numpad_5: { return 0x4C; }
 	case fan::input::key_numpad_6: { return 0x4D; }
@@ -327,7 +327,7 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
 	case fan::input::key_numpad_2: { return 0x50; }
 	case fan::input::key_numpad_3: { return 0x51; }
 	case fan::input::key_numpad_0: { return 0x52; }
-	//case fan::input::key_numpad_substract: { return 0x53; }
+	//case fan::input::key_numpad_subtract: { return 0x53; }
 
   case fan::input::key_numpad_enter:{ return 0x11c; }
   case fan::input::key_right_control: { return 0x11d; }
@@ -426,7 +426,7 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
   case fan::input::key_numpad_7: { return 0x47; }
   case fan::input::key_numpad_8: { return 0x48; }
   case fan::input::key_numpad_9: { return 0x49; }
-  //case fan::input::key_numpad_substract: { return 0x4A; }
+  //case fan::input::key_numpad_subtract: { return 0x4A; }
   case fan::input::key_numpad_4: { return 0x4B; }
   case fan::input::key_numpad_5: { return 0x4C; }
   case fan::input::key_numpad_6: { return 0x4D; }
@@ -435,7 +435,7 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
   case fan::input::key_numpad_2: { return 0x50; }
   case fan::input::key_numpad_3: { return 0x51; }
   case fan::input::key_numpad_0: { return 0x52; }
-  case fan::input::key_numpad_substract: { return 0x53; }
+  case fan::input::key_numpad_subtract: { return 0x53; }
   case fan::input::key_less_than: { return 0x56; }
   case fan::input::key_greater_than: { return 0xe056; }
   case fan::input::key_numpad_enter: { return 0xe01c; }
@@ -470,3 +470,130 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
 
 	}
 }
+
+#if defined(loco_imgui)
+static ImGuiKey fan_to_imguikey(uint16_t key)
+{
+  switch (key)
+  {
+    case fan::key_tab: return ImGuiKey_Tab;
+    case fan::key_left: return ImGuiKey_LeftArrow;
+    case fan::key_right: return ImGuiKey_RightArrow;
+    case fan::key_up: return ImGuiKey_UpArrow;
+    case fan::key_down: return ImGuiKey_DownArrow;
+    case fan::key_page_up: return ImGuiKey_PageUp;
+    case fan::key_page_down: return ImGuiKey_PageDown;
+    case fan::key_home: return ImGuiKey_Home;
+    case fan::key_end: return ImGuiKey_End;
+    case fan::key_insert: return ImGuiKey_Insert;
+    case fan::key_delete: return ImGuiKey_Delete;
+    case fan::key_backspace: return ImGuiKey_Backspace;
+    case fan::key_space: return ImGuiKey_Space;
+    case fan::key_enter: return ImGuiKey_Enter;
+    case fan::key_escape: return ImGuiKey_Escape;
+    case fan::key_apostrophe: return ImGuiKey_Apostrophe;
+    case fan::key_comma: return ImGuiKey_Comma;
+    case fan::key_minus: return ImGuiKey_Minus;
+    case fan::key_period: return ImGuiKey_Period;
+    case fan::key_slash: return ImGuiKey_Slash;
+    case fan::key_semicolon: return ImGuiKey_Semicolon;
+    //case fan::key_equal: return ImGuiKey_Equal;
+    case fan::key_left_bracket: return ImGuiKey_LeftBracket;
+    case fan::key_backslash: return ImGuiKey_Backslash;
+    case fan::key_right_bracket: return ImGuiKey_RightBracket;
+    case fan::key_grave_accent: return ImGuiKey_GraveAccent;
+    case fan::key_caps_lock: return ImGuiKey_CapsLock;
+    case fan::key_scroll_lock: return ImGuiKey_ScrollLock;
+    case fan::key_num_lock: return ImGuiKey_NumLock;
+    case fan::key_print_screen: return ImGuiKey_PrintScreen;
+    case fan::key_break: return ImGuiKey_Pause;
+    case fan::key_numpad_0: return ImGuiKey_Keypad0;
+    case fan::key_numpad_1: return ImGuiKey_Keypad1;
+    case fan::key_numpad_2: return ImGuiKey_Keypad2;
+    case fan::key_numpad_3: return ImGuiKey_Keypad3;
+    case fan::key_numpad_4: return ImGuiKey_Keypad4;
+    case fan::key_numpad_5: return ImGuiKey_Keypad5;
+    case fan::key_numpad_6: return ImGuiKey_Keypad6;
+    case fan::key_numpad_7: return ImGuiKey_Keypad7;
+    case fan::key_numpad_8: return ImGuiKey_Keypad8;
+    case fan::key_numpad_9: return ImGuiKey_Keypad9;
+    case fan::key_numpad_decimal: return ImGuiKey_KeypadDecimal;
+    case fan::key_numpad_divide: return ImGuiKey_KeypadDivide;
+    case fan::key_numpad_multiply: return ImGuiKey_KeypadMultiply;
+    case fan::key_numpad_subtract: return ImGuiKey_KeypadSubtract;
+    case fan::key_numpad_add: return ImGuiKey_KeypadAdd;
+    case fan::key_numpad_enter: return ImGuiKey_KeypadEnter;
+    case fan::key_numpad_equal: return ImGuiKey_KeypadEqual;
+    case fan::key_left_shift: return ImGuiKey_LeftShift;
+    case fan::key_left_control: return ImGuiKey_LeftCtrl;
+    case fan::key_left_alt: return ImGuiKey_LeftAlt;
+    case fan::key_left_super: return ImGuiKey_LeftSuper;
+    case fan::key_right_shift: return ImGuiKey_RightShift;
+    case fan::key_right_control: return ImGuiKey_RightCtrl;
+    case fan::key_right_alt: return ImGuiKey_RightAlt;
+    case fan::key_right_super: return ImGuiKey_RightSuper;
+    case fan::key_menu: return ImGuiKey_Menu;
+    case fan::key_0: return ImGuiKey_0;
+    case fan::key_1: return ImGuiKey_1;
+    case fan::key_2: return ImGuiKey_2;
+    case fan::key_3: return ImGuiKey_3;
+    case fan::key_4: return ImGuiKey_4;
+    case fan::key_5: return ImGuiKey_5;
+    case fan::key_6: return ImGuiKey_6;
+    case fan::key_7: return ImGuiKey_7;
+    case fan::key_8: return ImGuiKey_8;
+    case fan::key_9: return ImGuiKey_9;
+    case fan::key_a: return ImGuiKey_A;
+    case fan::key_b: return ImGuiKey_B;
+    case fan::key_c: return ImGuiKey_C;
+    case fan::key_d: return ImGuiKey_D;
+    case fan::key_e: return ImGuiKey_E;
+    case fan::key_f: return ImGuiKey_F;
+    case fan::key_g: return ImGuiKey_G;
+    case fan::key_h: return ImGuiKey_H;
+    case fan::key_i: return ImGuiKey_I;
+    case fan::key_j: return ImGuiKey_J;
+    case fan::key_k: return ImGuiKey_K;
+    case fan::key_l: return ImGuiKey_L;
+    case fan::key_m: return ImGuiKey_M;
+    case fan::key_n: return ImGuiKey_N;
+    case fan::key_o: return ImGuiKey_O;
+    case fan::key_p: return ImGuiKey_P;
+    case fan::key_q: return ImGuiKey_Q;
+    case fan::key_r: return ImGuiKey_R;
+    case fan::key_s: return ImGuiKey_S;
+    case fan::key_t: return ImGuiKey_T;
+    case fan::key_u: return ImGuiKey_U;
+    case fan::key_v: return ImGuiKey_V;
+    case fan::key_w: return ImGuiKey_W;
+    case fan::key_x: return ImGuiKey_X;
+    case fan::key_y: return ImGuiKey_Y;
+    case fan::key_z: return ImGuiKey_Z;
+    case fan::key_f1: return ImGuiKey_F1;
+    case fan::key_f2: return ImGuiKey_F2;
+    case fan::key_f3: return ImGuiKey_F3;
+    case fan::key_f4: return ImGuiKey_F4;
+    case fan::key_f5: return ImGuiKey_F5;
+    case fan::key_f6: return ImGuiKey_F6;
+    case fan::key_f7: return ImGuiKey_F7;
+    case fan::key_f8: return ImGuiKey_F8;
+    case fan::key_f9: return ImGuiKey_F9;
+    case fan::key_f10: return ImGuiKey_F10;
+    case fan::key_f11: return ImGuiKey_F11;
+    case fan::key_f12: return ImGuiKey_F12;
+    case fan::key_f13: return ImGuiKey_F13;
+    case fan::key_f14: return ImGuiKey_F14;
+    case fan::key_f15: return ImGuiKey_F15;
+    case fan::key_f16: return ImGuiKey_F16;
+    case fan::key_f17: return ImGuiKey_F17;
+    case fan::key_f18: return ImGuiKey_F18;
+    case fan::key_f19: return ImGuiKey_F19;
+    case fan::key_f20: return ImGuiKey_F20;
+    case fan::key_f21: return ImGuiKey_F21;
+    case fan::key_f22: return ImGuiKey_F22;
+    case fan::key_f23: return ImGuiKey_F23;
+    case fan::key_f24: return ImGuiKey_F24;
+    default: return ImGuiKey_None;
+  }
+}
+#endif

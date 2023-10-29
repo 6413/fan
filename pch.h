@@ -7,6 +7,16 @@
 #include <fstream>
 #include <string>
 
+#define loco_imgui
+
+#if defined(loco_imgui)
+#define IMGUI_IMPL_OPENGL_LOADER_CUSTOM
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "imgui.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_impl_win32.h"
+#endif
+
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #ifndef FAN_INCLUDE_PATH
@@ -28,7 +38,6 @@
 #define loco_tp
 // 
 #define loco_physics
-
 /*
 #define loco_cuda
 #define loco_nv12
@@ -36,3 +45,4 @@
 */
 
 #include _FAN_PATH(graphics/loco.h)
+

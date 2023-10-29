@@ -46,3 +46,9 @@ a.out
 *.gch
 a.exp
 a.lib
+x64/
+include/baseclasses
+include/softcam
+include/softcamcore
+include/imgui
+lib/
