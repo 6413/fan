@@ -92,7 +92,7 @@
     <ClCompile>
       <WarningLevel>Level1</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>FAN_INCLUDE_PATH=C:/libs/fan/include;fan_pch="pch.h";WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FAN_INCLUDE_PATH=C:/libs/fan/include;fan_pch="pch.h";WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;fan_build_pch;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -138,7 +138,7 @@
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>FAN_INCLUDE_PATH=C:/libs/fan/include;fan_pch="pch.h";WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FAN_INCLUDE_PATH=C:/libs/fan/include;fan_pch="pch.h";WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;fan_build_pch;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>Disabled</Optimization>
@@ -181,7 +181,7 @@
     <ClCompile>
       <WarningLevel>Level1</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>FAN_INCLUDE_PATH=C:/libs/fan/include;fan_pch="pch.h";WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;BX_CONFIG_DEBUG=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FAN_INCLUDE_PATH=C:/libs/fan/include;fan_pch="pch.h";WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;fan_build_pch;BX_CONFIG_DEBUG=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -227,7 +227,7 @@
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>FAN_INCLUDE_PATH=C:/libs/fan/include;fan_pch="pch.h";WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;BX_CONFIG_DEBUG=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FAN_INCLUDE_PATH=C:/libs/fan/include;fan_pch="pch.h";WITCH_INCLUDE_PATH=C:/libs/WITCH;set_durums_pc;_CRT_SECURE_NO_WARNINGS;_DISABLE_VECTOR_ANNOTATION;fan_build_pch;BX_CONFIG_DEBUG=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>Disabled</Optimization>
@@ -268,7 +268,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\cpp\mp.cpp" />
+    <ClCompile Include="examples\gui\imgui_test.cpp" />
     <ClCompile Include="include\fan\imgui\imgui.cpp" />
     <ClCompile Include="include\fan\imgui\imgui_draw.cpp" />
     <ClCompile Include="include\fan\imgui\imgui_impl_opengl3.cpp" />

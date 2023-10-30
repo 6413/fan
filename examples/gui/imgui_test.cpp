@@ -24,13 +24,15 @@ int main() {
       }
       ImGui::SameLine();
       ImGui::Text("counter = %d", counter);
+      fan::string str;
+      str.resize(10);
+      ImGui::InputText("input:", str.data(), str.size());
 
       ImGui::End();
     }
   );
 
   loco.loop([&] {    
-
     
   });
 

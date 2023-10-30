@@ -104,9 +104,13 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
+#if !defined(fan_platform_unix)
 #include "imgui.h"
+#endif
 #ifndef IMGUI_DISABLE
+#if !defined(fan_platform_unix)
 #include "imgui_impl_opengl3.h"
+#endif
 #include <stdio.h>
 #include <stdint.h>     // intptr_t
 #if defined(__APPLE__)

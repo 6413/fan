@@ -328,7 +328,7 @@ namespace fan {
 
       internal_t internal;
 
-      internal_t::properties_t p{0};
+      internal_t::properties_t p{};
 
       inline static auto init = [](auto ptr, internal_t* internal) -> bool {
         internal->open(&ptr->p);

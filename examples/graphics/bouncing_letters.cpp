@@ -2,7 +2,6 @@
 
 int main() {
   loco_t loco;
-
   static constexpr int wall_count = 4;
   fan::graphics::collider_static_t walls[wall_count];
   for (int i = 0; i < wall_count; ++i) {
@@ -22,7 +21,7 @@ int main() {
 
 
   std::vector<fan::graphics::collider_dynamic_t> balls;
-  static constexpr int ball_count = 500;
+  static constexpr int ball_count = 10;
   balls.reserve(ball_count);
   for (int i = 0; i < ball_count; ++i) {
     balls.push_back(fan::graphics::letter_t{{
