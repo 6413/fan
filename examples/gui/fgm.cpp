@@ -1,52 +1,16 @@
 #include fan_pch
 
-struct pile_t {
+#include _FAN_PATH(graphics/gui/fgm.h)
 
-  pile_t() {
+int main() {
+  loco_t loco;
 
-    /* loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
-       fan::vec2 window_size = window->get_size();
-       fan::vec2 ratio = window_size / window_size.max();
-       std::swap(ratio.x, ratio.y);
-       pile_t* pile = (pile_t*)userptr;
-       pile->camera.set_ortho(
-         &loco,
-         ortho_x * ratio.x,
-         ortho_y * ratio.y
-       );
-     });*/
-  }
-  ~pile_t() {
+  fgm_t fgm("TexturePack");
+  fgm.fin("file.fgm");
 
-  }
-
-  loco_t loco_var_name;
-};
-
-#include _FAN_PATH(graphics/gui/fgm/fgm.h)
-
-int main(int argc, char** argv) {
-  if (argc < 2) {
-    fan::throw_error("usage: TexturePackCompiled");
-  }
-
-  pile_t pile;
-
-  fgm_t fgm;
-  
-  fgm.open(argv[1]);
-  fgm.load();
-
-
-  pile.loco.set_vsync(false);
-  pile.loco.get_window()->set_max_fps(165);
-  //pile->loco.get_window()->set_max_fps(5);
-  pile.loco.loop([&] {
+  loco.loop([&] {
 
   });
-
-
-  // pile->close();
 
   return 0;
 }

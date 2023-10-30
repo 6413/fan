@@ -2,6 +2,7 @@
 #define stage_loader_path
 #endif
 
+#define stage_maker_loader
 #include _FAN_PATH(graphics/gui/fgm/common.h)
 
 struct stage_loader_t;
@@ -90,9 +91,9 @@ public:
 
   struct stage_open_properties_t {
     
-    loco_t::camera_t* camera;
-    fan::graphics::viewport_t* viewport;
-    loco_t::theme_t* theme;
+    loco_t::camera_t* camera = &gloco->default_camera->camera;
+    fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
+    loco_t::theme_t* theme = &gloco->default_theme;
 
     stage_loader_t::nr_t parent_id;
     uint32_t itToDepthMultiplier = 0x100;
@@ -185,32 +186,11 @@ public:
   }
 
   void load_fgm(auto* stage, const stage_open_properties_t& op, const char* stage_name) {
-
-    fan::string full_path = fan::string("stages_runtime/") + stage_name + ".fgm";
-    fan::string f;
-    fan::io::file::read(full_path, &f);
-    uint64_t off = 0;
-
-    uint32_t file_version = fan::read_data<uint32_t>(f, off);
-
-    switch (file_version) {
-      case stage_maker_format_version: {
-        #include _FAN_PATH(graphics/gui/stage_maker/loader_versions/011.h)
-        break;
-      }
-      default: {
-        fan::throw_error("invalid version fgm version number", file_version);
-        break;
-      }
-    }
+    fan::string filename = fan::string("stages_runtime/") + stage_name + ".fgm";
+    #define only_struct_data
+    #include _FAN_PATH(graphics/gui/stage_maker/loader_versions/1.h)
   }
 
-	//template <typename stage_t>
-	//stage_loader_t::nr_t open_stage(const stage_open_properties_t& op) {
-
-
-	//	return stage->stage_id;
-	//}
 	void erase_stage(nr_t id) {
     auto* sc = (stage_common_t*)stage_list[id].stage;
     fan::print("-", sc, sc->cid_list.Usage());
@@ -247,57 +227,4 @@ public:
   };
 
 };
-
-//#define fan_make_custom_stage(name) \
-//  lstd_defstruct(name) \
-//  static constexpr const char* stage_name = ""; \
-//  stage_loader_t::stage_common_t stage_common = { \
-//    .open = _stage_open, \
-//    .close = _stage_close, \
-//    .window_resize = _stage_window_resize, \
-//    .update = _stage_update \
-//  }; \
-//   \
-//  static void _stage_open(void* ptr, void *sod) { \
-//    ((lstd_current_type*)ptr)->open(sod); \
-//  } \
-//   \
-//  static void _stage_close(void* ptr) { \
-//    ((lstd_current_type*)ptr)->close(); \
-//    delete (lstd_current_type*)ptr; \
-//  }   \
-//   \
-//  static void _stage_window_resize(void* ptr){ \
-//	  ((lstd_current_type*)ptr)->window_resize(); \
-//  } \
-//   \
-//  static void _stage_update(void* ptr){ \
-//    ((lstd_current_type*)ptr)->update(); \
-//  } \
-//   \
-//  struct structor_t{ \
-//    structor_t(const stage_loader_t::stage_open_properties_t& op) { \
-//      auto outside = OFFSETLESS(this, lstd_current_type, structor); \
-//      auto nr = gstage->stage_list.NewNodeLast(); \
-//      outside->stage_common.stage_id = nr; \
-//      outside->stage_common.parent_id = op.parent_id; \
-//      gstage->stage_list[nr].stage = outside; \
-//      if (outside->stage_common.stage_id.Prev(&gstage->stage_list) != gstage->stage_list.src) { \
-//        outside->stage_common.it = ((stage_loader_t::stage_common_t *)gstage->stage_list[outside->stage_common.stage_id.Prev(&gstage->stage_list)].stage)->it + 1; \
-//      } \
-//      else { \
-//        outside->stage_common.it = 0; \
-//      } \
-//       \
-//      gstage->stage_list[outside->stage_common.stage_id].update_nr = gloco->m_update_callback.NewNodeLast(); \
-//      gloco->m_update_callback[gstage->stage_list[outside->stage_common.stage_id].update_nr] = [&, outside](loco_t*  loco) { \
-//        outside->update(); \
-//      }; \
-//      gstage->stage_list[outside->stage_common.stage_id].resize_nr = gloco->get_window()->add_resize_callback([&,  outside](const auto&) { \
-//        outside->window_resize(); \
-//      }); \
-//    } \
-//  }structor;
-//
-
 #undef stage_loader_path

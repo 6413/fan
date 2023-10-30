@@ -1,185 +1,94 @@
-struct stage_maker_shape_format_0_1_1 {
+struct version_001_t {
 
-  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::button;
-
-  struct shape_button_t {
-    loco_t::button_t::properties_t get_properties(
-      loco_t::viewport_t& viewport,
-      loco_t::camera_t& camera,
-      loco_t::theme_t& theme
-      ) {
-      loco_t::button_t::properties_t p;
-      p.viewport = &viewport;
-      p.camera = &camera;
-      p.position = position;
-      p.size = size;
-      p.font_size = font_size;
-      p.text = text;
-      p.theme = &theme;
-      return p;
-    }
-
-    fan_masterpiece_make(
-      (fan::vec3) position,
-      (fan::vec2) size,
-      (f32_t) font_size,
-      (fan::string) text,
-      (fan::string) id
-    )
-  };
-  struct shape_sprite_t {
+  struct sprite_t {
 
     static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::sprite;
 
-    loco_t::sprite_t::properties_t get_properties(
-      loco_t::viewport_t& viewport,
-      loco_t::camera_t& camera,
-      loco_t::texturepack_t& texturepack
-      ) {
-      loco_t::sprite_t::properties_t p;
-      p.viewport = &viewport;
-      p.camera = &camera;
-      p.position = position;
-      p.size = size;
+    fan::vec3 position;
+    fan::vec2 size;
+    fan::color color;
+    fan::string image_name;
+
+    // global
+    fan::string id;
+    uint32_t group_id;
+
+  #ifndef stage_maker_loader
+
+    void init(loco_t::shape_t& shape) {
+      position = shape.get_position();
+      size = shape.get_size();
+      color = shape.get_color();
+    }
+
+    void from_string(const fan::string& str, uint64_t& off) {
+      position = fan::read_data<fan::vec3>(str, off);
+      size = fan::read_data<fan::vec3>(str, off);
+      color = fan::read_data<fan::color>(str, off);
+      position = fan::read_data<fan::vec3>(str, off);
+    }
+
+    shapes_t::global_t* get_shape(fgm_t* fgm) {
+      fgm_t::shapes_t::global_t* ret = new fgm_t::shapes_t::global_t(
+        fgm,
+       fan::graphics::sprite_t{{
+           .position = position,
+           .size = size,
+           .color = color
+         }}
+      );
+
+      ret->shape_data.sprite.image_name = image_name;
+      ret->id = id;
+      ret->group_id = group_id;
+
+      if (image_name.empty()) {
+        return ret;
+      }
 
       loco_t::texturepack_t::ti_t ti;
-      if (texturepack.qti(texturepack_name, &ti)) {
-        p.image = &gloco->default_texture;
+      if (fgm->texturepack.qti(image_name, &ti)) {
+        fan::print_no_space("failed to load texture:", image_name);
       }
       else {
-        auto& pd = texturepack.get_pixel_data(ti.pack_id);
-        p.image = &pd.image;
-        p.tc_position = ti.position / pd.image.size;
-        p.tc_size = ti.size / pd.image.size;
+        auto& data = fgm->texturepack.get_pixel_data(ti.pack_id);
+        gloco->sprite.load_tp(ret->children[0], &ti);
       }
-      return p;
-    }
 
-    #if defined(fgm_build_model_maker)
-    fan_masterpiece_make(
-      (fan::vec3) position,
-      (fan::vec2) size,
-      (f32_t) parallax_factor,
-      (fan::string) texturepack_name,
-      (fan::string) id,
-      (uint32_t) group_id
-    )
-    #else
-    fan_masterpiece_make(
-      (fan::vec3)position,
-      (fan::vec2)size,
-      (f32_t)parallax_factor,
-      (fan::string)texturepack_name,
-      (fan::string)id
-    )
-    #endif
+      return ret;
+    }
+  #else
+    loco_t::shape_t get_shape(loco_t::texturepack_t* tp) {
+      fan::graphics::sprite_t s{{
+          .position = position,
+          .size = size,
+          .color = color
+        }};
+      if (image_name.empty()) {
+        return *dynamic_cast<loco_t::shape_t*>(&s);
+      }
+
+      loco_t::texturepack_t::ti_t ti;
+      if (tp->qti(image_name, &ti)) {
+        fan::print_no_space("failed to load texture:", image_name);
+      }
+      else {
+        auto& data = tp->get_pixel_data(ti.pack_id);
+        gloco->sprite.load_tp(s, &ti);
+      }
+      return *dynamic_cast<loco_t::shape_t*>(&s);
+    }
+  #endif
   };
-  struct shape_text_t {
 
-    static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::text;
-
-    loco_t::text_t::properties_t get_properties(
-      loco_t::viewport_t& viewport,
-      loco_t::camera_t& camera
-      ) {
-      loco_t::text_t::properties_t p;
-      p.viewport = &viewport;
-      p.camera = &camera;
-      p.position = position;
-      p.font_size = size;
-      p.text = text;
-      return p;
-    }
-
-    fan_masterpiece_make(
-      (fan::vec3) position,
-      (f32_t) size,
-      (fan::string) text,
-      (fan::string) id
-    );
-  };
-  struct shape_hitbox_t {
-
-    static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::hitbox;
-
-    loco_t::sprite_t::properties_t get_properties(
-      loco_t::viewport_t& viewport,
-      loco_t::camera_t& camera,
-      loco_t::image_t* image
-      ) {
-      loco_t::sprite_t::properties_t p;
-      p.viewport = &viewport;
-      p.camera = &camera;
-      p.position = position;
-      p.size = size;
-      p.image = image;
-      return p;
-    }
-
-    fan_masterpiece_make(
-      (fan::vec3) position,
-      (fan::vec2) size,
-      (loco_t::vfi_t::shape_type_t) vfi_type,
-      (fan::string) id
-    )
-  };
-  struct shape_mark_t {
-
-    static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::mark;
-
-    loco_t::sprite_t::properties_t get_properties(
-      loco_t::viewport_t& viewport,
-      loco_t::camera_t& camera,
-      loco_t::image_t* image
-      ) {
-      loco_t::sprite_t::properties_t p;
-      p.viewport = &viewport;
-      p.camera = &camera;
-      p.position = position;
-      p.size = 0.1;
-      p.image = image;
-      return p;
-    }
-
-    #if defined(fgm_build_model_maker)
-    fan_masterpiece_make(
-      (fan::vec3)position,
-      (fan::string)id,
-      (uint32_t) group_id
-    )
-    #else
-    fan_masterpiece_make(
-      (fan::vec3)position,
-      (fan::string)id
-    )
-    #endif
+  struct shapes_t {
+    sprite_t sprite;
   };
 };
 
-using stage_maker_shape_format = stage_maker_shape_format_0_1_1;
+static constexpr uint32_t version_001 = 1;
 
-static constexpr uint32_t version_010 = 10;
-static constexpr uint32_t version_011 = 11;
+static constexpr uint32_t current_version = version_001;
+using current_version_t = version_001_t;
 
-static constexpr uint32_t stage_maker_format_version = version_011;
-
-static fan::string shape_to_string(const auto& shape) {
-  fan::string str;
-  shape.iterate_masterpiece([&str](const auto& field) {
-    if constexpr (std::is_same_v<std::remove_const_t<std::remove_reference_t<decltype(field)>>, fan::string>) {
-      uint64_t string_length = field.size();
-      str.append((char*)&string_length, sizeof(string_length));
-      str.append(field);
-    }
-    else {
-      str.append((char*)&field, sizeof(field));
-    }
-  });
-  return str;
-}
-
-fan::string shapes_to_string(auto&&... shapes) {
-  fan::string str;
-  ((str += shape_to_string(shapes)), ...);
-  return str;
-}
+#undef only_struct_data
