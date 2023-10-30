@@ -44,6 +44,12 @@ struct loco_t;
 
 #include <variant>
 
+
+#if defined(loco_imgui) && defined(fan_platform_linux)
+static void imgui_xorg_init();
+static void imgui_xorg_new_frame();
+#endif
+
 #if defined(loco_cuda)
 #include "cuda_runtime.h"
 #include <cuda.h>
@@ -260,7 +266,7 @@ namespace fan {
 namespace fan {
   namespace graphics {
   #if defined(loco_physics)
-    void open_bcol();
+    static void open_bcol();
   #endif
     using direction_e = fan::graphics::viewport_divider_t::direction_e;
     inline fan::vec2 default_camera_ortho_x{-1, 1};
@@ -1897,7 +1903,11 @@ public:
 
     ImGui::StyleColorsDark();
 
+    #if defined(fan_platform_windows)
     ImGui_ImplWin32_Init(hwnd);
+    #elif defined(fan_platform_linux)
+    imgui_xorg_init();
+    #endif
     ImGui_ImplOpenGL3_Init();
     #endif
 
@@ -2009,7 +2019,11 @@ public:
 
     #if defined(loco_imgui)
     ImGui_ImplOpenGL3_NewFrame();
+    #if defined(fan_platform_windows)
     ImGui_ImplWin32_NewFrame();
+    #elif defined(fan_platform_linux)
+    imgui_xorg_new_frame();
+    #endif
     ImGui::NewFrame();
 
     {
@@ -3137,7 +3151,7 @@ namespace fan {
 }
 
 // for pch
-#if defined(fan_compiler_clang)
+#if defined(fan_build_pch) && defined(fan_compiler_clang)
 void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
   viewport_position = viewport_position_;
   viewport_size = viewport_size_;
@@ -3167,6 +3181,23 @@ namespace fan::opengl {
 
 fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::opengl::viewport_t* viewport) {
   NRI = viewport->viewport_reference.NRI;
+}
+#endif
+
+#if defined(loco_imgui) && defined(fan_platform_linux)
+static void imgui_xorg_init() {
+  ImGuiIO& io = ImGui::GetIO();
+  io.DisplaySize = gloco->get_window()->get_size();
+  gloco->get_window()->add_mouse_move_callback([](const auto& d) {
+    auto& io = ImGui::GetIO();
+    if (!io.WantSetMousePos) {
+      io.AddMousePosEvent(d.position.x, d.position.y);
+    }
+  });
+}
+static void imgui_xorg_new_frame() {
+  ImGuiIO& io = ImGui::GetIO();
+  io.DisplaySize = gloco->get_window()->get_size();
 }
 #endif
 

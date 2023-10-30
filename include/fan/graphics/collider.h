@@ -1,9 +1,7 @@
 #pragma once
 
+#if defined(fan_build_pch)
 #if defined(loco_physics)
-
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-#include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
 
 constexpr static f32_t bcol_step_time = 0.01;
 #define ETC_BCOL_set_prefix bcol
@@ -96,4 +94,5 @@ namespace fan {
   }
 }
 
+#endif
 #endif

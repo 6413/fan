@@ -1,5 +1,11 @@
 #pragma once
 
+#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
+
+#if defined(fan_build_pch)
+  #include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
+#endif
+
 #include <iostream>
 #include <regex>
 #include <functional>
@@ -16,8 +22,6 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_win32.h"
 #endif
-
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #ifndef FAN_INCLUDE_PATH
 #define FAN_INCLUDE_PATH C:/libs/fan/include

@@ -94,7 +94,7 @@
 
 #undef index
 
-int cleanupHandler(Display* display) {
+static int cleanupHandler(Display* display) {
   XUngrabPointer(display, CurrentTime);
   return 0;
 }
@@ -2477,7 +2477,6 @@ namespace fan {
           continue;
         }
 
-        fan::print(fb_samples, samp_buf);
         if (samples == fb_samples) {
           best_fbc = i;
         }

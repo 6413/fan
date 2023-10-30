@@ -949,7 +949,9 @@ CODE
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 
+#if !defined(fan_platform_unix)
 #include "imgui.h"
+#endif
 #ifndef IMGUI_DISABLE
 #include "imgui_internal.h"
 
@@ -6908,7 +6910,7 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
 
         // Collapse window by double-clicking on title bar
         // At this point we don't have a clipping rectangle setup yet, so we can use the title bar area for hit detection and drawing
-        if (!(flags & ImGuiWindowFlags_NoTitleBar) && !(flags & ImGuiWindowFlags_NoCollapse) && !window->DockIsActive)
+        if (!(flags & ImGuiWindowFlags_NoTitleBar) && !(flags & ImGuiWindowFlags_NoCollapse) && !window->DockIsActive) 
         {
             // We don't use a regular button+id to test for double-click on title bar (mostly due to legacy reason, could be fixed), so verify that we don't have items over the title bar.
             ImRect title_bar_rect = window->TitleBarRect();
