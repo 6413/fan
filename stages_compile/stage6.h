@@ -1,4 +1,4 @@
-void open() {
+void open(void* sod) {
   
 }
 

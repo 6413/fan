@@ -268,7 +268,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\imgui_test.cpp" />
+    <ClCompile Include="examples\gui\stage_maker.cpp" />
     <ClCompile Include="include\fan\imgui\imgui.cpp" />
     <ClCompile Include="include\fan\imgui\imgui_draw.cpp" />
     <ClCompile Include="include\fan\imgui\imgui_impl_opengl3.cpp" />
@@ -360,9 +360,7 @@
     <ClInclude Include="include\fan\graphics\gui\model_maker\loader.h" />
     <ClInclude Include="include\fan\graphics\gui\model_maker\maker.h" />
     <ClInclude Include="include\fan\graphics\gui\responsive_text.h" />
-    <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\010.h" />
-    <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\011.h" />
-    <ClInclude Include="include\fan\graphics\gui\stage_maker\helper_functions\rename_cb.h" />
+    <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\1.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\preset.h" />
     <ClInclude Include="include\fan\graphics\loco.h" />
     <ClInclude Include="include\fan\graphics\loco0.h" />

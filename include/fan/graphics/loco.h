@@ -2697,7 +2697,7 @@ public:
     return viewport_handler.back();
   }
 
-  loco_t::theme_t theme_deep_red = loco_t::themes::deep_red();
+  loco_t::theme_t default_theme = loco_t::themes::gray();
   camera_impl_t* default_camera;
   loco_t::viewport_t default_viewport;
 
@@ -2941,7 +2941,7 @@ namespace fan {
 
     #if defined(loco_button)
     struct button_properties_t {
-      loco_t::theme_t* theme = &gloco->theme_deep_red;
+      loco_t::theme_t* theme = &gloco->default_theme;
       loco_t::camera_t* camera = &gloco->default_camera->camera;
       loco_t::viewport_t* viewport = &gloco->default_viewport;
       fan::vec3 position = fan::vec3(0, 0, 0);

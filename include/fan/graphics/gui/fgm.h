@@ -2,8 +2,6 @@
 
 struct fgm_t {
 
-  static constexpr uint32_t version_001 = 1;
-
   fgm_t(const fan::string& texturepack_name) {
     texturepack.open_compiled(texturepack_name);
   }
@@ -59,72 +57,7 @@ struct fgm_t {
     };
   };
 
-  struct version_001_t {
-
-    struct sprite_t {
-
-      static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::sprite;
-
-      fan::vec3 position;
-      fan::vec2 size;
-      fan::color color;
-      fan::string image_name;
-
-      // global
-      fan::string id;
-      uint32_t group_id;
-
-      void init(loco_t::shape_t& shape) {
-        position = shape.get_position();
-        size = shape.get_size();
-        color = shape.get_color();
-      }
-
-      void from_string(const fan::string& str, uint64_t& off) {
-        position = fan::read_data<fan::vec3>(str, off);
-        size = fan::read_data<fan::vec3>(str, off);
-        color = fan::read_data<fan::color>(str, off);
-        position = fan::read_data<fan::vec3>(str, off);
-      }
-
-      shapes_t::global_t* get_shape(fgm_t* fgm) {
-        fgm_t::shapes_t::global_t* ret = new fgm_t::shapes_t::global_t(
-          fgm,
-         fan::graphics::sprite_t{{
-             .position = position,
-             .size = size,
-             .color = color
-           }}
-        );
-
-        ret->shape_data.sprite.image_name = image_name;
-        ret->id = id;
-        ret->group_id = group_id;
-
-        if (image_name.empty()) {
-          return ret;
-        }
-
-        loco_t::texturepack_t::ti_t ti;
-        if (fgm->texturepack.qti(image_name, &ti)) {
-          fan::print_no_space("failed to load texture:", image_name);
-        }
-        else {
-          auto& data = fgm->texturepack.get_pixel_data(ti.pack_id);
-          gloco->sprite.load_tp(ret->children[0], &ti);
-        }
-
-        return ret;
-      }
-    };
-
-    struct shapes_t {
-      sprite_t sprite;
-    };
-  };
-
-  static constexpr uint32_t current_version = version_001;
-  using current_version_t = version_001_t;
+  #include _FAN_PATH(graphics/gui/fgm/common.h)
 
   #define BLL_set_StoreFormat 1
   //#define BLL_set_CPP_CopyAtPointerChange
@@ -432,40 +365,7 @@ struct fgm_t {
   }
   */
   void fin(const fan::string& filename) {
-    fan::string in;
-    fan::io::file::read(filename, &in);
-    uint64_t off = 0;
-    uint32_t version = fan::read_data<uint32_t>(in, off);
-    if (version != current_version) {
-      fan::print_format("invalid file version, file:{}, current:{}", version, current_version);
-      return;
-    }
-    fan::mp_t<current_version_t::shapes_t> shapes;
-    while (off != in.size()) {
-      bool ignore = true;
-      uint32_t byte_count = 0;
-      shapes.iterate([&]<auto i0, typename T>(T & v0) {
-        uint16_t shape_type = fan::read_data<uint16_t>(in, off);
-        byte_count = fan::read_data<uint32_t>(in, off);
-        if (shape_type != T::shape_type) {
-          return;
-        }
-        ignore = false;
-
-        auto it = shape_list.NewNodeLast();
-
-        fan::mp_t<T> shape;
-        shape.iterate([&]<auto i, typename T2>(T2 & v) {
-          v = fan::read_data<T2>(in, off);
-        });
-
-        shape_list[it] = shape.get_shape(this);
-      });
-      // if shape is not part of version
-      if (ignore) {
-        off += byte_count;
-      }
-    }
+    #include _FAN_PATH(graphics/gui/stage_maker/loader_versions/1.h)
   }
 
   event_type_e event_type = event_type_e::none;
