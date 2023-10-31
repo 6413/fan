@@ -334,6 +334,23 @@ struct loco_t {
     static constexpr _t responsive_text = 13;
   };
 
+  static constexpr const char* shape_names[] = {
+    "Button",
+    "Sprite",
+    "Text",
+    "Hitbox",
+    "Line",
+    "Mark",
+    "Rectangle",
+    "Light",
+    "Unlit Sprite",
+    "Letter",
+    "Text Box",
+    "Circle",
+    "Pixel Format Renderer",
+    "Reponsive Text"
+  };
+
 
 #pragma pack(push, 1)
   template <typename T, bool order_matters = false>
@@ -2856,6 +2873,33 @@ namespace fan {
             .radius = p.radius,
             .color = p.color,
             .blending = p.blending
+          ));
+      }
+    };
+
+    struct unlit_sprite_properties_t {
+      fan::graphics::camera_t* camera = gloco->default_camera;
+      fan::vec3 position = fan::vec3(0, 0, 0);
+      fan::vec2 size = fan::vec2(0.1, 0.1);
+      fan::color color = fan::color(1, 1, 1, 1);
+      loco_t::image_t* image = &gloco->default_texture;
+      bool blending = false;
+      fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+    };
+
+    struct unlit_sprite_t : loco_t::shape_t {
+      unlit_sprite_t(unlit_sprite_properties_t p = unlit_sprite_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            loco_t::unlit_sprite_t::properties_t,
+            .camera = &p.camera->camera,
+            .viewport = &p.camera->viewport,
+            .position = p.position,
+            .size = p.size,
+            .image = p.image,
+            .color = p.color,
+            .blending = p.blending,
+            .rotation_vector = p.rotation_vector
           ));
       }
     };

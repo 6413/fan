@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <type_traits>
+#include <variant>
 
 namespace fan {
   #pragma pack(push, 1)
@@ -426,6 +427,11 @@ namespace fan {
   struct mp_t : T {
     using type_t = T;
 
+    constexpr auto get_tuple_refless() {
+      T t;
+      return fan::make_struct_tuple<T>(t);
+    }
+
     constexpr auto get_tuple() {
       return fan::make_struct_tuple_ref(*(T*)this);
     }
@@ -464,14 +470,14 @@ namespace fan {
       return begin() + sizeof(T) - sizeof(decltype(std::get<n - 1>(get_tuple())));
     }
 
-    template<size_t ...Is>
-    constexpr void internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
-      ((void)(Is == i && (lambda(get<Is>()), true)), ...);
-    }
-
     constexpr std::size_t size() const {
       using T2 = decltype(get_tuple());
       return std::tuple_size_v<T2>;
+    }
+
+    template<size_t ...Is>
+    constexpr void internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
+      ((void)(Is == i && (lambda(get<Is>()), true)), ...);
     }
 
     constexpr void get_value(size_t idx, const auto& lambda)
@@ -486,4 +492,77 @@ namespace fan {
     }
 
   };
+
+  template <typename T>
+  static constexpr std::size_t get_biggest_sizeof() {
+    constexpr auto max_stack_size = 0xffff;
+    static_assert(sizeof(T) <= max_stack_size, "too big struct for stack");
+    std::size_t max_sizeof = 0;
+    fan::iterate_struct<T>(T{}, [&max_sizeof]<auto i0, typename T2>(T2&) {
+      if (max_sizeof < sizeof(T2)) {
+        max_sizeof = sizeof(T2);
+      }
+    });
+    return max_sizeof;
+  }
+
+  //template <typename in_type_t>
+  //struct union_mp {
+  //  uint8_t m_data[get_biggest_sizeof<in_type_t>()];
+  //  uint32_t m_current = -1;
+
+  //  constexpr auto get_tuple() {
+  //    return fan::make_struct_tuple_ref(*(in_type_t*)this);
+  //  }
+
+  //  template <std::size_t n>
+  //  constexpr auto& get() {
+  //    return std::get<n>(get_tuple());
+  //  }
+
+  //  template <typename T>
+  //  constexpr T& get() {
+  //    bool exit = false;
+  //    in_type_t it{};
+  //    fan::iterate_struct(it, [this, &exit]<auto i0, typename T0>(T0&) {
+  //      if constexpr (std::is_same_v<T, T0>) {
+  //        exit = true;
+  //        if (m_current != i0) {
+  //          new (m_data) T();
+  //        }
+  //        m_current = i0;
+  //      }
+  //    });
+  //    return *reinterpret_cast<T*>(m_data);
+  //  }
+  //  template<size_t ...Is>
+  //  constexpr void internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
+  //    ((void)(Is == i && (lambda(get<Is>()), true)), ...);
+  //  }
+
+  //  constexpr void get_value(size_t idx, const auto& lambda)
+  //  {
+  //    constexpr std::size_t n = std::tuple_size_v<decltype(get_tuple())>;
+  //    internal_get_runtime_value(std::make_index_sequence<n>{}, idx, lambda);
+  //  }
+  //  constexpr void current(const auto& lambda) {
+  //    get_value(m_current, lambda);
+  //  }
+  //};
+
+  template<typename... Ts>
+  std::variant<Ts...> make_variant(const std::tuple<Ts...>& tup) {
+    std::variant<Ts...> var;
+    return var;
+  }
+
+  template <typename T>
+  auto make_union_mp() {
+    fan::mp_t<T>t;
+    return make_variant(t.get_tuple_refless());
+  }
+
+  template <typename T>
+  using union_mp = fan::return_type_of_t<decltype(make_union_mp<T>)>;
+
 }

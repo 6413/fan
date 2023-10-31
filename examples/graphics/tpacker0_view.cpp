@@ -26,7 +26,7 @@ int main() {
   pile.open();
 
   loco_t::texturepack_t texturepack;
-  texturepack.open_compiled(&pile.loco, "TexturePack");
+  texturepack.open_compiled("TexturePack");
 
   loco_t::sprite_t::properties_t p;
 

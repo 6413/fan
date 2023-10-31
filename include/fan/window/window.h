@@ -2804,12 +2804,12 @@ namespace fan {
 
 #endif
 
-#ifdef fan_platform_windows
-
-int main();
-
-int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
-  return main();
-}
-
-#endif
+//#ifdef fan_subsystem_windows
+//
+//int main();
+//
+//int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
+//  return main();
+//}
+//
+//#endif

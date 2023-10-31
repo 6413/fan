@@ -121,7 +121,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -168,7 +168,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <SubSystem>Console</SubSystem>
@@ -210,7 +210,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -258,7 +258,7 @@
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;C:\libs\fan\lib\opencv;C:\libs\fan\lib\dpp;C:\libs\lib\openssl;C:\libs\lib\libuv;C:\libs\fan\lib\softcam</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;C:\libs\fan\lib\opencv;C:\libs\fan\lib\dpp;C:\libs\lib\openssl;C:\libs\lib\libuv;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;opencv_world480.lib;libssl.lib;libcrypto.lib;uv_a.lib;dpp.lib</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <SubSystem>Console</SubSystem>
@@ -268,7 +268,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\stage_maker.cpp" />
+    <ClCompile Include="examples\gui\model_loader.cpp" />
     <ClCompile Include="include\fan\imgui\imgui.cpp" />
     <ClCompile Include="include\fan\imgui\imgui_draw.cpp" />
     <ClCompile Include="include\fan\imgui\imgui_impl_opengl3.cpp" />
@@ -280,10 +280,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -355,7 +351,7 @@
     <ClInclude Include="include\fan\event\event.h" />
     <ClInclude Include="include\fan\graphics\collider.h" />
     <ClInclude Include="include\fan\graphics\divider.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm.h" />
+    <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\shapes.h" />
     <ClInclude Include="include\fan\graphics\gui\model_maker\loader.h" />
     <ClInclude Include="include\fan\graphics\gui\model_maker\maker.h" />
@@ -366,6 +362,15 @@
     <ClInclude Include="include\fan\graphics\loco0.h" />
     <ClInclude Include="include\fan\graphics\loco0_define.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\objects\pixel_format_renderer.h" />
+    <ClInclude Include="include\fan\imgui\imconfig.h" />
+    <ClInclude Include="include\fan\imgui\imgui.h" />
+    <ClInclude Include="include\fan\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="include\fan\imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="include\fan\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="include\fan\imgui\imgui_internal.h" />
+    <ClInclude Include="include\fan\imgui\imstb_rectpack.h" />
+    <ClInclude Include="include\fan\imgui\imstb_textedit.h" />
+    <ClInclude Include="include\fan\imgui\imstb_truetype.h" />
     <ClInclude Include="include\fan\trees\quad_tree.h" />
     <ClInclude Include="include\fan\video\base_enc.h" />
     <ClInclude Include="include\fan\video\nvec_cuda.h" />
@@ -387,7 +392,6 @@
     <ClInclude Include="include\fan\graphics\gui\button.h" />
     <ClInclude Include="include\fan\graphics\gui\select_box.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\common.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\shape_builder.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\private.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader.h" />
@@ -485,14 +489,6 @@
     <ClInclude Include="include\fan\window\window.h" />
     <ClInclude Include="include\fan\window\window_input.h" />
     <ClInclude Include="include\fan\window\window_input_common.h" />
-    <ClInclude Include="include\fan\imgui\imconfig.h" />
-    <ClInclude Include="include\fan\imgui\imgui.h" />
-    <ClInclude Include="include\fan\imgui\imgui_impl_opengl3.h" />
-    <ClInclude Include="include\fan\imgui\imgui_impl_win32.h" />
-    <ClInclude Include="include\fan\imgui\imgui_internal.h" />
-    <ClInclude Include="include\fan\imgui\imstb_rectpack.h" />
-    <ClInclude Include="include\fan\imgui\imstb_textedit.h" />
-    <ClInclude Include="include\fan\imgui\imstb_truetype.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="stages_compile\stage_fuel_station.h" />
   </ItemGroup>
