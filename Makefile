@@ -9,7 +9,7 @@ CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtun
   #-fsanitize=address -fno-omit-frame-pointer
 
 
-MAIN = examples/gui/stage_loader2.cpp
+MAIN = examples/gui/model_maker.cpp
 FAN_OBJECT_FOLDER = 
 
 BASE_PATH = 

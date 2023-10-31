@@ -354,13 +354,13 @@ namespace fan {
   #define GENERATE_CALL_F(count, ...) \
 template <std::size_t _N, typename T> \
 requires (count == _N) \
-auto generate_variable_list_ref(T& struct_value) { \
+constexpr auto generate_variable_list_ref(T& struct_value) { \
     auto& [__VA_ARGS__] = struct_value; \
     return std::make_tuple(__FAN__FOREACH_NS(__FAN_REF_EACH, __VA_ARGS__)); \
 }\
 template <std::size_t _N, typename T> \
 requires (count == _N) \
-auto generate_variable_list_nref(const T& struct_value) { \
+constexpr auto generate_variable_list_nref(const T& struct_value) { \
   \
     auto [__VA_ARGS__] = struct_value; \
     return std::make_tuple(__FAN__FOREACH_NS(__FAN_NREF_EACH, __VA_ARGS__)); \
@@ -429,7 +429,7 @@ auto generate_variable_list_nref(const T& struct_value) { \
   }*/
 
   template <typename T, typename F, std::size_t... I>
-  void iterate_struct_impl(T& st, F lambda, std::index_sequence<I...>) {
+  constexpr void iterate_struct_impl(T& st, F lambda, std::index_sequence<I...>) {
     auto tuple = make_struct_tuple_ref(st);
     std::apply([&lambda](auto&...args) {
       (lambda.template operator() < I > (std::forward<decltype(args)>(args)), ...);
@@ -437,12 +437,12 @@ auto generate_variable_list_nref(const T& struct_value) { \
   }
 
   template <typename T>
-  void iterate_struct(const T& st, auto lambda) {
+  constexpr void iterate_struct(const T& st, auto lambda) {
     iterate_struct_impl(st, lambda, std::make_index_sequence<count_struct_members<T>()>{});
   }
 
   template <typename T>
-  void iterate_struct(T& st, auto lambda) {
+  constexpr void iterate_struct(T& st, auto lambda) {
     iterate_struct_impl(st, lambda, std::make_index_sequence<count_struct_members<T>()>{});
   }
 
@@ -780,6 +780,22 @@ auto generate_variable_list_nref(const T& struct_value) { \
 		}
 	}
 
+  template <typename Callable>
+  struct return_type_of_membr;
+
+  template <typename R, typename C, typename... Args>
+  struct return_type_of_membr<R(C::*)(Args...)> {
+    using type = R;
+  };
+
+  template <typename R, typename C, typename... Args>
+  struct return_type_of_membr<R(C::*)(Args...) const> {
+    using type = R;
+  };
+
+  template <typename Callable>
+  using return_type_of_membr_t = typename return_type_of_membr<Callable>::type;
+
 	template<typename Callable>
 	using return_type_of_t = typename decltype(std::function{ std::declval<Callable>() })::result_type;
 
@@ -1091,4 +1107,40 @@ using __nameless_type_t = fan::assign_wrapper_t<T...>;
 
 namespace fan {
   #define temporary_struct_maker(data) __return_type_of<decltype([]{ struct {data}v; return v; })>
+
+  template <typename T>
+  struct any_type_wrap_t {
+    operator T& () {
+      return v;
+    }
+    operator T() const {
+      return v;
+    }
+    void operator=(const auto& nv) {
+      v = nv;
+    }
+    T v;
+  };
+
+  template <typename T0, typename T1>
+  struct mark : any_type_wrap_t<T1> {
+    using mark_type_t = T0;
+    using type_t = T1;
+
+    void operator=(const auto& nv) {
+      any_type_wrap_t<T1>::operator=(nv);
+    }
+  };
+
+  template <typename>
+  struct is_mark : std::false_type {};
+
+  template <typename T0, typename T1>
+  struct is_mark<fan::mark<T0, T1>> : std::true_type {};
+
+  /* template <typename T>
+   concept is_marked = is_mark<T>::value;*/
+
+  template <typename T, typename T2>
+  concept is_marked = std::is_same_v<T, typename T2::mark_type_t>;
 }

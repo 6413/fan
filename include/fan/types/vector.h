@@ -721,7 +721,7 @@ namespace fan {
 		friend std::ostream& operator<<(std::ostream& os, const _vec3<T>& vector);
 
     void from_string(const fan::string& str) {
-      std::sscanf(str.c_str(), "{%f, %f, &f}", &x, &y, &z);
+      std::sscanf(str.c_str(), "{%f, %f, %f}", &x, &y, &z);
     }
     std::string to_string(int precision = 2) const {
       return "{" +
