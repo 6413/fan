@@ -227,9 +227,9 @@ struct fgm_t {
       ImVec4* colors = style.Colors;
 
       const ImVec4 bgColor = ImVec4(0.1, 0.1, 0.1, 0.1);
-      colors[ImGuiCol_WindowBg] = bgColor;
-      colors[ImGuiCol_ChildBg] = bgColor;
-      colors[ImGuiCol_TitleBg] = bgColor;
+      colors[ImGuiCol_WindowBg].w = bgColor.w;
+      colors[ImGuiCol_ChildBg].w =  bgColor.w;
+      colors[ImGuiCol_TitleBg].w =  bgColor.w;
 
       ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
       ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));

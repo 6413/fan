@@ -1918,7 +1918,7 @@ public:
       io.AddInputCharacter(d.character);
     });
 
-    ImGui::StyleColorsDark();
+    loco_t::imgui_themes::dark();
 
     #if defined(fan_platform_windows)
     ImGui_ImplWin32_Init(hwnd);
@@ -1984,7 +1984,7 @@ public:
     get_context()->opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
     get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
     #endif
-    get_context()->opengl.glClearColor(0.051f, 0.067f, 0.122f, 1.0f);
+    get_context()->opengl.glClearColor(0.10, 0.10, 0.131, 1.0f);
     get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 

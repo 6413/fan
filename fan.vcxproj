@@ -268,7 +268,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\model_loader.cpp" />
+    <ClCompile Include="examples\gui\model_maker.cpp" />
     <ClCompile Include="include\fan\imgui\imgui.cpp" />
     <ClCompile Include="include\fan\imgui\imgui_draw.cpp" />
     <ClCompile Include="include\fan\imgui\imgui_impl_opengl3.cpp" />
