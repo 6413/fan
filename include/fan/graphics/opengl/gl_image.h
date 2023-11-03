@@ -74,6 +74,10 @@ struct image_t {
     load(image_info, p);
   }
 
+  image_t(const char* path) {
+    load(path);
+  }
+
   bool is_invalid() const {
     return texture_reference.NRI == (decltype(texture_reference.NRI))-1;
   }

@@ -609,7 +609,7 @@ namespace fan {
 		}
 
 		template <typename _Type>
-		constexpr _vec3<value_type>& operator/(const fan::_vec2<_Type>& v)
+		constexpr _vec3<value_type> operator/(const fan::_vec2<_Type>& v) const
 		{
 			return _vec3<value_type>(x / v.x, y / v.y, z);
 		}
