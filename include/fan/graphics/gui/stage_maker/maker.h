@@ -1,4 +1,4 @@
-#include _FAN_PATH(graphics/gui/fgm.h)
+#include _FAN_PATH(graphics/gui/fgm/fgm.h)
 
 struct fsm_t {
 
@@ -136,10 +136,12 @@ void update(){
 
       if (!render_fsm) {
         if (fgm == nullptr) {
-          fgm = new fgm_t("TexturePack");
+          fgm = new fgm_t();
+          fgm->open("TexturePack");
           fgm->file_name = fan::string(stage_runtime_folder_name) + "/" + current_stage + ".fgm";
           fgm->fin(fgm->file_name);
           fgm->close_cb = [this] {
+            fgm->close();
             delete fgm;
             fgm = nullptr;
             render_fsm = true;

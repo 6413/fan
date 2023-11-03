@@ -605,10 +605,18 @@ public:
   loco_t::camera_t* get_camera(loco_t::cid_nt_t& id) requires fan::has_camera_t<properties_t> {
     return gloco->camera_list[*get_context_key(id).key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
   }
+  template <typename T = void>
+  void set_camera(loco_t::cid_nt_t& id, loco_t::camera_t* camera) requires fan::has_camera_t<properties_t> {
+    sb_set_context_key<loco_t::camera_list_NodeReference_t>(id, camera);
+  }
 
   template <typename T = void>
   loco_t::viewport_t* get_viewport(loco_t::cid_nt_t& id) requires fan::has_viewport_t<properties_t> {
     return gloco->get_context()->viewport_list[*get_context_key(id).key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+  }
+  template <typename T = void>
+  void set_viewport(loco_t::cid_nt_t& id, loco_t::viewport_t* viewport) requires fan::has_viewport_t<properties_t> {
+    sb_set_context_key<fan::graphics::viewport_list_NodeReference_t>(id, viewport);
   }
 
   template <typename T = void>

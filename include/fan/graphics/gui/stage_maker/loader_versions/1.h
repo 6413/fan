@@ -41,6 +41,10 @@ while (off != in.size()) {
         string_type = "rectangle_";
         break;
       }
+      case loco_t::shape_type_t::unlit_sprite: {
+        string_type = "unlit_sprite_";
+        break;
+      }
       case loco_t::shape_type_t::sprite: {
         string_type = "sprite_";
         break;

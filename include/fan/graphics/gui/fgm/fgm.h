@@ -4,6 +4,22 @@ struct fgm_t {
 
   void open(const fan::string& texturepack_name) {
     texturepack.open_compiled(texturepack_name);
+
+    gloco->get_window()->add_keys_callback([this](const auto& d) {
+      if (d.state != fan::keyboard_state::press) {
+        return;
+      }
+      if (ImGui::IsAnyItemActive()) {
+        return;
+      }
+
+      switch (d.key) {
+        case fan::key_r: {
+          erase_current();
+          break;
+        }
+      }
+    });
   }
   void close() {
     texturepack.close();
@@ -155,7 +171,7 @@ struct fgm_t {
       if (ImGui::InputText("##hidden_label0" "id", str.data(), str.size())) {
         \
           if (ImGui::IsItemDeactivatedAfterEdit()) {
-            fan::string new_id = str;
+            fan::string new_id = str.substr(0, std::strlen(str.c_str()));
             if (!id_exists(new_id)) {
               id = new_id;
             }
@@ -367,6 +383,27 @@ struct fgm_t {
   */
   void fin(const fan::string& filename) {
     #include _FAN_PATH(graphics/gui/stage_maker/loader_versions/1.h)
+  }
+
+  void invalidate_current() {
+    current_shape = nullptr;
+    selected_shape_type = loco_t::shape_type_t::invalid;
+  }
+
+  void erase_current() {
+    if (current_shape == nullptr) {
+      return;
+    }
+
+    auto it = shape_list.GetNodeFirst();
+    while (it != shape_list.dst) {
+      if (current_shape == shape_list[it]) {
+        delete shape_list[it];
+        shape_list.unlrec(it);
+        invalidate_current();
+        break;
+      }
+    }
   }
 
   event_type_e event_type = event_type_e::none;

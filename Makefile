@@ -9,7 +9,7 @@ CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtun
   #-fsanitize=address -fno-omit-frame-pointer
 
 
-MAIN = examples/gui/model_maker.cpp
+MAIN = Source.cpp
 FAN_OBJECT_FOLDER = 
 
 BASE_PATH = 
@@ -21,6 +21,7 @@ ifeq ($(OS),Windows_NT)
 	FAN_INCLUDE_PATH = C:/libs/fan/include
   CFLAGS += -I C:\libs\fan\include\baseclasses -I C:/libs/fan/include/imgui -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
 	CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) -DWITCH_INCLUDE_PATH=C:/libs/WITCH
+	CFLAGS += lib/libuv/uv_a.lib
 else
   BASE_PATH += lib/fan/
   FAN_OBJECT_FOLDER += $(BASE_PATH)
@@ -38,7 +39,7 @@ debug:
 	$(GPP) $(CFLAGS)  -include-pch $(PCH_PATH).gch  $(MAIN) libimgui.a
 
 release:
-	$(GPP) $(CFLAGS) -include-pch $(PCH_PATH).gch $(MAIN) -s -O3 libimgui.a
+	$(GPP) $(CFLAGS) -include-pch $(PCH_PATH).gch $(MAIN) -s -O3 -march=native -mtune=native libimgui.a
 
 clean:
 	rm -f a.out

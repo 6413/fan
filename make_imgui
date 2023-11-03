@@ -1,8 +1,7 @@
-# Compiler settings
+#llvm-lib /OUT:library.lib libimgui.a     
 GPP = clang++ -w
 CFLAGS = -I . -std=c++2a -I include
 
-# ImGui library files
 IMGUI_LIB = libimgui.a
 
 FAN_OBJECT_FOLDER = 
@@ -37,7 +36,7 @@ $(IMGUI_LIB): $(IMGUI_OBJ)
 	llvm-ar rcs $@ $^
 
 %.o: %.cpp
-	$(GPP) $(CFLAGS) -c $< -o $@
+	$(GPP) $(CFLAGS) -c -s -O3 -march=native -mtune=native $< -o $@
 
 clean:
 ifeq ($(OS),Windows_NT)
