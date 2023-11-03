@@ -124,7 +124,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui;C:\Users\123\source\repos\ecps\lib\openssl;C:\Users\123\source\repos\ecps\lib\libuv</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;libimgui.lib;</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -176,7 +176,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui;C:\Users\123\source\repos\ecps\lib\openssl;C:\Users\123\source\repos\ecps\lib\libuv</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;libimgui.lib;</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <SubSystem>Console</SubSystem>
@@ -224,7 +224,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui;C:\Users\123\source\repos\ecps\lib\openssl;C:\Users\123\source\repos\ecps\lib\libuv</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;libimgui.lib;</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -277,7 +277,7 @@
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;C:\libs\fan\lib\opencv;C:\libs\fan\lib\dpp;C:\libs\lib\openssl;C:\libs\lib\libuv;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\libs\fan\lib\opus;C:\libs\fan\lib\ogg;C:\libs\fan\lib\libwebp;C:\libs\fan\lib\shaderc;C:\libs\fan\lib\nvidia;C:\libs\fan\lib\opencv;C:\libs\fan\lib\dpp;C:\libs\lib\openssl;C:\libs\lib\libuv;C:\libs\fan\lib\softcam;C:\libs\fan\lib\imgui;C:\libs\fan\lib\imgui;C:\Users\123\source\repos\ecps\lib\openssl;C:\Users\123\source\repos\ecps\lib\libuv</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libwebp.a;cuda.lib;cudart.lib;nvencodeapi.lib;nvcuvid.lib;softcamcore.lib;BaseClasses.lib;Winmm.lib;libimgui.lib;opencv_world480.lib;libssl.lib;libcrypto.lib;uv_a.lib;dpp.lib</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <SubSystem>Console</SubSystem>
@@ -290,7 +290,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\model_maker.cpp" />
+    <ClCompile Include="examples\graphics\particles.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

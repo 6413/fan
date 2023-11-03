@@ -494,7 +494,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
       else {
         std::ostringstream os;
         os << v;
-        formatted_string += fmt::format("  Iteration {}: {{\n    Type:{}\n    Value:{}\n  }}",
+        formatted_string += fmt::format("  Iteration {}: {{\n    Type:{}, Value:{}\n  }}",
           i, typeid(T2).name(), os.str()
         );
         formatted_string += "\n";
@@ -1106,7 +1106,7 @@ using __nameless_type_t = fan::assign_wrapper_t<T...>;
 #endif
 
 namespace fan {
-  #define temporary_struct_maker(data) __return_type_of<decltype([]{ struct {data}v; return v; })>
+  #define fan_temporary_struct_maker(data) __return_type_of<decltype([]{ struct {data}v; return v; })>
 
   template <typename T>
   struct any_type_wrap_t {
