@@ -9,7 +9,7 @@ struct model_loader_t {
 };
 
 struct model_list_t {
-  
+
   using current_version_t = model_loader_t::current_version_t;
 
   using shapes_t = current_version_t::shapes_t;
@@ -46,7 +46,7 @@ struct model_list_t {
     //loco_t::shape_t shape;
 
     fan::vec3 position = 0;
-    fan::vec2 size = 0;
+    fan::vec2 size = 1;
     f32_t angle = 0;
 
     std::vector<std::vector<group_data_t>> groups;
@@ -69,16 +69,23 @@ struct model_list_t {
     auto nr = model_list.NewNodeLast();
     auto& node = model_list[nr];
     node.cm = *cms;
+    fan::vec2 root_pos = 0;
     for (auto& i : cms->shapes) {
       std::visit([&]<typename T>(T & v) {
         if constexpr (
           std::is_same_v<T, current_version_t::sprite_t> ||
           std::is_same_v<T, current_version_t::unlit_sprite_t>) {
           auto&& shape = v.get_shape(tp);
+          shape.set_camera(mp.camera);
+          shape.set_viewport(mp.viewport);
           if (v.group_id == 0) {// set root pos
-            node.position = shape.get_position();
+            root_pos = shape.get_position();
+            shape.set_position(fan::vec2(0));
+            fan::vec3 p = shape.get_position();
           }
-
+          else {
+            shape.set_position(fan::vec2(shape.get_position()) - root_pos);
+          }
           push_shape(nr, v.group_id, std::move(shape));
         }
       }, i);
@@ -99,6 +106,14 @@ struct model_list_t {
     group.back().angle = group.back().shape.get_angle(); // ?
   }
 
+  void erase(model_id_t model_id) {
+    model_list.unlrec(model_id);
+  }
+  // what happens when group ids change at erase
+  void erase(model_id_t model_id, uint32_t group_id) {
+    model_list[model_id].groups.erase(model_list[model_id].groups.begin() + group_id);
+  }
+
   void iterate(model_id_t model_id, uint32_t group_id, auto lambda) {
     for (auto& i : model_list[model_id].cm.shapes) {
       std::visit([&]<typename T>(T & v) {
@@ -109,13 +124,24 @@ struct model_list_t {
       }, i);
     }
   }
-
+  void iterate_marks(model_id_t model_id, uint32_t group_id, auto lambda) {
+    for (auto& i : model_list[model_id].cm.shapes) {
+      std::visit([&]<typename T>(T & v) {
+        if (v.group_id != group_id) {
+          return;
+        }
+        if constexpr (std::is_same_v<T, current_version_t::mark_t>) {
+          lambda(v);
+        }
+      }, i);
+    }
+  }
 
   void set_position(model_id_t model_id, const fan::vec3& position) {
     auto& model = model_list[model_id];
     for (auto& group : model.groups) {
       for (auto& j : group) {
-        j.shape.set_position(position + j.position);
+        j.shape.set_position(position + fan::vec3(fan::vec2(j.position) * model.size, j.position.z));
       }
     }
     model.position = position;
@@ -124,18 +150,16 @@ struct model_list_t {
     auto& model = model_list[model_id];
     for (auto& group : model.groups) {
       for (auto& j : group) {
-        j.shape.set_position(fan::vec3(position, model_list[model_id].position.z) + j.position);
+        j.shape.set_position(position + fan::vec2(j.position) * model.size);
       }
     }
     *(fan::vec2*)&model.position = position;
   }
   void set_size(model_id_t model_id, const fan::vec2& size) {
     auto& model = model_list[model_id];
-    model.position *= size;
     for (auto& group : model.groups) {
       for (auto& j : group) {
-        j.position *= size;
-        j.shape.set_position(model.position + j.position);
+        j.shape.set_position(fan::vec2(model.position) + fan::vec2(j.position) * size);
         j.shape.set_size(size * j.size);
       }
     }
@@ -161,6 +185,9 @@ struct model_list_t {
       j.shape.set_angle(angle + j.angle);
       j.shape.set_rotation_point(0);
     }
+  }
+  auto& get_instance(model_id_t model_id) {
+    return model_list[model_id];
   }
 };
 

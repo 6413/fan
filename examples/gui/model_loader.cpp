@@ -8,8 +8,8 @@ int main() {
 
   fan::vec2 window_size = loco.get_window()->get_size();
   loco.default_camera->camera.set_ortho(
-    fan::vec2(-200, window_size.x),
-    fan::vec2(-200, window_size.y)
+    fan::vec2(0, window_size.x),
+    fan::vec2(0, window_size.y)
   );
 
   loco_t::texturepack_t tp;
@@ -17,9 +17,10 @@ int main() {
   model_list_t m;
 
   model_list_t::cm_t cm;
-  cm.import_from("file.fgm", &tp);
+  cm.import_from("model.fmm", &tp);
 
   model_list_t::properties_t p;
+  p.position = fan::vec3(window_size / 2, 5);
 
   auto model_id = m.push_model(&tp, &cm, p);
   
@@ -57,13 +58,20 @@ int main() {
 
   f32_t angle = 0;
 
-  m.set_size(model_id, 0.3);
+  fan::graphics::rectangle_t r{{
+      .position = fan::vec3(window_size / 2, 3),
+      .size = 100,
+      .color = fan::colors::red
+    }};
+
+
+ //   m.set_size(model_id, 0.3);
 
   loco.loop([&] {
     m.set_position(model_id, loco.get_mouse_position(loco.default_camera->camera, loco.default_camera->viewport));
-    //m.set_angle(model_id, angle);
-    m.set_angle(model_id, 1, angle * 1.5);
-    angle += loco.get_delta_time() * 2;
+    m.set_angle(model_id, angle);
+    //m.set_angle(model_id, 1, angle * 1.5);
+    //angle += loco.get_delta_time() * 2;
   });
 
 }

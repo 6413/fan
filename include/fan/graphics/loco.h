@@ -1208,6 +1208,9 @@ public:
   #define fan_create_set_define(rt, name) \
         fan_create_id_definition_define(void, set_##name, const rt& data){ gloco->shape_##set_##name(*this, data); }
 
+  #define fan_create_set_ptr_define(rt, name) \
+        fan_create_id_definition_define(void, set_##name, rt data){ gloco->shape_##set_##name(*this, data); }
+
   #define fan_create_set_dataless_define(name) \
       fan_create_id_definition_define(void, set_##name){ gloco->shape_##set_##name(*this); }
 
@@ -1217,6 +1220,10 @@ public:
   #define fan_create_get_set_define(rt, name) \
     fan_create_id_definition_define(rt, get_##name){ return gloco->shape_##get_##name(*this);} \
     fan_create_set_define(rt, name)
+
+  #define fan_create_get_set_ptr_define(rt, name) \
+    fan_create_id_definition_define(rt, get_##name){ return gloco->shape_##get_##name(*this);} \
+    fan_create_set_ptr_define(rt, name)
 
   #define fan_create_get_define(rt, name) \
     fan_create_id_definition_define(rt, get_##name){ return gloco->shape_##get_##name(*this);} \
@@ -1321,8 +1328,8 @@ public:
     fan_create_get_set_define(fan::vec3, position_ar);
     fan_create_get_set_define(fan::vec2, size_ar);
 
-    fan_create_get_set_define(loco_t::viewport_t*, viewport);
-    fan_create_get_set_define(loco_t::camera_t*, camera);
+    fan_create_get_set_ptr_define(loco_t::viewport_t*, viewport);
+    fan_create_get_set_ptr_define(loco_t::camera_t*, camera);
 
     fan_create_get_set_define(fan::vec2, size);
     fan_create_get_set_define(fan::color, color);
@@ -1341,9 +1348,6 @@ public:
     fan_create_set_define(f32_t, depth);
 
     fan_create_set_dataless_define(focus);
-
-    fan_create_set_define(loco_t::camera_list_NodeReference_t, camera);
-    fan_create_set_define(fan::graphics::viewport_list_NodeReference_t, viewport);
 
     void set_line(const fan::vec3& src, const fan::vec3& dst) {
       gloco->shape_set_line(*this, src, dst);
@@ -1503,7 +1507,7 @@ public:
     #ifdef loco_window
     :
   gloco_dummy(this),
-    window(fan::vec2(1024, 1024)),
+    window(fan::vec2(1300, 1300)),
     #endif
     #if defined(loco_context)
     context(
@@ -2594,6 +2598,15 @@ public:
     const auto& data \
   );
 
+  #define fan_build_set_ptr_generic_define(rt, name) \
+  make_global_function_define(set_##name,\
+    if constexpr (has_set_##name##_v<shape_t, loco_t::cid_nt_t&, rt>) { \
+      (*shape)->set_##name(id, data); \
+    }, \
+    loco_t::cid_nt_t& id, \
+    auto data \
+  );
+
   #define fan_build_set_generic_dataless_define(name) \
   make_global_function_define(set_##name,\
     if constexpr (has_set_##name##_v<shape_t, loco_t::cid_nt_t&>) { \
@@ -2610,6 +2623,10 @@ public:
     fan_build_get_generic_define(rt, name); \
     fan_build_set_generic_define(rt, name);
 
+  #define fan_build_get_set_ptr_generic_define( rt, name) \
+    fan_build_get_generic_define(rt, name); \
+    fan_build_set_ptr_generic_define(rt, name);
+
   #define fan_build_get_set_declare(rt, name) \
     fan_build_get_declare(rt, name); \
     fan_build_set_declare(rt, name);
@@ -2621,8 +2638,8 @@ public:
   fan_build_get_set_generic_define(fan::vec3, position_ar);
   fan_build_get_set_generic_define(fan::vec2, size_ar);
 
-  fan_build_get_set_generic_define(loco_t::viewport_t*, viewport);
-  fan_build_get_set_generic_define(loco_t::camera_t*, camera);
+  fan_build_get_set_ptr_generic_define(loco_t::viewport_t*, viewport);
+  fan_build_get_set_ptr_generic_define(loco_t::camera_t*, camera);
 
   fan_build_get_set_define(fan::vec3, position);
   fan_build_get_set_define(fan::vec2, size);
@@ -2633,9 +2650,6 @@ public:
   fan_build_get_set_generic_define(loco_t::textureid_t<0>, image);
 
   fan_build_get_set_generic_define(f32_t, font_size);
-  //fan_build_get_set_generic_define(loco_t::camera_list_NodeReference_t, camera);
-  //fan_build_get_set_generic_define(fan::graphics::viewport_list_NodeReference_t, viewport);
-
   fan_build_get_set_generic_define(fan::vec2, text_size);
   fan_build_set_generic_dataless_define(focus);
 
@@ -3195,8 +3209,8 @@ namespace fan {
 }
 
 // for pch
-#if defined(fan_build_pch) && defined(fan_compiler_clang)
-void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
+#if defined(fan_build_pch)
+inline void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
   viewport_position = viewport_position_;
   viewport_size = viewport_size_;
 
@@ -3207,23 +3221,23 @@ void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, const fan
   );
 }
 
-loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* image) {
+inline loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* image) {
   NRI = image->texture_reference.NRI;
 }
 
-loco_t::camera_list_NodeReference_t::camera_list_NodeReference_t(loco_t::camera_t* camera) {
+inline loco_t::camera_list_NodeReference_t::camera_list_NodeReference_t(loco_t::camera_t* camera) {
   NRI = camera->camera_reference.NRI;
 }
 
 namespace fan::opengl {
   // Primary template for the constructor
-  theme_list_NodeReference_t::theme_list_NodeReference_t(void* theme) {
+  inline theme_list_NodeReference_t::theme_list_NodeReference_t(void* theme) {
     //static_assert(std::is_same_v<decltype(theme), loco_t::theme_t*>, "invalid parameter passed to theme");
     NRI = ((loco_t::theme_t*)theme)->theme_reference.NRI;
   }
 }
 
-fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::opengl::viewport_t* viewport) {
+inline fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::opengl::viewport_t* viewport) {
   NRI = viewport->viewport_reference.NRI;
 }
 #endif

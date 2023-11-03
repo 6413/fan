@@ -50,3 +50,5 @@
 
 #include _FAN_PATH(graphics/loco.h)
 
+
+#include _FAN_PATH(graphics/gui/model_maker/maker.h)
