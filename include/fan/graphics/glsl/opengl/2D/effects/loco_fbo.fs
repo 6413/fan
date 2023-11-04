@@ -1,4 +1,4 @@
-R"(
+
 	#version 330
 
 	in vec2 texture_coordinate;
@@ -15,4 +15,3 @@ R"(
     //vec3 light_map = texture(_t02, texture_coordinate).rgb;
     o_color = vec4(actual_image, 1);
 	}
-)"

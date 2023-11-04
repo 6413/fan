@@ -1,4 +1,4 @@
-R"(
+
 #version 130
 
 in vec4 input0;
@@ -139,4 +139,4 @@ void main() {
 	i_color = layout_color;
 	resolution = layout_size;
 }
-)"
+

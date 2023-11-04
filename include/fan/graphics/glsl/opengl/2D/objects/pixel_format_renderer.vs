@@ -1,4 +1,4 @@
-R"(
+
 #version 140
 
 #define get_instance() instance[gl_VertexID / 6]
@@ -46,4 +46,3 @@ void main() {
   gl_Position = projection * view * vec4(rp * get_instance().size + get_instance().position.xy, get_instance().position.z, 1);
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
 }
-)"

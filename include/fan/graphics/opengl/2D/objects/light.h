@@ -92,6 +92,7 @@ struct sb_shape_name {
 
   void draw() {
     gloco->get_context()->set_depth_test(false);
+    gloco->get_context()->opengl.call(gloco->get_context()->opengl.glEnable, fan::opengl::GL_BLEND);
     gloco->get_context()->opengl.call(gloco->get_context()->opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
 
     unsigned int attachments[sizeof(gloco->color_buffers) / sizeof(gloco->color_buffers[0])];

@@ -1,2 +1,1 @@
 sudo cp -r include/fan /usr/include
-sudo cp -r src/fan /usr/src

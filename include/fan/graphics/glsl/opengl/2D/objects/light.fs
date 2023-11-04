@@ -1,4 +1,4 @@
-R"(
+
 #version 330
 
 layout (location = 1) out vec4 o_attachment1;
@@ -17,4 +17,3 @@ void main() {
   o_attachment1 *= intensity;
 }
 
-)"

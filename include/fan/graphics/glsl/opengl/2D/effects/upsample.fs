@@ -1,4 +1,4 @@
-R"(
+
 	#version 330
 
 	layout (location = 0) out vec3 o_color;
@@ -45,4 +45,3 @@ R"(
 		o_color *= 1.0 / 16.0;
 		//o_color = vec3(0, 0, 0);
 	}
-)"

@@ -1,4 +1,4 @@
-R"(
+
 	#version 330
 
 	in vec2 texture_coordinate;
@@ -36,4 +36,3 @@ R"(
     //result = pow(result, vec3(1.0 / gamma));
 		o_attachment0 = vec4(result, 1);
 	}
-)"

@@ -1,4 +1,4 @@
-R"(
+
 #version 330
 
 layout (location = 0) out vec4 o_attachment0;
@@ -21,4 +21,3 @@ void main() {
   float intensity = 1.0 - smoothstep(radius - smooth_edge, radius, distance);
   o_attachment0 *= intensity;
 }
-)"

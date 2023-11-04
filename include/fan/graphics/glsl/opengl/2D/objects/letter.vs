@@ -1,4 +1,4 @@
-R"(
+
 #version 140
 
 #define get_instance() instance[gl_VertexID / 6]
@@ -116,4 +116,3 @@ void main() {
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
 	render_size = get_instance().size.y;
 }
-)"

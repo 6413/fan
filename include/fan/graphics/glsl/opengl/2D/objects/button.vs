@@ -1,4 +1,4 @@
-R"(
+
   #version 140
 
   #define get_instance() instance[gl_VertexID / 6]
@@ -67,4 +67,3 @@ R"(
 
 		gl_Position = projection * view * vec4(vec2(x, y) * ratio_size + get_instance().position.xy, get_instance().position.z, 1);
   }
-)"

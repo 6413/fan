@@ -2,6 +2,7 @@
 
 #define STRINGIFY(p0) #p0
 #define STRINGIFY_DEFINE(a) STRINGIFY(a)
+#define REMOVE_TEMPLTE(a)  
 
 #define _CONCAT(_0_m, _1_m) _0_m ## _1_m
 #define CONCAT(_0_m, _1_m) _CONCAT(_0_m, _1_m)
@@ -883,16 +884,6 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 		}
 	}
 
-  // unstable
-  template <typename, typename, typename = void>
-  struct has_function : std::false_type {};
-  
-  // unstable
-  template <typename C, typename Ret, typename... Args>
-  struct has_function<C, Ret(Args...), std::void_t<decltype(std::declval<C>().operator()(std::declval<Args>()...))>> : std::is_convertible<decltype(std::declval<C>().operator()(std::declval<Args>()...)), Ret>::type {};
-
-
-
   //#define fan_has_variable(type, var_name) [&](type p = type())constexpr{ return requires{p.var_name;}; }()
 
   //template <typename T>
@@ -923,6 +914,18 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
     }; \
     template <typename U, typename... Args> \
     static constexpr bool CONCAT(CONCAT(has_,func_name), _v) = CONCAT(has_, func_name)<U, Args...>::value;
+
+  #define fan_has_function(type, func_call) \
+    [] <typename T>() constexpr { \
+      return requires(T t) { t.func_call; } == true; \
+    }.template operator()<type>()
+
+  #define fan_if_has_function(ptr, func_call, action) \
+  [&] <typename T2>(T2* This) { \
+    if constexpr (fan_has_function(T2, func_call action)) { \
+      This->func_call action ;\
+    } \
+  }(ptr);
 
   template<typename T, typename... Ts>
   concept same_as_any = (std::is_same_v<T, Ts> || ...);

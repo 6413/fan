@@ -1,4 +1,4 @@
-R"(
+
   #version 330
   in vec2 texture_coordinate;
   in vec4 instance_color;
@@ -13,4 +13,3 @@ R"(
     vec4 light = texture(_tt1, vec2(p.x, 1.0 - p.y));
     o_color = texture_color * vec4(light.xyz, 1) * instance_color;
   }
-)"

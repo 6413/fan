@@ -309,18 +309,28 @@ public:
       key_root = loco_bdbt_NewNode(&gloco->bdbt);
     #endif
 
+    fan::string vertex_code;
+    fan::string path = STRINGIFY_DEFINE(sb_shader_vertex_path);
+    path.replace_all("<", "");
+    path.replace_all(">", "");
+    fan::io::file::read(path, &vertex_code);
     m_shader.open(gloco->get_context());
     m_shader.set_vertex(
       gloco->get_context(),
-      #include sb_shader_vertex_path
+      vertex_code
     );
+    #if !defined(sb_shader_fragment_string)
+    path = STRINGIFY_DEFINE(sb_shader_fragment_path);
+    path.replace_all("<", "");
+    path.replace_all(">", "");
+    fan::string fragment_code;
+    fan::io::file::read(path, &fragment_code);
+    #else
+    fan::string fragment_code = sb_shader_fragment_string;
+    #endif
     m_shader.set_fragment(
       gloco->get_context(),
-      #ifndef sb_shader_fragment_string
-        #include sb_shader_fragment_path
-      #else
-        sb_shader_fragment_string
-      #endif
+      fragment_code
     );
     m_shader.compile(gloco->get_context());
 
@@ -328,25 +338,18 @@ public:
     m_blending_shader.open(gloco->get_context());
     m_blending_shader.set_vertex(
       gloco->get_context(),
-      #include sb_shader_vertex_path
+      vertex_code
     );
     #endif
-    fan::string str = 
-      #ifndef sb_shader_fragment_string
-        #include sb_shader_fragment_path
-      #else
-        sb_shader_fragment_string
-      #endif
-    ;
 
-    auto found = str.find("discard;");
+    auto found = fragment_code.find("discard;");
     if (found != fan::string::npos) {
-      str.erase(found, std::string_view("discard;").size());
+      fragment_code.erase(found, std::string_view("discard;").size());
     }
     #ifndef sb_no_blending
     m_blending_shader.set_fragment(
       gloco->get_context(),
-      str
+      fragment_code
     );
     m_blending_shader.compile(gloco->get_context());
 
@@ -678,7 +681,7 @@ public:
             idlist[(uint32_t)block_node->data.id[i].NRI].TraverseFound = true;
           }
         #endif
-          block_node->data.uniform_buffer.bind_buffer_range(
+        block_node->data.uniform_buffer.bind_buffer_range(
           gloco->get_context(),
           block_node->data.uniform_buffer.size()
         );
@@ -706,6 +709,50 @@ public:
     }
   }
 
+  template <uint32_t depth = 0>
+  void traverse_draw1(loco_bdbt_NodeReference_t nr, uint32_t draw_mode) {
+    if constexpr (depth == context_key_t::key_t::count + 1) {
+
+      #if fan_debug >= 2
+      if (nr >= bm_list.NodeList.Current) {
+        __abort();
+      }
+      #endif
+      auto& bm = bm_list[*(shape_bm_NodeReference_t*)&nr];
+      auto block_id = bm.first_block;
+
+      m_shader.set_float(gloco->get_context(), "m_time", (double)cloook.elapsed() / 1e+9);
+
+      while (1) {
+        auto block_node = blocks.GetNodeByReference(block_id);
+        #ifdef fan_unit_test
+        for (uint32_t i = 0; i < block_node->data.uniform_buffer.size(); i++) {
+          if (idlist.find(*(uint32_t*)&block_node->data.id[i]) == idlist.end()) {
+            fan::throw_error(__LINE__);
+          }
+          idlist[(uint32_t)block_node->data.id[i].NRI].TraverseFound = true;
+        }
+        #endif
+
+        fan_if_has_function(this, custom_draw, (block_node, draw_mode));
+        
+        if (block_id == bm.last_block) {
+          break;
+        }
+        block_id = block_node->NextNodeReference;
+      }
+    }
+    else {
+      typename loco_bdbt_Key_t<sizeof(typename context_key_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
+      kt.i(nr);
+      typename context_key_t::key_t::get_type<depth>::type o;
+      while (kt.t(&gloco->bdbt, &o)) {
+        gloco->process_block_properties_element(this, o);
+        traverse_draw1<depth + 1>(kt.Output, draw_mode);
+      }
+    }
+  }
+
   void sb_draw(loco_bdbt_NodeReference_t key_nr, uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
     m_current_shader->use(gloco->get_context());
     // todo remove
@@ -713,6 +760,15 @@ public:
     m_current_shader->set_int(gloco->get_context(), "_t00", 0);
     m_current_shader->set_int(gloco->get_context(), "_t01", 1);
     traverse_draw(key_nr, draw_mode);
+  }
+
+  void sb_draw1(loco_bdbt_NodeReference_t key_nr, uint32_t draw_mode) {
+    m_current_shader->use(gloco->get_context());
+    // todo remove
+    m_current_shader->set_vec3(gloco->get_context(), loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
+    m_current_shader->set_int(gloco->get_context(), "_t00", 0);
+    m_current_shader->set_int(gloco->get_context(), "_t01", 1);
+    traverse_draw1(key_nr, draw_mode);
   }
 
   properties_t sb_get_properties(loco_t::cid_nt_t& id) {

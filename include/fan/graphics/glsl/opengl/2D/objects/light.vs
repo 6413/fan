@@ -1,4 +1,4 @@
-R"(
+
 #version 330
 
 #define get_instance() instance[gl_VertexID / 6]
@@ -69,4 +69,3 @@ void main() {
 
 	instance_color = get_instance().color;
 }
-)"

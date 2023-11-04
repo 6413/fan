@@ -9,8 +9,6 @@ int main() {
   loco_t::sprite_t::properties_t p;
 
   p.size = fan::vec2(1);
-  p.camera = &fan::graphics::default_camera->camera;
-  p.viewport = &fan::graphics::default_camera->viewport;
 
   loco_t::image_t image;
   image.load("images/lighting.webp");
@@ -29,8 +27,6 @@ int main() {
   loco_t::shape_t s1 = p;
 
   loco_t::light_t::properties_t lp;
-  lp.camera = &fan::graphics::default_camera->camera;
-  lp.viewport = &fan::graphics::default_camera->viewport;
   lp.position = fan::vec3(0, 0, 0);
   lp.size = 0.5;
   lp.color = fan::colors::yellow * 10;
@@ -51,18 +47,18 @@ int main() {
   loco.get_window()->add_keys_callback([&](const auto& d) {
     if (d.key == fan::key_left) {
       camerapos.x -= 0.1;
-      fan::graphics::default_camera->camera.set_camera_position(camerapos);
+      loco.default_camera->camera.set_camera_position(camerapos);
     }
   if (d.key == fan::key_right) {
     camerapos.x += 0.1;
-    fan::graphics::default_camera->camera.set_camera_position(camerapos);
+    loco.default_camera->camera.set_camera_position(camerapos);
   }
     });
 
   f32_t x = 0;
   loco.loop([&] {
     loco.get_fps();
-    l0.set_position(loco.get_mouse_position(fan::graphics::default_camera->camera, fan::graphics::default_camera->viewport));
+    l0.set_position(loco.get_mouse_position());
     //l0.set_color(fan::color::hsv(x, 100, 100) * 10);
     //x += loco.get_delta_time() * 100;
   /*if (c.finished()) {

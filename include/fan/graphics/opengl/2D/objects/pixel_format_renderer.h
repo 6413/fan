@@ -80,22 +80,28 @@ struct sb_pfr_name {
   }
 
   void set_fragment(uint8_t format) {
+    fan::string fragment_code;
+    fan::string path;
     switch (format) {
       case fan::pixel_format::yuv420p: {
-        m_shader.set_fragment(gloco->get_context(), 
-          #include _FAN_PATH(graphics/glsl/opengl/2D/objects/yuv420p.fs)
-        );
-        m_shader.compile(gloco->get_context());
+        path = STRINGIFY_DEFINE(_FAN_PATH(graphics/glsl/opengl/2D/objects/yuv420p.fs));
         break;
       }
       case fan::pixel_format::nv12: {
-        m_shader.set_fragment(gloco->get_context(), 
-          #include _FAN_PATH(graphics/glsl/opengl/2D/objects/nv12.fs)
-        );
-        m_shader.compile(gloco->get_context());
+        path = STRINGIFY_DEFINE(_FAN_PATH(graphics/glsl/opengl/2D/objects/nv12.fs));
         break;
       }
+      default: {
+        fan::throw_error("invalid format");
+      }
     }
+    path.replace_all("<", "");
+    path.replace_all(">", "");
+    fan::io::file::read(path, &fragment_code);
+    m_shader.set_fragment(gloco->get_context(), 
+      fragment_code
+    );
+    m_shader.compile(gloco->get_context());
   }
 
   void push_back(loco_t::cid_nt_t& id, properties_t p) {
@@ -153,8 +159,13 @@ struct sb_pfr_name {
     auto* ri = &sb_get_ri(id);
     auto image_count_new = fan::pixel_format::get_texture_amount(format);
     if (format != ri->format) {
+      fan::string vertex_code;
+      fan::string path = STRINGIFY_DEFINE(_FAN_PATH(graphics/glsl/opengl/2D/objects/pixel_format_renderer.vs));
+      path.replace_all("<", "");
+      path.replace_all(">", "");
+      fan::io::file::read(path, &vertex_code);
       set_vertex(
-        #include _FAN_PATH(graphics/glsl/opengl/2D/objects/pixel_format_renderer.vs)
+        vertex_code
       );
       set_fragment(format);
       m_shader.use(gloco->get_context());

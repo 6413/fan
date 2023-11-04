@@ -812,6 +812,7 @@ public:
   uint32_t camera_index = 0;
 
   image_t unloaded_image;
+  fan::color clear_color = {0.10, 0.10, 0.131, 1};
 
   #endif
 
@@ -1379,6 +1380,10 @@ public:
   #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
   rectangle_t sb_shape_var_name;
   #undef sb_shape_var_name
+
+  #include _FAN_PATH(graphics/opengl/2D/effects/particles.h)
+  particles_t particles;
+
   #endif
   #if defined(loco_circle)
   #define sb_shape_var_name circle
@@ -1507,7 +1512,7 @@ public:
     #ifdef loco_window
     :
   gloco_dummy(this),
-    window(fan::vec2(800, 800)),
+    window(fan::vec2(1300, 1300)),
     #endif
     #if defined(loco_context)
     context(
@@ -1661,9 +1666,8 @@ public:
       //fan::vec2 ortho = fan::vec2(1, 1) * ratio;
       //ortho *= 1.f / ortho.min();
       default_camera->camera.set_ortho(
-        fan::vec2(-1, 1),
-        fan::vec2(-1, 1),
-        &default_viewport
+        fan::vec2(0, window_size.x),
+        fan::vec2(0, window_size.y)
       );
   });
 
@@ -1691,13 +1695,23 @@ public:
   m_framebuffer.unbind(get_context());
 
   m_fbo_final_shader.open(get_context());
+  fan::string vertex_code;
+  fan::string path = STRINGIFY_DEFINE(_FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.vs));
+  path.replace_all("<", "");
+  path.replace_all(">", "");
+  fan::io::file::read(path, &vertex_code);
   m_fbo_final_shader.set_vertex(
     get_context(),
-    #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.vs)
+    vertex_code
   );
+  path = STRINGIFY_DEFINE(_FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.fs));
+  path.replace_all("<", "");
+  path.replace_all(">", "");
+  fan::string fragment_code;
+  fan::io::file::read(path, &fragment_code);
   m_fbo_final_shader.set_fragment(
     get_context(),
-    #include _FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.fs)
+    fragment_code
   );
   m_fbo_final_shader.compile(get_context());
 
@@ -1877,6 +1891,7 @@ public:
         #if defined(loco_pixel_format_renderer)
         *types.get_value<pixel_format_renderer_t*>() = &pixel_format_renderer;
         #endif
+        * types.get_value<particles_t*>() = &particles;
 
         #if defined(loco_t_id_t_types)
         #if !defined(loco_t_id_t_ptrs)
@@ -1988,7 +2003,7 @@ public:
     get_context()->opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
     get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
     #endif
-    get_context()->opengl.glClearColor(0.10, 0.10, 0.131, 1.0f);
+    get_context()->opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
     get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 
@@ -2333,6 +2348,7 @@ public:
     #if defined(loco_vfi)
     , vfi_t*
     #endif
+    ,particles_t*
   > types;
 
   struct vfi_id_t {
