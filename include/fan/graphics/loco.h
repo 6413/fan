@@ -1507,7 +1507,7 @@ public:
     #ifdef loco_window
     :
   gloco_dummy(this),
-    window(fan::vec2(1300, 1300)),
+    window(fan::vec2(800, 800)),
     #endif
     #if defined(loco_context)
     context(

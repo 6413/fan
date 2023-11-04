@@ -51,8 +51,8 @@ struct smoke_t : particle_base_t{
       f32_t angle = ptr->get_angle();
       fan::color c = ptr->get_color();
       ptr->set_position(position + ptr->velocity * dt);
-     // ptr->set_size(size + dt * 100);
-     // ptr->set_angle(angle + dt / 4);
+      ptr->set_size(size + dt * 100);
+      ptr->set_angle(angle + dt / 4);
       c.r = color.r;
       c.g = color.g;
       c.b = color.b;
@@ -138,7 +138,7 @@ int main() {
         .position = fan::vec3(gloco->get_mouse_position(), z),
         .size = 50,
         .image = &smoke_texture,
-        .color = fan::color(0.5, 0.5, 2)
+        .color = fan::color::rgb(100, 100, 1000)
       }));
       z = fmodf(z + 1, 5000);
     }

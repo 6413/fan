@@ -14,7 +14,7 @@ ifeq ($(OS),Windows_NT)
     # Replace / with \ thanks to Windows
   FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
 	FAN_INCLUDE_PATH = C:/libs/fan/include
-  CFLAGS += -I C:\libs\fan\include\baseclasses -I C:/libs/fan/include/imgui -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src
+  CFLAGS += -I C:\libs\fan\include\baseclasses -I C:/libs/fan/include/fan/imgui -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src
 	CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) -DWITCH_INCLUDE_PATH=C:/libs/WITCH
 	IMGUI_PATH += include/fan/imgui/
 else

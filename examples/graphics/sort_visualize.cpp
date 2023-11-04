@@ -3,7 +3,7 @@
 int main() {
   loco_t loco;
 
-  static constexpr f32_t count = 10000;
+  static constexpr f32_t count = 1000;
   static constexpr f32_t size_x = 2.f / count;
   struct node_t {
     fan::graphics::rectangle_t r;

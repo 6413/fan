@@ -10,12 +10,31 @@ struct b_t {
   a_t a;
 };
 
+template<typename T>
+concept Addable = 1 == 0;
+
+template <Addable T>
+void f(T x) {
+  // Your function implementation
+}
+
+struct {
+  int y;
+}a;
+
+void f() {
+  if constexpr (false)  {
+    
+  }
+}
+
 int main() {
-  fan::mp_t<b_t> mp;
-  a_t* some_value;
-  mp.get_value(1, [&]<typename T>(T& v) {
-    if constexpr (std::is_same_v<T, a_t>) {
-      some_value = &v;
-    }
-  });
+
+
+  //if (false) {}
+  //else {}
+  //switch (6) {
+  //  if (5) { printf("10"); }
+  //  printf("10");
+  //}
 }
