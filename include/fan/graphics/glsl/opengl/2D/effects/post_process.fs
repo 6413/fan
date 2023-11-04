@@ -1,4 +1,4 @@
-R"(
+
   #version 330
 
   in vec2 texture_coordinate;
@@ -18,4 +18,3 @@ R"(
 
   void main() {
   }
-)"

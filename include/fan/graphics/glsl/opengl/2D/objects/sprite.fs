@@ -1,4 +1,4 @@
-R"(
+
 #version 330
 
 layout (location = 0) out vec4 o_attachment0;
@@ -24,4 +24,3 @@ void main() {
 
   o_attachment0.rgb *= lighting_ambient + t.rgb;
 }
-)"

@@ -1,4 +1,4 @@
-R"(
+
 #version 150
 
 #define get_instance() instance.st[gl_VertexID / 6]
@@ -63,4 +63,3 @@ void main() {
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
 }
-)"

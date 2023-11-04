@@ -1,11 +1,10 @@
-R"(
+
 #version 330
 
 out vec4 i_color;
 
 uniform uint vertex_count;
 uniform uint count;
-uniform float radius;
 uniform vec2 position;
 uniform vec2 size;
 uniform vec2 position_velocity;
@@ -15,12 +14,21 @@ uniform float alive_time;
 uniform float respawn_time;
 uniform float begin_angle;
 uniform float end_angle;
-uniform sampler2D s;
+uniform vec4 color;
 
 uniform float time;
 
 uniform mat4 projection;
 uniform mat4 view;
+
+vec2 tc[] = vec2[](
+	vec2(0, 0), // top left
+	vec2(1, 0), // top right
+	vec2(1, 1), // bottom right
+	vec2(1, 1), // bottom right
+	vec2(0, 1), // bottom left
+	vec2(0, 0) // top left
+);
 
 uint RAND(uint seed) {
   for(uint i = 0u; i < 2u; i++){
@@ -123,6 +131,17 @@ vec2 triangle_vertices[] = vec2[](
 	vec2(1.0 / 2, -sqrt(3) / 6)
 );
 
+vec2 rectangle_vertices[] = vec2[](
+	vec2(-1.0, -1.0),
+	vec2(1.0, -1.0),
+	vec2(1.0, 1.0),
+
+	vec2(1.0, 1.0),
+	vec2(-1.0, 1.0),
+	vec2(-1.0, -1.0)
+);
+
+
 out vec2 texture_coordinate;
 
 vec2 vec2_direction(uint r, uint r2, float min, float max) {
@@ -134,40 +153,14 @@ vec2 vec2_direction(uint r, uint r2, float min, float max) {
   return vec2(cos(rr), sin(rr2));
 }
 
-uint rgb(float ratio)
-{
-    //we want to normalize ratio so that it fits in to 6 regions
-    //where each region is 256 units long
-    uint normalized = uint(ratio * 256 * 6);
-
-    //find the region for this position
-    uint region = normalized / 256u;
-
-    //find the distance to the start of the closest region
-    uint x = normalized % 256u;
-
-    uint r = 0u, g = 0u, b = 0u;
-    switch (region)
-    {
-    case 0u: r = 255u; g = 0u;   b = 0u;   g += x; break;
-    case 1u: r = 255u; g = 255u; b = 0u;   r -= x; break;
-    case 2u: r = 0u;   g = 255u; b = 0u;   b += x; break;
-    case 3u: r = 0u;   g = 255u; b = 255u; g -= x; break;
-    case 4u: r = 0u;   g = 0u;   b = 255u; r += x; break;
-    case 5u: r = 255u; g = 0u;   b = 255u; b -= x; break;
-    }
-    return r + (g << 8u) + (b << 16u);
-}
-
 float normalize(float value, float min, float max) {
 	return (value - min) / (max - min);
 }
 
 void main() {
-
-	vec2 resolution = vec2(view[3][0], view[3][1]) * 2;
-
 	mat4 m = mat4(1);
+
+  int modded_index = gl_VertexID % (int(count) * 6);
 
 	uint id = uint(gl_VertexID) / vertex_count + 1u;
 
@@ -200,14 +193,16 @@ void main() {
 
 	m = translate(m, vec3(pos, 0));
 	m = rotate(m, time_mod * angle_velocity * 3.141 * 2, rotation_vector);
-	m = scale(m, vec3(size, 0));
+	m = scale(m, vec3(size * time_mod, 0));
 
-	gl_Position = projection * view * m * vec4(triangle_vertices[gl_VertexID % 3], 0, 1);
-
-	float r = 1.0;
-	float g = 0.1;
-	float b = 0.1;
-
-	i_color = vec4(r, g, b, 1);
+	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
+  gl_Position.z = 1.f - (float(modded_index) / 6.f) / count;
+  i_color= vec4(
+    color.r,//float(RAND(seed + 2u)) / 5000000000.f, 
+    color.g,//float(RAND(seed + 3u)) / 5000000000.f, 
+    color.b,//float(RAND(seed + 4u)) / 5000000000.f, 
+    color.a);
+  i_color.a = 1.f - time_mod * 1.f;
+	texture_coordinate = tc[gl_VertexID % 6];
 }
-)"
+

@@ -1,4 +1,4 @@
-R"(
+
 #version 130
 
 out vec4 color;
@@ -28,4 +28,3 @@ void main() {
 
 	color = vec4(rgb.x, rgb.y, rgb.z, 1);
 }
-)"

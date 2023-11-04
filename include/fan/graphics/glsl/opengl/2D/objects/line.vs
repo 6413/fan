@@ -1,4 +1,4 @@
-R"(
+
 #version 140
 
 #define get_instance() instance[gl_VertexID / 2]
@@ -24,4 +24,3 @@ void main() {
   gl_Position = projection * view * vec4(((id & 1u) == 0u) ? get_instance().src.xy : get_instance().dst.xy, get_instance().src.z, 1);
 	instance_color = get_instance().color;
 }
-)"

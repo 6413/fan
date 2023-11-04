@@ -290,22 +290,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\particles.cpp" />
-    <ClCompile Include="pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <None Include=".editorconfig" />
-    <None Include="include\fan\graphics\glsl\opengl\2D\effects\frame_capture.fs" />
-    <None Include="include\fan\graphics\glsl\opengl\2D\effects\loco_fbo.fs" />
-    <None Include="include\fan\graphics\glsl\opengl\2D\effects\loco_fbo.vs" />
-    <None Include="include\fan\graphics\glsl\opengl\2D\objects\circle.fs" />
-    <None Include="include\fan\graphics\glsl\opengl\2D\objects\circle.vs" />
-    <None Include="include\fan\graphics\glsl\opengl\2D\objects\pixel_format_renderer.vs" />
     <None Include="src\dav1d\ext\x86\x86inc.asm" />
     <None Include="src\dav1d\x86\cdef16_avx2.asm" />
     <None Include="src\dav1d\x86\cdef16_sse.asm" />
@@ -498,6 +483,15 @@
     <ClInclude Include="include\fan\window\window_input_common.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="stages_compile\stage_fuel_station.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="examples\graphics\particles.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

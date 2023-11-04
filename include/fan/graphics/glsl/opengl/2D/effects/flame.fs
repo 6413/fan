@@ -1,4 +1,4 @@
-R"(
+
 #version 130
 
 in vec2 texture_coordinate;
@@ -23,4 +23,3 @@ void main() {
   o_color.r -= flicker;
   o_color.g += abs((flipped.y) * (texture_color * i_color).r);
 }
-)"

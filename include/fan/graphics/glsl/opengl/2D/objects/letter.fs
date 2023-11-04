@@ -1,4 +1,4 @@
-R"(
+
 #version 330
 
 layout (location = 0) out vec4 o_attachment0;
@@ -46,4 +46,3 @@ void main() {
 
   o_attachment0 = vec4(final_color.rgb, alpha - 1 + text_color.a);
 }
-)"

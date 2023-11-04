@@ -1,4 +1,4 @@
-R"(
+
 	#version 330
 
 	in vec2 texture_coordinate;
@@ -24,4 +24,3 @@ R"(
 		result = mix(hdrColor, bloomColor, b); // linear interpolation
 		o_color = result;
 	}
-)"

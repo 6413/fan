@@ -1,4 +1,4 @@
-R"(
+
 #version 330
 
 layout (location = 0) out vec4 o_attachment0;
@@ -15,4 +15,3 @@ void main() {
     discard;
   }
 }
-)"

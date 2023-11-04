@@ -1,4 +1,4 @@
-R"(
+
   #version 330
 
   layout (location = 0) out vec4 o_attachment0;
@@ -25,4 +25,3 @@ R"(
       o_attachment0 = outline_color;
     }
   }
-)"

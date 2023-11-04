@@ -1,4 +1,4 @@
-R"(
+
 #version 330
 
 layout (location = 1) in vec2 aTexCoord;
@@ -57,4 +57,3 @@ void main() {
 
   gl_Position = projection * view * vec4(vec2(x, y) * vec2(get_instance().radius) + get_instance().position.xy, get_instance().position.z, 1);
 }
-)"
