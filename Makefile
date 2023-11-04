@@ -9,7 +9,7 @@ CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtun
   #-fsanitize=address -fno-omit-frame-pointer
 
 
-MAIN = Source.cpp
+MAIN = examples/gui/model_maker.cpp
 FAN_OBJECT_FOLDER = 
 
 BASE_PATH = 
@@ -19,7 +19,7 @@ ifeq ($(OS),Windows_NT)
     #                        magic - replace / with \ thanks to windows
   FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
 	FAN_INCLUDE_PATH = C:/libs/fan/include
-  CFLAGS += -I C:\libs\fan\include\baseclasses -I C:/libs/fan/include/imgui -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
+  CFLAGS += -I C:/libs/fan/include/fan/imgui -I C:\libs\fan\include\baseclasses -I C:/libs/fan/include/imgui -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
 	CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) -DWITCH_INCLUDE_PATH=C:/libs/WITCH
 	CFLAGS += lib/libuv/uv_a.lib
 else
@@ -36,10 +36,10 @@ PCH_PATH = pch.h
 CFLAGS += -Dfan_pch=\"$(PCH_PATH)\"
 
 debug:
-	$(GPP) $(CFLAGS)  -include-pch $(PCH_PATH).gch  $(MAIN) libimgui.a
+	$(GPP) $(CFLAGS)  -include-pch $(PCH_PATH).gch  $(MAIN) lib/imgui/libimgui.lib
 
 release:
-	$(GPP) $(CFLAGS) -include-pch $(PCH_PATH).gch $(MAIN) -s -O3 -march=native -mtune=native libimgui.a
+	$(GPP) $(CFLAGS) $(MAIN) -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 lib/imgui/libimgui.lib
 
 clean:
 	rm -f a.out

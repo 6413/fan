@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
     mm.load("model.fmm");//
   }//
   loco_t::sprite_t::properties_t p;
-
+  //
   //
   loco.set_vsync(false);
   //pile->loco.get_window()->set_max_fps(165);

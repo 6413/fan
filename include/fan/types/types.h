@@ -516,7 +516,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 
   template <typename ...Args>
   constexpr void print(const Args&... args) {
-    (([&]<typename T = Args>(const T & v) {
+    (([&]<typename T>(const T & v) {
       if constexpr (is_printable_v<T>) {
         std::cout << v << ' ';
       }

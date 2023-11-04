@@ -6,8 +6,9 @@ int main() {
       .position = 0.3,
       .size = 0.2,
       .color = fan::colors::red
-    }};
+  }};
 
-  loco.loop([] {
+  loco.loop([&] {
+    
   });
 }
