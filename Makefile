@@ -1,6 +1,6 @@
 # compiler settings
 CXX = clang++
-CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include
+CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include -ftime-trace -fuse-ld=gold
 
 # source file and output
 MAIN = examples/graphics/grid.cpp
@@ -15,7 +15,7 @@ LINK_PATH = lib/fan/
 # precompiled header file
 PCH_NAME = pch.h
 
-DEBUG_FLAGS = -g
+DEBUG_FLAGS = 
 RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -Wl,--gc-sections
 
 # includes & link

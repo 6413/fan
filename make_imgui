@@ -1,6 +1,6 @@
 # compiler settings
 CXX = clang++
-CXXFLAGS = -I . -std=c++2a -I include
+CXXFLAGS = -I . -std=c++2a -I include -fuse-ld=gold
 
 # source files and output
 IMGUI_SRC = $(wildcard $(IMGUI_PATH)*.cpp)
@@ -16,7 +16,7 @@ LINUX_ROOT_PATH = /usr/include/
 
 FAN_INCLUDE_PATH =
 
-DEBUG_FLAGS = -g
+DEBUG_FLAGS = 
 RELEASE_FLAGS = -s -O3 -march=native -mtune=native
 
 INCLUDES =
