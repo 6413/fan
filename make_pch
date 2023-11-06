@@ -1,6 +1,6 @@
 # compiler settings
 CXX = clang++
-CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include
+CXXFLAGS = -ferror-limit=3 -std=c++2a -I include -fpch-instantiate-templates -fpch-debuginfo -Xclang -fno-validate-pch
 
 # source file and output
 MAIN = $(FAN_INCLUDE_PATH)fan/pch.h
@@ -12,7 +12,7 @@ LINUX_ROOT_PATH = /usr/include/
 FAN_INCLUDE_PATH =
 FAN_LIB =
 
-DEBUG_FLAGS = -g
+DEBUG_FLAGS = 
 RELEASE_FLAGS = -s -O3 -march=native -mtune=native
 
 # includes & link
