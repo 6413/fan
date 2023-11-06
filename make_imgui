@@ -1,6 +1,6 @@
 # compiler settings
 CXX = clang++
-CXXFLAGS = -I . -std=c++2a -I include -fuse-ld=gold
+CXXFLAGS = -I . -std=c++2a -I include -w
 
 # source files and output
 IMGUI_SRC = $(wildcard $(IMGUI_PATH)*.cpp)
@@ -21,8 +21,8 @@ RELEASE_FLAGS = -s -O3 -march=native -mtune=native
 
 INCLUDES =
 ifeq ($(OS),Windows_NT)
-	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)fan/include
-	INCLUDES += -I $(WINDOWS_ROOT_PATH)fan/include/baseclasses -I $(WINDOWS_ROOT_PATH)fan/include/fan/imgui -I $(WINDOWS_ROOT_PATH)fan/src/libwebp -I $(WINDOWS_ROOT_PATH)fan/src/libwebp/src
+	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)fan/include/
+	INCLUDES += -I $(WINDOWS_ROOT_PATH)fan/include/baseclasses -I $(WINDOWS_ROOT_PATH)fan/include/fan/imgui -I $(WINDOWS_ROOT_PATH)fan/src/libwebp/src
 	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WINDOWS_ROOT_PATH)WITCH
 	IMGUI_PATH += include/fan/imgui/
 else
@@ -38,7 +38,7 @@ PCH_NAME = pch.h
 CXXFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(IMGUI_LIB): $(IMGUI_OBJ)
 	llvm-ar rcs $(OUTPUT_PATH)$@ $^

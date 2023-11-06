@@ -1,6 +1,6 @@
 # compiler settings
 CXX = clang++
-CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include -ftime-trace -fuse-ld=gold
+CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include -ftime-trace
 
 # source file and output
 MAIN = examples/graphics/grid.cpp
@@ -38,6 +38,7 @@ else
 	FAN_INCLUDE_PATH += $(LINUX_ROOT_PATH)
 	INCLUDES += $(LINUX_INCLUDES)
 	LINK += $(LINUX_LINK)
+	CXXFLAGS += -fuse-ld=gold
 	CXXFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
 	CXXFLAGS += -I $(FAN_INCLUDE_PATH)
 endif
