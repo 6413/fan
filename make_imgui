@@ -30,11 +30,12 @@ IMGUI_OBJ = $(IMGUI_SRC:.cpp=.o)
 PCH_NAME = pch.h
 CFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
 
+%.o: %.cpp
+	$(GPP) $(CFLAGS) -c -s -O3 -march=native -mtune=native $< -o $@
+
 $(IMGUI_LIB): $(IMGUI_OBJ)
 	llvm-ar rcs $(OUTPUT_PATH)$@ $^
 
-%.o: %.cpp
-	$(GPP) $(CFLAGS) -c -s -O3 -march=native -mtune=native $< -o $@
 
 clean:
 ifeq ($(OS),Windows_NT)
