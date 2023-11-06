@@ -5,33 +5,30 @@ CFLAGS = -I . -std=c++2a -I include
 IMGUI_LIB = libimgui.a
 
 FAN_OBJECT_FOLDER = 
-LIBS =
-BASE_PATH = 
 IMGUI_PATH =
 OUTPUT_PATH = lib/fan/
 
+FAN_INCLUDE_PATH =
+
 ifeq ($(OS),Windows_NT)
-  BASE_PATH += lib/fan/
-    # Replace / with \ thanks to Windows
-  FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
-	FAN_INCLUDE_PATH = C:/libs/fan/include
+	FAN_INCLUDE_PATH += C:/libs/fan/include
   CFLAGS += -I C:\libs\fan\include\baseclasses -I C:/libs/fan/include/fan/imgui -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src
-	CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) -DWITCH_INCLUDE_PATH=C:/libs/WITCH
+	CFLAGS += -DWITCH_INCLUDE_PATH=C:/libs/WITCH
 	IMGUI_PATH += include/fan/imgui/
 else
-  BASE_PATH += lib/fan/
-  FAN_OBJECT_FOLDER += $(BASE_PATH)
-  CFLAGS += -DFAN_INCLUDE_PATH=/usr/include/
+	FAN_INCLUDE_PATH += /usr/include/
 	CFLAGS += -I /usr/include/fan/imgui
 	CFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
 	IMGUI_PATH += /usr/include/fan/imgui/
 endif
 
+CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) 
+
 IMGUI_SRC = $(wildcard $(IMGUI_PATH)*.cpp)
 IMGUI_OBJ = $(IMGUI_SRC:.cpp=.o)
 
-PCH_PATH = pch.h
-CFLAGS += -Dfan_pch=\"$(PCH_PATH)\"
+PCH_NAME = pch.h
+CFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
 
 $(IMGUI_LIB): $(IMGUI_OBJ)
 	llvm-ar rcs $(OUTPUT_PATH)$@ $^

@@ -33,7 +33,7 @@ PCH_NAME = pch.h
 CFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
 
 debug:
-	$(GPP) $(CFLAGS)  -include-pch $(LINK_PATH)$(PCH_NAME).gch  $(MAIN) 
+	$(GPP) $(CFLAGS) -include-pch $(LINK_PATH)$(PCH_NAME).gch  $(MAIN) 
 
 release:
 	$(GPP) $(CFLAGS) -include-pch $(LINK_PATH)$(PCH_NAME).gch $(MAIN) -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 lib/imgui/libimgui.lib
