@@ -13,21 +13,24 @@ MAIN = examples/cpp/print.cpp
 FAN_OBJECT_FOLDER = 
 
 LINK_PATH = lib/fan/
+FAN_INCLUDE_PATH=
 
 ifeq ($(OS),Windows_NT)
-	FAN_INCLUDE_PATH = C:/libs/fan/include
+	FAN_INCLUDE_PATH += C:/libs/fan/include
   CFLAGS += -I C:\libs\fan\include\baseclasses -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
-	CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) -DWITCH_INCLUDE_PATH=C:/libs/WITCH
+	CFLAGS += -DWITCH_INCLUDE_PATH=C:/libs/WITCH
 	CFLAGS += lib/libuv/uv_a.lib lib/imgui/libimgui.lib 
 else
+	FAN_INCLUDE_PATH += /usr/include/
   CFLAGS += -lX11 -lXrandr -L /usr/local/lib -lopus -L/usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl
-  CFLAGS += -DFAN_INCLUDE_PATH=/usr/include/
 	CFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
 	CFLAGS += $(LINK_PATH)libimgui.a
 endif
 
+CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) 
+
 PCH_NAME = pch.h
-CFLAGS += -Dfan_pch=\"$(PCH_NAME)\"
+CFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
 
 debug:
 	$(GPP) $(CFLAGS)  -include-pch $(LINK_PATH)$(PCH_NAME).gch  $(MAIN) 
