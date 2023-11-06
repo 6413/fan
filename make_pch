@@ -3,34 +3,32 @@ GPP = clang++ -I C:\libs -Dstage_loader_path=. -I include/nvidia -I .
 CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtune=native \
 	#-fsanitize=address -fno-omit-frame-pointer
 
-MAIN = pch.h
-
 FAN_OBJECT_FOLDER = 
 
-BASE_PATH = 
+FAN_INCLUDE_PATH = 
 
 FAN_LIB =
 
 ifeq ($(OS),Windows_NT)
-	BASE_PATH += lib/fan/
-	#magic - replace / with \ thanks to windows
-	FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
-	FAN_INCLUDE_PATH = C:/libs/fan/include
+	FAN_INCLUDE_PATH += C:/libs/fan/include
 	FAN_LIB += fan_windows_clang
   CFLAGS += -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src -I ..
-	CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) -DWITCH_INCLUDE_PATH=C:/libs/WITCH
+	CFLAGS += -DWITCH_INCLUDE_PATH=C:/libs/WITCH
 else
-	BASE_PATH += lib/fan/
-	FAN_OBJECT_FOLDER += $(BASE_PATH)
-	FAN_INCLUDE_PATH = /usr/include
+	FAN_INCLUDE_PATH += /usr/include/
 	CFLAGS += -I /usr/local/include
-	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include/
 	FAN_LIB += fan
 	CFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
 endif
 
+CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
+
 CFLAGS += -Dfan_build_pch
-CFLAGS += -Dfan_pch=\"pch.h\"
+
+PCH_NAME = pch.h
+CFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
+
+MAIN = $(FAN_INCLUDE_PATH)fan/$(PCH_NAME)
 
 debug:
 	$(GPP) $(CFLAGS) -x c++-header $(MAIN) -o lib/fan/pch.h.gch
