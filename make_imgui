@@ -1,46 +1,52 @@
-#llvm-lib /OUT:library.lib libimgui.a     
-GPP = clang++ -w
-CFLAGS = -I . -std=c++2a -I include
+# compiler settings
+CXX = clang++
+CXXFLAGS = -I . -std=c++2a -I include
 
+# source files and output
+IMGUI_SRC = $(wildcard $(IMGUI_PATH)*.cpp)
+IMGUI_OBJ = $(IMGUI_SRC:.cpp=.o)
 IMGUI_LIB = libimgui.a
 
-FAN_OBJECT_FOLDER = 
+FAN_OBJECT_FOLDER =
 IMGUI_PATH =
 OUTPUT_PATH = lib/fan/
 
+WINDOWS_ROOT_PATH = C:/libs/
+LINUX_ROOT_PATH = /usr/include/
+
 FAN_INCLUDE_PATH =
 
+DEBUG_FLAGS = -g
+RELEASE_FLAGS = -s -O3 -march=native -mtune=native
+
+INCLUDES =
 ifeq ($(OS),Windows_NT)
-	FAN_INCLUDE_PATH += C:/libs/fan/include
-  CFLAGS += -I C:\libs\fan\include\baseclasses -I C:/libs/fan/include/fan/imgui -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src
-	CFLAGS += -DWITCH_INCLUDE_PATH=C:/libs/WITCH
+	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)fan/include
+	INCLUDES += -I $(WINDOWS_ROOT_PATH)fan/include/baseclasses -I $(WINDOWS_ROOT_PATH)fan/include/fan/imgui -I $(WINDOWS_ROOT_PATH)fan/src/libwebp -I $(WINDOWS_ROOT_PATH)fan/src/libwebp/src
+	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WINDOWS_ROOT_PATH)WITCH
 	IMGUI_PATH += include/fan/imgui/
 else
-	FAN_INCLUDE_PATH += /usr/include/
-	CFLAGS += -I /usr/include/fan/imgui
-	CFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
-	IMGUI_PATH += /usr/include/fan/imgui/
+	FAN_INCLUDE_PATH += $(LINUX_ROOT_PATH)
+	INCLUDES += -I $(LINUX_ROOT_PATH)fan/imgui -I $(LINUX_ROOT_PATH)WITCH
+	CXXFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
+	IMGUI_PATH += $(LINUX_ROOT_PATH)fan/imgui/
 endif
 
-CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) 
-
-IMGUI_SRC = $(wildcard $(IMGUI_PATH)*.cpp)
-IMGUI_OBJ = $(IMGUI_SRC:.cpp=.o)
+CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
 
 PCH_NAME = pch.h
-CFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
+CXXFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
 
 %.o: %.cpp
-	$(GPP) $(CFLAGS) -c -s -O3 -march=native -mtune=native $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(IMGUI_LIB): $(IMGUI_OBJ)
 	llvm-ar rcs $(OUTPUT_PATH)$@ $^
 
-
 clean:
 ifeq ($(OS),Windows_NT)
-	del include\fan\imgui\*.o
-	del libimgui.a
+	del $(IMGUI_PATH)*.o
+	del $(IMGUI_LIB)
 else
-	rm /usr/include/fan/imgui/*.o
+	rm $(IMGUI_PATH)*.o
 endif
