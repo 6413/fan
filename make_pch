@@ -1,40 +1,47 @@
-GPP = clang++ -I C:\libs -Dstage_loader_path=. -I include/nvidia -I .
+# compiler settings
+CXX = clang++
+CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include
 
-CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtune=native \
-	#-fsanitize=address -fno-omit-frame-pointer
+# source file and output
+MAIN = $(FAN_INCLUDE_PATH)fan/pch.h
+OUTPUT = lib/fan/pch.h.gch
 
-FAN_OBJECT_FOLDER = 
+WINDOWS_ROOT_PATH = C:/libs/
+LINUX_ROOT_PATH = /usr/include/
 
-FAN_INCLUDE_PATH = 
-
+FAN_INCLUDE_PATH =
 FAN_LIB =
 
+DEBUG_FLAGS = -g
+RELEASE_FLAGS = -s -O3 -march=native -mtune=native
+
+# includes & link
+WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I $(WINDOWS_ROOT_PATH)fan/src/libwebp -I $(WINDOWS_ROOT_PATH)fan/src/libwebp/src -I ..
+LINUX_INCLUDES = -I $(LINUX_ROOT_PATH) -I /usr/local/include
+
+INCLUDES =
 ifeq ($(OS),Windows_NT)
-	FAN_INCLUDE_PATH += C:/libs/fan/include
+	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)fan/include/
 	FAN_LIB += fan_windows_clang
-  CFLAGS += -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src -I ..
-	CFLAGS += -DWITCH_INCLUDE_PATH=C:/libs/WITCH
+	INCLUDES += $(WINDOWS_INCLUDES)
+	CXXFLAGS += -I $(WINDOWS_ROOT_PATH)fan/include/baseclasses -I $(WINDOWS_ROOT_PATH)WITCH
+	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WINDOWS_ROOT_PATH)WITCH
 else
-	FAN_INCLUDE_PATH += /usr/include/
-	CFLAGS += -I /usr/local/include
+	FAN_INCLUDE_PATH += $(LINUX_ROOT_PATH)
 	FAN_LIB += fan
-	CFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
+	INCLUDES += $(LINUX_INCLUDES)
+	CXXFLAGS += -I $(FAN_INCLUDE_PATH) -I $(LINUX_ROOT_PATH)WITCH
+	CXXFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
 endif
 
-CFLAGS += -Dfan_build_pch
-
-CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
-
-PCH_NAME = pch.h
-CFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
-
-MAIN = $(FAN_INCLUDE_PATH)fan/$(PCH_NAME)
+CXXFLAGS += -Dfan_build_pch
+CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
 
 debug:
-	$(GPP) $(CFLAGS) -x c++-header $(MAIN) -o lib/fan/pch.h.gch
+	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT) $(INCLUDES)
 
 release:
-	$(GPP) $(CFLAGS) -s -O3 -march=native -mtune=native -x c++-header $(MAIN) -o lib/fan/pch.h.gch
+	$(CXX) $(CXXFLAGS) $(RELEASE_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT) $(INCLUDES)
 
 clean:
-	rm -f a.out
+	rm -f $(OUTPUT)

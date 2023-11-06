@@ -1,41 +1,56 @@
-#release
-GPP = clang++ -I C:\libs -Dstage_loader_path=. -I include/nvidia -I .
-#debug for address sanitizer
-#GPP = clang-cl /MT -fsanitize=address  /std:c++latest
+# compiler settings
+CXX = clang++
+CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include
 
-#-Wall -Wextra -Wshadow -Wconversion -Wpedantic -Werror
-
-CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtune=native \
-  #-fsanitize=address -fno-omit-frame-pointer
-
-
+# source file and output
 MAIN = examples/graphics/grid.cpp
-FAN_OBJECT_FOLDER = 
+OUTPUT = a.out
 
+WINDOWS_ROOT_PATH=C:/libs/
+LINUX_ROOT_PATH=/usr/include/
+
+FAN_INCLUDE_PATH =
 LINK_PATH = lib/fan/
-FAN_INCLUDE_PATH=
+
+# precompiled header file
+PCH_NAME = pch.h
+
+DEBUG_FLAGS = -g
+RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -Wl,--gc-sections
+
+# includes & link
+WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I $(WINDOWS_ROOT_PATH)/fan/include/baseclasses -I $(WINDOWS_ROOT_PATH)/fan/src/libwebp -I $(WINDOWS_ROOT_PATH)/fan/src/libwebp/src
+LINUX_INCLUDES = -I $(LINUX_ROOT_PATH)
+
+WINDOWS_LINK = lib/libuv/uv_a.lib $(LINK_PATH)libimgui.a lib/libwebp/libwebp.a lib/opus/libopus.a
+LINUX_LINK = -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl $(LINK_PATH)libimgui.a
+
+INCLUDES =
+LINK = 
 
 ifeq ($(OS),Windows_NT)
-	FAN_INCLUDE_PATH += C:/libs/fan/include
-  CFLAGS += -I C:\libs\fan\include\baseclasses -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src C:/libs/fan/lib/libwebp/libwebp.a C:/libs/fan/lib/opus/libopus.a
-	CFLAGS += -DWITCH_INCLUDE_PATH=C:/libs/WITCH
-	CFLAGS += lib/libuv/uv_a.lib lib/imgui/libimgui.lib 
+	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)/fan/include/
+	INCLUDES += $(WINDOWS_INCLUDES)
+	LINK += $(WINDOWS_LINK)
+	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WINDOWS_ROOT_PATH)WITCH
+	CXXFLAGS += -I $(FAN_INCLUDE_PATH)
 else
-	FAN_INCLUDE_PATH += /usr/include/
-  CFLAGS += -lX11 -lXrandr -L /usr/local/lib -lopus -L/usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl
-	CFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
+	FAN_INCLUDE_PATH += $(LINUX_ROOT_PATH)
+	INCLUDES += $(LINUX_INCLUDES)
+	LINK += $(LINUX_LINK)
+	CXXFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
+	CXXFLAGS += -I $(FAN_INCLUDE_PATH)
 endif
 
-CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) 
-
-PCH_NAME = pch.h
-CFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
+CXXFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
 
 debug:
-	$(GPP) $(CFLAGS) -include-pch $(LINK_PATH)$(PCH_NAME).gch  $(MAIN)  $(LINK_PATH)libimgui.a
+	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -include-pch $(LINK_PATH)$(PCH_NAME).gch $(INCLUDES) $(MAIN) -o $(OUTPUT) $(LINK) 
 
 release:
-	$(GPP) $(CFLAGS) -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -include-pch $(LINK_PATH)$(PCH_NAME).gch $(MAIN) $(LINK_PATH)libimgui.a
+	$(CXX) $(CXXFLAGS) $(RELEASE_FLAGS) -include-pch $(LINK_PATH)$(PCH_NAME).gch $(MAIN) $(OUTPUT) $(LIBS) $(INCLUDES)
 
 clean:
-	rm -f a.out
+	rm -f $(OUTPUT)
+
+.PHONY: debug release clean
