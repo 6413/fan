@@ -9,7 +9,7 @@ CFLAGS = -ferror-limit=3 -w -I .  -std=c++2a -I include #-O3 -march=native -mtun
   #-fsanitize=address -fno-omit-frame-pointer
 
 
-MAIN = examples/cpp/print.cpp
+MAIN = examples/gui/model_maker.cpp
 FAN_OBJECT_FOLDER = 
 
 LINK_PATH = lib/fan/
@@ -24,7 +24,6 @@ else
 	FAN_INCLUDE_PATH += /usr/include/
   CFLAGS += -lX11 -lXrandr -L /usr/local/lib -lopus -L/usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl
 	CFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
-	CFLAGS += $(LINK_PATH)libimgui.a
 endif
 
 CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) 
@@ -33,10 +32,10 @@ PCH_NAME = pch.h
 CFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
 
 debug:
-	$(GPP) $(CFLAGS) -include-pch $(LINK_PATH)$(PCH_NAME).gch  $(MAIN) 
+	$(GPP) $(CFLAGS) -include-pch $(LINK_PATH)$(PCH_NAME).gch  $(MAIN)  $(LINK_PATH)libimgui.a
 
 release:
-	$(GPP) $(CFLAGS) -include-pch $(LINK_PATH)$(PCH_NAME).gch $(MAIN) -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 lib/imgui/libimgui.lib
+	$(GPP) $(CFLAGS) -fdata-sections -ffunction-sections -Wl,--gc-sections -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -include-pch $(LINK_PATH)$(PCH_NAME).gch $(MAIN) $(LINK_PATH)libimgui.a
 
 clean:
 	rm -f a.out

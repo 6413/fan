@@ -21,9 +21,9 @@ else
 	CFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
 endif
 
-CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
-
 CFLAGS += -Dfan_build_pch
+
+CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
 
 PCH_NAME = pch.h
 CFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
