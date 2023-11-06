@@ -1030,7 +1030,8 @@ public:
   #endif
 
   struct properties_t {
-    bool vsync = false;
+    bool vsync = true;
+    fan::vec2 window_size = 800;
   };
 
   static constexpr uint32_t max_depths = 2;
@@ -1508,11 +1509,15 @@ public:
   using custom_id_t_types_t = std::tuple<loco_custom_id_t_types>;
   #endif
 
-  loco_t(properties_t p = properties_t{ true })
+  loco_t() : loco_t(properties_t()){
+
+  }
+
+  loco_t(properties_t p)
     #ifdef loco_window
     :
   gloco_dummy(this),
-    window(fan::vec2(1300, 1300)),
+    window(p.window_size),
     #endif
     #if defined(loco_context)
     context(
@@ -1660,14 +1665,14 @@ public:
 
       fan::vec2 window_size = gloco->get_window()->get_size();
 
-      default_viewport.set(fan::vec2(0, 0), d.size, d.size);
+      default_camera->viewport.set(fan::vec2(0, 0), d.size, d.size);
 
       fan::vec2 ratio = window_size.square_normalize();
       //fan::vec2 ortho = fan::vec2(1, 1) * ratio;
       //ortho *= 1.f / ortho.min();
       default_camera->camera.set_ortho(
-        fan::vec2(0, window_size.x),
-        fan::vec2(0, window_size.y)
+        fan::vec2(0, d.size.x),
+        fan::vec2(0, d.size.y)
       );
   });
 
@@ -1904,13 +1909,12 @@ public:
         #endif
 
     fan::vec2 window_size = get_window()->get_size();
-    open_viewport(&default_viewport, fan::vec2(0, 0), window_size);
 
     default_camera = add_camera(fan::graphics::direction_e::right);
 
     open_camera(&default_camera->camera,
-      fan::vec2(-1, 1),
-      fan::vec2(-1, 1)
+      fan::vec2(0, window_size.x),
+      fan::vec2(0, window_size.y)
     );
 
   #if defined(loco_physics)
@@ -2747,7 +2751,6 @@ public:
 
   loco_t::theme_t default_theme = loco_t::themes::gray();
   camera_impl_t* default_camera;
-  loco_t::viewport_t default_viewport;
 
   fan::graphics::viewport_divider_t viewport_divider;
 
@@ -2966,7 +2969,7 @@ namespace fan {
 
     struct letter_properties_t {
       loco_t::camera_t* camera = &gloco->default_camera->camera;
-      loco_t::viewport_t* viewport = &gloco->default_viewport;
+      loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
       fan::color color = fan::colors::white;
       fan::vec3 position = fan::vec3(0, 0, 0);
       f32_t font_size = 1;
@@ -2990,7 +2993,7 @@ namespace fan {
 
     struct text_properties_t {
       loco_t::camera_t* camera = &gloco->default_camera->camera;
-      loco_t::viewport_t* viewport = &gloco->default_viewport;
+      loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
       std::string text = "";
       fan::color color = fan::colors::white;
       fan::vec3 position = fan::vec3(fan::math::inf, -0.9, 0);
@@ -3018,7 +3021,7 @@ namespace fan {
     struct button_properties_t {
       loco_t::theme_t* theme = &gloco->default_theme;
       loco_t::camera_t* camera = &gloco->default_camera->camera;
-      loco_t::viewport_t* viewport = &gloco->default_viewport;
+      loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
       fan::vec3 position = fan::vec3(0, 0, 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
       std::string text = "button";

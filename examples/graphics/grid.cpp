@@ -17,8 +17,8 @@ void set_colors(auto& grid, fan::vec2 world_pos, f32_t radius) {
   for (f32_t j = top; j < bottom; ++j) {
     f32_t offsety = j * grid_size.x - (world_pos.y - grid_size.y * !(j >= (top + bottom) / 2));
     f32_t dx;
-    fan::print(std::fmodf(world_pos.y / grid_size.y, 1));
-    if (j == (top + bottom) / 2 - (std::fmodf(world_pos.y / grid_size.y, 1) >= 0.5 ? 1 : 0) || (top + 1 >= bottom)) {
+    fan::print(fmodf(world_pos.y / grid_size.y, 1));
+    if (j == (top + bottom) / 2 - (fmodf(world_pos.y / grid_size.y, 1) >= 0.5 ? 1 : 0) || (top + 1 >= bottom)) {
       dx = radius;
     } 
     else {
@@ -30,7 +30,7 @@ void set_colors(auto& grid, fan::vec2 world_pos, f32_t radius) {
       // this if is only necessary for very big squares
      if (ceil(i) <= floor((world_pos.x + radius) / grid_size.x) &&
           floor(i) >= floor((world_pos.x - radius) / grid_size.x)) {
-        grid[(int)i][(int)j].r.set_color(fan::colors::green);
+        grid[std::min(std::max((int)i, 0), (int)grid_size.y)][std::min(std::max((int)j, 0), (int)grid_size.x)].r.set_color(fan::colors::green);
       }
     }
   }
@@ -47,7 +47,7 @@ void set_colors(auto& grid, fan::vec2 world_pos, f32_t radius) {
 }
 
 int main() {
-  loco_t loco;
+  loco_t loco = loco_t::properties_t{.window_size = 600};
 
   fan::vec2 viewport_size = loco.get_window()->get_size();
   loco.default_camera->camera.set_ortho(
