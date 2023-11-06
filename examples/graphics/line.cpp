@@ -4,7 +4,7 @@ int main() {
 
   loco_t loco;
   fan::vec2 window_size = loco.get_window()->get_size();
-  fan::graphics::default_camera->camera.set_ortho(
+  loco.default_camera->camera.set_ortho(
     fan::vec2(0, window_size.x),
     fan::vec2(0, window_size.y)
   );
@@ -12,7 +12,7 @@ int main() {
   // draw line from top left to bottom right
   fan::graphics::line_t line{{
     .src = fan::vec2(0, 0),
-    .dst = fan::vec2(window_size.x, window_size.y),
+    .dst = fan::vec2(0, window_size.y),
     .color = fan::colors::white
   }};
 
