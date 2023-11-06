@@ -15,12 +15,23 @@
 
 #define loco_imgui
 
+#define STRINGIFY(p0) #p0
+#define STRINGIFY_DEFINE(a) STRINGIFY(a)
+
+#ifndef FAN_INCLUDE_PATH
+  #define _FAN_PATH(p0) <fan/p0>
+  #else
+  #define FAN_INCLUDE_PATH_END fan/
+  #define _FAN_PATH(p0) <FAN_INCLUDE_PATH/fan/p0>
+  #define _FAN_PATH_QUOTE(p0) STRINGIFY_DEFINE(FAN_INCLUDE_PATH) "/fan/" STRINGIFY(p0)
+#endif
+
 #if defined(loco_imgui)
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "imgui.h"
-#include "imgui_impl_opengl3.h"
-#include "imgui_impl_win32.h"
+#include _FAN_PATH(imgui/imgui.h)
+#include _FAN_PATH(imgui/imgui_impl_opengl3.h)
+#include _FAN_PATH(imgui/imgui_impl_win32.h)
 #endif
 
 #ifndef FAN_INCLUDE_PATH
