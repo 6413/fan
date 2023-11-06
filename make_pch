@@ -34,10 +34,10 @@ CFLAGS += -Dfan_build_pch
 CFLAGS += -Dfan_pch=\"pch.h\"
 
 debug:
-	$(GPP) $(CFLAGS) -x c++-header $(MAIN)
+	$(GPP) $(CFLAGS) -x c++-header $(MAIN) -o lib/fan/pch.h.gch
 
 release:
-	$(GPP) $(CFLAGS) -s -O3 -march=native -mtune=native -x c++-header $(MAIN)
+	$(GPP) $(CFLAGS) -s -O3 -march=native -mtune=native -x c++-header $(MAIN) -o lib/fan/pch.h.gch
 
 clean:
 	rm -f a.out

@@ -8,6 +8,7 @@ FAN_OBJECT_FOLDER =
 LIBS =
 BASE_PATH = 
 IMGUI_PATH =
+OUTPUT_PATH = lib/fan/
 
 ifeq ($(OS),Windows_NT)
   BASE_PATH += lib/fan/
@@ -33,7 +34,7 @@ PCH_PATH = pch.h
 CFLAGS += -Dfan_pch=\"$(PCH_PATH)\"
 
 $(IMGUI_LIB): $(IMGUI_OBJ)
-	llvm-ar rcs $@ $^
+	llvm-ar rcs $(OUTPUT_PATH)$@ $^
 
 %.o: %.cpp
 	$(GPP) $(CFLAGS) -c -s -O3 -march=native -mtune=native $< -o $@

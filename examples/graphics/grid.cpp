@@ -1,6 +1,6 @@
 #include fan_pch
 
-static constexpr fan::vec2 grid_size = fan::vec2(8, 8);
+static constexpr fan::vec2 grid_size = fan::vec2(512, 512);
 static constexpr fan::vec2i grid_count = fan::vec2i(200, 200);
 
 void reset(auto& grid) {
@@ -16,27 +16,34 @@ void set_colors(auto& grid, fan::vec2 world_pos, f32_t radius) {
   f32_t bottom = ceil(grid_posi.y + radius / grid_size.y);
   for (f32_t j = top; j < bottom; ++j) {
     f32_t offsety = j * grid_size.x - (world_pos.y - grid_size.y * !(j >= (top + bottom) / 2));
-    f32_t dx = fan::math::sqrt(fan::math::abs(radius * radius - offsety * offsety));
+    f32_t dx;
+    fan::print(std::fmodf(world_pos.y / grid_size.y, 1));
+    if (j == (top + bottom) / 2 - (std::fmodf(world_pos.y / grid_size.y, 1) >= 0.5 ? 1 : 0) || (top + 1 >= bottom)) {
+      dx = radius;
+    } 
+    else {
+      dx = fan::math::sqrt(fan::math::abs(radius * radius - offsety * offsety));
+    }
     f32_t left = (world_pos.x - dx) / grid_size.x;
     f32_t right = (world_pos.x + dx) / grid_size.x;
     for (int i = left; i < ceil(right); ++i) {
       // this if is only necessary for very big squares
-      if (ceil(i) <= floor((world_pos.x + radius) / grid_size.x) &&
+     if (ceil(i) <= floor((world_pos.x + radius) / grid_size.x) &&
           floor(i) >= floor((world_pos.x - radius) / grid_size.x)) {
         grid[(int)i][(int)j].r.set_color(fan::colors::green);
       }
     }
   }
 
-  // this for loop only necessary for edge cases with size near 128
-  for (int i = 0; i < 2; ++i){
+  // this for loop only necessary for edge cases with size near 256
+  /*for (int i = 0; i < 2; ++i){
     int x = (world_pos.x - radius * (i * 2 - 1)) / grid_size.x;
     int y = (world_pos.y) / grid_size.y;
     if (ceil(x) <= floor((world_pos.x + radius) / grid_size.x) &&
     floor(y) >= floor((world_pos.x - radius) / grid_size.x)) {
       grid[x][y].r.set_color(fan::colors::green);
     }
-  }
+  }*/
 }
 
 int main() {
