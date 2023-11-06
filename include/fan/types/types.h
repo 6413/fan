@@ -486,16 +486,16 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
       if constexpr (!is_printable_v<T2>) {
         auto f = struct_to_string(v);
         std::string indented;
-        for (auto&& r : f | std::views::split('\n')) {
-          std::string_view line(&*r.begin(), std::ranges::distance(r));
-          indented += "  " + std::string(line) + '\n';
+        std::istringstream f_stream(f);
+        for (std::string line; std::getline(f_stream, line); ) {
+          indented += "  " + line + '\n';
         }
         formatted_string += indented;
       }
       else {
         std::ostringstream os;
         os << v;
-        formatted_string += fmt::format("  Iteration {}: {{\n    Type:{}, Value:{}\n  }}",
+        formatted_string += fmt::format("  Member index {}: {{\n    Type:{}, Value:{}\n  }}",
           i, typeid(T2).name(), os.str()
         );
         formatted_string += "\n";
