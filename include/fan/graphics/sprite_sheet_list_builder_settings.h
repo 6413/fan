@@ -3,7 +3,7 @@
 #define BLL_set_prefix sheet_list
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeData \
-fan::graphics::cid_t cid; \
+loco_t::shape_t shape; \
 sheet_t sheet; \
 bool start = 0; \
 fan::ev_timer_t::timer_t timer;
