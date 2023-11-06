@@ -17,7 +17,7 @@ ifeq ($(OS),Windows_NT)
 	FAN_OBJECT_FOLDER = $(subst /,\,$(BASE_PATH))
 	FAN_INCLUDE_PATH = C:/libs/fan/include
 	FAN_LIB += fan_windows_clang
-  CFLAGS += -I C:/libs/fan/include/fan/imgui -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src -I ..
+  CFLAGS += -I C:/libs/fan/src/libwebp -I C:/libs/fan/src/libwebp/src -I ..
 	CFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH) -DWITCH_INCLUDE_PATH=C:/libs/WITCH
 else
 	BASE_PATH += lib/fan/
@@ -25,7 +25,6 @@ else
 	FAN_INCLUDE_PATH = /usr/include
 	CFLAGS += -I /usr/local/include
 	CFLAGS += -DFAN_INCLUDE_PATH=/usr/include/
-	CFLAGS += -I /usr/include/fan/imgui
 	FAN_LIB += fan
 	CFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
 endif
