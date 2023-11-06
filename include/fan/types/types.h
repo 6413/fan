@@ -538,6 +538,12 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
   template <>
   struct is_fan_vec3<fan::vec3> : std::true_type {};
 
+  template <typename... T>
+  static FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
+    -> fan::string {
+    return fmt::vformat(fmt, fmt::make_format_args(args...));
+  }
+
   template <typename... args_t>
   constexpr static auto print_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
     fan::print(fmt::format(fmt, std::forward<args_t>(args)...));
