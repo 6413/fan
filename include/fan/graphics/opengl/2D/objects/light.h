@@ -27,16 +27,11 @@ struct sb_shape_name {
     bool blending = true;
   };
 
-  #define make_key_value(type, name) \
-    type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
-
   struct properties_t : vi_t, ri_t, context_key_t {
     using type_t = sb_shape_name;
     loco_t::camera_t* camera = &gloco->default_camera->camera;
     loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
   };
-
-  #undef make_key_value
 
   void push_back(loco_t::cid_nt_t& id, properties_t& p) {
 

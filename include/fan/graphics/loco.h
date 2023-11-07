@@ -280,33 +280,33 @@ public:
   using viewport_t = fan::graphics::viewport_t;
 protected:
 
-  unsigned int quadVAO = 0;
-  unsigned int quadVBO;
-  void renderQuad()
-  {
-    if (quadVAO == 0)
-    {
-      float quadVertices[] = {
-        // positions        // texture Coords
-        -1.0f,  1.0f, 0, 0.0f, 1.0f,
-        -1.0f, -1.0f, 0, 0.0f, 0.0f,
-         1.0f,  1.0f, 0, 1.0f, 1.0f,
-         1.0f, -1.0f, 0, 1.0f, 0.0f,
-      };
-      // setup plane VAO
-      get_context()->opengl.glGenVertexArrays(1, &quadVAO);
-      get_context()->opengl.glGenBuffers(1, &quadVBO);
-      get_context()->opengl.glBindVertexArray(quadVAO);
-      get_context()->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, quadVBO);
-      get_context()->opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, fan::opengl::GL_STATIC_DRAW);
-      get_context()->opengl.glEnableVertexAttribArray(0);
-      get_context()->opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
-      get_context()->opengl.glEnableVertexAttribArray(1);
-      get_context()->opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    }
-    get_context()->opengl.glBindVertexArray(quadVAO);
-    get_context()->opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
-    get_context()->opengl.glBindVertexArray(0);
+  unsigned int fb_vao;
+  unsigned int fb_vbo;
+
+  void initialize_final_fb() {
+    static constexpr f32_t quad_vertices[] = {
+      -1.0f, 1.0f, 0, 0.0f, 1.0f,
+      -1.0f, -1.0f, 0, 0.0f, 0.0f,
+      1.0f, 1.0f, 0, 1.0f, 1.0f,
+      1.0f, -1.0f, 0, 1.0f, 0.0f,
+    };
+    auto* context = get_context();
+    context->opengl.glGenVertexArrays(1, &fb_vao);
+    context->opengl.glGenBuffers(1, &fb_vbo);
+    context->opengl.glBindVertexArray(fb_vao);
+    context->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, fb_vbo);
+    context->opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, fan::opengl::GL_STATIC_DRAW);
+    context->opengl.glEnableVertexAttribArray(0);
+    context->opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
+    context->opengl.glEnableVertexAttribArray(1);
+    context->opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  }
+
+  void render_final_fb() {
+    auto* context = get_context();
+    context->opengl.glBindVertexArray(fb_vao);
+    context->opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
+    context->opengl.glBindVertexArray(0);
   }
 
   #endif
@@ -1187,6 +1187,8 @@ public:
   {
     #if defined(loco_window)
 
+    initialize_final_fb();
+
     root = loco_bdbt_NewNode(&bdbt);
 
     // set_vsync(p.vsync);
@@ -1540,7 +1542,6 @@ public:
     #include "draw_shapes.h"
 
     #if defined(loco_framebuffer)
-    //m_flag_map_fbo.unbind(get_context());
 
     m_framebuffer.unbind(get_context());
 
@@ -1559,14 +1560,7 @@ public:
     get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
     color_buffers[1].bind_texture();
 
-    unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
-    for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-      attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
-    }
-
-    //get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
-
-    renderQuad();
+    render_final_fb();
 
     #if defined(loco_imgui)
     ImGui_ImplOpenGL3_NewFrame();
@@ -1626,19 +1620,16 @@ public:
     return get_mouse_position(gloco->default_camera->camera, gloco->default_camera->viewport);
   }
 
-  #if defined(loco_framebuffer)
-
+#if defined(loco_framebuffer)
   #if defined(loco_opengl)
-  fan::opengl::core::framebuffer_t m_flag_map_fbo;
 
-  fan::opengl::core::framebuffer_t m_framebuffer;
-  fan::opengl::core::renderbuffer_t m_rbo;
-  loco_t::image_t color_buffers[2];
-  fan::opengl::shader_t m_fbo_final_shader;
-
-  #endif
+    fan::opengl::core::framebuffer_t m_framebuffer;
+    fan::opengl::core::renderbuffer_t m_rbo;
+    loco_t::image_t color_buffers[2];
+    fan::opengl::shader_t m_fbo_final_shader;
 
   #endif
+#endif
 
   bool process_loop(const auto& lambda) {
 
@@ -1761,8 +1752,26 @@ public:
     #endif
   > types;
 
-  #define make_key_value(type, name) \
-      type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
+  // used in fl
+  struct vfi_id_t {
+    using properties_t = loco_t::vfi_t::properties_t;
+    operator loco_t::vfi_t::shape_id_t* () {
+      return &cid;
+    }
+    vfi_id_t() = default;
+    vfi_id_t(const properties_t& p) {
+      gloco->vfi.push_back(*this, *(properties_t*)&p);
+    }
+    vfi_id_t& operator[](const properties_t& p) {
+      gloco->vfi.push_back(*this, *(properties_t*)&p);
+      return *this;
+    }
+    ~vfi_id_t() {
+      gloco->vfi.erase(*this);
+    }
+
+    loco_t::vfi_t::shape_id_t cid;
+  };
 
   template <typename T>
   void push_shape(loco_t::cid_nt_t& id, T properties) {
@@ -2099,14 +2108,6 @@ public:
   fan_has_function_concept(get_properties);
   fan_has_function_concept(sb_get_ri);
   fan_has_function_concept(get_ri);
-
-  //make_global_function(get_properties,
-  //  if constexpr (has_get_properties_v<shape_t, loco_t::cid_t*>) {
-  //    lambda((*shape)->get_properties(cid));
-  //  },
-  //  cid_t* cid,
-  //  auto lambda
-  //);
 
   template <typename T>
   T* get_shape() {

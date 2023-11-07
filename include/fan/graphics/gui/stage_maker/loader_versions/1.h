@@ -36,7 +36,7 @@ while (off != in.size()) {
     auto it = stage->stage_common.cid_list.NewNodeLast();
     stage->stage_common.cid_list[it] = shape.get_shape(texturepack);
     fan::string string_type;
-    switch (stage->stage_common.cid_list[it]->shape_type) {
+    switch ((loco_t::shape_type_t)stage->stage_common.cid_list[it]->shape_type) {
       case loco_t::shape_type_t::rectangle: {
         string_type = "rectangle_";
         break;
