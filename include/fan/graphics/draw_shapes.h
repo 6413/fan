@@ -25,9 +25,9 @@ while(t0.t(&bdbt, &redraw_key)) {
   t1.i0(t0.Output, redraw_key.blending == false);
   uint16_t depth;
   while (t1.t0(&bdbt, &depth, redraw_key.blending == false)) {
-    typename loco_bdbt_Key_t<sizeof(shape_type_t::_t) * 8>::Traverse_t t2;
+    typename loco_bdbt_Key_t<sizeof(shape_type_t) * 8>::Traverse_t t2;
     t2.i(t1.Output);
-    shape_type_t::_t shape_type;
+    loco_t::shape_type_t shape_type;
     while (t2.t(&bdbt, &shape_type)) {  
       shape_draw(shape_type, redraw_key, t2.Output);
     }

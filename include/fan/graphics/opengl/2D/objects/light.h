@@ -1,9 +1,15 @@
 struct sb_shape_name {
 
-  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::light;
+  static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::light;
 
   struct vi_t {
-    loco_light_vi_t
+    loco_t::position3_t position = 0;
+    f32_t parallax_factor = 0;
+    fan::vec2 size = 0;
+    fan::vec2 rotation_point = 0;
+    fan::color color = fan::colors::white;
+    fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+    f32_t angle = 0;
   };
 
   struct context_key_t {
@@ -18,23 +24,16 @@ struct sb_shape_name {
   struct cid_t;
 
   struct ri_t {
-    loco_light_ri_t
+    bool blending = true;
   };
 
   #define make_key_value(type, name) \
     type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 
-  struct properties_t : vi_t, ri_t {
-    /*todo cloned from context_key_t - make define*/
-    using parsed_masterpiece_t = fan::masterpiece_t<
-      uint16_t,
-      loco_t::camera_list_NodeReference_t,
-      fan::graphics::viewport_list_NodeReference_t
-    >;
-    struct key_t : parsed_masterpiece_t {}key;
-
+  struct properties_t : vi_t, ri_t, context_key_t {
     using type_t = sb_shape_name;
-    loco_light_properties_t
+    loco_t::camera_t* camera = &gloco->default_camera->camera;
+    loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
   };
 
   #undef make_key_value

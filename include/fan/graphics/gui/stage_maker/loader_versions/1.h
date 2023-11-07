@@ -13,8 +13,8 @@ while (off != in.size()) {
   uint16_t shape_type = fan::read_data<uint16_t>(in, off);
   byte_count = fan::read_data<uint32_t>(in, off);
   shapes.iterate([&]<auto i0, typename T>(T & v0) {
-    if (!(shape_type == loco_t::shape_type_t::rectangle && T::shape_type == loco_t::shape_type_t::mark)) {
-      if (shape_type != T::shape_type) {
+    if (!((loco_t::shape_type_t)shape_type == loco_t::shape_type_t::rectangle && T::shape_type == loco_t::shape_type_t::mark)) {
+      if ((loco_t::shape_type_t)shape_type != T::shape_type) {
         return;
       }
     }

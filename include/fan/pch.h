@@ -43,6 +43,7 @@
 #define loco_window
 #define loco_context
 
+#define loco_rectangle
 #define loco_light
 #define loco_line
 #define loco_circle

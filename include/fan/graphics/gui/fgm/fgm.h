@@ -191,7 +191,7 @@ struct fgm_t {
           }
       }
     }
-    switch (shape->children[0]->shape_type) {
+    switch ((loco_t::shape_type_t)shape->children[0]->shape_type) {
       case loco_t::shape_type_t::unlit_sprite:
       case loco_t::shape_type_t::sprite: {
         fan::string& current = shape->shape_data.sprite.image_name;
@@ -208,10 +208,10 @@ struct fgm_t {
             else {
               current = str.substr(0, std::strlen(str.c_str()));
               auto& data = texturepack.get_pixel_data(ti.pack_id);
-              if (shape->children[0]->shape_type == loco_t::shape_type_t::sprite) {
+              if ((loco_t::shape_type_t)shape->children[0]->shape_type == loco_t::shape_type_t::sprite) {
                 gloco->sprite.load_tp(shape->children[0], &ti);
               }
-              else if (shape->children[0]->shape_type == loco_t::shape_type_t::unlit_sprite) {
+              else if ((loco_t::shape_type_t)shape->children[0]->shape_type == loco_t::shape_type_t::unlit_sprite) {
                 gloco->unlit_sprite.load_tp(shape->children[0], &ti);
               }
             }
@@ -222,7 +222,7 @@ struct fgm_t {
     }
   }
 
-  void push_shape(uint16_t shape_type, const fan::vec2& pos) {
+  void push_shape(loco_t::shape_type_t shape_type, const fan::vec2& pos) {
     auto nr = shape_list.NewNodeLast();
 
     static fan::mp_t<current_version_t::shapes_t> mp;
@@ -279,7 +279,7 @@ struct fgm_t {
       if (ImGui::Begin(create_str, nullptr, ImGuiWindowFlags_DockNodeHost)) {
         static fan::mp_t<current_version_t::shapes_t> mp;
         mp.iterate([&]<auto i> (auto& v) {
-          if (ImGui::Button(gloco->shape_names[v.shape_type])) {
+          if (ImGui::Button(gloco->shape_names[(std::underlying_type_t<loco_t::shape_type_t>)v.shape_type])) {
             event_type = event_type_e::add;
             selected_shape_type = v.shape_type;
           }
@@ -338,8 +338,8 @@ struct fgm_t {
       shapes.iterate([&]<auto i0, typename T>(T & l) {
         auto shape_type = shape_list[it]->children[0]->shape_type;
         //!
-        if (!(shape_type == loco_t::shape_type_t::rectangle && T::shape_type == loco_t::shape_type_t::mark)) {
-          if (shape_type != T::shape_type) {
+        if (!((loco_t::shape_type_t)shape_type == loco_t::shape_type_t::rectangle && T::shape_type == loco_t::shape_type_t::mark)) {
+          if ((loco_t::shape_type_t)shape_type != T::shape_type) {
             return;
           }
         }
@@ -407,7 +407,7 @@ struct fgm_t {
   }
 
   event_type_e event_type = event_type_e::none;
-  loco_t::shape_type_t::_t selected_shape_type = loco_t::shape_type_t::invalid;
+  loco_t::shape_type_t selected_shape_type = loco_t::shape_type_t::invalid;
   shapes_t::global_t* current_shape = nullptr;
   shape_list_t shape_list;
 

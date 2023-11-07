@@ -1,27 +1,41 @@
 struct letter_t {
 
-  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::letter;
+  static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::letter;
 
   struct vi_t {
-    loco_letter_vi_t
+    loco_t::position3_t position; 
+    f32_t outline_size;
+    fan::vec2 size;
+    fan::vec2 tc_position;
+    fan::color color = fan::colors::white;
+    fan::color outline_color;
+    fan::vec2 tc_size;
+    f32_t angle=0; 
+    f32_t pad[1];
   };
 
   static constexpr uint32_t max_instance_size = fan::min(256ull, 4096 / (sizeof(vi_t) / 4));
 
   struct context_key_t {
-    loco_letter_bm_properties_t
+    using parsed_masterpiece_t = fan::masterpiece_t<
+      loco_t::camera_list_NodeReference_t,
+      fan::graphics::viewport_list_NodeReference_t
+    >;
+    struct key_t : parsed_masterpiece_t {}key;
   };
 
   struct cid_t;
 
   struct ri_t {
-    loco_letter_ri_t
+    f32_t font_size;
+    uint32_t letter_id;
+    bool blending = true;
   };
 
-  struct properties_t : vi_t, ri_t {
+  struct properties_t : vi_t, ri_t, context_key_t {
     using type_t = letter_t;
-    loco_letter_properties_t
-    loco_letter_bm_properties_t
+    loco_t::camera_t* camera = &gloco->default_camera->camera;
+    loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
   };
 
   void push_back(loco_t::cid_nt_t& id, properties_t& p) {

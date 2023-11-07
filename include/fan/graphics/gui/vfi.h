@@ -4,7 +4,7 @@
 
 struct vfi_t {
 
-  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::hitbox;
+  static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::hitbox;
 
   vfi_t() {
     focus.mouse.invalidate();

@@ -23,13 +23,13 @@ using key_t = fan::masterpiece_t <
   #if sb_ignore_3_key == 0
   loco_t::redraw_key_t,
   uint16_t,
-  loco_t::shape_type_t::_t,
+  loco_t::shape_type_t,
   #endif
   context_key_t
 >;
 static constexpr bool key_equality_assert = fan::assert_equality_v<sizeof(key_t), (
   sizeof(context_key_t) +
-  sizeof(loco_t::shape_type_t::_t) * (sb_ignore_3_key == 0) +
+  sizeof(loco_t::shape_type_t) * (sb_ignore_3_key == 0) +
   sizeof(uint16_t) * (sb_ignore_3_key == 0) +
   sizeof(loco_t::redraw_key_t) * (sb_ignore_3_key == 0)
 )>;
@@ -38,7 +38,7 @@ using push_key_t = fan::masterpiece_t <
   #if sb_ignore_3_key == 0
   loco_t::make_push_key_t<loco_t::redraw_key_t>,
   loco_t::make_push_key_t<uint16_t, true>,
-  loco_t::make_push_key_t<loco_t::shape_type_t::_t>,
+  loco_t::make_push_key_t<loco_t::shape_type_t>,
   #endif
   loco_t::make_push_key_t<context_key_t>
 >;
@@ -103,7 +103,7 @@ protected:
   struct key_pack_t {
     loco_t::redraw_key_t redraw_key;
     uint16_t depth;
-    loco_t::shape_type_t::_t shape_type;
+    loco_t::shape_type_t shape_type;
     context_key_t::key_t shape_key;
   };
   #pragma pack(pop)
@@ -281,7 +281,7 @@ public:
     id->bm_id = bm_id.NRI;
     id->block_id = block_id.NRI;
     id->instance_id = instance_id;
-    id->shape_type = shape_type;
+    id->shape_type = *(std::underlying_type<decltype(shape_type)>::type*)&shape_type;
 
     block->ri[instance_id] = std::move(block_element.ri);
   }
@@ -493,7 +493,7 @@ public:
     id->bm_id = bm_id.NRI;
     id->block_id = block_id.NRI;
     id->instance_id = instance_id;
-    id->shape_type = shape_type;
+    id->shape_type = (std::underlying_type<decltype(shape_type)>::type)shape_type;
 
     block->ri[instance_id] = std::move(*(ri_t*)&p);
     return block;
@@ -515,7 +515,7 @@ public:
       #if sb_ignore_3_key == 0
       loco_t::make_erase_key_t<loco_t::redraw_key_t>,
       loco_t::make_erase_key_t<uint16_t, true>,
-      loco_t::make_erase_key_t<loco_t::shape_type_t::_t>,
+      loco_t::make_erase_key_t<loco_t::shape_type_t>,
       #endif
       loco_t::make_erase_key_t<context_key_t::key_t>
     > key{

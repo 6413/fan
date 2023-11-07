@@ -2,7 +2,7 @@ struct version_001_t {
 
   struct sprite_t {
 
-    static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::sprite;
+    static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::sprite;
     using type_t = fan::graphics::sprite_t;
 
     fan::vec3 position;
@@ -79,7 +79,7 @@ struct version_001_t {
   };
 
   struct unlit_sprite_t {
-    static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::unlit_sprite;
+    static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::unlit_sprite;
     using type_t = fan::graphics::unlit_sprite_t;
 
     fan::vec3 position;
@@ -156,7 +156,7 @@ struct version_001_t {
   };
 
   struct mark_t {
-    static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::mark;
+    static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::mark;
     using type_t = fan::graphics::rectangle_t;
 
     fan::vec3 position;
