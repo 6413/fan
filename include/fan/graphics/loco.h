@@ -114,65 +114,6 @@ extern "C" {
 #define loco_responsive_text
 #endif
 
-#if defined(loco_wboit)
-#define loco_vulkan_descriptor_image_sampler
-#endif
-
-#ifdef loco_vulkan
-#ifdef loco_line 
-#ifndef loco_vulkan_descriptor_ssbo
-#define loco_vulkan_descriptor_ssbo
-#endif
-#ifndef loco_vulkan_descriptor_uniform_block
-#define loco_vulkan_descriptor_uniform_block
-#endif
-#endif
-#ifdef loco_rectangle 
-#ifndef loco_vulkan_descriptor_ssbo
-#define loco_vulkan_descriptor_ssbo
-#endif
-#ifndef loco_vulkan_descriptor_uniform_block
-#define loco_vulkan_descriptor_uniform_block
-#endif
-#endif
-#ifdef loco_sprite
-#ifndef loco_vulkan_descriptor_ssbo
-#define loco_vulkan_descriptor_ssbo
-#endif
-#ifndef loco_vulkan_descriptor_uniform_block
-#define loco_vulkan_descriptor_uniform_block
-#endif
-#ifndef loco_vulkan_descriptor_image_sampler
-#define loco_vulkan_descriptor_image_sampler
-#endif
-#endif
-#ifdef loco_yuv420p
-#ifndef loco_vulkan_descriptor_ssbo
-#define loco_vulkan_descriptor_ssbo
-#endif
-#ifndef loco_vulkan_descriptor_uniform_block
-#define loco_vulkan_descriptor_uniform_block
-#endif
-#ifndef loco_vulkan_descriptor_image_sampler
-#define loco_vulkan_descriptor_image_sampler
-#endif
-#endif
-#ifdef loco_letter
-#ifndef loco_vulkan_descriptor_ssbo
-#define loco_vulkan_descriptor_ssbo
-#endif
-#ifndef loco_vulkan_descriptor_uniform_block
-#define loco_vulkan_descriptor_uniform_block
-#endif
-#ifndef loco_vulkan_descriptor_image_sampler
-#define loco_vulkan_descriptor_image_sampler
-#endif
-#endif
-#if defined loco_compute_shader
-#define loco_vulkan_descriptor_ssbo
-#endif
-#endif
-
 // increase this to increase shape limit
 using bdbt_key_type_t = uint16_t;
 
@@ -445,8 +386,6 @@ public:
 
   #if defined(loco_opengl)
   #include _FAN_PATH(graphics/opengl/image_list_builder_settings.h)
-  #elif defined(loco_vulkan)
-  #include _FAN_PATH(graphics/vulkan/image_list_builder_settings.h)
   #endif
   #include _FAN_PATH(BLL/BLL.h)
 
@@ -474,8 +413,6 @@ public:
 
   #if defined(loco_opengl)
   #include _FAN_PATH(graphics/opengl/gl_image.h)
-  #elif defined(loco_vulkan)
-  #include _FAN_PATH(graphics/vulkan/vk_image.h)
   #endif
 
   struct camera_t;
@@ -484,8 +421,6 @@ public:
   #define BLL_set_declare_rest 0
   #if defined(loco_opengl)
   #include _FAN_PATH(graphics/opengl/camera_list_builder_settings.h)
-  #elif defined(loco_vulkan)
-  #include _FAN_PATH(graphics/vulkan/camera_list_builder_settings.h)
   #endif
   #include _FAN_PATH(BLL/BLL.h)
 
@@ -658,13 +593,6 @@ public:
         y.x,
         0.1,
         znearfar / 2
-        #elif defined(loco_vulkan)
-        // znear & zfar is actually flipped for vulkan (camera somehow flipped)
-        // znear & zfar needs to be same maybe xd
-        y.x,
-        y.y,
-        0.1,
-        znearfar
         #endif
 
 
@@ -682,57 +610,7 @@ public:
       constexpr fan::vec3 front(0, 0, 1);
 
       m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
-      #if defined (loco_vulkan)
-      #if defined(loco_line)
-      {
-        auto idx = loco->camera_list[camera_reference].camera_index.line;
-        if (idx != (uint8_t)-1) {
-          loco->line.m_shader.set_camera(loco, this, idx);
-        }
-      }
-      #endif
-      #if defined(loco_rectangle)
-      {
-        auto idx = loco->camera_list[camera_reference].camera_index.rectangle;
-        if (idx != (uint8_t)-1) {
-          loco->rectangle.m_shader.set_camera(loco, this, idx);
-        }
-      }
-      #endif
-      #if defined(loco_sprite)
-      {
-        auto idx = loco->camera_list[camera_reference].camera_index.sprite;
-        if (idx != (uint8_t)-1) {
-          loco->sprite.m_shader.set_camera(loco, this, idx);
-        }
-      }
-      #endif
-      #if defined(loco_letter)
-      {
-        auto idx = loco->camera_list[camera_reference].camera_index.letter;
-        if (idx != (uint8_t)-1) {
-          loco->letter.m_shader.set_camera(loco, this, idx);
-        }
-      }
-      #endif
-      #if defined(loco_button)
-      {
-        auto idx = loco->camera_list[camera_reference].camera_index.button;
-        if (idx != (uint8_t)-1) {
-          loco->button.m_shader.set_camera(loco, this, idx);
-        }
-      }
-      #endif
-      #if defined(loco_text_box)
-      {
-        auto idx = loco->camera_list[camera_reference].camera_index.text_box;
-        if (idx != (uint8_t)-1) {
-          loco->text_box.m_shader.set_camera(loco, this, idx);
-        }
-      }
-      #endif
-      #endif
-
+      
       auto it = gloco->m_viewport_resize_callback.GetNodeFirst();
 
       while (it != gloco->m_viewport_resize_callback.dst) {
@@ -802,8 +680,6 @@ public:
   #define BLL_set_declare_rest 1
   #if defined(loco_opengl)
   #include _FAN_PATH(graphics/opengl/camera_list_builder_settings.h)
-  #elif defined(loco_vulkan)
-  #include _FAN_PATH(graphics/vulkan/camera_list_builder_settings.h)
   #endif
   #include _FAN_PATH(BLL/BLL.h)
 
@@ -824,52 +700,6 @@ public:
   #if defined(loco_opengl)
   #include _FAN_PATH(tp/tp0.h)
   #endif
-  #endif
-
-  #ifdef loco_vulkan
-  struct descriptor_pool_t {
-
-    fan::graphics::context_t* get_context() {
-      return ((loco_t*)OFFSETLESS(this, loco_t, descriptor_pool))->get_context();
-    }
-
-    descriptor_pool_t() {
-      uint32_t total = 0;
-      VkDescriptorPoolSize pool_sizes[] = {
-        #ifdef loco_vulkan_descriptor_ssbo
-        {
-          VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          fan::vulkan::MAX_FRAMES_IN_FLIGHT
-        },
-        #endif
-        #ifdef loco_vulkan_descriptor_uniform_block
-        {
-          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          fan::vulkan::MAX_FRAMES_IN_FLIGHT
-        },
-        #endif
-        #ifdef loco_vulkan_descriptor_image_sampler
-        {
-          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          fan::vulkan::MAX_FRAMES_IN_FLIGHT
-        },
-        #endif
-      };
-
-      VkDescriptorPoolCreateInfo pool_info{};
-      pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-      pool_info.poolSizeCount = std::size(pool_sizes);
-      pool_info.pPoolSizes = pool_sizes;
-      pool_info.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT * 10;
-
-      fan::vulkan::validate(vkCreateDescriptorPool(get_context()->device, &pool_info, nullptr, &m_descriptor_pool));
-    }
-    ~descriptor_pool_t() {
-      vkDestroyDescriptorPool(get_context()->device, m_descriptor_pool, nullptr);
-    }
-
-    VkDescriptorPool m_descriptor_pool;
-  }descriptor_pool;
   #endif
 
   #if defined(loco_no_inline)
@@ -1063,59 +893,6 @@ public:
   void process_block_properties_element(auto* shape, loco_t::camera_list_NodeReference_t camera_id) {
     #if defined(loco_opengl)
     shape->m_current_shader->set_camera(get_context(), camera_list[camera_id].camera_id, &m_write_queue);
-    #elif defined(loco_vulkan)
-    auto& camera = camera_list[camera_id];
-    auto context = get_context();
-
-    uint32_t idx;
-
-    #if defined(loco_line)
-    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, line_t>::value) {
-      idx = camera.camera_index.line;
-    }
-    #endif
-    #if defined(loco_rectangle)
-    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, rectangle_t>::value) {
-      idx = camera.camera_index.rectangle;
-    }
-    #endif
-    #if defined(loco_sprite)
-    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
-      idx = camera.camera_index.sprite;
-    }
-    #endif
-    #if defined(loco_letter)
-    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
-      idx = camera.camera_index.letter;
-    }
-    #endif
-    #if defined(loco_button)
-    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, button_t>::value) {
-      idx = camera.camera_index.button;
-    }
-    #endif
-
-    #if defined(loco_text_box)
-    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, text_box_t>::value) {
-      idx = camera.camera_index.text_box;
-    }
-    #endif
-
-
-    #if defined(loco_yuv420p)
-    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, yuv420p_t>::value) {
-      idx = camera.camera_index.yuv420p;
-    }
-    #endif
-
-    vkCmdPushConstants(
-      context->commandBuffers[context->currentFrame],
-      shape->m_pipeline.m_layout,
-      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-      offsetof(push_constants_t, camera_id),
-      sizeof(uint32_t),
-      &idx
-    );
     #endif
   }
   void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
@@ -1137,37 +914,6 @@ public:
     shape->m_current_shader->set_int(get_context(), tid.name, n);
     get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
     get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, image_list[tid].texture_id);
-    #elif defined(loco_vulkan)
-    auto& img = image_list[tid];
-    auto context = get_context();
-
-    uint32_t idx;
-
-    #if defined(loco_sprite)
-    if constexpr (std::is_same<std::remove_pointer<decltype(shape)>::type, sprite_t>::value) {
-      idx = img.texture_index.sprite;
-    }
-    #endif
-    #if defined(loco_letter)
-    if constexpr (std::is_same<std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
-      idx = img.texture_index.letter;
-    }
-    #endif
-
-    #if defined(loco_yuv420p)
-    if constexpr (std::is_same<std::remove_pointer<decltype(shape)>::type, yuv420p_t>::value) {
-      idx = img.texture_index.yuv420p;
-    }
-    #endif
-
-    vkCmdPushConstants(
-      context->commandBuffers[context->currentFrame],
-      shape->m_pipeline.m_layout,
-      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-      offsetof(push_constants_t, texture_id),
-      sizeof(uint32_t),
-      &idx
-    );
     #endif
   }
 
@@ -1362,10 +1108,6 @@ public:
       return gloco->shape_get_ri(*(shape_t*)this);
     }
   };
-  #endif
-
-  #if defined(loco_compute_shader)
-  #include _FAN_PATH(graphics/vulkan/compute_shader.h)
   #endif
 
   #if defined(loco_line)
@@ -1720,141 +1462,8 @@ public:
   );
   m_fbo_final_shader.compile(get_context());
 
-
-  //loco_update_aspect_ratios_cb = [this] {
-  //  auto it = cid_list.GetNodeFirst();
-  //  while (it != cid_list.dst) {
-  //    auto* shape_ptr = (loco_t::shape_t*)&it;
-
-  //    switch ((*((loco_t::cid_nt_t*)shape_ptr))->shape_type) {
-  //      case loco_t::shape_type_t::button:
-  //      case loco_t::shape_type_t::text_box: {
-  //        
-  //        //fan::vec2 ratio = shape_ptr->get_viewport()->get_size() / fan::vec2(gloco->get_window()->get_size()).max();
-
-  //        //fan::vec3 position = shape_ptr->get_position();
-  //        //
-  //        //fan::vec2 size = shape_ptr->get_size() * ratio.y;
-
-  //        //*(fan::vec2*)&position *= ratio.y;
-  //        //
-  //        //auto* camera = shape_ptr->get_camera();
-
-  //        //// can be bad
-  //        //if (position.x - size.x < camera->coordinates.left) {
-  //        //  fan::vec3 cp = camera->get_camera_position();
-  //        //  cp.x = (position.x - size.x) - camera->coordinates.left;
-  //        //  camera->set_camera_position(cp);
-  //        //}
-  //        //if (position.y - size.y < camera->coordinates.up) {
-  //        //  fan::vec3 cp = camera->get_camera_position();
-  //        //  cp.y = (position.y - size.y) - camera->coordinates.up;
-  //        //  camera->set_camera_position(cp);
-  //        //}
-  //        /*
-  //        else {
-  //          fan::vec3 cp = 0;
-  //          camera->set_camera_position(cp);
-  //        }*/
-
-  //        //shape_ptr->set_position_ar(position);
-  //        //shape_ptr->set_size_ar(size);
-  //        break;
-  //      }
-  //      // should be optional to viewport
-  //      case loco_t::shape_type_t::responsive_text:
-  //      case loco_t::shape_type_t::text: {
-
-  //        fan::vec3 position = shape_ptr->get_position();
-  //        fan::vec2 size = shape_ptr->get_size();
-  //        auto* camera = shape_ptr->get_camera();
-  //       /* if (position.x - size.x < camera->coordinates.left) {
-  //          fan::vec3 cp = camera->get_camera_position();
-  //          cp.x = (position.x - size.x) - camera->coordinates.left;
-  //          camera->set_camera_position(cp);
-  //        }
-  //        if (position.y - size.y < camera->coordinates.up) {
-  //          fan::vec3 cp = camera->get_camera_position();
-  //          cp.y = (position.y - size.y) - camera->coordinates.up;
-  //          camera->set_camera_position(cp);
-  //        }*/
-  //        break;
-  //      }
-  //    }
-
-  //    it = it.Next(&cid_list);
-  //  }
-  //};
-
     #endif
     #endif
-
-    #if defined(loco_vulkan) && defined(loco_window)
-    fan::vulkan::pipeline_t::properties_t pipeline_p;
-
-    auto context = get_context();
-
-    render_fullscreen_shader.open(context, &m_write_queue);
-    render_fullscreen_shader.set_vertex(
-      context,
-      "graphics/glsl/vulkan/2D/objects/loco_fbo.vert",
-      #include _FAN_PATH(graphics/glsl/vulkan/2D/objects/loco_fbo.vert))
-      );
-      render_fullscreen_shader.set_fragment(
-        context,
-        "graphics/glsl/vulkan/2D/objects/loco_fbo.frag",
-        #include _FAN_PATH(graphics/glsl/vulkan/2D/objects/loco_fbo.frag))
-        );
-        VkDescriptorSetLayout layouts[] = {
-        #if defined(loco_line)
-          line.m_ssbo.m_descriptor.m_layout,
-        #endif
-        #if defined(loco_rectangle)
-          rectangle.m_ssbo.m_descriptor.m_layout,
-        #endif
-        #if defined(loco_sprite)
-          sprite.m_ssbo.m_descriptor.m_layout,
-        #endif
-        #if defined(loco_letter)
-          letter.m_ssbo.m_descriptor.m_layout,
-        #endif
-        #if defined(loco_button)
-          button.m_ssbo.m_descriptor.m_layout,
-        #endif
-        #if defined(loco_text_box)
-          text_box.m_ssbo.m_descriptor.m_layout,
-        #endif
-        #if defined(loco_yuv420p)
-          yuv420p.m_ssbo.m_descriptor.m_layout,
-        #endif
-        };
-        pipeline_p.descriptor_layout_count = 1;
-        pipeline_p.descriptor_layout = layouts;
-        pipeline_p.shader = &render_fullscreen_shader;
-        pipeline_p.push_constants_size = sizeof(loco_t::push_constants_t);
-        pipeline_p.subpass = 1;
-        VkDescriptorImageInfo imageInfo{};
-
-        VkPipelineColorBlendAttachmentState color_blend_attachment[1]{};
-        color_blend_attachment[0].colorWriteMask =
-          VK_COLOR_COMPONENT_R_BIT |
-          VK_COLOR_COMPONENT_G_BIT |
-          VK_COLOR_COMPONENT_B_BIT |
-          VK_COLOR_COMPONENT_A_BIT
-          ;
-        color_blend_attachment[0].blendEnable = VK_TRUE;
-        color_blend_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        color_blend_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        color_blend_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
-        color_blend_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        color_blend_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        color_blend_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
-        pipeline_p.color_blend_attachment_count = std::size(color_blend_attachment);
-        pipeline_p.color_blend_attachment = color_blend_attachment;
-        pipeline_p.enable_depth_test = false;
-        context->render_fullscreen_pl.open(context, pipeline_p);
-        #endif
-
         default_texture.create_missing_texture();
 
         #if defined(loco_line)
@@ -2083,13 +1692,6 @@ public:
     #endif
     get_context()->render(get_window());
 
-
-    #elif defined(loco_vulkan)
-    get_context()->begin_render(get_window());
-    draw_queue();
-    #include "draw_shapes.h"
-    get_context()->end_render(get_window());
-
     #endif
     #endif
   }
@@ -2123,11 +1725,6 @@ public:
     return get_mouse_position(gloco->default_camera->camera, gloco->default_camera->viewport);
   }
 
-
-  #if defined(loco_vulkan)
-  fan::vulkan::shader_t render_fullscreen_shader;
-  #endif
-
   #if defined(loco_framebuffer)
 
   #if defined(loco_opengl)
@@ -2137,8 +1734,6 @@ public:
   fan::opengl::core::renderbuffer_t m_rbo;
   loco_t::image_t color_buffers[2];
   fan::opengl::shader_t m_fbo_final_shader;
-
-  #elif defined(loco_vulkan)
 
   #endif
 
@@ -2176,93 +1771,6 @@ public:
   static loco_t* get_loco(fan::window_t* window) {
     return OFFSETLESS(window, loco_t, window);
   }
-  #endif
-
-  #if defined(loco_cuda)
-
-  struct cuda_textures_t {
-
-    cuda_textures_t() {
-      inited = false;
-    }
-    ~cuda_textures_t() {
-    }
-    void close(loco_t* loco, loco_t::shape_t& cid) {
-      uint8_t image_amount = fan::pixel_format::get_texture_amount(loco->pixel_format_renderer.sb_get_ri(cid).format);
-      auto& ri = loco->pixel_format_renderer.sb_get_ri(cid);
-      for (uint32_t i = 0; i < image_amount; ++i) {
-        wresources[i].close();
-        ri.images[i].unload();
-      }
-    }
-
-    void resize(loco_t* loco, loco_t::cid_nt_t& id, uint8_t format, fan::vec2ui size, uint32_t filter = loco_t::image_t::filter::linear) {
-      auto& ri = loco->pixel_format_renderer.sb_get_ri(id);
-      uint8_t image_amount = fan::pixel_format::get_texture_amount(format);
-      if (inited == false) {
-        // purge cid's images here
-        // update cids images
-        loco->pixel_format_renderer.reload(id, format, size, filter);
-        for (uint32_t i = 0; i < image_amount; ++i) {
-          wresources[i].open(loco->image_list[ri.images[i].texture_reference].texture_id);
-        }
-        inited = true;
-      }
-      else {
-
-        if (ri.images[0].size == size) {
-          return;
-        }
-
-        // update cids images
-        for (uint32_t i = 0; i < fan::pixel_format::get_texture_amount(ri.format); ++i) {
-          wresources[i].close();
-        }
-
-        loco->pixel_format_renderer.reload(id, format, size, filter);
-
-        for (uint32_t i = 0; i < image_amount; ++i) {
-          wresources[i].open(loco->image_list[ri.images[i].texture_reference].texture_id);
-        }
-      }
-    }
-
-    cudaArray_t& get_array(uint32_t index) {
-      return wresources[index].cuda_array;
-    }
-
-    struct graphics_resource_t {
-      void open(int texture_id) {
-        fan::cuda::check_error(cudaGraphicsGLRegisterImage(&resource, texture_id, fan::opengl::GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
-        map();
-      }
-      void close() {
-        unmap();
-        fan::cuda::check_error(cudaGraphicsUnregisterResource(resource));
-        resource = nullptr;
-      }
-      void map() {
-        fan::cuda::check_error(cudaGraphicsMapResources(1, &resource, 0));
-        fan::cuda::check_error(cudaGraphicsSubResourceGetMappedArray(&cuda_array, resource, 0, 0));
-        fan::print("+", resource);
-      }
-      void unmap() {
-        fan::print("-", resource);
-        fan::cuda::check_error(cudaGraphicsUnmapResources(1, &resource));
-        //fan::cuda::check_error(cudaGraphicsResourceSetMapFlags(resource, 0));
-      }
-      //void reload(int texture_id) {
-      //  close();
-      //  open(texture_id);
-      //}
-      cudaGraphicsResource_t resource = nullptr;
-      cudaArray_t cuda_array = nullptr;
-    };
-
-    bool inited = false;
-    graphics_resource_t wresources[4];
-  };
-
   #endif
 
 protected:
