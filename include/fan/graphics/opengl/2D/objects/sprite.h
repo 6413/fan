@@ -7,23 +7,45 @@ struct sb_sprite_name {
   #endif
 
   struct vi_t {
-    loco_sprite_vi_t
+    loco_t::position3_t position = 0;
+    f32_t parallax_factor = 0;
+    fan::vec2 size = 0;
+    fan::vec2 rotation_point = 0;
+    fan::color color = fan::colors::white;
+    fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+    f32_t angle = 0;
+    fan::vec2 tc_position = 0;
+    fan::vec2 tc_size = 1;
   };
 
   struct context_key_t {
-    loco_sprite_bm_properties_t
+    using parsed_masterpiece_t = fan::masterpiece_t< 
+      loco_t::textureid_t<0>, 
+      loco_t::camera_list_NodeReference_t, 
+      fan::graphics::viewport_list_NodeReference_t 
+    >; 
+    struct key_t : parsed_masterpiece_t {}key;
   };
   
   struct cid_t;
 
   struct ri_t {
-    loco_sprite_ri_t
+    bool blending = false;
   };
 
-  struct properties_t : vi_t, ri_t {
+  struct properties_t : vi_t, ri_t, context_key_t {
     using type_t = sb_sprite_name;
-    loco_sprite_properties_t
-    loco_sprite_bm_properties_t
+    
+    loco_t::image_t* image = &gloco->default_texture;
+    loco_t::camera_t* camera = &gloco->default_camera->camera;
+    fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
+    bool load_tp(loco_t::texturepack_t::ti_t* ti) {
+      auto& im = *ti->image;
+      image = &im;
+      tc_position = ti->position / im.size;
+      tc_size = ti->size / im.size;
+      return 0;
+    }
   };
 
   void push_back(loco_t::cid_nt_t& id, properties_t p) {
