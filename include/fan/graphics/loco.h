@@ -846,22 +846,7 @@ public:
 
   cid_list_t cid_list;
 
-  #define fan_create_id_definition_declare(rt, name, ...) rt name(__VA_ARGS__)
   #define fan_create_id_definition_define(rt, name, ...) rt name(__VA_ARGS__)
-
-  #define fan_create_set_declare(rt, name) \
-        fan_create_id_definition_declare(void, set_##name, const rt& data);
-
-  #define fan_create_set_declare_custom(rt, name, custom) \
-        fan_create_id_definition_declare(void, set_##name, const rt& data);
-
-  #define fan_create_get_set_declare(rt, name) \
-    fan_create_id_definition_declare(rt, get_##name); \
-    fan_create_set_declare(rt, name)
-
-  #define fan_create_get_set_declare_extra(rt, name, set_extra, get_extra) \
-    fan_create_id_definition_declare(rt, get_##name); \
-    fan_create_id_definition_declare(void, set_##name, const rt& data);
 
   #define fan_create_set_define(rt, name) \
         fan_create_id_definition_define(void, set_##name, const rt& data){ gloco->shape_##set_##name(*this, data); }
@@ -1809,10 +1794,6 @@ public:
     return ret;
   }
 
-  #define make_global_function_declare(func_name, content, ...) \
-  fan_has_function_concept(func_name);\
-  void shape_ ## func_name(__VA_ARGS__);
-
   #define make_global_function_ret_define(ret, func_name, content, ...) \
   fan_has_function_concept(func_name);\
   ret shape_ ## func_name(__VA_ARGS__) { \
@@ -1873,11 +1854,6 @@ public:
   fan_has_function_concept(get);
   fan_has_function_concept(set);
 
-  #define fan_build_get_declare(rt, name) \
-  fan_has_variable_struct(name); \
-  fan_has_function_concept(get_##name); \
-  rt shape_get_##name(loco_t::cid_nt_t&);
-
   #define fan_build_get_define(rt, name) \
   fan_has_variable_struct(name); \
   fan_has_function_concept(get_##name); \
@@ -1912,25 +1888,6 @@ public:
     return data; \
   }
 
-  #define fan_build_set_declare(rt, name) \
-  make_global_function_declare(set_##name,\
-    if constexpr (has_set_##name##_v<shape_t, loco_t::cid_nt_t&, const rt&>) { \
-      if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
-        (*shape)->set_##name(id, data); \
-      } \
-    }  \
-    else if constexpr (has_set_##name##_v<shape_t, loco_t::vfi_t::shape_id_t*, const rt&>) { \
-      (*shape)->set_##name((loco_t::vfi_t::shape_id_t*)id.gdp4(), data); \
-    }\
-    else if constexpr (has_set_v<shape_t, loco_t::cid_nt_t&, decltype(&comma_dummy_t::member_pointer), void*>) { \
-      if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
-        (*shape)->set(id, &shape_t::vi_t::name, data); \
-      }\
-    } , \
-    loco_t::cid_nt_t& id, \
-    const auto& data \
-  );
-
   #define fan_build_set_define(rt, name) \
   make_global_function_define(set_##name,\
     if constexpr (has_set_##name##_v<shape_t, loco_t::cid_nt_t&, const rt&>) { \
@@ -1951,11 +1908,6 @@ public:
   );
 
   fan_has_function_concept(get_instance);
-
-  #define fan_build_get_generic_declare(rt, name) \
-  fan_has_variable_struct(name); \
-  fan_has_function_concept(get_##name); \
-  rt shape_get_##name(loco_t::cid_nt_t& id);
 
   // NOTE for including in c/.h need to add loco_t:: infront of function
   #define fan_build_get_generic_define(rt, name) \
@@ -1978,15 +1930,6 @@ public:
     });\
     return data; \
   }
-
-  #define fan_build_set_generic_declare(rt, name) \
-  make_global_function_declare(set_##name,\
-    if constexpr (has_set_##name##_v<shape_t, loco_t::cid_nt_t&, const rt&>) { \
-      (*shape)->set_##name(id, data); \
-    }, \
-    loco_t::cid_nt_t& id, \
-    const auto& data \
-  );
 
   #define fan_build_set_generic_define(rt, name) \
   make_global_function_define(set_##name,\
@@ -2014,10 +1957,6 @@ public:
     loco_t::cid_nt_t& id \
   );
 
-  #define fan_build_get_set_generic_declare( rt, name) \
-    fan_build_get_generic_declare(rt, name); \
-    fan_build_set_generic_declare(rt, name);
-
   #define fan_build_get_set_generic_define( rt, name) \
     fan_build_get_generic_define(rt, name); \
     fan_build_set_generic_define(rt, name);
@@ -2025,10 +1964,6 @@ public:
   #define fan_build_get_set_ptr_generic_define( rt, name) \
     fan_build_get_generic_define(rt, name); \
     fan_build_set_ptr_generic_define(rt, name);
-
-  #define fan_build_get_set_declare(rt, name) \
-    fan_build_get_declare(rt, name); \
-    fan_build_set_declare(rt, name);
 
   #define fan_build_get_set_define(rt, name) \
     fan_build_get_define(rt, name); \

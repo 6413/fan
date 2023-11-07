@@ -926,10 +926,10 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
       return requires(T t) { t.func_call; } == true; \
     }.template operator()<type>()
 
-  #define fan_if_has_function(ptr, func_call, action) \
+  #define fan_if_has_function(ptr, func_name, params) \
   [&] <typename T2>(T2* This) { \
-    if constexpr (fan_has_function(T2, func_call action)) { \
-      This->func_call action ;\
+    if constexpr (fan_has_function(T2, func_name params)) { \
+      This->func_name params ;\
     } \
   }(ptr);
 
