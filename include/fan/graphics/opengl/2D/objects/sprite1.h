@@ -46,8 +46,8 @@ struct sprite1_t {
     sb_draw(loco);
   }
 
-  #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.vs)
-  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite1.fs)
+  #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/sprite.vs)
+  #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/sprite1.fs)
   #include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
 
   void open(loco_t* loco) {

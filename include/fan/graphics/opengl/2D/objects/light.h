@@ -115,14 +115,10 @@ struct sb_shape_name {
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
   #if defined(loco_opengl)
-  #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/light.vs)
-  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sb_fragment_shader)
-  #elif defined(loco_vulkan)
+    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/light.vs)
+    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/light.fs)
   #endif
 
-  #define vk_sb_ssbo
-  #define vk_sb_vp
-  //#define sb_inline_draw
   #define sb_has_own_key_root 1
   #define sb_ignore_3_key 1
   #include _FAN_PATH(graphics/shape_builder.h)

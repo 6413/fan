@@ -113,21 +113,10 @@ struct particles_t {
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
   #if defined(loco_opengl)
-  #define sb_shader_vertex_path  _FAN_PATH(graphics/glsl/opengl/2D/effects/particles.vs)
-  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/effects/particles.fs)
-  #elif defined(loco_vulkan)
-  #if defined(loco_wboit)
-  #define vulkan_buffer_count 4
-  #else
-  #define vulkan_buffer_count 4
+    #define sb_shader_vertex_path  _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/particles.vs)
+    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/particles.fs)
   #endif
 
-  #define sb_shader_vertex_path graphics/glsl/vulkan/2D/objects/rectangle.vert
-  #define sb_shader_fragment_path graphics/glsl/vulkan/2D/objects/rectangle.frag
-  #endif
-
-  #define vk_sb_ssbo
-  #define vk_sb_vp
   #include _FAN_PATH(graphics/shape_builder.h)
 
   particles_t() {

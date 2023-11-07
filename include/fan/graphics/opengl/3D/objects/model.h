@@ -78,8 +78,8 @@ struct model_t {
 
 	static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(instance_t) / 4));
 	#define sb_vertex_count 3
-	#define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/3D/objects/model.vs)
-	#define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/3D/objects/model.fs)
+	#define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/opengl/3D/objects/model.vs)
+	#define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/3D/objects/model.fs)
 	#include _FAN_PATH(graphics/opengl/2D/objects/shape_builder.h)
 
 	void open() {

@@ -1079,7 +1079,7 @@ public:
   #define sb_shape_var_name unlit_sprite
   #define sb_sprite_name unlit_sprite_t
   #define sb_custom_shape_type loco_t::shape_type_t::unlit_sprite
-  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/unlit_sprite.fs)
+  #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/unlit_sprite.fs)
   #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
   unlit_sprite_t unlit_sprite;
   #undef sb_shape_var_name
@@ -1089,7 +1089,7 @@ public:
   #define sb_shape_var_name blended_sprite
   #define sb_sprite_name blended_sprite_t
   #define sb_custom_shape_type loco_t::shape_type_t::blended_sprite
-  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/blended_sprite.fs)
+  #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/blended_sprite.fs)
   #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
   unlit_sprite_t blended_sprite;
   #undef sb_shape_var_name
@@ -1098,12 +1098,10 @@ public:
   #if defined(loco_light)
   #define sb_shape_name light_t
   #define sb_shape_var_name light
-  #define sb_fragment_shader light.fs
   #define sb_is_light
   #include _FAN_PATH(graphics/opengl/2D/objects/light.h)
   sb_shape_name sb_shape_var_name;
   #undef sb_shape_var_name
-  #undef sb_fragment_shader
   #undef sb_shape_name
   #undef sb_is_light
   #endif
@@ -1357,23 +1355,14 @@ public:
   m_framebuffer.unbind(get_context());
 
   m_fbo_final_shader.open(get_context());
-  fan::string vertex_code;
-  fan::string path = STRINGIFY_DEFINE(_FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.vs));
-  path.replace_all("<", "");
-  path.replace_all(">", "");
-  fan::io::file::read(path, &vertex_code);
+
   m_fbo_final_shader.set_vertex(
     get_context(),
-    vertex_code
+    fan::graphics::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/loco_fbo.vs))
   );
-  path = STRINGIFY_DEFINE(_FAN_PATH(graphics/glsl/opengl/2D/effects/loco_fbo.fs));
-  path.replace_all("<", "");
-  path.replace_all(">", "");
-  fan::string fragment_code;
-  fan::io::file::read(path, &fragment_code);
   m_fbo_final_shader.set_fragment(
     get_context(),
-    fragment_code
+    fan::graphics::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/loco_fbo.fs))
   );
   m_fbo_final_shader.compile(get_context());
 
