@@ -15,7 +15,7 @@ int main() {
 
   loco_t::image_t smoke_texture{"images/smoke.webp"};
 
-  loco_t::particles_t::properties_t p;
+  loco_t::shapes_t::particles_t::properties_t p;
   p.position = fan::vec3(1300.f / 2 + 100, 1300.f/2, 10);
   p.count = 8;
   p.size = 150;
@@ -29,8 +29,8 @@ int main() {
 
   fan::graphics::imgui_element_t e([&] {
     ImGui::Begin("particle settings");
-    auto& vi = loco.particles.sb_get_vi(s);
-    auto& ri = loco.particles.sb_get_ri(s);
+    auto& vi = loco.shapes.particles.sb_get_vi(s);
+    auto& ri = loco.shapes.particles.sb_get_ri(s);
     static f32_t color_intensity = 1;
     static fan::color color = p.color;
     {

@@ -36,7 +36,7 @@ struct button_t {
     uint8_t selected = 0;
     loco_t::theme_t* theme = 0;
     loco_t::shape_t text_id;
-    loco_t::vfi_t::shape_id_t vfi_id;
+    loco_t::shapes_t::vfi_t::shape_id_t vfi_id;
     uint64_t udata;
     loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
     loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; };
@@ -72,7 +72,7 @@ struct button_t {
     #endif
 
     auto theme = p.theme;
-    loco_t::responsive_text_t::properties_t tp;
+    loco_t::shapes_t::responsive_text_t::properties_t tp;
     tp.size = p.size * boundary_multiplier; // padding
     tp.color = theme->button.text_color;
     tp.position = p.position;
@@ -95,21 +95,21 @@ struct button_t {
 
     set_theme(id, theme, released);
 
-    loco_t::vfi_t::properties_t vfip;
-    vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
+    loco_t::shapes_t::vfi_t::properties_t vfip;
+    vfip.shape_type = loco_t::shapes_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle->camera = p.camera;
     vfip.shape.rectangle->viewport = p.viewport;
     vfip.shape.rectangle->position = p.position;
     vfip.shape.rectangle->size = p.size;
     if (!p.disable_highlight) {
-      vfip.mouse_move_cb = [this, udata = p.udata, id_ = id](const loco_t::vfi_t::mouse_move_data_t& mm_d) mutable -> int {
+      vfip.mouse_move_cb = [this, udata = p.udata, id_ = id](const loco_t::shapes_t::vfi_t::mouse_move_data_t& mm_d) mutable -> int {
         loco_t::mouse_move_data_t mmd = mm_d;
-        if (mm_d.flag->ignore_move_focus_check == false && !gloco->button.sb_get_ri(id_).selected) {
-          if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-            gloco->button.set_theme(id_, gloco->button.get_theme(id_), hovered);
+        if (mm_d.flag->ignore_move_focus_check == false && !gloco->shapes.button.sb_get_ri(id_).selected) {
+          if (mm_d.mouse_stage == loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
+            gloco->shapes.button.set_theme(id_, gloco->shapes.button.get_theme(id_), hovered);
           }
           else {
-            gloco->button.set_theme(id_, gloco->button.get_theme(id_), released);
+            gloco->shapes.button.set_theme(id_, gloco->shapes.button.get_theme(id_), released);
           }
         }
         mmd.id = id_;
@@ -122,21 +122,21 @@ struct button_t {
         sb_get_ri(id_).mouse_move_cb(mmd);
         return 0;
       };
-      vfip.mouse_button_cb = [this, udata = p.udata, id_ = id](const loco_t::vfi_t::mouse_button_data_t& ii_d) mutable -> int {
-        if (ii_d.flag->ignore_move_focus_check == false && !gloco->button.sb_get_ri(id_).selected) {
+      vfip.mouse_button_cb = [this, udata = p.udata, id_ = id](const loco_t::shapes_t::vfi_t::mouse_button_data_t& ii_d) mutable -> int {
+        if (ii_d.flag->ignore_move_focus_check == false && !gloco->shapes.button.sb_get_ri(id_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::press) {
-            gloco->button.set_theme(id_, gloco->button.get_theme(id_), pressed);
+            gloco->shapes.button.set_theme(id_, gloco->shapes.button.get_theme(id_), pressed);
             ii_d.flag->ignore_move_focus_check = true;
-            gloco->vfi.set_focus_keyboard(gloco->vfi.get_focus_mouse());
+            gloco->shapes.vfi.set_focus_keyboard(gloco->shapes.vfi.get_focus_mouse());
           }
         } 
-        else if (!gloco->button.sb_get_ri(id_).selected) {
+        else if (!gloco->shapes.button.sb_get_ri(id_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::release) {
-            if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
-              gloco->button.set_theme(id_, gloco->button.get_theme(id_), hovered);
+            if (ii_d.mouse_stage == loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
+              gloco->shapes.button.set_theme(id_, gloco->shapes.button.get_theme(id_), hovered);
             }
             else {
-              gloco->button.set_theme(id_, gloco->button.get_theme(id_), released);
+              gloco->shapes.button.set_theme(id_, gloco->shapes.button.get_theme(id_), released);
             }
             ii_d.flag->ignore_move_focus_check = false;
           }
@@ -156,7 +156,7 @@ struct button_t {
 
         return 0;
       };
-      vfip.keyboard_cb = [this, udata = p.udata, id_ = id](const loco_t::vfi_t::keyboard_data_t& kd) mutable -> int {
+      vfip.keyboard_cb = [this, udata = p.udata, id_ = id](const loco_t::shapes_t::vfi_t::keyboard_data_t& kd) mutable -> int {
         loco_t::keyboard_data_t kd_ = kd;
         kd_.id = id_;
         auto theme = get_theme(id_);
@@ -168,7 +168,7 @@ struct button_t {
       };
 
       // not defined in button
-      //vfip.text_cb = [this, udata = p.udata, id_ = cid](const loco_t::vfi_t::text_data_t& kd) -> int {
+      //vfip.text_cb = [this, udata = p.udata, id_ = cid](const loco_t::shapes_t::vfi_t::text_data_t& kd) -> int {
       //  loco_t* loco = OFFSETLESS(kd.vfi, loco_t, vfi_var_name);
       //  loco_t::text_data_t kd_ = kd;
       //  kd_.cid = id_;
@@ -181,13 +181,13 @@ struct button_t {
       //};
     }
 
-    gloco->vfi.push_back(&sb_get_ri(id).vfi_id, vfip);
+    gloco->shapes.vfi.push_back(&sb_get_ri(id).vfi_id, vfip);
   }
   void erase(loco_t::cid_nt_t& id) {
     
     auto& ri = sb_get_ri(id);
     ri.text_id.erase();
-    gloco->vfi.erase(&ri.vfi_id);
+    gloco->shapes.vfi.erase(&ri.vfi_id);
     sb_erase(id);
   }
 
@@ -242,11 +242,11 @@ struct button_t {
   template <typename T>
   auto get_button(loco_t::cid_nt_t& id, auto T::* member) {
     
-    return gloco->button.get(id, member);
+    return gloco->shapes.button.get(id, member);
   }
   template <typename T, typename T2>
   void set_button(loco_t::cid_nt_t& id, auto T::*member, const T2& value) {
-    gloco->button.set(id, member, value);
+    gloco->shapes.button.set(id, member, value);
   }
 
   //template <typename T>
@@ -268,9 +268,9 @@ struct button_t {
     ri.text_id.set_position(position + fan::vec3(0, 0, 1));
     ri.original_position = position;
     set_button(id, &vi_t::position, position);
-    gloco->vfi.set_rectangle(
+    gloco->shapes.vfi.set_rectangle(
       ri.vfi_id,
-      &loco_t::vfi_t::set_rectangle_t::position,  
+      &loco_t::shapes_t::vfi_t::set_rectangle_t::position,  
       position
     );
   }
@@ -279,9 +279,9 @@ struct button_t {
     auto& ri = get_ri(id);
     ri.text_id.set_position(position + fan::vec3(0, 0, 1));
     set_button(id, &vi_t::position, position);
-    gloco->vfi.set_rectangle(
+    gloco->shapes.vfi.set_rectangle(
       ri.vfi_id,
-      &loco_t::vfi_t::set_rectangle_t::position,
+      &loco_t::shapes_t::vfi_t::set_rectangle_t::position,
       position
     );
   }
@@ -290,9 +290,9 @@ struct button_t {
     auto& ri = get_ri(id);
     ri.original_size = size;
     set_button(id, &vi_t::size, size);
-    gloco->vfi.set_rectangle(
+    gloco->shapes.vfi.set_rectangle(
       ri.vfi_id,
-      &loco_t::vfi_t::set_rectangle_t::size,
+      &loco_t::shapes_t::vfi_t::set_rectangle_t::size,
       size
     );
     ri.text_id.set_size(size * boundary_multiplier); // pad
@@ -301,9 +301,9 @@ struct button_t {
     auto& ri = get_ri(id);
     //ri.original_size = size;
     set_button(id, &vi_t::size, size);
-    gloco->vfi.set_rectangle(
+    gloco->shapes.vfi.set_rectangle(
       ri.vfi_id,
-      &loco_t::vfi_t::set_rectangle_t::size,
+      &loco_t::shapes_t::vfi_t::set_rectangle_t::size,
       size
     );
     ri.text_id.set_size(size * boundary_multiplier); // pad
@@ -330,13 +330,13 @@ struct button_t {
 
   void set_theme(loco_t::cid_nt_t& id, f32_t state) {
     
-    gloco->button.set_theme(id, gloco->button.get_theme(id), state);
+    gloco->shapes.button.set_theme(id, gloco->shapes.button.get_theme(id), state);
   }
 
     // gets udata from current focus
-  /*uint64_t get_id_udata(loco_t::vfi_t::shape_id_t id) {
+  /*uint64_t get_id_udata(loco_t::shapes_t::vfi_t::shape_id_t id) {
     
-    auto udata = gloco->vfi.get_id_udata(id);
+    auto udata = gloco->shapes.vfi.get_id_udata(id);
     fan::opengl::cid_t* cid = (fan::opengl::cid_t*)udata;
     auto block = sb_get_block(id);
     return block->p[cid->instance_id].udata;
@@ -350,12 +350,12 @@ struct button_t {
   fan::string get_text(loco_t::cid_nt_t& id) {
     
     auto& ri = get_ri(id);
-    return gloco->responsive_text.get_text(ri.text_id);
+    return gloco->shapes.responsive_text.get_text(ri.text_id);
   }
   void set_text(loco_t::cid_nt_t& id, const fan::string& text) {
     
     auto& ri = get_ri(id);
-    gloco->responsive_text.set_text(ri.text_id, text);
+    gloco->shapes.responsive_text.set_text(ri.text_id, text);
   }
 
   ri_t* get_instance_properties(loco_t::cid_nt_t& id) {
@@ -363,15 +363,15 @@ struct button_t {
   }
 
   void set_focus_mouse(loco_t::cid_nt_t& id) {
-    gloco->vfi.set_focus_mouse(get_instance_properties(id)->vfi_id);
+    gloco->shapes.vfi.set_focus_mouse(get_instance_properties(id)->vfi_id);
   }
 
   void set_focus_keyboard(loco_t::cid_nt_t& id) {
-    gloco->vfi.set_focus_keyboard(get_instance_properties(id)->vfi_id);
+    gloco->shapes.vfi.set_focus_keyboard(get_instance_properties(id)->vfi_id);
   }
 
   void set_focus_text(loco_t::cid_nt_t& id) {
-    gloco->vfi.set_focus_text(get_instance_properties(id)->vfi_id);
+    gloco->shapes.vfi.set_focus_text(get_instance_properties(id)->vfi_id);
   }
 
   void set_focus(loco_t::cid_nt_t& id) {
@@ -382,7 +382,7 @@ struct button_t {
 
   void set_depth(loco_t::cid_nt_t& id, f32_t depth) {
     auto& vfi_id = get_instance_properties(id)->vfi_id;
-    gloco->vfi.shape_list[vfi_id].shape_data.depth = depth;
+    gloco->shapes.vfi.shape_list[vfi_id].shape_data.depth = depth;
     sb_set_depth(id, depth);
   }
 
@@ -391,7 +391,7 @@ struct button_t {
     p.theme = get_theme(id);
 
     p.position = sb_get_vi(id).position;
-    p.text = gloco->responsive_text.get_text(sb_get_ri(id).text_id);
+    p.text = gloco->shapes.responsive_text.get_text(sb_get_ri(id).text_id);
     p.font_size = 1; // TODO
     return p;
   }

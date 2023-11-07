@@ -256,9 +256,9 @@ namespace fan {
     public:
 
     #if fan_debug >= fan_debug_high
-      #define get_proc_address(name, internal_) \
-        name = (decltype(name))get_proc_address_(#name, internal_); \
-        function_map.insert(std::make_pair((void*)name, #name));
+      // todo implement debug
+      #define get_proc_address(type, name, internal_) \
+        type name = (type)get_proc_address_(#name, internal_)
       std::unordered_map<void*, fan::string> function_map;
     #else
       #define get_proc_address(type, name, internal_) type name = (type)get_proc_address_(#name, internal_);
@@ -299,15 +299,11 @@ namespace fan {
 
       template <typename T, typename ...T2>
       constexpr auto call(const T& t, T2&&... args) {
-        execute_before(function_map[(void*)t]);
         if constexpr (std::is_same<fan::return_type_of_t<T>, void>::value) {
           t(args...);
-          execute_after(function_map[(void*)t]);
         }
         else {
-          auto r = t(args...);
-          execute_after(function_map[(void*)t]);
-          return r;
+          return t(args...);
         }
       }
       #else

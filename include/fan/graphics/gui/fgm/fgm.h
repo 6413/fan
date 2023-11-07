@@ -51,7 +51,7 @@ struct fgm_t {
       template <typename T>
       global_t(fgm_t* fgm, const T& obj) : fan::graphics::imgui_element_t() {
         T temp = std::move(obj);
-        loco_t::vfi_t::properties_t vfip;
+        loco_t::shapes_t::vfi_t::properties_t vfip;
         vfip.shape.rectangle->position = temp.get_position();
         vfip.shape.rectangle->position.z += fgm->current_z++;
         vfip.shape.rectangle->size = temp.get_size();
@@ -146,7 +146,8 @@ struct fgm_t {
 
   void open_properties(fgm_t::shapes_t::global_t* shape, const fan::vec2& editor_size) {
 
-    ImGui::Text((fan::string("Shape name:") + gloco->shape_names[shape->children[0]->shape_type]).c_str());
+    fan::string shape_str = fan::string("Shape name:") + gloco->shape_names[shape->children[0]->shape_type];
+    ImGui::Text(shape_str.c_str());
 
     make_line(fan::vec3, position);
     make_line(fan::vec2, size);
@@ -209,10 +210,10 @@ struct fgm_t {
               current = str.substr(0, std::strlen(str.c_str()));
               auto& data = texturepack.get_pixel_data(ti.pack_id);
               if ((loco_t::shape_type_t)shape->children[0]->shape_type == loco_t::shape_type_t::sprite) {
-                gloco->sprite.load_tp(shape->children[0], &ti);
+                gloco->shapes.sprite.load_tp(shape->children[0], &ti);
               }
               else if ((loco_t::shape_type_t)shape->children[0]->shape_type == loco_t::shape_type_t::unlit_sprite) {
-                gloco->unlit_sprite.load_tp(shape->children[0], &ti);
+                gloco->shapes.unlit_sprite.load_tp(shape->children[0], &ti);
               }
             }
           }

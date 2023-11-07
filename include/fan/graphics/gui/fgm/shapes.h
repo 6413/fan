@@ -187,7 +187,7 @@ struct button_t {
         }
         return 0;
       }
-      if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+      if (ii_d.mouse_stage != loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
         return 0;
       }
       get_fgm()->action_flag |= action::move;
@@ -333,7 +333,7 @@ struct sprite_t {
   #if defined(fgm_build_model_maker)
     #define fgm_shape_instance_data \
       fan::graphics::cid_t cid; \
-      loco_t::vfi_t::shape_id_t vfi_id; \
+      loco_t::shapes_t::vfi_t::shape_id_t vfi_id; \
       uint16_t shape; \
       fan::string texturepack_name; \
       fan::string id; \
@@ -341,7 +341,7 @@ struct sprite_t {
   #else
     #define fgm_shape_instance_data \
       loco_t::shape_t shape; \
-      loco_t::vfi_t::shape_id_t vfi_id; \
+      loco_t::shapes_t::vfi_t::shape_id_t vfi_id; \
       fan::string texturepack_name; \
       fan::string id;
   #endif
@@ -531,7 +531,7 @@ struct sprite_t {
     #endif
 
 
-    loco_t::vfi_t::properties_t vfip;
+    loco_t::shapes_t::vfi_t::properties_t vfip;
     vfip.mouse_button_cb = [this, shape_nr](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
         case fan::mouse_scroll_up: {
@@ -580,7 +580,7 @@ struct sprite_t {
         }
         return 0;
       }
-      if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+      if (ii_d.mouse_stage != loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
         return 0;
       }
       get_fgm()->action_flag |= action::move;
@@ -599,7 +599,7 @@ struct sprite_t {
       return 0;
     };
     vfip.keyboard_cb = keyboard_cb(&instances[shape_nr]);
-    vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
+    vfip.shape_type = loco_t::shapes_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
     vfip.shape.rectangle.camera = p.camera;
@@ -633,7 +633,7 @@ struct sprite_t {
   }
   void set_position(auto* instance, const fan::vec3& position) {
     pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
-    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
+    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::shapes_t::vfi_t::shape_data_rectangle_t::position, position);
   }
 
   fan::vec2 get_size(auto* instance) {
@@ -641,7 +641,7 @@ struct sprite_t {
   }
   void set_size(auto* instance, const fan::vec2& size) {
     pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
-    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
+    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::shapes_t::vfi_t::shape_data_rectangle_t::size, size);
   }
 
   fan::string to_string() {
@@ -727,7 +727,7 @@ struct text_t {
   #define fgm_shape_manual_properties
   #define fgm_shape_instance_data \
     loco_t::shape_t shape; \
-    loco_t::vfi_t::shape_id_t vfi_id; \
+    loco_t::shapes_t::vfi_t::shape_id_t vfi_id; \
     fan::string texturepack_name; \
     fan::string id;
   #include "shape_builder.h"
@@ -862,7 +862,7 @@ struct text_t {
       instances[shape_nr].id = p.id;
     }
 
-    loco_t::vfi_t::properties_t vfip;
+    loco_t::shapes_t::vfi_t::properties_t vfip;
     vfip.mouse_button_cb = [this, shape_nr](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
         case fan::mouse_scroll_up: {
@@ -911,7 +911,7 @@ struct text_t {
         }
         return 0;
       }
-      if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+      if (ii_d.mouse_stage != loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
         return 0;
       }
       get_fgm()->action_flag |= action::move;
@@ -930,7 +930,7 @@ struct text_t {
     };
     vfip.keyboard_cb = keyboard_cb(&instances[shape_nr]);
     pile->loco.text.push_back(instances[shape_nr].shape, p);
-    vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
+    vfip.shape_type = loco_t::shapes_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = pile->loco.text.get_text_size(instances[shape_nr].shape);
     vfip.shape.rectangle.camera = p.camera;
@@ -963,16 +963,16 @@ struct text_t {
   }
   void set_size(auto* instance, const fan::vec2& size) {
     get_fgm()->text.set_font_size(instance, size.x);
-    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
+    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::shapes_t::vfi_t::shape_data_rectangle_t::size, size);
   }
 
   void set_position(auto* instance, const fan::vec3& position) {
     pile->loco.text.set_position(&instance->cid, position);
-    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
+    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::shapes_t::vfi_t::shape_data_rectangle_t::position, position);
   }
   void set_font_size(auto* instance, f32_t font_size) {
     pile->loco.text.set_font_size(&instance->cid, font_size);
-    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, pile->loco.text.get_text_size(&instance->cid));
+    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::shapes_t::vfi_t::shape_data_rectangle_t::size, pile->loco.text.get_text_size(&instance->cid));
   }
 
   fan::string to_string() const {
@@ -1030,7 +1030,7 @@ struct hitbox_t {
   static constexpr const char* cb_names[] = { "mouse_button","mouse_move", "keyboard", "text" };
 
   struct properties_t : loco_t::sprite_t::properties_t {
-    loco_t::vfi_t::shape_type_t vfi_type;
+    loco_t::shapes_t::vfi_t::shape_type_t vfi_type;
     fan::string id;
   };
 
@@ -1040,9 +1040,9 @@ struct hitbox_t {
   #define fgm_shape_manual_properties
   #define fgm_shape_instance_data \
     loco_t::shape_t shape; \
-    loco_t::vfi_t::shape_id_t vfi_id; \
+    loco_t::shapes_t::vfi_t::shape_id_t vfi_id; \
     fan::string id; \
-    loco_t::vfi_t::shape_type_t shape_type;
+    loco_t::shapes_t::vfi_t::shape_type_t shape_type;
   #include "shape_builder.h"
 
   void close_properties() {
@@ -1154,7 +1154,7 @@ struct hitbox_t {
       instances[shape_nr].id = p.id;
     }
 
-    loco_t::vfi_t::properties_t vfip;
+    loco_t::shapes_t::vfi_t::properties_t vfip;
     vfip.mouse_button_cb = [this, shape_nr](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
         case fan::mouse_scroll_up: {
@@ -1203,7 +1203,7 @@ struct hitbox_t {
         }
         return 0;
       }
-      if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+      if (ii_d.mouse_stage != loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
         return 0;
       }
       get_fgm()->action_flag |= action::move;
@@ -1222,7 +1222,7 @@ struct hitbox_t {
       return 0;
     };
     vfip.keyboard_cb = keyboard_cb(&instances[shape_nr]);
-    vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
+    vfip.shape_type = loco_t::shapes_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
     vfip.shape.rectangle.camera = p.camera;
@@ -1268,7 +1268,7 @@ struct hitbox_t {
   }
   void set_position(instance_t* instance, const fan::vec3& position) {
     pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
-    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
+    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::shapes_t::vfi_t::shape_data_rectangle_t::position, position);
   }
 
   fan::vec2 get_size(instance_t* instance) {
@@ -1276,7 +1276,7 @@ struct hitbox_t {
   }
   void set_size(instance_t* instance, const fan::vec2& size) {
     pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
-    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
+    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::shapes_t::vfi_t::shape_data_rectangle_t::size, size);
   }
 
   fan::string to_string() {
@@ -1293,12 +1293,12 @@ struct hitbox_t {
       auto& shape = pile->loco.vfi.shape_list[instances[it].vfi_id];
       auto& shape_data = shape.shape_data;
       switch (it->shape_type) {
-        case loco_t::vfi_t::shape_t::always: {
+        case loco_t::shapes_t::vfi_t::shape_t::always: {
           data.position = fan::vec3(fan::vec2(pile->loco.sprite.get(instances[it].shape, &loco_t::sprite_t::vi_t::position)), shape_data.depth);
           data.size = pile->loco.sprite.get(instances[it].shape, &loco_t::sprite_t::vi_t::size);
           break;
         }
-        case loco_t::vfi_t::shape_t::rectangle: {
+        case loco_t::shapes_t::vfi_t::shape_t::rectangle: {
           data.position = pile->loco.sprite.get(instances[it].shape, &loco_t::sprite_t::vi_t::position);
           data.size = pile->loco.sprite.get(instances[it].shape, &loco_t::sprite_t::vi_t::size);
         }
@@ -1354,7 +1354,7 @@ struct mark_t {
   static constexpr const char* cb_names[] = { "mouse_button","mouse_move", "keyboard", "text" };
 
   struct properties_t : loco_t::sprite_t::properties_t {
-    loco_t::vfi_t::shape_type_t vfi_type;
+    loco_t::shapes_t::vfi_t::shape_type_t vfi_type;
     fan::string id;
     #if defined(fgm_build_model_maker)
     uint32_t group_id = 0;
@@ -1368,18 +1368,18 @@ struct mark_t {
   #if defined(fgm_build_model_maker)
     #define fgm_shape_instance_data \
         fan::graphics::cid_t cid; \
-        loco_t::vfi_t::shape_id_t vfi_id; \
+        loco_t::shapes_t::vfi_t::shape_id_t vfi_id; \
         fan::string id; \
-        loco_t::vfi_t::shape_type_t shape_type; \
+        loco_t::shapes_t::vfi_t::shape_type_t shape_type; \
         uint32_t group_id;
   #else
   // make inherit sometime from shape exports
   #define fgm_shape_instance_data \
         fan::graphics::cid_t cid; \
-        loco_t::vfi_t::shape_id_t vfi_id; \
+        loco_t::shapes_t::vfi_t::shape_id_t vfi_id; \
         uint16_t shape; \
         fan::string id; \
-        loco_t::vfi_t::shape_type_t shape_type;
+        loco_t::shapes_t::vfi_t::shape_type_t shape_type;
   #endif
   #include "shape_builder.h"
 
@@ -1514,7 +1514,7 @@ struct mark_t {
     instances[i]->group_id = p.group_id;
     #endif
 
-    loco_t::vfi_t::properties_t vfip;
+    loco_t::shapes_t::vfi_t::properties_t vfip;
     vfip.mouse_button_cb = [this, instance = instances[i]](const loco_t::mouse_button_data_t& ii_d) -> int {
       switch (ii_d.button) {
         case fan::mouse_scroll_up: {
@@ -1563,7 +1563,7 @@ struct mark_t {
         }
         return 0;
       }
-      if (ii_d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+      if (ii_d.mouse_stage != loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
         return 0;
       }
       get_fgm()->action_flag |= action::move;
@@ -1582,7 +1582,7 @@ struct mark_t {
       return 0;
     };
     vfip.keyboard_cb = keyboard_cb(instances[i]);
-    vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
+    vfip.shape_type = loco_t::shapes_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle.position = p.position;
     vfip.shape.rectangle.size = p.size;
     vfip.shape.rectangle.camera = p.camera;
@@ -1615,7 +1615,7 @@ struct mark_t {
   }
   void set_position(instance_t* instance, const fan::vec3& position) {
     pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::position, position);
-    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::position, position);
+    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::shapes_t::vfi_t::shape_data_rectangle_t::position, position);
   }
 
   fan::vec2 get_size(instance_t* instance) {
@@ -1623,7 +1623,7 @@ struct mark_t {
   }
   void set_size(instance_t* instance, const fan::vec2& size) {
     pile->loco.sprite.set(&instance->cid, &loco_t::sprite_t::vi_t::size, size);
-    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::vfi_t::shape_data_rectangle_t::size, size);
+    pile->loco.vfi.set_rectangle(instance->vfi_id, &loco_t::shapes_t::vfi_t::shape_data_rectangle_t::size, size);
   }
 
   fan::string to_string() const {

@@ -3,7 +3,7 @@ CXX = clang++
 CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include -ftime-trace
 
 # source file and output
-MAIN = Source.cpp
+MAIN = examples/gui/model_maker.cpp
 OUTPUT = a.out
 
 WINDOWS_ROOT_PATH=C:/libs/

@@ -15,7 +15,11 @@ struct sheet_t {
 
 struct sb_sprite_sheet_name {
 
-  struct properties_t : loco_t::sprite_t::context_key_t {
+  static constexpr loco_t::shape_type_t shape_type = loco_t::shape_type_t::sprite_sheet;
+
+  struct properties_t : loco_t::shapes_t::sprite_t::context_key_t {
+    using type_t = sb_sprite_sheet_name;
+
     fan::vec2 position;
     fan::vec2 size;
 
@@ -39,7 +43,7 @@ public:
     auto nr = sheet_list.NewNodeLast();
     auto& node = sheet_list[nr];
     node.sheet = *p.sheet;
-    loco_t::sprite_t::properties_t sp;
+    typename loco_t::shapes_t::sprite_t::properties_t sp;
     sp.position = p.position;
     sp.size = p.size;
     sp.image = p.sheet->m_textures[0];
@@ -49,12 +53,12 @@ public:
 
   void start(nr_t n) {
     auto& node = sheet_list[n];
-    node.timer.cb = [n_ = n, this] (const fan::ev_timer_t::cb_data_t& timer) {
+    node.timer.cb = [n_ = n, this](const fan::ev_timer_t::cb_data_t& timer) {
       auto& node = sheet_list[n_];
       node.sheet.start_index = (node.sheet.start_index + 1) % node.sheet.size();
       node.shape.set_image(node.sheet.m_textures[node.sheet.start_index]);
       gloco->ev_timer.start(&node.timer, node.sheet.animation_speed);
-    };
+      };
     gloco->ev_timer.start(&node.timer, node.sheet.animation_speed);
   }
   void stop(nr_t n) {

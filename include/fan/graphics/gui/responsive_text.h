@@ -9,8 +9,8 @@ struct responsive_text_t {
     //static constexpr uint8_t right = 2;
   };
 
-  using lvi_t = loco_t::letter_t::vi_t;
-  using lri_t = loco_t::letter_t::ri_t;
+  using lvi_t = loco_t::shapes_t::letter_t::vi_t;
+  using lri_t = loco_t::shapes_t::letter_t::ri_t;
 
   struct properties_t : lvi_t, lri_t {
     using type_t = responsive_text_t;
@@ -272,7 +272,7 @@ struct responsive_text_t {
   ){
     auto& instance = tlist[instance_id];
 
-    typename loco_t::letter_t::properties_t p;
+    typename loco_t::shapes_t::letter_t::properties_t p;
     p.color = instance.color;
     p.font_size = instance.font_size;
     p.camera = instance.camera;

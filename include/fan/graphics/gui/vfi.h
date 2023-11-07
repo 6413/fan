@@ -253,6 +253,7 @@ struct vfi_t {
         instance.shape_data.shape.rectangle->camera = p.shape.rectangle->camera;
         instance.shape_data.shape.rectangle->viewport = p.shape.rectangle->viewport;
         instance.shape_data.shape.rectangle->position = p.shape.rectangle->position;
+        fan::print(instance.shape_data.shape.rectangle->position);
         instance.shape_data.shape.rectangle->size = p.shape.rectangle->size;
         break;
       }
