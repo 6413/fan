@@ -181,13 +181,13 @@ struct button_t {
       //};
     }
 
-    gloco->shapes.vfi.push_back(&sb_get_ri(id).vfi_id, vfip);
+    gloco->shapes.vfi.push_back(sb_get_ri(id).vfi_id, vfip);
   }
   void erase(loco_t::cid_nt_t& id) {
     
     auto& ri = sb_get_ri(id);
     ri.text_id.erase();
-    gloco->shapes.vfi.erase(&ri.vfi_id);
+    gloco->shapes.vfi.erase(ri.vfi_id);
     sb_erase(id);
   }
 
@@ -382,7 +382,7 @@ struct button_t {
 
   void set_depth(loco_t::cid_nt_t& id, f32_t depth) {
     auto& vfi_id = get_instance_properties(id)->vfi_id;
-    gloco->shapes.vfi.shape_list[vfi_id].shape_data.depth = depth;
+    gloco->shapes.vfi.shape_list[loco_t::shapes_t::vfi_t::shape_id_wrap_t(&vfi_id)].shape_data.depth = depth;
     sb_set_depth(id, depth);
   }
 

@@ -1296,7 +1296,7 @@ public:
   }
 
   #if defined(loco_vfi)
-  void push_back_input_hitbox(loco_t::shapes_t::vfi_t::shape_id_t* id, const loco_t::shapes_t::vfi_t::properties_t& p) {
+  void push_back_input_hitbox(loco_t::shapes_t::vfi_t::shape_id_t& id, const loco_t::shapes_t::vfi_t::properties_t& p) {
     shapes.vfi.push_back(id, p);
   }
   #endif
@@ -1540,14 +1540,14 @@ public:
     }
     vfi_id_t() = default;
     vfi_id_t(const properties_t& p) {
-      gloco->shapes.vfi.push_back(*this, *(properties_t*)&p);
+      gloco->shapes.vfi.push_back(cid, *(properties_t*)&p);
     }
     vfi_id_t& operator[](const properties_t& p) {
-      gloco->shapes.vfi.push_back(*this, *(properties_t*)&p);
+      gloco->shapes.vfi.push_back(cid, *(properties_t*)&p);
       return *this;
     }
     ~vfi_id_t() {
-      gloco->shapes.vfi.erase(*this);
+      gloco->shapes.vfi.erase(cid);
     }
 
     loco_t::shapes_t::vfi_t::shape_id_t cid;
@@ -1557,15 +1557,15 @@ public:
 
   template <typename T>
   void push_shape(loco_t::cid_nt_t& id, T properties) {
-    if constexpr (fan_requires_rule(T, typename T::type_t)) {
-      if constexpr (std::is_same_v<loco_t::shapes_t::vfi_t, typename T::type_t>) {
-        loco_t::shapes_t::vfi_t::shape_id_t shape_id;
-        fan_if_has_variable(&shapes, vfi, This->vfi.push_back(&shape_id, properties))
-          id->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
-        *id.gdp4() = shape_id.NRI;
-        return;
-      }
-    }
+    //if constexpr (fan_requires_rule(T, typename T::type_t)) {
+    //  if constexpr (std::is_same_v<loco_t::shapes_t::vfi_t, typename T::type_t>) {
+    //    loco_t::shapes_t::vfi_t::shape_id_t shape_id;
+    //    fan_if_has_variable(&shapes, vfi, This->vfi.push_back(&shape_id, properties))
+    //      id->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
+    //    *id.gdp4() = shape_id.NRI;
+    //    return;
+    //  }
+    //}
 
     shapes.iterate([&]<auto i>(auto & shape) {
       fan_if_has_function(&shape, push_back, (id, properties));
@@ -1614,7 +1614,6 @@ public:
           return; \
       } \
       fan_if_has_function(&shape, set_##property_name, (id, value)); \
-      else fan_if_has_function(&shape, set_##property_name, ((loco_t::shapes_t::vfi_t::shape_id_t*)id.gdp4(), value)); \
       else if constexpr(fan_requires_rule(T, typename T::vi_t)){ \
         if constexpr(fan_has_variable(typename T::vi_t, property_name)) { \
           fan_if_has_function(&shape, set, (id, &T::vi_t::property_name, value)); \
@@ -1631,7 +1630,6 @@ public:
           return; \
       } \
       fan_if_has_function_get(&shape, get_##property_name, (id), ret); \
-      else fan_if_has_function_get(&shape, get_##property_name, ((loco_t::shapes_t::vfi_t::shape_id_t*)id.gdp4()), ret); \
       else if constexpr(fan_requires_rule(T, typename T::vi_t)){ \
         if constexpr(fan_has_variable(typename T::vi_t, property_name)) { \
           fan_if_has_function_get(&shape, get, (id, &T::vi_t::property_name), ret); \
