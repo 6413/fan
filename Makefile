@@ -22,8 +22,8 @@ RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sec
 WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I $(WINDOWS_ROOT_PATH)/fan/include/baseclasses -I $(WINDOWS_ROOT_PATH)/fan/src/libwebp -I $(WINDOWS_ROOT_PATH)/fan/src/libwebp/src
 LINUX_INCLUDES = -I $(LINUX_ROOT_PATH)
 
-WINDOWS_LINK = lib/libuv/uv_a.lib $(LINK_PATH)libimgui.a lib/libwebp/libwebp.a lib/opus/libopus.a
-LINUX_LINK = -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl $(LINK_PATH)libimgui.a
+WINDOWS_LINK = lib/libuv/uv_a.lib $(LINUX_ROOT_PATH)/fan/$(LINK_PATH)libimgui.a lib/libwebp/libwebp.a lib/opus/libopus.a
+LINUX_LINK = -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl $(LINUX_ROOT_PATH)/fan/$(LINK_PATH)libimgui.a
 
 INCLUDES =
 LINK = 
