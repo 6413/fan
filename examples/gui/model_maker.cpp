@@ -14,6 +14,11 @@ int main(int argc, char** argv) {
   else{
     mm.load("model.fmm");//
   }//
+  loco_t::vfi_t v;
+  loco_t::vfi_t::shape_id_t nt;
+  loco_t::cid_nt_t n = nt;
+
+  constexpr bool x = fan_has_function(loco_t::vfi_t, push_back(n, {}));
   loco_t::shapes_t::sprite_t::properties_t p;
   //
   //

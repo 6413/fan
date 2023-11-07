@@ -19,8 +19,8 @@ int main() {
 
   fan::graphics::button_t button0{{
     .theme = &theme,
-    .position = 0,
-    .size = fan::vec2(0.3, 0.1),
+    .position = 400,
+    .size = fan::vec2(300, 100),
     .text = " button",
     .mouse_move_cb = mouse_move_cb,
     .mouse_button_cb = mouse_button_cb

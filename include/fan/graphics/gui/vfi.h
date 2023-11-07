@@ -209,12 +209,52 @@ struct vfi_t {
   #include "vfi_shape_list_settings.h"
   #include _FAN_PATH(BLL/BLL.h)
 
-  typedef shape_list_NodeReference_t shape_id_t;
+  using shape_list_nr_t = shape_list_NodeReference_t;
+
+  using shape_id_t = loco_t::cid_nt_t;
+
+  struct shape_id_wrap_t {
+    shape_id_wrap_t() = default;
+    shape_id_wrap_t(loco_t::cid_nt_t* nt) : n(nt){
+
+    }
+    bool operator==(shape_id_wrap_t id) {
+      return ((shape_list_nr_t)*this).NRI == (id.operator shape_list_nr_t&()).NRI;
+    }
+    operator shape_list_nr_t () const {
+      return *(shape_list_nr_t*)n->gdp4();
+    }
+    operator shape_list_nr_t&() {
+      return *(shape_list_nr_t*)n->gdp4();
+    }
+    operator shape_id_t& () {
+      return *(shape_id_t*)n;
+    }
+    bool is_invalid() {
+      return n == nullptr || shape_list_inric(operator shape_list_nr_t&());
+    }
+    shape_id_wrap_t& operator=(const shape_list_nr_t& nr) {
+      operator shape_list_nr_t () = nr;
+      return *this;
+    }
+    shape_id_wrap_t& operator=(const shape_id_t& id) {
+      operator shape_list_nr_t () = shape_id_wrap_t((shape_id_t*)&id).operator shape_list_nr_t();
+      return *this;
+    }
+    void invalidate() {
+      if (is_invalid()) {
+        return;
+      }
+      gloco->shapes.vfi.shape_list.unlrec(operator shape_list_nr_t&());
+      operator shape_list_nr_t&() = gloco->shapes.vfi.shape_list.gnric();
+    }
+    loco_t::cid_nt_t* n = nullptr;
+  };
 
   struct {
-    shape_id_t mouse;
-    shape_id_t keyboard;
-    shape_id_t text;
+    shape_list_nr_t mouse;
+    shape_list_nr_t keyboard;
+    shape_list_nr_t text;
 
     struct {
       struct {
@@ -234,7 +274,8 @@ struct vfi_t {
 
   using properties_t = common_shape_properties_t;
 
-  void push_back(shape_id_t* id, const properties_t& p) {
+  void push_back(shape_id_t& in, const properties_t& p) {
+    shape_id_wrap_t id(&in);
     auto nr = shape_list.NewNodeLast();
     auto& instance = shape_list[nr];
     instance.shape_type = p.shape_type;
@@ -253,7 +294,6 @@ struct vfi_t {
         instance.shape_data.shape.rectangle->camera = p.shape.rectangle->camera;
         instance.shape_data.shape.rectangle->viewport = p.shape.rectangle->viewport;
         instance.shape_data.shape.rectangle->position = p.shape.rectangle->position;
-        fan::print(instance.shape_data.shape.rectangle->position);
         instance.shape_data.shape.rectangle->size = p.shape.rectangle->size;
         break;
       }
@@ -266,30 +306,35 @@ struct vfi_t {
         feed_mouse_move(mouse_position);
       }
     }
-    *id = nr;
+    in.init();
+    in->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
+    *in.gdp4() = nr.NRI;
   }
-  void erase(shape_id_t* id) {
-    bool fm = focus.mouse == *id;
+  void erase(shape_id_t& in) {
+    shape_id_wrap_t id = &in;
+    bool fm = focus.mouse == id;
     if (fm) {
       focus.mouse.invalidate();
     }
-    if (focus.keyboard == *id) {
+    if (focus.keyboard == id) {
       focus.keyboard.invalidate();
     }
-    if (focus.text == *id) {
+    if (focus.text == id) {
       focus.text.invalidate();
     }
-    shape_list.unlrec(*id);
+    shape_list.unlrec(id);
     if (fm) {
       feed_mouse_move(gloco->get_mouse_position());
     }
   }
   template <typename T>
-  void set_always(shape_id_t id, auto T::*member, auto value) {
+  void set_always(shape_id_t in, auto T::*member, auto value) {
+    shape_id_wrap_t id(&in);
     shape_list[id].shape_data.shape.always->*member = value;
   }
   template <typename T>
-  void set_rectangle(shape_id_t id, auto T::*member, auto value) {
+  void set_rectangle(shape_id_t in, auto T::*member, auto value) {
+    shape_id_wrap_t id(&in);
     ((T*)&shape_list[id].shape_data.shape.rectangle)->*member = value;
   }
 
@@ -362,24 +407,45 @@ struct vfi_t {
     focus.method.mouse.flags.ignore_move_focus_check = false;
   }
 
+  // might fail because shape_type isnt set
   shape_id_t get_focus_mouse() {
-    return focus.mouse;
+    shape_id_t s;
+    s.init();
+    s->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
+    *s.gdp4() = focus.mouse.NRI;
+    return s;
   }
   void set_focus_mouse(shape_id_t id) {
+    focus.mouse = shape_id_wrap_t(&id).operator shape_list_nr_t();
+    init_focus_mouse_flag();
+  }
+  void set_focus_mouse(shape_list_nr_t id) {
     focus.mouse = id;
     init_focus_mouse_flag();
   }
   shape_id_t get_focus_keyboard() {
-    return focus.mouse;
+    shape_id_t s;
+    s.init();
+    s->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
+    *s.gdp4() = focus.keyboard.NRI;
+    return s;
   }
   void set_focus_keyboard(shape_id_t id) {
+    focus.keyboard = shape_id_wrap_t(&id).operator shape_list_nr_t();
+  }
+  void set_focus_keyboard(shape_list_nr_t id) {
     focus.keyboard = id;
+    init_focus_mouse_flag();
   }
   shape_id_t get_focus_text() {
-    return focus.text;
+    shape_id_t s;
+    s.init();
+    s->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
+    *s.gdp4() = focus.text.NRI;
+    return s;
   }
   void set_focus_text(shape_id_t id) {
-    focus.text = id;
+    focus.text = shape_id_wrap_t(&id).operator shape_list_nr_t();
   }
 
   void invalidate_focus_mouse() {
@@ -403,7 +469,7 @@ struct vfi_t {
       fan::vec2 tp = transform(position, data.shape_type, &data.shape_data);
       mouse_move_data.mouse_stage = inside(data.shape_type, &data.shape_data, tp);
       mouse_move_data.position = tp;
-      shape_id_t bcbfm = focus.mouse;
+      auto bcbfm = focus.mouse;
       data.shape_data.mouse_move_cb(mouse_move_data);
       if (bcbfm != focus.mouse) {
         data = shape_list[focus.mouse];
@@ -436,7 +502,7 @@ struct vfi_t {
       fan::vec2 tp = transform(position, data->shape_type, &data->shape_data);
       mouse_move_data.position = tp;
       mouse_move_data.mouse_stage = inside(data->shape_type, &data->shape_data, tp);
-      set_focus_mouse(closest_z_nr);
+      set_focus_mouse(closest_z_nr); // can be wrong
       data->shape_data.mouse_move_cb(mouse_move_data);
       return;
     }
@@ -459,7 +525,7 @@ struct vfi_t {
     mouse_button_data.position = transform(focus.method.mouse.position, data->shape_type, &data->shape_data);
     mouse_button_data.mouse_stage = inside(data->shape_type, &data->shape_data, mouse_button_data.position);
     mouse_button_data.flag = &focus.method.mouse.flags;
-    shape_id_t bcbfm = focus.mouse;
+    auto bcbfm = focus.mouse;
 
     data->shape_data.mouse_button_cb(mouse_button_data);
 
@@ -489,8 +555,6 @@ struct vfi_t {
     keyboard_data.key = key;
     keyboard_data.keyboard_state = keyboard_state;
 
-    shape_id_t bcbfk = focus.keyboard;
-
     shape_list[focus.keyboard].shape_data.keyboard_cb(keyboard_data);
   }
   void feed_text(uint32_t key) {
@@ -502,13 +566,12 @@ struct vfi_t {
 
     text_data.key = key;
 
-    shape_id_t bcbfk = focus.text;
-
     shape_list[focus.text].shape_data.text_cb(text_data);
   }
 
-  fan::vec3 get_position(shape_id_t* id) {
-    auto& shape = shape_list[*id];
+  fan::vec3 get_position(shape_id_t& in) {
+    shape_id_wrap_t id(&in);
+    auto& shape = shape_list[id];
     switch (shape.shape_type) {
       case vfi_t::shape_t::rectangle: {
         return fan::vec3(
@@ -519,8 +582,9 @@ struct vfi_t {
     }
     fan::throw_error("invalid get_position for id");
   }
-  void set_position(shape_id_t* id, const fan::vec3& position) {
-    auto& shape = shape_list[*id];
+  void set_position(shape_id_t& in, const fan::vec3& position) {
+    shape_id_wrap_t id(&in);
+    auto& shape = shape_list[id];
     switch (shape.shape_type) {
       case vfi_t::shape_t::rectangle: {
         shape.shape_data.shape.rectangle->position = position;
@@ -531,8 +595,9 @@ struct vfi_t {
     fan::throw_error("invalid set_position for id");
   }
 
-  fan::vec2 get_size(shape_id_t* id) {
-    auto& shape = shape_list[*id];
+  fan::vec2 get_size(shape_id_t& in) {
+    shape_id_wrap_t id(&in);
+    auto& shape = shape_list[id];
     switch (shape.shape_type) {
       case vfi_t::shape_t::rectangle: {
         return shape.shape_data.shape.rectangle->size;
@@ -540,8 +605,9 @@ struct vfi_t {
     }
     fan::throw_error("invalid get_position for id");
   }
-  void set_size(shape_id_t* id, const fan::vec2& size) {
-    auto& shape = shape_list[*id];
+  void set_size(shape_id_t& in, const fan::vec2& size) {
+    shape_id_wrap_t id(&in);
+    auto& shape = shape_list[id];
     switch (shape.shape_type) {
       case vfi_t::shape_t::rectangle: {
         shape.shape_data.shape.rectangle->size = size;

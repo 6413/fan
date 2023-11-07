@@ -9,6 +9,8 @@ OUTPUT = a.out
 WINDOWS_ROOT_PATH=C:/libs/
 LINUX_ROOT_PATH=/usr/include/
 
+LINUX_ROOT_LIB_PATH=/usr/include/
+
 FAN_INCLUDE_PATH =
 LINK_PATH = lib/fan/
 
@@ -23,7 +25,7 @@ WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I $(WINDOWS_ROOT_PATH)/fa
 LINUX_INCLUDES = -I $(LINUX_ROOT_PATH)
 
 WINDOWS_LINK = lib/libuv/uv_a.lib $(LINUX_ROOT_PATH)/fan/$(LINK_PATH)libimgui.a lib/libwebp/libwebp.a lib/opus/libopus.a
-LINUX_LINK = -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl $(LINUX_ROOT_PATH)/fan/$(LINK_PATH)libimgui.a
+LINUX_LINK = -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl $(LINUX_ROOT_LIB_PATH)/fan/$(LINK_PATH)libimgui.a
 
 INCLUDES =
 LINK = 
