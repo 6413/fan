@@ -482,11 +482,9 @@
     <ClInclude Include="include\fan\window\window.h" />
     <ClInclude Include="include\fan\window\window_input.h" />
     <ClInclude Include="include\fan\window\window_input_common.h" />
-    <ClInclude Include="pch.h" />
     <ClInclude Include="stages_compile\stage_fuel_station.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="examples\graphics\grid.cpp" />
     <ClCompile Include="include\fan\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -497,6 +495,7 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

@@ -3,7 +3,7 @@ CXX = clang++
 CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include -ftime-trace
 
 # source file and output
-MAIN = examples/graphics/grid.cpp
+MAIN = Source.cpp
 OUTPUT = a.out
 
 WINDOWS_ROOT_PATH=C:/libs/

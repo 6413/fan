@@ -2355,26 +2355,6 @@ public:
     ,particles_t*
   > types;
 
-  struct vfi_id_t {
-    using properties_t = loco_t::vfi_t::properties_t;
-    operator loco_t::vfi_t::shape_id_t* () {
-      return &cid;
-    }
-    vfi_id_t() = default;
-    vfi_id_t(const properties_t& p) {
-      gloco->vfi.push_back(*this, *(properties_t*)&p);
-    }
-    vfi_id_t& operator[](const properties_t& p) {
-      gloco->vfi.push_back(*this, *(properties_t*)&p);
-      return *this;
-    }
-    ~vfi_id_t() {
-      gloco->vfi.erase(*this);
-    }
-
-    loco_t::vfi_t::shape_id_t cid;
-  };
-
   #define make_key_value(type, name) \
       type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
 

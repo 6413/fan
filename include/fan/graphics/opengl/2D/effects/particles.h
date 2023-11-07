@@ -12,7 +12,12 @@ struct particles_t {
   };
 
   struct context_key_t {
-    loco_sprite_bm_properties_t
+    using parsed_masterpiece_t = fan::masterpiece_t<
+      loco_t::textureid_t<0>,
+      loco_t::camera_list_NodeReference_t,
+      fan::graphics::viewport_list_NodeReference_t
+    >;
+    struct key_t : parsed_masterpiece_t {}key;
   };
 
   struct cid_t;
@@ -32,11 +37,11 @@ struct particles_t {
     bool blending = true;
   };
 
-  struct properties_t : vi_t, ri_t {
-    loco_sprite_bm_properties_t
+  struct properties_t : vi_t, ri_t, context_key_t {
     using type_t = particles_t;
-    loco_rectangle_properties_t
 
+    loco_t::camera_t* camera = &gloco->default_camera->camera;
+    loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
     loco_t::image_t* image = &gloco->default_texture;
   };
 
