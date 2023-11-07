@@ -60,12 +60,12 @@ struct sb_pfr_name {
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
 
   #if defined(loco_opengl)
-  #ifndef sb_shader_vertex_path
-  #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/pixel_format_renderer.vs)
-  #endif
-  #ifndef sb_shader_fragment_path
-  #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/nv12.fs)
-  #endif
+    #ifndef sb_shader_vertex_path
+      #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/pixel_format_renderer.vs)
+    #endif
+    #ifndef sb_shader_fragment_path
+      #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/nv12.fs)
+    #endif
   #endif
 
   #define sb_no_blending
@@ -159,13 +159,8 @@ struct sb_pfr_name {
     auto* ri = &sb_get_ri(id);
     auto image_count_new = fan::pixel_format::get_texture_amount(format);
     if (format != ri->format) {
-      fan::string vertex_code;
-      fan::string path = STRINGIFY_DEFINE(_FAN_PATH(graphics/glsl/opengl/2D/objects/pixel_format_renderer.vs));
-      path.replace_all("<", "");
-      path.replace_all(">", "");
-      fan::io::file::read(path, &vertex_code);
       set_vertex(
-        vertex_code
+        fan::graphics::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/pixel_format_renderer.vs))
       );
       set_fragment(format);
       m_shader.use(gloco->get_context());

@@ -364,5 +364,11 @@ namespace fan {
         }
       }
     };
+
+    static fan::string read_shader(const fan::string& path) {
+      fan::string code;
+      fan::io::file::read(path, &code);
+      return code;
+    }
   }
 }

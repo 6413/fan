@@ -82,19 +82,13 @@ struct line_t {
 
  #if defined(loco_opengl)
     #ifndef sb_shader_vertex_path
-      #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/line.vs)
+      #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/line.vs)
     #endif
     #ifndef sb_shader_fragment_path
-      #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/line.fs)
+      #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/line.fs)
     #endif
-  #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 4
-    #define sb_shader_vertex_path graphics/glsl/vulkan/2D/objects/line.vert
-    #define sb_shader_fragment_path graphics/glsl/vulkan/2D/objects/line.frag
   #endif
 
-  #define vk_sb_ssbo
-  #define vk_sb_vp
   #include _FAN_PATH(graphics/shape_builder.h)
 
   line_t() {

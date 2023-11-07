@@ -208,20 +208,13 @@ struct sb_sprite_name {
 
   #if defined(loco_opengl)
     #ifndef sb_shader_vertex_path
-      #define sb_shader_vertex_path _FAN_PATH(graphics/glsl/opengl/2D/objects/sprite.vs)
+      #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/sprite.vs)
     #endif
     #ifndef sb_shader_fragment_path
-      #define sb_shader_fragment_path _FAN_PATH(graphics/glsl/opengl/2D/objects/yuv420p.fs)
+      #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/yuv420p.fs)
     #endif
-  #elif defined(loco_vulkan)
-    #define vulkan_buffer_count 5
-    #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/sprite.vert.spv)
-    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/vulkan/2D/objects/yuv420p.frag.spv)
   #endif
 
-  #define vk_sb_ssbo
-  #define vk_sb_vp
-  #define vk_sb_image
   #include _FAN_PATH(graphics/shape_builder.h)
 
   sb_sprite_name() : image{ 

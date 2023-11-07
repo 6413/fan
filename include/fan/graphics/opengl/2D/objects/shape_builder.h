@@ -309,25 +309,21 @@ public:
       key_root = loco_bdbt_NewNode(&gloco->bdbt);
     #endif
 
-    fan::string vertex_code;
-    fan::string path = STRINGIFY_DEFINE(sb_shader_vertex_path);
-    path.replace_all("<", "");
-    path.replace_all(">", "");
-    fan::io::file::read(path, &vertex_code);
+    fan::string vertex_code = fan::graphics::read_shader(sb_shader_vertex_path);
     m_shader.open(gloco->get_context());
     m_shader.set_vertex(
       gloco->get_context(),
       vertex_code
     );
-    #if !defined(sb_shader_fragment_string)
-    path = STRINGIFY_DEFINE(sb_shader_fragment_path);
-    path.replace_all("<", "");
-    path.replace_all(">", "");
     fan::string fragment_code;
-    fan::io::file::read(path, &fragment_code);
-    #else
-    fan::string fragment_code = sb_shader_fragment_string;
+    #if defined(sb_shader_fragment_string)
+    fragment_code = sb_shader_fragment_string
+    m_shader.set_fragment(
+      gloco->get_context(),
+      sb_shader_fragment_string
+    );
     #endif
+    fragment_code = fan::graphics::read_shader(sb_shader_fragment_path);
     m_shader.set_fragment(
       gloco->get_context(),
       fragment_code

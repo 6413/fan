@@ -4,7 +4,6 @@ int main(int argc, char** argv) {
   if (argc < 2) {
     fan::throw_error("usage: TexturePackCompiled");
   }
-  
   loco_t loco;
   //
   model_maker_t mm;
