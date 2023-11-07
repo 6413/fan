@@ -3,7 +3,7 @@ CXX = clang++
 CXXFLAGS = -ferror-limit=3 -std=c++2a -I include -fpch-instantiate-templates -fpch-debuginfo -Xclang -fno-validate-pch
 
 # source file and output
-MAIN = $(FAN_INCLUDE_PATH)fan/pch.h
+
 OUTPUT = lib/fan/pch.h.gch
 
 WINDOWS_ROOT_PATH = C:/libs/
@@ -36,6 +36,8 @@ endif
 
 CXXFLAGS += -Dfan_build_pch
 CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
+
+MAIN = $(FAN_INCLUDE_PATH)fan/pch.h
 
 debug:
 	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT) $(INCLUDES)
