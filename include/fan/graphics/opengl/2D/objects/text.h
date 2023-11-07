@@ -1,6 +1,6 @@
 struct text_renderer_t {
 
-  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::text;
+  static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::text;
 
   //using ri_t = loco_t::letter_t::ri_t;
   using vi_t = loco_t::letter_t::vi_t;
@@ -9,7 +9,10 @@ struct text_renderer_t {
   struct properties_t : vi_t, ri_t{
     using type_t = text_renderer_t;
 
-    loco_text_properties_t
+    loco_t::camera_t* camera = &gloco->default_camera->camera; 
+    loco_t::viewport_t* viewport = &gloco->default_camera->viewport; 
+    
+    fan::string text;
   };
 
   #define BLL_set_CPP_ConstructDestruct
@@ -96,7 +99,7 @@ struct text_renderer_t {
       append_letter(id, properties.text.get_utf8(i), internal_id, left, advance);
       //left += letter_info.metrics.advance;
     }
-    id->shape_type = loco_t::shape_type_t::text;
+    id->shape_type = (std::underlying_type<loco_t::shape_type_t>::type)loco_t::shape_type_t::text;
     *id.gdp4() = internal_id.NRI;
   }
 

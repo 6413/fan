@@ -1,6 +1,6 @@
 struct responsive_text_t {
 
-  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::responsive_text;
+  static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::responsive_text;
 
   struct align_e {
     uint8_t alignment = center;
@@ -19,7 +19,10 @@ struct responsive_text_t {
     uint32_t line_limit = (uint32_t)-1;
     f32_t letter_size_y_multipler = 1;
 
-    loco_text_properties_t
+    loco_t::camera_t* camera = &gloco->default_camera->camera;
+    loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
+
+    fan::string text;
   };
 
   #define BLL_set_CPP_nrsic 0
@@ -89,7 +92,7 @@ struct responsive_text_t {
 
     tlist_NodeReference_t instance_id = tlist.NewNode();
 
-    id->shape_type = loco_t::shape_type_t::responsive_text;
+    id->shape_type = (std::underlying_type<loco_t::shape_type_t>::type)loco_t::shape_type_t::responsive_text;
     *id.gdp4() = instance_id.NRI;
 
     {

@@ -2,13 +2,8 @@
 #define loco_opengl
 #endif
 
-#include <set>
-
-#define loco_no_inline
-
 struct loco_t;
 
-#ifdef loco_no_inline
 // doesnt support different kind of builds of loco
 inline struct global_loco_t {
 
@@ -25,8 +20,6 @@ inline struct global_loco_t {
     return loco;
   }
 }gloco;
-#endif
-
 
 struct loco_t;
 
@@ -42,40 +35,10 @@ struct loco_t;
 #include _FAN_PATH(trees/quad_tree.h)
 #include _FAN_PATH(graphics/divider.h)
 
-#include <variant>
-
 
 #if defined(loco_imgui) && defined(fan_platform_linux)
 static void imgui_xorg_init();
 static void imgui_xorg_new_frame();
-#endif
-
-#if defined(loco_cuda)
-#include "cuda_runtime.h"
-#include <cuda.h>
-#include <nvcuvid.h>
-
-namespace fan {
-  namespace cuda {
-    void check_error(auto result) {
-      if (result != CUDA_SUCCESS) {
-        if constexpr (std::is_same_v<decltype(result), CUresult>) {
-          const char* err_str = nullptr;
-          cuGetErrorString(result, &err_str);
-          fan::throw_error("function failed with:" + std::to_string(result) + ", " + err_str);
-        }
-        else {
-          fan::throw_error("function failed with:" + std::to_string(result) + ", ");
-        }
-      }
-    }
-  }
-}
-
-extern "C" {
-  extern __host__ cudaError_t CUDARTAPI cudaGraphicsGLRegisterImage(struct cudaGraphicsResource** resource, fan::opengl::GLuint image, fan::opengl::GLenum target, unsigned int flags);
-}
-
 #endif
 
 // automatically gets necessary macros for shapes
@@ -88,25 +51,12 @@ extern "C" {
 #define loco_unlit_sprite
 #endif
 
-#if defined(loco_text_box)
-#define loco_rectangle
-#define loco_letter
-#define loco_text
-#endif
 #if defined(loco_button)
 #define loco_letter
 #define loco_text
 #endif
 #if defined(loco_menu_maker)
 #error
-#endif
-
-#if defined(loco_dropdown)
-#define loco_rectangle
-#define loco_letter
-#define loco_text
-#define loco_button
-#define loco_text_box
 #endif
 
 #if defined(loco_text)
@@ -140,22 +90,6 @@ using bdbt_key_type_t = uint16_t;
 #if defined(loco_window)
 #define loco_vfi
 #endif
-
-#if defined(loco_text_box)
-#define ETC_WED_set_BaseLibrary 1
-#define ETC_WED_set_Prefix wed
-#include _FAN_PATH(ETC/WED/WED.h)
-#endif
-
-#if defined(loco_model_3d)
-extern "C" {
-  #define FAST_OBJ_IMPLEMENTATION
-  #include _FAN_PATH(graphics/fast_obj/fast_obj.h)
-}
-#include _FAN_PATH(graphics/transform_interpolator.h)
-#endif
-
-#include "loco_types.h"
 
 #if defined(loco_pixel_format_renderer)
 
@@ -256,23 +190,21 @@ struct loco_t {
   #define get_key_value(type) \
     *p.key.get_value<decltype(p.key)::get_index_with_type<type>()>()
 
-  struct shape_type_t {
-    using _t = uint16_t;
-    static constexpr _t invalid = -1;
-    static constexpr _t button = 0;
-    static constexpr _t sprite = 1;
-    static constexpr _t text = 2;
-    static constexpr _t hitbox = 3;
-    static constexpr _t line = 4;
-    static constexpr _t mark = 5;
-    static constexpr _t rectangle = 6;
-    static constexpr _t light = 7;
-    static constexpr _t unlit_sprite = 8;
-    static constexpr _t letter = 9;
-    static constexpr _t text_box = 10;
-    static constexpr _t circle = 11;
-    static constexpr _t pixel_format_renderer = 12;
-    static constexpr _t responsive_text = 13;
+  enum class shape_type_t : uint16_t {
+    invalid = (uint16_t)-1,
+    button = 0,
+    sprite,
+    text,
+    hitbox,
+    line,
+    mark,
+    rectangle,
+    light,
+    unlit_sprite,
+    letter,
+    circle,
+    pixel_format_renderer,
+    responsive_text
   };
 
   static constexpr const char* shape_names[] = {
@@ -702,7 +634,6 @@ public:
   #endif
   #endif
 
-  #if defined(loco_no_inline)
 protected:
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
@@ -799,8 +730,6 @@ public:
       return *this;
     }
   };
-
-  #endif
 
   #if defined(loco_vfi)
 
@@ -931,8 +860,6 @@ public:
   #if defined(loco_context)
   fan::graphics::core::memory_write_queue_t m_write_queue;
   #endif
-
-  #if defined (loco_no_inline)
 
   cid_list_t cid_list;
 
@@ -1108,7 +1035,6 @@ public:
       return gloco->shape_get_ri(*(shape_t*)this);
     }
   };
-  #endif
 
   #if defined(loco_line)
   #define sb_depth_var src
@@ -1123,10 +1049,6 @@ public:
   #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
   rectangle_t sb_shape_var_name;
   #undef sb_shape_var_name
-
-  #include _FAN_PATH(graphics/opengl/2D/effects/particles.h)
-  particles_t particles;
-
   #endif
   #if defined(loco_circle)
   #define sb_shape_var_name circle
@@ -1148,6 +1070,10 @@ public:
   #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
   sprite_t sb_shape_var_name;
   #undef sb_shape_var_name
+
+  #include _FAN_PATH(graphics/opengl/2D/effects/particles.h)
+  particles_t particles;
+
   #endif
   #if defined(loco_unlit_sprite)
   #define sb_shape_var_name unlit_sprite
@@ -1212,17 +1138,6 @@ public:
   #include _FAN_PATH(graphics/gui/button.h)
   button_t sb_shape_var_name;
   #undef sb_shape_var_name
-  #endif
-  #if defined(loco_text_box)
-  #define sb_mark 1
-  #include _FAN_PATH(graphics/gui/fed.h)
-  #define sb_shape_var_name text_box
-  #include _FAN_PATH(graphics/gui/text_box.h)
-  text_box_t sb_shape_var_name;
-  #undef sb_shape_var_name
-  #endif
-  #if defined(loco_dropdown)
-  #include "wrappers/dropdown.h"
   #endif
   #if defined(loco_model_3d)
   #define sb_shape_var_name model
@@ -1474,6 +1389,7 @@ public:
         #endif
         #if defined(loco_sprite)
         *types.get_value<sprite_t*>() = &sprite;
+        *types.get_value<particles_t*>() = &particles;
         #endif
         #if defined(loco_unlit_sprite)
         *types.get_value<unlit_sprite_t*>() = &unlit_sprite;
@@ -1496,16 +1412,12 @@ public:
         #if defined(loco_light)
         *types.get_value<light_t*>() = &light;
         #endif
-        #if defined(loco_text_box)
-        *types.get_value<text_box_t*>() = &text_box;
-        #endif
         #if defined(loco_vfi)
         *types.get_value<vfi_t*>() = &vfi;
         #endif
         #if defined(loco_pixel_format_renderer)
         *types.get_value<pixel_format_renderer_t*>() = &pixel_format_renderer;
         #endif
-        * types.get_value<particles_t*>() = &particles;
 
         #if defined(loco_t_id_t_types)
         #if !defined(loco_t_id_t_ptrs)
@@ -1811,7 +1723,7 @@ public:
 
   struct comma_dummy_t {
     uint8_t member_pointer;
-    static constexpr typename loco_t::shape_type_t::_t shape_type = -1;
+    static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::invalid;
   };
 
   // requires shape_type create to shape.h, init in constructor, add type_t to properties
@@ -1823,6 +1735,7 @@ public:
     #endif
     #if defined(loco_sprite)
     , sprite_t*
+    , particles_t*
     #endif
     #if defined(loco_unlit_sprite)
     , unlit_sprite_t*
@@ -1851,16 +1764,12 @@ public:
     #if defined(loco_circle)
     , circle_t*
     #endif
-    #if defined(loco_text_box)
-    , text_box_t*
-    #endif
     #if defined(loco_pixel_format_renderer)
     , pixel_format_renderer_t*
     #endif
     #if defined(loco_vfi)
     , vfi_t*
     #endif
-    ,particles_t*
   > types;
 
   #define make_key_value(type, name) \
@@ -1871,7 +1780,7 @@ public:
     if constexpr (std::is_same_v<loco_t::vfi_t, typename T::type_t>) {
       loco_t::vfi_t::shape_id_t shape_id;
       (*types.get_value<typename T::type_t*>())->push_back(&shape_id, properties);
-      id->shape_type = loco_t::shape_type_t::hitbox;
+      id->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
       *id.gdp4() = shape_id.NRI;
     }
     else if constexpr (!std::is_same_v<std::nullptr_t, T>) {
@@ -1882,7 +1791,7 @@ public:
   void shape_get_properties(loco_t::cid_nt_t& id, auto lambda) {
     types.iterate([&]<typename T>(auto shape_index, T shape) {
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
-      if (shape_t::shape_type == id->shape_type) {
+      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) {
         if constexpr (has_get_properties_v<shape_t, loco_t::cid_nt_t&>) {
           lambda((*shape)->get_properties(id));
         }
@@ -1897,7 +1806,7 @@ public:
     bool blending = false;
     types.iterate([&]<typename T>(auto shape_index, T shape) {
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
-      if (shape_t::shape_type == id->shape_type) {
+      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) {
         if constexpr (has_sb_get_ri_v<shape_t, loco_t::cid_nt_t>) {
           blending = (*shape)->sb_get_ri(id).blending;
         }
@@ -1909,7 +1818,7 @@ public:
     std::pair<void*, uint16_t> ret;
     types.iterate([&]<typename T>(auto shape_index, T shape) {
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
-      if (shape_t::shape_type == id->shape_type) {
+      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) {
         if constexpr (has_sb_get_ri_v<shape_t, loco_t::cid_nt_t&>) {
           ret.second = sizeof((*shape)->sb_get_ri(id));
           memcpy(ret.first, &(*shape)->sb_get_ri(id), ret.second);
@@ -1929,7 +1838,7 @@ public:
     ret data; \
     types.iterate([&]<typename T>(auto shape_index, T shape) { \
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
-      if (shape_t::shape_type == id->shape_type) { \
+      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) { \
         content \
       } \
     }); \
@@ -1941,7 +1850,7 @@ public:
   void shape_ ## func_name(__VA_ARGS__) { \
     types.iterate_ret([&]<typename T>(auto shape_index, T shape) -> int{ \
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
-      if (shape_t::shape_type == id->shape_type) { \
+      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) { \
         content \
         return 1; \
       } \
@@ -1954,7 +1863,7 @@ public:
   void shape_ ## func_name(__VA_ARGS__) { \
     types.iterate([&]<typename T>(auto shape_index, T shape) { \
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
-      if (shape_t::shape_type == shape_type) { \
+      if (shape_t::shape_type == (loco_t::shape_type_t)shape_type) { \
         content \
       } \
     }); \
@@ -1995,7 +1904,7 @@ public:
     rt data; \
     types.iterate([&]<typename T>(auto shape_index, T shape) {\
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
-      if (shape_t::shape_type == id->shape_type) {\
+      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) {\
         if constexpr (has_get_instance_v<shape_t, loco_t::cid_nt_t&>) { \
           if constexpr(has_##name##_v<decltype((*shape)->get_instance(id))>) {\
             data = (*shape)->get_instance(id).name; \
@@ -2075,7 +1984,7 @@ public:
     rt data; \
     types.iterate([&]<typename T>(auto shape_index, T shape) {\
       using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
-      if (shape_t::shape_type == id->shape_type) {\
+      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) {\
         if constexpr (has_get_##name##_v<shape_t, loco_t::cid_nt_t&>) {\
             data = (*shape)->get_##name(id);\
         } \
@@ -2192,7 +2101,7 @@ public:
     if constexpr (has_draw_v<shape_t, const redraw_key_t&, loco_bdbt_NodeReference_t>) {
       (*shape)->draw(redraw_key, nr);
     },
-      shape_type_t::_t shape_type,
+      shape_type_t shape_type,
       const redraw_key_t& redraw_key,
       loco_bdbt_NodeReference_t nr
       );
@@ -2288,19 +2197,6 @@ constexpr std::array<T, 4> fan::pixel_format::get_image_properties(uint8_t forma
 
 #endif
 
-
-#ifndef loco_no_inline
-#undef loco_rectangle_vi_t
-
-/* #undef loco_rectangle
- #undef loco_sprite
- #undef loco_letter
- #undef loco_text
- #undef loco_text_box
- #undef loco_button
- #undef loco_wboit*/
-#endif
-
 #define loco_make_shape(type, ...) fan_init_struct(type, __VA_ARGS__)
 
 inline void fan::opengl::viewport_t::open() {
@@ -2365,7 +2261,7 @@ namespace fan {
       rectangle_t(rectangle_properties_t p = rectangle_properties_t()) {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
-            loco_t::rectangle_t::properties_t,
+            typename loco_t::rectangle_t::properties_t,
             .camera = &p.camera->camera,
             .viewport = &p.camera->viewport,
             .position = p.position,

@@ -1,6 +1,6 @@
 struct circle_t {
 
-  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::circle;
+  static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::circle;
 
   struct vi_t {
     fan::vec3 position = 0;

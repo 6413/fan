@@ -2,7 +2,7 @@ struct particles_t {
 
   #define sb_vertex_count 6
 
-  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::mark;
+  static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::mark;
 
   struct vi_t {
     fan::vec3 position = 0;

@@ -1,6 +1,6 @@
 struct sb_pfr_name {
 
-  static constexpr typename loco_t::shape_type_t::_t shape_type = loco_t::shape_type_t::pixel_format_renderer;
+  static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::pixel_format_renderer;
 
   struct vi_t {
     fan::vec3 position = 0;

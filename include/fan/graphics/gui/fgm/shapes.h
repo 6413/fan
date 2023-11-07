@@ -284,7 +284,7 @@ struct button_t {
   }
   uint64_t from_string(const fan::string& f) {
     uint64_t off = 0;
-    loco_t::shape_type_t::_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
+    loco_t::shape_type_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
     if (shape_type != loco_t::shape_type_t::fgm_shape_loco_name) {
       return 0;
     }
@@ -671,7 +671,7 @@ struct sprite_t {
 
   uint64_t from_string(const fan::string& f) {
     uint64_t off = 0;
-    loco_t::shape_type_t::_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
+    loco_t::shape_type_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
     if (shape_type != loco_t::shape_type_t::fgm_shape_loco_name) {
       return 0;
     }
@@ -994,7 +994,7 @@ struct text_t {
 
   uint64_t from_string(const fan::string& f) {
     uint64_t off = 0;
-    loco_t::shape_type_t::_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
+    loco_t::shape_type_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
     if (shape_type != loco_t::shape_type_t::fgm_shape_loco_name) {
       return 0;
     }
@@ -1316,7 +1316,7 @@ struct hitbox_t {
 
   uint64_t from_string(const fan::string& f) {
     uint64_t off = 0;
-    loco_t::shape_type_t::_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
+    loco_t::shape_type_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
     if (shape_type != loco_t::shape_type_t::fgm_shape_loco_name) {
       return 0;
     }
@@ -1645,7 +1645,7 @@ struct mark_t {
 
   uint64_t from_string(const fan::string& f) {
     uint64_t off = 0;
-    loco_t::shape_type_t::_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
+    loco_t::shape_type_t shape_type = fan::read_data<loco_t::shape_type_t::_t>(f, off);
     if (shape_type != loco_t::shape_type_t::fgm_shape_loco_name) {
       return 0;
     }
