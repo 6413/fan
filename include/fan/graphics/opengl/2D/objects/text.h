@@ -3,8 +3,8 @@ struct text_renderer_t {
   static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::text;
 
   //using ri_t = loco_t::letter_t::ri_t;
-  using vi_t = loco_t::letter_t::vi_t;
-  using ri_t = loco_t::letter_t::ri_t;
+  using vi_t = loco_t::shapes_t::letter_t::vi_t;
+  using ri_t = loco_t::shapes_t::letter_t::ri_t;
 
   struct properties_t : vi_t, ri_t{
     using type_t = text_renderer_t;
@@ -112,7 +112,7 @@ struct text_renderer_t {
 
     const auto& instance_properties = tlist[internal_id].p;
 
-    typename loco_t::letter_t::properties_t p;
+    typename loco_t::shapes_t::letter_t::properties_t p;
     p.color = instance_properties.color;
     p.font_size = instance_properties.font_size;
     p.viewport = instance_properties.viewport;
@@ -143,7 +143,7 @@ struct text_renderer_t {
 
     while (it != tlist[internal_id].cid_list.dst) {
       auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
-      gloco->letter.set(node->data.shape, member, value);
+      gloco->shapes.letter.set(node->data.shape, member, value);
       it = node->NextNodeReference;
     }
   }
@@ -154,7 +154,7 @@ struct text_renderer_t {
 
     while (it != tlist[internal_id].cid_list.dst) {
       auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
-      gloco->letter.set_camera(node->data.shape, n);
+      gloco->shapes.letter.set_camera(node->data.shape, n);
       it = node->NextNodeReference;
     }
   }
@@ -165,7 +165,7 @@ struct text_renderer_t {
 
     while (it != tlist[internal_id].cid_list.dst) {
       auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
-      gloco->letter.set_viewport(node->data.shape, n);
+      gloco->shapes.letter.set_viewport(node->data.shape, n);
       it = node->NextNodeReference;
     }
   }
@@ -176,7 +176,7 @@ struct text_renderer_t {
 
     while (it != tlist[internal_id].cid_list.dst) {
       auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
-      gloco->letter.sb_set_depth(node->data.shape, depth);
+      gloco->shapes.letter.sb_set_depth(node->data.shape, depth);
       it = node->NextNodeReference;
     }
   }
@@ -202,7 +202,7 @@ struct text_renderer_t {
     }
     #endif
     auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
-    return gloco->letter.get_camera(node->data.shape);
+    return gloco->shapes.letter.get_camera(node->data.shape);
   }
 
   properties_t get_instance(loco_t::cid_nt_t& id) {
@@ -240,7 +240,7 @@ struct text_renderer_t {
   }
 
   fan::vec2 get_size(loco_t::cid_nt_t& id) {
-    return gloco->text.get_text_size(id) / 2;
+    return gloco->shapes.text.get_text_size(id) / 2;
   }
   
 

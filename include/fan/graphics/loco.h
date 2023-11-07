@@ -54,6 +54,7 @@ static void imgui_xorg_new_frame();
 #if defined(loco_button)
 #define loco_letter
 #define loco_text
+#define loco_vfi
 #endif
 
 #if defined(loco_text)
@@ -83,10 +84,6 @@ using bdbt_key_type_t = uint16_t;
 #define BDBT_set_BaseLibrary 1
 #define BDBT_set_CPP_ConstructDestruct
 #include _FAN_PATH(BDBT/BDBT.h)
-
-#if defined(loco_window)
-#define loco_vfi
-#endif
 
 #if defined(loco_pixel_format_renderer)
 
@@ -186,7 +183,8 @@ struct loco_t {
     letter,
     circle,
     pixel_format_renderer,
-    responsive_text
+    responsive_text,
+    sprite_sheet
   };
 
   // can be incorrect
@@ -397,10 +395,6 @@ public:
       return resize_callback_id_t(nr);
     }
 
-    //void remove_resize_callback(resize_callback_id_t id) {
-    //  gloco->m_viewport_resize_callback.Unlink(id);
-    //}
-
     camera_t() {
       camera_reference.sic();
     }
@@ -452,47 +446,10 @@ public:
     void set_ortho(fan::vec2 x, fan::vec2 y, loco_t::viewport_t* aspect_ratio_viewport = nullptr) {
 
       if (aspect_ratio_viewport) {
-        //fan::vec2 ratio = aspect_ratio_viewport->get_size().square_normalize();
-        //fan::vec2 desired_ratio(1, 1);
-        //fan::print(ratio);
-        //// Calculate the orthographic projection matrix
-        //fan::vec2 ortho = desired_ratio * ratio;
-        //ortho *= fan::vec2(9.f / 16.f, 1) / ortho.min();
-
-        //fan::vec2 ws = aspect_ratio_viewport->get_size();
-        //f32_t windowWidth = ws.x;
-        //f32_t windowHeight = ws.y;
-
-        //float aspectRatio = windowWidth / windowHeight;
-
-        //// Define the desired aspect ratio (16:9)
-        //float desiredAspectRatio = 16.0f / 9.0f;
-
-        //// Calculate the scaling factors
-        //float xScale = 1.0f;
-        //float yScale = 1.0f;
-
-        //if (aspectRatio > desiredAspectRatio) {
-        //  // The window is wider than 16:9
-        //  xScale = aspectRatio / desiredAspectRatio;
-        //}
-        //else {
-        //  // The window is taller than 16:9
-        //  yScale = desiredAspectRatio / aspectRatio;
-        //}
-
-
-        //x = { -8.0f * xScale, 8.0f * xScale };
-        //y = { -4.5f * yScale, 4.5f * yScale };
-
-        //x /= 4.5f;
-        //y /= 4.5f;
-
         fan::vec2 desired_res = { 1, 1 };
         fan::vec2 current_res = aspect_ratio_viewport->get_size();
 
         auto ortho = some_function(desired_res, current_res);
-        //fan::print(ortho);
 
         x = { -ortho.x, +ortho.x };
         y = { -ortho.y, +ortho.y };
@@ -630,7 +587,7 @@ protected:
 public:
 
   struct cid_nt_t : cid_list_NodeReference_t {
-    loco_t::cid_t* operator->() {
+    loco_t::cid_t* operator->() const {
       return &gloco->cid_list[*(cid_list_NodeReference_t*)(this)].cid;
     }
     using base_t = cid_list_NodeReference_t;
@@ -719,35 +676,17 @@ public:
   #define vfi_var_name vfi
   #include _FAN_PATH(graphics/gui/vfi.h)
 
-  struct mouse_move_data_t : vfi_t::mouse_move_data_t {
-    mouse_move_data_t(const vfi_t::mouse_move_data_t& mm) : vfi_t::mouse_move_data_t(mm) {
+  #define create_loco_wrap(type) struct type : vfi_t::type { \
+    type(const vfi_t::type& mm) : vfi_t::type(mm) {} \
+    loco_t::cid_nt_t id; \
+  } 
 
-    }
+  create_loco_wrap(mouse_move_data_t);
+  create_loco_wrap(mouse_button_data_t);
+  create_loco_wrap(keyboard_data_t);
+  create_loco_wrap(text_data_t);
 
-    loco_t::cid_nt_t id;
-  };
-  struct mouse_button_data_t : vfi_t::mouse_button_data_t {
-    mouse_button_data_t(const vfi_t::mouse_button_data_t& mm) : vfi_t::mouse_button_data_t(mm) {
-
-    }
-
-    loco_t::cid_nt_t id;
-  };
-  struct keyboard_data_t : vfi_t::keyboard_data_t {
-    keyboard_data_t(const vfi_t::keyboard_data_t& mm) : vfi_t::keyboard_data_t(mm) {
-
-    }
-
-    loco_t::cid_nt_t id;
-  };
-
-  struct text_data_t : vfi_t::text_data_t {
-    text_data_t(const vfi_t::text_data_t& mm) : vfi_t::text_data_t(mm) {
-
-    }
-
-    loco_t::cid_nt_t id;
-  };
+  #undef create_loco_wrap
 
   using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
   using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
@@ -755,8 +694,6 @@ public:
   using text_cb_t = fan::function_t<int(const text_data_t&)>;
 
   #include _FAN_PATH(graphics/gui/themes.h)
-
-  vfi_t vfi_var_name;
 
   #endif
 
@@ -846,35 +783,17 @@ public:
 
   cid_list_t cid_list;
 
-  #define fan_create_id_definition_define(rt, name, ...) rt name(__VA_ARGS__)
+  #define fan_build_func_definition(rt, name, ...) rt name(__VA_ARGS__)
 
-  #define fan_create_set_define(rt, name) \
-        fan_create_id_definition_define(void, set_##name, const rt& data){ gloco->shape_##set_##name(*this, data); }
+  #define fan_build_set_plain(rt, name) \
+        fan_build_func_definition(void, set_##name, rt data){ gloco->shape_##set_##name(*this, data); }
+  #define fan_build_get_set_plain(rt, name) \
+    fan_build_func_definition(rt, get_##name) { return gloco->shape_##get_##name(*this);} \
+    fan_build_set_plain(rt, name)
 
-  #define fan_create_set_ptr_define(rt, name) \
-        fan_create_id_definition_define(void, set_##name, rt data){ gloco->shape_##set_##name(*this, data); }
-
-  #define fan_create_set_dataless_define(name) \
-      fan_create_id_definition_define(void, set_##name){ gloco->shape_##set_##name(*this); }
-
-  #define fan_create_set_define_custom(rt, name, custom) \
-        fan_create_id_definition_define(void, set_##name, const rt& data){ custom }
-
-  #define fan_create_get_set_define(rt, name) \
-    fan_create_id_definition_define(rt, get_##name){ return gloco->shape_##get_##name(*this);} \
-    fan_create_set_define(rt, name)
-
-  #define fan_create_get_set_ptr_define(rt, name) \
-    fan_create_id_definition_define(rt, get_##name){ return gloco->shape_##get_##name(*this);} \
-    fan_create_set_ptr_define(rt, name)
-
-  #define fan_create_get_define(rt, name) \
-    fan_create_id_definition_define(rt, get_##name){ return gloco->shape_##get_##name(*this);} \
-
-  #define fan_create_get_set_define_extra(rt, name, set_extra, get_extra) \
-    fan_create_id_definition_define(rt, get_##name){ get_extra return gloco->shape_##get_##name(*this);} \
-    fan_create_id_definition_define(void, set_##name, const rt& data){ set_extra gloco->shape_##set_##name(*this, data); }
-
+  #define fan_build_get_set_cref(rt, name) \
+    fan_build_func_definition(rt, get_##name){ return gloco->shape_##get_##name(*this);} \
+    fan_build_set_plain(const rt&, name)
 
   struct shape_t : cid_nr_t {
     using inherit_t = cid_nr_t;
@@ -896,11 +815,7 @@ public:
         gloco->push_shape(*this, properties);
       });
     }
-    inline shape_t(shape_t&& id) : 
-      inherit_t(std::move(id))
-    {
-
-    }
+    inline shape_t(shape_t&& id) : inherit_t(std::move(id)) {}
     
     loco_t::shape_t& operator=(const shape_t& id) {
       if (!is_invalid()) {
@@ -918,7 +833,6 @@ public:
       return *this;
     }
     
-
     loco_t::shape_t& operator=(shape_t&& id) {
       if (!is_invalid()) {
         erase();
@@ -947,9 +861,32 @@ public:
       gloco->shape_erase(*this);
       inherit_t::invalidate();
     }
+
     bool append_letter(wchar_t wc, bool force = false) {
       return gloco->shape_append_letter(*this, wc, force);
     }
+
+    fan_build_get_set_cref(fan::vec3, position);
+
+    void set_position(const fan::vec2& data) {
+      gloco->shape_set_position(*this, fan::vec3(data, get_position().z));
+    }
+
+    fan_build_get_set_cref(fan::vec2, size);
+    fan_build_get_set_cref(fan::color, color);
+    fan_build_get_set_cref(f32_t, angle);
+    fan_build_get_set_cref(fan::string, text);
+    fan_build_get_set_cref(fan::vec2, rotation_point);
+    fan_build_get_set_cref(f32_t, font_size);
+
+    fan_build_get_set_cref(fan::color, outline_color);
+    fan_build_get_set_cref(f32_t, outline_size);
+
+    fan_build_get_set_cref(f32_t, depth);
+
+    fan_build_get_set_plain(loco_t::viewport_t*, viewport);
+    fan_build_get_set_plain(loco_t::camera_t*, camera);
+    fan_build_get_set_plain(loco_t::image_t*, image);
 
     operator fan::opengl::cid_t* () {
       return &gloco->cid_list[*this].cid;
@@ -958,165 +895,135 @@ public:
     loco_t* get_loco() {
       return gloco;
     }
-
-    fan_create_get_set_define_extra(fan::vec3, position,
-      if (get_position().z != data.z) {
-        gloco->shape_set_depth(*this, data.z);
-      }
-    , ;);
-    fan_create_set_define_custom(fan::vec2, position,
-      gloco->shape_set_position(*this, fan::vec3(data, get_position().z));
-    );
-
-    fan_create_get_set_define(fan::vec3, position_ar);
-    fan_create_get_set_define(fan::vec2, size_ar);
-
-    fan_create_get_set_ptr_define(loco_t::viewport_t*, viewport);
-    fan_create_get_set_ptr_define(loco_t::camera_t*, camera);
-
-    fan_create_get_set_define(fan::vec2, size);
-    fan_create_get_set_define(fan::color, color);
-    fan_create_get_set_define(f32_t, angle);
-    fan_create_get_set_define(fan::string, text);
-    fan_create_get_set_define(fan::vec2, rotation_point);
-    fan_create_get_set_define(f32_t, font_size);
-
-    fan_create_get_set_define(loco_t::textureid_t<0>, image);
-
-    fan_create_get_set_define(fan::vec2, text_size);
-
-    fan_create_get_set_define(fan::color, outline_color);
-    fan_create_get_set_define(f32_t, outline_size);
-
-    fan_create_set_define(f32_t, depth);
-
-    fan_create_set_dataless_define(focus);
-
-    void set_line(const fan::vec3& src, const fan::vec3& dst) {
-      gloco->shape_set_line(*this, src, dst);
-    }
-
-    bool get_blending() {
-      return gloco->shape_get_blending(*(shape_t*)this);
-    }
-    auto get_ri() {
-      return gloco->shape_get_ri(*(shape_t*)this);
-    }
   };
 
-  #if defined(loco_line)
-  #define sb_depth_var src
-  #define sb_shape_var_name line
-  #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
-  line_t sb_shape_var_name;
-  #undef sb_shape_var_name
-  #endif
-  #if defined(loco_rectangle)
-  #define vk_shape_wboit
-  #define sb_shape_var_name rectangle
-  #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
-  rectangle_t sb_shape_var_name;
-  #undef sb_shape_var_name
-  #endif
-  #if defined(loco_circle)
-  #define sb_shape_var_name circle
-  #include _FAN_PATH(graphics/opengl/2D/objects/circle.h)
-  circle_t sb_shape_var_name;
-  #undef sb_shape_var_name
-  #endif
-  #if defined(loco_pixel_format_renderer)
-  #define sb_pfr_var_name pixel_format_renderer
-  #define sb_pfr_name pixel_format_renderer_t
-  #include _FAN_PATH(graphics/opengl/2D/objects/pixel_format_renderer.h)
-  pixel_format_renderer_t sb_pfr_var_name;
-  // #undef sb_pfr_name
-  // #undef sb_pfr_var_name
-  #endif
-  #if defined(loco_sprite)
-  #define sb_shape_var_name sprite
-  #define sb_sprite_name sprite_t
-  #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
-  sprite_t sb_shape_var_name;
-  #undef sb_shape_var_name
+  // requirements - create shape_type to shape.h, init in constructor, add type_t to properties
+// make get_properties for custom type,
+// (if no custom storaging outside vi or ri, its generated automatically)
 
-  #include _FAN_PATH(graphics/opengl/2D/effects/particles.h)
-  particles_t particles;
+  struct shapes_t {
+    #if defined(loco_vfi)
+    using vfi_t = loco_t::vfi_t;
+    vfi_t vfi_var_name;
+    #undef vfi_var_name
+    #endif
 
-  #endif
-  #if defined(loco_unlit_sprite)
-  #define sb_shape_var_name unlit_sprite
-  #define sb_sprite_name unlit_sprite_t
-  #define sb_custom_shape_type loco_t::shape_type_t::unlit_sprite
-  #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/unlit_sprite.fs)
-  #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
-  unlit_sprite_t unlit_sprite;
-  #undef sb_shape_var_name
-  #undef sb_custom_shape_type
-  #endif
-  #if defined(loco_blended_sprite)
-  #define sb_shape_var_name blended_sprite
-  #define sb_sprite_name blended_sprite_t
-  #define sb_custom_shape_type loco_t::shape_type_t::blended_sprite
-  #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/blended_sprite.fs)
-  #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
-  unlit_sprite_t blended_sprite;
-  #undef sb_shape_var_name
-  #undef sb_custom_shape_type
-  #endif
-  #if defined(loco_light)
-  #define sb_shape_name light_t
-  #define sb_shape_var_name light
-  #define sb_is_light
-  #include _FAN_PATH(graphics/opengl/2D/objects/light.h)
-  sb_shape_name sb_shape_var_name;
-  #undef sb_shape_var_name
-  #undef sb_shape_name
-  #undef sb_is_light
-  #endif
-  #if defined(loco_sprite_sheet)
-  #define sb_shape_var_name sprite_sheet;
-  #define sb_sprite_sheet_name sprite_sheet_t
-  #include _FAN_PATH(graphics/sprite_sheet.h)
-  sb_sprite_sheet_name sb_shape_var_name;
-  #endif
-  #if defined(loco_letter)
-  #if !defined(loco_font)
-  #define loco_font "fonts/bitter"
-  #endif
-  #define sb_shape_var_name letter
-  #include _FAN_PATH(graphics/opengl/2D/objects/letter.h)
-  letter_t sb_shape_var_name;
-  #undef sb_shape_var_name
-  #endif
-  #if defined(loco_text)
-  #define sb_shape_var_name text
-  #include _FAN_PATH(graphics/opengl/2D/objects/text.h)
-  using text_t = text_renderer_t;
-  text_t sb_shape_var_name;
-  #undef sb_shape_var_name
-  #endif
-  #if defined(loco_responsive_text)
-  #include _FAN_PATH(graphics/gui/responsive_text.h)
-  responsive_text_t responsive_text;
-  #endif
-  #if defined(loco_button)
-  #define sb_shape_var_name button
-  #include _FAN_PATH(graphics/gui/button.h)
-  button_t sb_shape_var_name;
-  #undef sb_shape_var_name
-  #endif
-  #if defined(loco_model_3d)
-  #define sb_shape_var_name model
-  #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
-  model_t sb_shape_var_name;
-  #undef sb_shape_var_name
-  #endif
-  #if defined(loco_post_process)
-  #define sb_post_process_var_name post_process
-  #include _FAN_PATH(graphics/opengl/2D/effects/post_process.h)
-  post_process_t sb_post_process_var_name;
-  #undef sb_post_process_var_name
-  #endif
+    #if defined(loco_line)
+    #define sb_depth_var src
+    #define sb_shape_var_name line
+    #include _FAN_PATH(graphics/opengl/2D/objects/line.h)
+    line_t sb_shape_var_name;
+    #undef sb_shape_var_name
+    #endif
+    #if defined(loco_rectangle)
+    #define vk_shape_wboit
+    #define sb_shape_var_name rectangle
+    #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
+    rectangle_t sb_shape_var_name;
+    #undef sb_shape_var_name
+    #endif
+    #if defined(loco_circle)
+    #define sb_shape_var_name circle
+    #include _FAN_PATH(graphics/opengl/2D/objects/circle.h)
+    circle_t sb_shape_var_name;
+    #undef sb_shape_var_name
+    #endif
+    #if defined(loco_pixel_format_renderer)
+    #define sb_pfr_var_name pixel_format_renderer
+    #define sb_pfr_name pixel_format_renderer_t
+    #include _FAN_PATH(graphics/opengl/2D/objects/pixel_format_renderer.h)
+    pixel_format_renderer_t sb_pfr_var_name;
+    // #undef sb_pfr_name
+    // #undef sb_pfr_var_name
+    #endif
+    #if defined(loco_sprite)
+    #define sb_shape_var_name sprite
+    #define sb_sprite_name sprite_t
+    #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+    sprite_t sb_shape_var_name;
+    #undef sb_shape_var_name
+
+    #include _FAN_PATH(graphics/opengl/2D/effects/particles.h)
+    particles_t particles;
+
+    #endif
+    #if defined(loco_unlit_sprite)
+    #define sb_shape_var_name unlit_sprite
+    #define sb_sprite_name unlit_sprite_t
+    #define sb_custom_shape_type loco_t::shape_type_t::unlit_sprite
+    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/unlit_sprite.fs)
+    #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+    unlit_sprite_t unlit_sprite;
+    #undef sb_shape_var_name
+    #undef sb_custom_shape_type
+    #endif
+    #if defined(loco_blended_sprite)
+    #define sb_shape_var_name blended_sprite
+    #define sb_sprite_name blended_sprite_t
+    #define sb_custom_shape_type loco_t::shape_type_t::blended_sprite
+    #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/blended_sprite.fs)
+    #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
+    unlit_sprite_t blended_sprite;
+    #undef sb_shape_var_name
+    #undef sb_custom_shape_type
+    #endif
+    #if defined(loco_light)
+    #define sb_shape_name light_t
+    #define sb_shape_var_name light
+    #define sb_is_light
+    #include _FAN_PATH(graphics/opengl/2D/objects/light.h)
+    sb_shape_name sb_shape_var_name;
+    #undef sb_shape_var_name
+    #undef sb_shape_name
+    #undef sb_is_light
+    #endif
+    #if defined(loco_sprite_sheet)
+    #define sb_shape_var_name sprite_sheet;
+    #define sb_sprite_sheet_name sprite_sheet_t
+    #include _FAN_PATH(graphics/sprite_sheet.h)
+    sb_sprite_sheet_name sb_shape_var_name;
+    #endif
+    #if defined(loco_letter)
+    #if !defined(loco_font)
+    #define loco_font "fonts/bitter"
+    #endif
+    #define sb_shape_var_name letter
+    #include _FAN_PATH(graphics/opengl/2D/objects/letter.h)
+    letter_t sb_shape_var_name;
+    #undef sb_shape_var_name
+    #endif
+    #if defined(loco_text)
+    #define sb_shape_var_name text
+    #include _FAN_PATH(graphics/opengl/2D/objects/text.h)
+    using text_t = text_renderer_t;
+    text_t sb_shape_var_name;
+    #undef sb_shape_var_name
+    #endif
+    #if defined(loco_responsive_text)
+    #include _FAN_PATH(graphics/gui/responsive_text.h)
+    responsive_text_t responsive_text;
+    #endif
+    #if defined(loco_button)
+    #define sb_shape_var_name button
+    #include _FAN_PATH(graphics/gui/button.h)
+    button_t sb_shape_var_name;
+    #undef sb_shape_var_name
+    #endif
+    #if defined(loco_model_3d)
+    #define sb_shape_var_name model
+    #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
+    model_t sb_shape_var_name;
+    #undef sb_shape_var_name
+    #endif
+    #if defined(loco_post_process)
+    #define sb_post_process_var_name post_process
+    #include _FAN_PATH(graphics/opengl/2D/effects/post_process.h)
+    post_process_t sb_post_process_var_name;
+    #undef sb_post_process_var_name
+    #endif
+  };
+
+  fan::mp_t<shapes_t> shapes;
 
   #if defined(loco_letter)
   #include _FAN_PATH(graphics/font.h)
@@ -1160,7 +1067,7 @@ public:
     root = loco_bdbt_NewNode(&bdbt);
 
     // set_vsync(p.vsync);
-
+    #if defined(loco_vfi)
     get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
       fan::vec2 window_size = get_window()->get_size();
       feed_mouse_button(d.button, d.state, get_mouse_position());
@@ -1177,6 +1084,7 @@ public:
     get_window()->add_text_callback([&](const fan::window_t::text_cb_data_t& d) {
       feed_text(d.character);
       });
+    #endif
     #endif
     #if defined(loco_opengl)
     fan::print("RENDERER BACKEND: OPENGL");
@@ -1338,55 +1246,7 @@ public:
 
     #endif
     #endif
-        default_texture.create_missing_texture();
-
-        #if defined(loco_line)
-        *types.get_value<line_t*>() = &line;
-        #endif
-        #if defined(loco_rectangle)
-        *types.get_value<rectangle_t*>() = &rectangle;
-        #endif
-        #if defined(loco_sprite)
-        *types.get_value<sprite_t*>() = &sprite;
-        *types.get_value<particles_t*>() = &particles;
-        #endif
-        #if defined(loco_unlit_sprite)
-        *types.get_value<unlit_sprite_t*>() = &unlit_sprite;
-        #endif
-        #if defined(loco_circle)
-        *types.get_value<circle_t*>() = &circle;
-        #endif
-        #if defined(loco_button)
-        *types.get_value<button_t*>() = &button;
-        #endif
-        #if defined(loco_letter)
-        *types.get_value<letter_t*>() = &letter;
-        #endif
-        #if defined(loco_text)
-        *types.get_value<text_t*>() = &text;
-        #endif
-        #if defined(loco_responsive_text)
-        *types.get_value<responsive_text_t*>() = &responsive_text;
-        #endif
-        #if defined(loco_light)
-        *types.get_value<light_t*>() = &light;
-        #endif
-        #if defined(loco_vfi)
-        *types.get_value<vfi_t*>() = &vfi;
-        #endif
-        #if defined(loco_pixel_format_renderer)
-        *types.get_value<pixel_format_renderer_t*>() = &pixel_format_renderer;
-        #endif
-
-        #if defined(loco_t_id_t_types)
-        #if !defined(loco_t_id_t_ptrs)
-        #error loco_t_id_t_ptrs not defined
-        #else
-        std::apply([&](const auto&... args) {
-          ((*types.get_value<std::remove_const_t<std::remove_reference_t<decltype(args)>>>() = args), ...);
-          }, std::tuple<loco_t_id_t_types>{ loco_t_id_t_ptrs });
-        #endif
-        #endif
+    default_texture.create_missing_texture();
 
     fan::vec2 window_size = get_window()->get_size();
 
@@ -1421,6 +1281,7 @@ public:
       io.AddInputCharacter(d.character);
     });
 
+    #if defined(loco_imgui)
     loco_t::imgui_themes::dark();
 
     #if defined(fan_platform_windows)
@@ -1430,12 +1291,13 @@ public:
     #endif
     ImGui_ImplOpenGL3_Init();
     #endif
+    #endif
 
   }
 
   #if defined(loco_vfi)
-  void push_back_input_hitbox(vfi_t::shape_id_t* id, const vfi_t::properties_t& p) {
-    vfi.push_back(id, p);
+  void push_back_input_hitbox(loco_t::shapes_t::vfi_t::shape_id_t* id, const loco_t::shapes_t::vfi_t::properties_t& p) {
+    shapes.vfi.push_back(id, p);
   }
   #endif
   /* uint32_t push_back_keyboard_event(uint32_t depth, const fan_2d::graphics::gui::ke_t::properties_t& p) {
@@ -1444,19 +1306,19 @@ public:
 
   #if defined(loco_vfi)
   void feed_mouse_move(const fan::vec2& mouse_position) {
-    vfi.feed_mouse_move(mouse_position);
+    shapes.vfi.feed_mouse_move(mouse_position);
   }
 
   void feed_mouse_button(uint16_t button, fan::mouse_state button_state, const fan::vec2& mouse_position) {
-    vfi.feed_mouse_button(button, button_state);
+    shapes.vfi.feed_mouse_button(button, button_state);
   }
 
   void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {
-    vfi.feed_keyboard(key, keyboard_state);
+    shapes.vfi.feed_keyboard(key, keyboard_state);
   }
 
   void feed_text(uint32_t key) {
-    vfi.feed_text(key);
+    shapes.vfi.feed_text(key);
   }
   #endif
 
@@ -1669,367 +1531,153 @@ public:
 
   image_t default_texture;
 
-  struct comma_dummy_t {
-    uint8_t member_pointer;
-    static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::invalid;
-  };
-
-  // requires shape_type create to shape.h, init in constructor, add type_t to properties
-  // make get_properties for custom type
-  fan::masterpiece_t <
-    comma_dummy_t*
-    #if defined(loco_rectangle)
-    , rectangle_t*
-    #endif
-    #if defined(loco_sprite)
-    , sprite_t*
-    , particles_t*
-    #endif
-    #if defined(loco_unlit_sprite)
-    , unlit_sprite_t*
-    #endif
-    #if defined(loco_button)
-    , button_t*
-    #endif
-    #if defined(loco_letter)
-    , letter_t*
-    #endif
-    #if defined(loco_text)
-    , text_t*
-    #endif
-    #if defined(loco_responsive_text)
-    , responsive_text_t*
-    #endif
-    #if defined(loco_light)
-    , light_t*
-    #endif
-    #if defined(loco_t_id_t_types)
-    , loco_t_id_t_types
-    #endif
-    #if defined(loco_line)
-    , line_t*
-    #endif
-    #if defined(loco_circle)
-    , circle_t*
-    #endif
-    #if defined(loco_pixel_format_renderer)
-    , pixel_format_renderer_t*
-    #endif
-    #if defined(loco_vfi)
-    , vfi_t*
-    #endif
-  > types;
-
+  #if defined(loco_vfi)
   // used in fl
   struct vfi_id_t {
-    using properties_t = loco_t::vfi_t::properties_t;
-    operator loco_t::vfi_t::shape_id_t* () {
+    using properties_t = loco_t::shapes_t::vfi_t::properties_t;
+    operator loco_t::shapes_t::vfi_t::shape_id_t* () {
       return &cid;
     }
     vfi_id_t() = default;
     vfi_id_t(const properties_t& p) {
-      gloco->vfi.push_back(*this, *(properties_t*)&p);
+      gloco->shapes.vfi.push_back(*this, *(properties_t*)&p);
     }
     vfi_id_t& operator[](const properties_t& p) {
-      gloco->vfi.push_back(*this, *(properties_t*)&p);
+      gloco->shapes.vfi.push_back(*this, *(properties_t*)&p);
       return *this;
     }
     ~vfi_id_t() {
-      gloco->vfi.erase(*this);
+      gloco->shapes.vfi.erase(*this);
     }
 
-    loco_t::vfi_t::shape_id_t cid;
+    loco_t::shapes_t::vfi_t::shape_id_t cid;
   };
+
+  #endif
 
   template <typename T>
   void push_shape(loco_t::cid_nt_t& id, T properties) {
-    if constexpr (std::is_same_v<loco_t::vfi_t, typename T::type_t>) {
-      loco_t::vfi_t::shape_id_t shape_id;
-      (*types.get_value<typename T::type_t*>())->push_back(&shape_id, properties);
-      id->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
-      *id.gdp4() = shape_id.NRI;
+    if constexpr (fan_requires_rule(T, typename T::type_t)) {
+      if constexpr (std::is_same_v<loco_t::shapes_t::vfi_t, typename T::type_t>) {
+        loco_t::shapes_t::vfi_t::shape_id_t shape_id;
+        fan_if_has_variable(&shapes, vfi, This->vfi.push_back(&shape_id, properties))
+          id->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
+        *id.gdp4() = shape_id.NRI;
+        return;
+      }
     }
-    else if constexpr (!std::is_same_v<std::nullptr_t, T>) {
-      (*types.get_value<typename T::type_t*>())->push_back(id, properties);
-    }
+
+    shapes.iterate([&]<auto i>(auto & shape) {
+      fan_if_has_function(&shape, push_back, (id, properties));
+    });
   }
 
   void shape_get_properties(loco_t::cid_nt_t& id, auto lambda) {
-    types.iterate([&]<typename T>(auto shape_index, T shape) {
-      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
-      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) {
-        if constexpr (has_get_properties_v<shape_t, loco_t::cid_nt_t&>) {
-          lambda((*shape)->get_properties(id));
-        }
-        else if constexpr (has_sb_get_properties_v<shape_t, loco_t::cid_nt_t&>) {
-          lambda((*shape)->sb_get_properties(id));
-        }
+    shapes.iterate([&]<auto i, typename T>(T& shape) {
+      if (shape.shape_type != (loco_t::shape_type_t)id->shape_type) {
+        return;
       }
+      typename T::properties_t properties;
+      fan_if_has_function_get(&shape, get_properties, (id), properties);
+      else fan_if_has_function_get(&shape, sb_get_properties, (id), properties);
+      lambda(properties);
     });
   }
 
-  bool shape_get_blending(loco_t::cid_nt_t& id) {
-    bool blending = false;
-    types.iterate([&]<typename T>(auto shape_index, T shape) {
-      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
-      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) {
-        if constexpr (has_sb_get_ri_v<shape_t, loco_t::cid_nt_t>) {
-          blending = (*shape)->sb_get_ri(id).blending;
-        }
+  void shape_draw(
+    loco_t::shape_type_t shape_type,
+    const loco_t::redraw_key_t& redraw_key,
+    loco_bdbt_NodeReference_t nr
+  ) {
+    shapes.iterate([&]<auto i>(auto& shape) {
+      if (shape_type != shape.shape_type) {
+        return;
       }
+
+      fan_if_has_function(&shape, draw, (redraw_key, nr));
     });
-    return blending;
   }
-  std::pair<void*, uint16_t> shape_get_ri(loco_t::cid_nt_t& id) {
-    std::pair<void*, uint16_t> ret;
-    types.iterate([&]<typename T>(auto shape_index, T shape) {
-      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>;
-      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) {
-        if constexpr (has_sb_get_ri_v<shape_t, loco_t::cid_nt_t&>) {
-          ret.second = sizeof((*shape)->sb_get_ri(id));
-          memcpy(ret.first, &(*shape)->sb_get_ri(id), ret.second);
-        }
+
+  void shape_erase(loco_t::cid_nt_t& id) {
+    shapes.iterate([&]<auto i>(auto & shape) {
+      if (shape.shape_type != (loco_t::shape_type_t)id->shape_type) {
+        return;
       }
+      fan_if_has_function(&shape, erase, (id));
     });
-    return ret;
   }
 
-  #define make_global_function_ret_define(ret, func_name, content, ...) \
-  fan_has_function_concept(func_name);\
-  ret shape_ ## func_name(__VA_ARGS__) { \
-    ret data; \
-    types.iterate([&]<typename T>(auto shape_index, T shape) { \
-      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
-      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) { \
-        content \
+  #define fan_build_set_shape_property(property_type, property_name) \
+  void shape_set_##property_name(loco_t::cid_nt_t& id, property_type value) { \
+    shapes.iterate([&]<auto i, typename T>(T& shape) { \
+      if (shape.shape_type != (loco_t::shape_type_t)id->shape_type) { \
+          return; \
       } \
-    }); \
-    return data; \
-  }
-
-  #define make_global_function_define(func_name, content, ...) \
-  fan_has_function_concept(func_name);\
-  void shape_ ## func_name(__VA_ARGS__) { \
-    types.iterate_ret([&]<typename T>(auto shape_index, T shape) -> int{ \
-      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
-      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) { \
-        content \
-        return 1; \
-      } \
-      return 0; \
+      fan_if_has_function(&shape, set_##property_name, (id, value)); \
+      else fan_if_has_function(&shape, set_##property_name, ((loco_t::shapes_t::vfi_t::shape_id_t*)id.gdp4(), value)); \
+      else if constexpr(fan_requires_rule(T, typename T::vi_t)){ \
+        if constexpr(fan_has_variable(typename T::vi_t, property_name)) { \
+          fan_if_has_function(&shape, set, (id, &T::vi_t::property_name, value)); \
+        } \
+      }\
     }); \
   }
 
-  #define make_global_function_define_custom_shape(func_name, content, ...) \
-  fan_has_function_concept(func_name);\
-  void shape_ ## func_name(__VA_ARGS__) { \
-    types.iterate([&]<typename T>(auto shape_index, T shape) { \
-      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
-      if (shape_t::shape_type == (loco_t::shape_type_t)shape_type) { \
-        content \
+  #define fan_build_get_shape_property(property_type, property_name) \
+  std::remove_const_t<std::remove_reference_t<property_type>> shape_get_##property_name(loco_t::cid_nt_t& id) { \
+    std::remove_const_t<std::remove_reference_t<property_type>> ret; \
+    shapes.iterate([&]<auto i, typename T>(T& shape) { \
+      if (shape.shape_type != (loco_t::shape_type_t)id->shape_type) { \
+          return; \
+      } \
+      fan_if_has_function_get(&shape, get_##property_name, (id), ret); \
+      else fan_if_has_function_get(&shape, get_##property_name, ((loco_t::shapes_t::vfi_t::shape_id_t*)id.gdp4()), ret); \
+      else if constexpr(fan_requires_rule(T, typename T::vi_t)){ \
+        if constexpr(fan_has_variable(typename T::vi_t, property_name)) { \
+          fan_if_has_function_get(&shape, get, (id, &T::vi_t::property_name), ret); \
+        } \
       } \
     }); \
+    return ret; \
   }
 
-  make_global_function_define(erase,
-    if constexpr (has_erase_v<shape_t, loco_t::cid_nt_t&>) {
-      (*shape)->erase(id);
-    }
-    else if constexpr (has_erase_v<shape_t, loco_t::vfi_t::shape_id_t*>) {
-      (*shape)->erase((loco_t::vfi_t::shape_id_t*)id.gdp4());
-    }
-    ,
-    loco_t::cid_nt_t& id
-    );
 
-  make_global_function_ret_define(bool, append_letter,
-    if constexpr (has_append_letter_v<shape_t, loco_t::cid_nt_t&, wchar_t>) {
-      data = (*shape)->append_letter(id, wc, force);
-    },
-      loco_t::cid_nt_t& id,
+  #define fan_build_get_set_shape_property(property_type, property_name) \
+    fan_build_get_shape_property(property_type, property_name); \
+    fan_build_set_shape_property(property_type, property_name);
+  
+
+  fan_build_get_set_shape_property(const fan::vec3&, position);
+  fan_build_get_set_shape_property(const fan::vec2&, size);
+  fan_build_get_set_shape_property(const fan::color&, color);
+  fan_build_get_set_shape_property(f32_t, angle);
+  fan_build_get_set_shape_property(const fan::string&, text);
+  fan_build_get_set_shape_property(const fan::vec2&, rotation_point);
+  fan_build_get_set_shape_property(f32_t, font_size);
+  fan_build_get_set_shape_property(const fan::vec2&, text_size);
+
+  fan_build_get_set_shape_property(fan::color, outline_color);
+  fan_build_get_set_shape_property(f32_t, outline_size);
+
+  fan_build_get_set_shape_property(f32_t, depth);
+
+  fan_build_get_set_shape_property(loco_t::viewport_t*, viewport);
+  fan_build_get_set_shape_property(loco_t::camera_t*, camera);
+  fan_build_get_set_shape_property(loco_t::image_t*, image);
+
+  bool shape_append_letter(
+    loco_t::cid_nt_t& id,
       wchar_t wc,
       bool force = false
-      );
-
-  fan_has_function_concept(get);
-  fan_has_function_concept(set);
-
-  #define fan_build_get_define(rt, name) \
-  fan_has_variable_struct(name); \
-  fan_has_function_concept(get_##name); \
-  rt shape_get_##name(loco_t::cid_nt_t& id) { \
-    rt data; \
-    types.iterate([&]<typename T>(auto shape_index, T shape) {\
-      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
-      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) {\
-        if constexpr (has_get_instance_v<shape_t, loco_t::cid_nt_t&>) { \
-          if constexpr(has_##name##_v<decltype((*shape)->get_instance(id))>) {\
-            data = (*shape)->get_instance(id).name; \
-          }\
-        }\
-        else if constexpr (has_get_##name##_v<shape_t, loco_t::cid_nt_t&>) {\
-          data = (*shape)->get_##name(id);\
-        }\
-        else if constexpr (has_get_v<shape_t, loco_t::cid_nt_t&, decltype(&comma_dummy_t::member_pointer)>) {\
-          if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
-            data = (*shape)->get(id, &shape_t::vi_t::name); \
-          }\
-        }\
-        else if constexpr (has_get_properties_v<shape_t, loco_t::cid_nt_t&>) { \
-          if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
-            data = (*shape)->get_properties(id).name; \
-          }\
-        } \
-        else if constexpr (has_get_##name##_v<shape_t, loco_t::vfi_t::shape_id_t*>) {\
-          data = (*shape)->get_##name((loco_t::vfi_t::shape_id_t*)id.gdp4());\
-        }\
-      }\
-    });\
-    return data; \
-  }
-
-  #define fan_build_set_define(rt, name) \
-  make_global_function_define(set_##name,\
-    if constexpr (has_set_##name##_v<shape_t, loco_t::cid_nt_t&, const rt&>) { \
-      if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
-        (*shape)->set_##name(id, data); \
-      } \
-    } \
-    else if constexpr (has_set_##name##_v<shape_t, loco_t::vfi_t::shape_id_t*, const rt&>) { \
-      (*shape)->set_##name((loco_t::vfi_t::shape_id_t*)id.gdp4(), data); \
-    } \
-    else if constexpr (has_set_v<shape_t, loco_t::cid_nt_t&, decltype(&comma_dummy_t::member_pointer), void*>) { \
-      if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
-        (*shape)->set(id, &shape_t::vi_t::name, data); \
-      }\
-    }, \
-    loco_t::cid_nt_t& id, \
-    const auto& data \
-  );
-
-  fan_has_function_concept(get_instance);
-
-  // NOTE for including in c/.h need to add loco_t:: infront of function
-  #define fan_build_get_generic_define(rt, name) \
-  fan_has_variable_struct(name); \
-  fan_has_function_concept(get_##name); \
-  rt shape_get_##name(loco_t::cid_nt_t& id) { \
-    rt data; \
-    types.iterate([&]<typename T>(auto shape_index, T shape) {\
-      using shape_t = std::remove_pointer_t<std::remove_pointer_t<T>>; \
-      if (shape_t::shape_type == (loco_t::shape_type_t)id->shape_type) {\
-        if constexpr (has_get_##name##_v<shape_t, loco_t::cid_nt_t&>) {\
-            data = (*shape)->get_##name(id);\
-        } \
-        else if constexpr (has_get_properties_v<shape_t, loco_t::cid_nt_t&>) { \
-          if constexpr(has_##name##_v<typename shape_t::properties_t>) {\
-            data = (*shape)->get_properties(id).name; \
-          }\
-        }\
-      }\
-    });\
-    return data; \
-  }
-
-  #define fan_build_set_generic_define(rt, name) \
-  make_global_function_define(set_##name,\
-    if constexpr (has_set_##name##_v<shape_t, loco_t::cid_nt_t&, const rt&>) { \
-      (*shape)->set_##name(id, data); \
-    }, \
-    loco_t::cid_nt_t& id, \
-    const auto& data \
-  );
-
-  #define fan_build_set_ptr_generic_define(rt, name) \
-  make_global_function_define(set_##name,\
-    if constexpr (has_set_##name##_v<shape_t, loco_t::cid_nt_t&, rt>) { \
-      (*shape)->set_##name(id, data); \
-    }, \
-    loco_t::cid_nt_t& id, \
-    auto data \
-  );
-
-  #define fan_build_set_generic_dataless_define(name) \
-  make_global_function_define(set_##name,\
-    if constexpr (has_set_##name##_v<shape_t, loco_t::cid_nt_t&>) { \
-      (*shape)->set_##name(id); \
-    }, \
-    loco_t::cid_nt_t& id \
-  );
-
-  #define fan_build_get_set_generic_define( rt, name) \
-    fan_build_get_generic_define(rt, name); \
-    fan_build_set_generic_define(rt, name);
-
-  #define fan_build_get_set_ptr_generic_define( rt, name) \
-    fan_build_get_generic_define(rt, name); \
-    fan_build_set_ptr_generic_define(rt, name);
-
-  #define fan_build_get_set_define(rt, name) \
-    fan_build_get_define(rt, name); \
-    fan_build_set_define(rt, name);
-
-  fan_build_get_set_generic_define(fan::vec3, position_ar);
-  fan_build_get_set_generic_define(fan::vec2, size_ar);
-
-  fan_build_get_set_ptr_generic_define(loco_t::viewport_t*, viewport);
-  fan_build_get_set_ptr_generic_define(loco_t::camera_t*, camera);
-
-  fan_build_get_set_define(fan::vec3, position);
-  fan_build_get_set_define(fan::vec2, size);
-  fan_build_get_set_define(fan::color, color);
-  fan_build_get_set_define(f32_t, angle);
-  fan_build_get_set_define(fan::vec2, rotation_point);
-
-  fan_build_get_set_generic_define(loco_t::textureid_t<0>, image);
-
-  fan_build_get_set_generic_define(f32_t, font_size);
-  fan_build_get_set_generic_define(fan::vec2, text_size);
-  fan_build_set_generic_dataless_define(focus);
-
-  fan_build_get_set_generic_define(fan::string, text);
-
-  fan_build_get_set_define(fan::color, outline_color);
-  fan_build_get_set_define(f32_t, outline_size);
-
-  make_global_function_define(set_line,
-    if constexpr (has_set_line_v<shape_t, loco_t::cid_nt_t&, const fan::vec3&, const fan::vec3&>) {
-      (*shape)->set_line(id, src, dst);
-    },
-      loco_t::cid_nt_t& id,
-      const fan::vec3& src,
-      const fan::vec3& dst
-      );
-
-  fan_has_function_concept(sb_set_depth);
-  make_global_function_define(set_depth,
-    if constexpr (has_set_depth_v<shape_t, loco_t::cid_nt_t&, f32_t>) {
-      (*shape)->set_depth(id, data);
-    }
-    else if constexpr (has_sb_set_depth_v<shape_t, loco_t::cid_nt_t&, f32_t>) {
-      (*shape)->sb_set_depth(id, data);
-    },
-      loco_t::cid_nt_t& id,
-      const auto& data
-      );
-
-  make_global_function_define_custom_shape(draw,
-    if constexpr (has_draw_v<shape_t, const redraw_key_t&, loco_bdbt_NodeReference_t>) {
-      (*shape)->draw(redraw_key, nr);
-    },
-      shape_type_t shape_type,
-      const redraw_key_t& redraw_key,
-      loco_bdbt_NodeReference_t nr
-      );
-
-  fan_has_function_concept(sb_get_properties);
-  fan_has_function_concept(get_properties);
-  fan_has_function_concept(sb_get_ri);
-  fan_has_function_concept(get_ri);
-
-  template <typename T>
-  T* get_shape() {
-    return *types.get_value<T*>();
+  ) {
+    bool ret = 0;
+    shapes.iterate([&]<auto i, typename T>(T& shape) { 
+      if (shape.shape_type != (loco_t::shape_type_t)id->shape_type) { 
+          return; 
+      } 
+      fan_if_has_function_get(&shape, append_letter, (id), ret);
+    }); 
+    return ret;
   }
 
   fan::vec2 get_camera_view_size(loco_t::camera_t camera) {
@@ -2054,7 +1702,9 @@ public:
     return viewport_handler.back();
   }
 
+  #if defined(loco_button)
   loco_t::theme_t default_theme = loco_t::themes::gray();
+  #endif
   camera_impl_t* default_camera;
 
   fan::graphics::viewport_divider_t viewport_divider;
@@ -2105,6 +1755,19 @@ constexpr std::array<T, 4> fan::pixel_format::get_image_properties(uint8_t forma
 
 #endif
 
+namespace fan {
+  namespace graphics {
+
+    using camera_t = loco_t::camera_impl_t;
+    // use bll to avoid 'new'
+    static auto add_camera(fan::graphics::direction_e split_direction) {
+      return gloco->add_camera(split_direction);
+    }
+
+    #include _FAN_PATH(graphics/common_types.h)
+  }
+}
+
 inline void fan::opengl::viewport_t::open() {
   viewport_reference = gloco->get_context()->viewport_list.NewNode();
   gloco->get_context()->viewport_list[viewport_reference].viewport_id = this;
@@ -2123,403 +1786,6 @@ inline void fan::opengl::viewport_t::set_viewport(const fan::vec2& viewport_posi
   );
 }
 
-namespace fan {
-  namespace graphics {
-
-    using camera_t = loco_t::camera_impl_t;
-    // use bll to avoid 'new'
-    static auto add_camera(fan::graphics::direction_e split_direction) {
-      return gloco->add_camera(split_direction);
-    }
-
-    struct line_properties_t {
-      fan::graphics::camera_t* camera = gloco->default_camera;
-      fan::vec3 src = fan::vec3(0, 0, 0);
-      fan::vec2 dst = fan::vec2(1, 1);
-      fan::color color = fan::color(1, 1, 1, 1);
-      bool blending = false;
-    };
-
-    struct line_t : loco_t::shape_t {
-      line_t(line_properties_t p = line_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
-          fan_init_struct(
-            loco_t::line_t::properties_t,
-            .camera = &p.camera->camera,
-            .viewport = &p.camera->viewport,
-            .src = p.src,
-            .dst = p.dst,
-            .color = p.color,
-            .blending = p.blending
-          ));
-      }
-    };
-
-    struct rectangle_properties_t {
-      fan::graphics::camera_t* camera = gloco->default_camera;
-      fan::vec3 position = fan::vec3(0, 0, 0);
-      fan::vec2 size = fan::vec2(0.1, 0.1);
-      fan::color color = fan::color(1, 1, 1, 1);
-      bool blending = false;
-    };
-
-    struct rectangle_t : loco_t::shape_t {
-      rectangle_t(rectangle_properties_t p = rectangle_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
-          fan_init_struct(
-            typename loco_t::rectangle_t::properties_t,
-            .camera = &p.camera->camera,
-            .viewport = &p.camera->viewport,
-            .position = p.position,
-            .size = p.size,
-            .color = p.color,
-            .blending = p.blending
-          ));
-      }
-    };
-
-    struct circle_properties_t {
-      fan::graphics::camera_t* camera = gloco->default_camera;
-      fan::vec3 position = fan::vec3(0, 0, 0);
-      f32_t radius = 0.1;
-      fan::color color = fan::color(1, 1, 1, 1);
-      bool blending = false;
-    };
-
-    struct circle_t : loco_t::shape_t {
-      circle_t(circle_properties_t p = circle_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
-          fan_init_struct(
-            loco_t::circle_t::properties_t,
-            .camera = &p.camera->camera,
-            .viewport = &p.camera->viewport,
-            .position = p.position,
-            .radius = p.radius,
-            .color = p.color,
-            .blending = p.blending
-          ));
-      }
-    };
-
-    struct unlit_sprite_properties_t {
-      fan::graphics::camera_t* camera = gloco->default_camera;
-      fan::vec3 position = fan::vec3(0, 0, 0);
-      fan::vec2 size = fan::vec2(0.1, 0.1);
-      fan::color color = fan::color(1, 1, 1, 1);
-      loco_t::image_t* image = &gloco->default_texture;
-      bool blending = false;
-      fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-    };
-
-    struct unlit_sprite_t : loco_t::shape_t {
-      unlit_sprite_t(unlit_sprite_properties_t p = unlit_sprite_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
-          fan_init_struct(
-            loco_t::unlit_sprite_t::properties_t,
-            .camera = &p.camera->camera,
-            .viewport = &p.camera->viewport,
-            .position = p.position,
-            .size = p.size,
-            .image = p.image,
-            .color = p.color,
-            .blending = p.blending,
-            .rotation_vector = p.rotation_vector
-          ));
-      }
-    };
-
-    struct sprite_properties_t {
-      fan::graphics::camera_t* camera = gloco->default_camera;
-      fan::vec3 position = fan::vec3(0, 0, 0);
-      fan::vec2 size = fan::vec2(0.1, 0.1);
-      fan::color color = fan::color(1, 1, 1, 1);
-      loco_t::image_t* image = &gloco->default_texture;
-      bool blending = false;
-      fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-    };
-
-    struct sprite_t : loco_t::shape_t {
-      sprite_t(sprite_properties_t p = sprite_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
-          fan_init_struct(
-            loco_t::sprite_t::properties_t,
-            .camera = &p.camera->camera,
-            .viewport = &p.camera->viewport,
-            .position = p.position,
-            .size = p.size,
-            .image = p.image,
-            .color = p.color,
-            .blending = p.blending,
-            .rotation_vector = p.rotation_vector
-          ));
-      }
-    };
-
-    #if defined(loco_text)
-
-    struct letter_properties_t {
-      loco_t::camera_t* camera = &gloco->default_camera->camera;
-      loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
-      fan::color color = fan::colors::white;
-      fan::vec3 position = fan::vec3(0, 0, 0);
-      f32_t font_size = 1;
-      uint32_t letter_id;
-    };
-
-    struct letter_t : loco_t::shape_t {
-      letter_t(letter_properties_t p = letter_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
-          fan_init_struct(
-            typename loco_t::letter_t::properties_t,
-            .camera = p.camera,
-            .viewport = p.viewport,
-            .position = p.position,
-            .font_size = p.font_size,
-            .letter_id = p.letter_id,
-            .color = p.color
-          ));
-      }
-    };
-
-    struct text_properties_t {
-      loco_t::camera_t* camera = &gloco->default_camera->camera;
-      loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
-      std::string text = "";
-      fan::color color = fan::colors::white;
-      fan::vec3 position = fan::vec3(fan::math::inf, -0.9, 0);
-    };
-
-    struct text_t : loco_t::shape_t {
-      text_t(text_properties_t p = text_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
-          fan_init_struct(
-            typename loco_t::responsive_text_t::properties_t,
-            .camera = p.camera,
-            .viewport = p.viewport,
-            .position = p.position.x == fan::math::inf ? fan::vec3(-1 + 0.025 * p.text.size(), -0.9, 0) : p.position,
-            .text = p.text,
-            .line_limit = 1,
-            .letter_size_y_multipler = 1,
-            .size = fan::vec2(0.025 * p.text.size(), 0.1),
-            .color = p.color
-          ));
-      }
-    };
-    #endif
-
-    #if defined(loco_button)
-    struct button_properties_t {
-      loco_t::theme_t* theme = &gloco->default_theme;
-      loco_t::camera_t* camera = &gloco->default_camera->camera;
-      loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
-      fan::vec3 position = fan::vec3(0, 0, 0);
-      fan::vec2 size = fan::vec2(0.1, 0.1);
-      std::string text = "button";
-      loco_t::mouse_move_cb_t mouse_move_cb = [](const loco_t::mouse_move_data_t&) -> int { return 0; };
-      loco_t::mouse_button_cb_t mouse_button_cb = [](const loco_t::mouse_button_data_t&) -> int { return 0; };
-    };
-
-    struct button_t : loco_t::shape_t {
-      button_t(button_properties_t p = button_properties_t()) : loco_t::shape_t(
-        fan_init_struct(
-          loco_t::button_t::properties_t,
-          .theme = p.theme,
-          .camera = p.camera,
-          .viewport = p.viewport,
-          .position = p.position,
-          .size = p.size,
-          .text = p.text,
-          .mouse_button_cb = p.mouse_button_cb
-        )) {}
-    };
-    #endif
-
-    #if defined(loco_imgui)
-    struct imgui_element_nr_t : loco_t::imgui_draw_cb_nr_t {
-      using base_t = loco_t::imgui_draw_cb_nr_t;
-
-      imgui_element_nr_t() { /**(nr_t*)this = cid_list_gnric(); should be default*/ }
-
-      imgui_element_nr_t(const imgui_element_nr_t& nr) : imgui_element_nr_t() {
-        if (nr.is_invalid()) {
-          return;
-        }
-        init();
-      }
-
-      imgui_element_nr_t(imgui_element_nr_t&& nr) {
-        NRI = nr.NRI;
-        nr.invalidate_soft();
-      }
-      ~imgui_element_nr_t() {
-        invalidate();
-      }
-
-
-      imgui_element_nr_t& operator=(const imgui_element_nr_t& id) {
-        if (!is_invalid()) {
-          invalidate();
-        }
-        if (id.is_invalid()) {
-          return *this;
-        }
-
-        if (this != &id) {
-          init();
-        }
-        return *this;
-      }
-
-      imgui_element_nr_t& operator=(imgui_element_nr_t&& id) {
-        if (!is_invalid()) {
-          invalidate();
-        }
-        if (id.is_invalid()) {
-          return *this;
-        }
-
-        if (this != &id) {
-          if (!is_invalid()) {
-            invalidate();
-          }
-          NRI = id.NRI;
-
-          id.invalidate_soft();
-        }
-        return *this;
-      }
-
-      void init() {
-        *(base_t*)this = gloco->m_imgui_draw_cb.NewNodeLast();
-      }
-
-      bool is_invalid() const {
-        return loco_t::imgui_draw_cb_inric(*this);
-      }
-
-      void invalidate_soft() {
-        *(base_t*)this = gloco->m_imgui_draw_cb.gnric();
-      }
-
-      void invalidate() {
-        if (is_invalid()) {
-          return;
-        }
-        gloco->m_imgui_draw_cb.unlrec(*this);
-        *(base_t*)this = gloco->m_imgui_draw_cb.gnric();
-      }
-
-      void set(const auto& lambda) {
-        gloco->m_imgui_draw_cb[*this] = lambda;
-      }
-    };
-
-    struct imgui_element_t : imgui_element_nr_t {
-      imgui_element_t() = default;
-      imgui_element_t(const auto& lambda) {
-        imgui_element_nr_t::init();
-        imgui_element_nr_t::set(lambda);
-      }
-    };
-
-    struct imgui_shape_element_t : imgui_element_t, loco_t::shape_t {
-      imgui_shape_element_t(const auto& properties, const auto& lambda)
-        : imgui_element_t(lambda), loco_t::shape_t(properties) {
-      }
-    };
-    #endif
-
-    // REQUIRES to be allocated by new since lambda captures this
-    // also container that it's stored in, must not change pointers
-    struct vfi_root_t {
-      //vfi_root_t() = default;
-
-      void set_root(const loco_t::vfi_t::properties_t& p) {
-        loco_t::vfi_t::properties_t in = p;
-        in.shape_type = loco_t::vfi_t::shape_t::rectangle;
-        in.shape.rectangle->viewport = &gloco->default_camera->viewport;
-        in.shape.rectangle->camera = &gloco->default_camera->camera;
-        in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {
-          if (d.key == fan::key_c && 
-            (d.keyboard_state == fan::keyboard_state::press ||
-            d.keyboard_state == fan::keyboard_state::repeat)) {
-            this->resize = true;
-            return user_cb(d);
-          }
-          this->resize = false;
-          return 0;
-        };
-        in.mouse_button_cb = [this, user_cb = p.mouse_button_cb](const auto& d) -> int {
-          if (d.button != fan::mouse_left) {
-            return 0;
-          }
-          if (d.button_state != fan::mouse_state::press) {
-            this->move = false;
-            d.flag->ignore_move_focus_check = false;
-            return 0;
-          }
-          if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
-            return 0;
-          }
-          d.flag->ignore_move_focus_check = true;
-          this->move = true;
-          this->click_offset = fan::vec2(get_position()) - d.position;
-          gloco->vfi.set_focus_keyboard(d.vfi->focus.mouse);
-          return user_cb(d);
-        };
-        in.mouse_move_cb = [this, user_cb = p.mouse_move_cb](const auto& d) -> int {
-          if (this->resize && this->move) {
-            fan::vec2 new_size = (d.position - fan::vec2(get_position()));
-            static constexpr fan::vec2 min_size(10, 10);
-            new_size.constrain(min_size);
-            this->set_size(new_size.x);
-            return user_cb(d);
-          }
-          else if (this->move) {
-            fan::vec3 p = get_position();
-            this->set_position(fan::vec3(d.position + click_offset, p.z));
-            return user_cb(d);
-          }
-          return 0;
-        };
-        vfi_root = in;
-      }
-      void push_child(const loco_t::shape_t& shape) {
-        children.push_back(shape);
-      }
-      fan::vec3 get_position() {
-        return vfi_root.get_position();
-      }
-      void set_position(const fan::vec3& position) {
-        fan::vec2 root_pos = vfi_root.get_position();
-        fan::vec2 offset = fan::vec2(position) - root_pos;
-        vfi_root.set_position(fan::vec3(root_pos + offset, position.z));
-        for (auto& child : children) {
-          child.set_position(fan::vec3(fan::vec2(child.get_position()) + offset, position.z));
-        }
-      }
-      fan::vec2 get_size() {
-        return vfi_root.get_size();
-      }
-      void set_size(const fan::vec2& size) {
-        fan::vec2 root_pos = vfi_root.get_size();
-        fan::vec2 offset = size - root_pos;
-        vfi_root.set_size(root_pos + offset);
-        for (auto& child : children) {
-          child.set_size(fan::vec2(child.get_size()) + offset);
-      }
-    }
-    fan::vec2 click_offset = 0;
-    bool move = false;
-    bool resize = false;
-    loco_t::shape_t vfi_root;
-    std::vector<loco_t::shape_t> children;
-    };
-  }
-}
-
-// for pch
-#if defined(fan_build_pch)
 inline void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
   viewport_position = viewport_position_;
   viewport_size = viewport_size_;
@@ -2539,6 +1805,7 @@ inline loco_t::camera_list_NodeReference_t::camera_list_NodeReference_t(loco_t::
   NRI = camera->camera_reference.NRI;
 }
 
+#if defined(loco_button)
 namespace fan::opengl {
   // Primary template for the constructor
   inline theme_list_NodeReference_t::theme_list_NodeReference_t(void* theme) {
@@ -2546,11 +1813,11 @@ namespace fan::opengl {
     NRI = ((loco_t::theme_t*)theme)->theme_reference.NRI;
   }
 }
+#endif
 
 inline fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::opengl::viewport_t* viewport) {
   NRI = viewport->viewport_reference.NRI;
 }
-#endif
 
 #if defined(loco_imgui) && defined(fan_platform_linux)
 static void imgui_xorg_init() {

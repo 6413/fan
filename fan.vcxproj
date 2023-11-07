@@ -105,7 +105,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\fan\imgui;C:\libs\fan\include\fan</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <TreatSpecificWarningsAsErrors>
@@ -155,7 +155,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\fan\imgui;C:\libs\fan\include\fan</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
@@ -205,7 +205,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir);$(SolutionDir)src\libwebp\src;C:\libs;$(SolutionDir)include\nvidia;C:\libs\fan\include\softcam;C:\libs\fan\include\baseclasses;C:\libs\fan\include\softcamcore;C:\libs\fan\include\fan\imgui;C:\libs\fan\include\fan</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <TreatSpecificWarningsAsErrors>
@@ -350,6 +350,7 @@
     <ClInclude Include="include\fan\BDBT\internal\rest.h" />
     <ClInclude Include="include\fan\event\event.h" />
     <ClInclude Include="include\fan\graphics\collider.h" />
+    <ClInclude Include="include\fan\graphics\common_types.h" />
     <ClInclude Include="include\fan\graphics\divider.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\shapes.h" />
@@ -393,8 +394,6 @@
     <ClInclude Include="include\fan\graphics\gui\themes.h" />
     <ClInclude Include="include\fan\graphics\gui\vfi.h" />
     <ClInclude Include="include\fan\graphics\gui\vfi_shape_list_settings.h" />
-    <ClInclude Include="include\fan\graphics\loco_define.h" />
-    <ClInclude Include="include\fan\graphics\loco_types.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\frame_capture.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\particles.h" />
     <ClInclude Include="include\fan\graphics\opengl\2D\effects\post_process.h" />
@@ -484,6 +483,7 @@
     <ClInclude Include="stages_compile\stage_fuel_station.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="examples\gui\model_maker.cpp" />
     <ClCompile Include="include\fan\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -494,7 +494,6 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
-    <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

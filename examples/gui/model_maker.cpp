@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
   else{
     mm.load("model.fmm");//
   }//
-  loco_t::sprite_t::properties_t p;
+  loco_t::shapes_t::sprite_t::properties_t p;
   //
   //
   loco.set_vsync(false);

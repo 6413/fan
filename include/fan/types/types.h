@@ -896,40 +896,38 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
   //constexpr bool has_variable() {
 
   //}
-  #define fan_has_variable_struct(var_name) \
-  template <typename T> \
-  struct CONCAT(has_,var_name) { \
-    template <typename U> \
-    static auto test(int) -> decltype(std::declval<U>().var_name, std::true_type()); \
- \
-    template <typename> \
-    static auto test(...) -> std::false_type; \
- \
-    static constexpr bool value = decltype(test<T>(0))::value; \
-  }; \
-  template <typename U> \
-  static constexpr bool CONCAT(CONCAT(has_,var_name), _v) = CONCAT(has_, var_name)<U>::value;
 
-
-  #define fan_has_function_concept(func_name) \
-   template<typename U, typename... Args> \
-    struct CONCAT(has_,func_name) { \
-      static constexpr bool value = requires(U u, Args... args) { \
-        u.func_name(args...); \
-      }; \
-    }; \
-    template <typename U, typename... Args> \
-    static constexpr bool CONCAT(CONCAT(has_,func_name), _v) = CONCAT(has_, func_name)<U, Args...>::value;
-
-  #define fan_has_function(type, func_call) \
-    [] <typename T>() constexpr { \
-      return requires(T t) { t.func_call; } == true; \
+  #define fan_requires_rule(type, rule) \
+    [] <typename dont_shadow_me2_t>() constexpr { \
+      return requires(dont_shadow_me2_t t) { rule; } == true; \
     }.template operator()<type>()
 
+  #define fan_has_function(type, func_call) \
+    fan_requires_rule(type, t.func_call)
+
   #define fan_if_has_function(ptr, func_name, params) \
-  [&] <typename T2>(T2* This) { \
-    if constexpr (fan_has_function(T2, func_name params)) { \
-      This->func_name params ;\
+    if constexpr (fan_has_function(std::remove_reference_t<std::remove_pointer_t<decltype(ptr)>>, func_name params)) \
+    [&] <typename runtime_t>(runtime_t* This) { \
+      if constexpr (fan_has_function(runtime_t, func_name params)) { \
+        This->func_name params ;\
+      } \
+    }(ptr)
+
+  #define fan_if_has_function_get(ptr, func_name, params, data) \
+    if constexpr (fan_has_function(std::remove_reference_t<std::remove_pointer_t<decltype(ptr)>>, func_name params)) \
+    [&] <typename runtime_t>(runtime_t* This) { \
+      if constexpr (fan_has_function(runtime_t, func_name params)) { \
+        data = This->func_name params ;\
+      } \
+    }(ptr)
+
+  #define fan_has_variable(type, var_name) \
+    fan_requires_rule(type, t.var_name)
+
+  #define fan_if_has_variable(ptr, var_name, todo) \
+  [&] <typename dont_shadow_me_t>(dont_shadow_me_t* This) { \
+    if constexpr (fan_has_variable(dont_shadow_me_t, var_name)) { \
+      todo ;\
     } \
   }(ptr);
 

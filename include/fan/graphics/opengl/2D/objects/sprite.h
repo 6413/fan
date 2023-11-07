@@ -90,35 +90,6 @@ struct sb_sprite_name {
     sb_close();
   }
 
-  /*loco_t::camera_t* get_camera(loco_t::cid_nt_t& id) {
-    auto block = sb_get_block(cid);
-    loco_t* loco = get_loco();
-    return loco->camera_list[*block->p[cid->instance_id].key.get_value<
-      instance_properties_t::key_t::get_index_with_type<loco_t::camera_list_NodeReference_t>()
-    >()].camera_id;
-  }
-  void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
-    sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
-  }
-
-  fan::graphics::viewport_t* get_viewport(loco_t::cid_nt_t& id) {
-    loco_t* loco = get_loco();
-    auto block = sb_get_block(cid);
-    return loco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<
-      instance_properties_t::key_t::get_index_with_type<fan::graphics::viewport_list_NodeReference_t>()
-    >()].viewport_id;
-  }
-  void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
-    sb_set_key<instance_properties_t::key_t::get_index_with_type<decltype(n)>()>(cid, n);
-  }*/
-
-  /*
-
-  void set(loco_t* loco, fan::opengl::cid_t* cid, fan::opengl::viewport_list_NodeReference_t n) {
-    auto block = sb_get_block(loco, cid);
-    *block->p[cid->instance_id].key.get_value<1>() = n;
-  }*/
-
   void set_image(loco_t::cid_nt_t& id, loco_t::textureid_t<0> n) {
   #if defined(loco_opengl)
     sb_set_context_key<loco_t::textureid_t<0>>(id, n);

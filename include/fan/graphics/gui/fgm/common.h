@@ -49,7 +49,7 @@ struct version_001_t {
       }
       else {
         auto& data = fgm->texturepack.get_pixel_data(ti.pack_id);
-        gloco->sprite.load_tp(ret->children[0], &ti);
+        gloco->shapes.sprite.load_tp(ret->children[0], &ti);
       }
 
       return ret;
@@ -71,7 +71,7 @@ struct version_001_t {
       }
       else {
         auto& data = tp->get_pixel_data(ti.pack_id);
-        gloco->sprite.load_tp(s, &ti);
+        gloco->shapes.sprite.load_tp(s, &ti);
       }
       return *dynamic_cast<loco_t::shape_t*>(&s);
     }
@@ -126,7 +126,7 @@ struct version_001_t {
       }
       else {
         auto& data = fgm->texturepack.get_pixel_data(ti.pack_id);
-        gloco->unlit_sprite.load_tp(ret->children[0], &ti);
+        gloco->shapes.unlit_sprite.load_tp(ret->children[0], &ti);
       }
 
       return ret;
@@ -148,7 +148,7 @@ struct version_001_t {
       }
       else {
         auto& data = tp->get_pixel_data(ti.pack_id);
-        gloco->unlit_sprite.load_tp(s, &ti);
+        gloco->shapes.unlit_sprite.load_tp(s, &ti);
       }
       return *dynamic_cast<loco_t::shape_t*>(&s);
     }
