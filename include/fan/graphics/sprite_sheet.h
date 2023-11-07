@@ -22,7 +22,6 @@ struct sb_sprite_sheet_name {
     sheet_t* sheet;
   };
 
-  #undef make_key_value
 protected:
   #include "sprite_sheet_list_builder_settings.h"
   #include _FAN_PATH(BLL/BLL.h)

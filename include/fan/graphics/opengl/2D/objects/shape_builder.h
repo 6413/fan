@@ -317,13 +317,14 @@ public:
     );
     fan::string fragment_code;
     #if defined(sb_shader_fragment_string)
-    fragment_code = sb_shader_fragment_string
+    fragment_code = sb_shader_fragment_string;
     m_shader.set_fragment(
       gloco->get_context(),
-      sb_shader_fragment_string
+      fragment_code
     );
+    #else
+      fragment_code = fan::graphics::read_shader(sb_shader_fragment_path);
     #endif
-    fragment_code = fan::graphics::read_shader(sb_shader_fragment_path);
     m_shader.set_fragment(
       gloco->get_context(),
       fragment_code

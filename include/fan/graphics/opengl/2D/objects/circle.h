@@ -30,9 +30,6 @@ struct circle_t {
     bool blending = false;
   };
 
-  #define make_key_value(type, name) \
-    type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
-
   struct properties_t : vi_t, ri_t {
     /*todo cloned from context_key_t - make define*/
     using parsed_masterpiece_t = fan::masterpiece_t<
@@ -47,8 +44,6 @@ struct circle_t {
     loco_t::camera_t* camera = 0;
     fan::graphics::viewport_t* viewport = 0;
   };
-
-  #undef make_key_value
 
   void push_back(loco_t::cid_nt_t& id, properties_t& p) {
     #if defined(loco_vulkan)

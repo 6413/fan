@@ -34,9 +34,6 @@ struct sb_sprite_name {
     cid_t* cid;
   };
 
-  #define make_key_value(type, name) \
-    type& name = *key.get_value<decltype(key)::get_index_with_type<type>()>();
-
   struct properties_t : vi_t, ri_t {
 
     /*todo cloned from context_key_t - make define*/
@@ -114,31 +111,8 @@ struct sb_sprite_name {
       y = &loco->sb_pfr_var_name.sb_shape_var_name.image[0];
       u = &loco->sb_pfr_var_name.sb_shape_var_name.image[1];
       v = &loco->sb_pfr_var_name.sb_shape_var_name.image[2];
-
-    #if defined(loco_vulkan)
-
-      VkDescriptorImageInfo imageInfo{};
-      imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-      for (uint32_t i = 0; i < 3; ++i) {
-        auto& img = * loco->sb_shape_var_name.image[i].get_texture_data(loco);
-        imageInfo.imageView = img.image_view;
-        imageInfo.sampler = img.sampler;
-        img.texture_index.yuv420p = i;
-        loco->sb_shape_var_name.m_ssbo.m_descriptor.m_properties[2].image_infos[img.texture_index.yuv420p] = imageInfo;
-      }
-
-
-      for (uint32_t i = 0; i < 3; ++i) {
-        loco->sb_shape_var_name.m_ssbo.m_descriptor.m_properties[2].image_infos[i].imageView = loco->sb_shape_var_name.image[i].get_texture_data(loco)->image_view;
-        loco->sb_shape_var_name.m_ssbo.m_descriptor.m_properties[2].image_infos[i].sampler = loco->sb_shape_var_name.image[i].get_texture_data(loco)->sampler;
-      }
-      loco->sb_shape_var_name.m_ssbo.m_descriptor.update(loco->get_context(), 1, 2);
-    #endif
     }
   };
-
-  #undef make_key_value
 
   void push_back(fan::graphics::cid_t* cid, properties_t& p) {
 

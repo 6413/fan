@@ -45,8 +45,6 @@ struct line_t {
     fan::graphics::viewport_t* viewport = 0;
   };
 
-  #undef make_key_value
-  
   void push_back(loco_t::cid_nt_t& id, properties_t& p) {
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
