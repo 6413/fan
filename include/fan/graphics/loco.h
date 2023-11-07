@@ -44,7 +44,7 @@ static void imgui_xorg_new_frame();
 // automatically gets necessary macros for shapes
 
 #if defined(loco_sprite_sheet)
-#define loco_sprite
+  #define loco_sprite
 #endif
 #if defined(loco_sprite)
 #define loco_texture_pack
@@ -54,9 +54,6 @@ static void imgui_xorg_new_frame();
 #if defined(loco_button)
 #define loco_letter
 #define loco_text
-#endif
-#if defined(loco_menu_maker)
-#error
 #endif
 
 #if defined(loco_text)
@@ -162,21 +159,6 @@ struct loco_t {
       fan::vec3::operator=(p);
       return *this;
     }
-    //using fan::vec3::vec3;
-    //position3_t(const fan::vec3& v) : fan::vec3(v) {}
-    //position3_t& operator=(const fan::vec2& v) = default;
-    /*
-    {
-      *(fan::vec3*)this = fan::vec3::operator=(v);
-      return *this;
-    }
-    */
-    /*position3_t& operator=(const fan::vec3& v) {
-      *(fan::vec3*)this = fan::vec3::operator=(v);
-      return *this;
-    }*/
-    // private:
-      // using fan::vec3::operator=;
   };
 
   void use() {
@@ -207,6 +189,7 @@ struct loco_t {
     responsive_text
   };
 
+  // can be incorrect
   static constexpr const char* shape_names[] = {
     "Button",
     "Sprite",
@@ -2186,8 +2169,6 @@ constexpr std::array<T, 4> fan::pixel_format::get_image_properties(uint8_t forma
 }
 
 #endif
-
-#define loco_make_shape(type, ...) fan_init_struct(type, __VA_ARGS__)
 
 inline void fan::opengl::viewport_t::open() {
   viewport_reference = gloco->get_context()->viewport_list.NewNode();

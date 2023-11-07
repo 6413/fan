@@ -338,7 +338,6 @@
   <ItemGroup>
     <ClInclude Include="..\WITCH\BDBT\internal\Key\cpp\q.h" />
     <ClInclude Include="..\WITCH\BLL\internal\NodeReference.h" />
-    <ClInclude Include="..\WITCH\BLL\internal\rest.h" />
     <ClInclude Include="include\fan\ai\neural_network.h" />
     <ClInclude Include="include\fan\BDBT\BDBT.h" />
     <ClInclude Include="include\fan\BDBT\internal\Key\cpp.h" />
