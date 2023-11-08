@@ -2,8 +2,6 @@
 
 struct ftme_t {
 
-  static constexpr int current_version = 001;
-
   // can have like sensor, etc
   struct mesh_property_t : fan::any_type_wrap_t<uint8_t> {
     using fan::any_type_wrap_t<uint8_t>::any_type_wrap_t;
@@ -20,6 +18,8 @@ struct ftme_t {
   static constexpr fan::vec2 default_button_size{100, 30};
   static constexpr fan::vec2 tile_viewer_sprite_size{64, 64};
   static constexpr fan::color highlighted_tile_color = fan::color(0.5, 0.5, 1);
+
+  static constexpr f32_t scroll_speed = 0.05;
 
   fan::string file_name = "file.ftme";
 
@@ -80,52 +80,7 @@ struct ftme_t {
     };
   };
 
-  struct version_001_t {
-    struct shapes_t {
-      struct cell_t {
-
-        void init(ftme_t::shapes_t::global_t* g) {
-          position = g->get_position();
-          image_hash = g->shape_data.cell.image_hash;
-          mesh_property = g->shape_data.cell.mesh_property;
-          color_idx = g->shape_data.cell.color_idx;
-        }
-
-        void get_shape(ftme_t* ftme) {
-          fan::vec2ui grid_idx(
-            (position.x - ftme->tile_size.x) / ftme->tile_size.x / 2,
-            (position.y - ftme->tile_size.y) / ftme->tile_size.y / 2
-          );
-          auto& instance = ftme->map_tiles[grid_idx.y][grid_idx.x];
-          instance =
-            std::make_unique<ftme_t::shapes_t::global_t>(ftme, fan::graphics::sprite_t{{
-              .position = fan::vec3(position, 0),
-              .size = ftme->tile_size
-            }});
-
-          loco_t::texturepack_t::ti_t ti;
-          if (ftme->texturepack.qti(image_hash, &ti)) {
-            fan::throw_error("failed to read image from .ftme - editor save file corrupted");
-          }
-          gloco->shapes.sprite.load_tp(
-            instance->children[0],
-            &ti
-          );
-          instance->shape_data.cell.image_hash = image_hash;
-          instance->shape_data.cell.mesh_property = mesh_property;
-          instance->shape_data.cell.color_idx = color_idx;
-        }
-
-        fan::vec2ui position;
-        uint64_t image_hash;
-        uint8_t mesh_property;
-        uint8_t color_idx;
-      }c; // dummy for iterating struct
-    };
-  };
-
-  using current_version_t = version_001_t;
-
+  #include "common.h"
 
   enum class event_type_e {
     none,
@@ -180,13 +135,20 @@ struct ftme_t {
     }
   }
 
+  void reset_map() {
+    map_tiles.clear();
+    resize_map();
+  }
+
   void open(const fan::string& texturepack_name) {
     texturepack.open_compiled(texturepack_name);
 
     gloco->get_window()->add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
-        gloco->default_camera->camera.set_camera_position(viewport_settings.pos - (d.position -
-          viewport_settings.offset) * viewport_settings.zoom); // todo fix 
+        fan::vec2 viewport_size = gloco->default_camera->viewport.get_size();
+        fan::vec2 scaler = (viewport_size / viewport_settings.zoom / viewport_size);
+        gloco->default_camera->camera.set_camera_position(viewport_settings.pos - ((d.position -
+          viewport_settings.offset) * scaler));
       }
     });
 
@@ -200,15 +162,35 @@ struct ftme_t {
       
 
       {// handle camera movement
+        f32_t old_zoom = viewport_settings.zoom;
+
+        auto set_camera_center = [&] {
+          fan::vec2 scaler = (viewport_settings.size / old_zoom / viewport_settings.size);
+          fan::vec2 scaler1 = (viewport_settings.size / viewport_settings.zoom / viewport_settings.size);
+          viewport_settings.pos -= scaler - scaler1;
+          //viewport_settings.pos += (viewport_settings.size * viewport_settings.zoom);
+          gloco->default_camera->camera.set_camera_position(viewport_settings.pos);
+        };
+
         switch (d.button) {
           case fan::mouse_middle: { break;}
-          case fan::mouse_scroll_up: { viewport_settings.zoom -= 0.1; return; }
-          case fan::mouse_scroll_down: { viewport_settings.zoom += 0.1; return; }
+          case fan::mouse_scroll_up: {
+            viewport_settings.zoom += scroll_speed; 
+            set_camera_center();
+            return; 
+          }
+          case fan::mouse_scroll_down: { 
+            viewport_settings.zoom -= scroll_speed; 
+            set_camera_center();
+            return; 
+          }
           default: {return;} //?
         };
         viewport_settings.move = (bool)d.state;
-        viewport_settings.pos = gloco->default_camera->camera.get_camera_position();
+        fan::vec2 old_pos = viewport_settings.pos;
         viewport_settings.offset = gloco->get_mouse_position();
+        viewport_settings.pos = gloco->default_camera->camera.get_camera_position();
+
       }// handle camera movement
    });
 
@@ -216,13 +198,12 @@ struct ftme_t {
       if (d.state != fan::keyboard_state::press) {
         return;
       }
-      if (ImGui::IsAnyItemActive()) {
-        return;
-      }
 
       switch (d.key) {
-        case fan::key_r: {
-          erase_current();
+        case fan::key_delete: {
+          if (gloco->get_window()->key_pressed(fan::key_left_control)) {
+            reset_map();
+          }
           break;
         }
       }
@@ -284,10 +265,10 @@ struct ftme_t {
         fan::vec2 window_size = gloco->get_window()->get_size();
         fan::vec2 viewport_size = ImGui::GetWindowSize();
         fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
-        fan::vec2 offset = viewport_size - viewport_size * viewport_settings.zoom;
+        fan::vec2 offset = viewport_size - viewport_size / viewport_settings.zoom;
         gloco->default_camera->camera.set_ortho(
-          fan::vec2(offset.x, viewport_size.x - offset.x),
-          fan::vec2(offset.y, viewport_size.y - offset.y)
+          fan::vec2(0, viewport_size.x),
+          fan::vec2(0, viewport_size.y)
         );
 
         gloco->default_camera->camera.set_camera_zoom(viewport_settings.zoom);
@@ -483,71 +464,7 @@ struct ftme_t {
   }
   */
   void fin(const fan::string& filename) {
-    fan::string in;
-    if (fan::io::file::read(filename, &in)) {
-      return;
-    }
-    uint64_t off = 0;
-    uint32_t version = fan::read_data<uint32_t>(in, off);
-    if (version != current_version) {
-      fan::print_format("invalid file version, file:{}, current:{}", version, current_version);
-      return;
-    }
-    map_size = fan::read_data<fan::vec2ui>(in, off);
-    tile_size = fan::read_data<fan::vec2ui>(in, off);
-
-    map_tiles.resize(map_size.y);
-    for (auto& i : map_tiles) {
-      i.resize(map_size.x);
-    }
-
-    fan::mp_t<current_version_t::shapes_t> shapes;
-    while (off != in.size()) {
-      bool ignore = true;
-      uint32_t byte_count = 0;
-      byte_count = fan::read_data<uint32_t>(in, off);
-      shapes.iterate([&]<auto i0, typename T>(T & v0) {
-        ignore = false;
-
-        fan::mp_t<T> shape;
-        shape.iterate([&]<auto i, typename T2>(T2 & v) {
-          v = fan::read_data<T2>(in, off);
-        });
-
-        #if defined(tile_map_editor_loader) 
-
-        #else
-          shape.get_shape(this);
-        #endif
-      });
-      // if shape is not part of version
-      if (ignore) {
-        off += byte_count;
-      }
-    }
-
-    #undef tile_map_editor_loader
-  }
-
-  void invalidate_current() {
-    current_tile = nullptr;
-    selected_shape_type = loco_t::shape_type_t::invalid;
-  }
-
-  void erase_current() {
-   /* if (current_shape == nullptr) {
-      return;
-    }
-
-    auto it = shape_list.GetNodeFirst();
-    while (it != shape_list.dst) {
-      if (current_shape == shape_list[it]) {
-        delete shape_list[it];
-        shape_list.unlrec(it);
-        invalidate_current();
-        break;
-      }
-    }*/
+    #include _FAN_PATH(graphics/gui/tile_map_editor/loader_versions/1.h)
   }
 
   fan::vec2ui map_size{32, 32};

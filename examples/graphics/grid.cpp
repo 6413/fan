@@ -1,9 +1,7 @@
 #include fan_pch
 
-static constexpr fan::vec2 grid_size = fan::vec2(512, 512);
+static constexpr fan::vec2 grid_size = fan::vec2(64, 64);
 static constexpr fan::vec2i grid_count = fan::vec2i(200, 200);
-
-std::vector<loco_t::shape_t> points;
 
 void reset(auto& grid) {
   for (int i = 0; i < grid_count.y; ++i) {
@@ -13,49 +11,67 @@ void reset(auto& grid) {
   }
 }
 void set_colors(auto& grid, fan::vec2 world_pos, f32_t radius) {
-  points.clear();
   fan::vec2f grid_posi = world_pos / grid_size;
   f32_t top = floor(grid_posi.y - radius / grid_size.y);
   f32_t bottom = ceil(grid_posi.y + radius / grid_size.y);
   for (f32_t j = top; j < bottom; ++j) {
-    f32_t offsety = j * grid_size.x - world_pos.y;
+    f32_t offsety = j * grid_size.x - (world_pos.y - grid_size.y * !(j >= (top + bottom) / 2));
     f32_t dx;
     fan::print(fmodf(world_pos.y / grid_size.y, 1));
     if (j == (top + bottom) / 2 - (fmodf(world_pos.y / grid_size.y, 1) >= 0.5 ? 1 : 0) || (top + 1 >= bottom)) {
       dx = radius;
-    } 
+    }
     else {
       dx = fan::math::sqrt(fan::math::abs(radius * radius - offsety * offsety));
     }
-    points.push_back(fan::graphics::rectangle_t{{
-        .position = fan::vec3(world_pos.x - dx, world_pos.y, 100),
-        .size = fan::vec2(10, 10),
-        .color = fan::colors::cyan
-    }});
-    //f32_t left = (world_pos.x - dx) / grid_size.x;
-    //f32_t right = (world_pos.x + dx) / grid_size.x;
-    //for (int i = left; i < ceil(right); ++i) {
-    //  // this if is only necessary for very big squares
-    // if (ceil(i) <= floor((world_pos.x + radius) / grid_size.x) &&
-    //      floor(i) >= floor((world_pos.x - radius) / grid_size.x)) {
-    //    grid[std::min(std::max((int)i, 0), (int)grid_size.y)][std::min(std::max((int)j, 0), (int)grid_size.x)].r.set_color(fan::colors::green);
-    //  }
-    //}
+    f32_t left = (world_pos.x - dx) / grid_size.x;
+    f32_t right = (world_pos.x + dx) / grid_size.x;
+    for (int i = left; i < ceil(right); ++i) {
+      // this if is only necessary for very big squares
+      if (ceil(i) <= floor((world_pos.x + radius) / grid_size.x) &&
+           floor(i) >= floor((world_pos.x - radius) / grid_size.x)) {
+        grid[std::min(std::max((int)i, 0), (int)grid_size.y)][std::min(std::max((int)j, 0), (int)grid_size.x)].r.set_color(fan::colors::green);
+      }
+    }
   }
 
   // this for loop only necessary for edge cases with size near 256
-  /*for (int i = 0; i < 2; ++i){
+  for (int i = 0; i < 2; ++i) {
     int x = (world_pos.x - radius * (i * 2 - 1)) / grid_size.x;
     int y = (world_pos.y) / grid_size.y;
     if (ceil(x) <= floor((world_pos.x + radius) / grid_size.x) &&
     floor(y) >= floor((world_pos.x - radius) / grid_size.x)) {
       grid[x][y].r.set_color(fan::colors::green);
     }
-  }*/
+  }
+}
+
+
+f32_t the_magic(f32_t i0, f32_t i1) {
+  f32_t min_val = std::min({abs(i0), abs(i1), 1.0f});
+  return (i0 <= 0 && i1 >= 0) ? 1 : std::sqrt(1 - std::pow(min_val, 2));
+}
+
+void set_colors2(auto& grid, fan::vec2 world_pos, f32_t radius) {
+  sint32_t gridy0 = (world_pos.y - radius) / grid_size.y;
+  f32_t cin0 = gridy0 * grid_size.y;
+  while (cin0 <= world_pos.y + radius) {
+    f32_t relative_magic_x = the_magic((cin0 - world_pos.y) / radius, ((gridy0 + 1) * grid_size.y - world_pos.y) / radius) * radius;
+    sint32_t gridx0 = (world_pos.x - relative_magic_x) / grid_size.x;
+    sint32_t gridx1 = (world_pos.x + relative_magic_x) / grid_size.x;
+    for (; gridx0 <= gridx1; gridx0++) {
+      if ((uint32_t)gridx0 < grid_count.x && (uint32_t)gridy0 < grid_count.y) {
+        grid[gridx0][gridy0].r.set_color(fan::colors::green);
+      }
+    }
+    gridy0++;
+    cin0 += grid_size.y;
+  }
 }
 
 int main() {
-  loco_t loco = loco_t::properties_t{.window_size = 1300};
+  loco_t loco = loco_t::properties_t{.window_size = 640};
+
   fan::vec2 viewport_size = loco.get_window()->get_size();
   loco.default_camera->camera.set_ortho(
     fan::vec2(0, viewport_size.x),
@@ -74,7 +90,7 @@ int main() {
           .position = fan::vec2(i, j) * grid_size + grid_size / 2,
           .size = grid_size / 2,
           .color = fan::colors::red
-      }};
+        }};
     }
   }
   fan::graphics::line_t grid_linesx[(int)(1300 / grid_size.x) + 1];
@@ -86,27 +102,27 @@ int main() {
         .src = fan::vec3(i * grid_size.x, 0, 2),
         .dst = fan::vec2(i * grid_size.x, viewport_size.y),
         .color = fan::colors::white
-    }};
+      }};
   }
   for (int j = 0; j < 1300 / grid_size.y; ++j) {
     grid_linesy[j] = fan::graphics::line_t{{
-      .src = fan::vec3(0, j * grid_size.y, 2),
-      .dst = fan::vec2(viewport_size.x, j * grid_size.y),
-      .color = fan::colors::white
-    }};
+        .src = fan::vec3(0, j * grid_size.y, 2),
+        .dst = fan::vec2(viewport_size.x, j * grid_size.y),
+        .color = fan::colors::white
+      }};
   }
 
   fan::graphics::circle_t c{{
       .position = fan::vec3(0, 0, 3),
-      .radius = 258,
-      .color = fan::colors::blue -fan::color(0, 0, 0, 0.3),
+      .radius = 128,
+      .color = fan::colors::blue - fan::color(0, 0, 0, 0.3),
       .blending = true
-  }};
+    }};
 
   loco.loop([&] {
     reset(grid);
     fan::vec2 world_pos = loco.get_mouse_position();
     c.set_position(world_pos);
-    set_colors(grid, world_pos, c.get_size().x);
+    set_colors2(grid, world_pos, c.get_size().x);
   });
 }
