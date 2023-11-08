@@ -462,10 +462,10 @@ public:
         calculate_aspect_ratio = true;
       }
 
-      coordinates.left = x.x * zoom;
-      coordinates.right = x.y * zoom;
-      coordinates.down = y.y * zoom;
-      coordinates.up = y.x * zoom;
+      coordinates.left = x.x / zoom;
+      coordinates.right = x.y / zoom;
+      coordinates.down = y.y / zoom;
+      coordinates.up = y.x / zoom;
 
       m_projection = fan::math::ortho<fan::mat4>(
         coordinates.left,

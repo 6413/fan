@@ -1804,7 +1804,7 @@ namespace fan {
               break;
             }
 
-            /* TODO temp fix said by dürüm */
+            /* TODO temp fix said by dÃ¼rÃ¼m */
             uint16_t button;
             if (event.xbutton.button == Button1) {
               button = mouse_left;
@@ -1861,7 +1861,7 @@ namespace fan {
               }
             }
 
-            /* TODO temp fix said by dürüm */
+            /* TODO temp fix said by dÃ¼rÃ¼m */
             uint16_t button;
             if (event.xbutton.button == Button1) {
               button = mouse_left;

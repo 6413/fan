@@ -1,30 +1,45 @@
 fan::string in;
-fan::io::file::read(filename, &in);
+if (fan::io::file::read(filename, &in)) {
+  #if defined(tile_map_editor_loader) 
+    fan::throw_error_format(
+  #else
+    fan::print_format(
+  #endif
+  "failed to load file, file:{}", filename);
+  #if !defined(tile_map_editor_loader) 
+  return;
+  #endif
+}
 uint64_t off = 0;
 uint32_t version = fan::read_data<uint32_t>(in, off);
 if (version != current_version) {
-  fan::print_format("invalid file version, file:{}, current:{}", version, current_version);
+  #if defined(tile_map_editor_loader) 
+    fan::throw_error_format(
+  #else
+    fan::print_format(
+  #endif
+  "invalid file version, file version:{}, current:{}", version, current_version);
+  #if !defined(tile_map_editor_loader) 
   return;
+  #endif
 }
+map_size = fan::read_data<fan::vec2ui>(in, off);
+tile_size = fan::read_data<fan::vec2ui>(in, off);
+
+#if !defined(tile_map_editor_loader) 
+map_tiles.resize(map_size.y);
+for (auto& i : map_tiles) {
+  i.resize(map_size.x);
+}
+#endif
+
 fan::mp_t<current_version_t::shapes_t> shapes;
 while (off != in.size()) {
   bool ignore = true;
   uint32_t byte_count = 0;
-  uint16_t shape_type = fan::read_data<uint16_t>(in, off);
   byte_count = fan::read_data<uint32_t>(in, off);
   shapes.iterate([&]<auto i0, typename T>(T & v0) {
-    if (!((loco_t::shape_type_t)shape_type == loco_t::shape_type_t::rectangle && T::shape_type == loco_t::shape_type_t::mark)) {
-      if ((loco_t::shape_type_t)shape_type != T::shape_type) {
-        return;
-      }
-    }
-
     ignore = false;
-
-
-    #if !defined(tile_map_editor_loader)
-    auto it = shape_list.NewNodeLast();
-    #endif
 
     fan::mp_t<T> shape;
     shape.iterate([&]<auto i, typename T2>(T2 & v) {
@@ -32,15 +47,19 @@ while (off != in.size()) {
     });
 
     #if defined(tile_map_editor_loader) 
-
+    v0 = shape;
     #else
-    shape_list[it] = shape.get_shape(this);
+    shape.get_shape(this);
     #endif
   });
   // if shape is not part of version
   if (ignore) {
     off += byte_count;
   }
+  #if defined(tile_map_editor_loader)
+  compiled_map.compiled_shapes.push_back(shapes);
+  #endif
 }
+
 
 #undef tile_map_editor_loader

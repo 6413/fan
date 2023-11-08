@@ -566,16 +566,28 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
     fan::print(struct_to_string(st));
   }
 
-  template <typename ...Args>
-  static void throw_error(const Args&... args) {
-    fan::print(args...);
+  static void throw_error_impl() {
     #ifdef fan_compiler_msvc
     system("pause");
     #endif
     #if __cpp_exceptions
     throw std::runtime_error("");
     #endif
-    //exit(1);
+  }
+
+  template <typename ...Args>
+  static void throw_error(const Args&... args) {
+    fan::print(args...);
+    throw_error_impl();
+  }
+
+  #define __FAN_PRINT_EACH(x) fan::print_no_endline("{", #x"=",x, "}")
+  #define fan_print(...) __FAN__FOREACH_NS(__FAN_PRINT_EACH, __VA_ARGS__);fan::print("")
+
+  template <typename... args_t>
+  constexpr static auto throw_error_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
+    fan::print(fmt::format(fmt, std::forward<args_t>(args)...));
+    throw_error_impl();
   }
 
   static void assert_test(bool test) {
