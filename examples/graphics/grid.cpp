@@ -3,6 +3,8 @@
 static constexpr fan::vec2 grid_size = fan::vec2(512, 512);
 static constexpr fan::vec2i grid_count = fan::vec2i(200, 200);
 
+std::vector<loco_t::shape_t> points;
+
 void reset(auto& grid) {
   for (int i = 0; i < grid_count.y; ++i) {
     for (int j = 0; j < grid_count.x; ++j) {
@@ -11,11 +13,12 @@ void reset(auto& grid) {
   }
 }
 void set_colors(auto& grid, fan::vec2 world_pos, f32_t radius) {
+  points.clear();
   fan::vec2f grid_posi = world_pos / grid_size;
   f32_t top = floor(grid_posi.y - radius / grid_size.y);
   f32_t bottom = ceil(grid_posi.y + radius / grid_size.y);
   for (f32_t j = top; j < bottom; ++j) {
-    f32_t offsety = j * grid_size.x - (world_pos.y - grid_size.y * !(j >= (top + bottom) / 2));
+    f32_t offsety = j * grid_size.x - world_pos.y;
     f32_t dx;
     fan::print(fmodf(world_pos.y / grid_size.y, 1));
     if (j == (top + bottom) / 2 - (fmodf(world_pos.y / grid_size.y, 1) >= 0.5 ? 1 : 0) || (top + 1 >= bottom)) {
@@ -24,15 +27,20 @@ void set_colors(auto& grid, fan::vec2 world_pos, f32_t radius) {
     else {
       dx = fan::math::sqrt(fan::math::abs(radius * radius - offsety * offsety));
     }
-    f32_t left = (world_pos.x - dx) / grid_size.x;
-    f32_t right = (world_pos.x + dx) / grid_size.x;
-    for (int i = left; i < ceil(right); ++i) {
-      // this if is only necessary for very big squares
-     if (ceil(i) <= floor((world_pos.x + radius) / grid_size.x) &&
-          floor(i) >= floor((world_pos.x - radius) / grid_size.x)) {
-        grid[std::min(std::max((int)i, 0), (int)grid_size.y)][std::min(std::max((int)j, 0), (int)grid_size.x)].r.set_color(fan::colors::green);
-      }
-    }
+    points.push_back(fan::graphics::rectangle_t{{
+        .position = fan::vec3(world_pos.x - dx, world_pos.y, 100),
+        .size = fan::vec2(10, 10),
+        .color = fan::colors::cyan
+    }});
+    //f32_t left = (world_pos.x - dx) / grid_size.x;
+    //f32_t right = (world_pos.x + dx) / grid_size.x;
+    //for (int i = left; i < ceil(right); ++i) {
+    //  // this if is only necessary for very big squares
+    // if (ceil(i) <= floor((world_pos.x + radius) / grid_size.x) &&
+    //      floor(i) >= floor((world_pos.x - radius) / grid_size.x)) {
+    //    grid[std::min(std::max((int)i, 0), (int)grid_size.y)][std::min(std::max((int)j, 0), (int)grid_size.x)].r.set_color(fan::colors::green);
+    //  }
+    //}
   }
 
   // this for loop only necessary for edge cases with size near 256
@@ -47,7 +55,7 @@ void set_colors(auto& grid, fan::vec2 world_pos, f32_t radius) {
 }
 
 int main() {
-  loco_t loco = loco_t::properties_t{.window_size = 600};
+  loco_t loco = loco_t::properties_t{.window_size = 1300};
   fan::vec2 viewport_size = loco.get_window()->get_size();
   loco.default_camera->camera.set_ortho(
     fan::vec2(0, viewport_size.x),

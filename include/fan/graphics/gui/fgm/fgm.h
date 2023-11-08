@@ -255,7 +255,7 @@ struct fgm_t {
 
       fan::vec2 editor_size;
 
-      if (ImGui::Begin(editor_str, nullptr, ImGuiWindowFlags_DockNodeHost)) {
+      if (ImGui::Begin(editor_str, nullptr)) {
         fan::vec2 window_size = gloco->get_window()->get_size();
         fan::vec2 viewport_size = ImGui::GetWindowSize();
         fan::vec2 ratio = viewport_size / viewport_size.max();
@@ -277,7 +277,7 @@ struct fgm_t {
 
       ImGui::End();
 
-      if (ImGui::Begin(create_str, nullptr, ImGuiWindowFlags_DockNodeHost)) {
+      if (ImGui::Begin(create_str, nullptr)) {
         static fan::mp_t<current_version_t::shapes_t> mp;
         mp.iterate([&]<auto i> (auto& v) {
           if (ImGui::Button(gloco->shape_names[(std::underlying_type_t<loco_t::shape_type_t>)v.shape_type])) {
@@ -313,7 +313,7 @@ struct fgm_t {
 
       ImGui::End();
 
-      if (ImGui::Begin(properties_str, nullptr, ImGuiWindowFlags_DockNodeHost)) {
+      if (ImGui::Begin(properties_str, nullptr)) {
         if (current_shape != nullptr) {
           open_properties(current_shape, editor_size);
         }

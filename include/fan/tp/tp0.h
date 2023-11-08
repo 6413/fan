@@ -1,7 +1,5 @@
 struct ti_t {
 
-  ti_t() = default;
-
   bool qti(auto* texture_pack, const fan::string& name) {
     return texture_pack->qti(name, this);
   }

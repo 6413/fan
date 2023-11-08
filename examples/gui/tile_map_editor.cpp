@@ -5,8 +5,9 @@
 int main() {
   loco_t loco;
 
-  ftme_t fte;
-  fte.open("TexturePack");
+  ftme_t ftme;
+  ftme.open("TexturePack");
+  ftme.fin("file.ftme");
 
   loco.set_vsync(0);
   loco.get_window()->set_max_fps(165);

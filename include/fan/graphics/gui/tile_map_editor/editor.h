@@ -4,16 +4,6 @@ struct ftme_t {
 
   static constexpr int current_version = 001;
 
-  static constexpr auto editor_str = "Editor";
-  static constexpr auto create_str = "Create";
-  static constexpr auto properties_str = "Properties";
-
-  static constexpr int max_path_input = 40;
-
-  static constexpr fan::vec2 default_button_size{100, 30};
-
-  fan::string file_name = "file.ftme";
-
   // can have like sensor, etc
   struct mesh_property_t : fan::any_type_wrap_t<uint8_t> {
     using fan::any_type_wrap_t<uint8_t>::any_type_wrap_t;
@@ -21,12 +11,26 @@ struct ftme_t {
     static constexpr uint8_t collision_solid = 1;
   };
 
+  static constexpr auto editor_str = "Editor";
+  static constexpr auto editor_settings_str = "Editor settings";
+  static constexpr auto properties_str = "Properties";
+
+  static constexpr int max_path_input = 40;
+
+  static constexpr fan::vec2 default_button_size{100, 30};
+  static constexpr fan::vec2 tile_viewer_sprite_size{64, 64};
+  static constexpr fan::color highlighted_tile_color = fan::color(0.5, 0.5, 1);
+
+  fan::string file_name = "file.ftme";
+
   struct shapes_t {
     struct global_t : fan::graphics::vfi_root_t, fan::graphics::imgui_element_t {
 
       struct shape_data {
         struct cell_t {
-          mesh_property_t mesh_property = mesh_property_t::none;
+          uint8_t mesh_property = mesh_property_t::none;
+          uint64_t image_hash = 0;
+          uint8_t color_idx = 0;
         }cell;
       }shape_data;
 
@@ -56,7 +60,7 @@ struct ftme_t {
                 root->current_tile->children[0].set_color(fan::color(1, 1, 1));
               }
               if (children.size()) {
-                children[0].set_color(fan::color(0.5, 0.5, 1));
+                children[0].set_color(highlighted_tile_color);
                 root->current_tile = this;
               }
             }
@@ -75,6 +79,53 @@ struct ftme_t {
       uint32_t group_id = 0;
     };
   };
+
+  struct version_001_t {
+    struct shapes_t {
+      struct cell_t {
+
+        void init(ftme_t::shapes_t::global_t* g) {
+          position = g->get_position();
+          image_hash = g->shape_data.cell.image_hash;
+          mesh_property = g->shape_data.cell.mesh_property;
+          color_idx = g->shape_data.cell.color_idx;
+        }
+
+        void get_shape(ftme_t* ftme) {
+          fan::vec2ui grid_idx(
+            (position.x - ftme->tile_size.x) / ftme->tile_size.x / 2,
+            (position.y - ftme->tile_size.y) / ftme->tile_size.y / 2
+          );
+          auto& instance = ftme->map_tiles[grid_idx.y][grid_idx.x];
+          instance =
+            std::make_unique<ftme_t::shapes_t::global_t>(ftme, fan::graphics::sprite_t{{
+              .position = fan::vec3(position, 0),
+              .size = ftme->tile_size
+            }});
+
+          loco_t::texturepack_t::ti_t ti;
+          if (ftme->texturepack.qti(image_hash, &ti)) {
+            fan::throw_error("failed to read image from .ftme - editor save file corrupted");
+          }
+          gloco->shapes.sprite.load_tp(
+            instance->children[0],
+            &ti
+          );
+          instance->shape_data.cell.image_hash = image_hash;
+          instance->shape_data.cell.mesh_property = mesh_property;
+          instance->shape_data.cell.color_idx = color_idx;
+        }
+
+        fan::vec2ui position;
+        uint64_t image_hash;
+        uint8_t mesh_property;
+        uint8_t color_idx;
+      }c; // dummy for iterating struct
+    };
+  };
+
+  using current_version_t = version_001_t;
+
 
   enum class event_type_e {
     none,
@@ -95,17 +146,30 @@ struct ftme_t {
 
     {
       erasing = true;
-      static loco_t::image_t* textures[2]{&texture_light_gray, &texture_dark_gray};
       uint32_t y = 0;
       uint8_t offset = 0; // creates grid pattern
       for (auto& i : map_tiles) {
         uint32_t x = 0;
         for (auto& j : i) {
+          uint32_t idx = (y * map_size.x + x + ((map_size.x & 1 & y & 1) ? 0 : offset)) & 1;
+          if (j) {
+            j->set_position(fan::vec3(tile_size + fan::vec2(x, y) * tile_size * 2, 0));
+            j->set_size(tile_size);
+            if (j->children.size()) {
+              j->children[0].set_color(1);
+              if (j->children[0].get_image() == &texture_gray_shades[0] || j->children[0].get_image() == &texture_gray_shades[1]) {
+                j->children[0].set_image(&texture_gray_shades[idx]);
+              }
+            }
+            ++x;
+            continue;
+          }
           j = std::make_unique<shapes_t::global_t>(this, fan::graphics::sprite_t{{
-              .position = fan::vec3(tile_size + fan::vec2(x, y) * tile_size * 2, 0),
-              .size = tile_size,
-              .image = textures[(y * map_size.x + x + offset) & 1]
-            }});
+            .position = fan::vec3(tile_size + fan::vec2(x, y) * tile_size * 2, 0),
+            .size = tile_size,
+            .image = &texture_gray_shades[idx]
+          }});
+          j->shape_data.cell.color_idx = idx;
           ++x;
         }
         ++y;
@@ -122,8 +186,7 @@ struct ftme_t {
     gloco->get_window()->add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
         gloco->default_camera->camera.set_camera_position(viewport_settings.pos - (d.position -
-          viewport_settings.offset) * viewport_settings.zoom);
-        fan::print("o", d.position);
+          viewport_settings.offset) * viewport_settings.zoom); // todo fix 
       }
     });
 
@@ -131,6 +194,10 @@ struct ftme_t {
       if (ImGui::IsAnyItemActive()) {
         return;
       }
+      if (!editor_settings.hovered) {
+        return;
+      }
+      
 
       {// handle camera movement
         switch (d.button) {
@@ -162,13 +229,30 @@ struct ftme_t {
     });
 
     // transparent pattern
-    texture_light_gray.create(fan::color::rgb(60, 60, 60, 255), fan::vec2(1, 1));
-    texture_dark_gray.create(fan::color::rgb(40, 40, 40, 255), fan::vec2(1, 1));
+    texture_gray_shades[0].create(fan::color::rgb(60, 60, 60, 255), fan::vec2(1, 1));
+    texture_gray_shades[1].create(fan::color::rgb(40, 40, 40, 255), fan::vec2(1, 1));
 
-    viewport_settings.pos = map_size * tile_size;
-    gloco->default_camera->camera.set_camera_position(viewport_settings.pos);
+    viewport_settings.size = 0;
 
     resize_map();
+
+    texturepack_images.reserve(texturepack.texture_list.size());
+
+    texturepack.iterate_loaded_images([this](auto& image, uint32_t pack_id) {
+      image_info_t ii;
+      ii.ti = loco_t::texturepack_t::ti_t{
+        .pack_id = pack_id,
+        .position = image.position,
+        .size = image.size,
+        .image = &texturepack.get_pixel_data(pack_id).image
+      };
+
+      ii.ti.position /= ii.ti.image->size;
+      ii.ti.size /= ii.ti.image->size;
+      ii.image_hash = image.hash;
+
+      texturepack_images.push_back(ii);
+    });
   }
   void close() {
     texturepack.close();
@@ -176,95 +260,6 @@ struct ftme_t {
 
   void open_properties(shapes_t::global_t* shape, const fan::vec2& editor_size) {
 
-   /* fan::string shape_str = fan::string("Shape name:") + gloco->shape_names[shape->children[0]->shape_type];
-    ImGui::Text(shape_str.c_str());
-
-    make_line(fan::vec3, position);
-    make_line(fan::vec2, size);
-
-    {
-      ImGui::Text("angle");
-      ImGui::SameLine();
-      f32_t angle = shape->children[0].get_angle();
-      angle = fan::math::degrees(angle);
-      ImGui::SliderFloat("##hidden_label1" "angle", &angle, 0, 360);
-      angle = fan::math::radians(angle);
-      shape->children[0].set_angle(angle);
-
-    }
-
-    {
-      fan::string& id = current_shape->id;
-      fan::string str = id;
-      str.resize(max_id_input);
-      ImGui::Text("id");
-      ImGui::SameLine();
-      if (ImGui::InputText("##hidden_label0" "id", str.data(), str.size())) {
-        \
-          if (ImGui::IsItemDeactivatedAfterEdit()) {
-            fan::string new_id = str.substr(0, std::strlen(str.c_str()));
-            if (!id_exists(new_id)) {
-              id = new_id;
-            }
-          }
-      }
-    }
-    {
-      fan::string id = std::to_string(current_shape->group_id);
-      fan::string str = id;
-      str.resize(max_id_input);
-      ImGui::Text("group id");
-      ImGui::SameLine();
-      if (ImGui::InputText("##hidden_label0" "group id", str.data(), str.size())) {
-        \
-          if (ImGui::IsItemDeactivatedAfterEdit()) {
-            current_shape->group_id = std::stoul(str);
-          }
-      }
-    }
-    switch ((loco_t::shape_type_t)shape->children[0]->shape_type) {
-      case loco_t::shape_type_t::unlit_sprite:
-      case loco_t::shape_type_t::sprite: {
-        fan::string& current = shape->shape_data.sprite.image_name;
-        fan::string str = current;
-        str.resize(max_path_input);
-        ImGui::Text("image name");
-        ImGui::SameLine();
-        if (ImGui::InputText("##hidden_label4", str.data(), str.size())) {
-          if (ImGui::IsItemDeactivatedAfterEdit()) {
-            loco_t::texturepack_t::ti_t ti;
-            if (texturepack.qti(str, &ti)) {
-              fan::print_no_space("failed to load texture:", str);
-            }
-            else {
-              current = str.substr(0, std::strlen(str.c_str()));
-              auto& data = texturepack.get_pixel_data(ti.pack_id);
-              if ((loco_t::shape_type_t)shape->children[0]->shape_type == loco_t::shape_type_t::sprite) {
-                gloco->shapes.sprite.load_tp(shape->children[0], &ti);
-              }
-              else if ((loco_t::shape_type_t)shape->children[0]->shape_type == loco_t::shape_type_t::unlit_sprite) {
-                gloco->shapes.unlit_sprite.load_tp(shape->children[0], &ti);
-              }
-            }
-          }
-        }
-        break;
-      }
-    }*/
-  }
-
-  void push_shape(loco_t::shape_type_t shape_type, const fan::vec2& pos) {
-  //  auto nr = shape_list.NewNodeLast();
-
-   /* static fan::mp_t<current_version_t::shapes_t> mp;
-    mp.iterate([&]<auto i, typename T> (T & v) {
-      if (shape_type == v.shape_type) {
-        shape_list[nr] = new shapes_t::global_t{this, typename T::type_t{{
-            .position = pos,
-            .size = 100
-          }}};
-      }
-    });*/
   }
 
   fan::graphics::imgui_element_t main_view =
@@ -285,7 +280,7 @@ struct ftme_t {
 
       fan::vec2 editor_size;
 
-      if (ImGui::Begin(editor_str, nullptr, ImGuiWindowFlags_DockNodeHost)) {
+      if (ImGui::Begin(editor_str, nullptr)) {
         fan::vec2 window_size = gloco->get_window()->get_size();
         fan::vec2 viewport_size = ImGui::GetWindowSize();
         fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
@@ -294,22 +289,56 @@ struct ftme_t {
           fan::vec2(offset.x, viewport_size.x - offset.x),
           fan::vec2(offset.y, viewport_size.y - offset.y)
         );
+
         gloco->default_camera->camera.set_camera_zoom(viewport_settings.zoom);
         gloco->default_camera->viewport.set(viewport_pos, viewport_size, window_size);
         editor_size = ImGui::GetContentRegionAvail();
+        viewport_settings.size = editor_size;
       }
 
-      if (ImGui::IsWindowHovered()) {
-        if (ImGui::IsMouseClicked(0) &&
-       event_type == event_type_e::add) {
-          ImVec2 pos = ImGui::GetMousePos();
-          push_shape(selected_shape_type, pos);
+      editor_settings.hovered = ImGui::IsWindowHovered();
+
+      // add texture
+      if (editor_settings.hovered) {
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+          if (current_tile != nullptr && current_tile_image.ti.image != nullptr && current_tile->children.size()) {
+            gloco->shapes.sprite.set(
+              current_tile->children[0],
+              &loco_t::shapes_t::sprite_t::vi_t::tc_position,
+              current_tile_image.ti.position
+            );
+            gloco->shapes.sprite.set(
+              current_tile->children[0],
+              &loco_t::shapes_t::sprite_t::vi_t::tc_size,
+              current_tile_image.ti.size
+            );
+            current_tile->children[0].set_color(1);
+            current_tile->children[0].set_image(current_tile_image.ti.image);
+            current_tile->shape_data.cell.image_hash = current_tile_image.image_hash;
+          }
+        }
+        //remove texture
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+          if (current_tile != nullptr && current_tile->children.size()) {
+            gloco->shapes.sprite.set(
+              current_tile->children[0],
+              &loco_t::shapes_t::sprite_t::vi_t::tc_position,
+              0
+            );
+            gloco->shapes.sprite.set(
+              current_tile->children[0],
+              &loco_t::shapes_t::sprite_t::vi_t::tc_size,
+              1
+            );
+            current_tile->children[0].set_color(highlighted_tile_color);
+            current_tile->children[0].set_image(&texture_gray_shades[current_tile->shape_data.cell.color_idx]);
+          }
         }
       }
 
       ImGui::End();
 
-      if (ImGui::Begin(create_str, nullptr, ImGuiWindowFlags_DockNodeHost)) {
+      if (ImGui::Begin(editor_settings_str, nullptr)) {
         {
           static auto make_setting_ii2 = [&](const char* title, auto& value, auto todo){
             auto i = value;
@@ -322,9 +351,9 @@ struct ftme_t {
           };
 
           make_setting_ii2("map size", map_size, [this] { resize_map(); });
-          make_setting_ii2("tile size", tile_size, [] {});
+          make_setting_ii2("tile size", tile_size, [this] { resize_map(); });
 
-          fan::vec2 window_size = ImGui::GetWindowSize();
+          fan::vec2 window_size = ImGui::GetWindowSize(); 
           fan::vec2 cursor_pos(
             window_size.x - default_button_size.x - ImGui::GetStyle().WindowPadding.x,
             window_size.y - default_button_size.y - ImGui::GetStyle().WindowPadding.y
@@ -344,21 +373,160 @@ struct ftme_t {
 
       ImGui::End();
 
-      if (ImGui::Begin(properties_str, nullptr, ImGuiWindowFlags_DockNodeHost)) {
+      if (ImGui::Begin(properties_str, nullptr, ImGuiWindowFlags_HorizontalScrollbar)) {
+
+        {
+          int images_per_row = 4;
+          static uint32_t current_image_idx = -1;
+          for (uint32_t i = 0; i < texturepack_images.size(); i++) {
+            auto& node = texturepack_images[i];
+
+            bool selected = false;
+            if (current_image_idx == i) {
+              ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 0.0f, 0.5f));
+              ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 0.0f, 0.5f));
+              ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 0.0f, 0.5f));
+              selected = true;
+            }
+
+            if (ImGui::ImageButton(
+              (fan::string("##ibutton") + std::to_string(i)).c_str(),
+              (void*)(intptr_t)*node.ti.image->get_texture(),
+              tile_viewer_sprite_size,
+              node.ti.position,
+              node.ti.position + node.ti.size
+            )) {
+              current_image_idx = i;
+              current_tile_image = node;
+            }
+
+            if (selected) {
+              ImGui::PopStyleColor(3);
+            }
+
+            if ((i + 1) % images_per_row != 0)
+              ImGui::SameLine();
+          }
+        }
+
         if (current_tile != nullptr) {
-          open_properties(current_tile, editor_size);
+          //open_properties(current_tile, editor_size);
         }
       }
 
       ImGui::End();
   });
 
+  /*
+  * header
+  header version 4 byte
+  map size 8 byte
+  tile size 8 byte
+  struct size x byte
+  shape data{
+    ...
+  }
+  */
   void fout(const fan::string& filename) {
+    fan::string ostr;
+    ostr.append((char*)&current_version, sizeof(current_version));
+    ostr.append((char*)map_size.data(), sizeof(map_size));
+    ostr.append((char*)tile_size.data(), sizeof(tile_size));
 
+    for (auto& i : map_tiles) {
+      for (auto& j : i) {
+        if (j->children.empty() || 
+          j->children[0].get_image() == &texture_gray_shades[0] ||
+          j->children[0].get_image() == &texture_gray_shades[1] ||
+          j->shape_data.cell.image_hash == 0
+          ) {
+          continue;
+        }
+
+        fan::mp_t<current_version_t::shapes_t> shapes;
+
+        shapes.iterate([&]<auto i0, typename T>(T & l) {
+          fan::mp_t<T> shape;
+          shape.init(j.get());
+
+          fan::string shape_str;
+          shape.iterate([&]<auto i1, typename T2>(T2 & v) {
+            if constexpr (std::is_same_v<T2, fan::string>) {
+              uint64_t string_length = v.size();
+              shape_str.append((char*)&string_length, sizeof(string_length));
+              shape_str.append(v);
+            }
+            else {
+              shape_str.append((char*)&v, sizeof(T2));
+            }
+          });
+
+          uint32_t struct_size = shape_str.size();
+          ostr.append((char*)&struct_size, sizeof(struct_size));
+
+          ostr += shape_str;
+        });
+      }
+    }
+    fan::io::file::write(filename, ostr, std::ios_base::binary);
+    fan::print("file saved to:" + filename);
   }
 
+    /*
+  * header
+  header version 4 byte
+  map size 8 byte
+  tile size 8 byte
+  struct size x byte
+  shape data{
+    ...
+  }
+  */
   void fin(const fan::string& filename) {
+    fan::string in;
+    if (fan::io::file::read(filename, &in)) {
+      return;
+    }
+    uint64_t off = 0;
+    uint32_t version = fan::read_data<uint32_t>(in, off);
+    if (version != current_version) {
+      fan::print_format("invalid file version, file:{}, current:{}", version, current_version);
+      return;
+    }
+    map_size = fan::read_data<fan::vec2ui>(in, off);
+    tile_size = fan::read_data<fan::vec2ui>(in, off);
 
+    map_tiles.resize(map_size.y);
+    for (auto& i : map_tiles) {
+      i.resize(map_size.x);
+    }
+
+    fan::mp_t<current_version_t::shapes_t> shapes;
+    while (off != in.size()) {
+      bool ignore = true;
+      uint32_t byte_count = 0;
+      byte_count = fan::read_data<uint32_t>(in, off);
+      shapes.iterate([&]<auto i0, typename T>(T & v0) {
+        ignore = false;
+
+        fan::mp_t<T> shape;
+        shape.iterate([&]<auto i, typename T2>(T2 & v) {
+          v = fan::read_data<T2>(in, off);
+        });
+
+        #if defined(tile_map_editor_loader) 
+
+        #else
+          shape.get_shape(this);
+        #endif
+      });
+      // if shape is not part of version
+      if (ignore) {
+        off += byte_count;
+      }
+    }
+
+    #undef tile_map_editor_loader
   }
 
   void invalidate_current() {
@@ -389,21 +557,36 @@ struct ftme_t {
   loco_t::shape_type_t selected_shape_type = loco_t::shape_type_t::invalid;
   shapes_t::global_t* current_tile = nullptr;
 
+  struct image_info_t {
+    loco_t::texturepack_t::ti_t ti;
+    uint64_t image_hash;
+  };
+
+  image_info_t current_tile_image;
+
   uint32_t current_id = 0;
   std::vector<std::vector<std::unique_ptr<shapes_t::global_t>>> map_tiles;
 
   loco_t::texturepack_t texturepack;
   // tile pattern
-  loco_t::image_t texture_light_gray, texture_dark_gray;
+  loco_t::image_t texture_gray_shades[2];
 
   fan::function_t<void()> close_cb = [] {};
+
+  std::vector<image_info_t> texturepack_images;
 
   struct {
     f32_t zoom = 1;
     bool move = false;
-    fan::vec2 pos;
+    fan::vec2 pos = 0;
+    fan::vec2 size = 0;
     fan::vec2 offset = 0;
   }viewport_settings;
+
+  struct {
+    bool hovered = false;
+  }editor_settings;
+
   // very bad fix to prevent mouse move cb when erasing vfi
   bool erasing = false;
 };
