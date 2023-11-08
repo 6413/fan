@@ -147,24 +147,33 @@ struct texturepack_t {
     pixel_data_list.close();
   }
 
+  void iterate_loaded_images(auto lambda) {
+    for (uint32_t i = 0; i < texture_list.size(); i++) {
+      for (uint32_t j = 0; j < texture_list[i].size(); j++) {
+        lambda(texture_list[i][j], i);
+      }
+    }
+  }
+
   // query texturepack image
   bool qti(const fan::string& name, ti_t* ti) {
     return qti(fan::get_hash(name), ti);
   }
   bool qti(uint64_t hash, ti_t* ti) {
-
-    for (uint32_t i = 0; i < texture_list.size(); i++) {
-      for (uint32_t j = 0; j < texture_list[i].size(); j++) {
-        if (texture_list[i][j].hash == hash) {
-          ti->pack_id = i;
-          ti->position = texture_list[i][j].position;
-          ti->size = texture_list[i][j].size;
-          ti->image = &get_pixel_data(ti->pack_id).image;
-          return 0;
-        }
+    bool ret = 1;
+    iterate_loaded_images([&] (auto& image, uint32_t pack_id){
+      if (ret == 0) {
+        return;
       }
-    }
-
-    return 1;
+      if (image.hash == hash) {
+        ti->pack_id = pack_id;
+        ti->position = image.position;
+        ti->size = image.size;
+        ti->image = &get_pixel_data(ti->pack_id).image;
+        ret = 0;
+        return;
+      }
+    });
+    return ret;
   }
 };

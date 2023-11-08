@@ -717,7 +717,7 @@ public:
 
   struct properties_t {
     bool vsync = true;
-    fan::vec2 window_size = 800;
+    fan::vec2 window_size = 1300;
   };
 
   static constexpr uint32_t max_depths = 2;
@@ -1283,7 +1283,17 @@ public:
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
 
     get_window()->add_buttons_callback([&](const auto& d) {
-      io.AddMouseButtonEvent(d.button - fan::mouse_left, (bool)d.state);
+      if (d.button != fan::mouse_scroll_up && d.button != fan::mouse_scroll_down) {
+        io.AddMouseButtonEvent(d.button - fan::mouse_left, (bool)d.state);
+      }
+      else {
+        if (d.button == fan::mouse_scroll_up) {
+          io.AddMouseWheelEvent(0, 1);
+        }
+        else if (d.button == fan::mouse_scroll_down) {
+          io.AddMouseWheelEvent(0, -1);
+        }
+      }
     });
     get_window()->add_keys_callback([&](const auto& d) {
       ImGuiKey imgui_key = fan::window_input::fan_to_imguikey(d.key);

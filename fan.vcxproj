@@ -359,6 +359,7 @@
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\1.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\preset.h" />
     <ClInclude Include="include\fan\graphics\gui\tile_map_editor\editor.h" />
+    <ClInclude Include="include\fan\graphics\gui\tile_map_editor\loader_versions\1.h" />
     <ClInclude Include="include\fan\graphics\loco.h" />
     <ClInclude Include="include\fan\graphics\loco0.h" />
     <ClInclude Include="include\fan\graphics\loco0_define.h" />
