@@ -339,27 +339,35 @@ struct vfi_root_t {
       if (d.mouse_stage != loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
         return 0;
       }
-      d.flag->ignore_move_focus_check = true;
-      this->move = true;
-      this->click_offset = fan::vec2(get_position()) - d.position;
-      gloco->shapes.vfi.set_focus_keyboard(d.vfi->focus.mouse);
-      return user_cb(d);
-      };
-    in.mouse_move_cb = [this, user_cb = p.mouse_move_cb](const auto& d) -> int {
-      if (this->resize && this->move) {
-        fan::vec2 new_size = (d.position - fan::vec2(get_position()));
-        static constexpr fan::vec2 min_size(10, 10);
-        new_size.constrain(min_size);
-        this->set_size(new_size.x);
-        return user_cb(d);
+      
+      if (move_and_resize_auto) {
+        d.flag->ignore_move_focus_check = true;
+        this->move = true;
+        this->click_offset = fan::vec2(get_position()) - d.position;
+        gloco->shapes.vfi.set_focus_keyboard(d.vfi->focus.mouse);
       }
-      else if (this->move) {
-        fan::vec3 p = get_position();
-        this->set_position(fan::vec3(d.position + click_offset, p.z));
+      return user_cb(d);
+    };
+    in.mouse_move_cb = [this, user_cb = p.mouse_move_cb](const auto& d) -> int {
+      if (move_and_resize_auto) {
+        if (this->resize && this->move) {
+          fan::vec2 new_size = (d.position - fan::vec2(get_position()));
+          static constexpr fan::vec2 min_size(10, 10);
+          new_size.constrain(min_size);
+          this->set_size(new_size.x);
+          return user_cb(d);
+        }
+        else if (this->move) {
+          fan::vec3 p = get_position();
+          this->set_position(fan::vec3(d.position + click_offset, p.z));
+          return user_cb(d);
+        }
+      }
+      else {
         return user_cb(d);
       }
       return 0;
-      };
+    };
     vfi_root = in;
   }
   void push_child(const loco_t::shape_t& shape) {
@@ -390,6 +398,9 @@ struct vfi_root_t {
   fan::vec2 click_offset = 0;
   bool move = false;
   bool resize = false;
+  
+  bool move_and_resize_auto = true;
+
   loco_t::shape_t vfi_root;
   std::vector<loco_t::shape_t> children;
 };

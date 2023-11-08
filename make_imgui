@@ -1,6 +1,6 @@
 # compiler settings
 CXX = clang++
-CXXFLAGS = -I . -std=c++2a -I include -w
+CXXFLAGS = -I . -std=c++2a -I include
 
 # source files and output
 IMGUI_SRC = $(wildcard $(IMGUI_PATH)*.cpp)
@@ -17,7 +17,7 @@ LINUX_ROOT_PATH = /usr/include/
 FAN_INCLUDE_PATH =
 
 DEBUG_FLAGS = 
-RELEASE_FLAGS = -s -O3 -march=native -mtune=native
+RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -Wl,--gc-sections
 
 INCLUDES =
 ifeq ($(OS),Windows_NT)
@@ -33,6 +33,9 @@ else
 endif
 
 CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
+
+#note
+CXXFLAGS += $(RELEASE_FLAGS)
 
 PCH_NAME = pch.h
 CXXFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"

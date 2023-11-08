@@ -13,7 +13,7 @@ FAN_INCLUDE_PATH =
 FAN_LIB =
 
 DEBUG_FLAGS = 
-RELEASE_FLAGS = -s -O3 -march=native -mtune=native
+RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
 
 # includes & link
 WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I $(WINDOWS_ROOT_PATH)fan/src/libwebp -I $(WINDOWS_ROOT_PATH)fan/src/libwebp/src -I ..
@@ -43,7 +43,7 @@ debug:
 	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT) $(INCLUDES)
 
 release:
-	$(CXX) $(CXXFLAGS) $(RELEASE_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT) $(INCLUDES)
+		$(CXX) $(CXXFLAGS) $(RELEASE_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT) $(INCLUDES)
 
 clean:
 	rm -f $(OUTPUT)

@@ -303,6 +303,52 @@ struct image_t {
     context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
   }
 
+  void create_transparent_texture() {
+    load_properties_t p;
+    auto* context = gloco->get_context();
+
+    uint8_t* pixels = (uint8_t*)malloc(sizeof(uint8_t) * (2 * 2 * fan::color::size()));
+    uint32_t pixel = 0;
+
+    pixels[pixel++] = 60;
+    pixels[pixel++] = 60;
+    pixels[pixel++] = 60;
+    pixels[pixel++] = 255;
+
+    pixels[pixel++] = 40;
+    pixels[pixel++] = 40;
+    pixels[pixel++] = 40;
+    pixels[pixel++] = 255;
+
+    pixels[pixel++] = 40;
+    pixels[pixel++] = 40;
+    pixels[pixel++] = 40;
+    pixels[pixel++] = 255;
+
+    pixels[pixel++] = 60;
+    pixels[pixel++] = 60;
+    pixels[pixel++] = 60;
+    pixels[pixel++] = 255;
+
+    p.visual_output = fan::opengl::GL_REPEAT;
+
+    create_texture();
+    bind_texture();
+
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
+
+    size = fan::vec2i(2, 2);
+
+    context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, 2, 2, 0, p.format, p.type, pixels);
+
+    free(pixels);
+
+    context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+  }
+
   fan::_vec4<fan::vec2> calculate_aspect_ratio(const fan::vec2& size, f32_t scale) {
 
     fan::_vec4<fan::vec2> tc = {
