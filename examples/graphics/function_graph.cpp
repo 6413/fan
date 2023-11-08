@@ -8,15 +8,13 @@ int main() {
   loco_t loco;
 
   fan::vec2 window_size = loco.get_window()->get_size();
-  fan::graphics::default_camera->camera.set_ortho(
+  loco.default_camera->camera.set_ortho(
     fan::vec2(0, window_size.x),
     fan::vec2(0, window_size.y)
   );
 
   loco_t::shape_t line = fan_init_struct(
-    loco_t::line_t::properties_t,
-    .camera = &fan::graphics::default_camera->camera,
-    .viewport = &fan::graphics::default_camera->viewport,
+    loco_t::shapes_t::line_t::properties_t,
     .src = fan::vec2(),
     .dst = fan::vec2(),
     .color = fan::colors::white
@@ -62,14 +60,14 @@ int main() {
   f32_t zoom = 1;
 
   bool move = false;
-  fan::vec2 pos = fan::graphics::default_camera->camera.get_camera_position();
+  fan::vec2 pos = loco.default_camera->camera.get_camera_position();
   fan::vec2 offset = loco.get_mouse_position();
 
   loco.get_window()->add_buttons_callback([&](const auto& d) {
 
     auto update_zoom = [zoom] {
       auto window_size = gloco->get_window()->get_size();
-      fan::graphics::default_camera->camera.set_ortho(
+      gloco->default_camera->camera.set_ortho(
         fan::vec2(0, window_size.x * zoom),
         fan::vec2(0, window_size.y * zoom)
       );
@@ -94,13 +92,13 @@ int main() {
       }
    };
     move = (bool)d.state;
-    pos = fan::graphics::default_camera->camera.get_camera_position();
-    offset = loco.get_mouse_position();
+    pos = gloco->default_camera->camera.get_camera_position();
+    offset = gloco->get_mouse_position();
   });
 
   loco.get_window()->add_mouse_move_callback([&](const auto& d) {
     if (move) {
-      fan::graphics::default_camera->camera.set_camera_position(pos - (d.position - offset) * zoom);
+      gloco->default_camera->camera.set_camera_position(pos - (d.position - offset) * zoom);
     }
   });
 

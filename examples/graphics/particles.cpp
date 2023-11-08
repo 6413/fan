@@ -44,6 +44,12 @@ int main() {
       }
     }
     {
+      static fan::vec3 position = p.position;
+      if (ImGui::SliderFloat3("position", position.data(), 0, 800.0f)) {
+        vi.position = position;
+      }
+    }
+    {
       static f32_t size = p.size.x;
       if (ImGui::SliderFloat("size", &size, 10.0f, 800.0f)) {
         vi.size = size;
@@ -70,7 +76,7 @@ int main() {
     }
     {
       static f32_t count = p.count;
-      if (ImGui::SliderFloat("count", &count, 1, 1000)) {
+      if (ImGui::SliderFloat("count", &count, 1, 5000)) {
         ri.count = count;
       }
     }

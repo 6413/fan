@@ -1117,6 +1117,7 @@ namespace fan {
 
   template <typename T>
   struct any_type_wrap_t {
+    constexpr any_type_wrap_t(const T& value) : v(value) {}
     operator T& () {
       return v;
     }

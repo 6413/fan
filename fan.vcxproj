@@ -353,12 +353,12 @@
     <ClInclude Include="include\fan\graphics\common_types.h" />
     <ClInclude Include="include\fan\graphics\divider.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\fgm.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\shapes.h" />
     <ClInclude Include="include\fan\graphics\gui\model_maker\loader.h" />
     <ClInclude Include="include\fan\graphics\gui\model_maker\maker.h" />
     <ClInclude Include="include\fan\graphics\gui\responsive_text.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader_versions\1.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\preset.h" />
+    <ClInclude Include="include\fan\graphics\gui\tile_map_editor\editor.h" />
     <ClInclude Include="include\fan\graphics\loco.h" />
     <ClInclude Include="include\fan\graphics\loco0.h" />
     <ClInclude Include="include\fan\graphics\loco0_define.h" />
@@ -381,12 +381,9 @@
     <ClInclude Include="include\fan\graphics\font.h" />
     <ClInclude Include="include\fan\graphics\graphics.h" />
     <ClInclude Include="include\fan\graphics\gui\fed.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\shape_builder_close.h" />
     <ClInclude Include="include\fan\graphics\gui\button.h" />
     <ClInclude Include="include\fan\graphics\gui\select_box.h" />
     <ClInclude Include="include\fan\graphics\gui\fgm\common.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\shape_builder.h" />
-    <ClInclude Include="include\fan\graphics\gui\fgm\private.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\loader.h" />
     <ClInclude Include="include\fan\graphics\gui\stage_maker\maker.h" />
     <ClInclude Include="include\fan\graphics\gui\text_box.h" />
@@ -483,7 +480,7 @@
     <ClInclude Include="stages_compile\stage_fuel_station.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="examples\gui\button.cpp" />
+    <ClCompile Include="examples\gui\tile_map_editor.cpp" />
     <ClCompile Include="include\fan\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

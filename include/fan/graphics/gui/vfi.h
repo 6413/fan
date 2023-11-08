@@ -338,7 +338,8 @@ struct vfi_t {
     ((T*)&shape_list[id].shape_data.shape.rectangle)->*member = value;
   }
 
-  void set_common_data(shape_id_t id, auto common_shape_data_t::*member, auto value) {
+  void set_common_data(shape_id_t in, auto common_shape_data_t::*member, auto value) {
+    shape_id_wrap_t id(&in);
     shape_list[id].shape_data.*member = value;
   }
 

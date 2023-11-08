@@ -405,6 +405,7 @@ public:
       auto* context = gloco->get_context();
       m_view = fan::mat4(1);
       camera_position = 0;
+      zoom = 1;
       camera_reference = gloco->camera_list.NewNode();
       gloco->camera_list[camera_reference].camera_id = this;
     }
@@ -433,6 +434,10 @@ public:
       m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
     }
 
+    void set_camera_zoom(f32_t new_zoom) {
+      zoom = new_zoom;
+    }
+
     fan::vec2 get_camera_size() const {
       return fan::vec2(std::abs(coordinates.right - coordinates.left), std::abs(coordinates.down - coordinates.up));
     }
@@ -457,22 +462,23 @@ public:
         calculate_aspect_ratio = true;
       }
 
+      coordinates.left = x.x * zoom;
+      coordinates.right = x.y * zoom;
+      coordinates.down = y.y * zoom;
+      coordinates.up = y.x * zoom;
+
       m_projection = fan::math::ortho<fan::mat4>(
-        x.x,
-        x.y,
+        coordinates.left,
+        coordinates.right,
         #if defined (loco_opengl)
-        y.y,
-        y.x,
+        coordinates.down,
+        coordinates.up,
         0.1,
         znearfar / 2
         #endif
 
 
       );
-      coordinates.left = x.x;
-      coordinates.right = x.y;
-      coordinates.down = y.y;
-      coordinates.up = y.x;
 
       m_view[3][0] = 0;
       m_view[3][1] = 0;
@@ -504,6 +510,7 @@ public:
     fan::mat4 m_view;
 
     fan::vec3 camera_position;
+    f32_t zoom;
 
     union {
       struct {
@@ -888,6 +895,10 @@ public:
     fan_build_get_set_plain(loco_t::camera_t*, camera);
     fan_build_get_set_plain(loco_t::image_t*, image);
 
+    void set_line(const fan::vec3& src, const fan::vec2& dst) {
+      gloco->shape_set_line(*this, src, dst);
+    }
+
     operator fan::opengl::cid_t* () {
       return &gloco->cid_list[*this].cid;
     }
@@ -1247,6 +1258,7 @@ public:
     #endif
     #endif
     default_texture.create_missing_texture();
+    transparent_texture.create_transparent_texture();
 
     fan::vec2 window_size = get_window()->get_size();
 
@@ -1438,6 +1450,7 @@ public:
     return position / window_size * 2 - 1;
   }
 
+  //  behaving oddly
   fan::vec2 get_mouse_position(const loco_t::camera_t& camera, const loco_t::viewport_t& viewport) {
     fan::vec2 mouse_pos = get_window()->get_mouse_position();
     fan::vec2 translated_pos;
@@ -1447,7 +1460,8 @@ public:
   }
 
   fan::vec2 get_mouse_position() {
-    return get_mouse_position(gloco->default_camera->camera, gloco->default_camera->viewport);
+    return get_window()->get_mouse_position();
+    //return get_mouse_position(gloco->default_camera->camera, gloco->default_camera->viewport); behaving oddly
   }
 
 #if defined(loco_framebuffer)
@@ -1530,6 +1544,7 @@ public:
 #endif
 
   image_t default_texture;
+  image_t transparent_texture;
 
   #if defined(loco_vfi)
   // used in fl
@@ -1557,16 +1572,6 @@ public:
 
   template <typename T>
   void push_shape(loco_t::cid_nt_t& id, T properties) {
-    //if constexpr (fan_requires_rule(T, typename T::type_t)) {
-    //  if constexpr (std::is_same_v<loco_t::shapes_t::vfi_t, typename T::type_t>) {
-    //    loco_t::shapes_t::vfi_t::shape_id_t shape_id;
-    //    fan_if_has_variable(&shapes, vfi, This->vfi.push_back(&shape_id, properties))
-    //      id->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
-    //    *id.gdp4() = shape_id.NRI;
-    //    return;
-    //  }
-    //}
-
     shapes.iterate([&]<auto i>(auto & shape) {
       fan_if_has_function(&shape, push_back, (id, properties));
     });
@@ -1676,6 +1681,19 @@ public:
       fan_if_has_function_get(&shape, append_letter, (id), ret);
     }); 
     return ret;
+  }
+
+  void shape_set_line(
+  loco_t::cid_nt_t& id,
+    const fan::vec3& src,
+    fan::vec2 dst
+  ) {
+    shapes.iterate([&]<auto i, typename T>(T & shape) {
+      if (shape.shape_type != (loco_t::shape_type_t)id->shape_type) {
+        return;
+      }
+      fan_if_has_function(&shape, set_line, (id, src, dst));
+    });
   }
 
   fan::vec2 get_camera_view_size(loco_t::camera_t camera) {
