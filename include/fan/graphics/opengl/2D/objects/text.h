@@ -81,8 +81,8 @@ struct text_renderer_t {
     }
     auto& src_id = instance.cid_list[instance.cid_list.GetNodeFirst()].shape;
     auto& dst_id = instance.cid_list[instance.cid_list.GetNodeLast()].shape;
-    fan::vec2 src = fan::vec3_vec2(src_id.get_position());
-    fan::vec2 dst = fan::vec3_vec2(dst_id.get_position());
+    fan::vec2 src = src_id.get_position();
+    fan::vec2 dst = dst_id.get_position();
     return (dst + dst_id.get_size()) - (src - src_id.get_size());
   }
 

@@ -257,7 +257,7 @@ struct responsive_text_t {
     auto& instance = tlist[instance_id];
 
     position *= fan::vec3(instance.font_size, instance.font_size, 1);
-    position += fan::vec3_vec2(instance.position) - fan::vec2(instance.size.x, instance.size.y);
+    position += instance.position - fan::vec2(instance.size.x, instance.size.y);
     f32_t line_y_size = instance.font_size * gloco->font.info.height / 2;
     position.y += line_y_size;
     position.y += line_y_size * 2 * cl;
@@ -304,7 +304,7 @@ struct responsive_text_t {
         line_list[instance.LineEndNR].LetterEndNR = letter_nr;
       }
       auto& letter = letter_list[letter_nr];
-      letter.position = fan::vec3_vec2(p.position);
+      letter.position = p.position;
       letter.internal_id = char_internal_id;
 
       _lpos_to_visual(instance_id, p.position, instance.LineCount - 1, character_info);

@@ -220,7 +220,7 @@ struct texture_packe0 {
       }
 
       fan::vec2ui push_size = size + PadPixel * 2;
-      push_size = fan::min(push_size, pack_list[selected_pack].pack_size);
+      push_size = push_size.min(pack_list[selected_pack].pack_size);
 
       pack_t::internal_texture_t* it = push(&pack_list[selected_pack].root, push_size);
       if (it == nullptr) {
@@ -269,7 +269,7 @@ struct texture_packe0 {
         {
           // find pad by size
           fan::vec2ui Pad = t->size + PadPixel * 2;
-          Pad = fan::min(pack_list[i].pack_size, Pad) - t->size;
+          Pad = pack_list[i].pack_size.min(Pad) - t->size;
 
           fan::vec2ui pp = t->position - Pad / 2;
           fan::vec2ui ps = t->size + Pad;

@@ -90,7 +90,7 @@ constexpr void _set_colors2(
   }
 }
 void set_colors2(auto& grid, auto world_pos, f32_t radius){
-  auto gi = fan::cast<sint32_t>((decltype(world_pos)){});
+  auto gi = fan::cast<sint32_t>(decltype(world_pos){});
   _set_colors2<0>(grid, gi, world_pos, radius, radius);
 }
 

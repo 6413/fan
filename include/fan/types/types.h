@@ -221,10 +221,12 @@ namespace fan {
 	}
 
 	template <typename T, typename T2>
+  requires(std::is_arithmetic_v<T> && std::is_arithmetic_v<T2>)
 	constexpr T min(T x, T2 y) {
 		return x < y ? x : y;
 	}
 	template <typename T, typename T2>
+  requires(std::is_arithmetic_v<T>&& std::is_arithmetic_v<T2>)
 	constexpr T max(T x, T2 y) {
 		return x > y ? x : y;
 	}

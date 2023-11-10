@@ -59,7 +59,7 @@ namespace fan {
       collider_static_t(const loco_t::shape_t& shape)
         : loco_t::shape_t(shape){
         bcol_t::ObjectProperties_t p;
-        p.Position = fan::vec3_vec2(get_position());
+        p.Position = get_position();
         bcol_t::ShapeProperties_Rectangle_t sp;
         sp.Position = 0;
         sp.Size = get_size();
@@ -74,7 +74,7 @@ namespace fan {
       collider_dynamic_t(const loco_t::shape_t& shape)
         : loco_t::shape_t(shape) {
         bcol_t::ObjectProperties_t p;
-        p.Position = fan::vec3_vec2(get_position());
+        p.Position = get_position();
         bcol_t::ShapeProperties_Circle_t sp;
         sp.Position = 0;
         sp.Size = get_size().max();
