@@ -230,42 +230,36 @@ namespace fan {
 	}
 }
 
-
-#include _FAN_PATH(types/function.h)
-#include _FAN_PATH(types/fstring.h)
-#include _FAN_PATH(time/time.h)
-#include _FAN_PATH(types/vector.h)
-
-#define __FAN__FOREACH_1(f, x) f(x)
-#define __FAN__FOREACH_2(f, x, ...)  f(x); __FAN__FOREACH_1(f, __VA_ARGS__)
-#define __FAN__FOREACH_3(f, x, ...)  f(x); __FAN__FOREACH_2(f, __VA_ARGS__)
-#define __FAN__FOREACH_4(f, x, ...)  f(x); __FAN__FOREACH_3(f, __VA_ARGS__)
-#define __FAN__FOREACH_5(f, x, ...)  f(x); __FAN__FOREACH_4(f, __VA_ARGS__)
-#define __FAN__FOREACH_6(f, x, ...)  f(x); __FAN__FOREACH_5(f, __VA_ARGS__)
-#define __FAN__FOREACH_7(f, x, ...)  f(x); __FAN__FOREACH_6(f, __VA_ARGS__)
-#define __FAN__FOREACH_8(f, x, ...)  f(x); __FAN__FOREACH_7(f, __VA_ARGS__)
-#define __FAN__FOREACH_9(f, x, ...)  f(x); __FAN__FOREACH_8(f, __VA_ARGS__)
-#define __FAN__FOREACH_10(f, x, ...)  f(x); __FAN__FOREACH_9(f, __VA_ARGS__)
-#define __FAN__FOREACH_11(f, x, ...)  f(x); __FAN__FOREACH_10(f, __VA_ARGS__)
-#define __FAN__FOREACH_12(f, x, ...)  f(x); __FAN__FOREACH_11(f, __VA_ARGS__)
-#define __FAN__FOREACH_13(f, x, ...)  f(x); __FAN__FOREACH_12(f, __VA_ARGS__)
-#define __FAN__FOREACH_14(f, x, ...)  f(x); __FAN__FOREACH_13(f, __VA_ARGS__)
-#define __FAN__FOREACH_15(f, x, ...)  f(x); __FAN__FOREACH_14(f, __VA_ARGS__)
-#define __FAN__FOREACH_16(f, x, ...)  f(x); __FAN__FOREACH_15(f, __VA_ARGS__)
-#define __FAN__FOREACH_17(f, x, ...)  f(x); __FAN__FOREACH_16(f, __VA_ARGS__)
-#define __FAN__FOREACH_18(f, x, ...)  f(x); __FAN__FOREACH_17(f, __VA_ARGS__)
-#define __FAN__FOREACH_19(f, x, ...)  f(x); __FAN__FOREACH_18(f, __VA_ARGS__)
-#define __FAN__FOREACH_20(f, x, ...)  f(x); __FAN__FOREACH_19(f, __VA_ARGS__)
-#define __FAN__FOREACH_21(f, x, ...)  f(x); __FAN__FOREACH_20(f, __VA_ARGS__)
-#define __FAN__FOREACH_22(f, x, ...)  f(x); __FAN__FOREACH_21(f, __VA_ARGS__)
-#define __FAN__FOREACH_23(f, x, ...)  f(x); __FAN__FOREACH_22(f, __VA_ARGS__)
-#define __FAN__FOREACH_24(f, x, ...)  f(x); __FAN__FOREACH_23(f, __VA_ARGS__)
-#define __FAN__FOREACH_25(f, x, ...)  f(x); __FAN__FOREACH_24(f, __VA_ARGS__)
-#define __FAN__FOREACH_26(f, x, ...)  f(x); __FAN__FOREACH_25(f, __VA_ARGS__)
-#define __FAN__FOREACH_27(f, x, ...)  f(x); __FAN__FOREACH_26(f, __VA_ARGS__)
-#define __FAN__FOREACH_28(f, x, ...)  f(x); __FAN__FOREACH_27(f, __VA_ARGS__)
-#define __FAN__FOREACH_29(f, x, ...)  f(x); __FAN__FOREACH_28(f, __VA_ARGS__)
-#define __FAN__FOREACH_30(f, x, ...)  f(x); __FAN__FOREACH_29(f, __VA_ARGS__)
+#define __FAN__FOREACH_1(f, x) f(x, 0)
+#define __FAN__FOREACH_2(f, x, ...)  f(x, 1); __FAN__FOREACH_1(f, __VA_ARGS__)
+#define __FAN__FOREACH_3(f, x, ...)  f(x, 2); __FAN__FOREACH_2(f, __VA_ARGS__)
+#define __FAN__FOREACH_4(f, x, ...)  f(x, 3); __FAN__FOREACH_3(f, __VA_ARGS__)
+#define __FAN__FOREACH_5(f, x, ...)  f(x, 4); __FAN__FOREACH_4(f, __VA_ARGS__)
+#define __FAN__FOREACH_6(f, x, ...)  f(x, 5); __FAN__FOREACH_5(f, __VA_ARGS__)
+#define __FAN__FOREACH_7(f, x, ...)  f(x, 6); __FAN__FOREACH_6(f, __VA_ARGS__)
+#define __FAN__FOREACH_8(f, x, ...)  f(x, 7); __FAN__FOREACH_7(f, __VA_ARGS__)
+#define __FAN__FOREACH_9(f, x, ...)  f(x, 8); __FAN__FOREACH_8(f, __VA_ARGS__)
+#define __FAN__FOREACH_10(f, x, ...)  f(x, 9); __FAN__FOREACH_9(f, __VA_ARGS__)
+#define __FAN__FOREACH_11(f, x, ...)  f(x, 10); __FAN__FOREACH_10(f, __VA_ARGS__)
+#define __FAN__FOREACH_12(f, x, ...)  f(x, 11); __FAN__FOREACH_11(f, __VA_ARGS__)
+#define __FAN__FOREACH_13(f, x, ...)  f(x, 12); __FAN__FOREACH_12(f, __VA_ARGS__)
+#define __FAN__FOREACH_14(f, x, ...)  f(x, 13); __FAN__FOREACH_13(f, __VA_ARGS__)
+#define __FAN__FOREACH_15(f, x, ...)  f(x, 14); __FAN__FOREACH_14(f, __VA_ARGS__)
+#define __FAN__FOREACH_16(f, x, ...)  f(x, 15); __FAN__FOREACH_15(f, __VA_ARGS__)
+#define __FAN__FOREACH_17(f, x, ...)  f(x, 16); __FAN__FOREACH_16(f, __VA_ARGS__)
+#define __FAN__FOREACH_18(f, x, ...)  f(x, 17); __FAN__FOREACH_17(f, __VA_ARGS__)
+#define __FAN__FOREACH_19(f, x, ...)  f(x, 18); __FAN__FOREACH_18(f, __VA_ARGS__)
+#define __FAN__FOREACH_20(f, x, ...)  f(x, 19); __FAN__FOREACH_19(f, __VA_ARGS__)
+#define __FAN__FOREACH_21(f, x, ...)  f(x, 20); __FAN__FOREACH_20(f, __VA_ARGS__)
+#define __FAN__FOREACH_22(f, x, ...)  f(x, 21); __FAN__FOREACH_21(f, __VA_ARGS__)
+#define __FAN__FOREACH_23(f, x, ...)  f(x, 22); __FAN__FOREACH_22(f, __VA_ARGS__)
+#define __FAN__FOREACH_24(f, x, ...)  f(x, 23); __FAN__FOREACH_23(f, __VA_ARGS__)
+#define __FAN__FOREACH_25(f, x, ...)  f(x, 24); __FAN__FOREACH_24(f, __VA_ARGS__)
+#define __FAN__FOREACH_26(f, x, ...)  f(x, 25); __FAN__FOREACH_25(f, __VA_ARGS__)
+#define __FAN__FOREACH_27(f, x, ...)  f(x, 26); __FAN__FOREACH_26(f, __VA_ARGS__)
+#define __FAN__FOREACH_28(f, x, ...)  f(x, 27); __FAN__FOREACH_27(f, __VA_ARGS__)
+#define __FAN__FOREACH_29(f, x, ...)  f(x, 28); __FAN__FOREACH_28(f, __VA_ARGS__)
+#define __FAN__FOREACH_30(f, x, ...)  f(x, 29); __FAN__FOREACH_29(f, __VA_ARGS__)
 
 
 #define __FAN__FOREACH_N(n, ...) __FAN__FOREACH_##n
@@ -309,6 +303,11 @@ namespace fan {
 #define __FAN__FOREACH(f, ...) __FAN__FOREACH_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
 
 #define __FAN__FOREACH_NS(f, ...) __FAN__FOREACH_NS_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
+
+#include _FAN_PATH(types/function.h)
+#include _FAN_PATH(types/fstring.h)
+#include _FAN_PATH(time/time.h)
+#include _FAN_PATH(types/vector.h)
 
 namespace fan {
 
@@ -519,7 +518,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
   constexpr void print(const Args&... args) {
     (([&]<typename T>(const T & v) {
       if constexpr (is_printable_v<T>) {
-        std::cout << v << ' ';
+        std::cout << v << ", ";
       }
       else {
         if constexpr (std::is_aggregate_v<T>) {
@@ -1051,7 +1050,7 @@ static uint8_t __clz(uintptr_t p0) {
   #define __return_type_of fan::return_type_of_t
 #endif
 
-#define __FAN__INSERTVARNAME(x) var__ x
+#define __FAN__INSERTVARNAME(x, idx) var__ x
 
 // requires /Zc:preprocessor in msvc commandline properties
 

@@ -6,7 +6,7 @@
 constexpr static f32_t bcol_step_time = 0.01;
 #define ETC_BCOL_set_prefix bcol
 #define ETC_BCOL_set_DynamicDeltaFunction \
-  //ObjectData0->Velocity.y += delta * 2;
+  ObjectData0->Velocity.y += delta * 100;
 #define ETC_BCOL_set_StoreExtraDataInsideObject 1
 #define ETC_BCOL_set_ExtraDataInsideObject \
   bcol_t::ShapeID_t shape_id;
@@ -59,7 +59,7 @@ namespace fan {
       collider_static_t(const loco_t::shape_t& shape)
         : loco_t::shape_t(shape){
         bcol_t::ObjectProperties_t p;
-        p.Position = get_position();
+        p.Position = fan::vec3_vec2(get_position());
         bcol_t::ShapeProperties_Rectangle_t sp;
         sp.Position = 0;
         sp.Size = get_size();
@@ -74,7 +74,7 @@ namespace fan {
       collider_dynamic_t(const loco_t::shape_t& shape)
         : loco_t::shape_t(shape) {
         bcol_t::ObjectProperties_t p;
-        p.Position = get_position();
+        p.Position = fan::vec3_vec2(get_position());
         bcol_t::ShapeProperties_Circle_t sp;
         sp.Position = 0;
         sp.Size = get_size().max();

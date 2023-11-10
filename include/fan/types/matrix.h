@@ -15,7 +15,7 @@ namespace fan {
   template <typename type_t>
   struct _matrix2x2 {
 
-    using value_type = fan::_vec2<type_t>;
+    using value_type = fan::vec2_wrap_t<type_t>;
 
     _matrix2x2() = default;
 
@@ -23,15 +23,15 @@ namespace fan {
     constexpr _matrix2x2(T x, T y, T z, T w) : m_array{ fan::vec2{x, y}, fan::vec2{z, w} } {}
 
     template <typename T, typename T2>
-    constexpr _matrix2x2(const fan::_vec2<T>& v, const fan::_vec2<T2>& v2) : m_array{ v.x, v.y, v2.x, v2.y } {}
+    constexpr _matrix2x2(const fan::vec2_wrap_t<T>& v, const fan::vec2_wrap_t<T2>& v2) : m_array{ v.x, v.y, v2.x, v2.y } {}
 
-    constexpr _matrix2x2 operator+(const fan::_vec2<type_t>& v) const {
+    constexpr _matrix2x2 operator+(const fan::vec2_wrap_t<type_t>& v) const {
       return _matrix2x2(m_array[0][0] + v[0], m_array[0][1] + v[1], m_array[1][0] + v[0], m_array[1][1] + v[1]);
     }
 
     template <typename T>
-    constexpr fan::_vec2<T> operator*(const fan::_vec2<T>& v) const {
-      return fan::_vec2<T>(m_array[0][0] * v.x + m_array[0][1] * v.y, m_array[1][0] * v.x + m_array[1][1] * v.y);
+    constexpr fan::vec2_wrap_t<T> operator*(const fan::vec2_wrap_t<T>& v) const {
+      return fan::vec2_wrap_t<T>(m_array[0][0] * v.x + m_array[0][1] * v.y, m_array[1][0] * v.x + m_array[1][1] * v.y);
     }
 
     static fan::vec2 rotate(const fan::vec2& v, f32_t angle) {
@@ -66,7 +66,7 @@ namespace fan {
   template <typename type_t>
   struct _matrix4x4 {
 
-    using value_type = fan::_vec4<type_t>;
+    using value_type = fan::vec4_wrap_t<type_t>;
 
     constexpr _matrix4x4() = default;
 

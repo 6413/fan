@@ -38,7 +38,7 @@ struct vfi_t {
     fan::graphics::viewport_list_NodeReference_t viewport;
     loco_t::camera_list_NodeReference_t camera;
     shape_data_rectangle_t& operator=(const shape_properties_rectangle_t& p) {
-      position = p.position;
+      position = *(fan::vec2*)&p.position;
       size = p.size;
       viewport = p.viewport;
       camera = p.camera;
@@ -293,7 +293,7 @@ struct vfi_t {
         instance.shape_data.depth = p.shape.rectangle->position.z;
         instance.shape_data.shape.rectangle->camera = p.shape.rectangle->camera;
         instance.shape_data.shape.rectangle->viewport = p.shape.rectangle->viewport;
-        instance.shape_data.shape.rectangle->position = p.shape.rectangle->position;
+        instance.shape_data.shape.rectangle->position = *(fan::vec2*)&p.shape.rectangle->position;
         instance.shape_data.shape.rectangle->size = p.shape.rectangle->size;
         break;
       }
@@ -394,7 +394,7 @@ struct vfi_t {
           v,
           gloco->get_context()->viewport_list[shape_data->shape.rectangle->viewport].viewport_id,
           gloco->camera_list[shape_data->shape.rectangle->camera].camera_id
-        ) + fan::vec2(gloco->camera_list[shape_data->shape.rectangle->camera].camera_id->camera_position);
+        ) + fan::vec2(*(fan::vec2*)&gloco->camera_list[shape_data->shape.rectangle->camera].camera_id->camera_position);
         break;
       }
       default: {
@@ -588,7 +588,7 @@ struct vfi_t {
     auto& shape = shape_list[id];
     switch (shape.shape_type) {
       case vfi_t::shape_t::rectangle: {
-        shape.shape_data.shape.rectangle->position = position;
+        shape.shape_data.shape.rectangle->position = *(fan::vec2*)&position;
         shape.shape_data.depth = position.z;
         return;
       }

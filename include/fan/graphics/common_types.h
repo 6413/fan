@@ -343,7 +343,7 @@ struct vfi_root_t {
       if (move_and_resize_auto) {
         d.flag->ignore_move_focus_check = true;
         this->move = true;
-        this->click_offset = fan::vec2(get_position()) - d.position;
+        this->click_offset = fan::vec3_vec2(get_position()) - d.position;
         gloco->shapes.vfi.set_focus_keyboard(d.vfi->focus.mouse);
       }
       return user_cb(d);
@@ -351,9 +351,9 @@ struct vfi_root_t {
     in.mouse_move_cb = [this, user_cb = p.mouse_move_cb](const auto& d) -> int {
       if (move_and_resize_auto) {
         if (this->resize && this->move) {
-          fan::vec2 new_size = (d.position - fan::vec2(get_position()));
+          fan::vec2 new_size = (d.position - fan::vec3_vec2(get_position()));
           static constexpr fan::vec2 min_size(10, 10);
-          new_size.constrain(min_size);
+          new_size.clamp(min_size);
           this->set_size(new_size.x);
           return user_cb(d);
         }
@@ -377,11 +377,11 @@ struct vfi_root_t {
     return vfi_root.get_position();
   }
   void set_position(const fan::vec3& position) {
-    fan::vec2 root_pos = vfi_root.get_position();
-    fan::vec2 offset = fan::vec2(position) - root_pos;
+    fan::vec2 root_pos = fan::vec3_vec2(vfi_root.get_position());
+    fan::vec2 offset = fan::vec3_vec2(position) - root_pos;
     vfi_root.set_position(fan::vec3(root_pos + offset, position.z));
     for (auto& child : children) {
-      child.set_position(fan::vec3(fan::vec2(child.get_position()) + offset, position.z));
+      child.set_position(fan::vec3(fan::vec3_vec2(child.get_position()) + offset, position.z));
     }
   }
   fan::vec2 get_size() {

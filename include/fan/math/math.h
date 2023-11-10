@@ -13,12 +13,21 @@ namespace fan {
 		constexpr f32_t pi = 3.1415927;
 		constexpr f32_t half_pi = pi / 2;
 		constexpr f32_t two_pi = pi * 2;
+
+		template <typename vector_t>
+		constexpr auto dot(const vector_t& x, const auto& y) {
+			decltype(vector_t::x) ret = 0;
+			for (uint16_t i = 0; i < vector_t::size(); ++i) {
+				ret += x[i] * y[i];
+			}
+			return ret;
+		}
 	}
 }
 
 namespace fan_2d {
 	
-	namespace math {
+  	namespace math {
 
 		// for reverse y coordinates
 		template <typename vector2d_t>

@@ -1,9 +1,12 @@
 #include fan_pch
 
+void f(const fan::vec2& v) {
+
+}
+void f(const fan::vec3& v) {
+
+}
+
 int main() {
-  loco_t loco;
-
-  loco.loop([] {
-
-  });
+  f(fan::vec3() + fan::vec3());
 }

@@ -1,9 +1,9 @@
-static constexpr fan::_vec4<fan::vec2> default_texture_coordinates = {
+static constexpr fan::vec4_wrap_t<fan::vec2> default_texture_coordinates = fan::vec4_wrap_t<fan::vec2>(
   fan::vec2(0, 0),
   fan::vec2(1, 0),
   fan::vec2(1, 1),
   fan::vec2(0, 1)
-};
+);
 
 struct image_t {
 
@@ -349,9 +349,9 @@ struct image_t {
     context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
   }
 
-  fan::_vec4<fan::vec2> calculate_aspect_ratio(const fan::vec2& size, f32_t scale) {
+  fan::vec4_wrap_t<fan::vec2> calculate_aspect_ratio(const fan::vec2& size, f32_t scale) {
 
-    fan::_vec4<fan::vec2> tc = {
+    fan::vec4_wrap_t<fan::vec2> tc = {
       fan::vec2(0, 1),
       fan::vec2(1, 1),
       fan::vec2(1, 0),
