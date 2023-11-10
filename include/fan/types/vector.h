@@ -56,25 +56,23 @@ namespace fan {
 		using inherit_t = vec<value_type_t, 2>;
 		using inherit_t::vec;
 
-    //vec2_wrap_t() = default;
+    vec2_wrap_t() = default;
 		constexpr vec2_wrap_t(const vec2_wrap_t& test0) 
       : inherit_t((vec<value_type_t, 2>)test0) { } 
-    template <typename T> constexpr vec2_wrap_t(const vec<T, size()>& test0) 
+    template <typename T> constexpr vec2_wrap_t(const vec<T, inherit_t::size()>& test0)
       : inherit_t(test0) { } 
-    // template <typename T> constexpr vec2_wrap_t(const vec<T, 3>& test0) 
-    // : inherit_t(test0.x, test0.y) { } 
-    // template <typename T> constexpr vec2_wrap_t(const vec3_wrap_t<T>& test0) 
-    // : inherit_t(test0.x, test0.y, test0.z) { } 
+    template <typename T> constexpr vec2_wrap_t(const vec<T, 3>& test0) 
+    : inherit_t(test0.x, test0.y) { } 
 
-    constexpr auto copysign(const auto& test0) const { return vec2_wrap_t(fan::math::copysign(x, test0.x), fan::math::copysign(y, test0.y)); }
+    constexpr auto copysign(const auto& test0) const { return vec2_wrap_t(fan::math::copysign(inherit_t::x, test0.x), fan::math::copysign(inherit_t::y, test0.y)); }
     vec2_wrap_t reflect(const auto& normal) {
       auto k = fan::math::cross(vec<value_type_t, 3>{ normal.x, normal.y, 0 }, vec<value_type_t, 3>{ 0, 0, -1 });
-      f32_t multiplier = k.dot(vec<value_type_t, 3>{ x, y, 0 });
+      f32_t multiplier = k.dot(vec<value_type_t, 3>{ inherit_t::x, inherit_t::y, 0 });
       return vec2_wrap_t( k.x * multiplier, k.y * multiplier);
     }
     #if defined(loco_imgui)
-    operator ImVec2() const { return ImVec2(x, y); }
-    constexpr vec2_wrap_t(const ImVec2& v) { x = v.x; y = v.y;}
+    operator ImVec2() const { return ImVec2(inherit_t::x, inherit_t::y); }
+    constexpr vec2_wrap_t(const ImVec2& v) { inherit_t::x = v.x; inherit_t::y = v.y;}
     #endif
   };
 
@@ -83,13 +81,13 @@ namespace fan {
 		using inherit_t = vec<value_type_t, 3>;
 		using inherit_t::vec;
 		
-    //vec3_wrap_t() = default;
+    vec3_wrap_t() = default;
 		// constexpr vec3_wrap_t(const vec3_wrap_t& test0) 
     //   : inherit_t((vec<value_type_t, 3>)test0) { } 
-    template <typename T> constexpr vec3_wrap_t(const vec<T, size()>& test0) 
+    template <typename T> constexpr vec3_wrap_t(const vec<T, inherit_t::size()>& test0)
       : inherit_t(test0) { } 
-    template <typename T> constexpr vec3_wrap_t(const fan::vec2_wrap_t<T>& test0) 
-      : inherit_t(test0.x, test0.y, z) { } 
+    template <typename T> constexpr vec3_wrap_t(const fan::vec<T, 2>& test0) 
+      : inherit_t(test0.x, test0.y, inherit_t::z) { }
     template <typename T> constexpr vec3_wrap_t(const fan::vec<T, 2>& test0, auto value) 
       : inherit_t(test0.x, test0.y, value) { } 
 
@@ -146,12 +144,6 @@ namespace fan {
 	constexpr fan::vec<casted_t, n> cast(const fan::vec<old_t, n>& v)
 	{
 		return fan::vec<casted_t, n>(v);
-	}
-
-	template <typename T>
-	constexpr auto vec3_vec2(const fan::vec3_wrap_t<T>& v)
-	{
-		return fan::vec2_wrap_t<T>(v.x, v.y);
 	}
 }
 

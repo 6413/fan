@@ -265,24 +265,26 @@ struct button_t {
   void set_position(loco_t::cid_nt_t& id, const fan::vec3& position) {
     
     auto& ri = get_ri(id);
-    ri.text_id.set_position(position + fan::vec3(0, 0, 1));
+    fan::vec3 temp = position + fan::vec3(0, 0, 1);
+    ri.text_id.set_position(temp);
     ri.original_position = position;
     set_button(id, &vi_t::position, position);
     gloco->shapes.vfi.set_rectangle(
       ri.vfi_id,
       &loco_t::shapes_t::vfi_t::set_rectangle_t::position,  
-      fan::vec3_vec2(position)
+      position
     );
   }
   void set_position_ar(loco_t::cid_nt_t& id, const fan::vec3& position) {
 
     auto& ri = get_ri(id);
-    ri.text_id.set_position(position + fan::vec3(0, 0, 1));
+    fan::vec3 temp = position + fan::vec3(0, 0, 1);
+    ri.text_id.set_position(temp);
     set_button(id, &vi_t::position, position);
     gloco->shapes.vfi.set_rectangle(
       ri.vfi_id,
       &loco_t::shapes_t::vfi_t::set_rectangle_t::position,
-      fan::vec3_vec2(position)
+      position
     );
   }
   void set_size(loco_t::cid_nt_t& id, const fan::vec2& size) {

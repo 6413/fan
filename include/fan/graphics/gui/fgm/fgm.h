@@ -61,7 +61,7 @@ struct fgm_t {
           return 0;
           };
         vfi_root_t::set_root(vfip);
-        temp.set_position(fan::vec3(fan::vec3_vec2(temp.get_position()), fgm->current_z - 1));
+        temp.set_position(fan::vec3(fan::vec2(temp.get_position()), fgm->current_z - 1));
         vfi_root_t::push_child(std::move(temp));
 
         fgm->current_shape = this;
