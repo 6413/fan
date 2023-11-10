@@ -6,9 +6,9 @@ struct version_001_t {
 
       void init(ftme_t::shapes_t::global_t* g) {
         position = g->get_position();
-        image_hash = g->shape_data.cell.image_hash;
-        mesh_property = g->shape_data.cell.mesh_property;
-        color_idx = g->shape_data.cell.color_idx;
+        image_hash = g->shape_data.tile.image_hash;
+        mesh_property = g->shape_data.tile.mesh_property;
+        color_idx = g->shape_data.tile.color_idx;
       }
 
       void get_shape(ftme_t* ftme) {
@@ -30,9 +30,9 @@ struct version_001_t {
           instance->children[0],
           &ti
         );
-        instance->shape_data.cell.image_hash = image_hash;
-        instance->shape_data.cell.mesh_property = mesh_property;
-        instance->shape_data.cell.color_idx = color_idx;
+        instance->shape_data.tile.image_hash = image_hash;
+        instance->shape_data.tile.mesh_property = mesh_property;
+        instance->shape_data.tile.color_idx = color_idx;
       }
       #endif
 

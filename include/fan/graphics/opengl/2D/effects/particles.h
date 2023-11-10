@@ -91,7 +91,7 @@ struct particles_t {
       m_current_shader->set_uint(context, "count", ri.count);
       m_current_shader->set_float(context, "alive_time", (f32_t)ri.alive_time / 1e+9);
       m_current_shader->set_float(context, "respawn_time", (f32_t)ri.respawn_time / 1e+9);
-      m_current_shader->set_vec2(context, "position", vi.position);
+      m_current_shader->set_vec2(context, "position", *(fan::vec2*)&vi.position);
       m_current_shader->set_vec2(context, "size", vi.size);
       m_current_shader->set_vec2(context, "position_velocity", ri.position_velocity);
       m_current_shader->set_float(context, "angle_velocity", ri.angle_velocity);

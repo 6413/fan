@@ -1,10 +1,10 @@
 # compiler settings
-CXX = clang++
+CXX = clang++ -Wall -Wextra
 CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include -ftime-trace
 
 # source file and output
-MAIN = examples/gui/tile_map_editor.cpp
-OUTPUT = a.out
+MAIN = examples/graphics/grid.cpp
+OUTPUT = a.exe
 
 WINDOWS_ROOT_PATH=C:/libs/
 LINUX_ROOT_PATH=/usr/include/
@@ -17,7 +17,7 @@ LINK_PATH = lib/fan/
 # precompiled header file
 PCH_NAME = pch.h
 
-DEBUG_FLAGS = 
+DEBUG_FLAGS = -g
 RELEASE_FLAGS = -s -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -Wl,--gc-sections
 
 # includes & link
@@ -25,7 +25,7 @@ WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I $(WINDOWS_ROOT_PATH)/fa
 LINUX_INCLUDES = -I $(LINUX_ROOT_PATH)
 
 WINDOWS_LINK = lib/libuv/uv_a.lib $(WINDOWS_ROOT_PATH)fan/$(LINK_PATH)libimgui.a lib/libwebp/libwebp.a lib/opus/libopus.a
-LINUX_LINK = -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl $(LINUX_ROOT_LIB_PATH)fan/$(LINK_PATH)libimgui.a
+LINUX_LINK = -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl
 
 INCLUDES =
 LINK = 

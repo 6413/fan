@@ -271,7 +271,7 @@ struct button_t {
     gloco->shapes.vfi.set_rectangle(
       ri.vfi_id,
       &loco_t::shapes_t::vfi_t::set_rectangle_t::position,  
-      position
+      fan::vec3_vec2(position)
     );
   }
   void set_position_ar(loco_t::cid_nt_t& id, const fan::vec3& position) {
@@ -282,7 +282,7 @@ struct button_t {
     gloco->shapes.vfi.set_rectangle(
       ri.vfi_id,
       &loco_t::shapes_t::vfi_t::set_rectangle_t::position,
-      position
+      fan::vec3_vec2(position)
     );
   }
   void set_size(loco_t::cid_nt_t& id, const fan::vec2& size) {

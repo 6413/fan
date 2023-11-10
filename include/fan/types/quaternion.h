@@ -6,16 +6,16 @@
 namespace fan {
 
 	template <typename T>
-	struct quaternion : public _vec4<T> {
+	struct quaternion : public fan::vec4_wrap_t<T> {
 
 		using value_type = T;
 
-		using inherited_type = fan::_vec4<T>;
+		using inherited_type = fan::vec4_wrap_t<T>;
 
 		template <typename _Ty>
-		using inherited_type_t = fan::_vec4<_Ty>;
+		using inherited_type_t = fan::vec4_wrap_t<_Ty>;
 
-		constexpr quaternion() : fan::_vec4<T>() {}
+		constexpr quaternion() : fan::vec4_wrap_t<T>() {}
 
 		template <typename _Ty>
 		constexpr quaternion(_Ty t, _Ty x_, _Ty y_, _Ty z_) 
@@ -27,7 +27,7 @@ namespace fan {
 		}
 
 		template <typename _Ty, typename _Ty2>
-		constexpr quaternion(_Ty scalar, const fan::_vec3<_Ty2>& vector)
+		constexpr quaternion(_Ty scalar, const fan::vec3_wrap_t<_Ty2>& vector)
 		{
 			this->x = scalar;
 			this->y = vector.x;
@@ -35,18 +35,12 @@ namespace fan {
 			this->w = vector.z;
 		}
 
-		template <typename _Ty, typename _Ty2>
-		constexpr quaternion(const fan::vec4& vector) : fan::_vec4<T>(vector) {}
-
 		template <typename _Ty>
-		constexpr quaternion(const fan::_vec4<_Ty>& vector) : fan::_vec4<T>(vector) {}
-
-		template <typename _Ty>
-		constexpr quaternion(fan::_vec4<_Ty>&& vector) : fan::_vec4<T>(std::move(vector)) {}
+		constexpr quaternion(const fan::vec4_wrap_t<_Ty>& vector) : fan::vec4_wrap_t<T>(vector) {}
 
 	#ifdef ASSIMP_API
 
-		constexpr quaternion(const aiQuaternion& quat) : fan::_vec4<T>(quat.x, quat.y, quat.z, quat.w) {}
+		constexpr quaternion(const aiQuaternion& quat) : fan::vec4_wrap_t<T>(quat.x, quat.y, quat.z, quat.w) {}
 
 	#endif
 
@@ -83,7 +77,7 @@ namespace fan {
 		template <typename _Ty>
 		constexpr quaternion<value_type> operator*(_Ty value) const
 		{
-			return fan::_vec4<T>::operator*(value);
+			return fan::vec4_wrap_t<T>::operator*(value);
 		}
 
 		template <typename _Ty>
@@ -114,7 +108,7 @@ namespace fan {
 		template <typename _Ty>
 		constexpr quaternion<value_type> operator/(_Ty value) const
 		{
-			return fan::_vec4<T>::operator/(value);
+			return fan::vec4_wrap_t<T>::operator/(value);
 		}
 
 		template <typename _Ty>

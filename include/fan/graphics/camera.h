@@ -19,11 +19,11 @@ namespace fan {
     //void rotate_camera(bool when);
 
     fan::mat4 get_view_matrix(const fan::vec2& position) const {
-      return fan::math::look_at_left<fan::mat4>(fan::vec3(position), fan::vec3(position) + m_front, this->m_up);
+      return fan::math::look_at_left<fan::mat4, fan::vec3>(fan::vec3(position), fan::vec3(position) + m_front, this->m_up);
     }
 
     fan::mat4 get_view_matrix(const fan::mat4& m, const fan::vec2& position) const {
-      return m * fan::math::look_at_left<fan::mat4>(fan::vec3(position), fan::vec3(position) + m_front, this->world_up);
+      return m * fan::math::look_at_left<fan::mat4, fan::vec3>(fan::vec3(position), fan::vec3(position) + m_front, this->world_up);
     }
 
     fan::vec3 get_front() const {

@@ -431,7 +431,7 @@ public:
       fan::vec3 position = m_view.get_translation();
       constexpr fan::vec3 front(0, 0, 1);
 
-      m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
+      m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
     }
 
     void set_camera_zoom(f32_t new_zoom) {
@@ -487,7 +487,7 @@ public:
       fan::vec3 position = m_view.get_translation();
       constexpr fan::vec3 front(0, 0, 1);
 
-      m_view = fan::math::look_at_left<fan::mat4>(position, position + front, fan::camera::world_up);
+      m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
       
       auto it = gloco->m_viewport_resize_callback.GetNodeFirst();
 
@@ -1487,9 +1487,12 @@ public:
 
   bool process_loop(const auto& lambda) {
 
+    // enables drawing while resizing, not required for x11
+    #if defined(fan_platform_windows)
     auto it = get_window()->add_resize_callback([this, &lambda](const auto& d) {
       gloco->process_loop(lambda);
     });
+    #endif
 
     uint32_t window_event = get_window()->handle_events();
     if (window_event & fan::window_t::events::close) {

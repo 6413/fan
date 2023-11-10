@@ -1,6 +1,6 @@
 # compiler settings
 CXX = clang++
-CXXFLAGS = -ferror-limit=3 -std=c++2a -I include -fpch-instantiate-templates -fpch-debuginfo -Xclang -fno-validate-pch
+CXXFLAGS = -w -ferror-limit=3 -std=c++2a -I include -fpch-instantiate-templates -fpch-debuginfo -Xclang -fno-validate-pch
 
 # source file and output
 
@@ -12,7 +12,7 @@ LINUX_ROOT_PATH = /usr/include/
 FAN_INCLUDE_PATH =
 FAN_LIB =
 
-DEBUG_FLAGS = 
+DEBUG_FLAGS = -g
 RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
 
 # includes & link

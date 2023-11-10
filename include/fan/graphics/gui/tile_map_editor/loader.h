@@ -16,7 +16,8 @@ struct ftme_loader_t {
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
     compiled_map_t* compiled_map; \
-    std::vector<loco_t::shape_t> tiles;
+    std::vector<loco_t::shape_t> tiles; \
+    std::vector<fan::graphics::collider_static_t> collider_static;
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
 protected:
@@ -71,6 +72,16 @@ public:
         map_list[it].tiles.back(),
         &ti
       );
+      // todo fix
+      if (i.tile.mesh_property != 0) {
+        node.collider_static.push_back(fan::graphics::collider_static_t{
+          fan::graphics::sprite_t{{
+              .position = node.tiles.back().get_position(),
+              .size = node.tiles.back().get_size(),
+              .color = fan::color(0, 0, 0, 0)
+            }}
+        });
+      }
     }
     return it;
   }
