@@ -81,10 +81,9 @@ struct model_list_t {
           if (v.group_id == 0) {// set root pos
             root_pos = shape.get_position();
             shape.set_position(fan::vec2(0));
-            fan::vec3 p = shape.get_position();
           }
           else {
-            shape.set_position(fan::vec2(shape.get_position()) - root_pos);
+            shape.set_position(fan::vec2(fan::vec2(shape.get_position()) - root_pos));
           }
           push_shape(nr, v.group_id, std::move(shape));
         }
@@ -141,7 +140,7 @@ struct model_list_t {
     auto& model = model_list[model_id];
     for (auto& group : model.groups) {
       for (auto& j : group) {
-        j.shape.set_position(position + fan::vec3(fan::vec2(j.position) * model.size, j.position.z));
+        j.shape.set_position(fan::vec3(position + fan::vec3(fan::vec2(j.position) * model.size, j.position.z)));
       }
     }
     model.position = position;
@@ -150,7 +149,7 @@ struct model_list_t {
     auto& model = model_list[model_id];
     for (auto& group : model.groups) {
       for (auto& j : group) {
-        j.shape.set_position(position + fan::vec2(j.position) * model.size);
+        j.shape.set_position(fan::vec2(position + fan::vec2(j.position) * model.size));
       }
     }
     *(fan::vec2*)&model.position = position;
@@ -159,7 +158,7 @@ struct model_list_t {
     auto& model = model_list[model_id];
     for (auto& group : model.groups) {
       for (auto& j : group) {
-        j.shape.set_position(fan::vec2(model.position) + fan::vec2(j.position) * size);
+        j.shape.set_position(fan::vec2(fan::vec2(model.position) + fan::vec2(j.position) * size));
         j.shape.set_size(size * j.size);
       }
     }
