@@ -2,6 +2,10 @@
 
 int main() {
   loco_t loco;
+  loco.default_camera->camera.set_ortho(
+    fan::vec2(-1, 1),
+    fan::vec2(-1, 1)
+  );
 
   loco_t::image_t image;
   image.load("images/2.webp");
