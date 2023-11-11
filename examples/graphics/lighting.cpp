@@ -3,10 +3,13 @@
 int main() {
 
   loco_t loco;
+  loco.default_camera->camera.set_ortho(
+    fan::vec2(-1, 1),
+    fan::vec2(-1, 1)
+  );
 
   loco.lighting.ambient = fan::vec3(0.3, 0.3, 0.3);
-
-  loco_t::sprite_t::properties_t p;
+  loco_t::shapes_t::sprite_t::properties_t p;
 
   p.size = fan::vec2(1);
 
@@ -26,7 +29,7 @@ int main() {
   p.image = &image2;
   loco_t::shape_t s1 = p;
 
-  loco_t::light_t::properties_t lp;
+  loco_t::shapes_t::light_t::properties_t lp;
   lp.position = fan::vec3(0, 0, 0);
   lp.size = 0.5;
   lp.color = fan::colors::yellow * 10;
