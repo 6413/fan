@@ -1,32 +1,32 @@
 fan::string in;
 if (fan::io::file::read(filename, &in)) {
-  #if defined(tile_map_editor_loader) 
+  #if defined(tilemap_editor_loader) 
     fan::throw_error_format(
   #else
     fan::print_format(
   #endif
   "failed to load file, file:{}", filename);
-  #if !defined(tile_map_editor_loader) 
+  #if !defined(tilemap_editor_loader) 
   return;
   #endif
 }
 uint64_t off = 0;
 uint32_t version = fan::read_data<uint32_t>(in, off);
 if (version != current_version) {
-  #if defined(tile_map_editor_loader) 
+  #if defined(tilemap_editor_loader) 
     fan::throw_error_format(
   #else
     fan::print_format(
   #endif
   "invalid file version, file version:{}, current:{}", version, current_version);
-  #if !defined(tile_map_editor_loader) 
+  #if !defined(tilemap_editor_loader) 
   return;
   #endif
 }
 map_size = fan::read_data<fan::vec2ui>(in, off);
 tile_size = fan::read_data<fan::vec2ui>(in, off);
 
-#if !defined(tile_map_editor_loader) 
+#if !defined(tilemap_editor_loader) 
 map_tiles.resize(map_size.y);
 for (auto& i : map_tiles) {
   i.resize(map_size.x);
@@ -56,16 +56,16 @@ while (off != in.size()) {
       }
     });
 
-    #if defined(tile_map_editor_loader) 
+    #if defined(tilemap_editor_loader) 
     v0 = shape;
     #else
     shape.get_shape(this);
     #endif
   });
-  #if defined(tile_map_editor_loader)
+  #if defined(tilemap_editor_loader)
   compiled_map.compiled_shapes.push_back(shapes);
   #endif
 }
 
 
-#undef tile_map_editor_loader
+#undef tilemap_editor_loader
