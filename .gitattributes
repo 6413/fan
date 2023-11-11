@@ -1,0 +1,6 @@
+*.cpp linguist-detectable=true
+*.c linguist-detectable=true
+*.fs linguist-detectable=true
+*.vs linguist-detectable=true
+*.cu linguist-detectable=true
+*. linguist-detectable=true
