@@ -1,5 +1,0 @@
--holding left click while moving mouse moves the element
--arrow keys move element one unit to pressed direction
--delete removes element
--holding c while dragging resizes the element in direction depending where you click
--q for save
