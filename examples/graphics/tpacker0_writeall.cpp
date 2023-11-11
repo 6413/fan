@@ -13,7 +13,7 @@ int main() {
   texture_properties.min_filter = loco_t::image_t::filter::nearest;
   texture_properties.mag_filter = loco_t::image_t::filter::nearest;
   texture_properties.group_id = 0;
-  static constexpr auto full_path = "tpacker/";
+  static constexpr auto full_path = "ignore/";
 
   fan::io::iterate_directory_by_image_size(full_path, [&](fan::string path) {
     //if (std::size_t found = path.find("block") == fan::string::npos) {
@@ -25,22 +25,21 @@ int main() {
     texture_properties.name = p;
     texture_properties.name.replace_all(".webp", "");
     e.push_texture(path, texture_properties);
-
   });
-  texture_properties = loco_t::texture_packe0::texture_properties_t();
-  fan::io::iterate_directory_by_image_size(full_path, [&] (fan::string path) {
-    //if (std::size_t found = path.find("block") != std::string::npos) {
-    //  return;
-    //}
-    fan::string p = path;
-    auto len = strlen(full_path);
-    p = p.substr(len, p.size() - len);
+  //texture_properties = loco_t::texture_packe0::texture_properties_t();
+  //fan::io::iterate_directory_by_image_size(full_path, [&] (fan::string path) {
+  //  //if (std::size_t found = path.find("block") != std::string::npos) {
+  //  //  return;
+  //  //}
+  //  fan::string p = path;
+  //  auto len = strlen(full_path);
+  //  p = p.substr(len, p.size() - len);
 
-    texture_properties.name = p;
-    texture_properties.name.replace_all(".webp", "");
-    e.push_texture(path, texture_properties);
-   });
+  //  texture_properties.name = p;
+  //  texture_properties.name.replace_all(".webp", "");
+  //  e.push_texture(path, texture_properties);
+  // });
   e.process();
   fan::print_no_space("pack size:", e.size());
-  e.save_compiled("TexturePackCompiled");
+  e.save_compiled("tile_map");
 }

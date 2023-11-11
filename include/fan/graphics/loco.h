@@ -405,7 +405,6 @@ public:
       auto* context = gloco->get_context();
       m_view = fan::mat4(1);
       camera_position = 0;
-      zoom = 1;
       camera_reference = gloco->camera_list.NewNode();
       gloco->camera_list[camera_reference].camera_id = this;
     }
@@ -434,10 +433,6 @@ public:
       m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
     }
 
-    void set_camera_zoom(f32_t new_zoom) {
-      zoom = new_zoom;
-    }
-
     fan::vec2 get_camera_size() const {
       return fan::vec2(std::abs(coordinates.right - coordinates.left), std::abs(coordinates.down - coordinates.up));
     }
@@ -462,10 +457,10 @@ public:
         calculate_aspect_ratio = true;
       }
 
-      coordinates.left = x.x / zoom;
-      coordinates.right = x.y / zoom;
-      coordinates.down = y.y / zoom;
-      coordinates.up = y.x / zoom;
+      coordinates.left = x.x;
+      coordinates.right = x.y;
+      coordinates.down = y.y;
+      coordinates.up = y.x;
 
       m_projection = fan::math::ortho<fan::mat4>(
         coordinates.left,
@@ -510,7 +505,6 @@ public:
     fan::mat4 m_view;
 
     fan::vec3 camera_position;
-    f32_t zoom;
 
     union {
       struct {
@@ -1500,8 +1494,9 @@ public:
       return 1;
     }
 
+    #if defined(fan_platform_windows)
     get_window()->remove_resize_callback(it);
-
+    #endif
     lambda();
 
     ev_timer.process();

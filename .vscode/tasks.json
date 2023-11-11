@@ -1,10 +1,14 @@
 {
-    "version": "2.0.0",
-    "tasks": [
+  "version": "2.0.0",
+  "tasks": [
       {
-        "label": "build",
-        "type": "shell",
-        "command": "make",  // Use 'make' to build the project.
+          "label": "make and run",
+          "type": "shell",
+          "command": "make; ./a.exe",
+          "group": {
+              "kind": "build",
+              "isDefault": true
+          }
       }
-    ]
-  }
+  ]
+}
