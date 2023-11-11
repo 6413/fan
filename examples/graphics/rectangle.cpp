@@ -7,8 +7,8 @@ int main() {
     fan::vec2(-1, 1)
   );
   fan::graphics::rectangle_t r{{
-      .position = 400,
-      .size = 200,
+      .position = 0,
+      .size = .2,
       .color = fan::colors::red
   }};
   

@@ -44,10 +44,10 @@ while (off != in.size()) {
       byte_count = fan::read_data<uint32_t>(in, off);
 
       if constexpr (fan_requires_rule(T2, typename T2::value_type)) {
-        if constexpr (std::is_same_v<T2, std::vector<T2::value_type>>) {
+        if constexpr (std::is_same_v<T2, std::vector<typename T2::value_type>>) {
           uint32_t element_count = fan::read_data<uint32_t>(in, off);
           for (int k = 0; k < element_count; ++k) {
-            v.push_back(fan::read_data<T2::value_type>(in, off));
+            v.push_back(fan::read_data<typename T2::value_type>(in, off));
           }
         }
       }

@@ -557,7 +557,7 @@ struct ftme_t {
               shape_str.append(v);
             }
             else if constexpr (fan_requires_rule(T2, typename T2::value_type)) {
-              if constexpr (std::is_same_v<T2, std::vector<T2::value_type>>) {
+              if constexpr (std::is_same_v<T2, std::vector<typename T2::value_type>>) {
                 uint32_t len = v.size();
                 shape_str.append((char*)&len, sizeof(uint32_t));
                 for (auto& ob : v) {
