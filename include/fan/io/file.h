@@ -188,6 +188,7 @@ namespace fan {
         str->resize(file.tellg());
         file.seekg(0, std::ios::beg);
         file.read(&(*str)[0], str->size());
+        file.close();
         return 0;
       }
 

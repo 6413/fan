@@ -310,9 +310,8 @@ struct imgui_shape_element_t : imgui_element_t, loco_t::shape_t {
 
 // REQUIRES to be allocated by new since lambda captures this
 // also container that it's stored in, must not change pointers
-struct vfi_root_t {
-  //vfi_root_t() = default;
-
+template <typename T>
+struct vfi_root_custom_t {
   void set_root(const loco_t::shapes_t::vfi_t::properties_t& p) {
     loco_t::shapes_t::vfi_t::properties_t in = p;
     in.shape_type = loco_t::shapes_t::vfi_t::shape_t::rectangle;
@@ -372,7 +371,7 @@ struct vfi_root_t {
     vfi_root = in;
   }
   void push_child(const loco_t::shape_t& shape) {
-    children.push_back(shape);
+    children.push_back({shape});
   }
   fan::vec3 get_position() {
     return vfi_root.get_position();
@@ -403,7 +402,12 @@ struct vfi_root_t {
   bool move_and_resize_auto = true;
 
   loco_t::shape_t vfi_root;
-  std::vector<loco_t::shape_t> children;
+  struct child_data_t : loco_t::shape_t, T {
+    
+  };
+  std::vector<child_data_t> children;
 };
+
+using vfi_root_t = vfi_root_custom_t<__empty_struct>;
 
 #endif

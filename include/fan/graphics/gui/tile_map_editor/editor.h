@@ -19,20 +19,20 @@ struct ftme_t {
   static constexpr fan::vec2 tile_viewer_sprite_size{64, 64};
   static constexpr fan::color highlighted_tile_color = fan::color(0.5, 0.5, 1);
 
-  static constexpr f32_t scroll_speed = 0.05;
+  static constexpr f32_t scroll_speed = 1.2;
 
   fan::string file_name = "file.ftme";
 
-  struct shapes_t {
-    struct global_t : fan::graphics::vfi_root_t, fan::graphics::imgui_element_t {
+  struct tile_t {
+    fan::vec3ui position;
+    uint64_t image_hash;
+    uint8_t mesh_property;
+  };
 
-      struct shape_data {
-        struct tile_t {
-          uint8_t mesh_property = mesh_property_t::none;
-          uint64_t image_hash = 0;
-          uint8_t color_idx = 0;
-        }tile;
-      }shape_data;
+  struct shapes_t {
+    struct global_t : fan::graphics::vfi_root_custom_t<tile_t>, fan::graphics::imgui_element_t {
+
+      using vfi_root_t = fan::graphics::vfi_root_custom_t<tile_t>;
 
       global_t() = default;
 
@@ -57,11 +57,20 @@ struct ftme_t {
           if (d.mouse_stage == loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
             if (root->current_tile != this) {
               if (root->current_tile != nullptr) {
-                root->current_tile->children[0].set_color(fan::color(1, 1, 1));
+                uint32_t found = root->prev_highlight_index;
+                if (found >= root->current_tile->children.size()) {
+                  return 0;
+                }
+                root->current_tile->children[found].set_color(fan::color(1, 1, 1));
               }
               if (children.size()) {
-                children[0].set_color(highlighted_tile_color);
+                uint32_t found = root->find_top_layer_shape(children);
+                if (found >= children.size()) {
+                  return 0;
+                }
+                children[found].set_color(highlighted_tile_color);
                 root->current_tile = this;
+                root->prev_highlight_index = found;
               }
             }
           }
@@ -71,12 +80,12 @@ struct ftme_t {
         };
         vfi_root_t::set_root(vfip);
         vfi_root_t::push_child(std::move(temp));
-        vfi_root_t::push_child(fan::graphics::rectangle_t{{
+       /* vfi_root_t::push_child(fan::graphics::rectangle_t{{
             .position = fan::vec3(fan::vec2(temp.get_position()), vfip.shape.rectangle->position.z),
             .size = root->tile_size,
             .color = fan::color(0, 1, 0, 0),
             .blending = true
-        }});
+        }});*/
       }
 
       // global data
@@ -87,10 +96,37 @@ struct ftme_t {
 
   #include "common.h"
 
+
   enum class event_type_e {
     none,
     add,
     remove
+  };
+
+  uint32_t find_top_layer_shape(auto& children) {
+    uint32_t found = -1;
+    int64_t depth = -1;
+    for (int i = 0; i < children.size(); ++i) {
+      if (children[i].get_position().z > depth) {
+        depth = children[i].get_position().z;
+        found = i;
+      }
+    }
+    return found;
+  };
+
+  uint32_t find_layer_shape(){
+    if (current_tile == nullptr) {
+      return -1;
+    }
+    uint32_t found = -1;
+    for (int i = 0; i < current_tile->children.size(); ++i) {
+      if (current_tile->children[i].get_position().z == brush.depth) {
+        found = i;
+        break;
+      }
+    }
+    return found;
   };
 
   void resize_map() {
@@ -117,9 +153,7 @@ struct ftme_t {
             j->set_size(tile_size);
             if (j->children.size()) {
               j->children[0].set_color(1);
-              if (j->children[0].get_image() == &texture_gray_shades[0] || j->children[0].get_image() == &texture_gray_shades[1]) {
-                j->children[0].set_image(&texture_gray_shades[idx]);
-              }
+              j->children[0].set_image(&texture_gray_shades[idx]);
             }
             ++x;
             continue;
@@ -129,7 +163,6 @@ struct ftme_t {
             .size = tile_size,
             .image = &texture_gray_shades[idx]
           }});
-          j->shape_data.tile.color_idx = idx;
           ++x;
         }
         ++y;
@@ -141,25 +174,25 @@ struct ftme_t {
   }
 
   void draw_collisions() {
-    for (auto& i : map_tiles) {
-      for (auto& j : i) {
-        if (j->shape_data.tile.mesh_property != 0) {
-          // dont hardcode color
-          j->children[1].set_color(fan::color(0, 1, 0, 0.1));
-        }
-      }
-    }
+    //for (auto& i : map_tiles) {
+    //  for (auto& j : i) {
+    //    if (j->shape_data.tile.mesh_property != 0) {
+    //      // dont hardcode color
+    //      j->children[1].set_color(fan::color(0, 1, 0, 0.1));
+    //    }
+    //  }
+    //}
   }
 
   void undraw_collisions() {
-    for (auto& i : map_tiles) {
-      for (auto& j : i) {
-        if (j->shape_data.tile.mesh_property != 0) {
-          // dont hardcode color
-          j->children[1].set_color(fan::color(0, 1, 0, 0));
-        }
-      }
-    }
+    //for (auto& i : map_tiles) {
+    //  for (auto& j : i) {
+    //    if (j->shape_data.tile.mesh_property != 0) {
+    //      // dont hardcode color
+    //      j->children[1].set_color(fan::color(0, 1, 0, 0));
+    //    }
+    //  }
+    //}
   }
 
   void reset_map() {
@@ -172,21 +205,13 @@ struct ftme_t {
 
     gloco->get_window()->add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
-        //fan::vec2 viewport_size = gloco->default_camera->viewport.get_size();
-        //fan::vec2 mouse_normalize = fan::vec2();
-        //fan::vec2 offset_normalize = viewport_settings.offset / gloco->get_window()->get_size();
-
-        //fan::vec2 move_off = (mouse_normalize - offset_normalize) * viewport_settings.zoom;
-
-        gloco->default_camera->camera.set_camera_position(viewport_settings.pos - (d.position - viewport_settings.offset) * viewport_settings.zoom);
+        fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom * 2;
+        gloco->default_camera->camera.set_camera_position(viewport_settings.pos - move_off);
       }
     });
 
     gloco->get_window()->add_buttons_callback([this](const auto& d) {
-      if (ImGui::IsAnyItemActive()) {
-        return;
-      }
-      if (!editor_settings.hovered) {
+      if (!editor_settings.hovered && d.state != fan::mouse_state::release) {
         return;
       }
       
@@ -197,11 +222,21 @@ struct ftme_t {
         switch (d.button) {
           case fan::mouse_middle: { break;}
           case fan::mouse_scroll_up: {
-            viewport_settings.zoom += scroll_speed; 
+            if (gloco->get_window()->key_pressed(fan::key_left_control)) {
+              brush.depth += 1;
+            }
+            else {
+              viewport_settings.zoom *= scroll_speed;
+            }
             return; 
           }
           case fan::mouse_scroll_down: { 
-            viewport_settings.zoom -= scroll_speed; 
+            if (gloco->get_window()->key_pressed(fan::key_left_control)) {
+              brush.depth -= 1;
+            }
+            else {
+              viewport_settings.zoom /= scroll_speed; 
+            }
             return; 
           }
           default: {return;} //?
@@ -216,6 +251,9 @@ struct ftme_t {
 
     gloco->get_window()->add_keys_callback([this](const auto& d) {
       if (d.state != fan::keyboard_state::press) {
+        return;
+      }
+      if (ImGui::IsAnyItemActive()) {
         return;
       }
 
@@ -246,8 +284,6 @@ struct ftme_t {
 
     viewport_settings.size = 0;
 
-    resize_map();
-
     texturepack_images.reserve(texturepack.texture_list.size());
 
     texturepack.iterate_loaded_images([this](auto& image, uint32_t pack_id) {
@@ -265,6 +301,12 @@ struct ftme_t {
 
       texturepack_images.push_back(ii);
     });
+
+    viewport_settings.pos = gloco->get_window()->get_size() / 2;
+    gloco->default_camera->camera.set_camera_position(viewport_settings.pos);
+
+    gloco->process_frame();
+    resize_map();
   }
   void close() {
     texturepack.close();
@@ -292,17 +334,18 @@ struct ftme_t {
 
       fan::vec2 editor_size;
 
-      if (ImGui::Begin(editor_str, nullptr)) {
+      if (ImGui::Begin(editor_str)) {
         fan::vec2 window_size = gloco->get_window()->get_size();
         fan::vec2 viewport_size = ImGui::GetWindowSize();
         fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
         fan::vec2 offset = viewport_size - viewport_size / viewport_settings.zoom;
+        fan::vec2 s = viewport_size;
         gloco->default_camera->camera.set_ortho(
-          fan::vec2(offset.x, viewport_size.x - offset.x),
-          fan::vec2(offset.y, viewport_size.y - offset.y)
+          fan::vec2(-s.x, s.x) / viewport_settings.zoom,
+          fan::vec2(-s.y, s.y) / viewport_settings.zoom
         );
 
-        gloco->default_camera->camera.set_camera_zoom(viewport_settings.zoom);
+        //gloco->default_camera->camera.set_camera_zoom(viewport_settings.zoom);
         gloco->default_camera->viewport.set(viewport_pos, viewport_size, window_size);
         editor_size = ImGui::GetContentRegionAvail();
         viewport_settings.size = editor_size;
@@ -310,7 +353,30 @@ struct ftme_t {
         if (render_collisions) {
           ImGui::TextColored(ImVec4(1, 0, 0, 1), "rendering collisions");
         }
+        ImGui::TextColored(ImVec4(1, 1, 1, 1), fan::format("brush depth:{}", (int)brush.depth).c_str());
 
+
+        if (ImGui::Begin("Layer window")) {
+          struct data_t {
+            fan::string text;
+          };
+          static std::vector<data_t> layers{{.text = "default"}};
+          for (int i = 0; i < layers.size(); ++i) {
+            layers[i].text.resize(32);
+            ImGui::Text(fan::format("Layer {}", i).c_str());
+            ImGui::SameLine();
+            ImGui::InputText(fan::format("##layer{}", i).c_str(), layers[i].text.data(), layers[i].text.size());
+          }
+          if (ImGui::Button("+")) {
+            layers.push_back(data_t{.text = "default"});
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("-")) {
+            layers.pop_back();
+          }
+        }
+
+        ImGui::End();
       }
 
       editor_settings.hovered = ImGui::IsWindowHovered();
@@ -319,50 +385,62 @@ struct ftme_t {
       if (editor_settings.hovered) {
         if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
           if (render_collisions && current_tile != nullptr && current_tile->children.size()) {
-            current_tile->children[1].set_color(fan::color(0, 1, 0, 0.1));
-            current_tile->shape_data.tile.mesh_property = 1;
+            //current_tile->children[1].set_color(fan::color(0, 1, 0, 0.1));
+            ///current_tile->shape_data.tile.mesh_property = 1;
           }
           else {
             if (current_tile != nullptr && current_tile_image.ti.image != nullptr && current_tile->children.size()) {
+              fan::graphics::vfi_root_custom_t<tile_t>::child_data_t* current_shape = 0;
+              uint32_t found = find_layer_shape();
+              if (found == (uint32_t)-1) {
+                // copy initial
+                current_tile->children.push_back(current_tile->children[0]);
+                fan::vec3 parent_pos = current_tile->children[0].get_position();
+                current_tile->children.back().set_position(fan::vec3(parent_pos.x, parent_pos.y, brush.depth));
+                //current_tile->children.set_image(current_tile->)
+                  // implement meshproprty 
+                current_tile->children.back().mesh_property = 1;
+                current_shape = &current_tile->children.back();
+                current_shape->set_color(1);
+              }
+              else {
+                current_shape = &current_tile->children[found];
+              }
               gloco->shapes.sprite.set(
-                current_tile->children[0],
+                *current_shape,
                 &loco_t::shapes_t::sprite_t::vi_t::tc_position,
                 current_tile_image.ti.position
               );
               gloco->shapes.sprite.set(
-                current_tile->children[0],
+                *current_shape,
                 &loco_t::shapes_t::sprite_t::vi_t::tc_size,
                 current_tile_image.ti.size
               );
-              current_tile->children[0].set_color(1);
-              current_tile->children[0].set_image(current_tile_image.ti.image);
-              current_tile->shape_data.tile.image_hash = current_tile_image.image_hash;
+              //current_tile->children[0].set_color(1);
+              current_shape->set_image(current_tile_image.ti.image);
+              current_shape->image_hash = current_tile_image.image_hash;
             }
           }
         }
         //remove texture
         if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
           if (render_collisions && current_tile != nullptr && current_tile->children.size()) {
-            current_tile->children[1].set_color(fan::color(0, 1, 0, 0));
-            current_tile->shape_data.tile.mesh_property = 0;
+           /* current_tile->children[1].set_color(fan::color(0, 1, 0, 0));
+            current_tile->mesh_property = 0;*/
           }
           else {
             if (current_tile != nullptr && current_tile->children.size()) {
-              gloco->shapes.sprite.set(
-                current_tile->children[0],
-                &loco_t::shapes_t::sprite_t::vi_t::tc_position,
-                0
-              );
-              gloco->shapes.sprite.set(
-                current_tile->children[0],
-                &loco_t::shapes_t::sprite_t::vi_t::tc_size,
-                1
-              );
-              current_tile->children[0].set_color(highlighted_tile_color);
-              current_tile->children[0].set_image(&texture_gray_shades[current_tile->shape_data.tile.color_idx]);
+              uint32_t found = find_layer_shape();
+              if (found == (uint32_t)-1) {
+                goto g_skip;
+              }
+              current_tile->children.erase(current_tile->children.begin() + found);
+              prev_highlight_index = -1;
+              current_tile = nullptr;
             }
           }
         }
+      g_skip:;
       }
 
       ImGui::End();
@@ -451,6 +529,7 @@ struct ftme_t {
   header version 4 byte
   map size 8 byte
   tile size 8 byte
+  element count
   struct size x byte
   shape data{
     ...
@@ -464,19 +543,11 @@ struct ftme_t {
 
     for (auto& i : map_tiles) {
       for (auto& j : i) {
-        if (j->children.empty() || 
-          j->children[0].get_image() == &texture_gray_shades[0] ||
-          j->children[0].get_image() == &texture_gray_shades[1] ||
-          j->shape_data.tile.image_hash == 0
-          ) {
-          continue;
-        }
-
         fan::mp_t<current_version_t::shapes_t> shapes;
 
         shapes.iterate([&]<auto i0, typename T>(T & l) {
           fan::mp_t<T> shape;
-          shape.init(j.get());
+          shape.init(this, j.get());
 
           fan::string shape_str;
           shape.iterate([&]<auto i1, typename T2>(T2 & v) {
@@ -485,11 +556,19 @@ struct ftme_t {
               shape_str.append((char*)&string_length, sizeof(string_length));
               shape_str.append(v);
             }
+            else if constexpr (fan_requires_rule(T2, typename T2::value_type)) {
+              if constexpr (std::is_same_v<T2, std::vector<T2::value_type>>) {
+                uint32_t len = v.size();
+                shape_str.append((char*)&len, sizeof(uint32_t));
+                for (auto& ob : v) {
+                  shape_str.append((char*)&ob, sizeof(ob));
+                }
+              }
+            }
             else {
               shape_str.append((char*)&v, sizeof(T2));
             }
           });
-
           uint32_t struct_size = shape_str.size();
           ostr.append((char*)&struct_size, sizeof(struct_size));
 
@@ -543,7 +622,11 @@ struct ftme_t {
   bool render_collisions = false;
 
   struct {
-    f32_t zoom = 1;
+    f32_t depth = 1;
+  }brush;
+
+  struct {
+    f32_t zoom = 0.5;
     bool move = false;
     fan::vec2 pos = 0;
     fan::vec2 size = 0;
@@ -553,6 +636,8 @@ struct ftme_t {
   struct {
     bool hovered = false;
   }editor_settings;
+
+  uint32_t prev_highlight_index = -1;
 
   // very bad fix to prevent mouse move cb when erasing vfi
   bool erasing = false;

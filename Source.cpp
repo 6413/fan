@@ -21,11 +21,4 @@
 
 
 int main() {
-  fan::vec2 v = 10;
-  fan::vec3 v1 = 5;
-  std::vector<int> vector{1, 2};
-  //fan::vec3 v2 = 12;
-//  v += vector;
-v = v1;
-  fan::print(v);
 }
