@@ -3,7 +3,7 @@ CXX = clang++ -Wall -Wextra
 CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include -ftime-trace
 
 # source file and output
-MAIN = examples/graphics/tpacker0_writeall.cpp
+MAIN = examples/graphics/grid.cpp
 OUTPUT = a.exe
 
 WINDOWS_ROOT_PATH=C:/libs/
@@ -25,7 +25,7 @@ WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I $(WINDOWS_ROOT_PATH)/fa
 LINUX_INCLUDES = -I $(LINUX_ROOT_PATH)
 
 WINDOWS_LINK = lib/libuv/uv_a.lib $(WINDOWS_ROOT_PATH)fan/$(LINK_PATH)libimgui.a lib/libwebp/libwebp.a lib/opus/libopus.a
-LINUX_LINK = -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl
+LINUX_LINK = -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl $(LINUX_ROOT_LIB_PATH)fan/$(LINK_PATH)libimgui.a
 
 INCLUDES =
 LINK = 
