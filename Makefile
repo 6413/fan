@@ -6,13 +6,13 @@ CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include -ftime-trace
 MAIN = examples/graphics/circle.cpp
 OUTPUT = a.exe
 
-WINDOWS_ROOT_PATH = C:/libs/fan_release/
-LINUX_ROOT_PATH=/usr/include/
+WINDOWS_ROOT_PATH = ./
+LINUX_ROOT_PATH=.
 
 LINUX_ROOT_LIB_PATH=
 
-WITCH_WINDOWS_ROOT_PATH = C:/libs/fan_release/include/
-WITCH_LINUX_ROOT_PATH = /usr/include/
+WITCH_WINDOWS_ROOT_PATH = ./
+WITCH_LINUX_ROOT_PATH = ./
 
 FAN_INCLUDE_PATH =
 LINK_PATH = lib/fan/
@@ -24,7 +24,7 @@ DEBUG_FLAGS = -g
 RELEASE_FLAGS = -s -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -Wl,--gc-sections
 
 # includes & link
-WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I $(WINDOWS_ROOT_PATH)/fan/src/libwebp -I $(WINDOWS_ROOT_PATH)/fan/src/libwebp/src
+WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I $(WINDOWS_ROOT_PATH)/fan/src/libwebp -I $(WINDOWS_ROOT_PATH)/fan/src/libwebp/src -I .
 LINUX_INCLUDES = -I $(LINUX_ROOT_PATH)
 
 WINDOWS_LINK = lib/libuv/uv_a.lib lib/fan/libimgui.lib lib/libwebp/libwebp.a lib/opus/libopus.a
