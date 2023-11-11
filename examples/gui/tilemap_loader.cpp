@@ -78,12 +78,12 @@ int main() {
   loco_t::texturepack_t tp;
   tp.open_compiled("tile_map");
 
-  ftme_loader_t loader;
+  fte_loader_t loader;
   loader.open(&tp);
 
-  auto compiled_map = loader.compile("file.ftme");
+  auto compiled_map = loader.compile("file.fte");
 
-  ftme_loader_t::properties_t p;
+  fte_loader_t::properties_t p;
 
   p.position = fan::vec3(0, 0, 0);
   auto map_id0_t = loader.add(&compiled_map, p);

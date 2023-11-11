@@ -65,7 +65,7 @@ int main() {
 
   //pile->loco.yuv420p.reload_yuv(&pile->cids[0], datas, image_size);
 
-  /*loco_t::sprite_t::properties_t sp;
+  /*loco_t::shapes_t::sprite_t::properties_t sp;
   sp.position = fan::vec3(0, 0, 0);
   loco_t::image_t image;
   image.load(&pile->loco, "images/test.webp");

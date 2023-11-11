@@ -8,7 +8,7 @@ int main() {
   );
 
   loco_t::image_t image;
-  image.load("images/2.webp");
+  image.load("images/tire.webp");
 
   loco_t::shape_t sprite = fan_init_struct(
       loco_t::shapes_t::sprite_t::properties_t,

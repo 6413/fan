@@ -28,7 +28,7 @@ int main() {
   loco_t::texturepack_t texturepack;
   texturepack.open_compiled("TexturePack");
 
-  loco_t::sprite_t::properties_t p;
+  loco_t::shapes_t::sprite_t::properties_t p;
 
   loco_t::texturepack_t::ti_t ti;
   if (texturepack.qti("entity_ship", &ti)) {

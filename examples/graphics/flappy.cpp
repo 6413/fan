@@ -87,7 +87,7 @@ int main() {
         sp.Size = pipe_size;
         bcol.NewShape_Rectangle(oid[i], &sp);
 
-        loco_t::rectangle_t::properties_t pipe_properties;
+        loco_t::shapes_t::rectangle_t::properties_t pipe_properties;
 
         pipe_properties.position = p.Position;
         pipe_properties.size = sp.Size;
@@ -119,7 +119,7 @@ int main() {
     sp.Size = 0.05;
     bcol.NewShape_Circle(player.oid, &sp);
 
-    loco_t::rectangle_t::properties_t player_properties;
+    loco_t::shapes_t::rectangle_t::properties_t player_properties;
     player_properties.position.x = bcol.GetObject_Position(player.oid).x;
     player_properties.position.y = bcol.GetObject_Position(player.oid).y;
     player_properties.position.z = 1;

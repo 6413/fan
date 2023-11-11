@@ -1,8 +1,8 @@
-#include fan_pch
+#include "pch.h"
 #include <WITCH/WITCH.h>
 
 int main() {
-  fan::trees::quad_tree_t qt(0.5, 0.5, 1);
+  fan::trees::quadtree_t qt(0.5, 0.5, 1);
   static constexpr f32_t n = 500;
   for (int i = 0; i < n; ++i) {
     fan::vec2 p = fan::random::vec2(0, 1);
@@ -19,11 +19,11 @@ int main() {
   std::vector<fan::graphics::rectangle_t> rectangles;
   std::vector<fan::graphics::rectangle_t> points;
 
-  fan::trees::quad_tree_t* qtp = &qt;
+  fan::trees::quadtree_t* qtp = &qt;
 
   int index = 0;
-  fan::function_t<void(fan::trees::quad_tree_t* qtp)> l;
-  l = [&l, &rectangles, &index, &points](fan::trees::quad_tree_t* qtp) -> void {
+  fan::function_t<void(fan::trees::quadtree_t* qtp)> l;
+  l = [&l, &rectangles, &index, &points](fan::trees::quadtree_t* qtp) -> void {
     // put this inside else divided 
     rectangles.push_back(fan::graphics::rectangle_t{ {
       .position = fan::vec3(qtp->position * 2 - 1, index++),

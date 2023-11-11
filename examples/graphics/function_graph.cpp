@@ -1,7 +1,7 @@
 #include fan_pch
 
 f64_t f(f64_t x) {
-  return (sin(x / 10));
+  return sin(x / 10);
 }
 
 int main() {

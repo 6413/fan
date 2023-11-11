@@ -29,7 +29,7 @@ struct pile_t {
 struct sprite_responsive_t : loco_t::shape_t {
   using properties_t = loco_t::responsive_text_t::properties_t;
 
-  sprite_responsive_t(loco_t::responsive_text_t::properties_t rp, const loco_t::sprite_t::properties_t& p) {
+  sprite_responsive_t(loco_t::responsive_text_t::properties_t rp, const loco_t::shapes_t::sprite_t::properties_t& p) {
     rp.position = p.position;
     rp.position.z += 1;
     rp.size = p.size;
@@ -54,7 +54,7 @@ int main() {
   loco_t::image_t image;
   image.load("images/brick.webp");
 
-  loco_t::sprite_t::properties_t pp;
+  loco_t::shapes_t::sprite_t::properties_t pp;
 
   pp.size = fan::vec2(1);
   pp.camera = &pile->camera;

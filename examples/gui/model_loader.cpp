@@ -41,7 +41,7 @@ int main() {
           break;
         }
         default: {
-          /*typename loco_t::sprite_t::properties_t p;
+          /*typename loco_t::shapes_t::sprite_t::properties_t p;
           p.position = properties.position;
           p.size = 0.1;
           loco_t::texturepack_t::ti_t ti;

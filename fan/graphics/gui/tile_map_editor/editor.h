@@ -1,6 +1,6 @@
 #pragma once
 
-struct ftme_t {
+struct fte_t {
 
   // can have like sensor, etc
   struct mesh_property_t : fan::any_type_wrap_t<uint8_t> {
@@ -21,7 +21,7 @@ struct ftme_t {
 
   static constexpr f32_t scroll_speed = 1.2;
 
-  fan::string file_name = "file.ftme";
+  fan::string file_name = "file.fte";
 
   struct tile_t {
     fan::vec3ui position;
@@ -37,7 +37,7 @@ struct ftme_t {
       global_t() = default;
 
       template <typename T>
-      global_t(ftme_t* root, const T& obj) : fan::graphics::imgui_element_t() {
+      global_t(fte_t* root, const T& obj) : fan::graphics::imgui_element_t() {
         vfi_root_t::move_and_resize_auto = false;
         T temp = std::move(obj);
         loco_t::shapes_t::vfi_t::properties_t vfip;

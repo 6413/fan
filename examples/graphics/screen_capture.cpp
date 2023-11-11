@@ -45,7 +45,7 @@ int main() {
   }
 
 
-  loco_t::sprite_t::properties_t p;
+  loco_t::shapes_t::sprite_t::properties_t p;
 
   p.size = fan::vec2(1, 1);
   //p.block_properties.

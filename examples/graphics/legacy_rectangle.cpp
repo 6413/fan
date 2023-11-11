@@ -3,7 +3,7 @@
 int main() {
   loco_t loco;
 
-  loco_t::rectangle_t::properties_t rectangle_properties;
+  loco_t::shapes_t::rectangle_t::properties_t rectangle_properties;
   rectangle_properties.camera = &fan::graphics::default_camera->camera;
   rectangle_properties.viewport = &fan::graphics::default_camera->viewport;
 

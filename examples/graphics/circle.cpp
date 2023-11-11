@@ -11,7 +11,8 @@ int main() {
   fan::graphics::circle_t circle{{
     .position = fan::vec2(0, 0),
     .radius = 0.5,
-    .color = fan::colors::white
+    .color = fan::colors::white,
+    .blending = true
   }};
 
   loco.loop([&] {
