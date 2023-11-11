@@ -1,7 +1,14 @@
 #include fan_pch
 
+// disable ETC_BCOL_set_DynamicDeltaFunction in collider.h to make this work
+
 int main() {
   loco_t loco;
+  loco.default_camera->camera.set_ortho(
+    fan::vec2(-1, 1),
+    fan::vec2(-1, 1)
+  );
+
   static constexpr int wall_count = 4;
   fan::graphics::collider_static_t walls[wall_count];
   for (int i = 0; i < wall_count; ++i) {
