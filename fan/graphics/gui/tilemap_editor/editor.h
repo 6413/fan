@@ -591,7 +591,7 @@ struct ftme_t {
   }
   */
   void fin(const fan::string& filename) {
-    #include _FAN_PATH(graphics/gui/tile_map_editor/loader_versions/1.h)
+    #include _FAN_PATH(graphics/gui/tilemap_editor/loader_versions/1.h)
   }
 
   fan::vec2ui map_size{32, 32};

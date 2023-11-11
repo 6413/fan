@@ -1,6 +1,6 @@
 #include fan_pch
 
-#include _FAN_PATH(graphics/gui/tile_map_editor/loader.h)
+#include _FAN_PATH(graphics/gui/tilemap_editor/loader.h)
 
 loco_t::image_t ismot[4];
 

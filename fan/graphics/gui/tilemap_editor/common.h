@@ -2,7 +2,7 @@ struct version_001_t {
   struct shapes_t {
     struct tile_t {
 
-      #if !defined(tile_map_editor_loader)
+      #if !defined(tilemap_editor_loader)
 
       void init(ftme_t* ftme, ftme_t::shapes_t::global_t* g) {
         for (auto& i : dynamic_cast<fan::graphics::vfi_root_custom_t<ftme_t::tile_t>*>(g)->children) {
@@ -60,4 +60,4 @@ using current_version_t = version_001_t;
 
 static constexpr int current_version = 001;
 
-#undef tile_map_editor_loader
+#undef tilemap_editor_loader

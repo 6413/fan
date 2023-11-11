@@ -1,6 +1,6 @@
 struct ftme_loader_t {
 
-  #define tile_map_editor_loader
+  #define tilemap_editor_loader
   #include "common.h"
 
   struct compiled_map_t {
@@ -38,7 +38,7 @@ public:
     fan::vec2ui& map_size = compiled_map.map_size;
     fan::vec2ui& tile_size = compiled_map.tile_size;
 
-    #define tile_map_editor_loader
+    #define tilemap_editor_loader
     #include "loader_versions/1.h"
 
     return compiled_map;

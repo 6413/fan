@@ -1,6 +1,6 @@
 #include fan_pch
 
-#include _FAN_PATH(graphics/gui/tile_map_editor/editor.h)
+#include _FAN_PATH(graphics/gui/tilemap_editor/editor.h)
 
 int main() {
   loco_t loco;
