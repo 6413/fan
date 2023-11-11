@@ -49,7 +49,7 @@ int main() {
 
   pile_t* pile = new pile_t;
 
-  loco_t::rectangle_t::properties_t p;
+  loco_t::shapes_t::rectangle_t::properties_t p;
   p.get_camera() = &pile->camera;
   p.get_viewport() = &pile->viewport;
 
@@ -72,13 +72,13 @@ int main() {
     if (d.button == fan::mouse_left)
     pile->loco.rectangle.set(
       &pile->cids[0],
-      &loco_t::rectangle_t::instance_t::position,
+      &loco_t::shapes_t::rectangle_t::instance_t::position,
       fan::vec3(pile->loco.get_mouse_position(pile->viewport), 1)
     );
     if (d.button == fan::mouse_right)
     pile->loco.rectangle.set(
       &pile->cids[1],
-      &loco_t::rectangle_t::instance_t::position,
+      &loco_t::shapes_t::rectangle_t::instance_t::position,
       fan::vec3(pile->loco.get_mouse_position(pile->viewport), dd)
     );
   });

@@ -2,21 +2,21 @@
 
 namespace fan {
   namespace trees {
-    struct quad_tree_t {
+    struct quadtree_t {
       fan::vec2 position;
       fan::vec2 boundary;
 
       uint32_t capacity;
       std::vector<fan::vec2> points;
 
-      quad_tree_t* north_west = nullptr;
-      quad_tree_t* north_east = nullptr;
-      quad_tree_t* south_west = nullptr;
-      quad_tree_t* south_east = nullptr;
+      quadtree_t* north_west = nullptr;
+      quadtree_t* north_east = nullptr;
+      quadtree_t* south_west = nullptr;
+      quadtree_t* south_east = nullptr;
 
       bool divided = false;
 
-      quad_tree_t(fan::vec2 position, fan::vec2 boundary, uint32_t n) {
+      quadtree_t(fan::vec2 position, fan::vec2 boundary, uint32_t n) {
         this->position = position;
         this->boundary = boundary;
         this->capacity = n;
@@ -24,10 +24,10 @@ namespace fan {
 
       void subdivide() {
         // todo free these
-        north_east = new quad_tree_t(fan::vec2(position.x + boundary.x / 2, position.y - boundary.y / 2), boundary / 2, capacity);
-        north_west = new quad_tree_t(fan::vec2(position.x - boundary.x / 2, position.y - boundary.y / 2), boundary / 2, capacity);
-        south_east = new quad_tree_t(fan::vec2(position.x + boundary.x / 2, position.y + boundary.y / 2), boundary / 2, capacity);
-        south_west = new quad_tree_t(fan::vec2(position.x - boundary.x / 2, position.y + boundary.y / 2), boundary / 2, capacity);
+        north_east = new quadtree_t(fan::vec2(position.x + boundary.x / 2, position.y - boundary.y / 2), boundary / 2, capacity);
+        north_west = new quadtree_t(fan::vec2(position.x - boundary.x / 2, position.y - boundary.y / 2), boundary / 2, capacity);
+        south_east = new quadtree_t(fan::vec2(position.x + boundary.x / 2, position.y + boundary.y / 2), boundary / 2, capacity);
+        south_west = new quadtree_t(fan::vec2(position.x - boundary.x / 2, position.y + boundary.y / 2), boundary / 2, capacity);
         divided = true;
       }
 

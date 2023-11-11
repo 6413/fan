@@ -44,7 +44,7 @@ int main() {
 	pile_t* pile = new pile_t;
 	pile->open();
 
-	loco_t::sprite_t::properties_t p;
+	loco_t::shapes_t::sprite_t::properties_t p;
 
 	//p.block_properties.
 	p.camera = &pile->camera;

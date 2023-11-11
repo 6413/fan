@@ -74,7 +74,7 @@ struct pipe_t {
       sp.Size = pipe_size;
       bcol.NewShape_Rectangle(oid[i], &sp);
 
-      loco_t::rectangle_t::properties_t pipe_properties;
+      loco_t::shapes_t::rectangle_t::properties_t pipe_properties;
 
       pipe_properties.position = p.Position;
       pipe_properties.size = sp.Size;
@@ -139,7 +139,7 @@ struct bird_t{
       sp.Size = player_size.x;
       bcol.NewShape_Circle(oid, &sp);
 
-      loco_t::rectangle_t::properties_t player_properties;
+      loco_t::shapes_t::rectangle_t::properties_t player_properties;
       player_properties.position.x = bcol.GetObject_Position(oid).x;
       player_properties.position.y = bcol.GetObject_Position(oid).y;
       player_properties.position.z = 1;

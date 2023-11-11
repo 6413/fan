@@ -6,25 +6,29 @@ FAN_OBJECT_FOLDER =
 IMGUI_PATH =
 OUTPUT_PATH = lib/fan/
 
-WINDOWS_ROOT_PATH = C:/libs/
+WINDOWS_ROOT_PATH = 
 LINUX_ROOT_PATH = /usr/include/
 
 FAN_INCLUDE_PATH =
 
 DEBUG_FLAGS = 
-RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -Wl,--gc-sections
+RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
+
+OUT_FILE_FORMAT =
 
 INCLUDES =
 ifeq ($(OS),Windows_NT)
-	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)fan/include/
-	INCLUDES += -I $(WINDOWS_ROOT_PATH)fan/include/baseclasses -I $(WINDOWS_ROOT_PATH)fan/include/fan/imgui -I $(WINDOWS_ROOT_PATH)fan/src/libwebp/src
+	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)include/
+	INCLUDES += -I $(WINDOWS_ROOT_PATH)include/fan/imgui -I $(WINDOWS_ROOT_PATH)src/libwebp/src
 	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WINDOWS_ROOT_PATH)WITCH
 	IMGUI_PATH += include/fan/imgui/
+	OUT_FILE_FORMAT+=lib
 else
 	FAN_INCLUDE_PATH += $(LINUX_ROOT_PATH)
 	INCLUDES += -I $(LINUX_ROOT_PATH)fan/imgui -I $(LINUX_ROOT_PATH)WITCH
 	CXXFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
 	IMGUI_PATH += $(LINUX_ROOT_PATH)fan/imgui/
+	OUT_FILE_FORMAT+=a
 endif
 
 CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
@@ -41,7 +45,7 @@ CXXFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
 # source files and output
 IMGUI_SRC = $(wildcard $(IMGUI_PATH)*.cpp)
 IMGUI_OBJ = $(IMGUI_SRC:.cpp=.o)
-IMGUI_LIB = libimgui.a
+IMGUI_LIB = libimgui.$(OUT_FILE_FORMAT)
 
 $(IMGUI_LIB): $(IMGUI_OBJ)
 	llvm-ar rcs $(OUTPUT_PATH)$@ $^

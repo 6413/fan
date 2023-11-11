@@ -1,4 +1,4 @@
-struct ftme_loader_t {
+struct fte_loader_t {
 
   #define tilemap_editor_loader
   #include "common.h"
@@ -66,7 +66,7 @@ public:
       }});
       loco_t::texturepack_t::ti_t ti;
       if (texturepack->qti(i.tile.image_hash, &ti)) {
-        fan::throw_error("failed to load image from .ftme - corrupted save file");
+        fan::throw_error("failed to load image from .fte - corrupted save file");
       }
       gloco->shapes.sprite.load_tp(
         map_list[it].tiles.back(),

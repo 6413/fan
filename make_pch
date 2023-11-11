@@ -6,8 +6,11 @@ CXXFLAGS = -w -ferror-limit=3 -std=c++2a -I include -fpch-instantiate-templates 
 
 OUTPUT = lib/fan/pch.h.gch
 
-WINDOWS_ROOT_PATH = C:/libs/
+WINDOWS_ROOT_PATH = C:/libs/fan_release/
 LINUX_ROOT_PATH = /usr/include/
+
+WITCH_WINDOWS_ROOT_PATH = C:/libs/fan_release/include/
+WITCH_LINUX_ROOT_PATH = /usr/include/
 
 FAN_INCLUDE_PATH =
 FAN_LIB =
@@ -16,28 +19,28 @@ DEBUG_FLAGS = -g
 RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
 
 # includes & link
-WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I $(WINDOWS_ROOT_PATH)fan/src/libwebp -I $(WINDOWS_ROOT_PATH)fan/src/libwebp/src -I ..
+WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)include -I $(WINDOWS_ROOT_PATH)src/libwebp -I $(WINDOWS_ROOT_PATH)src/libwebp/src -I ..
 LINUX_INCLUDES = -I $(LINUX_ROOT_PATH) -I /usr/local/include
 
 INCLUDES =
 ifeq ($(OS),Windows_NT)
-	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)fan/include/
+	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)include
 	FAN_LIB += fan_windows_clang
 	INCLUDES += $(WINDOWS_INCLUDES)
-	CXXFLAGS += -I $(WINDOWS_ROOT_PATH)fan/include/baseclasses -I $(WINDOWS_ROOT_PATH)WITCH
-	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WINDOWS_ROOT_PATH)WITCH
+	CXXFLAGS += -I $(WINDOWS_ROOT_PATH)WITCH
+	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WITCH_WINDOWS_ROOT_PATH)WITCH
 else
 	FAN_INCLUDE_PATH += $(LINUX_ROOT_PATH)
 	FAN_LIB += fan
 	INCLUDES += $(LINUX_INCLUDES)
-	CXXFLAGS += -I $(FAN_INCLUDE_PATH) -I $(LINUX_ROOT_PATH)WITCH
-	CXXFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
+	CXXFLAGS += -I $(FAN_INCLUDE_PATH) -I $(WITCH_LINUX_ROOT_PATH)WITCH
+	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WITCH_LINUX_ROOT_PATH)WITCH
 endif
 
 CXXFLAGS += -Dfan_build_pch
 CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
 
-MAIN = $(FAN_INCLUDE_PATH)fan/pch.h
+MAIN = $(FAN_INCLUDE_PATH)/fan/pch.h
 
 debug:
 	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT) $(INCLUDES)
