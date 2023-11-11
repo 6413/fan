@@ -1,4 +1,4 @@
-# fan - OpenGL 2D Graphics Library
+# fan
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
