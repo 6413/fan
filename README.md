@@ -2,11 +2,11 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A powerful and flexible 2D graphics library for OpenGL, designed to support various shapes, lighting, GUI elements, collisions, and particle effects.
+2D graphics library for OpenGL, designed to support various shapes, lighting, GUI elements, collisions, and particle effects.
 
 ## Features
 
-- **Shapes:** Draw lines, rectangles, and sprites with ease.
+- **Shapes:** Draw lines, rectangles, and sprite.
 - **Lighting:** Illuminate your scenes with customizable lighting effects.
 - **GUI:** Easily integrate graphical user interfaces into your applications.
 - **Collisions** Simple collisions Circle<->Circle, Rectangle<->Circle
