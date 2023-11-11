@@ -2,11 +2,6 @@
 CXX = clang++
 CXXFLAGS = -I . -std=c++2a -I include
 
-# source files and output
-IMGUI_SRC = $(wildcard $(IMGUI_PATH)*.cpp)
-IMGUI_OBJ = $(IMGUI_SRC:.cpp=.o)
-IMGUI_LIB = libimgui.a
-
 FAN_OBJECT_FOLDER =
 IMGUI_PATH =
 OUTPUT_PATH = lib/fan/
@@ -42,6 +37,11 @@ CXXFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# source files and output
+IMGUI_SRC = $(wildcard $(IMGUI_PATH)*.cpp)
+IMGUI_OBJ = $(IMGUI_SRC:.cpp=.o)
+IMGUI_LIB = libimgui.a
 
 $(IMGUI_LIB): $(IMGUI_OBJ)
 	llvm-ar rcs $(OUTPUT_PATH)$@ $^

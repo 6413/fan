@@ -1479,7 +1479,7 @@ public:
   #endif
 #endif
 
-  bool process_loop(const auto& lambda) {
+  bool process_loop(const auto& lambda = []{}) {
 
     // enables drawing while resizing, not required for x11
     #if defined(fan_platform_windows)
