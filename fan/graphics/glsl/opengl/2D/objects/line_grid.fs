@@ -3,24 +3,24 @@
 layout (location = 0) out vec4 o_attachment0;
 
 in vec2 texture_coordinate;
+in vec2 instance_position;
+in vec2 instance_size;
 in vec4 instance_color;
-in vec3 instance_position;
 in vec3 frag_position;
 
 uniform vec2 window_size;
 uniform vec2 scaler;
 
 void main() {
-	vec2 grid_size = vec2(scaler.x, scaler.y); // user input
-	vec2 grid_thickness = vec2(0.0025, 0.0025); // user input
-	vec2 nl = grid_size * grid_thickness; // NeedLess, calculate inside vertex shader
+	vec2 grid_size = vec2(10, 10); // user input
+	vec2 grid_thickness = vec2(2.); // user input
+	vec2 d = instance_size / grid_size;
 
-	vec2 rc = texture_coordinate * (grid_thickness + 1.0); // relative coordinate
-	rc *= grid_size;
+	vec2 rpos = gl_FragCoord.xy - (instance_position - instance_size); // relative position
 
-	float m0 = mod(rc.x, 1.0); // modulo0
-	float m1 = mod(rc.y, 1.0); // modulo1
-	if(m0 < nl.x || m1 < nl.y){
+	float m0 = mod(rpos.x, d.x); // modulo0
+	float m1 = mod(rpos.y, d.y); // modulo1
+	if(m0 < grid_thickness.x || m1 < grid_thickness.y){
 		o_attachment0 = instance_color;
 	}
 	else{
