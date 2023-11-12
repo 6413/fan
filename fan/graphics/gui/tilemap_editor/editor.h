@@ -202,11 +202,15 @@ struct fte_t {
       texturepack_images.push_back(ii);
     });
 
-    viewport_settings.pos = gloco->get_window()->get_size() / 2;
-    gloco->default_camera->camera.set_camera_position(viewport_settings.pos);
-
+    // update viewport sizes
     gloco->process_frame();
     resize_map();
+
+    gloco->default_camera->camera.set_camera_position(viewport_settings.pos);
+
+    grid_visualize.background = fan::graphics::sprite_t{{
+        .position = viewport_settings.pos
+    }};
   }
   void close() {
     texturepack.close();
@@ -454,8 +458,8 @@ struct fte_t {
   std::vector<image_info_t> texturepack_images;
 
   struct {
-    //loco_t::shape_t 
-    std::vector<std::vector<loco_t::shape_t>> lines;
+    loco_t::shape_t background;
+     //lines;
   }grid_visualize;
 
   bool render_collisions = false;

@@ -771,14 +771,20 @@ public:
   #if defined(loco_window)
   void process_block_properties_element(auto* shape, loco_t::camera_list_NodeReference_t camera_id) {
     #if defined(loco_opengl)
-    shape->m_current_shader->set_camera(get_context(), camera_list[camera_id].camera_id, &m_write_queue);
+    auto* camera = camera_list[camera_id].camera_id;
+    shape->m_current_shader->use(get_context());
+    shape->m_current_shader->set_vec2(get_context(), "matrix_size",
+      fan::vec2(camera->coordinates.right - camera->coordinates.left, camera->coordinates.down - camera->coordinates.up).abs()
+    );
+    shape->m_current_shader->set_camera(get_context(), camera, &m_write_queue);
     #endif
   }
   void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
-    auto data = &get_context()->viewport_list[viewport_id];
-    data->viewport_id->set(
-      data->viewport_id->get_position(),
-      data->viewport_id->get_size(),
+    fan::graphics::viewport_t* viewport = get_context()->viewport_list[viewport_id].viewport_id;
+    shape->m_current_shader->set_vec2(get_context(), "viewport_size", viewport->get_size());
+    viewport->set(
+      viewport->get_position(),
+      viewport->get_size(),
       get_window()->get_size()
     );
   }
