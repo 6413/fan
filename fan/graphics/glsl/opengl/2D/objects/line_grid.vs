@@ -5,7 +5,6 @@
 
 out vec4 instance_color;
 out vec2 texture_coordinate;
-in vec2 texture_coordinate;
 
 uniform mat4 view;
 uniform mat4 projection;

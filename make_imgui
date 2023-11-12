@@ -19,7 +19,7 @@ OUT_FILE_FORMAT =
 INCLUDES =
 ifeq ($(OS),Windows_NT)
 	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)include/
-	INCLUDES += -I $(WINDOWS_ROOT_PATH)include/fan/imgui -I $(WINDOWS_ROOT_PATH)src/libwebp/src
+	INCLUDES += -I $(WINDOWS_ROOT_PATH)include/fan/imgui
 	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WINDOWS_ROOT_PATH)WITCH
 	IMGUI_PATH += include/fan/imgui/
 	OUT_FILE_FORMAT+=lib

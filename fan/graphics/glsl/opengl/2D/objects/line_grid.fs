@@ -6,17 +6,11 @@ in vec4 instance_color;
 in vec3 instance_position;
 in vec3 frag_position;
 
+in vec2 texture_coordinate;
+
 uniform vec2 window_size;
 uniform vec2 scaler;
 
 void main() {
-	vec2 grid_size = scaler;
-	float gridX = mod(gl_FragCoord.x, grid_size.x);
-	float gridY = mod(gl_FragCoord.y, grid_size.y);
-	if ((gridX) < 1.0 || (gridY) < 1.0) {
-		o_attachment0 = instance_color;
-	}
-	else {
-		discard;
-	}
+	o_attachment0 = vec4(texture_coordinate.x, texture_coordinate.y, 0, 1);
 }
