@@ -8,7 +8,8 @@ in vec2 instance_size;
 in vec4 instance_color;
 in vec3 frag_position;
 
-uniform vec2 window_size;
+uniform vec2 matrix_size;
+uniform vec2 viewport_size;
 uniform vec2 scaler;
 
 void main() {
