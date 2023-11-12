@@ -3,7 +3,7 @@ CXX = clang++ -Wall -Wextra
 CXXFLAGS = -ferror-limit=3 -w -std=c++2a -I include -ftime-trace
 
 # source file and output
-MAIN = examples/graphics/circle.cpp
+MAIN ?=  examples/graphics/circle.cpp
 OUTPUT = a.exe
 
 WINDOWS_ROOT_PATH = ./
