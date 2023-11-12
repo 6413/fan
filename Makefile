@@ -24,10 +24,10 @@ DEBUG_FLAGS = -g
 RELEASE_FLAGS = -s -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -Wl,--gc-sections
 
 # includes & link
-WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I $(WINDOWS_ROOT_PATH)/fan/src/libwebp -I $(WINDOWS_ROOT_PATH)/fan/src/libwebp/src -I .
+WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include -I .
 LINUX_INCLUDES = -I $(LINUX_ROOT_PATH)
 
-WINDOWS_LINK = lib/libuv/uv_a.lib lib/fan/libimgui.lib lib/libwebp/libwebp.a lib/opus/libopus.a
+WINDOWS_LINK = lib/libuv/uv_a.lib lib/fan/libimgui.lib lib/libwebp/libwebp.lib lib/opus/libopus.a
 LINUX_LINK = -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl $(LINUX_ROOT_LIB_PATH)$(LINK_PATH)libimgui.a
 
 INCLUDES =

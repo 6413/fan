@@ -1350,14 +1350,6 @@ public:
       fan::vec2 window_size = gloco->get_window()->get_size();
 
       default_camera->viewport.set(fan::vec2(0, 0), d.size, d.size);
-
-      fan::vec2 ratio = window_size.square_normalize();
-      //fan::vec2 ortho = fan::vec2(1, 1) * ratio;
-      //ortho *= 1.f / ortho.min();
-      default_camera->camera.set_ortho(
-        fan::vec2(0, d.size.x),
-        fan::vec2(0, d.size.y)
-      );
   });
 
   fan::opengl::core::renderbuffer_t::properties_t rp;
