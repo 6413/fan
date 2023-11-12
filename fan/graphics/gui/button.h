@@ -210,14 +210,14 @@ struct button_t {
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/button.fs)
   #endif
 
-  #include _FAN_PATH(graphics/shape_builder.h)
-
   button_t() {
-    sb_open();
+    sb_open(sb_shader_vertex_path, sb_shader_fragment_path);
   }
   ~button_t() {
     sb_close();
   }
+
+  #include _FAN_PATH(graphics/shape_builder.h)
 
   loco_t::theme_t* get_theme(fan::graphics::theme_list_NodeReference_t nr) {
     return (loco_t::theme_t*)gloco->get_context()->theme_list[nr].theme_id;

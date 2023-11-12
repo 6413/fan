@@ -41,7 +41,7 @@ struct rectangle_t {
     sb_erase(id);
   }
 
-  void draw(const loco_t::redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
+  void draw(const loco_t::redraw_key_t& redraw_key, loco_bdbt_NodeReference_t key_root) {
     if (redraw_key.blending) {
       m_current_shader = &m_blending_shader;
     }
@@ -56,14 +56,14 @@ struct rectangle_t {
   #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/rectangle.vs)
   #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/rectangle.fs)
 
-  #include _FAN_PATH(graphics/shape_builder.h)
-
   rectangle_t() {
-    sb_open();
+    sb_open(sb_shader_vertex_path, sb_shader_fragment_path);
   }
   ~rectangle_t() {
     sb_close();
   }
+
+  #include _FAN_PATH(graphics/shape_builder.h)
 
   void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
     sb_set_context_key<decltype(n)>(id, n);

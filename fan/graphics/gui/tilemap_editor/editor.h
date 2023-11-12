@@ -30,72 +30,24 @@ struct fte_t {
   };
 
   struct shapes_t {
-    struct global_t : fan::graphics::vfi_root_custom_t<tile_t>, fan::graphics::imgui_element_t {
-
-      using vfi_root_t = fan::graphics::vfi_root_custom_t<tile_t>;
+    struct global_t {
 
       global_t() = default;
 
       template <typename T>
-      global_t(fte_t* root, const T& obj) : fan::graphics::imgui_element_t() {
-        vfi_root_t::move_and_resize_auto = false;
-        T temp = std::move(obj);
-        loco_t::shapes_t::vfi_t::properties_t vfip;
-        vfip.shape.rectangle->position = temp.get_position();
-        vfip.shape.rectangle->position.z += 1;
-        vfip.shape.rectangle->size = temp.get_size();
-        vfip.mouse_button_cb = [root, this](const auto& d) -> int {
-          //root->event_type = event_type_e::move;
-          //root->current_shape = this;
-          return 0;
-        };
-        vfip.mouse_move_cb = [root, this](const auto& d) -> int {
-          if (root->erasing) {
-            return 0;
-          }
-
-          if (d.mouse_stage == loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
-            if (root->current_tile != this) {
-              if (root->current_tile != nullptr) {
-                uint32_t found = root->prev_highlight_index;
-                if (found >= root->current_tile->children.size()) {
-                  return 0;
-                }
-                root->current_tile->children[found].set_color(fan::color(1, 1, 1));
-              }
-              if (children.size()) {
-                uint32_t found = root->find_top_layer_shape(children);
-                if (found >= children.size()) {
-                  return 0;
-                }
-                children[found].set_color(highlighted_tile_color);
-                root->current_tile = this;
-                root->prev_highlight_index = found;
-              }
-            }
-          }
-          //root->event_type = event_type_e::move;
-          //root->current_shape = this;
-          return 0;
-        };
-        vfi_root_t::set_root(vfip);
-        vfi_root_t::push_child(std::move(temp));
-       /* vfi_root_t::push_child(fan::graphics::rectangle_t{{
-            .position = fan::vec3(fan::vec2(temp.get_position()), vfip.shape.rectangle->position.z),
-            .size = root->tile_size,
-            .color = fan::color(0, 1, 0, 0),
-            .blending = true
-        }});*/
+      global_t(fte_t* root, const T& obj) {
+        layers.push_back(obj);
       }
 
-      // global data
-      fan::string id;
-      uint32_t group_id = 0;
+      struct layer_t {
+        tile_t tile;
+        loco_t::shape_t shape;
+      };
+      std::vector<layer_t> layers;
     };
   };
 
   #include "common.h"
-
 
   enum class event_type_e {
     none,
@@ -105,13 +57,13 @@ struct fte_t {
 
   uint32_t find_top_layer_shape(auto& children) {
     uint32_t found = -1;
-    int64_t depth = -1;
+   /* int64_t depth = -1;
     for (int i = 0; i < children.size(); ++i) {
       if (children[i].get_position().z > depth) {
         depth = children[i].get_position().z;
         found = i;
       }
-    }
+    }*/
     return found;
   };
 
@@ -120,12 +72,12 @@ struct fte_t {
       return -1;
     }
     uint32_t found = -1;
-    for (int i = 0; i < current_tile->children.size(); ++i) {
+   /* for (int i = 0; i < current_tile->children.size(); ++i) {
       if (current_tile->children[i].get_position().z == brush.depth) {
         found = i;
         break;
       }
-    }
+    }*/
     return found;
   };
 
@@ -140,59 +92,6 @@ struct fte_t {
       i.resize(map_size.x);
     }
 
-    {
-      erasing = true;
-      uint32_t y = 0;
-      uint8_t offset = 0; // creates grid pattern
-      for (auto& i : map_tiles) {
-        uint32_t x = 0;
-        for (auto& j : i) {
-          uint32_t idx = (y * map_size.x + x + ((map_size.x & 1 & y & 1) ? 0 : offset)) & 1;
-          if (j) {
-            j->set_position(fan::vec3(tile_size + fan::vec2(x, y) * tile_size * 2, 0));
-            j->set_size(tile_size);
-            if (j->children.size()) {
-              j->children[0].set_color(1);
-              j->children[0].set_image(&texture_gray_shades[idx]);
-            }
-            ++x;
-            continue;
-          }
-          j = std::make_unique<shapes_t::global_t>(this, fan::graphics::sprite_t{{
-            .position = fan::vec3(tile_size + fan::vec2(x, y) * tile_size * 2, 0),
-            .size = tile_size,
-            .image = &texture_gray_shades[idx]
-          }});
-          ++x;
-        }
-        ++y;
-        offset = ((offset + 1) & 1);
-      }
-      current_tile = nullptr;
-      erasing = false;
-    }
-  }
-
-  void draw_collisions() {
-    //for (auto& i : map_tiles) {
-    //  for (auto& j : i) {
-    //    if (j->shape_data.tile.mesh_property != 0) {
-    //      // dont hardcode color
-    //      j->children[1].set_color(fan::color(0, 1, 0, 0.1));
-    //    }
-    //  }
-    //}
-  }
-
-  void undraw_collisions() {
-    //for (auto& i : map_tiles) {
-    //  for (auto& j : i) {
-    //    if (j->shape_data.tile.mesh_property != 0) {
-    //      // dont hardcode color
-    //      j->children[1].set_color(fan::color(0, 1, 0, 0));
-    //    }
-    //  }
-    //}
   }
 
   void reset_map() {
@@ -267,12 +166,12 @@ struct fte_t {
           // change this
         case fan::key_e: {
           render_collisions = !render_collisions;
-          if (render_collisions) {
+         /* if (render_collisions) {
             draw_collisions();
           }
           else {
             undraw_collisions();
-          }
+          }*/
           break;
         }
       }
@@ -286,6 +185,7 @@ struct fte_t {
 
     texturepack_images.reserve(texturepack.texture_list.size());
 
+    // loaded texturepack
     texturepack.iterate_loaded_images([this](auto& image, uint32_t pack_id) {
       image_info_t ii;
       ii.ti = loco_t::texturepack_t::ti_t{
@@ -310,10 +210,6 @@ struct fte_t {
   }
   void close() {
     texturepack.close();
-  }
-
-  void open_properties(shapes_t::global_t* shape, const fan::vec2& editor_size) {
-
   }
 
   fan::graphics::imgui_element_t main_view =
@@ -380,68 +276,6 @@ struct fte_t {
       }
 
       editor_settings.hovered = ImGui::IsWindowHovered();
-
-      // add texture
-      if (editor_settings.hovered) {
-        if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-          if (render_collisions && current_tile != nullptr && current_tile->children.size()) {
-            //current_tile->children[1].set_color(fan::color(0, 1, 0, 0.1));
-            ///current_tile->shape_data.tile.mesh_property = 1;
-          }
-          else {
-            if (current_tile != nullptr && current_tile_image.ti.image != nullptr && current_tile->children.size()) {
-              fan::graphics::vfi_root_custom_t<tile_t>::child_data_t* current_shape = 0;
-              uint32_t found = find_layer_shape();
-              if (found == (uint32_t)-1) {
-                // copy initial
-                current_tile->children.push_back(current_tile->children[0]);
-                fan::vec3 parent_pos = current_tile->children[0].get_position();
-                current_tile->children.back().set_position(fan::vec3(parent_pos.x, parent_pos.y, brush.depth));
-                //current_tile->children.set_image(current_tile->)
-                  // implement meshproprty 
-                current_tile->children.back().mesh_property = 1;
-                current_shape = &current_tile->children.back();
-                current_shape->set_color(1);
-              }
-              else {
-                current_shape = &current_tile->children[found];
-              }
-              gloco->shapes.sprite.set(
-                *current_shape,
-                &loco_t::shapes_t::sprite_t::vi_t::tc_position,
-                current_tile_image.ti.position
-              );
-              gloco->shapes.sprite.set(
-                *current_shape,
-                &loco_t::shapes_t::sprite_t::vi_t::tc_size,
-                current_tile_image.ti.size
-              );
-              //current_tile->children[0].set_color(1);
-              current_shape->set_image(current_tile_image.ti.image);
-              current_shape->image_hash = current_tile_image.image_hash;
-            }
-          }
-        }
-        //remove texture
-        if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
-          if (render_collisions && current_tile != nullptr && current_tile->children.size()) {
-           /* current_tile->children[1].set_color(fan::color(0, 1, 0, 0));
-            current_tile->mesh_property = 0;*/
-          }
-          else {
-            if (current_tile != nullptr && current_tile->children.size()) {
-              uint32_t found = find_layer_shape();
-              if (found == (uint32_t)-1) {
-                goto g_skip;
-              }
-              current_tile->children.erase(current_tile->children.begin() + found);
-              prev_highlight_index = -1;
-              current_tile = nullptr;
-            }
-          }
-        }
-      g_skip:;
-      }
 
       ImGui::End();
 
@@ -547,7 +381,7 @@ struct fte_t {
 
         shapes.iterate([&]<auto i0, typename T>(T & l) {
           fan::mp_t<T> shape;
-          shape.init(this, j.get());
+          shape.init(this, &j);
 
           fan::string shape_str;
           shape.iterate([&]<auto i1, typename T2>(T2 & v) {
@@ -609,7 +443,7 @@ struct fte_t {
   image_info_t current_tile_image;
 
   uint32_t current_id = 0;
-  std::vector<std::vector<std::unique_ptr<shapes_t::global_t>>> map_tiles;
+  std::vector<std::vector<shapes_t::global_t>> map_tiles;
 
   loco_t::texturepack_t texturepack;
   // tile pattern
@@ -618,6 +452,11 @@ struct fte_t {
   fan::function_t<void()> close_cb = [] {};
 
   std::vector<image_info_t> texturepack_images;
+
+  struct {
+    //loco_t::shape_t 
+    std::vector<std::vector<loco_t::shape_t>> lines;
+  }grid_visualize;
 
   bool render_collisions = false;
 

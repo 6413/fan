@@ -87,14 +87,14 @@ struct line_t {
     #endif
   #endif
 
-  #include _FAN_PATH(graphics/shape_builder.h)
-
   line_t() {
-    sb_open();
+    sb_open(sb_shader_vertex_path, sb_shader_fragment_path);
   }
   ~line_t() {
     sb_close();
   }
+
+  #include _FAN_PATH(graphics/shape_builder.h)
 
   void set_line(loco_t::cid_nt_t& id, const fan::vec3& src, const fan::vec3& dst) {
     auto v = sb_get_vi(id);

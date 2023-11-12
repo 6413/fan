@@ -212,7 +212,8 @@ struct loco_t {
     circle,
     pixel_format_renderer,
     responsive_text,
-    sprite_sheet
+    sprite_sheet,
+    custom
   };
 
   // can be incorrect
@@ -930,6 +931,121 @@ public:
     }
   };
 
+  #if defined(loco_imgui)
+  #define BLL_set_CPP_ConstructDestruct
+  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_SafeNext 1
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_prefix imgui_draw_cb
+  #define BLL_set_BaseLibrary 1
+  #define BLL_set_Link 1
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType fan::function_t<void()>
+  #include _FAN_PATH(BLL/BLL.h)
+  #endif
+
+  #if defined(loco_imgui)
+  using imgui_draw_cb_nr_t = imgui_draw_cb_NodeReference_t;
+  imgui_draw_cb_t m_imgui_draw_cb;
+  #endif
+
+  #if defined(loco_imgui)
+  struct imgui_element_nr_t : loco_t::imgui_draw_cb_nr_t {
+    using base_t = loco_t::imgui_draw_cb_nr_t;
+
+    imgui_element_nr_t() { /**(nr_t*)this = cid_list_gnric(); should be default*/ }
+
+    imgui_element_nr_t(const imgui_element_nr_t& nr) : imgui_element_nr_t() {
+      if (nr.is_invalid()) {
+        return;
+      }
+      init();
+    }
+
+    imgui_element_nr_t(imgui_element_nr_t&& nr) {
+      NRI = nr.NRI;
+      nr.invalidate_soft();
+    }
+    ~imgui_element_nr_t() {
+      invalidate();
+    }
+
+
+    imgui_element_nr_t& operator=(const imgui_element_nr_t& id) {
+      if (!is_invalid()) {
+        invalidate();
+      }
+      if (id.is_invalid()) {
+        return *this;
+      }
+
+      if (this != &id) {
+        init();
+      }
+      return *this;
+    }
+
+    imgui_element_nr_t& operator=(imgui_element_nr_t&& id) {
+      if (!is_invalid()) {
+        invalidate();
+      }
+      if (id.is_invalid()) {
+        return *this;
+      }
+
+      if (this != &id) {
+        if (!is_invalid()) {
+          invalidate();
+        }
+        NRI = id.NRI;
+
+        id.invalidate_soft();
+      }
+      return *this;
+    }
+
+    void init() {
+      *(base_t*)this = gloco->m_imgui_draw_cb.NewNodeLast();
+    }
+
+    bool is_invalid() const {
+      return loco_t::imgui_draw_cb_inric(*this);
+    }
+
+    void invalidate_soft() {
+      *(base_t*)this = gloco->m_imgui_draw_cb.gnric();
+    }
+
+    void invalidate() {
+      if (is_invalid()) {
+        return;
+      }
+      gloco->m_imgui_draw_cb.unlrec(*this);
+      *(base_t*)this = gloco->m_imgui_draw_cb.gnric();
+    }
+
+    void set(const auto& lambda) {
+      gloco->m_imgui_draw_cb[*this] = lambda;
+    }
+  };
+
+  struct imgui_element_t : imgui_element_nr_t {
+    imgui_element_t() = default;
+    imgui_element_t(const auto& lambda) {
+      imgui_element_nr_t::init();
+      imgui_element_nr_t::set(lambda);
+    }
+  };
+
+  struct imgui_shape_element_t : imgui_element_t, loco_t::shape_t {
+    imgui_shape_element_t(const auto& properties, const auto& lambda)
+      : imgui_element_t(lambda), loco_t::shape_t(properties) {
+    }
+  };
+  #endif
+
+  imgui_element_t gui_debug_element;
+
   // requirements - create shape_type to shape.h, init in constructor, add type_t to properties
 // make get_properties for custom type,
 // (if no custom storaging outside vi or ri, its generated automatically)
@@ -1054,6 +1170,8 @@ public:
     post_process_t sb_post_process_var_name;
     #undef sb_post_process_var_name
     #endif
+   
+    #include _FAN_PATH(graphics/custom_shapes.h)
   };
 
   fan::mp_t<shapes_t> shapes;
@@ -1646,27 +1764,10 @@ protected:
   #define BLL_set_NodeDataType fan::function_t<void(loco_t*)>
   #include _FAN_PATH(BLL/BLL.h)
 public:
-#if defined(loco_imgui)
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
-  #define BLL_set_SafeNext 1
-  #define BLL_set_AreWeInsideStruct 1
-  #define BLL_set_prefix imgui_draw_cb
-  #define BLL_set_BaseLibrary 1
-  #define BLL_set_Link 1
-  #define BLL_set_type_node uint16_t
-  #define BLL_set_NodeDataType fan::function_t<void()>
-  #include _FAN_PATH(BLL/BLL.h)
-#endif
 
   using update_callback_nr_t = update_callback_NodeReference_t;
 
   update_callback_t m_update_callback;
-
-#if defined(loco_imgui)
-  using imgui_draw_cb_nr_t = imgui_draw_cb_NodeReference_t;
-  imgui_draw_cb_t m_imgui_draw_cb;
-#endif
 
   image_t default_texture;
   image_t transparent_texture;
