@@ -67,17 +67,16 @@ struct sb_pfr_name {
       #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/nv12.fs)
     #endif
   #endif
-
-  #define sb_no_blending
-  #include _FAN_PATH(graphics/shape_builder.h)
-
   
   sb_pfr_name() {
-    sb_open();
+    sb_open(sb_shader_vertex_path, sb_shader_fragment_path);
   }
   ~sb_pfr_name() {
     sb_close();
   }
+
+  #define sb_no_blending
+  #include _FAN_PATH(graphics/shape_builder.h)
 
   void set_fragment(uint8_t format) {
     fan::string fragment_code;

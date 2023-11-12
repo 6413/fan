@@ -303,13 +303,18 @@ public:
     };
   };
 
-  void sb_open() {
+  void sb_open(const fan::string vertex_path, const fan::string& fragment_path) {
 
     #if sb_has_own_key_root == 1
       key_root = loco_bdbt_NewNode(&gloco->bdbt);
     #endif
 
-    fan::string vertex_code = fan::graphics::read_shader(sb_shader_vertex_path);
+    fan::string vertex_code;
+    #if defined(sb_shader_vertex_string)
+      vertex_code = vertex_path;
+    #else
+    vertex_code = fan::graphics::read_shader(vertex_path);
+    #endif
     m_shader.open(gloco->get_context());
     m_shader.set_vertex(
       gloco->get_context(),
@@ -317,13 +322,9 @@ public:
     );
     fan::string fragment_code;
     #if defined(sb_shader_fragment_string)
-    fragment_code = sb_shader_fragment_string;
-    m_shader.set_fragment(
-      gloco->get_context(),
-      fragment_code
-    );
+      fragment_code = fragment_path;
     #else
-      fragment_code = fan::graphics::read_shader(sb_shader_fragment_path);
+      fragment_code = fan::graphics::read_shader(fragment_path);
     #endif
     m_shader.set_fragment(
       gloco->get_context(),
@@ -861,11 +862,13 @@ public:
   #undef sb_shader_vertex_path
   #undef sb_shader_fragment_path
 
+  #undef sb_shader_vertex_string
+  #undef sb_shader_fragment_string
+
   #undef sb_has_own_key_root
   #undef sb_ignore_3_key
 
   #undef sb_vertex_count
-  #undef sb_shader_fragment_string
   #undef sb_depth_var
   #undef sb_no_blending
   #undef sb_mark

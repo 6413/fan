@@ -93,14 +93,14 @@ struct letter_t {
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/letter.fs)
   #endif
 
-  #include _FAN_PATH(graphics/shape_builder.h)
-
   letter_t() {
-    sb_open();
+    sb_open(sb_shader_vertex_path, sb_shader_fragment_path);
   }
   ~letter_t() {
     sb_close();
   }
+
+  #include _FAN_PATH(graphics/shape_builder.h)
 
   void set_camera(loco_t::cid_nt_t& id, loco_t::camera_list_NodeReference_t n) {
     sb_set_context_key<decltype(n)>(id, n);

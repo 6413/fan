@@ -5,17 +5,17 @@ struct version_001_t {
       #if !defined(tilemap_editor_loader)
 
       void init(fte_t* fte, fte_t::shapes_t::global_t* g) {
-        for (auto& i : dynamic_cast<fan::graphics::vfi_root_custom_t<fte_t::tile_t>*>(g)->children) {
+       /* for (auto& i : dynamic_cast<fan::graphics::vfi_root_custom_t<fte_t::tile_t>*>(g)->children) {
           fte_t::tile_t layer;
           layer.position = i.get_position();
           layer.image_hash = i.image_hash;
           layer.mesh_property = i.mesh_property;
           layers.push_back(layer);
-        }
+        }*/
       }
 
       void get_shape(fte_t* fte) {
-        fan::vec2ui grid_idx(
+        /*fan::vec2ui grid_idx(
           (layers[0].position.x - fte->tile_size.x) / fte->tile_size.x / 2,
           (layers[0].position.y - fte->tile_size.y) / fte->tile_size.y / 2
         );
@@ -47,7 +47,7 @@ struct version_001_t {
             &ti
           );
         }
-        layers.clear();
+        layers.clear();*/
       }
       #endif
 

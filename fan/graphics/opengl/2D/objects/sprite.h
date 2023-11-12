@@ -80,15 +80,15 @@ struct sb_sprite_name {
       #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/sprite.fs)
     #endif
   #endif
-
-  #include _FAN_PATH(graphics/shape_builder.h)
   
   sb_sprite_name() {
-    sb_open();
+    sb_open(sb_shader_vertex_path, sb_shader_fragment_path);
   }
   ~sb_sprite_name() {
     sb_close();
   }
+
+  #include _FAN_PATH(graphics/shape_builder.h)
 
   void set_image(loco_t::cid_nt_t& id, loco_t::textureid_t<0> n) {
   #if defined(loco_opengl)
