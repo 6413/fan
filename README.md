@@ -22,12 +22,12 @@
 Requires c++20
 
 ### Windows
-1. Clone the repository: `git clone https://github.com/614/fan.git`
+1. Clone the repository: `git clone https://github.com/6413/fan.git`
 2. Using Visual Studio use fan.sln. Alternatively compile using clang++/g++ using make_imgui, make_pch, make, in order
 
 ### Linux
 1. Install required dependencies libx11-dev, libxrandr-dev, libwebp-dev, libxcursor-dev, llvm, clang/gcc, libopus-dev, OpenGL
-2. Clone the repository: `git clone https://github.com/614/fan.git`
+2. Clone the repository: `git clone https://github.com/6413/fan.git`
 3. Setup and compile using make_imgui, make_pch, make, in order
 
 ## Notes for compiling with Makefile
