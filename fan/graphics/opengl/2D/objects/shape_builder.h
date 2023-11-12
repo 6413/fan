@@ -340,11 +340,11 @@ public:
     );
     #endif
 
+    #ifndef sb_no_blending
     auto found = fragment_code.find("discard;");
     if (found != fan::string::npos) {
       fragment_code.erase(found, std::string_view("discard;").size());
     }
-    #ifndef sb_no_blending
     m_blending_shader.set_fragment(
       gloco->get_context(),
       fragment_code
