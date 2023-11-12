@@ -29,8 +29,6 @@ namespace fan {
     }
     inline std::unordered_map<uint64_t, int> free_checker;
     static bool decode(const uint8_t* webp_data, std::size_t size, image_info_t* image_info) {
-      WebPBitstreamFeatures features;
-      VP8StatusCode status = WebPGetFeatures(webp_data, size, &features);
       image_info->data = WebPDecodeRGBA(webp_data, size, &image_info->size.x, &image_info->size.y);
       return image_info->data == 0;
     }
