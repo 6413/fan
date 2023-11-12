@@ -66,10 +66,11 @@ struct line_grid_t {
     }
     gloco->gui_debug_element = [&] {
       ImGui::Begin("debug");
-      if (ImGui::SliderFloat2("scaler", scaler.data(), 0, 1000)) {
-        m_current_shader->use(gloco->get_context());
-        m_current_shader->set_vec2(gloco->get_context(), "scaler", scaler);
+      if (ImGui::SliderFloat2("scaler", scaler.data(), 0, 256)) {
+
       }
+      m_current_shader->use(gloco->get_context());
+      m_current_shader->set_vec2(gloco->get_context(), "scaler", scaler);
       ImGui::End();
       };
     sb_draw(key_root);
