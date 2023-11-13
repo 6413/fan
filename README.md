@@ -14,6 +14,7 @@
 ## Limitations
 - Uses .webp files for loading images
 - Limited shapes for collisions
+- The library is still in development, bugs and missing features to be expected
 
 ## Getting Started
 
