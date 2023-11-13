@@ -1,4 +1,4 @@
-#define BLL_set_BaseLibrary 1
+#include _FAN_PATH(fan_bll_present.h)
 #define BLL_set_prefix image_list
 #define BLL_set_type_node uint8_t
 

@@ -301,7 +301,7 @@ void update(){
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
-  #define BLL_set_BaseLibrary 1
+  #include _FAN_PATH(fan_bll_present.h)
   #define BLL_set_prefix stage_list
   #define BLL_set_type_node uint32_t
   #define BLL_set_NodeDataType stage_t*

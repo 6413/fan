@@ -6,9 +6,11 @@ struct line_grid_t {
 
   struct vi_t {
     loco_t::position3_t position = 0;
-    f32_t pad[1];
+    f32_t pad;
     fan::vec2 size = 0;
+    fan::vec2 grid_size;
     fan::vec2 rotation_point = 0;
+    f32_t pad2[2];
     fan::color color = fan::colors::white;
     fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
     f32_t angle = 0;
@@ -55,8 +57,6 @@ struct line_grid_t {
     sb_close();
   }
 
-  fan::vec2 scaler = 0;
-
   void draw(const loco_t::redraw_key_t& redraw_key, loco_bdbt_NodeReference_t key_root) {
     if (redraw_key.blending) {
       m_current_shader = &m_blending_shader;
@@ -64,15 +64,6 @@ struct line_grid_t {
     else {
       m_current_shader = &m_shader;
     }
-    gloco->gui_debug_element = [&] {
-      ImGui::Begin("debug");
-      if (ImGui::SliderFloat2("scaler", scaler.data(), 0, 256)) {
-
-      }
-      m_current_shader->use(gloco->get_context());
-      m_current_shader->set_vec2(gloco->get_context(), "scaler", scaler);
-      ImGui::End();
-      };
     sb_draw(key_root);
   }
 

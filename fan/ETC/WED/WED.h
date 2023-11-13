@@ -8,6 +8,10 @@
   #error set Prefix
 #endif
 
+#ifndef ETC_WED_set_WidthType
+  #define ETC_WED_set_WidthType uint32_t
+#endif
+
 #ifndef ETC_WED_set_debug_InvalidCharacterAccess
   #define ETC_WED_set_debug_InvalidCharacterAccess 0
 #endif
@@ -47,6 +51,8 @@
 #undef ETC_WED_set_debug_InvalidCursorAccess
 #undef ETC_WED_set_debug_InvalidLineAccess
 #undef ETC_WED_set_debug_InvalidCharacterAccess
+
+#undef ETC_WED_set_WidthType
 
 #undef ETC_WED_set_Prefix
 

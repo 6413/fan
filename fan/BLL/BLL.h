@@ -24,19 +24,9 @@
 #if defined(BLL_set_StoreFormat0_alloc_close) || defined(BLL_set_StoreFormat1_alloc_close)
   #error outdated setting. now it's BLL_set_alloc_close
 #endif
-
-/* --- outdated --- */
-
-/* can be used for debug internal code inside bll with checking preprocessor */
-#ifndef BLL_set_Mark
-  #define BLL_set_Mark 0
-#endif
-
-#ifndef BLL_set_BaseLibrary
-  #define BLL_set_BaseLibrary 0
-#endif
-
-#ifndef BLL_set_Language
+#ifdef BLL_set_BaseLibrary
+  #error BLL_set_BaseLibrary is no longer supported. look at down line of this error to see the baselibrary config.
+  /*
   #if BLL_set_BaseLibrary == 0
     #define BLL_set_Language 0
   #elif BLL_set_BaseLibrary == 1
@@ -55,6 +45,18 @@
   #else
     #error ?
   #endif
+  */
+#endif
+
+/* --- outdated --- */
+
+/* can be used for debug internal code inside bll with checking preprocessor */
+#ifndef BLL_set_Mark
+  #define BLL_set_Mark 0
+#endif
+
+#ifndef BLL_set_Language
+  #error BLL_set_Language needs to be set. 0 is C and 1 is C++
 #endif
 
 #ifndef BLL_set_CPP_nrsic
@@ -100,10 +102,12 @@
   #define BLL_set_ResizeListAfterClear 0
 #endif
 #ifndef BLL_set_UseUninitialisedValues
-  #if BLL_set_BaseLibrary == 0
+  #if defined(WITCH_set_UseUninitialisedValues)
     #define BLL_set_UseUninitialisedValues WITCH_set_UseUninitialisedValues
-  #elif BLL_set_BaseLibrary == 1
+  #elif defined(fan_use_uninitialized)
     #define BLL_set_UseUninitialisedValues fan_use_uninitialized
+  #else
+    #error BLL_set_UseUninitialisedValues needs to be set.
   #endif
 #endif
 #ifndef BLL_set_Link
@@ -239,5 +243,4 @@
   #undef BLL_set_namespace
 #endif
 #undef BLL_set_Language
-#undef BLL_set_BaseLibrary
 #undef BLL_set_Mark

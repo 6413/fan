@@ -97,9 +97,13 @@ struct fte_t {
     }
     grid_visualize.background.set_size(tile_size * map_size);
     grid_visualize.background.set_tc_size(fan::vec2(0.5) * map_size);
-
-    gloco->shapes.line_grid.scaler = fan::vec2(map_size.x, map_size.y);
-    grid_visualize.line_grid.set_size(gloco->shapes.line_grid.scaler * (tile_size / 2) * 2);
+    fan::vec2 grid_size = fan::vec2(map_size.x, map_size.y);
+    gloco->shapes.line_grid.sb_set_vi(
+      grid_visualize.line_grid,
+      &loco_t::shapes_t::line_grid_t::vi_t::grid_size,
+      grid_size
+    );
+    grid_visualize.line_grid.set_size(grid_size * (tile_size / 2) * 2);
   }
 
   void reset_map() {
@@ -243,12 +247,9 @@ struct fte_t {
 
     gloco->default_camera->camera.set_position(viewport_settings.pos);
 
-    // todo remove scaler
-    gloco->shapes.line_grid.scaler = fan::vec2(map_size.x, map_size.y);
-
     loco_t::shapes_t::line_grid_t::properties_t p;
-    p.position = fan::vec3(0, 0, shape_depths_t::cursor_highlight_depth);
-    p.size = gloco->shapes.line_grid.scaler * (tile_size / 2) * 2;
+    p.position = fan::vec3(0, 0, shape_depths_t::cursor_highlight_depth + 1);
+    p.size = 0;
     p.color = fan::color::rgb(0, 128, 255);
 
     grid_visualize.line_grid = p;

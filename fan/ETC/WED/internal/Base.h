@@ -40,7 +40,7 @@ struct _ETC_WED_P(t){
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
   #define BLL_set_NodeData \
-    uint16_t width; \
+    ETC_WED_set_WidthType width; \
     CharacterData_t data; \
     CursorReference_t CursorReference;
   #define BLL_set_debug_InvalidAction ETC_WED_set_debug_InvalidCharacterAccess
@@ -54,7 +54,7 @@ struct _ETC_WED_P(t){
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
   #define BLL_set_NodeData \
-    uint32_t TotalWidth; \
+    ETC_WED_set_WidthType TotalWidth; \
     bool IsEndLine; \
     _CharacterList_t CharacterList;
   #define BLL_set_debug_InvalidAction ETC_WED_set_debug_InvalidLineAccess
@@ -74,12 +74,12 @@ struct _ETC_WED_P(t){
       struct{ \
         LineReference_t LineReference; \
         CharacterReference_t CharacterReference; \
-        uint32_t PreferredWidth; \
+        ETC_WED_set_WidthType PreferredWidth; \
       }FreeStyle; \
       struct{ \
         LineReference_t LineReference[2]; \
         CharacterReference_t CharacterReference[2]; \
-        uint32_t PreferredWidth; \
+        ETC_WED_set_WidthType PreferredWidth; \
       }Selection; \
     };
   #define BLL_set_debug_InvalidAction ETC_WED_set_debug_InvalidCursorAccess
@@ -88,17 +88,17 @@ struct _ETC_WED_P(t){
 
   struct ExportedCursor_t{
     CursorReference_t CursorReference;
-    uint32_t x;
-    uint32_t y;
+    ETC_WED_set_WidthType x;
+    uint32_t y; /* TOOD what type to use? */
   };
 
   _LineList_t LineList;
   _CursorList_t CursorList;
 
-  uint32_t LineHeight;
-  uint32_t LineWidth;
-  uint32_t LineLimit;
-  uint32_t LineCharacterLimit;
+  uint32_t LineHeight; /* TOOD what type to use? */
+  ETC_WED_set_WidthType LineWidth;
+  uint32_t LineLimit;  /* TOOD what type to use? */
+  uint32_t LineCharacterLimit; /* TOOD what type to use? */
 
   private:
     #include "private.h"
