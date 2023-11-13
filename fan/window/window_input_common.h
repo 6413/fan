@@ -472,7 +472,7 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
 }
 
 #if defined(loco_imgui)
-static ImGuiKey fan_to_imguikey(uint16_t key)
+static constexpr ImGuiKey fan_to_imguikey(uint16_t key)
 {
   switch (key)
   {

@@ -8,7 +8,11 @@ int main() {
   fte_t fte;
   fte.open("texture_packs/tilemap.ftp");
  // fte.fin("tilemaps/tilemap_demo.fte");
-  
+  fan::vec2 x;
+  fan::vec0_wrap_t<int> v;
+  v += x;
+  x += v;
+  fan::print(v);
   loco.set_vsync(0);
   //loco.get_window()->set_max_fps(165);
   loco.loop([&] {
