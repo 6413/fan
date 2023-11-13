@@ -10,3 +10,5 @@
 #ifndef BLL_set_CPP_nrsic
   #define BLL_set_CPP_nrsic 1
 #endif
+
+#define _BLL_INCLUDE(_path) <FAN_INCLUDE_PATH/fan/_path>

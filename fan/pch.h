@@ -3,10 +3,6 @@
 
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
-#if defined(fan_build_pch)
-  #include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
-#endif
-
 #include <iostream>
 #include <regex>
 #include <functional>

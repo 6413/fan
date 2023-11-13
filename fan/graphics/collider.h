@@ -4,13 +4,14 @@
 #if defined(loco_physics)
 
 constexpr static f32_t bcol_step_time = 0.01;
+#define ETC_BCOL_set_Dimension 2
 #define ETC_BCOL_set_IncludePath FAN_INCLUDE_PATH/fan
 #define ETC_BCOL_set_prefix bcol
 #define ETC_BCOL_set_DynamicDeltaFunction 
 #define ETC_BCOL_set_StoreExtraDataInsideObject 1
 #define ETC_BCOL_set_ExtraDataInsideObject \
   bcol_t::ShapeID_t shape_id;
-#include _WITCH_PATH(ETC/BCOL/BCOL.h)
+#include _FAN_PATH(ETC/BCOL/BCOL.h)
 
 namespace fan {
   namespace graphics {

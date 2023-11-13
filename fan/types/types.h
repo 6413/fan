@@ -45,6 +45,10 @@
   };
 #endif
 
+#ifndef __is_type_same
+  #define __is_type_same std::is_same_v
+#endif
+
 #ifndef __MemoryCopy
   #define __MemoryCopy(src, dst, size) memcpy(dst, src, size)
 #endif

@@ -113,7 +113,7 @@ BLL_StructEnd(_P(Node_t))
   #define BVEC_set_alloc_open BLL_set_alloc_open
   #define BVEC_set_alloc_resize BLL_set_alloc_resize
   #define BVEC_set_alloc_close BLL_set_alloc_close
-  #include _BLL_INCLUDE(BVEC/BVEC.h)
+  #include "../../BVEC/BVEC.h"
 #elif BLL_set_StoreFormat == 1
   #ifndef _BLL_HaveConstantNodeData
     #error not yet
@@ -126,7 +126,7 @@ BLL_StructEnd(_P(Node_t))
   #define BVEC_set_NodeData _P(Node_t) *
   #define BVEC_set_alloc_open BLL_set_alloc_open
   #define BVEC_set_alloc_close BLL_set_alloc_close
-  #include _BLL_INCLUDE(BVEC/BVEC.h)
+  #include "../../BVEC/BVEC.h"
 #endif
 
 #if defined(BLL_set_MultipleType_Sizes)
