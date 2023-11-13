@@ -11,7 +11,7 @@ namespace fan {
 				static constexpr auto buffer_count = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
 
 				#define BLL_set_MultipleType_Sizes sizeof(vi_t) * max_instance_size, sizeof(ri_t) * max_instance_size
-				#define BLL_set_BaseLibrary 1
+				#include _FAN_PATH(fan_bll_present.h)
 				#define BLL_set_CPP_ConstructDestruct
 				#define BLL_set_prefix instance_list
 				#define BLL_set_type_node uint16_t

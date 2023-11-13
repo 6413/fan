@@ -99,7 +99,6 @@ BLL_StructEnd(_P(Node_t))
 #endif
 
 #if BLL_set_StoreFormat == 0
-  #define BVEC_set_BaseLibrary BLL_set_BaseLibrary
   #define BVEC_set_prefix _P(_NodeList)
   #define BVEC_set_NodeType BLL_set_type_node
   #if defined(BLL_set_MultipleType_Sizes)
@@ -116,7 +115,6 @@ BLL_StructEnd(_P(Node_t))
   #define BVEC_set_alloc_close BLL_set_alloc_close
   #include _BLL_INCLUDE(BVEC/BVEC.h)
 #elif BLL_set_StoreFormat == 1
-  #define BVEC_set_BaseLibrary BLL_set_BaseLibrary
   #ifndef _BLL_HaveConstantNodeData
     #error not yet
   #endif
@@ -181,6 +179,9 @@ BLL_StructBegin(_P(t))
   #endif
 #if BLL_set_Language == 0
   BLL_StructEnd(_P(t))
+#else
+  using nd_t = _P(NodeData_t);
+  using nr_t = _P(NodeReference_t);
 #endif
 
 _BLL_SOFTWBIT

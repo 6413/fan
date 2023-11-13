@@ -22,7 +22,6 @@ BDBT_StructEnd(_BDBT_P(Node_t))
   #pragma pack(pop)
 #endif
 
-#define BVEC_set_BaseLibrary BDBT_set_BaseLibrary
 #define BVEC_set_prefix _BDBT_P(_NodeList)
 #define BVEC_set_NodeType BDBT_set_type_node
 #define BVEC_set_NodeData _BDBT_P(Node_t)
@@ -165,9 +164,6 @@ _BDBT_P(NewNode_empty)
 ){
   _BDBT_P(NodeReference_t) NodeReference = list->e.c;
   list->e.c = _BDBT_P(_GetNodeByReference)(list, NodeReference)->n[0];
-  if (list->e.c > 0x7fff) {
-    __abort();
-  }
   list->e.p--;
   return NodeReference;
 }

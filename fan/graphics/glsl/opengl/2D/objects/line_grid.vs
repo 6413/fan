@@ -7,6 +7,7 @@ out vec2 instance_position;
 out vec2 instance_size;
 out vec4 instance_color;
 out vec2 texture_coordinate;
+out vec2 grid_size;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -14,6 +15,7 @@ uniform mat4 projection;
 struct block_instance_t{
 	vec3 position;
 	vec2 size;
+  vec2 grid_size;
 	vec2 rotation_point;
 	vec4 color;
 	vec3 rotation_vector;
@@ -113,4 +115,5 @@ void main() {
 
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id];
+  grid_size = ivec2(get_instance().grid_size / 2);
 }

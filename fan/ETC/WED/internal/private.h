@@ -61,7 +61,7 @@ void _MoveCursorFreeStyle(
   srcCharacter->CursorReference.sic();
   if(dstCharacter->CursorReference.iic() == false){
     /* there is already cursor what should we do? */
-    fan::throw_error("");
+    ETC_WED_set_Abort();
   }
   dstCharacter->CursorReference = CursorReference;
   Cursor->FreeStyle.LineReference = dstLineReference;
@@ -77,7 +77,7 @@ void _MoveCursor_NoCleaning(
 ){
   if(dstCharacter->CursorReference.iic() == false){
     /* there is already cursor what should we do? */
-    fan::throw_error("");
+    ETC_WED_set_Abort();
   }
   dstCharacter->CursorReference = CursorReference;
   *srcLineReference = dstLineReference;
@@ -121,7 +121,7 @@ void _MoveAllCursors(
   srcCharacter->CursorReference.sic();
   if(dstCharacter->CursorReference.iic() == false){
     /* there is already cursor what should we do? */
-    fan::throw_error("");
+    ETC_WED_set_Abort();
   }
   dstCharacter->CursorReference = CursorReference;
   Cursor_t *Cursor = &this->CursorList[CursorReference];
@@ -337,8 +337,8 @@ bool _OpenExtraLine(
 
 bool
 _IsLineMembersFit(
-  uint32_t CharacterAmount,
-  uint32_t WidthAmount
+  uint32_t CharacterAmount, /* TOOD need type */
+  ETC_WED_set_WidthType WidthAmount
 ){
   if(CharacterAmount > this->LineCharacterLimit){
     return 0;
@@ -612,7 +612,7 @@ void _CursorConvertFreeStyleToSelection(
   Cursor->Selection.CharacterReference[1] = CharacterReference;
   if(Character->CursorReference.iic() == false){
     /* what will happen to cursor? */
-    fan::throw_error("");
+    ETC_WED_set_Abort();
   }
   Character->CursorReference = CursorReference;
 }

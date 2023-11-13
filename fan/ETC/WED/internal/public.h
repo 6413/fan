@@ -1,7 +1,7 @@
 void
 open(
   uint32_t LineHeight,
-  uint32_t LineWidth,
+  ETC_WED_set_WidthType LineWidth,
   uint32_t LineLimit,
   uint32_t LineCharacterLimit
 ){
@@ -624,7 +624,7 @@ void
 AddCharacterToCursor(
   CursorReference_t CursorReference,
   CharacterData_t data,
-  uint16_t width
+  ETC_WED_set_WidthType width
 ){
   Cursor_t *Cursor = &this->CursorList[CursorReference];
   _CursorIsTriggered(Cursor);
@@ -797,7 +797,7 @@ void MoveCursorFreeStyleToBeginOfLine(CursorReference_t CursorReference){
   _Character_t *BeginCharacter = &Line->CharacterList[BeginCharacterReference];
   if(BeginCharacter->CursorReference.iic() == false){
     /* there is already cursor there */
-    fan::throw_error("");
+    ETC_WED_set_Abort();
   }
   BeginCharacter->CursorReference = CursorReference;
   Cursor->FreeStyle.CharacterReference = BeginCharacterReference;
@@ -821,7 +821,7 @@ void MoveCursorFreeStyleToEndOfLine(CursorReference_t CursorReference){
   _Character_t *EndCharacter = &Line->CharacterList[EndCharacterReference];
   if(EndCharacter->CursorReference.iic() == false){
     /* there is already cursor there */
-    fan::throw_error("");
+    ETC_WED_set_Abort();
   }
   EndCharacter->CursorReference = CursorReference;
   Cursor->FreeStyle.CharacterReference = EndCharacterReference;
@@ -928,8 +928,8 @@ void MoveCursorSelectionToEndOfLine(CursorReference_t CursorReference){
 
 void GetLineAndCharacter(
   LineReference_t HintLineReference,
-  uint32_t y,
-  uint32_t x,
+  uint32_t y, /* TOOD */
+  ETC_WED_set_WidthType x,
   LineReference_t *LineReference, /* w */
   CharacterReference_t *CharacterReference /* w */
 ){
@@ -1045,7 +1045,7 @@ cursor_open(
   Cursor->FreeStyle.PreferredWidth = -1;
   Cursor->FreeStyle.CharacterReference = Line->CharacterList.src;
   if(Character->CursorReference.iic() == false){
-    fan::throw_error("");
+    ETC_WED_set_Abort();
   }
   Character->CursorReference = CursorReference;
   return CursorReference;
@@ -1089,7 +1089,7 @@ void NowAllCharacterSizesAre(bool Smaller){
   }
 }
 
-void SetLineWidth(uint32_t LineWidth){
+void SetLineWidth(ETC_WED_set_WidthType LineWidth){
   if(LineWidth == this->LineWidth){
     return;
   }
@@ -1181,7 +1181,7 @@ void
 SetCharacterWidth_Silent(
   LineReference_t LineID,
   CharacterReference_t CharacterID,
-  uint16_t Width
+  ETC_WED_set_WidthType Width
 ){
   _Line_t *Line = &LineList[LineID];
   Line->TotalWidth -= Line->CharacterList[CharacterID].width;

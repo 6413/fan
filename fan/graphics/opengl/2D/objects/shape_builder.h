@@ -72,7 +72,7 @@ protected:
   #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix bll_block
-  #define BLL_set_BaseLibrary 1
+  #include _FAN_PATH(fan_bll_present.h)
   #define BLL_set_Link 1
   #define BLL_set_StoreFormat 1
   //#define BLL_set_StoreFormat1_alloc_open malloc
@@ -85,7 +85,7 @@ protected:
 
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix shape_bm
-  #define BLL_set_BaseLibrary 1
+  #include _FAN_PATH(fan_bll_present.h)
   #define BLL_set_IsNodeRecycled 0
   #define BLL_set_Link 0
   #define BLL_set_type_node uint16_t
@@ -429,7 +429,7 @@ public:
     }
   };
 
-  // STRUCT MANUAL PADDING IS REQUIRED (32 BIT)
+  // STRUCT MANUAL PADDING IS REQUIRED (32 BIT), even vi_t element needs to be vec4 (use padding)
   block_t* sb_push_back(loco_t::cid_nt_t& id, const properties_t& p) {
 
     #if fan_debug >= 2

@@ -5,6 +5,7 @@ layout (location = 0) out vec4 o_attachment0;
 in vec2 texture_coordinate;
 in vec2 instance_position;
 in vec2 instance_size;
+in vec2 grid_size;
 in vec4 instance_color;
 in vec3 frag_position;
 
@@ -12,12 +13,10 @@ uniform vec2 matrix_size;
 uniform vec4 viewport;
 uniform vec2 window_size;
 uniform vec2 camera_position;
-uniform vec2 scaler;
 
 void main() {
   vec2 viewport_position = viewport.xy;
   vec2 viewport_size = viewport.zw;
-  vec2 grid_size = vec2(int(scaler.x) / 2, int(scaler.y) / 2); // user input
   vec2 grid_thickness = vec2(1.5); // user input
   vec2 d = instance_size / matrix_size * viewport_size;
   d /= grid_size;

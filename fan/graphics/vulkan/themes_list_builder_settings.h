@@ -1,6 +1,6 @@
 #define BLL_set_CPP_ConstructDestruct
 #define BLL_set_CPP_Node_ConstructDestruct
-#define BLL_set_BaseLibrary 1
+#include _FAN_PATH(fan_bll_present.h)
 #define BLL_set_namespace fan::vulkan
 #define BLL_set_prefix theme_list
 #define BLL_set_type_node uint8_t

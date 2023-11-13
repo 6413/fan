@@ -1,5 +1,5 @@
-#ifndef BVEC_set_BaseLibrary
-  #define BVEC_set_BaseLibrary 0
+#ifdef BVEC_set_BaseLibrary
+  #error BVEC_set_BaseLibrary is no longer supported. you can define BVEC_set_abort if you want.
 #endif
 
 #ifndef BVEC_set_prefix
@@ -37,11 +37,8 @@
   #define BVEC_set_alloc_RetryAmount 0x10
 #endif
 
-#if BVEC_set_BaseLibrary == 0
-  #include _WITCH_PATH(PR/PR.h)
-  #define BVEC_set_abort PR_abort();
-#elif BVEC_set_BaseLibrary == 1
-  #define BVEC_set_abort fan::throw_error("abort");
+#ifndef BVEC_set_abort
+  #define BVEC_set_abort __abort();
 #endif
 
 #if BVEC_set_BufferingFormat == 0
@@ -92,5 +89,3 @@
   #undef BVEC_set_MultipleType
 #endif
 #undef BVEC_set_prefix
-
-#undef BVEC_set_BaseLibrary
