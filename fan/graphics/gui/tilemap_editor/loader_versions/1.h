@@ -27,10 +27,7 @@ map_size = fan::read_data<fan::vec2ui>(in, off);
 tile_size = fan::read_data<fan::vec2ui>(in, off);
 
 #if !defined(tilemap_editor_loader) 
-map_tiles.resize(map_size.y);
-for (auto& i : map_tiles) {
-  i.resize(map_size.x);
-}
+resize_map();
 #endif
 
 fan::mp_t<current_version_t::shapes_t> shapes;

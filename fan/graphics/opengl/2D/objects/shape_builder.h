@@ -97,6 +97,8 @@ protected:
 
   shape_bm_t bm_list;
 
+  fan::window_t::resize_callback_NodeReference_t resize_nr;
+
   #pragma pack(push, 1)
   struct key_pack_t {
     loco_t::redraw_key_t redraw_key;
@@ -360,8 +362,26 @@ public:
     m_blending_shader.use(gloco->get_context());
     m_blending_shader.set_vec3(gloco->get_context(), loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
     #endif
+
+    m_shader.use(gloco->get_context());
+    m_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+    #ifndef sb_no_blending
+    m_blending_shader.use(gloco->get_context());
+    m_blending_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+    #endif
+
+    resize_nr = gloco->get_window()->add_resize_callback([this](const auto& d) {
+      m_shader.use(gloco->get_context());
+      m_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+      #ifndef sb_no_blending
+      m_blending_shader.use(gloco->get_context());
+      m_blending_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+      #endif
+    });
   }
   void sb_close() {
+
+    gloco->get_window()->remove_resize_callback(resize_nr);
 
     //assert(0);
     //loco_bdbt_close(&gloco->bdbt);

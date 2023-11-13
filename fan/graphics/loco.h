@@ -446,10 +446,10 @@ public:
       camera->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
     }
 
-    fan::vec3 get_camera_position() const {
+    fan::vec3 get_position() const {
       return camera_position;
     }
-    void set_camera_position(const fan::vec3& cp) {
+    void set_position(const fan::vec3& cp) {
       camera_position = cp;
 
       m_view[3][0] = 0;
@@ -521,7 +521,7 @@ public:
 
         resize_cb_data_t cbd;
         cbd.camera = this;
-        cbd.position = get_camera_position();
+        cbd.position = get_position();
         cbd.size = get_camera_size();
         gloco->m_viewport_resize_callback[it].data(cbd);
 
@@ -773,20 +773,21 @@ public:
     #if defined(loco_opengl)
     auto* camera = camera_list[camera_id].camera_id;
     shape->m_current_shader->use(get_context());
+    shape->m_current_shader->set_camera(get_context(), camera, &m_write_queue);
     shape->m_current_shader->set_vec2(get_context(), "matrix_size",
       fan::vec2(camera->coordinates.right - camera->coordinates.left, camera->coordinates.down - camera->coordinates.up).abs()
     );
-    shape->m_current_shader->set_camera(get_context(), camera, &m_write_queue);
+    shape->m_current_shader->set_vec2(get_context(), "camera_position", camera->get_position());
     #endif
   }
   void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
     fan::graphics::viewport_t* viewport = get_context()->viewport_list[viewport_id].viewport_id;
-    shape->m_current_shader->set_vec2(get_context(), "viewport_size", viewport->get_size());
     viewport->set(
       viewport->get_position(),
       viewport->get_size(),
       get_window()->get_size()
     );
+    shape->m_current_shader->set_vec4(get_context(), "viewport", fan::vec4(viewport->get_position(), viewport->get_size()));
   }
 
   template <uint8_t n>
@@ -919,6 +920,9 @@ public:
     fan_build_get_set_cref(f32_t, outline_size);
 
     fan_build_get_set_cref(f32_t, depth);
+
+    fan_build_get_set_cref(fan::vec2, tc_position);
+    fan_build_get_set_cref(fan::vec2, tc_size);
 
     fan_build_get_set_plain(loco_t::viewport_t*, viewport);
     fan_build_get_set_plain(loco_t::camera_t*, camera);
@@ -1612,6 +1616,26 @@ public:
     //return get_mouse_position(gloco->default_camera->camera, gloco->default_camera->viewport); behaving oddly
   }
 
+  static fan::vec2 translate_position(const fan::vec2 & p, fan::graphics::viewport_t * viewport, loco_t::camera_t * camera) {
+
+    fan::vec2 viewport_position = viewport->get_position();
+    fan::vec2 viewport_size = viewport->get_size();
+
+    f32_t l = camera->coordinates.left;
+    f32_t r = camera->coordinates.right;
+    f32_t t = camera->coordinates.up;
+    f32_t b = camera->coordinates.down;
+
+    fan::vec2 tp = p - viewport_position;
+    fan::vec2 d = viewport_size;
+    tp /= d;
+    tp = fan::vec2(r * tp.x - l * tp.x + l, b * tp.y - t * tp.y + t);
+    return tp;
+  }
+  fan::vec2 translate_position(const fan::vec2& p) {
+    return translate_position(p, &default_camera->viewport, &default_camera->camera);
+  }
+
 #if defined(loco_framebuffer)
   #if defined(loco_opengl)
 
@@ -1882,6 +1906,9 @@ public:
   fan_build_get_set_shape_property(const fan::vec2&, rotation_point);
   fan_build_get_set_shape_property(f32_t, font_size);
   fan_build_get_set_shape_property(const fan::vec2&, text_size);
+
+  fan_build_get_set_shape_property(const fan::vec2&, tc_position);
+  fan_build_get_set_shape_property(const fan::vec2&, tc_size);
 
   fan_build_get_set_shape_property(fan::color, outline_color);
   fan_build_get_set_shape_property(f32_t, outline_size);

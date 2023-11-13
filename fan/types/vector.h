@@ -84,6 +84,9 @@ namespace fan {
     #define vec_n 4
     #include "vector_impl.h"
     
+    template <typename T>
+    constexpr vec4_wrap_t(const vec2_wrap_t<T>& test0, const vec2_wrap_t<T>& test1)
+      : vec4_wrap_t(test0.x, test0.y, test1.x, test1.y) { }
     template <typename T> constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0)
       : vec4_wrap_t(test0.x, test0.y, test0.z, 0) { }
     template <typename T> constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0, auto value)
