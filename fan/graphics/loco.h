@@ -932,6 +932,12 @@ public:
       gloco->shape_set_line(*this, src, dst);
     }
 
+    #if defined(loco_sprite)
+    bool load_tp(loco_t::texturepack_t::ti_t* ti) {
+      return gloco->shapes.sprite.load_tp(*this, ti);
+    }
+    #endif
+
     operator fan::opengl::cid_t* () {
       return &gloco->cid_list[*this].cid;
     }

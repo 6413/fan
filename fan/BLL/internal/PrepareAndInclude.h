@@ -5,12 +5,6 @@
   #define _BLL_HaveConstantNodeData
 #endif
 
-#if BLL_set_BaseLibrary == 0
-  #define _BLL_INCLUDE _WITCH_PATH
-#elif BLL_set_BaseLibrary == 1
-  #define _BLL_INCLUDE _FAN_PATH
-#endif
-
 #define _P(p0) CONCAT3(BLL_set_prefix, _, p0)
 
 #if BLL_set_StructFormat == 0
@@ -70,8 +64,6 @@
 #undef BLL_StructEnd
 
 #undef _P
-
-#undef _BLL_INCLUDE
 
 #ifdef _BLL_HaveConstantNodeData
   #undef _BLL_HaveConstantNodeData
