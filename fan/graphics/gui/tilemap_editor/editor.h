@@ -21,6 +21,10 @@ struct fte_t {
 
   static constexpr f32_t scroll_speed = 1.2;
 
+  struct shape_depths_t {
+    static constexpr int cursor_highlight_depth = 10000;
+  };
+
   fan::string file_name = "file.fte";
 
   struct tile_t {
@@ -91,7 +95,11 @@ struct fte_t {
     for (auto& i : map_tiles) {
       i.resize(map_size.x);
     }
+    grid_visualize.background.set_size(tile_size * map_size);
+    grid_visualize.background.set_tc_size(fan::vec2(0.5) * map_size);
 
+    gloco->shapes.line_grid.scaler = fan::vec2(map_size.x, map_size.y);
+    grid_visualize.line_grid.set_size(gloco->shapes.line_grid.scaler * (tile_size / 2) * 2);
   }
 
   void reset_map() {
@@ -105,7 +113,20 @@ struct fte_t {
     gloco->get_window()->add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom * 2;
-        gloco->default_camera->camera.set_camera_position(viewport_settings.pos - move_off);
+        gloco->default_camera->camera.set_position(viewport_settings.pos - move_off);
+      }
+      {
+        fan::vec2 p = gloco->translate_position(d.position) / 2 + gloco->default_camera->camera.get_position() / 2;
+        fan::vec2 ws = gloco->get_window()->get_size();
+        p = (p / tile_size).floor() * tile_size * 2 + tile_size;
+        //if (fan_2d::)
+        if (fan_2d::collision::rectangle::point_inside_no_rotation(p / tile_size, 0, map_size)) {
+          grid_visualize.highlight.set_position(p);
+          grid_visualize.highlight.set_color(fan::color(1));
+        }
+        else {
+          grid_visualize.highlight.set_color(fan::colors::transparent);
+        }
       }
     });
 
@@ -143,7 +164,7 @@ struct fte_t {
         viewport_settings.move = (bool)d.state;
         fan::vec2 old_pos = viewport_settings.pos;
         viewport_settings.offset = gloco->get_mouse_position();
-        viewport_settings.pos = gloco->default_camera->camera.get_camera_position();
+        viewport_settings.pos = gloco->default_camera->camera.get_position();
 
       }// handle camera movement
    });
@@ -177,10 +198,6 @@ struct fte_t {
       }
     });
 
-    // transparent pattern
-    texture_gray_shades[0].create(fan::color::rgb(60, 60, 60, 255), fan::vec2(1, 1));
-    texture_gray_shades[1].create(fan::color::rgb(40, 40, 40, 255), fan::vec2(1, 1));
-
     viewport_settings.size = 0;
 
     texturepack_images.reserve(texturepack.texture_list.size());
@@ -202,15 +219,41 @@ struct fte_t {
       texturepack_images.push_back(ii);
     });
 
+    grid_visualize.background = fan::graphics::sprite_t{{
+      .position = viewport_settings.pos,
+      .size = 0,
+      .image = &gloco->transparent_texture
+    }};
+
+    grid_visualize.highlight_color.create(fan::colors::red, 1);
+    grid_visualize.highlight = fan::graphics::sprite_t{{
+      .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth),
+      .size = tile_size,
+      .image = &grid_visualize.highlight_color
+    }};
+
+    {
+      fan::vec2 p = 0;
+      p = ((p - tile_size) / tile_size).floor() * tile_size;
+      grid_visualize.highlight.set_position(p);
+    }
+
     // update viewport sizes
     gloco->process_frame();
+
+    gloco->default_camera->camera.set_position(viewport_settings.pos);
+
+    // todo remove scaler
+    gloco->shapes.line_grid.scaler = fan::vec2(map_size.x, map_size.y);
+
+    loco_t::shapes_t::line_grid_t::properties_t p;
+    p.position = fan::vec3(0, 0, shape_depths_t::cursor_highlight_depth);
+    p.size = gloco->shapes.line_grid.scaler * (tile_size / 2) * 2;
+    p.color = fan::color::rgb(0, 128, 255);
+
+    grid_visualize.line_grid = p;
+
     resize_map();
-
-    gloco->default_camera->camera.set_camera_position(viewport_settings.pos);
-
-    grid_visualize.background = fan::graphics::sprite_t{{
-        .position = viewport_settings.pos
-    }};
   }
   void close() {
     texturepack.close();
@@ -432,7 +475,7 @@ struct fte_t {
     #include _FAN_PATH(graphics/gui/tilemap_editor/loader_versions/1.h)
   }
 
-  fan::vec2ui map_size{32, 32};
+  fan::vec2ui map_size{4, 4};
   fan::vec2ui tile_size{32, 32};
 
   event_type_e event_type = event_type_e::none;
@@ -450,8 +493,6 @@ struct fte_t {
   std::vector<std::vector<shapes_t::global_t>> map_tiles;
 
   loco_t::texturepack_t texturepack;
-  // tile pattern
-  loco_t::image_t texture_gray_shades[2];
 
   fan::function_t<void()> close_cb = [] {};
 
@@ -459,6 +500,9 @@ struct fte_t {
 
   struct {
     loco_t::shape_t background;
+    loco_t::shape_t highlight;
+    loco_t::image_t highlight_color;
+    loco_t::shape_t line_grid;
      //lines;
   }grid_visualize;
 
@@ -469,7 +513,7 @@ struct fte_t {
   }brush;
 
   struct {
-    f32_t zoom = 0.5;
+    f32_t zoom = 1;
     bool move = false;
     fan::vec2 pos = 0;
     fan::vec2 size = 0;
