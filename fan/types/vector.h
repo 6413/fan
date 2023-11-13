@@ -5,6 +5,7 @@
 #include <numeric>
 #include <string>
 #include <compare>
+#include <tuple>
 
 #include _FAN_PATH(math/math.h)
 
@@ -19,6 +20,13 @@
 namespace fan {
 
   using access_type_t = uint16_t;
+
+  template <typename value_type_t>
+  struct vec0_wrap_t {
+    #define vec_t vec0_wrap_t
+    #define vec_n 0
+    #include "vector_impl.h"
+  };
 
   template <typename value_type_t>
   struct vec1_wrap_t {
@@ -134,6 +142,9 @@ namespace fan {
 
 	template <typename casted_t, template<typename> typename vec_t, typename old_t>
 	constexpr vec_t<casted_t> cast(const vec_t<old_t>& v) { return vec_t<casted_t>(v); }
+
+  template <int n, typename T>
+  using vec_wrap_t = std::tuple_element_t<n, std::tuple<fan::vec0_wrap_t<T>, fan::vec1_wrap_t<T>, fan::vec2_wrap_t<T>, fan::vec3_wrap_t<T>, fan::vec4_wrap_t<T>>>;
 }
 
 namespace fmt {

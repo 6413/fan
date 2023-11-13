@@ -25,7 +25,8 @@ template <typename T> \
 requires (!std::is_arithmetic_v<T>) \
 constexpr vec_t& operator CONCAT(arithmetic,=) (const T& test0) \
 { \
-	make_for_all_test1((*this)[i] CONCAT(arithmetic,=) test0[i]); \
+	make_for_all_test1_noret((*this)[i] CONCAT(arithmetic,=) test0[i]); \
+  return *this; \
 } \
 \
 template <typename T> \
@@ -107,22 +108,41 @@ make_operator_assign(/);
 #define __FAN_SWITCH_IDX(x, idx) case size() - (idx + 1): return x
 
 constexpr value_type_t& operator[](access_type_t idx) { 
-  switch(idx) { __FAN__FOREACH(__FAN_SWITCH_IDX, fan_coordinate(vec_n);) }
+  switch (idx) {
+    #if vec_n
+    __FAN__FOREACH(__FAN_SWITCH_IDX, fan_coordinate(vec_n);)
+      #else
+    default: return *(value_type_t*)nullptr;
+      #endif
+  }
     // force crash with stackoverflow or gives error if idx is knowable at compiletime
   return operator[](idx);
 }
-constexpr value_type_t operator[](access_type_t idx) const { 
-  switch(idx) { __FAN__FOREACH(__FAN_SWITCH_IDX, fan_coordinate(vec_n);) }
+constexpr value_type_t operator[](access_type_t idx) const {
+  switch (idx) { 
+    #if vec_n
+    __FAN__FOREACH(__FAN_SWITCH_IDX, fan_coordinate(vec_n);)
+    #else
+    default: return *(value_type_t*)nullptr;
+    #endif
+  }
     // force crash with stackoverflow or gives error if idx is knowable at compiletime
   return operator[](idx);
 }
 #undef __FAN_SWITCH_IDX
 
-constexpr auto begin() const { return &x; }
+constexpr auto begin() const { 
+  return
+  #if vec_n == 0 
+    nullptr;
+#else
+    &x;
+#endif
+}
 constexpr auto end() const { return begin() + size(); }
 constexpr auto data() const { return begin(); }
 
-constexpr auto begin() { return &x; }
+constexpr auto begin() { return &operator[](0); }
 constexpr auto end() { return begin() + size(); }
 constexpr auto data() { return begin(); }
 
@@ -136,7 +156,7 @@ constexpr auto min() const { return *std::min_element(begin(), end()); }
 constexpr auto min(const auto& test0) const { make_for_all_test1(ret[i] = std::min((*this)[i], test0[i])); }
 constexpr auto max() const { return *std::max_element(begin(), end()); }
 constexpr auto max(const auto& test0) const { make_for_all_test1(ret[i] = std::max((*this)[i], test0[i])); }
-constexpr void clamp(const vec_t& test0) { make_for_all_test1_noret((*this)[i] = fan::clamp(x, test0[0], (*this)[i])); }
+constexpr void clamp(const vec_t& test0) { make_for_all_test1_noret((*this)[i] = fan::clamp((*this)[i], test0[0], (*this)[i])); }
 constexpr auto clamp(auto min, auto max) const { make_for_all(ret[i] = std::clamp((*this)[i], min, max)); }
 constexpr auto clamp(const auto& test0, const auto& test1) const { make_for_all_test2(ret[i] = std::clamp((*this)[i], test0[i], test1[i])); }
 constexpr auto dot(const auto& test0) const { return fan::math::dot(*this, test0); }
@@ -148,14 +168,18 @@ void from_string(const std::string& str) { std::stringstream ss(str); char ch; f
 constexpr std::string to_string(int precision = 2) const {
   std::string out("{");
   for (access_type_t i = 0; i < size() - 1; ++i) { out += fan::to_string((*this)[i], precision) + ", "; }
-  out += fan::to_string((*this)[size() - 1], precision);
+  if constexpr (size()) {
+    out += fan::to_string((*this)[size() - 1], precision);
+  }
   out += '}';
   return out;
 }
 
 friend std::ostream& operator<<(std::ostream& os, const vec_t& test0) { os << test0.to_string(); return os; }
 
+#if vec_n
 value_type_t fan_coordinate(vec_n);
+#endif
 
 #undef vec_n
 #undef vec_t

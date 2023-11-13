@@ -111,6 +111,14 @@ struct fte_t {
     resize_map();
   }
 
+  bool cursor_to_grid(const fan::vec2& window_relative_position, fan::vec2* in) {
+    fan::vec2 p = gloco->translate_position(window_relative_position) / 2 + gloco->default_camera->camera.get_position() / 2;
+    fan::vec2 ws = gloco->get_window()->get_size();
+    p = (p / tile_size).floor() * tile_size * 2 + tile_size;
+    *in = p;
+    return fan_2d::collision::rectangle::point_inside_no_rotation(p / tile_size, 0, map_size);
+  }
+
   void open(const fan::string& texturepack_name) {
     texturepack.open_compiled(texturepack_name);
 
@@ -119,12 +127,9 @@ struct fte_t {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom * 2;
         gloco->default_camera->camera.set_position(viewport_settings.pos - move_off);
       }
+      fan::vec2 p;
       {
-        fan::vec2 p = gloco->translate_position(d.position) / 2 + gloco->default_camera->camera.get_position() / 2;
-        fan::vec2 ws = gloco->get_window()->get_size();
-        p = (p / tile_size).floor() * tile_size * 2 + tile_size;
-        //if (fan_2d::)
-        if (fan_2d::collision::rectangle::point_inside_no_rotation(p / tile_size, 0, map_size)) {
+        if (cursor_to_grid(d.position, &p)) {
           grid_visualize.highlight.set_position(p);
           grid_visualize.highlight.set_color(fan::color(1));
         }
@@ -139,7 +144,6 @@ struct fte_t {
         return;
       }
       
-
       {// handle camera movement
         f32_t old_zoom = viewport_settings.zoom;
 
@@ -397,10 +401,10 @@ struct fte_t {
               ImGui::SameLine();
           }
         }
+      }
 
-        if (current_tile != nullptr) {
-          //open_properties(current_tile, editor_size);
-        }
+      if (ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_left))) {
+
       }
 
       ImGui::End();
