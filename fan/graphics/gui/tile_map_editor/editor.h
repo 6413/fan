@@ -206,7 +206,7 @@ struct fte_t {
     gloco->get_window()->add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom * 2;
-        gloco->default_camera->camera.set_camera_position(viewport_settings.pos - move_off);
+        gloco->default_camera->camera.set_position(viewport_settings.pos - move_off);
       }
     });
 
@@ -244,7 +244,7 @@ struct fte_t {
         viewport_settings.move = (bool)d.state;
         fan::vec2 old_pos = viewport_settings.pos;
         viewport_settings.offset = gloco->get_mouse_position();
-        viewport_settings.pos = gloco->default_camera->camera.get_camera_position();
+        viewport_settings.pos = gloco->default_camera->camera.get_position();
 
       }// handle camera movement
    });
@@ -303,7 +303,7 @@ struct fte_t {
     });
 
     viewport_settings.pos = gloco->get_window()->get_size() / 2;
-    gloco->default_camera->camera.set_camera_position(viewport_settings.pos);
+    gloco->default_camera->camera.set_position(viewport_settings.pos);
 
     gloco->process_frame();
     resize_map();
