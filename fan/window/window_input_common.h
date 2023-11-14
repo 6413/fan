@@ -476,6 +476,9 @@ static constexpr ImGuiKey fan_to_imguikey(uint16_t key)
 {
   switch (key)
   {
+    case fan::mouse_left: return (ImGuiKey)ImGuiMouseButton_Left;
+    case fan::mouse_middle: return (ImGuiKey)ImGuiMouseButton_Middle;
+    case fan::mouse_right: return (ImGuiKey)ImGuiMouseButton_Right;
     case fan::key_tab: return ImGuiKey_Tab;
     case fan::key_left: return ImGuiKey_LeftArrow;
     case fan::key_right: return ImGuiKey_RightArrow;

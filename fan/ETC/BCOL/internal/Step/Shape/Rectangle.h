@@ -6,7 +6,7 @@ _vf WantedPosition = 0;
 _vf WantedDirection = 0;
 _f WantedCollisionRequesters = 0;
 
-#if ETC_BCOL_set_SupportGrid == 1
+#if BCOL_set_SupportGrid == 1
   const _f GridBlockSize = this->GridBlockSize;
   const _f GridBlockSize_D2 = GridBlockSize / 2;
 
@@ -126,7 +126,7 @@ _f WantedCollisionRequesters = 0;
   }
 #endif
 
-#if ETC_BCOL_set_DynamicToDynamic == 1
+#if BCOL_set_DynamicToDynamic == 1
   ShapeInfoPack_t sip1;
   sip1.ObjectID = this->ObjectList.GetNodeFirst();
   while(sip1.ObjectID != this->ObjectList.dst){

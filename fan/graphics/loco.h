@@ -932,8 +932,16 @@ public:
       gloco->shape_set_line(*this, src, dst);
     }
 
-    #if defined(loco_sprite)
-    bool load_tp(loco_t::texturepack_t::ti_t* ti) {
+    #if defined(loco_sprite) && defined(loco_tp)
+    // pack_id is not set here
+    loco_t::texturepack_t::ti_t get_tp() {
+      loco_t::texturepack_t::ti_t ti;
+      ti.image = get_image();
+      ti.position = get_tc_position();
+      ti.size = get_tc_size();
+      return ti;
+    }
+    bool set_tp(loco_t::texturepack_t::ti_t* ti) {
       return gloco->shapes.sprite.load_tp(*this, ti);
     }
     #endif

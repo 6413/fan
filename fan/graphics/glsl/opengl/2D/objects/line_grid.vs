@@ -115,5 +115,5 @@ void main() {
 
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id];
-  grid_size = ivec2(get_instance().grid_size / 2);
+  grid_size = get_instance().grid_size / 2;
 }

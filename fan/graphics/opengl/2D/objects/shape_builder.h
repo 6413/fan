@@ -322,7 +322,7 @@ public:
     );
     fan::string fragment_code;
     #if defined(sb_shader_fragment_string)
-      fragment_code = fragment_path;
+      fragment_code = sb_shader_fragment_string;
     #else
       fragment_code = fan::graphics::read_shader(fragment_path);
     #endif

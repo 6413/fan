@@ -6,187 +6,59 @@ _vf WantedPosition = 0;
 _vf WantedDirection = 0;
 _f WantedCollisionRequesters = 0;
 
-#if ETC_BCOL_set_SupportGrid == 1
+#if BCOL_set_SupportGrid == 1
   const _f GridBlockSize = this->GridBlockSize;
   const _f GridBlockSize_D2 = GridBlockSize / 2;
 
-  sint32_t CircleMiddleGridY = fan::math::floor(NewPosition.y / GridBlockSize);
+  iterate_grid_for_circle_t<BCOL_set_Dimension> igfc;
+  while(igfc.it(GridBlockSize, NewPosition, CircleData->Size)){
+    Contact_Grid_t Contact;
+    this->PreSolve_Grid_cb(
+      this,
+      &sip0,
+      igfc.gs,
+      &Contact);
+    if(this->ObjectList.CheckSafeNext(0) != sip0.ObjectID){
+      goto gt_Object0Unlinked;
+    }
+    if(Contact.Flag & Contact_Grid_Flag::EnableContact); else{
+      continue;
+    };
 
-  {
-    _f CircleLeftX = NewPosition.x - CircleData->Size;
-    _f CircleRightX = NewPosition.x + CircleData->Size;
-    sint32_t CircleLeftGridX = fan::math::floor(CircleLeftX / GridBlockSize);
-    sint32_t CircleRightGridX = fan::math::floor(CircleRightX / GridBlockSize);
-    for(sint32_t CircleGridX = CircleLeftGridX; CircleGridX <= CircleRightGridX; CircleGridX++){
-      Contact_Grid_t Contact;
-      Contact.Flag = 0;
-      this->PreSolve_Grid_cb(
+    _vf oCircle;
+    _vf oDirection;
+    CPC_Circle_Square(
+      NewPosition,
+      CircleData->Size,
+      fan::cast<_f>(igfc.gs) * GridBlockSize + GridBlockSize_D2,
+      GridBlockSize_D2,
+      &oCircle,
+      &oDirection);
+
+    #ifdef BCOL_set_PostSolve_Grid
+      ContactResult_Grid_t ContactResult;
+    #endif
+    #ifdef BCOL_set_PostSolve_Grid_CollisionNormal
+      ContactResult.Normal = oDirection;
+    #endif
+    #ifdef BCOL_set_PostSolve_Grid
+      this->PostSolve_Grid_cb(
         this,
         &sip0,
-        {CircleGridX, CircleMiddleGridY},
-        &Contact);
+        igfc.gs,
+        &ContactResult);
       if(this->ObjectList.CheckSafeNext(0) != sip0.ObjectID){
         goto gt_Object0Unlinked;
       }
-      if(Contact.Flag & Contact_Grid_Flag::EnableContact); else{
-        continue;
-      };
+    #endif
 
-      _vf oCircle;
-      _vf oDirection;
-      CPC_Circle_Square(
-        NewPosition,
-        CircleData->Size,
-        {CircleGridX * GridBlockSize + GridBlockSize_D2, CircleMiddleGridY * GridBlockSize + GridBlockSize_D2},
-        GridBlockSize_D2,
-        &oCircle,
-        &oDirection);
-
-      #ifdef ETC_BCOL_set_PostSolve_Grid
-        ContactResult_Grid_t ContactResult;
-      #endif
-      #ifdef ETC_BCOL_set_PostSolve_Grid_CollisionNormal
-        ContactResult.Normal = oDirection;
-      #endif
-      #ifdef ETC_BCOL_set_PostSolve_Grid
-        this->PostSolve_Grid_cb(
-          this,
-          &sip0,
-          {CircleGridX, CircleMiddleGridY},
-          &ContactResult);
-        if(this->ObjectList.CheckSafeNext(0) != sip0.ObjectID){
-          goto gt_Object0Unlinked;
-        }
-      #endif
-
-      WantedPosition += oCircle;
-      WantedDirection += oDirection;
-      WantedCollisionRequesters++;
-    }
-  }
-
-  {
-    _f CircleTopY = NewPosition.y - CircleData->Size;
-    sint32_t CircleTopGridY = fan::math::floor(CircleTopY / GridBlockSize);
-    for(sint32_t CircleGridY = CircleMiddleGridY; CircleGridY > CircleTopGridY;){
-      _f CircleY = (_f)CircleGridY * GridBlockSize;
-      _f CircleOffsetY = CircleY - NewPosition.y;
-      _f Magic = fan::math::sqrt(fan::math::abs(CircleData->Size * CircleData->Size - CircleOffsetY * CircleOffsetY));
-      _f CircleLeftX = NewPosition.x - Magic;
-      _f CircleRightX = NewPosition.x + Magic;
-      sint32_t CircleLeftGridX = fan::math::floor(CircleLeftX / GridBlockSize);
-      sint32_t CircleRightGridX = fan::math::floor(CircleRightX / GridBlockSize);
-      CircleGridY--;
-      for(sint32_t CircleGridX = CircleLeftGridX; CircleGridX <= CircleRightGridX; CircleGridX++){
-        Contact_Grid_t Contact;
-        this->PreSolve_Grid_cb(
-          this,
-          &sip0,
-          {CircleGridX, CircleGridY},
-          &Contact);
-        if(this->ObjectList.CheckSafeNext(0) != sip0.ObjectID){
-          goto gt_Object0Unlinked;
-        }
-        if(Contact.Flag & Contact_Grid_Flag::EnableContact); else{
-          continue;
-        };
-
-        _vf oCircle;
-        _vf oDirection;
-        CPC_Circle_Square(
-          NewPosition,
-          CircleData->Size,
-          {CircleGridX * GridBlockSize + GridBlockSize_D2, CircleGridY * GridBlockSize + GridBlockSize_D2},
-          GridBlockSize_D2,
-          &oCircle,
-          &oDirection);
-
-        #ifdef ETC_BCOL_set_PostSolve_Grid
-          ContactResult_Grid_t ContactResult;
-        #endif
-        #ifdef ETC_BCOL_set_PostSolve_Grid_CollisionNormal
-          ContactResult.Normal = oDirection;
-        #endif
-        #ifdef ETC_BCOL_set_PostSolve_Grid
-          this->PostSolve_Grid_cb(
-            this,
-            &sip0,
-            {CircleGridX, CircleGridY},
-            &ContactResult);
-          if(this->ObjectList.CheckSafeNext(0) != sip0.ObjectID){
-            goto gt_Object0Unlinked;
-          }
-        #endif
-
-        WantedPosition += oCircle;
-        WantedDirection += oDirection;
-        WantedCollisionRequesters++;
-      }
-    }
-  }
-
-  {
-    _f CircleBottomY = NewPosition.y + CircleData->Size;
-    sint32_t CircleBottomGridY = fan::math::floor(CircleBottomY / GridBlockSize);
-    for(sint32_t CircleGridY = CircleMiddleGridY; CircleGridY < CircleBottomGridY;){
-      CircleGridY++;
-      _f CircleY = (_f)CircleGridY * GridBlockSize;
-      _f CircleOffsetY = CircleY - NewPosition.y;
-      _f Magic = fan::math::sqrt(fan::math::abs(CircleData->Size * CircleData->Size - CircleOffsetY * CircleOffsetY));
-      _f CircleLeftX = NewPosition.x - Magic;
-      _f CircleRightX = NewPosition.x + Magic;
-      sint32_t CircleLeftGridX = fan::math::floor(CircleLeftX / GridBlockSize);
-      sint32_t CircleRightGridX = fan::math::floor(CircleRightX / GridBlockSize);
-      for(sint32_t CircleGridX = CircleLeftGridX; CircleGridX <= CircleRightGridX; CircleGridX++){
-        Contact_Grid_t Contact;
-        this->PreSolve_Grid_cb(
-          this,
-          &sip0,
-          {CircleGridX, CircleGridY},
-          &Contact);
-        if(this->ObjectList.CheckSafeNext(0) != sip0.ObjectID){
-          goto gt_Object0Unlinked;
-        }
-        if(Contact.Flag & Contact_Grid_Flag::EnableContact); else{
-          continue;
-        };
-
-        _vf oCircle;
-        _vf oDirection;
-        CPC_Circle_Square(
-          NewPosition,
-          CircleData->Size,
-          {CircleGridX * GridBlockSize + GridBlockSize_D2, CircleGridY * GridBlockSize + GridBlockSize_D2},
-          GridBlockSize_D2,
-          &oCircle,
-          &oDirection);
-
-        #ifdef ETC_BCOL_set_PostSolve_Grid
-          ContactResult_Grid_t ContactResult;
-        #endif
-        #ifdef ETC_BCOL_set_PostSolve_Grid_CollisionNormal
-          ContactResult.Normal = oDirection;
-        #endif
-        #ifdef ETC_BCOL_set_PostSolve_Grid
-          this->PostSolve_Grid_cb(
-            this,
-            &sip0,
-            {CircleGridX, CircleGridY},
-            &ContactResult);
-          if(this->ObjectList.CheckSafeNext(0) != sip0.ObjectID){
-            goto gt_Object0Unlinked;
-          }
-        #endif
-
-        WantedPosition += oCircle;
-        WantedDirection += oDirection;
-        WantedCollisionRequesters++;
-      }
-    }
+    WantedPosition += oCircle;
+    WantedDirection += oDirection;
+    WantedCollisionRequesters++;
   }
 #endif
 
-#if ETC_BCOL_set_DynamicToDynamic == 1
+#if BCOL_set_DynamicToDynamic == 1
   ShapeInfoPack_t sip1;
   sip1.ObjectID = this->ObjectList.GetNodeFirst();
   while(sip1.ObjectID != this->ObjectList.dst){

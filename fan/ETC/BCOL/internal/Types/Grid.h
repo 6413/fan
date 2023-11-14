@@ -7,20 +7,20 @@ struct Contact_Grid_t{
 };
 
 typedef void (*PreSolve_Grid_cb_t)(
-  __ETC_BCOL_P(t) *,
+  __BCOL_P(t) *,
   const ShapeInfoPack_t *,
   _vsi32 /* Grid */,
   Contact_Grid_t *
 );
 
-#ifdef ETC_BCOL_set_PostSolve_Grid
+#ifdef BCOL_set_PostSolve_Grid
   struct ContactResult_Grid_t{
-    #ifdef ETC_BCOL_set_PostSolve_Grid_CollisionNormal
+    #ifdef BCOL_set_PostSolve_Grid_CollisionNormal
       _vf Normal;
     #endif
   };
 
-  #ifdef ETC_BCOL_set_PostSolve_Grid_CollisionNormal
+  #ifdef BCOL_set_PostSolve_Grid_CollisionNormal
     _vf ContactResult_Grid_GetNormal(
       ContactResult_Grid_t *ContactResult
     ){
@@ -29,7 +29,7 @@ typedef void (*PreSolve_Grid_cb_t)(
   #endif
 
   typedef void (*PostSolve_Grid_cb_t)(
-    __ETC_BCOL_P(t) *,
+    __BCOL_P(t) *,
     const ShapeInfoPack_t *,
     _vsi32 /* Grid */,
     ContactResult_Grid_t *

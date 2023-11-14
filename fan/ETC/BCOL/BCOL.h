@@ -1,75 +1,75 @@
-#ifndef ETC_BCOL_set_prefix
-  #error ifndef ETC_BCOL_set_prefix
+#ifndef BCOL_set_prefix
+  #error ifndef BCOL_set_prefix
 #endif
-#ifndef ETC_BCOL_set_Dimension
-  #error ETC_BCOL_set_Dimension needs to be defined.
+#ifndef BCOL_set_Dimension
+  #error BCOL_set_Dimension needs to be defined.
 #endif
-#ifndef ETC_BCOL_set_PreferredFloatSize
-  #define ETC_BCOL_set_PreferredFloatSize 32
+#ifndef BCOL_set_PreferredFloatSize
+  #define BCOL_set_PreferredFloatSize 32
 #endif
-#ifndef ETC_BCOL_set_StoreExtraDataInsideObject
-  #define ETC_BCOL_set_StoreExtraDataInsideObject 0
+#ifndef BCOL_set_StoreExtraDataInsideObject
+  #define BCOL_set_StoreExtraDataInsideObject 0
 #endif
-#ifndef ETC_BCOL_set_SupportGrid
-  #define ETC_BCOL_set_SupportGrid 0
+#ifndef BCOL_set_SupportGrid
+  #define BCOL_set_SupportGrid 0
 #endif
-#ifndef ETC_BCOL_set_DynamicDeltaFunction
-  #define ETC_BCOL_set_DynamicDeltaFunction
+#ifndef BCOL_set_DynamicDeltaFunction
+  #define BCOL_set_DynamicDeltaFunction
 #endif
-#ifndef ETC_BCOL_set_DynamicToDynamic
-  #define ETC_BCOL_set_DynamicToDynamic 1
+#ifndef BCOL_set_DynamicToDynamic
+  #define BCOL_set_DynamicToDynamic 1
 #endif
-#ifndef ETC_BCOL_set_StepNumber
-  #define ETC_BCOL_set_StepNumber 0
+#ifndef BCOL_set_StepNumber
+  #define BCOL_set_StepNumber 0
 #endif
 
-#if defined(ETC_BCOL_set_IncludePath)
-  #define ETC_BCOL_Include(p) <ETC_BCOL_set_IncludePath/p>
+#if defined(BCOL_set_IncludePath)
+  #define BCOL_Include(p) <BCOL_set_IncludePath/p>
 #else
   #error ?
 #endif
 
-#if ETC_BCOL_set_StoreExtraDataInsideObject == 0
-#elif ETC_BCOL_set_StoreExtraDataInsideObject == 1
-  #ifndef ETC_BCOL_set_ExtraDataInsideObject
+#if BCOL_set_StoreExtraDataInsideObject == 0
+#elif BCOL_set_StoreExtraDataInsideObject == 1
+  #ifndef BCOL_set_ExtraDataInsideObject
     #error ?
   #endif
 #else
   #error ?
 #endif
 
-#if ETC_BCOL_set_SupportGrid == 0
-#elif ETC_BCOL_set_SupportGrid == 1
+#if BCOL_set_SupportGrid == 0
+#elif BCOL_set_SupportGrid == 1
 #else
   #error ?
 #endif
 
 #include "internal/rest.h"
 
-#ifndef ETC_BCOL_set_PostSolve_Grid_CollisionNormal
-  #undef ETC_BCOL_set_PostSolve_Grid_CollisionNormal
+#ifndef BCOL_set_PostSolve_Grid_CollisionNormal
+  #undef BCOL_set_PostSolve_Grid_CollisionNormal
 #endif
-#ifndef ETC_BCOL_set_PostSolve_Grid
-  #undef ETC_BCOL_set_PostSolve_Grid
+#ifndef BCOL_set_PostSolve_Grid
+  #undef BCOL_set_PostSolve_Grid
 #endif
-#ifndef ETC_BCOL_set_ConstantBumpFriction
-  #undef ETC_BCOL_set_ConstantBumpFriction
+#ifndef BCOL_set_ConstantBumpFriction
+  #undef BCOL_set_ConstantBumpFriction
 #endif
-#ifndef ETC_BCOL_set_ConstantFriction
-  #undef ETC_BCOL_set_ConstantFriction
+#ifndef BCOL_set_ConstantFriction
+  #undef BCOL_set_ConstantFriction
 #endif
-#undef ETC_BCOL_Include
-#undef ETC_BCOL_set_StepNumber
-#undef ETC_BCOL_set_DynamicToDynamic
-#undef ETC_BCOL_set_DynamicDeltaFunction
-#undef ETC_BCOL_set_SupportGrid
-#if ETC_BCOL_set_StoreExtraDataInsideObject == 0
-#elif ETC_BCOL_set_StoreExtraDataInsideObject == 1
-  #undef ETC_BCOL_set_ExtraDataInsideObject
+#undef BCOL_Include
+#undef BCOL_set_StepNumber
+#undef BCOL_set_DynamicToDynamic
+#undef BCOL_set_DynamicDeltaFunction
+#undef BCOL_set_SupportGrid
+#if BCOL_set_StoreExtraDataInsideObject == 0
+#elif BCOL_set_StoreExtraDataInsideObject == 1
+  #undef BCOL_set_ExtraDataInsideObject
 #endif
-#undef ETC_BCOL_set_PreferredFloatSize
-#ifdef ETC_BCOL_set_IncludePath
-  #undef ETC_BCOL_set_IncludePath
+#undef BCOL_set_PreferredFloatSize
+#ifdef BCOL_set_IncludePath
+  #undef BCOL_set_IncludePath
 #endif
-#undef ETC_BCOL_set_Dimension
-#undef ETC_BCOL_set_prefix
+#undef BCOL_set_Dimension
+#undef BCOL_set_prefix
