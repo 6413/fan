@@ -96,6 +96,6 @@ int main() {
   loco.loop([&] {
     gloco->get_fps();
     player.update();
-    gloco->default_camera->camera.set_camera_position(player.visual.get_position());
+    gloco->default_camera->camera.set_position(player.visual.get_position());
   });
 }

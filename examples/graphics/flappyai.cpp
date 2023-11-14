@@ -442,7 +442,7 @@ int main() {
 
     fan::vec2 player_position = bcol.GetObject_Position(birds[index].oid);
 
-    pile->camera.set_camera_position(player_position);
+    pile->camera.set_position(player_position);
 
     for (uint32_t i = 0; i < birds.size(); ++i) {
       fan::vec2 player_position = bcol.GetObject_Position(birds[i].oid);
