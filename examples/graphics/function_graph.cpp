@@ -16,7 +16,7 @@ struct global_t {
 }global;
 
 f64_t f(f64_t x) {
-  return x * x;
+  return sin(x);
 }
 
 void handle_zoom_and_move() {
@@ -90,10 +90,10 @@ int main() {
   f32_t animator_index = 0;
   global.loco.loop([&] {
 
-    //for (f32_t i = 0; i < global.samples; i += 1) {
-    //  generate_line(i, -(-i + animator_index));
-    //}
-    //animator_index += global.loco.get_delta_time() * 20;
+    for (f32_t i = 0; i < global.samples; i += 1) {
+      generate_line(i, (i + animator_index));
+    }
+    animator_index += global.loco.get_delta_time() * 20;
   });
 
   return 0;
