@@ -522,9 +522,10 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 
   template <typename ...Args>
   constexpr void print(const Args&... args) {
+    int idx = 0;
     (([&]<typename T>(const T & v) {
       if constexpr (is_printable_v<T>) {
-        std::cout << v << ", ";
+        std::cout << v << (idx + 1 == sizeof...(args) ? "" : ", ");
       }
       else {
         if constexpr (std::is_aggregate_v<T>) {
@@ -533,6 +534,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
           }
         }
       }
+      idx++;
     }(args)), ...);
     std::cout << '\n';
   }

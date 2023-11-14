@@ -113,8 +113,8 @@ struct sb_sprite_name {
 
     set_image(id, &im);
     
-    set(id, &vi_t::tc_position, ti->position / im.size);
-    set(id, &vi_t::tc_size, ti->size / im.size);
+    set(id, &vi_t::tc_position, ti->position);
+    set(id, &vi_t::tc_size, ti->size);
 
     return 0;
   }

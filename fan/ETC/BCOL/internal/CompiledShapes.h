@@ -10,7 +10,7 @@ struct CompiledShapes_Rectangle_t{
 #define BVEC_set_prefix uint8Vector
 #define BVEC_set_NodeType uint32_t
 #define BVEC_set_NodeData uint8_t
-#include ETC_BCOL_Include(BVEC/BVEC.h)
+#include BCOL_Include(BVEC/BVEC.h)
 struct CompiledShapes_t{
   uint8Vector_t ShapeData;
 };

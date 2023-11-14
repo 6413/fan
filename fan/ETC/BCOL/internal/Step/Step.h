@@ -16,7 +16,7 @@ void Step(
     }
 
     {
-      ETC_BCOL_set_DynamicDeltaFunction
+      BCOL_set_DynamicDeltaFunction
     }
 
     const _vf StepVelocity = ObjectData0->Velocity * delta;
@@ -52,17 +52,17 @@ void Step(
 
         ObjectData0->Velocity = CollidedVelocity * VelocityHypotenuse;
 
-        #if defined(ETC_BCOL_set_ConstantFriction) || defined(ETC_BCOL_set_ConstantBumpFriction)
+        #if defined(BCOL_set_ConstantFriction) || defined(BCOL_set_ConstantBumpFriction)
           _f ForceThroughNormal = fan::math::dot2(DirectionAverage, VelocityNormal);
-          ForceThroughNormal = fan::math::abs(ForceThroughNormal) * VelocityHypotenuse;
+          ForceThroughNormal = abs(ForceThroughNormal) * VelocityHypotenuse;
         #endif
-        #ifdef ETC_BCOL_set_ConstantFriction
-          ObjectData0->Velocity /= ForceThroughNormal * ETC_BCOL_set_ConstantFriction * delta + 1;
+        #ifdef BCOL_set_ConstantFriction
+          ObjectData0->Velocity /= ForceThroughNormal * BCOL_set_ConstantFriction * delta + 1;
         #endif
-        #ifdef ETC_BCOL_set_ConstantBumpFriction
+        #ifdef BCOL_set_ConstantBumpFriction
           ObjectData0->Velocity -= fan::math::copysign(
-            fan::math::min(fan::math::abs(ObjectData0->Velocity),
-            ForceThroughNormal * ETC_BCOL_set_ConstantBumpFriction * delta),
+            min(abs(ObjectData0->Velocity),
+            ForceThroughNormal * BCOL_set_ConstantBumpFriction * delta),
             ObjectData0->Velocity);
         #endif
       }
@@ -75,7 +75,7 @@ void Step(
     sip0.ObjectID = this->ObjectList.EndSafeNext();
   }
 
-  #if ETC_BCOL_set_StepNumber == 1
+  #if BCOL_set_StepNumber == 1
     this->StepNumber++;
   #endif
 }

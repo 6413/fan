@@ -4,6 +4,10 @@ struct ti_t {
     return texture_pack->qti(name, this);
   }
 
+  bool valid() const {
+    return image != nullptr;
+  }
+
   uint32_t pack_id;
   fan::vec2 position;
   fan::vec2 size;

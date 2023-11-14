@@ -20,8 +20,11 @@ struct fte_t {
   static constexpr fan::color highlighted_tile_color = fan::color(0.5, 0.5, 1);
 
   static constexpr f32_t scroll_speed = 1.2;
+  static constexpr uint32_t invalid = -1;
+
 
   struct shape_depths_t {
+    static constexpr uint32_t max_layer_depth = 0xffff;
     static constexpr int cursor_highlight_depth = 10000;
   };
 
@@ -72,12 +75,9 @@ struct fte_t {
   };
 
   uint32_t find_layer_shape(const auto& vec){
-    if (current_tile == nullptr) {
-      return -1;
-    }
     uint32_t found = -1;
     for (int i = 0; i < vec.size(); ++i) {
-      if (vec.get_position().z == brush.depth) {
+      if (vec[i].tile.position.z == brush.depth) {
         found = i;
         break;
       }
@@ -104,6 +104,23 @@ struct fte_t {
       grid_size
     );
     grid_visualize.line_grid.set_size(grid_size * (tile_size / 2) * 2);
+
+    for (auto& i : map_tiles) {
+      for (auto& j : i) {
+        for (auto& k : j.layers) {
+          fan::vec2 s = k.shape.get_size();
+          fan::vec2 sp = fan::vec2(k.shape.get_position());
+          fan::vec2 p = tile_size * ((sp / s));
+          k.shape.set_position(p);
+          k.shape.set_size(tile_size);
+        }
+      }
+    }
+    fan::vec2 s = grid_visualize.highlight.get_size();
+    fan::vec2 sp = fan::vec2(grid_visualize.highlight.get_position());
+    fan::vec2 p = tile_size * ((sp / s));
+    grid_visualize.highlight.set_position(p);
+    grid_visualize.highlight.set_size(tile_size);
   }
 
   void reset_map() {
@@ -132,6 +149,15 @@ struct fte_t {
         if (window_relative_to_grid(d.position, &p)) {
           grid_visualize.highlight.set_position(fan::vec2(p));
           grid_visualize.highlight.set_color(fan::color(1));
+          fan::vec2i grid_position = p;
+          grid_position /= fan::vec2i(tile_size);
+          grid_position = (grid_position + map_size) / 2;
+          fan::print(grid_position);
+          uint32_t idx = find_layer_shape(map_tiles[grid_position.x][grid_position.y].layers);
+          if (idx != invalid) {
+            grid_visualize.highlight.set_depth(map_tiles[grid_position.x][grid_position.y].layers
+              [idx].shape.get_position().z);
+          }
         }
         else {
           grid_visualize.highlight.set_color(fan::colors::transparent);
@@ -147,29 +173,41 @@ struct fte_t {
       {// handle camera movement
         f32_t old_zoom = viewport_settings.zoom;
 
-        auto& window = gloco->get_window();
+        auto& window = *gloco->get_window();
 
         switch (d.button) {
           case fan::mouse_left: {
             if (window.key_pressed(fan::key_left_control)) {
+              fan::vec2i position;
               if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
                 fan::vec2i grid_position = position;
                 grid_position /= fan::vec2i(tile_size);
                 grid_position = (grid_position + map_size) / 2;
-
                 auto& layers = map_tiles[grid_position.x][grid_position.y].layers;
-                uint32_t idx = find_top_layer_shape(layers);
-                if (idx != (uint32_t)-1) {
-                  //current_tile_image
+                uint32_t idx = find_layer_shape(layers);
+                if (idx == invalid) {
+                  idx = find_top_layer_shape(layers);
+                }
+                if (idx != invalid || idx < brush.depth) {
+                  current_tile_image.ti = layers[idx].shape.get_tp();
+                  grid_visualize.highlight = layers[idx].shape;
+                  grid_visualize.highlight.set_depth(brush.depth);
                 }
               }
             }
             break;
           }
-          case fan::mouse_middle: { break;}
+          case fan::mouse_middle: { 
+            viewport_settings.move = (bool)d.state;
+            fan::vec2 old_pos = viewport_settings.pos;
+            viewport_settings.offset = gloco->get_mouse_position();
+            viewport_settings.pos = gloco->default_camera->camera.get_position();
+            break;
+          }
           case fan::mouse_scroll_up: {
             if (window.key_pressed(fan::key_left_control)) {
               brush.depth += 1;
+              brush.depth = std::min((uint32_t)brush.depth, shape_depths_t::max_layer_depth);
             }
             else {
               viewport_settings.zoom *= scroll_speed;
@@ -179,6 +217,7 @@ struct fte_t {
           case fan::mouse_scroll_down: { 
             if (window.key_pressed(fan::key_left_control)) {
               brush.depth -= 1;
+              brush.depth = std::max((uint32_t)brush.depth, (uint32_t)1);
             }
             else {
               viewport_settings.zoom /= scroll_speed; 
@@ -187,11 +226,6 @@ struct fte_t {
           }
           default: {return;} //?
         };
-        viewport_settings.move = (bool)d.state;
-        fan::vec2 old_pos = viewport_settings.pos;
-        viewport_settings.offset = gloco->get_mouse_position();
-        viewport_settings.pos = gloco->default_camera->camera.get_position();
-
       }// handle camera movement
    });
 
@@ -246,7 +280,7 @@ struct fte_t {
     });
 
     grid_visualize.background = fan::graphics::sprite_t{{
-      .position = viewport_settings.pos,
+      .position = fan::vec3(viewport_settings.pos, 0),
       .size = 0,
       .image = &gloco->transparent_texture
     }};
@@ -409,6 +443,7 @@ struct fte_t {
             )) {
               current_image_idx = i;
               current_tile_image = node;
+              grid_visualize.highlight.set_tp(&current_tile_image.ti);
             }
 
             if (selected) {
@@ -421,7 +456,8 @@ struct fte_t {
         }
       }
 
-      if (ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_left))) {
+      if (ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_left)) &&
+        !gloco->get_window()->key_pressed(fan::key_left_control)) {
         fan::vec2i position;
         // if inside grids
         if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
@@ -431,28 +467,49 @@ struct fte_t {
 
           auto& layers = map_tiles[grid_position.x][grid_position.y].layers;
           uint32_t idx = find_top_layer_shape(layers);
-          if (idx == (uint32_t)-1 || idx < brush.depth) {
-            shapes_t::global_t::layer_t layer;
-            layer.tile.position = fan::vec3(grid_position, brush.depth);
-            layer.tile.image_hash = current_tile_image.image_hash;
+          if ((idx == invalid || idx + 1 < brush.depth) && current_tile_image.ti.valid()) {
+            layers.resize(layers.size() + 1);
+            layers.back().tile.position = fan::vec3(grid_position, brush.depth);
+            layers.back().tile.image_hash = current_tile_image.image_hash;
             // todo fix
-            layer.tile.mesh_property = 0;
-            layer.shape = fan::graphics::sprite_t{{
+            layers.back().tile.mesh_property = 0;
+            layers.back().shape = fan::graphics::sprite_t{{
                 .position = fan::vec3(position, brush.depth),
                 .size = tile_size
             }};
-            if (layer.shape.load_tp(&current_tile_image.ti)) {
+            if (layers.back().shape.set_tp(&current_tile_image.ti)) {
               fan::print("failed to load image");
             }
-            layers.push_back(layer);
+            current_tile.shape = &layers.back().shape;
+            current_tile.ti = current_tile_image.ti;
           }
-          else {
-            layers.erase(layers.begin() + idx);
+          else if (idx != invalid){
+            fan::vec2i position;
+            if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
+              fan::vec2i grid_position = position;
+              grid_position /= fan::vec2i(tile_size);
+              grid_position = (grid_position + map_size) / 2;
+              auto& layers = map_tiles[grid_position.x][grid_position.y].layers;
+              idx = find_layer_shape(layers);
+              if (idx != invalid || idx < layers.size()) {
+                layers[idx].shape.set_tp(&current_tile_image.ti);
+              }
+            }
           }
         }
       }
-      else {
-
+      if (ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_right))) {
+        fan::vec2i position;
+        if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
+          fan::vec2i grid_position = position;
+          grid_position /= fan::vec2i(tile_size);
+          grid_position = (grid_position + map_size) / 2;
+          auto& layers = map_tiles[grid_position.x][grid_position.y].layers;
+          uint32_t idx = find_layer_shape(layers);
+          if (idx != invalid || idx < brush.depth) {
+            layers.erase(layers.begin() + idx);
+          }
+        }
       }
 
       ImGui::End();
@@ -528,18 +585,23 @@ struct fte_t {
     #include _FAN_PATH(graphics/gui/tilemap_editor/loader_versions/1.h)
   }
 
-  fan::vec2ui map_size{4, 4};
-  fan::vec2ui tile_size{32, 32};
+  fan::vec2i map_size{4, 4};
+  fan::vec2i tile_size{32, 32};
 
   event_type_e event_type = event_type_e::none;
   loco_t::shape_type_t selected_shape_type = loco_t::shape_type_t::invalid;
-  shapes_t::global_t* current_tile = nullptr;
+  struct current_tile_t {
+    loco_t::shape_t* shape = nullptr;
+    loco_t::texturepack_t::ti_t ti;
+  };
 
   struct image_info_t {
     loco_t::texturepack_t::ti_t ti;
     uint64_t image_hash;
   };
 
+  current_tile_t current_tile;
+  current_tile_t current_hover_tile;
   image_info_t current_tile_image;
 
   uint32_t current_id = 0;

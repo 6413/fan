@@ -4,12 +4,12 @@
 #if defined(loco_physics)
 
 constexpr static f32_t bcol_step_time = 0.01;
-#define ETC_BCOL_set_Dimension 2
-#define ETC_BCOL_set_IncludePath FAN_INCLUDE_PATH/fan
-#define ETC_BCOL_set_prefix bcol
-#define ETC_BCOL_set_DynamicDeltaFunction 
-#define ETC_BCOL_set_StoreExtraDataInsideObject 1
-#define ETC_BCOL_set_ExtraDataInsideObject \
+#define BCOL_set_Dimension 2
+#define BCOL_set_IncludePath FAN_INCLUDE_PATH/fan
+#define BCOL_set_prefix bcol
+#define BCOL_set_DynamicDeltaFunction 
+#define BCOL_set_StoreExtraDataInsideObject 1
+#define BCOL_set_ExtraDataInsideObject \
   bcol_t::ShapeID_t shape_id;
 #include _FAN_PATH(ETC/BCOL/BCOL.h)
 

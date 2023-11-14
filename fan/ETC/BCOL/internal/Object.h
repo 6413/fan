@@ -24,14 +24,14 @@ ObjectID_t NewObject(ObjectProperties_t *ObjectProperties, uint32_t Flag){
 
   ShapeList_Open(&ObjectData->ShapeList);
 
-  #if ETC_BCOL_set_StoreExtraDataInsideObject == 1
+  #if BCOL_set_StoreExtraDataInsideObject == 1
     ObjectData->ExtraData = ObjectProperties->ExtraData;
   #endif
 
   return ObjectID;
 }
 
-#if ETC_BCOL_set_StoreExtraDataInsideObject == 1
+#if BCOL_set_StoreExtraDataInsideObject == 1
   ObjectExtraData_t *GetObjectExtraData(ObjectID_t ObjectID){
     auto ObjectData = this->GetObjectData(ObjectID);
     return &ObjectData->ExtraData;
