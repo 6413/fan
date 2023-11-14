@@ -175,7 +175,7 @@ int main() {
 
     fan::vec2 player_position = bcol.GetObject_Position(player.oid);
 
-    pile->camera.set_camera_position(player_position);
+    pile->camera.set_position(player_position);
 
     player.shape.set_position(player_position);
 
