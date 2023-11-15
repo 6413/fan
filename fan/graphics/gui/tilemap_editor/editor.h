@@ -114,7 +114,7 @@ struct fte_t {
 
   bool window_relative_to_grid(const fan::vec2& window_relative_position, fan::vec2i* in) {
     fan::vec2 p = gloco->translate_position(window_relative_position) / 2 + gloco->default_camera->camera.get_position() / 2;
-    fan::vec2 ws = gloco->get_window()->get_size();
+    fan::vec2 ws = gloco->window.get_size();
     p = (p / tile_size).floor() * tile_size * 2 + tile_size;
     *in = p;
     return fan_2d::collision::rectangle::point_inside_no_rotation(p / tile_size, 0, map_size);
@@ -123,7 +123,7 @@ struct fte_t {
   void open(const fan::string& texturepack_name) {
     texturepack.open_compiled(texturepack_name);
 
-    gloco->get_window()->add_mouse_move_callback([this](const auto& d) {
+    gloco->window.add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom * 2;
         gloco->default_camera->camera.set_position(viewport_settings.pos - move_off);
@@ -147,7 +147,7 @@ struct fte_t {
       }
     });
 
-    gloco->get_window()->add_buttons_callback([this](const auto& d) {
+    gloco->window.add_buttons_callback([this](const auto& d) {
       if (!editor_settings.hovered && d.state != fan::mouse_state::release) {
         return;
       }
@@ -155,11 +155,9 @@ struct fte_t {
       {// handle camera movement
         f32_t old_zoom = viewport_settings.zoom;
 
-        auto& window = *gloco->get_window();
-
         switch (d.button) {
           case fan::mouse_left: {
-            if (window.key_pressed(fan::key_left_control)) {
+            if (gloco->window.key_pressed(fan::key_left_control)) {
               fan::vec2i position;
               if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
                 fan::vec2i grid_position = position;
@@ -176,7 +174,7 @@ struct fte_t {
                 }
               }
             }
-            else if (window.key_pressed(fan::key_left_shift)) {
+            else if (gloco->window.key_pressed(fan::key_left_shift)) {
               fan::vec2i position;
               if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
                 fan::vec2i grid_position = position;
@@ -202,7 +200,7 @@ struct fte_t {
             break;
           }
           case fan::mouse_scroll_up: {
-            if (window.key_pressed(fan::key_left_control)) {
+            if (gloco->window.key_pressed(fan::key_left_control)) {
               brush.depth += 1;
               brush.depth = std::min((uint32_t)brush.depth, shape_depths_t::max_layer_depth);
             }
@@ -212,7 +210,7 @@ struct fte_t {
             return; 
           }
           case fan::mouse_scroll_down: { 
-            if (window.key_pressed(fan::key_left_control)) {
+            if (gloco->window.key_pressed(fan::key_left_control)) {
               brush.depth -= 1;
               brush.depth = std::max((uint32_t)brush.depth, (uint32_t)1);
             }
@@ -226,7 +224,7 @@ struct fte_t {
       }// handle camera movement
    });
 
-    gloco->get_window()->add_keys_callback([this](const auto& d) {
+    gloco->window.add_keys_callback([this](const auto& d) {
       if (d.state != fan::keyboard_state::press) {
         return;
       }
@@ -236,7 +234,7 @@ struct fte_t {
 
       switch (d.key) {
         case fan::key_delete: {
-          if (gloco->get_window()->key_pressed(fan::key_left_control)) {
+          if (gloco->window.key_pressed(fan::key_left_control)) {
             reset_map();
           }
           break;
@@ -337,7 +335,7 @@ struct fte_t {
       fan::vec2 editor_size;
 
       if (ImGui::Begin(editor_str)) {
-        fan::vec2 window_size = gloco->get_window()->get_size();
+        fan::vec2 window_size = gloco->window.get_size();
         fan::vec2 viewport_size = ImGui::GetWindowSize();
         fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
         fan::vec2 offset = viewport_size - viewport_size / viewport_settings.zoom;
@@ -488,8 +486,8 @@ struct fte_t {
       ImGui::End();
 
       if (ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_left)) &&
-        !gloco->get_window()->key_pressed(fan::key_left_control) &&
-        !gloco->get_window()->key_pressed(fan::key_left_shift)) {
+        !gloco->window.key_pressed(fan::key_left_control) &&
+        !gloco->window.key_pressed(fan::key_left_shift)) {
         fan::vec2i position;
         // if inside grids
         if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {

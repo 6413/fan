@@ -204,7 +204,7 @@ void update(){
       fan::vec2 editor_size;
 
       if (ImGui::Begin(stages_str, nullptr, ImGuiWindowFlags_DockNodeHost)) {
-        fan::vec2 window_size = gloco->get_window()->get_size();
+        fan::vec2 window_size = gloco->window.get_size();
         fan::vec2 viewport_size = ImGui::GetWindowSize();
         fan::vec2 ratio = viewport_size / viewport_size.max();
         gloco->default_camera->camera.set_ortho(

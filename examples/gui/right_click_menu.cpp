@@ -3,14 +3,14 @@
 struct pile_t {
 
   void open() {
-    fan::vec2 window_size = loco.get_window()->get_size();
+    fan::vec2 window_size = loco.window.get_size();
     fan::vec2 ratio = window_size / window_size.max();
     loco.open_camera(
       &camera,
       fan::vec2(-1, 1) * ratio.x,
       fan::vec2(-1, 1) * ratio.y
     );
-    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
+    loco.window.add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.size;
       fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);

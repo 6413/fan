@@ -203,14 +203,14 @@ struct fte_t {
   void open(const fan::string& texturepack_name) {
     texturepack.open_compiled(texturepack_name);
 
-    gloco->get_window()->add_mouse_move_callback([this](const auto& d) {
+    gloco->window.add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom * 2;
         gloco->default_camera->camera.set_position(viewport_settings.pos - move_off);
       }
     });
 
-    gloco->get_window()->add_buttons_callback([this](const auto& d) {
+    gloco->window.add_buttons_callback([this](const auto& d) {
       if (!editor_settings.hovered && d.state != fan::mouse_state::release) {
         return;
       }
@@ -222,7 +222,7 @@ struct fte_t {
         switch (d.button) {
           case fan::mouse_middle: { break;}
           case fan::mouse_scroll_up: {
-            if (gloco->get_window()->key_pressed(fan::key_left_control)) {
+            if (gloco->window.key_pressed(fan::key_left_control)) {
               brush.depth += 1;
             }
             else {
@@ -231,7 +231,7 @@ struct fte_t {
             return; 
           }
           case fan::mouse_scroll_down: { 
-            if (gloco->get_window()->key_pressed(fan::key_left_control)) {
+            if (gloco->window.key_pressed(fan::key_left_control)) {
               brush.depth -= 1;
             }
             else {
@@ -249,7 +249,7 @@ struct fte_t {
       }// handle camera movement
    });
 
-    gloco->get_window()->add_keys_callback([this](const auto& d) {
+    gloco->window.add_keys_callback([this](const auto& d) {
       if (d.state != fan::keyboard_state::press) {
         return;
       }
@@ -259,7 +259,7 @@ struct fte_t {
 
       switch (d.key) {
         case fan::key_delete: {
-          if (gloco->get_window()->key_pressed(fan::key_left_control)) {
+          if (gloco->window.key_pressed(fan::key_left_control)) {
             reset_map();
           }
           break;
@@ -302,7 +302,7 @@ struct fte_t {
       texturepack_images.push_back(ii);
     });
 
-    viewport_settings.pos = gloco->get_window()->get_size() / 2;
+    viewport_settings.pos = gloco->window.get_size() / 2;
     gloco->default_camera->camera.set_position(viewport_settings.pos);
 
     gloco->process_frame();
@@ -335,7 +335,7 @@ struct fte_t {
       fan::vec2 editor_size;
 
       if (ImGui::Begin(editor_str)) {
-        fan::vec2 window_size = gloco->get_window()->get_size();
+        fan::vec2 window_size = gloco->window.get_size();
         fan::vec2 viewport_size = ImGui::GetWindowSize();
         fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
         fan::vec2 offset = viewport_size - viewport_size / viewport_settings.zoom;

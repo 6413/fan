@@ -204,7 +204,7 @@ int main() {
       .blending = true
     }};
 
-  loco.get_window()->add_resize_callback([&](const auto& d) {
+  loco.window.add_resize_callback([&](const auto& d) {
     gloco->default_camera->viewport.set(fan::vec2(0, 0), d.size, d.size);
   });
 

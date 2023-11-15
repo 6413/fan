@@ -6,7 +6,7 @@ int main() {
 
   loco_t loco;
 
-  fan::vec2 window_size = loco.get_window()->get_size();
+  fan::vec2 window_size = loco.window.get_size();
   loco.default_camera->camera.set_ortho(
     fan::vec2(0, window_size.x),
     fan::vec2(0, window_size.y)

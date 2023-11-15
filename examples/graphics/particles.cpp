@@ -7,7 +7,7 @@ int main() {
 
   loco.clear_color = fan::colors::black;
 
-  fan::vec2 viewport_size = loco.get_window()->get_size();
+  fan::vec2 viewport_size = loco.window.get_size();
   loco.default_camera->camera.set_ortho(
     fan::vec2(0, viewport_size.x),
     fan::vec2(0, viewport_size.y)

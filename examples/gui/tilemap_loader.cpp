@@ -15,14 +15,12 @@ struct player_t {
     }};
   }
   void update() {
-    auto& window = *gloco->get_window();
-
     f32_t dt = gloco->get_delta_time();
-    if (window.key_pressed(fan::key_d)) {
+    if (gloco->window.key_pressed(fan::key_d)) {
       velocity.x = speed.x;
       visual.set_image(&ismot[0]);
     }
-    else if (window.key_pressed(fan::key_a)) {
+    else if (gloco->window.key_pressed(fan::key_a)) {
       velocity.x = -speed.x;
       visual.set_image(&ismot[1]);
     }
@@ -30,11 +28,11 @@ struct player_t {
       velocity.x = 0;
     }
 
-    if (window.key_pressed(fan::key_w)) {
+    if (gloco->window.key_pressed(fan::key_w)) {
       velocity.y = -speed.y;
       visual.set_image(&ismot[3]);
     }
-    else if (window.key_pressed(fan::key_s)) {
+    else if (gloco->window.key_pressed(fan::key_s)) {
       velocity.y = speed.y;
       visual.set_image(&ismot[2]);
     }
@@ -53,7 +51,7 @@ f32_t zoom = 2;
 void init_zoom() {
   auto& window = *gloco->get_window();
   auto update_ortho = []{
-    fan::vec2 s = gloco->get_window()->get_size();
+    fan::vec2 s = gloco->window.get_size();
     gloco->default_camera->camera.set_ortho(
       fan::vec2(-s.x, s.x) / zoom,
       fan::vec2(-s.y, s.y) / zoom

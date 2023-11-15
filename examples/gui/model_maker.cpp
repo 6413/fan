@@ -23,8 +23,8 @@ int main(int argc, char** argv) {
   //
   //
   loco.set_vsync(false);
-  //pile->loco.get_window()->set_max_fps(165);
-  //pile->loco.get_window()->set_max_fps(5);
+  //pile->loco.window.set_max_fps(165);
+  //pile->loco.window.set_max_fps(5);
   loco.loop([&] {
     loco.get_fps();
   });

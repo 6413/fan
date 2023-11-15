@@ -364,24 +364,24 @@ public:
     #endif
 
     m_shader.use(gloco->get_context());
-    m_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+    m_shader.set_vec2(gloco->get_context(), "window_size", gloco->window.get_size());
     #ifndef sb_no_blending
     m_blending_shader.use(gloco->get_context());
-    m_blending_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+    m_blending_shader.set_vec2(gloco->get_context(), "window_size", gloco->window.get_size());
     #endif
 
-    resize_nr = gloco->get_window()->add_resize_callback([this](const auto& d) {
+    resize_nr = gloco->window.add_resize_callback([this](const auto& d) {
       m_shader.use(gloco->get_context());
-      m_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+      m_shader.set_vec2(gloco->get_context(), "window_size", gloco->window.get_size());
       #ifndef sb_no_blending
       m_blending_shader.use(gloco->get_context());
-      m_blending_shader.set_vec2(gloco->get_context(), "window_size", gloco->get_window()->get_size());
+      m_blending_shader.set_vec2(gloco->get_context(), "window_size", gloco->window.get_size());
       #endif
     });
   }
   void sb_close() {
 
-    gloco->get_window()->remove_resize_callback(resize_nr);
+    gloco->window.remove_resize_callback(resize_nr);
 
     //assert(0);
     //loco_bdbt_close(&gloco->bdbt);

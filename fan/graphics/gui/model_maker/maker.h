@@ -8,7 +8,7 @@ struct model_maker_t : fgm_t {
 
   void open(const char* texturepack_name) {
     fgm_t::open(texturepack_name);
-    keys_nr = gloco->get_window()->add_keys_callback([this](const auto& d) {
+    keys_nr = gloco->window.add_keys_callback([this](const auto& d) {
       switch (d.key) {
         case fan::key_q: {
           if (d.state != fan::keyboard_state::press) {
@@ -22,7 +22,7 @@ struct model_maker_t : fgm_t {
       });
   }
   ~model_maker_t() {
-    gloco->get_window()->remove_keys_callback(keys_nr);
+    gloco->window.remove_keys_callback(keys_nr);
   }
 
   void load(const char* filename) {

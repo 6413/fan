@@ -13,7 +13,7 @@ struct pile_t {
 			ortho_x,
 			ortho_y
 		);
-		/*  loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+		/*  loco.window.add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
 				fan::vec2 window_size = window->get_size();
 				fan::vec2 ratio = window_size / window_size.max();
 				std::swap(ratio.x, ratio.y);
@@ -24,13 +24,13 @@ struct pile_t {
 					1
 				);
 			});
-			loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
+			loco.window.add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
 				pile_t* pile = (pile_t*)userptr;
 
-				pile->viewport.set_viewport(pile->loco.get_context(), 0, size, pile->loco.get_window()->get_size());
+				pile->viewport.set_viewport(pile->loco.get_context(), 0, size, pile->loco.window.get_size());
 			});*/
 		viewport.open(loco.get_context());
-		viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+		viewport.set(loco.get_context(), 0, loco.window.get_size(), loco.window.get_size());
 	}
 
 	loco_t loco;
@@ -55,7 +55,7 @@ int main() {
 	lp.filter = fan::opengl::GL_LINEAR;
 	image.load(&pile->loco, "images/test.webp");
 	p.image = &image;
-	p.size = fan::cast<f32_t>(image.size) / pile->loco.get_window()->get_size();
+	p.size = fan::cast<f32_t>(image.size) / pile->loco.window.get_size();
 	p.position = 0;
 	p.position.z = 0;
 	pile->loco.sprite.push_back(&pile->cids[0], p);
@@ -64,7 +64,7 @@ int main() {
 
 	pile->loco.set_vsync(false);
 
-	pile->loco.get_window()->add_buttons_callback([&](const fan::window_t::mouse_buttons_cb_data_t& d) {
+	pile->loco.window.add_buttons_callback([&](const fan::window_t::mouse_buttons_cb_data_t& d) {
 
 		if (d.state != fan::mouse_state::press) {
 			return;
