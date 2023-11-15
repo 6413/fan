@@ -3,10 +3,10 @@
 struct fte_t {
 
   // can have like sensor, etc
-  struct mesh_property_t : fan::any_type_wrap_t<uint8_t> {
-    using fan::any_type_wrap_t<uint8_t>::any_type_wrap_t;
-    static constexpr uint8_t none = 0;
-    static constexpr uint8_t collision_solid = 1;
+  enum struct mesh_property_t : uint8_t {
+    none = 0,
+    collision_solid = 1,
+    size
   };
 
   static constexpr auto editor_str = "Editor";
@@ -18,10 +18,10 @@ struct fte_t {
   static constexpr fan::vec2 default_button_size{100, 30};
   static constexpr fan::vec2 tile_viewer_sprite_size{64, 64};
   static constexpr fan::color highlighted_tile_color = fan::color(0.5, 0.5, 1);
+  static constexpr fan::color highlighted_selected_tile_color = fan::color(0.5, 0, 0, 0.5);
 
   static constexpr f32_t scroll_speed = 1.2;
   static constexpr uint32_t invalid = -1;
-
 
   struct shape_depths_t {
     static constexpr uint32_t max_layer_depth = 0xffff;
@@ -31,9 +31,9 @@ struct fte_t {
   fan::string file_name = "file.fte";
 
   struct tile_t {
-    fan::vec3ui position;
+    fan::vec3i position;
     uint64_t image_hash;
-    uint8_t mesh_property;
+    mesh_property_t mesh_property;
   };
 
   struct shapes_t {
@@ -86,15 +86,6 @@ struct fte_t {
   };
 
   void resize_map() {
-    if (map_size == 0) {
-      map_tiles.clear();
-      return;
-    }
-
-    map_tiles.resize(map_size.y);
-    for (auto& i : map_tiles) {
-      i.resize(map_size.x);
-    }
     grid_visualize.background.set_size(tile_size * map_size);
     grid_visualize.background.set_tc_size(fan::vec2(0.5) * map_size);
     fan::vec2 grid_size = fan::vec2(map_size.x, map_size.y);
@@ -105,22 +96,15 @@ struct fte_t {
     );
     grid_visualize.line_grid.set_size(grid_size * (tile_size / 2) * 2);
 
-    for (auto& i : map_tiles) {
-      for (auto& j : i) {
-        for (auto& k : j.layers) {
-          fan::vec2 s = k.shape.get_size();
-          fan::vec2 sp = fan::vec2(k.shape.get_position());
-          fan::vec2 p = tile_size * ((sp / s));
-          k.shape.set_position(p);
-          k.shape.set_size(tile_size);
-        }
-      }
-    }
-    fan::vec2 s = grid_visualize.highlight.get_size();
-    fan::vec2 sp = fan::vec2(grid_visualize.highlight.get_position());
+    fan::vec2 s = grid_visualize.highlight_hover.get_size();
+    fan::vec2 sp = fan::vec2(grid_visualize.highlight_hover.get_position());
     fan::vec2 p = tile_size * ((sp / s));
-    grid_visualize.highlight.set_position(p);
-    grid_visualize.highlight.set_size(tile_size);
+    grid_visualize.highlight_hover.set_position(p);
+    grid_visualize.highlight_hover.set_size(tile_size);
+    grid_visualize.highlight_selected.set_position(p);
+    if (current_tile.shape != nullptr) {
+      grid_visualize.highlight_selected.set_size(tile_size);
+    }
   }
 
   void reset_map() {
@@ -147,20 +131,18 @@ struct fte_t {
       fan::vec2i p;
       {
         if (window_relative_to_grid(d.position, &p)) {
-          grid_visualize.highlight.set_position(fan::vec2(p));
-          grid_visualize.highlight.set_color(fan::color(1));
           fan::vec2i grid_position = p;
           grid_position /= fan::vec2i(tile_size);
-          grid_position = (grid_position + map_size) / 2;
-          fan::print(grid_position);
-          uint32_t idx = find_layer_shape(map_tiles[grid_position.x][grid_position.y].layers);
+          grid_visualize.highlight_hover.set_position(fan::vec2(p));
+          grid_visualize.highlight_hover.set_color(fan::color(1, 1, 1, 0.6));
+          uint32_t idx = find_layer_shape(map_tiles[fan::vec2i(grid_position.x, grid_position.y)].layers);
           if (idx != invalid) {
-            grid_visualize.highlight.set_depth(map_tiles[grid_position.x][grid_position.y].layers
+            grid_visualize.highlight_hover.set_depth(map_tiles[fan::vec2i(grid_position.x, grid_position.y)].layers
               [idx].shape.get_position().z);
           }
         }
         else {
-          grid_visualize.highlight.set_color(fan::colors::transparent);
+          grid_visualize.highlight_hover.set_color(fan::colors::transparent);
         }
       }
     });
@@ -169,7 +151,7 @@ struct fte_t {
       if (!editor_settings.hovered && d.state != fan::mouse_state::release) {
         return;
       }
-      
+
       {// handle camera movement
         f32_t old_zoom = viewport_settings.zoom;
 
@@ -182,16 +164,31 @@ struct fte_t {
               if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
                 fan::vec2i grid_position = position;
                 grid_position /= fan::vec2i(tile_size);
-                grid_position = (grid_position + map_size) / 2;
-                auto& layers = map_tiles[grid_position.x][grid_position.y].layers;
+                auto& layers = map_tiles[fan::vec2i(grid_position.x, grid_position.y)].layers;
                 uint32_t idx = find_layer_shape(layers);
                 if (idx == invalid) {
                   idx = find_top_layer_shape(layers);
                 }
                 if (idx != invalid || idx < brush.depth) {
                   current_tile_image.ti = layers[idx].shape.get_tp();
-                  grid_visualize.highlight = layers[idx].shape;
-                  grid_visualize.highlight.set_depth(brush.depth);
+                  grid_visualize.highlight_hover = layers[idx].shape;
+                  grid_visualize.highlight_hover.set_depth(brush.depth);
+                }
+              }
+            }
+            else if (window.key_pressed(fan::key_left_shift)) {
+              fan::vec2i position;
+              if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
+                fan::vec2i grid_position = position;
+                grid_position /= fan::vec2i(tile_size);
+                auto& layers = map_tiles[fan::vec2i(grid_position.x, grid_position.y)].layers;
+                uint32_t idx = find_top_layer_shape(layers);
+                if ((idx != invalid || idx < brush.depth)) {
+                  current_tile.shape = &layers[idx].shape;
+                  current_tile.tile_info.mesh_property = layers[idx].tile.mesh_property;
+                  current_tile.tile_info.image_hash = layers[idx].tile.image_hash;
+                  grid_visualize.highlight_selected.set_position(fan::vec2(position));
+                  grid_visualize.highlight_selected.set_size(tile_size);
                 }
               }
             }
@@ -264,7 +261,7 @@ struct fte_t {
 
     // loaded texturepack
     texturepack.iterate_loaded_images([this](auto& image, uint32_t pack_id) {
-      image_info_t ii;
+      tile_info_t ii;
       ii.ti = loco_t::texturepack_t::ti_t{
         .pack_id = pack_id,
         .position = image.position,
@@ -272,8 +269,6 @@ struct fte_t {
         .image = &texturepack.get_pixel_data(pack_id).image
       };
 
-      ii.ti.position /= ii.ti.image->size;
-      ii.ti.size /= ii.ti.image->size;
       ii.image_hash = image.hash;
 
       texturepack_images.push_back(ii);
@@ -286,16 +281,23 @@ struct fte_t {
     }};
 
     grid_visualize.highlight_color.create(fan::colors::red, 1);
-    grid_visualize.highlight = fan::graphics::sprite_t{{
+    grid_visualize.highlight_hover = fan::graphics::sprite_t{{
       .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth),
       .size = tile_size,
-      .image = &grid_visualize.highlight_color
+      .image = &grid_visualize.highlight_color,
+      .blending = true
+    }};
+    grid_visualize.highlight_selected = fan::graphics::rectangle_t{{
+      .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth - 1),
+      .size = 0,
+      .color = highlighted_selected_tile_color,
+      .blending = true
     }};
 
     {
       fan::vec2 p = 0;
       p = ((p - tile_size) / tile_size).floor() * tile_size;
-      grid_visualize.highlight.set_position(p);
+      grid_visualize.highlight_hover.set_position(p);
     }
 
     // update viewport sizes
@@ -383,7 +385,7 @@ struct fte_t {
 
       ImGui::End();
 
-      if (ImGui::Begin(editor_settings_str, nullptr)) {
+      if (ImGui::Begin(editor_settings_str)) {
         {
           static auto make_setting_ii2 = [&](const char* title, auto& value, auto todo){
             auto i = value;
@@ -396,7 +398,18 @@ struct fte_t {
           };
 
           make_setting_ii2("map size", map_size, [this] { resize_map(); });
-          make_setting_ii2("tile size", tile_size, [this] { resize_map(); });
+          make_setting_ii2("tile size", tile_size, [this] { 
+            resize_map(); 
+            for (auto& i : map_tiles) {
+              for (auto& j : i.second.layers) {
+                fan::vec2 s = j.shape.get_size();
+                fan::vec2 sp = fan::vec2(j.shape.get_position());
+                fan::vec2 p = tile_size * ((sp / s));
+                j.shape.set_position(p);
+                j.shape.set_size(tile_size);
+              }
+            }
+          });
 
           fan::vec2 window_size = ImGui::GetWindowSize(); 
           fan::vec2 cursor_pos(
@@ -438,12 +451,12 @@ struct fte_t {
               (fan::string("##ibutton") + std::to_string(i)).c_str(),
               (void*)(intptr_t)*node.ti.image->get_texture(),
               tile_viewer_sprite_size,
-              node.ti.position,
-              node.ti.position + node.ti.size
+              node.ti.position / node.ti.image->size,
+              node.ti.position / node.ti.image->size + node.ti.size / node.ti.image->size
             )) {
               current_image_idx = i;
               current_tile_image = node;
-              grid_visualize.highlight.set_tp(&current_tile_image.ti);
+              grid_visualize.highlight_hover.set_tp(&current_tile_image.ti);
             }
 
             if (selected) {
@@ -456,23 +469,40 @@ struct fte_t {
         }
       }
 
+      if (ImGui::Begin("Tile settings")) {
+        if (current_tile.shape != nullptr) {
+          {
+            f32_t angle = current_tile.shape->get_angle();
+            if (ImGui::SliderAngle("angle", &angle)) {
+              current_tile.shape->set_angle(angle);
+            }
+          }
+          {
+            int mesh_property = (int)current_tile.tile_info.mesh_property;
+            if (ImGui::SliderInt("mesh flags", &mesh_property, 0, (int)mesh_property_t::size - 1)) {
+              current_tile.tile_info.mesh_property = (mesh_property_t)mesh_property;
+            }
+          }
+        }
+      }
+      ImGui::End();
+
       if (ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_left)) &&
-        !gloco->get_window()->key_pressed(fan::key_left_control)) {
+        !gloco->get_window()->key_pressed(fan::key_left_control) &&
+        !gloco->get_window()->key_pressed(fan::key_left_shift)) {
         fan::vec2i position;
         // if inside grids
         if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
           fan::vec2i grid_position = position;
           grid_position /= fan::vec2i(tile_size);
-          grid_position = (grid_position + map_size) / 2;
-
-          auto& layers = map_tiles[grid_position.x][grid_position.y].layers;
+          auto& layers = map_tiles[fan::vec2i(grid_position.x, grid_position.y)].layers;
           uint32_t idx = find_top_layer_shape(layers);
           if ((idx == invalid || idx + 1 < brush.depth) && current_tile_image.ti.valid()) {
             layers.resize(layers.size() + 1);
-            layers.back().tile.position = fan::vec3(grid_position, brush.depth);
+            layers.back().tile.position = fan::vec3(position, brush.depth);
             layers.back().tile.image_hash = current_tile_image.image_hash;
             // todo fix
-            layers.back().tile.mesh_property = 0;
+            layers.back().tile.mesh_property = mesh_property_t::none;
             layers.back().shape = fan::graphics::sprite_t{{
                 .position = fan::vec3(position, brush.depth),
                 .size = tile_size
@@ -481,19 +511,26 @@ struct fte_t {
               fan::print("failed to load image");
             }
             current_tile.shape = &layers.back().shape;
-            current_tile.ti = current_tile_image.ti;
+            current_tile.tile_info.ti = current_tile_image.ti;
           }
           else if (idx != invalid){
             fan::vec2i position;
             if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
               fan::vec2i grid_position = position;
               grid_position /= fan::vec2i(tile_size);
-              grid_position = (grid_position + map_size) / 2;
-              auto& layers = map_tiles[grid_position.x][grid_position.y].layers;
+              auto& layers = map_tiles[fan::vec2i(grid_position.x, grid_position.y)].layers;
               idx = find_layer_shape(layers);
               if (idx != invalid || idx < layers.size()) {
                 layers[idx].shape.set_tp(&current_tile_image.ti);
               }
+            }
+          }
+        }
+        else {
+          if (editor_settings.hovered) {
+            if (current_tile.shape != nullptr) {
+              grid_visualize.highlight_selected.set_size(0);
+              current_tile.shape = nullptr;
             }
           }
         }
@@ -503,8 +540,7 @@ struct fte_t {
         if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
           fan::vec2i grid_position = position;
           grid_position /= fan::vec2i(tile_size);
-          grid_position = (grid_position + map_size) / 2;
-          auto& layers = map_tiles[grid_position.x][grid_position.y].layers;
+          auto& layers = map_tiles[fan::vec2i(grid_position.x, grid_position.y)].layers;
           uint32_t idx = find_layer_shape(layers);
           if (idx != invalid || idx < brush.depth) {
             layers.erase(layers.begin() + idx);
@@ -533,39 +569,37 @@ struct fte_t {
     ostr.append((char*)tile_size.data(), sizeof(tile_size));
 
     for (auto& i : map_tiles) {
-      for (auto& j : i) {
-        fan::mp_t<current_version_t::shapes_t> shapes;
+      fan::mp_t<current_version_t::shapes_t> shapes;
 
-        shapes.iterate([&]<auto i0, typename T>(T & l) {
-          fan::mp_t<T> shape;
-          shape.init(this, &j);
+      shapes.iterate([&]<auto i0, typename T>(T & l) {
+        fan::mp_t<T> shape;
+        shape.init(this, &i.second);
 
-          fan::string shape_str;
-          shape.iterate([&]<auto i1, typename T2>(T2 & v) {
-            if constexpr (std::is_same_v<T2, fan::string>) {
-              uint64_t string_length = v.size();
-              shape_str.append((char*)&string_length, sizeof(string_length));
-              shape_str.append(v);
-            }
-            else if constexpr (fan_requires_rule(T2, typename T2::value_type)) {
-              if constexpr (std::is_same_v<T2, std::vector<typename T2::value_type>>) {
-                uint32_t len = v.size();
-                shape_str.append((char*)&len, sizeof(uint32_t));
-                for (auto& ob : v) {
-                  shape_str.append((char*)&ob, sizeof(ob));
-                }
+        fan::string shape_str;
+        shape.iterate([&]<auto i1, typename T2>(T2 & v) {
+          if constexpr (std::is_same_v<T2, fan::string>) {
+            uint64_t string_length = v.size();
+            shape_str.append((char*)&string_length, sizeof(string_length));
+            shape_str.append(v);
+          }
+          else if constexpr (fan_requires_rule(T2, typename T2::value_type)) {
+            if constexpr (std::is_same_v<T2, std::vector<typename T2::value_type>>) {
+              uint32_t len = v.size();
+              shape_str.append((char*)&len, sizeof(uint32_t));
+              for (auto& ob : v) {
+                shape_str.append((char*)&ob, sizeof(ob));
               }
             }
-            else {
-              shape_str.append((char*)&v, sizeof(T2));
-            }
-          });
-          uint32_t struct_size = shape_str.size();
-          ostr.append((char*)&struct_size, sizeof(struct_size));
-
-          ostr += shape_str;
+          }
+          else {
+            shape_str.append((char*)&v, sizeof(T2));
+          }
         });
-      }
+        uint32_t struct_size = shape_str.size();
+        ostr.append((char*)&struct_size, sizeof(struct_size));
+
+        ostr += shape_str;
+      });
     }
     fan::io::file::write(filename, ostr, std::ios_base::binary);
     fan::print("file saved to:" + filename);
@@ -588,34 +622,46 @@ struct fte_t {
   fan::vec2i map_size{4, 4};
   fan::vec2i tile_size{32, 32};
 
-  event_type_e event_type = event_type_e::none;
-  loco_t::shape_type_t selected_shape_type = loco_t::shape_type_t::invalid;
-  struct current_tile_t {
-    loco_t::shape_t* shape = nullptr;
-    loco_t::texturepack_t::ti_t ti;
-  };
-
-  struct image_info_t {
+  struct tile_info_t {
     loco_t::texturepack_t::ti_t ti;
     uint64_t image_hash;
+    mesh_property_t mesh_property = mesh_property_t::none;
+  };
+
+  struct current_tile_t {
+    loco_t::shape_t* shape = nullptr;
+    tile_info_t tile_info;
   };
 
   current_tile_t current_tile;
   current_tile_t current_hover_tile;
-  image_info_t current_tile_image;
+  tile_info_t current_tile_image;
+
+  struct vec2i_hasher
+  {
+    std::size_t operator()(const fan::vec2i& k) const
+    {
+      std::hash<int> hasher;
+      std::size_t hash_value = 17;
+      hash_value = hash_value * 31 + hasher(k.x);
+      hash_value = hash_value * 31 + hasher(k.y);
+      return hash_value;
+    }
+  };
 
   uint32_t current_id = 0;
-  std::vector<std::vector<shapes_t::global_t>> map_tiles;
+  std::unordered_map<fan::vec2i, shapes_t::global_t, vec2i_hasher> map_tiles;
 
   loco_t::texturepack_t texturepack;
 
   fan::function_t<void()> close_cb = [] {};
 
-  std::vector<image_info_t> texturepack_images;
+  std::vector<tile_info_t> texturepack_images;
 
   struct {
     loco_t::shape_t background;
-    loco_t::shape_t highlight;
+    loco_t::shape_t highlight_selected;
+    loco_t::shape_t highlight_hover;
     loco_t::image_t highlight_color;
     loco_t::shape_t line_grid;
      //lines;
