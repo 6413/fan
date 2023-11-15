@@ -4,8 +4,8 @@ int main() {
 
   loco_t loco;
   loco.default_camera->camera.set_ortho(
-    fan::vec2(0, loco.get_window()->get_size().x),
-    fan::vec2(0, loco.get_window()->get_size().y)
+    fan::vec2(0, loco.window.get_size().x),
+    fan::vec2(0, loco.window.get_size().y)
   );
 
   loco.lighting.ambient = fan::vec3(0.3, 0.3, 0.3);

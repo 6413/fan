@@ -6,7 +6,7 @@ struct pile_t {
   static constexpr fan::vec2 ortho_y = fan::vec2(0, 800);
 
   pile_t() {
-    auto ws = loco.get_window()->get_size();
+    auto ws = loco.window.get_size();
     auto viewport_size = fan::vec2(ws.x, ws.y / 4);
     fan::vec2 ratio = viewport_size / viewport_size.max();
    // std::swap(ratio.x, ratio.y);
@@ -15,7 +15,7 @@ struct pile_t {
       ortho_x * ratio.x,
       ortho_y * ratio.y
     );
-    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
+    loco.window.add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       viewport.set(0, fan::vec2(d.size.x, d.size.y / 4), d.size);
     });
     loco.open_viewport(&viewport, fan::vec2(0, 0), viewport_size);
@@ -111,7 +111,7 @@ int main() {
   //fan::vec2
 //  responsive_box.set_size(fan::vec2(1, 100));
 
- /* gloco->get_window()->add_keys_callback([&](const auto& d) {
+ /* gloco->window.add_keys_callback([&](const auto& d) {
     if (d.key == fan::key_up) {
       pp.size.x += 1;
       responsive_box.set_size(pp.size);

@@ -19,12 +19,16 @@ f64_t f(f64_t x) {
   return sin(x);
 }
 
+f64_t f2(f64_t x) {
+  return cos(x);
+}
+
 void handle_zoom_and_move() {
 
-  gloco->get_window()->add_buttons_callback([&](const auto& d) {
+  gloco->window.add_buttons_callback([&](const auto& d) {
 
     auto update_zoom = [] {
-      auto window_size = gloco->get_window()->get_size();
+      auto window_size = gloco->window.get_size();
       gloco->default_camera->camera.set_ortho(
         fan::vec2(-window_size.x, window_size.x) / (global.zoom),
         fan::vec2(-window_size.y, window_size.y) / (global.zoom)
@@ -53,7 +57,7 @@ void handle_zoom_and_move() {
 }
 
 int main() {
-  fan::vec2 window_size = global.loco.get_window()->get_size();
+  fan::vec2 window_size = global.loco.window.get_size();
   global.loco.default_camera->camera.set_ortho(
     fan::vec2(-window_size.x, window_size.x),
     fan::vec2(-window_size.y, window_size.y)
@@ -61,7 +65,7 @@ int main() {
 
   handle_zoom_and_move();
 
-  global.loco.get_window()->add_mouse_move_callback([&](const auto& d) {
+  global.loco.window.add_mouse_move_callback([&](const auto& d) {
     if (global.move) {
       gloco->default_camera->camera.set_position(global.pos - (d.position - global.offset) / global.zoom * 2);
     }
@@ -72,28 +76,34 @@ int main() {
       .dst = fan::vec2(),
       .color = fan::colors::white
   }});
+  std::vector<loco_t::shape_t> lines2(global.samples, fan::graphics::line_t{{
+      .src = fan::vec2(),
+      .dst = fan::vec2(),
+      .color = fan::colors::white
+  }});
 
   f32_t divider = global.samples / 10.f;
 
-  static auto generate_line = [&](int line_idx, f32_t x) {
+  static auto generate_line = [&](auto& line, auto f, int line_idx, f32_t x) {
     fan::vec2 src = f(x / divider) * amplitude * global.samples;
     fan::vec2 dst = f((x + 1.f) / divider) * amplitude * global.samples;
     src.x = line_idx * wavelength;
     dst.x = (line_idx + 1) * wavelength;
-    lines[line_idx].set_line(src, dst);
+    line.set_line(src, dst);
   };
 
-  for (f32_t i = 0; i < global.samples; i += 1) {
-    generate_line(i, (i));
-  }
+  //for (f32_t i = 0; i < global.samples; i += 1) {
+  //  generate_line(lines[i], i, (i));
+  //}
 
   f32_t animator_index = 0;
   global.loco.loop([&] {
 
     for (f32_t i = 0; i < global.samples; i += 1) {
-      generate_line(i, (i + animator_index));
+      generate_line(lines[i], f, i, (i + animator_index));
+      generate_line(lines2[i], f2, i, (i + animator_index));
     }
-    animator_index += global.loco.get_delta_time() * 20;
+    animator_index -= global.loco.get_delta_time() * 20;
   });
 
   return 0;

@@ -12,7 +12,7 @@ struct pile_t {
       ortho_y
     );
     viewport.open();
-    viewport.set(0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport.set(0, loco.window.get_size(), loco.window.get_size());
   }
 
   loco_t::camera_t camera;

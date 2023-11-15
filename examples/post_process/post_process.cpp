@@ -12,12 +12,12 @@ struct pile_t {
 		fan::graphics::open_camera(
 			loco.get_context(),
 			&camera,
-			loco.get_window()->get_size(),
+			loco.window.get_size(),
 			ortho_x,
 			ortho_y,
 			1
 		);
-		/*  loco.get_window()->add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
+		/*  loco.window.add_resize_callback(this, [](fan::window_t* window, const fan::vec2i& size, void* userptr) {
 				fan::vec2 window_size = window->get_size();
 				fan::vec2 ratio = window_size / window_size.max();
 				std::swap(ratio.x, ratio.y);
@@ -28,13 +28,13 @@ struct pile_t {
 					1
 				);
 			});
-			loco.get_window()->add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
+			loco.window.add_resize_callback(this, [](fan::window_t*, const fan::vec2i& size, void* userptr) {
 				pile_t* pile = (pile_t*)userptr;
 
-				pile->viewport.set_viewport(pile->loco.get_context(), 0, size, pile->loco.get_window()->get_size());
+				pile->viewport.set_viewport(pile->loco.get_context(), 0, size, pile->loco.window.get_size());
 			});*/
 		viewport.open(loco.get_context());
-		viewport.set_viewport(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+		viewport.set_viewport(loco.get_context(), 0, loco.window.get_size(), loco.window.get_size());
 	}
 
 	loco_t loco;
@@ -68,7 +68,7 @@ int main() {
 
 	pile->loco.set_vsync(false);
 
-	pile->loco.get_window()->add_buttons_callback(pile, 
+	pile->loco.window.add_buttons_callback(pile, 
 		[](fan::window_t* w, uint16_t key, fan::key_state ks, void* userptr) {
 		pile_t* pile = (pile_t*)userptr;
 

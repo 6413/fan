@@ -3,7 +3,7 @@
 struct pile_t {
 
   pile_t() {
-    fan::vec2 window_size = loco.get_window()->get_size();
+    fan::vec2 window_size = loco.window.get_size();
     fan::vec2 ratio = window_size / window_size.max();
     // wed will be inaccurate with low float multiplier with ndc
     loco.open_camera(
@@ -11,8 +11,8 @@ struct pile_t {
       fan::vec2(0, 800) * ratio.x,
       fan::vec2(0, 800) * ratio.y
     );
-    loco.open_viewport(&viewport, 0, loco.get_window()->get_size());
-    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
+    loco.open_viewport(&viewport, 0, loco.window.get_size());
+    loco.window.add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.window->get_size();
       fan::vec2 ratio = window_size / window_size.max();
       //std::swap(ratio.x, ratio.y);
@@ -21,7 +21,7 @@ struct pile_t {
         fan::vec2(0, window_size.x) * ratio.x,
         fan::vec2(0, window_size.y) * ratio.y
       );
-      viewport.set(0, loco.get_window()->get_size(), loco.get_window()->get_size());
+      viewport.set(0, loco.window.get_size(), loco.window.get_size());
     });
   }
 

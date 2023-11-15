@@ -45,7 +45,7 @@ lstd_defstruct(custom_t)
 
 int main() {
 
-  fan::vec2 window_size = pile.loco.get_window()->get_size();
+  fan::vec2 window_size = pile.loco.window.get_size();
   pile.loco.default_camera->camera.set_ortho(
     fan::vec2(0, window_size.x),
     fan::vec2(0, window_size.y)

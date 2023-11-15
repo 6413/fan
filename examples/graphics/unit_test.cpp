@@ -22,13 +22,13 @@ struct pile_t {
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   pile_t() {
-    fan::vec2 window_size = loco.get_window()->get_size();
+    fan::vec2 window_size = loco.window.get_size();
     loco.open_camera(
       &camera,
       ortho_x,
       ortho_y
     );
-    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
+    loco.window.add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       viewport.set(0, d.size, d.size);
       });
     viewport.open();

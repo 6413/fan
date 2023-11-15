@@ -5,7 +5,7 @@ struct fgm_t {
   void open(const fan::string& texturepack_name) {
     texturepack.open_compiled(texturepack_name);
 
-    gloco->get_window()->add_keys_callback([this](const auto& d) {
+    gloco->window.add_keys_callback([this](const auto& d) {
       if (d.state != fan::keyboard_state::press) {
         return;
       }
@@ -256,7 +256,7 @@ struct fgm_t {
       fan::vec2 editor_size;
 
       if (ImGui::Begin(editor_str, nullptr)) {
-        fan::vec2 window_size = gloco->get_window()->get_size();
+        fan::vec2 window_size = gloco->window.get_size();
         fan::vec2 viewport_size = ImGui::GetWindowSize();
         fan::vec2 ratio = viewport_size / viewport_size.max();
         gloco->default_camera->camera.set_ortho(

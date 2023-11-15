@@ -20,7 +20,7 @@ struct pile_t {
   static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
   pile_t() {
-    fan::vec2 window_size = loco.get_window()->get_size();
+    fan::vec2 window_size = loco.window.get_size();
     loco.open_camera(&camera, ortho_x, ortho_y);
     loco.open_viewport(&viewport, 0, window_size);
   }
@@ -337,7 +337,7 @@ int main() {
 
   f32_t last_pipe_x = 1;
 
-  //pile->loco.get_window()->add_keys_callback([&](const auto& data) {
+  //pile->loco.window.add_keys_callback([&](const auto& data) {
   //  if (data.key != fan::key_space) {
   //    return;
   //  }

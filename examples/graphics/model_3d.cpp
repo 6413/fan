@@ -15,11 +15,11 @@ struct pile_t {
       ortho_x,
       ortho_y
     );
-    /*loco.get_window()->add_resize_callback([&](fan::window_t*, const fan::vec2i& size) {
+    /*loco.window.add_resize_callback([&](fan::window_t*, const fan::vec2i& size) {
       viewport.set(loco.get_context(), 0, size, size);
     });*/
     viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport.set(loco.get_context(), 0, loco.window.get_size(), loco.window.get_size());
   }
 
   loco_t loco;
@@ -46,12 +46,12 @@ int main() {
   
   pile.loco.model.set(mp);
   
-  fan::vec2ui window_size = pile.loco.get_window()->get_size();
+  fan::vec2ui window_size = pile.loco.window.get_size();
 
   static constexpr f32_t zoom = 20;
   pile.camera.set_ortho(fan::vec2(-zoom, zoom), fan::vec2(zoom, -zoom));
 
-  auto& window = *pile.loco.get_window();
+  auto& window = pile.loco.window;
 
   fan::graphics::animation::frame_transform_t origin;
   origin.position = 0;

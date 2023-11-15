@@ -151,7 +151,7 @@ struct post_process_t {
       // I think not necessary
 //			loco->get_context()->set_depth_test(false); 
 
-			fan::vec2 window_size = loco->get_window()->get_size();
+			fan::vec2 window_size = loco->window.get_size();
 			
 			shader_downsample.use(loco->get_context());
 			shader_downsample.set_vec2(loco->get_context(), "resolution", window_size);
@@ -218,7 +218,7 @@ struct post_process_t {
 
 			framebuffer.unbind(loco->get_context());
 
-			fan::vec2 window_size = loco->get_window()->get_size();
+			fan::vec2 window_size = loco->window.get_size();
 			loco->get_context()->opengl.glViewport(0, 0, window_size.x, window_size.y);
 		}
 
@@ -247,7 +247,7 @@ struct post_process_t {
 
 		fan::webp::image_info_t ii;
 		ii.data = nullptr;
-		ii.size = loco->get_window()->get_size();
+		ii.size = loco->window.get_size();
 
 		color_buffers[0].load(loco, ii, lp);
 
@@ -290,7 +290,7 @@ struct post_process_t {
 		hdr_fbo.unbind(loco->get_context());
 
 		static constexpr uint32_t mip_count = 5;
-		bloom.open(loco->get_window()->get_size(), mip_count);
+		bloom.open(loco->window.get_size(), mip_count);
 
 		return 0;
 	}
@@ -306,8 +306,8 @@ struct post_process_t {
 	//	//	sp.viewport = viewport;
 	//	//	sp.camera = camera;
 	//	//	sp.image = &bloom.mips[0].image;
-	//	//	sp.position =  gloco->get_window()->get_size() / 2;
-	//	//	sp.size = gloco->get_window()->get_size() / 2;
+	//	//	sp.position =  gloco->window.get_size() / 2;
+	//	//	sp.size = gloco->window.get_size() / 2;
 	//	//	sprite.push_back(&cid, sp);
 	//	//}
 	//}

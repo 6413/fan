@@ -13,7 +13,7 @@ struct pile_t {
       ortho_x,
       ortho_y
     );
-    loco.get_window()->add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
+    loco.window.add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
       fan::vec2 window_size = d.size;
     fan::vec2 ratio = window_size / window_size.max();
     camera.set_ortho(
@@ -24,7 +24,7 @@ struct pile_t {
     viewport.set(loco.get_context(), 0, window_size, window_size);
       });
     viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport.set(loco.get_context(), 0, loco.window.get_size(), loco.window.get_size());
   }
 
   loco_t loco;

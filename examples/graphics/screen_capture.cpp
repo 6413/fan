@@ -12,7 +12,7 @@ int main() {
 
   fan::sys::MD_SCR_t md;
 
-  wglMakeCurrent(loco.get_window()->m_hdc, loco.get_window()->m_context);
+  wglMakeCurrent(loco.window.m_hdc, loco.window.m_context);
   int i = 0;
   while (i < 1) {
     fan::sys::MD_SCR_open(&md);

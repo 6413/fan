@@ -97,7 +97,7 @@ void set_colors2(auto& grid, auto world_pos, f32_t radius){
 int main() {
   loco_t loco = loco_t::properties_t{.window_size = 1300};
 
-  fan::vec2 viewport_size = loco.get_window()->get_size();
+  fan::vec2 viewport_size = loco.window.get_size();
   loco.default_camera->camera.set_ortho(
     fan::vec2(0, viewport_size.x),
     fan::vec2(0, viewport_size.y)

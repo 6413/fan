@@ -25,7 +25,7 @@ struct pile_t {
       ortho_x,
       ortho_y
     );
-    //loco.get_window()->add_resize_callback([&](fan::window_t* window, const fan::vec2i& size) {
+    //loco.window.add_resize_callback([&](fan::window_t* window, const fan::vec2i& size) {
     //  fan::vec2 window_size = window->get_size();
     //  fan::vec2 ratio = window_size / window_size.max();
     //  std::swap(ratio.x, ratio.y);
@@ -36,7 +36,7 @@ struct pile_t {
     //  viewport.set(loco.get_context(), 0, size, size);
     //});*/
     viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport.set(loco.get_context(), 0, loco.window.get_size(), loco.window.get_size());
   }
 
   loco_t loco;
@@ -88,13 +88,13 @@ int main() {
   auto pipeline_nr = context->pipelines.push(pile->loco.get_context(), p);
 
   pile->loco.draw_queue = [&] {
-    pile->viewport.set(pile->loco.get_context(), 0, pile->loco.get_window()->get_size(), pile->loco.get_window()->get_size());
+    pile->viewport.set(pile->loco.get_context(), 0, pile->loco.window.get_size(), pile->loco.window.get_size());
 
     context->draw(6, 1, 0, pipeline_nr, &context->descriptor_sets.descriptor_list[desc_nr].descriptor_set[context->currentFrame]);
   };
 
   pile->loco.loop([&] {
-    pile->loco.get_window()->get_fps();
+    pile->loco.window.get_fps();
   });
 
   return 0;

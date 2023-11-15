@@ -19,7 +19,7 @@ inline struct global_loco_t {
   loco_t* operator->() {
     return loco;
   }
-}gloco;
+}thread_local gloco;
 
 struct loco_t;
 
@@ -268,18 +268,19 @@ struct loco_t {
     //}
   }lighting;
 
-protected:
 
+protected:
   struct gloco_priority_init_t {
     gloco_priority_init_t(loco_t* l) {
       gloco = l;
     }
   }gloco_dummy;
-
+public:
   #ifdef loco_window
   fan::window_t window;
   #endif
 
+protected:
   #ifdef loco_context
   fan::graphics::context_t context;
   #endif
@@ -555,11 +556,11 @@ public:
 
   void open_viewport(fan::graphics::viewport_t* viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
     viewport->open();
-    viewport->set(viewport_position, viewport_size, get_window()->get_size());
+    viewport->set(viewport_position, viewport_size, window.get_size());
   }
 
   void set_viewport(fan::graphics::viewport_t* viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
-    viewport->set(viewport_position, viewport_size, get_window()->get_size());
+    viewport->set(viewport_position, viewport_size, window.get_size());
   }
 
   struct camera_impl_t {
@@ -570,7 +571,7 @@ public:
       fan::vec2 p = it.parent->position;
       fan::vec2 s = it.parent->size;
 
-      fan::vec2 window_size = gloco->get_window()->get_size();
+      fan::vec2 window_size = gloco->window.get_size();
       gloco->open_viewport(&viewport, (p - s / 2) * window_size, (s)*window_size);
       gloco->open_camera(&camera, fan::graphics::default_camera_ortho_x, fan::graphics::default_camera_ortho_y);
     }
@@ -752,14 +753,17 @@ public:
   #endif
 
   #ifdef loco_context
+  // required function if program using multiple contexts, so it gets current
   fan::graphics::context_t* get_context() {
     return &context;
   }
   #endif
 
+  f64_t& delta_time = window.m_delta_time;
+
   #if defined(loco_window)
   f32_t get_delta_time() {
-    return get_window()->get_delta_time();
+    return delta_time;
   }
   #endif
 
@@ -785,7 +789,7 @@ public:
     viewport->set(
       viewport->get_position(),
       viewport->get_size(),
-      get_window()->get_size()
+      window.get_size()
     );
     shape->m_current_shader->set_vec4(get_context(), "viewport", fan::vec4(viewport->get_position(), viewport->get_size()));
   }
@@ -1243,20 +1247,20 @@ public:
 
     // set_vsync(p.vsync);
     #if defined(loco_vfi)
-    get_window()->add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
-      fan::vec2 window_size = get_window()->get_size();
+    window.add_buttons_callback([this](const mouse_buttons_cb_data_t& d) {
+      fan::vec2 window_size = window.get_size();
       feed_mouse_button(d.button, d.state, get_mouse_position());
       });
 
-    get_window()->add_keys_callback([&](const keyboard_keys_cb_data_t& d) {
+    window.add_keys_callback([&](const keyboard_keys_cb_data_t& d) {
       feed_keyboard(d.key, d.state);
       });
 
-    get_window()->add_mouse_move_callback([&](const mouse_move_cb_data_t& d) {
+    window.add_mouse_move_callback([&](const mouse_move_cb_data_t& d) {
       feed_mouse_move(get_mouse_position());
       });
 
-    get_window()->add_text_callback([&](const fan::window_t::text_cb_data_t& d) {
+    window.add_text_callback([&](const fan::window_t::text_cb_data_t& d) {
       feed_text(d.character);
       });
     #endif
@@ -1273,7 +1277,7 @@ public:
 
     #if defined(loco_post_process)
     fan::opengl::core::renderbuffer_t::properties_t rp;
-    rp.size = get_window()->get_size();
+    rp.size = window.get_size();
     if (post_process.open(rp)) {
       fan::throw_error("failed to initialize frame buffer");
     }
@@ -1294,7 +1298,7 @@ public:
 
     fan::webp::image_info_t ii;
     ii.data = nullptr;
-    ii.size = get_window()->get_size();
+    ii.size = window.get_size();
 
     lp.internal_format = fan::opengl::GL_RGBA;
     lp.format = fan::opengl::GL_RGBA;
@@ -1326,13 +1330,13 @@ public:
 
     get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
-    get_window()->add_resize_callback([this](const auto& d) {
+    window.add_resize_callback([this](const auto& d) {
       loco_t::image_t::load_properties_t lp;
       lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
 
       fan::webp::image_info_t ii;
       ii.data = nullptr;
-      ii.size = get_window()->get_size();
+      ii.size = window.get_size();
 
       lp.internal_format = fan::opengl::GL_RGBA;
       lp.format = fan::opengl::GL_RGBA;
@@ -1371,7 +1375,7 @@ public:
       rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
       m_rbo.set_storage(get_context(), rp);
 
-      fan::vec2 window_size = gloco->get_window()->get_size();
+      fan::vec2 window_size = gloco->window.get_size();
 
       default_camera->viewport.set(fan::vec2(0, 0), d.size, d.size);
   });
@@ -1416,7 +1420,7 @@ public:
     default_texture.create_missing_texture();
     transparent_texture.create_transparent_texture();
 
-    fan::vec2 window_size = get_window()->get_size();
+    fan::vec2 window_size = window.get_size();
 
     default_camera = add_camera(fan::graphics::direction_e::right);
 
@@ -1430,7 +1434,7 @@ public:
   #endif
 
     #if defined(loco_imgui)
-    auto hwnd = get_window()->get_handle();
+    auto hwnd = window.get_handle();
 
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -1438,7 +1442,7 @@ public:
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
 
-    get_window()->add_buttons_callback([&](const auto& d) {
+    window.add_buttons_callback([&](const auto& d) {
       if (d.button != fan::mouse_scroll_up && d.button != fan::mouse_scroll_down) {
         io.AddMouseButtonEvent(d.button - fan::mouse_left, (bool)d.state);
       }
@@ -1451,11 +1455,11 @@ public:
         }
       }
     });
-    get_window()->add_keys_callback([&](const auto& d) {
+    window.add_keys_callback([&](const auto& d) {
       ImGuiKey imgui_key = fan::window_input::fan_to_imguikey(d.key);
       io.AddKeyEvent(imgui_key, (int)d.state);
     });
-    get_window()->add_text_callback([&](const auto& d) {
+    window.add_text_callback([&](const auto& d) {
       io.AddInputCharacter(d.character);
     });
 
@@ -1555,7 +1559,7 @@ public:
 
     get_context()->opengl.glClearColor(0, 0, 0, 1);
     get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-    fan::vec2 window_size = get_window()->get_size();
+    fan::vec2 window_size = window.get_size();
     fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
 
     m_fbo_final_shader.use(get_context());
@@ -1603,7 +1607,7 @@ public:
     return event != fan::window_t::events::close;
   }
   uint32_t get_fps() {
-    return get_window()->get_fps();
+    return window.get_fps();
   }
 
   void set_vsync(bool flag) {
@@ -1611,14 +1615,14 @@ public:
   }
 
   fan::vec2 transform_matrix(const fan::vec2& position) {
-    fan::vec2 window_size = get_window()->get_size();
+    fan::vec2 window_size = window.get_size();
     // not custom ortho friendly - made for -1 1
     return position / window_size * 2 - 1;
   }
 
   //  behaving oddly
   fan::vec2 get_mouse_position(const loco_t::camera_t& camera, const loco_t::viewport_t& viewport) {
-    fan::vec2 mouse_pos = get_window()->get_mouse_position();
+    fan::vec2 mouse_pos = window.get_mouse_position();
     fan::vec2 translated_pos;
     translated_pos.x = fan::math::map(mouse_pos.x, viewport.get_position().x, viewport.get_position().x + viewport.get_size().x, camera.coordinates.left, camera.coordinates.right);
     translated_pos.y = fan::math::map(mouse_pos.y, viewport.get_position().y, viewport.get_position().y + viewport.get_size().y, camera.coordinates.up, camera.coordinates.down);
@@ -1626,7 +1630,7 @@ public:
   }
 
   fan::vec2 get_mouse_position() {
-    return get_window()->get_mouse_position();
+    return window.get_mouse_position();
     //return get_mouse_position(gloco->default_camera->camera, gloco->default_camera->viewport); behaving oddly
   }
 
@@ -1665,19 +1669,19 @@ public:
 
     // enables drawing while resizing, not required for x11
     #if defined(fan_platform_windows)
-    auto it = get_window()->add_resize_callback([this, &lambda](const auto& d) {
+    auto it = window.add_resize_callback([this, &lambda](const auto& d) {
       gloco->process_loop(lambda);
     });
     #endif
 
-    uint32_t window_event = get_window()->handle_events();
+    uint32_t window_event = window.handle_events();
     if (window_event & fan::window_t::events::close) {
-      get_window()->destroy_window();
+      window.destroy_window();
       return 1;
     }
 
     #if defined(fan_platform_windows)
-    get_window()->remove_resize_callback(it);
+    window.remove_resize_callback(it);
     #endif
     lambda();
 
@@ -1972,7 +1976,7 @@ public:
   camera_impl_t* add_camera(fan::graphics::direction_e split_direction) {
     viewport_handler.push_back(new camera_impl_t(split_direction));
     int index = 0;
-    fan::vec2 window_size = gloco->get_window()->get_size();
+    fan::vec2 window_size = gloco->window.get_size();
     gloco->viewport_divider.iterate([&index, window_size](auto& node) {
       viewport_handler[index]->viewport.set(
         (node.position - node.size / 2) * window_size,
@@ -2103,8 +2107,8 @@ inline fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t
 #if defined(loco_imgui) && defined(fan_platform_linux)
 static void imgui_xorg_init() {
   ImGuiIO& io = ImGui::GetIO();
-  io.DisplaySize = gloco->get_window()->get_size();
-  gloco->get_window()->add_mouse_move_callback([](const auto& d) {
+  io.DisplaySize = gloco->window.get_size();
+  gloco->window.add_mouse_move_callback([](const auto& d) {
     auto& io = ImGui::GetIO();
     if (!io.WantSetMousePos) {
       io.AddMousePosEvent(d.position.x, d.position.y);
@@ -2113,7 +2117,7 @@ static void imgui_xorg_init() {
 }
 static void imgui_xorg_new_frame() {
   ImGuiIO& io = ImGui::GetIO();
-  io.DisplaySize = gloco->get_window()->get_size();
+  io.DisplaySize = gloco->window.get_size();
 }
 #endif
 

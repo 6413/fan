@@ -12,13 +12,13 @@ struct pile_t {
       ortho_x,
       ortho_y
     );
-     loco.get_window()->add_resize_callback([&](const auto& data) {
+     loco.window.add_resize_callback([&](const auto& data) {
        //pile_t* pile = (pile_t*)userptr;
 
        viewport.set(0, data.size, data.size);
      });
     viewport.open();
-    viewport.set(0, loco.get_window()->get_size(), loco.get_window()->get_size());
+    viewport.set(0, loco.window.get_size(), loco.window.get_size());
   }
 
   loco_t loco{ loco_t::properties_t{.vsync = false } };
