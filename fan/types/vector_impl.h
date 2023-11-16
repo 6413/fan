@@ -95,15 +95,17 @@ constexpr std::partial_ordering operator<=>(const T& rhs) const {
   return size() <=> 1;
 }
 
+#define make_operators(arithmetic) \
+  make_operator_const(arithmetic); \
+  make_operator_assign(arithmetic)
+
 constexpr vec_t operator-() const { make_for_all(ret[i] = -(*this)[i]); }
-make_operator_const(-);  make_operator_comparison(==);
-make_operator_const(+);  make_operator_comparison(!=);
-make_operator_const(*);  make_operator_comparison(<);
-make_operator_const(/);  make_operator_comparison(<=);
-make_operator_assign(+); make_operator_comparison(>);
-make_operator_assign(-); make_operator_comparison(>=);
-make_operator_assign(*); 
-make_operator_assign(/); 
+make_operators(-);  make_operator_comparison(==);
+make_operators(+);  make_operator_comparison(!=);
+make_operators(*);  make_operator_comparison(<);
+make_operators(/);  make_operator_comparison(<=);
+make_operators(%);  make_operator_comparison(>);
+                    make_operator_comparison(>=);
 
 #define __FAN_SWITCH_IDX(x, idx) case size() - (idx + 1): return x
 
@@ -181,6 +183,11 @@ friend std::ostream& operator<<(std::ostream& os, const vec_t& test0) { os << te
 value_type_t fan_coordinate(vec_n);
 #endif
 
+
+#undef make_operator_comparison
+#undef make_operator_const
+#undef make_operators
+#undef make_operator_assign
 #undef vec_n
 #undef vec_t
 #undef make_for_all

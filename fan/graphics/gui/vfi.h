@@ -372,7 +372,7 @@ struct vfi_t {
           data->shape.rectangle->position,
           size
         );
-       /* if (!loco->get_context()->viewport_list[data->shape.rectangle.viewport].viewport_id->inside_wir(p)) {
+       /* if (!loco->get_context().viewport_list[data->shape.rectangle.viewport].viewport_id->inside_wir(p)) {
           return mouse_stage_e::outside;
         }*/
         return in ? mouse_stage_e::inside : mouse_stage_e::outside;
@@ -392,7 +392,7 @@ struct vfi_t {
       case shape_t::rectangle: {
         return transform_position(
           v,
-          gloco->get_context()->viewport_list[shape_data->shape.rectangle->viewport].viewport_id,
+          gloco->get_context().viewport_list[shape_data->shape.rectangle->viewport].viewport_id,
           gloco->camera_list[shape_data->shape.rectangle->camera].camera_id
         ) + fan::vec2(*(fan::vec2*)&gloco->camera_list[shape_data->shape.rectangle->camera].camera_id->camera_position);
         break;

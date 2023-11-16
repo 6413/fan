@@ -8,6 +8,7 @@ struct version_001_t {
         for (auto& i : g->layers) {
           fte_t::tile_t layer;
           layer.position = i.shape.get_position();
+          layer.angle = i.shape.get_angle();
           layer.image_hash = i.tile.image_hash;
           layer.mesh_property = i.tile.mesh_property;
           layers.push_back(layer);
@@ -27,7 +28,8 @@ struct version_001_t {
           map_layer.tile = layer;
           map_layer.shape = fan::graphics::sprite_t{{
               .position = layer.position,
-              .size = fte->tile_size
+              .size = fte->tile_size,
+              .angle = layer.angle
           }};
 
           map_tile.layers.push_back(std::move(map_layer));
