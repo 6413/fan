@@ -26,7 +26,7 @@
 #if defined(BCOL_set_IncludePath)
   #define BCOL_Include(p) <BCOL_set_IncludePath/p>
 #else
-  #error ?
+  #error BCOL_set_IncludePath needs to be defined.
 #endif
 
 #if BCOL_set_StoreExtraDataInsideObject == 0
@@ -67,6 +67,7 @@
 #elif BCOL_set_StoreExtraDataInsideObject == 1
   #undef BCOL_set_ExtraDataInsideObject
 #endif
+#undef BCOL_set_StoreExtraDataInsideObject
 #undef BCOL_set_PreferredFloatSize
 #ifdef BCOL_set_IncludePath
   #undef BCOL_set_IncludePath

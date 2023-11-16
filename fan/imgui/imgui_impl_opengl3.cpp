@@ -206,7 +206,7 @@
 #include <stdio.h>
 #define GL_CALL(_CALL)      do { _CALL; GLenum gl_err = glGetError(); if (gl_err != 0) fprintf(stderr, "GL error 0x%x returned from '%s'.\n", gl_err, #_CALL); } while (0)  // Call with error check
 #else
-#define GL_CALL(_CALL)     gloco->get_context()->opengl._CALL   // Call without error check
+#define GL_CALL(_CALL)     gloco->get_context().opengl._CALL   // Call without error check
 #endif
 
 // OpenGL Data
@@ -294,12 +294,12 @@ bool    ImGui_ImplOpenGL3_Init(const char* glsl_version)
     // Desktop or GLES 3
     fan::opengl::GLint major = 0;
     fan::opengl::GLint minor = 0;
-    gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_MAJOR_VERSION, &major);
-    gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_MINOR_VERSION, &minor);
+    gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_MAJOR_VERSION, &major);
+    gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_MINOR_VERSION, &minor);
     if (major == 0 && minor == 0)
     {
         // Query GL_VERSION in desktop GL 2.x, the string will start with "<major>.<minor>"
-        const char* gl_version = (const char*)gloco->get_context()->opengl.glGetString(fan::opengl::GL_VERSION);
+        const char* gl_version = (const char*)gloco->get_context().opengl.glGetString(fan::opengl::GL_VERSION);
         sscanf(gl_version, "%d.%d", &major, &minor);
     }
     bd->GlVersion = (fan::opengl::GLuint)(major * 100 + minor * 10);
@@ -354,16 +354,16 @@ bool    ImGui_ImplOpenGL3_Init(const char* glsl_version)
     // Make an arbitrary GL call (we don't actually need the result)
     // IF YOU GET A CRASH HERE: it probably means the OpenGL function loader didn't do its job. Let us know!
     fan::opengl::GLint current_texture;
-    gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_TEXTURE_BINDING_2D, &current_texture);
+    gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_TEXTURE_BINDING_2D, &current_texture);
 
     // Detect extensions we support
     bd->HasClipOrigin = (bd->GlVersion >= 450);
 #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_EXTENSIONS
     fan::opengl::GLint num_extensions = 0;
-    gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_NUM_EXTENSIONS, &num_extensions);
+    gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_NUM_EXTENSIONS, &num_extensions);
     for (fan::opengl::GLint i = 0; i < num_extensions; i++)
     {
-        const char* extension = (const char*)gloco->get_context()->opengl.glGetStringi(fan::opengl::GL_EXTENSIONS, i);
+        const char* extension = (const char*)gloco->get_context().opengl.glGetStringi(fan::opengl::GL_EXTENSIONS, i);
         if (extension != nullptr && strcmp(extension, "GL_ARB_clip_control") == 0)
             bd->HasClipOrigin = true;
     }
@@ -399,13 +399,13 @@ static void ImGui_ImplOpenGL3_SetupRenderState(ImDrawData* draw_data, int fb_wid
     ImGui_ImplOpenGL3_Data* bd = ImGui_ImplOpenGL3_GetBackendData();
 
     // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
-    gloco->get_context()->opengl.glEnable(fan::opengl::GL_BLEND);
-    gloco->get_context()->opengl.glBlendEquation(fan::opengl::GL_FUNC_ADD);
-    gloco->get_context()->opengl.glBlendFuncSeparate(fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA, fan::opengl::GL_ONE, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
-    gloco->get_context()->opengl.glDisable(fan::opengl::GL_CULL_FACE);
-    gloco->get_context()->opengl.glDisable(fan::opengl::GL_DEPTH_TEST);
-    gloco->get_context()->opengl.glDisable(fan::opengl::GL_STENCIL_TEST);
-    gloco->get_context()->opengl.glEnable(fan::opengl::GL_SCISSOR_TEST);
+    gloco->get_context().opengl.glEnable(fan::opengl::GL_BLEND);
+    gloco->get_context().opengl.glBlendEquation(fan::opengl::GL_FUNC_ADD);
+    gloco->get_context().opengl.glBlendFuncSeparate(fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA, fan::opengl::GL_ONE, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+    gloco->get_context().opengl.glDisable(fan::opengl::GL_CULL_FACE);
+    gloco->get_context().opengl.glDisable(fan::opengl::GL_DEPTH_TEST);
+    gloco->get_context().opengl.glDisable(fan::opengl::GL_STENCIL_TEST);
+    gloco->get_context().opengl.glEnable(fan::opengl::GL_SCISSOR_TEST);
 #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
     if (bd->GlVersion >= 310)
         glDisable(GL_PRIMITIVE_RESTART);
@@ -442,9 +442,9 @@ static void ImGui_ImplOpenGL3_SetupRenderState(ImDrawData* draw_data, int fb_wid
         { 0.0f,         0.0f,        -1.0f,   0.0f },
         { (R+L)/(L-R),  (T+B)/(B-T),  0.0f,   1.0f },
     };
-    gloco->get_context()->opengl.glUseProgram(bd->ShaderHandle);
-    gloco->get_context()->opengl.glUniform1i(bd->AttribLocationTex, 0);
-    gloco->get_context()->opengl.glUniformMatrix4fv(bd->AttribLocationProjMtx, 1, fan::opengl::GL_FALSE, &ortho_projection[0][0]);
+    gloco->get_context().opengl.glUseProgram(bd->ShaderHandle);
+    gloco->get_context().opengl.glUniform1i(bd->AttribLocationTex, 0);
+    gloco->get_context().opengl.glUniformMatrix4fv(bd->AttribLocationProjMtx, 1, fan::opengl::GL_FALSE, &ortho_projection[0][0]);
 
 #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
     if (bd->GlVersion >= 330 || bd->GlProfileIsES3)
@@ -453,7 +453,7 @@ static void ImGui_ImplOpenGL3_SetupRenderState(ImDrawData* draw_data, int fb_wid
 
     (void)vertex_array_object;
 #ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
-    gloco->get_context()->opengl.glBindVertexArray(vertex_array_object);
+    gloco->get_context().opengl.glBindVertexArray(vertex_array_object);
 #endif
 
     // Bind vertex/index buffers and setup attributes for ImDrawVert
@@ -481,14 +481,14 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
     ImGui_ImplOpenGL3_Data* bd = ImGui_ImplOpenGL3_GetBackendData();
 
     // Backup GL state
-    fan::opengl::GLenum last_active_texture; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_ACTIVE_TEXTURE, (fan::opengl::GLint*)&last_active_texture);
-    gloco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-    fan::opengl::GLuint last_program; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_CURRENT_PROGRAM, (fan::opengl::GLint*)&last_program);
-    fan::opengl::GLuint last_texture; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_TEXTURE_BINDING_2D, (fan::opengl::GLint*)&last_texture);
+    fan::opengl::GLenum last_active_texture; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_ACTIVE_TEXTURE, (fan::opengl::GLint*)&last_active_texture);
+    gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    fan::opengl::GLuint last_program; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_CURRENT_PROGRAM, (fan::opengl::GLint*)&last_program);
+    fan::opengl::GLuint last_texture; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_TEXTURE_BINDING_2D, (fan::opengl::GLint*)&last_texture);
 #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
     GLuint last_sampler; if (bd->GlVersion >= 330 || bd->GlProfileIsES3) { glGetIntegerv(GL_SAMPLER_BINDING, (GLint*)&last_sampler); } else { last_sampler = 0; }
 #endif
-    fan::opengl::GLuint last_array_buffer; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_ARRAY_BUFFER_BINDING, (fan::opengl::GLint*)&last_array_buffer);
+    fan::opengl::GLuint last_array_buffer; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_ARRAY_BUFFER_BINDING, (fan::opengl::GLint*)&last_array_buffer);
 #ifndef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
     // This is part of VAO on OpenGL 3.0+ and OpenGL ES 3.0+.
     GLint last_element_array_buffer; glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
@@ -497,24 +497,24 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
     ImGui_ImplOpenGL3_VtxAttribState last_vtx_attrib_state_color; last_vtx_attrib_state_color.GetState(bd->AttribLocationVtxColor);
 #endif
 #ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
-    fan::opengl::GLuint last_vertex_array_object; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_VERTEX_ARRAY_BINDING, (fan::opengl::GLint*)&last_vertex_array_object);
+    fan::opengl::GLuint last_vertex_array_object; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_VERTEX_ARRAY_BINDING, (fan::opengl::GLint*)&last_vertex_array_object);
 #endif
 #ifdef IMGUI_IMPL_HAS_POLYGON_MODE
     GLint last_polygon_mode[2]; glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
 #endif
-    fan::opengl::GLint last_viewport[4]; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_VIEWPORT, last_viewport);
-    fan::opengl::GLint last_scissor_box[4]; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_SCISSOR_BOX, last_scissor_box);
-    fan::opengl::GLenum last_blend_src_rgb; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_BLEND_SRC_RGB, (fan::opengl::GLint*)&last_blend_src_rgb);
-    fan::opengl::GLenum last_blend_dst_rgb; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_BLEND_DST_RGB, (fan::opengl::GLint*)&last_blend_dst_rgb);
-    fan::opengl::GLenum last_blend_src_alpha; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_BLEND_SRC_ALPHA, (fan::opengl::GLint*)&last_blend_src_alpha);
-    fan::opengl::GLenum last_blend_dst_alpha; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_BLEND_DST_ALPHA, (fan::opengl::GLint*)&last_blend_dst_alpha);
-    fan::opengl::GLenum last_blend_equation_rgb; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_BLEND_EQUATION_RGB, (fan::opengl::GLint*)&last_blend_equation_rgb);
-    fan::opengl::GLenum last_blend_equation_alpha; gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_BLEND_EQUATION_ALPHA, (fan::opengl::GLint*)&last_blend_equation_alpha);
-    fan::opengl::GLboolean last_enable_blend = gloco->get_context()->opengl.glIsEnabled(fan::opengl::GL_BLEND);
-    fan::opengl::GLboolean last_enable_cull_face = gloco->get_context()->opengl.glIsEnabled(fan::opengl::GL_CULL_FACE);
-    fan::opengl::GLboolean last_enable_depth_test = gloco->get_context()->opengl.glIsEnabled(fan::opengl::GL_DEPTH_TEST);
-    fan::opengl::GLboolean last_enable_stencil_test = gloco->get_context()->opengl.glIsEnabled(fan::opengl::GL_STENCIL_TEST);
-    fan::opengl::GLboolean last_enable_scissor_test = gloco->get_context()->opengl.glIsEnabled(fan::opengl::GL_SCISSOR_TEST);
+    fan::opengl::GLint last_viewport[4]; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_VIEWPORT, last_viewport);
+    fan::opengl::GLint last_scissor_box[4]; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_SCISSOR_BOX, last_scissor_box);
+    fan::opengl::GLenum last_blend_src_rgb; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_BLEND_SRC_RGB, (fan::opengl::GLint*)&last_blend_src_rgb);
+    fan::opengl::GLenum last_blend_dst_rgb; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_BLEND_DST_RGB, (fan::opengl::GLint*)&last_blend_dst_rgb);
+    fan::opengl::GLenum last_blend_src_alpha; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_BLEND_SRC_ALPHA, (fan::opengl::GLint*)&last_blend_src_alpha);
+    fan::opengl::GLenum last_blend_dst_alpha; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_BLEND_DST_ALPHA, (fan::opengl::GLint*)&last_blend_dst_alpha);
+    fan::opengl::GLenum last_blend_equation_rgb; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_BLEND_EQUATION_RGB, (fan::opengl::GLint*)&last_blend_equation_rgb);
+    fan::opengl::GLenum last_blend_equation_alpha; gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_BLEND_EQUATION_ALPHA, (fan::opengl::GLint*)&last_blend_equation_alpha);
+    fan::opengl::GLboolean last_enable_blend = gloco->get_context().opengl.glIsEnabled(fan::opengl::GL_BLEND);
+    fan::opengl::GLboolean last_enable_cull_face = gloco->get_context().opengl.glIsEnabled(fan::opengl::GL_CULL_FACE);
+    fan::opengl::GLboolean last_enable_depth_test = gloco->get_context().opengl.glIsEnabled(fan::opengl::GL_DEPTH_TEST);
+    fan::opengl::GLboolean last_enable_stencil_test = gloco->get_context().opengl.glIsEnabled(fan::opengl::GL_STENCIL_TEST);
+    fan::opengl::GLboolean last_enable_scissor_test = gloco->get_context().opengl.glIsEnabled(fan::opengl::GL_SCISSOR_TEST);
 #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
     GLboolean last_enable_primitive_restart = (bd->GlVersion >= 310) ? glIsEnabled(GL_PRIMITIVE_RESTART) : GL_FALSE;
 #endif
@@ -610,30 +610,30 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
 
     // Restore modified GL state
     // This "glIsProgram()" check is required because if the program is "pending deletion" at the time of binding backup, it will have been deleted by now and will cause an OpenGL error. See #6220.
-    if (last_program == 0 || gloco->get_context()->opengl.glIsProgram(last_program)) gloco->get_context()->opengl.glUseProgram(last_program);
-    gloco->get_context()->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, last_texture);
+    if (last_program == 0 || gloco->get_context().opengl.glIsProgram(last_program)) gloco->get_context().opengl.glUseProgram(last_program);
+    gloco->get_context().opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, last_texture);
 #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
     if (bd->GlVersion >= 330 || bd->GlProfileIsES3)
         glBindSampler(0, last_sampler);
 #endif
-    gloco->get_context()->opengl.glActiveTexture(last_active_texture);
+    gloco->get_context().opengl.glActiveTexture(last_active_texture);
 #ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
-    gloco->get_context()->opengl.glBindVertexArray(last_vertex_array_object);
+    gloco->get_context().opengl.glBindVertexArray(last_vertex_array_object);
 #endif
-    gloco->get_context()->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, last_array_buffer);
+    gloco->get_context().opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, last_array_buffer);
 #ifndef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
     last_vtx_attrib_state_pos.SetState(bd->AttribLocationVtxPos);
     last_vtx_attrib_state_uv.SetState(bd->AttribLocationVtxUV);
     last_vtx_attrib_state_color.SetState(bd->AttribLocationVtxColor);
 #endif
-    gloco->get_context()->opengl.glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
-    gloco->get_context()->opengl.glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha);
-    if (last_enable_blend) gloco->get_context()->opengl.glEnable(fan::opengl::GL_BLEND); else gloco->get_context()->opengl.glDisable(fan::opengl::GL_BLEND);
-    if (last_enable_cull_face) gloco->get_context()->opengl.glEnable(fan::opengl::GL_CULL_FACE); else gloco->get_context()->opengl.glDisable(fan::opengl::GL_CULL_FACE);
-    if (last_enable_depth_test) gloco->get_context()->opengl.glEnable(fan::opengl::GL_DEPTH_TEST); else gloco->get_context()->opengl.glDisable(fan::opengl::GL_DEPTH_TEST);
-    if (last_enable_stencil_test) gloco->get_context()->opengl.glEnable(fan::opengl::GL_STENCIL_TEST); else gloco->get_context()->opengl.glDisable(fan::opengl::GL_STENCIL_TEST);
-    if (last_enable_scissor_test) gloco->get_context()->opengl.glEnable(fan::opengl::GL_SCISSOR_TEST); else gloco->get_context()->opengl.glDisable(fan::opengl::GL_SCISSOR_TEST);
+    gloco->get_context().opengl.glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
+    gloco->get_context().opengl.glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha);
+    if (last_enable_blend) gloco->get_context().opengl.glEnable(fan::opengl::GL_BLEND); else gloco->get_context().opengl.glDisable(fan::opengl::GL_BLEND);
+    if (last_enable_cull_face) gloco->get_context().opengl.glEnable(fan::opengl::GL_CULL_FACE); else gloco->get_context().opengl.glDisable(fan::opengl::GL_CULL_FACE);
+    if (last_enable_depth_test) gloco->get_context().opengl.glEnable(fan::opengl::GL_DEPTH_TEST); else gloco->get_context().opengl.glDisable(fan::opengl::GL_DEPTH_TEST);
+    if (last_enable_stencil_test) gloco->get_context().opengl.glEnable(fan::opengl::GL_STENCIL_TEST); else gloco->get_context().opengl.glDisable(fan::opengl::GL_STENCIL_TEST);
+    if (last_enable_scissor_test) gloco->get_context().opengl.glEnable(fan::opengl::GL_SCISSOR_TEST); else gloco->get_context().opengl.glDisable(fan::opengl::GL_SCISSOR_TEST);
 #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
     if (bd->GlVersion >= 310) { if (last_enable_primitive_restart) glEnable(GL_PRIMITIVE_RESTART); else glDisable(GL_PRIMITIVE_RESTART); }
 #endif
@@ -651,8 +651,8 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
     }
 #endif // IMGUI_IMPL_HAS_POLYGON_MODE
 
-    gloco->get_context()->opengl.glViewport(last_viewport[0], last_viewport[1], (fan::opengl::GLsizei)last_viewport[2], (fan::opengl::GLsizei)last_viewport[3]);
-    gloco->get_context()->opengl.glScissor(last_scissor_box[0], last_scissor_box[1], (fan::opengl::GLsizei)last_scissor_box[2], (fan::opengl::GLsizei)last_scissor_box[3]);
+    gloco->get_context().opengl.glViewport(last_viewport[0], last_viewport[1], (fan::opengl::GLsizei)last_viewport[2], (fan::opengl::GLsizei)last_viewport[3]);
+    gloco->get_context().opengl.glScissor(last_scissor_box[0], last_scissor_box[1], (fan::opengl::GLsizei)last_scissor_box[2], (fan::opengl::GLsizei)last_scissor_box[3]);
     (void)bd; // Not all compilation paths use this
 }
 
@@ -694,7 +694,7 @@ void ImGui_ImplOpenGL3_DestroyFontsTexture()
     ImGui_ImplOpenGL3_Data* bd = ImGui_ImplOpenGL3_GetBackendData();
     if (bd->FontTexture)
     {
-        gloco->get_context()->opengl.glDeleteTextures(1, &bd->FontTexture);
+        gloco->get_context().opengl.glDeleteTextures(1, &bd->FontTexture);
         io.Fonts->SetTexID(0);
         bd->FontTexture = 0;
     }
@@ -705,15 +705,15 @@ static bool CheckShader(fan::opengl::GLuint handle, const char* desc)
 {
     ImGui_ImplOpenGL3_Data* bd = ImGui_ImplOpenGL3_GetBackendData();
     fan::opengl::GLint status = 0, log_length = 0;
-    gloco->get_context()->opengl.glGetShaderiv(handle, fan::opengl::GL_COMPILE_STATUS, &status);
-    gloco->get_context()->opengl.glGetShaderiv(handle, fan::opengl::GL_INFO_LOG_LENGTH, &log_length);
+    gloco->get_context().opengl.glGetShaderiv(handle, fan::opengl::GL_COMPILE_STATUS, &status);
+    gloco->get_context().opengl.glGetShaderiv(handle, fan::opengl::GL_INFO_LOG_LENGTH, &log_length);
     if ((fan::opengl::GLboolean)status == fan::opengl::GL_FALSE)
         fprintf(stderr, "ERROR: ImGui_ImplOpenGL3_CreateDeviceObjects: failed to compile %s! With GLSL: %s\n", desc, bd->GlslVersionString);
     if (log_length > 1)
     {
         ImVector<char> buf;
         buf.resize((int)(log_length + 1));
-        gloco->get_context()->opengl.glGetShaderInfoLog(handle, log_length, nullptr, (fan::opengl::GLchar*)buf.begin());
+        gloco->get_context().opengl.glGetShaderInfoLog(handle, log_length, nullptr, (fan::opengl::GLchar*)buf.begin());
         fprintf(stderr, "%s\n", buf.begin());
     }
     return (fan::opengl::GLboolean)status == fan::opengl::GL_TRUE;
@@ -724,15 +724,15 @@ static bool CheckProgram(fan::opengl::GLuint handle, const char* desc)
 {
     ImGui_ImplOpenGL3_Data* bd = ImGui_ImplOpenGL3_GetBackendData();
     fan::opengl::GLint status = 0, log_length = 0;
-    gloco->get_context()->opengl.glGetProgramiv(handle, fan::opengl::GL_LINK_STATUS, &status);
-    gloco->get_context()->opengl.glGetProgramiv(handle, fan::opengl::GL_INFO_LOG_LENGTH, &log_length);
+    gloco->get_context().opengl.glGetProgramiv(handle, fan::opengl::GL_LINK_STATUS, &status);
+    gloco->get_context().opengl.glGetProgramiv(handle, fan::opengl::GL_INFO_LOG_LENGTH, &log_length);
     if ((fan::opengl::GLboolean)status == fan::opengl::GL_FALSE)
         fprintf(stderr, "ERROR: ImGui_ImplOpenGL3_CreateDeviceObjects: failed to link %s! With GLSL %s\n", desc, bd->GlslVersionString);
     if (log_length > 1)
     {
         ImVector<char> buf;
         buf.resize((int)(log_length + 1));
-        gloco->get_context()->opengl.glGetProgramInfoLog(handle, log_length, nullptr, (fan::opengl::GLchar*)buf.begin());
+        gloco->get_context().opengl.glGetProgramInfoLog(handle, log_length, nullptr, (fan::opengl::GLchar*)buf.begin());
         fprintf(stderr, "%s\n", buf.begin());
     }
     return (fan::opengl::GLboolean)status == fan::opengl::GL_TRUE;
@@ -744,11 +744,11 @@ bool    ImGui_ImplOpenGL3_CreateDeviceObjects()
 
     // Backup GL state
     fan::opengl::GLint last_texture, last_array_buffer;
-    gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_TEXTURE_BINDING_2D, &last_texture);
-    gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
+    gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_TEXTURE_BINDING_2D, &last_texture);
+    gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
 #ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
     fan::opengl::GLint last_vertex_array;
-    gloco->get_context()->opengl.glGetIntegerv(fan::opengl::GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+    gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
 #endif
 
     // Parse GLSL version string
@@ -881,46 +881,46 @@ bool    ImGui_ImplOpenGL3_CreateDeviceObjects()
 
     // Create shaders
     const fan::opengl::GLchar* vertex_shader_with_version[2] = { bd->GlslVersionString, vertex_shader };
-    fan::opengl::GLuint vert_handle = gloco->get_context()->opengl.glCreateShader(fan::opengl::GL_VERTEX_SHADER);
-    gloco->get_context()->opengl.glShaderSource(vert_handle, 2, vertex_shader_with_version, nullptr);
-    gloco->get_context()->opengl.glCompileShader(vert_handle);
+    fan::opengl::GLuint vert_handle = gloco->get_context().opengl.glCreateShader(fan::opengl::GL_VERTEX_SHADER);
+    gloco->get_context().opengl.glShaderSource(vert_handle, 2, vertex_shader_with_version, nullptr);
+    gloco->get_context().opengl.glCompileShader(vert_handle);
     CheckShader(vert_handle, "vertex shader");
 
     const fan::opengl::GLchar* fragment_shader_with_version[2] = { bd->GlslVersionString, fragment_shader };
-    fan::opengl::GLuint frag_handle = gloco->get_context()->opengl.glCreateShader(fan::opengl::GL_FRAGMENT_SHADER);
-    gloco->get_context()->opengl.glShaderSource(frag_handle, 2, fragment_shader_with_version, nullptr);
-    gloco->get_context()->opengl.glCompileShader(frag_handle);
+    fan::opengl::GLuint frag_handle = gloco->get_context().opengl.glCreateShader(fan::opengl::GL_FRAGMENT_SHADER);
+    gloco->get_context().opengl.glShaderSource(frag_handle, 2, fragment_shader_with_version, nullptr);
+    gloco->get_context().opengl.glCompileShader(frag_handle);
     CheckShader(frag_handle, "fragment shader");
 
     // Link
-    bd->ShaderHandle = gloco->get_context()->opengl.glCreateProgram();
-    gloco->get_context()->opengl.glAttachShader(bd->ShaderHandle, vert_handle);
-    gloco->get_context()->opengl.glAttachShader(bd->ShaderHandle, frag_handle);
-    gloco->get_context()->opengl.glLinkProgram(bd->ShaderHandle);
+    bd->ShaderHandle = gloco->get_context().opengl.glCreateProgram();
+    gloco->get_context().opengl.glAttachShader(bd->ShaderHandle, vert_handle);
+    gloco->get_context().opengl.glAttachShader(bd->ShaderHandle, frag_handle);
+    gloco->get_context().opengl.glLinkProgram(bd->ShaderHandle);
     CheckProgram(bd->ShaderHandle, "shader program");
 
-    gloco->get_context()->opengl.glDetachShader(bd->ShaderHandle, vert_handle);
-    gloco->get_context()->opengl.glDetachShader(bd->ShaderHandle, frag_handle);
-    gloco->get_context()->opengl.glDeleteShader(vert_handle);
-    gloco->get_context()->opengl.glDeleteShader(frag_handle);
+    gloco->get_context().opengl.glDetachShader(bd->ShaderHandle, vert_handle);
+    gloco->get_context().opengl.glDetachShader(bd->ShaderHandle, frag_handle);
+    gloco->get_context().opengl.glDeleteShader(vert_handle);
+    gloco->get_context().opengl.glDeleteShader(frag_handle);
 
-    bd->AttribLocationTex = gloco->get_context()->opengl.glGetUniformLocation(bd->ShaderHandle, "Texture");
-    bd->AttribLocationProjMtx = gloco->get_context()->opengl.glGetUniformLocation(bd->ShaderHandle, "ProjMtx");
-    bd->AttribLocationVtxPos = (fan::opengl::GLuint)gloco->get_context()->opengl.glGetAttribLocation(bd->ShaderHandle, "Position");
-    bd->AttribLocationVtxUV = (fan::opengl::GLuint)gloco->get_context()->opengl.glGetAttribLocation(bd->ShaderHandle, "UV");
-    bd->AttribLocationVtxColor = (fan::opengl::GLuint)gloco->get_context()->opengl.glGetAttribLocation(bd->ShaderHandle, "Color");
+    bd->AttribLocationTex = gloco->get_context().opengl.glGetUniformLocation(bd->ShaderHandle, "Texture");
+    bd->AttribLocationProjMtx = gloco->get_context().opengl.glGetUniformLocation(bd->ShaderHandle, "ProjMtx");
+    bd->AttribLocationVtxPos = (fan::opengl::GLuint)gloco->get_context().opengl.glGetAttribLocation(bd->ShaderHandle, "Position");
+    bd->AttribLocationVtxUV = (fan::opengl::GLuint)gloco->get_context().opengl.glGetAttribLocation(bd->ShaderHandle, "UV");
+    bd->AttribLocationVtxColor = (fan::opengl::GLuint)gloco->get_context().opengl.glGetAttribLocation(bd->ShaderHandle, "Color");
 
     // Create buffers
-    gloco->get_context()->opengl.glGenBuffers(1, &bd->VboHandle);
-    gloco->get_context()->opengl.glGenBuffers(1, &bd->ElementsHandle);
+    gloco->get_context().opengl.glGenBuffers(1, &bd->VboHandle);
+    gloco->get_context().opengl.glGenBuffers(1, &bd->ElementsHandle);
 
     ImGui_ImplOpenGL3_CreateFontsTexture();
 
     // Restore modified GL state
-    gloco->get_context()->opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, last_texture);
-    gloco->get_context()->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, last_array_buffer);
+    gloco->get_context().opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, last_texture);
+    gloco->get_context().opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, last_array_buffer);
 #ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
-    gloco->get_context()->opengl.glBindVertexArray(last_vertex_array);
+    gloco->get_context().opengl.glBindVertexArray(last_vertex_array);
 #endif
 
     return true;
@@ -929,9 +929,9 @@ bool    ImGui_ImplOpenGL3_CreateDeviceObjects()
 void    ImGui_ImplOpenGL3_DestroyDeviceObjects()
 {
     ImGui_ImplOpenGL3_Data* bd = ImGui_ImplOpenGL3_GetBackendData();
-    if (bd->VboHandle)      { gloco->get_context()->opengl.glDeleteBuffers(1, &bd->VboHandle); bd->VboHandle = 0; }
-    if (bd->ElementsHandle) { gloco->get_context()->opengl.glDeleteBuffers(1, &bd->ElementsHandle); bd->ElementsHandle = 0; }
-    if (bd->ShaderHandle)   { gloco->get_context()->opengl.glDeleteProgram(bd->ShaderHandle); bd->ShaderHandle = 0; }
+    if (bd->VboHandle)      { gloco->get_context().opengl.glDeleteBuffers(1, &bd->VboHandle); bd->VboHandle = 0; }
+    if (bd->ElementsHandle) { gloco->get_context().opengl.glDeleteBuffers(1, &bd->ElementsHandle); bd->ElementsHandle = 0; }
+    if (bd->ShaderHandle)   { gloco->get_context().opengl.glDeleteProgram(bd->ShaderHandle); bd->ShaderHandle = 0; }
     ImGui_ImplOpenGL3_DestroyFontsTexture();
 }
 

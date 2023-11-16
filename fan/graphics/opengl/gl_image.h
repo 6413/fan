@@ -46,12 +46,12 @@ struct image_t {
 
   /*
         void open(fan::opengl::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_) {
-    viewport_reference = viewport_list_NewNode(&context->viewport_list);
-    auto node = viewport_list_GetNodeByReference(&context->viewport_list, viewport_reference);
+    viewport_reference = viewport_list_NewNode(&context.viewport_list);
+    auto node = viewport_list_GetNodeByReference(&context.viewport_list, viewport_reference);
     node->data.viewport_id = this;
   }
   void close(fan::opengl::context_t* context) {
-    viewport_list_Recycle(&context->viewport_list, viewport_reference);
+    viewport_list_Recycle(&context.viewport_list, viewport_reference);
   }
   */
 
@@ -83,30 +83,30 @@ struct image_t {
   }
 
   void create_texture() {
-    auto* context = gloco->get_context();
+    auto& context = gloco->get_context();
     texture_reference = gloco->image_list.NewNode();
     gloco->image_list[texture_reference].image = this;
-    context->opengl.call(context->opengl.glGenTextures, 1, get_texture());
+    context.opengl.call(context.opengl.glGenTextures, 1, &get_texture());
   }
   void erase_texture() {
-    auto* context = gloco->get_context();
-    context->opengl.glDeleteTextures(1, get_texture());
+    auto& context = gloco->get_context();
+    context.opengl.glDeleteTextures(1, &get_texture());
     gloco->image_list.Recycle(texture_reference);
     texture_reference.NRI = -1;
   }
 
   void bind_texture() {
-    auto* context = gloco->get_context();
-    context->opengl.call(context->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, *get_texture());
+    auto& context = gloco->get_context();
+    context.opengl.call(context.opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, get_texture());
   }
 
   void unbind_texture() {
-    auto* context = gloco->get_context();
-    context->opengl.call(context->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, 0);
+    auto& context = gloco->get_context();
+    context.opengl.call(context.opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, 0);
   }
 
-  fan::opengl::GLuint* get_texture() {
-    return &gloco->image_list[texture_reference].texture_id;
+  fan::opengl::GLuint& get_texture() {
+    return gloco->image_list[texture_reference].texture_id;
   }
 
   bool load(fan::webp::image_info_t image_info) {
@@ -115,26 +115,26 @@ struct image_t {
 
   bool load(fan::webp::image_info_t image_info, load_properties_t p) {
 
-    auto* context = gloco->get_context();
+    auto& context = gloco->get_context();
 
     create_texture();
     bind_texture();
     
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 
     size = image_info.size;
 
-    context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
+    context.opengl.call(context.opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
 
     switch (p.min_filter) {
       case fan::opengl::GL_LINEAR_MIPMAP_LINEAR:
       case fan::opengl::GL_NEAREST_MIPMAP_LINEAR:
       case fan::opengl::GL_LINEAR_MIPMAP_NEAREST:
       case fan::opengl::GL_NEAREST_MIPMAP_NEAREST: {
-        context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+        context.opengl.call(context.opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
         break;
       }
     }
@@ -175,19 +175,19 @@ struct image_t {
 
   bool load(fan::color* colors, const fan::vec2ui& size_, load_properties_t p) {
 
-    auto* context = gloco->get_context();
+    auto& context = gloco->get_context();
 
     create_texture();
     bind_texture();
 
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 
     size = size_;
 
-    context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, fan::opengl::GL_RGBA32F, size.x, size.y, 0, p.format, fan::opengl::GL_FLOAT, (uint8_t*)colors);
+    context.opengl.call(context.opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, fan::opengl::GL_RGBA32F, size.x, size.y, 0, p.format, fan::opengl::GL_FLOAT, (uint8_t*)colors);
 
     return 0;
   }
@@ -198,17 +198,17 @@ struct image_t {
 
   void reload_pixels(const fan::webp::image_info_t& image_info, const load_properties_t& p) {
 
-    auto* context = gloco->get_context();
+    auto& context = gloco->get_context();
 
     bind_texture();
 
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 
     size = image_info.size;
-    context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
+    context.opengl.call(context.opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, image_info.data);
     
   }
 
@@ -222,7 +222,7 @@ struct image_t {
 
   // creates single colored text size.x*size.y sized
   void create(const fan::color& color, const fan::vec2& size_, load_properties_t p) {
-    auto* context = gloco->get_context();
+    auto& context = gloco->get_context();
 
 
     size = size_;
@@ -242,16 +242,16 @@ struct image_t {
     create_texture();
     bind_texture();
 
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 
-    context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, pixels);
+    context.opengl.call(context.opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, pixels);
 
     free(pixels);
 
-    context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+    context.opengl.call(context.opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
   }
 
   void create_missing_texture() {
@@ -259,7 +259,7 @@ struct image_t {
   }
 
   void create_missing_texture(load_properties_t p) {
-    auto* context = gloco->get_context();
+    auto& context = gloco->get_context();
 
     uint8_t* pixels = (uint8_t*)malloc(sizeof(uint8_t) * (2 * 2 * fan::color::size()));
     uint32_t pixel = 0;
@@ -289,23 +289,23 @@ struct image_t {
     create_texture();
     bind_texture();
 
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 
     size = fan::vec2i(2, 2);
 
-    context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, 2, 2, 0, p.format, p.type, pixels);
+    context.opengl.call(context.opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, 2, 2, 0, p.format, p.type, pixels);
 
     free(pixels);
 
-    context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+    context.opengl.call(context.opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
   }
 
   void create_transparent_texture() {
     load_properties_t p;
-    auto* context = gloco->get_context();
+    auto& context = gloco->get_context();
 
     uint8_t* pixels = (uint8_t*)malloc(sizeof(uint8_t) * (2 * 2 * fan::color::size()));
     uint32_t pixel = 0;
@@ -335,18 +335,18 @@ struct image_t {
     create_texture();
     bind_texture();
 
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
-    context->opengl.call(context->opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_S, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_WRAP_T, p.visual_output);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MIN_FILTER, p.min_filter);
+    context.opengl.call(context.opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 
     size = fan::vec2i(2, 2);
 
-    context->opengl.call(context->opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, 2, 2, 0, p.format, p.type, pixels);
+    context.opengl.call(context.opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, 2, 2, 0, p.format, p.type, pixels);
 
     free(pixels);
 
-    context->opengl.call(context->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+    context.opengl.call(context.opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
   }
 
   fan::vec4_wrap_t<fan::vec2> calculate_aspect_ratio(const fan::vec2& size, f32_t scale) {
@@ -373,12 +373,12 @@ struct image_t {
   }
 
   void get_pixel_data(void* data, fan::opengl::GLenum format) {
-    auto* context = gloco->get_context();
+    auto& context = gloco->get_context();
 
     bind_texture();
 
-    context->opengl.call(
-      context->opengl.glGetTexImage, 
+    context.opengl.call(
+      context.opengl.glGetTexImage, 
       fan::opengl::GL_TEXTURE_2D,
       0,
       format,

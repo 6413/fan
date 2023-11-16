@@ -65,19 +65,19 @@ struct particles_t {
     else {
       m_current_shader = &m_shader;
     }
-    auto* context = gloco->get_context();
+    auto& context = gloco->get_context();
     draw_instance = 0;
     sb_draw1(key_root, fan::opengl::GL_TRIANGLES);
   }
 
   void custom_draw(auto* block_node, uint32_t draw_mode) {
 
-    auto* context = gloco->get_context();
+    auto& context = gloco->get_context();
     
-    context->set_depth_test(false);
+    context.set_depth_test(false);
 
-    context->opengl.call(context->opengl.glEnable, fan::opengl::GL_BLEND);
-    context->opengl.call(context->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+    context.opengl.call(context.opengl.glEnable, fan::opengl::GL_BLEND);
+    context.opengl.call(context.opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
 
     uint32_t begin = 0;
     for (int i = 0; i < block_node->data.uniform_buffer.size(); ++i) {
@@ -108,7 +108,7 @@ struct particles_t {
       );
       begin += ri.count;
     }
-    context->set_depth_test(true);
+    context.set_depth_test(true);
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));

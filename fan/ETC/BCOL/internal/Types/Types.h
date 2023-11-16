@@ -102,6 +102,7 @@ struct __BCOL_P(t){
   #if BCOL_set_SupportGrid == 1
     _f GridBlockSize;
     PreSolve_Grid_cb_t PreSolve_Grid_cb;
+    PreSolveUnknown_Grid_cb_t PreSolveUnknown_Grid_cb;
   #endif
   #ifdef BCOL_set_PostSolve_Grid
     PostSolve_Grid_cb_t PostSolve_Grid_cb;
@@ -123,4 +124,5 @@ struct __BCOL_P(t){
   #include "../Step/Step.h"
   #include "../CompiledShapes.h"
   #include "../ImportHM.h"
+  #include "../Ray.h"
 };

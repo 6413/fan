@@ -1,5 +1,9 @@
 struct fte_loader_t {
 
+  struct fte_t {
+    #include "common2.h"
+  };
+
   #define tilemap_editor_loader
   #include "common.h"
 
@@ -58,29 +62,32 @@ public:
     auto& node = map_list[it];
     node.compiled_map = compiled_map;
     for (auto& i : compiled_map->compiled_shapes) {
-      // set map origin point to 0
-      fan::vec2 origin = -fan::vec2(compiled_map->map_size * compiled_map->tile_size / 2) * p.size;
-      node.tiles.push_back(fan::graphics::sprite_t{{
-          .position = fan::vec3(origin + *(fan::vec2*)&p.position + i.tile.position * p.size, p.position.z),
-          .size = compiled_map->tile_size * p.size
-      }});
-      loco_t::texturepack_t::ti_t ti;
-      if (texturepack->qti(i.tile.image_hash, &ti)) {
-        fan::throw_error("failed to load image from .fte - corrupted save file");
-      }
-      gloco->shapes.sprite.load_tp(
-        map_list[it].tiles.back(),
-        &ti
-      );
-      // todo fix
-      if (i.tile.mesh_property != 0) {
-        node.collider_static.push_back(fan::graphics::collider_static_t{
-          fan::graphics::sprite_t{{
-              .position = node.tiles.back().get_position(),
-              .size = node.tiles.back().get_size(),
-              .color = fan::color(0, 0, 0, 0)
-            }}
-        });
+      for (auto& j : i.tile.layers) {
+        // set map origin point to 0
+        fan::vec2 origin = 0;//-fan::vec2(compiled_map->map_size * compiled_map->tile_size / 2) * p.size;
+        node.tiles.push_back(fan::graphics::sprite_t{{
+            .position = fan::vec3(origin + *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size, j.position.z + p.position.z),
+            .size = compiled_map->tile_size * p.size,
+            .angle = j.angle
+          }});
+        loco_t::texturepack_t::ti_t ti;
+        if (texturepack->qti(j.image_hash, &ti)) {
+          fan::throw_error("failed to load image from .fte - corrupted save file");
+        }
+        gloco->shapes.sprite.load_tp(
+          map_list[it].tiles.back(),
+          &ti
+        );
+        // todo fix
+        if (j.mesh_property != fte_t::mesh_property_t::none) {
+          node.collider_static.push_back(fan::graphics::collider_static_t{
+            fan::graphics::sprite_t{{
+                .position = node.tiles.back().get_position(),
+                .size = node.tiles.back().get_size(),
+                .color = fan::color(0, 0, 0, 0)
+              }}
+          });
+        }
       }
     }
     return it;

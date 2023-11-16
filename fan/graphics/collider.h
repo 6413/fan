@@ -19,17 +19,17 @@ namespace fan {
     static void open_bcol() {
       bcol_t::OpenProperties_t OpenProperties;
 
-      OpenProperties.PreSolve_Shape_cb =
+      bcol.Open(OpenProperties);
+      bcol.PreSolve_Shape_cb =
         [](
           bcol_t* bcol,
           const bcol_t::ShapeInfoPack_t* sip0,
           const bcol_t::ShapeInfoPack_t* sip1,
           bcol_t::Contact_Shape_t* Contact
           ) {
-         
-        };
 
-      bcol.Open(&OpenProperties);
+        };
+      //bcol.PreSolve_Shape_cb = ...
 
       auto nr = gloco->m_update_callback.NewNodeLast();
       gloco->m_update_callback[nr] = [] (auto* loco) {

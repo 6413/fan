@@ -203,7 +203,7 @@
       return node;
     }
     void erase_texture(loco_t* loco) {
-      auto* context = loco->get_context();
+      auto& context = loco->get_context();
       auto texture_data = get_texture_data(loco);
       vkDestroyImage(context->device, texture_data->image, 0);
       vkDestroyImageView(context->device, texture_data->image_view, 0);

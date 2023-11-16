@@ -90,7 +90,7 @@ struct model_t {
 
 		sb_close();
 
-		gloco->get_context()->opengl.glDeleteBuffers(1, &m_model_instance.m_ebo);
+		gloco->get_context().opengl.glDeleteBuffers(1, &m_model_instance.m_ebo);
 		m_model_instance.m_indices.close();
 	}
 

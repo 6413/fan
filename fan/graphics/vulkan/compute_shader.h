@@ -46,13 +46,13 @@ struct compute_shader_t {
 		pipelineLayoutInfo.setLayoutCount = p.descriptor.layout_count;
 		pipelineLayoutInfo.pSetLayouts = p.descriptor.layouts;
 
-		if (vkCreatePipelineLayout(loco->get_context()->device, &pipelineLayoutInfo, nullptr, &m_pipeline_layout) != VK_SUCCESS) {
+		if (vkCreatePipelineLayout(loco->get_context().device, &pipelineLayoutInfo, nullptr, &m_pipeline_layout) != VK_SUCCESS) {
 			fan::throw_error("failed to create pipeline layout!");
 		}
 
 		info.layout = m_pipeline_layout;
 		//                                                                          ?
-		fan::vulkan::validate(vkCreateComputePipelines(loco->get_context()->device, 0, 1, &info, nullptr, &m_pipeline));
+		fan::vulkan::validate(vkCreateComputePipelines(loco->get_context().device, 0, 1, &info, nullptr, &m_pipeline));
 	}
 
 	void execute(loco_t* loco, const fan::vec3ui& group_count) {

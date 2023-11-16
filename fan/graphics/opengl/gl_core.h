@@ -199,7 +199,7 @@ namespace fan {
   }
 }
 
-//static void open_camera(fan::opengl::context_t* context, camera_t* camera, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y) {
+//static void open_camera(fan::opengl::context_t& context, camera_t* camera, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y) {
 //  camera->open(context);
 //  fan::vec2 ratio = window_size / window_size.max();
 //  std::swap(ratio.x, ratio.y);
@@ -210,32 +210,32 @@ namespace fan {
   namespace opengl {
     namespace core {
 
-      static int get_buffer_size(fan::opengl::context_t* context, uint32_t target_buffer, uint32_t buffer_object) {
+      static int get_buffer_size(fan::opengl::context_t& context, uint32_t target_buffer, uint32_t buffer_object) {
         int size = 0;
 
-        context->opengl.call(context->opengl.glBindBuffer, target_buffer, buffer_object);
-        context->opengl.call(context->opengl.glGetBufferParameteriv, target_buffer, fan::opengl::GL_BUFFER_SIZE, &size);
+        context.opengl.call(context.opengl.glBindBuffer, target_buffer, buffer_object);
+        context.opengl.call(context.opengl.glGetBufferParameteriv, target_buffer, fan::opengl::GL_BUFFER_SIZE, &size);
 
         return size;
       }
 
-      static void write_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t size, uint32_t usage, uintptr_t target)
+      static void write_glbuffer(fan::opengl::context_t& context, unsigned int buffer, const void* data, uintptr_t size, uint32_t usage, uintptr_t target)
       {
-        context->opengl.call(context->opengl.glBindBuffer, target, buffer);
+        context.opengl.call(context.opengl.glBindBuffer, target, buffer);
 
-        context->opengl.call(context->opengl.glBufferData, target, size, data, usage);
+        context.opengl.call(context.opengl.glBufferData, target, size, data, usage);
         /*if (target == GL_SHADER_STORAGE_BUFFER) {
         glBindBufferBase(target, location, buffer);
         }*/
       }
-      static void get_glbuffer(fan::opengl::context_t* context, void* data, uint32_t buffer_id, uintptr_t size, uintptr_t offset, uintptr_t target) {
-        context->opengl.call(context->opengl.glBindBuffer, target, buffer_id);
-        context->opengl.call(context->opengl.glGetBufferSubData, target, offset, size, data);
+      static void get_glbuffer(fan::opengl::context_t& context, void* data, uint32_t buffer_id, uintptr_t size, uintptr_t offset, uintptr_t target) {
+        context.opengl.call(context.opengl.glBindBuffer, target, buffer_id);
+        context.opengl.call(context.opengl.glGetBufferSubData, target, offset, size, data);
       }
 
-      static void edit_glbuffer(fan::opengl::context_t* context, unsigned int buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target)
+      static void edit_glbuffer(fan::opengl::context_t& context, unsigned int buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target)
       {
-        context->opengl.call(context->opengl.glBindBuffer, target, buffer);
+        context.opengl.call(context.opengl.glBindBuffer, target, buffer);
 
         #if fan_debug >= fan_debug_high
 
@@ -247,16 +247,16 @@ namespace fan {
 
         #endif
 
-        context->opengl.call(context->opengl.glBufferSubData, target, offset, size, data);
+        context.opengl.call(context.opengl.glBufferSubData, target, offset, size, data);
         /* if (target == GL_SHADER_STORAGE_BUFFER) {
         glBindBufferBase(target, location, buffer);
         }*/
       }
 
       // not tested
-      static int get_bound_buffer(fan::opengl::context_t* context) {
+      static int get_bound_buffer(fan::opengl::context_t& context) {
         int buffer_id;
-        context->opengl.call(context->opengl.glGetIntegerv, fan::opengl::GL_VERTEX_BINDING_BUFFER, &buffer_id);
+        context.opengl.call(context.opengl.glGetIntegerv, fan::opengl::GL_VERTEX_BINDING_BUFFER, &buffer_id);
         return buffer_id;
       }
       #pragma pack(push, 1)
@@ -264,19 +264,19 @@ namespace fan {
 
         vao_t() = default;
 
-        void open(fan::opengl::context_t* context) {
-          context->opengl.call(context->opengl.glGenVertexArrays, 1, &m_vao);
+        void open(fan::opengl::context_t& context) {
+          context.opengl.call(context.opengl.glGenVertexArrays, 1, &m_vao);
         }
 
-        void close(fan::opengl::context_t* context) {
-          context->opengl.call(context->opengl.glDeleteVertexArrays, 1, &m_vao);
+        void close(fan::opengl::context_t& context) {
+          context.opengl.call(context.opengl.glDeleteVertexArrays, 1, &m_vao);
         }
 
-        void bind(fan::opengl::context_t* context) const {
-          context->opengl.call(context->opengl.glBindVertexArray, m_vao);
+        void bind(fan::opengl::context_t& context) const {
+          context.opengl.call(context.opengl.glBindVertexArray, m_vao);
         }
-        void unbind(fan::opengl::context_t* context) const {
-          context->opengl.call(context->opengl.glBindVertexArray, 0);
+        void unbind(fan::opengl::context_t& context) const {
+          context.opengl.call(context.opengl.glBindVertexArray, 0);
         }
 
         uint32_t m_vao;
@@ -292,33 +292,33 @@ namespace fan {
           fan::opengl::GLenum internalformat = fan::opengl::GL_DEPTH_STENCIL_ATTACHMENT;
         };
 
-        void open(fan::opengl::context_t* context) {
-          context->opengl.call(context->opengl.glGenFramebuffers, 1, &framebuffer);
+        void open(fan::opengl::context_t& context) {
+          context.opengl.call(context.opengl.glGenFramebuffers, 1, &framebuffer);
         }
-        void close(fan::opengl::context_t* context) {
-          context->opengl.call(context->opengl.glDeleteFramebuffers, 1, &framebuffer);
-        }
-
-        void bind(fan::opengl::context_t* context) const {
-          context->opengl.call(context->opengl.glBindFramebuffer, fan::opengl::GL_FRAMEBUFFER, framebuffer);
-        }
-        void unbind(fan::opengl::context_t* context) const {
-          context->opengl.call(context->opengl.glBindFramebuffer, fan::opengl::GL_FRAMEBUFFER, 0);
+        void close(fan::opengl::context_t& context) {
+          context.opengl.call(context.opengl.glDeleteFramebuffers, 1, &framebuffer);
         }
 
-        bool ready(fan::opengl::context_t* context) const {
-          return context->opengl.call(context->opengl.glCheckFramebufferStatus, fan::opengl::GL_FRAMEBUFFER) == 
+        void bind(fan::opengl::context_t& context) const {
+          context.opengl.call(context.opengl.glBindFramebuffer, fan::opengl::GL_FRAMEBUFFER, framebuffer);
+        }
+        void unbind(fan::opengl::context_t& context) const {
+          context.opengl.call(context.opengl.glBindFramebuffer, fan::opengl::GL_FRAMEBUFFER, 0);
+        }
+
+        bool ready(fan::opengl::context_t& context) const {
+          return context.opengl.call(context.opengl.glCheckFramebufferStatus, fan::opengl::GL_FRAMEBUFFER) == 
             fan::opengl::GL_FRAMEBUFFER_COMPLETE;
         }
 
-        void bind_to_renderbuffer(fan::opengl::context_t* context, fan::opengl::GLenum renderbuffer, const properties_t& p = properties_t()) {
+        void bind_to_renderbuffer(fan::opengl::context_t& context, fan::opengl::GLenum renderbuffer, const properties_t& p = properties_t()) {
           bind(context);
-          context->opengl.call(context->opengl.glFramebufferRenderbuffer, GL_FRAMEBUFFER, p.internalformat, GL_RENDERBUFFER, renderbuffer);
+          context.opengl.call(context.opengl.glFramebufferRenderbuffer, GL_FRAMEBUFFER, p.internalformat, GL_RENDERBUFFER, renderbuffer);
         }
 
         // texture must be binded with texture.bind();
-        static void bind_to_texture(fan::opengl::context_t* context, fan::opengl::GLuint texture, fan::opengl::GLenum attatchment) {
-          context->opengl.call(context->opengl.glFramebufferTexture2D, GL_FRAMEBUFFER, attatchment, GL_TEXTURE_2D, texture, 0);
+        static void bind_to_texture(fan::opengl::context_t& context, fan::opengl::GLuint texture, fan::opengl::GLenum attatchment) {
+          context.opengl.call(context.opengl.glFramebufferTexture2D, GL_FRAMEBUFFER, attatchment, GL_TEXTURE_2D, texture, 0);
         }
 
         fan::opengl::GLuint framebuffer;
@@ -332,23 +332,23 @@ namespace fan {
           fan::vec2ui size;
         };
 
-        void open(fan::opengl::context_t* context) {
-          context->opengl.call(context->opengl.glGenRenderbuffers, 1, &renderbuffer);
+        void open(fan::opengl::context_t& context) {
+          context.opengl.call(context.opengl.glGenRenderbuffers, 1, &renderbuffer);
           //set_storage(context, p);
         }
-        void close(fan::opengl::context_t* context) {
-          context->opengl.call(context->opengl.glDeleteRenderbuffers, 1, &renderbuffer);
+        void close(fan::opengl::context_t& context) {
+          context.opengl.call(context.opengl.glDeleteRenderbuffers, 1, &renderbuffer);
         }
-        void bind(fan::opengl::context_t* context) const {
-          context->opengl.call(context->opengl.glBindRenderbuffer, fan::opengl::GL_RENDERBUFFER, renderbuffer);
+        void bind(fan::opengl::context_t& context) const {
+          context.opengl.call(context.opengl.glBindRenderbuffer, fan::opengl::GL_RENDERBUFFER, renderbuffer);
         }
-        void set_storage(fan::opengl::context_t* context, const properties_t& p) const {
+        void set_storage(fan::opengl::context_t& context, const properties_t& p) const {
           bind(context);
-          context->opengl.call(context->opengl.glRenderbufferStorage, fan::opengl::GL_RENDERBUFFER, p.internalformat, p.size.x, p.size.y);
+          context.opengl.call(context.opengl.glRenderbufferStorage, fan::opengl::GL_RENDERBUFFER, p.internalformat, p.size.x, p.size.y);
         }
-        void bind_to_renderbuffer(fan::opengl::context_t* context, const properties_t& p = properties_t()) {
+        void bind_to_renderbuffer(fan::opengl::context_t& context, const properties_t& p = properties_t()) {
           bind(context);
-          context->opengl.call(context->opengl.glFramebufferRenderbuffer, GL_FRAMEBUFFER, p.internalformat, GL_RENDERBUFFER, renderbuffer);
+          context.opengl.call(context.opengl.glFramebufferRenderbuffer, GL_FRAMEBUFFER, p.internalformat, GL_RENDERBUFFER, renderbuffer);
         }
 
         fan::opengl::GLuint renderbuffer;
