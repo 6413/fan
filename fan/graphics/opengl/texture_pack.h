@@ -30,7 +30,7 @@ struct texturepack_t {
   }
 
   void open_compiled(const fan::string& filename) {
-    auto* context = gloco->get_context();
+    auto& context = gloco->get_context();
 
     texture_list.open();
     pixel_data_list.open();
@@ -90,7 +90,7 @@ struct texturepack_t {
   }
 
 	void open_compiled(loco_t* loco, const char* filename, loco_t::image_t::load_properties_t lp) {
-		auto* context = loco->get_context();
+		auto& context = loco->get_context();
 
 		texture_list.open();
 		pixel_data_list.open();

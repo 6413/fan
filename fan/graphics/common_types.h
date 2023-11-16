@@ -108,6 +108,7 @@ struct sprite_properties_t {
   fan::graphics::camera_t* camera = gloco->default_camera;
   fan::vec3 position = fan::vec3(0, 0, 0);
   fan::vec2 size = fan::vec2(0.1, 0.1);
+  f32_t angle = 0;
   fan::color color = fan::color(1, 1, 1, 1);
   loco_t::image_t* image = &gloco->default_texture;
   bool blending = false;
@@ -123,6 +124,7 @@ struct sprite_t : loco_t::shape_t {
         .viewport = &p.camera->viewport,
         .position = p.position,
         .size = p.size,
+        .angle = p.angle,
         .image = p.image,
         .color = p.color,
         .blending = p.blending,

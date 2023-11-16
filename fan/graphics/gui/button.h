@@ -220,7 +220,7 @@ struct button_t {
   #include _FAN_PATH(graphics/shape_builder.h)
 
   loco_t::theme_t* get_theme(fan::graphics::theme_list_NodeReference_t nr) {
-    return (loco_t::theme_t*)gloco->get_context()->theme_list[nr].theme_id;
+    return (loco_t::theme_t*)gloco->get_context().theme_list[nr].theme_id;
   }
   loco_t::theme_t* get_theme(loco_t::cid_nt_t& id) {
     return get_theme(get_ri(id).theme);
@@ -321,7 +321,7 @@ struct button_t {
   //fan::graphics::viewport_t* get_viewport(loco_t::cid_nt_t& id) {
   //  
   //  auto block = sb_get_block(id);
-  //  return gloco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<1>()].viewport_id;
+  //  return gloco->get_context().viewport_list[*block->p[cid->instance_id].key.get_value<1>()].viewport_id;
   //}
   /*void set_viewport(loco_t::cid_nt_t& id, fan::graphics::viewport_list_NodeReference_t n) {
     

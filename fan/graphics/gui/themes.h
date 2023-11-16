@@ -25,6 +25,8 @@ struct cursor_properties {
   static inline f32_t line_thickness = 0.002;
 };
 
+#if defined(loco_imgui)
+
 static inline ImVec4 ImLerp(const ImVec4& a, const ImVec4& b, float t) { return ImVec4(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t, a.w + (b.w - a.w) * t); }
 
 struct imgui_themes {
@@ -118,6 +120,8 @@ struct imgui_themes {
   }
 };
 
+#endif
+
 struct theme_t {
 
   struct mouse_move_data_t : loco_t::mouse_move_data_t {
@@ -178,7 +182,7 @@ struct theme_t {
   theme_t(theme_t&& theme) {
     this->button = theme.button;
     theme_reference = theme.theme_reference;
-    gloco->get_context()->theme_list[theme_reference].theme_id = this;
+    gloco->get_context().theme_list[theme_reference].theme_id = this;
     theme.theme_reference.sic();
   }
   theme_t& operator=(const theme_t& t) {
@@ -195,7 +199,7 @@ struct theme_t {
       }
       theme_reference = t.theme_reference;
       button = t.button;
-      gloco->get_context()->theme_list[theme_reference].theme_id = this;
+      gloco->get_context().theme_list[theme_reference].theme_id = this;
       t.theme_reference.sic();
     }
     return *this;
@@ -208,12 +212,12 @@ struct theme_t {
   }
 
 	void open(){
-		theme_reference = gloco->get_context()->theme_list.NewNode();
-		gloco->get_context()->theme_list[theme_reference].theme_id = this;
+		theme_reference = gloco->get_context().theme_list.NewNode();
+		gloco->get_context().theme_list[theme_reference].theme_id = this;
 	}
 
 	void close(){
-		gloco->get_context()->theme_list.Recycle(theme_reference);
+		gloco->get_context().theme_list.Recycle(theme_reference);
 	}
 
 	template <typename T>

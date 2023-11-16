@@ -6,7 +6,16 @@ _vf WantedPosition = 0;
 _vf WantedDirection = 0;
 _f WantedCollisionRequesters = 0;
 
-#if BCOL_set_SupportGrid == 1
+#if BCOL_set_SupportGrid == 1 && 0
+  const _f GridBlockSize = this->GridBlockSize;
+  auto l = [&](uint32_t d){
+    
+  };
+  for(uint32_t d = 0; d < _vf::size(); d++){
+
+  }
+#endif
+#if BCOL_set_SupportGrid == 1 && 0 // TODO
   const _f GridBlockSize = this->GridBlockSize;
   const _f GridBlockSize_D2 = GridBlockSize / 2;
 
@@ -149,7 +158,7 @@ _f WantedCollisionRequesters = 0;
           CPCU_Rectangle_Circle_t CData;
           CPCU_Rectangle_Circle_Pre(
             NewPosition,
-            {RectangleData->Size.x, RectangleData->Size.y},
+            RectangleData->Size,
             WorldPosition,
             CircleData_->Size,
             &CData);

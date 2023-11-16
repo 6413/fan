@@ -172,7 +172,7 @@ void sb_close() {
   //  ((uint8_t *)&loco->camera_list[*(loco_t::camera_list_NodeReference_t*)&i].camera_index)[index]
   //}
 
-  //vkDestroyDescriptorSetLayout(loco->get_context()->device, descriptorSetLayout, nullptr);
+  //vkDestroyDescriptorSetLayout(loco->get_context().device, descriptorSetLayout, nullptr);
 
   //for (uint32_t i = 0; i < blocks.size(); i++) {
   //  blocks[i].uniform_buffer.close(loco->get_context());
@@ -404,7 +404,7 @@ fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) requires fan:
   auto idx = *ri.key.get_value<
     context_key_t::key_t::get_index_with_type<fan::graphics::viewport_list_NodeReference_t>()
   >();
-  return loco->get_context()->viewport_list[idx].viewport_id;
+  return loco->get_context().viewport_list[idx].viewport_id;
 }
 
 //void set_vertex(const fan::string& str) {

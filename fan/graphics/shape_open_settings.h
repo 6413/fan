@@ -6,7 +6,7 @@ ds_properties[0].binding = 0;
 ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 ds_properties[0].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 ds_properties[0].range = VK_WHOLE_SIZE;
-ds_properties[0].buffer = m_ssbo.common.memory[loco->get_context()->currentFrame].buffer;
+ds_properties[0].buffer = m_ssbo.common.memory[loco->get_context().currentFrame].buffer;
 ds_properties[0].dst_binding = 0;
 #endif
 
@@ -14,7 +14,7 @@ ds_properties[0].dst_binding = 0;
 ds_properties[1].binding = 1;
 ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-ds_properties[1].buffer = m_shader.projection_view_block.common.memory[loco->get_context()->currentFrame].buffer;
+ds_properties[1].buffer = m_shader.projection_view_block.common.memory[loco->get_context().currentFrame].buffer;
 ds_properties[1].range = m_shader.projection_view_block.m_size;
 ds_properties[1].dst_binding = 1;
 #endif
@@ -45,7 +45,7 @@ VkSampler sampler;
 loco_t::image_t::createTextureSampler(loco, sampler);
 
 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-imageInfo.imageView = loco->get_context()->vai_bitmap[0].image_view;
+imageInfo.imageView = loco->get_context().vai_bitmap[0].image_view;
 imageInfo.sampler = sampler;
 
 ds_properties[ds_offset].use_image = 1;
@@ -58,7 +58,7 @@ for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
 }
 
 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-imageInfo.imageView = loco->get_context()->vai_bitmap[1].image_view;
+imageInfo.imageView = loco->get_context().vai_bitmap[1].image_view;
 imageInfo.sampler = sampler;
 
 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -76,7 +76,7 @@ for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
 //loco_t::image_t::createTextureSampler(loco, sampler);
 
 //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-//imageInfo.imageView = loco->get_context()->vai_bitmap.image_view;
+//imageInfo.imageView = loco->get_context().vai_bitmap.image_view;
 //imageInfo.sampler = sampler;
 
 //
@@ -95,7 +95,7 @@ loco_t::image_t::createTextureSampler(loco, sampler);
 
 VkDescriptorImageInfo imageInfo{};
 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-imageInfo.imageView = loco->get_context()->vai_wboit_color.image_view;
+imageInfo.imageView = loco->get_context().vai_wboit_color.image_view;
 imageInfo.sampler = sampler;
 
 //assert(0);
@@ -109,7 +109,7 @@ for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
   ds_properties[2].image_infos[i] = imageInfo;
 }
 
-imageInfo.imageView = loco->get_context()->vai_wboit_reveal.image_view;
+imageInfo.imageView = loco->get_context().vai_wboit_reveal.image_view;
 
 ds_properties[3] = ds_properties[2];
 ds_properties[3].binding = 5;

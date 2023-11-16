@@ -38,19 +38,19 @@ struct frame_capture_t {
 					 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
 				};
 				// setup plane VAO
-				loco->get_context()->opengl.glGenVertexArrays(1, &quadVAO);
-				loco->get_context()->opengl.glGenBuffers(1, &quadVBO);
-				loco->get_context()->opengl.glBindVertexArray(quadVAO);
-				loco->get_context()->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, quadVBO);
-				loco->get_context()->opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, fan::opengl::GL_STATIC_DRAW);
-				loco->get_context()->opengl.glEnableVertexAttribArray(0);
-				loco->get_context()->opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
-				loco->get_context()->opengl.glEnableVertexAttribArray(1);
-				loco->get_context()->opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+				loco->get_context().opengl.glGenVertexArrays(1, &quadVAO);
+				loco->get_context().opengl.glGenBuffers(1, &quadVBO);
+				loco->get_context().opengl.glBindVertexArray(quadVAO);
+				loco->get_context().opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, quadVBO);
+				loco->get_context().opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, fan::opengl::GL_STATIC_DRAW);
+				loco->get_context().opengl.glEnableVertexAttribArray(0);
+				loco->get_context().opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
+				loco->get_context().opengl.glEnableVertexAttribArray(1);
+				loco->get_context().opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 			}
-			loco->get_context()->opengl.glBindVertexArray(quadVAO);
-			loco->get_context()->opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
-			loco->get_context()->opengl.glBindVertexArray(0);
+			loco->get_context().opengl.glBindVertexArray(quadVAO);
+			loco->get_context().opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
+			loco->get_context().opengl.glBindVertexArray(0);
 		}
 
 		void open(const fan::vec2& resolution, uint32_t mip_count) {
@@ -109,7 +109,7 @@ struct frame_capture_t {
 				mips.push_back(mip);
 			}
 
-			loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+			loco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
 			mips[0].image.bind_texture(loco->get_context());
 			framebuffer.bind_to_texture(
 				loco->get_context(),
@@ -122,14 +122,14 @@ struct frame_capture_t {
 			}
 
 			unsigned int attachments[1] = { fan::opengl::GL_COLOR_ATTACHMENT0 };
-			loco->get_context()->opengl.glDrawBuffers(1, attachments);
+			loco->get_context().opengl.glDrawBuffers(1, attachments);
 
 			framebuffer.unbind(loco->get_context());
 		}
 			
 		void draw_downsamples(fan::opengl::image_t* image) {
 			auto loco = get_loco();
-			loco->get_context()->set_depth_test(false);
+			loco->get_context().set_depth_test(false);
 
 			auto pp = get_frame_capture();
 		
@@ -138,12 +138,12 @@ struct frame_capture_t {
 			shader_downsample.use(loco->get_context());
 			shader_downsample.set_vec2(loco->get_context(), "resolution", window_size);
 			
-			loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+			loco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
 			image->bind_texture(loco->get_context());
 
 			for (uint32_t i = 0; i < mips.size(); i++) {
 				mip_t mip = mips[i];
-				loco->get_context()->opengl.glViewport(0, 0, mip.size.x, mip.size.y);
+				loco->get_context().opengl.glViewport(0, 0, mip.size.x, mip.size.y);
 				framebuffer.bind_to_texture(
 					loco->get_context(), 
 					*mip.image.get_texture(loco->get_context()), 
@@ -167,7 +167,7 @@ struct frame_capture_t {
 			framebuffer.unbind(loco->get_context());
 			
 			fan::vec2 window_size = loco->window.get_size();
-			loco->get_context()->opengl.glViewport(0, 0, window_size.x, window_size.y);
+			loco->get_context().opengl.glViewport(0, 0, window_size.x, window_size.y);
 		}
 
 		std::vector<mip_t> mips;
@@ -229,7 +229,7 @@ struct frame_capture_t {
 			fan::opengl::GL_COLOR_ATTACHMENT1
 		};
 
-		loco->get_context()->opengl.call(loco->get_context()->opengl.glDrawBuffers, 2, attachments);
+		loco->get_context().opengl.call(loco->get_context().opengl.glDrawBuffers, 2, attachments);
 		// finally check if framebuffer is complete
 		if (!hdr_fbo.ready(loco->get_context())) {
 			fan::throw_error("framebuffer not ready");
@@ -267,7 +267,7 @@ struct frame_capture_t {
 
 	void start_capture() {
 		auto loco = get_loco();
-		loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+		loco->get_context().opengl.call(loco->get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 		hdr_fbo.bind(loco->get_context());
 	}
 	void end_capture() {
@@ -283,21 +283,21 @@ struct frame_capture_t {
 		constexpr float bloom_filter_radius = 0.005f;
 		capture.draw(&color_buffers[1], bloom_filter_radius);
 
-		loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+		loco->get_context().opengl.call(loco->get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 
 		capture.shader_bloom.use(loco->get_context());
 		capture.shader_bloom.set_int(loco->get_context(), "_t00", 0);
 		capture.shader_bloom.set_int(loco->get_context(), "_t01", 1);
 		capture.shader_bloom.set_float(loco->get_context(), "capture", bloomamount);
 
-		loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+		loco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
 		color_buffers[0].bind_texture(loco->get_context());
 
-		loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+		loco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
 		capture.mips[0].image.bind_texture(loco->get_context());
 
 		capture.renderQuad();
-		//loco->get_context()->set_depth_test(true);
+		//loco->get_context().set_depth_test(true);
 		//sprite.m_shader = old_shader;
 
 		//start_capture();

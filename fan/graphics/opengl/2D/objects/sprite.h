@@ -122,7 +122,7 @@ struct sb_sprite_name {
   //void set_viewport_value(loco_t::cid_nt_t& id, fan::vec2 p, fan::vec2 s) {
   //  loco_t* loco = get_loco();
   //  auto block = sb_get_block(cid);
-  //  loco->get_context()->viewport_list[*block->p[cid->instance_id].key.get_value<2>()].viewport_id->set(loco->get_context(), p, s, loco->window.get_size());
+  //  loco->get_context().viewport_list[*block->p[cid->instance_id].key.get_value<2>()].viewport_id->set(loco->get_context(), p, s, loco->window.get_size());
   //  //sb_set_key(cid, &properties_t::image, n);
   //}
 

@@ -74,7 +74,7 @@ void init_zoom() {
 int main() {
   loco_t loco;
   loco_t::texturepack_t tp;
-  tp.open_compiled("tile_map");
+  tp.open_compiled("texture_packs/tilemap.ftp");
 
   fte_loader_t loader;
   loader.open(&tp);

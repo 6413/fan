@@ -62,4 +62,6 @@
 #include _FAN_PATH(graphics/loco.h)
 
 
+#if defined(loco_imgui)
 #include _FAN_PATH(graphics/gui/model_maker/maker.h)
+#endif

@@ -10,8 +10,10 @@ _f WantedCollisionRequesters = 0;
   const _f GridBlockSize = this->GridBlockSize;
   const _f GridBlockSize_D2 = GridBlockSize / 2;
 
-  iterate_grid_for_circle_t<BCOL_set_Dimension> igfc;
-  while(igfc.it(GridBlockSize, NewPosition, CircleData->Size)){
+  _vf gbs;
+  for(uint32_t i = 0; i < gbs.size(); i++){ gbs[i] = GridBlockSize; } /* TODO looks ugly */
+  iterate_grid_for_circle_t<gbs.size()> igfc;
+  while(igfc.it(gbs, NewPosition, CircleData->Size)){
     Contact_Grid_t Contact;
     this->PreSolve_Grid_cb(
       this,

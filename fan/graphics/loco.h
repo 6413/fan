@@ -4,7 +4,7 @@
 
 struct loco_t;
 
-// doesnt support different kind of builds of loco
+// to set new loco use gloco = new_loco;
 inline struct global_loco_t {
 
   loco_t* loco = nullptr;
@@ -301,23 +301,23 @@ protected:
       1.0f, 1.0f, 0, 1.0f, 1.0f,
       1.0f, -1.0f, 0, 1.0f, 0.0f,
     };
-    auto* context = get_context();
-    context->opengl.glGenVertexArrays(1, &fb_vao);
-    context->opengl.glGenBuffers(1, &fb_vbo);
-    context->opengl.glBindVertexArray(fb_vao);
-    context->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, fb_vbo);
-    context->opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, fan::opengl::GL_STATIC_DRAW);
-    context->opengl.glEnableVertexAttribArray(0);
-    context->opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
-    context->opengl.glEnableVertexAttribArray(1);
-    context->opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    auto& context = get_context();
+    context.opengl.glGenVertexArrays(1, &fb_vao);
+    context.opengl.glGenBuffers(1, &fb_vbo);
+    context.opengl.glBindVertexArray(fb_vao);
+    context.opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, fb_vbo);
+    context.opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, fan::opengl::GL_STATIC_DRAW);
+    context.opengl.glEnableVertexAttribArray(0);
+    context.opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
+    context.opengl.glEnableVertexAttribArray(1);
+    context.opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
   }
 
   void render_final_fb() {
-    auto* context = get_context();
-    context->opengl.glBindVertexArray(fb_vao);
-    context->opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
-    context->opengl.glBindVertexArray(0);
+    auto& context = get_context();
+    context.opengl.glBindVertexArray(fb_vao);
+    context.opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
+    context.opengl.glBindVertexArray(0);
   }
 
   #endif
@@ -432,7 +432,7 @@ public:
     static constexpr f32_t znearfar = 0xffff;
 
     void open() {
-      auto* context = gloco->get_context();
+      auto& context = gloco->get_context();
       m_view = fan::mat4(1);
       camera_position = 0;
       camera_reference = gloco->camera_list.NewNode();
@@ -754,8 +754,8 @@ public:
 
   #ifdef loco_context
   // required function if program using multiple contexts, so it gets current
-  fan::graphics::context_t* get_context() {
-    return &context;
+  fan::graphics::context_t& get_context() {
+    return context;
   }
   #endif
 
@@ -785,7 +785,7 @@ public:
     #endif
   }
   void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
-    fan::graphics::viewport_t* viewport = get_context()->viewport_list[viewport_id].viewport_id;
+    fan::graphics::viewport_t* viewport = get_context().viewport_list[viewport_id].viewport_id;
     viewport->set(
       viewport->get_position(),
       viewport->get_size(),
@@ -802,8 +802,8 @@ public:
     }
     shape->m_current_shader->use(get_context());
     shape->m_current_shader->set_int(get_context(), tid.name, n);
-    get_context()->opengl.call(get_context()->opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
-    get_context()->opengl.call(get_context()->opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, image_list[tid].texture_id);
+    get_context().opengl.call(get_context().opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
+    get_context().opengl.call(get_context().opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, image_list[tid].texture_id);
     #endif
   }
 
@@ -941,8 +941,8 @@ public:
     loco_t::texturepack_t::ti_t get_tp() {
       loco_t::texturepack_t::ti_t ti;
       ti.image = get_image();
-      ti.position = get_tc_position();
-      ti.size = get_tc_size();
+      ti.position = get_tc_position() * ti.image->size;
+      ti.size = get_tc_size() * ti.image->size;
       return ti;
     }
     bool set_tp(loco_t::texturepack_t::ti_t* ti) {
@@ -1072,7 +1072,9 @@ public:
   };
   #endif
 
+  #if defined(loco_imgui)
   imgui_element_t gui_debug_element;
+  #endif
 
   // requirements - create shape_type to shape.h, init in constructor, add type_t to properties
 // make get_properties for custom type,
@@ -1231,7 +1233,7 @@ public:
     #if defined(loco_context)
     context(
       #if defined(loco_window)
-      get_window()
+      &window
       #endif
     )
     #endif
@@ -1307,12 +1309,12 @@ public:
     lp.type = fan::opengl::GL_FLOAT;
 
     color_buffers[0].load(ii, lp);
-    get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+    get_context().opengl.call(get_context().opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
     color_buffers[0].bind_texture();
     fan::opengl::core::framebuffer_t::bind_to_texture(
       get_context(),
-      *color_buffers[0].get_texture(),
+      color_buffers[0].get_texture(),
       fan::opengl::GL_COLOR_ATTACHMENT0
     );
 
@@ -1324,11 +1326,11 @@ public:
     color_buffers[1].bind_texture();
     fan::opengl::core::framebuffer_t::bind_to_texture(
       get_context(),
-      *color_buffers[1].get_texture(),
+      color_buffers[1].get_texture(),
       fan::opengl::GL_COLOR_ATTACHMENT1
     );
 
-    get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+    get_context().opengl.call(get_context().opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
     window.add_resize_callback([this](const auto& d) {
       loco_t::image_t::load_properties_t lp;
@@ -1349,11 +1351,11 @@ public:
       color_buffers[0].bind_texture();
       fan::opengl::core::framebuffer_t::bind_to_texture(
         get_context(),
-        *color_buffers[0].get_texture(),
+        color_buffers[0].get_texture(),
         fan::opengl::GL_COLOR_ATTACHMENT0
       );
 
-      get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+      get_context().opengl.call(get_context().opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
       lp.internal_format = fan::opengl::GL_RGBA;
       lp.format = fan::opengl::GL_RGBA;
@@ -1363,11 +1365,11 @@ public:
       color_buffers[1].bind_texture();
       fan::opengl::core::framebuffer_t::bind_to_texture(
         get_context(),
-        *color_buffers[1].get_texture(),
+        color_buffers[1].get_texture(),
         fan::opengl::GL_COLOR_ATTACHMENT1
       );
 
-      get_context()->opengl.call(get_context()->opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+      get_context().opengl.call(get_context().opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
       fan::opengl::core::renderbuffer_t::properties_t rp;
       m_framebuffer.bind(get_context());
@@ -1395,7 +1397,7 @@ public:
     attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
   }
 
-  get_context()->opengl.call(get_context()->opengl.glDrawBuffers, std::size(attachments), attachments);
+  get_context().opengl.call(get_context().opengl.glDrawBuffers, std::size(attachments), attachments);
   // finally check if framebuffer is complete
   if (!m_framebuffer.ready(get_context())) {
     fan::throw_error("framebuffer not ready");
@@ -1434,7 +1436,6 @@ public:
   #endif
 
     #if defined(loco_imgui)
-    auto hwnd = window.get_handle();
 
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -1467,7 +1468,7 @@ public:
     loco_t::imgui_themes::dark();
 
     #if defined(fan_platform_windows)
-    ImGui_ImplWin32_Init(hwnd);
+    ImGui_ImplWin32_Init(window.get_handle());
     #elif defined(fan_platform_linux)
     imgui_xorg_init();
     #endif
@@ -1508,10 +1509,10 @@ public:
 
     #if defined(loco_opengl)
     #if defined(loco_framebuffer)
-    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
     color_buffers[0].bind_texture();
 
-    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
     color_buffers[1].bind_texture();
 
 
@@ -1523,16 +1524,16 @@ public:
     m_framebuffer.bind(get_context());
     //float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     //auto buffers = fan::opengl::GL_COLOR_ATTACHMENT0 + 2;
-    //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 0, clearColor);
-    //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 1, clearColor);
-    //get_context()->opengl.glClearBufferfv(fan::opengl::GL_COLOR, 2, clearColor);
-    get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT1);
-    get_context()->opengl.glClearColor(0, 0, 0, 1);
-    get_context()->opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
-    get_context()->opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
+    //get_context().opengl.glClearBufferfv(fan::opengl::GL_COLOR, 0, clearColor);
+    //get_context().opengl.glClearBufferfv(fan::opengl::GL_COLOR, 1, clearColor);
+    //get_context().opengl.glClearBufferfv(fan::opengl::GL_COLOR, 2, clearColor);
+    get_context().opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT1);
+    get_context().opengl.glClearColor(0, 0, 0, 1);
+    get_context().opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
+    get_context().opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
     #endif
-    get_context()->opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-    get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    get_context().opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+    get_context().opengl.call(get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 
     #ifdef loco_post_process
@@ -1557,8 +1558,8 @@ public:
 
     m_framebuffer.unbind(get_context());
 
-    get_context()->opengl.glClearColor(0, 0, 0, 1);
-    get_context()->opengl.call(get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    get_context().opengl.glClearColor(0, 0, 0, 1);
+    get_context().opengl.call(get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     fan::vec2 window_size = window.get_size();
     fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
 
@@ -1566,10 +1567,10 @@ public:
     m_fbo_final_shader.set_int(get_context(), "_t00", 0);
     m_fbo_final_shader.set_int(get_context(), "_t01", 1);
 
-    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
     color_buffers[0].bind_texture();
 
-    get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
     color_buffers[1].bind_texture();
 
     render_final_fb();
@@ -1597,7 +1598,7 @@ public:
     #endif
 
     #endif
-    get_context()->render(get_window());
+    get_context().render(get_window());
 
     #endif
     #endif
@@ -1611,7 +1612,7 @@ public:
   }
 
   void set_vsync(bool flag) {
-    get_context()->set_vsync(get_window(), flag);
+    get_context().set_vsync(get_window(), flag);
   }
 
   fan::vec2 transform_matrix(const fan::vec2& position) {
@@ -1997,6 +1998,8 @@ public:
   #undef make_global_function
   #undef fan_build_get
   #undef fan_build_set
+
+  using image_info_t = fan::webp::image_info_t;
 };
 
 #if defined(loco_pixel_format_renderer)
@@ -2054,17 +2057,17 @@ namespace fan {
 }
 
 inline void fan::opengl::viewport_t::open() {
-  viewport_reference = gloco->get_context()->viewport_list.NewNode();
-  gloco->get_context()->viewport_list[viewport_reference].viewport_id = this;
+  viewport_reference = gloco->get_context().viewport_list.NewNode();
+  gloco->get_context().viewport_list[viewport_reference].viewport_id = this;
 }
 
 inline void fan::opengl::viewport_t::close() {
-  gloco->get_context()->viewport_list.Recycle(viewport_reference);
+  gloco->get_context().viewport_list.Recycle(viewport_reference);
 }
 
 inline void fan::opengl::viewport_t::set_viewport(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
-  gloco->get_context()->opengl.call(
-    gloco->get_context()->opengl.glViewport,
+  gloco->get_context().opengl.call(
+    gloco->get_context().opengl.glViewport,
     viewport_position_.x,
     window_size.y - viewport_size_.y - viewport_position_.y,
     viewport_size_.x, viewport_size_.y
@@ -2075,8 +2078,8 @@ inline void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, co
   viewport_position = viewport_position_;
   viewport_size = viewport_size_;
 
-  gloco->get_context()->opengl.call(
-    gloco->get_context()->opengl.glViewport,
+  gloco->get_context().opengl.call(
+    gloco->get_context().opengl.glViewport,
     viewport_position.x, window_size.y - viewport_size.y - viewport_position.y,
     viewport_size.x, viewport_size.y
   );

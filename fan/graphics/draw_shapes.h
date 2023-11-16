@@ -14,11 +14,11 @@ t0.i(root);
 redraw_key_t redraw_key;
 while(t0.t(&bdbt, &redraw_key)) {
   if (redraw_key.blending == false) {
-    get_context()->opengl.call(get_context()->opengl.glDisable, fan::opengl::GL_BLEND);
+    get_context().opengl.call(get_context().opengl.glDisable, fan::opengl::GL_BLEND);
   }
   else {
-    get_context()->opengl.call(get_context()->opengl.glEnable, fan::opengl::GL_BLEND);
-    get_context()->opengl.call(get_context()->opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+    get_context().opengl.call(get_context().opengl.glEnable, fan::opengl::GL_BLEND);
+    get_context().opengl.call(get_context().opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
   }
 
   typename loco_bdbt_Key_t<sizeof(uint16_t) * 8, true>::Traverse_t t1;

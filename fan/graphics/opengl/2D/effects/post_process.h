@@ -38,19 +38,19 @@ struct post_process_t {
                  1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
             };
             // setup plane VAO
-            loco->get_context()->opengl.glGenVertexArrays(1, &quadVAO);
-            loco->get_context()->opengl.glGenBuffers(1, &quadVBO);
-            loco->get_context()->opengl.glBindVertexArray(quadVAO);
-            loco->get_context()->opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, quadVBO);
-            loco->get_context()->opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, fan::opengl::GL_STATIC_DRAW);
-            loco->get_context()->opengl.glEnableVertexAttribArray(0);
-            loco->get_context()->opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
-            loco->get_context()->opengl.glEnableVertexAttribArray(1);
-            loco->get_context()->opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+            loco->get_context().opengl.glGenVertexArrays(1, &quadVAO);
+            loco->get_context().opengl.glGenBuffers(1, &quadVBO);
+            loco->get_context().opengl.glBindVertexArray(quadVAO);
+            loco->get_context().opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, quadVBO);
+            loco->get_context().opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, fan::opengl::GL_STATIC_DRAW);
+            loco->get_context().opengl.glEnableVertexAttribArray(0);
+            loco->get_context().opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
+            loco->get_context().opengl.glEnableVertexAttribArray(1);
+            loco->get_context().opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
         }
-        loco->get_context()->opengl.glBindVertexArray(quadVAO);
-        loco->get_context()->opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
-        loco->get_context()->opengl.glBindVertexArray(0);
+        loco->get_context().opengl.glBindVertexArray(quadVAO);
+        loco->get_context().opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
+        loco->get_context().opengl.glBindVertexArray(0);
     }
 
 		void open(const fan::vec2& resolution, uint32_t mip_count) {
@@ -128,7 +128,7 @@ struct post_process_t {
 				mips.push_back(mip);
 			}
 
-			loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+			loco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
 			mips[0].image.bind_texture(loco);
 			framebuffer.bind_to_texture(
 				loco->get_context(), 
@@ -141,7 +141,7 @@ struct post_process_t {
 			}
 
 			unsigned int attachments[1] = { fan::opengl::GL_COLOR_ATTACHMENT0 };
-			loco->get_context()->opengl.glDrawBuffers(1, attachments);
+			loco->get_context().opengl.glDrawBuffers(1, attachments);
 
 			framebuffer.unbind(loco->get_context());
 		}
@@ -149,19 +149,19 @@ struct post_process_t {
 		void draw_downsamples(loco_t::image_t* image) {
 			auto loco = get_loco();
       // I think not necessary
-//			loco->get_context()->set_depth_test(false); 
+//			loco->get_context().set_depth_test(false); 
 
 			fan::vec2 window_size = loco->window.get_size();
 			
 			shader_downsample.use(loco->get_context());
 			shader_downsample.set_vec2(loco->get_context(), "resolution", window_size);
 			
-			loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+			loco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
 			image->bind_texture(loco);
 
 			for (uint32_t i = 0; i < mips.size(); i++) {
 				mip_t mip = mips[i];
-				loco->get_context()->opengl.glViewport(0, 0, mip.size.x, mip.size.y);
+				loco->get_context().opengl.glViewport(0, 0, mip.size.x, mip.size.y);
 				framebuffer.bind_to_texture(
 					loco->get_context(), 
 					*mip.image.get_texture(loco), 
@@ -180,9 +180,9 @@ struct post_process_t {
 			shader_upsample.set_float(loco->get_context(), "filter_radius", filter_radius);
 
 			// Enable additive blending
-			loco->get_context()->opengl.call(loco->get_context()->opengl.glEnable, fan::opengl::GL_BLEND);
-			loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
-			loco->get_context()->opengl.call(loco->get_context()->opengl.glBlendEquation, fan::opengl::GL_FUNC_ADD);
+			loco->get_context().opengl.call(loco->get_context().opengl.glEnable, fan::opengl::GL_BLEND);
+			loco->get_context().opengl.call(loco->get_context().opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
+			loco->get_context().opengl.call(loco->get_context().opengl.glBlendEquation, fan::opengl::GL_FUNC_ADD);
 
 			for (int i = (int)mips.size() - 1; i > 0; i--)
 			{
@@ -190,11 +190,11 @@ struct post_process_t {
 				mip_t next_mip = mips[i - 1];
 
 				// Bind viewport and texture from where to read
-				loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+				loco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
 				mip.image.bind_texture(loco);
 
 				// Set framebuffer render target (we write to this texture)
-				loco->get_context()->opengl.glViewport(0, 0, next_mip.size.x, next_mip.size.y);
+				loco->get_context().opengl.glViewport(0, 0, next_mip.size.x, next_mip.size.y);
 
 				fan::opengl::core::framebuffer_t::bind_to_texture(
 					loco->get_context(),
@@ -205,7 +205,7 @@ struct post_process_t {
 				renderQuad();
 			}
 
-			loco->get_context()->opengl.call(loco->get_context()->opengl.glDisable, fan::opengl::GL_BLEND);
+			loco->get_context().opengl.call(loco->get_context().opengl.glDisable, fan::opengl::GL_BLEND);
 		}
 
 		void draw(loco_t::image_t* color_texture, f32_t filter_radius) {
@@ -219,7 +219,7 @@ struct post_process_t {
 			framebuffer.unbind(loco->get_context());
 
 			fan::vec2 window_size = loco->window.get_size();
-			loco->get_context()->opengl.glViewport(0, 0, window_size.x, window_size.y);
+			loco->get_context().opengl.glViewport(0, 0, window_size.x, window_size.y);
 		}
 
 		fan::hector_t<mip_t> mips;
@@ -281,7 +281,7 @@ struct post_process_t {
 			fan::opengl::GL_COLOR_ATTACHMENT1 
 		};
     
-		loco->get_context()->opengl.call(loco->get_context()->opengl.glDrawBuffers, 2, attachments);
+		loco->get_context().opengl.call(loco->get_context().opengl.glDrawBuffers, 2, attachments);
     // finally check if framebuffer is complete
 		if (!hdr_fbo.ready(loco->get_context())) {
 			fan::throw_error("framebuffer not ready");
@@ -320,7 +320,7 @@ struct post_process_t {
 	void start_capture() {
 		auto loco = get_loco();
 		hdr_fbo.bind(loco->get_context());
-		loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+		loco->get_context().opengl.call(loco->get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 	}
 	void end_capture() {
 		auto loco = get_loco();
@@ -335,17 +335,17 @@ struct post_process_t {
 		constexpr float bloom_filter_radius = 0.005f;
 		bloom.draw(&color_buffers[1], bloom_filter_radius);
 
-		loco->get_context()->opengl.call(loco->get_context()->opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+		loco->get_context().opengl.call(loco->get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 
 		bloom.shader_bloom.use(loco->get_context());
 		bloom.shader_bloom.set_int(loco->get_context(), "_t00", 0);
 		bloom.shader_bloom.set_int(loco->get_context(), "_t01", 1);
 		bloom.shader_bloom.set_float(loco->get_context(), "bloom", bloomamount);
 
-		loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+		loco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
 		color_buffers[0].bind_texture(loco);
 
-		loco->get_context()->opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+		loco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
 		bloom.mips[0].image.bind_texture(loco);
 
 		bloom.renderQuad();
