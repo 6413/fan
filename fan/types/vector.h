@@ -84,6 +84,13 @@ namespace fan {
 		constexpr auto cross(const fan::vec3_wrap_t<T>& vector) const {
 			return fan::math::cross<vec3_wrap_t<T>>(*this, vector);
 		}
+    // not tested
+    template <typename T>
+    vec3_wrap_t reflect(const T& normal) {
+      auto k = fan::math::cross(vec3_wrap_t{ normal.x, normal.y, normal.z }, vec3_wrap_t{ 0, 0, -1 });
+      f32_t multiplier = k.dot(vec3_wrap_t{ x, y, z });
+      return vec3_wrap_t(k.x * multiplier, k.y * multiplier, k.z * multiplier);
+    }
   };
 
   template <typename value_type_t>
