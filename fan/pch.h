@@ -34,8 +34,12 @@
 #define FAN_INCLUDE_PATH C:/libs/fan/include
 #endif
 
-#define fan_verbose_print_level 1
-#define fan_debug 0
+#ifndef fan_verbose_print_level
+  #define fan_verbose_print_level 1
+#endif
+#ifndef fan_debug
+  #define fan_debug 0
+#endif
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH,fan/types/types.h)
 
 #define loco_window
