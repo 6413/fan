@@ -27,7 +27,8 @@ namespace fan {
       fan::io::file::read(file, &data);
       return WebPGetInfo((uint8_t*)data.data(), data.size(), (int*)&size->x, (int*)&size->y) != 1;
     }
-    inline std::unordered_map<uint64_t, int> free_checker;
+
+    // if fails, try encode with -pix_fmt yuv420p
     static bool decode(const uint8_t* webp_data, std::size_t size, image_info_t* image_info) {
       image_info->data = WebPDecodeRGBA(webp_data, size, &image_info->size.x, &image_info->size.y);
       return image_info->data == 0;

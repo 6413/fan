@@ -55,6 +55,20 @@ namespace fan {
       };
     }
 
+    struct collider_hidden_t {
+      collider_hidden_t() = default;
+      collider_hidden_t(const fan::vec2& position, const fan::vec2& size) {
+        bcol_t::ObjectProperties_t p;
+        p.Position = position;
+        bcol_t::ShapeProperties_Rectangle_t sp;
+        sp.Position = 0;
+        sp.Size = size;
+        oid = bcol.NewObject(&p, bcol_t::ObjectFlag::Constant);
+        auto shape_id = bcol.NewShape_Rectangle(oid, &sp);
+        bcol.GetObjectExtraData(oid)->shape_id = shape_id;
+      }
+      bcol_t::ObjectID_t oid;
+    };
     struct collider_static_t : loco_t::shape_t {
       collider_static_t() = default;
       collider_static_t(const loco_t::shape_t& shape)
