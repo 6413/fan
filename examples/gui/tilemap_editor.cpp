@@ -6,9 +6,9 @@
 int main() {
   loco_t loco;
   fte_t fte;
-  fte.file_name = "tilemaps/file.fte";
+  fte.file_name = "tilemaps/collision_test.fte";
   fte.open("texture_packs/tilemap.ftp");
-  fte.fin("tilemaps/file.fte");
+  fte.fin("tilemaps/collision_test.fte");
   //loco.set_vsync(0);
   //loco.window.set_max_fps(165);
   loco.loop([&] {

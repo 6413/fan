@@ -2,14 +2,12 @@
 
 #include _FAN_PATH(graphics/gui/tilemap_editor/loader.h)
 
-loco_t::image_t ismot[4];
-
 struct player_t {
   static constexpr fan::vec2 speed{200, 200};
 
   player_t() {
     visual = fan::graphics::sprite_t{{
-      .position = fan::vec3(100, 100, 10),
+      .position = fan::vec3(0, 100, 10),
       .size = 32,
       .blending = true
     }};
@@ -18,11 +16,9 @@ struct player_t {
     f32_t dt = gloco->get_delta_time();
     if (gloco->window.key_pressed(fan::key_d)) {
       velocity.x = speed.x;
-      visual.set_image(&ismot[0]);
     }
     else if (gloco->window.key_pressed(fan::key_a)) {
       velocity.x = -speed.x;
-      visual.set_image(&ismot[1]);
     }
     else {
       velocity.x = 0;
@@ -30,11 +26,9 @@ struct player_t {
 
     if (gloco->window.key_pressed(fan::key_w)) {
       velocity.y = -speed.y;
-      visual.set_image(&ismot[3]);
     }
     else if (gloco->window.key_pressed(fan::key_s)) {
       velocity.y = speed.y;
-      visual.set_image(&ismot[2]);
     }
     else {
       velocity.y = 0;
@@ -79,7 +73,7 @@ int main() {
   fte_loader_t loader;
   loader.open(&tp);
 
-  auto compiled_map = loader.compile("file.fte");
+  auto compiled_map = loader.compile("tilemaps/collision_test.fte");
 
   fte_loader_t::properties_t p;
 
