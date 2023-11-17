@@ -1267,7 +1267,7 @@ public:
       });
     #endif
     #endif
-  #ifndef fan_disable_non_verbose_prints
+  #if fan_verbose_print_level >= 1
     #if defined(loco_opengl)
     fan::print("RENDERER BACKEND: OPENGL");
     #elif defined(loco_vulkan)
