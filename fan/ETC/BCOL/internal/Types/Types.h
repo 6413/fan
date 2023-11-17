@@ -5,6 +5,7 @@ struct __BCOL_P(t){
   typedef fan::vec_wrap_t<BCOL_set_Dimension, _f> _vf;
   typedef fan::vec_wrap_t<BCOL_set_Dimension, uint32_t> _vui32;
   typedef fan::vec_wrap_t<BCOL_set_Dimension, sint32_t> _vsi32;
+  typedef fan::vec_wrap_t<4, _f> _4f;
 
   #include "../Math.h"
 
@@ -49,6 +50,12 @@ struct __BCOL_P(t){
     ShapeEnum_t ShapeEnum;
     ShapeID_t ShapeID;
   };
+
+  #if BCOL_set_VisualSolve == 1
+    struct VisualSolve_t{
+      _4f rgba;
+    };
+  #endif
 
   #if BCOL_set_SupportGrid == 1
     #include "Grid.h"
@@ -102,7 +109,9 @@ struct __BCOL_P(t){
   #if BCOL_set_SupportGrid == 1
     _f GridBlockSize;
     PreSolve_Grid_cb_t PreSolve_Grid_cb;
-    PreSolveUnknown_Grid_cb_t PreSolveUnknown_Grid_cb;
+    #if BCOL_set_VisualSolve == 1
+      VisualSolve_Grid_cb_t VisualSolve_Grid_cb;
+    #endif
   #endif
   #ifdef BCOL_set_PostSolve_Grid
     PostSolve_Grid_cb_t PostSolve_Grid_cb;

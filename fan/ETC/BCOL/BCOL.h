@@ -22,6 +22,9 @@
 #ifndef BCOL_set_StepNumber
   #define BCOL_set_StepNumber 0
 #endif
+#ifndef BCOL_set_VisualSolve
+  #define BCOL_set_VisualSolve 0
+#endif
 
 #if defined(BCOL_set_IncludePath)
   #define BCOL_Include(p) <BCOL_set_IncludePath/p>
@@ -59,6 +62,7 @@
   #undef BCOL_set_ConstantFriction
 #endif
 #undef BCOL_Include
+#undef BCOL_set_VisualSolve
 #undef BCOL_set_StepNumber
 #undef BCOL_set_DynamicToDynamic
 #undef BCOL_set_DynamicDeltaFunction
