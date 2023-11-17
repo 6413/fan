@@ -3,7 +3,7 @@ struct Contact_Grid_Flag{
 };
 
 struct Contact_Grid_t{
-  uint32_t Flag;
+  uint32_t Flag = Contact_Grid_Flag::EnableContact;
 };
 
 typedef void (*PreSolve_Grid_cb_t)(
@@ -12,10 +12,12 @@ typedef void (*PreSolve_Grid_cb_t)(
   _vsi32 /* Grid */,
   Contact_Grid_t *
 );
-typedef void (*PreSolveUnknown_Grid_cb_t)(
+typedef void (*VisualSolve_Grid_cb_t)(
   __BCOL_P(t) *,
   _vsi32 /* Grid */,
-  Contact_Grid_t *
+  _vf,
+  Contact_Grid_t *,
+  VisualSolve_t *
 );
 
 #ifdef BCOL_set_PostSolve_Grid

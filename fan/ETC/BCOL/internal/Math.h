@@ -7,6 +7,72 @@ static auto max(auto p0, auto p1){
 static auto abs(auto p0){
   return p0 < 0 ? -p0 : p0;
 }
+static _f clamp(_f v, _f mi, _f ma){
+  return v < mi ? mi : v > ma ? ma : v;
+}
+
+template <uint8_t ts>
+struct iterate_grid_for_rectangle_t{
+  public:
+    fan::vec_wrap_t<ts, sint32_t> gs; /* grid start */
+  private:
+    uint8_t c = 0;
+    fan::vec_wrap_t<ts, sint32_t> ge[ts]; /* grid end */
+    bool NeedInit = true;
+
+    void InitCurrent(const auto &gbs, const auto &wp, f32_t er){
+      if(c < ts){
+        gs[c] = (wp[c] - er) / gbs[c];
+        ge[c] = (wp[c] + er) / gbs[c];
+      }
+      if(c + 1 == ts){
+        gs[c]--; /* we increase this even before check ge[c] so this is needed */
+      }
+    }
+    void Increase(const auto &gbs, const auto &wp, f32_t er /* end radius */){
+      c++;
+      InitCurrent(gbs, wp, er);
+    }
+    void Decrease(){
+      c--;
+      if(c < ts){
+        gs[c]++;
+        if(gs[c] > ge[c]){
+          Decrease();
+        }
+      }
+    }
+
+    bool _it(
+      const auto &gbs, /* grid block size */
+      const auto &wp, /* world position */
+      _vf s /* size */
+    ){
+      while(1){
+        if(c + 1 < ts){
+          Increase(gbs, wp, s[c + 1]);
+        }
+        else if(c < ts){
+          gs[c]++;
+          if(gs[c] <= ge[c]){
+            return true;
+          }
+          Decrease();
+        }
+        else{
+          return false;
+        }
+      }
+    }
+  public:
+    bool it(const auto &gbs, const auto &wp, _vf &s){
+      if(NeedInit){
+        NeedInit = false;
+        InitCurrent(gbs, wp, s[0]);
+      }
+      return _it(gbs, wp, s);
+    }
+};
 
 template <uint8_t ts>
 struct iterate_grid_for_circle_t{

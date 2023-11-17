@@ -1,8 +1,7 @@
-#if BCOL_set_SupportGrid == 1
-  _vsi32 Ray(
+#if BCOL_set_SupportGrid == 1 && BCOL_set_VisualSolve == 1
+  VisualSolve_t Ray(
     _vf p, /* position */
-    _vf d, /* direction */
-    _vf *at
+    _vf d /* direction */
   ){
     for(uint32_t i = 0; i < _vf::size(); i++){
       if(d[i] == 0){
@@ -10,18 +9,20 @@
       }
     }
 
-    *at = p / GridBlockSize;
-    _vsi32 gi = *at;
-    _vf r = *at - _vsi32(*at);
+    _vf at = p / GridBlockSize;
+    _vsi32 gi = at;
+    _vf r = at - _vsi32(at);
     while(1){
       Contact_Grid_t Contact;
-      this->PreSolveUnknown_Grid_cb(
+      VisualSolve_t VisualSolve;
+      this->VisualSolve_Grid_cb(
         this,
         gi,
-        &Contact);
+        at,
+        &Contact,
+        &VisualSolve);
       if(Contact.Flag & Contact_Grid_Flag::EnableContact){
-        *at *= GridBlockSize;
-        return gi;
+        return VisualSolve;
       };
 
       _vf left;
@@ -43,7 +44,7 @@
         }
       }
       _vf min_dir = d * min_multipler;
-      *at += min_dir;
+      at += min_dir;
       r += min_dir;
       gi += iterate_result;
       r -= iterate_result;

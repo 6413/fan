@@ -10,15 +10,13 @@ _f WantedCollisionRequesters = 0;
   const _f GridBlockSize = this->GridBlockSize;
   const _f GridBlockSize_D2 = GridBlockSize / 2;
 
-  _vf gbs;
-  for(uint32_t i = 0; i < gbs.size(); i++){ gbs[i] = GridBlockSize; } /* TODO looks ugly */
-  iterate_grid_for_circle_t<gbs.size()> igfc;
-  while(igfc.it(gbs, NewPosition, CircleData->Size)){
+  _vf gbs(GridBlockSize);
+  for(iterate_grid_for_circle_t<gbs.size()> ig; ig.it(gbs, NewPosition, CircleData->Size);){
     Contact_Grid_t Contact;
     this->PreSolve_Grid_cb(
       this,
       &sip0,
-      igfc.gs,
+      ig.gs,
       &Contact);
     if(this->ObjectList.CheckSafeNext(0) != sip0.ObjectID){
       goto gt_Object0Unlinked;
@@ -32,7 +30,7 @@ _f WantedCollisionRequesters = 0;
     CPC_Circle_Square(
       NewPosition,
       CircleData->Size,
-      fan::cast<_f>(igfc.gs) * GridBlockSize + GridBlockSize_D2,
+      _vf(ig.gs) * GridBlockSize + GridBlockSize_D2,
       GridBlockSize_D2,
       &oCircle,
       &oDirection);
@@ -47,7 +45,7 @@ _f WantedCollisionRequesters = 0;
       this->PostSolve_Grid_cb(
         this,
         &sip0,
-        igfc.gs,
+        ig.gs,
         &ContactResult);
       if(this->ObjectList.CheckSafeNext(0) != sip0.ObjectID){
         goto gt_Object0Unlinked;
