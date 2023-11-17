@@ -1267,11 +1267,13 @@ public:
       });
     #endif
     #endif
+  #ifndef fan_disable_non_verbose_prints
     #if defined(loco_opengl)
     fan::print("RENDERER BACKEND: OPENGL");
     #elif defined(loco_vulkan)
     fan::print("RENDERER BACKEND: VULKAN");
     #endif
+  #endif
 
     #if defined(loco_letter)
     font.open(loco_font);
