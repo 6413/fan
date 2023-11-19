@@ -54,6 +54,9 @@ struct __BCOL_P(t){
   #if BCOL_set_VisualSolve == 1
     struct VisualSolve_t{
       _4f rgba;
+      _vf at;
+      _vf normal;
+      f32_t emit;
     };
   #endif
 

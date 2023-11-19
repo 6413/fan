@@ -25,12 +25,33 @@ int main() {
   lp.position = fan::vec3(400, 400, 0);
   lp.size = 100;
   lp.color = fan::colors::yellow * 10;
-  loco_t::shape_t l0 = lp;
-  
+  {
+    loco_t::shape_t l0 = lp;
+
+  }
+
+  //{
+  //  std::vector<loco_t::shape_t> shapes;
+
+  //  for (int i = 0; i < 100; ++i) {
+  //    if (i % 2) {
+  //      shapes.push_back(fan::graphics::sprite_t{{}});
+  //    }
+  //    else {
+  //      shapes.push_back(loco_t::shapes_t::light_t::properties_t{{}});
+  //    }
+  //  }
+  //  for (int i = 0; i < 100; ++i) {
+  //    int idx = fan::random::value_i64(0, shapes.size() - 1);
+  //    shapes.erase(shapes.begin() + idx);
+  //  }
+  //}
+  //
+
   f32_t x = 0;
   loco.loop([&] {
     loco.get_fps();
-    l0.set_position(loco.get_mouse_position());
+   // l0.set_position(loco.get_mouse_position());
   });
 
   return 0;

@@ -38,7 +38,7 @@
   #define fan_verbose_print_level 1
 #endif
 #ifndef fan_debug
-  #define fan_debug 0
+  #define fan_debug 2
 #endif
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH,fan/types/types.h)
 

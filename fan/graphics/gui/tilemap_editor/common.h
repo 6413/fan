@@ -8,9 +8,12 @@ struct version_001_t {
         for (auto& i : g->layers) {
           fte_t::tile_t layer;
           layer.position = i.shape.get_position();
+          layer.size = i.shape.get_size();
           layer.angle = i.shape.get_angle();
+          layer.color = i.shape.get_color();
           layer.image_hash = i.tile.image_hash;
           layer.mesh_property = i.tile.mesh_property;
+          layer.id = i.tile.id;
           static int z = 0;
           if (layer.mesh_property == fte_t::mesh_property_t::collider) {
             z++;
@@ -31,12 +34,16 @@ struct version_001_t {
 
           fte_t::shapes_t::global_t::layer_t map_layer;
           map_layer.tile = layer;
-          map_layer.shape = fan::graphics::sprite_t{{
+          if (layer.mesh_property != fte_t::mesh_property_t::light) {
+            map_layer.shape = fan::graphics::sprite_t{{
               .position = layer.position,
-              .size = fte->tile_size,
+              .size = layer.size,
               .angle = layer.angle,
+              .color = layer.color,
               .blending = true
             }};
+          }
+
 
           map_tile.layers.push_back(std::move(map_layer));
           switch (layer.mesh_property) {
@@ -44,8 +51,18 @@ struct version_001_t {
               map_tile.layers.back().shape.set_tp(&ti);
               break;
             }
+            case fte_t::mesh_property_t::sensor:
             case fte_t::mesh_property_t::collider: {
               map_tile.layers.back().shape.set_image(&fte->grid_visualize.collider_color);
+              break;
+            }
+            case fte_t::mesh_property_t::light: {
+              map_tile.layers.back().shape = fan::graphics::light_t{{
+                .position = layer.position,
+                .size = layer.size,
+                .color = layer.color,
+                .blending = true
+              }};
               break;
             }
           }

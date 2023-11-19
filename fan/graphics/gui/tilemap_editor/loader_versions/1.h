@@ -23,8 +23,10 @@ if (version != current_version) {
   return;
   #endif
 }
+// global data
 map_size = fan::read_data<fan::vec2ui>(in, off);
 tile_size = fan::read_data<fan::vec2ui>(in, off);
+gloco->lighting.ambient = fan::read_data<fan::vec3>(in, off);
 
 #if !defined(tilemap_editor_loader) 
 resize_map();
@@ -44,7 +46,19 @@ while (off != in.size()) {
         if constexpr (std::is_same_v<T2, std::vector<typename T2::value_type>>) {
           uint32_t element_count = fan::read_data<uint32_t>(in, off);
           for (int k = 0; k < element_count; ++k) {
-            v.push_back(fan::read_data<typename T2::value_type>(in, off));
+            fan::mp_t<std::remove_reference_t<typename T2::value_type>> tile;
+            tile.iterate([&]<auto i2, typename T3>(T3 & v){
+              if constexpr(std::is_same_v<T3, fan::string>) {
+                uint32_t len = fan::read_data<uint32_t>(in, off);
+                v.resize(len);
+                memcpy(v.data(), &in[off], len);
+                off += len;
+              }
+              else {
+                v = fan::read_data<T3>(in, off);
+              }
+            });
+            v.push_back(tile);
           }
         }
       }

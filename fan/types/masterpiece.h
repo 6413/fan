@@ -265,7 +265,7 @@ namespace fan {
       }
       return count;
     }
-    template <uint32_t depth = count>
+    template <uint32_t depth = 0>
     constexpr int reverse_iterate_ret(auto lambda) {
       if constexpr (depth == (uint32_t)-1) {
         return depth;
@@ -278,7 +278,7 @@ namespace fan {
       }
       return depth;
     }
-    template <uint32_t depth = count>
+    template <uint32_t depth = 0>
     constexpr void reverse_iterate(auto lambda) {
       if constexpr (depth == (uint32_t)-1) {
         return;
