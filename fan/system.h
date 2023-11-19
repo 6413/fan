@@ -153,7 +153,7 @@ namespace fan {
           if (!temp) {
             throw std::runtime_error("failed to initialize window");
           }
-          fan::sys::m_screen = DefaultScreen(fan::sys::m_display);
+          fan::sys::m_screen = DefaultScreen(temp);
           return temp;
         }
         return fan::sys::m_display;
