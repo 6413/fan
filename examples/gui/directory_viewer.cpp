@@ -101,7 +101,6 @@ int main() {
             prev_path = current_path;
             current_path = i.name;
             update_directory_list(current_path, directory_list);
-            goto g_reset;
           }
         }
         else {
@@ -124,7 +123,7 @@ int main() {
     }
     ImGui::End();
 
-  g_reset:
+
     ImGui::End();
   });
 
