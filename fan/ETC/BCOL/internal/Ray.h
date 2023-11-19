@@ -9,45 +9,58 @@
       }
     }
 
-    _vf at = p / GridBlockSize;
-    _vsi32 gi = at;
-    _vf r = at - _vsi32(at);
+    p /= GridBlockSize;
+    _vf at = p;
+    _vsi32 gi;
+    for(uint32_t d = 0; d < _vf::size(); d++){
+      gi[d] = at[d] + (at[d] < _f(0) ? _f(-1) : _f(0));
+    }
+    _vf r = at - gi;
     while(1){
-      Contact_Grid_t Contact;
-      VisualSolve_t VisualSolve;
-      this->VisualSolve_Grid_cb(
-        this,
-        gi,
-        at,
-        &Contact,
-        &VisualSolve);
-      if(Contact.Flag & Contact_Grid_Flag::EnableContact){
-        return VisualSolve;
-      };
-
-      _vf left;
-      for(uint32_t i = 0; i < _vf::size(); i++){
-        if(d[i] > 0){
-          left[i] = f32_t(1) - r[i];
-        }
-        else{
-          left[i] = r[i];
+      {
+        bool Contact;
+        BCOL_set_VisualSolve_GridContact
+        if(Contact == true){
+          VisualSolve_t VisualSolve;
+          this->VisualSolve_Grid_cb(
+            this,
+            gi,
+            p,
+            at,
+            &VisualSolve);
+          return VisualSolve;
         }
       }
-      _vf multiplers = left / d;
 
-      f32_t min_multipler = multiplers.abs().min();
-      _vsi32 iterate_result = _vsi32(0);
+      _vf left;
+      #if 0
+        for(uint32_t i = 0; i < _vf::size(); i++){
+          if(d[i] > 0){
+            left[i] = f32_t(1) - r[i];
+          }
+          else{
+            left[i] = r[i];
+          }
+        }
+        _vf multiplers = left / d.abs();
+      #elif 1
+        left = ((d * 9999999).clamp(_f(0), _f(1)) - r).abs();
+        _vf multiplers = left / d.abs();
+      #elif 0
+        left = (d * 9999999).clamp(_f(-0.0000001), _f(1)) - r;
+        _vf multiplers = left / d;
+      #endif
+
+      f32_t min_multipler = multiplers.min();
       for(uint32_t i = 0; i < _vf::size(); i++){
-        if(std::abs(multiplers[i]) == min_multipler){
-          iterate_result[i] = copysign(1, multiplers[i]);
+        if(multiplers[i] == min_multipler){
+          gi[i] += copysign((sint32_t)1, d[i]);
+          r[i] -= copysign((f32_t)1, d[i]);
         }
       }
       _vf min_dir = d * min_multipler;
       at += min_dir;
       r += min_dir;
-      gi += iterate_result;
-      r -= iterate_result;
     }
   }
 #endif

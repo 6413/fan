@@ -14,7 +14,6 @@ struct sb_shape_name {
 
   struct context_key_t {
     using parsed_masterpiece_t = fan::masterpiece_t<
-      uint16_t,
       loco_t::camera_list_NodeReference_t,
       fan::graphics::viewport_list_NodeReference_t
     >;
@@ -34,7 +33,6 @@ struct sb_shape_name {
   };
 
   void push_back(loco_t::cid_nt_t& id, properties_t& p) {
-
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 

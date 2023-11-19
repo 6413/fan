@@ -22,7 +22,7 @@ void main() {
   d /= grid_size;
                                                   // only for coordinates which are y+ down for "1.0 - viewport_position.y"
   vec2 fragcoord = vec2(camera_position.x, camera_position.y) / matrix_size * viewport_size +
-  vec2(viewport_position.x, 1.0 - viewport_position.y) + 
+  vec2(1.0 - viewport_position.x, 1.0 - viewport_position.y) + 
   vec2(gl_FragCoord.x, window_size.y - gl_FragCoord.y) - viewport_size / 2; //-size / 2, +size / 2 == - viewport_size / 2. 0, +size == - 0
   vec2 half_size = instance_size / matrix_size * viewport_size;
   vec2 rpos = fragcoord; // relative position

@@ -741,7 +741,7 @@ public:
 
   struct properties_t {
     bool vsync = true;
-    fan::vec2 window_size = 1300;
+    fan::vec2 window_size = fan::sys::get_screen_resolution() / fan::vec2(1.2, 1.2);
   };
 
   static constexpr uint32_t max_depths = 2;
@@ -1873,11 +1873,16 @@ public:
   }
 
   void shape_erase(loco_t::cid_nt_t& id) {
+    bool erased = false;
     shapes.iterate([&]<auto i>(auto & shape) {
+      if (erased) {
+        return;
+      }
       if (shape.shape_type != (loco_t::shape_type_t)id->shape_type) {
         return;
       }
       fan_if_has_function(&shape, erase, (id));
+      erased = true;
     });
   }
 

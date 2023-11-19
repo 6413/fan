@@ -26,6 +26,14 @@
   #define BCOL_set_VisualSolve 0
 #endif
 
+#if BCOL_set_VisualSolve != 0
+  #if BCOL_set_SupportGrid != 0
+    #ifndef BCOL_set_VisualSolve_GridContact
+      #error define BCOL_set_VisualSolve_GridContact
+    #endif
+  #endif
+#endif
+
 #if defined(BCOL_set_IncludePath)
   #define BCOL_Include(p) <BCOL_set_IncludePath/p>
 #else
@@ -62,6 +70,11 @@
   #undef BCOL_set_ConstantFriction
 #endif
 #undef BCOL_Include
+#if BCOL_set_VisualSolve != 0
+  #if BCOL_set_SupportGrid != 0
+    #undef BCOL_set_VisualSolve_GridContact
+  #endif
+#endif
 #undef BCOL_set_VisualSolve
 #undef BCOL_set_StepNumber
 #undef BCOL_set_DynamicToDynamic

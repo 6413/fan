@@ -11,6 +11,12 @@ struct player_t {
       .size = 32,
       .blending = true
     }};
+    loco_t::shapes_t::light_t::properties_t lp;
+    lp.position = visual.get_position();
+    lp.size = 256;
+    lp.color = fan::color(1, 0.4, 0.4, 1);
+
+    lighting = lp;
   }
   void update() {
     f32_t dt = gloco->get_delta_time();
@@ -36,9 +42,11 @@ struct player_t {
 
     visual.set_velocity(velocity);
     visual.set_position(visual.get_collider_position());
+    lighting.set_position(visual.get_position());
   }
   fan::vec2 velocity = 0;
   fan::graphics::collider_dynamic_t visual;
+  loco_t::shape_t lighting;
 };
 
 f32_t zoom = 2;
@@ -67,17 +75,23 @@ void init_zoom() {
 
 int main() {
   loco_t loco;
+  loco.lighting.ambient = 0;
   loco_t::texturepack_t tp;
   tp.open_compiled("texture_packs/tilemap.ftp");
 
   fte_loader_t loader;
   loader.open(&tp);
 
-  auto compiled_map = loader.compile("tilemaps/collision_test.fte");
+  auto compiled_map = loader.compile("tilemaps/3.fte");
 
   fte_loader_t::properties_t p;
 
   p.position = fan::vec3(0, 0, 0);
+  p.object_add_cb = [&](fte_loader_t::fte_t::tile_t& tile) {
+    if (tile.id == "1") {
+      fan::print("a");
+    }
+  };
   auto map_id0_t = loader.add(&compiled_map, p);
 
   init_zoom();

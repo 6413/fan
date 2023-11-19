@@ -78,6 +78,9 @@ namespace fan {
       return newstr;
     }*/
 
+    inline fan::vec2i vec2i(int64_t min, int64_t max) {
+      return fan::vec2i(fan::random::value_i64(min, max), fan::random::value_i64(min, max));
+    }
     inline fan::vec2 vec2(f32_t min, f32_t max) {
       return fan::vec2(fan::random::value_f32(min, max), fan::random::value_f32(min, max));
     }

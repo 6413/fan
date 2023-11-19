@@ -48,8 +48,7 @@ void Step(
       if(VelocityHypotenuse != 0){
         _vf VelocityNormal = ObjectData0->Velocity / VelocityHypotenuse;
 
-        //_vf CollidedVelocity = VelocityNormal.reflect(DirectionAverage); TODO doesnt work for 3d
-        _vf CollidedVelocity = 0;
+        _vf CollidedVelocity = VelocityNormal.reflect(DirectionAverage);
 
         ObjectData0->Velocity = CollidedVelocity * VelocityHypotenuse;
 

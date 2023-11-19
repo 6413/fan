@@ -29,6 +29,7 @@ protected:
 public:
 
   using id_t = map_list_NodeReference_t;
+  using node_t = map_list_NodeData_t;
 
   map_list_t map_list;
 
@@ -51,6 +52,7 @@ public:
   struct properties_t {
     fan::vec3 position = 0;
     fan::vec2 size = 1;
+    fan::function_t<void(fte_loader_t::fte_t::tile_t&)> object_add_cb = [] (fte_loader_t::fte_t::tile_t&) {};
   };
 
   id_t add(compiled_map_t* compiled_map) {
@@ -63,6 +65,7 @@ public:
     node.compiled_map = compiled_map;
     for (auto& i : compiled_map->compiled_shapes) {
       for (auto& j : i.tile.layers) {
+        p.object_add_cb(j);
 
         switch (j.mesh_property) {
           case fte_t::mesh_property_t::none: {
@@ -86,8 +89,8 @@ public:
           case fte_t::mesh_property_t::collider: {
             node.collider_hidden.push_back(
               fan::graphics::collider_hidden_t(
-                node.tiles.back().get_position(), 
-                node.tiles.back().get_size()
+                *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size,
+                compiled_map->tile_size * p.size
               )
             );
             break;
