@@ -159,8 +159,12 @@ constexpr auto min(const auto& test0) const { make_for_all_test1(ret[i] = std::m
 constexpr auto max() const { return *std::max_element(begin(), end()); }
 constexpr auto max(const auto& test0) const { make_for_all_test1(ret[i] = std::max((*this)[i], test0[i])); }
 constexpr void clamp(const vec_t& test0) { make_for_all_test1_noret((*this)[i] = fan::clamp((*this)[i], test0[0], (*this)[i])); }
-constexpr auto clamp(auto min, auto max) const { make_for_all(ret[i] = std::clamp((*this)[i], min, max)); }
-constexpr auto clamp(const auto& test0, const auto& test1) const { make_for_all_test2(ret[i] = std::clamp((*this)[i], test0[i], test1[i])); }
+
+template <typename T, typename T2>
+requires (std::is_arithmetic_v<T> && std::is_arithmetic_v<T2>)
+constexpr auto clamp(T min, T2 max) const { make_for_all(ret[i] = std::clamp((*this)[i], min, max)); }
+template <typename T, template <typename> class vec>
+constexpr auto clamp(const vec<T>& test0, const vec<T>& test1) const { make_for_all_test2(ret[i] = std::clamp((*this)[i], test0[i], test1[i])); }
 constexpr auto dot(const auto& test0) const { return fan::math::dot(*this, test0); }
 // for cross product, its only for vec3 so make custom
 constexpr auto length() const { return sqrt(dot(*this)); }
