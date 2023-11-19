@@ -327,7 +327,7 @@ void update(){
     }
 
 
-    fan::io::iterate_directory(stage_compile_folder_name, [this](const fan::string& path) {
+    fan::io::iterate_directory_files(stage_compile_folder_name, [this](const fan::string& path) {
 
       fan::string p = path;
       auto len = strlen(fan::string(fan::string(stage_compile_folder_name) + "/").c_str());
