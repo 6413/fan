@@ -2392,21 +2392,6 @@ namespace fan {
       // if vulkan
       XInitThreads();
 
-      if (!fan::sys::m_display) {
-        fan::sys::m_display = XOpenDisplay(NULL);
-        if (!fan::sys::m_display) {
-          throw std::runtime_error("failed to initialize window");
-        }
-
-      }
-
-      static bool init_once = true;
-
-      if (init_once) {
-        fan::sys::m_screen = DefaultScreen(fan::sys::m_display);
-        init_once = false;
-      }
-
       void* lib_handle;
       fan::sys::open_lib_handle(shared_library, &lib_handle);
       fan::opengl::glx::PFNGLXGETPROCADDRESSPROC glXGetProcAddress = (decltype(glXGetProcAddress))fan::sys::get_lib_proc(&lib_handle, "glXGetProcAddress");

@@ -142,8 +142,22 @@ namespace fan {
         return result;
       }
 
-      inline Display* m_display;
+      inline Display* initialize_display();
+
       inline int m_screen;
+      inline Display* m_display = initialize_display();
+
+      inline Display* initialize_display() {
+        if (!fan::sys::m_display) {
+          auto* temp = XOpenDisplay(NULL);
+          if (!temp) {
+            throw std::runtime_error("failed to initialize window");
+          }
+          fan::sys::m_screen = DefaultScreen(fan::sys::m_display);
+          return temp;
+        }
+        return fan::sys::m_display;
+      }
 
       static Display* get_display()
       {
