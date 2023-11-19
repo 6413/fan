@@ -1970,7 +1970,17 @@ namespace fan {
     }
 
 		bool key_pressed(uint16_t key) const {
-      return m_scancode_action_map[fan::window_input::convert_fan_to_scancode(key)];
+      #define pressed(_key) m_scancode_action_map[fan::window_input::convert_fan_to_scancode(_key)]
+
+      switch (key) {
+        case fan::key_shift: {
+          return pressed(fan::key_left_shift) || pressed(fan::key_right_shift) || pressed(fan::key_shift);
+        }
+        case fan::key_control: {
+          return pressed(fan::key_left_control) || pressed(fan::key_right_control) || pressed(fan::key_control);
+        }
+      }
+      return pressed(key);
     }
 
 		static constexpr fan::input banned_keys[]{

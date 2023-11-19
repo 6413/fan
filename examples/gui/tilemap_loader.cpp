@@ -20,21 +20,25 @@ struct player_t {
   }
   void update() {
     f32_t dt = gloco->get_delta_time();
+    f32_t multiplier = 1;
+    if (gloco->window.key_pressed(fan::key_shift)) {
+      multiplier = 3;
+    }
     if (gloco->window.key_pressed(fan::key_d)) {
-      velocity.x = speed.x;
+      velocity.x = speed.x * multiplier;
     }
     else if (gloco->window.key_pressed(fan::key_a)) {
-      velocity.x = -speed.x;
+      velocity.x = -speed.x * multiplier;
     }
     else {
       velocity.x = 0;
     }
 
     if (gloco->window.key_pressed(fan::key_w)) {
-      velocity.y = -speed.y;
+      velocity.y = -speed.y * multiplier;
     }
     else if (gloco->window.key_pressed(fan::key_s)) {
-      velocity.y = speed.y;
+      velocity.y = speed.y * multiplier;
     }
     else {
       velocity.y = 0;
@@ -87,8 +91,10 @@ int main() {
   fte_loader_t::properties_t p;
 
   p.position = fan::vec3(0, 0, 0);
+  // add custom stuff when importing files
   p.object_add_cb = [&](fte_loader_t::fte_t::tile_t& tile) {
     if (tile.id == "1") {
+      
       fan::print("a");
     }
   };
@@ -98,6 +104,35 @@ int main() {
 
   player_t player;
 
+  fan::graphics::bcol.PreSolve_Shape_cb = [](
+      bcol_t* bcol,
+      const bcol_t::ShapeInfoPack_t* sip0,
+      const bcol_t::ShapeInfoPack_t* sip1,
+      bcol_t::Contact_Shape_t* Contact
+      ) {
+      // player
+      auto* obj0 = bcol->GetObjectExtraData(sip0->ObjectID);
+      // wall
+      auto* obj1 = bcol->GetObjectExtraData(sip1->ObjectID);
+      if (obj1->collider_type == fan::collider::types_e::collider_sensor) {
+        bcol->Contact_Shape_DisableContact(Contact);
+      }
+
+      switch (obj1->collider_type) {
+        case fan::collider::types_e::collider_static:
+        case fan::collider::types_e::collider_dynamic: {
+          // can access shape by obj0->shape
+          break;
+        }
+        case fan::collider::types_e::collider_hidden: {
+          break;
+        }
+        case fan::collider::types_e::collider_sensor: {
+          fan::print("sensor triggered");
+          break;
+        }
+      }
+    };
 
   loco.loop([&] {
     gloco->get_fps();

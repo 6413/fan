@@ -21,7 +21,8 @@ struct fte_loader_t {
   #define BLL_set_NodeData \
     compiled_map_t* compiled_map; \
     std::vector<loco_t::shape_t> tiles; \
-    std::vector<fan::graphics::collider_hidden_t> collider_hidden;
+    std::vector<fan::graphics::collider_hidden_t> collider_hidden; \
+    std::vector<fan::graphics::collider_sensor_t> collider_sensor;
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
 protected:
@@ -63,6 +64,7 @@ public:
     auto it = map_list.NewNodeLast();
     auto& node = map_list[it];
     node.compiled_map = compiled_map;
+    fan::vec2 origin = 0;//-fan::vec2(compiled_map->map_size * compiled_map->tile_size / 2) * p.size;
     for (auto& i : compiled_map->compiled_shapes) {
       for (auto& j : i.tile.layers) {
         p.object_add_cb(j);
@@ -70,12 +72,12 @@ public:
         switch (j.mesh_property) {
           case fte_t::mesh_property_t::none: {
             // set map origin point to 0
-            fan::vec2 origin = 0;//-fan::vec2(compiled_map->map_size * compiled_map->tile_size / 2) * p.size;
             node.tiles.push_back(fan::graphics::sprite_t{{
                 .position = fan::vec3(origin + *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size, j.position.z + p.position.z),
-                .size = compiled_map->tile_size * p.size,
-                .angle = j.angle
-              }});
+                .size = j.size * p.size,
+                .angle = j.angle,
+                .color = j.color
+            }});
             loco_t::texturepack_t::ti_t ti;
             if (texturepack->qti(j.image_hash, &ti)) {
               fan::throw_error("failed to load image from .fte - corrupted save file");
@@ -90,9 +92,26 @@ public:
             node.collider_hidden.push_back(
               fan::graphics::collider_hidden_t(
                 *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size,
-                compiled_map->tile_size * p.size
+                j.size * p.size
               )
             );
+            break;
+          }
+          case fte_t::mesh_property_t::sensor: {
+            node.collider_sensor.push_back(
+              fan::graphics::collider_sensor_t(
+                *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size,
+                j.size * p.size
+              )
+            );
+            break;
+          }
+          case fte_t::mesh_property_t::light: {
+            node.tiles.push_back(fan::graphics::light_t{{
+              .position = fan::vec3(origin + *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size, j.position.z + p.position.z),
+              .size = j.size * p.size,
+              .color = j.color
+            }});
             break;
           }
         }

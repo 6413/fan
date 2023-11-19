@@ -5,7 +5,7 @@ struct fte_t {
   static constexpr fan::vec2 default_button_size{ 100, 30 };
   static constexpr fan::vec2 tile_viewer_sprite_size{ 64, 64 };
   static constexpr fan::color highlighted_tile_color = fan::color(0.5, 0.5, 1);
-  static constexpr fan::color highlighted_selected_tile_color = fan::color(0.5, 0, 0, 0.5);
+  static constexpr fan::color highlighted_selected_tile_color = fan::color(0.5, 0, 0, 0.1);
 
   static constexpr f32_t scroll_speed = 1.2;
   static constexpr uint32_t invalid = -1;
@@ -229,7 +229,7 @@ struct fte_t {
       texturepack_images.push_back(ii);
       });
 
-    grid_visualize.background = fan::graphics::sprite_t{ {
+    grid_visualize.background = fan::graphics::unlit_sprite_t{ {
       .position = fan::vec3(viewport_settings.pos, 0),
       .size = 0,
       .image = &gloco->transparent_texture
@@ -238,16 +238,22 @@ struct fte_t {
     grid_visualize.highlight_color.create(fan::colors::red, 1);
     grid_visualize.collider_color.create(fan::color(0, 0.5, 0, 0.5), 1);
 
-    grid_visualize.highlight_hover = fan::graphics::sprite_t{ {
+    grid_visualize.highlight_hover = fan::graphics::unlit_sprite_t{ {
       .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth),
       .size = tile_size,
       .image = &grid_visualize.highlight_color,
       .blending = true
     } };
-    grid_visualize.highlight_selected = fan::graphics::rectangle_t{ {
+    static bool init = true;
+    static loco_t::image_t highlight_selected_texture;
+    if (init) {
+      init = false;
+      highlight_selected_texture.create(highlighted_selected_tile_color, 1);
+    }
+    grid_visualize.highlight_selected = fan::graphics::unlit_sprite_t{ {
       .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth - 1),
       .size = 0,
-      .color = highlighted_selected_tile_color,
+      .image = &highlight_selected_texture,
       .blending = true
     } };
 
@@ -314,7 +320,6 @@ struct fte_t {
     auto& layers = map_tiles[fan::vec2i(grid_position.x, grid_position.y)].layers;
     uint32_t idx = find_layer_shape(layers);
     if ((idx == invalid) && current_tile_image.ti.valid()) {
-      //fan::print("r0");
       layers.resize(layers.size() + 1);
       layers.back().tile.position = fan::vec3(position, brush.depth);
       layers.back().tile.image_hash = current_tile_image.image_hash;
@@ -358,6 +363,7 @@ struct fte_t {
         layers.back().tile.mesh_property = mesh_property_t::light;
       }
       }
+      current_tile.position = position;
       current_tile.layer = layers.data();
       current_tile.layer_index = layers.size() - 1;
     }
@@ -367,7 +373,7 @@ struct fte_t {
       grid_position /= fan::vec2i(tile_size);
       auto found = map_tiles.find(fan::vec2i(grid_position.x, grid_position.y));
       if (found != map_tiles.end()) {
-        auto& layers = map_tiles[fan::vec2i(grid_position.x, grid_position.y)].layers;
+        auto& layers = found->second.layers;
         idx = find_layer_shape(layers);
         if (idx != invalid || idx < layers.size()) {
           auto& layer = layers[idx];
@@ -499,8 +505,9 @@ struct fte_t {
             fan::vec2i src = copy_src;
             fan::vec2i dst = mouse_grid_pos;
             copy_dst = dst;
-            int stepx = (src.x <= dst.x) ? 1 : -1;
-            int stepy = (src.y <= dst.y) ? 1 : -1;
+            // 2 is coordinate specific
+            int stepx = (src.x <= dst.x) ? 2 : -2;
+            int stepy = (src.y <= dst.y) ? 2 : -2;
             for (int j = src.y; j != dst.y + stepy; j += stepy) {
               for (int i = src.x; i != dst.x + stepx; i += stepx) { 
                 select.push_back(fan::graphics::rectangle_t{{
@@ -519,13 +526,13 @@ struct fte_t {
           if (mouse_to_grid(mouse_grid_pos)) {
             fan::vec2 src = copy_src;
             fan::vec2 dst = copy_dst;
-            int stepx = (src.x <= dst.x) ? 1 : -1;
-            int stepy = (src.y <= dst.y) ? 1 : -1;
+            int stepx = (src.x <= dst.x) ? 2 : -2;
+            int stepy = (src.y <= dst.y) ? 2 : -2;
             for (int j = src.y; j != dst.y + stepy; j += stepy) {
               for (int i = src.x; i != dst.x + stepx; i += stepx) {
                 auto found = map_tiles.find(fan::vec2i(i, j));
                 if (found != map_tiles.end()) {
-                  copy_buffer.push_back(&found->second);
+                  copy_buffer.push_back(std::make_pair(src, fan::vec2i(i, j) - src));
                 }
               }
             }
@@ -535,30 +542,20 @@ struct fte_t {
         // paste copy buffer
         if (is_mouse_right_clicked) {
           fan::vec2i mouse_grid_pos;
-          fan::vec2i src = copy_src;
-          fan::vec2i dst = copy_dst;
-          int stepx = (src.x <= dst.x) ? 1 : -1;
-          int stepy = (src.y <= dst.y) ? 1 : -1;
-          int iterator = 0;
           if (mouse_to_grid(mouse_grid_pos)) {
             for (auto& i : copy_buffer) {
-              fan::vec2i current_pos = fan::vec2(
-                ((stepx * iterator) % (dst.x - src.x)),
-                ((stepy * iterator) / (dst.y - src.y))
-              );
-              current_pos += mouse_grid_pos;
-
+              fan::vec2i current_pos = mouse_grid_pos + i.second;
               if (is_in_constraints(current_pos * tile_size)) {
-                map_tiles[current_pos] = *i;
-                for (auto& tile : map_tiles[current_pos].layers) {
-                  fan::vec2 tile_position = fan::vec2(tile.shape.get_position()) + (mouse_grid_pos - src) * tile_size;
-                  if (is_in_constraints(tile_position)) { // todo fix
-                    tile.shape.set_position(tile_position);
+                auto found = map_tiles.find(fan::vec2i(current_pos.x, current_pos.y));
+                found->second = map_tiles[i.first + i.second];
+                for (auto& tile : found->second.layers) {
+                  fan::vec2 tile_position = (current_pos)*tile_size;
+                  fan::vec2 offset = fan::vec2(tile.shape.get_position()) - (i.first + i.second) * tile_size;
+                  if (is_in_constraints(tile_position + offset)) { // todo fix
+                    tile.shape.set_position(tile_position + offset);
                   }
                 }
               }
-
-              iterator++;
             }
           }
         }
@@ -570,6 +567,10 @@ struct fte_t {
 
   void handle_tile_action(fan::vec2i& position, auto action) {
     if (!window_relative_to_grid(gloco->get_mouse_position(), &position)) {
+      if (editor_settings.hovered && current_tile.layer != nullptr) {
+        grid_visualize.highlight_selected.set_size(0);
+        current_tile.layer = nullptr;
+      }
       return;
     }
     fan::vec2 grid_position = position / tile_size;
@@ -581,10 +582,6 @@ struct fte_t {
       for (int j = 0; j < brush.size.x; ++j) {
         if (action(position, j, i)) {
           continue;
-        }
-        else if (editor_settings.hovered && current_tile.layer != nullptr) {
-          grid_visualize.highlight_selected.set_size(0);
-          current_tile.layer = nullptr;
         }
       }
     }
@@ -738,6 +735,13 @@ struct fte_t {
     if (ImGui::Begin("Tile settings")) {
       if (current_tile.layer != nullptr) {
         auto& layer = current_tile.layer[current_tile.layer_index];
+
+        {
+          fan::vec2 offset = fan::vec2(layer.shape.get_position()) - current_tile.position;
+          if (ImGui::SliderFloat2("offset", (float*)offset.data(), -tile_size.max() * 2, tile_size.max() * 2)) {
+            layer.shape.set_position(fan::vec2(current_tile.position) + offset);
+          }
+        }
          {
           fan::string temp = current_tile.layer[current_tile.layer_index].tile.id;
           temp.resize(max_id_len);
@@ -869,8 +873,9 @@ struct fte_t {
       auto found = map_tiles.find(fan::vec2i(grid_position.x, grid_position.y));
       if (found != map_tiles.end()) {
         auto& layers = found->second.layers;
-        uint32_t idx = find_top_layer_shape(layers);
+        uint32_t idx = find_layer_shape(layers);
         if ((idx != invalid || idx < brush.depth)) {
+          current_tile.position = position;
           current_tile.layer = layers.data();
           current_tile.layer_index = idx;
           grid_visualize.highlight_selected.set_position(fan::vec2(position));
@@ -1017,6 +1022,7 @@ shape data{
   };
 
   struct current_tile_t {
+    fan::vec2i position = 0;
     shapes_t::global_t::layer_t* layer = nullptr;
     uint32_t layer_index;
   };
@@ -1100,5 +1106,6 @@ shape data{
 
   fan::vec2i prev_grid_position = 999999;
 
-  std::vector<shapes_t::global_t*> copy_buffer;
+  // origin, offset
+  std::vector<std::pair<fan::vec2i, fan::vec2i>> copy_buffer;
 };
