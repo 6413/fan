@@ -48,7 +48,7 @@ int main() {
   static constexpr int max_search_path = 50;
   search_path.resize(max_search_path);
 
- 
+  fan::string peek_file_contents;
 
   fan::graphics::imgui_element_t element([&] {
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
@@ -96,11 +96,17 @@ int main() {
 
       ImGui::Selectable(("##" + item_name).c_str());
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
-        if (fan::io::is_readable_path(i.name.c_str())) {
-          prev_path = current_path;
-          current_path = i.name;
-          update_directory_list(current_path, directory_list);
-          goto g_reset;
+        if (i.is_directory) {
+          if (fan::io::is_readable_path(i.name.c_str())) {
+            prev_path = current_path;
+            current_path = i.name;
+            update_directory_list(current_path, directory_list);
+            goto g_reset;
+          }
+        }
+        else {
+          peek_file_contents.clear();
+          fan::io::file::read(i.name, &peek_file_contents);
         }
       }
       ImGui::SameLine();
@@ -111,6 +117,12 @@ int main() {
       ImGui::Text(item_name.c_str());
 
     }
+
+    ImGui::Begin("Peek file");
+    if (peek_file_contents.size()) {
+      ImGui::InputTextMultiline("##TextFileContents", peek_file_contents.data(), peek_file_contents.size(), ImVec2(-1.0f, -1.0f), ImGuiInputTextFlags_ReadOnly);
+    }
+    ImGui::End();
 
   g_reset:
     ImGui::End();
