@@ -3,6 +3,17 @@
 #if defined(fan_build_pch)
 #if defined(loco_physics)
 
+namespace fan {
+  namespace collider {
+    enum class types_e {
+      collider_static,
+      collider_dynamic,
+      collider_hidden,
+      collider_sensor
+    };
+  }
+}
+
 constexpr static f32_t bcol_step_time = 0.01;
 #define BCOL_set_Dimension 2
 #define BCOL_set_IncludePath FAN_INCLUDE_PATH/fan
@@ -10,7 +21,9 @@ constexpr static f32_t bcol_step_time = 0.01;
 #define BCOL_set_DynamicDeltaFunction 
 #define BCOL_set_StoreExtraDataInsideObject 1
 #define BCOL_set_ExtraDataInsideObject \
-  bcol_t::ShapeID_t shape_id;
+  bcol_t::ShapeID_t shape_id;\
+  fan::collider::types_e collider_type; \
+  loco_t::shape_t* shape = nullptr;
 #include _FAN_PATH(ETC/BCOL/BCOL.h)
 
 namespace fan {
@@ -55,20 +68,6 @@ namespace fan {
       };
     }
 
-    struct collider_hidden_t {
-      collider_hidden_t() = default;
-      collider_hidden_t(const fan::vec2& position, const fan::vec2& size) {
-        bcol_t::ObjectProperties_t p;
-        p.Position = position;
-        bcol_t::ShapeProperties_Rectangle_t sp;
-        sp.Position = 0;
-        sp.Size = size;
-        oid = bcol.NewObject(&p, bcol_t::ObjectFlag::Constant);
-        auto shape_id = bcol.NewShape_Rectangle(oid, &sp);
-        bcol.GetObjectExtraData(oid)->shape_id = shape_id;
-      }
-      bcol_t::ObjectID_t oid;
-    };
     struct collider_static_t : loco_t::shape_t {
       collider_static_t() = default;
       collider_static_t(const loco_t::shape_t& shape)
@@ -80,7 +79,10 @@ namespace fan {
         sp.Size = get_size();
         oid = bcol.NewObject(&p, bcol_t::ObjectFlag::Constant);
         auto shape_id = bcol.NewShape_Rectangle(oid, &sp);
-        bcol.GetObjectExtraData(oid)->shape_id = shape_id;
+        auto* data = bcol.GetObjectExtraData(oid);
+        data->shape = dynamic_cast<loco_t::shape_t*>(this);
+        data->shape_id = shape_id;
+        data->collider_type = fan::collider::types_e::collider_static;
       }
       bcol_t::ObjectID_t oid;
     };
@@ -95,7 +97,10 @@ namespace fan {
         sp.Size = get_size().max();
         oid = bcol.NewObject(&p, 0);
         auto shape_id = bcol.NewShape_Circle(oid, &sp);
-        bcol.GetObjectExtraData(oid)->shape_id = shape_id;
+        auto* data = bcol.GetObjectExtraData(oid);
+        data->shape = dynamic_cast<loco_t::shape_t*>(this);
+        data->shape_id = shape_id;
+        data->collider_type = fan::collider::types_e::collider_dynamic;
       }
       fan::vec2 get_collider_position() const {
         return bcol.GetObject_Position(oid);
@@ -103,6 +108,38 @@ namespace fan {
 
       void set_velocity(const fan::vec2& v) {
         bcol.SetObject_Velocity(oid, v);
+      }
+      bcol_t::ObjectID_t oid;
+    };
+    struct collider_hidden_t {
+      collider_hidden_t() = default;
+      collider_hidden_t(const fan::vec2& position, const fan::vec2& size) {
+        bcol_t::ObjectProperties_t p;
+        p.Position = position;
+        bcol_t::ShapeProperties_Rectangle_t sp;
+        sp.Position = 0;
+        sp.Size = size;
+        oid = bcol.NewObject(&p, bcol_t::ObjectFlag::Constant);
+        auto shape_id = bcol.NewShape_Rectangle(oid, &sp);
+        auto* data = bcol.GetObjectExtraData(oid);
+        data->shape_id = shape_id;
+        data->collider_type = fan::collider::types_e::collider_hidden;
+      }
+      bcol_t::ObjectID_t oid;
+    };
+    struct collider_sensor_t {
+      collider_sensor_t() = default;
+      collider_sensor_t(const fan::vec2& position, const fan::vec2& size) {
+        bcol_t::ObjectProperties_t p;
+        p.Position = position;
+        bcol_t::ShapeProperties_Rectangle_t sp;
+        sp.Position = 0;
+        sp.Size = size;
+        oid = bcol.NewObject(&p, bcol_t::ObjectFlag::Constant);
+        auto shape_id = bcol.NewShape_Rectangle(oid, &sp);
+        auto* data = bcol.GetObjectExtraData(oid);
+        data->shape_id = shape_id;
+        data->collider_type = fan::collider::types_e::collider_sensor;
       }
       bcol_t::ObjectID_t oid;
     };
