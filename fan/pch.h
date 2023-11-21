@@ -9,7 +9,7 @@
 #include <fstream>
 #include <string>
 
-#define loco_imgui
+//#define loco_imgui
 
 #define STRINGIFY(p0) #p0
 #define STRINGIFY_DEFINE(a) STRINGIFY(a)
@@ -45,19 +45,19 @@
 #define loco_window
 #define loco_context
 
-#define loco_rectangle
-#define loco_light
-#define loco_line
-#define loco_circle
-#define loco_button
+//#define loco_rectangle
+//#define loco_light
+//#define loco_line
+//#define loco_circle
+//#define loco_button
 #define loco_sprite
-#define loco_dropdown
-#define loco_pixel_format_renderer
-#define loco_tp
-#define loco_sprite_sheet
+//#define loco_dropdown
+//#define loco_pixel_format_renderer
+//#define loco_tp
+//#define loco_sprite_sheet
 
 // 
-#define loco_physics
+//#define loco_physics
 /*
 #define loco_cuda
 #define loco_nv12

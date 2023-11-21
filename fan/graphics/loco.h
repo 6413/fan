@@ -903,10 +903,11 @@ public:
       gloco->shape_erase(*this);
       inherit_t::invalidate();
     }
-
+    #if defined(loco_responsive_text)
     bool append_letter(wchar_t wc, bool force = false) {
       return gloco->shapes.responsive_text.append_letter(*this, wc, force);
     }
+    #endif
 
     fan_build_get_set_cref(fan::vec3, position);
 

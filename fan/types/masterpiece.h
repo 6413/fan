@@ -427,6 +427,9 @@ namespace fan {
   struct mp_t : T {
     using type_t = T;
 
+    mp_t() = default;
+    mp_t(const T& v) : T(v) {}
+
     constexpr auto get_tuple_refless() {
       T t;
       return fan::make_struct_tuple<T>(t);
