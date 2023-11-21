@@ -89,6 +89,13 @@ int main() {
 
     ImGui::End();
 
+    ImGui::Begin("Peek file");
+    if (peek_file_contents.size()) {
+      ImGui::InputTextMultiline("##TextFileContents", peek_file_contents.data(), peek_file_contents.size(), ImVec2(-1.0f, -1.0f), ImGuiInputTextFlags_ReadOnly);
+    }
+    ImGui::End();
+
+
     ImGui::Begin("Directory view");
     for (auto& i : directory_list) {
 
@@ -116,12 +123,6 @@ int main() {
       ImGui::Text(item_name.c_str());
 
     }
-
-    ImGui::Begin("Peek file");
-    if (peek_file_contents.size()) {
-      ImGui::InputTextMultiline("##TextFileContents", peek_file_contents.data(), peek_file_contents.size(), ImVec2(-1.0f, -1.0f), ImGuiInputTextFlags_ReadOnly);
-    }
-    ImGui::End();
 
 
     ImGui::End();

@@ -3,6 +3,9 @@ struct ti_t {
   bool qti(auto* texture_pack, const fan::string& name) {
     return texture_pack->qti(name, this);
   }
+  bool qti(auto* texture_pack, uint64_t hash) {
+    return texture_pack->qti(hash, this);
+  }
 
   bool valid() const {
     return image != nullptr;

@@ -16,7 +16,7 @@ struct global_t {
 }global;
 
 f64_t f(f64_t x) {
-  return sin(x);
+  return exp(x);
 }
 
 f64_t f2(f64_t x) {

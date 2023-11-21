@@ -8,25 +8,34 @@ void CPC_Circle_Square(
 ){
   _vf Sp0 = p0 - p1;
   _vf SPp0 = Sp0.abs();
-  if(SPp0.x > p1Size && SPp0.y > p1Size){
+  bool AllBigger = true;
+  for(uint32_t d = 0; d < _dc; d++){
+    if(SPp0[d] <= p1Size){
+      AllBigger = false;
+      break;
+    }
+  }
+  if(AllBigger == true){
     _vf Corner = SPp0 - p1Size;
-    _f Divider = fan::math::sqrt(Corner.y * Corner.y + Corner.x * Corner.x);
+    _f Divider = Corner.length();
     _vf CircleOffset = Corner / Divider;
-    *op0 = p1 + fan::vec2(CircleOffset * p0Size + p1Size).copysign(Sp0);
-    *oDirection = fan::vec2(CircleOffset).copysign(Sp0);
+    for(uint32_t d = 0; d < _dc; d++){ /* TODO use vectorel copysign */
+      (*op0)[d] = p1[d] + copysign(CircleOffset[d] * p0Size + p1Size, Sp0[d]);
+      (*oDirection)[d] = copysign(CircleOffset[d], Sp0[d]);
+    }
   }
   else{
-    if(SPp0.x <= p1Size){
-      op0->y = p1.y + fan::math::copysign(p1Size + p0Size, Sp0.y);
-      op0->x = p0.x;
-      oDirection->y = fan::math::copysign(1, Sp0.y);
-      oDirection->x = 0;
-    }
-    else if(SPp0.y <= p1Size){
-      op0->y = p0.y;
-      op0->x = p1.x + fan::math::copysign(p1Size + p0Size, Sp0.x);
-      oDirection->y = 0;
-      oDirection->x = fan::math::copysign(1, Sp0.x);
+    for(uint32_t d = 0; d < _dc; d++){
+      if(SPp0[d] > p1Size){
+        continue;
+      }
+      for(uint32_t d0 = 0; d0 < _dc; d0++){
+        (*op0)[d0] = p1[d0] + fan::math::copysign(p1Size + p0Size, Sp0[d0]);
+        (*oDirection)[d0] = fan::math::copysign(_f(1), Sp0[d0]);
+      }
+      (*op0)[d] = p0[d];
+      (*oDirection)[d] = 0;
+      break;
     }
   }
 }

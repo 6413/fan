@@ -841,6 +841,7 @@ public:
 
     shape_t() { sic(); };
     template <typename T>
+    requires requires(T t) { typename T::type_t; }
     shape_t(const T& properties) {
       inherit_t::init();
       gloco->push_shape(*this, properties);
@@ -904,7 +905,7 @@ public:
     }
 
     bool append_letter(wchar_t wc, bool force = false) {
-      return gloco->shape_append_letter(*this, wc, force);
+      return gloco->shapes.responsive_text.append_letter(*this, wc, force);
     }
 
     fan_build_get_set_cref(fan::vec3, position);
@@ -918,6 +919,7 @@ public:
     fan_build_get_set_cref(f32_t, angle);
     fan_build_get_set_cref(fan::string, text);
     fan_build_get_set_cref(fan::vec2, rotation_point);
+    fan_build_get_set_cref(fan::vec3, rotation_vector);
     fan_build_get_set_cref(f32_t, font_size);
 
     fan_build_get_set_cref(fan::color, outline_color);
@@ -1930,6 +1932,7 @@ public:
   fan_build_get_set_shape_property(f32_t, angle);
   fan_build_get_set_shape_property(const fan::string&, text);
   fan_build_get_set_shape_property(const fan::vec2&, rotation_point);
+  fan_build_get_set_shape_property(const fan::vec3&, rotation_vector);
   fan_build_get_set_shape_property(f32_t, font_size);
   fan_build_get_set_shape_property(const fan::vec2&, text_size);
 
@@ -1945,7 +1948,7 @@ public:
   fan_build_get_set_shape_property(loco_t::camera_t*, camera);
   fan_build_get_set_shape_property(loco_t::image_t*, image);
 
-  bool shape_append_letter(
+  /*bool shape_append_letter(
     loco_t::cid_nt_t& id,
       wchar_t wc,
       bool force = false
@@ -1958,7 +1961,7 @@ public:
       fan_if_has_function_get(&shape, append_letter, (id), ret);
     }); 
     return ret;
-  }
+  }*/
 
   void shape_set_line(
   loco_t::cid_nt_t& id,

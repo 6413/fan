@@ -38,6 +38,5 @@ struct structor_t{
     gloco->m_update_callback[gstage->stage_list[outside->stage_common.stage_id].update_nr] = [&, outside](loco_t* loco) {
       outside->update();
     };
-    fan::print("+", &outside->stage_common, outside->stage_common.cid_list.Usage());
   }
 }structor;

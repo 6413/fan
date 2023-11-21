@@ -12,6 +12,14 @@ struct pile_t {
 #define stage_loader_path .
 #include _FAN_PATH(graphics/gui/stage_maker/loader.h)
 
+
+struct a_t {
+  typedef a_t b_t;
+  a_t() {
+
+  }
+};
+
 // make custom stage
 lstd_defstruct(custom_t)
   #include _FAN_PATH(graphics/gui/stage_maker/preset.h)
@@ -21,23 +29,19 @@ lstd_defstruct(custom_t)
   fan::graphics::rectangle_t r;
 
   void open(void* sod) {
-    r = {{
-      .position = 400,
-      .size = 100,
-      .color = fan::colors::red
-    }};
+    fan::print("opened");
   }
 
   void close() {
-
+    fan::print("closed");
   }
 
   void window_resize() {
-
+    fan::print("resized");
   }
 
   void update() {
-
+    //fan::print("update");
   }
 };
 
@@ -59,8 +63,9 @@ int main() {
 
   stage_loader_t::stage_open_properties_t op;
 
-  //stage_loader_t::nr_t it_custom = stage_loader_t::open_stage<custom_t>(op);
-  auto it_stage0 = stage_loader_t::open_stage<stage_loader_t::stage::stage0_t>(op);
+  stage_loader_t::nr_t it_custom = stage_loader_t::open_stage<custom_t>(op);
+  pile.stage_loader->erase_stage(it_custom);
+  //auto it_stage0 = stage_loader_t::open_stage<stage_loader_t::stage::stage0_t>(op);
 
   pile.loco.loop([] {
 

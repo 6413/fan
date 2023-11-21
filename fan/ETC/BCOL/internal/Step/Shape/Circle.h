@@ -11,7 +11,7 @@ _f WantedCollisionRequesters = 0;
   const _f GridBlockSize_D2 = GridBlockSize / 2;
 
   _vf gbs(GridBlockSize);
-  for(iterate_grid_for_circle_t<gbs.size()> ig; ig.it(gbs, NewPosition, CircleData->Size);){
+  for(iterate_grid_for_circle_t ig; ig.it(gbs, NewPosition, CircleData->Size);){
     Contact_Grid_t Contact;
     this->PreSolve_Grid_cb(
       this,

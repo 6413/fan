@@ -8,7 +8,7 @@ struct a_t {
 };
 
 int main() {
-
+  //
   loco_t loco;
   fte_t fte;
   fte.file_name = "tilemaps/3.fte";
@@ -17,7 +17,7 @@ int main() {
   //loco.set_vsync(0);
   //loco.window.set_max_fps(165);
   loco.loop([&] {
-    //loco.get_fps();
+    loco.get_fps();
   });
   
   return 0;

@@ -756,6 +756,18 @@ struct fte_t {
           }
         }
         {
+          fan::vec2 rotation_point = current_tile.layer[current_tile.layer_index].shape.get_rotation_point();
+          if (ImGui::SliderFloat2("rotation point", rotation_point.data(), -tile_size.max() * 2, tile_size.max() * 2)) {
+            layer.shape.set_rotation_point(rotation_point);
+          }
+        }
+        {
+          fan::vec3 rotation_vector = current_tile.layer[current_tile.layer_index].shape.get_rotation_vector();
+          if (ImGui::SliderFloat3("rotation vector", rotation_vector.data(), 0, 1)) {
+            layer.shape.set_rotation_vector(rotation_vector);
+          }
+        }
+        {
           if (ImGui::ColorEdit4("color", (float*)brush.color.data())) {
             layer.shape.set_color(brush.color);
           }
@@ -812,7 +824,7 @@ struct fte_t {
 
 
       {
-        if (ImGui::SliderInt2("size", brush.size.data(), 1, 100)) {
+        if (ImGui::SliderInt2("size", brush.size.data(), 1, 1e+6)) {
           grid_visualize.highlight_hover.set_size(tile_size * brush.size);
         }
       }
