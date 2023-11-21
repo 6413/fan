@@ -86,10 +86,11 @@ namespace fan {
 		}
     // not tested
     template <typename T>
-    vec3_wrap_t reflect(const T& normal) {
-      auto k = fan::math::cross(vec3_wrap_t{ normal.x, normal.y, normal.z }, vec3_wrap_t{ 0, 0, -1 });
-      f32_t multiplier = k.dot(vec3_wrap_t{ x, y, z });
-      return vec3_wrap_t(k.x * multiplier, k.y * multiplier, k.z * multiplier);
+    vec3_wrap_t<T> reflect(const vec3_wrap_t<T>& normal) {
+      double dot_product = dot(normal);
+      vec3_wrap_t<T> scaled_normal = normal * (2 * dot_product);
+      vec3_wrap_t<T> reflection = *this - scaled_normal;
+      return reflection;
     }
   };
 

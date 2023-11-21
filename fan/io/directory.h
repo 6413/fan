@@ -102,7 +102,7 @@ namespace fan {
 
       try {
         for (const auto& entry : std::filesystem::directory_iterator(path)) {
-          fan::string str = entry.path().string().data();
+          fan::string str = entry.path().string();
           std::replace(str.begin(), str.end(), '\\', '/');
           function(str, entry.is_directory());
         }

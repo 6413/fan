@@ -758,6 +758,12 @@ struct responsive_text_t {
   //  }
   //}
 
+  fan::vec3 get_position(loco_t::cid_nt_t& id) {
+    auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
+    auto& instance = tlist[instance_id];
+
+    return instance.position;
+  }
   void set_position(loco_t::cid_nt_t& id, const fan::vec3& v) {
     auto instance_id = *(tlist_NodeReference_t*)id.gdp4();
     auto& instance = tlist[instance_id];

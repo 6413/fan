@@ -11,21 +11,28 @@ static _f clamp(_f v, _f mi, _f ma){
   return v < mi ? mi : v > ma ? ma : v;
 }
 
-template <uint8_t ts>
 struct iterate_grid_for_rectangle_t{
   public:
-    fan::vec_wrap_t<ts, sint32_t> gs; /* grid start */
+    _vsi32 gs; /* grid start */
   private:
     uint8_t c = 0;
-    fan::vec_wrap_t<ts, sint32_t> ge[ts]; /* grid end */
+    _vsi32 ge; /* grid end */
     bool NeedInit = true;
 
     void InitCurrent(const auto &gbs, const auto &wp, f32_t er){
-      if(c < ts){
-        gs[c] = (wp[c] - er) / gbs[c];
-        ge[c] = (wp[c] + er) / gbs[c];
+      if(c < _dc){
+        _f wpm = wp[c] - er;
+        _f wpp = wp[c] + er;
+        gs[c] = wpm / gbs[c];
+        ge[c] = wpp / gbs[c];
+        if(wpm < 0){
+          gs[c]--;
+        }
+        if(wpp < 0){
+          ge[c]--;
+        }
       }
-      if(c + 1 == ts){
+      if(c + 1 == _dc){
         gs[c]--; /* we increase this even before check ge[c] so this is needed */
       }
     }
@@ -35,7 +42,7 @@ struct iterate_grid_for_rectangle_t{
     }
     void Decrease(){
       c--;
-      if(c < ts){
+      if(c < _dc){
         gs[c]++;
         if(gs[c] > ge[c]){
           Decrease();
@@ -49,10 +56,10 @@ struct iterate_grid_for_rectangle_t{
       _vf s /* size */
     ){
       while(1){
-        if(c + 1 < ts){
+        if(c + 1 < _dc){
           Increase(gbs, wp, s[c + 1]);
         }
-        else if(c < ts){
+        else if(c < _dc){
           gs[c]++;
           if(gs[c] <= ge[c]){
             return true;
@@ -74,21 +81,28 @@ struct iterate_grid_for_rectangle_t{
     }
 };
 
-template <uint8_t ts>
 struct iterate_grid_for_circle_t{
   public:
-    fan::vec_wrap_t<ts, sint32_t> gs; /* grid start */
+    _vsi32 gs; /* grid start */
   private:
     uint8_t c = 0;
-    fan::vec_wrap_t<ts, sint32_t> ge[ts]; /* grid end */
+    _vsi32 ge; /* grid end */
     bool NeedInit = true;
 
     void InitCurrent(const auto &gbs, const auto &wp, f32_t er){
-      if(c < ts){
-        gs[c] = (wp[c] - er) / gbs[c];
-        ge[c] = (wp[c] + er) / gbs[c];
+      if(c < _dc){
+        _f wpm = wp[c] - er;
+        _f wpp = wp[c] + er;
+        gs[c] = wpm / gbs[c];
+        ge[c] = wpp / gbs[c];
+        if(wpm < 0){
+          gs[c]--;
+        }
+        if(wpp < 0){
+          ge[c]--;
+        }
       }
-      if(c + 1 == ts){
+      if(c + 1 == _dc){
         gs[c]--; /* we increase this even before check ge[c] so this is needed */
       }
     }
@@ -98,7 +112,7 @@ struct iterate_grid_for_circle_t{
     }
     void Decrease(){
       c--;
-      if(c < ts){
+      if(c < _dc){
         gs[c]++;
         if(gs[c] > ge[c]){
           Decrease();
@@ -120,12 +134,12 @@ struct iterate_grid_for_circle_t{
       f32_t r /* radius */
     ){
       while(1){
-        if(c + 1 < ts){
+        if(c + 1 < _dc){
           f32_t rp = (f32_t)gs[c] * gbs[c] - wp[c]; /* relative position */
           f32_t roff = gbod(r, rp, rp + gbs[c]); /* relative offset */
           Increase(gbs, wp, roff);
         }
-        else if(c < ts){
+        else if(c < _dc){
           gs[c]++;
           if(gs[c] <= ge[c]){
             return true;
@@ -146,3 +160,32 @@ struct iterate_grid_for_circle_t{
       return _it(gbs, wp, r);
     }
 };
+
+bool ray_circle_intersection(
+  _vf ray_pos,
+  _vf ray_dir,
+  _vf cpos,
+  _f r,
+  _vf &intersection_position
+){
+  _vf ray_to_circle = cpos - ray_pos;
+
+  _vf projection = ray_to_circle.dot(ray_dir);
+
+  if(projection < 0) {
+    return false;
+  }
+
+  _vf closest_point = ray_pos + ray_dir * projection;
+
+  /* intersection distance */
+  _f interdist = (cpos - closest_point).length();
+
+  if(interdist > r){
+    return false;
+  }
+
+  intersection_position = ray_pos + ray_dir * projection - ray_to_circle.normalize() * std::sqrt(r * r - interdist * interdist);
+
+  return true;
+}
