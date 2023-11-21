@@ -1,5 +1,5 @@
 // add custom shapes to this file
-
+#if defined(loco_rectangle)
 struct line_grid_t {
 
   static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::custom;
@@ -71,3 +71,5 @@ struct line_grid_t {
   #include _FAN_PATH(graphics/shape_builder.h)
 };
 line_grid_t line_grid;
+
+#endif
