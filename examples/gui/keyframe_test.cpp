@@ -1,100 +1,6 @@
 #include fan_pch
 
-struct controls_t {
-  bool playing = false;
-  bool loop = true;
-  f32_t time = 0;
-  f32_t max_time = 0;
-}controls;
-
-struct key_frame_t {
-  f32_t time = 0;
-  fan::vec3 position = 0;
-  fan::vec2 size = 400;
-  f32_t angle = 0;
-  fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-};
-
-struct animation_t {
-  void push_frame(const key_frame_t& key_frame) {
-    key_frames.push_back(key_frame);
-    update_key_frame_value();
-  }
-
-  void update_key_frame_render_value() {
-    if (key_frames.empty()) {
-      return;
-    }
-    if (frame_index >= key_frames.size()) {
-      return;
-    }
-    current_frame = key_frames[frame_index];
-    if (current_frame.time == 0) {
-      current_frame.time = 1;
-    }
-  }
-
-  void update_key_frame_value() {
-    if (key_frames.empty()) {
-      return;
-    }
-    if (frame_index + 1 >= key_frames.size()) {
-      return;
-    }
-    current_frame = key_frames[frame_index];
-    current_frame.time = key_frames[frame_index + 1].time - key_frames[frame_index].time;
-    if (current_frame.time == 0) {
-      current_frame.time = 1;
-    }
-  }
-
-  void update_seek() {
-    if (key_frames.empty()) {
-      return;
-    }
-    if (frame_index + 1 >= key_frames.size()) {
-      return;
-    }
-    auto& frame_src = key_frames[frame_index];
-    auto& frame_dst = key_frames[frame_index + 1];
-    current_frame.position = frame_src.position.lerp(frame_dst.position, current_frame.time);
-    current_frame.size = frame_src.size.lerp(frame_dst.size, current_frame.time);
-    current_frame.angle = fan::math::lerp(frame_src.angle, frame_dst.angle, current_frame.time);
-    current_frame.rotation_vector = frame_src.rotation_vector.lerp(frame_dst.rotation_vector, current_frame.time);
-  }
-
-  void update(f32_t dt) {
-    if (key_frames.empty()) {
-      return;
-    }
-    if (frame_index + 1 >= key_frames.size()) {
-      return;
-    }
-    auto& frame_src = current_frame;
-    auto& frame_dst = key_frames[frame_index + 1];
-    if (current_frame.time >= 0) {
-      if (current_frame.time == 0) {
-        current_frame = key_frames[frame_index];
-      }
-      else {
-        current_frame.position += (frame_dst.position - frame_src.position) / current_frame.time * dt;
-        current_frame.size += (frame_dst.size - frame_src.size) / current_frame.time * dt;
-        current_frame.angle += (frame_dst.angle - frame_src.angle) / current_frame.time * dt;
-        current_frame.rotation_vector += (frame_dst.rotation_vector - frame_src.rotation_vector) / current_frame.time * dt;
-        current_frame.time -= dt;
-      }
-    }
-  }
-  int frame_index = 0;
-  std::vector<key_frame_t> key_frames;
-  key_frame_t current_frame;
-  // can be either image or texturepack image name
-  fan::string image_name;
-  std::unique_ptr<fan::graphics::vfi_root_t> sprite;
-  f32_t time = 0;
-};
-
-std::vector<animation_t> objects;
+#include _FAN_PATH(graphics/gui/keyframe_animator/editor.h)
 
 void file_load(const fan::string& path) {
   fan::string istr;
@@ -127,22 +33,74 @@ void file_load(const fan::string& path) {
   }
 }
 
+loco_t loco;
+
+struct player_t {
+
+  static constexpr fan::vec2 speed{ 200, 200 };
+
+  void update() {
+    f32_t dt = gloco->get_delta_time();
+    f32_t multiplier = 1;
+    if (gloco->window.key_pressed(fan::key_shift)) {
+      multiplier = 3;
+    }
+    if (gloco->window.key_pressed(fan::key_d)) {
+      velocity.x = speed.x * multiplier;
+    }
+    else if (gloco->window.key_pressed(fan::key_a)) {
+      velocity.x = -speed.x * multiplier;
+    }
+    else {
+      velocity.x = 0;
+    }
+
+    if (gloco->window.key_pressed(fan::key_w)) {
+      velocity.y = -speed.y * multiplier;
+    }
+    else if (gloco->window.key_pressed(fan::key_s)) {
+      velocity.y = speed.y * multiplier;
+    }
+    else {
+      velocity.y = 0;
+    }
+
+    visual.set_velocity(velocity);
+    visual.set_position(visual.get_collider_position());
+  }
+
+  fan::ev_timer_t::timer_t timer;
+  bool jumping = false;
+
+  fan::vec2 velocity = 0;
+  fan::graphics::collider_dynamic_t visual;
+}player;
+
 int main() {
-  loco_t loco;
+
   fan::vec2 vs = loco.window.get_size();
   loco.default_camera->camera.set_ortho(
     fan::vec2(-vs.x, vs.x),
     fan::vec2(-vs.y, vs.y)
   );
 
-  file_load("0.fka");
+  loco_t::texturepack_t texturepack;
+  texturepack.open_compiled("texture_packs/tilemap.ftp");
+
+  file_load("keyframe0.fka");
 
   // assuming there is at least 1 obj and 2 keyframes in it
 
   animation_t& obj = objects[0];
 
+  // set to origin
+  fan::vec2 off = -obj.key_frames[0].position;
+  for (auto& i : obj.key_frames) {
+    i.position += off;
+  }
+
   // initializing with first keyframe
-  fan::graphics::sprite_t s{{
+  player.visual = fan::graphics::sprite_t{{
     .position = obj.key_frames[0].position,
     .size = obj.key_frames[0].size,
     .angle = obj.key_frames[0].angle,
@@ -151,21 +109,37 @@ int main() {
 
   obj.current_frame = obj.key_frames[0];
 
-  obj.current_frame.time = obj.key_frames[1].time - obj.key_frames[0].time;
+  load_image(player.visual, obj.image_name, texturepack);
+
+  controls.loop = false;
+
+  loco.window.add_keys_callback([&](const auto& d) {
+    if (d.state != fan::keyboard_state::press) {
+      return;
+    }
+    switch (d.key) {
+      case fan::key_space: {
+        if (player.jumping) {
+          break;
+        }
+        player.jumping = true;
+        play_from_begin();
+        player.timer.cb = [&](const fan::ev_timer_t::cb_data_t&) {
+          play_animation(player.visual.get_collider_position(), controls, obj, player.visual);
+          if (!is_finished()) {
+            gloco->ev_timer.start(&player.timer, 0);
+          }
+          else {
+            player.jumping = false;
+          }
+        };
+        loco.ev_timer.start(&player.timer, 0);
+        break;
+      }
+    }
+  });
 
   loco.loop([&] {
-    
-    if (obj.current_frame.time <= 0) {
-      obj.current_frame = obj.key_frames[0];
-      obj.current_frame.time = obj.key_frames[1].time - obj.key_frames[0].time;
-    }
-
-    obj.update(loco.delta_time);
-    key_frame_t kf = obj.current_frame;
-    s.set_position(kf.position);
-    s.set_size(kf.size);
-    s.set_angle(kf.angle);
-    s.set_rotation_vector(kf.rotation_vector);
-
+    player.update();
   });
 }
