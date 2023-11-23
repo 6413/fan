@@ -520,6 +520,10 @@ namespace fan {
       f.append((char*)&o, sizeof(o));
     }
   }
+  template <typename T>
+  void read_from_string(auto& f, auto& off, T& data) {
+    data = fan::read_data<T>(f, off);
+  }
 
 	//struct string : fan::basic_string<char>{
 	//	string(const fan::basic_string<char>& b) : fan::basic_string<char>(b) {

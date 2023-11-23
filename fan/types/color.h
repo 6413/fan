@@ -9,9 +9,20 @@ namespace fan {
 	class color {
 	public:
 
-    color(const fan::vec4& v) {
+    template <typename T>
+    constexpr color(const fan::vec4_wrap_t<T>& v) {
       *(fan::vec4*)this = v;
     }
+    template <typename T>
+    constexpr operator fan::vec4_wrap_t<T>() {
+      return *(fan::vec4_wrap_t<T>*)this;
+    }
+
+    #if defined(loco_imgui)
+    constexpr operator ImVec4() {
+      return *(ImVec4*)this;
+    }
+    #endif
 
 		using value_type = cf_t;
 
