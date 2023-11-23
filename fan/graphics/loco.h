@@ -163,7 +163,7 @@ namespace fan {
 namespace fan {
   namespace graphics {
   #if defined(loco_physics)
-    static void open_bcol();
+    inline void open_bcol();
   #endif
     using direction_e = fan::graphics::viewport_divider_t::direction_e;
     inline fan::vec2 default_camera_ortho_x{-1, 1};

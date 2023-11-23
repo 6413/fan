@@ -52,7 +52,7 @@ using value_type = value_type_t;
 
 static constexpr access_type_t size() { return vec_n; }
 
-vec_t() = default;
+constexpr vec_t() = default;
 template <typename T>
 requires std::is_arithmetic_v<T>
 constexpr vec_t(T single_init) { for (access_type_t i = 0; i < vec_n; ++i) operator[](i) = single_init; } 
@@ -171,7 +171,8 @@ constexpr auto length() const { return sqrt(dot(*this)); }
 constexpr auto normalize() const { auto l = length(); if (l == 0) return vec_t(0); make_for_all(ret[i] = (*this)[i] / l); }
 constexpr vec_t square_normalize() const { return *this / abs().max(); }
 void from_string(const std::string& str) { std::stringstream ss(str); char ch; for (access_type_t i = 0; i < size(); ++i) ss >> ch >> (*this)[i]; }
-constexpr std::string to_string(int precision = 2) const {
+
+std::string to_string(int precision = 2) const {
   std::string out("{");
   for (access_type_t i = 0; i < size() - 1; ++i) { out += fan::to_string((*this)[i], precision) + ", "; }
   if constexpr (size()) {
