@@ -55,7 +55,7 @@ namespace fan {
       return vec2_wrap_t( k.x * multiplier, k.y * multiplier);
     }
     #if defined(loco_imgui)
-    operator ImVec2() const { return ImVec2(x, y); }
+    constexpr operator ImVec2() const { return ImVec2(x, y); }
     constexpr vec2_wrap_t(const ImVec2& v) { x = v.x; y = v.y;}
     #endif
     // coordinate system angle. TODO need rename to something meaningful
@@ -102,12 +102,18 @@ namespace fan {
     }
   };
 
+  struct color;
+
   template <typename value_type_t>
   struct vec4_wrap_t {
     #define vec_t vec4_wrap_t
     #define vec_n 4
     #include "vector_impl.h"
     
+    constexpr vec4_wrap_t(const fan::color& test0)
+      : vec4_wrap_t() { 
+      *(fan::color*)this = test0;
+    }
     template <typename T>
     constexpr vec4_wrap_t(const vec2_wrap_t<T>& test0, const vec2_wrap_t<T>& test1)
       : vec4_wrap_t(test0.x, test0.y, test1.x, test1.y) { }
@@ -116,7 +122,7 @@ namespace fan {
     template <typename T> constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0, auto value)
       : vec4_wrap_t(test0.x, test0.y, test0.z, value) { }
     #if defined(loco_imgui)
-    operator ImVec4() const { return ImVec4(x, y, z, w); }
+    constexpr operator ImVec4() const { return ImVec4(x, y, z, w); }
     constexpr vec4_wrap_t(const ImVec4& v) { x = v.x; y = v.y; z = v.z; w = v.w; }
     #endif
   };
