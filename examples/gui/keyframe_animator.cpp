@@ -4,6 +4,11 @@
 // 1s / 10.f
 inline f32_t time_divider = 10.f;
 
+loco_t::texturepack_t texturepack;
+
+void file_save(const fan::string& path);
+void file_load(const fan::string& path);
+
 struct key_frame_t {
   f32_t time = 0;
   fan::vec3 position = 0;
@@ -91,6 +96,8 @@ struct animation_t {
   int frame_index = 0;
   std::vector<key_frame_t> key_frames;
   key_frame_t current_frame;
+  // can be either image or texturepack image name
+  fan::string image_name;
   std::unique_ptr<fan::graphics::vfi_root_t> sprite;
   f32_t time = 0;
 };
@@ -137,6 +144,19 @@ void play_from_begin() {
   controls.playing = true;
 }
 
+static std::vector<const char*> object_list_names;
+
+void push_sprite(auto&& temp) {
+  loco_t::shapes_t::vfi_t::properties_t vfip;
+  vfip.shape.rectangle->position = temp.get_position();
+  vfip.shape.rectangle->position.z += 1;
+  vfip.shape.rectangle->size = temp.get_size();
+  objects.back().sprite = std::make_unique<fan::graphics::vfi_root_t>();
+  objects.back().sprite.get()->set_root(vfip);
+  objects.back().sprite.get()->push_child(std::move(temp));
+  object_list_names.resize(object_list_names.size() + 1, "object");
+}
+
 void handle_imgui() {
   auto& style = ImGui::GetStyle();
   ImVec4* colors = style.Colors;
@@ -164,7 +184,6 @@ void handle_imgui() {
   
   static int active_object = 0;
 
-  static std::vector<const char*> v;
   ImGui::Begin("Key frames");
   if (ImGui::Button("+")) {
     objects.resize(objects.size() + 1);
@@ -173,24 +192,7 @@ void handle_imgui() {
       .position = viewport_size / 2,
       .size = 100
     }};
-
-    loco_t::shapes_t::vfi_t::properties_t vfip;
-    vfip.shape.rectangle->position = temp.get_position();
-    vfip.shape.rectangle->position.z += 1;
-    vfip.shape.rectangle->size = temp.get_size();
-    vfip.mouse_button_cb = [](const auto& d) -> int {
-      return 0;
-    };
-    vfip.mouse_move_cb = [](const auto& d) -> int {
-      /*if (root->erasing) {
-        return 0;
-      }*/
-      return 0;
-    };
-    objects.back().sprite = std::make_unique<fan::graphics::vfi_root_t>();
-    objects.back().sprite.get()->set_root(vfip);
-    objects.back().sprite.get()->push_child(std::move(temp));
-    v.resize(v.size() + 1, "object");
+    push_sprite(std::move(temp));
   }
   ImGui::SameLine();
   if (ImGui::Button("Insert keyframe")) {
@@ -210,13 +212,24 @@ void handle_imgui() {
     }
   }
   {
-    ImGui::ListBox("##listbox_keyframes", &active_object, v.data(), v.size());
+    ImGui::ListBox("##listbox_keyframes", &active_object, object_list_names.data(), object_list_names.size());
+  }
+
+  if (ImGui::Button("Save")) {
+    file_save("keyframe0.fka");
+  }
+  static fan::string load_file_str;
+  load_file_str.resize(40);
+  if (ImGui::InputText("Load", load_file_str.data(), load_file_str.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
+    timeline.frames.clear();
+    objects.clear();
+    file_load(load_file_str.c_str());
   }
 
   ImGui::End();
   //
   ImGui::Begin("Key frame properties");
-  if (v.size()) {
+  if (object_list_names.size()) {
     auto& child = objects[active_object].sprite.get()->children[0];
     fan::mp_t<key_frame_t> mp(key_frame_t{
       .position = child.get_position(),
@@ -243,11 +256,20 @@ void handle_imgui() {
       if (ImGui::InputText("Image", input.data(), input.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
         input = input.c_str();
         static loco_t::image_t image;
+        loco_t::texturepack_t::ti_t ti;
         if (image.load(input)) {
           fan::print_warning("failed to load image:"+ input);
         }
         else {
           objects[active_object].sprite->children[0].set_image(&image);
+          objects[active_object].image_name = input;
+        }
+        if (texturepack.qti(input, &ti)) {
+          fan::print_warning("failed to load texturepack image:" + input);
+        }
+        else {
+          objects[active_object].sprite->children[0].set_tp(&ti);
+          objects[active_object].image_name = input;
         }
       }
     }
@@ -282,7 +304,6 @@ void handle_imgui() {
       play_from_begin();
     }
   }
-
   if (ImGui::BeginNeoSequencer("Sequencer", &timeline.current_frame, &timeline.start_frame, &timeline.end_frame, { 0, 300 },
     ImGuiNeoSequencerFlags_EnableSelection |
     ImGuiNeoSequencerFlags_Selection_EnableDragging |
@@ -369,10 +390,62 @@ void handle_imgui() {
   ImGui::End();
 }
 
+/*
+  global data
+  keyframe data
+*/
+void file_save(const fan::string& path) {
+  fan::string ostr;
+  fan::write_to_string(ostr, controls.loop);
+  fan::write_to_string(ostr, controls.max_time);
+  fan::write_to_string(ostr, (uint32_t)objects.size());
+  for (auto& obj : objects) {
+    fan::write_to_string(ostr, obj.image_name);
+    fan::write_to_string(ostr, (uint32_t)obj.key_frames.size());
+    ostr.append((char*)&obj.key_frames[0], sizeof(key_frame_t) * obj.key_frames.size());
+  }
+  fan::io::file::write(path, ostr, std::ios_base::binary);
+}
+
+void file_load(const fan::string& path) {
+  fan::string istr;
+  fan::io::file::read(path, &istr);
+  uint32_t off = 0;
+  fan::read_from_string(istr, off, controls.loop);
+  fan::read_from_string(istr, off, controls.max_time);
+  uint32_t obj_size = 0;
+  fan::read_from_string(istr, off, obj_size);
+  objects.resize(obj_size);
+  for (auto& obj : objects) {
+    fan::read_from_string(istr, off, obj.image_name);
+    uint32_t keyframe_size = 0;
+    fan::read_from_string(istr, off, keyframe_size);
+    obj.key_frames.resize(keyframe_size);
+    int frame_idx = 0;
+    for (auto& frame : obj.key_frames) {
+      frame = ((key_frame_t*)&istr[off])[frame_idx++];
+      timeline.frames.push_back(frame.time * time_divider);
+    }
+    memcpy(obj.key_frames.data(), &istr[off], sizeof(key_frame_t) * obj.key_frames.size());
+    if (obj.key_frames.size()) {
+      push_sprite(fan::graphics::sprite_t{ {
+        .position = obj.key_frames[0].position,
+        .size = obj.key_frames[0].size,
+        .angle = obj.key_frames[0].angle,
+        .rotation_vector = obj.key_frames[0].rotation_vector
+      }});
+    }
+  }
+}
+
 int main() {
   loco_t loco;
+  texturepack.open_compiled("texture_packs/tilemap.ftp");
   auto&io = ImGui::GetIO();
   io.FontGlobalScale = 1.5;
+  ImGui::GetNeoSequencerStyle().Colors[ImGuiNeoSequencerCol_Keyframe] = ImVec4(0.7, 0.7, 0, 1);
+  ImGui::GetNeoSequencerStyle().Colors[ImGuiNeoSequencerCol_Bg] = loco.clear_color + 0.05;
+  ImGui::GetNeoSequencerStyle().Colors[ImGuiNeoSequencerCol_TopBarBg] = loco.clear_color + 0.1;
 
   fan::graphics::imgui_element_t main_view =
     fan::graphics::imgui_element_t([&] {handle_imgui(); });
