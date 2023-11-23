@@ -60,6 +60,11 @@ namespace fan {
     #endif
     // coordinate system angle. TODO need rename to something meaningful
 		constexpr auto csangle() const { return atan2(x, -y);}
+
+    template <typename T>
+    vec2_wrap_t<T> lerp(const vec2_wrap_t<T>& dst, T t) {
+      return { x + t * (dst.x - x), y + t * (dst.y - y) };
+    }
   };
 
   template <typename value_type_t>
@@ -84,13 +89,16 @@ namespace fan {
 		constexpr auto cross(const fan::vec3_wrap_t<T>& vector) const {
 			return fan::math::cross<vec3_wrap_t<T>>(*this, vector);
 		}
-    // not tested
     template <typename T>
     vec3_wrap_t<T> reflect(const vec3_wrap_t<T>& normal) {
       double dot_product = dot(normal);
       vec3_wrap_t<T> scaled_normal = normal * (2 * dot_product);
       vec3_wrap_t<T> reflection = *this - scaled_normal;
       return reflection;
+    }
+    template <typename T>
+    vec3_wrap_t<T> lerp(const vec3_wrap_t<T>& dst, T t) {
+      return { x + t * (dst.x - x), y + t * (dst.y - y), z + t * (dst.z - z) };
     }
   };
 

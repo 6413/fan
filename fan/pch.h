@@ -9,10 +9,15 @@
 #include <fstream>
 #include <string>
 
-//#define loco_imgui
+#define loco_imgui
 
 #define STRINGIFY(p0) #p0
 #define STRINGIFY_DEFINE(a) STRINGIFY(a)
+
+
+#ifndef FAN_INCLUDE_PATH
+  #define FAN_INCLUDE_PATH C:/libs/fan/include
+#endif
 
 #ifndef FAN_INCLUDE_PATH
   #define _FAN_PATH(p0) <fan/p0>
@@ -28,10 +33,7 @@
 #include _FAN_PATH(imgui/imgui.h)
 #include _FAN_PATH(imgui/imgui_impl_opengl3.h)
 #include _FAN_PATH(imgui/imgui_impl_win32.h)
-#endif
-
-#ifndef FAN_INCLUDE_PATH
-#define FAN_INCLUDE_PATH C:/libs/fan/include
+#include _FAN_PATH(imgui/imgui_neo_sequencer.h)
 #endif
 
 #ifndef fan_verbose_print_level
@@ -45,19 +47,19 @@
 #define loco_window
 #define loco_context
 
-//#define loco_rectangle
-//#define loco_light
-//#define loco_line
-//#define loco_circle
-//#define loco_button
+#define loco_rectangle
+#define loco_light
+#define loco_line
+#define loco_circle
+#define loco_button
 #define loco_sprite
-//#define loco_dropdown
-//#define loco_pixel_format_renderer
-//#define loco_tp
-//#define loco_sprite_sheet
+#define loco_dropdown
+#define loco_pixel_format_renderer
+#define loco_tp
+#define loco_sprite_sheet
 
 // 
-//#define loco_physics
+#define loco_physics
 /*
 #define loco_cuda
 #define loco_nv12

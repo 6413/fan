@@ -1,4 +1,8 @@
+#include "keyframe_animator.h"
 #include fan_pch
+
+// 1s / 10.f
+inline f32_t time_divider = 10.f;
 
 struct key_frame_t {
   f32_t time = 0;
@@ -15,6 +19,19 @@ struct animation_t {
     update_key_frame_value();
   }
 
+  void update_key_frame_render_value() {
+    if (key_frames.empty()) {
+      return;
+    }
+    if (frame_index >= key_frames.size()) {
+      return;
+    }
+    current_frame = key_frames[frame_index];
+    if (current_frame.time == 0) {
+      current_frame.time = 1;
+    }
+  }
+
   void update_key_frame_value() {
     if (key_frames.empty()) {
       return;
@@ -29,6 +46,21 @@ struct animation_t {
     }
   }
 
+  void update_seek() {
+    if (key_frames.empty()) {
+      return;
+    }
+    if (frame_index + 1 >= key_frames.size()) {
+      return;
+    }
+    auto& frame_src = key_frames[frame_index];
+    auto& frame_dst = key_frames[frame_index + 1];
+    current_frame.position = frame_src.position.lerp(frame_dst.position, current_frame.time);
+    current_frame.size = frame_src.size.lerp(frame_dst.size, current_frame.time);
+    current_frame.angle = fan::math::lerp(frame_src.angle, frame_dst.angle, current_frame.time);
+    current_frame.rotation_vector = frame_src.rotation_vector.lerp(frame_dst.rotation_vector, current_frame.time);
+  }
+
   void update(f32_t dt) {
     if (key_frames.empty()) {
       return;
@@ -39,15 +71,20 @@ struct animation_t {
     auto& frame_src = current_frame;
     auto& frame_dst = key_frames[frame_index + 1];
     if (current_frame.time >= 0) {
-      current_frame.position += (frame_dst.position - frame_src.position) / current_frame.time * dt;
-      current_frame.size += (frame_dst.size - frame_src.size) / current_frame.time * dt;
-      current_frame.angle += (frame_dst.angle - frame_src.angle) / current_frame.time * dt;
-      current_frame.rotation_vector += (frame_dst.rotation_vector - frame_src.rotation_vector) / current_frame.time * dt;
-      current_frame.time -= dt;
+      if (current_frame.time == 0) {
+        current_frame = key_frames[frame_index];
+      }
+      else {
+        current_frame.position += (frame_dst.position - frame_src.position) / current_frame.time * dt;
+        current_frame.size += (frame_dst.size - frame_src.size) / current_frame.time * dt;
+        current_frame.angle += (frame_dst.angle - frame_src.angle) / current_frame.time * dt;
+        current_frame.rotation_vector += (frame_dst.rotation_vector - frame_src.rotation_vector) / current_frame.time * dt;
+        current_frame.time -= dt;
+      }
     }
     else {
-      current_frame = key_frames[frame_index + 1];
       frame_index++;
+      current_frame = key_frames[frame_index];
       update_key_frame_value();
     }
   }
@@ -75,7 +112,30 @@ bool make_imgui_element(const char* label, T& value) {
 
 struct controls_t {
   bool playing = false;
+  bool loop = true;
+  f32_t time = 0;
+  f32_t max_time = 0;
 }controls;
+
+struct timeline_t {
+  int32_t current_frame = 0;
+  int32_t start_frame = 0;
+  int32_t end_frame = 256;
+  std::vector<ImGui::FrameIndexType> frames;
+  bool do_delete = false;
+}timeline;
+
+
+
+void play_from_begin() {
+  // seek to begin
+  controls.time = 0;
+  for (auto& obj : objects) {
+    obj.frame_index = 0;
+    obj.update_key_frame_value();
+  }
+  controls.playing = true;
+}
 
 void handle_imgui() {
   auto& style = ImGui::GetStyle();
@@ -134,28 +194,31 @@ void handle_imgui() {
   }
   ImGui::SameLine();
   if (ImGui::Button("Insert keyframe")) {
-    fan::print("keyframe inserted");
-    auto& child = objects[active_object].sprite.get()->children[0];
-    key_frame_t kf{
-      .time = objects[active_object].time,
-      .position = child.get_position(),
-      .size = child.get_size(),
-      .angle = child.get_angle(),
-      .rotation_vector = child.get_rotation_vector()
-    };
-    objects[active_object].push_frame(kf);
+    if (objects.size()) {
+      for (auto& obj : objects) {
+        auto& child = obj.sprite.get()->children[0];
+        key_frame_t kf{
+          .time = (float)timeline.current_frame / time_divider,
+          .position = child.get_position(),
+          .size = child.get_size(),
+          .angle = child.get_angle(),
+          .rotation_vector = child.get_rotation_vector()
+        };
+        obj.push_frame(kf);
+      }
+      timeline.frames.push_back(timeline.current_frame);
+    }
   }
   {
     ImGui::ListBox("##listbox_keyframes", &active_object, v.data(), v.size());
   }
 
   ImGui::End();
-
+  //
   ImGui::Begin("Key frame properties");
   if (v.size()) {
     auto& child = objects[active_object].sprite.get()->children[0];
     fan::mp_t<key_frame_t> mp(key_frame_t{
-      .time = objects[active_object].time,
       .position = child.get_position(),
       .size = child.get_size(),
       .angle = fan::math::degrees(child.get_angle()),
@@ -168,13 +231,24 @@ void handle_imgui() {
         if (make_imgui_element(names[i], v)) {
           edit = true;
         }
-      });
+      });//////
       if (edit) {
-        objects[active_object].time = mp.operator key_frame_t().time;
         objects[active_object].sprite->set_position(mp.operator key_frame_t().position);
         objects[active_object].sprite->set_size(mp.operator key_frame_t().size);
         child.set_angle(fan::math::radians(mp.operator key_frame_t().angle));
         child.set_rotation_vector(mp.operator key_frame_t().rotation_vector);
+      }
+      static fan::string input;
+      input.resize(30);
+      if (ImGui::InputText("Image", input.data(), input.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
+        input = input.c_str();
+        static loco_t::image_t image;
+        if (image.load(input)) {
+          fan::print_warning("failed to load image:"+ input);
+        }
+        else {
+          objects[active_object].sprite->children[0].set_image(&image);
+        }
       }
     }
   }
@@ -182,10 +256,7 @@ void handle_imgui() {
 
   ImGui::Begin("Controls");
   if (ImGui::Button("Play")) {
-    // seek to begin
-    objects[active_object].frame_index = 0;
-    objects[active_object].update_key_frame_value();
-    controls.playing = true;
+    play_from_begin();
   }
   ImGui::SameLine();
   if (ImGui::Button("Continue")) {
@@ -195,52 +266,105 @@ void handle_imgui() {
   if (ImGui::Button("Pause")) {
     controls.playing = false;
   }
+  ImGui::Checkbox("Loop", &controls.loop);
   if (controls.playing) {
-    auto& obj = objects[active_object];
-    obj.update(gloco->delta_time);
-    key_frame_t kf = obj.current_frame;
-
-    obj.sprite.get()->set_position(kf.position);
-    obj.sprite.get()->set_size(kf.size);
-    obj.sprite.get()->children[0].set_angle(kf.angle);
-    obj.sprite.get()->children[0].set_rotation_vector(kf.rotation_vector);
+    for (auto& obj : objects) {
+      obj.update(gloco->delta_time);
+      key_frame_t kf = obj.current_frame;
+      obj.sprite.get()->set_position(kf.position);
+      obj.sprite.get()->set_size(kf.size);
+      obj.sprite.get()->children[0].set_angle(kf.angle);
+      obj.sprite.get()->children[0].set_rotation_vector(kf.rotation_vector);
+    }
+    timeline.current_frame = controls.time * time_divider;
+    controls.time += gloco->delta_time;
+    if (controls.loop && controls.max_time <= controls.time) {
+      play_from_begin();
+    }
   }
 
-  static float currentTime = 0.0f;
+  if (ImGui::BeginNeoSequencer("Sequencer", &timeline.current_frame, &timeline.start_frame, &timeline.end_frame, { 0, 300 },
+    ImGuiNeoSequencerFlags_EnableSelection |
+    ImGuiNeoSequencerFlags_Selection_EnableDragging |
+    ImGuiNeoSequencerFlags_Selection_EnableDeletion | 
+    ImGuiNeoSequencerFlags_AllowLengthChanging))
+  {
+    static bool group_open = true;
+    if (ImGui::BeginNeoGroup("", &group_open))
+    {
 
-  float startTime = 0.0f;
-  float endTime = 10.0f;
+      if (ImGui::BeginNeoTimelineEx("Transform"))
+      {
+        {
+          int idx = 0;
+          controls.max_time = 0;
+          for (auto&& v : timeline.frames)
+          {
+            for (auto& obj : objects) {
+              obj.key_frames[idx].time = v / time_divider;
+              controls.max_time = std::max(controls.max_time, obj.key_frames[idx].time);
+            }
+            ++idx;
+            ImGui::NeoKeyframe(&v);
+          }
+        }
 
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 100)); // Increase the y padding
-  ImGui::PushItemWidth(-1);
-  ImGui::SliderFloat("Timeline", &currentTime, startTime, endTime);
+        static int prev_frame = timeline.current_frame;
+        // scrolling time
+        if (!controls.playing && objects.size() && prev_frame != timeline.current_frame && objects.size() > active_object) {
+          for (auto& obj : objects) {
+            auto& frames = obj.key_frames;
 
-  // Get the slider position and size
-  ImVec2 sliderMin = ImGui::GetItemRectMin();
-  ImVec2 sliderMax = ImGui::GetItemRectMax();
-  float sliderWidth = sliderMax.x - sliderMin.x;
+            f32_t closest_greater = std::numeric_limits<f32_t>::max();
+            int frame_index = 0;
+            int idx = 0;
+            for (const auto& item : frames) {
+              if (item.time > (float)timeline.current_frame / time_divider && item.time < closest_greater) {
+                closest_greater = item.time;
+                frame_index = idx;
+              }
+              else if (closest_greater == std::numeric_limits<f32_t>::max() && idx + 1 == frames.size()) {
+                frame_index = idx + 1;
+              }
+              idx++;
+            }
+            obj.frame_index = std::max(frame_index - 1, 0);
+            obj.update_key_frame_render_value();
+            if (obj.frame_index + 1 < obj.key_frames.size()) {
+              obj.current_frame.time = fan::math::normalize(timeline.current_frame / time_divider, obj.key_frames[obj.frame_index].time, obj.key_frames[obj.frame_index + 1].time);
+            }
+            else {
+              // todo fix
+              obj.current_frame.time = 1.0 - timeline.current_frame / time_divider;
+            }
+            obj.update_seek();
 
-  // Get the current cursor position
-  ImVec2 cursorPos = ImGui::GetCursorPos();
+            obj.update(gloco->delta_time);
+            key_frame_t kf = obj.current_frame;
 
-  // Draw the labels below the slider
-  int numLabels = 10; // Number of labels to draw
-  float labelInterval = (endTime - startTime) / numLabels; // Interval between labels
-  float labelWidth = sliderWidth / numLabels; // Width of each label
-  for (int i = 0; i <= numLabels; i++) {
-    float labelValue = startTime + i * labelInterval;
-    float labelX = sliderMin.x + i * labelWidth;
+            obj.sprite.get()->set_position(kf.position);
+            obj.sprite.get()->set_size(kf.size);
+            obj.sprite.get()->children[0].set_angle(kf.angle);
+            obj.sprite.get()->children[0].set_rotation_vector(kf.rotation_vector);
+            prev_frame = timeline.current_frame;
+          }
+        }
 
-    ImGui::SetCursorPos(ImVec2(labelX, cursorPos.y));
+        if (timeline.do_delete)
+        {
+          uint32_t count = ImGui::GetNeoKeyframeSelectionSize();
 
-    ImGui::Text("%.1f", labelValue);
+          ImGui::FrameIndexType* toRemove = new ImGui::FrameIndexType[count];
+
+          ImGui::GetNeoKeyframeSelection(toRemove);
+        }
+        ImGui::EndNeoTimeLine();
+      }
+      ImGui::EndNeoGroup();
+    }
+
+    ImGui::EndNeoSequencer();
   }
-
-  // Restore the cursor position
-  ImGui::SetCursorPos(cursorPos);
-
-  ImGui::PopItemWidth();
-  ImGui::PopStyleVar();
 
   ImGui::End();
 }

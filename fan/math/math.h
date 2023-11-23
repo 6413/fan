@@ -123,6 +123,16 @@ namespace fan {
 
 	namespace math {
 
+    template <typename T>
+    T lerp(T src, T dst, T t) {
+      return { src + t * (dst - src) };
+    }
+
+    template <typename T>
+    T normalize(T val, T min, T max) {
+      return (val - min) / (max - min);
+    }
+
     static double sigmoid(double x) {
       return 1.0 / (1 + exp(-x));
     }

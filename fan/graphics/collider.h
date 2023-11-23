@@ -29,7 +29,7 @@ constexpr static f32_t bcol_step_time = 0.01;
 namespace fan {
   namespace graphics {
     inline bcol_t bcol;
-    static void open_bcol() {
+    inline void open_bcol() {
       bcol_t::OpenProperties_t OpenProperties;
 
       bcol.Open(OpenProperties);

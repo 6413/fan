@@ -142,6 +142,7 @@ struct image_t {
     return 0;
   }
 
+  // returns 0 on success
   bool load(const fan::string& path) {
     return load(path, load_properties_t());
   }
