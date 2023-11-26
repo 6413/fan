@@ -26,7 +26,10 @@ struct version_001_t {
       void get_shape(fte_t* fte) {
         for (int i = 0; i < layers.size(); ++i) {
           fte_t::tile_t& layer = layers[i];
-          auto& map_tile = fte->map_tiles[fan::vec2i(layer.position.x / fte->tile_size.x, layer.position.y / fte->tile_size.y)];
+          fan::vec2i grid_position = fan::vec2(layer.position);
+          fte->convert_draw_to_grid(grid_position);
+          grid_position /= fte->tile_size;
+          auto& map_tile = fte->map_tiles[grid_position];
           loco_t::texturepack_t::ti_t ti;
           if (fte->texturepack.qti(layer.image_hash, &ti)) {
             fan::throw_error("failed to read image from .fte - editor save file corrupted");
