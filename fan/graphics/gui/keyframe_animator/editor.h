@@ -105,14 +105,14 @@ namespace fan {
         return controls.max_time <= controls.time;
       }
 
-      void push_sprite(auto&& temp) {
+      void push_sprite(uint32_t i, auto&& temp) {
         loco_t::shapes_t::vfi_t::properties_t vfip;
         vfip.shape.rectangle->position = temp.get_position();
         vfip.shape.rectangle->position.z += 1;
         vfip.shape.rectangle->size = temp.get_size();
-        objects.back().sprite = std::make_unique<fan::graphics::vfi_root_t>();
-        objects.back().sprite.get()->set_root(vfip);
-        objects.back().sprite.get()->push_child(std::move(temp));
+        objects[i].sprite = std::make_unique<fan::graphics::vfi_root_t>();
+        objects[i].sprite.get()->set_root(vfip);
+        objects[i].sprite.get()->push_child(std::move(temp));
         object_list_names.resize(object_list_names.size() + 1, "object");
       }
 
@@ -271,7 +271,7 @@ namespace fan {
             .position = viewport_size / 2,
             .size = 100
           } };
-          push_sprite(std::move(temp));
+          push_sprite(objects.size() - 1, std::move(temp));
         }
         ImGui::SameLine();
         if (ImGui::Button("Insert keyframe")) {
@@ -302,6 +302,7 @@ namespace fan {
         static fan::string load_file_str;
         load_file_str.resize(40);
         if (ImGui::InputText("Load", load_file_str.data(), load_file_str.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
+          object_list_names.clear();
           timeline.frames.clear();
           objects.clear();
           file_load(load_file_str.c_str());
@@ -471,7 +472,9 @@ namespace fan {
         for (auto& obj : objects) {
           fan::write_to_string(ostr, obj.image_name);
           fan::write_to_string(ostr, (uint32_t)obj.key_frames.size());
-          ostr.append((char*)&obj.key_frames[0], sizeof(key_frame_t) * obj.key_frames.size());
+          if (obj.key_frames.size()) {
+            ostr.append((char*)&obj.key_frames[0], sizeof(key_frame_t) * obj.key_frames.size());
+          }
         }
         fan::io::file::write(path, ostr, std::ios_base::binary);
       }
@@ -499,6 +502,7 @@ namespace fan {
             timeline.frames.push_back(frame.time * time_divider);
           }
           memcpy(obj.key_frames.data(), &istr[off], sizeof(key_frame_t) * obj.key_frames.size());
+          off += sizeof(key_frame_t) * obj.key_frames.size();
           if (obj.key_frames.size()) {
             fan::graphics::sprite_t temp{ {
               .position = obj.key_frames[0].position,
@@ -508,7 +512,7 @@ namespace fan {
             } };
 
             load_image(temp, obj.image_name, texturepack);
-            push_sprite(std::move(temp));
+            push_sprite(iterate_idx, std::move(temp));
           }
           iterate_idx += 1;
         }
