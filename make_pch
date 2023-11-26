@@ -1,16 +1,14 @@
 # compiler settings
 CXX = clang++
-CXXFLAGS = -w -ferror-limit=3 -std=c++2a -I include -fpch-instantiate-templates -fpch-debuginfo -Xclang -fno-validate-pch
+CXXFLAGS = -I . -w -ferror-limit=3 -std=c++2a -I include -fpch-instantiate-templates -fpch-debuginfo -Xclang -fno-validate-pch
 
 # source file and output
 
 OUTPUT = lib/fan/pch.h.gch
+OUTPUT_CPP = lib/fan/pch.o
 
 WINDOWS_ROOT_PATH = ./
 LINUX_ROOT_PATH = ./
-
-WITCH_WINDOWS_ROOT_PATH = ./
-WITCH_LINUX_ROOT_PATH = ./
 
 FAN_INCLUDE_PATH =
 FAN_LIB =
@@ -18,35 +16,34 @@ FAN_LIB =
 DEBUG_FLAGS = -g
 RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
 
-# includes & link
+# includes
 WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)include
-LINUX_INCLUDES = -I $(LINUX_ROOT_PATH) -I /usr/local/include
+LINUX_INCLUDES = -I $(LINUX_ROOT_PATH) -I /usr/local/include -I .
 
 INCLUDES =
 ifeq ($(OS),Windows_NT)
 	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)include
 	FAN_LIB += fan_windows_clang
 	INCLUDES += $(WINDOWS_INCLUDES)
-	CXXFLAGS += -I $(WINDOWS_ROOT_PATH)WITCH
-	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WITCH_WINDOWS_ROOT_PATH)WITCH
 else
 	FAN_INCLUDE_PATH += $(LINUX_ROOT_PATH)
 	FAN_LIB += fan
 	INCLUDES += $(LINUX_INCLUDES)
-	CXXFLAGS += -I $(FAN_INCLUDE_PATH) -I $(WITCH_LINUX_ROOT_PATH)WITCH
-	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WITCH_LINUX_ROOT_PATH)WITCH
+	CXXFLAGS += -I $(FAN_INCLUDE_PATH)
 endif
 
 CXXFLAGS += -Dfan_build_pch
 CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
 
 MAIN = $(FAN_INCLUDE_PATH)/fan/pch.h
+MAIN_CPP = $(FAN_INCLUDE_PATH)/fan/pch.cpp
 
 debug:
-	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT) $(INCLUDES)
-
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(DEBUG_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT)
+	$(CXX) -c $(CXXFLAGS) $(INCLUDES) $(DEBUG_FLAGS) -include-pch $(OUTPUT) $(MAIN_CPP) -o $(OUTPUT_CPP)
 release:
-		$(CXX) $(CXXFLAGS) $(RELEASE_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT) $(INCLUDES)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RELEASE_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT)
+	$(CXX) -c $(CXXFLAGS) $(INCLUDES) $(RELEASE_FLAGS) -include-pch $(OUTPUT) $(MAIN_CPP) -o $(OUTPUT_CPP)
 
 clean:
 	rm -f $(OUTPUT)

@@ -127,6 +127,29 @@ namespace fan {
       }
       bcol_t::ObjectID_t oid;
     };
+    struct collider_dynamic_hidden_t {
+      collider_dynamic_hidden_t() = default;
+      collider_dynamic_hidden_t(const fan::vec2& position, const fan::vec2& size) {
+        bcol_t::ObjectProperties_t p;
+        p.Position = position;
+        bcol_t::ShapeProperties_Circle_t sp;
+        sp.Position = 0;
+        sp.Size = size.x;
+        oid = bcol.NewObject(&p, 0);
+        auto shape_id = bcol.NewShape_Circle(oid, &sp);
+        auto* data = bcol.GetObjectExtraData(oid);
+        data->shape_id = shape_id;
+        data->collider_type = fan::collider::types_e::collider_dynamic;
+      }
+      fan::vec2 get_collider_position() const {
+        return bcol.GetObject_Position(oid);
+      }
+
+      void set_velocity(const fan::vec2& v) {
+        bcol.SetObject_Velocity(oid, v);
+      }
+      bcol_t::ObjectID_t oid;
+    };
     struct collider_sensor_t {
       collider_sensor_t() = default;
       collider_sensor_t(const fan::vec2& position, const fan::vec2& size) {
