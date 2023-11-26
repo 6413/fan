@@ -1,3 +1,4 @@
+#define tilemap_renderer 1
 #include "loader.h"
 
 struct fte_renderer_t : fte_loader_t {
@@ -5,7 +6,6 @@ struct fte_renderer_t : fte_loader_t {
   fan::vec3 position = 0;
   fan::vec2 view_size = 1;
   fan::vec2 size = 1;
-
   fan::vec2i prev_render = 0;
 
   id_t add(compiled_map_t* compiled_map) {
@@ -101,12 +101,11 @@ struct fte_renderer_t : fte_loader_t {
       return;
     }
     prev_render = position_ / node.compiled_map->tile_size;
-
     clear(node);
     //position = position_;
-    
+
     view_size = view_size_ / node.compiled_map->tile_size;
-    fan::vec2i src = (position_ / node.compiled_map->tile_size + node.compiled_map->map_size) / 2;
+    fan::vec2i src = position_ / node.compiled_map->tile_size;
     src.x -= view_size.x / 2;
     src.y -= view_size.y / 2;
 
@@ -118,11 +117,10 @@ struct fte_renderer_t : fte_loader_t {
     for (int y = 0; y < view_size.y; ++y) {
       for (int x = 0; x < view_size.x; ++x) {
         fan::vec2i grid_pos = src + fan::vec2i(x, y);
-        if (grid_pos.y < map_tiles.size() && grid_pos.x < map_tiles[grid_pos.y].size()) {
-          if (!map_tiles[grid_pos.y][grid_pos.x].tile.layers.empty()) {
-            for (auto& j : map_tiles[grid_pos.y][grid_pos.x].tile.layers) {
-              add_tile(node, j);
-            }
+        auto found = map_tiles.find(grid_pos);
+        if (found != map_tiles.end()) {
+          for (auto& j : found->second.tile.layers) {
+            add_tile(node, j);
           }
         }
       }
@@ -137,15 +135,14 @@ struct fte_renderer_t : fte_loader_t {
     position = p.position;//-fan::vec2(compiled_map->map_size * compiled_map->tile_size / 2) * p.size;
     size = p.size;
     for (auto& i : node.compiled_map->compiled_shapes) {
-      for (auto& x : i) {
-        for (auto& j : x.tile.layers) {
-          p.object_add_cb(j);
-          add_tile(node, j);
-        }
+      for (auto& j : i.second.tile.layers) {
+        p.object_add_cb(j);
+        add_tile(node, j);
       }
     }
   }
 
 private:
-  fte_loader_t::add;
+ // fte_loader_t::add;
 };
+#undef tilemap_renderer
