@@ -109,11 +109,11 @@ namespace fan {
     #define vec_t vec4_wrap_t
     #define vec_n 4
     #include "vector_impl.h"
-    
-    constexpr vec4_wrap_t(const fan::color& test0)
-      : vec4_wrap_t() { 
-      *(fan::color*)this = test0;
-    }
+    //incomplete type
+    //constexpr vec4_wrap_t(const fan::color& test0)
+    //  : vec4_wrap_t() { 
+    //  *(fan::color*)this = test0;
+    //}
     template <typename T>
     constexpr vec4_wrap_t(const vec2_wrap_t<T>& test0, const vec2_wrap_t<T>& test1)
       : vec4_wrap_t(test0.x, test0.y, test1.x, test1.y) { }

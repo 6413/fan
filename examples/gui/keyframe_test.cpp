@@ -1,37 +1,6 @@
 #include fan_pch
 
-#include _FAN_PATH(graphics/gui/keyframe_animator/editor.h)
-
-void file_load(const fan::string& path) {
-  fan::string istr;
-  fan::io::file::read(path, &istr);
-  uint32_t off = 0;
-  fan::read_from_string(istr, off, controls.loop);
-  fan::read_from_string(istr, off, controls.max_time);
-  uint32_t obj_size = 0;
-  fan::read_from_string(istr, off, obj_size);
-  objects.resize(obj_size);
-  for (auto& obj : objects) {
-    fan::read_from_string(istr, off, obj.image_name);
-    uint32_t keyframe_size = 0;
-    fan::read_from_string(istr, off, keyframe_size);
-    obj.key_frames.resize(keyframe_size);
-    int frame_idx = 0;
-    for (auto& frame : obj.key_frames) {
-      frame = ((key_frame_t*)&istr[off])[frame_idx++];
-      //timeline.frames.push_back(frame.time * time_divider);
-    }
-    memcpy(obj.key_frames.data(), &istr[off], sizeof(key_frame_t) * obj.key_frames.size());
-    if (obj.key_frames.size()) {
-      /*push_sprite(fan::graphics::sprite_t{ {
-        .position = obj.key_frames[0].position,
-        .size = obj.key_frames[0].size,
-        .angle = obj.key_frames[0].angle,
-        .rotation_vector = obj.key_frames[0].rotation_vector
-      } });*/
-    }
-  }
-}
+#include _FAN_PATH(graphics/gui/keyframe_animator/loader.h)
 
 loco_t loco;
 
@@ -65,15 +34,16 @@ struct player_t {
       velocity.y = 0;
     }
 
-    visual.set_velocity(velocity);
-    visual.set_position(visual.get_collider_position());
+    collider.set_velocity(velocity);
+    player.animation.set_position(0, player.collider.get_collider_position());
   }
 
   fan::ev_timer_t::timer_t timer;
   bool jumping = false;
 
   fan::vec2 velocity = 0;
-  fan::graphics::collider_dynamic_t visual;
+  fan::graphics::collider_dynamic_hidden_t collider;
+  fan::graphics::animation_t animation;
 }player;
 
 int main() {
@@ -86,32 +56,23 @@ int main() {
 
   loco_t::texturepack_t texturepack;
   texturepack.open_compiled("texture_packs/tilemap.ftp");
+  player.animation = fan::graphics::animation_t(&texturepack);
+  player.animation.file_load("keyframe0.fka");
+  player.animation.set_origin();
 
-  file_load("keyframe0.fka");
+  player.collider = fan::graphics::collider_dynamic_hidden_t(
+    player.animation.objects[0].key_frames[0].position,
+    player.animation.objects[0].key_frames[0].size
+  );
 
-  // assuming there is at least 1 obj and 2 keyframes in it
-
-  animation_t& obj = objects[0];
-
-  // set to origin
-  fan::vec2 off = -obj.key_frames[0].position;
-  for (auto& i : obj.key_frames) {
-    i.position += off;
-  }
 
   // initializing with first keyframe
-  player.visual = fan::graphics::sprite_t{{
-    .position = obj.key_frames[0].position,
-    .size = obj.key_frames[0].size,
-    .angle = obj.key_frames[0].angle,
-    .rotation_vector = obj.key_frames[0].rotation_vector
-  }};
 
-  obj.current_frame = obj.key_frames[0];
+  player.animation.objects[0].current_frame = player.animation.objects[0].key_frames[0];
 
-  load_image(player.visual, obj.image_name, texturepack);
+  //player.animation.load_image(player.visual, player.animation.image_name, texturepack);
 
-  controls.loop = false;
+  player.animation.controls.loop = false;
 
   loco.window.add_keys_callback([&](const auto& d) {
     if (d.state != fan::keyboard_state::press) {
@@ -123,10 +84,10 @@ int main() {
           break;
         }
         player.jumping = true;
-        play_from_begin();
+        player.animation.play_from_begin();
         player.timer.cb = [&](const fan::ev_timer_t::cb_data_t&) {
-          play_animation(player.visual.get_collider_position(), controls, obj, player.visual);
-          if (!is_finished()) {
+          player.animation.play_animation();
+          if (!player.animation.is_finished()) {
             gloco->ev_timer.start(&player.timer, 0);
           }
           else {
@@ -138,8 +99,9 @@ int main() {
       }
     }
   });
-
+  loco.set_vsync(true);
   loco.loop([&] {
+    loco.get_fps();
     player.update();
   });
 }
