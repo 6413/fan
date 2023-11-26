@@ -3,6 +3,8 @@
 #if defined(fan_build_pch)
 #if defined(loco_physics)
 
+// change get_collider_position to get_position and use get_sprite_position etc
+
 namespace fan {
   namespace collider {
     enum class types_e {
@@ -84,6 +86,16 @@ namespace fan {
         data->shape_id = shape_id;
         data->collider_type = fan::collider::types_e::collider_static;
       }
+      fan::vec2 get_position() const {
+        bcol.GetObject_Position(oid);
+      }
+      void set_position(const fan::vec2& position) {
+        bcol.SetObject_Position(oid, position);
+      }
+      void close() {
+        bcol.UnlinkObject(oid);
+        bcol.RecycleObject(oid);
+      }
       bcol_t::ObjectID_t oid;
     };
     struct collider_dynamic_t : loco_t::shape_t {
@@ -101,6 +113,10 @@ namespace fan {
         data->shape = dynamic_cast<loco_t::shape_t*>(this);
         data->shape_id = shape_id;
         data->collider_type = fan::collider::types_e::collider_dynamic;
+      }
+      void close() {
+        bcol.UnlinkObject(oid);
+        bcol.RecycleObject(oid);
       }
       fan::vec2 get_collider_position() const {
         return bcol.GetObject_Position(oid);
@@ -125,6 +141,16 @@ namespace fan {
         data->shape_id = shape_id;
         data->collider_type = fan::collider::types_e::collider_hidden;
       }
+      fan::vec2 get_position() const {
+        return bcol.GetObject_Position(oid);
+      }
+      void set_position(const fan::vec2& position) {
+        bcol.SetObject_Position(oid, position);
+      }
+      void close() {
+        bcol.UnlinkObject(oid);
+        bcol.RecycleObject(oid);
+      }
       bcol_t::ObjectID_t oid;
     };
     struct collider_dynamic_hidden_t {
@@ -141,12 +167,19 @@ namespace fan {
         data->shape_id = shape_id;
         data->collider_type = fan::collider::types_e::collider_dynamic;
       }
+      void close() {
+        bcol.UnlinkObject(oid);
+        bcol.RecycleObject(oid);
+      }
       fan::vec2 get_collider_position() const {
         return bcol.GetObject_Position(oid);
       }
 
       void set_velocity(const fan::vec2& v) {
         bcol.SetObject_Velocity(oid, v);
+      }
+      void set_position(const fan::vec2& position) {
+        bcol.SetObject_Position(oid, position);
       }
       bcol_t::ObjectID_t oid;
     };
@@ -163,6 +196,16 @@ namespace fan {
         auto* data = bcol.GetObjectExtraData(oid);
         data->shape_id = shape_id;
         data->collider_type = fan::collider::types_e::collider_sensor;
+      }
+      void close() {
+        bcol.UnlinkObject(oid);
+        bcol.RecycleObject(oid);
+      }
+      fan::vec2 get_position() const {
+        return bcol.GetObject_Position(oid);
+      }
+      void set_position(const fan::vec2& position) {
+        bcol.SetObject_Position(oid, position);
       }
       bcol_t::ObjectID_t oid;
     };

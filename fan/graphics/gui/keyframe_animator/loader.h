@@ -108,12 +108,12 @@ namespace fan {
         }
       }
 
-      void push_sprite(auto&& temp) {
+      void push_sprite(uint32_t i, auto&& temp) {
         loco_t::shapes_t::vfi_t::properties_t vfip;
         vfip.shape.rectangle->position = temp.get_position();
         vfip.shape.rectangle->position.z += 1;
         vfip.shape.rectangle->size = temp.get_size();
-        objects.back().sprite = std::move(temp);
+        objects[i].sprite = std::move(temp);
       }
 
       void file_load(const fan::string& path) {
@@ -125,6 +125,7 @@ namespace fan {
         uint32_t obj_size = 0;
         fan::read_from_string(istr, off, obj_size);
         objects.resize(obj_size);
+        uint32_t iterate_idx = 0;
         for (auto& obj : objects) {
           fan::read_from_string(istr, off, obj.image_name);
           uint32_t keyframe_size = 0;
@@ -136,8 +137,9 @@ namespace fan {
           //  //timeline.frames.push_back(frame.time * time_divider);
           //}
           memcpy(obj.key_frames.data(), &istr[off], sizeof(key_frame_t) * obj.key_frames.size());
+          off += sizeof(key_frame_t) * obj.key_frames.size();
           if (obj.key_frames.size()) {
-            push_sprite(fan::graphics::sprite_t{ {
+            push_sprite(iterate_idx, fan::graphics::sprite_t{ {
               .position = obj.key_frames[0].position,
               .size = obj.key_frames[0].size,
               .angle = obj.key_frames[0].angle,
@@ -145,6 +147,7 @@ namespace fan {
             } });
             load_image(obj.sprite, obj.image_name, *tp);
           }
+          iterate_idx += 1;
         }
       }
       void set_origin() {

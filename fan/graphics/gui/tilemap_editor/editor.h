@@ -102,9 +102,20 @@ struct fte_t {
   bool window_relative_to_grid(const fan::vec2& window_relative_position, fan::vec2i* in) {
     fan::vec2 p = gloco->translate_position(window_relative_position) / 2 + gloco->default_camera->camera.get_position() / 2;
     fan::vec2 ws = gloco->window.get_size();
-    p = (p / tile_size).floor() * tile_size * 2 + tile_size;
+    fan::vec2i f = (p / tile_size).floor();
+    p = f* tile_size * 2 + tile_size;
     *in = p;
     return fan_2d::collision::rectangle::point_inside_no_rotation(p / tile_size, 0, map_size);
+  }
+
+  void convert_draw_to_grid(fan::vec2i& p) {
+    p -= tile_size;
+    p /= 2;
+  }
+
+  void convert_grid_to_draw(fan::vec2i& p) {
+    p *= 2;
+    p += tile_size;
   }
 
   void open(const fan::string& texturepack_name) {
@@ -118,8 +129,7 @@ struct fte_t {
       fan::vec2i p;
       {
         if (window_relative_to_grid(d.position, &p)) {
-          fan::vec2i grid_position = p;
-          grid_position /= fan::vec2i(tile_size);
+          //convert_draw_to_grid(p);
           grid_visualize.highlight_hover.set_position(fan::vec2(p));
           grid_visualize.highlight_hover.set_color(fan::color(1, 1, 1, 0.6));
         }
@@ -316,8 +326,10 @@ struct fte_t {
       return true;
     }
     fan::vec2i grid_position = position;
-    grid_position /= fan::vec2i(tile_size);
-    auto& layers = map_tiles[fan::vec2i(grid_position.x, grid_position.y)].layers;
+    convert_draw_to_grid(grid_position);
+    grid_position /= tile_size;
+    fan::print(grid_position);
+    auto& layers = map_tiles[grid_position].layers;
     uint32_t idx = find_layer_shape(layers);
     if ((idx == invalid) && current_tile_image.ti.valid()) {
       layers.resize(layers.size() + 1);
@@ -370,8 +382,9 @@ struct fte_t {
     // update existing tile to given from brush
     else if (idx != invalid && current_tile_image.ti.valid()) {
       fan::vec2i grid_position = position;
-      grid_position /= fan::vec2i(tile_size);
-      auto found = map_tiles.find(fan::vec2i(grid_position.x, grid_position.y));
+      convert_draw_to_grid(grid_position);
+      grid_position /= tile_size;
+      auto found = map_tiles.find(grid_position);
       if (found != map_tiles.end()) {
         auto& layers = found->second.layers;
         idx = find_layer_shape(layers);
@@ -436,8 +449,9 @@ struct fte_t {
       return true;
     }
     fan::vec2i grid_position = position;
-    grid_position /= fan::vec2i(tile_size);
-    auto found = map_tiles.find(fan::vec2i(grid_position.x, grid_position.y));
+    convert_draw_to_grid(grid_position);
+    grid_position /= tile_size;
+    auto found = map_tiles.find(grid_position);
     if (found != map_tiles.end()) {
       auto& layers = found->second.layers;
       uint32_t idx = find_layer_shape(layers);
@@ -495,23 +509,32 @@ struct fte_t {
           copy_buffer.clear();
           fan::vec2i mouse_grid_pos;
           if (mouse_to_grid(mouse_grid_pos)) {
-            copy_src = mouse_grid_pos;
+            fan::vec2i grid_position = mouse_grid_pos * tile_size;
+            convert_draw_to_grid(grid_position);
+            grid_position /= tile_size;
+            copy_src = grid_position;
           }
         }
         if (is_mouse_left_held) {
           fan::vec2i mouse_grid_pos;
           if (mouse_to_grid(mouse_grid_pos)) {
+            fan::vec2i grid_position = mouse_grid_pos * tile_size;
+            convert_draw_to_grid(grid_position);
+            grid_position /= tile_size;
             select.clear();
             fan::vec2i src = copy_src;
-            fan::vec2i dst = mouse_grid_pos;
+            fan::vec2i dst = grid_position;
             copy_dst = dst;
             // 2 is coordinate specific
-            int stepx = (src.x <= dst.x) ? 2 : -2;
-            int stepy = (src.y <= dst.y) ? 2 : -2;
+            int stepx = (src.x <= dst.x) ? 1 : -1;
+            int stepy = (src.y <= dst.y) ? 1 : -1;
             for (int j = src.y; j != dst.y + stepy; j += stepy) {
               for (int i = src.x; i != dst.x + stepx; i += stepx) { 
+                fan::vec2i temp(i, j);
+                temp *= tile_size;
+                convert_grid_to_draw(temp);
                 select.push_back(fan::graphics::rectangle_t{{
-                    .position = fan::vec3(i * tile_size.x, j * tile_size.y, shape_depths_t::cursor_highlight_depth),
+                    .position = fan::vec3(temp, shape_depths_t::cursor_highlight_depth),
                     .size = tile_size,
                     .color = fan::color(1, 0, 0, 0.5),
                     .blending = true
@@ -526,8 +549,8 @@ struct fte_t {
           if (mouse_to_grid(mouse_grid_pos)) {
             fan::vec2 src = copy_src;
             fan::vec2 dst = copy_dst;
-            int stepx = (src.x <= dst.x) ? 2 : -2;
-            int stepy = (src.y <= dst.y) ? 2 : -2;
+            int stepx = (src.x <= dst.x) ? 1 : -1;
+            int stepy = (src.y <= dst.y) ? 1 : -1;
             for (int j = src.y; j != dst.y + stepy; j += stepy) {
               for (int i = src.x; i != dst.x + stepx; i += stepx) {
                 auto found = map_tiles.find(fan::vec2i(i, j));
@@ -544,11 +567,19 @@ struct fte_t {
           fan::vec2i mouse_grid_pos;
           if (mouse_to_grid(mouse_grid_pos)) {
             for (auto& i : copy_buffer) {
-              fan::vec2i current_pos = mouse_grid_pos + i.second;
+              fan::vec2i grid_position = mouse_grid_pos * tile_size;
+              convert_draw_to_grid(grid_position);
+              grid_position /= tile_size;
+              grid_position += i.second;
+              fan::vec2i tempf = i.first;
+              fan::vec2i temp = i.second;
+              convert_grid_to_draw(tempf);
+              convert_grid_to_draw(temp);
+              fan::vec2i current_pos = mouse_grid_pos + temp;
               if (is_in_constraints(current_pos * tile_size)) {
-                auto found = map_tiles.find(fan::vec2i(current_pos.x, current_pos.y));
-                found->second = map_tiles[i.first + i.second];
-                for (auto& tile : found->second.layers) {
+                auto& replace = map_tiles[grid_position];
+                replace = map_tiles[i.first + i.second];
+                for (auto& tile : replace.layers) {
                   fan::vec2 tile_position = (current_pos)*tile_size;
                   fan::vec2 offset = fan::vec2(tile.shape.get_position()) - (i.first + i.second) * tile_size;
                   if (is_in_constraints(tile_position + offset)) { // todo fix
@@ -573,7 +604,9 @@ struct fte_t {
       }
       return;
     }
-    fan::vec2 grid_position = position / tile_size;
+    fan::vec2i grid_position = position;
+    convert_draw_to_grid(grid_position);
+    grid_position /= tile_size;
     if (grid_position == prev_grid_position) {
       return;
     }
@@ -861,7 +894,8 @@ struct fte_t {
     fan::vec2i position;
     if (window_relative_to_grid(gloco->get_mouse_position(), &position)) {
       fan::vec2i grid_position = position;
-      grid_position /= fan::vec2i(tile_size);
+      convert_draw_to_grid(grid_position);
+      grid_position /= tile_size;
       auto found = map_tiles.find(fan::vec2i(grid_position.x, grid_position.y));
       if (found != map_tiles.end()) {
         auto& layers = found->second.layers;

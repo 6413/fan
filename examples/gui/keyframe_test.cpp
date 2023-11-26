@@ -57,7 +57,7 @@ int main() {
   loco_t::texturepack_t texturepack;
   texturepack.open_compiled("texture_packs/tilemap.ftp");
   player.animation = fan::graphics::animation_t(&texturepack);
-  player.animation.file_load("keyframe0.fka");
+  player.animation.file_load("keyframe1.fka");
   player.animation.set_origin();
 
   player.collider = fan::graphics::collider_dynamic_hidden_t(
