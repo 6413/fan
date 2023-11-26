@@ -1,6 +1,6 @@
 #include fan_pch
 
-#include _FAN_PATH(graphics/gui/tilemap_editor/renderer.h)
+#include _FAN_PATH(graphics/gui/tilemap_editor/renderer1.h)
 
 struct player_t {
   static constexpr fan::vec2 speed{ 200, 200 };
@@ -142,7 +142,6 @@ int main() {
     player.update();
     fan::vec2 player_pos = player.visual.get_position();
     renderer.update(map_id0_t, player_pos, 32 * 32);
-    //renderer.set_position(map_id0_t, player_pos);
     gloco->default_camera->camera.set_position(player.visual.get_position());
   });
 }

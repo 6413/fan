@@ -28,10 +28,12 @@ map_size = fan::read_data<fan::vec2ui>(in, off);
 tile_size = fan::read_data<fan::vec2ui>(in, off);
 gloco->lighting.ambient = fan::read_data<fan::vec3>(in, off);
 
+#if tilemap_renderer == 0
 compiled_map.compiled_shapes.resize(map_size.y);
 for (auto& i : compiled_map.compiled_shapes) {
   i.resize(map_size.x);
 }
+#endif
 
 #if !defined(tilemap_editor_loader) 
 resize_map();
@@ -80,10 +82,16 @@ while (off != in.size()) {
   });
   #if defined(tilemap_editor_loader)
   if (shapes.tile.layers.size()) {
+    #if tilemap_renderer == 0
     fan::vec2i temp = shapes.tile.layers[0].position;
     convert_draw_to_grid(tile_size, temp);
     fan::vec2i grid_pos = temp / tile_size + map_size / 2;
     compiled_map.compiled_shapes[grid_pos.y][grid_pos.x] = shapes;
+    #elif tilemap_renderer == 1
+    if (shapes.tile.layers.size()) {
+      compiled_map.compiled_shapes[fan::vec2(shapes.tile.layers[0].position) / tile_size] = shapes;
+    }
+    #endif
   }
   #endif
 }

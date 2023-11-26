@@ -20,7 +20,11 @@ struct fte_loader_t {
   struct compiled_map_t {
     fan::vec2i map_size;
     fan::vec2i tile_size;
+    #if tilemap_renderer == 0
     std::vector<std::vector<fan::mp_t<current_version_t::shapes_t>>> compiled_shapes;
+    #elif tilemap_renderer == 1
+    std::unordered_map<fan::vec2i, fan::mp_t<current_version_t::shapes_t>, vec2i_hasher> compiled_shapes;
+    #endif
   };
 
   #define BLL_set_CPP_ConstructDestruct
@@ -71,71 +75,71 @@ public:
     p /= 2;
   }
 
-  id_t add(compiled_map_t* compiled_map) {
+ /* id_t add(compiled_map_t* compiled_map) {
     add(compiled_map, properties_t());
-  }
+  }*/
 
-  id_t add(compiled_map_t* compiled_map, const properties_t& p) {
-    auto it = map_list.NewNodeLast();
-    auto& node = map_list[it];
-    node.compiled_map = compiled_map;
-    fan::vec2 origin = 0;//-fan::vec2(compiled_map->map_size * compiled_map->tile_size / 2) * p.size;
-    for (auto& i : compiled_map->compiled_shapes) {
-      for (auto x : i) {
-        for (auto& j : x.tile.layers) {
-          p.object_add_cb(j);
+  //id_t add(compiled_map_t* compiled_map, const properties_t& p) {
+  //  auto it = map_list.NewNodeLast();
+  //  auto& node = map_list[it];
+  //  node.compiled_map = compiled_map;
+  //  fan::vec2 origin = 0;//-fan::vec2(compiled_map->map_size * compiled_map->tile_size / 2) * p.size;
+  //  for (auto& i : compiled_map->compiled_shapes) {
+  //    for (auto x : i) {
+  //      for (auto& j : x.tile.layers) {
+  //        p.object_add_cb(j);
 
-          switch (j.mesh_property) {
-            case fte_t::mesh_property_t::none: {
-              // set map origin point to 0
-              node.tiles.push_back(fan::graphics::sprite_t{ {
-                  .position = fan::vec3(origin + *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size, j.position.z + p.position.z),
-                  .size = j.size * p.size,
-                  .angle = j.angle,
-                  .color = j.color
-              } });
-              loco_t::texturepack_t::ti_t ti;
-              if (texturepack->qti(j.image_hash, &ti)) {
-                fan::throw_error("failed to load image from .fte - corrupted save file");
-              }
-              gloco->shapes.sprite.load_tp(
-                map_list[it].tiles.back(),
-                &ti
-              );
-              break;
-            }
-            case fte_t::mesh_property_t::collider: {
-              node.collider_hidden.push_back(
-                fan::graphics::collider_hidden_t(
-                  *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size,
-                  j.size * p.size
-                )
-              );
-              break;
-            }
-            case fte_t::mesh_property_t::sensor: {
-              node.collider_sensor.push_back(
-                fan::graphics::collider_sensor_t(
-                  *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size,
-                  j.size * p.size
-                )
-              );
-              break;
-            }
-            case fte_t::mesh_property_t::light: {
-              node.tiles.push_back(fan::graphics::light_t{ {
-                .position = fan::vec3(origin + *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size, j.position.z + p.position.z),
-                .size = j.size * p.size,
-                .color = j.color
-              } });
-              break;
-            }
-          }
-        }
-      }
-    }
-    return it;
-  }
+  //        switch (j.mesh_property) {
+  //          case fte_t::mesh_property_t::none: {
+  //            // set map origin point to 0
+  //            node.tiles.push_back(fan::graphics::sprite_t{ {
+  //                .position = fan::vec3(origin + *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size, j.position.z + p.position.z),
+  //                .size = j.size * p.size,
+  //                .angle = j.angle,
+  //                .color = j.color
+  //            } });
+  //            loco_t::texturepack_t::ti_t ti;
+  //            if (texturepack->qti(j.image_hash, &ti)) {
+  //              fan::throw_error("failed to load image from .fte - corrupted save file");
+  //            }
+  //            gloco->shapes.sprite.load_tp(
+  //              map_list[it].tiles.back(),
+  //              &ti
+  //            );
+  //            break;
+  //          }
+  //          case fte_t::mesh_property_t::collider: {
+  //            node.collider_hidden.push_back(
+  //              fan::graphics::collider_hidden_t(
+  //                *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size,
+  //                j.size * p.size
+  //              )
+  //            );
+  //            break;
+  //          }
+  //          case fte_t::mesh_property_t::sensor: {
+  //            node.collider_sensor.push_back(
+  //              fan::graphics::collider_sensor_t(
+  //                *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size,
+  //                j.size * p.size
+  //              )
+  //            );
+  //            break;
+  //          }
+  //          case fte_t::mesh_property_t::light: {
+  //            node.tiles.push_back(fan::graphics::light_t{ {
+  //              .position = fan::vec3(origin + *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size, j.position.z + p.position.z),
+  //              .size = j.size * p.size,
+  //              .color = j.color
+  //            } });
+  //            break;
+  //          }
+  //        }
+  //      }
+  //    }
+  //  }
+  //  return it;
+  //}
 
   loco_t::texturepack_t* texturepack;
 };
