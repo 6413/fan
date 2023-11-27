@@ -328,7 +328,6 @@ struct fte_t {
     fan::vec2i grid_position = position;
     convert_draw_to_grid(grid_position);
     grid_position /= tile_size;
-    fan::print(grid_position);
     auto& layers = map_tiles[grid_position].layers;
     uint32_t idx = find_layer_shape(layers);
     if ((idx == invalid) && current_tile_image.ti.valid()) {

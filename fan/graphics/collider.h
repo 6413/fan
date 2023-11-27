@@ -16,7 +16,7 @@ namespace fan {
   }
 }
 
-constexpr static f32_t bcol_step_time = 0.01;
+constexpr static f32_t bcol_step_time = 0.001;
 #define BCOL_set_Dimension 2
 #define BCOL_set_IncludePath FAN_INCLUDE_PATH/fan
 #define BCOL_set_prefix bcol
