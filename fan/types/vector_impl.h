@@ -92,7 +92,7 @@ constexpr std::partial_ordering operator<=>(const T& rhs) const {
         return cmp;
       }
   }
-  return size() <=> 1;
+  return size() <=> size();
 }
 
 #define make_operators(arithmetic) \

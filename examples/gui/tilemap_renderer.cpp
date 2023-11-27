@@ -1,13 +1,13 @@
 #include fan_pch
 
-#include _FAN_PATH(graphics/gui/tilemap_editor/renderer1.h)
+#include _FAN_PATH(graphics/gui/tilemap_editor/renderer0.h)
 
 struct player_t {
-  static constexpr fan::vec2 speed{ 200, 200 };
+  static constexpr fan::vec2 speed{ 1550, 1550 };
 
   player_t() {
     visual = fan::graphics::sprite_t{ {
-      .position = fan::vec3(0, 100, 10),
+      .position = fan::vec3(0, 0, 10),
       .size = 32,
       .blending = true
     } };
@@ -19,7 +19,7 @@ struct player_t {
     lighting = lp;
   }
   void update() {
-    f32_t dt = gloco->get_delta_time();
+    f32_t dt = gloco->delta_time;
     f32_t multiplier = 1;
     if (gloco->window.key_pressed(fan::key_shift)) {
       multiplier = 3;
@@ -45,6 +45,7 @@ struct player_t {
     }
 
     visual.set_velocity(velocity);
+    
     visual.set_position(visual.get_collider_position());
     lighting.set_position(visual.get_position());
   }
@@ -86,11 +87,14 @@ int main() {
   fte_renderer_t renderer;
   renderer.open(&tp);
 
-  auto compiled_map = renderer.compile("tilemaps/4.fte");
+  auto compiled_map = renderer.compile("tilemaps/3.fte");
+
+  int render_size = 30;
 
   fte_loader_t::properties_t p;
 
   p.position = fan::vec3(0, 0, 0);
+  p.size = 32 * (render_size * 2);
   // add custom stuff when importing files
   p.object_add_cb = [&](fte_loader_t::fte_t::tile_t& tile) {
     if (tile.id == "1") {
@@ -102,7 +106,6 @@ int main() {
   init_zoom();
 
   auto map_id0_t = renderer.add(&compiled_map, p);
-  //renderer.update(map_id0_t, 0, 32 * 32);
 
   player_t player;
 
@@ -136,12 +139,17 @@ int main() {
       }
     };
 
+  loco.set_vsync(0);
+ // loco.window.set_max_fps(3);
+  f32_t total_delta = 0;
 
   loco.loop([&] {
     gloco->get_fps();
     player.update();
-    fan::vec2 player_pos = player.visual.get_position();
-    renderer.update(map_id0_t, player_pos, 32 * 32);
-    gloco->default_camera->camera.set_position(player.visual.get_position());
+    fan::vec2 dst = player.visual.get_position();
+    fan::vec2 src = gloco->default_camera->camera.get_position();
+    fan::vec2 offset = (dst - src) * 4 * gloco->delta_time;
+    gloco->default_camera->camera.set_position(src + offset);
+    renderer.update(map_id0_t, dst);
   });
 }

@@ -1,3 +1,7 @@
+#ifndef tilemap_renderer
+#define tilemap_renderer -1
+#endif
+
 fan::string in;
 if (fan::io::file::read(filename, &in)) {
   #if defined(tilemap_editor_loader) 

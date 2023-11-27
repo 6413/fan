@@ -34,9 +34,11 @@ struct fte_loader_t {
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
     compiled_map_t* compiled_map; \
-    std::vector<loco_t::shape_t> tiles; \
-    std::vector<fan::graphics::collider_hidden_t> collider_hidden; \
-    std::vector<fan::graphics::collider_sensor_t> collider_sensor;
+    std::deque<std::deque<std::vector<std::variant< \
+    loco_t::shape_t,\
+      fan::graphics::collider_hidden_t,\
+      fan::graphics::collider_sensor_t\
+    >>>> tiles;
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
 protected:
