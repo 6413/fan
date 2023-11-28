@@ -53,6 +53,9 @@ struct texture_packe0 {
   struct texture_properties_t {
     texture_properties_t() {}
 
+    fan::vec2 uv_pos = 0;
+    fan::vec2 uv_size = 1;
+
     fan::string name;
     uint32_t visual_output = -1;
     uint32_t min_filter = -1;
@@ -98,7 +101,7 @@ struct texture_packe0 {
     return push_pack(p);
   }
 
-  bool push_texture(const fan::string& image_path, const texture_properties_t& texture_properties = texture_properties_t()) {
+  bool push_texture(const fan::string& image_path, const texture_properties_t& texture_properties) {
 
     if (texture_properties.name.empty()) {
       fan::print_warning("texture properties name empty");
@@ -130,6 +133,47 @@ struct texture_packe0 {
     t.decoded_data.resize(t.size.multiply() * 4);
     std::memcpy(t.decoded_data.data(), image_info.data, t.size.multiply() * 4);
     fan::webp::free_image(image_info.data);
+    t.name = texture_properties.name;
+    t.visual_output = texture_properties.visual_output;
+    t.min_filter = texture_properties.min_filter;
+    t.mag_filter = texture_properties.mag_filter;
+    t.group_id = texture_properties.group_id;
+
+    texture_list.push_back(t);
+    return 0;
+  }
+
+  bool push_texture(loco_t::image_t image, const texture_properties_t& texture_properties) {
+
+    if (texture_properties.name.empty()) {
+      fan::print_warning("texture properties name empty");
+      return 1;
+    }
+
+    for (uint32_t gti = 0; gti < texture_list.size(); gti++) {
+      if (texture_list[gti].name == texture_properties.name) {
+        texture_list.erase(texture_list.begin() + gti);
+        break;
+      }
+    }
+
+    auto data = image.get_pixel_data(fan::opengl::GL_RGBA, texture_properties.uv_pos, texture_properties.uv_size);
+    fan::vec2ui image_size(
+      (uint32_t)(image.size.x * texture_properties.uv_size.x),
+      (uint32_t)(image.size.y * texture_properties.uv_size.y)
+    );
+
+
+    if ((int)image_size.x % 2 != 0 || (int)image_size.y % 2 != 0) {
+      fan::print_warning("failed to load, image size is not divideable by 2");
+      fan::print(texture_properties.name, image_size);
+      return 1;
+    }
+
+    texture_t t;
+    t.size = image_size;
+    t.decoded_data.resize(t.size.multiply() * 4);
+    std::memcpy(t.decoded_data.data(), data.get(), t.size.multiply() * 4);
     t.name = texture_properties.name;
     t.visual_output = texture_properties.visual_output;
     t.min_filter = texture_properties.min_filter;

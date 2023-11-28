@@ -1,53 +1,32 @@
 #include fan_pch
 
-struct pile_t {
-
-  static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
-  static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
-
-  void open() {
-    loco.open_camera(
-      &camera,
-      ortho_x,
-      ortho_y
-    );
-    viewport.open();
-    viewport.set(0, loco.window.get_size(), loco.window.get_size());
-  }
-
-  loco_t::camera_t camera;
-  fan::graphics::viewport_t viewport;
-  loco_t loco;
-};
-
 int main() {
-
-  pile_t pile;
-  pile.open();
+  loco_t loco;
+  loco.default_camera->camera.set_ortho(
+    fan::vec2(-1, 1),
+    fan::vec2(-1, 1)
+  );
 
   loco_t::texturepack_t texturepack;
-  texturepack.open_compiled("TexturePack");
+  texturepack.open_compiled("1");
 
   loco_t::shapes_t::sprite_t::properties_t p;
 
   loco_t::texturepack_t::ti_t ti;
-  if (texturepack.qti("entity_ship", &ti)) {
+  if (texturepack.qti("tile1", &ti)) {
     return 1;
   }
   p.load_tp(&ti);
+  //p.image = &texturepack.pixel_data_list[0].image;
 
   p.position = 0;
-  p.camera = &pile.camera;
-  p.viewport = &pile.viewport;
   p.size = 0.5;
   p.position = 0;
-  loco_t::cid_nr_t cid;
-  cid.init();
-  pile.loco.sprite.push_back(cid, p);
+  loco_t::shape_t sprite = p;
   
-  pile.loco.loop([&] {
+  loco.loop([&] {
 
-   });
+  });
 
   return 0;
 }

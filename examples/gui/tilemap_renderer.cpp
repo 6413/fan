@@ -3,12 +3,12 @@
 #include _FAN_PATH(graphics/gui/tilemap_editor/renderer0.h)
 
 struct player_t {
-  static constexpr fan::vec2 speed{ 1550, 1550 };
+  static constexpr fan::vec2 speed{ 450, 450 };
 
   player_t() {
     visual = fan::graphics::sprite_t{ {
       .position = fan::vec3(0, 0, 10),
-      .size = 32,
+      .size = 32 / 2,
       .blending = true
     } };
     loco_t::shapes_t::light_t::properties_t lp;
@@ -89,19 +89,20 @@ int main() {
 
   auto compiled_map = renderer.compile("tilemaps/3.fte");
 
-  int render_size = 30;
+  fan::vec2i render_size(16, 9);
+  render_size *= 2;
+  render_size += 3;
 
   fte_loader_t::properties_t p;
-
+  
   p.position = fan::vec3(0, 0, 0);
-  p.size = 32 * (render_size * 2);
+  p.size = (render_size * 2) * 32;
   // add custom stuff when importing files
   p.object_add_cb = [&](fte_loader_t::fte_t::tile_t& tile) {
     if (tile.id == "1") {
-
       fan::print("a");
     }
-    };
+  };
 
   init_zoom();
 
@@ -140,16 +141,20 @@ int main() {
     };
 
   loco.set_vsync(0);
- // loco.window.set_max_fps(3);
+  //loco.window.set_max_fps(3);
   f32_t total_delta = 0;
-
   loco.loop([&] {
-    gloco->get_fps();
+   // gloco->get_fps();
     player.update();
     fan::vec2 dst = player.visual.get_position();
     fan::vec2 src = gloco->default_camera->camera.get_position();
-    fan::vec2 offset = (dst - src) * 4 * gloco->delta_time;
-    gloco->default_camera->camera.set_position(src + offset);
+    // smooth camera
+    //fan::vec2 offset = (dst - src) * 4 * gloco->delta_time;
+    //gloco->default_camera->camera.set_position(src + offset);
+    gloco->default_camera->camera.set_position(dst);
     renderer.update(map_id0_t, dst);
+    if (gloco->delta_time > 0.002) {
+      fan::print(gloco->delta_time);
+    }
   });
 }
