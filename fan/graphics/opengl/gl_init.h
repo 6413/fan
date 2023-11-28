@@ -442,9 +442,9 @@ namespace fan {
       get_proc_address(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate, &internal);
       get_proc_address(PFNGLISENABLEDPROC, glIsEnabled, &internal);
       get_proc_address(PFNGLISPROGRAMPROC, glIsProgram, &internal);
-
-
-
+      get_proc_address(PFNGLREADPIXELSPROC, glReadPixels, &internal);
+      get_proc_address(PFNGLREADBUFFERPROC, glReadBuffer, &internal);
+      
 
     };
     #undef get_proc_address

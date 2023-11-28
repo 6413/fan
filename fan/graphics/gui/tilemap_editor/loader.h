@@ -16,6 +16,16 @@ struct fte_loader_t {
       return hash_value;
     }
   };
+  struct vec3i_hasher {
+    std::size_t operator()(const fan::vec3i& k) const {
+      std::hash<int> hasher;
+      std::size_t hash_value = 17;
+      hash_value = hash_value * 31 + hasher(k.x);
+      hash_value = hash_value * 31 + hasher(k.y);
+      hash_value = hash_value * 31 + hasher(k.z);
+      return hash_value;
+    }
+  };
 
   struct compiled_map_t {
     fan::vec2i map_size;
@@ -34,11 +44,11 @@ struct fte_loader_t {
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
     compiled_map_t* compiled_map; \
-    std::deque<std::deque<std::vector<std::variant< \
+    std::unordered_map<fan::vec3i, std::variant< \
     loco_t::shape_t,\
       fan::graphics::collider_hidden_t,\
       fan::graphics::collider_sensor_t\
-    >>>> tiles;
+    >, vec3i_hasher> tiles;
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
 protected:

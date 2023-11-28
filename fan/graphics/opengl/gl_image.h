@@ -388,6 +388,45 @@ struct image_t {
     );
   }
 
+  // slow
+  std::unique_ptr<uint8_t[]> get_pixel_data(fan::opengl::GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) {
+    auto& context = gloco->get_context();
+
+    bind_texture();
+
+    fan::vec2ui uv_size = {
+     (uint32_t)(size.x * uvs.x),
+     (uint32_t)(size.y * uvs.y)
+    };
+
+    auto full_ptr = std::make_unique<uint8_t[]>(size.x * size.y * 4); // assuming rgba
+
+    context.opengl.call(
+      context.opengl.glGetTexImage,
+      fan::opengl::GL_TEXTURE_2D,
+      0,
+      format,
+      fan::opengl::GL_UNSIGNED_BYTE,
+      full_ptr.get()
+    );
+
+    auto ptr = std::make_unique<uint8_t[]>(uv_size.x * uv_size.y * 4); // assuming rgba
+
+    for (uint32_t y = 0; y < uv_size.y; ++y) {
+      for (uint32_t x = 0; x < uv_size.x; ++x) {
+        uint32_t full_index = ((y + uvp.y * size.y) * size.x + (x + uvp.x * size.x)) * 4;
+        uint32_t index = (y * uv_size.x + x) * 4;
+        ptr[index + 0] = full_ptr[full_index + 0];
+        ptr[index + 1] = full_ptr[full_index + 1];
+        ptr[index + 2] = full_ptr[full_index + 2];
+        ptr[index + 3] = full_ptr[full_index + 3];
+      }
+    }
+
+    return ptr;
+  }
+
+
   loco_t::image_list_NodeReference_t texture_reference;
 //public:
   fan::vec2 size;
