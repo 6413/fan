@@ -4,7 +4,6 @@ int main() {
   loco_t loco;
 
   loco_t::texture_packe0::open_properties_t open_properties;
-  open_properties.preferred_pack_size = 1024;
   loco_t::texture_packe0 e;
   e.open(open_properties);
   loco_t::texture_packe0::texture_properties_t texture_properties;
@@ -52,7 +51,7 @@ int main() {
     static fan::vec2f cell_size = 1;
     if (ImGui::DragFloat2("cell size", cell_size.data(), 1, 1, 4096)) {
       images.clear();
-      fan::vec2 divider = root_image.size / cell_size;
+      fan::vec2i divider = root_image.size / cell_size;
       fan::vec2 uv_size = root_image.size / divider / root_image.size;
       images.resize(divider.y);
       for (int i = 0; i < divider.y; ++i) {
@@ -75,6 +74,7 @@ int main() {
       ) {
 
       root_image.load(image_path.c_str());
+      open_properties.preferred_pack_size = root_image.size;
       /* images.push_back(image_t{
          .uv_pos =0,
          .uv_size=1,

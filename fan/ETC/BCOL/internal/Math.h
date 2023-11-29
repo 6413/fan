@@ -89,7 +89,7 @@ struct iterate_grid_for_circle_t{
     _vsi32 ge; /* grid end */
     bool NeedInit = true;
 
-    void InitCurrent(const auto &gbs, const auto &wp, f32_t er){
+    void InitCurrent(const auto &gbs, const _vf &wp, f32_t er){
       if(c < _dc){
         _f wpm = wp[c] - er;
         _f wpp = wp[c] + er;
@@ -106,7 +106,7 @@ struct iterate_grid_for_circle_t{
         gs[c]--; /* we increase this even before check ge[c] so this is needed */
       }
     }
-    void Increase(const auto &gbs, const auto &wp, f32_t er /* end radius */){
+    void Increase(const auto &gbs, const _vf &wp, f32_t er /* end radius */){
       c++;
       InitCurrent(gbs, wp, er);
     }
@@ -120,13 +120,33 @@ struct iterate_grid_for_circle_t{
       }
     }
 
-    static f32_t gbod(f32_t r, f32_t i0, f32_t i1){ /* get biggest of dimension */
-      if(i0 <= 0 && i1 >= 0){
-        return r;
+    /* get biggest of dimension */
+    _f gbod(const auto &gbs, const auto &wp, _f r){
+      _v<_vf::size() - 1, _f> rp;
+      for(uint8_t d = 0; d < c + 1; d++){
+        rp[d] = _f(gs[d]) * gbs[d] - wp[d];
       }
-      f32_t d1 = min(min(abs(i0), abs(i1)) / r, (f32_t)1);
-      f32_t d0 = std::sqrt((f32_t)1 - d1 * d1) * r;
-      return d0;
+      {
+        uint8_t d = 0;
+        for(; d < c + 1; d++){
+          if(rp[d] <= 0 && rp[d] + gbs[d] >= 0); else{
+            break;
+          }
+        }
+        if(d == c + 1){
+          return r;
+        }
+      }
+      _f ret = 1;
+      for(uint8_t d = 0; d < c + 1; d++){
+        _f v = min(abs(rp[d]), abs(rp[d] + gbs[d]));
+        v = min(v / r, _f(1));
+        ret -= v * v;
+      }
+      if(ret < 0){
+        return 0;
+      }
+      return std::sqrt(ret) * r;
     }
     bool _it(
       const auto &gbs, /* grid block size */
@@ -135,8 +155,7 @@ struct iterate_grid_for_circle_t{
     ){
       while(1){
         if(c + 1 < _dc){
-          f32_t rp = (f32_t)gs[c] * gbs[c] - wp[c]; /* relative position */
-          f32_t roff = gbod(r, rp, rp + gbs[c]); /* relative offset */
+          f32_t roff = gbod(gbs, wp, r); /* relative offset */
           Increase(gbs, wp, roff);
         }
         else if(c < _dc){
@@ -168,24 +187,28 @@ bool ray_circle_intersection(
   _f r,
   _vf &intersection_position
 ){
-  _vf ray_to_circle = cpos - ray_pos;
+  _f a = ray_dir.dot(ray_dir);
+  _f b = ray_dir.dot(ray_pos - cpos) * 2;
+  _f c = (ray_pos - cpos).dot(ray_pos - cpos) - r * r;
+  _f discriminant = b * b - 4 * a * c;
 
-  _vf projection = ray_to_circle.dot(ray_dir);
-
-  if(projection < 0) {
+  if(discriminant < 0){
     return false;
   }
-
-  _vf closest_point = ray_pos + ray_dir * projection;
-
-  /* intersection distance */
-  _f interdist = (cpos - closest_point).length();
-
-  if(interdist > r){
-    return false;
+  else if(discriminant > 0){
+    _f t = (-b + sqrt(discriminant)) / (2 * a);
+    _f t2 = -b / a - t;
+    if(abs(t2) < abs(t)){
+      t = t2;
+    }
+    if(t < 0 && t2 < 0){
+      return false;
+    }
+    intersection_position = ray_pos + ray_dir * t;
+    return true;
   }
-
-  intersection_position = ray_pos + ray_dir * projection - ray_to_circle.normalize() * std::sqrt(r * r - interdist * interdist);
-
-  return true;
+  else{
+    intersection_position = ray_pos + ray_dir * (-0.5 * b / a);
+    return true;
+  }
 }

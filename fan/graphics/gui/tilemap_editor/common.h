@@ -14,11 +14,6 @@ struct version_001_t {
           layer.image_hash = i.tile.image_hash;
           layer.mesh_property = i.tile.mesh_property;
           layer.id = i.tile.id;
-          static int z = 0;
-          if (layer.mesh_property == fte_t::mesh_property_t::collider) {
-            z++;
-            fan::print(z);
-          }
           layers.push_back(layer);
         }
       }
@@ -64,6 +59,12 @@ struct version_001_t {
                 .position = layer.position,
                 .size = layer.size,
                 .color = layer.color,
+                .blending = true
+              }};
+              fte->visual_shapes[layer.position].shape = fan::graphics::sprite_t{{
+                .position = fan::vec3(fan::vec2(layer.position), layer.position.z + 1),
+                .size = fte->tile_size,
+                .image = &fte->grid_visualize.light_color,
                 .blending = true
               }};
               break;

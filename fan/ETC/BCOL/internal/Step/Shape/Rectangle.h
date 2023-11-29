@@ -1,6 +1,12 @@
-auto RectangleData = ShapeData_Rectangle_Get(ObjectData0->ShapeList.ptr[sip0.ShapeID.ID].ShapeID);
+_vf RectanglePosition0;
+_vf RectangleSize0;
+{
+  auto RectangleData0 = ShapeData_Rectangle_Get(ObjectData0->ShapeList.ptr[sip0.ShapeID.ID].ShapeID);
+  RectanglePosition0 = RectangleData0->Position;
+  RectangleSize0 = RectangleData0->Size;
+}
 
-_vf NewPosition = NewObjectPosition + RectangleData->Position;
+_vf NewPosition = NewObjectPosition + RectanglePosition0;
 
 _vf WantedPosition = 0;
 _vf WantedDirection = 0;
@@ -11,7 +17,7 @@ _f WantedCollisionRequesters = 0;
   const _f GridBlockSize_D2 = GridBlockSize / 2;
 
   _vf gbs(GridBlockSize);
-  for(iterate_grid_for_rectangle_t ig; ig.it(gbs, NewPosition, RectangleData->Size);){
+  for(iterate_grid_for_rectangle_t ig; ig.it(gbs, NewPosition, RectangleSize0);){
     Contact_Grid_t Contact;
     this->PreSolve_Grid_cb(
       this,
@@ -29,7 +35,7 @@ _f WantedCollisionRequesters = 0;
     _vf oDirection;
     CPC_Rectangle_Square(
       NewPosition,
-      RectangleData->Size,
+      RectangleSize0,
       _vf(ig.gs) * GridBlockSize + GridBlockSize_D2,
       GridBlockSize_D2,
       &oRectangle,
@@ -63,7 +69,7 @@ _f WantedCollisionRequesters = 0;
           CPCU_Rectangle_Circle_t CData;
           CPCU_Rectangle_Circle_Pre(
             NewPosition,
-            RectangleData->Size,
+            RectangleSize0,
             WorldPosition,
             CircleData_->Size,
             &CData);
@@ -93,7 +99,7 @@ _f WantedCollisionRequesters = 0;
           _vf oDirection;
           CPCU_Rectangle_Circle_Solve(
             NewPosition,
-            RectangleData->Size,
+            RectangleSize0,
             WorldPosition,
             CircleData_->Size,
             &CData,
@@ -119,7 +125,7 @@ _f WantedCollisionRequesters = 0;
 #endif
 
 if(WantedCollisionRequesters){
-  WantedObjectPosition += WantedPosition - RectangleData->Position * WantedCollisionRequesters;
+  WantedObjectPosition += WantedPosition - RectanglePosition0 * WantedCollisionRequesters;
   WantedObjectDirection += WantedDirection;
   WantedObjectCollisionRequesters += WantedCollisionRequesters;
 }

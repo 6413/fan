@@ -10,10 +10,10 @@ struct a_t {
 int main() {
   //
   loco_t loco;
-  fte_t fte;
-  fte.file_name = "tilemaps/3.fte";
+  fte_t fte;//
+  fte.file_name = "tilemaps/test.fte";
   fte.open("1");
-  fte.fin("tilemaps/3.fte");
+  fte.fin("tilemaps/test.fte");
   //loco.set_vsync(0);
   //loco.window.set_max_fps(165);
   loco.loop([&] {
