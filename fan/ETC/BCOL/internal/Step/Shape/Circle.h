@@ -1,6 +1,12 @@
-auto CircleData = ShapeData_Circle_Get(ObjectData0->ShapeList.ptr[sip0.ShapeID.ID].ShapeID);
+_vf CirclePosition0;
+_f CircleSize0;
+{
+  auto CircleData0 = ShapeData_Circle_Get(ObjectData0->ShapeList.ptr[sip0.ShapeID.ID].ShapeID);
+  CirclePosition0 = CircleData0->Position;
+  CircleSize0 = CircleData0->Size;
+}
 
-_vf NewPosition = NewObjectPosition + CircleData->Position;
+_vf NewPosition = NewObjectPosition + CirclePosition0;
 
 _vf WantedPosition = 0;
 _vf WantedDirection = 0;
@@ -11,7 +17,7 @@ _f WantedCollisionRequesters = 0;
   const _f GridBlockSize_D2 = GridBlockSize / 2;
 
   _vf gbs(GridBlockSize);
-  for(iterate_grid_for_circle_t ig; ig.it(gbs, NewPosition, CircleData->Size);){
+  for(iterate_grid_for_circle_t ig; ig.it(gbs, NewPosition, CircleSize0);){
     Contact_Grid_t Contact;
     this->PreSolve_Grid_cb(
       this,
@@ -29,7 +35,7 @@ _f WantedCollisionRequesters = 0;
     _vf oDirection;
     CPC_Circle_Square(
       NewPosition,
-      CircleData->Size,
+      CircleSize0,
       _vf(ig.gs) * GridBlockSize + GridBlockSize_D2,
       GridBlockSize_D2,
       &oCircle,
@@ -80,7 +86,7 @@ _f WantedCollisionRequesters = 0;
 
           _vf Difference = NewPosition - WorldPosition;
           _f Hypotenuse = Difference.length();
-          _f CombinedSize = CircleData->Size + CircleData1->Size;
+          _f CombinedSize = CircleSize0 + CircleData1->Size;
           if(Hypotenuse >= CombinedSize){
             break;
           }
@@ -134,7 +140,7 @@ _f WantedCollisionRequesters = 0;
           CPCU_Circle_Rectangle_t CData;
           CPCU_Circle_Rectangle_Pre(
             NewPosition,
-            CircleData->Size,
+            CircleSize0,
             WorldPosition,
             RectangleData_->Size,
             &CData);
@@ -164,7 +170,7 @@ _f WantedCollisionRequesters = 0;
           _vf oDirection;
           CPCU_Circle_Rectangle_Solve(
             NewPosition,
-            CircleData->Size,
+            CircleSize0,
             WorldPosition,
             RectangleData_->Size,
             &CData,
@@ -186,7 +192,7 @@ _f WantedCollisionRequesters = 0;
 #endif
 
 if(WantedCollisionRequesters){
-  WantedObjectPosition += WantedPosition - CircleData->Position * WantedCollisionRequesters;
+  WantedObjectPosition += WantedPosition - CirclePosition0 * WantedCollisionRequesters;
   WantedObjectDirection += WantedDirection;
   WantedObjectCollisionRequesters += WantedCollisionRequesters;
 }

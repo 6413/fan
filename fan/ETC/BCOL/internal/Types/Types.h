@@ -4,10 +4,14 @@ struct __BCOL_P(t){
   typedef CONCAT3(f,BCOL_set_PreferredFloatSize,_t) _f;
   typedef CONCAT3(uint,BCOL_set_PreferredFloatSize,_t) _ui;
   typedef CONCAT3(sint,BCOL_set_PreferredFloatSize,_t) _si;
-  typedef fan::vec_wrap_t<_dc, _f> _vf;
-  typedef fan::vec_wrap_t<_dc, uint32_t> _vui32;
-  typedef fan::vec_wrap_t<_dc, sint32_t> _vsi32;
-  typedef fan::vec_wrap_t<4, _f> _4f;
+
+  template <uintptr_t dc, typename t>
+  using _v = fan::vec_wrap_t<dc, t>;
+
+  typedef _v<_dc, _f> _vf;
+  typedef _v<_dc, uint32_t> _vui32;
+  typedef _v<_dc, sint32_t> _vsi32;
+  typedef _v<3, _f> _3f;
 
   #include "../Math.h"
 
@@ -55,10 +59,21 @@ struct __BCOL_P(t){
 
   #if BCOL_set_VisualSolve == 1
     struct VisualSolve_t{
-      _4f rgba;
       _vf at;
       _vf normal;
-      _f emit;
+      _f multipler;
+      _3f rgb;
+      _f transparency;
+      _f reflect;
+      VisualSolve_t(){}
+      VisualSolve_t(uint32_t p){
+        at = _vf(0);
+        normal = _vf(0);
+        multipler = 0;
+        rgb = 0;
+        transparency = 0;
+        reflect = 0;
+      }
     };
   #endif
 

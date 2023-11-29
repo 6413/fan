@@ -6,7 +6,6 @@ void Step(
   while(sip0.ObjectID != this->ObjectList.dst){
     this->ObjectList.StartSafeNext(sip0.ObjectID);
 
-    /* TODO can pointer invalidated by future user callbacks that adds objects? */
     auto ObjectData0 = this->GetObjectData(sip0.ObjectID);
 
     /* bad way */
@@ -37,6 +36,9 @@ void Step(
           #include "Shape/Rectangle.h"
         }
       }
+
+      /* user is able to change pointers by adding or removing objects inside callbacks */
+      ObjectData0 = this->GetObjectData(sip0.ObjectID);
     }
 
     if(WantedObjectCollisionRequesters){
