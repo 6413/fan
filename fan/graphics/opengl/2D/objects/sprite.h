@@ -119,20 +119,7 @@ struct sb_sprite_name {
     return 0;
   }
 
-  //void set_viewport_value(loco_t::cid_nt_t& id, fan::vec2 p, fan::vec2 s) {
-  //  loco_t* loco = get_loco();
-  //  auto block = sb_get_block(cid);
-  //  loco->get_context().viewport_list[*block->p[cid->instance_id].key.get_value<2>()].viewport_id->set(loco->get_context(), p, s, loco->window.get_size());
-  //  //sb_set_key(cid, &properties_t::image, n);
-  //}
-
-  #if defined(loco_vulkan)
-    uint32_t m_texture_index = 0;
-    uint32_t m_camera_index = 0;
-  #endif
 };
-
-#undef vulkan_buffer_count
 #undef sb_shader_vertex_path
 #undef sb_shader_fragment_path
 #undef sb_sprite_name

@@ -3,56 +3,111 @@
 #include "time.h"
 
 #include <set>
+#include <map>
 
 namespace fan {
+
 	struct ev_timer_t {
+
+    struct cb_data_t;
+
+    struct id_t {
+      id_t() = default;
+      id_t(uint32_t i) : iid(i) {}
+      operator uint32_t() {
+        return iid;
+      }
+      bool is_valid() {
+        return *this != (uint32_t)-1;
+      }
+      void invalidate() {
+        *this = -1;
+      }
+      uint32_t iid = -1;
+    };
+
+    struct timer_t {
+      timer_t() = default;
+      uint64_t ns;
+      uint64_t time_left;
+      bool repeat;
+      fan::function_t<void()> cb = [] {};
+      id_t id;
+      bool operator<(const timer_t& r) const {
+        return time_left < r.time_left;
+      }
+    };
+
+    using nr_t = std::multiset<timer_t>::iterator;
+
+    std::vector<nr_t> iid_list;
+
 		ev_timer_t() {
 			m_current_time = fan::time::clock::now();
 		}
 
-		struct timer_t;
+    struct cb_data_t {
+      ev_timer_t* ev_timer;
+      timer_t timer;
+    };
 
-		struct cb_data_t {
-			ev_timer_t* ev_timer;
-			timer_t* timer;
-		};
-
-		struct timer_t {
-      // CB SHOULD BE INITALIZED
-      timer_t() = default;
-			bool operator<(const timer_t& r) const {
-				return time_left < r.time_left;
-			}
-
-			timer_t(const fan::function_t<void(const cb_data_t&)>& c) {
-				cb = c;
-			}
-			uint64_t time_left;
-      fan::function_t<void(const cb_data_t&)> cb = [] (const cb_data_t&) {};
-		};
-
-		void start(timer_t* timer, uint64_t time_left) {
-			time_left += m_current_time;
-			timer->time_left = time_left;
-			time_list.insert(timer);
+    id_t start(uint64_t ns, auto lambda) {
+      timer_t timer;
+      timer.cb = lambda;
+      timer.repeat = true;
+      timer.ns = ns;
+			timer.time_left = ns + m_current_time;
+      iid_list.resize(iid_list.size() + 1);
+      timer.id = iid_list.size() - 1;
+      nr_t nr = time_list.insert(timer);
+      iid_list.back() = nr;
+			return timer.id;
 		}
-		void stop(timer_t* timer) {
-			time_list.erase(timer);
+    id_t start_single(uint64_t ns, auto lambda) {
+      ns += m_current_time;
+      timer_t timer;
+      timer.cb = lambda;
+      timer.repeat = false;
+      timer.ns = ns;
+      timer.time_left = ns + m_current_time;
+      iid_list.resize(iid_list.size() + 1);
+      timer.id = iid_list.size() - 1;
+      nr_t nr = time_list.insert(timer);
+      iid_list.back() = nr;
+      return timer.id;
+    }
+    bool is_valid(id_t id) {
+      return id.is_valid();
+    }
+		void stop(id_t& id) {
+      if (!is_valid(id)) {
+        return;
+      }
+			time_list.erase(iid_list[id]);
+      iid_list.erase(iid_list.begin() + id);
+      id.invalidate();
 		}
 
 		void process() {
 			m_current_time = fan::time::clock::now();
 			for (auto it = time_list.begin(); it != time_list.end(); ++it) {
-				if ((*it)->time_left > m_current_time) {
+				if (it->time_left > m_current_time) {
 					break;
 				}
-				timer_t* t = (*it);
-        cb_data_t cb_data;
-        cb_data.ev_timer = this;
-        cb_data.timer = t;
-        t->cb(cb_data);
+        it->cb();
+        if (it->repeat == false) {
+          it = time_list.erase(it);
+        }
+        else {
+          timer_t timer;
+          timer = *it;
+          timer.time_left = timer.ns + m_current_time;
+          auto& node = iid_list[timer.id];
+          time_list.erase(it);
+          auto x = time_list.insert(timer);
+          node = x;
+        }
 
-				it = time_list.erase(it);
         if (it == time_list.end()) {
           break;
         }
@@ -60,6 +115,6 @@ namespace fan {
 		}
 
 		uint64_t m_current_time;
-		std::multiset<timer_t*> time_list;
+		std::multiset<timer_t> time_list;
 	};
 }

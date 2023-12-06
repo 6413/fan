@@ -104,14 +104,41 @@ struct fte_t {
   bool window_relative_to_grid(const fan::vec2& window_relative_position, fan::vec2i* in) {
     fan::vec2 p = gloco->translate_position(window_relative_position) / 2 + gloco->default_camera->camera.get_position() / 2;
     fan::vec2 ws = gloco->window.get_size();
+    if (map_size.x % 2) {
+      p.x += tile_size.x / 2;
+    }
+    if (map_size.y % 2) {
+      p.y += tile_size.y / 2;
+    }
     fan::vec2i f = (p / tile_size).floor();
-    p = f* tile_size * 2 + tile_size;
-    *in = p;
+    p = f * tile_size * 2;
+    if (!(map_size.x % 2)) {
+      p.x += tile_size.x;
+    }
+    if (!(map_size.y % 2)) {
+      p.y += tile_size.y;
+    }
+    //p -= tile_size / 2;
+    //if (!(map_size.x % 2)) {
+    //  p += tile_size;
+    //}
+    //else {
+      //p += fan::vec2i((map_size.x % 2) * tile_size.x, (map_size.y % 2) * tile_size.y);
+     // p += fan::vec2i(!(map_size.x % 2) * -tile_size.x * 0.5, !(map_size.y % 2) * -tile_size.y);
+    //}
+    //fan::print(p.floor());
+    *in = p.floor();
+
     return fan_2d::collision::rectangle::point_inside_no_rotation(p / tile_size, 0, map_size);
   }
 
   void convert_draw_to_grid(fan::vec2i& p) {
-    p -= tile_size;
+    if (!(map_size.x % 2)) {
+      p.x -= tile_size.x;
+    }
+    if (!(map_size.y % 2)) {
+      p.y -= tile_size.y;
+    }
     p /= 2;
   }
 
@@ -328,7 +355,8 @@ struct fte_t {
     if (!is_in_constraints(position, j, i)) {
       return true;
     }
-    fan::vec2 start_idx = -current_tile_brush_count / 2;
+    fan::print(position);
+    fan::vec2 start_idx = -(current_tile_brush_count / 2).floor();
     position += start_idx * tile_size * 2;
 
     f32_t inital_x = position.x;
@@ -470,6 +498,12 @@ struct fte_t {
   }
 
   bool handle_tile_erase(fan::vec2i& position, int& j, int& i) {
+    if (brush.jitter) {
+      if (brush.jitter_chance <= fan::random::value_f32(0, 1)) {
+        return true;
+      }
+      position += (fan::random::vec2i(-brush.jitter, brush.jitter) * 2 + 1) * tile_size + tile_size;
+    }
     if (!is_in_constraints(position, j, i)) {
       return true;
     }
@@ -1036,19 +1070,6 @@ struct fte_t {
   }
 
   void handle_imgui() {
-    auto& style = ImGui::GetStyle();
-    ImVec4* colors = style.Colors;
-
-    const ImVec4 bgColor = ImVec4(0.1, 0.1, 0.1, 0.1);
-    colors[ImGuiCol_WindowBg].w = bgColor.w;
-    colors[ImGuiCol_ChildBg].w = bgColor.w;
-    colors[ImGuiCol_TitleBg].w = bgColor.w;
-
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
-    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ImGui::PopStyleColor(2);
-
     fan::vec2 editor_size;
 
     handle_editor_window(editor_size);

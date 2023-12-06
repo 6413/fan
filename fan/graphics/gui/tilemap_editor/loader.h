@@ -37,6 +37,10 @@ struct fte_loader_t {
     #endif
   };
 
+  using tile_draw_data_t = std::variant<loco_t::shape_t,
+    fan::graphics::collider_hidden_t, 
+    fan::graphics::collider_sensor_t>;
+
   #define BLL_set_CPP_ConstructDestruct
   #define BLL_set_CPP_Node_ConstructDestruct
   #include _FAN_PATH(fan_bll_present.h)
@@ -44,11 +48,7 @@ struct fte_loader_t {
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
     compiled_map_t* compiled_map; \
-    std::unordered_map<fan::vec3i, std::variant< \
-    loco_t::shape_t,\
-      fan::graphics::collider_hidden_t,\
-      fan::graphics::collider_sensor_t\
-    >, vec3i_hasher> tiles;
+    std::unordered_map<fan::vec3i, tile_draw_data_t, vec3i_hasher> tiles;
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
 protected:
@@ -79,7 +79,6 @@ public:
   struct properties_t {
     fan::vec3 position = 0;
     fan::vec2 size = 1;
-    fan::function_t<void(fte_loader_t::fte_t::tile_t&)> object_add_cb = [] (fte_loader_t::fte_t::tile_t&) {};
   };
 
   static void convert_draw_to_grid(fan::vec2i tile_size, fan::vec2i& p) {

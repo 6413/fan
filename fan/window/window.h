@@ -2626,7 +2626,7 @@ namespace fan {
 
 		f64_t m_last_frame;
 		f64_t m_current_frame;
-		f64_t m_delta_time;
+		f64_t m_delta_time = 0;
 		fan::string m_name;
 
 		uintptr_t m_flags;

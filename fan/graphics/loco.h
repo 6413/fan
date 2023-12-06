@@ -213,7 +213,8 @@ struct loco_t {
     pixel_format_renderer,
     responsive_text,
     sprite_sheet,
-    custom
+    line_grid,
+    grass_2d
   };
 
   // can be incorrect
@@ -1512,6 +1513,27 @@ public:
 
   void process_frame() {
 
+    #if defined(loco_imgui)
+    ImGui_ImplOpenGL3_NewFrame();
+    #if defined(fan_platform_windows)
+    ImGui_ImplWin32_NewFrame();
+    #elif defined(fan_platform_linux)
+    imgui_xorg_new_frame();
+    #endif
+    ImGui::NewFrame();
+
+    auto& style = ImGui::GetStyle();
+    ImVec4* colors = style.Colors;
+    const ImVec4 bgColor = ImVec4(0.0, 0.0, 0.0, 0.4);
+    colors[ImGuiCol_WindowBg] = bgColor;
+    colors[ImGuiCol_ChildBg] = bgColor;
+    colors[ImGuiCol_TitleBg] = bgColor;
+
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
+    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+    ImGui::PopStyleColor(2);
+
     #if defined(loco_opengl)
     #if defined(loco_framebuffer)
     get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
@@ -1579,15 +1601,6 @@ public:
     color_buffers[1].bind_texture();
 
     render_final_fb();
-
-    #if defined(loco_imgui)
-    ImGui_ImplOpenGL3_NewFrame();
-    #if defined(fan_platform_windows)
-    ImGui_ImplWin32_NewFrame();
-    #elif defined(fan_platform_linux)
-    imgui_xorg_new_frame();
-    #endif
-    ImGui::NewFrame();
 
     {
       auto it = m_imgui_draw_cb.GetNodeFirst();
@@ -2011,6 +2024,8 @@ public:
   #undef fan_build_set
 
   using image_info_t = fan::webp::image_info_t;
+
+  int begin = 0;
 };
 
 #if defined(loco_pixel_format_renderer)

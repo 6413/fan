@@ -4,6 +4,8 @@
 
 struct fte_renderer_t : fte_loader_t {
 
+  std::unordered_map<std::string, fan::function_t<void(tile_draw_data_t&, fte_t::tile_t&)>> id_callbacks;
+
   fan::vec3 position = 0;
   fan::vec2 size = 1;
   fan::vec2i view_size = 1;
@@ -102,6 +104,10 @@ struct fte_renderer_t : fte_loader_t {
         break;
       }
     }
+    auto found = id_callbacks.find(j.id);
+    if (found != id_callbacks.end()) {
+      found->second(node.tiles[fan::vec3i(x, y, depth)], j);
+    }
   }
 
   void clear(node_t& node) {
@@ -151,11 +157,20 @@ struct fte_renderer_t : fte_loader_t {
 
     for (int off = 0; off < std::abs(offset.y); ++off) {
       for (int y = 0; y < view_size.x; ++y) {
-        for (int depth = 0; depth < 2; ++depth) {
-          node.tiles.erase(src_vec3 + fan::vec3i(
+        // HARDCODED
+        for (int depth = 0; depth < 10; ++depth) {
+          fan::vec3 erase_at = src_vec3 + fan::vec3i(
             y,
-            (offset.y < 0 ? view_size.y - off -1: off),
-            depth));
+            (offset.y < 0 ? view_size.y - off - 1 : off),
+            depth);
+          std::visit([]<typename T>(T& v) {
+            if constexpr (fan::same_as_any<T,
+              fan::graphics::collider_hidden_t,
+              fan::graphics::collider_sensor_t>) {
+              v.close();
+            }
+          }, node.tiles[erase_at]);
+          node.tiles.erase(erase_at);
         }
         fan::vec2i grid_pos = src;
         if (offset.y > 0) {
@@ -178,11 +193,19 @@ struct fte_renderer_t : fte_loader_t {
     }
     for (int off = 0; off < std::abs(offset.x); ++off) {
       for (int x = 0; x < view_size.y; ++x) {
-        for (int depth = 0; depth < 2; ++depth) {
-          node.tiles.erase(src_vec3 + fan::vec3i(
+        for (int depth = 0; depth < 10; ++depth) {
+          fan::vec3 erase_at = src_vec3 + fan::vec3i(
             (offset.x < 0 ? view_size.x - off - 1 : off),
             x,
-            depth));
+            depth);
+          std::visit([]<typename T>(T & v) {
+            if constexpr (fan::same_as_any<T,
+              fan::graphics::collider_hidden_t,
+              fan::graphics::collider_sensor_t>) {
+              v.close();
+            }
+          }, node.tiles[erase_at]);
+          node.tiles.erase(erase_at);
         }
         fan::vec2i grid_pos = src;
         if (offset.x > 0) {

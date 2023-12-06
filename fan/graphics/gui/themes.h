@@ -164,14 +164,6 @@ struct theme_t {
   keyboard_cb_t keyboard_cb = [](const keyboard_data_t&) -> int { return 0; };
   text_cb_t text_cb = [](const text_data_t&) -> int { return 0; };
 
-	#if defined(loco_opengl)
-		using context_t = fan::opengl::context_t;
-		#define ns fan::opengl
-	#elif defined(loco_vulkan)
-		using context_t = fan::vulkan::context_t;
-		#define ns fan::vulkan
-	#endif
-
   theme_t() {
     open();
   }
@@ -267,7 +259,7 @@ struct theme_t {
 
 	}button;
 
-	ns::theme_list_NodeReference_t theme_reference;
+	fan::opengl::theme_list_NodeReference_t theme_reference;
 };
 
 using theme_ptr_t = fan::ptr_maker_t<theme_t>;

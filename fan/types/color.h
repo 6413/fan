@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include <cmath>
+#include <random>
 
 namespace fan {
 
@@ -149,6 +150,32 @@ namespace fan {
 		static constexpr auto size() {
 			return 4;
 		}
+
+    private:
+      static constexpr auto float_accuracy = 1000000;
+
+      inline int64_t value_i64(int64_t min, int64_t max) {
+        static std::random_device device;
+        static std::mt19937_64 random(device());
+
+        std::uniform_int_distribution<int64_t> distance(min, max);
+
+        return distance(random);
+      }
+
+      inline f32_t value_f32(f32_t min, f32_t max) {
+        return (f32_t)value_i64(min * float_accuracy, max * float_accuracy) / float_accuracy;
+      }
+    public:
+
+    void randomize() {
+      *this = fan::color(
+        value_f32(0, 1),
+        value_f32(0, 1),
+        value_f32(0, 1),
+        1
+      );
+    }
 
 	};
 

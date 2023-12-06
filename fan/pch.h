@@ -58,6 +58,8 @@
 #define loco_tp
 #define loco_sprite_sheet
 
+#define loco_grass_2d
+
 // 
 #define loco_physics
 /*

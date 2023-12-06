@@ -113,6 +113,7 @@ namespace fan {
         data->shape = dynamic_cast<loco_t::shape_t*>(this);
         data->shape_id = shape_id;
         data->collider_type = fan::collider::types_e::collider_dynamic;
+        set_velocity(0);
       }
       void close() {
         bcol.UnlinkObject(oid);
@@ -166,6 +167,7 @@ namespace fan {
         auto* data = bcol.GetObjectExtraData(oid);
         data->shape_id = shape_id;
         data->collider_type = fan::collider::types_e::collider_dynamic;
+        set_velocity(0);
       }
       void close() {
         bcol.UnlinkObject(oid);
@@ -175,6 +177,9 @@ namespace fan {
         return bcol.GetObject_Position(oid);
       }
 
+      fan::vec2 get_velocity() {
+        return bcol.GetObject_Velocity(oid);
+      }
       void set_velocity(const fan::vec2& v) {
         bcol.SetObject_Velocity(oid, v);
       }
