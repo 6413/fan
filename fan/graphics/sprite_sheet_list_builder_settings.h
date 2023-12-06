@@ -6,7 +6,7 @@
 loco_t::shape_t shape; \
 sheet_t sheet; \
 bool start = 0; \
-fan::ev_timer_t::timer_t timer;
+fan::ev_timer_t::id_t timer_id;
 #define BLL_set_Link 1
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_CPP_Node_ConstructDestruct

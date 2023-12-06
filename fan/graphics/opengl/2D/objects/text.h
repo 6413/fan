@@ -218,8 +218,19 @@ struct text_renderer_t {
     push_back(id, p);
   }
 
+  fan::vec3 get_position(loco_t::cid_nt_t& id) {
+    auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
+    return tlist[internal_id].p.position;
+  }
   void set_position(loco_t::cid_nt_t& id, const fan::vec3& position) {
     auto internal_id = *(tlist_NodeReference_t *)id.gdp4();
+    properties_t p = tlist[internal_id].p;
+    erase(id);
+    p.position = position;
+    push_back(id, p);
+  }
+  void set_position(loco_t::cid_nt_t& id, const fan::vec2& position) {
+    auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
     properties_t p = tlist[internal_id].p;
     erase(id);
     p.position = position;
@@ -232,6 +243,22 @@ struct text_renderer_t {
     erase(id);
     p.font_size = font_size;
     push_back(id, p);
+  }
+
+  fan::color get_color(loco_t::cid_nt_t& id) {
+    auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
+    return tlist[internal_id].p.color;
+  }
+  void set_color(loco_t::cid_nt_t& id, const fan::color& color) {
+    auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
+    tlist[internal_id].p.color = color;
+    auto it = tlist[internal_id].cid_list.GetNodeFirst();
+
+    while (it != tlist[internal_id].cid_list.dst) {
+      auto node = tlist[internal_id].cid_list.GetNodeByReference(it);
+      gloco->shapes.letter.sb_set_vi(node->data.shape, &loco_t::shapes_t::letter_t::vi_t::color, color);
+      it = node->NextNodeReference;
+    }
   }
 
   properties_t get_properties(loco_t::cid_nt_t& id) {

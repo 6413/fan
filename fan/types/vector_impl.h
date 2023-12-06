@@ -102,10 +102,10 @@ constexpr std::partial_ordering operator<=>(const T& rhs) const {
 constexpr vec_t operator-() const { make_for_all(ret[i] = -(*this)[i]); }
 make_operators(-);  make_operator_comparison(==);
 make_operators(+);  make_operator_comparison(!=);
-make_operators(*);  make_operator_comparison(<);
-make_operators(/);  make_operator_comparison(<=);
-make_operators(%);  make_operator_comparison(>);
-                    make_operator_comparison(>=);
+make_operators(*);
+make_operators(/);  
+make_operators(%);  
+                    
 
 #define __FAN_SWITCH_IDX(x, idx) case size() - (idx + 1): return x
 
@@ -149,6 +149,7 @@ constexpr auto end() { return begin() + size(); }
 constexpr auto data() { return begin(); }
 
 constexpr auto multiply() const { return std::accumulate(begin(), end(), 1, std::multiplies<value_type_t>()); }
+constexpr auto sign() const { make_for_all(ret[i] = fan::math::sgn((*this)[i])); }
 constexpr auto floor() const { make_for_all(ret[i] = std::floor((*this)[i])); }
 constexpr auto floor(auto value) const { make_for_all(ret[i] = std::floor((*this)[i] / value)); }
 constexpr auto ceil() const { make_for_all(ret[i] = std::ceil((*this)[i])); }

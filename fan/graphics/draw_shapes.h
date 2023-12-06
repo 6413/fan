@@ -5,6 +5,8 @@
 * TODO light draw
 */
 
+begin = 0;
+
 for (auto& i : m_draw_queue_light) {
   i();
 }
