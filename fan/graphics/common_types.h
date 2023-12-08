@@ -165,7 +165,9 @@ struct text_properties_t {
   loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
   std::string text = "";
   fan::color color = fan::colors::white;
+  fan::color outline_color = fan::colors::black;
   fan::vec3 position = fan::vec3(fan::math::inf, -0.9, 0);
+  fan::vec2 size = -1;
 };
 
 struct text_t : loco_t::shape_t {
@@ -178,8 +180,9 @@ struct text_t : loco_t::shape_t {
         .position = p.position.x == fan::math::inf ? fan::vec3(-1 + 0.025 * p.text.size(), -0.9, 0) : p.position,
         .text = p.text,
         .line_limit = 1,
+        .outline_color = p.outline_color,
         .letter_size_y_multipler = 1,
-        .size = fan::vec2(0.025 * p.text.size(), 0.1),
+        .size = p.size == -1 ? fan::vec2(0.025 * p.text.size(), 0.1) : p.size,
         .color = p.color
       ));
   }

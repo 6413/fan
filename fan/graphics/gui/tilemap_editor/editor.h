@@ -303,8 +303,8 @@ struct fte_t {
       grid_visualize.highlight_hover.set_position(p);
     }
 
-    // update viewport sizes
-    gloco->process_frame();
+    //// update viewport sizes
+    //gloco->process_frame();
 
     gloco->default_camera->camera.set_position(viewport_settings.pos);
 

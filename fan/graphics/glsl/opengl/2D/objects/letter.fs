@@ -7,6 +7,7 @@ in vec4 text_color;
 in vec4 outline_color;
 in vec2 texture_coordinate;
 in float render_size;
+in float outline_size;
 
 float outlineWidth = 0.01;
 
@@ -33,8 +34,9 @@ void main() {
 
 
   float distance = texture(_t00, texture_coordinate).r;
-  float smoothing = 1.0 / (render_size * 100 * 2);
-  float width = 0.1;
+  // was / 10 -> * 100
+  float smoothing = 1.0 / (render_size / 10 * 2);
+  float width = 1.0 - outline_size;
   float alpha = smoothstep(width, width + smoothing, distance);
 
   float border_width = 0.1;

@@ -4,7 +4,7 @@ struct letter_t {
 
   struct vi_t {
     loco_t::position3_t position; 
-    f32_t outline_size;
+    f32_t outline_size = 1;
     fan::vec2 size;
     fan::vec2 tc_position;
     fan::color color = fan::colors::white;

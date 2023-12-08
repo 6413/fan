@@ -150,19 +150,6 @@ void update(){
         return;
       }
 
-      auto& style = ImGui::GetStyle();
-      ImVec4* colors = style.Colors;
-
-      const ImVec4 bgColor = ImVec4(0.1, 0.1, 0.1, 0.1);
-      colors[ImGuiCol_WindowBg] = bgColor;
-      colors[ImGuiCol_ChildBg] = bgColor;
-      colors[ImGuiCol_TitleBg] = bgColor;
-
-      ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-      ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
-      ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-      ImGui::PopStyleColor(2);
-
       if (ImGui::Begin(modify_str, nullptr, ImGuiWindowFlags_DockNodeHost)) {
         if (ImGui::Button("Create new stage")) {
 

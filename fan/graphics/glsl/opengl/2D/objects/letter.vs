@@ -7,6 +7,7 @@ out vec4 text_color;
 out vec4 outline_color;
 out vec2 texture_coordinate;
 out float render_size;
+out float outline_size;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -115,4 +116,5 @@ void main() {
   outline_color = get_instance().outline_color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
 	render_size = get_instance().size.y;
+  outline_size = get_instance().outline_size;
 }
