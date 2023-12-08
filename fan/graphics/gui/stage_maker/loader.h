@@ -193,7 +193,6 @@ public:
 
 	void erase_stage(nr_t id) {
     auto* sc = (stage_common_t*)stage_list[id].stage;
-    fan::print("-", sc, sc->cid_list.Usage());
     gloco->m_update_callback.unlrec(stage_list[id].update_nr);
     sc->close(stage_list[id].stage);
     stage_list.unlrec(id);

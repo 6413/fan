@@ -1482,6 +1482,20 @@ public:
     #endif
     #endif
 
+    static bool init = false;
+    if (init == false) {
+      init = true;
+      auto& style = ImGui::GetStyle();
+      auto& io = ImGui::GetIO();
+
+      static constexpr const char* font_name = "fonts/Alegreya.otf";
+      static constexpr f32_t font_size = 48;
+      if (io.Fonts->AddFontFromFileTTF(font_name, font_size) == nullptr) {
+        fan::throw_error(fan::string("failed to load font") + font_name);
+      }
+      io.Fonts->Build();
+    }
+
   }
 
   #if defined(loco_vfi)
@@ -1512,27 +1526,6 @@ public:
   #endif
 
   void process_frame() {
-
-    #if defined(loco_imgui)
-    ImGui_ImplOpenGL3_NewFrame();
-    #if defined(fan_platform_windows)
-    ImGui_ImplWin32_NewFrame();
-    #elif defined(fan_platform_linux)
-    imgui_xorg_new_frame();
-    #endif
-    ImGui::NewFrame();
-
-    auto& style = ImGui::GetStyle();
-    ImVec4* colors = style.Colors;
-    const ImVec4 bgColor = ImVec4(0.0, 0.0, 0.0, 0.4);
-    colors[ImGuiCol_WindowBg] = bgColor;
-    colors[ImGuiCol_ChildBg] = bgColor;
-    colors[ImGuiCol_TitleBg] = bgColor;
-
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
-    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ImGui::PopStyleColor(2);
 
     #if defined(loco_opengl)
     #if defined(loco_framebuffer)
@@ -1611,6 +1604,7 @@ public:
       }
     }
 
+    #if defined(loco_imgui)
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     #endif
@@ -1702,6 +1696,30 @@ public:
     #if defined(fan_platform_windows)
     window.remove_resize_callback(it);
     #endif
+
+
+    #if defined(loco_imgui)
+    ImGui_ImplOpenGL3_NewFrame();
+    #if defined(fan_platform_windows)
+    ImGui_ImplWin32_NewFrame();
+    #elif defined(fan_platform_linux)
+    imgui_xorg_new_frame();
+    #endif
+    ImGui::NewFrame();
+
+    auto& style = ImGui::GetStyle();
+    ImVec4* colors = style.Colors;
+    const ImVec4 bgColor = ImVec4(0.0, 0.0, 0.0, 0.4);
+    colors[ImGuiCol_WindowBg] = bgColor;
+    colors[ImGuiCol_ChildBg] = bgColor;
+    colors[ImGuiCol_TitleBg] = bgColor;
+
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
+    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+    ImGui::PopStyleColor(2);
+    #endif
+
     lambda();
 
     ev_timer.process();
@@ -2147,6 +2165,17 @@ static void imgui_xorg_init() {
 static void imgui_xorg_new_frame() {
   ImGuiIO& io = ImGui::GetIO();
   io.DisplaySize = gloco->window.get_size();
+}
+#endif
+
+#if defined(loco_imgui)
+namespace ImGui {
+  inline IMGUI_API void Image(loco_t::image_t& img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0)) {
+    ImGui::Image((void*)img.get_texture(), size, uv0, uv1, tint_col, border_col);
+  }
+  inline IMGUI_API bool ImageButton(loco_t::image_t& img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1)) {
+    return ImGui::ImageButton((void*)img.get_texture(), size, uv0, uv1, frame_padding, bg_col, tint_col);
+  }
 }
 #endif
 

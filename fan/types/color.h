@@ -20,7 +20,7 @@ namespace fan {
     }
 
     #if defined(loco_imgui)
-    constexpr operator ImVec4() {
+    constexpr operator ImVec4() const {
       return *(ImVec4*)this;
     }
     #endif

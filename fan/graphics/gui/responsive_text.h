@@ -529,10 +529,15 @@ struct responsive_text_t {
     update_characters_with_max_size(internal_id);
   }
 
+  fan::color get_outline_color(loco_t::cid_nt_t& id) {
+    auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
+    auto& instance = tlist[internal_id];
+    return instance.outline_color;
+  }
   void set_outline_color(loco_t::cid_nt_t& id, const fan::color& color) {
     auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
     auto& instance = tlist[internal_id];
-
+    instance.color = color;
     auto line_id = instance.LineStartNR;
     do{
       auto& line = line_list[line_id];
@@ -552,9 +557,16 @@ struct responsive_text_t {
       line_id = line_id.Next(&line_list);
     }while(1);
   }
+
+  f32_t get_outline_size(loco_t::cid_nt_t& id) {
+    auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
+    auto& instance = tlist[internal_id];
+    return instance.outline_size;
+  }
   void set_outline_size(loco_t::cid_nt_t& id, f32_t size) {
     auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
     auto& instance = tlist[internal_id];
+    instance.outline_size = size;
 
     auto line_id = instance.LineStartNR;
     do{
@@ -790,7 +802,27 @@ struct responsive_text_t {
     return tlist[instance_id].font_size;
   }
   void set_color(loco_t::cid_nt_t& id, const fan::color& color) {
+    auto internal_id = *(tlist_NodeReference_t*)id.gdp4();
+    auto& instance = tlist[internal_id];
 
+    auto line_id = instance.LineStartNR;
+    do {
+      auto& line = line_list[line_id];
+
+      auto letter_id = line.LetterStartNR;
+      if (letter_id.iic() == false) do {
+        letter_list[letter_id].shape.set_color(color);
+        if (letter_id == line.LetterEndNR) {
+          break;
+        }
+        letter_id = letter_id.Next(&letter_list);
+      } while (1);
+
+      if (line_id == instance.LineEndNR) {
+        break;
+      }
+      line_id = line_id.Next(&line_list);
+    } while (1);
   }
   //void set_size(const fan::vec2& size) {
   //  m_size = size;

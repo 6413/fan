@@ -240,19 +240,6 @@ struct fgm_t {
   fan::graphics::imgui_element_t main_view =
     fan::graphics::imgui_element_t(
     [&] {
-      auto& style = ImGui::GetStyle();
-      ImVec4* colors = style.Colors;
-
-      const ImVec4 bgColor = ImVec4(0.1, 0.1, 0.1, 0.1);
-      colors[ImGuiCol_WindowBg].w = bgColor.w;
-      colors[ImGuiCol_ChildBg].w =  bgColor.w;
-      colors[ImGuiCol_TitleBg].w =  bgColor.w;
-
-      ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-      ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
-      ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-      ImGui::PopStyleColor(2);
-
       fan::vec2 editor_size;
 
       if (ImGui::Begin(editor_str, nullptr)) {

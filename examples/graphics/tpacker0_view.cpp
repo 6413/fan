@@ -8,20 +8,21 @@ int main() {
   );
 
   loco_t::texturepack_t texturepack;
-  texturepack.open_compiled("1");
+  texturepack.open_compiled("TexturePack");
 
   loco_t::shapes_t::sprite_t::properties_t p;
 
   loco_t::texturepack_t::ti_t ti;
-  if (texturepack.qti("tile1", &ti)) {
+  if (texturepack.qti("gui/fuel_station/fuel_icon", &ti)) {
     return 1;
   }
   p.load_tp(&ti);
-  //p.image = &texturepack.pixel_data_list[0].image;
+  //p.image = &texturepack.pixel_data_list[4].image;
 
   p.position = 0;
   p.size = 0.5;
   p.position = 0;
+  p.blending = true;
   loco_t::shape_t sprite = p;
   
   loco.loop([&] {

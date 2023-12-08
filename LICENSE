@@ -1,4 +1,7 @@
-MIT License
+This project is licensed under the MIT License, with exceptions.
+
+Individual libraries or modules inside the `include/` and `fonts/` directory may be licensed under their own terms. 
+Please refer to the `LICENSE` file inside the respective library or module directory for specific licensing information.
 
 Copyright (c) 2023 fan contributors.
 
