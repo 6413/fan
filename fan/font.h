@@ -45,7 +45,7 @@ namespace fan
 #define BLL_set_CPP_ConstructDestruct
 #define BLL_set_CPP_Node_ConstructDestruct
 #define BLL_set_AreWeInsideStruct 0
-#include _FAN_PATH(fan_bll_present.h)
+#include _FAN_PATH(fan_bll_preset.h)
 #define BLL_set_prefix character_info_list
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeDataType character_info_t

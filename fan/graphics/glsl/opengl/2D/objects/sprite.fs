@@ -16,7 +16,7 @@ uniform vec2 window_size;
 void main() {
   o_attachment0 = texture(_t00, texture_coordinate) * instance_color;
 
-  if (o_attachment0.a <= 0.5) {
+  if (o_attachment0.a <= 0.25) {
     discard;
   }
 

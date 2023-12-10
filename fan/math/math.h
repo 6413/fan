@@ -26,6 +26,10 @@ namespace fan {
     int sgn(T val) {
       return (T(0) < val) - (val < T(0));
     }
+    template <typename T>
+    constexpr auto is_near(T a, T b, f64_t epsilon) {
+      return std::abs(a - b) < epsilon;
+    }
 	}
 }
 
