@@ -86,6 +86,8 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 		case 0x52: { return fan::input::key_numpad_0; }
 		case 0x53: { return fan::input::key_numpad_subtract; }
     case 0x56: { return fan::input::key_less_than; }
+    case 0x57: { return fan::input::key_f11; }
+    case 0x58: { return fan::input::key_f12; }
     case 0x156: { return fan::input::key_greater_than; }
 
     case 0x11c: { return fan::input::key_numpad_enter; }
@@ -197,6 +199,8 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 		case 0x52: { return fan::input::key_numpad_0; }
 		case 0x53: { return fan::input::key_numpad_subtract; }
     case 0x56: { return fan::input::key_less_than; }
+    case 0x57: { return fan::input::key_f11; }
+    case 0x58: { return fan::input::key_f12; }
     case 0xe056: { return fan::input::key_greater_than; }
 
     case 0xe01c: { return fan::input::key_numpad_enter; }
@@ -313,6 +317,8 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
 	case fan::input::key_f8: { return 0x42; }
 	case fan::input::key_f9: { return 0x43; }
 	case fan::input::key_f10: { return 0x44; }
+  case fan::input::key_f11: { return 0x57; }
+  case fan::input::key_f12: { return 0x58; }
 	case fan::input::key_num_lock: { return 0x45; }
 	case fan::input::key_scroll_lock: { return 0x46; }
 	case fan::input::key_numpad_7: { return 0x47; }
@@ -421,6 +427,8 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
   case fan::input::key_f8: { return 0x42; }
   case fan::input::key_f9: { return 0x43; }
   case fan::input::key_f10: { return 0x44; }
+  case fan::input::key_f11: { return 0x57; }
+  case fan::input::key_f12: { return 0x58; }
   case fan::input::key_num_lock: { return 0x45; }
   case fan::input::key_scroll_lock: { return 0x46; }
   case fan::input::key_numpad_7: { return 0x47; }

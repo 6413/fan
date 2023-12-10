@@ -20,6 +20,12 @@ namespace fan {
     }
 
     #if defined(loco_imgui)
+    constexpr color(const ImVec4& v) {
+      r = v.x;
+      g = v.y;
+      b = v.z;
+      a = v.w;
+    }
     constexpr operator ImVec4() const {
       return *(ImVec4*)this;
     }
@@ -143,7 +149,7 @@ namespace fan {
 		void print() const {
 			std::cout << "{ " << r << ", " << g << ", " << b << ", " << a << " }";
 		}
-		auto data() const {
+		cf_t* data() {
 			return &r;
 		}
 
