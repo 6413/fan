@@ -25,10 +25,10 @@ static inline struct gstage_t {
 
 template <typename Variant>
 struct ptrless_variant_helper {
-    template <std::size_t... Is>
-    static auto helper(std::index_sequence<Is...>) {
-        return std::variant<std::remove_pointer_t<std::variant_alternative_t<Is, Variant>>...>{};
-    }
+  template <std::size_t... Is>
+  static auto helper(std::index_sequence<Is...>) {
+    return std::variant<std::remove_pointer_t<std::variant_alternative_t<Is, Variant>>...>{};
+  }
 };
 
 struct stage_loader_t {
@@ -50,11 +50,12 @@ protected:
   #define BLL_set_StoreFormat 1
   #define BLL_set_NodeData \
   loco_t::update_callback_nr_t update_nr; \
+  fan::window_t::resize_callback_NodeReference_t resize_id; \
   void *stage;
   #include _FAN_PATH(BLL/BLL.h)
 public:
 
-  protected:
+protected:
   // for safety for getting reference to shape_t in get_id()
   #define BLL_set_StoreFormat 1
   //#define BLL_set_CPP_CopyAtPointerChange
@@ -90,7 +91,7 @@ public:
   };
 
   struct stage_open_properties_t {
-    
+
     loco_t::camera_t* camera = &gloco->default_camera->camera;
     fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
     loco_t::theme_t* theme = &gloco->default_theme;
@@ -98,17 +99,17 @@ public:
     stage_loader_t::nr_t parent_id;
     uint32_t itToDepthMultiplier = 0x100;
 
-    void *sod; // stage open data
+    void* sod; // stage open data
   };
 
   struct stage_common_t {
-    using open_t = void(*)(void *, void *);
+    using open_t = void(*)(void*, void*);
     open_t open;
-    using close_t = void(*)(void *);
+    using close_t = void(*)(void*);
     close_t close;
-    using window_resize_t = void(*)(void *);
+    using window_resize_t = void(*)(void*);
     window_resize_t window_resize;
-    using update_t = void(*)(void *);
+    using update_t = void(*)(void*);
     update_t update;
 
     stage_list_NodeReference_t stage_id;
@@ -138,6 +139,7 @@ protected:
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
   loco_t::update_callback_nr_t update_nr; \
+  fan::window_t::resize_callback_NodeReference_t resize_id; \
   void *stage;
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
@@ -178,9 +180,9 @@ public:
     return stage_ptr->stage_common.cid_list[found->second];
   }
 
-	void open(loco_t::texturepack_t* tp) {
+  void open(loco_t::texturepack_t* tp) {
     texturepack = tp;
-	}
+  }
   void close() {
 
   }
@@ -191,39 +193,40 @@ public:
     #include _FAN_PATH(graphics/gui/stage_maker/loader_versions/1.h)
   }
 
-	void erase_stage(nr_t id) {
+  void erase_stage(nr_t id) {
     auto* sc = (stage_common_t*)stage_list[id].stage;
+    gloco->window.remove_resize_callback(stage_list[id].resize_id);
     gloco->m_update_callback.unlrec(stage_list[id].update_nr);
     sc->close(stage_list[id].stage);
     stage_list.unlrec(id);
     //stage->close();
    // std::destroy_at(stage);
-	}
+  }
 
   loco_t::texturepack_t* texturepack = 0;
 
   lstd_defstruct(custom_base_t)
     #include _FAN_PATH(graphics/gui/stage_maker/preset.h)
-    
+
     static constexpr auto stage_name = "";
 
-    void open(void *sod) {
-  
-    }
+  void open(void* sod) {
 
-    void close() {
-		
-    }
+  }
 
-    void window_resize(){
-		
-    }
+  void close() {
 
-    void update(){
-	
-    }
+  }
 
-  };
+  void window_resize() {
+
+  }
+
+  void update() {
+
+  }
+
+};
 
 };
 #undef stage_loader_path
