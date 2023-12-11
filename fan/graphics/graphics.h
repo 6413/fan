@@ -37,8 +37,6 @@ namespace fan {
 			using fan::opengl::viewport_list_NodeReference_t;
 			using fan::opengl::theme_list_NodeReference_t;
 			using fan::opengl::cid_t;
-			using fan::opengl::shader_t;
-      using fan::opengl::read_shader;
 		#elif defined(loco_vulkan)
 			using fan::vulkan::context_t;
 			using fan::vulkan::viewport_t;

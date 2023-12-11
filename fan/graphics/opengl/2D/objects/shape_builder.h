@@ -52,9 +52,9 @@ struct block_element_t {
 struct block_t {
   void open(loco_t* loco, auto* shape) {
     uniform_buffer.open(gloco->get_context());
-    uniform_buffer.init_uniform_block(gloco->get_context(), shape->m_shader.id, "instance_t");
+    uniform_buffer.init_uniform_block(gloco->get_context(), shape->m_shader.get_shader().id, "instance_t");
     #ifndef sb_no_blending
-    uniform_buffer.init_uniform_block(gloco->get_context(), shape->m_blending_shader.id, "instance_t");
+    uniform_buffer.init_uniform_block(gloco->get_context(), shape->m_blending_shader.get_shader().id, "instance_t");
     #endif
   }
   void close(loco_t* loco) {
@@ -313,29 +313,26 @@ public:
     #if defined(sb_shader_vertex_string)
       vertex_code = vertex_path;
     #else
-    vertex_code = fan::graphics::read_shader(vertex_path);
+    vertex_code = loco_t::read_shader(vertex_path);
     #endif
-    m_shader.open(gloco->get_context());
+    m_shader.open();
     m_shader.set_vertex(
-      gloco->get_context(),
       vertex_code
     );
     fan::string fragment_code;
     #if defined(sb_shader_fragment_string)
       fragment_code = sb_shader_fragment_string;
     #else
-      fragment_code = fan::graphics::read_shader(fragment_path);
+      fragment_code = loco_t::read_shader(fragment_path);
     #endif
     m_shader.set_fragment(
-      gloco->get_context(),
       fragment_code
     );
-    m_shader.compile(gloco->get_context());
+    m_shader.compile();
 
     #ifndef sb_no_blending
-    m_blending_shader.open(gloco->get_context());
+    m_blending_shader.open();
     m_blending_shader.set_vertex(
-      gloco->get_context(),
       vertex_code
     );
     #endif
@@ -346,36 +343,35 @@ public:
       fragment_code.erase(found, std::string_view("discard;").size());
     }
     m_blending_shader.set_fragment(
-      gloco->get_context(),
       fragment_code
     );
-    m_blending_shader.compile(gloco->get_context());
+    m_blending_shader.compile();
 
     m_current_shader = &m_blending_shader;
     #else
     m_current_shader = &m_shader;
     #endif
 
-    m_shader.use(gloco->get_context());
-    m_shader.set_vec3(gloco->get_context(), loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
+    m_shader.use();
+    m_shader.set_vec3(loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
     #ifndef sb_no_blending
-    m_blending_shader.use(gloco->get_context());
-    m_blending_shader.set_vec3(gloco->get_context(), loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
+    m_blending_shader.use();
+    m_blending_shader.set_vec3(loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
     #endif
 
-    m_shader.use(gloco->get_context());
-    m_shader.set_vec2(gloco->get_context(), "window_size", gloco->window.get_size());
+    m_shader.use();
+    m_shader.set_vec2("window_size", gloco->window.get_size());
     #ifndef sb_no_blending
-    m_blending_shader.use(gloco->get_context());
-    m_blending_shader.set_vec2(gloco->get_context(), "window_size", gloco->window.get_size());
+    m_blending_shader.use();
+    m_blending_shader.set_vec2("window_size", gloco->window.get_size());
     #endif
 
     resize_nr = gloco->window.add_resize_callback([this](const auto& d) {
-      m_shader.use(gloco->get_context());
-      m_shader.set_vec2(gloco->get_context(), "window_size", gloco->window.get_size());
+      m_shader.use();
+      m_shader.set_vec2("window_size", gloco->window.get_size());
       #ifndef sb_no_blending
-      m_blending_shader.use(gloco->get_context());
-      m_blending_shader.set_vec2(gloco->get_context(), "window_size", gloco->window.get_size());
+      m_blending_shader.use();
+      m_blending_shader.set_vec2("window_size", gloco->window.get_size());
       #endif
     });
   }
@@ -386,9 +382,9 @@ public:
     //assert(0);
     //loco_bdbt_close(&gloco->bdbt);
 
-    m_shader.close(gloco->get_context());
+    m_shader.close();
     #ifndef sb_no_blending
-    m_blending_shader.close(gloco->get_context());
+    m_blending_shader.close();
     #endif
 
     //for (uint32_t i = 0; i < blocks.size(); i++) {
@@ -635,13 +631,13 @@ public:
   }
 
   void set_vertex(const fan::string& str) {
-    m_current_shader->set_vertex(gloco->get_context(), str);
+    m_current_shader->set_vertex(str);
   }
   void set_fragment(const fan::string& str) {
-    m_current_shader->set_fragment(gloco->get_context(), str);
+    m_current_shader->set_fragment(str);
   }
   void compile() {
-    m_current_shader->compile(gloco->get_context());
+    m_current_shader->compile();
   }
 
   static inline std::vector<fan::function_t<void()>> draw_queue_helper;
@@ -666,7 +662,7 @@ public:
       auto& bm = bm_list[*(shape_bm_NodeReference_t*)&nr];
       auto block_id = bm.first_block;
 
-      m_shader.set_float(gloco->get_context(), "m_time", (double)cloook.elapsed() / 1e+9);
+      m_current_shader->set_float("m_time", (double)cloook.elapsed() / 1e+9);
 
       while (1) {
         auto block_node = blocks.GetNodeByReference(block_id);
@@ -718,7 +714,7 @@ public:
       auto& bm = bm_list[*(shape_bm_NodeReference_t*)&nr];
       auto block_id = bm.first_block;
 
-      m_shader.set_float(gloco->get_context(), "m_time", (double)cloook.elapsed() / 1e+9);
+      m_shader.set_float("m_time", (double)cloook.elapsed() / 1e+9);
 
       while (1) {
         auto block_node = blocks.GetNodeByReference(block_id);
@@ -751,20 +747,20 @@ public:
   }
 
   void sb_draw(loco_bdbt_NodeReference_t key_nr, uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
-    m_current_shader->use(gloco->get_context());
+    m_current_shader->use();
     // todo remove
-    m_current_shader->set_vec3(gloco->get_context(), loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
-    m_current_shader->set_int(gloco->get_context(), "_t00", 0);
-    m_current_shader->set_int(gloco->get_context(), "_t01", 1);
+    m_current_shader->set_vec3(loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
+    m_current_shader->set_int("_t00", 0);
+    m_current_shader->set_int("_t01", 1);
     traverse_draw(key_nr, draw_mode);
   }
 
   void sb_draw1(loco_bdbt_NodeReference_t key_nr, uint32_t draw_mode) {
-    m_current_shader->use(gloco->get_context());
+    m_current_shader->use();
     // todo remove
-    m_current_shader->set_vec3(gloco->get_context(), loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
-    m_current_shader->set_int(gloco->get_context(), "_t00", 0);
-    m_current_shader->set_int(gloco->get_context(), "_t01", 1);
+    m_current_shader->set_vec3(loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
+    m_current_shader->set_int("_t00", 0);
+    m_current_shader->set_int("_t01", 1);
     traverse_draw1(key_nr, draw_mode);
   }
 
@@ -804,7 +800,7 @@ public:
 
     /*auto block = sb_get_block(id);
     properties_t p;
-    *(vi_t*)&p = *block->uniform_buffer.get_instance(gloco->get_context(), id->instance_id);
+    *(vi_t*)&p = *block->uniform_buffer.get_instance(id->instance_id);
     *(ri_t*)&p = block->ri[id->instance_id];
     *p.key.get_value<i>() = value;
 
@@ -826,18 +822,18 @@ public:
  /* void sb_set_depth(loco_t::cid_nt_t& id, f32_t depth) {
     auto block = sb_get_block(id);
     properties_t p;
-    *(vi_t*)&p = *block->uniform_buffer.get_instance(gloco->get_context(), id->instance_id);
+    *(vi_t*)&p = *block->uniform_buffer.get_instance(id->instance_id);
     *(ri_t*)&p = block->ri[id->instance_id];
     p.sb_depth_var.z = depth;
     sb_erase(id);
     sb_push_back(id, p);
   }*/
 
-  fan::opengl::shader_t m_shader;
+  loco_t::shader_t m_shader;
   #ifndef sb_no_blending
-  fan::opengl::shader_t m_blending_shader;
+  loco_t::shader_t m_blending_shader;
   #endif
-  fan::opengl::shader_t* m_current_shader = nullptr;
+  loco_t::shader_t* m_current_shader = nullptr;
 
   vi_t& sb_get_vi(loco_t::cid_nt_t& cid) {
     return *sb_get_block(cid)->uniform_buffer.get_instance(gloco->get_context(), cid->instance_id);
@@ -847,7 +843,7 @@ public:
     auto& instance = sb_get_vi(cid);
     instance.*member = value;
     sb_get_block(cid)->uniform_buffer.edit_instance(gloco->get_context(), &gloco->m_write_queue, cid->instance_id, member, value);
-    //sb_get_block(cid)->uniform_buffer.copy_instance(gloco->get_context(), &instance);
+    //sb_get_block(cid)->uniform_buffer.copy_instance(&instance);
   }
 
   ri_t& sb_get_ri(loco_t::cid_nt_t& cid) {

@@ -8,6 +8,7 @@ struct model_maker_t : fgm_t {
 
   void open(const char* texturepack_name) {
     fgm_t::open(texturepack_name);
+    fgm_t::file_name = filename_out;
     keys_nr = gloco->window.add_keys_callback([this](const auto& d) {
       switch (d.key) {
         case fan::key_q: {

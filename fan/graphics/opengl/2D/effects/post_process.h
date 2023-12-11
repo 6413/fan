@@ -227,9 +227,9 @@ struct post_process_t {
 		fan::opengl::core::renderbuffer_t renderbuffer;
 		fan::opengl::core::framebuffer_t framebuffer;
 
-		fan::opengl::shader_t shader_downsample;
-		fan::opengl::shader_t shader_upsample;
-		fan::opengl::shader_t shader_bloom;
+		loco_t::shader_t shader_downsample;
+		loco_t::shader_t shader_upsample;
+		loco_t::shader_t shader_bloom;
 	}bloom;
 
 	bool open(const fan::opengl::core::renderbuffer_t::properties_t& p) {

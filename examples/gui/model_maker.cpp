@@ -8,12 +8,12 @@ int main(int argc, char** argv) {
   //
   model_maker_t mm;
   mm.open(argv[1]);
-  if(argc == 3){
-    mm.load(argv[2]);
-  }
-  else{
+  //if(argc == 3){
+    //mm.load(argv[2]);
+  //}
+  //else{
     mm.load("model.fmm");//
-  }//
+  //}//
   loco_t::vfi_t v;
   loco_t::vfi_t::shape_id_t nt;
   loco_t::cid_nt_t n = nt;
