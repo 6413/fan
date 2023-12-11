@@ -123,7 +123,7 @@
 //
 //      uint32_t m_texture;
 //      uint32_t m_draw_node_reference;
-//      fan::opengl::shader_t m_shader;
+//      loco_t::shader_t m_shader;
 //    };
 //
 //  }

@@ -97,10 +97,10 @@ struct sb_pfr_name {
     path.replace_all("<", "");
     path.replace_all(">", "");
     fan::io::file::read(path, &fragment_code);
-    m_shader.set_fragment(gloco->get_context(), 
+    m_shader.set_fragment(
       fragment_code
     );
-    m_shader.compile(gloco->get_context());
+    m_shader.compile();
   }
 
   void push_back(loco_t::cid_nt_t& id, properties_t p) {
@@ -159,10 +159,10 @@ struct sb_pfr_name {
     auto image_count_new = fan::pixel_format::get_texture_amount(format);
     if (format != ri->format) {
       set_vertex(
-        fan::graphics::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/pixel_format_renderer.vs))
+        loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/pixel_format_renderer.vs))
       );
       set_fragment(format);
-      m_shader.use(gloco->get_context());
+      m_shader.use();
 
       auto image_count_old = fan::pixel_format::get_texture_amount(ri->format);
       if (image_count_new < image_count_old) {

@@ -214,7 +214,8 @@ struct loco_t {
     responsive_text,
     sprite_sheet,
     line_grid,
-    grass_2d
+    grass_2d,
+    shader
   };
 
   // can be incorrect
@@ -325,10 +326,20 @@ protected:
 
 public:
   struct image_t;
+  struct shader_t;
 
   #if defined(loco_window)
 
   #if defined(loco_opengl)
+
+  #include _FAN_PATH(graphics/opengl/shader_list_builder_settings.h)
+  #endif
+  #include _FAN_PATH(BLL/BLL.h)
+
+  shader_list_t shader_list;
+
+  #include _FAN_PATH(graphics/opengl/gl_shader.h)
+
   #include _FAN_PATH(graphics/opengl/image_list_builder_settings.h)
   #endif
   #include _FAN_PATH(BLL/BLL.h)
@@ -584,7 +595,6 @@ public:
   #define BLL_set_declare_rest 1
   #if defined(loco_opengl)
   #include _FAN_PATH(graphics/opengl/camera_list_builder_settings.h)
-  #endif
   #include _FAN_PATH(BLL/BLL.h)
 
   camera_list_t camera_list;
@@ -777,12 +787,12 @@ public:
   void process_block_properties_element(auto* shape, loco_t::camera_list_NodeReference_t camera_id) {
     #if defined(loco_opengl)
     auto* camera = camera_list[camera_id].camera_id;
-    shape->m_current_shader->use(get_context());
-    shape->m_current_shader->set_camera(get_context(), camera, &m_write_queue);
-    shape->m_current_shader->set_vec2(get_context(), "matrix_size",
+    shape->m_current_shader->use();
+    shape->m_current_shader->set_camera(camera, &m_write_queue);
+    shape->m_current_shader->set_vec2("matrix_size",
       fan::vec2(camera->coordinates.right - camera->coordinates.left, camera->coordinates.down - camera->coordinates.up).abs()
     );
-    shape->m_current_shader->set_vec2(get_context(), "camera_position", camera->get_position());
+    shape->m_current_shader->set_vec2("camera_position", camera->get_position());
     #endif
   }
   void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
@@ -792,7 +802,7 @@ public:
       viewport->get_size(),
       window.get_size()
     );
-    shape->m_current_shader->set_vec4(get_context(), "viewport", fan::vec4(viewport->get_position(), viewport->get_size()));
+    shape->m_current_shader->set_vec4("viewport", fan::vec4(viewport->get_position(), viewport->get_size()));
   }
 
   template <uint8_t n>
@@ -801,8 +811,8 @@ public:
     if (tid.NRI == (decltype(tid.NRI))-1) {
       return;
     }
-    shape->m_current_shader->use(get_context());
-    shape->m_current_shader->set_int(get_context(), tid.name, n);
+    shape->m_current_shader->use();
+    shape->m_current_shader->set_int(tid.name, n);
     get_context().opengl.call(get_context().opengl.glActiveTexture, fan::opengl::GL_TEXTURE0 + n);
     get_context().opengl.call(get_context().opengl.glBindTexture, fan::opengl::GL_TEXTURE_2D, image_list[tid].texture_id);
     #endif
@@ -810,6 +820,16 @@ public:
 
   void process_block_properties_element(auto* shape, uint16_t depth) {
 
+  }
+
+  void process_block_properties_element(auto* shape, loco_t::shader_list_NodeReference_t shader_id) {
+    loco_t::shader_t* shader = gloco->shader_list[shader_id].shader;
+    shape->m_current_shader = shader;
+    shape->m_current_shader->use();
+    shape->m_current_shader->get_shader().on_activate(shape->m_current_shader);
+    shape->m_current_shader->set_vec3(loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
+    shape->m_current_shader->set_int("_t00", 0);
+    shape->m_current_shader->set_int("_t01", 1);
   }
 
   #endif
@@ -1409,19 +1429,17 @@ public:
     fan::throw_error("framebuffer not ready");
   }
 
-  m_framebuffer.unbind(get_context());
+  m_framebuffer.unbind(gloco->get_context());
 
-  m_fbo_final_shader.open(get_context());
+  m_fbo_final_shader.open();
 
   m_fbo_final_shader.set_vertex(
-    get_context(),
-    fan::graphics::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/loco_fbo.vs))
+    loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/loco_fbo.vs))
   );
   m_fbo_final_shader.set_fragment(
-    get_context(),
-    fan::graphics::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/loco_fbo.fs))
+    loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/loco_fbo.fs))
   );
-  m_fbo_final_shader.compile(get_context());
+  m_fbo_final_shader.compile();
 
     #endif
     #endif
@@ -1583,9 +1601,9 @@ public:
     fan::vec2 window_size = window.get_size();
     fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
 
-    m_fbo_final_shader.use(get_context());
-    m_fbo_final_shader.set_int(get_context(), "_t00", 0);
-    m_fbo_final_shader.set_int(get_context(), "_t01", 1);
+    m_fbo_final_shader.use();
+    m_fbo_final_shader.set_int("_t00", 0);
+    m_fbo_final_shader.set_int("_t01", 1);
 
     get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
     color_buffers[0].bind_texture();
@@ -1673,7 +1691,7 @@ public:
     fan::opengl::core::framebuffer_t m_framebuffer;
     fan::opengl::core::renderbuffer_t m_rbo;
     loco_t::image_t color_buffers[2];
-    fan::opengl::shader_t m_fbo_final_shader;
+    loco_t::shader_t m_fbo_final_shader;
 
   #endif
 #endif
@@ -2044,6 +2062,21 @@ public:
   using image_info_t = fan::webp::image_info_t;
 
   int begin = 0;
+
+  #if defined(loco_sprite)
+  loco_t::shader_t create_sprite_shader(const fan::string& fragment) {
+    loco_t::shader_t shader;
+    shader.open();
+    shader.set_vertex(
+      loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/sprite.vs))
+    );
+    shader.set_fragment(fragment);
+    shader.compile();
+    return shader;
+  }
+
+  #endif
+
 };
 
 #if defined(loco_pixel_format_renderer)
@@ -2135,6 +2168,10 @@ inline loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::im
 
 inline loco_t::camera_list_NodeReference_t::camera_list_NodeReference_t(loco_t::camera_t* camera) {
   NRI = camera->camera_reference.NRI;
+}
+
+inline loco_t::shader_list_NodeReference_t::shader_list_NodeReference_t(loco_t::shader_t* shader) {
+  NRI = shader->shader_reference.NRI;
 }
 
 #if defined(loco_button)

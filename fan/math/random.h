@@ -49,11 +49,17 @@ namespace fan {
 
       return distance(random);
     }
+   inline int64_t i64(int64_t min, int64_t max) {
+     return value_i64(min, max);
+   }
     
     static constexpr auto float_accuracy = 1000000;
 
     inline f32_t value_f32(f32_t min, f32_t max) {
       return (f32_t)value_i64(min * float_accuracy, max * float_accuracy) / float_accuracy;
+    }
+    inline f32_t f32(f32_t min, f32_t max) {
+      return value_f32(min, max);
     }
 
     static fan::string string(uint32_t len) {

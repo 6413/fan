@@ -391,6 +391,7 @@ struct fgm_t {
         invalidate_current();
         break;
       }
+      it = it.Next(&shape_list);
     }
   }
 

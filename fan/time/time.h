@@ -174,6 +174,16 @@ namespace fan {
 				this->start();
 			}
 
+      void start(uint64_t time) {
+        auto time_unit_ = fan::time::nanoseconds(time);
+        m_time = time_unit_.m_time;
+
+        time_unit_value = time_unit_.time_unit_value;
+
+        this->start();
+      }
+
+
 			void restart() {
 				start();
 			}

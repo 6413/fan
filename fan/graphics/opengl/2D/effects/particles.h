@@ -86,19 +86,19 @@ struct particles_t {
       auto& ri = block_node->data.ri[draw_instance++];
 
       
-      m_current_shader->set_float(context, "time", (f64_t)(fan::time::clock::now() - ri.begin_time) / 1e+9);;
-      m_current_shader->set_uint(context, "vertex_count", sb_vertex_count);
-      m_current_shader->set_uint(context, "count", ri.count);
-      m_current_shader->set_float(context, "alive_time", (f32_t)ri.alive_time / 1e+9);
-      m_current_shader->set_float(context, "respawn_time", (f32_t)ri.respawn_time / 1e+9);
-      m_current_shader->set_vec2(context, "position", *(fan::vec2*)&vi.position);
-      m_current_shader->set_vec2(context, "size", vi.size);
-      m_current_shader->set_vec2(context, "position_velocity", ri.position_velocity);
-      m_current_shader->set_float(context, "angle_velocity", ri.angle_velocity);
-      m_current_shader->set_vec3(context, "rotation_vector", ri.rotation_vector);
-      m_current_shader->set_float(context, "begin_angle", ri.begin_angle);
-      m_current_shader->set_float(context, "end_angle", ri.end_angle);
-      m_current_shader->set_vec4(context, "color", vi.color);
+      m_current_shader->set_float("time", (f64_t)(fan::time::clock::now() - ri.begin_time) / 1e+9);;
+      m_current_shader->set_uint("vertex_count", sb_vertex_count);
+      m_current_shader->set_uint("count", ri.count);
+      m_current_shader->set_float("alive_time", (f32_t)ri.alive_time / 1e+9);
+      m_current_shader->set_float("respawn_time", (f32_t)ri.respawn_time / 1e+9);
+      m_current_shader->set_vec2("position", *(fan::vec2*)&vi.position);
+      m_current_shader->set_vec2("size", vi.size);
+      m_current_shader->set_vec2("position_velocity", ri.position_velocity);
+      m_current_shader->set_float("angle_velocity", ri.angle_velocity);
+      m_current_shader->set_vec3("rotation_vector", ri.rotation_vector);
+      m_current_shader->set_float("begin_angle", ri.begin_angle);
+      m_current_shader->set_float("end_angle", ri.end_angle);
+      m_current_shader->set_vec4("color", vi.color);
 
       block_node->data.uniform_buffer.draw(
         gloco->get_context(),
