@@ -1,6 +1,13 @@
 struct shader_t {
 
-  shader_t() = default;
+  shader_list_NodeData_t& get_shader() const {
+    return gloco->shader_list[shader_reference];
+  }
+  shader_list_NodeData_t& get_shader() {
+    return gloco->shader_list[shader_reference];
+  }
+
+  shader_list_NodeReference_t shader_reference;
 
   void open() {
     shader_reference = gloco->shader_list.NewNode();
@@ -305,16 +312,6 @@ struct shader_t {
       context.opengl.call(context.opengl.glUniformMatrix4dv, location, count, fan::opengl::GL_FALSE, (f64_t*)value);
     }
   }
-
-
-  auto& get_shader() const {
-    return gloco->shader_list[shader_reference];
-  }
-  auto& get_shader() {
-    return gloco->shader_list[shader_reference];
-  }
-
-  shader_list_NodeReference_t shader_reference;
 
 private:
 
