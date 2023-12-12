@@ -1497,8 +1497,6 @@ public:
     imgui_xorg_init();
     #endif
     ImGui_ImplOpenGL3_Init();
-    #endif
-    #endif
 
     static bool init = false;
     if (init == false) {
@@ -1513,7 +1511,8 @@ public:
       }
       io.Fonts->Build();
     }
-
+    #endif
+    #endif
   }
 
   #if defined(loco_vfi)
@@ -1613,6 +1612,8 @@ public:
 
     render_final_fb();
 
+    #if defined(loco_imgui)
+
     {
       auto it = m_imgui_draw_cb.GetNodeFirst();
       while (it != m_imgui_draw_cb.dst) {
@@ -1622,7 +1623,6 @@ public:
       }
     }
 
-    #if defined(loco_imgui)
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     #endif
