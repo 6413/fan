@@ -9,7 +9,7 @@
 #include <fstream>
 #include <string>
 
-#define loco_imgui
+//#define loco_imgui
 
 #define STRINGIFY(p0) #p0
 #define STRINGIFY_DEFINE(a) STRINGIFY(a)
