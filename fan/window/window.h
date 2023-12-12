@@ -2417,6 +2417,12 @@ namespace fan {
         fan::throw_error("failed to glXGetFBConfigAttrib");
       }
 
+      #if fan_debug >= 1
+      if (fan::sys::m_display == 0) {
+        fan::print("trying to initialize window, but display is not initialized");
+      }
+      #endif
+
       int minor_glx = 0, major_glx = 0;
       glXQueryVersion(fan::sys::m_display, &major_glx, &minor_glx);
 
