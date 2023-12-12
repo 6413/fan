@@ -1498,7 +1498,7 @@ public:
     #endif
     ImGui_ImplOpenGL3_Init();
 
-   /* static bool init = false;
+    static bool init = false;
     if (init == false) {
       init = true;
       auto& style = ImGui::GetStyle();
@@ -1510,7 +1510,7 @@ public:
         fan::throw_error(fan::string("failed to load font") + font_name);
       }
       io.Fonts->Build();
-    }*/
+    }
     #endif
     #endif
   }
