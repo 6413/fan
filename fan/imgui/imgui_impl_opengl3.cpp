@@ -292,15 +292,20 @@ bool    ImGui_ImplOpenGL3_Init(const char* glsl_version)
     bd->GlProfileIsES2 = true;
 #else
     // Desktop or GLES 3
-    fan::opengl::GLint major = 0;
-    fan::opengl::GLint minor = 0;
+    // kinda hardcoded for unix but again its the minimum anyways
+    fan::opengl::GLint minor = 2;
+    fan::opengl::GLint major = 3;
+
+  #if defined(fan_platform_unix)
+    //glXQueryVersion(fan::sys::m_display, &major, &minor);
+  #else
     gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_MAJOR_VERSION, &major);
     gloco->get_context().opengl.glGetIntegerv(fan::opengl::GL_MINOR_VERSION, &minor);
+  #endif
+
     if (major == 0 && minor == 0)
     {
-        // Query GL_VERSION in desktop GL 2.x, the string will start with "<major>.<minor>"
-        const char* gl_version = (const char*)gloco->get_context().opengl.glGetString(fan::opengl::GL_VERSION);
-        sscanf(gl_version, "%d.%d", &major, &minor);
+      fan::throw_error("failed to get major and/or minor");
     }
     bd->GlVersion = (fan::opengl::GLuint)(major * 100 + minor * 10);
 #if defined(GL_CONTEXT_PROFILE_MASK)
