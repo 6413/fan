@@ -24,6 +24,44 @@ struct shader_t {
     gloco->shader_list.Recycle(shader_reference);
   }
 
+  shader_t() = default;
+
+  shader_t(shader_t&& shader) {
+    shader_reference = shader.shader_reference;
+    gloco->shader_list[shader_reference].shader = this;
+    shader.shader_reference.sic();
+  }
+  shader_t(const shader_t& shader) {
+    open();
+    gloco->shader_list[shader_reference].on_activate = gloco->shader_list[shader.shader_reference].on_activate;
+  }
+
+  shader_t& operator=(const shader_t& s) {
+    if (this != &s) {
+      open();
+      gloco->shader_list[shader_reference].on_activate = gloco->shader_list[s.shader_reference].on_activate;
+    }
+    return *this;
+  }
+  shader_t& operator=(shader_t&& s) {
+    if (this != &s) {
+      if (!shader_reference.iic()) {
+        close();
+      }
+      shader_reference = s.shader_reference;
+      gloco->shader_list[shader_reference].shader = this;
+      gloco->shader_list[shader_reference].on_activate = gloco->shader_list[s.shader_reference].on_activate;
+      s.shader_reference.sic();
+    }
+    return *this;
+  }
+  ~shader_t() {
+    if (shader_reference.iic()) {
+      return;
+    }
+    close();
+  }
+
   void use() const {
     auto& context = gloco->get_context();
     if (get_shader().id == context.current_program) {

@@ -25,8 +25,7 @@ void main() {
   loco_t::shader_t shader2 = loco.create_sprite_shader(shader_code);
 
   fan::color c0 = fan::colors::black, c1 = fan::colors::black;
-
-
+  
   loco_t::shapes_t::shader_t::properties_t sp;
   sp.position = fan::vec3(100, 100, 1);
   sp.size = 100;
