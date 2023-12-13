@@ -4,17 +4,6 @@ int main() {
   loco_t loco;
 
   fan::graphics::imgui_element_t element([&] {
-    auto& style = ImGui::GetStyle();
-    ImVec4* colors = style.Colors;
-    const ImVec4 bgColor = ImVec4(0.1, 0.1, 0.1, 0.1);
-    colors[ImGuiCol_WindowBg].w = bgColor.w;
-    colors[ImGuiCol_ChildBg].w = bgColor.w;
-    colors[ImGuiCol_TitleBg].w = bgColor.w;
-
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
-    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ImGui::PopStyleColor(2);
     ImGui::Begin("Editor");
     fan::vec2 window_size = gloco->window.get_size();
     fan::vec2 viewport_size = ImGui::GetContentRegionAvail();

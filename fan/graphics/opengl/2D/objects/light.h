@@ -42,46 +42,6 @@ struct sb_shape_name {
     sb_erase(id);
   }
 
-  //void draw(bool blending = false) {
-  //   /* #if defined(loco_framebuffer)
-  //    #if defined(sb_is_light)
-
-  //    loco->get_context().set_depth_test(false);
-  //    if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, sb_shape_name>::value) {
-  //      loco->get_context().opengl.call(loco->get_context().opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
-
-  //      unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
-
-  //      for (uint8_t i = 0; i < std::size(loco->color_buffers); ++i) {
-  //        attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
-  //      }
-
-  //      loco->get_context().opengl.call(loco->get_context().opengl.glDrawBuffers, std::size(attachments), attachments);
-
-  //    }
-  //    #endif
-  //    #endif*/
-  //  sb_draw(gloco->root);
-  //  /*
-  //   #if defined(loco_framebuffer)
-  //    #if defined(sb_is_light)
-  //    loco->get_context().opengl.call(loco->get_context().opengl.glDisable, fan::opengl::GL_BLEND);
-  //    loco->get_context().set_depth_test(true);
-  //    if constexpr (std::is_same<std::remove_pointer_t<decltype(this)>, sb_shape_name>::value) {
-  //      loco->get_context().opengl.call(loco->get_context().opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
-  //      unsigned int attachments[sizeof(loco->color_buffers) / sizeof(loco->color_buffers[0])];
-
-  //      for (uint8_t i = 0; i < std::size(loco->color_buffers); ++i) {
-  //        attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
-  //      }
-
-  //      loco->get_context().opengl.call(loco->get_context().opengl.glDrawBuffers, 1, attachments);
-  //    }
-  //    #endif
-  //    #endif
-  //  */
-  //}
-
   void draw() {
     gloco->get_context().set_depth_test(false);
     gloco->get_context().opengl.call(gloco->get_context().opengl.glEnable, fan::opengl::GL_BLEND);

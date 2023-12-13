@@ -215,7 +215,8 @@ struct loco_t {
     sprite_sheet,
     line_grid,
     grass_2d,
-    shader
+    shader,
+    shader_light
   };
 
   // can be incorrect
@@ -2069,6 +2070,19 @@ public:
     shader.open();
     shader.set_vertex(
       loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/sprite.vs))
+    );
+    shader.set_fragment(fragment);
+    shader.compile();
+    return shader;
+  }
+
+  #endif
+  #if defined(loco_light)
+  loco_t::shader_t create_light_shader(const fan::string& fragment) {
+    loco_t::shader_t shader;
+    shader.open();
+    shader.set_vertex(
+      loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/light.vs))
     );
     shader.set_fragment(fragment);
     shader.compile();
