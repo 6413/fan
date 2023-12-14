@@ -317,6 +317,9 @@ namespace fan {
 
 namespace fan {
 
+  template<typename ...Args>
+  constexpr std::size_t va_count(Args&&...) { return sizeof...(Args); }
+
   template<size_t a, size_t b> struct assert_equality {
     static_assert(a == b, "Not equal");
     static constexpr bool result = (a == b);
@@ -370,7 +373,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
   \
     auto [__VA_ARGS__] = struct_value; \
     return std::make_tuple(__FAN__FOREACH_NS(__FAN_NREF_EACH, __VA_ARGS__)); \
-}
+} 
 
   GENERATE_CALL_F(1, a)
   GENERATE_CALL_F(2, a, b)
@@ -1194,4 +1197,7 @@ namespace fan {
   #define _lstd_preprocessor_combine_every_2_start(n, ...) CONCAT(_lstd_preprocessor_combine_every_2_,n(__VA_ARGS__))
   #define lstd_preprocessor_combine_every_2(...) _lstd_preprocessor_combine_every_2_start(lstd_preprocessor_get_arg_count(__VA_ARGS__), __VA_ARGS__)
   #endif
+
+  #define fan_make_flexible_array(type, name, ...) \
+  type name[std::initializer_list<type>{__VA_ARGS__}.size()] = {__VA_ARGS__}
 }
