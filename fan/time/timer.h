@@ -52,22 +52,15 @@ namespace fan {
     };
 
     id_t start(uint64_t ns, auto lambda) {
-      timer_t timer;
-      timer.cb = lambda;
-      timer.repeat = true;
-      timer.ns = ns;
-			timer.time_left = ns + m_current_time;
-      iid_list.resize(iid_list.size() + 1);
-      timer.id = iid_list.size() - 1;
-      nr_t nr = time_list.insert(timer);
-      iid_list.back() = nr;
-			return timer.id;
+      return impl_start(ns, lambda, true);
 		}
     id_t start_single(uint64_t ns, auto lambda) {
-      ns += m_current_time;
+      return impl_start(ns, lambda, false);
+    }
+    id_t impl_start(uint64_t ns, auto lambda, bool repeat) {
       timer_t timer;
       timer.cb = lambda;
-      timer.repeat = false;
+      timer.repeat = repeat;
       timer.ns = ns;
       timer.time_left = ns + m_current_time;
       iid_list.resize(iid_list.size() + 1);

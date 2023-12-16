@@ -73,4 +73,5 @@
 
 #if defined(loco_imgui)
 #include _FAN_PATH(graphics/gui/model_maker/maker.h)
+#include _FAN_PATH(graphics/gui/keyframe_animator/loader.h)
 #endif
