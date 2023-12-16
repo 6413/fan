@@ -169,7 +169,7 @@ namespace fan {
 
         std::ifstream file(path.c_str(), std::ifstream::binary);
         if (file.fail()) {
-          fan::throw_error("path does not exist " + path);
+          fan::throw_error("path does not exist:" + path);
         }
         std::vector<fan::string> data;
         for (std::string line; std::getline(file, line); ) {
@@ -196,7 +196,7 @@ namespace fan {
       static std::vector<T> read(const fan::string& path) {
         std::ifstream file(path.c_str(), std::ifstream::ate | std::ifstream::binary);
         if (!file.good()) {
-          fan::print("path does not exist " + path);
+          fan::print("path does not exist:" + path);
           exit(1);
         }
         std::vector<T> vector;

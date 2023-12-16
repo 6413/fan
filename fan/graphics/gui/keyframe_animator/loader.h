@@ -39,9 +39,9 @@ namespace fan {
           auto& frame_dst = obj.key_frames[obj.frame_index + 1];
           if (controls.time < frame_dst.time) {
             f32_t offset = fan::math::normalize(controls.time, frame_src.time, frame_dst.time);
-            obj.current_frame.position = frame_src.position.lerp(frame_dst.position, offset);
+            obj.current_frame.position = frame_src.position.lerp(frame_dst.position * obj.movement_scale, offset);
             obj.current_frame.size = frame_src.size.lerp(frame_dst.size, offset);
-            obj.current_frame.angle = fan::math::lerp(frame_src.angle, frame_dst.angle, offset);
+            obj.current_frame.angle = fan::math::lerp(frame_src.angle, frame_dst.angle * obj.movement_scale, offset);
             obj.current_frame.rotation_vector = frame_src.rotation_vector.lerp(frame_dst.rotation_vector, offset);
           }
           else {
@@ -57,6 +57,8 @@ namespace fan {
         // can be either image or texturepack image name
         fan::string image_name;
         loco_t::shape_t sprite;
+        fan::vec2 scale = 1;
+        f32_t movement_scale = 1;
       };
 
       void play_from_begin() {
@@ -100,12 +102,12 @@ namespace fan {
         int index = 0;
         for (auto& obj : objects) {
           key_frame_t kf = obj.current_frame;
-          obj.sprite.set_position(origin + kf.position);
-          obj.sprite.set_size(kf.size);
+          obj.sprite.set_position(origin + kf.position * obj.scale);
+          obj.sprite.set_size(kf.size * obj.scale);
           obj.sprite.set_angle(kf.angle);
           obj.sprite.set_rotation_vector(kf.rotation_vector);
-          controls.time += gloco->delta_time;
         }
+        controls.time += gloco->delta_time;
       }
 
       void push_sprite(uint32_t i, auto&& temp) {
@@ -167,6 +169,27 @@ namespace fan {
         object_t& obj = objects[i];
         fan::vec3 sp = obj.sprite.get_position();
         obj.sprite.set_position(fan::vec3(position, sp.z));
+      }
+
+      void set_position(uint32_t i, const fan::vec3& position) {
+        origin = position;
+        object_t& obj = objects[i];
+        obj.sprite.set_position(position);
+      }
+
+      void set_size(uint32_t i, const fan::vec2& size) {
+        object_t& obj = objects[i];
+        obj.scale = size;
+      }
+
+      void set_camera_viewport(uint32_t i, loco_t::camera_t* camera, loco_t::viewport_t* viewport) {
+        object_t& obj = objects[i];
+        gloco->shapes.sprite.set_camera(obj.sprite, camera);
+        gloco->shapes.sprite.set_viewport(obj.sprite, viewport);
+      }
+
+      object_t& get_obj(uint32_t i) {
+        return objects[i];
       }
 
       f32_t time = 0;

@@ -95,7 +95,9 @@ struct model_list_t {
 
   void push_shape(model_id_t model_id, uint32_t group_id, const auto& shape) {
     auto& model = model_list[model_id];
-    model.groups.resize(group_id + 1);
+    if (model.groups.size() < group_id + 1) {
+      model.groups.resize(group_id + 1);
+    }
     auto& group = model.groups[group_id];
     group.push_back(group_data_t{ 
       .shape = shape
@@ -154,6 +156,14 @@ struct model_list_t {
     }
     *(fan::vec2*)&model.position = position;
   }
+  void set_position(model_id_t model_id, uint32_t group_id, const fan::vec2& position) {
+    auto& model = model_list[model_id];
+    auto& group = model.groups[group_id];
+    for (auto& j : group) {
+      j.position = position;
+      j.shape.set_position(position);
+    }
+  }
   void set_size(model_id_t model_id, const fan::vec2& size) {
     auto& model = model_list[model_id];
     for (auto& group : model.groups) {
@@ -163,6 +173,16 @@ struct model_list_t {
       }
     }
     model.size = size;
+  }
+
+  // changes all sizes to size -- only benefitable with one object
+  void set_size(model_id_t model_id, uint32_t group_id, const fan::vec2& size) {
+    auto& model = model_list[model_id];
+    // skip root
+    auto& group = model.groups[group_id];
+    for (auto& j : group) {
+      j.shape.set_size(size);
+    }
   }
   void set_angle(model_id_t model_id, f32_t angle) {
     auto& model = model_list[model_id];
@@ -182,7 +202,22 @@ struct model_list_t {
     auto& group = model.groups[group_id];
     for (auto& j : group) {
       j.shape.set_angle(angle + j.angle);
-      j.shape.set_rotation_point(0);
+      //j.shape.set_rotation_point(0);
+    }
+  }
+  void set_rotation_vector(model_id_t model_id, uint32_t group_id, const fan::vec3& rv) {
+    auto& model = model_list[model_id];
+    // skip root
+    auto& group = model.groups[group_id];
+    for (auto& j : group) {
+      j.shape.set_rotation_vector(rv);
+    }
+  }
+  void set_rotation_point(model_id_t model_id, uint32_t group_id, const fan::vec2& rp) {
+    auto& model = model_list[model_id];
+    auto& group = model.groups[group_id];
+    for (auto& j : group) {
+      j.shape.set_rotation_point(rp);
     }
   }
   auto& get_instance(model_id_t model_id) {

@@ -1,7 +1,5 @@
 #include fan_pch
 
-#include _FAN_PATH(graphics/gui/keyframe_animator/loader.h)
-
 loco_t loco;
 
 struct player_t {
@@ -55,9 +53,9 @@ int main() {
   );
 
   loco_t::texturepack_t texturepack;
-  texturepack.open_compiled("texture_packs/tilemap.ftp");
+  texturepack.open_compiled("texture_packs/TexturePack");
   player.animation = fan::graphics::animation_t(&texturepack);
-  player.animation.file_load("keyframe1.fka");
+  player.animation.file_load("anim_drill.fka");
   player.animation.set_origin();
 
   player.collider = fan::graphics::collider_dynamic_hidden_t(
@@ -69,8 +67,6 @@ int main() {
   // initializing with first keyframe
 
   player.animation.objects[0].current_frame = player.animation.objects[0].key_frames[0];
-
-  //player.animation.load_image(player.visual, player.animation.image_name, texturepack);
 
   player.animation.controls.loop = false;
 
@@ -85,16 +81,17 @@ int main() {
         }
         player.jumping = true;
         player.animation.play_from_begin();
-        player.timer.cb = [&](const fan::ev_timer_t::cb_data_t&) {
+        static std::function<void()> function;
+        function = [&]() {
           player.animation.play_animation();
           if (!player.animation.is_finished()) {
-            gloco->ev_timer.start(&player.timer, 0);
+            gloco->ev_timer.start_single(0, function);
           }
           else {
             player.jumping = false;
-          }
+          }   
         };
-        loco.ev_timer.start(&player.timer, 0);
+        loco.ev_timer.start_single(0, function);
         break;
       }
     }

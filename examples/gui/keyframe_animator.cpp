@@ -12,7 +12,7 @@ int main() {
   ImGui::GetNeoSequencerStyle().Colors[ImGuiNeoSequencerCol_TopBarBg] = loco.clear_color + 0.1;
 
   fan::graphics::animation_editor_t editor;
-  editor.texturepack.open_compiled("texture_packs/tilemap.ftp");
+  editor.texturepack.open_compiled("texture_packs/TexturePack");
 
   fan::graphics::imgui_element_t main_view =
     fan::graphics::imgui_element_t([&] {editor.handle_imgui(); });
