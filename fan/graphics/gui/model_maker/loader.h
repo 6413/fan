@@ -38,7 +38,7 @@ struct model_list_t {
     loco_t::shape_t shape;
     fan::vec3 position = 0; //offset from root
     fan::vec2 size = 0;
-    f32_t angle = 0;
+    fan::vec3 angle = 0;
   };
 
   struct model_data_t {
@@ -47,7 +47,7 @@ struct model_list_t {
 
     fan::vec3 position = 0;
     fan::vec2 size = 1;
-    f32_t angle = 0;
+    fan::vec3 angle = 0;
 
     std::vector<std::vector<group_data_t>> groups;
   };
@@ -184,7 +184,14 @@ struct model_list_t {
       j.shape.set_size(size);
     }
   }
-  void set_angle(model_id_t model_id, f32_t angle) {
+
+  fan::vec3 get_angle(model_id_t model_id, uint32_t group_id) {
+    auto& model = model_list[model_id];
+    // skip root
+    auto& group = model.groups[group_id];
+    return group[0].shape.get_angle();
+  }
+  void set_angle(model_id_t model_id, const fan::vec3& angle) {
     auto& model = model_list[model_id];
     model.angle = angle;
     // skip root
@@ -196,21 +203,13 @@ struct model_list_t {
       }
     }
   }
-  void set_angle(model_id_t model_id, uint32_t group_id, f32_t angle) {
+  void set_angle(model_id_t model_id, uint32_t group_id, const fan::vec3& angle) {
     auto& model = model_list[model_id];
     // skip root
     auto& group = model.groups[group_id];
     for (auto& j : group) {
       j.shape.set_angle(angle + j.angle);
       //j.shape.set_rotation_point(0);
-    }
-  }
-  void set_rotation_vector(model_id_t model_id, uint32_t group_id, const fan::vec3& rv) {
-    auto& model = model_list[model_id];
-    // skip root
-    auto& group = model.groups[group_id];
-    for (auto& j : group) {
-      j.shape.set_rotation_vector(rv);
     }
   }
   void set_rotation_point(model_id_t model_id, uint32_t group_id, const fan::vec2& rp) {
