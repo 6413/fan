@@ -10,8 +10,9 @@ struct letter_t {
     fan::color color = fan::colors::white;
     fan::color outline_color;
     fan::vec2 tc_size;
-    f32_t angle=0; 
-    f32_t pad[1];
+    fan::vec2 pad;
+    fan::vec3 angle=0; 
+    f32_t pad2;
   };
 
   static constexpr uint32_t max_instance_size = fan::min(256ull, 4096 / (sizeof(vi_t) / 4));

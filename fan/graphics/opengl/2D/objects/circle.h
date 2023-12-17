@@ -11,7 +11,7 @@ struct circle_t {
   public:
     fan::color color = fan::colors::white;
     fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-    f32_t angle = 0;
+    fan::vec3 angle = 0;
   };
 
   struct context_key_t {

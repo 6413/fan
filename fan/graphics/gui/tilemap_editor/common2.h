@@ -10,7 +10,7 @@ enum struct mesh_property_t : uint8_t {
 struct tile_t {
   fan::vec3i position;
   fan::vec2i size;
-  f32_t angle;
+  fan::vec3 angle;
   fan::color color;
   uint64_t image_hash;
   mesh_property_t mesh_property = mesh_property_t::none;

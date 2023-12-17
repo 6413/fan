@@ -155,9 +155,11 @@ struct fgm_t {
     {
       ImGui::Text("angle");
       ImGui::SameLine();
-      f32_t angle = shape->children[0].get_angle();
-      angle = fan::math::degrees(angle);
-      ImGui::SliderFloat("##hidden_label1" "angle", &angle, 0, 360);
+      fan::vec3 angle = shape->children[0].get_angle();
+      angle.x = fan::math::degrees(angle.x);
+      angle.y = fan::math::degrees(angle.y);
+      angle.z = fan::math::degrees(angle.z);
+      ImGui::SliderFloat3("##hidden_label1" "angle", angle.data(), 0, 360);
       angle = fan::math::radians(angle);
       shape->children[0].set_angle(angle);
 

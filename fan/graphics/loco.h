@@ -939,10 +939,9 @@ public:
 
     fan_build_get_set_cref(fan::vec2, size);
     fan_build_get_set_cref(fan::color, color);
-    fan_build_get_set_cref(f32_t, angle);
+    fan_build_get_set_cref(fan::vec3, angle);
     fan_build_get_set_cref(fan::string, text);
     fan_build_get_set_cref(fan::vec2, rotation_point);
-    fan_build_get_set_cref(fan::vec3, rotation_vector);
     fan_build_get_set_cref(f32_t, font_size);
 
     fan_build_get_set_cref(fan::color, outline_color);
@@ -1980,10 +1979,9 @@ public:
   fan_build_get_set_shape_property(const fan::vec3&, position);
   fan_build_get_set_shape_property(const fan::vec2&, size);
   fan_build_get_set_shape_property(const fan::color&, color);
-  fan_build_get_set_shape_property(f32_t, angle);
+  fan_build_get_set_shape_property(const fan::vec3&, angle);
   fan_build_get_set_shape_property(const fan::string&, text);
   fan_build_get_set_shape_property(const fan::vec2&, rotation_point);
-  fan_build_get_set_shape_property(const fan::vec3&, rotation_vector);
   fan_build_get_set_shape_property(f32_t, font_size);
   fan_build_get_set_shape_property(const fan::vec2&, text_size);
 
