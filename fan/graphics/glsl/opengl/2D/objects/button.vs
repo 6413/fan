@@ -14,12 +14,11 @@
 
 	struct block_instance_t{
 		vec3 position;
-		float angle;
 		vec2 size;
 		vec2 rotation_point;
+		vec3 angle;
 		vec4 color;
 		vec4 outline_color;
-		vec3 rotation_vector;
 		float outline_size;
 	};
 
@@ -59,8 +58,8 @@
 
 		vec2 rp = rectangle_vertices[id];
 	
-		float c = cos(-get_instance().angle);
-		float s = sin(-get_instance().angle);
+		float c = cos(0/*-get_instance().angle*/);
+		float s = sin(0/*-get_instance().angle*/);
 
 		float x = rp.x * c - rp.y * s;
 		float y = rp.x * s + rp.y * c;

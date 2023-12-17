@@ -29,7 +29,7 @@ namespace fan {
         f32_t time = 0;
         fan::vec3 position = 0;
         fan::vec2 size = 400;
-        f32_t angle = 0;
+        fan::vec3 angle = 0;
         fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
       };
 

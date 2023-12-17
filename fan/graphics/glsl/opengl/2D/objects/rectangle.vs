@@ -13,8 +13,7 @@ struct block_instance_t{
 	vec2 size;
 	vec2 rotation_point;
 	vec4 color;
-	vec3 rotation_vector;
-	float angle;
+	vec3 angle;
 };
 
 layout (std140) uniform instance_t {
@@ -43,43 +42,33 @@ mat4 translate(mat4 m, vec3 v) {
 	return matrix;
 }
 
-mat4 rotate(mat4 m, float angle, vec3 v) {
-	float a = angle;
-	float c = cos(a);
-	float s = sin(a);
-	vec3 axis = vec3(normalize(v));
-	vec3 temp = vec3(axis * (1.0f - c));
+mat4 rotate(mat4 m, vec3 angles) {
+    float cx = cos(angles.x);
+    float sx = sin(angles.x);
+    float cy = cos(angles.y);
+    float sy = sin(angles.y);
+    float cz = cos(angles.z);
+    float sz = sin(angles.z);
 
-	mat4 rotation;
-	rotation[0][0] = c + temp[0] * axis[0];
-	rotation[0][1] = temp[0] * axis[1] + s * axis[2];
-	rotation[0][2] = temp[0] * axis[2] - s * axis[1];
+    mat4 rotationX = mat4(1.0, 0.0, 0.0, 0.0,
+                          0.0, cx, -sx, 0.0,
+                          0.0, sx, cx, 0.0,
+                          0.0, 0.0, 0.0, 1.0);
 
-	rotation[1][0] = temp[1] * axis[0] - s * axis[2];
-	rotation[1][1] = c + temp[1] * axis[1];
-	rotation[1][2] = temp[1] * axis[2] + s * axis[0];
+    mat4 rotationY = mat4(cy, 0.0, sy, 0.0,
+                          0.0, 1.0, 0.0, 0.0,
+                          -sy, 0.0, cy, 0.0,
+                          0.0, 0.0, 0.0, 1.0);
 
-	rotation[2][0] = temp[2] * axis[0] + s * axis[1];
-	rotation[2][1] = temp[2] * axis[1] - s * axis[0];
-	rotation[2][2] = c + temp[2] * axis[2];
+    mat4 rotationZ = mat4(cz, -sz, 0.0, 0.0,
+                          sz, cz, 0.0, 0.0,
+                          0.0, 0.0, 1.0, 0.0,
+                          0.0, 0.0, 0.0, 1.0);
 
-	mat4 matrix;
-	matrix[0][0] = (m[0][0] * rotation[0][0]) + (m[1][0] * rotation[0][1]) + (m[2][0] * rotation[0][2]);
-	matrix[1][0] = (m[0][1] * rotation[0][0]) + (m[1][1] * rotation[0][1]) + (m[2][1] * rotation[0][2]);
-	matrix[2][0] = (m[0][2] * rotation[0][0]) + (m[1][2] * rotation[0][1]) + (m[2][2] * rotation[0][2]);
-
-	matrix[0][1] = (m[0][0] * rotation[1][0]) + (m[1][0] * rotation[1][1]) + (m[2][0] * rotation[1][2]);
-	matrix[1][1] = (m[0][1] * rotation[1][0]) + (m[1][1] * rotation[1][1]) + (m[2][1] * rotation[1][2]);
-	matrix[2][1] = (m[0][2] * rotation[1][0]) + (m[1][2] * rotation[1][1]) + (m[2][2] * rotation[1][2]);
-
-	matrix[0][2] = (m[0][0] * rotation[2][0]) + (m[1][0] * rotation[2][1]) + (m[2][0] * rotation[2][2]);
-	matrix[1][2] = (m[0][1] * rotation[2][0]) + (m[1][1] * rotation[2][1]) + (m[2][1] * rotation[2][2]);
-	matrix[2][2] = (m[0][2] * rotation[2][0]) + (m[1][2] * rotation[2][1]) + (m[2][2] * rotation[2][2]);
-
-	matrix[3] = m[3];
-
-	return matrix;
+    mat4 matrix = rotationX * rotationY * rotationZ * m;
+    return matrix;
 }
+
 
 void main() {
 	uint id = uint(gl_VertexID % 6);
@@ -88,10 +77,9 @@ void main() {
 
 	vec2 rp = rectangle_vertices[id];
 
-  vec3 rot = get_instance().rotation_vector;
   mat4 m = mat4(1);
   m = translate(m, -vec3(get_instance().rotation_point, 0));
-  m = rotate(m, get_instance().angle, rot); 
+  m = rotate(m, get_instance().angle); 
   m = translate(m, vec3(get_instance().rotation_point, 0));
   vec2 rotated = vec4(m * vec4(rp * get_instance().size, 0, 1)).xy;
 

@@ -915,8 +915,8 @@ struct fte_t {
           }
         }
         {
-          f32_t angle = layer.shape.get_angle();
-          if (ImGui::DragFloat("angle", &angle, fan::math::radians(1))) {
+           fan::vec3 angle = layer.shape.get_angle();
+          if (ImGui::DragFloat3("angle", angle.data(), fan::math::radians(1))) {
             layer.shape.set_angle(angle);
           }
         }
@@ -1280,7 +1280,7 @@ shape data{
 
     fan::vec2i size = 1;
     int tile_size = 1;
-    f32_t angle = 0;
+    fan::vec3 angle = 0;
     f32_t depth = 1;
     int jitter = 0;
     f32_t jitter_chance = 0.33;

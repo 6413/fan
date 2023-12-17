@@ -12,8 +12,8 @@ struct line_grid_t {
     fan::vec2 rotation_point = 0;
     f32_t pad2[2];
     fan::color color = fan::colors::white;
-    fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-    f32_t angle = 0;
+    fan::vec3 angle = 0;
+    f32_t pad3;
   };
 
   struct context_key_t {
@@ -202,8 +202,8 @@ struct shader_t {
     fan::vec2 size = 0;
     fan::vec2 rotation_point = 0;
     fan::color color = fan::colors::white;
-    fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-    f32_t angle = 0;
+    fan::vec3 angle = fan::vec3(0);
+    f32_t pad;
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
   };
@@ -315,8 +315,8 @@ struct shader_light_t {
     fan::vec2 size = 0;
     fan::vec2 rotation_point = 0;
     fan::color color = fan::colors::white;
-    fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-    f32_t angle = 0;
+    fan::vec3 angle = fan::vec3(0);
+    f32_t pad;
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
   };

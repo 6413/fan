@@ -9,7 +9,9 @@ struct sb_shape_name {
     fan::vec2 rotation_point = 0;
     fan::color color = fan::colors::white;
     fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-    f32_t angle = 0;
+    f32_t pad;
+    fan::vec3 angle = 0;
+    f32_t pad2;
   };
 
   struct context_key_t {

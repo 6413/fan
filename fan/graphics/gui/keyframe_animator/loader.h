@@ -13,8 +13,7 @@ namespace fan {
         f32_t time = 0;
         fan::vec3 position = 0;
         fan::vec2 size = 400;
-        f32_t angle = 0;
-        fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+        fan::vec3 angle = 0;
       };
 
       struct controls_t {
@@ -41,8 +40,7 @@ namespace fan {
             f32_t offset = fan::math::normalize(controls.time, frame_src.time, frame_dst.time);
             obj.current_frame.position = frame_src.position.lerp(frame_dst.position * obj.movement_scale, offset);
             obj.current_frame.size = frame_src.size.lerp(frame_dst.size, offset);
-            obj.current_frame.angle = fan::math::lerp(frame_src.angle, frame_dst.angle * obj.movement_scale, offset);
-            obj.current_frame.rotation_vector = frame_src.rotation_vector.lerp(frame_dst.rotation_vector, offset);
+            obj.current_frame.angle = frame_src.angle.lerp(frame_dst.angle* obj.movement_scale, offset);
           }
           else {
             obj.frame_index++;
@@ -105,7 +103,6 @@ namespace fan {
           obj.sprite.set_position(origin + kf.position * obj.scale);
           obj.sprite.set_size(kf.size * obj.scale);
           obj.sprite.set_angle(kf.angle);
-          obj.sprite.set_rotation_vector(kf.rotation_vector);
         }
         controls.time += gloco->delta_time;
       }
@@ -144,8 +141,7 @@ namespace fan {
             push_sprite(iterate_idx, fan::graphics::sprite_t{ {
               .position = obj.key_frames[0].position,
               .size = obj.key_frames[0].size,
-              .angle = obj.key_frames[0].angle,
-              .rotation_vector = obj.key_frames[0].rotation_vector
+              .angle = obj.key_frames[0].angle
             } });
             load_image(obj.sprite, obj.image_name, *tp);
           }
