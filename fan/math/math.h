@@ -595,7 +595,7 @@ namespace fan {
 				}
 				case 1: {
 					return x > y;
-				}
+				} 
 			}
 			return false;
 		}
