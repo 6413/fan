@@ -156,6 +156,14 @@ struct model_list_t {
     }
     *(fan::vec2*)&model.position = position;
   }
+  void set_position(model_id_t model_id, uint32_t group_id, const fan::vec3& position) {
+    auto& model = model_list[model_id];
+    auto& group = model.groups[group_id];
+    for (auto& j : group) {
+      j.position = position;
+      j.shape.set_position(position);
+    }
+  }
   void set_position(model_id_t model_id, uint32_t group_id, const fan::vec2& position) {
     auto& model = model_list[model_id];
     auto& group = model.groups[group_id];
