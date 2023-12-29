@@ -19,8 +19,11 @@ int main() {
 
   loco.set_vsync(false);
 
+  f32_t angle = 0;
   loco.loop([&] {
     sprite.set_position(loco.get_mouse_position());
+    sprite.set_angle(fan::vec3(angle, 0, 0));
+    angle += gloco->delta_time;
   //  fan::print(sprite.get_position());
     loco.get_fps();
   });
