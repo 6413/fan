@@ -64,7 +64,7 @@ namespace fan {
           f32_t offset = fan::math::normalize(controls.time, frame_src.time, frame_dst.time);
           obj.current_frame.position = frame_src.position.lerp(frame_dst.position, offset);
           obj.current_frame.size = frame_src.size.lerp(frame_dst.size, offset);
-          obj.current_frame.angle = fan::math::lerp(frame_src.angle, frame_dst.angle, offset);
+          obj.current_frame.angle = frame_src.angle.lerp(frame_dst.angle, offset);
           obj.current_frame.rotation_vector = frame_src.rotation_vector.lerp(frame_dst.rotation_vector, offset);
         }
         else {
@@ -161,7 +161,6 @@ namespace fan {
           obj.sprite.get()->set_position(kf.position);
           obj.sprite.get()->set_size(kf.size);
           obj.sprite.get()->children[0].set_angle(kf.angle);
-          obj.sprite.get()->children[0].set_rotation_vector(kf.rotation_vector);
         }
         timeline.current_frame = controls.time * time_divider;
         controls.time += gloco->delta_time;
@@ -197,7 +196,7 @@ namespace fan {
         f32_t offset = fan::math::normalize(controls.time, frame_src.time, frame_dst.time);
         obj.current_frame.position = frame_src.position.lerp(frame_dst.position, offset);
         obj.current_frame.size = frame_src.size.lerp(frame_dst.size, offset);
-        obj.current_frame.angle = fan::math::lerp(frame_src.angle, frame_dst.angle, offset);
+        obj.current_frame.angle = frame_src.angle.lerp(frame_dst.angle, offset);
         obj.current_frame.rotation_vector = frame_src.rotation_vector.lerp(frame_dst.rotation_vector, offset);
       }
 
@@ -228,7 +227,6 @@ namespace fan {
           obj.sprite.get()->set_position(kf.position);
           obj.sprite.get()->set_size(kf.size);
           obj.sprite.get()->children[0].set_angle(kf.angle);
-          obj.sprite.get()->children[0].set_rotation_vector(kf.rotation_vector);
         }
         prev_frame = timeline.current_frame;
       }
@@ -271,8 +269,7 @@ namespace fan {
                  .time = (float)timeline.current_frame / time_divider,
                  .position = child.get_position(),
                  .size = child.get_size(),
-                 .angle = child.get_angle(),
-                 .rotation_vector = child.get_rotation_vector()
+                 .angle = child.get_angle()
               };
               obj.key_frames.push_back(kf);
             }
@@ -305,8 +302,7 @@ namespace fan {
           fan::mp_t<key_frame_t> mp(key_frame_t{
             .position = child.get_position(),
             .size = child.get_size(),
-            .angle = fan::math::degrees(child.get_angle()),
-            .rotation_vector = child.get_rotation_vector()
+            .angle = fan::math::degrees(child.get_angle())
             });
           {
             static constexpr const char* names[]{ "time", "position", "size", "angle", "rotation vector" };
@@ -320,7 +316,6 @@ namespace fan {
               objects[active_object].sprite->set_position(mp.operator key_frame_t().position);
               objects[active_object].sprite->set_size(mp.operator key_frame_t().size);
               child.set_angle(fan::math::radians(mp.operator key_frame_t().angle));
-              child.set_rotation_vector(mp.operator key_frame_t().rotation_vector);
             }
             static fan::string input;
             input.resize(30);
@@ -496,8 +491,7 @@ namespace fan {
             fan::graphics::sprite_t temp{ {
               .position = obj.key_frames[0].position,
               .size = obj.key_frames[0].size,
-              .angle = obj.key_frames[0].angle,
-              .rotation_vector = obj.key_frames[0].rotation_vector
+              .angle = obj.key_frames[0].angle
             } };
 
             load_image(temp, obj.image_name, texturepack);

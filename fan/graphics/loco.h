@@ -1505,7 +1505,7 @@ public:
       auto& io = ImGui::GetIO();
 
       static constexpr const char* font_name = "fonts/Alegreya.otf";
-      static constexpr f32_t font_size = 48;
+      static constexpr f32_t font_size = 32;
       if (io.Fonts->AddFontFromFileTTF(font_name, font_size) == nullptr) {
         fan::throw_error(fan::string("failed to load font") + font_name);
       }
