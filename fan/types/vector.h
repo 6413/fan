@@ -137,7 +137,7 @@ namespace fan {
     template <typename T> constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0)
       : vec4_wrap_t(test0.x, test0.y, test0.z, 0) { }
     template <typename T> 
-    constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0, T value)
+    constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0, auto value)
       : vec4_wrap_t(test0.x, test0.y, test0.z, value) { }
     #if defined(loco_imgui)
     constexpr operator ImVec4() const { return ImVec4(x, y, z, w); }
