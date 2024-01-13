@@ -10,7 +10,7 @@
 #include <string>
 
 #define loco_imgui
-#define loco_assimp
+//#define loco_assimp
 
 #if defined(loco_assimp)
   #include <assimp/Importer.hpp>
