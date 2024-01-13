@@ -79,6 +79,23 @@ namespace fan {
     template <typename T>
 		constexpr vec3_wrap_t(const vec2_wrap_t<T>& test0, auto value) 
       : vec3_wrap_t(test0.x, test0.y, value) { } 
+
+
+  #if defined(loco_assimp)
+  vec3_wrap_t(const aiVector3D& v) {
+    x = v.x;
+    y = v.y;
+    z = v.z;
+  }
+ /*  operator aiVector3D() {
+    aiVector3D v;
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    return v;
+  }*/
+  #endif
+
    template <typename T>
     vec3_wrap_t& operator=(const vec2_wrap_t<T>& test0) {
       x = test0.x;
@@ -119,7 +136,8 @@ namespace fan {
       : vec4_wrap_t(test0.x, test0.y, test1.x, test1.y) { }
     template <typename T> constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0)
       : vec4_wrap_t(test0.x, test0.y, test0.z, 0) { }
-    template <typename T> constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0, auto value)
+    template <typename T> 
+    constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0, T value)
       : vec4_wrap_t(test0.x, test0.y, test0.z, value) { }
     #if defined(loco_imgui)
     constexpr operator ImVec4() const { return ImVec4(x, y, z, w); }

@@ -103,6 +103,25 @@ namespace fan {
       m_array[3][3] = w3;
     }
 
+    #if defined(loco_assimp)
+    _matrix4x4(const aiMatrix4x4& mat) {
+      for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+          m_array[i][j] = mat[j][i];
+        }
+      }
+    }
+    /*operator aiMatrix4x4() {
+      aiMatrix4x4 mat;
+      for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+          mat[i][j] = m_array[j][i];
+        }
+      }
+      return mat;
+    }*/
+    #endif
+
     template <typename T>
     constexpr _matrix4x4(const fan::quaternion<T>& quat) : _matrix4x4<type_t>(1) {
       f32_t qxx(quat[0] * quat[0]);
@@ -148,16 +167,14 @@ namespace fan {
       return m_array[i];
     }
 
-    constexpr _matrix4x4<type_t> operator*(const _matrix4x4<type_t>& matrix) const {
-      _matrix4x4<type_t> result;
+    constexpr _matrix4x4<type_t> operator*(const _matrix4x4<type_t>& rhs) const {
+      _matrix4x4<type_t> result{};
 
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-          int num = 0;
           for (int k = 0; k < 4; k++) {
-            num += m_array[i][k] * matrix[k][j];
+            result[i][j] += m_array[k][j] * rhs[i][k];
           }
-          result[i][j] = num;
         }
       }
       return result;

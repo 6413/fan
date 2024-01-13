@@ -18,12 +18,12 @@ namespace fan {
 
     //void rotate_camera(bool when);
 
-    fan::mat4 get_view_matrix(const fan::vec2& position) const {
-      return fan::math::look_at_left<fan::mat4, fan::vec3>(fan::vec3(position), fan::vec3(position) + m_front, this->m_up);
+    fan::mat4 get_view_matrix() const {
+      return fan::math::look_at_left<fan::mat4, fan::vec3>(fan::vec3(position), position + m_front, this->m_up);
     }
 
-    fan::mat4 get_view_matrix(const fan::mat4& m, const fan::vec2& position) const {
-      return m * fan::math::look_at_left<fan::mat4, fan::vec3>(fan::vec3(position), fan::vec3(position) + m_front, this->world_up);
+    fan::mat4 get_view_matrix(const fan::mat4& m) const {
+      return m * fan::math::look_at_left<fan::mat4, fan::vec3>(fan::vec3(position), position + m_front, this->world_up);
     }
 
     fan::vec3 get_front() const {
@@ -81,7 +81,7 @@ namespace fan {
       offset *= sensitivity;
 
       this->set_yaw(this->get_yaw() + offset.x);
-      this->set_pitch(this->get_pitch() + offset.y);
+      this->set_pitch(this->get_pitch() - offset.y);
 
       this->update_view();
     }
@@ -96,12 +96,16 @@ namespace fan {
 
     static constexpr fan::vec3 world_up = fan::vec3(0, 1, 0);
 
-  protected:
+    void move(f32_t movement_speed, f32_t friction = 12);
+
+ // protected:
 
     f32_t m_yaw;
     f32_t m_pitch;
     fan::vec3 m_right;
     fan::vec3 m_up;
     fan::vec3 m_front;
+    fan::vec3 position = 0;
+    fan::vec3 velocity = 0;
   };
 }
