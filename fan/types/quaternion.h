@@ -38,16 +38,14 @@ namespace fan {
 		template <typename _Ty>
 		constexpr quaternion(const fan::vec4_wrap_t<_Ty>& vector) : fan::vec4_wrap_t<T>(vector) {}
 
-	#ifdef ASSIMP_API
-
+	#if defined(loco_assimp)
 		constexpr quaternion(const aiQuaternion& quat) : fan::vec4_wrap_t<T>(quat.x, quat.y, quat.z, quat.w) {}
-
 	#endif
 
 		template <typename _Ty>
 		constexpr quaternion<value_type> operator+(const quaternion<_Ty>& quat) const
 		{
-			return inherited_type::operator+(inherited_type_t<_Ty>(quat.begin(), quat.end()));
+      return inherited_type::operator+(inherited_type(quat.x, quat.y, quat.z, quat.w));
 		}
 
 		template <typename _Ty>
@@ -64,7 +62,8 @@ namespace fan {
 		template <typename _Ty>
 		constexpr quaternion<value_type> operator-(const quaternion<_Ty>& quat) const
 		{
-			return inherited_type::operator-(inherited_type_t<_Ty>(quat.begin(), quat.end()));
+      return inherited_type::operator-(inherited_type(quat.x, quat.y, quat.z, quat.w));
+      //return quaternion<value_type>();/*inherited_type::operator-(inherited_type_t<_Ty>(quat.begin(), quat.end()));*/
 		}
 
 		template <typename _Ty>
@@ -156,45 +155,45 @@ namespace fan {
 			);
 		}
 
-		template <typename _Ty>
-		static constexpr quaternion<T> slerp(const quaternion<_Ty>& q0, const quaternion<_Ty>& q1, f_t t) {
-			
-			auto v0 = q0;
-			auto v1 = q1;
+    template <typename _Ty>
+    static constexpr quaternion<T> slerp(const quaternion<_Ty>& q0, const quaternion<_Ty>& q1, f_t t) {
 
-			f_t dot = v0.dot(v1);
+      auto v0 = q0;
+      auto v1 = q1;
 
-			if (dot < 0) {
-				v1 = -v1;
-				dot = -dot;
-			}
+      f_t dot = v0.dot(v1);
 
-			constexpr auto dot_threshold = 0.9995;
+      if (dot < 0) {
+        v1 = -v1;
+        dot = -dot;
+      }
 
-			if (dot > dot_threshold) {
-				return quaternion<T>(v0 + (v1 - v0) * t);
-			}
+      constexpr auto dot_threshold = 0.9995;
 
-			f_t theta_0 = acos(dot);       
-			f_t theta = theta_0 * t ;
-			f_t sin_theta = sin(theta);    
-			f_t sin_theta_0 = sin(theta_0);
+      if (dot > dot_threshold) {
+        return quaternion<T>(v0 + (v1 - v0) * t);
+      }
 
-			f_t s0 = cos(theta) - dot * sin_theta / sin_theta_0;
-			f_t s1 = sin_theta / sin_theta_0;
+      f_t theta_0 = acos(dot);
+      f_t theta = theta_0 * t;
+      f_t sin_theta = sin(theta);
+      f_t sin_theta_0 = sin(theta_0);
 
-			return (v0 * s0) + (v1 * s1);
-		}
+      f_t s0 = cos(theta) - dot * sin_theta / sin_theta_0;
+      f_t s1 = sin_theta / sin_theta_0;
+
+      return (v0 * s0) + (v1 * s1);
+    }
 
 	};
 
 	template <typename T>
 	static constexpr auto mix(T x, T y, T a) {
-		return static_cast<T>(x) * (static_cast<T>(1) - a) + static_cast<T>(y) * a;
+		return x * (1.f - a) + y * a;
 	}
 
 	static constexpr auto mix(const fan::vec3& x, const fan::vec3& y, f_t t) {
-		return x * (static_cast<f_t>(1) - t) + y * t;
+		return x * (1.f - t) + y * t;
 	}
 
 	using quat = quaternion<f32_t>;

@@ -2186,6 +2186,55 @@ inline loco_t::shader_list_NodeReference_t::shader_list_NodeReference_t(loco_t::
   NRI = shader->shader_reference.NRI;
 }
 
+inline void fan::camera::move(f32_t movement_speed, f32_t friction) {
+  this->velocity /= friction * gloco->window.get_delta_time() + 1;
+  static constexpr auto minimum_velocity = 0.001;
+  if (this->velocity.x < minimum_velocity && this->velocity.x > -minimum_velocity) {
+    this->velocity.x = 0;
+  }
+  if (this->velocity.y < minimum_velocity && this->velocity.y > -minimum_velocity) {
+    this->velocity.y = 0;
+  }
+  if (this->velocity.z < minimum_velocity && this->velocity.z > -minimum_velocity) {
+    this->velocity.z = 0;
+  }
+  if (gloco->window.key_pressed(fan::input::key_w)) {
+    this->velocity += this->m_front * (movement_speed * gloco->window.get_delta_time());
+  }
+  if (gloco->window.key_pressed(fan::input::key_s)) {
+    this->velocity -= this->m_front * (movement_speed * gloco->window.get_delta_time());
+  }
+  if (gloco->window.key_pressed(fan::input::key_a)) {
+    this->velocity -= this->m_right * (movement_speed * gloco->window.get_delta_time());
+  }
+  if (gloco->window.key_pressed(fan::input::key_d)) {
+    this->velocity += this->m_right * (movement_speed * gloco->window.get_delta_time());
+  }
+
+  if (gloco->window.key_pressed(fan::input::key_space)) {
+    this->velocity.y += movement_speed * gloco->window.get_delta_time();
+  }
+  if (gloco->window.key_pressed(fan::input::key_left_shift)) {
+    this->velocity.y -= movement_speed * gloco->window.get_delta_time();
+  }
+
+  if (gloco->window.key_pressed(fan::input::key_left)) {
+    this->set_yaw(this->get_yaw() - sensitivity * 5000 * gloco->window.get_delta_time());
+  }
+  if (gloco->window.key_pressed(fan::input::key_right)) {
+    this->set_yaw(this->get_yaw() + sensitivity * 5000 * gloco->window.get_delta_time());
+  }
+  if (gloco->window.key_pressed(fan::input::key_up)) {
+    this->set_pitch(this->get_pitch() + sensitivity * 5000 * gloco->window.get_delta_time());
+  }
+  if (gloco->window.key_pressed(fan::input::key_down)) {
+    this->set_pitch(this->get_pitch() - sensitivity * 5000 * gloco->window.get_delta_time());
+  }
+
+  this->position += this->velocity * gloco->window.get_delta_time();
+  this->update_view();
+}
+
 #if defined(loco_button)
 namespace fan::opengl {
   // Primary template for the constructor
