@@ -31,7 +31,9 @@ inline struct global_loco_t {
 
 struct loco_t;
 
-#define loco_framebuffer
+#ifndef loco_legacy
+  #define loco_framebuffer
+#endif
 
 #include _FAN_PATH(graphics/graphics.h)
 #include _FAN_PATH(time/timer.h)
