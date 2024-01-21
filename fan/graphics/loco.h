@@ -1115,6 +1115,7 @@ public:
 // (if no custom storaging outside vi or ri, its generated automatically)
 
   struct shapes_t {
+
     #if defined(loco_vfi)
     using vfi_t = loco_t::vfi_t;
     vfi_t vfi_var_name;
