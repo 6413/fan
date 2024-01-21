@@ -143,8 +143,8 @@ namespace fan {
       struct properties_t {
         properties_t() {
           samples = 0;
-          major = 3;
-          minor = 2;
+          major = loco_gl_major;
+          minor = loco_gl_minor;
 
         }
 
