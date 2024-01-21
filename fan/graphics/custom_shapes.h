@@ -192,6 +192,7 @@ struct grass_2d_t {
 grass_2d_t grass_2d;
 #endif
 
+#if defined(loco_sprite)
 struct shader_t {
 
   static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::shader;
@@ -231,7 +232,7 @@ struct shader_t {
     loco_t::image_t* image = &gloco->default_texture;
     loco_t::camera_t* camera = &gloco->default_camera->camera;
     fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
-  #if defined(loco_tp)
+
     bool load_tp(loco_t::texturepack_t::ti_t* ti) {
       auto& im = *ti->image;
       image = &im;
@@ -239,7 +240,6 @@ struct shader_t {
       tc_size = ti->size / im.size;
       return 0;
     }
-  #endif
   };
 
   void push_back(loco_t::cid_nt_t& id, properties_t p) {
@@ -290,7 +290,6 @@ struct shader_t {
     return p;
   }
 
-#if defined(loco_tp)
   bool load_tp(loco_t::shape_t& id, loco_t::texturepack_t::ti_t* ti) {
     auto& im = *ti->image;
 
@@ -301,12 +300,13 @@ struct shader_t {
 
     return 0;
   }
-#endif
-
 };
 
 shader_t shader;
 
+#endif
+
+#if defined(loco_sprite) && defined(loco_light)
 
 struct shader_light_t {
 
@@ -348,7 +348,6 @@ struct shader_light_t {
     loco_t::camera_t* camera = &gloco->default_camera->camera;
     fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
 
-    #if defined(loco_tp)
     bool load_tp(loco_t::texturepack_t::ti_t* ti) {
       auto& im = *ti->image;
       image = &im;
@@ -356,7 +355,6 @@ struct shader_light_t {
       tc_size = ti->size / im.size;
       return 0;
     }
-    #endif
   };
 
   void push_back(loco_t::cid_nt_t& id, properties_t p) {
@@ -376,7 +374,7 @@ struct shader_light_t {
     gloco->get_context().set_depth_test(false);
     gloco->get_context().opengl.call(gloco->get_context().opengl.glEnable, fan::opengl::GL_BLEND);
     gloco->get_context().opengl.call(gloco->get_context().opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
-    #if defined(loco_framebuffer)
+
     unsigned int attachments[sizeof(gloco->color_buffers) / sizeof(gloco->color_buffers[0])];
 
     for (uint8_t i = 0; i < std::size(gloco->color_buffers); ++i) {
@@ -384,19 +382,16 @@ struct shader_light_t {
     }
 
     gloco->get_context().opengl.call(gloco->get_context().opengl.glDrawBuffers, std::size(attachments), attachments);
-    #endif
     //
     sb_draw(key_root);
     //
     gloco->get_context().set_depth_test(true);
 
-    #if defined(loco_framebuffer)
     for (uint8_t i = 0; i < std::size(gloco->color_buffers); ++i) {
       attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
     }
 
     gloco->get_context().opengl.call(gloco->get_context().opengl.glDrawBuffers, 1, attachments);
-    #endif
   }
 
   // can be bigger with vulkan
@@ -430,7 +425,6 @@ struct shader_light_t {
     return p;
   }
 
-  #if defined(loco_tp)
   bool load_tp(loco_t::shape_t& id, loco_t::texturepack_t::ti_t* ti) {
     auto& im = *ti->image;
 
@@ -441,7 +435,7 @@ struct shader_light_t {
 
     return 0;
   }
-  #endif
 };
 
 shader_light_t shader_light;
+#endif

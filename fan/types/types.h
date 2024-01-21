@@ -439,10 +439,12 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 
   template <typename T, typename F, std::size_t... I>
   constexpr void iterate_struct_impl(T& st, F lambda, std::index_sequence<I...>) {
-    auto tuple = make_struct_tuple_ref(st);
-    std::apply([&lambda](auto&...args) {
-      (lambda.template operator() < I > (std::forward<decltype(args)>(args)), ...);
-      }, tuple);
+    if constexpr (!std::is_empty_v<T>) {
+      auto tuple = make_struct_tuple_ref(st);
+      std::apply([&lambda](auto&...args) {
+        (lambda.template operator() < I > (std::forward<decltype(args)>(args)), ...);
+        }, tuple);
+    }
   }
 
   template <typename T>
