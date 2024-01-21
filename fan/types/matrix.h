@@ -180,6 +180,15 @@ namespace fan {
       return result;
     }
 
+    constexpr _matrix4x4<type_t> operator+=(const _matrix4x4<type_t>& rhs) {
+      for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+          (*this)[i][j] += rhs[i][j];
+        }
+      }
+      return *this;
+    }
+
     constexpr _matrix4x4 translate(const fan::vec3& v) const {
 			_matrix4x4 matrix((*this));
 			matrix[3][0] = (*this)[0][0] * v[0] + (*this)[1][0] * v[1] + (v.size() < 3 ? + 0 : ((*this)[2][0] * v[2])) + (*this)[3][0];

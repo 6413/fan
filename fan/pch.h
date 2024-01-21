@@ -9,7 +9,7 @@
 #include <fstream>
 #include <string>
 
-#define loco_imgui
+//#define loco_imgui
 //#define loco_assimp
 
 #if defined(loco_assimp)
@@ -54,21 +54,21 @@
 #define loco_window
 #define loco_context
 
-#define loco_rectangle
-#define loco_light
-#define loco_line
-#define loco_circle
-#define loco_button
-#define loco_sprite
-#define loco_dropdown
-#define loco_pixel_format_renderer
-#define loco_tp
-#define loco_sprite_sheet
-
-#define loco_grass_2d
-
-// 
-#define loco_physics
+//#define loco_rectangle
+//#define loco_light
+//#define loco_line
+//#define loco_circle
+//#define loco_button
+//#define loco_sprite
+//#define loco_dropdown
+//#define loco_pixel_format_renderer
+//#define loco_tp
+//#define loco_sprite_sheet
+//
+//#define loco_grass_2d
+//
+//// 
+//#define loco_physics
 /*
 #define loco_cuda
 #define loco_nv12

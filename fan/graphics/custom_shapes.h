@@ -231,7 +231,7 @@ struct shader_t {
     loco_t::image_t* image = &gloco->default_texture;
     loco_t::camera_t* camera = &gloco->default_camera->camera;
     fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
-
+  #if defined(loco_tp)
     bool load_tp(loco_t::texturepack_t::ti_t* ti) {
       auto& im = *ti->image;
       image = &im;
@@ -239,6 +239,7 @@ struct shader_t {
       tc_size = ti->size / im.size;
       return 0;
     }
+  #endif
   };
 
   void push_back(loco_t::cid_nt_t& id, properties_t p) {
@@ -289,6 +290,7 @@ struct shader_t {
     return p;
   }
 
+#if defined(loco_tp)
   bool load_tp(loco_t::shape_t& id, loco_t::texturepack_t::ti_t* ti) {
     auto& im = *ti->image;
 
@@ -299,6 +301,7 @@ struct shader_t {
 
     return 0;
   }
+#endif
 
 };
 
@@ -345,6 +348,7 @@ struct shader_light_t {
     loco_t::camera_t* camera = &gloco->default_camera->camera;
     fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
 
+    #if defined(loco_tp)
     bool load_tp(loco_t::texturepack_t::ti_t* ti) {
       auto& im = *ti->image;
       image = &im;
@@ -352,6 +356,7 @@ struct shader_light_t {
       tc_size = ti->size / im.size;
       return 0;
     }
+    #endif
   };
 
   void push_back(loco_t::cid_nt_t& id, properties_t p) {
@@ -422,6 +427,7 @@ struct shader_light_t {
     return p;
   }
 
+  #if defined(loco_tp)
   bool load_tp(loco_t::shape_t& id, loco_t::texturepack_t::ti_t* ti) {
     auto& im = *ti->image;
 
@@ -432,7 +438,7 @@ struct shader_light_t {
 
     return 0;
   }
-
+  #endif
 };
 
 shader_light_t shader_light;
