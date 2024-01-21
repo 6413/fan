@@ -2426,20 +2426,8 @@ namespace fan {
       int minor_glx = 0, major_glx = 0;
       glXQueryVersion(fan::sys::m_display, &major_glx, &minor_glx);
 
-      constexpr auto major =
-      #if !defined(loco_gl_major)
-      3
-      #else
-      loco_gl_major
-      #endif
-      ;
-      constexpr auto minor =
-      #if !defined(loco_gl_minor)
-      2
-      #else
-      loco_gl_minor
-      #endif
-      ;
+      constexpr auto major = loco_gl_major;
+      constexpr auto minor = loco_gl_minor;
 
       if (minor_glx < minor && major_glx <= major) {
         fan::print("fan window error: too low glx version");

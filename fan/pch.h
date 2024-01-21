@@ -53,6 +53,8 @@
 
 #define loco_window
 #define loco_context
+#define loco_gl_major 2
+#define loco_gl_minor 1
 
 //#define loco_rectangle
 //#define loco_light

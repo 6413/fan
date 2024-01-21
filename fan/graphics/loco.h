@@ -2,6 +2,14 @@
 #define loco_opengl
 #endif
 
+#if !defined(loco_gl_major)
+  #define loco_gl_major 3
+#endif
+#if !defined(loco_gl_minor)
+  #define loco_gl_minor 2
+#endif
+
+
 struct loco_t;
 
 // to set new loco use gloco = new_loco;
