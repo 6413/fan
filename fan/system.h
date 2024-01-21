@@ -158,7 +158,7 @@ namespace fan {
         }
         return 1;
       }
-      inline bool inited = initialize_display();
+      constinit inline bool inited = initialize_display();
 
       static Display* get_display()
       {
