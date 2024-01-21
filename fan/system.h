@@ -158,7 +158,7 @@ namespace fan {
         }
         return 1;
       }
-      constinit inline bool inited = initialize_display();
+      inline bool inited = initialize_display();
 
       static Display* get_display()
       {
@@ -169,6 +169,7 @@ namespace fan {
 
       static fan::vec2i get_screen_resolution() {
         #ifdef fan_platform_windows
+
 
         return fan::vec2i(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
 
