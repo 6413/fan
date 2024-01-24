@@ -7,11 +7,11 @@ IMGUI_PATH =
 OUTPUT_PATH = lib/fan/
 
 WINDOWS_ROOT_PATH = ./
-LINUX_ROOT_PATH = ./
+LINUX_ROOT_PATH = ./include/
 
 FAN_INCLUDE_PATH =
 
-DEBUG_FLAGS = 
+DEBUG_FLAGS = -g
 RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
 
 OUT_FILE_FORMAT =
@@ -33,8 +33,11 @@ endif
 
 CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
 
+#todo remove
+INCLUDES += -I include
+
 #note
-CXXFLAGS += $(RELEASE_FLAGS)
+CXXFLAGS += $(DEBUG_FLAGS)
 
 PCH_NAME = pch.h
 CXXFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
