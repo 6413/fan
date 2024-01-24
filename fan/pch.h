@@ -9,8 +9,8 @@
 #include <fstream>
 #include <string>
 
-//#define loco_imgui
-//#define loco_assimp
+#define loco_imgui
+#define loco_assimp
 
 #if defined(loco_assimp)
   #include <assimp/Importer.hpp>
@@ -47,31 +47,31 @@
   #define fan_verbose_print_level 1
 #endif
 #ifndef fan_debug
-  #define fan_debug 1
+  #define fan_debug 3
 #endif
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH,fan/types/types.h)
 
 #define loco_window
 #define loco_context
-#define loco_legacy
-//#define loco_gl_major 2
-//#define loco_gl_minor 1
+//#define loco_legacy
+//#define loco_gl_major 3
+//#define loco_gl_minor 3
 
-//#define loco_rectangle
-//#define loco_light
-//#define loco_line
-//#define loco_circle
-//#define loco_button
-//#define loco_sprite
-//#define loco_dropdown
-//#define loco_pixel_format_renderer
-//#define loco_tp
-//#define loco_sprite_sheet
-//
-//#define loco_grass_2d
-//
-//// 
-//#define loco_physics
+#define loco_rectangle
+#define loco_light
+#define loco_line
+#define loco_circle
+#define loco_button
+#define loco_sprite
+#define loco_dropdown
+#define loco_pixel_format_renderer
+#define loco_tp
+#define loco_sprite_sheet
+
+#define loco_grass_2d
+
+ 
+#define loco_physics
 /*
 #define loco_cuda
 #define loco_nv12

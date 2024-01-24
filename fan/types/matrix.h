@@ -180,6 +180,30 @@ namespace fan {
       return result;
     }
 
+    constexpr fan::vec4_wrap_t<type_t> operator*(const fan::vec4_wrap_t<type_t>& rhs) const {
+      fan::vec4_wrap_t<type_t> result{};
+
+      for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+          result[i] += m_array[j][i] * rhs[j];
+        }
+      }
+
+      return result;
+    }
+
+    constexpr _matrix4x4<type_t> operator*(const type_t& rhs) const {
+      _matrix4x4<type_t> result{};
+
+      for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+          result[i][j] = m_array[i][j] * rhs;
+        }
+      }
+
+      return result;
+    }
+
     constexpr _matrix4x4<type_t> operator+=(const _matrix4x4<type_t>& rhs) {
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
@@ -266,6 +290,42 @@ namespace fan {
 
 			return matrix;
 		}
+
+    constexpr _matrix4x4 rotate(const fan::quat& q) const {
+      f32_t xx = q.x * q.x;
+      f32_t yy = q.y * q.y;
+      f32_t zz = q.z * q.z;
+      f32_t xy = q.x * q.y;
+      f32_t xz = q.x * q.z;
+      f32_t yz = q.y * q.z;
+      f32_t wx = q.w * q.x;
+      f32_t wy = q.w * q.y;
+      f32_t wz = q.w * q.z;
+
+      _matrix4x4 rotation{};
+      rotation[0][0] = 1.0f - 2.0f * (yy + zz);
+      rotation[0][1] = 2.0f * (xy - wz);
+      rotation[0][2] = 2.0f * (xz + wy);
+
+      rotation[1][0] = 2.0f * (xy + wz);
+      rotation[1][1] = 1.0f - 2.0f * (xx + zz);
+      rotation[1][2] = 2.0f * (yz - wx);
+
+      rotation[2][0] = 2.0f * (xz - wy);
+      rotation[2][1] = 2.0f * (yz + wx);
+      rotation[2][2] = 1.0f - 2.0f * (xx + yy);
+
+      _matrix4x4 matrix{};
+      for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+          matrix[i][j] = ((*this)[0][j] * rotation[i][0]) + ((*this)[1][j] * rotation[i][1]) + ((*this)[2][j] * rotation[i][2]);
+        }
+      }
+
+      matrix[3] = (*this)[3];
+
+      return matrix;
+    }
 
   protected:
     std::array<fan::vec4, 4> m_array;
