@@ -148,7 +148,9 @@ constexpr auto begin() { return &operator[](0); }
 constexpr auto end() { return begin() + size(); }
 constexpr auto data() { return begin(); }
 
-constexpr auto multiply() const { return std::accumulate(begin(), end(), 1, std::multiplies<value_type_t>()); }
+constexpr auto plus() const { return std::accumulate(begin(), end(), value_type_t{}, std::plus<value_type_t>()); }
+constexpr auto minus() const { return std::accumulate(begin(), end(), value_type_t{}, std::minus<value_type_t>()); }
+constexpr auto multiply() const { return std::accumulate(begin(), end(), value_type_t{1}, std::multiplies<value_type_t>()); }
 constexpr auto sign() const { make_for_all(ret[i] = fan::math::sgn((*this)[i])); }
 constexpr auto floor() const { make_for_all(ret[i] = std::floor((*this)[i])); }
 constexpr auto floor(auto value) const { make_for_all(ret[i] = std::floor((*this)[i] / value)); }
