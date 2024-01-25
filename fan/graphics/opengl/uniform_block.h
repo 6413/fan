@@ -48,14 +48,15 @@ namespace fan {
 
       struct memory_common_t {
 
-        uint32_t m_vbo;
         fan::opengl::core::vao_t m_vao;
+        fan::opengl::core::vbo_t m_vbo;
 
         memory_write_queue_t::memory_edit_cb_t write_cb;
 
-        void open(fan::opengl::context_t& context, const memory_write_queue_t::memory_edit_cb_t& cb) {
+        void open(fan::opengl::context_t& context, uint32_t target, const memory_write_queue_t::memory_edit_cb_t& cb) {
 
           m_vao.open(context);
+          m_vbo.open(context, target);
 
           write_cb = cb;
 
@@ -125,10 +126,9 @@ namespace fan {
         }op;
 
         void open(fan::opengl::context_t& context, open_properties_t op_ = open_properties_t()) {
-          context.opengl.call(context.opengl.glGenBuffers, 1, &common.m_vbo);
           op = op_;
           m_size = 0;
-          common.open(context, [&context, this] {
+          common.open(context, op.target, [&context, this] {
             uint64_t src = common.m_min_edit;
             uint64_t dst = common.m_max_edit;
 
@@ -136,30 +136,25 @@ namespace fan {
 
             cp_buffer += src;
 
-            fan::opengl::core::edit_glbuffer(context, common.m_vbo, cp_buffer, src, dst - src, fan::opengl::GL_UNIFORM_BUFFER);
+            common.m_vbo.edit_buffer(context, cp_buffer, src, dst - src);
 
             common.on_edit(context);
           });
-          fan::opengl::core::write_glbuffer(context, common.m_vbo, 0, sizeof(type_t) * element_size, op.usage, op.target);
+          common.m_vbo.write_buffer(context, 0, sizeof(type_t) * element_size);
         }
 
         void close(fan::opengl::context_t& context, memory_write_queue_t* write_queue) {
-          #if fan_debug >= fan_debug_low
-          if (common.m_vbo == -1) {
-            fan::throw_error("tried to remove non existent vbo");
-          }
-          #endif
-          context.opengl.call(context.opengl.glDeleteBuffers, 1, &common.m_vbo);
+          common.m_vbo.close(context);
 
           common.close(context, write_queue);
         }
 
         void bind_buffer_range(fan::opengl::context_t& context, uint32_t bytes_size) {
-          context.opengl.call(context.opengl.glBindBufferRange, fan::opengl::GL_UNIFORM_BUFFER, 0, common.m_vbo, 0, bytes_size * sizeof(type_t));
+          common.m_vbo.bind_buffer_range(context, bytes_size * sizeof(type_t));
         }
 
         void bind(fan::opengl::context_t& context) const {
-          context.opengl.call(context.opengl.glBindBuffer, op.target, common.m_vbo);
+          common.m_vbo.bind(context);
         }
         void unbind() const {
           //glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -174,7 +169,7 @@ namespace fan {
           return (type_t*)&buffer[i * sizeof(type_t)];
         }
         void get_vram_instance(fan::opengl::context_t& context, type_t* data, uintptr_t i) {
-          fan::opengl::core::get_glbuffer(context, data, common.m_vbo, sizeof(type_t), i * sizeof(type_t), op.target);
+          common.m_vbo.get_vram_instance(context, data, sizeof(type_t), i * sizeof(type_t));
         }
         template <typename T>
         void edit_instance(fan::opengl::context_t& context, memory_write_queue_t* wq, uintptr_t i, T member, auto value) {

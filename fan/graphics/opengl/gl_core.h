@@ -210,7 +210,7 @@ namespace fan {
   namespace opengl {
     namespace core {
 
-      static int get_buffer_size(fan::opengl::context_t& context, uint32_t target_buffer, uint32_t buffer_object) {
+      static int get_buffer_size(fan::opengl::context_t& context, GLenum target_buffer, GLuint buffer_object) {
         int size = 0;
 
         context.opengl.call(context.opengl.glBindBuffer, target_buffer, buffer_object);
@@ -219,7 +219,7 @@ namespace fan {
         return size;
       }
 
-      static void write_glbuffer(fan::opengl::context_t& context, unsigned int buffer, const void* data, uintptr_t size, uint32_t usage, uintptr_t target)
+      static void write_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t size, uint32_t usage, GLenum target)
       {
         context.opengl.call(context.opengl.glBindBuffer, target, buffer);
 
@@ -228,12 +228,12 @@ namespace fan {
         glBindBufferBase(target, location, buffer);
         }*/
       }
-      static void get_glbuffer(fan::opengl::context_t& context, void* data, uint32_t buffer_id, uintptr_t size, uintptr_t offset, uintptr_t target) {
+      static void get_glbuffer(fan::opengl::context_t& context, void* data, GLuint buffer_id, uintptr_t size, uintptr_t offset, GLenum target) {
         context.opengl.call(context.opengl.glBindBuffer, target, buffer_id);
         context.opengl.call(context.opengl.glGetBufferSubData, target, offset, size, data);
       }
 
-      static void edit_glbuffer(fan::opengl::context_t& context, unsigned int buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target)
+      static void edit_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target)
       {
         context.opengl.call(context.opengl.glBindBuffer, target, buffer);
 
@@ -262,25 +262,65 @@ namespace fan {
       #pragma pack(push, 1)
       struct vao_t {
 
-        vao_t() = default;
-
         void open(fan::opengl::context_t& context) {
-          context.opengl.call(context.opengl.glGenVertexArrays, 1, &m_vao);
+          context.opengl.call(context.opengl.glGenVertexArrays, 1, &m_buffer);
         }
 
         void close(fan::opengl::context_t& context) {
-          context.opengl.call(context.opengl.glDeleteVertexArrays, 1, &m_vao);
+          context.opengl.call(context.opengl.glDeleteVertexArrays, 1, &m_buffer);
         }
 
         void bind(fan::opengl::context_t& context) const {
-          context.opengl.call(context.opengl.glBindVertexArray, m_vao);
+          context.opengl.call(context.opengl.glBindVertexArray, m_buffer);
         }
         void unbind(fan::opengl::context_t& context) const {
           context.opengl.call(context.opengl.glBindVertexArray, 0);
         }
 
-        uint32_t m_vao;
+        GLuint m_buffer = -1;
 
+      };
+
+      struct vbo_t {
+
+        void open(fan::opengl::context_t& context, GLenum target_) {
+          context.opengl.call(context.opengl.glGenBuffers, 1, &m_buffer);
+          m_target = target_;
+        }
+
+        void close(fan::opengl::context_t& context) {
+          #if fan_debug >= fan_debug_medium
+          if (m_buffer == (GLuint)-1) {
+            fan::throw_error("tried to remove non existent vbo");
+          }
+          #endif
+          context.opengl.call(context.opengl.glDeleteBuffers, 1, &m_buffer);
+        }
+
+        void bind(fan::opengl::context_t& context) const {
+          context.opengl.call(context.opengl.glBindBuffer, m_target, m_buffer);
+        }
+
+        void get_vram_instance(fan::opengl::context_t& context, void* data, uintptr_t size, uintptr_t offset) {
+          fan::opengl::core::get_glbuffer(context, data, m_buffer, size, offset, m_target);
+        }
+
+        // only for target GL_UNIFORM_BUFFER
+        void bind_buffer_range(fan::opengl::context_t& context, uint32_t total_size) {
+          context.opengl.call(context.opengl.glBindBufferRange, fan::opengl::GL_UNIFORM_BUFFER, 0, m_buffer, 0, total_size);
+        }
+
+        void edit_buffer(fan::opengl::context_t& context, const void* data, uintptr_t offset, uintptr_t size) {
+          fan::opengl::core::edit_glbuffer(context, m_buffer, data, offset, size, m_target);
+        }
+
+        void write_buffer(fan::opengl::context_t& context, const void* data, uintptr_t size) {
+          fan::opengl::core::write_glbuffer(context, m_buffer, data, size, m_usage, m_target);
+        }
+
+        GLuint m_buffer = -1;
+        GLenum m_target = -1;
+        uint32_t m_usage = fan::opengl::GL_DYNAMIC_DRAW;
       };
 
       #pragma pack(pop)
