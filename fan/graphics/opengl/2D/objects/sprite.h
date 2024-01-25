@@ -47,7 +47,6 @@ struct sb_sprite_name {
       return 0;
     }
   };
-  inline static  int ccc = 0;
   void push_back(loco_t::cid_nt_t& id, properties_t p) {
 
     get_key_value (loco_t::textureid_t<0>) = p.image;

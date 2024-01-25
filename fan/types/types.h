@@ -668,7 +668,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 
 	static void print_warning(const fan::string& message) {
 #ifndef fan_disable_warnings
-		fan::print("fan warning: ", message);
+		fan::print("fan warning: " + message);
 #endif
 	}
 	static void print_warning_no_space(const fan::string& message) {
