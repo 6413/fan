@@ -394,7 +394,7 @@ struct vfi_t {
           v,
           gloco->get_context().viewport_list[shape_data->shape.rectangle->viewport].viewport_id,
           gloco->camera_list[shape_data->shape.rectangle->camera].camera_id
-        ) + fan::vec2(*(fan::vec2*)&gloco->camera_list[shape_data->shape.rectangle->camera].camera_id->camera_position);
+        ) + fan::vec2(*(fan::vec2*)&gloco->camera_list[shape_data->shape.rectangle->camera].camera_id->position);
         break;
       }
       default: {

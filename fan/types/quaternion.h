@@ -15,7 +15,7 @@ namespace fan {
 		template <typename _Ty>
 		using inherited_type_t = fan::vec4_wrap_t<_Ty>;
 
-		constexpr quaternion() : fan::quaternion<T>(1, 0, 0, 0) {}
+		constexpr quaternion() : fan::quaternion<T>(1, T{ 0 }, T{ 0 }, T{ 0 }) {}
 
 		constexpr quaternion(auto scalar, auto x_, auto y_, auto z_)
 		{
@@ -40,6 +40,9 @@ namespace fan {
 	#if defined(loco_assimp)
 		constexpr quaternion(const aiQuaternion& quat) : fan::quaternion<T>(quat.w, quat.x, quat.y, quat.z) {}
 	#endif
+
+    // defined in matrix.h
+    constexpr auto from_matrix(const auto& m) const;
 
 		template <typename _Ty>
 		constexpr quaternion<value_type> operator+(const quaternion<_Ty>& quat) const
@@ -189,25 +192,13 @@ namespace fan {
     }
 
     // radians
-    static fan::quaternion<T> from_euler(const fan::vec3& angle) {
-      // Convert degrees to radians
-      f32_t roll = fan::math::radians(angle.x);
-      f32_t pitch = fan::math::radians(angle.y);
-      f32_t yaw = fan::math::radians(angle.z);
-
-      // Calculate quaternion components
-      f32_t cy = cos(yaw * 0.5);
-      f32_t sy = sin(yaw * 0.5);
-      f32_t cp = cos(pitch * 0.5);
-      f32_t sp = sin(pitch * 0.5);
-      f32_t cr = cos(roll * 0.5);
-      f32_t sr = sin(roll * 0.5);
-
-      fan::quaternion<T> q;
-      q.w = cr * cp * sy - sr * sp * cy;
-      q.x = cr * cp * cy + sr * sp * sy;
-      q.y = sr * cp * cy - cr * sp * sy;
-      q.z = cr * sp * cy + sr * cp * sy;
+    static quaternion<T> from_axis_angle(const fan::vec3& axis, float angle) {
+      quaternion<T> q;
+      float sinHalfAngle = sin(angle / 2.0f);
+      q.x = axis.x * sinHalfAngle;
+      q.y = axis.y * sinHalfAngle;
+      q.z = axis.z * sinHalfAngle;
+      q.w = cos(angle / 2.0f);
       return q;
     }
     fan::vec3 to_euler() const {
@@ -243,6 +234,9 @@ namespace fan {
 	static constexpr auto mix(const fan::vec3& x, const fan::vec3& y, f_t t) {
 		return x * (1.f - t) + y * t;
 	}
+  static constexpr auto mix(const fan::vec4& a, const fan::vec4& b, f_t t) {
+    return a * (1.f - t) + b * t;
+  }
 
 	using quat = quaternion<f32_t>;
 }
