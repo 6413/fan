@@ -111,16 +111,84 @@ namespace fan {
         }
       }
     }
-    /*operator aiMatrix4x4() {
+    operator aiMatrix4x4() const {
       aiMatrix4x4 mat;
       for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
-          mat[i][j] = m_array[j][i];
+          mat[j][i] = m_array[i][j];
         }
       }
       return mat;
-    }*/
+    }
     #endif
+
+    _matrix4x4 skew(const fan::vec3& skew) {
+      _matrix4x4 result(1);
+      result[1][0] = skew.x;  // x-skew factor
+      result[0][1] = skew.y;  // y-skew factor
+      result[0][2] = skew.z;  // z-skew factor
+      return result;
+    }
+
+    // Perspective transformation
+    _matrix4x4 perspective(const fan::vec4& perspective) {
+      _matrix4x4 result(1);
+      result[3][0] = perspective.x;  // x-perspective factor
+      result[3][1] = perspective.y;  // y-perspective factor
+      result[3][2] = perspective.z;  // z-perspective factor
+      result[3][3] = perspective.w;  // w-perspective factor (usually 1)
+      return result;
+    }
+
+    void compose(const fan::vec3& position, const fan::quat& rotation, const fan::vec3& scale, const fan::vec3& skew, const fan::vec4& perspective) {
+      const _matrix4x4 translation_matrix = _matrix4x4(1).translate(position);
+      const _matrix4x4 rotation_matrix = _matrix4x4(1).rotate(rotation);
+      const _matrix4x4 scale_matrix = _matrix4x4(1).scale(scale);
+      const _matrix4x4 skew_matrix = _matrix4x4(1).skew(skew);
+      const _matrix4x4 perspective_matrix = _matrix4x4(1).perspective(perspective);
+
+      *this = translation_matrix * rotation_matrix * scale_matrix * skew_matrix * perspective_matrix;
+
+      //*this = translation_matrix * rotation_matrix * scale_matrix;
+
+    }
+
+    fan::vec4 combine(const fan::vec4& a, const fan::vec4& b, float ascl, float bscl) const {
+      return a * ascl + b * bscl;
+    }
+
+    void decompose(fan::vec3& position, fan::quat& rotation, fan::vec3& scale, fan::vec3& skew, fan::vec4& perspective) const {
+      
+      auto temp = *this;
+
+      position = fan::vec3(temp[3][0], temp[3][1], temp[3][2]);
+
+      scale = fan::vec3(
+        fan::vec3(temp[0][0], temp[0][1], temp[0][2]).length(),
+        fan::vec3(temp[1][0], temp[1][1], temp[1][2]).length(),
+        fan::vec3(temp[2][0], temp[2][1], temp[2][2]).length()
+      );
+
+      const double epsilon = 1e-6;
+
+      if (std::abs(scale.x) > epsilon) temp[0] /= scale.x;
+      if (std::abs(scale.y) > epsilon) temp[1] /= scale.y;
+      if (std::abs(scale.z) > epsilon) temp[2] /= scale.z;
+
+      rotation = fan::quat().from_matrix(temp);
+
+      skew.x = fan::math::dot(temp[0], temp[1]);
+      temp[1] = combine(temp[1], temp[0], 1, -skew.x);
+
+      skew.y = fan::math::dot(temp[0], temp[2]);
+      temp[2] = combine(temp[2], temp[0], 1, -skew.y);
+
+      skew.z = fan::math::dot(temp[1], temp[2]);
+      temp[2] = combine(temp[2], temp[1], 1, -skew.z);
+
+      // Calculate perspective
+      perspective = temp[3];
+    }
 
     template <typename T>
     constexpr _matrix4x4(const fan::quaternion<T>& quat) : _matrix4x4<type_t>(1) {
@@ -227,7 +295,11 @@ namespace fan {
 		}
 
 		constexpr fan::vec3 get_scale() const {
-			return fan::vec3((*this)[0][0], (*this)[1][1], (*this)[2][2]);
+      return fan::vec3(
+        fan::vec3((*this)[0][0], (*this)[0][1], (*this)[0][2]).length(),
+        fan::vec3((*this)[1][0], (*this)[1][1], (*this)[1][2]).length(),
+        fan::vec3((*this)[2][0], (*this)[2][1], (*this)[2][2]).length()
+      );
 		}
 
 		constexpr _matrix4x4 scale(const fan::vec3& v) const {
@@ -290,6 +362,27 @@ namespace fan {
 
 			return matrix;
 		}
+    fan::vec3 get_euler_angles() const{
+      _matrix4x4 matrix = *this;
+      fan::vec3 euler_angles;
+
+      // Yaw
+      euler_angles.z = atan2(matrix[1][0], matrix[0][0]);
+
+      // Pitch
+      f32_t sp = -matrix[2][0];
+      if (sp <= -1.0f)
+        euler_angles.y = -fan::math::two_pi;
+      else if (sp >= 1.0f)
+        euler_angles.y = fan::math::two_pi;
+      else
+        euler_angles.y = asin(sp);
+
+      // Roll
+      euler_angles.x = atan2(matrix[2][1], matrix[2][2]);
+
+      return euler_angles;
+    }
 
     constexpr _matrix4x4 rotate(const fan::quat& q) const {
       f32_t xx = q.x * q.x;
@@ -638,6 +731,46 @@ namespace fan {
       }
     }
   };
+
+  template <typename T>
+  inline constexpr auto fan::quaternion<T>::from_matrix(const auto& m) const {
+
+    fan::quaternion<T> q;
+
+    T trace = m[0][0] + m[1][1] + m[2][2];
+    if (trace > 0) {
+      T s = 0.5 / sqrt(trace + 1.0);
+      q.w = 0.25 / s;
+      q.x = (m[2][1] - m[1][2]) * s;
+      q.y = (m[0][2] - m[2][0]) * s;
+      q.z = (m[1][0] - m[0][1]) * s;
+    }
+    else {
+      if (m[0][0] > m[1][1] && m[0][0] > m[2][2]) {
+        T s = 2.0 * sqrt(1.0 + m[0][0] - m[1][1] - m[2][2]);
+        q.w = (m[2][1] - m[1][2]) / s;
+        q.x = 0.25 * s;
+        q.y = (m[0][1] + m[1][0]) / s;
+        q.z = (m[0][2] + m[2][0]) / s;
+      }
+      else if (m[1][1] > m[2][2]) {
+        T s = 2.0 * sqrt(1.0 + m[1][1] - m[0][0] - m[2][2]);
+        q.w = (m[0][2] - m[2][0]) / s;
+        q.x = (m[0][1] + m[1][0]) / s;
+        q.y = 0.25 * s;
+        q.z = (m[1][2] + m[2][1]) / s;
+      }
+      else {
+        T s = 2.0 * sqrt(1.0 + m[2][2] - m[0][0] - m[1][1]);
+        q.w = (m[1][0] - m[0][1]) / s;
+        q.x = (m[0][2] + m[2][0]) / s;
+        q.y = (m[1][2] + m[2][1]) / s;
+        q.z = 0.25 * s;
+      }
+    }
+
+    return q;
+  }
   
 
   using matrix4x4 = _matrix4x4<cf_t>;

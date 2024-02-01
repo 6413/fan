@@ -226,7 +226,8 @@ struct loco_t {
     line_grid,
     grass_2d,
     shader,
-    shader_light
+    shader_light,
+    rectangle_3d
   };
 
   // can be incorrect
@@ -408,7 +409,7 @@ public:
 
   viewport_resize_callback_t m_viewport_resize_callback;
 
-  struct camera_t {
+  struct camera_t : fan::camera {
 
     using resize_cb_data_t = loco_t::viewport_resize_cb_data_t;
     using resize_cb_t = loco_t::viewport_resize_cb_t;
@@ -457,7 +458,7 @@ public:
     void open() {
       auto& context = gloco->get_context();
       m_view = fan::mat4(1);
-      camera_position = 0;
+      position = 0;
       camera_reference = gloco->camera_list.NewNode();
       gloco->camera_list[camera_reference].camera_id = this;
     }
@@ -471,15 +472,15 @@ public:
     }
 
     fan::vec3 get_position() const {
-      return camera_position;
+      return position;
     }
     void set_position(const fan::vec3& cp) {
-      camera_position = cp;
+      position = cp;
 
       m_view[3][0] = 0;
       m_view[3][1] = 0;
       m_view[3][2] = 0;
-      m_view = m_view.translate(camera_position);
+      m_view = m_view.translate(position);
       fan::vec3 position = m_view.get_translation();
       constexpr fan::vec3 front(0, 0, 1);
 
@@ -490,25 +491,7 @@ public:
       return fan::vec2(std::abs(coordinates.right - coordinates.left), std::abs(coordinates.down - coordinates.up));
     }
 
-    bool calculate_aspect_ratio = false;
-
-    fan::vec2 some_function(fan::vec2 d, fan::vec2 c) {
-      return c / (c / d).min();
-    }
-
-    void set_ortho(fan::vec2 x, fan::vec2 y, loco_t::viewport_t* aspect_ratio_viewport = nullptr) {
-
-      if (aspect_ratio_viewport) {
-        fan::vec2 desired_res = { 1, 1 };
-        fan::vec2 current_res = aspect_ratio_viewport->get_size();
-
-        auto ortho = some_function(desired_res, current_res);
-
-        x = { -ortho.x, +ortho.x };
-        y = { -ortho.y, +ortho.y };
-
-        calculate_aspect_ratio = true;
-      }
+    void set_ortho(fan::vec2 x, fan::vec2 y) {
 
       coordinates.left = x.x;
       coordinates.right = x.y;
@@ -531,7 +514,7 @@ public:
       m_view[3][0] = 0;
       m_view[3][1] = 0;
       m_view[3][2] = 0;
-      m_view = m_view.translate(camera_position);
+      m_view = m_view.translate(position);
       fan::vec3 position = m_view.get_translation();
       constexpr fan::vec3 front(0, 0, 1);
 
@@ -553,11 +536,53 @@ public:
       }
     }
 
+    void set_perspective(f32_t fov) {
+
+      m_projection = fan::math::perspective<fan::mat4>(fan::math::radians(fov), (f32_t)gloco->window.get_size().x / (f32_t)gloco->window.get_size().y, 0.1f, 1000.0f);
+      m_view[3][0] = 0;
+      m_view[3][1] = 0;
+      m_view[3][2] = 0;
+      m_view = m_view.translate(position);
+      fan::vec3 position = m_view.get_translation();
+      constexpr fan::vec3 front(0, 0, 1);
+
+      update_view();
+
+      m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(fan::vec3(position), position + m_front, m_up);
+
+      auto it = gloco->m_viewport_resize_callback.GetNodeFirst();
+
+      while (it != gloco->m_viewport_resize_callback.dst) {
+
+        gloco->m_viewport_resize_callback.StartSafeNext(it);
+
+        resize_cb_data_t cbd;
+        cbd.camera = this;
+        cbd.position = get_position();
+        cbd.size = get_camera_size();
+        gloco->m_viewport_resize_callback[it].data(cbd);
+
+        it = gloco->m_viewport_resize_callback.EndSafeNext();
+      }
+    }
+
+    void rotate_camera(const fan::vec2& offset) {
+      fan::camera::rotate_camera(offset);
+      m_view = get_view_matrix();
+    }
+
+    void move(f32_t movement_speed, f32_t friction = 12) {
+      fan::camera::move(movement_speed, friction);
+      m_view = get_view_matrix();
+    }
+
+
     fan::mat4 m_projection;
     // temporary
     fan::mat4 m_view;
 
-    fan::vec3 camera_position;
+    //fan::vec3 camera_position;
+
 
     union {
       struct {
@@ -575,6 +600,11 @@ public:
   void open_camera(camera_t* camera, const fan::vec2& x, const fan::vec2& y) {
     camera->open();
     camera->set_ortho(x, y);
+  }
+
+  void open_camera(camera_t* camera, f32_t fov) {
+    camera->open();
+    camera->set_perspective(fov);
   }
 
   void open_viewport(fan::graphics::viewport_t* viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
@@ -1237,6 +1267,13 @@ public:
     #endif
    
     #include _FAN_PATH(graphics/custom_shapes.h)
+
+    #if defined(loco_rectangle_3d)
+    #define sb_shape_var_name rectangle_3d
+    #include _FAN_PATH(graphics/opengl/3D/objects/rectangle.h)
+    rectangle_3d_t sb_shape_var_name;
+    #undef sb_shape_var_name
+    #endif
   };
 
   fan::mp_t<shapes_t> shapes;
@@ -1461,10 +1498,20 @@ public:
 
     default_camera = add_camera(fan::graphics::direction_e::right);
 
+    {
+
+      default_camera_3d = new camera_impl_t;
+
+      fan::vec2 window_size = gloco->window.get_size();
+      default_camera_3d->viewport = default_camera->viewport;
+      static constexpr f32_t fov = 90.f;
+      gloco->open_camera(&default_camera_3d->camera, fov);
+    }
     open_camera(&default_camera->camera,
       fan::vec2(0, window_size.x),
       fan::vec2(0, window_size.y)
     );
+
 
   #if defined(loco_physics)
     fan::graphics::open_bcol();
@@ -2062,6 +2109,7 @@ public:
   loco_t::theme_t default_theme = loco_t::themes::gray();
   #endif
   camera_impl_t* default_camera;
+  camera_impl_t* default_camera_3d;
 
   fan::graphics::viewport_divider_t viewport_divider;
 
