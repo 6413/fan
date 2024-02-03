@@ -2318,16 +2318,16 @@ inline void fan::camera::move(f32_t movement_speed, f32_t friction) {
   }
 
   if (gloco->window.key_pressed(fan::input::key_left)) {
-    this->set_yaw(this->get_yaw() - sensitivity * 5000 * gloco->window.get_delta_time());
+    this->set_yaw(this->get_yaw() - sensitivity * gloco->window.get_delta_time());
   }
   if (gloco->window.key_pressed(fan::input::key_right)) {
-    this->set_yaw(this->get_yaw() + sensitivity * 5000 * gloco->window.get_delta_time());
+    this->set_yaw(this->get_yaw() + sensitivity * gloco->window.get_delta_time());
   }
   if (gloco->window.key_pressed(fan::input::key_up)) {
-    this->set_pitch(this->get_pitch() + sensitivity * 5000 * gloco->window.get_delta_time());
+    this->set_pitch(this->get_pitch() + sensitivity * gloco->window.get_delta_time());
   }
   if (gloco->window.key_pressed(fan::input::key_down)) {
-    this->set_pitch(this->get_pitch() - sensitivity * 5000 * gloco->window.get_delta_time());
+    this->set_pitch(this->get_pitch() - sensitivity * gloco->window.get_delta_time());
   }
 
   this->position += this->velocity * gloco->window.get_delta_time();
