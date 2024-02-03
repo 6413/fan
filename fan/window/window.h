@@ -1969,8 +1969,15 @@ namespace fan {
       return m_event_flags;
     }
 
+    bool pressed(uint16_t key) const {
+      uint16_t converted_key = fan::window_input::convert_fan_to_scancode(key);
+      #if defined(fan_platform_unix)
+      converted_key = (converted_key & 0x7f) | ((!!(converted_key >> 8)) << 8);
+      #endif
+      return m_scancode_action_map[converted_key];
+    }
+
 		bool key_pressed(uint16_t key) const {
-      #define pressed(_key) m_scancode_action_map[fan::window_input::convert_fan_to_scancode(_key)]
 
       switch (key) {
         case fan::key_shift: {
