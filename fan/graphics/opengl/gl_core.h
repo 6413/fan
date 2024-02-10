@@ -188,7 +188,9 @@ namespace fan {
 
       void set_error_callback() {
         opengl.call(opengl.glEnable, GL_DEBUG_OUTPUT);
-        opengl.call(opengl.glDebugMessageCallback, message_callback, (void*)0);
+        if (opengl.glDebugMessageCallback) {
+          opengl.call(opengl.glDebugMessageCallback, message_callback, (void*)0);
+        }
       }
 
       void set_current(fan::window_t* window);
@@ -464,7 +466,7 @@ inline fan::opengl::context_t::context_t(fan::window_t* window, const properties
     }
 
     if (!window->m_context) {
-      fan::print("failed to create context");
+      fan::print("failed to create context", GetLastError());
       exit(1);
     }
   }
