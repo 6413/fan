@@ -201,28 +201,47 @@ namespace fan {
       q.w = cos(angle / 2.0f);
       return q;
     }
-    fan::vec3 to_euler() const {
-      fan::quaternion<T> q = *this;
-      // Roll (x-axis rotation)
-      f32_t sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
-      f32_t cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
-      f32_t roll = atan2(sinr_cosp, cosr_cosp);
 
-      // Pitch (y-axis rotation)
-      f32_t sinp = 2 * (q.w * q.y - q.z * q.x);
-      f32_t pitch;
-      if (abs(sinp) >= 1)
-        pitch = copysign(fan::math::pi / 2, sinp); // Use 90 degrees if out of range
-      else
-        pitch = asin(sinp);
+    void to_axis_angle(fan::vec3& axis, value_type& angle) {
+      // kinda unnecessary normalization
+      quaternion<T> qn = normalize();
+      angle = 2.0f * acos(qn.w);
 
-      // Yaw (z-axis rotation)
-      f32_t siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-      f32_t cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
-      f32_t yaw = atan2(siny_cosp, cosy_cosp);
-
-      return fan::vec3(roll, pitch, yaw);
+      float s = sqrt(1.0f - qn.w * qn.w);
+      if (s < 0.001f) {
+        axis.x = qn.x;
+        axis.y = qn.y;
+        axis.z = qn.z;
+      }
+      else {
+        axis.x = qn.x / s;
+        axis.y = qn.y / s;
+        axis.z = qn.z / s;
+      }
     }
+
+    //fan::vec3 to_euler() const {
+    //  fan::quaternion<T> q = *this;
+    //  // Roll (x-axis rotation)
+    //  f32_t sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+    //  f32_t cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+    //  f32_t roll = atan2(sinr_cosp, cosr_cosp);
+
+    //  // Pitch (y-axis rotation)
+    //  f32_t sinp = 2 * (q.w * q.y - q.z * q.x);
+    //  f32_t pitch;
+    //  if (abs(sinp) >= 1)
+    //    pitch = copysign(fan::math::pi / 2, sinp); // Use 90 degrees if out of range
+    //  else
+    //    pitch = asin(sinp);
+
+    //  // Yaw (z-axis rotation)
+    //  f32_t siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+    //  f32_t cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+    //  f32_t yaw = atan2(siny_cosp, cosy_cosp);
+
+    //  return fan::vec3(roll, pitch, yaw);
+    //}
 
 	};
 

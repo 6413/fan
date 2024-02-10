@@ -161,6 +161,14 @@ constexpr auto min() const { return *std::min_element(begin(), end()); }
 constexpr auto min(const auto& test0) const { make_for_all_test1(ret[i] = std::min((*this)[i], test0[i])); }
 constexpr auto max() const { return *std::max_element(begin(), end()); }
 constexpr auto max(const auto& test0) const { make_for_all_test1(ret[i] = std::max((*this)[i], test0[i])); }
+
+// gives number furthest away from 0
+constexpr auto abs_max() const { 
+  auto v0 = min();
+  auto v1 = max();
+  return std::abs(v0) < std::abs(v1) ? v1 : v0;
+}
+
 constexpr void clamp(const vec_t& test0) { make_for_all_test1_noret((*this)[i] = fan::clamp((*this)[i], test0[0], (*this)[i])); }
 
 template <typename T, typename T2>
