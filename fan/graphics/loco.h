@@ -972,7 +972,7 @@ public:
       gloco->shape_set_position(*this, fan::vec3(data, get_position().z));
     }
 
-    fan_build_get_set_cref(fan::vec2, size);
+    fan_build_get_set_cref(fan::vec3, size);
     fan_build_get_set_cref(fan::color, color);
     fan_build_get_set_cref(fan::vec3, angle);
     fan_build_get_set_cref(fan::string, text);
@@ -2030,7 +2030,7 @@ public:
   
 
   fan_build_get_set_shape_property(const fan::vec3&, position);
-  fan_build_get_set_shape_property(const fan::vec2&, size);
+  fan_build_get_set_shape_property(const fan::vec3&, size);
   fan_build_get_set_shape_property(const fan::color&, color);
   fan_build_get_set_shape_property(const fan::vec3&, angle);
   fan_build_get_set_shape_property(const fan::string&, text);
@@ -2143,10 +2143,20 @@ public:
 
   #endif
 
-  static fan::ray3_t convert_mouse_to_ray(const fan::vec2i& mouse_coords, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
+  static fan::vec2 convert_mouse_to_ndc(const fan::vec2& mouse_position, const fan::vec2i& window_size) {
+    return fan::vec2((2.0f * mouse_position.x) / window_size.x - 1.0f, 1.0f - (2.0f * mouse_position.y) / window_size.y);
+  }
+  fan::vec2 convert_mouse_to_ndc(const fan::vec2& mouse_position) const {
+    return convert_mouse_to_ndc(mouse_position, gloco->window.get_size());
+  }
+  fan::vec2 convert_mouse_to_ndc() const {
+    return convert_mouse_to_ndc(gloco->get_mouse_position(), gloco->window.get_size());
+  }
+
+  static fan::ray3_t convert_mouse_to_ray(const fan::vec2i& mouse_position, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
     fan::vec2i screen_size = gloco->window.get_size();
 
-    fan::vec4 ray_ndc((2.0f * mouse_coords.x) / screen_size.x - 1.0f, 1.0f - (2.0f * mouse_coords.y) / screen_size.y, 1.0f, 1.0f);
+    fan::vec4 ray_ndc((2.0f * mouse_position.x) / screen_size.x - 1.0f, 1.0f - (2.0f * mouse_position.y) / screen_size.y, 1.0f, 1.0f);
 
     fan::mat4 inverted_projection = projection.inverse();
 
