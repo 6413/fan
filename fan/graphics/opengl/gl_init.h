@@ -146,7 +146,8 @@ namespace fan {
 
           p->context = wglCreateContext(p->hdc);
           if (!p->context) {
-            fan::throw_error("failed to create context");
+            int err = GetLastError();
+            fan::throw_error("123" + std::to_string(err));
           }
 
           if (!wglMakeCurrent(p->hdc, p->context)) {
@@ -235,7 +236,7 @@ namespace fan {
 
         #if fan_debug >= fan_debug_low
           if (p == nullptr) {
-            fan::throw_error(fan::string("failed to load proc:") + name + ", with error:" + fan::to_string(GetLastError()));
+            fan::print(fan::string("failed to load proc:") + name + ", with error:" + fan::to_string(GetLastError()));
           }
         #endif
 
