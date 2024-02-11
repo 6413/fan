@@ -202,7 +202,7 @@ namespace fan {
       return q;
     }
 
-    void to_axis_angle(fan::vec3& axis, value_type& angle) {
+    void to_axis_angle(fan::vec3& axis, value_type& angle) const {
       // kinda unnecessary normalization
       quaternion<T> qn = normalize();
       angle = 2.0f * acos(qn.w);

@@ -146,8 +146,7 @@ namespace fan {
 
           p->context = wglCreateContext(p->hdc);
           if (!p->context) {
-            int err = GetLastError();
-            fan::throw_error("123" + std::to_string(err));
+            fan::throw_error("failed to create context");
           }
 
           if (!wglMakeCurrent(p->hdc, p->context)) {
@@ -236,7 +235,7 @@ namespace fan {
 
         #if fan_debug >= fan_debug_low
           if (p == nullptr) {
-            fan::print(fan::string("failed to load proc:") + name + ", with error:" + fan::to_string(GetLastError()));
+            fan::throw_error(fan::string("failed to load proc:") + name + ", with error:" + fan::to_string(GetLastError()));
           }
         #endif
 
@@ -412,6 +411,7 @@ namespace fan {
       get_proc_address(PFNGLGENFRAMEBUFFERSPROC, glGenFramebuffers, &internal);
       get_proc_address(PFNGLDELETEFRAMEBUFFERSPROC, glDeleteFramebuffers, &internal);
       get_proc_address(PFNGLBINDFRAMEBUFFERPROC, glBindFramebuffer, &internal);
+      get_proc_address(PFNGLFRAMEBUFFERTEXTUREPROC , glFramebufferTexture, &internal);
       get_proc_address(PFNGLFRAMEBUFFERTEXTURE2DPROC, glFramebufferTexture2D, &internal);
       get_proc_address(PFNGLGENRENDERBUFFERSPROC, glGenRenderbuffers, &internal);
       get_proc_address(PFNGLDELETERENDERBUFFERSPROC, glDeleteRenderbuffers, &internal);
