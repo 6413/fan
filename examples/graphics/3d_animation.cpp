@@ -1,9 +1,5 @@
 #include fan_pch
 
-//#include <glm/glm.hpp>
-//#define GLM_ENABLE_EXPERIMENTAL
-//#include <glm/gtx/matrix_decompose.hpp>
-
 namespace fan_3d {
   namespace animation {
 
@@ -13,11 +9,14 @@ namespace fan_3d {
       fan::vec2 uv;
       fan::vec4 bone_ids;
       fan::vec4 bone_weights;
+      fan::vec3 vertex1;
+      fan::vec3 tangent;
+      fan::vec3 bitangent;
     };
 
     // structure to hold bone tree (skeleton)
     struct joint_t {
-      int id; // position of the bone in final upload array
+      int id;
       std::string name;
       fan::mat4 offset;
       fan::mat4 global_transform;
@@ -25,7 +24,6 @@ namespace fan_3d {
       std::vector<joint_t> children;
     };
 
-    // sturction representing an animation track
     struct bone_transform_track_t {
       std::vector<f32_t> position_timestamps;
       std::vector<f32_t> rotation_timestamps;
@@ -38,7 +36,6 @@ namespace fan_3d {
       f32_t weight = 1.f;
     };
 
-    // structure containing animation information
     struct animation_data_t {
       f_t duration;
       // ticks per second
@@ -48,25 +45,11 @@ namespace fan_3d {
         fan::vec3 position;
         fan::quat rotation;
         fan::vec3 scale;
-        fan::mat4 global_transform;
-        fan::mat4 parent_transform;
-        fan::mat4 local_transform;
-        fan::mat4 joint_offset;
       };
       std::vector<joint_pose_t> joint_poses;
       std::vector<fan::mat4> pose;
       f32_t weight;
     };
-
-    //aiMatrix4x4 getGlobalTransform(aiNode* node) {
-    //  aiMatrix4x4 globalTransform;
-    //  while (node != nullptr) {
-    //    globalTransform = node->mTransformation * globalTransform; // Multiply the current node's transformation matrix with the accumulated transformations
-    //    fan::print("AAAAAAA", node->mName, fan::mat4(globalTransform).get_translation());
-    //    node = node->mParent; // Move up to the parent node
-    //  }
-    //  return globalTransform;
-    //}
 
     // a recursive function to read all bones and form skeleton
     // std::unordered_map<std::string, std::pair<int, fan::mat4>> bone_info_table
@@ -80,13 +63,10 @@ namespace fan_3d {
         joint.id = bone_info_table[joint.name].first;
         joint.offset = bone_info_table[joint.name].second;
 
-        loco_t::shapes_t::rectangle_3d_t::properties_t rp;
-        rp.size = 0.1;
-        rp.color = fan::colors::red;
         joint.local_transform = node->mTransformation;
         joint.global_transform = global_transform;
-        rp.position = joint.global_transform.get_translation();
-        This->shapes.push_back(rp);
+
+        This->bone_strings.push_back(joint.name);
 
         for (int i = 0; i < node->mNumChildren; i++) {
           fan_3d::animation::joint_t child;
@@ -107,11 +87,8 @@ namespace fan_3d {
     }
 
     void ProcessMaterial(aiMaterial* material, aiMesh* mesh) {
-      // Access material properties as needed...
 
-      // Access texture coordinates for the diffuse texture
       if (mesh->HasTextureCoords(0)) {
-        // '0' represents the texture coordinate set, which may vary depending on the model.
         aiVector3D* textureCoords = mesh->mTextureCoords[0];
 
         // Iterate over vertices and print texture coordinates
@@ -120,53 +97,51 @@ namespace fan_3d {
             << textureCoords[i].x << ", " << textureCoords[i].y << std::endl;
         }
       }
-
-      /*
-      for(unsigned int i = 0; i < scene->mNumMaterials; i++)
-{
-    aiMaterial* material = scene->mMaterials[i];
-
-    if(material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
-    {
-        aiString path;
-        if(material->GetTexture(aiTextureType_DIFFUSE, 0, &path) == AI_SUCCESS)
-        {
-            int textureIndex = atoi(path.C_Str());
-            aiTexture* texture = scene->mTextures[textureIndex];
-
-            // The texture data is stored in the 'pcData' member of the aiTexture structure
-            // The 'mWidth' member represents the size of the texture data in bytes
-            unsigned char* textureData = reinterpret_cast<unsigned char*>(texture->pcData);
-
-            // Now you can use 'textureData' as needed
-        }
-    }
-}
-      */
-
     }
 
     // pm -- parsed model
 
     struct pm_texture_data_t {
-      // you either have textures in path or in binary data
       fan::vec2ui diffuse_texture_size;
       std::vector<uint8_t> diffuse_texture_data;
+      std::vector<uint8_t> normal_texture_data;
+      std::vector<uint8_t> roughness_texture_data;
     };
 
     struct pm_model_data_t {
-      std::vector<fan_3d::animation::vertex_t> vertices;
+      // mesh[]
+      std::vector<std::vector<fan_3d::animation::vertex_t>> vertices;
       fan_3d::animation::joint_t skeleton;
       uint32_t bone_count = 0;
     };
 
     struct parsed_model_t {
       pm_model_data_t model_data;
-      pm_texture_data_t texture_data;
+      std::vector<fan::mat4> transforms;
+      std::vector<std::string> diffuse_texture_name;
+      std::vector<std::string> normal_texture_name;
+      std::vector<std::string> roughness_texture_name;
     };
 
+    std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
+
+    void process_model(auto This, const fan::string& root_path, const aiScene* scene, aiNode* node, parsed_model_t& parsed_model) {
+      std::cout << "Processing node: " << node->mName.C_Str() << std::endl;
+
+      // Process all the node's meshes (if any)
+      for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+        aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+        load_model(This, root_path, scene, mesh, node, parsed_model);
+      }
+
+      // Then do the same for each of its children
+      for (unsigned int i = 0; i < node->mNumChildren; i++) {
+        process_model(This, root_path, scene, node->mChildren[i], parsed_model);
+      }
+    }
+
     // converts indices to triangles only - todo use indices (needs bcol update)
-    void load_model(auto This, const fan::string& root_path, const aiScene* scene, aiMesh* mesh, parsed_model_t& parsed_model) {
+    void load_model(auto This, const fan::string& root_path, const aiScene* scene, aiMesh* mesh, aiNode* node, parsed_model_t& parsed_model) {
       std::vector<fan_3d::animation::vertex_t> temp_vertices;
 
       //load position, normal, uv
@@ -179,15 +154,34 @@ namespace fan_3d {
         vector.z = mesh->mVertices[i].z;
         vertex.position = vector;
         //process normal
-        vector.x = mesh->mNormals[i].x;
-        vector.y = mesh->mNormals[i].y;
-        vector.z = mesh->mNormals[i].z;
-        vertex.normal = vector;
+        if (mesh->mNormals) {
+          vector.x = mesh->mNormals[i].x;
+          vector.y = mesh->mNormals[i].y;
+          vector.z = mesh->mNormals[i].z;
+          vertex.normal = vector;
+        }
+        else {
+          vertex.normal = 0;
+        }
         //process uv
-        fan::vec2 vec;
-        vec.x = mesh->mTextureCoords[0][i].x;
-        vec.y = mesh->mTextureCoords[0][i].y;
-        vertex.uv = vec;
+        if (mesh->mTextureCoords) {
+          fan::vec2 vec;
+          
+          if (mesh->mTextureCoords[0]) {
+            vec.x = mesh->mTextureCoords[0][i].x;
+            vec.y = mesh->mTextureCoords[0][i].y;
+            vertex.uv = vec;
+          }
+        }
+        else {
+          vertex.uv = 0;
+        }
+        if (mesh->mTangents) {
+          vertex.vertex1 = mesh->mTangents[i];
+        }
+        if (mesh->mBitangents) {
+          vertex.bitangent = mesh->mBitangents[i];
+        }
 
         vertex.bone_ids = fan::vec4i(0);
         vertex.bone_weights = fan::vec4(0.0f);
@@ -251,8 +245,44 @@ namespace fan_3d {
         }
       }
 
+      uint32_t vertex_offset = parsed_model.model_data.vertices.size();
+      parsed_model.model_data.vertices.resize(parsed_model.model_data.vertices.size() + 1);
+      auto& vertices = parsed_model.model_data.vertices[vertex_offset];
+
+      bool pushed_texture = false;
       {
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+        aiString path;
+        if (material->GetTexture(aiTextureType_SHININESS, 0, &path) == AI_SUCCESS)
+        {
+          fan::string str = path.C_Str();
+          auto idx = str.find_last_of('\\') + 1;
+          fan::webp::image_info_t ii;
+          str = root_path + "textures/" + str.substr(idx);
+          fan::print(str);
+          str.replace_all(".png", ".webp");
+
+          { // diffuse
+            auto found = cached_texture_data.find(str);
+            if (found == cached_texture_data.end()) {
+              if (fan::webp::load(/*root_path + path.C_Str()*/str, &ii)) {
+                fan::throw_error("failed to load image data from path:" + root_path + path.C_Str());
+              }
+
+              static constexpr int channels_rgba = 4;
+              auto& d = cached_texture_data[str];
+              d.roughness_texture_data.insert(
+                d.roughness_texture_data.end(),
+                (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * channels_rgba
+              );
+              d.diffuse_texture_size = ii.size;
+            }
+            parsed_model.roughness_texture_name.push_back(str);
+            pushed_texture = true;
+          }
+
+        }
 
         if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
         {
@@ -260,44 +290,89 @@ namespace fan_3d {
           if (material->GetTexture(aiTextureType_DIFFUSE, 0, &path) == AI_SUCCESS)
           {
             if (scene->mTextures == nullptr) {
+              fan::string str = path.C_Str();
+              auto idx = str.find_last_of('\\') + 1;
               fan::webp::image_info_t ii;
-              if (fan::webp::load(root_path + path.C_Str(), &ii)) {
-                fan::throw_error("failed to load image data from path:" + root_path + path.C_Str());
+              str = root_path + "textures/" + str.substr(idx);
+
+              str.replace_all(".png", ".webp");
+
+              { // diffuse
+                auto found = cached_texture_data.find(str);
+                if (found == cached_texture_data.end()) {
+                  if (fan::webp::load(/*root_path + path.C_Str()*/str, &ii)) {
+                    fan::throw_error("failed to load image data from path:" + root_path + path.C_Str());
+                  }
+
+                  static constexpr int channels_rgba = 4;
+                  auto& d = cached_texture_data[str];
+                  d.diffuse_texture_data.insert(
+                    d.diffuse_texture_data.end(),
+                    (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * channels_rgba
+                  );
+                  d.diffuse_texture_size = ii.size;
+                }
+                parsed_model.diffuse_texture_name.push_back(str);
+                pushed_texture = true;
               }
+              { // normal
+                str.replace_all("BaseColor", "Normal");
+                if (fan::io::file::exists(str)) {
+                  auto found = cached_texture_data.find(str);
+                  if (found == cached_texture_data.end()) {
+                    if (fan::webp::load(/*root_path + path.C_Str()*/str, &ii)) {
+                      fan::throw_error("failed to load image data from path:" + root_path + path.C_Str());
+                    }
 
-              static constexpr int channels_rgba = 4;
-              parsed_model.texture_data.diffuse_texture_data.insert(
-                parsed_model.texture_data.diffuse_texture_data.end(),
-                (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * channels_rgba
-              );
-              parsed_model.texture_data.diffuse_texture_size = ii.size;
-              //parsed_model.texture_data.diffuse_texture_path_list.push_back(root_path + path.C_Str());
-
+                    static constexpr int channels_rgba = 4;
+                    auto& d = cached_texture_data[str];
+                    d.normal_texture_data.insert(
+                      d.normal_texture_data.end(),
+                      (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * channels_rgba
+                    );
+                  }
+                  parsed_model.normal_texture_name.push_back(str);
+                  pushed_texture = true;
+                }
+              }
               // use with non combined binary
             }
-            else {
-              int textureIndex = atoi(path.C_Str());
-              aiTexture* texture = scene->mTextures[textureIndex];
+            //else {
+            //  int textureIndex = atoi(path.C_Str());
+            //  aiTexture* texture = scene->mTextures[textureIndex];
 
-              unsigned char* textureData = reinterpret_cast<unsigned char*>(texture->pcData);
-              // compressed image format -- mWidth means size of bytes
-              if (texture->mHeight == 0) {
-                fan::throw_error("doesnt support compressed textures");
-              }
-              else {
-                // todo needs byte calculate width * height * channel count - how to get it from assimp?
-                //parsed_model.texture_data.insert(textureData, textureData + texture->)
-              }
-            }
+            //  unsigned char* textureData = reinterpret_cast<unsigned char*>(texture->pcData);
+            //  // compressed image format -- mWidth means size of bytes
+            //  if (texture->mHeight == 0) {
+            //    fan::throw_error("doesnt support compressed textures");
+            //  }
+            //  else {
+            //    // todo needs byte calculate width * height * channel count - how to get it from assimp?
+            //    //parsed_model.texture_data.insert(textureData, textureData + texture->)
+            //  }
+            //}
           }
         }
       }
+
+      if (!pushed_texture) {
+        parsed_model.diffuse_texture_name.push_back("");
+        parsed_model.normal_texture_name.push_back("");
+        parsed_model.roughness_texture_name.push_back("");
+      }
+
+      parsed_model.transforms.push_back(node->mTransformation);
 
       //load indices
       for (int i = 0; i < mesh->mNumFaces; i++) {
         aiFace& face = mesh->mFaces[i];
         for (uint32_t j = 0; j < face.mNumIndices; j++) {
-          parsed_model.model_data.vertices.push_back(temp_vertices[face.mIndices[j]]);
+          vertices.push_back(temp_vertices[face.mIndices[j]]);
+          std::size_t idx = vertices.size() - 1;
+          fan::vec4 vp = fan::mat4(node->mTransformation) * fan::vec4(vertices[idx].position, 1.0);
+          fan::vec4 np = fan::mat4(node->mTransformation) * fan::vec4(vertices[idx].vertex1, 1.0);
+          vertices[idx].position = *(fan::vec3*)&vp;
+          vertices[idx].normal = *(fan::vec3*)&np;
         }
       }
 
@@ -306,6 +381,9 @@ namespace fan_3d {
       read_skeleton(This, parsed_model.model_data.skeleton, scene->mRootNode, bone_info, global_transform);
     }
     void load_animation(const aiScene* scene, fan_3d::animation::animation_data_t& animation) {
+      if (scene->mNumAnimations == 0) {
+        return;
+      }
       //loading  first Animation
       aiAnimation* anim = scene->mAnimations[0];
 
@@ -361,7 +439,12 @@ namespace fan_3d {
       auto it = std::upper_bound(times.begin(), times.end(), dt);
       uint32_t segment = std::distance(times.begin(), it);
       if (times.size() == 1) {
-        fp = { 0,  std::clamp((dt) / (times[0]), 0.0f, 1.0f) };
+        if (times[0] == 0) {
+          fp = { 0, 1.f };
+        }
+        else {
+          fp = { 0,  std::clamp((dt) / (times[0]), 0.0f, 1.0f) };
+        }
         return false;
       }
       if (segment == 0) {
@@ -372,10 +455,8 @@ namespace fan_3d {
 
       f32_t start = times[segment - 1];
       f32_t end = times[segment];
-      if (times.size() == 2) {
-        fan::print(dt / start);
-      }
-      fp = { segment, std::clamp((dt) / (start), 0.0f, 1.0f) };
+      // clamping with default_animation will make it have cut effect
+      fp = { segment, std::clamp((dt - start) / (end - start), 0.0f, 1.0f) };
       return false;
     }
 
@@ -398,20 +479,16 @@ namespace fan_3d {
     // fan model stuff
     struct fms_t {
 
-      std::vector<loco_t::shape_t> shapes;
-
       fms_t(const std::string& path)
       {
         Assimp::Importer importer;
 
-        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals);
+        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
           fan::print("animation load error:", importer.GetErrorString());
           exit(1);
         }
-
-        aiMesh* mesh = scene->mMeshes[0];
 
         m_transform = scene->mRootNode->mTransformation;
 
@@ -424,19 +501,22 @@ namespace fan_3d {
           root_path = path.substr(0, last_slash_pos + 1);
         }
 
-        load_model(this, root_path, scene, mesh, parsed_model);
+        process_model(this, root_path, scene, scene->mRootNode, parsed_model);
+
         load_animation(scene, default_animation);
 
         tpose.joint_poses.resize(parsed_model.model_data.bone_count, { {}, {}, 1});
         tpose.pose.resize(parsed_model.model_data.bone_count, fan::mat4(1)); // use this for no animation
         default_animation.pose.resize(parsed_model.model_data.bone_count, fan::mat4(1)); // use this for no animation
+        temp_rotations.resize(parsed_model.model_data.bone_count);
 
         m_modified_verticies = parsed_model.model_data.vertices;
       }
 
       fan::mat4 calculate_bone_transform(uint32_t vertex_id, const std::vector<fan::mat4>& bone_transforms) {
-        fan::vec4i bone_ids = parsed_model.model_data.vertices[vertex_id].bone_ids;
-        fan::vec4 bone_weights = parsed_model.model_data.vertices[vertex_id].bone_weights;
+        static constexpr uint32_t mesh_id = 0;
+        fan::vec4i bone_ids = parsed_model.model_data.vertices[mesh_id][vertex_id].bone_ids;
+        fan::vec4 bone_weights = parsed_model.model_data.vertices[mesh_id][vertex_id].bone_weights;
 
         fan::mat4 bone_transform = fan::mat4(0);
         bone_transform += bone_transforms[bone_ids.x] * bone_weights.x;
@@ -446,54 +526,46 @@ namespace fan_3d {
         return bone_transform;
       }
 
-      void calculate_modified_vertices() {
-
+      // for default animation
+      std::vector<fan::mat4> calculate_transformations() {
         std::vector<fan::mat4> transformations;
         transformations.resize(default_animation.pose.size(), fan::mat4(1));
+        fan::mat4 initial(1);
+        initial = initial.rotate(-fan::math::pi / 2, fan::vec3(1, 0, 0));
+        interpolate_default_animation(transformations);
+        return transformations;
+      }
+
+      std::vector<fan::mat4> fk_calculate_transformations() {
+        fk_transformations.resize(default_animation.pose.size(), fan::mat4(1));
         fan::mat4 initial(1);
         initial = initial.rotate(-fan::math::pi / 2, fan::vec3(1, 0, 0));
 
         static f32_t animation_weight = 1;
         ImGui::DragFloat("weight", &animation_weight, 0.1, 0, 1.0);
 
-        fk_interpolate_animations(transformations, default_animation, 0.001, parsed_model.model_data.skeleton, initial, animation_weight);
+        fk_interpolate_animations(fk_transformations, default_animation, parsed_model.model_data.skeleton, initial, animation_weight);
+        return fk_transformations;
+      }
 
-        for (int i = 0; i < parsed_model.model_data.vertices.size(); ++i) {
+      void calculate_modified_vertices(const std::vector<fan::mat4>& transformations) {
+
+        static constexpr uint32_t mesh_id = 0;
+
+        for (int i = 0; i < parsed_model.model_data.vertices[mesh_id].size(); ++i) {
 
           fan::mat4 interpolated_bone_transform = calculate_bone_transform(i, transformations);
 
-          //animation_bone_transform.compose(pos1, rot1, scale1, skew1, perspective1);
+          fan::vec4 vertex_position = fan::vec4(parsed_model.model_data.vertices[mesh_id][i].position, 1.0);
 
-          /*fan::vec3 pos0, scale0;
-
-
-          temp.compose(pos, rot, scale);
-
-          temp[0] = fan::mix(tpose_bone_transform[0], animation_bone_transform[0], animation_weight);
-          temp[1] = fan::mix(tpose_bone_transform[1], animation_bone_transform[1], animation_weight);*/
-
-          //temp[0][0] = animation_bone_transform[0][0];
-          //temp[1][1] = animation_bone_transform[1][1];
-          //temp[2][2] = animation_bone_transform[2][2];
-
-          //temp[3][0] = animation_bone_transform[3][0];
-          //temp[3][1] = animation_bone_transform[3][1];
-          //temp[3][2] = animation_bone_transform[3][2];
-
-          //animation_bone_transform[2] = temp[2]; 
-
-          fan::vec4 vertex_position = fan::vec4(parsed_model.model_data.vertices[i].position, 1.0);
-
-         // fan::vec4 v0 = tpose_bone_transform * vertex_position;
-         // fan::vec4 v1 = animation_bone_transform * vertex_position;
           fan::vec4 result = interpolated_bone_transform * vertex_position;
 
-          m_modified_verticies[i].position = fan::vec3(result.x, result.y, result.z);
+          m_modified_verticies[mesh_id][i].position = fan::vec3(result.x, result.y, result.z);
         }
       }
 
       // parses joint data @ dt
-      bool fk_parse_joint_data(const bone_transform_track_t& btt, fan::vec3& position, fan::quat& rotation, fan::vec3& scale, f32_t dt) {
+      bool fk_parse_joint_data(const bone_transform_track_t& btt, fan::vec3& position, fan::quat& rotation, fan::vec3& scale) {
         std::pair<uint32_t, f32_t> fp;
         {// position
           if (fk_get_time_fraction(btt.position_timestamps, dt, fp)) {
@@ -525,17 +597,9 @@ namespace fan_3d {
               fan::quat rotation1 = btt.rotations[fp.first - 1];
               fan::quat rotation2 = btt.rotations[fp.first];
 
-              /*glm::quat q0(rotation1.w, rotation1.x, rotation1.y, rotation1.z);
-              glm::quat q1(rotation2.w, rotation2.x, rotation2.y, rotation2.z);
-
-              glm::quat q = glm::slerp(q0, q1, fp.second);*/
-
               fan::quat rot = fan::quat::slerp(rotation1, rotation2, fp.second);
-
               rotation = rot;
             }
-            //fan::quat slerped_quat = fan::quat::slerp(fan::quat(1, 0, 0, 0), rot, btt.weight);
-            //rotation = (rotation * slerped_quat).normalize();
           }
         }
 
@@ -564,16 +628,13 @@ namespace fan_3d {
         animation.joint_poses[joint.id].position = 0;
         animation.joint_poses[joint.id].scale = 1;
         animation.joint_poses[joint.id].rotation = fan::quat();
-        animation.joint_poses[joint.id].global_transform = joint.global_transform;
-        animation.joint_poses[joint.id].local_transform = fan::mat4(1);
-        animation.joint_poses[joint.id].joint_offset = joint.offset;
-        animation.joint_poses[joint.id].parent_transform = fan::mat4(1);
+        //animation.joint_poses[joint.id].joint_offset = joint.offset;
         for (fan_3d::animation::joint_t& child : joint.children) {
           get_tpose(animation, child);
         }
       }
 
-      void fk_get_pose(animation_data_t& animation, f32_t dt, joint_t& joint, fan::mat4& parent_transform) {
+      void fk_get_pose(animation_data_t& animation, joint_t& joint, fan::mat4& parent_transform) {
 
         dt = fmod(dt, animation.duration);
         fan::vec3 position = 0, scale = 1;
@@ -588,48 +649,35 @@ namespace fan_3d {
         }
         else {
           found->second.weight = 1.f;
-          not_enough_info = fk_parse_joint_data(found->second, position, rotation, scale, dt);
+
+          not_enough_info = fk_parse_joint_data(found->second, position, rotation, scale);
+          if (showing_temp_rot && joint.id == active_joint) {
+            rotation = temp_rotations[joint.id];
+            not_enough_info = false;
+          }
+
           found->second.weight = prev_weight;
         }
-
-        fan::mat4 mtranslation = fan::mat4(1).translate(position);
-        fan::mat4 mrotation = fan::mat4(rotation);
-        fan::mat4 mscale = fan::mat4(1).scale(scale);
 
         fan::mat4 local_transform;
         if (not_enough_info) {
           animation.joint_poses[joint.id].position = fan::vec3(0);
-          // todo maybe need rotation?
+          animation.joint_poses[joint.id].rotation = fan::quat();
           animation.joint_poses[joint.id].scale = 1;
-
-          animation.joint_poses[joint.id].global_transform = joint.global_transform;
-
           local_transform = joint.local_transform;
-
-          animation.joint_poses[joint.id].local_transform = joint.local_transform;
-          animation.joint_poses[joint.id].joint_offset = joint.offset;
-          animation.joint_poses[joint.id].parent_transform = parent_transform;
-
         }
         else {
           animation.joint_poses[joint.id].position = position;
           animation.joint_poses[joint.id].scale = scale;
           animation.joint_poses[joint.id].rotation= rotation;
-
-          animation.joint_poses[joint.id].global_transform = joint.global_transform;
-
-          //animation.joint_poses[joint.id].local_transform = local_transform;
-          animation.joint_poses[joint.id].joint_offset = joint.offset;
-          animation.joint_poses[joint.id].parent_transform = parent_transform;
-          animation.joint_poses[joint.id].local_transform = joint.local_transform;
         }
         fan::mat4 global_transform = parent_transform * local_transform;
 
         for (fan_3d::animation::joint_t& child : joint.children) {
-          fk_get_pose(animation, dt, child, global_transform);
+          fk_get_pose(animation, child, global_transform);
         }
       }
-      void get_pose(animation_data_t& animation, f32_t dt, joint_t& joint, fan::mat4& parent_transform) {
+      void get_pose(animation_data_t& animation, joint_t& joint, fan::mat4& parent_transform) {
 
         dt = fmod(dt, animation.duration);
         fan::vec3 position = 0, scale = 1;
@@ -644,7 +692,7 @@ namespace fan_3d {
         }
         else {
           found->second.weight = 1.f;
-          not_enough_info = fk_parse_joint_data(found->second, position, rotation, scale, dt);
+          not_enough_info = fk_parse_joint_data(found->second, position, rotation, scale);
           found->second.weight = prev_weight;
         }
 
@@ -661,140 +709,80 @@ namespace fan_3d {
         }
         fan::mat4 global_transform = parent_transform * local_transform;
 
-        /* if (joint.id == 2) {
-           fan::mat4 m = fan::mat4(1);
-           static fan::vec3 position = joint.global_transform.get_translation();
-           static f32_t ang = 0;
-           ImGui::SliderAngle("a", &ang);
-           static fan::quat rot;
-           ImGui::DragFloat4("p", rot.data(), 0.01, 0, fan::math::pi * 2);
-
-           m = joint.local_transform;
-           m = m.rotate(rot.w, *(fan::vec3*)&rot);
-           animation.pose[joint.id] = m_transform * parent_transform * m * joint.offset;
-           global_transform = parent_transform * m;
-         }
-         else {*/
         animation.pose[joint.id] = m_transform * global_transform * joint.offset;
-        //}
 
         for (fan_3d::animation::joint_t& child : joint.children) {
-          get_pose(animation, dt, child, global_transform);
+          get_pose(animation, child, global_transform);
         }
       }
 
-      void fk_interpolate_animations(std::vector<fan::mat4>& joint_transforms, animation_data_t& animation, f32_t dt, joint_t& joint, fan::mat4& parent_transform, f32_t animation_weight) {
 
-        dt = fmod(dt, animation.duration);
-
-        fan::mat4 transform;
-
-        //std::vector<fan::vec3> positions;
-        //std::vector<fan::quat> rotations;
-        //std::vector<fan::vec3> scales;
+      void interpolate_default_animation(std::vector<fan::mat4>& joint_transforms) {
 
         fan::vec3 position = 0, scale = 0;
         fan::quat rotation;
 
-        for (auto& apair : animation_list) {
-          auto& a = apair.second;
-          position += a.joint_poses[joint.id].position * a.weight;
-          fan::quat slerped_quat = fan::quat::slerp(fan::quat(1, 0, 0, 0), a.joint_poses[joint.id].rotation, a.weight);
-          rotation = (rotation * slerped_quat).normalize();
-          scale += a.joint_poses[joint.id].scale * a.weight;
-        }
+        fan::mat4 global_transform;
 
-        fan::mat4 local_transform = joint.local_transform;
-        local_transform = local_transform.translate(position);
-        static f32_t a = 0;
-        if (rotation.w != 1) {
+        joint_transforms = default_animation.pose;
+      }
+
+      void fk_interpolate_animations(std::vector<fan::mat4>& joint_transforms, animation_data_t& animation, joint_t& joint, fan::mat4& parent_transform, f32_t animation_weight) {
+
+        fan::vec3 position = 0, scale = 0;
+        fan::quat rotation;
+
+        fan::mat4 global_transform;
+
+        if (animation_list.empty()) {
+          // tpose
+          joint_transforms[joint.id] = joint.global_transform * joint.offset;
+        }
+        else {
+          for (auto& apair : animation_list) {
+            auto& a = apair.second;
+            position += a.joint_poses[joint.id].position * a.weight;
+            fan::quat slerped_quat = fan::quat::slerp(fan::quat(1, 0, 0, 0), a.joint_poses[joint.id].rotation, a.weight);
+            rotation = (rotation * slerped_quat).normalize();
+            scale += a.joint_poses[joint.id].scale * a.weight;
+          }
+
+          fan::mat4 local_transform = joint.local_transform;
+          local_transform = local_transform.translate(position);
           local_transform = local_transform.rotate(rotation);
+          local_transform = local_transform.scale(scale);
+          joint_transforms[joint.id] = m_transform * parent_transform * local_transform * joint.offset;
+          global_transform = parent_transform * local_transform;
         }
-        local_transform = local_transform.scale(scale);
-        joint_transforms[joint.id] = m_transform * parent_transform * local_transform * joint.offset;
-
-        fan::mat4 global_transform = parent_transform * local_transform;
 
         for (fan_3d::animation::joint_t& child : joint.children) {
-          fk_interpolate_animations(joint_transforms, animation, dt, child, global_transform, animation_weight);
+          fk_interpolate_animations(joint_transforms, animation, child, global_transform, animation_weight);
         }
       }
 
       void calculate_tpose() {
         get_tpose(tpose, parsed_model.model_data.skeleton);
       }
-      void calculate_default_pose(f32_t dt) {
+      void calculate_default_pose() {
         fan::mat4 initial(1);
         // not sure if this is supposed to be here
         // blender gave option to flip export axis, but it doesnt seem to flip it in animation
         // but only in tpose
         initial = initial.rotate(-fan::math::pi / 2, fan::vec3(1, 0, 0));
-        get_pose(default_animation, dt, parsed_model.model_data.skeleton, initial);
+        get_pose(default_animation, parsed_model.model_data.skeleton, initial);
       }
-      void calculate_poses(f32_t dt) {
+      void calculate_poses() {
         fan::mat4 initial(1);
         // not sure if this is supposed to be here
         // blender gave option to flip export axis, but it doesnt seem to flip it in animation
         // but only in tpose
         initial = initial.rotate(-fan::math::pi / 2, fan::vec3(1, 0, 0));
         calculate_tpose(); // not really needed, can be just called initally
-        calculate_default_pose(dt);
+        calculate_default_pose();
         for (auto& i : animation_list) {
-          fk_get_pose(i.second, dt, parsed_model.model_data.skeleton, initial);
+          fk_get_pose(i.second, parsed_model.model_data.skeleton, initial);
         }
       }
-
-      //void fk_get_pose(f32_t dt, joint_t& joint, fan::mat4& parent_transform) {
-
-      //  // if there are no additional animations, use default animation 
-      //  // alternatively use with dt0 to have "T-pose"
-      //  if (animation_list.empty()) {
-      //    get_pose(dt, joint, parent_transform);
-      //    return;
-      //  }
-
-      //  dt = fmod(dt, m_animation.duration);
-      //  fan::vec3 position = 0, scale = 0;
-      //  fan::quat rotation;
-
-      //  {
-      //    auto found = m_animation.bone_transforms.find(joint.name);
-      //    if (found == m_animation.bone_transforms.end()) {
-      //      fan::throw_error("invalid bone data");
-      //    }
-      //    else {
-      //      fk_parse_joint_data(found->second, position, rotation, scale, dt);
-      //    }
-      //  }
-
-      //  for (auto& anim : animation_list) {
-      //    auto& anim_data = anim.second;
-      //    auto found = anim_data.bone_transforms.find(joint.name);
-      //    if (found == m_animation.bone_transforms.end()) {
-      //      fan::throw_error("invalid bone data");
-      //    }
-      //    else {
-      //      fk_parse_joint_data(found->second, position, rotation, scale, dt);
-      //    }
-      //  }
-
-      //  fan::mat4 mtranslation = fan::mat4(1).translate(position);
-      //  fan::mat4 mrotation = fan::mat4(rotation);
-      //  fan::mat4 mscale = fan::mat4(1).scale(scale);
-
-      //  fan::mat4 local_transform = mtranslation * mrotation * mscale;
-      //  fan::mat4 global_transform = parent_transform * local_transform;
-
-      //  default_animation.pose[joint.id] = m_transform * global_transform * joint.offset;
-
-      //  for (fan_3d::animation::joint_t& child : joint.children) {
-      //    fk_get_pose(dt, child, global_transform);
-      //  }
-      //}
-      //void fk_get_pose(f32_t dt) {
-      //  fan::mat4 intial(1);
-      //  fk_get_pose(dt, parsed_model.model_data.skeleton, intial);
-      //}
 
       struct one_triangle_t {
         fan::vec3 p[3];
@@ -806,9 +794,8 @@ namespace fan_3d {
         // ignore i for now since only one scene
         triangles->resize(m_modified_verticies.size() / edge_count);
         for (int i = 0; i < m_modified_verticies.size(); ++i) {
-          //                                                      is it illegal | modified vertices or m_vertex
-          (*triangles)[i / edge_count].p[i % edge_count] = *(fan::vec3*)&m_modified_verticies[i].position;
-          (*triangles)[i / edge_count].tc[i % edge_count] = *(fan::vec3*)&m_modified_verticies[i].uv;
+          (*triangles)[i / edge_count].p[i % edge_count] = m_modified_verticies[mesh_id][i].position;
+          (*triangles)[i / edge_count].tc[i % edge_count] = m_modified_verticies[mesh_id][i].uv;
         }
       }
 
@@ -840,12 +827,60 @@ namespace fan_3d {
         return bone_id;
       }
 
+      joint_t* get_joint(const fan::string& name) {
+        bool found = false;
+        joint_t* pjoint = nullptr;
+        iterate_joints(parsed_model.model_data.skeleton,
+          [&](joint_t& joint) {
+            if (found) {
+              return;
+            }
+            if (name == joint.name) {
+              found = true;
+              pjoint = &joint;
+            }
+        });
+        return pjoint;
+      }
+      joint_t* get_joint(int bone_id) {
+        return get_joint(bone_strings[bone_id]);
+      }
+
       using anim_key_t = std::string;
 
+      anim_key_t active_anim;
       std::unordered_map<anim_key_t, animation_data_t> animation_list;
 
+      uint32_t get_active_animation_id() {
+        if (active_anim.empty()) {
+          fan::throw_error("no active animation");
+        }
+        auto found = animation_list.find(active_anim);
+        if (found == animation_list.end()) {
+          fan::throw_error("trying to access invalid animation:" + active_anim);
+        }
+        
+        return std::distance(animation_list.begin(), found);
+      }
+
+      animation_data_t& get_active_animation() {
+        if (active_anim.empty()) {
+          fan::throw_error("no active animation");
+        }
+        auto found = animation_list.find(active_anim);
+        if (found == animation_list.end()) {
+          fan::throw_error("trying to access invalid animation:" + active_anim);
+        }
+        // TODO might be illegal if its temporary var
+        return found->second;
+      }
+
       fan::string create_an(const fan::string& key, f32_t weight) {
+        if (animation_list.empty()) {
+          active_anim = key;
+        }
         auto& node = animation_list[key];
+        node.weight = weight;
         //node = m_animation;
         node.duration = default_animation.duration;
         // initialize with tpose
@@ -854,16 +889,24 @@ namespace fan_3d {
         iterate_joints(parsed_model.model_data.skeleton,
           [&](joint_t& joint) {
             node.bone_transforms[joint.name];
-            //default_animation.bone_transforms[joint.name].weight = 1.f / (animation_list.size() + 1.f);
-            //for (auto& i : animation_list) {
-            //  i.second.bone_transforms[joint.name].weight = 1.f / (animation_list.size() + 1.f);
-            //}
-          });
+          }
+        );
 
-        for (auto& anim : animation_list) {
-          anim.second.weight = 1.f / animation_list.size();
-        }
+        // user should worry about it
+        //for (auto& anim : animation_list) {
+        //  anim.second.weight = 1.f / animation_list.size();
+        //}
         return key;
+      }
+
+      uint32_t fk_set_rot(const anim_key_t& key, const fan::string& bone_id,
+        f32_t dt,
+        const fan::quat& quat
+      ) {
+        fan::vec3 axis;
+        f32_t angle;
+        quat.to_axis_angle(axis, angle);
+        return fk_set_rot(key, bone_id, dt, axis, angle);
       }
 
       uint32_t fk_set_rot(const anim_key_t& key, const fan::string& bone_id,
@@ -878,13 +921,6 @@ namespace fan_3d {
           fan::throw_error("could not find bone:" + bone_id);
         }
         auto& transform = found->second;
-        //auto it = std::upper_bound(transform.rotation_timestamps.begin(), transform.rotation_timestamps.end(), src_t * 1000.f); // convert to ms
-        //uint32_t index = std::distance(transform.rotation_timestamps.begin(), it);
-
-        //transform.rotations[index - 1] = /*m_animation.bone_transforms[bone_id].rotations[index - 1] + */fan::quat::from_euler(angle);
-        //transform.weight = 0.5;
-        // todo fix
-        //m_animation.bone_transforms[bone_id].weight = 0.5;
 
         float target = dt * 1000.f;
         auto it = std::upper_bound(transform.position_timestamps.begin(), transform.position_timestamps.end(), target);
@@ -898,74 +934,181 @@ namespace fan_3d {
         transform.rotations.insert(transform.rotations.begin() + insert_pos, fan::quat::from_axis_angle(axis, angle));
         transform.scales.insert(transform.scales.begin() + insert_pos, 1);
 
-        return 0;
+        return insert_pos;
       }
 
+      uint32_t get_rotation_by_dt(animation_data_t& anim, int joint_id, f32_t dt) {
+        auto& bt = anim.bone_transforms[bone_strings[joint_id]];
+        auto it = std::upper_bound(bt.rotation_timestamps.begin(), bt.rotation_timestamps.end(), dt);
+
+        int insert_pos = std::distance(bt.rotation_timestamps.begin(), it);
+        if (insert_pos) {
+          --insert_pos;
+        }
+        return insert_pos;
+      }
+
+      std::vector<fan::mat4> fk_transformations;
+
+      bool toggle_rotate = false;
+      bool showing_temp_rot = false;
+      std::vector<fan::quat> temp_rotations;
 
       parsed_model_t parsed_model;
       fan_3d::animation::animation_data_t tpose;
       fan_3d::animation::animation_data_t default_animation;
 
       // custom poses
-      std::vector<fan_3d::animation::vertex_t> m_modified_verticies;
+      std::vector<std::vector<fan_3d::animation::vertex_t>> m_modified_verticies;
 
       fan::mat4 m_transform;
+
+      std::vector<fan::string> bone_strings;
+      f32_t dt = 0;
+
+      int active_joint = -1;
     };
 
     struct animation_t {
 
       std::string animation_vs = R"(
 					#version 440 core
-					layout (location = 0) in vec3 vertex; 
+					layout (location = 0) in vec3 vertex;
 					layout (location = 1) in vec3 normal;
 					layout (location = 2) in vec2 uv;
 					layout (location = 3) in vec4 bone_ids;
 					layout (location = 4) in vec4 bone_weights;
+          layout (location = 5) in vec3 vertex1;
+          layout (location = 6) in vec3 tangent;  
+          layout (location = 7) in vec3 bitangent;  
 
 					out vec2 tex_coord;
 					out vec3 v_normal;
 					out vec3 v_pos;
 					out vec4 bw;
 
+          out vec3 c_tangent;
+          out vec3 c_bitangent;
+          //out vec3 c_bitangent ;
+
 					uniform mat4 projection;
 					uniform mat4 view;
+          uniform int curtains;
 
 					void main()
 					{
             mat4 model = mat4(1);
+            //if (curtains == 0) {
+            //  model[0][0] = 0.0001;
+            //  model[1][1] = 0.0001;
+            //  model[2][2] = 0.0001;
+            //}
+            if (curtains == 0) {
+              model[0][0] = 0.01;
+              model[1][1] = 0.01;
+              model[2][2] = 0.01;
+            }
 						gl_Position = projection * view * model * vec4(vertex, 1.0);
             tex_coord = uv;
+            v_pos = vec3(model * vec4(vertex, 1.0));
 						v_normal = mat3(transpose(inverse(model))) * normal;
 						v_normal = normalize(v_normal);
+            c_tangent = tangent;
+            c_bitangent = bitangent;
+            //v_bitangent = cross(normal, tangent);
 					}
 			)";
 
       std::string animation_fs = R"(
-					#version 440 core
+      #version 440 core
 
-					in vec2 tex_coord;
-					in vec3 v_normal;
-					in vec3 v_pos;
-					in vec4 bw;
-					out vec4 color;
+      in vec2 tex_coord;
+      in vec3 v_normal;
+      in vec3 v_pos;
+      in vec4 bw;
 
-					uniform sampler2D diff_texture;
-	
-					void main()
-					{
-						color = vec4(texture(diff_texture, tex_coord).rgb, 1);
-            //color = vec4(gl_FragCoord.xy / 4098, 0, 1);
-					}
+      in vec3 c_tangent;
+      in vec3 c_bitangent;
+      layout (location = 0) out vec4 color; 
+
+      uniform sampler2D diff_texture;
+      uniform sampler2D norm_texture;
+      uniform sampler2D roughness_texture;
+
+      uniform samplerCube envMap;
+
+      uniform vec3 view_p;
+      uniform vec3 light_pos;
+      uniform float metallic;
+      uniform float rough;
+      uniform float F0;
+      uniform float light_intensity;
+      uniform mat4 transform;
+      uniform int has_texture;
+      uniform bool has_normal;
+
+      void main()
+      {
+          mat4 model = mat4(1);
+          //if (curtains == 0) {
+          //  model[0][0] = 0.0001;
+          //  model[1][1] = 0.0001;
+          //  model[2][2] = 0.0001;
+          //}
+            model[0][0] = 0.01;
+            model[1][1] = 0.01;
+            model[2][2] = 0.01;
+          vec3 v_tangent = mat3(model) * c_tangent;
+          vec3 v_bitangent = mat3(model) * c_bitangent;
+
+          vec3 view_pos = view_p;
+          vec3 albedo = texture(diff_texture, tex_coord).rgb;
+	      float roughness = texture(roughness_texture, tex_coord).r;
+          //vec3 norm = texture(norm_texture, tex_coord).rgb;
+           vec3 norm;
+          norm = texture(norm_texture, tex_coord).rgb;
+	      //if (has_normal == true) {
+		       norm = norm * 2.0 - 1.0; // Transform from [0,1] to [-1,1]
+		      //vec3 v_bitangent = cross(norm, c_tangent);
+		      mat3 TBN = mat3(normalize(v_tangent), normalize(v_bitangent), normalize(norm));
+		      norm = TBN * norm;
+	      //}
+          //float roughness = rough;
+          vec3 lightDir = normalize(light_pos - v_pos);
+          vec3 viewDir = normalize(view_pos - v_pos);
+
+          vec3 I = normalize(v_pos - view_pos);
+          vec3 R = reflect(I, norm);
+
+        vec3 reflection = reflect(-viewDir, norm);
+      vec3 reflectionColor = texture(envMap, reflection).rgb;
+	      if (has_texture == 1) {
+		      color = vec4(mix(albedo, reflectionColor, 1.0 - roughness), 1);
+	      }
+	      else {
+		      color = vec4(0, 1, 0, 1);
+	      } 
+      }
+
 			)";
 
       animation_t(const fan::string& path) : fms(path) {
 
-        //shape = rp;
+        fms.iterate_joints(fms.parsed_model.model_data.skeleton, [this](const joint_t& joint) {
+          loco_t::shapes_t::rectangle_3d_t::properties_t rp;
+          rp.size = 0.1;
+          rp.color = fan::colors::red;
+          rp.position = joint.global_transform.get_translation();
+          shapes.push_back(rp);
+        });
 
-        fan::webp::image_info_t ii;
-        ii.data = fms.parsed_model.texture_data.diffuse_texture_data.data();
-        ii.size = fms.parsed_model.texture_data.diffuse_texture_size;
-        image.load(ii);
+        for (int i = 0; i < 10; ++i) {
+          loco_t::shapes_t::rectangle_3d_t::properties_t rp;
+          rp.size = fan::random::value_f32(0.01, 0.5);
+          rp.color = fan::colors::red;
+          rp.position = fan::vec3(-20, 0, i);
+          shapes.push_back(rp);
+        }
         //image.load(fms.parsed_model.texture_data.diffuse_texture_path_list[0]);
         //fms.parsed_model.texture_data.
         m_shader.open();
@@ -980,35 +1123,69 @@ namespace fan_3d {
         m_shader.compile();
 
         auto& context = gloco->get_context();
-        vao.open(context);
-        vbo.open(context, fan::opengl::GL_ARRAY_BUFFER);
-        vao.bind(context);
+        render_objects.resize(fms.parsed_model.model_data.vertices.size());
+        int i = 0;
+        for (auto& ro : render_objects) {
+          ro.vao.open(context);
+          ro.vbo.open(context, fan::opengl::GL_ARRAY_BUFFER);
+          ro.vao.bind(context);
+          upload_modified_vertices(i);
 
-        upload_modified_vertices();
+          gloco->get_context().opengl.glEnableVertexAttribArray(0);
+          gloco->get_context().opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, position));
+          gloco->get_context().opengl.glEnableVertexAttribArray(1);
+          gloco->get_context().opengl.glVertexAttribPointer(1, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, normal));
+          gloco->get_context().opengl.glEnableVertexAttribArray(2);
+          gloco->get_context().opengl.glVertexAttribPointer(2, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, uv));
+          gloco->get_context().opengl.glEnableVertexAttribArray(3);
+          gloco->get_context().opengl.glVertexAttribPointer(3, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, bone_ids));
+          gloco->get_context().opengl.glEnableVertexAttribArray(4);
+          gloco->get_context().opengl.glVertexAttribPointer(4, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, bone_weights));
+          gloco->get_context().opengl.glEnableVertexAttribArray(5);
+          gloco->get_context().opengl.glVertexAttribPointer(5, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, vertex1));
+          gloco->get_context().opengl.glEnableVertexAttribArray(6);
+          gloco->get_context().opengl.glVertexAttribPointer(6, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, tangent));
+          gloco->get_context().opengl.glEnableVertexAttribArray(7);
+          gloco->get_context().opengl.glVertexAttribPointer(7, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, bitangent));
+          gloco->get_context().opengl.glBindVertexArray(0);
 
-        gloco->get_context().opengl.glEnableVertexAttribArray(0);
-        gloco->get_context().opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, position));
-        gloco->get_context().opengl.glEnableVertexAttribArray(1);
-        gloco->get_context().opengl.glVertexAttribPointer(1, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, normal));
-        gloco->get_context().opengl.glEnableVertexAttribArray(2);
-        gloco->get_context().opengl.glVertexAttribPointer(2, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, uv));
-        gloco->get_context().opengl.glEnableVertexAttribArray(3);
-        gloco->get_context().opengl.glVertexAttribPointer(3, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, bone_ids));
-        gloco->get_context().opengl.glEnableVertexAttribArray(4);
-        gloco->get_context().opengl.glVertexAttribPointer(4, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::animation::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::animation::vertex_t, bone_weights));
-        gloco->get_context().opengl.glBindVertexArray(0);
+          if (fms.parsed_model.diffuse_texture_name[i].size()) {
+            auto found = diffuse_images.find(fms.parsed_model.diffuse_texture_name[i]);
+            if (found == diffuse_images.end()) {
+              diffuse_images[fms.parsed_model.diffuse_texture_name[i]].load(fms.parsed_model.diffuse_texture_name[i]);
+            }
+          }
+          if (i < fms.parsed_model.normal_texture_name.size()) {
+            if (fms.parsed_model.normal_texture_name[i].size()) {
+              auto found = normal_images.find(fms.parsed_model.normal_texture_name[i]);
+              if (found == normal_images.end()) {
+                normal_images[fms.parsed_model.normal_texture_name[i]].load(fms.parsed_model.normal_texture_name[i]);
+              }
+            }
+          }
+          if (i < fms.parsed_model.roughness_texture_name.size()) {
+            if (fms.parsed_model.roughness_texture_name[i].size()) {
+              auto found = roughness_images.find(fms.parsed_model.roughness_texture_name[i]);
+              if (found == roughness_images.end()) {
+                roughness_images[fms.parsed_model.roughness_texture_name[i]].load(fms.parsed_model.roughness_texture_name[i]);
+              }
+            }
+          }
+          ++i;
+        }
       }
 
-      void upload_modified_vertices() {
-        vao.bind(gloco->get_context());
-        vbo.write_buffer(
+      void upload_modified_vertices(uint32_t i) {
+        render_objects[i].vao.bind(gloco->get_context());
+
+        render_objects[i].vbo.write_buffer(
           gloco->get_context(),
-          &fms.m_modified_verticies[0],
-          sizeof(fan_3d::animation::vertex_t) * fms.m_modified_verticies.size()
+          &fms.m_modified_verticies[i][0],
+          sizeof(fan_3d::animation::vertex_t) * fms.m_modified_verticies[i].size()
         );
       }
 
-      void draw() {
+      void draw(bool curtain) {
         m_shader.use();
 
         fan::mat4 projection(1);
@@ -1020,85 +1197,281 @@ namespace fan_3d {
         m_shader.set_mat4("view", view);
 
 
-        gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-        image.bind_texture();
 
+
+        gloco->get_context().set_depth_test(true);
         m_shader.set_int("diff_texture", 0);
+        m_shader.set_int("norm_texture", 1);
+        m_shader.set_int("roughness_texture", 2);
+        static fan::vec3 light_pos = 0;
+        ImGui::Text(gloco->default_camera_3d->camera.position.to_string().c_str());
+        ImGui::DragFloat3("light position", light_pos.data());
+        fan::vec4 lpt = fan::vec4(light_pos, 1);
+        m_shader.set_vec3("light_pos", *(fan::vec3*)&lpt);
+
+        
+        static f32_t f0 = 0;
+        ImGui::DragFloat("f0", &f0, 0.001, 0, 1);
+        m_shader.set_float("F0", f0);
+
+
+        static f32_t metallic = 0;
+        ImGui::DragFloat("metallic", &metallic, 0.001, 0, 1);
+        m_shader.set_float("metallic", metallic);
+
+        static f32_t roughness = 0;
+        ImGui::DragFloat("rough", &roughness, 0.001, 0, 1);
+        m_shader.set_float("rough", roughness);
+
+        m_shader.set_int("curtains", curtain);
+        shapes[0].set_position(light_pos);
+
+        static f32_t light_intensity = 1;
+        ImGui::DragFloat("light_intensity", &light_intensity, 0.1);
+        m_shader.set_float("light_intensity", light_intensity);
+
+        gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE3);
+        gloco->get_context().opengl.glBindTexture(fan::opengl::GL_TEXTURE_CUBE_MAP, envMapTexture);
+        m_shader.set_int("envMap", 3);
 
         auto& context = gloco->get_context();
         context.opengl.glDisable(fan::opengl::GL_BLEND);
-        vao.bind(context);
+        //context.opengl.call(context.opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+        for (int i = 0; i < render_objects.size(); ++i) {
+          render_objects[i].vao.bind(context);
+          m_shader.set_mat4("transform", fms.parsed_model.transforms[i]);
+          fan::vec4 cpt = fms.parsed_model.transforms[i] * fan::vec4(gloco->default_camera_3d->camera.position, 1);
+          m_shader.set_vec3("view_p", gloco->default_camera_3d->camera.position);
+          if (fms.parsed_model.diffuse_texture_name[i].size()) {
+            gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+            diffuse_images[fms.parsed_model.diffuse_texture_name[i]].bind_texture();
+            m_shader.set_bool("has_texture", 1);
+          }
+          else {
+            m_shader.set_bool("has_texture", 0);
+          }
+          if (i < fms.parsed_model.normal_texture_name.size()) {
+            if (fms.parsed_model.normal_texture_name[i].size()) {
+              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+              normal_images[fms.parsed_model.normal_texture_name[i]].bind_texture();
+              m_shader.set_bool("has_normal", 1);
+            }
+            else {
+              m_shader.set_bool("has_normal", 0);
+            }
+          }
+          else {
+            m_shader.set_bool("has_normal", 0);
+          }
+          if (i < fms.parsed_model.roughness_texture_name.size()) {
+            if (fms.parsed_model.roughness_texture_name[i].size()) {
+              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
+              roughness_images[fms.parsed_model.roughness_texture_name[i]].bind_texture();
+            }
+          }
 
-        gloco->get_context().opengl.glDrawArrays(fan::opengl::GL_TRIANGLES, 0, fms.m_modified_verticies.size());
+          /*render_objects[i].vbo.write_buffer(
+            gloco->get_context(),
+            &fms.m_modified_verticies[i][0],
+            sizeof(fan_3d::animation::vertex_t) * fms.m_modified_verticies[i].size()
+          );*/
+
+          gloco->get_context().opengl.glDrawArrays(fan::opengl::GL_TRIANGLES, 0, fms.m_modified_verticies[i].size());
+        }
       }
+
+
+      void display_animations() {
+        for (auto& anim_pair : fms.animation_list) {
+          bool nodeOpen = ImGui::TreeNode(anim_pair.first.c_str());
+          if (nodeOpen) {
+            auto& anim = anim_pair.second;
+            bool time_stamps_open = ImGui::TreeNode("timestamps");
+            if (time_stamps_open) {
+              fms.iterate_joints(fms.parsed_model.model_data.skeleton, [&](joint_t& joint) {
+                auto & bt = anim.bone_transforms[joint.name];
+                uint32_t data_count = bt.rotation_timestamps.size();
+                if (data_count) {
+                  bool node_open = ImGui::TreeNode(joint.name.c_str());
+                  if (node_open) {
+                    for (int i = 0; i < bt.rotation_timestamps.size(); ++i) {
+                      ImGui::DragFloat(
+                        ("rotation:" + std::to_string(i)).c_str(),
+                        &anim.bone_transforms[joint.name].rotation_timestamps[i]
+                      );
+                    }
+                    ImGui::TreePop();
+                  }
+                }
+                });
+              ImGui::TreePop(); // Close the "timestamps" node here
+            }
+            bool properties_open = ImGui::TreeNode("properties"); // Now "properties" will be outside of "timestamps"
+            if (properties_open) {
+              fms.iterate_joints(fms.parsed_model.model_data.skeleton, [&](joint_t& joint) {
+                auto & bt = anim.bone_transforms[joint.name];
+                uint32_t data_count = bt.rotations.size();
+                if (data_count) {
+                  bool node_open = ImGui::TreeNode(joint.name.c_str());
+                  if (node_open) {
+                    for (int i = 0; i < bt.rotations.size(); ++i) {
+                      ImGui::DragFloat4(
+                        ("rotation:" + std::to_string(i)).c_str(),
+                        anim.bone_transforms[joint.name].rotations[i].data()
+                      );
+                    }
+                    ImGui::TreePop();
+                  }
+                }
+                });
+              ImGui::TreePop(); // Close the "properties" node here
+            }
+            ImGui::TreePop();
+          }
+        }
+      }
+
+      void mouse_modify_joint() {
+
+        ImGui::DragFloat("current time", &fms.dt, 1, 0, fms.default_animation.duration);
+        ImGui::Text(fan::format("camera pos: {}\ntotal time: {:.2f}", gloco->default_camera_3d->camera.position, fms.default_animation.duration).c_str());
+        static bool play = false;
+        if (ImGui::Checkbox("play animation", &play)) {
+          fms.showing_temp_rot = false;
+        }
+        static int x = 0;
+        static fan::time::clock c;
+        if (play) {
+          if (x == 0) {
+            c.start();
+            x++;
+          }
+          fms.dt = c.elapsed() / 1e+6;
+        }
+
+
+        int current_id = fms.get_active_animation_id();
+        std::vector<const char*> animations;
+        for (auto& i : fms.animation_list) {
+          animations.push_back(i.first.c_str());
+        }
+        if (ImGui::ListBox("animation list", &current_id, animations.data(), animations.size())) {
+          fms.active_anim = animations[current_id];
+        }
+        ImGui::DragFloat("animation weight", &fms.animation_list[fms.active_anim].weight, 0.01, 0, 1);
+
+        if (fms.active_joint != -1) {
+          auto& anim = fms.get_active_animation();
+          auto& bt = anim.bone_transforms[fms.bone_strings[fms.active_joint]];
+          for (int i = 0; i < bt.rotations.size(); ++i) {
+            ImGui::DragFloat4(("rotations:" + std::to_string(i)).c_str(), bt.rotations[i].data(), 0.01);
+          }
+
+          static int32_t current_frame = 0;
+          if (!play) {
+            fms.dt = current_frame;
+          }
+          else {
+            current_frame = fmodf(c.elapsed() / 1e+6 / 4, anim.duration);
+          }
+
+          static f32_t prev_frame = 0;
+          if (prev_frame != fms.dt) {
+            fms.showing_temp_rot = false;
+            prev_frame = fms.dt;
+          }
+
+          if (ImGui::Button("save keyframe")) {
+            fms.fk_set_rot(fms.active_anim, fms.bone_strings[fms.active_joint], current_frame / 1000.f, anim.joint_poses[fms.active_joint].rotation);
+          }
+
+          //fan::print(current_frame);
+          int32_t startFrame = 0;
+          int32_t endFrame = std::ceil(fms.default_animation.duration);
+          if (ImGui::BeginNeoSequencer("Sequencer", &current_frame, &startFrame, &endFrame, fan::vec2(0),
+            ImGuiNeoSequencerFlags_EnableSelection |
+            ImGuiNeoSequencerFlags_Selection_EnableDragging |
+            ImGuiNeoSequencerFlags_Selection_EnableDeletion |
+            ImGuiNeoSequencerFlags_AllowLengthChanging)) {
+            static bool transform_open = true;
+            if (ImGui::BeginNeoGroup("Transform", &transform_open))
+            {
+
+              if (ImGui::BeginNeoTimelineEx("rotation"))
+              {
+                if (bt.rotation_timestamps.size()) {
+                  for (int i = 0; i < bt.rotation_timestamps.size(); ++i) {
+                    int32_t p = bt.rotation_timestamps[i];
+                    ImGui::NeoKeyframe(&p);
+                    bt.rotation_timestamps[i] = p;
+                    //ImGui::DragFloat(("timestamps:" + std::to_string(i)).c_str(), &bt.rotation_timestamps[i], 1);
+                  }
+                }
+                // delete
+                if (false)
+                {
+                  uint32_t count = ImGui::GetNeoKeyframeSelectionSize();
+
+                  ImGui::FrameIndexType* toRemove = new ImGui::FrameIndexType[count];
+
+                  ImGui::GetNeoKeyframeSelection(toRemove);
+
+                  //Delete keyframes from your structure
+                }
+                ImGui::EndNeoTimeLine();
+                ImGui::EndNeoGroup();
+              }
+            }
+
+            ImGui::EndNeoSequencer();
+          }
+        }
+      }
+
+      void set_active_joint(int joint_id) {
+        fms.active_joint = joint_id;
+
+        joint_t* joint = fms.get_joint(joint_id);
+
+        for (int i = 0; i < std::size(joint_controls); ++i) {
+          loco_t::shapes_t::rectangle_3d_t::properties_t rp;
+          rp.size = fan::vec3(0.1, 0.5, 0.1);
+          rp.color = std::to_array({ fan::colors::red, fan::colors::green, fan::colors::blue })[i];
+          rp.position = 
+            std::to_array({
+            fan::vec3(1, 0, 0),
+            fan::vec3(0, 0, 1),
+            fan::vec3(-1, 0, 0)
+            })[i]
+            + joint->global_transform.get_translation();
+          joint_controls[i] = rp;
+        }
+      }
+
 
       fms_t fms;
 
       loco_t::shader_t m_shader;
-      loco_t::image_t image;
-      fan::opengl::core::vao_t vao;
-      fan::opengl::core::vbo_t vbo;
+      struct render_object_t {
+        fan::opengl::core::vao_t vao;
+        fan::opengl::core::vbo_t vbo;
+      };
+      std::unordered_map<std::string, loco_t::image_t> diffuse_images;
+      std::unordered_map<std::string, loco_t::image_t> normal_images;
+      std::unordered_map<std::string, loco_t::image_t> roughness_images;
+      std::vector<render_object_t> render_objects;
+      std::vector<loco_t::shape_t> shapes;
+
+      static constexpr uint8_t axis_count = 3;
+      loco_t::shape_t joint_controls[axis_count];
+      fan::opengl::GLuint envMapTexture;
     };
   }
 }
 
-aiMatrix4x4 getGlobalTransform(aiNode* node) {
-  aiMatrix4x4 globalTransform;
-  while (node != nullptr) {
-    globalTransform = node->mTransformation * globalTransform;
-    node = node->mParent;
-  }
-  return globalTransform;
-}
-
-//int main() {
-//  Assimp::Importer importer;
-//  const aiScene* scene = importer.ReadFile("models/model2.dae", aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
-//
-//  if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) {
-//    // Handle the error
-//    return -1;
-//  }
-//
-//  std::unordered_map<std::string, unsigned int> boneMapping;
-//  unsigned int numBones = 0;
-//
-//  // Iterate over all meshes
-//  for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
-//    const aiMesh* mesh = scene->mMeshes[i];
-//    // Iterate over all bones in each mesh
-//    for (unsigned int j = 0; j < mesh->mNumBones; ++j) {
-//      std::string boneName(mesh->mBones[j]->mName.data);
-//      if (boneMapping.find(boneName) == boneMapping.end()) {
-//        boneMapping[boneName] = numBones;
-//        numBones++;
-//      }
-//    }
-//  }
-//
-//  // Now we have a mapping from bone names to indices
-//  // Let's calculate the global transformations for each bone
-//  std::unordered_map<std::string, aiMatrix4x4> boneTransforms;
-//  for (auto& pair : boneMapping) {
-//    aiNode* node = scene->mRootNode->FindNode(pair.first.c_str());
-//    if (node) {
-//      boneTransforms[pair.first] = getGlobalTransform(node);
-//    }
-//  }
-//
-//  // Now let's print the bone names and their global positions
-//  for (auto& pair : boneTransforms) {
-//    aiVector3D position, scaling;
-//    aiQuaternion rotation;
-//    pair.second.Decompose(scaling, rotation, position);
-//    std::cout << "Bone name: " << pair.first << ", Global position: (" << position.x << ", " << position.y << ", " << position.z << ")" << std::endl;
-//  }
-//
-//  return 0;
-//}
-
 int main() {
   //fan::window_t::set_flag_value<fan::window_t::flags::no_mouse>(true);
+
   loco_t loco;
   //loco.window.lock_cursor_and_set_invisible(true);
 
@@ -1110,41 +1483,40 @@ int main() {
     std::vector<fan_3d::animation::fms_t::one_triangle_t> triangle_vec;
   };
 
-  fan_3d::animation::animation_t animation("models/model2.dae");
-
-  // calculate first pose (initialize modified vertices)
-
-  //fms.get_pose(1);
-  //fms.calculate_modified_vertices();
+  fan_3d::animation::animation_t animation("models/sponza6.fbx");
+  //fan_3d::animation::animation_t animation2("models/sponza_curtains.fbx");
 
   std::vector<triangle_list_t> triangles;
 
-  static constexpr int nscenes = 1;
-  for (uintptr_t i = 0; i < nscenes; i++) {
-    triangle_list_t tl;
-    //tl.matid = fms.get_material_id(i);
-    animation.fms.get_triangle_vec(i, &tl.triangle_vec);
+  //static constexpr int nscenes = 1;
+  //for (uintptr_t i = 0; i < nscenes; i++) {
+  //  triangle_list_t tl;
+  //  //tl.matid = fms.get_material_id(i);
+  //  animation.fms.get_triangle_vec(i, &tl.triangle_vec);
+  //}
 
-  }
-
-  animation.fms.get_bone_names([](const std::string& name) {
-    fan::print(name);
-    });
+  //animation.fms.get_bone_names([](const std::string& name) {
+  //  fan::print(name);
+  //});
 
   //auto boneid = animation.fms.get_bone_id_by_name("Armature_Upper_Arm_R");
 
-  auto anid = animation.fms.create_an("an_name", 0.5);
-//  auto anid2 = animation.fms.create_an("an_name2", 0.5);
+  auto anid = animation.fms.create_an("an_name", 1);
+  //auto anid2 = animation.fms.create_an("an_name2", 0);
 
-  auto animation_node_id = animation.fms.fk_set_rot(anid, "Armature_Chest", 0.2/* time in seconds */,
-    fan::vec3(1, 0, 0), fan::math::pi / 2
-  );
+  //auto animation_node_id1 = animation.fms.fk_set_rot(anid, "Armature_Chest", 0.001/* time in seconds */,
+  //  fan::vec3(1, 0, 0), 0
+  //);
 
-  auto animation_node_id3 = animation.fms.fk_set_rot(anid, "Armature_Chest", 0.6/* time in seconds */,
-    fan::vec3(1, 0, 0), -fan::math::pi / 2
-  );
+  //auto animation_node_id = animation.fms.fk_set_rot(anid, "Armature_Chest", 0.3/* time in seconds */,
+  //  fan::vec3(1, 0, 0), fan::math::pi / 2
+  //);
 
-  //auto animation_node_id2 = animation.fms.fk_set_rot(anid2, "Armature_Upper_Leg_L", 0.6/* time in seconds */,
+  //auto animation_node_id3 = animation.fms.fk_set_rot(anid, "Armature_Chest", 0.6/* time in seconds */,
+  //  fan::vec3(1, 0, 0), -fan::math::pi / 3
+  //);
+
+  //auto animation_node_id2 = animation.fms.fk_set_rot(anid, "Armature_Upper_Leg_L", 0.6/* time in seconds */,
   //  fan::vec3(1, 0, 0), -fan::math::pi
   //);
 
@@ -1163,42 +1535,222 @@ int main() {
 
   gloco->default_camera_3d->camera.position = { 3.46, 1.94, -6.22 };
   //fan_3d::graphics::add_camera_rotation_callback(&camera);
-  loco.window.add_key_callback(fan::key_escape, fan::keyboard_state::press, [](const auto&) { exit(0); });
 
   fan::time::clock timer;
   timer.start();
-  gloco->m_draw_queue_light.push_back([&] {
-    // convert ns to s then to ms
-    static f32_t divider = 4;
-    animation.fms.calculate_poses(timer.elapsed() / 1e+6 / divider + 0.0001);
-    animation.fms.calculate_modified_vertices();
-    animation.upload_modified_vertices();
-    animation.draw();
+  
+  auto& opengl = gloco->get_context().opengl;
+
+  opengl.glGenTextures(1, &animation.envMapTexture);
+  opengl.glBindTexture(fan::opengl::GL_TEXTURE_CUBE_MAP, animation.envMapTexture);
+
+  fan::vec2 window_size = gloco->get_window()->get_size();
+
+
+  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_MIN_FILTER, fan::opengl::GL_LINEAR);
+  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_MAG_FILTER, fan::opengl::GL_LINEAR);
+  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_S, fan::opengl::GL_CLAMP_TO_EDGE);
+  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_T, fan::opengl::GL_CLAMP_TO_EDGE);
+  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_R, fan::opengl::GL_CLAMP_TO_EDGE);
+  
+  for (fan::opengl::GLuint i = 0; i < 6; ++i) {
+    fan::webp::image_info_t image_info;
+    if (fan::webp::load(("images/" + std::to_string(i) + ".webp"), &image_info)) {
+      fan::throw_error("a");
+    }
+    opengl.glTexImage2D(fan::opengl::GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, fan::opengl::GL_RGBA, image_info.size.x, image_info.size.y, 0, fan::opengl::GL_RGBA, fan::opengl::GL_UNSIGNED_BYTE, image_info.data);
+    fan::webp::free_image(image_info.data);
+  }
+
+  //gloco->m_framebuffer.bind(gloco->get_context());
+  //for (int i = 0; i < 6; ++i) {
+  //  opengl.glFramebufferTexture2D(fan::opengl::GL_FRAMEBUFFER, fan::opengl::GL_COLOR_ATTACHMENT0 + i, fan::opengl::GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, animation.envMapTexture, 0);
+  //}
+
+  gloco->m_post_draw.push_back([&] {
+    //animation.fms.calculate_poses();
+
+    //static bool default_anim = false;
+    //ImGui::Checkbox("default animation", &default_anim);
+    //if (default_anim) {
+    //  // for default animation
+      //auto default_animation_transform = animation.fms.calculate_transformations();
+     // animation.fms.calculate_modified_vertices(default_animation_transform);
+    //}
+    //else {
+    //  auto fk_animation_transform = animation.fms.fk_calculate_transformations();
+    //  animation.fms.calculate_modified_vertices(fk_animation_transform);
+    //}
+
+
+
+    //animation.mouse_modify_joint();
+
+    //animation.display_animations();
+
+    //gloco->m_framebuffer.bind(gloco->get_context());
+
+    //gloco->m_framebuffer.bind(gloco->get_context());
+
+    auto temp_view = gloco->default_camera_3d->camera.m_view;
+
+    //std::vector<fan::mat4> views = {
+    //fan::math::look_at_left<fan::mat4, fan::vec3>(gloco->default_camera_3d->camera.position, gloco->default_camera_3d->camera.position + fan::vec3(1, 0, 0), fan::vec3(0, -1, 0)), // Positive X
+    //fan::math::look_at_left<fan::mat4, fan::vec3>(gloco->default_camera_3d->camera.position, gloco->default_camera_3d->camera.position + fan::vec3(-1, 0, 0), fan::vec3(0, -1, 0)), // Negative X
+    //fan::math::look_at_left<fan::mat4, fan::vec3>(gloco->default_camera_3d->camera.position, gloco->default_camera_3d->camera.position + fan::vec3(0, 1, 0), fan::vec3(0, 0, 1)), // Positive Y
+    //fan::math::look_at_left<fan::mat4, fan::vec3>(gloco->default_camera_3d->camera.position, gloco->default_camera_3d->camera.position + fan::vec3(0, -1, 0), fan::vec3(0, 0, -1)), // Negative Y
+    //fan::math::look_at_left<fan::mat4, fan::vec3>(gloco->default_camera_3d->camera.position, gloco->default_camera_3d->camera.position + fan::vec3(0, 0, 1), fan::vec3(0, -1, 0)), // Positive Z
+    //fan::math::look_at_left<fan::mat4, fan::vec3>(gloco->default_camera_3d->camera.position, gloco->default_camera_3d->camera.position + fan::vec3(0, 0, -1), fan::vec3(0, -1, 0)) // Negative Z
+    //};
+
+    ////opengl.glBindFramebuffer(fan::opengl::GL_FRAMEBUFFER, envMapFBO);
+
+    //opengl.glViewport(0, 0, window_size.x, window_size.y);
+    //gloco->m_framebuffer.
+
+   /* for (fan::opengl::GLuint i = 0; i < 6; ++i) {
+      opengl.glFramebufferTexture2D(fan::opengl::GL_FRAMEBUFFER, fan::opengl::GL_COLOR_ATTACHMENT0 + i, fan::opengl::GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, animation.envMapTexture, 0);
+
+      gloco->default_camera_3d->camera.m_view = views[i];
+      gloco->default_camera_3d->camera.update_view();
+
+
+      animation.draw(0);
+    }
+    opengl.glBindFramebuffer(fan::opengl::GL_FRAMEBUFFER, 0);
+
+
+    gloco->default_camera_3d->camera.m_view = temp_view;
+    gloco->default_camera_3d->camera.update_view();
+
+    gloco->m_framebuffer.bind(gloco->get_context());
+    opengl.glViewport(0, 0, window_size.x, window_size.y);
+    opengl.glClearColor(0, 0, 0, 1);
+    opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);*/
+
+    // Render Main Scene
+    // Bind the default framebuffer
+    //opengl.glBindFramebuffer(fan::opengl::GL_FRAMEBUFFER, 0);
+
+    animation.draw(0);
+
+    //animation2.draw(1);
+    ImGui::End();
+  });
+
+  auto& camera = gloco->default_camera_3d->camera;
+
+  fan::vec2 motion = 0;
+  loco.window.add_mouse_motion([&](const auto& d) {
+    motion = d.motion;
+    if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
+      camera.rotate_camera(d.motion);
+    }
+  });
+
+  loco.window.add_key_callback(fan::key_r, fan::keyboard_state::press, [&](const auto&) {
+    fan::string str;
+    fan::io::file::read("1.glsl", &str);
+    animation.m_shader.set_vertex(animation.animation_vs);
+    animation.m_shader.set_fragment(str.c_str());
+    animation.m_shader.compile();
     });
 
-  loco.window.add_mouse_motion([&](const auto& d) {
-    if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
-      gloco->default_camera_3d->camera.rotate_camera(d.motion);
+  /*loco.window.add_key_callback(fan::mouse_left, fan::keyboard_state::press, [&](const auto&) { 
+    if (animation.fms.toggle_rotate) {
+      animation.fms.toggle_rotate = false;
     }
-    });
+  });
+  loco.window.add_key_callback(fan::key_r, fan::keyboard_state::press, [&](const auto&) { 
+    animation.fms.toggle_rotate = !animation.fms.toggle_rotate;
+    if (animation.fms.toggle_rotate) {
+      animation.fms.showing_temp_rot = true;
+      auto& anim = animation.fms.get_active_animation();
+
+      for (int i = 0; i < anim.joint_poses.size(); ++i) {
+        animation.fms.temp_rotations[i] = anim.joint_poses[i].rotation;
+      }
+    }
+  });
+  loco.window.add_key_callback(fan::key_escape, fan::keyboard_state::press, [&](const auto&) {
+    if (animation.fms.toggle_rotate) {
+      animation.fms.toggle_rotate = !animation.fms.toggle_rotate;
+    }
+    else {
+      animation.fms.active_joint = -1;
+      std::fill(std::begin(animation.joint_controls), std::end(animation.joint_controls), loco_t::shape_t());
+    }
+  });*/
+
+  int active_axis = -1;
+
+  int render_time = 0;
 
   loco.loop([&] {
-    gloco->default_camera_3d->camera.move(100);
-    //fan::print(animation.m_camera.position);
 
+
+    ImGui::Begin("window");
+    camera.move(100);
+    fan::ray3_t ray = gloco->convert_mouse_to_ray(camera.position, camera.m_projection, camera.m_view);
+
+    /*if (animation.fms.toggle_rotate && animation.fms.active_joint != -1 && active_axis != -1) {
+      auto& anim = animation.fms.get_active_animation();
+      auto& bt = anim.bone_transforms[animation.fms.bone_strings[animation.fms.active_joint]];
+      fan::vec3 axis = 0;
+      f32_t angle = 0;
+
+      if (motion.x) {
+
+        axis[active_axis] = 1;
+
+        angle += motion.x / 2.f * gloco->delta_time;
+
+        fan::quat new_rotation = fan::quat::from_axis_angle(axis, angle);
+
+        animation.fms.temp_rotations[animation.fms.active_joint] = new_rotation * animation.fms.temp_rotations[animation.fms.active_joint];
+      }
+    }
+
+    if (animation.fms.active_joint != -1) {
+      for (int i = 0; i < std::size(animation.joint_controls); ++i) {
+        if (i != active_axis) {
+          animation.joint_controls[i].set_color(i == 0 ? fan::colors::red : i == 1 ? fan::colors::green : fan::colors::blue);
+        }
+        if (gloco->is_ray_intersecting_cube(ray, animation.joint_controls[i].get_position(), animation.joint_controls[i].get_size())) {
+          if (ImGui::IsMouseClicked(0)) {
+            active_axis = i;
+            animation.joint_controls[i].set_color(fan::colors::white);
+          }
+        }
+      }
+    }*/
+
+
+    /*for (int i = 0; i < animation.shapes.size(); ++i) {
+      if (gloco->is_ray_intersecting_cube(ray, animation.shapes[i].get_position(), animation.shapes[i].get_size())) {
+        animation.shapes[i].set_color(fan::colors::green);
+        if (ImGui::IsMouseDown(0) && ImGui::IsAnyItemActive()) {
+          animation.set_active_joint(i);
+        }
+      }
+      else {
+        animation.shapes[i].set_color(fan::colors::red);
+      }
+    }*/
     if (ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
-      gloco->default_camera_3d->camera.rotate_camera(fan::vec2(-0.01, 0));
+      camera.rotate_camera(fan::vec2(-0.01, 0));
     }
     if (ImGui::IsKeyDown(ImGuiKey_RightArrow)) {
-      gloco->default_camera_3d->camera.rotate_camera(fan::vec2(0.01, 0));
+      camera.rotate_camera(fan::vec2(0.01, 0));
     }
     if (ImGui::IsKeyDown(ImGuiKey_UpArrow)) {
-      gloco->default_camera_3d->camera.rotate_camera(fan::vec2(0, -0.01));
+      camera.rotate_camera(fan::vec2(0, -0.01));
     }
     if (ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
-      gloco->default_camera_3d->camera.rotate_camera(fan::vec2(0, 0.01));
+      camera.rotate_camera(fan::vec2(0, 0.01));
     }
 
     loco.get_fps();
-    });
+    motion = 0;
+  });
 }
