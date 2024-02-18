@@ -2,10 +2,10 @@
 
 namespace fan {
   namespace graphics {
-    struct animation_t {
+    struct animator_t {
 
-      animation_t() = default;
-      animation_t(loco_t::texturepack_t* texturepack) {
+      animator_t() = default;
+      animator_t(loco_t::texturepack_t* texturepack) {
         tp = texturepack;
       }
 

@@ -335,22 +335,7 @@ namespace fan_3d {
                   pushed_texture = true;
                 }
               }
-              // use with non combined binary
             }
-            //else {
-            //  int textureIndex = atoi(path.C_Str());
-            //  aiTexture* texture = scene->mTextures[textureIndex];
-
-            //  unsigned char* textureData = reinterpret_cast<unsigned char*>(texture->pcData);
-            //  // compressed image format -- mWidth means size of bytes
-            //  if (texture->mHeight == 0) {
-            //    fan::throw_error("doesnt support compressed textures");
-            //  }
-            //  else {
-            //    // todo needs byte calculate width * height * channel count - how to get it from assimp?
-            //    //parsed_model.texture_data.insert(textureData, textureData + texture->)
-            //  }
-            //}
           }
         }
       }

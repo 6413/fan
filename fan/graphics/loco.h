@@ -182,7 +182,6 @@ namespace fan {
 }
 
 struct loco_t {
-
   struct position2_t : public  fan::vec2 {
     //using fan::vec2::vec2;
   };

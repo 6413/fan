@@ -41,8 +41,8 @@ struct circle_t {
 
     using type_t = circle_t;
 
-    loco_t::camera_t* camera = 0;
-    fan::graphics::viewport_t* viewport = 0;
+    loco_t::camera_t* camera = &gloco->default_camera->camera;
+    fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
   };
 
   void push_back(loco_t::cid_nt_t& id, properties_t& p) {

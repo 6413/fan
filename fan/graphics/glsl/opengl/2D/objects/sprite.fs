@@ -23,4 +23,6 @@ void main() {
   vec4 t = vec4(texture(_t01, gl_FragCoord.xy / window_size).rgb, 1);
 
   o_attachment0.rgb *= lighting_ambient + t.rgb;
+  //o_attachment0.rgb *= lighting_ambient;
+  //o_attachment0.rgb += t.rgb;
 }
