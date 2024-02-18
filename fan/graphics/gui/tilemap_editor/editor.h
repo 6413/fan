@@ -148,7 +148,11 @@ struct fte_t {
   }
 
   void open(const fan::string& texturepack_name) {
-    texturepack.open_compiled(texturepack_name);
+    loco_t::image_t::load_properties_t lp;
+    lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_border;
+    lp.min_filter = fan::opengl::GL_NEAREST;
+    lp.mag_filter = fan::opengl::GL_NEAREST;
+    texturepack.open_compiled(texturepack_name, lp);
 
     gloco->window.add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
@@ -925,13 +929,13 @@ struct fte_t {
           if (ImGui::SliderFloat2("rotation point", rotation_point.data(), -tile_size.max() * 2, tile_size.max() * 2)) {
             layer.shape.set_rotation_point(rotation_point);
           }
-        }
+        }/*
         {
           fan::vec3 rotation_vector = layer.shape.get_rotation_vector();
           if (ImGui::SliderFloat3("rotation vector", rotation_vector.data(), 0, 1)) {
             layer.shape.set_rotation_vector(rotation_vector);
           }
-        }
+        }*/
         {
           if (ImGui::ColorEdit4("color", (float*)brush.color.data())) {
             layer.shape.set_color(brush.color);
@@ -999,7 +1003,7 @@ struct fte_t {
         }
       }
 
-      ImGui::SliderAngle("angle", &brush.angle);
+      ImGui::DragFloat3("angle", brush.angle.data());
       {
         fan::string temp = brush.id;
         temp.resize(max_id_len);

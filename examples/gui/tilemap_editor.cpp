@@ -2,11 +2,6 @@
 
 #include _FAN_PATH(graphics/gui/tilemap_editor/editor.h)
 
-struct a_t {
-  int x;
-  double y;
-};
-
 int main() {
   //
   loco_t loco;

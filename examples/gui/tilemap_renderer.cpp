@@ -80,14 +80,17 @@ void init_zoom() {
 
 int main() {
   loco_t loco;
-  loco.lighting.ambient = 0;
+  loco_t::image_t::load_properties_t lp;
+  lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_border;
+  lp.min_filter = fan::opengl::GL_NEAREST;
+  lp.mag_filter = fan::opengl::GL_NEAREST;
   loco_t::texturepack_t tp;
-  tp.open_compiled("texture_packs/tilemap.ftp");
+  tp.open_compiled("texture_packs/tilemap.ftp", lp);
 
   fte_renderer_t renderer;
   renderer.open(&tp);
 
-  auto compiled_map = renderer.compile("tilemaps/3.fte");
+  auto compiled_map = renderer.compile("tilemaps/map_game0_0.fte");
 
   fan::vec2i render_size(16, 9);
   render_size *= 2;
@@ -98,11 +101,11 @@ int main() {
   p.position = fan::vec3(0, 0, 0);
   p.size = (render_size * 2) * 32;
   // add custom stuff when importing files
-  p.object_add_cb = [&](fte_loader_t::fte_t::tile_t& tile) {
-    if (tile.id == "1") {
-      fan::print("a");
-    }
-  };
+  //p.object_add_cb = [&](fte_loader_t::fte_t::tile_t& tile) {
+  //  if (tile.id == "1") {
+  //    fan::print("a");
+  //  }
+  //};
 
   init_zoom();
 
@@ -143,6 +146,10 @@ int main() {
   loco.set_vsync(0);
   //loco.window.set_max_fps(3);
   f32_t total_delta = 0;
+
+
+  loco.lighting.ambient = 0.7;
+
   loco.loop([&] {
    // gloco->get_fps();
     player.update();
@@ -153,8 +160,5 @@ int main() {
     //gloco->default_camera->camera.set_position(src + offset);
     gloco->default_camera->camera.set_position(dst);
     renderer.update(map_id0_t, dst);
-    if (gloco->delta_time > 0.002) {
-      fan::print(gloco->delta_time);
-    }
   });
 }

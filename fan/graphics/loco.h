@@ -1519,7 +1519,17 @@ public:
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
 
+    static auto update_key_modifiers = [&] {
+      io.AddKeyEvent(ImGuiMod_Ctrl, window.key_pressed(fan::key_left_control) || window.key_pressed(fan::key_right_control));
+      io.AddKeyEvent(ImGuiMod_Shift, window.key_pressed(fan::key_left_shift) || window.key_pressed(fan::key_right_shift));
+      io.AddKeyEvent(ImGuiMod_Alt, window.key_pressed(fan::key_left_alt) || window.key_pressed(fan::key_right_alt));
+      io.AddKeyEvent(ImGuiMod_Super, window.key_pressed(fan::key_left_super) || window.key_pressed(fan::key_right_super));
+    };
+
     window.add_buttons_callback([&](const auto& d) {
+
+      update_key_modifiers();
+
       if (d.button != fan::mouse_scroll_up && d.button != fan::mouse_scroll_down) {
         io.AddMouseButtonEvent(d.button - fan::mouse_left, (bool)d.state);
       }
@@ -1533,6 +1543,7 @@ public:
       }
     });
     window.add_keys_callback([&](const auto& d) {
+      update_key_modifiers();
       ImGuiKey imgui_key = fan::window_input::fan_to_imguikey(d.key);
       io.AddKeyEvent(imgui_key, (int)d.state);
     });
@@ -2116,11 +2127,16 @@ public:
   int begin = 0;
 
   #if defined(loco_sprite)
+
+  fan::string get_sprite_vertex_shader() {
+    return loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/sprite.vs));
+  }
+
   loco_t::shader_t create_sprite_shader(const fan::string& fragment) {
     loco_t::shader_t shader;
     shader.open();
     shader.set_vertex(
-      loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/sprite.vs))
+      get_sprite_vertex_shader()
     );
     shader.set_fragment(fragment);
     shader.compile();
