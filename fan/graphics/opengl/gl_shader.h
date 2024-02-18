@@ -11,11 +11,12 @@ struct shader_t {
 
   void open() {
     shader_reference = gloco->shader_list.NewNode();
-    get_shader().id = fan::uninitialized;
-    get_shader().shader = this;
+    auto& shader = get_shader();
+    shader.id = fan::uninitialized;
+    shader.shader = this;
 
-    get_shader().vertex = fan::uninitialized;
-    get_shader().fragment = fan::uninitialized;
+    shader.vertex = fan::uninitialized;
+    shader.fragment = fan::uninitialized;
   }
 
   void close() {
@@ -64,122 +65,136 @@ struct shader_t {
 
   void use() const {
     auto& context = gloco->get_context();
-    if (get_shader().id == context.current_program) {
+    const auto& shader = get_shader();
+    if (shader.id == context.current_program) {
       return;
     }
-    context.opengl.call(context.opengl.glUseProgram, get_shader().id);
-    context.current_program = get_shader().id;
+    context.opengl.call(context.opengl.glUseProgram, shader.id);
+    context.current_program = shader.id;
   }
 
   void remove() {
     auto& context = gloco->get_context();
-    fan_validate_buffer(get_shader().id, {
-      context.opengl.call(context.opengl.glValidateProgram, get_shader().id);
-    int status = 0;
-    context.opengl.call(context.opengl.glGetProgramiv, get_shader().id, fan::opengl::GL_VALIDATE_STATUS, &status);
-    if (status) {
-      context.opengl.call(context.opengl.glDeleteProgram, get_shader().id);
-    }
-    get_shader().id = fan::uninitialized;
-    });
+    auto& shader = get_shader();
+    fan_validate_buffer(shader.id, {
+        context.opengl.call(context.opengl.glValidateProgram, shader.id);
+        int status = 0;
+        context.opengl.call(context.opengl.glGetProgramiv, shader.id, fan::opengl::GL_VALIDATE_STATUS, &status);
+        if (status) {
+            context.opengl.call(context.opengl.glDeleteProgram, shader.id);
+        }
+        shader.id = fan::uninitialized;
+      });
   }
 
   void set_vertex(char* vertex_ptr, fan::opengl::GLint length) {
     auto& context = gloco->get_context();
+    auto& shader = get_shader();
 
-    if (get_shader().vertex != fan::uninitialized) {
-      context.opengl.call(context.opengl.glDeleteShader, get_shader().vertex);
+    if (shader.vertex != fan::uninitialized) {
+      context.opengl.call(context.opengl.glDeleteShader, shader.vertex);
     }
 
-    get_shader().vertex = context.opengl.call(context.opengl.glCreateShader, fan::opengl::GL_VERTEX_SHADER);
+    shader.vertex = context.opengl.call(context.opengl.glCreateShader, fan::opengl::GL_VERTEX_SHADER);
 
-    context.opengl.call(context.opengl.glShaderSource, get_shader().vertex, 1, &vertex_ptr, &length);
+    context.opengl.call(context.opengl.glShaderSource, shader.vertex, 1, &vertex_ptr, &length);
 
-    context.opengl.call(context.opengl.glCompileShader, get_shader().vertex);
+    context.opengl.call(context.opengl.glCompileShader, shader.vertex);
 
-    checkCompileErrors(context, get_shader().vertex, "VERTEX");
+    checkCompileErrors(context, shader.vertex, "VERTEX");
   }
 
   void set_vertex(const fan::string& vertex_code) {
     auto& context = gloco->get_context();
+    auto& shader = get_shader();
 
-    if (get_shader().vertex != fan::uninitialized) {
-      context.opengl.call(context.opengl.glDeleteShader, get_shader().vertex);
+    if (shader.vertex != fan::uninitialized) {
+      context.opengl.call(context.opengl.glDeleteShader, shader.vertex);
     }
 
-    get_shader().vertex = context.opengl.call(context.opengl.glCreateShader, fan::opengl::GL_VERTEX_SHADER);
+    shader.vertex = context.opengl.call(context.opengl.glCreateShader, fan::opengl::GL_VERTEX_SHADER);
 
     char* ptr = (char*)vertex_code.c_str();
     fan::opengl::GLint length = vertex_code.size();
 
-    context.opengl.call(context.opengl.glShaderSource, get_shader().vertex, 1, &ptr, &length);
-    context.opengl.call(context.opengl.glCompileShader, get_shader().vertex);
+    context.opengl.call(context.opengl.glShaderSource, shader.vertex, 1, &ptr, &length);
+    context.opengl.call(context.opengl.glCompileShader, shader.vertex);
 
-    checkCompileErrors(context, get_shader().vertex, "VERTEX");
+    checkCompileErrors(context, shader.vertex, "VERTEX");
   }
 
-  void set_fragment( char* fragment_ptr, fan::opengl::GLint length) {
+  void set_fragment(char* fragment_ptr, fan::opengl::GLint length) {
     auto& context = gloco->get_context();
+    auto& shader = get_shader();
 
-    if (get_shader().fragment != -1) {
-      context.opengl.glDeleteShader(get_shader().fragment);
+    if (shader.fragment != -1) {
+      context.opengl.glDeleteShader(shader.fragment);
     }
 
-    get_shader().fragment = context.opengl.glCreateShader(fan::opengl::GL_FRAGMENT_SHADER);
-    context.opengl.glShaderSource(get_shader().fragment, 1, &fragment_ptr, &length);
+    shader.fragment = context.opengl.glCreateShader(fan::opengl::GL_FRAGMENT_SHADER);
+    context.opengl.glShaderSource(shader.fragment, 1, &fragment_ptr, &length);
 
-    context.opengl.glCompileShader(get_shader().fragment);
-    checkCompileErrors(context, get_shader().fragment, "FRAGMENT");
+    context.opengl.glCompileShader(shader.fragment);
+    checkCompileErrors(context, shader.fragment, "FRAGMENT");
   }
+
   void set_fragment(const fan::string& fragment_code) {
-
     auto& context = gloco->get_context();
+    auto& shader = get_shader();
 
-    if (get_shader().fragment != -1) {
-      context.opengl.call(context.opengl.glDeleteShader, get_shader().fragment);
+    if (shader.fragment != -1) {
+      context.opengl.call(context.opengl.glDeleteShader, shader.fragment);
     }
 
-    get_shader().fragment = context.opengl.call(context.opengl.glCreateShader, fan::opengl::GL_FRAGMENT_SHADER);
+    shader.fragment = context.opengl.call(context.opengl.glCreateShader, fan::opengl::GL_FRAGMENT_SHADER);
 
     char* ptr = (char*)fragment_code.c_str();
     fan::opengl::GLint length = fragment_code.size();
 
-    context.opengl.call(context.opengl.glShaderSource, get_shader().fragment, 1, &ptr, &length);
+    context.opengl.call(context.opengl.glShaderSource, shader.fragment, 1, &ptr, &length);
 
-    context.opengl.call(context.opengl.glCompileShader, get_shader().fragment);
-    checkCompileErrors(context, get_shader().fragment, "FRAGMENT");
+    context.opengl.call(context.opengl.glCompileShader, shader.fragment);
+    checkCompileErrors(context, shader.fragment, "FRAGMENT");
   }
 
-  void compile() {
+  bool compile() {
     auto& context = gloco->get_context();
+    auto& shader = get_shader();
 
-    if (get_shader().id != -1) {
-      context.opengl.call(context.opengl.glDeleteProgram, get_shader().id);
+    auto temp_id = context.opengl.call(context.opengl.glCreateProgram);
+    if (shader.vertex != -1) {
+      context.opengl.call(context.opengl.glAttachShader, temp_id, shader.vertex);
+    }
+    if (shader.fragment != -1) {
+      context.opengl.call(context.opengl.glAttachShader, temp_id, shader.fragment);
     }
 
-    get_shader().id = context.opengl.call(context.opengl.glCreateProgram);
-    if (get_shader().vertex != -1) {
-      context.opengl.call(context.opengl.glAttachShader, get_shader().id, get_shader().vertex);
+    context.opengl.call(context.opengl.glLinkProgram, temp_id);
+    bool ret = checkCompileErrors(context, temp_id, "PROGRAM");
+
+    if (shader.vertex != -1) {
+      context.opengl.call(context.opengl.glDeleteShader, shader.vertex);
+      shader.vertex = -1;
     }
-    if (get_shader().fragment != -1) {
-      context.opengl.call(context.opengl.glAttachShader, get_shader().id, get_shader().fragment);
+    if (shader.fragment != -1) {
+      context.opengl.call(context.opengl.glDeleteShader, shader.fragment);
+      shader.fragment = -1;
     }
 
-    context.opengl.call(context.opengl.glLinkProgram, get_shader().id);
-    checkCompileErrors(context, get_shader().id, "PROGRAM");
-
-    if (get_shader().vertex != -1) {
-      context.opengl.call(context.opengl.glDeleteShader, get_shader().vertex);
-      get_shader().vertex = -1;
-    }
-    if (get_shader().fragment != -1) {
-      context.opengl.call(context.opengl.glDeleteShader, get_shader().fragment);
-      get_shader().fragment = -1;
+    if (ret == false) {
+      return ret;
     }
 
-    get_shader().projection_view[0] = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, "projection");
-    get_shader().projection_view[1] = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, "view");
+    if (shader.id != -1) {
+      context.opengl.call(context.opengl.glDeleteProgram, shader.id);
+    }
+    shader.id = temp_id;
+
+    shader.projection_view[0] = context.opengl.call(context.opengl.glGetUniformLocation, shader.id, "projection");
+    shader.projection_view[1] = context.opengl.call(context.opengl.glGetUniformLocation, shader.id, "view");
+    return ret;
   }
+
 
   static constexpr auto validate_error_message = [](const auto str) {
     return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
@@ -369,7 +384,7 @@ struct shader_t {
 
 private:
 
-  void checkCompileErrors(fan::opengl::context_t& context, fan::opengl::GLuint shader, fan::string type)
+  bool checkCompileErrors(fan::opengl::context_t& context, fan::opengl::GLuint shader, fan::string type)
   {
     fan::opengl::GLint success;
 
@@ -383,7 +398,7 @@ private:
     }
 
     if (success) {
-      return;
+      return true;
     }
 
     int buffer_size = 0;
@@ -391,7 +406,7 @@ private:
 
 
     if (buffer_size <= 0) {
-      return;
+      return false;
     }
 
     fan::string buffer;
@@ -410,8 +425,9 @@ private:
           
       fan::print("failed to compile type: " + type, buffer);
 
-      fan::throw_error("failed to compile shaders");
+      return false;
     }
+    return true;
   }
 };
 

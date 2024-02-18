@@ -36,6 +36,16 @@ while(t0.t(&bdbt, &redraw_key)) {
   }
 }
 
+m_framebuffer.unbind(get_context());
+
+get_context().opengl.glFlush();
+get_context().opengl.glFinish();
+
 for (auto& i : m_post_draw) {
   i();
 }
+
+get_context().opengl.glFlush();
+get_context().opengl.glFinish();
+
+m_framebuffer.bind(get_context());

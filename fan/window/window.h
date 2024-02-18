@@ -2691,7 +2691,7 @@ namespace fan {
 
 	namespace io {
 
-		static fan::string get_clipboard_text(fan::window_handle_t window) {
+		static fan::string get_clipboard_text() {
 
 			fan::string copied_text;
 
