@@ -90,6 +90,9 @@ namespace fan {
     inline fan::vec2 vec2(f32_t min, f32_t max) {
       return fan::vec2(fan::random::value_f32(min, max), fan::random::value_f32(min, max));
     }
+    inline fan::vec2 vec2(const fan::vec2& v0, const fan::vec2& v1) {
+      return fan::vec2(fan::random::value_f32(v0.x, v1.x), fan::random::value_f32(v0.y, v1.y));
+    }
     inline fan::vec3 vec3(f32_t min, f32_t max) {
       return fan::vec3(fan::random::value_f32(min, max), fan::random::value_f32(min, max), fan::random::value_f32(min, max));
     }

@@ -75,7 +75,8 @@ namespace fan {
       collider_static_t(const loco_t::shape_t& shape)
         : loco_t::shape_t(shape){
         bcol_t::ObjectProperties_t p;
-        p.Position = get_position();
+        loco_t::shape_t s = shape;
+        p.Position = s.get_position();
         bcol_t::ShapeProperties_Rectangle_t sp;
         sp.Position = 0;
         sp.Size = get_size();
@@ -87,7 +88,7 @@ namespace fan {
         data->collider_type = fan::collider::types_e::collider_static;
       }
       fan::vec2 get_position() const {
-        bcol.GetObject_Position(oid);
+        return bcol.GetObject_Position(oid);
       }
       void set_position(const fan::vec2& position) {
         bcol.SetObject_Position(oid, position);
@@ -125,6 +126,11 @@ namespace fan {
 
       void set_velocity(const fan::vec2& v) {
         bcol.SetObject_Velocity(oid, v);
+      }
+      void set_collider_size(const fan::vec2& v) {
+        auto* data = bcol.GetObjectExtraData(oid);
+        auto SData = bcol.ShapeData_Circle_Get(data->shape_id);
+        SData->Size = v.x;
       }
       bcol_t::ObjectID_t oid;
     };

@@ -263,6 +263,22 @@ struct shader_t {
     }
   }
 
+
+  void set_vec2_array(const fan::string& name, std::vector<fan::vec2>& values) const {
+    auto& context = gloco->get_context();
+    auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
+    #if fan_debug >= fan_debug_insanity
+    fan_validate_value(location, validate_error_message(name));
+    #endif
+    if constexpr (std::is_same<fan::vec2::value_type, f32_t>::value) {
+      context.opengl.call(context.opengl.glUniform2fv, location, values.size(), (f32_t*)&(*values.data())[0]);
+    }
+    else {
+      context.opengl.call(context.opengl.glUniform2dv, location, values.size(), (f64_t*)&(*values.data())[0]);
+    }
+  }
+
+
   void set_vec2(const fan::string& name, f32_t x, f32_t y) const {
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());

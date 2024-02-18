@@ -10,8 +10,7 @@
   uniform sampler2D _t02;
 
 	void main() {
-		vec3 actual_image = texture(_t00, texture_coordinate).rgb;
-		//uint bit_map = texture(_t01, texture_coordinate).r;
-    //vec3 light_map = texture(_t02, texture_coordinate).rgb;
-    o_color = vec4(actual_image, 1);
+    vec3 actual = texture(_t00, texture_coordinate.xy).rgb;
+//    FragColor = vec4(col, 1.0);
+    o_color = vec4(actual, 1);
 	}
