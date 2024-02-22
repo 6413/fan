@@ -6,7 +6,7 @@ int main() {
     fan::vec2(-1, 1),
     fan::vec2(-1, 1)
   );
-  static constexpr f32_t count = 1000;
+  static constexpr f32_t count = 10000;
   static constexpr f32_t size_x = 2.f / count;
   struct node_t {
     fan::graphics::rectangle_t r;
@@ -57,9 +57,10 @@ int main() {
 
   int step = 0;
   fan::time::clock c;
-  c.start(fan::time::nanoseconds(0.8e+8));
+  //c.start(fan::time::nanoseconds(0.1e+9));
   loco.loop([&] {
     loco.get_fps();
+   // if (c.finished()) {
     if (step < lines.size()) {
       for (int i = 0; i < lines.size() - 1 - step; ++i) {
         if (lines[i].value > lines[i + 1].value) {
@@ -72,8 +73,12 @@ int main() {
           lines[i + 1].r.set_position(fan::vec2(2.f - (f32_t)lines[i + 1].value / count * 2 - 1, oldPos.y));
         }
       }
-      step++;
-      c.restart();
+
+        
     }
+    /*step++;
+    c.restart();
+    fan::print(c.elapsed());*/
+    //}
   });
 }

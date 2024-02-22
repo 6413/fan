@@ -989,9 +989,9 @@ namespace fan_3d {
             //  model[2][2] = 0.0001;
             //}
             if (curtains == 0) {
-              model[0][0] = 0.01;
-              model[1][1] = 0.01;
-              model[2][2] = 0.01;
+              //model[0][0] = 0.01;
+              //model[1][1] = 0.01;
+              //model[2][2] = 0.01;
             }
 						gl_Position = projection * view * model * vec4(vertex, 1.0);
             tex_coord = uv;
@@ -1331,7 +1331,7 @@ namespace fan_3d {
             c.start();
             x++;
           }
-          fms.dt = c.elapsed() / 1e+6;
+          fms.dt = c.elapsed() / 1e+7;
         }
 
 
@@ -1468,7 +1468,7 @@ int main() {
     std::vector<fan_3d::animation::fms_t::one_triangle_t> triangle_vec;
   };
 
-  fan_3d::animation::animation_t animation("models/sponza6.fbx");
+  fan_3d::animation::animation_t animation("models/model2.dae");
   //fan_3d::animation::animation_t animation2("models/sponza_curtains.fbx");
 
   std::vector<triangle_list_t> triangles;
@@ -1489,21 +1489,21 @@ int main() {
   auto anid = animation.fms.create_an("an_name", 1);
   //auto anid2 = animation.fms.create_an("an_name2", 0);
 
-  //auto animation_node_id1 = animation.fms.fk_set_rot(anid, "Armature_Chest", 0.001/* time in seconds */,
-  //  fan::vec3(1, 0, 0), 0
-  //);
+  auto animation_node_id1 = animation.fms.fk_set_rot(anid, "Armature_Chest", 0.001/* time in seconds */,
+    fan::vec3(1, 0, 0), 0
+  );
 
-  //auto animation_node_id = animation.fms.fk_set_rot(anid, "Armature_Chest", 0.3/* time in seconds */,
-  //  fan::vec3(1, 0, 0), fan::math::pi / 2
-  //);
+  auto animation_node_id = animation.fms.fk_set_rot(anid, "Armature_Chest", 0.3/* time in seconds */,
+    fan::vec3(1, 0, 0), fan::math::pi / 2
+  );
 
-  //auto animation_node_id3 = animation.fms.fk_set_rot(anid, "Armature_Chest", 0.6/* time in seconds */,
-  //  fan::vec3(1, 0, 0), -fan::math::pi / 3
-  //);
+  auto animation_node_id3 = animation.fms.fk_set_rot(anid, "Armature_Chest", 0.6/* time in seconds */,
+    fan::vec3(1, 0, 0), -fan::math::pi / 3
+  );
 
-  //auto animation_node_id2 = animation.fms.fk_set_rot(anid, "Armature_Upper_Leg_L", 0.6/* time in seconds */,
-  //  fan::vec3(1, 0, 0), -fan::math::pi
-  //);
+  auto animation_node_id2 = animation.fms.fk_set_rot(anid, "Armature_Upper_Leg_L", 0.6/* time in seconds */,
+    fan::vec3(1, 0, 0), -fan::math::pi
+  );
 
 
   //auto animation_node_id3 = animation.fms.fk_set_rot(anid2, 0.5/* time in seconds */, "Armature_Lower_Leg_L", fan::vec3(0, 180, 0));
@@ -1520,7 +1520,7 @@ int main() {
 
   gloco->default_camera_3d->camera.position = { 3.46, 1.94, -6.22 };
   //fan_3d::graphics::add_camera_rotation_callback(&camera);
-
+ 
   fan::time::clock timer;
   timer.start();
   
@@ -1532,20 +1532,20 @@ int main() {
   fan::vec2 window_size = gloco->get_window()->get_size();
 
 
-  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_MIN_FILTER, fan::opengl::GL_LINEAR);
-  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_MAG_FILTER, fan::opengl::GL_LINEAR);
-  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_S, fan::opengl::GL_CLAMP_TO_EDGE);
-  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_T, fan::opengl::GL_CLAMP_TO_EDGE);
-  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_R, fan::opengl::GL_CLAMP_TO_EDGE);
-  
-  for (fan::opengl::GLuint i = 0; i < 6; ++i) {
-    fan::webp::image_info_t image_info;
-    if (fan::webp::load(("images/" + std::to_string(i) + ".webp"), &image_info)) {
-      fan::throw_error("a");
-    }
-    opengl.glTexImage2D(fan::opengl::GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, fan::opengl::GL_RGBA, image_info.size.x, image_info.size.y, 0, fan::opengl::GL_RGBA, fan::opengl::GL_UNSIGNED_BYTE, image_info.data);
-    fan::webp::free_image(image_info.data);
-  }
+  //opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_MIN_FILTER, fan::opengl::GL_LINEAR);
+  //opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_MAG_FILTER, fan::opengl::GL_LINEAR);
+  //opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_S, fan::opengl::GL_CLAMP_TO_EDGE);
+  //opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_T, fan::opengl::GL_CLAMP_TO_EDGE);
+  //opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_R, fan::opengl::GL_CLAMP_TO_EDGE);
+  //
+  //for (fan::opengl::GLuint i = 0; i < 6; ++i) {
+  //  fan::webp::image_info_t image_info;
+  //  if (fan::webp::load(("images/" + std::to_string(i) + ".webp"), &image_info)) {
+  //    fan::throw_error("a");
+  //  }
+  //  opengl.glTexImage2D(fan::opengl::GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, fan::opengl::GL_RGBA, image_info.size.x, image_info.size.y, 0, fan::opengl::GL_RGBA, fan::opengl::GL_UNSIGNED_BYTE, image_info.data);
+  //  fan::webp::free_image(image_info.data);
+  //}
 
   //gloco->m_framebuffer.bind(gloco->get_context());
   //for (int i = 0; i < 6; ++i) {
@@ -1553,25 +1553,29 @@ int main() {
   //}
 
   gloco->m_post_draw.push_back([&] {
-    //animation.fms.calculate_poses();
+    animation.fms.calculate_poses();
 
-    //static bool default_anim = false;
-    //ImGui::Checkbox("default animation", &default_anim);
-    //if (default_anim) {
-    //  // for default animation
-      //auto default_animation_transform = animation.fms.calculate_transformations();
-     // animation.fms.calculate_modified_vertices(default_animation_transform);
-    //}
-    //else {
-    //  auto fk_animation_transform = animation.fms.fk_calculate_transformations();
-    //  animation.fms.calculate_modified_vertices(fk_animation_transform);
-    //}
+    static bool default_anim = false;
+    ImGui::Checkbox("default animation", &default_anim);
+    if (default_anim) {
+      // for default animation
+      auto default_animation_transform = animation.fms.calculate_transformations();
+      animation.fms.calculate_modified_vertices(default_animation_transform);
+    }
+    else {
+      auto fk_animation_transform = animation.fms.fk_calculate_transformations();
+      animation.fms.calculate_modified_vertices(fk_animation_transform);
+    }
 
 
+    for (int i = 0; i < animation.render_objects.size(); ++i) {
+      animation.upload_modified_vertices(i);
+    }
 
-    //animation.mouse_modify_joint();
 
-    //animation.display_animations();
+    animation.mouse_modify_joint();
+
+    animation.display_animations();
 
     //gloco->m_framebuffer.bind(gloco->get_context());
 
@@ -1678,7 +1682,7 @@ int main() {
     camera.move(100);
     fan::ray3_t ray = gloco->convert_mouse_to_ray(camera.position, camera.m_projection, camera.m_view);
 
-    /*if (animation.fms.toggle_rotate && animation.fms.active_joint != -1 && active_axis != -1) {
+    if (animation.fms.toggle_rotate && animation.fms.active_joint != -1 && active_axis != -1) {
       auto& anim = animation.fms.get_active_animation();
       auto& bt = anim.bone_transforms[animation.fms.bone_strings[animation.fms.active_joint]];
       fan::vec3 axis = 0;
@@ -1708,10 +1712,10 @@ int main() {
           }
         }
       }
-    }*/
+    }
 
 
-    /*for (int i = 0; i < animation.shapes.size(); ++i) {
+    for (int i = 0; i < animation.shapes.size(); ++i) {
       if (gloco->is_ray_intersecting_cube(ray, animation.shapes[i].get_position(), animation.shapes[i].get_size())) {
         animation.shapes[i].set_color(fan::colors::green);
         if (ImGui::IsMouseDown(0) && ImGui::IsAnyItemActive()) {
@@ -1721,7 +1725,7 @@ int main() {
       else {
         animation.shapes[i].set_color(fan::colors::red);
       }
-    }*/
+    }
     if (ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
       camera.rotate_camera(fan::vec2(-0.01, 0));
     }
