@@ -59,7 +59,7 @@ void send_data(const fan::string& data) {
   NET_TCP_write_loop(
     pile.peer,
     NET_TCP_GetWriteQueuerReferenceFirst(pile.peer),
-    NET_TCP_QueueType_DynamicPointer_e,
+    NET_TCP_QueueType_DynamicPointer,
     &Queue);
 }
 
@@ -258,13 +258,13 @@ cb_read(
   uintptr_t ReadSize = 0;
   uint8_t _EventReadBuffer[0x1000];
   switch (*type) {
-    case NET_TCP_QueueType_DynamicPointer_e: {
+    case NET_TCP_QueueType_DynamicPointer: {
       ReadData = (uint8_t*)Queue->DynamicPointer.ptr;
       ReadSize = Queue->DynamicPointer.size;
 
       break;
     }
-    case NET_TCP_QueueType_CloseHard_e: {
+    case NET_TCP_QueueType_CloseHard: {
       return 0;
     }
     default: {

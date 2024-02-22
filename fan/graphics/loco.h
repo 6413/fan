@@ -9,7 +9,6 @@
   #define loco_gl_minor 2
 #endif
 
-
 struct loco_t;
 
 // to set new loco use gloco = new_loco;
@@ -1247,12 +1246,6 @@ public:
     button_t sb_shape_var_name;
     #undef sb_shape_var_name
     #endif
-    #if defined(loco_model_3d)
-    #define sb_shape_var_name model
-    #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
-    model_t sb_shape_var_name;
-    #undef sb_shape_var_name
-    #endif
     #if defined(loco_post_process)
     #define sb_post_process_var_name post_process
     #include _FAN_PATH(graphics/opengl/2D/effects/post_process.h)
@@ -2402,3 +2395,7 @@ namespace ImGui {
 #endif
 
 #include _FAN_PATH(graphics/collider.h)
+
+#if defined(loco_model_3d)
+  #include _FAN_PATH(graphics/opengl/3D/objects/model.h)
+#endif

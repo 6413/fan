@@ -71,6 +71,7 @@
 #define loco_grass_2d
 
 #define loco_rectangle_3d
+#define loco_model_3d
 
  
 #define loco_physics

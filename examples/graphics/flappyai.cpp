@@ -3,16 +3,19 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 #include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
 
-constexpr static f32_t BCOLStepTime = 0.01;
-#define ETC_BCOL_set_prefix BCOL
-#define ETC_BCOL_set_DynamicDeltaFunction \
-  ObjectData0->Velocity.y += delta * 30;
-#define ETC_BCOL_set_StoreExtraDataInsideObject 1
-#define ETC_BCOL_set_ExtraDataInsideObject \
-  bool IsItPipe;
-#include _WITCH_PATH(ETC/BCOL/BCOL.h)
 
-f32_t initial_speed = 1;
+constexpr static f32_t BCOLStepTime = 0.001;
+#define BCOL_set_Dimension 2
+#define BCOL_set_IncludePath FAN_INCLUDE_PATH/fan
+#define BCOL_set_prefix BCOL
+#define BCOL_set_DynamicDeltaFunction \
+  ObjectData0->Velocity.y += delta * 200;
+#define BCOL_set_StoreExtraDataInsideObject 1
+#define BCOL_set_ExtraDataInsideObject \
+  bool IsItPipe;
+#include _FAN_PATH(ETC/BCOL/BCOL.h)
+
+f32_t initial_speed = 5;
 
 struct pile_t {
 
@@ -30,8 +33,8 @@ struct pile_t {
   fan::graphics::viewport_t viewport;
 };
 
-static constexpr auto gap_size = 0.6;
-static constexpr fan::vec2 player_size = 0.05;
+static constexpr auto gap_size = 0.9;
+static constexpr fan::vec2 player_size = 0.01;
 
 // 1 : 64
 static constexpr unsigned char MUTATION_PROBABILITY = 64;
@@ -55,7 +58,7 @@ struct pipe_t {
   loco_t::shape_t shape[2];
   void push_back(f32_t xpos) {
 
-    f32_t r = fan::random::value_f32(0.3, 1.7);
+    f32_t r = fan::random::value_f32(2, 3);
 
     for (uint32_t i = 0; i < 2; ++i) {
 
@@ -80,7 +83,7 @@ struct pipe_t {
       pipe_properties.size = sp.Size;
       pipe_properties.camera = &pile->camera;
       pipe_properties.viewport = &pile->viewport;
-      pipe_properties.color = fan::colors::green;
+      pipe_properties.color = fan::random::color();
 
       shape[i] = pipe_properties;
     }
@@ -306,7 +309,8 @@ int main() {
   {
     BCOL_t::OpenProperties_t OpenProperties;
 
-    OpenProperties.PreSolve_Shape_cb =
+    bcol.Open(OpenProperties);
+    bcol.PreSolve_Shape_cb =
       [](
         BCOL_t* bcol,
         const BCOL_t::ShapeInfoPack_t* sip0,
@@ -324,8 +328,6 @@ int main() {
             }
           }
       };
-
-    bcol.Open(&OpenProperties);
   }
 
   // pointer can change for ed->ptr
