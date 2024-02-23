@@ -300,7 +300,8 @@ int main() {
   auto perform_rotations = [&](Rotation rot, f32_t angle) {
 
     for (auto& piece : rotations[rot].arr) {
-      glm::mat4& model = models[cube_ids[piece.index.x][piece.index.y][piece.index.z].index];
+      uint32_t index = cube_ids[piece.index.x][piece.index.y][piece.index.z].index;
+      glm::mat4& model = models[index];
       model = glm::rotate(model, angle, glm::vec3(rotations[rot].axis.x, rotations[rot].axis.y, rotations[rot].axis.z));
       fan::mat4 m;
       for (int i = 0; i < 4; ++i) {
@@ -308,7 +309,7 @@ int main() {
           m[j][i] = model[i][j];
         }
       }
-      rotate_cube(cube_ids[piece.index.x][piece.index.y][piece.index.z].index, cube_ids[piece.index.x][piece.index.y][piece.index.z].index + 1, m);
+      rotate_cube(index, index + 1, m);
     }
   };
   fan::print("\n");
