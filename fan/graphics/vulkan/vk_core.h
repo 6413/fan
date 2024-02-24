@@ -22,7 +22,7 @@ const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
   if (func != nullptr) {
     return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
@@ -32,7 +32,7 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
   }
 }
 
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
   auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
   if (func != nullptr) {
     func(instance, debugMessenger, pAllocator);
@@ -69,7 +69,16 @@ struct UniformBufferObject {
 namespace fan {
   namespace vulkan {
 
-    void validate(VkResult result) {
+    struct context_t;
+
+    static void createImage(fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+  }
+}
+
+namespace fan {
+  namespace vulkan {
+
+    static void validate(VkResult result) {
       if (result != VK_SUCCESS) {
         fan::throw_error("function failed");
       }
@@ -112,17 +121,12 @@ namespace fan {
     struct viewport_t;
     struct shader_t;
 
-    struct cid_t {
-    private:
-      uint64_t filler;
-    };
-
     struct pipeline_t {
 
       struct properties_t {
         uint32_t descriptor_layout_count;
         VkDescriptorSetLayout* descriptor_layout;
-        fan::vulkan::shader_t* shader;
+        void* shader;
         uint32_t push_constants_size = 0;
         uint32_t subpass = 0;
 
@@ -134,8 +138,8 @@ namespace fan {
         VkPrimitiveTopology shape_type = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
       };
 
-      void open(fan::vulkan::context_t* context, const properties_t& p);
-      void close(fan::vulkan::context_t* context);
+      void open(fan::vulkan::context_t& context, const properties_t& p);
+      void close(fan::vulkan::context_t& context);
 
       VkPipelineLayout m_layout;
       VkPipeline m_pipeline;
@@ -144,12 +148,12 @@ namespace fan {
     template <uint32_t count>
     struct descriptor_t {
 
-      void open(fan::vulkan::context_t* context, VkDescriptorPool descriptor_pool, std::array<fan::vulkan::write_descriptor_set_t, count> properties);
-      void close(fan::vulkan::context_t* context);
+      void open(fan::vulkan::context_t& context, VkDescriptorPool descriptor_pool, std::array<fan::vulkan::write_descriptor_set_t, count> properties);
+      void close(fan::vulkan::context_t& context);
 
       // for buffer update, need to manually call .m_properties.common
       void update(
-        fan::vulkan::context_t* context,
+        fan::vulkan::context_t& context,
         uint32_t n = count,
         uint32_t begin = 0,
         uint32_t texture_n = max_textures,
@@ -240,8 +244,8 @@ namespace fan {
         VkImageUsageFlags usage_flags;
         VkImageAspectFlags aspect_flags;
       };
-      void open(auto* context, const properties_t& p) {
-        createImage(
+      void open(auto& context, const properties_t& p) {
+        fan::vulkan::createImage(
           context,
           p.swap_chain_size,
           p.format,
@@ -251,17 +255,17 @@ namespace fan {
           image,
           memory
         );
-        image_view = context->createImageView(image, p.format, p.aspect_flags);
+        image_view = context.createImageView(image, p.format, p.aspect_flags);
         format = p.format;
       }
-      void close(auto* context) {
-        vkDestroyImageView(context->device, image_view, nullptr);
-        vkDestroyImage(context->device, image, nullptr);
-        vkFreeMemory(context->device, memory, nullptr);
+      void close(auto& context) {
+        vkDestroyImageView(context.device, image_view, nullptr);
+        vkDestroyImage(context.device, image, nullptr);
+        vkFreeMemory(context.device, memory, nullptr);
       }
 
-      void transition_image_layout(auto* context, VkImageLayout newLayout) {
-        VkCommandBuffer commandBuffer = context->beginSingleTimeCommands(context);
+      void transition_image_layout(auto& context, VkImageLayout newLayout) {
+        VkCommandBuffer commandBuffer = context.beginSingleTimeCommands(&context);
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -294,7 +298,7 @@ namespace fan {
           1, &barrier
         );
 
-        context->endSingleTimeCommands(context, commandBuffer);
+        context.endSingleTimeCommands(&context, commandBuffer);
 
         old_layout = newLayout;
       }
@@ -312,6 +316,16 @@ namespace fan {
 
 #if defined(loco_window)
 
+#include "themes_list_builder_settings.h"
+#define BLL_set_declare_NodeReference 1
+#define BLL_set_declare_rest 0
+#include _FAN_PATH(BLL/BLL.h)
+
+#include "themes_list_builder_settings.h"
+#define BLL_set_declare_NodeReference 0
+#define BLL_set_declare_rest 1
+#include _FAN_PATH(BLL/BLL.h)
+
 #include "viewport_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 1
 #define BLL_set_declare_rest 0
@@ -326,8 +340,8 @@ namespace fan {
         viewport_reference.sic();
       }
 
-      void open(fan::vulkan::context_t* context);
-      void close(fan::vulkan::context_t* context);
+      void open();
+      void close();
 
       fan::vec2 get_position() const
       {
@@ -339,8 +353,8 @@ namespace fan {
         return viewport_size;
       }
 
-      void set(fan::vulkan::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
-      static void set_viewport(fan::vulkan::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
+      void set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
+      static void set_viewport(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
 
       bool inside(const fan::vec2& position) const {
         return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport_position - viewport_size / 2, viewport_size * 2);
@@ -360,32 +374,12 @@ namespace fan {
 #define BLL_set_declare_rest 1
 #include _FAN_PATH(BLL/BLL.h)
 
-fan::vulkan::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::vulkan::viewport_t* viewport) {
-  NRI = viewport->viewport_reference.NRI;
-}
-
 namespace fan_2d {
   namespace graphics {
     namespace gui {
       struct theme_t;
     }
   }
-}
-
-#include "themes_list_builder_settings.h"
-#define BLL_set_declare_NodeReference 1
-#define BLL_set_declare_rest 0
-#include _FAN_PATH(BLL/BLL.h)
-
-#include _FAN_PATH(graphics/gui/themes.h)
-
-#include "themes_list_builder_settings.h"
-#define BLL_set_declare_NodeReference 0
-#define BLL_set_declare_rest 1
-#include _FAN_PATH(BLL/BLL.h)
-
-fan::vulkan::theme_list_NodeReference_t::theme_list_NodeReference_t(loco_t::theme_t* theme) {
-  NRI = theme->theme_reference.NRI;
 }
 
 #endif
@@ -462,7 +456,7 @@ namespace fan {
       }
 
       void cleanupSwapChain() {
-        vai_depth.close(this);
+        vai_depth.close(*this);
 
         for (auto framebuffer : swapChainFramebuffers) {
           vkDestroyFramebuffer(device, framebuffer, nullptr);
@@ -1088,6 +1082,7 @@ namespace fan {
           nullptr
         );
         vkCmdDraw(commandBuffers[currentFrame], vertex_count, instance_count, 0, first_instance);
+        
       }
 
       void createSyncObjects() {
@@ -1140,76 +1135,7 @@ namespace fan {
       //  vkUnmapMemory(device, uniform_block.common.memory[currentImage].device_memory);
       //}
 #if defined(loco_window)
-      void begin_render(fan::window_t* window) {
-        vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-
-        VkResult result = vkAcquireNextImageKHR(
-          device,
-          swapChain,
-          UINT64_MAX,
-          imageAvailableSemaphores[currentFrame],
-          VK_NULL_HANDLE,
-          &image_index
-        );
-
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-          recreateSwapChain(window->get_size());
-          return;
-        }
-        else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-          fan::throw_error("failed to acquire swap chain image!");
-        }
-
-        vkResetFences(device, 1, &inFlightFences[currentFrame]);
-
-        vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        if (vkBeginCommandBuffer(commandBuffers[currentFrame], &beginInfo) != VK_SUCCESS) {
-          fan::throw_error("failed to begin recording command buffer!");
-        }
-
-        command_buffer_in_use = true;
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapChainFramebuffers[image_index];
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent.width = swap_chain_size.x;
-        renderPassInfo.renderArea.extent.height = swap_chain_size.y;
-
-        // TODO
-
-#if defined(loco_wboit)
-        VkClearValue clearValues[4]{};
-        clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
-        clearValues[3].depthStencil = { 1.0f, 0 };
-
-        clearValues[0].color.float32[0] = 0.0f;
-        clearValues[0].color.float32[1] = 0.0f;
-        clearValues[0].color.float32[2] = 0.0f;
-        clearValues[0].color.float32[3] = 0.0f;
-        clearValues[1].color.float32[0] = 1.f;  // Initially, all pixels show through all the way (reveal = 100%)
-
-#else
-        VkClearValue clearValues[
-          5
-        ]{};
-          clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
-          clearValues[1].color = { {0.f, 0.f, 0.f, 0.f} };
-          clearValues[2].color = { {0.f, 0.f, 0.f, 0.f} };
-          clearValues[3].color = { {0.f, 0.f, 0.f, 0.f} };
-          clearValues[4].depthStencil = { 1.0f, 0 };
-#endif
-
-          renderPassInfo.clearValueCount = std::size(clearValues);
-          renderPassInfo.pClearValues = clearValues;
-
-          vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-      }
+      void begin_render(fan::window_t* window);
 
       void end_render(fan::window_t* window) {
 #if defined(loco_wboit)
@@ -1218,10 +1144,13 @@ namespace fan {
         vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
 #endif
 
-        fan::vulkan::viewport_t::set_viewport(this, 0, swap_chain_size, swap_chain_size);
+        fan::vulkan::viewport_t::set_viewport(0, swap_chain_size, swap_chain_size);
 
+        // render_fullscreen_pl loco fbo?
         vkCmdNextSubpass(commandBuffers[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
+
         vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);
+
         vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
 
 
@@ -1622,12 +1551,11 @@ namespace fan {
 #include "memory.h"
 #include "uniform_block.h"
 #include "ssbo.h"
-#include "vk_shader.h"
 
 namespace fan {
   namespace vulkan {
 
-    static void createImage(fan::vulkan::context_t* context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
+    static void createImage(fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
       VkImageCreateInfo imageInfo{};
       imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
       imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -1643,36 +1571,36 @@ namespace fan {
       imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
       imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-      if (vkCreateImage(context->device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+      if (vkCreateImage(context.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
         throw std::runtime_error("failed to create image!");
       }
 
       VkMemoryRequirements memRequirements;
-      vkGetImageMemoryRequirements(context->device, image, &memRequirements);
+      vkGetImageMemoryRequirements(context.device, image, &memRequirements);
 
       VkMemoryAllocateInfo allocInfo{};
       allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
       allocInfo.allocationSize = memRequirements.size;
       allocInfo.memoryTypeIndex = fan::vulkan::core::findMemoryType(context, memRequirements.memoryTypeBits, properties);
 
-      if (vkAllocateMemory(context->device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+      if (vkAllocateMemory(context.device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate image memory!");
       }
 
-      vkBindImageMemory(context->device, image, imageMemory, 0);
+      vkBindImageMemory(context.device, image, imageMemory, 0);
     }
 
-    void context_t::create_loco_framebuffer() {
+    inline void context_t::create_loco_framebuffer() {
       vai_t::properties_t p;
       p.format = swapChainImageFormat;
       p.swap_chain_size = swap_chain_size;
       p.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
       p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
-      vai_bitmap[0].open(this, p);
-      vai_bitmap[0].transition_image_layout(this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-      p.format = VK_FORMAT_R8_UINT;
-      vai_bitmap[1].open(this, p);
-      vai_bitmap[1].transition_image_layout(this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      vai_bitmap[0].open(*this, p);
+      vai_bitmap[0].transition_image_layout(*this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      p.format = VK_FORMAT_B8G8R8A8_UNORM; // TODO should it be VK_FORMAT_R8_UINT?
+      vai_bitmap[1].open(*this, p);
+      vai_bitmap[1].transition_image_layout(*this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
 #if defined(loco_wboit)
@@ -1691,117 +1619,13 @@ namespace fan {
     }
 #endif
 
-    void context_t::createDepthResources() {
-      vai_t::properties_t p;
-      p.swap_chain_size = swap_chain_size;
-      p.format = findDepthFormat();
-      p.usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-      p.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
-      vai_depth.open(this, p);
-    }
-
-    void pipeline_t::open(fan::vulkan::context_t* context, const properties_t& p) {
-      VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-      vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-      VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-      inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-      inputAssembly.topology = p.shape_type;
-      inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-      VkPipelineViewportStateCreateInfo viewportState{};
-      viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-      viewportState.viewportCount = 1;
-      viewportState.scissorCount = 1;
-
-      VkPipelineRasterizationStateCreateInfo rasterizer{};
-      rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-      rasterizer.depthClampEnable = VK_FALSE;
-      rasterizer.rasterizerDiscardEnable = VK_FALSE;
-      rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-      rasterizer.lineWidth = 1.0f;
-      rasterizer.cullMode = VK_CULL_MODE_NONE;
-      rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-      rasterizer.depthBiasEnable = VK_FALSE;
-
-      VkPipelineMultisampleStateCreateInfo multisampling{};
-      multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-      multisampling.sampleShadingEnable = VK_FALSE;
-      multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-      VkPipelineDepthStencilStateCreateInfo depthStencil{};
-      depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-      depthStencil.depthTestEnable = VK_FALSE;//p.enable_depth_test;
-      depthStencil.depthWriteEnable = VK_TRUE;
-      depthStencil.depthCompareOp = p.depth_test_compare_op;
-      depthStencil.depthBoundsTestEnable = VK_FALSE;
-      depthStencil.stencilTestEnable = VK_FALSE;
-
-      VkPipelineColorBlendStateCreateInfo colorBlending{};
-      colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-      colorBlending.logicOpEnable = VK_FALSE;
-      colorBlending.logicOp = VK_LOGIC_OP_NO_OP;
-      colorBlending.attachmentCount = p.color_blend_attachment_count;
-      colorBlending.pAttachments = p.color_blend_attachment;
-      colorBlending.blendConstants[0] = 1.0f;
-      colorBlending.blendConstants[1] = 1.0f;
-      colorBlending.blendConstants[2] = 1.0f;
-      colorBlending.blendConstants[3] = 1.0f;
-
-      std::vector<VkDynamicState> dynamicStates = {
-          VK_DYNAMIC_STATE_VIEWPORT,
-          VK_DYNAMIC_STATE_SCISSOR
-      };
-      VkPipelineDynamicStateCreateInfo dynamicState{};
-      dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-      dynamicState.dynamicStateCount = dynamicStates.size();
-      dynamicState.pDynamicStates = dynamicStates.data();
-
-      VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-      pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-      pipelineLayoutInfo.setLayoutCount = p.descriptor_layout_count;
-      pipelineLayoutInfo.pSetLayouts = p.descriptor_layout;
-
-      VkPushConstantRange push_constant;
-      push_constant.offset = 0;
-      push_constant.size = p.push_constants_size;
-      push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
-      pipelineLayoutInfo.pPushConstantRanges = &push_constant;
-      pipelineLayoutInfo.pushConstantRangeCount = 1;
-
-      if (vkCreatePipelineLayout(context->device, &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS) {
-        fan::throw_error("failed to create pipeline layout!");
-      }
-
-      VkGraphicsPipelineCreateInfo pipelineInfo{};
-      pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-      pipelineInfo.stageCount = 2;
-      pipelineInfo.pStages = p.shader->shaderStages;
-      pipelineInfo.pVertexInputState = &vertexInputInfo;
-      pipelineInfo.pInputAssemblyState = &inputAssembly;
-      pipelineInfo.pViewportState = &viewportState;
-      pipelineInfo.pRasterizationState = &rasterizer;
-      pipelineInfo.pMultisampleState = &multisampling;
-      pipelineInfo.pDepthStencilState = &depthStencil;
-      pipelineInfo.pColorBlendState = &colorBlending;
-      pipelineInfo.pDynamicState = &dynamicState;
-      pipelineInfo.layout = m_layout;
-      pipelineInfo.renderPass = context->renderPass;
-      pipelineInfo.subpass = p.subpass;
-      pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
-      if (vkCreateGraphicsPipelines(context->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
-        fan::throw_error("failed to create graphics pipeline");
-      }
-    }
-    void pipeline_t::close(fan::vulkan::context_t* context) {
-      vkDestroyPipeline(context->device, m_pipeline, nullptr);
-      vkDestroyPipelineLayout(context->device, m_layout, nullptr);
+    void pipeline_t::close(fan::vulkan::context_t& context) {
+      vkDestroyPipeline(context.device, m_pipeline, nullptr);
+      vkDestroyPipelineLayout(context.device, m_layout, nullptr);
     }
 
     template <uint32_t count>
-    inline void descriptor_t<count>::open(fan::vulkan::context_t* context, VkDescriptorPool descriptor_pool, std::array<fan::vulkan::write_descriptor_set_t, count> properties) {
+    inline void descriptor_t<count>::open(fan::vulkan::context_t& context, VkDescriptorPool descriptor_pool, std::array<fan::vulkan::write_descriptor_set_t, count> properties) {
       m_properties = properties;
 
       VkDescriptorSetLayoutBinding uboLayoutBinding[count]{};
@@ -1820,7 +1644,7 @@ namespace fan {
       layoutInfo.bindingCount = std::size(uboLayoutBinding);
       layoutInfo.pBindings = uboLayoutBinding;
 
-      validate(vkCreateDescriptorSetLayout(context->device, &layoutInfo, nullptr, &m_layout));
+      validate(vkCreateDescriptorSetLayout(context.device, &layoutInfo, nullptr, &m_layout));
 
       std::array<VkDescriptorSetLayout, MAX_FRAMES_IN_FLIGHT> layouts;
       for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
@@ -1832,17 +1656,17 @@ namespace fan {
       allocInfo.descriptorSetCount = layouts.size();
       allocInfo.pSetLayouts = layouts.data();
 
-      validate(vkAllocateDescriptorSets(context->device, &allocInfo, m_descriptor_set));
+      validate(vkAllocateDescriptorSets(context.device, &allocInfo, m_descriptor_set));
     }
 
     template <uint32_t count>
-    inline void descriptor_t<count>::close(fan::vulkan::context_t* context) {
-      vkDestroyDescriptorSetLayout(context->device, m_layout, 0);
+    inline void descriptor_t<count>::close(fan::vulkan::context_t& context) {
+      vkDestroyDescriptorSetLayout(context.device, m_layout, 0);
     }
 
     template <uint32_t count>
     inline void descriptor_t<count>::update(
-      fan::vulkan::context_t* context,
+      fan::vulkan::context_t& context,
       uint32_t n,
       uint32_t begin,
       uint32_t texture_n,
@@ -1875,114 +1699,17 @@ namespace fan {
             descriptorWrites[j].descriptorCount = texture_n;
           }
         }
-        vkUpdateDescriptorSets(context->device, n, descriptorWrites.data() + begin, 0, nullptr);
+        vkUpdateDescriptorSets(context.device, n, descriptorWrites.data() + begin, 0, nullptr);
       }
     }
   }
 }
 
-#if defined(loco_window)
-
-inline void fan::vulkan::viewport_t::open(fan::vulkan::context_t* context) {
-  viewport_reference = context->viewport_list.NewNode();
-  context->viewport_list[viewport_reference].viewport_id = this;
-}
-
-inline void fan::vulkan::viewport_t::close(fan::vulkan::context_t* context) {
-  context->viewport_list.Recycle(viewport_reference);
-}
-
-void fan::vulkan::viewport_t::set(fan::vulkan::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
-  viewport_position = viewport_position_;
-  viewport_size = viewport_size_;
-
-  VkViewport viewport{};
-  viewport.x = viewport_position.x;
-  viewport.y = viewport_position.y;
-  viewport.width = viewport_size.x;
-  viewport.height = viewport_size.y;
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
-
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-  if (!context->command_buffer_in_use) {
-    VkResult result = vkGetFenceStatus(context->device, context->inFlightFences[context->currentFrame]);
-    if (result == VK_NOT_READY) {
-      vkDeviceWaitIdle(context->device);
-    }
-
-    if (vkBeginCommandBuffer(context->commandBuffers[context->currentFrame], &beginInfo) != VK_SUCCESS) {
-      fan::throw_error("failed to begin recording command buffer!");
-    }
-  }
-  vkCmdSetViewport(context->commandBuffers[context->currentFrame], 0, 1, &viewport);
-
-  if (!context->command_buffer_in_use) {
-    if (vkEndCommandBuffer(context->commandBuffers[context->currentFrame]) != VK_SUCCESS) {
-      fan::throw_error("failed to record command buffer!");
-    }
-    context->command_buffer_in_use = false;
-  }
-}
-
-inline void fan::vulkan::viewport_t::set_viewport(fan::vulkan::context_t* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
-  VkViewport viewport{};
-  viewport.x = viewport_position_.x;
-  viewport.y = viewport_position_.y;
-  viewport.width = viewport_size_.x;
-  viewport.height = viewport_size_.y;
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
-
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-  if (!context->command_buffer_in_use) {
-    VkResult result = vkGetFenceStatus(context->device, context->inFlightFences[context->currentFrame]);
-    if (result == VK_NOT_READY) {
-      vkDeviceWaitIdle(context->device);
-    }
-
-    if (vkBeginCommandBuffer(context->commandBuffers[context->currentFrame], &beginInfo) != VK_SUCCESS) {
-      fan::throw_error("failed to begin recording command buffer!");
-    }
-  }
-  vkCmdSetViewport(context->commandBuffers[context->currentFrame], 0, 1, &viewport);
-
-  if (!context->command_buffer_in_use) {
-    if (vkEndCommandBuffer(context->commandBuffers[context->currentFrame]) != VK_SUCCESS) {
-      fan::throw_error("failed to record command buffer!");
-    }
-    context->command_buffer_in_use = false;
-  }
-}
-#endif
-
-void fan::vulkan::shader_t::open(fan::vulkan::context_t* context, fan::vulkan::core::memory_write_queue_t* wq) {
-  projection_view_block.open(context);
-  for (uint32_t i = 0; i < fan::vulkan::max_camera; ++i) {
-    projection_view_block.push_ram_instance(context, wq, {});
-  }
-}
-
-void fan::vulkan::shader_t::close(fan::vulkan::context_t* context, fan::vulkan::core::memory_write_queue_t* write_queue) {
-  vkDestroyShaderModule(context->device, shaderStages[0].module, nullptr);
-  vkDestroyShaderModule(context->device, shaderStages[1].module, nullptr);
-  projection_view_block.close(context, write_queue);
-}
-
-inline VkShaderModule fan::vulkan::shader_t::createShaderModule(fan::vulkan::context_t* context, const std::vector<uint32_t>& code) {
-  VkShaderModuleCreateInfo createInfo{};
-  createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  createInfo.codeSize = code.size() * sizeof(typename std::remove_reference_t<decltype(code)>::value_type);
-  createInfo.pCode = code.data();
-
-  VkShaderModule shaderModule;
-  if (vkCreateShaderModule(context->device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-    fan::throw_error("failed to create shader module!");
-  }
-
-  return shaderModule;
+inline void fan::vulkan::context_t::createDepthResources() {
+  vai_t::properties_t p;
+  p.swap_chain_size = swap_chain_size;
+  p.format = findDepthFormat();
+  p.usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+  p.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
+  vai_depth.open(*this, p);
 }

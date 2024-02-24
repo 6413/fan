@@ -26,7 +26,8 @@
       //static constexpr uint32_t internal_format = fan::opengl::GL_RGBA;
       static constexpr VkFormat format = format::r8b8g8a8_unorm;
       //static constexpr uint32_t type = fan::opengl::GL_UNSIGNED_BYTE;
-      static constexpr VkFilter filter = filter::nearest;
+      static constexpr VkFilter min_filter = filter::nearest;
+      static constexpr VkFilter mag_filter = filter::nearest;
     };
 
     struct load_properties_t {
@@ -38,24 +39,25 @@
       //uintptr_t           format = load_properties_defaults::format;
       //uintptr_t           type = load_properties_defaults::type;
       VkFormat format = load_properties_defaults::format;
-      VkFilter           filter = load_properties_defaults::filter;
+      VkFilter           min_filter = load_properties_defaults::min_filter;
+      VkFilter           mag_filter = load_properties_defaults::mag_filter;
       // unused opengl filler
       uint8_t internal_format = 0;
     };
 
     image_t() = default;
 
-    image_t(loco_t* loco, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
-      load(loco, image_info, p);
+    image_t(const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
+      load(image_info, p);
     }
 
-    auto* get_texture_data(loco_t* loco) {
-      return &loco->image_list[texture_reference];
+    auto* get_texture_data() {
+      return &gloco->image_list[texture_reference];
     }
 
-    static void transitionImageLayout(loco_t* loco, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
-      auto context = loco->get_context();
-      VkCommandBuffer commandBuffer = context->beginSingleTimeCommands(context);
+    static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
+      auto& context = gloco->get_context();
+      VkCommandBuffer commandBuffer = context.beginSingleTimeCommands(&context);
 
       VkImageMemoryBarrier barrier{};
       barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -100,12 +102,12 @@
         1, &barrier
       );
 
-      fan::vulkan::context_t::endSingleTimeCommands(context, commandBuffer);
+      fan::vulkan::context_t::endSingleTimeCommands(&context, commandBuffer);
     }
 
-    static void copyBufferToImage(loco_t* loco, VkBuffer buffer, VkImage image, VkFormat format, const fan::vec2ui& size, const fan::vec2ui& stride = 1) {
-      auto context = loco->get_context();
-      VkCommandBuffer commandBuffer = fan::vulkan::context_t::beginSingleTimeCommands(context);
+    static void copyBufferToImage(VkBuffer buffer, VkImage image, VkFormat format, const fan::vec2ui& size, const fan::vec2ui& stride = 1) {
+      auto& context = gloco->get_context();
+      VkCommandBuffer commandBuffer = fan::vulkan::context_t::beginSingleTimeCommands(&context);
 
       uint32_t block_width = get_image_multiplier(format);
       uint32_t block_x = (block_width - 1) / block_width;
@@ -146,19 +148,19 @@
 
       vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-      fan::vulkan::context_t::endSingleTimeCommands(context, commandBuffer);
+      fan::vulkan::context_t::endSingleTimeCommands(&context, commandBuffer);
     }
 
 
-    static void createTextureSampler(loco_t* loco, VkSampler& sampler, const load_properties_t& lp = load_properties_t()) {
-      auto context = loco->get_context();
+    static void createTextureSampler(VkSampler& sampler, const load_properties_t& lp = load_properties_t()) {
+      auto& context = gloco->get_context();
       VkPhysicalDeviceProperties properties{};
-      vkGetPhysicalDeviceProperties(context->physicalDevice, &properties);
+      vkGetPhysicalDeviceProperties(context.physicalDevice, &properties);
 
       VkSamplerCreateInfo samplerInfo{};
       samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-      samplerInfo.magFilter = lp.filter;
-      samplerInfo.minFilter = lp.filter;
+      samplerInfo.magFilter = lp.mag_filter;
+      samplerInfo.minFilter = lp.min_filter;
       samplerInfo.addressModeU = lp.visual_output;
       samplerInfo.addressModeV = lp.visual_output;
       samplerInfo.addressModeW = lp.visual_output;
@@ -170,25 +172,24 @@
       samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
       samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-      if (vkCreateSampler(context->device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
+      if (vkCreateSampler(context.device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture sampler!");
       }
     }
 
 
-    auto& get(loco_t* loco) {
-      auto& node = loco->image_list[texture_reference];
+    auto& get() {
+      auto& node = gloco->image_list[texture_reference];
       return node;
     }
 
-    auto& create_texture(loco_t* loco, const fan::vec2ui& image_size, const load_properties_t& lp) {
-      auto context = loco->get_context();
+    auto& create_texture(const fan::vec2ui& image_size, const load_properties_t& lp) {
+      auto& context = gloco->get_context();
 
-      texture_reference = loco->image_list.NewNode();
-      auto& node = loco->image_list[texture_reference];
+      texture_reference = gloco->image_list.NewNode();
+      auto& node = gloco->image_list[texture_reference];
 
       createImage(
-        loco, 
         image_size, 
         lp.format,
         VK_IMAGE_TILING_OPTIMAL, 
@@ -197,19 +198,19 @@
         node.image,
         node.image_memory
       );
-      node.image_view = createImageView(loco, node.image, lp.format);
-      createTextureSampler(loco, node.sampler, lp);
+      node.image_view = createImageView(node.image, lp.format);
+      createTextureSampler(node.sampler, lp);
 
       return node;
     }
-    void erase_texture(loco_t* loco) {
-      auto& context = loco->get_context();
-      auto texture_data = get_texture_data(loco);
-      vkDestroyImage(context->device, texture_data->image, 0);
-      vkDestroyImageView(context->device, texture_data->image_view, 0);
-      vkFreeMemory(context->device, texture_data->image_memory, nullptr);
+    void erase_texture() {
+      auto& context = gloco->get_context();
+      auto texture_data = get_texture_data();
+      vkDestroyImage(context.device, texture_data->image, 0);
+      vkDestroyImageView(context.device, texture_data->image_view, 0);
+      vkFreeMemory(context.device, texture_data->image_memory, nullptr);
 
-      loco->image_list.Recycle(texture_reference);
+      gloco->image_list.Recycle(texture_reference);
     }
 
     constexpr static uint32_t get_image_multiplier(VkFormat format) {
@@ -232,10 +233,10 @@
       }
     }
 
-    bool load(loco_t* loco, const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
+    bool load(const fan::webp::image_info_t image_info, load_properties_t p = load_properties_t()) {
       size = image_info.size;
 
-      auto context = loco->get_context();
+      auto& context = gloco->get_context();
 
       auto image_multiplier = get_image_multiplier(p.format);
 
@@ -251,20 +252,20 @@
         stagingBufferMemory
       );
 
-      vkMapMemory(context->device, stagingBufferMemory, 0, imageSize, 0, &data);
+      vkMapMemory(context.device, stagingBufferMemory, 0, imageSize, 0, &data);
       memcpy(data, image_info.data, imageSize); // TODO  / 4 in yuv420p
 
-      auto node = create_texture(loco, image_info.size, p);
+      auto node = create_texture(image_info.size, p);
 
-      transitionImageLayout(loco, node.image, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-      copyBufferToImage(loco, stagingBuffer, node.image, p.format, image_info.size);
-      transitionImageLayout(loco, node.image, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      transitionImageLayout(node.image, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+      copyBufferToImage(stagingBuffer, node.image, p.format, image_info.size);
+      transitionImageLayout(node.image, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
       return 0;
     }
 
-    bool load(loco_t* loco, const fan::string& path, const load_properties_t& p = load_properties_t()) {
-      auto context = loco->get_context();
+    bool load(const fan::string& path, const load_properties_t& p = load_properties_t()) {
+      auto& context = gloco->get_context();
       #if fan_assert_if_same_path_loaded_multiple_times
 
       static std::unordered_map<fan::string, bool> existing_images;
@@ -283,28 +284,28 @@
       }
 
       //image_info.size *= 4;
-      bool ret = load(loco, image_info, p);
+      bool ret = load(image_info, p);
       fan::webp::free_image(image_info.data);
 
       return ret;
     }
 
-    void reload_pixels(loco_t* loco, const fan::webp::image_info_t& image_info, load_properties_t p = load_properties_t()) {
-      auto context = loco->get_context();
+    void reload_pixels(const fan::webp::image_info_t& image_info, load_properties_t p = load_properties_t()) {
+      auto& context = gloco->get_context();
       auto image_multiplier = get_image_multiplier(p.format);
 
       VkDeviceSize imageSize = image_info.size.multiply() * image_multiplier;
 
       memcpy(data, image_info.data, imageSize / 4);
 
-      auto& node = loco->image_list[texture_reference];
+      auto& node = gloco->image_list[texture_reference];
 
-      transitionImageLayout(loco, node.image, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-      copyBufferToImage(loco, stagingBuffer, node.image, p.format, image_info.size);
-      transitionImageLayout(loco, node.image, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      transitionImageLayout(node.image, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+      copyBufferToImage(stagingBuffer, node.image, p.format, image_info.size);
+      transitionImageLayout(node.image, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
-    //void reload(loco_t* loco, const fan::string& path, const load_properties_t& p = load_properties_t()) {
+    //void reload(const fan::string& path, const load_properties_t& p = load_properties_t()) {
     //  fan::webp::image_info_t image_info;
     //  if (fan::webp::load(path, &image_info)) {
     //    return true;
@@ -312,7 +313,7 @@
 
     //  size = image_info.size;
 
-    //  auto context = loco->get_context();
+    //  auto& context = gloco->get_context();
     //  VkBuffer stagingBuffer;
     //  VkDeviceMemory stagingBufferMemory;
 
@@ -345,15 +346,15 @@
     //  fan::webp::free_image(image_info.data);
     //}
 
-    void unload(loco_t* loco) {
-      erase_texture(loco);
-      auto context = loco->get_context();
-      vkDestroyBuffer(context->device, stagingBuffer, nullptr);
-      vkFreeMemory(context->device, stagingBufferMemory, nullptr);
+    void unload() {
+      erase_texture();
+      auto& context = gloco->get_context();
+      vkDestroyBuffer(context.device, stagingBuffer, nullptr);
+      vkFreeMemory(context.device, stagingBufferMemory, nullptr);
     }
 
-    static void createImage(loco_t* loco, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
-      auto context = loco->get_context();
+    static void createImage(const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
+      auto& context = gloco->get_context();
       VkImageCreateInfo imageInfo{};
       imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
       imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -369,27 +370,27 @@
       imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
       imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-      if (vkCreateImage(context->device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+      if (vkCreateImage(context.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
         throw std::runtime_error("failed to create image!");
       }
 
       VkMemoryRequirements memRequirements;
-      vkGetImageMemoryRequirements(context->device, image, &memRequirements);
+      vkGetImageMemoryRequirements(context.device, image, &memRequirements);
 
       VkMemoryAllocateInfo allocInfo{};
       allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
       allocInfo.allocationSize = memRequirements.size;
       allocInfo.memoryTypeIndex = fan::vulkan::core::findMemoryType(context, memRequirements.memoryTypeBits, properties);
 
-      if (vkAllocateMemory(context->device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+      if (vkAllocateMemory(context.device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate image memory!");
       }
 
-      vkBindImageMemory(context->device, image, imageMemory, 0);
+      vkBindImageMemory(context.device, image, imageMemory, 0);
     }
 
-    static VkImageView createImageView(loco_t* loco, VkImage image, VkFormat format) {
-      auto context = loco->get_context();
+    static VkImageView createImageView(VkImage image, VkFormat format) {
+      auto& context = gloco->get_context();
       VkImageViewCreateInfo viewInfo{};
       viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
       viewInfo.image = image;
@@ -402,7 +403,7 @@
       viewInfo.subresourceRange.layerCount = 1;
 
       VkImageView imageView;
-      if (vkCreateImageView(context->device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+      if (vkCreateImageView(context.device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture image view!");
       }
 

@@ -13,7 +13,7 @@ void main() {
 	//o_color = subpassLoad(attachment0) + subpassLoad(attachment1);
   //o_color.a = 0;
   o_color = subpassLoad(attachment0);
-  o_color.r += subpassLoad(attachment1).r;
+  //o_color.r += subpassLoad(attachment1).r;
   //r_color = subpassLoad(attachment0);
 
 }

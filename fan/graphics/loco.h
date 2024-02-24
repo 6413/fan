@@ -84,8 +84,10 @@ extern "C" {
   #define loco_sprite
 #endif
 #if defined(loco_sprite)
+#if defined(loco_opengl)
 #define loco_texture_pack
 #define loco_unlit_sprite
+#endif
 #endif
 
 #if defined(loco_button)
@@ -98,6 +100,64 @@ extern "C" {
 #define loco_letter
 #define loco_responsive_text
 #endif
+
+
+
+#ifdef loco_vulkan
+#ifdef loco_line 
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#endif
+#ifdef loco_rectangle 
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#endif
+#ifdef loco_sprite
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#ifndef loco_vulkan_descriptor_image_sampler
+#define loco_vulkan_descriptor_image_sampler
+#endif
+#endif
+#ifdef loco_yuv420p
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#ifndef loco_vulkan_descriptor_image_sampler
+#define loco_vulkan_descriptor_image_sampler
+#endif
+#endif
+#ifdef loco_letter
+#ifndef loco_vulkan_descriptor_ssbo
+#define loco_vulkan_descriptor_ssbo
+#endif
+#ifndef loco_vulkan_descriptor_uniform_block
+#define loco_vulkan_descriptor_uniform_block
+#endif
+#ifndef loco_vulkan_descriptor_image_sampler
+#define loco_vulkan_descriptor_image_sampler
+#endif
+#endif
+#if defined loco_compute_shader
+#define loco_vulkan_descriptor_ssbo
+#endif
+#endif
+
 
 // increase this to increase shape limit
 using bdbt_key_type_t = uint16_t;
@@ -298,11 +358,13 @@ protected:
   fan::graphics::context_t context;
   #endif
 
-  #if defined(loco_opengl) && defined(loco_context)
-
+  #if defined(loco_context)
 public:
-  using viewport_t = fan::graphics::viewport_t;
+    using viewport_t = fan::graphics::viewport_t;
 protected:
+#endif
+
+  #if defined(loco_opengl) && defined(loco_context)
 
   unsigned int fb_vao;
   unsigned int fb_vbo;
@@ -344,19 +406,27 @@ public:
   #if defined(loco_opengl)
 
   #include _FAN_PATH(graphics/opengl/shader_list_builder_settings.h)
+  #elif defined(loco_vulkan)
+  #include _FAN_PATH(graphics/vulkan/shader_list_builder_settings.h)
   #endif
   #include _FAN_PATH(BLL/BLL.h)
 
+  // TODO REMOVE
+  //#if defined(loco_opengl)
   shader_list_t shader_list;
+  //#endif
 
+  #if defined(loco_opengl)
   #include _FAN_PATH(graphics/opengl/gl_shader.h)
-
+  #elif defined(loco_vulkan)
+  #include _FAN_PATH(graphics/vulkan/vk_shader.h)
+  #endif
+  #if defined(loco_opengl)
   #include _FAN_PATH(graphics/opengl/image_list_builder_settings.h)
+  #elif defined(loco_vulkan)
+  #include _FAN_PATH(graphics/vulkan/image_list_builder_settings.h)
   #endif
   #include _FAN_PATH(BLL/BLL.h)
-
-  image_list_t image_list;
-
   template <uint8_t n_>
   struct textureid_t : image_list_NodeReference_t {
     static constexpr std::array<const char*, 32> texture_names = {
@@ -376,18 +446,29 @@ public:
     textureid_t(image_t* image) : image_list_NodeReference_t::image_list_NodeReference_t(image) {
     }
   };
+  #endif
+  // TODO REMOVE
+  //#if defined(loco_opengl)
+  image_list_t image_list;
+  //#endif
 
   #if defined(loco_opengl)
   #include _FAN_PATH(graphics/opengl/gl_image.h)
+  #elif defined(loco_vulkan)
+  #include _FAN_PATH(graphics/vulkan/vk_image.h)
   #endif
 
+  // TODO camera_t;
   struct camera_t;
 
   #define BLL_set_declare_NodeReference 1
   #define BLL_set_declare_rest 0
   #if defined(loco_opengl)
   #include _FAN_PATH(graphics/opengl/camera_list_builder_settings.h)
+  #elif defined(loco_vulkan)
+  #include _FAN_PATH(graphics/vulkan/camera_list_builder_settings.h)
   #endif
+  //TODO REMOVE
   #include _FAN_PATH(BLL/BLL.h)
 
   struct viewport_resize_cb_data_t {
@@ -505,9 +586,12 @@ public:
         coordinates.up,
         0.1,
         znearfar / 2
+        #elif defined(loco_vulkan)
+        coordinates.up,
+        coordinates.down,
+        0.1,
+        znearfar
         #endif
-
-
       );
 
       m_view[3][0] = 0;
@@ -622,23 +706,27 @@ public:
       gloco->open_camera(&camera, fan::graphics::default_camera_ortho_x, fan::graphics::default_camera_ortho_y);
     }
     loco_t::camera_t camera;
-    loco_t::viewport_t viewport;
+    //TODO REMOVE
+    //#if defined(loco_opengl)
+    fan::graphics::viewport_t viewport;
+    //#endif
   };
 
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
+
+  // TODO should be global header
   #if defined(loco_opengl)
   #include _FAN_PATH(graphics/opengl/camera_list_builder_settings.h)
+  #elif defined(loco_vulkan)
+  #include _FAN_PATH(graphics/vulkan/camera_list_builder_settings.h)
+  #endif
   #include _FAN_PATH(BLL/BLL.h)
 
   camera_list_t camera_list;
 
-  uint32_t camera_index = 0;
-
   image_t unloaded_image;
   fan::color clear_color = {0.10, 0.10, 0.131, 1};
-
-  #endif
 
   #if defined(loco_texture_pack)
   #include _FAN_PATH(graphics/opengl/texture_pack.h)
@@ -827,7 +915,60 @@ public:
       fan::vec2(camera->coordinates.right - camera->coordinates.left, camera->coordinates.down - camera->coordinates.up).abs()
     );
     shape->m_current_shader->set_vec2("camera_position", camera->get_position());
+    #elif defined(loco_vulkan)
+    uint32_t idx;
+    auto* camera = &camera_list[camera_id];
+    // TODO fix this mess with array
+    #if defined(loco_line)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, line_t>::value) {
+      idx = camera->camera_index.line;
+    }
     #endif
+    #if defined(loco_rectangle)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, shapes_t::rectangle_t>::value) {
+      idx = camera->camera_index.rectangle;
+    }
+    #endif
+    #if defined(loco_sprite)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, shapes_t::sprite_t>::value) {
+      idx = camera->camera_index.sprite;
+    }
+    #endif
+    #if defined(loco_letter)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, letter_t>::value) {
+      idx = camera->camera_index.letter;
+    }
+    #endif
+    #if defined(loco_button)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, button_t>::value) {
+      idx = camera->camera_index.button;
+    }
+    #endif
+
+    #if defined(loco_text_box)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, text_box_t>::value) {
+      idx = camera->camera_index.text_box;
+    }
+    #endif
+
+
+    #if defined(loco_yuv420p)
+    if constexpr (std::is_same<typename std::remove_pointer<decltype(shape)>::type, yuv420p_t>::value) {
+      idx = camera->camera_index.yuv420p;
+    }
+    #endif
+
+    auto& context = get_context();
+    vkCmdPushConstants(
+      context.commandBuffers[context.currentFrame],
+      shape->m_pipeline.m_layout,
+      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+      offsetof(push_constants_t, camera_id),
+      sizeof(uint32_t),
+      &idx
+    );
+    #endif
+
   }
   void process_block_properties_element(auto* shape, fan::graphics::viewport_list_NodeReference_t viewport_id) {
     fan::graphics::viewport_t* viewport = get_context().viewport_list[viewport_id].viewport_id;
@@ -836,7 +977,9 @@ public:
       viewport->get_size(),
       window.get_size()
     );
+    #if defined(loco_opengl)
     shape->m_current_shader->set_vec4("viewport", fan::vec4(viewport->get_position(), viewport->get_size()));
+    #endif
   }
 
   template <uint8_t n>
@@ -857,6 +1000,7 @@ public:
   }
 
   void process_block_properties_element(auto* shape, loco_t::shader_list_NodeReference_t shader_id) {
+    #if defined(loco_opengl)
     loco_t::shader_t* shader = gloco->shader_list[shader_id].shader;
     shape->m_current_shader = shader;
     shape->m_current_shader->use();
@@ -864,6 +1008,9 @@ public:
     shape->m_current_shader->set_vec3(loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
     shape->m_current_shader->set_int("_t00", 0);
     shape->m_current_shader->set_int("_t01", 1);
+    #elif defined(loco_vulkan)
+    assert(0);
+    #endif
   }
 
   #endif
@@ -1007,7 +1154,7 @@ public:
     }
     #endif
 
-    operator fan::opengl::cid_t* () {
+    operator fan::graphics::cid_t* () {
       return &gloco->cid_list[*this].cid;
     }
 
@@ -1133,6 +1280,48 @@ public:
   imgui_element_t gui_debug_element;
   #endif
 
+  #ifdef loco_vulkan
+  struct descriptor_pool_t {
+
+    descriptor_pool_t() {
+      uint32_t total = 0;
+      VkDescriptorPoolSize pool_sizes[] = {
+        #ifdef loco_vulkan_descriptor_ssbo
+        {
+          VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+          fan::vulkan::MAX_FRAMES_IN_FLIGHT
+        },
+        #endif
+        #ifdef loco_vulkan_descriptor_uniform_block
+        {
+          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          fan::vulkan::MAX_FRAMES_IN_FLIGHT
+        },
+        #endif
+        #ifdef loco_vulkan_descriptor_image_sampler
+        {
+          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          fan::vulkan::MAX_FRAMES_IN_FLIGHT
+        },
+        #endif
+      };
+
+      VkDescriptorPoolCreateInfo pool_info{};
+      pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+      pool_info.poolSizeCount = std::size(pool_sizes);
+      pool_info.pPoolSizes = pool_sizes;
+      pool_info.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT * 10;
+
+      fan::vulkan::validate(vkCreateDescriptorPool(gloco->get_context().device, &pool_info, nullptr, &m_descriptor_pool));
+    }
+    ~descriptor_pool_t() {
+      vkDestroyDescriptorPool(gloco->get_context().device, m_descriptor_pool, nullptr);
+    }
+
+    VkDescriptorPool m_descriptor_pool;
+  }descriptor_pool;
+  #endif
+
   // requirements - create shape_type to shape.h, init in constructor, add type_t to properties
 // make get_properties for custom type,
 // (if no custom storaging outside vi or ri, its generated automatically)
@@ -1153,7 +1342,6 @@ public:
     #undef sb_shape_var_name
     #endif
     #if defined(loco_rectangle)
-    #define vk_shape_wboit
     #define sb_shape_var_name rectangle
     #include _FAN_PATH(graphics/opengl/2D/objects/rectangle.h)
     rectangle_t sb_shape_var_name;
@@ -1180,17 +1368,26 @@ public:
     sprite_t sb_shape_var_name;
     #undef sb_shape_var_name
 
+    #if defined(loco_opengl)
     #include _FAN_PATH(graphics/opengl/2D/effects/particles.h)
     particles_t particles;
+    #elif defined(loco_vulkan)
+    // TODO
+    #endif
 
     #endif
     #if defined(loco_unlit_sprite)
     #define sb_shape_var_name unlit_sprite
     #define sb_sprite_name unlit_sprite_t
     #define sb_custom_shape_type loco_t::shape_type_t::unlit_sprite
+    #if defined(loco_opengl)
     #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/unlit_sprite.fs)
     #include _FAN_PATH(graphics/opengl/2D/objects/sprite.h)
     unlit_sprite_t unlit_sprite;
+    #elif defined(loco_vulkan)
+    // TODO for now
+    #define sb_shader_fragment_path graphics/glsl/vulkan/2D/objects/sprite.frag
+    #endif
     #undef sb_shape_var_name
     #undef sb_custom_shape_type
     #endif
@@ -1302,7 +1499,9 @@ public:
   {
     #if defined(loco_window)
 
+    #if defined(loco_opengl)
     initialize_final_fb();
+    #endif
 
     root = loco_bdbt_NewNode(&bdbt);
 
@@ -1478,8 +1677,81 @@ public:
 
     #endif
     #endif
+
+
+
+
+  #if defined(loco_vulkan) && defined(loco_window)
+  fan::vulkan::pipeline_t::properties_t pipeline_p;
+
+  render_fullscreen_shader.open(context, &m_write_queue);
+  render_fullscreen_shader.set_vertex(
+    context,
+    "graphics/glsl/vulkan/2D/objects/loco_fbo.vert",
+    #include _FAN_PATH(graphics/glsl/vulkan/2D/objects/loco_fbo.vert))
+    );
+    render_fullscreen_shader.set_fragment(
+      context,
+      "graphics/glsl/vulkan/2D/objects/loco_fbo.frag",
+      #include _FAN_PATH(graphics/glsl/vulkan/2D/objects/loco_fbo.frag))
+      );
+      // NOTE order of the layouts (descriptor binds) depends about draw order of shape specific
+      auto layouts = std::to_array({
+      #if defined(loco_line)
+        gloco->shapes.line.m_ssbo.m_descriptor.m_layout,
+      #endif
+      #if defined(loco_rectangle)
+        gloco->shapes.rectangle.m_ssbo.m_descriptor.m_layout,
+      #endif
+      #if defined(loco_sprite)
+        gloco->shapes.sprite.m_ssbo.m_descriptor.m_layout,
+      #endif
+      #if defined(loco_letter)
+        gloco->shapes.letter.m_ssbo.m_descriptor.m_layout,
+      #endif
+      #if defined(loco_button)
+        gloco->shapes.button.m_ssbo.m_descriptor.m_layout,
+      #endif
+      #if defined(loco_text_box)
+        gloco->shapes.text_box.m_ssbo.m_descriptor.m_layout,
+      #endif
+      #if defined(loco_yuv420p)
+        gloco->shapes.yuv420p.m_ssbo.m_descriptor.m_layout,
+      #endif
+      });
+      // NOTE THIS
+      std::reverse(layouts.begin(), layouts.end());
+      pipeline_p.descriptor_layout_count = layouts.size();
+      pipeline_p.descriptor_layout = layouts.data();
+      pipeline_p.shader = &render_fullscreen_shader;
+      pipeline_p.push_constants_size = sizeof(loco_t::push_constants_t);
+      pipeline_p.subpass = 1;
+      VkDescriptorImageInfo imageInfo{};
+
+      VkPipelineColorBlendAttachmentState color_blend_attachment[1]{};
+      color_blend_attachment[0].colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT |
+        VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT |
+        VK_COLOR_COMPONENT_A_BIT
+        ;
+      color_blend_attachment[0].blendEnable = VK_TRUE;
+      color_blend_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+      color_blend_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+      color_blend_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
+      color_blend_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+      color_blend_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+      color_blend_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
+      pipeline_p.color_blend_attachment_count = std::size(color_blend_attachment);
+      pipeline_p.color_blend_attachment = color_blend_attachment;
+      pipeline_p.enable_depth_test = false;
+      context.render_fullscreen_pl.open(context, pipeline_p);
+      #endif
+
+  #if defined(loco_opengl)
     default_texture.create_missing_texture();
     transparent_texture.create_transparent_texture();
+    #endif
 
     fan::vec2 window_size = window.get_size();
 
@@ -1686,6 +1958,12 @@ public:
     #endif
     get_context().render(get_window());
 
+    #elif defined(loco_vulkan)
+    get_context().begin_render(get_window());
+
+    #include "draw_shapes.h"
+
+    get_context().end_render(get_window());
     #endif
     #endif
   }
@@ -1740,6 +2018,11 @@ public:
   fan::vec2 translate_position(const fan::vec2& p) {
     return translate_position(p, &default_camera->viewport, &default_camera->camera);
   }
+
+  #if defined(loco_vulkan)
+  loco_t::shader_t render_fullscreen_shader;
+  #endif
+
 
 #if defined(loco_framebuffer)
   #if defined(loco_opengl)
@@ -2122,17 +2405,28 @@ public:
   #if defined(loco_sprite)
 
   fan::string get_sprite_vertex_shader() {
-    return loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/sprite.vs));
+    return 
+      #if defined(loco_opengl)
+      loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/sprite.vs))
+      #else
+      "";
+    ;
+      #endif
+      ;
   }
 
   loco_t::shader_t create_sprite_shader(const fan::string& fragment) {
     loco_t::shader_t shader;
+    #if defined(loco_opengl)
     shader.open();
     shader.set_vertex(
       get_sprite_vertex_shader()
     );
     shader.set_fragment(fragment);
     shader.compile();
+    #else
+    assert(0);
+    #endif
     return shader;
   }
 
@@ -2205,7 +2499,9 @@ public:
 
     return t_near <= t_far && t_far >= 0.0f;
   }
-
+  #if defined(loco_compute_shader)
+  #include _FAN_PATH(graphics/vulkan/compute_shader.h)
+  #endif
 };
 
 #if defined(loco_pixel_format_renderer)
@@ -2262,6 +2558,8 @@ namespace fan {
   }
 }
 
+#if defined(loco_opengl)
+
 inline void fan::opengl::viewport_t::open() {
   viewport_reference = gloco->get_context().viewport_list.NewNode();
   gloco->get_context().viewport_list[viewport_reference].viewport_id = this;
@@ -2290,6 +2588,91 @@ inline void fan::opengl::viewport_t::set(const fan::vec2& viewport_position_, co
     viewport_size.x, viewport_size.y
   );
 }
+
+#elif defined(loco_vulkan)
+inline void fan::vulkan::viewport_t::open() {
+  auto& context = gloco->get_context();
+  viewport_reference = context.viewport_list.NewNode();
+  context.viewport_list[viewport_reference].viewport_id = this;
+}
+
+inline void fan::vulkan::viewport_t::close() {
+  auto& context = gloco->get_context();
+  context.viewport_list.Recycle(viewport_reference);
+}
+
+inline void fan::vulkan::viewport_t::set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
+  viewport_position = viewport_position_;
+  viewport_size = viewport_size_;
+
+  VkViewport viewport{};
+  viewport.x = viewport_position.x;
+  viewport.y = viewport_position.y;
+  viewport.width = viewport_size.x;
+  viewport.height = viewport_size.y;
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+  auto& context = gloco->get_context();
+
+  if (!context.command_buffer_in_use) {
+    VkResult result = vkGetFenceStatus(context.device, context.inFlightFences[context.currentFrame]);
+    if (result == VK_NOT_READY) {
+      vkDeviceWaitIdle(context.device);
+    }
+
+    if (vkBeginCommandBuffer(context.commandBuffers[context.currentFrame], &beginInfo) != VK_SUCCESS) {
+      fan::throw_error("failed to begin recording command buffer!");
+    }
+  }
+  vkCmdSetViewport(context.commandBuffers[context.currentFrame], 0, 1, &viewport);
+
+  if (!context.command_buffer_in_use) {
+    if (vkEndCommandBuffer(context.commandBuffers[context.currentFrame]) != VK_SUCCESS) {
+      fan::throw_error("failed to record command buffer!");
+    }
+    context.command_buffer_in_use = false;
+  }
+}
+
+inline void fan::vulkan::viewport_t::set_viewport(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
+  auto& context = gloco->get_context();
+  VkViewport viewport{};
+  viewport.x = viewport_position_.x;
+  viewport.y = viewport_position_.y;
+  viewport.width = viewport_size_.x;
+  viewport.height = viewport_size_.y;
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+  if (!context.command_buffer_in_use) {
+    VkResult result = vkGetFenceStatus(context.device, context.inFlightFences[context.currentFrame]);
+    if (result == VK_NOT_READY) {
+      vkDeviceWaitIdle(context.device);
+    }
+
+    if (vkBeginCommandBuffer(context.commandBuffers[context.currentFrame], &beginInfo) != VK_SUCCESS) {
+      fan::throw_error("failed to begin recording command buffer!");
+    }
+  }
+  vkCmdSetViewport(context.commandBuffers[context.currentFrame], 0, 1, &viewport);
+
+  if (!context.command_buffer_in_use) {
+    if (vkEndCommandBuffer(context.commandBuffers[context.currentFrame]) != VK_SUCCESS) {
+      fan::throw_error("failed to record command buffer!");
+    }
+    context.command_buffer_in_use = false;
+  }
+}
+#endif
+
+
 
 inline loco_t::image_list_NodeReference_t::image_list_NodeReference_t(loco_t::image_t* image) {
   NRI = image->texture_reference.NRI;
@@ -2362,9 +2745,183 @@ namespace fan::opengl {
 }
 #endif
 
+#if defined(loco_opengl)
 inline fan::opengl::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::opengl::viewport_t* viewport) {
   NRI = viewport->viewport_reference.NRI;
 }
+#elif defined(loco_vulkan)
+
+inline void fan::vulkan::context_t::begin_render(fan::window_t* window) {
+  vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+
+  VkResult result = vkAcquireNextImageKHR(
+    device,
+    swapChain,
+    UINT64_MAX,
+    imageAvailableSemaphores[currentFrame],
+    VK_NULL_HANDLE,
+    &image_index
+  );
+
+  if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    recreateSwapChain(window->get_size());
+    return;
+  }
+  else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+    fan::throw_error("failed to acquire swap chain image!");
+  }
+
+  vkResetFences(device, 1, &inFlightFences[currentFrame]);
+
+  vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+  if (vkBeginCommandBuffer(commandBuffers[currentFrame], &beginInfo) != VK_SUCCESS) {
+    fan::throw_error("failed to begin recording command buffer!");
+  }
+
+  command_buffer_in_use = true;
+
+  VkRenderPassBeginInfo renderPassInfo{};
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.renderPass = renderPass;
+  renderPassInfo.framebuffer = swapChainFramebuffers[image_index];
+  renderPassInfo.renderArea.offset = { 0, 0 };
+  renderPassInfo.renderArea.extent.width = swap_chain_size.x;
+  renderPassInfo.renderArea.extent.height = swap_chain_size.y;
+
+  // TODO
+
+  #if defined(loco_wboit)
+  VkClearValue clearValues[4]{};
+  clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
+  clearValues[3].depthStencil = { 1.0f, 0 };
+
+  clearValues[0].color.float32[0] = 0.0f;
+  clearValues[0].color.float32[1] = 0.0f;
+  clearValues[0].color.float32[2] = 0.0f;
+  clearValues[0].color.float32[3] = 0.0f;
+  clearValues[1].color.float32[0] = 1.f;  // Initially, all pixels show through all the way (reveal = 100%)
+
+  #else
+  VkClearValue clearValues[
+    5
+  ]{};
+    clearValues[0].color = { { gloco->clear_color.r, gloco->clear_color.g, gloco->clear_color.b, gloco->clear_color.a} };
+    clearValues[1].color = { {gloco->clear_color.r, gloco->clear_color.g, gloco->clear_color.b, gloco->clear_color.a} };
+    clearValues[2].color = { {gloco->clear_color.r, gloco->clear_color.g, gloco->clear_color.b, gloco->clear_color.a} };
+    clearValues[3].color = { {gloco->clear_color.r, gloco->clear_color.g, gloco->clear_color.b, gloco->clear_color.a} };
+    clearValues[4].depthStencil = { 1.0f, 0 };
+    #endif
+
+    renderPassInfo.clearValueCount = std::size(clearValues);
+    renderPassInfo.pClearValues = clearValues;
+
+    vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+inline fan::vulkan::viewport_list_NodeReference_t::viewport_list_NodeReference_t(fan::vulkan::viewport_t* viewport) {
+  NRI = viewport->viewport_reference.NRI;
+}
+
+inline void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const properties_t& p) {
+  VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+  vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+  VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+  inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+  inputAssembly.topology = p.shape_type;
+  inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+  VkPipelineViewportStateCreateInfo viewportState{};
+  viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+  viewportState.viewportCount = 1;
+  viewportState.scissorCount = 1;
+
+  VkPipelineRasterizationStateCreateInfo rasterizer{};
+  rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+  rasterizer.depthClampEnable = VK_FALSE;
+  rasterizer.rasterizerDiscardEnable = VK_FALSE;
+  rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+  rasterizer.lineWidth = 1.0f;
+  rasterizer.cullMode = VK_CULL_MODE_NONE;
+  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  rasterizer.depthBiasEnable = VK_FALSE;
+
+  VkPipelineMultisampleStateCreateInfo multisampling{};
+  multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+  multisampling.sampleShadingEnable = VK_FALSE;
+  multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+  VkPipelineDepthStencilStateCreateInfo depthStencil{};
+  depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+  depthStencil.depthTestEnable = VK_FALSE;//p.enable_depth_test;
+  depthStencil.depthWriteEnable = VK_TRUE;
+  depthStencil.depthCompareOp = p.depth_test_compare_op;
+  depthStencil.depthBoundsTestEnable = VK_FALSE;
+  depthStencil.stencilTestEnable = VK_FALSE;
+
+  VkPipelineColorBlendStateCreateInfo colorBlending{};
+  colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+  colorBlending.logicOpEnable = VK_FALSE;
+  colorBlending.logicOp = VK_LOGIC_OP_NO_OP;
+  colorBlending.attachmentCount = p.color_blend_attachment_count;
+  colorBlending.pAttachments = p.color_blend_attachment;
+  colorBlending.blendConstants[0] = 1.0f;
+  colorBlending.blendConstants[1] = 1.0f;
+  colorBlending.blendConstants[2] = 1.0f;
+  colorBlending.blendConstants[3] = 1.0f;
+
+  std::vector<VkDynamicState> dynamicStates = {
+      VK_DYNAMIC_STATE_VIEWPORT,
+      VK_DYNAMIC_STATE_SCISSOR
+  };
+  VkPipelineDynamicStateCreateInfo dynamicState{};
+  dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+  dynamicState.dynamicStateCount = dynamicStates.size();
+  dynamicState.pDynamicStates = dynamicStates.data();
+
+  VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+  pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  pipelineLayoutInfo.setLayoutCount = p.descriptor_layout_count;
+  pipelineLayoutInfo.pSetLayouts = p.descriptor_layout;
+
+  VkPushConstantRange push_constant;
+  push_constant.offset = 0;
+  push_constant.size = p.push_constants_size;
+  push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  pipelineLayoutInfo.pPushConstantRanges = &push_constant;
+  pipelineLayoutInfo.pushConstantRangeCount = 1;
+
+  if (vkCreatePipelineLayout(context.device, &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS) {
+    fan::throw_error("failed to create pipeline layout!");
+  }
+
+  VkGraphicsPipelineCreateInfo pipelineInfo{};
+  pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+  pipelineInfo.stageCount = 2;
+  pipelineInfo.pStages = ((loco_t::shader_t*)p.shader)->get_shader().shaderStages;
+  pipelineInfo.pVertexInputState = &vertexInputInfo;
+  pipelineInfo.pInputAssemblyState = &inputAssembly;
+  pipelineInfo.pViewportState = &viewportState;
+  pipelineInfo.pRasterizationState = &rasterizer;
+  pipelineInfo.pMultisampleState = &multisampling;
+  pipelineInfo.pDepthStencilState = &depthStencil;
+  pipelineInfo.pColorBlendState = &colorBlending;
+  pipelineInfo.pDynamicState = &dynamicState;
+  pipelineInfo.layout = m_layout;
+  pipelineInfo.renderPass = context.renderPass;
+  pipelineInfo.subpass = p.subpass;
+  pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+  if (vkCreateGraphicsPipelines(context.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
+    fan::throw_error("failed to create graphics pipeline");
+  }
+}
+#endif
 
 #if defined(loco_imgui) && defined(fan_platform_linux)
 static void imgui_xorg_init() {

@@ -1,5 +1,5 @@
 R"(
-#version 450
+#version 430
 
 vec2 rectangle_vertices[] = vec2[](
 	vec2(1.0, -1.0),

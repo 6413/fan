@@ -16,11 +16,15 @@ t0.i(root);
 redraw_key_t redraw_key;
 while(t0.t(&bdbt, &redraw_key)) {
   if (redraw_key.blending == false) {
+    #if defined(loco_opengl)
     get_context().opengl.call(get_context().opengl.glDisable, fan::opengl::GL_BLEND);
+    #endif
   }
   else {
+    #if defined(loco_opengl)
     get_context().opengl.call(get_context().opengl.glEnable, fan::opengl::GL_BLEND);
     get_context().opengl.call(get_context().opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+    #endif
   }
 
   typename loco_bdbt_Key_t<sizeof(uint16_t) * 8, true>::Traverse_t t1;
@@ -36,6 +40,18 @@ while(t0.t(&bdbt, &redraw_key)) {
   }
 }
 
+// TODO!
+
+#if defined(loco_vulkan)
+#if defined(loco_rectangle)
+gloco->shapes.rectangle.sb_draw();
+#endif
+
+#if defined(loco_sprite)
+gloco->shapes.sprite.sb_draw();
+#endif
+
+#endif
 //m_framebuffer.unbind(get_context());
 //
 //get_context().opengl.glFlush();

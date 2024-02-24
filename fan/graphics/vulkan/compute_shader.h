@@ -17,19 +17,16 @@ struct compute_shader_t {
 	compute_shader_t(loco_t* loco, const properties_t& p) : 
 		m_descriptor{p.descriptor.sets, p.descriptor.count, p.descriptor.layouts, p.descriptor.layout_count}
 	{
-		fan::string str;
-		if (fan::io::file::read(p.shader.path, &str)) {
-			fan::throw_error("file doesnt exist:" + p.shader.path);
-		}
-
+    fan::string shader_data;
+    fan::io::file::read(p.shader.path, &shader_data);
     auto spirv =
-      fan::vulkan::shader_t::compile_file(
-        "compute_shader.comp", 
+      loco_t::shader_t::compile_file(
+        p.shader.path, 
         shaderc_compute_shader,
-        #include "compute_shader.comp"
+        shader_data
       );
 
-		m_shader_module = fan::vulkan::shader_t::createShaderModule(loco->get_context(),
+		m_shader_module = loco_t::shader_t::createShaderModule(loco->get_context(),
       spirv
 		);
 
@@ -56,8 +53,8 @@ struct compute_shader_t {
 	}
 
 	void execute(loco_t* loco, const fan::vec3ui& group_count) {
-		auto context = loco->get_context();
-		auto cmd = context->commandBuffers[context->currentFrame];
+		auto& context = loco->get_context();
+		auto cmd = context.commandBuffers[context.currentFrame];
 		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline);
 
 		vkCmdBindDescriptorSets(
@@ -75,8 +72,8 @@ struct compute_shader_t {
 	}
 
 	void wait_finish(loco_t* loco) {
-		auto context = loco->get_context();
-		vkWaitForFences(context->device, 1, &context->inFlightFences[context->currentFrame], VK_TRUE, UINT64_MAX);
+		auto& context = loco->get_context();
+		vkWaitForFences(context.device, 1, &context.inFlightFences[context.currentFrame], VK_TRUE, UINT64_MAX);
 	}
 
 	VkShaderModule m_shader_module;

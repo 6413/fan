@@ -29,7 +29,7 @@ namespace fan {
 					return nr;
 				}
 
-				void process(fan::vulkan::context_t* context) {
+				void process(fan::vulkan::context_t& context) {
 					auto it = write_queue.GetNodeFirst();
 					while (it != write_queue.dst) {
 						write_queue.StartSafeNext(it);
@@ -67,7 +67,7 @@ namespace fan {
 
 				memory_write_queue_t::memory_edit_cb_t write_cb;
 
-				void open(fan::vulkan::context_t* context, const memory_write_queue_t::memory_edit_cb_t& cb) {
+				void open(fan::vulkan::context_t& context, const memory_write_queue_t::memory_edit_cb_t& cb) {
 					write_cb = cb;
 					queued = false;
 
@@ -75,14 +75,14 @@ namespace fan {
 					//context <- uniform_block <-> uniform_write_queue <- loco
 					m_max_edit = 0x00000000;
 				}
-				void close(fan::vulkan::context_t* context, memory_write_queue_t* queue) {
+				void close(fan::vulkan::context_t& context, memory_write_queue_t* queue) {
 					if (is_queued()) {
 						queue->erase(m_edit_index);
 					}
 
 					for (uint32_t i = 0; i < fan::vulkan::MAX_FRAMES_IN_FLIGHT; ++i) {
-						vkDestroyBuffer(context->device, memory[i].buffer, nullptr);
-						vkFreeMemory(context->device, memory[i].device_memory, nullptr);
+						vkDestroyBuffer(context.device, memory[i].buffer, nullptr);
+						vkFreeMemory(context.device, memory[i].device_memory, nullptr);
 					}
 				}
 
@@ -90,7 +90,7 @@ namespace fan {
 					return queued;
 				}
 
-				void edit(fan::vulkan::context_t* context, memory_write_queue_t* queue, const index_t& idx) {
+				void edit(fan::vulkan::context_t& context, memory_write_queue_t* queue, const index_t& idx) {
 					indices.push_back(idx);
 
 					if (is_queued()) {
@@ -100,7 +100,7 @@ namespace fan {
 					m_edit_index = queue->push_back(write_cb);
 				}
 
-				void edit(fan::vulkan::context_t* context, memory_write_queue_t* queue, uint32_t begin, uint32_t end) {
+				void edit(fan::vulkan::context_t& context, memory_write_queue_t* queue, uint32_t begin, uint32_t end) {
 					m_min_edit = fan::min(m_min_edit, begin);
 					m_max_edit = fan::max(m_max_edit, end);
 
@@ -111,7 +111,7 @@ namespace fan {
 					m_edit_index = queue->push_back(write_cb);
 				}
 
-				void on_edit(fan::vulkan::context_t* context) {
+				void on_edit(fan::vulkan::context_t& context) {
 					reset_edit();
 				}
 
@@ -132,9 +132,9 @@ namespace fan {
 				bool queued;
 			};
 
-			uint32_t findMemoryType(fan::vulkan::context_t* context, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+			static uint32_t findMemoryType(fan::vulkan::context_t& context, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 				VkPhysicalDeviceMemoryProperties memProperties;
-				vkGetPhysicalDeviceMemoryProperties(context->physicalDevice, &memProperties);
+				vkGetPhysicalDeviceMemoryProperties(context.physicalDevice, &memProperties);
 
 				for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
 					if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
@@ -145,26 +145,26 @@ namespace fan {
 				fan::throw_error("failed to find suitable memory type!");
 			}
 
-			static void create_buffer(fan::vulkan::context_t* context, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+			static void create_buffer(fan::vulkan::context_t& context, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
 				VkBufferCreateInfo bufferInfo{};
 				bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 				bufferInfo.size = size;
 				bufferInfo.usage = usage;
 				bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-				validate(vkCreateBuffer(context->device, &bufferInfo, nullptr, &buffer));
+				validate(vkCreateBuffer(context.device, &bufferInfo, nullptr, &buffer));
 
 				VkMemoryRequirements memRequirements;
-				vkGetBufferMemoryRequirements(context->device, buffer, &memRequirements);
+				vkGetBufferMemoryRequirements(context.device, buffer, &memRequirements);
 
 				VkMemoryAllocateInfo allocInfo{};
 				allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 				allocInfo.allocationSize = memRequirements.size;
 				allocInfo.memoryTypeIndex = findMemoryType(context, memRequirements.memoryTypeBits, properties);
 
-				validate(vkAllocateMemory(context->device, &allocInfo, nullptr, &bufferMemory));
+				validate(vkAllocateMemory(context.device, &allocInfo, nullptr, &bufferMemory));
 
-				validate(vkBindBufferMemory(context->device, buffer, bufferMemory, 0));
+				validate(vkBindBufferMemory(context.device, buffer, bufferMemory, 0));
 			}
 
 		}

@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_decompose.hpp>
 
 int main() {
   //fan::window_t::set_flag_value<fan::window_t::flags::no_mouse>(true);
@@ -13,7 +15,8 @@ int main() {
 
   loco.set_vsync(0);
 
-  fan_3d::model::animator_t model("models/rubiks_cube.fbx");
+  static constexpr bool use_gpu = true;
+  fan_3d::model::animator_t model("models/rubiks_cube.fbx", use_gpu);
 
 
   gloco->default_camera_3d->camera.position = { 3.46, 1.94, -6.22 };
@@ -26,7 +29,7 @@ int main() {
 
   f32_t angle = 0;
 
-  fan::print(model.render_objects.size());
+  //fan::print(model.render_objects.size());
 
   auto rot_front = [&] {
     auto default_animation_transform = model.fms.calculate_transformations();
@@ -48,19 +51,15 @@ int main() {
     for (int c = start; c < end; ++c) {
       for (int i = 0; i < fan_3d::model::mesh_id_table[start_idx]; ++i) {
         model.render_objects[idx].m = q;
-        model.fms.calculate_modified_vertices(idx, model.render_objects[idx].m, default_animation_transform);
-
-        model.upload_modified_vertices(idx);
+        if constexpr (use_gpu == false) {
+          model.fms.calculate_modified_vertices(idx, model.render_objects[idx].m, default_animation_transform);
+          model.upload_modified_vertices(idx);
+        }
         idx += 1;
       }
       start_idx += fan_3d::model::mesh_id_table[start_idx];
     }
     };
-
-
-  struct cube_id_t {
-    int index;
-  };
 
   struct piece_t {
     fan::vec3ui index;
@@ -71,109 +70,17 @@ int main() {
     fan::vec3 axis;
   };
 
-  std::array<std::array<std::array<cube_id_t, 3>, 3>, 3> cube_ids;
 
+  std::array<uint32_t, 3 * 3 * 3> cube_ids;
   {
     int index = 0;
-    for (int i = 0; i < 3; ++i) {
-      for (int j = 0; j < 3; ++j) {
-        for (int k = 0; k < 3; ++k) {
-          cube_ids[i][j][k].index = index;
-          index += 1;
-        }
-      }
+    for (auto& i : cube_ids) {
+      i = index++;
     }
-  }
-  /*
-  3, 0, 0 = 27
-  2, 2, 2 = 26
-  2, 2, 1 = 25
-  2, 2, 0 = 24
-  2, 1, 2 = 23
-  2, 1, 1 = 22
-  2, 1, 0 = 21
-  2, 0, 2 = 20
-  2, 0, 1 = 19
-  2, 0, 0 = 18
-  1, 2, 2 = 17
-  1, 2, 1 = 16
-  1, 2, 0 = 15
-  1, 1, 2 = 14
-  1, 1, 1 = 13
-  1, 1, 0 = 12
-  1, 0, 2 = 11
-  1, 0, 1 = 10
-  1, 0, 0 = 9
-  0, 2, 2 = 8
-  0, 2, 1 = 7
-  0, 2, 0 = 6
-  0, 1, 2 = 5
-  0, 1, 1 = 4
-  0, 1, 0 = 3
-  0, 0, 2 = 2
-  0, 0, 1 = 1
-  0, 0, 0 = 0
-
-  */
-  rotation_t U;
-  {
-    for (int i = 0; i < 9; ++i) {
-      U.arr[i].index.x = 2;
-      U.arr[i].index.y = i / 3;
-      U.arr[i].index.z = i % 3;
-    }
-    U.axis = fan::vec3(0, -1, 0);
-  }
-  rotation_t F;
-  {
-    for (int i = 0; i < 9; ++i) {
-      F.arr[i].index.x = i / 3;
-      F.arr[i].index.y = 0;
-      F.arr[i].index.z = i % 3;
-    }
-    F.axis = fan::vec3(0, 0, 1);
   }
 
-  rotation_t B;
-  {
-    for (int i = 0; i < 9; ++i) {
-      B.arr[i].index.x = i / 3;
-      B.arr[i].index.y = 2;
-      B.arr[i].index.z = i % 3;
-    }
-    B.axis = fan::vec3(0, 0, 1);
-  }
 
-  rotation_t D;
-  {
-    for (int i = 0; i < 9; ++i) {
-      D.arr[i].index.x = 0;
-      D.arr[i].index.y = i / 3;
-      D.arr[i].index.z = i % 3;
-    }
-    D.axis = fan::vec3(0, 1, 0);
-  }
-
-  rotation_t R;
-  {
-      for (int i = 0; i < 9; ++i) {
-          R.arr[i].index.x = i % 3;
-          R.arr[i].index.y = i / 3;
-          R.arr[i].index.z = 2;
-      }
-      R.axis = fan::vec3(-1, 0, 0);
-  }
-
-  rotation_t L;
-  {
-    for (int i = 0; i < 9; ++i) {
-      L.arr[i].index.x = i % 3;
-      L.arr[i].index.y = i / 3;
-      L.arr[i].index.z = 0;
-    }
-    L.axis = fan::vec3(-1, 0, 0);
-  }
-  enum Rotation {
+  enum rotation_e {
     U_ROTATION,
     F_ROTATION,
     B_ROTATION,
@@ -183,126 +90,74 @@ int main() {
     NUM_ROTATIONS
   };
 
-  auto rotations = std::to_array({ U, F, B, D, R, L });
-  std::array<std::array<std::array<fan::vec3ui, 2>, 12>, rotations.size()> affected_rotations = {
-    std::array<std::array<fan::vec3ui, 2>, 12>{
+  // order for everything is the order in enum
 
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 0}, {2, 0, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 1}, {2, 1, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 2}, {2, 2, 2}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 0}, {2, 0, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 1, 0}, {2, 0, 1}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 0}, {2, 0, 2}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 2}, {2, 2, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 1}, {2, 1, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 0}, {2, 0, 0}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 2}, {2, 2, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 1, 2}, {2, 2, 1}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 2}, {2, 2, 0}},
-    }, 
-    {
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 0}, {0, 0, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 1}, {1, 0, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 2}, {2, 0, 2}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 0}, {0, 0, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{1, 0, 0}, {0, 0, 1}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 0}, {0, 0, 2}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 2}, {2, 0, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 1}, {1, 0, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 0}, {0, 0, 0}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 2}, {2, 0, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{1, 0, 2}, {2, 0, 1}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 2}, {2, 0, 0}},
-    }, {
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 0}, {0, 2, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 1}, {1, 2, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 2}, {2, 2, 2}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 0}, {0, 2, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{1, 2, 0}, {0, 2, 1}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 0}, {0, 2, 2}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 2}, {2, 2, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 1}, {1, 2, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 0}, {0, 2, 0}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 2}, {2, 2, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{1, 2, 2}, {2, 2, 1}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 2}, {2, 2, 0}},
-    }, {
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 0}, {0, 2, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 1}, {0, 1, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 2}, {0, 0, 0}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 2}, {0, 0, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 1, 2}, {0, 0, 1}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 2}, {0, 0, 0}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 0}, {0, 2, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 1}, {0, 1, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 2}, {0, 0, 2}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 0}, {0, 2, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 1, 0}, {0, 2, 1}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 0}, {0, 2, 2}},
-    }, {
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 2}, {0, 0, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{1, 0, 2}, {0, 1, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 2}, {0, 2, 2}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 2}, {2, 0, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 1, 2}, {1, 0, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 2}, {0, 0, 2}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 2}, {2, 2, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{1, 2, 2}, {2, 1, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 2}, {2, 0, 2}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 2}, {0, 2, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 1, 2}, {1, 2, 2}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 2}, {2, 2, 2}},
-    }, {
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 0}, {0, 0, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{1, 0, 0}, {0, 1, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 0}, {0, 2, 0}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 0}, {2, 0, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 1, 0}, {1, 0, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 0, 0}, {0, 0, 0}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 0}, {2, 2, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{1, 2, 0}, {2, 1, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{2, 2, 0}, {2, 0, 0}},
-
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 0, 0}, {0, 2, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 1, 0}, {1, 2, 0}},
-      std::array<fan::vec3ui, 2>{fan::vec3ui{0, 2, 0}, {2, 2, 0}},
-    }
+  static constexpr fan::vec3 axis[]{
+    {0.00, -1.00, 0.00},
+    {0.00, 0.00, 1.00},
+    {0.00, 0.00, 1.00},
+    {0.00, 1.00, 0.00},
+    {-1.00, 0.00, 0.00},
+    {-1.00, 0.00, 0.00}
   };
+  static constexpr uint32_t rotations[] = {
+    18, 19, 20, 21, 22, 23, 24, 25, 26,
+    0, 1, 2, 9, 10, 11, 18, 19, 20,
+    6, 7, 8, 15, 16, 17, 24, 25, 26,
+    0, 1, 2, 3, 4, 5, 6, 7, 8,
+    2, 11, 20, 5, 14, 23, 8, 17, 26,
+    0, 9, 18, 3, 12, 21, 6, 15, 24
+  };
+
+  // for 3x3 - 12 changes per face (could be optimized)
+  static constexpr uint32_t affected_to[]{
+    18, 19, 20, 24, 21, 18, 26, 25, 24, 20, 23, 26,
+    0, 1, 2, 0, 9, 18, 18, 19, 20, 2, 11, 20,
+    6, 7, 8, 6, 15, 24, 26, 25, 24, 8, 17, 26,
+    0, 1, 2, 2, 5, 8, 6, 7, 8, 0, 3, 6,
+    2, 11, 20, 20, 23, 26, 8, 17, 26, 2, 5, 8,
+    0, 9, 18, 18, 21, 24, 6, 15, 24, 0, 3, 6
+  };
+
+  // for 3x3 - 12 changes per face (could be optimized)
+  static constexpr uint32_t affected_from[]{
+    20, 23, 26, 18, 19, 20, 24, 21, 18, 26, 25, 24,
+    2, 11, 20, 2, 1, 0, 0, 9, 18, 20, 19, 18,
+    8, 17, 26, 8, 7, 6, 24, 15, 6, 26, 25, 24,
+    6, 3, 0, 0, 1, 2, 8, 5, 2, 6, 7, 8,
+    8, 5, 2, 2, 11, 20, 26, 23, 20, 8, 17, 26,
+    6, 3, 0, 0, 9, 18, 24, 21, 18, 6, 15, 24
+  };
+
   glm::mat4 models[3 * 3 * 3];
   std::fill(models, models + std::size(models), glm::mat4(1));
+  if constexpr (use_gpu) {
+    for (auto& i : models) {
+      i = glm::scale(i, glm::vec3(0.01));
+    }
+    fan::mat4 m;
+    for (int k = 0; k < model.render_objects.size(); ++k) {
+      for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+          model.render_objects[k].m[i][j] = models[k / 3][i][j];
+        }
+      }
+    }
+  }
 
-  auto update_indices = [&] (Rotation rot){
+  auto update_indices = [&](rotation_e rot) {
     auto copy = cube_ids;
-    for (auto& i : affected_rotations[(int)rot]) {
-      cube_ids[i[0].x][i[0].y][i[0].z].index = copy[i[1].x][i[1].y][i[1].z].index;
+    static constexpr uint32_t hardcoded_rotation_affection_count = 12;
+    for (int i = 0; i < hardcoded_rotation_affection_count; ++i) {
+      cube_ids[affected_to[(int)rot * 12 + i]] = copy[affected_from[(int)rot * 12 + i]];
     }
   };
 
-  auto perform_rotations = [&](Rotation rot, f32_t angle) {
-
-    for (auto& piece : rotations[rot].arr) {
-      uint32_t index = cube_ids[piece.index.x][piece.index.y][piece.index.z].index;
+  auto perform_rotations = [&](rotation_e rot, f32_t angle) {
+    for (int i = 0; i < 9; ++i) {
+      uint32_t index = cube_ids[rotations[rot * 9 + i]];
       glm::mat4& model = models[index];
-      model = glm::rotate(model, angle, glm::vec3(rotations[rot].axis.x, rotations[rot].axis.y, rotations[rot].axis.z));
+      model = glm::rotate(model, angle, glm::vec3(axis[rot].x, axis[rot].y, axis[rot].z));
       fan::mat4 m;
       for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
@@ -312,78 +167,96 @@ int main() {
       rotate_cube(index, index + 1, m);
     }
   };
-  fan::print("\n");
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      for (int k = 0; k < 3; ++k) {
-        fan::print(cube_ids[i][j][k].index);
-      }
-    }
-  }
 
-
-  
-  //perform_rotations(D_ROTATION, fan::math::radians(90));
-  //update_indices(D_ROTATION);
-  //
-  //perform_rotations(F_ROTATION, fan::math::radians(90));
-  //update_indices(F_ROTATION);
-  //perform_rotations(U_ROTATION, fan::math::radians(-90));
-  //perform_rotations(F_ROTATION, fan::math::radians(-90));
-
-  int side = 0;
+  int side = F_ROTATION;
 
   f32_t prev_angle = 0;
 
   f32_t total_rot = 0;
-  bool pause = 0;
+  bool pause = true;
+
+  uint64_t rotation_count = 0;
+  int prev_rot = 0;
+
+
 
   gloco->m_post_draw.push_back([&] {
+    ImGui::Checkbox("pause", &pause);
 
-    
+    static bool shuffle = true;
+    ImGui::Checkbox("shuffle", &shuffle);
+
     do {
       f32_t rot_count = (angle - prev_angle);
       if (total_rot + rot_count > fan::math::pi / 2) {
         rot_count = fan::math::pi / 2 - total_rot;
-        perform_rotations((Rotation)side, rot_count);
-        update_indices((Rotation)side);
-        side = fan::random::value_i64(0, rotations.size() - 1);
+        perform_rotations((rotation_e)side, rot_count);
+        update_indices((rotation_e)side);
+        prev_rot = side;
+        side = fan::random::value_i64(0, 5);
+        //while(prev_rot == side)
+        //  side = fan::random::value_i64(0, 1);
         prev_angle = 0;
         angle = 0;
         total_rot = 0;
         int index = 0;
-        bool found = true;
-        for (int i = 0; i < 3; ++i) {
-          for (int j = 0; j < 3; ++j) {
-            for (int k = 0; k < 3; ++k) {
-              if (cube_ids[i][j][k].index != index) {
-                found = false;
+        int fail_count = 0;
+        if (shuffle == false) {
+          for (int i = 0; i < 1; ++i) {
+            for (int j = 0; j < 1; ++j) {
+              for (int k = 0; k < 3; ++k) {
+                if (cube_ids[i * 9 + j * 3 + k] != index) {
+                  goto gt_skip;
+                }
+                else {
+                  glm::vec3 scale;
+                  glm::quat rotation;
+                  glm::vec3 translation;
+                  glm::vec3 skew;
+                  glm::vec4 perspective;
+                  glm::decompose(models[cube_ids[i * 9 + j * 3 + k]], scale, rotation, translation, skew, perspective);
+                  rotation = glm::conjugate(rotation);
+                  if ((round(rotation.w) == 1 && round(rotation.x) == 0 && round(rotation.y) == 0 && round(rotation.z) == 0) == false) {
+                    goto gt_skip;
+                  }
+                }
+                index++;
               }
-              index++;
-              
             }
           }
-        }
-        if (found) {
           pause = true;
+        gt_skip:;
         }
+        ++rotation_count;
         break;
       }
-      perform_rotations((Rotation)side, rot_count);
+      perform_rotations((rotation_e)side, rot_count);
       total_rot += (angle - prev_angle);
     } while (0);
 
-    static f32_t speed = 1;
-    ImGui::DragFloat("speed", &speed);
 
-    prev_angle = angle;
-    if (!pause)
-    angle += gloco->delta_time * speed;
+    ImGui::Text(fan::format("rotations:{}", rotation_count).c_str());
+    static bool full_speed = false;
+    ImGui::Checkbox("full speed", &full_speed);
+
+    if (full_speed && !pause) {
+      angle += fan::math::pi / 2;
+      ++rotation_count;
+    }
+    else {
+      static f32_t speed = 1;
+      ImGui::DragFloat("speed", &speed);
+
+      prev_angle = angle;
+      if (!pause)
+        angle += gloco->delta_time * speed;
+    }
 
     auto temp_view = gloco->default_camera_3d->camera.m_view;
     model.draw(0);
     ImGui::End();
-  });
+    });
+
 
   auto& camera = gloco->default_camera_3d->camera;
 

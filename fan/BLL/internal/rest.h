@@ -407,8 +407,18 @@ _BLL_POFTWBIT(_Node_Construct)
   _P(NodeReference_t) NodeReference
 ){
   #ifdef BLL_set_CPP_Node_ConstructDestruct
-    _P(Node_t) *n = _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference);
-    new (&n->data) _P(NodeData_t);
+  /* TODO _ with getnode... or what? */
+        /* + help is it even correct?*/
+    #if defined(BLL_set_MultipleType_LinkIndex)
+      /*_P(Node_t) *n = _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference, 0);
+      new (n) _P(NodeData_t);
+      n = _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference, 1);
+      new (n) _P(NodeData_t);*/
+      /* - help*/
+    #else
+      _P(Node_t)* n = _BLL_POFTWBIT(_GetNodeByReference)(_BLL_PBLLTFFC NodeReference);
+      new (&n->data) _P(NodeData_t);
+    #endif
   #endif
 }
 _BLL_SOFTWBIT
@@ -420,8 +430,18 @@ _BLL_POFTWBIT(_Node_Destruct)
 ){
   #ifdef BLL_set_CPP_Node_ConstructDestruct
     /* TODO _ with getnode... or what? */
-    _P(Node_t) *n = _BLL_POFTWBIT(GetNodeByReference)(_BLL_PBLLTFFC NodeReference);
-    ((_P(NodeData_t) *)&n->data)->~_P(NodeData_t)();
+    #if defined(BLL_set_MultipleType_LinkIndex)
+      /* + help is it even correct?*/
+      _P(Node_t)* n = _BLL_POFTWBIT(GetNodeByReference)(_BLL_PBLLTFFC NodeReference, 0);
+      ((_P(NodeData_t)*)n)->~_P(NodeData_t)();
+      n = _BLL_POFTWBIT(GetNodeByReference)(_BLL_PBLLTFFC NodeReference, 1);
+      ((_P(NodeData_t)*)n)->~_P(NodeData_t)();
+      /* - help*/
+    #else
+      _P(Node_t)* n = _BLL_POFTWBIT(GetNodeByReference)(_BLL_PBLLTFFC NodeReference);
+      ((_P(NodeData_t)*) & n->data)->~_P(NodeData_t)();
+    #endif
+
   #endif
 }
 

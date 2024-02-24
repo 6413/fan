@@ -63,7 +63,7 @@ void main() {
 	m[3][0] = 0;
 	m[3][1] = 0;
 	
-	vec4 view_position = m * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z 1);
+	vec4 view_position = m * vec4(vec2(x, y) * get_instance().size + get_instance().position.xy + vec2(view[3][0], view[3][1]), get_instance().position.z, 1);
 
   gl_Position = pv[constants.camera_id].projection * view_position;
 
