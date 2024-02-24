@@ -87,6 +87,7 @@ struct unlit_sprite_properties_t {
   bool blending = false;
 };
 
+#if defined(loco_unlit_sprite)
 struct unlit_sprite_t : loco_t::shape_t {
   unlit_sprite_t(unlit_sprite_properties_t p = unlit_sprite_properties_t()) {
     *(loco_t::shape_t*)this = loco_t::shape_t(
@@ -103,6 +104,7 @@ struct unlit_sprite_t : loco_t::shape_t {
       ));
   }
 };
+#endif
 
 struct sprite_properties_t {
   fan::graphics::camera_t* camera = gloco->default_camera;

@@ -52,22 +52,6 @@ namespace fan {
     #endif
 
   }
-
-
-  namespace opengl {
-
-    struct context_t;
-    struct viewport_t;
-    struct camera_t;
-
-    struct cid_t {
-      uint16_t bm_id;
-      uint16_t block_id;
-      uint8_t instance_id;
-      uint16_t shape_type = -1;
-    };
-
-  }
 }
 
 #include "themes_list_builder_settings.h"
@@ -82,6 +66,13 @@ namespace fan {
 
 //template <typename T>
 //fan::opengl::theme_list_NodeReference_t::theme_list_NodeReference_t(struct T* theme);
+
+namespace fan {
+  namespace opengl {
+
+    struct viewport_t;
+  }
+}
 
 #include "viewport_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 1

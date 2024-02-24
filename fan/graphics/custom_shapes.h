@@ -1,4 +1,7 @@
 // add custom shapes to this file
+
+// TODO add vulkan support, basically just .vert, .frag files
+#if defined(loco_opengl)
 #if defined(loco_rectangle)
 struct line_grid_t {
 
@@ -438,4 +441,6 @@ struct shader_light_t {
 };
 
 shader_light_t shader_light;
+#endif
+
 #endif

@@ -1032,6 +1032,48 @@ namespace fan_3d {
 					}
 			)";
 
+      std::string animation_gpu_vs = R"(
+					#version 440 core
+					layout (location = 0) in vec3 vertex;
+					layout (location = 1) in vec3 normal;
+					layout (location = 2) in vec2 uv;
+					layout (location = 3) in vec4 bone_ids;
+					layout (location = 4) in vec4 bone_weights;
+          layout (location = 5) in vec3 vertex1;
+          layout (location = 6) in vec3 tangent;  
+          layout (location = 7) in vec3 bitangent;  
+          layout (location = 8) in vec4 diffuse;  
+
+					out vec2 tex_coord;
+					out vec3 v_normal;
+					out vec3 v_pos;
+					out vec4 bw;
+          out vec4 v_diffuse;
+
+          out vec3 c_tangent;
+          out vec3 c_bitangent;
+          //out vec3 c_bitangent ;
+
+					uniform mat4 projection;
+					uniform mat4 view;
+          uniform int curtains;
+          uniform mat4 model;
+
+					void main()
+					{
+						gl_Position = projection * view * model * vec4(vertex, 1.0);
+            tex_coord = uv;
+            v_pos = vec3(model * vec4(vertex, 1.0));
+						v_normal = mat3(transpose(inverse(model))) * normal;
+						v_normal = normalize(v_normal);
+            c_tangent = tangent;
+            c_bitangent = bitangent;
+            //v_bitangent = cross(normal, tangent);
+            v_diffuse = diffuse;
+					}
+			)";
+
+
       std::string animation_fs = R"(
       #version 440 core
 
@@ -1057,7 +1099,36 @@ namespace fan_3d {
 
 			)";
 
-      animator_t(const fan::string& path) : fms(path) {
+      void init_render_object(uint32_t i) {
+        auto& context = gloco->get_context();
+        render_object_t& ro = render_objects[i];
+        ro.vao.open(context);
+        ro.vbo.open(context, fan::opengl::GL_ARRAY_BUFFER);
+        ro.vao.bind(context);
+        upload_modified_vertices(i);
+
+        gloco->get_context().opengl.glEnableVertexAttribArray(0);
+        gloco->get_context().opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, position));
+        gloco->get_context().opengl.glEnableVertexAttribArray(1);
+        gloco->get_context().opengl.glVertexAttribPointer(1, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, normal));
+        gloco->get_context().opengl.glEnableVertexAttribArray(2);
+        gloco->get_context().opengl.glVertexAttribPointer(2, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, uv));
+        gloco->get_context().opengl.glEnableVertexAttribArray(3);
+        gloco->get_context().opengl.glVertexAttribPointer(3, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bone_ids));
+        gloco->get_context().opengl.glEnableVertexAttribArray(4);
+        gloco->get_context().opengl.glVertexAttribPointer(4, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bone_weights));
+        gloco->get_context().opengl.glEnableVertexAttribArray(5);
+        gloco->get_context().opengl.glVertexAttribPointer(5, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, vertex1));
+        gloco->get_context().opengl.glEnableVertexAttribArray(6);
+        gloco->get_context().opengl.glVertexAttribPointer(6, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, tangent));
+        gloco->get_context().opengl.glEnableVertexAttribArray(7);
+        gloco->get_context().opengl.glVertexAttribPointer(7, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bitangent));
+        gloco->get_context().opengl.glEnableVertexAttribArray(8);
+        gloco->get_context().opengl.glVertexAttribPointer(8, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, diffuse));
+        gloco->get_context().opengl.glBindVertexArray(0);
+      }
+
+      animator_t(const fan::string& path, bool gpu = false) : fms(path) {
 
         //fms.iterate_joints(fms.parsed_model.model_data.skeleton, [this](const joint_t& joint) {
         //  loco_t::shapes_t::rectangle_3d_t::properties_t rp;
@@ -1077,9 +1148,16 @@ namespace fan_3d {
         //image.load(fms.parsed_model.texture_data.diffuse_texture_path_list[0]);
         //fms.parsed_model.texture_data.
         m_shader.open();
-        m_shader.set_vertex(
-          animation_vs
-        );
+        if (gpu) {
+          m_shader.set_vertex(
+            animation_gpu_vs
+          );
+        }
+        else {
+          m_shader.set_vertex(
+            animation_vs
+          );
+        }
 
         m_shader.set_fragment(
           animation_fs
@@ -1089,33 +1167,9 @@ namespace fan_3d {
 
         auto& context = gloco->get_context();
         render_objects.resize(fms.parsed_model.model_data.vertices.size());
-        int i = 0;
-        for (auto& ro : render_objects) {
-          ro.vao.open(context);
-          ro.vbo.open(context, fan::opengl::GL_ARRAY_BUFFER);
-          ro.vao.bind(context);
-          upload_modified_vertices(i);
-
-          gloco->get_context().opengl.glEnableVertexAttribArray(0);
-          gloco->get_context().opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, position));
-          gloco->get_context().opengl.glEnableVertexAttribArray(1);
-          gloco->get_context().opengl.glVertexAttribPointer(1, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, normal));
-          gloco->get_context().opengl.glEnableVertexAttribArray(2);
-          gloco->get_context().opengl.glVertexAttribPointer(2, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, uv));
-          gloco->get_context().opengl.glEnableVertexAttribArray(3);
-          gloco->get_context().opengl.glVertexAttribPointer(3, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bone_ids));
-          gloco->get_context().opengl.glEnableVertexAttribArray(4);
-          gloco->get_context().opengl.glVertexAttribPointer(4, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bone_weights));
-          gloco->get_context().opengl.glEnableVertexAttribArray(5);
-          gloco->get_context().opengl.glVertexAttribPointer(5, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, vertex1));
-          gloco->get_context().opengl.glEnableVertexAttribArray(6);
-          gloco->get_context().opengl.glVertexAttribPointer(6, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, tangent));
-          gloco->get_context().opengl.glEnableVertexAttribArray(7);
-          gloco->get_context().opengl.glVertexAttribPointer(7, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bitangent));
-          gloco->get_context().opengl.glEnableVertexAttribArray(8);
-          gloco->get_context().opengl.glVertexAttribPointer(8, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, diffuse));
-          gloco->get_context().opengl.glBindVertexArray(0);
-
+        for (int i = 0; i < render_objects.size(); ++i) {
+          
+          init_render_object(i);
 
           if (fms.parsed_model.texture_names[i].diffuse.size()) {
             auto found = diffuse_images.find(fms.parsed_model.texture_names[i].diffuse);
@@ -1141,7 +1195,6 @@ namespace fan_3d {
               metallic_images[fms.parsed_model.texture_names[i].metallic].load(fms.parsed_model.texture_names[i].metallic);
             }
           }
-          ++i;
         }
       }
 
@@ -1165,7 +1218,6 @@ namespace fan_3d {
 
         m_shader.set_mat4("projection", projection);
         m_shader.set_mat4("view", view);
-
 
 
 
@@ -1209,30 +1261,35 @@ namespace fan_3d {
         context.opengl.glDisable(fan::opengl::GL_BLEND);
         //context.opengl.call(context.opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
         for (int i = 0; i < render_objects.size(); ++i) {
+
+          m_shader.set_mat4("model", render_objects[i].m); // only for gpu vs
+
           render_objects[i].vao.bind(context);
           m_shader.set_mat4("transform", fms.parsed_model.transforms[i]);
           fan::vec4 cpt = fms.parsed_model.transforms[i] * fan::vec4(gloco->default_camera_3d->camera.position, 1);
           m_shader.set_vec3("view_p", gloco->default_camera_3d->camera.position);
-          if (fms.parsed_model.texture_names[i].diffuse.size()) {
-            gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-            diffuse_images[fms.parsed_model.texture_names[i].diffuse].bind_texture();
-            m_shader.set_bool("has_texture", 1);
-          }
-          else {
-            m_shader.set_bool("has_texture", 0);
-          }
-          if (fms.parsed_model.texture_names[i].normal.size()) {
-            gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-            normal_images[fms.parsed_model.texture_names[i].normal].bind_texture();
-            m_shader.set_bool("has_normal", 1);
-          }
-          if (fms.parsed_model.texture_names[i].roughness.size()) {
-            gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
-            roughness_images[fms.parsed_model.texture_names[i].roughness].bind_texture();
-          }
-          if (fms.parsed_model.texture_names[i].metallic.size()) {
-            gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE4);
-            metallic_images[fms.parsed_model.texture_names[i].metallic].bind_texture();
+          if (i < fms.parsed_model.texture_names.size()) {
+            if (fms.parsed_model.texture_names[i].diffuse.size()) {
+              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+              diffuse_images[fms.parsed_model.texture_names[i].diffuse].bind_texture();
+              m_shader.set_bool("has_texture", 1);
+            }
+            else {
+              m_shader.set_bool("has_texture", 0);
+            }
+            if (fms.parsed_model.texture_names[i].normal.size()) {
+              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+              normal_images[fms.parsed_model.texture_names[i].normal].bind_texture();
+              m_shader.set_bool("has_normal", 1);
+            }
+            if (fms.parsed_model.texture_names[i].roughness.size()) {
+              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
+              roughness_images[fms.parsed_model.texture_names[i].roughness].bind_texture();
+            }
+            if (fms.parsed_model.texture_names[i].metallic.size()) {
+              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE4);
+              metallic_images[fms.parsed_model.texture_names[i].metallic].bind_texture();
+            }
           }
 
           /*render_objects[i].vbo.write_buffer(

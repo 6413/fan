@@ -1,29 +1,12 @@
-// Creates window, opengl context and renders a rectangle
-
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
-#ifndef FAN_INCLUDE_PATH
-	#define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
-#define fan_debug 0
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
-
-#define loco_vulkan
-
-//#define loco_window
-#define loco_context
-
-#define loco_compute_shader
-#include _FAN_PATH(graphics/loco.h)
+#include fan_pch
 
 struct pile_t {
 	loco_t loco;
 };
 
 int main() {
-
 	pile_t* pile = new pile_t;
-	auto context = pile->loco.get_context();
+	auto& context = pile->loco.get_context();
 
 	std::array<fan::vulkan::write_descriptor_set_t, 1> ds_properties{ 0 };
 
@@ -55,36 +38,36 @@ int main() {
 	descriptor.update(context);
 
 	loco_t::compute_shader_t::properties_t p;
-	p.shader.path = "compute_shader.spv";
+	p.shader.path = "compute_shader.comp";
 	p.descriptor.layouts = &descriptor.m_layout;
 	p.descriptor.sets = descriptor.m_descriptor_set;
 
 	loco_t::compute_shader_t compute_shader(&pile->loco, p);
 
 	void* data;
-	fan::vulkan::validate(vkMapMemory(pile->loco.get_context()->device, memory.device_memory, 0, buffer_size, 0, (void**)&data));
+	fan::vulkan::validate(vkMapMemory(context.device, memory.device_memory, 0, buffer_size, 0, (void**)&data));
 
 	fan::time::clock c;
 	c.start();
 	uint32_t i = 0;
-	for (; i < 100000; i++) {
-		context->begin_compute_shader();
+	for (; i < 1000; i++) {
+		context.begin_compute_shader();
 
 		compute_shader.execute(&pile->loco, fan::vec3(1, 1024, 1));
 
-		context->end_compute_shader();
+		context.end_compute_shader();
 
 		compute_shader.wait_finish(&pile->loco);
 	}
 
 	fan::print(c.elapsed(), c.elapsed() / i);
 
-	//for (i = 0; i < buffer_size / 4; ++i) {
-	//	if (((uint32_t*)data)[i] != 5) {
-	//		fan::print(i, ((uint32_t*)data)[i]);
-	//		break;
-	//	}
-	//}
+	for (i = 0; i < buffer_size / sizeof(uint32_t); ++i) {
+		//if (((uint32_t*)data)[i] != 5) {
+			fan::print(i, ((uint32_t*)data)[i]);
+		//	break;
+		//}
+	}
 
 	return 0;
 }

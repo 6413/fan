@@ -1,16 +1,51 @@
-#ifndef sb_get_loco
-#define sb_get_loco \
-  loco_t* get_loco() { \
-    loco_t* loco = OFFSETLESS(this, loco_t, sb_shape_var_name); \
-    return loco; \
-  }
+#ifndef sb_depth_var
+#define sb_depth_var position
 #endif
-
-sb_get_loco
 
 #ifndef sb_vertex_count
 #define sb_vertex_count 6
 #endif
+
+#ifndef sb_has_own_key_root
+#define sb_has_own_key_root 0
+#endif
+#ifndef sb_ignore_3_key
+#define sb_ignore_3_key 0
+#endif
+
+#if sb_has_own_key_root == 1
+loco_bdbt_NodeReference_t key_root;
+#endif
+
+using key_t = fan::masterpiece_t <
+  #if sb_ignore_3_key == 0
+  loco_t::redraw_key_t,
+  uint16_t,
+  loco_t::shape_type_t,
+  #endif
+  context_key_t
+>;
+static constexpr bool key_equality_assert = fan::assert_equality_v<sizeof(key_t), (
+  sizeof(context_key_t) +
+  sizeof(loco_t::shape_type_t) * (sb_ignore_3_key == 0) +
+  sizeof(uint16_t) * (sb_ignore_3_key == 0) +
+  sizeof(loco_t::redraw_key_t) * (sb_ignore_3_key == 0)
+  )>;
+
+using push_key_t = fan::masterpiece_t <
+  #if sb_ignore_3_key == 0
+  loco_t::make_push_key_t<loco_t::redraw_key_t>,
+  loco_t::make_push_key_t<uint16_t, true>,
+  loco_t::make_push_key_t<loco_t::shape_type_t>,
+  #endif
+  loco_t::make_push_key_t<context_key_t>
+>;
+
+struct block_element_t {
+  key_t key;
+  uint8_t vi[sizeof(vi_t)];
+  ri_t ri;
+};
 
 
 protected:
@@ -49,17 +84,16 @@ struct cid_t {
 };
 
 void sb_open() {
-  loco_t* loco = get_loco();
-  auto context = loco->get_context();
-  root = loco_bdbt_NewNode(&loco->bdbt);
+  auto& context = gloco->get_context();
+  root = loco_bdbt_NewNode(&gloco->bdbt);
 
-  m_shader.open(context, &loco->m_write_queue);
+  m_shader.open(context, &gloco->m_write_queue);
   m_shader.set_vertex(context,
-    STRINGIFY(sb_shader_vertex_path),
+    STRINGIFY_DEFINE(sb_shader_vertex_path),
     #include _FAN_PATH(sb_shader_vertex_path)
   );
   m_shader.set_fragment(context, 
-    STRINGIFY(sb_shader_vertex_path),
+    STRINGIFY_DEFINE(sb_shader_vertex_path),
     #include _FAN_PATH(sb_shader_fragment_path)
   );
 
@@ -67,9 +101,9 @@ void sb_open() {
 
   #include _FAN_PATH(graphics/shape_open_settings.h)
 
-  m_ssbo.open_descriptors(context, loco->descriptor_pool.m_descriptor_pool, ds_properties);
+  m_ssbo.open_descriptors(context, gloco->descriptor_pool.m_descriptor_pool, ds_properties);
   m_ssbo.m_descriptor.update(context, 2, ds_offset);
-  ds_properties[1].buffer = m_shader.projection_view_block.common.memory[context->currentFrame].buffer;
+  ds_properties[1].buffer = m_shader.get_shader().projection_view_block.common.memory[context.currentFrame].buffer;
   m_ssbo.m_descriptor.m_properties[1] = ds_properties[1];
   m_ssbo.m_descriptor.update(context, 1, 1, 0, 0);
 
@@ -144,21 +178,21 @@ void sb_open() {
 
 template <typename T>
 void reset_camera(T x) {
-  T::m_camera_index = 0
+  //T::m_camera_index = 0
 }
 
 template <typename T>
 void reset_texture(T x) {
-  T::m_texture_index = 0
+  //T::m_texture_index = 0
 }
 
 void sb_close() {
-  loco_t* loco = get_loco();
-  auto context = loco->get_context();
+  
+  auto& context = gloco->get_context();
 
-  m_shader.close(context, &loco->m_write_queue);
+  m_shader.close(context, &gloco->m_write_queue);
 
-  m_ssbo.close(context, &loco->m_write_queue);
+  m_ssbo.close(context, &gloco->m_write_queue);
 
   if constexpr(fan::_has_camera_id_t<decltype(*this)>::value) {
     reset_camera(this);
@@ -168,23 +202,21 @@ void sb_close() {
   }
 
   //uint32_t index = fan::ofof<loco_t>() - offsetof(loco_t, )
-  //for (uint8_t i = 0; i < loco->camera_list.Usage(); ++i) {
-  //  ((uint8_t *)&loco->camera_list[*(loco_t::camera_list_NodeReference_t*)&i].camera_index)[index]
+  //for (uint8_t i = 0; i < gloco->camera_list.Usage(); ++i) {
+  //  ((uint8_t *)&gloco->camera_list[*(loco_t::camera_list_NodeReference_t*)&i].camera_index)[index]
   //}
 
-  //vkDestroyDescriptorSetLayout(loco->get_context().device, descriptorSetLayout, nullptr);
+  //vkDestroyDescriptorSetLayout(gloco->get_context().device, descriptorSetLayout, nullptr);
 
   //for (uint32_t i = 0; i < blocks.size(); i++) {
-  //  blocks[i].uniform_buffer.close(loco->get_context());
+  //  blocks[i].uniform_buffer.close(gloco->get_context());
   //}
 }
 
 struct block_t;
 
 // STRUCT MANUAL PADDING IS REQUIRED (4 byte)
-void sb_push_back(fan::vulkan::cid_t* fcid, auto p) {
-  auto cid = (cid_t*)fcid;
-  loco_t* loco = get_loco();
+void sb_push_back(loco_t::cid_nt_t& id, auto p) {
 
   #if defined (loco_line)
   if constexpr (std::is_same<decltype(p), loco_t::line_t::properties_t>::value) {
@@ -198,28 +230,29 @@ void sb_push_back(fan::vulkan::cid_t* fcid, auto p) {
     p.position.z -= loco_t::camera_t::znearfar - 1;
   #endif
 
-  p.depth = p.position.z;
+    // TODO?
+  //p.depth = p.position.z;
 
   loco_bdbt_NodeReference_t nr = root;
   shape_bm_NodeReference_t& bmID = *(shape_bm_NodeReference_t*)&nr;
   loco_bdbt_Key_t<sizeof(context_key_t::key_t) * 8> k;
   typename decltype(k)::KeySize_t ki;
-  k.Query(&loco->bdbt, &p.key, &ki, &nr);
+  k.q(&gloco->bdbt, &p.key, &ki, &nr);
   
   if (ki != sizeof(context_key_t::key_t) * 8) {
     auto lnr = bm_list.NewNode();
     auto ln = &bm_list[lnr];
-    ln->first_ssbo_nr = m_ssbo.add(loco->get_context(), &loco->m_write_queue);
+    ln->first_ssbo_nr = m_ssbo.add(gloco->get_context(), &gloco->m_write_queue);
     m_ssbo.instance_list.LinkAsLast(ln->first_ssbo_nr);
     ln->last_ssbo_nr = ln->first_ssbo_nr;
     ln->bm_properties = *(context_key_t*)&p;
     ln->total_instances = 0;
-    k.InFrom(&loco->bdbt, &p.key, ki, nr, lnr.NRI);
+    k.a(&gloco->bdbt, &p.key, ki, nr, lnr.NRI);
 
     nr = lnr.NRI;
   }
   else if (bm_list[bmID].total_instances % max_instance_size == 0) {
-    auto new_ssbo_nr = m_ssbo.add(loco->get_context(), &loco->m_write_queue);
+    auto new_ssbo_nr = m_ssbo.add(gloco->get_context(), &gloco->m_write_queue);
     m_ssbo.instance_list.linkNext(bm_list[bmID].last_ssbo_nr, new_ssbo_nr);
     bm_list[bmID].last_ssbo_nr = new_ssbo_nr;
   }
@@ -231,26 +264,23 @@ void sb_push_back(fan::vulkan::cid_t* fcid, auto p) {
   const auto instance_id = bm->total_instances % max_instance_size;
 
   ri_t& ri = m_ssbo.instance_list.get_ri(ssbo_nr, instance_id);
-  m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, ssbo_nr, instance_id, (vi_t*)&p);
+  m_ssbo.copy_instance(gloco->get_context(), &gloco->m_write_queue, ssbo_nr, instance_id, (vi_t*)&p);
 
-  ri.cid = cid;
-  cid->bm_id = *((shape_bm_NodeReference_t*)&nr);
-  cid->block_id = bm_list[bmID].last_ssbo_nr;
-  cid->instance_id = instance_id;
+  id->bm_id = *(uint16_t*)((shape_bm_NodeReference_t*)&nr);
+  id->block_id = *(uint16_t*)&bm_list[bmID].last_ssbo_nr;
+  id->instance_id = instance_id;
 
   // do we need it
   //block->p[instance_id] = *(instance_properties_t*)&p;
 
   bm_list[bmID].total_instances++;
 }
-void sb_erase(fan::graphics::cid_t* fcid) {
-  auto cid = (cid_t*)fcid;
-  loco_t* loco = get_loco();
+void sb_erase(loco_t::cid_nt_t& id) {  
 
-  auto bm_id = cid->bm_id;
+  auto bm_id = *(shape_bm_NodeReference_t*)&id->bm_id;
   auto bm = &bm_list[bm_id];
 
-  auto block_id = cid->block_id;
+  auto block_id = *(ssbo_t::nr_t*)&id->block_id;
   //auto block_node = blocks.GetNodeByReference(*(bll_block_NodeReference_t*)&cid->block_id);
   //auto block = &block_node->data.block;
 
@@ -259,7 +289,7 @@ void sb_erase(fan::graphics::cid_t* fcid) {
   //block_t* last_block = &last_block_node->data.block;
   uint32_t last_instance_id = (bm->total_instances - 1) % max_instance_size;
   static int x = 0;
-  if (block_id == last_block_id && cid->instance_id == last_instance_id) {
+  if (block_id == last_block_id && id->instance_id == last_instance_id) {
     bm->total_instances--;
     if (bm->total_instances % max_instance_size == 0) {
 			auto prev_block_id = m_ssbo.instance_list.GetNodeByReference(
@@ -270,7 +300,7 @@ void sb_erase(fan::graphics::cid_t* fcid) {
       if (bm->first_ssbo_nr == bm->last_ssbo_nr) {
 				loco_bdbt_Key_t<sizeof(context_key_t::key_t) * 8> k;
 				typename decltype(k)::KeySize_t ki;
-				k.Remove(&loco->bdbt, &bm->bm_properties.key, root);
+				k.r(&gloco->bdbt, &bm->bm_properties.key, root);
 				bm_list.Recycle(bm_id);
       }
       else {
@@ -281,12 +311,12 @@ void sb_erase(fan::graphics::cid_t* fcid) {
   }
 
   m_ssbo.copy_instance(
-    loco->get_context(),
-    &loco->m_write_queue,
-    last_block_id,
-    last_instance_id,
-    cid->block_id,
-    cid->instance_id
+    gloco->get_context(),
+    &gloco->m_write_queue,
+    *(ssbo_t::nr_t*)&last_block_id,
+    *(ssbo_t::instance_id_t*)&last_instance_id,
+    *(ssbo_t::nr_t*)&id->block_id,
+    *(ssbo_t::instance_id_t*)&id->instance_id
   );
 
   if (bm->total_instances % max_instance_size == 1) {
@@ -301,9 +331,9 @@ void sb_erase(fan::graphics::cid_t* fcid) {
 
   bm->total_instances--;
 
-  auto& ri = m_ssbo.instance_list.get_ri(cid->block_id, cid->instance_id);
-  ri.cid->block_id = block_id;
-  ri.cid->instance_id = cid->instance_id;
+  //auto& ri = m_ssbo.instance_list.get_ri(cid->block_id, cid->instance_id);
+  //ri.id->block_id = block_id;
+  //ri.id->instance_id = cid->instance_id;
 }
 
 vi_t& sb_get_vi(fan::graphics::cid_t* fcid) {
@@ -324,6 +354,16 @@ void sb_set_ri(fan::graphics::cid_t* fcid, auto T::* member, auto value) {
   sb_get_ri(fcid).*member = value;
 }
 
+
+//key_t& get_bm_key(loco_t::cid_nt_t& id) {
+//  auto bm_id = *(shape_bm_NodeReference_t*)&id->bm_id;
+//  auto bm_node = bm_list.GetNodeByReference(bm_id);
+//  return bm_node->data.key;
+//}
+//
+//context_key_t& get_context_key(loco_t::cid_nt_t& id) {
+//  return *get_bm_key(id).get_value<context_key_t>();
+//}
 //auto sb_get_block(fan::graphics::cid_t* cid) {
 //  auto& block_node = m_ssbo.instance_list.get blocks[*(bll_block_NodeReference_t*)&cid->block_id];
 //  return &block_node.block;
@@ -331,7 +371,7 @@ void sb_set_ri(fan::graphics::cid_t* fcid, auto T::* member, auto value) {
 
 template <typename T, typename T2>
 auto get(fan::graphics::cid_t *cid, T T2::*member) {
-  loco_t* loco = get_loco();
+  
 
 #if defined(loco_line)
   if constexpr (std::is_same_v<T2, loco_t::line_t::vi_t>) {
@@ -352,13 +392,13 @@ auto get(fan::graphics::cid_t *cid, T T2::*member) {
 }
 template <typename T, typename T2>
 void set(fan::graphics::cid_t *fcid, T T2::*member, const auto& value) {
-  loco_t* loco = get_loco();
+  
   auto cid = (cid_t*)fcid;
   
   #define one_line \
     m_ssbo.copy_instance( \
-      loco->get_context(), \
-      &loco->m_write_queue, \
+      gloco->get_context(), \
+      &gloco->m_write_queue, \
       cid->block_id, \
       cid->instance_id, \
       member, \
@@ -372,7 +412,7 @@ void set(fan::graphics::cid_t *fcid, T T2::*member, const auto& value) {
       one_line
     }
     else {
-      m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value);
+      m_ssbo.copy_instance(gloco->get_context(), &gloco->m_write_queue, cid->block_id, cid->instance_id, member, value);
     }
   }
   if constexpr (!std::is_same_v<T2, loco_t::line_t::vi_t>) {
@@ -381,7 +421,7 @@ void set(fan::graphics::cid_t *fcid, T T2::*member, const auto& value) {
       one_line
     }
     else {
-      m_ssbo.copy_instance(loco->get_context(), &loco->m_write_queue, cid->block_id, cid->instance_id, member, value);
+      m_ssbo.copy_instance(gloco->get_context(), &gloco->m_write_queue, cid->block_id, cid->instance_id, member, value);
     }
 #if defined(loco_line)
   }
@@ -389,37 +429,28 @@ void set(fan::graphics::cid_t *fcid, T T2::*member, const auto& value) {
   #undef one_line
 }
 
-template <typename T = void>
-loco_t::camera_t* get_camera(fan::graphics::cid_t* cid) requires fan::has_camera_t<properties_t> {
-  auto ri = sb_get_ri(cid);
-  loco_t* loco = get_loco();
-  return loco->camera_list[*ri.key.get_value<
-    context_key_t::key_t::get_index_with_type<loco_t::camera_list_NodeReference_t>()
-  >()].camera_id;
-}
-template <typename T = void>
-fan::graphics::viewport_t* get_viewport(fan::graphics::cid_t* cid) requires fan::has_viewport_t<properties_t> {
-  auto ri = sb_get_ri(cid);
-  loco_t* loco = get_loco();
-  auto idx = *ri.key.get_value<
-    context_key_t::key_t::get_index_with_type<fan::graphics::viewport_list_NodeReference_t>()
-  >();
-  return loco->get_context().viewport_list[idx].viewport_id;
-}
+//template <typename T = void>
+//loco_t::camera_t* get_camera(loco_t::cid_nt_t& id) requires fan::has_camera_t<properties_t> {
+//  return gloco->camera_list[*get_context_key(id).key.get_value<loco_t::camera_list_NodeReference_t>()].camera_id;
+//}
+//template <typename T = void>
+//fan::graphics::viewport_t* get_viewport(loco_t::cid_nt_t& id) requires fan::has_viewport_t<properties_t> {
+//  return gloco->get_context().viewport_list[*get_context_key(id).key.get_value<fan::graphics::viewport_list_NodeReference_t>()].viewport_id;
+//}
 
 //void set_vertex(const fan::string& str) {
-//  loco_t* loco = get_loco();
-//  m_shader.set_vertex(loco->get_context(), str);
+//  
+//  m_shader.set_vertex(gloco->get_context(), str);
 //}
 //void set_fragment(const fan::string& str) {
-//  loco_t* loco = get_loco();
-//  m_shader.set_fragment(loco->get_context(), str);
+//  
+//  m_shader.set_fragment(gloco->get_context(), str);
 //}
 
 template <uint32_t depth = 0>
 void traverse_draw(auto nr) {
-  loco_t* loco = get_loco();
-  auto context = loco->get_context();
+  
+  auto& context = gloco->get_context();
   if constexpr (depth == context_key_t::key_t::count + 1) {
     auto bmn = bm_list.GetNodeByReference(*(shape_bm_NodeReference_t*)&nr);
     auto bnr = bmn->data.first_ssbo_nr;
@@ -427,20 +458,20 @@ void traverse_draw(auto nr) {
     while (1) {
       auto node = m_ssbo.instance_list.GetNodeByReference(bnr, 1);
 
-      loco->m_write_queue.process(context);
+      gloco->m_write_queue.process(context);
 
       uint32_t count = max_instance_size;
       if (bnr == bmn->data.last_ssbo_nr) {
         count = (bmn->data.total_instances - 1) % max_instance_size + 1;
       }
 
-      context->draw(
+      context.draw(
         sb_vertex_count,
         count,
         (uint32_t)bnr.NRI * max_instance_size,
         m_pipeline,
         1,
-        &m_ssbo.m_descriptor.m_descriptor_set[context->currentFrame]
+        &m_ssbo.m_descriptor.m_descriptor_set[context.currentFrame]
       );
 
       if (bnr == bmn->data.last_ssbo_nr) {
@@ -452,13 +483,13 @@ void traverse_draw(auto nr) {
   else {
     //loco_bdbt_Key_t<sizeof(typename instance_properties_t::key_t::get_type<depth>::type) * 8> k;
     typename loco_bdbt_Key_t<sizeof(typename context_key_t::key_t::get_type<depth>::type) * 8>::Traverse_t kt;
-    kt.init(nr);
+    kt.i(nr);
     typename context_key_t::key_t::get_type<depth>::type o;
     #if fan_use_uninitialized == 0
     memset(&o, 0, sizeof(o));
     #endif
-    while (kt.Traverse(&loco->bdbt, &o)) {
-      loco->process_block_properties_element(this, o);
+    while (kt.t(&gloco->bdbt, &o)) {
+      gloco->process_block_properties_element(this, o);
       traverse_draw<depth + 1>(kt.Output);
     }
   }
@@ -482,7 +513,7 @@ static void else_move_z(T& x) {
 template <uint32_t i>
 void sb_set_key(fan::graphics::cid_t* fcid, auto value) {
   auto cid = (cid_t*)fcid;
-  loco_t* loco = get_loco();
+  
   properties_t p;
   *(vi_t*)&p = m_ssbo.instance_list.get_vi(ssbo_t::nr_t{cid->block_id}, cid->instance_id);
   *(ri_t*)&p = m_ssbo.instance_list.get_ri(ssbo_t::nr_t{cid->block_id}, cid->instance_id);
@@ -502,7 +533,8 @@ void sb_set_key(fan::graphics::cid_t* fcid, auto value) {
 }
 
 ssbo_t m_ssbo;
-fan::graphics::shader_t m_shader;
+loco_t::shader_t m_shader;
+loco_t::shader_t* m_current_shader = &m_shader;
 
 fan::vulkan::pipeline_t m_pipeline;
 
