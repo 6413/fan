@@ -79,14 +79,12 @@ struct rectangle_t {
   }
 
   void draw(const loco_t::redraw_key_t& redraw_key, loco_bdbt_NodeReference_t key_root) {
-    #if defined(loco_opengl)
     if (redraw_key.blending) {
-      m_current_shader = &m_blending_shader;
+      //m_current_shader = &m_blending_shader;
     }
     else {
       m_current_shader = &m_shader;
     }
-    #endif
     sb_draw(key_root);
   }
 
@@ -99,11 +97,11 @@ struct rectangle_t {
     sb_set_context_key<decltype(n)>(id, n);
   }
 
+  #endif
   properties_t get_properties(loco_t::cid_nt_t& id) {
     properties_t p = sb_get_properties(id);
     return p;
   }
-  #endif
 
   #if defined(loco_vulkan)
   uint32_t m_camera_index = 0;

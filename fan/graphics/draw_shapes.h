@@ -41,17 +41,6 @@ while(t0.t(&bdbt, &redraw_key)) {
 }
 
 // TODO!
-
-#if defined(loco_vulkan)
-#if defined(loco_rectangle)
-gloco->shapes.rectangle.sb_draw();
-#endif
-
-#if defined(loco_sprite)
-gloco->shapes.sprite.sb_draw();
-#endif
-
-#endif
 //m_framebuffer.unbind(get_context());
 //
 //get_context().opengl.glFlush();

@@ -589,8 +589,8 @@ public:
         #elif defined(loco_vulkan)
         coordinates.up,
         coordinates.down,
-        0.1,
-        znearfar
+        -znearfar / 2,
+        znearfar / 2
         #endif
       );
 

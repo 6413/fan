@@ -1055,14 +1055,10 @@ namespace fan {
         }
       }
 
-      void draw(
-        uint32_t vertex_count,
-        uint32_t instance_count,
-        uint32_t first_instance,
+      void bind_draw(
         const fan::vulkan::pipeline_t& pipeline,
         uint32_t descriptor_count,
-        VkDescriptorSet* descriptor_sets
-      ) {
+        VkDescriptorSet* descriptor_sets) {
         vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.m_pipeline);
 
         VkRect2D scissor{};
@@ -1081,8 +1077,26 @@ namespace fan {
           0,
           nullptr
         );
+      }
+
+      // assumes things are already bound
+      void bindless_draw(
+        uint32_t vertex_count,
+        uint32_t instance_count,
+        uint32_t first_instance) {
         vkCmdDraw(commandBuffers[currentFrame], vertex_count, instance_count, 0, first_instance);
-        
+      }
+
+      void draw(
+        uint32_t vertex_count,
+        uint32_t instance_count,
+        uint32_t first_instance,
+        const fan::vulkan::pipeline_t& pipeline,
+        uint32_t descriptor_count,
+        VkDescriptorSet* descriptor_sets
+      ) {
+        bind_draw(pipeline, descriptor_count, descriptor_sets);
+        bindless_draw(vertex_count, instance_count, first_instance);
       }
 
       void createSyncObjects() {

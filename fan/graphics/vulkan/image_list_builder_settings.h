@@ -16,10 +16,11 @@ struct image_list_texture_index_t {
 
 #define BLL_set_NodeData \
   image_list_texture_index_t texture_index; \
-  VkImage image; \
+  VkImage image_index; \
   VkImageView image_view; \
   VkDeviceMemory image_memory; \
-  VkSampler sampler;
+  VkSampler sampler; \
+  loco_t::image_t* image;
 #define BLL_set_Link 0
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_CPP_Node_ConstructDestruct

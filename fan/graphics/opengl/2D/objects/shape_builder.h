@@ -797,16 +797,6 @@ public:
     suck_block_element(id, &block_element);
     *block_element.key.get_value<context_key_t>()->key.get_value<T>() = value;
     unsuck_block_element(id, block_element);
-
-    /*auto block = sb_get_block(id);
-    properties_t p;
-    *(vi_t*)&p = *block->uniform_buffer.get_instance(id->instance_id);
-    *(ri_t*)&p = block->ri[id->instance_id];
-    *p.key.get_value<i>() = value;
-
-    sb_erase(id);
-
-    sb_push_back(id, p);*/
   }
 
   void sb_set_depth(loco_t::cid_nt_t& id, f32_t depth) {

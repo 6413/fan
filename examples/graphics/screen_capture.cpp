@@ -41,8 +41,8 @@ int main() {
 
   loco_t::image_t image;
   loco_t::image_t::load_properties_t lp;
-  lp.format = fan::opengl::GL_BGRA;
-  lp.internal_format = fan::opengl::GL_RGBA;
+  lp.format = loco_t::image_t::format::b8g8r8a8_unorm;
+  lp.internal_format = loco_t::image_t::format::r8g8b8a8_srgb;
   image.load(ii, lp);
   p.image = &image;
   p.position.z = 0;

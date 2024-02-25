@@ -1,9 +1,8 @@
-#include "pch.h"
-#include <WITCH/WITCH.h>
+#include fan_pch
 
 int main() {
   fan::trees::quadtree_t qt(0.5, 0.5, 1);
-  static constexpr f32_t n = 500;
+  static constexpr f32_t n = 1000;
   for (int i = 0; i < n; ++i) {
     fan::vec2 p = fan::random::vec2(0, 1);
     fan::vec2 a, b;
