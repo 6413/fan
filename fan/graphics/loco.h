@@ -366,10 +366,10 @@ protected:
 
   #if defined(loco_opengl) && defined(loco_context)
 
-  unsigned int fb_vao;
-  unsigned int fb_vbo;
+  uint32_t fb_vao, post_fb_vao;
+  uint32_t fb_vbo, post_fb_vbo;
 
-  void initialize_final_fb() {
+  void initialize_fb_vaos(uint32_t& vao, uint32_t& vbo) {
     static constexpr f32_t quad_vertices[] = {
       -1.0f, 1.0f, 0, 0.0f, 1.0f,
       -1.0f, -1.0f, 0, 0.0f, 0.0f,
@@ -377,10 +377,10 @@ protected:
       1.0f, -1.0f, 0, 1.0f, 0.0f,
     };
     auto& context = get_context();
-    context.opengl.glGenVertexArrays(1, &fb_vao);
-    context.opengl.glGenBuffers(1, &fb_vbo);
-    context.opengl.glBindVertexArray(fb_vao);
-    context.opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, fb_vbo);
+    context.opengl.glGenVertexArrays(1, &vao);
+    context.opengl.glGenBuffers(1, &vbo);
+    context.opengl.glBindVertexArray(vao);
+    context.opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, vbo);
     context.opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, fan::opengl::GL_STATIC_DRAW);
     context.opengl.glEnableVertexAttribArray(0);
     context.opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
@@ -391,6 +391,12 @@ protected:
   void render_final_fb() {
     auto& context = get_context();
     context.opengl.glBindVertexArray(fb_vao);
+    context.opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
+    context.opengl.glBindVertexArray(0);
+  }
+  void render_post_fb() {
+    auto& context = get_context();
+    context.opengl.glBindVertexArray(post_fb_vao);
     context.opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
     context.opengl.glBindVertexArray(0);
   }
@@ -1443,12 +1449,6 @@ public:
     button_t sb_shape_var_name;
     #undef sb_shape_var_name
     #endif
-    #if defined(loco_post_process)
-    #define sb_post_process_var_name post_process
-    #include _FAN_PATH(graphics/opengl/2D/effects/post_process.h)
-    post_process_t sb_post_process_var_name;
-    #undef sb_post_process_var_name
-    #endif
    
     #include _FAN_PATH(graphics/custom_shapes.h)
 
@@ -1497,10 +1497,12 @@ public:
     , unloaded_image(fan::webp::image_info_t{ (void*)pixel_data, 1 })
     #endif
   {
+    m_time.start();
     #if defined(loco_window)
 
     #if defined(loco_opengl)
-    initialize_final_fb();
+    initialize_fb_vaos(fb_vao, fb_vbo);
+    initialize_fb_vaos(post_fb_vao, post_fb_vbo);
     #endif
 
     root = loco_bdbt_NewNode(&bdbt);
@@ -1537,14 +1539,6 @@ public:
     font.open(loco_font);
     #endif
 
-    #if defined(loco_post_process)
-    fan::opengl::core::renderbuffer_t::properties_t rp;
-    rp.size = window.get_size();
-    if (post_process.open(rp)) {
-      fan::throw_error("failed to initialize frame buffer");
-    }
-    #endif
-
     #if defined(loco_opengl)
     loco_t::image_t::load_properties_t lp;
     lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
@@ -1558,98 +1552,54 @@ public:
 
     #if defined(loco_framebuffer)
 
-    fan::webp::image_info_t ii;
-    ii.data = nullptr;
-    ii.size = window.get_size();
+    auto load_texture = [&](fan::webp::image_info_t& image_info, auto& color_buffer, fan::opengl::GLenum attachment) {
+      loco_t::image_t::load_properties_t load_properties;
+      load_properties.internal_format = fan::opengl::GL_RGBA;
+      load_properties.format = fan::opengl::GL_RGBA;
+      load_properties.type = fan::opengl::GL_FLOAT;
+      load_properties.min_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
+      load_properties.mag_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
 
-    lp.internal_format = fan::opengl::GL_RGBA;
-    lp.format = fan::opengl::GL_RGBA;
-    lp.min_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
-    lp.mag_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
-    lp.type = fan::opengl::GL_FLOAT;
-
-    color_buffers[0].load(ii, lp);
-    get_context().opengl.call(get_context().opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
-
-    color_buffers[0].bind_texture();
-    fan::opengl::core::framebuffer_t::bind_to_texture(
-      get_context(),
-      color_buffers[0].get_texture(),
-      fan::opengl::GL_COLOR_ATTACHMENT0
-    );
-
-    lp.internal_format = fan::opengl::GL_RGBA;
-    lp.format = fan::opengl::GL_RGBA;
-
-    color_buffers[1].load(ii, lp);
-
-    color_buffers[1].bind_texture();
-    fan::opengl::core::framebuffer_t::bind_to_texture(
-      get_context(),
-      color_buffers[1].get_texture(),
-      fan::opengl::GL_COLOR_ATTACHMENT1
-    );
-
-    get_context().opengl.call(get_context().opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
-
-    window.add_resize_callback([this](const auto& d) {
-      loco_t::image_t::load_properties_t lp;
-      lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
-
-      fan::webp::image_info_t ii;
-      ii.data = nullptr;
-      ii.size = window.get_size();
-
-      lp.internal_format = fan::opengl::GL_RGBA;
-      lp.format = fan::opengl::GL_RGBA;
-      lp.type = fan::opengl::GL_FLOAT;
-      lp.min_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
-      lp.mag_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
-
-      color_buffers[0].reload_pixels(ii, lp);
-
-      color_buffers[0].bind_texture();
-      fan::opengl::core::framebuffer_t::bind_to_texture(
-        get_context(),
-        color_buffers[0].get_texture(),
-        fan::opengl::GL_COLOR_ATTACHMENT0
-      );
-
+      color_buffer.load(image_info, load_properties);
       get_context().opengl.call(get_context().opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
-      lp.internal_format = fan::opengl::GL_RGBA;
-      lp.format = fan::opengl::GL_RGBA;
+      color_buffer.bind_texture();
+      fan::opengl::core::framebuffer_t::bind_to_texture(get_context(), color_buffer.get_texture(), attachment);
+    };
 
-      color_buffers[1].reload_pixels(ii, lp);
+    fan::webp::image_info_t image_info;
+    image_info.data = nullptr;
+    image_info.size = window.get_size();
 
-      color_buffers[1].bind_texture();
-      fan::opengl::core::framebuffer_t::bind_to_texture(
-        get_context(),
-        color_buffers[1].get_texture(),
-        fan::opengl::GL_COLOR_ATTACHMENT1
-      );
+    load_texture(image_info, color_buffers[0], fan::opengl::GL_COLOR_ATTACHMENT0);
+    load_texture(image_info, color_buffers[1], fan::opengl::GL_COLOR_ATTACHMENT1);
 
-      get_context().opengl.call(get_context().opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+    window.add_resize_callback([&](const auto& d) {
+    fan::webp::image_info_t image_info;
+    image_info.data = nullptr;
+    image_info.size = window.get_size();
 
-      fan::opengl::core::renderbuffer_t::properties_t rp;
-      m_framebuffer.bind(get_context());
-      rp.size = ii.size;
-      rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
-      m_rbo.set_storage(get_context(), rp);
+    load_texture(image_info, color_buffers[0], fan::opengl::GL_COLOR_ATTACHMENT0);
+    load_texture(image_info, color_buffers[1], fan::opengl::GL_COLOR_ATTACHMENT1);
 
-      fan::vec2 window_size = gloco->window.get_size();
+    fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
+    m_framebuffer.bind(get_context());
+    renderbuffer_properties.size = image_info.size;
+    renderbuffer_properties.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
+    m_rbo.set_storage(get_context(), renderbuffer_properties);
 
-      default_camera->viewport.set(fan::vec2(0, 0), d.size, d.size);
+    fan::vec2 window_size = gloco->window.get_size();
+    default_camera->viewport.set(fan::vec2(0, 0), d.size, d.size);
   });
 
-  fan::opengl::core::renderbuffer_t::properties_t rp;
+  fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
   m_framebuffer.bind(get_context());
-  rp.size = ii.size;
-  rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
+  renderbuffer_properties.size = image_info.size;
+  renderbuffer_properties.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
   m_rbo.open(get_context());
-  m_rbo.set_storage(get_context(), rp);
-  rp.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
-  m_rbo.bind_to_renderbuffer(get_context(), rp);
+  m_rbo.set_storage(get_context(), renderbuffer_properties);
+  renderbuffer_properties.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
+  m_rbo.bind_to_renderbuffer(get_context(), renderbuffer_properties);
 
   unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
 
@@ -1674,6 +1624,18 @@ public:
     loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/loco_fbo.fs))
   );
   m_fbo_final_shader.compile();
+
+
+  m_fbo_post_gui_shader.open();
+
+
+  m_fbo_post_gui_shader.set_vertex(
+    loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/loco_fbo.vs))
+  );
+  m_fbo_post_gui_shader.set_fragment(
+    loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/loco_post_fbo.fs))
+  );
+  m_fbo_post_gui_shader.compile();
 
     #endif
     #endif
@@ -1901,10 +1863,6 @@ public:
     get_context().opengl.call(get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 
-    #ifdef loco_post_process
-    post_process.start_capture();
-    #endif
-
     auto it = m_update_callback.GetNodeFirst();
     while (it != m_update_callback.dst) {
       m_update_callback.StartSafeNext(it);
@@ -1951,8 +1909,30 @@ public:
       }
     }
 
+    m_framebuffer.bind(get_context());
+
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    m_framebuffer.unbind(get_context());
+
+    get_context().opengl.glClearColor(0, 0, 0, 1);
+    get_context().opengl.call(get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
+
+    m_fbo_post_gui_shader.use();
+    m_fbo_post_gui_shader.set_int("_t00", 0);
+    m_fbo_post_gui_shader.set_int("_t01", 1);
+    m_fbo_post_gui_shader.set_float("m_time", gloco->m_time.elapsed() / 1e+9);
+
+    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    color_buffers[0].bind_texture();
+
+    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    color_buffers[1].bind_texture();
+
+    render_post_fb();
+
     #endif
 
     #endif
@@ -2031,6 +2011,7 @@ public:
     fan::opengl::core::renderbuffer_t m_rbo;
     loco_t::image_t color_buffers[2];
     loco_t::shader_t m_fbo_final_shader;
+    loco_t::shader_t m_fbo_post_gui_shader;
 
   #endif
 #endif
@@ -2397,6 +2378,8 @@ public:
   #undef make_global_function
   #undef fan_build_get
   #undef fan_build_set
+
+  fan::time::clock m_time;
 
   using image_info_t = fan::webp::image_info_t;
 

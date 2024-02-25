@@ -470,12 +470,11 @@ namespace fan {
     }
     constexpr auto end() {
       constexpr std::size_t n = std::tuple_size_v<decltype(get_tuple())>;
-      return begin() + sizeof(T) - sizeof(decltype(std::get<n - 1>(get_tuple())));
+      return (decltype(begin()))((uint8_t*)begin() + sizeof(T) - sizeof(decltype(std::get<n - 1>(get_tuple()))) + sizeof(std::remove_pointer_t<decltype(begin())>));
     }
 
-    constexpr std::size_t size() const {
-      using T2 = decltype(get_tuple());
-      return std::tuple_size_v<T2>;
+    static constexpr std::size_t size() {
+      return fan::count_struct_members<T>();
     }
 
     template<size_t ...Is>

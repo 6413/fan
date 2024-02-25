@@ -1317,7 +1317,7 @@ namespace fan_3d {
       }
 
       void mouse_modify_joint() {
-
+        static constexpr f64_t delta_time_divier = 1e+7;
         ImGui::DragFloat("current time", &fms.dt, 1, 0, fms.default_animation.duration);
         ImGui::Text(fan::format("camera pos: {}\ntotal time: {:.2f}", gloco->default_camera_3d->camera.position, fms.default_animation.duration).c_str());
         static bool play = false;
@@ -1331,7 +1331,7 @@ namespace fan_3d {
             c.start();
             x++;
           }
-          fms.dt = c.elapsed() / 1e+7;
+          fms.dt = c.elapsed() / delta_time_divier;
         }
 
 
@@ -1357,7 +1357,7 @@ namespace fan_3d {
             fms.dt = current_frame;
           }
           else {
-            current_frame = fmodf(c.elapsed() / 1e+6 / 4, anim.duration);
+            current_frame = fmodf(c.elapsed() / delta_time_divier, anim.duration);
           }
 
           static f32_t prev_frame = 0;

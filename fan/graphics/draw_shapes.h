@@ -21,6 +21,9 @@ for (auto& i : m_draw_queue_light) {
 //});
 //#endif
 
+#if defined(loco_vulkan)
+bool bind_array[shapes.size()]{};
+#endif
 
 typename loco_bdbt_Key_t<sizeof(redraw_key_t) * 8>::Traverse_t t0;
 t0.i(root);
@@ -45,11 +48,42 @@ while(t0.t(&bdbt, &redraw_key)) {
     typename loco_bdbt_Key_t<sizeof(shape_type_t) * 8>::Traverse_t t2;
     t2.i(t1.Output);
     loco_t::shape_type_t shape_type;
-    while (t2.t(&bdbt, &shape_type)) {  
+    while (t2.t(&bdbt, &shape_type)) {
+      #if defined(loco_vulkan)
+     // if (bind_array[(int)shape_type] == false) {
+        //fan::print((int)shape_type);
+        shapes.get_value((int)shape_type, [](auto& shape) {
+          gloco->get_context().bind_draw(
+            shape.m_pipeline,
+            1,
+            &shape.m_ssbo.m_descriptor.m_descriptor_set[gloco->get_context().currentFrame]
+          );
+        });
+      //  bind_array[(int)shape_type] = true;
+     // }
+      #endif
       shape_draw(shape_type, redraw_key, t2.Output);
     }
   }
+
 }
+//fan::print("(int)shape_type");
+//#if defined(loco_vulkan)
+//int index = 0;
+//for (auto& shape : bind_array) {
+//  if (shape == false) {
+//    fan::print("AA", index);
+//    shapes.get_value((int)index, [](auto& shape) {
+//      gloco->get_context().bind_draw(
+//        shape.m_pipeline,
+//        1,
+//        &shape.m_ssbo.m_descriptor.m_descriptor_set[gloco->get_context().currentFrame]
+//      );
+//    });
+//  }
+//  ++index;
+//}
+//#endif
 
 // TODO!
 //m_framebuffer.unbind(get_context());

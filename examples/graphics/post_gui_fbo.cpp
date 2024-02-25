@@ -37,7 +37,7 @@ int main() {
   sp.color.a = 0.25;
   sp.blending = true;
   sp.image = &image;
-  
+
 
   loco_t::shape_t shader_shape = sp;
 
@@ -47,7 +47,7 @@ int main() {
     shader.set_vertex(loco.get_sprite_vertex_shader());
     shader.set_fragment(shader_code);
     shader_compiled = shader.compile();
-  });
+    });
 
   fan::time::clock c;
   c.start();
@@ -65,7 +65,7 @@ int main() {
     if (shader_compiled == false) {
       ImGui::TextColored(fan::colors::green, "failed to compile shader");
     }
-    
+
     initial_position = fan::vec2(loco.window.get_size() / 2);
     initial_size = loco.window.get_size().y / 2;
 
@@ -93,7 +93,7 @@ int main() {
       fan::io::file::write("2.glsl", shader_code.c_str(), std::ios_base::binary);
     }
 
-  });
+    });
 
   return 0;
 }

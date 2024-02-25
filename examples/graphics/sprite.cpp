@@ -5,25 +5,25 @@ int main() {
 
   loco_t::image_t image;
   image.load("images/tire.webp");
-  fan::graphics::rectangle_t sprite{ {
-    .position = fan::vec3(50, 50, 0),
+  std::vector<loco_t::shape_t> sprites;
+  for (int i = 0; i < 254; ++i) {
+    sprites.push_back(fan::graphics::sprite_t{ {
+    .position = fan::vec3(fan::random::vec2(0, 1600), 254 - i),
     .size = 50,
-    .color = fan::colors::white
-    //.image = &image
-  } };
-
- // fan::print(sprite.get_position());
-  loco_t::shape_t s2 = sprite;
-  fan::print(s2.get_position());
-
+    .image = &image
+    } });
+  }
   loco.set_vsync(false);
 
   f32_t angle = 0;
   loco.loop([&] {
-    sprite.set_position(loco.get_mouse_position());
-    sprite.set_angle(fan::vec3(angle, 0, 0));
+
+    for (int i = 0; i < 254; ++i) {
+      sprites[i].set_angle(fan::vec3(0, 0, angle));
+    }
+   // sprite.set_position(loco.get_mouse_position());
+   // sprite.set_angle(fan::vec3(angle, 0, 0));
     angle += gloco->delta_time;
-  //  fan::print(sprite.get_position());
     loco.get_fps();
   });
 
