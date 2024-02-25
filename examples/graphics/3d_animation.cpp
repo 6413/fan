@@ -1637,7 +1637,7 @@ int main() {
     }
   });
 
-  loco.window.add_key_callback(fan::key_r, fan::keyboard_state::press, [&](const auto&) {
+  loco.window.add_key_callback(fan::key_g, fan::keyboard_state::press, [&](const auto&) {
     fan::string str;
     fan::io::file::read("1.glsl", &str);
     animation.m_shader.set_vertex(animation.animation_vs);
@@ -1645,7 +1645,7 @@ int main() {
     animation.m_shader.compile();
     });
 
-  /*loco.window.add_key_callback(fan::mouse_left, fan::keyboard_state::press, [&](const auto&) { 
+  loco.window.add_key_callback(fan::mouse_left, fan::keyboard_state::press, [&](const auto&) { 
     if (animation.fms.toggle_rotate) {
       animation.fms.toggle_rotate = false;
     }
@@ -1669,7 +1669,7 @@ int main() {
       animation.fms.active_joint = -1;
       std::fill(std::begin(animation.joint_controls), std::end(animation.joint_controls), loco_t::shape_t());
     }
-  });*/
+  });
 
   int active_axis = -1;
 

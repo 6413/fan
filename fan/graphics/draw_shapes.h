@@ -11,6 +11,17 @@ for (auto& i : m_draw_queue_light) {
   i();
 }
 
+//#if defined(loco_vulkan)
+//shapes.iterate([&]<auto i>(auto & shape) {
+//  get_context().bind_draw(
+//    shape.m_pipeline,
+//    1,
+//    &shape.m_ssbo.m_descriptor.m_descriptor_set[get_context().currentFrame]
+//  );
+//});
+//#endif
+
+
 typename loco_bdbt_Key_t<sizeof(redraw_key_t) * 8>::Traverse_t t0;
 t0.i(root);
 redraw_key_t redraw_key;

@@ -9,7 +9,7 @@ int main() {
     .size = fan::vec2(200, 200)
   }};
 
-const char* shader_code =
+fan::string shader_code =
 R"(
 #version 330
 
@@ -20,6 +20,8 @@ void main() {
   o_attachment0 = ccc;
 }
 )";
+
+  shader_code.resize(4096);
 
   loco_t::shader_t shader = loco.create_sprite_shader(shader_code);
   loco_t::shader_t shader2 = loco.create_sprite_shader(shader_code);
@@ -47,7 +49,16 @@ void main() {
 
   loco_t::shape_t shape1 = sp;
 
+  loco.window.add_key_callback(fan::key_r, fan::keyboard_state::press, [&](const auto&) {
+    shader.set_vertex(loco.get_sprite_vertex_shader());
+    shader.set_fragment(shader_code);
+    shader.compile();
+    });
+
   loco.loop([&] {
+    if (ImGui::InputTextMultiline("##TextFileContents", shader_code.data(), shader_code.size(), ImVec2(-1.0f, -1.0f), ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_AutoSelectAll)) {
+      
+    }
     ImGui::ColorEdit4("##c0", c0.data());
     ImGui::ColorEdit4("##c1", c1.data());
 

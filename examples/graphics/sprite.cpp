@@ -5,11 +5,11 @@ int main() {
 
   loco_t::image_t image;
   image.load("images/tire.webp");
-
-  fan::graphics::sprite_t sprite{ {
+  fan::graphics::rectangle_t sprite{ {
     .position = fan::vec3(50, 50, 0),
     .size = 50,
-    .image = &image
+    .color = fan::colors::white
+    //.image = &image
   } };
 
  // fan::print(sprite.get_position());

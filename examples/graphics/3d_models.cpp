@@ -115,7 +115,7 @@ namespace fan_3d {
       std::vector<textures_t> texture_names;
     };
 
-    std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
+    inline std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
 
     void process_model(auto This, const fan::string& root_path, const aiScene* scene, aiNode* node, parsed_model_t& parsed_model) {
       std::cout << "Processing node: " << node->mName.C_Str() << std::endl;

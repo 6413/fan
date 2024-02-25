@@ -201,11 +201,13 @@ struct shader_t {
   };
 
   void set_bool(const fan::string& name, bool value) const {
+    use();
     auto& context = gloco->get_context();
     set_int(name, value);
   }
 
   void set_int(const fan::string& name, int value) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -215,6 +217,7 @@ struct shader_t {
   }
 
   void set_uint(const fan::string& name, uint32_t value) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -224,6 +227,7 @@ struct shader_t {
   }
 
   void set_int_array(const fan::string& name, int* values, int size) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -233,6 +237,7 @@ struct shader_t {
 }
 
   void set_uint_array(const fan::string& name, uint32_t* values, int size) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -242,6 +247,7 @@ struct shader_t {
   }
 
   void set_float_array(const fan::string& name, f32_t* values, int size) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -251,6 +257,7 @@ struct shader_t {
   }
 
   void set_float(const fan::string& name, fan::vec2::value_type value) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -265,6 +272,7 @@ struct shader_t {
 }
 
   void set_vec2(const fan::string& name, const fan::vec2& value) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -280,6 +288,7 @@ struct shader_t {
 
 
   void set_vec2_array(const fan::string& name, std::vector<fan::vec2>& values) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -295,6 +304,7 @@ struct shader_t {
 
 
   void set_vec2(const fan::string& name, f32_t x, f32_t y) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -309,6 +319,7 @@ struct shader_t {
 }
 
   void set_vec3(const fan::string& name, const fan::vec3& value) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -323,6 +334,7 @@ struct shader_t {
   }
 
   void set_vec4(const fan::string& name, const fan::color& color) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -337,6 +349,7 @@ struct shader_t {
   }
 
   void set_vec4(const fan::string& name, f32_t x, f32_t y, f32_t z, f32_t w) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -357,6 +370,7 @@ struct shader_t {
   }
 
   void set_mat4(const fan::string& name, fan::mat4 mat) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     #if fan_debug >= fan_debug_insanity
@@ -371,6 +385,7 @@ struct shader_t {
   }
 
   void set_mat4(const fan::string& name, f32_t* value, uint32_t count) const {
+    use();
     auto& context = gloco->get_context();
     auto location = context.opengl.call(context.opengl.glGetUniformLocation, get_shader().id, name.c_str());
     fan_validate_value(location, validate_error_message(name));

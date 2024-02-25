@@ -60,14 +60,14 @@ int main() {
 		compute_shader.wait_finish(&pile->loco);
 	}
 
-	fan::print(c.elapsed(), c.elapsed() / i);
+  fan::print_format("ns {}, s {}, {} ns per iteration", c.elapsed(), c.elapsed() / 1e+9, c.elapsed() / i);
 
-	for (i = 0; i < buffer_size / sizeof(uint32_t); ++i) {
-		//if (((uint32_t*)data)[i] != 5) {
-			fan::print(i, ((uint32_t*)data)[i]);
-		//	break;
-		//}
-	}
+	//for (i = 0; i < buffer_size / sizeof(uint32_t); ++i) {
+	//	//if (((uint32_t*)data)[i] != 5) {
+	//		fan::print(i, ((uint32_t*)data)[i]);
+	//	//	break;
+	//	//}
+	//}
 
 	return 0;
 }
