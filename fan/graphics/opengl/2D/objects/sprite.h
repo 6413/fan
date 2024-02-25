@@ -82,14 +82,12 @@ struct sb_sprite_name {
   }
 
   void draw(const redraw_key_t &redraw_key, loco_bdbt_NodeReference_t key_root) {
-    #if defined(loco_opengl)
     if (redraw_key.blending) {
-      m_current_shader = &m_blending_shader;
+      //m_current_shader = &m_blending_shader;
     }
     else {
       m_current_shader = &m_shader;
     }
-    #endif
     sb_draw(key_root);
   }
 

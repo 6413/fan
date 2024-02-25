@@ -195,10 +195,11 @@
         VK_IMAGE_TILING_OPTIMAL, 
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-        node.image,
+        node.image_index,
         node.image_memory
       );
-      node.image_view = createImageView(node.image, lp.format);
+      node.image_view = createImageView(node.image_index, lp.format);
+      node.image = this;
       createTextureSampler(node.sampler, lp);
 
       return node;
@@ -206,7 +207,7 @@
     void erase_texture() {
       auto& context = gloco->get_context();
       auto texture_data = get_texture_data();
-      vkDestroyImage(context.device, texture_data->image, 0);
+      vkDestroyImage(context.device, texture_data->image_index, 0);
       vkDestroyImageView(context.device, texture_data->image_view, 0);
       vkFreeMemory(context.device, texture_data->image_memory, nullptr);
 
@@ -257,9 +258,9 @@
 
       auto node = create_texture(image_info.size, p);
 
-      transitionImageLayout(node.image, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-      copyBufferToImage(stagingBuffer, node.image, p.format, image_info.size);
-      transitionImageLayout(node.image, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      transitionImageLayout(node.image_index, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+      copyBufferToImage(stagingBuffer, node.image_index, p.format, image_info.size);
+      transitionImageLayout(node.image_index, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
       return 0;
     }
@@ -300,9 +301,9 @@
 
       auto& node = gloco->image_list[texture_reference];
 
-      transitionImageLayout(node.image, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-      copyBufferToImage(stagingBuffer, node.image, p.format, image_info.size);
-      transitionImageLayout(node.image, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      transitionImageLayout(node.image_index, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+      copyBufferToImage(stagingBuffer, node.image_index, p.format, image_info.size);
+      transitionImageLayout(node.image_index, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
     //void reload(const fan::string& path, const load_properties_t& p = load_properties_t()) {

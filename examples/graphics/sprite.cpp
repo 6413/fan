@@ -6,12 +6,11 @@ int main() {
   loco_t::image_t image;
   image.load("images/tire.webp");
 
-  loco_t::shape_t sprite = fan_init_struct(
-      loco_t::shapes_t::sprite_t::properties_t,
-      .position = fan::vec3(50, 50, 0),
-      .size = 50,
-      .image = &image
-    );
+  fan::graphics::sprite_t sprite{ {
+    .position = fan::vec3(50, 50, 0),
+    .size = 50,
+    .image = &image
+  } };
 
  // fan::print(sprite.get_position());
   loco_t::shape_t s2 = sprite;

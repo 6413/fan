@@ -9,12 +9,7 @@ layout(location = 0) out vec4 o_color;
 //layout(location = 1) out vec4 r_color;
 
 void main() {
-  //o_color.r = 1;
-	//o_color = subpassLoad(attachment0) + subpassLoad(attachment1);
-  //o_color.a = 0;
-  o_color = subpassLoad(attachment0);
-  //o_color.r += subpassLoad(attachment1).r;
-  //r_color = subpassLoad(attachment0);
+  o_color = vec4(subpassLoad(attachment0).rgb, 1);
 
 }
 )"

@@ -60,7 +60,11 @@ namespace fan {
 				void write(fan::vulkan::context_t& context, uint32_t frame) {
 					
 					if (common.m_min_edit != (uint64_t)-1) {
-						memcpy(data, &instance_list.get_vi(nr_t{}, 0), instance_list.NodeList.Current * max_instance_size * sizeof(vi_t));
+            // TODO not probably best way
+            nr_t nr;
+            nr.NRI = 0;
+            auto& ptr = instance_list.get_vi(nr, 0);
+						memcpy(data, &ptr, instance_list.NodeList.Current * max_instance_size * sizeof(vi_t));
 					}
 					else {
 						for (auto i : common.indices) {
