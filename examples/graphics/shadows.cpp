@@ -73,7 +73,7 @@ int main() {
     for (int i = 0; i < ball_count; ++i) {
       lights.push_back(fan::graphics::light_t{ {
           .position = fan::vec3(fan::random::vec2(fan::vec2(100), fan::vec2(2000, 1000)), 0),
-          .size = 700,
+          .size = 300,
           .color = fan::random::color() * 2,
           .blending = true,
       } });

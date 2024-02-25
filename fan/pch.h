@@ -66,14 +66,14 @@
 //#define loco_line
 //#define loco_circle
 //#define loco_button
-//#define loco_sprite
+#define loco_sprite
 //#define loco_dropdown
 //#define loco_pixel_format_renderer
 //#define loco_tp
 //#define loco_sprite_sheet
 //
 //#define loco_grass_2d
-//
+
 //#define loco_rectangle_3d
 //#define loco_model_3d
 //

@@ -7,7 +7,7 @@ in vec3 instance_position;
 in vec2 instance_size;
 in vec3 frag_position;
 
-#define light_count 10
+#define light_count 50
 
 uniform vec2 un_positions[light_count];
 

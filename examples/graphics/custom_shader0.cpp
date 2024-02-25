@@ -8,12 +8,13 @@ int main() {
   fan::vec2 initial_size = loco.window.get_size().y / 2;
 
   loco_t::image_t background;
-  background.create(fan::colors::black, 1);
+  background.create(fan::color(1, 0, 0, 0.3), 1);
 
   fan::graphics::sprite_t sprite{ {
-    .position = fan::vec3(initial_position, 0),
+    .position = fan::vec3(initial_position, 3),
     .size = initial_size,
-    .image = &background
+    .image = &background,
+    .blending = true
   } };
 
   fan::string shader_code;

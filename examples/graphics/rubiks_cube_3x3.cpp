@@ -268,13 +268,16 @@ int main() {
     }
     });
 
+  fan::string str;
+  static constexpr const char* shader_path = _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/loco_post_fbo.fs);
+  fan::io::file::read(shader_path, &str);
+  str.resize(4096);
   loco.window.add_key_callback(fan::key_r, fan::keyboard_state::press, [&](const auto&) {
-    fan::string str;
-    fan::io::file::read("1.glsl", &str);
-    model.m_shader.set_vertex(model.animation_vs);
-    model.m_shader.set_fragment(str.c_str());
-    model.m_shader.compile();
-    });
+    
+    gloco->m_fbo_post_gui_shader.set_vertex(loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/loco_fbo.vs)));
+    gloco->m_fbo_post_gui_shader.set_fragment(str.c_str());
+    gloco->m_fbo_post_gui_shader.compile();
+  });
 
   int active_axis = -1;
 
@@ -282,22 +285,29 @@ int main() {
 
   loco.loop([&] {
 
+    if (ImGui::InputTextMultiline("##TextFileContents", str.data(), str.size(), ImVec2(-1.0f, -1.0f), ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_AutoSelectAll)) {
+      fan::io::file::write(shader_path, str.c_str(), std::ios_base::binary);
+    }
+
     model.fms.x += gloco->delta_time;
     ImGui::Begin("window");
-    camera.move(100);
+
     fan::ray3_t ray = gloco->convert_mouse_to_ray(camera.position, camera.m_projection, camera.m_view);
 
-    if (ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
-      camera.rotate_camera(fan::vec2(-0.01, 0));
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_RightArrow)) {
-      camera.rotate_camera(fan::vec2(0.01, 0));
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_UpArrow)) {
-      camera.rotate_camera(fan::vec2(0, -0.01));
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
-      camera.rotate_camera(fan::vec2(0, 0.01));
+    if (!ImGui::IsAnyItemActive()) {
+      if (ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
+        camera.rotate_camera(fan::vec2(-0.01, 0));
+      }
+      if (ImGui::IsKeyDown(ImGuiKey_RightArrow)) {
+        camera.rotate_camera(fan::vec2(0.01, 0));
+      }
+      if (ImGui::IsKeyDown(ImGuiKey_UpArrow)) {
+        camera.rotate_camera(fan::vec2(0, -0.01));
+      }
+      if (ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
+        camera.rotate_camera(fan::vec2(0, 0.01));
+      }
+      camera.move(100);
     }
 
     loco.get_fps();

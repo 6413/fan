@@ -1633,11 +1633,6 @@ namespace fan {
     }
 #endif
 
-    void pipeline_t::close(fan::vulkan::context_t& context) {
-      vkDestroyPipeline(context.device, m_pipeline, nullptr);
-      vkDestroyPipelineLayout(context.device, m_layout, nullptr);
-    }
-
     template <uint32_t count>
     inline void descriptor_t<count>::open(fan::vulkan::context_t& context, VkDescriptorPool descriptor_pool, std::array<fan::vulkan::write_descriptor_set_t, count> properties) {
       m_properties = properties;
@@ -1726,4 +1721,10 @@ inline void fan::vulkan::context_t::createDepthResources() {
   p.usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
   p.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
   vai_depth.open(*this, p);
+}
+
+
+inline void fan::vulkan::pipeline_t::close(fan::vulkan::context_t& context) {
+  vkDestroyPipeline(context.device, m_pipeline, nullptr);
+  vkDestroyPipelineLayout(context.device, m_layout, nullptr);
 }

@@ -462,14 +462,6 @@ public:
 
   static inline std::vector<fan::function_t<void()>> draw_queue_helper;
 
-  inline static fan::time::clock cloook;
-
-  static bool f() {
-    cloook.start();
-    return 0;
-  }
-  inline static bool v = f();
-
   template <uint32_t depth = 0>
   void traverse_draw(loco_bdbt_NodeReference_t nr, uint32_t draw_mode) {
     if constexpr (depth == context_key_t::key_t::count + 1) {
@@ -482,7 +474,7 @@ public:
       auto& bm = bm_list[*(shape_bm_NodeReference_t*)&nr];
       auto block_id = bm.first_block;
 
-      m_current_shader->set_float("m_time", (double)cloook.elapsed() / 1e+9);
+      m_current_shader->set_float("m_time", (double)gloco->m_time.elapsed() / 1e+9);
 
       while (1) {
         auto block_node = blocks.GetNodeByReference(block_id);
@@ -534,7 +526,7 @@ public:
       auto& bm = bm_list[*(shape_bm_NodeReference_t*)&nr];
       auto block_id = bm.first_block;
 
-      m_shader.set_float("m_time", (double)cloook.elapsed() / 1e+9);
+      m_shader.set_float("m_time", (double)gloco->m_time.elapsed() / 1e+9);
 
       while (1) {
         auto block_node = blocks.GetNodeByReference(block_id);
