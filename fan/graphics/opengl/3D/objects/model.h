@@ -412,7 +412,7 @@ namespace fan_3d {
       }
     }
 
-    bool get_time_fraction(const std::vector<f32_t>& times, f32_t dt, std::pair<uint32_t, f32_t>& fp) {
+    static bool get_time_fraction(const std::vector<f32_t>& times, f32_t dt, std::pair<uint32_t, f32_t>& fp) {
       if (times.empty()) {
         return true;
       }
@@ -434,7 +434,7 @@ namespace fan_3d {
       return false;
     }
 
-    bool fk_get_time_fraction(const std::vector<f32_t>& times, f32_t dt, std::pair<uint32_t, f32_t>& fp) {
+    static bool fk_get_time_fraction(const std::vector<f32_t>& times, f32_t dt, std::pair<uint32_t, f32_t>& fp) {
       if (times.empty()) {
         return true;
       }
@@ -462,7 +462,7 @@ namespace fan_3d {
       return false;
     }
 
-    void apply_transform(fan_3d::model::joint_t& bone, fan::mat4& rot_transform) {
+    static void apply_transform(fan_3d::model::joint_t& bone, fan::mat4& rot_transform) {
       static std::unordered_map<int, fan::vec3> v;
       //fan::vec3 ang = 0;
       ImGui::DragFloat3((bone.name + " angle").c_str(), v[bone.id].data(), 0.1);

@@ -1832,7 +1832,7 @@ public:
       auto& style = ImGui::GetStyle();
       auto& io = ImGui::GetIO();
 
-      static constexpr const char* font_name = "fonts/Alegreya.otf";
+      static constexpr const char* font_name = "fonts/SourceCodePro-Regular.ttf";
       static constexpr f32_t font_size = 36;
       if (io.Fonts->AddFontFromFileTTF(font_name, font_size) == nullptr) {
         fan::throw_error(fan::string("failed to load font") + font_name);

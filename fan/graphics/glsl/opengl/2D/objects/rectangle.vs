@@ -83,7 +83,7 @@ void main() {
   m = translate(m, vec3(get_instance().rotation_point, 0));
   vec2 rotated = vec4(m * vec4(rp * get_instance().size, 0, 1)).xy;
 
-  gl_Position = projection * view * vec4((rotated + get_instance().position.xy), get_instance().position.z, 1);
+  gl_Position = projection * view * vec4(rotated + get_instance().position.xy, get_instance().position.z, 1);
 
 	instance_color = get_instance().color;
 }
