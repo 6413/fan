@@ -51,7 +51,6 @@ int main() {
   fan::string peek_file_contents;
 
   fan::graphics::imgui_element_t element([&] {
-    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
     ImGui::Begin("Top panel");
     if (ImGui::Button("<-")) {
