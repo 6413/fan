@@ -1552,7 +1552,7 @@ public:
 
     #if defined(loco_framebuffer)
 
-    auto load_texture = [&](fan::webp::image_info_t& image_info, auto& color_buffer, fan::opengl::GLenum attachment) {
+    static auto load_texture = [&](fan::webp::image_info_t& image_info, auto& color_buffer, fan::opengl::GLenum attachment) {
       loco_t::image_t::load_properties_t load_properties;
       load_properties.internal_format = fan::opengl::GL_RGBA;
       load_properties.format = fan::opengl::GL_RGBA;
@@ -2089,8 +2089,8 @@ public:
     ~cuda_textures_t() {
     }
     void close(loco_t* loco, loco_t::shape_t& cid) {
-      uint8_t image_amount = fan::pixel_format::get_texture_amount(loco->pixel_format_renderer.sb_get_ri(cid).format);
-      auto& ri = loco->pixel_format_renderer.sb_get_ri(cid);
+      uint8_t image_amount = fan::pixel_format::get_texture_amount(loco->shapes.pixel_format_renderer.sb_get_ri(cid).format);
+      auto& ri = loco->shapes.pixel_format_renderer.sb_get_ri(cid);
       for (uint32_t i = 0; i < image_amount; ++i) {
         wresources[i].close();
         ri.images[i].unload();
@@ -2098,12 +2098,12 @@ public:
     }
 
     void resize(loco_t* loco, loco_t::cid_nt_t& id, uint8_t format, fan::vec2ui size, uint32_t filter = loco_t::image_t::filter::linear) {
-      auto& ri = loco->pixel_format_renderer.sb_get_ri(id);
+      auto& ri = loco->shapes.pixel_format_renderer.sb_get_ri(id);
       uint8_t image_amount = fan::pixel_format::get_texture_amount(format);
       if (inited == false) {
         // purge cid's images here
         // update cids images
-        loco->pixel_format_renderer.reload(id, format, size, filter);
+        loco->shapes.pixel_format_renderer.reload(id, format, size, filter);
         for (uint32_t i = 0; i < image_amount; ++i) {
           wresources[i].open(loco->image_list[ri.images[i].texture_reference].texture_id);
         }
@@ -2120,7 +2120,7 @@ public:
           wresources[i].close();
         }
 
-        loco->pixel_format_renderer.reload(id, format, size, filter);
+        loco->shapes.pixel_format_renderer.reload(id, format, size, filter);
 
         for (uint32_t i = 0; i < image_amount; ++i) {
           wresources[i].open(loco->image_list[ri.images[i].texture_reference].texture_id);

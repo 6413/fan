@@ -306,8 +306,10 @@ namespace fan {
 #define __FAN__FOREACH_NS_N(_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) __FAN__FOREACH_NS_##N
 
 
+// NEEDS /Zc:__cplusplus /Zc:preprocessor
 #define __FAN__FOREACH(f, ...) __FAN__FOREACH_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
 
+// NEEDS /Zc:__cplusplus /Zc:preprocessor
 #define __FAN__FOREACH_NS(f, ...) __FAN__FOREACH_NS_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
 
 #include _FAN_PATH(types/function.h)
@@ -546,9 +548,6 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 
   template <typename T>
   struct is_fan_vec3 : std::false_type {};
-
-  template <>
-  struct is_fan_vec3<fan::vec3> : std::true_type {};
 
   template <typename... T>
   static FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
@@ -829,6 +828,20 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 
 	template<typename Callable>
 	using return_type_of_t = typename decltype(std::function{ std::declval<Callable>() })::result_type;
+
+  constexpr inline uint64_t get_hash(const std::string_view& str) {
+    uint64_t result = 0xcbf29ce484222325; // FNV offset basis
+
+    uint32_t i = 0;
+
+    while (i < str.size()) {
+      result ^= (uint64_t)str[i];
+      result *= 1099511628211; // FNV prime
+      i++;
+    }
+
+    return result;
+  }
 
 	constexpr inline uint64_t get_hash(const fan::string& str) {
 		uint64_t result = 0xcbf29ce484222325; // FNV offset basis
@@ -1200,6 +1213,7 @@ namespace fan {
   #define lstd_preprocessor_combine_every_2(...) _lstd_preprocessor_combine_every_2_start(lstd_preprocessor_get_arg_count(__VA_ARGS__), __VA_ARGS__)
   #endif
 
+  // __VA_ARGS__ is not compile time in clang according to clang
   #define fan_make_flexible_array(type, name, ...) \
-  type name[std::initializer_list<type>{__VA_ARGS__}.size()] = {__VA_ARGS__}
+  std::array<type, std::initializer_list<type>{__VA_ARGS__}.size()> name = {__VA_ARGS__}
 }
