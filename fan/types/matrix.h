@@ -456,6 +456,19 @@ namespace fan {
       return matrix;
     }
 
+    constexpr fan::vec3 operator*(const fan::vec3& rhs) const {
+      fan::vec3 result{};
+
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          result[i] += m_array[j][i] * rhs[j];
+        }
+        result[i] += m_array[3][i];
+      }
+
+      return result;
+    }
+
   protected:
     std::array<fan::vec4, 4> m_array;
   };

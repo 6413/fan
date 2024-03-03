@@ -7,9 +7,10 @@ in vec3 instance_position;
 in vec2 instance_size;
 in vec3 frag_position;
 
-#define light_count 50
+#define light_count 1
 
 uniform vec2 un_positions[light_count];
+uniform float un_sizes[light_count];
 
 float raySphereIntersect(vec3 r0, vec3 rd, vec3 s0, float sr) {
     float a = dot(rd, rd);
@@ -40,7 +41,7 @@ void main() {
 
     for (int i = 0; i < light_count; ++i) {
       vec3 sphereCenter1 = vec3(un_positions[i], 0);
-      float sphereRadius1 = 25.0;
+      float sphereRadius1 = un_sizes[i];
 
       float d1 = raySphereIntersect(frag_position, rayDirection1, sphereCenter1, sphereRadius1);
       if (d1 > -1 && d1 < instance_size.x && isSameDirection(-rayDirection1.xy, vec3(sphereCenter1 - instance_position).xy)) {

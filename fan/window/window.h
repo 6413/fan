@@ -287,7 +287,7 @@ namespace fan {
 		};
 
 		struct resolutions {
-			constexpr static fan::vec2i r_800x600 = fan::vec2(800, 600);
+			constexpr static fan::vec2i r_800x600 = fan::vec2i(800, 600);
 			constexpr static fan::vec2i r_1024x768 = fan::vec2i(1024, 768);
 			constexpr static fan::vec2i r_1280x720 = fan::vec2i(1280, 720);
 			constexpr static fan::vec2i r_1280x800 = fan::vec2i(1280, 800);
