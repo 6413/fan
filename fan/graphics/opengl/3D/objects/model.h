@@ -1400,7 +1400,7 @@ namespace fan {
       void mouse_modify_joint() {
         static constexpr f64_t delta_time_divier = 1e+7;
         ImGui::DragFloat("current time", &fms.dt, 1, 0, fms.default_animation.duration);
-        ImGui::Text(fan::format("camera pos: {}\ntotal time: {:.2f}", gloco->default_camera_3d->camera.position, fms.default_animation.duration).c_str());
+        //ImGui::Text(fan::format("camera pos: {}\ntotal time: {:.2f}", gloco->default_camera_3d->camera.position, fms.default_animation.duration).c_str());
         static bool play = false;
         if (ImGui::Checkbox("play animation", &play)) {
           fms.showing_temp_rot = false;
