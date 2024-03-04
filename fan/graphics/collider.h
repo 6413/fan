@@ -1,6 +1,5 @@
 #pragma once
 
-#if defined(fan_build_pch)
 #if defined(loco_physics)
 
 // change get_collider_position to get_position and use get_sprite_position etc
@@ -223,5 +222,4 @@ namespace fan {
   }
 }
 
-#endif
 #endif
