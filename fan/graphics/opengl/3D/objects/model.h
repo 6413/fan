@@ -1075,11 +1075,12 @@ namespace fan {
 					uniform mat4 projection;
 					uniform mat4 view;
           uniform mat4 model;
+          uniform mat4 m;
 
 					void main()
 					{
             vec3 v = vec3(vertex.x, vertex.y, vertex.z);
-						gl_Position = projection * view * model * vec4(v, 1.0);
+						gl_Position = projection * view * m * model * vec4(v, 1.0);
             tex_coord = uv;
             v_pos = vec3(model * vec4(v, 1.0));
 						v_normal = mat3(transpose(inverse(model))) * normal;
@@ -1306,6 +1307,7 @@ namespace fan {
         gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE3);
         gloco->get_context().opengl.glBindTexture(fan::opengl::GL_TEXTURE_CUBE_MAP, envMapTexture);
         m_shader.set_int("envMap", 3);
+        m_shader.set_mat4("m", m);
 
         auto& context = gloco->get_context();
         context.opengl.glDisable(fan::opengl::GL_BLEND);
@@ -1315,7 +1317,6 @@ namespace fan {
           m_shader.set_mat4("model", render_objects[i].m * render_objects[i].transform); // only for gpu vs
 
           render_objects[i].vao.bind(context);
-          m_shader.set_mat4("transform", fms.parsed_model.transforms[i]);
           fan::vec4 cpt = fms.parsed_model.transforms[i] * fan::vec4(gloco->default_camera_3d->camera.position, 1);
           m_shader.set_vec3("view_p", gloco->default_camera_3d->camera.position);
           if (i < fms.parsed_model.texture_names.size()) {
@@ -1534,6 +1535,7 @@ namespace fan {
       static constexpr uint8_t axis_count = 3;
       loco_t::shape_t joint_controls[axis_count];
       fan::opengl::GLuint envMapTexture;
+      fan::mat4 m{ 1 };
     };
   }
 }

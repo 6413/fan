@@ -1,5 +1,9 @@
 #include fan_pch
 
+// animation needs to be redone since angle f32_t -> vec3
+
+#include _FAN_PATH(graphics/gui/keyframe_animator/loader.h)
+
 loco_t loco;
 
 struct player_t {
