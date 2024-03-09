@@ -65,8 +65,14 @@ int main() {
 
   int render_time = 0;
 
+  fan::vec3 orientation = fan::vec3(fan::math::pi, 0, 0);
+
   loco.loop([&] {
     ImGui::Begin("window");
+
+    model.m = fan::mat4(1).rotate(orientation);
+
+    ImGui::DragFloat3("orientation", orientation.data(), 0.01);
 
     camera.move(100);
 

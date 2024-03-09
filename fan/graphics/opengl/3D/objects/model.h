@@ -153,12 +153,12 @@ namespace fan_3d {
         auto idx = str.find_last_of('\\') + 1;
         fan::webp::image_info_t ii;
         str = root_path + "textures/" + str.substr(idx);
-        fan::print(str);
         str.replace_all(".png", ".webp");
 
         auto found = cached_texture_data.find(str);
         if (found == cached_texture_data.end())
         {
+          fan::print(str);
           texture_found = true;
           if (fan::webp::load(/*root_path + path.C_Str()*/str, &ii))
           {
@@ -531,7 +531,8 @@ namespace fan_3d {
         bone_transform += bone_transforms[bone_ids.y] * bone_weights.y;
         bone_transform += bone_transforms[bone_ids.z] * bone_weights.z;
         bone_transform += bone_transforms[bone_ids.w] * bone_weights.w;
-        return m_transform *  bone_transform;
+        // convert to x, z, y (y up)
+        return m_transform *  bone_transform * fan::mat4(1).scale(-1);
       }
 
       // for default animation
