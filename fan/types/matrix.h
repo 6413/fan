@@ -325,7 +325,8 @@ namespace fan {
 			return matrix;
 		}
 
-		constexpr _matrix4x4 rotate(f32_t angle, const fan::vec3& v) const {
+    // sets rotation to specific angle
+		constexpr _matrix4x4 rotation_set(f32_t angle, const fan::vec3& v) const {
 			const f32_t a = angle;
 			const f32_t c = cos(a);
 			const f32_t s = sin(a);
@@ -362,6 +363,37 @@ namespace fan {
 
 			return matrix;
 		}
+    constexpr _matrix4x4 rotate(f32_t angle, const fan::vec3& v) const {
+      const f32_t a = angle;
+      const f32_t c = cos(a);
+      const f32_t s = sin(a);
+      fan::vec3 axis(fan_3d::math::normalize(v));
+      fan::vec3 temp(axis * (1.0f - c));
+
+      _matrix4x4 rotation{};
+      rotation[0][0] = c + temp[0] * axis[0];
+      rotation[0][1] = temp[0] * axis[1] + s * axis[2];
+      rotation[0][2] = temp[0] * axis[2] - s * axis[1];
+
+      rotation[1][0] = temp[1] * axis[0] - s * axis[2];
+      rotation[1][1] = c + temp[1] * axis[1];
+      rotation[1][2] = temp[1] * axis[2] + s * axis[0];
+
+      rotation[2][0] = temp[2] * axis[0] + s * axis[1];
+      rotation[2][1] = temp[2] * axis[1] - s * axis[0];
+      rotation[2][2] = c + temp[2] * axis[2];
+
+      _matrix4x4 matrix{};
+      matrix[0] = (*this)[0] * rotation[0][0] + (*this)[1] * rotation[0][1] + (*this)[2] * rotation[0][2];
+      matrix[1] = (*this)[0] * rotation[1][0] + (*this)[1] * rotation[1][1] + (*this)[2] * rotation[1][2];
+      matrix[2] = (*this)[0] * rotation[2][0] + (*this)[1] * rotation[2][1] + (*this)[2] * rotation[2][2];
+
+      // Copy the unchanged part of the matrix
+      matrix[3] = (*this)[3];
+
+      return matrix;
+    }
+
     fan::vec3 get_euler_angles() const{
       _matrix4x4 matrix = *this;
       fan::vec3 euler_angles;

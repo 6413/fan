@@ -31,7 +31,7 @@ int main() {
 
   pile_t* pile = new pile_t;
 
-  loco_t::pixel_format_renderer_t::properties_t p;
+  loco_t::shapes_t::pixel_format_renderer_t::properties_t p;
 
   //p.pixel_format = fan::pixel_format::yuv420p;
   p.size = fan::vec2(1, 1);
@@ -53,7 +53,7 @@ int main() {
   p.position = fan::vec3(0, 0, 0);
   p.position.z = 0;
   p.size = 1;
-  pile->loco.pixel_format_renderer.push_back(shape_nr, p);
+  pile->loco.shapes.pixel_format_renderer.push_back(shape_nr, p);
 
   void* d = str.data();
 
@@ -90,7 +90,7 @@ int main() {
     datas[1] = (uint8_t*)d + (offset += image_size.multiply());
     datas[2] = (uint8_t*)d + (offset += image_size.multiply() / 4);
 
-    pile->loco.pixel_format_renderer.reload(shape_nr, fan::pixel_format::yuv420p, datas, image_size);
+    pile->loco.shapes.pixel_format_renderer.reload(shape_nr, fan::pixel_format::yuv420p, datas, image_size);
   }
   
 
