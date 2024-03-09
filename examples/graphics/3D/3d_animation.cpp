@@ -1,12 +1,11 @@
 #include fan_pch
 
-#include <glm/glm.hpp>
-
 int main() {
   loco_t loco;
   loco.set_vsync(0);
   fan::graphics::model_t::properties_t p;
   p.path = "models/model_debug.dae";
+  // todo make animation work with gpu
   p.use_flag = fan::graphics::model_t::use_flag_e::cpu;
   fan::graphics::model_t model(p);
 
@@ -50,21 +49,24 @@ int main() {
 
     // THIS IS FOR SIMULATING ON CPU, properties_t::use_fs = false
     
-    if (default_anim) {
-      // for default model
-      model.fms.calculate_default_pose();
-      auto default_animation_transform = model.fms.calculate_transformations();
-      model.fms.calculate_modified_vertices(mesh_id, default_animation_transform);
-    }
-    else {
-      model.fms.calculate_poses();
-      auto fk_animation_transform = model.fms.fk_calculate_transformations();
-      model.fms.calculate_modified_vertices(mesh_id, fk_animation_transform);
-    }
+    if (p.use_flag == fan::graphics::model_t::use_flag_e::cpu) {
+
+      if (default_anim) {
+        // for default model
+        model.fms.calculate_default_pose();
+        auto default_animation_transform = model.fms.calculate_transformations();
+        model.fms.calculate_modified_vertices(mesh_id, default_animation_transform);
+      }
+      else {
+        model.fms.calculate_poses();
+        auto fk_animation_transform = model.fms.fk_calculate_transformations();
+        model.fms.calculate_modified_vertices(mesh_id, fk_animation_transform);
+      }
 
 
-    for (int i = 0; i < model.render_objects.size(); ++i) {
-      model.upload_modified_vertices(i);
+      for (int i = 0; i < model.render_objects.size(); ++i) {
+        model.upload_modified_vertices(i);
+      }
     }
     
 

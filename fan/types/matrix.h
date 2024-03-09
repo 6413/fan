@@ -393,6 +393,42 @@ namespace fan {
 
       return matrix;
     }
+    constexpr _matrix4x4 rotate(const fan::vec3& angles) const {
+      const f32_t angle_x = angles.x;
+      const f32_t angle_y = angles.y;
+      const f32_t angle_z = angles.z;
+
+      const f32_t cos_x = cos(angle_x);
+      const f32_t sin_x = sin(angle_x);
+      const f32_t cos_y = cos(angle_y);
+      const f32_t sin_y = sin(angle_y);
+      const f32_t cos_z = cos(angle_z);
+      const f32_t sin_z = sin(angle_z);
+
+      const _matrix4x4 rotation_x{
+          1.0f, 0.0f, 0.0f, 0.0f,
+          0.0f, cos_x, -sin_x, 0.0f,
+          0.0f, sin_x, cos_x, 0.0f,
+          0.0f, 0.0f, 0.0f, 1.0f
+      };
+
+      const _matrix4x4 rotation_y{
+          cos_y, 0.0f, sin_y, 0.0f,
+          0.0f, 1.0f, 0.0f, 0.0f,
+          -sin_y, 0.0f, cos_y, 0.0f,
+          0.0f, 0.0f, 0.0f, 1.0f
+      };
+
+      const _matrix4x4 rotation_z{
+          cos_z, -sin_z, 0.0f, 0.0f,
+          sin_z, cos_z, 0.0f, 0.0f,
+          0.0f, 0.0f, 1.0f, 0.0f,
+          0.0f, 0.0f, 0.0f, 1.0f
+      };
+
+      return *this * rotation_x * rotation_y * rotation_z;
+    }
+
 
     fan::vec3 get_euler_angles() const{
       _matrix4x4 matrix = *this;
