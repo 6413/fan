@@ -30,6 +30,8 @@ struct rectangle_properties_t {
   fan::vec3 position = fan::vec3(0, 0, 0);
   fan::vec2 size = fan::vec2(0.1, 0.1);
   fan::color color = fan::color(1, 1, 1, 1);
+  fan::vec3 angle = 0;
+  fan::vec2 rotation_point = 0;
   bool blending = false;
 };
 
@@ -44,6 +46,8 @@ struct rectangle_t : loco_t::shape_t {
         .position = p.position,
         .size = p.size,
         .color = p.color,
+        .angle = p.angle,
+        .rotation_point = p.rotation_point,
         .blending = p.blending
       ));
   }
@@ -112,6 +116,7 @@ struct sprite_properties_t {
   fan::vec2 size = fan::vec2(0.1, 0.1);
   fan::vec3 angle = 0;
   fan::color color = fan::color(1, 1, 1, 1);
+  fan::vec2 rotation_point = 0;
   loco_t::image_t* image = &gloco->default_texture;
   bool blending = false;
 };
@@ -128,6 +133,7 @@ struct sprite_t : loco_t::shape_t {
         .angle = p.angle,
         .image = p.image,
         .color = p.color,
+        .rotation_point = p.rotation_point,
         .blending = p.blending
       ));
   }
@@ -349,5 +355,128 @@ struct vfi_root_custom_t {
 };
 
 using vfi_root_t = vfi_root_custom_t<__empty_struct>;
+
+
+template <typename T>
+struct vfi_multiroot_custom_t {
+  void push_root(const loco_t::shapes_t::vfi_t::properties_t& p) {
+    loco_t::shapes_t::vfi_t::properties_t in = p;
+    in.shape_type = loco_t::shapes_t::vfi_t::shape_t::rectangle;
+    in.shape.rectangle->viewport = &gloco->default_camera->viewport;
+    in.shape.rectangle->camera = &gloco->default_camera->camera;
+    in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {
+      if (d.key == fan::key_c &&
+        (d.keyboard_state == fan::keyboard_state::press ||
+          d.keyboard_state == fan::keyboard_state::repeat)) {
+        this->resize = true;
+        return user_cb(d);
+      }
+      this->resize = false;
+      return 0;
+      };
+    in.mouse_button_cb = [this, root_reference = vfi_root.empty() ? 0 : vfi_root.size() - 1, user_cb = p.mouse_button_cb](const auto& d) -> int {
+      if (d.button != fan::mouse_left) {
+        return user_cb(d);
+      }
+
+      if (d.button_state == fan::mouse_state::press && move_and_resize_auto) {
+        this->move = true;
+        gloco->shapes.vfi.focus.method.mouse.flags.ignore_move_focus_check = true;
+      }
+      else if (d.button_state == fan::mouse_state::release && move_and_resize_auto) {
+        this->move = false;
+        gloco->shapes.vfi.focus.method.mouse.flags.ignore_move_focus_check = false;
+      }
+
+      if (d.button_state == fan::mouse_state::release) {
+        uint32_t index = 0;
+        for (auto& root : vfi_root) {
+          auto position = root->get_position();
+          auto p = fan::vec3(fan::vec2(position), position.z);
+          if (grid_size.x > 0) {
+            p.x = floor(p.x / grid_size.x) * grid_size.x + grid_size.x / 2;
+          }
+          if (grid_size.y > 0) {
+            p.y = floor(p.y / grid_size.y) * grid_size.y + grid_size.y / 2;
+          }
+          root->set_position(p);
+          index += 1;
+        }
+        for (auto& child : children) {
+          auto position = child.get_position();
+          auto p = fan::vec3(fan::vec2(position), position.z);
+          if (grid_size.x > 0) {
+            p.x = floor(p.x / grid_size.x) * grid_size.x + grid_size.x / 2;
+          }
+          if (grid_size.y > 0) {
+            p.y = floor(p.y / grid_size.y) * grid_size.y + grid_size.y / 2;
+          }
+          child.set_position(p);
+        }
+      }
+      if (d.button_state != fan::mouse_state::press) {
+        return user_cb(d);
+      }
+      if (d.mouse_stage != loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
+        return user_cb(d);
+      }
+
+      if (move_and_resize_auto) {
+        this->click_offset = get_position(root_reference) - d.position;
+        gloco->shapes.vfi.set_focus_keyboard(d.vfi->focus.mouse);
+      }
+      return user_cb(d);
+    };
+    in.mouse_move_cb = [this, root_reference = vfi_root.empty() ? 0 : vfi_root.size() - 1, user_cb = p.mouse_move_cb](const auto& d) -> int {
+      if (move_and_resize_auto) {
+        if (this->resize && this->move) {
+          return user_cb(d);
+        }
+        else if (this->move) {
+          fan::vec3 p = get_position(root_reference);
+          this->set_position(root_reference, fan::vec3(d.position + click_offset, p.z));
+          return user_cb(d);
+        }
+      }
+      else {
+        return user_cb(d);
+      }
+      return 0;
+      };
+    vfi_root.push_back(std::make_unique<loco_t::shape_t>(in));
+  }
+  void push_child(const loco_t::shape_t& shape) {
+    children.push_back({ shape });
+  }
+  fan::vec3 get_position(uint32_t index) {
+    return vfi_root[index]->get_position();
+  }
+  void set_position(uint32_t root_reference, const fan::vec3& position) {
+    fan::vec2 root_pos = vfi_root[root_reference]->get_position();
+    fan::vec2 offset = position - root_pos;
+    for (auto& root : vfi_root) {
+      auto p = fan::vec3(fan::vec2(root->get_position()) + offset, position.z);
+      root->set_position(fan::vec3(p.x, p.y, p.z));
+    }
+    for (auto& child : children) {
+      auto p = fan::vec3(fan::vec2(child.get_position()) + offset, position.z);
+      child.set_position(p);
+    }
+  }
+  fan::vec2 click_offset = 0;
+  bool move = false;
+  bool resize = false;
+  fan::vec2 grid_size = 0;
+
+  bool move_and_resize_auto = true;
+
+  std::vector<std::unique_ptr<loco_t::shape_t>> vfi_root;
+  struct child_data_t : loco_t::shape_t, T {
+
+  };
+  std::vector<child_data_t> children;
+};
+
+using vfi_multiroot_t = vfi_multiroot_custom_t<__empty_struct>;
 
 #endif

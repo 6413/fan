@@ -370,6 +370,8 @@ namespace fan {
 			static constexpr int mode = get_flag_value(3);
 			static constexpr int borderless = get_flag_value(4);
 			static constexpr int full_screen = get_flag_value(5);
+      static constexpr int no_decorate = get_flag_value(6);
+      static constexpr int transparent = get_flag_value(7);
 		};
 
 		static constexpr const char* default_window_name = "window";
@@ -378,6 +380,11 @@ namespace fan {
 
 		// for static value storing
 		static constexpr int reserved_storage = -1;
+
+    window_t(uint64_t flags) 
+    : window_t(fan::window_t::default_window_size, default_window_name, flags) {
+
+    }
 
 		window_t(const fan::vec2i& window_size = fan::window_t::default_window_size, const fan::string& name = default_window_name, uint64_t flags = 0) {
       m_size = window_size;
@@ -409,6 +416,9 @@ namespace fan {
       }
       if (static_cast<bool>(flags & fan::window_t::flags::full_screen)) {
         fan::window_t::flag_values.m_size_mode = fan::window_t::mode::full_screen;
+      }
+      if (static_cast<bool>(flags & fan::window_t::flags::no_decorate)) {
+        fan::window_t::flag_values.m_decorated = false;
       }
 
       window_id_storage.open();
@@ -804,23 +814,6 @@ namespace fan {
 			}
 		}
 
-		template <uint64_t flags>
-		constexpr void set_flags() {
-			// clang requires manual casting (c++11-narrowing)
-			if constexpr(static_cast<bool>(flags & fan::window_t::flags::no_mouse)) {
-				fan::window_t::flag_values.m_no_mouse = true;
-			}
-			if constexpr (static_cast<bool>(flags & fan::window_t::flags::no_resize)) {
-				fan::window_t::flag_values.m_no_resize = true;
-			}
-			if constexpr (static_cast<bool>(flags & fan::window_t::flags::borderless)) {
-				fan::window_t::flag_values.m_size_mode = fan::window_t::mode::borderless;
-			}
-			if constexpr (static_cast<bool>(flags & fan::window_t::flags::full_screen)) {
-				fan::window_t::flag_values.m_size_mode = fan::window_t::mode::full_screen;
-			}
-		}
-
 		#define BLL_set_prefix buttons_callback
 		#define BLL_set_NodeData mouse_buttons_cb_t data;
 		#include "cb_list_builder_settings.h"
@@ -1010,6 +1003,11 @@ namespace fan {
       #elif defined(fan_platform_unix)
       return 1;
       #endif
+    }
+
+    void set_transparency(uint8_t t) {
+      transparency = t;
+      SetLayeredWindowAttributes(m_window_handle, 0, t, LWA_ALPHA);
     }
 
 		void destroy_window_internal() {
@@ -2356,15 +2354,51 @@ namespace fan {
         this->set_resolution(window_size, fan::window_t::mode::full_screen);
       }
 
-      m_window_handle = CreateWindow(str.c_str(), name.c_str(),
-        (flag_values.m_no_resize ? ((full_screen || borderless ? WS_POPUP : (WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU)) | WS_SYSMENU) :
-          (full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW)) | WS_VISIBLE,
-        position.x, position.y,
-        rect.right - rect.left, rect.bottom - rect.top,
-        0, 0, 0, 0);
+      LONG style = (flag_values.m_no_resize ? ((full_screen || borderless ? WS_POPUP : (WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU)) | WS_SYSMENU) :
+        (full_screen || borderless ? WS_POPUP : WS_OVERLAPPEDWINDOW)) | WS_VISIBLE;
+      if (flag_values.m_decorated == false) {
+        style &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+      }
+
+      if (!(m_flags & fan::window_t::flags::transparent)) {
+        m_window_handle = CreateWindow(str.c_str(), name.c_str(),
+          style,
+          position.x, position.y,
+          rect.right - rect.left, rect.bottom - rect.top,
+          0, 0, 0, 0);
+      }
+      else {
+        style |= WS_POPUP;
+        m_window_handle = CreateWindowEx(WS_EX_LAYERED, str.c_str(), name.c_str(),
+          style,
+          position.x, position.y,
+          rect.right - rect.left, rect.bottom - rect.top,
+          0, 0, 0, 0);
+
+        set_transparency(transparency);
+
+        DWM_BLURBEHIND bb = { 0 };
+        bb.dwFlags = DWM_BB_ENABLE;
+        bb.fEnable = true;
+        bb.hRgnBlur = NULL;
+        DwmEnableBlurBehindWindow(m_window_handle, &bb);
+      }
 
       if (!m_window_handle) {
         fan::throw_error("failed to initialize window:" + fan::to_string(GetLastError()));
+      }
+
+      if (flag_values.m_decorated == false) {
+        LONG lStyle = GetWindowLong(m_window_handle, GWL_STYLE);
+        lStyle &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
+        SetWindowLong(m_window_handle, GWL_STYLE, lStyle);
+
+        LONG lExStyle = GetWindowLong(m_window_handle, GWL_EXSTYLE);
+        lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+        SetWindowLong(m_window_handle, GWL_EXSTYLE, lExStyle);
+        SetWindowPos(m_window_handle, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+
+        SetWindowLong(m_window_handle, GWL_EXSTYLE, GetWindowLong(m_window_handle, GWL_EXSTYLE) & WS_EX_LAYERED);
       }
 
       RAWINPUTDEVICE r_id[2];
@@ -2646,6 +2680,8 @@ namespace fan {
 		uint64_t m_event_flags;
 		uint64_t m_reserved_flags;
 
+    uint8_t transparency = 128;
+
 		buttons_callback_t m_buttons_callback;
 		keys_callback_t m_keys_callback;
 		key_callback_t m_key_callback;
@@ -2682,6 +2718,7 @@ namespace fan {
 
 			bool m_no_mouse = false;
 			bool m_no_resize = false;
+      bool m_decorated = true;
 
 			mode m_size_mode = mode::windowed;
 
