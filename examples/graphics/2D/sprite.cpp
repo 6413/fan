@@ -10,7 +10,8 @@ int main() {
     sprites.push_back(fan::graphics::sprite_t{ {
     .position = fan::vec3(fan::random::vec2(0, 1600), 254 - i),
     .size = 50,
-    .image = &image
+    .rotation_point = fan::vec2(100, 0),
+    .image = &image,
     } });
   }
   loco.set_vsync(false);

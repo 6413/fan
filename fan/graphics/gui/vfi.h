@@ -29,12 +29,16 @@ struct vfi_t {
   struct shape_properties_rectangle_t {
     fan::vec3 position;
     fan::vec2 size;
+    fan::vec3 angle = 0;
+    fan::vec2 rotation_point = 0;
     fan::graphics::viewport_list_NodeReference_t viewport;
     loco_t::camera_list_NodeReference_t camera;
   };
   struct shape_data_rectangle_t {
     fan::vec2 position;
     fan::vec2 size;
+    fan::vec3 angle;
+    fan::vec2 rotation_point;
     fan::graphics::viewport_list_NodeReference_t viewport;
     loco_t::camera_list_NodeReference_t camera;
     shape_data_rectangle_t& operator=(const shape_properties_rectangle_t& p) {
@@ -42,6 +46,8 @@ struct vfi_t {
       size = p.size;
       viewport = p.viewport;
       camera = p.camera;
+      angle = p.angle;
+      rotation_point = p.rotation_point;
       return *this;
     }
   };
@@ -294,6 +300,8 @@ struct vfi_t {
         instance.shape_data.shape.rectangle->camera = p.shape.rectangle->camera;
         instance.shape_data.shape.rectangle->viewport = p.shape.rectangle->viewport;
         instance.shape_data.shape.rectangle->position = *(fan::vec2*)&p.shape.rectangle->position;
+        instance.shape_data.shape.rectangle->angle = p.shape.rectangle->angle;
+        instance.shape_data.shape.rectangle->rotation_point = p.shape.rectangle->rotation_point;
         instance.shape_data.shape.rectangle->size = p.shape.rectangle->size;
         break;
       }
@@ -367,10 +375,13 @@ struct vfi_t {
       }
       case shape_t::rectangle: {
         fan::vec2 size = data->shape.rectangle->size;
-        bool in = fan_2d::collision::rectangle::point_inside_no_rotation(
+
+        bool in = fan_2d::collision::rectangle::point_inside_rotated(
           p,
           data->shape.rectangle->position,
-          size
+          size,
+          data->shape.rectangle->angle,
+          data->shape.rectangle->rotation_point
         );
        /* if (!loco->get_context().viewport_list[data->shape.rectangle.viewport].viewport_id->inside_wir(p)) {
           return mouse_stage_e::outside;
@@ -390,12 +401,12 @@ struct vfi_t {
         return v;
       }
       case shape_t::rectangle: {
-        return transform_position(
+        auto p = transform_position(
           v,
           gloco->get_context().viewport_list[shape_data->shape.rectangle->viewport].viewport_id,
           gloco->camera_list[shape_data->shape.rectangle->camera].camera_id
         ) + fan::vec2(*(fan::vec2*)&gloco->camera_list[shape_data->shape.rectangle->camera].camera_id->position);
-        break;
+        return p;
       }
       default: {
         fan::throw_error("invalid shape type");
@@ -436,7 +447,8 @@ struct vfi_t {
   }
   void set_focus_keyboard(shape_list_nr_t id) {
     focus.keyboard = id;
-    init_focus_mouse_flag();
+    //init_focus_mouse_flag();
+    //breaks focus mouse while dragging
   }
   shape_id_t get_focus_text() {
     shape_id_t s;
@@ -612,6 +624,29 @@ struct vfi_t {
     switch (shape.shape_type) {
       case vfi_t::shape_t::rectangle: {
         shape.shape_data.shape.rectangle->size = size;
+        return;
+      }
+    }
+    fan::throw_error("invalid set_position for id");
+  }
+  void set_angle(shape_id_t& in, const fan::vec3& angle) {
+    shape_id_wrap_t id(&in);
+    auto& shape = shape_list[id];
+    switch (shape.shape_type) {
+      case vfi_t::shape_t::rectangle: {
+        shape.shape_data.shape.rectangle->angle = angle;
+        return;
+      }
+    }
+    fan::throw_error("invalid set_position for id");
+  }
+
+  void set_rotation_point(shape_id_t& in, const fan::vec2& rotation_point) {
+    shape_id_wrap_t id(&in);
+    auto& shape = shape_list[id];
+    switch (shape.shape_type) {
+      case vfi_t::shape_t::rectangle: {
+        shape.shape_data.shape.rectangle->rotation_point = rotation_point;
         return;
       }
     }

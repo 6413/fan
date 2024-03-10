@@ -401,17 +401,20 @@ inline fan::opengl::context_t::context_t(fan::window_t* window, const properties
 
   window->m_hdc = GetDC(window->m_window_handle);
 
-  int pixel_format_attribs[19] = {
-    WGL_DRAW_TO_WINDOW_ARB, fan::opengl::GL_TRUE,
-    WGL_SUPPORT_OPENGL_ARB, fan::opengl::GL_TRUE,
-    WGL_DOUBLE_BUFFER_ARB, fan::opengl::GL_TRUE,
+  int pixel_format_attribs[] = {
+    WGL_DRAW_TO_WINDOW_ARB, TRUE,
+    WGL_DOUBLE_BUFFER_ARB, TRUE,
+    WGL_SUPPORT_OPENGL_ARB, TRUE,
     WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+    WGL_TRANSPARENT_ARB, TRUE,
     WGL_COLOR_BITS_ARB, 32,
+    WGL_RED_BITS_ARB, 8,
+    WGL_GREEN_BITS_ARB, 8,
+    WGL_BLUE_BITS_ARB, 8,
+    WGL_ALPHA_BITS_ARB, 8,
     WGL_DEPTH_BITS_ARB, 24,
     WGL_STENCIL_BITS_ARB, 8,
-    WGL_SAMPLE_BUFFERS_ARB, true, // Number of buffers (must be 1 at time of writing)
-    WGL_SAMPLES_ARB, p.samples,        // Number of samples
-    0
+    0, 0
   };
   if (!p.samples) {
     // set back to zero to disable antialising

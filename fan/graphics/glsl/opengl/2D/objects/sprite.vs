@@ -91,9 +91,10 @@ void main() {
   mat4 view_mat = view;
 
   mat4 m = mat4(1);
-  m = translate(m, -vec3(get_instance().rotation_point, 0));
-  m = rotate(m, get_instance().angle); 
-  m = translate(m, vec3(get_instance().rotation_point, 0));
+  mat4 t1 = translate(mat4(1), -vec3(get_instance().rotation_point, 0));
+  mat4 t2 = translate(mat4(1), vec3(get_instance().rotation_point, 0));
+  mat4 r = rotate(mat4(1), get_instance().angle); 
+  m = t2 * r * t1;
 
   vec2 rotated = vec4(m * vec4(rp * get_instance().size, 0, 1)).xy;
 

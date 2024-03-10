@@ -49,6 +49,7 @@ struct sb_shape_name {
     gloco->get_context().opengl.call(gloco->get_context().opengl.glEnable, fan::opengl::GL_BLEND);
     gloco->get_context().opengl.call(gloco->get_context().opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
 
+    #if defined(loco_framebuffer)
     unsigned int attachments[sizeof(gloco->color_buffers) / sizeof(gloco->color_buffers[0])];
 
     for (uint8_t i = 0; i < std::size(gloco->color_buffers); ++i) {
@@ -56,16 +57,18 @@ struct sb_shape_name {
     }
 
     gloco->get_context().opengl.call(gloco->get_context().opengl.glDrawBuffers, std::size(attachments), attachments);
-
+    #endif
     //
     sb_draw(key_root);
     //
     gloco->get_context().set_depth_test(true);
 
+    #if defined(loco_framebuffer)
     for (uint8_t i = 0; i < std::size(gloco->color_buffers); ++i) {
       attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
     }
     gloco->get_context().opengl.call(gloco->get_context().opengl.glDrawBuffers, 1, attachments);
+    #endif
   }
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));

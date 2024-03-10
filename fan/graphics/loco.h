@@ -31,7 +31,7 @@ inline struct global_loco_t {
 struct loco_t;
 
 #ifndef loco_legacy
-  #define loco_framebuffer
+  //#define loco_framebuffer
 #endif
 
 #include _FAN_PATH(graphics/graphics.h)
@@ -256,6 +256,7 @@ struct loco_t {
 
   void use() {
     gloco = this;
+    get_context().set_current(get_window());
   }
 
   std::vector<fan::function_t<void()>> m_draw_queue_light;
@@ -881,6 +882,7 @@ public:
   struct properties_t {
     bool vsync = true;
     fan::vec2 window_size = fan::sys::get_screen_resolution() / fan::vec2(1.2, 1.2);
+    uint64_t window_flags = 0;
   };
 
   static constexpr uint32_t max_depths = 2;
@@ -1484,7 +1486,7 @@ public:
     #ifdef loco_window
     :
   gloco_dummy(this),
-    window(p.window_size),
+    window(p.window_size, fan::window_t::default_window_name, p.window_flags),
     #endif
     #if defined(loco_context)
     context(
@@ -1778,19 +1780,20 @@ public:
       io.AddInputCharacter(d.character);
     });
 
-    #if defined(loco_imgui)
-    loco_t::imgui_themes::dark();
-
-    #if defined(fan_platform_windows)
-    ImGui_ImplWin32_Init(window.get_handle());
-    #elif defined(fan_platform_linux)
-    imgui_xorg_init();
-    #endif
-    ImGui_ImplOpenGL3_Init();
-
     static bool init = false;
     if (init == false) {
       init = true;
+
+      #if defined(loco_imgui)
+      loco_t::imgui_themes::dark();
+
+      #if defined(fan_platform_windows)
+      ImGui_ImplWin32_Init(window.get_handle());
+      #elif defined(fan_platform_linux)
+      imgui_xorg_init();
+      #endif
+      ImGui_ImplOpenGL3_Init();
+
       auto& style = ImGui::GetStyle();
       auto& io = ImGui::GetIO();
 
@@ -1898,6 +1901,7 @@ public:
 
     render_final_fb();
 
+    #endif
     #if defined(loco_imgui)
 
     {
@@ -1909,11 +1913,14 @@ public:
       }
     }
 
+    #if defined(loco_framebuffer)
     m_framebuffer.bind(get_context());
+    #endif
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+    #if defined(loco_framebuffer)
     m_framebuffer.unbind(get_context());
 
     get_context().opengl.glClearColor(0, 0, 0, 1);
@@ -1963,6 +1970,17 @@ public:
     fan::vec2 window_size = window.get_size();
     // not custom ortho friendly - made for -1 1
     return position / window_size * 2 - 1;
+  }
+
+  fan::vec2 screen_to_ndc(const fan::vec2& screen_pos) {
+    fan::vec2 window_size = window.get_size();
+    return screen_pos / window_size * 2 - 1;
+  }
+
+  fan::vec2 ndc_to_screen(const fan::vec2& ndc_position) {
+    fan::vec2 window_size = window.get_size();
+    fan::vec2 normalized_position = (ndc_position + 1) / 2;
+    return normalized_position * window_size;
   }
 
   //  behaving oddly

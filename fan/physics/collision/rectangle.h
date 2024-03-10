@@ -26,6 +26,20 @@ namespace fan_2d {
 			}
 
 
+      static constexpr bool point_inside_rotated(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size, const fan::vec3& angle, const fan::vec2& rotation_point) {
+        fan::mat4 m = fan::mat4(1);
+        fan::mat4 t1 = fan::mat4(1).translate(-position - fan::vec3(rotation_point, 0));
+        fan::mat4 t2 = fan::mat4(1).translate(position + fan::vec3(rotation_point, 0));
+        fan::mat4 r = fan::mat4(1).rotate(-angle);
+        m = t2 * r * t1;
+        fan::vec4 rotated_point = m.inverse() * fan::vec4(fan::vec3(point), 1);
+
+        return rotated_point.x >= position.x - size.x &&
+          rotated_point.x <= position.x + size.x &&
+          rotated_point.y >= position.y - size.y &&
+          rotated_point.y <= position.y + size.y;
+      }
+
 			struct sides_e {
 				static constexpr uint8_t top_left = 0;
 				static constexpr uint8_t top_right = 1;
