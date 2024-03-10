@@ -8,6 +8,7 @@ struct map_t {
 };
 
 std::vector<std::vector<map_t>> grid_map;
+fan::vec2 playground_size = 0;
 
 void generate_map(fan::vec2& block_size) {
   for (int j = 0; j < grid_size.y; ++j) {
@@ -112,6 +113,8 @@ void load_shape(uint32_t estimated_shape_count, fan::vec2& block_size, loco_t::v
   std::vector<fan::vec2> characters = get_character_pieces(character);
   uint32_t rotate_point_index = characters.size() / 2;
 
+  fan::vec2 c = gloco->window.get_size() / 2 - playground_size / 2;
+
   fan::vec2 total = 0;
   for (auto& piece : characters) {
     total += piece;
@@ -133,10 +136,10 @@ void load_shape(uint32_t estimated_shape_count, fan::vec2& block_size, loco_t::v
   }
 
   for (auto& piece : characters) {
-    vfip.shape.rectangle->position = piece;
+    vfip.shape.rectangle->position = c + piece;
     shapes[character].push_root(vfip);
     shapes[character].push_child(fan::graphics::rectangle_t{ {
-        .position = piece,
+        .position = c + piece,
         .size = block_size / 2,
         .color = shape_color,
         .rotation_point = most_central - piece
@@ -179,7 +182,7 @@ bool is_grid_filled() {
 
 int main() {
 
-  loco_t loco;
+  loco_t loco{ {.window_size = 1024} };
 
   fan::vec2 window_size = loco.window.get_size();
   loco.default_camera->camera.set_ortho(
@@ -187,9 +190,9 @@ int main() {
     fan::vec2(0, window_size.y)
   );
 
-  fan::vec2 playground_size = window_size / 2;
+  playground_size = window_size / 2;
 
-  fan::vec2 block_size = (playground_size / grid_size).floor().min();
+  fan::vec2 block_size = 64;
 
   struct shape_t {
     std::vector<fan::vec2> shape;
@@ -210,23 +213,22 @@ int main() {
   loco_t::shape_t line_grid;
 
   loco_t::shapes_t::line_grid_t::properties_t p;
-  p.position = fan::vec3(playground_size, 0xfff);
-  p.size = 0;
-  p.color = fan::color::rgb(0, 128, 255);
+  p.position = fan::vec3(gloco->window.get_size() / 2, 0xfff);
+  p.size = block_size * grid_size / 2;
+  p.color = fan::colors::black;
 
   line_grid = p;
 
   gloco->shapes.line_grid.sb_set_vi(
     line_grid,
     &loco_t::shapes_t::line_grid_t::vi_t::grid_size,
-    fan::vec2(fan::vec2(loco.window.get_size()) / (block_size / 2))
+    grid_size
   );
-  line_grid.set_size(loco.window.get_size());
 
 
 
   uint32_t character = 0;
-  int max_shape_length = 12;
+  int max_shape_length = 4;
   while (is_grid_filled() == false) {
     generate_shape(block_size, max_shape_length, character++);
   }
@@ -240,6 +242,8 @@ int main() {
     loco_t::shapes_t::vfi_t::properties_t vfip;
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle->position.z = i;
+    vfip.shape.rectangle->rotation_point = 0;
+    vfip.shape.rectangle->angle = 0;
     vfip.shape.rectangle->size = block_size / 2;
 
     vfip.mouse_button_cb = [&shapes, i](const auto& d) {
@@ -263,7 +267,6 @@ int main() {
 
   loco.loop([&] {
     loco.get_fps();
-    //fan::print((int)loco.shapes.vfi.focus.mouse.NRI);
   });
 
 }

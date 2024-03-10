@@ -55,6 +55,8 @@ struct fgm_t {
         vfip.shape.rectangle->position = temp.get_position();
         vfip.shape.rectangle->position.z += fgm->current_z++;
         vfip.shape.rectangle->size = temp.get_size();
+        vfip.shape.rectangle->angle = 0;
+        vfip.shape.rectangle->rotation_point = 0;
         vfip.mouse_button_cb = [fgm, this](const auto& d) -> int {
           fgm->event_type = event_type_e::move;
           fgm->current_shape = this;
