@@ -103,6 +103,8 @@ struct button_t {
     vfip.shape.rectangle->viewport = p.viewport;
     vfip.shape.rectangle->position = p.position;
     vfip.shape.rectangle->size = p.size;
+    vfip.shape.rectangle->angle = 0;
+    vfip.shape.rectangle->rotation_point = 0;
     if (!p.disable_highlight) {
       vfip.mouse_move_cb = [this, udata = p.udata, id_ = id](const loco_t::shapes_t::vfi_t::mouse_move_data_t& mm_d) mutable -> int {
         loco_t::mouse_move_data_t mmd = mm_d;

@@ -110,6 +110,8 @@ namespace fan {
         vfip.shape.rectangle->position = temp.get_position();
         vfip.shape.rectangle->position.z += 1;
         vfip.shape.rectangle->size = temp.get_size();
+        vfip.shape.rectangle->angle = 0;
+        vfip.shape.rectangle->rotation_point = 0;
         objects[i].sprite = std::make_unique<fan::graphics::vfi_root_t>();
         objects[i].sprite.get()->set_root(vfip);
         objects[i].sprite.get()->push_child(std::move(temp));

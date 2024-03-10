@@ -29,8 +29,8 @@ struct vfi_t {
   struct shape_properties_rectangle_t {
     fan::vec3 position;
     fan::vec2 size;
-    fan::vec3 angle = 0;
-    fan::vec2 rotation_point = 0;
+    fan::vec3 angle;
+    fan::vec2 rotation_point;
     fan::graphics::viewport_list_NodeReference_t viewport;
     loco_t::camera_list_NodeReference_t camera;
   };
