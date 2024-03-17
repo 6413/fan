@@ -7,7 +7,7 @@ struct pile_t {
 
   pile_t() {
     auto ws = loco.window.get_size();
-    auto viewport_size = fan::vec2(ws.x, ws.y / 4);
+    auto viewport_size = fan::vec2(ws.x, ws.y);
     fan::vec2 ratio = viewport_size / viewport_size.max();
    // std::swap(ratio.x, ratio.y);
     loco.open_camera(
@@ -16,7 +16,7 @@ struct pile_t {
       ortho_y * ratio.y
     );
     loco.window.add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-      viewport.set(0, fan::vec2(d.size.x, d.size.y / 4), d.size);
+      viewport.set(0, fan::vec2(d.size.x, d.size.y), d.size);
     });
     loco.open_viewport(&viewport, fan::vec2(0, 0), viewport_size);
   }
@@ -27,9 +27,9 @@ struct pile_t {
 };
 
 struct sprite_responsive_t : loco_t::shape_t {
-  using properties_t = loco_t::responsive_text_t::properties_t;
+  using properties_t = loco_t::shapes_t::responsive_text_t::properties_t;
 
-  sprite_responsive_t(loco_t::responsive_text_t::properties_t rp, const loco_t::shapes_t::sprite_t::properties_t& p) {
+  sprite_responsive_t(loco_t::shapes_t::responsive_text_t::properties_t rp, const loco_t::shapes_t::sprite_t::properties_t& p) {
     rp.position = p.position;
     rp.position.z += 1;
     rp.size = p.size;
@@ -41,7 +41,7 @@ struct sprite_responsive_t : loco_t::shape_t {
 
   void set_size(const fan::vec2& s) {
     base.set_size(s);
-    gloco->responsive_text.set_size(*(loco_t::shape_t*)this, s);
+    gloco->shapes.responsive_text.set_size(*(loco_t::shape_t*)this, s);
    // responsive_text.set_size(s);
   }
 
@@ -79,6 +79,8 @@ int main() {
 
   //rtp.
   sprite_responsive_t shape(rtp, pp);
+
+  sprite_responsive_t shape2(rtp, pp);
   
   fan::time::clock c;
   c.start();

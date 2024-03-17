@@ -2,7 +2,7 @@ struct defaults {
   static inline fan::color text_color = fan::color(1);
   static inline fan::color text_color_place_holder = fan::color::hex(0x757575);
   static inline f32_t font_size = f32_t(0.1);
-  static constexpr f32_t text_renderer_outline_size = 0.4;
+  static constexpr f32_t text_renderer_outline_size = 1;
 };
 
 enum class text_position_e {
@@ -276,7 +276,7 @@ struct themes {
       button.text_color = defaults::text_color;
       button.text_outline_color = fan::colors::black;
       button.text_outline_size = defaults::text_renderer_outline_size;
-      button.outline_size = 0.1;
+      button.outline_size = 1;
     }
   };
 
@@ -287,7 +287,7 @@ struct themes {
       button.text_color = defaults::text_color;
       button.text_outline_color = fan::colors::black * intensity;
       button.text_outline_size = defaults::text_renderer_outline_size;
-      button.outline_size = 0.1;
+      button.outline_size = 1;
     }
   };
 
@@ -300,7 +300,7 @@ struct themes {
       button.text_color = defaults::text_color;
       button.text_outline_color = fan::colors::black;
       button.text_outline_size = defaults::text_renderer_outline_size;
-      button.outline_size = 0.1;
+      button.outline_size = 1;
     }
   };
 
@@ -312,7 +312,7 @@ struct themes {
       button.text_color = defaults::text_color;
       button.text_outline_color = fan::colors::black;
       button.text_outline_size = defaults::text_renderer_outline_size;
-      button.outline_size = 0.1;
+      button.outline_size = 1;
     }
   };
 
@@ -323,7 +323,7 @@ struct themes {
       button.text_color = defaults::text_color;
       button.text_outline_color = fan::colors::black;
       button.text_outline_size = defaults::text_renderer_outline_size;
-      button.outline_size = 0.1;
+      button.outline_size = 1;
     }
   };
 
@@ -334,7 +334,7 @@ struct themes {
       button.text_color = defaults::text_color;
       button.text_outline_color = fan::colors::black;
       button.text_outline_size = defaults::text_renderer_outline_size;
-      button.outline_size = 0.1;
+      button.outline_size = 1;
     }
   };
 
@@ -346,7 +346,7 @@ struct themes {
       button.text_color = fan::colors::white;
       button.text_outline_color = fan::colors::black;
       button.text_outline_size = defaults::text_renderer_outline_size;
-      button.outline_size = 0.1;
+      button.outline_size = 1;
     }
   };
 
@@ -358,7 +358,7 @@ struct themes {
       button.text_color = defaults::text_color;
       button.text_outline_color = fan::colors::black;
       button.text_outline_size = defaults::text_renderer_outline_size;
-      button.outline_size = 0.1;
+      button.outline_size = 1;
     }
   };
 
@@ -374,7 +374,7 @@ struct themes {
       button.text_color = defaults::text_color;
       button.text_outline_color = fan::colors::black;
       button.text_outline_size = defaults::text_renderer_outline_size;
-      button.outline_size = 2; // px
+      button.outline_size = 1; // px
     }
   };
 };
