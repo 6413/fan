@@ -372,7 +372,7 @@ struct vfi_multiroot_custom_t {
         return user_cb(d);
       }
       this->resize = false;
-      return 0;
+      return user_cb(d);
       };
     in.mouse_button_cb = [this, root_reference = vfi_root.empty() ? 0 : vfi_root.size() - 1, user_cb = p.mouse_button_cb](const auto& d) -> int {
       if (d.button != fan::mouse_left) {

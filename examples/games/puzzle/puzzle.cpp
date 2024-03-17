@@ -1,6 +1,6 @@
 #include fan_pch
 
-fan::vec2ui grid_size{ 8, 8 };
+fan::vec2ui grid_size{ 16, 16 };
 
 struct map_t {
   fan::vec2 position;
@@ -134,17 +134,66 @@ void load_shape(uint32_t estimated_shape_count, fan::vec2& block_size, loco_t::v
       most_central = piece;
     }
   }
+  static f32_t depth = 0;
+
+  static f32_t down = 0;
+  fan::vec2 arrival = 150;
+
+
+  bool randomize = fan::random::value_i64(0, 7) == 0;
+
+  fan::vec3 rangle = 0;
+  rangle.z = std::to_array({ 0.f, fan::math::pi / 2, fan::math::pi, fan::math::pi * 1.5f })[fan::random::value_i64(1, 3)];
+
+  fan::vec2 offset = arrival - (c + most_central);
+  offset.y += down;
+  down += 10;
 
   for (auto& piece : characters) {
-    vfip.shape.rectangle->position = c + piece;
-    shapes[character].push_root(vfip);
-    shapes[character].push_child(fan::graphics::rectangle_t{ {
-        .position = c + piece,
+    if (randomize) {
+      vfip.shape.rectangle->position = fan::vec3(c + piece + offset, depth);
+      vfip.shape.rectangle->angle = fan::vec3(
+        0,
+        0,
+        0
+      );
+      vfip.shape.rectangle->rotation_point = most_central - piece;
+
+      shapes[character].push_root(vfip);
+      shapes[character].push_child(fan::graphics::rectangle_t{ {
+        .position = fan::vec3(c + piece + offset, depth),
         .size = block_size / 2,
         .color = shape_color,
-        .rotation_point = most_central - piece
+        .angle = 0,
+        .rotation_point = most_central - piece,
     } });
+    }
+    else {
+      vfip.shape.rectangle->position = fan::vec3(c + piece, depth);
+      shapes[character].push_root(vfip);
+      shapes[character].push_child(fan::graphics::rectangle_t{ {
+        .position = fan::vec3(c + piece, depth),
+        .size = block_size / 2,
+        .color = shape_color,
+        .angle = 0,
+        .rotation_point = most_central - piece,
+    } });
+    } 
+    ++depth;
   }
+
+  if (!randomize) {
+    return;
+  }
+
+  int id = 0;
+  for (auto& child : shapes[character].children) {
+    child.set_angle(rangle);
+    shapes[character].vfi_root[id]->set_angle(child.get_angle());
+    shapes[character].vfi_root[id]->set_rotation_point(child.get_rotation_point());
+    id += 1;
+  }
+
 }
 
 void print_grid() {
@@ -180,9 +229,63 @@ bool is_grid_filled() {
   return true;
 }
 
+struct MyRectangle {
+  ImVec2 min;
+  ImVec2 max;
+
+  MyRectangle(ImVec2 _min, ImVec2 _max) : min(_min), max(_max) {}
+};
+
+std::vector<MyRectangle> rectangles;
+const float rectangleSize = 50.0f;
+const int rectanglesPerRow = 5;  // Adjust as needed
+
+void DrawRectangles() {
+  ImGuiIO& io = ImGui::GetIO();
+  ImVec2 canvasSize(io.DisplaySize.x - 20.0f, io.DisplaySize.y - 20.0f);
+
+  ImGui::Begin("Rectangles");
+
+  fan::vec2 window_size = gloco->window.get_size();
+  fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
+  fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
+  f32_t zoom = 1;
+  fan::vec2 offset = viewport_size - viewport_size / zoom;
+  fan::vec2 s = viewport_size;
+  gloco->default_camera->camera.set_ortho(
+    fan::vec2(-s.x, s.x) / zoom,
+    fan::vec2(-s.y, s.y) / zoom
+  );
+
+  //gloco->default_camera->camera.set_camera_zoom(viewport_settings.zoom);
+  gloco->default_camera->viewport.set(viewport_pos, viewport_size, window_size);
+
+  ImVec2 viewportPos = ImGui::GetWindowPos();
+
+  // Draw existing rectangles
+  for (size_t i = 0; i < rectangles.size(); ++i) {
+    ImVec2 pos = ImVec2(viewportPos.x + 20.0f + (i % rectanglesPerRow) * (rectangleSize + 5.0f),
+      viewportPos.y + 20.0f + (i / rectanglesPerRow) * (rectangleSize + 5.0f));
+
+    ImGui::GetWindowDrawList()->AddRect(pos, ImVec2(pos.x + rectangleSize, pos.y + rectangleSize),
+      IM_COL32(255, 255, 0, 255));
+  }
+
+  if (ImGui::Button("Add Rectangle")) {
+    // Add a new rectangle to the list
+    ImVec2 pos = ImVec2(viewportPos.x + 20.0f + (rectangles.size() % rectanglesPerRow) * (rectangleSize + 5.0f),
+      viewportPos.y + 20.0f + (rectangles.size() / rectanglesPerRow) * (rectangleSize + 5.0f));
+    rectangles.emplace_back(pos, ImVec2(pos.x + rectangleSize, pos.y + rectangleSize));
+  }
+
+  ImGui::End();
+}
+
+
+
 int main() {
 
-  loco_t loco{ {.window_size = 1024} };
+  loco_t loco{ { .window_size = 1024 } };
 
   fan::vec2 window_size = loco.window.get_size();
   loco.default_camera->camera.set_ortho(
@@ -192,7 +295,7 @@ int main() {
 
   playground_size = window_size / 2;
 
-  fan::vec2 block_size = 64;
+  fan::vec2 block_size = 32;
 
   struct shape_t {
     std::vector<fan::vec2> shape;
@@ -246,13 +349,7 @@ int main() {
     vfip.shape.rectangle->angle = 0;
     vfip.shape.rectangle->size = block_size / 2;
 
-    vfip.mouse_button_cb = [&shapes, i](const auto& d) {
-      if (d.button_state != fan::mouse_state::press) {
-        return 0;
-      }
-      if (d.button != fan::mouse_middle) {
-        return 0;
-      }
+    auto rotate = [&shapes, i]{
       int id = 0;
       for (auto& child : shapes[i].children) {
         child.set_angle(child.get_angle() + fan::vec3(0, 0, fan::math::pi / 2));
@@ -260,13 +357,36 @@ int main() {
         shapes[i].vfi_root[id]->set_rotation_point(child.get_rotation_point());
         id += 1;
       }
+    };
+
+    vfip.mouse_button_cb = [&shapes, rotate](const auto& d) {
+      if (d.button_state != fan::mouse_state::press) {
+        return 0;
+      }
+      if (d.button != fan::mouse_middle) {
+        return 0;
+      }
+      rotate();
+      return 0;
+    };
+    vfip.keyboard_cb = [&shapes, rotate](const auto& d) {
+      if (d.keyboard_state != fan::keyboard_state::press) {
+        return 0;
+      }
+      if (d.key != fan::key_r) {
+        return 0;
+      }
+      rotate();
       return 0;
     };
     load_shape(max_shape_length, block_size, vfip, shapes, i);
   }
 
   loco.loop([&] {
-    loco.get_fps();
+   // ImGui::Begin("wnd");
+    DrawRectangles();
+ //   ImGui::End();
+    //loco.get_fps();
   });
 
 }

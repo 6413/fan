@@ -17,7 +17,7 @@ struct button_t {
     f32_t pad2;
     fan::color color = fan::colors::white; 
     fan::color outline_color; 
-    f32_t outline_size;
+    f32_t outline_size = 0.9;
     f32_t pad3[3];
   };
 

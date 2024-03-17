@@ -70,6 +70,7 @@
 #define loco_pixel_format_renderer
 #define loco_tp
 #define loco_sprite_sheet
+#define loco_responsive_text
 
 #define loco_grass_2d
 

@@ -1,5 +1,9 @@
 #include fan_pch
 
+f32_t f(f32_t i, f32_t j) {
+  return 17 * i - 14 * j;
+}
+
 int main() {
   loco_t loco;
 
@@ -9,14 +13,15 @@ int main() {
     fan::vec2(0, window_size.y)
   );
 
+  fan::vec2 v = f(14, 15);
+
   // draw line from top left to bottom right
   fan::graphics::line_t line{{
-    .src = fan::vec2(0, 0),
-    .dst = fan::vec2(0, window_size.y),
+    .src = v,
+    .dst = v * 100,
     .color = fan::colors::white
   }};
 
-  
   loco.loop([&] {
 
   });
