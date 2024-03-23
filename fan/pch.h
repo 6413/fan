@@ -80,8 +80,10 @@
 // 
 #define loco_physics
 
+#if defined(fan_platform_windows)
 #define loco_cuda
 #define loco_nv12
+#endif
 #define loco_pixel_format_renderer
 
 #include _FAN_PATH(graphics/loco.h)
