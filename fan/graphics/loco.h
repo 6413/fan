@@ -2993,21 +2993,20 @@ namespace ImGui {
 }
 
 #define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
-  [&](){ \
-    using type_t = decltype(variable); \
-    if constexpr(std::is_same_v<f32_t, type_t>)  { \
-      return ImGui::DragFloat(STRINGIFY(variable), &variable, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+  [=] <typename T>(T& var){ \
+    if constexpr(std::is_same_v<f32_t, T>)  { \
+      return ImGui::DragFloat(STRINGIFY(variable), &var, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
-    else if constexpr(std::is_same_v<fan::vec2, type_t>)  { \
-      return ImGui::DragFloat2(STRINGIFY(variable), variable.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    else if constexpr(std::is_same_v<fan::vec2, T>)  { \
+      return ImGui::DragFloat2(STRINGIFY(variable), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
-    else if constexpr(std::is_same_v<fan::vec3, type_t>)  { \
-      return ImGui::DragFloat3(STRINGIFY(variable), variable.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    else if constexpr(std::is_same_v<fan::vec3, T>)  { \
+      return ImGui::DragFloat3(STRINGIFY(variable), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
-    else if constexpr(std::is_same_v<fan::vec4, type_t>)  { \
-      return ImGui::DragFloat4(STRINGIFY(variable), variable.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    else if constexpr(std::is_same_v<fan::vec4, T>)  { \
+      return ImGui::DragFloat4(STRINGIFY(variable), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
-  }()
+  }(variable)
 #endif
 
 #include _FAN_PATH(graphics/collider.h)
