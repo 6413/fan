@@ -1007,7 +1007,11 @@ namespace fan {
 
     void set_transparency(uint8_t t) {
       transparency = t;
+      #if defined(fan_platform_windows)
       SetLayeredWindowAttributes(m_window_handle, 0, t, LWA_ALPHA);
+      #else
+      fan::throw_error("unimplemented backend");
+      #endif
     }
 
 		void destroy_window_internal() {
