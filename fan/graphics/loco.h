@@ -1542,8 +1542,6 @@ public:
     #endif
 
     #if defined(loco_opengl)
-    loco_t::image_t::load_properties_t lp;
-    lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
     #if defined(loco_framebuffer)
     m_framebuffer.open(get_context());
     m_framebuffer.bind(get_context());
@@ -1554,15 +1552,21 @@ public:
 
     #if defined(loco_framebuffer)
 
-    static auto load_texture = [&](fan::webp::image_info_t& image_info, auto& color_buffer, fan::opengl::GLenum attachment) {
+    static auto load_texture = [&](fan::webp::image_info_t& image_info, auto& color_buffer, fan::opengl::GLenum attachment, bool reload = false) {
       loco_t::image_t::load_properties_t load_properties;
+      load_properties.visual_output = fan::opengl::GL_REPEAT;
       load_properties.internal_format = fan::opengl::GL_RGBA;
       load_properties.format = fan::opengl::GL_RGBA;
       load_properties.type = fan::opengl::GL_FLOAT;
-      load_properties.min_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
-      load_properties.mag_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
+      load_properties.min_filter = fan::opengl::GL_LINEAR;
+      load_properties.mag_filter = fan::opengl::GL_LINEAR;
 
-      color_buffer.load(image_info, load_properties);
+      if (reload == true) {
+        color_buffer.reload_pixels(image_info, load_properties);
+      }
+      else {
+        color_buffer.load(image_info, load_properties);
+      }
       get_context().opengl.call(get_context().opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
 
       color_buffer.bind_texture();
@@ -1581,8 +1585,8 @@ public:
     image_info.data = nullptr;
     image_info.size = window.get_size();
 
-    load_texture(image_info, color_buffers[0], fan::opengl::GL_COLOR_ATTACHMENT0);
-    load_texture(image_info, color_buffers[1], fan::opengl::GL_COLOR_ATTACHMENT1);
+    load_texture(image_info, color_buffers[0], fan::opengl::GL_COLOR_ATTACHMENT0, true);
+    load_texture(image_info, color_buffers[1], fan::opengl::GL_COLOR_ATTACHMENT1, true);
 
     fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
     m_framebuffer.bind(get_context());
@@ -1835,14 +1839,21 @@ public:
   }
   #endif
 
+ float tilt = 0;
+ float zoom = 1.7;
+ float depth = 0;
+ fan::vec3 view_angles = fan::vec3(0, 0, 1.6);
+
   void process_frame() {
 
     #if defined(loco_opengl)
     #if defined(loco_framebuffer)
-    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    auto& opengl = get_context().opengl;
+
+    opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
     color_buffers[0].bind_texture();
 
-    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
     color_buffers[1].bind_texture();
 
 
@@ -1857,13 +1868,13 @@ public:
     //get_context().opengl.glClearBufferfv(fan::opengl::GL_COLOR, 0, clearColor);
     //get_context().opengl.glClearBufferfv(fan::opengl::GL_COLOR, 1, clearColor);
     //get_context().opengl.glClearBufferfv(fan::opengl::GL_COLOR, 2, clearColor);
-    get_context().opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT1);
-    get_context().opengl.glClearColor(0, 0, 0, 1);
-    get_context().opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
-    get_context().opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
+    opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT1);
+    opengl.glClearColor(0, 0, 0, 1);
+    opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
+    opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
     #endif
-    get_context().opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-    get_context().opengl.call(get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+    opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
 
     auto it = m_update_callback.GetNodeFirst();
@@ -1884,19 +1895,24 @@ public:
 
     m_framebuffer.unbind(get_context());
 
-    get_context().opengl.glClearColor(0, 0, 0, 1);
-    get_context().opengl.call(get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    opengl.glClearColor(0, 0, 0, 1);
+    opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     fan::vec2 window_size = window.get_size();
     fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
 
     m_fbo_final_shader.use();
     m_fbo_final_shader.set_int("_t00", 0);
     m_fbo_final_shader.set_int("_t01", 1);
+    m_fbo_final_shader.set_float("tilt", tilt);
+    m_fbo_final_shader.set_float("zoom", zoom);
+    m_fbo_final_shader.set_vec3("view_angles", view_angles);
+    m_fbo_final_shader.set_float("depth", depth);
+    m_fbo_final_shader.set_float("m_time", gloco->m_time.elapsed() / 1e+9);
 
-    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
     color_buffers[0].bind_texture();
 
-    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
     color_buffers[1].bind_texture();
 
     render_final_fb();
@@ -1913,18 +1929,31 @@ public:
       }
     }
 
-    #if defined(loco_framebuffer)
+    opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    color_buffers[0].bind_texture();
+
+    opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    color_buffers[1].bind_texture();
+
     m_framebuffer.bind(get_context());
-    #endif
+    opengl.glBindFramebuffer(fan::opengl::GL_READ_FRAMEBUFFER, 0); // Bind default framebuffer as source
+    opengl.glBindFramebuffer(fan::opengl::GL_DRAW_FRAMEBUFFER, m_framebuffer.framebuffer); // Bind FBO as destination
+    opengl.glBlitFramebuffer(0, 0, window_size.x, window_size.y, 0, 0, window_size.x, window_size.y, fan::opengl::GL_COLOR_BUFFER_BIT, fan::opengl::GL_NEAREST);
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    //#if defined(loco_framebuffer)
 
+    //#endif
     #if defined(loco_framebuffer)
+    //get_context().opengl.glClearColor(0, 0, 0, 1);
+    //get_context().opengl.call(get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    //fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
+
     m_framebuffer.unbind(get_context());
 
-    get_context().opengl.glClearColor(0, 0, 0, 1);
-    get_context().opengl.call(get_context().opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    opengl.glClearColor(0, 0, 0, 1);
+    opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
 
     m_fbo_post_gui_shader.use();
@@ -2500,6 +2529,18 @@ public:
 
     return t_near <= t_far && t_far >= 0.0f;
   }
+
+
+  void add_fragment_shader_reload(uint16_t key, const fan::string& vs_path, const fan::string& fs_path) {
+    gloco->window.add_key_callback(key, fan::keyboard_state::press, [&, vs_path, fs_path](const auto&) {
+      fan::string str;
+      fan::io::file::read(fs_path, &str);
+      gloco->shapes.sprite.m_shader.set_vertex(loco_t::read_shader(vs_path));
+      gloco->shapes.sprite.m_shader.set_fragment(str.c_str());
+      gloco->shapes.sprite.m_shader.compile();
+    });
+  }
+
   #if defined(loco_compute_shader)
   #include _FAN_PATH(graphics/vulkan/compute_shader.h)
   #endif
@@ -2950,6 +2991,23 @@ namespace ImGui {
     return ImGui::ImageButton((void*)img.get_texture(), size, uv0, uv1, frame_padding, bg_col, tint_col);
   }
 }
+
+#define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
+  [&](){ \
+    using type_t = decltype(variable); \
+    if constexpr(std::is_same_v<f32_t, type_t>)  { \
+      return ImGui::DragFloat(STRINGIFY(variable), &variable, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+    else if constexpr(std::is_same_v<fan::vec2, type_t>)  { \
+      return ImGui::DragFloat2(STRINGIFY(variable), variable.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+    else if constexpr(std::is_same_v<fan::vec3, type_t>)  { \
+      return ImGui::DragFloat3(STRINGIFY(variable), variable.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+    else if constexpr(std::is_same_v<fan::vec4, type_t>)  { \
+      return ImGui::DragFloat4(STRINGIFY(variable), variable.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+  }()
 #endif
 
 #include _FAN_PATH(graphics/collider.h)

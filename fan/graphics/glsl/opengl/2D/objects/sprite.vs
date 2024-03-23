@@ -5,6 +5,9 @@
 
 out vec4 instance_color;
 out vec2 texture_coordinate;
+out vec2 size;
+flat out int fs_flags;
+flat out int element_id;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -18,6 +21,7 @@ struct block_instance_t{
 	vec2 rotation_point;
 	vec4 color;
 	vec3 angle;
+  int flags;
 	vec2 tc_position;
 	vec2 tc_size;
 };
@@ -106,4 +110,7 @@ void main() {
   gl_Position = projection * view_mat * vec4(rotated + p, get_instance().position.z, 1);
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
+  fs_flags = get_instance().flags;
+  size = get_instance().size;
+  element_id = gl_VertexID / 6;
 }

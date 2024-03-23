@@ -125,7 +125,15 @@ int main() {
   });*/
 
   f32_t deltaer = 0;
+  fan::string str ="a";
+  c.start(0.1e+9);
   pile->loco.loop([&] {
+    ImGui::Button(str.c_str());
+    if (c.finished()) {
+
+      str += "a";
+      c.restart();
+    }
     deltaer += pile->loco.get_delta_time() * 0.2    ;
     shape.set_size(fan::vec2(std::abs(sin(deltaer)) * 100 + 25));
     //r0.set_position(pile->loco.get_mouse_position(pile->camera, pile->viewport));

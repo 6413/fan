@@ -31,9 +31,9 @@ struct texturepack_t {
 
   void open_compiled(const fan::string& filename) {
     loco_t::image_t::load_properties_t lp;
-    lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_border;
-    lp.min_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
-    lp.mag_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
+    lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
+    lp.min_filter = fan::opengl::GL_LINEAR;
+    lp.mag_filter = fan::opengl::GL_LINEAR;
     /*
     lp.min_filter = (decltype(lp.min_filter))min_filter;
     lp.mag_filter = (decltype(lp.mag_filter))mag_filter;

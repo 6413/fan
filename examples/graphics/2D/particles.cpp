@@ -13,7 +13,7 @@ int main() {
     fan::vec2(0, viewport_size.y)
   );
 
-  loco_t::image_t smoke_texture{"images/smoke.webp"};
+  loco_t::image_t smoke_texture{"images/waterdrop.webp"};
 
   loco_t::shapes_t::particles_t::properties_t p;
   p.position = fan::vec3(1300.f / 2 + 100, 1300.f/2, 10);
@@ -34,6 +34,15 @@ int main() {
     static f32_t color_intensity = 1;
     static fan::color color = p.color;
     {
+
+      const char* items[] = { "circle", "rectangle" };
+      static int current_item = 0;
+
+      if (ImGui::Combo("shape", &current_item, items, IM_ARRAYSIZE(items))) {
+        ri.shape = current_item;
+      }
+    }
+    {
       if (ImGui::ColorPicker4("color", (f32_t*)color.data())) {
         vi.color = color * color_intensity;
       }
@@ -51,7 +60,7 @@ int main() {
     }
     {
       static f32_t size = p.size.x;
-      if (ImGui::SliderFloat("size", &size, 10.0f, 800.0f)) {
+      if (ImGui::SliderFloat("size", &size, 0, 1000.0f)) {
         vi.size = size;
       }
     }
@@ -61,16 +70,33 @@ int main() {
         ri.alive_time = alive_time;
       }
     }
-
+    if (ri.shape == loco_t::shapes_t::particles_t::shapes_e::rectangle) {
+      static fan::vec2 gap_size = p.gap_size;
+      if (ImGui::SliderFloat2("gap_size", gap_size.data(), -1000, 1000)) {
+        ri.gap_size = gap_size;
+      }
+    }
+    if (ri.shape == loco_t::shapes_t::particles_t::shapes_e::rectangle) {
+      static fan::vec2 max_spread_size = p.max_spread_size;
+      if (ImGui::SliderFloat2("max_spread_size", max_spread_size.data(), -10000, 10000)) {
+        ri.max_spread_size = max_spread_size;
+      }
+    }
     {
       static fan::vec2 position_velocity = p.position_velocity;
-      if (ImGui::SliderFloat2("position_velocity", position_velocity.data(), 1, 10000)) {
+      if (ImGui::SliderFloat2("position_velocity", position_velocity.data(), -10000, 10000)) {
         ri.position_velocity = position_velocity;
       }
     }
     {
-      static f32_t angle_velocity = p.angle_velocity;
-      if (ImGui::SliderFloat("angle_velocity", &angle_velocity, 0, 100)) {
+      static fan::vec2 size_velocity = p.size_velocity;
+      if (ImGui::SliderFloat2("size_velocity", size_velocity.data(), -100, 100)) {
+        ri.size_velocity = size_velocity;
+      }
+    }
+    {
+      static fan::vec3 angle_velocity = p.angle_velocity;
+      if (ImGui::DragFloat3("angle_velocity", angle_velocity.data(), 0.01, -fan::math::pi / 2, fan::math::pi / 2)) {
         ri.angle_velocity = angle_velocity;
       }
     }
@@ -82,14 +108,20 @@ int main() {
     }
     {
       static f32_t begin_angle = p.begin_angle;
-      if (ImGui::SliderFloat("begin_angle", &begin_angle, 0, fan::math::pi * 2)) {
+      if (ImGui::SliderFloat("begin_angle", &begin_angle, -fan::math::pi / 2, fan::math::pi / 2)) {
         ri.begin_angle = begin_angle;
       }
     }
     {
       static f32_t end_angle = p.end_angle;
-      if (ImGui::SliderFloat("end_angle", &end_angle, 0, fan::math::pi * 2)) {
+      if (ImGui::SliderFloat("end_angle", &end_angle, -fan::math::pi / 2, fan::math::pi / 2)) {
         ri.end_angle = end_angle;
+      }
+    }
+    {
+      static fan::vec3 angle = p.angle;
+      if (ImGui::SliderFloat("angle", angle.data(), -fan::math::pi / 2, fan::math::pi / 2)) {
+        ri.angle = angle;
       }
     }
 

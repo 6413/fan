@@ -4,7 +4,7 @@ int main() {
   loco_t loco;
   loco.set_vsync(0);
   fan::graphics::model_t::properties_t p;
-  p.path = "models/model_debug.dae";
+  p.path = "models/WallLever.glb";
   // todo make animation work with gpu
   p.use_flag = fan::graphics::model_t::use_flag_e::cpu;
   fan::graphics::model_t model(p);
@@ -22,30 +22,30 @@ int main() {
 
   auto anid = model.fms.create_an("an_name", 1);
 
-  auto animation_node_id1 = model.fms.fk_set_rot(anid, "Armature_Chest", 0.001/* time in seconds */,
-    fan::vec3(1, 0, 0), 0
-  );
+  //auto animation_node_id1 = model.fms.fk_set_rot(anid, "Armature_Chest", 0.001/* time in seconds */,
+  //  fan::vec3(1, 0, 0), 0
+  //);
 
-  auto animation_node_id = model.fms.fk_set_rot(anid, "Armature_Chest", 0.3/* time in seconds */,
-    fan::vec3(1, 0, 0), -fan::math::pi / 2
-  );
+  //auto animation_node_id = model.fms.fk_set_rot(anid, "Armature_Chest", 0.3/* time in seconds */,
+  //  fan::vec3(1, 0, 0), -fan::math::pi / 2
+  //);
 
-  auto animation_node_id3 = model.fms.fk_set_rot(anid, "Armature_Chest", 0.6/* time in seconds */,
-    fan::vec3(1, 0, 0), fan::math::pi / 3
-  );
+  //auto animation_node_id3 = model.fms.fk_set_rot(anid, "Armature_Chest", 0.6/* time in seconds */,
+  //  fan::vec3(1, 0, 0), fan::math::pi / 3
+  //);
 
-  auto animation_node_id2 = model.fms.fk_set_rot(anid, "Armature_Upper_Leg_L", 0.6/* time in seconds */,
-    fan::vec3(1, 0, 0), fan::math::pi
-  );
+  //auto animation_node_id2 = model.fms.fk_set_rot(anid, "Armature_Upper_Leg_L", 0.6/* time in seconds */,
+  //  fan::vec3(1, 0, 0), fan::math::pi
+  //);
 
   gloco->default_camera_3d->camera.position = { 3.46, 1.94, -6.22 };
   
   fan::vec2 window_size = gloco->get_window()->get_size();
 
   gloco->m_post_draw.push_back([&] {
-    static bool default_anim = false;
+    static bool default_anim = true;
     ImGui::Checkbox("default model", &default_anim);
-    static constexpr uint32_t mesh_id = 0;
+    static constexpr uint32_t mesh_id = 1;
 
     // THIS IS FOR SIMULATING ON CPU, properties_t::use_fs = false
     
