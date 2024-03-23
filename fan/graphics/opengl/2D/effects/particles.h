@@ -7,7 +7,6 @@ struct particles_t {
   struct vi_t {
     fan::vec3 position = 0;
     fan::vec2 size = 100;
-    fan::vec3 angle = 0;
     fan::color color = fan::colors::red;
   };
 
@@ -22,17 +21,31 @@ struct particles_t {
 
   struct cid_t;
 
+  struct shapes_e {
+    enum {
+      circle,
+      rectangle
+    };
+  };
+
   struct ri_t {
 
     uint64_t begin_time;
-    uint64_t alive_time = 1e+9;
+    uint64_t alive_time = (uint64_t)1e+9;
     uint64_t respawn_time = 0;
     uint32_t count = 10;
-    fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
     fan::vec2 position_velocity = 130;
-    fan::vec3 angle_velocity = fan::vec3(0, 0, 0.1);
+    fan::vec3 angle_velocity = fan::vec3(0, 0, 0);
     f32_t begin_angle = 0;
     f32_t end_angle = fan::math::pi * 2;
+
+    fan::vec3 angle = 0;
+
+    fan::vec2 gap_size = 1;
+    fan::vec2 max_spread_size = 100;
+    fan::vec2 size_velocity = 1;
+
+    uint32_t shape = shapes_e::circle;
 
     bool blending = true;
   };
@@ -95,10 +108,16 @@ struct particles_t {
       m_current_shader->set_vec2("size", vi.size);
       m_current_shader->set_vec2("position_velocity", ri.position_velocity);
       m_current_shader->set_vec3("angle_velocity", ri.angle_velocity);
-      m_current_shader->set_vec3("rotation_vector", ri.rotation_vector);
       m_current_shader->set_float("begin_angle", ri.begin_angle);
       m_current_shader->set_float("end_angle", ri.end_angle);
+      m_current_shader->set_vec3("angle", ri.angle);
       m_current_shader->set_vec4("color", vi.color);
+      m_current_shader->set_vec2("gap_size", ri.gap_size);
+      m_current_shader->set_vec2("max_spread_size", ri.max_spread_size);
+      m_current_shader->set_vec2("size_velocity", ri.size_velocity);
+      
+
+      m_current_shader->set_int("shape", ri.shape);
 
       block_node->data.uniform_buffer.draw(
         gloco->get_context(),

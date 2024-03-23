@@ -8,13 +8,18 @@ uniform uint count;
 uniform vec2 position;
 uniform vec2 size;
 uniform vec2 position_velocity;
-uniform float angle_velocity;
+uniform vec3 angle_velocity;
 uniform vec3 rotation_vector;
 uniform float alive_time;
 uniform float respawn_time;
 uniform float begin_angle;
 uniform float end_angle;
+uniform vec3 angle;
 uniform vec4 color;
+uniform vec2 gap_size;
+uniform vec2 max_spread_size;
+uniform vec2 size_velocity;
+uniform int shape;
 
 uniform float time;
 
@@ -87,42 +92,31 @@ mat4 scale(mat4 m, vec3 v) {
 	return matrix;
 }
 
-mat4 rotate(mat4 m, float angle, vec3 v) {
-	float a = angle;
-	float c = cos(a);
-	float s = sin(a);
-	vec3 axis = vec3(normalize(v));
-	vec3 temp = vec3(axis * (1.0f - c));
+mat4 rotate(mat4 m, vec3 angles) {
+    float cx = cos(angles.x);
+    float sx = sin(angles.x);
+    float cy = cos(angles.y);
+    float sy = sin(angles.y);
+    float cz = cos(angles.z);
+    float sz = sin(angles.z);
 
-	mat4 rotation;
-	rotation[0][0] = c + temp[0] * axis[0];
-	rotation[0][1] = temp[0] * axis[1] + s * axis[2];
-	rotation[0][2] = temp[0] * axis[2] - s * axis[1];
+    mat4 rotationX = mat4(1.0, 0.0, 0.0, 0.0,
+                          0.0, cx, -sx, 0.0,
+                          0.0, sx, cx, 0.0,
+                          0.0, 0.0, 0.0, 1.0);
 
-	rotation[1][0] = temp[1] * axis[0] - s * axis[2];
-	rotation[1][1] = c + temp[1] * axis[1];
-	rotation[1][2] = temp[1] * axis[2] + s * axis[0];
+    mat4 rotationY = mat4(cy, 0.0, sy, 0.0,
+                          0.0, 1.0, 0.0, 0.0,
+                          -sy, 0.0, cy, 0.0,
+                          0.0, 0.0, 0.0, 1.0);
 
-	rotation[2][0] = temp[2] * axis[0] + s * axis[1];
-	rotation[2][1] = temp[2] * axis[1] - s * axis[0];
-	rotation[2][2] = c + temp[2] * axis[2];
+    mat4 rotationZ = mat4(cz, -sz, 0.0, 0.0,
+                          sz, cz, 0.0, 0.0,
+                          0.0, 0.0, 1.0, 0.0,
+                          0.0, 0.0, 0.0, 1.0);
 
-	mat4 matrix;
-	matrix[0][0] = (m[0][0] * rotation[0][0]) + (m[1][0] * rotation[0][1]) + (m[2][0] * rotation[0][2]);
-	matrix[1][0] = (m[0][1] * rotation[0][0]) + (m[1][1] * rotation[0][1]) + (m[2][1] * rotation[0][2]);
-	matrix[2][0] = (m[0][2] * rotation[0][0]) + (m[1][2] * rotation[0][1]) + (m[2][2] * rotation[0][2]);
-
-	matrix[0][1] = (m[0][0] * rotation[1][0]) + (m[1][0] * rotation[1][1]) + (m[2][0] * rotation[1][2]);
-	matrix[1][1] = (m[0][1] * rotation[1][0]) + (m[1][1] * rotation[1][1]) + (m[2][1] * rotation[1][2]);
-	matrix[2][1] = (m[0][2] * rotation[1][0]) + (m[1][2] * rotation[1][1]) + (m[2][2] * rotation[1][2]);
-
-	matrix[0][2] = (m[0][0] * rotation[2][0]) + (m[1][0] * rotation[2][1]) + (m[2][0] * rotation[2][2]);
-	matrix[1][2] = (m[0][1] * rotation[2][0]) + (m[1][1] * rotation[2][1]) + (m[2][1] * rotation[2][2]);
-	matrix[2][2] = (m[0][2] * rotation[2][0]) + (m[1][2] * rotation[2][1]) + (m[2][2] * rotation[2][2]);
-
-	matrix[3] = m[3];
-
-	return matrix;
+    mat4 matrix = rotationX * rotationY * rotationZ * m;
+    return matrix;
 }
 
 vec2 triangle_vertices[] = vec2[](
@@ -172,8 +166,12 @@ void main() {
 	seed *= 4u;
 
 	vec2 pos;
-	pos.x = position.x;
+  pos.x = position.x;
 	pos.y = position.y;
+  if (shape == 1) {
+    pos.x += mod(float(id) * gap_size.x, max_spread_size.x);
+    pos.y += mod(float(id) * gap_size.y, max_spread_size.y);
+  }
 	vec2 velocity = vec2_direction(RAND(seed + 2u), RAND(seed + 3u), begin_angle, end_angle);
 
 	float time_mod = mod(new_time, alive_time + respawn_time);
@@ -191,9 +189,11 @@ void main() {
 	pos.x += velocity.x * time_mod;
 	pos.y += velocity.y * time_mod;
 
+  vec2 size_factor = vec2(1.0) + size_velocity * time_mod;
+
 	m = translate(m, vec3(pos, 0));
-	m = rotate(m, time_mod * angle_velocity * 3.141 * 2, rotation_vector);
-	m = scale(m, vec3(size * time_mod, 0));
+	m = rotate(m, angle + time_mod * angle_velocity);
+	m = scale(m, vec3(size * size_factor, 0));
 
 	gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
   gl_Position.z = 1.f - (float(modded_index) / 6.f) / count;
@@ -202,7 +202,8 @@ void main() {
     color.g,//float(RAND(seed + 3u)) / 5000000000.f, 
     color.b,//float(RAND(seed + 4u)) / 5000000000.f, 
     color.a);
-  i_color.a = 1.f - time_mod * 1.f;
+  float alpha = 1.0 - time_mod / alive_time;
+  i_color.a = alpha;
 	texture_coordinate = tc[gl_VertexID % 6];
 }
 

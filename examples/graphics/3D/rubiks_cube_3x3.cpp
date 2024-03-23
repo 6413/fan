@@ -1,20 +1,20 @@
 #include fan_pch
 
 int main() {
-  loco_t loco;
+  loco_t loco{ {.window_size = 800} };
 
   loco.set_vsync(0);
 
   static constexpr uint8_t use_flag = fan::graphics::model_t::use_flag_e::model;
   fan::graphics::model_t::properties_t p;
-  p.path = "models/rubiks_cube_numbered.fbx";
+  p.path = "models/rubiks_cube_material.fbx";
   p.use_flag = use_flag;
   p.model = fan::mat4(1).rotate(fan::math::pi, fan::vec3(1, 0, 0));
   p.model = fan::mat4(1).rotate(-fan::math::pi / 2, fan::vec3(0, 1, 0)) * p.model;
   fan::graphics::model_t model(p);
 
-  //model.m_shader.set_vertex(model.vertex_shaders[use_flag]);
-  //model.m_shader.set_fragment(model.material_fs);
+  model.m_shader.set_vertex(model.vertex_shaders[use_flag]);
+  model.m_shader.set_fragment(model.material_fs);
   model.m_shader.compile();
 
 

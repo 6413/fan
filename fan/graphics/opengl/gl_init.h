@@ -446,6 +446,8 @@ namespace fan {
       get_proc_address(PFNGLREADPIXELSPROC, glReadPixels, &internal);
       get_proc_address(PFNGLREADBUFFERPROC, glReadBuffer, &internal);
       get_proc_address(PFNGLDRAWPIXELSPROC, glDrawPixels, &internal);
+      get_proc_address(PFNGLBLITFRAMEBUFFERPROC, glBlitFramebuffer, &internal);
+
 
     };
     #undef get_proc_address
