@@ -96,6 +96,7 @@ struct shader_t {
     }
 
     shader.vertex = context.opengl.call(context.opengl.glCreateShader, fan::opengl::GL_VERTEX_SHADER);
+    shader.svertex = fan::string(vertex_ptr, vertex_ptr + length);
 
     context.opengl.call(context.opengl.glShaderSource, shader.vertex, 1, &vertex_ptr, &length);
 
@@ -113,6 +114,7 @@ struct shader_t {
     }
 
     shader.vertex = context.opengl.call(context.opengl.glCreateShader, fan::opengl::GL_VERTEX_SHADER);
+    shader.svertex = vertex_code;
 
     char* ptr = (char*)vertex_code.c_str();
     fan::opengl::GLint length = vertex_code.size();
@@ -132,6 +134,7 @@ struct shader_t {
     }
 
     shader.fragment = context.opengl.glCreateShader(fan::opengl::GL_FRAGMENT_SHADER);
+    shader.sfragment = fan::string(fragment_ptr, fragment_ptr + length);
     context.opengl.glShaderSource(shader.fragment, 1, &fragment_ptr, &length);
 
     context.opengl.glCompileShader(shader.fragment);
@@ -147,6 +150,7 @@ struct shader_t {
     }
 
     shader.fragment = context.opengl.call(context.opengl.glCreateShader, fan::opengl::GL_FRAGMENT_SHADER);
+    shader.sfragment = fragment_code;
 
     char* ptr = (char*)fragment_code.c_str();
     fan::opengl::GLint length = fragment_code.size();
@@ -269,7 +273,7 @@ struct shader_t {
     else {
       context.opengl.call(context.opengl.glUniform1d, location, value);
     }
-}
+  }
 
   void set_vec2(const fan::string& name, const fan::vec2& value) const {
     use();

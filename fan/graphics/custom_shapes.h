@@ -397,7 +397,7 @@ struct shader_light_t {
       attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
     }
 
-    gloco->get_context().opengl.call(gloco->get_context().opengl.glDrawBuffers, 1, attachments);
+    gloco->get_context().opengl.call(gloco->get_context().opengl.glDrawBuffers, std::size(attachments), attachments);
     #endif
   }
 

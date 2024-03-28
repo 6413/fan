@@ -7,6 +7,7 @@ fan::opengl::GLuint id; \
 int projection_view[2]; \
 uint32_t vertex, fragment; \
 loco_t::shader_t* shader; \
+fan::string svertex, sfragment; \
 fan::function_t<void(loco_t::shader_t* shader)> on_activate = [](loco_t::shader_t* shader){}; /*used to allow uniform variable binding*/
 #define BLL_set_Link 0
 #define BLL_set_IsNodeRecycled 0
