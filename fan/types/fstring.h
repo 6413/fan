@@ -492,6 +492,12 @@ namespace fan {
     return 0;
   }
 
+  template<typename>
+  struct is_std_vector : std::false_type {};
+
+  template<typename T, typename A>
+  struct is_std_vector<std::vector<T, A>> : std::true_type {};
+
   template <typename T>
   T read_data(auto& f, auto& off) {
     if constexpr (std::is_same<fan::string, T>::value) {
@@ -501,6 +507,15 @@ namespace fan {
       memcpy(str.data(), &f[off], len);
       off += len;
       return str;
+    }
+    else if constexpr (is_std_vector<T>::value) {
+      uint64_t len = read_data<uint64_t>(f, off);
+      std::vector<typename T::value_type> vec(len);
+      if (len > 0) {
+        memcpy(vec.data(), &f[off], len * sizeof(typename T::value_type));
+        off += len * sizeof(typename T::value_type);
+      }
+      return vec;
     }
     else {
       auto obj = &f[off];
@@ -515,6 +530,11 @@ namespace fan {
       uint64_t len = o.size();
       f.append((char*)&len, sizeof(len));
       f.append(o.data(), len);
+    }
+    else if (is_std_vector<T>::value) {
+      uint64_t len = o.size();
+      f.append((char*)&len, sizeof(len));
+      f.append((char*)o.data(), len * sizeof(T));
     }
     else {
       f.append((char*)&o, sizeof(o));

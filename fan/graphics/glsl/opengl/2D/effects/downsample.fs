@@ -9,6 +9,8 @@
 
 	uniform vec2 resolution;
 
+  uniform int mipLevel = 1;
+
 	vec3 PowVec3(vec3 v, float p)
 	{
 			return vec3(pow(v.x, p), pow(v.y, p), pow(v.z, p));
@@ -19,8 +21,8 @@
 
 	float sRGBToLuma(vec3 col)
 	{
-			//return dot(col, vec3(0.2126f, 0.7152f, 0.0722f));
-		return dot(col, vec3(0.299f, 0.587f, 0.114f));
+		return dot(col, vec3(0.2126f, 0.7152f, 0.0722f));
+		//return dot(col, vec3(0.299f, 0.587f, 0.114f));
 	}
 
 	float KarisAverage(vec3 col)
@@ -75,12 +77,12 @@
 
 		// Check if we need to perform Karis average on each block of 4 samples
 		vec3 groups[5];
-		//switch (mipLevel)
-		//{
-		//case 0:
-		//	// We are writing to mip 0, so we need to apply Karis average to each block
-		//	// of 4 samples to prevent fireflies (very bright subpixels, leads to pulsating
-		//	// artifacts).
+		switch (mipLevel)
+		{
+		case 0:
+			// We are writing to mip 0, so we need to apply Karis average to each block
+			// of 4 samples to prevent fireflies (very bright subpixels, leads to pulsating
+			// artifacts).
 			groups[0] = (a+b+d+e) * (0.125f/4.0f);
 			groups[1] = (b+c+e+f) * (0.125f/4.0f);
 			groups[2] = (d+e+g+h) * (0.125f/4.0f);
@@ -94,12 +96,11 @@
 			o_color = groups[0]+groups[1]+groups[2]+groups[3]+groups[4];
 			o_color = max(o_color, 0.0001f);
 			
-		//	break;
-		//default:
-			//o_color = e*0.125;                // ok
-			//o_color += (a+c+g+i)*0.03125;     // ok
-			//o_color += (b+d+f+h)*0.0625;      // ok
-			//o_color += (j+k+l+m)*0.125;       // ok
-			////o_color.rgb = vec3(1, 0, 0);
-		////}
+			break;
+		default:
+		  o_color = e*0.125;                // ok
+		  o_color += (a+c+g+i)*0.03125;     // ok
+		  o_color += (b+d+f+h)*0.0625;      // ok
+		  o_color += (j+k+l+m)*0.125;       // ok
+		}
 	}

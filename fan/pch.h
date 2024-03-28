@@ -72,6 +72,8 @@
 #define loco_sprite_sheet
 #define loco_responsive_text
 
+#define loco_post_process
+
 #define loco_grass_2d
 
 #define loco_rectangle_3d

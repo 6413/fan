@@ -5,11 +5,17 @@ in vec2 texture_coordinate;
 layout (location = 0) out vec4 o_attachment0;
 
 uniform sampler2D _t00;
+uniform sampler2D _t01;
 uniform vec3 view_angles;
 uniform float tilt;
 uniform float zoom;
 uniform float depth;
 uniform float m_time;
+uniform float bloom_strength = 0.004;
+uniform float gamma = 2.2f;
+uniform float edge0 = 0.3;
+uniform float edge1 = 1.0;
+uniform float exposure = 1.0f;
 
 #define PI 3.14159265359
 
@@ -61,8 +67,30 @@ vec3 normalizeColor(vec3 color) {
     return color / 255.0;
 }
 
+
+vec3 apply_bloom(vec3 hdrColor, vec3 bloomColor)
+{
+    // Calculate brightness
+    float brightness = dot(bloomColor, vec3(0.2126, 0.7152, 0.0722));
+
+    // Calculate the smoothstep value
+    float t = smoothstep(edge0, edge1, bloom_strength * brightness);
+
+    // Mix the hdrColor and bloomColor based on the smoothstep value
+    vec3 result = mix(hdrColor, bloomColor, t);
+
+    // Apply exposure and gamma correction
+    result = vec3(1.0) - exp(-result * exposure);
+    result = pow(result, vec3(1.0 / gamma));
+
+    return result;
+}
+
 void main() {
-    vec3 actual = texture(_t00, texture_coordinate).rgb;
+    //vec3 actual = texture(_t00, texture_coordinate).rgb;
+
+
+
 
         vec2 position = -1.0 + 2.0 * texture_coordinate;
     position *= zoom;
@@ -124,57 +152,21 @@ void main() {
     else {
       final = a;
     }
-
-vec3 colors[27] = vec3[](
-    vec3(0.988, 0.914, 0.310), // #fce94f
-    vec3(0.929, 0.831, 0.000), // #edd400
-    vec3(0.769, 0.627, 0.000), // #c4a000
-    vec3(0.541, 0.886, 0.204), // #8ae234
-    vec3(0.451, 0.820, 0.086), // #73d216
-    vec3(0.306, 0.604, 0.024), // #4e9a06
-    vec3(0.988, 0.686, 0.243), // #fcaf3e
-    vec3(0.961, 0.474, 0.000), // #f57900
-    vec3(0.808, 0.361, 0.000), // #ce5c00
-    vec3(0.447, 0.624, 0.811), // #729fcf
-    vec3(0.204, 0.396, 0.643), // #3465a4
-    vec3(0.125, 0.290, 0.529), // #204a87
-    vec3(0.678, 0.498, 0.659), // #ad7fa8
-    vec3(0.459, 0.313, 0.482), // #75507b
-    vec3(0.361, 0.208, 0.400), // #5c3566
-    vec3(0.914, 0.725, 0.431), // #e9b96e
-    vec3(0.757, 0.490, 0.067), // #c17d11
-    vec3(0.561, 0.349, 0.008), // #8f5902
-    vec3(0.937, 0.161, 0.161), // #ef2929
-    vec3(0.800, 0.000, 0.000), // #cc0000
-    vec3(0.643, 0.000, 0.000), // #a40000
-    vec3(0.933, 0.933, 0.925), // #eeeeec
-    vec3(0.827, 0.843, 0.812), // #d3d7cf
-    vec3(0.729, 0.737, 0.714), // #babdb6
-    vec3(0.533, 0.541, 0.522), // #888a85
-    vec3(0.333, 0.333, 0.325), // #555753
-    vec3(0.180, 0.204, 0.212)  // #2e3436
-);
-
-
-    vec3 quantized = quantizeToPalette(actual, colors);
-
-     // Calculate error
-    vec3 error = actual - quantized;
-
-    // Distribute error to neighboring pixels (Floyd-Steinberg)
-    // Note: This is a simplified example and assumes you have access to neighboring pixels.
-    // In a real shader, you would need to use a texture to store and retrieve the error values.
-    vec3 error_distribution = error / 16.0;
-    vec3 dither = vec3(0);
+     //vec3 horizontalBlur = blurFunction(_t00, a, vec2(1.0, 0.0), blur_radius);
     
-    //dither = quantizeToPalette(texture(_t00, texture_coordinate + vec2(1.0, 0.0)).rgb, colors) + error_distribution * 7.0;
-    //dither += quantizeToPalette(texture(_t00, texture_coordinate +  vec2(-1.0, 1.0)).rgb, colors) + error_distribution * 3.0;
-    //dither += quantizeToPalette(texture(_t00, texture_coordinate +  vec2(0.0, 1.0)).rgb, colors) + error_distribution * 5.0;
-    //dither += quantizeToPalette(texture(_t00, texture_coordinate +  vec2(1.0, 1.0)).rgb, colors) + error_distribution * 1.0;
-    //dither *= error_distribution;
-    // texture(_t00, texture_coordinate + vec2(-1.0, 1.0)) += error_distribution * 3.0;
-    // texture(_t00, texture_coordinate + vec2(0.0, 1.0)) += error_distribution * 5.0;
-    // texture(_t00, texture_coordinate + vec2(1.0, 1.0)) += error_distribution * 1.0;
+    // Apply vertical blur
+   // vec3 verticalBlur = blurFunction(_t00, a, vec2(0.0, 1.0), blur_radius);
+   
+    // Combine horizontal and vertical blurs
+   // vec3 finalColor = (horizontalBlur + verticalBlur) / 2.0;
+   // finalColor = blurFunction(_t00, a, vec2(0.0, 1.0), blur_radius);
+   //const float gamma = 1;
+   // vec3 finalColor = applyBloom(_t00, a, actual);
+    //finalColor = vec3(1.0) - exp(-finalColor * exposure);
+   // finalColor = pow(finalColor, vec3(1.0 / gamma));
 
-    o_attachment0 = vec4(texture(_t00, a).rgb, 1.0);
+  vec3 hdrColor = texture(_t00, texture_coordinate).rgb;
+  vec3 bloomColor = texture(_t01, texture_coordinate).rgb;
+  o_attachment0 = vec4(apply_bloom(hdrColor, bloomColor), 1.0);
+  //o_attachment0 = vec4(hdrColor, 1.0);
 }

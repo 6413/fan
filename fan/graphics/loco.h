@@ -1464,6 +1464,13 @@ public:
 
   fan::mp_t<shapes_t> shapes;
 
+  #if defined(loco_post_process)
+  #include _FAN_PATH(graphics/opengl/2D/effects/blur.h)
+  blur_t blur;
+  #include _FAN_PATH(graphics/opengl/2D/effects/bloom.h)
+  bloom_t bloom;
+  #endif
+
   #if defined(loco_letter)
   #include _FAN_PATH(graphics/font.h)
   font_t font;
@@ -1544,6 +1551,7 @@ public:
     #if defined(loco_opengl)
     #if defined(loco_framebuffer)
     m_framebuffer.open(get_context());
+    // can be GL_RGB16F
     m_framebuffer.bind(get_context());
     #endif
     #endif
@@ -1577,16 +1585,20 @@ public:
     image_info.data = nullptr;
     image_info.size = window.get_size();
 
+    m_framebuffer.bind(get_context());
     load_texture(image_info, color_buffers[0], fan::opengl::GL_COLOR_ATTACHMENT0);
     load_texture(image_info, color_buffers[1], fan::opengl::GL_COLOR_ATTACHMENT1);
+    load_texture(image_info, color_buffers[2], fan::opengl::GL_COLOR_ATTACHMENT2);
 
     window.add_resize_callback([&](const auto& d) {
     fan::webp::image_info_t image_info;
     image_info.data = nullptr;
     image_info.size = window.get_size();
 
+    m_framebuffer.bind(get_context());
     load_texture(image_info, color_buffers[0], fan::opengl::GL_COLOR_ATTACHMENT0, true);
     load_texture(image_info, color_buffers[1], fan::opengl::GL_COLOR_ATTACHMENT1, true);
+    load_texture(image_info, color_buffers[2], fan::opengl::GL_COLOR_ATTACHMENT2, true);
 
     fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
     m_framebuffer.bind(get_context());
@@ -1618,6 +1630,11 @@ public:
   if (!m_framebuffer.ready(get_context())) {
     fan::throw_error("framebuffer not ready");
   }
+
+  static constexpr uint32_t mip_count = 10;
+  blur.open(window.get_size(), mip_count);
+
+  bloom.open();
 
   m_framebuffer.unbind(gloco->get_context());
 
@@ -1810,6 +1827,13 @@ public:
     }
     #endif
     #endif
+   /* #if defined(loco_post_process)
+    fan::opengl::core::renderbuffer_t::properties_t rp;
+    rp.size = get_window()->get_size();
+    if (post_process.open(rp)) {
+      fan::throw_error("failed to initialize frame buffer");
+    }
+    #endif*/
   }
 
   #if defined(loco_vfi)
@@ -1846,36 +1870,29 @@ public:
 
   void process_frame() {
 
-    #if defined(loco_opengl)
-    #if defined(loco_framebuffer)
-    auto& opengl = get_context().opengl;
-
-    opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-    color_buffers[0].bind_texture();
-
-    opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-    color_buffers[1].bind_texture();
-
-
-    #endif
-    #endif
 
     #if defined(loco_opengl)
     #if defined(loco_framebuffer)
     m_framebuffer.bind(get_context());
-    //float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    //auto buffers = fan::opengl::GL_COLOR_ATTACHMENT0 + 2;
-    //get_context().opengl.glClearBufferfv(fan::opengl::GL_COLOR, 0, clearColor);
-    //get_context().opengl.glClearBufferfv(fan::opengl::GL_COLOR, 1, clearColor);
-    //get_context().opengl.glClearBufferfv(fan::opengl::GL_COLOR, 2, clearColor);
-    opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT1);
-    opengl.glClearColor(0, 0, 0, 1);
-    opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
-    opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0);
+
+    auto& opengl = get_context().opengl;
+
+    for (int i = 0; i < std::size(color_buffers); ++i) {
+      opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
+      color_buffers[i].bind_texture();
+      opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0 + (std::size(color_buffers) - 1 - i));
+      opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+      opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    }
+
+
     #endif
-    opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-    opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     #endif
+
+    //#ifdef loco_post_process
+    //post_process.start_capture();
+    //#endif
+
 
     auto it = m_update_callback.GetNodeFirst();
     while (it != m_update_callback.dst) {
@@ -1893,7 +1910,10 @@ public:
 
     #if defined(loco_framebuffer)
 
+
     m_framebuffer.unbind(get_context());
+
+    blur.draw();
 
     opengl.glClearColor(0, 0, 0, 1);
     opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
@@ -1912,8 +1932,8 @@ public:
     opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
     color_buffers[0].bind_texture();
 
-    opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-    color_buffers[1].bind_texture();
+    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    blur.mips.front().image.bind_texture();
 
     render_final_fb();
 
@@ -1932,8 +1952,8 @@ public:
     opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
     color_buffers[0].bind_texture();
 
-    opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-    color_buffers[1].bind_texture();
+    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    blur.mips.front().image.bind_texture();
 
     m_framebuffer.bind(get_context());
     opengl.glBindFramebuffer(fan::opengl::GL_READ_FRAMEBUFFER, 0); // Bind default framebuffer as source
@@ -1952,6 +1972,10 @@ public:
 
     m_framebuffer.unbind(get_context());
 
+
+    //blur.draw();
+
+
     opengl.glClearColor(0, 0, 0, 1);
     opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
@@ -1965,7 +1989,7 @@ public:
     color_buffers[0].bind_texture();
 
     get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-    color_buffers[1].bind_texture();
+    blur.mips.front().image.bind_texture();
 
     render_post_fb();
 
@@ -2054,9 +2078,23 @@ public:
 #if defined(loco_framebuffer)
   #if defined(loco_opengl)
 
+   /* create_struct(
+      float, blur_radius,
+      float, bloom_threshold
+    )*/
+
+  fan::string loco_fbo_struct = R"(
+      float blur_radius = 0.001;
+      float bloom_threshold = 0;
+      float bloom_softness = 5;
+      float bloom_radius = 0.3;
+      float bloom_strength = 2;
+      vec2 something = vec2(3, 2);
+)";
+
     fan::opengl::core::framebuffer_t m_framebuffer;
     fan::opengl::core::renderbuffer_t m_rbo;
-    loco_t::image_t color_buffers[2];
+    loco_t::image_t color_buffers[3];
     loco_t::shader_t m_fbo_final_shader;
     loco_t::shader_t m_fbo_post_gui_shader;
 
@@ -2540,6 +2578,133 @@ public:
       gloco->shapes.sprite.m_shader.compile();
     });
   }
+  #if defined(loco_imgui)
+
+  #define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
+  [=] <typename T>(T& var){ \
+    if constexpr(std::is_same_v<f32_t, T>)  { \
+      return ImGui::DragFloat(fan::string(std::move(name)).c_str(), &var, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+    else if constexpr(std::is_same_v<fan::vec2, T>)  { \
+      return ImGui::DragFloat2(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+    else if constexpr(std::is_same_v<fan::vec3, T>)  { \
+      return ImGui::DragFloat3(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+    else if constexpr(std::is_same_v<fan::vec4, T>)  { \
+      return ImGui::DragFloat4(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+  }(variable)
+
+  #define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
+    fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, m_min, m_max)
+
+  static std::string extract_variable_type(const std::string& string_data, const std::string& varName) {
+    std::istringstream file(string_data);
+
+    std::string type;
+    std::string line;
+    while (std::getline(file, line)) {
+      std::istringstream iss(line);
+      std::string word;
+      while (iss >> word) {
+        if (word.find(varName) != std::string::npos) {
+          return type;
+        }
+        else {
+          type = word;
+        }
+      }
+    }
+
+    return "";
+  }
+
+  template <typename T>
+  struct imgui_fs_var_t {
+    loco_t::imgui_element_t ie;
+
+    imgui_fs_var_t() = default;
+
+    imgui_fs_var_t(
+      loco_t::shader_t* shader,
+      const fan::string& var_name,
+      T initial = 0,
+      T speed = 1,
+      T min = -100000,
+      T max = 100000
+    ) {
+      auto fs = shader->get_shader().sfragment;
+      auto found = fs.find(var_name);
+      if (found == std::string::npos) {
+        fan::throw_error(var_name, "not found");
+      }
+
+      fan::string type = extract_variable_type(fs, var_name);
+      if (type.empty()) {
+        fan::throw_error(var_name, "failed to find type of variable");
+      }
+
+      switch (fan::get_hash(type)) {
+        case fan::get_hash(std::string_view("float")): {
+          shader->set_float(var_name, initial);
+          break;
+        }
+        case fan::get_hash(std::string_view("int")): {
+          shader->set_int(var_name, initial);
+          break;
+        }
+        case fan::get_hash(std::string_view("vec2")): {
+          shader->set_vec2(var_name, initial);
+          break;
+        }
+        case fan::get_hash(std::string_view("vec3")): {
+          shader->set_vec3(var_name, initial);
+          break;
+        }
+        case fan::get_hash(std::string_view("vec4")): {
+          shader->set_vec4(var_name, initial);
+          break;
+        }
+      }
+
+      ie = [shader, var_name, speed, min, max, type, data = initial]() mutable {
+        switch (fan::get_hash(type)) {
+          case fan::get_hash(std::string_view("float")): {
+            if (fan_imgui_dragfloat_named(var_name, data, speed, min, max)) {
+              shader->set_float(var_name, data);
+            }
+            break;
+          }
+          case fan::get_hash(std::string_view("int")): {
+            if (fan_imgui_dragfloat_named(var_name, data, speed, min, max)) {
+              shader->set_int(var_name, data);
+            }
+            break;
+          }
+          case fan::get_hash(std::string_view("vec2")): {
+            if (fan_imgui_dragfloat_named(var_name, data, speed, min, max)) {
+              shader->set_vec2(var_name, data);
+            }
+            break;
+          }
+          case fan::get_hash(std::string_view("vec3")): {
+            if (fan_imgui_dragfloat_named(var_name, data, speed, min, max)) {
+              shader->set_vec3(var_name, data);
+            }
+            break;
+          }
+          case fan::get_hash(std::string_view("vec4")): {
+            if (fan_imgui_dragfloat_named(var_name, data, speed, min, max)) {
+              shader->set_vec4(var_name, data);
+            }
+            break;
+          }
+        }
+      };
+    }
+  };
+  #endif
 
   #if defined(loco_compute_shader)
   #include _FAN_PATH(graphics/vulkan/compute_shader.h)
@@ -2991,24 +3156,7 @@ namespace ImGui {
     return ImGui::ImageButton((void*)img.get_texture(), size, uv0, uv1, frame_padding, bg_col, tint_col);
   }
 }
-
-#define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
-  [=] <typename T>(T& var){ \
-    if constexpr(std::is_same_v<f32_t, T>)  { \
-      return ImGui::DragFloat(STRINGIFY(variable), &var, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else if constexpr(std::is_same_v<fan::vec2, T>)  { \
-      return ImGui::DragFloat2(STRINGIFY(variable), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else if constexpr(std::is_same_v<fan::vec3, T>)  { \
-      return ImGui::DragFloat3(STRINGIFY(variable), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else if constexpr(std::is_same_v<fan::vec4, T>)  { \
-      return ImGui::DragFloat4(STRINGIFY(variable), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-  }(variable)
 #endif
-
 #include _FAN_PATH(graphics/collider.h)
 
 #if defined(loco_model_3d)

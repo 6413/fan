@@ -17,10 +17,10 @@
 	}
 
 	void main() {
-    vec3 result = vec3(0.0);
+    vec4 result = vec4(0.0);
 		vec4 hdrColor = texture(_t00, texture_coordinate);
-		//vec3 bloomColor = texture(_t01, texture_coordinate).rgb;
+		vec4 bloomColor = texture(_t01, texture_coordinate);
 		float b = bloom;
 		result = mix(hdrColor, bloomColor, b); // linear interpolation
-		o_color = result;
+		o_color = vec4(result.rgb, 1);
 	}
