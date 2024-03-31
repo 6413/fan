@@ -29,6 +29,12 @@ namespace fan {
     constexpr operator ImVec4() const {
       return *(ImVec4*)this;
     }
+    constexpr ImU32 to_u32() const {
+        return static_cast<ImU32>((static_cast<ImU32>(r * 255) << 0) |
+          (static_cast<ImU32>(g * 255) << 8) |
+          (static_cast<ImU32>(b * 255) << 16) |
+          (static_cast<ImU32>(a * 255) << 24));
+    }
     #endif
 
 		using value_type = cf_t;
@@ -152,6 +158,10 @@ namespace fan {
 		cf_t* data() {
 			return &r;
 		}
+
+    uint32_t get_hex() const {
+      return ((uint32_t)(r * 255.0) << 24) | ((uint32_t)(g * 255.0) << 16) | ((uint32_t)(b * 255.0) << 8) | (uint32_t)(a * 255.0);
+    }
 
 		static constexpr auto size() {
 			return 4;

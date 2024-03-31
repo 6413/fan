@@ -51,6 +51,10 @@
 #endif
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH,fan/types/types.h)
 
+#if defined(loco_imgui)
+#include _FAN_PATH(imgui/text_editor.h)
+#endif
+
 //#define loco_vulkan
 //#define loco_compute_shader
 
@@ -92,5 +96,5 @@
 
 
 #if defined(loco_imgui)
-#include _FAN_PATH(graphics/gui/model_maker/maker.h)
+  #include _FAN_PATH(graphics/gui/model_maker/maker.h)
 #endif
