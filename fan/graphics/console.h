@@ -11,7 +11,6 @@ namespace fan {
     };
 
     std::unordered_map<std::string, command_t> func_table;
-    std::function<void(const std::string&)> output_cb = [](const auto&) {};
 
     struct command_errors_e {
       enum {
@@ -20,6 +19,29 @@ namespace fan {
         invalid_args
       };
     };
+
+    struct highlight_e {
+      enum {
+        text,
+        error,
+        success,
+        info
+      };
+    };
+
+    static constexpr fan::color highlight_color_table[] = {
+      fan::colors::white,
+      fan::colors::red,
+      fan::colors::green,
+      fan::colors::orange,
+    };
+
+    struct output_t {
+      uint16_t highlight = highlight_e::text;
+      fan::string text;
+    };
+
+    std::function<void(const output_t&)> output_cb = [](const auto&) {};
 
     command_t& register_command(const fan::string& cmd, auto func) {
       command_t command;
@@ -37,7 +59,7 @@ namespace fan {
       fan::string arg0 = cmd.substr(0, arg0_off);
       auto found = func_table.find(arg0);
       if (found == func_table.end()) {
-        commands_t::print_command_not_found();
+        commands_t::print_command_not_found(cmd);
         return command_errors_e::function_not_found;
       }
       fan::string rest;
@@ -72,10 +94,16 @@ namespace fan {
     }
 
     void print_invalid_arg_count() {
-      output_cb("invalid amount of arguments\n");
+      output_t out;
+      out.text = "invalid amount of arguments\n";
+      out.highlight = highlight_e::error;
+      output_cb(out);
     }
-    void print_command_not_found() {
-      output_cb("command not found\n");
+    void print_command_not_found(const fan::string& cmd) {
+      output_t out;
+      out.text = "\"" + cmd + "\"" " command not found\n";
+      out.highlight = highlight_e::error;
+      output_cb(out);
     }
   };
 
@@ -159,11 +187,12 @@ namespace fan {
       editor.SetReadOnly(false);
       editor.InsertTextColored("> " + current_command, fan::color::hex(0x999999FF));
       editor.SetReadOnly(true);
-      static auto l = [&](const std::string& str) {
+      static auto l = [&](const fan::commands_t::output_t& out) {
         editor.SetReadOnly(false);
-        editor.InsertTextColored(str, fan::colors::white);
+        fan::color color = fan::commands_t::highlight_color_table[out.highlight];
+        editor.InsertTextColored(out.text, color);
         editor.SetReadOnly(true);
-        output_buffer.push_back(str);
+        output_buffer.push_back(out.text);
         };
       commands.output_cb = l;
       commands.call_command(current_command.substr(0, current_command.size() - 1));
