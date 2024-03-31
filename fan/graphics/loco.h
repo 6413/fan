@@ -1802,6 +1802,17 @@ public:
       io.AddInputCharacter(d.character);
     });
 
+    bool windowed = false;
+    // free this xd
+    gloco->window.add_keys_callback(
+      [windowed](const fan::window_t::keyboard_keys_cb_data_t& data) mutable {
+        if (data.key == fan::key_enter && data.state == fan::keyboard_state::press && gloco->window.key_pressed(fan::key_left_alt)) {
+          windowed = !windowed;
+          gloco->window.set_size_mode(windowed ? fan::window_t::mode::borderless : fan::window_t::mode::windowed);
+        }
+      }
+    );
+
     static bool init = false;
     if (init == false) {
       init = true;
@@ -1820,11 +1831,17 @@ public:
       auto& io = ImGui::GetIO();
 
       static constexpr const char* font_name = "fonts/SourceCodePro-Regular.ttf";
-      static constexpr f32_t font_size = 36;
-      if (io.Fonts->AddFontFromFileTTF(font_name, font_size) == nullptr) {
-        fan::throw_error(fan::string("failed to load font") + font_name);
+      static constexpr f32_t font_size = 4;
+
+
+      for (int i = 0; i < std::size(fonts); ++i) {
+        fonts[i] = io.Fonts->AddFontFromFileTTF(font_name, (int)(font_size * (1 << i)) * 2);
+        if (fonts[i] == nullptr) {
+          fan::throw_error(fan::string("failed to load font") + font_name);
+        }
       }
       io.Fonts->Build();
+      io.FontDefault = fonts[2];
     }
     #endif
     #endif
@@ -1841,27 +1858,36 @@ public:
     #if defined(loco_imgui)
 
     commands.register_command("echo", [&](const fan::commands_t::arg_t& args) {
-      commands.output_cb(fan::append_args(args) + "\n");
+      fan::commands_t::output_t out;
+      out.text = fan::append_args(args) + "\n";
+      out.highlight = fan::commands_t::highlight_e::info;
+      commands.output_cb(out);
       }).description = "prints something - usage echo [args]";
 
     commands.register_command("help", [&](const fan::commands_t::arg_t& args) {
       if (args.empty()) {
-        std::string out;
-        out += "{\n";
+        fan::commands_t::output_t out;
+        out.highlight = fan::commands_t::highlight_e::info;
+        std::string out_str;
+        out_str += "{\n";
         for (const auto& i : commands.func_table) {
-          out += "\t" + i.first + ",\n";
+          out_str += "\t" + i.first + ",\n";
         }
-        out += "}";
-        commands.output_cb(out + "\n");
+        out_str += "}\n";
+        out.text = out_str;
+        commands.output_cb(out);
         return;
       }
       else if (args.size() == 1) {
         auto found = commands.func_table.find(args[0]);
         if (found == commands.func_table.end()) {
-          commands.print_command_not_found();
+          commands.print_command_not_found(args[0]);
           return;
         }
-        commands.output_cb(found->second.description + "\n");
+        fan::commands_t::output_t out;
+        out.text = found->second.description + "\n";
+        out.highlight = fan::commands_t::highlight_e::info;
+        commands.output_cb(out);
       }
       else {
         commands.print_invalid_arg_count();
@@ -1869,10 +1895,15 @@ public:
       }).description = "get info about specific command - usage help command";
 
     commands.register_command("list", [&](const fan::commands_t::arg_t& args) {
-      std::string out;
+      std::string out_str;
       for (const auto& i : commands.func_table) {
-        out += i.first + "\n";
+        out_str += i.first + "\n";
       }
+
+      fan::commands_t::output_t out;
+      out.text = out_str;
+      out.highlight = fan::commands_t::highlight_e::info;
+
       commands.output_cb(out);
       }).description = "lists all commands - usage list";
 
@@ -2261,6 +2292,7 @@ public:
     imgui_xorg_new_frame();
     #endif
     ImGui::NewFrame();
+
 
     auto& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
@@ -2846,6 +2878,9 @@ public:
   TextEditor editor, input;
   bool toggle_console = false;
   bool toggle_fps = false;
+
+
+  ImFont* fonts[6];
 };
 
 #if defined(loco_pixel_format_renderer)
