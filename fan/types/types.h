@@ -35,6 +35,7 @@
 #include <charconv>
 #include <tuple>
 #include <ranges>
+#include <iomanip>
 
 #pragma pack(push, 1)
 
@@ -829,6 +830,24 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 	template<typename Callable>
 	using return_type_of_t = typename decltype(std::function{ std::declval<Callable>() })::result_type;
 
+  constexpr inline uint64_t get_hash(const char* str) {
+    uint64_t result = 0xcbf29ce484222325; // FNV offset basis
+
+    uint32_t i = 0;
+
+    if (str == nullptr) {
+      return 0;
+    }
+
+    while (str[i] != 0) {
+      result ^= (uint64_t)str[i];
+      result *= 1099511628211; // FNV prime
+      i++;
+    }
+
+    return result;
+  }
+
   constexpr inline uint64_t get_hash(const std::string_view& str) {
     uint64_t result = 0xcbf29ce484222325; // FNV offset basis
 
@@ -843,7 +862,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
     return result;
   }
 
-	constexpr inline uint64_t get_hash(const fan::string& str) {
+	constexpr inline uint64_t get_hash(const std::string& str) {
 		uint64_t result = 0xcbf29ce484222325; // FNV offset basis
 
 		uint32_t i = 0;
@@ -1216,4 +1235,33 @@ namespace fan {
   // __VA_ARGS__ is not compile time in clang according to clang
   #define fan_make_flexible_array(type, name, ...) \
   std::array<type, std::initializer_list<type>{__VA_ARGS__}.size()> name = {__VA_ARGS__}
+
+  static std::vector<std::string> split(std::string str, std::string token) {
+    std::vector<std::string>result;
+    while (str.size()) {
+      int index = str.find(token);
+      if (index != std::string::npos) {
+        result.push_back(str.substr(0, index));
+        str = str.substr(index + token.size());
+        if (str.size() == 0)result.push_back(str);
+      }
+      else {
+        result.push_back(str);
+        str = "";
+      }
+    }
+    return result;
+  }
+
+  static std::vector<std::string> split_quoted(const std::string& input) {
+    std::vector<std::string> args;
+    std::istringstream stream(input);
+    std::string arg;
+
+    while (stream >> std::quoted(arg)) {
+      args.push_back(arg);
+    }
+
+    return args;
+  }
 }

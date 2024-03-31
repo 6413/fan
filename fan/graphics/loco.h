@@ -44,6 +44,7 @@ struct loco_t;
 #include _FAN_PATH(trees/quad_tree.h)
 #include _FAN_PATH(graphics/divider.h)
 
+#include _FAN_PATH(graphics/console.h)
 
 #if defined(loco_imgui) && defined(fan_platform_linux)
 static void imgui_xorg_init();
@@ -1834,6 +1835,115 @@ public:
       fan::throw_error("failed to initialize frame buffer");
     }
     #endif*/
+
+    // register console commands
+
+    #if defined(loco_imgui)
+
+    commands.register_command("echo", [&](const fan::commands_t::arg_t& args) {
+      commands.output_cb(fan::append_args(args) + "\n");
+      }).description = "prints something - usage echo [args]";
+
+    commands.register_command("help", [&](const fan::commands_t::arg_t& args) {
+      if (args.empty()) {
+        std::string out;
+        out += "{\n";
+        for (const auto& i : commands.func_table) {
+          out += "\t" + i.first + ",\n";
+        }
+        out += "}";
+        commands.output_cb(out + "\n");
+        return;
+      }
+      else if (args.size() == 1) {
+        auto found = commands.func_table.find(args[0]);
+        if (found == commands.func_table.end()) {
+          commands.print_command_not_found();
+          return;
+        }
+        commands.output_cb(found->second.description + "\n");
+      }
+      else {
+        commands.print_invalid_arg_count();
+      }
+      }).description = "get info about specific command - usage help command";
+
+    commands.register_command("list", [&](const fan::commands_t::arg_t& args) {
+      std::string out;
+      for (const auto& i : commands.func_table) {
+        out += i.first + "\n";
+      }
+      commands.output_cb(out);
+      }).description = "lists all commands - usage list";
+
+    commands.register_command("alias", [&](const fan::commands_t::arg_t& args) {
+      if (args.size() < 2 || args[1].empty()) {
+        commands.print_invalid_arg_count();
+        return;
+      }
+      if (commands.insert_to_command_chain(args)) {
+        return;
+      }
+      commands.func_table[args[0]] = commands.func_table[args[1]];
+      }).description = "can create alias commands - usage alias [cmd name] [cmd]";
+
+
+    commands.register_command("show_fps", [&](const fan::commands_t::arg_t& args) {
+      if (args.size() != 1) {
+        commands.print_invalid_arg_count();
+        return;
+      }
+      toggle_fps = std::stoi(args[0]);
+    }).description = "toggles fps - usage show_fps [value]";
+
+    commands.register_command("quit", [&](const fan::commands_t::arg_t& args) {
+      exit(0);
+    }).description="quits program - usage quit";
+
+
+    TextEditor::LanguageDefinition lang = TextEditor::LanguageDefinition::CPlusPlus();
+    // set your own known preprocessor symbols...
+    static const char* ppnames[] = { "NULL" };
+    // ... and their corresponding values
+    static const char* ppvalues[] = {
+      "#define NULL ((void*)0)",
+  };
+
+    for (int i = 0; i < sizeof(ppnames) / sizeof(ppnames[0]); ++i)
+    {
+      TextEditor::Identifier id;
+      id.mDeclaration = ppvalues[i];
+      lang.mPreprocIdentifiers.insert(std::make_pair(std::string(ppnames[i]), id));
+    }
+
+    //for (auto& i : commands.func_table) {
+    //  TextEditor::Identifier id;
+    //  id.mDeclaration = i.second.description;
+    //  lang.mIdentifiers.insert(std::make_pair(i.first, id));
+    //}
+
+    editor.SetLanguageDefinition(lang);
+    //
+
+
+    auto palette = editor.GetPalette();
+    fan::color bg = palette[(int)TextEditor::PaletteIndex::Background];
+    bg = bg * 2;
+    palette[(int)TextEditor::PaletteIndex::Background] = bg.to_u32();
+
+    //palette[(int)TextEditor::PaletteIndex::LineNumber] = 0;
+    editor.SetPalette(palette);
+    editor.SetTabSize(2);
+    editor.SetReadOnly(true);
+    editor.SetShowWhitespaces(false);
+
+    input = editor;
+
+    input.SetReadOnly(false);
+    //input.SetShowLineNumbers(false);
+    palette[(int)TextEditor::PaletteIndex::Background] = TextEditor::GetDarkPalette()[(int)TextEditor::PaletteIndex::Background];
+    input.SetPalette(palette);
+    #endif
   }
 
   #if defined(loco_vfi)
@@ -1959,6 +2069,28 @@ public:
     opengl.glBindFramebuffer(fan::opengl::GL_READ_FRAMEBUFFER, 0); // Bind default framebuffer as source
     opengl.glBindFramebuffer(fan::opengl::GL_DRAW_FRAMEBUFFER, m_framebuffer.framebuffer); // Bind FBO as destination
     opengl.glBlitFramebuffer(0, 0, window_size.x, window_size.y, 0, 0, window_size.x, window_size.y, fan::opengl::GL_COLOR_BUFFER_BIT, fan::opengl::GL_NEAREST);
+
+    static constexpr uint32_t parent_window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs;
+
+    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+
+    ImGui::Begin("Global window", 0, parent_window_flags);
+    if (toggle_fps) {
+      ImGui::Text("fps:%d", (int)(1.f / delta_time));
+    }
+    ImGui::End();
+
+    if (ImGui::IsKeyPressed(ImGuiKey_F3, false)) {
+      toggle_console = !toggle_console;
+      // force focus xd
+      input.InsertText("a");
+      input.SetText("");
+    }
+
+    if (toggle_console) {
+      fan::create_console(commands, editor, input);
+    }
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -2709,6 +2841,11 @@ public:
   #if defined(loco_compute_shader)
   #include _FAN_PATH(graphics/vulkan/compute_shader.h)
   #endif
+
+  fan::commands_t commands;
+  TextEditor editor, input;
+  bool toggle_console = false;
+  bool toggle_fps = false;
 };
 
 #if defined(loco_pixel_format_renderer)
