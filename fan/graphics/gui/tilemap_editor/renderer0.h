@@ -9,6 +9,7 @@ struct fte_renderer_t : fte_loader_t {
   fan::vec3 position = 0;
   fan::vec2 size = 1;
   fan::vec2i view_size = 1;
+  fan::graphics::camera_t* camera = nullptr;
 
   fan::vec2i prev_render = 0;
 
@@ -17,6 +18,14 @@ struct fte_renderer_t : fte_loader_t {
   }
 
   id_t add(compiled_map_t* compiled_map, const properties_t& p) {
+
+    if (p.camera == nullptr) {
+      camera = gloco->default_camera;
+    }
+    else {
+      camera = p.camera;
+    }
+
     auto it = map_list.NewNodeLast();
     auto& node = map_list[it];
     node.compiled_map = compiled_map;
@@ -62,6 +71,7 @@ struct fte_renderer_t : fte_loader_t {
     switch (j.mesh_property) {
       case fte_t::mesh_property_t::none: {
         node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::sprite_t{{
+            .camera = camera,
             .position = position + fan::vec3(fan::vec2(j.position) * size, j.position.z),
             .size = j.size * size,
             .angle = j.angle,
@@ -79,6 +89,7 @@ struct fte_renderer_t : fte_loader_t {
       }
       case fte_t::mesh_property_t::light: {
         node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::light_t{ {
+          .camera = camera,
           .position = position + fan::vec3(fan::vec2(j.position) * size, j.position.z),
           .size = j.size * size,
           .color = j.color

@@ -102,7 +102,7 @@ struct fte_t {
   }
 
   bool window_relative_to_grid(const fan::vec2& window_relative_position, fan::vec2i* in) {
-    fan::vec2 p = gloco->translate_position(window_relative_position) / 2 + gloco->default_camera->camera.get_position() / 2;
+    fan::vec2 p = gloco->translate_position(window_relative_position, &camera->viewport, &camera->camera) / 2 + camera->camera.get_position() / 2;
     fan::vec2 ws = gloco->window.get_size();
     if (map_size.x % 2) {
       p.x += tile_size.x / 2;
@@ -147,17 +147,28 @@ struct fte_t {
     p += tile_size;
   }
 
-  void open(const fan::string& texturepack_name) {
+  struct properties_t {
+    fan::string texturepack_name;
+    fan::graphics::camera_t* camera = nullptr;
+  };
+
+  void open(const properties_t& properties) {
     loco_t::image_t::load_properties_t lp;
     lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_border;
     lp.min_filter = fan::opengl::GL_NEAREST;
     lp.mag_filter = fan::opengl::GL_NEAREST;
-    texturepack.open_compiled(texturepack_name, lp);
+    texturepack.open_compiled(properties.texturepack_name, lp);
+    if (properties.camera == nullptr) {
+      camera = gloco->default_camera;
+    }
+    else {
+      camera = properties.camera;
+    }
 
     gloco->window.add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom * 2;
-        gloco->default_camera->camera.set_position(viewport_settings.pos - move_off);
+        camera->camera.set_position(viewport_settings.pos - move_off);        
       }
       fan::vec2i p;
       {
@@ -189,7 +200,7 @@ struct fte_t {
           viewport_settings.move = (bool)d.state;
           fan::vec2 old_pos = viewport_settings.pos;
           viewport_settings.offset = gloco->get_mouse_position();
-          viewport_settings.pos = gloco->default_camera->camera.get_position();
+          viewport_settings.pos = camera->camera.get_position();
           break;
         }
         case fan::mouse_scroll_up: {
@@ -272,10 +283,11 @@ struct fte_t {
       texturepack_images.push_back(ii);
     });
 
-    grid_visualize.background = fan::graphics::unlit_sprite_t{ {
+    grid_visualize.background = fan::graphics::sprite_t{ {
+      .camera = camera,
       .position = fan::vec3(viewport_settings.pos, 0),
       .size = 0,
-      .image = &gloco->transparent_texture
+      .image = &gloco->transparent_texture,
     } };
 
     grid_visualize.highlight_color.create(fan::colors::red, 1);
@@ -283,6 +295,7 @@ struct fte_t {
     grid_visualize.light_color.create(fan::color(0, 0.0, 0.5, 0.5), 1);
 
     grid_visualize.highlight_hover = fan::graphics::unlit_sprite_t{ {
+      .camera = camera,
       .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth),
       .size = tile_size,
       .image = &grid_visualize.highlight_color,
@@ -310,9 +323,11 @@ struct fte_t {
     //// update viewport sizes
     //gloco->process_frame();
 
-    gloco->default_camera->camera.set_position(viewport_settings.pos);
+    camera->camera.set_position(viewport_settings.pos);
 
     loco_t::shapes_t::line_grid_t::properties_t p;
+    p.viewport = &camera->viewport;
+    p.camera = &camera->camera;
     p.position = fan::vec3(0, 0, shape_depths_t::cursor_highlight_depth + 1);
     p.size = 0;
     p.color = fan::color::rgb(0, 128, 255);
@@ -359,7 +374,6 @@ struct fte_t {
     if (!is_in_constraints(position, j, i)) {
       return true;
     }
-    fan::print(position);
     fan::vec2 start_idx = -(current_tile_brush_count / 2).floor();
     position += start_idx * tile_size * 2;
 
@@ -383,6 +397,7 @@ struct fte_t {
           layers.back().tile.mesh_property = mesh_property_t::none;
           if (brush.type != brush_t::type_e::light)
             layers.back().shape = fan::graphics::sprite_t{ {
+                .camera = camera,
                 .position = fan::vec3(position, brush.depth),
                 .size = tile_size * brush.tile_size,
                 .angle = brush.dynamics_angle == brush_t::dynamics_e::randomize ?
@@ -417,6 +432,7 @@ struct fte_t {
               layers.back().shape = lp;
               layers.back().tile.mesh_property = mesh_property_t::light;
               visual_shapes[lp.position].shape = fan::graphics::sprite_t{{
+                  .camera = camera,
                   .position = fan::vec3(fan::vec2(lp.position), lp.position.z + 1),
                   .size = tile_size,
                   .image = &grid_visualize.light_color,
@@ -449,6 +465,7 @@ struct fte_t {
               switch (brush.type) {
                 case brush_t::type_e::texture: {
                   layer.shape = fan::graphics::sprite_t{ {
+                      .camera = camera,
                       .position = layer.shape.get_position(),
                       .size = layer.shape.get_size(),
                       .angle = layer.shape.get_angle(),
@@ -479,6 +496,8 @@ struct fte_t {
                   lp.size = shape.get_size();
                   lp.angle = shape.get_angle();
                   lp.color = shape.get_color();
+                  lp.camera = &camera->camera;
+                  lp.viewport = &camera->viewport;
                   layer.shape = lp;
                   layer.tile.mesh_property = mesh_property_t::light;
                   visual_shapes[lp.position].shape = fan::graphics::sprite_t{{
@@ -558,12 +577,13 @@ struct fte_t {
         bool is_shift_pressed = gloco->window.key_pressed(fan::key_left_shift);
 
         if (is_mouse_left_down && !is_ctrl_pressed && !is_shift_pressed) {
-          handle_tile_action(position, [this](auto...args) {return handle_tile_push(args...); });
+          handle_tile_action(position, [this](auto...args) {auto ret = handle_tile_push(args...);  modify_cb(0); return ret; });
         }
 
         if (is_mouse_right_down) {
-          handle_tile_action(position, [this](auto...args) {return handle_tile_erase(args...); });
+          handle_tile_action(position, [this](auto...args) {auto ret = handle_tile_erase(args...);  modify_cb(0); return ret; });
         }
+
         break;
       }
       case brush_t::mode_e::copy: {
@@ -616,14 +636,22 @@ struct fte_t {
             int stepy = (src.y <= dst.y) ? 1 : -1;
             copy_buffer_region.x = std::max(1.f, std::abs((dst.x + stepx) - src.x));
             copy_buffer_region.y = std::max(1.f, std::abs((dst.y + stepy) - src.y));
-            for (int j = src.y; j != dst.y + stepy; j += stepy) {
-              for (int i = src.x; i != dst.x + stepx; i += stepx) {
-                auto found = map_tiles.find(fan::vec2i(i, j));
-                if (found != map_tiles.end()) {
-                  copy_buffer.push_back(found->second);
-                }
-                else {
-                  copy_buffer.push_back({});
+            if (src == dst) {
+              auto found = map_tiles.find(copy_src);
+              if (found != map_tiles.end()) {
+                copy_buffer.push_back(found->second);
+              }
+            }
+            else {
+              for (int j = src.y; j != dst.y + stepy; j += stepy) {
+                for (int i = src.x; i != dst.x + stepx; i += stepx) {
+                  auto found = map_tiles.find(fan::vec2i(i, j));
+                  if (found != map_tiles.end()) {
+                    copy_buffer.push_back(found->second);
+                  }
+                  else {
+                    copy_buffer.push_back({});
+                  }
                 }
               }
             }
@@ -641,10 +669,13 @@ struct fte_t {
                 auto& tile = map_tiles[current_pos];
                 tile = i;
                 int layer = 0;
-                for (auto& tile : tile.layers) {
-                  fan::vec2 draw_pos = current_pos * tile_size * 2 + tile_size;
+                for (auto& t : tile.layers) {
+                  fan::vec2 op = t.shape.get_position();
+                  fan::vec2 offset = op - *(fan::vec2i*)&t.tile.position;
+                  fan::print(offset);
+                  fan::vec2 draw_pos = current_pos * tile_size * 2 + tile_size + offset;
                   if (is_in_constraints(draw_pos)) {
-                    tile.shape.set_position(fan::vec2(draw_pos));
+                    t.shape.set_position(fan::vec2(draw_pos));
                   }
                 }
               }
@@ -686,20 +717,20 @@ struct fte_t {
     }
   }
 
-  void handle_editor_window(fan::vec2& editor_size) {
+  bool handle_editor_window(fan::vec2& editor_size) {
     if (ImGui::Begin("Editor")) {
       fan::vec2 window_size = gloco->window.get_size();
       fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
       fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
       fan::vec2 offset = viewport_size - viewport_size / viewport_settings.zoom;
       fan::vec2 s = viewport_size;
-      gloco->default_camera->camera.set_ortho(
+      camera->camera.set_ortho(
         fan::vec2(-s.x, s.x) / viewport_settings.zoom,
         fan::vec2(-s.y, s.y) / viewport_settings.zoom
       );
 
       //gloco->default_camera->camera.set_camera_zoom(viewport_settings.zoom);
-      gloco->default_camera->viewport.set(viewport_pos, viewport_size, window_size);
+      camera->viewport.set(viewport_pos, viewport_size, window_size);
       editor_size = ImGui::GetContentRegionAvail();
       viewport_settings.size = editor_size;
       ImGui::SetWindowFontScale(1.5);
@@ -751,11 +782,15 @@ struct fte_t {
           layers.pop_back();
         }
       }
-
-      ImGui::End();
+        ImGui::End();
+    }
+    else {
+      camera->viewport.zero();
+      return true;
     }
     editor_settings.hovered = ImGui::IsWindowHovered();
     ImGui::End();
+    return false;
   }
 
   bool handle_editor_settings_window() {
@@ -901,7 +936,8 @@ struct fte_t {
 
         {
           fan::vec2 offset = fan::vec2(layer.shape.get_position()) - current_tile.position;
-          if (ImGui::SliderFloat2("offset", (float*)offset.data(), -tile_size.max() * 2, tile_size.max() * 2)) {
+
+          if (fan_imgui_dragfloat(offset, 0.1, 0, 0)) {
             layer.shape.set_position(fan::vec2(current_tile.position) + offset);
           }
         }
@@ -926,7 +962,8 @@ struct fte_t {
         }
         {
           fan::vec2 rotation_point = layer.shape.get_rotation_point();
-          if (ImGui::SliderFloat2("rotation point", rotation_point.data(), -tile_size.max() * 2, tile_size.max() * 2)) {
+          
+          if (fan_imgui_dragfloat(rotation_point, 0.1, -tile_size.max() * 2, tile_size.max() * 2)) {
             layer.shape.set_rotation_point(rotation_point);
           }
         }/*
@@ -973,7 +1010,8 @@ struct fte_t {
         }
       }
       {
-        if (ImGui::SliderFloat("jitter chance", &brush.jitter_chance, 0, 1)) {
+        
+        if (fan_imgui_dragfloat(brush.jitter_chance, 1, 0, 1)) {
 
         }
       }
@@ -1076,7 +1114,10 @@ struct fte_t {
   void handle_imgui() {
     fan::vec2 editor_size;
 
-    handle_editor_window(editor_size);
+    if (handle_editor_window(editor_size)) {
+      ImGui::End();
+      return;
+    }
 
     if (handle_editor_settings_window()) {
       return;
@@ -1308,4 +1349,6 @@ shape data{
 
   fan::vec2i copy_buffer_region = 0;
   std::vector<shapes_t::global_t> copy_buffer;
+  fan::graphics::camera_t* camera = nullptr;
+  fan::function_t<void(int)> modify_cb = [](int) {};
 };

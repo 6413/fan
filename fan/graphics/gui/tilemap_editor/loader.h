@@ -79,6 +79,7 @@ public:
   struct properties_t {
     fan::vec3 position = 0;
     fan::vec2 size = 1;
+    fan::graphics::camera_t* camera = nullptr;
   };
 
   static void convert_draw_to_grid(fan::vec2i tile_size, fan::vec2i& p) {

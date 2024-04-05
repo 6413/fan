@@ -85,13 +85,14 @@ int main() {
   lp.min_filter = fan::opengl::GL_NEAREST;
   lp.mag_filter = fan::opengl::GL_NEAREST;
   loco_t::texturepack_t tp;
-  tp.open_compiled("texture_packs/tilemap.ftp", lp);
+  //tp.open_compiled("texture_packs/tilemap.ftp", lp);
+  tp.open_compiled("texture_packs/TexturePack", lp);
 
   fte_renderer_t renderer;
   renderer.open(&tp);
 
-  auto compiled_map = renderer.compile("tilemaps/map_game0_0.fte");
-
+  //auto compiled_map = renderer.compile("tilemaps/map_game0_0.fte");
+  auto compiled_map = renderer.compile("tilemaps/map_game0_1.fte");
   fan::vec2i render_size(16, 9);
   render_size *= 2;
   render_size += 3;

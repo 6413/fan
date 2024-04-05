@@ -171,8 +171,8 @@ struct blur_t {
     gloco->get_context().opengl.glViewport(0, 0, window_size.x, window_size.y);
   }
 
-  void draw() {
-    draw(&gloco->color_buffers[0], bloom_filter_radius);
+  void draw(loco_t::image_t* color_texture) {
+    draw(color_texture, bloom_filter_radius);
   }
 
 
