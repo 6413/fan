@@ -76,19 +76,19 @@ Check out the [examples](examples/) directory for sample projects demonstrating 
 ![image](https://github.com/6413/fan/assets/56801084/973f2fa6-fcd7-4b6a-b66b-b92eefae9bba)
 
 
-[quadtree_visualize](examples/graphics/quadtree_visualize.cpp)
+[quadtree_visualize](examples/graphics/2D/quadtree_visualize.cpp)
 ![image_2023-11-11_20-24-01](https://github.com/6413/fan/assets/56801084/0aac1cbb-2d41-40ef-b0d0-5ab838b9b3d1)
 
-[particles](examples/graphics/particles.cpp)
+[particles](examples/graphics/2D/particles.cpp)
 ![image_2023-11-11_20-29-09](https://github.com/6413/fan/assets/56801084/8c63a7a0-a8c1-451e-82be-af14aabb69b3)
 
 [tilemap_editor](examples/gui/tilemap_editor.cpp)
 ![image_2023-11-11_20-32-21](https://github.com/6413/fan/assets/56801084/b41e7417-04fb-4d7f-be6a-2e13379cf521)
 
-[sort_visualizer](examples/graphics/sort_visualizer.cpp)
+[sort_visualizer](examples/graphics/2D/sort_visualizer.cpp)
 ![image_2023-11-11_20-33-48](https://github.com/6413/fan/assets/56801084/a39c3f93-e902-4401-9efe-2ae15e0035ad)
 
-[function_graph](examples/graphics/function_graph.cpp)
+[function_graph](examples/graphics/2D/function_graph.cpp)
 ![image_2023-11-11_20-36-10](https://github.com/6413/fan/assets/56801084/c69cf128-b1be-4c2d-8ef2-50d7281ddf07)
 
 
