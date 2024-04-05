@@ -75,7 +75,7 @@ Check out the [examples](examples/) directory for sample projects demonstrating 
 #### Game demo using fan
 ![image](https://github.com/6413/fan/assets/56801084/973f2fa6-fcd7-4b6a-b66b-b92eefae9bba)
 
-Console support (F3)
+Developer console support (F3)
 ![image](https://github.com/6413/fan/assets/56801084/7556ce24-ba0f-43c6-85d6-b951351bb59c)
 
 
