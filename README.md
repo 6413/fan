@@ -15,6 +15,7 @@
 - Uses .webp files for loading images
 - Limited shapes for collisions
 - The library is still in development, bugs and missing features to be expected
+- Only Xorg support for now. Hopefully Wayland support in the future
 
 ## Getting Started
 
