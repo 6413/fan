@@ -9,7 +9,7 @@
 - **Shapes:** Draw lines, rectangles, and sprite.
 - **Lighting:** Illuminate your scenes with customizable lighting effects.
 - **GUI:** Easily integrate graphical user interfaces into your applications.
-- **Collisions** Simple collisions Circle<->Circle, Rectangle<->Circle
+- **Collisions** Simple collisions Circle<->Circle, Rectangle<->Circle (no rotation for rectangles)
 
 ## Limitations
 - Uses .webp files for loading images
