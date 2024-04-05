@@ -28,8 +28,19 @@ Requires c++20
 
 ### Linux
 1. Install required dependencies libx11-dev, libxrandr-dev, libwebp-dev, libxcursor-dev, llvm, clang/gcc, libopus-dev, OpenGL
-2. Clone the repository: `git clone https://github.com/6413/fan.git`
-3. Setup and compile using make_imgui, make_pch, make, in order
+ ```
+   sudo apt install libx11-dev -y &&
+   sudo apt install libxrandr-dev -y &&
+   sudo apt install libwebp-dev -y &&
+   sudo apt install libxcursor-dev -y &&
+   sudo apt install llvm -y &&
+   sudo apt install clang -y &&
+   sudo apt install libfmt-dev -y
+   ```
+3. Clone the repository: `git clone https://github.com/6413/fan.git`
+4. Setup and compile using `make -B -f make_imgui`, `make -f make_pch`, `make`, in order
+
+Main file can be controlled by `MAIN`-make variable for example `make MAIN=examples/graphics/rectangle.cpp`
 
 ## Notes for compiling with Makefile
 Using the library from outside the project, change ROOT_PATH in Makefiles
