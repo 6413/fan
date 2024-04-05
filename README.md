@@ -73,7 +73,7 @@ Check out the [examples](examples/) directory for sample projects demonstrating 
 ## Demos
 
 #### Game demo using fan
-![image_2023-11-11_20-56-49](https://github.com/6413/fan/assets/56801084/81409f6f-8be4-4754-bcef-dc3e8691097f)
+![image](https://github.com/6413/fan/assets/56801084/973f2fa6-fcd7-4b6a-b66b-b92eefae9bba)
 
 
 [quadtree_visualize](examples/graphics/quadtree_visualize.cpp)
