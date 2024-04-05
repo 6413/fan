@@ -75,6 +75,9 @@ Check out the [examples](examples/) directory for sample projects demonstrating 
 #### Game demo using fan
 ![image](https://github.com/6413/fan/assets/56801084/973f2fa6-fcd7-4b6a-b66b-b92eefae9bba)
 
+Console support (F3)
+![image](https://github.com/6413/fan/assets/56801084/7556ce24-ba0f-43c6-85d6-b951351bb59c)
+
 
 [quadtree_visualize](examples/graphics/2D/quadtree_visualize.cpp)
 ![image_2023-11-11_20-24-01](https://github.com/6413/fan/assets/56801084/0aac1cbb-2d41-40ef-b0d0-5ab838b9b3d1)
