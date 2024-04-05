@@ -13,7 +13,7 @@ struct sb_sprite_name {
     fan::vec2 rotation_point = 0;
     fan::color color = fan::colors::white;
     fan::vec3 angle = fan::vec3(0);
-    int flags = 0;
+    uint32_t flags = 0;
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
   };

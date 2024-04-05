@@ -6,7 +6,7 @@
 out vec4 instance_color;
 out vec2 texture_coordinate;
 out vec2 size;
-flat out int fs_flags;
+flat out uint fs_flags;
 flat out int element_id;
 
 uniform mat4 view;
@@ -21,7 +21,7 @@ struct block_instance_t{
 	vec2 rotation_point;
 	vec4 color;
 	vec3 angle;
-  int flags;
+  uint flags;
 	vec2 tc_position;
 	vec2 tc_size;
 };

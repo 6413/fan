@@ -31,7 +31,8 @@ struct version_001_t {
        fan::graphics::sprite_t{{
            .position = position,
            .size = size,
-           .color = color
+           .color = color,
+           .blending = true
          }}
       );
 
@@ -108,7 +109,8 @@ struct version_001_t {
        fan::graphics::unlit_sprite_t{{
            .position = position,
            .size = size,
-           .color = color
+           .color = color,
+           .blending = true
          }}
       );
 

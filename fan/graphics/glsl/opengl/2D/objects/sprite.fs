@@ -7,7 +7,7 @@ layout (location = 2) out vec4 o_attachment2;
 in vec2 texture_coordinate;
 in vec2 size;
 in vec4 instance_color;
-flat in int fs_flags;
+flat in uint fs_flags;
 flat in int element_id;
 
 uniform sampler2D _t00;
@@ -31,12 +31,11 @@ void main() {
 
   vec2 tc = texture_coordinate;
 
-  if (fs_flags == 1) {
+  if ((fs_flags & 0x1u) == 0x1u) {
     float speed = 0.3;
   vec2 Wave = vec2(randomValue(0.8, 0.9, vec2(float(element_id), float(element_id))), 2);
 
     tc += vec2(cos((tc.y/Wave.x + (m_time + (m_time * (float(randomValue(1.0, 100.0, vec2(float(element_id), float(element_id)))))) / 100.0) * speed) * Wave.y), 0.0) / size * (1.0 - tc.y);
-
   }
 
   vec4 tex_color = texture(_t00, tc) * instance_color;
@@ -51,9 +50,15 @@ void main() {
 
   o_attachment0 = tex_color;
 
+  // t.rgb
   float brightness = dot(t.rgb, vec3(0.2126, 0.7152, 0.0722));
   //if(brightness > 1.0) {
+    if ((fs_flags & 0x2u) == 0x2u) {
       o_attachment2 = vec4(t.rgb, 1);
+    }
+    else {
+      //o_attachment2 += vec4(0, 0, 0, 0);
+    }
     //o_attachment1 = vec4(t.rgb, 1);
     //o_attachment1 = vec4(0, 0, 0, 1);
 //  }

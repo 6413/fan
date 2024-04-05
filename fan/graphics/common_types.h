@@ -88,6 +88,8 @@ struct unlit_sprite_properties_t {
   fan::vec3 angle = 0;
   fan::color color = fan::color(1, 1, 1, 1);
   loco_t::image_t* image = &gloco->default_texture;
+  fan::vec2 tc_position = 0;
+  fan::vec2 tc_size = 1;
   bool blending = false;
 };
 
@@ -104,6 +106,8 @@ struct unlit_sprite_t : loco_t::shape_t {
         .angle = p.angle,
         .image = p.image,
         .color = p.color,
+        .tc_position = p.tc_position,
+        .tc_size = p.tc_size,
         .blending = p.blending
       ));
   }

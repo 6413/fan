@@ -540,6 +540,44 @@ public:
     camera_t() {
       camera_reference.sic();
     }
+    camera_t(const camera_t& camera) {
+      m_view = camera.m_view;
+      m_projection = camera.m_projection;
+      coordinates = camera.coordinates;
+      open();
+    }
+    camera_t(camera_t&& camera) {
+      m_view = camera.m_view;
+      m_projection = camera.m_projection;
+      coordinates = camera.coordinates;
+      camera_reference = camera.camera_reference;
+      gloco->camera_list[camera_reference].camera_id = this;
+      camera.camera_reference.sic();
+    }
+    camera_t& operator=(const camera_t& t) {
+      if (this != &t) {
+        m_view = t.m_view;
+        m_projection = t.m_projection;
+        coordinates = t.coordinates;
+        open();
+      }
+      return *this;
+    }
+    camera_t& operator=(camera_t&& t) {
+      if (this != &t) {
+        if (!camera_reference.iic()) {
+          close();
+        }
+        camera_reference = t.camera_reference;
+        m_view = t.m_view;
+        m_projection = t.m_projection;
+        coordinates = t.coordinates;
+        gloco->camera_list[camera_reference].camera_id = this;
+        t.camera_reference.sic();
+      }
+      return *this;
+    }
+
 
     static constexpr f32_t znearfar = 0xffff;
 
@@ -564,7 +602,8 @@ public:
     }
     void set_position(const fan::vec3& cp) {
       position = cp;
-
+       
+      
       m_view[3][0] = 0;
       m_view[3][1] = 0;
       m_view[3][2] = 0;
@@ -1467,7 +1506,7 @@ public:
 
   #if defined(loco_post_process)
   #include _FAN_PATH(graphics/opengl/2D/effects/blur.h)
-  blur_t blur;
+  blur_t blur[2];
   #include _FAN_PATH(graphics/opengl/2D/effects/bloom.h)
   bloom_t bloom;
   #endif
@@ -1587,9 +1626,9 @@ public:
     image_info.size = window.get_size();
 
     m_framebuffer.bind(get_context());
-    load_texture(image_info, color_buffers[0], fan::opengl::GL_COLOR_ATTACHMENT0);
-    load_texture(image_info, color_buffers[1], fan::opengl::GL_COLOR_ATTACHMENT1);
-    load_texture(image_info, color_buffers[2], fan::opengl::GL_COLOR_ATTACHMENT2);
+    for (std::size_t i = 0; i < std::size(color_buffers); ++i) {
+      load_texture(image_info, color_buffers[i], fan::opengl::GL_COLOR_ATTACHMENT0 + i);
+    }
 
     window.add_resize_callback([&](const auto& d) {
     fan::webp::image_info_t image_info;
@@ -1597,9 +1636,9 @@ public:
     image_info.size = window.get_size();
 
     m_framebuffer.bind(get_context());
-    load_texture(image_info, color_buffers[0], fan::opengl::GL_COLOR_ATTACHMENT0, true);
-    load_texture(image_info, color_buffers[1], fan::opengl::GL_COLOR_ATTACHMENT1, true);
-    load_texture(image_info, color_buffers[2], fan::opengl::GL_COLOR_ATTACHMENT2, true);
+    for (std::size_t i = 0; i < std::size(color_buffers); ++i) {
+      load_texture(image_info, color_buffers[i], fan::opengl::GL_COLOR_ATTACHMENT0 + i, true);
+    }
 
     fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
     m_framebuffer.bind(get_context());
@@ -1633,7 +1672,8 @@ public:
   }
 
   static constexpr uint32_t mip_count = 10;
-  blur.open(window.get_size(), mip_count);
+  blur[0].open(window.get_size(), mip_count);
+  blur[1].open(window.get_size(), mip_count);
 
   bloom.open();
 
@@ -2022,7 +2062,12 @@ public:
       opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
       color_buffers[i].bind_texture();
       opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0 + (std::size(color_buffers) - 1 - i));
-      opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+      if (i + 1 == std::size(color_buffers)) {
+        opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+      }
+      else {
+        opengl.glClearColor(0, 0, 0, 1);
+      }
       opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     }
 
@@ -2054,7 +2099,8 @@ public:
 
     m_framebuffer.unbind(get_context());
 
-    blur.draw();
+    blur[0].draw(&color_buffers[2]);
+    //blur[1].draw(&color_buffers[3]);
 
     opengl.glClearColor(0, 0, 0, 1);
     opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
@@ -2074,7 +2120,10 @@ public:
     color_buffers[0].bind_texture();
 
     get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-    blur.mips.front().image.bind_texture();
+    blur[0].mips.front().image.bind_texture();
+
+    //get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
+    //blur[1].mips.front().image.bind_texture();
 
     render_final_fb();
 
@@ -2093,8 +2142,8 @@ public:
     opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
     color_buffers[0].bind_texture();
 
-    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-    blur.mips.front().image.bind_texture();
+    //get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    //blur.mips.front().image.bind_texture();
 
     m_framebuffer.bind(get_context());
     opengl.glBindFramebuffer(fan::opengl::GL_READ_FRAMEBUFFER, 0); // Bind default framebuffer as source
@@ -2152,7 +2201,10 @@ public:
     color_buffers[0].bind_texture();
 
     get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-    blur.mips.front().image.bind_texture();
+    blur[0].mips.front().image.bind_texture();
+
+    //get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
+    //blur[1].mips.front().image.bind_texture();
 
     render_post_fb();
 
@@ -2257,7 +2309,7 @@ public:
 
     fan::opengl::core::framebuffer_t m_framebuffer;
     fan::opengl::core::renderbuffer_t m_rbo;
-    loco_t::image_t color_buffers[3];
+    loco_t::image_t color_buffers[4];
     loco_t::shader_t m_fbo_final_shader;
     loco_t::shader_t m_fbo_post_gui_shader;
 
@@ -2745,17 +2797,17 @@ public:
   #if defined(loco_imgui)
 
   #define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
-  [=] <typename T>(T& var){ \
-    if constexpr(std::is_same_v<f32_t, T>)  { \
+  [=] <typename T5>(T5& var){ \
+    if constexpr(std::is_same_v<f32_t, T5>)  { \
       return ImGui::DragFloat(fan::string(std::move(name)).c_str(), &var, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
-    else if constexpr(std::is_same_v<fan::vec2, T>)  { \
+    else if constexpr(std::is_same_v<fan::vec2, T5>)  { \
       return ImGui::DragFloat2(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
-    else if constexpr(std::is_same_v<fan::vec3, T>)  { \
+    else if constexpr(std::is_same_v<fan::vec3, T5>)  { \
       return ImGui::DragFloat3(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
-    else if constexpr(std::is_same_v<fan::vec4, T>)  { \
+    else if constexpr(std::is_same_v<fan::vec4, T5>)  { \
       return ImGui::DragFloat4(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
   }(variable)
@@ -2874,6 +2926,14 @@ public:
   #include _FAN_PATH(graphics/vulkan/compute_shader.h)
   #endif
 
+  void set_imgui_viewport(loco_t::viewport_t& viewport)
+  {
+    fan::vec2 window_size = window.get_size();
+    fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
+    fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
+    viewport.set(viewport_pos, viewport_size, window_size);
+  }
+
   fan::commands_t commands;
   TextEditor editor, input;
   bool toggle_console = false;
@@ -2954,6 +3014,15 @@ inline void fan::opengl::viewport_t::set_viewport(const fan::vec2& viewport_posi
     viewport_position_.x,
     window_size.y - viewport_size_.y - viewport_position_.y,
     viewport_size_.x, viewport_size_.y
+  );
+}
+
+inline void fan::opengl::viewport_t::zero() {
+  viewport_position = 0;
+  viewport_size = 0;
+  gloco->get_context().opengl.call(
+    gloco->get_context().opengl.glViewport,
+    0, 0, 0, 0
   );
 }
 

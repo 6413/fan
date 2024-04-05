@@ -11,6 +11,7 @@ int main() {
 	p.size = image.size;
 	p.position = 400;
 	p.position.z = 0;
+  p.flags = 0x2;
   loco_t::shape_t shape = p;
 
 	//loco.post_process.push(&viewport, &camera);

@@ -1,18 +1,246 @@
 #include fan_pch
 
 #include _FAN_PATH(graphics/gui/tilemap_editor/editor.h)
+#include _FAN_PATH(graphics/gui/tilemap_editor/renderer0.h)
+
+// editor
+fan::graphics::camera_t camera0;
+// program
+fan::graphics::camera_t camera1;
+
+struct player_t {
+  static constexpr fan::vec2 speed{ 450, 450 };
+
+  player_t() {
+    visual = fan::graphics::sprite_t{ {
+      .camera = &camera1,
+      .position = fan::vec3(0, 0, 10),
+      .size = 32 / 2,
+      .blending = true,
+    } };
+    loco_t::shapes_t::light_t::properties_t lp;
+    lp.position = visual.get_position();
+    lp.size = 256;
+    lp.color = fan::color(1, 0.4, 0.4, 1);
+    lp.camera = &camera1.camera;
+    lp.viewport = &camera1.viewport;
+
+    lighting = lp;
+  }
+  void update() {
+    f32_t dt = gloco->delta_time;
+    f32_t multiplier = 1;
+    if (gloco->window.key_pressed(fan::key_shift)) {
+      multiplier = 3;
+    }
+    if (gloco->window.key_pressed(fan::key_d)) {
+      velocity.x = speed.x * multiplier;
+    }
+    else if (gloco->window.key_pressed(fan::key_a)) {
+      velocity.x = -speed.x * multiplier;
+    }
+    else {
+      velocity.x = 0;
+    }
+
+    if (gloco->window.key_pressed(fan::key_w)) {
+      velocity.y = -speed.y * multiplier;
+    }
+    else if (gloco->window.key_pressed(fan::key_s)) {
+      velocity.y = speed.y * multiplier;
+    }
+    else {
+      velocity.y = 0;
+    }
+
+    visual.set_velocity(velocity);
+
+    visual.set_position(visual.get_collider_position());
+    lighting.set_position(visual.get_position());
+  }
+  fan::vec2 velocity = 0;
+  fan::graphics::collider_dynamic_t visual;
+  loco_t::shape_t lighting;
+};
+
+f32_t zoom = 2;
+bool hovered = false;
+void init_zoom() {
+  auto& window = *gloco->get_window();
+  auto update_ortho = [&] {
+    fan::vec2 s = gloco->window.get_size();
+    camera1.camera.set_ortho(
+      fan::vec2(-s.x, s.x) / zoom,
+      fan::vec2(-s.y, s.y) / zoom
+    );;
+  };
+
+  update_ortho();
+
+  window.add_buttons_callback([&](const auto& d) {
+    if (!hovered) {
+      return;
+    }
+    if (d.button == fan::mouse_scroll_up) {
+      zoom *= 1.2;
+    }
+    else if (d.button == fan::mouse_scroll_down) {
+      zoom /= 1.2;
+    }
+    update_ortho();
+    });
+}
+
 
 int main() {
   //
   loco_t loco;
+
+  camera0.camera = loco.default_camera->camera;
+  camera1.camera = loco.default_camera->camera;
+
+  camera0.viewport.open();
+
+  camera1.viewport.open();
+
+
+  init_zoom();
+
   fte_t fte;//
-  fte.file_name = "tilemaps/map_game0_0.fte";
-  fte.open("texture_packs/tilemap.ftp");
-  fte.fin("tilemaps/map_game0_0.fte");
+  fte.file_name = "tilemaps/map_game0_1.fte";
+  fan::string texture_pack_name = "texture_packs/TexturePack";
+  fte_t::properties_t p;
+  p.texturepack_name = texture_pack_name;
+  p.camera = &camera0;
+  fte.open(p);
+  fte.fin("tilemaps/map_game0_1.fte");
   //loco.set_vsync(0);
   //loco.window.set_max_fps(165);
+
+  std::unique_ptr<player_t> player;
+  std::unique_ptr<fte_renderer_t> renderer;
+  bool render_scene = false;
+  std::unique_ptr<fte_renderer_t::id_t> map_id0_t;
+
+  auto reload_scene = [&] {
+    {
+      renderer = std::make_unique<fte_renderer_t>();
+
+      loco_t::image_t::load_properties_t lp;
+      lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_border;
+      lp.min_filter = fan::opengl::GL_NEAREST;
+      lp.mag_filter = fan::opengl::GL_NEAREST;
+      renderer->open(&fte.texturepack);
+
+      // STATIC POINTER
+      static fte_loader_t::compiled_map_t compiled_map;
+      compiled_map = renderer->compile(fte.file_name + "temp");
+      fan::vec2i render_size(16, 9);
+      render_size *= 2;
+      render_size += 3;
+
+      fte_loader_t::properties_t p;
+
+      p.position = fan::vec3(0, 0, 0);
+      p.size = (render_size * 2) * 32;
+
+      p.camera = &camera1;
+      map_id0_t = std::make_unique<fte_renderer_t::id_t>(renderer->add(&compiled_map, p));
+
+      fan::graphics::bcol.PreSolve_Shape_cb = [](
+        bcol_t* bcol,
+        const bcol_t::ShapeInfoPack_t* sip0,
+        const bcol_t::ShapeInfoPack_t* sip1,
+        bcol_t::Contact_Shape_t* Contact
+        ) {
+          // player
+          auto* obj0 = bcol->GetObjectExtraData(sip0->ObjectID);
+          // wall
+          auto* obj1 = bcol->GetObjectExtraData(sip1->ObjectID);
+          if (obj1->collider_type == fan::collider::types_e::collider_sensor) {
+            bcol->Contact_Shape_DisableContact(Contact);
+          }
+
+          switch (obj1->collider_type) {
+            case fan::collider::types_e::collider_static:
+            case fan::collider::types_e::collider_dynamic: {
+              // can access shape by obj0->shape
+              break;
+            }
+            case fan::collider::types_e::collider_hidden: {
+              break;
+            }
+            case fan::collider::types_e::collider_sensor: {
+              fan::print("sensor triggered");
+              break;
+            }
+          }
+        };
+
+      loco.set_vsync(0);
+      //loco.window.set_max_fps(3);
+      f32_t total_delta = 0;
+
+
+      loco.lighting.ambient = 0.7;
+    }
+  };
+
+  loco.window.add_keys_callback([&](const auto& d) {
+    if (d.state != fan::keyboard_state::press) {
+      return;
+    }
+    switch (d.key) {
+      case fan::key_f5: {
+        render_scene = !render_scene;
+        if (render_scene) {
+          player = std::make_unique<player_t>();
+          fte.fout(fte.file_name + "temp");
+          reload_scene();
+        }
+        else {
+          map_id0_t.reset();
+          renderer.reset();
+          player.reset();
+        }
+        break;
+      }
+    }
+  });
+
+  fte.modify_cb = [&](int mode) {
+    map_id0_t.reset();
+    renderer.reset();
+    fte.fout(fte.file_name + "temp");
+    reload_scene();
+  };
+
   loco.loop([&] {
-    loco.get_fps();
+    if (render_scene) {
+      if (ImGui::Begin("Program")) {
+        player->update();
+        fan::vec2 dst = player->visual.get_position();
+        fan::vec2 src = camera1.camera.get_position();
+        // smooth camera
+        //fan::vec2 offset = (dst - src) * 4 * gloco->delta_time;
+        //gloco->default_camera->camera.set_position(src + offset);
+        fan::vec2 s = ImGui::GetContentRegionAvail();
+        camera1.camera.set_ortho(
+          fan::vec2(-s.x, s.x) / zoom,
+          fan::vec2(-s.y, s.y) / zoom
+        );
+
+        camera1.camera.set_position(dst);
+        renderer->update(*map_id0_t, dst);
+        loco.set_imgui_viewport(camera1.viewport);
+      }
+      else {
+        camera1.viewport.zero();
+      }
+      hovered = ImGui::IsWindowHovered();
+      ImGui::End();
+
+    }
   });
   
   return 0;

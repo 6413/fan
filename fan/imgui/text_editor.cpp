@@ -726,7 +726,7 @@ std::string TextEditor::GetWordAt(const Coordinates& aCoords) const
 ImU32 TextEditor::GetGlyphColor(const Glyph& aGlyph) const
 {
   if (aGlyph.mColorOverride)
-    return aGlyph.custom_color;
+    return aGlyph.custom_color.to_u32();
   if (!mColorizerEnabled)
     return mPalette[(int)PaletteIndex::Default];
   if (aGlyph.mComment)

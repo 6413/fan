@@ -9,7 +9,7 @@ out vec2 instance_size;
 out vec3 frag_position;
 
 out vec2 texture_coordinate;
-
+flat out uint fs_flags;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -21,6 +21,7 @@ struct block_instance_t{
 	vec2 rotation_point;
 	vec4 color;
 	vec3 rotation_vector;
+  uint flags;
 	vec3 angle;
 };
 
@@ -68,4 +69,5 @@ void main() {
   gl_Position = projection * view_mat * fs2;
 
 	instance_color = get_instance().color;
+  fs_flags = get_instance().flags;
 }
