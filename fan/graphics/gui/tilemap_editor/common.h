@@ -33,7 +33,8 @@ struct version_001_t {
           fte_t::shapes_t::global_t::layer_t map_layer;
           map_layer.tile = layer;
           if (layer.mesh_property != fte_t::mesh_property_t::light) {
-            map_layer.shape = fan::graphics::sprite_t{{
+            map_layer.shape = fan::graphics::sprite_t{ {
+              .camera = fte->camera,
               .position = layer.position,
               .size = layer.size,
               .angle = layer.angle,
@@ -51,17 +52,26 @@ struct version_001_t {
             }
             case fte_t::mesh_property_t::sensor:
             case fte_t::mesh_property_t::collider: {
-              map_tile.layers.back().shape.set_image(&fte->grid_visualize.collider_color);
+              //map_tile.layers.back().shape.set_image(&fte->grid_visualize.collider_color);
+              fte->visual_shapes[layer.position].shape = fan::graphics::sprite_t{ {
+                .camera = fte->camera,
+                .position = fan::vec3(fan::vec2(layer.position), layer.position.z + 1),
+                .size = fte->tile_size,
+                .image = &fte->grid_visualize.collider_color,
+                .blending = true
+              } };
               break;
             }
             case fte_t::mesh_property_t::light: {
               map_tile.layers.back().shape = fan::graphics::light_t{{
+                .camera = fte->camera,
                 .position = layer.position,
                 .size = layer.size,
                 .color = layer.color,
                 .blending = true
               }};
               fte->visual_shapes[layer.position].shape = fan::graphics::sprite_t{{
+                .camera = fte->camera,
                 .position = fan::vec3(fan::vec2(layer.position), layer.position.z + 1),
                 .size = fte->tile_size,
                 .image = &fte->grid_visualize.light_color,
