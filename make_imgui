@@ -19,7 +19,7 @@ OUT_FILE_FORMAT =
 INCLUDES =
 ifeq ($(OS),Windows_NT)
 	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)include/
-	INCLUDES += -I $(WINDOWS_ROOT_PATH)include/fan/imgui
+	INCLUDES += -I $(WINDOWS_ROOT_PATH)include/fan/imgui 
 	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WINDOWS_ROOT_PATH)WITCH
 	IMGUI_PATH += include/fan/imgui/
 	OUT_FILE_FORMAT+=lib
@@ -34,7 +34,7 @@ endif
 CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
 
 #todo remove
-INCLUDES += -I include
+INCLUDES += -I include -I "C:\Program Files\Assimp\include"
 
 #note
 CXXFLAGS += $(DEBUG_FLAGS)

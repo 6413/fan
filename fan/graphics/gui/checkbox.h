@@ -45,7 +45,7 @@
 //          rp.color = p.background_color;
 //          m_background.push_back(context, rp);
 //          m_cb = [](checkbox_t*, fan::window_t*, uint32_t i, void* userptr){};
-//          m_checkbox.m_button_event.set_on_input(this, [](fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage, void* user_ptr) {
+//          m_checkbox.m_button_event.set_on_input(this, [](fan::window_t* window, fan::opengl::context_t* context, uint32_t i, int key, fan::key_state key_state, fan_2d::graphics::gui::mouse_stage mouse_stage, void* user_ptr) {
 //            if (key != fan::mouse_left) {
 //              return;
 //            }

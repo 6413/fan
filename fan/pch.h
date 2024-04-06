@@ -39,7 +39,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include _FAN_PATH(imgui/imgui.h)
 #include _FAN_PATH(imgui/imgui_impl_opengl3.h)
-#include _FAN_PATH(imgui/imgui_impl_win32.h)
+#include _FAN_PATH(imgui/imgui_impl_glfw.h)
 #include _FAN_PATH(imgui/imgui_neo_sequencer.h)
 #endif
 
@@ -75,7 +75,7 @@
 #define loco_tp
 #define loco_sprite_sheet
 #define loco_responsive_text
-
+//
 #define loco_post_process
 
 //#define loco_grass_2d
@@ -91,7 +91,7 @@
 #define loco_nv12
 #endif
 #define loco_pixel_format_renderer
-
+//
 #include _FAN_PATH(graphics/loco.h)
 
 

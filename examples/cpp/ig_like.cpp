@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
   fan::print("press f2 to start");
   fan::print("press f9 force quit");
 
-  input.listen_keyboard([&](uint16_t key, fan::keyboard_state state, bool action) {
+  input.listen_keyboard([&](int key, fan::keyboard_state state, bool action) {
 
     if (state != fan::keyboard_state::press) {
       return;

@@ -34,7 +34,7 @@
 //          }
 //        }
 //
-//        void lib_add_on_input(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, uint16_t key, fan::keyboard_state state, fan_2d::graphics::gui::mouse_stage stage, void* user_ptr) {
+//        void lib_add_on_input(fan::window_t* window, fan::opengl::context_t* context, uint32_t i, int key, fan::keyboard_state state, fan_2d::graphics::gui::mouse_stage stage, void* user_ptr) {
 //
 //          if (key != fan::mouse_left) {
 //            return;

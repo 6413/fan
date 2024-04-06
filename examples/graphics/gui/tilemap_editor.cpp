@@ -180,9 +180,6 @@ int main() {
       loco.set_vsync(0);
       //loco.window.set_max_fps(3);
       f32_t total_delta = 0;
-
-
-      loco.lighting.ambient = 0.7;
     }
   };
 
@@ -216,8 +213,9 @@ int main() {
   };
 
   loco.loop([&] {
+
     if (render_scene) {
-      if (ImGui::Begin("Program")) {
+      if (ImGui::Begin("Program", 0, ImGuiWindowFlags_NoBackground)) {
         player->update();
         fan::vec2 dst = player->visual.get_position();
         fan::vec2 src = camera1.camera.get_position();

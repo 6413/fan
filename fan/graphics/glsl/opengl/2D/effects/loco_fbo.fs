@@ -25,7 +25,8 @@ vec3 apply_bloom(vec3 hdrColor, vec3 bloomColor)
     bloomColor = pow(bloomColor, vec3(1.0 / bloom_gamma));
 
     // Mix the hdrColor and bloomColor based on the bloom intensity
-    vec3 result = mix(hdrColor, bloomColor, bloom_strength);
+    //vec3 result = mix(hdrColor, bloomColor, bloom_strength);
+    vec3 result = hdrColor + bloomColor * bloomIntensity;
 
     // Apply exposure and gamma correction
     result = vec3(1.0) - exp(-result * exposure);
