@@ -32,27 +32,27 @@ namespace fan {
       #if defined(fan_platform_windows)
         
       #elif defined(fan_platform_unix)
-        static void open_lib_handle(void** handle) {
-          *handle = dlopen(shared_library, RTLD_LAZY);
-          #if fan_debug >= fan_debug_low
-          if (*handle == nullptr) {
-              fan::throw_error(dlerror());
-          }
-          #endif
-        }
-        static void close_lib_handle(void** handle) {
-          #if fan_debug >= fan_debug_low
-          auto error =
-          #endif
-          dlclose(*handle);
-          #if fan_debug >= fan_debug_low
-          if (error != 0) {
-              fan::throw_error(dlerror());
-          }
-          #endif
-        }
+        //static void open_lib_handle(void** handle) {
+        //  *handle = dlopen(shared_library, RTLD_LAZY);
+        //  #if fan_debug >= fan_debug_low
+        //  if (*handle == nullptr) {
+        //      fan::throw_error(dlerror());
+        //  }
+        //  #endif
+        //}
+        //static void close_lib_handle(void** handle) {
+        //  #if fan_debug >= fan_debug_low
+        //  auto error =
+        //  #endif
+        //  dlclose(*handle);
+        //  #if fan_debug >= fan_debug_low
+        //  if (error != 0) {
+        //      fan::throw_error(dlerror());
+        //  }
+        //  #endif
+        //}
 
-        static void* get_lib_proc(void** handle, const char* name) {
+       /* static void* get_lib_proc(void** handle, const char* name) {
           void* result = dlsym(*handle, name);
           #if fan_debug >= fan_debug_low
           if (result == nullptr) {
@@ -65,7 +65,7 @@ namespace fan {
           }
           #endif
           return result;
-        }
+        }*/
       #endif
 
       struct properties_t {
@@ -79,115 +79,10 @@ namespace fan {
       };
 
       void open(properties_t* p) {
-        #if defined(fan_platform_windows)
-          // create dummy window to initialize functions thank u microsoft
-          // generate random class name to dont collide with other window classes xd
-          auto str = fan::random::string(15);
-          WNDCLASSA window_class = {
-            .style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
-            .lpfnWndProc = DefWindowProcA,
-            .hInstance = GetModuleHandle(0),
-            .lpszClassName = str.c_str(),
-          };
-
-          if (!RegisterClassA(&window_class)) {
-            fan::print("failed to register window");
-            exit(1);
-          }
-
-          p->hwnd = CreateWindowExA(
-            0,
-            window_class.lpszClassName,
-            "temp_window",
-            0,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            0,
-            0,
-            window_class.hInstance,
-            0);
-
-          if (!p->hwnd) {
-            fan::print("failed to create window");
-            exit(1);
-          }
-
-          p->hdc = GetDC(p->hwnd);
-
-          PIXELFORMATDESCRIPTOR pfd = {
-            sizeof(PIXELFORMATDESCRIPTOR),
-            1,
-            PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    // Flags
-            PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
-            32,                   // Colordepth of the framebuffer.
-            0, 0, 0, 0, 0, 0,
-            0,
-            0,
-            0,
-            0, 0, 0, 0,
-            24,                   // Number of bits for the depthbuffer
-            8,                    // Number of bits for the stencilbuffer
-            0,                    // Number of Aux buffers in the framebuffer.
-            PFD_MAIN_PLANE,
-            0,
-            0, 0, 0
-          };
-
-          // /mtd or enable maybe /LTCG to fix with sanitizer on
-          int pixel_format = ChoosePixelFormat(p->hdc, &pfd);
-          if (!pixel_format) {
-            fan::throw_error("failed to choose pixel format");
-          }
-          if (!SetPixelFormat(p->hdc, pixel_format, &pfd)) {
-            fan::throw_error("failed to set pixel format");
-          }
-
-          p->context = wglCreateContext(p->hdc);
-          if (!p->context) {
-            fan::throw_error("failed to create context");
-          }
-
-          if (!wglMakeCurrent(p->hdc, p->context)) {
-            fan::throw_error("failed to make current");
-          }
-
-          wglCreateContextAttribsARB = (decltype(wglCreateContextAttribsARB))wglGetProcAddress("wglCreateContextAttribsARB");
-          wglChoosePixelFormatARB = (decltype(wglChoosePixelFormatARB))wglGetProcAddress("wglChoosePixelFormatARB");
-          wglSwapIntervalEXT = (decltype(wglSwapIntervalEXT))wglGetProcAddress("wglSwapIntervalEXT");
-
-        #elif defined(fan_platform_unix)
-
-          void* lib_handle;
-          open_lib_handle(&lib_handle);
-          glXGetProcAddress = (decltype(glXGetProcAddress))get_lib_proc(&lib_handle, "glXGetProcAddress");
-          close_lib_handle(&lib_handle);
-          glXMakeCurrent = (decltype(glXMakeCurrent))glXGetProcAddress((const fan::opengl::GLubyte*)"glXMakeCurrent");
-          glXGetCurrentDrawable = (decltype(glXGetCurrentDrawable))glXGetProcAddress((const fan::opengl::GLubyte*)"glXGetCurrentDrawable");
-          glXSwapIntervalEXT = (decltype(glXSwapIntervalEXT))glXGetProcAddress((const fan::opengl::GLubyte*)"glXSwapIntervalEXT");
-          glXDestroyContext = (decltype(glXDestroyContext))glXGetProcAddress((const fan::opengl::GLubyte*)"glXDestroyContext");
-          glXChooseFBConfig = (decltype(glXChooseFBConfig))glXGetProcAddress((const fan::opengl::GLubyte*)"glXChooseFBConfig");
-          glXGetVisualFromFBConfig = (decltype(glXGetVisualFromFBConfig))glXGetProcAddress((const fan::opengl::GLubyte*)"glXGetVisualFromFBConfig");
-          glXQueryVersion = (decltype(glXQueryVersion))glXGetProcAddress((const fan::opengl::GLubyte*)"glXQueryVersion");
-          glXGetFBConfigAttrib = (decltype(glXGetFBConfigAttrib))glXGetProcAddress((const fan::opengl::GLubyte*)"glXGetFBConfigAttrib");
-          glXQueryExtensionsString = (decltype(glXQueryExtensionsString))glXGetProcAddress((const fan::opengl::GLubyte*)"glXQueryExtensionsString");
-          glXGetCurrentContext = (decltype(glXGetCurrentContext))glXGetProcAddress((const fan::opengl::GLubyte*)"glXGetCurrentContext");
-          glXSwapBuffers = (decltype(glXSwapBuffers))glXGetProcAddress((const fan::opengl::GLubyte*)"glXSwapBuffers");
-          glXCreateNewContext = (decltype(glXCreateNewContext))glXGetProcAddress((const fan::opengl::GLubyte*)"glXCreateNewContext");
-          glXCreateContextAttribsARB = (decltype(glXCreateContextAttribsARB))glXGetProcAddress((const fan::opengl::GLubyte*)"glXCreateContextAttribsARB");
-
-        #endif
+       
       }
       void close(const properties_t* p) {
-        #if defined(fan_platform_windows)
-          wglMakeCurrent(p->hdc, 0);
-          wglDeleteContext(p->context);
-          ReleaseDC(p->hwnd, p->hdc);
-          DestroyWindow(p->hwnd);
-        #elif defined(fan_platform_unix)
 
-        #endif
       }
 
       #if defined(fan_platform_windows)
@@ -223,7 +118,7 @@ namespace fan {
 
       static void* get_proc_address_(const char* name, internal_t* internal)
       {
-        #if defined(fan_platform_windows)
+       /* #if defined(fan_platform_windows)
           void *p = (void *)wglGetProcAddress(name);
         if(p == 0 ||
           (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) ||
@@ -249,7 +144,8 @@ namespace fan {
 
         return (void*)internal->glXGetProcAddress((const GLubyte*)name);
 
-        #endif
+        #endif*/
+        return (void*)fan::window::glfwGetProcAddress(name);
       }
 
 

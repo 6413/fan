@@ -33,8 +33,10 @@ OUTPUT ?= a.exe
 WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)fan/include
 LINUX_INCLUDES = -I $(LINUX_ROOT_PATH)
 
-WINDOWS_LINK = $(LINUX_ROOT_LIB_PATH)$(LINK_PATH)pch.o lib/libuv/uv_a.lib lib/fan/libimgui.lib lib/libwebp/libwebp.lib lib/opus/libopus.a
-LINUX_LINK = $(LINUX_ROOT_LIB_PATH)$(LINK_PATH)pch.o -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl $(LINUX_ROOT_LIB_PATH)$(LINK_PATH)libimgui.a
+WINDOWS_LINK = $(LINUX_ROOT_LIB_PATH)$(LINK_PATH)pch.o lib/libuv/uv_a.lib lib/fan/libimgui.lib lib/libwebp/libwebp.lib lib/opus/libopus.a lib/GLFW/glfw3_mt.lib "C:\Program Files\Assimp\Lib\x64\assimp-vc143-mt.lib"
+LINUX_LINK = $(LINUX_ROOT_LIB_PATH)$(LINK_PATH)pch.o -lX11 -lXrandr -lopus -L /usr/lib/x86_64-linux-gnu/libGL.so.1 -lwebp -ldl $(LINUX_ROOT_LIB_PATH)$(LINK_PATH)libimgui.a -lglfw
+
+
 
 INCLUDES = -I .
 LINK = 
@@ -55,7 +57,7 @@ CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
 CXXFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)/fan/$(PCH_NAME)\"
 
 debug:
-	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -include-pch $(LINK_PATH)$(PCH_NAME).gch $(INCLUDES) $(MAIN) -o $(OUTPUT) $(LINK) 
+	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -include-pch $(LINK_PATH)$(PCH_NAME).gch $(INCLUDES) $(MAIN) -o $(OUTPUT) $(LINK)
 
 release:
 	$(CXX) $(CXXFLAGS) $(RELEASE_FLAGS) -include-pch $(LINK_PATH)$(PCH_NAME).gch $(INCLUDES) $(MAIN) -o $(OUTPUT) $(LINK) 

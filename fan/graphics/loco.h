@@ -29,12 +29,14 @@ inline struct global_loco_t {
 }thread_local gloco;
 
 struct loco_t;
-
 #ifndef loco_legacy
   #define loco_framebuffer
 #endif
 
 #include _FAN_PATH(graphics/graphics.h)
+
+#include _FAN_PATH(system.h)
+
 #include _FAN_PATH(time/timer.h)
 #include _FAN_PATH(font.h)
 #include _FAN_PATH(physics/collision/circle.h)
@@ -44,11 +46,8 @@ struct loco_t;
 #include _FAN_PATH(trees/quad_tree.h)
 #include _FAN_PATH(graphics/divider.h)
 
-#include _FAN_PATH(graphics/console.h)
-
-#if defined(loco_imgui) && defined(fan_platform_linux)
-static void imgui_xorg_init();
-static void imgui_xorg_new_frame();
+#if defined(loco_imgui)
+  #include _FAN_PATH(graphics/console.h)
 #endif
 
 // automatically gets necessary macros for shapes
@@ -632,7 +631,7 @@ public:
         coordinates.down,
         coordinates.up,
         0.1,
-        znearfar / 2
+        znearfar
         #elif defined(loco_vulkan)
         coordinates.up,
         coordinates.down,
@@ -943,7 +942,7 @@ public:
   f64_t& delta_time = window.m_delta_time;
 
   #if defined(loco_window)
-  f32_t get_delta_time() {
+  f64_t& get_delta_time() {
     return delta_time;
   }
   #endif
@@ -1190,6 +1189,7 @@ public:
 
     #if defined(loco_sprite) && defined(loco_tp)
     // pack_id is not set here
+    // might return nullptr image
     loco_t::texturepack_t::ti_t get_tp() {
       loco_t::texturepack_t::ti_t ti;
       ti.image = get_image();
@@ -1649,7 +1649,7 @@ public:
     fan::vec2 window_size = gloco->window.get_size();
     default_camera->viewport.set(fan::vec2(0, 0), d.size, d.size);
   });
-
+    
   fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
   m_framebuffer.bind(get_context());
   renderbuffer_properties.size = image_info.size;
@@ -1804,51 +1804,29 @@ public:
 
     #if defined(loco_imgui)
 
+    //wglMakeCurrent(g_MainWindow.hDC, g_hRC);
+
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-    static auto update_key_modifiers = [&] {
-      io.AddKeyEvent(ImGuiMod_Ctrl, window.key_pressed(fan::key_left_control) || window.key_pressed(fan::key_right_control));
-      io.AddKeyEvent(ImGuiMod_Shift, window.key_pressed(fan::key_left_shift) || window.key_pressed(fan::key_right_shift));
-      io.AddKeyEvent(ImGuiMod_Alt, window.key_pressed(fan::key_left_alt) || window.key_pressed(fan::key_right_alt));
-      io.AddKeyEvent(ImGuiMod_Super, window.key_pressed(fan::key_left_super) || window.key_pressed(fan::key_right_super));
-    };
-
-    window.add_buttons_callback([&](const auto& d) {
-
-      update_key_modifiers();
-
-      if (d.button != fan::mouse_scroll_up && d.button != fan::mouse_scroll_down) {
-        io.AddMouseButtonEvent(d.button - fan::mouse_left, (bool)d.state);
-      }
-      else {
-        if (d.button == fan::mouse_scroll_up) {
-          io.AddMouseWheelEvent(0, 1);
-        }
-        else if (d.button == fan::mouse_scroll_down) {
-          io.AddMouseWheelEvent(0, -1);
-        }
-      }
-    });
-    window.add_keys_callback([&](const auto& d) {
-      update_key_modifiers();
-      ImGuiKey imgui_key = fan::window_input::fan_to_imguikey(d.key);
-      io.AddKeyEvent(imgui_key, (int)d.state);
-    });
-    window.add_text_callback([&](const auto& d) {
-      io.AddInputCharacter(d.character);
-    });
-
-    bool windowed = false;
+    ImGuiStyle& style = ImGui::GetStyle();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+      style.WindowRounding = 0.0f;
+      style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+ 
+    bool windowed = true;
     // free this xd
     gloco->window.add_keys_callback(
       [windowed](const fan::window_t::keyboard_keys_cb_data_t& data) mutable {
         if (data.key == fan::key_enter && data.state == fan::keyboard_state::press && gloco->window.key_pressed(fan::key_left_alt)) {
           windowed = !windowed;
-          gloco->window.set_size_mode(windowed ? fan::window_t::mode::borderless : fan::window_t::mode::windowed);
+          gloco->window.set_size_mode(windowed ? fan::window_t::mode::windowed : fan::window_t::mode::borderless);
         }
       }
     );
@@ -1860,12 +1838,17 @@ public:
       #if defined(loco_imgui)
       loco_t::imgui_themes::dark();
 
-      #if defined(fan_platform_windows)
-      ImGui_ImplWin32_Init(window.get_handle());
-      #elif defined(fan_platform_linux)
-      imgui_xorg_init();
-      #endif
-      ImGui_ImplOpenGL3_Init();
+      //#if defined(fan_platform_windows)
+      //ImGui_ImplWin32_InitForOpenGL(window.get_handle());
+      ////ImGui_ImplWin32_Init(window.get_handle());
+
+
+      //#elif defined(fan_platform_linux)
+      //imgui_xorg_init();
+      //#endif
+      ImGui_ImplGlfw_InitForOpenGL(window.glfw_window, true);
+      const char* glsl_version = "#version 150";
+      ImGui_ImplOpenGL3_Init(glsl_version);
 
       auto& style = ImGui::GetStyle();
       auto& io = ImGui::GetIO();
@@ -2035,7 +2018,7 @@ public:
     shapes.vfi.feed_mouse_button(button, button_state);
   }
 
-  void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {
+  void feed_keyboard(int key, fan::keyboard_state keyboard_state) {
     shapes.vfi.feed_keyboard(key, keyboard_state);
   }
 
@@ -2152,14 +2135,34 @@ public:
 
     static constexpr uint32_t parent_window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs;
 
-    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-
-    ImGui::Begin("Global window", 0, parent_window_flags);
     if (toggle_fps) {
-      ImGui::Text("fps:%d", (int)(1.f / delta_time));
+      ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize / 3);
+      ImGui::SetNextWindowPos(ImVec2(0, 0));
+
+      ImGui::Begin("Global window", 0, parent_window_flags);
+        ImGui::Text("fps:%d", (int)(1.f / delta_time));
+
+        static constexpr int buffer_size = 100;
+        static std::array<float, buffer_size> samples;
+        static int insert_index = 0;
+
+        float average_frame_time_ms = std::accumulate(samples.begin(), samples.end(), 0.0f) / buffer_size;
+        float lowest_ms = *std::min_element(samples.begin(), samples.end());
+        float highest_ms = *std::max_element(samples.begin(), samples.end());
+        ImGui::Text("Average Frame Time: %.2f ms", average_frame_time_ms);
+        ImGui::Text("Lowest Frame Time: %.2f ms", lowest_ms);
+        ImGui::Text("Highest Frame Time: %.2f ms", highest_ms);
+        static uint32_t frame = 0;
+        frame++;
+        static constexpr int refresh_speed = 25;
+        if (frame % refresh_speed == 0) {
+          samples[insert_index] = delta_time * 1000;
+          insert_index = (insert_index + 1) % buffer_size;
+          }
+
+        ImGui::PlotLines("frame time (ms)", samples.data(), buffer_size, insert_index, nullptr, 0.0f, FLT_MAX, ImVec2(0, 80));
+      ImGui::End();
     }
-    ImGui::End();
 
     if (ImGui::IsKeyPressed(ImGuiKey_F3, false)) {
       toggle_console = !toggle_console;
@@ -2173,7 +2176,19 @@ public:
     }
 
     ImGui::Render();
+    //get_context().opengl.glViewport(0, 0, window.get_size().x, window.get_size().y);
+    //get_context().opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+    //get_context().opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    ImGui::UpdatePlatformWindows();
+    ImGui::RenderPlatformWindowsDefault();
+      get_context().set_current(get_window());
+    }
+
     //#if defined(loco_framebuffer)
 
     //#endif
@@ -2211,6 +2226,7 @@ public:
     #endif
 
     #endif
+
     get_context().render(get_window());
 
     #elif defined(loco_vulkan)
@@ -2223,9 +2239,6 @@ public:
     #endif
   }
   #if defined(loco_window)
-  bool window_open(uint32_t event) {
-    return event != fan::window_t::events::close;
-  }
   uint32_t get_fps() {
     return window.get_fps();
   }
@@ -2252,15 +2265,15 @@ public:
   }
 
   //  behaving oddly
-  fan::vec2 get_mouse_position(const loco_t::camera_t& camera, const loco_t::viewport_t& viewport) {
-    fan::vec2 mouse_pos = window.get_mouse_position();
-    fan::vec2 translated_pos;
+  fan::vec2d get_mouse_position(const loco_t::camera_t& camera, const loco_t::viewport_t& viewport) {
+    fan::vec2d mouse_pos = window.get_mouse_position();
+    fan::vec2d translated_pos;
     translated_pos.x = fan::math::map(mouse_pos.x, viewport.get_position().x, viewport.get_position().x + viewport.get_size().x, camera.coordinates.left, camera.coordinates.right);
     translated_pos.y = fan::math::map(mouse_pos.y, viewport.get_position().y, viewport.get_position().y + viewport.get_size().y, camera.coordinates.up, camera.coordinates.down);
     return translated_pos;
   }
 
-  fan::vec2 get_mouse_position() {
+  fan::vec2d get_mouse_position() {
     return window.get_mouse_position();
     //return get_mouse_position(gloco->default_camera->camera, gloco->default_camera->viewport); behaving oddly
   }
@@ -2325,9 +2338,10 @@ public:
     });
     #endif
 
-    uint32_t window_event = window.handle_events();
-    if (window_event & fan::window_t::events::close) {
-      window.destroy_window();
+    //get_context().set_current(get_window());
+    window.handle_events();
+    if (fan::window::glfwWindowShouldClose(window.glfw_window)) {
+      window.close();
       return 1;
     }
 
@@ -2338,13 +2352,8 @@ public:
 
     #if defined(loco_imgui)
     ImGui_ImplOpenGL3_NewFrame();
-    #if defined(fan_platform_windows)
-    ImGui_ImplWin32_NewFrame();
-    #elif defined(fan_platform_linux)
-    imgui_xorg_new_frame();
-    #endif
+    ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
 
     auto& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
@@ -2785,7 +2794,8 @@ public:
   }
 
 
-  void add_fragment_shader_reload(uint16_t key, const fan::string& vs_path, const fan::string& fs_path) {
+  #if defined(loco_sprite)
+  void add_fragment_shader_reload(int key, const fan::string& vs_path, const fan::string& fs_path) {
     gloco->window.add_key_callback(key, fan::keyboard_state::press, [&, vs_path, fs_path](const auto&) {
       fan::string str;
       fan::io::file::read(fs_path, &str);
@@ -2794,6 +2804,7 @@ public:
       gloco->shapes.sprite.m_shader.compile();
     });
   }
+  #endif
   #if defined(loco_imgui)
 
   #define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
@@ -2926,6 +2937,7 @@ public:
   #include _FAN_PATH(graphics/vulkan/compute_shader.h)
   #endif
 
+  #if defined(loco_imgui)
   void set_imgui_viewport(loco_t::viewport_t& viewport)
   {
     fan::vec2 window_size = window.get_size();
@@ -2933,7 +2945,9 @@ public:
     fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
     viewport.set(viewport_pos, viewport_size, window_size);
   }
+  #endif
 
+  #if defined(loco_imgui)
   fan::commands_t commands;
   TextEditor editor, input;
   bool toggle_console = false;
@@ -2941,6 +2955,7 @@ public:
 
 
   ImFont* fonts[6];
+  #endif
 };
 
 #if defined(loco_pixel_format_renderer)
@@ -3135,7 +3150,7 @@ inline loco_t::shader_list_NodeReference_t::shader_list_NodeReference_t(loco_t::
 }
 
 inline void fan::camera::move(f32_t movement_speed, f32_t friction) {
-  this->velocity /= friction * gloco->window.get_delta_time() + 1;
+  this->velocity /= friction * gloco->delta_time + 1;
   static constexpr auto minimum_velocity = 0.001;
   if (this->velocity.x < minimum_velocity && this->velocity.x > -minimum_velocity) {
     this->velocity.x = 0;
@@ -3147,39 +3162,39 @@ inline void fan::camera::move(f32_t movement_speed, f32_t friction) {
     this->velocity.z = 0;
   }
   if (gloco->window.key_pressed(fan::input::key_w)) {
-    this->velocity += this->m_front * (movement_speed * gloco->window.get_delta_time());
+    this->velocity += this->m_front * (movement_speed * gloco->delta_time);
   }
   if (gloco->window.key_pressed(fan::input::key_s)) {
-    this->velocity -= this->m_front * (movement_speed * gloco->window.get_delta_time());
+    this->velocity -= this->m_front * (movement_speed * gloco->delta_time);
   }
   if (gloco->window.key_pressed(fan::input::key_a)) {
-    this->velocity -= this->m_right * (movement_speed * gloco->window.get_delta_time());
+    this->velocity -= this->m_right * (movement_speed * gloco->delta_time);
   }
   if (gloco->window.key_pressed(fan::input::key_d)) {
-    this->velocity += this->m_right * (movement_speed * gloco->window.get_delta_time());
+    this->velocity += this->m_right * (movement_speed * gloco->delta_time);
   }
 
   if (gloco->window.key_pressed(fan::input::key_space)) {
-    this->velocity.y += movement_speed * gloco->window.get_delta_time();
+    this->velocity.y += movement_speed * gloco->delta_time;
   }
   if (gloco->window.key_pressed(fan::input::key_left_shift)) {
-    this->velocity.y -= movement_speed * gloco->window.get_delta_time();
+    this->velocity.y -= movement_speed * gloco->delta_time;
   }
 
   if (gloco->window.key_pressed(fan::input::key_left)) {
-    this->set_yaw(this->get_yaw() - sensitivity * 100 * gloco->window.get_delta_time());
+    this->set_yaw(this->get_yaw() - sensitivity * 100 * gloco->delta_time);
   }
   if (gloco->window.key_pressed(fan::input::key_right)) {
-    this->set_yaw(this->get_yaw() + sensitivity * 100 * gloco->window.get_delta_time());
+    this->set_yaw(this->get_yaw() + sensitivity * 100 * gloco->delta_time);
   }
   if (gloco->window.key_pressed(fan::input::key_up)) {
-    this->set_pitch(this->get_pitch() + sensitivity * 100 * gloco->window.get_delta_time());
+    this->set_pitch(this->get_pitch() + sensitivity * 100 * gloco->delta_time);
   }
   if (gloco->window.key_pressed(fan::input::key_down)) {
-    this->set_pitch(this->get_pitch() - sensitivity * 100 * gloco->window.get_delta_time());
+    this->set_pitch(this->get_pitch() - sensitivity * 100 * gloco->delta_time);
   }
 
-  this->position += this->velocity * gloco->window.get_delta_time();
+  this->position += this->velocity * gloco->delta_time;
   this->update_view();
 }
 
@@ -3368,23 +3383,6 @@ inline void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const
   if (vkCreateGraphicsPipelines(context.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
     fan::throw_error("failed to create graphics pipeline");
   }
-}
-#endif
-
-#if defined(loco_imgui) && defined(fan_platform_linux)
-static void imgui_xorg_init() {
-  ImGuiIO& io = ImGui::GetIO();
-  io.DisplaySize = gloco->window.get_size();
-  gloco->window.add_mouse_move_callback([](const auto& d) {
-    auto& io = ImGui::GetIO();
-    if (!io.WantSetMousePos) {
-      io.AddMousePosEvent(d.position.x, d.position.y);
-    }
-  });
-}
-static void imgui_xorg_new_frame() {
-  ImGuiIO& io = ImGui::GetIO();
-  io.DisplaySize = gloco->window.get_size();
 }
 #endif
 

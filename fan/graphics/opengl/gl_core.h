@@ -398,114 +398,117 @@ inline fan::opengl::context_t::context_t() {
 
 inline fan::opengl::context_t::context_t(fan::window_t* window, const properties_t& p) : context_t() {
 
-  #if defined(fan_platform_windows)
+  fan::window::glfwMakeContextCurrent(window->glfw_window);
 
-  window->m_hdc = GetDC(window->m_window_handle);
+  //#if defined(fan_platform_windows)
 
-  int pixel_format_attribs[] = {
-    WGL_DRAW_TO_WINDOW_ARB, TRUE,
-    WGL_DOUBLE_BUFFER_ARB, TRUE,
-    WGL_SUPPORT_OPENGL_ARB, TRUE,
-    WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
-    WGL_TRANSPARENT_ARB, TRUE,
-    WGL_COLOR_BITS_ARB, 32,
-    WGL_RED_BITS_ARB, 8,
-    WGL_GREEN_BITS_ARB, 8,
-    WGL_BLUE_BITS_ARB, 8,
-    WGL_ALPHA_BITS_ARB, 8,
-    WGL_DEPTH_BITS_ARB, 24,
-    WGL_STENCIL_BITS_ARB, 8,
-    0, 0
-  };
-  if (!p.samples) {
-    // set back to zero to disable antialising
-    for (int i = 0; i < 4; i++) {
-      pixel_format_attribs[14 + i] = 0;
-    }
-  }
-  int pixel_format;
-  UINT num_formats;
+  //window->m_hdc = GetDC(window->m_window_handle);
 
-  // /mtd or enable maybe /LTCG to fix with sanitizer on
-  opengl.call(opengl.internal.wglChoosePixelFormatARB, window->m_hdc, pixel_format_attribs, (float*)0, 1, &pixel_format, &num_formats);
+  //int pixel_format_attribs[] = {
+  //  WGL_DRAW_TO_WINDOW_ARB, TRUE,
+  //  WGL_DOUBLE_BUFFER_ARB, TRUE,
+  //  WGL_SUPPORT_OPENGL_ARB, TRUE,
+  //  WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+  //  WGL_TRANSPARENT_ARB, TRUE,
+  //  WGL_COLOR_BITS_ARB, 32,
+  //  WGL_RED_BITS_ARB, 8,
+  //  WGL_GREEN_BITS_ARB, 8,
+  //  WGL_BLUE_BITS_ARB, 8,
+  //  WGL_ALPHA_BITS_ARB, 8,
+  //  WGL_DEPTH_BITS_ARB, 24,
+  //  WGL_STENCIL_BITS_ARB, 8,
+  //  0, 0
+  //};
+  //if (!p.samples) {
+  //  // set back to zero to disable antialising
+  //  for (int i = 0; i < 4; i++) {
+  //    pixel_format_attribs[14 + i] = 0;
+  //  }
+  //}
+  //int pixel_format;
+  //UINT num_formats;
 
-  if (!num_formats) {
-    fan::throw_error("failed to choose pixel format:" + fan::to_string(GetLastError()));
-  }
+  //// /mtd or enable maybe /LTCG to fix with sanitizer on
+  //opengl.call(opengl.internal.wglChoosePixelFormatARB, window->m_hdc, pixel_format_attribs, (float*)0, 1, &pixel_format, &num_formats);
 
-  PIXELFORMATDESCRIPTOR pfd;
-  memset(&pfd, 0, sizeof(pfd));
-  if (!DescribePixelFormat(window->m_hdc, pixel_format, sizeof(pfd), &pfd)) {
-    fan::throw_error("failed to describe pixel format:" + fan::to_string(GetLastError()));
-  }
-  if (!SetPixelFormat(window->m_hdc, pixel_format, &pfd)) {
-    fan::throw_error("failed to set pixel format:" + fan::to_string(GetLastError()));
-  }
+  //if (!num_formats) {
+  //  fan::throw_error("failed to choose pixel format:" + fan::to_string(GetLastError()));
+  //}
 
-  const int gl_attributes[] = {
-    WGL_CONTEXT_MINOR_VERSION_ARB, p.minor,
-    WGL_CONTEXT_MAJOR_VERSION_ARB, p.major,
-    WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-    0,
-  };
+  //PIXELFORMATDESCRIPTOR pfd;
+  //memset(&pfd, 0, sizeof(pfd));
+  //if (!DescribePixelFormat(window->m_hdc, pixel_format, sizeof(pfd), &pfd)) {
+  //  fan::throw_error("failed to describe pixel format:" + fan::to_string(GetLastError()));
+  //}
+  //if (!SetPixelFormat(window->m_hdc, pixel_format, &pfd)) {
+  //  fan::throw_error("failed to set pixel format:" + fan::to_string(GetLastError()));
+  //}
 
-  if (!window->m_context) {
+  //const int gl_attributes[] = {
+  //  WGL_CONTEXT_MINOR_VERSION_ARB, p.minor,
+  //  WGL_CONTEXT_MAJOR_VERSION_ARB, p.major,
+  //  WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+  //  0,
+  //};
 
-    if (p.major < 3) {
-      window->m_context = wglCreateContext(window->m_hdc);
-    }
-    else {
-      window->m_context = opengl.call(opengl.internal.wglCreateContextAttribsARB, window->m_hdc, (HGLRC)0, gl_attributes);
-    }
+  //if (!window->m_context) {
 
-    if (!window->m_context) {
-      fan::print("failed to create context");
-      exit(1);
-    }
-  }
+  //  if (p.major < 3) {
+  //    window->m_context = wglCreateContext(window->m_hdc);
+  //  }
+  //  else {
+  //    window->m_context = opengl.call(opengl.internal.wglCreateContextAttribsARB, window->m_hdc, (HGLRC)0, gl_attributes);
+  //  }
 
-  if (!wglMakeCurrent(window->m_hdc, window->m_context)) {
-    fan::print("failed to make current");
-    exit(1);
-  }
+  //  if (!window->m_context) {
+  //    fan::print("failed to create context");
+  //    exit(1);
+  //  }
+  //}
 
-  if (wglGetCurrentContext() != window->m_context) {
-    wglMakeCurrent(window->m_hdc, window->m_context);
-  }
+  //if (!wglMakeCurrent(window->m_hdc, window->m_context)) {
+  //  fan::print("failed to make current");
+  //  exit(1);
+  //}
 
-  #elif defined(fan_platform_unix)
+  //if (wglGetCurrentContext() != window->m_context) {
+  //  wglMakeCurrent(window->m_hdc, window->m_context);
+  //}
 
-  if (opengl.internal.glXGetCurrentContext() != window->m_context) {
-    opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);
-  }
+  //#elif defined(fan_platform_unix)
 
-  #endif
+  //if (opengl.internal.glXGetCurrentContext() != window->m_context) {
+  //  opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);
+  //}
 
-  //opengl.call(opengl.glEnable, fan::opengl::GL_BLEND);
-  //opengl.call(opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+  //#endif
 
-  set_depth_test(true);
-  
-  // no need for 2d
-  //opengl.call(opengl.glFrontFace, fan::opengl::GL_CCW);
-  //opengl.glEnable(fan::opengl::GL_CULL_FACE);;
-  //opengl.glCullFace(fan::opengl::GL_FRONT);
-  #if fan_debug >= fan_debug_high
-  context_t::set_error_callback();
-  #endif
+  ////opengl.call(opengl.glEnable, fan::opengl::GL_BLEND);
+  ////opengl.call(opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+
+  //set_depth_test(true);
+  //
+  //// no need for 2d
+  ////opengl.call(opengl.glFrontFace, fan::opengl::GL_CCW);
+  ////opengl.glEnable(fan::opengl::GL_CULL_FACE);;
+  ////opengl.glCullFace(fan::opengl::GL_FRONT);
+  //#if fan_debug >= fan_debug_high
+  //context_t::set_error_callback();
+  //#endif
 }
 
 inline fan::opengl::context_t::~context_t() {
 }
 
 inline void fan::opengl::context_t::render(fan::window_t* window) {
-  #ifdef fan_platform_windows
+  fan::window::glfwSwapBuffers(window->glfw_window);
+  /*#ifdef fan_platform_windows
   //opengl.glFlush();
   //opengl.glFinish();
-  SwapBuffers(window->m_hdc);
+  /*SwapBuffers(window->m_hdc);
   #elif defined(fan_platform_unix)
   opengl.internal.glXSwapBuffers(fan::sys::m_display, window->m_window_handle);
-  #endif
+  #endif*/
 }
 
 inline void fan::opengl::context_t::set_depth_test(bool flag) {
@@ -519,7 +522,7 @@ inline void fan::opengl::context_t::set_depth_test(bool flag) {
 
 inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 {
-  #if defined(fan_platform_windows)
+  /*#if defined(fan_platform_windows)
 
   wglMakeCurrent(window->m_hdc, window->m_context);
 
@@ -536,25 +539,27 @@ inline void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag)
 
   #elif defined(fan_platform_unix)
   opengl.internal.glXSwapIntervalEXT(fan::sys::m_display, opengl.internal.glXGetCurrentDrawable(), flag);
-  #endif
+  #endif*/
+  fan::window::glfwSwapInterval(flag);
 }
 
 inline void fan::opengl::context_t::set_current(fan::window_t* window)
 {
-  #ifdef fan_platform_windows
+  fan::window::glfwMakeContextCurrent(window->glfw_window);
+ /* #ifdef fan_platform_windows
     wglMakeCurrent(window->m_hdc, window->m_context);
   #elif defined(fan_platform_unix)
     opengl.internal.glXMakeCurrent(fan::sys::m_display, window->m_window_handle, window->m_context);
-  #endif
+  #endif*/
 }
 
-inline void fan::opengl::context_t::unset_current()
-{
-  #ifdef fan_platform_windows
-    wglMakeCurrent(0, 0);
-  #elif defined(fan_platform_unix)
-    opengl.internal.glXMakeCurrent(fan::sys::m_display, 0, 0);
-  #endif
-}
+//inline void fan::opengl::context_t::unset_current()
+//{
+//  #ifdef fan_platform_windows
+//    wglMakeCurrent(0, 0);
+//  #elif defined(fan_platform_unix)
+//    opengl.internal.glXMakeCurrent(fan::sys::m_display, 0, 0);
+//  #endif
+//}
 
 #include _FAN_PATH(graphics/opengl/uniform_block.h)

@@ -197,7 +197,7 @@ namespace fan {
           return fan::vec2i(p.x, p.y);
         }
 
-        static auto get_key_state(uint16_t key) {
+        static auto get_key_state(int key) {
           return GetAsyncKeyState(fan::window_input::convert_fan_to_scancode(key));
         }
 
@@ -205,9 +205,9 @@ namespace fan {
           SetCursorPos(position.x, position.y);
         }
 
-        static void send_mouse_event(uint16_t key, fan::mouse_state state) {
+        static void send_mouse_event(int key, fan::mouse_state state) {
 
-          constexpr auto get_key = [](uint16_t key, fan::mouse_state state) {
+          constexpr auto get_key = [](int key, fan::mouse_state state) {
 
             auto press = state == fan::mouse_state::press;
 
@@ -249,7 +249,7 @@ namespace fan {
           }
         }
 
-        inline static void send_keyboard_event(uint16_t key, fan::keyboard_state state) {
+        inline static void send_keyboard_event(int key, fan::keyboard_state state) {
           INPUT input;
 
           input.type = INPUT_KEYBOARD;
@@ -430,7 +430,7 @@ namespace fan {
         }
 
         // creates another thread, non blocking
-        static void listen_keyboard(fan::function_t<void(uint16_t key, fan::keyboard_state keyboard_state, bool action)> input_callback_) {
+        static void listen_keyboard(fan::function_t<void(int key, fan::keyboard_state keyboard_state, bool action)> input_callback_) {
 
           input_callback = input_callback_;
 
@@ -517,7 +517,7 @@ namespace fan {
             return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
           }
 
-          constexpr auto get_mouse_key = [](uint16_t key) {
+          constexpr auto get_mouse_key = [](int key) {
             switch (key) {
 
               case WM_LBUTTONDOWN: { return fan::input::mouse_left; }

@@ -1,4 +1,4 @@
-static uint16_t convert_scancode_to_fan(uint16_t key) {
+static uint16_t convert_scancode_to_fan(int key) {
 	switch (key) {
 		//shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
 		#ifdef fan_platform_windows
@@ -41,7 +41,6 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 		case 0x25: { return fan::input::key_k; }
 		case 0x26: { return fan::input::key_l; }
 		case 0x27: { return fan::input::key_semicolon; }
-		case 0x28: { return fan::input::key_quote; }
 		case 0x29: { return fan::input::key_tilde; }
 		case 0x2A: { return fan::input::key_left_shift; }
 		case 0x2B: { return fan::input::key_backslash; }
@@ -154,7 +153,6 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 		case 0x25: { return fan::input::key_k; }
 		case 0x26: { return fan::input::key_l; }
 		case 0x27: { return fan::input::key_semicolon; }
-		case 0x28: { return fan::input::key_quote; }
 		case 0x29: { return fan::input::key_tilde; }
 		case 0x2A: { return fan::input::key_left_shift; }
 		case 0x2B: { return fan::input::key_backslash; }
@@ -236,7 +234,7 @@ static uint16_t convert_scancode_to_fan(uint16_t key) {
 	}
 }
 
-static uint16_t convert_fan_to_scancode(uint16_t key) {
+static uint16_t convert_fan_to_scancode(int key) {
   // non us less/greater than sign
  /* if (key == fan::input::key_less_than) {
     return 0x56;
@@ -288,7 +286,6 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
 	case fan::input::key_k: { return 0x25; }
 	case fan::input::key_l: { return 0x26; }
 	case fan::input::key_semicolon: { return 0x27; }
-	case fan::input::key_quote: { return 0x28; }
 	case fan::input::key_tilde: { return 0x29; }
 	case fan::input::key_left_shift: { return 0x2A; }
 	case fan::input::key_backslash: { return 0x2B; }
@@ -398,7 +395,6 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
   case fan::input::key_k: { return 0x25; }
   case fan::input::key_l: { return 0x26; }
   case fan::input::key_semicolon: { return 0x27; }
-  case fan::input::key_quote: { return 0x28; }
   case fan::input::key_tilde: { return 0x29; }
   case fan::input::key_left_shift: { return 0x2A; }
   case fan::input::key_backslash: { return 0x2B; }
@@ -480,7 +476,7 @@ static uint16_t convert_fan_to_scancode(uint16_t key) {
 }
 
 #if defined(loco_imgui)
-static constexpr ImGuiKey fan_to_imguikey(uint16_t key)
+static constexpr ImGuiKey fan_to_imguikey(int key)
 {
   switch (key)
   {

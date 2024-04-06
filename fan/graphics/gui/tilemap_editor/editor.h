@@ -13,8 +13,8 @@ struct fte_t {
   static constexpr uint32_t invalid = -1;
 
   struct shape_depths_t {
-    static constexpr uint32_t max_layer_depth = 0xffff;
-    static constexpr int cursor_highlight_depth = 10000;
+    static constexpr int max_layer_depth = 0xFAAA - 2;
+    static constexpr int cursor_highlight_depth = 0xFAAA - 1;
   };
 
   fan::string file_name = "file.fte";
@@ -206,7 +206,7 @@ struct fte_t {
         case fan::mouse_scroll_up: {
           if (gloco->window.key_pressed(fan::key_left_control)) {
             brush.depth += 1;
-            brush.depth = std::min((uint32_t)brush.depth, shape_depths_t::max_layer_depth);
+            brush.depth = std::min((int)brush.depth, shape_depths_t::max_layer_depth);
           }
           else if (gloco->window.key_pressed(fan::key_left_shift)) {
             brush.size += 1;
@@ -290,9 +290,12 @@ struct fte_t {
       .image = &gloco->transparent_texture,
     } };
 
-    grid_visualize.highlight_color.create(fan::colors::red, 1);
+    lp.min_filter = loco_t::image_t::filter::linear;
+    lp.mag_filter = loco_t::image_t::filter::linear;
+
+    grid_visualize.highlight_color.load("images/highlight_hover.webp", lp);
     grid_visualize.collider_color.create(fan::color(0, 0.5, 0, 0.5), 1);
-    grid_visualize.light_color.create(fan::color(0, 0.0, 0.5, 0.5), 1);
+    grid_visualize.light_color.load("images/lightbulb.webp", lp);
 
     grid_visualize.highlight_hover = fan::graphics::unlit_sprite_t{ {
       .camera = camera,
@@ -301,16 +304,12 @@ struct fte_t {
       .image = &grid_visualize.highlight_color,
       .blending = true
     } };
-    static bool init = true;
-    static loco_t::image_t highlight_selected_texture;
-    if (init) {
-      init = false;
-      highlight_selected_texture.create(highlighted_selected_tile_color, 1);
-    }
     grid_visualize.highlight_selected = fan::graphics::unlit_sprite_t{ {
+      .camera = camera,
       .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth - 1),
       .size = 0,
-      .image = &highlight_selected_texture,
+      .color = fan::color(2, 2, 2, 1),
+      .image = &grid_visualize.highlight_color,
       .blending = true
     } };
 
@@ -598,6 +597,7 @@ struct fte_t {
         static std::vector<loco_t::shape_t> select;
 
         if (is_mouse_left_clicked) {
+          select.clear();
           copy_buffer.clear();
           fan::vec2i mouse_grid_pos;
           if (mouse_to_grid(mouse_grid_pos)) {
@@ -605,9 +605,9 @@ struct fte_t {
           }
         }
         if (is_mouse_left_held) {
+          select.clear();
           fan::vec2i mouse_grid_pos;
           if (mouse_to_grid(mouse_grid_pos)) {
-            select.clear();
             fan::vec2i src = copy_src;
             fan::vec2i dst = mouse_grid_pos;
             copy_dst = dst;
@@ -616,10 +616,11 @@ struct fte_t {
             int stepy = (src.y <= dst.y) ? 1 : -1;
             for (int j = src.y; j != dst.y + stepy; j += stepy) {
               for (int i = src.x; i != dst.x + stepx; i += stepx) {
-                select.push_back(fan::graphics::rectangle_t{ {
+                select.push_back(fan::graphics::unlit_sprite_t{ {
+                    .camera = camera,
                     .position = fan::vec3(fan::vec2(i, j) * tile_size * 2 + tile_size, shape_depths_t::cursor_highlight_depth),
                     .size = tile_size,
-                    .color = fan::color(1, 0, 0, 0.5),
+                    .image = &grid_visualize.highlight_color,
                     .blending = true
                 } });
               }
@@ -669,7 +670,32 @@ struct fte_t {
                 auto& tile = map_tiles[current_pos];
                 tile = i;
                 int layer = 0;
-                for (auto& t : tile.layers) {
+                for (int k = 0; k < tile.layers.size(); ++k) {
+                  if (tile.layers[k].tile.position.z == brush.depth) {
+                    auto& t = tile.layers[k];
+                    fan::vec2 op = t.shape.get_position();
+                    fan::vec2 offset = op - *(fan::vec2i*)&t.tile.position;
+                    fan::vec2 draw_pos = current_pos * tile_size * 2 + tile_size + offset;
+                    if (is_in_constraints(draw_pos)) {
+                      t.shape.set_position(fan::vec2(draw_pos));
+                      switch (t.tile.mesh_property) {
+                        case mesh_property_t::light: {
+                          visual_shapes[fan::vec3(draw_pos, brush.depth)].shape = fan::graphics::sprite_t{{
+                              .camera = camera,
+                              .position = fan::vec3(draw_pos, brush.depth + 1),
+                              .size = tile_size,
+                              .image = &grid_visualize.light_color,
+                              .blending = true
+                          } };
+                          break;
+                        }
+                      }
+                    }
+                    break;
+                  }
+                }
+                
+                /*for (auto& t : tile.layers) {
                   fan::vec2 op = t.shape.get_position();
                   fan::vec2 offset = op - *(fan::vec2i*)&t.tile.position;
                   fan::print(offset);
@@ -677,7 +703,7 @@ struct fte_t {
                   if (is_in_constraints(draw_pos)) {
                     t.shape.set_position(fan::vec2(draw_pos));
                   }
-                }
+                }*/
               }
               index++;
             }
@@ -704,10 +730,10 @@ struct fte_t {
     fan::vec2i grid_position = position;
     convert_draw_to_grid(grid_position);
     grid_position /= tile_size;
-    if (grid_position == prev_grid_position) {
+    if (fan::vec3i(grid_position, brush.depth) == prev_grid_position) {
       return;
     }
-    prev_grid_position = grid_position;
+    prev_grid_position = fan::vec3i(grid_position, brush.depth);
     for (int i = 0; i < brush.size.y; ++i) {
       for (int j = 0; j < brush.size.x; ++j) {
         if (action(position, j, i)) {
@@ -718,10 +744,18 @@ struct fte_t {
   }
 
   bool handle_editor_window(fan::vec2& editor_size) {
-    if (ImGui::Begin("Editor")) {
-      fan::vec2 window_size = gloco->window.get_size();
+    if (ImGui::Begin("Editor", 0, ImGuiWindowFlags_NoBackground)) {
+      fan::vec2 window_size = ImGui::GetIO().DisplaySize;
       fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
-      fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
+      ImVec2 mainViewportPos = ImGui::GetMainViewport()->Pos;
+
+      ImVec2 windowPos = ImGui::GetWindowPos();
+
+      ImVec2 windowPosRelativeToMainViewport;
+      windowPosRelativeToMainViewport.x = windowPos.x - mainViewportPos.x;
+      windowPosRelativeToMainViewport.y = windowPos.y - mainViewportPos.y;
+
+      fan::vec2 viewport_pos = fan::vec2(windowPosRelativeToMainViewport + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
       fan::vec2 offset = viewport_size - viewport_size / viewport_settings.zoom;
       fan::vec2 s = viewport_size;
       camera->camera.set_ortho(
@@ -735,7 +769,7 @@ struct fte_t {
       viewport_settings.size = editor_size;
       ImGui::SetWindowFontScale(1.5);
       ImGui::TextColored(ImVec4(1, 1, 1, 1), fan::format("brush type: {}", brush.type_names[(uint8_t)brush.type]).c_str());
-      ImGui::TextColored(ImVec4(1, 1, 1, 1), fan::format("brush depth: {}", (int)brush.depth).c_str());
+      ImGui::TextColored(ImVec4(1, 1, 1, 1), fan::format("brush depth: {}", (int)brush.depth - shape_depths_t::max_layer_depth / 2).c_str());
 
       auto& style = ImGui::GetStyle();
       fan::vec2 prev_item_spacing = style.ItemSpacing;
@@ -848,7 +882,7 @@ struct fte_t {
       {
         f32_t x_size = ImGui::GetContentRegionAvail().x;
         static int offset = 0;
-        ImGui::DragInt("offset", &offset, 1, 0);
+        ImGui::DragInt("offset", &offset, 1, 0, 1000);
         int divider = std::sqrt(texturepack_images.size());
         int images_per_row = divider + offset;
 
@@ -881,17 +915,31 @@ struct fte_t {
           )) {
 
           }
-          if ((ImGui::IsMouseClicked(0) || (ImGui::IsMouseDown(0) && 
-            ImGui::IsMouseDragging(0))) && 
-            ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly)) {
+          bool is_mouse_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly);
+          bool is_left_mouse_button_clicked = ImGui::IsMouseClicked(0);
+          bool is_left_mouse_drag = ImGui::IsMouseDown(0) && ImGui::IsMouseDragging(0);
+          bool is_right_mouse_button_clicked = ImGui::IsMouseClicked(1);
+          bool is_right_mouse_drag = ImGui::IsMouseDown(1) && ImGui::IsMouseDragging(1);
+
+          bool is_left_ctrl_key_pressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl);
+
+          if (((is_left_mouse_button_clicked || is_left_mouse_drag) && is_left_ctrl_key_pressed) && is_mouse_hovered) {
             current_image_indices[grid_index] = i;
           }
-          else if ((ImGui::IsMouseClicked(1) || (ImGui::IsMouseDown(1) &&
-            ImGui::IsMouseDragging(1))) &&
-            ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly)) {
+          else if ((is_left_mouse_button_clicked || is_left_mouse_drag) && is_mouse_hovered) {
+            current_image_indices.clear();
+            if (current_image_indices.empty()) {
+              current_tile_images.clear();
+            }
+            current_image_indices[grid_index] = i;
+          }
+          else if ((is_right_mouse_button_clicked || is_right_mouse_drag) && is_mouse_hovered) {
             auto found = current_image_indices.find(grid_index);
             if (found != current_image_indices.end()) {
               current_image_indices.erase(found);
+            }
+            if (current_image_indices.empty()) {
+              current_tile_images.clear();
             }
           }
 
@@ -992,6 +1040,12 @@ struct fte_t {
   void handle_brush_settings_window() {
     if (ImGui::Begin("Brush settings")) {
       {
+        int idx = (int)brush.depth - shape_depths_t::max_layer_depth / 2;
+        if (ImGui::DragInt("depth", (int*)&idx, 1, 0, shape_depths_t::max_layer_depth)) {
+          brush.depth = idx + shape_depths_t::max_layer_depth / 2;
+        }
+      }
+      {
         int idx = (int)brush.mode;
         if (ImGui::Combo("mode", (int*)&idx, brush.mode_names, std::size(brush.mode_names))) {
           brush.mode = (brush_t::mode_e)idx;
@@ -1081,10 +1135,14 @@ struct fte_t {
         current_tile_images.clear();
         current_tile_images.resize(1);
         if (idx != invalid || idx < brush.depth) {
-          current_tile_images[0].push_back({
-            .ti = layers[idx].shape.get_tp(),
-            .image_hash = layers[idx].tile.image_hash
-          });
+          uint16_t st = layers[idx].shape->shape_type;
+          if (st == (uint16_t)loco_t::shape_type_t::sprite ||
+            st == (uint16_t)loco_t::shape_type_t::unlit_sprite) {
+            current_tile_images[0].push_back({
+              .ti = layers[idx].shape.get_tp(),
+              .image_hash = layers[idx].tile.image_hash
+            });
+          }
         }
       }
     }
@@ -1326,7 +1384,7 @@ shape data{
     fan::vec2i size = 1;
     int tile_size = 1;
     fan::vec3 angle = 0;
-    f32_t depth = 1;
+    f32_t depth = shape_depths_t::max_layer_depth / 2;
     int jitter = 0;
     f32_t jitter_chance = 0.33;
     fan::string id;
@@ -1345,7 +1403,7 @@ shape data{
     bool hovered = false;
   }editor_settings;
 
-  fan::vec2i prev_grid_position = 999999;
+  fan::vec3i prev_grid_position = 999999;
 
   fan::vec2i copy_buffer_region = 0;
   std::vector<shapes_t::global_t> copy_buffer;

@@ -29,11 +29,12 @@ int main() {
      .size = 100,
      .color = fan::colors::blue
  } };
-
+  
   loco.loop([&] {
 
     if (ImGui::Begin("a")) {
       loco.set_imgui_viewport(viewport);
+      fan::print("a", ImGui::GetCurrentContext());
     }
     else  {
       viewport.zero();
@@ -44,6 +45,7 @@ int main() {
 
     if (ImGui::Begin("b")) {
       loco.set_imgui_viewport(viewport2);
+      fan::print("b", ImGui::GetCurrentContext());
     }
     
     else {
