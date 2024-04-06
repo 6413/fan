@@ -27,7 +27,7 @@ Requires c++20
 2. Using Visual Studio use fan.sln. Alternatively compile using clang++/g++ using make_imgui, make_pch, make, in order
 
 ### Linux
-1. Install required dependencies libx11-dev, libxrandr-dev, libwebp-dev, libxcursor-dev, llvm, clang/gcc, libopus-dev, OpenGL
+1. Install required dependencies libx11-dev, libxrandr-dev, libwebp-dev, libxcursor-dev, llvm, clang/gcc, libopus-dev, OpenGL, GLFW
  ```
    sudo apt install libx11-dev -y &&
    sudo apt install libxrandr-dev -y &&
@@ -35,7 +35,8 @@ Requires c++20
    sudo apt install libxcursor-dev -y &&
    sudo apt install llvm -y &&
    sudo apt install clang -y &&
-   sudo apt install libfmt-dev -y
+   sudo apt install libfmt-dev -y &&
+   sudo apt-get install libglfw3-dev
    ```
 3. Clone the repository: `git clone https://github.com/6413/fan.git`
 4. Setup and compile using `make -B -f make_imgui`, `make -f make_pch`, `make`, in order
@@ -75,7 +76,7 @@ Check out the [examples](examples/) directory for sample projects demonstrating 
 #### Game demo using fan
 ![image](https://github.com/6413/fan/assets/56801084/973f2fa6-fcd7-4b6a-b66b-b92eefae9bba)
 
-Console support (F3)
+Developer console support (F3)
 ![image](https://github.com/6413/fan/assets/56801084/7556ce24-ba0f-43c6-85d6-b951351bb59c)
 
 
