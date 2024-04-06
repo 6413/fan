@@ -90,7 +90,7 @@ struct vfi_t {
 
   struct keyboard_data_t {
     vfi_t* vfi;
-    uint16_t key;
+    int key;
     fan::keyboard_state keyboard_state;
   };
 
@@ -558,7 +558,7 @@ struct vfi_t {
       }
     }
   }
-  void feed_keyboard(uint16_t key, fan::keyboard_state keyboard_state) {
+  void feed_keyboard(int key, fan::keyboard_state keyboard_state) {
     keyboard_data_t keyboard_data;
     keyboard_data.vfi = this;
     if (focus.keyboard.is_invalid()) {
