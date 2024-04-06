@@ -33,6 +33,8 @@ int main() {
   loco.loop([&] {
 
     if (ImGui::Begin("a")) {
+      static bool x = 0;
+      ImGui::Checkbox("d", &x);
       loco.set_imgui_viewport(viewport);
       fan::print("a", ImGui::GetCurrentContext());
     }
@@ -44,6 +46,8 @@ int main() {
 
 
     if (ImGui::Begin("b")) {
+      static bool x = 0;
+      ImGui::Checkbox("c", &x);
       loco.set_imgui_viewport(viewport2);
       fan::print("b", ImGui::GetCurrentContext());
     }

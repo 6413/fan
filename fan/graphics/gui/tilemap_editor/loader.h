@@ -79,6 +79,7 @@ public:
   struct properties_t {
     fan::vec3 position = 0;
     fan::vec2 size = 1;
+    fan::vec3 offset = 0;
     fan::graphics::camera_t* camera = nullptr;
   };
 

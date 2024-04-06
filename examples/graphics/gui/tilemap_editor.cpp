@@ -14,7 +14,7 @@ struct player_t {
   player_t() {
     visual = fan::graphics::sprite_t{ {
       .camera = &camera1,
-      .position = fan::vec3(0, 0, 10),
+      .position = fan::vec3(0, 0, fte_t::shape_depths_t::cursor_highlight_depth),
       .size = 32 / 2,
       .blending = true,
     } };

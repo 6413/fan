@@ -577,6 +577,12 @@ public:
       return *this;
     }
 
+    void link(const camera_t& t) {
+      m_view = t.m_view;
+      m_projection = t.m_projection;
+      coordinates = t.coordinates;
+      camera_reference = t.camera_reference;
+    }
 
     static constexpr f32_t znearfar = 0xffff;
 
@@ -2940,9 +2946,17 @@ public:
   #if defined(loco_imgui)
   void set_imgui_viewport(loco_t::viewport_t& viewport)
   {
+    ImVec2 mainViewportPos = ImGui::GetMainViewport()->Pos;
+
+    ImVec2 windowPos = ImGui::GetWindowPos();
+
+    ImVec2 windowPosRelativeToMainViewport;
+    windowPosRelativeToMainViewport.x = windowPos.x - mainViewportPos.x;
+    windowPosRelativeToMainViewport.y = windowPos.y - mainViewportPos.y;
+
     fan::vec2 window_size = window.get_size();
     fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
-    fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
+    fan::vec2 viewport_pos = fan::vec2(windowPosRelativeToMainViewport + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
     viewport.set(viewport_pos, viewport_size, window_size);
   }
   #endif

@@ -33,7 +33,9 @@ struct fte_renderer_t : fte_loader_t {
     view_size = p.size / node.compiled_map->tile_size / 2;
     prev_render = (p.position / node.compiled_map->tile_size / 2).floor();
 
+    position = p.offset;
     initialize(node, p.position);
+
 
     return it;
   }
