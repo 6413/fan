@@ -29,14 +29,12 @@ Requires c++20
 ### Linux
 1. Install required dependencies libx11-dev, libxrandr-dev, libwebp-dev, libxcursor-dev, llvm, clang/gcc, libopus-dev, OpenGL, GLFW
  ```
-   sudo apt install libx11-dev -y &&
-   sudo apt install libxrandr-dev -y &&
    sudo apt install libwebp-dev -y &&
-   sudo apt install libxcursor-dev -y &&
    sudo apt install llvm -y &&
    sudo apt install clang -y &&
    sudo apt install libfmt-dev -y &&
-   sudo apt-get install libglfw3-dev
+   sudo apt install libglfw3-dev -y &&
+   sudo apt install libopus-dev -y
    ```
 3. Clone the repository: `git clone https://github.com/6413/fan.git`
 4. Setup and compile using `make -B -f make_imgui`, `make -f make_pch`, `make`, in order
