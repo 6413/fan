@@ -232,8 +232,8 @@ namespace fan {
     }
     if (ImGui::IsKeyPressed(ImGuiKey_Tab, false)) {
       if (possible_choices.size()) {
-        input.SetText(possible_choices.front());
-        input.SetCursorPosition(TextEditor::Coordinates(0, possible_choices.front().size()));
+        input.SetText(possible_choices.front() + " ");
+        input.SetCursorPosition(TextEditor::Coordinates(0, possible_choices.front().size() + 1));
       }
       else if (current_command == "\t") {
         input.SetText("");
