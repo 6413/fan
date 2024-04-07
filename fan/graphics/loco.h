@@ -2088,7 +2088,7 @@ public:
 
     m_framebuffer.unbind(get_context());
 
-    blur[0].draw(&color_buffers[2]);
+    blur[0].draw(&color_buffers[0]);
     //blur[1].draw(&color_buffers[3]);
 
     opengl.glClearColor(0, 0, 0, 1);
