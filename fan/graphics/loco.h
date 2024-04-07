@@ -2134,10 +2134,10 @@ public:
     //get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
     //blur.mips.front().image.bind_texture();
 
-    m_framebuffer.bind(get_context());
-    opengl.glBindFramebuffer(fan::opengl::GL_READ_FRAMEBUFFER, 0); // Bind default framebuffer as source
-    opengl.glBindFramebuffer(fan::opengl::GL_DRAW_FRAMEBUFFER, m_framebuffer.framebuffer); // Bind FBO as destination
-    opengl.glBlitFramebuffer(0, 0, window_size.x, window_size.y, 0, 0, window_size.x, window_size.y, fan::opengl::GL_COLOR_BUFFER_BIT, fan::opengl::GL_NEAREST);
+    //m_framebuffer.bind(get_context());
+    //opengl.glBindFramebuffer(fan::opengl::GL_READ_FRAMEBUFFER, 0); // Bind default framebuffer as source
+    //opengl.glBindFramebuffer(fan::opengl::GL_DRAW_FRAMEBUFFER, m_framebuffer.framebuffer); // Bind FBO as destination
+    //opengl.glBlitFramebuffer(0, 0, window_size.x, window_size.y, 0, 0, window_size.x, window_size.y, fan::opengl::GL_COLOR_BUFFER_BIT, fan::opengl::GL_NEAREST);
 
     static constexpr uint32_t parent_window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs;
 
@@ -2209,25 +2209,25 @@ public:
     //blur.draw();
 
 
-    opengl.glClearColor(0, 0, 0, 1);
-    opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-    fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
+    //opengl.glClearColor(0, 0, 0, 1);
+    //opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    //fan::opengl::viewport_t::set_viewport(0, window_size, window_size);
 
-    m_fbo_post_gui_shader.use();
-    m_fbo_post_gui_shader.set_int("_t00", 0);
-    m_fbo_post_gui_shader.set_int("_t01", 1);
-    m_fbo_post_gui_shader.set_float("m_time", gloco->m_time.elapsed() / 1e+9);
+    //m_fbo_post_gui_shader.use();
+    //m_fbo_post_gui_shader.set_int("_t00", 0);
+    //m_fbo_post_gui_shader.set_int("_t01", 1);
+    //m_fbo_post_gui_shader.set_float("m_time", gloco->m_time.elapsed() / 1e+9);
 
-    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-    color_buffers[0].bind_texture();
+    //get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    //color_buffers[0].bind_texture();
 
-    get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-    blur[0].mips.front().image.bind_texture();
+    //get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+    //blur[0].mips.front().image.bind_texture();
 
-    //get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
-    //blur[1].mips.front().image.bind_texture();
+    ////get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
+    ////blur[1].mips.front().image.bind_texture();
 
-    render_post_fb();
+    //render_post_fb();
 
     #endif
 
