@@ -43,7 +43,7 @@ namespace fan {
 
     std::function<void(const output_t&)> output_cb = [](const auto&) {};
 
-    command_t& register_command(const fan::string& cmd, auto func) {
+    command_t& add(const fan::string& cmd, auto func) {
       command_t command;
       command.func = func;
       command_t& obj = func_table[cmd];
@@ -51,7 +51,7 @@ namespace fan {
       return obj;
     }
 
-    int call_command(const fan::string& cmd) {
+    int call(const fan::string& cmd) {
       std::size_t arg0_off = cmd.find(" ");
       if (arg0_off == std::string::npos) {
         arg0_off = cmd.size();
@@ -74,7 +74,7 @@ namespace fan {
       }
       else {
         for (const auto& i : found->second.command_chain) {
-          call_command(i);
+          call(i);
         }
       }
 
@@ -121,127 +121,188 @@ namespace fan {
     return ret;
   }
 
-  static void create_console(commands_t& commands, TextEditor& editor, TextEditor& input) {
-    static std::vector<std::string> command_history;
-    static std::vector<std::string> output_buffer;
-    static std::string current_command;
-    static int command_history_index = 0;
-    static constexpr int buffer_size = 0xfff;
-    static int history_pos = -1;
-    static std::vector<std::string> possible_choices;
-    possible_choices.clear();
+  struct console_t {
 
-    if (current_command.size() == 0) {
-      current_command.resize(buffer_size);
-    }
-
-    ImGui::Begin("console");
-
-    ImGui::BeginChild("output_buffer", ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() * 1), false);
-
-    std::string output;
-    for (std::size_t i = 0; i < output_buffer.size(); ++i) {
-      output += output_buffer[i].c_str();
-    }
-
-    editor.Render("editor");
-
-    //ImGui::InputTextMultiline("##input2", output.data(), output.size(), ImVec2(-1, -1), ImGuiInputTextFlags_ReadOnly);
-
-    ImGui::EndChild();
-
-    if (current_command.size()) {
-
-      for (const auto& i : commands.func_table) {
-        const auto& command = i.first;
-        std::size_t len = std::strlen(current_command.c_str());
-        if (len && command.substr(0, len) == current_command.c_str()) {
-          possible_choices.push_back(command.c_str());
-        }
-      }
-      ImGui::SetNextWindowPos(ImVec2(ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y - ImGui::GetFrameHeightWithSpacing() * possible_choices.size()));
-
-      if (possible_choices.size()) {
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.24f, 0.27f, 0.28f, 0.8f));
-        ImGui::BeginChild("command_hints_window",
-          ImVec2(ImGui::GetWindowWidth() / 4,
-            ImGui::GetFrameHeightWithSpacing() * possible_choices.size())
-        );
-        for (const auto& i : possible_choices) {
-          ImGui::Text("%s", i.c_str());
-        }
-        ImGui::EndChild();
-        ImGui::PopStyleColor();
-      }
-    }
-
-    ImGui::BeginChild("input_text", ImVec2(0, ImGui::GetFrameHeightWithSpacing()), false);
-
-    input.Render("input");
-
-    current_command = input.GetText();
-    current_command.pop_back();
-    if (ImGui::IsKeyPressed(ImGuiKey_Enter, false)) {
-      command_history.push_back(current_command.substr(0, current_command.size() - 1));
-      output_buffer.push_back(current_command);
-      editor.SetReadOnly(false);
-      editor.InsertTextColored("> " + current_command, fan::color::hex(0x999999FF));
-      editor.SetReadOnly(true);
+    void open() {
       static auto l = [&](const fan::commands_t::output_t& out) {
         editor.SetReadOnly(false);
         fan::color color = fan::commands_t::highlight_color_table[out.highlight];
         editor.InsertTextColored(out.text, color);
         editor.SetReadOnly(true);
         output_buffer.push_back(out.text);
-        };
+      };
       commands.output_cb = l;
-      commands.call_command(current_command.substr(0, current_command.size() - 1));
-      history_pos = -1;
-      input.SetText("");
-      input.InsertText("a");
-      input.SetText("");
-      //ImGui::SetWindowFocus("input");
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, false)) {
-      if (history_pos == -1) {
-        if (command_history.size()) {
-          history_pos = command_history.size() - 1;
-        }
+
+      TextEditor::LanguageDefinition lang = TextEditor::LanguageDefinition::CPlusPlus();
+      // set your own known preprocessor symbols...
+      static const char* ppnames[] = { "NULL" };
+      // ... and their corresponding values
+      static const char* ppvalues[] = {
+        "#define NULL ((void*)0)",
+      };
+
+      for (int i = 0; i < sizeof(ppnames) / sizeof(ppnames[0]); ++i)
+      {
+        TextEditor::Identifier id;
+        id.mDeclaration = ppvalues[i];
+        lang.mPreprocIdentifiers.insert(std::make_pair(std::string(ppnames[i]), id));
       }
-      else {
-        history_pos = (history_pos - 1) % command_history.size();
-      }
-      if (command_history.size() && history_pos != -1) {
-        input.SetText(command_history[history_pos]);
-        input.SetCursorPosition(TextEditor::Coordinates(0, command_history[history_pos].size()));
-      }
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_DownArrow, false)) {
-      if (history_pos == -1) {
-        if (command_history.size()) {
-          history_pos = command_history.size() - 1;
-        }
-      }
-      else {
-        history_pos = (history_pos + 1) % command_history.size();
-      }
-      if (command_history.size() && history_pos != -1) {
-        input.SetText(command_history[history_pos]);
-        input.SetCursorPosition(TextEditor::Coordinates(0, command_history[history_pos].size()));
-      }
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_Tab, false)) {
-      if (possible_choices.size()) {
-        input.SetText(possible_choices.front() + " ");
-        input.SetCursorPosition(TextEditor::Coordinates(0, possible_choices.front().size() + 1));
-      }
-      else if (current_command == "\t") {
-        input.SetText("");
-      }
+
+      //for (auto& i : commands.func_table) {
+      //  TextEditor::Identifier id;
+      //  id.mDeclaration = i.second.description;
+      //  lang.mIdentifiers.insert(std::make_pair(i.first, id));
+      //}
+
+      editor.SetLanguageDefinition(lang);
+      //
+
+
+      auto palette = editor.GetPalette();
+      fan::color bg = palette[(int)TextEditor::PaletteIndex::Background];
+      bg = bg * 2;
+      palette[(int)TextEditor::PaletteIndex::Background] = bg.to_u32();
+
+      //palette[(int)TextEditor::PaletteIndex::LineNumber] = 0;
+      editor.SetPalette(palette);
+      editor.SetTabSize(2);
+      editor.SetReadOnly(true);
+      editor.SetShowWhitespaces(false);
+
+      input = editor;
+
+      input.SetReadOnly(false);
+      //input.SetShowLineNumbers(false);
+      palette[(int)TextEditor::PaletteIndex::Background] = TextEditor::GetDarkPalette()[(int)TextEditor::PaletteIndex::Background];
+      input.SetPalette(palette);
     }
 
-    ImGui::EndChild();
+    void render() {
+      possible_choices.clear();
 
-    ImGui::End();
-  }
+      if (current_command.size() == 0) {
+        current_command.resize(buffer_size);
+      }
+
+      ImGui::Begin("console");
+
+      ImGui::BeginChild("output_buffer", ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() * 1), false);
+
+      std::string output;
+      for (std::size_t i = 0; i < output_buffer.size(); ++i) {
+        output += output_buffer[i].c_str();
+      }
+
+      editor.Render("editor");
+
+      //ImGui::InputTextMultiline("##input2", output.data(), output.size(), ImVec2(-1, -1), ImGuiInputTextFlags_ReadOnly);
+
+      ImGui::EndChild();
+
+      if (current_command.size()) {
+
+        for (const auto& i : commands.func_table) {
+          const auto& command = i.first;
+          std::size_t len = std::strlen(current_command.c_str());
+          if (len && command.substr(0, len) == current_command.c_str()) {
+            possible_choices.push_back(command.c_str());
+          }
+        }
+        ImGui::SetNextWindowPos(ImVec2(ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y - ImGui::GetFrameHeightWithSpacing() * possible_choices.size()));
+
+        if (possible_choices.size()) {
+          ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.24f, 0.27f, 0.28f, 0.8f));
+          ImGui::BeginChild("command_hints_window",
+            ImVec2(ImGui::GetWindowWidth() / 4,
+              ImGui::GetFrameHeightWithSpacing() * possible_choices.size())
+          );
+          for (const auto& i : possible_choices) {
+            ImGui::Text("%s", i.c_str());
+          }
+          ImGui::EndChild();
+          ImGui::PopStyleColor();
+        }
+      }
+
+      ImGui::BeginChild("input_text", ImVec2(0, ImGui::GetFrameHeightWithSpacing()), false);
+
+      input.Render("input");
+
+      current_command = input.GetText();
+      current_command.pop_back();
+      if (ImGui::IsKeyPressed(ImGuiKey_Enter, false)) {
+        command_history.push_back(current_command.substr(0, current_command.size() - 1));
+        output_buffer.push_back(current_command);
+        editor.SetReadOnly(false);
+        editor.InsertTextColored("> " + current_command, fan::color::hex(0x999999FF));
+        editor.SetReadOnly(true);
+        commands.call(current_command.substr(0, current_command.size() - 1));
+        history_pos = -1;
+        input.MoveEnd();
+        //ImGui::SetWindowFocus("input");
+      }
+      if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, false)) {
+        if (history_pos == -1) {
+          if (command_history.size()) {
+            history_pos = command_history.size() - 1;
+          }
+        }
+        else {
+          history_pos = (history_pos - 1) % command_history.size();
+        }
+        if (command_history.size() && history_pos != -1) {
+          input.SetText(command_history[history_pos]);
+          input.SetCursorPosition(TextEditor::Coordinates(0, command_history[history_pos].size()));
+        }
+      }
+      if (ImGui::IsKeyPressed(ImGuiKey_DownArrow, false)) {
+        if (history_pos == -1) {
+          if (command_history.size()) {
+            history_pos = command_history.size() - 1;
+          }
+        }
+        else {
+          history_pos = (history_pos + 1) % command_history.size();
+        }
+        if (command_history.size() && history_pos != -1) {
+          input.SetText(command_history[history_pos]);
+          input.SetCursorPosition(TextEditor::Coordinates(0, command_history[history_pos].size()));
+        }
+      }
+      if (ImGui::IsKeyPressed(ImGuiKey_Tab, false)) {
+        if (possible_choices.size()) {
+          input.SetText(possible_choices.front() + " ");
+          input.SetCursorPosition(TextEditor::Coordinates(0, possible_choices.front().size() + 1));
+        }
+        else if (current_command == "\t") {
+          input.SetText("");
+        }
+      }
+
+      ImGui::EndChild();
+
+      ImGui::End();
+    }
+
+    void print(const fan::string& msg) {
+      commands_t::output_t out;
+      out.text = msg;
+      out.highlight = commands_t::highlight_e::text;
+      commands.output_cb(out);
+
+      input.MoveEnd();
+    }
+
+    std::vector<std::string> command_history;
+    std::string current_command;
+    int command_history_index = 0;
+    static constexpr int buffer_size = 0xfff;
+    int history_pos = -1;
+    std::vector<std::string> possible_choices;
+    std::vector<std::string> output_buffer;
+
+    commands_t commands;
+    TextEditor editor;
+    TextEditor input;
+  };
 }

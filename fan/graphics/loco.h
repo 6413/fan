@@ -1886,46 +1886,48 @@ public:
 
     #if defined(loco_imgui)
 
-    commands.register_command("echo", [&](const fan::commands_t::arg_t& args) {
+    console.open();
+
+    console.commands.add("echo", [&](const fan::commands_t::arg_t& args) {
       fan::commands_t::output_t out;
       out.text = fan::append_args(args) + "\n";
       out.highlight = fan::commands_t::highlight_e::info;
-      commands.output_cb(out);
+      console.commands.output_cb(out);
       }).description = "prints something - usage echo [args]";
 
-    commands.register_command("help", [&](const fan::commands_t::arg_t& args) {
+    console.commands.add("help", [&](const fan::commands_t::arg_t& args) {
       if (args.empty()) {
         fan::commands_t::output_t out;
         out.highlight = fan::commands_t::highlight_e::info;
         std::string out_str;
         out_str += "{\n";
-        for (const auto& i : commands.func_table) {
+        for (const auto& i : console.commands.func_table) {
           out_str += "\t" + i.first + ",\n";
         }
         out_str += "}\n";
         out.text = out_str;
-        commands.output_cb(out);
+        console.commands.output_cb(out);
         return;
       }
       else if (args.size() == 1) {
-        auto found = commands.func_table.find(args[0]);
-        if (found == commands.func_table.end()) {
-          commands.print_command_not_found(args[0]);
+        auto found = console.commands.func_table.find(args[0]);
+        if (found == console.commands.func_table.end()) {
+          console.commands.print_command_not_found(args[0]);
           return;
         }
         fan::commands_t::output_t out;
         out.text = found->second.description + "\n";
         out.highlight = fan::commands_t::highlight_e::info;
-        commands.output_cb(out);
+        console.commands.output_cb(out);
       }
       else {
-        commands.print_invalid_arg_count();
+        console.commands.print_invalid_arg_count();
       }
       }).description = "get info about specific command - usage help command";
 
-    commands.register_command("list", [&](const fan::commands_t::arg_t& args) {
+    console.commands.add("list", [&](const fan::commands_t::arg_t& args) {
       std::string out_str;
-      for (const auto& i : commands.func_table) {
+      for (const auto& i : console.commands.func_table) {
         out_str += i.first + "\n";
       }
 
@@ -1933,76 +1935,33 @@ public:
       out.text = out_str;
       out.highlight = fan::commands_t::highlight_e::info;
 
-      commands.output_cb(out);
+      console.commands.output_cb(out);
       }).description = "lists all commands - usage list";
 
-    commands.register_command("alias", [&](const fan::commands_t::arg_t& args) {
+    console.commands.add("alias", [&](const fan::commands_t::arg_t& args) {
       if (args.size() < 2 || args[1].empty()) {
-        commands.print_invalid_arg_count();
+        console.commands.print_invalid_arg_count();
         return;
       }
-      if (commands.insert_to_command_chain(args)) {
+      if (console.commands.insert_to_command_chain(args)) {
         return;
       }
-      commands.func_table[args[0]] = commands.func_table[args[1]];
+      console.commands.func_table[args[0]] = console.commands.func_table[args[1]];
       }).description = "can create alias commands - usage alias [cmd name] [cmd]";
 
 
-    commands.register_command("show_fps", [&](const fan::commands_t::arg_t& args) {
+    console.commands.add("show_fps", [&](const fan::commands_t::arg_t& args) {
       if (args.size() != 1) {
-        commands.print_invalid_arg_count();
+        console.commands.print_invalid_arg_count();
         return;
       }
       toggle_fps = std::stoi(args[0]);
     }).description = "toggles fps - usage show_fps [value]";
 
-    commands.register_command("quit", [&](const fan::commands_t::arg_t& args) {
+    console.commands.add("quit", [&](const fan::commands_t::arg_t& args) {
       exit(0);
     }).description="quits program - usage quit";
 
-
-    TextEditor::LanguageDefinition lang = TextEditor::LanguageDefinition::CPlusPlus();
-    // set your own known preprocessor symbols...
-    static const char* ppnames[] = { "NULL" };
-    // ... and their corresponding values
-    static const char* ppvalues[] = {
-      "#define NULL ((void*)0)",
-  };
-
-    for (int i = 0; i < sizeof(ppnames) / sizeof(ppnames[0]); ++i)
-    {
-      TextEditor::Identifier id;
-      id.mDeclaration = ppvalues[i];
-      lang.mPreprocIdentifiers.insert(std::make_pair(std::string(ppnames[i]), id));
-    }
-
-    //for (auto& i : commands.func_table) {
-    //  TextEditor::Identifier id;
-    //  id.mDeclaration = i.second.description;
-    //  lang.mIdentifiers.insert(std::make_pair(i.first, id));
-    //}
-
-    editor.SetLanguageDefinition(lang);
-    //
-
-
-    auto palette = editor.GetPalette();
-    fan::color bg = palette[(int)TextEditor::PaletteIndex::Background];
-    bg = bg * 2;
-    palette[(int)TextEditor::PaletteIndex::Background] = bg.to_u32();
-
-    //palette[(int)TextEditor::PaletteIndex::LineNumber] = 0;
-    editor.SetPalette(palette);
-    editor.SetTabSize(2);
-    editor.SetReadOnly(true);
-    editor.SetShowWhitespaces(false);
-
-    input = editor;
-
-    input.SetReadOnly(false);
-    //input.SetShowLineNumbers(false);
-    palette[(int)TextEditor::PaletteIndex::Background] = TextEditor::GetDarkPalette()[(int)TextEditor::PaletteIndex::Background];
-    input.SetPalette(palette);
     #endif
   }
 
@@ -2173,12 +2132,12 @@ public:
     if (ImGui::IsKeyPressed(ImGuiKey_F3, false)) {
       toggle_console = !toggle_console;
       // force focus xd
-      input.InsertText("a");
-      input.SetText("");
+      console.input.InsertText("a");
+      console.input.SetText("");
     }
 
     if (toggle_console) {
-      fan::create_console(commands, editor, input);
+      console.render();
     }
 
     ImGui::Render();
@@ -2962,8 +2921,7 @@ public:
   #endif
 
   #if defined(loco_imgui)
-  fan::commands_t commands;
-  TextEditor editor, input;
+  fan::console_t console;
   bool toggle_console = false;
   bool toggle_fps = false;
 
