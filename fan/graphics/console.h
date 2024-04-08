@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/color.h>
+
 namespace fan {
   struct commands_t {
     using arg_t = std::vector<std::string>;

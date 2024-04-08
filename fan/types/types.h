@@ -36,6 +36,7 @@
 #include <tuple>
 #include <ranges>
 #include <iomanip>
+#include <cassert>
 
 #pragma pack(push, 1)
 
@@ -313,10 +314,10 @@ namespace fan {
 // NEEDS /Zc:__cplusplus /Zc:preprocessor
 #define __FAN__FOREACH_NS(f, ...) __FAN__FOREACH_NS_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
 
-#include _FAN_PATH(types/function.h)
-#include _FAN_PATH(types/fstring.h)
-#include _FAN_PATH(time/time.h)
-#include _FAN_PATH(types/vector.h)
+#include <fan/types/function.h>
+#include <fan/types/fstring.h>
+#include <fan/time/time.h>
+#include <fan/types/vector.h>
 
 namespace fan {
 
@@ -578,14 +579,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
     fan::print(struct_to_string(st));
   }
 
-  static void throw_error_impl() {
-    #ifdef fan_compiler_msvc
-    system("pause");
-    #endif
-    #if __cpp_exceptions
-    throw std::runtime_error("");
-    #endif
-  }
+  void throw_error_impl();
 
   template <typename ...Args>
   static void throw_error(const Args&... args) {
@@ -602,11 +596,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
     throw_error_impl();
   }
 
-  static void assert_test(bool test) {
-    if (!test) {
-      fan::throw_error("assert failed");
-    }
-  }
+  void assert_test(bool test);
 
 	template <typename T>
 	constexpr uintptr_t vector_byte_size(const typename std::vector<T>& vector)
@@ -830,7 +820,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 	template<typename Callable>
 	using return_type_of_t = typename decltype(std::function{ std::declval<Callable>() })::result_type;
 
-  constexpr inline uint64_t get_hash(const char* str) {
+  static constexpr uint64_t get_hash(const char* str) {
     uint64_t result = 0xcbf29ce484222325; // FNV offset basis
 
     uint32_t i = 0;
@@ -848,7 +838,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
     return result;
   }
 
-  constexpr inline uint64_t get_hash(const std::string_view& str) {
+  static constexpr uint64_t get_hash(const std::string_view& str) {
     uint64_t result = 0xcbf29ce484222325; // FNV offset basis
 
     uint32_t i = 0;
@@ -862,19 +852,19 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
     return result;
   }
 
-	constexpr inline uint64_t get_hash(const std::string& str) {
-		uint64_t result = 0xcbf29ce484222325; // FNV offset basis
+  static constexpr uint64_t get_hash(const std::string& str) {
+    uint64_t result = 0xcbf29ce484222325; // FNV offset basis
 
-		uint32_t i = 0;
+    uint32_t i = 0;
 
-		while (str[i] != 0) {
-			result ^= (uint64_t)str[i];
-			result *= 1099511628211; // FNV prime
-			i++;
-		}
+    while (str[i] != 0) {
+      result ^= (uint64_t)str[i];
+      result *= 1099511628211; // FNV prime
+      i++;
+    }
 
-		return result;
-	}
+    return result;
+  }
 
 	template <class T>
 	class has_member_type {
@@ -908,20 +898,6 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
   private:
     From & val;
   };
-
-	constexpr const char* file_name(const char* path) {
-		const char* file = path;
-		while (*path) {
-#if defined(fan_platform_windows)
-			if (*path++ == '\\') {
-#elif defined(fan_platform_unix)
-			if (*path++ == '/') {
-#endif
-				file = path;
-			}
-			}
-		return file;
-		}
 
 	namespace debug {
 
@@ -1039,36 +1015,8 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 
 #ifndef __clz
 #define __clz __clz
-static uint8_t __clz32(uint32_t p0) {
-	#if defined(__GNUC__)
-	return __builtin_clz(p0);
-	#elif defined(_MSC_VER)
-	DWORD trailing_zero = 0;
-	if (_BitScanReverse(&trailing_zero, p0)) {
-		return uint8_t((DWORD)31 - trailing_zero);
-	}
-	else {
-		return 0;
-	}
-	#else
-	#error ?
-	#endif
-}
-static uint8_t __clz64(uint64_t p0) {
-	#if defined(__GNUC__)
-	return __builtin_clzll(p0);
-	#elif defined(_MSC_VER)
-	DWORD trailing_zero = 0;
-	if (_BitScanReverse64(&trailing_zero, p0)) {
-		return uint8_t((DWORD)63 - trailing_zero);
-	}
-	else {
-		return 0;
-	}
-	#else
-	#error ?
-	#endif
-}
+uint8_t __clz32(uint32_t p0);
+uint8_t __clz64(uint64_t p0);
 
 #if defined(__x86_64__) || defined(_M_AMD64)
 	#define SYSTEM_BIT 64
@@ -1236,32 +1184,6 @@ namespace fan {
   #define fan_make_flexible_array(type, name, ...) \
   std::array<type, std::initializer_list<type>{__VA_ARGS__}.size()> name = {__VA_ARGS__}
 
-  static std::vector<std::string> split(std::string str, std::string token) {
-    std::vector<std::string>result;
-    while (str.size()) {
-      int index = str.find(token);
-      if (index != std::string::npos) {
-        result.push_back(str.substr(0, index));
-        str = str.substr(index + token.size());
-        if (str.size() == 0)result.push_back(str);
-      }
-      else {
-        result.push_back(str);
-        str = "";
-      }
-    }
-    return result;
-  }
-
-  static std::vector<std::string> split_quoted(const std::string& input) {
-    std::vector<std::string> args;
-    std::istringstream stream(input);
-    std::string arg;
-
-    while (stream >> std::quoted(arg)) {
-      args.push_back(arg);
-    }
-
-    return args;
-  }
+  std::vector<std::string> split(std::string str, std::string token);
+  std::vector<std::string> split_quoted(const std::string& input);
 }

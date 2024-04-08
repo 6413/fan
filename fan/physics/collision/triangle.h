@@ -1,7 +1,7 @@
 #pragma once
 
-#include _FAN_PATH(types/vector.h)
-#include _FAN_PATH(math/math.h)
+#include <fan/types/vector.h>
+#include <fan/math/math.h>
 
 namespace fan_2d {
 

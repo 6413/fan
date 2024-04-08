@@ -1,4 +1,4 @@
-#include _FAN_PATH(fan_bll_preset.h)
+#include <fan/fan_bll_preset.h>
 //#define BLL_set_namespace
 #define BLL_set_CPP_CopyAtPointerChange
 #define BLL_set_SafeNext 1

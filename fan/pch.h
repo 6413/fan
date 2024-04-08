@@ -9,7 +9,7 @@
 #include <fstream>
 #include <string>
 
-#define loco_imgui
+//#define loco_imgui
 //#define loco_assimp
 
 #if defined(loco_assimp)
@@ -51,50 +51,14 @@
 #endif
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH,fan/types/types.h)
 
-#if defined(loco_imgui)
-#include _FAN_PATH(imgui/text_editor.h)
-#endif
-
 //#define loco_vulkan
 //#define loco_compute_shader
 
-#define loco_window
-#define loco_context
-//#define loco_legacy
-#define loco_gl_major 3
-#define loco_gl_minor 3
-
-#define loco_rectangle
-#define loco_light
-#define loco_line
-#define loco_circle
-#define loco_button
-#define loco_sprite
-#define loco_dropdown
-#define loco_pixel_format_renderer
-#define loco_tp
-#define loco_sprite_sheet
-#define loco_responsive_text
-//
-#define loco_post_process
-
-//#define loco_grass_2d
-
-//#define loco_rectangle_3d
-//#define loco_model_3d
-//
-// 
-#define loco_physics
-
-#if defined(fan_platform_windows)
-//#define loco_cuda
-#define loco_nv12
-#endif
-#define loco_pixel_format_renderer
+#include <fan/graphics/loco_settings.h>
 //
 #include _FAN_PATH(graphics/loco.h)
 
 
-#if defined(loco_imgui)
+#if defined(loco_imgui) && defined(loco_vfi)
   #include _FAN_PATH(graphics/gui/model_maker/maker.h)
 #endif

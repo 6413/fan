@@ -6,8 +6,9 @@
 #include <string>
 #include <compare>
 #include <tuple>
+#include <cstdint>
 
-#include _FAN_PATH(math/math.h)
+#include <fan/math/math.h>
 
 #define fan_coordinate_letters0
 #define fan_coordinate_letters1 x
@@ -16,6 +17,10 @@
 #define fan_coordinate_letters4 x, y, z, w
 
 #define fan_coordinate(x) CONCAT(fan_coordinate_letters, x)
+
+#if defined(loco_imgui)
+#include <fan/imgui/imgui.h>
+#endif
 
 namespace fan {
 

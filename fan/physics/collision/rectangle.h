@@ -1,6 +1,7 @@
 #pragma once
 
-#include _FAN_PATH(physics/collision/triangle.h)
+#include <fan/types/matrix.h>
+#include <fan/physics/collision/triangle.h>
 
 namespace fan_2d {
 

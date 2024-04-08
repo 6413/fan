@@ -1,9 +1,9 @@
 #pragma once
 
-#include _FAN_PATH(graphics/opengl/gl_defines.h)
+#include <fan/graphics/opengl/gl_defines.h>
 
-#include _FAN_PATH(math/random.h)
-#include _FAN_PATH(time/time.h)
+#include <fan/math/random.h>
+#include <fan/time/time.h>
 
 #if defined(fan_platform_windows)
   #include <Windows.h>
@@ -14,6 +14,8 @@
 #endif
 
 #include <unordered_map>
+
+#include <fan/window/window.h>
 
 namespace fan {
 
@@ -145,7 +147,7 @@ namespace fan {
         return (void*)internal->glXGetProcAddress((const GLubyte*)name);
 
         #endif*/
-        return (void*)fan::window::glfwGetProcAddress(name);
+        return (void*)glfwGetProcAddress(name);
       }
 
 

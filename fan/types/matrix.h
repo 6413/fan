@@ -1,8 +1,8 @@
 #pragma once
 
-#include _FAN_PATH(types/vector.h)
-#include _FAN_PATH(types/quaternion.h)
-#include _FAN_PATH(math/random.h)
+#include <fan/types/vector.h>
+#include <fan/types/quaternion.h>
+#include <fan/math/random.h>
 
 #include <type_traits>
 
