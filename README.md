@@ -34,7 +34,8 @@ Requires c++20
    sudo apt install clang -y &&
    sudo apt install libfmt-dev -y &&
    sudo apt install libglfw3-dev -y &&
-   sudo apt install libopus-dev -y
+   sudo apt install libopus-dev -y &&
+   sudo apt install libx11-dev -y
    ```
 3. Clone the repository: `git clone https://github.com/6413/fan.git`
 4. Setup and compile using `make -B -f make_imgui`, `make -f make_pch`, `make`, in order
