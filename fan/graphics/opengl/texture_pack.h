@@ -22,8 +22,8 @@ struct texturepack_t {
     loco_t::image_t image;
   };
   uint32_t pack_amount;
-  fan::hector_t<fan::hector_t<texture_t>> texture_list;
-  fan::hector_t<pixel_data_t> pixel_data_list;
+  std::vector<std::vector<texture_t>> texture_list;
+  std::vector<pixel_data_t> pixel_data_list;
 
   pixel_data_t& get_pixel_data(uint32_t pack_id) {
     return pixel_data_list[pack_id];
@@ -43,9 +43,6 @@ struct texturepack_t {
   void open_compiled(const fan::string& filename, loco_t::image_t::load_properties_t lp) {
     auto& context = gloco->get_context();
 
-    texture_list.open();
-    pixel_data_list.open();
-
     fan::string data;
     fan::io::file::read(filename, &data);
     uint32_t data_index = 0;
@@ -56,7 +53,6 @@ struct texturepack_t {
     for (uint32_t i = 0; i < pack_amount; i++) {
       uint32_t texture_amount = *(uint32_t*)&data[data_index];
       data_index += sizeof(pack_amount);
-      texture_list[i].open();
       for (uint32_t j = 0; j < texture_amount; j++) {
         texturepack_t::texture_t texture;
         texture.hash = *(uint64_t*)&data[data_index];
@@ -92,14 +88,6 @@ struct texturepack_t {
       pixel_data_list[i].image.load(image_info, lp);
       WebPFree(image_info.data);
     }
-  }
-
-  void close() {
-    for (uint32_t i = 0; i < pack_amount; i++) {
-      texture_list[i].close();
-    }
-    texture_list.close();
-    pixel_data_list.close();
   }
 
   void iterate_loaded_images(auto lambda) {

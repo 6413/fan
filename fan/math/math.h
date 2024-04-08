@@ -8,6 +8,8 @@
 #include <functional>
 #include <cmath>
 
+#include <fan/types/types.h>
+
 namespace fan { 
 	namespace math {
 		constexpr f32_t pi = 3.1415927;

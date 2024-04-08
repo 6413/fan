@@ -7,7 +7,7 @@ using ssbo_t = fan::vulkan::core::ssbo_t<vi_t, ri_t, max_instance_size, vulkan_b
 #define BLL_set_CPP_Node_ConstructDestruct
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix shape_bm
-#include _FAN_PATH(fan_bll_preset.h)
+#include <fan/fan_bll_preset.h>
 #define BLL_set_Link 0
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeData \

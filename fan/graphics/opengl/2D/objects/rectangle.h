@@ -62,8 +62,6 @@ struct rectangle_t {
 
 
   void push_back(loco_t::cid_nt_t& id, properties_t p) {
-    get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
-    get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
     sb_push_back(id, p);
 
     #if defined(loco_vulkan)

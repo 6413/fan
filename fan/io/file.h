@@ -1,6 +1,6 @@
 #pragma once
 
-#include _FAN_PATH(types/vector.h)
+#include <fan/types/vector.h>
 
 #include <fstream>
 #include <string>

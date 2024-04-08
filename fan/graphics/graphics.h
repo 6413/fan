@@ -1,15 +1,15 @@
 #pragma once
 
 #if defined(loco_window)
-	#include _FAN_PATH(window/window.h)
+	#include <fan/window/window.h>
 #endif
-#include _FAN_PATH(physics/collision/rectangle.h)
-#include _FAN_PATH(graphics/camera.h)
-#include _FAN_PATH(types/masterpiece.h)
-#include _FAN_PATH(graphics/webp.h)
+#include <fan/physics/collision/rectangle.h>
+#include <fan/graphics/camera.h>
+#include <fan/types/masterpiece.h>
+#include <fan/graphics/webp.h>
 
 #if defined(loco_opengl)
-	#include _FAN_PATH(graphics/opengl/gl_graphics.h)
+	#include <fan/graphics/opengl/gl_graphics.h>
 #elif defined(loco_vulkan)
 	#include _FAN_PATH(graphics/vulkan/vk_graphics.h)
 #endif

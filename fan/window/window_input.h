@@ -2,6 +2,9 @@
 
 #include <unordered_map>
 
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 #ifdef fan_platform_windows
 
 	#define WIN32_LEAN_AND_MEAN
@@ -187,12 +190,5 @@ namespace fan {
 		static constexpr auto rshift_lparam_up = 0xC0360001;
 		static constexpr auto lctrl_lparam_up = 0xC01D0001;
 		static constexpr auto rctrl_lparam_up = 0xC11D0001;
-	}
-
-
-	namespace window_input {
-
-    #include _FAN_PATH(window/window_input_common.h)
-
 	}
 }
