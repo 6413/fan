@@ -1,4 +1,6 @@
-#include _FAN_PATH(types/color.h)
+#pragma once
+
+#include <fan/types/color.h>
 
 #include <string>
 #include <vector>
@@ -9,6 +11,7 @@
 #include <map>
 #include <regex>
 
+#include <fan/imgui/imgui.h>
 
 class TextEditor
 {

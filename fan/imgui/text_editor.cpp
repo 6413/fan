@@ -1,4 +1,6 @@
-#include fan_pch
+#include "text_editor.h"
+
+#include <chrono>
 
 // TODO
 // - multiline comments vs single-line: latter is blocking start of a ML
