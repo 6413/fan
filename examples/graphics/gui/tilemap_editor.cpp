@@ -1,7 +1,7 @@
-#include fan_pch
+#include <fan/pch.h>
 
-#include _FAN_PATH(graphics/gui/tilemap_editor/editor.h)
-#include _FAN_PATH(graphics/gui/tilemap_editor/renderer0.h)
+#include <fan/graphics/gui/tilemap_editor/editor.h>
+#include <fan/graphics/gui/tilemap_editor/renderer0.h>
 
 // editor
 fan::graphics::camera_t camera0;
@@ -18,12 +18,12 @@ struct player_t {
       .size = 32 / 2,
       .blending = true,
     } };
-    loco_t::shapes_t::light_t::properties_t lp;
+    loco_t::light_t::properties_t lp;
     lp.position = visual.get_position();
     lp.size = 256;
     lp.color = fan::color(1, 0.4, 0.4, 1);
-    lp.camera = &camera1.camera;
-    lp.viewport = &camera1.viewport;
+    lp.camera = camera1.camera;
+    lp.viewport = camera1.viewport;
 
     lighting = lp;
   }
@@ -66,13 +66,14 @@ struct player_t {
 f32_t zoom = 2;
 bool hovered = false;
 void init_zoom() {
-  auto& window = *gloco->get_window();
+  auto& window = gloco->window;
   auto update_ortho = [&] {
     fan::vec2 s = gloco->window.get_size();
-    camera1.camera.set_ortho(
+    gloco->camera_set_ortho(
+      camera1.camera,
       fan::vec2(-s.x, s.x) / zoom,
       fan::vec2(-s.y, s.y) / zoom
-    );;
+    );
   };
 
   update_ortho();
@@ -96,28 +97,36 @@ int main() {
   //
   loco_t loco;
 
-  camera0.camera = loco.default_camera->camera;
-  camera1.camera = loco.default_camera->camera;
 
-  camera0.viewport.open();
+  camera0.camera = loco.camera_create();
+  camera1.camera = loco.camera_create();
+  fan::vec2 window_size = loco.window.get_size();
+  loco.camera_set_ortho(
+    camera0.camera,
+    fan::vec2(-window_size.x, window_size.x),
+    fan::vec2(-window_size.y, window_size.y)
+  );
+  loco.camera_set_ortho(
+    camera1.camera,
+    fan::vec2(-window_size.x, window_size.x),
+    fan::vec2(-window_size.y, window_size.y)
+  );
 
-  camera1.viewport.open();
+  camera0.viewport = loco.viewport_create();
+  camera1.viewport = loco.viewport_create();
 
 
   init_zoom();
 
   fte_t fte;//
-  fte.file_name = "tilemaps/map_game0_1.fte";
   fan::string texture_pack_name = "texture_packs/TexturePack";
   fte_t::properties_t p;
   p.texturepack_name = texture_pack_name;
   p.camera = &camera0;
   fte.open(p);
-  fte.fin("tilemaps/map_game0_1.fte");
-  //loco.set_vsync(0);
-  //loco.window.set_max_fps(165);
+  fte.fin("map.json");
 
-  std::unique_ptr<player_t> player;
+std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;
   bool render_scene = false;
   std::unique_ptr<fte_renderer_t::id_t> map_id0_t;
@@ -126,8 +135,8 @@ int main() {
     {
       renderer = std::make_unique<fte_renderer_t>();
 
-      loco_t::image_t::load_properties_t lp;
-      lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_border;
+      loco_t::image_load_properties_t lp;
+      lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
       lp.min_filter = fan::opengl::GL_NEAREST;
       lp.mag_filter = fan::opengl::GL_NEAREST;
       renderer->open(&fte.texturepack);
@@ -213,33 +222,38 @@ int main() {
   };
 
   loco.loop([&] {
-
     if (render_scene) {
       if (ImGui::Begin("Program", 0, ImGuiWindowFlags_NoBackground)) {
         player->update();
         fan::vec2 dst = player->visual.get_position();
-        fan::vec2 src = camera1.camera.get_position();
+        fan::vec2 src = loco.camera_get_position(camera1.camera);
         // smooth camera
         //fan::vec2 offset = (dst - src) * 4 * gloco->delta_time;
         //gloco->default_camera->camera.set_position(src + offset);
         fan::vec2 s = ImGui::GetContentRegionAvail();
-        camera1.camera.set_ortho(
+        loco.camera_set_ortho(
+          camera1.camera,
           fan::vec2(-s.x, s.x) / zoom,
           fan::vec2(-s.y, s.y) / zoom
         );
 
-        camera1.camera.set_position(dst);
+        loco.camera_set_position(
+          camera1.camera,
+          dst
+        );
         renderer->update(*map_id0_t, dst);
         loco.set_imgui_viewport(camera1.viewport);
       }
       else {
-        camera1.viewport.zero();
+        loco.viewport_zero(
+          camera1.viewport
+        );
       }
       hovered = ImGui::IsWindowHovered();
       ImGui::End();
 
     }
   });
-  
+  //
   return 0;
 }

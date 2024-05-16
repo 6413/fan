@@ -132,6 +132,10 @@
 #define GLFW_HAS_GETKEYNAME             (GLFW_VERSION_COMBINED >= 3200) // 3.2+ glfwGetKeyName()
 #define GLFW_HAS_GETERROR               (GLFW_VERSION_COMBINED >= 3300) // 3.3+ glfwGetError()
 
+#undef GLFW_HAS_WINDOW_HOVERED
+#undef GLFW_MOUSE_PASSTHROUGH
+#undef GLFW_HAS_MOUSE_PASSTHROUGH
+
 // GLFW data
 enum GlfwClientApi
 {
@@ -147,6 +151,7 @@ struct ImGui_ImplGlfw_Data
     double                  Time;
     GLFWwindow*             MouseWindow;
     GLFWcursor*             MouseCursors[ImGuiMouseCursor_COUNT];
+    ImGuiMouseCursor        CachedCursor;
     ImVec2                  LastValidMousePos;
     GLFWwindow*             KeyOwnerWindows[GLFW_KEY_LAST];
     bool                    InstalledCallbacks;
@@ -169,7 +174,7 @@ struct ImGui_ImplGlfw_Data
     WNDPROC                 PrevWndProc;
 #endif
 
-    ImGui_ImplGlfw_Data()   { memset((void*)this, 0, sizeof(*this)); }
+    ImGui_ImplGlfw_Data()   { memset((void*)this, 0, sizeof(*this)); CachedCursor = -1; }
 };
 
 // Backend data stored in io.BackendPlatformUserData to allow support for multiple Dear ImGui contexts
@@ -793,8 +798,11 @@ static void ImGui_ImplGlfw_UpdateMouseCursor()
         {
             // Show OS mouse cursor
             // FIXME-PLATFORM: Unfocused windows seems to fail changing the mouse cursor with GLFW 3.2, but 3.3 works here.
-            glfwSetCursor(window, bd->MouseCursors[imgui_cursor] ? bd->MouseCursors[imgui_cursor] : bd->MouseCursors[ImGuiMouseCursor_Arrow]);
+            if (bd->CachedCursor != imgui_cursor) {
+              glfwSetCursor(window, bd->MouseCursors[imgui_cursor] ? bd->MouseCursors[imgui_cursor] : bd->MouseCursors[ImGuiMouseCursor_Arrow]);
+              bd->CachedCursor = imgui_cursor;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            }
         }
     }
 }

@@ -13,6 +13,14 @@
 
 #include <fan/imgui/imgui.h>
 
+#undef assert
+
+static void assert(bool condition) {
+  if (!condition) {
+    std::abort();
+  }
+}
+
 class TextEditor
 {
 public:
@@ -148,8 +156,8 @@ public:
 
     Glyph(Char aChar, PaletteIndex aColorIndex) : mChar(aChar), mColorIndex(aColorIndex),
       mComment(false), mMultiLineComment(false), mPreprocessor(false), mColorOverride(false) {}
-    Glyph(Char aChar, const fan::color& color) : mChar(aChar),
-      mComment(false), mMultiLineComment(false), mPreprocessor(false), custom_color(color), mColorOverride(true) {}
+    Glyph(Char aChar, const fan::color& color) : mChar(aChar), custom_color(color),
+      mComment(false), mMultiLineComment(false), mPreprocessor(false), mColorOverride(true) {}
   };
 
   typedef std::vector<Glyph> Line;

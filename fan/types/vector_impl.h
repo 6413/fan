@@ -1,3 +1,4 @@
+#pragma pack(push, 1)
 #define make_for_all(todo) \
 	vec_t ret = 0; for (access_type_t i = 0; i < size(); ++i) { todo; } return ret
 #define make_for_all_test1_noret(todo) for (access_type_t i = 0; i < size() && i < test0.size(); ++i) { todo; }
@@ -210,3 +211,5 @@ value_type_t fan_coordinate(vec_n);
 #undef make_for_all_test1
 #undef make_for_all_test2
 #undef __FAN_PTR_EACH
+
+#pragma pack(pop)

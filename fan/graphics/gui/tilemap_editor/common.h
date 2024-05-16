@@ -19,7 +19,7 @@ struct version_001_t {
       }
 
       void get_shape(fte_t* fte) {
-        for (int i = 0; i < layers.size(); ++i) {
+        for (std::size_t i = 0; i < layers.size(); ++i) {
           fte_t::tile_t& layer = layers[i];
           fan::vec2i grid_position = fan::vec2(layer.position);
           fte->convert_draw_to_grid(grid_position);
@@ -57,7 +57,7 @@ struct version_001_t {
                 .camera = fte->camera,
                 .position = fan::vec3(fan::vec2(layer.position), layer.position.z + 1),
                 .size = fte->tile_size,
-                .image = &fte->grid_visualize.collider_color,
+                .image = fte->grid_visualize.collider_color,
                 .blending = true
               } };
               break;
@@ -67,17 +67,19 @@ struct version_001_t {
                 .camera = fte->camera,
                 .position = layer.position,
                 .size = layer.size,
-                .color = layer.color,
-                .blending = true
+                .color = layer.color
               }};
               fte->visual_shapes[layer.position].shape = fan::graphics::sprite_t{{
                 .camera = fte->camera,
                 .position = fan::vec3(fan::vec2(layer.position), layer.position.z + 1),
                 .size = fte->tile_size,
-                .image = &fte->grid_visualize.light_color,
+                .image = fte->grid_visualize.light_color,
                 .blending = true
               }};
               break;
+            }
+            default: {
+              fan::throw_error("");
             }
           }
         }
