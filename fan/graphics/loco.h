@@ -3,8 +3,8 @@
 #include <fan/graphics/loco_settings.h>
 
 #define loco_opengl
-//#define loco_framebuffer
-//#define loco_post_process
+#define loco_framebuffer
+#define loco_post_process
 #define loco_vfi
 #define loco_physics
 
@@ -31,6 +31,7 @@
 #define loco_circle
 #define loco_letter
 #define loco_responsive_text
+#define loco_universal_image_renderer
 
 
 //#define debug_shape_t
@@ -85,6 +86,7 @@ struct loco_t : fan::opengl::context_t {
       grid,
       vfi,
       particles,
+      universal_image_renderer,
       last
     };
   };
@@ -94,7 +96,8 @@ struct loco_t : fan::opengl::context_t {
       light,
       common,
       vfi,
-      texture
+      texture,
+      texture4,
     };
   };
 
@@ -183,6 +186,8 @@ struct loco_t : fan::opengl::context_t {
   using get_outline_size_cb = f32_t (*)(shape_t*);
   using get_outline_color_cb = fan::color (*)(shape_t*);
 
+  using reload_cb = void (*)(shape_t*, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter); 
+
   using draw_cb = void (*)(uint8_t draw_range);
 
   struct functions_t {
@@ -232,6 +237,8 @@ struct loco_t : fan::opengl::context_t {
     get_dst_cb get_dst;
     get_outline_size_cb get_outline_size;
     get_outline_color_cb get_outline_color;
+
+    reload_cb reload;
 
     draw_cb draw;
   };
@@ -636,6 +643,52 @@ struct loco_t : fan::opengl::context_t {
             delete[] ri;
           }
         },
+        .set_image = [](shape_t* shape, loco_t::image_t image) {
+          auto sp = gloco->shaper.ShapeList[*shape];
+
+          auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
+          auto& kps = gloco->shaper.KeyPacks[kpi];
+
+          void* _KeyPack = &((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
+
+          // alloc can be avoided inside switch
+          uint8_t* KeyPack = new uint8_t[kps.KeySizesSum];
+
+          std::memcpy(KeyPack, _KeyPack, kps.KeySizesSum);
+          switch (kpi) {
+          case loco_t::kp::texture: {
+            ((kps_t::texture_t*)KeyPack)->image = image;
+            break;
+          }
+          default: {
+            fan::throw_error("unimplemented kp");
+          }
+          }
+            
+          auto _vi = gloco->shaper.GetRenderData(*shape);
+          auto vlen = gloco->shaper.ShapeTypes[sp.sti].RenderDataSize;
+          uint8_t* vi = new uint8_t[vlen];
+          std::memcpy(vi, _vi, vlen);
+
+          auto _ri = gloco->shaper.GetData(*shape);
+          auto rlen = gloco->shaper.ShapeTypes[sp.sti].DataSize;
+          uint8_t* ri = new uint8_t[rlen];
+          std::memcpy(ri, _ri, rlen);
+
+          shape->remove();
+          *shape = gloco->shaper.add(
+            sp.sti,
+            KeyPack,
+            vi,
+            ri
+          );
+#if defined(debug_shape_t)
+          fan::print("+", shape->NRI);
+#endif
+          delete[] KeyPack;
+          delete[] vi;
+          delete[] ri;
+        },
         .get_parallax_factor = [](shape_t* shape) {
           if constexpr (fan_has_variable(T, parallax_factor)) {
             return get_render_data(shape, &T::parallax_factor);
@@ -708,6 +761,89 @@ struct loco_t : fan::opengl::context_t {
             return fan::color();
           }
         },
+        .reload = [](shape_t* shape, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter) {
+          if (shape->get_shape_type() != loco_t::shape_type_t::universal_image_renderer) {
+            fan::throw_error("only meant to be used with universal_image_renderer");
+          }
+          loco_t::universal_image_renderer_t::vi_t& vi = *(loco_t::universal_image_renderer_t::vi_t*)gloco->shaper.GetRenderData(*shape);
+          loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)gloco->shaper.GetData(*shape);
+          if (format != ri.format) {
+            auto& sp = gloco->shaper.ShapeList[*shape];
+
+            auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
+            auto& kps = gloco->shaper.KeyPacks[kpi];
+
+            loco_t::kps_t::texture_t& _KeyPack = *(loco_t::kps_t::texture_t*)&((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
+
+
+            auto shader = gloco->shaper.ShapeTypes[sp.sti].shader;
+            gloco->shader_set_vertex(
+              shader,
+              read_shader("shaders/opengl/2D/objects/pixel_format_renderer.vs")
+            );
+            {
+              fan::string fs;
+              switch(format) {
+                case fan::pixel_format::yuv420p: {
+                  fs = read_shader("shaders/opengl/2D/objects/yuv420p.fs");
+                  break;
+                }
+                case fan::pixel_format::nv12: {
+                  fs = read_shader("shaders/opengl/2D/objects/nv12.fs");
+                  break;
+                }
+                default: {
+                  fan::throw_error("unimplemented format");
+                }
+              }
+              gloco->shader_set_fragment(shader, fs);
+              gloco->shader_compile(shader);
+            }
+
+            uint8_t image_count_old = fan::pixel_format::get_texture_amount(ri.format);
+            uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
+            if (image_count_old < image_count_old) {
+              for (uint32_t i = image_count_new; i < image_count_old; ++i) {
+                if (i == 0) {
+                  gloco->image_erase(_KeyPack.image);
+                }
+                else {
+                  gloco->image_erase(ri.images_rest[i - 1]);
+                }
+              }
+            }
+            else if (image_count_new > image_count_old) {
+              loco_t::image_t images[4];
+              for (uint32_t i = image_count_old; i < image_count_new; ++i) {
+                images[i] = gloco->image_create();
+              }
+              shape->set_image(images[0]);
+              std::memcpy(ri.images_rest, &images[1], sizeof(ri.images_rest));
+               for (uint32_t i = 0; i < image_count_new; i++) {
+                  fan::webp::image_info_t image_info;
+                  image_info.data = image_data[i];
+                  image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
+                  auto lp = fan::pixel_format::get_image_properties<loco_t::image_load_properties_t>(format)[i];
+                  lp.min_filter = filter;
+                  lp.mag_filter = filter;
+                  if (i == 0) {
+                    gloco->image_reload_pixels(
+                      _KeyPack.image,
+                      image_info,
+                      lp
+                    );
+                  }
+                  else {
+                    gloco->image_reload_pixels(
+                      ri.images_rest[i - 1],
+                      image_info,
+                      lp
+                    );
+                  }
+                }
+            }
+          }
+        },
         .draw = [](uint8_t draw_range) {
           // Implement draw function
         },
@@ -740,6 +876,15 @@ struct loco_t : fan::opengl::context_t {
       loco_t::camera_t camera;
       shaper_t::ShapeTypeIndex_t ShapeType;
     };
+    // for universal_image_renderer
+    // struct texture4_t {
+    //   blending_t blending;
+    //   depth_t depth;
+    //   loco_t::image_t image; // 4 - 1
+    //   loco_t::viewport_t viewport;
+    //   loco_t::camera_t camera;
+    //   shaper_t::ShapeTypeIndex_t ShapeType;
+    // };
   };
 #pragma pack(pop)
 
@@ -1056,6 +1201,9 @@ public:
       else if constexpr (std::is_same_v<T, loco_t::particles_t::properties_t>) {
         *this = gloco->particles.push_back(properties);
       }
+      else if constexpr (std::is_same_v<T, loco_t::universal_image_renderer_t::properties_t>) {
+        *this = gloco->universal_image_renderer.push_back(properties);
+      }
       else {
         fan::throw_error("failed to find correct shape", typeid(T).name());
       }
@@ -1218,6 +1366,8 @@ public:
     fan::vec3 get_dst();
     f32_t get_outline_size();
     fan::color get_outline_color();
+
+    void reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR);
 
   private:
   };
@@ -1487,8 +1637,6 @@ public:
       int flags = 0;
       fan::vec2 tc_position = 0;
       fan::vec2 tc_size = 1;
-
-      uint16_t shape_type = loco_t::shape_type_t::unlit_sprite;
 
       bool blending = false;
 
@@ -1786,6 +1934,58 @@ public:
     shape_t push_back(const properties_t& properties);
 
   }particles;
+
+  struct universal_image_renderer_t {
+
+    static constexpr uint16_t shape_type = shape_type_t::universal_image_renderer;
+    static constexpr int kpi = kp::texture;
+
+#pragma pack(push, 1)
+
+    struct vi_t {
+      fan::vec3 position = 0;
+      fan::vec2 size = 0;
+      fan::vec2 tc_position = 0;
+      fan::vec2 tc_size = 1;
+    };
+    struct ri_t {
+      loco_t::image_t images_rest[3]; // 3 + 1 (pk)
+      uint8_t format = fan::pixel_format::undefined;
+    };
+
+#pragma pack(pop)
+
+  inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {
+    shaper_t::ShapeType_t::init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+    shaper_t::ShapeType_t::init_t{1, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+    shaper_t::ShapeType_t::init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
+    shaper_t::ShapeType_t::init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))}
+  };
+
+    struct properties_t {
+      using type_t = universal_image_renderer_t;
+
+      fan::vec3 position = 0;
+      fan::vec2 size = 0;
+      fan::vec2 tc_position = 0;
+      fan::vec2 tc_size = 1;
+
+      bool blending = false;
+
+      loco_t::image_t images[4] = {
+        gloco->default_texture,
+        gloco->default_texture,
+        gloco->default_texture,
+        gloco->default_texture
+      };
+      loco_t::camera_t camera = gloco->orthographic_camera.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+    };
+
+    shape_t push_back(const properties_t& properties);
+
+  }universal_image_renderer;
+
 
   template <typename T>
   inline void shape_open(const fan::string& vertex, const fan::string& fragment) {
