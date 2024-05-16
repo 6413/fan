@@ -12,7 +12,7 @@ struct line_t : loco_t::shape_t {
   line_t(line_properties_t p = line_properties_t()) {
     *(loco_t::shape_t*)this = loco_t::shape_t(
       fan_init_struct(
-        typename loco_t::shapes_t::line_t::properties_t,
+        typename loco_t::line_t::properties_t,
         .camera = &p.camera->camera,
         .viewport = &p.camera->viewport,
         .src = p.src,
@@ -40,7 +40,7 @@ struct rectangle_t : loco_t::shape_t {
   rectangle_t(rectangle_properties_t p = rectangle_properties_t()) {
     *(loco_t::shape_t*)this = loco_t::shape_t(
       fan_init_struct(
-        typename loco_t::shapes_t::rectangle_t::properties_t,
+        typename loco_t::rectangle_t::properties_t,
         .camera = &p.camera->camera,
         .viewport = &p.camera->viewport,
         .position = p.position,
@@ -67,7 +67,7 @@ struct circle_t : loco_t::shape_t {
   circle_t(circle_properties_t p = circle_properties_t()) {
     *(loco_t::shape_t*)this = loco_t::shape_t(
       fan_init_struct(
-        typename loco_t::shapes_t::circle_t::properties_t,
+        typename loco_t::circle_t::properties_t,
         .camera = &p.camera->camera,
         .viewport = &p.camera->viewport,
         .position = p.position,
@@ -98,7 +98,7 @@ struct unlit_sprite_t : loco_t::shape_t {
   unlit_sprite_t(unlit_sprite_properties_t p = unlit_sprite_properties_t()) {
     *(loco_t::shape_t*)this = loco_t::shape_t(
       fan_init_struct(
-        typename loco_t::shapes_t::unlit_sprite_t::properties_t,
+        typename loco_t::unlit_sprite_t::properties_t,
         .camera = &p.camera->camera,
         .viewport = &p.camera->viewport,
         .position = p.position,
@@ -129,7 +129,7 @@ struct sprite_t : loco_t::shape_t {
   sprite_t(sprite_properties_t p = sprite_properties_t()) {
     *(loco_t::shape_t*)this = loco_t::shape_t(
       fan_init_struct(
-        typename loco_t::shapes_t::sprite_t::properties_t,
+        typename loco_t::sprite_t::properties_t,
         .camera = &p.camera->camera,
         .viewport = &p.camera->viewport,
         .position = p.position,
@@ -159,7 +159,7 @@ struct letter_t : loco_t::shape_t {
   letter_t(letter_properties_t p = letter_properties_t()) {
     *(loco_t::shape_t*)this = loco_t::shape_t(
       fan_init_struct(
-        typename loco_t::shapes_t::letter_t::properties_t,
+        typename loco_t::letter_t::properties_t,
         .camera = p.camera,
         .viewport = p.viewport,
         .position = p.position,
@@ -184,7 +184,7 @@ struct text_t : loco_t::shape_t {
   text_t(text_properties_t p = text_properties_t()) {
     *(loco_t::shape_t*)this = loco_t::shape_t(
       fan_init_struct(
-        typename loco_t::shapes_t::responsive_text_t::properties_t,
+        typename loco_t::responsive_text_t::properties_t,
         .camera = p.camera,
         .viewport = p.viewport,
         .position = p.position.x == fan::math::inf ? fan::vec3(-1 + 0.025 * p.text.size(), -0.9, 0) : p.position,
@@ -214,7 +214,7 @@ struct button_properties_t {
 struct button_t : loco_t::shape_t {
   button_t(button_properties_t p = button_properties_t()) : loco_t::shape_t(
     fan_init_struct(
-      typename loco_t::shapes_t::button_t::properties_t,
+      typename loco_t::button_t::properties_t,
       .theme = p.theme,
       .camera = p.camera,
       .viewport = p.viewport,
@@ -240,7 +240,7 @@ struct light_t : loco_t::shape_t {
   light_t(light_properties_t p = light_properties_t()) {
     *(loco_t::shape_t*)this = loco_t::shape_t(
       fan_init_struct(
-        typename loco_t::shapes_t::light_t::properties_t,
+        typename loco_t::light_t::properties_t,
         .camera = &p.camera->camera,
         .viewport = &p.camera->viewport,
         .position = p.position,
@@ -262,9 +262,9 @@ using imgui_element_t = loco_t::imgui_element_t;
 // also container that it's stored in, must not change pointers
 template <typename T>
 struct vfi_root_custom_t {
-  void set_root(const loco_t::shapes_t::vfi_t::properties_t& p) {
-    loco_t::shapes_t::vfi_t::properties_t in = p;
-    in.shape_type = loco_t::shapes_t::vfi_t::shape_t::rectangle;
+  void set_root(const loco_t::vfi_t::properties_t& p) {
+    loco_t::vfi_t::properties_t in = p;
+    in.shape_type = loco_t::vfi_t::shape_t::rectangle;
     in.shape.rectangle->viewport = &gloco->default_camera->viewport;
     in.shape.rectangle->camera = &gloco->default_camera->camera;
     in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {
@@ -286,7 +286,7 @@ struct vfi_root_custom_t {
         d.flag->ignore_move_focus_check = false;
         return 0;
       }
-      if (d.mouse_stage != loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
+      if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
         return 0;
       }
       
@@ -294,7 +294,7 @@ struct vfi_root_custom_t {
         d.flag->ignore_move_focus_check = true;
         this->move = true;
         this->click_offset = get_position() - d.position;
-        gloco->shapes.vfi.set_focus_keyboard(d.vfi->focus.mouse);
+        gloco->vfi.set_focus_keyboard(d.vfi->focus.mouse);
       }
       return user_cb(d);
     };
@@ -363,9 +363,9 @@ using vfi_root_t = vfi_root_custom_t<__empty_struct>;
 
 template <typename T>
 struct vfi_multiroot_custom_t {
-  void push_root(const loco_t::shapes_t::vfi_t::properties_t& p) {
-    loco_t::shapes_t::vfi_t::properties_t in = p;
-    in.shape_type = loco_t::shapes_t::vfi_t::shape_t::rectangle;
+  void push_root(const loco_t::vfi_t::properties_t& p) {
+    loco_t::vfi_t::properties_t in = p;
+    in.shape_type = loco_t::vfi_t::shape_t::rectangle;
     in.shape.rectangle->viewport = &gloco->default_camera->viewport;
     in.shape.rectangle->camera = &gloco->default_camera->camera;
     in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {
@@ -385,11 +385,11 @@ struct vfi_multiroot_custom_t {
 
       if (d.button_state == fan::mouse_state::press && move_and_resize_auto) {
         this->move = true;
-        gloco->shapes.vfi.focus.method.mouse.flags.ignore_move_focus_check = true;
+        gloco->vfi.focus.method.mouse.flags.ignore_move_focus_check = true;
       }
       else if (d.button_state == fan::mouse_state::release && move_and_resize_auto) {
         this->move = false;
-        gloco->shapes.vfi.focus.method.mouse.flags.ignore_move_focus_check = false;
+        gloco->vfi.focus.method.mouse.flags.ignore_move_focus_check = false;
       }
 
       if (d.button_state == fan::mouse_state::release) {
@@ -421,13 +421,13 @@ struct vfi_multiroot_custom_t {
       if (d.button_state != fan::mouse_state::press) {
         return user_cb(d);
       }
-      if (d.mouse_stage != loco_t::shapes_t::vfi_t::mouse_stage_e::inside) {
+      if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
         return user_cb(d);
       }
 
       if (move_and_resize_auto) {
         this->click_offset = get_position(root_reference) - d.position;
-        gloco->shapes.vfi.set_focus_keyboard(d.vfi->focus.mouse);
+        gloco->vfi.set_focus_keyboard(d.vfi->focus.mouse);
       }
       return user_cb(d);
     };

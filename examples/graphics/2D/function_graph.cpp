@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 static constexpr f32_t zoom_sensitivity = 1.2;
 

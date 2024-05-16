@@ -1,10 +1,11 @@
-#include fan_pch
+#include <fan/pch.h>
 
 // disable ETC_BCOL_set_DynamicDeltaFunction in collider.h to make this work
 
 int main() {
   loco_t loco;
-  loco.default_camera->camera.set_ortho(
+  loco.camera_set_ortho(
+    loco.orthographic_camera.camera,
     fan::vec2(-1, 1),
     fan::vec2(-1, 1)
   );
@@ -32,10 +33,10 @@ int main() {
   balls.reserve(ball_count);
   for (int i = 0; i < ball_count; ++i) {
     balls.push_back(fan::graphics::letter_t{{
-        .color = fan::random::color(),
         .position = fan::vec3(fan::random::vec2(-0.8, 0.8), i),
+        .color = fan::random::color(),
+        .letter_id = fan::random::string(1).get_utf8(0),
         .font_size = 0.1,
-        .letter_id = fan::random::string(1).get_utf8(0)
     }});
     balls.back().set_velocity(fan::random::vec2_direction(-1, 1) * 2);
   }
@@ -58,10 +59,9 @@ int main() {
 
       fan::vec2 reflection = fan::math::reflection_no_rot(velocity, p0, p1, wall_size);
       
-      auto nr = gloco->m_write_queue.write_queue.NewNodeFirst();
-      gloco->m_write_queue.write_queue[nr].cb = [oid = sip0->ObjectID, reflection] {
+      gloco->single_queue.push_back([oid = sip0->ObjectID, reflection] {
         fan::graphics::bcol.SetObject_Velocity(oid, reflection);
-      };
+      });
   };
 
   loco.set_vsync(false);
@@ -71,8 +71,8 @@ int main() {
     int idx = 0;
     for (auto& i : balls) {
       i.set_position(i.get_collider_position());
-      i.set_angle(angle + idx);
+      i.set_angle(fan::vec3(0, 0, angle + idx));
     }
-    angle += loco.get_delta_time();
+    angle += loco.delta_time;
   });
 }

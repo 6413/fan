@@ -30,8 +30,8 @@ struct texturepack_t {
   }
 
   void open_compiled(const fan::string& filename) {
-    loco_t::image_t::load_properties_t lp;
-    lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
+    fan::opengl::context_t::image_load_properties_t lp;
+    lp.visual_output = fan::opengl::context_t::image_sampler_address_mode::clamp_to_edge;
     lp.min_filter = fan::opengl::GL_LINEAR;
     lp.mag_filter = fan::opengl::GL_LINEAR;
     /*
@@ -40,7 +40,7 @@ struct texturepack_t {
     */
     open_compiled(filename, lp);
   }
-  void open_compiled(const fan::string& filename, loco_t::image_t::load_properties_t lp) {
+  void open_compiled(const fan::string& filename, fan::opengl::context_t::image_load_properties_t lp) {
     auto& context = gloco->get_context();
 
     fan::string data;
@@ -51,11 +51,12 @@ struct texturepack_t {
     pixel_data_list.resize(pack_amount);
     data_index += sizeof(pack_amount);
     for (uint32_t i = 0; i < pack_amount; i++) {
-      uint32_t texture_amount = *(uint32_t*)&data[data_index];
+      uint32_t texture_amount;
+      memcpy(&texture_amount, &data[data_index], sizeof(texture_amount));
       data_index += sizeof(pack_amount);
       for (uint32_t j = 0; j < texture_amount; j++) {
         texturepack_t::texture_t texture;
-        texture.hash = *(uint64_t*)&data[data_index];
+        memcpy(&texture.hash, &data[data_index], sizeof(uint64_t));
         data_index += sizeof(uint64_t);
         texture.position = *(fan::vec2i*)&data[data_index];
         data_index += sizeof(fan::vec2i);
@@ -63,7 +64,8 @@ struct texturepack_t {
         data_index += sizeof(fan::vec2i);
         texture_list[i].push_back(texture);
       }
-      uint32_t size = *(uint32_t*)&data[data_index];
+      uint32_t size;
+      memcpy(&size, &data[data_index], sizeof(uint32_t));
       data_index += sizeof(uint32_t);
 
       fan::webp::image_info_t image_info;
@@ -77,15 +79,14 @@ struct texturepack_t {
       //#if defined(loco_vulkan)
       //	fan::throw_error("only implemented for opengl, bcause of visual output type");
       //#endif
-      uint32_t visual_output = *(uint32_t*)&data[data_index];
+      //uint32_t visual_output = *(uint32_t*)&data[data_index];
       data_index += sizeof(uint32_t);
-      uint32_t min_filter = *(uint32_t*)&data[data_index];
-      data_index += sizeof(uint32_t);
-
-      uint32_t mag_filter = *(uint32_t*)&data[data_index];
+      //uint32_t min_filter = *(uint32_t*)&data[data_index];
       data_index += sizeof(uint32_t);
 
-      pixel_data_list[i].image.load(image_info, lp);
+      //uint32_t mag_filter = *(uint32_t*)&data[data_index];
+      data_index += sizeof(uint32_t);
+      pixel_data_list[i].image = context.image_load(image_info, lp);
       WebPFree(image_info.data);
     }
   }
@@ -100,7 +101,7 @@ struct texturepack_t {
 
   // query texturepack image
   bool qti(const fan::string& name, ti_t* ti) {
-    return qti(fan::get_hash(name), ti);
+    return qti(fan::get_hash(name.c_str()), ti);
   }
   bool qti(uint64_t hash, ti_t* ti) {
     bool ret = 1;

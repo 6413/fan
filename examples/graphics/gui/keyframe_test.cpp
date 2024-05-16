@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 // animation needs to be redone since angle f32_t -> vec3
 

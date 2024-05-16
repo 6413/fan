@@ -106,7 +106,7 @@ namespace fan {
       }
 
       void push_sprite(uint32_t i, auto&& temp) {
-        loco_t::shapes_t::vfi_t::properties_t vfip;
+        loco_t::vfi_t::properties_t vfip;
         vfip.shape.rectangle->position = temp.get_position();
         vfip.shape.rectangle->position.z += 1;
         vfip.shape.rectangle->size = temp.get_size();

@@ -1,9 +1,10 @@
-#include fan_pch
+#include <fan/pch.h>
+#include <fan/system.h>
 
 int main() {
 
   std::vector<loco_t*> locos;
-  for (int i = 0; i < 8; ++i) {
+  for (int i = 0; i < 2; ++i) {
     locos.push_back(new loco_t{ {.window_size = 400} });
   }
 
@@ -44,11 +45,11 @@ int main() {
     balls.push_back(fan::graphics::collider_dynamic_hidden_t(0, fan::vec2(locos[i]->window.get_size().y / screen_size.x, locos[i]->window.get_size().x / screen_size.y)));
     balls.back().set_velocity(fan::random::vec2_direction(-1, 1) / 2);
     locos[i]->use();
-    images.push_back(new loco_t::image_t("images/folder.webp"));
+    images.push_back(new loco_t::image_t(locos[i]->image_load("images/folder.webp")));
     sprites.push_back(fan::graphics::sprite_t{ {
   .position = fan::vec3(200, 200, 0),
   .size = 50,
-  .image = images.back()
+  .image = *images.back()
 } });
 
   }
@@ -71,10 +72,9 @@ int main() {
 
       fan::vec2 reflection = fan::math::reflection_no_rot(velocity, p0, p1, wall_size);
 
-      auto nr = gloco->m_write_queue.write_queue.NewNodeFirst();
-      gloco->m_write_queue.write_queue[nr].cb = [oid = sip0->ObjectID, reflection] {
+      gloco->single_queue.push_back([oid = sip0->ObjectID, reflection] {
         fan::graphics::bcol.SetObject_Velocity(oid, reflection);
-        };
+      });
     };
 
   f32_t angle = 0, angle2 = 0;
@@ -86,12 +86,12 @@ int main() {
       fan::vec2 scrn = ndc_to_screen(p);
 
       locos[index]->window.set_position(scrn - locos[index]->window.get_size() / 2);
-      sprites[index].set_angle(fan::vec3(0, 0, index == 0 ? angle : angle2));
+   //   sprites[index].set_angle(fan::vec3(0, 0, index == 0 ? angle : angle2));
       index++;
     }
 
-    angle += locos[0]->get_delta_time();
-    angle2 += locos[0]->get_delta_time() * 5;
+    angle += locos[0]->delta_time;
+    angle2 += locos[0]->delta_time * 5;
     for (auto& i : locos) {
       i->use();
       i->process_loop([] {});

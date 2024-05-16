@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 #include _FAN_PATH(ai/neural_network.h)
 

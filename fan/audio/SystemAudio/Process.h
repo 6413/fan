@@ -362,9 +362,10 @@ void _DataCallback(f32_t *Output) {
           if(PlayInfoList.inri(nr) == true){
             break;
           }
-          if(PlayInfoList.IsNRSentienel(nr) == true){
+          fan::throw_error("isnrsentinel?");
+          /*if(PlayInfoList.IsNRSentienel(nr) == true){
             break;
-          }
+          }*/
           if(PlayInfoList.IsNodeReferenceRecycled(nr) == true){
             break;
           }

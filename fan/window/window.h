@@ -1,17 +1,16 @@
 #pragma once
 
+#include <fan/types/function.h>
 #include <fan/types/vector.h>
 #include <fan/types/matrix.h>
 #include <fan/window/window_input.h>
 #include <fan/window/window_input_common.h>
+#include <fan/time/time.h>
 
 namespace fan {
   namespace window {
 
-    static void error_callback(int error, const char* description)
-    {
-      //fan::print("window error:", description);
-    }
+    void error_callback(int error, const char* description);
 
     void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
     void keyboard_keys_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -21,6 +20,7 @@ namespace fan {
     void close_callback(GLFWwindow* window);
     void mouse_position_callback(GLFWwindow* window, double xpos, double ypos);
     void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+    void window_focus_callback(GLFWwindow* window, int focused);
     //static void mouse_motion_callback(GLFWwindow* window, double xoffset, double yoffset);
   }
 }
@@ -122,47 +122,47 @@ namespace fan {
     #define BLL_set_prefix buttons_callback
     #define BLL_set_NodeData mouse_buttons_cb_t data;
     #include "cb_list_builder_settings.h"
-    #include _FAN_PATH(BLL/BLL.h)
+    #include <fan/BLL/BLL.h>
 
     #define BLL_set_prefix keys_callback
     #define BLL_set_NodeData keyboard_keys_cb_t data;
     #include "cb_list_builder_settings.h"
-    #include _FAN_PATH(BLL/BLL.h)
+    #include <fan/BLL/BLL.h>
 
     #define BLL_set_prefix key_callback
     #define BLL_set_NodeData keyboard_cb_store_t data;
     #include "cb_list_builder_settings.h"
-    #include _FAN_PATH(BLL/BLL.h)
+    #include <fan/BLL/BLL.h>
 
     #define BLL_set_prefix text_callback
     #define BLL_set_NodeData text_cb_t data;
     #include "cb_list_builder_settings.h"
-    #include _FAN_PATH(BLL/BLL.h)
+    #include <fan/BLL/BLL.h>
 
     #define BLL_set_prefix move_callback
     #define BLL_set_NodeData move_cb_t data;
     #include "cb_list_builder_settings.h"
-    #include _FAN_PATH(BLL/BLL.h)
+    #include <fan/BLL/BLL.h>
 
     #define BLL_set_prefix resize_callback
     #define BLL_set_NodeData resize_cb_t data;
     #include "cb_list_builder_settings.h"
-    #include _FAN_PATH(BLL/BLL.h)
+    #include <fan/BLL/BLL.h>
 
     #define BLL_set_prefix close_callback
     #define BLL_set_NodeData close_cb_t data;
     #include "cb_list_builder_settings.h"
-    #include _FAN_PATH(BLL/BLL.h)
+    #include <fan/BLL/BLL.h>
 
     #define BLL_set_prefix mouse_position_callback
     #define BLL_set_NodeData mouse_move_cb_t data;
     #include "cb_list_builder_settings.h"
-    #include _FAN_PATH(BLL/BLL.h)
+    #include <fan/BLL/BLL.h>
 
     #define BLL_set_prefix mouse_motion_callback
     #define BLL_set_NodeData mouse_motion_cb_t data;
     #include "cb_list_builder_settings.h"
-    #include _FAN_PATH(BLL/BLL.h)
+    #include <fan/BLL/BLL.h>
 
     struct flags {
       static constexpr int no_mouse = 1 << 0;
@@ -185,10 +185,11 @@ namespace fan {
     }intialize_glfw_var;
 
     window_t();
-    window_t(const fan::vec2i& window_size = fan::window_t::default_window_size, const fan::string& name = default_window_name, uint64_t flags = 0);
+    window_t(fan::vec2i window_size = fan::window_t::default_window_size, const fan::string& name = default_window_name, uint64_t flags = 0);
 
     void close();
 
+    void handle_key_states();
     uint32_t handle_events();
 
     buttons_callback_NodeReference_t add_buttons_callback(mouse_buttons_cb_t function);
@@ -223,6 +224,8 @@ namespace fan {
 
     void set_size(const fan::vec2i& window_size);
 
+    void set_position(const fan::vec2& position);
+
     void set_windowed();
 
     void set_full_screen();
@@ -233,7 +236,10 @@ namespace fan {
 
     fan::vec2d get_mouse_position() const;
 
-    bool key_pressed(int key) const;
+    int key_state(int key) const;
+    bool key_pressed(int key, int press = GLFW_PRESS) const;
+
+    fan::vec2 get_gamepad_axis(int key) const;
 
     uintptr_t get_fps(bool print = true);
 
@@ -252,8 +258,15 @@ namespace fan {
     mouse_position_callback_t m_mouse_position_callback;
     mouse_motion_callback_t m_mouse_motion_callback;
 
+    operator GLFWwindow* () {
+      return glfw_window;
+    }
+
+    std::array<int, fan::last> prev_key_states;
+    std::array<int, fan::last> key_states;
     GLFWwindow* glfw_window;
   };
+  void handle_key_states();
 }
 
 //inline void window_focus_callback(GLFWwindow* wnd, int focused)

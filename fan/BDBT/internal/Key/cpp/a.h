@@ -12,7 +12,7 @@ else{
   kp8 += KeyIndex / 8;
 }
 
-if constexpr(BeforeLast != 0){
+if _BDBT_ksizeConstexpr(BeforeLast != 0){
   if(KeyIndex < BeforeLast){
     uint8_t m = KeyIndex % 8;
     uint8_t Byte = *kp8;
@@ -37,7 +37,7 @@ if constexpr(BeforeLast != 0){
     }
   }
 }
-if constexpr(BeforeLast > 8){
+if _BDBT_ksizeConstexpr(BeforeLast > 8){
   while(KeyIndex < BeforeLast){
     uint8_t Byte = *kp8;
     if constexpr(BitOrderMatters == true){
@@ -66,7 +66,7 @@ if constexpr(BeforeLast > 8){
     Byte = ReverseKeyByte(Byte);
   }
   uint8_t m;
-  if constexpr(BeforeLast == 0){
+  if _BDBT_ksizeConstexpr(BeforeLast == 0){
     m = KeyIndex;
   }
   else{

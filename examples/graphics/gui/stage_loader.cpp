@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 struct pile_t;
 
@@ -50,7 +50,8 @@ lstd_defstruct(custom_t)
 int main() {
 
   fan::vec2 window_size = pile.loco.window.get_size();
-  pile.loco.default_camera->camera.set_ortho(
+  pile.loco.camera_set_ortho(
+    pile.loco.orthographic_camera.camera,
     fan::vec2(0, window_size.x),
     fan::vec2(0, window_size.y)
   );

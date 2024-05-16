@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 #include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
@@ -10,7 +10,7 @@ constexpr static f32_t BCOLStepTime = 0.01;
 #define ETC_BCOL_set_StoreExtraDataInsideObject 1
 #define ETC_BCOL_set_ExtraDataInsideObject \
   bool IsItPipe;
-#include _WITCH_PATH(ETC/BCOL/BCOL.h)
+#include _WITCH_PATH(BCOL/BCOL.h)
 
 struct pile_t {
 

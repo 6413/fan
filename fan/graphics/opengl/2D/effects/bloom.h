@@ -1,22 +1,30 @@
 struct bloom_t {
 
   void open() {
-    shader_bloom.open();
-    shader_bloom.set_vertex(
-      loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/downsample.vs))
+
+    auto& context = gloco->get_context();
+
+    shader_bloom = context.shader_create();
+
+    context.shader_set_vertex(
+      shader_bloom,
+      context.read_shader("shaders/opengl/2D/effects/downsample.vs")
     );
-    shader_bloom.set_fragment(
-      loco_t::read_shader(_FAN_PATH_QUOTE(graphics/glsl/opengl/2D/effects/bloom.fs))
+
+    context.shader_set_fragment(
+      shader_bloom,
+      context.read_shader("shaders/opengl/2D/effects/bloom.fs")
     );
-    shader_bloom.compile();
+
+    context.shader_compile(shader_bloom);
   }
 
   void draw() {
-    shader_bloom.use();
-    shader_bloom.set_int("_t00", 0);
-    shader_bloom.set_int("_t01", 1);
-    shader_bloom.set_float("bloom", bloomamount);
+    auto& context = gloco->get_context();
 
+    context.shader_set_value(shader_bloom, "_t00", 0);
+    context.shader_set_value(shader_bloom, "_t01", 1);
+    context.shader_set_value(shader_bloom, "bloom", bloomamount);
     /*
     
         gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
@@ -46,6 +54,6 @@ struct bloom_t {
     //gloco->m_framebuffer.unbind(gloco->get_context());
   }
 
-  f32_t bloomamount = 0.04;
+  f32_t bloomamount = 0.04f;
   loco_t::shader_t shader_bloom;
 };

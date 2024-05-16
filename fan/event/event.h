@@ -2,6 +2,7 @@
 
 #include <coroutine>
 #include <queue>
+#include <chrono>
 
 namespace fan {
   namespace ev {

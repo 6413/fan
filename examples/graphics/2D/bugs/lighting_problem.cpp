@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 // when unlit sprite with gl_repeat texture is behind of sprite and that sprite has lighting there comes weird flickering
 // unable to produce in here. Produceable in tilemap_editor.cpp when changing grid_visualize.background to be unlit_sprite_t

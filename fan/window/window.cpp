@@ -2,10 +2,17 @@
 
 fan::window_t::glfw_initialize_t intialize_glfw_var;
 
+void fan::window::error_callback(int error, const char* description) {
+  fan::print("window error:", description);
+}
+
 void fan::window::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
   auto found = fan::window_t::window_map.find(window);
   if (found != fan::window_t::window_map.end()) {
     fan::window_t* pwindow = found->second;
+
+    pwindow->key_states[button] = action;
+
     auto it = pwindow->m_buttons_callback.GetNodeFirst();
 
     while (it != pwindow->m_buttons_callback.dst) {
@@ -25,6 +32,9 @@ void fan::window::keyboard_keys_callback(GLFWwindow* wnd, int key, int scancode,
   auto found = fan::window_t::window_map.find(wnd);
   if (found != fan::window_t::window_map.end()) {
     fan::window_t* window = found->second;
+
+    window->key_states[key] = action;
+
     auto it = window->m_keys_callback.GetNodeFirst();
 
     while (it != window->m_keys_callback.dst) {
@@ -34,7 +44,6 @@ void fan::window::keyboard_keys_callback(GLFWwindow* wnd, int key, int scancode,
       cbd.state = static_cast<fan::keyboard_state>(action);
       cbd.scancode = scancode;
       window->m_keys_callback[it].data(cbd);
-
       it = it.Next(&window->m_keys_callback);
     }
   }
@@ -158,6 +167,19 @@ void fan::window::scroll_callback(GLFWwindow* wnd, double xoffset, double yoffse
   }
 }
 
+void fan::window::window_focus_callback(GLFWwindow* wnd, int focused) {
+  auto found = fan::window_t::window_map.find(wnd);
+  if (found != fan::window_t::window_map.end()) {
+    return;
+  }
+  fan::window_t* window = found->second;
+  for (int i = 0; i < GLFW_KEY_LAST; i++) {
+    if (window->key_states[i] != -1) {
+      window->key_states[i] = GLFW_RELEASE;
+    }
+  }
+}
+
 void fan::window_t::glfw_initialize_t::open() {
   using namespace fan::window;
   if (glfwInit() == false) {
@@ -174,15 +196,29 @@ void fan::window_t::glfw_initialize_t::open() {
 }
 
 fan::window_t::glfw_initialize_t::~glfw_initialize_t() {
-  using namespace fan::window;
-  glfwTerminate();
+  if (initialized) {
+    glfwTerminate();
+  }
 }
 
 fan::window_t::window_t() : window_t(fan::window_t::default_window_size, fan::window_t::default_window_name, 0) {}
 
-fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, uint64_t flags) {
+void errorCallback(int error, const char* description) {
+    printf("Error: %s\n", description);
+}
+
+fan::window_t::window_t(fan::vec2i window_size, const fan::string& name, uint64_t flags) {
   if (intialize_glfw_var.initialized == false) {
     intialize_glfw_var.open();
+  }
+  std::fill(key_states.begin(), key_states.end(), -1);
+  std::fill(prev_key_states.begin(), prev_key_states.end(), -1);
+
+  if (window_size == -1) {
+    const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+    window_size.x = mode->width / 2;
+    window_size.y = mode->height / 2;
   }
 
   using namespace fan::window;
@@ -211,6 +247,8 @@ fan::window_t::window_t(const fan::vec2i& window_size, const fan::string& name, 
   glfwSetCursorPosCallback(glfw_window, fan::window::mouse_position_callback);
   glfwSetScrollCallback(glfw_window, fan::window::scroll_callback);
 
+  glfwInitHint(GLFW_JOYSTICK_HAT_BUTTONS, GLFW_TRUE);
+
   frame_timer.start(1e+9);
 }
 
@@ -218,12 +256,55 @@ void fan::window_t::close() {
   glfwDestroyWindow(glfw_window);
 }
 
+void fan::window_t::handle_key_states() {
+  prev_key_states = key_states;
+
+  for (std::size_t i = 0; i < key_states.size(); ++i) {
+    if (key_states[i] == GLFW_PRESS && prev_key_states[i] == GLFW_PRESS) {
+      key_states[i] = GLFW_REPEAT;
+    }
+    if (key_states[i] == GLFW_RELEASE && prev_key_states[i] == GLFW_RELEASE) {
+      key_states[i] = -1;
+    }
+  }
+
+
+  // gamepad
+  for (int i = fan::gamepad_a; i <= fan::gamepad_left; ++i) {
+    // fix hardcoded joystick
+    int present = glfwJoystickPresent(GLFW_JOYSTICK_1);
+    if (present) {
+      int button_count;
+      const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &button_count);
+      if (i - fan::gamepad_a >= button_count) {
+        fan::print("i bigger or equal than button_count");
+      }
+      if (key_states[i] == GLFW_PRESS && prev_key_states[i] == GLFW_PRESS) {
+        key_states[i] = GLFW_REPEAT;
+      }
+      else if (key_states[i] == -1 && buttons[i - fan::gamepad_a]) {
+        key_states[i] = GLFW_PRESS;
+      }
+      else if (buttons[i - fan::gamepad_a] == GLFW_RELEASE && (prev_key_states[i] == GLFW_PRESS || prev_key_states[i] == GLFW_REPEAT)) {
+        key_states[i] = GLFW_RELEASE;
+      }
+      else if (buttons[i - fan::gamepad_a] == GLFW_RELEASE && (key_states[i] == GLFW_PRESS || key_states[i] == GLFW_REPEAT)) {
+        key_states[i] = -1;
+      }
+    }
+  }
+}
+
 uint32_t fan::window_t::handle_events() {
   f64_t current_frame_time = glfwGetTime();
   m_delta_time = current_frame_time - last_frame_time;
   last_frame_time = current_frame_time;
 
+  handle_key_states();
+
   glfwPollEvents();
+  //glfwWaitEvents();
+
   return 0;
 }
 
@@ -340,6 +421,10 @@ void fan::window_t::set_size(const fan::vec2i& window_size) {
   glfwSetWindowSize(glfw_window, window_size.x, window_size.y);
 }
 
+void fan::window_t::set_position(const fan::vec2& position) {
+  glfwSetWindowPos(glfw_window, position.x, position.y);
+}
+
 void fan::window_t::set_windowed() {
   using namespace fan::window;
   GLFWmonitor* monitor = glfwGetPrimaryMonitor();
@@ -380,6 +465,10 @@ void fan::window_t::set_size_mode(const mode& mode) {
       set_windowed_full_screen();
       break;
     }
+    default: {
+      fan::throw_error("invalid mode");
+      break;
+    }
   }
 }
 
@@ -389,8 +478,49 @@ fan::vec2d fan::window_t::get_mouse_position() const {
   return mouse_pos;
 }
 
-bool fan::window_t::key_pressed(int key) const {
-  return glfwGetKey(glfw_window, key) == GLFW_PRESS;
+int fan::window_t::key_state(int key) const {
+  return key_states[key];
+}
+
+bool fan::window_t::key_pressed(int key, int press) const {
+  return glfwGetKey(glfw_window, key) == press;
+}
+
+fan::vec2 fan::window_t::get_gamepad_axis(int key) const {
+  fan::vec2 axis = 0;
+  int axes_count;
+  const float* axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1, &axes_count);
+  if (axes_count == 0) {
+    return axis;
+  }
+  switch (key) {
+    case fan::gamepad_left_thumb: {
+      if (axes_count > 1) {
+        axis = fan::vec2(axes[0], axes[1]);
+      }
+      break;
+    }
+    case fan::gamepad_right_thumb: {
+      if (axes_count > 3) {
+        axis = fan::vec2(axes[2], axes[3]);
+      }
+      break;
+    }
+    case fan::gamepad_l2: {
+      if (axes_count > 5) {
+        axis = fan::vec2(axes[4], axes[5]);
+      }
+      break;
+    }
+    case fan::gamepad_r2: {
+      if (axes_count > 5) {
+        axis = fan::vec2(axes[5], axes[4]);
+      }
+      break;
+    }
+  }
+
+  return axis;
 }
 
 uintptr_t fan::window_t::get_fps(bool print) {

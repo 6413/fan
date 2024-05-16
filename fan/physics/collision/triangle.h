@@ -4,11 +4,8 @@
 #include <fan/math/math.h>
 
 namespace fan_2d {
-
 	namespace collision {
-
 		namespace triangle {
-
 
 			constexpr bool point_inside(const fan::vec2& v1, const fan::vec2& v2, const fan::vec2& v3, const fan::vec2& point) {
 				float d1 = 0, d2 = 0, d3 = 0;
@@ -23,9 +20,6 @@ namespace fan_2d {
 
 				return !(has_neg && has_pos);
 			}
-
 		}
-
 	}
-
 }

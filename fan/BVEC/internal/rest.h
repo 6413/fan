@@ -182,8 +182,6 @@ _BVEC_P(GetBufferAmount0)(
   #endif
 }
 
-
-#if !defined(BLL_set_MultipleType_LinkIndex)
 static
 void
 _BVEC_P(SetPointer)(
@@ -192,7 +190,6 @@ _BVEC_P(SetPointer)(
 ){
   List->ptr = (_BVEC_P(Node_t) *)Pointer;
 }
-#endif
 
 #if BVEC_set_HandleAllocate == 1
   static

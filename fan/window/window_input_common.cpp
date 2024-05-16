@@ -1,6 +1,5 @@
 #include "window_input_common.h"
 
-
 #include "window_input.h"
 
 uint16_t fan::window_input::convert_scancode_to_fan(int key) {

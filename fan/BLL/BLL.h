@@ -224,6 +224,9 @@
 
 #undef BLL_set_debug_InvalidAction_dstAccess
 #undef BLL_set_debug_InvalidAction_srcAccess
+#ifdef BLL_set_NoSentinel
+  #undef BLL_set_NoSentinel
+#endif
 #undef BLL_set_NodeSizeType
 #undef BLL_set_type_node
 #undef BLL_set_StoreFormat

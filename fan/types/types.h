@@ -4,8 +4,12 @@
 #define STRINGIFY_DEFINE(a) STRINGIFY(a)
 #define REMOVE_TEMPLTE(a)  
 
-#define _CONCAT(_0_m, _1_m) _0_m ## _1_m
-#define CONCAT(_0_m, _1_m) _CONCAT(_0_m, _1_m)
+#ifndef _CONCAT
+  #define _CONCAT(_0_m, _1_m) _0_m ## _1_m
+#endif
+#ifndef CONCAT
+  #define CONCAT(_0_m, _1_m) _CONCAT(_0_m, _1_m)
+#endif
 #define _CONCAT2(_0_m, _1_m) _0_m ## _1_m
 #define CONCAT2(_0_m, _1_m) _CONCAT(_0_m, _1_m)
 #define _CONCAT3(_0_m, _1_m, _2_m) _0_m ## _1_m ## _2_m
@@ -13,59 +17,18 @@
 #define _CONCAT4(_0_m, _1_m, _2_m, _3_m) _0_m ## _1_m ## _2_m ## _3_m
 #define CONCAT4(_0_m, _1_m, _2_m, _3_m) _CONCAT4(_0_m, _1_m, _2_m, _3_m)
 
-#ifndef FAN_INCLUDE_PATH
-	#define _FAN_PATH(p0) <fan/p0>
-#else
-	#define FAN_INCLUDE_PATH_END fan/
-	#define _FAN_PATH(p0) <FAN_INCLUDE_PATH/fan/p0>
-#define _FAN_PATH_QUOTE(p0) STRINGIFY_DEFINE(FAN_INCLUDE_PATH) "/fan/" STRINGIFY(p0)
-
-#endif
+#define _FAN_PATH(p0) <fan/p0>
 
 #define _PATH_QUOTE(p0) STRINGIFY(p0)
 
-#include <iostream>
-#include <array>
-#include <vector>
-#include <sstream>
-#include <functional>
-#include <type_traits>
 #include <cstdint>
-#include <regex>
-#include <charconv>
-#include <tuple>
-#include <ranges>
-#include <iomanip>
-#include <cassert>
+#include <vector>
+#include <functional>
+#include <stdexcept>
 
 #pragma pack(push, 1)
 
-#ifndef __empty_struct
-  #define __empty_struct __empty_struct
-  struct __empty_struct {
-
-  };
-#endif
-
-#ifndef __is_type_same
-  #define __is_type_same std::is_same_v
-#endif
-
-#ifndef __MemoryCopy
-  #define __MemoryCopy(src, dst, size) memcpy(dst, src, size)
-#endif
-
-#ifndef __MemorySet
-  #define __MemorySet(src, dst, size) memset(dst, src, size)
-#endif
-
-#ifndef __abort
-  #define __abort() fan::throw_error("")
-#endif
-
-#ifndef __cta
-  #define __cta(x) static_assert(x)
-#endif
+#include <fan/types/bll_types.h>
 
 template <typename T>
 struct address_wrapper_t {
@@ -75,9 +38,6 @@ struct address_wrapper_t {
   }
 };
 #pragma pack(pop)
-
-// override to utf-8 - if file already utf8 it breaks somehow, probably msvc bug
-#pragma execution_character_set("utf-8")
 
 #if defined(__clang__)
   #define fan_compiler_clang
@@ -112,15 +72,10 @@ struct address_wrapper_t {
 
 #endif
 
-// TBD
-#if __cplusplus >= 202004L && defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
-	#define fan_std23
-#endif
 
-//#undef fan_std23
-
-#if defined(fan_std23)
-	#include <stacktrace>
+// override to utf-8 - if file already utf8 it breaks somehow, probably msvc bug
+#if defined(fan_platform_windows)
+  #pragma execution_character_set("utf-8")
 #endif
 
 typedef intptr_t si_t;
@@ -140,6 +95,15 @@ typedef f32_t cf_t;
 
 namespace fan {
 
+  static void throw_error_impl() {
+#ifdef fan_compiler_msvc
+    system("pause");
+#endif
+#if __cpp_exceptions
+    throw std::runtime_error("");
+#endif
+  }
+
 	struct string;
 
 	constexpr auto uninitialized = -1;
@@ -153,45 +117,6 @@ namespace fan {
 			typename std::underlying_type<Enumeration>::type
 		>(value);
 	}
-
-	template <typename T>
-	std::ostream& operator<<(std::ostream& os, const std::vector<T>& vector) noexcept
-	{
-		for (uintptr_t i = 0; i < vector.size(); i++) {
-			os << vector[i] << ' ';
-		}
-		return os;
-	}
-
-	template <typename T>
-	std::ostream& operator<<(std::ostream& os, const std::vector<std::vector<T>>& vector) noexcept
-	{
-		for (uintptr_t i = 0; i < vector.size(); i++) {
-			for (uintptr_t j = 0; j < vector[i].size(); j++) {
-				os << vector[i][j] << ' ';
-			}
-			os << '\n';
-		}
-		return os;
-	}
-
-	template <typename ...Args>
-	constexpr void print_no_space(const Args&... args);
-
-	template <typename ...Args>
-	constexpr void print_no_endline(const Args&... args);
-
-	template <typename ...Args>
-	constexpr void wprint_no_endline(const Args&... args);
-
-	template <typename ...Args>
-	constexpr void print(const Args&... args);
-
-	template <typename ...Args>
-	constexpr void wprint(const Args&... args);
-
-  template <typename ...Args>
-  static void throw_error(const Args&... args);
 
   template<typename T>
   struct has_bracket_operator
@@ -270,7 +195,6 @@ namespace fan {
 #define __FAN__FOREACH_30(f, x, ...)  f(x, 29); __FAN__FOREACH_29(f, __VA_ARGS__)
 
 
-#define __FAN__FOREACH_N(n, ...) __FAN__FOREACH_##n
 #define __FAN__FOREACH_N(_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) __FAN__FOREACH_##N
 
 #define __FAN__FOREACH_NS_1(f, x) f(x)
@@ -304,7 +228,6 @@ namespace fan {
 #define __FAN__FOREACH_NS_29(f, x, ...)  f(x), __FAN__FOREACH_NS_28(f, __VA_ARGS__)
 #define __FAN__FOREACH_NS_30(f, x, ...)  f(x), __FAN__FOREACH_NS_29(f, __VA_ARGS__)
 
-#define __FAN__FOREACH_NS_N(n, ...) __FAN__FOREACH_NS_##n
 #define __FAN__FOREACH_NS_N(_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) __FAN__FOREACH_NS_##N
 
 
@@ -314,213 +237,7 @@ namespace fan {
 // NEEDS /Zc:__cplusplus /Zc:preprocessor
 #define __FAN__FOREACH_NS(f, ...) __FAN__FOREACH_NS_N(__VA_ARGS__,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(f, __VA_ARGS__)
 
-#include <fan/types/function.h>
-#include <fan/types/fstring.h>
-#include <fan/time/time.h>
-#include <fan/types/vector.h>
-
 namespace fan {
-
-  template<typename ...Args>
-  constexpr std::size_t va_count(Args&&...) { return sizeof...(Args); }
-
-  template<size_t a, size_t b> struct assert_equality {
-    static_assert(a == b, "Not equal");
-    static constexpr bool result = (a == b);
-  };
-
-  template <size_t a, size_t b>
-  constexpr bool assert_equality_v = assert_equality<a, b>::result;
-
-  namespace impl {
-    struct universal_type_t {
-      template <typename T>
-      operator T
-      // known to be needed with msvc only - special check for clang needed because in windows clang its using msvc somehow
-      #if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
-        &
-      #endif
-      ();
-    };
-
-    template <typename T, typename... Args>
-    consteval auto member_count() {
-      //static_assert(std::is_aggregate_v<std::remove_cvref_t<T>>);
-
-      if constexpr (requires {T{{Args{}}..., {universal_type_t{}}}; } == false) {
-        return sizeof...(Args);
-      }
-      else {
-        return member_count<T, Args..., universal_type_t>();
-      }
-    }
-  }
-
-  template <class T>
-  constexpr std::size_t count_struct_members() {
-    return impl::member_count<T>();
-  }
-
-
-  #define __FAN_REF_EACH(x) std::ref(x)
-  #define __FAN_NREF_EACH(x) x
-  #define GENERATE_CALL_F(count, ...) \
-template <std::size_t _N, typename T> \
-requires (count == _N) \
-constexpr auto generate_variable_list_ref(T& struct_value) { \
-    auto& [__VA_ARGS__] = struct_value; \
-    return std::make_tuple(__FAN__FOREACH_NS(__FAN_REF_EACH, __VA_ARGS__)); \
-}\
-template <std::size_t _N, typename T> \
-requires (count == _N) \
-constexpr auto generate_variable_list_nref(const T& struct_value) { \
-  \
-    auto [__VA_ARGS__] = struct_value; \
-    return std::make_tuple(__FAN__FOREACH_NS(__FAN_NREF_EACH, __VA_ARGS__)); \
-} 
-
-  GENERATE_CALL_F(1, a)
-  GENERATE_CALL_F(2, a, b)
-  GENERATE_CALL_F(3, a, b, c)
-  GENERATE_CALL_F(4, a, b, c, d)
-  GENERATE_CALL_F(5, a, b, c, d, e)
-  GENERATE_CALL_F(6, a, b, c, d, e, f)
-  GENERATE_CALL_F(7, a, b, c, d, e, f, g)
-  GENERATE_CALL_F(8, a, b, c, d, e, f, g, h)
-  GENERATE_CALL_F(9, a, b, c, d, e, f, g, h, i)
-  GENERATE_CALL_F(10, a, b, c, d, e, f, g, h, i, j)
-  GENERATE_CALL_F(11, a, b, c, d, e, f, g, h, i, j, k)
-  GENERATE_CALL_F(12, a, b, c, d, e, f, g, h, i, j, k, l)
-  GENERATE_CALL_F(13, a, b, c, d, e, f, g, h, i, j, k, l, m)
-  GENERATE_CALL_F(14, a, b, c, d, e, f, g, h, i, j, k, l, m, n)
-  GENERATE_CALL_F(15, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
-  GENERATE_CALL_F(16, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)
-  GENERATE_CALL_F(17, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)
-  GENERATE_CALL_F(18, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)
-  GENERATE_CALL_F(19, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)
-  GENERATE_CALL_F(20, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)
-  GENERATE_CALL_F(21, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)
-  GENERATE_CALL_F(22, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)
-  GENERATE_CALL_F(23, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w)
-  GENERATE_CALL_F(24, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x)
-  GENERATE_CALL_F(25, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y)
-  GENERATE_CALL_F(26, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z)
-  GENERATE_CALL_F(27, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, aa)
-  GENERATE_CALL_F(28, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, aa, ab)
-  GENERATE_CALL_F(29, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, aa, ab, ac)
-  GENERATE_CALL_F(30, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, aa, ab, ac, ad)
-
-  template <typename T>
-  constexpr auto make_struct_tuple_ref(T& st) {
-    static_assert(count_struct_members<T>() <= 30, "struct limited to 30");
-    return generate_variable_list_ref<count_struct_members<T>()>(st);
-  }
-
-  template <typename T>
-  constexpr auto make_struct_tuple(const T& st) {
-    return generate_variable_list_nref<count_struct_members<T>()>(st);
-  }
-
-  //template <typename T>
-  //constexpr auto make_struct_tuple_ref(T&& st) {
-  //  T s;
-  //  return generate_variable_list_ref<count_struct_members<T>()>(s);
-  //}
-  //template <typename T>
-  //constexpr auto make_struct_tuple_ref(const T& st) {
-  //  T s;
-  //  return generate_variable_list_ref<count_struct_members<T>()>(s);
-  //}
-  /*
-
-  template <typename T, typename F, std::size_t... I>
-  void iterate_struct_impl(const T& st, F lambda, std::index_sequence<I...>) {
-    auto tuple = make_struct_tuple(st);
-    std::apply([&lambda](const auto&...args) {
-      (lambda.template operator() < I > (std::forward<decltype(args)>(args)), ...);
-      }, tuple);
-  }*/
-
-  template <typename T, typename F, std::size_t... I>
-  constexpr void iterate_struct_impl(T& st, F lambda, std::index_sequence<I...>) {
-    if constexpr (!std::is_empty_v<T>) {
-      auto tuple = make_struct_tuple_ref(st);
-      std::apply([&lambda](auto&...args) {
-        (lambda.template operator() < I > (std::forward<decltype(args)>(args)), ...);
-        }, tuple);
-    }
-  }
-
-  template <typename T>
-  constexpr void iterate_struct(const T& st, auto lambda) {
-    iterate_struct_impl(st, lambda, std::make_index_sequence<count_struct_members<T>()>{});
-  }
-
-  template <typename T>
-  constexpr void iterate_struct(T& st, auto lambda) {
-    iterate_struct_impl(st, lambda, std::make_index_sequence<count_struct_members<T>()>{});
-  }
-
-  template <typename T>
-  struct is_printable {
-  private:
-    template <typename U>
-    static auto test(int) -> decltype(std::declval<std::ostream&>() << std::declval<U>(), std::true_type());
-
-    template <typename>
-    static auto test(...) -> std::false_type;
-
-  public:
-    static constexpr bool value = decltype(test<T>(0))::value;
-  };
-
-  template <typename T>
-  constexpr bool is_printable_v = is_printable<T>::value;
-
-	template <typename ...Args>
-	constexpr void print_no_space(const Args&... args) {
-		((std::cout << args), ...) << '\n';
-	}
-
-	template <typename ...Args>
-	constexpr void print_no_endline(const Args&... args) {
-		((std::cout << args << ' '), ...);
-	}
-
-	template <typename ...Args>
-	constexpr void wprint_no_endline(const Args&... args) {
-		((std::wcout << args << ' '), ...);
-	}
-
-  template <typename T>
-  fan::string struct_to_string(T& st) {
-    fan::string formatted_string = "{\n";
-    iterate_struct(st, [&formatted_string, &st]<std::size_t i, typename T2>(T2& v) {
-     // static_assert(is_printable_v<T2>, "struct member missing operator<< or not printable");
-      if constexpr (!is_printable_v<T2>) {
-        auto f = struct_to_string(v);
-        std::string indented;
-        std::istringstream f_stream(f);
-        for (std::string line; std::getline(f_stream, line); ) {
-          indented += "  " + line + '\n';
-        }
-        formatted_string += indented;
-      }
-      else {
-        std::ostringstream os;
-        os << v;
-        formatted_string += fmt::format("  Member index {}: {{\n    Type:{}, Value:{}\n  }}",
-          i, typeid(T2).name(), os.str()
-        );
-        formatted_string += "\n";
-        if constexpr (i + 1 != count_struct_members<T>()) {
-          formatted_string += "\n";
-        }
-      }
-    });
-    formatted_string += "}";
-    return formatted_string;
-  }
 
   template <typename T>
   constexpr bool is_aggregate_and_scalar() {
@@ -529,43 +246,8 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 
   #define fan_ternary_void(f0, f1) [&]{ f0;}() : [&]{f1;}()
 
-  template <typename ...Args>
-  constexpr void print(const Args&... args) {
-    int idx = 0;
-    (([&]<typename T>(const T & v) {
-      if constexpr (is_printable_v<T>) {
-        std::cout << v << (idx + 1 == sizeof...(args) ? "" : ", ");
-      }
-      else {
-        if constexpr (std::is_aggregate_v<T>) {
-          if constexpr (count_struct_members<T>() < 30) {
-            std::cout << '\n' + struct_to_string(v) << ' ';
-          }
-        }
-      }
-      idx++;
-    }(args)), ...);
-    std::cout << '\n';
-  }
-
   template <typename T>
   struct is_fan_vec3 : std::false_type {};
-
-  template <typename... T>
-  static FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
-    -> fan::string {
-    return fmt::vformat(fmt, fmt::make_format_args(args...));
-  }
-
-  template <typename... args_t>
-  constexpr static auto print_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
-    fan::print(fmt::format(fmt, std::forward<args_t>(args)...));
-  }
-  
-	template <typename ...Args>
-	constexpr void wprint(const Args&... args) {
-		((std::wcout << args << " "), ...) << '\n';
-	}
 
 
   template<std::size_t I, typename... Args>
@@ -573,28 +255,9 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
     return std::get<I>(std::forward_as_tuple(args...));
   }
 
-  template <typename T>
-  constexpr void print_struct(const T& st) {
-    static_assert(count_struct_members<T>() <= 30, "limited to 30 members");
-    fan::print(struct_to_string(st));
-  }
 
-  void throw_error_impl();
-
-  template <typename ...Args>
-  static void throw_error(const Args&... args) {
-    fan::print(args...);
-    throw_error_impl();
-  }
-
-  #define __FAN_PRINT_EACH(x) fan::print_no_endline("{", #x"=",x, "}")
+  #define __FAN_PRINT_EACH(x) fan::print_no_endline("", #x"=",x, ",")
   #define fan_print(...) __FAN__FOREACH_NS(__FAN_PRINT_EACH, __VA_ARGS__);fan::print("")
-
-  template <typename... args_t>
-  constexpr static auto throw_error_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
-    fan::print(fmt::format(fmt, std::forward<args_t>(args)...));
-    throw_error_impl();
-  }
 
   void assert_test(bool test);
 
@@ -604,13 +267,6 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 		return sizeof(T) * vector.size();
 	}
 
-	template <typename T>
-  auto to_string(const T a_value, const int n) {
-		std::ostringstream out;
-		out.precision(n);
-		out << std::fixed << a_value;
-		return out.str();
-	}
 	//template <typename T>
 	//fan::wstring to_wstring(const T a_value, const int n = 2)
 	//{
@@ -655,17 +311,6 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 		using T::T;
 
 	};
-
-	static void print_warning(const fan::string& message) {
-#ifndef fan_disable_warnings
-		fan::print("fan warning: " + message);
-#endif
-	}
-	static void print_warning_no_space(const fan::string& message) {
-#ifndef fan_disable_warnings
-		fan::print_no_space("fan warning:", message);
-#endif
-	}
 
 	template <typename T>
 	struct ptr_maker_t {
@@ -712,95 +357,6 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 		return pair_t<T, T2>{a, b};
 	}
 
-#pragma pack(push, 1)
-	template <typename Member, std::size_t O>
-	struct Pad {
-		char pad[O];
-		Member m;
-	};
-#pragma pack(pop)
-
-	template<typename Member>
-	struct Pad<Member, 0> {
-		Member m;
-	};
-
-	template <typename Base, typename Member, std::size_t O>
-	struct MakeUnion {
-		union U {
-			char c;
-			Base base;
-			Pad<Member, O> pad;
-			constexpr U() noexcept : c{} {};
-		};
-		constexpr static U u{};
-	};
-
-	template <typename Member, typename Base, typename Orig>
-	struct ofof_impl {
-		template<std::size_t off, auto union_part = &MakeUnion<Base, Member, off>::u>
-		static constexpr std::ptrdiff_t offset2(Member Orig::* member) {
-			if constexpr (off > sizeof(Base)) {
-				throw 1;
-			}
-			else {
-				const auto diff1 = &((static_cast<const Orig*>(&union_part->base))->*member);
-				const auto diff2 = &union_part->pad.m;
-				if (diff1 > diff2) {
-					constexpr auto MIN = sizeof(Member) < alignof(Orig) ? sizeof(Member) : alignof(Orig);
-					return offset2<off + MIN>(member);
-				}
-				else {
-					return off;
-				}
-			}
-		}
-	};
-
-
-	template<class Member, class Base>
-	std::tuple<Member, Base> get_types(Member Base::*);
-
-	template <class TheBase = void, class TT>
-	inline constexpr std::ptrdiff_t ofof(TT member) {
-		using T = decltype(get_types(std::declval<TT>()));
-		using Member = std::tuple_element_t<0, T>;
-		using Orig = std::tuple_element_t<1, T>;
-		using Base = std::conditional_t<std::is_void_v<TheBase>, Orig, TheBase>;
-		return ofof_impl<Member, Base, Orig>::template offset2<0>(member);
-	}
-
-	template <auto member, class TheBase = void>
-	inline constexpr std::ptrdiff_t ofof() {
-		return ofof<TheBase>(member);
-	}
-
-	//template <typename T, typename U>
-	//constexpr auto offsetless(void* ptr, U T::* member) {
-	//  return (T*)((uint8_t*)(ptr)-((char*)&((T*)nullptr->*member) - (char*)nullptr));
-	//}
-
-	template <typename T>
-	fan::string combine_values(T t) {
-		if constexpr (std::is_same<T, const char*>::value) {
-			return t;
-		}
-		else {
-			return std::to_string(t);
-		}
-	}
-
-	template <typename T2, typename ...T>
-	static fan::string combine_values(T2 first, T... args) {
-		if constexpr (std::is_same<T2, const char*>::value ||
-			std::is_same<T2, fan::string>::value) {
-			return first + f(args...);
-		}
-		else {
-			return std::to_string(first) + f(args...);
-		}
-	}
-
   template <typename Callable>
   struct return_type_of_membr;
 
@@ -828,34 +384,6 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
     if (str == nullptr) {
       return 0;
     }
-
-    while (str[i] != 0) {
-      result ^= (uint64_t)str[i];
-      result *= 1099511628211; // FNV prime
-      i++;
-    }
-
-    return result;
-  }
-
-  static constexpr uint64_t get_hash(const std::string_view& str) {
-    uint64_t result = 0xcbf29ce484222325; // FNV offset basis
-
-    uint32_t i = 0;
-
-    while (i < str.size()) {
-      result ^= (uint64_t)str[i];
-      result *= 1099511628211; // FNV prime
-      i++;
-    }
-
-    return result;
-  }
-
-  static constexpr uint64_t get_hash(const std::string& str) {
-    uint64_t result = 0xcbf29ce484222325; // FNV offset basis
-
-    uint32_t i = 0;
 
     while (str[i] != 0) {
       result ^= (uint64_t)str[i];
@@ -899,36 +427,6 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
     From & val;
   };
 
-	namespace debug {
-
-		static void print_stacktrace() {
-#ifdef fan_std23
-			std::stacktrace st;
-			fan::print(st.current());
-#elif defined(fan_platform_unix)
-			// waiting for stacktrace to be released for clang lib++
-#else
-			fan::print("stacktrace not supported");
-#endif
-		}
-	}
-
-	namespace performance {
-		void measure(auto l) {
-			fan::time::clock c;
-			c.start();
-			l();
-			fan::print(c.elapsed());
-		}
-	}
-
-  //#define fan_has_variable(type, var_name) [&](type p = type())constexpr{ return requires{p.var_name;}; }()
-
-  //template <typename T>
-  //constexpr bool has_variable() {
-
-  //}
-
   #define fan_requires_rule(type, rule) \
     [] <typename dont_shadow_me2_t>() constexpr { \
       return requires(dont_shadow_me2_t t) { rule; } == true; \
@@ -965,28 +463,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 
   template<typename T, typename... Ts>
   concept same_as_any = (std::is_same_v<T, Ts> || ...);
-
-  #define __create_assign_operators(...) \
-    template <typename T> \
-    requires fan::same_as_any<T, __VA_ARGS__> \
-    auto& operator=(const T& arg) { \
-      T::operator=(arg); \
-      return *this; \
-    }
-
-  template <typename... bases_t>
-  struct assign_wrapper_t : public bases_t... {
-    using bases_t::bases_t...;
-    __create_assign_operators(bases_t...)
-  };
 }
-
-
-//template <platform_t T_platform>
-//concept platform_windows = T_platform == platform_t::windows;
-
-//template <platform_t T_platform>
-//concept platform_linux = T_platform == platform_t::linux;
 
 #ifndef OFFSETLESS
 	#define OFFSETLESS(ptr_m, t_m, d_m) \
@@ -1002,7 +479,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 #define __ca__ ,
 
 #ifndef fan_debug
-	#define fan_debug fan_debug_low
+	#define fan_debug fan_debug_high
 #endif
 
 #ifndef fan_use_uninitialized
@@ -1013,18 +490,52 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
 #pragma comment(lib, "Onecore.lib")
 #endif
 
+using DWORD = unsigned long;
+
 #ifndef __clz
 #define __clz __clz
-uint8_t __clz32(uint32_t p0);
-uint8_t __clz64(uint64_t p0);
+inline uint8_t __clz32(uint32_t p0)
+{
+#if defined(__GNUC__)
+  return __builtin_clz(p0);
+#elif defined(_MSC_VER)
+  DWORD trailing_zero = 0;
+  if (_BitScanReverse(&trailing_zero, p0)) {
+    return uint8_t((DWORD)31 - trailing_zero);
+  }
+  else {
+    return 0;
+  }
+#else
+#error ?
+#endif
+}
+
+inline uint8_t __clz64(uint64_t p0) {
+#if defined(__GNUC__)
+  return __builtin_clzll(p0);
+#elif defined(_WIN64)
+
+  DWORD trailing_zero = 0;
+  if (_BitScanReverse64(&trailing_zero, p0)) {
+    return uint8_t((DWORD)63 - trailing_zero);
+  }
+  else {
+    return 0;
+  }
+#else
+  fan::throw_error_impl();
+//#error ?
+#endif
+}
 
 #if defined(__x86_64__) || defined(_M_AMD64)
 	#define SYSTEM_BIT 64
 	#define SYSTEM_BYTE 8
-#elif defined(__i386__)
+#elif defined(__i386__) || defined(_WIN32)
 	#define SYSTEM_BIT 32
 	#define SYSTEM_BYTE 4
-#else
+#else 
 	#error failed to find platform
 #endif
 
@@ -1059,8 +570,8 @@ static uint8_t __clz(uintptr_t p0) {
   return var__; \
 }())
 
-#define fan_init_id_t0(type, name, ...) type ## _id_t name = type ## _id_t([&] { \
-  type ## _id_t ::properties_t var__; \
+#define fan_init_id_t0(type, properties, name, ...) type name = type([&] { \
+  properties var__; \
   __FAN__FOREACH(__FAN__INSERTVARNAME, __VA_ARGS__); \
   return var__; \
 }())
@@ -1107,8 +618,6 @@ static uint8_t __clz(uintptr_t p0) {
   #endif
 #endif
 
-template <typename ...T>
-using __nameless_type_t = fan::assign_wrapper_t<T...>;
 
 #ifndef lstd_defstruct
   #define lstd_defstruct(type_name) \
@@ -1180,10 +689,15 @@ namespace fan {
   #define lstd_preprocessor_combine_every_2(...) _lstd_preprocessor_combine_every_2_start(lstd_preprocessor_get_arg_count(__VA_ARGS__), __VA_ARGS__)
   #endif
 
-  // __VA_ARGS__ is not compile time in clang according to clang
+  //// __VA_ARGS__ is not compile time in clang according to clang
   #define fan_make_flexible_array(type, name, ...) \
   std::array<type, std::initializer_list<type>{__VA_ARGS__}.size()> name = {__VA_ARGS__}
 
-  std::vector<std::string> split(std::string str, std::string token);
-  std::vector<std::string> split_quoted(const std::string& input);
+  template<class T, typename U>
+  std::ptrdiff_t member_offset(U T::* member)
+  {
+    return reinterpret_cast<std::ptrdiff_t>(
+      &(reinterpret_cast<T const volatile*>(NULL)->*member)
+      );
+  }
 }

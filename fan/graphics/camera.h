@@ -4,8 +4,7 @@
 
 namespace fan {
 
-  class camera {
-  public:
+  struct camera {
 
     camera();
 
@@ -34,7 +33,7 @@ namespace fan {
 
     void rotate_camera(fan::vec2 offset);
 
-    f32_t sensitivity = 0.1;
+    f32_t sensitivity = 0.1f;
 
     static constexpr f32_t max_yaw = 180;
     static constexpr f32_t max_pitch = 89;
@@ -48,8 +47,8 @@ namespace fan {
 
  // protected:
 
-    f32_t m_yaw;
-    f32_t m_pitch;
+    f32_t m_yaw = 0;
+    f32_t m_pitch = 0;
     fan::vec3 m_right;
     fan::vec3 m_up;
     fan::vec3 m_front;

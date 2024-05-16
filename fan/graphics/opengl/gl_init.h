@@ -29,47 +29,6 @@ namespace fan {
         static constexpr const char* shared_library = "libGL.so.1";
       #endif
 
-      
-
-      #if defined(fan_platform_windows)
-        
-      #elif defined(fan_platform_unix)
-        //static void open_lib_handle(void** handle) {
-        //  *handle = dlopen(shared_library, RTLD_LAZY);
-        //  #if fan_debug >= fan_debug_low
-        //  if (*handle == nullptr) {
-        //      fan::throw_error(dlerror());
-        //  }
-        //  #endif
-        //}
-        //static void close_lib_handle(void** handle) {
-        //  #if fan_debug >= fan_debug_low
-        //  auto error =
-        //  #endif
-        //  dlclose(*handle);
-        //  #if fan_debug >= fan_debug_low
-        //  if (error != 0) {
-        //      fan::throw_error(dlerror());
-        //  }
-        //  #endif
-        //}
-
-       /* static void* get_lib_proc(void** handle, const char* name) {
-          void* result = dlsym(*handle, name);
-          #if fan_debug >= fan_debug_low
-          if (result == nullptr) {
-              dlerror();
-              dlsym(*handle, name);
-              auto error = dlerror();
-              if (error != nullptr) {
-              fan::throw_error(error);
-              }
-          }
-          #endif
-          return result;
-        }*/
-      #endif
-
       struct properties_t {
         #if defined(fan_platform_windows)
           HWND hwnd;
@@ -87,29 +46,6 @@ namespace fan {
 
       }
 
-      #if defined(fan_platform_windows)
-        fan::opengl::wgl::PFNWGLGETPIXELFORMATATTRIBIVARBPROC wglChoosePixelFormatARB;
-        fan::opengl::wgl::PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
-        fan::opengl::wgl::PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
-      #elif defined(fan_platform_unix)
-        fan::opengl::glx::PFNGLXGETPROCADDRESSPROC glXGetProcAddress;
-        fan::opengl::glx::PFNGLXMAKECURRENTPROC glXMakeCurrent;
-        fan::opengl::glx::PFNGLXGETCURRENTDRAWABLEPROC glXGetCurrentDrawable;
-        fan::opengl::glx::PFNGLXSWAPINTERVALEXTPROC glXSwapIntervalEXT;
-        fan::opengl::glx::PFNGLXDESTROYCONTEXTPROC glXDestroyContext;
-        fan::opengl::glx::PFNGLXCHOOSEFBCONFIGPROC glXChooseFBConfig;
-        fan::opengl::glx::PFNGLXGETVISUALFROMFBCONFIGPROC glXGetVisualFromFBConfig;
-        fan::opengl::glx::PFNGLXQUERYVERSIONPROC glXQueryVersion;
-        fan::opengl::glx::PFNGLXGETFBCONFIGATTRIBPROC glXGetFBConfigAttrib;
-        fan::opengl::glx::PFNGLXQUERYEXTENSIONSSTRINGPROC glXQueryExtensionsString;
-        fan::opengl::glx::PFNGLXGETCURRENTCONTEXTPROC glXGetCurrentContext;
-        fan::opengl::glx::PFNGLXSWAPBUFFERSPROC glXSwapBuffers;
-        fan::opengl::glx::PFNGLXCREATENEWCONTEXTPROC glXCreateNewContext;
-        fan::opengl::glx::PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB;
-      #elif defined(fan_platform_android)
-        EGLContext context;
-      #endif
-
     };
 
     inline bool opengl_initialized = false;
@@ -120,33 +56,6 @@ namespace fan {
 
       static void* get_proc_address_(const char* name, internal_t* internal)
       {
-       /* #if defined(fan_platform_windows)
-          void *p = (void *)wglGetProcAddress(name);
-        if(p == 0 ||
-          (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) ||
-          (p == (void*)-1) )
-        {
-          HMODULE module = LoadLibraryA("opengl32.dll");
-          p = (void *)GetProcAddress(module, name);
-        }
-
-        #if fan_debug >= fan_debug_low
-          if (p == nullptr) {
-            fan::throw_error(fan::string("failed to load proc:") + name + ", with error:" + fan::to_string(GetLastError()));
-          }
-        #endif
-
-        return p;
-
-        #elif defined(fan_platform_android)
-        
-        return (void*)eglGetProcAddress(name);
-
-        #elif defined(fan_platform_unix)
-
-        return (void*)internal->glXGetProcAddress((const GLubyte*)name);
-
-        #endif*/
         return (void*)glfwGetProcAddress(name);
       }
 
@@ -163,9 +72,9 @@ namespace fan {
     #endif
       
 
-      void open() {
+      opengl_t(bool reinit = false) {
 
-        if (opengl_initialized) {
+        if (opengl_initialized && reinit == false) {
           return;
         };
        
@@ -195,14 +104,13 @@ namespace fan {
       
       //efine call_opengl
 
-      template <typename T, typename ...T2>
+      template <typename T, typename... T2>
       constexpr auto call(const T& t, T2&&... args) {
-        if constexpr (std::is_same<fan::return_type_of_t<T>, void>::value) {
-          t(args...);
-        }
-        else {
-          return t(args...);
-        }
+          if constexpr (std::is_same<std::invoke_result_t<T, T2...>, void>::value) {
+              t(std::forward<T2>(args)...);
+          } else {
+              return t(std::forward<T2>(args)...);
+          }
       }
       #else
 
@@ -249,6 +157,7 @@ namespace fan {
       get_proc_address(PFNGLDISABLEPROC, glDisable, &internal);
       get_proc_address(PFNGLDRAWARRAYSPROC, glDrawArrays, &internal);
       get_proc_address(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced, &internal);
+      get_proc_address(PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC, glDrawArraysInstancedBaseInstance, &internal);
       get_proc_address(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray, &internal);
       get_proc_address(PFNGLGETATTRIBLOCATIONPROC, glGetAttribLocation, &internal);
       get_proc_address(PFNGLGETBUFFERPARAMETERIVPROC, glGetBufferParameteriv, &internal);
@@ -285,6 +194,7 @@ namespace fan {
       get_proc_address(PFNGLUNIFORM2FVPROC, glUniform2fv, &internal);
       get_proc_address(PFNGLUNIFORM3DPROC, glUniform3d, &internal);
       get_proc_address(PFNGLUNIFORM3FPROC, glUniform3f, &internal);
+      get_proc_address(PFNGLUNIFORM3FVPROC, glUniform3fv, &internal);
       get_proc_address(PFNGLUNIFORM4DPROC, glUniform4d, &internal);
       get_proc_address(PFNGLUNIFORM4FPROC, glUniform4f, &internal);
       get_proc_address(PFNGLUNIFORMMATRIX4FVPROC, glUniformMatrix4fv, &internal);
@@ -345,6 +255,8 @@ namespace fan {
       get_proc_address(PFNGLREADBUFFERPROC, glReadBuffer, &internal);
       get_proc_address(PFNGLDRAWPIXELSPROC, glDrawPixels, &internal);
       get_proc_address(PFNGLBLITFRAMEBUFFERPROC, glBlitFramebuffer, &internal);
+      get_proc_address(PFNGLVERTEXATTRIBDIVISORPROC, glVertexAttribDivisor, &internal);
+      
 
 
     };

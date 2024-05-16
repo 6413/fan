@@ -15,9 +15,9 @@ namespace fan {
   }
 }
 
-constexpr static f32_t bcol_step_time = 0.001;
+constexpr static f32_t bcol_step_time = 0.001f;
 #define BCOL_set_Dimension 2
-#define BCOL_set_IncludePath FAN_INCLUDE_PATH/fan
+#define BCOL_set_IncludePath fan
 #define BCOL_set_prefix bcol
 #define BCOL_set_DynamicDeltaFunction 
 #define BCOL_set_StoreExtraDataInsideObject 1
@@ -25,7 +25,7 @@ constexpr static f32_t bcol_step_time = 0.001;
   bcol_t::ShapeID_t shape_id;\
   fan::collider::types_e collider_type; \
   loco_t::shape_t* shape = nullptr;
-#include _FAN_PATH(ETC/BCOL/BCOL.h)
+#include <fan/ETC/BCOL/BCOL.h>
 
 namespace fan {
   namespace graphics {
@@ -52,8 +52,7 @@ namespace fan {
           const f32_t bcol_delta_max = 2;
 
           {
-            auto d = gloco->get_delta_time();
-            bcol_delta += d;
+            bcol_delta += gloco->delta_time;
           }
 
           if (bcol_delta > bcol_delta_max) {

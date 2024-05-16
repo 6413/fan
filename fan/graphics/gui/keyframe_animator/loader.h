@@ -108,7 +108,7 @@ namespace fan {
       }
 
       void push_sprite(uint32_t i, auto&& temp) {
-        loco_t::shapes_t::vfi_t::properties_t vfip;
+        typename loco_t::vfi_t::properties_t vfip;
         vfip.shape.rectangle->position = temp.get_position();
         vfip.shape.rectangle->position.z += 1;
         vfip.shape.rectangle->size = temp.get_size();
@@ -182,8 +182,8 @@ namespace fan {
 
       void set_camera_viewport(uint32_t i, loco_t::camera_t* camera, loco_t::viewport_t* viewport) {
         object_t& obj = objects[i];
-        gloco->shapes.sprite.set_camera(obj.sprite, camera);
-        gloco->shapes.sprite.set_viewport(obj.sprite, viewport);
+        gloco->sprite.set_camera(obj.sprite, camera);
+        gloco->sprite.set_viewport(obj.sprite, viewport);
       }
 
       object_t& get_obj(uint32_t i) {

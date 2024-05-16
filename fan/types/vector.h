@@ -3,10 +3,10 @@
 #include <iostream>
 #include <algorithm>
 #include <numeric>
-#include <string>
 #include <compare>
 #include <tuple>
 #include <cstdint>
+#include <sstream>
 
 #include <fan/math/math.h>
 
@@ -19,7 +19,7 @@
 #define fan_coordinate(x) CONCAT(fan_coordinate_letters, x)
 
 #if defined(loco_imgui)
-#include <fan/imgui/imgui.h>
+  #include <fan/imgui/imgui.h>
 #endif
 
 namespace fan {
@@ -59,10 +59,10 @@ namespace fan {
       f32_t multiplier = k.dot(vec3_wrap_t<typename T::value_type>{ x, y, 0 });
       return vec2_wrap_t( k.x * multiplier, k.y * multiplier);
     }
-    #if defined(loco_imgui)
+#if defined(loco_imgui)
     constexpr operator ImVec2() const { return ImVec2(x, y); }
-    constexpr vec2_wrap_t(const ImVec2& v) { x = v.x; y = v.y;}
-    #endif
+    constexpr vec2_wrap_t(const ImVec2& v) { x = v.x; y = v.y; }
+#endif
     // coordinate system angle. TODO need rename to something meaningful
 		constexpr auto csangle() const { return atan2(x, -y);}
 
@@ -144,10 +144,11 @@ namespace fan {
     template <typename T> 
     constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0, auto value)
       : vec4_wrap_t(test0.x, test0.y, test0.z, value) { }
-    #if defined(loco_imgui)
+
+#if defined(loco_imgui)
     constexpr operator ImVec4() const { return ImVec4(x, y, z, w); }
     constexpr vec4_wrap_t(const ImVec4& v) { x = v.x; y = v.y; z = v.z; w = v.w; }
-    #endif
+#endif
   };
 
 	 using vec1b = vec1_wrap_t<bool>;
@@ -198,24 +199,6 @@ namespace fan {
 
     constexpr ray3_t(const fan::vec3& origin_, fan::vec3& direction_) : origin(origin_), direction(direction_){}
   };
-}
-
-namespace fmt {
-   template<typename T>
-   struct fmt::formatter<fan::vec2_wrap_t<T>> {
-     auto parse(fmt::format_parse_context& ctx) { return ctx.end(); }
-     auto format(const fan::vec2_wrap_t<T>& obj, fmt::format_context& ctx) { return fmt::format_to(ctx.out(), "{}", obj.to_string()); }
-   };
-   template<typename T>
-   struct fmt::formatter<fan::vec3_wrap_t<T>> {
-     auto parse(fmt::format_parse_context& ctx) { return ctx.end(); }
-     auto format(const fan::vec3_wrap_t<T>& obj, fmt::format_context& ctx) { return fmt::format_to(ctx.out(), "{}", obj.to_string());}
-   };
-   template<typename T>
-   struct fmt::formatter<fan::vec4_wrap_t<T>> {
-     auto parse(fmt::format_parse_context& ctx) { return ctx.end(); }
-     auto format(const fan::vec4_wrap_t<T>& obj, fmt::format_context& ctx) {return fmt::format_to(ctx.out(), "{}", obj.to_string());}
-   };
 }
 
 #undef fan_coordinate_letters0

@@ -1,4 +1,6 @@
-#include _FAN_PATH(graphics/gui/fgm/fgm.h)
+#include <fan/graphics/gui/fgm/fgm.h>
+#include <fan/io/directory.h>
+#include <fan/fmt.h>
 
 struct fsm_t {
 
@@ -137,9 +139,9 @@ void update(){
       if (!render_fsm) {
         if (fgm == nullptr) {
           fgm = new fgm_t();
-          fgm->open("TexturePack");
-          fgm->file_name = fan::string(stage_runtime_folder_name) + "/" + current_stage + ".fgm";
-          fgm->fin(fgm->file_name);
+          fgm->open("texture_packs/TexturePack");
+          //fgm->file_name = fan::string(stage_runtime_folder_name) + "/" + current_stage + ".fgm";
+          fgm->fin(fan::string(stage_runtime_folder_name) + "/" + current_stage + ".fgm");
           fgm->close_cb = [this] {
             fgm->close();
             delete fgm;
@@ -194,11 +196,15 @@ void update(){
         fan::vec2 window_size = gloco->window.get_size();
         fan::vec2 viewport_size = ImGui::GetWindowSize();
         fan::vec2 ratio = viewport_size / viewport_size.max();
-        gloco->default_camera->camera.set_ortho(
+        gloco->camera_set_ortho(
+          gloco->orthographic_camera.camera,
           fan::vec2(0, viewport_size.x),
           fan::vec2(0, viewport_size.y)
         );
-        gloco->default_camera->viewport.set(ImGui::GetWindowPos(), viewport_size, window_size);
+        gloco->viewport_set(
+          gloco->orthographic_camera.viewport,
+          ImGui::GetWindowPos(), viewport_size, window_size
+        );
         editor_size = ImGui::GetContentRegionAvail();
       }
 

@@ -1,74 +1,14 @@
 #pragma once
 
-#include <fan/types/vector.h>
-#include <fan/types/color.h>
-#include <fan/types/memory.h>
-
 #include <fan/graphics/opengl/gl_init.h>
-#include <fan/physics/collision/rectangle.h>
-
-#include <fan/window/window.h>
-
+#include <fan/graphics/webp.h>
 #include <fan/graphics/camera.h>
-#include <fan/graphics/opengl/gl_viewport.h>
 
-#ifdef fan_platform_windows
-#include <dbghelp.h>
-#endif
-
-namespace fan {
-
-  static void print_callstack() {
-
-    #ifdef fan_platform_windows
-    uint16_t i;
-    uint16_t frames;
-    void* stack[0xff];
-    SYMBOL_INFO* symbol;
-    HANDLE process;
-
-    SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS | SYMOPT_INCLUDE_32BIT_MODULES);
-
-    process = GetCurrentProcess();
-
-    if (!SymInitialize(process, NULL, TRUE)) {
-      int err = GetLastError();
-      printf("[_PR_DumpTrace] SymInitialize failed %d", err);
-    }
-
-    frames = CaptureStackBackTrace(0, 0xff, stack, NULL);
-    symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + 1024 * sizeof(uint8_t), 1);
-    symbol->MaxNameLen = 1023;
-    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-
-    for (i = 0; i < frames; i++) {
-      SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
-      DWORD Displacement;
-      IMAGEHLP_LINE64 Line;
-      Line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-      if (SymGetLineFromAddr64(process, (DWORD64)(stack[i]), &Displacement, &Line)) {
-        printf("%i: %s:%lu\n", frames - i - 1, symbol->Name, Line.LineNumber);
-      }
-      else {
-        printf("%i: %s:0x%llx\n", frames - i - 1, symbol->Name, symbol->Address);
-      }
-    }
-
-    free(symbol);
-    #endif
-
-  }
-}
-
-#include "themes_list_builder_settings.h"
-#define BLL_set_declare_NodeReference 1
-#define BLL_set_declare_rest 0
-#include _FAN_PATH(BLL/BLL.h)
-
-#include "themes_list_builder_settings.h"
-#define BLL_set_declare_NodeReference 0
-#define BLL_set_declare_rest 1
-#include _FAN_PATH(BLL/BLL.h)
+template<typename T>
+concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&
+!std::is_same_v<T, fan::vec3> &&
+!std::is_same_v<T, fan::vec4> &&
+!std::is_same_v<T, fan::color>;
 
 namespace fan {
   namespace opengl {
@@ -78,50 +18,26 @@ namespace fan {
       void print_version();
 
       struct properties_t {
-        properties_t() {
-          samples = 0;
-        }
 
-        uint16_t samples;
       };
-
-      fan::opengl::GLuint current_program;
-      fan::opengl::theme_list_t theme_list;
-      fan::opengl::viewport_list_t viewport_list;
-      fan::camera camera;
+  
       fan::opengl::opengl_t opengl;
+      fan::opengl::GLuint current_program = -1;
 
-      context_t() {
-        opengl.open();
-
-        m_flags = 0;
-        current_program = fan::uninitialized;
-      }
-      context_t(fan::window_t* window, const properties_t& p = properties_t()) : context_t() {
+      void open(fan::window_t* window, const properties_t& p = properties_t()) {
+        // TODO bad reloads opengl functions twice
+        opengl = fan::opengl::opengl_t(true);
         glfwMakeContextCurrent(window->glfw_window);
       }
-      ~context_t() {
+
+      void render(fan::window_t& window) {
+        glfwSwapBuffers(window.glfw_window);
       }
 
-      void open();
-      void close();
+      void set_depth_test(bool flag);
+      void set_blending(bool flag);
 
-      void render(fan::window_t* window) {
-        glfwSwapBuffers(window->glfw_window);
-      }
-
-      void set_depth_test(bool flag) {
-        if (flag) {
-          opengl.call(opengl.glEnable, fan::opengl::GL_DEPTH_TEST);
-        }
-        else {
-          opengl.call(opengl.glDisable, fan::opengl::GL_DEPTH_TEST);
-        }
-      }
-
-      void set_vsync(fan::window_t* window, bool flag) {
-        glfwSwapInterval(flag);
-      }
+      void set_vsync(fan::window_t& window, bool flag);
 
       static void message_callback(GLenum source,
         GLenum type,
@@ -133,22 +49,339 @@ namespace fan {
 
       void set_error_callback();
 
-      void set_current(fan::window_t* window)
-      {
-        glfwMakeContextCurrent(window->glfw_window);
+      void set_current(fan::window_t* window);
+
+
+
+      static fan::string read_shader(const fan::string& path) {
+        fan::string code;
+        fan::io::file::read(path, &code);
+        return code;
       }
 
-      uint32_t m_flags;
+      //-----------------------------shader-----------------------------
+
+      struct shader_t {
+        fan::opengl::GLuint id = -1;
+        int projection_view[2]{ -1, -1 };
+        uint32_t vertex = -1, fragment = -1;
+        // can be risky without constructor copy
+        std::string svertex, sfragment;
+
+        std::unordered_map<std::string, std::string> uniform_type_table;
+      };
+    protected:
+      #include <fan/graphics/opengl/shader_list_builder_settings.h>
+      #include <fan/BLL/BLL.h>
+    public:
+      shader_list_t shader_list;
+
+      using shader_nr_t = shader_list_NodeReference_t;
+
+      static constexpr auto shader_validate_error_message = [](const auto str) {
+        return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
+      };
+
+      shader_nr_t shader_create();
+      shader_t& shader_get(shader_nr_t nr);
+      void shader_erase(shader_nr_t nr);
+
+      void shader_use(shader_nr_t nr);
+
+      void shader_set_vertex(shader_nr_t nr, const fan::string& vertex_code);
+      void shader_set_fragment(shader_nr_t nr, const fan::string& fragment_code);
+      bool shader_compile(shader_nr_t nr);
+      bool shader_check_compile_errors(fan::opengl::GLuint, const fan::string& type);
+
+      void shader_set_camera(shader_nr_t nr, void* camera_nr);
+
+      static constexpr auto validate_error_message = [](const auto str) {
+        return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
+        };
+
+
+      template <typename T>
+      void shader_set_value(shader_nr_t nr, const fan::string& name, const T& value) {
+        shader_use(nr);
+        shader_t& shader = shader_get(nr);
+        auto found = shader.uniform_type_table.find(name);
+        if (found == shader.uniform_type_table.end()) {
+          //fan::print("failed to set uniform value");
+          return;
+          //fan::throw_error("failed to set uniform value");
+        }
+
+        auto location = opengl.call(opengl.glGetUniformLocation, shader.id, name.c_str());
+
+      #if fan_debug >= fan_debug_insanity
+        fan_validate_value(location, validate_error_message(name));
+      #endif
+
+        if (location == -1) {
+          return;
+        }
+
+        switch (fan::get_hash(found->second)) {
+        case fan::get_hash(std::string_view("bool")): {
+          if constexpr (not_non_arithmethic_types<T>) {
+            opengl.call(opengl.glUniform1i, location, value);
+          }
+          break;
+        }
+        case fan::get_hash(std::string_view("sampler2D")):
+        case fan::get_hash(std::string_view("int")): {
+          if constexpr (not_non_arithmethic_types<T>) {
+            opengl.call(opengl.glUniform1i, location, value);
+          }
+          break;
+        }
+        case fan::get_hash(std::string_view("uint")): {
+          if constexpr (not_non_arithmethic_types<T>) {
+            opengl.call(opengl.glUniform1ui, location, value);
+          }
+          break;
+        }
+        case fan::get_hash(std::string_view("float")): {
+          if constexpr (not_non_arithmethic_types<T>) {
+            opengl.call(opengl.glUniform1f, location, value);
+          }
+          break;
+        }
+        case fan::get_hash(std::string_view("vec2")): {
+          if constexpr (std::is_same_v<T, fan::vec2>) {
+            opengl.call(opengl.glUniform2fv, location, 1, (f32_t*)&value);
+          }
+          break;
+        }
+        case fan::get_hash(std::string_view("vec3")): {
+          if constexpr (std::is_same_v<T, fan::vec3>) {
+            opengl.call(opengl.glUniform3fv, location, 1, (f32_t*)&value);
+          }
+          break;
+        }
+        case fan::get_hash(std::string_view("vec4")): {
+          if constexpr (std::is_same_v<T, fan::vec4> || std::is_same_v<T, fan::color>) {
+            opengl.call(opengl.glUniform4fv, location, 1, (f32_t*)&value);
+          }
+          break;
+        }
+        case fan::get_hash(std::string_view("mat4")): {
+          opengl.call(opengl.glUniformMatrix4fv, location, 1, fan::opengl::GL_FALSE, (f32_t*)&value);
+          break;
+        }
+        }
+      }
+
+      /*
+      
+        case fan::get_hash(std::string_view("int[]")): {
+          shader->set_int(var_name, initial);
+          break;
+        }
+        case fan::get_hash(std::string_view("uint[]")): {
+          shader->set_int(var_name, initial);
+          break;
+        }
+        case fan::get_hash(std::string_view("float[]")): {
+          shader->set_float(var_name, initial);
+          break;
+        }
+      */
+
+      //-----------------------------shader-----------------------------
+
+
+
+
+      //-----------------------------image-----------------------------
+
+      struct image_t {
+        fan::opengl::GLuint texture_id;
+        fan::vec2 size;
+      };
+
+      struct gl_image_impl {
+        #include <fan/graphics/opengl/image_list_builder_settings.h>
+        #if defined(loco_opengl)
+        #elif defined(loco_vulkan)
+        #include <fan/graphics/vulkan/image_list_builder_settings.h>
+        #endif
+        #include <fan/BLL/BLL.h>
+      };
+
+      using image_nr_t = gl_image_impl::image_list_NodeReference_t;
+
+      struct image_format {
+        static constexpr auto b8g8r8a8_unorm = fan::opengl::GL_BGRA;
+        static constexpr auto r8_unorm = fan::opengl::GL_RED;
+        static constexpr auto rg8_unorm = fan::opengl::GL_RG;
+      };
+
+      struct image_sampler_address_mode {
+        static constexpr auto repeat = fan::opengl::GL_REPEAT;
+        static constexpr auto mirrored_repeat = fan::opengl::GL_MIRRORED_REPEAT;
+        static constexpr auto clamp_to_edge = fan::opengl::GL_CLAMP_TO_EDGE;
+        static constexpr auto clamp_to_border = fan::opengl::GL_CLAMP_TO_BORDER;
+        static constexpr auto mirrored_clamp_to_edge = fan::opengl::GL_MIRROR_CLAMP_TO_EDGE;
+      };
+
+      struct image_filter {
+        static constexpr auto nearest = fan::opengl::GL_NEAREST;
+        static constexpr auto linear = fan::opengl::GL_LINEAR;
+      };
+
+      struct image_load_properties_defaults {
+        static constexpr uint32_t visual_output = fan::opengl::GL_REPEAT;
+        static constexpr uint32_t internal_format = fan::opengl::GL_RGBA;
+        static constexpr uint32_t format = fan::opengl::GL_RGBA;
+        static constexpr uint32_t type = fan::opengl::GL_UNSIGNED_BYTE;
+        static constexpr uint32_t min_filter = fan::opengl::GL_NEAREST;
+        static constexpr uint32_t mag_filter = fan::opengl::GL_NEAREST;
+      };
+
+      struct image_load_properties_t {
+        uint32_t            visual_output = image_load_properties_defaults::visual_output;
+        uintptr_t           internal_format = image_load_properties_defaults::internal_format;
+        uintptr_t           format = image_load_properties_defaults::format;
+        uintptr_t           type = image_load_properties_defaults::type;
+        uintptr_t           min_filter = image_load_properties_defaults::min_filter;
+        uintptr_t           mag_filter = image_load_properties_defaults::mag_filter;
+      };
+
+      static constexpr fan::vec4_wrap_t<fan::vec2> default_texture_coordinates = fan::vec4_wrap_t<fan::vec2>(
+        fan::vec2(0, 0),
+        fan::vec2(1, 0),
+        fan::vec2(1, 1),
+        fan::vec2(0, 1)
+      );
+
+      image_nr_t image_create();
+      fan::opengl::GLuint& image_get(image_nr_t nr);
+      image_t& image_get_data(image_nr_t nr);
+
+      void image_erase(image_nr_t nr);
+
+      void image_bind(image_nr_t nr);
+      void image_unbind(image_nr_t nr);
+
+      void image_set_settings(const image_load_properties_t& p);
+
+      image_nr_t image_load(const fan::webp::image_info_t& image_info);
+      image_nr_t image_load(const fan::webp::image_info_t& image_info, const image_load_properties_t& p);
+      image_nr_t image_load(const fan::string& path);
+      image_nr_t image_load(const fan::string& path, const image_load_properties_t& p);
+      image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_);
+      image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_, const image_load_properties_t& p);
+
+      void unload_image(image_nr_t nr);
+
+      image_nr_t create_missing_texture();
+      image_nr_t create_transparent_texture();
+
+      void image_reload_pixels(image_nr_t nr, const fan::webp::image_info_t& image_info);
+      void image_reload_pixels(image_nr_t nr, const fan::webp::image_info_t& image_info, const image_load_properties_t& p);
+
+      std::unique_ptr<uint8_t[]> image_get_pixel_data(image_nr_t nr, fan::opengl::GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
+
+      image_nr_t create_image(const fan::color& color);
+      image_nr_t create_image(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p);
+
+      gl_image_impl::image_list_t image_list;
+
+      //-----------------------------image-----------------------------
+
+      //-----------------------------camera-----------------------------
+
+      //struct viewport_resize_cb_data_t {
+      //  camera_t* camera;
+      //  fan::vec3 position;
+      //  fan::vec2 size;
+      //};
+      //using viewport_resize_cb_t = fan::function_t<void(const viewport_resize_cb_data_t&)>;
+      struct camera_t : fan::camera {
+        fan::mat4 m_projection{ 1 };
+        fan::mat4 m_view{ 1 };
+
+        union {
+          struct {
+            f32_t left;
+            f32_t right;
+            f32_t up;
+            f32_t down;
+          };
+          fan::vec4 v;
+        }coordinates;
+      };
+
+    protected:
+      #include <fan/graphics/opengl/camera_list_builder_settings.h>
+      #include <fan/BLL/BLL.h>
+    public:
+
+      using camera_nr_t = camera_list_NodeReference_t;
+
+      camera_list_t camera_list;
+
+      camera_nr_t camera_create();
+      camera_t& camera_get(camera_nr_t nr);
+      void camera_erase(camera_nr_t nr);
+
+      //void link(const camera_t& t);
+
+      static constexpr f32_t znearfar = 0xffff;
+
+      camera_nr_t camera_open(const fan::vec2& x, const fan::vec2& y);
+
+      fan::vec3 camera_get_position(camera_nr_t nr);
+      void camera_set_position(camera_nr_t nr, const fan::vec3& cp);
+
+      fan::vec2 camera_get_size(camera_nr_t nr);
+
+      void camera_set_ortho(camera_nr_t nr, fan::vec2 x, fan::vec2 y);
+      void camera_set_perspective(camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
+
+      void camera_rotate(camera_nr_t nr, const fan::vec2& offset);
+
+      //-----------------------------camera-----------------------------
+
+
+      //-----------------------------viewport-----------------------------
+
+      struct viewport_t {
+
+        fan::vec2 viewport_position;
+        fan::vec2 viewport_size;
+      };
+
+    protected:
+      #include "viewport_list_builder_settings.h"
+      #include <fan/BLL/BLL.h>
+    public:
+
+      using viewport_nr_t = viewport_list_NodeReference_t;
+
+      viewport_list_t viewport_list;
+
+      viewport_nr_t viewport_create();
+      viewport_t& viewport_get(viewport_nr_t nr);
+      void viewport_erase(viewport_nr_t nr);
+
+      fan::vec2 viewport_get_position(viewport_nr_t nr);
+      fan::vec2 viewport_get_size(viewport_nr_t nr);
+
+
+      void viewport_set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
+      void viewport_set(viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
+      void viewport_zero(viewport_nr_t nr);
+
+      bool inside(viewport_nr_t nr, const fan::vec2& position);
+      bool inside_wir(viewport_nr_t nr, const fan::vec2& position);
+
+      //-----------------------------viewport-----------------------------
+
     };
   }
 }
-
-//static void open_camera(fan::opengl::context_t& context, camera_t* camera, fan::vec2 window_size, const fan::vec2& x, const fan::vec2& y) {
-//  camera->open(context);
-//  fan::vec2 ratio = window_size / window_size.max();
-//  std::swap(ratio.x, ratio.y);
-//  camera->set_ortho(fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
-//}
 
 namespace fan {
   namespace opengl {
@@ -156,18 +389,19 @@ namespace fan {
 
       int get_buffer_size(fan::opengl::context_t& context, GLenum target_buffer, GLuint buffer_object);
 
-      static void write_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t size, uint32_t usage, GLenum target);
-      static void get_glbuffer(fan::opengl::context_t& context, void* data, GLuint buffer_id, uintptr_t size, uintptr_t offset, GLenum target);
+      void write_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t size, uint32_t usage, GLenum target);
+      void get_glbuffer(fan::opengl::context_t& context, void* data, GLuint buffer_id, uintptr_t size, uintptr_t offset, GLenum target);
 
-      static void edit_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target);
+      void edit_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target);
 
       // not tested
-      static int get_bound_buffer(fan::opengl::context_t& context);
-      #pragma pack(push, 1)
+      int get_bound_buffer(fan::opengl::context_t& context);
+      //#pragma pack(push, 1)
+      //#pragma pack(pop)
       struct vao_t {
 
         void open(fan::opengl::context_t& context);
-        void close(fan::opengl::context_t& context); const
+        void close(fan::opengl::context_t& context);
 
         void bind(fan::opengl::context_t& context) const;
         void unbind(fan::opengl::context_t& context) const;
@@ -195,8 +429,6 @@ namespace fan {
         GLenum m_target = -1;
         uint32_t m_usage = fan::opengl::GL_DYNAMIC_DRAW;
       };
-
-      #pragma pack(pop)
 
       struct framebuffer_t {
 

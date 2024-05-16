@@ -2,9 +2,7 @@
 // Created by Matty on 2022-01-28.
 //
 
-#include fan_pch
-
-#define IMGUI_DEFINE_MATH_OPERATORS
+#include <fan/pch.h>
 
 #include "imgui_neo_internal.h"
 #include "imgui_internal.h"

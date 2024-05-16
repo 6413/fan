@@ -26,7 +26,7 @@ void print(const char* format, ...) {
 #include <WITCH/STR/psu.h>
 #include <WITCH/STR/pss.h>
 
-#include fan_pch
+#include <fan/pch.h>
 
 typedef struct {
   NET_TCP_t* tcp;

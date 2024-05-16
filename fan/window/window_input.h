@@ -175,9 +175,40 @@ namespace fan {
     mouse_scroll_up = GLFW_MOUSE_BUTTON_LAST + 1,
     mouse_scroll_down = GLFW_MOUSE_BUTTON_LAST + 2,
 
+    gamepad_a = GLFW_KEY_LAST + 1,
+    gamepad_b,
+    gamepad_x,
+    gamepad_y,
+
+    gamepad_left_bumper,
+    gamepad_right_bumper,
+
+    gamepad_back,
+    gamepad_start,
+
+    gamepad_left_thumb,
+    gamepad_right_thumb,
+
+    gamepad_up,
+    gamepad_right,
+    gamepad_down,
+    gamepad_left,
+
+    gamepad_guide,
+
+    gamepad_last = gamepad_left,
+
+    gamepad_cross = gamepad_a,
+    gamepad_circle = gamepad_b,
+    gamepad_square = gamepad_x,
+    gamepad_triangle = gamepad_y,
+
+    gamepad_l2,
+    gamepad_r2,
+
     key_invalid = GLFW_KEY_UNKNOWN,
 
-    last = GLFW_KEY_LAST
+    last = gamepad_last + 1
   };
   
 	namespace special_lparam {

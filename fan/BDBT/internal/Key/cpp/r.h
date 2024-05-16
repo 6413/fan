@@ -10,8 +10,8 @@ else{
   kp8 = (uint8_t *)Key;
 }
 
-_BDBT_BP(NodeReference_t) tna[KeySize / BDBT_set_BitPerNode];
-uint8_t tka[KeySize / BDBT_set_BitPerNode];
+_BDBT_BP(NodeReference_t) tna[MaxKeySize / BDBT_set_BitPerNode];
+uint8_t tka[MaxKeySize / BDBT_set_BitPerNode];
 
 KeySize_t From = 0;
 {

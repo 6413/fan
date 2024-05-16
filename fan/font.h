@@ -1,7 +1,10 @@
 #pragma once
 
-#include <fan/io/file.h>
 #include <unordered_map>
+
+#include <fan/types/bll_types.h>
+
+#include <fan/types/vector.h>
 
 namespace fan
 {
@@ -50,7 +53,7 @@ namespace fan
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeDataType character_info_t
 #define BLL_set_Link 0
-#include _FAN_PATH(BLL/BLL.h)
+#include <fan/BLL/BLL.h>
 
     using character_info_nr_t = character_info_list_NodeReference_t;
 
@@ -76,6 +79,7 @@ namespace fan
       fan::font::character_info_t get_letter_info(character_info_nr_t char_internal_id, f32_t font_size);
       fan::font::character_info_t get_letter_info(character_info_nr_t char_internal_id);
       f32_t get_line_height(f32_t font_size) const;
+
     };
 
     enum class parse_stage_e
@@ -91,8 +95,10 @@ namespace fan
       character_info_t font_info;
     };
 
-    line_t parse_line(std::unordered_multimap<uint32_t, uint32_t> *reverse_mapping, const fan::string &line, parse_stage_e stage);
+    using reverse_mapping_t = std::unordered_multimap<uint32_t, uint32_t>;
 
-    void parse_font(font_t &font, const fan::string &path);
+    line_t parse_line(reverse_mapping_t *reverse_mapping, const std::string &line, parse_stage_e stage);
+
+    void parse_font(font_t &font, const std::string &path);
   }
 }

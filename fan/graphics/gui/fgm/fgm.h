@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/graphics/file_dialog.h>
+
 struct fgm_t {
 
   void open(const fan::string& texturepack_name) {
@@ -14,12 +16,12 @@ struct fgm_t {
       }
 
       switch (d.key) {
-        case fan::key_r: {
-          erase_current();
-          break;
-        }
+      case fan::key_r: {
+        erase_current();
+        break;
       }
-    });
+      }
+      });
   }
   void close() {
 
@@ -33,9 +35,9 @@ struct fgm_t {
   static constexpr int max_path_input = 40;
 
   static constexpr int max_id_input = 20;
-  static constexpr fan::vec2 default_button_size{100, 30};
+  static constexpr fan::vec2 default_button_size{ 100, 30 };
 
-  fan::string file_name = "file.fgm";
+  fan::string previous_file_name;
 
   struct shapes_t {
     struct global_t : fan::graphics::vfi_root_t, fan::graphics::imgui_element_t {
@@ -48,10 +50,13 @@ struct fgm_t {
 
       global_t() = default;
 
+      uint16_t shape_type = 0;
+
       template <typename T>
-      global_t(fgm_t* fgm, const T& obj) : fan::graphics::imgui_element_t() {
-        T temp = std::move(obj);
-        loco_t::shapes_t::vfi_t::properties_t vfip;
+      global_t(uint16_t shape_type, fgm_t* fgm, const T& obj) : fan::graphics::imgui_element_t() {
+        T temp = obj;
+        this->shape_type = shape_type;
+        typename loco_t::vfi_t::properties_t vfip;
         vfip.shape.rectangle->position = temp.get_position();
         vfip.shape.rectangle->position.z += fgm->current_z++;
         vfip.shape.rectangle->size = temp.get_size();
@@ -74,20 +79,18 @@ struct fgm_t {
       uint32_t group_id = 0;
     };
   };
+  //
+#include _FAN_PATH(graphics/gui/fgm/common.h)
 
-  #include _FAN_PATH(graphics/gui/fgm/common.h)
-
-  #define BLL_set_StoreFormat 1
-  //#define BLL_set_CPP_CopyAtPointerChange
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
-  #define BLL_set_AreWeInsideStruct 1
-  #include <fan/fan_bll_preset.h>
-  #define BLL_set_prefix shape_list
-  #define BLL_set_type_node uint32_t
-  #define BLL_set_NodeDataType shapes_t::global_t*
-  #define BLL_set_Link 1
-  #include _FAN_PATH(BLL/BLL.h)
+//#define BLL_set_StoreFormat 1
+//#define BLL_set_CPP_CopyAtPointerChange
+#define BLL_set_AreWeInsideStruct 1
+#include <fan/fan_bll_preset.h>
+#define BLL_set_prefix shape_list
+#define BLL_set_type_node uint32_t
+#define BLL_set_NodeDataType shapes_t::global_t*
+#define BLL_set_Link 1
+#include _FAN_PATH(BLL/BLL.h)
 
 
   enum class event_type_e {
@@ -99,7 +102,7 @@ struct fgm_t {
   };
 
 
-  #define make_line(T, prop) \
+#define make_line(T, prop) \
   { \
     T v = shape->CONCAT(get_, prop)(); \
  \
@@ -148,8 +151,8 @@ struct fgm_t {
 
   void open_properties(fgm_t::shapes_t::global_t* shape, const fan::vec2& editor_size) {
 
-    fan::string shape_str = fan::string("Shape name:") + gloco->shape_names[shape->children[0]->shape_type];
-    ImGui::Text(shape_str.c_str());
+    fan::string shape_str = fan::string("Shape name:") + gloco->shape_names[shape->children[0].get_shape_type()];
+    ImGui::Text("%s", shape_str.c_str());
 
     make_line(fan::vec3, position);
     make_line(fan::vec2, size);
@@ -196,122 +199,190 @@ struct fgm_t {
           }
       }
     }
-    switch ((loco_t::shape_type_t)shape->children[0]->shape_type) {
-      case loco_t::shape_type_t::unlit_sprite:
-      case loco_t::shape_type_t::sprite: {
-        fan::string& current = shape->shape_data.sprite.image_name;
-        fan::string str = current;
-        str.resize(max_path_input);
-        ImGui::Text("image name");
-        ImGui::SameLine();
-        if (ImGui::InputText("##hidden_label4", str.data(), str.size())) {
-          if (ImGui::IsItemDeactivatedAfterEdit()) {
-            loco_t::texturepack_t::ti_t ti;
-            if (texturepack.qti(str, &ti)) {
-              fan::print_no_space("failed to load texture:", str);
+    switch (shape->children[0].get_shape_type()) {
+    case loco_t::shape_type_t::unlit_sprite:
+    case loco_t::shape_type_t::sprite: {
+      fan::string& current = shape->shape_data.sprite.image_name;
+      fan::string str = current;
+      str.resize(max_path_input);
+      ImGui::Text("image name");
+      ImGui::SameLine();
+      if (ImGui::InputText("##hidden_label4", str.data(), str.size())) {
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+          loco_t::texturepack_t::ti_t ti;
+          if (texturepack.qti(str, &ti)) {
+            fan::print_no_space("failed to load texture:", str);
+          }
+          else {
+            current = str.substr(0, std::strlen(str.c_str()));
+            auto& data = texturepack.get_pixel_data(ti.pack_id);
+            if (shape->children[0].get_shape_type() == loco_t::shape_type_t::sprite) {
+              shape->children[0].load_tp(&ti);
             }
-            else {
-              current = str.substr(0, std::strlen(str.c_str()));
-              auto& data = texturepack.get_pixel_data(ti.pack_id);
-              if ((loco_t::shape_type_t)shape->children[0]->shape_type == loco_t::shape_type_t::sprite) {
-                gloco->shapes.sprite.load_tp(shape->children[0], &ti);
-              }
-              else if ((loco_t::shape_type_t)shape->children[0]->shape_type == loco_t::shape_type_t::unlit_sprite) {
-                gloco->shapes.unlit_sprite.load_tp(shape->children[0], &ti);
-              }
+            else if (shape->children[0].get_shape_type() == loco_t::shape_type_t::unlit_sprite) {
+              shape->children[0].load_tp(&ti);
             }
           }
         }
-        break;
       }
+      break;
+    }
     }
   }
 
-  void push_shape(loco_t::shape_type_t shape_type, const fan::vec2& pos) {
+  void push_shape(uint16_t shape_type, const fan::vec2& pos) {
     auto nr = shape_list.NewNodeLast();
 
-    static fan::mp_t<current_version_t::shapes_t> mp;
-    mp.iterate([&]<auto i, typename T> (T& v) {
-      if (shape_type == v.shape_type) {
-        shape_list[nr] = new shapes_t::global_t{this, typename T::type_t{{
-            .position = pos,
-            .size = 100
-          }}};
-      }
-    });
+    switch (shape_type) {
+    case loco_t::shape_type_t::sprite: {
+      shape_list[nr] = new shapes_t::global_t{
+        loco_t::shape_type_t::sprite,
+        this, fan::graphics::sprite_t{{
+          .position = pos,
+          .size = 100
+        }} };
+      break;
+    }
+    case loco_t::shape_type_t::unlit_sprite: {
+      shape_list[nr] = new shapes_t::global_t{
+        loco_t::shape_type_t::unlit_sprite,
+        this, fan::graphics::unlit_sprite_t{{
+          .position = pos,
+          .size = 100
+        }} };
+      break;
+    }
+    case loco_t::shape_type_t::rectangle: {
+      shape_list[nr] = new shapes_t::global_t{
+        loco_t::shape_type_t::rectangle,
+        this, fan::graphics::rectangle_t{{
+          .position = pos,
+          .size = 100
+        }} };
+      break;
+    }
+    }
   }
 
   fan::graphics::imgui_element_t main_view =
     fan::graphics::imgui_element_t(
-    [&] {
-      fan::vec2 editor_size;
+      [&] {
+        fan::vec2 editor_size;
 
-      if (ImGui::Begin(editor_str, nullptr)) {
-        fan::vec2 window_size = gloco->window.get_size();
-        fan::vec2 viewport_size = ImGui::GetWindowSize();
-        fan::vec2 ratio = viewport_size / viewport_size.max();
-        gloco->default_camera->camera.set_ortho(
-          fan::vec2(0, viewport_size.x),
-          fan::vec2(0, viewport_size.y)
-        );
-        gloco->default_camera->viewport.set(ImGui::GetWindowPos(), viewport_size, window_size);
-        editor_size = ImGui::GetContentRegionAvail();
-      }
+        if (ImGui::Begin(editor_str, nullptr, ImGuiWindowFlags_MenuBar)) {
+          fan::vec2 window_size = gloco->window.get_size();
+          fan::vec2 viewport_size = ImGui::GetWindowSize();
+          fan::vec2 ratio = viewport_size / viewport_size.max();
+          fan::vec2 s = viewport_size;
 
-      if (ImGui::IsWindowHovered()) {
-        if (ImGui::IsMouseClicked(0) &&
-       event_type == event_type_e::add) {
-          ImVec2 pos = ImGui::GetMousePos();
-          push_shape(selected_shape_type, pos);
-        }
-      }
+          //gloco->camera_set_ortho(
+          //  gloco->orthographic_camera.camera,
+          //  fan::vec2(0, viewport_size.x),
+          //  fan::vec2(0, viewport_size.y)
+          //);
 
-      ImGui::End();
-
-      if (ImGui::Begin(create_str, nullptr)) {
-        static fan::mp_t<current_version_t::shapes_t> mp;
-        mp.iterate([&]<auto i> (auto& v) {
-          if (ImGui::Button(gloco->shape_names[(std::underlying_type_t<loco_t::shape_type_t>)v.shape_type])) {
-            event_type = event_type_e::add;
-            selected_shape_type = v.shape_type;
-          }
-        });
-        {
-          fan::vec2 window_size = ImGui::GetWindowSize();
-          fan::vec2 cursor_pos(
-            window_size.x - default_button_size.x - ImGui::GetStyle().WindowPadding.x,
-            window_size.y - default_button_size.y - ImGui::GetStyle().WindowPadding.y
+          gloco->camera_set_ortho(
+            gloco->orthographic_camera.camera,
+            fan::vec2(0, viewport_size.x),
+            fan::vec2(0, viewport_size.y)
           );
-          ImGui::SetCursorPos(cursor_pos);
-          if (ImGui::Button("Save")) {
-            fout(file_name);
+          gloco->viewport_set(
+            gloco->orthographic_camera.viewport,
+            ImGui::GetWindowPos(), viewport_size, window_size
+          );
+          editor_size = ImGui::GetContentRegionAvail();
+        }
+
+        static fan::graphics::file_save_dialog_t save_file_dialog;
+        static fan::graphics::file_open_dialog_t open_file_dialog;
+        static std::string fn;
+        if (ImGui::BeginMenuBar())
+        {
+          if (ImGui::BeginMenu("File"))
+          {
+
+            if (ImGui::MenuItem("Open..", "Ctrl+O")) { 
+
+              open_file_dialog.load("json;fmm", &fn);
+            }
+            if (ImGui::MenuItem("Save", "Ctrl+S")) {
+              fout(previous_file_name);
+            }
+            if (ImGui::MenuItem("Save as", "Ctrl+Shift+S")) {
+              save_file_dialog.save("json;fmm", &fn);
+            }
+            if (ImGui::MenuItem("Quit")) {
+              auto it = shape_list.GetNodeFirst();
+              while (it != shape_list.dst) {
+                delete shape_list[it];
+                it = it.Next(&shape_list);
+              }
+              shape_list.Clear();
+
+              close_cb();
+              ImGui::End();
+            }
+            ImGui::EndMenu();
           }
-          cursor_pos.x += default_button_size.x / 2;
-          ImGui::SetCursorPos(cursor_pos);
-          if (ImGui::Button("Quit")) {
+          ImGui::EndMenuBar();
+        }
+        if (open_file_dialog.is_finished()) {
+          if (fn.size() != 0) {
             auto it = shape_list.GetNodeFirst();
             while (it != shape_list.dst) {
               delete shape_list[it];
               it = it.Next(&shape_list);
             }
+            shape_list.Clear();
+            fin(fn);
+          }
+          open_file_dialog.finished = false;
+          return;
+        }
+        if (save_file_dialog.is_finished()) {
+          if (fn.size() != 0) {
+            fout(fn);
+          }
+          save_file_dialog.finished = false;
+        }
 
-            close_cb();
-            ImGui::End();
-            return;
+
+        if (ImGui::IsWindowHovered()) {
+          if (ImGui::IsMouseClicked(0) &&
+            event_type == event_type_e::add) {
+            ImVec2 pos = ImGui::GetMousePos();
+            push_shape(selected_shape_type, pos);
           }
         }
-      }
 
-      ImGui::End();
+        ImGui::End();
 
-      if (ImGui::Begin(properties_str, nullptr)) {
-        if (current_shape != nullptr) {
-          open_properties(current_shape, editor_size);
+        if (ImGui::Begin(create_str, nullptr)) {
+
+          if (ImGui::Button(gloco->shape_names[loco_t::shape_type_t::sprite])) {
+            event_type = event_type_e::add;
+            selected_shape_type = loco_t::shape_type_t::sprite;
+          }
+          else if (ImGui::Button(gloco->shape_names[loco_t::shape_type_t::unlit_sprite])) {
+            event_type = event_type_e::add;
+            selected_shape_type = loco_t::shape_type_t::unlit_sprite;
+          }
+          else if (ImGui::Button(gloco->shape_names[loco_t::shape_type_t::rectangle])) {
+            event_type = event_type_e::add;
+            selected_shape_type = loco_t::shape_type_t::rectangle;
+          }
         }
-      }
 
-      ImGui::End();
-  });
+        ImGui::End();
+
+        if (ImGui::Begin(properties_str, nullptr)) {
+          if (current_shape != nullptr) {
+            open_properties(current_shape, editor_size);
+          }
+        }
+
+        ImGui::End();
+      });
   /*
   header 4 byte
   shape_type 2 byte
@@ -321,50 +392,98 @@ struct fgm_t {
   }
   */
   void fout(const fan::string& filename) {
+    previous_file_name = filename;
 
-    fan::string ostr;
-    ostr.append((char*)&current_version, sizeof(current_version));
-    fan::mp_t<current_version_t::shapes_t> shapes;
-    auto it = shape_list.GetNodeFirst();
-    while (it != shape_list.dst) {
-      shapes.iterate([&]<auto i0, typename T>(T & l) {
-        auto shape_type = shape_list[it]->children[0]->shape_type;
-        //!
-        if (!((loco_t::shape_type_t)shape_type == loco_t::shape_type_t::rectangle && T::shape_type == loco_t::shape_type_t::mark)) {
-          if ((loco_t::shape_type_t)shape_type != T::shape_type) {
-            return;
-          }
+    auto format = filename.substr(filename.find_last_of(".") + 1);
+    if (format == "fmm") {
+      fan::string ostr;
+      ostr.append((char*)&current_version, sizeof(current_version));
+      auto it = shape_list.GetNodeFirst();
+      while (it != shape_list.dst) {
+        auto& shape_instance = shape_list[it];
+        auto& shape = shape_instance->children[0];
+        switch (shape_instance->shape_type) {
+        case loco_t::shape_type_t::sprite: {
+          fan::graphics::shape_serialize(shape, &ostr);
+          fan::write_to_string(ostr, shape_instance->id);
+          fan::write_to_string(ostr, shape_instance->group_id);
+          fan::write_to_string(ostr, shape_instance->shape_data.sprite.image_name);
+          break;
         }
-        
-
-        ostr.append((char*)&shape_type, sizeof(T::shape_type));
-
-        fan::mp_t<T> shape;
-        shape.init(shape_list[it]);
-
-        fan::string shape_str;
-        shape.iterate([&]<auto i1, typename T2>(T2 & v) {
-          if constexpr (std::is_same_v<T2, fan::string>) {
-            uint64_t string_length = v.size();
-            shape_str.append((char*)&string_length, sizeof(string_length));
-            shape_str.append(v);
-          }
-          else {
-            shape_str.append((char*)&v, sizeof(T2));
-          }
-        });
-
-        uint32_t struct_size = shape_str.size();
-        ostr.append((char*)&struct_size, sizeof(struct_size));
-
-        ostr +=shape_str;
-      });
-      it = it.Next(&shape_list);
+        case loco_t::shape_type_t::unlit_sprite: {
+          fan::graphics::shape_serialize(shape, &ostr);
+          fan::write_to_string(ostr, shape_instance->id);
+          fan::write_to_string(ostr, shape_instance->group_id);
+          fan::write_to_string(ostr, shape_instance->shape_data.sprite.image_name);
+          break;
+        }
+        case loco_t::shape_type_t::rectangle: {
+          fan::graphics::shape_serialize(shape, &ostr);
+          fan::write_to_string(ostr, shape_instance->id);
+          fan::write_to_string(ostr, shape_instance->group_id);
+          break;
+        }
+        }
+        it = it.Next(&shape_list);
+      }
+      fan::io::file::write(filename, ostr, std::ios_base::binary);
     }
+    else if (format == "json") {
+      fan::json ostr;
+      ostr["version"] = current_version;
+      fan::json shapes = fan::json::array();
+      auto it = shape_list.GetNodeFirst();
+      while (it != shape_list.dst) {
+        auto& shape_instance = shape_list[it];
+        auto& shape = shape_instance->children[0];
 
-    fan::io::file::write(filename, ostr, std::ios_base::binary);
+        fan::json shape_json;
+
+        switch (shape_instance->shape_type) {
+        case loco_t::shape_type_t::sprite: {
+          fan::graphics::shape_serialize(shape, &shape_json);
+          shape_json["id"] = shape_instance->id;
+          shape_json["group_id"] = shape_instance->group_id;
+          shape_json["image_name"] = shape_instance->shape_data.sprite.image_name;
+          break;
+        }
+        case loco_t::shape_type_t::unlit_sprite: {
+          fan::graphics::shape_serialize(shape, &shape_json);
+          shape_json["id"] = shape_instance->id;
+          shape_json["group_id"] = shape_instance->group_id;
+          shape_json["image_name"] = shape_instance->shape_data.sprite.image_name;
+          break;
+        }
+        case loco_t::shape_type_t::rectangle: {
+          fan::graphics::shape_serialize(shape, &shape_json);
+          shape_json["id"] = shape_instance->id;
+          shape_json["group_id"] = shape_instance->group_id;
+          break;
+        }
+        }
+        shapes.push_back(shape_json);
+        it = it.Next(&shape_list);
+      }
+      ostr["shapes"] = shapes;
+      fan::io::file::write(filename, ostr.dump(2), std::ios_base::binary);
+    }
+    else {
+      fan::print("invalid format:" +format);
+    }
     fan::print("file saved to:" + filename);
   }
+
+  void load_tp(fgm_t::shape_list_NodeData_t& node) {
+    loco_t::texturepack_t::ti_t ti;
+    if (texturepack.qti(node->shape_data.sprite.image_name, &ti)) {
+      fan::print_no_space("failed to load texture:", node->shape_data.sprite.image_name);
+    }
+    else {
+      auto& data = texturepack.get_pixel_data(ti.pack_id);
+      node->children[0].load_tp(&ti);
+    }
+  }
+
   /*
   header - 4 byte
   shape_type - 2 byte
@@ -374,40 +493,158 @@ struct fgm_t {
   }
   */
   void fin(const fan::string& filename) {
-    #include _FAN_PATH(graphics/gui/stage_maker/loader_versions/1.h)
-  }
 
-  void invalidate_current() {
-    current_shape = nullptr;
-    selected_shape_type = loco_t::shape_type_t::invalid;
-  }
+    previous_file_name = filename;
 
-  void erase_current() {
-    if (current_shape == nullptr) {
-      return;
-    }
+    auto format = filename.substr(filename.find_last_of(".") + 1);
+    if (format == "fmm") {
 
-    auto it = shape_list.GetNodeFirst();
-    while (it != shape_list.dst) {
-      if (current_shape == shape_list[it]) {
-        delete shape_list[it];
-        shape_list.unlrec(it);
-        invalidate_current();
-        break;
+      fan::string in;
+      fan::io::file::read(filename, &in);
+      uint64_t off = 0;
+      auto version = fan::read_data<decltype(current_version)>(in, off);
+      if (version != current_version) {
+        fan::print("invalid file version, file:", version, "current:",  current_version);
+        return;
       }
-      it = it.Next(&shape_list);
+
+      fan::graphics::shape_deserialize_t iterator;
+      loco_t::shape_t shape;
+      int i = 0;
+      while (iterator.iterate(in, &shape)) {
+        auto it = shape_list.NewNodeLast();
+        auto& node = shape_list[it];
+        switch (shape.get_shape_type()) {
+        case loco_t::shape_type_t::sprite: {
+          node = new fgm_t::shapes_t::global_t(
+            loco_t::shape_type_t::sprite,
+            this,
+            shape
+          );
+          node->id = fan::read_data<fan::string>(in, iterator.data.offset);
+          node->group_id = fan::read_data<uint32_t>(in, iterator.data.offset);
+          node->shape_data.sprite.image_name = fan::read_data<fan::string>(in, iterator.data.offset);
+
+          load_tp(node);
+          break;
+        }
+        case loco_t::shape_type_t::unlit_sprite: {
+          node = new fgm_t::shapes_t::global_t(
+            loco_t::shape_type_t::unlit_sprite,
+            this,
+            shape
+          );
+          node->id = fan::read_data<fan::string>(in, iterator.data.offset);
+          node->group_id = fan::read_data<uint32_t>(in, iterator.data.offset);
+          node->shape_data.sprite.image_name = fan::read_data<fan::string>(in, iterator.data.offset);
+
+          load_tp(node);
+          break;
+        }
+        case loco_t::shape_type_t::rectangle: {
+          node = new fgm_t::shapes_t::global_t(
+            loco_t::shape_type_t::rectangle,
+            this,
+            shape
+          );
+          node->id = fan::read_data<fan::string>(in, iterator.data.offset);
+          node->group_id = fan::read_data<uint32_t>(in, iterator.data.offset);
+          break;
+        }
+        }
+      }
     }
-  }
+    else if (format == "json") {
+      fan::string in;
+      fan::io::file::read(filename, &in);
+      fan::json json_in = nlohmann::json::parse(in);
+      auto version = json_in["version"].get<decltype(current_version)>();
+      if (version != current_version) {
+        fan::print("invalid file version, file:", version, "current:", current_version);
+        return;
+      }
+      fan::graphics::shape_deserialize_t iterator;
+      loco_t::shape_t shape;
+      int i = 0;
+      while (iterator.iterate(json_in["shapes"], &shape)) {
+        auto it = shape_list.NewNodeLast();
+        auto& node = shape_list[it];
+        switch (shape.get_shape_type()) {
+        case loco_t::shape_type_t::sprite: {
+          node = new fgm_t::shapes_t::global_t(
+            loco_t::shape_type_t::sprite,
+            this,
+            shape
+          );
+          const auto& shape_json = *(iterator.data.it - 1);
+          node->id = shape_json["id"].get<fan::string>();
+          node->group_id = shape_json["group_id"].get<uint32_t>();
+          node->shape_data.sprite.image_name = shape_json["image_name"].get<fan::string>();
 
-  event_type_e event_type = event_type_e::none;
-  loco_t::shape_type_t selected_shape_type = loco_t::shape_type_t::invalid;
-  shapes_t::global_t* current_shape = nullptr;
-  shape_list_t shape_list;
+          load_tp(node);
+          break;
+        }
+        case loco_t::shape_type_t::unlit_sprite: {
+          node = new fgm_t::shapes_t::global_t(
+            loco_t::shape_type_t::unlit_sprite,
+            this,
+            shape
+          );
+          const auto& shape_json = *(iterator.data.it - 1);
+          node->id = shape_json["id"].get<fan::string>();
+          node->group_id = shape_json["group_id"].get<uint32_t>();
+          node->shape_data.sprite.image_name = shape_json["image_name"].get<fan::string>();
 
-  f32_t current_z = 0;
-  uint32_t current_id = 0;
+          load_tp(node);
+          break;
+        }
+        case loco_t::shape_type_t::rectangle: {
+          node = new fgm_t::shapes_t::global_t(
+            loco_t::shape_type_t::rectangle,
+            this,
+            shape
+          );
+          const auto& shape_json = *(iterator.data.it - 1);
+          node->id = shape_json["id"].get<fan::string>();
+          node->group_id = shape_json["group_id"].get<uint32_t>();
+          break;
+        }
+        }
+      }
+      }
+    }
 
-  loco_t::texturepack_t texturepack;
+    void invalidate_current() {
+      current_shape = nullptr;
+      selected_shape_type = loco_t::shape_type_t::invalid;
+    }
 
-  fan::function_t<void()> close_cb = [] {};
-};
+    void erase_current() {
+      if (current_shape == nullptr) {
+        return;
+      }
+
+      auto it = shape_list.GetNodeFirst();
+      while (it != shape_list.dst) {
+        if (current_shape == shape_list[it]) {
+          delete shape_list[it];
+          shape_list.unlrec(it);
+          invalidate_current();
+          break;
+        }
+        it = it.Next(&shape_list);
+      }
+    }
+
+    event_type_e event_type = event_type_e::none;
+    uint16_t selected_shape_type = loco_t::shape_type_t::invalid;
+    shapes_t::global_t* current_shape = nullptr;
+    shape_list_t shape_list;
+
+    f32_t current_z = 0;
+    uint32_t current_id = 0;
+
+    loco_t::texturepack_t texturepack;
+
+    fan::function_t<void()> close_cb = [] {};
+  };

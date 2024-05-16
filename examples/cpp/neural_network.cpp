@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 #include _FAN_PATH(math/random.h)
 #include _FAN_PATH(io/file.h)

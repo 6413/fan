@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 #include _FAN_PATH(io/directory.h)
 
@@ -41,8 +41,7 @@ int main() {
 
   update_directory_list(current_path, directory_list);
 
-  loco_t::image_t image;
-  image.load("images/folder.webp");
+  loco_t::image_t image = loco.image_load("images/folder.webp");
 
   fan::string search_path;
   static constexpr int max_search_path = 50;
@@ -116,7 +115,7 @@ int main() {
       }
       ImGui::SameLine();
       if (i.is_directory) {
-        ImGui::Image((ImTextureID)image.get_texture(), fan::vec2(ImGui::GetItemRectSize().y - 2));
+        ImGui::Image((ImTextureID)loco.image_get(image), fan::vec2(ImGui::GetItemRectSize().y - 2));
       }
       ImGui::SameLine();
       ImGui::Text(item_name.c_str());
@@ -128,7 +127,7 @@ int main() {
   });
 
   loco.set_vsync(0);
-  loco.window.set_max_fps(165);
+  //loco.window.set_max_fps(165);
 
   loco.loop([&] {
 

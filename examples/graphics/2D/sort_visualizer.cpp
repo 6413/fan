@@ -1,8 +1,9 @@
-#include fan_pch
+#include <fan/pch.h>
 
 int main() {
   loco_t loco;
-  loco.default_camera->camera.set_ortho(
+  loco.camera_set_ortho(
+    loco.orthographic_camera.camera,
     fan::vec2(-1, 1),
     fan::vec2(-1, 1)
   );

@@ -46,7 +46,7 @@ struct fte_renderer_t : fte_loader_t {
         if (texturepack->qti(j.image_hash, &ti)) {
           fan::throw_error("failed to load image from .fte - corrupted save file");
         }
-        gloco->shapes.sprite.load_tp(
+        gloco->sprite.load_tp(
           node.tiles.back(),
           &ti
         );

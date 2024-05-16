@@ -255,6 +255,7 @@ public:
     };
   };
 
+  // creates shader with given vertex_path and fragment_path
   void sb_open(const fan::string vertex_path, const fan::string& fragment_path) {
 
     #if sb_has_own_key_root == 1
@@ -392,7 +393,7 @@ public:
     if constexpr (fan_has_variable(properties_t, camera)) {
       get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     }
-    if constexpr (fan_has_variable(properties_t, camera)) {
+    if constexpr (fan_has_variable(properties_t, viewport)) {
       get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
     }
     // implement for sprite

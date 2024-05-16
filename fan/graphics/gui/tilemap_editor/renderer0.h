@@ -14,13 +14,13 @@ struct fte_renderer_t : fte_loader_t {
   fan::vec2i prev_render = 0;
 
   id_t add(compiled_map_t* compiled_map) {
-    add(compiled_map, properties_t());
+    return add(compiled_map, properties_t());
   }
 
   id_t add(compiled_map_t* compiled_map, const properties_t& p) {
 
     if (p.camera == nullptr) {
-      camera = gloco->default_camera;
+      camera = &gloco->orthographic_camera;
     }
     else {
       camera = p.camera;
@@ -55,14 +55,14 @@ struct fte_renderer_t : fte_loader_t {
     for (int y = 0; y < view_size.y; ++y) {
       for (int x = 0; x < view_size.x; ++x) {
         fan::vec2i grid_pos = src + fan::vec2i(x, y);
-        if (!(grid_pos.y < map_tiles.size() && grid_pos.x < map_tiles[grid_pos.y].size())) {
+        if (!(grid_pos.y < (int64_t)map_tiles.size() && grid_pos.x < (int64_t)map_tiles[grid_pos.y].size())) {
           continue;
         }
-        if (map_tiles[grid_pos.y][grid_pos.x].tile.layers.empty()) {
+        if (map_tiles[grid_pos.y][grid_pos.x].empty()) {
           continue;
         }
         int depth = 0;
-        for (auto& j : map_tiles[grid_pos.y][grid_pos.x].tile.layers) {
+        for (auto& j : map_tiles[grid_pos.y][grid_pos.x]) {
           add_tile(node, j, src.x + x, src.y + y, depth++);
         }
       }
@@ -83,8 +83,7 @@ struct fte_renderer_t : fte_loader_t {
         if (texturepack->qti(j.image_hash, &ti)) {
           fan::throw_error("failed to load image from .fte - corrupted save file");
         }
-        gloco->shapes.sprite.load_tp(
-          std::get<loco_t::shape_t>(node.tiles[fan::vec3i(x, y, depth)]),
+        std::get<loco_t::shape_t>(node.tiles[fan::vec3i(x, y, depth)]).load_tp(
           &ti
         );
         break;
@@ -115,6 +114,9 @@ struct fte_renderer_t : fte_loader_t {
           )
         ;
         break;
+      }
+      default: {
+        fan::throw_error("unimplemented switch");
       }
     }
     auto found = id_callbacks.find(j.id);
@@ -192,14 +194,17 @@ struct fte_renderer_t : fte_loader_t {
         else {
           grid_pos += fan::vec2i(y, off);
         }
-        if (!(grid_pos.y < map_tiles.size() && grid_pos.x < map_tiles[grid_pos.y].size())) {
+        if (!(grid_pos.y < (int64_t)map_tiles.size() && grid_pos.x < (int64_t)map_tiles[grid_pos.y].size())) {
           continue;
         }
-        if (map_tiles[grid_pos.y][grid_pos.x].tile.layers.empty()) {
+        if (grid_pos.x < 0 || grid_pos.y < 0) {
+          continue;
+        }
+        if (map_tiles[grid_pos.y][grid_pos.x].empty()) {
           continue;
         }
         int depth = 0;
-        for (auto& j : map_tiles[grid_pos.y][grid_pos.x].tile.layers) {
+        for (auto& j : map_tiles[grid_pos.y][grid_pos.x]) {
           add_tile(node, j, grid_pos.x, grid_pos.y, depth++);
         }
       }
@@ -227,14 +232,17 @@ struct fte_renderer_t : fte_loader_t {
         else {
           grid_pos += fan::vec2i(off, x);
         }
-        if (!(grid_pos.y < map_tiles.size() && grid_pos.x < map_tiles[grid_pos.y].size())) {
+        if (!(grid_pos.y < (int64_t)map_tiles.size() && grid_pos.x < (int64_t)map_tiles[grid_pos.y].size())) {
           continue;
         }
-        if (map_tiles[grid_pos.y][grid_pos.x].tile.layers.empty()) {
+        if (grid_pos.x < 0 || grid_pos.y < 0) {
+          continue;
+        }
+        if (map_tiles[grid_pos.y][grid_pos.x].empty()) {
           continue;
         }
         int depth = 0;
-        for (auto& j : map_tiles[grid_pos.y][grid_pos.x].tile.layers) {
+        for (auto& j : map_tiles[grid_pos.y][grid_pos.x]) {
           add_tile(node, j, grid_pos.x, grid_pos.y, depth++);
         }
       }

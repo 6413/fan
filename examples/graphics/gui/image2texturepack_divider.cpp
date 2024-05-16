@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 int main() {
   loco_t loco;
@@ -7,9 +7,9 @@ int main() {
   loco_t::texture_packe0 e;
   e.open(open_properties);
   loco_t::texture_packe0::texture_properties_t texture_properties;
-  texture_properties.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
-  texture_properties.min_filter = loco_t::image_t::filter::nearest;
-  texture_properties.mag_filter = loco_t::image_t::filter::nearest;
+  texture_properties.visual_output = loco_t::image_sampler_address_mode::clamp_to_edge;
+  texture_properties.min_filter = loco_t::image_filter::nearest;
+  texture_properties.mag_filter = loco_t::image_filter::nearest;
 
   struct image_t {
     fan::vec2 uv_pos;
@@ -39,11 +39,15 @@ int main() {
     fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
     fan::vec2 offset = viewport_size - viewport_size;
     fan::vec2 s = viewport_size;
-    gloco->default_camera->camera.set_ortho(
+    loco.camera_set_ortho(
+      gloco->orthographic_camera.camera,
       fan::vec2(-s.x, s.x),
       fan::vec2(-s.y, s.y)
     );
-    gloco->default_camera->viewport.set(viewport_pos, viewport_size, window_size);
+    loco.viewport_set(
+      gloco->orthographic_camera.viewport,
+      viewport_pos, viewport_size, window_size
+    );
 
     static fan::string image_path;
     image_path.resize(40);
@@ -51,17 +55,20 @@ int main() {
     static fan::vec2f cell_size = 1;
     if (ImGui::DragFloat2("cell size", cell_size.data(), 1, 1, 4096)) {
       images.clear();
-      fan::vec2i divider = root_image.size / cell_size;
-      fan::vec2 uv_size = root_image.size / divider / root_image.size;
-      images.resize(divider.y);
-      for (int i = 0; i < divider.y; ++i) {
-        images[i].resize(divider.x);
-        for (int j = 0; j < divider.x; ++j) {
-          images[i][j] = image_t{
-            .uv_pos = uv_size * fan::vec2(j, i),
-            .uv_size = uv_size,
-            .image = root_image
-          };
+      if (root_image.iic() == false) {
+        auto& img = loco.image_get_data(root_image);
+        fan::vec2i divider = img.size / cell_size;
+        fan::vec2 uv_size = img.size / divider / img.size;
+        images.resize(divider.y);
+        for (int i = 0; i < divider.y; ++i) {
+          images[i].resize(divider.x);
+          for (int j = 0; j < divider.x; ++j) {
+            images[i][j] = image_t{
+              .uv_pos = uv_size * fan::vec2(j, i),
+              .uv_size = uv_size,
+              .image = root_image
+            };
+          }
         }
       }
     }
@@ -72,9 +79,11 @@ int main() {
       image_path.size(),
       ImGuiInputTextFlags_EnterReturnsTrue)
       ) {
-
-      root_image.load(image_path.c_str());
-      open_properties.preferred_pack_size = root_image.size;
+      auto& img = loco.image_get_data(root_image);
+      root_image = loco.image_load(
+        image_path
+      );
+      open_properties.preferred_pack_size = img.size;
       /* images.push_back(image_t{
          .uv_pos =0,
          .uv_size=1,
@@ -89,7 +98,8 @@ int main() {
         if (x) {
           ImGui::SameLine();
         }
-        ImGui::Image((void*)j.image.get_texture(), j.image.size / cell_size, j.uv_pos, j.uv_pos + j.uv_size);
+        auto& jimg = loco.image_get_data(j.image);
+        ImGui::Image(j.image, jimg.size / cell_size, j.uv_pos, j.uv_pos + j.uv_size);
         x++;
       }
     }

@@ -35,9 +35,9 @@ struct texture_packe0 {
     open_properties_t() {}
 
     fan::vec2ui preferred_pack_size = 1024;
-    uint32_t visual_output = loco_t::image_t::load_properties_defaults::visual_output;
+    uint32_t visual_output = fan::opengl::context_t::image_load_properties_defaults::visual_output;
     uint32_t min_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
-    uint32_t mag_filter = loco_t::image_t::load_properties_defaults::mag_filter;
+    uint32_t mag_filter = fan::opengl::context_t::image_load_properties_defaults::mag_filter;
   };
 
   struct pack_properties_t {
@@ -78,7 +78,7 @@ struct texture_packe0 {
   void close() {
   }
 
-  uint32_t push_pack(const pack_properties_t& p) {
+  std::size_t push_pack(const pack_properties_t& p) {
     pack_t pack;
     pack.pack_size = p.pack_size;
     pack.root.d[0] = pack.root.d[1] = 0;
@@ -91,7 +91,7 @@ struct texture_packe0 {
     pack_list.push_back(pack);
     return pack_list.size() - 1;
   }
-  uint32_t push_pack() {
+  std::size_t push_pack() {
     pack_properties_t p;
     p.pack_size = preferred_pack_size;
     p.visual_output = visual_output;
@@ -157,10 +157,13 @@ struct texture_packe0 {
       }
     }
 
-    auto data = image.get_pixel_data(fan::opengl::GL_RGBA, texture_properties.uv_pos, texture_properties.uv_size);
+    auto& context = gloco->get_context();
+    auto& img = context.image_get_data(image);
+
+    auto data = context.image_get_pixel_data(image, fan::opengl::GL_RGBA, texture_properties.uv_pos, texture_properties.uv_size);
     fan::vec2ui image_size(
-      (uint32_t)(image.size.x * texture_properties.uv_size.x),
-      (uint32_t)(image.size.y * texture_properties.uv_size.y)
+      (uint32_t)(img.size.x * texture_properties.uv_size.x),
+      (uint32_t)(img.size.y * texture_properties.uv_size.y)
     );
 
 
@@ -200,28 +203,28 @@ struct texture_packe0 {
       texture_properties.mag_filter = texture_list[ci].mag_filter;
       texture_properties.group_id = texture_list[ci].group_id;
 
-      uint32_t selected_pack = -1;
-      uint32_t pack_start = 0;
+      std::size_t selected_pack = -1;
+      std::size_t pack_start = 0;
     gt_pack_search:
-      for (uint32_t i = pack_start; i < this->size(); i++) {
+      for (std::size_t i = pack_start; i < this->size(); i++) {
         uint32_t score = 0;
 
-        if (texture_properties.visual_output != -1) {
+        if (texture_properties.visual_output != (uint32_t)-1) {
           if (pack_list[i].visual_output == texture_properties.visual_output) {
             score++;
           }
         }
-        if (texture_properties.min_filter != -1) {
+        if (texture_properties.min_filter != (uint32_t)-1) {
           if (pack_list[i].min_filter == texture_properties.min_filter) {
             score++;
           }
         }
-        if (texture_properties.mag_filter != -1) {
+        if (texture_properties.mag_filter != (uint32_t)-1) {
           if (pack_list[i].mag_filter == texture_properties.mag_filter) {
             score++;
           }
         }
-        if (texture_properties.group_id != -1) {
+        if (texture_properties.group_id != (uint32_t)-1) {
           if (pack_list[i].group_id == texture_properties.group_id) {
             score++;
           }
@@ -231,36 +234,36 @@ struct texture_packe0 {
         }
 
         uint32_t needed_score = 1;
-        needed_score += texture_properties.visual_output != -1;
-        needed_score += texture_properties.min_filter != -1;
-        needed_score += texture_properties.mag_filter != -1;
-        needed_score += texture_properties.group_id != -1;
+        needed_score += texture_properties.visual_output != (uint32_t)-1;
+        needed_score += texture_properties.min_filter != (uint32_t)-1;
+        needed_score += texture_properties.mag_filter != (uint32_t)-1;
+        needed_score += texture_properties.group_id != (uint32_t)-1;
 
         if (score >= needed_score) {
           selected_pack = i;
           break;
         }
       }
-      if (selected_pack == -1) {
+      if (selected_pack == (std::size_t)-1) {
         if(size.x > preferred_pack_size.x || size.y > preferred_pack_size.y){
           fan::throw_error("texture size is bigger than preferred_pack_size");
         }
 
         pack_properties_t p;
         p.pack_size = preferred_pack_size;
-        if (texture_properties.visual_output != -1) {
+        if (texture_properties.visual_output != (uint32_t)-1) {
           p.visual_output = texture_properties.visual_output;
         }
         else {
           p.visual_output = visual_output;
         }
-        if (texture_properties.min_filter != -1) {
+        if (texture_properties.min_filter != (uint32_t)-1) {
           p.min_filter = texture_properties.min_filter;
         }
         else {
           p.min_filter = min_filter;
         }
-        if (texture_properties.mag_filter != -1) {
+        if (texture_properties.mag_filter != (uint32_t)-1) {
           p.mag_filter = texture_properties.mag_filter;
         }
         else {
@@ -275,8 +278,8 @@ struct texture_packe0 {
 
       pack_t::internal_texture_t* it = push(&pack_list[selected_pack].root, push_size);
       if (it == nullptr) {
-        pack_start = selected_pack + 1;
-        selected_pack = -1;
+        pack_start = selected_pack + 1ull;
+        selected_pack = (std::size_t)-1;
         goto gt_pack_search;
       }
       pack_t::texture_t texture;
@@ -288,7 +291,7 @@ struct texture_packe0 {
     }
 
     for (uint32_t i = 0; i < pack_list.size(); i++) {
-      uint32_t count = pack_list[i].texture_list.size();
+      std::size_t count = pack_list[i].texture_list.size();
 
       pack_list[i].pixel_data.resize(pack_list[i].pack_size.x * pack_list[i].pack_size.y * 4);
 
@@ -298,10 +301,10 @@ struct texture_packe0 {
         pack_list[i].pack_size.x * pack_list[i].pack_size.y * 4
       );
 
-      for (uint32_t j = 0; j < count; j++) {
+      for (std::size_t j = 0; j < count; j++) {
         pack_t::texture_t* t = &pack_list[i].texture_list[j];
         texture_t *gt = nullptr;
-        for (uint32_t gti = 0; gti < texture_list.size(); gti++) {
+        for (std::size_t gti = 0; gti < texture_list.size(); gti++) {
           if (texture_list[gti].name == t->name) {
             gt = &texture_list[gti];
             break;
@@ -366,18 +369,18 @@ struct texture_packe0 {
 
     //fan::throw_error("read comment xd");
     // where do we use this?
-    uint32_t pack_amount = pack_list.size();
+    //uint32_t pack_amount = pack_list.size();
 
     fan::io::file::write(f, &visual_output, sizeof(uint32_t), 1);
     fan::io::file::write(f, &min_filter, sizeof(uint32_t), 1);
     fan::io::file::write(f, &mag_filter, sizeof(uint32_t), 1);
 
-    uint32_t texture_list_size = texture_list.size();
+    std::size_t texture_list_size = texture_list.size();
     fan::io::file::write(f, &texture_list_size, sizeof(texture_list_size), 1);
-    for (uint32_t i = 0; i < texture_list.size(); i++) {
+    for (std::size_t i = 0; i < texture_list.size(); i++) {
       fan::io::file::write(f, &texture_list[i].size, sizeof(texture_list[i].size), 1);
       fan::io::file::write(f, texture_list[i].decoded_data.data(), texture_list[i].decoded_data.size(), 1);
-      uint32_t name_s = texture_list[i].name.size();
+      std::size_t name_s = texture_list[i].name.size();
       fan::io::file::write(f, &name_s, sizeof(name_s), 1);
       fan::io::file::write(f, texture_list[i].name.data(), texture_list[i].name.size(), 1);
       fan::io::file::write(f, &texture_list[i].visual_output, sizeof(texture_list[i].visual_output), 1);
@@ -395,14 +398,14 @@ struct texture_packe0 {
       fan::throw_error(fan::string("failed to open file:") + filename);
     }
 
-    uint32_t pack_amount = pack_list.size();
+    std::size_t pack_amount = pack_list.size();
     fan::io::file::write(f, &pack_amount, sizeof(pack_amount), 1);
 
-    for (uint32_t i = 0; i < pack_amount; i++) {
-      uint32_t count = pack_list[i].texture_list.size();
+    for (std::size_t i = 0; i < pack_amount; i++) {
+      std::size_t count = pack_list[i].texture_list.size();
       fan::io::file::write(f, &count, sizeof(count), 1);
 
-      for (uint32_t j = 0; j < count; j++) {
+      for (std::size_t j = 0; j < count; j++) {
         pack_t::texture_t* t = &pack_list[i].texture_list[j];
         uint64_t hashed = fan::get_hash(t->name);
         fan::io::file::write(f, &hashed, sizeof(hashed), 1);
@@ -411,7 +414,7 @@ struct texture_packe0 {
       }
 
       uint8_t* ptr;
-      uint32_t ptr_size = fan::webp::encode_lossless_rgba(pack_list[i].pixel_data.data(), pack_list[i].pack_size, &ptr);
+      std::size_t ptr_size = fan::webp::encode_lossless_rgba(pack_list[i].pixel_data.data(), pack_list[i].pack_size, &ptr);
       fan::io::file::write(f, &ptr_size, sizeof(ptr_size), 1);
       fan::io::file::write(f, ptr, ptr_size, 1);
       fan::webp::free_image(ptr);
@@ -469,7 +472,7 @@ struct texture_packe0 {
     }
   }
 
-  uint32_t size() const {
+  std::size_t size() const {
     return pack_list.size();
   }
 

@@ -61,12 +61,10 @@ void fan::color::randomize() {
   );
 }
 
-std::ostream& fan::operator<<(std::ostream& os, const color& color_) noexcept {
-  os << "{ ";
-  os << color_.r << ", ";
-  os << color_.g << ", ";
-  os << color_.b << ", ";
-  os << color_.a << " }";
-
-  return os;
+std::string fan::color::to_string() const noexcept {
+  return "{ " + 
+        std::to_string(r) + ", " + 
+        std::to_string(g) + ", " + 
+        std::to_string(b) + ", " + 
+        std::to_string(a) + " }";
 }

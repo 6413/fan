@@ -3,9 +3,9 @@
 // TODO add vulkan support, basically just .vert, .frag files
 #if defined(loco_opengl)
 #if defined(loco_rectangle)
-struct line_grid_t {
+struct grid_t {
 
-  static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::line_grid;
+  static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::grid;
 
   struct vi_t {
     loco_t::position3_t position = 0;
@@ -34,7 +34,7 @@ struct line_grid_t {
   };
 
   struct properties_t : vi_t, ri_t, context_key_t {
-    using type_t = line_grid_t;
+    using type_t = grid_t;
     loco_t::camera_t* camera = &gloco->default_camera->camera;
     loco_t::viewport_t* viewport = &gloco->default_camera->viewport;
   };
@@ -50,13 +50,13 @@ struct line_grid_t {
 
   static constexpr uint32_t max_instance_size = fan::min(256, 4096 / (sizeof(vi_t) / 4));
 
-  #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/line_grid.vs)
-  #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/line_grid.fs)
+  #define sb_shader_vertex_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/grid.vs)
+  #define sb_shader_fragment_path _FAN_PATH_QUOTE(graphics/glsl/opengl/2D/objects/grid.fs)
 
-  line_grid_t() {
+  grid_t() {
     sb_open(sb_shader_vertex_path, sb_shader_fragment_path);
   }
-  ~line_grid_t() {
+  ~grid_t() {
     sb_close();
   }
 
@@ -73,7 +73,7 @@ struct line_grid_t {
 
   #include _FAN_PATH(graphics/shape_builder.h)
 };
-line_grid_t line_grid;
+grid_t grid;
 
 #endif
 

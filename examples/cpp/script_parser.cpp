@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 int main(int argc, char** argv) {
   if (argc != 2) {

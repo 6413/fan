@@ -1,6 +1,6 @@
-#include fan_pch
+#include <fan/pch.h>
 
-#include _FAN_PATH(graphics/gui/tilemap_editor/renderer0.h)
+#include <fan/graphics/gui/tilemap_editor/renderer0.h>
 
 struct player_t {
   static constexpr fan::vec2 speed{ 450, 450 };
@@ -11,7 +11,7 @@ struct player_t {
       .size = 32 / 2,
       .blending = true
     } };
-    loco_t::shapes_t::light_t::properties_t lp;
+    loco_t::light_t::properties_t lp;
     lp.position = visual.get_position();
     lp.size = 256;
     lp.color = fan::color(1, 0.4, 0.4, 1);
@@ -56,13 +56,14 @@ struct player_t {
 
 f32_t zoom = 2;
 void init_zoom() {
-  auto& window = *gloco->get_window();
+  auto& window = gloco->window;
   auto update_ortho = [] {
     fan::vec2 s = gloco->window.get_size();
-    gloco->default_camera->camera.set_ortho(
+    gloco->camera_set_ortho(
+      gloco->orthographic_camera.camera,
       fan::vec2(-s.x, s.x) / zoom,
       fan::vec2(-s.y, s.y) / zoom
-    );;
+    );
   };
 
   update_ortho();
@@ -80,8 +81,8 @@ void init_zoom() {
 
 int main() {
   loco_t loco;
-  loco_t::image_t::load_properties_t lp;
-  lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_border;
+  loco_t::image_load_properties_t lp;
+  lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
   lp.min_filter = fan::opengl::GL_NEAREST;
   lp.mag_filter = fan::opengl::GL_NEAREST;
   loco_t::texturepack_t tp;
@@ -92,7 +93,7 @@ int main() {
   renderer.open(&tp);
 
   //auto compiled_map = renderer.compile("tilemaps/map_game0_0.fte");
-  auto compiled_map = renderer.compile("tilemaps/map_game0_1.fte");
+  auto compiled_map = renderer.compile("map.json");
   fan::vec2i render_size(16, 9);
   render_size *= 2;
   render_size += 3;
@@ -155,11 +156,11 @@ int main() {
    // gloco->get_fps();
     player.update();
     fan::vec2 dst = player.visual.get_position();
-    fan::vec2 src = gloco->default_camera->camera.get_position();
+    fan::vec2 src = gloco->camera_get_position(gloco->orthographic_camera.camera);
     // smooth camera
     //fan::vec2 offset = (dst - src) * 4 * gloco->delta_time;
     //gloco->default_camera->camera.set_position(src + offset);
-    gloco->default_camera->camera.set_position(dst);
+    gloco->camera_set_position(gloco->orthographic_camera.camera, dst);
     renderer.update(map_id0_t, dst);
   });
 }
