@@ -1,5 +1,7 @@
 #include "loco.h"
-//#define loco_post_process
+
+#define loco_framebuffer
+#define loco_post_process
 
 
 global_loco_t::operator loco_t* () {
@@ -388,8 +390,17 @@ loco_t::loco_t(const properties_t& p) :
     gloco->shaper.AddKey(Key_e::camera, sizeof(loco_t::camera_t), shaper_t::KeyBitOrderAny);
     gloco->shaper.AddKey(Key_e::ShapeType, sizeof(shaper_t::ShapeTypeIndex_t), shaper_t::KeyBitOrderAny);
     gloco->shaper.AddKey(Key_e::filler, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
+    //gloco->shaper.AddKey(Key_e::image4, sizeof(loco_t::image_t) * 4, shaper_t::KeyBitOrderLow);
   }
 
+  {
+    shaper_t::KeyTypeIndex_t ktia[] = {
+      Key_e::viewport,
+      Key_e::camera,
+      Key_e::ShapeType
+    };
+    gloco->shaper.AddKeyPack(kp::light, sizeof(ktia) / sizeof(ktia[0]), ktia);
+  }
   {
     shaper_t::KeyTypeIndex_t ktia[] = {
       Key_e::blending,
@@ -416,14 +427,6 @@ loco_t::loco_t(const properties_t& p) :
       Key_e::ShapeType
     };
     gloco->shaper.AddKeyPack(kp::texture, sizeof(ktia) / sizeof(ktia[0]), ktia);
-  }
-  {
-    shaper_t::KeyTypeIndex_t ktia[] = {
-      Key_e::viewport,
-      Key_e::camera,
-      Key_e::ShapeType
-    };
-    gloco->shaper.AddKeyPack(kp::light, sizeof(ktia) / sizeof(ktia[0]), ktia);
   }
 
   // order of open needs to be same with shapes enum
@@ -468,7 +471,10 @@ loco_t::loco_t(const properties_t& p) :
     "shaders/opengl/2D/effects/particles.vs",
     "shaders/opengl/2D/effects/particles.fs"
   );
-
+  shape_open<loco_t::universal_image_renderer_t>(
+    "shaders/opengl/2D/objects/pixel_format_renderer.vs",
+    "shaders/opengl/2D/objects/yuv420p.fs"
+  );
 
 #if defined(loco_letter)
 #if !defined(loco_font)
@@ -684,6 +690,28 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
           }
           }
 #endif
+
+          if (shape_type == loco_t::shape_type_t::universal_image_renderer) {
+            auto& ri = *(universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
+            
+
+            if (ri.images_rest[0].iic() == false) {
+              context.shader_set_value(block.shader, "_t01", 1);
+              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 1);
+              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[0]));
+            }
+            if (ri.images_rest[1].iic() == false) {
+              context.shader_set_value(block.shader, "_t02", 2);
+              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 2);
+              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[1]));
+            }
+
+            if (ri.images_rest[2].iic() == false) {
+              context.shader_set_value(block.shader, "_t03", 3);
+              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 3);
+              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[2]));
+            }
+          }
 
           if (shape_type != loco_t::shape_type_t::light) {
             auto& c = camera_get(camera);
@@ -1403,6 +1431,10 @@ fan::color loco_t::shape_t::get_outline_color() {
   return gloco->shape_functions[gloco->shaper.ShapeList[*this].sti].get_outline_color(this);
 }
 
+void loco_t::shape_t::reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter) {
+  gloco->shape_functions[gloco->shaper.ShapeList[*this].sti].reload(this, format, image_data, image_size, filter);
+}
+
 /// shapes +
 /// shapes +
 /// shapes +
@@ -1410,7 +1442,7 @@ fan::color loco_t::shape_t::get_outline_color() {
 
 loco_t::shape_t loco_t::light_t::push_back(const properties_t& properties) {
   kps_t::light_t KeyPack;
-  KeyPack.ShapeType = shape_type_t::light;
+  KeyPack.ShapeType = shape_type;
   KeyPack.camera = properties.camera;
   KeyPack.viewport = properties.viewport;
   //KeyPack.ShapeType = shape_type;
@@ -1430,7 +1462,7 @@ loco_t::shape_t loco_t::light_t::push_back(const properties_t& properties) {
 
 loco_t::shape_t loco_t::line_t::push_back(const properties_t& properties) {
   kps_t::common_t KeyPack;
-  KeyPack.ShapeType = shape_type_t::line;
+  KeyPack.ShapeType = shape_type;
   KeyPack.depth = properties.src.z;
   KeyPack.blending = properties.blending;
   KeyPack.camera = properties.camera;
@@ -1447,7 +1479,7 @@ loco_t::shape_t loco_t::line_t::push_back(const properties_t& properties) {
 
 loco_t::shape_t loco_t::rectangle_t::push_back(const properties_t& properties) {
   kps_t::common_t KeyPack;
-  KeyPack.ShapeType = shape_type_t::rectangle;
+  KeyPack.ShapeType = shape_type;
   KeyPack.depth = properties.position.z;
   KeyPack.blending = properties.blending;
   KeyPack.camera = properties.camera;
@@ -1465,7 +1497,7 @@ loco_t::shape_t loco_t::rectangle_t::push_back(const properties_t& properties) {
 
 shaper_t::ShapeID_t loco_t::circle_t::push_back(const circle_t::properties_t& properties) {
   kps_t::common_t KeyPack;
-  KeyPack.ShapeType = shape_type_t::circle;
+  KeyPack.ShapeType = shape_type;
   KeyPack.depth = properties.position.z;
   KeyPack.blending = properties.blending;
   KeyPack.camera = properties.camera;
@@ -1483,7 +1515,7 @@ shaper_t::ShapeID_t loco_t::circle_t::push_back(const circle_t::properties_t& pr
 
 loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
   kps_t::texture_t KeyPack;
-  KeyPack.ShapeType = properties.shape_type;
+  KeyPack.ShapeType = shape_type;
   KeyPack.depth = properties.position.z;
   KeyPack.blending = properties.blending;
   KeyPack.image = properties.image;
@@ -1509,7 +1541,7 @@ loco_t::shape_t loco_t::text_t::push_back(const properties_t& properties) {
 
 loco_t::shape_t loco_t::unlit_sprite_t::push_back(const properties_t& properties) {
   kps_t::texture_t KeyPack;
-  KeyPack.ShapeType = properties.shape_type;
+  KeyPack.ShapeType = shape_type;
   KeyPack.depth = properties.position.z;
   KeyPack.blending = properties.blending;
   KeyPack.image = properties.image;
@@ -1531,7 +1563,7 @@ loco_t::shape_t loco_t::unlit_sprite_t::push_back(const properties_t& properties
 
 loco_t::shape_t loco_t::letter_t::push_back(const properties_t& properties) {
   kps_t::common_t KeyPack;
-  KeyPack.ShapeType = shape_type_t::letter;
+  KeyPack.ShapeType = shape_type;
   KeyPack.depth = properties.position.z;
   KeyPack.blending = properties.blending;
   KeyPack.camera = properties.camera;
@@ -1563,7 +1595,7 @@ loco_t::shape_t loco_t::letter_t::push_back(const properties_t& properties) {
 
 loco_t::shape_t loco_t::grid_t::push_back(const properties_t& properties) {
   kps_t::common_t KeyPack;
-  KeyPack.ShapeType = shape_type_t::grid;
+  KeyPack.ShapeType = shape_type;
   KeyPack.depth = properties.position.z;
   KeyPack.blending = properties.blending;
   KeyPack.camera = properties.camera;
@@ -1582,7 +1614,7 @@ loco_t::shape_t loco_t::grid_t::push_back(const properties_t& properties) {
 
 loco_t::shape_t loco_t::particles_t::push_back(const properties_t& properties) {
   kps_t::texture_t KeyPack;
-  KeyPack.ShapeType = shape_type_t::particles;
+  KeyPack.ShapeType = shape_type;
   KeyPack.depth = properties.position.z;
   KeyPack.blending = properties.blending;
   KeyPack.image = properties.image;
@@ -1609,6 +1641,25 @@ loco_t::shape_t loco_t::particles_t::push_back(const properties_t& properties) {
   ri.size_velocity = properties.size_velocity;
   ri.shape = properties.shape;
 
+  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+}
+
+loco_t::shape_t loco_t::universal_image_renderer_t::push_back(const properties_t& properties) {
+  kps_t::texture_t KeyPack;
+  KeyPack.ShapeType = shape_type;
+  KeyPack.depth = properties.position.z;
+  KeyPack.blending = properties.blending;
+  KeyPack.image = properties.images[0];
+  KeyPack.camera = properties.camera;
+  KeyPack.viewport = properties.viewport;
+  vi_t vi;
+  vi.position = properties.position;
+  vi.size = properties.size;
+  vi.tc_position = properties.tc_position;
+  vi.tc_size = properties.tc_size;
+  ri_t ri;
+  // + 1
+  std::memcpy(ri.images_rest, &properties.images[1], sizeof(ri.images_rest));
   return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
 }
 

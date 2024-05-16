@@ -10,6 +10,7 @@ concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&
 !std::is_same_v<T, fan::vec4> &&
 !std::is_same_v<T, fan::color>;
 
+
 namespace fan {
   namespace opengl {
 
@@ -471,4 +472,83 @@ namespace fan {
       };
     }
   }
+}
+
+namespace fan {
+  struct pixel_format {
+    enum {
+      undefined,
+      yuv420p,
+      nv12,
+    };
+
+    constexpr static uint8_t get_texture_amount(uint8_t format) {
+      switch (format) {
+      case undefined: {
+        return 0;
+      }
+      case yuv420p: {
+        return 3;
+      }
+      case nv12: {
+        return 2;
+      }
+      default: {
+        fan::throw_error("invalid format");
+        return undefined;
+      }
+      }
+    }
+    constexpr static std::array<fan::vec2ui, 4> get_image_sizes(uint8_t format, const fan::vec2ui& image_size) {
+      switch (format) {
+      case yuv420p: {
+        return std::array<fan::vec2ui, 4>{image_size, image_size / 2, image_size / 2};
+      }
+      case nv12: {
+        return std::array<fan::vec2ui, 4>{image_size, fan::vec2ui{ image_size.x, image_size.y }};
+      }
+      default: {
+        fan::throw_error("invalid format");
+        return std::array<fan::vec2ui, 4>{};
+      }
+      }
+    }
+    template <typename T>
+    static constexpr std::array<T, 4> get_image_properties(uint8_t format) {
+      switch (format) {
+      case yuv420p: {
+        return std::array<fan::opengl::context_t::image_load_properties_t, 4>{
+          fan::opengl::context_t::image_load_properties_t{
+            .internal_format = fan::opengl::context_t::image_format::r8_unorm,
+            .format = fan::opengl::context_t::image_format::r8_unorm
+          },
+          fan::opengl::context_t::image_load_properties_t{
+              .internal_format = fan::opengl::context_t::image_format::r8_unorm,
+              .format = fan::opengl::context_t::image_format::r8_unorm
+          },
+          fan::opengl::context_t::image_load_properties_t{
+              .internal_format = fan::opengl::context_t::image_format::r8_unorm,
+              .format = fan::opengl::context_t::image_format::r8_unorm
+          }
+        };
+      }
+      case nv12: {
+        return std::array<fan::opengl::context_t::image_load_properties_t, 4>{
+          fan::opengl::context_t::image_load_properties_t{
+            .internal_format = fan::opengl::context_t::image_format::r8_unorm,
+            .format = fan::opengl::context_t::image_format::r8_unorm
+          },
+            fan::opengl::context_t::image_load_properties_t{
+              .internal_format = fan::opengl::context_t::image_format::rg8_unorm,
+              .format = fan::opengl::context_t::image_format::rg8_unorm
+          }
+        };
+      }
+      default: {
+        fan::throw_error("invalid format");
+        return std::array<fan::opengl::context_t::image_load_properties_t, 4>{};
+      }
+      }
+    }
+  };
 }
