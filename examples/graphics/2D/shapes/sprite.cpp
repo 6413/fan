@@ -4,11 +4,11 @@ int main() {
   loco_t loco;
 
   loco_t::image_t image;
-  image = loco.image_load("images/tire.webp");
+  image = loco.image_load("images/Screenshot 2024-05-08 132225.png");
   std::vector<loco_t::shape_t> sprites;
   for (int i = 0; i < 254; ++i) {
     sprites.push_back(fan::graphics::sprite_t{ {
-    .position = fan::vec3(fan::random::vec2(0, 1600), 254 - i),
+    .position = fan::vec3(fan::random::vec2(0, 1600), 5000),
     .size = 50,
     .rotation_point = fan::vec2(100, 0),
     .image = image,
@@ -45,6 +45,12 @@ int main() {
    //p.load_tp(&ti);
 
    us.set_tp(&ti);
+
+   sprites.push_back(fan::graphics::sprite_t{ {
+    .position = fan::vec3(fan::vec2(600), 2),
+    .size = 400,
+    .blending = true
+    } });
 
   f32_t angle = 0;
   loco.loop([&] {

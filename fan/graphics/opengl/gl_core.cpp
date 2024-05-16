@@ -4,6 +4,8 @@
 // for parsing uniform values
 #include <regex>
 
+#include <fan/graphics/stb.h>
+
 //-----------------------------context-----------------------------
 //-----------------------------context-----------------------------
 //-----------------------------context-----------------------------
@@ -364,7 +366,7 @@ bool fan::opengl::context_t::shader_compile(shader_nr_t nr) {
   shader.projection_view[0] = opengl.call(opengl.glGetUniformLocation, shader.id, "projection");
   shader.projection_view[1] = opengl.call(opengl.glGetUniformLocation, shader.id, "view");
 
-  std::regex uniformRegex(R"(uniform\s+(\w+)\s+(\w+);)");
+  std::regex uniformRegex(R"(uniform\s+(\w+)\s+(\w+)(\s*=\s*[\d\.]+)?;)");
 
   // Read vertex shader source code
   fan::string vertexData = shader.svertex;
@@ -557,13 +559,24 @@ fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(const fan:
 
 #endif
 
-  fan::webp::image_info_t image_info;
-  if (fan::webp::load(path, &image_info)) {
-    return create_missing_texture();
-  }
-  image_nr_t nr = image_load(image_info, p);
-  fan::webp::free_image(image_info.data);
-  return nr;
+
+if (path.substr(path.find_last_of(".") + 1) == "webp") {
+    fan::webp::image_info_t image_info;
+    if (fan::webp::load(path, &image_info)) {
+        return create_missing_texture();
+    }
+    image_nr_t nr = image_load(image_info, p);
+    fan::webp::free_image(image_info.data);
+    return nr;
+} else {
+    fan::webp::image_info_t image_info;
+    if (fan::stb::load(path, (fan::stb::image_info_t*)&image_info)) {
+        return create_missing_texture();
+    }
+    image_nr_t nr = image_load(image_info, p);
+    fan::stb::free_image((fan::stb::image_info_t*)&image_info);
+    return nr;
+}
 }
 
 fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(fan::color* colors, const fan::vec2ui& size_) {
