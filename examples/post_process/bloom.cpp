@@ -3,12 +3,12 @@
 int main() {
   loco_t loco;
 
-	loco_t::shapes_t::sprite_t::properties_t p;
+	loco_t::sprite_t::properties_t p;
 
 	loco_t::image_t image;
-	image.load("images/brick.webp");
-	p.image = &image;
-	p.size = image.size;
+  image = loco.image_load("images/brick.webp");
+	p.image = image;
+	p.size = loco.image_get_data(image).size;
 	p.position = 400;
 	p.position.z = 0;
   p.flags = 0x2;
@@ -36,7 +36,7 @@ int main() {
 		}
 	});*/
 
-  auto f = loco_t::imgui_fs_var_t<f32_t>(&gloco->m_fbo_final_shader, "bloom_strength", 0.04, 0.01);;
+  auto f = loco_t::imgui_fs_var_t(gloco->m_fbo_final_shader, "bloom_strength", 0.04, 0.01);
 
 	loco.loop([&] {
     fan::vec2 p = shape.get_position();

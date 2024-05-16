@@ -995,6 +995,29 @@ public:
     }
   };
 
+#define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
+  [=] <typename T5>(T5& var) -> bool{ \
+    if constexpr(std::is_same_v<f32_t, T5>)  { \
+      return ImGui::DragFloat(fan::string(std::move(name)).c_str(), &var, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+    else if constexpr(std::is_same_v<fan::vec2, T5>)  { \
+      return ImGui::DragFloat2(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+    else if constexpr(std::is_same_v<fan::vec3, T5>)  { \
+      return ImGui::DragFloat3(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+    else if constexpr(std::is_same_v<fan::vec4, T5>)  { \
+      return ImGui::DragFloat4(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
+    else {\
+      fan::throw_error_impl(); \
+      return 0;\
+    } \
+  }(variable)
+
+#define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
+    fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, m_min, m_max)
+
   struct imgui_fs_var_t {
     loco_t::imgui_element_t ie;
 
@@ -1009,8 +1032,36 @@ public:
       T min = -100000,
       T max = 100000
     ) {
-      ie = [shader_nr, var_name, speed, min, max, data = initial]() mutable {
-        if (fan_imgui_dragfloat_named(var_name, data, speed, min, max)) {
+        fan::opengl::context_t::shader_t& shader = gloco->shader_get(shader_nr);
+        auto found = shader.uniform_type_table.find(var_name);
+        if (found == shader.uniform_type_table.end()) {
+          //fan::print("failed to set uniform value");
+          return;
+          //fan::throw_error("failed to set uniform value");
+        }
+      ie = [str = found->second, shader_nr, var_name, speed, min, max, data = initial]() mutable {
+        bool modify = false;
+        switch(fan::get_hash(str)) {
+          case fan::get_hash(std::string_view("float")): {
+            f32_t d = data;
+            modify = ImGui::DragFloat(fan::string(std::move(var_name)).c_str(), (f32_t*)&d, (f32_t)speed, (f32_t)min, (f32_t)max);
+            data = d;
+            break;
+          }
+          case fan::get_hash(std::string_view("vec2")): {
+            modify = ImGui::DragFloat2(fan::string(std::move(var_name)).c_str(), ((fan::vec2*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+            break;
+          }
+          case fan::get_hash(std::string_view("vec3")): {
+            modify = ImGui::DragFloat3(fan::string(std::move(var_name)).c_str(), ((fan::vec3*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+            break;
+          }
+          case fan::get_hash(std::string_view("vec4")): {
+            modify = ImGui::DragFloat4(fan::string(std::move(var_name)).c_str(), ((fan::vec4*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+            break;
+          }
+        }
+        if (modify) {
           gloco->get_context().shader_set_value(shader_nr, var_name, data);
         }
       };
@@ -2069,25 +2120,6 @@ public:
 #endif
   //gui
 };
-
-#define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
-  [=] <typename T5>(T5& var){ \
-    if constexpr(std::is_same_v<f32_t, T5>)  { \
-      return ImGui::DragFloat(fan::string(std::move(name)).c_str(), &var, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else if constexpr(std::is_same_v<fan::vec2, T5>)  { \
-      return ImGui::DragFloat2(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else if constexpr(std::is_same_v<fan::vec3, T5>)  { \
-      return ImGui::DragFloat3(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else if constexpr(std::is_same_v<fan::vec4, T5>)  { \
-      return ImGui::DragFloat4(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-  }(variable)
-
-#define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
-    fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, m_min, m_max)
 
 // user friendly functions
 /***************************************/
