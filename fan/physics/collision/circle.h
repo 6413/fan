@@ -3,9 +3,7 @@
 #include _FAN_PATH(types/vector.h)
 
 namespace fan_2d {
-
 	namespace collision {
-
 		namespace circle {
 
 			constexpr bool point_inside(const fan::vec2& p, const fan::vec2& c, f_t r)
@@ -18,9 +16,6 @@ namespace fan_2d {
 				double radius_squared = r * r;
 				return distance_squared <= radius_squared;
 			}
-
 		}
-
 	}
-
 }

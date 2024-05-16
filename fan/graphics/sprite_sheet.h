@@ -9,7 +9,7 @@ struct sb_sprite_sheet_name {
 
   static constexpr loco_t::shape_type_t shape_type = loco_t::shape_type_t::sprite_sheet;
 
-  struct properties_t : loco_t::shapes_t::sprite_t::context_key_t, sheet_t {
+  struct properties_t : loco_t::sprite_t::context_key_t, sheet_t {
     using type_t = sb_sprite_sheet_name;
 
     fan::vec3 position;
@@ -30,7 +30,7 @@ public:
     auto nr = sheet_list.NewNodeLast();
     auto& node = sheet_list[nr];
     node.sheet = *dynamic_cast<const sheet_t*>(&p);
-    typename loco_t::shapes_t::sprite_t::properties_t sp;
+    typename loco_t::sprite_t::properties_t sp;
     sp.position = p.position;
     sp.size = p.size;
     sp.blending = p.blending;

@@ -1,18 +1,4 @@
-// very flexible input
-
-#include<functional>
-
 struct vfi_t {
-
-  static constexpr typename loco_t::shape_type_t shape_type = loco_t::shape_type_t::hitbox;
-
-  vfi_t() {
-    focus.mouse.invalidate();
-    focus.keyboard.invalidate();
-    focus.text.invalidate();
-  }
-  ~vfi_t() {
-  }
 
   typedef uint16_t shape_type_t;
 
@@ -31,16 +17,16 @@ struct vfi_t {
     fan::vec2 size;
     fan::vec3 angle;
     fan::vec2 rotation_point;
-    fan::graphics::viewport_list_NodeReference_t viewport;
-    loco_t::camera_list_NodeReference_t camera;
+    loco_t::viewport_t viewport;
+    loco_t::camera_t camera;
   };
   struct shape_data_rectangle_t {
     fan::vec2 position;
     fan::vec2 size;
     fan::vec3 angle;
     fan::vec2 rotation_point;
-    fan::graphics::viewport_list_NodeReference_t viewport;
-    loco_t::camera_list_NodeReference_t camera;
+    loco_t::viewport_t viewport;
+    loco_t::camera_t camera;
     shape_data_rectangle_t& operator=(const shape_properties_rectangle_t& p) {
       position = *(fan::vec2*)&p.position;
       size = p.size;
@@ -212,55 +198,48 @@ struct vfi_t {
   using set_shape_t = decltype(common_shape_data_t::shape);
   using set_rectangle_t = decltype(set_shape_t::rectangle)::base_t;
 
-  #include "vfi_shape_list_settings.h"
-  #include _FAN_PATH(BLL/BLL.h)
+  //struct shape_id_wrap_t {
+  //  shape_id_wrap_t() = default;
+  //  shape_id_wrap_t(loco_t::shape_t* nt) : n(nt){
 
-  using shape_list_nr_t = shape_list_NodeReference_t;
-
-  using shape_id_t = loco_t::cid_nt_t;
-
-  struct shape_id_wrap_t {
-    shape_id_wrap_t() = default;
-    shape_id_wrap_t(loco_t::cid_nt_t* nt) : n(nt){
-
-    }
-    bool operator==(shape_id_wrap_t id) {
-      return ((shape_list_nr_t)*this).NRI == (id.operator shape_list_nr_t&()).NRI;
-    }
-    operator shape_list_nr_t () const {
-      return *(shape_list_nr_t*)n->gdp4();
-    }
-    operator shape_list_nr_t&() {
-      return *(shape_list_nr_t*)n->gdp4();
-    }
-    operator shape_id_t& () {
-      return *(shape_id_t*)n;
-    }
-    bool is_invalid() {
-      return n == nullptr || shape_list_inric(operator shape_list_nr_t&());
-    }
-    shape_id_wrap_t& operator=(const shape_list_nr_t& nr) {
-      operator shape_list_nr_t () = nr;
-      return *this;
-    }
-    shape_id_wrap_t& operator=(const shape_id_t& id) {
-      operator shape_list_nr_t () = shape_id_wrap_t((shape_id_t*)&id).operator shape_list_nr_t();
-      return *this;
-    }
-    void invalidate() {
-      if (is_invalid()) {
-        return;
-      }
-      gloco->shapes.vfi.shape_list.unlrec(operator shape_list_nr_t&());
-      operator shape_list_nr_t&() = gloco->shapes.vfi.shape_list.gnric();
-    }
-    loco_t::cid_nt_t* n = nullptr;
-  };
+  //  }
+  //  bool operator==(shape_id_wrap_t id) {
+  //    return ((shape_list_nr_t)*this).NRI == (id.operator shape_list_nr_t&()).NRI;
+  //  }
+  //  operator shape_list_nr_t () const {
+  //    return *(shape_list_nr_t*)n->gdp4();
+  //  }
+  //  operator shape_list_nr_t&() {
+  //    return *(shape_list_nr_t*)n->gdp4();
+  //  }
+  //  operator loco_t::shape_t& () {
+  //    return *(loco_t::shape_t*)n;
+  //  }
+  //  bool is_invalid() {
+  //    return n == nullptr || shape_list_inric(operator shape_list_nr_t&());
+  //  }
+  //  shape_id_wrap_t& operator=(const shape_list_nr_t& nr) {
+  //    operator shape_list_nr_t () = nr;
+  //    return *this;
+  //  }
+  //  shape_id_wrap_t& operator=(const loco_t::shape_t& id) {
+  //    operator shape_list_nr_t () = shape_id_wrap_t((loco_t::shape_t*)&id).operator shape_list_nr_t();
+  //    return *this;
+  //  }
+  //  void invalidate() {
+  //    if (is_invalid()) {
+  //      return;
+  //    }
+  //    gloco->vfi.shape_list.unlrec(operator shape_list_nr_t&());
+  //    operator shape_list_nr_t&() = gloco->vfi.shape_list.gnric();
+  //  }
+  //  loco_t::shape_t* n = nullptr;
+  //};
 
   struct {
-    shape_list_nr_t mouse;
-    shape_list_nr_t keyboard;
-    shape_list_nr_t text;
+    loco_t::shape_t mouse;
+    loco_t::shape_t keyboard;
+    loco_t::shape_t text;
 
     struct {
       struct {
@@ -276,90 +255,94 @@ struct vfi_t {
     }method;
   }focus;
 
-  shape_list_t shape_list;
-
   using properties_t = common_shape_properties_t;
 
-  void push_back(shape_id_t& in, const properties_t& p) {
-    shape_id_wrap_t id(&in);
-    auto nr = shape_list.NewNodeLast();
-    auto& instance = shape_list[nr];
+  loco_t::shape_t push_back(const properties_t& p) {
+
+    loco_t::kps_t::vfi_t keypack;
+    ri_t instance;
+    instance.shape_data = new common_shape_data_t;
     instance.shape_type = p.shape_type;
     instance.flags = p.flags;
-    instance.shape_data.mouse_move_cb = p.mouse_move_cb;
-    instance.shape_data.mouse_button_cb = p.mouse_button_cb;
-    instance.shape_data.keyboard_cb = p.keyboard_cb;
-    instance.shape_data.text_cb = p.text_cb;
+    instance.shape_data->mouse_move_cb = p.mouse_move_cb;
+    instance.shape_data->mouse_button_cb = p.mouse_button_cb;
+    instance.shape_data->keyboard_cb = p.keyboard_cb;
+    instance.shape_data->text_cb = p.text_cb;
     switch(p.shape_type) {
       case shape_t::always:{
-        instance.shape_data.depth = p.shape.always->z;
+        instance.shape_data->depth = p.shape.always->z;
         break;
       }
       case shape_t::rectangle:{
-        instance.shape_data.depth = p.shape.rectangle->position.z;
-        instance.shape_data.shape.rectangle->camera = p.shape.rectangle->camera;
-        instance.shape_data.shape.rectangle->viewport = p.shape.rectangle->viewport;
-        instance.shape_data.shape.rectangle->position = *(fan::vec2*)&p.shape.rectangle->position;
-        instance.shape_data.shape.rectangle->angle = p.shape.rectangle->angle;
-        instance.shape_data.shape.rectangle->rotation_point = p.shape.rectangle->rotation_point;
-        instance.shape_data.shape.rectangle->size = p.shape.rectangle->size;
+        instance.shape_data->depth = p.shape.rectangle->position.z;
+        instance.shape_data->shape.rectangle->camera = p.shape.rectangle->camera;
+        instance.shape_data->shape.rectangle->viewport = p.shape.rectangle->viewport;
+        instance.shape_data->shape.rectangle->position = *(fan::vec2*)&p.shape.rectangle->position;
+        instance.shape_data->shape.rectangle->angle = p.shape.rectangle->angle;
+        instance.shape_data->shape.rectangle->rotation_point = p.shape.rectangle->rotation_point;
+        instance.shape_data->shape.rectangle->size = p.shape.rectangle->size;
         break;
       }
     }
 
     fan::vec2 mouse_position = gloco->get_mouse_position();
-    fan::vec2 tp = transform(mouse_position, p.shape_type, &instance.shape_data);
-    if (focus.mouse.is_invalid()) {
-      if (!p.ignore_init_move && inside(p.shape_type, &instance.shape_data, tp) == mouse_stage_e::inside) {
+    fan::vec2 tp = transform(mouse_position, p.shape_type, instance.shape_data);
+    if (focus.mouse.iic()) {
+      if (!p.ignore_init_move && inside(p.shape_type, instance.shape_data, tp) == mouse_stage_e::inside) {
         feed_mouse_move(mouse_position);
       }
     }
-    in.init();
-    in->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
-    *in.gdp4() = nr.NRI;
+    return gloco->shaper.add(
+      loco_t::shape_type_t::vfi,
+      &keypack,
+      0,
+      &instance
+    );
   }
-  void erase(shape_id_t& in) {
-    shape_id_wrap_t id = &in;
-    bool fm = focus.mouse == id;
+  void erase(const loco_t::shape_t& in) {
+    bool fm = focus.mouse == in;
     if (fm) {
-      focus.mouse.invalidate();
+      focus.mouse.sic();
     }
-    if (focus.keyboard == id) {
-      focus.keyboard.invalidate();
+    if (focus.keyboard == in) {
+      focus.keyboard.sic();
     }
-    if (focus.text == id) {
-      focus.text.invalidate();
+    if (focus.text == in) {
+      focus.text.sic();
     }
-    shape_list.unlrec(id);
+    auto data = ((ri_t*)gloco->shaper.GetData(in))->shape_data;
+    gloco->shaper.remove(in);
+    delete data;
     if (fm) {
       feed_mouse_move(gloco->get_mouse_position());
     }
   }
   template <typename T>
-  void set_always(shape_id_t in, auto T::*member, auto value) {
-    shape_id_wrap_t id(&in);
-    shape_list[id].shape_data.shape.always->*member = value;
+  void set_always(loco_t::shape_t in, auto T::*member, auto value) {
+    ((ri_t*)gloco->shaper.GetData(focus.mouse))->shape_data->shape.always->*member = value;
   }
   template <typename T>
-  void set_rectangle(shape_id_t in, auto T::*member, auto value) {
-    shape_id_wrap_t id(&in);
-    ((T*)&shape_list[id].shape_data.shape.rectangle)->*member = value;
+  void set_rectangle(loco_t::shape_t in, auto T::*member, auto value) {
+    ((T*)&((ri_t*)gloco->shaper.GetData(focus.mouse))->shape_data->shape.rectangle)->*member = value;
   }
 
-  void set_common_data(shape_id_t in, auto common_shape_data_t::*member, auto value) {
-    shape_id_wrap_t id(&in);
-    shape_list[id].shape_data.*member = value;
+  void set_common_data(loco_t::shape_t in, auto common_shape_data_t::*member, auto value) {
+    ((ri_t*)gloco->shaper.GetData(focus.mouse))->shape_data->*member = value;
   }
 
-  static fan::vec2 transform_position(const fan::vec2& p, fan::graphics::viewport_t* viewport, loco_t::camera_t* camera) {
-      
-    fan::vec2 viewport_position = viewport->get_position(); 
-    fan::vec2 viewport_size = viewport->get_size();
+  static fan::vec2 transform_position(const fan::vec2& p, loco_t::viewport_t viewport, loco_t::camera_t camera) {
 
-    f32_t l = camera->coordinates.left;
-    f32_t r = camera->coordinates.right;
-    f32_t t = camera->coordinates.up;
-    f32_t b = camera->coordinates.down;
+    auto& context = gloco->get_context();
+    auto& v = context.viewport_get(viewport);
+    auto& c = context.camera_get(camera);
+
+    fan::vec2 viewport_position = v.viewport_position;
+    fan::vec2 viewport_size = v.viewport_size;
+
+    f32_t l = c.coordinates.left;
+    f32_t r = c.coordinates.right;
+    f32_t t = c.coordinates.up;
+    f32_t b = c.coordinates.down;
 
     fan::vec2 tp = p - viewport_position;
     fan::vec2 d = viewport_size;
@@ -368,50 +351,51 @@ struct vfi_t {
     return tp;
   }
 
-  mouse_stage_e inside(shape_type_t shape_type, common_shape_data_t* data, const fan::vec2& p) {
-    switch(shape_type) {
-      case shape_t::always: {
-        return mouse_stage_e::inside;
-      }
-      case shape_t::rectangle: {
-        fan::vec2 size = data->shape.rectangle->size;
-
-        bool in = fan_2d::collision::rectangle::point_inside_rotated(
-          p,
-          data->shape.rectangle->position,
-          size,
-          data->shape.rectangle->angle,
-          data->shape.rectangle->rotation_point
-        );
-       /* if (!loco->get_context().viewport_list[data->shape.rectangle.viewport].viewport_id->inside_wir(p)) {
-          return mouse_stage_e::outside;
-        }*/
-        return in ? mouse_stage_e::inside : mouse_stage_e::outside;
-      }
-      default: {
-        fan::throw_error("invalid shape_type");
-        return mouse_stage_e::outside;
-      }
+  vfi_t::mouse_stage_e inside(shape_type_t shape_type, common_shape_data_t* data, const fan::vec2& p) {
+    switch (shape_type) {
+    case shape_t::always: {
+      return mouse_stage_e::inside;
     }
-  };
+    case shape_t::rectangle: {
+      fan::vec2 size = data->shape.rectangle->size;
+
+      bool in = fan_2d::collision::rectangle::point_inside_rotated(
+        p,
+        data->shape.rectangle->position,
+        size,
+        data->shape.rectangle->angle,
+        data->shape.rectangle->rotation_point
+      );
+      /* if (!loco->get_context().viewport_list[data->shape.rectangle.viewport].viewport_id->inside_wir(p)) {
+      return mouse_stage_e::outside;
+      }*/
+      return in ? mouse_stage_e::inside : mouse_stage_e::outside;
+    }
+    default: {
+      fan::throw_error("invalid shape_type");
+      return mouse_stage_e::outside;
+    }
+    }
+  }
 
   fan::vec2 transform(const fan::vec2& v, shape_type_t shape_type, common_shape_data_t* shape_data) {
+    auto& context = gloco->get_context();
     switch (shape_type) {
-      case shape_t::always: {
-        return v;
-      }
-      case shape_t::rectangle: {
-        auto p = transform_position(
-          v,
-          gloco->get_context().viewport_list[shape_data->shape.rectangle->viewport].viewport_id,
-          gloco->camera_list[shape_data->shape.rectangle->camera].camera_id
-        ) + fan::vec2(*(fan::vec2*)&gloco->camera_list[shape_data->shape.rectangle->camera].camera_id->position);
-        return p;
-      }
-      default: {
-        fan::throw_error("invalid shape type");
-        return {};
-      }
+    case shape_t::always: {
+      return v;
+    }
+    case shape_t::rectangle: {
+      auto p = transform_position(
+        v,
+        shape_data->shape.rectangle->viewport,
+        shape_data->shape.rectangle->camera
+      ) + fan::vec2(*(fan::vec2*)&context.camera_list[shape_data->shape.rectangle->camera].position);
+      return p;
+    }
+    default: {
+      fan::throw_error("invalid shape type");
+      return {};
+    }
     }
   }
 
@@ -420,56 +404,44 @@ struct vfi_t {
   }
 
   // might fail because shape_type isnt set
-  shape_id_t get_focus_mouse() {
-    shape_id_t s;
-    s.init();
-    s->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
-    *s.gdp4() = focus.mouse.NRI;
-    return s;
+
+  loco_t::shape_t& get_focus_mouse() {
+    return focus.mouse;
   }
-  void set_focus_mouse(shape_id_t id) {
-    focus.mouse = shape_id_wrap_t(&id).operator shape_list_nr_t();
+
+  // otherwise copy with const&
+  void set_focus_mouse(const shaper_t::ShapeID_t& id) {
+    focus.mouse.NRI = id.NRI;
     init_focus_mouse_flag();
   }
-  void set_focus_mouse(shape_list_nr_t id) {
-    focus.mouse = id;
-    init_focus_mouse_flag();
+
+  loco_t::shape_t& get_focus_keyboard() {
+    return focus.keyboard;
   }
-  shape_id_t get_focus_keyboard() {
-    shape_id_t s;
-    s.init();
-    s->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
-    *s.gdp4() = focus.keyboard.NRI;
-    return s;
+
+  void set_focus_keyboard(const shaper_t::ShapeID_t& id) {
+    focus.keyboard.NRI = id.NRI;
   }
-  void set_focus_keyboard(shape_id_t id) {
-    focus.keyboard = shape_id_wrap_t(&id).operator shape_list_nr_t();
+
+  loco_t::shape_t& get_focus_text() {
+    return focus.text;
   }
-  void set_focus_keyboard(shape_list_nr_t id) {
-    focus.keyboard = id;
-    //init_focus_mouse_flag();
-    //breaks focus mouse while dragging
-  }
-  shape_id_t get_focus_text() {
-    shape_id_t s;
-    s.init();
-    s->shape_type = (std::underlying_type_t<loco_t::shape_type_t>)loco_t::shape_type_t::hitbox;
-    *s.gdp4() = focus.text.NRI;
-    return s;
-  }
-  void set_focus_text(shape_id_t id) {
-    focus.text = shape_id_wrap_t(&id).operator shape_list_nr_t();
+
+  void set_focus_text(const shaper_t::ShapeID_t& id) {
+    focus.text.NRI = id.NRI;
   }
 
   void invalidate_focus_mouse() {
-    focus.mouse.invalidate();
+    focus.mouse.sic();
     focus.method.mouse.flags.ignore_move_focus_check = false;
   }
+
   void invalidate_focus_keyboard() {
-    focus.keyboard.invalidate();
+    focus.keyboard.sic();
   }
+
   void invalidate_focus_text() {
-    focus.text.invalidate();
+    focus.text.sic();
   }
 
   void feed_mouse_move(const fan::vec2& position) {
@@ -477,17 +449,17 @@ struct vfi_t {
     mouse_move_data_t mouse_move_data;
     mouse_move_data.vfi = this;
     mouse_move_data.flag = &focus.method.mouse.flags;
-    if (!focus.mouse.is_invalid()) {
-      auto& data = shape_list[focus.mouse];
-      fan::vec2 tp = transform(position, data.shape_type, &data.shape_data);
-      mouse_move_data.mouse_stage = inside(data.shape_type, &data.shape_data, tp);
+    if (!focus.mouse.iic()) {
+      auto& data = *(ri_t*)gloco->shaper.GetData(focus.mouse);
+      fan::vec2 tp = transform(position, data.shape_type, data.shape_data);
+      mouse_move_data.mouse_stage = inside(data.shape_type, data.shape_data, tp);
       mouse_move_data.position = tp;
-      auto bcbfm = focus.mouse;
-      data.shape_data.mouse_move_cb(mouse_move_data);
-      if (bcbfm != focus.mouse) {
-        data = shape_list[focus.mouse];
-        tp = transform(position, data.shape_type, &data.shape_data);
-        mouse_move_data.mouse_stage = inside(data.shape_type, &data.shape_data, tp);
+      auto bcbfm = focus.mouse.NRI;
+      data.shape_data->mouse_move_cb(mouse_move_data);
+      if (bcbfm != focus.mouse.NRI) {
+        data = *(ri_t*)gloco->shaper.GetData(focus.mouse);
+        tp = transform(position, data.shape_type, data.shape_data);
+        mouse_move_data.mouse_stage = inside(data.shape_type, data.shape_data, tp);
       }
       if (focus.method.mouse.flags.ignore_move_focus_check == true) {
         return;
@@ -495,161 +467,221 @@ struct vfi_t {
     }
 
     f32_t closest_z = -1;
-    shape_list_NodeReference_t closest_z_nr;
+    shaper_t::ShapeID_t closest_z_nr;
+    closest_z_nr.sic();
+    auto& shape_type_obj = gloco->shaper.ShapeTypes[loco_t::shape_type_t::vfi];
 
-    auto it = shape_list.GetNodeFirst();
-    while(it != shape_list.dst) {
-      auto& data = shape_list[it];
-      fan::vec2 tp = transform(position, data.shape_type, &data.shape_data);
-      mouse_move_data.mouse_stage = inside(data.shape_type, &data.shape_data, tp);
-      if (mouse_move_data.mouse_stage == mouse_stage_e::inside) {
-        if (data.shape_data.depth > closest_z) {
-          closest_z = data.shape_data.depth;
-          closest_z_nr = it;
-        }
+    {
+
+      shaper_t::KeyTraverse_t KeyTraverse;
+      KeyTraverse.Init(gloco->shaper, loco_t::kp::vfi);
+
+
+      shaper_t::KeyTypeIndex_t kti;
+      while (KeyTraverse.Loop(gloco->shaper, kti)) {
+        shaper_t::BlockTraverse_t BlockTraverse;
+        BlockTraverse.Init(gloco->shaper, loco_t::kp::vfi, KeyTraverse.bmid(gloco->shaper));
+        
+        do {
+          auto& block = gloco->shaper.ShapeTypes[loco_t::shape_type_t::vfi];
+          for (int i = 0; i < BlockTraverse.GetAmount(gloco->shaper); ++i) {
+            auto& data = *(ri_t*)gloco->shaper._GetData(loco_t::shape_type_t::vfi, BlockTraverse.GetBlockID(), i);
+            fan::vec2 tp = transform(position, data.shape_type, data.shape_data);
+            mouse_move_data.mouse_stage = inside(data.shape_type, data.shape_data, tp);
+            if (mouse_move_data.mouse_stage == mouse_stage_e::inside) {
+              if (data.shape_data->depth > closest_z) {
+                closest_z = data.shape_data->depth;
+                closest_z_nr = gloco->shaper._GetShapeID(loco_t::shape_type_t::vfi, BlockTraverse.GetBlockID(), i);
+              }
+            }
+          }
+        } while (BlockTraverse.Loop(gloco->shaper));
+
       }
-      it = it.Next(&shape_list);
     }
     if (closest_z != -1) {
-      auto* data = &shape_list[closest_z_nr];
-      fan::vec2 tp = transform(position, data->shape_type, &data->shape_data);
+      auto* data = (ri_t*)gloco->shaper.GetData(closest_z_nr);
+      fan::vec2 tp = transform(position, data->shape_type, data->shape_data);
       mouse_move_data.position = tp;
-      mouse_move_data.mouse_stage = inside(data->shape_type, &data->shape_data, tp);
+      mouse_move_data.mouse_stage = inside(data->shape_type, data->shape_data, tp);
       set_focus_mouse(closest_z_nr); // can be wrong
-      data->shape_data.mouse_move_cb(mouse_move_data);
+      data->shape_data->mouse_move_cb(mouse_move_data);
       return;
     }
-    focus.mouse.invalidate();
+    focus.mouse.sic();
     return;
   }
 
   void feed_mouse_button(uint16_t button, fan::mouse_state state) {
     mouse_button_data_t mouse_button_data;
     mouse_button_data.vfi = this;
-    if (focus.mouse.is_invalid()) {
+    if (focus.mouse.iic()) {
       return;
     }
 
     mouse_button_data.button = button;
     mouse_button_data.button_state = state;
 
-    auto* data = &shape_list[focus.mouse];
+    auto* data = (ri_t*)gloco->shaper.GetData(focus.mouse);
 
-    mouse_button_data.position = transform(focus.method.mouse.position, data->shape_type, &data->shape_data);
-    mouse_button_data.mouse_stage = inside(data->shape_type, &data->shape_data, mouse_button_data.position);
+    mouse_button_data.position = transform(focus.method.mouse.position, data->shape_type, data->shape_data);
+    mouse_button_data.mouse_stage = inside(data->shape_type, data->shape_data, mouse_button_data.position);
     mouse_button_data.flag = &focus.method.mouse.flags;
-    auto bcbfm = focus.mouse;
+    auto bcbfm = focus.mouse.NRI;
 
-    data->shape_data.mouse_button_cb(mouse_button_data);
+    data->shape_data->mouse_button_cb(mouse_button_data);
 
-    if (bcbfm != focus.mouse) {
-      if (focus.mouse.is_invalid()) {
+    if (bcbfm != focus.mouse.NRI) {
+      if (focus.mouse.iic()) {
         return;
       }
-      data = &shape_list[focus.mouse];
-      mouse_button_data.position = transform(focus.method.mouse.position, data->shape_type, &data->shape_data);
-      mouse_button_data.mouse_stage = inside(data->shape_type, &data->shape_data, mouse_button_data.position);
+      data = (ri_t*)gloco->shaper.GetData(focus.mouse);
+      mouse_button_data.position = transform(focus.method.mouse.position, data->shape_type, data->shape_data);
+      mouse_button_data.mouse_stage = inside(data->shape_type, data->shape_data, mouse_button_data.position);
     }
 
     if (mouse_button_data.mouse_stage == mouse_stage_e::outside) {
       if (focus.method.mouse.flags.ignore_move_focus_check == false) {
-        focus.mouse.invalidate();
+        focus.mouse.sic();
         feed_mouse_move(focus.method.mouse.position);
       }
     }
   }
+
   void feed_keyboard(int key, fan::keyboard_state keyboard_state) {
     keyboard_data_t keyboard_data;
     keyboard_data.vfi = this;
-    if (focus.keyboard.is_invalid()) {
+    if (focus.keyboard.iic()) {
       return;
     }
 
     keyboard_data.key = key;
     keyboard_data.keyboard_state = keyboard_state;
 
-    shape_list[focus.keyboard].shape_data.keyboard_cb(keyboard_data);
+    ((ri_t*)gloco->shaper.GetData(focus.keyboard))->shape_data->keyboard_cb(keyboard_data);
   }
+
   void feed_text(uint32_t key) {
     text_data_t text_data;
     text_data.vfi = this;
-    if (focus.text.is_invalid()) {
+    if (focus.text.iic()) {
       return;
     }
 
     text_data.key = key;
 
-    shape_list[focus.text].shape_data.text_cb(text_data);
+    ((ri_t*)gloco->shaper.GetData(focus.text))->shape_data->text_cb(text_data);
   }
 
-  fan::vec3 get_position(shape_id_t& in) {
-    shape_id_wrap_t id(&in);
-    auto& shape = shape_list[id];
+  fan::vec3 get_position(loco_t::shape_t& in) {
+    auto& shape = *(ri_t*)gloco->shaper.GetData(in);
     switch (shape.shape_type) {
-      case vfi_t::shape_t::rectangle: {
-        return fan::vec3(
-          shape.shape_data.shape.rectangle->position, 
-          shape.shape_data.depth
-          );
-      }
+    case vfi_t::shape_t::rectangle: {
+      return fan::vec3(
+        shape.shape_data->shape.rectangle->position,
+        shape.shape_data->depth
+      );
+    }
     }
     fan::throw_error("invalid get_position for id");
+    return 0;
   }
-  void set_position(shape_id_t& in, const fan::vec3& position) {
-    shape_id_wrap_t id(&in);
-    auto& shape = shape_list[id];
+
+  void set_position(loco_t::shape_t& in, const fan::vec3& position) {
+    auto& shape = *(ri_t*)gloco->shaper.GetData(in);
     switch (shape.shape_type) {
-      case vfi_t::shape_t::rectangle: {
-        shape.shape_data.shape.rectangle->position = *(fan::vec2*)&position;
-        shape.shape_data.depth = position.z;
-        return;
-      }
+    case vfi_t::shape_t::rectangle: {
+      shape.shape_data->shape.rectangle->position = *(fan::vec2*)&position;
+      shape.shape_data->depth = position.z;
+      return;
+    }
     }
     fan::throw_error("invalid set_position for id");
   }
 
-  fan::vec2 get_size(shape_id_t& in) {
-    shape_id_wrap_t id(&in);
-    auto& shape = shape_list[id];
+  fan::vec2 get_size(loco_t::shape_t& in) {
+    auto& shape = *(ri_t*)gloco->shaper.GetData(in);
     switch (shape.shape_type) {
-      case vfi_t::shape_t::rectangle: {
-        return shape.shape_data.shape.rectangle->size;
-      }
+    case vfi_t::shape_t::rectangle: {
+      return shape.shape_data->shape.rectangle->size;
+    }
     }
     fan::throw_error("invalid get_position for id");
+    return 0;
   }
-  void set_size(shape_id_t& in, const fan::vec2& size) {
-    shape_id_wrap_t id(&in);
-    auto& shape = shape_list[id];
+
+  void set_size(loco_t::shape_t& in, const fan::vec2& size) {
+    auto& shape = *(ri_t*)gloco->shaper.GetData(in);
     switch (shape.shape_type) {
-      case vfi_t::shape_t::rectangle: {
-        shape.shape_data.shape.rectangle->size = size;
-        return;
-      }
+    case vfi_t::shape_t::rectangle: {
+      shape.shape_data->shape.rectangle->size = size;
+      return;
     }
-    fan::throw_error("invalid set_position for id");
-  }
-  void set_angle(shape_id_t& in, const fan::vec3& angle) {
-    shape_id_wrap_t id(&in);
-    auto& shape = shape_list[id];
-    switch (shape.shape_type) {
-      case vfi_t::shape_t::rectangle: {
-        shape.shape_data.shape.rectangle->angle = angle;
-        return;
-      }
     }
     fan::throw_error("invalid set_position for id");
   }
 
-  void set_rotation_point(shape_id_t& in, const fan::vec2& rotation_point) {
-    shape_id_wrap_t id(&in);
-    auto& shape = shape_list[id];
+  void set_angle(loco_t::shape_t& in, const fan::vec3& angle) {
+    auto& shape = *(ri_t*)gloco->shaper.GetData(in);
     switch (shape.shape_type) {
-      case vfi_t::shape_t::rectangle: {
-        shape.shape_data.shape.rectangle->rotation_point = rotation_point;
-        return;
-      }
+    case vfi_t::shape_t::rectangle: {
+      shape.shape_data->shape.rectangle->angle = angle;
+      return;
+    }
     }
     fan::throw_error("invalid set_position for id");
+  }
+
+  void set_rotation_point(loco_t::shape_t& in, const fan::vec2& rotation_point) {
+    auto& shape = *(ri_t*)gloco->shaper.GetData(in);
+    switch (shape.shape_type) {
+    case vfi_t::shape_t::rectangle: {
+      shape.shape_data->shape.rectangle->rotation_point = rotation_point;
+      return;
+    }
+    }
+    fan::throw_error("invalid set_position for id");
+  }
+
+#pragma pack(push, 1)
+  struct ri_t {
+    shape_type_t shape_type;
+    common_shape_data_t* shape_data = 0;
+    iflags_t flags;
+  };
+#pragma pack(pop)
+
+
+  void open() {
+    focus.mouse.sic();
+    focus.keyboard.sic();
+    focus.text.sic();
+
+    gloco->shaper.AddShapeType(loco_t::shape_type_t::vfi, loco_t::kp::vfi, {
+      .MaxElementPerBlock = (shaper_t::MaxElementPerBlock_t)MaxElementPerBlock,
+      .RenderDataSize = 0,
+      .DataSize = sizeof(ri_t),
+    });
+
+
+    loco_t::functions_t functions;
+    functions.get_position = [](loco_t::shape_t* shaper) {
+      return gloco->vfi.get_position(*shaper);
+    };
+    functions.set_position2 = [](loco_t::shape_t* shaper, const fan::vec2& position) {
+      gloco->vfi.set_position(*shaper, fan::vec3(position, gloco->vfi.get_position(*shaper).z));
+    };
+    functions.set_position3 = [](loco_t::shape_t* shaper, const fan::vec3& position) {
+      gloco->vfi.set_position(*shaper, position);
+    };
+    functions.get_size = [](loco_t::shape_t* shaper) {
+      return gloco->vfi.get_size(*shaper);
+    };
+    functions.set_size = [](loco_t::shape_t* shaper, const fan::vec2& size) {
+      gloco->vfi.set_size(*shaper, size);
+    };
+    gloco->shape_functions.push_back(functions);
+  }
+  ~vfi_t() {
   }
 };

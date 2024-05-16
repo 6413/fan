@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 fan::vec2ui grid_size{ 16, 16 };
 
@@ -313,18 +313,18 @@ int main() {
 
   generate_map(block_size);
 
-  loco_t::shape_t line_grid;
+  loco_t::shape_t grid;
 
-  loco_t::shapes_t::line_grid_t::properties_t p;
+  loco_t::shapes_t::grid_t::properties_t p;
   p.position = fan::vec3(gloco->window.get_size() / 2, 0xfff);
   p.size = block_size * grid_size / 2;
   p.color = fan::colors::black;
 
-  line_grid = p;
+  grid = p;
 
-  gloco->shapes.line_grid.sb_set_vi(
-    line_grid,
-    &loco_t::shapes_t::line_grid_t::vi_t::grid_size,
+  gloco->shapes.grid.sb_set_vi(
+    grid,
+    &loco_t::shapes_t::grid_t::vi_t::grid_size,
     grid_size
   );
 

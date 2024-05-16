@@ -1,6 +1,13 @@
 #pragma once
 
+
 #include <fan/types/vector.h>
+
+#if defined(loco_imgui)
+#include <fan/imgui/imgui.h>
+#endif
+
+#pragma pack(push, 1)
 
 namespace fan {
 
@@ -11,12 +18,8 @@ namespace fan {
     constexpr color(const fan::vec4_wrap_t<T>& v) {
       *(fan::vec4*)this = v;
     }
-    template <typename T>
-    constexpr operator fan::vec4_wrap_t<T>() {
-      return *(fan::vec4_wrap_t<T>*)this;
-    }
 
-    #if defined(loco_imgui)
+#if defined(loco_imgui)
     constexpr color(const ImVec4& v) {
       r = v.x;
       g = v.y;
@@ -26,18 +29,24 @@ namespace fan {
     constexpr operator ImVec4() const {
       return *(ImVec4*)this;
     }
-    constexpr ImU32 to_u32() const {
-        return static_cast<ImU32>((static_cast<ImU32>(r * 255) << 0) |
-          (static_cast<ImU32>(g * 255) << 8) |
-          (static_cast<ImU32>(b * 255) << 16) |
-          (static_cast<ImU32>(a * 255) << 24));
+#endif
+    constexpr uint32_t to_u32() const {
+		return static_cast<uint32_t>((static_cast<uint32_t>(std::clamp(r, 0.0f, 1.0f) * 255) << 0) |
+        (static_cast<uint32_t>(std::clamp(g, 0.0f, 1.0f) * 255) << 8) |
+        (static_cast<uint32_t>(std::clamp(b, 0.0f, 1.0f) * 255) << 16) |
+        (static_cast<uint32_t>(std::clamp(a, 0.0f, 1.0f) * 255) << 24));
     }
-    #endif
+
+
+    template <typename T>
+    constexpr operator fan::vec4_wrap_t<T>() {
+      return *(fan::vec4_wrap_t<T>*)this;
+    }
 
 		using value_type = cf_t;
 
 		// returns rgb from hsv
-    fan::color hsv(f32_t H, f32_t S, f32_t V);
+    static fan::color hsv(f32_t H, f32_t S, f32_t V);
 	
 		static constexpr color rgb(cf_t r, cf_t g, cf_t b, cf_t a = 255) {
 			return color(r / 255.f, g / 255.f, b / 255.f, a / 255.f);
@@ -137,6 +146,26 @@ namespace fan {
 
     void randomize();
 
+		std::string to_string() const noexcept;
+		friend std::ostream& operator<<(std::ostream& os, const color& color_) noexcept {
+  		os << color_.to_string();
+
+  		return os;
+		}
+
+		auto begin() const {
+			return &r;
+		}
+		auto begin() {
+			return &r;
+		}
+		auto end() const {
+			return begin() + size();
+		}
+		auto end() {
+			return begin() + size();
+		}
+
     cf_t r = 0, g = 0, b = 0, a = 1;
 	};
 
@@ -156,8 +185,7 @@ namespace fan {
 		static constexpr fan::color cyan = fan::color::hex(0x00FFFFFF);
 		static constexpr fan::color magenta = fan::color::hex(0xFF00FFFF);
 		static constexpr fan::color transparent = fan::color(0, 0, 0, 0);
-
 	}
-
-  std::ostream& operator<<(std::ostream& os, const color& color_) noexcept;
 }
+
+#pragma pack(pop)

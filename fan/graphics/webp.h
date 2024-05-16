@@ -12,7 +12,7 @@
 #include <webp/encode.h>
 #include <webp/decode.h>
 
-#include _FAN_PATH(io/file.h)
+#include <fan/io/file.h>
 
 namespace fan {
 	namespace webp {
@@ -47,10 +47,10 @@ namespace fan {
 
       return false;
     }
-    static uint32_t encode_rgba(const uint8_t* in, const fan::vec2& size, f32_t quality, uint8_t** out) {
+    static std::size_t encode_rgba(const uint8_t* in, const fan::vec2& size, f32_t quality, uint8_t** out) {
       return WebPEncodeRGBA(in, size.x, size.y, size.x * 4, quality, out);
     }
-    static uint32_t encode_lossless_rgba(const uint8_t* in, const fan::vec2& size, uint8_t** out) {
+    static std::size_t encode_lossless_rgba(const uint8_t* in, const fan::vec2& size, uint8_t** out) {
       return WebPEncodeLosslessRGBA(in, size.x, size.y, size.x * 4, out);
     }
 

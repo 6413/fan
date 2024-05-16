@@ -1,7 +1,4 @@
-#pragma once
-
 #include <fan/font.h>
-#include <fan/graphics/opengl/gl_image.h>
 
 namespace fan {
   namespace graphics {
@@ -14,8 +11,10 @@ namespace fan {
         //  return info.get_font_index(c);
         //}
 
+        fan::vec2 get_text_size(const fan::string& text, f32_t font_size);
+
         fan::font::font_t info;
-        fan::graphics::image_t image;
+        fan::opengl::context_t::image_nr_t image;
       };
     }
   }

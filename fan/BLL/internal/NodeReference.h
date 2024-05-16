@@ -43,7 +43,7 @@ BLL_StructBegin(_P(NodeReference_t))
   
     /* is invalid constant */
     /* check _BLL_POFTWBIT(inric) at rest.h for more info */
-    bool iic(){
+    bool iic() const {
       return *this == _P(gnric)();
     }
 

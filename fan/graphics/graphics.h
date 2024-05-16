@@ -5,7 +5,6 @@
 #endif
 #include <fan/physics/collision/rectangle.h>
 #include <fan/graphics/camera.h>
-#include <fan/types/masterpiece.h>
 #include <fan/graphics/webp.h>
 
 #if defined(loco_opengl)

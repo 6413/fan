@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 static constexpr fan::vec2 grid_size = fan::vec2(64, 64);
 static constexpr fan::vec2i grid_count = fan::vec2i(50, 50);
@@ -98,10 +98,6 @@ int main() {
   loco_t loco = loco_t::properties_t{.window_size = 1300};
 
   fan::vec2 viewport_size = loco.window.get_size();
-  loco.default_camera->camera.set_ortho(
-    fan::vec2(0, viewport_size.x),
-    fan::vec2(0, viewport_size.y)
-  );
 
   struct cell_t {
     fan::graphics::rectangle_t r;

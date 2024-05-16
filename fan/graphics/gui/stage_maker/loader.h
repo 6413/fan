@@ -23,13 +23,6 @@ static inline struct gstage_t {
   }
 }gstage;
 
-template <typename Variant>
-struct ptrless_variant_helper {
-  template <std::size_t... Is>
-  static auto helper(std::index_sequence<Is...>) {
-    return std::variant<std::remove_pointer_t<std::variant_alternative_t<Is, Variant>>...>{};
-  }
-};
 
 struct stage_loader_t {
 
@@ -92,9 +85,8 @@ public:
 
   struct stage_open_properties_t {
 
-    loco_t::camera_t* camera = &gloco->default_camera->camera;
-    fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
-    loco_t::theme_t* theme = &gloco->default_theme;
+    loco_t::camera_t* camera = &gloco->orthographic_camera.camera;
+    loco_t::viewport_t* viewport = &gloco->orthographic_camera.viewport;
 
     stage_loader_t::nr_t parent_id;
     uint32_t itToDepthMultiplier = 0x100;

@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 struct ga_t {
   struct a_t {

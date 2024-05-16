@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 constexpr uint32_t count = 1000;
 

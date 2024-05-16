@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 #include _FAN_PATH(graphics/gui/fgm/fgm.h)
 
@@ -6,7 +6,7 @@ int main() {
   loco_t loco;
 
   fgm_t fgm;
-  fgm.open("TexturePack");
+  fgm.open("texture_packs/tilemap");
   fgm.fin("file.fgm");
 
   loco.loop([&] {

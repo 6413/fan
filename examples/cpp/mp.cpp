@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 struct temp_t {
   int x;

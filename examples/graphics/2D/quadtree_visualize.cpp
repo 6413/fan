@@ -1,4 +1,6 @@
-#include fan_pch
+#include <fan/pch.h>
+
+#include <fan/trees/quad_tree.h>
 
 int main() {
   fan::trees::quadtree_t qt(0.5, 0.5, 1);
@@ -10,7 +12,8 @@ int main() {
   }
 
   loco_t loco;
-  loco.default_camera->camera.set_ortho(
+  loco.get_context().camera_set_ortho(
+    loco.orthographic_camera.camera,
     fan::vec2(-1, 1),
     fan::vec2(-1, 1)
   );

@@ -1,37 +1,34 @@
-struct model_loader_t {
-  #define model_maker_loader
-  #include _FAN_PATH(graphics/gui/fgm/common.h)
-
-  void load(loco_t::texturepack_t* tp, const fan::string& filename, auto lambda) {
-    #define model_maker_loader
-    #include _FAN_PATH(graphics/gui/stage_maker/loader_versions/1.h)
-  }
-};
-
 struct model_list_t {
 
-  using current_version_t = model_loader_t::current_version_t;
-
-  using shapes_t = current_version_t::shapes_t;
-
   struct properties_t {
-    loco_t::camera_t* camera = &gloco->default_camera->camera;
-    fan::graphics::viewport_t* viewport = &gloco->default_camera->viewport;
+    loco_t::camera_t camera = gloco->orthographic_camera.camera;
+    loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
     fan::vec3 position = 0;
   };
 
   struct cm_t {
 
     void import_from(const fan::string& path, loco_t::texturepack_t* tp) {
-      model_loader_t loader;
       loco_t::texturepack_t::ti_t ti;
-      loader.load(tp, path, [&]<typename T>(const T& data) {
-        shapes.resize(shapes.size() + 1);
-        shapes.back() = data;
-      });
+
+      fan::string in;
+      fan::io::file::read(path, &in);
+      if (in.empty()) {
+        return;
+      }
+      fan::json json_in = nlohmann::json::parse(in);
+      shapes = json_in;
     }
 
-    std::vector<fan::union_mp<shapes_t>> shapes;
+    struct shape_t : loco_t::shape_t {
+      shape_t(const loco_t::shape_t&s) : loco_t::shape_t(s){}
+      shape_t(loco_t::shape_t&& s) : loco_t::shape_t(std::move(s)) {}
+      std::string id;
+      uint32_t group_id = 0;
+      std::string image_name;
+    };
+
+    fan::json shapes;
   };
 
   struct group_data_t {
@@ -69,31 +66,52 @@ struct model_list_t {
     auto nr = model_list.NewNodeLast();
     auto& node = model_list[nr];
     node.cm = *cms;
+
+    if (cms->shapes.is_object() == false) {
+      return nr;
+    }
+
     fan::vec2 root_pos = 0;
-    for (auto& i : cms->shapes) {
-      std::visit([&]<typename T>(T & v) {
-        if constexpr (
-          std::is_same_v<T, current_version_t::sprite_t> ||
-          std::is_same_v<T, current_version_t::unlit_sprite_t>) {
-          auto&& shape = v.get_shape(tp);
-          shape.set_camera(mp.camera);
-          shape.set_viewport(mp.viewport);
-          if (v.group_id == 0) {// set root pos
-            root_pos = shape.get_position();
-            shape.set_position(fan::vec2(0));
-          }
-          else {
-            shape.set_position(fan::vec2(fan::vec2(shape.get_position()) - root_pos));
-          }
-          push_shape(nr, v.group_id, std::move(shape));
+
+    auto version = cms->shapes["version"].get<int>();
+    if (version != 1) {
+      fan::throw_error("invalid file version");
+    }
+    fan::graphics::shape_deserialize_t iterator;
+    loco_t::shape_t shape;
+    int i = 0;
+    while (iterator.iterate(cms->shapes["shapes"], &shape)) {
+      const auto& shape_json = *(iterator.data.it - 1);
+      cm_t::shape_t s = shape;
+      s.set_camera(mp.camera);
+      s.set_viewport(mp.viewport);
+      s.id = shape_json["id"].get<fan::string>();
+      s.group_id = shape_json["group_id"].get<uint32_t>();
+      auto st = shape.get_shape_type();
+      if (st == loco_t::shape_type_t::sprite ||
+        st == loco_t::shape_type_t::unlit_sprite) {
+        s.image_name = shape_json["image_name"].get<fan::string>();
+        loco_t::texturepack_t::ti_t ti;
+        if (tp->qti(s.image_name, &ti)) {
+          fan::throw_error("failed to read images");
         }
-      }, i);
+        s.load_tp(&ti);
+      }
+
+      if (s.group_id == 0) {// set root pos
+        root_pos = shape.get_position();
+        shape.set_position(fan::vec2(0));
+      }
+      else {
+        shape.set_position(fan::vec2(fan::vec2(shape.get_position()) - root_pos));
+      }
+      push_shape(nr, s.group_id, std::move(s));
     }
     set_position(nr, mp.position);
     return nr;
   }
 
-  void push_shape(model_id_t model_id, uint32_t group_id, const auto& shape) {
+  void push_shape(model_id_t model_id, uint32_t group_id, const cm_t::shape_t& shape) {
     auto& model = model_list[model_id];
     if (model.groups.size() < group_id + 1) {
       model.groups.resize(group_id + 1);
@@ -116,25 +134,19 @@ struct model_list_t {
   }
 
   void iterate(model_id_t model_id, uint32_t group_id, auto lambda) {
-    for (auto& i : model_list[model_id].cm.shapes) {
-      std::visit([&]<typename T>(T & v) {
-        if (v.group_id != group_id) {
-          return;
-        }
-        lambda(v);
-      }, i);
+    auto& m = model_list[model_id];
+    if (group_id >= m.groups.size()) {
+      return;
+    }
+    for (auto& i : m.groups[group_id]) {
+      lambda(i);
     }
   }
   void iterate_marks(model_id_t model_id, uint32_t group_id, auto lambda) {
-    for (auto& i : model_list[model_id].cm.shapes) {
-      std::visit([&]<typename T>(T & v) {
-        if (v.group_id != group_id) {
-          return;
-        }
-        if constexpr (std::is_same_v<T, current_version_t::mark_t>) {
-          lambda(v);
-        }
-      }, i);
+    for (auto& i : model_list[model_id].groups[group_id]) {
+      if (i.get_shape_type() == loco_t::shape_type_t::rectangle) {
+        lambda(i);
+      }
     }
   }
 
@@ -214,6 +226,9 @@ struct model_list_t {
   void set_angle(model_id_t model_id, uint32_t group_id, const fan::vec3& angle) {
     auto& model = model_list[model_id];
     // skip root
+    if (group_id >= model.groups.size()) {
+      return;
+    }
     auto& group = model.groups[group_id];
     for (auto& j : group) {
       j.shape.set_angle(angle + j.angle);

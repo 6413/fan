@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 #include _FAN_PATH(tp/tp.h)
 #include _FAN_PATH(io/directory.h)

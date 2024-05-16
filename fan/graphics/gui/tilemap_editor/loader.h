@@ -1,11 +1,12 @@
+#include <variant>
+#include <fan/io/file.h>
+#include <fan/io/json_impl.h>
+
 struct fte_loader_t {
 
   struct fte_t {
     #include "common2.h"
   };
-
-  #define tilemap_editor_loader
-  #include "common.h"
 
   struct vec2i_hasher {
     std::size_t operator()(const fan::vec2i& k) const {
@@ -31,7 +32,7 @@ struct fte_loader_t {
     fan::vec2i map_size;
     fan::vec2i tile_size;
     #if tilemap_renderer == 0
-    std::vector<std::vector<fan::mp_t<current_version_t::shapes_t>>> compiled_shapes;
+    std::vector<std::vector<std::vector<fte_t::tile_t>>> compiled_shapes;
     #elif tilemap_renderer == 1
     std::unordered_map<fan::vec2i, fan::mp_t<current_version_t::shapes_t>, vec2i_hasher> compiled_shapes;
     #endif
@@ -64,15 +65,43 @@ public:
     texturepack = tp;
   }
 
-  compiled_map_t compile(const fan::string& filename) {
+  compiled_map_t compile(const std::string& filename) {
+
+    std::string out;
+    fan::io::file::read(filename, &out);
+    fan::json json = fan::json::parse(out);
+    if (json["version"] != 1) {
+      fan::throw_error("version mismatch");
+    }
+
     compiled_map_t compiled_map;
 
-    fan::vec2i& map_size = compiled_map.map_size;
-    fan::vec2i& tile_size = compiled_map.tile_size;
+    compiled_map.map_size = json["map_size"];
+    compiled_map.tile_size = json["tile_size"];
 
-    #define tilemap_editor_loader
-    #include "loader_versions/1.h"
+    compiled_map.compiled_shapes.resize(compiled_map.map_size.y);
+    for (auto& i : compiled_map.compiled_shapes) {
+      i.resize(compiled_map.map_size.x);
+    }
 
+    fan::graphics::shape_deserialize_t it;
+    loco_t::shape_t shape;
+    while (it.iterate(json["tiles"], &shape)) {
+      const auto& shape_json = *(it.data.it - 1);
+      fte_t::tile_t tile;
+      fan::vec2i gp = shape.get_position();
+      convert_draw_to_grid(compiled_map.tile_size, gp);
+      gp /= compiled_map.tile_size;
+      gp += compiled_map.map_size / 2;
+      tile.position = shape.get_position();
+      tile.size = shape.get_size();
+      tile.angle = shape.get_angle();
+      tile.color = shape.get_color();
+      tile.image_hash = shape_json["image_hash"];
+      tile.mesh_property = (fte_t::mesh_property_t)shape_json["mesh_property"];
+      tile.id = shape_json["id"];
+      compiled_map.compiled_shapes[gp.y][gp.x].push_back(tile);
+    }
     return compiled_map;
   }
 
@@ -115,7 +144,7 @@ public:
   //            if (texturepack->qti(j.image_hash, &ti)) {
   //              fan::throw_error("failed to load image from .fte - corrupted save file");
   //            }
-  //            gloco->shapes.sprite.load_tp(
+  //            gloco->sprite.load_tp(
   //              map_list[it].tiles.back(),
   //              &ti
   //            );

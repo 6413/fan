@@ -1,9 +1,9 @@
 #pragma once
 
+#include <fan/types/function.h>
 #include <fan/window/window_input.h>
 #include <fan/window/window_input_common.h>
 #include <fan/types/vector.h>
-#include <fan/types/memory.h>
 
 #if defined(fan_platform_windows)
 #include <DXGI.h>
@@ -66,20 +66,7 @@ namespace fan {
 
       #endif
 
-      static fan::vec2i get_screen_resolution() {
-        #ifdef fan_platform_windows
-
-
-        return fan::vec2i(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
-
-        #elif defined(fan_platform_unix) // close
-
-        fan::vec2i resolution(DisplayWidth(fan::sys::m_display, m_screen), DisplayHeight(fan::sys::m_display, m_screen));
-
-        return resolution;
-
-        #endif
-      }
+      fan::vec2i get_screen_resolution();
 
       #if defined(fan_platform_windows)
 
@@ -88,23 +75,23 @@ namespace fan {
         static inline std::unordered_map<uint16_t, bool> key_down;
         static inline std::unordered_map<uint16_t, bool> reset_keys;
 
-        static fan::vec2i get_mouse_position();
+        fan::vec2i get_mouse_position();
 
-        static auto get_key_state(int key);
+        auto get_key_state(int key);
 
-        static void set_mouse_position(const fan::vec2i& position);
+        void set_mouse_position(const fan::vec2i& position);
 
-        static void send_mouse_event(int key, fan::mouse_state state);
+        void send_mouse_event(int key, fan::mouse_state state);
 
-        inline static void send_keyboard_event(int key, fan::keyboard_state state);
+        static void send_keyboard_event(int key, fan::keyboard_state state);
 
-        static void send_string(const std::string& str, uint32_t delay_between);
+        void send_string(const std::string & str, uint32_t delay_between);
 
         // creates another thread, non blocking
-        static void listen_keyboard(fan::function_t<void(int key, fan::keyboard_state keyboard_state, bool action)> input_callback_);
+        void listen_keyboard(fan::function_t<void(int key, fan::keyboard_state keyboard_state, bool action)> input_callback_);
 
         // BLOCKS
-        static void listen_mouse(fan::function_t<void(const fan::vec2i& position)> mouse_move_callback_);
+        void listen_mouse(fan::function_t<void(const fan::vec2i& position)> mouse_move_callback_);
 
       //private:
 

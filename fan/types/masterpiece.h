@@ -4,6 +4,8 @@
 #include <type_traits>
 #include <variant>
 
+#include <fan/types/magic.h>
+
 namespace fan {
   #pragma pack(push, 1)
   // reversing masterpiece

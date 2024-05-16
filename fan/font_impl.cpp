@@ -1,5 +1,9 @@
 #include "font.h"
 
+#include <fan/io/file.h>
+#include <fan/types/fstring.h>
+#include <fan/types/utf8.h>
+
 fan::font::character_info_nr_t fan::font::font_t::get_character(uint32_t c)
 {
     auto found = characters.find(c);
@@ -38,7 +42,7 @@ fan::font::character_info_t fan::font::font_t::get_letter_info(uint32_t c, f32_t
   #if fan_debug >= fan_debug_low
   if (found == characters.end())
   {
-    throw std::runtime_error(fmt::format("failed to find character:{:x}", c));
+    fan::throw_error("failed to find character:", c);
   }
   #endif
 
@@ -89,7 +93,7 @@ f32_t fan::font::font_t::get_line_height(f32_t font_size) const
   return line_height * convert_font_size(font_size);
 }
 
-fan::font::line_t fan::font::parse_line(std::unordered_multimap<uint32_t, uint32_t>* reverse_mapping, const fan::string& line, parse_stage_e stage)
+fan::font::line_t fan::font::parse_line(reverse_mapping_t* reverse_mapping, const std::string& line, parse_stage_e stage)
 {
   switch (stage)
   {
@@ -100,10 +104,10 @@ fan::font::line_t fan::font::parse_line(std::unordered_multimap<uint32_t, uint32
 
       auto r = fan::io::file::get_string_valuei_n(line);
 
-      fan::string str;
+      std::string str;
       fan::utf16_to_utf8((wchar_t*)&r.value, &str);
 
-      l.utf8 = str.get_utf8(0);
+      l.utf8 = fan::get_utf8(&str, 0);
       r = fan::io::file::get_string_valuei_n(line, r.end);
 
       l.font_info.mapping.parse_index = r.value;
@@ -172,16 +176,16 @@ fan::font::line_t fan::font::parse_line(std::unordered_multimap<uint32_t, uint32
   }
 }
 
-void fan::font::parse_font(font_t& font, const fan::string& path)
+void fan::font::parse_font(font_t& font, const std::string& path)
 {
   if (!fan::io::file::exists(path))
   {
-    fan::throw_error(fan::string("font not found") + path);
+    fan::throw_error(std::string("font not found") + path);
   }
 
   std::ifstream file(path.c_str());
 
-  std::vector<fan::string> lines;
+  std::vector<std::string> lines;
   std::string line;
 
   while (std::getline(file, line))
@@ -210,13 +214,13 @@ void fan::font::parse_font(font_t& font, const fan::string& path)
 
   font.line_height = font.size * 1.5;
 
-  while (lines[iline++].find("# code index") == fan::string::npos)
+  while (lines[iline++].find("# code index") == std::string::npos)
   {
   }
 
   parse_stage_e stage = parse_stage_e::mapping;
 
-  std::unordered_multimap<uint32_t, uint32_t> reverse_mapping;
+  reverse_mapping_t reverse_mapping;
 
   while (1)
   {
@@ -237,7 +241,7 @@ void fan::font::parse_font(font_t& font, const fan::string& path)
     iline++;
   }
 
-  while (lines[iline++].find("# index width height offset_x offset_y advance") == fan::string::npos)
+  while (lines[iline++].find("# index width height offset_x offset_y advance") == std::string::npos)
   {
   }
 
@@ -258,7 +262,7 @@ void fan::font::parse_font(font_t& font, const fan::string& path)
     iline++;
   }
 
-  while (lines[iline++].find("# index x y width height border") == fan::string::npos)
+  while (lines[iline++].find("# index x y width height border") == std::string::npos)
   {
   }
 

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <exception>
 #include <cstring>
+#include <array>
 
 namespace fan {
 

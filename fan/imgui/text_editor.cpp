@@ -1,5 +1,7 @@
 #include "text_editor.h"
 
+#include <cassert>
+#include <fan/types/fstring.h>
 #include <chrono>
 
 // TODO
@@ -727,8 +729,12 @@ std::string TextEditor::GetWordAt(const Coordinates& aCoords) const
 
 ImU32 TextEditor::GetGlyphColor(const Glyph& aGlyph) const
 {
-  if (aGlyph.mColorOverride)
-    return aGlyph.custom_color.to_u32();
+  if (aGlyph.mColorOverride) {
+    return static_cast<ImU32>((static_cast<ImU32>(aGlyph.custom_color.r * 255) << 0) |
+      (static_cast<ImU32>(aGlyph.custom_color.g * 255) << 8) |
+      (static_cast<ImU32>(aGlyph.custom_color.b * 255) << 16) |
+      (static_cast<ImU32>(aGlyph.custom_color.a * 255) << 24));
+  }
   if (!mColorizerEnabled)
     return mPalette[(int)PaletteIndex::Default];
   if (aGlyph.mComment)

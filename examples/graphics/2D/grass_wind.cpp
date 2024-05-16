@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 struct Assignment {
   std::string type;

@@ -1,5 +1,7 @@
 #include "system.h"
 
+#include <fan/types/print.h>
+
 void fan::sys::set_utf8_cout() {
    #ifdef fan_platform_windows
    SetConsoleOutputCP(CP_UTF8);
@@ -116,6 +118,22 @@ bool fan::sys::initialize_display() {
 }
 
 #endif
+
+fan::vec2i fan::sys::get_screen_resolution() {
+#ifdef fan_platform_windows
+
+
+  return fan::vec2i(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+
+#elif defined(fan_platform_unix) // close
+
+  fan::vec2i resolution(DisplayWidth(fan::sys::m_display, m_screen), DisplayHeight(fan::sys::m_display, m_screen));
+
+  return resolution;
+
+#endif
+}
+
 #if defined(fan_platform_windows)
 
 sint32_t fan::sys::MD_SCR_open(MD_SCR_t* scr) {
@@ -134,12 +152,10 @@ sint32_t fan::sys::MD_SCR_open(MD_SCR_t* scr) {
 
   IDXGIAdapter1* adapter = 0;
 
-  fan::hector_t<IDXGIAdapter1*> adapters;
-  adapters.open();
+  std::vector<IDXGIAdapter1*> adapters;
 
   IDXGIOutput* output = 0;
-  fan::hector_t<IDXGIOutput*> outputs;
-  outputs.open();
+  std::vector<IDXGIOutput*> outputs;
 
   while (factory->EnumAdapters1(adapters.size(), &adapter) != DXGI_ERROR_NOT_FOUND) {
     DXGI_ADAPTER_DESC1 desc;
@@ -157,19 +173,15 @@ sint32_t fan::sys::MD_SCR_open(MD_SCR_t* scr) {
   }
 
   if (!outputs.size()) {
-    adapters.close();
-    outputs.close();
     return 1;
   }
   if (!adapters.size()) {
-    adapters.close();
-    outputs.close();
     return 1;
   }
 
   D3D_FEATURE_LEVEL feature_level;
 
-  auto result = D3D11CreateDevice(*((IDXGIAdapter1**)adapters.ptr),
+  auto result = D3D11CreateDevice(*((IDXGIAdapter1**)adapters.data()),
     D3D_DRIVER_TYPE_UNKNOWN,
     NULL,
     NULL,
@@ -182,41 +194,29 @@ sint32_t fan::sys::MD_SCR_open(MD_SCR_t* scr) {
   );
 
   if (result != S_OK) {
-    adapters.close();
-    outputs.close();
     return 1;
   }
 
-  output = *((IDXGIOutput**)outputs.ptr);
+  output = *((IDXGIOutput**)outputs.data());
 
   if (output->QueryInterface(__uuidof(IDXGIOutput1), (void**)&scr->output1) != S_OK) {
-    adapters.close();
-    outputs.close();
     return 1;
   }
 
   if (scr->output1->DuplicateOutput(scr->device, &scr->duplication) != S_OK) {
-    adapters.close();
-    outputs.close();
     return 1;
   }
 
   if (!scr->duplication) {
-    adapters.close();
-    outputs.close();
     return 1;
   }
 
   DXGI_OUTPUT_DESC output_desc;
   if (output->GetDesc(&output_desc) != S_OK) {
-    adapters.close();
-    outputs.close();
     return 1;
   }
 
   if (!output_desc.DesktopCoordinates.right || !output_desc.DesktopCoordinates.bottom) {
-    adapters.close();
-    outputs.close();
     return 1;
   }
 
@@ -238,31 +238,25 @@ sint32_t fan::sys::MD_SCR_open(MD_SCR_t* scr) {
   result = scr->device->CreateTexture2D(&scr->tex_desc, NULL, &scr->texture);
 
   if (result != S_OK) {
-    adapters.close();
-    outputs.close();
     return 1;
   }
 
   for (uintptr_t i = 0; i < adapters.size(); i++) {
-    IDXGIAdapter1* ca = ((IDXGIAdapter1**)adapters.ptr)[i];
+    IDXGIAdapter1* ca = ((IDXGIAdapter1**)adapters.data())[i];
     if (!ca) {
       continue;
     }
     ca->Release();
     ca = 0;
   }
-
-  adapters.close();
-
   for (uintptr_t i = 0; i < outputs.size(); i++) {
-    IDXGIOutput* co = ((IDXGIOutput**)outputs.ptr)[i];
+    IDXGIOutput* co = ((IDXGIOutput**)outputs.data())[i];
     if (!co) {
       continue;
     }
     co->Release();
     co = 0;
   }
-  outputs.close();
 
   if (scr->output1) {
     scr->output1->Release();

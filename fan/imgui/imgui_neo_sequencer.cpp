@@ -1,9 +1,8 @@
 //
 // Created by Matty on 2022-01-28.
 //
-#define IMGUI_DEFINE_MATH_OPERATORS
 
-#include fan_pch
+#include <fan/pch.h>
 
 #include "imgui_neo_sequencer.h"
 #include "imgui_internal.h"
@@ -1037,7 +1036,7 @@ namespace ImGui
     for (uint32_t i = 0; i < keyframes.size(); i++)
       c_keyframes[i] = &keyframes[i];
 
-    return BeginNeoTimeline(label, c_keyframes.data(), c_keyframes.size(), open, flags);
+    return BeginNeoTimeline(label, c_keyframes.data(), (uint32_t)c_keyframes.size(), open, flags);
   }
 
   #endif

@@ -1502,7 +1502,7 @@ namespace fan {
         fan_3d::model::joint_t* joint = fms.get_joint(joint_id);
 
         for (int i = 0; i < std::size(joint_controls); ++i) {
-          loco_t::shapes_t::rectangle_3d_t::properties_t rp;
+          loco_t::rectangle_3d_t::properties_t rp;
           rp.size = fan::vec3(0.1, 0.5, 0.1);
           rp.color = std::to_array({ fan::colors::red, fan::colors::green, fan::colors::blue })[i];
           rp.position =

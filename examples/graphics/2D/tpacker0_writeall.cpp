@@ -1,4 +1,4 @@
-#include fan_pch
+#include <fan/pch.h>
 
 #include <fan/io/directory.h>
 
@@ -9,9 +9,9 @@ int main() {
   loco_t::texture_packe0 e;
   e.open(open_properties);
   loco_t::texture_packe0::texture_properties_t texture_properties;
-  texture_properties.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
-  texture_properties.min_filter = loco_t::image_t::filter::nearest;
-  texture_properties.mag_filter = loco_t::image_t::filter::nearest;
+  texture_properties.visual_output = loco_t::image_sampler_address_mode::clamp_to_edge;
+  texture_properties.min_filter = loco_t::image_filter::nearest;
+  texture_properties.mag_filter = loco_t::image_filter::nearest;
   texture_properties.group_id = 0;
   static constexpr auto full_path = "ignore/";
 
@@ -41,5 +41,5 @@ int main() {
   // });
   e.process();
   fan::print_no_space("pack size:", e.size());
-  e.save_compiled("tile_map");
+  e.save_compiled("tilemap");
 }

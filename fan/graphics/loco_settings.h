@@ -1,3 +1,5 @@
+#pragma once
+
 #if defined(loco_imgui) && !defined(text_editor_include)
   #include <fan/imgui/text_editor.h>
 #endif
@@ -5,9 +7,10 @@
 
 #define loco_window
 #define loco_context
+//#define loco_framebuffer
 //#define loco_legacy
 
-#define loco_rectangle
+//#define loco_rectangle
 //#define loco_light
 //#define loco_line
 //#define loco_circle
@@ -19,7 +22,7 @@
 //#define loco_sprite_sheet
 //#define loco_responsive_text
 //
-#define loco_post_process
+//#define loco_post_process
 //#define loco_vfi
 
 //#define loco_grass_2d
