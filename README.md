@@ -29,6 +29,8 @@ Requires c++20
 ### Linux
 1. Install required dependencies libx11-dev, libxrandr-dev, libwebp-dev, libxcursor-dev, llvm, clang/gcc, libopus-dev, OpenGL, GLFW
  ```
+   sudo apt install clang -y &&
+   sudo apt install make -y &&
    sudo apt install libwebp-dev -y &&
    sudo apt install llvm -y &&
    sudo apt install clang -y &&
