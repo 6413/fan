@@ -403,8 +403,8 @@ loco_t::loco_t(const properties_t& p) :
   }
   {
     shaper_t::KeyTypeIndex_t ktia[] = {
-      Key_e::blending,
       Key_e::depth,
+      Key_e::blending,
       Key_e::viewport,
       Key_e::camera,
       Key_e::ShapeType
@@ -419,8 +419,8 @@ loco_t::loco_t(const properties_t& p) :
   }
   {
     shaper_t::KeyTypeIndex_t ktia[] = {
-      Key_e::blending,
       Key_e::depth,
+      Key_e::blending,
       Key_e::image,
       Key_e::viewport,
       Key_e::camera,
@@ -863,14 +863,18 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
           context.set_depth_test(false);
           context.opengl.call(get_context().opengl.glEnable, fan::opengl::GL_BLEND);
           context.opengl.call(get_context().opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+         // shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderLow);
         }
         else {
           context.opengl.call(get_context().opengl.glDisable, fan::opengl::GL_BLEND);
           context.set_depth_test(true);
+
+          //shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderHigh);
         }
         break;
       }
       case Key_e::depth: {
+        depth_t Key = *(depth_t*)KeyTraverse.KeyData;
         break;
       }
       case Key_e::image: {
@@ -1673,14 +1677,14 @@ void shaper_t::SetPerBlockData(bm_t::nr_t bm_id, ShapeTypeAmount_t ShapeType, Bl
 
 
   block.m_vbo.bind(gloco->get_context());
-  if (block.render_data_size < block.BlockList.NodeList.Possible * block.RenderDataSize * block.MaxElementPerBlock()) {
-    block.render_data_size = block.BlockList.NodeList.Possible * block.RenderDataSize * block.MaxElementPerBlock();
+  if (block.vram_reserved < block.BlockList.NodeList.Possible * block.RenderDataSize * block.MaxElementPerBlock()) {
+    block.vram_reserved = block.BlockList.NodeList.Possible * block.RenderDataSize * block.MaxElementPerBlock();
     // TODO dont malloc everytime
     fan::opengl::core::write_glbuffer(
       gloco->get_context(),
       block.m_vbo.m_buffer,
       0,
-      block.render_data_size, // ?
+      block.vram_reserved, // ?
       fan::opengl::GL_DYNAMIC_DRAW,
       fan::opengl::GL_ARRAY_BUFFER
     );
@@ -1848,7 +1852,7 @@ void shaper_t::AddShapeType(
   st.m_vbo.bind(context);
   st.shader = bp.shader;
   st.locations = bp.locations;
-  st.render_data_size = 0;
+  st.vram_reserved = 0;
   uint64_t ptr_offset = 0;
   for (const auto& location : st.locations) {
     context.opengl.glEnableVertexAttribArray(location.index);

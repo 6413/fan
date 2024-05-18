@@ -802,7 +802,7 @@ struct loco_t : fan::opengl::context_t {
 
             uint8_t image_count_old = fan::pixel_format::get_texture_amount(ri.format);
             uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
-            if (image_count_old < image_count_old) {
+            if (image_count_new < image_count_old) {
               for (uint32_t i = image_count_new; i < image_count_old; ++i) {
                 if (i == 0) {
                   gloco->image_erase(_KeyPack.image);
