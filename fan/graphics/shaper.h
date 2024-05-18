@@ -256,7 +256,7 @@ public:
 
     fan::opengl::core::vao_t m_vao;
     fan::opengl::core::vbo_t m_vbo;
-    uint64_t render_data_size;
+    uint64_t vram_reserved;
 
     struct init_t {
       uint32_t index;
@@ -510,6 +510,10 @@ public: /* ---------------------------------------------------------------------
     }
 
     KeyTypes[KeyTypeIndex].Size = Size;
+    KeyTypes[KeyTypeIndex].BitOrder = BitOrder;
+  }
+
+  void SetKeyOrder(KeyTypeIndex_t KeyTypeIndex, KeyBitOrder_t BitOrder) {
     KeyTypes[KeyTypeIndex].BitOrder = BitOrder;
   }
 
