@@ -398,11 +398,11 @@ struct texture_packe0 {
       fan::throw_error(fan::string("failed to open file:") + filename);
     }
 
-    std::size_t pack_amount = pack_list.size();
+    uint32_t pack_amount = (uint32_t)pack_list.size();
     fan::io::file::write(f, &pack_amount, sizeof(pack_amount), 1);
 
     for (std::size_t i = 0; i < pack_amount; i++) {
-      std::size_t count = pack_list[i].texture_list.size();
+      uint32_t count = (uint32_t)pack_list[i].texture_list.size();
       fan::io::file::write(f, &count, sizeof(count), 1);
 
       for (std::size_t j = 0; j < count; j++) {
@@ -414,7 +414,7 @@ struct texture_packe0 {
       }
 
       uint8_t* ptr;
-      std::size_t ptr_size = fan::webp::encode_lossless_rgba(pack_list[i].pixel_data.data(), pack_list[i].pack_size, &ptr);
+      uint32_t ptr_size = (uint32_t)fan::webp::encode_lossless_rgba(pack_list[i].pixel_data.data(), pack_list[i].pack_size, &ptr);
       fan::io::file::write(f, &ptr_size, sizeof(ptr_size), 1);
       fan::io::file::write(f, ptr, ptr_size, 1);
       fan::webp::free_image(ptr);

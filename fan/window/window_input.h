@@ -2,21 +2,31 @@
 
 #include <unordered_map>
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
 
 #ifdef fan_platform_windows
 
-	#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 
-	#include <Windows.h>
+#include <Windows.h>
 
-	#pragma comment(lib, "user32.lib")
-
-	#undef min
-	#undef max
+#pragma comment(lib, "user32.lib")
 
 #endif
+
+#if defined(fan_platform_windows)
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
+#define GLFW_NATIVE_INCLUDE_NONE
+#endif
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
+
+#include <GLFW/glfw3native.h>
+
+
+
 
 namespace fan {
 

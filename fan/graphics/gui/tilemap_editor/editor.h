@@ -1382,8 +1382,11 @@ shape data{
       }
 
       layer->shape = shape;
+
       switch (layer->tile.mesh_property) {
         case fte_t::mesh_property_t::none: {
+          layer->shape.set_camera(camera->camera);
+          layer->shape.set_viewport(camera->viewport);
           layer->shape.set_tp(&ti);
           break;
         }
@@ -1402,13 +1405,13 @@ shape data{
         case fte_t::mesh_property_t::light: {
           layer->shape = fan::graphics::light_t{{
             .camera = camera,
-            .position = layer->tile.position,
+            .position = shape.get_position(),
             .size = layer->tile.size,
             .color = layer->tile.color
           }};
           visual_shapes[layer->tile.position].shape = fan::graphics::sprite_t{{
             .camera = camera,
-            .position = fan::vec3(fan::vec2(layer->tile.position), layer->tile.position.z + 1),
+            .position = fan::vec3(fan::vec2(shape.get_position()), shape.get_position().z + 1),
             .size = tile_size,
             .image = grid_visualize.light_color,
             .blending = true

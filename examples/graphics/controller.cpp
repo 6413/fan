@@ -47,15 +47,9 @@ bool LoadTextureFromFile(const char* filename, fan::opengl::GLuint* out_texture,
 
 int main() {
   loco_t loco;
-  
-  ImGui::CreateContext();
-  ImGui_ImplGlfw_InitForOpenGL(loco.window.glfw_window, true);
-  const char* glsl_version = "#version 150";
-  ImGui_ImplOpenGL3_Init(glsl_version);
-
   glfwSetJoystickCallback(joystick_callback);
 
-  input_action.add({ fan::key_space, fan::key_w, fan::gamepad_a }, "jump");
+  loco.input_action.add({ fan::key_space, fan::key_w, fan::gamepad_a }, "jump");
 
   loco.get_context().set_vsync(loco.window, false);
   std::string str = fan::random::string(32);
@@ -99,11 +93,8 @@ int main() {
   style.Colors[ImGuiCol_WindowBg] = fan::colors::white;
 
   loco.loop([&] {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
 
-    if (input_action.is_active("jump") == input_action_t::press) {
+    if (loco.input_action.is_active("jump") == loco.input_action_t::press) {
       fan::print("jump");
     }
 
@@ -252,11 +243,5 @@ int main() {
       ImGui::Image((void*)texture6, fan::vec2(64, 64), fan::vec2(0), fan::vec2(1), c);
     }
     ImGui::End();
-
-    ImGui::Render();
-    //get_context().opengl.glViewport(0, 0, window.get_size().x, window.get_size().y);
-    //get_context().opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-    //get_context().opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   });
 }

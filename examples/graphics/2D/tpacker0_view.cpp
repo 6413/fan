@@ -9,7 +9,7 @@ int main() {
   );
 
   loco_t::texturepack_t texturepack;
-  texturepack.open_compiled("texture_packs/TexturePack");
+  texturepack.open_compiled("controller");
 
   loco_t::sprite_t::properties_t p;
 
@@ -18,7 +18,7 @@ int main() {
     return 1;
   }
   p.load_tp(&ti);*/
-  p.image = texturepack.pixel_data_list[3].image;
+  p.image = texturepack.pixel_data_list[0].image;
 
   p.position = 0;
   p.size = 1;

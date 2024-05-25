@@ -177,6 +177,7 @@ struct loco_t : fan::opengl::context_t {
   using set_image_cb = void (*)(shape_t*, loco_t::image_t);
 
   using get_parallax_factor_cb = f32_t (*)(shape_t*);
+  using set_parallax_factor_cb = void (*)(shape_t*, f32_t);
   using get_rotation_vector_cb = fan::vec3 (*)(shape_t*);
   using get_flags_cb = uint32_t (*)(shape_t*);
   //
@@ -229,6 +230,7 @@ struct loco_t : fan::opengl::context_t {
     set_image_cb set_image;
 
     get_parallax_factor_cb get_parallax_factor;
+    set_parallax_factor_cb set_parallax_factor;
     get_rotation_vector_cb get_rotation_vector;
     get_flags_cb get_flags;
 
@@ -289,7 +291,58 @@ struct loco_t : fan::opengl::context_t {
       },
       .set_position3 = [](shape_t* shape, const fan::vec3& position) {
         if constexpr (fan_has_variable(T, position)) {
-          modify_render_data_element(shape, &T::position, position);
+          auto sp = gloco->shaper.ShapeList[*shape];
+
+            auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
+            auto& kps = gloco->shaper.KeyPacks[kpi];
+
+            void* _KeyPack = &((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
+
+            // alloc can be avoided inside switch
+            uint8_t* KeyPack = new uint8_t[kps.KeySizesSum];
+            std::memcpy(KeyPack, _KeyPack, kps.KeySizesSum);
+            
+            switch(kpi) {
+              case loco_t::kp::light: {
+              // doesnt have depth
+                break;
+              }
+              case loco_t::kp::common: {
+                ((kps_t::common_t*)KeyPack)->depth = position.z;
+                break;
+              }
+              case loco_t::kp::texture: {
+                ((kps_t::texture_t*)KeyPack)->depth = position.z;
+                break;
+              }
+              default: {
+                fan::throw_error("unimplemented kp");
+              }
+            }
+            auto _vi = gloco->shaper.GetRenderData(*shape);
+            auto vlen = gloco->shaper.ShapeTypes[sp.sti].RenderDataSize;
+            uint8_t* vi = new uint8_t[vlen];
+            std::memcpy(vi, _vi, vlen);
+            ((T*)vi)->position = position;
+
+            auto _ri = gloco->shaper.GetData(*shape);
+            auto rlen = gloco->shaper.ShapeTypes[sp.sti].DataSize;
+            uint8_t* ri = new uint8_t[rlen];
+            std::memcpy(ri, _ri, rlen);
+
+            shape->remove();
+            *shape = gloco->shaper.add(
+              sp.sti,
+              KeyPack,
+              vi,
+              ri
+            );
+#if defined(debug_shape_t)
+            fan::print("+", shape->NRI);
+#endif
+            delete[] KeyPack;
+            delete[] vi;
+            delete[] ri;
         }
         else {
           fan::throw_error("unimplemented set - for line use set_src()");
@@ -404,71 +457,57 @@ struct loco_t : fan::opengl::context_t {
           }
         },
         .load_tp = [](shape_t* shape, loco_t::texturepack_t::ti_t* ti) -> bool {
-          auto& im = *ti->image;
-          auto& img = gloco->image_get_data(im);
-          auto sp = gloco->shaper.ShapeList[*shape];
+          if constexpr(std::is_same_v<T, loco_t::sprite_t::vi_t> ||
+          std::is_same_v<T, loco_t::unlit_sprite_t::vi_t>) {
+            auto sp = gloco->shaper.ShapeList[*shape];
 
-          auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
-          auto& kps = gloco->shaper.KeyPacks[kpi];
-          auto len = gloco->shaper.ShapeTypes[sp.sti].RenderDataSize;
-          uint8_t* data = new uint8_t[len];
-          loco_t::kps_t::texture_t _KeyPack = *(loco_t::kps_t::texture_t*)&((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
-          std::memcpy(data, gloco->shaper.GetRenderData(*shape), len);
-          shape->remove();
-          //need switch sti propeties
+            auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
+            auto& kps = gloco->shaper.KeyPacks[kpi];
 
-          if (sp.sti == loco_t::shape_type_t::sprite) {
-            loco_t::sprite_t::properties_t p;
-            /*
-      blending_t blending;
-      depth_t depth;
-      loco_t::image_t image;
-      loco_t::viewport_t viewport;
-      loco_t::camera_t camera;
-      shaper_t::ShapeTypeIndex_t ShapeType;
-            */
-            p.blending = _KeyPack.blending;
-            p.position.z = _KeyPack.depth;
-            p.image = im;
-            p.viewport = _KeyPack.viewport;
-            p.camera = _KeyPack.camera;
-            *shape = gloco->sprite.push_back(p);
-            auto& sp2 = gloco->shaper.ShapeList[*shape];
-            ((sprite_t::vi_t*)data)->tc_position = ti->position / img.size;
-            ((sprite_t::vi_t*)data)->tc_size = ti->size / img.size;
-            std::memcpy(gloco->shaper.GetRenderData(*shape), data, len);
-            gloco->shaper.ElementFullyEdited(sp2.bmid, sp2.blid, sp2.ElementIndex, sp2.sti);
-            delete[] data;
-          }
-          else if (sp.sti == loco_t::shape_type_t::unlit_sprite) {
-            loco_t::unlit_sprite_t::properties_t p;
-            p.blending = _KeyPack.blending;
-            p.position.z = _KeyPack.depth;
-            p.image = im;
-            p.viewport = _KeyPack.viewport;
-            p.camera = _KeyPack.camera;
-            p.image = im;
-            *shape = gloco->unlit_sprite.push_back(p);
-            auto& sp2 = gloco->shaper.ShapeList[*shape];
-            ((unlit_sprite_t::vi_t*)data)->tc_position = ti->position / img.size;
-            ((unlit_sprite_t::vi_t*)data)->tc_size = ti->size / img.size;
-            std::memcpy(gloco->shaper.GetRenderData(*shape), data, len);
-            gloco->shaper.ElementFullyEdited(sp2.bmid, sp2.blid, sp2.ElementIndex, sp2.sti);
-            delete[] data;
-          }
-          else {
-            fan::throw_error("weird load_tp");
-          }
+            void* _KeyPack = &((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
 
+            // alloc can be avoided inside switch
+            uint8_t* KeyPack = new uint8_t[kps.KeySizesSum];
+            std::memcpy(KeyPack, _KeyPack, kps.KeySizesSum);
 
-          //gloco->shape_functions[shape->]
-          fan::print("unimplemented load_tp (sprite)");
-          //gloco->shaper.GetRenderData()
+            switch(kpi) {
+              case loco_t::kp::texture: {
+                ((kps_t::texture_t*)KeyPack)->image = *ti->image;
+                break;
+              }
+              default: {
+                fan::throw_error("unimplemented kp");
+              }
+            }
+            auto& im = *ti->image;
+            auto& img = gloco->image_get_data(im);
 
-          //image = &im;
-          
-          //set_tc_position_cb(shape, ti->position / im.size);
-          //set_tc_size_cb(shape, ti->size / im.size);
+            auto _vi = gloco->shaper.GetRenderData(*shape);
+            auto vlen = gloco->shaper.ShapeTypes[sp.sti].RenderDataSize;
+            uint8_t* vi = new uint8_t[vlen];
+            std::memcpy(vi, _vi, vlen);
+            ((T*)vi)->tc_position = ti->position / img.size;
+            ((T*)vi)->tc_size = ti->size / img.size;
+
+            auto _ri = gloco->shaper.GetData(*shape);
+            auto rlen = gloco->shaper.ShapeTypes[sp.sti].DataSize;
+            uint8_t* ri = new uint8_t[rlen];
+            std::memcpy(ri, _ri, rlen);
+
+            shape->remove();
+            *shape = gloco->shaper.add(
+              sp.sti,
+              KeyPack,
+              vi,
+              ri
+            );
+#if defined(debug_shape_t)
+            fan::print("+", shape->NRI);
+#endif
+            delete[] KeyPack;
+            delete[] vi;
+            delete[] ri;
+            }
           return 0;
         },
         .get_grid_size = [](shape_t* shape) {
@@ -698,6 +737,14 @@ struct loco_t : fan::opengl::context_t {
             return 0.0f;
           }
         },
+        .set_parallax_factor = [](shape_t* shape, f32_t parallax_factor) {
+          if constexpr (fan_has_variable(T, parallax_factor)) {
+            modify_render_data_element(shape, &T::parallax_factor, parallax_factor);
+          }
+          else {
+            fan::throw_error("unimplemented set");
+          }
+        },
         .get_rotation_vector = [](shape_t* shape) {
           if constexpr (fan_has_variable(T, rotation_vector)) {
             return get_render_data(shape, &T::rotation_vector);
@@ -859,8 +906,8 @@ struct loco_t : fan::opengl::context_t {
       shaper_t::ShapeTypeIndex_t ShapeType;
     };
     struct common_t {
-      blending_t blending;
       depth_t depth;
+      blending_t blending;
       loco_t::viewport_t viewport;
       loco_t::camera_t camera;
       shaper_t::ShapeTypeIndex_t ShapeType;
@@ -869,8 +916,8 @@ struct loco_t : fan::opengl::context_t {
       uint8_t filler = 0;
     };
     struct texture_t {
-      blending_t blending;
       depth_t depth;
+      blending_t blending;
       loco_t::image_t image;
       loco_t::viewport_t viewport;
       loco_t::camera_t camera;
@@ -1407,6 +1454,7 @@ public:
     void set_image(loco_t::image_t image);
 
     f32_t get_parallax_factor();
+    void set_parallax_factor(f32_t parallax_factor);
 
     fan::vec3 get_rotation_vector();
 
@@ -2231,6 +2279,7 @@ namespace fan {
       fan::color color = fan::color(1, 1, 1, 1);
       fan::vec2 rotation_point = 0;
       loco_t::image_t image = gloco->default_texture;
+      f32_t parallax_factor = 0;
       bool blending = false;
     };
 
@@ -2242,6 +2291,7 @@ namespace fan {
             typename loco_t::sprite_t::properties_t,
             .camera = p.camera->camera,
             .viewport = p.camera->viewport,
+            .parallax_factor = p.parallax_factor,
             .position = p.position,
             .size = p.size,
             .angle = p.angle,
