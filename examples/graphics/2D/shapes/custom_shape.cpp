@@ -1,13 +1,13 @@
 #include <fan/pch.h>
 
-enum custom_shapes {
+enum class custom_shapes {
   hexagon = loco_t::shape_type_t::last,
   triangle
 };
 
 struct hexagon_t {
 
-  static constexpr uint16_t shape_type = custom_shapes::hexagon;
+  static constexpr uint16_t shape_type = (uint16_t)custom_shapes::hexagon;
   static constexpr int kpi = loco_t::kp::common;
 
 #pragma pack(push, 1)
@@ -43,7 +43,7 @@ struct hexagon_t {
 
   loco_t::shape_t push_back(const properties_t& properties) {
     KeyPack_t KeyPack;
-    KeyPack.ShapeType = custom_shapes::hexagon;
+    KeyPack.ShapeType = shape_type;
     KeyPack.depth = properties.position.z;
     KeyPack.blending = properties.blending;
     KeyPack.camera = properties.camera;
@@ -56,7 +56,7 @@ struct hexagon_t {
     return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
   }
 
-}custom;
+}hexagon;
 
 
 struct custom_t : loco_t::shape_t {
@@ -64,7 +64,7 @@ struct custom_t : loco_t::shape_t {
   template <typename T>
   custom_t(const T& properties) {
     if constexpr (std::is_same_v<T, hexagon_t::properties_t>) {
-      *this = custom.push_back(properties);
+      *dynamic_cast<loco_t::shape_t*>(this) = hexagon.push_back(properties);
     }
   }
 
@@ -74,6 +74,7 @@ int main() {
   loco_t loco;
 
   gloco->shape_open<hexagon_t>(
+    &hexagon,
     "shaders/hexagon.vs",
     "shaders/hexagon.fs"
   );

@@ -25,10 +25,15 @@ namespace fan {
       fan::opengl::opengl_t opengl;
       fan::opengl::GLuint current_program = -1;
 
+      int major, minor;
+
       void open(fan::window_t* window, const properties_t& p = properties_t()) {
         // TODO bad reloads opengl functions twice
         opengl = fan::opengl::opengl_t(true);
         glfwMakeContextCurrent(window->glfw_window);
+
+        opengl.glGetIntegerv(fan::opengl::GL_MAJOR_VERSION, &major);
+        opengl.glGetIntegerv(fan::opengl::GL_MINOR_VERSION, &minor);
       }
 
       void render(fan::window_t& window) {

@@ -434,45 +434,55 @@ loco_t::loco_t(const properties_t& p) :
   
   gloco->shape_functions.resize(gloco->shape_functions.size() + 1); // button
   shape_open<loco_t::sprite_t>(
+    &sprite,
     "shaders/opengl/2D/objects/sprite.vs",
     "shaders/opengl/2D/objects/sprite.fs"
   );
   gloco->shape_functions.resize(gloco->shape_functions.size() + 1); // text
   gloco->shape_functions.resize(gloco->shape_functions.size() + 1); // hitbox
   shape_open<loco_t::line_t>(
+    &line,
     "shaders/opengl/2D/objects/line.vs",
     "shaders/opengl/2D/objects/line.fs"
   );
   shape_open<loco_t::rectangle_t>(
+    &rectangle,
     "shaders/opengl/2D/objects/rectangle.vs",
     "shaders/opengl/2D/objects/rectangle.fs"
   );
   shape_open<loco_t::light_t>(
+    &light,
     "shaders/opengl/2D/objects/light.vs",
     "shaders/opengl/2D/objects/light.fs"
   );
   shape_open<loco_t::unlit_sprite_t>(
+    &unlit_sprite,
     "shaders/opengl/2D/objects/sprite.vs",
     "shaders/opengl/2D/objects/unlit_sprite.fs"
   );
   shape_open<loco_t::letter_t>(
+    &letter,
     "shaders/opengl/2D/objects/letter.vs",
     "shaders/opengl/2D/objects/letter.fs"
   );
   shape_open<loco_t::circle_t>(
+    &circle,
     "shaders/opengl/2D/objects/circle.vs",
     "shaders/opengl/2D/objects/circle.fs"
   );
   shape_open<loco_t::grid_t>(
+    &grid,
     "shaders/opengl/2D/objects/grid.vs",
     "shaders/opengl/2D/objects/grid.fs"
   );
   vfi.open();
   shape_open<loco_t::particles_t>(
+    &particles,
     "shaders/opengl/2D/effects/particles.vs",
     "shaders/opengl/2D/effects/particles.fs"
   );
   shape_open<loco_t::universal_image_renderer_t>(
+    &universal_image_renderer,
     "shaders/opengl/2D/objects/pixel_format_renderer.vs",
     "shaders/opengl/2D/objects/yuv420p.fs"
   );
@@ -758,32 +768,47 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
 
           block.m_vbo.bind(context);
 
-          uintptr_t offset = (uintptr_t)nri * block.MaxElementPerBlock() * block.RenderDataSize;
-          for (const auto& location : block.locations) {
-            context.opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
-            switch (location.type) {
-            case fan::opengl::GL_FLOAT: {
-              offset += location.size * sizeof(fan::opengl::GLfloat);
-              break;
-            }
-            case fan::opengl::GL_UNSIGNED_INT: {
-              offset += location.size * sizeof(fan::opengl::GLuint);
-              break;
-            }
-            default: {
-              fan::throw_error_impl();
-            }
+          if (context.major < 4 || (context.major == 4 && context.minor < 2)) {
+            uintptr_t offset = (uintptr_t)nri * block.MaxElementPerBlock() * block.RenderDataSize;
+            for (const auto& location : block.locations) {
+              context.opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
+              switch (location.type) {
+              case fan::opengl::GL_FLOAT: {
+                offset += location.size * sizeof(fan::opengl::GLfloat);
+                break;
+              }
+              case fan::opengl::GL_UNSIGNED_INT: {
+                offset += location.size * sizeof(fan::opengl::GLuint);
+                break;
+              }
+              default: {
+                fan::throw_error_impl();
+              }
+              }
             }
           }
 
           switch (shape_type) {
           case shape_type_t::line: {
-            context.opengl.glDrawArraysInstanced(
-              fan::opengl::GL_LINES,
-              0,
-              6,
-              BlockTraverse.GetAmount(shaper)
-            );
+            if (context.major >= 4 && context.minor >= 2) {
+              context.opengl.glDrawArraysInstancedBaseInstance(
+                fan::opengl::GL_TRIANGLES,
+                0,
+                6,
+                BlockTraverse.GetAmount(shaper),
+                nri* block.MaxElementPerBlock()
+              );
+            }
+            else {
+              context.opengl.glDrawArraysInstanced(
+                fan::opengl::GL_LINES,
+                0,
+                6,
+                BlockTraverse.GetAmount(shaper)
+              );
+            }
+
+
             break;
           }
           case shape_type_t::particles: {
@@ -831,20 +856,23 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
             
           }// fallthrough
           default: {
-            // if gl_major ..
-            /*context.opengl.glDrawArraysInstancedBaseInstance(
-              fan::opengl::GL_TRIANGLES,
-              0,
-              6,
-              BlockTraverse.GetAmount(shaper),
-              nri * block.MaxElementPerBlock()
-            );*/
-            context.opengl.glDrawArraysInstanced(
-              fan::opengl::GL_TRIANGLES,
-              0,
-              6,
-              BlockTraverse.GetAmount(shaper)
-            );
+            if (context.major >= 4) {
+              context.opengl.glDrawArraysInstancedBaseInstance(
+                fan::opengl::GL_TRIANGLES,
+                0,
+                6,
+                BlockTraverse.GetAmount(shaper),
+                nri * block.MaxElementPerBlock()
+              );
+            }
+            else {
+              context.opengl.glDrawArraysInstanced(
+                fan::opengl::GL_TRIANGLES,
+                0,
+                6,
+                BlockTraverse.GetAmount(shaper)
+              );
+            }
             break;
           }
           }
