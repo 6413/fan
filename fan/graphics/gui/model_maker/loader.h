@@ -99,11 +99,11 @@ struct model_list_t {
       }
 
       if (s.group_id == 0) {// set root pos
-        root_pos = shape.get_position();
-        shape.set_position(fan::vec2(0));
+        root_pos = s.get_position();
+        s.set_position(fan::vec3(fan::vec2(0), mp.position.z));
       }
       else {
-        shape.set_position(fan::vec2(fan::vec2(shape.get_position()) - root_pos));
+        s.set_position(fan::vec3(fan::vec2(fan::vec2(s.get_position()) - root_pos), mp.position.z));
       }
       push_shape(nr, s.group_id, std::move(s));
     }
@@ -144,7 +144,7 @@ struct model_list_t {
   }
   void iterate_marks(model_id_t model_id, uint32_t group_id, auto lambda) {
     for (auto& i : model_list[model_id].groups[group_id]) {
-      if (i.get_shape_type() == loco_t::shape_type_t::rectangle) {
+      if (i.shape.get_shape_type() == loco_t::shape_type_t::rectangle) {
         lambda(i);
       }
     }

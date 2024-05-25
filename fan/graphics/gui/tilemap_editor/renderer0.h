@@ -77,7 +77,8 @@ struct fte_renderer_t : fte_loader_t {
             .position = position + fan::vec3(fan::vec2(j.position) * size, j.position.z),
             .size = j.size * size,
             .angle = j.angle,
-            .color = j.color
+            .color = j.color,
+            .parallax_factor = 0,
         } };
         loco_t::texturepack_t::ti_t ti;
         if (texturepack->qti(j.image_hash, &ti)) {
@@ -119,6 +120,17 @@ struct fte_renderer_t : fte_loader_t {
         fan::throw_error("unimplemented switch");
       }
     }
+    std::visit([&]<typename T>(T & v) {
+      if constexpr (!std::is_same_v<fan::graphics::collider_sensor_t, T> &&
+        !std::is_same_v<fan::graphics::collider_hidden_t, T>) {
+       // fan::print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", v.get_parallax_factor());
+        //v.set_camera(camera->camera);
+      }
+      //if constexpr (fan_has_function(T, set_camera (v))) {
+
+      //}
+    }, node.tiles[fan::vec3i(x, y, depth)]);
+
     auto found = id_callbacks.find(j.id);
     if (found != id_callbacks.end()) {
       found->second(node.tiles[fan::vec3i(x, y, depth)], j);

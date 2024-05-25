@@ -124,7 +124,7 @@ int main() {
   p.texturepack_name = texture_pack_name;
   p.camera = &camera0;
   fte.open(p);
-  fte.fin("map.json");
+  fte.fin("map_game0_1.json");
 
 std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;

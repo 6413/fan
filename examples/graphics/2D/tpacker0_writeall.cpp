@@ -13,7 +13,7 @@ int main() {
   texture_properties.min_filter = loco_t::image_filter::nearest;
   texture_properties.mag_filter = loco_t::image_filter::nearest;
   texture_properties.group_id = 0;
-  static constexpr auto full_path = "ignore/";
+  static constexpr auto full_path = "controller_images/";
 
   fan::io::iterate_directory_by_image_size(full_path, [&](fan::string path) {
     //if (std::size_t found = path.find("block") == fan::string::npos) {
@@ -41,5 +41,5 @@ int main() {
   // });
   e.process();
   fan::print_no_space("pack size:", e.size());
-  e.save_compiled("tilemap");
+  e.save_compiled("controller");
 }

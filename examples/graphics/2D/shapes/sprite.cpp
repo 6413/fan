@@ -6,7 +6,7 @@ int main() {
   loco_t::image_t image;
   image = loco.image_load("images/Screenshot 2024-05-08 132225.png");
   std::vector<loco_t::shape_t> sprites;
-  for (int i = 0; i < 254; ++i) {
+  for (int i = 0; i < 20; ++i) {
     sprites.push_back(fan::graphics::sprite_t{ {
     .position = fan::vec3(fan::random::vec2(0, 1600), 5000),
     .size = 50,
@@ -57,7 +57,7 @@ int main() {
 
     l0.set_position(loco.get_mouse_position());
 
-    for (int i = 0; i < 254; ++i) {
+    for (uint64_t i = 0; i < sprites.size() - (uint64_t)1; ++i) {
       sprites[i].set_angle(fan::vec3(0, 0, angle));
     }
    // sprite.set_position(loco.get_mouse_position());

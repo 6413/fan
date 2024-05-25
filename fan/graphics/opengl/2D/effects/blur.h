@@ -149,7 +149,7 @@ struct blur_t {
   void draw_upsamples(f32_t filter_radius) {
     auto& context = gloco->get_context();
 
-    context.shader_set_value(shader_downsample, "filter_radius", filter_radius);
+    context.shader_set_value(shader_upsample, "filter_radius", filter_radius);
 
     context.opengl.call(context.opengl.glEnable, fan::opengl::GL_BLEND);
     context.opengl.call(context.opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);

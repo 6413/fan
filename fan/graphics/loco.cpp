@@ -3,6 +3,7 @@
 #define loco_framebuffer
 #define loco_post_process
 
+//#define depth_debug
 
 global_loco_t::operator loco_t* () {
   return loco;
@@ -188,7 +189,7 @@ void init_imgui(loco_t* loco) {
   ImGui::CreateContext();
   ImGuiIO& io = ImGui::GetIO(); (void)io;
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+  //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   ///    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
@@ -383,8 +384,8 @@ loco_t::loco_t(const properties_t& p) :
   shaper.Open();
 
   {
-    gloco->shaper.AddKey(Key_e::blending, sizeof(loco_t::blending_t), shaper_t::KeyBitOrderLow);
     gloco->shaper.AddKey(Key_e::depth, sizeof(loco_t::depth_t), shaper_t::KeyBitOrderLow);
+    gloco->shaper.AddKey(Key_e::blending, sizeof(loco_t::blending_t), shaper_t::KeyBitOrderLow);
     gloco->shaper.AddKey(Key_e::image, sizeof(loco_t::image_t), shaper_t::KeyBitOrderLow);
     gloco->shaper.AddKey(Key_e::viewport, sizeof(loco_t::viewport_t), shaper_t::KeyBitOrderAny);
     gloco->shaper.AddKey(Key_e::camera, sizeof(loco_t::camera_t), shaper_t::KeyBitOrderAny);
@@ -613,6 +614,9 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
   shaper_t::KeyPackTraverse_t KeyPackTraverse;
   KeyPackTraverse.Init(shaper);
   while (KeyPackTraverse.Loop(shaper)) {
+#if defined(depth_debug)
+    bool depth_Key = false;
+#endif
 
     shaper_t::KeyTraverse_t KeyTraverse;
     KeyTraverse.Init(shaper, KeyPackTraverse.kpi);
@@ -673,7 +677,12 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
           }
           context.shader_set_value(block.shader, "_t00", 0);
           context.shader_set_value(block.shader, "_t01", 1);
-
+#if defined(depth_debug)
+          if (depth_Key) {
+            auto& ri = *(fan::vec3*)BlockTraverse.GetRenderData(shaper);
+            fan::print("d", ri.z);
+          }
+#endif
 #if fan_debug >= fan_debug_high
           switch (shape_type) {
           case shape_type_t::light: {
@@ -778,33 +787,37 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
             break;
           }
           case shape_type_t::particles: {
-            auto& ri = *(particles_t::ri_t*)BlockTraverse.GetData(shaper);
+            particles_t::ri_t* pri = (particles_t::ri_t*)BlockTraverse.GetData(shaper);
 
-            context.shader_set_value(block.shader, "time", (f64_t)(fan::time::clock::now() - ri.begin_time) / 1e+9);
-            context.shader_set_value(block.shader, "vertex_count", 6);
-            context.shader_set_value(block.shader, "count", ri.count);
-            context.shader_set_value(block.shader, "alive_time", (f32_t)ri.alive_time / 1e+9);
-            context.shader_set_value(block.shader, "respawn_time", (f32_t)ri.respawn_time / 1e+9);
-            context.shader_set_value(block.shader, "position", *(fan::vec2*)&ri.position);
-            context.shader_set_value(block.shader, "size", ri.size);
-            context.shader_set_value(block.shader, "position_velocity", ri.position_velocity);
-            context.shader_set_value(block.shader, "angle_velocity", ri.angle_velocity);
-            context.shader_set_value(block.shader, "begin_angle", ri.begin_angle);
-            context.shader_set_value(block.shader, "end_angle", ri.end_angle);
-            context.shader_set_value(block.shader, "angle", ri.angle);
-            context.shader_set_value(block.shader, "color", ri.color);
-            context.shader_set_value(block.shader, "gap_size", ri.gap_size);
-            context.shader_set_value(block.shader, "max_spread_size", ri.max_spread_size);
-            context.shader_set_value(block.shader, "size_velocity", ri.size_velocity);
+            for (int i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
+              auto& ri = pri[i];
+              context.shader_set_value(block.shader, "time", (f64_t)(fan::time::clock::now() - ri.begin_time) / 1e+9);
+              context.shader_set_value(block.shader, "vertex_count", 6);
+              context.shader_set_value(block.shader, "count", ri.count);
+              context.shader_set_value(block.shader, "alive_time", (f32_t)ri.alive_time / 1e+9);
+              context.shader_set_value(block.shader, "respawn_time", (f32_t)ri.respawn_time / 1e+9);
+              context.shader_set_value(block.shader, "position", *(fan::vec2*)&ri.position);
+              context.shader_set_value(block.shader, "size", ri.size);
+              context.shader_set_value(block.shader, "position_velocity", ri.position_velocity);
+              context.shader_set_value(block.shader, "angle_velocity", ri.angle_velocity);
+              context.shader_set_value(block.shader, "begin_angle", ri.begin_angle);
+              context.shader_set_value(block.shader, "end_angle", ri.end_angle);
+              context.shader_set_value(block.shader, "angle", ri.angle);
+              context.shader_set_value(block.shader, "color", ri.color);
+              context.shader_set_value(block.shader, "gap_size", ri.gap_size);
+              context.shader_set_value(block.shader, "max_spread_size", ri.max_spread_size);
+              context.shader_set_value(block.shader, "size_velocity", ri.size_velocity);
 
-            context.shader_set_value(block.shader, "shape", ri.shape);
+              context.shader_set_value(block.shader, "shape", ri.shape);
 
-            // TODO how to get begin?
-            context.opengl.glDrawArrays(
-              fan::opengl::GL_TRIANGLES,
-              0,
-              ri.count
-            );
+              // TODO how to get begin?
+              context.opengl.glDrawArrays(
+                fan::opengl::GL_TRIANGLES,
+                0,
+                ri.count
+              );
+            }
+
             break;
           }
           case shape_type_t::letter: {// fallthrough
@@ -874,7 +887,11 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
         break;
       }
       case Key_e::depth: {
+#if defined(depth_debug)
         depth_t Key = *(depth_t*)KeyTraverse.KeyData;
+        depth_Key = true;
+        fan::print(Key);
+#endif
         break;
       }
       case Key_e::image: {
@@ -1405,6 +1422,10 @@ void loco_t::shape_t::set_image(loco_t::image_t image) {
 
 f32_t loco_t::shape_t::get_parallax_factor() {
   return gloco->shape_functions[gloco->shaper.ShapeList[*this].sti].get_parallax_factor(this);
+}
+
+void loco_t::shape_t::set_parallax_factor(f32_t parallax_factor) {
+  gloco->shape_functions[gloco->shaper.ShapeList[*this].sti].set_parallax_factor(this, parallax_factor);
 }
 
 fan::vec3 loco_t::shape_t::get_rotation_vector() {
@@ -2079,6 +2100,7 @@ bool fan::graphics::json_to_shape(const nlohmann::json& in, loco_t::shape_t* sha
   }
   case fan::get_hash("sprite"): {
     loco_t::sprite_t::properties_t p;
+    p.blending = true;
     p.position = in["position"];
     p.parallax_factor = in["parallax_factor"];
     p.size = in["size"];
@@ -2093,6 +2115,7 @@ bool fan::graphics::json_to_shape(const nlohmann::json& in, loco_t::shape_t* sha
   }
   case fan::get_hash("unlit_sprite"): {
     loco_t::unlit_sprite_t::properties_t p;
+    p.blending = true;
     p.position = in["position"];
     p.parallax_factor = in["parallax_factor"];
     p.size = in["size"];

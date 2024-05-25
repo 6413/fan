@@ -211,7 +211,8 @@ struct fgm_t {
         if (ImGui::IsItemDeactivatedAfterEdit()) {
           loco_t::texturepack_t::ti_t ti;
           if (texturepack.qti(str, &ti)) {
-            fan::print_no_space("failed to load texture:", str);
+
+            //fan::print_no_space("failed to load texture:", str);
           }
           else {
             current = str.substr(0, std::strlen(str.c_str()));
