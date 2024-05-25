@@ -1474,7 +1474,7 @@ public:
 
   struct light_t {
 
-    static constexpr uint16_t shape_type = shape_type_t::light;
+    uint16_t shape_type = shape_type_t::light;
     static constexpr int kpi = kp::light;
 
 #pragma pack(push, 1)
@@ -2087,7 +2087,7 @@ public:
 
 
   template <typename T>
-  inline void shape_open(const fan::string& vertex, const fan::string& fragment) {
+  inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment) {
     auto& context = gloco->get_context();
 
     loco_t::shader_t shader = context.shader_create();
@@ -2103,7 +2103,7 @@ public:
     context.shader_compile(shader);
 
     gloco->shaper.AddShapeType(
-      T::shape_type,
+      shape->shape_type,
       T::kpi,
       {
         .MaxElementPerBlock = (shaper_t::MaxElementPerBlock_t)MaxElementPerBlock,
