@@ -10,12 +10,12 @@ int main(int argc, char** argv) {
   loco_t loco;
   //
   model_maker_t mm;
-  mm.open(argv[1]);
+  mm.open("texture_packs/TexturePack");
   //if(argc == 3){
-    //mm.load("entity_ship.fmm");
+    mm.load("ship.json");
   //}
   //else{
-  mm.load("test.json");//
+  //mm.load("fmm_controller.json");
   //}//
   ////
   //

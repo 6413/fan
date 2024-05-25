@@ -18,7 +18,7 @@ int main() {
   model_list_t m;
 
   model_list_t::cm_t cm;
-  cm.import_from("test.json", &tp);
+  cm.import_from("ship.json", &tp);
 
   model_list_t::properties_t p;
   p.position = fan::vec3(fan::vec2(0), 5);
