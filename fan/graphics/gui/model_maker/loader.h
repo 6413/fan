@@ -96,16 +96,17 @@ struct model_list_t {
           fan::throw_error("failed to read images");
         }
         s.load_tp(&ti);
-      }
 
-      if (s.group_id == 0) {// set root pos
-        root_pos = s.get_position();
-        s.set_position(fan::vec3(fan::vec2(0), mp.position.z));
+        if (s.group_id == 0) {// set root pos
+          root_pos = s.get_position();
+          s.set_position(fan::vec3(fan::vec2(0), mp.position.z));
+        }
+        else {
+          s.set_position(fan::vec3(fan::vec2(fan::vec2(s.get_position()) - root_pos), mp.position.z));
+        }
+
+        push_shape(nr, s.group_id, std::move(s));
       }
-      else {
-        s.set_position(fan::vec3(fan::vec2(fan::vec2(s.get_position()) - root_pos), mp.position.z));
-      }
-      push_shape(nr, s.group_id, std::move(s));
     }
     set_position(nr, mp.position);
     return nr;
@@ -244,6 +245,18 @@ struct model_list_t {
   }
   auto& get_instance(model_id_t model_id) {
     return model_list[model_id];
+  }
+
+  void iterate(model_id_t model_id, auto l) {
+
+    auto& node = model_list[model_id];
+    fan::graphics::shape_deserialize_t iterator;
+    loco_t::shape_t shape;
+    int i = 0;
+    while (iterator.iterate(node.cm.shapes["shapes"], &shape)) {
+      const auto& shape_json = *(iterator.data.it - 1);
+      l(shape_json);
+    }
   }
 };
 
