@@ -106,7 +106,7 @@ struct fgm_t {
   { \
     T v = shape->CONCAT(get_, prop)(); \
  \
-    auto str = v.to_string(); \
+    static auto str = v.to_string(); \
  \
     str.resize(str.size() + 10); \
  \
@@ -118,21 +118,7 @@ struct fgm_t {
     } \
  \
     ImGui::Indent();\
-    ImGui::Text("x"); \
-    ImGui::SameLine(); \
-    ImGui::SliderFloat("##hidden_label1" STRINGIFY_DEFINE(prop), &v[0], 0, editor_size.x); \
-    if constexpr (T::size() > 1) { \
-      \
-        ImGui::Text("y"); \
-        ImGui::SameLine(); \
-        ImGui::SliderFloat("##hidden_label2" STRINGIFY_DEFINE(prop), &v[1], 0, editor_size.y); \
-    } \
-      if constexpr (T::size() > 2) {\
-        \
-          ImGui::Text("z"); \
-          ImGui::SameLine(); \
-          ImGui::SliderFloat("##hidden_label3" STRINGIFY_DEFINE(prop), &v[2], 0, max_depth); \
-      } \
+    fan_imgui_dragfloat_named(STRINGIFY_DEFINE(prop), v, 0.1, -1, -1); \
         ImGui::Unindent(); \
         \
           shape->CONCAT(set_, prop)(v); \
@@ -156,6 +142,11 @@ struct fgm_t {
 
     make_line(fan::vec3, position);
     make_line(fan::vec2, size);
+    fan::color c = shape->get_color();
+
+    if (ImGui::ColorEdit4("color", c.data())) {
+      shape->set_color(c);
+    }
 
     {
       ImGui::Text("angle");
@@ -262,6 +253,21 @@ struct fgm_t {
         }} };
       break;
     }
+    case loco_t::shape_type_t::light: {
+      shape_list[nr] = new shapes_t::global_t{
+        loco_t::shape_type_t::light,
+        this, fan::graphics::light_t{{
+          .position = pos,
+          .size = 100
+        }} };
+        shape_list[nr]->push_child(fan::graphics::circle_t{ {
+          .position = fan::vec3(pos, current_z - 1),
+          .radius = 100,
+          .color = fan::color(1, 1, 1, 0.5),
+          .blending = true
+        } });
+      break;
+    }
     }
   }
 
@@ -270,7 +276,8 @@ struct fgm_t {
       [&] {
         fan::vec2 editor_size;
 
-        if (ImGui::Begin(editor_str, nullptr, ImGuiWindowFlags_MenuBar)) {
+        
+        if (ImGui::Begin(editor_str, nullptr, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBackground)) {
           fan::vec2 window_size = gloco->window.get_size();
           fan::vec2 viewport_size = ImGui::GetWindowSize();
           fan::vec2 ratio = viewport_size / viewport_size.max();
@@ -358,7 +365,27 @@ struct fgm_t {
 
         ImGui::End();
 
-        if (ImGui::Begin(create_str, nullptr)) {
+        if (ImGui::Begin("lighting settings")) {
+          float arr[3];
+          arr[0] = gloco->lighting.ambient.data()[0];
+          arr[1] = gloco->lighting.ambient.data()[1];
+          arr[2] = gloco->lighting.ambient.data()[2];
+          //fan::print("suffering", (void*)gloco.loco, &gloco.loco->lighting, (void*)((uint8_t*)&gloco.loco->lighting - (uint8_t*)gloco.loco), sizeof(*gloco.loco), arr[0], arr[1], arr[2]);
+          if (ImGui::ColorEdit3("ambient", gloco->lighting.ambient.data())) {
+
+          }
+        }
+        ImGui::End();
+
+        if (ImGui::Begin(properties_str, nullptr)) {
+          if (current_shape != nullptr) {
+            open_properties(current_shape, editor_size);
+          }
+        }
+
+        ImGui::End();
+
+         if (ImGui::Begin(create_str, nullptr)) {
 
           if (ImGui::Button(gloco->shape_names[loco_t::shape_type_t::sprite])) {
             event_type = event_type_e::add;
@@ -372,13 +399,9 @@ struct fgm_t {
             event_type = event_type_e::add;
             selected_shape_type = loco_t::shape_type_t::rectangle;
           }
-        }
-
-        ImGui::End();
-
-        if (ImGui::Begin(properties_str, nullptr)) {
-          if (current_shape != nullptr) {
-            open_properties(current_shape, editor_size);
+          else if (ImGui::Button(gloco->shape_names[loco_t::shape_type_t::light])) {
+            event_type = event_type_e::add;
+            selected_shape_type = loco_t::shape_type_t::light;
           }
         }
 
@@ -424,6 +447,16 @@ struct fgm_t {
           fan::write_to_string(ostr, shape_instance->group_id);
           break;
         }
+        case loco_t::shape_type_t::light: {
+          fan::graphics::shape_serialize(shape, &ostr);
+          fan::write_to_string(ostr, shape_instance->id);
+          fan::write_to_string(ostr, shape_instance->group_id);
+          break;
+        }
+        default: {
+          fan::print("unimplemented shape type");
+          break;
+        }
         }
         it = it.Next(&shape_list);
       }
@@ -459,6 +492,16 @@ struct fgm_t {
           fan::graphics::shape_serialize(shape, &shape_json);
           shape_json["id"] = shape_instance->id;
           shape_json["group_id"] = shape_instance->group_id;
+          break;
+        }
+        case loco_t::shape_type_t::light: {
+          fan::graphics::shape_serialize(shape, &shape_json);
+          shape_json["id"] = shape_instance->id;
+          shape_json["group_id"] = shape_instance->group_id;
+          break;
+        }
+        default: {
+          fan::print("unimplemented shape type");
           break;
         }
         }
@@ -552,6 +595,26 @@ struct fgm_t {
           node->group_id = fan::read_data<uint32_t>(in, iterator.data.offset);
           break;
         }
+        case loco_t::shape_type_t::light: {
+          node = new fgm_t::shapes_t::global_t(
+            loco_t::shape_type_t::light,
+            this,
+            shape
+          );
+          node->push_child(fan::graphics::circle_t{ {
+            .position = shape.get_position(),
+            .radius = shape.get_size().x,
+            .color = shape.get_color(),
+            .blending = true
+          } });
+          node->id = fan::read_data<fan::string>(in, iterator.data.offset);
+          node->group_id = fan::read_data<uint32_t>(in, iterator.data.offset);
+          break;
+        }
+        default: {
+          fan::print("unimplemented shape type");
+          break;
+        }
         }
       }
     }
@@ -608,6 +671,27 @@ struct fgm_t {
           const auto& shape_json = *(iterator.data.it - 1);
           node->id = shape_json["id"].get<fan::string>();
           node->group_id = shape_json["group_id"].get<uint32_t>();
+          break;
+        }
+        case loco_t::shape_type_t::light: {
+          node = new fgm_t::shapes_t::global_t(
+            loco_t::shape_type_t::light,
+            this,
+            shape
+          );
+          node->push_child(fan::graphics::circle_t{ {
+            .position = shape.get_position(),
+            .radius = shape.get_size().x,
+            .color =  shape.get_color(),
+            .blending = true
+          } });
+          const auto& shape_json = *(iterator.data.it - 1);
+          node->id = shape_json["id"].get<fan::string>();
+          node->group_id = shape_json["group_id"].get<uint32_t>();
+          break;
+        }
+        default: {
+          fan::print("unimplemented shape type");
           break;
         }
         }

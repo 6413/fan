@@ -32,6 +32,7 @@ namespace fan {
       not_set,
       windowed,
       borderless,
+      windowed_fullscreen,
       full_screen
     };
 
@@ -227,10 +228,9 @@ namespace fan {
     void set_position(const fan::vec2& position);
 
     void set_windowed();
-
-    void set_full_screen();
-
-    void set_windowed_full_screen();
+    void set_fullscreen();
+    void set_windowed_fullscreen();
+    void set_borderless();
 
     void set_size_mode(const mode& mode);
 

@@ -16,6 +16,7 @@
 #include <fan/imgui/imgui_impl_opengl3.h>
 #include <fan/imgui/imgui_impl_glfw.h>
 #include <fan/imgui/imgui_neo_sequencer.h>
+#include <fan/imgui/imgui-combo-filter.h>
 #endif
 
 #include <fan/physics/collision/rectangle.h>
@@ -78,6 +79,7 @@ struct loco_t : fan::opengl::context_t {
       text,
       hitbox,
       line,
+      mark,
       rectangle,
       light,
       unlit_sprite,
@@ -404,7 +406,7 @@ struct loco_t : fan::opengl::context_t {
           else {
             fan::throw_error("unimplemented set");
           }
-              },
+        },
         .get_angle = [](shape_t* shape) {
           if constexpr (fan_has_variable(T, angle)) {
             return get_render_data(shape, &T::angle);
@@ -1056,6 +1058,9 @@ public:
     else if constexpr(std::is_same_v<fan::vec4, T5>)  { \
       return ImGui::DragFloat4(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
+    else if constexpr(std::is_same_v<fan::color, T5>)  { \
+      return ImGui::DragFloat4(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
     else {\
       fan::throw_error_impl(); \
       return 0;\
@@ -1114,6 +1119,13 @@ public:
       };
     }
   };
+
+  static const char* item_getter1(const std::vector<std::string>& items, int index) {
+    if (index >= 0 && index < (int)items.size()) {
+      return items[index].c_str();
+    }
+    return "N/A";
+  }
 
   void set_imgui_viewport(loco_t::viewport_t viewport);
 
@@ -2541,6 +2553,19 @@ namespace fan {
           child.set_size(fan::vec2(child.get_size()) + offset);
         }
       }
+
+      fan::color get_color() {
+        if (children.size()) {
+          return children[0].get_color();
+        }
+        return fan::color(1);
+      }
+      void set_color(const fan::color& color) {
+        for (auto& child : children) {
+          child.set_color(color);
+        }
+      }
+
       fan::vec2 click_offset = 0;
       bool move = false;
       bool resize = false;

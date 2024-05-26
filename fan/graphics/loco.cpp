@@ -248,8 +248,8 @@ void loco_t::init_framebuffer() {
   static auto load_texture = [&](fan::webp::image_info_t& image_info, loco_t::image_t& color_buffer, fan::opengl::GLenum attachment, bool reload = false) {
     typename fan::opengl::context_t::image_load_properties_t load_properties;
     load_properties.visual_output = fan::opengl::GL_REPEAT;
-    load_properties.internal_format = fan::opengl::GL_RGBA;
-    load_properties.format = fan::opengl::GL_RGBA;
+    load_properties.internal_format = fan::opengl::GL_RGB16F;
+    load_properties.format = fan::opengl::GL_RGB;
     load_properties.type = fan::opengl::GL_FLOAT;
     load_properties.min_filter = fan::opengl::GL_LINEAR;
     load_properties.mag_filter = fan::opengl::GL_LINEAR;
@@ -445,6 +445,7 @@ loco_t::loco_t(const properties_t& p) :
     "shaders/opengl/2D/objects/line.vs",
     "shaders/opengl/2D/objects/line.fs"
   );
+  gloco->shape_functions.resize(gloco->shape_functions.size() + 1); // mark
   shape_open<loco_t::rectangle_t>(
     &rectangle,
     "shaders/opengl/2D/objects/rectangle.vs",

@@ -93,7 +93,7 @@ int main() {
   renderer.open(&tp);
 
   //auto compiled_map = renderer.compile("tilemaps/map_game0_0.fte");
-  auto compiled_map = renderer.compile("map_game0_1.json");
+  auto compiled_map = renderer.compile("m_sensor.json");
   fan::vec2i render_size(16, 9);
   render_size *= 2;
   render_size += 3;
@@ -139,7 +139,13 @@ int main() {
           break;
         }
         case fan::collider::types_e::collider_sensor: {
-          fan::print("sensor triggered");
+          fte_renderer_t::userdata_t userdata = *(fte_renderer_t::userdata_t *)obj1->userdata;
+          if (gloco->window.key_state(userdata.key) == userdata.key_state) {
+            static int x = 0;
+            fan::print("press", x++);
+          }
+
+          //fan::print("sensor triggered");
           break;
         }
       }

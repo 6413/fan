@@ -147,6 +147,7 @@ namespace fan {
     void randomize();
 
 		std::string to_string() const noexcept;
+		void from_string(const std::string& str);
 		friend std::ostream& operator<<(std::ostream& os, const color& color_) noexcept {
   		os << color_.to_string();
 

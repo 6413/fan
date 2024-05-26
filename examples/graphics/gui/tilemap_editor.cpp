@@ -92,10 +92,16 @@ void init_zoom() {
     });
 }
 
+int main(int argc, char** argv) {
 
-int main() {
+  if (argc != 2) {
+    fan::print("usage *.exe TexturePack");
+    return 1;
+  }
+
   //
   loco_t loco;
+  loco.window.set_windowed_fullscreen();
 
 
   camera0.camera = loco.camera_create();
@@ -119,12 +125,12 @@ int main() {
   init_zoom();
 
   fte_t fte;//
-  fan::string texture_pack_name = "texture_packs/TexturePack";
+  fan::string texture_pack_name = argv[1];
   fte_t::properties_t p;
   p.texturepack_name = texture_pack_name;
   p.camera = &camera0;
   fte.open(p);
-  fte.fin("map_game0_1.json");
+ // fte.fin("m_sensor.json");
 
 std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;

@@ -5,7 +5,7 @@
 #include <fan/fmt.h>
 
 struct fte_t {
-  static constexpr int max_id_len = 20;
+  static constexpr int max_id_len = 48;
   static constexpr fan::vec2 default_button_size{ 100, 30 };
   static constexpr fan::vec2 tile_viewer_sprite_size{ 64, 64 };
   static constexpr fan::color highlighted_tile_color = fan::color(0.5, 0.5, 1);
@@ -761,12 +761,15 @@ struct fte_t {
     }
   }
 
+  inline static fan::graphics::file_save_dialog_t save_file_dialog;
+  inline static fan::graphics::file_open_dialog_t open_file_dialog;
+  inline static fan::graphics::file_open_dialog_t models_open_file_dialog;
+
   bool handle_editor_window(fan::vec2& editor_size) {
     if (ImGui::BeginMainMenuBar()) {
 
       {
-        static fan::graphics::file_save_dialog_t save_file_dialog;
-        static fan::graphics::file_open_dialog_t open_file_dialog;
+
         static std::string fn;
 
 
@@ -1108,7 +1111,44 @@ struct fte_t {
           int mesh_property = (int)layer.tile.mesh_property;
           if (ImGui::SliderInt("mesh flags", &mesh_property, 0, (int)mesh_property_t::size - 1)) {
             layer.tile.mesh_property = (mesh_property_t)mesh_property;
+          } 
+        }
+        if (layer.tile.mesh_property == mesh_property_t::sensor) {
+          if (ImGui::BeginChild("Actions")) {
+            ImGui::Text("Actions:");
+            if (ImGui::Combo("##actions", (int*)&layer.tile.action, actions_e_strings, std::size(actions_e_strings))) {
+
+            }
+
+            switch(layer.tile.action) {
+              case actions_e::open_model: {
+                static std::vector<std::string> model_names;
+                if (ImGui::Button("select models")) {
+                  model_names.clear();
+                  models_open_file_dialog.load("json", &model_names);
+                }
+
+                if (models_open_file_dialog.is_finished()) {
+                  layer.tile.object_names.clear();
+                  for (const auto& model_name : model_names) {
+                    std::string base_filename = model_name.substr(model_name.find_last_of("/\\") + 1);
+                    std::string extension = base_filename.substr(base_filename.find_last_of('.') + 1);
+                    base_filename = base_filename.substr(0, base_filename.find_last_of('.'));
+                    layer.tile.object_names.push_back(base_filename + "." + extension);
+                  }
+                  models_open_file_dialog.finished = true;
+                }
+
+                static int key = fan::input_enum_to_array_index(layer.tile.key);
+                if (ImGui::ComboAutoSelect("Open Key", key, fan::input_strings, gloco->item_getter1, ImGuiComboFlags_HeightRegular)) {
+                  layer.tile.key = fan::array_index_to_enum_input(key);
+                }
+                break;
+              }
+            }
+
           }
+          ImGui::EndChild();
         }
       }
     }
@@ -1317,6 +1357,10 @@ struct fte_t {
         tile["image_hash"] = j.tile.image_hash;
         tile["mesh_property"] = j.tile.mesh_property;
         tile["id"] = j.tile.id;
+        tile["action"] = j.tile.action;
+        tile["key"] = j.tile.key;
+        tile["key_state"] = j.tile.key_state;
+        tile["object_names"] = j.tile.object_names;
         tiles.push_back(tile);
       }
     }
@@ -1336,6 +1380,7 @@ shape data{
 }
 */
   void fin(const fan::string& filename) {
+    previous_file_name = filename;
     std::string out;
     fan::io::file::read(filename, &out);
     fan::json json = fan::json::parse(out);
@@ -1373,8 +1418,8 @@ shape data{
       layer->tile.angle = shape.get_angle();
       layer->tile.color = shape.get_color();
       layer->tile.image_hash = shape_json["image_hash"];
-      layer->tile.mesh_property = (mesh_property_t)shape_json["mesh_property"];
       layer->tile.id = shape_json["id"];
+      layer->tile.mesh_property = (mesh_property_t)shape_json["mesh_property"];
 
       loco_t::texturepack_t::ti_t ti;
       if (texturepack.qti(layer->tile.image_hash, &ti)) {
@@ -1395,11 +1440,14 @@ shape data{
           //map_tile.layers.back().shape.set_image(&fte->grid_visualize.collider_color);
           visual_shapes[layer->tile.position].shape = fan::graphics::sprite_t{ {
             .camera = camera,
-            .position = fan::vec3(fan::vec2(layer->tile.position), layer->tile.position.z + 1),
+            .position = fan::vec3(fan::vec2(shape.get_position()), shape.get_position().z + 1),
             .size = tile_size,
             .image = grid_visualize.collider_color,
             .blending = true
           } };
+          layer->tile.action = shape_json.value("action", actions_e::none);
+          layer->tile.key = shape_json.value("key", fan::key_invalid);
+          layer->tile.key_state = shape_json.value("key_state", (int)fan::keyboard_state::press);
           break;
         }
         case fte_t::mesh_property_t::light: {

@@ -700,4 +700,16 @@ namespace fan {
       &(reinterpret_cast<T const volatile*>(NULL)->*member)
       );
   }
+
+  #undef __FAN_PRINT_EACH
+  #define __FAN_PRINT_EACH(x) #x
+
+  // no initializers allowed
+  #define fan_enum_string(name, ...) \
+  static constexpr const char* name##_strings[] = {__FAN__FOREACH_NS(__FAN_PRINT_EACH, __VA_ARGS__)}; \
+  enum name { __VA_ARGS__ }
+
+  #define fan_enum_class_string(name, ...) \
+  static constexpr const char* name##_strings[] = {__FAN__FOREACH_NS(__FAN_PRINT_EACH, __VA_ARGS__)}; \
+  enum class name { __VA_ARGS__ }
 }
