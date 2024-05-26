@@ -24,7 +24,8 @@ constexpr static f32_t bcol_step_time = 0.001f;
 #define BCOL_set_ExtraDataInsideObject \
   bcol_t::ShapeID_t shape_id;\
   fan::collider::types_e collider_type; \
-  loco_t::shape_t* shape = nullptr;
+  loco_t::shape_t* shape = nullptr; \
+  uint8_t userdata[256];
 #include <fan/ETC/BCOL/BCOL.h>
 
 namespace fan {
@@ -194,7 +195,8 @@ namespace fan {
     };
     struct collider_sensor_t {
       collider_sensor_t() = default;
-      collider_sensor_t(const fan::vec2& position, const fan::vec2& size) {
+      template <typename T = int>
+      collider_sensor_t(const fan::vec2& position, const fan::vec2& size, T userdata = 0) {
         bcol_t::ObjectProperties_t p;
         p.Position = position;
         bcol_t::ShapeProperties_Rectangle_t sp;
@@ -205,6 +207,8 @@ namespace fan {
         auto* data = bcol.GetObjectExtraData(oid);
         data->shape_id = shape_id;
         data->collider_type = fan::collider::types_e::collider_sensor;
+        static_assert(sizeof(T) <= sizeof(data->userdata), "too big userdata");
+        std::memcpy(data->userdata, &userdata, sizeof(T));
       }
       void close() {
         bcol.UnlinkObject(oid);

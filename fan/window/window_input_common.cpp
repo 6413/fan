@@ -45,7 +45,6 @@ uint16_t fan::window_input::convert_scancode_to_fan(int key) {
     case 0x25: { return fan::input::key_k; }
     case 0x26: { return fan::input::key_l; }
     case 0x27: { return fan::input::key_semicolon; }
-    case 0x29: { return fan::input::key_tilde; }
     case 0x2A: { return fan::input::key_left_shift; }
     case 0x2B: { return fan::input::key_backslash; }
     case 0x2C: { return fan::input::key_z; }
@@ -98,9 +97,7 @@ uint16_t fan::window_input::convert_scancode_to_fan(int key) {
     case 0x12a: { return fan::input::key_left_shift; }
     case 0x135: { return fan::input::key_numpad_divide; }
     case 0x136: { return fan::input::key_right_shift; }
-    case 0x137: { return fan::input::key_control_print_screen; }
     case 0x138: { return fan::input::key_right_alt; }
-    case 0x146: { return fan::input::key_control_break; }
     case 0x147: { return fan::input::key_home; }
     case 0x148: { return fan::input::key_up; }
     case 0x149: { return fan::input::key_page_up; }
@@ -290,7 +287,6 @@ uint16_t fan::window_input::convert_fan_to_scancode(int key) {
     case fan::input::key_k: { return 0x25; }
     case fan::input::key_l: { return 0x26; }
     case fan::input::key_semicolon: { return 0x27; }
-    case fan::input::key_tilde: { return 0x29; }
     case fan::input::key_left_shift: { return 0x2A; }
     case fan::input::key_backslash: { return 0x2B; }
     case fan::input::key_z: { return 0x2C; }
@@ -341,9 +337,7 @@ uint16_t fan::window_input::convert_fan_to_scancode(int key) {
                                       //case fan::input::key_left_shift: { return 0x12a; }
     case fan::input::key_numpad_divide: { return 0x135; }
                                       //case fan::input::key_right_shift: { return 0x136; }
-    case fan::input::key_control_print_screen: { return 0x137; }
     case fan::input::key_right_alt: { return 0x138; }
-    case fan::input::key_control_break: { return 0x146; }
     case fan::input::key_home: { return 0x147; }
     case fan::input::key_up: { return 0x148; }
     case fan::input::key_page_up: { return 0x149; }

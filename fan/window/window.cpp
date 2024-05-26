@@ -436,20 +436,34 @@ void fan::window_t::set_windowed() {
   glfwSetWindowPos(glfw_window, window_pos.x, window_pos.y);
 }
 
-void fan::window_t::set_full_screen() {
+void fan::window_t::set_fullscreen() {
   using namespace fan::window;
   GLFWmonitor* monitor = glfwGetPrimaryMonitor();
   const GLFWvidmode* mode = glfwGetVideoMode(monitor);
   glfwSetWindowMonitor(glfw_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
 }
 
-void fan::window_t::set_windowed_full_screen() {
+void fan::window_t::set_windowed_fullscreen() {
   using namespace fan::window;
+  GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+  const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+#if defined(fan_platform_windows)
+  glfwSetWindowMonitor(glfw_window, NULL, 0, mode->height - mode->height / (1.04), mode->width, mode->height / (1.08), mode->refreshRate);
+#else
+  glfwSetWindowMonitor(glfw_window, NULL, 0, 0, mode->width, mode->height, mode->refreshRate);
+#endif
+}
+
+void fan::window_t::set_borderless() {
+  using namespace fan::window;
+
   GLFWmonitor* monitor = glfwGetPrimaryMonitor();
   const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
   glfwSetWindowMonitor(glfw_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
 }
+
 
 void fan::window_t::set_size_mode(const mode& mode) {
   switch (mode) {
@@ -458,11 +472,15 @@ void fan::window_t::set_size_mode(const mode& mode) {
       break;
     }
     case mode::full_screen: {
-      set_full_screen();
+      set_fullscreen();
       break;
     }
     case mode::borderless: {
-      set_windowed_full_screen();
+      set_borderless();
+      break;
+    }
+    case mode::windowed_fullscreen: {
+      set_windowed_fullscreen();
       break;
     }
     default: {

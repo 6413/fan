@@ -68,3 +68,11 @@ std::string fan::color::to_string() const noexcept {
         std::to_string(b) + ", " + 
         std::to_string(a) + " }";
 }
+
+void fan::color::from_string(const std::string& str) {
+  std::stringstream ss(str);
+  char ch;
+  for (size_t i = 0; i < 4; ++i) {
+    ss >> ch >> (*this)[i];
+  }
+}

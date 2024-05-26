@@ -69,6 +69,11 @@ struct fte_renderer_t : fte_loader_t {
     }
   }
 
+  struct userdata_t {
+    int key;
+    int key_state;
+  };
+
   void add_tile(node_t& node, fte_t::tile_t& j, int x, int y, uint32_t depth) {
     switch (j.mesh_property) {
       case fte_t::mesh_property_t::none: {
@@ -108,10 +113,14 @@ struct fte_renderer_t : fte_loader_t {
         break;
       }
       case fte_t::mesh_property_t::sensor: {
+        userdata_t userdata;
+        userdata.key = j.key;
+        userdata.key_state = j.key_state;
         node.tiles[fan::vec3i(x, y, depth)] =
           fan::graphics::collider_sensor_t(
             *(fan::vec2*)&position + fan::vec2(j.position) * size,
-            j.size * size
+            j.size * size,
+            userdata
           )
         ;
         break;

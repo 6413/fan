@@ -680,6 +680,12 @@ struct vfi_t {
     functions.set_size = [](loco_t::shape_t* shaper, const fan::vec2& size) {
       gloco->vfi.set_size(*shaper, size);
     };
+    functions.get_color = [](loco_t::shape_t* shaper) {
+      return fan::color(1);
+    };
+    functions.set_color = [](loco_t::shape_t* shaper, const fan::color& color) {
+    };
+
     gloco->shape_functions.push_back(functions);
   }
   ~vfi_t() {

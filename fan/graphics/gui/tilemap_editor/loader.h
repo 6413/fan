@@ -100,6 +100,9 @@ public:
       tile.image_hash = shape_json["image_hash"];
       tile.mesh_property = (fte_t::mesh_property_t)shape_json["mesh_property"];
       tile.id = shape_json["id"];
+      tile.action = shape_json.value("action", fte_t::actions_e::none);
+      tile.key = shape_json.value("key", fan::key_invalid);
+      tile.key_state = shape_json.value("key_state", (int)fan::keyboard_state::press);
       compiled_map.compiled_shapes[gp.y][gp.x].push_back(tile);
     }
     return compiled_map;

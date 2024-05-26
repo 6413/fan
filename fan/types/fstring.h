@@ -200,4 +200,12 @@ namespace fan {
     out.from_string(fstring);
     return out;
   }
+
+  std::string trim(const std::string& str);
+
+  std::vector<std::string> split(const std::string& s);
+
+  #define fan_enum_string_runtime(m_name, ...) \
+    enum m_name { __VA_ARGS__ }; \
+    inline std::vector<std::string> m_name##_strings = fan::split(#__VA_ARGS__)
 }
