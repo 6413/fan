@@ -71,7 +71,7 @@ struct model_list_t {
       return nr;
     }
 
-    fan::vec2 root_pos = 0;
+    fan::vec2 root_pos = -0xfffff;
 
     auto version = cms->shapes["version"].get<int>();
     if (version != 1) {
@@ -89,22 +89,25 @@ struct model_list_t {
       s.group_id = shape_json["group_id"].get<uint32_t>();
       auto st = shape.get_shape_type();
       if (st == loco_t::shape_type_t::sprite ||
-        st == loco_t::shape_type_t::unlit_sprite) {
-        s.image_name = shape_json["image_name"].get<fan::string>();
-        loco_t::texturepack_t::ti_t ti;
-        if (tp->qti(s.image_name, &ti)) {
-          fan::throw_error("failed to read images");
+        st == loco_t::shape_type_t::unlit_sprite || st == loco_t::shape_type_t::light) {
+        if (st == loco_t::shape_type_t::sprite ||
+          st == loco_t::shape_type_t::unlit_sprite) {
+          s.image_name = shape_json["image_name"].get<fan::string>();
+          loco_t::texturepack_t::ti_t ti;
+          if (tp->qti(s.image_name, &ti)) {
+            fan::throw_error("failed to read images");
+          }
+          s.load_tp(&ti);
         }
-        s.load_tp(&ti);
 
-        if (s.group_id == 0) {// set root pos
+        if (s.group_id == 0 && root_pos == -0xfffff) {// set root pos
           root_pos = s.get_position();
           s.set_position(fan::vec3(fan::vec2(0), mp.position.z));
         }
         else {
           s.set_position(fan::vec3(fan::vec2(fan::vec2(s.get_position()) - root_pos), mp.position.z));
         }
-
+        fan::print(s.get_color());
         push_shape(nr, s.group_id, std::move(s));
       }
     }
