@@ -39,7 +39,7 @@ namespace fan {
       };
 
       bool close(file_t* f);
-      bool open(file_t** f, const char* path, const properties_t& p);
+      bool open(file_t** f, const std::string& path, const properties_t& p);
 
       bool write(file_t* f, void* data, uint64_t size, uint64_t elements);
       bool read(file_t* f, void* data, uint64_t size, uint64_t elements);
@@ -105,4 +105,34 @@ namespace fan {
       str_vec2i_t get_string_valuevec2i_n(const std::string& str, std::size_t offset = 0);
     }
 	}
+}
+
+namespace fan {
+
+  namespace tmpl {
+    template<typename>
+    struct is_std_vector : std::false_type {};
+
+    template<typename T, typename A>
+    struct is_std_vector<std::vector<T, A>> : std::true_type {};
+  }
+
+
+  template <typename T>
+  void write_to_file(fan::io::file::file_t* f, const T& o) {
+    if constexpr (std::is_same<fan::string, T>::value ||
+      std::is_same<std::string, T>::value) {
+      uint64_t len = o.size();
+      fan::io::file::write(f, (uint8_t*)&len, sizeof(len), 1);
+      fan::io::file::write(f, (uint8_t*)o.data(), len, 1);
+    }
+    else if constexpr (tmpl::is_std_vector<T>::value) {
+      uint64_t len = o.size();
+      fan::io::file::write(f, (uint8_t*)&len, sizeof(len), 1);
+      fan::io::file::write(f, (uint8_t*)o.data(), len * sizeof(typename T::value_type), 1);
+    }
+    else {
+      fan::io::file::write(f, (uint8_t*)&o, sizeof(o), 1);
+    }
+  }
 }

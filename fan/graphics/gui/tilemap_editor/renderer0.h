@@ -58,6 +58,12 @@ struct fte_renderer_t : fte_loader_t {
         if (!(grid_pos.y < (int64_t)map_tiles.size() && grid_pos.x < (int64_t)map_tiles[grid_pos.y].size())) {
           continue;
         }
+        if (grid_pos.y >= (int64_t)map_tiles.size() || grid_pos.x >= (int64_t)map_tiles[grid_pos.y].size()) {
+          continue;
+        }
+        if (grid_pos.x < 0 || grid_pos.y < 0) {
+          continue;
+        }
         if (map_tiles[grid_pos.y][grid_pos.x].empty()) {
           continue;
         }
@@ -86,7 +92,7 @@ struct fte_renderer_t : fte_loader_t {
             .parallax_factor = 0,
         } };
         loco_t::texturepack_t::ti_t ti;
-        if (texturepack->qti(j.image_hash, &ti)) {
+        if (texturepack->qti(j.image_name, &ti)) {
           fan::throw_error("failed to load image from .fte - corrupted save file");
         }
         std::get<loco_t::shape_t>(node.tiles[fan::vec3i(x, y, depth)]).load_tp(
@@ -221,6 +227,9 @@ struct fte_renderer_t : fte_loader_t {
         if (grid_pos.x < 0 || grid_pos.y < 0) {
           continue;
         }
+        if (grid_pos.y >= (int64_t)map_tiles.size() || grid_pos.x >= (int64_t)map_tiles[grid_pos.y].size()) {
+          continue;
+        }
         if (map_tiles[grid_pos.y][grid_pos.x].empty()) {
           continue;
         }
@@ -257,6 +266,9 @@ struct fte_renderer_t : fte_loader_t {
           continue;
         }
         if (grid_pos.x < 0 || grid_pos.y < 0) {
+          continue;
+        }
+        if (grid_pos.y >= (int64_t)map_tiles.size() || grid_pos.x >= (int64_t)map_tiles[grid_pos.y].size()) {
           continue;
         }
         if (map_tiles[grid_pos.y][grid_pos.x].empty()) {

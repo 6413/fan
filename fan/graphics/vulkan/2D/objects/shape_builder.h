@@ -3,8 +3,6 @@ protected:
 
 using ssbo_t = fan::vulkan::core::ssbo_t<vi_t, ri_t, max_instance_size, vulkan_buffer_count>;
 
-#define BLL_set_CPP_ConstructDestruct
-#define BLL_set_CPP_Node_ConstructDestruct
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix shape_bm
 #include <fan/fan_bll_preset.h>

@@ -26,8 +26,6 @@ struct responsive_text_t {
   };
 
   #define BLL_set_CPP_nrsic 0
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
   #include <fan/fan_bll_preset.h>
   #define BLL_set_prefix letter_list
@@ -41,9 +39,7 @@ struct responsive_text_t {
   letter_list_t letter_list;
 
   #define BLL_set_CPP_nrsic 0
-  #define BLL_set_CPP_CopyAtPointerChange
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_CPP_CopyAtPointerChange 1
   #define BLL_set_AreWeInsideStruct 1
   #include <fan/fan_bll_preset.h>
   #define BLL_set_prefix line_list
@@ -56,9 +52,7 @@ struct responsive_text_t {
   line_list_t line_list;
 
   #define BLL_set_CPP_nrsic 0
-  #define BLL_set_CPP_CopyAtPointerChange
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
+  #define BLL_set_CPP_CopyAtPointerChange 1
   #define BLL_set_AreWeInsideStruct 1
   #include <fan/fan_bll_preset.h>
   #define BLL_set_prefix tlist

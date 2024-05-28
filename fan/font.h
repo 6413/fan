@@ -45,8 +45,6 @@ namespace fan
       uint32_t utf8_character;
     };
 
-#define BLL_set_CPP_ConstructDestruct
-#define BLL_set_CPP_Node_ConstructDestruct
 #define BLL_set_AreWeInsideStruct 0
 #include <fan/fan_bll_preset.h>
 #define BLL_set_prefix character_info_list

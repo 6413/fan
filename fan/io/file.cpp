@@ -20,17 +20,15 @@ bool fan::io::file::close(file_t* f) {
   return 0;
 }
 
-bool fan::io::file::open(file_t** f, const char* path, const properties_t& p) {
-  *f = fopen(path, p.mode);
-  if (f == nullptr) {
-    fan::print_warning(std::string("failed to open file:") + path);
-    close(*f);
+bool fan::io::file::open(file_t** f, const std::string& path, const properties_t& p) {
+  *f = fopen(path.c_str(), p.mode);
+  if (*f == nullptr) {
     return 1;
   }
   return 0;
 }
 
-bool fan::io::file::write(file_t* f, void* data, uint64_t size, uint64_t elements) {
+bool fan::io::file::write(fan::io::file::file_t* f, void* data, uint64_t size, uint64_t elements) {
   uint64_t ret = fwrite(data, size, elements, f);
   #if fan_debug >= fan_debug_low
   if (ret != elements && size != 0) {

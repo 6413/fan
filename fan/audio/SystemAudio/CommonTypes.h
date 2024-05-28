@@ -24,7 +24,7 @@ typedef uint16_t _CacheID_Size_t;
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix _DecoderList
 #define BLL_set_type_node _DecoderID_Size_t
-#include _WITCH_PATH(BLL/BLL.h)
+#include <BLL/BLL.h>
 
 #define BLL_set_Language 1
 #define BLL_set_AreWeInsideStruct 1
@@ -32,7 +32,7 @@ typedef uint16_t _CacheID_Size_t;
 #define BLL_set_type_node _CacheID_Size_t
 #define BLL_set_declare_NodeReference 1
 #define BLL_set_declare_rest 0
-#include _WITCH_PATH(BLL/BLL.h)
+#include <BLL/BLL.h>
 
 typedef _DecoderList_NodeReference_t _DecoderID_t;
 typedef _CacheList_NodeReference_t _CacheID_t;
@@ -109,7 +109,7 @@ struct piece_t {
   _SegmentID_t SegmentID;
 #define BLL_set_declare_NodeReference 0
 #define BLL_set_declare_rest 1
-#include _WITCH_PATH(BLL/BLL.h)
+#include <BLL/BLL.h>
 
 struct _DecoderHead_t{
   _CacheID_t CacheID;
@@ -146,7 +146,7 @@ typedef uint32_t SoundPlayUnique_t;
   uint64_t offset; \
   SoundPlayUnique_t unique;
 #define BLL_set_ResizeListAfterClear 1
-#include _WITCH_PATH(BLL/BLL.h)
+#include <BLL/BLL.h>
 struct SoundPlayID_t{
   _PlayInfoList_NodeReference_t nr;
   SoundPlayUnique_t unique;
@@ -198,9 +198,9 @@ struct Process_t{
 
 struct Out_t{
   #if fan_audio_set_backend == 0
-    #include "backend/uni/miniaudio/a.h"
+    #include "backend/xaudio2.h"
   #elif fan_audio_set_backend == 1
-    #include "backend/unix/linux/alsa/a.h"
+    #include "backend/pa.h"
   #else
     #error ?
   #endif

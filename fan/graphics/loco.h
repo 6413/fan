@@ -25,6 +25,75 @@
 #include <fan/graphics/console.h>
 #endif
 
+#if defined(loco_json)
+
+#include <fan/io/json_impl.h>
+
+struct loco_t;
+
+namespace fan {
+  using namespace nlohmann;
+}
+
+namespace nlohmann {
+
+  //template <> struct adl_serializer<fan::vec2> { static void to_json(json& j, const fan::vec2& v) { j = json{v.x, v.y}; } };
+  //template <> struct adl_serializer<fan::vec3> { static void to_json(json& j, const fan::vec3& v) { j = json{v.x, v.y, v.z}; } };
+  //template <> struct adl_serializer<fan::vec4> { static void to_json(json& j, const fan::vec4& v) { j = json{v.x, v.y, v.z, v.w}; } };
+  //template <> struct adl_serializer<fan::color> { static void to_json(json& j, const fan::color& c) { j = json{c.r, c.g, c.b, c.a}; } };
+
+  template <typename T>
+  struct nlohmann::adl_serializer<fan::vec2_wrap_t<T>> {
+    static void to_json(nlohmann::json& j, const fan::vec2_wrap_t<T>& v) {
+      j = nlohmann::json{ v.x, v.y };
+    }
+    static void from_json(const nlohmann::json& j, fan::vec2_wrap_t<T>& v) {
+      v.x = j[0].get<T>();
+      v.y = j[1].get<T>();
+    }
+  };
+
+  template <typename T>
+  struct nlohmann::adl_serializer<fan::vec3_wrap_t<T>> {
+    static void to_json(nlohmann::json& j, const fan::vec3_wrap_t<T>& v) {
+      j = nlohmann::json{ v.x, v.y, v.z };
+    }
+    static void from_json(const nlohmann::json& j, fan::vec3_wrap_t<T>& v) {
+      v.x = j[0].get<T>();
+      v.y = j[1].get<T>();
+      v.z = j[2].get<T>();
+    }
+  };
+
+  template <typename T>
+  struct nlohmann::adl_serializer<fan::vec4_wrap_t<T>> {
+    static void to_json(nlohmann::json& j, const fan::vec4_wrap_t<T>& v) {
+      j = nlohmann::json{ v.x, v.y, v.z, v.w };
+    }
+    static void from_json(const nlohmann::json& j, fan::vec4_wrap_t<T>& v) {
+      v.x = j[0].get<T>();
+      v.y = j[1].get<T>();
+      v.z = j[2].get<T>();
+      v.w = j[3].get<T>();
+    }
+  };
+
+  template <> struct adl_serializer<fan::color> {
+    static void to_json(json& j, const fan::color& c) {
+      j = json{ c.r, c.g, c.b, c.a };
+    }
+    static void from_json(const json& j, fan::color& c) {
+      c.r = j[0];
+      c.g = j[1];
+      c.b = j[2];
+      c.a = j[3];
+    }
+  };
+}
+#endif
+
+#include <fan/tp/tp0.h>
+
 #define loco_line
 #define loco_rectangle
 #define loco_sprite
@@ -131,6 +200,8 @@ struct loco_t : fan::opengl::context_t {
   uint32_t fb_vbo;
   void render_final_fb();
   void initialize_fb_vaos(uint32_t& vao, uint32_t& vbo);
+
+  using texture_packe0 = fan::graphics::texture_packe0;
 
   using viewport_t = fan::opengl::context_t::viewport_nr_t;
   using image_t = fan::opengl::context_t::image_nr_t;
@@ -952,6 +1023,8 @@ public:
     uint64_t window_flags = 0;
   };
 
+  uint64_t start_time = fan::time::clock::now();
+
   void init_framebuffer();
 
   loco_t();
@@ -993,8 +1066,6 @@ public:
 
 #if defined(loco_imgui)
 protected:
-#define BLL_set_CPP_ConstructDestruct
-#define BLL_set_CPP_Node_ConstructDestruct
 #define BLL_set_SafeNext 1
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix imgui_draw_cb
@@ -1091,6 +1162,7 @@ public:
           return;
           //fan::throw_error("failed to set uniform value");
         }
+
       ie = [str = found->second, shader_nr, var_name, speed, min, max, data = initial]() mutable {
         bool modify = false;
         switch(fan::get_hash(str)) {
@@ -1117,6 +1189,7 @@ public:
           gloco->get_context().shader_set_value(shader_nr, var_name, data);
         }
       };
+      gloco->get_context().shader_set_value(shader_nr, var_name, initial);
     }
   };
 
@@ -1166,8 +1239,6 @@ public:
   }input_action;
 
 protected:
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_SafeNext 1
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix update_callback
@@ -1675,7 +1746,7 @@ public:
       fan::vec2 rotation_point = 0;
       fan::color color = fan::colors::white;
       fan::vec3 angle = fan::vec3(0);
-      int flags = 0;
+      uint32_t flags = 0;
       fan::vec2 tc_position = 0;
       fan::vec2 tc_size = 1;
       uint16_t shape_type = loco_t::shape_type_t::sprite;
@@ -2138,8 +2209,6 @@ public:
 
 //#if defined(loco_texture_pack)
 //#endif
-
-  #include <fan/tp/tp0.h>
 
 #if defined(loco_post_process)
   #include <fan/graphics/opengl/2D/effects/blur.h>
@@ -2720,72 +2789,7 @@ void process_render_data_queue(shaper_t& shaper, fan::opengl::context_t& context
 
 void shape_keypack_traverse(shaper_t::KeyTraverse_t& KeyTraverse, fan::opengl::context_t& context);
 
-
 #if defined(loco_json)
-
-#include <fan/io/json_impl.h>
-
-namespace fan {
-  using namespace nlohmann;
-}
-
-namespace nlohmann {
-
-  //template <> struct adl_serializer<fan::vec2> { static void to_json(json& j, const fan::vec2& v) { j = json{v.x, v.y}; } };
-  //template <> struct adl_serializer<fan::vec3> { static void to_json(json& j, const fan::vec3& v) { j = json{v.x, v.y, v.z}; } };
-  //template <> struct adl_serializer<fan::vec4> { static void to_json(json& j, const fan::vec4& v) { j = json{v.x, v.y, v.z, v.w}; } };
-  //template <> struct adl_serializer<fan::color> { static void to_json(json& j, const fan::color& c) { j = json{c.r, c.g, c.b, c.a}; } };
-
-  template <typename T>
-  struct nlohmann::adl_serializer<fan::vec2_wrap_t<T>> {
-      static void to_json(nlohmann::json& j, const fan::vec2_wrap_t<T>& v) {
-          j = nlohmann::json{ v.x, v.y };
-      }
-      static void from_json(const nlohmann::json& j, fan::vec2_wrap_t<T>& v) {
-          v.x = j[0].get<T>();
-          v.y = j[1].get<T>();
-      }
-  };
-
-  template <typename T>
-  struct nlohmann::adl_serializer<fan::vec3_wrap_t<T>> {
-      static void to_json(nlohmann::json& j, const fan::vec3_wrap_t<T>& v) {
-          j = nlohmann::json{ v.x, v.y, v.z };
-      }
-      static void from_json(const nlohmann::json& j, fan::vec3_wrap_t<T>& v) {
-          v.x = j[0].get<T>();
-          v.y = j[1].get<T>();
-          v.z = j[2].get<T>();
-      }
-  };
-
-  template <typename T>
-  struct nlohmann::adl_serializer<fan::vec4_wrap_t<T>> {
-      static void to_json(nlohmann::json& j, const fan::vec4_wrap_t<T>& v) {
-          j = nlohmann::json{ v.x, v.y, v.z, v.w };
-      }
-      static void from_json(const nlohmann::json& j, fan::vec4_wrap_t<T>& v) {
-          v.x = j[0].get<T>();
-          v.y = j[1].get<T>();
-          v.z = j[2].get<T>();
-          v.w = j[3].get<T>();
-      }
-  };
-
-  template <> struct adl_serializer<fan::color> {
-    static void to_json(json& j, const fan::color& c) {
-      j = json{ c.r, c.g, c.b, c.a };
-    }
-    static void from_json(const json& j, fan::color& c) {
-      c.r = j[0];
-      c.g = j[1];
-      c.b = j[2];
-      c.a = j[3];
-    }
-  };
-
-}
-
 namespace fan {
   namespace graphics {
     bool shape_to_json(loco_t::shape_t& shape, fan::json* json);

@@ -19,7 +19,7 @@ struct tile_t {
   fan::vec2i size;
   fan::vec3 angle;
   fan::color color;
-  uint64_t image_hash;
+  std::string image_name;
   mesh_property_t mesh_property = mesh_property_t::none;
   fan::string id;
 

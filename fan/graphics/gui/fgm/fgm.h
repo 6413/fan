@@ -69,7 +69,7 @@ struct fgm_t {
           };
         fan::graphics::vfi_root_t::set_root(vfip);
         temp.set_position(fan::vec3(fan::vec2(temp.get_position()), fgm->current_z - 1));
-        fan::graphics::vfi_root_t::push_child(std::move(temp));
+        fan::graphics::vfi_root_t::push_child(temp);
 
         fgm->current_shape = this;
       }
@@ -83,7 +83,7 @@ struct fgm_t {
 #include _FAN_PATH(graphics/gui/fgm/common.h)
 
 //#define BLL_set_StoreFormat 1
-//#define BLL_set_CPP_CopyAtPointerChange
+//#define BLL_set_CPP_CopyAtPointerChange 1
 #define BLL_set_AreWeInsideStruct 1
 #include <fan/fan_bll_preset.h>
 #define BLL_set_prefix shape_list
@@ -201,9 +201,9 @@ struct fgm_t {
       if (ImGui::InputText("##hidden_label4", str.data(), str.size())) {
         if (ImGui::IsItemDeactivatedAfterEdit()) {
           loco_t::texturepack_t::ti_t ti;
-          if (texturepack.qti(str, &ti)) {
+          if (texturepack.qti(str.c_str(), &ti)) {
 
-            //fan::print_no_space("failed to load texture:", str);
+            fan::print_no_space("failed to load texture:", str);
           }
           else {
             current = str.substr(0, std::strlen(str.c_str()));

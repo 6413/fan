@@ -32,8 +32,6 @@ struct stage_loader_t {
 
 protected:
   #define BLL_set_Link 1
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_declare_NodeReference 1
   #define BLL_set_declare_rest 0
   #include <fan/fan_bll_preset.h>
@@ -51,9 +49,7 @@ public:
 protected:
   // for safety for getting reference to shape_t in get_id()
   #define BLL_set_StoreFormat 1
-  //#define BLL_set_CPP_CopyAtPointerChange
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
+  //#define BLL_set_CPP_CopyAtPointerChange 1
   #include <fan/fan_bll_preset.h>
   #define BLL_set_prefix cid_list
   #define BLL_set_type_node uint32_t
@@ -122,8 +118,6 @@ public:
   #include _PATH_QUOTE(stage_loader_path/stages_compile/stage.h)
 
 protected:
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_declare_NodeReference 0
   #define BLL_set_declare_rest 1
   #include <fan/fan_bll_preset.h>
