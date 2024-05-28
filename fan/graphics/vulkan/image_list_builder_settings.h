@@ -23,7 +23,5 @@ struct image_list_texture_index_t {
   loco_t::image_t* image;
 #define BLL_set_Link 0
 #define BLL_set_AreWeInsideStruct 1
-#define BLL_set_CPP_Node_ConstructDestruct
-#define BLL_set_CPP_ConstructDestruct
 #define BLL_set_NodeReference_Overload_Declare \
   image_list_NodeReference_t(loco_t::image_t* image);

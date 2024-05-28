@@ -277,7 +277,7 @@ struct fte_t {
         .image = &texturepack.get_pixel_data(pack_id).image
       };
 
-      ii.image_hash = image.hash;
+      ii.image_name = image.image_name;
 
       texturepack_images.push_back(ii);
     });
@@ -395,7 +395,7 @@ struct fte_t {
         if (idx == invalid) {
           layers.resize(layers.size() + 1);
           layers.back().tile.position = fan::vec3(position, brush.depth);
-          layers.back().tile.image_hash = tile.image_hash;
+          layers.back().tile.image_name = tile.image_name;
           layers.back().tile.id = brush.id;
           // todo fix
           layers.back().tile.mesh_property = mesh_property_t::none;
@@ -485,7 +485,7 @@ struct fte_t {
                      fan::print("failed to load image");
                    }
                   layer.tile.mesh_property = mesh_property_t::none;
-                  layer.tile.image_hash = tile.image_hash;
+                  layer.tile.image_name = tile.image_name;
                   break;
                 }
                 case brush_t::type_e::sensor:
@@ -1263,7 +1263,7 @@ struct fte_t {
             st == (uint16_t)loco_t::shape_type_t::unlit_sprite) {
             current_tile_images[0].push_back({
               .ti = layers[idx].shape.get_tp(),
-              .image_hash = layers[idx].tile.image_hash
+              .image_name = layers[idx].tile.image_name
             });
           }
         }
@@ -1341,6 +1341,8 @@ struct fte_t {
   }
   */
   void fout(const fan::string& filename) {
+    previous_file_name = filename;
+
     fan::json ostr;
     ostr["version"] = 1;
     ostr["map_size"] = map_size;
@@ -1354,7 +1356,7 @@ struct fte_t {
         // hardcoded to only tile_t
         fan::json tile;
         fan::graphics::shape_serialize(j.shape, &tile);
-        tile["image_hash"] = j.tile.image_hash;
+        tile["image_name"] = j.tile.image_name;
         tile["mesh_property"] = j.tile.mesh_property;
         tile["id"] = j.tile.id;
         tile["action"] = j.tile.action;
@@ -1417,12 +1419,12 @@ shape data{
       layer->tile.size = shape.get_size();
       layer->tile.angle = shape.get_angle();
       layer->tile.color = shape.get_color();
-      layer->tile.image_hash = shape_json["image_hash"];
+      layer->tile.image_name = shape_json.value("image_name", "");
       layer->tile.id = shape_json["id"];
       layer->tile.mesh_property = (mesh_property_t)shape_json["mesh_property"];
 
       loco_t::texturepack_t::ti_t ti;
-      if (texturepack.qti(layer->tile.image_hash, &ti)) {
+      if (texturepack.qti(layer->tile.image_name, &ti)) {
         fan::throw_error("failed to read image from .fte - editor save file corrupted");
       }
 
@@ -1478,7 +1480,7 @@ shape data{
 
   struct tile_info_t {
     loco_t::texturepack_t::ti_t ti;
-    uint64_t image_hash;
+    std::string image_name;
     mesh_property_t mesh_property = mesh_property_t::none;
   };
 

@@ -22,7 +22,6 @@ struct block_t {
 protected:
 
 
-  #define BLL_set_CPP_Node_ConstructDestruct
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix bll_block
   #include <fan/fan_bll_preset.h>

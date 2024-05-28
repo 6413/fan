@@ -41,12 +41,11 @@ struct fte_loader_t {
   using tile_draw_data_t = std::variant<loco_t::shape_t,
     fan::graphics::collider_hidden_t, 
     fan::graphics::collider_sensor_t>;
-
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
+    
   #include <fan/fan_bll_preset.h>
   #define BLL_set_prefix map_list
   #define BLL_set_type_node uint16_t
+  #define BLL_set_StoreFormat 1
   #define BLL_set_NodeData \
     compiled_map_t* compiled_map; \
     std::unordered_map<fan::vec3i, tile_draw_data_t, vec3i_hasher> tiles;
@@ -87,7 +86,7 @@ public:
     fan::graphics::shape_deserialize_t it;
     loco_t::shape_t shape;
     while (it.iterate(json["tiles"], &shape)) {
-      const auto& shape_json = *(it.data.it - 1);
+      auto shape_json = *(it.data.it - 1);
       fte_t::tile_t tile;
       fan::vec2i gp = shape.get_position();
       convert_draw_to_grid(compiled_map.tile_size, gp);
@@ -97,7 +96,7 @@ public:
       tile.size = shape.get_size();
       tile.angle = shape.get_angle();
       tile.color = shape.get_color();
-      tile.image_hash = shape_json["image_hash"];
+      tile.image_name = shape_json["image_name"];
       tile.mesh_property = (fte_t::mesh_property_t)shape_json["mesh_property"];
       tile.id = shape_json["id"];
       tile.action = shape_json.value("action", fte_t::actions_e::none);

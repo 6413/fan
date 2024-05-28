@@ -75,13 +75,13 @@ void SortFilterResultsAscending(ComboFilterSearchResults& filtered_items);
 // It should be noted that because T1 is a const reference, T2 should be correctly const
 // Template deduction should work so no need for typing out the types when using the function (C++17 or later)
 // To work with c-style arrays, you might need to use std::span<...>, or make your own wrapper if not applicable, for T2 to query for its size inside ItemGetterCallback
-template<typename T1, typename T2, typename = std::enable_if<std::is_convertible<T1, T2>::value>::type>
+template<typename T1, typename T2, typename = typename std::enable_if<std::is_convertible<T1, T2>::value>::type>
 bool ComboAutoSelect(const char* combo_label, int& selected_item, const T1& items, ComboItemGetterCallback<T2> item_getter, ComboAutoSelectSearchCallback<T2> autoselect_callback, ImGuiComboFlags flags = ImGuiComboFlags_None);
-template<typename T1, typename T2, typename = std::enable_if<std::is_convertible<T1, T2>::value>::type>
+template<typename T1, typename T2, typename = typename std::enable_if<std::is_convertible<T1, T2>::value>::type>
 bool ComboAutoSelect(const char* combo_label, int& selected_item, const T1& items, ComboItemGetterCallback<T2> item_getter, ImGuiComboFlags flags = ImGuiComboFlags_None);
-template<typename T1, typename T2, typename = std::enable_if<std::is_convertible<T1, T2>::value>::type>
+template<typename T1, typename T2, typename = typename std::enable_if<std::is_convertible<T1, T2>::value>::type>
 bool ComboFilter(const char* combo_label, int& selected_item, const T1& items, ComboItemGetterCallback<T2> item_getter, ComboFilterSearchCallback<T2> filter_callback, ImGuiComboFlags flags = ImGuiComboFlags_None);
-template<typename T1, typename T2, typename = std::enable_if<std::is_convertible<T1, T2>::value>::type>
+template<typename T1, typename T2, typename = typename std::enable_if<std::is_convertible<T1, T2>::value>::type>
 bool ComboFilter(const char* combo_label, int& selected_item, const T1& items, ComboItemGetterCallback<T2> item_getter, ImGuiComboFlags flags = ImGuiComboFlags_None);
 
 namespace Internal
@@ -127,9 +127,9 @@ int DefaultComboAutoSelectSearchCallback(const ComboAutoSelectSearchCallbackData
 template<typename T>
 void DefaultComboFilterSearchCallback(const ComboFilterSearchCallbackData<T>& callback_data);
 
-template<typename T1, typename T2, typename = std::enable_if<std::is_convertible<T1, T2>::value>::type>
+template<typename T1, typename T2, typename = typename std::enable_if<std::is_convertible<T1, T2>::value>::type>
 bool ComboAutoSelectEX(const char* combo_label, int& selected_item, const T1& items, ComboItemGetterCallback<T2> item_getter, ComboAutoSelectSearchCallback<T2> autoselect_callback, ImGuiComboFlags flags);
-template<typename T1, typename T2, typename = std::enable_if<std::is_convertible<T1, T2>::value>::type>
+template<typename T1, typename T2, typename = typename std::enable_if<std::is_convertible<T1, T2>::value>::type>
 bool ComboFilterEX(const char* combo_label, int& selected_item, const T1& items, ComboItemGetterCallback<T2> item_getter, ComboFilterSearchCallback<T2> filter_callback, ImGuiComboFlags flags);
 
 } // Internal namespace

@@ -75,21 +75,6 @@ _BVEC_P(GetNode)
   #endif
 }
 
-#if BVEC_set_BufferingFormat == 0
-  static
-  BVEC_set_NodeType
-  _BVEC_P(GetBufferAmount)
-  (
-    _BVEC_P(t) *List
-  ){
-    #ifdef BVEC_set_NodeData
-      return BVEC_BufferAmount;
-    #else
-      return List->BufferAmount;
-    #endif
-  }
-#endif
-
 static
 void
 _BVEC_P(Close)
@@ -152,7 +137,7 @@ _BVEC_P(ClearWithBuffer)
   _BVEC_P(t) *List
 ){
   #if BVEC_set_HandleAllocate == 1
-    /* alot shorter to call this */
+    /* a lot shorter to call this */
     _BVEC_P(Close)(List);
   #endif
 
@@ -168,15 +153,19 @@ _BVEC_P(ClearWithBuffer)
 }
 
 static
-BVEC_set_NodeType
-_BVEC_P(GetBufferAmount0)(
+void
+_BVEC_P(SetPossibleWith)(
   _BVEC_P(t) *List,
   BVEC_set_NodeType Size
 ){
   #if BVEC_set_BufferingFormat == 0
-    return Size + _BVEC_P(GetBufferAmount)(List);
+    #ifdef BVEC_set_NodeData
+      List->Possible = Size + BVEC_BufferAmount;
+    #else
+      List->Possible = Size + List->BufferAmount;
+    #endif
   #elif BVEC_set_BufferingFormat == 1
-    return ((uintptr_t)2 << sizeof(uintptr_t) * 8 - __clz(Size | 1)) - 1;
+    List->Possible = ((uintptr_t)2 << sizeof(uintptr_t) * 8 - __clz(Size | 1)) - 1;
   #else
     #error ?
   #endif
@@ -240,7 +229,7 @@ _BVEC_P(SetPointer)(
   (
     _BVEC_P(t) *List
   ){
-    List->Possible = _BVEC_P(GetBufferAmount0)(List, List->Possible);
+    _BVEC_P(SetPossibleWith)(List, List->Possible);
     _BVEC_P(_Resize)(List);
   }
   static
@@ -249,7 +238,7 @@ _BVEC_P(SetPointer)(
   (
     _BVEC_P(t) *List
   ){
-    List->Possible = _BVEC_P(GetBufferAmount0)(List, List->Current);
+    _BVEC_P(SetPossibleWith)(List, List->Current);
     _BVEC_P(_Resize)(List);
   }
 #endif

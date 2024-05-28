@@ -1,12 +1,12 @@
 struct texturepack_t {
 
-  #include _FAN_PATH(tp/tp0.h)
+  using ti_t = fan::graphics::ti_t;
 
   struct texture_t {
 
     // The top-left coordinate of the rectangle.
     uint32_t pack_id;
-    uint64_t hash;
+    std::string image_name;
     fan::vec2i position;
     fan::vec2i size;
 
@@ -24,6 +24,7 @@ struct texturepack_t {
   uint32_t pack_amount;
   std::vector<std::vector<texture_t>> texture_list;
   std::vector<pixel_data_t> pixel_data_list;
+  std::string file_path;
 
   pixel_data_t& get_pixel_data(uint32_t pack_id) {
     return pixel_data_list[pack_id];
@@ -41,53 +42,49 @@ struct texturepack_t {
     open_compiled(filename, lp);
   }
   void open_compiled(const fan::string& filename, fan::opengl::context_t::image_load_properties_t lp) {
+    texture_list.clear();
+    pixel_data_list.clear();
+
+    file_path = filename;
     auto& context = gloco->get_context();
 
-    fan::string data;
-    fan::io::file::read(filename, &data);
-    uint32_t data_index = 0;
-    pack_amount = *(uint32_t*)&data[data_index];
-    texture_list.resize(pack_amount);
-    pixel_data_list.resize(pack_amount);
-    data_index += sizeof(pack_amount);
-    for (uint32_t i = 0; i < pack_amount; i++) {
-      uint32_t texture_amount;
-      memcpy(&texture_amount, &data[data_index], sizeof(texture_amount));
-      data_index += sizeof(pack_amount);
-      for (uint32_t j = 0; j < texture_amount; j++) {
-        texturepack_t::texture_t texture;
-        memcpy(&texture.hash, &data[data_index], sizeof(uint64_t));
-        data_index += sizeof(uint64_t);
-        texture.position = *(fan::vec2i*)&data[data_index];
-        data_index += sizeof(fan::vec2i);
-        texture.size = *(fan::vec2i*)&data[data_index];
-        data_index += sizeof(fan::vec2i);
-        texture_list[i].push_back(texture);
-      }
-      uint32_t size;
-      memcpy(&size, &data[data_index], sizeof(uint32_t));
-      data_index += sizeof(uint32_t);
+    fan::string in;
+    fan::io::file::read(filename, &in);
 
+    std::size_t offset = 0;
+    std::size_t pack_list_size = fan::read_data<std::size_t>(in, offset);
+
+
+    pixel_data_list.resize(pack_list_size);
+    texture_list.resize(pack_list_size);
+    for (std::size_t i = 0; i < pack_list_size; i++) {
+      std::size_t texture_list_size = fan::read_data<std::size_t>(in, offset);
+      texture_list[i].resize(texture_list_size);
+      for (std::size_t k = 0; k < texture_list_size; k++) {
+        texturepack_t::texture_t texture;
+        texture.image_name = fan::read_data<fan::string>(in, offset);
+        texture.position = fan::read_data<fan::vec2ui>(in, offset);
+        texture.size = fan::read_data<fan::vec2ui>(in, offset);
+        texture_list[i][k] = texture;
+      }
+
+      std::vector<uint8_t> pixel_data = fan::read_data<std::vector<uint8_t>>(in, offset);
       fan::webp::image_info_t image_info;
       image_info.data = WebPDecodeRGBA(
-        (const uint8_t*)&data[data_index],
-        size,
+        pixel_data.data(),
+        pixel_data.size(),
         &image_info.size.x,
         &image_info.size.y
       );
-      data_index += size;
-      //#if defined(loco_vulkan)
-      //	fan::throw_error("only implemented for opengl, bcause of visual output type");
-      //#endif
-      //uint32_t visual_output = *(uint32_t*)&data[data_index];
-      data_index += sizeof(uint32_t);
-      //uint32_t min_filter = *(uint32_t*)&data[data_index];
-      data_index += sizeof(uint32_t);
-
-      //uint32_t mag_filter = *(uint32_t*)&data[data_index];
-      data_index += sizeof(uint32_t);
       pixel_data_list[i].image = context.image_load(image_info, lp);
       WebPFree(image_info.data);
+
+      //pixel_data_list[i].visual_output = 
+      fan::read_data<uint32_t>(in, offset);
+      //pixel_data_list[i].min_filter = 
+      fan::read_data<uint32_t>(in, offset);
+      //pixel_data_list[i].mag_filter = 
+      fan::read_data<uint32_t>(in, offset);
     }
   }
 
@@ -101,15 +98,12 @@ struct texturepack_t {
 
   // query texturepack image
   bool qti(const fan::string& name, ti_t* ti) {
-    return qti(fan::get_hash(name.c_str()), ti);
-  }
-  bool qti(uint64_t hash, ti_t* ti) {
     bool ret = 1;
-    iterate_loaded_images([&] (auto& image, uint32_t pack_id){
+    iterate_loaded_images([&](auto& image, uint32_t pack_id) {
       if (ret == 0) {
         return;
       }
-      if (image.hash == hash) {
+      if (image.image_name == name) {
         ti->pack_id = pack_id;
         ti->position = image.position;
         ti->size = image.size;
@@ -117,7 +111,24 @@ struct texturepack_t {
         ret = 0;
         return;
       }
-    });
+      });
+    return ret;
+  }
+  bool qti(uint64_t hash, ti_t* ti) {
+    bool ret = 1;
+    iterate_loaded_images([&](auto& image, uint32_t pack_id) {
+      if (ret == 0) {
+        return;
+      }
+      if (fan::get_hash(image.image_name) == hash) {
+        ti->pack_id = pack_id;
+        ti->position = image.position;
+        ti->size = image.size;
+        ti->image = &get_pixel_data(ti->pack_id).image;
+        ret = 0;
+        return;
+      }
+      });
     return ret;
   }
 };

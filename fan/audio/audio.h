@@ -26,12 +26,9 @@
 #include <opus/opus.h>
 
 #if fan_audio_set_backend == 0
-  #define MA_NO_DECODING
-  #define MA_NO_ENCODING
-  #define MINIAUDIO_IMPLEMENTATION
-  //#include "SystemAudio/backend/uni/miniaudio/lib.h"
+  #include <xaudio2.h>
 #elif fan_audio_set_backend == 1
-  #include <alsa/asoundlib.h>
+  #include <pulse/simple.h>
 #endif
 
 namespace fan {

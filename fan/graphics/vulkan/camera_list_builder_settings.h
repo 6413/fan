@@ -1,5 +1,3 @@
-#define BLL_set_CPP_ConstructDestruct
-#define BLL_set_CPP_Node_ConstructDestruct
 #include <fan/fan_bll_preset.h>
 #define BLL_set_prefix camera_list
 

@@ -49,8 +49,6 @@ struct model_list_t {
     std::vector<std::vector<group_data_t>> groups;
   };
 
-  #define BLL_set_CPP_ConstructDestruct
-  #define BLL_set_CPP_Node_ConstructDestruct
   #include <fan/fan_bll_preset.h>
   #define BLL_set_prefix internal_model_list
   #define BLL_set_type_node uint32_t
@@ -93,11 +91,16 @@ struct model_list_t {
         if (st == loco_t::shape_type_t::sprite ||
           st == loco_t::shape_type_t::unlit_sprite) {
           s.image_name = shape_json["image_name"].get<fan::string>();
-          loco_t::texturepack_t::ti_t ti;
-          if (tp->qti(s.image_name, &ti)) {
-            fan::throw_error("failed to read images");
+          if (s.image_name.size()) {
+            loco_t::texturepack_t::ti_t ti;
+            if (tp->qti(s.image_name, &ti)) {
+              fan::throw_error("failed to read images");
+            }
+            s.load_tp(&ti);
           }
-          s.load_tp(&ti);
+          else {
+            fan::print_warning("empty image");
+          }
         }
 
         if (s.group_id == 0 && root_pos == -0xfffff) {// set root pos

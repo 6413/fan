@@ -1,3 +1,10 @@
+typedef void(*ResultFramesCB_t)(
+  Process_t *,
+  f32_t */* samples */,
+  uint32_t /* sample amount */
+);
+ResultFramesCB_t ResultFramesCB = [](Process_t *, f32_t *, uint32_t){};
+
 TH_mutex_t PlayInfoListMutex;
 _PlayInfoList_t PlayInfoList;
 SoundPlayUnique_t PlayInfoListUnique = 0;
@@ -362,10 +369,9 @@ void _DataCallback(f32_t *Output) {
           if(PlayInfoList.inri(nr) == true){
             break;
           }
-          fan::throw_error("isnrsentinel?");
-          /*if(PlayInfoList.IsNRSentienel(nr) == true){
+          if(PlayInfoList.IsNRSentinel(nr) == true){
             break;
-          }*/
+          }
           if(PlayInfoList.IsNodeReferenceRecycled(nr) == true){
             break;
           }
@@ -573,4 +579,6 @@ void _DataCallback(f32_t *Output) {
       Output[i] /= nihl.LossDivision;
     }
   }
+
+  ResultFramesCB(this, Output, _constants::CallFrameCount);
 }

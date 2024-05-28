@@ -1,7 +1,6 @@
+#include "CheckLogic.h"
+
 #if defined(BLL_set_NodeData) || defined(BLL_set_NodeDataType)
-  #if defined(BLL_set_NodeData) && defined(BLL_set_NodeDataType)
-    #error no
-  #endif
   #define _BLL_HaveConstantNodeData
 #endif
 
@@ -19,45 +18,40 @@
   #include "NodeReference.h"
 #endif
 #if BLL_set_declare_rest == 1
-  /* _BLL_POFTWBIT; prefix of function that would be inside type */
-  /* _BLL_SOFTWBIT; settings of function that would be inside type */
-  /* _BLL_PBLLTFF; pass bll type for functon */
-  /* _BLL_PBLLTFFC; _BLL_PBLLTFF but with comma */
-  /* _BLL_DBLLTFF; declare bll type for functon */
-  /* _BLL_DBLLTFFC; _BLL_DBLLTFF but with comma */
-  /* _BLL_PIL0; pass if language 0 */
   #if BLL_set_Language == 0
-    #define _BLL_POFTWBIT(p0) _P(p0)
-    #define _BLL_SOFTWBIT static
-    #define _BLL_PBLLTFF _pList
-    #define _BLL_PBLLTFFC _BLL_PBLLTFF,
-    #define _BLL_DBLLTFF _P(t) *_BLL_PBLLTFF
-    #define _BLL_DBLLTFFC _BLL_DBLLTFF,
-    #define _BLL_GetList _BLL_PBLLTFF
-    #define _BLL_PIL0(p0) p0
+    #define _BLL_this This
+    #define _BLL_fdec(rtype, name, ...) static rtype name(_P(t) *This, ##__VA_ARGS__)
+    #define _BLL_fcall(name, ...) name(This, ##__VA_ARGS__)
   #elif BLL_set_Language == 1
-    #define _BLL_POFTWBIT(p0) p0
-    #define _BLL_SOFTWBIT
-    #define _BLL_PBLLTFF
-    #define _BLL_PBLLTFFC
-    #define _BLL_DBLLTFF
-    #define _BLL_DBLLTFFC
-    #define _BLL_GetList this
-    #define _BLL_PIL0(p0)
+    #define _BLL_this this
+    #define _BLL_fdec(rtype, name, ...) rtype name(__VA_ARGS__)
+    #define _BLL_fcall(name, ...) name(__VA_ARGS__)
   #else
     #error ?
   #endif
 
+  #if !defined(_BLL_HaveConstantNodeData) && !defined(BLL_set_MultipleType_Sizes)
+    #define _BLL_fdecnds(rtype, name, ...) _BLL_fdec(rtype, name, BLL_set_NodeSizeType NodeDataSize, ##__VA_ARGS__)
+  #else
+    #define _BLL_fdecnds _BLL_fdec
+  #endif
+
+  #if defined(BLL_set_MultipleType_Sizes)
+    #define _BLL_fdecpi(rtype, name, ...) _BLL_fdec(rtype, name, uintptr_t PointerIndex, ##__VA_ARGS__)
+    #define _BLL_fcallpi(name, ...) _BLL_fcall(name, uintptr_t PointerIndex, ##__VA_ARGS__)
+  #else
+    #define _BLL_fdecpi _BLL_fdec
+    #define _BLL_fcallpi _BLL_fcall
+  #endif
+
   #include "rest.h"
 
-  #undef _BLL_POFTWBIT
-  #undef _BLL_SOFTWBIT
-  #undef _BLL_PBLLTFF
-  #undef _BLL_PBLLTFFC
-  #undef _BLL_DBLLTFF
-  #undef _BLL_DBLLTFFC
-  #undef _BLL_GetList
-  #undef _BLL_PIL0
+  #undef _BLL_this
+  #undef _BLL_fdec
+  #undef _BLL_fcall
+  #undef _BLL_fdecnds
+  #undef _BLL_fdecpi
+  #undef _BLL_fcallpi
 #endif
 
 #undef BLL_StructBegin

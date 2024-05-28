@@ -759,6 +759,11 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
               "camera_position",
               camera_get_position(camera)
             );
+            context.shader_set_value(
+              block.shader,
+              "m_time",
+              (f32_t)fan::time::clock::now()
+            );
 
             context.shader_set_value(block.shader, loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
           }
@@ -991,6 +996,8 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
 
   context.shader_set_value(m_fbo_final_shader, "_t00", 0);
   context.shader_set_value(m_fbo_final_shader, "_t01", 1);
+
+  context.shader_set_value(m_fbo_final_shader, "window_size", window_size);
 
   context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
   context.image_bind(color_buffers[0]);
@@ -1585,6 +1592,7 @@ loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
   vi.flags = properties.flags;
   vi.tc_position = properties.tc_position;
   vi.tc_size = properties.tc_size;
+  vi.parallax_factor = properties.parallax_factor;
   ri_t ri;
   return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
 }
@@ -1611,6 +1619,7 @@ loco_t::shape_t loco_t::unlit_sprite_t::push_back(const properties_t& properties
   vi.flags = properties.flags;
   vi.tc_position = properties.tc_position;
   vi.tc_size = properties.tc_size;
+  vi.parallax_factor = properties.parallax_factor;
   ri_t ri;
   return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
 }
@@ -2454,4 +2463,99 @@ bool fan::graphics::bin_to_shape(const std::string& in, loco_t::shape_t* shape, 
 
 bool fan::graphics::shape_serialize(loco_t::shape_t& shape, std::string* out) {
   return shape_to_bin(shape, out);
+}
+
+bool fan::graphics::texture_packe0::push_texture(fan::opengl::context_t::image_nr_t image, const texture_properties_t& texture_properties) {
+
+  if (texture_properties.image_name.empty()) {
+    fan::print_warning("texture properties name empty");
+    return 1;
+  }
+
+  for (uint32_t gti = 0; gti < texture_list.size(); gti++) {
+    if (texture_list[gti].image_name == texture_properties.image_name) {
+      texture_list.erase(texture_list.begin() + gti);
+      break;
+    }
+  }
+
+  auto& context = gloco->get_context();
+  auto& img = context.image_get_data(image);
+
+  auto data = context.image_get_pixel_data(image, fan::opengl::GL_RGBA, texture_properties.uv_pos, texture_properties.uv_size);
+  fan::vec2ui image_size(
+    (uint32_t)(img.size.x * texture_properties.uv_size.x),
+    (uint32_t)(img.size.y * texture_properties.uv_size.y)
+  );
+
+
+  if ((int)image_size.x % 2 != 0 || (int)image_size.y % 2 != 0) {
+    fan::print_warning("failed to load, image size is not divideable by 2");
+    fan::print(texture_properties.image_name, image_size);
+    return 1;
+  }
+
+  texture_t t;
+  t.size = image_size;
+  t.decoded_data.resize(t.size.multiply() * 4);
+  std::memcpy(t.decoded_data.data(), data.get(), t.size.multiply() * 4);
+  t.image_name = texture_properties.image_name;
+  t.visual_output = texture_properties.visual_output;
+  t.min_filter = texture_properties.min_filter;
+  t.mag_filter = texture_properties.mag_filter;
+  t.group_id = texture_properties.group_id;
+
+  texture_list.push_back(t);
+  return 0;
+}
+
+void fan::graphics::texture_packe0::load_compiled(const char* filename) {
+  std::ifstream file(filename);
+  fan::json j;
+  file >> j;
+
+  loaded_pack.resize(j["pack_amount"]);
+
+  std::vector<loco_t::image_t> images;
+
+  for (std::size_t i = 0; i < j["pack_amount"]; i++) {
+    loaded_pack[i].texture_list.resize(j["packs"][i]["count"]);
+
+    for (std::size_t k = 0; k < j["packs"][i]["count"]; k++) {
+      pack_t::texture_t* t = &loaded_pack[i].texture_list[k];
+      std::string image_name = j["packs"][i]["textures"][k]["image_name"];
+      t->position = j["packs"][i]["textures"][k]["position"];
+      t->size = j["packs"][i]["textures"][k]["size"];
+      t->image_name = image_name;
+    }
+
+    std::vector<uint8_t> pixel_data = j["packs"][i]["pixel_data"].get<std::vector<uint8_t>>();
+    fan::webp::image_info_t image_info;
+    image_info.data = WebPDecodeRGBA(
+      pixel_data.data(),
+      pixel_data.size(),
+      &image_info.size.x,
+      &image_info.size.y
+    );
+    loaded_pack[i].pixel_data = std::vector<uint8_t>((uint8_t*)image_info.data, (uint8_t*)image_info.data + image_info.size.x * image_info.size.y * 4);
+
+
+    loaded_pack[i].visual_output = j["packs"][i]["visual_output"];
+    loaded_pack[i].min_filter = j["packs"][i]["min_filter"];
+    loaded_pack[i].mag_filter = j["packs"][i]["mag_filter"];
+    images.push_back(gloco->image_load(image_info));
+    WebPFree(image_info.data);
+    for (std::size_t k = 0; k < loaded_pack[i].texture_list.size(); ++k) {
+      auto& tl = loaded_pack[i].texture_list[k];
+      fan::graphics::texture_packe0::texture_properties_t tp;
+      tp.group_id = 0;
+      tp.uv_pos = fan::vec2(tl.position) / fan::vec2(image_info.size);
+      tp.uv_size = fan::vec2(tl.size) / fan::vec2(image_info.size);
+      tp.visual_output = loaded_pack[i].visual_output;
+      tp.min_filter = loaded_pack[i].min_filter;
+      tp.mag_filter = loaded_pack[i].mag_filter;
+      tp.image_name = tl.image_name;
+      push_texture(images.back(), tp);
+    }
+  }
 }

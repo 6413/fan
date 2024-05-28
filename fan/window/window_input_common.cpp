@@ -154,7 +154,6 @@ uint16_t fan::window_input::convert_scancode_to_fan(int key) {
     case 0x25: { return fan::input::key_k; }
     case 0x26: { return fan::input::key_l; }
     case 0x27: { return fan::input::key_semicolon; }
-    case 0x29: { return fan::input::key_tilde; }
     case 0x2A: { return fan::input::key_left_shift; }
     case 0x2B: { return fan::input::key_backslash; }
     case 0x2C: { return fan::input::key_z; }
@@ -207,9 +206,7 @@ uint16_t fan::window_input::convert_scancode_to_fan(int key) {
     case 0xe02a: { return fan::input::key_left_shift; }
     case 0xe035: { return fan::input::key_numpad_divide; }
     case 0xe036: { return fan::input::key_right_shift; }
-    case 0xe037: { return fan::input::key_control_print_screen; }
     case 0xe038: { return fan::input::key_right_alt; }
-    case 0xe046: { return fan::input::key_control_break; }
     case 0xe047: { return fan::input::key_home; }
     case 0xe048: { return fan::input::key_up; }
     case 0xe049: { return fan::input::key_page_up; }
@@ -393,7 +390,6 @@ uint16_t fan::window_input::convert_fan_to_scancode(int key) {
     case fan::input::key_k: { return 0x25; }
     case fan::input::key_l: { return 0x26; }
     case fan::input::key_semicolon: { return 0x27; }
-    case fan::input::key_tilde: { return 0x29; }
     case fan::input::key_left_shift: { return 0x2A; }
     case fan::input::key_backslash: { return 0x2B; }
     case fan::input::key_z: { return 0x2C; }
