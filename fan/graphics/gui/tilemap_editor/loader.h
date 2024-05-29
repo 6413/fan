@@ -43,16 +43,31 @@ struct fte_loader_t {
     fan::graphics::collider_sensor_t>;
     
   #include <fan/fan_bll_preset.h>
+
+  struct map_list_data_t{
+    compiled_map_t* compiled_map;
+    std::unordered_map<fan::vec3i, tile_draw_data_t, vec3i_hasher> tiles;
+    struct a_t {
+      a_t() {
+
+        fan::print("+", this);
+      }
+      ~a_t() {
+
+        fan::print("-", this);
+      }
+    }a;
+  };
+
   #define BLL_set_prefix map_list
   #define BLL_set_type_node uint16_t
   #define BLL_set_StoreFormat 1
-  #define BLL_set_NodeData \
-    compiled_map_t* compiled_map; \
-    std::unordered_map<fan::vec3i, tile_draw_data_t, vec3i_hasher> tiles;
+  #define BLL_set_NodeDataType map_list_data_t
   #define BLL_set_Link 1
+  #define BLL_set_Mark 5
   #define BLL_set_AreWeInsideStruct 1
 protected:
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
 public:
 
   using id_t = map_list_NodeReference_t;

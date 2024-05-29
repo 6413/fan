@@ -297,7 +297,7 @@ void update(){
   #define BLL_set_type_node uint32_t
   #define BLL_set_NodeDataType stage_t*
   #define BLL_set_Link 1
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
 
   fsm_t() {
     fan::io::create_directory("stages_compile");

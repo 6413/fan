@@ -43,7 +43,7 @@ protected:
   loco_t::update_callback_nr_t update_nr; \
   fan::window_t::resize_callback_NodeReference_t resize_id; \
   void *stage;
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
 public:
 
 protected:
@@ -56,7 +56,7 @@ protected:
   #define BLL_set_NodeDataType loco_t::shape_t
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
 public:
 
   using cid_nr_t = cid_list_NodeReference_t;
@@ -129,7 +129,7 @@ protected:
   void *stage;
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
 public:
 
   stage_list_t stage_list;

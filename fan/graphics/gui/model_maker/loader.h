@@ -55,7 +55,7 @@ struct model_list_t {
   #define BLL_set_NodeDataType model_data_t
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
 
   using model_id_t = internal_model_list_NodeReference_t;
   internal_model_list_t model_list;

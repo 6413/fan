@@ -35,7 +35,7 @@ struct responsive_text_t {
     fan::font::character_info_nr_t internal_id; \
     fan::vec2 position;
   #define BLL_set_Link 1
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
   letter_list_t letter_list;
 
   #define BLL_set_CPP_nrsic 0
@@ -48,7 +48,7 @@ struct responsive_text_t {
     f32_t total_width = 0; /* used for optimization */\
     letter_list_NodeReference_t LetterStartNR{true}; \
     letter_list_NodeReference_t LetterEndNR;
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
   line_list_t line_list;
 
   #define BLL_set_CPP_nrsic 0
@@ -75,7 +75,7 @@ struct responsive_text_t {
     uint32_t line_limit; \
     fan::vec2 max_sizes = 0; \
     line_list_NodeReference_t max_x_sized_line{true}; // TODO this is used nowhere. do we really need this?
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
   tlist_t tlist;
 
   responsive_text_t() {

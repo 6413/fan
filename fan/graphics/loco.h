@@ -1073,7 +1073,7 @@ protected:
 #define BLL_set_Link 1
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeDataType fan::function_t<void()>
-#include _FAN_PATH(BLL/BLL.h)
+#include <BLL/BLL.h>
 public:
 
   using imgui_draw_cb_nr_t = imgui_draw_cb_NodeReference_t;
@@ -1116,7 +1116,7 @@ public:
   };
 
 #define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
-  [=] <typename T5>(T5& var) -> bool{ \
+  [&] <typename T5>(T5& var) -> bool{ \
     if constexpr(std::is_same_v<f32_t, T5>)  { \
       return ImGui::DragFloat(fan::string(std::move(name)).c_str(), &var, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
@@ -1246,7 +1246,7 @@ protected:
   #define BLL_set_Link 1
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeDataType fan::function_t<void(loco_t*)>
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
 public:
 
   using update_callback_nr_t = update_callback_NodeReference_t;

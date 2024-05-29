@@ -31,7 +31,7 @@ protected:
   //#define BLL_set_StoreFormat1_alloc_close free
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeDataType block_t
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
 
   bll_block_t blocks;
 
@@ -45,7 +45,7 @@ protected:
     bll_block_NodeReference_t first_block; \
     bll_block_NodeReference_t last_block; \
     key_t key;
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
 
   shape_bm_t bm_list;
 

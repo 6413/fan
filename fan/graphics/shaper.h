@@ -174,7 +174,7 @@ private: /* --------------------------------------------------------------------
 #define BDBT_set_MaxKeySize (shaper_set_MaxKeySize * 8)
 #endif
 #define BDBT_set_AreWeInsideStruct 1
-#include <fan/BDBT/BDBT.h>
+#include <BDBT/BDBT.h>
   KeyTree_t KeyTree;
 
   typedef KeyTree_Key_t Key_t;
@@ -238,7 +238,7 @@ public: /* ---------------------------------------------------------------------
 #define BLL_set_LinkSentinel 0
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_type_node blnr_t
-#include <fan/BLL/BLL.h>
+#include <BLL/BLL.h>
 public:
   struct ShapeType_t {
     /*
@@ -289,7 +289,7 @@ public:
 #define BLL_set_Link 0
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_type_node ktbmnr_t
-#include <fan/BLL/BLL.h>
+#include <BLL/BLL.h>
   /* sizeof(bm_BaseData_t) + KeySizesSum */
 
 #pragma pack(push, 1)
@@ -308,7 +308,7 @@ public:
 #define BLL_set_AreWeInsideStruct 1
   // actually it needs to be uint24_t
 #define BLL_set_type_node uint32_t
-#include <fan/BLL/BLL.h>
+#include <BLL/BLL.h>
   ShapeList_t ShapeList;
 
   struct KeyPack_t {
@@ -409,7 +409,7 @@ public: /* ---------------------------------------------------------------------
     bm_t::nr_t bmid; \
     BlockList_t::nr_t blid;
 #define BLL_set_type_node uint16_t
-#include <fan/BLL/BLL.h>
+#include <BLL/BLL.h>
   BlockQueue_t BlockQueue;
 
   struct BlockUnique_t {
@@ -531,7 +531,7 @@ public: /* ---------------------------------------------------------------------
         KeyPacks[KeyPackAmount].KeyAmount = 0;
         KeyPacks[KeyPackAmount].KeyIndexes = NULL;
         KeyPacks[KeyPackAmount].KeySizesSum = 0;
-        KeyPacks[KeyPackAmount].KeyTree_root = KeyTree_NewNode(&KeyTree);
+        KeyPacks[KeyPackAmount].KeyTree_root = KeyTree.NewNode();
         KeyPacks[KeyPackAmount].bm.Open(1);
       }
     }
@@ -708,13 +708,13 @@ public: /* ---------------------------------------------------------------------
       auto* kt = &KeyTypes[kp->KeyIndexes[kiip]];
       KeyDataArray -= kt->Size;
       Key_t::r(&KeyTree, kt->sibit(), KeyDataArray, fid.knrs[kiip]);
-      if (KeyTree_inrhc(&KeyTree, fid.knrs[kiip])) {
+      if (KeyTree.inrhc(fid.knrs[kiip])) {
         break;
       }
       if (kiip == 0) {
         break;
       }
-      KeyTree_Recycle(&KeyTree, fid.knrs[kiip]);
+      KeyTree.Recycle(fid.knrs[kiip]);
       kiip--;
     }
 

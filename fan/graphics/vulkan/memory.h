@@ -17,7 +17,7 @@ namespace fan {
 
 				#include "memory_bll_settings.h"
 			protected:
-				#include _FAN_PATH(BLL/BLL.h)
+				#include <BLL/BLL.h>
 				write_queue_t write_queue;
 			public:
 

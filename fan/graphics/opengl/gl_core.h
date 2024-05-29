@@ -78,7 +78,7 @@ namespace fan {
       };
     protected:
       #include <fan/graphics/opengl/shader_list_builder_settings.h>
-      #include <fan/BLL/BLL.h>
+      #include <BLL/BLL.h>
     public:
       shader_list_t shader_list;
 
@@ -212,7 +212,7 @@ namespace fan {
         #elif defined(loco_vulkan)
         #include <fan/graphics/vulkan/image_list_builder_settings.h>
         #endif
-        #include <fan/BLL/BLL.h>
+        #include <BLL/BLL.h>
       };
 
       using image_nr_t = gl_image_impl::image_list_NodeReference_t;
@@ -321,7 +321,7 @@ namespace fan {
 
     protected:
       #include <fan/graphics/opengl/camera_list_builder_settings.h>
-      #include <fan/BLL/BLL.h>
+      #include <BLL/BLL.h>
     public:
 
       using camera_nr_t = camera_list_NodeReference_t;
@@ -361,7 +361,7 @@ namespace fan {
 
     protected:
       #include "viewport_list_builder_settings.h"
-      #include <fan/BLL/BLL.h>
+      #include <BLL/BLL.h>
     public:
 
       using viewport_nr_t = viewport_list_NodeReference_t;

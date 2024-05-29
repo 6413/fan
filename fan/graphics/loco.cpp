@@ -1806,7 +1806,7 @@ shaper_t::ShapeID_t shaper_t::add(
       do {
         KeyTree_NodeReference_t out;
         if (kiip + 1 != kp.KeyAmount) {
-          out = KeyTree_NewNode(&KeyTree);
+          out = KeyTree.NewNode();
         }
         else {
           out = *(KeyTree_NodeReference_t*)&bmnr;

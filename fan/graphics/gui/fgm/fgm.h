@@ -90,7 +90,7 @@ struct fgm_t {
 #define BLL_set_type_node uint32_t
 #define BLL_set_NodeDataType shapes_t::global_t*
 #define BLL_set_Link 1
-#include _FAN_PATH(BLL/BLL.h)
+#include <BLL/BLL.h>
 
 
   enum class event_type_e {

@@ -19,7 +19,7 @@ struct sb_sprite_sheet_name {
 
 protected:
   #include "sprite_sheet_list_builder_settings.h"
-  #include _FAN_PATH(BLL/BLL.h)
+  #include <BLL/BLL.h>
 public:
 
   sheet_list_t sheet_list;

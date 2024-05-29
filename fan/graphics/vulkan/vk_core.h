@@ -319,17 +319,17 @@ namespace fan {
 #include "themes_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 1
 #define BLL_set_declare_rest 0
-#include _FAN_PATH(BLL/BLL.h)
+#include <BLL/BLL.h>
 
 #include "themes_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 0
 #define BLL_set_declare_rest 1
-#include _FAN_PATH(BLL/BLL.h)
+#include <BLL/BLL.h>
 
 #include "viewport_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 1
 #define BLL_set_declare_rest 0
-#include _FAN_PATH(BLL/BLL.h)
+#include <BLL/BLL.h>
 
 namespace fan {
 
@@ -372,7 +372,7 @@ namespace fan {
 #include "viewport_list_builder_settings.h"
 #define BLL_set_declare_NodeReference 0
 #define BLL_set_declare_rest 1
-#include _FAN_PATH(BLL/BLL.h)
+#include <BLL/BLL.h>
 
 namespace fan_2d {
   namespace graphics {

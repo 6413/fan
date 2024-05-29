@@ -17,7 +17,7 @@ namespace fan {
 
 constexpr static f32_t bcol_step_time = 0.001f;
 #define BCOL_set_Dimension 2
-#define BCOL_set_IncludePath fan
+#define BCOL_set_IncludePath 
 #define BCOL_set_prefix bcol
 #define BCOL_set_DynamicDeltaFunction 
 #define BCOL_set_StoreExtraDataInsideObject 1
@@ -26,7 +26,7 @@ constexpr static f32_t bcol_step_time = 0.001f;
   fan::collider::types_e collider_type; \
   loco_t::shape_t* shape = nullptr; \
   uint8_t userdata[256];
-#include <fan/ETC/BCOL/BCOL.h>
+#include <BCOL/BCOL.h>
 
 namespace fan {
   namespace graphics {
