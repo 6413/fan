@@ -951,7 +951,13 @@ void fan::opengl::context_t::camera_rotate(camera_nr_t nr, const fan::vec2& offs
 
 fan::opengl::context_t::viewport_nr_t fan::opengl::context_t::viewport_create()
 {
-  return viewport_list.NewNode();
+  auto nr = viewport_list.NewNode();
+
+  viewport_set(
+    nr,
+    0, 0, 0
+  );
+  return nr;
 }
 
 fan::opengl::context_t::viewport_t& fan::opengl::context_t::viewport_get(viewport_nr_t nr) {

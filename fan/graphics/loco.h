@@ -126,9 +126,9 @@ inline thread_local global_loco_t gloco;
 #endif
 
 
-static constexpr uint32_t MaxElementPerBlock = 0x100;
+static constexpr uint32_t MaxElementPerBlock = 0x10000;
 
-#define shaper_set_MaxMaxElementPerBlock 0x100
+#define shaper_set_MaxMaxElementPerBlock 0x10000
 #include <fan/graphics/shaper.h>
 
 struct loco_t : fan::opengl::context_t {
@@ -2780,6 +2780,9 @@ namespace fan {
 namespace ImGui {
   IMGUI_API void Image(loco_t::image_t& img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
   IMGUI_API bool ImageButton(loco_t::image_t& img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
+
+  bool ToggleButton(const char* str_id, bool* v);
+
 }
 #endif
 
