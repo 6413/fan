@@ -95,6 +95,7 @@ struct fte_t {
   }
 
   void reset_map() {
+    visual_layers.clear();
     map_tiles.clear();
     resize_map();
   }
@@ -383,70 +384,145 @@ struct fte_t {
 
     f32_t inital_x = position.x;
 
+    fan::vec2i grid_position = position;
+    convert_draw_to_grid(grid_position);
+
+    grid_position /= tile_size;
+    auto& layers = map_tiles[grid_position].layers;
+    visual_layers[brush.depth].positions[grid_position] = 1;
+    uint32_t idx = find_layer_shape(layers);
+
+    if (idx == invalid && 
+    (brush.type == brush_t::type_e::light ||
+    brush.type == brush_t::type_e::collider ||
+    brush.type == brush_t::type_e::sensor)) {
+      layers.resize(layers.size() + 1);
+      layers.back().tile.size = tile_size * brush.tile_size;
+      switch (brush.type) {
+      case brush_t::type_e::sensor:
+      case brush_t::type_e::collider: {
+        layers.back().shape.set_image(grid_visualize.collider_color);
+        if (brush.type == brush_t::type_e::sensor) {
+          layers.back().tile.mesh_property = mesh_property_t::sensor;
+        }
+        else {
+          layers.back().tile.mesh_property = mesh_property_t::collider;
+        }
+        break;
+      }
+      case brush_t::type_e::light: {
+        loco_t::light_t::properties_t lp;
+        auto& shape = layers.back().shape;
+        layers.back().tile.position = fan::vec3(position, brush.depth);
+        layers.back().tile.id = brush.id;
+        lp.camera = camera->camera;
+        lp.viewport = camera->viewport;
+        lp.position = fan::vec3(position, brush.depth);
+        lp.size = tile_size * brush.tile_size;
+        lp.color = brush.dynamics_color == brush_t::dynamics_e::randomize ? fan::random::color() : brush.color;
+        layers.back().shape = lp;
+        layers.back().tile.mesh_property = mesh_property_t::light;
+        visual_shapes[lp.position].shape = fan::graphics::sprite_t{ {
+            .camera = camera,
+            .position = fan::vec3(fan::vec2(lp.position), lp.position.z + 1),
+            .size = tile_size * brush.tile_size,
+            .image = grid_visualize.light_color,
+            .blending = true
+        } };
+        break;
+      }
+      default: {
+        break;
+      }
+      }
+      current_tile.position = position;
+      current_tile.layer = layers.data();
+      current_tile.layer_index = layers.size() - 1;
+      return false;
+    }
+    else if ((brush.type == brush_t::type_e::light ||
+    brush.type == brush_t::type_e::collider ||
+    brush.type == brush_t::type_e::sensor)){
+      if (idx != invalid || idx < layers.size()) {
+        auto& layer = layers[idx];
+        layer.tile.id = brush.id;
+        layer.tile.size = tile_size * brush.tile_size;
+        switch (brush.type) {
+        case brush_t::type_e::sensor:
+        case brush_t::type_e::collider: {
+          layer.shape.set_image(grid_visualize.collider_color);
+          if (brush.type == brush_t::type_e::sensor) {
+            layer.tile.mesh_property = mesh_property_t::sensor;
+          }
+          else {
+            layer.tile.mesh_property = mesh_property_t::collider;
+          }
+          break;
+        }
+        case brush_t::type_e::light: {
+          loco_t::light_t::properties_t lp;
+          auto& shape = layer.shape;
+          lp.position = shape.get_position();
+          lp.size = shape.get_size();
+          lp.angle = shape.get_angle();
+          lp.color = shape.get_color();
+          lp.camera = camera->camera;
+          lp.viewport = camera->viewport;
+          layer.shape = lp;
+          layer.tile.mesh_property = mesh_property_t::light;
+          visual_shapes[lp.position].shape = fan::graphics::sprite_t{ {
+              .camera = camera,
+              .position = fan::vec3(fan::vec2(lp.position), lp.position.z + 1),
+              .size = tile_size,
+              .image = grid_visualize.light_color,
+              .blending = true
+          } };
+          break;
+        }
+        default: {
+          break;
+        }
+        }
+      }
+      return false;
+    }
+
     for (auto& i : current_tile_images) {
       for (auto& tile : i) {
-        fan::vec2i grid_position = position;
-        convert_draw_to_grid(grid_position);
-
-        grid_position /= tile_size;
-        auto& layers = map_tiles[grid_position].layers;
-        uint32_t idx = find_layer_shape(layers);
-
         if (idx == invalid) {
           layers.resize(layers.size() + 1);
+          layers.back().tile.size = tile_size * brush.tile_size;
           layers.back().tile.position = fan::vec3(position, brush.depth);
-          layers.back().tile.image_name = tile.image_name;
           layers.back().tile.id = brush.id;
+          layers.back().tile.image_name = tile.image_name;
           // todo fix
           layers.back().tile.mesh_property = mesh_property_t::none;
           if (brush.type != brush_t::type_e::light) {
             //fan::print("a");
             layers.back().shape = fan::graphics::sprite_t{ {
-    .camera = camera,
-    .position = fan::vec3(position, brush.depth),
-    .size = tile_size * brush.tile_size,
-    .angle = brush.dynamics_angle == brush_t::dynamics_e::randomize ?
-          get_snapped_angle() : brush.angle,
-    .color = brush.dynamics_color == brush_t::dynamics_e::randomize ? fan::random::color() : brush.color,
-    .blending = true
-} };
-           // fan::print("+", grid_position, layers.back().shape.NRI);
+                .camera = camera,
+                .position = fan::vec3(position, brush.depth),
+                .size = tile_size * brush.tile_size,
+                .angle = brush.dynamics_angle == brush_t::dynamics_e::randomize ?
+                      get_snapped_angle() : brush.angle,
+                .color = brush.dynamics_color == brush_t::dynamics_e::randomize ? fan::random::color() : brush.color,
+                .blending = true
+            } };
           }
+
           switch (brush.type) {
-            case brush_t::type_e::texture: {
-              if (layers.back().shape.set_tp(&tile.ti)) {
-                fan::print("failed to load image");
-              }
-              break;
+
+          case brush_t::type_e::texture: {
+            if (layers.back().shape.set_tp(&tile.ti)) {
+              fan::print("failed to load image");
             }
-            case brush_t::type_e::sensor:
-            case brush_t::type_e::collider: {
-              layers.back().shape.set_image(grid_visualize.collider_color);
-              if (brush.type == brush_t::type_e::sensor) {
-                layers.back().tile.mesh_property = mesh_property_t::sensor;
-              }
-              else {
-                layers.back().tile.mesh_property = mesh_property_t::collider;
-              }
-              break;
-            }
-            case brush_t::type_e::light: {
-              loco_t::light_t::properties_t lp;
-              auto& shape = layers.back().shape;
-              lp.position = fan::vec3(position, brush.depth);
-              lp.size = tile_size * brush.tile_size;
-              lp.color = brush.dynamics_color == brush_t::dynamics_e::randomize ? fan::random::color() : brush.color;
-              layers.back().shape = lp;
-              layers.back().tile.mesh_property = mesh_property_t::light;
-              visual_shapes[lp.position].shape = fan::graphics::sprite_t{{
-                  .camera = camera,
-                  .position = fan::vec3(fan::vec2(lp.position), lp.position.z + 1),
-                  .size = tile_size,
-                  .image = grid_visualize.light_color,
-                  .blending = true
-              }};
-            }
+            break;
           }
+          default: {
+            break;
+          }
+          }
+         
           current_tile.position = position;
           current_tile.layer = layers.data();
           current_tile.layer_index = layers.size() - 1;
@@ -466,9 +542,10 @@ struct fte_t {
                   break;
                 }
                 default: {
-                  fan::throw_error("unimplemented");
+                  break;
                 }
               }
+              layer.tile.size = tile_size * brush.tile_size;
               layer.shape.set_size(tile_size * brush.tile_size);
               layer.shape.set_color(brush.color);
               layer.tile.id = brush.id;
@@ -488,34 +565,8 @@ struct fte_t {
                   layer.tile.image_name = tile.image_name;
                   break;
                 }
-                case brush_t::type_e::sensor:
-                case brush_t::type_e::collider: {
-                  layer.shape.set_image(grid_visualize.collider_color);
-                  if (brush.type == brush_t::type_e::sensor) {
-                    layer.tile.mesh_property = mesh_property_t::sensor;
-                  }
-                  else {
-                    layer.tile.mesh_property = mesh_property_t::collider;
-                  }
+                default: {
                   break;
-                }
-                case brush_t::type_e::light: {
-                  loco_t::light_t::properties_t lp;
-                  auto& shape = layer.shape;
-                  lp.position = shape.get_position();
-                  lp.size = shape.get_size();
-                  lp.angle = shape.get_angle();
-                  lp.color = shape.get_color();
-                  lp.camera = camera->camera;
-                  lp.viewport = camera->viewport;
-                  layer.shape = lp;
-                  layer.tile.mesh_property = mesh_property_t::light;
-                  visual_shapes[lp.position].shape = fan::graphics::sprite_t{{
-                      .position = fan::vec3(fan::vec2(lp.position), lp.position.z + 1),
-                      .size = tile_size,
-                      .image = grid_visualize.light_color,
-                      .blending = true
-                  }};
                 }
               }
             }
@@ -562,6 +613,11 @@ struct fte_t {
         layers.erase(layers.begin() + idx);
       }
       if (found->second.layers.empty()) {
+        auto visual_found = visual_layers.find(brush.depth);
+        visual_found->second.positions.erase(found->first);
+        if (visual_found->second.positions.empty()) {
+          visual_layers.erase(visual_found);
+        }
         map_tiles.erase(found->first);
       }
     }
@@ -591,11 +647,13 @@ struct fte_t {
         bool is_shift_pressed = gloco->window.key_pressed(fan::key_left_shift);
 
         if (is_mouse_left_down && !is_ctrl_pressed && !is_shift_pressed) {
-          handle_tile_action(position, [this](auto...args) {auto ret = handle_tile_push(args...);  modify_cb(0); return ret; });
+          handle_tile_action(position, [this](auto...args) {auto ret = handle_tile_push(args...); return ret; });
+          //modify_cb(0);
         }
 
         if (is_mouse_right_down) {
-          handle_tile_action(position, [this](auto...args) {auto ret = handle_tile_erase(args...);  modify_cb(0); return ret; });
+          handle_tile_action(position, [this](auto...args) {auto ret = handle_tile_erase(args...);  return ret; });
+          //modify_cb(0);
         }
 
         break;
@@ -656,6 +714,10 @@ struct fte_t {
               auto found = map_tiles.find(copy_src);
               if (found != map_tiles.end()) {
                 copy_buffer.push_back(found->second);
+                // slow
+                for (auto& i : copy_buffer.back().layers) {
+                  i.shape.set_size(0);
+                }
               }
             }
             else {
@@ -693,12 +755,13 @@ struct fte_t {
                     fan::vec2 draw_pos = current_pos * tile_size * 2 + tile_size + offset;
                     if (is_in_constraints(draw_pos)) {
                       t.shape.set_position(fan::vec2(draw_pos));
+                      t.shape.set_size(tile.layers[k].tile.size);
                       switch (t.tile.mesh_property) {
                         case mesh_property_t::light: {
                           visual_shapes[fan::vec3(draw_pos, brush.depth)].shape = fan::graphics::sprite_t{{
                               .camera = camera,
                               .position = fan::vec3(draw_pos, brush.depth + 1),
-                              .size = tile_size,
+                              .size = tile.layers[k].tile.size,
                               .image = grid_visualize.light_color,
                               .blending = true
                           } };
@@ -748,6 +811,7 @@ struct fte_t {
     fan::vec2i grid_position = position;
     convert_draw_to_grid(grid_position);
     grid_position /= tile_size;
+    
     if (fan::vec3i(grid_position, brush.depth) == prev_grid_position) {
       return;
     }
@@ -872,29 +936,61 @@ struct fte_t {
       style.ItemSpacing = prev_item_spacing;
 
       if (ImGui::Begin("Layer window")) {
-        struct data_t {
-          fan::string text;
-        };
-        static std::vector<data_t> layers{ {.text = "default"} };
-        for (std::size_t i = 0; i < layers.size(); ++i) {
-          layers[i].text.resize(32);
-          {
-            auto fmt = fan::format("Layer {}", i);
-            ImGui::Text("%s", fmt.c_str());
+        for (auto& layer_pair : visual_layers) {
+          auto& layer = layer_pair.second; 
+          layer.text.resize(32);
+          uint16_t depth = layer_pair.first;
+          auto fmt = fan::format("Layer {}", depth - shape_depths_t::max_layer_depth / 2);
+          if (ImGui::ToggleButton(("Visible " + fmt).c_str(), &layer.visible)) {
+            static auto iterate_positions = [&] (auto l) {
+              auto visual_found = visual_layers.find(depth);
+              if (visual_found == visual_layers.end()) {
+                fan::throw_error("some weird bugs");
+              }
+              auto& position_map = visual_found->second.positions;
+              for (auto& position_pair : position_map) {
+                auto& position = position_pair.first;
+                auto tiles_found = map_tiles.find(position);
+                if (tiles_found == map_tiles.end()) {
+                  fan::throw_error("more some weird bugs");
+                }
+                for (auto& tile_layer : tiles_found->second.layers) {
+                  if (tile_layer.tile.position.z == depth) {
+                    l(tile_layer);
+                  }
+                }
+              }
+            };
+            if (layer.visible == false) { // hide
+              iterate_positions([&](fte_t::shapes_t::global_t::layer_t& layer) {
+                auto vs_found = visual_shapes.find(layer.tile.position);
+                if (layer.tile.mesh_property != fte_t::mesh_property_t::none && vs_found != visual_shapes.end()) {
+                  vs_found->second.shape.set_size(0);
+                }
+                layer.shape.set_size(0);
+              });
+            }
+            else {
+              iterate_positions([&](fte_t::shapes_t::global_t::layer_t& layer) {
+                auto vs_found = visual_shapes.find(layer.tile.position);
+                if (layer.tile.mesh_property != fte_t::mesh_property_t::none && vs_found != visual_shapes.end()) {
+                  vs_found->second.shape.set_size(layer.tile.size);
+                }
+                layer.shape.set_size(layer.tile.size);
+              });
+            }
+            modify_cb(0);
           }
           ImGui::SameLine();
-          {
-            auto fmt = fan::format("##layer{}", i);
-            ImGui::InputText(fmt.c_str(), layers[i].text.data(), layers[i].text.size());
-          }
+          ImGui::InputText(fmt.c_str(), layer.text.data(), layer.text.size());
         }
-        if (ImGui::Button("+")) {
-          layers.push_back(data_t{ .text = "default" });
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("-")) {
-          layers.pop_back();
-        }
+        // if (ImGui::Button("+")) {
+        //   layers.push_back(data_t{ .text = "default" });
+        // }
+        // ImGui::SameLine();
+        // if (ImGui::Button("-")) {
+        //   layers.pop_back();
+        // }
       }
         ImGui::End();
     }
@@ -1343,6 +1439,12 @@ struct fte_t {
     ...
   }
   */
+
+  struct layer_info_t {
+    std::string layer_name;
+    uint16_t depth;
+  };
+
   void fout(const fan::string& filename) {
     previous_file_name = filename;
 
@@ -1370,6 +1472,17 @@ struct fte_t {
       }
     }
 
+    
+    fan::json j;
+    for (auto& layer : visual_layers) {
+      fan::json layer_json;
+      layer_json["layer_name"] = layer.second.text;
+      layer_json["depth"] = layer.first;
+      j.push_back(layer_json);
+    }
+
+    ostr["layer_info"] = j;
+
     ostr["tiles"] = tiles;
     fan::io::file::write(filename, ostr.dump(2), std::ios_base::binary);
   }
@@ -1385,6 +1498,7 @@ shape data{
 }
 */
   void fin(const fan::string& filename) {
+    invalidate_selection();
     previous_file_name = filename;
     std::string out;
     fan::io::file::read(filename, &out);
@@ -1397,6 +1511,7 @@ shape data{
     tile_size = json["tile_size"];
     gloco->lighting.ambient = json["lighting.ambient"];
     map_tiles.clear();
+    visual_layers.clear();
     resize_map();
 
     fan::graphics::shape_deserialize_t it;
@@ -1404,12 +1519,13 @@ shape data{
     while (it.iterate(json["tiles"], &shape)) {
       const auto& shape_json = *(it.data.it - 1);
       fan::vec2i gp = shape.get_position();
+      uint16_t depth = shape.get_position().z;
       convert_draw_to_grid(gp);
       gp /= tile_size;
       auto found = map_tiles.find(gp);
       fte_t::shapes_t::global_t::layer_t* layer = nullptr;
+      visual_layers[depth].positions[gp];
       if (found != map_tiles.end()) {
-
         found->second.layers.resize(found->second.layers.size() + 1);
         layer = &found->second.layers.back();
       }
@@ -1418,7 +1534,7 @@ shape data{
         layer = &map_tiles[gp].layers.back();
       }
 
-      layer->tile.position = fan::vec3i(gp, shape.get_position().z);
+      layer->tile.position = fan::vec3i(gp, depth);
       layer->tile.size = shape.get_size();
       layer->tile.angle = shape.get_angle();
       layer->tile.color = shape.get_color();
@@ -1426,15 +1542,14 @@ shape data{
       layer->tile.id = shape_json["id"];
       layer->tile.mesh_property = (mesh_property_t)shape_json["mesh_property"];
 
-      loco_t::texturepack_t::ti_t ti;
-      if (texturepack.qti(layer->tile.image_name, &ti)) {
-        fan::throw_error("failed to read image from .fte - editor save file corrupted");
-      }
-
       layer->shape = shape;
 
       switch (layer->tile.mesh_property) {
         case fte_t::mesh_property_t::none: {
+          loco_t::texturepack_t::ti_t ti;
+          if (texturepack.qti(layer->tile.image_name, &ti)) {
+            fan::throw_error("failed to read image from .fte - editor save file corrupted");
+          }
           layer->shape.set_camera(camera->camera);
           layer->shape.set_viewport(camera->viewport);
           layer->shape.set_tp(&ti);
@@ -1446,7 +1561,7 @@ shape data{
           visual_shapes[layer->tile.position].shape = fan::graphics::sprite_t{ {
             .camera = camera,
             .position = fan::vec3(fan::vec2(shape.get_position()), shape.get_position().z + 1),
-            .size = tile_size,
+            .size = layer->tile.size,
             .image = grid_visualize.collider_color,
             .blending = true
           } };
@@ -1465,7 +1580,7 @@ shape data{
           visual_shapes[layer->tile.position].shape = fan::graphics::sprite_t{{
             .camera = camera,
             .position = fan::vec3(fan::vec2(shape.get_position()), shape.get_position().z + 1),
-            .size = tile_size,
+            .size = layer->tile.size,
             .image = grid_visualize.light_color,
             .blending = true
           }};
@@ -1473,6 +1588,18 @@ shape data{
         }
         default: {
           fan::throw_error("");
+        }
+      }
+    }
+
+    if (json.contains("layer_info")) {
+      for (const auto& layer_json : json["layer_info"]) {
+        layer_info_t layer_info;
+        layer_info.layer_name = layer_json["layer_name"];
+        layer_info.depth = layer_json["depth"];
+        // Add layer_info to visual_layers
+        if (visual_layers.find(layer_info.depth) != visual_layers.end()) {
+          visual_layers[layer_info.depth].text = layer_info.layer_name;
         }
       }
     }
@@ -1531,6 +1658,15 @@ shape data{
     loco_t::shape_t shape;
   };
   std::unordered_map<fan::vec3, visualize_t, vec3_hasher> visual_shapes;
+
+  struct visual_layer_t {
+    std::unordered_map<fan::vec2i, bool, vec2i_hasher> positions;
+    std::string text = "default";
+    bool visible = true;
+  };
+
+  // depth key
+  std::map<uint16_t, visual_layer_t> visual_layers;
 
   loco_t::texturepack_t texturepack;
 
