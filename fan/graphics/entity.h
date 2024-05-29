@@ -59,7 +59,7 @@ namespace fan {
       #define BLL_set_SafeNext 1
       #define BLL_set_type_node EntityID_i_t
       #define BLL_set_NodeDataType Entity_t
-      #include _FAN_PATH(BLL/BLL.h)
+      #include <BLL/BLL.h>
       bll_t bll;
 
       Entity_t* Get(EntityID_t EntityID) {

@@ -441,9 +441,7 @@ uint16_t fan::window_input::convert_fan_to_scancode(int key) {
                                       //case fan::input::key_left_shift: { return 0xe02a; }
     case fan::input::key_numpad_divide: { return 0xe035; }
                                       //case fan::input::key_right_shift: { return 0xe036; }
-    case fan::input::key_control_print_screen: { return 0xe037; }
     case fan::input::key_right_alt: { return 0xe038; }
-    case fan::input::key_control_break: { return 0xe046; }
     case fan::input::key_home: { return 0xe047; }
     case fan::input::key_up: { return 0xe048; }
     case fan::input::key_page_up: { return 0xe049; }

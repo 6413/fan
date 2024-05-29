@@ -13,7 +13,7 @@ using ssbo_t = fan::vulkan::core::ssbo_t<vi_t, ri_t, max_instance_size, vulkan_b
   ssbo_t::nr_t last_ssbo_nr; \
   key_t key; \
   uint32_t total_instances;
-#include _FAN_PATH(BLL/BLL.h)
+#include <BLL/BLL.h>
 
 shape_bm_t bm_list;
 

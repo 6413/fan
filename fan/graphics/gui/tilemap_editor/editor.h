@@ -1145,6 +1145,9 @@ struct fte_t {
                 }
                 break;
               }
+              default: {
+                fan::throw_error("unimplemented");
+              }
             }
 
           }

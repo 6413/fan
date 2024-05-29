@@ -51,7 +51,7 @@ namespace fan
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeDataType character_info_t
 #define BLL_set_Link 0
-#include <fan/BLL/BLL.h>
+#include <BLL/BLL.h>
 
     using character_info_nr_t = character_info_list_NodeReference_t;
 

@@ -28,7 +28,7 @@ namespace fan {
 						return ((ri_t*)this->GetNodeReferenceData(nr, 1))[i]; \
 					}
 			protected:
-				#include _FAN_PATH(BLL/BLL.h)
+				#include <BLL/BLL.h>
 			public:
 				
 				using nr_t = instance_list_NodeReference_t;
