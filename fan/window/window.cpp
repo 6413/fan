@@ -187,6 +187,7 @@ void fan::window_t::glfw_initialize_t::open() {
   }
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, fan::window_t::gl_major);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, fan::window_t::gl_minor);
+  glfwWindowHint(GLFW_SAMPLES, 0);
 
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);

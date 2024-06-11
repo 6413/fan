@@ -21,6 +21,12 @@
 
 #define _PATH_QUOTE(p0) STRINGIFY(p0)
 
+// std::unreachable
+#include <utility>
+#ifndef __unreachable
+  #define __unreachable() std::unreachable()
+#endif
+
 #include <cstdint>
 #include <vector>
 #include <functional>
@@ -479,7 +485,7 @@ namespace fan {
 #define __ca__ ,
 
 #ifndef fan_debug
-	#define fan_debug fan_debug_none
+	#define fan_debug fan_debug_high
 #endif
 
 #ifndef fan_use_uninitialized

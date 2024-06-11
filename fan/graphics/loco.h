@@ -21,6 +21,8 @@
 
 #include <fan/physics/collision/rectangle.h>
 
+#include <fan/graphics/algorithm/FastNoiseLite.h>
+
 #if defined(loco_imgui)
 #include <fan/graphics/console.h>
 #endif
@@ -126,12 +128,55 @@ inline thread_local global_loco_t gloco;
 #endif
 
 
-static constexpr uint32_t MaxElementPerBlock = 0x10000;
-
-#define shaper_set_MaxMaxElementPerBlock 0x10000
-#include <fan/graphics/shaper.h>
-
 struct loco_t : fan::opengl::context_t {
+
+#define WITCH_LIBC 1
+static uint8_t* A_resize(void* ptr, uintptr_t size) {
+#if WITCH_LIBC
+  if (ptr) {
+    if (size) {
+      void* rptr = (void*)realloc(ptr, size);
+      if (rptr == 0) {
+        fan::throw_error_impl();
+      }
+      return (uint8_t*)rptr;
+    }
+    else {
+      free(ptr);
+      return 0;
+    }
+  }
+  else {
+    if (size) {
+      void* rptr = (void*)malloc(size);
+      if (rptr == 0) {
+        fan::throw_error_impl();
+      }
+      return (uint8_t*)rptr;
+    }
+    else {
+      return 0;
+    }
+  }
+#endif
+}
+
+  static constexpr uint32_t MaxElementPerBlock = 0x1000;
+
+  struct shape_gl_init_t {
+    uint32_t index;
+    uint32_t size;
+    uint32_t type; // for example GL_FLOAT
+    uint32_t stride;
+    void* pointer;
+  };
+
+  #define shaper_set_MaxMaxElementPerBlock 0x1000
+  #define shaper_set_fan 1
+  // sizeof(image_t) == 2
+  static_assert(sizeof(loco_t::image_t) != 2, "update shaper_set_MaxKeySize");
+  #define shaper_set_MaxKeySize 2 * 30
+  #include <fan/graphics/shaper.h>
 
   loco_t(const loco_t&) = delete;
   loco_t& operator=(const loco_t&) = delete;
@@ -168,7 +213,7 @@ struct loco_t : fan::opengl::context_t {
       common,
       vfi,
       texture,
-      texture4,
+      multitexture,
     };
   };
 
@@ -264,6 +309,8 @@ struct loco_t : fan::opengl::context_t {
 
   using draw_cb = void (*)(uint8_t draw_range);
 
+  using set_line_cb = void (*)(shape_t*, const fan::vec2&, const fan::vec2&);
+
   struct functions_t {
     push_back_cb push_back;
 
@@ -316,6 +363,8 @@ struct loco_t : fan::opengl::context_t {
     reload_cb reload;
 
     draw_cb draw;
+
+    set_line_cb set_line;
   };
 
   template <typename T, typename T2>
@@ -328,14 +377,12 @@ struct loco_t : fan::opengl::context_t {
   static void modify_render_data_element(shape_t* shape, T2 T::* attribute, const T3& value) {
     shaper_t::ShapeRenderData_t* data = gloco->shaper.GetRenderData(*shape);
     ((T*)data)->*attribute = value;
-    shaper_t::shape_t shaper_shape = gloco->shaper.ShapeList[*shape];
     gloco->shaper.ElementIsPartiallyEdited(
-      shaper_shape.bmid,
-      shaper_shape.blid,
-      shaper_shape.ElementIndex,
+      gloco->shaper.GetSTI(*shape),
+      gloco->shaper.GetBLID(*shape),
+      gloco->shaper.GetElementIndex(*shape),
       fan::member_offset(attribute),
-      sizeof(T3),
-      gloco->shaper.ShapeList[*shape].sti
+      sizeof(T3)
     );
   };
 
@@ -364,18 +411,13 @@ struct loco_t : fan::opengl::context_t {
       },
       .set_position3 = [](shape_t* shape, const fan::vec3& position) {
         if constexpr (fan_has_variable(T, position)) {
-          auto sp = gloco->shaper.ShapeList[*shape];
-
-            auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
-            auto& kps = gloco->shaper.KeyPacks[kpi];
-
-            void* _KeyPack = &((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
+            auto sti = gloco->shaper.GetSTI(*shape);
 
             // alloc can be avoided inside switch
-            uint8_t* KeyPack = new uint8_t[kps.KeySizesSum];
-            std::memcpy(KeyPack, _KeyPack, kps.KeySizesSum);
+            uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+            gloco->shaper.WriteKeys(*shape, KeyPack);
             
-            switch(kpi) {
+            switch(gloco->shaper.GetKPI(sti)) {
               case loco_t::kp::light: {
               // doesnt have depth
                 break;
@@ -388,24 +430,28 @@ struct loco_t : fan::opengl::context_t {
                 ((kps_t::texture_t*)KeyPack)->depth = position.z;
                 break;
               }
+              case loco_t::kp::multitexture: {
+                ((kps_t::multitexture_t*)KeyPack)->depth = position.z;
+                break;
+              }
               default: {
                 fan::throw_error("unimplemented kp");
               }
             }
             auto _vi = gloco->shaper.GetRenderData(*shape);
-            auto vlen = gloco->shaper.ShapeTypes[sp.sti].RenderDataSize;
+            auto vlen = gloco->shaper.GetRenderDataSize(sti);
             uint8_t* vi = new uint8_t[vlen];
             std::memcpy(vi, _vi, vlen);
             ((T*)vi)->position = position;
 
             auto _ri = gloco->shaper.GetData(*shape);
-            auto rlen = gloco->shaper.ShapeTypes[sp.sti].DataSize;
+            auto rlen = gloco->shaper.GetDataSize(sti);
             uint8_t* ri = new uint8_t[rlen];
             std::memcpy(ri, _ri, rlen);
 
             shape->remove();
             *shape = gloco->shaper.add(
-              sp.sti,
+              sti,
               KeyPack,
               vi,
               ri
@@ -532,20 +578,18 @@ struct loco_t : fan::opengl::context_t {
         .load_tp = [](shape_t* shape, loco_t::texturepack_t::ti_t* ti) -> bool {
           if constexpr(std::is_same_v<T, loco_t::sprite_t::vi_t> ||
           std::is_same_v<T, loco_t::unlit_sprite_t::vi_t>) {
-            auto sp = gloco->shaper.ShapeList[*shape];
+            auto sti = gloco->shaper.GetSTI(*shape);
+            
+            uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+            gloco->shaper.WriteKeys(*shape, KeyPack);
 
-            auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
-            auto& kps = gloco->shaper.KeyPacks[kpi];
-
-            void* _KeyPack = &((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
-
-            // alloc can be avoided inside switch
-            uint8_t* KeyPack = new uint8_t[kps.KeySizesSum];
-            std::memcpy(KeyPack, _KeyPack, kps.KeySizesSum);
-
-            switch(kpi) {
+            switch(gloco->shaper.GetKPI(sti)) {
               case loco_t::kp::texture: {
                 ((kps_t::texture_t*)KeyPack)->image = *ti->image;
+                break;
+              }
+              case loco_t::kp::multitexture: {
+                ((kps_t::multitexture_t*)KeyPack)->image = *ti->image;
                 break;
               }
               default: {
@@ -556,20 +600,20 @@ struct loco_t : fan::opengl::context_t {
             auto& img = gloco->image_get_data(im);
 
             auto _vi = gloco->shaper.GetRenderData(*shape);
-            auto vlen = gloco->shaper.ShapeTypes[sp.sti].RenderDataSize;
+            auto vlen = gloco->shaper.GetRenderDataSize(sti);
             uint8_t* vi = new uint8_t[vlen];
             std::memcpy(vi, _vi, vlen);
             ((T*)vi)->tc_position = ti->position / img.size;
             ((T*)vi)->tc_size = ti->size / img.size;
 
             auto _ri = gloco->shaper.GetData(*shape);
-            auto rlen = gloco->shaper.ShapeTypes[sp.sti].DataSize;
+            auto rlen = gloco->shaper.GetDataSize(sti);
             uint8_t* ri = new uint8_t[rlen];
             std::memcpy(ri, _ri, rlen);
 
             shape->remove();
             *shape = gloco->shaper.add(
-              sp.sti,
+              sti,
               KeyPack,
               vi,
               ri
@@ -601,12 +645,11 @@ struct loco_t : fan::opengl::context_t {
           }
         },
         .get_camera = [](shape_t* shape) {
-          auto& sp = gloco->shaper.ShapeList[*shape];
-          auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
-          void* KeyPack = &((shaper_t::bm_BaseData_t*)gloco->shaper.KeyPacks[
-            kpi
-          ].bm[sp.bmid])[1];
-          switch (kpi) {
+          auto sti = gloco->shaper.GetSTI(*shape);
+
+          // alloc can be avoided inside switch
+          void* KeyPack = gloco->shaper.GetKeys(*shape);
+          switch (gloco->shaper.GetKPI(sti)) {
           case loco_t::kp::light: {
             return ((kps_t::light_t*)KeyPack)->camera;
           }
@@ -616,6 +659,10 @@ struct loco_t : fan::opengl::context_t {
           case loco_t::kp::texture: {
             return ((kps_t::texture_t*)KeyPack)->camera;
           }
+          case loco_t::kp::multitexture: {
+            ((kps_t::multitexture_t*)KeyPack)->camera;
+            break;
+          }
           default: {
             fan::throw_error("unimplemented kp");
           }
@@ -624,18 +671,13 @@ struct loco_t : fan::opengl::context_t {
         },
         .set_camera = [](shape_t* shape, loco_t::camera_t camera) {
           {
-            auto sp = gloco->shaper.ShapeList[*shape];
-
-            auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
-            auto& kps = gloco->shaper.KeyPacks[kpi];
-
-            void* _KeyPack = &((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
+             auto sti = gloco->shaper.GetSTI(*shape);
 
             // alloc can be avoided inside switch
-            uint8_t* KeyPack = new uint8_t[kps.KeySizesSum];
-            std::memcpy(KeyPack, _KeyPack, kps.KeySizesSum);
+            uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+            gloco->shaper.WriteKeys(*shape, KeyPack);
 
-            switch(kpi) {
+            switch(gloco->shaper.GetKPI(sti)) {
               case loco_t::kp::light: {
                 ((kps_t::light_t*)KeyPack)->camera = camera;
                 break;
@@ -648,23 +690,27 @@ struct loco_t : fan::opengl::context_t {
                 ((kps_t::texture_t*)KeyPack)->camera = camera;
                 break;
               }
+              case loco_t::kp::multitexture: {
+                ((kps_t::multitexture_t*)KeyPack)->camera = camera;
+                break;
+              }
               default: {
                 fan::throw_error("unimplemented kp");
               }
             }
             auto _vi = gloco->shaper.GetRenderData(*shape);
-            auto vlen = gloco->shaper.ShapeTypes[sp.sti].RenderDataSize;
+            auto vlen = gloco->shaper.GetRenderDataSize(sti);
             uint8_t* vi = new uint8_t[vlen];
             std::memcpy(vi, _vi, vlen);
 
             auto _ri = gloco->shaper.GetData(*shape);
-            auto rlen = gloco->shaper.ShapeTypes[sp.sti].DataSize;
+            auto rlen = gloco->shaper.GetDataSize(sti);
             uint8_t* ri = new uint8_t[rlen];
             std::memcpy(ri, _ri, rlen);
 
             shape->remove();
             *shape = gloco->shaper.add(
-              sp.sti,
+              sti,
               KeyPack,
               vi,
               ri
@@ -678,12 +724,8 @@ struct loco_t : fan::opengl::context_t {
           }
         },
         .get_viewport = [](shape_t* shape) {
-          auto& sp = gloco->shaper.ShapeList[*shape];
-          auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
-          void* KeyPack = &((shaper_t::bm_BaseData_t*)gloco->shaper.KeyPacks[
-            kpi
-          ].bm[sp.bmid])[1];
-          switch (kpi) {
+          void* KeyPack = gloco->shaper.GetKeys(*shape);
+          switch (gloco->shaper.GetKPI(gloco->shaper.GetSTI(*shape))) {
           case loco_t::kp::light: {
             return ((kps_t::light_t*)KeyPack)->viewport;
           }
@@ -693,6 +735,10 @@ struct loco_t : fan::opengl::context_t {
           case loco_t::kp::texture: {
             return ((kps_t::texture_t*)KeyPack)->viewport;
           }
+          case loco_t::kp::multitexture: {
+            ((kps_t::multitexture_t*)KeyPack)->viewport;
+            break;
+          }
           default: {
             fan::throw_error("unimplemented kp");
           }
@@ -701,18 +747,12 @@ struct loco_t : fan::opengl::context_t {
         },
         .set_viewport = [](shape_t* shape, loco_t::viewport_t viewport) {
           {
-            auto sp = gloco->shaper.ShapeList[*shape];
-
-            auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
-            auto& kps = gloco->shaper.KeyPacks[kpi];
-
-            void* _KeyPack = &((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
+            auto sti = gloco->shaper.GetSTI(*shape);
 
             // alloc can be avoided inside switch
-            uint8_t* KeyPack = new uint8_t[kps.KeySizesSum];
-
-            std::memcpy(KeyPack, _KeyPack, kps.KeySizesSum);
-            switch (kpi) {
+            uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+            gloco->shaper.WriteKeys(*shape, KeyPack);
+            switch (gloco->shaper.GetKPI(sti)) {
             case loco_t::kp::light: {
               ((kps_t::light_t*)KeyPack)->viewport = viewport;
               break;
@@ -725,24 +765,28 @@ struct loco_t : fan::opengl::context_t {
               ((kps_t::texture_t*)KeyPack)->viewport = viewport;
               break;
             }
+            case loco_t::kp::multitexture: {
+              ((kps_t::multitexture_t*)KeyPack)->viewport = viewport;
+              break;
+            }
             default: {
               fan::throw_error("unimplemented kp");
             }
             }
             
             auto _vi = gloco->shaper.GetRenderData(*shape);
-            auto vlen = gloco->shaper.ShapeTypes[sp.sti].RenderDataSize;
+            auto vlen = gloco->shaper.GetRenderDataSize(sti);
             uint8_t* vi = new uint8_t[vlen];
             std::memcpy(vi, _vi, vlen);
 
             auto _ri = gloco->shaper.GetData(*shape);
-            auto rlen = gloco->shaper.ShapeTypes[sp.sti].DataSize;
+            auto rlen = gloco->shaper.GetDataSize(sti);
             uint8_t* ri = new uint8_t[rlen];
             std::memcpy(ri, _ri, rlen);
 
             shape->remove();
             *shape = gloco->shaper.add(
-              sp.sti,
+              sti,
               KeyPack,
               vi,
               ri
@@ -756,20 +800,20 @@ struct loco_t : fan::opengl::context_t {
           }
         },
         .set_image = [](shape_t* shape, loco_t::image_t image) {
-          auto sp = gloco->shaper.ShapeList[*shape];
-
-          auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
-          auto& kps = gloco->shaper.KeyPacks[kpi];
-
-          void* _KeyPack = &((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
+         
+          auto sti = gloco->shaper.GetSTI(*shape);
 
           // alloc can be avoided inside switch
-          uint8_t* KeyPack = new uint8_t[kps.KeySizesSum];
+          uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+          gloco->shaper.WriteKeys(*shape, KeyPack);
 
-          std::memcpy(KeyPack, _KeyPack, kps.KeySizesSum);
-          switch (kpi) {
+          switch (gloco->shaper.GetKPI(sti)) {
           case loco_t::kp::texture: {
             ((kps_t::texture_t*)KeyPack)->image = image;
+            break;
+          }
+          case loco_t::kp::multitexture: {
+            ((kps_t::multitexture_t*)KeyPack)->image = image;
             break;
           }
           default: {
@@ -778,18 +822,18 @@ struct loco_t : fan::opengl::context_t {
           }
             
           auto _vi = gloco->shaper.GetRenderData(*shape);
-          auto vlen = gloco->shaper.ShapeTypes[sp.sti].RenderDataSize;
+          auto vlen = gloco->shaper.GetRenderDataSize(sti);
           uint8_t* vi = new uint8_t[vlen];
           std::memcpy(vi, _vi, vlen);
 
           auto _ri = gloco->shaper.GetData(*shape);
-          auto rlen = gloco->shaper.ShapeTypes[sp.sti].DataSize;
+          auto rlen = gloco->shaper.GetDataSize(sti);
           uint8_t* ri = new uint8_t[rlen];
           std::memcpy(ri, _ri, rlen);
 
           shape->remove();
           *shape = gloco->shaper.add(
-            sp.sti,
+            sti,
             KeyPack,
             vi,
             ri
@@ -888,15 +932,12 @@ struct loco_t : fan::opengl::context_t {
           loco_t::universal_image_renderer_t::vi_t& vi = *(loco_t::universal_image_renderer_t::vi_t*)gloco->shaper.GetRenderData(*shape);
           loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)gloco->shaper.GetData(*shape);
           if (format != ri.format) {
-            auto& sp = gloco->shaper.ShapeList[*shape];
+            auto sti = gloco->shaper.GetSTI(*shape);
 
-            auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
-            auto& kps = gloco->shaper.KeyPacks[kpi];
-
-            loco_t::kps_t::texture_t& _KeyPack = *(loco_t::kps_t::texture_t*)&((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
+            loco_t::kps_t::texture_t& _KeyPack = *(loco_t::kps_t::texture_t*)gloco->shaper.GetKeys(*shape);
 
 
-            auto shader = gloco->shaper.ShapeTypes[sp.sti].shader;
+            auto shader = gloco->shaper.GetShader(sti);
             gloco->shader_set_vertex(
               shader,
               read_shader("shaders/opengl/2D/objects/pixel_format_renderer.vs")
@@ -967,6 +1008,15 @@ struct loco_t : fan::opengl::context_t {
         .draw = [](uint8_t draw_range) {
           // Implement draw function
         },
+        .set_line = [](shape_t* shape, const fan::vec2& src, const fan::vec2& dst) {
+          if constexpr (fan_has_variable(T, src) && fan_has_variable(T, dst)) {
+            modify_render_data_element(shape, &T::src, src);
+            modify_render_data_element(shape, &T::dst, dst);
+          }
+          else {
+            fan::throw_error("unimplemented set");
+          }
+        }
       };
     return funcs;
   }
@@ -992,6 +1042,15 @@ struct loco_t : fan::opengl::context_t {
       depth_t depth;
       blending_t blending;
       loco_t::image_t image;
+      loco_t::viewport_t viewport;
+      loco_t::camera_t camera;
+      shaper_t::ShapeTypeIndex_t ShapeType;
+    };
+    struct multitexture_t {
+      depth_t depth;
+      blending_t blending;
+      loco_t::image_t image;
+      std::array<loco_t::image_t, 30> images;
       loco_t::viewport_t viewport;
       loco_t::camera_t camera;
       shaper_t::ShapeTypeIndex_t ShapeType;
@@ -1141,6 +1200,10 @@ public:
 #define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
     fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, m_min, m_max)
 
+
+#define fan_imgui_dragfloat1(variable, speed) \
+    fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, -1, -1)
+
   struct imgui_fs_var_t {
     loco_t::imgui_element_t ie;
 
@@ -1150,11 +1213,20 @@ public:
     imgui_fs_var_t(
       loco_t::shader_t shader_nr,
       const fan::string& var_name,
-      T initial = 0,
-      T speed = 1,
-      T min = -100000,
-      T max = 100000
+      T initial_ = 0,
+      f32_t speed = 1,
+      f32_t min = -100000,
+      f32_t max = 100000
     ) {
+      //fan::vec_wrap_t < sizeof(T) / fan::conditional_value_t < std::is_class_v<T>, sizeof(T{} [0] ), sizeof(T) > , f32_t > initial = initial_;
+      fan::vec_wrap_t<fan::conditional_value_t<std::is_arithmetic_v<T>, 1, sizeof(T) / sizeof(f32_t)>::value, f32_t> 
+        initial;
+      if constexpr (std::is_arithmetic_v<T>) {
+        initial = (f32_t)initial_;
+      }
+      else {
+        initial = initial_;
+      }
         fan::opengl::context_t::shader_t& shader = gloco->shader_get(shader_nr);
         auto found = shader.uniform_type_table.find(var_name);
         if (found == shader.uniform_type_table.end()) {
@@ -1162,14 +1234,11 @@ public:
           return;
           //fan::throw_error("failed to set uniform value");
         }
-
       ie = [str = found->second, shader_nr, var_name, speed, min, max, data = initial]() mutable {
         bool modify = false;
         switch(fan::get_hash(str)) {
           case fan::get_hash(std::string_view("float")): {
-            f32_t d = data;
-            modify = ImGui::DragFloat(fan::string(std::move(var_name)).c_str(), (f32_t*)&d, (f32_t)speed, (f32_t)min, (f32_t)max);
-            data = d;
+            modify = ImGui::DragFloat(fan::string(std::move(var_name)).c_str(), &data[0], (f32_t)speed, (f32_t)min, (f32_t)max);
             break;
           }
           case fan::get_hash(std::string_view("vec2")): {
@@ -1281,7 +1350,8 @@ public:
       viewport,
       camera,
       ShapeType,
-      filler
+      filler,
+      multitexture
     };
   };
 
@@ -1308,30 +1378,25 @@ public:
       }
 
       {
-        auto& sp = gloco->shaper.ShapeList[s];
-
-        auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
-        auto kps = gloco->shaper.KeyPacks[kpi];
-
-        void* _KeyPack = &((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
+        auto sti = gloco->shaper.GetSTI(s);
 
         // alloc can be avoided inside switch
-        uint8_t* KeyPack = new uint8_t[kps.KeySizesSum];
-        std::memcpy(KeyPack, _KeyPack, kps.KeySizesSum);
+        uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+        gloco->shaper.WriteKeys(s, KeyPack);
 
 
         auto _vi = gloco->shaper.GetRenderData(s);
-        auto vlen = gloco->shaper.ShapeTypes[sp.sti].RenderDataSize;
+        auto vlen = gloco->shaper.GetRenderDataSize(sti);
         uint8_t* vi = new uint8_t[vlen];
         std::memcpy(vi, _vi, vlen);
 
         auto _ri = gloco->shaper.GetData(s);
-        auto rlen = gloco->shaper.ShapeTypes[sp.sti].DataSize;
+        auto rlen = gloco->shaper.GetDataSize(sti);
         uint8_t* ri = new uint8_t[rlen];
         std::memcpy(ri, _ri, rlen);
 
         *this = gloco->shaper.add(
-          sp.sti, 
+          sti, 
           KeyPack,
           vi, 
           ri
@@ -1407,30 +1472,25 @@ public:
       }
       if (this != &s) {
         {
-          auto& sp = gloco->shaper.ShapeList[s];
-
-          auto kpi = gloco->shaper.ShapeTypes[sp.sti].KeyPackIndex;
-          auto& kps = gloco->shaper.KeyPacks[kpi];
-
-          void* _KeyPack = &((shaper_t::bm_BaseData_t*)kps.bm[sp.bmid])[1];
+          auto sti = gloco->shaper.GetSTI(s);
 
           // alloc can be avoided inside switch
-          uint8_t* KeyPack = new uint8_t[kps.KeySizesSum];
-          std::memcpy(KeyPack, _KeyPack, kps.KeySizesSum);
+          uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+          gloco->shaper.WriteKeys(s, KeyPack);
 
 
           auto _vi = gloco->shaper.GetRenderData(s);
-          auto vlen = gloco->shaper.ShapeTypes[sp.sti].RenderDataSize;
+          auto vlen = gloco->shaper.GetRenderDataSize(sti);
           uint8_t* vi = new uint8_t[vlen];
           std::memcpy(vi, _vi, vlen);
 
           auto _ri = gloco->shaper.GetData(s);
-          auto rlen = gloco->shaper.ShapeTypes[sp.sti].DataSize;
+          auto rlen = gloco->shaper.GetDataSize(sti);
           uint8_t* ri = new uint8_t[rlen];
           std::memcpy(ri, _ri, rlen);
 
           *this = gloco->shaper.add(
-            sp.sti,
+            sti,
             KeyPack,
             vi,
             ri
@@ -1488,12 +1548,12 @@ public:
 
     // many things assume uint16_t so thats why not shaper_t::ShapeTypeIndex_t
     uint16_t get_shape_type() {
-      return gloco->shaper.ShapeList[*this].sti;
+      return gloco->shaper.GetSTI(*this);
     }
 
     template <typename T>
     void set_position(const fan::vec2_wrap_t<T>& position) {
-      gloco->shape_functions[gloco->shaper.ShapeList[*this].sti].set_position2(this, position);
+      gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_position2(this, position);
     }
 
     void set_position(const fan::vec3& position);
@@ -1551,6 +1611,8 @@ public:
 
     void reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR);
 
+    void set_line(const fan::vec2& src, const fan::vec2& dst);
+
   private:
   };
 
@@ -1569,7 +1631,7 @@ public:
       fan::vec2 rotation_point;
       fan::color color;
       fan::vec3 rotation_vector;
-      uint32_t flags;
+      uint32_t flags = 0;
       fan::vec3 angle;
     };;
     struct ri_t {
@@ -1578,15 +1640,15 @@ public:
 
 #pragma pack(pop)
 
-    inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {
-      shaper_t::ShapeType_t::init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-      shaper_t::ShapeType_t::init_t{1, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
-      shaper_t::ShapeType_t::init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-      shaper_t::ShapeType_t::init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-      shaper_t::ShapeType_t::init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-      shaper_t::ShapeType_t::init_t{5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector))},
-      shaper_t::ShapeType_t::init_t{6, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-      shaper_t::ShapeType_t::init_t{7, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
+    inline static std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{1, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
+      shape_gl_init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+      shape_gl_init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+      shape_gl_init_t{5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector))},
+      shape_gl_init_t{6, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+      shape_gl_init_t{7, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
     };
 
     struct properties_t {
@@ -1627,10 +1689,10 @@ public:
 
 #pragma pack(pop)
 
-  inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {
-    shaper_t::ShapeType_t::init_t{0, 4, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
-    shaper_t::ShapeType_t::init_t{1, 3, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
-    shaper_t::ShapeType_t::init_t{2, 3, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
+  inline static std::vector<shape_gl_init_t> locations = {
+    shape_gl_init_t{0, 4, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
+    shape_gl_init_t{1, 3, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
+    shape_gl_init_t{2, 3, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
   };
 
     struct properties_t {
@@ -1671,12 +1733,12 @@ public:
 
 #pragma pack(pop)
 
-    inline static  std::vector<shaper_t::ShapeType_t::init_t> locations = {
-      shaper_t::ShapeType_t::init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-      shaper_t::ShapeType_t::init_t{1, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-      shaper_t::ShapeType_t::init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-      shaper_t::ShapeType_t::init_t{3, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-      shaper_t::ShapeType_t::init_t{4, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
+    inline static  std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{1, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+      shape_gl_init_t{3, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+      shape_gl_init_t{4, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
     };
 
     struct properties_t {
@@ -1718,23 +1780,26 @@ public:
       uint32_t flags;
       fan::vec2 tc_position;
       fan::vec2 tc_size;
+      f32_t seed;
     };
     struct ri_t {
-
+      // main image + light buffer + 30
+      std::array<loco_t::image_t, 30> images;
     };
 
 #pragma pack(pop)
 
-  inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {
-    shaper_t::ShapeType_t::init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-    shaper_t::ShapeType_t::init_t{1, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
-    shaper_t::ShapeType_t::init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-    shaper_t::ShapeType_t::init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-    shaper_t::ShapeType_t::init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-    shaper_t::ShapeType_t::init_t{5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
-    shaper_t::ShapeType_t::init_t{6, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-    shaper_t::ShapeType_t::init_t{7, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-    shaper_t::ShapeType_t::init_t{8, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))}
+  inline static std::vector<shape_gl_init_t> locations = {
+    shape_gl_init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+    shape_gl_init_t{1, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
+    shape_gl_init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+    shape_gl_init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+    shape_gl_init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+    shape_gl_init_t{5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
+    shape_gl_init_t{6, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+    shape_gl_init_t{7, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
+    shape_gl_init_t{8, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
+    shape_gl_init_t{9, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
   };
 
     struct properties_t {
@@ -1749,7 +1814,7 @@ public:
       uint32_t flags = 0;
       fan::vec2 tc_position = 0;
       fan::vec2 tc_size = 1;
-      uint16_t shape_type = loco_t::shape_type_t::sprite;
+      f32_t seed = 0;
 
       bool load_tp(loco_t::texturepack_t::ti_t* ti) {
         auto& im = *ti->image;
@@ -1763,6 +1828,8 @@ public:
       bool blending = false;
 
       loco_t::image_t image = gloco->default_texture;
+      std::array<loco_t::image_t, 30> images;
+
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
     };
@@ -1788,23 +1855,26 @@ public:
       uint32_t flags;
       fan::vec2 tc_position;
       fan::vec2 tc_size;
+      f32_t seed = 0;
     };
     struct ri_t {
-
+      // main image + light buffer + 30
+      std::array<loco_t::image_t, 30> images;
     };
 
 #pragma pack(pop)
 
-    inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {
-      shaper_t::ShapeType_t::init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-      shaper_t::ShapeType_t::init_t{1, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
-      shaper_t::ShapeType_t::init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-      shaper_t::ShapeType_t::init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-      shaper_t::ShapeType_t::init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-      shaper_t::ShapeType_t::init_t{5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
-      shaper_t::ShapeType_t::init_t{6, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-      shaper_t::ShapeType_t::init_t{7, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-      shaper_t::ShapeType_t::init_t{8, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))}
+    inline static std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{1, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
+      shape_gl_init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+      shape_gl_init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+      shape_gl_init_t{5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
+      shape_gl_init_t{6, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+      shape_gl_init_t{7, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
+      shape_gl_init_t{8, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
+      shape_gl_init_t{9, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
     };
 
     struct properties_t {
@@ -1819,13 +1889,14 @@ public:
       int flags = 0;
       fan::vec2 tc_position = 0;
       fan::vec2 tc_size = 1;
+      f32_t seed = 0;
 
       bool blending = false;
 
       loco_t::image_t image = gloco->default_texture;
+      std::array<loco_t::image_t, 30> images;
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
-
 
       bool load_tp(loco_t::texturepack_t::ti_t* ti) {
         auto& im = *ti->image;
@@ -1867,15 +1938,15 @@ public:
 
 #pragma pack(pop)
 
-    inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {
-      shaper_t::ShapeType_t::init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-      shaper_t::ShapeType_t::init_t{1, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_size))},
-      shaper_t::ShapeType_t::init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-      shaper_t::ShapeType_t::init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-      shaper_t::ShapeType_t::init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-      shaper_t::ShapeType_t::init_t{5, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color))},
-      shaper_t::ShapeType_t::init_t{6, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
-      shaper_t::ShapeType_t::init_t{7, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
+    inline static std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{1, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_size))},
+      shape_gl_init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
+      shape_gl_init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+      shape_gl_init_t{5, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color))},
+      shape_gl_init_t{6, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
+      shape_gl_init_t{7, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
     };
 
     struct properties_t {
@@ -1955,13 +2026,13 @@ public:
 
 #pragma pack(pop)
 
-    inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {
-      shaper_t::ShapeType_t::init_t{ 0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position) },
-      shaper_t::ShapeType_t::init_t{ 1, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
-      shaper_t::ShapeType_t::init_t{ 2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
-      shaper_t::ShapeType_t::init_t{ 3, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
-      shaper_t::ShapeType_t::init_t{ 4, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector)) },
-      shaper_t::ShapeType_t::init_t{ 5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) }
+    inline static std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{ 0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position) },
+      shape_gl_init_t{ 1, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
+      shape_gl_init_t{ 2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
+      shape_gl_init_t{ 3, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
+      shape_gl_init_t{ 4, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector)) },
+      shape_gl_init_t{ 5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) }
     };
 
     struct properties_t {
@@ -1981,7 +2052,7 @@ public:
     };
 
 
-    shaper_t::ShapeID_t push_back(const circle_t::properties_t& properties);
+    loco_t::shape_t push_back(const circle_t::properties_t& properties);
 
   }circle;
 
@@ -2006,13 +2077,13 @@ public:
 
 #pragma pack(pop)
 
-    inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {
-      shaper_t::ShapeType_t::init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-      shaper_t::ShapeType_t::init_t{1, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, size)},
-      shaper_t::ShapeType_t::init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, grid_size)},
-      shaper_t::ShapeType_t::init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, rotation_point)},
-      shaper_t::ShapeType_t::init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, color)},
-      shaper_t::ShapeType_t::init_t{5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, angle)},
+    inline static std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{1, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, size)},
+      shape_gl_init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, grid_size)},
+      shape_gl_init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, rotation_point)},
+      shape_gl_init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, color)},
+      shape_gl_init_t{5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, angle)},
     };
 
     struct properties_t {
@@ -2040,7 +2111,7 @@ public:
     static constexpr uint16_t shape_type = shape_type_t::particles;
     static constexpr int kpi = kp::texture;
 
-    inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {};
+    inline static std::vector<shape_gl_init_t> locations = {};
 
 #pragma pack(push, 1)
 
@@ -2137,11 +2208,11 @@ public:
 
 #pragma pack(pop)
 
-  inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {
-    shaper_t::ShapeType_t::init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-    shaper_t::ShapeType_t::init_t{1, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-    shaper_t::ShapeType_t::init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-    shaper_t::ShapeType_t::init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))}
+  inline static std::vector<shape_gl_init_t> locations = {
+    shape_gl_init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+    shape_gl_init_t{1, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+    shape_gl_init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
+    shape_gl_init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))}
   };
 
     struct properties_t {
@@ -2248,6 +2319,58 @@ public:
   ImFont* fonts[6];
 #endif
   //gui
+
+
+  loco_t::image_t create_noise_image(const fan::vec2& image_size) {
+    loco_t::image_load_properties_t lp;
+    lp.format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+    lp.internal_format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+    lp.min_filter = loco_t::image_filter::linear;
+    lp.mag_filter = loco_t::image_filter::linear;
+    lp.visual_output = fan::opengl::GL_MIRRORED_REPEAT;
+
+    loco_t::image_t image;
+
+    FastNoiseLite noise;
+    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    noise.SetFrequency(0.010);
+    noise.SetFractalGain(0.5);
+    noise.SetFractalLacunarity(2.0);
+    noise.SetFractalOctaves(5);
+    noise.SetSeed(1337);
+    noise.SetFractalPingPongStrength(2.0);
+    f32_t noise_tex_min = -1;
+    f32_t noise_tex_max = 0.1;
+    //noise
+    // Gather noise data
+    std::vector<uint8_t> noiseDataRGB(image_size.multiply() * 4);
+
+    int index = 0;
+
+    float scale = 255 / (noise_tex_max - noise_tex_min);
+
+    for (int y = 0; y < image_size.y; y++)
+    {
+      for (int x = 0; x < image_size.x; x++)
+      {
+        float noiseValue = noise.GetNoise((float)x, (float)y);
+        unsigned char cNoise = (unsigned char)std::max(0.0f, std::min(255.0f, (noiseValue - noise_tex_min) * scale));
+        noiseDataRGB[index * 4 + 0] = cNoise;
+        noiseDataRGB[index * 4 + 1] = cNoise;
+        noiseDataRGB[index * 4 + 2] = cNoise;
+        noiseDataRGB[index * 4 + 3] = 255;
+        index++;
+      }
+    }
+
+    fan::webp::image_info_t ii;
+    ii.data = noiseDataRGB.data();
+    ii.size = image_size;
+
+    image = image_load(ii, lp);
+    return image;
+  }
 };
 
 // user friendly functions
@@ -2360,8 +2483,10 @@ namespace fan {
       fan::color color = fan::color(1, 1, 1, 1);
       fan::vec2 rotation_point = 0;
       loco_t::image_t image = gloco->default_texture;
+      std::array<loco_t::image_t, 30> images;
       f32_t parallax_factor = 0;
       bool blending = false;
+      uint32_t flags = 0;
     };
 
 
@@ -2377,9 +2502,11 @@ namespace fan {
             .size = p.size,
             .angle = p.angle,
             .image = p.image,
+            .images = p.images,
             .color = p.color,
             .rotation_point = p.rotation_point,
-            .blending = p.blending
+            .blending = p.blending,
+            .flags = p.flags
           ));
       }
     };
@@ -2419,6 +2546,7 @@ namespace fan {
       fan::color color = fan::color(1, 1, 1, 1);
       fan::vec2 rotation_point = 0;
       loco_t::image_t image = gloco->default_texture;
+      std::array<loco_t::image_t, 30> images;
       fan::vec2 tc_position = 0;
       fan::vec2 tc_size = 1;
       bool blending = false;
@@ -2435,6 +2563,7 @@ namespace fan {
             .size = p.size,
             .angle = p.angle,
             .image = p.image,
+            .images = p.images,
             .color = p.color,
             .tc_position = p.tc_position,
             .tc_size = p.tc_size,
@@ -2788,9 +2917,7 @@ namespace ImGui {
 
 void init_imgui();
 
-void process_render_data_queue(shaper_t& shaper, fan::opengl::context_t& context);
-
-void shape_keypack_traverse(shaper_t::KeyTraverse_t& KeyTraverse, fan::opengl::context_t& context);
+void shape_keypack_traverse(loco_t::shaper_t::KeyTraverse_t& KeyTraverse, fan::opengl::context_t& context);
 
 #if defined(loco_json)
 namespace fan {

@@ -94,6 +94,12 @@ void init_zoom() {
 
 int main(int argc, char** argv) {
 
+  uint32_t uint_value = 1; // 0x00000001
+  float float_value;
+  std::memcpy(&float_value, &uint_value, sizeof(float_value));
+  std::cout << "Float value: " << (uint32_t)float_value << std::endl;
+  return 0;
+
   if (argc != 2) {
     fan::print("usage *.exe TexturePack");
     return 1;
@@ -226,6 +232,8 @@ std::unique_ptr<player_t> player;
     fte.fout(fte.file_name + "temp");
     reload_scene();
   };
+
+  loco.set_vsync(0);
 
   loco.loop([&] {
     if (render_scene) {
