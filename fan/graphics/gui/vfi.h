@@ -469,7 +469,6 @@ struct vfi_t {
     f32_t closest_z = -1;
     shaper_t::ShapeID_t closest_z_nr;
     closest_z_nr.sic();
-    auto& shape_type_obj = gloco->shaper.ShapeTypes[loco_t::shape_type_t::vfi];
 
     {
 
@@ -483,18 +482,17 @@ struct vfi_t {
         BlockTraverse.Init(gloco->shaper, loco_t::kp::vfi, KeyTraverse.bmid(gloco->shaper));
         
         do {
-          auto& block = gloco->shaper.ShapeTypes[loco_t::shape_type_t::vfi];
-          for (int i = 0; i < BlockTraverse.GetAmount(gloco->shaper); ++i) {
-            auto& data = *(ri_t*)gloco->shaper._GetData(loco_t::shape_type_t::vfi, BlockTraverse.GetBlockID(), i);
-            fan::vec2 tp = transform(position, data.shape_type, data.shape_data);
-            mouse_move_data.mouse_stage = inside(data.shape_type, data.shape_data, tp);
-            if (mouse_move_data.mouse_stage == mouse_stage_e::inside) {
-              if (data.shape_data->depth > closest_z) {
-                closest_z = data.shape_data->depth;
-                closest_z_nr = gloco->shaper._GetShapeID(loco_t::shape_type_t::vfi, BlockTraverse.GetBlockID(), i);
-              }
-            }
-          }
+         for (int i = 0; i < BlockTraverse.GetAmount(gloco->shaper); ++i) {
+           auto& data = *(ri_t*)gloco->shaper._GetData(loco_t::shape_type_t::vfi, BlockTraverse.GetBlockID(), i);
+           fan::vec2 tp = transform(position, data.shape_type, data.shape_data);
+           mouse_move_data.mouse_stage = inside(data.shape_type, data.shape_data, tp);
+           if (mouse_move_data.mouse_stage == mouse_stage_e::inside) {
+             if (data.shape_data->depth > closest_z) {
+               closest_z = data.shape_data->depth;
+               closest_z_nr = gloco->shaper._GetShapeID(loco_t::shape_type_t::vfi, BlockTraverse.GetBlockID(), i);
+             }
+           }
+         }
         } while (BlockTraverse.Loop(gloco->shaper));
 
       }
