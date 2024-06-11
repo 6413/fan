@@ -115,7 +115,7 @@ int main() {
       int index = 0;
       for (auto& i : images) {
         for (auto& j : i) {
-          texture_properties.name = fan::string("tile") + std::to_string(index);
+          texture_properties.image_name = fan::string("tile") + std::to_string(index);
           texture_properties.uv_pos = j.uv_pos;
           texture_properties.uv_size = j.uv_size;
           e.push_texture(j.image, texture_properties);

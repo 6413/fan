@@ -569,12 +569,15 @@ if (path.substr(path.find_last_of(".") + 1) == "webp") {
     fan::webp::free_image(image_info.data);
     return nr;
 } else {
-    fan::webp::image_info_t image_info;
-    if (fan::stb::load(path, (fan::stb::image_info_t*)&image_info)) {
+    fan::stb::image_info_t image_info;
+    if (fan::stb::load(path, &image_info)) {
         return create_missing_texture();
     }
-    image_nr_t nr = image_load(image_info, p);
-    fan::stb::free_image((fan::stb::image_info_t*)&image_info);
+    fan::webp::image_info_t ii;
+    ii.data = image_info.data;
+    ii.size = image_info.size;
+    image_nr_t nr = image_load(ii, p);
+    fan::stb::free_image(&image_info);
     return nr;
 }
 }

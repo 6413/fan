@@ -4,6 +4,8 @@
 
 #include <fan/fmt.h>
 
+#include <fan/graphics/algorithm/raycast_grid.h>
+
 struct fte_t {
   static constexpr int max_id_len = 48;
   static constexpr fan::vec2 default_button_size{ 100, 30 };
@@ -336,6 +338,14 @@ struct fte_t {
     grid_visualize.grid = p;
 
     resize_map();
+
+    visual_line = fan::graphics::line_t{{
+      .camera = camera,
+      .src = fan::vec3(0, 0, shape_depths_t::cursor_highlight_depth + 1),
+      .dst = fan::vec2(400),
+      .color = fan::colors::white
+    }};
+
   }
   void close() {
 
@@ -385,9 +395,13 @@ struct fte_t {
     f32_t inital_x = position.x;
 
     fan::vec2i grid_position = position;
+
     convert_draw_to_grid(grid_position);
 
+    brush.line_src = gloco->get_mouse_position(camera->camera, camera->viewport);
+
     grid_position /= tile_size;
+
     auto& layers = map_tiles[grid_position].layers;
     visual_layers[brush.depth].positions[grid_position] = 1;
     uint32_t idx = find_layer_shape(layers);
@@ -1000,6 +1014,39 @@ struct fte_t {
     }
     editor_settings.hovered = ImGui::IsWindowHovered();
     ImGui::End();
+
+    if (gloco->window.key_state(fan::key_shift) != -1) {
+      fan::vec2 line_dst = gloco->get_mouse_position(camera->camera, camera->viewport);
+      visual_line.set_line(brush.line_src, line_dst);
+      if (gloco->window.key_state(fan::mouse_left) == 1) {
+        //fan::print(brush.line_src, line_dst);
+        std::vector<fan::vec2i> raycast_positions = fan::graphics::algorithm::grid_raycast({ brush.line_src / 2, line_dst / 2 }, tile_size);
+        int i = 0;
+        for (fan::vec2i& i : raycast_positions) {
+          fan::vec2i p = i;
+         // p /= 2;
+          //p -= tile_size;
+          p *= (tile_size * 2);
+          p += tile_size;
+          //convert_grid_to_draw(p);
+        //  fan::print(p);
+          //fan::vec2 p2 = 
+          //int i = 0, j = 0;
+          for (int i = 0; i < brush.size.y; ++i) {
+            for (int j = 0; j < brush.size.x; ++j) {
+              fan::vec2i abc = p + fan::vec2i(j * (tile_size.x * 2), i * (tile_size.y * 2));
+              handle_tile_push(abc, i, j);
+            }
+          }
+        }
+        //for (auto& pos : raycast_positions) {
+          //map[pos.y][pos.x].set_color(fan::colors::green);
+        //}
+      }
+    }
+    else {
+      visual_line.set_line(0, 0);
+    }
     return false;
   }
 
@@ -1302,7 +1349,7 @@ struct fte_t {
 
 
       {
-        if (ImGui::SliderInt2("size", brush.size.data(), 1, 1e+6)) {
+        if (ImGui::SliderInt2("size", brush.size.data(), 1, 4096)) {
           grid_visualize.highlight_hover.set_size(tile_size * brush.size);
         }
       }
@@ -1605,7 +1652,7 @@ shape data{
     }
   }
 
-  fan::vec2i map_size{ 64, 64 };
+  fan::vec2i map_size{ 6, 6 };
   fan::vec2i tile_size{ 32, 32 };
 
   struct tile_info_t {
@@ -1691,6 +1738,7 @@ shape data{
       copy
     };
     mode_e mode = mode_e::draw;
+    fan::vec2 line_src = -9999999;
     static constexpr const char* mode_names[] = {"Draw", "Copy"};
     enum class type_e : uint8_t {
       texture,
@@ -1740,4 +1788,5 @@ shape data{
   fan::function_t<void(int)> modify_cb = [](int) {};
 
   std::string previous_file_name;
+  loco_t::shape_t visual_line;
 };

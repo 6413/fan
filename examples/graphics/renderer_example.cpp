@@ -40,8 +40,7 @@ private: /* --------------------------------------------------------------------
 #define BLL_set_prefix BlockList
 #define BLL_set_Language 1
 #define BLL_set_Link 1
-#define BLL_set_NoSentinel
-#define BLL_set_UseUninitialisedValues 0
+#define BLL_set_LinkSentinel 0
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_type_node blnr_t
 #include <WITCH/BLL/BLL.h>
@@ -59,7 +58,6 @@ private: /* --------------------------------------------------------------------
 #define BLL_set_prefix bm
 #define BLL_set_Language 1
 #define BLL_set_Link 0
-#define BLL_set_UseUninitialisedValues 0
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_type_node ktbmnr_t
 #include <WITCH/BLL/BLL.h>
@@ -77,7 +75,6 @@ private: /* --------------------------------------------------------------------
 #define BLL_set_prefix ShapeList
 #define BLL_set_Language 1
 #define BLL_set_Link 0
-#define BLL_set_UseUninitialisedValues 0
 #define BLL_set_NodeDataType shape_t
 #define BLL_set_AreWeInsideStruct 1
   // actually it needs to be uint24_t
