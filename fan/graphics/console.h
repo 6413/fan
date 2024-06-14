@@ -85,6 +85,7 @@ namespace fan {
     commands_t commands;
     TextEditor editor;
     TextEditor input;
+    uint32_t transparency;
     
     void set_input_focus();
 

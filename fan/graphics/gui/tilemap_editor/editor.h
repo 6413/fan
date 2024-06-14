@@ -616,7 +616,16 @@ struct fte_t {
       if (idx != invalid || idx < layers.size()) {
         switch (layers[idx].tile.mesh_property) {
           case mesh_property_t::light:{
-            visual_shapes.erase(layers[idx].shape.get_position());
+            fan::vec3 erase_position = layers[idx].shape.get_position();
+            erase_position.x /= tile_size.x * 2;
+            erase_position.y /= tile_size.y * 2;
+            erase_position.x = floor(erase_position.x);
+            erase_position.y = floor(erase_position.y);
+            //erase_position.z -= 1;
+            auto found = visual_shapes.find(erase_position);
+            if (found != visual_shapes.end()) {
+              visual_shapes.erase(found);
+            }
             break;
           }
           default: {

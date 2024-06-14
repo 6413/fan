@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/masterpiece.h>
+
 namespace fan {
   namespace graphics {
     struct animation_editor_t {
@@ -83,12 +85,8 @@ namespace fan {
       }
 
       static void load_image(loco_t::shape_t& shape, const fan::string& name, loco_t::image_t& image) {
-        if (image.load(name)) {
-          fan::print_warning("failed to load image:" + name);
-        }
-        else {
-          shape.set_image(&image);
-        }
+        image = gloco->image_load(name);
+        shape.set_image(image);
       }
 
       static void load_image(loco_t::shape_t& shape, const fan::string& name, loco_t::texturepack_t& texturepack) {
@@ -240,11 +238,15 @@ namespace fan {
         fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
         fan::vec2 offset = viewport_size - viewport_size;
         fan::vec2 s = viewport_size;
-        gloco->default_camera->camera.set_ortho(
+        gloco->camera_set_ortho(
+          gloco->orthographic_camera.camera,
           fan::vec2(-s.x, s.x),
           fan::vec2(-s.y, s.y)
         );
-        gloco->default_camera->viewport.set(viewport_pos, viewport_size, window_size);
+        gloco->viewport_set(
+          gloco->orthographic_camera.viewport,
+          viewport_pos, viewport_size, window_size
+        );
         ImGui::End();
 
         static int active_object = 0;
@@ -325,16 +327,12 @@ namespace fan {
               input = input.c_str();
               static loco_t::image_t image;
               loco_t::texturepack_t::ti_t ti;
-              if (image.load(input)) {
-                fan::print_warning("failed to load image:" + input);
-              }
-              else {
-                auto& ob = objects[active_object].sprite->children[0];
-                ob.set_image(&image);
-                ob.set_tc_position(0);
-                ob.set_tc_size(1);
-                objects[active_object].image_name = input;
-              }
+              image = gloco->image_load(input);
+              auto& ob = objects[active_object].sprite->children[0];
+              ob.set_image(image);
+              ob.set_tc_position(0);
+              ob.set_tc_size(1);
+              objects[active_object].image_name = input;
               if (texturepack.qti(input, &ti)) {
                 fan::print_warning("failed to load texturepack image:" + input);
               }

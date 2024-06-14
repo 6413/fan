@@ -4,6 +4,18 @@ int main() {
   loco_t loco;
   loco.lighting.ambient = 0;
 
+  fan::webp::image_info_t ii;
+  fan::webp::load("images/cursor.webp", &ii);
+
+
+  GLFWimage image_cursor;
+  image_cursor.width = ii.size.x;
+  image_cursor.height = ii.size.y;
+  image_cursor.pixels = (unsigned char*)ii.data;
+
+  GLFWcursor* cursor = glfwCreateCursor(&image_cursor, 0, 0);
+
+
 
   loco_t::image_load_properties_t lp;
   lp.format = fan::opengl::GL_RGBA; // Change this to GL_RGB
@@ -33,11 +45,11 @@ int main() {
   .blending = true
 } });
   sprites.push_back(fan::graphics::sprite_t{ {
-.position = fan::vec3(fan::vec2(640, 360 - 160), 254),
-.size = 160 / 2,
-.image = image_dirt,
-.blending = true
-} });
+    .position = fan::vec3(fan::vec2(640, 360 - 160), 254),
+    .size = 160 / 2,
+    .image = image_dirt,
+    .blending = true
+  } });
   sprites.push_back(fan::graphics::sprite_t{ {
 .position = fan::vec3(fan::vec2(640, 360 + 160), 254),
 .size = 160 / 2,
@@ -91,7 +103,7 @@ int main() {
   loco.loop([&] {
     gloco->shader_set_value(shader_nr, "offset", loco.get_mouse_position() / 8000);
     
-
+    glfwSetCursor(loco.window.glfw_window, cursor);
     //static 
     //fan_imgui_dragfloat()
 
