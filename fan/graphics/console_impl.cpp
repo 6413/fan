@@ -205,7 +205,8 @@ void fan::console_t::render() {
     editor.SetReadOnly(true);
     commands.call(current_command.substr(0, current_command.size() - 1));
     history_pos = -1;
-    input.MoveEnd();
+    input.SetText("");
+    set_input_focus();
     //ImGui::SetWindowFocus("input");
   }
   if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, false)) {

@@ -181,6 +181,23 @@ void generate_commands(loco_t* loco) {
   loco->console.commands.add("quit", [](const fan::commands_t::arg_t& args) {
     exit(0);
   }).description = "quits program - usage quit";
+
+  loco->console.commands.add("clear", [](const fan::commands_t::arg_t& args) {
+    gloco->console.output_buffer.clear();
+    gloco->console.editor.SetText("");
+  }).description = "clears output buffer - usage clear";
+
+  /*loco->console.commands.add("console_transparency", [](const fan::commands_t::arg_t& args) {
+    if (args.size() != 1) {
+      gloco->console.commands.print_invalid_arg_count();
+      return;
+    }
+    gloco->console.transparency = std::stoull(args[0]);
+    for (int i = 0; i < 21; ++i) {
+      (gloco->console.editor.GetPalette().data() + i = gloco->console.transparency;
+    }
+    }).description = "";*/
+
 #endif
 }
 
