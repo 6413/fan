@@ -523,6 +523,12 @@ loco_t::loco_t(const properties_t& p) :
     "shaders/opengl/2D/objects/yuv420p.fs"
   );
 
+  shape_open<loco_t::gradient_t>(
+    &gradient,
+    "shaders/opengl/2D/effects/gradient.vs",
+    "shaders/opengl/2D/effects/gradient.fs"
+  );
+
 #if defined(loco_letter)
 #if !defined(loco_font)
 #define loco_font "fonts/bitter"
@@ -837,36 +843,37 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
           }
           case shape_type_t::particles: {
             //fan::print("shaper design is changed");
-            //particles_t::ri_t* pri = (particles_t::ri_t*)BlockTraverse.GetData(shaper);
+            particles_t::ri_t* pri = (particles_t::ri_t*)BlockTraverse.GetData(shaper);
+            loco_t::shader_t shader = shaper.GetShader(shape_type_t::particles);
 
-            //for (int i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
-            //  auto& ri = pri[i];
-            //  context.shader_set_value(block.shader, "time", (f64_t)(fan::time::clock::now() - ri.begin_time) / 1e+9);
-            //  context.shader_set_value(block.shader, "vertex_count", 6);
-            //  context.shader_set_value(block.shader, "count", ri.count);
-            //  context.shader_set_value(block.shader, "alive_time", (f32_t)ri.alive_time / 1e+9);
-            //  context.shader_set_value(block.shader, "respawn_time", (f32_t)ri.respawn_time / 1e+9);
-            //  context.shader_set_value(block.shader, "position", *(fan::vec2*)&ri.position);
-            //  context.shader_set_value(block.shader, "size", ri.size);
-            //  context.shader_set_value(block.shader, "position_velocity", ri.position_velocity);
-            //  context.shader_set_value(block.shader, "angle_velocity", ri.angle_velocity);
-            //  context.shader_set_value(block.shader, "begin_angle", ri.begin_angle);
-            //  context.shader_set_value(block.shader, "end_angle", ri.end_angle);
-            //  context.shader_set_value(block.shader, "angle", ri.angle);
-            //  context.shader_set_value(block.shader, "color", ri.color);
-            //  context.shader_set_value(block.shader, "gap_size", ri.gap_size);
-            //  context.shader_set_value(block.shader, "max_spread_size", ri.max_spread_size);
-            //  context.shader_set_value(block.shader, "size_velocity", ri.size_velocity);
+            for (int i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
+              auto& ri = pri[i];
+              context.shader_set_value(shader, "time", (f64_t)(fan::time::clock::now() - ri.begin_time) / 1e+9);
+              context.shader_set_value(shader, "vertex_count", 6);
+              context.shader_set_value(shader, "count", ri.count);
+              context.shader_set_value(shader, "alive_time", (f32_t)ri.alive_time / 1e+9);
+              context.shader_set_value(shader, "respawn_time", (f32_t)ri.respawn_time / 1e+9);
+              context.shader_set_value(shader, "position", *(fan::vec2*)&ri.position);
+              context.shader_set_value(shader, "size", ri.size);
+              context.shader_set_value(shader, "position_velocity", ri.position_velocity);
+              context.shader_set_value(shader, "angle_velocity", ri.angle_velocity);
+              context.shader_set_value(shader, "begin_angle", ri.begin_angle);
+              context.shader_set_value(shader, "end_angle", ri.end_angle);
+              context.shader_set_value(shader, "angle", ri.angle);
+              context.shader_set_value(shader, "color", ri.color);
+              context.shader_set_value(shader, "gap_size", ri.gap_size);
+              context.shader_set_value(shader, "max_spread_size", ri.max_spread_size);
+              context.shader_set_value(shader, "size_velocity", ri.size_velocity);
 
-            //  context.shader_set_value(block.shader, "shape", ri.shape);
+              context.shader_set_value(shader, "shape", ri.shape);
 
-            //  // TODO how to get begin?
-            //  context.opengl.glDrawArrays(
-            //    fan::opengl::GL_TRIANGLES,
-            //    0,
-            //    ri.count
-            //  );
-            //}
+              // TODO how to get begin?
+              context.opengl.glDrawArrays(
+                fan::opengl::GL_TRIANGLES,
+                0,
+                ri.count
+              );
+            }
 
             break;
           }
@@ -1757,6 +1764,24 @@ loco_t::shape_t loco_t::universal_image_renderer_t::push_back(const properties_t
   return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
 }
 
+loco_t::shape_t loco_t::gradient_t::push_back(const properties_t& properties) {
+  kps_t::common_t KeyPack;
+  KeyPack.ShapeType = shape_type;
+  KeyPack.depth = properties.position.z;
+  KeyPack.blending = properties.blending;
+  KeyPack.camera = properties.camera;
+  KeyPack.viewport = properties.viewport;
+  vi_t vi;
+  vi.position = properties.position;
+  vi.size = properties.size;
+  std::memcpy(vi.color, properties.color, sizeof(vi.color));
+  vi.angle = properties.angle;
+  vi.rotation_point = properties.rotation_point;
+  ri_t ri;
+
+  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+}
+
 void fan::graphics::gl_font_impl::font_t::open(const fan::string& image_path) {
   fan::opengl::context_t::image_load_properties_t lp;
 #if defined(loco_opengl)
@@ -1939,7 +1964,7 @@ bool fan::graphics::shape_to_json(loco_t::shape_t& shape, fan::json* json) {
     out["gap_size"] = ri.gap_size;
     out["max_spread_size"] = ri.max_spread_size;
     out["size_velocity"] = ri.size_velocity;
-    out["shape"] = ri.shape;
+    out["particle_shape"] = ri.shape;
     out["blending"] = ri.blending;
     break;
   }
@@ -1950,7 +1975,7 @@ bool fan::graphics::shape_to_json(loco_t::shape_t& shape, fan::json* json) {
   return false;
 }
 
-bool fan::graphics::json_to_shape(const nlohmann::json& in, loco_t::shape_t* shape) {
+bool fan::graphics::json_to_shape(const fan::json& in, loco_t::shape_t* shape) {
   std::string shape_type = in["shape"];
   switch (fan::get_hash(shape_type.c_str())) {
   case fan::get_hash("rectangle"): {
@@ -2053,7 +2078,7 @@ bool fan::graphics::json_to_shape(const nlohmann::json& in, loco_t::shape_t* sha
     p.gap_size = in["gap_size"];
     p.max_spread_size = in["max_spread_size"];
     p.size_velocity = in["size_velocity"];
-    p.shape = in["shape"];
+    p.shape = in["particle_shape"];
     p.blending = in["blending"];
     *shape = p;
     break;
