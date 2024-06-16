@@ -203,6 +203,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
       vfi,
       particles,
       universal_image_renderer,
+      gradient,
       last
     };
   };
@@ -507,18 +508,20 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             fan::throw_error("unimplemented set");
           }
               },
-        .get_color = [](shape_t* shape) {
+        .get_color = [](shape_t* shape) -> fan::color{
           if constexpr (fan_has_variable(T, color)) {
-            return get_render_data(shape, &T::color);
+            return *(fan::color*)&get_render_data(shape, &T::color);
           }
           else {
             fan::throw_error("unimplemented get");
             return fan::color();
           }
-              },
+        },
         .set_color = [](shape_t* shape, const fan::color& color) {
           if constexpr (fan_has_variable(T, color)) {
-            modify_render_data_element(shape, &T::color, color);
+            if constexpr (!std::is_same_v<T, loco_t::gradient_t::vi_t>) {
+              modify_render_data_element(shape, &T::color, color);
+            }
           }
           else {
             fan::throw_error("unimplemented set");
@@ -1450,6 +1453,9 @@ public:
       else if constexpr (std::is_same_v<T, loco_t::universal_image_renderer_t::properties_t>) {
         *this = gloco->universal_image_renderer.push_back(properties);
       }
+      else if constexpr (std::is_same_v<T, loco_t::gradient_t::properties_t>) {
+        *this = gloco->gradient.push_back(properties);
+      }
       else {
         fan::throw_error("failed to find correct shape", typeid(T).name());
       }
@@ -2239,6 +2245,63 @@ public:
 
   }universal_image_renderer;
 
+  struct gradient_t {
+
+    static constexpr uint16_t shape_type = shape_type_t::gradient;
+    static constexpr int kpi = kp::common;
+
+#pragma pack(push, 1)
+
+    struct vi_t {
+      fan::vec3 position;
+      fan::vec2 size;
+      fan::vec2 rotation_point;
+      // top left, top right
+      // bottom left, bottom right
+      fan::color color[4];
+      fan::vec3 angle;
+    };
+    struct ri_t {
+
+    };
+
+#pragma pack(pop)
+
+    inline static std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{1, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+      shape_gl_init_t{3, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 0)},
+      shape_gl_init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 1)},
+      shape_gl_init_t{5, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 2)},
+      shape_gl_init_t{6, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 3)},
+      shape_gl_init_t{7, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
+    };
+
+    struct properties_t {
+      using type_t = gradient_t;
+
+      fan::vec3 position = 0;
+      fan::vec2 size = 0;
+      fan::color color[4] = {
+        fan::random::color(),
+        fan::random::color(),
+        fan::random::color(),
+        fan::random::color()
+      };
+      bool blending = false;
+      fan::vec3 angle = 0;
+      fan::vec2 rotation_point = 0;
+
+      loco_t::camera_t camera = gloco->orthographic_camera.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+    };
+
+
+    shape_t push_back(const properties_t& properties);
+
+  }gradient;
+
 
   template <typename T>
   inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment) {
@@ -2957,9 +3020,14 @@ namespace fan {
         if (data.it == json.cend()) {
           return 0;
         }
-
-        json_to_shape(*data.it, shape);
-        ++data.it;
+        if (json.type() == fan::json::value_t::object) {
+          json_to_shape(json, shape);
+          return 0;
+        }
+        else {
+          json_to_shape(*data.it, shape);
+          ++data.it;
+        }
         return 1;
       }
 
