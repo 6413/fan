@@ -28,8 +28,6 @@ int main() {
   p.color = fan::colors::red;
   p.image = i2;
 
-  loco_t::shape_t s2 = p;
-
   loco_t::shape_t bg = fan_init_struct(
     loco_t::rectangle_t::properties_t,
     .position = fan::vec3(window_size / 2, 0),

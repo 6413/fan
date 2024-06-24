@@ -29,6 +29,10 @@ void fan::window::mouse_button_callback(GLFWwindow* window, int button, int acti
 
 void fan::window::keyboard_keys_callback(GLFWwindow* wnd, int key, int scancode, int action, int mods)
 {
+  if (key == -1) {
+    return;
+  }
+
   auto found = fan::window_t::window_map.find(wnd);
   if (found != fan::window_t::window_map.end()) {
     fan::window_t* window = found->second;

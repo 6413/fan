@@ -200,7 +200,8 @@ namespace fan {
     constexpr ray3_t(const fan::vec3& origin_, fan::vec3& direction_) : origin(origin_), direction(direction_){}
   };
 
-  using line = std::pair<fan::vec2, fan::vec2>;
+  using line = fan::pair_t<fan::vec2, fan::vec2>;
+  using line3 = fan::pair_t<fan::vec3, fan::vec3>;
 }
 
 #undef fan_coordinate_letters0

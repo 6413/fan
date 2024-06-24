@@ -216,6 +216,22 @@ struct fte_t {
           }
           else {
             viewport_settings.zoom *= scroll_speed;
+
+            auto& style = ImGui::GetStyle();
+            fan::vec2 frame_padding = style.FramePadding;
+            fan::vec2 pos = (gloco->window.get_mouse_position() - viewport_settings.window_related_mouse_pos);
+            pos /= gloco->window.get_size();
+            pos *= viewport_settings.size / 2;
+            viewport_settings.zoom_offset += pos / viewport_settings.zoom;
+            fan::print(viewport_settings.zoom_offset);
+
+            // requires window's cursor position
+            //fan::vec2 mouse_position = viewport_settings.window_related_mouse_pos;
+            //mouse_position -= viewport_settings.size / 2;
+
+            //viewport_settings.pos += (mouse_position * viewport_settings.zoom) / 4;
+
+            //gloco->camera_set_position(camera->camera, viewport_settings.pos);
           }
           return;
         }
@@ -512,7 +528,6 @@ struct fte_t {
           // todo fix
           layers.back().tile.mesh_property = mesh_property_t::none;
           if (brush.type != brush_t::type_e::light) {
-            //fan::print("a");
             layers.back().shape = fan::graphics::sprite_t{ {
                 .camera = camera,
                 .position = fan::vec3(position, brush.depth),
@@ -854,12 +869,8 @@ struct fte_t {
 
   bool handle_editor_window(fan::vec2& editor_size) {
     if (ImGui::BeginMainMenuBar()) {
-
       {
-
         static std::string fn;
-
-
           if (ImGui::BeginMenu("File"))
           {
             if (ImGui::MenuItem("Open..", "Ctrl+O")) {
@@ -894,9 +905,9 @@ struct fte_t {
     fan::vec2 window_size = ImGui::GetIO().DisplaySize;
       fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
 
-      ImVec2 mainViewportPos = ImGui::GetMainViewport()->Pos;
+      fan::vec2 mainViewportPos = ImGui::GetMainViewport()->Pos;
 
-      ImVec2 windowPos = ImGui::GetWindowPos();
+      fan::vec2 windowPos = ImGui::GetWindowPos();
 
       auto& style = ImGui::GetStyle();
       fan::vec2 frame_padding = style.FramePadding;
@@ -907,11 +918,26 @@ struct fte_t {
       real_viewport_size.x = fan::clamp(real_viewport_size.x, 1.f, real_viewport_size.x);
       real_viewport_size.y = fan::clamp(real_viewport_size.y, 1.f, real_viewport_size.y);
       
-      gloco->camera_set_ortho(
-        camera->camera,
-        fan::vec2(-real_viewport_size.x, real_viewport_size.x) / viewport_settings.zoom,
-        fan::vec2(-real_viewport_size.y, real_viewport_size.y) / viewport_settings.zoom
-      );
+//     fan::vec2 mouseViewportPos = gloco->get_mouse_position(camera->camera, camera->viewport) - (viewport_pos + windowPos + mainViewportPos);
+//
+//// Normalize mouse position in the viewport (range 0 to 1)
+//fan::vec2 mouseViewportNorm = mouseViewportPos / real_viewport_size;
+//
+//// Calculate the new viewport size based on the zoom level
+//fan::vec2 newViewportSize = real_viewport_size / viewport_settings.zoom;
+//
+//// Calculate the offset to keep the mouse position stable after zoom
+//fan::vec2 zoomOffset = (mouseViewportNorm * real_viewport_size) - (mouseViewportNorm * newViewportSize);
+//
+//// Adjust the camera's orthographic projection to zoom towards the mouse position
+      //fan::vec2 offset = gloco->get_mouse_position(camera->camera, camera->viewport);
+gloco->camera_set_ortho(
+    camera->camera,
+    (fan::vec2(-real_viewport_size.x, real_viewport_size.x) / viewport_settings.zoom) + viewport_settings.zoom_offset.x,
+    (fan::vec2(-real_viewport_size.y, real_viewport_size.y) / viewport_settings.zoom) + viewport_settings.zoom_offset.y
+);
+
+
 
       gloco->viewport_set(
         camera->viewport, 
@@ -920,8 +946,12 @@ struct fte_t {
         window_size
       );
       editor_size = real_viewport_size;
-      viewport_settings.size = editor_size;
+      viewport_settings.size = viewport_size;
+
+      viewport_settings.window_related_mouse_pos = fan::vec2(fan::vec2(ImGui::GetWindowPos()) + fan::vec2(ImGui::GetWindowSize() / 2) + fan::vec2(0, style.WindowPadding.y * 2 - frame_padding.y * 2));
+
       ImGui::SetWindowFontScale(1.5);
+      //viewport_settings.window_related_mouse_pos = ImGui::GetMousePos();
       {
         auto fmt =  fan::format("brush type: {}", brush.type_names[(uint8_t)brush.type]);
         ImGui::TextColored(ImVec4(1, 1, 1, 1), "%s", fmt.c_str());
@@ -1782,6 +1812,8 @@ shape data{
     fan::vec2 pos = 0;
     fan::vec2 size = 0;
     fan::vec2 offset = 0;
+    fan::vec2 window_related_mouse_pos = 0;
+    fan::vec2 zoom_offset = 0;
   }viewport_settings;
 
   struct {

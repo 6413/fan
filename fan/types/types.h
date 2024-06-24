@@ -21,12 +21,6 @@
 
 #define _PATH_QUOTE(p0) STRINGIFY(p0)
 
-// std::unreachable
-#include <utility>
-#ifndef __unreachable
-  #define __unreachable() std::unreachable()
-#endif
-
 #include <cstdint>
 #include <vector>
 #include <functional>
@@ -352,16 +346,22 @@ namespace fan {
 
 	};
 
-	template <typename T, typename T2>
-	struct pair_t {
-		T first;
-		T2 second;
-	};
+  template <typename T, typename T2>
+	struct pair_t : std::pair<T, T2> {
+    using std::pair<T, T2>::pair;
 
-	template <typename T, typename T2>
-	pair_t<T, T2> make_pair(T a, T2 b) {
-		return pair_t<T, T2>{a, b};
-	}
+
+    template <typename dummy_t = T, typename dummy2_t = T2>
+    requires(std::is_same_v<dummy_t, dummy2_t>)
+    T& operator[](uint8_t i) {
+      return i == 0 ? std::pair<T, T2>::first : std::pair<T, T2>::second;
+    }
+    template <typename dummy_t = T, typename dummy2_t = T2>
+      requires(std::is_same_v<dummy_t, dummy2_t>)
+    T operator[](uint8_t i) const {
+      return i == 0 ? std::pair<T, T2>::first : std::pair<T, T2>::second;
+    }
+	};
 
   template <typename Callable>
   struct return_type_of_membr;
@@ -719,3 +719,87 @@ namespace fan {
   static constexpr const char* name##_strings[] = {__FAN__FOREACH_NS(__FAN_PRINT_EACH, __VA_ARGS__)}; \
   enum class name { __VA_ARGS__ }
 }
+
+#ifndef __ofof
+#define __ofof __ofof
+#pragma pack(push, 1)
+template <typename Member, std::size_t O>
+struct __Pad_t {
+  char pad[O];
+  Member m;
+};
+#pragma pack(pop)
+
+template<typename Member>
+struct __Pad_t<Member, 0> {
+  Member m;
+};
+
+template <typename Base, typename Member, std::size_t O>
+struct __MakeUnion_t {
+  union U {
+    char c;
+    Base base;
+    __Pad_t<Member, O> pad;
+    constexpr U() noexcept : c{} {};
+  };
+  constexpr static U u{};
+};
+
+template <typename Member, typename Base, typename Orig>
+struct __ofof_impl {
+  template<std::size_t off, auto union_part = &__MakeUnion_t<Base, Member, off>::u>
+  static constexpr std::ptrdiff_t offset2(Member Orig::* member) {
+    if constexpr (off > sizeof(Base)) {
+      throw 1;
+    }
+    else {
+      const auto diff1 = &((static_cast<const Orig*>(&union_part->base))->*member);
+      const auto diff2 = &union_part->pad.m;
+      if (diff1 > diff2) {
+        constexpr auto MIN = sizeof(Member) < alignof(Orig) ? sizeof(Member) : alignof(Orig);
+        return offset2<off + MIN>(member);
+      }
+      else {
+        return off;
+      }
+    }
+  }
+};
+
+template<class Member, class Base>
+std::tuple<Member, Base> __get_types(Member Base::*);
+
+template <class TheBase = void, class TT>
+inline constexpr std::ptrdiff_t __ofof(TT member) {
+  using T = decltype(__get_types(std::declval<TT>()));
+  using Member = std::tuple_element_t<0, T>;
+  using Orig = std::tuple_element_t<1, T>;
+  using Base = std::conditional_t<std::is_void_v<TheBase>, Orig, TheBase>;
+  return __ofof_impl<Member, Base, Orig>::template offset2<0>(member);
+}
+
+template <auto member, class TheBase = void>
+inline constexpr std::ptrdiff_t __ofof() {
+  return __ofof<TheBase>(member);
+}
+#endif
+
+namespace fan {
+  template <bool cond>
+  struct type_or_uint8_t {
+    template <typename T>
+    using d = std::conditional_t<cond, T, uint8_t>;
+  };
+
+}
+
+// std::unreachable
+#include <utility>
+#ifndef __unreachable
+#if defined(fan_compiler_msvc)
+#define __unreachable() std::unreachable()
+#elif defined(fan_compiler_clang) || defined(fan_compiler_gcc)
+#define __unreachable() __builtin_unreachable()
+#endif
+#endif

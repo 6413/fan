@@ -43,6 +43,9 @@ namespace fan {
       void set_depth_test(bool flag);
       void set_blending(bool flag);
 
+      void set_stencil_test(bool flag);
+      void set_stencil_op(GLenum sfail, GLenum dpfail, GLenum dppass);
+
       void set_vsync(fan::window_t& window, bool flag);
 
       static void message_callback(GLenum source,
@@ -281,7 +284,7 @@ namespace fan {
       image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_);
       image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_, const image_load_properties_t& p);
 
-      void unload_image(image_nr_t nr);
+      void image_unload(image_nr_t nr);
 
       image_nr_t create_missing_texture();
       image_nr_t create_transparent_texture();
