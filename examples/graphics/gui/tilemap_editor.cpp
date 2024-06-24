@@ -118,8 +118,14 @@ int main(int argc, char** argv) {
     fan::vec2(-window_size.y, window_size.y)
   );
 
-  camera0.viewport = loco.viewport_create();
-  camera1.viewport = loco.viewport_create();
+  camera0.viewport = loco.open_viewport(
+    0,
+    { 1, 1 }
+  );
+  camera1.viewport = loco.open_viewport(
+    0,
+    { 1, 1 }
+  );
 
 
   init_zoom();

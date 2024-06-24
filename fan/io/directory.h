@@ -115,6 +115,76 @@ namespace fan {
       }
     }
 
+    static void iterate_directory(
+      const std::filesystem::path& path,
+      const std::function<void(const std::filesystem::directory_entry& path)>& function
+    ) {
+
+      if (!directory_exists(path.string())) {
+        fan::throw_error("directory does not exist");
+      }
+
+      try {
+        for (const auto& entry : std::filesystem::directory_iterator(path)) {
+          function(entry);
+        }
+      }
+      catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "error accessing directory: " << e.what() << std::endl;
+      }
+      catch (const std::exception& e) {
+        std::cerr << "unexpected error: " << e.what() << std::endl;
+      }
+    }
+
+   static void iterate_directory_sorted_by_name(
+    const std::filesystem::path& path,
+    const std::function<void(const std::filesystem::directory_entry&)>& function
+    ) {
+        if (!std::filesystem::exists(path)) {
+            fan::throw_error("directory does not exist");
+        }
+
+        std::vector<std::filesystem::directory_entry> entries;
+
+        try {
+            // Collect all entries
+            for (const auto& entry : std::filesystem::directory_iterator(path)) {
+                entries.push_back(entry);
+            }
+
+            // Sort entries by type (directories first) and then by name
+            std::sort(entries.begin(), entries.end(), 
+                [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) -> bool {
+    // Check if both entries are of the same type (either both directories or both files)
+    if (a.is_directory() == b.is_directory()) {
+        // Convert stems to lowercase for case-insensitive comparison
+        std::string a_stem = a.path().stem().string();
+        std::string b_stem = b.path().stem().string();
+        std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(), ::tolower);
+        std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(), ::tolower);
+
+        // If both are of the same type, sort alphabetically by filename without extension, case-insensitively
+        return a_stem < b_stem;
+    }
+    // If they are not of the same type, directories come first
+    return a.is_directory();
+}
+            );
+
+            // Apply function to sorted entries
+            for (const auto& entry : entries) {
+                function(entry);
+            }
+        }
+        catch (const std::filesystem::filesystem_error& e) {
+            std::cerr << "error accessing directory: " << e.what() << std::endl;
+        }
+        catch (const std::exception& e) {
+            std::cerr << "unexpected error: " << e.what() << std::endl;
+        }
+    }
+
 		static void iterate_directory_files(
 			const std::string& path,
 			const std::function<void(const fan::string& path)>& function

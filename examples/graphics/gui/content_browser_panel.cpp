@@ -2,25 +2,18 @@
 
 #include <fan/io/directory.h>
 
-int main() {
-  loco_t loco;
-  
-  auto file_icon = loco.image_load("images/file.webp");
-  auto directory_icon = loco.image_load("images/folder.webp");
+struct imgui_content_browser_t {
+
+protected:
+  loco_t::image_t file_icon = gloco->image_load("images/file.webp");
+  loco_t::image_t directory_icon = gloco->image_load("images/folder.webp");
 
   std::string asset_path = "./";
   std::filesystem::path current_directory = asset_path;
+public:
 
-  loco.loop([&] {
-    ImGui::Begin("Scene Hierarchy");
-    ImGui::End();
 
-    ImGui::Begin("Properties");
-    ImGui::End();
-
-    ImGui::Begin("Stats");
-    ImGui::End();
-
+  void render() {
     ImGui::Begin("Content Browser");
 
     f32_t padding = 16;
@@ -64,26 +57,47 @@ int main() {
       ImGui::TextWrapped(filename_string.c_str());
       ImGui::NextColumn();
       ImGui::PopID();
-    });
+      });
 
     ImGui::Columns(1);
 
-
-
-
     ImGui::End();
-
-    ImGui::Begin("Scene");
+  }
+  void receive_drag_drop_target(auto receive_func) {
     ImGui::Dummy(ImGui::GetContentRegionAvail());
 
     if (ImGui::BeginDragDropTarget()) {
       if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
         const wchar_t* path = (const wchar_t*)payload->Data;
-        fan::print(std::filesystem::path(path));
+        receive_func(std::filesystem::path(path));
+        //fan::print(std::filesystem::path(path));
       }
       ImGui::EndDragDropTarget();
     }
+  }
+};
 
+int main() {
+  loco_t loco;
+
+  imgui_content_browser_t content_browser;
+
+  loco.loop([&] {
+    ImGui::Begin("Scene Hierarchy");
+    ImGui::End();
+
+    ImGui::Begin("Properties");
+    ImGui::End();
+
+    ImGui::Begin("Stats");
+    ImGui::End();
+
+    content_browser.render();
+
+    ImGui::Begin("Scene");
+    content_browser.receive_drag_drop_target([](const std::filesystem::path& path) {
+      fan::print(path.string());
+    });
     ImGui::End();
   });
 }

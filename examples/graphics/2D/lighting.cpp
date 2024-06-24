@@ -8,10 +8,19 @@ int main() {
 
   p.size = fan::vec2(1);
 
+  loco_t::gradient_t::properties_t gp;
+  gp.position = fan::vec3(loco.window.get_size() / 2, 0);
+  gp.size = 300;
+  gp.color[0] = fan::color(1, 0, 0, 1);
+  gp.color[1] = fan::color(1, 0, 0, 1);
+  gp.color[2] = fan::color(0, 0, 1, 1);
+  gp.color[3] = fan::color(0, 0, 1, 1);
+  loco_t::shape_t rect = gp;
+
   loco_t::image_t image;
   
   p.image = loco.image_load("images/tire.webp");
-  p.position = fan::vec3(loco.window.get_size() / 2, 0);
+  p.position = fan::vec3(loco.window.get_size() / 2, 1);
   p.size = 300;
   p.color.a = 1;
   loco_t::shape_t s0 = p;

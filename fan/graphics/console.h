@@ -67,12 +67,16 @@ namespace fan {
 
   struct console_t {
 
+    using highlight_e = fan::commands_t::highlight_e;
+
     void open();
 
     void render();
 
-    void print(const fan::string& msg);
+    void print(const fan::string& msg, int highlight = commands_t::highlight_e::text);
+    void println(const fan::string& msg, int highlight = commands_t::highlight_e::text);
     void print_colored(const fan::string& msg, const fan::color& color);
+    void println_colored(const fan::string& msg, const fan::color& color);
 
     std::vector<std::string> command_history;
     std::string current_command;
@@ -86,10 +90,7 @@ namespace fan {
     TextEditor editor;
     TextEditor input;
     uint32_t transparency;
-    
-    void set_input_focus();
-
-    bool force_input_focus = false;
+    bool init_focus = false;
   };
 }
 #endif

@@ -1,5 +1,17 @@
 #include "file.h"
 
+std::string fan::io::file::extension(const std::string& file_path) {
+    size_t dotPosition = file_path.find_last_of('.');
+    size_t sepPosition = file_path.find_last_of("/\\");
+
+    if (dotPosition != std::string::npos && (sepPosition == std::string::npos || dotPosition > sepPosition)) {
+        return file_path.substr(dotPosition);
+    }
+    else {
+        return "";
+    }
+}
+
 bool fan::io::file::exists(const std::string& name) {
   std::ifstream file(name.c_str());
   return file.good();

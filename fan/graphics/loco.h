@@ -10,6 +10,7 @@
 
 #include <fan/window/window.h>
 #include <fan/graphics/opengl/gl_core.h>
+#include <fan/io/file.h>
 
 #if defined(loco_imgui)
 #include <fan/imgui/imgui.h>
@@ -17,6 +18,7 @@
 #include <fan/imgui/imgui_impl_glfw.h>
 #include <fan/imgui/imgui_neo_sequencer.h>
 #include <fan/imgui/imgui-combo-filter.h>
+#include <fan/imgui/implot.h>
 #endif
 
 #include <fan/physics/collision/rectangle.h>
@@ -123,6 +125,10 @@ struct global_loco_t {
 };
 inline thread_local global_loco_t gloco;
 
+namespace fan {
+  void printcl(const auto& value, int highlight = 0);
+}
+
 #if defined(loco_letter)
 #include <fan/graphics/font.h>
 #endif
@@ -178,6 +184,35 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
   #define shaper_set_MaxKeySize 2 * 30
   #include <fan/graphics/shaper.h>
 
+  template<
+    typename... Ts,
+    uintptr_t s = (sizeof(Ts) + ...)
+  >static constexpr shaper_t::ShapeID_t shape_add(
+    shaper_t::ShapeTypeIndex_t sti,
+    const auto& rd,
+    const auto& d,
+    Ts... args
+  ) {
+    struct structarr_t {
+      uint8_t p[s];
+      uint8_t& operator[](uintptr_t i) {
+        return p[i];
+      }
+    };
+    structarr_t a;
+    uintptr_t i = 0;
+    ([&](auto arg) {
+      __MemoryCopy(&arg, &a[i], sizeof(arg));
+      i += sizeof(arg);
+      }(args), ...);
+    constexpr uintptr_t count = (!!(sizeof(Ts) + 1) + ...);
+    static_assert(count % 2 == 0);
+    uintptr_t LastKeyOffset = s - (sizeof(Ts), ...) - 1;
+    gloco->shaper.PrepareKeysForAdd(&a, LastKeyOffset);
+    return gloco->shaper.add(sti, &a, s, &rd, &d);
+  }
+
+
   loco_t(const loco_t&) = delete;
   loco_t& operator=(const loco_t&) = delete;
   loco_t(loco_t&&) = delete;
@@ -204,6 +239,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
       particles,
       universal_image_renderer,
       gradient,
+      light_end,
       last
     };
   };
@@ -214,7 +250,6 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
       common,
       vfi,
       texture,
-      multitexture,
     };
   };
 
@@ -233,6 +268,8 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
     "vfi",
     "particles",
   };
+
+  using console_t = fan::console_t;
 
   using blending_t = uint8_t;
   using depth_t = uint16_t;
@@ -293,12 +330,15 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
   using get_viewport_cb = loco_t::viewport_t (*)(shape_t*);
   using set_viewport_cb = void (*)(shape_t*, loco_t::viewport_t);
 
+
+  using get_image_cb = loco_t::image_t(*)(shape_t*);
   using set_image_cb = void (*)(shape_t*, loco_t::image_t);
 
   using get_parallax_factor_cb = f32_t (*)(shape_t*);
   using set_parallax_factor_cb = void (*)(shape_t*, f32_t);
   using get_rotation_vector_cb = fan::vec3 (*)(shape_t*);
   using get_flags_cb = uint32_t (*)(shape_t*);
+  using set_flags_cb = void(*)(shape_t*, uint32_t);
   //
   using get_radius_cb = f32_t (*)(shape_t*);
   using get_src_cb = fan::vec3 (*)(shape_t*);
@@ -348,12 +388,16 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
     get_viewport_cb get_viewport;
     set_viewport_cb set_viewport;
 
+    get_image_cb get_image;
     set_image_cb set_image;
 
     get_parallax_factor_cb get_parallax_factor;
     set_parallax_factor_cb set_parallax_factor;
     get_rotation_vector_cb get_rotation_vector;
+
+
     get_flags_cb get_flags;
+    set_flags_cb set_flags;
 
     get_radius_cb get_radius;
     get_src_cb get_src;
@@ -415,30 +459,47 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             auto sti = gloco->shaper.GetSTI(*shape);
 
             // alloc can be avoided inside switch
-            uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+            auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+            uint8_t* KeyPack = new uint8_t[KeyPackSize];
             gloco->shaper.WriteKeys(*shape, KeyPack);
             
-            switch(gloco->shaper.GetKPI(sti)) {
-              case loco_t::kp::light: {
-              // doesnt have depth
-                break;
-              }
-              case loco_t::kp::common: {
-                ((kps_t::common_t*)KeyPack)->depth = position.z;
-                break;
-              }
-              case loco_t::kp::texture: {
-                ((kps_t::texture_t*)KeyPack)->depth = position.z;
-                break;
-              }
-              case loco_t::kp::multitexture: {
-                ((kps_t::multitexture_t*)KeyPack)->depth = position.z;
-                break;
-              }
-              default: {
-                fan::throw_error("unimplemented kp");
-              }
+
+            switch (sti) {       
+            case loco_t::shape_type_t::light: {
+              break;
             }
+            // common
+            case loco_t::shape_type_t::gradient:
+            case loco_t::shape_type_t::grid:
+            case loco_t::shape_type_t::circle:
+            case loco_t::shape_type_t::letter:
+            case loco_t::shape_type_t::rectangle:
+            case loco_t::shape_type_t::line: {
+              auto o = gloco->shaper.GetKeyOffset(
+                offsetof(kps_t::_common_t, depth),
+                offsetof(kps_t::common_t, depth)
+              );
+              *(depth_t*)&KeyPack[o] = position.z;
+              break;
+            }
+                                           // texture
+            case loco_t::shape_type_t::particles:
+            case loco_t::shape_type_t::universal_image_renderer:
+            case loco_t::shape_type_t::unlit_sprite:
+            case loco_t::shape_type_t::sprite: {
+              auto o = gloco->shaper.GetKeyOffset(
+                offsetof(kps_t::_texture_t, depth),
+                offsetof(kps_t::texture_t, depth)
+              );
+              *(depth_t*)&KeyPack[o] = position.z;
+              break;
+            }
+            default: {
+              fan::throw_error("unimplemented");
+            }
+            }
+
+    
             auto _vi = gloco->shaper.GetRenderData(*shape);
             auto vlen = gloco->shaper.GetRenderDataSize(sti);
             uint8_t* vi = new uint8_t[vlen];
@@ -454,6 +515,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             *shape = gloco->shaper.add(
               sti,
               KeyPack,
+              KeyPackSize,
               vi,
               ri
             );
@@ -583,22 +645,27 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
           std::is_same_v<T, loco_t::unlit_sprite_t::vi_t>) {
             auto sti = gloco->shaper.GetSTI(*shape);
             
-            uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+            auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+            uint8_t* KeyPack = new uint8_t[KeyPackSize];
             gloco->shaper.WriteKeys(*shape, KeyPack);
-
-            switch(gloco->shaper.GetKPI(sti)) {
-              case loco_t::kp::texture: {
-                ((kps_t::texture_t*)KeyPack)->image = *ti->image;
-                break;
-              }
-              case loco_t::kp::multitexture: {
-                ((kps_t::multitexture_t*)KeyPack)->image = *ti->image;
+            switch (sti) {
+              // texture
+              case loco_t::shape_type_t::particles:
+              case loco_t::shape_type_t::universal_image_renderer:
+              case loco_t::shape_type_t::unlit_sprite:
+              case loco_t::shape_type_t::sprite: {
+                auto o = gloco->shaper.GetKeyOffset(
+                  offsetof(kps_t::_texture_t, image),
+                  offsetof(kps_t::texture_t, image)
+                );
+                *(loco_t::image_t*)&KeyPack[o] = *ti->image;
                 break;
               }
               default: {
-                fan::throw_error("unimplemented kp");
+                fan::throw_error("unimplemented");
               }
             }
+
             auto& im = *ti->image;
             auto& img = gloco->image_get_data(im);
 
@@ -618,6 +685,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             *shape = gloco->shaper.add(
               sti,
               KeyPack,
+              KeyPackSize,
               vi,
               ri
             );
@@ -651,23 +719,43 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
           auto sti = gloco->shaper.GetSTI(*shape);
 
           // alloc can be avoided inside switch
-          void* KeyPack = gloco->shaper.GetKeys(*shape);
-          switch (gloco->shaper.GetKPI(sti)) {
-          case loco_t::kp::light: {
-            return ((kps_t::light_t*)KeyPack)->camera;
+          uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
+
+          switch (sti) {
+            // light
+          case loco_t::shape_type_t::light: {
+            auto o = gloco->shaper.GetKeyOffset(
+              offsetof(kps_t::_light_t, camera),
+              offsetof(kps_t::light_t, camera)
+            );
+            return *(camera_t*)&KeyPack[o];
           }
-          case loco_t::kp::common: {
-            return ((kps_t::common_t*)KeyPack)->camera;
+                                          // common
+          case loco_t::shape_type_t::gradient:
+          case loco_t::shape_type_t::grid:
+          case loco_t::shape_type_t::circle:
+          case loco_t::shape_type_t::letter:
+          case loco_t::shape_type_t::rectangle:
+          case loco_t::shape_type_t::line: {
+            auto o = gloco->shaper.GetKeyOffset(
+              offsetof(kps_t::_common_t, camera),
+              offsetof(kps_t::common_t, camera)
+            );
+            return *(camera_t*)&KeyPack[o];
           }
-          case loco_t::kp::texture: {
-            return ((kps_t::texture_t*)KeyPack)->camera;
-          }
-          case loco_t::kp::multitexture: {
-            ((kps_t::multitexture_t*)KeyPack)->camera;
-            break;
+                                         // texture
+          case loco_t::shape_type_t::particles:
+          case loco_t::shape_type_t::universal_image_renderer:
+          case loco_t::shape_type_t::unlit_sprite:
+          case loco_t::shape_type_t::sprite: {
+            auto o = gloco->shaper.GetKeyOffset(
+              offsetof(kps_t::_texture_t, camera),
+              offsetof(kps_t::texture_t, camera)
+            );
+            return *(camera_t*)&KeyPack[o];
           }
           default: {
-            fan::throw_error("unimplemented kp");
+            fan::throw_error("unimplemented");
           }
           }
           return loco_t::camera_t();
@@ -677,30 +765,51 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
              auto sti = gloco->shaper.GetSTI(*shape);
 
             // alloc can be avoided inside switch
-            uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+            auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+            uint8_t* KeyPack = new uint8_t[KeyPackSize];
             gloco->shaper.WriteKeys(*shape, KeyPack);
 
-            switch(gloco->shaper.GetKPI(sti)) {
-              case loco_t::kp::light: {
-                ((kps_t::light_t*)KeyPack)->camera = camera;
+            switch(sti) {
+              // light
+              case loco_t::shape_type_t::light: {
+                auto o = gloco->shaper.GetKeyOffset(
+                  offsetof(kps_t::_light_t, camera),
+                  offsetof(kps_t::light_t, camera)
+                );
+                *(camera_t*)&KeyPack[o] = camera;
                 break;
               }
-              case loco_t::kp::common: {
-                ((kps_t::common_t*)KeyPack)->camera = camera;
+              // common
+              case loco_t::shape_type_t::gradient:
+              case loco_t::shape_type_t::grid:
+              case loco_t::shape_type_t::circle:
+              case loco_t::shape_type_t::letter:
+              case loco_t::shape_type_t::rectangle:
+              case loco_t::shape_type_t::line: {
+                auto o = gloco->shaper.GetKeyOffset(
+                  offsetof(kps_t::_common_t, camera),
+                  offsetof(kps_t::common_t, camera)
+                );
+                *(camera_t*)&KeyPack[o] = camera;
                 break;
               }
-              case loco_t::kp::texture: {
-                ((kps_t::texture_t*)KeyPack)->camera = camera;
-                break;
-              }
-              case loco_t::kp::multitexture: {
-                ((kps_t::multitexture_t*)KeyPack)->camera = camera;
+              // texture
+              case loco_t::shape_type_t::particles:
+              case loco_t::shape_type_t::universal_image_renderer:
+              case loco_t::shape_type_t::unlit_sprite:
+              case loco_t::shape_type_t::sprite: {
+                auto o = gloco->shaper.GetKeyOffset(
+                  offsetof(kps_t::_texture_t, camera),
+                  offsetof(kps_t::texture_t, camera)
+                );
+                *(camera_t*)&KeyPack[o] = camera;
                 break;
               }
               default: {
-                fan::throw_error("unimplemented kp");
+                fan::throw_error("unimplemented");
               }
             }
+
             auto _vi = gloco->shaper.GetRenderData(*shape);
             auto vlen = gloco->shaper.GetRenderDataSize(sti);
             uint8_t* vi = new uint8_t[vlen];
@@ -715,6 +824,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             *shape = gloco->shaper.add(
               sti,
               KeyPack,
+              KeyPackSize,
               vi,
               ri
             );
@@ -727,24 +837,46 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
           }
         },
         .get_viewport = [](shape_t* shape) {
-          void* KeyPack = gloco->shaper.GetKeys(*shape);
-          switch (gloco->shaper.GetKPI(gloco->shaper.GetSTI(*shape))) {
-          case loco_t::kp::light: {
-            return ((kps_t::light_t*)KeyPack)->viewport;
-          }
-          case loco_t::kp::common: {
-            return ((kps_t::common_t*)KeyPack)->viewport;
-          }
-          case loco_t::kp::texture: {
-            return ((kps_t::texture_t*)KeyPack)->viewport;
-          }
-          case loco_t::kp::multitexture: {
-            ((kps_t::multitexture_t*)KeyPack)->viewport;
-            break;
-          }
-          default: {
-            fan::throw_error("unimplemented kp");
-          }
+          uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
+
+          auto sti = gloco->shaper.GetSTI(*shape);
+
+          switch(sti) {
+            // light
+            case loco_t::shape_type_t::light: {
+              auto o = gloco->shaper.GetKeyOffset(
+                offsetof(kps_t::_light_t, viewport),
+                offsetof(kps_t::light_t, viewport)
+              );
+              return *(viewport_t*)&KeyPack[o];
+            }
+            // common
+            case loco_t::shape_type_t::gradient:
+            case loco_t::shape_type_t::grid:
+            case loco_t::shape_type_t::circle:
+            case loco_t::shape_type_t::letter:
+            case loco_t::shape_type_t::rectangle:
+            case loco_t::shape_type_t::line: {
+              auto o = gloco->shaper.GetKeyOffset(
+                offsetof(kps_t::_common_t, viewport),
+                offsetof(kps_t::common_t, viewport)
+              );
+              return *(viewport_t*)&KeyPack[o];
+            }
+            // texture
+            case loco_t::shape_type_t::particles:
+            case loco_t::shape_type_t::universal_image_renderer:
+            case loco_t::shape_type_t::unlit_sprite:
+            case loco_t::shape_type_t::sprite: {
+              auto o = gloco->shaper.GetKeyOffset(
+                offsetof(kps_t::_texture_t, viewport),
+                offsetof(kps_t::texture_t, viewport)
+              );
+              return *(viewport_t*)&KeyPack[o];
+            }
+            default: {
+              fan::throw_error("unimplemented");
+            }
           }
           return loco_t::viewport_t();
         },
@@ -753,30 +885,51 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             auto sti = gloco->shaper.GetSTI(*shape);
 
             // alloc can be avoided inside switch
-            uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+            auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+            uint8_t* KeyPack = new uint8_t[KeyPackSize];
             gloco->shaper.WriteKeys(*shape, KeyPack);
-            switch (gloco->shaper.GetKPI(sti)) {
-            case loco_t::kp::light: {
-              ((kps_t::light_t*)KeyPack)->viewport = viewport;
-              break;
-            }
-            case loco_t::kp::common: {
-              ((kps_t::common_t*)KeyPack)->viewport = viewport;
-              break;
-            }
-            case loco_t::kp::texture: {
-              ((kps_t::texture_t*)KeyPack)->viewport = viewport;
-              break;
-            }
-            case loco_t::kp::multitexture: {
-              ((kps_t::multitexture_t*)KeyPack)->viewport = viewport;
-              break;
-            }
-            default: {
-              fan::throw_error("unimplemented kp");
-            }
-            }
             
+            switch(sti) {
+              // light
+              case loco_t::shape_type_t::light: {
+                auto o = gloco->shaper.GetKeyOffset(
+                  offsetof(kps_t::_light_t, viewport),
+                  offsetof(kps_t::light_t, viewport)
+                );
+                *(viewport_t*)&KeyPack[o] = viewport;
+                break;
+              }
+              // common
+              case loco_t::shape_type_t::gradient:
+              case loco_t::shape_type_t::grid:
+              case loco_t::shape_type_t::circle:
+              case loco_t::shape_type_t::letter:
+              case loco_t::shape_type_t::rectangle:
+              case loco_t::shape_type_t::line: {
+                auto o = gloco->shaper.GetKeyOffset(
+                  offsetof(kps_t::_common_t, viewport),
+                  offsetof(kps_t::common_t, viewport)
+                );
+                *(viewport_t*)&KeyPack[o] = viewport;
+                break;
+              }
+              // texture
+              case loco_t::shape_type_t::particles:
+              case loco_t::shape_type_t::universal_image_renderer:
+              case loco_t::shape_type_t::unlit_sprite:
+              case loco_t::shape_type_t::sprite: {
+                auto o = gloco->shaper.GetKeyOffset(
+                  offsetof(kps_t::_texture_t, viewport),
+                  offsetof(kps_t::texture_t, viewport)
+                );
+                *(viewport_t*)&KeyPack[o] = viewport;
+                break;
+              }
+              default: {
+                fan::throw_error("unimplemented");
+              }
+            }
+
             auto _vi = gloco->shaper.GetRenderData(*shape);
             auto vlen = gloco->shaper.GetRenderDataSize(sti);
             uint8_t* vi = new uint8_t[vlen];
@@ -791,6 +944,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             *shape = gloco->shaper.add(
               sti,
               KeyPack,
+              KeyPackSize,
               vi,
               ri
             );
@@ -802,25 +956,56 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             delete[] ri;
           }
         },
+
+        .get_image = [](shape_t* shape) -> loco_t::image_t {
+          auto sti = gloco->shaper.GetSTI(*shape);
+          auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+          uint8_t* KeyPack = new uint8_t[KeyPackSize];
+          gloco->shaper.WriteKeys(*shape, KeyPack);
+          switch (sti) {
+          // texture
+          case loco_t::shape_type_t::particles:
+          case loco_t::shape_type_t::universal_image_renderer:
+          case loco_t::shape_type_t::unlit_sprite:
+          case loco_t::shape_type_t::sprite: {
+            auto o = gloco->shaper.GetKeyOffset(
+              offsetof(kps_t::_texture_t, image),
+              offsetof(kps_t::texture_t, image)
+            );
+            loco_t::image_t image = *(loco_t::image_t*)&KeyPack[o];
+            delete[] KeyPack;
+            return image;
+          }
+          default: {
+            fan::throw_error("unimplemented");
+          }
+          }
+          return loco_t::image_t();
+        },
         .set_image = [](shape_t* shape, loco_t::image_t image) {
          
           auto sti = gloco->shaper.GetSTI(*shape);
 
           // alloc can be avoided inside switch
-          uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+          auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+          uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
 
-          switch (gloco->shaper.GetKPI(sti)) {
-          case loco_t::kp::texture: {
-            ((kps_t::texture_t*)KeyPack)->image = image;
-            break;
-          }
-          case loco_t::kp::multitexture: {
-            ((kps_t::multitexture_t*)KeyPack)->image = image;
+          switch (sti) {
+          // texture
+          case loco_t::shape_type_t::particles:
+          case loco_t::shape_type_t::universal_image_renderer:
+          case loco_t::shape_type_t::unlit_sprite:
+          case loco_t::shape_type_t::sprite: {
+            auto o = gloco->shaper.GetKeyOffset(
+              offsetof(kps_t::_texture_t, image),
+              offsetof(kps_t::texture_t, image)
+            );
+            *(loco_t::image_t*)&KeyPack[o] = image;
             break;
           }
           default: {
-            fan::throw_error("unimplemented kp");
+            fan::throw_error("unimplemented");
           }
           }
             
@@ -838,6 +1023,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
           *shape = gloco->shaper.add(
             sti,
             KeyPack,
+            KeyPackSize,
             vi,
             ri
           );
@@ -881,6 +1067,14 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
           else {
             fan::throw_error("unimplemented get");
             return 0;
+          }
+        },
+        .set_flags = [](shape_t* shape, uint32_t flags) {
+          if constexpr (fan_has_variable(T, flags)) {
+            modify_render_data_element(shape, &T::flags, flags);
+          }
+          else {
+            fan::throw_error("unimplemented set");
           }
         },
         .get_radius = [](shape_t* shape) {
@@ -1025,39 +1219,44 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
   }
 
 #pragma pack(push, 1)
+
+#define st(name, inside) \
+  template <bool cond> \
+  struct CONCAT(name, _cond) { \
+    template <typename T> \
+    using d = typename fan::type_or_uint8_t<cond>::template d<T>; \
+    inside \
+  }; \
+  using name = CONCAT(name, _cond)<1>; \
+  struct CONCAT(_, name) : CONCAT(name, _cond<0>) {};
+
+  using multitexture_image_t = std::array<loco_t::image_t, 30>;
+
   struct kps_t {
-    struct light_t {
-      loco_t::viewport_t viewport;
-      loco_t::camera_t camera;
-      shaper_t::ShapeTypeIndex_t ShapeType;
-    };
-    struct common_t {
-      depth_t depth;
-      blending_t blending;
-      loco_t::viewport_t viewport;
-      loco_t::camera_t camera;
-      shaper_t::ShapeTypeIndex_t ShapeType;
-    };
-    struct vfi_t {
-      uint8_t filler = 0;
-    };
-    struct texture_t {
-      depth_t depth;
-      blending_t blending;
-      loco_t::image_t image;
-      loco_t::viewport_t viewport;
-      loco_t::camera_t camera;
-      shaper_t::ShapeTypeIndex_t ShapeType;
-    };
-    struct multitexture_t {
-      depth_t depth;
-      blending_t blending;
-      loco_t::image_t image;
-      std::array<loco_t::image_t, 30> images;
-      loco_t::viewport_t viewport;
-      loco_t::camera_t camera;
-      shaper_t::ShapeTypeIndex_t ShapeType;
-    };
+    st(light_t,
+      d<uint8_t> genre;
+      d<loco_t::viewport_t> viewport;
+      d<loco_t::camera_t> camera;
+      d<shaper_t::ShapeTypeIndex_t> ShapeType;
+    );
+    st(common_t,
+      d<depth_t> depth;
+      d<blending_t> blending;
+      d<loco_t::viewport_t> viewport;
+      d<loco_t::camera_t> camera;
+      d<shaper_t::ShapeTypeIndex_t> ShapeType;
+    );
+    st(vfi_t,
+      d<uint8_t> filler = 0;
+    );
+    st(texture_t,
+      d<depth_t> depth;
+      d<blending_t> blending;
+      d<loco_t::image_t> image;
+      d<loco_t::viewport_t> viewport;
+      d<loco_t::camera_t> camera;
+      d<shaper_t::ShapeTypeIndex_t> ShapeType;
+    );
     // for universal_image_renderer
     // struct texture4_t {
     //   blending_t blending;
@@ -1068,6 +1267,8 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
     //   shaper_t::ShapeTypeIndex_t ShapeType;
     // };
   };
+
+#undef st
 #pragma pack(pop)
 
 
@@ -1295,17 +1496,21 @@ public:
     };
 
     struct action_data_t {
-      static constexpr int max_key_combos = 5;
-      int keys[max_key_combos]{};
+      static constexpr int max_keys_per_action = 5;
+      int keys[max_keys_per_action]{};
       uint8_t count = 0;
-      bool combo = 0;
+      static constexpr int max_keys_combos = 5;
+      int key_combos[max_keys_combos]{};
+      uint8_t combo_count = 0;
     };
 
     void add(const int* keys, std::size_t count, std::string_view action_name);
     void add(int key, std::string_view action_name);
     void add(std::initializer_list<int> keys, std::string_view action_name);
 
-    int is_active(std::string_view action_name, int press = 1);
+    void add_keycombo(std::initializer_list<int> keys, std::string_view action_name);
+
+    bool is_active(std::string_view action_name, int state = loco_t::input_action_t::press);
 
     std::unordered_map<std::string_view, action_data_t> input_actions;
   }input_action;
@@ -1346,15 +1551,16 @@ public:
 #pragma pack(push, 1)
 
   struct Key_e {
-    enum {
+    enum : shaper_t::KeyTypeIndex_t{
+      light,
+      light_end,
       blending,
       depth,
       image,
       viewport,
       camera,
       ShapeType,
-      filler,
-      multitexture
+      filler
     };
   };
 
@@ -1384,7 +1590,7 @@ public:
         auto sti = gloco->shaper.GetSTI(s);
 
         // alloc can be avoided inside switch
-        uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+        uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
         gloco->shaper.WriteKeys(s, KeyPack);
 
 
@@ -1401,6 +1607,7 @@ public:
         *this = gloco->shaper.add(
           sti, 
           KeyPack,
+          gloco->shaper.GetKeysSize(s),
           vi, 
           ri
         );
@@ -1481,7 +1688,7 @@ public:
           auto sti = gloco->shaper.GetSTI(s);
 
           // alloc can be avoided inside switch
-          uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeySizesSum(sti)];
+          uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
           gloco->shaper.WriteKeys(s, KeyPack);
 
 
@@ -1498,6 +1705,7 @@ public:
           *this = gloco->shaper.add(
             sti,
             KeyPack,
+            gloco->shaper.GetKeysSize(s),
             vi,
             ri
           );
@@ -1600,6 +1808,7 @@ public:
     loco_t::viewport_t get_viewport();
     void set_viewport(loco_t::viewport_t viewport);
 
+    loco_t::image_t get_image();
     void set_image(loco_t::image_t image);
 
     f32_t get_parallax_factor();
@@ -1608,6 +1817,7 @@ public:
     fan::vec3 get_rotation_vector();
 
     uint32_t get_flags();
+    void set_flags(uint32_t flag);
 
     f32_t get_radius();
     fan::vec3 get_src();
@@ -1625,7 +1835,7 @@ public:
 
   struct light_t {
 
-    uint16_t shape_type = shape_type_t::light;
+    shaper_t::KeyTypeIndex_t shape_type = shape_type_t::light;
     static constexpr int kpi = kp::light;
 
 #pragma pack(push, 1)
@@ -1679,7 +1889,7 @@ public:
 
   struct line_t {
 
-    static constexpr uint16_t shape_type = shape_type_t::line;
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::line;
     static constexpr int kpi = kp::common;
 
 #pragma pack(push, 1)
@@ -1721,7 +1931,7 @@ public:
 
   struct rectangle_t {
 
-    static constexpr uint16_t shape_type = shape_type_t::rectangle;
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::rectangle;
     static constexpr int kpi = kp::common;
 
 #pragma pack(push, 1)
@@ -1771,7 +1981,7 @@ public:
 
   struct sprite_t {
 
-    static constexpr uint16_t shape_type = shape_type_t::sprite;
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::sprite;
     static constexpr int kpi = kp::texture;
 
 #pragma pack(push, 1)
@@ -1846,7 +2056,7 @@ public:
 
   struct unlit_sprite_t {
 
-    static constexpr uint16_t shape_type = shape_type_t::unlit_sprite;
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::unlit_sprite;
     static constexpr int kpi = kp::texture;
 
 #pragma pack(push, 1)
@@ -1921,7 +2131,7 @@ public:
 
   struct letter_t {
 
-    static constexpr uint16_t shape_type = shape_type_t::letter;
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::letter;
     static constexpr int kpi = kp::common;
 
 #pragma pack(push, 1)
@@ -2013,7 +2223,7 @@ public:
 
   struct circle_t {
 
-    static constexpr uint16_t shape_type = shape_type_t::circle;
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::circle;
     static constexpr int kpi = kp::common;
 
 #pragma pack(push, 1)
@@ -2025,6 +2235,7 @@ public:
       fan::color color;
       fan::vec3 rotation_vector;
       fan::vec3 angle;
+      uint32_t flags;
     };
     struct ri_t {
 
@@ -2038,7 +2249,8 @@ public:
       shape_gl_init_t{ 2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
       shape_gl_init_t{ 3, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
       shape_gl_init_t{ 4, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector)) },
-      shape_gl_init_t{ 5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) }
+      shape_gl_init_t{ 5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) },
+      shape_gl_init_t{6, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))}
     };
 
     struct properties_t {
@@ -2050,6 +2262,7 @@ public:
       fan::color color = fan::colors::white;
       fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
       fan::vec3 angle = 0;
+      uint32_t flags = 0;
 
       bool blending = false;
 
@@ -2064,7 +2277,7 @@ public:
 
   struct grid_t {
 
-    static constexpr uint16_t shape_type = shape_type_t::grid;
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::grid;
     static constexpr int kpi = kp::common;
 
 #pragma pack(push, 1)
@@ -2114,7 +2327,7 @@ public:
 
   struct particles_t {
 
-    static constexpr uint16_t shape_type = shape_type_t::particles;
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::particles;
     static constexpr int kpi = kp::texture;
 
     inline static std::vector<shape_gl_init_t> locations = {};
@@ -2196,7 +2409,7 @@ public:
 
   struct universal_image_renderer_t {
 
-    static constexpr uint16_t shape_type = shape_type_t::universal_image_renderer;
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::universal_image_renderer;
     static constexpr int kpi = kp::texture;
 
 #pragma pack(push, 1)
@@ -2247,7 +2460,7 @@ public:
 
   struct gradient_t {
 
-    static constexpr uint16_t shape_type = shape_type_t::gradient;
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::gradient;
     static constexpr int kpi = kp::common;
 
 #pragma pack(push, 1)
@@ -2321,7 +2534,6 @@ public:
 
     gloco->shaper.AddShapeType(
       shape->shape_type,
-      T::kpi,
       {
         .MaxElementPerBlock = (shaper_t::MaxElementPerBlock_t)MaxElementPerBlock,
         .RenderDataSize = sizeof(typename T::vi_t),
@@ -2683,6 +2895,7 @@ namespace fan {
       f32_t radius = 0.1f;
       fan::color color = fan::color(1, 1, 1, 1);
       bool blending = false;
+      uint32_t flags = 0;
     };
 
     struct circle_t : loco_t::shape_t {
@@ -2695,7 +2908,8 @@ namespace fan {
             .position = p.position,
             .radius = p.radius,
             .color = p.color,
-            .blending = p.blending
+            .blending = p.blending,
+            .flags = p.flags
           ));
       }
     };
@@ -2727,15 +2941,65 @@ namespace fan {
 
 #if defined(loco_vfi)
 
+    // for line
+    static fan::line3 get_highlight_positions(const fan::vec3& op_, const fan::vec2& os, int index) {
+      fan::line3 positions;
+      fan::vec2 op = op_;
+      switch (index) {
+      case 0:
+        positions[0] = fan::vec3(op - os, op_.z + 1);
+        positions[1] = fan::vec3(op + fan::vec2(os.x, -os.y), op_.z + 1);
+        break;
+      case 1:
+        positions[0] = fan::vec3(op + fan::vec2(os.x, -os.y), op_.z + 1);
+        positions[1] = fan::vec3(op + os, op_.z + 1);
+        break;
+      case 2:
+        positions[0] = fan::vec3(op + os, op_.z + 1);
+        positions[1] = fan::vec3(op + fan::vec2(-os.x, os.y), op_.z + 1);
+        break;
+      case 3:
+        positions[0] = fan::vec3(op + fan::vec2(-os.x, os.y), op_.z + 1);
+        positions[1] = fan::vec3(op - os, op_.z + 1);
+        break;
+      default:
+        // Handle invalid index if necessary
+        break;
+      }
+
+      return positions;
+    }
+
     // REQUIRES to be allocated by new since lambda captures this
     // also container that it's stored in, must not change pointers
     template <typename T>
     struct vfi_root_custom_t {
+      void create_highlight() {
+        fan::vec3 op = children[0].get_position();
+        fan::vec2 os = children[0].get_size();
+        loco_t::camera_t c = children[0].get_camera();
+        loco_t::viewport_t v = children[0].get_viewport();
+        fan::graphics::camera_t cam;
+        cam.camera = c;
+        cam.viewport = v;
+        for (std::size_t j = 0; j < highlight.size(); ++j) {
+          for (std::size_t i = 0; i < highlight[0].size(); ++i) {
+            fan::line3 line = get_highlight_positions(op, os, i);
+            highlight[j][i] = fan::graphics::line_t{ {
+              .camera = &cam,
+              .src = line[0],
+              .dst = line[1],
+              .color = fan::color(1, 0.5, 0, 1)
+            } };
+          }
+        }
+      }
+
       void set_root(const loco_t::vfi_t::properties_t& p) {
         fan::graphics::vfi_t::properties_t in = p;
         in.shape_type = loco_t::vfi_t::shape_t::rectangle;
-        in.shape.rectangle->viewport = gloco->orthographic_camera.viewport;
-        in.shape.rectangle->camera = gloco->orthographic_camera.camera;
+        in.shape.rectangle->viewport = p.shape.rectangle->viewport;
+        in.shape.rectangle->camera = p.shape.rectangle->camera;
         in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {
           if (d.key == fan::key_c &&
             (d.keyboard_state == fan::keyboard_state::press ||
@@ -2747,6 +3011,10 @@ namespace fan {
           return 0;
           };
         in.mouse_button_cb = [this, user_cb = p.mouse_button_cb](const auto& d) -> int {
+          if (g_ignore_mouse) {
+            return 0;
+          }
+
           if (d.button != fan::mouse_left) {
             return 0;
           }
@@ -2758,27 +3026,79 @@ namespace fan {
           if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
             return 0;
           }
+          if (previous_focus && previous_focus != this) {
+            for (std::size_t i = 0; i < previous_focus->highlight[0].size(); ++i) {
+              if (previous_focus->highlight[0][i].iic() == false) {
+                previous_focus->highlight[0][i].set_line(0, 0);
+              }
+            }
+          }
+          create_highlight();
+          previous_focus = this;
 
           if (move_and_resize_auto) {
+
             d.flag->ignore_move_focus_check = true;
             this->move = true;
             this->click_offset = get_position() - d.position;
+            
             gloco->vfi.set_focus_keyboard(d.vfi->focus.mouse);
           }
           return user_cb(d);
           };
         in.mouse_move_cb = [this, user_cb = p.mouse_move_cb](const auto& d) -> int {
+          if (g_ignore_mouse) {
+            return 0;
+          }
+
           if (move_and_resize_auto) {
             if (this->resize && this->move) {
               fan::vec2 new_size = (d.position - get_position());
               static constexpr fan::vec2 min_size(10, 10);
               new_size.clamp(min_size);
               this->set_size(new_size.x);
+              fan::vec3 op = children[0].get_position();
+              fan::vec2 os = children[0].get_size();
+              for (std::size_t j = 0; j < highlight.size(); ++j) {
+                for (std::size_t i = 0; i < highlight[j].size(); ++i) {
+                  fan::line3 line = get_highlight_positions(op, os, i);
+                  highlight[j][i].set_line(line[0], line[1]);
+                }
+              }
+              if (previous_focus && previous_focus != this) {
+                for (std::size_t i = 0; i < previous_focus->highlight[0].size(); ++i) {
+                  if (previous_focus->highlight[0][i].iic() == false) {
+                    previous_focus->highlight[0][i].set_line(0, 0);
+                  }
+                }
+                previous_focus = this;
+              }
               return user_cb(d);
             }
             else if (this->move) {
               fan::vec3 p = get_position();
-              this->set_position(fan::vec3(d.position + click_offset, p.z));
+              p = fan::vec3(d.position + click_offset, p.z);
+              p.x = std::round(p.x / 32.0f) * 32.0f;
+              p.y = std::round(p.y / 32.0f) * 32.0f;
+              this->set_position(p);
+              fan::vec3 op = children[0].get_position();
+              fan::vec2 os = children[0].get_size();
+              for (std::size_t j = 0; j < highlight.size(); ++j) {
+                for (std::size_t i = 0; i < highlight[j].size(); ++i) {
+                  fan::line3 line = get_highlight_positions(op, os, i);
+                  if (highlight[j][i].iic() == false) {
+                    highlight[j][i].set_line(line[0], line[1]);
+                  }
+                }
+              }
+              if (previous_focus && previous_focus != this) {
+                for (std::size_t i = 0; i < previous_focus->highlight[0].size(); ++i) {
+                  if (previous_focus->highlight[0][i].iic() == false) {
+                    previous_focus->highlight[0][i].set_line(0, 0);
+                  }
+                }
+                previous_focus = this;
+              }
               return user_cb(d);
             }
           }
@@ -2827,6 +3147,8 @@ namespace fan {
         }
       }
 
+      inline static bool g_ignore_mouse = false;
+
       fan::vec2 click_offset = 0;
       bool move = false;
       bool resize = false;
@@ -2838,6 +3160,11 @@ namespace fan {
 
       };
       std::vector<child_data_t> children;
+
+      inline static vfi_root_custom_t<T>* previous_focus = nullptr;
+
+      // 4 lines for square
+      std::vector<std::array<loco_t::shape_t, 4>> highlight{ 1 };
     };
 
     using vfi_root_t = vfi_root_custom_t<__empty_struct>;
@@ -2848,19 +3175,23 @@ namespace fan {
       void push_root(const loco_t::vfi_t::properties_t& p) {
         loco_t::vfi_t::properties_t in = p;
         in.shape_type = loco_t::vfi_t::shape_t::rectangle;
-        in.shape.rectangle->viewport = gloco->orthographic_camera.viewport;
-        in.shape.rectangle->camera = gloco->orthographic_camera.camera;
+        in.shape.rectangle->viewport = p.shape.rectangle->viewport;
+        in.shape.rectangle->camera = p.shape.rectangle->camera;
         in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {
           if (d.key == fan::key_c &&
             (d.keyboard_state == fan::keyboard_state::press ||
               d.keyboard_state == fan::keyboard_state::repeat)) {
             this->resize = true;
-            return user_cb(d);
+            return 0;
           }
           this->resize = false;
           return user_cb(d);
           };
         in.mouse_button_cb = [this, root_reference = vfi_root.empty() ? 0 : vfi_root.size() - 1, user_cb = p.mouse_button_cb](const auto& d) -> int {
+          if (g_ignore_mouse) {
+            return 0;
+          }
+
           if (d.button != fan::mouse_left) {
             return user_cb(d);
           }
@@ -2912,13 +3243,18 @@ namespace fan {
           return user_cb(d);
           };
         in.mouse_move_cb = [this, root_reference = vfi_root.empty() ? 0 : vfi_root.size() - 1, user_cb = p.mouse_move_cb](const auto& d) -> int {
+          if (g_ignore_mouse) {
+            return 0;
+          }
+
           if (move_and_resize_auto) {
             if (this->resize && this->move) {
               return user_cb(d);
             }
             else if (this->move) {
               fan::vec3 p = get_position(root_reference);
-              this->set_position(root_reference, fan::vec3(d.position + click_offset, p.z));
+              p = fan::vec3(d.position + click_offset, p.z);
+              this->set_position(root_reference, p);
               return user_cb(d);
             }
           }
@@ -2947,6 +3283,9 @@ namespace fan {
           child.set_position(p);
         }
       }
+
+      inline static bool g_ignore_mouse = false;
+
       fan::vec2 click_offset = 0;
       bool move = false;
       bool resize = false;
@@ -2968,13 +3307,263 @@ namespace fan {
   }
 }
 
+// Imgui extensions
 #if defined(loco_imgui)
 namespace ImGui {
-  IMGUI_API void Image(loco_t::image_t& img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
-  IMGUI_API bool ImageButton(loco_t::image_t& img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
+  IMGUI_API void Image(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
+  IMGUI_API bool ImageButton(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 
   bool ToggleButton(const char* str_id, bool* v);
 
+  bool ToggleImageButton(loco_t::image_t image, const ImVec2& size, bool* toggle);
+  
+
+  template <std::size_t N>
+  bool ToggleImageButton(const std::array<loco_t::image_t, N>& images, const ImVec2& size, int* selectedIndex)
+  {
+    f32_t y_pos = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y -  ImGui::GetStyle().FramePadding.y / 2;
+    
+    bool clicked = false;
+
+    for (std::size_t i = 0; i < images.size(); ++i) {
+      ImVec4 tintColor = ImVec4(0.2, 0.2, 0.2, 1.0);
+      if (*selectedIndex == i) {
+        tintColor = ImVec4(0.8, 0.8, 0.8, 1.0f);
+      }
+      /*if (ImGui::IsItemHovered()) {
+        tintColor = ImVec4(1, 1, 1, 1.0f);
+      }*/
+      ImGui::SetCursorPosY(y_pos);
+      if (ImGui::ImageButton(images[i], size, ImVec2(0, 0), ImVec2(1, 1), 0, ImVec4(0, 0, 0, 0), tintColor)) {
+        *selectedIndex = i;
+        clicked = true;
+      }
+
+      ImGui::SameLine();
+    }
+
+    return clicked;
+  }
+
+
+  ImVec2 GetPositionBottomCorner(const char* text = "", uint32_t reverse_yoffset = 0);
+
+}
+// Imgui extensions
+
+#include <fan/io/directory.h>
+
+namespace fan {
+  namespace graphics {
+    struct imgui_content_browser_t {
+
+    protected:
+
+      struct file_info_t {
+        std::string filename;
+        std::filesystem::path some_path; //?
+        std::wstring item_path;
+        bool is_directory;
+        loco_t::image_t preview_image;
+        //std::string 
+      };
+
+      std::vector<file_info_t> directory_cache;
+
+      loco_t::image_t icon_arrow_left = gloco->image_load("images_content_browser/arrow_left.webp");
+      loco_t::image_t icon_arrow_right = gloco->image_load("images_content_browser/arrow_right.webp");
+
+      loco_t::image_t icon_file = gloco->image_load("images_content_browser/file.webp");
+      loco_t::image_t icon_directory = gloco->image_load("images_content_browser/folder.webp");
+
+      loco_t::image_t icon_files_list = gloco->image_load("images_content_browser/files_list.webp");
+      loco_t::image_t icon_files_big_thumbnail = gloco->image_load("images_content_browser/files_big_thumbnail.webp");
+
+
+      std::wstring asset_path = L"./";
+      std::filesystem::path current_directory;
+    public:
+
+      imgui_content_browser_t() {
+        search_buffer.resize(32);
+        asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
+        current_directory = asset_path;
+        update_directory_cache();
+      }
+
+      void update_directory_cache() {
+        for (auto& img : directory_cache) {
+          if (img.preview_image.iic() == false) {
+            gloco->image_unload(img.preview_image);
+          }
+        }
+        directory_cache.clear();
+        fan::io::iterate_directory_sorted_by_name(current_directory, [this](const std::filesystem::directory_entry& path) {
+          file_info_t file_info;
+          // SLOW
+          auto relative_path = std::filesystem::relative(path, asset_path);
+          file_info.filename = relative_path.filename().string();
+          file_info.item_path = relative_path.wstring();
+          file_info.is_directory = path.is_directory();
+          file_info.some_path = path.path().filename();//?
+          //fan::print(get_file_extension(path.path().string()));
+          if (fan::io::file::extension(path.path().string()) == ".webp") {
+            file_info.preview_image = gloco->image_load(std::filesystem::absolute(path.path()).string());
+          }
+          directory_cache.push_back(file_info);
+        });
+      }
+
+      enum viewmode_e {
+        view_mode_list,
+        view_mode_large_thumbnails,
+        // Add more view modes as needed
+      };
+
+      viewmode_e current_view_mode = view_mode_list;
+      float thumbnail_size = 128.0f;
+      f32_t padding = 16.0f;
+
+      void render();
+
+      std::string search_buffer;
+
+      void render_large_thumbnails_view() {
+        float thumbnail_size = 128.0f;
+        float panel_width = ImGui::GetContentRegionAvail().x;
+        int column_count = std::max((int)(panel_width / (thumbnail_size + padding)), 1);
+
+        ImGui::Columns(column_count, 0, false);
+
+        int pressed_key = -1;
+        for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
+          if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
+            pressed_key = (i - ImGuiKey_A) + 'A';
+            break;
+          }
+        }
+
+        // Render thumbnails or icons
+        for (std::size_t i = 0; i < directory_cache.size(); ++i) {
+
+          // reference somehow corrupts
+          auto file_info = directory_cache[i];
+          if (std::string(search_buffer.c_str()).size() && file_info.filename.find(search_buffer) == std::string::npos) {
+            continue;
+          }
+
+          if (pressed_key != -1 && ImGui::IsWindowFocused()) {
+            if (!file_info.filename.empty() && std::tolower(file_info.filename[0]) == std::tolower(pressed_key)) {
+              ImGui::SetScrollHereY();
+            }
+          }
+
+          ImGui::PushID(file_info.filename.c_str());
+          ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+          ImGui::ImageButton(file_info.preview_image.iic() == false ? file_info.preview_image : file_info.is_directory ? icon_directory : icon_file, ImVec2(thumbnail_size, thumbnail_size));
+
+          // Handle drag and drop, double click, etc.
+          handle_item_interaction(file_info);
+
+          ImGui::PopStyleColor();
+          ImGui::TextWrapped(file_info.filename.c_str());
+          ImGui::NextColumn();
+          ImGui::PopID();
+        }
+
+        ImGui::Columns(1);
+      }
+
+      void render_list_view() {
+        if (ImGui::BeginTable("##FileTable", 1, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY
+          | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
+          | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable)) {
+            ImGui::TableSetupColumn("##Filename", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableHeadersRow();
+
+            int pressed_key = -1;
+            for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
+              if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
+                pressed_key = (i - ImGuiKey_A) + 'A';
+                break;
+              }
+            }
+
+            // Render table view
+            for (std::size_t i = 0; i < directory_cache.size(); ++i) {
+
+              // reference somehow corrupts
+              auto file_info = directory_cache[i];
+
+              if (pressed_key != -1 && ImGui::IsWindowFocused()) {
+                if (!file_info.filename.empty() && std::tolower(file_info.filename[0]) == std::tolower(pressed_key)) {
+                  ImGui::SetScrollHereY();
+                }
+              }
+
+              if (search_buffer.size() && strstr(file_info.filename.c_str(), search_buffer.c_str()) == nullptr) {
+                continue;
+              }
+              ImGui::TableNextRow();
+              ImGui::TableSetColumnIndex(0); // Icon column
+              fan::vec2 cursor_pos = ImGui::GetWindowPos() + ImGui::GetCursorPos() + fan::vec2(ImGui::GetScrollX(), -ImGui::GetScrollY());
+              fan::vec2 image_size = ImVec2(thumbnail_size / 4, thumbnail_size / 4);
+              ImGuiStyle& style = ImGui::GetStyle();
+              std::string space = "";
+              while (ImGui::CalcTextSize(space.c_str()).x < image_size.x) {
+                space += " ";
+              }
+              auto str = space + file_info.filename;
+            
+              ImGui::Selectable(str.c_str());
+              if (file_info.preview_image.iic() == false) {
+                ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get(file_info.preview_image), cursor_pos, cursor_pos + image_size);
+              }
+              else if (file_info.is_directory) {
+                ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get(icon_directory), cursor_pos, cursor_pos + image_size);
+              }
+              else {
+                ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get(icon_file), cursor_pos, cursor_pos + image_size);
+              }
+            
+              handle_item_interaction(file_info);
+            }
+
+            ImGui::EndTable();
+        }
+      }
+
+      void handle_item_interaction(auto file_info) {
+        if (file_info.is_directory == false) {
+
+          if (ImGui::BeginDragDropSource()) {
+            ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEM", file_info.item_path.data(), (file_info.item_path.size() + 1) * sizeof(wchar_t));
+            ImGui::Text(file_info.filename.c_str());
+            ImGui::EndDragDropSource();
+          }
+        }
+
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+          if (file_info.is_directory) {
+            current_directory /= file_info.some_path;
+            update_directory_cache();
+          }
+        }
+      }
+      void receive_drag_drop_target(auto receive_func) {
+        ImGui::Dummy(ImGui::GetContentRegionAvail());
+
+        if (ImGui::BeginDragDropTarget()) {
+          if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+            const wchar_t* path = (const wchar_t*)payload->Data;
+            receive_func(std::filesystem::path(path));
+            //fan::print(std::filesystem::path(path));
+          }
+          ImGui::EndDragDropTarget();
+        }
+      }
+    };
+  }
 }
 #endif
 
@@ -2996,6 +3585,7 @@ namespace fan {
 #endif
 
 namespace fan {
+
   namespace graphics {
     bool shape_to_bin(loco_t::shape_t& shape, std::string* str);
 
@@ -3043,6 +3633,12 @@ namespace fan {
       }
     };
   }
+}
+
+void fan::printcl(const auto& value, int highlight) {
+  std::ostringstream oss;
+  oss << value;
+  gloco->console.println(oss.str(), highlight);
 }
 
 #include <fan/graphics/collider.h>

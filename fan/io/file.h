@@ -11,6 +11,8 @@ namespace fan {
 	namespace io {
     namespace file {
 
+      std::string extension(const std::string& file_path);
+
       bool exists(const std::string& name);
 
       bool rename(const std::string& from, const std::string& to);

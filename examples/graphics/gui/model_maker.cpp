@@ -7,6 +7,7 @@ int main(int argc, char** argv) {
 
 
   loco_t loco;
+
   //
   model_maker_t mm;
   mm.open("texture_packs/TexturePack");
@@ -22,6 +23,7 @@ int main(int argc, char** argv) {
   //pile->loco.window.set_max_fps(165);
   //pile->loco.window.set_max_fps(5);
   loco.loop([&] {
+   
     loco.get_fps();
   });
 

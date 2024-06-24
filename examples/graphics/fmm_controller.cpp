@@ -6,7 +6,7 @@ int main() {
   loco_t loco;
 
   loco_t::texturepack_t tp;
-  tp.open_compiled("controller");
+  tp.open_compiled("tp_controller");
   model_list_t m;
 
   model_list_t::cm_t cm;

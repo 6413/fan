@@ -23,8 +23,20 @@ namespace fan_2d {
 			}
 
 
+			static constexpr bool check_collision(const fan::vec2& center1, const fan::vec2& size1, const fan::vec2& center2, const fan::vec2& size2) {
+				fan::vec2 half_size1 =  {fan::math::abs(size1.x), fan::math::abs(size1.y)};
+				fan::vec2 half_size2 =  {fan::math::abs(size2.x), fan::math::abs(size2.y)};
+
+				bool overlap_x = fan::math::abs(center1.x - center2.x) < (half_size1.x + half_size2.x);
+				bool overlap_y = fan::math::abs(center1.y - center2.y) < (half_size1.y + half_size2.y);
+
+				return overlap_x && overlap_y;
+			}
+
       static constexpr bool point_inside_rotated(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size, const fan::vec3& angle, const fan::vec2& rotation_point) {
-        fan::mat4 m = fan::mat4(1);
+        // TODO BROKEN
+        return 0;
+        /*fan::mat4 m = fan::mat4(1);
         fan::mat4 t1 = fan::mat4(1).translate(-position - fan::vec3(rotation_point, 0));
         fan::mat4 t2 = fan::mat4(1).translate(position + fan::vec3(rotation_point, 0));
         fan::mat4 r = fan::mat4(1).rotate(-angle);
@@ -34,7 +46,7 @@ namespace fan_2d {
         return rotated_point.x >= position.x - size.x &&
           rotated_point.x <= position.x + size.x &&
           rotated_point.y >= position.y - size.y &&
-          rotated_point.y <= position.y + size.y;
+          rotated_point.y <= position.y + size.y;*/
       }
 
 			struct sides_e {

@@ -120,9 +120,9 @@ void fan::console_t::open() {
 
 
   auto palette = editor.GetPalette();
-  fan::color bg = palette[(int)TextEditor::PaletteIndex::Background];
-  bg = bg * 2;
-  palette[(int)TextEditor::PaletteIndex::Background] = bg.to_u32();
+  //fan::color bg = fan::color::hex(palette[(int)TextEditor::PaletteIndex::Background]);
+  //bg = bg * 2;
+  //palette[(int)TextEditor::PaletteIndex::Background] = bg.to_u32();
 
   //palette[(int)TextEditor::PaletteIndex::LineNumber] = 0;
   editor.SetPalette(palette);
@@ -149,14 +149,7 @@ void fan::console_t::render() {
 
   ImGui::BeginChild("output_buffer", ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() * 1), false);
 
-  std::string output;
-  for (std::size_t i = 0; i < output_buffer.size(); ++i) {
-    output += output_buffer[i].c_str();
-  }
-
   editor.Render("editor");
-
-  //ImGui::InputTextMultiline("##input2", output.data(), output.size(), ImVec2(-1, -1), ImGuiInputTextFlags_ReadOnly);
 
   ImGui::EndChild();
 
@@ -186,13 +179,11 @@ void fan::console_t::render() {
   }
 
   ImGui::BeginChild("input_text", ImVec2(0, ImGui::GetFrameHeightWithSpacing()), false);
-
-  if (force_input_focus) {
-    ImGui::SetNextWindowFocus();
-    force_input_focus = false;
-  }
-
   
+  if (init_focus) {
+    ImGui::SetNextWindowFocus();
+    init_focus = false;
+  }
   input.Render("input");
 
   current_command = input.GetText();
@@ -206,7 +197,8 @@ void fan::console_t::render() {
     commands.call(current_command.substr(0, current_command.size() - 1));
     history_pos = -1;
     input.SetText("");
-    set_input_focus();
+    
+    //set_input_focus();
     //ImGui::SetWindowFocus("input");
   }
   if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, false)) {
@@ -252,24 +244,28 @@ void fan::console_t::render() {
   ImGui::End();
 }
 
-void fan::console_t::print(const fan::string& msg) {
+void fan::console_t::print(const fan::string& msg, int highlight) {
   commands_t::output_t out;
   out.text = msg;
-  out.highlight = commands_t::highlight_e::text;
+  out.highlight = highlight;
   commands.output_cb(out);
-
   input.MoveEnd();
-  set_input_focus();
+  //set_input_focus();
+}
+
+void fan::console_t::println(const fan::string& msg, int highlight) {
+  print(msg + "\n", highlight);
 }
 
 void fan::console_t::print_colored(const fan::string& msg, const fan::color& color) {
   commands.output_colored_cb(msg, color);
 
   input.MoveEnd();
-  set_input_focus();
+  //set_input_focus();
 }
 
-void fan::console_t::set_input_focus() {
-  force_input_focus = true;
+void fan::console_t::println_colored(const fan::string& msg, const fan::color& color) {
+  print_colored(msg + "\n", color);
 }
+
 #endif

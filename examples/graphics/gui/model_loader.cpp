@@ -6,6 +6,16 @@ int main() {
 
   loco_t loco;
 
+  loco_t::image_t background = loco.create_image(fan::colors::white);
+
+  auto shape = fan::graphics::sprite_t{ {
+      .position = fan::vec3(loco.window.get_size() / 2, 0),
+      .size = loco.window.get_size() / 2,
+      .image = background
+  } };
+
+  loco.lighting.ambient = 0;
+
   fan::vec2 window_size = loco.window.get_size();
   loco.camera_set_ortho(
     loco.orthographic_camera.camera,
@@ -70,7 +80,13 @@ int main() {
  //   m.set_size(model_id, 0.3);
 
   loco.loop([&] {
-    
+    auto& instance = m.get_instance(model_id);
+    for (auto& i : instance.groups) {
+      
+      for (auto& j : i) {
+//        fan::print(position);
+      }
+    }
     m.set_position(model_id, loco.get_mouse_position(loco.orthographic_camera.camera, loco.orthographic_camera.viewport));
     //m.set_angle(model_id, angle);
     //m.set_angle(model_id, 1, angle * 1.5);

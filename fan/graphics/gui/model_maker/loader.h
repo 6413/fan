@@ -110,14 +110,12 @@ struct model_list_t {
         else {
           s.set_position(fan::vec3(fan::vec2(fan::vec2(s.get_position()) - root_pos), mp.position.z));
         }
-        fan::print(s.get_color());
         push_shape(nr, s.group_id, std::move(s));
       }
     }
     set_position(nr, mp.position);
     return nr;
   }
-
   void push_shape(model_id_t model_id, uint32_t group_id, const cm_t::shape_t& shape) {
     auto& model = model_list[model_id];
     if (model.groups.size() < group_id + 1) {

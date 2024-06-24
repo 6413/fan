@@ -256,6 +256,9 @@ namespace fan {
       get_proc_address(PFNGLDRAWPIXELSPROC, glDrawPixels, &internal);
       get_proc_address(PFNGLBLITFRAMEBUFFERPROC, glBlitFramebuffer, &internal);
       get_proc_address(PFNGLVERTEXATTRIBDIVISORPROC, glVertexAttribDivisor, &internal);
+      get_proc_address(PFNGLSTENCILOPPROC, glStencilOp, &internal);
+      get_proc_address(PFNGLSTENCILFUNCPROC, glStencilFunc, &internal);
+      get_proc_address(PFNGLSTENCILMASKPROC, glStencilMask, &internal);
       
 
 

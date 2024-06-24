@@ -56,36 +56,36 @@ int main() {
 
   fan::opengl::GLuint texture;
   fan::vec2 image_size;
-  LoadTextureFromFile("images/controller.webp", &texture, &image_size);
+  LoadTextureFromFile("controller_images/controller.webp", &texture, &image_size);
 
   fan::opengl::GLuint texture2;
   {
     fan::vec2 image_size;
-    LoadTextureFromFile("images/tatti.webp", &texture2, &image_size);
+    LoadTextureFromFile("controller_images/tatti.webp", &texture2, &image_size);
   }
 
   fan::opengl::GLuint texture3;
   {
     fan::vec2 image_size;
-    LoadTextureFromFile("images/tatti.webp", &texture3, &image_size);
+    LoadTextureFromFile("controller_images/tatti.webp", &texture3, &image_size);
   }
 
   fan::opengl::GLuint texture4;
   {
     fan::vec2 image_size;
-    LoadTextureFromFile("images/l2r2.webp", &texture4, &image_size);
+    LoadTextureFromFile("controller_images/l2r2.webp", &texture4, &image_size);
   }
 
   fan::opengl::GLuint texture5;
   {
     fan::vec2 image_size;
-    LoadTextureFromFile("images/button.webp", &texture5, &image_size);
+    LoadTextureFromFile("controller_images/button.webp", &texture5, &image_size);
   }
 
   fan::opengl::GLuint texture6;
   {
     fan::vec2 image_size;
-    LoadTextureFromFile("images/bumper.webp", &texture6, &image_size);
+    LoadTextureFromFile("controller_images/bumper.webp", &texture6, &image_size);
   }
 
   ImGuiStyle& style = ImGui::GetStyle();

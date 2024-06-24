@@ -24,12 +24,12 @@ void fan::opengl::context_t::print_version() {
 }
 
 void fan::opengl::context_t::set_depth_test(bool flag) {
-    if (flag) {
-      opengl.call(opengl.glEnable, fan::opengl::GL_DEPTH_TEST);
-    }
-    else {
-      opengl.call(opengl.glDisable, fan::opengl::GL_DEPTH_TEST);
-    }
+  if (flag) {
+    opengl.call(opengl.glEnable, fan::opengl::GL_DEPTH_TEST);
+  }
+  else {
+    opengl.call(opengl.glDisable, fan::opengl::GL_DEPTH_TEST);
+  }
 }
 
 void fan::opengl::context_t::set_blending(bool flag) {
@@ -40,6 +40,19 @@ void fan::opengl::context_t::set_blending(bool flag) {
     opengl.call(opengl.glEnable, fan::opengl::GL_BLEND);
     opengl.call(opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
   }
+}
+
+void fan::opengl::context_t::set_stencil_test(bool flag) {
+  if (flag) {
+    opengl.call(opengl.glEnable, fan::opengl::GL_STENCIL_TEST);
+  }
+  else {
+    opengl.call(opengl.glDisable, fan::opengl::GL_STENCIL_TEST);
+  }
+}
+
+void fan::opengl::context_t::set_stencil_op(GLenum sfail, GLenum dpfail, GLenum dppass) {
+  opengl.call(opengl.glStencilOp, sfail, dpfail, dppass);
 }
 
 void fan::opengl::context_t::set_vsync(fan::window_t& window, bool flag) {
@@ -601,7 +614,7 @@ fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(fan::color
   return nr;
 }
 
-void fan::opengl::context_t::unload_image(image_nr_t nr) {
+void fan::opengl::context_t::image_unload(image_nr_t nr) {
   image_erase(nr);
 }
 

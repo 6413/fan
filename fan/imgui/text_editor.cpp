@@ -1193,7 +1193,9 @@ void TextEditor::Render()
   if (mScrollToCursor)
   {
     EnsureCursorVisible();
-    ImGui::SetWindowFocus();
+    if (!ignore_window_refocus) {
+      ImGui::SetWindowFocus();
+    }
     mScrollToCursor = false;
   }
 }
@@ -2348,7 +2350,7 @@ void TextEditor::ColorizeInternal()
   if (mLines.empty() || !mColorizerEnabled)
     return;
 
-  if (mCheckComments)
+  if (mCheckComments && !ignore_comments)
   {
     auto endLine = mLines.size();
     auto endIndex = 0;

@@ -292,11 +292,12 @@ struct vfi_t {
         feed_mouse_move(mouse_position);
       }
     }
-    return gloco->shaper.add(
-      loco_t::shape_type_t::vfi,
-      &keypack,
-      0,
-      &instance
+
+    return gloco->shape_add(loco_t::shape_type_t::vfi, 0, instance,
+      loco_t::Key_e::depth, (uint16_t)p.shape.rectangle->position.z,
+      loco_t::Key_e::viewport, p.shape.rectangle->viewport,
+      loco_t::Key_e::camera, p.shape.rectangle->camera,
+      loco_t::Key_e::ShapeType, (loco_t::shaper_t::ShapeTypeIndex_t)loco_t::shape_type_t::vfi
     );
   }
   void erase(const loco_t::shape_t& in) {
@@ -358,13 +359,10 @@ struct vfi_t {
     }
     case shape_t::rectangle: {
       fan::vec2 size = data->shape.rectangle->size;
-
-      bool in = fan_2d::collision::rectangle::point_inside_rotated(
+      bool in = fan_2d::collision::rectangle::point_inside_no_rotation(
         p,
         data->shape.rectangle->position,
-        size,
-        data->shape.rectangle->angle,
-        data->shape.rectangle->rotation_point
+        size
       );
       /* if (!loco->get_context().viewport_list[data->shape.rectangle.viewport].viewport_id->inside_wir(p)) {
       return mouse_stage_e::outside;
@@ -471,19 +469,27 @@ struct vfi_t {
     closest_z_nr.sic();
 
     {
-
       shaper_t::KeyTraverse_t KeyTraverse;
-      KeyTraverse.Init(gloco->shaper, loco_t::kp::vfi);
+      KeyTraverse.Init(gloco->shaper);
 
+      while (KeyTraverse.Loop(gloco->shaper)) {
 
-      shaper_t::KeyTypeIndex_t kti;
-      while (KeyTraverse.Loop(gloco->shaper, kti)) {
+        shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(gloco->shaper);
+        if (kti == loco_t::Key_e::ShapeType) {
+          auto sti = *(shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd();
+          if (sti != loco_t::shape_type_t::vfi) {
+            continue;
+          }
+        }
+        if (!KeyTraverse.isbm) {
+          continue;
+        }
         shaper_t::BlockTraverse_t BlockTraverse;
-        BlockTraverse.Init(gloco->shaper, loco_t::kp::vfi, KeyTraverse.bmid(gloco->shaper));
-        
+        BlockTraverse.Init(gloco->shaper, KeyTraverse.bmid());
+
         do {
          for (int i = 0; i < BlockTraverse.GetAmount(gloco->shaper); ++i) {
-           auto& data = *(ri_t*)gloco->shaper._GetData(loco_t::shape_type_t::vfi, BlockTraverse.GetBlockID(), i);
+           auto& data = ((ri_t*)BlockTraverse.GetData(gloco->shaper))[i];
            fan::vec2 tp = transform(position, data.shape_type, data.shape_data);
            mouse_move_data.mouse_stage = inside(data.shape_type, data.shape_data, tp);
            if (mouse_move_data.mouse_stage == mouse_stage_e::inside) {
@@ -655,7 +661,7 @@ struct vfi_t {
     focus.keyboard.sic();
     focus.text.sic();
 
-    gloco->shaper.AddShapeType(loco_t::shape_type_t::vfi, loco_t::kp::vfi, {
+    gloco->shaper.AddShapeType(loco_t::shape_type_t::vfi, {
       .MaxElementPerBlock = (shaper_t::MaxElementPerBlock_t)MaxElementPerBlock,
       .RenderDataSize = 0,
       .DataSize = sizeof(ri_t),

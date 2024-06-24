@@ -204,6 +204,10 @@ void generate_commands(loco_t* loco) {
 void init_imgui(loco_t* loco) {
 #if defined(loco_imgui)
   ImGui::CreateContext();
+  ImPlot::CreateContext();
+  auto& input_map = ImPlot::GetInputMap();
+  input_map.Pan = ImGuiMouseButton_Middle;
+
   ImGuiIO& io = ImGui::GetIO(); (void)io;
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -403,6 +407,10 @@ loco_t::loco_t(const properties_t& p) :
   shaper.Open();
 
   {
+
+    // filler
+    gloco->shaper.AddKey(Key_e::light, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
+    gloco->shaper.AddKey(Key_e::light_end, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
     gloco->shaper.AddKey(Key_e::depth, sizeof(loco_t::depth_t), shaper_t::KeyBitOrderLow);
     gloco->shaper.AddKey(Key_e::blending, sizeof(loco_t::blending_t), shaper_t::KeyBitOrderLow);
     gloco->shaper.AddKey(Key_e::image, sizeof(loco_t::image_t), shaper_t::KeyBitOrderLow);
@@ -410,60 +418,23 @@ loco_t::loco_t(const properties_t& p) :
     gloco->shaper.AddKey(Key_e::camera, sizeof(loco_t::camera_t), shaper_t::KeyBitOrderAny);
     gloco->shaper.AddKey(Key_e::ShapeType, sizeof(shaper_t::ShapeTypeIndex_t), shaper_t::KeyBitOrderAny);
     gloco->shaper.AddKey(Key_e::filler, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
-    // 30 textures
-    gloco->shaper.AddKey(Key_e::multitexture, sizeof(loco_t::image_t) * 30, shaper_t::KeyBitOrderAny);
+
     //gloco->shaper.AddKey(Key_e::image4, sizeof(loco_t::image_t) * 4, shaper_t::KeyBitOrderLow);
   }
 
-  {
-    shaper_t::KeyTypeIndex_t ktia[] = {
-      Key_e::viewport,
-      Key_e::camera,
-      Key_e::ShapeType
-    };
-    gloco->shaper.AddKeyPack(kp::light, sizeof(ktia) / sizeof(ktia[0]), ktia);
-  }
-  {
-    shaper_t::KeyTypeIndex_t ktia[] = {
-      Key_e::depth,
-      Key_e::blending,
-      Key_e::viewport,
-      Key_e::camera,
-      Key_e::ShapeType
-    };
-    gloco->shaper.AddKeyPack(kp::common, sizeof(ktia) / sizeof(ktia[0]), ktia);
-  }
-  {
-    shaper_t::KeyTypeIndex_t ktia[] = {
-      Key_e::filler
-    };
-    gloco->shaper.AddKeyPack(kp::vfi, sizeof(ktia) / sizeof(ktia[0]), ktia);
-  }
-  {
-    shaper_t::KeyTypeIndex_t ktia[] = {
-      Key_e::depth,
-      Key_e::blending,
-      Key_e::image,
-      Key_e::viewport,
-      Key_e::camera,
-      Key_e::ShapeType
-    };
-    gloco->shaper.AddKeyPack(kp::texture, sizeof(ktia) / sizeof(ktia[0]), ktia);
-  }
-
-  {
-    shaper_t::KeyTypeIndex_t ktia[] = {
-      Key_e::depth,
-      Key_e::blending,
-      Key_e::image,
-      Key_e::image,
-      Key_e::multitexture,
-      Key_e::viewport,
-      Key_e::camera,
-      Key_e::ShapeType
-    };
-    gloco->shaper.AddKeyPack(kp::multitexture, sizeof(ktia) / sizeof(ktia[0]), ktia);
-  }
+  //{
+  //  shaper_t::KeyTypeIndex_t ktia[] = {
+  //    Key_e::depth,
+  //    Key_e::blending,
+  //    Key_e::image,
+  //    Key_e::image,
+  //    Key_e::multitexture,
+  //    Key_e::viewport,
+  //    Key_e::camera,
+  //    Key_e::ShapeType
+  //  };
+  //  gloco->shaper.AddKeyPack(kp::multitexture, sizeof(ktia) / sizeof(ktia[0]), ktia);
+  //}
 
   // order of open needs to be same with shapes enum
   
@@ -584,6 +555,36 @@ loco_t::loco_t(const properties_t& p) :
       }
     );
 
+    loco_t::shader_t shader = shader_create();
+
+    shader_set_vertex(shader,
+      read_shader("shaders/opengl/2D/objects/circle.vs")
+    );
+      
+    shader_set_fragment(shader,
+      read_shader("shaders/opengl/2D/objects/circle.fs")
+    );
+
+    shader_compile(shader);
+
+    gloco->shaper.AddShapeType(
+      loco_t::shape_type_t::light_end,
+      {
+        .MaxElementPerBlock = (shaper_t::MaxElementPerBlock_t)MaxElementPerBlock,
+        .RenderDataSize = 0,
+        .DataSize = 0,
+        .locations = {},
+        .shader = shader
+      }
+    );
+    gloco->shape_functions.resize(gloco->shape_functions.size() + 1);
+    shape_add(
+      loco_t::shape_type_t::light_end,
+      0,
+      0,
+      Key_e::light_end, (uint8_t)0,
+      Key_e::ShapeType, (loco_t::shaper_t::ShapeTypeIndex_t)loco_t::shape_type_t::light_end
+    );
   }
 }
 
@@ -631,57 +632,130 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
   static int frames = 0;
   frames++;
 
-  shaper_t::KeyPackTraverse_t KeyPackTraverse;
-  KeyPackTraverse.Init(shaper);
-  while (KeyPackTraverse.Loop(shaper)) {
-#if defined(depth_debug)
-    bool depth_Key = false;
-#endif
-
     shaper_t::KeyTraverse_t KeyTraverse;
-    KeyTraverse.Init(shaper, KeyPackTraverse.kpi);
+    KeyTraverse.Init(shaper);
 
-    shaper_t::KeyTypeIndex_t kti;
     uint32_t texture_count = 0;
     viewport_t viewport;
     viewport.sic();
     camera_t camera;
     camera.sic();
-    while (KeyTraverse.Loop(shaper, kti)) {
+
+    bool light_buffer_enabled = false;
+
+    while (KeyTraverse.Loop(shaper)) {
       
-      switch (KeyPackTraverse.kpi) {
-      case kp::light: {
-#if defined(loco_framebuffer)
-        gloco->get_context().set_depth_test(false);
-        gloco->get_context().opengl.call(gloco->get_context().opengl.glEnable, fan::opengl::GL_BLEND);
-        gloco->get_context().opengl.call(gloco->get_context().opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
-        unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
-
-        for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-          attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
-        }
-
-        context.opengl.call(context.opengl.glDrawBuffers, std::size(attachments), attachments);
-#endif
-        break;
-      }
-      }
-      if (KeyPackTraverse.kpi == kp::vfi) {
-        continue;
-      }
+      shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(shaper);
 
 
       switch (kti) {
-      case (shaper_t::KeyTypeIndex_t)-1: {
+      case Key_e::blending: {
+        uint8_t Key = *(uint8_t*)KeyTraverse.kd();
+        if (Key) {
+          context.set_depth_test(false);
+          context.opengl.call(get_context().opengl.glEnable, fan::opengl::GL_BLEND);
+          context.opengl.call(get_context().opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+         // shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderLow);
+        }
+        else {
+          context.opengl.call(get_context().opengl.glDisable, fan::opengl::GL_BLEND);
+          context.set_depth_test(true);
+
+          //shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderHigh);
+        }
+        break;
+      }
+      case Key_e::depth: {
+#if defined(depth_debug)
+        depth_t Key = *(depth_t*)KeyTraverse.kd();
+        depth_Key = true;
+        fan::print(Key);
+#endif
+        break;
+      }
+      case Key_e::image: {
+        loco_t::image_t texture = *(loco_t::image_t*)KeyTraverse.kd();
+        if (texture.iic() == false) {
+          // TODO FIX + 0
+          context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 0);
+          context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(texture));
+          //++texture_count;
+        }
+        break;
+      }
+      case Key_e::viewport: {
+        viewport = *(loco_t::viewport_t*)KeyTraverse.kd();
+        break;
+      }
+      case Key_e::camera: {
+        camera = *(loco_t::camera_t*)KeyTraverse.kd();
+        break;
+      }
+      case Key_e::ShapeType: {
+        // if i remove this why it breaks/corrupts?
+        if (*(loco_t::shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd() == loco_t::shape_type_t::light_end) {
+          continue;
+        }
+        break;
+      }
+      case Key_e::light: {
+        if (light_buffer_enabled == false) {
+#if defined(loco_framebuffer)
+          gloco->get_context().set_depth_test(false);
+          gloco->get_context().opengl.call(gloco->get_context().opengl.glEnable, fan::opengl::GL_BLEND);
+          gloco->get_context().opengl.call(gloco->get_context().opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
+          unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
+
+          for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
+            attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+          }
+
+          context.opengl.call(context.opengl.glDrawBuffers, std::size(attachments), attachments);
+          light_buffer_enabled = true;
+#endif
+        }
+        break;
+      }
+      case Key_e::light_end: {
+        if (light_buffer_enabled) {
+#if defined(loco_framebuffer)
+          gloco->get_context().set_depth_test(true);
+          unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
+
+          for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
+            attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+          }
+
+          context.opengl.call(context.opengl.glDrawBuffers, 1, attachments);
+          light_buffer_enabled = false;
+#endif
+          continue;
+        }
+        break;
+      }
+      }
+
+      if (KeyTraverse.isbm) {
+        
         shaper_t::BlockTraverse_t BlockTraverse;
-        shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(shaper, KeyPackTraverse.kpi, KeyTraverse.bmid(shaper));
+        shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(shaper, KeyTraverse.bmid());
+
+        if (shape_type == shape_type_t::light_end) {
+          break;
+        }
+
+   /*     if (shape_type == shape_type_t::vfi) {
+          break;
+        }*/
+
         do {
           auto shader = shaper.GetShader(shape_type);
 #if fan_debug >= fan_debug_medium
-          if (shape_type == 0 || shader.iic()) {
-            fan::print("invalid stuff");
+          if (shape_type == loco_t::shape_type_t::vfi || shape_type == loco_t::shape_type_t::light_end) {
             break;
-            //fan::throw_error("invalid stuff");
+          }
+          else if ((shape_type == 0 || shader.iic())) {
+            fan::throw_error("invalid stuff");
           }
 #endif
           context.shader_use(shader);
@@ -705,9 +779,6 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
 #endif
 #if fan_debug >= fan_debug_high
           switch (shape_type) {
-          case shape_type_t::light: {
-            break;
-          }
           default: {
             if (camera.iic()) {
               fan::throw_error("failed to get camera");
@@ -743,7 +814,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
             fan::throw_error("shaper design is changed");
           }
           else if (shape_type == loco_t::shape_type_t::sprite ||
-                   shape_type == loco_t::shape_type_t::unlit_sprite) {
+            shape_type == loco_t::shape_type_t::unlit_sprite) {
             //fan::print("shaper design is changed");
             auto& ri = *(sprite_t::ri_t*)BlockTraverse.GetData(shaper);
             auto shader = shaper.GetShader(shape_type);
@@ -757,6 +828,12 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
           }
 
           if (shape_type != loco_t::shape_type_t::light) {
+
+            if (shape_type == loco_t::shape_type_t::sprite || shape_type == loco_t::shape_type_t::unlit_sprite) {
+              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(color_buffers[1]));
+            }
+
             auto& c = camera_get(camera);
 
             context.shader_set_value(
@@ -885,7 +962,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
               0
             );
             gloco->image_bind(gloco->font.image);
-            
+
           }// fallthrough
           default: {
             if (context.major >= 4) {
@@ -905,6 +982,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
                 BlockTraverse.GetAmount(shaper)
               );
             }
+
             break;
           }
           }
@@ -927,73 +1005,10 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
           //  }
           //  }
           //}
-        } while (BlockTraverse.Loop(shaper));
-        break;
+          } while (BlockTraverse.Loop(shaper));
       }
-      case Key_e::blending: {
-        uint8_t Key = *(uint8_t*)KeyTraverse.KeyData;
-        if (Key) {
-          context.set_depth_test(false);
-          context.opengl.call(get_context().opengl.glEnable, fan::opengl::GL_BLEND);
-          context.opengl.call(get_context().opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
-         // shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderLow);
-        }
-        else {
-          context.opengl.call(get_context().opengl.glDisable, fan::opengl::GL_BLEND);
-          context.set_depth_test(true);
 
-          //shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderHigh);
-        }
-        break;
-      }
-      case Key_e::depth: {
-#if defined(depth_debug)
-        depth_t Key = *(depth_t*)KeyTraverse.KeyData;
-        depth_Key = true;
-        fan::print(Key);
-#endif
-        break;
-      }
-      case Key_e::image: {
-        loco_t::image_t texture = *(loco_t::image_t*)KeyTraverse.KeyData;
-        if (texture.iic() == false) {
-          // TODO FIX + 0
-          context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 0);
-          context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(texture));
-          //++texture_count;
-        }
-        break;
-      }
-      case Key_e::viewport: {
-        viewport = *(loco_t::viewport_t*)KeyTraverse.KeyData;
-        break;
-      }
-      case Key_e::camera: {
-        camera = *(loco_t::camera_t*)KeyTraverse.KeyData;
-        break;
-      }
-      case Key_e::ShapeType: {
-        break;
-      }
-      }
     }
-
-    switch (KeyPackTraverse.kpi) {
-    case kp::light: {
-#if defined(loco_framebuffer)
-      gloco->get_context().set_depth_test(true);
-      unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
-
-      for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-        attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
-      }
-
-      context.opengl.call(context.opengl.glDrawBuffers, 1, attachments);
-#endif
-      break;
-    }
-    }
-  }
 
 
   //uint8_t draw_range = 0;
@@ -1093,6 +1108,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
     // force focus xd
     console.input.InsertText("a");
     console.input.SetText("");
+    console.init_focus = true;
     //TextEditor::Coordinates c;
     //c.mColumn = 0;
     //c.mLine = 0;
@@ -1102,7 +1118,6 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
     //console.input.
     //console.input.SelectAll();
     //console.input.SetCursorPosition(TextEditor::Coordinates(0, 0));
-    console.set_input_focus();
   }
   if (toggle_console) {
     console.render();
@@ -1325,34 +1340,71 @@ void loco_t::input_action_t::add(std::initializer_list<int> keys, std::string_vi
   add(keys.begin(), keys.size(), action_name);
 }
 
-int loco_t::input_action_t::is_active(std::string_view action_name, int press) {
+void loco_t::input_action_t::add_keycombo(std::initializer_list<int> keys, std::string_view action_name) {
+  action_data_t action_data;
+  action_data.combo_count = (uint8_t)keys.size();
+  std::memcpy(action_data.key_combos, keys.begin(), sizeof(int) * action_data.combo_count);
+  input_actions[action_name] = action_data;
+}
+
+bool loco_t::input_action_t::is_active(std::string_view action_name, int pstate) {
   auto found = input_actions.find(action_name);
   if (found != input_actions.end()) {
     action_data_t& action_data = found->second;
 
-    int state = none;
-    for (int i = 0; i < action_data.count; ++i) {
-      int s = gloco->window.key_state(action_data.keys[i]);
-      if (s != none) {
-        state = s;
+    if (action_data.combo_count) {
+      int state = none;
+      for (int i = 0; i < action_data.combo_count; ++i) {
+        int s = gloco->window.key_state(action_data.key_combos[i]);
+        if (s == none) {
+          return none == loco_t::input_action_t::press;
+        }
+        if (state == input_action_t::press && s == input_action_t::repeat) {
+          state = 1;
+        }
+        else {
+          state = s;
+        }
       }
+      return state == pstate;
     }
-    return state;
+    else if (action_data.count){
+      int state = none;
+      for (int i = 0; i < action_data.count; ++i) {
+        int s = gloco->window.key_state(action_data.keys[i]);
+        if (s != none) {
+          state = s;
+        }
+      }
+      return state == pstate;
+    }
   }
-  return none;
+  return none == pstate;
+}
+
+static fan::vec2 transform_position(const fan::vec2& p, loco_t::viewport_t viewport, loco_t::camera_t camera) {
+
+  auto& context = gloco->get_context();
+  auto& v = context.viewport_get(viewport);
+  auto& c = context.camera_get(camera);
+
+  fan::vec2 viewport_position = v.viewport_position;
+  fan::vec2 viewport_size = v.viewport_size;
+
+  f32_t l = c.coordinates.left;
+  f32_t r = c.coordinates.right;
+  f32_t t = c.coordinates.up;
+  f32_t b = c.coordinates.down;
+
+  fan::vec2 tp = p - viewport_position;
+  fan::vec2 d = viewport_size;
+  tp /= d;
+  tp = fan::vec2(r * tp.x - l * tp.x + l, b * tp.y - t * tp.y + t);
+  return tp;
 }
 
 fan::vec2 loco_t::get_mouse_position(const loco_t::camera_t& camera, const loco_t::viewport_t& viewport) {
-  fan::vec2 mouse_pos = window.get_mouse_position();
-  fan::vec2 translated_pos;
-  auto& context = get_context();
-  auto& v = context.viewport_get(viewport);
-  auto& c = context.camera_get(camera);
-  translated_pos.x = fan::math::map(mouse_pos.x, v.viewport_position.x, v.viewport_position.x + v.viewport_size.x, c.coordinates.left, c.coordinates.right);
-  translated_pos.y = fan::math::map(mouse_pos.y, v.viewport_position.y, v.viewport_position.y + v.viewport_size.y, c.coordinates.up, c.coordinates.down);
-  translated_pos += c.position;
-
-  return translated_pos;
+  return transform_position(get_mouse_position(), viewport, camera);
 }
 
 fan::vec2 loco_t::get_mouse_position() {
@@ -1482,6 +1534,10 @@ void loco_t::shape_t::set_grid_size(const fan::vec2& grid_size) {
   gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_grid_size(this, grid_size);
 }
 
+loco_t::image_t loco_t::shape_t::get_image() {
+  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_image(this);
+}
+
 void loco_t::shape_t::set_image(loco_t::image_t image) {
   gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_image(this, image);
 }
@@ -1500,6 +1556,10 @@ fan::vec3 loco_t::shape_t::get_rotation_vector() {
 
 uint32_t loco_t::shape_t::get_flags() {
   return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_flags(this);
+}
+
+void loco_t::shape_t::set_flags(uint32_t flag) {
+  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_flags(this, flag);
 }
 
 f32_t loco_t::shape_t::get_radius() {
@@ -1536,11 +1596,6 @@ void loco_t::shape_t::set_line(const fan::vec2& src, const fan::vec2& dst) {
 /// shapes +
 
 loco_t::shape_t loco_t::light_t::push_back(const properties_t& properties) {
-  kps_t::light_t KeyPack;
-  KeyPack.ShapeType = shape_type;
-  KeyPack.camera = properties.camera;
-  KeyPack.viewport = properties.viewport;
-  //KeyPack.ShapeType = shape_type;
   vi_t vi;
   vi.position = properties.position;
   vi.parallax_factor = properties.parallax_factor;
@@ -1552,33 +1607,31 @@ loco_t::shape_t loco_t::light_t::push_back(const properties_t& properties) {
   vi.angle = properties.angle;
   ri_t ri;
 
-  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+  return shape_add(shape_type, vi, ri,
+    Key_e::light, (uint8_t)0,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
 }
 
 loco_t::shape_t loco_t::line_t::push_back(const properties_t& properties) {
-  kps_t::common_t KeyPack;
-  KeyPack.ShapeType = shape_type;
-  KeyPack.depth = properties.src.z;
-  KeyPack.blending = properties.blending;
-  KeyPack.camera = properties.camera;
-  KeyPack.viewport = properties.viewport;
-  //KeyPack.ShapeType = shape_type;
   vi_t vi;
   vi.src = properties.src;
   vi.dst = properties.dst;
   vi.color = properties.color;
   ri_t ri;
 
-  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.src.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
 }
 
 loco_t::shape_t loco_t::rectangle_t::push_back(const properties_t& properties) {
-  kps_t::common_t KeyPack;
-  KeyPack.ShapeType = shape_type;
-  KeyPack.depth = properties.position.z;
-  KeyPack.blending = properties.blending;
-  KeyPack.camera = properties.camera;
-  KeyPack.viewport = properties.viewport;
   vi_t vi;
   vi.position = properties.position;
   vi.size = properties.size;
@@ -1587,16 +1640,16 @@ loco_t::shape_t loco_t::rectangle_t::push_back(const properties_t& properties) {
   vi.rotation_point = properties.rotation_point;
   ri_t ri;
 
-  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
 }
 
 loco_t::shape_t loco_t::circle_t::push_back(const circle_t::properties_t& properties) {
-  kps_t::common_t KeyPack;
-  KeyPack.ShapeType = shape_type;
-  KeyPack.depth = properties.position.z;
-  KeyPack.blending = properties.blending;
-  KeyPack.camera = properties.camera;
-  KeyPack.viewport = properties.viewport;
   circle_t::vi_t vi;
   vi.position = properties.position;
   vi.radius = properties.radius;
@@ -1604,18 +1657,18 @@ loco_t::shape_t loco_t::circle_t::push_back(const circle_t::properties_t& proper
   vi.color = properties.color;
   vi.rotation_vector = properties.rotation_vector;
   vi.angle = properties.angle;
+  vi.flags = properties.flags;
   circle_t::ri_t ri;
-  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
 }
 
 loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
-  kps_t::texture_t KeyPack;
-  KeyPack.ShapeType = shape_type;
-  KeyPack.depth = properties.position.z;
-  KeyPack.blending = properties.blending;
-  KeyPack.image = properties.image;
-  KeyPack.camera = properties.camera;
-  KeyPack.viewport = properties.viewport;
   //KeyPack.ShapeType = shape_type;
   vi_t vi;
   vi.position = properties.position;
@@ -1630,21 +1683,21 @@ loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
   vi.seed = properties.seed;
   ri_t ri;
   ri.images = properties.images;
-  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::image, properties.image,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
 }
 
 loco_t::shape_t loco_t::text_t::push_back(const properties_t& properties) {
-  return gloco->shaper.add(shape_type_t::text, nullptr, nullptr, nullptr);
+  return gloco->shaper.add(shape_type_t::text, nullptr, 0, nullptr, nullptr);
 }
 
 loco_t::shape_t loco_t::unlit_sprite_t::push_back(const properties_t& properties) {
-  kps_t::texture_t KeyPack;
-  KeyPack.ShapeType = shape_type;
-  KeyPack.depth = properties.position.z;
-  KeyPack.blending = properties.blending;
-  KeyPack.image = properties.image;
-  KeyPack.camera = properties.camera;
-  KeyPack.viewport = properties.viewport;
   //KeyPack.ShapeType = shape_type;
   vi_t vi;
   vi.position = properties.position;
@@ -1659,16 +1712,17 @@ loco_t::shape_t loco_t::unlit_sprite_t::push_back(const properties_t& properties
   vi.seed = properties.seed;
   ri_t ri;
   ri.images = properties.images;
-  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::image, properties.image,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
 }
 
 loco_t::shape_t loco_t::letter_t::push_back(const properties_t& properties) {
-  kps_t::common_t KeyPack;
-  KeyPack.ShapeType = shape_type;
-  KeyPack.depth = properties.position.z;
-  KeyPack.blending = properties.blending;
-  KeyPack.camera = properties.camera;
-  KeyPack.viewport = properties.viewport;
   //KeyPack.ShapeType = shape_type;
   vi_t vi;
   vi.position = properties.position;
@@ -1691,17 +1745,16 @@ loco_t::shape_t loco_t::letter_t::push_back(const properties_t& properties) {
 
   vi.size = si.metrics.size / 2;
 
-  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
 }
 
 loco_t::shape_t loco_t::grid_t::push_back(const properties_t& properties) {
-  kps_t::common_t KeyPack;
-  KeyPack.ShapeType = shape_type;
-  KeyPack.depth = properties.position.z;
-  KeyPack.blending = properties.blending;
-  KeyPack.camera = properties.camera;
-  KeyPack.viewport = properties.viewport;
-  //KeyPack.ShapeType = shape_type;
   vi_t vi;
   vi.position = properties.position;
   vi.size = properties.size;
@@ -1710,17 +1763,16 @@ loco_t::shape_t loco_t::grid_t::push_back(const properties_t& properties) {
   vi.color = properties.color;
   vi.angle = properties.angle;
   ri_t ri;
-  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
 }
 
 loco_t::shape_t loco_t::particles_t::push_back(const properties_t& properties) {
-  kps_t::texture_t KeyPack;
-  KeyPack.ShapeType = shape_type;
-  KeyPack.depth = properties.position.z;
-  KeyPack.blending = properties.blending;
-  KeyPack.image = properties.image;
-  KeyPack.camera = properties.camera;
-  KeyPack.viewport = properties.viewport;
   //KeyPack.ShapeType = shape_type;
   vi_t vi;
   ri_t ri;
@@ -1742,17 +1794,17 @@ loco_t::shape_t loco_t::particles_t::push_back(const properties_t& properties) {
   ri.size_velocity = properties.size_velocity;
   ri.shape = properties.shape;
 
-  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::image, properties.image,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
 }
 
 loco_t::shape_t loco_t::universal_image_renderer_t::push_back(const properties_t& properties) {
-  kps_t::texture_t KeyPack;
-  KeyPack.ShapeType = shape_type;
-  KeyPack.depth = properties.position.z;
-  KeyPack.blending = properties.blending;
-  KeyPack.image = properties.images[0];
-  KeyPack.camera = properties.camera;
-  KeyPack.viewport = properties.viewport;
   vi_t vi;
   vi.position = properties.position;
   vi.size = properties.size;
@@ -1761,7 +1813,14 @@ loco_t::shape_t loco_t::universal_image_renderer_t::push_back(const properties_t
   ri_t ri;
   // + 1
   std::memcpy(ri.images_rest, &properties.images[1], sizeof(ri.images_rest));
-  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::image, properties.images[0],
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
 }
 
 loco_t::shape_t loco_t::gradient_t::push_back(const properties_t& properties) {
@@ -1779,7 +1838,13 @@ loco_t::shape_t loco_t::gradient_t::push_back(const properties_t& properties) {
   vi.rotation_point = properties.rotation_point;
   ri_t ri;
 
-  return gloco->shaper.add(KeyPack.ShapeType, &KeyPack, &vi, &ri);
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
 }
 
 void fan::graphics::gl_font_impl::font_t::open(const fan::string& image_path) {
@@ -1819,11 +1884,11 @@ inline fan::vec2 fan::graphics::gl_font_impl::font_t::get_text_size(const fan::s
 }
 
 #if defined(loco_imgui)
-IMGUI_API void ImGui::Image(loco_t::image_t& img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) {
+IMGUI_API void ImGui::Image(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) {
   ImGui::Image((ImTextureID)gloco->image_get(img), size, uv0, uv1, tint_col, border_col);
 }
 
-IMGUI_API bool ImGui::ImageButton(loco_t::image_t& img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
+IMGUI_API bool ImGui::ImageButton(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
   return ImGui::ImageButton((ImTextureID)gloco->image_get(img), size, uv0, uv1, frame_padding, bg_col, tint_col);
 }
 
@@ -1848,6 +1913,117 @@ bool ImGui::ToggleButton(const char* str_id, bool* v) {
   draw_list->AddCircleFilled(ImVec2(*v ? (p.x + width - radius) : (p.x + radius), p.y + radius), radius - 1.5f, IM_COL32(255, 255, 255, 255));
 
   return changed;
+}
+
+
+bool ImGui::ToggleImageButton(loco_t::image_t image, const ImVec2& size, bool* toggle)
+{
+  bool clicked = false;
+
+  ImVec4 tintColor = ImVec4(1, 1, 1, 1);
+  if (*toggle) {
+    tintColor = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+  }
+  if (ImGui::IsItemHovered()) {
+    tintColor = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
+  }
+
+  if (ImGui::ImageButton(image, size, ImVec2(0, 0), ImVec2(1, 1), 0, ImVec4(0, 0, 0, 0), tintColor)) {
+    *toggle = !(*toggle);
+    clicked = true;
+  }
+
+  return clicked;
+}
+
+ImVec2 ImGui::GetPositionBottomCorner(const char* text, uint32_t reverse_yoffset) {
+  ImVec2 window_pos = ImGui::GetWindowPos();
+  ImVec2 window_size = ImGui::GetWindowSize();
+
+  ImVec2 text_size = ImGui::CalcTextSize(text);
+
+  ImVec2 text_pos;
+  text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
+  text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
+
+  text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
+
+  return text_pos;
+}
+
+
+void fan::graphics::imgui_content_browser_t::render() {
+  ImGuiStyle& style = ImGui::GetStyle();
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 16.0f));
+  ImGuiWindowClass window_class;
+  window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
+  ImGui::SetNextWindowClass(&window_class);
+  if (ImGui::Begin("Content Browser", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoTitleBar)) {
+    if (ImGui::BeginMenuBar()) {
+      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+      ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
+      ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.3f));
+
+      if (ImGui::ImageButton(icon_arrow_left, fan::vec2(32))) {
+        if (std::filesystem::equivalent(current_directory, asset_path) == false) {
+          current_directory = current_directory.parent_path();
+        }
+        update_directory_cache();
+      }
+      ImGui::SameLine();
+      ImGui::ImageButton(icon_arrow_right, fan::vec2(32));
+      ImGui::SameLine();
+      ImGui::PopStyleColor(3);
+
+      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+      ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
+      ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.3f));
+
+      auto image_list = std::to_array({ icon_files_list, icon_files_big_thumbnail });
+
+      fan::vec2 bc = ImGui::GetPositionBottomCorner();
+
+      bc.x -= ImGui::GetWindowPos().x;
+      ImGui::SetCursorPosX(bc.x / 2);
+
+      ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - (fan::vec2(64).x + style.ItemSpacing.x) * image_list.size());
+
+      ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 20.0f);
+      ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 7.0f));
+      f32_t y_pos = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y;
+      ImGui::SetCursorPosY(y_pos);
+
+
+      if (ImGui::InputText("##content_browser_search", search_buffer.data(), search_buffer.size())) {
+
+      }
+      ImGui::PopStyleVar(2);
+
+      ImGui::ToggleImageButton(image_list, fan::vec2(64), (int*)&current_view_mode);
+
+      ImGui::PopStyleColor(3);
+
+
+      ///ImGui::InputText("Search", search_buffer.data(), search_buffer.size());
+
+      ImGui::EndMenuBar();
+    }
+
+    ImGui::PopStyleVar(1);
+    // Render content based on view mode
+    switch (current_view_mode) {
+    case view_mode_large_thumbnails:
+      render_large_thumbnails_view();
+      break;
+    case view_mode_list:
+      render_list_view();
+      break;
+    default:
+      break;
+    }
+
+    ImGui::End();
+  }
 }
 
 #endif
@@ -2101,6 +2277,7 @@ shape
 data{
 }
 */
+
 
 bool fan::graphics::shape_to_bin(loco_t::shape_t& shape, std::string* str) {
   std::string& out = *str;
