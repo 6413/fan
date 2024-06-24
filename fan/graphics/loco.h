@@ -2994,6 +2994,18 @@ namespace fan {
           }
         }
       }
+      void disable_highlight() {
+        fan::vec3 op = children[0].get_position();
+        fan::vec2 os = children[0].get_size();
+        for (std::size_t j = 0; j < highlight.size(); ++j) {
+          for (std::size_t i = 0; i < highlight[j].size(); ++i) {
+            fan::line3 line = get_highlight_positions(op, os, i);
+            if (highlight[j][i].iic() == false) {
+              highlight[j][i].set_line(0, 0);
+            }
+          }
+        }
+      }
 
       void set_root(const loco_t::vfi_t::properties_t& p) {
         fan::graphics::vfi_t::properties_t in = p;
@@ -3020,12 +3032,20 @@ namespace fan {
           }
           if (d.button_state != fan::mouse_state::press) {
             this->move = false;
+            moving_object = false;
             d.flag->ignore_move_focus_check = false;
+            if (previous_click_position == d.position) {
+              for (auto* i : selected_objects) {
+                i->disable_highlight();
+              }
+              selected_objects.clear();
+            }
             return 0;
           }
           if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
             return 0;
           }
+
           if (previous_focus && previous_focus != this) {
             for (std::size_t i = 0; i < previous_focus->highlight[0].size(); ++i) {
               if (previous_focus->highlight[0][i].iic() == false) {
@@ -3037,9 +3057,10 @@ namespace fan {
           previous_focus = this;
 
           if (move_and_resize_auto) {
-
+            previous_click_position = d.position;
             d.flag->ignore_move_focus_check = true;
             this->move = true;
+            moving_object = true;
             this->click_offset = get_position() - d.position;
             
             gloco->vfi.set_focus_keyboard(d.vfi->focus.mouse);
@@ -3062,7 +3083,9 @@ namespace fan {
               for (std::size_t j = 0; j < highlight.size(); ++j) {
                 for (std::size_t i = 0; i < highlight[j].size(); ++i) {
                   fan::line3 line = get_highlight_positions(op, os, i);
-                  highlight[j][i].set_line(line[0], line[1]);
+                  if (highlight[j][i].iic() == false) {
+                    highlight[j][i].set_line(line[0], line[1]);
+                  }
                 }
               }
               if (previous_focus && previous_focus != this) {
@@ -3081,24 +3104,6 @@ namespace fan {
               p.x = std::round(p.x / 32.0f) * 32.0f;
               p.y = std::round(p.y / 32.0f) * 32.0f;
               this->set_position(p);
-              fan::vec3 op = children[0].get_position();
-              fan::vec2 os = children[0].get_size();
-              for (std::size_t j = 0; j < highlight.size(); ++j) {
-                for (std::size_t i = 0; i < highlight[j].size(); ++i) {
-                  fan::line3 line = get_highlight_positions(op, os, i);
-                  if (highlight[j][i].iic() == false) {
-                    highlight[j][i].set_line(line[0], line[1]);
-                  }
-                }
-              }
-              if (previous_focus && previous_focus != this) {
-                for (std::size_t i = 0; i < previous_focus->highlight[0].size(); ++i) {
-                  if (previous_focus->highlight[0][i].iic() == false) {
-                    previous_focus->highlight[0][i].set_line(0, 0);
-                  }
-                }
-                previous_focus = this;
-              }
               return user_cb(d);
             }
           }
@@ -3115,12 +3120,50 @@ namespace fan {
       fan::vec3 get_position() {
         return vfi_root.get_position();
       }
+
+      static void update_highlight_position(vfi_root_custom_t<T>* instance) {
+        fan::vec3 op = instance->children[0].get_position();
+        fan::vec2 os = instance->children[0].get_size();
+        for (std::size_t j = 0; j < instance->highlight.size(); ++j) {
+          for (std::size_t i = 0; i < instance->highlight[j].size(); ++i) {
+            fan::line3 line = get_highlight_positions(op, os, i);
+            if (instance->highlight[j][i].iic() == false) {
+              instance->highlight[j][i].set_line(line[0], line[1]);
+            }
+          }
+        }
+      }
+
       void set_position(const fan::vec3& position) {
         fan::vec2 root_pos = vfi_root.get_position();
         fan::vec2 offset = position - root_pos;
         vfi_root.set_position(fan::vec3(root_pos + offset, position.z));
+
         for (auto& child : children) {
           child.set_position(fan::vec3(fan::vec2(child.get_position()) + offset, position.z));
+        }
+        update_highlight_position(this);
+
+        if (previous_focus && previous_focus != this) {
+          for (std::size_t i = 0; i < previous_focus->highlight[0].size(); ++i) {
+            if (previous_focus->highlight[0][i].iic() == false) {
+              previous_focus->highlight[0][i].set_line(0, 0);
+            }
+          }
+          previous_focus = this;
+        }
+
+        for (auto* i : selected_objects) {
+          if (i == this) {
+            continue;
+          }
+          fan::vec2 root_pos = i->vfi_root.get_position();
+          i->vfi_root.set_position(fan::vec3(root_pos + offset, position.z));
+
+          for (auto& child : i->children) {
+            child.set_position(fan::vec3(fan::vec2(child.get_position()) + offset, position.z));
+          }
+          update_highlight_position(i);
         }
       }
       fan::vec2 get_size() {
@@ -3148,8 +3191,10 @@ namespace fan {
       }
 
       inline static bool g_ignore_mouse = false;
+      inline static bool moving_object = false;
 
       fan::vec2 click_offset = 0;
+      fan::vec2 previous_click_position;
       bool move = false;
       bool resize = false;
 
@@ -3160,6 +3205,8 @@ namespace fan {
 
       };
       std::vector<child_data_t> children;
+
+      inline static std::vector<vfi_root_custom_t<T>*> selected_objects;
 
       inline static vfi_root_custom_t<T>* previous_focus = nullptr;
 
