@@ -406,5 +406,10 @@ private:
   std::string mLineBuffer;
   uint64_t mStartTime;
 
+  public:
+  bool ignore_window_refocus = true;
+  bool ignore_comments = true;
+  private:
+
   float mLastClick;
 };
