@@ -8,13 +8,19 @@ in vec2 texture_coordinate;
 in vec2 size;
 in vec4 instance_color;
 flat in uint fs_flags;
-flat in int element_id;
+flat in float object_seed;
+
+in vec3 instance_position;
+in vec3 frag_position;
+
 
 uniform sampler2D _t00;
 uniform sampler2D _t01;
+uniform sampler2D _t02;
 uniform vec3 lighting_ambient;
 uniform vec2 window_size;
 uniform float m_time;
+uniform vec2 offset;
 
 float rand(vec2 co) {
     float seed = dot(co, vec2(12.9898, 78.233));
@@ -27,18 +33,43 @@ float randomValue(float minValue, float maxValue, vec2 seed) {
     return mix(minValue, maxValue, rand(seed));
 }
 
+
 void main() {
 
   vec2 tc = texture_coordinate;
 
-  if ((fs_flags & 0x1u) == 0x1u) {
-    float speed = 0.3;
-  vec2 Wave = vec2(randomValue(0.8, 0.9, vec2(float(element_id), float(element_id))), 2);
+    vec4 tex_color = vec4(1, 1, 1, 1);
+  //if (fs_flags == floatBitsToUint(1.0)) {
+  //  float speed = 0.3;
+  //vec2 Wave = vec2(randomValue(0.8, 0.9, vec2(float(element_id), float(element_id))), 2);
+  //
+  //  tc += vec2(cos((tc.y/Wave.x + (m_time + (m_time * (float(randomValue(1.0, 100.0, vec2(float(element_id), float(element_id)))))) / 100.0) * speed) * Wave.y), 0.0) / size * (1.0 - tc.y);
+  //}
+  //
+if (fs_flags == floatBitsToUint(2.0)) {
+    float speed = 0.03; // Adjust this value to change the speed of the lava
+    vec2 tc_noise = tc * 0.5 + vec2(0, -m_time * speed); // Scale the texture coordinates
 
-    tc += vec2(cos((tc.y/Wave.x + (m_time + (m_time * (float(randomValue(1.0, 100.0, vec2(float(element_id), float(element_id)))))) / 100.0) * speed) * Wave.y), 0.0) / size * (1.0 - tc.y);
+    // Sample the noise texture
+    vec4 noise_col = texture(_t02, tc_noise);
+
+    // Add another layer of noise at a different scale
+    vec2 tc_noise2 = tc * 0.1 + vec2(0, -m_time * speed * 0.5);
+    vec4 noise_col2 = texture(_t02, tc_noise2);
+
+    // Combine the two noise values
+    vec4 noise_combined = mix(noise_col, noise_col2, 0.5);
+
+    // Add a time-dependent offset to the texture coordinates
+    vec2 tc_offset = tc + vec2(0, -m_time * speed) + fract(vec2(object_seed, object_seed) * 5.324);
+
+    // Use the combined noise value to offset the texture coordinates for the lava texture
+    tex_color = texture(_t00, tc_offset + 0.6 * noise_combined.rg) * instance_color;
+}
+  else {
+    tex_color = texture(_t00, tc) * instance_color;
   }
-
-  vec4 tex_color = texture(_t00, tc) * instance_color;
+    
 
   if (tex_color.a <= 0.25) {
     discard;

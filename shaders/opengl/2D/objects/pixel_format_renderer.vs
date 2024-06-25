@@ -35,6 +35,6 @@ void main() {
 	//
   vec2 rp = rectangle_vertices[id];
 
-  gl_Position = projection * view * vec4(rp * in_ + in_position.xy, in_position.z, 1);
+  gl_Position = projection * view * vec4(rp * in_size + in_position.xy, in_position.z, 1);
   texture_coordinate = tc[id] * in_tc_size + in_tc_position;
 }

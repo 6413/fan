@@ -9,12 +9,16 @@ layout (location = 5) in vec3 in_angle;
 layout (location = 6) in uint in_flags;
 layout (location = 7) in vec2 in_tc_position;
 layout (location = 8) in vec2 in_tc_size;
+layout (location = 9) in float in_seed;
 
 out vec4 instance_color;
 out vec2 texture_coordinate;
-out vec2 out_size;
+out vec2 size;
 flat out uint fs_flags;
-flat out int element_id;
+flat out float object_seed;
+
+out vec3 instance_position;
+out vec3 frag_position;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -98,9 +102,16 @@ void main() {
   //p.x = (p.x - window_size.x / 2) * in_parallax_factor;
   //p += ((in_parallax_factor * -(view_mat[3].xy)));
   gl_Position = projection * view_mat * vec4(rotated + p, in_position.z, 1);
+
+	vec4 fs = vec4(vec4(vec2(rotated.x, rotated.y)+ in_position.xy, in_position.z, 1));
+
   instance_color = in_color;
   texture_coordinate = tc[id] * in_tc_size + in_tc_position;
+
+  instance_position = in_position;
+  frag_position = fs.xyz;
+
   fs_flags = in_flags;
-  out_size = in_size;
-  element_id = gl_VertexID / 6;
+  size = in_size;
+  object_seed = in_seed;
 }
