@@ -83,10 +83,10 @@ Developer console support (F3)
 [quadtree_visualize](examples/graphics/2D/quadtree_visualize.cpp)
 ![image_2023-11-11_20-24-01](https://github.com/6413/fan/assets/56801084/0aac1cbb-2d41-40ef-b0d0-5ab838b9b3d1)
 
-[particles](examples/graphics/2D/particles.cpp)
+[particles](examples/graphics/2D/shapes/particles.cpp)
 ![image_2023-11-11_20-29-09](https://github.com/6413/fan/assets/56801084/8c63a7a0-a8c1-451e-82be-af14aabb69b3)
 
-[tilemap_editor](examples/gui/tilemap_editor.cpp)
+[tilemap_editor](examples/graphics/gui/tilemap_editor.cpp)
 ![image_2023-11-11_20-32-21](https://github.com/6413/fan/assets/56801084/b41e7417-04fb-4d7f-be6a-2e13379cf521)
 
 [sort_visualizer](examples/graphics/2D/sort_visualizer.cpp)
