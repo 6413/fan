@@ -12,7 +12,6 @@
 - **Collisions** Simple collisions Circle<->Circle, Rectangle<->Circle (no rotation for rectangles)
 
 ## Limitations
-- Uses .webp files for loading images
 - Limited shapes for collisions
 - The library is still in development, bugs and missing features to be expected
 
@@ -42,7 +41,7 @@ Requires c++20
 3. Clone the repository: `git clone https://github.com/6413/fan.git`
 4. Setup and compile using `make -B -f make_imgui`, `make -f make_pch`, `make`, in order
 
-Main file can be controlled by `MAIN`-make variable for example `make MAIN=examples/graphics/rectangle.cpp`
+Main file can be controlled by `MAIN`-make variable for example `make MAIN=examples/graphics/2D/shapes/rectangle.cpp`
 
 ## Notes for compiling with Makefile
 Using the library from outside the project, change ROOT_PATH in Makefiles
