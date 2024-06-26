@@ -27,14 +27,14 @@ link_libraries(${GTK3_LIBRARIES})
 set(CMAKE_CXX_COMPILER "clang++")
 
 # Set the source files and output
-set(MAIN 1.cpp)
+set(MAIN examples/graphics/gui/model_maker.cpp)
 set(OUTPUT a.exe)
 
 # Set the paths
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     set(ROOT_PATH "C:/libs/fan_release/include/fan/")
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(ROOT_PATH "/mnt/c/libs/fan_release/include/fan/")
+    set(ROOT_PATH "./fan/")
 endif()
 
 
@@ -46,7 +46,7 @@ set(PCH_NAME "pch.h")
 set(ENABLE_IMGUI ON)
 
 # Set the compiler flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I /mnt/c/Users/0b347/Documents/GitHub -g -ferror-limit=4 -Wall -Wextra -Werror -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -fsanitize=address,undefined")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I . -I .. -g -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -fsanitize=address,undefined")
 set(DEBUG_FLAGS "-g")
 set(RELEASE_FLAGS "-s -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -march=native -Wl,--gc-sections")
 
