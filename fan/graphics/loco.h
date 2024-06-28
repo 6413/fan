@@ -108,12 +108,13 @@ namespace nlohmann {
 #define loco_universal_image_renderer
 
 
+#if defined(loco_cuda)
+
 // +cuda
 #include "cuda_runtime.h"
 #include <cuda.h>
 #include <nvcuvid.h>
 
-#if defined(loco_cuda)
 
 namespace fan {
   namespace cuda {
