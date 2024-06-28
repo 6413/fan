@@ -130,10 +130,10 @@ namespace fan {
 
         //sMD_SCR_Geometry_t Geometry;
       }MD_SCR_t;
-      static sint32_t MD_SCR_open(MD_SCR_t * scr);
-      static void MD_SCR_close(MD_SCR_t * scr);
+      sint32_t MD_SCR_open(MD_SCR_t * scr);
+      void MD_SCR_close(MD_SCR_t * scr);
 
-      static uint8_t* MD_SCR_read(MD_SCR_t * scr);
+      uint8_t* MD_SCR_read(MD_SCR_t * scr);
       #endif
     }
   }

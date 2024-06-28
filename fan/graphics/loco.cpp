@@ -792,26 +792,27 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
 #endif
 
           if (shape_type == loco_t::shape_type_t::universal_image_renderer) {
-            //auto& ri = *(universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
-            //
+            auto shader = shaper.GetShader(shape_type);
+            
+            auto& ri = *(universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
 
-            //if (ri.images_rest[0].iic() == false) {
-            //  context.shader_set_value(block.shader, "_t01", 1);
-            //  context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 1);
-            //  context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[0]));
-            //}
-            //if (ri.images_rest[1].iic() == false) {
-            //  context.shader_set_value(block.shader, "_t02", 2);
-            //  context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 2);
-            //  context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[1]));
-            //}
+            if (ri.images_rest[0].iic() == false) {
+              context.shader_set_value(shader, "_t01", 1);
+              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 1);
+              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[0]));
+            }
+            if (ri.images_rest[1].iic() == false) {
+              context.shader_set_value(shader, "_t02", 2);
+              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 2);
+              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[1]));
+            }
 
-            //if (ri.images_rest[2].iic() == false) {
-            //  context.shader_set_value(block.shader, "_t03", 3);
-            //  context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 3);
-            //  context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[2]));
-            //}
-            fan::throw_error("shaper design is changed");
+            if (ri.images_rest[2].iic() == false) {
+              context.shader_set_value(shader, "_t03", 3);
+              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 3);
+              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[2]));
+            }
+            //fan::throw_error("shaper design is changed");
           }
           else if (shape_type == loco_t::shape_type_t::sprite ||
             shape_type == loco_t::shape_type_t::unlit_sprite) {
@@ -1584,6 +1585,11 @@ fan::color loco_t::shape_t::get_outline_color() {
 
 void loco_t::shape_t::reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter) {
   gloco->shape_functions[gloco->shaper.GetSTI(*this)].reload(this, format, image_data, image_size, filter);
+}
+
+void loco_t::shape_t::reload(uint8_t format, const fan::vec2& image_size, uint32_t filter) {
+  void* data[4]{};
+  gloco->shape_functions[gloco->shaper.GetSTI(*this)].reload(this, format, data, image_size, filter);
 }
 
 void loco_t::shape_t::set_line(const fan::vec2& src, const fan::vec2& dst) {

@@ -53,7 +53,7 @@ namespace fan {
     struct EntityList_t {
       #define BLL_set_prefix bll
       #define BLL_set_Language 1
-      #define BLL_set_CPP_ConstructDestruct
+      #define BLL_set_CPP_ConstructDestruct 1
       #define BLL_set_AreWeInsideStruct 1
       #define BLL_set_SafeNext 1
       #define BLL_set_type_node EntityID_i_t

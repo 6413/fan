@@ -108,6 +108,37 @@ namespace nlohmann {
 #define loco_universal_image_renderer
 
 
+// +cuda
+#include "cuda_runtime.h"
+#include <cuda.h>
+#include <nvcuvid.h>
+
+#if defined(loco_cuda)
+
+namespace fan {
+  namespace cuda {
+    void check_error(auto result) {
+      if (result != CUDA_SUCCESS) {
+        if constexpr (std::is_same_v<decltype(result), CUresult>) {
+          const char* err_str = nullptr;
+          cuGetErrorString(result, &err_str);
+          fan::throw_error("function failed with:" + std::to_string(result) + ", " + err_str);
+        }
+        else {
+          fan::throw_error("function failed with:" + std::to_string(result) + ", ");
+        }
+      }
+    }
+  }
+}
+
+extern "C" {
+  extern __host__ cudaError_t CUDARTAPI cudaGraphicsGLRegisterImage(struct cudaGraphicsResource** resource, fan::opengl::GLuint image, fan::opengl::GLenum target, unsigned int flags);
+}
+
+#endif
+// -cuda
+
 //#define debug_shape_t
 
 struct loco_t;
@@ -126,7 +157,8 @@ struct global_loco_t {
 inline thread_local global_loco_t gloco;
 
 namespace fan {
-  void printcl(const auto& value, int highlight = 0);
+  void printcl(auto&&... values);
+  void printclh(int highlight = 0, auto&&... values);
 }
 
 #if defined(loco_letter)
@@ -1126,12 +1158,20 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
           if (shape->get_shape_type() != loco_t::shape_type_t::universal_image_renderer) {
             fan::throw_error("only meant to be used with universal_image_renderer");
           }
-          loco_t::universal_image_renderer_t::vi_t& vi = *(loco_t::universal_image_renderer_t::vi_t*)gloco->shaper.GetRenderData(*shape);
           loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)gloco->shaper.GetData(*shape);
           if (format != ri.format) {
             auto sti = gloco->shaper.GetSTI(*shape);
+            auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+            uint8_t* KeyPack = new uint8_t[KeyPackSize];
+            gloco->shaper.WriteKeys(*shape, KeyPack);
+            auto o = gloco->shaper.GetKeyOffset(
+              offsetof(kps_t::_texture_t, camera),
+              offsetof(kps_t::texture_t, camera)
+            );
 
-            loco_t::kps_t::texture_t& _KeyPack = *(loco_t::kps_t::texture_t*)gloco->shaper.GetKeys(*shape);
+            loco_t::image_t vi_image = *(loco_t::image_t*)&KeyPack[o];
+
+            delete[] KeyPack;
 
 
             auto shader = gloco->shaper.GetShader(sti);
@@ -1163,7 +1203,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             if (image_count_new < image_count_old) {
               for (uint32_t i = image_count_new; i < image_count_old; ++i) {
                 if (i == 0) {
-                  gloco->image_erase(_KeyPack.image);
+                  gloco->image_erase(vi_image);
                 }
                 else {
                   gloco->image_erase(ri.images_rest[i - 1]);
@@ -1186,7 +1226,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
                   lp.mag_filter = filter;
                   if (i == 0) {
                     gloco->image_reload_pixels(
-                      _KeyPack.image,
+                      images[0],
                       image_info,
                       lp
                     );
@@ -1826,6 +1866,7 @@ public:
     fan::color get_outline_color();
 
     void reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR);
+    void reload(uint8_t format, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR);
 
     void set_line(const fan::vec2& src, const fan::vec2& dst);
 
@@ -2646,6 +2687,94 @@ public:
     image = image_load(ii, lp);
     return image;
   }
+
+#if defined(loco_cuda)
+
+  struct cuda_textures_t {
+
+    cuda_textures_t() {
+      inited = false;
+    }
+    ~cuda_textures_t() {
+    }
+    void close(loco_t* loco, loco_t::shape_t& cid) {
+      loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)gloco->shaper.GetData(cid);
+      uint8_t image_amount = fan::pixel_format::get_texture_amount(ri.format);
+      for (uint32_t i = 0; i < image_amount; ++i) {
+        wresources[i].close();
+        gloco->image_unload(ri.images_rest[i]);
+      }
+    }
+
+    void resize(loco_t* loco, loco_t::shape_t& id, uint8_t format, fan::vec2ui size, uint32_t filter = loco_t::image_filter::linear) {
+      auto& ri = *(universal_image_renderer_t::ri_t*)gloco->shaper.GetData(id);
+      auto vi_image = id.get_image();
+      uint8_t image_amount = fan::pixel_format::get_texture_amount(format);
+      if (inited == false) {
+        // purge cid's images here
+        // update cids images
+        id.reload(format, size, filter);
+        for (uint32_t i = 0; i < image_amount; ++i) {
+          wresources[i].open(ri.images_rest[i].NRI);
+        }
+        inited = true;
+      }
+      else {
+
+        if (gloco->image_get_data(vi_image).size == size) {
+          return;
+        }
+
+        // update cids images
+        for (uint32_t i = 0; i < fan::pixel_format::get_texture_amount(ri.format); ++i) {
+          wresources[i].close();
+        }
+
+        id.reload(format, size, filter);
+
+        for (uint32_t i = 0; i < image_amount; ++i) {
+          wresources[i].open(ri.images_rest[i].NRI);
+        }
+      }
+    }
+
+    cudaArray_t& get_array(uint32_t index) {
+      return wresources[index].cuda_array;
+    }
+
+    struct graphics_resource_t {
+      void open(int texture_id) {
+        fan::cuda::check_error(cudaGraphicsGLRegisterImage(&resource, texture_id, fan::opengl::GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
+        map();
+      }
+      void close() {
+        unmap();
+        fan::cuda::check_error(cudaGraphicsUnregisterResource(resource));
+        resource = nullptr;
+      }
+      void map() {
+        fan::cuda::check_error(cudaGraphicsMapResources(1, &resource, 0));
+        fan::cuda::check_error(cudaGraphicsSubResourceGetMappedArray(&cuda_array, resource, 0, 0));
+        fan::print("+", resource);
+      }
+      void unmap() {
+        fan::print("-", resource);
+        fan::cuda::check_error(cudaGraphicsUnmapResources(1, &resource));
+        //fan::cuda::check_error(cudaGraphicsResourceSetMapFlags(resource, 0));
+      }
+      //void reload(int texture_id) {
+      //  close();
+      //  open(texture_id);
+      //}
+      cudaGraphicsResource_t resource = nullptr;
+      cudaArray_t cuda_array = nullptr;
+    };
+
+    bool inited = false;
+    graphics_resource_t wresources[4];
+  };
+
+#endif
 };
 
 // user friendly functions
@@ -3034,12 +3163,16 @@ namespace fan {
             this->move = false;
             moving_object = false;
             d.flag->ignore_move_focus_check = false;
-            if (previous_click_position == d.position) {
-              for (auto* i : selected_objects) {
-                i->disable_highlight();
+              if (previous_click_position == d.position) {
+                for (auto it = selected_objects.begin(); it != selected_objects.end(); ) {
+                    (*it)->disable_highlight();
+                    if (*it != this) {
+                      it = selected_objects.erase(it);
+                    } else {
+                      ++it;
+                    }
+                  }
               }
-              selected_objects.clear();
-            }
             return 0;
           }
           if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
@@ -3053,6 +3186,11 @@ namespace fan {
               }
             }
           }
+          //selected_objects.clear();
+          if (std::find(selected_objects.begin(), selected_objects.end(), this) == selected_objects.end()) {
+            selected_objects.push_back(this);
+          }
+          //selected_objects.push_back(this);
           create_highlight();
           previous_focus = this;
 
@@ -3434,7 +3572,7 @@ namespace fan {
       imgui_content_browser_t() {
         search_buffer.resize(32);
         asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
-        current_directory = asset_path;
+        current_directory = std::filesystem::path(asset_path) / "images";
         update_directory_cache();
       }
 
@@ -3682,10 +3820,22 @@ namespace fan {
   }
 }
 
-void fan::printcl(const auto& value, int highlight) {
-  std::ostringstream oss;
-  oss << value;
-  gloco->console.println(oss.str(), highlight);
+void fan::printcl(auto&&... values) {
+  ([&](const auto& value) {
+    std::ostringstream oss;
+    oss << value;
+    gloco->console.print(oss.str() + " ", 0);
+    }(values), ...);
+  gloco->console.print("\n", 0);
+}
+
+void fan::printclh(int highlight, auto&&... values) {
+  ([&](const auto& value) {
+    std::ostringstream oss;
+    oss << value;
+    gloco->console.print(oss.str() + " ", highlight);
+    }(values), ...);
+  gloco->console.print("\n", highlight);
 }
 
 #include <fan/graphics/collider.h>
