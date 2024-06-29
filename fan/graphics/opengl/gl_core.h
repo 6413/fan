@@ -515,7 +515,7 @@ namespace fan {
         return std::array<fan::vec2ui, 4>{image_size, image_size / 2, image_size / 2};
       }
       case nv12: {
-        return std::array<fan::vec2ui, 4>{image_size, fan::vec2ui{ image_size.x, image_size.y }};
+        return std::array<fan::vec2ui, 4>{image_size, fan::vec2ui{ image_size.x / 2, image_size.y / 2}};
       }
       default: {
         fan::throw_error("invalid format");
