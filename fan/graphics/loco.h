@@ -33,6 +33,16 @@
 
 #include <fan/io/json_impl.h>
 
+#define shaper_get_key_safe(return_type, kps_type, variable) \
+  [KeyPack] ()-> auto& { \
+    auto o = gloco->shaper.GetKeyOffset( \
+      offsetof(kps_t::CONCAT(_, kps_type), variable), \
+      offsetof(kps_t::kps_type, variable) \
+    );\
+    static_assert(std::is_same_v<decltype(kps_t::kps_type::variable), return_type>, "possibly unwanted behaviour"); \
+    return *(return_type*)&KeyPack[o];\
+  }()
+
 struct loco_t;
 
 namespace fan {
@@ -510,11 +520,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             case loco_t::shape_type_t::letter:
             case loco_t::shape_type_t::rectangle:
             case loco_t::shape_type_t::line: {
-              auto o = gloco->shaper.GetKeyOffset(
-                offsetof(kps_t::_common_t, depth),
-                offsetof(kps_t::common_t, depth)
-              );
-              *(depth_t*)&KeyPack[o] = position.z;
+              shaper_get_key_safe(depth_t, common_t, depth) = position.z;
               break;
             }
                                            // texture
@@ -522,11 +528,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             case loco_t::shape_type_t::universal_image_renderer:
             case loco_t::shape_type_t::unlit_sprite:
             case loco_t::shape_type_t::sprite: {
-              auto o = gloco->shaper.GetKeyOffset(
-                offsetof(kps_t::_texture_t, depth),
-                offsetof(kps_t::texture_t, depth)
-              );
-              *(depth_t*)&KeyPack[o] = position.z;
+              shaper_get_key_safe(depth_t, texture_t, depth) = position.z;
               break;
             }
             default: {
@@ -689,11 +691,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
               case loco_t::shape_type_t::universal_image_renderer:
               case loco_t::shape_type_t::unlit_sprite:
               case loco_t::shape_type_t::sprite: {
-                auto o = gloco->shaper.GetKeyOffset(
-                  offsetof(kps_t::_texture_t, image),
-                  offsetof(kps_t::texture_t, image)
-                );
-                *(loco_t::image_t*)&KeyPack[o] = *ti->image;
+                shaper_get_key_safe(image_t, texture_t, image) = *ti->image;
                 break;
               }
               default: {
@@ -759,11 +757,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
           switch (sti) {
             // light
           case loco_t::shape_type_t::light: {
-            auto o = gloco->shaper.GetKeyOffset(
-              offsetof(kps_t::_light_t, camera),
-              offsetof(kps_t::light_t, camera)
-            );
-            return *(camera_t*)&KeyPack[o];
+            return shaper_get_key_safe(camera_t, light_t, camera);
           }
                                           // common
           case loco_t::shape_type_t::gradient:
@@ -772,22 +766,14 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
           case loco_t::shape_type_t::letter:
           case loco_t::shape_type_t::rectangle:
           case loco_t::shape_type_t::line: {
-            auto o = gloco->shaper.GetKeyOffset(
-              offsetof(kps_t::_common_t, camera),
-              offsetof(kps_t::common_t, camera)
-            );
-            return *(camera_t*)&KeyPack[o];
+            return shaper_get_key_safe(camera_t, common_t, camera);
           }
                                          // texture
           case loco_t::shape_type_t::particles:
           case loco_t::shape_type_t::universal_image_renderer:
           case loco_t::shape_type_t::unlit_sprite:
           case loco_t::shape_type_t::sprite: {
-            auto o = gloco->shaper.GetKeyOffset(
-              offsetof(kps_t::_texture_t, camera),
-              offsetof(kps_t::texture_t, camera)
-            );
-            return *(camera_t*)&KeyPack[o];
+            return shaper_get_key_safe(camera_t, texture_t, camera);
           }
           default: {
             fan::throw_error("unimplemented");
@@ -807,11 +793,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             switch(sti) {
               // light
               case loco_t::shape_type_t::light: {
-                auto o = gloco->shaper.GetKeyOffset(
-                  offsetof(kps_t::_light_t, camera),
-                  offsetof(kps_t::light_t, camera)
-                );
-                *(camera_t*)&KeyPack[o] = camera;
+                shaper_get_key_safe(camera_t, light_t, camera) = camera;
                 break;
               }
               // common
@@ -821,11 +803,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
               case loco_t::shape_type_t::letter:
               case loco_t::shape_type_t::rectangle:
               case loco_t::shape_type_t::line: {
-                auto o = gloco->shaper.GetKeyOffset(
-                  offsetof(kps_t::_common_t, camera),
-                  offsetof(kps_t::common_t, camera)
-                );
-                *(camera_t*)&KeyPack[o] = camera;
+                shaper_get_key_safe(camera_t, common_t, camera) = camera;
                 break;
               }
               // texture
@@ -833,11 +811,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
               case loco_t::shape_type_t::universal_image_renderer:
               case loco_t::shape_type_t::unlit_sprite:
               case loco_t::shape_type_t::sprite: {
-                auto o = gloco->shaper.GetKeyOffset(
-                  offsetof(kps_t::_texture_t, camera),
-                  offsetof(kps_t::texture_t, camera)
-                );
-                *(camera_t*)&KeyPack[o] = camera;
+                shaper_get_key_safe(camera_t, texture_t, camera) = camera;
                 break;
               }
               default: {
@@ -879,11 +853,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
           switch(sti) {
             // light
             case loco_t::shape_type_t::light: {
-              auto o = gloco->shaper.GetKeyOffset(
-                offsetof(kps_t::_light_t, viewport),
-                offsetof(kps_t::light_t, viewport)
-              );
-              return *(viewport_t*)&KeyPack[o];
+              return shaper_get_key_safe(viewport_t, light_t, viewport);
             }
             // common
             case loco_t::shape_type_t::gradient:
@@ -892,22 +862,14 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             case loco_t::shape_type_t::letter:
             case loco_t::shape_type_t::rectangle:
             case loco_t::shape_type_t::line: {
-              auto o = gloco->shaper.GetKeyOffset(
-                offsetof(kps_t::_common_t, viewport),
-                offsetof(kps_t::common_t, viewport)
-              );
-              return *(viewport_t*)&KeyPack[o];
+              return shaper_get_key_safe(viewport_t, common_t, viewport);
             }
             // texture
             case loco_t::shape_type_t::particles:
             case loco_t::shape_type_t::universal_image_renderer:
             case loco_t::shape_type_t::unlit_sprite:
             case loco_t::shape_type_t::sprite: {
-              auto o = gloco->shaper.GetKeyOffset(
-                offsetof(kps_t::_texture_t, viewport),
-                offsetof(kps_t::texture_t, viewport)
-              );
-              return *(viewport_t*)&KeyPack[o];
+              return shaper_get_key_safe(viewport_t, texture_t, viewport);
             }
             default: {
               fan::throw_error("unimplemented");
@@ -927,11 +889,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             switch(sti) {
               // light
               case loco_t::shape_type_t::light: {
-                auto o = gloco->shaper.GetKeyOffset(
-                  offsetof(kps_t::_light_t, viewport),
-                  offsetof(kps_t::light_t, viewport)
-                );
-                *(viewport_t*)&KeyPack[o] = viewport;
+                shaper_get_key_safe(viewport_t, light_t, viewport) = viewport;
                 break;
               }
               // common
@@ -941,11 +899,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
               case loco_t::shape_type_t::letter:
               case loco_t::shape_type_t::rectangle:
               case loco_t::shape_type_t::line: {
-                auto o = gloco->shaper.GetKeyOffset(
-                  offsetof(kps_t::_common_t, viewport),
-                  offsetof(kps_t::common_t, viewport)
-                );
-                *(viewport_t*)&KeyPack[o] = viewport;
+                shaper_get_key_safe(viewport_t, common_t, viewport) = viewport;
                 break;
               }
               // texture
@@ -953,11 +907,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
               case loco_t::shape_type_t::universal_image_renderer:
               case loco_t::shape_type_t::unlit_sprite:
               case loco_t::shape_type_t::sprite: {
-                auto o = gloco->shaper.GetKeyOffset(
-                  offsetof(kps_t::_texture_t, viewport),
-                  offsetof(kps_t::texture_t, viewport)
-                );
-                *(viewport_t*)&KeyPack[o] = viewport;
+                shaper_get_key_safe(viewport_t, texture_t, viewport) = viewport;
                 break;
               }
               default: {
@@ -994,22 +944,14 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
 
         .get_image = [](shape_t* shape) -> loco_t::image_t {
           auto sti = gloco->shaper.GetSTI(*shape);
-          auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
-          uint8_t* KeyPack = new uint8_t[KeyPackSize];
-          gloco->shaper.WriteKeys(*shape, KeyPack);
+          uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
           switch (sti) {
           // texture
           case loco_t::shape_type_t::particles:
           case loco_t::shape_type_t::universal_image_renderer:
           case loco_t::shape_type_t::unlit_sprite:
           case loco_t::shape_type_t::sprite: {
-            auto o = gloco->shaper.GetKeyOffset(
-              offsetof(kps_t::_texture_t, image),
-              offsetof(kps_t::texture_t, image)
-            );
-            loco_t::image_t image = *(loco_t::image_t*)&KeyPack[o];
-            delete[] KeyPack;
-            return image;
+            return shaper_get_key_safe(image_t, texture_t, image);
           }
           default: {
             fan::throw_error("unimplemented");
@@ -1032,11 +974,7 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
           case loco_t::shape_type_t::universal_image_renderer:
           case loco_t::shape_type_t::unlit_sprite:
           case loco_t::shape_type_t::sprite: {
-            auto o = gloco->shaper.GetKeyOffset(
-              offsetof(kps_t::_texture_t, image),
-              offsetof(kps_t::texture_t, image)
-            );
-            *(loco_t::image_t*)&KeyPack[o] = image;
+            shaper_get_key_safe(image_t, texture_t, image) = image;
             break;
           }
           default: {
@@ -1164,17 +1102,8 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
           loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)gloco->shaper.GetData(*shape);
           if (format != ri.format) {
             auto sti = gloco->shaper.GetSTI(*shape);
-            auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
-            uint8_t* KeyPack = new uint8_t[KeyPackSize];
-            gloco->shaper.WriteKeys(*shape, KeyPack);
-            auto o = gloco->shaper.GetKeyOffset(
-              offsetof(kps_t::_texture_t, camera),
-              offsetof(kps_t::texture_t, camera)
-            );
-
-            loco_t::image_t vi_image = *(loco_t::image_t*)&KeyPack[o];
-
-            delete[] KeyPack;
+            uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
+            loco_t::image_t vi_image = shaper_get_key_safe(loco_t::image_t, texture_t, image);
 
 
             auto shader = gloco->shaper.GetShader(sti);
@@ -1204,7 +1133,8 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
             uint8_t image_count_old = fan::pixel_format::get_texture_amount(ri.format);
             uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
             if (image_count_new < image_count_old) {
-              for (uint32_t i = image_count_old; i > image_count_new; --i) {
+              // -1 ? 
+              for (uint32_t i = image_count_old - 1; i > image_count_new; --i) {
                 if (i == 0) {
                   gloco->image_erase(vi_image);
                 }
@@ -2715,15 +2645,21 @@ public:
     }
 
     void resize(loco_t* loco, loco_t::shape_t& id, uint8_t format, fan::vec2ui size, uint32_t filter = loco_t::image_filter::linear) {
+      id.reload(format, size, filter);
       auto& ri = *(universal_image_renderer_t::ri_t*)gloco->shaper.GetData(id);
       auto vi_image = id.get_image();
       uint8_t image_amount = fan::pixel_format::get_texture_amount(format);
       if (inited == false) {
         // purge cid's images here
         // update cids images
-        id.reload(format, size, filter);
         for (uint32_t i = 0; i < image_amount; ++i) {
-          wresources[i].open(ri.images_rest[i].NRI);
+          // a bit bad from fan side
+          if (i == 0) {
+            wresources[i].open(gloco->image_get(vi_image));
+          }
+          else {
+            wresources[i].open(gloco->image_get(ri.images_rest[i - 1]));
+          }
         }
         inited = true;
       }
@@ -2741,7 +2677,12 @@ public:
         id.reload(format, size, filter);
 
         for (uint32_t i = 0; i < image_amount; ++i) {
-          wresources[i].open(ri.images_rest[i].NRI);
+          if (i == 0) {
+            wresources[i].open(gloco->image_get(vi_image));
+          }
+          else {
+            wresources[i].open(gloco->image_get(ri.images_rest[i - 1]));
+          }
         }
       }
     }

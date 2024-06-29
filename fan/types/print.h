@@ -23,6 +23,23 @@ namespace fan {
     std::cout << '\n';
   }
 
+  template<typename T>
+  auto convert_uint8(T value) {
+    if constexpr (std::is_same_v<T, uint8_t>) {
+      return static_cast<int>(value);
+    }
+    else {
+      return value;
+    }
+  }
+
+  template <typename ...Args>
+  static constexpr void printn8(const Args&... args) {
+    int idx = 0;
+    ((std::cout << convert_uint8(args) << (++idx == sizeof...(args) ? "" : ", ")), ...);
+    std::cout << '\n';
+  }
+
   template <typename ...Args>
   constexpr void print_no_space(const Args&... args) {
     ((std::cout << args), ...) << '\n';

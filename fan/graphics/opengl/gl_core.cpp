@@ -134,11 +134,11 @@ void fan::opengl::core::edit_glbuffer(fan::opengl::context_t& context, GLuint bu
 
   #if fan_debug >= fan_debug_high
 
-  int buffer_size = get_buffer_size(context, target, buffer);
+  //int buffer_size = get_buffer_size(context, target, buffer);
 
-  if ((buffer_size < (int)size) || (int)(offset + size) > buffer_size) {
-    fan::throw_error("tried to write more than allocated");
-  }
+  //if ((buffer_size < (int)size) || (int)(offset + size) > buffer_size) {
+  //  fan::throw_error("tried to write more than allocated");
+  //}
 
   #endif
 
