@@ -1203,7 +1203,6 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
 
             uint8_t image_count_old = fan::pixel_format::get_texture_amount(ri.format);
             uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
-            ri.format = format;
             if (image_count_new < image_count_old) {
               for (uint32_t i = image_count_old; i > image_count_new; --i) {
                 if (i == 0) {
@@ -1221,30 +1220,35 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
               }
               shape->set_image(images[0]);
               std::memcpy(ri.images_rest, &images[1], sizeof(ri.images_rest));
-               for (uint32_t i = 0; i < image_count_new; i++) {
-                  fan::webp::image_info_t image_info;
-                  image_info.data = image_data[i];
-                  image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
-                  auto lp = fan::pixel_format::get_image_properties<loco_t::image_load_properties_t>(format)[i];
-                  lp.min_filter = filter;
-                  lp.mag_filter = filter;
-                  if (i == 0) {
-                    gloco->image_reload_pixels(
-                      images[0],
-                      image_info,
-                      lp
-                    );
-                  }
-                  else {
-                    gloco->image_reload_pixels(
-                      ri.images_rest[i - 1],
-                      image_info,
-                      lp
-                    );
-                  }
-                }
             }
           }
+
+          auto vi_image = shape->get_image();
+
+          uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
+          for (uint32_t i = 0; i < image_count_new; i++) {
+            fan::webp::image_info_t image_info;
+            image_info.data = image_data[i];
+            image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
+            auto lp = fan::pixel_format::get_image_properties<loco_t::image_load_properties_t>(format)[i];
+            lp.min_filter = filter;
+            lp.mag_filter = filter;
+            if (i == 0) {
+              gloco->image_reload_pixels(
+                vi_image,
+                image_info,
+                lp
+              );
+            }
+            else {
+              gloco->image_reload_pixels(
+                ri.images_rest[i - 1],
+                image_info,
+                lp
+              );
+            }
+          }
+          ri.format = format;
         },
         .draw = [](uint8_t draw_range) {
           // Implement draw function
