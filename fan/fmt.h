@@ -26,6 +26,11 @@ namespace fan {
   }
 
   template <typename... args_t>
+  constexpr static auto printn8_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
+    fan::printn8(fmt::format(fmt, std::forward<args_t>(args)...));
+  }
+
+  template <typename... args_t>
   constexpr static auto throw_error_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
     fan::print(fmt::format(fmt, std::forward<args_t>(args)...));
     throw_error_impl();
