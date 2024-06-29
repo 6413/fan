@@ -302,7 +302,9 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
     "particles",
   };
 
+#if defined (loco_imgui)
   using console_t = fan::console_t;
+#endif
 
   using blending_t = uint8_t;
   using depth_t = uint16_t;
@@ -3820,7 +3822,7 @@ namespace fan {
     };
   }
 }
-
+#if defined (loco_imgui)
 void fan::printcl(auto&&... values) {
   ([&](const auto& value) {
     std::ostringstream oss;
@@ -3838,5 +3840,5 @@ void fan::printclh(int highlight, auto&&... values) {
     }(values), ...);
   gloco->console.print("\n", highlight);
 }
-
+#endif
 #include <fan/graphics/collider.h>
