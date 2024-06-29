@@ -1203,8 +1203,9 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
 
             uint8_t image_count_old = fan::pixel_format::get_texture_amount(ri.format);
             uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
+            ri.format = format;
             if (image_count_new < image_count_old) {
-              for (uint32_t i = image_count_new; i < image_count_old; ++i) {
+              for (uint32_t i = image_count_old; i > image_count_new; --i) {
                 if (i == 0) {
                   gloco->image_erase(vi_image);
                 }
