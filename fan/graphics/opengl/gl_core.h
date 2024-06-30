@@ -120,7 +120,6 @@ namespace fan {
           return;
           //fan::throw_error("failed to set uniform value");
         }
-
         auto location = opengl.call(opengl.glGetUniformLocation, shader.id, name.c_str());
 
       #if fan_debug >= fan_debug_insanity

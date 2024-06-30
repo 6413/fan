@@ -797,20 +797,20 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
             auto& ri = *(universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
 
             if (ri.images_rest[0].iic() == false) {
-              context.shader_set_value(shader, "_t01", 1);
               context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 1);
               context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[0]));
+              context.shader_set_value(shader, "_t01", 1);
             }
             if (ri.images_rest[1].iic() == false) {
-              context.shader_set_value(shader, "_t02", 2);
               context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 2);
               context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[1]));
+              context.shader_set_value(shader, "_t02", 2);
             }
 
             if (ri.images_rest[2].iic() == false) {
-              context.shader_set_value(shader, "_t03", 3);
               context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 3);
               context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[2]));
+              context.shader_set_value(shader, "_t03", 3);
             }
             //fan::throw_error("shaper design is changed");
           }
