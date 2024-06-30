@@ -1,0 +1,63 @@
+# compiler settings
+CXX = clang
+CPP = clang++
+CXXFLAGS = -I . -I include -I .. -w
+
+FAN_OBJECT_FOLDER =
+NFD_PATH =
+OUTPUT_PATH = lib/fan/
+
+WINDOWS_ROOT_PATH = ./include/
+LINUX_ROOT_PATH = ./include/
+
+DEBUG_FLAGS = -g
+RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
+
+OUT_FILE_FORMAT =
+
+INCLUDES =
+ifeq ($(OS),Windows_NT)
+	INCLUDES += -I $(WINDOWS_ROOT_PATH)include/fan/imgui 
+	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WINDOWS_ROOT_PATH)WITCH
+	NFD_PATH += $(WINDOWS_ROOT_PATH)fan/nativefiledialog/
+	CXXFLAGS += -I C:/Users/0b347/Documents/GitHub
+	OUT_FILE_FORMAT+=lib
+else
+	INCLUDES += -I /mnt/c/Users/0b347/Documents/GitHub/ -I $(LINUX_ROOT_PATH)fan/imgui -I $(LINUX_ROOT_PATH)WITCH
+	INCLUDES += $(shell pkg-config --cflags gtk+-3.0)
+	CXXFLAGS += -DWITCH_INCLUDE_PATH=/mnt/c/Users/0b347/Documents/GitHub/WITCH
+	NFD_PATH += $(LINUX_ROOT_PATH)fan/nativefiledialog/
+	OUT_FILE_FORMAT+=a
+endif
+
+#note
+CXXFLAGS += $(RELEASE_FLAGS)
+
+CXXFLAGS += -Dloco_imgui
+CXXFLAGS += -Dloco_json
+
+CXXFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM
+CXXFLAGS += -DIMGUI_DEFINE_MATH_OPERATORS
+
+%.o: %.cpp
+	$(CPP) $(CXXFLAGS) $(INCLUDES) -std=c++2a -c $< -o $@
+
+%.o: %.c
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# source files and output
+NFD_SRC := $(filter-out $(NFD_PATH)/nfd_zenity.c, $(wildcard $(NFD_PATH)/*.cpp) $(wildcard $(NFD_PATH)/*.c))
+
+ifeq ($(OS),Windows_NT)
+	NFD_SRC := $(filter-out $(NFD_PATH)/nfd_gtk.c, $(NFD_SRC))
+else
+	NFD_SRC := $(filter-out $(NFD_PATH)/nfd_win.cpp, $(NFD_SRC))
+endif
+
+NFD_OBJ := $(NFD_SRC:.cpp=.o)
+NFD_OBJ := $(NFD_OBJ:.c=.o)
+NFD_LIB = libnfd.$(OUT_FILE_FORMAT)
+
+$(NFD_LIB): $(NFD_OBJ)
+	llvm-ar rcs $(OUTPUT_PATH)$@ $^
+

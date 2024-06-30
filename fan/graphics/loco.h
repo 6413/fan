@@ -29,10 +29,6 @@
 #include <fan/graphics/console.h>
 #endif
 
-#if defined(loco_json)
-
-#include <fan/io/json_impl.h>
-
 #define shaper_get_key_safe(return_type, kps_type, variable) \
   [KeyPack] ()-> auto& { \
     auto o = gloco->shaper.GetKeyOffset( \
@@ -42,6 +38,10 @@
     static_assert(std::is_same_v<decltype(kps_t::kps_type::variable), return_type>, "possibly unwanted behaviour"); \
     return *(return_type*)&KeyPack[o];\
   }()
+
+#if defined(loco_json)
+
+#include <fan/io/json_impl.h>
 
 struct loco_t;
 
@@ -3788,3 +3788,5 @@ void fan::printclh(int highlight, auto&&... values) {
 }
 #endif
 #include <fan/graphics/collider.h>
+
+#undef shaper_get_key_safe

@@ -1,15 +1,13 @@
 # compiler settings
 CXX = clang++
-CXXFLAGS = -I . -std=c++2a -I include
+CXXFLAGS = -I . -std=c++2a -I include -I .. -w
 
 FAN_OBJECT_FOLDER =
 IMGUI_PATH =
 OUTPUT_PATH = lib/fan/
 
-WINDOWS_ROOT_PATH = ./
-LINUX_ROOT_PATH = ./
-
-FAN_INCLUDE_PATH =
+WINDOWS_ROOT_PATH = ./include/
+LINUX_ROOT_PATH = ./include/
 
 DEBUG_FLAGS = -g
 RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
@@ -18,29 +16,26 @@ OUT_FILE_FORMAT =
 
 INCLUDES =
 ifeq ($(OS),Windows_NT)
-	FAN_INCLUDE_PATH += $(WINDOWS_ROOT_PATH)include/
 	INCLUDES += -I $(WINDOWS_ROOT_PATH)include/fan/imgui 
 	CXXFLAGS += -DWITCH_INCLUDE_PATH=$(WINDOWS_ROOT_PATH)WITCH
-	IMGUI_PATH += include/fan/imgui/
+	IMGUI_PATH += $(WINDOWS_ROOT_PATH)fan/imgui/
+	CXXFLAGS += -I C:/Users/0b347/Documents/GitHub
 	OUT_FILE_FORMAT+=lib
 else
-	FAN_INCLUDE_PATH += $(LINUX_ROOT_PATH)
-	INCLUDES += -I $(LINUX_ROOT_PATH)fan/imgui -I $(LINUX_ROOT_PATH)WITCH
-	CXXFLAGS += -DWITCH_INCLUDE_PATH=/usr/include/WITCH
+	INCLUDES += -I /mnt/c/Users/0b347/Documents/GitHub/ -I $(LINUX_ROOT_PATH)fan/imgui -I $(LINUX_ROOT_PATH)WITCH
+	CXXFLAGS += -DWITCH_INCLUDE_PATH=/mnt/c/Users/0b347/Documents/GitHub/WITCH
 	IMGUI_PATH += $(LINUX_ROOT_PATH)fan/imgui/
 	OUT_FILE_FORMAT+=a
 endif
 
-CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
-
-#todo remove
-INCLUDES += -I include -I "C:\Program Files\Assimp\include"
-
 #note
-CXXFLAGS += $(DEBUG_FLAGS)
+CXXFLAGS += $(RELEASE_FLAGS)
 
-PCH_NAME = pch.h
-CXXFLAGS += -Dfan_pch=\"$(FAN_INCLUDE_PATH)fan/$(PCH_NAME)\"
+CXXFLAGS += -Dloco_imgui
+CXXFLAGS += -Dloco_json
+
+CXXFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM
+CXXFLAGS += -DIMGUI_DEFINE_MATH_OPERATORS
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
