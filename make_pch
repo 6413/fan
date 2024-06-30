@@ -1,6 +1,6 @@
 # compiler settings
 CXX = clang++
-CXXFLAGS = -I . -w -ferror-limit=3 -std=c++2a -I include -fpch-instantiate-templates -fpch-debuginfo -Xclang -fno-validate-pch
+CXXFLAGS = -I . -w -ferror-limit=3 -std=gnu++20 -I include -fpch-instantiate-templates -fpch-debuginfo -Xclang -fno-validate-pch -pthread
 
 # source file and output
 
@@ -8,7 +8,7 @@ OUTPUT = lib/fan/pch.h.gch
 OUTPUT_CPP = lib/fan/pch.o
 
 WINDOWS_ROOT_PATH = ./
-LINUX_ROOT_PATH=./
+LINUX_ROOT_PATH = ./
 
 FAN_INCLUDE_PATH =
 FAN_LIB =
@@ -18,7 +18,7 @@ RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sec
 
 # includes
 WINDOWS_INCLUDES = -I $(WINDOWS_ROOT_PATH)include
-LINUX_INCLUDES = -I $(LINUX_ROOT_PATH) -I /usr/local/include -I .
+LINUX_INCLUDES = -I /mnt/c/Users/0b347/Documents/GitHub/ -I $(LINUX_ROOT_PATH) -I /usr/local/include -I .
 
 INCLUDES =
 ifeq ($(OS),Windows_NT)
@@ -32,13 +32,13 @@ else
 	CXXFLAGS += -I $(FAN_INCLUDE_PATH)
 endif
 
-INCLUDES += -I include -I "C:\Program Files\Assimp\include"
-
-CXXFLAGS += -Dfan_build_pch
+CXXFLAGS += -Dloco_imgui -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM -DIMGUI_DEFINE_MATH_OPERATORS -Dloco_json
 CXXFLAGS += -DFAN_INCLUDE_PATH=$(FAN_INCLUDE_PATH)
 
-MAIN = $(FAN_INCLUDE_PATH)/fan/pch.h
-MAIN_CPP = $(FAN_INCLUDE_PATH)/fan/pch.cpp
+CXXFLAGS += -I $(FAN_INCLUDE_PATH)include/fan/
+
+MAIN = $(FAN_INCLUDE_PATH)include//fan/pch.h
+MAIN_CPP = $(FAN_INCLUDE_PATH)/include//fan/pch.cpp
 
 debug:
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(DEBUG_FLAGS) -x c++-header $(MAIN) -o $(OUTPUT)

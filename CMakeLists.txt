@@ -31,12 +31,11 @@ set(MAIN examples/graphics/gui/model_maker.cpp)
 set(OUTPUT a.exe)
 
 # Set the paths
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    set(ROOT_PATH "C:/libs/fan_release/include/fan/")
-elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(ROOT_PATH "./fan/")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set(ROOT_PATH "./include/fan/")
 endif()
 
+set(PCH_SOURCE "${ROOT_PATH}/pch.cpp")
 
 set(LINK_PATH "lib/fan/")
 
@@ -46,7 +45,7 @@ set(PCH_NAME "pch.h")
 set(ENABLE_IMGUI ON)
 
 # Set the compiler flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I . -I .. -g -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -fsanitize=address,undefined")
+set(CMAKE_CXX_FLAGS "${CMAKE_CURRENT_SOURCE_DIR}/${LINK_PATH}/pch.o -include-pch ${CMAKE_CURRENT_SOURCE_DIR}/${LINK_PATH}/pch.h.gch -Winvalid-pch -w -I /mnt/c/Users/0b347/Documents/GitHub/ -I ${ROOT_PATH}/../ ${CMAKE_CXX_FLAGS} -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable")
 set(DEBUG_FLAGS "-g")
 set(RELEASE_FLAGS "-s -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -march=native -Wl,--gc-sections")
 
@@ -59,9 +58,6 @@ endif()
 
 # loco_json
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dloco_json")
-
-# Add the definitions
-add_definitions(-DFAN_INCLUDE_PATH=${WINDOWS_ROOT_PATH})
 
 message("Root path is: ${ROOT_PATH}")
 
@@ -82,21 +78,20 @@ list(REMOVE_ITEM SOURCES ${IMGUI_SOURCES} ${NFD_SOURCES} ${FMT_SOURCES})
 list(FILTER NFD_SOURCES EXCLUDE REGEX "nfd_zenity.c")
 list(REMOVE_ITEM SOURCES "nfd_zenity.c")
 
-# Set different compiler flags for the ImGui, nativefiledialog and fmt sources
-set_source_files_properties(${IMGUI_SOURCES} ${NFD_SOURCES} ${FMT_SOURCES} PROPERTIES COMPILE_FLAGS "-Wno-everything -Wno-format-truncation")
+list(FILTER SOURCES EXCLUDE REGEX ${PCH_SOURCE})
+list(REMOVE_ITEM SOURCES ${PCH_SOURCE})
 
 list(FILTER SOURCES EXCLUDE REGEX "${ROOT_PATH}/fmt.cpp")
+message("Sources is: ${SOURCES}")
 
 # Compile all source files into object files
 add_library(fan OBJECT ${SOURCES})
 
-# Compile ImGui, nativefiledialog and fmt source files into separate object libraries
-add_library(fan_imgui OBJECT ${IMGUI_SOURCES})
-add_library(fan_nfd OBJECT ${NFD_SOURCES})
-add_library(fan_fmt OBJECT ${FMT_SOURCES})
-
 # Add the executable
-add_executable(${OUTPUT} ${MAIN} $<TARGET_OBJECTS:fan> $<TARGET_OBJECTS:fan_imgui> $<TARGET_OBJECTS:fan_nfd> $<TARGET_OBJECTS:fan_fmt>)
+add_executable(${OUTPUT} ${MAIN} $<TARGET_OBJECTS:fan>)
+
+#target_precompile_headers(fan PRIVATE ${ROOT_PATH}/pch.h ${ROOT_PATH}/graphics/loco.h)
+
 
 # Conditionally set the libraries based on the platform
 if(WIN32)
@@ -105,7 +100,7 @@ if(WIN32)
     target_link_libraries(${OUTPUT} fan)
 else()
     # On Linux, use the system libraries
-    target_link_libraries(${OUTPUT} webp glfw X11)
+    target_link_libraries(${OUTPUT} webp glfw X11 ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan/libimgui.a ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan/libnfd.a ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan/libfmt.a)
 endif()
 
 # Tell CMake where to find the libraries
