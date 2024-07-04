@@ -1,4 +1,4 @@
-#include <fan/pch.h>
+#include <pch.h>
 
 #include <fan/graphics/gui/tilemap_editor/editor.h>
 #include <fan/graphics/gui/tilemap_editor/renderer0.h>
@@ -9,12 +9,12 @@ fan::graphics::camera_t camera0;
 fan::graphics::camera_t camera1;
 
 struct player_t {
-  static constexpr fan::vec2 speed{ 450, 450 };
+  static constexpr fan::vec2 speed{ 150, 150 };
 
   player_t() {
     visual = fan::graphics::sprite_t{ {
       .camera = &camera1,
-      .position = fan::vec3(0, 0, fte_t::shape_depths_t::cursor_highlight_depth),
+      .position = fan::vec3(-300, -300,  10),
       .size = 32 / 2,
       .blending = true,
     } };
@@ -55,7 +55,8 @@ struct player_t {
 
     visual.set_velocity(velocity);
 
-    visual.set_position(visual.get_collider_position());
+    fan::vec2 position = visual.get_collider_position();
+    visual.set_position(fan::vec3(position, floor(position.y / 64) + fte_t::shape_depths_t::max_layer_depth / 2));
     lighting.set_position(visual.get_position());
   }
   fan::vec2 velocity = 0;
@@ -217,6 +218,9 @@ std::unique_ptr<player_t> player;
           reload_scene();
         }
         else {
+          if (map_id0_t) {
+            renderer.get()->clear(renderer.get()->map_list[*map_id0_t.get()]);
+          }
           map_id0_t.reset();
           renderer.reset();
           player.reset();
@@ -227,6 +231,9 @@ std::unique_ptr<player_t> player;
   });
 
   fte.modify_cb = [&](int mode) {
+    if (map_id0_t) {
+      renderer.get()->clear(renderer.get()->map_list[*map_id0_t.get()]);
+    }
     map_id0_t.reset();
     renderer.reset();
     fte.fout(fte.file_name + "temp");

@@ -22,6 +22,7 @@ struct tile_t {
   std::string image_name;
   mesh_property_t mesh_property = mesh_property_t::none;
   fan::string id;
+  uint32_t flags = 0;
 
   // actions
   actions_e action = actions_e::none;
