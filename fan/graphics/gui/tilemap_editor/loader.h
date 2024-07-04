@@ -106,8 +106,9 @@ public:
       tile.action = shape_json.value("action", fte_t::actions_e::none);
       tile.key = shape_json.value("key", fan::key_invalid);
       tile.key_state = shape_json.value("key_state", (int)fan::keyboard_state::press);
+      tile.flags = shape.get_flags();
       compiled_map.compiled_shapes[gp.y][gp.x].push_back(tile);
-    }
+    }//
     return compiled_map;
   }
 

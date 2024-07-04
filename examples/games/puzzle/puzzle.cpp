@@ -252,13 +252,17 @@ void DrawRectangles() {
   f32_t zoom = 1;
   fan::vec2 offset = viewport_size - viewport_size / zoom;
   fan::vec2 s = viewport_size;
-  gloco->default_camera->camera.set_ortho(
+  gloco->camera_set_ortho(
+    gloco->orthographic_camera.camera,
     fan::vec2(-s.x, s.x) / zoom,
     fan::vec2(-s.y, s.y) / zoom
   );
 
-  //gloco->default_camera->camera.set_camera_zoom(viewport_settings.zoom);
-  gloco->default_camera->viewport.set(viewport_pos, viewport_size, window_size);
+  gloco->viewport_set(
+    gloco->orthographic_camera.viewport,
+    viewport_pos, viewport_size, window_size
+  );
+
 
   ImVec2 viewportPos = ImGui::GetWindowPos();
 
@@ -288,7 +292,9 @@ int main() {
   loco_t loco{ { .window_size = 1024 } };
 
   fan::vec2 window_size = loco.window.get_size();
-  loco.default_camera->camera.set_ortho(
+
+  gloco->camera_set_ortho(
+    gloco->orthographic_camera.camera,
     fan::vec2(0, window_size.x),
     fan::vec2(0, window_size.y)
   );
@@ -315,18 +321,14 @@ int main() {
 
   loco_t::shape_t grid;
 
-  loco_t::shapes_t::grid_t::properties_t p;
+  loco_t::grid_t::properties_t p;
   p.position = fan::vec3(gloco->window.get_size() / 2, 0xfff);
   p.size = block_size * grid_size / 2;
   p.color = fan::colors::black;
 
   grid = p;
 
-  gloco->shapes.grid.sb_set_vi(
-    grid,
-    &loco_t::shapes_t::grid_t::vi_t::grid_size,
-    grid_size
-  );
+  grid.set_grid_size(grid_size);
 
 
 
@@ -342,7 +344,7 @@ int main() {
 
   for (int i = 0; i < character; ++i) {
     shapes[i].grid_size = block_size;
-    loco_t::shapes_t::vfi_t::properties_t vfip;
+    loco_t::vfi_t::properties_t vfip;
     vfip.shape_type = loco_t::vfi_t::shape_t::rectangle;
     vfip.shape.rectangle->position.z = i;
     vfip.shape.rectangle->rotation_point = 0;

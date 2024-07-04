@@ -81,15 +81,17 @@ struct fte_renderer_t : fte_loader_t {
   };
 
   void add_tile(node_t& node, fte_t::tile_t& j, int x, int y, uint32_t depth) {
+    int additional_depth = y - node.compiled_map->map_size.y / 2;
     switch (j.mesh_property) {
       case fte_t::mesh_property_t::none: {
-        node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::sprite_t{{
+        node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::sprite_t{ {
             .camera = camera,
-            .position = position + fan::vec3(fan::vec2(j.position) * size, j.position.z),
+            .position = position + fan::vec3(fan::vec2(j.position) * size, additional_depth + j.position.z),
             .size = j.size * size,
             .angle = j.angle,
             .color = j.color,
             .parallax_factor = 0,
+            .flags = j.flags
         } };
         loco_t::texturepack_t::ti_t ti;
         if (texturepack->qti(j.image_name, &ti)) {
@@ -103,7 +105,7 @@ struct fte_renderer_t : fte_loader_t {
       case fte_t::mesh_property_t::light: {
         node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::light_t{ {
           .camera = camera,
-          .position = position + fan::vec3(fan::vec2(j.position) * size, j.position.z),
+          .position = position + fan::vec3(fan::vec2(j.position) * size, additional_depth + j.position.z),
           .size = j.size * size,
           .color = j.color
         } };
@@ -165,6 +167,10 @@ struct fte_renderer_t : fte_loader_t {
     node.tiles.clear();
   }
 
+  struct shape_depths_t {
+    static constexpr int max_layer_depth = 0xFAAA - 2;
+  };
+
   static constexpr int max_layer_depth = 128;
 
   void update(id_t id, const fan::vec2& position_) {
@@ -209,6 +215,7 @@ struct fte_renderer_t : fte_loader_t {
             if constexpr (fan::same_as_any<T,
               fan::graphics::collider_hidden_t,
               fan::graphics::collider_sensor_t>) {
+              fan::print("closing collider");
               v.close();
             }
           }, node.tiles[erase_at]);
@@ -250,6 +257,7 @@ struct fte_renderer_t : fte_loader_t {
             if constexpr (fan::same_as_any<T,
               fan::graphics::collider_hidden_t,
               fan::graphics::collider_sensor_t>) {
+              fan::print("closing collider");
               v.close();
             }
           }, node.tiles[erase_at]);

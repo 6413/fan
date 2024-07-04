@@ -4,7 +4,7 @@
 
 int main() {
   loco_t loco;
-
+  
   fsm_t fs;
 
   loco.loop([&] {

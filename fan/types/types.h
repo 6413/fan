@@ -798,7 +798,7 @@ namespace fan {
 #include <utility>
 #ifndef __unreachable
 #if defined(fan_compiler_msvc)
-#define __unreachable() std::unreachable()
+#define __unreachable() __assume(false)
 #elif defined(fan_compiler_clang) || defined(fan_compiler_gcc)
 #define __unreachable() __builtin_unreachable()
 #endif

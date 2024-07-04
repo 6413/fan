@@ -156,7 +156,7 @@ struct fte_t {
 
   void open(const properties_t& properties) {
     loco_t::image_load_properties_t lp;
-    lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
+    lp.visual_output = loco_t::image_sampler_address_mode::repeat;
     lp.min_filter = fan::opengl::GL_NEAREST;
     lp.mag_filter = fan::opengl::GL_NEAREST;
     texturepack.open_compiled(properties.texturepack_name, lp);
@@ -223,7 +223,6 @@ struct fte_t {
             pos /= gloco->window.get_size();
             pos *= viewport_settings.size / 2;
             viewport_settings.zoom_offset += pos / viewport_settings.zoom;
-            fan::print(viewport_settings.zoom_offset);
 
             // requires window's cursor position
             //fan::vec2 mouse_position = viewport_settings.window_related_mouse_pos;
@@ -427,10 +426,20 @@ struct fte_t {
     brush.type == brush_t::type_e::collider ||
     brush.type == brush_t::type_e::sensor)) {
       layers.resize(layers.size() + 1);
+      layers.back().tile.position = fan::vec3(position, brush.depth);
       layers.back().tile.size = tile_size * brush.tile_size;
       switch (brush.type) {
       case brush_t::type_e::sensor:
       case brush_t::type_e::collider: {
+        layers.back().shape = fan::graphics::sprite_t{ {
+            .camera = camera,
+            .position = fan::vec3(position, brush.depth),
+            .size = tile_size * brush.tile_size,
+            .angle = brush.dynamics_angle == brush_t::dynamics_e::randomize ?
+                  fan::vec3(0, 0, get_snapped_angle()) : brush.angle,
+            .color = brush.dynamics_color == brush_t::dynamics_e::randomize ? fan::random::color() : brush.color,
+            .blending = true
+        } };
         layers.back().shape.set_image(grid_visualize.collider_color);
         if (brush.type == brush_t::type_e::sensor) {
           layers.back().tile.mesh_property = mesh_property_t::sensor;
@@ -443,7 +452,6 @@ struct fte_t {
       case brush_t::type_e::light: {
         loco_t::light_t::properties_t lp;
         auto& shape = layers.back().shape;
-        layers.back().tile.position = fan::vec3(position, brush.depth);
         layers.back().tile.id = brush.id;
         lp.camera = camera->camera;
         lp.viewport = camera->viewport;
@@ -455,7 +463,7 @@ struct fte_t {
         visual_shapes[lp.position].shape = fan::graphics::sprite_t{ {
             .camera = camera,
             .position = fan::vec3(fan::vec2(lp.position), lp.position.z + 1),
-            .size = tile_size * brush.tile_size,
+            .size = tile_size,
             .image = grid_visualize.light_color,
             .blending = true
         } };
@@ -476,7 +484,7 @@ struct fte_t {
       if (idx != invalid || idx < layers.size()) {
         auto& layer = layers[idx];
         layer.tile.id = brush.id;
-        layer.tile.size = tile_size * brush.tile_size;
+        layer.tile.size = tile_size;
         switch (brush.type) {
         case brush_t::type_e::sensor:
         case brush_t::type_e::collider: {
@@ -533,7 +541,7 @@ struct fte_t {
                 .position = fan::vec3(position, brush.depth),
                 .size = tile_size * brush.tile_size,
                 .angle = brush.dynamics_angle == brush_t::dynamics_e::randomize ?
-                      get_snapped_angle() : brush.angle,
+                      fan::vec3(0, 0, get_snapped_angle()) : brush.angle,
                 .color = brush.dynamics_color == brush_t::dynamics_e::randomize ? fan::random::color() : brush.color,
                 .blending = true
             } };
@@ -632,10 +640,6 @@ struct fte_t {
         switch (layers[idx].tile.mesh_property) {
           case mesh_property_t::light:{
             fan::vec3 erase_position = layers[idx].shape.get_position();
-            erase_position.x /= tile_size.x * 2;
-            erase_position.y /= tile_size.y * 2;
-            erase_position.x = floor(erase_position.x);
-            erase_position.y = floor(erase_position.y);
             //erase_position.z -= 1;
             auto found = visual_shapes.find(erase_position);
             if (found != visual_shapes.end()) {
@@ -786,31 +790,33 @@ struct fte_t {
                 tile = i;
                 int layer = 0;
                 for (std::size_t k = 0; k < tile.layers.size(); ++k) {
-                  if (tile.layers[k].tile.position.z == brush.depth) {
-                    auto& t = tile.layers[k];
-                    fan::vec2 op = t.shape.get_position();
-                    fan::vec2 offset = 0;
-                    fan::vec2 draw_pos = current_pos * tile_size * 2 + tile_size + offset;
-                    if (is_in_constraints(draw_pos)) {
-                      t.shape.set_position(fan::vec2(draw_pos));
-                      t.shape.set_size(tile.layers[k].tile.size);
-                      switch (t.tile.mesh_property) {
-                        case mesh_property_t::light: {
-                          visual_shapes[fan::vec3(draw_pos, brush.depth)].shape = fan::graphics::sprite_t{{
-                              .camera = camera,
-                              .position = fan::vec3(draw_pos, brush.depth + 1),
-                              .size = tile.layers[k].tile.size,
-                              .image = grid_visualize.light_color,
-                              .blending = true
-                          } };
-                          break;
-                        }
-                        default: {
-                          break;
-                        }
+                  auto& t = tile.layers[k];
+                  fan::vec2 op = t.shape.get_position();
+                  fan::vec2 offset = op - fan::vec2(t.tile.position) * tile_size * 2 - tile_size;
+                  fan::vec2 draw_pos = current_pos * tile_size * 2 + tile_size + offset;
+                  if (tile.layers[k].tile.position.z != brush.depth) {
+                    t.shape.set_position(fan::vec3(fan::vec2(draw_pos), t.tile.position.z));
+                    t.shape.set_size(t.tile.size);
+                    continue;
+                  }
+                  if (is_in_constraints(draw_pos)) {
+                    t.shape.set_position(fan::vec3(fan::vec2(draw_pos), t.tile.position.z));
+                    t.shape.set_size(t.tile.size);
+                    switch (t.tile.mesh_property) {
+                      case mesh_property_t::light: {
+                        visual_shapes[fan::vec3(draw_pos, brush.depth)].shape = fan::graphics::sprite_t{{
+                            .camera = camera,
+                            .position = fan::vec3(draw_pos, brush.depth + 1),
+                            .size = tile.layers[k].tile.size,
+                            .image = grid_visualize.light_color,
+                            .blending = true
+                        } };
+                        break;
+                      }
+                      default: {
+                        break;
                       }
                     }
-                    break;
                   }
                 }
                 
@@ -987,6 +993,18 @@ gloco->camera_set_ortho(
       }
 
       style.ItemSpacing = prev_item_spacing;
+
+      
+      {// display cursor position
+        fan::vec2 cursor_position = gloco->get_mouse_position(camera->camera, camera->viewport);
+        cursor_position = ((cursor_position) / (tile_size * 2)).floor() * (tile_size * 2);
+        cursor_position.x += tile_size.x;
+        cursor_position.y += tile_size.y;
+        cursor_position /= tile_size;
+        auto str = cursor_position.to_string();
+        ImGui::DrawTextBottomRight(str.c_str(), 0);
+      }
+
 
       if (ImGui::Begin("Layer window")) {
         for (auto& layer_pair : visual_layers) {
@@ -1285,8 +1303,15 @@ gloco->camera_set_ortho(
           }
         }*/
         {
-          if (ImGui::ColorEdit4("color", (float*)brush.color.data())) {
-            layer.shape.set_color(brush.color);
+          uint32_t flags = layer.shape.get_flags();
+          if (ImGui::InputInt("special flags", (int*)&flags, 1, 1)) {
+            layer.shape.set_flags(flags);
+          }
+        }
+        {
+          fan::color color = layer.shape.get_color();
+          if (ImGui::ColorEdit4("color", (float*)color.data())) {
+            layer.shape.set_color(color);
           }
         }
         {
@@ -1546,6 +1571,9 @@ gloco->camera_set_ortho(
       for (auto& j : i.second.layers) {
         // hardcoded to only tile_t
         fan::json tile;
+        if (j.shape.get_size() == 0) {
+          fan::print("warning out size 0", j.tile.position);
+        }
         fan::graphics::shape_serialize(j.shape, &tile);
         tile["image_name"] = j.tile.image_name;
         tile["mesh_property"] = j.tile.mesh_property;
@@ -1598,6 +1626,7 @@ shape data{
     gloco->lighting.ambient = json["lighting.ambient"];
     map_tiles.clear();
     visual_layers.clear();
+    visual_shapes.clear();
     resize_map();
 
     fan::graphics::shape_deserialize_t it;
@@ -1611,12 +1640,21 @@ shape data{
       auto found = map_tiles.find(gp);
       fte_t::shapes_t::global_t::layer_t* layer = nullptr;
       visual_layers[depth].positions[gp];
+      /*if (gp.x == -9 && gp.y == -9 && depth - shape_depths_t::max_layer_depth / 2 == 1) {
+        fan::print("a");
+      }*/
       if (found != map_tiles.end()) {
         found->second.layers.resize(found->second.layers.size() + 1);
+        //if (depth != map_tiles[gp].layers.size() - 1 + shape_depths_t::max_layer_depth / 2) {
+        //  //fan::print(gp);
+        //}
         layer = &found->second.layers.back();
       }
       else {
         map_tiles[gp].layers.resize(1);
+        //if (depth != map_tiles[gp].layers.size() - 1 + shape_depths_t::max_layer_depth / 2) {
+        // // fan::print(gp);
+        //}
         layer = &map_tiles[gp].layers.back();
       }
 
@@ -1644,13 +1682,9 @@ shape data{
         case fte_t::mesh_property_t::sensor:
         case fte_t::mesh_property_t::collider: {
           //map_tile.layers.back().shape.set_image(&fte->grid_visualize.collider_color);
-          visual_shapes[layer->tile.position].shape = fan::graphics::sprite_t{ {
-            .camera = camera,
-            .position = fan::vec3(fan::vec2(shape.get_position()), shape.get_position().z + 1),
-            .size = layer->tile.size,
-            .image = grid_visualize.collider_color,
-            .blending = true
-          } };
+          layer->shape.set_camera(camera->camera);
+          layer->shape.set_viewport(camera->viewport);
+          layer->shape.set_image(grid_visualize.collider_color);
           layer->tile.action = shape_json.value("action", actions_e::none);
           layer->tile.key = shape_json.value("key", fan::key_invalid);
           layer->tile.key_state = shape_json.value("key_state", (int)fan::keyboard_state::press);
@@ -1663,10 +1697,10 @@ shape data{
             .size = layer->tile.size,
             .color = layer->tile.color
           }};
-          visual_shapes[layer->tile.position].shape = fan::graphics::sprite_t{{
+          visual_shapes[shape.get_position()].shape = fan::graphics::sprite_t{{
             .camera = camera,
             .position = fan::vec3(fan::vec2(shape.get_position()), shape.get_position().z + 1),
-            .size = layer->tile.size,
+            .size = tile_size,
             .image = grid_visualize.light_color,
             .blending = true
           }};

@@ -124,19 +124,6 @@ namespace fan {
         bool do_delete = false;
       }timeline;
 
-      template <typename T>
-      bool make_imgui_element(const char* label, T& value) {
-        if constexpr (std::is_same_v<T, f32_t>) {
-          return ImGui::DragFloat(label, &value, .5, -10000, 10000);
-        }
-        else if constexpr (std::is_same_v<T, fan::vec2>) {
-          return ImGui::DragFloat2(label, value.data(), .5, -10000, 10000);
-        }
-        else if constexpr (std::is_same_v<T, fan::vec3>) {
-          return ImGui::DragFloat3(label, value.data(), .5, -10000, 10000);
-        }
-      }
-
       void find_closest_frame(std::vector<key_frame_t>& frames, int& frame_index) {
         f32_t closest_greater = std::numeric_limits<f32_t>::max();
         int idx = 0;
@@ -312,7 +299,7 @@ namespace fan {
             static constexpr const char* names[]{ "time", "position", "size", "angle", "rotation vector" };
             bool edit = false;
             mp.iterate([&]<auto i>(auto & v) {
-              if (make_imgui_element(names[i], v)) {
+              if (fan_imgui_dragfloat_named(names[i], v, 0.5, -1, -1)) {
                 edit = true;
               }
             });//////
@@ -347,14 +334,16 @@ namespace fan {
         ImGui::Begin("Key frame data");
         if (active_object < objects.size()) {
           int idx = 0;
-          for (auto& frame : objects[active_object].key_frames) {
+          auto& key_frames = objects[active_object].key_frames;
+          for (std::size_t i = 0; i < key_frames.size(); ) {
+            auto& frame = key_frames[i];
             ImGui::Text(fan::format("frame {}:", std::to_string(idx++)).c_str());
             fan::mp_t<key_frame_t> mp(frame);
             {
               static const char* names[]{ "time", "position", "size", "angle", "rotation vector" };
               bool edit = false;
               mp.iterate([&]<auto i>(auto & v) {
-                if (make_imgui_element(("##" + fan::to_string(idx) + fan::string(names[i])).c_str(), v)) {
+                if (fan_imgui_dragfloat_named(("##" + fan::to_string(idx) + fan::string(names[i])).c_str(), v, 0.5, -1, -1)) {
                   edit = true;
                 }
                 ImGui::SameLine();
@@ -364,6 +353,15 @@ namespace fan {
                 frame = mp;
               }
             }
+            ImGui::PushID(i);
+            if (ImGui::Button("Delete")) {
+              key_frames.erase(key_frames.begin() + i);
+              timeline.frames.erase(timeline.frames.begin() + i);
+              ImGui::PopID();
+              continue;
+            }
+            ImGui::PopID();
+            ++i;
           }
         }
         ImGui::End();
@@ -449,18 +447,29 @@ namespace fan {
         keyframe data
       */
       void file_save(const fan::string& path) {
-        fan::string ostr;
-        fan::write_to_string(ostr, controls.loop);
-        fan::write_to_string(ostr, controls.max_time);
-        fan::write_to_string(ostr, (uint32_t)objects.size());
+        fan::json ostr;
+
+        ostr["controls.loop"] = controls.loop;
+        ostr["controls.max_time"] = controls.max_time;
+        fan::json jobjects = fan::json::array();
         for (auto& obj : objects) {
-          fan::write_to_string(ostr, obj.image_name);
-          fan::write_to_string(ostr, (uint32_t)obj.key_frames.size());
-          if (obj.key_frames.size()) {
-            ostr.append((char*)&obj.key_frames[0], sizeof(key_frame_t) * obj.key_frames.size());
+          fan::json keyframes = fan::json::array();
+          fan::json instance = fan::json::object();
+          instance["image_name"] = obj.image_name;
+          for (auto& i : obj.key_frames) {
+            fan::json key_frame = fan::json::object();
+            key_frame["time"] = i.time;
+            key_frame["position"] = i.position;
+            key_frame["size"] = i.size;
+            key_frame["angle"] = i.angle;
+            key_frame["rotation_vecotr"] = i.rotation_vector;
+            keyframes.push_back(key_frame);
           }
+          instance["key_frames"] = keyframes;
+          jobjects.push_back(instance);
         }
-        fan::io::file::write(path, ostr, std::ios_base::binary);
+        ostr["objects"] = jobjects;
+        fan::io::file::write(path, ostr.dump(2), std::ios_base::binary);
       }
 
       void file_load(const fan::string& path) {

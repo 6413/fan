@@ -275,8 +275,21 @@ struct vfi_t {
       }
       case shape_t::rectangle:{
         instance.shape_data->depth = p.shape.rectangle->position.z;
-        instance.shape_data->shape.rectangle->camera = p.shape.rectangle->camera;
-        instance.shape_data->shape.rectangle->viewport = p.shape.rectangle->viewport;
+        if (p.shape.rectangle->camera.iic()) {
+          instance.shape_data->shape.rectangle->camera = gloco->orthographic_camera.camera;
+          fan::printcl("warning using default camera");
+        }
+        else {
+          instance.shape_data->shape.rectangle->camera = p.shape.rectangle->camera;
+        } 
+        if (p.shape.rectangle->viewport.iic()) {
+          instance.shape_data->shape.rectangle->viewport = gloco->orthographic_camera.viewport;
+          fan::printcl("warning using default viewport");
+        }
+        else {
+          instance.shape_data->shape.rectangle->viewport = p.shape.rectangle->viewport;
+        }
+        
         instance.shape_data->shape.rectangle->position = *(fan::vec2*)&p.shape.rectangle->position;
         instance.shape_data->shape.rectangle->angle = p.shape.rectangle->angle;
         instance.shape_data->shape.rectangle->rotation_point = p.shape.rectangle->rotation_point;
@@ -332,6 +345,15 @@ struct vfi_t {
   }
 
   static fan::vec2 transform_position(const fan::vec2& p, loco_t::viewport_t viewport, loco_t::camera_t camera) {
+
+#if fan_debug >= fan_debug_high
+    if (viewport.iic()) {
+      fan::throw_error("invalid viewport");
+    }
+    if (camera.iic()) {
+      fan::throw_error("invalid camera");
+    }
+#endif
 
     auto& context = gloco->get_context();
     auto& v = context.viewport_get(viewport);

@@ -165,7 +165,7 @@ struct global_loco_t {
     return loco;
   }
 };
-inline thread_local global_loco_t gloco;
+extern thread_local global_loco_t gloco;
 
 namespace fan {
   void printcl(auto&&... values);
@@ -2310,7 +2310,7 @@ public:
     static constexpr int kpi = kp::texture;
 
     inline static std::vector<shape_gl_init_t> locations = {};
-
+     
 #pragma pack(push, 1)
 
     struct vi_t {
@@ -3451,6 +3451,8 @@ namespace ImGui {
 
   bool ToggleImageButton(loco_t::image_t image, const ImVec2& size, bool* toggle);
   
+  void DrawTextBottomRight(const char* text, uint32_t reverse_yoffset = 0);
+
 
   template <std::size_t N>
   bool ToggleImageButton(const std::array<loco_t::image_t, N>& images, const ImVec2& size, int* selectedIndex)
@@ -3518,7 +3520,7 @@ namespace fan {
       std::filesystem::path current_directory;
     public:
 
-      imgui_content_browser_t() {
+      imgui_content_browser_t(const std::string& directory_path) {
         search_buffer.resize(32);
         asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
         current_directory = std::filesystem::path(asset_path) / "images";
