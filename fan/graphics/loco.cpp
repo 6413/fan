@@ -1,15 +1,13 @@
-#include "loco.h"
+#include <pch.h>
 
 #define loco_framebuffer
 #define loco_post_process
 
 //#define depth_debug
-
+//
 global_loco_t::operator loco_t* () {
   return loco;
 }
-
-
 
 global_loco_t& global_loco_t::operator=(loco_t* l) {
   loco = l;
@@ -186,6 +184,38 @@ void generate_commands(loco_t* loco) {
     gloco->console.output_buffer.clear();
     gloco->console.editor.SetText("");
   }).description = "clears output buffer - usage clear";
+
+  loco->console.commands.add("set_gamma", [](const fan::commands_t::arg_t& args) {
+    if (args.size() != 1) {
+      gloco->console.commands.print_invalid_arg_count();
+      return;
+    }
+    gloco->shader_set_value(gloco->m_fbo_final_shader, "gamma", std::stof(args[0]));
+  }).description = "sets gamma for postprocess shader";
+
+  loco->console.commands.add("set_gamma", [](const fan::commands_t::arg_t& args) {
+    if (args.size() != 1) {
+      gloco->console.commands.print_invalid_arg_count();
+      return;
+    }
+    gloco->shader_set_value(gloco->m_fbo_final_shader, "gamma", std::stof(args[0]));
+  }).description = "sets gamma for postprocess shader";
+
+  loco->console.commands.add("set_exposure", [](const fan::commands_t::arg_t& args) {
+    if (args.size() != 1) {
+      gloco->console.commands.print_invalid_arg_count();
+      return;
+    }
+    gloco->shader_set_value(gloco->m_fbo_final_shader, "exposure", std::stof(args[0]));
+  }).description = "sets exposure for postprocess shader";
+
+  loco->console.commands.add("bloom_strength", [](const fan::commands_t::arg_t& args) {
+    if (args.size() != 1) {
+      gloco->console.commands.print_invalid_arg_count();
+      return;
+    }
+    gloco->shader_set_value(gloco->m_fbo_final_shader, "bloom_strength", std::stof(args[0]));
+  }).description = "sets bloom strength for postprocess shader";
 
   /*loco->console.commands.add("console_transparency", [](const fan::commands_t::arg_t& args) {
     if (args.size() != 1) {
@@ -409,15 +439,15 @@ loco_t::loco_t(const properties_t& p) :
   {
 
     // filler
-    gloco->shaper.AddKey(Key_e::light, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
-    gloco->shaper.AddKey(Key_e::light_end, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
-    gloco->shaper.AddKey(Key_e::depth, sizeof(loco_t::depth_t), shaper_t::KeyBitOrderLow);
-    gloco->shaper.AddKey(Key_e::blending, sizeof(loco_t::blending_t), shaper_t::KeyBitOrderLow);
-    gloco->shaper.AddKey(Key_e::image, sizeof(loco_t::image_t), shaper_t::KeyBitOrderLow);
-    gloco->shaper.AddKey(Key_e::viewport, sizeof(loco_t::viewport_t), shaper_t::KeyBitOrderAny);
-    gloco->shaper.AddKey(Key_e::camera, sizeof(loco_t::camera_t), shaper_t::KeyBitOrderAny);
-    gloco->shaper.AddKey(Key_e::ShapeType, sizeof(shaper_t::ShapeTypeIndex_t), shaper_t::KeyBitOrderAny);
-    gloco->shaper.AddKey(Key_e::filler, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
+    shaper.AddKey(Key_e::light, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
+    shaper.AddKey(Key_e::light_end, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
+    shaper.AddKey(Key_e::depth, sizeof(loco_t::depth_t), shaper_t::KeyBitOrderLow);
+    shaper.AddKey(Key_e::blending, sizeof(loco_t::blending_t), shaper_t::KeyBitOrderLow);
+    shaper.AddKey(Key_e::image, sizeof(loco_t::image_t), shaper_t::KeyBitOrderLow);
+    shaper.AddKey(Key_e::viewport, sizeof(loco_t::viewport_t), shaper_t::KeyBitOrderAny);
+    shaper.AddKey(Key_e::camera, sizeof(loco_t::camera_t), shaper_t::KeyBitOrderAny);
+    shaper.AddKey(Key_e::ShapeType, sizeof(shaper_t::ShapeTypeIndex_t), shaper_t::KeyBitOrderAny);
+    shaper.AddKey(Key_e::filler, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
 
     //gloco->shaper.AddKey(Key_e::image4, sizeof(loco_t::image_t) * 4, shaper_t::KeyBitOrderLow);
   }
@@ -438,20 +468,20 @@ loco_t::loco_t(const properties_t& p) :
 
   // order of open needs to be same with shapes enum
   
-  gloco->shape_functions.resize(gloco->shape_functions.size() + 1); // button
+  shape_functions.resize(shape_functions.size() + 1); // button
   shape_open<loco_t::sprite_t>(
     &sprite,
     "shaders/opengl/2D/objects/sprite.vs",
     "shaders/opengl/2D/objects/sprite.fs"
   );
-  gloco->shape_functions.resize(gloco->shape_functions.size() + 1); // text
-  gloco->shape_functions.resize(gloco->shape_functions.size() + 1); // hitbox
+  shape_functions.resize(shape_functions.size() + 1); // text
+  shape_functions.resize(shape_functions.size() + 1); // hitbox
   shape_open<loco_t::line_t>(
     &line,
     "shaders/opengl/2D/objects/line.vs",
     "shaders/opengl/2D/objects/line.fs"
   );
-  gloco->shape_functions.resize(gloco->shape_functions.size() + 1); // mark
+  shape_functions.resize(shape_functions.size() + 1); // mark
   shape_open<loco_t::rectangle_t>(
     &rectangle,
     "shaders/opengl/2D/objects/rectangle.vs",
@@ -1401,6 +1431,7 @@ static fan::vec2 transform_position(const fan::vec2& p, loco_t::viewport_t viewp
   fan::vec2 d = viewport_size;
   tp /= d;
   tp = fan::vec2(r * tp.x - l * tp.x + l, b * tp.y - t * tp.y + t);
+  tp += c.position;
   return tp;
 }
 
@@ -1955,6 +1986,29 @@ ImVec2 ImGui::GetPositionBottomCorner(const char* text, uint32_t reverse_yoffset
   text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
 
   return text_pos;
+}
+
+void ImGui::DrawTextBottomRight(const char* text, uint32_t reverse_yoffset)
+{
+    // Retrieve the current window draw list
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    // Retrieve the current window position and size
+    ImVec2 window_pos = ImGui::GetWindowPos();
+    ImVec2 window_size = ImGui::GetWindowSize();
+
+    // Calculate the size of the text
+    ImVec2 text_size = ImGui::CalcTextSize(text);
+
+    // Calculate the position to draw the text (bottom-right corner)
+    ImVec2 text_pos;
+    text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
+    text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
+
+    text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
+
+    // Draw the text at the calculated position
+    draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), text);
 }
 
 
@@ -2614,4 +2668,4 @@ void fan::graphics::texture_packe0::load_compiled(const char* filename) {
       push_texture(images.back(), tp);
     }
   }
-}
+}//

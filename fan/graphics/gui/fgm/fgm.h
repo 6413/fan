@@ -719,28 +719,29 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           drag_select.set_position(drag_start + size / 2);
           drag_select.set_size(size / 2);
         }
-        else if (ImGui::IsMouseReleased(0) && !fan::graphics::vfi_root_t::moving_object &&
-          (drag_select.get_size().x >= 1 && drag_select.get_size().y >= 1)) {
-          auto it = shape_list.GetNodeFirst();
-          int i = 0;
-          fan::graphics::vfi_root_t::selected_objects.clear();
-          while (it != shape_list.dst) {
-            auto& shape = shape_list[it];
-            if (fan_2d::collision::rectangle::check_collision(
-              drag_select.get_position(),
-              drag_select.get_size(),
-              shape->children[0].get_position(),
-              shape->children[0].get_size()
-            )) {
-              shape->create_highlight();
-              fan::graphics::vfi_root_t::selected_objects.push_back(shape);
+        else if (ImGui::IsMouseReleased(0)) {
+          if (!fan::graphics::vfi_root_t::moving_object &&
+            (drag_select.get_size().x >= 1 && drag_select.get_size().y >= 1)) {
+            auto it = shape_list.GetNodeFirst();
+            int i = 0;
+            fan::graphics::vfi_root_t::selected_objects.clear();
+            while (it != shape_list.dst) {
+              auto& shape = shape_list[it];
+              if (fan_2d::collision::rectangle::check_collision(
+                drag_select.get_position(),
+                drag_select.get_size(),
+                shape->children[0].get_position(),
+                shape->children[0].get_size()
+              )) {
+                shape->create_highlight();
+                fan::graphics::vfi_root_t::selected_objects.push_back(shape);
+              }
+              else {
+                shape->disable_highlight();
+              }
+              it = it.Next(&shape_list);
             }
-            else {
-              shape->disable_highlight();
-            }
-            it = it.Next(&shape_list);
           }
-
           drag_select.set_size(0);
         }
 
@@ -758,9 +759,6 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
 
           ImGui::EndMainMenuBar();
         }
-
-
-
 
         if (render_content_browser) {
           content_browser.render();

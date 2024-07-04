@@ -11,11 +11,21 @@ fan::graphics::camera_t camera1;
 struct player_t {
   static constexpr fan::vec2 speed{ 150, 150 };
 
+  std::vector<loco_t::image_t> down_frames;
+  std::vector<loco_t::image_t> left_frames;
+  std::vector<loco_t::image_t> right_frames;
+  std::vector<loco_t::image_t> up_frames;
+
+
   player_t() {
+    down_frames.push_back(gloco->image_load("game_textures/knight/down0.webp"));
+    left_frames.push_back(gloco->image_load("game_textures/knight/left0.webp"));
+    right_frames.push_back(gloco->image_load("game_textures/knight/right0.webp"));
+    up_frames.push_back(gloco->image_load("game_textures/knight/up0.webp"));
     visual = fan::graphics::sprite_t{ {
       .camera = &camera1,
       .position = fan::vec3(-300, -300,  10),
-      .size = 32 / 2,
+      .size = 32,
       .blending = true,
     } };
     loco_t::light_t::properties_t lp;
@@ -55,6 +65,19 @@ struct player_t {
 
     visual.set_velocity(velocity);
 
+    if (velocity.x > 0) {
+      visual.set_image(right_frames[0]);
+    }
+    else if (velocity.x < 0) {
+      visual.set_image(left_frames[0]);
+    }
+    else if (velocity.y < 0) {
+      visual.set_image(up_frames[0]);
+    }
+    else if (velocity.y > 0) {
+      visual.set_image(down_frames[0]);
+    }
+
     fan::vec2 position = visual.get_collider_position();
     visual.set_position(fan::vec3(position, floor(position.y / 64) + fte_t::shape_depths_t::max_layer_depth / 2));
     lighting.set_position(visual.get_position());
@@ -75,7 +98,7 @@ void init_zoom() {
       fan::vec2(-s.x, s.x) / zoom,
       fan::vec2(-s.y, s.y) / zoom
     );
-  };
+    };
 
   update_ortho();
 
@@ -137,9 +160,9 @@ int main(int argc, char** argv) {
   p.texturepack_name = texture_pack_name;
   p.camera = &camera0;
   fte.open(p);
- // fte.fin("m_sensor.json");
+  // fte.fin("m_sensor.json");
 
-std::unique_ptr<player_t> player;
+  std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;
   bool render_scene = false;
   std::unique_ptr<fte_renderer_t::id_t> map_id0_t;
@@ -184,18 +207,18 @@ std::unique_ptr<player_t> player;
           }
 
           switch (obj1->collider_type) {
-            case fan::collider::types_e::collider_static:
-            case fan::collider::types_e::collider_dynamic: {
-              // can access shape by obj0->shape
-              break;
-            }
-            case fan::collider::types_e::collider_hidden: {
-              break;
-            }
-            case fan::collider::types_e::collider_sensor: {
-              fan::print("sensor triggered");
-              break;
-            }
+          case fan::collider::types_e::collider_static:
+          case fan::collider::types_e::collider_dynamic: {
+            // can access shape by obj0->shape
+            break;
+          }
+          case fan::collider::types_e::collider_hidden: {
+            break;
+          }
+          case fan::collider::types_e::collider_sensor: {
+            fan::print("sensor triggered");
+            break;
+          }
           }
         };
 
@@ -203,32 +226,32 @@ std::unique_ptr<player_t> player;
       //loco.window.set_max_fps(3);
       f32_t total_delta = 0;
     }
-  };
+    };
 
   loco.window.add_keys_callback([&](const auto& d) {
     if (d.state != fan::keyboard_state::press) {
       return;
     }
     switch (d.key) {
-      case fan::key_f5: {
-        render_scene = !render_scene;
-        if (render_scene) {
-          player = std::make_unique<player_t>();
-          fte.fout(fte.file_name + "temp");
-          reload_scene();
-        }
-        else {
-          if (map_id0_t) {
-            renderer.get()->clear(renderer.get()->map_list[*map_id0_t.get()]);
-          }
-          map_id0_t.reset();
-          renderer.reset();
-          player.reset();
-        }
-        break;
+    case fan::key_f5: {
+      render_scene = !render_scene;
+      if (render_scene) {
+        player = std::make_unique<player_t>();
+        fte.fout(fte.file_name + "temp");
+        reload_scene();
       }
+      else {
+        if (map_id0_t) {
+          renderer.get()->clear(renderer.get()->map_list[*map_id0_t.get()]);
+        }
+        map_id0_t.reset();
+        renderer.reset();
+        player.reset();
+      }
+      break;
     }
-  });
+    }
+    });
 
   fte.modify_cb = [&](int mode) {
     if (map_id0_t) {
@@ -238,7 +261,7 @@ std::unique_ptr<player_t> player;
     renderer.reset();
     fte.fout(fte.file_name + "temp");
     reload_scene();
-  };
+    };
 
   loco.set_vsync(0);
 
@@ -274,7 +297,7 @@ std::unique_ptr<player_t> player;
       ImGui::End();
 
     }
-  });
+    });
   //
   return 0;
 }

@@ -1,6 +1,6 @@
-#include <fan/pch.h>
+#include <pch.h>
 
-#include _FAN_PATH(graphics/gui/keyframe_animator/editor.h)
+#include <fan/graphics/gui/keyframe_animator/editor.h>
 
 
 int main() {

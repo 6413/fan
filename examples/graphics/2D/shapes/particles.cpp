@@ -1,4 +1,4 @@
-#include <fan/pch.h>
+#include <pch.h>
 
 int main() {
 
@@ -7,47 +7,33 @@ int main() {
 
   loco.clear_color = fan::colors::black;
 
-  auto smoke_texture = loco.image_load("images/star.webp");
-  auto i2 = loco.image_load("images/smoke.webp");
+  auto particle_texture = loco.image_load("images/waterdrop.webp");
 
   fan::vec2 window_size = loco.window.get_size();
 
   loco_t::particles_t::properties_t p;
-  p.position = fan::vec3(window_size / 2, 10);
-  p.count = 8;
-  p.size = 150;
+  p.position = fan::vec3(270, -487, 10);
+  p.count = 1191;
+  p.size = 2;
   p.begin_angle = 4.133;
   p.end_angle = 1.0;
   p.alive_time = 1e+9;
+  p.gap_size = fan::vec2(354.535, 1.0);
+  p.max_spread_size = fan::vec2(2423.231, 100.0);
+  p.shape = loco_t::particles_t::shapes_e::rectangle;
   p.position_velocity = fan::vec2(757,  334);
-  p.image = smoke_texture;
+  p.image = particle_texture;
   p.color = fan::color(0.4, 0.4, 1.4);
   loco_t::shape_t s = p;
-
-  p.position = 100;
-  p.color = fan::colors::red;
-  p.image = i2;
 
   loco_t::shape_t bg = fan_init_struct(
     loco_t::rectangle_t::properties_t,
     .position = fan::vec3(window_size / 2, 0),
     .size = window_size / 2,
-    .color = fan::color(0.0, 0.2, 1.4, 0.5)
+    .color = fan::color(0.0, 0, 0, 0.5)
   );
 
- /* loco_t::imgui_fs_var_t bloom[8];
-  bloom[0] = loco_t::imgui_fs_var_t(gloco->shaper.GetShader(loco_t::shape_type_t::light), "multiplier", 1.17, 0.01);
-  bloom[7] = loco_t::imgui_fs_var_t(gloco->shaper.GetShader(loco_t::shape_type_t::light), "multiplier2", 0.430, 0.01);
-
-  bloom[1] = loco_t::imgui_fs_var_t(gloco->m_fbo_final_shader, "bloom_intensity", 0.07, 0.01);
-  bloom[2] = loco_t::imgui_fs_var_t(gloco->m_fbo_final_shader, "gamma2", 1.02, 0.01);
-  bloom[3] = loco_t::imgui_fs_var_t(gloco->m_fbo_final_shader, "bloom_gamma", 0.120, 0.01);
-  bloom[4] = loco_t::imgui_fs_var_t(gloco->m_fbo_final_shader, "exposure", 2.0, 0.01);
-  bloom[5] = loco_t::imgui_fs_var_t(gloco->m_fbo_final_shader, "gamma", 0.9, 0.01);
-  bloom[6] = loco_t::imgui_fs_var_t(gloco->m_fbo_final_shader, "bloom_strength", 1.270, 0.01);*/
-
   loco.set_vsync(0);
-
 
   fan::graphics::file_save_dialog_t save_file_dialog;
   fan::graphics::file_open_dialog_t open_file_dialog;
@@ -109,7 +95,7 @@ int main() {
           while (it.iterate(in, &s)) {
           }
 
-          s.set_image(smoke_texture);
+          s.set_image(particle_texture);
         }
         open_file_dialog.finished = false;
       }

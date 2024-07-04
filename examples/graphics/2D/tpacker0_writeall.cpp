@@ -1,11 +1,17 @@
-#include <fan/pch.h>
+#include <pch.h>
 
 #include <fan/io/directory.h>
 
-int main() {
+int main(int argc, char* argv[]) {
+
+  if (argc != 3) {
+    fan::print("usage *.exe path_to_be_packed output");
+    return 1;
+  }
+
   
   loco_t::texture_packe0::open_properties_t open_properties;
-  open_properties.preferred_pack_size = 1024;
+  open_properties.preferred_pack_size = 512;
   loco_t::texture_packe0 e;
   e.open(open_properties);
   loco_t::texture_packe0::texture_properties_t texture_properties;
@@ -13,7 +19,7 @@ int main() {
   texture_properties.min_filter = loco_t::image_filter::nearest;
   texture_properties.mag_filter = loco_t::image_filter::nearest;
   texture_properties.group_id = 0;
-  static constexpr auto full_path = "controller_images/";
+  static auto full_path = argv[1];
 
   fan::io::iterate_directory_by_image_size(full_path, [&](fan::string path) {
     //if (std::size_t found = path.find("block") == fan::string::npos) {
@@ -41,5 +47,5 @@ int main() {
   // });
   e.process();
   fan::print_no_space("pack size:", e.size());
-  e.save_compiled("tp_controller");
+  e.save_compiled(argv[2]);
 }

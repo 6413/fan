@@ -14,6 +14,7 @@ struct version_001_t {
           layer.image_hash = i.tile.image_hash;
           layer.mesh_property = i.tile.mesh_property;
           layer.id = i.tile.id;
+          layer.flags = i.shape.get_flags();
           layers.push_back(layer);
         }
       }
