@@ -194,6 +194,11 @@ std::string to_string(int precision = 2) const {
   return out;
 }
 
+bool is_near(const vec_t& test0, value_type_t epsilon) const { 
+  make_for_all_test1_noret(if (!fan::math::is_near((*this)[i], test0[i], epsilon)) return false;);
+  return true;
+} 
+
 friend std::ostream& operator<<(std::ostream& os, const vec_t& test0) { os << test0.to_string(); return os; }
 
 #if vec_n

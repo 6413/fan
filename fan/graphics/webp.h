@@ -8,7 +8,7 @@
   
 #endif
 
-// if windows fails with duplicat resource, remove mux folder from libwebp
+// if windows fails with duplicate resource, remove mux folder from libwebp
 #include <webp/encode.h>
 #include <webp/decode.h>
 

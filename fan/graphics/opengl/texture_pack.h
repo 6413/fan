@@ -88,6 +88,7 @@ struct texturepack_t {
     }
   }
 
+
   void iterate_loaded_images(auto lambda) {
     for (uint32_t i = 0; i < texture_list.size(); i++) {
       for (uint32_t j = 0; j < texture_list[i].size(); j++) {

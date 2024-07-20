@@ -146,7 +146,7 @@ void fan::console_t::render() {
     current_command.resize(buffer_size);
   }
 
-  ImGui::Begin("console");
+  ImGui::Begin("console", 0, ImGuiWindowFlags_NoDocking);
 
   ImGui::BeginChild("output_buffer", ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() * 1), false);
 
@@ -190,6 +190,9 @@ void fan::console_t::render() {
   current_command = input.GetText();
   current_command.pop_back();
   if (ImGui::IsKeyPressed(ImGuiKey_Enter, false)) {
+    current_command.erase(std::remove(current_command.begin(), current_command.end(), '\n'), current_command.end());
+    current_command += '\n';
+    
     command_history.push_back(current_command.substr(0, current_command.size() - 1));
     output_buffer.push_back(current_command);
     editor.SetReadOnly(false);

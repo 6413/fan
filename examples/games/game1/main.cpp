@@ -9,7 +9,7 @@ fan::graphics::camera_t camera0;
 fan::graphics::camera_t camera1;
 
 struct player_t {
-  static constexpr fan::vec2 speed{ 150, 150 };
+  static constexpr fan::vec2 speed{ 300, 300 };
 
   std::vector<loco_t::image_t> down_frames;
   std::vector<loco_t::image_t> left_frames;
@@ -17,14 +17,23 @@ struct player_t {
   std::vector<loco_t::image_t> up_frames;
 
 
+  uint16_t right_frame_index = 0;
+  fan::time::clock right_frame_clock;
+
   player_t() {
     down_frames.push_back(gloco->image_load("game_textures/knight/down0.webp"));
     left_frames.push_back(gloco->image_load("game_textures/knight/left0.webp"));
+    right_frames.push_back(gloco->image_load("game_textures/knight/right1.webp"));
+    right_frames.push_back(gloco->image_load("game_textures/knight/right0.webp"));
+    right_frames.push_back(gloco->image_load("game_textures/knight/right2.webp"));
     right_frames.push_back(gloco->image_load("game_textures/knight/right0.webp"));
     up_frames.push_back(gloco->image_load("game_textures/knight/up0.webp"));
+
+    right_frame_clock.start(0.1e+9);
+
     visual = fan::graphics::sprite_t{ {
       .camera = &camera1,
-      .position = fan::vec3(-300, -300,  10),
+      .position = fan::vec3(-127 * 32, 1021 * 32, 10),
       .size = 32,
       .blending = true,
     } };
@@ -66,7 +75,11 @@ struct player_t {
     visual.set_velocity(velocity);
 
     if (velocity.x > 0) {
-      visual.set_image(right_frames[0]);
+      if (right_frame_clock.finished()) {
+        right_frame_index = (right_frame_index + 1) % right_frames.size();
+        right_frame_clock.restart();
+      }
+      visual.set_image(right_frames[right_frame_index]);
     }
     else if (velocity.x < 0) {
       visual.set_image(left_frames[0]);
@@ -160,6 +173,7 @@ int main(int argc, char** argv) {
   p.texturepack_name = texture_pack_name;
   p.camera = &camera0;
   fte.open(p);
+  fte.fin("game/map_main.json");
   // fte.fin("m_sensor.json");
 
   std::unique_ptr<player_t> player;

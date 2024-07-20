@@ -19,6 +19,7 @@ constexpr static f32_t bcol_step_time = 0.001f;
 #define BCOL_set_Dimension 2
 #define BCOL_set_IncludePath 
 #define BCOL_set_prefix bcol
+
 #define BCOL_set_DynamicDeltaFunction 
 #define BCOL_set_StoreExtraDataInsideObject 1
 #define BCOL_set_ExtraDataInsideObject \
