@@ -1444,6 +1444,10 @@ fan::vec2 loco_t::get_mouse_position() {
   //return get_mouse_position(gloco->default_camera->camera, gloco->default_camera->viewport); behaving oddly
 }
 
+fan::vec2 fan::graphics::get_mouse_position(const fan::graphics::camera_t& camera) {
+  return transform_position(gloco->get_mouse_position(), camera.viewport, camera.camera);
+}
+
 fan::vec2 loco_t::translate_position(const fan::vec2& p, loco_t::viewport_t viewport, loco_t::camera_t camera) {
 
   auto& v = gloco->viewport_get(viewport);

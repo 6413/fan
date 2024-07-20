@@ -2574,17 +2574,7 @@ public:
 #endif
   //gui
 
-
-  loco_t::image_t create_noise_image(const fan::vec2& image_size) {
-    loco_t::image_load_properties_t lp;
-    lp.format = fan::opengl::GL_RGBA; // Change this to GL_RGB
-    lp.internal_format = fan::opengl::GL_RGBA; // Change this to GL_RGB
-    lp.min_filter = loco_t::image_filter::linear;
-    lp.mag_filter = loco_t::image_filter::linear;
-    lp.visual_output = fan::opengl::GL_MIRRORED_REPEAT;
-
-    loco_t::image_t image;
-
+  std::vector<uint8_t> create_noise_image_data(const fan::vec2& image_size, int seed = fan::random::value_i64(0, ((uint32_t)-1) / 2)) {
     FastNoiseLite noise;
     noise.SetFractalType(FastNoiseLite::FractalType_FBm);
     noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
@@ -2592,7 +2582,7 @@ public:
     noise.SetFractalGain(0.5);
     noise.SetFractalLacunarity(2.0);
     noise.SetFractalOctaves(5);
-    noise.SetSeed(1337);
+    noise.SetSeed(seed);
     noise.SetFractalPingPongStrength(2.0);
     f32_t noise_tex_min = -1;
     f32_t noise_tex_max = 0.1;
@@ -2618,8 +2608,44 @@ public:
       }
     }
 
+    return noiseDataRGB;
+  }
+
+
+  loco_t::image_t create_noise_image(const fan::vec2& image_size) {
+
+    loco_t::image_load_properties_t lp;
+    lp.format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+    lp.internal_format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+    lp.min_filter = loco_t::image_filter::linear;
+    lp.mag_filter = loco_t::image_filter::linear;
+    lp.visual_output = fan::opengl::GL_MIRRORED_REPEAT;
+
+    loco_t::image_t image;
+
+    auto noise_data = create_noise_image_data(image_size);
+
     fan::webp::image_info_t ii;
-    ii.data = noiseDataRGB.data();
+    ii.data = noise_data.data();
+    ii.size = image_size;
+
+    image = image_load(ii, lp);
+    return image;
+  }
+
+  loco_t::image_t create_noise_image(const fan::vec2& image_size, const std::vector<uint8_t>& noise_data) {
+
+    loco_t::image_load_properties_t lp;
+    lp.format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+    lp.internal_format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+    lp.min_filter = loco_t::image_filter::linear;
+    lp.mag_filter = loco_t::image_filter::linear;
+    lp.visual_output = fan::opengl::GL_MIRRORED_REPEAT;
+
+    loco_t::image_t image;
+
+    fan::webp::image_info_t ii;
+    ii.data = (void*)noise_data.data();
     ii.size = image_size;
 
     image = image_load(ii, lp);
@@ -3438,6 +3464,8 @@ namespace fan {
 
   #endif
 //#endif
+
+    fan::vec2 get_mouse_position(const fan::graphics::camera_t& camera);
   }
 }
 

@@ -432,6 +432,7 @@ void fan::window_t::set_position(const fan::vec2& position) {
 }
 
 void fan::window_t::set_windowed() {
+  glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, true);
   using namespace fan::window;
   GLFWmonitor* monitor = glfwGetPrimaryMonitor();
   const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -440,6 +441,7 @@ void fan::window_t::set_windowed() {
   fan::vec2 screen_size = fan::vec2(mode->width, mode->height);
   fan::vec2 window_pos = (screen_size - get_size()) / 2;
   glfwSetWindowPos(glfw_window, window_pos.x, window_pos.y);
+  
 }
 
 void fan::window_t::set_fullscreen() {
@@ -467,7 +469,10 @@ void fan::window_t::set_borderless() {
   GLFWmonitor* monitor = glfwGetPrimaryMonitor();
   const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
-  glfwSetWindowMonitor(glfw_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+  set_position(0);
+  glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, false);
+  set_size(fan::vec2(mode->width, mode->height));
+
 }
 
 

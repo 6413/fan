@@ -52,15 +52,11 @@ namespace fan {
 
     struct opengl_t {
 
-    private:
-
       static void* get_proc_address_(const char* name, internal_t* internal)
       {
         return (void*)glfwGetProcAddress(name);
       }
 
-
-    public:
 
     #if fan_debug >= fan_debug_high
       // todo implement debug

@@ -150,7 +150,6 @@ struct fte_t {
   }
 
   struct properties_t {
-    fan::string texturepack_name;
     loco_t::camera_impl_t* camera = nullptr;
   };
 
@@ -159,7 +158,6 @@ struct fte_t {
     lp.visual_output = loco_t::image_sampler_address_mode::repeat;
     lp.min_filter = fan::opengl::GL_NEAREST;
     lp.mag_filter = fan::opengl::GL_NEAREST;
-    texturepack.open_compiled(properties.texturepack_name, lp);
     if (properties.camera == nullptr) {
       camera = &gloco->orthographic_camera;
     }
@@ -282,23 +280,6 @@ struct fte_t {
       });
 
     viewport_settings.size = 0;
-
-    texturepack_images.reserve(texturepack.texture_list.size());
-
-    // loaded texturepack
-    texturepack.iterate_loaded_images([this](auto& image, uint32_t pack_id) {
-      tile_info_t ii;
-      ii.ti = loco_t::texturepack_t::ti_t{
-        .pack_id = pack_id,
-        .position = image.position,
-        .size = image.size,
-        .image = &texturepack.get_pixel_data(pack_id).image
-      };
-
-      ii.image_name = image.image_name;
-
-      texturepack_images.push_back(ii);
-    });
 
     transparent_texture = gloco->create_transparent_texture();
 
@@ -870,7 +851,7 @@ struct fte_t {
   }
 
   inline static fan::graphics::file_save_dialog_t save_file_dialog;
-  inline static fan::graphics::file_open_dialog_t open_file_dialog;
+  inline static fan::graphics::file_open_dialog_t open_file_dialog, open_tp_dialog;
   inline static fan::graphics::file_open_dialog_t models_open_file_dialog;
 
   bool handle_editor_window(fan::vec2& editor_size) {
@@ -879,17 +860,23 @@ struct fte_t {
         static std::string fn;
           if (ImGui::BeginMenu("File"))
           {
-            if (ImGui::MenuItem("Open..", "Ctrl+O")) {
+            if (ImGui::MenuItem("Open..")) {
               open_file_dialog.load("json;fmm", &fn);
             }
-            if (ImGui::MenuItem("Save", "Ctrl+S")) {
+            if (ImGui::MenuItem("Save")) {
               fout(previous_file_name);
             }
-            if (ImGui::MenuItem("Save as", "Ctrl+Shift+S")) {
+            if (ImGui::MenuItem("Save as")) {
               save_file_dialog.save("json;fmm", &fn);
             }
             if (ImGui::MenuItem("Quit")) {
               ImGui::End();
+            }
+            ImGui::EndMenu();
+          }
+          if (ImGui::BeginMenu("Texture Pack")) {
+            if (ImGui::MenuItem("Open..")) {
+              open_tp_dialog.load("ftp", &fn);
             }
             ImGui::EndMenu();
           }
@@ -904,6 +891,29 @@ struct fte_t {
             fout(fn);
           }
           save_file_dialog.finished = false;
+        }
+        if (open_tp_dialog.is_finished()) {
+          if (fn.size() != 0) {
+            texturepack.open_compiled(fn);
+            texturepack_images.clear();
+            texturepack_images.reserve(texturepack.texture_list.size());
+
+            // loaded texturepack
+            texturepack.iterate_loaded_images([this](auto& image, uint32_t pack_id) {
+              tile_info_t ii;
+              ii.ti = loco_t::texturepack_t::ti_t{
+                .pack_id = pack_id,
+                .position = image.position,
+                .size = image.size,
+                .image = &texturepack.get_pixel_data(pack_id).image
+              };
+
+              ii.image_name = image.image_name;
+
+              texturepack_images.push_back(ii);
+            });
+          }
+          open_tp_dialog.finished = false;
         }
       }
     ImGui::EndMainMenuBar();
@@ -1612,6 +1622,10 @@ shape data{
 }
 */
   void fin(const fan::string& filename) {
+    if (texturepack.texture_list.size() == 0) {
+      fan::print("open valid texturepack");
+      return;
+    }
     invalidate_selection();
     previous_file_name = filename;
     std::string out;
