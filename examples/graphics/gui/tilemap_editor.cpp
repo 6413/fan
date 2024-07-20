@@ -95,11 +95,6 @@ void init_zoom() {
 
 int main(int argc, char** argv) {
 
-  if (argc != 2) {
-    fan::print("usage *.exe TexturePack");
-    return 1;
-  }
-
   //
   loco_t loco;
   loco.window.set_windowed_fullscreen();
@@ -132,9 +127,7 @@ int main(int argc, char** argv) {
   init_zoom();
 
   fte_t fte;//
-  fan::string texture_pack_name = argv[1];
   fte_t::properties_t p;
-  p.texturepack_name = texture_pack_name;
   p.camera = &camera0;
   fte.open(p);
  // fte.fin("m_sensor.json");
