@@ -179,36 +179,33 @@ namespace fan {
 
 struct loco_t : fan::opengl::context_t {
 
-#define WITCH_LIBC 1
-static uint8_t* A_resize(void* ptr, uintptr_t size) {
-#if WITCH_LIBC
-  if (ptr) {
-    if (size) {
-      void* rptr = (void*)realloc(ptr, size);
-      if (rptr == 0) {
-        fan::throw_error_impl();
+  static uint8_t* A_resize(void* ptr, uintptr_t size) {
+    if (ptr) {
+      if (size) {
+        void* rptr = (void*)realloc(ptr, size);
+        if (rptr == 0) {
+          fan::throw_error_impl();
+        }
+        return (uint8_t*)rptr;
       }
-      return (uint8_t*)rptr;
+      else {
+        free(ptr);
+        return 0;
+      }
     }
     else {
-      free(ptr);
-      return 0;
-    }
-  }
-  else {
-    if (size) {
-      void* rptr = (void*)malloc(size);
-      if (rptr == 0) {
-        fan::throw_error_impl();
+      if (size) {
+        void* rptr = (void*)malloc(size);
+        if (rptr == 0) {
+          fan::throw_error_impl();
+        }
+        return (uint8_t*)rptr;
       }
-      return (uint8_t*)rptr;
-    }
-    else {
-      return 0;
+      else {
+        return 0;
+      }
     }
   }
-#endif
-}
 
   static constexpr uint32_t MaxElementPerBlock = 0x1000;
 
