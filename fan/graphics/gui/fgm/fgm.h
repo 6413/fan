@@ -230,6 +230,7 @@ struct image_divider_t {
 };
 
 struct fgm_t {
+  fgm_t() {}
 
   static constexpr f32_t scroll_speed = 1.2;
 

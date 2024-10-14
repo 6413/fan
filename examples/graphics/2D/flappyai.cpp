@@ -13,9 +13,9 @@ constexpr static f32_t BCOLStepTime = 0.001;
 #define BCOL_set_StoreExtraDataInsideObject 1
 #define BCOL_set_ExtraDataInsideObject \
   bool IsItPipe;
-#include _FAN_PATH(ETC/BCOL/BCOL.h)
+#include <BCOL/BCOL.h>
 
-f32_t initial_speed = 5;
+f32_t initial_speed = 4;
 
 struct pile_t {
 
@@ -24,13 +24,13 @@ struct pile_t {
 
   pile_t() {
     fan::vec2 window_size = loco.window.get_size();
-    loco.open_camera(&camera, ortho_x, ortho_y);
-    loco.open_viewport(&viewport, 0, window_size);
+    camera = loco.open_camera(ortho_x, ortho_y);
+    viewport = loco.open_viewport(0, window_size);
   }
 
   loco_t loco;
   loco_t::camera_t camera;
-  fan::graphics::viewport_t viewport;
+  loco_t::viewport_t viewport;
 };
 
 static constexpr auto gap_size = 0.9;
@@ -77,12 +77,12 @@ struct pipe_t {
       sp.Size = pipe_size;
       bcol.NewShape_Rectangle(oid[i], &sp);
 
-      loco_t::shapes_t::rectangle_t::properties_t pipe_properties;
+      loco_t::rectangle_t::properties_t pipe_properties;
 
       pipe_properties.position = p.Position;
       pipe_properties.size = sp.Size;
-      pipe_properties.camera = &pile->camera;
-      pipe_properties.viewport = &pile->viewport;
+      pipe_properties.camera = pile->camera;
+      pipe_properties.viewport = pile->viewport;
       pipe_properties.color = fan::random::color();
 
       shape[i] = pipe_properties;
@@ -142,13 +142,13 @@ struct bird_t{
       sp.Size = player_size.x;
       bcol.NewShape_Circle(oid, &sp);
 
-      loco_t::shapes_t::rectangle_t::properties_t player_properties;
+      loco_t::rectangle_t::properties_t player_properties;
       player_properties.position.x = bcol.GetObject_Position(oid).x;
       player_properties.position.y = bcol.GetObject_Position(oid).y;
       player_properties.position.z = 1;
       player_properties.size = sp.Size;
-      player_properties.camera = &pile->camera;
-      player_properties.viewport = &pile->viewport;
+      player_properties.camera = pile->camera;
+      player_properties.viewport = pile->viewport;
       player_properties.color = fan::random::color();
       player_properties.color.a = 0.3;
       player_properties.blending = true;
@@ -363,7 +363,7 @@ int main() {
       const f32_t BCOLDeltaMax = 2;
 
       {
-        auto d = pile->loco.get_delta_time();
+        auto d = pile->loco.delta_time;
         BCOLDelta += d;
       }
 
@@ -444,7 +444,7 @@ int main() {
 
     fan::vec2 player_position = bcol.GetObject_Position(birds[index].oid);
 
-    pile->camera.set_position(player_position);
+    gloco->camera_set_position(pile->camera, player_position);
 
     for (uint32_t i = 0; i < birds.size(); ++i) {
       fan::vec2 player_position = bcol.GetObject_Position(birds[i].oid);

@@ -8,7 +8,7 @@ int main() {
   static constexpr uint8_t use_flag = fan::graphics::model_t::use_flag_e::model;
 
   fan::graphics::model_t::properties_t p;
-  p.path = "models/cube.fbx";
+  p.path = "models/model.dae";
   // sponza model has different coordinate system so fix it by rotating model matrix
   //p.model = fan::mat4(1).rotate(fan::math::pi / 2, fan::vec3(1, 0, 0));
   p.model = p.model.scale(0.01);

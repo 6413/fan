@@ -111,7 +111,11 @@ namespace fan {
       inline static int salsa = 0;
       template <typename T>
       void shader_set_value(shader_nr_t nr, const fan::string& name, T val) {
-        fan::vec_wrap_t<sizeof(T) / 4, f32_t> value = val;
+        static_assert(std::is_same_v<T, bool> == false, "only 4 byte supported");
+        uint8_t value[sizeof(T)];
+        for (uint32_t i = 0; i < sizeof(T); ++i) {
+          value[i] = ((uint8_t*)&val)[i];
+        }
         shader_use(nr);
         shader_t& shader = shader_get(nr);
         auto found = shader.uniform_type_table.find(name);
@@ -122,61 +126,61 @@ namespace fan {
         }
         auto location = opengl.call(opengl.glGetUniformLocation, shader.id, name.c_str());
 
-      #if fan_debug >= fan_debug_insanity
+#if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
-      #endif
+#endif
 
         if (location == -1) {
           return;
-        }
+      }
 
         switch (fan::get_hash(found->second)) {
         case fan::get_hash(std::string_view("bool")): {
           if constexpr (not_non_arithmethic_types<T>) {
-            opengl.call(opengl.glUniform1i, location, value[0]);
+            opengl.call(opengl.glUniform1i, location, *(int*)value);
           }
           break;
         }
         case fan::get_hash(std::string_view("sampler2D")):
         case fan::get_hash(std::string_view("int")): {
           if constexpr (not_non_arithmethic_types<T>) {
-            opengl.call(opengl.glUniform1i, location, value[0]);
+            opengl.call(opengl.glUniform1i, location, *(int*)value);
           }
           break;
         }
         case fan::get_hash(std::string_view("uint")): {
           if constexpr (not_non_arithmethic_types<T>) {
-            opengl.call(opengl.glUniform1ui, location, value[0]);
+            opengl.call(opengl.glUniform1ui, location, *(uint32_t*)value);
           }
           break;
         }
         case fan::get_hash(std::string_view("float")): {
           if constexpr (not_non_arithmethic_types<T>) {
-            opengl.call(opengl.glUniform1f, location, value[0]);
+            opengl.call(opengl.glUniform1f, location, *(f32_t*)value);
           }
           break;
         }
         case fan::get_hash(std::string_view("vec2")): {
           if constexpr (std::is_same_v<T, fan::vec2> ||
             std::is_same_v<T, fan::vec3>) {
-            opengl.call(opengl.glUniform2fv, location, 1, &value[0]);
+            opengl.call(opengl.glUniform2fv, location, 1, (f32_t*)&value[0]);
           }
           break;
         }
         case fan::get_hash(std::string_view("vec3")): {
           if constexpr (std::is_same_v<T, fan::vec3>) {
-            opengl.call(opengl.glUniform3fv, location, 1, &value[0]);
+            opengl.call(opengl.glUniform3fv, location, 1, (f32_t*)&value[0]);
           }
           break;
         }
         case fan::get_hash(std::string_view("vec4")): {
           if constexpr (std::is_same_v<T, fan::vec4> || std::is_same_v<T, fan::color>) {
-            opengl.call(opengl.glUniform4fv, location, 1, &value[0]);
+            opengl.call(opengl.glUniform4fv, location, 1, (f32_t*)&value[0]);
           }
           break;
         }
         case fan::get_hash(std::string_view("mat4")): {
-          opengl.call(opengl.glUniformMatrix4fv, location, 1, fan::opengl::GL_FALSE, &value[0]);
+          opengl.call(opengl.glUniformMatrix4fv, location, 1, fan::opengl::GL_FALSE, (f32_t*)&value[0]);
           break;
         }
         }
@@ -309,8 +313,8 @@ namespace fan {
       //};
       //using viewport_resize_cb_t = fan::function_t<void(const viewport_resize_cb_data_t&)>;
       struct camera_t : fan::camera {
-        fan::mat4 m_projection{ 1 };
-        fan::mat4 m_view{ 1 };
+        fan::mat4 m_projection = fan::mat4(1);
+        fan::mat4 m_view = fan::mat4(1);
 
         union {
           struct {

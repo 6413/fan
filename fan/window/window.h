@@ -265,6 +265,8 @@ namespace fan {
     std::array<int, fan::last> prev_key_states;
     std::array<int, fan::last> key_states;
     GLFWwindow* glfw_window;
+
+    fan::vec2i previous_mouse_position = -0xfff;
   };
   void handle_key_states();
 }

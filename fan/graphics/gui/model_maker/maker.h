@@ -4,6 +4,11 @@
 #include _FAN_PATH(graphics/gui/fgm/fgm.h)
 
 struct model_maker_t : fgm_t {
+
+  model_maker_t() {
+
+  }
+
   void open(const char* texturepack_name) {
     fgm_t::open(texturepack_name);
   }

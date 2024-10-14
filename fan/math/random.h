@@ -66,9 +66,10 @@ namespace fan {
       fan::string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
       fan::string newstr;
       std::size_t pos;
+      newstr.reserve(len);
       while(newstr.size() != len) {
         pos = fan::random::value_i64(0, str.size() - 1);
-        newstr += str.substr(pos, 1);
+        newstr += str[pos];
       }
       return newstr;
     }

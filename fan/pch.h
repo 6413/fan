@@ -1,6 +1,7 @@
 #pragma once
 
 //#define loco_assimp
+#define loco_model_3d
 
 #if defined(loco_assimp)
   #include <assimp/Importer.hpp>
@@ -24,4 +25,8 @@
 
 #if defined(loco_imgui) && defined(loco_vfi)
   #include <fan/graphics/gui/model_maker/maker.h>
+#endif
+
+#if defined(loco_model_3d)
+#include <fan/graphics/opengl/3D/objects/model.h>
 #endif

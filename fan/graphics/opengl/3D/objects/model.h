@@ -118,7 +118,6 @@ namespace fan_3d {
     inline std::vector<int> mesh_id_table;
 
     void process_model(auto This, const fan::string& root_path, const aiScene* scene, aiNode* node, parsed_model_t& parsed_model) {
-      std::cout << "Processing node: " << node->mName.C_Str() << std::endl;
 
       // Process all the node's meshes (if any)
       for (unsigned int i = 0; i < node->mNumMeshes; i++) {
@@ -1213,13 +1212,11 @@ namespace fan {
       }
 
       model_t(const properties_t& p) : fms(p) {
-        m_shader.open();
-        m_shader.set_vertex(vertex_shaders[p.use_flag]);
-        m_shader.set_fragment(
-          texture_fs
-        );
+        m_shader = gloco->shader_create();
+        gloco->shader_set_vertex(m_shader, vertex_shaders[p.use_flag]);
+        gloco->shader_set_fragment(m_shader, texture_fs);
 
-        m_shader.compile();
+        gloco->shader_compile(m_shader);
 
         auto& context = gloco->get_context();
         render_objects.resize(fms.parsed_model.model_data.vertices.size());
@@ -1231,25 +1228,25 @@ namespace fan {
           if (fms.parsed_model.texture_names[i].diffuse.size()) {
             auto found = diffuse_images.find(fms.parsed_model.texture_names[i].diffuse);
             if (found == diffuse_images.end()) {
-              diffuse_images[fms.parsed_model.texture_names[i].diffuse].load(fms.parsed_model.texture_names[i].diffuse);
+              diffuse_images[fms.parsed_model.texture_names[i].diffuse] = gloco->image_load(fms.parsed_model.texture_names[i].diffuse);
             }
           }
           if (fms.parsed_model.texture_names[i].normal.size()) {
             auto found = normal_images.find(fms.parsed_model.texture_names[i].normal);
             if (found == normal_images.end()) {
-              normal_images[fms.parsed_model.texture_names[i].normal].load(fms.parsed_model.texture_names[i].normal);
+              normal_images[fms.parsed_model.texture_names[i].normal] = gloco->image_load(fms.parsed_model.texture_names[i].normal);
             }
           }
           if (fms.parsed_model.texture_names[i].roughness.size()) {
             auto found = roughness_images.find(fms.parsed_model.texture_names[i].roughness);
             if (found == roughness_images.end()) {
-              roughness_images[fms.parsed_model.texture_names[i].roughness].load(fms.parsed_model.texture_names[i].roughness);
+              roughness_images[fms.parsed_model.texture_names[i].roughness] = gloco->image_load(fms.parsed_model.texture_names[i].roughness);
             }
           }
           if (fms.parsed_model.texture_names[i].metallic.size()) {
             auto found = metallic_images.find(fms.parsed_model.texture_names[i].metallic);
             if (found == metallic_images.end()) {
-              metallic_images[fms.parsed_model.texture_names[i].metallic].load(fms.parsed_model.texture_names[i].metallic);
+              metallic_images[fms.parsed_model.texture_names[i].metallic] = gloco->image_load(fms.parsed_model.texture_names[i].metallic);
             }
           }
         }
@@ -1266,81 +1263,83 @@ namespace fan {
       }
 
       void draw() {
-        m_shader.use();
+        gloco->shader_use(m_shader);
 
         fan::mat4 projection(1);
         static constexpr f32_t fov = 90.f;
         projection = fan::math::perspective<fan::mat4>(fan::math::radians(fov), (f32_t)gloco->window.get_size().x / (f32_t)gloco->window.get_size().y, 0.1f, 1000.0f);
-        fan::mat4 view(gloco->default_camera_3d->camera.get_view_matrix());
+        fan::mat4 view(gloco->camera_get(gloco->perspective_camera.camera).get_view_matrix());
 
-        m_shader.set_mat4("projection", projection);
-        m_shader.set_mat4("view", view);
+        gloco->shader_set_value(m_shader, "projection", projection);
+        gloco->shader_set_value(m_shader, "view", view);
 
         gloco->get_context().set_depth_test(true);
-        m_shader.set_int("diff_texture", 0);
-        m_shader.set_int("norm_texture", 1);
-        m_shader.set_int("roughness_texture", 2);
-        m_shader.set_int("metallic_texture", 4);
+        gloco->shader_set_value(m_shader, "diff_texture", 0);
+        gloco->shader_set_value(m_shader, "norm_texture", 1);
+        gloco->shader_set_value(m_shader, "roughness_texture", 2);
+        gloco->shader_set_value(m_shader, "metallic_texture", 4);
         static fan::vec3 light_pos = 0;
-        ImGui::Text(gloco->default_camera_3d->camera.position.to_string().c_str());
+        ImGui::Text(gloco->camera_get_position(gloco->perspective_camera.camera).to_string().c_str());
         ImGui::DragFloat3("light position", light_pos.data());
         fan::vec4 lpt = fan::vec4(light_pos, 1);
-        m_shader.set_vec3("light_pos", *(fan::vec3*)&lpt);
+        gloco->shader_set_value(m_shader, "light_pos", *(fan::vec3*)&lpt);
 
 
         static f32_t f0 = 0;
         ImGui::DragFloat("f0", &f0, 0.001, 0, 1);
-        m_shader.set_float("F0", f0);
+        gloco->shader_set_value(m_shader, "F0", f0);
 
 
         static f32_t metallic = 0;
         ImGui::DragFloat("metallic", &metallic, 0.001, 0, 1);
-        m_shader.set_float("metallic", metallic);
+        gloco->shader_set_value(m_shader, "metallic", metallic);
 
         static f32_t roughness = 0;
         ImGui::DragFloat("rough", &roughness, 0.001, 0, 1);
-        m_shader.set_float("rough", roughness);
+        gloco->shader_set_value(m_shader, "rough", roughness);
 
         static f32_t light_intensity = 1;
         ImGui::DragFloat("light_intensity", &light_intensity, 0.1);
-        m_shader.set_float("light_intensity", light_intensity);
+        gloco->shader_set_value(m_shader, "light_intensity", light_intensity);
 
         gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE3);
         gloco->get_context().opengl.glBindTexture(fan::opengl::GL_TEXTURE_CUBE_MAP, envMapTexture);
-        m_shader.set_int("envMap", 3);
-        m_shader.set_mat4("m", m);
+        gloco->shader_set_value(m_shader, "envMap", 3);
+        gloco->shader_set_value(m_shader, "m", m);
 
         auto& context = gloco->get_context();
         context.opengl.glDisable(fan::opengl::GL_BLEND);
         //context.opengl.call(context.opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
         for (int i = 0; i < render_objects.size(); ++i) {
 
-          m_shader.set_mat4("model", render_objects[i].m * render_objects[i].transform); // only for gpu vs
+          // only for gpu vs
+          gloco->shader_set_value(m_shader, "model", render_objects[i].m * render_objects[i].transform);
 
           render_objects[i].vao.bind(context);
-          fan::vec4 cpt = fms.parsed_model.transforms[i] * fan::vec4(gloco->default_camera_3d->camera.position, 1);
-          m_shader.set_vec3("view_p", gloco->default_camera_3d->camera.position);
+          fan::vec3 camera_position = gloco->camera_get_position(gloco->perspective_camera.camera);
+          fan::vec4 cpt = fms.parsed_model.transforms[i] * fan::vec4(camera_position, 1);
+          gloco->shader_set_value(m_shader, "view_p", camera_position);
           if (i < fms.parsed_model.texture_names.size()) {
             if (fms.parsed_model.texture_names[i].diffuse.size()) {
               gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-              diffuse_images[fms.parsed_model.texture_names[i].diffuse].bind_texture();
-              m_shader.set_bool("has_texture", 1);
+              gloco->image_bind(diffuse_images[fms.parsed_model.texture_names[i].diffuse]);
+              gloco->shader_set_value(m_shader, "has_texture", 1);
             }
             else {
-              m_shader.set_bool("has_texture", 0);
+              gloco->shader_set_value(m_shader, "has_texture", 0);
             }
             if (fms.parsed_model.texture_names[i].normal.size()) {
               gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-              normal_images[fms.parsed_model.texture_names[i].normal].bind_texture();
-              m_shader.set_bool("has_normal", 1);
+              gloco->image_bind(normal_images[fms.parsed_model.texture_names[i].normal]);
+              gloco->shader_set_value(m_shader, "has_normal", 1);
             }
             if (fms.parsed_model.texture_names[i].roughness.size()) {
               gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
-              roughness_images[fms.parsed_model.texture_names[i].roughness].bind_texture();
+              gloco->image_bind(roughness_images[fms.parsed_model.texture_names[i].roughness]);
             }
             if (fms.parsed_model.texture_names[i].metallic.size()) {
               gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE4);
-              metallic_images[fms.parsed_model.texture_names[i].metallic].bind_texture();
+              gloco->image_bind(metallic_images[fms.parsed_model.texture_names[i].metallic]);
             }
           }
 
@@ -1502,7 +1501,8 @@ namespace fan {
         fan_3d::model::joint_t* joint = fms.get_joint(joint_id);
 
         for (int i = 0; i < std::size(joint_controls); ++i) {
-          loco_t::rectangle_3d_t::properties_t rp;
+          fan::print("todo");
+          /*loco_t::rectangle_3d_t::properties_t rp;
           rp.size = fan::vec3(0.1, 0.5, 0.1);
           rp.color = std::to_array({ fan::colors::red, fan::colors::green, fan::colors::blue })[i];
           rp.position =
@@ -1512,7 +1512,7 @@ namespace fan {
             fan::vec3(-1, 0, 0)
               })[i]
             + joint->global_transform.get_translation();
-          joint_controls[i] = rp;
+          joint_controls[i] = rp;*/
         }
       }
 

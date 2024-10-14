@@ -165,6 +165,7 @@ struct global_loco_t {
     return loco;
   }
 };
+// if inline, crashes fatherload, if extern, clang complains
 extern thread_local global_loco_t gloco;
 
 namespace fan {
@@ -1257,6 +1258,8 @@ static uint8_t* A_resize(void* ptr, uintptr_t size) {
 private:
   std::vector<shape_info_t> shape_info_list;
 public:
+
+  std::vector<fan::function_t<void()>> m_post_draw;
 
   struct properties_t {
     bool vsync = true;
@@ -2652,6 +2655,62 @@ public:
     return image;
   }
 
+
+  static fan::vec2 convert_mouse_to_ndc(const fan::vec2& mouse_position, const fan::vec2i& window_size) {
+    return fan::vec2((2.0f * mouse_position.x) / window_size.x - 1.0f, 1.0f - (2.0f * mouse_position.y) / window_size.y);
+  }
+  fan::vec2 convert_mouse_to_ndc(const fan::vec2& mouse_position) const {
+    return convert_mouse_to_ndc(mouse_position, gloco->window.get_size());
+  }
+  fan::vec2 convert_mouse_to_ndc() const {
+    return convert_mouse_to_ndc(gloco->get_mouse_position(), gloco->window.get_size());
+  }
+
+  static fan::ray3_t convert_mouse_to_ray(const fan::vec2i& mouse_position, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
+    fan::vec2i screen_size = gloco->window.get_size();
+
+    fan::vec4 ray_ndc((2.0f * mouse_position.x) / screen_size.x - 1.0f, 1.0f - (2.0f * mouse_position.y) / screen_size.y, 1.0f, 1.0f);
+
+    fan::mat4 inverted_projection = projection.inverse();
+
+    fan::vec4 ray_clip = inverted_projection * ray_ndc;
+
+    ray_clip.z = -1.0f;
+    ray_clip.w = 0.0f;
+
+    fan::mat4 inverted_view = view.inverse();
+
+    fan::vec4 ray_world = inverted_view * ray_clip;
+
+    fan::vec3 ray_dir = fan::vec3(ray_world.x, ray_world.y, ray_world.z).normalize();
+
+    fan::vec3 ray_origin = camera_position;
+    return fan::ray3_t(ray_origin, ray_dir);
+  }
+
+  fan::ray3_t convert_mouse_to_ray(const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
+    return convert_mouse_to_ray(gloco->get_mouse_position(), camera_position, projection, view);
+  }
+  fan::ray3_t convert_mouse_to_ray(const fan::mat4& projection, const fan::mat4& view) {
+    return convert_mouse_to_ray(gloco->get_mouse_position(), camera_get_position(perspective_camera.camera), projection, view);
+  }
+
+  static bool is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& position, const fan::vec3& size) {
+    fan::vec3 min_bounds = position - size;
+    fan::vec3 max_bounds = position + size;
+
+    fan::vec3 t_min = (min_bounds - ray.origin) / (ray.direction + fan::vec3(1e-6f));
+    fan::vec3 t_max = (max_bounds - ray.origin) / (ray.direction + fan::vec3(1e-6f));
+
+    fan::vec3 t1 = t_min.min(t_max);
+    fan::vec3 t2 = t_min.max(t_max);
+
+    float t_near = fan::max(t1.x, fan::max(t1.y, t1.z));
+    float t_far = fan::min(t2.x, fan::min(t2.y, t2.z));
+
+    return t_near <= t_far && t_far >= 0.0f;
+  }
+
 #if defined(loco_cuda)
 
   struct cuda_textures_t {
@@ -3548,7 +3607,7 @@ namespace fan {
       std::filesystem::path current_directory;
     public:
 
-      imgui_content_browser_t(const std::string& directory_path) {
+      imgui_content_browser_t() {
         search_buffer.resize(32);
         asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
         current_directory = std::filesystem::path(asset_path) / "images";
@@ -3746,8 +3805,6 @@ namespace fan {
   }
 }
 
-#endif
-
 namespace fan {
 
   namespace graphics {
@@ -3798,6 +3855,9 @@ namespace fan {
     };
   }
 }
+
+#endif
+
 #if defined (loco_imgui)
 void fan::printcl(auto&&... values) {
   ([&](const auto& value) {
