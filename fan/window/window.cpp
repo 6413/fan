@@ -40,16 +40,33 @@ void fan::window::keyboard_keys_callback(GLFWwindow* wnd, int key, int scancode,
 
     window->key_states[key] = action;
 
-    auto it = window->m_keys_callback.GetNodeFirst();
+    {
+      auto it = window->m_keys_callback.GetNodeFirst();
 
-    while (it != window->m_keys_callback.dst) {
-      fan::window_t::keyboard_keys_cb_data_t cbd;
-      cbd.window = window;
-      cbd.key = key;
-      cbd.state = static_cast<fan::keyboard_state>(action);
-      cbd.scancode = scancode;
-      window->m_keys_callback[it].data(cbd);
-      it = it.Next(&window->m_keys_callback);
+      while (it != window->m_keys_callback.dst) {
+        fan::window_t::keyboard_keys_cb_data_t cbd;
+        cbd.window = window;
+        cbd.key = key;
+        cbd.state = static_cast<fan::keyboard_state>(action);
+        cbd.scancode = scancode;
+        window->m_keys_callback[it].data(cbd);
+        it = it.Next(&window->m_keys_callback);
+      }
+    }
+    {
+      auto it = window->m_key_callback.GetNodeFirst();
+
+      while (it != window->m_key_callback.dst) {
+        
+        fan::window_t::keyboard_key_cb_data_t cbd;
+        cbd.window = window;
+        cbd.key = key;
+        if (window->m_key_callback[it].data.key == key && (int)window->m_key_callback[it].data.state == action) {
+          window->m_key_callback[it].data.function(cbd);
+        }
+        it = it.Next(&window->m_key_callback);
+      }
+      
     }
   }
 }
