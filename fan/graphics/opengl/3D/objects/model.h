@@ -813,8 +813,8 @@ namespace fan_3d {
       void get_triangle_vec(uint32_t mesh_id, std::vector<one_triangle_t>* triangles) {
         static constexpr int edge_count = 3;
         // ignore i for now since only one scene
-        triangles->resize(m_modified_verticies.size() / edge_count);
-        for (int i = 0; i < m_modified_verticies.size(); ++i) {
+        triangles->resize(m_modified_verticies[mesh_id].size() / edge_count);
+        for (int i = 0; i < m_modified_verticies[mesh_id].size(); ++i) {
           (*triangles)[i / edge_count].p[i % edge_count] = m_modified_verticies[mesh_id][i].position;
           (*triangles)[i / edge_count].tc[i % edge_count] = m_modified_verticies[mesh_id][i].uv;
         }
