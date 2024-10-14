@@ -4,7 +4,7 @@ int main() {
   loco_t loco;
   loco.set_vsync(0);
   fan::graphics::model_t::properties_t p;
-  p.path = "models/WallLever.glb";
+  p.path = "models/model2.dae";
   // todo make animation work with gpu
   p.use_flag = fan::graphics::model_t::use_flag_e::cpu;
   fan::graphics::model_t model(p);
@@ -12,40 +12,40 @@ int main() {
   std::vector<loco_t::shape_t> joint_cubes;
   
   model.fms.iterate_joints(model.fms.parsed_model.model_data.skeleton, [&](const fan_3d::model::joint_t& joint) {
-    loco_t::shapes_t::rectangle_3d_t::properties_t rp;
+  /*  loco_t::shapes_t::rectangle_3d_t::properties_t rp;
     rp.size = 0.1;
     rp.color = fan::colors::red;
     rp.position = joint.global_transform.get_translation();
     rp.position = fan::vec3(rp.position.x, rp.position.z, rp.position.y);
-    joint_cubes.push_back(rp);
+    joint_cubes.push_back(rp);*/
   });
 
   auto anid = model.fms.create_an("an_name", 1);
 
-  //auto animation_node_id1 = model.fms.fk_set_rot(anid, "Armature_Chest", 0.001/* time in seconds */,
-  //  fan::vec3(1, 0, 0), 0
-  //);
+  auto animation_node_id1 = model.fms.fk_set_rot(anid, "Armature_Chest", 0.001/* time in seconds */,
+    fan::vec3(1, 0, 0), 0
+  );
 
-  //auto animation_node_id = model.fms.fk_set_rot(anid, "Armature_Chest", 0.3/* time in seconds */,
-  //  fan::vec3(1, 0, 0), -fan::math::pi / 2
-  //);
+  auto animation_node_id = model.fms.fk_set_rot(anid, "Armature_Chest", 0.3/* time in seconds */,
+    fan::vec3(1, 0, 0), -fan::math::pi / 2
+  );
 
-  //auto animation_node_id3 = model.fms.fk_set_rot(anid, "Armature_Chest", 0.6/* time in seconds */,
-  //  fan::vec3(1, 0, 0), fan::math::pi / 3
-  //);
+  auto animation_node_id3 = model.fms.fk_set_rot(anid, "Armature_Chest", 0.6/* time in seconds */,
+    fan::vec3(1, 0, 0), fan::math::pi / 3
+  );
 
-  //auto animation_node_id2 = model.fms.fk_set_rot(anid, "Armature_Upper_Leg_L", 0.6/* time in seconds */,
-  //  fan::vec3(1, 0, 0), fan::math::pi
-  //);
+  auto animation_node_id2 = model.fms.fk_set_rot(anid, "Armature_Upper_Leg_L", 0.6/* time in seconds */,
+    fan::vec3(1, 0, 0), fan::math::pi
+  );
 
-  gloco->default_camera_3d->camera.position = { 3.46, 1.94, -6.22 };
+  gloco->camera_set_position(gloco->perspective_camera.camera, { 3.46, 1.94, -6.22 });
   
-  fan::vec2 window_size = gloco->get_window()->get_size();
+  fan::vec2 window_size = gloco->window.get_size();
 
   gloco->m_post_draw.push_back([&] {
     static bool default_anim = true;
     ImGui::Checkbox("default model", &default_anim);
-    static constexpr uint32_t mesh_id = 1;
+    static constexpr uint32_t mesh_id = 0;
 
     // THIS IS FOR SIMULATING ON CPU, properties_t::use_fs = false
     
@@ -81,7 +81,7 @@ int main() {
     ImGui::End();
   });
 
-  auto& camera = gloco->default_camera_3d->camera;
+  auto& camera = gloco->camera_get(gloco->perspective_camera.camera);
 
   fan::vec2 motion = 0;
   loco.window.add_mouse_motion([&](const auto& d) {
@@ -180,6 +180,7 @@ int main() {
     if (ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
       camera.rotate_camera(fan::vec2(0, 0.01));
     }
+    fan::print(camera.position, camera.get_yaw(), camera.get_pitch());
 
     loco.get_fps();
     motion = 0;

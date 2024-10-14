@@ -93,6 +93,12 @@ typedef double f_t;
 
 typedef f32_t cf_t;
 
+struct a_t {
+  void f() {
+
+  }
+};
+
 namespace fan {
 
   static void throw_error_impl() {

@@ -46,7 +46,7 @@ void main() {
   //  tc += vec2(cos((tc.y/Wave.x + (m_time + (m_time * (float(randomValue(1.0, 100.0, vec2(float(element_id), float(element_id)))))) / 100.0) * speed) * Wave.y), 0.0) / size * (1.0 - tc.y);
   //}
   //
-if (fs_flags == floatBitsToUint(2.0)) {
+  if (fs_flags == floatBitsToUint(2.0)) {
     float speed = 0.03; // Adjust this value to change the speed of the lava
     vec2 tc_noise = tc * 0.5 + vec2(0, -m_time * speed); // Scale the texture coordinates
 
@@ -65,7 +65,34 @@ if (fs_flags == floatBitsToUint(2.0)) {
 
     // Use the combined noise value to offset the texture coordinates for the lava texture
     tex_color = texture(_t00, tc_offset + 0.6 * noise_combined.rg) * instance_color;
-}
+  }
+  else  if (fs_flags == floatBitsToUint(4.0)) {
+    float speed = 2.03; // Adjust this value to change the speed of the waves
+
+    // Calculate the distance from the center
+    vec2 center = vec2(0.5, 0.5);
+    vec2 from_center = tc - center;
+    float distance_from_center = length(from_center);
+
+    // Use the distance from the center to create a radial wave effect
+    vec2 tc_noise = tc + (from_center / distance_from_center) * cos(distance_from_center * 10.0 - m_time * speed) * 0.01;
+
+    // Sample the noise texture
+    vec4 noise_col = texture(_t02, tc_noise);
+
+    // Add another layer of noise at a different scale
+    vec2 tc_noise2 = tc + (from_center / distance_from_center) * cos(distance_from_center * 20.0 - m_time * speed * 0.5) * 0.005;
+    vec4 noise_col2 = texture(_t02, tc_noise2);
+
+    // Combine the two noise values
+    vec4 noise_combined = mix(noise_col, noise_col2, 0.5);
+
+    // Add a time-dependent offset to the texture coordinates
+    vec2 tc_offset = tc + (from_center / distance_from_center) * sin(distance_from_center * 15.0 - m_time * speed) * 0.01 + fract(vec2(object_seed, object_seed) * 5.324);
+
+    // Use the combined noise value to offset the texture coordinates for the wave texture
+    tex_color = texture(_t00, tc_offset + 0.6 * noise_combined.rg) * instance_color;
+  }
   else {
     tex_color = texture(_t00, tc) * instance_color;
   }

@@ -78,16 +78,36 @@ void fan::window::mouse_position_callback(GLFWwindow* wnd, double xpos, double y
   auto found = fan::window_t::window_map.find(wnd);
   if (found != fan::window_t::window_map.end()) {
     fan::window_t* window = found->second;
-    auto it = window->m_mouse_position_callback.GetNodeFirst();
+    {
+      auto it = window->m_mouse_position_callback.GetNodeFirst();
 
-    while (it != window->m_mouse_position_callback.dst) {
       fan::window_t::mouse_move_cb_data_t cbd;
       cbd.window = window;
       cbd.position = fan::vec2d(xpos, ypos);
-      window->m_mouse_position_callback[it].data(cbd);
 
-      it = it.Next(&window->m_mouse_position_callback);
+      while (it != window->m_mouse_position_callback.dst) {
+        window->m_mouse_position_callback[it].data(cbd);
+
+        it = it.Next(&window->m_mouse_position_callback);
+      }
     }
+    if (window->previous_mouse_position == -0xfff) {
+      window->previous_mouse_position = fan::vec2d(xpos, ypos);
+    }
+    {
+      auto it = window->m_mouse_motion_callback.GetNodeFirst();
+
+      fan::window_t::mouse_motion_cb_data_t cbd;
+      cbd.window = window;
+      cbd.motion = fan::vec2d(xpos, ypos) - window->previous_mouse_position;
+
+      while (it != window->m_mouse_motion_callback.dst) {
+        window->m_mouse_motion_callback[it].data(cbd);
+
+        it = it.Next(&window->m_mouse_motion_callback);
+      }
+    }
+    window->previous_mouse_position = fan::vec2d(xpos, ypos);
   }
 }
 

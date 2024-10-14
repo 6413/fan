@@ -271,7 +271,7 @@ void init_imgui(loco_t* loco) {
     for (std::size_t i = 0; i < std::size(loco->fonts); ++i) {
       loco->fonts[i] = io.Fonts->AddFontFromFileTTF(font_name, (int)(font_size * (1 << i)) * 2);
       if (loco->fonts[i] == nullptr) {
-        fan::throw_error(fan::string("failed to load font") + font_name);
+        fan::throw_error(fan::string("failed to load font:") + font_name);
       }
     }
     io.Fonts->Build();
@@ -1085,6 +1085,10 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
   render_final_fb();
 
 #endif
+
+  for (const auto& i : m_post_draw) {
+    i();
+  }
 
 #if defined(loco_imgui)
 
@@ -2673,3 +2677,52 @@ void fan::graphics::texture_packe0::load_compiled(const char* filename) {
     }
   }
 }//
+
+void fan::camera::move(f32_t movement_speed, f32_t friction) {
+  this->velocity /= friction * gloco->delta_time + 1;
+  static constexpr auto minimum_velocity = 0.001;
+  if (this->velocity.x < minimum_velocity && this->velocity.x > -minimum_velocity) {
+    this->velocity.x = 0;
+  }
+  if (this->velocity.y < minimum_velocity && this->velocity.y > -minimum_velocity) {
+    this->velocity.y = 0;
+  }
+  if (this->velocity.z < minimum_velocity && this->velocity.z > -minimum_velocity) {
+    this->velocity.z = 0;
+  }
+  if (gloco->window.key_pressed(fan::input::key_w)) {
+    this->velocity += this->m_front * (movement_speed * gloco->delta_time);
+  }
+  if (gloco->window.key_pressed(fan::input::key_s)) {
+    this->velocity -= this->m_front * (movement_speed * gloco->delta_time);
+  }
+  if (gloco->window.key_pressed(fan::input::key_a)) {
+    this->velocity -= this->m_right * (movement_speed * gloco->delta_time);
+  }
+  if (gloco->window.key_pressed(fan::input::key_d)) {
+    this->velocity += this->m_right * (movement_speed * gloco->delta_time);
+  }
+
+  if (gloco->window.key_pressed(fan::input::key_space)) {
+    this->velocity.y += movement_speed * gloco->delta_time;
+  }
+  if (gloco->window.key_pressed(fan::input::key_left_shift)) {
+    this->velocity.y -= movement_speed * gloco->delta_time;
+  }
+
+  if (gloco->window.key_pressed(fan::input::key_left)) {
+    this->set_yaw(this->get_yaw() - sensitivity * 100 * gloco->delta_time);
+  }
+  if (gloco->window.key_pressed(fan::input::key_right)) {
+    this->set_yaw(this->get_yaw() + sensitivity * 100 * gloco->delta_time);
+  }
+  if (gloco->window.key_pressed(fan::input::key_up)) {
+    this->set_pitch(this->get_pitch() + sensitivity * 100 * gloco->delta_time);
+  }
+  if (gloco->window.key_pressed(fan::input::key_down)) {
+    this->set_pitch(this->get_pitch() - sensitivity * 100 * gloco->delta_time);
+  }
+
+  this->position += this->velocity * gloco->delta_time;
+  this->update_view();
+}
