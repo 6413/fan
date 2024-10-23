@@ -9,7 +9,18 @@
 - **Shapes:** Draw lines, rectangles, and sprite.
 - **Lighting:** Illuminate your scenes with customizable lighting effects.
 - **GUI:** Easily integrate graphical user interfaces into your applications.
-- **Collisions** Simple collisions Circle<->Circle, Rectangle<->Circle (no rotation for rectangles)
+- **Collisions:** Simple collisions Circle<->Circle, Rectangle<->Circle (no rotation for rectangles)
+- **Image formats:**
+  JPEG (baseline & progressive),
+  PNG (1/2/4/8/16-bit-per-channel),
+  TGA (a subset),
+  BMP (non-1bpp, non-RLE),
+  PSD (composited view only, no extra channels, 8/16 bit-per-channel),
+  GIF (always reports as 4-channel),
+  HDR (radiance rgbE format),
+  PIC (Softimage PIC),
+  PNM (PPM and PGM binary only),
+  WebP
 
 ## Limitations
 - Limited shapes for collisions
