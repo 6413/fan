@@ -342,6 +342,8 @@ void loco_t::init_framebuffer() {
 
     fan::vec2 window_size = gloco->window.get_size();
     context.viewport_set(orthographic_camera.viewport, fan::vec2(0, 0), d.size, d.size);
+
+    context.viewport_set(perspective_camera.viewport, fan::vec2(0, 0), d.size, d.size);
   });
 
   fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
@@ -530,6 +532,21 @@ loco_t::loco_t(const properties_t& p) :
     "shaders/opengl/2D/effects/gradient.fs"
   );
 
+  shape_functions.resize(shape_functions.size() + 1); // light_end
+
+  shape_open<loco_t::shader_shape_t>(
+    &shader_shape,
+    "shaders/opengl/2D/objects/sprite.vs",
+    "shaders/opengl/2D/objects/sprite.fs"
+  );
+
+
+  shape_open<loco_t::rectangle3d_t>(
+    &rectangle3d,
+    "shaders/opengl/3D/objects/rectangle.vs",
+    "shaders/opengl/3D/objects/rectangle.fs"
+  );
+
 #if defined(loco_letter)
 #if !defined(loco_font)
 #define loco_font "fonts/bitter"
@@ -550,10 +567,7 @@ loco_t::loco_t(const properties_t& p) :
       );
     }
     {
-      perspective_camera.camera = open_camera(
-        fan::vec2(0, window_size.x),
-        fan::vec2(0, window_size.y)
-      );
+      perspective_camera.camera = open_camera_perspective();
       perspective_camera.viewport = open_viewport(
         fan::vec2(0, 0),
         window_size
@@ -673,6 +687,13 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
 
     bool light_buffer_enabled = false;
 
+    { // update 3d view every frame
+      auto& camera_perspective = camera_get(perspective_camera.camera);
+      camera_perspective.update_view();
+
+      camera_perspective.m_view = camera_perspective.get_view_matrix();
+    }
+
     while (KeyTraverse.Loop(shaper)) {
       
       shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(shaper);
@@ -789,6 +810,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
           }
 #endif
           context.shader_use(shader);
+
           if (camera.iic() == false) {
             context.shader_set_camera(shader, &camera);
           }
@@ -845,7 +867,8 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
             //fan::throw_error("shaper design is changed");
           }
           else if (shape_type == loco_t::shape_type_t::sprite ||
-            shape_type == loco_t::shape_type_t::unlit_sprite) {
+            shape_type == loco_t::shape_type_t::unlit_sprite || 
+            shape_type == loco_t::shape_type_t::shader_shape) {
             //fan::print("shaper design is changed");
             auto& ri = *(sprite_t::ri_t*)BlockTraverse.GetData(shaper);
             auto shader = shaper.GetShader(shape_type);
@@ -927,6 +950,27 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
           }
 
           switch (shape_type) {
+          case shape_type_t::rectangle3d: {
+            if (context.major >= 4 && context.minor >= 2) {
+              context.opengl.glDrawArraysInstancedBaseInstance(
+                fan::opengl::GL_TRIANGLES,
+                0,
+                36,
+                BlockTraverse.GetAmount(shaper),
+                BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
+              );
+            }
+            else {
+              // this is broken somehow with rectangle3d
+              context.opengl.glDrawArraysInstanced(
+                fan::opengl::GL_TRIANGLES,
+                0,
+                36,
+                BlockTraverse.GetAmount(shaper)
+              );
+            }
+            break;
+          }
           case shape_type_t::line: {
             if (context.major >= 4 && context.minor >= 2) {
               context.opengl.glDrawArraysInstancedBaseInstance(
@@ -985,7 +1029,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
 
             break;
           }
-          case shape_type_t::letter: {// fallthrough
+          case shape_type_t::letter: {// intended fallthrough
             context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
             context.shader_set_value(
               shader,
@@ -1216,6 +1260,13 @@ loco_t::camera_t loco_t::open_camera(const fan::vec2& x, const fan::vec2& y) {
   auto& context = get_context();
   loco_t::camera_t camera = context.camera_create();
   context.camera_set_ortho(camera, fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+  return camera;
+}
+
+loco_t::camera_t loco_t::open_camera_perspective(f32_t fov) {
+  auto& context = get_context();
+  loco_t::camera_t camera = context.camera_create();
+  context.camera_set_perspective(camera, fov, window.get_size());
   return camera;
 }
 
@@ -1486,6 +1537,10 @@ fan::vec3 loco_t::shape_t::get_position() {
 
 void loco_t::shape_t::set_size(const fan::vec2& size) {
   gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_size(this, size);
+}
+
+void loco_t::shape_t::set_size(const fan::vec3& size) {
+  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_size3(this, size);
 }
 
 fan::vec2 loco_t::shape_t::get_size() {
@@ -1891,6 +1946,54 @@ loco_t::shape_t loco_t::gradient_t::push_back(const properties_t& properties) {
     Key_e::ShapeType, shape_type
   );
 }
+
+loco_t::shape_t loco_t::shader_shape_t::push_back(const properties_t& properties) {
+  //KeyPack.ShapeType = shape_type;
+  vi_t vi;
+  vi.position = properties.position;
+  vi.size = properties.size;
+  vi.rotation_point = properties.rotation_point;
+  vi.color = properties.color;
+  vi.angle = properties.angle;
+  vi.flags = properties.flags;
+  vi.tc_position = properties.tc_position;
+  vi.tc_size = properties.tc_size;
+  vi.parallax_factor = properties.parallax_factor;
+  vi.seed = properties.seed;
+  ri_t ri;
+  ri.images = properties.images;
+  loco_t::shape_t ret = shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::image, properties.image,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
+  gloco->shaper.GetShader(shape_type) = properties.shader;
+  return ret;
+}
+
+
+loco_t::shape_t loco_t::rectangle3d_t::push_back(const properties_t& properties) {
+  vi_t vi;
+  vi.position = properties.position;
+  vi.size = properties.size;
+  vi.color = properties.color;
+  vi.angle = properties.angle;
+  ri_t ri;
+
+  // might not need depth
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
+}
+
+//-------------------------------------shapes-------------------------------------
 
 void fan::graphics::gl_font_impl::font_t::open(const fan::string& image_path) {
   fan::opengl::context_t::image_load_properties_t lp;
@@ -2725,4 +2828,15 @@ void fan::camera::move(f32_t movement_speed, f32_t friction) {
 
   this->position += this->velocity * gloco->delta_time;
   this->update_view();
+}
+
+loco_t::shader_t loco_t::create_sprite_shader(const fan::string& fragment) {
+  loco_t::shader_t shader = shader_create();
+  shader_set_vertex(
+    shader,
+    loco_t::read_shader("shaders/opengl/2D/objects/sprite.vs")
+  );
+  shader_set_fragment(shader, fragment);
+  shader_compile(shader);
+  return shader;
 }

@@ -64,7 +64,7 @@ void fan::opengl::context_t::message_callback(GLenum source, GLenum type, GLuint
   if (type == 33361 || type == 33360) { // gl_static_draw
     return;
   }
-  fan::print_no_space(type == GL_DEBUG_TYPE_ERROR ? "opengl error:" : "", type, ", severity:", severity, ", message:", message);
+  //fan::print_no_space(type == GL_DEBUG_TYPE_ERROR ? "opengl error:" : "", type, ", severity:", severity, ", message:", message);
 }
 
 void fan::opengl::context_t::set_error_callback() {
@@ -911,7 +911,7 @@ void fan::opengl::context_t::camera_set_perspective(camera_nr_t nr, f32_t fov, c
 
   camera.update_view();
 
-  camera.m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(fan::vec3(camera.position), camera.position + camera.m_front, camera.m_up);
+  camera.m_view = camera.get_view_matrix();
 
   //auto it = gloco->m_viewport_resize_callback.GetNodeFirst();
 
