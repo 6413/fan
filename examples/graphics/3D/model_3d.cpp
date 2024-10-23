@@ -2,28 +2,26 @@
 
 int main() {
   loco_t loco;
-
   loco.set_vsync(0);
 
   static constexpr uint8_t use_flag = fan::graphics::model_t::use_flag_e::model;
 
   fan::graphics::model_t::properties_t p;
-  p.path = "models/model.dae";
+  p.path = "models/sponza6.fbx";
   // sponza model has different coordinate system so fix it by rotating model matrix
-  //p.model = fan::mat4(1).rotate(fan::math::pi / 2, fan::vec3(1, 0, 0));
+  p.model = fan::mat4(1).rotate(fan::math::pi, fan::vec3(1, 0, 0));
   p.model = p.model.scale(0.01);
   fan::graphics::model_t model(p);
 
-  gloco->default_camera_3d->camera.position = { 3.46, 1.94, -6.22 };
+  gloco->camera_set_position(gloco->perspective_camera.camera, { 3.46, 1.94, -6.22 });
 
   gloco->m_post_draw.push_back([&] {
 
-    auto temp_view = gloco->default_camera_3d->camera.m_view;
     model.draw();
     ImGui::End();
     });
 
-  auto& camera = gloco->default_camera_3d->camera;
+  auto& camera = gloco->camera_get(gloco->perspective_camera.camera);
 
   fan::vec2 motion = 0;
   loco.window.add_mouse_motion([&](const auto& d) {
@@ -33,9 +31,9 @@ int main() {
     }
   });
 
-  model.m_shader.set_vertex(model.vertex_shaders[use_flag]);
-  model.m_shader.set_fragment(model.material_fs);
-  model.m_shader.compile();
+  //loco.shader_set_vertex(model.m_shader, model.vertex_shaders[use_flag]);
+  //loco.shader_set_fragment(model.m_shader, model.material_fs);
+  //loco.shader_compile(model.m_shader);
 
   fan::mat4 m(1);
   m = m.scale(0.01);

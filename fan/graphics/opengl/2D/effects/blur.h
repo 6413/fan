@@ -65,7 +65,7 @@ struct blur_t {
       lp.min_filter = fan::opengl::GL_LINEAR;
       lp.mag_filter = fan::opengl::GL_LINEAR;
       lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
-      fan::webp::image_info_t ii;
+      fan::image::image_info_t ii;
       ii.data = nullptr;
       ii.size = mip_size;
       mip.image = context.image_load(ii, lp);

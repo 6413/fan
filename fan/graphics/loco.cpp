@@ -296,7 +296,7 @@ void loco_t::init_framebuffer() {
 
 #if defined(loco_framebuffer)
 
-  static auto load_texture = [&](fan::webp::image_info_t& image_info, loco_t::image_t& color_buffer, fan::opengl::GLenum attachment, bool reload = false) {
+  static auto load_texture = [&](fan::image::image_info_t& image_info, loco_t::image_t& color_buffer, fan::opengl::GLenum attachment, bool reload = false) {
     typename fan::opengl::context_t::image_load_properties_t load_properties;
     load_properties.visual_output = fan::opengl::GL_REPEAT;
     load_properties.internal_format = fan::opengl::GL_RGB;
@@ -315,7 +315,7 @@ void loco_t::init_framebuffer() {
     fan::opengl::core::framebuffer_t::bind_to_texture(context, context.image_get(color_buffer), attachment);
   };
 
-  fan::webp::image_info_t image_info;
+  fan::image::image_info_t image_info;
   image_info.data = nullptr;
   image_info.size = window.get_size();
 
@@ -325,7 +325,7 @@ void loco_t::init_framebuffer() {
   }
 
   window.add_resize_callback([&](const auto& d) {
-    fan::webp::image_info_t image_info;
+    fan::image::image_info_t image_info;
     image_info.data = nullptr;
     image_info.size = window.get_size();
 
@@ -540,7 +540,6 @@ loco_t::loco_t(const properties_t& p) :
     "shaders/opengl/2D/objects/sprite.fs"
   );
 
-
   shape_open<loco_t::rectangle3d_t>(
     &rectangle3d,
     "shaders/opengl/3D/objects/rectangle.vs",
@@ -621,7 +620,6 @@ loco_t::loco_t(const properties_t& p) :
         .shader = shader
       }
     );
-    gloco->shape_functions.resize(gloco->shape_functions.size() + 1);
     shape_add(
       loco_t::shape_type_t::light_end,
       0,
@@ -2751,7 +2749,7 @@ void fan::graphics::texture_packe0::load_compiled(const char* filename) {
     }
 
     std::vector<uint8_t> pixel_data = j["packs"][i]["pixel_data"].get<std::vector<uint8_t>>();
-    fan::webp::image_info_t image_info;
+    fan::image::image_info_t image_info;
     image_info.data = WebPDecodeRGBA(
       pixel_data.data(),
       pixel_data.size(),

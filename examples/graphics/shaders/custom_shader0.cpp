@@ -8,12 +8,12 @@ int main() {
   fan::vec2 initial_size = loco.window.get_size().y / 2;
 
   loco_t::image_t background;
-  background.create(fan::color(1, 0, 0, 0.3), 1);
+  background = loco.create_image(fan::color(1, 0, 0, 1));
 
   fan::graphics::sprite_t sprite{ {
-    .position = fan::vec3(initial_position, 3),
+    .position = fan::vec3(initial_position, 1),
     .size = initial_size,
-    .image = &background,
+    .image = background,
     .blending = true
   } };
 
@@ -28,15 +28,14 @@ int main() {
 
   fan::color input_color = fan::colors::red / 10;
   input_color.a = 0.1;
-  loco_t::image_t image("images/tire.webp");
+  loco_t::image_t image = loco.image_load("images/lava_seamless.webp");
 
-  loco_t::shapes_t::shader_t::properties_t sp;
-  sp.position = fan::vec3(fan::vec2(sprite.get_position()), 1);
+  loco_t::shader_shape_t::properties_t sp;
+  sp.position = fan::vec3(fan::vec2(sprite.get_position()), 3);
   sp.size = sprite.get_size();
-  sp.shader = &shader;
-  sp.color.a = 0.25;
+  sp.shader = shader;
   sp.blending = true;
-  sp.image = &image;
+  sp.image = image;
   
 
   loco_t::shape_t shader_shape = sp;
@@ -44,9 +43,9 @@ int main() {
   bool shader_compiled = true;
 
   loco.window.add_key_callback(fan::key_r, fan::keyboard_state::press, [&](const auto&) {
-    shader.set_vertex(loco.get_sprite_vertex_shader());
-    shader.set_fragment(shader_code);
-    shader_compiled = shader.compile();
+    loco.shader_set_vertex(shader, loco.shader_get(loco.shaper.GetShader(loco_t::shape_type_t::shader_shape)).svertex);
+    loco.shader_set_fragment(shader, shader_code);
+    shader_compiled = loco.shader_compile(shader);
   });
 
   fan::time::clock c;
@@ -54,12 +53,12 @@ int main() {
 
   loco.loop([&] {
 
-    shader.set_float("time", c.elapsed() / 1e+9);
+    loco.shader_set_value(shader, "time", c.elapsed() / 1e+9);
 
     static bool toggle_color = false;
     if (ImGui::Checkbox("toggle color", &toggle_color)) {
-      background.unload();
-      background.create(toggle_color == false ? fan::colors::black : fan::colors::white, 1);
+      loco.image_unload(background);
+      background = loco.create_image(toggle_color == false ? fan::colors::black : fan::colors::white);
     }
 
     if (shader_compiled == false) {
@@ -87,7 +86,7 @@ int main() {
     }
 
     if (ImGui::ColorEdit4("##c0", input_color.data())) {
-      shader.set_vec4("input_color", input_color);
+      loco.shader_set_value(shader, "input_color", input_color);
     }
     if (ImGui::InputTextMultiline("##TextFileContents", shader_code.data(), shader_code.size(), ImVec2(-1.0f, -1.0f), ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_AutoSelectAll)) {
       fan::io::file::write("2.glsl", shader_code.c_str(), std::ios_base::binary);

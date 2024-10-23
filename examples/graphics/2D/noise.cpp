@@ -4,8 +4,8 @@ int main() {
   loco_t loco;
   loco.lighting.ambient = 0;
 
-  fan::webp::image_info_t ii;
-  fan::webp::load("images/cursor.webp", &ii);
+  fan::image::image_info_t ii;
+  fan::image::load("images/cursor.webp", &ii);
 
 
   GLFWimage image_cursor;
@@ -14,6 +14,8 @@ int main() {
   image_cursor.pixels = (unsigned char*)ii.data;
 
   GLFWcursor* cursor = glfwCreateCursor(&image_cursor, 0, 0);
+
+  fan::image::free(&ii);
 
 
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fan/graphics/opengl/gl_init.h>
-#include <fan/graphics/webp.h>
+#include <fan/graphics/image_load.h>
 #include <fan/graphics/camera.h>
 
 template<typename T>
@@ -280,8 +280,8 @@ namespace fan {
 
       void image_set_settings(const image_load_properties_t& p);
 
-      image_nr_t image_load(const fan::webp::image_info_t& image_info);
-      image_nr_t image_load(const fan::webp::image_info_t& image_info, const image_load_properties_t& p);
+      image_nr_t image_load(const fan::image::image_info_t& image_info);
+      image_nr_t image_load(const fan::image::image_info_t& image_info, const image_load_properties_t& p);
       image_nr_t image_load(const fan::string& path);
       image_nr_t image_load(const fan::string& path, const image_load_properties_t& p);
       image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_);
@@ -292,8 +292,8 @@ namespace fan {
       image_nr_t create_missing_texture();
       image_nr_t create_transparent_texture();
 
-      void image_reload_pixels(image_nr_t nr, const fan::webp::image_info_t& image_info);
-      void image_reload_pixels(image_nr_t nr, const fan::webp::image_info_t& image_info, const image_load_properties_t& p);
+      void image_reload_pixels(image_nr_t nr, const fan::image::image_info_t& image_info);
+      void image_reload_pixels(image_nr_t nr, const fan::image::image_info_t& image_info, const image_load_properties_t& p);
 
       std::unique_ptr<uint8_t[]> image_get_pixel_data(image_nr_t nr, fan::opengl::GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
 

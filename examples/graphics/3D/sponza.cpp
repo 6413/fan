@@ -12,14 +12,15 @@ int main() {
   p.model = p.model.scale(0.01);
   fan::graphics::model_t model(p);
 
-  gloco->default_camera_3d->camera.position = { 3.46, 1.94, -6.22 };
+
+  //gloco->perspective_camera.camera.position = { 3.46, 1.94, -6.22 };
 
   auto& opengl = gloco->get_context().opengl;
 
   opengl.glGenTextures(1, &model.envMapTexture);
   opengl.glBindTexture(fan::opengl::GL_TEXTURE_CUBE_MAP, model.envMapTexture);
 
-  fan::vec2 window_size = gloco->get_window()->get_size();
+  fan::vec2 window_size = gloco->window.get_size();
 
 
   opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_MIN_FILTER, fan::opengl::GL_LINEAR);
@@ -29,22 +30,21 @@ int main() {
   opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_R, fan::opengl::GL_CLAMP_TO_EDGE);
 
   for (fan::opengl::GLuint i = 0; i < 6; ++i) {
-    fan::webp::image_info_t image_info;
-    if (fan::webp::load(("images/" + std::to_string(i) + ".webp"), &image_info)) {
+    fan::image::image_info_t image_info;
+    if (fan::image::load(("images/" + std::to_string(i) + ".webp"), &image_info)) {
       fan::throw_error("a");
     }
     opengl.glTexImage2D(fan::opengl::GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, fan::opengl::GL_RGBA, image_info.size.x, image_info.size.y, 0, fan::opengl::GL_RGBA, fan::opengl::GL_UNSIGNED_BYTE, image_info.data);
-    fan::webp::free_image(image_info.data);
+    fan::image::free(&image_info);
   }
 
   gloco->m_post_draw.push_back([&] {
    
-    auto temp_view = gloco->default_camera_3d->camera.m_view;
     model.draw();
     ImGui::End();
   });
 
-  auto& camera = gloco->default_camera_3d->camera;
+  auto& camera = gloco->camera_get(gloco->perspective_camera.camera);
 
   fan::vec2 motion = 0;
   loco.window.add_mouse_motion([&](const auto& d) {
@@ -57,9 +57,10 @@ int main() {
   loco.window.add_key_callback(fan::key_r, fan::keyboard_state::press, [&](const auto&) {
     fan::string str;
     fan::io::file::read("1.glsl", &str);
-    model.m_shader.set_vertex(model.vertex_shaders[fan::graphics::model_t::use_flag_e::model]);
-    model.m_shader.set_fragment(str.c_str());
-    model.m_shader.compile();
+
+    loco.shader_set_vertex(model.m_shader, model.vertex_shaders[fan::graphics::model_t::use_flag_e::model]);
+    loco.shader_set_fragment(model.m_shader, str.c_str());
+    loco.shader_compile(model.m_shader);
     });
   int active_axis = -1;
 

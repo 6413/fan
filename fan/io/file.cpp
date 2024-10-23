@@ -106,6 +106,20 @@ bool fan::io::file::read(const std::string& path, std::string* str) {
   return 0;
 }
 
+bool fan::io::file::read(const std::string& path, std::string* str, std::size_t length) {
+
+  std::ifstream file(path.c_str(), std::ifstream::binary);
+  if (file.fail()) {
+    fan::print_warning_no_space("path does not exist:" + path);
+    return 1;
+  }
+  str->resize(length);
+  file.seekg(0, std::ios::beg);
+  file.read(&(*str)[0], length);
+  file.close();
+  return 0;
+}
+
 std::string fan::io::file::extract_variable_type(const std::string& string_data, const std::string& var_name) {
     std::istringstream file(string_data);
 

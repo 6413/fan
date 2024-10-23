@@ -1180,7 +1180,7 @@ struct loco_t : fan::opengl::context_t {
 
           uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
           for (uint32_t i = 0; i < image_count_new; i++) {
-            fan::webp::image_info_t image_info;
+            fan::image::image_info_t image_info;
             image_info.data = image_data[i];
             image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
             auto lp = fan::pixel_format::get_image_properties<loco_t::image_load_properties_t>(format)[i];
@@ -2775,7 +2775,7 @@ public:
 
     auto noise_data = create_noise_image_data(image_size);
 
-    fan::webp::image_info_t ii;
+    fan::image::image_info_t ii;
     ii.data = noise_data.data();
     ii.size = image_size;
 
@@ -2794,7 +2794,7 @@ public:
 
     loco_t::image_t image;
 
-    fan::webp::image_info_t ii;
+    fan::image::image_info_t ii;
     ii.data = (void*)noise_data.data();
     ii.size = image_size;
 

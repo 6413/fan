@@ -4,14 +4,14 @@
 
 int main() {
   fan::trees::quadtree_t qt(0.5, 0.5, 1);
-  static constexpr f32_t n = 1000;
+  static constexpr f32_t n = 400;
   for (int i = 0; i < n; ++i) {
     fan::vec2 p = fan::random::vec2(0, 1);
     fan::vec2 a, b;
     qt.insert(p, a, b);
   }
 
-  loco_t loco;
+  loco_t loco{ {.window_size = 1024} };
   loco.get_context().camera_set_ortho(
     loco.orthographic_camera.camera,
     fan::vec2(-1, 1),

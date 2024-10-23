@@ -526,11 +526,11 @@ void fan::opengl::context_t::image_set_settings(const image_load_properties_t& p
   opengl.call(opengl.glTexParameteri, fan::opengl::GL_TEXTURE_2D, fan::opengl::GL_TEXTURE_MAG_FILTER, p.mag_filter);
 }
 
-fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(const fan::webp::image_info_t& image_info) {
+fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(const fan::image::image_info_t& image_info) {
   return image_load(image_info, image_load_properties_t());
 }
 
-fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(const fan::webp::image_info_t& image_info, const image_load_properties_t& p) {
+fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(const fan::image::image_info_t& image_info, const image_load_properties_t& p) {
 
   image_nr_t nr = image_create();
   image_bind(nr);
@@ -573,27 +573,13 @@ fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(const fan:
 
 #endif
 
-
-if (path.substr(path.find_last_of(".") + 1) == "webp") {
-    fan::webp::image_info_t image_info;
-    if (fan::webp::load(path, &image_info)) {
-        return create_missing_texture();
-    }
-    image_nr_t nr = image_load(image_info, p);
-    fan::webp::free_image(image_info.data);
-    return nr;
-} else {
-    fan::stb::image_info_t image_info;
-    if (fan::stb::load(path, &image_info)) {
-        return create_missing_texture();
-    }
-    fan::webp::image_info_t ii;
-    ii.data = image_info.data;
-    ii.size = image_info.size;
-    image_nr_t nr = image_load(ii, p);
-    fan::stb::free_image(&image_info);
-    return nr;
-}
+  fan::image::image_info_t image_info;
+  if (fan::image::load(path, &image_info)) {
+    return create_missing_texture();
+  }
+  image_nr_t nr = image_load(image_info, p);
+  fan::image::free(&image_info);
+  return nr;
 }
 
 fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(fan::color* colors, const fan::vec2ui& size_) {
@@ -707,11 +693,11 @@ fan::opengl::context_t::image_nr_t fan::opengl::context_t::create_transparent_te
     return nr;
 }
 
-void fan::opengl::context_t::image_reload_pixels(image_nr_t nr, const fan::webp::image_info_t& image_info) {
+void fan::opengl::context_t::image_reload_pixels(image_nr_t nr, const fan::image::image_info_t& image_info) {
   image_reload_pixels(nr, image_info, image_load_properties_t());
 }
 
-void fan::opengl::context_t::image_reload_pixels(image_nr_t nr, const fan::webp::image_info_t& image_info, const image_load_properties_t& p) {
+void fan::opengl::context_t::image_reload_pixels(image_nr_t nr, const fan::image::image_info_t& image_info, const image_load_properties_t& p) {
 
   image_bind(nr);
 

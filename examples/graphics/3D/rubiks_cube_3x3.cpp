@@ -13,18 +13,17 @@ int main() {
   p.model = fan::mat4(1).rotate(-fan::math::pi / 2, fan::vec3(0, 1, 0)) * p.model;
   fan::graphics::model_t model(p);
 
-  model.m_shader.set_vertex(model.vertex_shaders[use_flag]);
-  model.m_shader.set_fragment(model.material_fs);
-  model.m_shader.compile();
+  loco.shader_set_vertex(model.m_shader, model.vertex_shaders[use_flag]);
+  loco.shader_set_fragment(model.m_shader, model.material_fs);
+  loco.shader_compile(model.m_shader);
 
-
-  gloco->default_camera_3d->camera.position = { 3.46, 1.94, -6.22 };
+  loco.camera_set_position(gloco->perspective_camera.camera, { 3.46, 1.94, -6.22 });
   //fan_3d::graphics::add_camera_rotation_callback(&camera);
 
   fan::time::clock timer;
   timer.start();
 
-  fan::vec2 window_size = gloco->get_window()->get_size();
+  fan::vec2 window_size = gloco->window.get_size();
 
   f32_t angle = 0;
 
@@ -267,7 +266,7 @@ int main() {
     } while (0);
 
 
-    ImGui::Text(fan::format("rotations:{}", rotation_count).c_str());
+    //ImGui::Text(fan::format("rotations:{}", rotation_count).c_str());
     static bool full_speed = false;
     ImGui::Checkbox("full speed", &full_speed);
 
@@ -284,12 +283,11 @@ int main() {
         angle += gloco->delta_time * speed;
     }
 
-    auto temp_view = gloco->default_camera_3d->camera.m_view;
     model.draw();
     ImGui::End();
   });
 
-  auto& camera = gloco->default_camera_3d->camera;
+  auto& camera = gloco->camera_get(gloco->perspective_camera.camera);
 
   fan::vec2 motion = 0;
   loco.window.add_mouse_motion([&](const auto& d) {
