@@ -21,6 +21,7 @@ namespace fan {
       unsigned char* data;
       fan::vec2i size;
       int channels;
+      uint8_t type = 1; // webp, stb
     };
 
     static bool load(const std::string& file, image_info_t* image_info) {
@@ -42,8 +43,8 @@ namespace fan {
     //   return stbi_write_png(file.c_str(), image_info.size.x, image_info.size.y, image_info.channels, image_info.data, image_info.size.x * image_info.channels);
     // }
 
-    static void free_image(image_info_t* image_info) {
-      stbi_image_free(image_info->data);
+    static void free_image(void* data) {
+      stbi_image_free(data);
     }
   
   }

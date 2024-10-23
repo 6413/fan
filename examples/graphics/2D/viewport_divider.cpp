@@ -1,10 +1,18 @@
 #include <fan/pch.h>
+#include <fan/graphics/divider.h>
+
 
 int main() {
 
   fan::graphics::viewport_divider_t d;
 
   loco_t loco;
+
+  loco.camera_set_ortho(
+    loco.orthographic_camera.camera,
+    fan::vec2(-1, 1),
+    fan::vec2(-1, 1)
+  );
 
   struct node_t {
     fan::graphics::rectangle_t rect;
@@ -16,8 +24,8 @@ int main() {
     return (fan::graphics::viewport_divider_t::direction_e)(fan::random::value_i64(0, 1));
   };
 
-  uint16_t main_viewports = fan::random::value_i64(1, 20);
-  uint16_t sub_viewports = fan::random::value_i64(1, 20);
+  uint16_t main_viewports = 30;
+  uint16_t sub_viewports = 30;
 
   for (int i = 0; i < main_viewports; ++i) {
     fan::graphics::viewport_divider_t::direction_e dir = get_random_direction();

@@ -10,7 +10,6 @@ int main() {
   fan::graphics::model_t model(p);
 
   std::vector<loco_t::shape_t> joint_cubes;
-  
   model.fms.iterate_joints(model.fms.parsed_model.model_data.skeleton, [&](const fan_3d::model::joint_t& joint) {
   /*  loco_t::shapes_t::rectangle_3d_t::properties_t rp;
     rp.size = 0.1;

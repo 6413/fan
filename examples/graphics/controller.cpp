@@ -1,5 +1,4 @@
 #include <fan/pch.h>
-#include <fan/graphics/webp.h>
 
 // TODO make controller demo with player animations
 // move player with gamepad joystick with different actions
@@ -20,8 +19,8 @@ void joystick_callback(int jid, int event)
 
 bool LoadTextureFromFile(const char* filename, fan::opengl::GLuint* out_texture, fan::vec2* image_size) {
   using namespace fan::opengl;
-  fan::webp::image_info_t ii;
-  if (fan::webp::load(filename, &ii)) {
+  fan::image::image_info_t ii;
+  if (fan::image::load(filename, &ii)) {
     return true;
   }
 

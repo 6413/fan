@@ -87,34 +87,31 @@ namespace fan_3d {
 
     // pm -- parsed model
 
+
     struct pm_texture_data_t {
-      fan::vec2ui diffuse_texture_size;
-      std::vector<uint8_t> diffuse_texture_data;
-      std::vector<uint8_t> normal_texture_data;
-      std::vector<uint8_t> roughness_texture_data;
-      std::vector<uint8_t> metallic_texture_data;
+      fan::vec2ui texture_size = 0;
+      std::vector<uint8_t> texture_data;
     };
+    inline static std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
 
     struct pm_model_data_t {
+      struct mesh_data_t {
+        // names is generated for each texture type to cache the texture data
+        std::array<std::string, AI_TEXTURE_TYPE_MAX + 1> names;
+      };
       // mesh[]
       std::vector<std::vector<fan_3d::model::vertex_t>> vertices;
+      std::vector<mesh_data_t> mesh_data;
       fan_3d::model::joint_t skeleton;
       uint32_t bone_count = 0;
     };
 
+
     struct parsed_model_t {
       pm_model_data_t model_data;
       std::vector<fan::mat4> transforms;
-      struct textures_t {
-        std::string diffuse;
-        std::string normal;
-        std::string roughness;
-        std::string metallic;
-      };
-      std::vector<textures_t> texture_names;
     };
 
-    inline std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
     inline std::vector<int> mesh_id_table;
 
     void process_model(auto This, const fan::string& root_path, const aiScene* scene, aiNode* node, parsed_model_t& parsed_model) {
@@ -142,91 +139,62 @@ namespace fan_3d {
       return true;
     }
 
-    static bool load_texture(aiMaterial* material, aiTextureType texture_type, const fan::string& root_path, int channels_rgba, parsed_model_t& parsed_model, uint32_t& texture_offset)
+    static bool load_texture(const aiScene* scene, aiMaterial* material, aiTextureType texture_type, const fan::string& root_path, int channels_rgba, parsed_model_t& parsed_model, std::size_t mesh_index)
     {
       bool texture_found = false;
       aiString path;
-      if (material->GetTexture(texture_type, 0, &path) == AI_SUCCESS)
-      {
-        fan::string str = path.C_Str();
-        auto idx = str.find_last_of('\\') + 1;
-        fan::webp::image_info_t ii;
-        str = root_path + "textures/" + str.substr(idx);
-        str.replace_all(".png", ".webp");
+      if (material->GetTexture(texture_type, 0, &path) == AI_SUCCESS) {
+        auto embedded_texture = scene->GetEmbeddedTexture(path.C_Str());
 
-        auto found = cached_texture_data.find(str);
-        if (found == cached_texture_data.end())
-        {
-          fan::print(str);
-          texture_found = true;
-          if (fan::webp::load(/*root_path + path.C_Str()*/str, &ii))
-          {
-            fan::throw_error("failed to load image data from path:" + root_path + path.C_Str());
+        if (embedded_texture && embedded_texture->mHeight == 0) {
+          int width, height, nr_channels;
+          unsigned char* data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(embedded_texture->pcData), embedded_texture->mWidth, &width, &height, &nr_channels, 0);
+          if (data) {
+            // must not collide with other names
+            std::string generated_str = path.C_Str() + std::to_string(texture_type);
+            parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = generated_str;
+            auto& td = cached_texture_data[generated_str];
+            td.texture_size = fan::vec2(width, height);
+            td.texture_data.insert(td.texture_data.end(), data, data + td.texture_size.multiply() * nr_channels);
+            stbi_image_free(data);
           }
-
-          auto& d = cached_texture_data[str];
-          d.diffuse_texture_size = ii.size;
-
-          if (texture_type == aiTextureType_METALNESS)
-          {
-            d.metallic_texture_data.insert(
-              d.metallic_texture_data.end(),
-              (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * channels_rgba
-            );
-            parsed_model.texture_names[texture_offset].metallic = str;
-          }
-          else if (texture_type == aiTextureType_SHININESS)
-          {
-            d.roughness_texture_data.insert(
-              d.roughness_texture_data.end(),
-              (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * channels_rgba
-            );
-            parsed_model.texture_names[texture_offset].roughness = str;
-          }
-          else if (texture_type == aiTextureType_DIFFUSE)
-          {
-            d.diffuse_texture_data.insert(
-              d.diffuse_texture_data.end(),
-              (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * channels_rgba
-            );
-            parsed_model.texture_names[texture_offset].diffuse = str;
-            {
-              str.replace_all("BaseColor", "Normal");
-              if (fan::io::file::exists(str)) {
-                auto found = cached_texture_data.find(str);
-                if (found == cached_texture_data.end()) {
-                  if (fan::webp::load(/*root_path + path.C_Str()*/str, &ii)) {
-                    fan::throw_error("failed to load image data from path:" + root_path + path.C_Str());
-                  }
-
-                  static constexpr int channels_rgba = 4;
-                  auto& d = cached_texture_data[str];
-                  d.normal_texture_data.insert(
-                    d.normal_texture_data.end(),
-                    (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * channels_rgba
-                  );
-                }
-                parsed_model.texture_names[texture_offset].normal = str;
-              }
-            }
+          else {
+            fan::print_warning("failed to load texture");
+            return false;
           }
         }
         else {
-          switch (texture_type) {
-            case aiTextureType_DIFFUSE: {
-              parsed_model.texture_names[texture_offset].diffuse = str;
-              str.replace_all("BaseColor", "Normal");
-              parsed_model.texture_names[texture_offset].normal = str;
-              break;
-            }
-            case aiTextureType_METALNESS: {
-              parsed_model.texture_names[texture_offset].metallic = str;
-              break;
-            }
-            case aiTextureType_SHININESS: {
-              parsed_model.texture_names[texture_offset].roughness = str;
-              break;
-            }
+          fan::string file_path = root_path + "textures/" + scene->GetShortFilename(path.C_Str());
+
+          parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = file_path;
+          auto found = cached_texture_data.find(file_path);
+          if (found == cached_texture_data.end())
+          {
+            fan::printcl(file_path);
+            texture_found = true;
+            
+            fan::image::image_info_t ii;
+            fan::image::load(file_path, &ii);
+            auto& td = cached_texture_data[file_path];
+            td.texture_size = ii.size;
+            td.texture_data.insert(td.texture_data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
+
+            //if (texture_type == aiTextureType_DIFFUSE) { // hardcoded for sponza
+            //  file_path.replace_all("BaseColor", "Normal");
+            //  if (fan::io::file::exists(file_path)) {
+            //    auto found = cached_texture_data.find(str);
+            //    if (found == cached_texture_data.end()) {
+            //      if (fan::webp::load(/*root_path + path.C_Str()*/str, &ii)) {
+            //        fan::throw_error("failed to load image data from path:" + root_path + path.C_Str());
+            //      }
+
+            //      /*  static constexpr int channels_rgba = 4;
+            //        auto& td = d.texture_datas[aiTextureType_NORMALS];
+            //        td.texture_size = ii.size;
+            //        td.texture_data.insert(td.texture_data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * channels_rgba);*/
+            //    }
+            //  }
+            //}
           }
         }
       }
@@ -239,10 +207,9 @@ namespace fan_3d {
       uint32_t vertex_offset = parsed_model.model_data.vertices.size();
       parsed_model.model_data.vertices.resize(parsed_model.model_data.vertices.size() + 1);
       auto& vertices = parsed_model.model_data.vertices[vertex_offset];
-      uint32_t texture_offset = parsed_model.texture_names.size();
-      parsed_model.texture_names.resize(parsed_model.texture_names.size() + 1);
-
-
+      auto& md = parsed_model.model_data.mesh_data;
+      md.resize(md.size() + 1);
+      
       static constexpr int channels_rgba = 4;
       auto arr = std::to_array({
            aiTextureType_DIFFUSE, aiTextureType_SHININESS,
@@ -251,8 +218,8 @@ namespace fan_3d {
       fan::color color_diffuse;
       bool texture_found = false;
       for (auto& i : arr) {
-        texture_found = load_texture(scene->mMaterials[mesh->mMaterialIndex],
-          i, root_path, channels_rgba, parsed_model, texture_offset);
+        texture_found = load_texture(scene, scene->mMaterials[mesh->mMaterialIndex],
+          i, root_path, channels_rgba, parsed_model, md.size() - 1);
       }
       /*if (texture_found == false) {
         // if you want to create texture externally, implement pixels manually to diffuse_texture_data
@@ -494,6 +461,8 @@ namespace fan_3d {
 
       fms_t(const fms_model_info_t& fmi)
       {
+        file_path = fmi.path;
+
         Assimp::Importer importer;
 
         const aiScene* scene = importer.ReadFile(fmi.path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
@@ -978,24 +947,19 @@ namespace fan_3d {
       }
 
       std::vector<fan::mat4> fk_transformations;
-
       bool toggle_rotate = false;
       bool showing_temp_rot = false;
       std::vector<fan::quat> temp_rotations;
-
       parsed_model_t parsed_model;
       fan_3d::model::animation_data_t tpose;
       fan_3d::model::animation_data_t default_animation;
-
       // custom poses
       std::vector<std::vector<fan_3d::model::vertex_t>> m_modified_verticies;
-
       fan::mat4 m_transform;
-
       std::vector<fan::string> bone_strings;
       f32_t dt = 0;
-
       int active_joint = -1;
+      std::string file_path;
     };
   }
 }
@@ -1107,9 +1071,9 @@ namespace fan {
 					layout (location = 3) in vec4 bone_ids;
 					layout (location = 4) in vec4 bone_weights;
           layout (location = 5) in vec3 vertex1;
-          layout (location = 6) in vec3 tangent;  
-          layout (location = 7) in vec3 bitangent;  
-          layout (location = 8) in vec4 diffuse;  
+          layout (location = 6) in vec3 tangent;
+          layout (location = 7) in vec3 bitangent;
+          layout (location = 8) in vec4 diffuse;
 
 					out vec2 tex_coord;
 					out vec3 v_normal;
@@ -1154,14 +1118,32 @@ namespace fan {
      in vec3 c_bitangent;
      layout (location = 0) out vec4 color; 
 
-     uniform sampler2D diff_texture;
-     uniform sampler2D norm_texture;
-     uniform sampler2D roughness_texture;
+     uniform sampler2D _t00; // aiTextureType_NONE
+     uniform sampler2D _t01; // aiTextureType_DIFFUSE
+     uniform sampler2D _t02; // aiTextureType_SPECULAR
+     uniform sampler2D _t03; // aiTextureType_AMBIENT
+     uniform sampler2D _t04; // aiTextureType_EMISSIVE
+     uniform sampler2D _t05; // aiTextureType_HEIGHT
+     uniform sampler2D _t06; // aiTextureType_NORMALS
+     uniform sampler2D _t07; // aiTextureType_SHININESS
+     uniform sampler2D _t08; // aiTextureType_OPACITY
+     uniform sampler2D _t09; // aiTextureType_DISPLACEMENT
+     uniform sampler2D _t10; // aiTextureType_LIGHTMAP
+     uniform sampler2D _t11; // aiTextureType_REFLECTION
+     uniform sampler2D _t12; // aiTextureType_BASE_COLOR
+     uniform sampler2D _t13; // aiTextureType_NORMAL_CAMERA
+     uniform sampler2D _t14; // aiTextureType_EMISSION_COLOR
+     uniform sampler2D _t15; // aiTextureType_METALNESS
+     uniform sampler2D _t16; // aiTextureType_DIFFUSE_ROUGHNESS
+     uniform sampler2D _t17; // aiTextureType_AMBIENT_OCCLUSION
+     uniform sampler2D _t18; // aiTextureType_SHEEN
+     uniform sampler2D _t19; // aiTextureType_CLEARCOAT
+     uniform sampler2D _t20; // aiTextureType_TRANSMISSION
 
      void main()
      {
-	      vec3 albedo = texture(diff_texture, tex_coord).rgb;
-        color = vec4(tex_coord, 0, 1);
+	      vec3 albedo = texture(_t12, tex_coord).rgb;
+        color = vec4(albedo, 1);
      }
 
 			)";
@@ -1228,33 +1210,23 @@ namespace fan {
 
         auto& context = gloco->get_context();
         render_objects.resize(fms.parsed_model.model_data.vertices.size());
-        for (int i = 0; i < render_objects.size(); ++i) {
-          init_render_object(i);
-          render_objects[i].m = fan::mat4(1);
-          render_objects[i].transform = p.model;
-
-          if (fms.parsed_model.texture_names[i].diffuse.size()) {
-            auto found = diffuse_images.find(fms.parsed_model.texture_names[i].diffuse);
-            if (found == diffuse_images.end()) {
-              diffuse_images[fms.parsed_model.texture_names[i].diffuse] = gloco->image_load(fms.parsed_model.texture_names[i].diffuse);
+        for (int mesh_index = 0; mesh_index < render_objects.size(); ++mesh_index) {
+          init_render_object(mesh_index);
+          render_objects[mesh_index].m = fan::mat4(1);
+          render_objects[mesh_index].transform = p.model;
+          for (auto& name : fms.parsed_model.model_data.mesh_data[mesh_index].names) {
+            if (name.empty()) {
+              continue;
             }
-          }
-          if (fms.parsed_model.texture_names[i].normal.size()) {
-            auto found = normal_images.find(fms.parsed_model.texture_names[i].normal);
-            if (found == normal_images.end()) {
-              normal_images[fms.parsed_model.texture_names[i].normal] = gloco->image_load(fms.parsed_model.texture_names[i].normal);
-            }
-          }
-          if (fms.parsed_model.texture_names[i].roughness.size()) {
-            auto found = roughness_images.find(fms.parsed_model.texture_names[i].roughness);
-            if (found == roughness_images.end()) {
-              roughness_images[fms.parsed_model.texture_names[i].roughness] = gloco->image_load(fms.parsed_model.texture_names[i].roughness);
-            }
-          }
-          if (fms.parsed_model.texture_names[i].metallic.size()) {
-            auto found = metallic_images.find(fms.parsed_model.texture_names[i].metallic);
-            if (found == metallic_images.end()) {
-              metallic_images[fms.parsed_model.texture_names[i].metallic] = gloco->image_load(fms.parsed_model.texture_names[i].metallic);
+            //
+            auto found = cached_images.find(name);
+            if (found == cached_images.end()) {
+              fan::image::image_info_t ii; // its actually rgb/rgba, ::webp namespace misleading
+              auto& td = fan_3d::model::cached_texture_data[name];
+              ii.data = td.texture_data.data();
+              ii.size = td.texture_size;
+              cached_images[name] = gloco->image_load(ii);
+              fan::image::free(&ii);
             }
           }
         }
@@ -1279,10 +1251,6 @@ namespace fan {
         //gloco->shader_set_value(m_shader, "view", view);
 
         gloco->get_context().set_depth_test(true);
-        gloco->shader_set_value(m_shader, "diff_texture", 0);
-        gloco->shader_set_value(m_shader, "norm_texture", 1);
-        gloco->shader_set_value(m_shader, "roughness_texture", 2);
-        gloco->shader_set_value(m_shader, "metallic_texture", 4);
         static fan::vec3 light_pos = 0;
         ImGui::Text(gloco->camera_get_position(gloco->perspective_camera.camera).to_string().c_str());
         ImGui::DragFloat3("light position", light_pos.data());
@@ -1315,44 +1283,60 @@ namespace fan {
         auto& context = gloco->get_context();
         context.opengl.glDisable(fan::opengl::GL_BLEND);
         //context.opengl.call(context.opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
-        for (int i = 0; i < render_objects.size(); ++i) {
+        for (int mesh_index = 0; mesh_index < render_objects.size(); ++mesh_index) {
 
           // only for gpu vs
-          gloco->shader_set_value(m_shader, "model", render_objects[i].m * render_objects[i].transform);
+          gloco->shader_set_value(m_shader, "model", render_objects[mesh_index].m * render_objects[mesh_index].transform);
 
-          render_objects[i].vao.bind(context);
+          render_objects[mesh_index].vao.bind(context);
           fan::vec3 camera_position = gloco->camera_get_position(gloco->perspective_camera.camera);
-          fan::vec4 cpt = fms.parsed_model.transforms[i] * fan::vec4(camera_position, 1);
+          fan::vec4 cpt = fms.parsed_model.transforms[mesh_index] * fan::vec4(camera_position, 1);
           gloco->shader_set_value(m_shader, "view_p", camera_position);
-          if (i < fms.parsed_model.texture_names.size()) {
-            if (fms.parsed_model.texture_names[i].diffuse.size()) {
-              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-              gloco->image_bind(diffuse_images[fms.parsed_model.texture_names[i].diffuse]);
-              gloco->shader_set_value(m_shader, "has_texture", 1);
-            }
-            else {
-              /*gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-              gloco->image_bind(gloco->default_texture);
-              gloco->shader_set_value(m_shader, "has_texture", 1);*/
-              gloco->shader_set_value(m_shader, "has_texture", 0);
-            }
-            if (fms.parsed_model.texture_names[i].normal.size()) {
-              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-              gloco->image_bind(normal_images[fms.parsed_model.texture_names[i].normal]);
-              gloco->shader_set_value(m_shader, "has_normal", 1);
-            }
-            if (fms.parsed_model.texture_names[i].roughness.size()) {
-              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
-              gloco->image_bind(roughness_images[fms.parsed_model.texture_names[i].roughness]);
-            }
-            if (fms.parsed_model.texture_names[i].metallic.size()) {
-              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE4);
-              gloco->image_bind(metallic_images[fms.parsed_model.texture_names[i].metallic]);
+          { // texture binding
+            uint8_t tex_index = 0;
+            uint8_t valid_tex_index = 0;
+            for (auto& tex : fms.parsed_model.model_data.mesh_data[mesh_index].names) { // i think think this doesnt make sense
+              std::ostringstream oss;
+              oss << "_t" << std::setw(2) << std::setfill('0') << (int)tex_index;
+              
+              //tex.second.texture_datas
+              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + tex_index);
+              if (tex.empty()) {
+                continue;
+              }
+              
+              gloco->shader_set_value(m_shader, oss.str(), tex_index);
+              gloco->image_bind(cached_images[tex]);
+
+              if (tex_index == aiTextureType_NORMALS) { // whats this?
+                gloco->shader_set_value(m_shader, "has_normal", 1);
+              }
+              else {
+                gloco->shader_set_value(m_shader, "has_normal", 0);
+              }
+              ++tex_index;
             }
           }
-
-          gloco->get_context().opengl.glDrawArrays(fan::opengl::GL_TRIANGLES, 0, fms.m_modified_verticies[i].size());
+          gloco->get_context().opengl.glDrawArrays(fan::opengl::GL_TRIANGLES, 0, fms.m_modified_verticies[mesh_index].size());
         }
+        ImGui::Begin("test");
+        float cursor_pos_x = 64 + ImGui::GetStyle().ItemSpacing.x;
+
+        for (auto& i : cached_images) {
+          ImVec2 imageSize(64, 64);
+          ImGui::Image(i.second, imageSize);
+
+          if (cursor_pos_x + imageSize.x > ImGui::GetContentRegionAvail().x) {
+            ImGui::NewLine();
+            cursor_pos_x = imageSize.x + ImGui::GetStyle().ItemSpacing.x;
+          }
+          else {
+            ImGui::SameLine();
+            cursor_pos_x += imageSize.x + ImGui::GetStyle().ItemSpacing.x;
+          }
+        }
+        ImGui::End();
+
       }
 
 
@@ -1535,10 +1519,7 @@ namespace fan {
         fan::mat4 m{ 1 };
       };
       // should be stored globally among all models
-      std::unordered_map<std::string, loco_t::image_t> diffuse_images;
-      std::unordered_map<std::string, loco_t::image_t> normal_images;
-      std::unordered_map<std::string, loco_t::image_t> roughness_images;
-      std::unordered_map<std::string, loco_t::image_t> metallic_images;
+      std::unordered_map<std::string, loco_t::image_t> cached_images;
       std::vector<render_object_t> render_objects;
 
       static constexpr uint8_t axis_count = 3;

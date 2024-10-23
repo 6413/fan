@@ -186,7 +186,7 @@ int main() {
   loco_t loco;
 
 
-  fan::webp::image_info_t ii;
+  fan::image::image_info_t ii;
   ii.size = fan::sys::get_screen_resolution();
   ii.data = 0;
 

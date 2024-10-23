@@ -20,6 +20,8 @@ namespace fan {
     struct image_info_t {
       void* data;
       fan::vec2i size;
+      int channels;
+      uint8_t type = 0; // webp, stb
     };
 
     static bool get_image_size(const fan::string& file, fan::vec2ui* size) {
@@ -31,10 +33,11 @@ namespace fan {
     // if fails, try encode with -pix_fmt yuv420p
     static bool decode(const uint8_t* webp_data, std::size_t size, image_info_t* image_info) {
       image_info->data = WebPDecodeRGBA(webp_data, size, &image_info->size.x, &image_info->size.y);
+      image_info->channels = 4;
       return image_info->data == 0;
     }
 
-    static bool load(const fan::string& file, image_info_t* image_info) {
+    static bool load(const std::string& file, image_info_t* image_info) {
     
       fan::string data;
       fan::io::file::read(file, &data);
@@ -56,6 +59,19 @@ namespace fan {
 
     static void free_image(void* ptr) {
       WebPFree(ptr);
+    }
+
+    static bool validate_webp(const std::string& file_path) {
+      std::string data;
+      static constexpr uint32_t webp_header_size = 32;
+      if (fan::io::file::read(file_path, &data, webp_header_size)) {
+        return false;
+      }
+      int width, height;
+      if (WebPGetInfo((const uint8_t*)data.c_str(), webp_header_size, &width, &height)) {
+        return true;
+      }
+      return false;
     }
   
   }

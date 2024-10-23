@@ -70,6 +70,7 @@ namespace fan {
       std::vector<std::string> read_line(const std::string& path);
 
       bool read(const std::string& path, std::string* str);
+      bool read(const std::string& path, std::string* str, std::size_t length);
 
       template <typename T>
       std::vector<T> read(const std::string& path) {

@@ -69,7 +69,7 @@ struct texturepack_t {
       }
 
       std::vector<uint8_t> pixel_data = fan::read_data<std::vector<uint8_t>>(in, offset);
-      fan::webp::image_info_t image_info;
+      fan::image::image_info_t image_info;
       image_info.data = WebPDecodeRGBA(
         pixel_data.data(),
         pixel_data.size(),
