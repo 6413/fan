@@ -743,7 +743,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
               it = it.Next(&shape_list);
             }
           }
-          drag_select.set_size(0);
+          drag_select.set_size(fan::vec2(0));
         }
 
         fan::vec2 editor_size;

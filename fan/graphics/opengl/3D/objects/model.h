@@ -249,13 +249,19 @@ namespace fan_3d {
            aiTextureType_METALNESS
         });
       fan::color color_diffuse;
+      bool texture_found = false;
       for (auto& i : arr) {
-        if (load_texture(scene->mMaterials[mesh->mMaterialIndex],
-          i, root_path, channels_rgba, parsed_model, texture_offset)) {
-        }
+        texture_found = load_texture(scene->mMaterials[mesh->mMaterialIndex],
+          i, root_path, channels_rgba, parsed_model, texture_offset);
       }
-      if (load_material(scene->mMaterials[mesh->mMaterialIndex], color_diffuse)) {
-        fan::throw_error("failed to find material");
+      /*if (texture_found == false) {
+        // if you want to create texture externally, implement pixels manually to diffuse_texture_data
+        //auto& d = cached_texture_data["__notex"];
+        //gloco->create
+        //d.diffuse_texture_data.insert()
+      }
+      else*/ if (load_material(scene->mMaterials[mesh->mMaterialIndex], color_diffuse)) {
+        fan::print_warning("failed to find material");
       }
 
       parsed_model.transforms.push_back(node->mTransformation);
@@ -286,6 +292,7 @@ namespace fan_3d {
           if (mesh->mTextureCoords[0]) {
             vec.x = mesh->mTextureCoords[0][i].x;
             vec.y = mesh->mTextureCoords[0][i].y;
+            
             vertex.uv = vec;
           }
         }
@@ -370,6 +377,7 @@ namespace fan_3d {
           std::size_t idx = vertices.size() - 1;
           fan::vec4 vp = fan::mat4(node->mTransformation) * fan::vec4(vertices[idx].position, 1.0);
           fan::vec4 np = fan::mat4(node->mTransformation) * fan::vec4(vertices[idx].vertex1, 1.0);
+          fan::vec4 uv = fan::mat4(node->mTransformation) * fan::vec4(fan::vec3(vertices[idx].uv, 0), 1.0);
           fan::vec3 right = *(fan::vec3*)&vp;
           // convert from right to left handed
           vertices[idx].position = fan::mat4(1).scale(-1) * fan::vec3(vp.x, vp.y, vp.z);
@@ -565,7 +573,7 @@ namespace fan_3d {
           fan::vec3 v = parsed_model.model_data.vertices[mesh_id][i].position;
           if (transformations.empty()) {
 
-            fan::vec4 vertex_position = model * fan::vec4(
+            fan::vec4 vertex_position = m_transform * model * fan::vec4(
               v
               , 1.0);
             m_modified_verticies[mesh_id][i].position = fan::vec3(vertex_position.x, vertex_position.y, vertex_position.z);
@@ -1153,7 +1161,7 @@ namespace fan {
      void main()
      {
 	      vec3 albedo = texture(diff_texture, tex_coord).rgb;
-        color = vec4(albedo, 1);
+        color = vec4(tex_coord, 0, 1);
      }
 
 			)";
@@ -1177,7 +1185,7 @@ namespace fan {
 
      void main()
      {
-        color = vec4(v_diffuse);
+        color = v_diffuse;
      }
 
 			)";
@@ -1264,14 +1272,11 @@ namespace fan {
 
       void draw() {
         gloco->shader_use(m_shader);
+        
+        gloco->get_context().shader_set_camera(m_shader, &gloco->camera_get(gloco->perspective_camera.camera));
 
-        fan::mat4 projection(1);
-        static constexpr f32_t fov = 90.f;
-        projection = fan::math::perspective<fan::mat4>(fan::math::radians(fov), (f32_t)gloco->window.get_size().x / (f32_t)gloco->window.get_size().y, 0.1f, 1000.0f);
-        fan::mat4 view(gloco->camera_get(gloco->perspective_camera.camera).get_view_matrix());
-
-        gloco->shader_set_value(m_shader, "projection", projection);
-        gloco->shader_set_value(m_shader, "view", view);
+        //gloco->shader_set_value(m_shader, "projection", projection);
+        //gloco->shader_set_value(m_shader, "view", view);
 
         gloco->get_context().set_depth_test(true);
         gloco->shader_set_value(m_shader, "diff_texture", 0);
@@ -1326,6 +1331,9 @@ namespace fan {
               gloco->shader_set_value(m_shader, "has_texture", 1);
             }
             else {
+              /*gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+              gloco->image_bind(gloco->default_texture);
+              gloco->shader_set_value(m_shader, "has_texture", 1);*/
               gloco->shader_set_value(m_shader, "has_texture", 0);
             }
             if (fms.parsed_model.texture_names[i].normal.size()) {

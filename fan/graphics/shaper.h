@@ -382,7 +382,7 @@ private:
   using ShapeID_t = ShapeList_t::nr_t;
 
   #if shaper_set_fan
-    fan::opengl::context_t::shader_nr_t GetShader(ShapeTypeIndex_t sti) {
+    fan::opengl::context_t::shader_nr_t& GetShader(ShapeTypeIndex_t sti) {
       return ShapeTypes[sti].shader;
     }
     fan::opengl::core::vao_t GetVAO(ShapeTypeIndex_t sti) {

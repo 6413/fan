@@ -281,6 +281,8 @@ struct loco_t : fan::opengl::context_t {
       universal_image_renderer,
       gradient,
       light_end,
+      shader_shape,
+      rectangle3d,
       last
     };
   };
@@ -343,6 +345,7 @@ struct loco_t : fan::opengl::context_t {
   // depth
   using set_position3_cb = void (*)(shape_t*, const fan::vec3&);
   using set_size_cb = void (*)(shape_t*, const fan::vec2&);
+  using set_size3_cb = void (*)(shape_t*, const fan::vec3&);
 
   using get_position_cb = fan::vec3 (*)(shape_t*);
   using get_size_cb = fan::vec2 (*)(shape_t*);
@@ -404,6 +407,7 @@ struct loco_t : fan::opengl::context_t {
 
     get_size_cb get_size;
     set_size_cb set_size;
+    set_size3_cb set_size3;
 
     get_rotation_point_cb get_rotation_point;
     set_rotation_point_cb set_rotation_point;
@@ -517,6 +521,7 @@ struct loco_t : fan::opengl::context_t {
             case loco_t::shape_type_t::circle:
             case loco_t::shape_type_t::letter:
             case loco_t::shape_type_t::rectangle:
+            case loco_t::shape_type_t::rectangle3d:
             case loco_t::shape_type_t::line: {
               shaper_get_key_safe(depth_t, common_t, depth) = position.z;
               break;
@@ -567,7 +572,13 @@ struct loco_t : fan::opengl::context_t {
         },
         .get_size = [](shape_t* shape) {
           if constexpr (fan_has_variable(T, size)) {
-            return get_render_data(shape, &T::size);
+            if constexpr (sizeof(T::size) == sizeof(fan::vec2)) {
+              return get_render_data(shape, &T::size);
+            }
+            else {
+              fan::throw_error("unimplemented get");
+              return fan::vec2();
+            }
           }
           else if constexpr (fan_has_variable(T, radius)) {
             return fan::vec2(get_render_data(shape, &T::radius));
@@ -585,7 +596,18 @@ struct loco_t : fan::opengl::context_t {
             modify_render_data_element(shape, &T::radius, size.x);
           }
           else {
-            fan::throw_error("unimplemented get");
+            fan::throw_error("unimplemented set");
+          }
+        },
+        .set_size3 = [](shape_t* shape, const fan::vec3& size) {
+          if constexpr (fan_has_variable(T, size)) {
+            modify_render_data_element(shape, &T::size, size);
+          }
+          else if constexpr (fan_has_variable(T, radius)) {
+            modify_render_data_element(shape, &T::radius, size.x);
+          }
+          else {
+            fan::throw_error("unimplemented set");
           }
         },
         .get_rotation_point = [](shape_t* shape) {
@@ -800,6 +822,7 @@ struct loco_t : fan::opengl::context_t {
               case loco_t::shape_type_t::circle:
               case loco_t::shape_type_t::letter:
               case loco_t::shape_type_t::rectangle:
+              case loco_t::shape_type_t::rectangle3d:
               case loco_t::shape_type_t::line: {
                 shaper_get_key_safe(camera_t, common_t, camera) = camera;
                 break;
@@ -971,7 +994,9 @@ struct loco_t : fan::opengl::context_t {
           case loco_t::shape_type_t::particles:
           case loco_t::shape_type_t::universal_image_renderer:
           case loco_t::shape_type_t::unlit_sprite:
-          case loco_t::shape_type_t::sprite: {
+          case loco_t::shape_type_t::sprite: 
+          case loco_t::shape_type_t::shader_shape:
+          {
             shaper_get_key_safe(image_t, texture_t, image) = image;
             break;
           }
@@ -1277,6 +1302,8 @@ public:
   void loop(const fan::function_t<void()>& lambda);
 
   loco_t::camera_t open_camera(const fan::vec2 & x, const fan::vec2 & y);
+  loco_t::camera_t open_camera_perspective(f32_t fov = 90.0f);
+  
   loco_t::viewport_t open_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
 
   void set_viewport(loco_t::viewport_t viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size);
@@ -1641,6 +1668,12 @@ public:
       else if constexpr (std::is_same_v<T, loco_t::gradient_t::properties_t>) {
         *this = gloco->gradient.push_back(properties);
       }
+      else if constexpr (std::is_same_v<T, loco_t::shader_shape_t::properties_t>) {
+        *this = gloco->shader_shape.push_back(properties);
+      }
+      else if constexpr (std::is_same_v<T, loco_t::rectangle3d_t::properties_t>) {
+        *this = gloco->rectangle3d.push_back(properties);
+      }
       else {
         fan::throw_error("failed to find correct shape", typeid(T).name());
       }
@@ -1753,6 +1786,7 @@ public:
     fan::vec3 get_position();
 
     void set_size(const fan::vec2& size);
+    void set_size(const fan::vec3& size);
 
     fan::vec2 get_size();
 
@@ -2494,6 +2528,117 @@ public:
 
   }gradient;
 
+  struct shader_shape_t {
+
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::shader_shape;
+    static constexpr int kpi = kp::texture;
+
+#pragma pack(push, 1)
+
+    struct vi_t {
+      fan::vec3 position;
+      f32_t parallax_factor;
+      fan::vec2 size;
+      fan::vec2 rotation_point;
+      fan::color color;
+      fan::vec3 angle;
+      uint32_t flags;
+      fan::vec2 tc_position;
+      fan::vec2 tc_size;
+      f32_t seed;
+    };
+    struct ri_t {
+      // main image + light buffer + 30
+      std::array<loco_t::image_t, 30> images;
+    };
+
+#pragma pack(pop)
+
+    inline static std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{1, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
+      shape_gl_init_t{2, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{3, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+      shape_gl_init_t{4, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+      shape_gl_init_t{5, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
+      shape_gl_init_t{6, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+      shape_gl_init_t{7, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
+      shape_gl_init_t{8, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
+      shape_gl_init_t{9, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
+    };
+
+    struct properties_t {
+      using type_t = shader_shape_t;
+
+      fan::vec3 position = 0;
+      f32_t parallax_factor = 0;
+      fan::vec2 size = 0;
+      fan::vec2 rotation_point = 0;
+      fan::color color = fan::colors::white;
+      fan::vec3 angle = fan::vec3(0);
+      uint32_t flags = 0;
+      fan::vec2 tc_position = 0;
+      fan::vec2 tc_size = 1;
+      f32_t seed = 0;
+      loco_t::shader_t shader;
+      bool blending = false;
+
+      loco_t::image_t image = gloco->default_texture;
+      std::array<loco_t::image_t, 30> images;
+
+      loco_t::camera_t camera = gloco->orthographic_camera.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+    };
+
+    shape_t push_back(const properties_t& properties);
+
+  }shader_shape;
+
+  struct rectangle3d_t {
+
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::rectangle3d;
+    static constexpr int kpi = kp::common;
+
+#pragma pack(push, 1)
+
+    struct vi_t {
+      fan::vec3 position;
+      fan::vec3 size;
+      fan::color color;
+      fan::vec3 angle;
+    };
+    struct ri_t {
+
+    };
+
+#pragma pack(pop)
+
+    inline static  std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{0, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{1, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{2, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+      shape_gl_init_t{3, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
+    };
+
+    struct properties_t {
+      using type_t = rectangle_t;
+
+      fan::vec3 position = 0;
+      fan::vec3 size = 0;
+      fan::color color = fan::colors::white;
+      bool blending = false;
+      fan::vec3 angle = 0;
+
+      loco_t::camera_t camera = gloco->perspective_camera.camera;
+      loco_t::viewport_t viewport = gloco->perspective_camera.viewport;
+    };
+
+
+    shape_t push_back(const properties_t& properties);
+
+  }rectangle3d;
+
+  //-------------------------------------shapes-------------------------------------
 
   template <typename T>
   inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment) {
@@ -2525,6 +2670,11 @@ public:
     loco_t::functions_t functions = loco_t::get_functions<typename T::vi_t>();
     gloco->shape_functions.push_back(functions);
   }
+
+
+#if defined(loco_sprite)
+  loco_t::shader_t create_sprite_shader(const fan::string& fragment);
+#endif
 
 
 #if defined(loco_vfi)
