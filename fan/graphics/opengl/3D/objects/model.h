@@ -89,8 +89,8 @@ namespace fan_3d {
 
 
     struct pm_texture_data_t {
-      fan::vec2ui texture_size = 0;
-      std::vector<uint8_t> texture_data;
+      fan::vec2ui size = 0;
+      std::vector<uint8_t> data;
     };
     inline static std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
 
@@ -154,8 +154,8 @@ namespace fan_3d {
             std::string generated_str = path.C_Str() + std::to_string(texture_type);
             parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = generated_str;
             auto& td = cached_texture_data[generated_str];
-            td.texture_size = fan::vec2(width, height);
-            td.texture_data.insert(td.texture_data.end(), data, data + td.texture_size.multiply() * nr_channels);
+            td.size = fan::vec2(width, height);
+            td.data.insert(td.data.end(), data, data + td.size.multiply() * nr_channels);
             stbi_image_free(data);
           }
           else {
@@ -176,8 +176,8 @@ namespace fan_3d {
             fan::image::image_info_t ii;
             fan::image::load(file_path, &ii);
             auto& td = cached_texture_data[file_path];
-            td.texture_size = ii.size;
-            td.texture_data.insert(td.texture_data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
+            td.size = ii.size;
+            td.data.insert(td.data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
 
             //if (texture_type == aiTextureType_DIFFUSE) { // hardcoded for sponza
             //  file_path.replace_all("BaseColor", "Normal");
@@ -1223,8 +1223,8 @@ namespace fan {
             if (found == cached_images.end()) {
               fan::image::image_info_t ii; // its actually rgb/rgba, ::webp namespace misleading
               auto& td = fan_3d::model::cached_texture_data[name];
-              ii.data = td.texture_data.data();
-              ii.size = td.texture_size;
+              ii.data = td.data.data();
+              ii.size = td.size;
               cached_images[name] = gloco->image_load(ii);
               fan::image::free(&ii);
             }
