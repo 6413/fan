@@ -170,7 +170,7 @@ namespace fan_3d {
           auto found = cached_texture_data.find(file_path);
           if (found == cached_texture_data.end())
           {
-            fan::printcl(file_path);
+            fan::print(file_path);
             texture_found = true;
             
             fan::image::image_info_t ii;
@@ -178,7 +178,7 @@ namespace fan_3d {
             auto& td = cached_texture_data[file_path];
             td.size = ii.size;
             td.data.insert(td.data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
-
+            fan::image::free(&ii);
             //if (texture_type == aiTextureType_DIFFUSE) { // hardcoded for sponza
             //  file_path.replace_all("BaseColor", "Normal");
             //  if (fan::io::file::exists(file_path)) {
@@ -474,7 +474,7 @@ namespace fan_3d {
 
         m_transform = scene->mRootNode->mTransformation;
 
-        m_transform = m_transform.rotate(fan::math::pi / 2, fan::vec3(1, 0, 0));
+        //m_transform = m_transform.rotate(fan::math::pi / 2, fan::vec3(1, 0, 0));
 
         // aiMatrix4x4 globalTransform = getGlobalTransform(scene->mRootNode);
 
@@ -1226,7 +1226,6 @@ namespace fan {
               ii.data = td.data.data();
               ii.size = td.size;
               cached_images[name] = gloco->image_load(ii);
-              fan::image::free(&ii);
             }
           }
         }

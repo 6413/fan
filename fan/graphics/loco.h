@@ -166,7 +166,7 @@ struct global_loco_t {
   }
 };
 // if inline, crashes fatherload, if extern, clang complains
-extern thread_local global_loco_t gloco;
+inline thread_local global_loco_t gloco;
 
 namespace fan {
   void printcl(auto&&... values);
