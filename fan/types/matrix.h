@@ -217,7 +217,7 @@ namespace fan {
     }
 
     template <typename T>
-    friend std::ostream& operator<<(std::ostream& os, const _matrix4x4& matrix)
+    friend std::ostream& operator<<(std::ostream& os, const _matrix4x4<T>& matrix)
     {
       for (uintptr_t i = 0; i < 4; i++) {
         for (uintptr_t j = 0; j < 4; j++) {
