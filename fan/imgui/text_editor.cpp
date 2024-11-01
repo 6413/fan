@@ -1042,18 +1042,18 @@ void TextEditor::Render()
 
         if (mState.mCursorPosition.mLine == lineNo)
         {
-          auto focused = ImGui::IsWindowFocused();
+          mFocused = ImGui::IsWindowFocused();
 
           // Highlight the current line (where the cursor is)
           if (!HasSelection())
           {
             auto end = ImVec2(start.x + contentSize.x + scrollX, start.y + mCharAdvance.y);
-            drawList->AddRectFilled(start, end, mPalette[(int)(focused ? PaletteIndex::CurrentLineFill : PaletteIndex::CurrentLineFillInactive)]);
+            drawList->AddRectFilled(start, end, mPalette[(int)(mFocused ? PaletteIndex::CurrentLineFill : PaletteIndex::CurrentLineFillInactive)]);
             drawList->AddRect(start, end, mPalette[(int)PaletteIndex::CurrentLineEdge], 1.0f);
           }
 
           // Render the cursor
-          if (focused)
+          if (mFocused)
           {
             auto timeEnd = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             auto elapsed = timeEnd - mStartTime;
@@ -2184,6 +2184,11 @@ const TextEditor::Palette& TextEditor::GetRetroBluePalette()
       0x40000000, // Current line edge
     } };
   return p;
+}
+
+bool TextEditor::IsFocused() const
+{
+  return mFocused;
 }
 
 

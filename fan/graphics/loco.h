@@ -8,6 +8,13 @@
 #define loco_vfi
 #define loco_physics
 
+// texture multithread load
+#include <future>
+#include <queue>
+#include <shared_mutex>
+
+#include <omp.h>
+
 #include <fan/window/window.h>
 #include <fan/graphics/opengl/gl_core.h>
 #include <fan/io/file.h>
@@ -165,8 +172,14 @@ struct global_loco_t {
     return loco;
   }
 };
-// if inline, crashes fatherload, if extern, clang complains
+// if inline, crashes fatherload, if extern, clang complains, 
+// because pch or lib is built with extern/inline so if its different, 
+// it will crash in random places
+#if defined(fan_compiler_clang)
+  inline thread_local global_loco_t gloco;
+#elif defined(fan_compiler_msvc)
 inline thread_local global_loco_t gloco;
+#endif
 
 namespace fan {
   void printcl(auto&&... values);

@@ -150,6 +150,7 @@ void fan::console_t::render() {
 
   ImGui::BeginChild("output_buffer", ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() * 1), false);
 
+
   editor.Render("editor");
 
   ImGui::EndChild();
@@ -180,7 +181,7 @@ void fan::console_t::render() {
   }
 
   ImGui::BeginChild("input_text", ImVec2(0, ImGui::GetFrameHeightWithSpacing()), false);
-  
+
   if (init_focus) {
     ImGui::SetNextWindowFocus();
     init_focus = false;
@@ -195,15 +196,15 @@ void fan::console_t::render() {
     
     command_history.push_back(current_command.substr(0, current_command.size() - 1));
     output_buffer.push_back(current_command);
-    editor.SetReadOnly(false);
-    editor.InsertTextColored("> " + current_command, fan::color::hex(0x999999FF));
-    editor.SetReadOnly(true);
-    commands.call(current_command.substr(0, current_command.size() - 1));
+    if (input.IsFocused()) {
+      editor.SetReadOnly(false);
+      editor.InsertTextColored("> " + current_command, fan::color::hex(0x999999FF));
+      editor.SetReadOnly(true);
+      commands.call(current_command.substr(0, current_command.size() - 1));
+    }
     history_pos = -1;
     input.SetText("");
-    
-    //set_input_focus();
-    //ImGui::SetWindowFocus("input");
+    input.SetCursorPosition(TextEditor::Coordinates{ 0, 0});
   }
   if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, false)) {
     if (history_pos == -1) {

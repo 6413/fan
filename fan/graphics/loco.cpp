@@ -217,6 +217,14 @@ void generate_commands(loco_t* loco) {
     gloco->shader_set_value(gloco->m_fbo_final_shader, "bloom_strength", std::stof(args[0]));
   }).description = "sets bloom strength for postprocess shader";
 
+  loco->console.commands.add("set_vsync", [](const fan::commands_t::arg_t& args) {
+    if (args.size() != 1) {
+      gloco->console.commands.print_invalid_arg_count();
+      return;
+    }
+    gloco->set_vsync(std::stoi(args[0]));
+    }).description = "sets vsync";
+
   /*loco->console.commands.add("console_transparency", [](const fan::commands_t::arg_t& args) {
     if (args.size() != 1) {
       gloco->console.commands.print_invalid_arg_count();
