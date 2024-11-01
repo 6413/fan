@@ -463,7 +463,7 @@ namespace fan {
     }
 
     // []<auto i>(auto& v){}
-    constexpr void iterate(auto l) {
+    constexpr void iterate(auto l) const {
       fan::iterate_struct(*(T*)this, l);
     }
 
@@ -479,15 +479,23 @@ namespace fan {
       return fan::count_struct_members<T>();
     }
 
-    template<size_t ...Is>
-    constexpr void internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
-      ((void)(Is == i && (lambda(get<Is>()), true)), ...);
+    template<size_t... Is>
+    constexpr auto internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
+      using return_type = decltype(lambda(std::declval<decltype(get<0>())>()));  // Determine the return type
+
+      return ([&]() -> return_type {
+        if (Is == i) {
+          return lambda(get<Is>());
+        }
+        return return_type{};  // Default return if no match found
+        }(), ...);  // Fold expression
     }
 
-    constexpr void get_value(size_t idx, const auto& lambda)
+
+    constexpr auto get_value(size_t idx, const auto& lambda)
     {
       constexpr std::size_t n = std::tuple_size_v<decltype(get_tuple())>;
-      internal_get_runtime_value(std::make_index_sequence<n>{}, idx, lambda);
+      return internal_get_runtime_value(std::make_index_sequence<n>{}, idx, lambda);
     }
 
     friend std::ostream& operator<<(std::ostream& os, const mp_t<T>& m) {

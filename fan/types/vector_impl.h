@@ -62,7 +62,7 @@ requires ((std::is_arithmetic_v<std::remove_reference_t<Args>> && ...) &&
           sizeof...(Args) == size())
 constexpr vec_t(Args&&...args) {
   access_type_t i = 0;
-  ((operator[](i++) = args), ...);
+  ((this->operator[](i++) = args), ...);
 }
 template<typename... Args>
 requires(
@@ -72,7 +72,7 @@ requires(
   )
 constexpr vec_t(Args&&...args) {
   access_type_t i = 0;
-  ((operator[](i++) = args), ...);
+  ((this->operator[](i++) = args), ...);
 }
 template <typename T>
 constexpr vec_t(const vec_t<T>& test0) { for (int i = 0; i < size(); ++i) operator[](i) = test0[i]; } 
@@ -121,7 +121,7 @@ constexpr value_type_t& operator[](access_type_t idx) {
     // force crash with stackoverflow or gives error if idx is knowable at compiletime
   return operator[](idx);
 }
-constexpr value_type_t operator[](access_type_t idx) const {
+constexpr const value_type_t& operator[](access_type_t idx) const {
   switch (idx) { 
     #if vec_n
     __FAN__FOREACH(__FAN_SWITCH_IDX, fan_coordinate(vec_n);)

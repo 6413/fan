@@ -87,7 +87,7 @@ namespace fan {
 
 
   #if defined(loco_assimp)
-  vec3_wrap_t(const aiVector3D& v) {
+    vec3_wrap_t(const aiVector3D& v) {
     x = v.x;
     y = v.y;
     z = v.z;

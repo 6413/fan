@@ -172,7 +172,7 @@ namespace fan_3d {
           {
             fan::print(file_path);
             texture_found = true;
-            
+
             fan::image::image_info_t ii;
             fan::image::load(file_path, &ii);
             auto& td = cached_texture_data[file_path];
@@ -209,7 +209,7 @@ namespace fan_3d {
       auto& vertices = parsed_model.model_data.vertices[vertex_offset];
       auto& md = parsed_model.model_data.mesh_data;
       md.resize(md.size() + 1);
-      
+
       static constexpr int channels_rgba = 4;
       auto arr = std::to_array({
            aiTextureType_DIFFUSE, aiTextureType_SHININESS,
@@ -259,7 +259,7 @@ namespace fan_3d {
           if (mesh->mTextureCoords[0]) {
             vec.x = mesh->mTextureCoords[0][i].x;
             vec.y = mesh->mTextureCoords[0][i].y;
-            
+
             vertex.uv = vec;
           }
         }
@@ -297,26 +297,26 @@ namespace fan_3d {
           f32_t weight = bone->mWeights[j].mWeight;
           bone_counts[id]++;
           switch (bone_counts[id]) {
-            case 1:
-              temp_vertices[id].bone_ids.x = i;
-              temp_vertices[id].bone_weights.x = weight;
-              break;
-            case 2:
-              temp_vertices[id].bone_ids.y = i;
-              temp_vertices[id].bone_weights.y = weight;
-              break;
-            case 3:
-              temp_vertices[id].bone_ids.z = i;
-              temp_vertices[id].bone_weights.z = weight;
-              break;
-            case 4:
-              temp_vertices[id].bone_ids.w = i;
-              temp_vertices[id].bone_weights.w = weight;
-              break;
-            default:
-              // ignore above 4 - i dont know what they are
-              //fan::throw_error("invalid bone_counts id");
-              break;
+          case 1:
+            temp_vertices[id].bone_ids.x = i;
+            temp_vertices[id].bone_weights.x = weight;
+            break;
+          case 2:
+            temp_vertices[id].bone_ids.y = i;
+            temp_vertices[id].bone_weights.y = weight;
+            break;
+          case 3:
+            temp_vertices[id].bone_ids.z = i;
+            temp_vertices[id].bone_weights.z = weight;
+            break;
+          case 4:
+            temp_vertices[id].bone_ids.w = i;
+            temp_vertices[id].bone_weights.w = weight;
+            break;
+          default:
+            // ignore above 4 - i dont know what they are
+            //fan::throw_error("invalid bone_counts id");
+            break;
 
           }
         }
@@ -508,7 +508,7 @@ namespace fan_3d {
         bone_transform += bone_transforms[bone_ids.z] * bone_weights.z;
         bone_transform += bone_transforms[bone_ids.w] * bone_weights.w;
         // convert to x, z, y (y up)
-        return m_transform *  bone_transform * fan::mat4(1).scale(-1);
+        return m_transform * bone_transform * fan::mat4(1).scale(-1);
       }
 
       // for default animation
@@ -667,7 +667,7 @@ namespace fan_3d {
         }
         else {
           animation.joint_poses[joint.id].position = position;
-          animation.joint_poses[joint.id].scale =  scale;
+          animation.joint_poses[joint.id].scale = scale;
           animation.joint_poses[joint.id].rotation = rotation;
         }
 
@@ -1243,7 +1243,7 @@ namespace fan {
 
       void draw() {
         gloco->shader_use(m_shader);
-        
+
         gloco->get_context().shader_set_camera(m_shader, &gloco->camera_get(gloco->perspective_camera.camera));
 
         //gloco->shader_set_value(m_shader, "projection", projection);
@@ -1297,13 +1297,13 @@ namespace fan {
             for (auto& tex : fms.parsed_model.model_data.mesh_data[mesh_index].names) { // i think think this doesnt make sense
               std::ostringstream oss;
               oss << "_t" << std::setw(2) << std::setfill('0') << (int)tex_index;
-              
+
               //tex.second.texture_datas
               gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + tex_index);
               if (tex.empty()) {
                 continue;
               }
-              
+
               gloco->shader_set_value(m_shader, oss.str(), tex_index);
               gloco->image_bind(cached_images[tex]);
 

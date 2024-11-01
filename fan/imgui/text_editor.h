@@ -291,6 +291,8 @@ public:
   static const Palette& GetLightPalette();
   static const Palette& GetRetroBluePalette();
 
+  bool IsFocused() const;
+
 private:
   typedef std::vector<std::pair<std::regex, PaletteIndex>> RegexList;
 
@@ -380,6 +382,7 @@ private:
   UndoBuffer mUndoBuffer;
   int mUndoIndex;
 
+  bool mFocused;
   bool mShowLineNumbers;
   int mTabSize;
   bool mOverwrite;

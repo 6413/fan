@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 
-#include <fan/types/print.h>
+#include <fan/types/print.h> // for throw_error with msg
 #include <fan/types/vector.h>
 
 

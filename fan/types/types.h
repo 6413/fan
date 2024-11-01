@@ -93,12 +93,6 @@ typedef double f_t;
 
 typedef f32_t cf_t;
 
-struct a_t {
-  void f() {
-
-  }
-};
-
 namespace fan {
 
   static void throw_error_impl() {
@@ -368,6 +362,10 @@ namespace fan {
       return i == 0 ? std::pair<T, T2>::first : std::pair<T, T2>::second;
     }
 	};
+
+  // hardcoded to only lambdas
+  //template<typename T>
+  //using return_type_of_t = decltype((*(T*)nullptr)());
 
   template <typename Callable>
   struct return_type_of_membr;
@@ -724,6 +722,9 @@ namespace fan {
   #define fan_enum_class_string(name, ...) \
   static constexpr const char* name##_strings[] = {__FAN__FOREACH_NS(__FAN_PRINT_EACH, __VA_ARGS__)}; \
   enum class name { __VA_ARGS__ }
+
+
+  template <typename T> concept is_declared = requires { typeid(T); };
 }
 
 #ifndef __ofof
