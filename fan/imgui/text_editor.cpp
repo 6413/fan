@@ -818,8 +818,15 @@ void TextEditor::HandleKeyboardInputs()
       SelectAll();
     else if (!IsReadOnly() && !ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter)))
       EnterCharacter('\n', false);
-    else if (!IsReadOnly() && !ctrl && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab)))
-      EnterCharacter('\t', shift);
+    else if (!IsReadOnly() && !ctrl && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab))) {
+      if (shift) {
+        Backspace();
+      }
+      else {
+        EnterCharacter('\t', shift);
+      }
+    }
+
 
     if (!IsReadOnly() && !io.InputQueueCharacters.empty())
     {
@@ -934,7 +941,7 @@ void TextEditor::Render()
   /* Compute mCharAdvance regarding to scaled font size (Ctrl + mouse wheel)*/
   const float fontSize = ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, -1.0f, "#", nullptr, nullptr).x;
   mCharAdvance = ImVec2(fontSize, ImGui::GetTextLineHeightWithSpacing() * mLineSpacing);
-
+  mFocused = ImGui::IsWindowFocused();
   /* Update palette with the current alpha from style */
   for (int i = 0; i < (int)PaletteIndex::Max; ++i)
   {
@@ -1042,8 +1049,6 @@ void TextEditor::Render()
 
         if (mState.mCursorPosition.mLine == lineNo)
         {
-          mFocused = ImGui::IsWindowFocused();
-
           // Highlight the current line (where the cursor is)
           if (!HasSelection())
           {
@@ -1209,7 +1214,7 @@ void TextEditor::Render(const char* aTitle, const ImVec2& aSize, bool aBorder)
   ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(mPalette[(int)PaletteIndex::Background]));
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
   if (!mIgnoreImGuiChild)
-    ImGui::BeginChild(aTitle, aSize, aBorder, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar | ImGuiWindowFlags_NoMove);
+    ImGui::BeginChild(aTitle, aSize, aBorder, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs);
 
   if (mHandleKeyboardInputs)
   {
