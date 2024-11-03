@@ -25,7 +25,7 @@ namespace fan {
       }
 #if fan_debug >= fan_debug_low
       if (ret) {
-        fan::throw_error("failed to load image data from path:" + file);
+        fan::print_warning("failed to load image data from path:" + file);
       }
 #endif
       return ret;

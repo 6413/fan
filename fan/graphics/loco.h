@@ -13,8 +13,6 @@
 #include <queue>
 #include <shared_mutex>
 
-#include <omp.h>
-
 #include <fan/window/window.h>
 #include <fan/graphics/opengl/gl_core.h>
 #include <fan/io/file.h>
@@ -178,7 +176,7 @@ struct global_loco_t {
 #if defined(fan_compiler_clang)
   inline thread_local global_loco_t gloco;
 #elif defined(fan_compiler_msvc)
-inline thread_local global_loco_t gloco;
+  inline thread_local global_loco_t gloco;
 #endif
 
 namespace fan {
