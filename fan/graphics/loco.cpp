@@ -1006,11 +1006,11 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
 
             for (int i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
               auto& ri = pri[i];
-              context.shader_set_value(shader, "time", (f64_t)(fan::time::clock::now() - ri.begin_time) / 1e+9);
+              context.shader_set_value(shader, "time", (f32_t)((fan::time::clock::now() - ri.begin_time) / 1e+9));
               context.shader_set_value(shader, "vertex_count", 6);
               context.shader_set_value(shader, "count", ri.count);
-              context.shader_set_value(shader, "alive_time", (f32_t)ri.alive_time / 1e+9);
-              context.shader_set_value(shader, "respawn_time", (f32_t)ri.respawn_time / 1e+9);
+              context.shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time / 1e+9));
+              context.shader_set_value(shader, "respawn_time", (f32_t)(ri.respawn_time / 1e+9));
               context.shader_set_value(shader, "position", *(fan::vec2*)&ri.position);
               context.shader_set_value(shader, "size", ri.size);
               context.shader_set_value(shader, "position_velocity", ri.position_velocity);
