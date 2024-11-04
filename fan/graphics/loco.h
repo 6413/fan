@@ -2728,7 +2728,7 @@ public:
   //gui
 #if defined(loco_imgui)
   fan::console_t console;
-  bool toggle_console = false;
+  bool render_console = false;
   bool toggle_fps = false;
 
   ImFont* fonts[6];

@@ -758,7 +758,9 @@ struct __ofof_impl {
   template<std::size_t off, auto union_part = &__MakeUnion_t<Base, Member, off>::u>
   static constexpr std::ptrdiff_t offset2(Member Orig::* member) {
     if constexpr (off > sizeof(Base)) {
+#if __cpp_exceptions
       throw 1;
+#endif
     }
     else {
       const auto diff1 = &((static_cast<const Orig*>(&union_part->base))->*member);

@@ -146,7 +146,7 @@ void fan::console_t::render() {
     current_command.resize(buffer_size);
   }
 
-  ImGui::Begin("console", 0, ImGuiWindowFlags_NoDocking);
+  ImGui::Begin("console", 0);
 
   ImGui::BeginChild("output_buffer", ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() * 1), false);
 

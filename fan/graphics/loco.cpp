@@ -1188,7 +1188,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
   }
 
   if (ImGui::IsKeyPressed(ImGuiKey_F3, false)) {
-    toggle_console = !toggle_console;
+    render_console = !render_console;
     
     // force focus xd
     console.input.InsertText("a");
@@ -1204,7 +1204,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
     //console.input.SelectAll();
     //console.input.SetCursorPosition(TextEditor::Coordinates(0, 0));
   }
-  if (toggle_console) {
+  if (render_console) {
     console.render();
   }
   

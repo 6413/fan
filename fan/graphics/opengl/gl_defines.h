@@ -4450,3 +4450,101 @@ namespace fan {
 
   }
 }
+
+// X11
+
+#ifdef DestroyAll
+#undef DestroyAll
+#endif
+
+#ifdef None
+#undef None
+#endif
+
+#ifdef Bool
+#undef Bool
+#endif
+
+#ifdef True
+#undef True
+#endif
+
+#ifdef False
+#undef False
+#endif
+
+#ifdef Status
+#undef Status
+#endif
+
+#ifdef Success
+#undef Success
+#endif
+
+#ifdef Complex
+#undef Complex
+#endif
+
+#ifdef Cursor
+#undef Cursor
+#endif
+
+#ifdef Gravity
+#undef Gravity
+#endif
+
+#ifdef Mask
+#undef Mask
+#endif
+
+#ifdef Window
+#undef Window
+#endif
+
+#ifdef Button
+#undef Button
+#endif
+
+#ifdef Above
+#undef Above
+#endif
+
+#ifdef Below
+#undef Below
+#endif
+
+#ifdef FocusIn
+#undef FocusIn
+#endif
+
+#ifdef FocusOut
+#undef FocusOut
+#endif
+
+#ifdef FontChange
+#undef FontChange
+#endif
+
+#ifdef KeyPress
+#undef KeyPress
+#endif
+
+#ifdef KeyRelease
+#undef KeyRelease
+#endif
+
+#ifdef Create
+#undef Create
+#endif
+
+#ifdef Expose
+#undef Expose
+#endif
+
+#ifdef Destroy
+#undef Destroy
+#endif
+
+#ifdef Always
+#undef Always
+#endif
