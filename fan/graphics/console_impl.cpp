@@ -81,6 +81,8 @@ void fan::console_t::open() {
   static auto l = [&](const fan::commands_t::output_t& out) {
     editor.SetReadOnly(false);
     fan::color color = fan::commands_t::highlight_color_table[out.highlight];
+    editor.SetCursorPosition(TextEditor::Coordinates(editor.GetTotalLines(), 0));
+    editor.MoveEnd();
     editor.InsertTextColored(out.text, color);
     editor.SetReadOnly(true);
     output_buffer.push_back(out.text);
@@ -89,6 +91,8 @@ void fan::console_t::open() {
 
   static auto lc = [&](const fan::string& text, const fan::color& color) {
     editor.SetReadOnly(false);
+    editor.SetCursorPosition(TextEditor::Coordinates(editor.GetTotalLines(), 0));
+    editor.MoveEnd();
     editor.InsertTextColored(text, color);
     editor.SetReadOnly(true);
     output_buffer.push_back(text);
