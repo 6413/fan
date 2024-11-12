@@ -1550,7 +1550,7 @@ void loco_t::shape_t::set_size(const fan::vec2& size) {
   gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_size(this, size);
 }
 
-void loco_t::shape_t::set_size(const fan::vec3& size) {
+void loco_t::shape_t::set_size3(const fan::vec3& size) {
   gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_size3(this, size);
 }
 
