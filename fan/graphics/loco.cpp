@@ -349,8 +349,8 @@ void loco_t::init_framebuffer() {
     m_rbo.set_storage(context, renderbuffer_properties);
 
     fan::vec2 window_size = gloco->window.get_size();
-    context.viewport_set(orthographic_camera.viewport, fan::vec2(0, 0), d.size, d.size);
 
+    context.viewport_set(orthographic_camera.viewport, fan::vec2(0, 0), d.size, d.size);
     context.viewport_set(perspective_camera.viewport, fan::vec2(0, 0), d.size, d.size);
   });
 
@@ -679,6 +679,11 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
   shaper.ProcessBlockEditQueue();
 
   context.viewport_set(0, window.get_size(), window.get_size());
+
+  for (const auto& i : m_pre_draw) {
+    i();
+  }
+
   static int frames = 0;
   frames++;
 

@@ -2,6 +2,8 @@
 
 //#define loco_assimp
 
+#define loco_model_3d
+
 #if defined(loco_assimp)
   #include <assimp/Importer.hpp>
   #include <assimp/scene.h>

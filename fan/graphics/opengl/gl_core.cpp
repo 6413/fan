@@ -74,7 +74,12 @@ void fan::opengl::context_t::set_error_callback() {
 
 void fan::opengl::context_t::set_current(fan::window_t* window)
 {
-  glfwMakeContextCurrent(window->glfw_window);
+  if (window == nullptr) {
+    glfwMakeContextCurrent(nullptr);
+  }
+  else {
+    glfwMakeContextCurrent(window->glfw_window);
+  }
 }
 
 //-----------------------------context-----------------------------
