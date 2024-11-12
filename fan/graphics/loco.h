@@ -1798,7 +1798,7 @@ public:
     fan::vec3 get_position();
 
     void set_size(const fan::vec2& size);
-    void set_size(const fan::vec3& size);
+    void set_size3(const fan::vec3& size);
 
     fan::vec2 get_size();
 
