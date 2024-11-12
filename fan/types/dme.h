@@ -4,11 +4,11 @@
 
 // --------------------- INERNAL ---------------------
 
-template <typename T, int idx, typename dt_t = void>
+template <typename T, unsigned long long idx, typename dt_t = void>
 struct wrapper_t : T {
   using dt = dt_t;
-  static constexpr int I = idx;
-  constexpr operator int() const { return I; }
+  static constexpr unsigned long long I = idx;
+  constexpr operator unsigned long long() const { return I; }
   operator T& () {
     return *this;
   }
@@ -32,7 +32,7 @@ using return_type_of_t = decltype((*(T*)nullptr)());
   })> \
 > varname{init, #varname}
 
-template <typename main_t, typename T, int index>
+template <typename main_t, typename T, unsigned long long index>
 struct base_t {
   using dme_type_t = T;
 

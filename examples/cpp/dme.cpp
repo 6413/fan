@@ -276,7 +276,7 @@ int main() {
 
   //
 #if DME_VERIFY_PRINT == 1
-  printf("%d %d %d %d %d %d", a.a.I, b.a.I, b.z8.I, a.b.I, (int)a.z8, (int)c.c);
+  printf("%llu %llu %llu %llu %d %d", a.a.I, b.a.I, b.z8.I, a.b.I, (int)a.z8, (int)c.c);
 #endif
 
 #if VERIFY_DME == 1
