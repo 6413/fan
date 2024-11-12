@@ -2,7 +2,7 @@
 CXX = clang++
 
 FLAGS =
-CXXFLAGS = -I . -std=c++2a -I include -I .. -w $(FLAGS)
+CXXFLAGS = -I . -std=c++2a -w $(FLAGS)
 
 IMGUI_PATH =
 OUTPUT_PATH = lib/fan/

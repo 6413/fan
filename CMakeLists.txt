@@ -27,7 +27,9 @@ link_libraries(${GTK3_LIBRARIES})
 set(CMAKE_CXX_COMPILER "clang++")
 
 # Set the source files and output
-set(MAIN examples/graphics/gui/model_maker.cpp)
+if(NOT DEFINED MAIN)
+	set(MAIN examples/graphics/2D/shapes/rectangle.cpp)
+endif()
 set(OUTPUT a.exe)
 
 # Set the paths
@@ -35,17 +37,17 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(ROOT_PATH "./fan/")
 endif()
 
-set(PCH_SOURCE "${ROOT_PATH}/pch.cpp")
+#set(PCH_SOURCE "${ROOT_PATH}/pch.cpp")
 
 set(LINK_PATH "lib/fan/")
 
 # Set the precompiled header file
-set(PCH_NAME "pch.h")
+#set(PCH_NAME "pch.h")
 
 set(ENABLE_IMGUI ON)
 
 # Set the compiler flags
-set(CMAKE_CXX_FLAGS "-I . ${CMAKE_CURRENT_SOURCE_DIR}/${LINK_PATH}/pch.o -include-pch ${CMAKE_CURRENT_SOURCE_DIR}/${LINK_PATH}/pch.h.gch -Winvalid-pch -w -I /mnt/c/Users/0b347/Documents/GitHub/ ${CMAKE_CXX_FLAGS} -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "-I . -Winvalid-pch -w ${CMAKE_CXX_FLAGS} -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable")
 set(DEBUG_FLAGS "-g")
 set(RELEASE_FLAGS "-s -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -march=native -Wl,--gc-sections")
 
@@ -78,11 +80,12 @@ list(REMOVE_ITEM SOURCES ${IMGUI_SOURCES} ${NFD_SOURCES} ${FMT_SOURCES})
 list(FILTER NFD_SOURCES EXCLUDE REGEX "nfd_zenity.c")
 list(REMOVE_ITEM SOURCES "nfd_zenity.c")
 
-list(FILTER SOURCES EXCLUDE REGEX ${PCH_SOURCE})
-list(REMOVE_ITEM SOURCES ${PCH_SOURCE})
+#list(FILTER SOURCES EXCLUDE REGEX ${PCH_SOURCE})
+#list(REMOVE_ITEM SOURCES ${PCH_SOURCE})
 
 list(FILTER SOURCES EXCLUDE REGEX "${ROOT_PATH}/fmt.cpp")
-message("Sources is: ${SOURCES}")
+message("Sources are: ${SOURCES}")
+message("Main is: ${MAIN}")
 
 # Compile all source files into object files
 add_library(fan OBJECT ${SOURCES})
