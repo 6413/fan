@@ -459,6 +459,7 @@ namespace fan_3d {
     // fan model stuff
     struct fms_t {
 
+      fms_t() = default;
       fms_t(const fms_model_info_t& fmi)
       {
         file_path = fmi.path;

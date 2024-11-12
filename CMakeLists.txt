@@ -8,7 +8,7 @@ project(MyProject)
 set(CMAKE_CXX_STANDARD 20)
 
 # Add the include directories
-include_directories(../ include/fan/ ./include/)
+include_directories(./)
 
 find_package(PkgConfig REQUIRED)
 
@@ -32,7 +32,7 @@ set(OUTPUT a.exe)
 
 # Set the paths
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(ROOT_PATH "./include/fan/")
+    set(ROOT_PATH "./fan/")
 endif()
 
 set(PCH_SOURCE "${ROOT_PATH}/pch.cpp")
@@ -45,7 +45,7 @@ set(PCH_NAME "pch.h")
 set(ENABLE_IMGUI ON)
 
 # Set the compiler flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CURRENT_SOURCE_DIR}/${LINK_PATH}/pch.o -include-pch ${CMAKE_CURRENT_SOURCE_DIR}/${LINK_PATH}/pch.h.gch -Winvalid-pch -w -I /mnt/c/Users/0b347/Documents/GitHub/ -I ${ROOT_PATH}/../ ${CMAKE_CXX_FLAGS} -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "-I . ${CMAKE_CURRENT_SOURCE_DIR}/${LINK_PATH}/pch.o -include-pch ${CMAKE_CURRENT_SOURCE_DIR}/${LINK_PATH}/pch.h.gch -Winvalid-pch -w -I /mnt/c/Users/0b347/Documents/GitHub/ ${CMAKE_CXX_FLAGS} -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable")
 set(DEBUG_FLAGS "-g")
 set(RELEASE_FLAGS "-s -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -march=native -Wl,--gc-sections")
 

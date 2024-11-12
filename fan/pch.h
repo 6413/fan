@@ -1,10 +1,7 @@
 #pragma once
 
-//#define loco_assimp
-
-#define loco_model_3d
-
 #if defined(loco_assimp)
+  #define loco_model_3d
   #include <assimp/Importer.hpp>
   #include <assimp/scene.h>
   #include <assimp/postprocess.h>

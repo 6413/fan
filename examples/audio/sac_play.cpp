@@ -3,14 +3,9 @@
 #ifndef WITCH_INCLUDE_PATH
 #define WITCH_INCLUDE_PATH WITCH
 #endif
-#ifndef FAN_INCLUDE_PATH
-#define FAN_INCLUDE_PATH /usr/local/include
-#endif
-
 #undef loco_assimp
-
+//
 #include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH,fan/types/types.h)
 
 #include _WITCH_PATH(IO/IO.h)
 #include _WITCH_PATH(FS/FS.h)
@@ -18,7 +13,8 @@
 #include _WITCH_PATH(IO/print.h)
 #include _WITCH_PATH(TH/TH.h)
 
-#include _FAN_PATH(audio/audio.h)
+#include <fan/types/types.h>
+#include <fan/audio/audio.h>
 
 #include <fftw/fftw3.h>
 
