@@ -2,7 +2,7 @@
 CXX = clang
 
 FLAGS =
-CXXFLAGS = -I . -I include -I .. -w $(FLAGS)
+CXXFLAGS = -I . -w $(FLAGS)
 
 
 
