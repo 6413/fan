@@ -1,11 +1,13 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
 #ifndef WITCH_INCLUDE_PATH
-  #define WITCH_INCLUDE_PATH WITCH
+#define WITCH_INCLUDE_PATH WITCH
 #endif
 #ifndef FAN_INCLUDE_PATH
-  #define FAN_INCLUDE_PATH /usr/local/include
+#define FAN_INCLUDE_PATH /usr/local/include
 #endif
+
+#undef loco_assimp
 
 #include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
 #include _INCLUDE_TOKEN(FAN_INCLUDE_PATH,fan/types/types.h)
@@ -22,17 +24,17 @@
 
 #include <fan/pch.h>
 
-void WriteOut(const char *format, ...){
-	IO_fd_t fd_stdout;
-	IO_fd_set(&fd_stdout, FD_OUT);
-	va_list argv;
-	va_start(argv, format);
-	IO_vprint(&fd_stdout, format, argv);
-	va_end(argv);
+void WriteOut(const char* format, ...) {
+  IO_fd_t fd_stdout;
+  IO_fd_set(&fd_stdout, FD_OUT);
+  va_list argv;
+  va_start(argv, format);
+  IO_vprint(&fd_stdout, format, argv);
+  va_end(argv);
 }
 
-int main(int argc, char **argv){
-  if(argc != 2){
+int main(int argc, char** argv) {
+  if (argc != 2) {
     return 0;
   }
 
@@ -45,7 +47,7 @@ int main(int argc, char **argv){
   }d;
 
 
-  if(d.system_audio.Open() != 0){
+  if (d.system_audio.Open() != 0) {
     __abort();
   }
 
@@ -54,7 +56,7 @@ int main(int argc, char **argv){
 
   fan::audio_t::piece_t piece;
   sint32_t err = audio.Open(&piece, "audio/w_voice.sac", 0);
-  if(err != 0){
+  if (err != 0) {
     WriteOut("piece open failed %lx\n", err);
     return 0;
   }
@@ -94,7 +96,7 @@ int main(int argc, char **argv){
     std::lock_guard<std::mutex> lock(data->mut);
     data->audio_data.clear();
     data->audio_data.insert(data->audio_data.end(), samples, samples + samplesi / 2);
-  };
+    };
 
   std::vector<loco_t::shape_t> shapes;
   loco.loop([&] {
@@ -112,7 +114,7 @@ int main(int argc, char **argv){
     //shapes.resize(windowSize, p);
     shapes.clear();
     for (int i = 0; i < windowSize; ++i) {
-      p.position.z = windowSize -i;
+      p.position.z = windowSize - i;
       shapes.push_back(p);
     }
 
@@ -173,7 +175,7 @@ int main(int argc, char **argv){
       float interpolationSpeed = 0.5;  // Adjust this value to change the speed of interpolation
       currentHeights[i] = currentHeights[i] + (targetHeight - currentHeights[i]) * interpolationSpeed;
 
-      fan::vec2 box_size(window_size.x  / magnitudes.size(), currentHeights[i]);
+      fan::vec2 box_size(window_size.x / magnitudes.size(), currentHeights[i]);
       f32_t padding = 13 + box_size.x * 1.5;
       //    padding += box_size.x;
       fan::vec2 rpos;
@@ -193,7 +195,7 @@ int main(int argc, char **argv){
     fftw_destroy_plan(fft_plan);
     fftw_free(fft_in);
     fftw_free(fft_out);
-  });
+    });
 
   audio.unbind();
 

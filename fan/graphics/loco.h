@@ -176,7 +176,7 @@ struct global_loco_t {
 #if defined(fan_compiler_clang)
   inline thread_local global_loco_t gloco;
 #elif defined(fan_compiler_msvc)
-  inline thread_local global_loco_t gloco;
+  inline  global_loco_t gloco;
 #endif
 
 namespace fan {
@@ -1292,6 +1292,7 @@ private:
   std::vector<shape_info_t> shape_info_list;
 public:
 
+  std::vector<fan::function_t<void()>> m_pre_draw;
   std::vector<fan::function_t<void()>> m_post_draw;
 
   struct properties_t {

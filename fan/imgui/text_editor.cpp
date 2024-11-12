@@ -1,3 +1,4 @@
+#include <pch.h>
 #include "text_editor.h"
 
 #include <cassert>

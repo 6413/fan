@@ -205,3 +205,5 @@ template<typename T> struct inherit_t {
 #define sdme_create_struct(name) struct name : inherit_t<name> { sdme_internal_begin__
 
 #undef sdme_build_struct_arithmetic_type
+
+#pragma pack(pop)
