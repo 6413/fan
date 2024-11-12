@@ -4,6 +4,6 @@ mkdir build
 set -e
 
 cd build
-cmake .. -G Ninja
+cmake .. -G Ninja "$@"
 ninja
 mv a.exe ..
