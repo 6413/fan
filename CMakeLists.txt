@@ -30,11 +30,32 @@ if(NOT DEFINED MAIN)
 endif()
 set(OUTPUT a.exe)
 
-# Set the paths
+# Function to check if a directory exists
+function(check_directory_exists DIR)
+    if (EXISTS "${DIR}")
+        set(EXISTS TRUE PARENT_SCOPE)
+    else()
+        set(EXISTS FALSE PARENT_SCOPE)
+    endif()
+endfunction()
+
+# Check for the fan directory in various locations
 if(NOT DEFINED ROOT_PATH)
-	if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-		set(ROOT_PATH "./fan/")
-	endif()
+    set(SEARCH_PATHS "/usr/include/fan/" "/usr/local/include/fan/" "${CMAKE_SOURCE_DIR}/fan/")
+    
+    set(DIR_FOUND FALSE)
+    foreach(PATH ${SEARCH_PATHS})
+        check_directory_exists(${PATH})
+        if(EXISTS)
+            set(ROOT_PATH ${PATH})
+            set(DIR_FOUND TRUE)
+            break()
+        endif()
+    endforeach()
+    
+    if(NOT DIR_FOUND)
+        message(FATAL_ERROR "fan directory not found in any of the specified locations.")
+    endif()
 endif()
 
 set(ENABLE_IMGUI ON)
@@ -55,43 +76,47 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dloco_json")
 
 message("Root path is: ${ROOT_PATH}")
 
-file(GLOB_RECURSE SOURCES "${ROOT_PATH}/*.cpp" "${ROOT_PATH}/*.c")
+if(DEFINED BUILD_FAN)
+	file(GLOB_RECURSE SOURCES "${ROOT_PATH}/*.cpp" "${ROOT_PATH}/*.c")
+	# Separate the ImGui sources
+	file(GLOB_RECURSE IMGUI_SOURCES "${ROOT_PATH}/imgui/*.cpp" "${ROOT_PATH}/imgui/*.c")
 
-# Separate the ImGui sources
-file(GLOB_RECURSE IMGUI_SOURCES "${ROOT_PATH}/imgui/*.cpp" "${ROOT_PATH}/imgui/*.c")
+	# Separate the nativefiledialog sources
+	file(GLOB_RECURSE NFD_SOURCES "${ROOT_PATH}/nativefiledialog/*.cpp" "${ROOT_PATH}/nativefiledialog/*.c")
 
-# Separate the nativefiledialog sources
-file(GLOB_RECURSE NFD_SOURCES "${ROOT_PATH}/nativefiledialog/*.cpp" "${ROOT_PATH}/nativefiledialog/*.c")
+	# Separate the fmt sources
+	set(FMT_SOURCES "${ROOT_PATH}/fmt.h" "${ROOT_PATH}/fmt.cpp")
 
-# Separate the fmt sources
-set(FMT_SOURCES "${ROOT_PATH}/fmt.h" "${ROOT_PATH}/fmt.cpp")
+	# Remove the ImGui, nativefiledialog and fmt sources from the SOURCES variable
+	list(REMOVE_ITEM SOURCES ${IMGUI_SOURCES} ${NFD_SOURCES} ${FMT_SOURCES})
 
-# Remove the ImGui, nativefiledialog and fmt sources from the SOURCES variable
-list(REMOVE_ITEM SOURCES ${IMGUI_SOURCES} ${NFD_SOURCES} ${FMT_SOURCES})
+	list(FILTER NFD_SOURCES EXCLUDE REGEX "nfd_zenity.c")
+	list(REMOVE_ITEM SOURCES "nfd_zenity.c")
 
-list(FILTER NFD_SOURCES EXCLUDE REGEX "nfd_zenity.c")
-list(REMOVE_ITEM SOURCES "nfd_zenity.c")
+	list(FILTER SOURCES EXCLUDE REGEX "${ROOT_PATH}/fmt.cpp")
+	
+	message("Sources are: ${SOURCES}")
+	
+	add_library(fan OBJECT ${SOURCES})
+	add_executable(${OUTPUT} ${MAIN} $<TARGET_OBJECTS:fan>)
+endif()
 
-list(FILTER SOURCES EXCLUDE REGEX "${ROOT_PATH}/fmt.cpp")
-
-#confirm
-message("Sources are: ${SOURCES}")
 message("Main is: ${MAIN}")
 
-add_library(fan OBJECT ${SOURCES})
-
-add_executable(${OUTPUT} ${MAIN} $<TARGET_OBJECTS:fan>)
+if(NOT DEFINED BUILD_FAN)
+	add_executable(${OUTPUT} ${MAIN})
+endif()
 
 if(WIN32)
-    # On Windows, use the precompiled .lib files
-    link_directories(${CMAKE_SOURCE_DIR}/lib)
-    target_link_libraries(${OUTPUT} fan)
+	message("Windows back-end undone.")
 else()
 	file(GLOB FAN_LIBS "/usr/local/lib/fan/*.a")
+	message("fan libs: ${FAN_LIBS}")
+	if(DEFINED BUILD_FAN)
+		list(FILTER FAN_LIBS EXCLUDE REGEX ".*fan.a$")
+	endif()
     # On Linux, use the system libraries
     target_link_libraries(${OUTPUT} webp glfw X11 ${FAN_LIBS})
 endif()
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
-
-target_link_libraries(${OUTPUT} fan)
