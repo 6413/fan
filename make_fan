@@ -2,7 +2,7 @@
 CXX = clang++
 
 FLAGS =
-CXXFLAGS = $(FLAGS) -I . -std=c++2a -w -ferror-limit=3
+CXXFLAGS = $(FLAGS) -std=c++2a -w -ferror-limit=3
 
 OUTPUT_PATH = lib/fan/
 ROOT_PATH = ./fan/
@@ -18,6 +18,8 @@ ifeq ($(OS),Windows_NT)
 else
     OUT_FILE_FORMAT += a
 endif
+
+CXXFLAGS += -I $(ROOT_PATH)../
 
 CXXFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM -DIMGUI_DEFINE_MATH_OPERATORS
 CXXFLAGS += -Dloco_imgui -Dloco_json
