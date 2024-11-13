@@ -1,8 +1,6 @@
-# Set the minimum required version of CMake
 cmake_minimum_required(VERSION 3.10)
 
-# Set the project name
-project(MyProject)
+project(fan_project)
 
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -33,21 +31,17 @@ endif()
 set(OUTPUT a.exe)
 
 # Set the paths
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(ROOT_PATH "./fan/")
+if(NOT DEFINED ROOT_PATH)
+	if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+		set(ROOT_PATH "./fan/")
+	endif()
 endif()
-
-#set(PCH_SOURCE "${ROOT_PATH}/pch.cpp")
 
 set(LINK_PATH "lib/fan/")
 
-# Set the precompiled header file
-#set(PCH_NAME "pch.h")
-
 set(ENABLE_IMGUI ON)
 
-# Set the compiler flags
-set(CMAKE_CXX_FLAGS "-I . -Winvalid-pch -w ${CMAKE_CXX_FLAGS} -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "-Winvalid-pch -w ${CMAKE_CXX_FLAGS} -I ${CMAKE_CURRENT_SOURCE_DIR}/${ROOT_PATH}../ -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable")
 set(DEBUG_FLAGS "-g")
 set(RELEASE_FLAGS "-s -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -march=native -Wl,--gc-sections")
 
@@ -80,23 +74,16 @@ list(REMOVE_ITEM SOURCES ${IMGUI_SOURCES} ${NFD_SOURCES} ${FMT_SOURCES})
 list(FILTER NFD_SOURCES EXCLUDE REGEX "nfd_zenity.c")
 list(REMOVE_ITEM SOURCES "nfd_zenity.c")
 
-#list(FILTER SOURCES EXCLUDE REGEX ${PCH_SOURCE})
-#list(REMOVE_ITEM SOURCES ${PCH_SOURCE})
-
 list(FILTER SOURCES EXCLUDE REGEX "${ROOT_PATH}/fmt.cpp")
+
+#confirm
 message("Sources are: ${SOURCES}")
 message("Main is: ${MAIN}")
 
-# Compile all source files into object files
 add_library(fan OBJECT ${SOURCES})
 
-# Add the executable
 add_executable(${OUTPUT} ${MAIN} $<TARGET_OBJECTS:fan>)
 
-#target_precompile_headers(fan PRIVATE ${ROOT_PATH}/pch.h ${ROOT_PATH}/graphics/loco.h)
-
-
-# Conditionally set the libraries based on the platform
 if(WIN32)
     # On Windows, use the precompiled .lib files
     link_directories(${CMAKE_SOURCE_DIR}/lib)
@@ -106,8 +93,6 @@ else()
     target_link_libraries(${OUTPUT} webp glfw X11 ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan/libimgui.a ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan/libnfd.a ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan/libfmt.a)
 endif()
 
-# Tell CMake where to find the libraries
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 
-# Link the libraries
 target_link_libraries(${OUTPUT} fan)

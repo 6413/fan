@@ -6,29 +6,30 @@ CXXFLAGS = -I . -std=c++2a -w $(FLAGS)
 
 OUTPUT_PATH = lib/fan/
 
-ROOT_PATH = ./
+ROOT_PATH = ./fan/
 
 DEBUG_FLAGS = -g
 RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
 
 OUT_FILE_FORMAT =
 
-INCLUDES =
 ifeq ($(OS),Windows_NT)
 	OUT_FILE_FORMAT+=lib
 else
-	INCLUDES += -I $(ROOT_PATH)fan/imgui
+	CXXFLAGS += -I $(ROOT_PATH)imgui
 	OUT_FILE_FORMAT+=a
 endif
+
+CXXFLAGS += -I $(ROOT_PATH)../
 
 #note
 CXXFLAGS += $(RELEASE_FLAGS)
 
-SRC = $(ROOT_PATH)/fan/fmt.cpp
+SRC = $(ROOT_PATH)/fmt.cpp
 FMT_LIB = libfmt.$(OUT_FILE_FORMAT)
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(FMT_LIB): $(SRC:.cpp=.o)
 	llvm-ar rcs $(OUTPUT_PATH)$@ $^

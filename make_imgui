@@ -7,7 +7,7 @@ CXXFLAGS = -I . -std=c++2a -w $(FLAGS)
 IMGUI_PATH =
 OUTPUT_PATH = lib/fan/
 
-ROOT_PATH = ./
+ROOT_PATH = ./fan/
 
 DEBUG_FLAGS = -g
 RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
@@ -16,12 +16,14 @@ OUT_FILE_FORMAT =
 
 INCLUDES =
 ifeq ($(OS),Windows_NT)
-	IMGUI_PATH += $(ROOT_PATH)fan/imgui/
+	IMGUI_PATH += $(ROOT_PATH)imgui/
 	OUT_FILE_FORMAT+=lib
 else
-	IMGUI_PATH += $(ROOT_PATH)fan/imgui/
+	IMGUI_PATH += $(ROOT_PATH)imgui/
 	OUT_FILE_FORMAT+=a
 endif
+
+CXXFLAGS += -I $(ROOT_PATH)../
 
 #note
 CXXFLAGS += $(RELEASE_FLAGS)
