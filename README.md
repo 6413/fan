@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-2D graphics library for OpenGL, designed to support various shapes, lighting, GUI elements, collisions, and particle effects.
+2D graphics library using OpenGL, designed to support various shapes, lighting, GUI elements, collisions, and particle effects.
 
 ## Features
 
