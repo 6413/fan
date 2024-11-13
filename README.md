@@ -26,8 +26,6 @@
 - Limited shapes for collisions
 - The library is still in development, bugs and missing features to be expected
 
-## Getting Started
-
 ## Installation
 
 Requires c++20
@@ -51,23 +49,19 @@ Requires c++20
    ```
 3. Clone the repository: `git clone https://github.com/6413/fan.git`
 4. Main usage:
+-  To compile fan and it's libs to an object file use `./compile_fan.sh` you can set thread amount for compile using -tN
+-  For linux you can export files to /usr/local/lib, by doing `sudo ./copy_to_default_paths.sh`
+-  To compile main use `./compile_main.sh -DMAIN="examples/graphics/2D/shapes/rectangle.cpp`
 
-   To compile fan and it's libs to an object file use `./compile_fan.sh` you can set thread amount for compile using -tN
 
-   For linux you can export files to /usr/local/lib, by doing `sudo ./copy_to_default_paths.sh`
-   
-   To compile main use `./compile_main.sh -DMAIN="examples/graphics/2D/shapes/rectangle.cpp`
-6. Optionally you can compile fan with main file like so (good for if fan source changes):
+   **Optionally you can compile fan with main file like so (good for if fan source changes):**
+   -  To compile libs `./compile_all_libs.sh` you can set thread amount for compile using -tN
+   -  For linux you can export files to /usr/local/lib, by doing `sudo ./copy_to_default_paths.sh`
+   -  To compile main `./compile_main.sh -DBUILD_FAN=1 -DMAIN="examples/graphics/2D/shapes/rectangle.cpp"`
 
-   To compile libs `./compile_all_libs.sh` you can set thread amount for compile using -tN
+## Usage
 
-   For linux you can export files to /usr/local/lib, by doing `sudo ./copy_to_default_paths.sh`
-
-   To compile main `./compile_main.sh -DBUILD_FAN=1 -DMAIN="examples/graphics/2D/shapes/rectangle.cpp"`
-
-### Usage
-
-1. Hello world rectangle
+- Hello world rectangle:
     ```cpp
     #include <fan/pch.h>
 
