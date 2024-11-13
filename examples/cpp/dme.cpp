@@ -525,7 +525,7 @@ struct dme2_t : __dme_inherit(dme2_t, data_we_want_t) {
 
 int main() {
   dme2_t c;
-  printf("%s %s\n", c.a_str, typeid(dme2_t::a_t).name());
+  printf("%s %s %d\n", c.a_str, typeid(dme2_t::a_t).name(), c.NA(0)->m_DSS);
   c.b.AN();
   c.GetMemberAmount();
 
