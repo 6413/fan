@@ -37,8 +37,6 @@ if(NOT DEFINED ROOT_PATH)
 	endif()
 endif()
 
-set(LINK_PATH "lib/fan/")
-
 set(ENABLE_IMGUI ON)
 
 set(CMAKE_CXX_FLAGS "-Winvalid-pch -w ${CMAKE_CXX_FLAGS} -I ${CMAKE_CURRENT_SOURCE_DIR}/${ROOT_PATH}../ -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable")
@@ -89,8 +87,9 @@ if(WIN32)
     link_directories(${CMAKE_SOURCE_DIR}/lib)
     target_link_libraries(${OUTPUT} fan)
 else()
+	file(GLOB FAN_LIBS "/usr/local/lib/fan/*.a")
     # On Linux, use the system libraries
-    target_link_libraries(${OUTPUT} webp glfw X11 ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan/libimgui.a ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan/libnfd.a ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan/libfmt.a)
+    target_link_libraries(${OUTPUT} webp glfw X11 ${FAN_LIBS})
 endif()
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
