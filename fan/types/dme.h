@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+
 #pragma pack(push, 1)
 
 #ifndef __empty_struct
@@ -8,7 +9,22 @@
   #define __empty_struct __empty_struct
 #endif
 
-template<typename T, uintptr_t idx, const char* str, typename dt_t = void>
+namespace detail {
+  template<typename T, typename U>
+  struct is_same {
+      static constexpr bool value = false;
+  };
+
+  template<typename T>
+  struct is_same<T, T> {
+      static constexpr bool value = true;
+  };
+
+  template<typename T, typename U>
+  constexpr bool is_same_v = is_same<T, U>::value;
+}
+
+template<typename T, uintptr_t idx, const char* str, typename dt_t = __empty_struct>
 struct __dme_t : T {
   using dt = dt_t;
   static constexpr uintptr_t I = idx;
@@ -16,6 +32,7 @@ struct __dme_t : T {
   operator T& () { return *this; }
   static constexpr uintptr_t AN() { return I; }
   const char* sn = str;
+  uint32_t m_DSS = detail::is_same_v<dt_t, __empty_struct> ? 0 : sizeof(dt);
 };
 
 template<typename T>

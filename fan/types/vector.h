@@ -22,6 +22,11 @@
   #include <fan/imgui/imgui.h>
 #endif
 
+#if defined(loco_assimp)
+  #include <assimp/vector3.h>
+#endif
+
+
 namespace fan {
 
   using access_type_t = uint16_t;
