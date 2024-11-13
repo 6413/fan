@@ -37,21 +37,29 @@ Requires c++20
 2. Using Visual Studio use fan.sln. Alternatively compile using clang++/g++ using make_imgui, make_pch, make, in order
 
 ### Linux
-1. Install required dependencies libx11-dev, libxrandr-dev, libwebp-dev, libxcursor-dev, llvm, clang/gcc, libopus-dev, OpenGL, GLFW
+1. Install required dependencies
  ```
-   sudo apt install clang -y &&
-   sudo apt install make -y &&
-   sudo apt install libwebp-dev -y &&
-   sudo apt install llvm -y &&
-   sudo apt install clang -y &&
-   sudo apt install libfmt-dev -y &&
-   sudo apt install libglfw3-dev -y &&
-   sudo apt install libopus-dev -y &&
-   sudo apt install libx11-dev -y
+  sudo apt install -y clang \
+                      make \
+                      libwebp-dev \
+                      llvm \
+                      libfmt-dev \
+                      libglfw3-dev \
+                      libopus-dev \
+                      libx11-dev
+
    ```
 3. Clone the repository: `git clone https://github.com/6413/fan.git`
-4. To compile libs `./compile_all_libs.sh` you can set thread amount for compile using -tN
-5. To compile main `./compile_main.sh -DMAIN="examples/graphics/2D/shapes/rectangle.cpp"`
+4. Main usage:
+
+   To compile fan and it's libs to an object file use `./compile_fan.sh` you can set thread amount for compile using -tN
+   
+   To compile main use `./compile_main.sh -DMAIN="examples/graphics/2D/shapes/rectangle.cpp`
+6. Optionally you can export fan like so:
+
+   To compile libs `./compile_all_libs.sh` you can set thread amount for compile using -tN
+   
+   To compile main `./compile_main.sh -DBUILD_FAN=1 -DMAIN="examples/graphics/2D/shapes/rectangle.cpp"`
 
 ### Usage
 
