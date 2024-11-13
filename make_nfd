@@ -9,7 +9,7 @@ CXXFLAGS = -I . -w $(FLAGS)
 NFD_PATH =
 OUTPUT_PATH = lib/fan/
 
-ROOT_PATH = ./
+ROOT_PATH = ./fan/
 
 DEBUG_FLAGS = -g
 RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
@@ -18,13 +18,15 @@ OUT_FILE_FORMAT =
 
 INCLUDES =
 ifeq ($(OS),Windows_NT)
-	NFD_PATH += $(ROOT_PATH)fan/nativefiledialog/
+	NFD_PATH += $(ROOT_PATH)nativefiledialog/
 	OUT_FILE_FORMAT+=lib
 else
 	INCLUDES += $(shell pkg-config --cflags gtk+-3.0)
-	NFD_PATH += $(ROOT_PATH)fan/nativefiledialog/
+	NFD_PATH += $(ROOT_PATH)nativefiledialog/
 	OUT_FILE_FORMAT+=a
 endif
+
+CXXFLAGS += -I $(ROOT_PATH)../
 
 #NOTE
 CXXFLAGS += $(RELEASE_FLAGS)

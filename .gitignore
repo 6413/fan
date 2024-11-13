@@ -49,3 +49,4 @@ include/softcam
 include/softcamcore
 include/imgui
 ignore/
+lib/*
