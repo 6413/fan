@@ -50,18 +50,14 @@ Requires c++20
    sudo apt install libx11-dev -y
    ```
 3. Clone the repository: `git clone https://github.com/6413/fan.git`
-4. Setup and compile using `make -B -f make_imgui`, `make -f make_pch`, `make`, in order
-
-Main file can be controlled by `MAIN`-make variable for example `make MAIN=examples/graphics/2D/shapes/rectangle.cpp`
-
-## Notes for compiling with Makefile
-Using the library from outside the project, change ROOT_PATH in Makefiles
+4. To compile libs `./compile_all_libs.sh` you can set thread amount for compile using -tN
+5. To compile main `./compile_main.sh -DMAIN="examples/graphics/2D/shapes/rectangle.cpp"`
 
 ### Usage
 
 1. Hello world rectangle
     ```cpp
-    #include fan_pch
+    #include <fan/pch.h>
 
     int main() {
       loco_t loco;
