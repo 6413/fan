@@ -34,7 +34,7 @@ Requires c++20
 
 ### Windows
 1. Clone the repository: `git clone https://github.com/6413/fan.git`
-2. Using Visual Studio use fan.sln. Alternatively compile using clang++/g++ using make_imgui, make_pch, make, in order
+2. Using Visual Studio use fan.sln. Alternatively compile using clang++ (currently not working for windows)
 
 ### Linux
 1. Install required dependencies
