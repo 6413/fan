@@ -57,7 +57,7 @@ Requires c++20
    For linux you can export files to /usr/local/lib, by doing `sudo ./copy_to_default_paths.sh`
    
    To compile main use `./compile_main.sh -DMAIN="examples/graphics/2D/shapes/rectangle.cpp`
-6. Optionally you can export fan like so:
+6. Optionally you can compile fan with main file like so (good for if fan source changes):
 
    To compile libs `./compile_all_libs.sh` you can set thread amount for compile using -tN
 
