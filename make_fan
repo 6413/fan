@@ -1,0 +1,60 @@
+# Compiler settings
+CXX = clang++
+
+FLAGS =
+CXXFLAGS = $(FLAGS) -I . -std=c++2a -w -ferror-limit=3
+
+OUTPUT_PATH = lib/fan/
+ROOT_PATH = ./fan/
+
+DEBUG_FLAGS = -g
+RELEASE_FLAGS = -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections
+
+OUT_FILE_FORMAT =
+INCLUDES =
+
+ifeq ($(OS),Windows_NT)
+    OUT_FILE_FORMAT += lib
+else
+    OUT_FILE_FORMAT += a
+endif
+
+CXXFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM -DIMGUI_DEFINE_MATH_OPERATORS
+CXXFLAGS += -Dloco_imgui -Dloco_json
+# -Dloco_assimp
+
+.PHONY: all debug release clean
+
+
+debug: CXXFLAGS += $(DEBUG_FLAGS)
+
+release: CXXFLAGS += $(RELEASE_FLAGS)
+
+# Define the source files and exclude specific files/directories
+#SOURCES := $(wildcard *.cpp */*.cpp */*/*.cpp */*/*/*.cpp)
+
+#bad - limited depth
+FAN_SRC :=  $(wildcard $(ROOT_PATH)*.cpp $(ROOT_PATH)*/*.cpp $(ROOT_PATH)*/*/*.cpp $(ROOT_PATH)*/*/*/*.cpp)
+FAN_SRC := $(filter-out $(wildcard $(ROOT_PATH)imgui/*.cpp), $(FAN_SRC))
+FAN_SRC := $(filter-out $(wildcard $(ROOT_PATH)nativefiledialog/*.cpp), $(FAN_SRC))
+FAN_SRC := $(filter-out $(ROOT_PATH)nativefiledialog/nfd_zenity.c, $(FAN_SRC))
+FAN_SRC := $(filter-out $(ROOT_PATH)fmt.cpp, $(FAN_SRC))
+
+$(info FAN_SRC is AFTER $(FAN_SRC))
+
+# Generate object files list
+FAN_OBJ := $(FAN_SRC:.cpp=.o)
+
+# Define the output library
+FAN_LIB := fan.$(OUT_FILE_FORMAT)
+
+all: $(FAN_LIB)
+
+$(FAN_LIB): $(FAN_OBJ)
+	llvm-ar rcs $(OUTPUT_PATH)$@ $^
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(FAN_OBJ) $(OUTPUT_PATH)$(FAN_LIB)
