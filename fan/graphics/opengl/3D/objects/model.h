@@ -1,3 +1,5 @@
+#pragma once
+
 namespace fan_3d {
   namespace model {
 
@@ -216,9 +218,8 @@ namespace fan_3d {
            aiTextureType_METALNESS
         });
       fan::color color_diffuse;
-      bool texture_found = false;
       for (auto& i : arr) {
-        texture_found = load_texture(scene, scene->mMaterials[mesh->mMaterialIndex],
+        load_texture(scene, scene->mMaterials[mesh->mMaterialIndex],
           i, root_path, channels_rgba, parsed_model, md.size() - 1);
       }
       /*if (texture_found == false) {
@@ -253,15 +254,12 @@ namespace fan_3d {
           vertex.normal = 0;
         }
         //process uv
-        if (mesh->mTextureCoords) {
+        if (mesh->mTextureCoords[0]) {
           fan::vec2 vec;
+          vec.x = mesh->mTextureCoords[0][i].x;
+          vec.y = mesh->mTextureCoords[0][i].y;
 
-          if (mesh->mTextureCoords[0]) {
-            vec.x = mesh->mTextureCoords[0][i].x;
-            vec.y = mesh->mTextureCoords[0][i].y;
-
-            vertex.uv = vec;
-          }
+          vertex.uv = vec;
         }
         else {
           vertex.uv = 0;
@@ -1252,7 +1250,10 @@ namespace fan {
 
         gloco->get_context().set_depth_test(true);
         static fan::vec3 light_pos = 0;
-        ImGui::Text(gloco->camera_get_position(gloco->perspective_camera.camera).to_string().c_str());
+        {
+          auto str = gloco->camera_get_position(gloco->perspective_camera.camera).to_string();
+          ImGui::Text("%s", str.c_str());
+        }
         ImGui::DragFloat3("light position", light_pos.data());
         fan::vec4 lpt = fan::vec4(light_pos, 1);
         gloco->shader_set_value(m_shader, "light_pos", *(fan::vec3*)&lpt);

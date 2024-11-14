@@ -261,7 +261,8 @@ struct loco_t : fan::opengl::context_t {
       }(args), ...);
     constexpr uintptr_t count = (!!(sizeof(Ts) + 1) + ...);
     static_assert(count % 2 == 0);
-    uintptr_t LastKeyOffset = s - (sizeof(Ts), ...) - 1;
+    constexpr uintptr_t last_sizeof = (static_cast<uintptr_t>(0), ..., sizeof(Ts));
+    uintptr_t LastKeyOffset = s - last_sizeof - 1;
     gloco->shaper.PrepareKeysForAdd(&a, LastKeyOffset);
     return gloco->shaper.add(sti, &a, s, &rd, &d);
   }
@@ -3853,7 +3854,7 @@ namespace fan {
           handle_item_interaction(file_info);
 
           ImGui::PopStyleColor();
-          ImGui::TextWrapped(file_info.filename.c_str());
+          ImGui::TextWrapped("%s", file_info.filename.c_str());
           ImGui::NextColumn();
           ImGui::PopID();
         }
@@ -3925,7 +3926,7 @@ namespace fan {
 
           if (ImGui::BeginDragDropSource()) {
             ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEM", file_info.item_path.data(), (file_info.item_path.size() + 1) * sizeof(wchar_t));
-            ImGui::Text(file_info.filename.c_str());
+            ImGui::Text("%s", file_info.filename.c_str());
             ImGui::EndDragDropSource();
           }
         }
