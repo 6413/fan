@@ -1,5 +1,44 @@
 #pragma once
 
+#define fan_vector_simple
+
+#if defined(fan_vector_simple)
+#include <cstdint>
+
+namespace fan {
+
+using access_type_t = uint8_t;
+
+template <typename T>
+struct vec0_wrap_t {
+
+};
+template <typename T>
+struct vec1_wrap_t {
+  T x = 0;
+  constexpr T& operator[](access_type_t idx) { return x; }
+  constexpr const T& operator[](access_type_t idx) const { return x; }
+};
+template <typename T>
+struct vec2_wrap_t {
+  T x = 0, y = 0;
+  constexpr T& operator[](access_type_t idx) { return (idx == 0) ? x : y; }
+  constexpr const T& operator[](access_type_t idx) const { return (idx == 0) ? x : y; }
+};
+template <typename T>
+struct vec3_wrap_t {
+  T x = 0, y = 0, z = 0;
+  constexpr T& operator[](access_type_t idx) { return (&x)[idx]; }
+  constexpr const T& operator[](access_type_t idx) const { return (&x)[idx]; }
+};
+template <typename T>
+struct vec4_wrap_t {
+  T x = 0, y = 0, z = 0, w = 0;
+  constexpr T& operator[](access_type_t idx) { return (&x)[idx]; }
+  constexpr const T& operator[](access_type_t idx) const { return (&x)[idx]; }
+};
+
+#else
 #include <iostream>
 #include <algorithm>
 #include <numeric>
@@ -26,8 +65,6 @@
   #include <assimp/vector3.h>
 #endif
 
-
-namespace fan {
 
   using access_type_t = uint16_t;
 
@@ -155,7 +192,7 @@ namespace fan {
     constexpr vec4_wrap_t(const ImVec4& v) { x = v.x; y = v.y; z = v.z; w = v.w; }
 #endif
   };
-
+#endif
 	 using vec1b = vec1_wrap_t<bool>;
    using vec2b = vec2_wrap_t<bool>;
 	 using vec3b = vec3_wrap_t<bool>;
@@ -186,10 +223,12 @@ namespace fan {
 	 using vec3d = vec3_wrap_t<f64_t>;
 	 using vec4d = vec4_wrap_t<f64_t>;
 
-   using vec1 = vec1_wrap_t<cf_t>;
-	 using vec2 = vec2_wrap_t<cf_t>;
-	 using vec3 = vec3_wrap_t<cf_t>;
-	 using vec4 = vec4_wrap_t<cf_t>;
+   using vec1 = vec1_wrap_t<f32_t>;
+	 using vec2 = vec2_wrap_t<f32_t>;
+	 using vec3 = vec3_wrap_t<f32_t>;
+	 using vec4 = vec4_wrap_t<f32_t>;
+
+#if !defined(fan_vector_simple)
 
 	template <typename casted_t, template<typename> typename vec_t, typename old_t>
 	constexpr vec_t<casted_t> cast(const vec_t<old_t>& v) { return vec_t<casted_t>(v); }
@@ -207,11 +246,14 @@ namespace fan {
 
   using line = fan::pair_t<fan::vec2, fan::vec2>;
   using line3 = fan::pair_t<fan::vec3, fan::vec3>;
-}
-
 #undef fan_coordinate_letters0
 #undef fan_coordinate_letters1
 #undef fan_coordinate_letters2
 #undef fan_coordinate_letters3
 #undef fan_coordinate_letters4
 #undef fan_coordinate
+#endif
+
+}
+
+#undef fan_vector_simple

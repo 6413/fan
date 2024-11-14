@@ -984,7 +984,7 @@ namespace fan {
 
       static constexpr auto vertex_shaders = std::to_array({
         R"(
-					#version 440 core
+					#version 410 core
 					layout (location = 0) in vec3 vertex;
 					layout (location = 1) in vec3 normal;
 					layout (location = 2) in vec2 uv;
@@ -1024,7 +1024,7 @@ namespace fan {
 					}
 			)",//model_gpu_vs
         R"(
-					#version 440 core
+					#version 410 core
 					layout (location = 0) in vec3 vertex;
 					layout (location = 1) in vec3 normal;
 					layout (location = 2) in vec2 uv;
@@ -1065,7 +1065,7 @@ namespace fan {
 					}
 			)",//animation_gpu_vs
         R"(
-					#version 440 core
+					#version 410 core
 					layout (location = 0) in vec3 vertex;
 					layout (location = 1) in vec3 normal;
 					layout (location = 2) in vec2 uv;
@@ -1107,7 +1107,7 @@ namespace fan {
         });
 
       std::string texture_fs = R"(
-      #version 440 core
+      #version 410 core
 
      in vec2 tex_coord;
      in vec3 v_normal;
@@ -1150,7 +1150,7 @@ namespace fan {
 			)";
 
       std::string material_fs = R"(
-      #version 440 core
+      #version 410 core
 
      in vec2 tex_coord;
      in vec3 v_normal;
