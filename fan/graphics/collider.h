@@ -15,12 +15,35 @@ namespace fan {
   }
 }
 
-constexpr static f32_t bcol_step_time = 0.001f;
+static f32_t bcol_step_time = 0.001f;
 #define BCOL_set_Dimension 2
 #define BCOL_set_IncludePath 
 #define BCOL_set_prefix bcol
 
-#define BCOL_set_DynamicDeltaFunction 
+namespace fan {
+  namespace graphics {
+    inline fan::vec2 gravity = 0;
+    // constant_friction is buggy
+    inline f32_t constant_friction = 0;
+    inline f32_t bump_friction = 0;
+    static void set_gravity(const fan::vec2& v) {
+      gravity = v;
+    }
+    static void set_constant_friction(f32_t v) {
+      constant_friction = v;
+    }
+    static void set_bump_friction(f32_t v) {
+      bump_friction = v;
+    }
+    static void set_step(f32_t v) {
+      bcol_step_time = v;
+    }
+  }
+}
+
+//#define BCOL_set_ConstantFriction fan::graphics::constant_friction
+//#define BCOL_set_ConstantBumpFriction fan::graphics::bump_friction
+#define BCOL_set_DynamicDeltaFunction ObjectData0->Velocity += fan::graphics::gravity;
 #define BCOL_set_StoreExtraDataInsideObject 1
 #define BCOL_set_ExtraDataInsideObject \
   bcol_t::ShapeID_t shape_id;\
@@ -32,6 +55,7 @@ constexpr static f32_t bcol_step_time = 0.001f;
 namespace fan {
   namespace graphics {
     inline bcol_t bcol;
+    inline std::vector<std::function<void()>> bcol_update;
     inline void open_bcol() {
       bcol_t::OpenProperties_t OpenProperties;
 
@@ -62,10 +86,13 @@ namespace fan {
           }
 
           while (bcol_delta >= bcol_step_time) {
+            for (const auto& i : bcol_update) {
+              i();
+            }
             fan::graphics::bcol.Step(bcol_step_time);
-
             bcol_delta -= bcol_step_time;
           }
+          bcol_update.clear();
         }
       };
     }
@@ -124,6 +151,9 @@ namespace fan {
         return bcol.GetObject_Position(oid);
       }
 
+      fan::vec2 get_velocity() {
+        return bcol.GetObject_Velocity(oid);
+      }
       void set_velocity(const fan::vec2& v) {
         bcol.SetObject_Velocity(oid, v);
       }
@@ -132,6 +162,40 @@ namespace fan {
         auto SData = bcol.ShapeData_Circle_Get(data->shape_id);
         SData->Size = v.x;
       }
+
+      void move(const fan::vec2& speed) {
+        f32_t dt = gloco->delta_time;
+        f32_t multiplier = 1;
+
+        fan::vec2 velocity = 0;
+        if (gloco->window.key_pressed(fan::key_shift)) {
+          multiplier = 3;
+        }
+        if (gloco->window.key_pressed(fan::key_d)) {
+          velocity.x = speed.x * multiplier;
+        }
+        else if (gloco->window.key_pressed(fan::key_a)) {
+          velocity.x = -speed.x * multiplier;
+        }
+        else {
+          velocity.x = 0;
+        }
+
+        if (gloco->window.key_pressed(fan::key_w)) {
+          velocity.y = -speed.y * multiplier;
+        }
+        else if (gloco->window.key_pressed(fan::key_s)) {
+          velocity.y = speed.y * multiplier;
+        }
+        else {
+          velocity.y = 0;
+        }
+
+        set_velocity(get_velocity() + velocity);
+
+        set_position(get_collider_position());
+      }
+
       bcol_t::ObjectID_t oid;
     };
     struct collider_hidden_t {
