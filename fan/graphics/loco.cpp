@@ -684,417 +684,414 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
     i();
   }
 
-  static int frames = 0;
-  frames++;
+  shaper_t::KeyTraverse_t KeyTraverse;
+  KeyTraverse.Init(shaper);
 
-    shaper_t::KeyTraverse_t KeyTraverse;
-    KeyTraverse.Init(shaper);
+  uint32_t texture_count = 0;
+  viewport_t viewport;
+  viewport.sic();
+  camera_t camera;
+  camera.sic();
 
-    uint32_t texture_count = 0;
-    viewport_t viewport;
-    viewport.sic();
-    camera_t camera;
-    camera.sic();
+  bool light_buffer_enabled = false;
 
-    bool light_buffer_enabled = false;
+  { // update 3d view every frame
+    auto& camera_perspective = camera_get(perspective_camera.camera);
+    camera_perspective.update_view();
 
-    { // update 3d view every frame
-      auto& camera_perspective = camera_get(perspective_camera.camera);
-      camera_perspective.update_view();
+    camera_perspective.m_view = camera_perspective.get_view_matrix();
+  }
 
-      camera_perspective.m_view = camera_perspective.get_view_matrix();
+  while (KeyTraverse.Loop(shaper)) {
+    
+    shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(shaper);
+
+
+    switch (kti) {
+    case Key_e::blending: {
+      uint8_t Key = *(uint8_t*)KeyTraverse.kd();
+      if (Key) {
+        context.set_depth_test(false);
+        context.opengl.call(get_context().opengl.glEnable, fan::opengl::GL_BLEND);
+        context.opengl.call(get_context().opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+        // shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderLow);
+      }
+      else {
+        context.opengl.call(get_context().opengl.glDisable, fan::opengl::GL_BLEND);
+        context.set_depth_test(true);
+
+        //shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderHigh);
+      }
+      break;
+    }
+    case Key_e::depth: {
+#if defined(depth_debug)
+      depth_t Key = *(depth_t*)KeyTraverse.kd();
+      depth_Key = true;
+      fan::print(Key);
+#endif
+      break;
+    }
+    case Key_e::image: {
+      loco_t::image_t texture = *(loco_t::image_t*)KeyTraverse.kd();
+      if (texture.iic() == false) {
+        // TODO FIX + 0
+        context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 0);
+        context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(texture));
+        //++texture_count;
+      }
+      break;
+    }
+    case Key_e::viewport: {
+      viewport = *(loco_t::viewport_t*)KeyTraverse.kd();
+      break;
+    }
+    case Key_e::camera: {
+      camera = *(loco_t::camera_t*)KeyTraverse.kd();
+      break;
+    }
+    case Key_e::ShapeType: {
+      // if i remove this why it breaks/corrupts?
+      if (*(loco_t::shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd() == loco_t::shape_type_t::light_end) {
+        continue;
+      }
+      break;
+    }
+    case Key_e::light: {
+      if (light_buffer_enabled == false) {
+#if defined(loco_framebuffer)
+        gloco->get_context().set_depth_test(false);
+        gloco->get_context().opengl.call(gloco->get_context().opengl.glEnable, fan::opengl::GL_BLEND);
+        gloco->get_context().opengl.call(gloco->get_context().opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
+        unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
+
+        for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
+          attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+        }
+
+        context.opengl.call(context.opengl.glDrawBuffers, std::size(attachments), attachments);
+        light_buffer_enabled = true;
+#endif
+      }
+      break;
+    }
+    case Key_e::light_end: {
+      if (light_buffer_enabled) {
+#if defined(loco_framebuffer)
+        gloco->get_context().set_depth_test(true);
+        unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
+
+        for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
+          attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+        }
+
+        context.opengl.call(context.opengl.glDrawBuffers, 1, attachments);
+        light_buffer_enabled = false;
+#endif
+        continue;
+      }
+      break;
+    }
     }
 
-    while (KeyTraverse.Loop(shaper)) {
+    if (KeyTraverse.isbm) {
       
-      shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(shaper);
+      shaper_t::BlockTraverse_t BlockTraverse;
+      shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(shaper, KeyTraverse.bmid());
 
+      if (shape_type == shape_type_t::light_end) {
+        break;
+      }
 
-      switch (kti) {
-      case Key_e::blending: {
-        uint8_t Key = *(uint8_t*)KeyTraverse.kd();
-        if (Key) {
-          context.set_depth_test(false);
-          context.opengl.call(get_context().opengl.glEnable, fan::opengl::GL_BLEND);
-          context.opengl.call(get_context().opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
-         // shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderLow);
+  /*     if (shape_type == shape_type_t::vfi) {
+        break;
+      }*/
+
+      do {
+        auto shader = shaper.GetShader(shape_type);
+#if fan_debug >= fan_debug_medium
+        if (shape_type == loco_t::shape_type_t::vfi || shape_type == loco_t::shape_type_t::light_end) {
+          break;
+        }
+        else if ((shape_type == 0 || shader.iic())) {
+          fan::throw_error("invalid stuff");
+        }
+#endif
+        context.shader_use(shader);
+
+        if (camera.iic() == false) {
+          context.shader_set_camera(shader, &camera);
         }
         else {
-          context.opengl.call(get_context().opengl.glDisable, fan::opengl::GL_BLEND);
-          context.set_depth_test(true);
-
-          //shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderHigh);
+          context.shader_set_camera(shader, &orthographic_camera.camera);
         }
-        break;
-      }
-      case Key_e::depth: {
+        if (viewport.iic() == false) {
+          auto& v = viewport_get(viewport);
+          context.viewport_set(v.viewport_position, v.viewport_size, window.get_size());
+        }
+        context.shader_set_value(shader, "_t00", 0);
+        context.shader_set_value(shader, "_t01", 1);
 #if defined(depth_debug)
-        depth_t Key = *(depth_t*)KeyTraverse.kd();
-        depth_Key = true;
-        fan::print(Key);
-#endif
-        break;
-      }
-      case Key_e::image: {
-        loco_t::image_t texture = *(loco_t::image_t*)KeyTraverse.kd();
-        if (texture.iic() == false) {
-          // TODO FIX + 0
-          context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 0);
-          context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(texture));
-          //++texture_count;
+        if (depth_Key) {
+          auto& ri = *(fan::vec3*)BlockTraverse.GetRenderData(shaper);
+          fan::print("d", ri.z);
         }
-        break;
-      }
-      case Key_e::viewport: {
-        viewport = *(loco_t::viewport_t*)KeyTraverse.kd();
-        break;
-      }
-      case Key_e::camera: {
-        camera = *(loco_t::camera_t*)KeyTraverse.kd();
-        break;
-      }
-      case Key_e::ShapeType: {
-        // if i remove this why it breaks/corrupts?
-        if (*(loco_t::shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd() == loco_t::shape_type_t::light_end) {
-          continue;
-        }
-        break;
-      }
-      case Key_e::light: {
-        if (light_buffer_enabled == false) {
-#if defined(loco_framebuffer)
-          gloco->get_context().set_depth_test(false);
-          gloco->get_context().opengl.call(gloco->get_context().opengl.glEnable, fan::opengl::GL_BLEND);
-          gloco->get_context().opengl.call(gloco->get_context().opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
-          unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
-
-          for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-            attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
-          }
-
-          context.opengl.call(context.opengl.glDrawBuffers, std::size(attachments), attachments);
-          light_buffer_enabled = true;
-#endif
-        }
-        break;
-      }
-      case Key_e::light_end: {
-        if (light_buffer_enabled) {
-#if defined(loco_framebuffer)
-          gloco->get_context().set_depth_test(true);
-          unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
-
-          for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-            attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
-          }
-
-          context.opengl.call(context.opengl.glDrawBuffers, 1, attachments);
-          light_buffer_enabled = false;
-#endif
-          continue;
-        }
-        break;
-      }
-      }
-
-      if (KeyTraverse.isbm) {
-        
-        shaper_t::BlockTraverse_t BlockTraverse;
-        shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(shaper, KeyTraverse.bmid());
-
-        if (shape_type == shape_type_t::light_end) {
-          break;
-        }
-
-   /*     if (shape_type == shape_type_t::vfi) {
-          break;
-        }*/
-
-        do {
-          auto shader = shaper.GetShader(shape_type);
-#if fan_debug >= fan_debug_medium
-          if (shape_type == loco_t::shape_type_t::vfi || shape_type == loco_t::shape_type_t::light_end) {
-            break;
-          }
-          else if ((shape_type == 0 || shader.iic())) {
-            fan::throw_error("invalid stuff");
-          }
-#endif
-          context.shader_use(shader);
-
-          if (camera.iic() == false) {
-            context.shader_set_camera(shader, &camera);
-          }
-          else {
-            context.shader_set_camera(shader, &orthographic_camera.camera);
-          }
-          if (viewport.iic() == false) {
-            auto& v = viewport_get(viewport);
-            context.viewport_set(v.viewport_position, v.viewport_size, window.get_size());
-          }
-          context.shader_set_value(shader, "_t00", 0);
-          context.shader_set_value(shader, "_t01", 1);
-#if defined(depth_debug)
-          if (depth_Key) {
-            auto& ri = *(fan::vec3*)BlockTraverse.GetRenderData(shaper);
-            fan::print("d", ri.z);
-          }
 #endif
 #if fan_debug >= fan_debug_high
-          switch (shape_type) {
-          default: {
-            if (camera.iic()) {
-              fan::throw_error("failed to get camera");
-            }
-            if (viewport.iic()) {
-              fan::throw_error("failed to get viewport");
-            }
-            break;
+        switch (shape_type) {
+        default: {
+          if (camera.iic()) {
+            fan::throw_error("failed to get camera");
           }
+          if (viewport.iic()) {
+            fan::throw_error("failed to get viewport");
           }
+          break;
+        }
+        }
 #endif
 
-          if (shape_type == loco_t::shape_type_t::universal_image_renderer) {
-            auto shader = shaper.GetShader(shape_type);
-            
-            auto& ri = *(universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
+        if (shape_type == loco_t::shape_type_t::universal_image_renderer) {
+          auto shader = shaper.GetShader(shape_type);
+          
+          auto& ri = *(universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
 
-            if (ri.images_rest[0].iic() == false) {
-              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 1);
-              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[0]));
-              context.shader_set_value(shader, "_t01", 1);
-            }
-            if (ri.images_rest[1].iic() == false) {
-              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 2);
-              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[1]));
-              context.shader_set_value(shader, "_t02", 2);
-            }
-
-            if (ri.images_rest[2].iic() == false) {
-              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 3);
-              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[2]));
-              context.shader_set_value(shader, "_t03", 3);
-            }
-            //fan::throw_error("shaper design is changed");
+          if (ri.images_rest[0].iic() == false) {
+            context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 1);
+            context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[0]));
+            context.shader_set_value(shader, "_t01", 1);
           }
-          else if (shape_type == loco_t::shape_type_t::sprite ||
-            shape_type == loco_t::shape_type_t::unlit_sprite || 
-            shape_type == loco_t::shape_type_t::shader_shape) {
-            //fan::print("shaper design is changed");
-            auto& ri = *(sprite_t::ri_t*)BlockTraverse.GetData(shaper);
-            auto shader = shaper.GetShader(shape_type);
-            for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
-              if (ri.images[i - 2].iic() == false) {
-                context.shader_set_value(shader, "_t0" + std::to_string(i), i);
-                context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
-                context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images[i - 2]));
-              }
-            }
+          if (ri.images_rest[1].iic() == false) {
+            context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 2);
+            context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[1]));
+            context.shader_set_value(shader, "_t02", 2);
           }
 
-          if (shape_type != loco_t::shape_type_t::light) {
-
-            if (shape_type == loco_t::shape_type_t::sprite || shape_type == loco_t::shape_type_t::unlit_sprite) {
-              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(color_buffers[1]));
+          if (ri.images_rest[2].iic() == false) {
+            context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 3);
+            context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[2]));
+            context.shader_set_value(shader, "_t03", 3);
+          }
+          //fan::throw_error("shaper design is changed");
+        }
+        else if (shape_type == loco_t::shape_type_t::sprite ||
+          shape_type == loco_t::shape_type_t::unlit_sprite || 
+          shape_type == loco_t::shape_type_t::shader_shape) {
+          //fan::print("shaper design is changed");
+          auto& ri = *(sprite_t::ri_t*)BlockTraverse.GetData(shaper);
+          auto shader = shaper.GetShader(shape_type);
+          for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
+            if (ri.images[i - 2].iic() == false) {
+              context.shader_set_value(shader, "_t0" + std::to_string(i), i);
+              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
+              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images[i - 2]));
             }
+          }
+        }
 
-            auto& c = camera_get(camera);
+        if (shape_type != loco_t::shape_type_t::light) {
 
-            context.shader_set_value(
-              shader,
-              "matrix_size",
-              fan::vec2(c.coordinates.right - c.coordinates.left, c.coordinates.down - c.coordinates.up).abs()
+          if (shape_type == loco_t::shape_type_t::sprite || shape_type == loco_t::shape_type_t::unlit_sprite) {
+            context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+            context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(color_buffers[1]));
+          }
+
+          auto& c = camera_get(camera);
+
+          context.shader_set_value(
+            shader,
+            "matrix_size",
+            fan::vec2(c.coordinates.right - c.coordinates.left, c.coordinates.down - c.coordinates.up).abs()
+          );
+          context.shader_set_value(
+            shader,
+            "viewport",
+            fan::vec4(
+              viewport_get_position(viewport),
+              viewport_get_size(viewport)
+            )
+          );
+          context.shader_set_value(
+            shader,
+            "window_size",
+            fan::vec2(window.get_size())
+          );
+          context.shader_set_value(
+            shader,
+            "camera_position",
+            c.position
+          );
+          context.shader_set_value(
+            shader,
+            "m_time",
+            f32_t((fan::time::clock::now() - start_time) / 1e+9)
+          );
+          //fan::print(fan::time::clock::now() / 1e+9);
+          context.shader_set_value(shader, loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
+        }
+
+        auto m_vao = shaper.GetVAO(shape_type);
+        auto m_vbo = shaper.GetVAO(shape_type);
+
+        m_vao.bind(context);
+        m_vbo.bind(context);
+
+        if (context.major < 4 || (context.major == 4 && context.minor < 2)) {
+          uintptr_t offset = BlockTraverse.GetRenderDataOffset(shaper);
+          std::vector<shape_gl_init_t>& locations = shaper.GetLocations(shape_type);
+          for (const auto& location : locations) {
+            context.opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
+            switch (location.type) {
+            case fan::opengl::GL_FLOAT: {
+              offset += location.size * sizeof(fan::opengl::GLfloat);
+              break;
+            }
+            case fan::opengl::GL_UNSIGNED_INT: {
+              offset += location.size * sizeof(fan::opengl::GLuint);
+              break;
+            }
+            default: {
+              fan::throw_error_impl();
+            }
+            }
+          }
+        }
+
+        switch (shape_type) {
+        case shape_type_t::rectangle3d: {
+          if (context.major >= 4 && context.minor >= 2) {
+            context.opengl.glDrawArraysInstancedBaseInstance(
+              fan::opengl::GL_TRIANGLES,
+              0,
+              36,
+              BlockTraverse.GetAmount(shaper),
+              BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
             );
-            context.shader_set_value(
-              shader,
-              "viewport",
-              fan::vec4(
-                viewport_get_position(viewport),
-                viewport_get_size(viewport)
-              )
+          }
+          else {
+            // this is broken somehow with rectangle3d
+            context.opengl.glDrawArraysInstanced(
+              fan::opengl::GL_TRIANGLES,
+              0,
+              36,
+              BlockTraverse.GetAmount(shaper)
             );
-            context.shader_set_value(
-              shader,
-              "window_size",
-              fan::vec2(window.get_size())
+          }
+          break;
+        }
+        case shape_type_t::line: {
+          if (context.major >= 4 && context.minor >= 2) {
+            context.opengl.glDrawArraysInstancedBaseInstance(
+              fan::opengl::GL_LINES,
+              0,
+              2,
+              BlockTraverse.GetAmount(shaper),
+              BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
             );
-            context.shader_set_value(
-              shader,
-              "camera_position",
-              c.position
+          }
+          else {
+            context.opengl.glDrawArraysInstanced(
+              fan::opengl::GL_LINES,
+              0,
+              2,
+              BlockTraverse.GetAmount(shaper)
             );
-            context.shader_set_value(
-              shader,
-              "m_time",
-              f32_t((fan::time::clock::now() - start_time) / 1e+9)
+          }
+
+
+          break;
+        }
+        case shape_type_t::particles: {
+          //fan::print("shaper design is changed");
+          particles_t::ri_t* pri = (particles_t::ri_t*)BlockTraverse.GetData(shaper);
+          loco_t::shader_t shader = shaper.GetShader(shape_type_t::particles);
+
+          for (int i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
+            auto& ri = pri[i];
+            context.shader_set_value(shader, "time", (f32_t)((fan::time::clock::now() - ri.begin_time) / 1e+9));
+            context.shader_set_value(shader, "vertex_count", 6);
+            context.shader_set_value(shader, "count", ri.count);
+            context.shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time / 1e+9));
+            context.shader_set_value(shader, "respawn_time", (f32_t)(ri.respawn_time / 1e+9));
+            context.shader_set_value(shader, "position", *(fan::vec2*)&ri.position);
+            context.shader_set_value(shader, "size", ri.size);
+            context.shader_set_value(shader, "position_velocity", ri.position_velocity);
+            context.shader_set_value(shader, "angle_velocity", ri.angle_velocity);
+            context.shader_set_value(shader, "begin_angle", ri.begin_angle);
+            context.shader_set_value(shader, "end_angle", ri.end_angle);
+            context.shader_set_value(shader, "angle", ri.angle);
+            context.shader_set_value(shader, "color", ri.color);
+            context.shader_set_value(shader, "gap_size", ri.gap_size);
+            context.shader_set_value(shader, "max_spread_size", ri.max_spread_size);
+            context.shader_set_value(shader, "size_velocity", ri.size_velocity);
+
+            context.shader_set_value(shader, "shape", ri.shape);
+
+            // TODO how to get begin?
+            context.opengl.glDrawArrays(
+              fan::opengl::GL_TRIANGLES,
+              0,
+              ri.count
             );
-            //fan::print(fan::time::clock::now() / 1e+9);
-            context.shader_set_value(shader, loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
           }
 
-          auto m_vao = shaper.GetVAO(shape_type);
-          auto m_vbo = shaper.GetVAO(shape_type);
+          break;
+        }
+        case shape_type_t::letter: {// intended fallthrough
+          context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+          context.shader_set_value(
+            shader,
+            "_t00",
+            0
+          );
+          gloco->image_bind(gloco->font.image);
 
-          m_vao.bind(context);
-          m_vbo.bind(context);
-
-          if (context.major < 4 || (context.major == 4 && context.minor < 2)) {
-            uintptr_t offset = BlockTraverse.GetRenderDataOffset(shaper);
-            std::vector<shape_gl_init_t>& locations = shaper.GetLocations(shape_type);
-            for (const auto& location : locations) {
-              context.opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
-              switch (location.type) {
-              case fan::opengl::GL_FLOAT: {
-                offset += location.size * sizeof(fan::opengl::GLfloat);
-                break;
-              }
-              case fan::opengl::GL_UNSIGNED_INT: {
-                offset += location.size * sizeof(fan::opengl::GLuint);
-                break;
-              }
-              default: {
-                fan::throw_error_impl();
-              }
-              }
-            }
-          }
-
-          switch (shape_type) {
-          case shape_type_t::rectangle3d: {
-            if (context.major >= 4 && context.minor >= 2) {
-              context.opengl.glDrawArraysInstancedBaseInstance(
-                fan::opengl::GL_TRIANGLES,
-                0,
-                36,
-                BlockTraverse.GetAmount(shaper),
-                BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
-              );
-            }
-            else {
-              // this is broken somehow with rectangle3d
-              context.opengl.glDrawArraysInstanced(
-                fan::opengl::GL_TRIANGLES,
-                0,
-                36,
-                BlockTraverse.GetAmount(shaper)
-              );
-            }
-            break;
-          }
-          case shape_type_t::line: {
-            if (context.major >= 4 && context.minor >= 2) {
-              context.opengl.glDrawArraysInstancedBaseInstance(
-                fan::opengl::GL_LINES,
-                0,
-                2,
-                BlockTraverse.GetAmount(shaper),
-                BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
-              );
-            }
-            else {
-              context.opengl.glDrawArraysInstanced(
-                fan::opengl::GL_LINES,
-                0,
-                2,
-                BlockTraverse.GetAmount(shaper)
-              );
-            }
-
-
-            break;
-          }
-          case shape_type_t::particles: {
-            //fan::print("shaper design is changed");
-            particles_t::ri_t* pri = (particles_t::ri_t*)BlockTraverse.GetData(shaper);
-            loco_t::shader_t shader = shaper.GetShader(shape_type_t::particles);
-
-            for (int i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
-              auto& ri = pri[i];
-              context.shader_set_value(shader, "time", (f32_t)((fan::time::clock::now() - ri.begin_time) / 1e+9));
-              context.shader_set_value(shader, "vertex_count", 6);
-              context.shader_set_value(shader, "count", ri.count);
-              context.shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time / 1e+9));
-              context.shader_set_value(shader, "respawn_time", (f32_t)(ri.respawn_time / 1e+9));
-              context.shader_set_value(shader, "position", *(fan::vec2*)&ri.position);
-              context.shader_set_value(shader, "size", ri.size);
-              context.shader_set_value(shader, "position_velocity", ri.position_velocity);
-              context.shader_set_value(shader, "angle_velocity", ri.angle_velocity);
-              context.shader_set_value(shader, "begin_angle", ri.begin_angle);
-              context.shader_set_value(shader, "end_angle", ri.end_angle);
-              context.shader_set_value(shader, "angle", ri.angle);
-              context.shader_set_value(shader, "color", ri.color);
-              context.shader_set_value(shader, "gap_size", ri.gap_size);
-              context.shader_set_value(shader, "max_spread_size", ri.max_spread_size);
-              context.shader_set_value(shader, "size_velocity", ri.size_velocity);
-
-              context.shader_set_value(shader, "shape", ri.shape);
-
-              // TODO how to get begin?
-              context.opengl.glDrawArrays(
-                fan::opengl::GL_TRIANGLES,
-                0,
-                ri.count
-              );
-            }
-
-            break;
-          }
-          case shape_type_t::letter: {// intended fallthrough
-            context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-            context.shader_set_value(
-              shader,
-              "_t00",
-              0
+        }// fallthrough
+        default: {
+          if (context.major >= 4) {
+            context.opengl.glDrawArraysInstancedBaseInstance(
+              fan::opengl::GL_TRIANGLES,
+              0,
+              6,
+              BlockTraverse.GetAmount(shaper),
+              BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
             );
-            gloco->image_bind(gloco->font.image);
-
-          }// fallthrough
-          default: {
-            if (context.major >= 4) {
-              context.opengl.glDrawArraysInstancedBaseInstance(
-                fan::opengl::GL_TRIANGLES,
-                0,
-                6,
-                BlockTraverse.GetAmount(shaper),
-                BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
-              );
-            }
-            else {
-              context.opengl.glDrawArraysInstanced(
-                fan::opengl::GL_TRIANGLES,
-                0,
-                6,
-                BlockTraverse.GetAmount(shaper)
-              );
-            }
-
-            break;
           }
+          else {
+            context.opengl.glDrawArraysInstanced(
+              fan::opengl::GL_TRIANGLES,
+              0,
+              6,
+              BlockTraverse.GetAmount(shaper)
+            );
           }
 
-          //offset = 0;
-          //// might be unnecessary
-          //for (const auto& location : block.locations) {
-          //  context.opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
-          //  switch (location.type) {
-          //  case fan::opengl::GL_FLOAT: {
-          //    offset += location.size * sizeof(f32_t);
-          //    break;
-          //  }
-          //  case fan::opengl::GL_UNSIGNED_INT: {
-          //    offset += location.size * sizeof(uint32_t);
-          //    break;
-          //  }
-          //  default: {
-          //    fan::throw_error_impl();
-          //  }
-          //  }
-          //}
-          } while (BlockTraverse.Loop(shaper));
-      }
+          break;
+        }
+        }
 
+        //offset = 0;
+        //// might be unnecessary
+        //for (const auto& location : block.locations) {
+        //  context.opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
+        //  switch (location.type) {
+        //  case fan::opengl::GL_FLOAT: {
+        //    offset += location.size * sizeof(f32_t);
+        //    break;
+        //  }
+        //  case fan::opengl::GL_UNSIGNED_INT: {
+        //    offset += location.size * sizeof(uint32_t);
+        //    break;
+        //  }
+        //  default: {
+        //    fan::throw_error_impl();
+        //  }
+        //  }
+        //}
+        } while (BlockTraverse.Loop(shaper));
     }
+
+  }
 
 
   //uint8_t draw_range = 0;
@@ -2057,7 +2054,7 @@ inline fan::vec2 fan::graphics::gl_font_impl::font_t::get_text_size(const fan::s
 void fan::graphics::text(const std::string& text, const fan::vec2& position, const fan::color& color) {
   ImGui::SetCursorPos(position);
   ImGui::PushStyleColor(ImGuiCol_Text, color);
-  ImGui::Text(text.c_str());
+  ImGui::Text("%s", text.c_str());
   ImGui::PopStyleColor();
 }
 

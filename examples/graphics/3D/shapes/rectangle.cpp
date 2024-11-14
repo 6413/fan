@@ -1,6 +1,7 @@
 #include <fan/pch.h>
 
 int main() {
+
   loco_t loco;
   loco.set_vsync(0);
 
@@ -18,7 +19,7 @@ int main() {
 
 
   fan::graphics::model_t::properties_t p;
-  p.path = "models/sphere_optimized.fbx";
+  p.path = "models/cube.fbx";
   // sponza model has different coordinate system so fix it by rotating model matrix
   //p.model = fan::mat4(1).rotate(fan::math::pi / 2, fan::vec3(1, 0, 0));
   p.model = p.model.scale(0.01);

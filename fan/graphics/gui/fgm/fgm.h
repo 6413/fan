@@ -133,11 +133,6 @@ struct image_divider_t {
     ImGui::GetStyle().ItemSpacing.x = 1;
     ImGui::GetStyle().ItemSpacing.y = 1;
 
-    std::size_t vec_size = 0;
-    for (std::size_t i = 0; i < images.size(); ++i) {
-      vec_size += images[i].size();
-    }
-
     ImGui::NextColumn();
 
     ImGui::BeginChild("image");
@@ -436,7 +431,7 @@ struct fgm_t {
   void open_properties(fgm_t::shapes_t::global_t* shape, const fan::vec2& editor_size) {
 
     fan::string shape_str = fan::string("Shape name:") + gloco->shape_names[shape->children[0].get_shape_type()];
-    ImGui::Text(shape_str.c_str());
+    ImGui::Text("%s", shape_str.c_str());
 
     make_line(fan::vec3, position);
     make_line(fan::vec2, size);
@@ -611,7 +606,7 @@ struct fgm_t {
         node_flags |= ImGuiTreeNodeFlags_Selected;
 
       // Determine if this node is selected
-      bool node_open = ImGui::TreeNodeEx((void*)(intptr_t)it.NRI, node_flags, "Node %d", (intptr_t)it.NRI);
+      bool node_open = ImGui::TreeNodeEx((void*)(intptr_t)it.NRI, node_flags, "Node %ld", (intptr_t)it.NRI);
 
       if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
         node_clicked = (intptr_t)it.NRI;
@@ -646,7 +641,7 @@ struct fgm_t {
       if (child_index + 1 >= children.size())
         node_flags |= ImGuiTreeNodeFlags_Leaf;
 
-      bool node_open = ImGui::TreeNodeEx((void*)(intptr_t)child.NRI, node_flags, "%s %lu", gloco->shape_names[child.get_shape_type()], child.NRI);
+      bool node_open = ImGui::TreeNodeEx((void*)(intptr_t)child.NRI, node_flags, "%s %u", gloco->shape_names[child.get_shape_type()], child.NRI);
 
       if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
         node_clicked = (intptr_t)child.NRI;

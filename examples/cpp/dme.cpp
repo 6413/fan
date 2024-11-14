@@ -526,28 +526,27 @@ struct dme2_t : __dme_inherit(dme2_t, data_we_want_t) {
 int main() {
   dme2_t c;
   printf("%s %s %d\n", c.a_str, typeid(dme2_t::a_t).name(), c.NA(0)->m_DSS);
-  c.b.AN();
   c.GetMemberAmount();
 
   dme_t a;
   dme_t b;
 
   //
-#if DME_VERIFY_PRINT == 1
-  printf("%llu %llu %llu %llu %d %d", a.a.I, b.a.I, b.z8.I, a.b.I, (int)a.z8, (int)c.c);
-#endif
+//#if DME_VERIFY_PRINT == 1
+  printf("%d %d %d %d %d %d", (int)a.a, (int)b.a, (int)b.z8, (int)a.b, (int)a.z8, (int)c.c);
+//#endif
 
 #if VERIFY_DME == 1
-  assert(a.a.I == 0);
-  assert(b.a.I == 0);
+  assert(a.a == 0);
+  assert(b.a == 0);
   assert((int)b.z8 == 233);
-  assert((int)c.c == 2 && c.c.I == 2);
-  assert((void*)c.NA(2) == (void*)&c.c);
+  assert((int)c.c == 2 && c.c == 2);
+  assert((void*)c.NA(2) == (void*)&c.c_ram);
   assert(c.GetMemberAmount() == sizeof(c) / sizeof(decltype(c)::dme_type_t));
   //decltype(c.d)::dt::;
 
   //printf("%s\n", typeid(std::tuple_element_t<0, std::tuple<decltype(a.b)::a_t>>).name());
 #endif
   
-  return a.a.I + b.a.I + b.z8 + a.b + a.z8 + c.c;
+  return a.a + b.a + b.z8 + a.b + a.z8 + c.c;
 }
