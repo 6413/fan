@@ -1247,11 +1247,21 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
   ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
   ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
   ImGui::PopStyleColor(2);
+
+  ImGui::SetNextWindowPos(ImVec2(0, 0));
+  ImGui::SetNextWindowSize(window.get_size());
+  ImGui::Begin("##text_render", 0, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar);
 #endif
 
   lambda();
+
+#if defined(loco_imgui)
+    ImGui::End();
+#endif
+
   process_frame();
   window.handle_events();
+  
   if (glfwWindowShouldClose(window)) {
     window.close();
     return 1;
@@ -2043,6 +2053,25 @@ inline fan::vec2 fan::graphics::gl_font_impl::font_t::get_text_size(const fan::s
 }
 
 #if defined(loco_imgui)
+
+void fan::graphics::text(const std::string& text, const fan::vec2& position, const fan::color& color) {
+  ImGui::SetCursorPos(position);
+  ImGui::PushStyleColor(ImGuiCol_Text, color);
+  ImGui::Text(text.c_str());
+  ImGui::PopStyleColor();
+}
+
+void fan::graphics::text_bottom_right(const std::string& text, const fan::color& color, const fan::vec2& offset) {
+  ImVec2 text_pos;
+  ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
+  ImVec2 window_pos = ImGui::GetWindowPos();
+  ImVec2 window_size = ImGui::GetWindowSize();
+
+  text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
+  text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
+  fan::graphics::text(text, text_pos + offset, color);
+}
+
 IMGUI_API void ImGui::Image(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) {
   ImGui::Image((ImTextureID)gloco->image_get(img), size, uv0, uv1, tint_col, border_col);
 }
@@ -2110,26 +2139,20 @@ ImVec2 ImGui::GetPositionBottomCorner(const char* text, uint32_t reverse_yoffset
   return text_pos;
 }
 
-void ImGui::DrawTextBottomRight(const char* text, uint32_t reverse_yoffset)
-{
-    // Retrieve the current window draw list
+void ImGui::DrawTextBottomRight(const char* text, uint32_t reverse_yoffset) {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-    // Retrieve the current window position and size
     ImVec2 window_pos = ImGui::GetWindowPos();
     ImVec2 window_size = ImGui::GetWindowSize();
 
-    // Calculate the size of the text
     ImVec2 text_size = ImGui::CalcTextSize(text);
 
-    // Calculate the position to draw the text (bottom-right corner)
     ImVec2 text_pos;
     text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
     text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
 
     text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
 
-    // Draw the text at the calculated position
     draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), text);
 }
 
