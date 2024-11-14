@@ -8,10 +8,12 @@
 #define loco_vfi
 #define loco_physics
 
-// texture multithread load
-#include <future>
-#include <queue>
-#include <shared_mutex>
+#if defined(loco_assimp)
+  // texture multithread load
+  #include <future>
+  #include <queue>
+  #include <shared_mutex>
+#endif
 
 #include <fan/window/window.h>
 #include <fan/graphics/opengl/gl_core.h>

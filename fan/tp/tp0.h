@@ -1,7 +1,5 @@
 #pragma once
 
-#include <fan/io/json_impl.h>
-
 namespace fan {
   namespace graphics {
     struct ti_t {

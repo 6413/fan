@@ -1,7 +1,9 @@
 #pragma once
 
 #include <fan/graphics/webp.h>
-#include <fan/graphics/stb.h>
+#if !defined(loco_no_stb)
+  #include <fan/graphics/stb.h>
+#endif
 
 namespace fan {
   namespace image {
@@ -20,8 +22,10 @@ namespace fan {
         image_info->type = 0;
       }
       else {
-        ret = fan::stb::load(file, (fan::stb::image_info_t*)image_info);
-        image_info->type = 1;
+        #if !defined(loco_no_stb)
+          ret = fan::stb::load(file, (fan::stb::image_info_t*)image_info);
+          image_info->type = 1;
+        #endif
       }
 #if fan_debug >= fan_debug_low
       if (ret) {
@@ -34,10 +38,14 @@ namespace fan {
       if (image_info->type == 0) { // webp
         fan::webp::free_image(image_info->data);
       }
-      else if (image_info->type == 1) { // webp
+      else if (image_info->type == 1) { // stb
+        #if !defined(loco_no_stb)
         fan::stb::free_image(image_info->data);
+        #endif
       }
     }
 
   }
 }
+
+#undef loco_no_stb
