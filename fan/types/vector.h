@@ -1,10 +1,8 @@
 #pragma once
 
-#define fan_vector_simple
 
 #if defined(fan_vector_simple)
 #include <cstdint>
-
 namespace fan {
 
 using access_type_t = uint8_t;
@@ -65,6 +63,7 @@ struct vec4_wrap_t {
   #include <assimp/vector3.h>
 #endif
 
+namespace fan {
 
   using access_type_t = uint16_t;
 
