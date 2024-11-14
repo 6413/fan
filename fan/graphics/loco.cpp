@@ -2475,8 +2475,6 @@ bool fan::graphics::shape_serialize(loco_t::shape_t& shape, fan::json* out) {
   return shape_to_json(shape, out);
 }
 
-#endif
-
 /*
 shape
 data{
@@ -2719,6 +2717,7 @@ bool fan::graphics::bin_to_shape(const std::string& in, loco_t::shape_t* shape, 
 bool fan::graphics::shape_serialize(loco_t::shape_t& shape, std::string* out) {
   return shape_to_bin(shape, out);
 }
+#endif
 
 bool fan::graphics::texture_packe0::push_texture(fan::opengl::context_t::image_nr_t image, const texture_properties_t& texture_properties) {
 
@@ -2764,6 +2763,7 @@ bool fan::graphics::texture_packe0::push_texture(fan::opengl::context_t::image_n
   return 0;
 }
 
+#if defined(loco_json)
 void fan::graphics::texture_packe0::load_compiled(const char* filename) {
   std::ifstream file(filename);
   fan::json j;
@@ -2814,6 +2814,8 @@ void fan::graphics::texture_packe0::load_compiled(const char* filename) {
     }
   }
 }//
+
+#endif
 
 void fan::camera::move(f32_t movement_speed, f32_t friction) {
   this->velocity /= friction * gloco->delta_time + 1;
