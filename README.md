@@ -126,4 +126,4 @@ Developer console support (F3)
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License, however some external libraries might have different license - see the [LICENSE](LICENSE) file for details.
