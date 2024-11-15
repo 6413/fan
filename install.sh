@@ -20,3 +20,6 @@ mv BLL /usr/local/include/BLL
 
 git clone https://github.com/7244/BVEC.git
 mv BVEC /usr/local/include/BVEC
+
+git clone https://github.com/7244/BDBT.git
+mv BDBT /usr/local/include/BDBT
