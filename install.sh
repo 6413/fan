@@ -10,7 +10,10 @@ apt install -y clang \
 				 libopus-dev \
 				 libx11-dev \
 				 libgtk-3-dev \
-				 libassimp-dev
+				 libassimp-dev \
+				 libpulse-simple-dev \
+				 libopus0 \
+				 libopus-dev
 
 git clone https://github.com/7244/WITCH.git
 mv WITCH /usr/local/include/WITCH
