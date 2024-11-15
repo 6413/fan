@@ -1,4 +1,5 @@
 #!/bin/bash
+./uninstall.sh
 
 apt install -y clang \
 				 make \
