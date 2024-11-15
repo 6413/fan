@@ -9,7 +9,8 @@ apt install -y clang \
 				 libglfw3-dev \
 				 libopus-dev \
 				 libx11-dev \
-				 libgtk-3-dev
+				 libgtk-3-dev \
+				 libassimp-dev
 
 git clone https://github.com/7244/WITCH.git
 mv WITCH /usr/local/include/WITCH
