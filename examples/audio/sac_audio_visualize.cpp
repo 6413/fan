@@ -1,60 +1,41 @@
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 
-#ifndef WITCH_INCLUDE_PATH
-#define WITCH_INCLUDE_PATH WITCH
-#endif
 #undef loco_assimp
 //
-#include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
-
-#include _WITCH_PATH(IO/IO.h)
-#include _WITCH_PATH(FS/FS.h)
-#include _WITCH_PATH(A/A.h)
-#include _WITCH_PATH(IO/print.h)
-#include _WITCH_PATH(TH/TH.h)
 
 #include <fan/types/types.h>
+
+#ifndef WITCH_INCLUDE_PATH
+  #define WITCH_INCLUDE_PATH WITCH
+#endif
+#include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
 #include <fan/audio/audio.h>
 
 #include <fftw/fftw3.h>
 
 #include <fan/pch.h>
 
-void WriteOut(const char* format, ...) {
-  IO_fd_t fd_stdout;
-  IO_fd_set(&fd_stdout, FD_OUT);
-  va_list argv;
-  va_start(argv, format);
-  IO_vprint(&fd_stdout, format, argv);
-  va_end(argv);
-}
-
-int main(int argc, char** argv) {
-  if (argc != 2) {
-    return 0;
-  }
-
+int main() {
   loco_t loco;
 
   struct data_t {
     fan::system_audio_t system_audio;
     std::vector<f32_t> audio_data;
     std::mutex mut;
-  }d;
+  }audio_data;
 
 
-  if (d.system_audio.Open() != 0) {
+  if (audio_data.system_audio.Open() != 0) {
     __abort();
   }
 
   fan::audio_t audio;
-  audio.bind(&d.system_audio);
+  audio.bind(&audio_data.system_audio);
 
   fan::audio_t::piece_t piece;
-  sint32_t err = audio.Open(&piece, "audio/w_voice.sac", 0);
+  sint32_t err = audio.Open(&piece, "audio/output.sac", 0);
   if (err != 0) {
-    WriteOut("piece open failed %lx\n", err);
-    return 0;
+    fan::throw_error("failed to open piece:", err);
   }
 
   {
@@ -78,33 +59,24 @@ int main(int argc, char** argv) {
   p.image = smoke_texture;
   p.color = fan::color(0.4, 0.4, 1.4);
 
-
   std::vector<f32_t> currentHeights;
 
-  IO_fd_t fd_in;
-  IO_fd_set(&fd_in, STDIN_FILENO);
-
-
-
-  d.system_audio.Process.ResultFramesCB = [](fan::system_audio_t::Process_t* Process, float* samples, uint32_t samplesi) {
+  audio_data.system_audio.Process.ResultFramesCB = [](fan::system_audio_t::Process_t* Process, float* samples, uint32_t samplesi) {
     fan::system_audio_t* system_audio = OFFSETLESS(Process, fan::system_audio_t, Process);
     data_t* data = OFFSETLESS(system_audio, data_t, system_audio);
     std::lock_guard<std::mutex> lock(data->mut);
     data->audio_data.clear();
     data->audio_data.insert(data->audio_data.end(), samples, samples + samplesi / 2);
-    };
+  };
+
+
+  audio.SetVolume(0.01);
+  f32_t volume = audio.GetVolume();
 
   std::vector<loco_t::shape_t> shapes;
   loco.loop([&] {
-    uint8_t buffer[0x200];
-    IO_ssize_t r = IO_read(&fd_in, buffer, sizeof(buffer));
-    if (r < 0) {
-      //break;
-      return;
-    }
-
-    std::lock_guard<std::mutex> lock(d.mut);
-    int windowSize = d.audio_data.size();
+    std::lock_guard<std::mutex> lock(audio_data.mut);
+    int windowSize = audio_data.audio_data.size();
 
 
     //shapes.resize(windowSize, p);
@@ -127,7 +99,7 @@ int main(int argc, char** argv) {
 
     // Copy window of audio data to FFTW input
     for (int i = 0; i < windowSize; i++) {
-      fft_in[i][0] = d.audio_data[i] * window[i];  // Apply window
+      fft_in[i][0] = audio_data.audio_data[i] * window[i];  // Apply window
       fft_in[i][1] = 0.0;
     }
 
@@ -195,7 +167,7 @@ int main(int argc, char** argv) {
 
   audio.unbind();
 
-  d.system_audio.Close();
+  audio_data.system_audio.Close();
 
   return 0;
 }
