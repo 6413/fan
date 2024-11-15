@@ -60,7 +60,7 @@ endif()
 
 set(ENABLE_IMGUI ON)
 
-set(CMAKE_CXX_FLAGS "-Winvalid-pch -w ${CMAKE_CXX_FLAGS} -I ${CMAKE_CURRENT_SOURCE_DIR}/${ROOT_PATH}../ -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I ${CMAKE_CURRENT_SOURCE_DIR}/${ROOT_PATH}../ -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-bitwise-op-parentheses -Wno-invalid-offsetof -Wno-missing-designated-field-initializers -Wno-sign-compare -Wno-unused-but-set-parameter -Wno-unused-value")
 set(DEBUG_FLAGS "-g")
 set(RELEASE_FLAGS "-s -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -march=native -Wl,--gc-sections")
 
@@ -72,7 +72,7 @@ if(ENABLE_IMGUI)
 endif()
 
 # loco_json
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dloco_json")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dloco_json -Dloco_assimp")
 
 message("Root path is: ${ROOT_PATH}")
 
@@ -116,7 +116,7 @@ else()
 		list(FILTER FAN_LIBS EXCLUDE REGEX ".*fan.a$")
 	endif()
     # On Linux, use the system libraries
-    target_link_libraries(${OUTPUT} webp glfw X11 ${FAN_LIBS})
+    target_link_libraries(${OUTPUT} fftw3 webp glfw X11 assimp opus pulse-simple ${FAN_LIBS})
 endif()
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
