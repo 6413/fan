@@ -1,5 +1,14 @@
 #!/bin/bash
 
+apt install -y clang \
+				 make \
+				 libwebp-dev \
+				 llvm \
+				 libfmt-dev \
+				 libglfw3-dev \
+				 libopus-dev \
+				 libx11-dev
+
 git clone https://github.com/7244/WITCH.git
 mv WITCH /usr/local/include/WITCH
 
