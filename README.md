@@ -43,7 +43,7 @@ Requires c++20
     ```
     (```./uninstall.sh```) to remove repos from /usr/local/include/*
 3. Main usage:
--  To compile fan and it's libs to an object file use `./compile_fan.sh` you can set thread amount for compile using -tN
+-  To compile fan and it's libs to an object file use `./compile_fan.sh` you can set thread amount for compile using -jN
 -  For linux you can export files to /usr/local/lib, by doing `sudo ./copy_to_default_paths.sh`
 -  To compile main use `./compile_main.sh -DMAIN="examples/graphics/2D/shapes/rectangle.cpp`
 
