@@ -191,7 +191,7 @@ void generate_commands(loco_t* loco) {
       return;
     }
     gloco->shader_set_value(gloco->m_fbo_final_shader, "gamma", std::stof(args[0]));
-  }).description = "sets gamma for postprocess shader";
+  }).description = "sets gamma for postprocessing shader";
 
   loco->console.commands.add("set_gamma", [](const fan::commands_t::arg_t& args) {
     if (args.size() != 1) {
@@ -199,7 +199,7 @@ void generate_commands(loco_t* loco) {
       return;
     }
     gloco->shader_set_value(gloco->m_fbo_final_shader, "gamma", std::stof(args[0]));
-  }).description = "sets gamma for postprocess shader";
+  }).description = "sets gamma for postprocessing shader";
 
   loco->console.commands.add("set_exposure", [](const fan::commands_t::arg_t& args) {
     if (args.size() != 1) {
@@ -207,15 +207,15 @@ void generate_commands(loco_t* loco) {
       return;
     }
     gloco->shader_set_value(gloco->m_fbo_final_shader, "exposure", std::stof(args[0]));
-  }).description = "sets exposure for postprocess shader";
+  }).description = "sets exposure for postprocessing shader";
 
-  loco->console.commands.add("bloom_strength", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("set_bloom_strength", [](const fan::commands_t::arg_t& args) {
     if (args.size() != 1) {
       gloco->console.commands.print_invalid_arg_count();
       return;
     }
     gloco->shader_set_value(gloco->m_fbo_final_shader, "bloom_strength", std::stof(args[0]));
-  }).description = "sets bloom strength for postprocess shader";
+  }).description = "sets bloom strength for postprocessing shader";
 
   loco->console.commands.add("set_vsync", [](const fan::commands_t::arg_t& args) {
     if (args.size() != 1) {
