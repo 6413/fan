@@ -2,7 +2,7 @@
 CXX = clang++
 
 FLAGS =
-CXXFLAGS = $(FLAGS) -std=c++2a -ferror-limit=3 -Wextra -Wall -Werror -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-bitwise-op-parentheses -Wno-invalid-offsetof -Wno-missing-designated-field-initializers -Wno-sign-compare -Wno-unused-but-set-parameter -Wno-unused
+CXXFLAGS = $(FLAGS) -std=c++2a -ferror-limit=3 -Wextra -Wall -Werror -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-bitwise-op-parentheses -Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare -Wno-unused-but-set-parameter -Wno-unused
 
 OUTPUT_PATH = lib/fan/
 ROOT_PATH = ./fan/
