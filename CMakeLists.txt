@@ -116,7 +116,7 @@ else()
 		list(FILTER FAN_LIBS EXCLUDE REGEX ".*fan.a$")
 	endif()
     # On Linux, use the system libraries
-    target_link_libraries(${OUTPUT} fftw3 webp glfw X11 assimp opus pulse-simple ${FAN_LIBS})
+    target_link_libraries(${OUTPUT} webp glfw X11 assimp opus pulse-simple ${FAN_LIBS})
 endif()
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
