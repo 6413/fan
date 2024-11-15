@@ -2,7 +2,7 @@
 CXX = clang++
 
 FLAGS =
-CXXFLAGS = $(FLAGS) -std=c++2a -w -ferror-limit=3
+CXXFLAGS = $(FLAGS) -std=c++2a -ferror-limit=3 -Wextra -Wall -Werror -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-bitwise-op-parentheses -Wno-invalid-offsetof -Wno-missing-designated-field-initializers -Wno-sign-compare -Wno-unused-but-set-parameter -Wno-unused
 
 OUTPUT_PATH = lib/fan/
 ROOT_PATH = ./fan/
@@ -22,8 +22,7 @@ endif
 CXXFLAGS += -I $(ROOT_PATH)../
 
 CXXFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM -DIMGUI_DEFINE_MATH_OPERATORS
-CXXFLAGS += -Dloco_imgui -Dloco_json
-# -Dloco_assimp
+CXXFLAGS += -Dloco_imgui -Dloco_json -Dloco_assimp
 
 .PHONY: all debug release clean
 
