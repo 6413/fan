@@ -36,20 +36,13 @@ Requires c++20
 2. Using Visual Studio use fan.sln. Alternatively compile using clang++ (currently not working for windows)
 
 ### Linux
-1. Install required dependencies
- ```
-  sudo apt install -y clang \
-                      make \
-                      libwebp-dev \
-                      llvm \
-                      libfmt-dev \
-                      libglfw3-dev \
-                      libopus-dev \
-                      libx11-dev
-
-   ```
-3. Clone the repository: `git clone https://github.com/6413/fan.git`
-4. Main usage:
+1. Clone the repository: `git clone https://github.com/6413/fan.git`
+2. Install required dependencies
+    ```
+    sudo ./install.sh
+    ```
+    (```./uninstall.sh```) to remove repos from /usr/local/include/*
+3. Main usage:
 -  To compile fan and it's libs to an object file use `./compile_fan.sh` you can set thread amount for compile using -tN
 -  For linux you can export files to /usr/local/lib, by doing `sudo ./copy_to_default_paths.sh`
 -  To compile main use `./compile_main.sh -DMAIN="examples/graphics/2D/shapes/rectangle.cpp`
