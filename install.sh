@@ -17,3 +17,6 @@ mv BCOL /usr/local/include/BCOL
 
 git clone https://github.com/7244/BLL.git
 mv BLL /usr/local/include/BLL
+
+git clone https://github.com/7244/BVEC.git
+mv BVEC /usr/local/include/BVEC
