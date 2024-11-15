@@ -11,7 +11,8 @@ apt install -y clang \
 				 libx11-dev \
 				 libgtk-3-dev \
 				 libassimp-dev \
-				 libpulse-simple-dev \
+				 pulseaudio \
+				 libpulse-dev \
 				 libopus0 \
 				 libopus-dev
 
