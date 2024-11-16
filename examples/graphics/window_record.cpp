@@ -669,18 +669,18 @@ void main() {
 
   auto duck = loco.image_load("images/duck.webp");
 
-  //fan::graphics::sprite_t s{ {
-  //  .position = fan::vec3(0, 0, 1),
-  //  .size = fan::vec2(0.1, 0.1),
-  //  .image = duck
-  //} };
+  fan::graphics::sprite_t s{ {
+    .position = fan::vec3(0, 0, 1),
+    .size = fan::vec2(0.1, 0.1),
+    .image = duck
+  } };
 
   f32_t angle = 0;
 
   loco.loop([&] {
 
-    //s.set_angle(fan::vec3(0, 0, angle));
-   // angle += loco.delta_time * 4;
+    s.set_angle(fan::vec3(0, 0, angle));
+    angle += loco.delta_time * 4;
 
 
 
