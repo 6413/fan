@@ -1344,6 +1344,10 @@ public:
 
   uint32_t get_fps();
   void set_vsync(bool flag);
+  void start_timer();
+  void start_idle();
+  void update_timer_interval();
+  void set_target_fps(int32_t fps);
 
   //-----------------------------gui-----------------------------
 
@@ -1558,6 +1562,13 @@ public:
   camera_impl_t perspective_camera;
 
   fan::window_t window;
+  uv_idle_t idle_handle;
+  uv_timer_t timer_handle;
+  private:
+  int32_t target_fps = 165; // must be changed from function
+  bool timer_enabled = target_fps > 0;
+  public:
+  fan::function_t<void()> main_loop; // bad, but forced
 
   f64_t& delta_time = window.m_delta_time;
 

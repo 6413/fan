@@ -3,6 +3,7 @@
 
 fan::window_t::glfw_initialize_t intialize_glfw_var;
 
+
 void fan::window::error_callback(int error, const char* description) {
   fan::print("window error:", description);
 }
@@ -244,13 +245,71 @@ fan::window_t::glfw_initialize_t::~glfw_initialize_t() {
   }
 }
 
+uv_thread_t embed_thread;
+uv_sem_t embed_sem;
+uv_timer_t embed_timer;
+uv_async_t embed_async;
+volatile int embed_terminate = 0;
+
+// Cross-platform time function
+double get_time_ms(void) {
+  return glfwGetTime() * 1000;
+}
+
+void embed_thread_runner(void* arg) {
+  int r = 0;
+  int fd;
+  int timeout;
+
+  while (!embed_terminate) {
+    fd = uv_backend_fd(uv_default_loop());
+    timeout = uv_backend_timeout(uv_default_loop());
+
+    do {
+#if defined(HAVE_KQUEUE)
+      struct timespec ts;
+      ts.tv_sec = timeout / 1000;
+      ts.tv_nsec = (timeout % 1000) * 1000000;
+      r = kevent(fd, NULL, 0, NULL, 0, &ts);
+#elif defined(HAVE_EPOLL)
+
+      struct epoll_event ev;
+      r = epoll_wait(fd, &ev, 1, timeout);
+#endif
+    } while (r == -1 && errno == EINTR);
+
+    glfwPostEmptyEvent();
+
+    uv_sem_wait(&embed_sem);
+  }
+}
+
+
+
+
+void embed_timer_cb(uv_timer_t* timer) {
+  fan::print(std::hash<std::thread::id>{}(std::this_thread::get_id()), get_time_ms());
+}
 fan::window_t::window_t() : window_t(fan::window_t::default_window_size, fan::window_t::default_window_name, 0) {}
 
 void errorCallback(int error, const char* description) {
     printf("Error: %s\n", description);
 }
 
+
+void embed_async_cb(uv_async_t* handle) {
+  // This callback is needed for the async handle but doesn't need to do anything
+}
 fan::window_t::window_t(fan::vec2i window_size, const fan::string& name, uint64_t flags) {
+
+  fan::print("init", std::hash<std::thread::id>{}(std::this_thread::get_id()), get_time_ms());
+
+  uv_timer_init(uv_default_loop(), &embed_timer);
+  uv_timer_start(&embed_timer, embed_timer_cb, 250, 250);
+
+  uv_sem_init(&embed_sem, 0);
+  uv_thread_create(&embed_thread, embed_thread_runner, NULL);
+
   if (intialize_glfw_var.initialized == false) {
     intialize_glfw_var.open();
   }
@@ -338,6 +397,7 @@ void fan::window_t::handle_key_states() {
   }
 }
 
+
 uint32_t fan::window_t::handle_events() {
   f64_t current_frame_time = glfwGetTime();
   m_delta_time = current_frame_time - last_frame_time;
@@ -345,8 +405,11 @@ uint32_t fan::window_t::handle_events() {
 
   handle_key_states();
 
-  glfwPollEvents();
-  //glfwWaitEvents();
+  //glfwPollEvents();
+  glfwWaitEventsTimeout(0);
+
+  //uv_run(uv_default_loop(), UV_RUN_NOWAIT);
+  //uv_sem_post(&embed_sem);
 
   return 0;
 }
