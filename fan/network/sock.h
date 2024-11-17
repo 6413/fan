@@ -43,9 +43,7 @@ namespace fan {
       void await_suspend(std::coroutine_handle<> h) {
 #ifdef _WIN32
         unsigned long mode = 1;
-        if (ioctlsocket(sock, FIONBIO, &mode) != NO_ERROR) {
-          throw std::runtime_error("failed to set non-blocking mode on socket");
-        }
+        ioctlsocket(sock, FIONBIO, &mode);
 #else
         int flags = fcntl(sock, F_GETFL, 0);
         fcntl(sock, F_SETFL, flags | O_NONBLOCK);
@@ -66,6 +64,39 @@ namespace fan {
         return -1;
       }
     };
+
+    static task_t<void> read_data(socket_t sock, char* buffer, size_t buffer_size) {
+      socket_awaitable_t size_read_op{ sock, socket_awaitable_t::operation_e::read };
+      size_read_op.recv_buffer = buffer;
+      size_read_op.buffer_size = buffer_size;
+      size_t total_bytes_read = 0;
+      while (total_bytes_read < buffer_size) {
+        auto bytes_read = co_await size_read_op;
+        if (bytes_read <= 0) {
+          co_return{};
+        }
+        total_bytes_read += bytes_read;
+        size_read_op.recv_buffer += bytes_read;
+        size_read_op.buffer_size -= bytes_read;
+      }
+      co_return{};
+    }
+    static task_t<void> write_data(socket_t sock, const char* buffer, size_t buffer_size) {
+      socket_awaitable_t size_write_op{ sock, socket_awaitable_t::operation_e::write };
+      size_write_op.send_buffer = buffer;
+      size_write_op.buffer_size = buffer_size;
+      size_t total_bytes_sent = 0;
+      while (total_bytes_sent < buffer_size) {
+        auto bytes_read = co_await size_write_op;
+        if ((int64_t)bytes_read <= 0) {
+          co_return{};
+        }
+        total_bytes_sent += bytes_read;
+        size_write_op.recv_buffer += bytes_read;
+        size_write_op.buffer_size -= bytes_read;
+      }
+      co_return{};
+    }
 
     class network_client_t {
       socket_t sock = INVALID_SOCKET;
@@ -88,114 +119,61 @@ namespace fan {
       }
 
       task_t<bool> connect(const char* host, int port) {
-          sock = socket(AF_INET, SOCK_STREAM, 0);
-          if (sock == INVALID_SOCKET) {
-              fan::print("Socket creation failed: ", strerror(errno));
-              co_return false;
-          }
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock == INVALID_SOCKET) {
+          co_return false;
+        }
 
-          sockaddr_in addr = {};
-          addr.sin_family = AF_INET;
-          addr.sin_port = htons(port);
-          if (inet_pton(AF_INET, host, &addr.sin_addr) <= 0) {
-              fan::print("Invalid address/ Address not supported: ", strerror(errno));
-              co_return false;
-          }
+        sockaddr_in addr = {};
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(port);
+        inet_pton(AF_INET, host, &addr.sin_addr);
 
-          if (::connect(sock, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
-              fan::print("Connection failed: ", strerror(errno));
-              co_return false;
-          }
+        if (::connect(sock, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
+          co_return false;
+        }
 
-          co_return true;
+        co_return true;
       }
 
-
       std::vector<char> buffer;
-      task_t<std::string> echo(const std::string& msg) {
-        buffer.resize(1024);
 
-        int msg_size = msg.size();
+      task_t<void> send_data(const std::string& data) {
         {
-          socket_awaitable_t size_write_op{ sock, socket_awaitable_t::operation_e::write };
-          size_write_op.send_buffer = reinterpret_cast<const char*>(&msg_size);
-          size_write_op.buffer_size = sizeof(msg_size);
-          size_t total_bytes_sent = 0;
-          while (total_bytes_sent < sizeof(msg_size)) {
-            auto bytes_sent = co_await size_write_op;
-            if (bytes_sent == SOCKET_ERROR) {
-              // Handle error
-              co_return "";
-            }
-            total_bytes_sent += bytes_sent;
-            size_write_op.send_buffer += bytes_sent;
-            size_write_op.buffer_size -= bytes_sent;
-          }
+          int data_size = data.size();
+          auto task = write_data(sock, reinterpret_cast<const char*>(&data_size), sizeof(data_size));
+          task.handle.resume();
         }
 
         {
-          socket_awaitable_t write_op{ sock, socket_awaitable_t::operation_e::write };
-          write_op.send_buffer = msg.c_str();
-          write_op.buffer_size = msg.size();
-          size_t total_bytes_sent = 0;
-          while (total_bytes_sent < msg.size()) {
-            auto bytes_sent = co_await write_op;
-            if (bytes_sent == SOCKET_ERROR) {
-              // Handle error
-              co_return "";
-            }
-            total_bytes_sent += bytes_sent;
-            write_op.send_buffer += bytes_sent;
-            write_op.buffer_size -= bytes_sent;
-          }
+          auto task = write_data(sock, data.c_str(), data.size());
+          task.handle.resume();
         }
-
+        co_return {};
+      }
+      task_t<std::string> receive_data() {
         int response_size = 0;
         {
-          socket_awaitable_t size_read_op{ sock, socket_awaitable_t::operation_e::read };
-          size_read_op.recv_buffer = reinterpret_cast<char*>(&response_size);
-          size_read_op.buffer_size = sizeof(response_size);
-          size_t total_bytes_read = 0;
-          while (total_bytes_read < sizeof(response_size)) {
-            auto bytes_read = co_await size_read_op;
-            if (bytes_read == SOCKET_ERROR) {
-              // Handle error
-              co_return "";
-            }
-            total_bytes_read += bytes_read;
-            size_read_op.recv_buffer += bytes_read;
-            size_read_op.buffer_size -= bytes_read;
-          }
+          auto task = read_data(sock, reinterpret_cast<char*>(&response_size), sizeof(response_size));
+          task.handle.resume();
         }
 
         {
-          socket_awaitable_t read_op{ sock, socket_awaitable_t::operation_e::read };
           buffer.resize(response_size);
-          read_op.recv_buffer = buffer.data();
-          read_op.buffer_size = buffer.size();
-          size_t total_bytes_read = 0;
-          while (total_bytes_read < response_size) {
-            auto bytes_read = co_await read_op;
-            if (bytes_read == SOCKET_ERROR) {
-              // Handle error
-              co_return "";
-            }
-            total_bytes_read += bytes_read;
-            read_op.recv_buffer += bytes_read;
-            read_op.buffer_size -= bytes_read;
-          }
+          auto task = read_data(sock, buffer.data(), response_size);
+          task.handle.resume();
         }
 
         co_return std::string(buffer.data(), response_size);
       }
     };
 
-    class client_t {
+    struct client_t {
       socket_t sock;
       bool connected = true;
       std::vector<char> buffer;
+      std::function<void()> loop;
 
-    public:
       client_t(socket_t s) : sock(s), buffer(1024) {}
 
       ~client_t() {
@@ -208,102 +186,20 @@ namespace fan {
 
       task_t<void> handle_client() {
         while (connected) {
-          // Receive the size of the incoming message
-          int msg_size = 0;
-          {
-            socket_awaitable_t size_read_op{ sock, socket_awaitable_t::operation_e::read };
-            size_read_op.recv_buffer = reinterpret_cast<char*>(&msg_size);
-            size_read_op.buffer_size = sizeof(msg_size);
-            size_t total_bytes_read = 0;
-            while (total_bytes_read < sizeof(msg_size)) {
-              auto bytes_read = co_await size_read_op;
-              if (bytes_read <= 0) {
-                connected = false;
-                co_return{};
-              }
-              total_bytes_read += bytes_read;
-              size_read_op.recv_buffer += bytes_read;
-              size_read_op.buffer_size -= bytes_read;
-            }
-          }
-
-          // Receive the actual message
-          buffer.resize(msg_size);
-          {
-            socket_awaitable_t read_op{ sock, socket_awaitable_t::operation_e::read };
-            read_op.recv_buffer = buffer.data();
-            read_op.buffer_size = buffer.size();
-            size_t total_bytes_read = 0;
-            while (total_bytes_read < msg_size) {
-              auto bytes_read = co_await read_op;
-              if (bytes_read <= 0) {
-                connected = false;
-                co_return{};
-              }
-              total_bytes_read += bytes_read;
-              read_op.recv_buffer += bytes_read;
-              read_op.buffer_size -= bytes_read;
-            }
-          }
-
-          std::string received(buffer.data(), msg_size);
-          std::string response;
-
-          if (received == "ping") {
-            response = "pong";
-            fan::print("received ping, sending", response);
-          }
-          else {
-            response = "unknown command";
-            fan::print("Received unknown command:", received);
-          }
-
-          // Send the size of the response first
-          int response_size = response.size();
-          {
-            socket_awaitable_t size_write_op{ sock, socket_awaitable_t::operation_e::write };
-            size_write_op.send_buffer = reinterpret_cast<const char*>(&response_size);
-            size_write_op.buffer_size = sizeof(response_size);
-            size_t total_bytes_sent = 0;
-            while (total_bytes_sent < sizeof(response_size)) {
-              auto bytes_sent = co_await size_write_op;
-              if (bytes_sent <= 0) {
-                connected = false;
-                co_return{};
-              }
-              total_bytes_sent += bytes_sent;
-              size_write_op.send_buffer += bytes_sent;
-              size_write_op.buffer_size -= bytes_sent;
-            }
-          }
-
-          // Send the actual response
-          {
-            socket_awaitable_t write_op{ sock, socket_awaitable_t::operation_e::write };
-            write_op.send_buffer = response.c_str();
-            write_op.buffer_size = response.size();
-            size_t total_bytes_sent = 0;
-            while (total_bytes_sent < response.size()) {
-              auto bytes_sent = co_await write_op;
-              if (bytes_sent <= 0) {
-                connected = false;
-                co_return{};
-              }
-              total_bytes_sent += bytes_sent;
-              write_op.send_buffer += bytes_sent;
-              write_op.buffer_size -= bytes_sent;
-            }
-          }
+          if (loop) {
+            loop();
+         }
         }
+        co_return{};
       }
     };
 
-    class server_t {
+    struct server_t {
       socket_t listener = INVALID_SOCKET;
       bool running = true;
-      std::unordered_set<std::shared_ptr<client_t>> clients;
+      std::vector<std::shared_ptr<client_t>> clients;
+      std::function<void(client_t&)> on_connect;
 
-    public:
       server_t() {
 #ifdef _WIN32
         WSADATA wsaData;
@@ -323,27 +219,28 @@ namespace fan {
       }
 
       task_t<void> run(const char* host, int port) {
+        // Create listener socket
         listener = socket(AF_INET, SOCK_STREAM, 0);
         if (listener == INVALID_SOCKET) {
-          throw std::runtime_error("Failed to create socket");
+          throw std::runtime_error("failed to create socket");
         }
 
+        // Bind and listen
         sockaddr_in addr = {};
         addr.sin_family = AF_INET;
         addr.sin_port = htons(port);
         inet_pton(AF_INET, host, &addr.sin_addr);
 
         if (bind(listener, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
-          throw std::runtime_error("Failed to bind socket");
+          fan::throw_error("failed to bind socket");
         }
 
         if (listen(listener, SOMAXCONN) == SOCKET_ERROR) {
-          throw std::runtime_error("Failed to listen on socket");
+          fan::throw_error("failed to listen on socket");
         }
 
-        fan::print("Server listening on ", host, ":", port);
+        fan::print("server listening on ", host, ":", port);
 
-        // Accept loop
         while (running) {
           sockaddr_in client_addr = {};
           socklen_t addr_len = sizeof(client_addr);
@@ -359,7 +256,12 @@ namespace fan {
           }
 
           auto client = std::make_shared<client_t>(client_sock);
-          clients.insert(client);
+          clients.emplace_back(client);
+
+
+          if (on_connect) {
+            on_connect(*clients.back());
+          }
 
           auto task = client->handle_client();
           task.handle.resume();
@@ -370,6 +272,7 @@ namespace fan {
           //     clients.end()
           // );
         }
+        co_return {};
       }
 
       void stop() { running = false; }
