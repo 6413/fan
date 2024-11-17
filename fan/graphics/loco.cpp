@@ -225,6 +225,14 @@ void generate_commands(loco_t* loco) {
     gloco->set_vsync(std::stoi(args[0]));
     }).description = "sets vsync";
 
+  loco->console.commands.add("set_target_fps", [](const fan::commands_t::arg_t& args) {
+    if (args.size() != 1) {
+      gloco->console.commands.print_invalid_arg_count();
+      return;
+    }
+    gloco->set_target_fps(std::stoi(args[0]));
+  }).description = "sets target fps";
+
   /*loco->console.commands.add("console_transparency", [](const fan::commands_t::arg_t& args) {
     if (args.size() != 1) {
       gloco->console.commands.print_invalid_arg_count();
@@ -370,7 +378,7 @@ void loco_t::init_framebuffer() {
   }
 
   context.opengl.call(context.opengl.glDrawBuffers, std::size(attachments), attachments);
-  // finally check if framebuffer is complete
+
   if (!m_framebuffer.ready(context)) {
     fan::throw_error("framebuffer not ready");
   }
@@ -411,6 +419,7 @@ loco_t::loco_t(const properties_t& p) :
 {
   context_t::open(&window);
   gloco = this;
+  set_vsync(false); // using libuv
   //fan::print("less pain", this, (void*)&lighting, (void*)((uint8_t*)&lighting - (uint8_t*)this), sizeof(*this), lighting.ambient);
   glfwMakeContextCurrent(window);
 
@@ -1266,13 +1275,50 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
   return 0;
 }
 
-void loco_t::loop(const fan::function_t<void()>& lambda) {
-  while (1) {
-    if (process_loop(lambda)) {
-      break;
-    }
+void loco_t::start_timer() {
+  double delay;
+  if (target_fps <= 0) {
+    delay = 0;
+  }
+  else {
+    delay = std::round(1.0 / target_fps * 1000.0);
+  }
+  if (delay > 0) {
+    uv_timer_start(&timer_handle, [](uv_timer_t* handle) {
+      loco_t* loco = static_cast<loco_t*>(handle->data);
+      loco->process_loop(loco->main_loop);
+    }, 0, delay);
   }
 }
+
+void loco_t::start_idle() {
+  uv_idle_start(&idle_handle, [](uv_idle_t* handle) {
+    loco_t* loco = static_cast<loco_t*>(handle->data);
+    loco->process_loop(loco->main_loop);
+  });
+}
+
+
+void loco_t::loop(const fan::function_t<void()>& lambda) {
+  main_loop = lambda;
+  double delay = std::round(1.0 / target_fps * 1000.0);
+
+  uv_timer_init(uv_default_loop(), &timer_handle);
+  uv_idle_init(uv_default_loop(), &idle_handle);
+
+  timer_handle.data = this;
+  idle_handle.data = this;
+
+  if (target_fps > 0) {
+    start_timer();
+  }
+  else {
+    start_idle();
+  }
+
+  uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+}
+
 
 loco_t::camera_t loco_t::open_camera(const fan::vec2& x, const fan::vec2& y) {
   auto& context = get_context();
@@ -1325,6 +1371,35 @@ uint32_t loco_t::get_fps() {
 void loco_t::set_vsync(bool flag) {
   get_context().set_vsync(window, flag);
 }
+
+void loco_t::update_timer_interval() {
+  double delay;
+  if (target_fps <= 0) {
+    delay = 0;
+  }
+  else {
+   delay = std::round(1.0 / target_fps * 1000.0);
+  }
+  if (delay > 0) {
+    if (timer_enabled == false) {
+      start_timer();
+      timer_enabled = true;
+    }
+    uv_idle_stop(&idle_handle);
+    uv_timer_set_repeat(&timer_handle, delay);
+    uv_timer_again(&timer_handle);
+  }
+  else {
+    uv_timer_stop(&timer_handle);
+    start_idle(); 
+  }
+}
+
+void loco_t::set_target_fps(int32_t new_target_fps) {
+  target_fps = new_target_fps;
+  update_timer_interval();
+}
+
 
 
 #if defined(loco_imgui)
