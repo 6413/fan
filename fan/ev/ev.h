@@ -7,327 +7,169 @@
 
 using namespace std::chrono_literals;
 
-struct event_loop_t {
-  // Check if there are any events or tasks
-  bool events_exist() {
-    return !timers.empty() || !tasks.empty();
-  }
-
-  // Add a timer to the event loop
-  void add_timer(std::chrono::steady_clock::time_point when, std::coroutine_handle<> handle) {
-    timers.push({ when, handle });
-  }
-
-  // Schedule a task
-  void schedule(std::function<void()> task) {
-    tasks.push(std::move(task));
-  }
-
-  // Run one event or task
-  bool run_one() {
-    auto now = std::chrono::steady_clock::now();
-
-    // Check and execute the next timer if it is ready
-    if (!timers.empty() && timers.top().when <= now) {
-      auto handle = timers.top().handle;
-      timers.pop();
-      handle.resume();
-      return true;
-    }
-
-    // Execute the next scheduled task
-    if (!tasks.empty()) {
-      auto task = std::move(tasks.front());
-      tasks.pop();
-      task();
-      return true;
-    }
-
-    return false;
-  }
-
-  // Run the event loop
-  void run() {
-    while (events_exist()) {
-      if (!run_one()) {
-        std::this_thread::sleep_for(10ms);  // Sleep to prevent busy waiting
-      }
-    }
-  }
-
-  struct timer_t {
-    std::chrono::steady_clock::time_point when;
-    std::coroutine_handle<> handle;
-    bool operator>(const timer_t& other) const {
-      return when > other.when;
-    }
-  };
-
-  std::priority_queue<timer_t, std::vector<timer_t>, std::greater<timer_t>> timers;
-  std::queue<std::function<void()>> tasks;
-};
-
-// Global event loop instance
-inline event_loop_t& get_event_loop() {
-  static event_loop_t event_loop;
-  return event_loop;
-}
-
-template <typename T, bool start_immediate = false>
-struct task_t {
-  struct promise_type {
-    using result_type_t = std::conditional_t<std::is_void_v<T>, __empty_struct, T>;
-    result_type_t result;
-    std::coroutine_handle<> continuation;
-
-    task_t get_return_object() {
-      return task_t(std::coroutine_handle<promise_type>::from_promise(*this));
-    }
-
-    std::suspend_always initial_suspend() { return {}; }
-
-    std::suspend_always final_suspend() noexcept {
-      if (continuation) {
-        get_event_loop().schedule([h = continuation]() { h.resume(); });
-      }
-      return {};
-    }
-
-    void return_value(result_type_t value) { result = value; }
-
-    void unhandled_exception() { std::terminate(); }
-  };
-
-  std::coroutine_handle<promise_type> handle;
-
-  task_t(std::coroutine_handle<promise_type> h) : handle(h) {}
-
-  ~task_t() {
-    if (handle) {
-      handle.destroy();
-      handle = 0;
-    }
-  }
-
-  task_t(const task_t&) = delete;
-  task_t& operator=(const task_t&) = delete;
-
-  task_t(task_t&& other) noexcept : handle(other.handle) {
-    other.handle = nullptr;
-  }
-
-  task_t& operator=(task_t&& other) noexcept {
-    if (this != &other) {
-      if (handle) {
-        handle.destroy();
-      }
-      handle = other.handle;
-      other.handle = nullptr;
-    }
-    return *this;
-  }
-
-  bool await_ready() const { return false; }
-
-  void await_suspend(std::coroutine_handle<> continuation_handle) {
-    handle.promise().continuation = continuation_handle;
-    get_event_loop().schedule([this]() { handle.resume(); });
-  }
-
-  auto await_resume() { return handle.promise().result; }
-
-  // Sleep for a specified duration
-  struct sleep_awaitable {
-    std::chrono::milliseconds duration;
-
-    bool await_ready() const noexcept { return false; }
-
-    void await_suspend(std::coroutine_handle<> handle) {
-      auto ready_at = std::chrono::steady_clock::now() + duration;
-      get_event_loop().add_timer(ready_at, handle);
-    }
-
-    void await_resume() const noexcept {}
-  };
-};
-
-static task_t<void>::sleep_awaitable co_sleep_for(std::chrono::milliseconds duration) {
-  return task_t<void>::sleep_awaitable{ duration };
-}
-
-struct yield_awaitable_t {
-  bool await_ready() { return false; }
-  void await_suspend(std::coroutine_handle<> h) {
-    get_event_loop().schedule([h]() { h.resume(); });
-  }
-  void await_resume() {}
-};
-
-yield_awaitable_t resume_other_tasks() { return {}; }
-
-#pragma once
-#include <coroutine>
-#include <functional>
-#include <queue>
-#include <chrono>
-#include <thread> // unnecessary
-
-using namespace std::chrono_literals;
-
-struct event_loop_t {
-  // Check if there are any events or tasks
-  bool events_exist() {
-    return !timers.empty() || !tasks.empty();
-  }
-
-  // Add a timer to the event loop
-  void add_timer(std::chrono::steady_clock::time_point when, std::coroutine_handle<> handle) {
-    timers.push({ when, handle });
-  }
-
-  // Schedule a task
-  void schedule(std::function<void()> task) {
-    tasks.push(std::move(task));
-  }
-
-  // Run one event or task
-  bool run_one() {
-    auto now = std::chrono::steady_clock::now();
-
-    // Check and execute the next timer if it is ready
-    if (!timers.empty() && timers.top().when <= now) {
-      auto handle = timers.top().handle;
-      timers.pop();
-      handle.resume();
-      return true;
-    }
-
-    // Execute the next scheduled task
-    if (!tasks.empty()) {
-      auto task = std::move(tasks.front());
-      tasks.pop();
-      task();
-      return true;
-    }
-
-    return false;
-  }
-
-  // Run the event loop
-  void run() {
-    while (events_exist()) {
-      if (!run_one()) {
-        std::this_thread::sleep_for(10ms);  // Sleep to prevent busy waiting
-      }
-    }
-  }
-
-  struct timer_t {
-    std::chrono::steady_clock::time_point when;
-    std::coroutine_handle<> handle;
-    bool operator>(const timer_t& other) const {
-      return when > other.when;
-    }
-  };
-
-  std::priority_queue<timer_t, std::vector<timer_t>, std::greater<timer_t>> timers;
-  std::queue<std::function<void()>> tasks;
-};
-
-// Global event loop instance
-inline event_loop_t& get_event_loop() {
-  static event_loop_t event_loop;
-  return event_loop;
-}
+template <typename T>
+struct task;
 
 template <typename T>
-struct task_t {
-  struct promise_type {
-    using result_type_t = std::conditional_t<std::is_void_v<T>, __empty_struct, T>;
-    result_type_t result;
-    std::coroutine_handle<> continuation;
+struct task_promise {
+  T value;
+  std::exception_ptr exception;
 
-    task_t get_return_object() {
-      auto handle = std::coroutine_handle<promise_type>::from_promise(*this);
-      get_event_loop().schedule([handle]() { handle.resume(); });
-      return task_t(handle);
-    }
+  task<T> get_return_object();
 
-    std::suspend_always initial_suspend() { return {}; }
+  std::suspend_always initial_suspend() { return {}; }
+  std::suspend_always final_suspend() noexcept { return {}; }
 
-    std::suspend_always final_suspend() noexcept {
-      if (continuation) {
-        get_event_loop().schedule([h = continuation]() { h.resume(); });
-      }
-      return {};
-    }
+  void return_value(T v) { value = v; }
 
-    void return_value(result_type_t value) { result = value; }
+  void unhandled_exception() { exception = std::current_exception(); }
 
-    void unhandled_exception() { std::terminate(); }
-  };
+  task_promise() = default;
+  task_promise(const task_promise&) = delete;
+  task_promise& operator=(const task_promise&) = delete;
+  task_promise(task_promise&&) = default;
+  task_promise& operator=(task_promise&&) = default;
+};
 
-  std::coroutine_handle<promise_type> handle;
+template <typename T>
+struct task {
+  using promise_type = task_promise<T>;
+  std::coroutine_handle<promise_type> coro;
 
-  task_t(std::coroutine_handle<promise_type> h) : handle(h) {}
+  task(std::coroutine_handle<promise_type> h) : coro(h) {}
+  ~task() { if (coro) coro.destroy(); }
 
-  ~task_t() {
-    if (handle) {
-      handle.destroy();
-    }
+  task(const task&) = delete;
+  task& operator=(const task&) = delete;
+
+  task(task&& other) noexcept : coro(other.coro) {
+    other.coro = nullptr;
   }
 
-  task_t(const task_t&) = delete;
-  task_t& operator=(const task_t&) = delete;
-
-  task_t(task_t&& other) noexcept : handle(other.handle) {
-    other.handle = nullptr;
-  }
-
-  task_t& operator=(task_t&& other) noexcept {
+  task& operator=(task&& other) noexcept {
     if (this != &other) {
-      if (handle) {
-        handle.destroy();
+      if (coro) {
+        coro.destroy();
       }
-      handle = other.handle;
-      other.handle = nullptr;
+      coro = other.coro;
+      other.coro = nullptr;
     }
     return *this;
   }
 
-  bool await_ready() const { return false; }
-
-  void await_suspend(std::coroutine_handle<> continuation_handle) {
-    handle.promise().continuation = continuation_handle;
-  }
-
-  auto await_resume() { return handle.promise().result; }
-
-  // Sleep for a specified duration
-  struct sleep_awaitable {
-    std::chrono::milliseconds duration;
-
-    bool await_ready() const noexcept { return false; }
-
-    void await_suspend(std::coroutine_handle<> handle) {
-      auto ready_at = std::chrono::steady_clock::now() + duration;
-      get_event_loop().add_timer(ready_at, handle);
+  bool await_ready() const noexcept { return false; }
+  void await_suspend(std::coroutine_handle<> h) noexcept { coro.resume(); }
+  T await_resume() {
+    if (coro.promise().exception) {
+      std::rethrow_exception(coro.promise().exception);
     }
-
-    void await_resume() const noexcept {}
-  };
+    return coro.promise().value;
+  }
 };
 
-static task_t<void>::sleep_awaitable co_sleep_for(std::chrono::milliseconds duration) {
-  return task_t<void>::sleep_awaitable{ duration };
+template <typename T>
+task<T> task_promise<T>::get_return_object() {
+  return task<T>{std::coroutine_handle<task_promise>::from_promise(*this)};
 }
 
-struct yield_awaitable_t {
-  bool await_ready() { return false; }
-  void await_suspend(std::coroutine_handle<> h) {
-    get_event_loop().schedule([h]() { h.resume(); });
-  }
-  void await_resume() {}
+template <>
+struct task_promise<void> {
+  std::exception_ptr exception;
+
+  task<void> get_return_object();
+
+  std::suspend_always initial_suspend() { return {}; }
+  std::suspend_always final_suspend() noexcept { return {}; }
+
+  void return_void() {}
+
+  void unhandled_exception() { exception = std::current_exception(); }
+
+  task_promise() = default;
+  task_promise(const task_promise&) = delete;
+  task_promise& operator=(const task_promise&) = delete;
+  task_promise(task_promise&&) = default;
+  task_promise& operator=(task_promise&&) = default;
 };
 
-yield_awaitable_t resume_other_tasks() { return {}; }
+template <>
+struct task<void> {
+  using promise_type = task_promise<void>;
+  std::coroutine_handle<promise_type> coro;
+
+  task() = default;
+  task(std::coroutine_handle<promise_type> h) : coro(h) {}
+  ~task() { if (coro) coro.destroy(); }
+
+  task(const task&) = delete;
+  task& operator=(const task&) = delete;
+
+  task(task&& other) noexcept : coro(other.coro) {
+    other.coro = nullptr;
+  }
+
+  task& operator=(task&& other) noexcept {
+    if (this != &other) {
+      if (coro) {
+        coro.destroy();
+      }
+      coro = other.coro;
+      other.coro = nullptr;
+    }
+    return *this;
+  }
+
+  bool await_ready() const noexcept { return false; }
+  void await_suspend(std::coroutine_handle<> h) noexcept { coro.resume(); }
+  void await_resume() {
+    if (coro.promise().exception) {
+      std::rethrow_exception(coro.promise().exception);
+    }
+  }
+};
+
+task<void> task_promise<void>::get_return_object() {
+  return task<void>{std::coroutine_handle<task_promise>::from_promise(*this)};
+}
+
+
+struct uv_sleep_awaitable {
+  uv_timer_t timer_req;
+  std::coroutine_handle<> handle;
+  task<void>* parent_task;
+  bool completed{ false };
+
+  uv_sleep_awaitable(task<void>* parent, uv_loop_t* loop, uint64_t delay)
+    : parent_task(parent) {
+    timer_req.data = this;
+    uv_timer_init(loop, &timer_req);
+    uv_timer_start(&timer_req, on_timer_cb, delay, 0);
+  }
+
+  ~uv_sleep_awaitable() {
+    if (!completed) {
+      uv_timer_stop(&timer_req);
+      uv_close((uv_handle_t*)&timer_req, nullptr);
+    }
+  }
+
+  static void on_timer_cb(uv_timer_t* timer) {
+    auto* self = static_cast<uv_sleep_awaitable*>(timer->data);
+    self->completed = true;
+    self->handle.resume();
+    // Resume the parent task as well
+    if (self->parent_task) {
+      self->parent_task->coro.resume();
+    }
+  }
+
+  bool await_ready() const noexcept { return false; }
+  void await_suspend(std::coroutine_handle<> h) noexcept {
+    handle = h;
+  }
+  void await_resume() noexcept {}
+};
+
+task<void> co_sleep_for(task<void>* parent_task, std::chrono::milliseconds delay, uv_loop_t* loop = uv_default_loop()) {
+  co_await uv_sleep_awaitable(parent_task, loop, delay.count());
+}

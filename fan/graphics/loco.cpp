@@ -1298,7 +1298,6 @@ void loco_t::start_idle() {
   });
 }
 
-
 void loco_t::loop(const fan::function_t<void()>& lambda) {
   main_loop = lambda;
   double delay = std::round(1.0 / target_fps * 1000.0);
