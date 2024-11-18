@@ -177,8 +177,8 @@ namespace fan {
       static constexpr int transparent = 1 << 6;
     };
 
-    inline static int gl_major = 4;
-    inline static int gl_minor = 2;
+    inline static int major = 4;
+    inline static int minor = 2;
 
      struct glfw_initialize_t {
       glfw_initialize_t() = default;

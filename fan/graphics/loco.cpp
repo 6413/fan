@@ -274,7 +274,7 @@ void init_imgui(loco_t* loco) {
     //loco_t::imgui_themes::dark();
 
     ImGui_ImplGlfw_InitForOpenGL(loco->window.glfw_window, true);
-    const char* glsl_version = "#version 150";
+    const char* glsl_version = "#version 120";
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     auto& style = ImGui::GetStyle();
@@ -297,6 +297,10 @@ void init_imgui(loco_t* loco) {
 }
 
 void loco_t::init_framebuffer() {
+
+  if (!((major > 3) || (major == 3 && minor >= 3))) {
+    return;
+  }
 
   auto& context = get_context();
 
@@ -417,6 +421,8 @@ loco_t::loco_t() : loco_t(properties_t()) {
 loco_t::loco_t(const properties_t& p) :
   window(p.window_size, fan::window_t::default_window_name, p.window_flags)
 {
+  context_t::major = window.major;
+  context_t::minor = window.minor;
   context_t::open(&window);
   gloco = this;
   set_vsync(false); // using libuv
@@ -488,80 +494,190 @@ loco_t::loco_t(const properties_t& p) :
   // order of open needs to be same with shapes enum
   
   shape_functions.resize(shape_functions.size() + 1); // button
-  shape_open<loco_t::sprite_t>(
-    &sprite,
-    "shaders/opengl/2D/objects/sprite.vs",
-    "shaders/opengl/2D/objects/sprite.fs"
-  );
+  {
+    if (major == 2 && minor == 1) {
+      shape_open<loco_t::sprite_t>(
+        &sprite,
+        "shaders/opengl/2D/objects/sprite_2_1.vs",
+        "shaders/opengl/2D/objects/sprite_2_1.fs",
+        6 // set instance count to 6 vertices, in opengl 2.1 there is no instancing,
+          // so sending same 6 elements per shape
+      );
+    }
+    else {
+      shape_open<loco_t::sprite_t>(
+        &sprite,
+        "shaders/opengl/2D/objects/sprite.vs",
+        "shaders/opengl/2D/objects/sprite.fs"
+      );
+    }
+  }
+
   shape_functions.resize(shape_functions.size() + 1); // text
   shape_functions.resize(shape_functions.size() + 1); // hitbox
-  shape_open<loco_t::line_t>(
-    &line,
-    "shaders/opengl/2D/objects/line.vs",
-    "shaders/opengl/2D/objects/line.fs"
-  );
-  shape_functions.resize(shape_functions.size() + 1); // mark
-  shape_open<loco_t::rectangle_t>(
-    &rectangle,
-    "shaders/opengl/2D/objects/rectangle.vs",
-    "shaders/opengl/2D/objects/rectangle.fs"
-  );
-  shape_open<loco_t::light_t>(
-    &light,
-    "shaders/opengl/2D/objects/light.vs",
-    "shaders/opengl/2D/objects/light.fs"
-  );
-  shape_open<loco_t::unlit_sprite_t>(
-    &unlit_sprite,
-    "shaders/opengl/2D/objects/sprite.vs",
-    "shaders/opengl/2D/objects/unlit_sprite.fs"
-  );
-  shape_open<loco_t::letter_t>(
-    &letter,
-    "shaders/opengl/2D/objects/letter.vs",
-    "shaders/opengl/2D/objects/letter.fs"
-  );
-  shape_open<loco_t::circle_t>(
-    &circle,
-    "shaders/opengl/2D/objects/circle.vs",
-    "shaders/opengl/2D/objects/circle.fs"
-  );
-  shape_open<loco_t::grid_t>(
-    &grid,
-    "shaders/opengl/2D/objects/grid.vs",
-    "shaders/opengl/2D/objects/grid.fs"
-  );
-  vfi.open();
-  shape_open<loco_t::particles_t>(
-    &particles,
-    "shaders/opengl/2D/effects/particles.vs",
-    "shaders/opengl/2D/effects/particles.fs"
-  );
-  shape_open<loco_t::universal_image_renderer_t>(
-    &universal_image_renderer,
-    "shaders/opengl/2D/objects/pixel_format_renderer.vs",
-    "shaders/opengl/2D/objects/yuv420p.fs"
-  );
+  {
+    if (major == 2 && minor == 1) {
+      // todo implement line
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::line_t>(
+        &line,
+        "shaders/opengl/2D/objects/line.vs",
+        "shaders/opengl/2D/objects/line.fs"
+      );
+    }
+  }
 
-  shape_open<loco_t::gradient_t>(
-    &gradient,
-    "shaders/opengl/2D/effects/gradient.vs",
-    "shaders/opengl/2D/effects/gradient.fs"
-  );
+  shape_functions.resize(shape_functions.size() + 1); // mark
+  {
+    if (major == 2 && minor == 1) {
+      // todo
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::rectangle_t>(
+        &rectangle,
+        "shaders/opengl/2D/objects/rectangle.vs",
+        "shaders/opengl/2D/objects/rectangle.fs"
+      );
+    }
+  }
+
+  {
+    if (major == 2 && minor == 1) {
+      // todo
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::light_t>(
+        &light,
+        "shaders/opengl/2D/objects/light.vs",
+        "shaders/opengl/2D/objects/light.fs"
+      );
+    }
+  }
+  {
+    if (major == 2 && minor == 1) {
+      // todo
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::unlit_sprite_t>(
+        &unlit_sprite,
+        "shaders/opengl/2D/objects/sprite.vs",
+        "shaders/opengl/2D/objects/unlit_sprite.fs"
+      );
+    }
+  }
+ 
+  {
+    if (major == 2 && minor == 1) {
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::letter_t>(
+        &letter,
+        "shaders/opengl/2D/objects/letter.vs",
+        "shaders/opengl/2D/objects/letter.fs"
+      );
+    }
+  }
+
+  {
+    if (major == 2 && minor == 1) {
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::circle_t>(
+        &circle,
+        "shaders/opengl/2D/objects/circle.vs",
+        "shaders/opengl/2D/objects/circle.fs"
+      );
+    }
+  }
+
+  {
+    if (major == 2 && minor == 1) {
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::grid_t>(
+        &grid,
+        "shaders/opengl/2D/objects/grid.vs",
+        "shaders/opengl/2D/objects/grid.fs"
+      );
+    }
+  }
+
+  vfi.open();
+
+  {
+    if (major == 2 && minor == 1) {
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::particles_t>(
+        &particles,
+        "shaders/opengl/2D/effects/particles.vs",
+        "shaders/opengl/2D/effects/particles.fs"
+      );
+    }
+  }
+
+  {
+    if (major == 2 && minor == 1) {
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::universal_image_renderer_t>(
+        &universal_image_renderer,
+        "shaders/opengl/2D/objects/pixel_format_renderer.vs",
+        "shaders/opengl/2D/objects/yuv420p.fs"
+      );
+    }
+  }
+
+  {
+    if (major == 2 && minor == 1) {
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::gradient_t>(
+        &gradient,
+        "shaders/opengl/2D/effects/gradient.vs",
+        "shaders/opengl/2D/effects/gradient.fs"
+      );
+    }
+  }
 
   shape_functions.resize(shape_functions.size() + 1); // light_end
 
-  shape_open<loco_t::shader_shape_t>(
-    &shader_shape,
-    "shaders/opengl/2D/objects/sprite.vs",
-    "shaders/opengl/2D/objects/sprite.fs"
-  );
+  {
+    if (major == 2 && minor == 1) {
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::shader_shape_t>(
+        &shader_shape,
+        "shaders/opengl/2D/objects/sprite.vs",
+        "shaders/opengl/2D/objects/sprite.fs"
+      );
+    }
+  }
 
-  shape_open<loco_t::rectangle3d_t>(
-    &rectangle3d,
-    "shaders/opengl/3D/objects/rectangle.vs",
-    "shaders/opengl/3D/objects/rectangle.fs"
-  );
+  {
+    if (major == 2 && minor == 1) {
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::rectangle3d_t>(
+        &rectangle3d,
+        "shaders/opengl/3D/objects/rectangle.vs",
+        "shaders/opengl/3D/objects/rectangle.fs"
+      );
+    }
+  }
 
 #if defined(loco_letter)
 #if !defined(loco_font)
@@ -654,22 +770,28 @@ void loco_t::process_frame() {
   get_context().opengl.glViewport(0, 0, window.get_size().x, window.get_size().y);
 
 #if defined(loco_framebuffer)
-  m_framebuffer.bind(get_context());
+  if ((major > 3) || (major == 3 && minor >= 3)) {
+    m_framebuffer.bind(get_context());
 
 
-  context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-  for (std::size_t i = 0; i < std::size(color_buffers); ++i) {
-    context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
-    context.image_bind(color_buffers[i]);
-    context.opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0 + (uint32_t)(std::size(color_buffers) - 1 - i));
-    if (i + (std::size_t)1 == std::size(color_buffers)) {
-      context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+    context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+    for (std::size_t i = 0; i < std::size(color_buffers); ++i) {
+      context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
+      context.image_bind(color_buffers[i]);
+      context.opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0 + (uint32_t)(std::size(color_buffers) - 1 - i));
+      if (i + (std::size_t)1 == std::size(color_buffers)) {
+        context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+      }
+      context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
     }
+  }
+  else {
+    context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
     context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
   }
 #else
   context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+  context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 #endif
 
   auto it = m_update_callback.GetNodeFirst();
@@ -767,6 +889,9 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
       break;
     }
     case Key_e::light: {
+      if (!((major > 3) || (major == 3 && minor >= 3))) {
+        break;
+      }
       if (light_buffer_enabled == false) {
 #if defined(loco_framebuffer)
         gloco->get_context().set_depth_test(false);
@@ -785,6 +910,9 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
       break;
     }
     case Key_e::light_end: {
+      if (!((major > 3) || (major == 3 && minor >= 3))) {
+        break;
+      }
       if (light_buffer_enabled) {
 #if defined(loco_framebuffer)
         gloco->get_context().set_depth_test(true);
@@ -839,7 +967,9 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
           context.viewport_set(v.viewport_position, v.viewport_size, window.get_size());
         }
         context.shader_set_value(shader, "_t00", 0);
-        context.shader_set_value(shader, "_t01", 1);
+        if ((major > 3) || (major == 3 && minor >= 3)) {
+          context.shader_set_value(shader, "_t01", 1);
+        }
 #if defined(depth_debug)
         if (depth_Key) {
           auto& ri = *(fan::vec3*)BlockTraverse.GetRenderData(shaper);
@@ -901,8 +1031,10 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
         if (shape_type != loco_t::shape_type_t::light) {
 
           if (shape_type == loco_t::shape_type_t::sprite || shape_type == loco_t::shape_type_t::unlit_sprite) {
-            context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-            context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(color_buffers[1]));
+            if ((major > 3) || (major == 3 && minor >= 3)) {
+              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(color_buffers[1]));
+            }
           }
 
           auto& c = camera_get(camera);
@@ -968,7 +1100,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
 
         switch (shape_type) {
         case shape_type_t::rectangle3d: {
-          if (context.major >= 4 && context.minor >= 2) {
+          if ((major > 4) || (major == 4 && minor >= 2)) {
             context.opengl.glDrawArraysInstancedBaseInstance(
               fan::opengl::GL_TRIANGLES,
               0,
@@ -989,7 +1121,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
           break;
         }
         case shape_type_t::line: {
-          if (context.major >= 4 && context.minor >= 2) {
+          if ((major > 4) || (major == 4 && minor >= 2)) {
             context.opengl.glDrawArraysInstancedBaseInstance(
               fan::opengl::GL_LINES,
               0,
@@ -1057,7 +1189,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
 
         }// fallthrough
         default: {
-          if (context.major >= 4) {
+          if ((major > 4) || (major == 4 && minor >= 2)) {
             context.opengl.glDrawArraysInstancedBaseInstance(
               fan::opengl::GL_TRIANGLES,
               0,
@@ -1066,12 +1198,20 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
               BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
             );
           }
-          else {
+          else if ((major > 3) || (major == 3 && minor >= 3)) {
             context.opengl.glDrawArraysInstanced(
               fan::opengl::GL_TRIANGLES,
               0,
               6,
               BlockTraverse.GetAmount(shaper)
+            );
+          }
+          else {
+            auto amoutn = BlockTraverse.GetAmount(shaper);
+            opengl.glDrawArrays(
+              fan::opengl::GL_TRIANGLES,
+              0,
+              6 * amoutn
             );
           }
 
@@ -1113,13 +1253,18 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
 
 #if defined(loco_framebuffer)
 
-  m_framebuffer.unbind(get_context());
+      
+        
+      
+  if ((major > 3) || (major == 3 && minor >= 3)) {
+    m_framebuffer.unbind(get_context());
 
   //fan::print(m_framebuffer.ready(get_context()));
 
 #if defined(loco_post_process)
   blur[0].draw(&color_buffers[0]);
 #endif
+
   //blur[1].draw(&color_buffers[3]);
 
   context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
@@ -1146,6 +1291,7 @@ context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | f
   render_final_fb();
 
 #endif
+  }
 
   for (const auto& i : m_post_draw) {
     i();
@@ -1861,7 +2007,7 @@ loco_t::shape_t loco_t::circle_t::push_back(const circle_t::properties_t& proper
 }
 
 loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
-  //KeyPack.ShapeType = shape_type;
+
   vi_t vi;
   vi.position = properties.position;
   vi.size = properties.size;
@@ -1873,16 +2019,35 @@ loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
   vi.tc_size = properties.tc_size;
   vi.parallax_factor = properties.parallax_factor;
   vi.seed = properties.seed;
+
   ri_t ri;
   ri.images = properties.images;
-  return shape_add(shape_type, vi, ri,
-    Key_e::depth, (uint16_t)properties.position.z,
-    Key_e::blending, (uint8_t)properties.blending,
-    Key_e::image, properties.image,
-    Key_e::viewport, properties.viewport,
-    Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
-  );
+
+  if ((major > 3) || (major == 3 && minor >= 3)) {
+    return shape_add(
+      shape_type, vi, ri, Key_e::depth,
+      static_cast<uint16_t>(properties.position.z),
+      Key_e::blending, static_cast<uint8_t>(properties.blending),
+      Key_e::image, properties.image, Key_e::viewport,
+      properties.viewport, Key_e::camera, properties.camera,
+      Key_e::ShapeType, shape_type
+    );
+  } else {
+    // Legacy version requires array of 6 identical vertices
+    vi_t vertices[6];
+    for (int i = 0; i < 6; i++) {
+      vertices[i] = vi;
+    }
+
+    return shape_add(
+      shape_type, vertices[0], ri, Key_e::depth,
+      static_cast<uint16_t>(properties.position.z),
+      Key_e::blending, static_cast<uint8_t>(properties.blending),
+      Key_e::image, properties.image, Key_e::viewport,
+      properties.viewport, Key_e::camera, properties.camera,
+      Key_e::ShapeType, shape_type
+    );
+  }
 }
 
 loco_t::shape_t loco_t::text_t::push_back(const properties_t& properties) {

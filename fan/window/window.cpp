@@ -228,12 +228,26 @@ void fan::window_t::glfw_initialize_t::open() {
   if (glfwInit() == false) {
     fan::throw_error("failed to initialize window manager context");
   }
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, fan::window_t::gl_major);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, fan::window_t::gl_minor);
+#if 1
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,major);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,minor);
   glfwWindowHint(GLFW_SAMPLES, 0);
 
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+  if ((major > 3) || (major == 3 && minor > 2)) {
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  }
+  
+  if ((major > 3) || (major == 3 && minor > 0)) {
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
+  }
+#else // renderdoc debug
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_SAMPLES, 0);
+
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
+#endif
 
   glfwSetErrorCallback(error_callback);
   initialized = true;

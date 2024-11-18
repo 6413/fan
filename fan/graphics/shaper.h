@@ -567,7 +567,10 @@ private:
     for (const auto& location : st.locations) {
       context.opengl.glEnableVertexAttribArray(location.index);
       context.opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)ptr_offset);
-      context.opengl.glVertexAttribDivisor(location.index, 1);
+       // instancing
+      if ((context.major > 3) || (context.major == 3 && context.minor >= 3)) {
+        context.opengl.glVertexAttribDivisor(location.index, 1);
+      }
       switch (location.type) {
       case fan::opengl::GL_FLOAT: {
         ptr_offset += location.size * sizeof(f32_t);
@@ -748,9 +751,6 @@ private:
     const void *RenderData,
     const void *Data
   ){
-    if (sti == 7 && ((loco_t::light_t::vi_t*)RenderData)->position.z == 8708) {
-      fan::print("+", ((loco_t::light_t::vi_t*)RenderData)->position);
-    }
     auto _KeyPack = (KeyData_t *)KeyPack;
 
     bmid_t bmid;
@@ -876,9 +876,6 @@ private:
     auto &st = ShapeTypes[sti];
     auto bmid = s.bmid;
     auto &bm = BlockManager[bmid];
-    if (sti == 7 && ((loco_t::light_t::vi_t*)GetRenderData(sid))->position.z == 8708) {
-      fan::print("-", ((loco_t::light_t::vi_t*)GetRenderData(sid))->position);
-    }
     auto lsid = _GetShapeID(sti, bm.LastBlockNR, bm.LastBlockElementCount);
     if(sid != lsid){
       ElementIsFullyEdited(sti, s.blid, s.ElementIndex);
