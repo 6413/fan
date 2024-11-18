@@ -7,8 +7,6 @@
 #include <fan/window/window_input_common.h>
 #include <fan/time/time.h>
 
-#include <uv.h>
-
 namespace fan {
   namespace window {
 

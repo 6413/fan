@@ -5,6 +5,8 @@
 #include <chrono>
 #include <thread> // unnecessary
 
+#include <uv.h>
+
 using namespace std::chrono_literals;
 
 template <typename T>

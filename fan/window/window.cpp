@@ -315,11 +315,11 @@ uint32_t fan::window_t::handle_events() {
 
   handle_key_states();
 
-  //glfwPollEvents();
+#if !defined(loco_noev)
   glfwWaitEventsTimeout(0);
-
-  //uv_run(uv_default_loop(), UV_RUN_NOWAIT);
-  //uv_sem_post(&embed_sem);
+#else
+  glfwPollEvents();
+#endif
 
   return 0;
 }
