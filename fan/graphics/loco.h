@@ -2683,7 +2683,7 @@ public:
   //-------------------------------------shapes-------------------------------------
 
   template <typename T>
-  inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment, shaper_t::ShapeRenderDataSize_t instance_count = 1) {
+  inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment, loco_t::shaper_t::ShapeRenderDataSize_t instance_count = 1) {
     auto& context = gloco->get_context();
 
     loco_t::shader_t shader = context.shader_create();
@@ -2701,8 +2701,8 @@ public:
     gloco->shaper.AddShapeType(
       shape->shape_type,
       {
-        .MaxElementPerBlock = (shaper_t::MaxElementPerBlock_t)MaxElementPerBlock,
-        .RenderDataSize = sizeof(typename T::vi_t) * instance_count,
+        .MaxElementPerBlock = (loco_t::shaper_t::MaxElementPerBlock_t)MaxElementPerBlock,
+        .RenderDataSize = (decltype(loco_t::shaper_t::BlockProperties_t::RenderDataSize))(sizeof(typename T::vi_t) * instance_count),
         .DataSize = sizeof(typename T::ri_t),
         .locations = T::locations,
         .shader = shader
