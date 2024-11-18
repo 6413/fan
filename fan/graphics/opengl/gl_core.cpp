@@ -26,7 +26,6 @@ void fan::opengl::context_t::print_version() {
 
 fan::opengl::context_t::context_t(const properties_t&) {
   {
-    fan::print("context_t");
     if (!glfwInit()) {
       fan::throw_error("failed to initialize window manager context");
     }
@@ -41,12 +40,11 @@ fan::opengl::context_t::context_t(const properties_t&) {
     }
     glfwMakeContextCurrent(dummy_window);
     // TODO bad reloads opengl functions twice
-    opengl = fan::opengl::opengl_t(true);
+    opengl = fan::opengl::opengl_t(true)  ;
 
     if (major == -1 || minor == -1) {
-      opengl.glGetIntegerv(fan::opengl::GL_MAJOR_VERSION, &major);
-      opengl.glGetIntegerv(fan::opengl::GL_MINOR_VERSION, &minor);
-      fan::print("AAAAA", opengl.glGetIntegerv, major, minor);
+      const char* gl_version = (const char*)opengl.glGetString(GL_VERSION);
+      sscanf(gl_version, "%d.%d", &major, &minor);
     }
     glfwDestroyWindow(dummy_window);
     glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
