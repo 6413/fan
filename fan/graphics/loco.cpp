@@ -419,11 +419,8 @@ loco_t::loco_t() : loco_t(properties_t()) {
 }
 
 loco_t::loco_t(const properties_t& p) :
-  window(p.window_size, fan::window_t::default_window_name, p.window_flags)
+  context_t(), window(p.window_size, fan::window_t::default_window_name, p.window_flags)
 {
-  context_t::major = window.major;
-  context_t::minor = window.minor;
-  context_t::open(&window);
   gloco = this;
   set_vsync(false); // using libuv
   //fan::print("less pain", this, (void*)&lighting, (void*)((uint8_t*)&lighting - (uint8_t*)this), sizeof(*this), lighting.ambient);
