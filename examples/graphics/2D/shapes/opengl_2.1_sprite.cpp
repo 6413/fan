@@ -1,6 +1,8 @@
 #include <fan/pch.h>
 
 int main() {
+  //fan::opengl::context_t::major = 2;
+  //fan::opengl::context_t::minor = 1;
   fan::graphics::engine_t engine;
 
   fan::graphics::image_t image = engine.image_load("images/duck.webp");

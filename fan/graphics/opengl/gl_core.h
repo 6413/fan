@@ -26,18 +26,23 @@ namespace fan {
       fan::opengl::GLuint current_program = -1;
 
       inline static int major = -1, minor = -1;
+      inline static bool initialized = 0;
 
+      static void error_callback(int error, const char* description) {
+        fan::print("window error:", description);
+      }
 
       context_t(const properties_t& p = properties_t()) {
+        fan::print("context_t");
         if (!glfwInit()) {
-          fan::throw_error("failed to initialize glfw");
+          fan::throw_error("failed to initialize window manager context");
         }
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2); 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 
-        GLFWwindow* dummy_window = glfwCreateWindow(640, 40, "dummy", nullptr, nullptr);
+        GLFWwindow* dummy_window = glfwCreateWindow(640, 400, "dummy", nullptr, nullptr);
         if (dummy_window == nullptr) {
           fan::throw_error("failed to open dummy window");
         }
@@ -48,12 +53,36 @@ namespace fan {
         if (major == -1 || minor == -1) {
           opengl.glGetIntegerv(fan::opengl::GL_MAJOR_VERSION, &major);
           opengl.glGetIntegerv(fan::opengl::GL_MINOR_VERSION, &minor);
-          fan::window_t::major = major;
-          fan::window_t::minor = minor;
         }
         glfwDestroyWindow(dummy_window);
         glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
-        glfwTerminate();
+
+        if (initialized == false) {
+#if 1
+          glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
+          glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
+          glfwWindowHint(GLFW_SAMPLES, 0);
+
+          if ((major > 3) || (major == 3 && minor > 2)) {
+            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+          }
+
+          if ((major > 3) || (major == 3 && minor > 0)) {
+            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
+          }
+#else // renderdoc debug
+          glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+          glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+          glfwWindowHint(GLFW_SAMPLES, 0);
+
+          glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+          glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
+#endif
+
+          glfwSetErrorCallback(error_callback);
+          initialized = true;
+        }
+
       }
 
       void render(fan::window_t& window) {

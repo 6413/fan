@@ -1,13 +1,6 @@
 #include <fan/pch.h>
 #include "window.h"
 
-fan::window_t::glfw_initialize_t intialize_glfw_var;
-
-
-void fan::window::error_callback(int error, const char* description) {
-  fan::print("window error:", description);
-}
-
 void fan::window::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
   auto found = fan::window_t::window_map.find(window);
   if (found != fan::window_t::window_map.end()) {
@@ -223,42 +216,6 @@ void fan::window::window_focus_callback(GLFWwindow* wnd, int focused) {
   }
 }
 
-void fan::window_t::glfw_initialize_t::open() {
-  using namespace fan::window;
-  if (glfwInit() == false) {
-    fan::throw_error("failed to initialize window manager context");
-  }
-#if 1
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,major);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,minor);
-  glfwWindowHint(GLFW_SAMPLES, 0);
-
-  if ((major > 3) || (major == 3 && minor > 2)) {
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  }
-  
-  if ((major > 3) || (major == 3 && minor > 0)) {
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
-  }
-#else // renderdoc debug
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_SAMPLES, 0);
-
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
-#endif
-
-  glfwSetErrorCallback(error_callback);
-  initialized = true;
-}
-
-fan::window_t::glfw_initialize_t::~glfw_initialize_t() {
-  if (initialized) {
-    glfwTerminate();
-  }
-}
-
 fan::window_t::window_t() : window_t(fan::window_t::default_window_size, fan::window_t::default_window_name, 0) {}
 
 void errorCallback(int error, const char* description) {
@@ -266,9 +223,7 @@ void errorCallback(int error, const char* description) {
 }
 
 fan::window_t::window_t(fan::vec2i window_size, const fan::string& name, uint64_t flags) {
-  if (intialize_glfw_var.initialized == false) {
-    intialize_glfw_var.open();
-  }
+  fan::print("window");
   std::fill(key_states.begin(), key_states.end(), -1);
   std::fill(prev_key_states.begin(), prev_key_states.end(), -1);
 
