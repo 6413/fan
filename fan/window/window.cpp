@@ -223,7 +223,6 @@ void errorCallback(int error, const char* description) {
 }
 
 fan::window_t::window_t(fan::vec2i window_size, const fan::string& name, uint64_t flags) {
-  fan::print("window");
   std::fill(key_states.begin(), key_states.end(), -1);
   std::fill(prev_key_states.begin(), prev_key_states.end(), -1);
 
