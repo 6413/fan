@@ -27,15 +27,33 @@ namespace fan {
 
       inline static int major = -1, minor = -1;
 
-      void open(fan::window_t* window, const properties_t& p = properties_t()) {
+
+      context_t(const properties_t& p = properties_t()) {
+        if (!glfwInit()) {
+          fan::throw_error("failed to initialize glfw");
+        }
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2); 
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+
+        GLFWwindow* dummy_window = glfwCreateWindow(640, 40, "dummy", nullptr, nullptr);
+        if (dummy_window == nullptr) {
+          fan::throw_error("failed to open dummy window");
+        }
+        glfwMakeContextCurrent(dummy_window);
         // TODO bad reloads opengl functions twice
         opengl = fan::opengl::opengl_t(true);
-        glfwMakeContextCurrent(window->glfw_window);
 
         if (major == -1 || minor == -1) {
           opengl.glGetIntegerv(fan::opengl::GL_MAJOR_VERSION, &major);
           opengl.glGetIntegerv(fan::opengl::GL_MINOR_VERSION, &minor);
+          fan::window_t::major = major;
+          fan::window_t::minor = minor;
         }
+        glfwDestroyWindow(dummy_window);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+        glfwTerminate();
       }
 
       void render(fan::window_t& window) {
@@ -102,7 +120,8 @@ namespace fan {
       void shader_set_vertex(shader_nr_t nr, const fan::string& vertex_code);
       void shader_set_fragment(shader_nr_t nr, const fan::string& fragment_code);
       bool shader_compile(shader_nr_t nr);
-      bool shader_check_compile_errors(fan::opengl::GLuint, const fan::string& type);
+      bool shader_check_compile_errors(fan::opengl::GLuint nr, const fan::string& type);
+      bool shader_check_compile_errors(fan::opengl::context_t::shader_t&, const fan::string& type);
 
       void shader_set_camera(shader_nr_t nr, void* camera_nr);
 

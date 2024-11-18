@@ -328,7 +328,7 @@ void fan::opengl::context_t::shader_set_vertex(shader_nr_t nr, const fan::string
   opengl.call(opengl.glShaderSource, shader.vertex, 1, &ptr, &length);
   opengl.call(opengl.glCompileShader, shader.vertex);
 
-  shader_check_compile_errors(shader.vertex, "VERTEX");
+  shader_check_compile_errors(shader, "VERTEX");
 }
 
 void fan::opengl::context_t::shader_set_fragment(shader_nr_t nr, const fan::string& fragment_code) {
@@ -347,7 +347,7 @@ void fan::opengl::context_t::shader_set_fragment(shader_nr_t nr, const fan::stri
   opengl.call(opengl.glShaderSource, shader.fragment, 1, &ptr, &length);
 
   opengl.call(opengl.glCompileShader, shader.fragment);
-  shader_check_compile_errors(shader.fragment, "FRAGMENT");
+  shader_check_compile_errors(shader, "FRAGMENT");
 }
 
 bool fan::opengl::context_t::shader_compile(shader_nr_t nr) {
@@ -451,7 +451,54 @@ bool fan::opengl::context_t::shader_check_compile_errors(fan::opengl::GLuint sha
 
     get_info_log(program, shader, buffer, buffer_size);
 
-    fan::print("failed to compile type: " + type, buffer);
+    fan::print("failed to compile: " + type, buffer);
+
+    return false;
+  }
+  return true;
+}
+
+bool fan::opengl::context_t::shader_check_compile_errors(fan::opengl::context_t::shader_t& shader, const fan::string& type)
+{
+  fan::opengl::GLint success;
+
+  bool vertex = type == "VERTEX";
+  bool program = type == "PROGRAM";
+
+  if (program == false) {
+    opengl.call(opengl.glGetShaderiv, vertex ? shader.vertex : shader.fragment, fan::opengl::GL_COMPILE_STATUS, &success);
+  }
+  else {
+    opengl.call(opengl.glGetProgramiv, vertex ? shader.vertex : shader.fragment, fan::opengl::GL_LINK_STATUS, &success);
+  }
+
+  if (success) {
+    return true;
+  }
+
+  int buffer_size = 0;
+  opengl.glGetShaderiv(vertex ? shader.vertex : shader.fragment, fan::opengl::GL_INFO_LOG_LENGTH, &buffer_size);
+
+
+  if (buffer_size <= 0) {
+    return false;
+  }
+
+  fan::string buffer;
+  buffer.resize(buffer_size);
+
+  if (!success)
+  {
+    int test;
+#define get_info_log(is_program, program, str_buffer, size) \
+                if (is_program) \
+                opengl.call(opengl.glGetProgramInfoLog, program, size, nullptr, buffer.data()); \
+                else \
+                opengl.call(opengl.glGetShaderInfoLog, program, size, &test, buffer.data());
+
+    get_info_log(program, vertex ? shader.vertex : shader.fragment, buffer, buffer_size);
+
+    fan::print("failed to compile: " + type, "filenames", shader.svertex, shader.sfragment, buffer);
 
     return false;
   }
