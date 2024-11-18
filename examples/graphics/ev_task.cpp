@@ -8,7 +8,8 @@ using namespace std::chrono_literals;
 
 std::vector<loco_t::shape_t> shapes;
 
-task<void> do_something(task<void>* t) {
+#if !defined(loco_noev)
+task<void> spawn_rectangles(task<void>* t) {
   fan::print("start");
   while (true) {
     shapes.clear();
@@ -20,11 +21,14 @@ task<void> do_something(task<void>* t) {
     co_await co_sleep_for(t, 1ms);
   }
 }
+#endif
 
 int main() {
   loco_t loco;
-  task<void> t = do_something(&t);
+#if !defined(loco_noev)
+  task<void> t = spawn_rectangles(&t);
   t.coro.resume();
+#endif
   loco.loop([&] {
     
   });

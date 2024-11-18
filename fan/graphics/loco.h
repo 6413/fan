@@ -8,6 +8,12 @@
 #define loco_vfi
 #define loco_physics
 
+#if !defined(loco_noev)
+  #include <uv.h>
+#undef min
+#undef max
+#endif
+
 #if defined(loco_assimp)
   // texture multithread load
   #include <future>
@@ -1360,9 +1366,11 @@ public:
 
   uint32_t get_fps();
   void set_vsync(bool flag);
+#if !defined(loco_noev)
   void start_timer();
   void start_idle();
   void update_timer_interval();
+#endif
   void set_target_fps(int32_t fps);
 
   //-----------------------------gui-----------------------------
@@ -1578,12 +1586,14 @@ public:
   camera_impl_t perspective_camera;
 
   fan::window_t window;
+#if !defined(loco_noev)
   uv_idle_t idle_handle;
   uv_timer_t timer_handle;
   private:
   int32_t target_fps = 165; // must be changed from function
   bool timer_enabled = target_fps > 0;
   public:
+#endif
   fan::function_t<void()> main_loop; // bad, but forced
 
   f64_t& delta_time = window.m_delta_time;
