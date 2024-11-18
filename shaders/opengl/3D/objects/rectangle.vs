@@ -1,23 +1,16 @@
 
-#version 140
-
-#define get_instance() instance[gl_VertexID / 36]
+#version 330
 
 out vec4 instance_color;
 
 uniform mat4 view;
 uniform mat4 projection;
 
-struct block_instance_t{
-	vec3 position;
-	vec3 size;
-	vec4 color;
-	vec3 angle;
-};
+layout (location = 0) in vec3 in_position;
+layout (location = 1) in vec3 in_size;
+layout (location = 2) in vec4 in_color;
+layout (location = 3) in vec3 in_angle;
 
-layout (std140) uniform instance_t {
-	block_instance_t instance[256];
-};
 
 // Define 3D cube vertices
 vec3 rectangle_vertices[36] = vec3[](
@@ -115,12 +108,12 @@ void main() {
 	vec3 rp = rectangle_vertices[id];
 
   mat4 m = mat4(1);
-  //m = translate(m, -vec3(get_instance().rotation_point, 0));
-  //m = rotate(m, get_instance().angle); 
-  //m = translate(m, vec3(get_instance().rotation_point, 0));
-  vec3 rotated = vec4(m * vec4(rp * get_instance().size + get_instance().position, 1)).xyz;
+  //m = translate(m, -vec3(in_rotation_point, 0));
+  //m = rotate(m, in_angle); 
+  //m = translate(m, vec3(in_rotation_point, 0));
+  vec3 rotated = vec4(m * vec4(rp * in_size + in_position, 1)).xyz;
 
   gl_Position = projection * view * vec4(rotated, 1);
 
-	instance_color = get_instance().color;
+	instance_color = in_color;
 }

@@ -1,4 +1,3 @@
-
 #version 330
 
 out vec4 i_color;
@@ -9,7 +8,6 @@ uniform vec2 position;
 uniform vec2 size;
 uniform vec2 position_velocity;
 uniform vec3 angle_velocity;
-uniform vec3 rotation_vector;
 uniform float alive_time;
 uniform float respawn_time;
 uniform float begin_angle;
