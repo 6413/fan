@@ -482,14 +482,30 @@ struct loco_t : fan::opengl::context_t {
   template <typename T, typename T2, typename T3>
   static void modify_render_data_element(shape_t* shape, T2 T::* attribute, const T3& value) {
     shaper_t::ShapeRenderData_t* data = gloco->shaper.GetRenderData(*shape);
-    ((T*)data)->*attribute = value;
-    gloco->shaper.ElementIsPartiallyEdited(
-      gloco->shaper.GetSTI(*shape),
-      gloco->shaper.GetBLID(*shape),
-      gloco->shaper.GetElementIndex(*shape),
-      fan::member_offset(attribute),
-      sizeof(T3)
-    );
+
+    if ((gloco->major > 3) || (gloco->major == 3 && gloco->minor >= 3)) {
+      ((T*)data)->*attribute = value;
+      gloco->shaper.ElementIsPartiallyEdited(
+        gloco->shaper.GetSTI(*shape),
+        gloco->shaper.GetBLID(*shape),
+        gloco->shaper.GetElementIndex(*shape),
+        fan::member_offset(attribute),
+        sizeof(T3)
+      );
+    }
+    else {
+      for (int i = 0; i < 6; ++i) {
+        auto& v = ((T*)data)[i];
+        ((T*)&v)->*attribute = value;
+        gloco->shaper.ElementIsPartiallyEdited(
+          gloco->shaper.GetSTI(*shape),
+          gloco->shaper.GetBLID(*shape),
+          gloco->shaper.GetElementIndex(*shape),
+          fan::member_offset(attribute) + sizeof(T) * i,
+          sizeof(T3)
+        );
+      }
+    }
   };
 
   template <typename T>
@@ -2667,7 +2683,7 @@ public:
   //-------------------------------------shapes-------------------------------------
 
   template <typename T>
-  inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment) {
+  inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment, shaper_t::ShapeRenderDataSize_t instance_count = 1) {
     auto& context = gloco->get_context();
 
     loco_t::shader_t shader = context.shader_create();
@@ -2686,7 +2702,7 @@ public:
       shape->shape_type,
       {
         .MaxElementPerBlock = (shaper_t::MaxElementPerBlock_t)MaxElementPerBlock,
-        .RenderDataSize = sizeof(typename T::vi_t),
+        .RenderDataSize = sizeof(typename T::vi_t) * instance_count,
         .DataSize = sizeof(typename T::ri_t),
         .locations = T::locations,
         .shader = shader
@@ -2990,6 +3006,9 @@ namespace fan {
   namespace graphics {
 
     using vfi_t = loco_t::vfi_t;
+
+    using engine_t = loco_t;
+    using image_t = loco_t::image_t;
 
 #if defined(loco_imgui)
     using imgui_element_t = loco_t::imgui_element_t;
