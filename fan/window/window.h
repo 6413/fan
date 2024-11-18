@@ -12,8 +12,6 @@
 namespace fan {
   namespace window {
 
-    void error_callback(int error, const char* description);
-
     void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
     void keyboard_keys_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
     void text_callback(GLFWwindow* window, unsigned int codepoint);
@@ -176,16 +174,6 @@ namespace fan {
       static constexpr int no_decorate = 1 << 5;
       static constexpr int transparent = 1 << 6;
     };
-
-    inline static int major = 4;
-    inline static int minor = 2;
-
-     struct glfw_initialize_t {
-      glfw_initialize_t() = default;
-      void open();
-      ~glfw_initialize_t();
-      static inline bool initialized = false;
-    }intialize_glfw_var;
 
     window_t();
     window_t(fan::vec2i window_size = fan::window_t::default_window_size, const fan::string& name = default_window_name, uint64_t flags = 0);
