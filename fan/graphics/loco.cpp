@@ -298,11 +298,16 @@ void init_imgui(loco_t* loco) {
 
 void loco_t::init_framebuffer() {
 
-  if (!((major > 3) || (major == 3 && minor >= 3))) {
-    return;
-  }
 
   auto& context = get_context();
+
+  if (!((major > 3) || (major == 3 && minor >= 3))) {
+    window.add_resize_callback([&](const auto& d) {
+      context.viewport_set(orthographic_camera.viewport, fan::vec2(0, 0), d.size, d.size);
+      context.viewport_set(perspective_camera.viewport, fan::vec2(0, 0), d.size, d.size);
+    });
+    return;
+  }
 
 #if defined(loco_opengl)
 #if defined(loco_framebuffer)
@@ -731,11 +736,11 @@ loco_t::loco_t(const properties_t& p) :
     loco_t::shader_t shader = shader_create();
 
     shader_set_vertex(shader,
-      read_shader("shaders/opengl/2D/objects/circle.vs")
+      read_shader("shaders/empty.vs")
     );
       
     shader_set_fragment(shader,
-      read_shader("shaders/opengl/2D/objects/circle.fs")
+      read_shader("shaders/empty.fs")
     );
 
     shader_compile(shader);
