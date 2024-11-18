@@ -24,6 +24,62 @@ void fan::opengl::context_t::print_version() {
   fan::print("opengl version supported:", opengl.glGetString(fan::opengl::GL_VERSION));
 }
 
+fan::opengl::context_t::context_t(const properties_t&) {
+  {
+    fan::print("context_t");
+    if (!glfwInit()) {
+      fan::throw_error("failed to initialize window manager context");
+    }
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+
+    GLFWwindow* dummy_window = glfwCreateWindow(640, 400, "dummy", nullptr, nullptr);
+    if (dummy_window == nullptr) {
+      fan::throw_error("failed to open dummy window");
+    }
+    glfwMakeContextCurrent(dummy_window);
+    // TODO bad reloads opengl functions twice
+    opengl = fan::opengl::opengl_t(true);
+
+    if (major == -1 || minor == -1) {
+      opengl.glGetIntegerv(fan::opengl::GL_MAJOR_VERSION, &major);
+      opengl.glGetIntegerv(fan::opengl::GL_MINOR_VERSION, &minor);
+      fan::print("AAAAA", opengl.glGetIntegerv, major, minor);
+    }
+    glfwDestroyWindow(dummy_window);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+
+    if (initialized == false) {
+#if 1
+      glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
+      glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
+      glfwWindowHint(GLFW_SAMPLES, 0);
+
+      if ((major > 3) || (major == 3 && minor > 2)) {
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+      }
+
+      if ((major > 3) || (major == 3 && minor > 0)) {
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
+      }
+#else // renderdoc debug
+      glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+      glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+      glfwWindowHint(GLFW_SAMPLES, 0);
+
+      glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+      glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
+#endif
+
+      glfwSetErrorCallback(error_callback);
+      initialized = true;
+    }
+
+  }
+}
+
 void fan::opengl::context_t::set_depth_test(bool flag) {
   if (flag) {
     opengl.call(opengl.glEnable, fan::opengl::GL_DEPTH_TEST);
