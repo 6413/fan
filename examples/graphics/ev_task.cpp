@@ -1,6 +1,9 @@
+#if defined(loco_noev)
+  #error loco_noev needs to be undefined
+#endif
+
 #include <fan/pch.h>
 
-#include <coroutine>
 #include <fan/ev/ev.h>
 
 using namespace std::chrono_literals;
@@ -8,7 +11,7 @@ using namespace std::chrono_literals;
 
 std::vector<loco_t::shape_t> shapes;
 
-#if !defined(loco_noev)
+
 task<void> spawn_rectangles(task<void>* t) {
   fan::print("start");
   while (true) {
@@ -21,14 +24,11 @@ task<void> spawn_rectangles(task<void>* t) {
     co_await co_sleep_for(t, 1ms);
   }
 }
-#endif
 
 int main() {
   loco_t loco;
-#if !defined(loco_noev)
   task<void> t = spawn_rectangles(&t);
   t.coro.resume();
-#endif
   loco.loop([&] {
     
   });
