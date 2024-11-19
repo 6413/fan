@@ -3,7 +3,6 @@
 #include <functional>
 #include <queue>
 #include <chrono>
-#include <thread> // unnecessary
 
 #include <uv.h>
 

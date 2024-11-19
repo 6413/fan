@@ -3023,7 +3023,7 @@ namespace fan {
 #if defined(loco_imgui)
     using imgui_element_t = loco_t::imgui_element_t;
 
-    void text(const std::string& text, const fan::vec2& position, const fan::color& color = fan::colors::white);
+    void text(const std::string& text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white);
     void text_bottom_right(const std::string& text, const fan::color& color = fan::colors::white, const fan::vec2& offset = 0);
 #endif
 
