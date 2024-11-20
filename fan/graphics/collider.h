@@ -96,6 +96,9 @@ namespace fan {
         }
       };
     }
+    inline void close_bcol() {
+      bcol.Close();
+    }
 
     struct collider_static_t : loco_t::shape_t {
       collider_static_t() = default;

@@ -10,10 +10,8 @@ concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&
 !std::is_same_v<T, fan::vec4> &&
 !std::is_same_v<T, fan::color>;
 
-
 namespace fan {
   namespace opengl {
-
     struct context_t {
 
       void print_version();
@@ -24,9 +22,6 @@ namespace fan {
   
       fan::opengl::opengl_t opengl;
       fan::opengl::GLuint current_program = -1;
-
-      inline static int major = -1, minor = -1;
-      inline static bool initialized = 0;
 
       static void error_callback(int error, const char* description) {
         fan::print("window error:", description);

@@ -24,58 +24,30 @@ void fan::opengl::context_t::print_version() {
   fan::print("opengl version supported:", opengl.glGetString(fan::opengl::GL_VERSION));
 }
 
+
 fan::opengl::context_t::context_t(const properties_t&) {
-  {
-    if (!glfwInit()) {
-      fan::throw_error("failed to initialize window manager context");
-    }
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-
-    GLFWwindow* dummy_window = glfwCreateWindow(640, 400, "dummy", nullptr, nullptr);
-    if (dummy_window == nullptr) {
-      fan::throw_error("failed to open dummy window");
-    }
-    glfwMakeContextCurrent(dummy_window);
-    // TODO bad reloads opengl functions twice
-    opengl = fan::opengl::opengl_t(true)  ;
-
-    if (major == -1 || minor == -1) {
-      const char* gl_version = (const char*)opengl.glGetString(GL_VERSION);
-      sscanf(gl_version, "%d.%d", &major, &minor);
-    }
-    glfwDestroyWindow(dummy_window);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
-
-    if (initialized == false) {
 #if 1
-      glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
-      glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
-      glfwWindowHint(GLFW_SAMPLES, 0);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, opengl.major);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, opengl.minor);
+  glfwWindowHint(GLFW_SAMPLES, 0);
 
-      if ((major > 3) || (major == 3 && minor > 2)) {
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-      }
+  if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor > 2)) {
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  }
 
-      if ((major > 3) || (major == 3 && minor > 0)) {
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
-      }
+  if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor > 0)) {
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
+  }
 #else // renderdoc debug
-      glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-      glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-      glfwWindowHint(GLFW_SAMPLES, 0);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_SAMPLES, 0);
 
-      glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-      glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
 #endif
 
-      glfwSetErrorCallback(error_callback);
-      initialized = true;
-    }
-
-  }
+  glfwSetErrorCallback(error_callback);
 }
 
 void fan::opengl::context_t::set_depth_test(bool flag) {
@@ -418,6 +390,11 @@ bool fan::opengl::context_t::shader_compile(shader_nr_t nr) {
   opengl.call(opengl.glLinkProgram, temp_id);
   bool ret = shader_check_compile_errors(temp_id, "PROGRAM");
 
+  if (ret == false) {
+    opengl.call(opengl.glDeleteProgram, temp_id);
+    return false;
+  }
+
   if (shader.vertex != (uint32_t)-1) {
     opengl.call(opengl.glDeleteShader, shader.vertex);
     shader.vertex = -1;
@@ -425,10 +402,6 @@ bool fan::opengl::context_t::shader_compile(shader_nr_t nr) {
   if (shader.fragment != (uint32_t)-1) {
     opengl.call(opengl.glDeleteShader, shader.fragment);
     shader.fragment = -1;
-  }
-
-  if (ret == false) {
-    return ret;
   }
 
   if (shader.id != (uint32_t)-1) {

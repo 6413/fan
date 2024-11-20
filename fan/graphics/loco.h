@@ -202,9 +202,9 @@ struct global_loco_t {
 // because pch or lib is built with extern/inline so if its different, 
 // it will crash in random places
 #if defined(fan_compiler_clang)
-  inline thread_local global_loco_t gloco;
+  inline global_loco_t gloco;
 #elif defined(fan_compiler_msvc)
-  inline  global_loco_t gloco;
+  inline global_loco_t gloco;
 #endif
 
 namespace fan {
@@ -509,7 +509,7 @@ struct loco_t : fan::opengl::context_t {
   static void modify_render_data_element(shape_t* shape, T2 T::* attribute, const T3& value) {
     shaper_t::ShapeRenderData_t* data = gloco->shaper.GetRenderData(*shape);
 
-    if ((gloco->major > 3) || (gloco->major == 3 && gloco->minor >= 3)) {
+    if ((gloco->opengl.major > 3) || (gloco->opengl.major == 3 && gloco->opengl.minor >= 3)) {
       ((T*)data)->*attribute = value;
       gloco->shaper.ElementIsPartiallyEdited(
         gloco->shaper.GetSTI(*shape),
@@ -1352,6 +1352,7 @@ public:
 
   loco_t();
   loco_t(const properties_t& p);
+  ~loco_t();
 
   void process_frame();
 

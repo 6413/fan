@@ -568,7 +568,7 @@ private:
       context.opengl.glEnableVertexAttribArray(location.index);
       context.opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)ptr_offset);
        // instancing
-      if ((context.major > 3) || (context.major == 3 && context.minor >= 3)) {
+      if ((context.opengl.major > 3) || (context.opengl.major == 3 && context.opengl.minor >= 3)) {
         context.opengl.glVertexAttribDivisor(location.index, 1);
       }
       switch (location.type) {

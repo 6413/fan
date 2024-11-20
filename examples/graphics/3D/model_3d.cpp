@@ -8,11 +8,21 @@ int main() {
   static constexpr uint8_t use_flag = fan::graphics::model_t::use_flag_e::model;
 
   fan::graphics::model_t::properties_t p;
-  p.path = "models/multi.fbx";
+  p.path = "models/sponza.obj";
+  p.model = p.model.scale(0.05);
 //  p.model = p.model.scale(0.05);
   // sponza model has different coordinate system so fix it by rotating model matrix
-  //p.model = fan::mat4(1).rotate(fan::math::pi, fan::vec3(1, 0, 0));
+  p.model = p.model.rotate(fan::math::pi, fan::vec3(1, 0, 0));
   fan::graphics::model_t model(p);
+
+  loco.window.add_key_callback(fan::key_r, fan::keyboard_state::press, [&](const auto&) {
+    fan::string str;
+    fan::io::file::read("1.glsl", &str);
+
+    loco.shader_set_vertex(model.m_shader, model.vertex_shaders[fan::graphics::model_t::use_flag_e::model]);
+    loco.shader_set_fragment(model.m_shader, str.c_str());
+    loco.shader_compile(model.m_shader);
+    });
 
   //
  // GLFWwindow* offscreen_context = create_window(1, 1, "", loco.window);
@@ -49,6 +59,33 @@ int main() {
 
   loco.loop([&] {
     ImGui::Begin("window");
+
+    static fan::vec3 light_pos = 0;
+    {
+      auto str = gloco->camera_get_position(gloco->perspective_camera.camera).to_string();
+      ImGui::Text("%s", str.c_str());
+    }
+    ImGui::DragFloat3("light position", light_pos.data());
+    fan::vec4 lpt = fan::vec4(light_pos, 1);
+    gloco->shader_set_value(model.m_shader, "light_pos", *(fan::vec3*)&lpt);
+
+
+    static f32_t f0 = 0;
+    ImGui::DragFloat("f0", &f0, 0.001, 0, 1);
+    gloco->shader_set_value(model.m_shader, "F0", f0);
+
+
+    static f32_t metallic = 0;
+    ImGui::DragFloat("metallic", &metallic, 0.001, 0, 1);
+    gloco->shader_set_value(model.m_shader, "metallic", metallic);
+
+    static f32_t roughness = 0;
+    ImGui::DragFloat("rough", &roughness, 0.001, 0, 1);
+    gloco->shader_set_value(model.m_shader, "rough", roughness);
+
+    static f32_t light_intensity = 1;
+    ImGui::DragFloat("light_intensity", &light_intensity, 0.1);
+    gloco->shader_set_value(model.m_shader, "light_intensity", light_intensity);
 
     camera.move(100);
 
