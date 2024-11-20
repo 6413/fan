@@ -8,8 +8,8 @@ int main() {
   static constexpr uint8_t use_flag = fan::graphics::model_t::use_flag_e::model;
 
   fan::graphics::model_t::properties_t p;
-  p.path = "models/sponza.obj";
-  p.model = p.model.scale(0.05);
+  p.path = "models/NewSponza_Main_glTF_003.gltf";
+  p.model = p.model.scale(0.5);
 //  p.model = p.model.scale(0.05);
   // sponza model has different coordinate system so fix it by rotating model matrix
   p.model = p.model.rotate(fan::math::pi, fan::vec3(1, 0, 0));
@@ -22,7 +22,7 @@ int main() {
     loco.shader_set_vertex(model.m_shader, model.vertex_shaders[fan::graphics::model_t::use_flag_e::model]);
     loco.shader_set_fragment(model.m_shader, str.c_str());
     loco.shader_compile(model.m_shader);
-    });
+  });
 
   //
  // GLFWwindow* offscreen_context = create_window(1, 1, "", loco.window);
@@ -60,6 +60,8 @@ int main() {
   loco.loop([&] {
     ImGui::Begin("window");
 
+    model.m = fan::mat4(1).rotate(orientation);
+
     static fan::vec3 light_pos = 0;
     {
       auto str = gloco->camera_get_position(gloco->perspective_camera.camera).to_string();
@@ -89,7 +91,7 @@ int main() {
 
     camera.move(100);
 
-    m = fan::mat4(1).rotate(orientation);
+    //m = fan::mat4(1).rotate(orientation);
 
     ImGui::DragFloat3("orientation", orientation.data(), 0.01);
 
