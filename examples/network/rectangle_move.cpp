@@ -8,26 +8,9 @@ fan::graphics::rectangle_t r{ {
     .color = fan::colors::red
 } };
 
-
-//#define make_task(name) fan::network::task_t name() { \
-//  try {
-//
-//#define end_task } \
-//  catch (std::exception& e) { \
-//    fan::print_warning(std::string("server error:") + e.what()); \
-//  }} \
-//
-//#define tcp_listen(name) co_await fan::network::tcp_listen({.port = 8080}, [](auto&& name) ->  fan::network::task_t 
-
-//make_task(tcp_server_test);
-//tcp_listen(client) {
-//  client.read()
-//});
-//end_task
-
-fan::network::task_t tcp_server_test() {
+fan::ev::task_t tcp_server_test() {
   try {
-    co_await fan::network::tcp_listen({.port = 8080}, [](auto&& client) -> fan::network::task_t {
+    co_await fan::network::tcp_listen({.port = 8080}, [](auto&& client) -> fan::ev::task_t {
       fan::json_stream_parser_t parser;
       auto reader = client.read();
       while (auto data = co_await reader) {
@@ -45,7 +28,7 @@ fan::network::task_t tcp_server_test() {
   }
 }
 
-fan::network::task_t tcp_client_test() {
+fan::ev::task_t tcp_client_test() {
   try {
     fan::network::tcp_t client;
     co_await client.connect("127.0.0.1", 8080);
