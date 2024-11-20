@@ -1,6 +1,29 @@
 #include <fan/pch.h>
 #include "window.h"
 
+struct init_manager_t {
+  static bool& initialized() {
+    static bool instance = false;
+    return instance;
+  }
+
+  struct cleaner_t {
+    cleaner_t() {
+      if (!glfwInit()) {
+        fan::throw_error("failed to initialize window manager context");
+      }
+      initialized() = true;
+    }
+};
+
+  static cleaner_t& cleaner() {
+    static cleaner_t instance;
+    return instance;
+  }
+};
+
+inline init_manager_t::cleaner_t& _cleaner = init_manager_t::cleaner();
+
 void fan::window::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
   auto found = fan::window_t::window_map.find(window);
   if (found != fan::window_t::window_map.end()) {
@@ -232,6 +255,10 @@ fan::window_t::window_t(fan::vec2i window_size, const fan::string& name, uint64_
     window_size.x = mode->width / 2;
     window_size.y = mode->height / 2;
   }
+
+  #if fan_debug >= fan_debug_high
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+  #endif
 
   using namespace fan::window;
   glfw_window = glfwCreateWindow(window_size.x, window_size.y, name.c_str(), NULL, NULL);

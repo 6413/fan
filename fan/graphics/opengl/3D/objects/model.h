@@ -93,6 +93,7 @@ namespace fan_3d {
     struct pm_texture_data_t {
       fan::vec2ui size = 0;
       std::vector<uint8_t> data;
+      int channels = 0;
     };
     struct pm_material_data_t {
       fan::vec4 color;
@@ -145,7 +146,7 @@ namespace fan_3d {
       return true;
     }
 
-    static bool load_texture(const aiScene* scene, aiMaterial* material, aiTextureType texture_type, const fan::string& root_path, int channels_rgba, parsed_model_t& parsed_model, std::size_t mesh_index, std::vector<pm_material_data_t>& materials)
+    static bool load_texture(const aiScene* scene, aiMaterial* material, aiTextureType texture_type, const fan::string& root_path, parsed_model_t& parsed_model, std::size_t mesh_index, std::vector<pm_material_data_t>& materials)
     {
       pm_material_data_t material_data;
       /*
@@ -185,6 +186,7 @@ namespace fan_3d {
             auto& td = cached_texture_data[generated_str];
             td.size = fan::vec2(width, height);
             td.data.insert(td.data.end(), data, data + td.size.multiply() * nr_channels);
+            td.channels = nr_channels;
             stbi_image_free(data);
           }
           else {
@@ -206,6 +208,7 @@ namespace fan_3d {
             auto& td = cached_texture_data[file_path];
             td.size = ii.size;
             td.data.insert(td.data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
+            td.channels = ii.channels;
             fan::image::free(&ii);
             //if (texture_type == aiTextureType_DIFFUSE) { // hardcoded for sponza
             //  file_path.replace_all("BaseColor", "Normal");
@@ -238,7 +241,6 @@ namespace fan_3d {
       auto& md = parsed_model.model_data.mesh_data;
       md.resize(md.size() + 1);
 
-      static constexpr int channels_rgba = 4;
       auto arr = std::to_array({
            aiTextureType_DIFFUSE, aiTextureType_SHININESS,
            aiTextureType_METALNESS
@@ -246,7 +248,7 @@ namespace fan_3d {
       fan::color color_diffuse;
       for (auto& i : arr) {
         load_texture(scene, scene->mMaterials[mesh->mMaterialIndex],
-          i, root_path, channels_rgba, parsed_model, md.size() - 1, material_data);
+          i, root_path, parsed_model, md.size() - 1, material_data);
       }
       /*if (texture_found == false) {
         // if you want to create texture externally, implement pixels manually to diffuse_texture_data
@@ -1253,7 +1255,24 @@ namespace fan {
               auto& td = fan_3d::model::cached_texture_data[name];
               ii.data = td.data.data();
               ii.size = td.size;
-              cached_images[name] = gloco->image_load(ii);
+              ii.channels = td.channels;
+              fan::opengl::context_t::image_load_properties_t ilp;
+              switch (ii.channels) {
+              case 3: {
+                ilp.format = fan::opengl::GL_RGB;
+                ilp.internal_format = fan::opengl::GL_RGB;
+                break;
+              }
+              case 4: {
+                ilp.format = fan::opengl::GL_RGBA;
+                ilp.internal_format = fan::opengl::GL_RGBA;
+                break;
+              }
+              default: {
+                fan::throw_error("unimplemented channel amount");
+              }
+              }
+              cached_images[name] = gloco->image_load(ii, ilp);
             }
           }
         }
@@ -1278,32 +1297,6 @@ namespace fan {
         //gloco->shader_set_value(m_shader, "view", view);
 
         gloco->get_context().set_depth_test(true);
-        static fan::vec3 light_pos = 0;
-        {
-          auto str = gloco->camera_get_position(gloco->perspective_camera.camera).to_string();
-          ImGui::Text("%s", str.c_str());
-        }
-        ImGui::DragFloat3("light position", light_pos.data());
-        fan::vec4 lpt = fan::vec4(light_pos, 1);
-        gloco->shader_set_value(m_shader, "light_pos", *(fan::vec3*)&lpt);
-
-
-        static f32_t f0 = 0;
-        ImGui::DragFloat("f0", &f0, 0.001, 0, 1);
-        gloco->shader_set_value(m_shader, "F0", f0);
-
-
-        static f32_t metallic = 0;
-        ImGui::DragFloat("metallic", &metallic, 0.001, 0, 1);
-        gloco->shader_set_value(m_shader, "metallic", metallic);
-
-        static f32_t roughness = 0;
-        ImGui::DragFloat("rough", &roughness, 0.001, 0, 1);
-        gloco->shader_set_value(m_shader, "rough", roughness);
-
-        static f32_t light_intensity = 1;
-        ImGui::DragFloat("light_intensity", &light_intensity, 0.1);
-        gloco->shader_set_value(m_shader, "light_intensity", light_intensity);
 
         gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE3);
         gloco->get_context().opengl.glBindTexture(fan::opengl::GL_TEXTURE_CUBE_MAP, envMapTexture);

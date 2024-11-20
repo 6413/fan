@@ -267,32 +267,34 @@ void init_imgui(loco_t* loco) {
     style.Colors[ImGuiCol_WindowBg].w = 1.0f;
   }
 
-  static bool init = false;
-  if (init == false) {
-    init = true;
+  //loco_t::imgui_themes::dark();
 
-    //loco_t::imgui_themes::dark();
+  glfwMakeContextCurrent(loco->window);
+  ImGui_ImplGlfw_InitForOpenGL(loco->window, true);
+  const char* glsl_version = "#version 120";
+  ImGui_ImplOpenGL3_Init(glsl_version);
 
-    ImGui_ImplGlfw_InitForOpenGL(loco->window.glfw_window, true);
-    const char* glsl_version = "#version 120";
-    ImGui_ImplOpenGL3_Init(glsl_version);
-
-    auto& style = ImGui::GetStyle();
-    auto& io = ImGui::GetIO();
-
-    static constexpr const char* font_name = "fonts/SourceCodePro-Regular.ttf";
-    static constexpr f32_t font_size = 4;
+  static constexpr const char* font_name = "fonts/SourceCodePro-Regular.ttf";
+  static constexpr f32_t font_size = 4;
 
 
-    for (std::size_t i = 0; i < std::size(loco->fonts); ++i) {
-      loco->fonts[i] = io.Fonts->AddFontFromFileTTF(font_name, (int)(font_size * (1 << i)) * 2);
-      if (loco->fonts[i] == nullptr) {
-        fan::throw_error(fan::string("failed to load font:") + font_name);
-      }
+  for (std::size_t i = 0; i < std::size(loco->fonts); ++i) {
+    loco->fonts[i] = io.Fonts->AddFontFromFileTTF(font_name, (int)(font_size * (1 << i)) * 2);
+    if (loco->fonts[i] == nullptr) {
+      fan::throw_error(fan::string("failed to load font:") + font_name);
     }
-    io.Fonts->Build();
-    io.FontDefault = loco->fonts[2];
   }
+  io.Fonts->Build();
+  io.FontDefault = loco->fonts[2];
+#endif
+}
+
+void destroy_imgui() {
+#if defined(loco_imgui)
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+  ImPlot::DestroyContext();
 #endif
 }
 
@@ -301,7 +303,7 @@ void loco_t::init_framebuffer() {
 
   auto& context = get_context();
 
-  if (!((major > 3) || (major == 3 && minor >= 3))) {
+  if (!((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3))) {
     window.add_resize_callback([&](const auto& d) {
       context.viewport_set(orthographic_camera.viewport, fan::vec2(0, 0), d.size, d.size);
       context.viewport_set(perspective_camera.viewport, fan::vec2(0, 0), d.size, d.size);
@@ -497,7 +499,7 @@ loco_t::loco_t(const properties_t& p) :
   
   shape_functions.resize(shape_functions.size() + 1); // button
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       shape_open<loco_t::sprite_t>(
         &sprite,
         "shaders/opengl/2D/objects/sprite_2_1.vs",
@@ -518,7 +520,7 @@ loco_t::loco_t(const properties_t& p) :
   shape_functions.resize(shape_functions.size() + 1); // text
   shape_functions.resize(shape_functions.size() + 1); // hitbox
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       // todo implement line
       shape_functions.resize(shape_functions.size() + 1);
     }
@@ -533,7 +535,7 @@ loco_t::loco_t(const properties_t& p) :
 
   shape_functions.resize(shape_functions.size() + 1); // mark
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       // todo
       shape_functions.resize(shape_functions.size() + 1);
     }
@@ -547,7 +549,7 @@ loco_t::loco_t(const properties_t& p) :
   }
 
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       // todo
       shape_functions.resize(shape_functions.size() + 1);
     }
@@ -560,7 +562,7 @@ loco_t::loco_t(const properties_t& p) :
     }
   }
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       // todo
       shape_functions.resize(shape_functions.size() + 1);
     }
@@ -574,7 +576,7 @@ loco_t::loco_t(const properties_t& p) :
   }
  
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       shape_functions.resize(shape_functions.size() + 1);
     }
     else {
@@ -587,7 +589,7 @@ loco_t::loco_t(const properties_t& p) :
   }
 
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       shape_functions.resize(shape_functions.size() + 1);
     }
     else {
@@ -600,7 +602,7 @@ loco_t::loco_t(const properties_t& p) :
   }
 
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       shape_functions.resize(shape_functions.size() + 1);
     }
     else {
@@ -615,7 +617,7 @@ loco_t::loco_t(const properties_t& p) :
   vfi.open();
 
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       shape_functions.resize(shape_functions.size() + 1);
     }
     else {
@@ -628,7 +630,7 @@ loco_t::loco_t(const properties_t& p) :
   }
 
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       shape_functions.resize(shape_functions.size() + 1);
     }
     else {
@@ -641,7 +643,7 @@ loco_t::loco_t(const properties_t& p) :
   }
 
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       shape_functions.resize(shape_functions.size() + 1);
     }
     else {
@@ -656,7 +658,7 @@ loco_t::loco_t(const properties_t& p) :
   shape_functions.resize(shape_functions.size() + 1); // light_end
 
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       shape_functions.resize(shape_functions.size() + 1);
     }
     else {
@@ -669,7 +671,7 @@ loco_t::loco_t(const properties_t& p) :
   }
 
   {
-    if (major == 2 && minor == 1) {
+    if (opengl.major == 2 && opengl.minor == 1) {
       shape_functions.resize(shape_functions.size() + 1);
     }
     else {
@@ -765,6 +767,15 @@ loco_t::loco_t(const properties_t& p) :
   }
 }
 
+loco_t::~loco_t() {
+  fan::graphics::close_bcol();
+  shaper.Close();
+#if defined(loco_imgui)
+  destroy_imgui();
+#endif
+  window.close();
+}
+
 void loco_t::process_frame() {
 
   auto& context = gloco->get_context();
@@ -772,7 +783,7 @@ void loco_t::process_frame() {
   get_context().opengl.glViewport(0, 0, window.get_size().x, window.get_size().y);
 
 #if defined(loco_framebuffer)
-  if ((major > 3) || (major == 3 && minor >= 3)) {
+  if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
     m_framebuffer.bind(get_context());
 
 
@@ -891,7 +902,7 @@ void loco_t::process_frame() {
       break;
     }
     case Key_e::light: {
-      if (!((major > 3) || (major == 3 && minor >= 3))) {
+      if (!((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3))) {
         break;
       }
       if (light_buffer_enabled == false) {
@@ -912,7 +923,7 @@ void loco_t::process_frame() {
       break;
     }
     case Key_e::light_end: {
-      if (!((major > 3) || (major == 3 && minor >= 3))) {
+      if (!((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3))) {
         break;
       }
       if (light_buffer_enabled) {
@@ -969,7 +980,7 @@ void loco_t::process_frame() {
           context.viewport_set(v.viewport_position, v.viewport_size, window.get_size());
         }
         context.shader_set_value(shader, "_t00", 0);
-        if ((major > 3) || (major == 3 && minor >= 3)) {
+        if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
           context.shader_set_value(shader, "_t01", 1);
         }
 #if defined(depth_debug)
@@ -1033,7 +1044,7 @@ void loco_t::process_frame() {
         if (shape_type != loco_t::shape_type_t::light) {
 
           if (shape_type == loco_t::shape_type_t::sprite || shape_type == loco_t::shape_type_t::unlit_sprite) {
-            if ((major > 3) || (major == 3 && minor >= 3)) {
+            if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
               context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
               context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(color_buffers[1]));
             }
@@ -1079,7 +1090,7 @@ void loco_t::process_frame() {
         m_vao.bind(context);
         m_vbo.bind(context);
 
-        if (context.major < 4 || (context.major == 4 && context.minor < 2)) {
+        if (context.opengl.major < 4 || (context.opengl.major == 4 && context.opengl.minor < 2)) {
           uintptr_t offset = BlockTraverse.GetRenderDataOffset(shaper);
           std::vector<shape_gl_init_t>& locations = shaper.GetLocations(shape_type);
           for (const auto& location : locations) {
@@ -1102,7 +1113,7 @@ void loco_t::process_frame() {
 
         switch (shape_type) {
         case shape_type_t::rectangle3d: {
-          if ((major > 4) || (major == 4 && minor >= 2)) {
+          if ((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) {
             context.opengl.glDrawArraysInstancedBaseInstance(
               fan::opengl::GL_TRIANGLES,
               0,
@@ -1123,7 +1134,7 @@ void loco_t::process_frame() {
           break;
         }
         case shape_type_t::line: {
-          if ((major > 4) || (major == 4 && minor >= 2)) {
+          if ((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) {
             context.opengl.glDrawArraysInstancedBaseInstance(
               fan::opengl::GL_LINES,
               0,
@@ -1191,7 +1202,7 @@ void loco_t::process_frame() {
 
         }// fallthrough
         default: {
-          if ((major > 4) || (major == 4 && minor >= 2)) {
+          if ((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) {
             context.opengl.glDrawArraysInstancedBaseInstance(
               fan::opengl::GL_TRIANGLES,
               0,
@@ -1200,7 +1211,7 @@ void loco_t::process_frame() {
               BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
             );
           }
-          else if ((major > 3) || (major == 3 && minor >= 3)) {
+          else if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
             context.opengl.glDrawArraysInstanced(
               fan::opengl::GL_TRIANGLES,
               0,
@@ -1255,10 +1266,7 @@ void loco_t::process_frame() {
 
 #if defined(loco_framebuffer)
 
-      
-        
-      
-  if ((major > 3) || (major == 3 && minor >= 3)) {
+  if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
     m_framebuffer.unbind(get_context());
 
   //fan::print(m_framebuffer.ready(get_context()));
@@ -2040,7 +2048,7 @@ loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
   ri_t ri;
   ri.images = properties.images;
 
-  if ((major > 3) || (major == 3 && minor >= 3)) {
+  if ((gloco->opengl.major > 3) || (gloco->opengl.major == 3 && gloco->opengl.minor >= 3)) {
     return shape_add(
       shape_type, vi, ri, Key_e::depth,
       static_cast<uint16_t>(properties.position.z),
@@ -3163,7 +3171,7 @@ std::vector<fan::json_stream_parser_t::parsed_result> fan::json_stream_parser_t:
     }
 
     try {
-      results.push_back({ true, fan::json::parse({ buf.data() + start, end - start }), "" });
+      results.push_back({ true, fan::json::parse(buf.data() + start, buf.data() + end - start), "" });
     }
     catch (const fan::json::parse_error& e) {
       results.push_back({ false, fan::json{}, e.what() });
