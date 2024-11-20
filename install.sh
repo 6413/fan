@@ -14,7 +14,9 @@ apt install -y clang \
 				 pulseaudio \
 				 libpulse-dev \
 				 libopus0 \
-				 libopus-dev
+				 libopus-dev \
+				 libuv1 \
+				 libuv1-dev
 
 git clone https://github.com/7244/WITCH.git
 mv WITCH /usr/local/include/WITCH

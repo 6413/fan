@@ -94,7 +94,11 @@ namespace fan_3d {
       fan::vec2ui size = 0;
       std::vector<uint8_t> data;
     };
+    struct pm_material_data_t {
+      fan::vec4 color;
+    };
     inline static std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
+    inline static std::vector<pm_material_data_t> material_data;
 
     struct pm_model_data_t {
       struct mesh_data_t {
@@ -141,8 +145,31 @@ namespace fan_3d {
       return true;
     }
 
-    static bool load_texture(const aiScene* scene, aiMaterial* material, aiTextureType texture_type, const fan::string& root_path, int channels_rgba, parsed_model_t& parsed_model, std::size_t mesh_index)
+    static bool load_texture(const aiScene* scene, aiMaterial* material, aiTextureType texture_type, const fan::string& root_path, int channels_rgba, parsed_model_t& parsed_model, std::size_t mesh_index, std::vector<pm_material_data_t>& materials)
     {
+      pm_material_data_t material_data;
+      /*
+      
+      #define AI_MATKEY_COLOR_DIFFUSE "$clr.diffuse", 0, 0
+#define AI_MATKEY_COLOR_AMBIENT "$clr.ambient", 0, 0
+#define AI_MATKEY_COLOR_SPECULAR "$clr.specular", 0, 0
+#define AI_MATKEY_COLOR_EMISSIVE "$clr.emissive", 0, 0
+#define AI_MATKEY_COLOR_TRANSPARENT "$clr.transparent", 0, 0
+      */
+
+      if (texture_type == aiTextureType_DIFFUSE) {
+        material->Get(AI_MATKEY_COLOR_DIFFUSE, material_data.color);
+      }
+      if (texture_type == aiTextureType_AMBIENT) {
+        material->Get(AI_MATKEY_COLOR_AMBIENT, material_data.color);
+      }
+      if (texture_type == aiTextureType_SPECULAR) {
+        material->Get(AI_MATKEY_COLOR_SPECULAR, material_data.color);
+      }
+      if (texture_type == aiTextureType_EMISSIVE) {
+        material->Get(AI_MATKEY_COLOR_EMISSIVE, material_data.color);
+      }
+      materials.push_back(material_data);
       bool texture_found = false;
       aiString path;
       if (material->GetTexture(texture_type, 0, &path) == AI_SUCCESS) {
@@ -170,8 +197,7 @@ namespace fan_3d {
 
           parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = file_path;
           auto found = cached_texture_data.find(file_path);
-          if (found == cached_texture_data.end())
-          {
+          if (found == cached_texture_data.end()) {
             fan::print(file_path);
             texture_found = true;
 
@@ -220,7 +246,7 @@ namespace fan_3d {
       fan::color color_diffuse;
       for (auto& i : arr) {
         load_texture(scene, scene->mMaterials[mesh->mMaterialIndex],
-          i, root_path, channels_rgba, parsed_model, md.size() - 1);
+          i, root_path, channels_rgba, parsed_model, md.size() - 1, material_data);
       }
       /*if (texture_found == false) {
         // if you want to create texture externally, implement pixels manually to diffuse_texture_data
@@ -457,6 +483,8 @@ namespace fan_3d {
     // fan model stuff
     struct fms_t {
 
+      const aiScene* scene;
+
       fms_t() = default;
       fms_t(const fms_model_info_t& fmi)
       {
@@ -494,6 +522,7 @@ namespace fan_3d {
         temp_rotations.resize(parsed_model.model_data.bone_count);
 
         m_modified_verticies = parsed_model.model_data.vertices;
+        this->scene = scene;
       }
 
       fan::mat4 calculate_bone_transform(uint32_t vertex_id, const std::vector<fan::mat4>& bone_transforms) {
@@ -1285,7 +1314,7 @@ namespace fan {
         context.opengl.glDisable(fan::opengl::GL_BLEND);
         //context.opengl.call(context.opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
         for (int mesh_index = 0; mesh_index < render_objects.size(); ++mesh_index) {
-
+          
           // only for gpu vs
           gloco->shader_set_value(m_shader, "model", render_objects[mesh_index].m * render_objects[mesh_index].transform);
 
@@ -1296,6 +1325,7 @@ namespace fan {
           { // texture binding
             uint8_t tex_index = 0;
             uint8_t valid_tex_index = 0;
+            
             for (auto& tex : fms.parsed_model.model_data.mesh_data[mesh_index].names) { // i think think this doesnt make sense
               std::ostringstream oss;
               oss << "_t" << std::setw(2) << std::setfill('0') << (int)tex_index;
