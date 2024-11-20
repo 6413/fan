@@ -22,9 +22,8 @@ Cache-Control: max-age=0
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8)";
     httpget += "\n\n";
     co_await tcp.write(httpget);
-    auto reader = tcp.read();
-    while (auto data = co_await reader) {
-      fan::print(data);
+    while (auto data = co_await tcp.read()) {
+      fan::print(std::string((const char*)data));
     }
   }
   catch (std::exception& e) {
@@ -34,25 +33,17 @@ Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0
 
 fan::network::task_t tcp_server_test() {
   try {
+    fan::print("TCPSEVER THREAD", std::hash<std::thread::id>{}(std::this_thread::get_id()));
     std::vector<fan::network::tcp_t> clients;
     fan::network::tcp_t tcp;
-    co_await tcp.bind("0.0.0.0", 8080);
+    tcp.bind("0.0.0.0", 8080);
 
-    auto listener = tcp.listen(128);
-    while (true) {
-      fan::print("tcp listen");
-      if (co_await listener == 0) {
-        fan::network::tcp_t client;
-        if (tcp.accept(client) == 0) {
-          fan::print("client connected");
-          auto reader = client.read();
-          auto msg = co_await reader;
-          fan::print("got", msg);
-
-          clients.push_back(std::move(client));
-        }
+    co_await tcp.listen(128, [&](fan::network::tcp_t&& client) -> fan::network::task_t {
+      while (auto msg = co_await client.read()) {
+        fan::print_no_endline("server received buffer:", msg);
       }
-    }
+      clients.push_back(std::move(client));
+    });
   }
   catch (std::exception& e) {
     fan::print_warning(std::string("server error:") + e.what());
@@ -61,16 +52,15 @@ fan::network::task_t tcp_server_test() {
 
 fan::network::task_t tcp_client_test() {
   try {
+    fan::print("TCPCLIENT THREAD", std::hash<std::thread::id>{}(std::this_thread::get_id()));
     fan::network::tcp_t client;
     co_await client.connect("127.0.0.1", 8080);
     std::string msg = "hello world";
 
+    fan::print("sending:" + msg);
     co_await client.write(msg);
-
-    fan::print("sent:" + msg);
-    auto reader = client.read();
-    while (auto data = co_await reader) {
-      fan::print("Received:", data);
+    while (auto msg = co_await client.read()) {
+      fan::print_no_endline("client received buffer:", msg);
     }
   }
   catch (std::exception& e) {
@@ -80,6 +70,7 @@ fan::network::task_t tcp_client_test() {
 
 int main() {
   try {
+    fan::print("MAIN THREAD", std::hash<std::thread::id>{}(std::this_thread::get_id()));
     fan::graphics::engine_t engine;
 
     auto tcp_task = tcp_test();
