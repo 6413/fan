@@ -3129,3 +3129,50 @@ loco_t::shader_t loco_t::create_sprite_shader(const fan::string& fragment) {
   shader_compile(shader);
   return shader;
 }
+
+[[nodiscard]]
+std::pair<size_t, size_t> fan::json_stream_parser_t::find_next_json_bounds(std::string_view s, size_t pos) const noexcept {
+    pos = s.find('{', pos);
+    if (pos == std::string::npos) return { pos, pos };
+
+    int depth = 0;
+    bool in_str = false;
+
+    for (size_t i = pos; i < s.length(); i++) {
+        char c = s[i];
+        if (c == '"' && (i == 0 || s[i - 1] != '\\')) in_str = !in_str;
+        else if (!in_str) {
+            if (c == '{') depth++;
+            else if (c == '}' && --depth == 0) return { pos, i + 1 };
+        }
+    }
+    return { pos, std::string::npos };
+}
+
+std::vector<fan::json_stream_parser_t::parsed_result> fan::json_stream_parser_t::process(std::string_view chunk) {
+  std::vector<parsed_result> results;
+  buf += chunk;
+  size_t pos = 0;
+
+  while (pos < buf.length()) {
+    auto [start, end] = find_next_json_bounds(buf, pos);
+    if (start == std::string::npos) break;
+    if (end == std::string::npos) {
+      buf = buf.substr(start);
+      break;
+    }
+
+    try {
+      results.push_back({ true, fan::json::parse({ buf.data() + start, end - start }), "" });
+    }
+    catch (const fan::json::parse_error& e) {
+      results.push_back({ false, fan::json{}, e.what() });
+    }
+
+    pos = buf.find('{', end);
+    if (pos == std::string::npos) pos = end;
+  }
+
+  buf = pos < buf.length() ? buf.substr(pos) : "";
+  return results;
+}

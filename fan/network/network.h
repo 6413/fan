@@ -9,8 +9,7 @@
 #include <memory>
 
 namespace fan {
-  namespace network {
-
+  namespace ev {
     struct error_code_t {
       int code;
       constexpr error_code_t(int code) noexcept : code(code) {}
@@ -20,7 +19,9 @@ namespace fan {
       constexpr void await_suspend(std::coroutine_handle<>) const noexcept {}
       void await_resume() const { throw_if(); }
     };
+  }
 
+  namespace network {
     struct tcp_t;
     struct getaddrinfo_t {
       struct getaddrinfo_data_t {
@@ -202,11 +203,8 @@ namespace fan {
       ssize_t nread{ 0 };
       std::coroutine_handle<> co_handle;
 
-      bool is_eof{ false };
-      bool is_reading{ false };
-
       template <typename T>
-      requires (std::is_same_v<T, tcp_t>)
+        requires (std::is_same_v<T, tcp_t>)
       reader_t(const T& tcp) : stream{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) } {
         stream->data = this;
       }
@@ -223,14 +221,6 @@ namespace fan {
         uv_read_stop(stream.get());
       }
       int start() noexcept {
-        if (is_reading) {
-          return 0;
-        }
-
-        is_reading = true;
-        is_eof = false;
-        nread = 0;
-
         return uv_read_start(stream.get(),
           [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
             auto self = static_cast<reader_t*>(handle->data);
@@ -239,26 +229,17 @@ namespace fan {
           },
           [](uv_stream_t* req, ssize_t nread, const uv_buf_t* buf) {
             auto self = static_cast<reader_t*>(req->data);
-            if (nread == UV_EOF) {
-              self->is_eof = true;
-              self->is_reading = false;
-            }
-            else if (nread < 0) {
-              fan::throw_error(std::string("read returned:") + uv_strerror(nread));
-            }
             self->nread = nread;
-            [[likely]] if (self->co_handle) {
+            [[likely]] if (self->co_handle)
               self->co_handle();
-            }
           }
         );
       }
-      bool await_ready() const { return nread > 0 || is_eof; }
+      bool await_ready() const { return nread > 0; }
       void await_suspend(std::coroutine_handle<> h) { co_handle = h; }
-
       const char* await_resume() {
         const char* out = nullptr;
-        if (nread > 0 && !is_eof) {
+        if (nread > 0) {
           out = buf.c_str();
           nread = 0;
         }
@@ -270,6 +251,7 @@ namespace fan {
         if (stream) {
           uv_read_stop(stream.get());
         }
+        buf.clear();
       }
     };
 
@@ -278,6 +260,7 @@ namespace fan {
       std::coroutine_handle<> co_handle;
       int status;
       bool ready;
+
 
       template <typename T>
       requires (std::is_same_v<T, tcp_t>)
@@ -315,7 +298,16 @@ namespace fan {
       }
     };
 
+    struct listen_address_t {
+      std::string ip = "0.0.0.0";
+      uint16_t port = 0;
+    };
+
     struct task_t;
+    struct tcp_t;
+
+    using listen_cb_t = std::function<task_t(tcp_t&&)>;
+
     struct tcp_t {
       std::shared_ptr<uv_tcp_t> socket;
       reader_t reader;
@@ -336,27 +328,29 @@ namespace fan {
       tcp_t(tcp_t&&) = default;
       tcp_t& operator=(tcp_t&&) = delete;
 
-      error_code_t accept(tcp_t& client) noexcept {
+      ev::error_code_t accept(tcp_t& client) noexcept {
         return uv_accept(reinterpret_cast<uv_stream_t*>(socket.get()),
           reinterpret_cast<uv_stream_t*>(client.socket.get()));
       }
-      error_code_t bind(std::string ip, int port) noexcept {
+      ev::error_code_t bind(std::string ip, int port) noexcept {
         struct sockaddr_in bind_addr;
         uv_ip4_addr(ip.c_str(), port, &bind_addr);
         return uv_tcp_bind(socket.get(), reinterpret_cast<sockaddr*>(&bind_addr), 0);
       }
-      task_t listen(int backlog, auto lambda);
+
+      task_t listen(const listen_address_t& address, listen_cb_t lambda);
       connector_t connect(const char* ip, int port) {
         return connector_t{ *this, ip, port };
       }
       connector_t connect(const getaddrinfo_t& info) {
         return connector_t{ *this, info };
       }
-      reader_t& read() {
-        if (int result = reader.start() != 0) {
+      reader_t read() {
+        reader_t r{ *this };
+        if (int result = r.start() != 0) {
           fan::throw_error("failed to start reading:", result);
         }
-        return reader;
+        return r;
       }
       writer_t write(std::string data)
       {
@@ -429,8 +423,13 @@ namespace fan {
       std::coroutine_handle<task_promise_t> _handle;
     };
 
-    task_t tcp_t::listen(int backlog, auto lambda) {
-      listener_t listener = listener_t{ *this, backlog };
+    task_t tcp_t::listen(const listen_address_t& address, listen_cb_t lambda) {
+      if (address.port == 0) {
+        fan::throw_error("invalid port");
+      }
+      bind(address.ip, address.port);
+      static constexpr auto amount_of_connections = 128;
+      listener_t listener = listener_t{ *this, amount_of_connections };
       while (true) {
         fan::network::tcp_t client;
         if (co_await listener != 0) {
@@ -442,5 +441,70 @@ namespace fan {
       }
       co_return;
     }
+    static task_t tcp_listen(listen_address_t address, listen_cb_t lambda) {
+      tcp_t tcp;
+      co_await tcp.listen(address, lambda);
+    }
+
   }
+  namespace ev {
+    struct timer_t {
+      struct timer_data {
+        uv_timer_t timer_handle;
+        std::coroutine_handle<> co_handle;
+        int ready{ 0 };
+      };
+
+      struct timer_deleter {
+        void operator()(timer_data* data) const noexcept {
+          uv_close(reinterpret_cast<uv_handle_t*>(&data->timer_handle), [](uv_handle_t* timer_handle) {
+            delete static_cast<timer_data*>(timer_handle->data);
+            });
+        }
+      };
+
+      std::unique_ptr<timer_data, timer_deleter> data;
+
+    public:
+      timer_t() : data(new timer_data{}, timer_deleter{}) {
+        uv_timer_init(uv_default_loop(), &data->timer_handle);
+        data->timer_handle.data = data.get();
+      }
+
+      timer_t(uint64_t  timeout, uint64_t repeat = 0)
+        : data(new timer_data{}, timer_deleter{}) {
+        uv_timer_init(uv_default_loop(), &data->timer_handle);
+        data->timer_handle.data = data.get();
+        start(timeout, repeat);
+      }
+
+      error_code_t start(uint64_t  timeout, uint64_t repeat = 0) noexcept {
+        return uv_timer_start(&data->timer_handle, [](uv_timer_t* timer_handle) {
+          auto data = static_cast<timer_data*>(timer_handle->data);
+          ++data->ready;
+          if (data->co_handle) {
+            data->co_handle();
+          }
+          }, timeout, repeat);
+      }
+      error_code_t again() noexcept {
+        return uv_timer_again(&data->timer_handle);
+      }
+      void set_repeat(uint64_t repeat) noexcept {
+        return uv_timer_set_repeat(&data->timer_handle, repeat);
+      }
+      error_code_t stop() noexcept {
+        return uv_timer_stop(&data->timer_handle);
+      }
+      bool await_ready() const noexcept { return data->ready; }
+
+      void await_suspend(std::coroutine_handle<> h) noexcept { data->co_handle = h; }
+
+      void await_resume() noexcept {
+        data->co_handle = nullptr;
+        --data->ready;
+      };
+    };
+  }
+  using co_sleep = ev::timer_t;
 }
