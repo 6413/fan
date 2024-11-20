@@ -1261,18 +1261,21 @@ namespace fan {
               case 3: {
                 ilp.format = fan::opengl::GL_RGB;
                 ilp.internal_format = fan::opengl::GL_RGB;
+                cached_images[name] = gloco->image_load(ii, ilp);
                 break;
               }
               case 4: {
                 ilp.format = fan::opengl::GL_RGBA;
                 ilp.internal_format = fan::opengl::GL_RGBA;
+                cached_images[name] = gloco->image_load(ii, ilp);
                 break;
               }
               default: {
-                fan::throw_error("unimplemented channel amount");
+                fan::print("unimplemented channel amount", ii.channels);
+                cached_images[name] = gloco->default_texture;
               }
               }
-              cached_images[name] = gloco->image_load(ii, ilp);
+              
             }
           }
         }
@@ -1287,6 +1290,7 @@ namespace fan {
           sizeof(fan_3d::model::vertex_t) * fms.m_modified_verticies[i].size()
         );
       }
+
 
       void draw() {
         gloco->shader_use(m_shader);

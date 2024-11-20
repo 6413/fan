@@ -12,7 +12,7 @@ using namespace std::chrono_literals;
 std::vector<loco_t::shape_t> shapes;
 
 
-task<void> spawn_rectangles(task<void>* t) {
+fan::ev::task_t spawn_rectangles() {
   fan::print("start");
   while (true) {
     shapes.clear();
@@ -21,14 +21,13 @@ task<void> spawn_rectangles(task<void>* t) {
         .size = fan::random::vec2(100, 400),
         .color = fan::random::color()
     } });
-    co_await co_sleep_for(t, 1ms);
+    co_await fan::co_sleep(1);
   }
 }
 
 int main() {
   loco_t loco;
-  task<void> t = spawn_rectangles(&t);
-  t.coro.resume();
+  auto t = spawn_rectangles();
   loco.loop([&] {
     
   });
