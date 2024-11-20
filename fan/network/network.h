@@ -202,6 +202,9 @@ namespace fan {
       ssize_t nread{ 0 };
       std::coroutine_handle<> co_handle;
 
+      bool is_eof{ false };
+      bool is_reading{ false };
+
       template <typename T>
       requires (std::is_same_v<T, tcp_t>)
       reader_t(const T& tcp) : stream{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) } {
@@ -220,6 +223,14 @@ namespace fan {
         uv_read_stop(stream.get());
       }
       int start() noexcept {
+        if (is_reading) {
+          return 0;
+        }
+
+        is_reading = true;
+        is_eof = false;
+        nread = 0;
+
         return uv_read_start(stream.get(),
           [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
             auto self = static_cast<reader_t*>(handle->data);
@@ -228,17 +239,26 @@ namespace fan {
           },
           [](uv_stream_t* req, ssize_t nread, const uv_buf_t* buf) {
             auto self = static_cast<reader_t*>(req->data);
+            if (nread == UV_EOF) {
+              self->is_eof = true;
+              self->is_reading = false;
+            }
+            else if (nread < 0) {
+              fan::throw_error(std::string("read returned:") + uv_strerror(nread));
+            }
             self->nread = nread;
-            [[likely]] if (self->co_handle)
+            [[likely]] if (self->co_handle) {
               self->co_handle();
+            }
           }
         );
       }
-      bool await_ready() const { return nread > 0; }
+      bool await_ready() const { return nread > 0 || is_eof; }
       void await_suspend(std::coroutine_handle<> h) { co_handle = h; }
+
       const char* await_resume() {
         const char* out = nullptr;
-        if (nread > 0) {
+        if (nread > 0 && !is_eof) {
           out = buf.c_str();
           nread = 0;
         }
@@ -274,7 +294,7 @@ namespace fan {
             self->co_handle();
           });
         if (r != 0) {
-          fan::print("listen error", r);
+          fan::throw_error("listen error", r);
         }
       }
 
@@ -295,8 +315,10 @@ namespace fan {
       }
     };
 
+    struct task_t;
     struct tcp_t {
       std::shared_ptr<uv_tcp_t> socket;
+      reader_t reader;
 
       struct tcp_deleter_t {
         void operator()(void* p) const {
@@ -306,13 +328,13 @@ namespace fan {
         }
       };
 
-      tcp_t() : socket(new uv_tcp_t, tcp_deleter_t{}) {
+      tcp_t() : socket(new uv_tcp_t, tcp_deleter_t{}), reader(*this) {
         uv_tcp_init(uv_default_loop(), socket.get());
       }
       tcp_t(const tcp_t&) = delete;
       tcp_t& operator=(const tcp_t&) = delete;
       tcp_t(tcp_t&&) = default;
-      tcp_t& operator=(tcp_t&&) = default;
+      tcp_t& operator=(tcp_t&&) = delete;
 
       error_code_t accept(tcp_t& client) noexcept {
         return uv_accept(reinterpret_cast<uv_stream_t*>(socket.get()),
@@ -323,19 +345,18 @@ namespace fan {
         uv_ip4_addr(ip.c_str(), port, &bind_addr);
         return uv_tcp_bind(socket.get(), reinterpret_cast<sockaddr*>(&bind_addr), 0);
       }
-      listener_t listen(int backlog) {
-        return listener_t{ *this, backlog };
-      }
+      task_t listen(int backlog, auto lambda);
       connector_t connect(const char* ip, int port) {
         return connector_t{ *this, ip, port };
       }
       connector_t connect(const getaddrinfo_t& info) {
         return connector_t{ *this, info };
       }
-      reader_t read() {
-        reader_t r{ *this };
-        r.start();
-        return r;
+      reader_t& read() {
+        if (int result = reader.start() != 0) {
+          fan::throw_error("failed to start reading:", result);
+        }
+        return reader;
       }
       writer_t write(std::string data)
       {
@@ -407,5 +428,19 @@ namespace fan {
 
       std::coroutine_handle<task_promise_t> _handle;
     };
+
+    task_t tcp_t::listen(int backlog, auto lambda) {
+      listener_t listener = listener_t{ *this, backlog };
+      while (true) {
+        fan::network::tcp_t client;
+        if (co_await listener != 0) {
+          continue;
+        }
+        if (accept(client) == 0) {
+          co_await lambda(std::move(client));
+        }
+      }
+      co_return;
+    }
   }
 }
