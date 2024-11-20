@@ -36,9 +36,8 @@ fan::network::task_t tcp_server_test() {
     fan::print("TCPSEVER THREAD", std::hash<std::thread::id>{}(std::this_thread::get_id()));
     std::vector<fan::network::tcp_t> clients;
     fan::network::tcp_t tcp;
-    tcp.bind("0.0.0.0", 8080);
 
-    co_await tcp.listen(128, [&](fan::network::tcp_t&& client) -> fan::network::task_t {
+    co_await tcp.listen({.port=8080}, [&](auto&& client) -> fan::network::task_t{
       while (auto msg = co_await client.read()) {
         fan::print_no_endline("server received buffer:", msg);
       }

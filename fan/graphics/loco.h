@@ -117,6 +117,26 @@ namespace nlohmann {
     }
   };
 }
+
+namespace fan {
+  struct json_stream_parser_t {
+    std::string buf;
+  
+    struct parsed_result {
+      bool success;
+      fan::json value;
+      std::string error;
+    };
+
+    [[nodiscard]] 
+    std::pair<size_t, size_t> find_next_json_bounds(std::string_view s, size_t pos = 0) const noexcept;
+
+    std::vector<parsed_result> process(std::string_view chunk);
+
+    void clear() noexcept { buf.clear(); }
+  };
+}
+
 #endif
 
 #include <fan/tp/tp0.h>
