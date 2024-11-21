@@ -12,7 +12,6 @@ namespace fan_3d {
       fan::vec3 vertex1;
       fan::vec3 tangent;
       fan::vec3 bitangent;
-      fan::color diffuse;
     };
 
     // structure to hold bone tree (skeleton)
@@ -96,10 +95,11 @@ namespace fan_3d {
       int channels = 0;
     };
     struct pm_material_data_t {
-      fan::vec4 color;
+      std::string texture_id[AI_TEXTURE_TYPE_MAX + 1];
+      fan::vec4 color[AI_TEXTURE_TYPE_MAX + 1];
     };
     inline static std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
-    inline static std::vector<pm_material_data_t> material_data;
+    inline static std::vector<pm_material_data_t> material_data_vector;
 
     struct pm_model_data_t {
       struct mesh_data_t {
@@ -136,100 +136,59 @@ namespace fan_3d {
       }
     }
 
-    // gets diffuse for now
-    static bool load_material(aiMaterial* material, fan::color& o_diffuse) {
-      aiColor4D diffuse;
-      if (AI_SUCCESS == aiGetMaterialColor(material, AI_MATKEY_COLOR_DIFFUSE, &diffuse)) {
-        o_diffuse = fan::color(diffuse.r, diffuse.g, diffuse.b, diffuse.a);
-        return false;
-      }
-      return true;
-    }
-
-    static bool load_texture(const aiScene* scene, aiMaterial* material, aiTextureType texture_type, const fan::string& root_path, parsed_model_t& parsed_model, std::size_t mesh_index, std::vector<pm_material_data_t>& materials)
-    {
-      pm_material_data_t material_data;
-      /*
-      
-      #define AI_MATKEY_COLOR_DIFFUSE "$clr.diffuse", 0, 0
-#define AI_MATKEY_COLOR_AMBIENT "$clr.ambient", 0, 0
-#define AI_MATKEY_COLOR_SPECULAR "$clr.specular", 0, 0
-#define AI_MATKEY_COLOR_EMISSIVE "$clr.emissive", 0, 0
-#define AI_MATKEY_COLOR_TRANSPARENT "$clr.transparent", 0, 0
-      */
-
-      if (texture_type == aiTextureType_DIFFUSE) {
-        material->Get(AI_MATKEY_COLOR_DIFFUSE, material_data.color);
-      }
-      if (texture_type == aiTextureType_AMBIENT) {
-        material->Get(AI_MATKEY_COLOR_AMBIENT, material_data.color);
-      }
-      if (texture_type == aiTextureType_SPECULAR) {
-        material->Get(AI_MATKEY_COLOR_SPECULAR, material_data.color);
-      }
-      if (texture_type == aiTextureType_EMISSIVE) {
-        material->Get(AI_MATKEY_COLOR_EMISSIVE, material_data.color);
-      }
-      materials.push_back(material_data);
-      bool texture_found = false;
+    static std::string load_texture(
+      const aiScene* scene,
+      aiMaterial* material,
+      aiTextureType texture_type,
+      const fan::string& root_path,
+      parsed_model_t& parsed_model,
+      std::size_t mesh_index
+    ){
       aiString path;
-      if (material->GetTexture(texture_type, 0, &path) == AI_SUCCESS) {
-        auto embedded_texture = scene->GetEmbeddedTexture(path.C_Str());
-
-        if (embedded_texture && embedded_texture->mHeight == 0) {
-          int width, height, nr_channels;
-          unsigned char* data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(embedded_texture->pcData), embedded_texture->mWidth, &width, &height, &nr_channels, 0);
-          if (data) {
-            // must not collide with other names
-            std::string generated_str = path.C_Str() + std::to_string(texture_type);
-            parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = generated_str;
-            auto& td = cached_texture_data[generated_str];
-            td.size = fan::vec2(width, height);
-            td.data.insert(td.data.end(), data, data + td.size.multiply() * nr_channels);
-            td.channels = nr_channels;
-            stbi_image_free(data);
-          }
-          else {
-            fan::print_warning("failed to load texture");
-            return false;
-          }
-        }
-        else {
-          fan::string file_path = root_path + "textures/" + scene->GetShortFilename(path.C_Str());
-
-          parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = file_path;
-          auto found = cached_texture_data.find(file_path);
-          if (found == cached_texture_data.end()) {
-            fan::print(file_path);
-            texture_found = true;
-
-            fan::image::image_info_t ii;
-            fan::image::load(file_path, &ii);
-            auto& td = cached_texture_data[file_path];
-            td.size = ii.size;
-            td.data.insert(td.data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
-            td.channels = ii.channels;
-            fan::image::free(&ii);
-            //if (texture_type == aiTextureType_DIFFUSE) { // hardcoded for sponza
-            //  file_path.replace_all("BaseColor", "Normal");
-            //  if (fan::io::file::exists(file_path)) {
-            //    auto found = cached_texture_data.find(str);
-            //    if (found == cached_texture_data.end()) {
-            //      if (fan::webp::load(/*root_path + path.C_Str()*/str, &ii)) {
-            //        fan::throw_error("failed to load image data from path:" + root_path + path.C_Str());
-            //      }
-
-            //      /*  static constexpr int channels_rgba = 4;
-            //        auto& td = d.texture_datas[aiTextureType_NORMALS];
-            //        td.texture_size = ii.size;
-            //        td.texture_data.insert(td.texture_data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * channels_rgba);*/
-            //    }
-            //  }
-            //}
-          }
-        }
+      if (material->GetTexture(texture_type, 0, &path) != AI_SUCCESS) {
+        return std::string("");
       }
-      return texture_found;
+
+      auto embedded_texture = scene->GetEmbeddedTexture(path.C_Str());
+
+      if (embedded_texture && embedded_texture->mHeight == 0) {
+        int width, height, nr_channels;
+        unsigned char* data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(embedded_texture->pcData), embedded_texture->mWidth, &width, &height, &nr_channels, 0);
+        if(data == nullptr){
+          fan::throw_error("failed to load texture");
+        }
+
+        // must not collide with other names
+        std::string generated_str = path.C_Str() + std::to_string(texture_type);
+        parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = generated_str;
+        auto& td = cached_texture_data[generated_str];
+        td.size = fan::vec2(width, height);
+        td.data.insert(td.data.end(), data, data + td.size.multiply() * nr_channels);
+        td.channels = nr_channels;
+        stbi_image_free(data);
+        return std::string(path.C_Str());
+      }
+      else {
+        fan::throw_error("help");
+        #if 0
+        fan::string file_path = root_path + "textures/" + scene->GetShortFilename(path.C_Str());
+
+        parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = file_path;
+        auto found = cached_texture_data.find(file_path);
+        if (found == cached_texture_data.end()) {
+          fan::print(file_path);
+          texture_found = true;
+
+          fan::image::image_info_t ii;
+          fan::image::load(file_path, &ii);
+          auto& td = cached_texture_data[file_path];
+          td.size = ii.size;
+          td.data.insert(td.data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
+          td.channels = ii.channels;
+          fan::image::free(&ii);
+        }
+        #endif
+      }
     }
     // converts indices to triangles only - todo use indices (needs bcol update)
     void load_model(auto This, const fan::string& root_path, const aiScene* scene, aiMesh* mesh, aiNode* node, parsed_model_t& parsed_model) {
@@ -241,24 +200,34 @@ namespace fan_3d {
       auto& md = parsed_model.model_data.mesh_data;
       md.resize(md.size() + 1);
 
+      auto &cmaterial = scene->mMaterials[mesh->mMaterialIndex];
+
+      pm_material_data_t material_data;
+      for(uint32_t i = 0; i <= AI_TEXTURE_TYPE_MAX; i++){
+        material_data.texture_id[i] = std::string("");
+        material_data.color[i] = fan::vec4(1, 0, 1, 1);
+      }
+      cmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, material_data.color[aiTextureType_DIFFUSE]);
+      cmaterial->Get(AI_MATKEY_COLOR_AMBIENT, material_data.color[aiTextureType_AMBIENT]);
+      cmaterial->Get(AI_MATKEY_COLOR_SPECULAR, material_data.color[aiTextureType_SPECULAR]);
+      cmaterial->Get(AI_MATKEY_COLOR_EMISSIVE, material_data.color[aiTextureType_EMISSIVE]);
+
       auto arr = std::to_array({
-           aiTextureType_DIFFUSE, aiTextureType_SHININESS,
-           aiTextureType_METALNESS
-        });
-      fan::color color_diffuse;
+        aiTextureType_DIFFUSE,
+        aiTextureType_AMBIENT,
+        aiTextureType_SPECULAR,
+        aiTextureType_EMISSIVE,
+        aiTextureType_SHININESS,
+        aiTextureType_METALNESS
+      });
       for (auto& i : arr) {
-        load_texture(scene, scene->mMaterials[mesh->mMaterialIndex],
-          i, root_path, parsed_model, md.size() - 1, material_data);
+        auto tret = load_texture(scene, cmaterial, i, root_path, parsed_model, md.size() - 1);
+        if(!tret.empty()){
+          material_data.texture_id[i] = tret;
+        }
       }
-      /*if (texture_found == false) {
-        // if you want to create texture externally, implement pixels manually to diffuse_texture_data
-        //auto& d = cached_texture_data["__notex"];
-        //gloco->create
-        //d.diffuse_texture_data.insert()
-      }
-      else*/ if (load_material(scene->mMaterials[mesh->mMaterialIndex], color_diffuse)) {
-        fan::print_warning("failed to find material");
-      }
+
+      material_data_vector.push_back(material_data);
 
       parsed_model.transforms.push_back(node->mTransformation);
 
@@ -301,7 +270,6 @@ namespace fan_3d {
 
         vertex.bone_ids = fan::vec4i(0);
         vertex.bone_weights = fan::vec4(0.0f);
-        vertex.diffuse = color_diffuse;
 
         temp_vertices.push_back(vertex);
       }
@@ -1022,13 +990,11 @@ namespace fan {
           layout (location = 5) in vec3 vertex1;
           layout (location = 6) in vec3 tangent;  
           layout (location = 7) in vec3 bitangent;  
-          layout (location = 8) in vec4 diffuse;  
 
 					out vec2 tex_coord;
 					out vec3 v_normal;
 					out vec3 v_pos;
 					out vec4 bw;
-          out vec4 v_diffuse;
 
           out vec3 c_tangent;
           out vec3 c_bitangent;
@@ -1049,7 +1015,6 @@ namespace fan {
             c_tangent = tangent;
             c_bitangent = bitangent;
             //v_bitangent = cross(normal, tangent);
-            v_diffuse = diffuse;
 					}
 			)",//model_gpu_vs
         R"(
@@ -1061,14 +1026,12 @@ namespace fan {
 					layout (location = 4) in vec4 bone_weights;
           layout (location = 5) in vec3 vertex1;
           layout (location = 6) in vec3 tangent;  
-          layout (location = 7) in vec3 bitangent;  
-          layout (location = 8) in vec4 diffuse;  
+          layout (location = 7) in vec3 bitangent;
 
 					out vec2 tex_coord;
 					out vec3 v_normal;
 					out vec3 v_pos;
 					out vec4 bw;
-          out vec4 v_diffuse;
 
           out vec3 c_tangent;
           out vec3 c_bitangent;
@@ -1090,7 +1053,6 @@ namespace fan {
             c_tangent = tangent;
             c_bitangent = bitangent;
             //v_bitangent = cross(normal, tangent);
-            v_diffuse = diffuse;
 					}
 			)",//animation_gpu_vs
         R"(
@@ -1103,13 +1065,11 @@ namespace fan {
           layout (location = 5) in vec3 vertex1;
           layout (location = 6) in vec3 tangent;
           layout (location = 7) in vec3 bitangent;
-          layout (location = 8) in vec4 diffuse;
 
 					out vec2 tex_coord;
 					out vec3 v_normal;
 					out vec3 v_pos;
 					out vec4 bw;
-          out vec4 v_diffuse;
 
           out vec3 c_tangent;
           out vec3 c_bitangent;
@@ -1130,7 +1090,6 @@ namespace fan {
             c_tangent = tangent;
             c_bitangent = bitangent;
             //v_bitangent = cross(normal, tangent);
-            v_diffuse = diffuse;
 					}
 			)"
         });
@@ -1142,7 +1101,6 @@ namespace fan {
      in vec3 v_normal;
      in vec3 v_pos;
      in vec4 bw;
-     in vec4 v_diffuse;
 
      in vec3 c_tangent;
      in vec3 c_bitangent;
@@ -1185,7 +1143,6 @@ namespace fan {
      in vec3 v_normal;
      in vec3 v_pos;
      in vec4 bw;
-     in vec4 v_diffuse;
 
      in vec3 c_tangent;
      in vec3 c_bitangent;
@@ -1197,7 +1154,8 @@ namespace fan {
 
      void main()
      {
-        color = v_diffuse;
+        #error it was v_diffuse which removed
+        color = vec4(1, 0, 1, 1);
      }
 
 			)";
@@ -1226,8 +1184,6 @@ namespace fan {
         gloco->get_context().opengl.glVertexAttribPointer(6, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, tangent));
         gloco->get_context().opengl.glEnableVertexAttribArray(7);
         gloco->get_context().opengl.glVertexAttribPointer(7, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bitangent));
-        gloco->get_context().opengl.glEnableVertexAttribArray(8);
-        gloco->get_context().opengl.glVertexAttribPointer(8, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, diffuse));
         gloco->get_context().opengl.glBindVertexArray(0);
       }
 
