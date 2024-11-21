@@ -170,6 +170,7 @@ namespace fan_3d {
       }
       else {
         fan::throw_error("help");
+        return std::string("");
         #if 0
         fan::string file_path = root_path + "textures/" + scene->GetShortFilename(path.C_Str());
 
