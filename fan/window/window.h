@@ -173,8 +173,8 @@ namespace fan {
       static constexpr int transparent = 1 << 6;
     };
 
-    window_t();
-    window_t(fan::vec2i window_size = fan::window_t::default_window_size, const fan::string& name = default_window_name, uint64_t flags = 0);
+   //window_t();
+    void open(fan::vec2i window_size = fan::window_t::default_window_size, const fan::string& name = default_window_name, uint64_t flags = 0);
 
     void close();
 

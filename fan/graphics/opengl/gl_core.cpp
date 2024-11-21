@@ -25,29 +25,8 @@ void fan::opengl::context_t::print_version() {
 }
 
 
-fan::opengl::context_t::context_t(const properties_t&) {
-#if 1
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, opengl.major);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, opengl.minor);
-  glfwWindowHint(GLFW_SAMPLES, 0);
-
-  if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor > 2)) {
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  }
-
-  if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor > 0)) {
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
-  }
-#else // renderdoc debug
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_SAMPLES, 0);
-
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
-#endif
-
-  glfwSetErrorCallback(error_callback);
+void fan::opengl::context_t::open(const properties_t&) {
+  opengl.open();
 }
 
 void fan::opengl::context_t::set_depth_test(bool flag) {
@@ -82,7 +61,7 @@ void fan::opengl::context_t::set_stencil_op(GLenum sfail, GLenum dpfail, GLenum 
   opengl.call(opengl.glStencilOp, sfail, dpfail, dppass);
 }
 
-void fan::opengl::context_t::set_vsync(fan::window_t& window, bool flag) {
+void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag) {
     glfwSwapInterval(flag);
 }
 

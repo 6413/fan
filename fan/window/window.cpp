@@ -9,8 +9,10 @@ struct init_manager_t {
 
   struct cleaner_t {
     cleaner_t() {
-      if (!glfwInit()) {
-        fan::throw_error("failed to initialize window manager context");
+      if(!initialized()) {
+        if (!glfwInit()) {
+          fan::throw_error("failed to initialize context");
+        }
       }
       initialized() = true;
     }
@@ -239,13 +241,11 @@ void fan::window::window_focus_callback(GLFWwindow* wnd, int focused) {
   }
 }
 
-fan::window_t::window_t() : window_t(fan::window_t::default_window_size, fan::window_t::default_window_name, 0) {}
-
 void errorCallback(int error, const char* description) {
     printf("Error: %s\n", description);
 }
 
-fan::window_t::window_t(fan::vec2i window_size, const fan::string& name, uint64_t flags) {
+void fan::window_t::open(fan::vec2i window_size, const fan::string& name, uint64_t flags) {
   std::fill(key_states.begin(), key_states.end(), -1);
   std::fill(prev_key_states.begin(), prev_key_states.end(), -1);
 
