@@ -425,9 +425,53 @@ loco_t::loco_t() : loco_t(properties_t()) {
 
 }
 
-loco_t::loco_t(const properties_t& p) :
-  context_t(), window(p.window_size, fan::window_t::default_window_name, p.window_flags)
-{
+loco_t::loco_t(const properties_t& p){
+  glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+
+  GLFWwindow* dummy_window = glfwCreateWindow(640, 400, "dummy", nullptr, nullptr);
+  if (dummy_window == nullptr) {
+    fan::throw_error("failed to open dummy window");
+  }
+  glfwMakeContextCurrent(dummy_window);
+  fan::print("init window", (void*)dummy_window, (void*)this);
+  context_t::open();
+  {
+      if (opengl.major == -1 || opengl.minor == -1) {
+          const char* gl_version = (const char*)opengl.glGetString(fan::opengl::GL_VERSION);
+          sscanf(gl_version, "%d.%d", &opengl.major, &opengl.minor);
+        }
+        glfwMakeContextCurrent(nullptr);
+        glfwDestroyWindow(dummy_window);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+  }
+  {
+    #if 1
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, opengl.major);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, opengl.minor);
+    glfwWindowHint(GLFW_SAMPLES, 0);
+
+    if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor > 2)) {
+      glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    }
+
+    if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor > 0)) {
+      glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
+    }
+  #else // renderdoc debug
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_SAMPLES, 0);
+
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
+  #endif
+
+    glfwSetErrorCallback(error_callback);
+  }
+  window.open(p.window_size, fan::window_t::default_window_name, p.window_flags);
   gloco = this;
   set_vsync(false); // using libuv
   //fan::print("less pain", this, (void*)&lighting, (void*)((uint8_t*)&lighting - (uint8_t*)this), sizeof(*this), lighting.ambient);
@@ -1536,7 +1580,7 @@ uint32_t loco_t::get_fps() {
 }
 
 void loco_t::set_vsync(bool flag) {
-  get_context().set_vsync(window, flag);
+  //get_context().set_vsync(&window, flag);
 }
 
 void loco_t::update_timer_interval() {
