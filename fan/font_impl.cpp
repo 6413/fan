@@ -181,7 +181,7 @@ void fan::font::parse_font(font_t& font, const std::string& path)
 {
   if (!fan::io::file::exists(path))
   {
-    fan::throw_error(std::string("font not found ") + path);
+    fan::throw_error(std::string("font not found") + path);
   }
 
   std::ifstream file(path.c_str());

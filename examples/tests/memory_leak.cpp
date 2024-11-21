@@ -4,5 +4,4 @@ int main() {
   {
     fan::graphics::engine_t e;
   }
-  glfwTerminate();
 }
