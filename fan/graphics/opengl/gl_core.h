@@ -24,10 +24,11 @@ namespace fan {
       fan::opengl::GLuint current_program = -1;
 
       static void error_callback(int error, const char* description) {
+        __abort();
         fan::print("window error:", description);
       }
 
-      context_t(const properties_t& p = properties_t());
+      void open(const properties_t& p = properties_t());
 
       void render(fan::window_t& window) {
         glfwSwapBuffers(window.glfw_window);
@@ -39,7 +40,7 @@ namespace fan {
       void set_stencil_test(bool flag);
       void set_stencil_op(GLenum sfail, GLenum dpfail, GLenum dppass);
 
-      void set_vsync(fan::window_t& window, bool flag);
+      void set_vsync(fan::window_t* window, bool flag);
 
       static void message_callback(GLenum source,
         GLenum type,
