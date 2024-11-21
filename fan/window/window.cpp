@@ -292,8 +292,10 @@ fan::window_t::window_t(fan::vec2i window_size, const fan::string& name, uint64_
 }
 
 void fan::window_t::close() {
+  glfwMakeContextCurrent(nullptr);
   glfwDestroyWindow(glfw_window);
 }
+
 
 void fan::window_t::handle_key_states() {
   prev_key_states = key_states;
@@ -342,11 +344,7 @@ uint32_t fan::window_t::handle_events() {
 
   handle_key_states();
 
-#if !defined(loco_noev)
-  glfwWaitEventsTimeout(0);
-#else
   glfwPollEvents();
-#endif
 
   return 0;
 }

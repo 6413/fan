@@ -85,7 +85,7 @@ namespace fan {
 
       #endif
 
-      GLFWwindow* init__ = [] {
+      GLFWwindow* init__ = [&] {
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
@@ -96,6 +96,7 @@ namespace fan {
           fan::throw_error("failed to open dummy window");
         }
         glfwMakeContextCurrent(dummy_window);
+        fan::print("init window", (void*)dummy_window, (void*)this);
         return dummy_window;
       }();
       get_proc_address(PFNGLGETSTRINGPROC, glGetString);
@@ -219,11 +220,13 @@ namespace fan {
       get_proc_address(PFNGLSTENCILMASKPROC, glStencilMask);
       get_proc_address(PFNGLMAPBUFFERPROC, glMapBuffer);
       get_proc_address(PFNGLUNMAPBUFFERPROC, glUnmapBuffer);
-      bool end_of_init = [this] {
+      bool end_of_init = [&] {
         if (major == -1 || minor == -1) {
           const char* gl_version = (const char*)glGetString(GL_VERSION);
           sscanf(gl_version, "%d.%d", &major, &minor);
         }
+        fan::print("destroy window", (void*)init__, (void*)this);
+        glfwMakeContextCurrent(nullptr);
         glfwDestroyWindow(init__);
         glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
         return 1;
