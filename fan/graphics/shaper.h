@@ -257,6 +257,7 @@ struct shaper_t{
   #define BLL_set_Link 0
   #define BLL_set_Recycle 0
   #define BLL_set_IntegerNR 1
+  #define BLL_set_CPP_ConstructDestruct 1
   #define BLL_set_CPP_Node_ConstructDestruct 1
   #define BLL_set_CPP_CopyAtPointerChange 1
   #define BLL_set_AreWeInsideStruct 1
@@ -483,8 +484,6 @@ private:
     KeyTypeAmount = 0;
     KeyTypes = NULL;
 
-    ShapeTypes.Open();
-
     KeyTree.Open();
     KeyTree_root = KeyTree.NewNode();
     BlockManager.Open();
@@ -500,7 +499,6 @@ private:
     for(auto &st : ShapeTypes){
       st.BlockList.Close();
     }
-    ShapeTypes.Close();
 
     A_resize(KeyTypes, 0);
   }
