@@ -16,6 +16,13 @@ struct init_manager_t {
       }
       initialized() = true;
     }
+
+    ~cleaner_t() {
+      if (initialized()) {
+        glfwTerminate();
+        initialized() = false;
+      }
+    }
 };
 
   static cleaner_t& cleaner() {
