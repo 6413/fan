@@ -1,7 +1,3 @@
-#if defined(loco_noev)
-  #error loco_noev needs to be undefined
-#endif
-
 #include <fan/pch.h>
 
 #include <fan/ev/ev.h>

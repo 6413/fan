@@ -1431,7 +1431,6 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
   return 0;
 }
 
-#if !defined(loco_noev)
 void loco_t::start_timer() {
   double delay;
   if (target_fps <= 0) {
@@ -1474,16 +1473,18 @@ void loco_t::loop(const fan::function_t<void()>& lambda) {
   }
 
   uv_run(uv_default_loop(), UV_RUN_DEFAULT);
-#else
+
+}
+
+/*
 void loco_t::loop(const fan::function_t<void()>&lambda) {
   while (1) {
     if (process_loop(lambda)) {
       break;
     }
   }
-#endif
 }
-
+*/
 
 
 loco_t::camera_t loco_t::open_camera(const fan::vec2& x, const fan::vec2& y) {
@@ -1538,7 +1539,6 @@ void loco_t::set_vsync(bool flag) {
   get_context().set_vsync(window, flag);
 }
 
-#if !defined(loco_noev)
 void loco_t::update_timer_interval() {
   double delay;
   if (target_fps <= 0) {
@@ -1561,16 +1561,11 @@ void loco_t::update_timer_interval() {
     start_idle(); 
   }
 }
-#endif
 
 void loco_t::set_target_fps(int32_t new_target_fps) {
-#if !defined(loco_noev)
   target_fps = new_target_fps;
   update_timer_interval();
-#endif
 }
-
-
 
 #if defined(loco_imgui)
 void loco_t::set_imgui_viewport(loco_t::viewport_t viewport) {
