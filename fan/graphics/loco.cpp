@@ -1436,6 +1436,10 @@ void loco_t::process_frame() {
   glfwSwapBuffers(window);
 }
 
+bool loco_t::should_close() {
+  return glfwWindowShouldClose(window);
+}
+
 bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 #if defined(loco_imgui)
   ImGui_ImplOpenGL3_NewFrame();
@@ -1468,7 +1472,7 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
   process_frame();
   window.handle_events();
   
-  if (glfwWindowShouldClose(window)) {
+  if (should_close()) {
     window.close();
     return 1;
   }//

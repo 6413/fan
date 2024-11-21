@@ -1354,6 +1354,8 @@ public:
 
   void process_frame();
 
+  bool should_close();
+
   bool process_loop(const fan::function_t<void()>& lambda = [] {});
   void loop(const fan::function_t<void()>& lambda);
 
