@@ -119,5 +119,9 @@ get_proc_address(PFNGLSTENCILFUNCPROC, glStencilFunc);
 get_proc_address(PFNGLSTENCILMASKPROC, glStencilMask);
 get_proc_address(PFNGLMAPBUFFERPROC, glMapBuffer);
 get_proc_address(PFNGLUNMAPBUFFERPROC, glUnmapBuffer);
+get_proc_address(PFNGLVERTEXATTRIBIPOINTERPROC, glVertexAttribIPointer);
+get_proc_address(PFNGLBINDBUFFERBASEPROC, glBindBufferBase);
+
+
 
 #undef get_proc_address
