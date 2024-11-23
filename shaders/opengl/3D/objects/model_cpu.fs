@@ -7,7 +7,7 @@ in vec4 bw;
 
 in vec3 c_tangent;
 in vec3 c_bitangent;
-layout (location = 0) out vec4 color; 
+layout (location = 0) out vec4 color;
 
 uniform sampler2D _t00; // aiTextureType_NONE
 uniform sampler2D _t01; // aiTextureType_DIFFUSE

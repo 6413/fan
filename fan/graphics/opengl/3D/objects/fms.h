@@ -4,26 +4,14 @@ namespace fan_3d {
   namespace model {
     using namespace fan::opengl;
 
-
     struct vertex_t {
       fan::vec3 position;
       fan::vec3 normal;
       fan::vec2 uv;
       fan::vec4 bone_ids;
       fan::vec4 bone_weights;
-      fan::vec3 vertex1;
       fan::vec3 tangent;
       fan::vec3 bitangent;
-    };
-
-    // structure to hold bone tree (skeleton)
-    struct joint_t {
-      int id;
-      std::string name;
-      fan::mat4 offset;
-      fan::mat4 global_transform;
-      fan::mat4 local_transform;
-      std::vector<joint_t> children;
     };
 
     struct bone_transform_track_t {
@@ -53,12 +41,13 @@ namespace fan_3d {
       f32_t weight = 1;
     };
 
-    struct Bone {
+    struct bone_t {
       std::string name;
       fan::mat4 offset;
       fan::mat4 transform;
-      std::vector<Bone*> children;
-      Bone* parent;
+      int id = -1;
+      std::vector<bone_t*> children;
+      bone_t* parent;
 
       // this needs to be user mat4
       float rotationX = 0.0f;
@@ -68,11 +57,11 @@ namespace fan_3d {
 
     struct mesh_t {
       std::vector<fan_3d::model::vertex_t> vertices;
-      std::vector<unsigned int> indices;
+      std::vector<uint32_t> indices;
 
       fan::opengl::core::vao_t VAO;
       fan::opengl::core::vbo_t VBO;
-      unsigned int EBO;
+      fan::opengl::GLuint EBO;
       std::string texture_names[AI_TEXTURE_TYPE_MAX + 1]{};
     };
 
@@ -82,22 +71,20 @@ namespace fan_3d {
       std::vector<uint8_t> data;
       int channels = 0;
     };
+    inline static std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
+
     struct pm_material_data_t {
       std::string texture_id[AI_TEXTURE_TYPE_MAX + 1];
       fan::vec4 color[AI_TEXTURE_TYPE_MAX + 1];
     };
-    inline static std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
-    inline static std::vector<pm_material_data_t> material_data_vector;
 
     struct fms_model_info_t {
       fan::string path;
+      std::string texture_path;
     };
 
     // fan model stuff
     struct fms_t {
-
-      const aiScene* scene;
-
       fms_t() = default;
       fms_t(const fms_model_info_t& fmi) {
         if (!load_model(fmi.path)) {
@@ -107,100 +94,17 @@ namespace fan_3d {
         calculated_meshes = meshes;
       }
 
-      void process_skeleton(aiNode* node, Bone* parent) {
-        Bone* bone = new Bone();
-        bone->name = node->mName.C_Str();
-        bone->parent = parent;
+      mesh_t process_mesh(aiMesh* mesh) {
+        mesh_t new_mesh;
+        std::vector<vertex_t> temp_vertices(mesh->mNumVertices);
 
-        // Convert aiMatrix4x4 to glm::mat4
-        aiMatrix4x4 transform = node->mTransformation;
-        bone->transform = transform;
-
-        // Initialize offset matrix (will be updated if this is a bone in the mesh)
-        bone->offset = fan::mat4(1.0f);
-
-        // Update bone mapping
-        boneMap[bone->name] = bone;
-
-        // Set as root if no parent
-        if (parent == nullptr) {
-          rootBone = bone;
-        }
-        else {
-          parent->children.push_back(bone);
-        }
-
-        // Process all child nodes recursively
-        for (unsigned int i = 0; i < node->mNumChildren; i++) {
-          process_skeleton(node->mChildren[i], bone);
-        }
-      }
-
-      // kinda illegal here
-      void SetupMeshBuffers(fan_3d::model::mesh_t& mesh) {
-        mesh.VAO.open(*gloco);
-        mesh.VBO.open(*gloco, GL_ARRAY_BUFFER);
-        gloco->opengl.glGenBuffers(1, &mesh.EBO);
-
-        mesh.VAO.bind(*gloco);
-
-        mesh.VBO.bind(*gloco);
-        gloco->opengl.glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(fan_3d::model::vertex_t), &mesh.vertices[0], GL_STATIC_DRAW);
-
-        gloco->opengl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.EBO);
-        gloco->opengl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW);
-
-
-        gloco->get_context().opengl.glEnableVertexAttribArray(0);
-        gloco->get_context().opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, position));
-        gloco->get_context().opengl.glEnableVertexAttribArray(1);
-        gloco->get_context().opengl.glVertexAttribPointer(1, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, normal));
-        gloco->get_context().opengl.glEnableVertexAttribArray(2);
-        gloco->get_context().opengl.glVertexAttribPointer(2, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, uv));
-        gloco->get_context().opengl.glEnableVertexAttribArray(3);
-        gloco->get_context().opengl.glVertexAttribPointer(3, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bone_ids));
-        gloco->get_context().opengl.glEnableVertexAttribArray(4);
-        gloco->get_context().opengl.glVertexAttribPointer(4, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bone_weights));
-        gloco->get_context().opengl.glEnableVertexAttribArray(5);
-        gloco->get_context().opengl.glVertexAttribPointer(5, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, vertex1));
-        gloco->get_context().opengl.glEnableVertexAttribArray(6);
-        gloco->get_context().opengl.glVertexAttribPointer(6, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, tangent));
-        gloco->get_context().opengl.glEnableVertexAttribArray(7);
-        gloco->get_context().opengl.glVertexAttribPointer(7, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bitangent));
-        gloco->get_context().opengl.glBindVertexArray(0);
-      }
-
-      void ProcessBoneOffsets(aiMesh* mesh) {
-        for (unsigned int i = 0; i < mesh->mNumBones; i++) {
-          aiBone* bone = mesh->mBones[i];
-          std::string boneName = bone->mName.C_Str();
-
-          // Find the bone in our map
-          auto it = boneMap.find(boneName);
-          if (it != boneMap.end()) {
-            // Convert offset matrix
-            aiMatrix4x4 offset = bone->mOffsetMatrix;
-            it->second->offset = offset;
-          }
-        }
-      }
-
-      mesh_t ProcessMesh(aiMesh* mesh) {
-        mesh_t newMesh;
-        std::vector<vertex_t> tempVertices(mesh->mNumVertices);
-
-        // Initialize vertices with zero weights and invalid bone IDs
-        for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-          vertex_t& vertex = tempVertices[i];
-
-          // Position
+        for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
+          vertex_t& vertex = temp_vertices[i];
           vertex.position = fan::vec3(
             mesh->mVertices[i].x,
             mesh->mVertices[i].y,
             mesh->mVertices[i].z
           );
-
-          // Normal
           if (mesh->HasNormals()) {
             vertex.normal = fan::vec3(
               mesh->mNormals[i].x,
@@ -208,8 +112,6 @@ namespace fan_3d {
               mesh->mNormals[i].z
             );
           }
-
-          // TexCoords
           if (mesh->mTextureCoords[0]) {
             vertex.uv = fan::vec2(
               mesh->mTextureCoords[0][i].x,
@@ -220,78 +122,73 @@ namespace fan_3d {
             vertex.uv = fan::vec2(0.0f);
           }
 
-          // Initialize bone data
-          vertex.bone_ids = fan::vec4i(-1);  // -1 indicates no bone assigned
+          vertex.bone_ids = fan::vec4i(-1);
           vertex.bone_weights = fan::vec4(0.0f);
         }
-
-        // Process bone weights
+        // process bones using a running maximum approach
         for (uint32_t i = 0; i < mesh->mNumBones; i++) {
           aiBone* bone = mesh->mBones[i];
+          std::string bone_name = bone->mName.C_Str();
+
+          auto it = bone_map.find(bone_name);
+          if (it == bone_map.end()) {
+            continue;
+          }
+          int boneId = it->second->id;
+
           for (uint32_t j = 0; j < bone->mNumWeights; j++) {
             uint32_t vertexId = bone->mWeights[j].mVertexId;
             float weight = bone->mWeights[j].mWeight;
 
-            // Find first available slot in vertex bone data
-            for (int k = 0; k < 4; k++) {
-              if (tempVertices[vertexId].bone_weights[k] == 0.0f) {
-                tempVertices[vertexId].bone_ids[k] = i;
-                tempVertices[vertexId].bone_weights[k] = weight;
-                break;
+            // find the slot with minimum weight and replace if current weight is larger
+            int min_index = 0;
+            float min_weight = temp_vertices[vertexId].bone_weights[0];
+
+            for (int k = 1; k < 4; k++) {
+              if (temp_vertices[vertexId].bone_weights[k] < min_weight) {
+                min_weight = temp_vertices[vertexId].bone_weights[k];
+                min_index = k;
               }
+            }
+
+            if (weight > min_weight) {
+              temp_vertices[vertexId].bone_weights[min_index] = weight;
+              temp_vertices[vertexId].bone_ids[min_index] = boneId;
             }
           }
         }
 
-        // Normalize weights and handle unassigned vertices
-        for (auto& vertex : tempVertices) {
-          float weightSum = vertex.bone_weights.x + vertex.bone_weights.y +
+        // normalize weights
+        for (auto& vertex : temp_vertices) {
+          float sum = vertex.bone_weights.x + vertex.bone_weights.y +
             vertex.bone_weights.z + vertex.bone_weights.w;
 
-          if (weightSum > 0.0f) {
-            // Normalize existing weights
-            vertex.bone_weights /= weightSum;
+          if (sum > 0.0f) {
+            vertex.bone_weights /= sum;
           }
           else {
-            // If no bones influence this vertex, assign it fully to the first bone
+            // if no bones influence this vertex, assign it to the first bone
             vertex.bone_ids.x = 0;
             vertex.bone_weights.x = 1.0f;
           }
-
-          // Ensure no invalid bone IDs
-          for (int i = 0; i < 4; i++) {
-            if (vertex.bone_ids[i] < 0) {
-              vertex.bone_ids[i] = 0;
-              vertex.bone_weights[i] = 0.0f;
-            }
-          }
         }
 
-        newMesh.vertices = tempVertices;
+        new_mesh.vertices = temp_vertices;
 
-        // Process indices
-        for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+        for (uint32_t i = 0; i < mesh->mNumFaces; i++) {
           aiFace& face = mesh->mFaces[i];
-          for (unsigned int j = 0; j < face.mNumIndices; j++) {
-            newMesh.indices.push_back(face.mIndices[j]);
+          for (uint32_t j = 0; j < face.mNumIndices; j++) {
+            new_mesh.indices.push_back(face.mIndices[j]);
           }
         }
-
-        // Debug output
-        //std::cout << "Processed mesh with " << mesh->mNumVertices << " vertices and " 
-       ///           << mesh->mNumBones << " bones" << std::endl;
-
-        SetupMeshBuffers(newMesh);
-        return newMesh;
+        return new_mesh;
       }
 
-      std::string load_textures(mesh_t& mesh, aiMesh* ai_mesh){
-
+      std::string load_textures(mesh_t& mesh, aiMesh* ai_mesh) {
         if (scene->mNumMaterials == 0) {
           return "";
         }
-
-        auto textures_to_load = std::to_array({
+        static constexpr auto textures_to_load = std::to_array({
           aiTextureType_DIFFUSE,
           aiTextureType_AMBIENT,
           aiTextureType_SPECULAR,
@@ -318,7 +215,7 @@ namespace fan_3d {
             // must not collide with other names
             std::string generated_str = path.C_Str() + std::to_string(texture_type);
             mesh.texture_names[texture_type] = generated_str;
-            auto& td = cached_texture_data[generated_str];
+            auto& td = fan_3d::model::cached_texture_data[generated_str];
             td.size = fan::vec2(width, height);
             td.data.insert(td.data.end(), data, data + td.size.multiply() * nr_channels);
             td.channels = nr_channels;
@@ -326,17 +223,10 @@ namespace fan_3d {
             return std::string(path.C_Str());
           }
           else {
-            fan::throw_error("help");
-            return std::string("");
-            #if 0
-            fan::string file_path = root_path + "textures/" + scene->GetShortFilename(path.C_Str());
-
-            parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = file_path;
+            fan::string file_path = texture_path + "/" + scene->GetShortFilename(path.C_Str());
+            mesh.texture_names[texture_type] = file_path;
             auto found = cached_texture_data.find(file_path);
             if (found == cached_texture_data.end()) {
-              fan::print(file_path);
-              texture_found = true;
-
               fan::image::image_info_t ii;
               fan::image::load(file_path, &ii);
               auto& td = cached_texture_data[file_path];
@@ -344,50 +234,14 @@ namespace fan_3d {
               td.data.insert(td.data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
               td.channels = ii.channels;
               fan::image::free(&ii);
+              return file_path;
             }
-            #endif
+            return found->first;
           }
         }
+        return "";
       }
-
-      void UpdateBoneRotation(const std::string& boneName, float x, float y, float z) {
-        auto it = boneMap.find(boneName);
-        if (it != boneMap.end()) {
-          Bone* bone = it->second;
-          bone->rotationX = x;
-          bone->rotationY = y;
-          bone->rotationZ = z;
-        }
-      }
-      void UpdateBoneTransforms(Bone* bone, const fan::mat4& parentTransform, std::vector<fan::mat4>& transforms) {
-          if (!bone) return;
-
-          fan::mat4 rotation = fan::mat4(1.0f);
-
-          fan::mat4 localRotation = fan::mat4(1.0f);
-          localRotation = localRotation.rotate(fan::math::radians(bone->rotationX), fan::vec3(1, 0, 0));
-          localRotation = localRotation.rotate(fan::math::radians(bone->rotationY), fan::vec3(0, 1, 0));
-          localRotation = localRotation.rotate(fan::math::radians(bone->rotationZ), fan::vec3(0, 0, 1));
-
-          fan::mat4 localTransform = localRotation * bone->transform;
-
-          fan::mat4 globalTransform = parentTransform * localTransform;
-
-          transforms.push_back(globalTransform * bone->offset);
-
-          for (Bone* child : bone->children) {
-            UpdateBoneTransforms(child, globalTransform, transforms);
-          }
-        }
-
-      void UpdateAllBones(std::vector<fan::mat4>& transforms) {
-        transforms.clear();
-        if (rootBone) {
-          UpdateBoneTransforms(rootBone, m_transform, transforms);
-        }
-      }
-
-      pm_material_data_t initialize_materials(aiMesh* ai_mesh) {
+      pm_material_data_t load_materials(aiMesh* ai_mesh) {
         pm_material_data_t material_data;
         for(uint32_t i = 0; i <= AI_TEXTURE_TYPE_MAX; i++){
           material_data.texture_id[i] = std::string("");
@@ -407,6 +261,104 @@ namespace fan_3d {
         return material_data;
       }
 
+      void process_skeleton(aiNode* node, bone_t* parent) {
+        if (parent == nullptr) {
+          bone_count = 0;
+        }
+        bone_t* bone = new bone_t();
+        bone->name = node->mName.C_Str();
+        bone->id = bone_count;
+        bone->parent = parent;
+        bone->transform = node->mTransformation;
+        bone->offset = fan::mat4(1.0f);
+        bone_map[bone->name] = bone;
+        ++bone_count;
+        if (parent == nullptr) {
+          rootBone = bone;
+        }
+        else {
+          parent->children.push_back(bone);
+        }
+        for (uint32_t i = 0; i < node->mNumChildren; i++) {
+          process_skeleton(node->mChildren[i], bone);
+        }
+      }
+
+      void process_bone_offsets(aiMesh* mesh) {
+        for (uint32_t i = 0; i < mesh->mNumBones; i++) {
+          aiBone* bone = mesh->mBones[i];
+          std::string bone_name = bone->mName.C_Str();
+
+          auto it = bone_map.find(bone_name);
+          if (it != bone_map.end()) {
+            it->second->offset = bone->mOffsetMatrix;
+          }
+        }
+      }
+      void update_bone_rotation(const std::string& boneName, float x, float y, float z) {
+        auto it = bone_map.find(boneName);
+        if (it != bone_map.end()) {
+          bone_t* bone = it->second;
+          bone->rotationX = x;
+          bone->rotationY = y;
+          bone->rotationZ = z;
+        }
+      }
+      void update_bone_transforms_impl(bone_t* bone, const fan::mat4& parentTransform) {
+        if (!bone) return;
+
+
+        fan::mat4 translation(1);
+        fan::mat4 rotation = fan::mat4(1.0f);
+        fan::mat4 scale(1);
+        rotation = rotation.rotate(fan::math::radians(bone->rotationX), fan::vec3(1, 0, 0));
+        rotation = rotation.rotate(fan::math::radians(bone->rotationY), fan::vec3(0, 1, 0));
+        rotation = rotation.rotate(fan::math::radians(bone->rotationZ), fan::vec3(0, 0, 1));
+
+        fan::mat4 node_transform = bone->transform;
+
+        fan::mat4 local_transform = translation * rotation * scale;
+        fan::mat4 globalTransform = parentTransform * node_transform * local_transform;
+
+        bone_transforms[bone->id] = globalTransform  * bone->offset;
+
+        for (bone_t* child : bone->children) {
+          update_bone_transforms_impl(child, globalTransform);
+        }
+      }
+      void update_bone_transforms() {
+        bone_transforms.clear();
+        bone_transforms.resize(bone_count);
+        if (rootBone) {
+          update_bone_transforms_impl(rootBone, m_transform);
+        }
+      }
+      fan::vec4 calculate_bone_transform(uint32_t mesh_id, uint32_t vertex_id) {
+        auto& vertex = meshes[mesh_id].vertices[vertex_id];
+
+        fan::vec4 totalPosition(0.0);
+
+        for (int i = 0; i < 4; i++) {
+          float weight = vertex.bone_weights[i];
+          int boneId = vertex.bone_ids[i];
+          if (boneId == -1) {
+            continue;
+          }
+
+          if (boneId >= bone_transforms.size()) {
+            totalPosition = fan::vec4(vertex.position, 1.0);
+            break;
+          }
+          fan::vec4 local_position = bone_transforms[boneId] * fan::vec4(vertex.position, 1.0);
+          totalPosition += local_position * weight;
+        }
+
+        fan::mat4 model(1);
+        fan::vec4 worldPos = model * totalPosition;
+        fan::vec4 gl_Position = worldPos;
+        return gl_Position;
+      }
+
       bool load_model(const std::string& path) {
         Assimp::Importer importer;
 
@@ -422,82 +374,35 @@ namespace fan_3d {
 
         meshes.clear();
 
-        for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
-          mesh_t mesh = ProcessMesh(scene->mMeshes[i]);
+        for (uint32_t i = 0; i < scene->mNumMeshes; i++) {
+          mesh_t mesh = process_mesh(scene->mMeshes[i]);
           aiMesh* ai_mesh = scene->mMeshes[i];
-          pm_material_data_t material_data = initialize_materials(ai_mesh);
+          pm_material_data_t material_data = load_materials(ai_mesh);
           if (std::string tret = load_textures(mesh, ai_mesh); !tret.empty()) {
             material_data.texture_id[i] = tret;
           }
           material_data_vector.push_back(material_data);
-          ProcessBoneOffsets(ai_mesh);
+          process_bone_offsets(ai_mesh);
           meshes.push_back(mesh);
         }
 
-        UpdateAllBones(bone_transforms);
-
-        // Setup bone buffer
-        // IF GPU
-        /*GLuint boneTransformSize = boneTransforms.size() * sizeof(glm::mat4);
-        engine.opengl.glGenBuffers(1, &boneBuffer);
-        engine.opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, boneBuffer);
-        engine.opengl.glBufferData(GL_SHADER_STORAGE_BUFFER, boneTransformSize, &boneTransforms[0], GL_STATIC_DRAW);
-        engine.opengl.glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, boneBuffer);*/
+        update_bone_transforms();
         return true;
       }
 
-      fan::vec4 calculate_bone_transform(uint32_t mesh_id, uint32_t vertex_id, const std::vector<fan::mat4>& bone_transforms) {
-        auto& vertex = meshes[mesh_id].vertices[vertex_id];
-        fan::vec4i bone_ids = vertex.bone_ids;
-        fan::vec4 bone_weights =vertex.bone_weights;
+      void calculate_modified_vertices(uint32_t mesh_id, const fan::mat4& model = fan::mat4(1)) {
 
-        fan::vec4 totalPosition(0.0);
-        float weightSum = 0.0;
-
-        for (int i = 0; i < 4; i++) {
-          float weight = vertex.bone_weights[i];
-          int boneId = vertex.bone_ids[i];
-
-          if (weight > 0.0 && boneId >= 0) {
-            weightSum += weight;
-            fan::mat4 transform = bone_transforms[boneId];
-            totalPosition += transform * fan::vec4(vertex.position, 1.0) * weight;
-          }
-        }
-        if(weightSum < 0.001) {
-            totalPosition = fan::vec4(vertex.position, 1.0);
-        }
-
-        fan::mat4 model(1);
-        fan::vec4 worldPos = model * totalPosition;
-        fan::vec4 gl_Position = worldPos;
-        return gl_Position;
-      }
-
-      std::vector<fan::mat4> fk_calculate_transformations() {
-        UpdateAllBones(bone_transforms);
-        return bone_transforms;
-      }
-
-      void calculate_modified_vertices(uint32_t mesh_id, const std::vector<fan::mat4>& transformations) {
-        calculate_modified_vertices(mesh_id, fan::mat4(1), transformations);
-      }
-
-      // converts right hand coordinate to left hand coordinate
-      void calculate_modified_vertices(uint32_t mesh_id, const fan::mat4& model, const std::vector<fan::mat4>& transformations) {
+        update_bone_transforms();
 
         for (int i = 0; i < meshes[mesh_id].vertices.size(); ++i) {
 
           fan::vec3 v = meshes[mesh_id].vertices[i].position;
-          if (transformations.empty()) {
-
-            fan::vec4 vertex_position = m_transform * model * fan::vec4(
-              v
-              , 1.0);
+          if (bone_transforms.empty()) {
+            fan::vec4 vertex_position = m_transform * model * fan::vec4(v, 1.0);
             calculated_meshes[mesh_id].vertices[i].position = fan::vec3(vertex_position.x, vertex_position.y, vertex_position.z);
           }
           else {
-            fan::vec4 interpolated_bone_transform = calculate_bone_transform(mesh_id, i, transformations);
+            fan::vec4 interpolated_bone_transform = calculate_bone_transform(mesh_id, i);
 
             fan::vec4 vertex_position = fan::vec4(v, 1.0);
 
@@ -505,46 +410,14 @@ namespace fan_3d {
 
             calculated_meshes[mesh_id].vertices[i].position = fan::vec3(result.x, result.y, result.z);
           }
-
         }
       }
 
-     
-      void fk_interpolate_animations(std::vector<fan::mat4>& joint_transforms, animation_data_t& animation, joint_t& joint, fan::mat4& parent_transform, f32_t animation_weight) {
-
-        fan::vec3 position = 0, scale = 0;
-        fan::quat rotation;
-
-        fan::mat4 global_transform;
-
-        if (animation_list.empty()) {
-          // tpose - DEAD
-          fan::throw_error("DEAD");
-          joint_transforms[joint.id] = joint.global_transform * joint.offset;
-        }
-        else {
-          for (auto& apair : animation_list) {
-            auto& a = apair.second;
-            position += a.joint_poses[joint.id].position * a.weight;
-            fan::quat slerped_quat = fan::quat::slerp(fan::quat(1, 0, 0, 0), a.joint_poses[joint.id].rotation, a.weight);
-            rotation = (rotation * slerped_quat).normalize();
-            scale += a.joint_poses[joint.id].scale * a.weight;
-          }
-          //
-          fan::mat4 local_transform = joint.local_transform;
-          global_transform = parent_transform* joint.offset;
-
-          joint_transforms[joint.id] = global_transform * joint.local_transform;
-        }
-
-        for (fan_3d::model::joint_t& child : joint.children) {
-          fk_interpolate_animations(joint_transforms, animation, child, global_transform, animation_weight);
-        }
-      }
-
+      // triangle consists of 3 vertices
       struct one_triangle_t {
-        fan::vec3 p[3];
-        fan::vec2 tc[3];
+        fan::vec3 position[3]{};
+        fan::vec3 normal[3]{};
+        fan::vec2 uv[3]{};
       };
 
       void get_triangle_vec(uint32_t mesh_id, std::vector<one_triangle_t>* triangles) {
@@ -552,8 +425,8 @@ namespace fan_3d {
         // ignore i for now since only one scene
         triangles->resize(calculated_meshes[mesh_id].vertices.size() / edge_count);
         for (int i = 0; i < calculated_meshes[mesh_id].vertices.size(); ++i) {
-          (*triangles)[i / edge_count].p[i % edge_count] = calculated_meshes[mesh_id].vertices[i].position;
-          (*triangles)[i / edge_count].tc[i % edge_count] = calculated_meshes[mesh_id].vertices[i].uv;
+          (*triangles)[i / edge_count].position[i % edge_count] = calculated_meshes[mesh_id].vertices[i].position;
+          (*triangles)[i / edge_count].uv[i % edge_count] = calculated_meshes[mesh_id].vertices[i].uv;
         }
       }
 
@@ -611,16 +484,100 @@ namespace fan_3d {
         return insert_pos;
       }
 
-      f32_t dt = 0;
+      void print_bone_recursive(bone_t* bone, int depth = 0) {
+        if (!bone) {
+          return;
+        }
+
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_Framed;
+        if (bone->children.empty()) {
+          flags |= ImGuiTreeNodeFlags_Leaf;
+        }
+
+        if (depth > 0) {
+          ImGui::Indent(10.0f);
+        }
+
+        bool node_open = ImGui::TreeNodeEx(bone->name.c_str(), flags);
+
+        if (node_open) {
+          ImGui::PushID(bone);
+
+          ImGui::BeginGroup();
+    
+          float speed = 1.0f;
+          ImGui::PushItemWidth(150.0f);
+    
+          ImGui::Text("Rotation");
+          ImGui::SameLine();
+          if (ImGui::Button("Reset")) {
+            bone->rotationX = 0.0f;
+            bone->rotationY = 0.0f;
+            bone->rotationZ = 0.0f;
+          }
+
+          ImGui::SliderFloat("X", &bone->rotationX, -180.0f, 180.0f, "%.1f°", speed);
+          ImGui::SliderFloat("Y", &bone->rotationY, -180.0f, 180.0f, "%.1f°", speed);
+          ImGui::SliderFloat("Z", &bone->rotationZ, -180.0f, 180.0f, "%.1f°", speed);
+    
+          ImGui::PopItemWidth();
+          ImGui::EndGroup();
+
+          ImGui::PopID();
+
+          // Print children
+          for (bone_t* child : bone->children) {
+            print_bone_recursive(child, depth + 1);
+          }
+          ImGui::TreePop();
+        }
+
+        if (depth > 0) {
+          ImGui::Unindent(10.0f);
+        }
+      }
+      void print_bones(bone_t* rootBone) {
+        if (!rootBone) {
+          ImGui::TextDisabled("No skeleton loaded");
+          return;
+        }
+
+        ImGui::Begin("Bone Hierarchy");
+  
+        if (ImGui::Button("Reset All Rotations")) {
+          std::function<void(bone_t*)> reset_rotations = [&](bone_t* bone) {
+            if (bone) {
+              bone->rotationX = 0.0f;
+              bone->rotationY = 0.0f;
+              bone->rotationZ = 0.0f;
+              for (bone_t* child : bone->children) {
+                reset_rotations(child);
+              }
+            }
+          };
+          reset_rotations(rootBone);
+        }
+
+        ImGui::Separator();
+        print_bone_recursive(rootBone);
+        ImGui::End();
+      }
+
+      const aiScene* scene;
+      bone_t* rootBone = nullptr;
+
+      std::vector<pm_material_data_t> material_data_vector;
+      std::vector<fan::mat4> bone_transforms;
+      std::vector<mesh_t> meshes;
+      std::vector<mesh_t> calculated_meshes;
+      std::unordered_map<std::string, bone_t*> bone_map;
+
+      std::string texture_path;
 
       fan::mat4 m_transform{1};
-      std::vector<fan::mat4> bone_transforms;
+      uint32_t bone_count = 0;
+      f32_t dt = 0;
 
-      std::vector<mesh_t> meshes;
-      // for bone transformations
-      std::vector<mesh_t> calculated_meshes;
-      std::map<std::string, Bone*> boneMap;
-      Bone* rootBone = nullptr;
     };
   }
 }
