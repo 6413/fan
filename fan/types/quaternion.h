@@ -219,6 +219,27 @@ namespace fan {
         axis.z = qn.z / s;
       }
     }
+    void to_angles(fan::vec3& angles) {
+      // Assuming the angles are in radians.
+      const quaternion& q = *this;
+      f32_t ysqr = q.y * q.y;
+
+      // Roll (x-axis rotation)
+      f32_t t0 = 2.0f * (q.w * q.x + q.y * q.z);
+      f32_t t1 = 1.0f - 2.0f * (q.x * q.x + ysqr);
+      angles.x = std::atan2(t0, t1);
+
+      // Pitch (y-axis rotation)
+      f32_t t2 = 2.0f * (q.w * q.y - q.z * q.x);
+      t2 = t2 > 1.0f ? 1.0f : t2;
+      t2 = t2 < -1.0f ? -1.0f : t2;
+      angles.y = std::asin(t2);
+
+      // Yaw (z-axis rotation)
+      f32_t t3 = 2.0f * (q.w * q.z + q.x * q.y);
+      f32_t t4 = 1.0f - 2.0f * (ysqr + q.z * q.z);
+      angles.z = std::atan2(t3, t4);
+    }
 
     //fan::vec3 to_euler() const {
     //  fan::quaternion<T> q = *this;

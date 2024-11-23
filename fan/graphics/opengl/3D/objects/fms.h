@@ -42,17 +42,16 @@ namespace fan_3d {
     };
 
     struct bone_t {
+      int id = -1;
       std::string name;
       fan::mat4 offset;
       fan::mat4 transform;
-      int id = -1;
-      std::vector<bone_t*> children;
       bone_t* parent;
+      std::vector<bone_t*> children;
 
-      // this needs to be user mat4
-      float rotationX = 0.0f;
-      float rotationY = 0.0f;
-      float rotationZ = 0.0f;
+      fan::vec3 translation = 0;
+      fan::vec3 rotation = 0;
+      fan::vec3 scale = 1;
     };
 
     struct mesh_t {
@@ -138,11 +137,11 @@ namespace fan_3d {
 
           for (uint32_t j = 0; j < bone->mNumWeights; j++) {
             uint32_t vertexId = bone->mWeights[j].mVertexId;
-            float weight = bone->mWeights[j].mWeight;
+            f32_t weight = bone->mWeights[j].mWeight;
 
             // find the slot with minimum weight and replace if current weight is larger
             int min_index = 0;
-            float min_weight = temp_vertices[vertexId].bone_weights[0];
+            f32_t min_weight = temp_vertices[vertexId].bone_weights[0];
 
             for (int k = 1; k < 4; k++) {
               if (temp_vertices[vertexId].bone_weights[k] < min_weight) {
@@ -160,7 +159,7 @@ namespace fan_3d {
 
         // normalize weights
         for (auto& vertex : temp_vertices) {
-          float sum = vertex.bone_weights.x + vertex.bone_weights.y +
+          f32_t sum = vertex.bone_weights.x + vertex.bone_weights.y +
             vertex.bone_weights.z + vertex.bone_weights.w;
 
           if (sum > 0.0f) {
@@ -295,30 +294,28 @@ namespace fan_3d {
           }
         }
       }
-      void update_bone_rotation(const std::string& boneName, float x, float y, float z) {
+      void update_bone_rotation(const std::string& boneName, const fan::vec3& rotation) {
         auto it = bone_map.find(boneName);
         if (it != bone_map.end()) {
           bone_t* bone = it->second;
-          bone->rotationX = x;
-          bone->rotationY = y;
-          bone->rotationZ = z;
+          bone->rotation = rotation;
         }
       }
       void update_bone_transforms_impl(bone_t* bone, const fan::mat4& parentTransform) {
         if (!bone) return;
 
 
-        fan::mat4 translation(1);
-        fan::mat4 rotation = fan::mat4(1.0f);
-        fan::mat4 scale(1);
-        rotation = rotation.rotate(fan::math::radians(bone->rotationX), fan::vec3(1, 0, 0));
-        rotation = rotation.rotate(fan::math::radians(bone->rotationY), fan::vec3(0, 1, 0));
-        rotation = rotation.rotate(fan::math::radians(bone->rotationZ), fan::vec3(0, 0, 1));
+        fan::mat4 translation = fan::mat4(1).translate(bone->translation);
+        fan::mat4 rotation = fan::mat4(1).rotate(bone->rotation);
+        fan::mat4 scale = fan::mat4(1).scale(bone->scale);
 
         fan::mat4 node_transform = bone->transform;
 
-        fan::mat4 local_transform = translation * rotation * scale;
-        fan::mat4 globalTransform = parentTransform * node_transform * local_transform;
+        fan::mat4 globalTransform = 
+          parentTransform * 
+          node_transform * 
+          (translation * rotation * scale)
+        ;
 
         bone_transforms[bone->id] = globalTransform  * bone->offset;
 
@@ -339,7 +336,7 @@ namespace fan_3d {
         fan::vec4 totalPosition(0.0);
 
         for (int i = 0; i < 4; i++) {
-          float weight = vertex.bone_weights[i];
+          f32_t weight = vertex.bone_weights[i];
           int boneId = vertex.bone_ids[i];
           if (boneId == -1) {
             continue;
@@ -420,14 +417,21 @@ namespace fan_3d {
         fan::vec2 uv[3]{};
       };
 
-      void get_triangle_vec(uint32_t mesh_id, std::vector<one_triangle_t>* triangles) {
+      std::vector<one_triangle_t> get_triangles(uint32_t mesh_id) {
+        std::vector<one_triangle_t> triangles;
         static constexpr int edge_count = 3;
+        const auto& mesh = calculated_meshes[mesh_id];
         // ignore i for now since only one scene
-        triangles->resize(calculated_meshes[mesh_id].vertices.size() / edge_count);
-        for (int i = 0; i < calculated_meshes[mesh_id].vertices.size(); ++i) {
-          (*triangles)[i / edge_count].position[i % edge_count] = calculated_meshes[mesh_id].vertices[i].position;
-          (*triangles)[i / edge_count].uv[i % edge_count] = calculated_meshes[mesh_id].vertices[i].uv;
+        triangles.resize(mesh.indices.size() / edge_count);
+        for (uint32_t i = 0; i < calculated_meshes[mesh_id].vertices.size(); ++i) {
+          for (int j = 0; j < edge_count; ++j) {
+            uint32_t vertex_index = mesh.indices[i + j];
+            triangles[i / edge_count].position[j] = mesh.vertices[vertex_index].position;
+            triangles[i / edge_count].normal[j] = mesh.vertices[vertex_index].normal;
+            triangles[i / edge_count].uv[j] = mesh.vertices[vertex_index].uv;
+          }
         }
+        return triangles;
       }
 
       using anim_key_t = std::string;
@@ -469,7 +473,7 @@ namespace fan_3d {
         }
         auto& transform = found->second;
 
-        float target = dt * 1000.f;
+        f32_t target = dt * 1000.f;
         auto it = std::upper_bound(transform.position_timestamps.begin(), transform.position_timestamps.end(), target);
 
         int insert_pos = std::distance(transform.position_timestamps.begin(), it);
@@ -505,21 +509,18 @@ namespace fan_3d {
 
           ImGui::BeginGroup();
     
-          float speed = 1.0f;
+          f32_t speed = 1.0f;
           ImGui::PushItemWidth(150.0f);
     
           ImGui::Text("Rotation");
           ImGui::SameLine();
           if (ImGui::Button("Reset")) {
-            bone->rotationX = 0.0f;
-            bone->rotationY = 0.0f;
-            bone->rotationZ = 0.0f;
+            bone->rotation = 0;
           }
+          ImGui::SliderFloat("X", &bone->rotation.x, 0, fan::math::pi * 2, "%.3f", speed);
+          ImGui::SliderFloat("Y", &bone->rotation.y, 0, fan::math::pi * 2, "%.3f", speed);
+          ImGui::SliderFloat("Z", &bone->rotation.z, 0, fan::math::pi * 2, "%.3f", speed);
 
-          ImGui::SliderFloat("X", &bone->rotationX, -180.0f, 180.0f, "%.1f°", speed);
-          ImGui::SliderFloat("Y", &bone->rotationY, -180.0f, 180.0f, "%.1f°", speed);
-          ImGui::SliderFloat("Z", &bone->rotationZ, -180.0f, 180.0f, "%.1f°", speed);
-    
           ImGui::PopItemWidth();
           ImGui::EndGroup();
 
@@ -547,9 +548,7 @@ namespace fan_3d {
         if (ImGui::Button("Reset All Rotations")) {
           std::function<void(bone_t*)> reset_rotations = [&](bone_t* bone) {
             if (bone) {
-              bone->rotationX = 0.0f;
-              bone->rotationY = 0.0f;
-              bone->rotationZ = 0.0f;
+              bone->rotation = 0;
               for (bone_t* child : bone->children) {
                 reset_rotations(child);
               }
@@ -577,7 +576,6 @@ namespace fan_3d {
       fan::mat4 m_transform{1};
       uint32_t bone_count = 0;
       f32_t dt = 0;
-
     };
   }
 }
