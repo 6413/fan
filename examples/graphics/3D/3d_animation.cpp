@@ -7,6 +7,7 @@ int main() {
   loco.set_vsync(0);
   fan::graphics::model_cpu_t::properties_t p;
   p.path = "models/testt5.fbx";
+  p.texture_path = "models/textures";
   fan::graphics::model_cpu_t model(p);
 
 
@@ -32,15 +33,16 @@ int main() {
   
   fan::vec2 window_size = gloco->window.get_size();
 
-  model.fms.UpdateBoneRotation("Left_leg", -90.f, 0, 0);
+ // model.fms.UpdateBoneRotation("Left_leg", -90.f, 0, 0);
 
   gloco->m_post_draw.push_back([&] {
     ImGui::Begin("window");
-    auto fk_animation_transform = model.fms.fk_calculate_transformations();
     for (uint32_t i = 0; i < model.fms.meshes.size(); ++i) {
-      model.fms.calculate_modified_vertices(i, fk_animation_transform);
+      model.fms.calculate_modified_vertices(i);
       model.upload_modified_vertices(i);
     }
+
+    model.fms.print_bone_recursive(model.fms.rootBone);
 
 //    model.mouse_modify_joint();
 

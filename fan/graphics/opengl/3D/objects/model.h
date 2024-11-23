@@ -19,7 +19,7 @@ namespace fan {
         gloco->shader_compile(m_shader);
 
         // load textures
-        for (const fan_3d::model::mesh_t& mesh : fms.meshes) {
+        for (fan_3d::model::mesh_t& mesh : fms.meshes) {
           for (const std::string& name : mesh.texture_names) {
             if (name.empty()) {
               continue;
@@ -48,10 +48,43 @@ namespace fan {
             } 
             else {
               fan::print("unimplemented channel", ii.channels);
-              cached_images[name] = gloco->default_texture; // insert new texture, since old doesnt exist
+              cached_images[name] = gloco->default_texture; // insert default (missing) texture, since old doesnt exist
             }
           }
+          SetupMeshBuffers(mesh);
         }
+      }
+
+      // kinda illegal here
+      void SetupMeshBuffers(fan_3d::model::mesh_t& mesh) {
+        mesh.VAO.open(*gloco);
+        mesh.VBO.open(*gloco, GL_ARRAY_BUFFER);
+        gloco->opengl.glGenBuffers(1, &mesh.EBO);
+
+        mesh.VAO.bind(*gloco);
+
+        mesh.VBO.bind(*gloco);
+        gloco->opengl.glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(fan_3d::model::vertex_t), &mesh.vertices[0], GL_STATIC_DRAW);
+
+        gloco->opengl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.EBO);
+        gloco->opengl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW);
+
+
+        gloco->opengl.glEnableVertexAttribArray(0);
+        gloco->opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, position));
+        gloco->opengl.glEnableVertexAttribArray(1);
+        gloco->opengl.glVertexAttribPointer(1, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, normal));
+        gloco->opengl.glEnableVertexAttribArray(2);
+        gloco->opengl.glVertexAttribPointer(2, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, uv));
+        gloco->opengl.glEnableVertexAttribArray(3);
+        gloco->opengl.glVertexAttribPointer(3, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bone_ids));
+        gloco->opengl.glEnableVertexAttribArray(4);
+        gloco->opengl.glVertexAttribPointer(4, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bone_weights));
+        gloco->opengl.glEnableVertexAttribArray(5);
+        gloco->opengl.glVertexAttribPointer(5, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, tangent));
+        gloco->opengl.glEnableVertexAttribArray(6);
+        gloco->opengl.glVertexAttribPointer(6, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bitangent));
+        gloco->opengl.glBindVertexArray(0);
       }
 
       void upload_modified_vertices(uint32_t i) {
@@ -67,9 +100,9 @@ namespace fan {
       void draw(const fan::mat4& model_transform = fan::mat4(1)) {
         gloco->shader_use(m_shader);
 
-        gloco->get_context().shader_set_camera(m_shader, &gloco->camera_get(gloco->perspective_camera.camera));
+        gloco->shader_set_camera(m_shader, &gloco->camera_get(gloco->perspective_camera.camera));
 
-        gloco->get_context().set_depth_test(true);
+        gloco->set_depth_test(true);
 
         auto& context = gloco->get_context();
         context.opengl.glDisable(fan::opengl::GL_BLEND);
@@ -84,9 +117,8 @@ namespace fan {
           gloco->shader_set_value(m_shader, "view_p", camera_position);
           { // texture binding
             uint8_t tex_index = 0;
-            uint8_t valid_tex_index = 0;
             
-            for (auto& tex : fms.meshes[mesh_index].texture_names) { // i think think this doesnt make sense
+            for (auto& tex : fms.meshes[mesh_index].texture_names) {
               if (tex.empty()) {
                 continue;
               }
@@ -94,7 +126,7 @@ namespace fan {
               oss << "_t" << std::setw(2) << std::setfill('0') << (int)tex_index;
 
               //tex.second.texture_datas
-              gloco->get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + tex_index);
+              gloco->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + tex_index);
 
               gloco->shader_set_value(m_shader, oss.str(), tex_index);
               gloco->image_bind(cached_images[tex]);
