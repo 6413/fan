@@ -5,11 +5,9 @@
 int main() {
   loco_t loco;
   loco.set_vsync(0);
-  fan::graphics::model_t::properties_t p;
+  fan::graphics::model_cpu_t::properties_t p;
   p.path = "models/testt5.fbx";
-  // todo make animation work with gpu
-  p.use_flag = fan::graphics::model_t::use_flag_e::model_cpu;
-  fan::graphics::model_t model(p);
+  fan::graphics::model_cpu_t model(p);
 
 
   //auto anid = model.fms.create_an("an_name", 1);
@@ -37,33 +35,19 @@ int main() {
   model.fms.UpdateBoneRotation("Left_leg", -90.f, 0, 0);
 
   gloco->m_post_draw.push_back([&] {
-    static bool default_anim = false;
-    ImGui::Checkbox("default model", &default_anim);
-    //static constexpr uint32_t mesh_id = 0;
-
-    // THIS IS FOR SIMULATING ON CPU, properties_t::use_fs = false
-    
-    if (p.use_flag == fan::graphics::model_t::use_flag_e::model_cpu) {
-
-      auto fk_animation_transform = model.fms.fk_calculate_transformations();
-      for (uint32_t i = 0; i < model.fms.meshes.size(); ++i) {
-        model.fms.calculate_modified_vertices(i, fk_animation_transform);
-      }
-
-
-      for (int i = 0; i < model.fms.meshes.size(); ++i) {
-        model.upload_modified_vertices(i);
-      }
+    ImGui::Begin("window");
+    auto fk_animation_transform = model.fms.fk_calculate_transformations();
+    for (uint32_t i = 0; i < model.fms.meshes.size(); ++i) {
+      model.fms.calculate_modified_vertices(i, fk_animation_transform);
+      model.upload_modified_vertices(i);
     }
-    
-
-
 
 //    model.mouse_modify_joint();
 
 //    model.display_animations();
 
-    model.draw();
+    fan::mat4 model_transform(1);
+    model.draw(model_transform);
 
     ImGui::End();
   });
@@ -78,15 +62,13 @@ int main() {
     }
   });
 
-  int active_axis = -1;
-
   model.fms.dt = 0;
 
   loco.loop([&] {
 
-  model.fms.dt += loco.delta_time * 10;  
-
-    ImGui::Begin("window");
+    model.fms.dt += loco.delta_time * 10;  
+    model.draw_cached_images();
+  
     camera.move(100);
     fan::ray3_t ray = gloco->convert_mouse_to_ray(camera.position, camera.m_projection, camera.m_view);
 
@@ -102,7 +84,11 @@ int main() {
     if (ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
       camera.rotate_camera(fan::vec2(0, 0.01));
     }
-    fan::print(camera.position, camera.get_yaw(), camera.get_pitch());
+    fan::graphics::text(
+      camera.position.to_string() + " " +
+      std::to_string(camera.get_yaw()) + " " +
+      std::to_string(camera.get_pitch())
+    );
 
     loco.get_fps();
     motion = 0;
