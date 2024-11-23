@@ -26,6 +26,6 @@
 #endif
 
 #if defined(loco_model_3d)
-#include <fan/graphics/opengl/3D/objects/model.h>
+//#include <fan/graphics/opengl/3D/objects/model.h>
 #endif
 

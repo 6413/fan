@@ -436,7 +436,6 @@ loco_t::loco_t(const properties_t& p){
     fan::throw_error("failed to open dummy window");
   }
   glfwMakeContextCurrent(dummy_window);
-  fan::print("init window", (void*)dummy_window, (void*)this);
   context_t::open();
   {
       if (opengl.major == -1 || opengl.minor == -1) {
