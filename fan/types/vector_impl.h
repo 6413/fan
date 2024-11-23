@@ -200,6 +200,9 @@ bool is_near(const vec_t& test0, value_type_t epsilon) const {
 } 
 
 friend std::ostream& operator<<(std::ostream& os, const vec_t& test0) { os << test0.to_string(); return os; }
+operator std::string const() {
+  return to_string();
+}
 
 #if vec_n
 value_type_t fan_coordinate(vec_n);
