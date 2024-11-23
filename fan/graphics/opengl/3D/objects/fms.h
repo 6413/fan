@@ -60,6 +60,7 @@ namespace fan_3d {
       std::vector<Bone*> children;
       Bone* parent;
 
+      // this needs to be user mat4
       float rotationX = 0.0f;
       float rotationY = 0.0f;
       float rotationZ = 0.0f;
@@ -72,11 +73,10 @@ namespace fan_3d {
       fan::opengl::core::vao_t VAO;
       fan::opengl::core::vbo_t VBO;
       unsigned int EBO;
+      std::string texture_names[AI_TEXTURE_TYPE_MAX + 1]{};
     };
 
     // pm -- parsed model
-
-
     struct pm_texture_data_t {
       fan::vec2ui size = 0;
       std::vector<uint8_t> data;
@@ -89,161 +89,6 @@ namespace fan_3d {
     inline static std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
     inline static std::vector<pm_material_data_t> material_data_vector;
 
-    struct pm_model_data_t {
-      struct mesh_data_t {
-        // names is generated for each texture type to cache the texture data
-        std::array<std::string, AI_TEXTURE_TYPE_MAX + 1> names;
-      };
-      // mesh[]
-      std::vector<std::vector<fan_3d::model::vertex_t>> vertices;
-      std::vector<mesh_data_t> mesh_data;
-      fan_3d::model::joint_t skeleton;
-      uint32_t bone_count = 0;
-    };
-
-
-    struct parsed_model_t {
-      pm_model_data_t model_data;
-      std::vector<fan::mat4> transforms;
-    };
-
-    inline std::vector<int> mesh_id_table;
-
-    static std::string load_texture(
-      const aiScene* scene,
-      aiMaterial* material,
-      aiTextureType texture_type,
-      const fan::string& root_path,
-      parsed_model_t& parsed_model,
-      std::size_t mesh_index
-    ){
-      aiString path;
-      if (material->GetTexture(texture_type, 0, &path) != AI_SUCCESS) {
-        return std::string("");
-      }
-
-      auto embedded_texture = scene->GetEmbeddedTexture(path.C_Str());
-
-      if (embedded_texture && embedded_texture->mHeight == 0) {
-        int width, height, nr_channels;
-        unsigned char* data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(embedded_texture->pcData), embedded_texture->mWidth, &width, &height, &nr_channels, 0);
-        if(data == nullptr){
-          fan::throw_error("failed to load texture");
-        }
-
-        // must not collide with other names
-        std::string generated_str = path.C_Str() + std::to_string(texture_type);
-        parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = generated_str;
-        auto& td = cached_texture_data[generated_str];
-        td.size = fan::vec2(width, height);
-        td.data.insert(td.data.end(), data, data + td.size.multiply() * nr_channels);
-        td.channels = nr_channels;
-        stbi_image_free(data);
-        return std::string(path.C_Str());
-      }
-      else {
-        fan::throw_error("help");
-        return std::string("");
-        #if 0
-        fan::string file_path = root_path + "textures/" + scene->GetShortFilename(path.C_Str());
-
-        parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = file_path;
-        auto found = cached_texture_data.find(file_path);
-        if (found == cached_texture_data.end()) {
-          fan::print(file_path);
-          texture_found = true;
-
-          fan::image::image_info_t ii;
-          fan::image::load(file_path, &ii);
-          auto& td = cached_texture_data[file_path];
-          td.size = ii.size;
-          td.data.insert(td.data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
-          td.channels = ii.channels;
-          fan::image::free(&ii);
-        }
-        #endif
-      }
-    }
-
-    static void load_animation(const aiScene* scene, fan_3d::model::animation_data_t& animation) {
-      if (scene->mNumAnimations == 0) {
-        return;
-      }
-      //loading  first Animation
-      aiAnimation* anim = scene->mAnimations[0];
-
-      animation.duration = anim->mDuration/* * anim->mTicksPerSecond*/;
-
-      for (int i = 0; i < anim->mNumChannels; i++) {
-        aiNodeAnim* channel = anim->mChannels[i];
-        fan_3d::model::bone_transform_track_t track;
-        for (int j = 0; j < channel->mNumPositionKeys; j++) {
-          track.position_timestamps.push_back(channel->mPositionKeys[j].mTime);
-          track.positions.push_back(channel->mPositionKeys[j].mValue);
-        }
-        for (int j = 0; j < channel->mNumRotationKeys; j++) {
-          track.rotation_timestamps.push_back(channel->mRotationKeys[j].mTime);
-          track.rotations.push_back(channel->mRotationKeys[j].mValue);
-
-        }
-        for (int j = 0; j < channel->mNumScalingKeys; j++) {
-          track.scale_timestamps.push_back(channel->mScalingKeys[j].mTime);
-          track.scales.push_back(channel->mScalingKeys[j].mValue);
-
-        }
-        animation.bone_transforms[channel->mNodeName.C_Str()] = track;
-      }
-    }
-
-    static bool get_time_fraction(const std::vector<f32_t>& times, f32_t dt, std::pair<uint32_t, f32_t>& fp) {
-      if (times.empty()) {
-        return true;
-      }
-      auto it = std::upper_bound(times.begin(), times.end(), dt);
-      uint32_t segment = std::distance(times.begin(), it);
-      if (times.size() == 1) {
-        fp = { 0,  std::clamp((dt) / (times[0]), 0.0f, 1.0f) };
-        return false;
-      }
-      if (segment == 0) {
-        segment++;
-      }
-
-      segment = fan::clamp(segment, uint32_t(0), uint32_t(times.size() - 1));
-
-      f32_t start = times[segment - 1];
-      f32_t end = times[segment];
-      fp = { segment, std::clamp((dt - start) / (end - start), 0.0f, 1.0f) };
-      return false;
-    }
-
-    static bool fk_get_time_fraction(const std::vector<f32_t>& times, f32_t dt, std::pair<uint32_t, f32_t>& fp) {
-      if (times.empty()) {
-        return true;
-      }
-      auto it = std::upper_bound(times.begin(), times.end(), dt);
-      uint32_t segment = std::distance(times.begin(), it);
-      if (times.size() == 1) {
-        if (times[0] == 0) {
-          fp = { 0, 1.f };
-        }
-        else {
-          fp = { 0,  std::clamp((dt) / (times[0]), 0.0f, 1.0f) };
-        }
-        return false;
-      }
-      if (segment == 0) {
-        segment++;
-      }
-
-      segment = fan::clamp(segment, uint32_t(0), uint32_t(times.size() - 1));
-
-      f32_t start = times[segment - 1];
-      f32_t end = times[segment];
-      // clamping with default_animation will make it have cut effect
-      fp = { segment, std::clamp((dt - start) / (end - start), 0.0f, 1.0f) };
-      return false;
-    }
     struct fms_model_info_t {
       fan::string path;
     };
@@ -440,6 +285,71 @@ namespace fan_3d {
         return newMesh;
       }
 
+      std::string load_textures(mesh_t& mesh, aiMesh* ai_mesh){
+
+        if (scene->mNumMaterials == 0) {
+          return "";
+        }
+
+        auto textures_to_load = std::to_array({
+          aiTextureType_DIFFUSE,
+          aiTextureType_AMBIENT,
+          aiTextureType_SPECULAR,
+          aiTextureType_EMISSIVE,
+          aiTextureType_SHININESS,
+          aiTextureType_METALNESS
+        });
+        aiMaterial* material = scene->mMaterials[ai_mesh->mMaterialIndex];
+        for (const aiTextureType& texture_type : textures_to_load) {
+          aiString path;
+          if (material->GetTexture(texture_type, 0, &path) != AI_SUCCESS) {
+            return "";
+          }
+
+          auto embedded_texture = scene->GetEmbeddedTexture(path.C_Str());
+
+          if (embedded_texture && embedded_texture->mHeight == 0) {
+            int width, height, nr_channels;
+            unsigned char* data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(embedded_texture->pcData), embedded_texture->mWidth, &width, &height, &nr_channels, 0);
+            if(data == nullptr){
+              fan::throw_error("failed to load texture");
+            }
+
+            // must not collide with other names
+            std::string generated_str = path.C_Str() + std::to_string(texture_type);
+            mesh.texture_names[texture_type] = generated_str;
+            auto& td = cached_texture_data[generated_str];
+            td.size = fan::vec2(width, height);
+            td.data.insert(td.data.end(), data, data + td.size.multiply() * nr_channels);
+            td.channels = nr_channels;
+            stbi_image_free(data);
+            return std::string(path.C_Str());
+          }
+          else {
+            fan::throw_error("help");
+            return std::string("");
+            #if 0
+            fan::string file_path = root_path + "textures/" + scene->GetShortFilename(path.C_Str());
+
+            parsed_model.model_data.mesh_data[mesh_index].names[texture_type] = file_path;
+            auto found = cached_texture_data.find(file_path);
+            if (found == cached_texture_data.end()) {
+              fan::print(file_path);
+              texture_found = true;
+
+              fan::image::image_info_t ii;
+              fan::image::load(file_path, &ii);
+              auto& td = cached_texture_data[file_path];
+              td.size = ii.size;
+              td.data.insert(td.data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
+              td.channels = ii.channels;
+              fan::image::free(&ii);
+            }
+            #endif
+          }
+        }
+      }
+
       void UpdateBoneRotation(const std::string& boneName, float x, float y, float z) {
         auto it = boneMap.find(boneName);
         if (it != boneMap.end()) {
@@ -477,6 +387,26 @@ namespace fan_3d {
         }
       }
 
+      pm_material_data_t initialize_materials(aiMesh* ai_mesh) {
+        pm_material_data_t material_data;
+        for(uint32_t i = 0; i <= AI_TEXTURE_TYPE_MAX; i++){
+          material_data.texture_id[i] = std::string("");
+          material_data.color[i] = fan::vec4(1, 0, 1, 1);
+        }
+
+        if (scene->mNumMaterials <= ai_mesh->mMaterialIndex) {
+          return material_data;
+        }
+
+        aiMaterial* cmaterial = scene->mMaterials[ai_mesh->mMaterialIndex];
+        cmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, material_data.color[aiTextureType_DIFFUSE]);
+        cmaterial->Get(AI_MATKEY_COLOR_AMBIENT, material_data.color[aiTextureType_AMBIENT]);
+        cmaterial->Get(AI_MATKEY_COLOR_SPECULAR, material_data.color[aiTextureType_SPECULAR]);
+        cmaterial->Get(AI_MATKEY_COLOR_EMISSIVE, material_data.color[aiTextureType_EMISSIVE]);
+
+        return material_data;
+      }
+
       bool load_model(const std::string& path) {
         Assimp::Importer importer;
 
@@ -493,9 +423,15 @@ namespace fan_3d {
         meshes.clear();
 
         for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
-          mesh_t newMesh = ProcessMesh(scene->mMeshes[i]);
-          ProcessBoneOffsets(scene->mMeshes[i]);
-          meshes.push_back(newMesh);
+          mesh_t mesh = ProcessMesh(scene->mMeshes[i]);
+          aiMesh* ai_mesh = scene->mMeshes[i];
+          pm_material_data_t material_data = initialize_materials(ai_mesh);
+          if (std::string tret = load_textures(mesh, ai_mesh); !tret.empty()) {
+            material_data.texture_id[i] = tret;
+          }
+          material_data_vector.push_back(material_data);
+          ProcessBoneOffsets(ai_mesh);
+          meshes.push_back(mesh);
         }
 
         UpdateAllBones(bone_transforms);
@@ -509,7 +445,6 @@ namespace fan_3d {
         engine.opengl.glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, boneBuffer);*/
         return true;
       }
-
 
       fan::vec4 calculate_bone_transform(uint32_t mesh_id, uint32_t vertex_id, const std::vector<fan::mat4>& bone_transforms) {
         auto& vertex = meshes[mesh_id].vertices[vertex_id];
@@ -574,68 +509,7 @@ namespace fan_3d {
         }
       }
 
-      // parses joint data @ dt
-      bool fk_parse_joint_data(const bone_transform_track_t& btt, fan::vec3& position, fan::quat& rotation, fan::vec3& scale) {
-        std::pair<uint32_t, f32_t> fp;
-        {// position
-          if (fk_get_time_fraction(btt.position_timestamps, dt, fp)) {
-            return true;
-          }
-          if (fp.first != (uint32_t)-1) {
-            if (fp.first == 0) {
-              position = fan::mix(fan::vec3(0), btt.positions[0], fp.second);
-            }
-            else {
-              fan::vec3 p1 = btt.positions[fp.first - 1];
-              fan::vec3 p2 = btt.positions[fp.first];
-              fan::vec3 pos = fan::mix(p1, p2, fp.second);
-              // +=
-              position = pos * btt.weight;
-            }
-          }
-        }
-
-        {// rotation
-          if (fk_get_time_fraction(btt.rotation_timestamps, dt, fp)) {
-            return true;
-          }
-          if (fp.first != (uint32_t)-1) {
-            if (fp.first == 0) {
-              rotation = fan::quat::slerp(fan::quat(), btt.rotations[0], fp.second);
-            }
-            else {
-              fan::quat rotation1 = btt.rotations[fp.first - 1];
-              fan::quat rotation2 = btt.rotations[fp.first];
-
-              fan::quat rot = fan::quat::slerp(rotation1, rotation2, fp.second);
-              rotation = rot;
-            }
-          }
-        }
-
-        { // size
-          if (fk_get_time_fraction(btt.scale_timestamps, dt, fp)) {
-            return true;
-          }
-          if (fp.first != (uint32_t)-1) {
-            if (fp.first == 0) {
-              scale = fan::mix(fan::vec3(1), btt.scales[0], fp.second);
-            }
-            else {
-              fan::vec3 s1 = btt.scales[fp.first - 1];
-              fan::vec3 s2 = btt.scales[fp.first];
-              // +=
-              scale = fan::mix(s1, s2, fp.second) * btt.weight;
-            }
-          }
-        }
-        return false;
-      }
-
-      void fk_get_pose(animation_data_t& animation, joint_t& joint, fan::mat4& parent_transform) {
-
-      }
-
+     
       void fk_interpolate_animations(std::vector<fan::mat4>& joint_transforms, animation_data_t& animation, joint_t& joint, fan::mat4& parent_transform, f32_t animation_weight) {
 
         fan::vec3 position = 0, scale = 0;
@@ -658,16 +532,9 @@ namespace fan_3d {
           }
           //
           fan::mat4 local_transform = joint.local_transform;
-                    //fan::mat4 rot = fan::mat4(1).rotate(fan::math::radians(90.f));
-          //local_transform = local_transform.translate(position);
-         // local_transform = local_transform.rotate(fan::math::radians(45.f), fan::vec3(1, 0, 0));
-          //local_transform = local_transform.scale(scale);
-          //animation.pose[joint.id]
           global_transform = parent_transform* joint.offset;
 
-          //animation.pose[joint.id] = global_transform * joint.offset;
           joint_transforms[joint.id] = global_transform * joint.local_transform;
-         // global_transform = parent_transform * local_transform;
         }
 
         for (fan_3d::model::joint_t& child : joint.children) {

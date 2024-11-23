@@ -34,5 +34,5 @@ uniform sampler2D _t20; // aiTextureType_TRANSMISSION
 void main()
 {
 	vec3 albedo = texture(_t12, tex_coord).rgb;
-  color = vec4(vec3(1, 1, 1), 1);
+  color = vec4(albedo, 1);
 }
