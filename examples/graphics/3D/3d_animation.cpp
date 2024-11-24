@@ -11,19 +11,15 @@ int main() {
   fan::graphics::model_cpu_t model(p);
 
 
-  //auto anid = model.fms.create_an("an_name", 1);
-
-  //auto animation_node_id1 = model.fms.fk_set_rot(anid, "Left_leg", 0.001/* time in seconds */,
-  //  fan::vec3(1, 0, 0), 0
-  //);
-
-  //auto animation_node_id = model.fms.fk_set_rot(anid, "Left_leg", 0.3/* time in seconds */,
-  //  fan::vec3(1, 0, 0), -fan::math::pi / 2
-  //);
-
-  //auto animation_node_id3 = model.fms.fk_set_rot(anid, "Armature_Chest", 0.6/* time in seconds */,
-  //  fan::vec3(1, 0, 0), fan::math::pi / 3
-  //);
+  f32_t weight = 1;
+  f32_t duration = 1;
+  auto anid = model.fms.create_an("an_name", weight, duration);
+  auto animation_node_id = model.fms.fk_set_rot(anid, "Left_leg", 0.001/* time in seconds */,
+    fan::vec3(1, 0, 0), 0
+  );
+  auto animation_node_id3 = model.fms.fk_set_rot(anid, "Left_leg", 1/* time in seconds */,
+    fan::vec3(1, 0, 0), fan::math::pi
+  );
 
   //auto animation_node_id2 = model.fms.fk_set_rot(anid, "Armature_Upper_Leg_L", 0.6/* time in seconds */,
   //  fan::vec3(1, 0, 0), fan::math::pi
@@ -37,12 +33,12 @@ int main() {
 
   gloco->m_post_draw.push_back([&] {
     ImGui::Begin("window");
-    for (uint32_t i = 0; i < model.fms.meshes.size(); ++i) {
-      model.fms.calculate_modified_vertices(i);
-      model.upload_modified_vertices(i);
-    }
 
-    model.fms.print_bone_recursive(model.fms.rootBone);
+    model.fms.fk_calculate_poses();
+    model.fms.fk_calculate_transformations();
+    model.upload_modified_vertices();
+
+    model.fms.print_bone_recursive(model.fms.root_bone);
 
 //    model.mouse_modify_joint();
 
@@ -68,7 +64,7 @@ int main() {
 
   loco.loop([&] {
 
-    model.fms.dt += loco.delta_time * 10;  
+    model.fms.dt += loco.delta_time * 1000;  
     model.draw_cached_images();
   
     camera.move(100);

@@ -87,13 +87,15 @@ namespace fan {
         gloco->opengl.glBindVertexArray(0);
       }
 
-      void upload_modified_vertices(uint32_t i) {
-        fms.meshes[i].VAO.bind(gloco->get_context());
-        fms.meshes[i].VBO.write_buffer(
-          gloco->get_context(),
-          &fms.calculated_meshes[i].vertices[0],
-          sizeof(fan_3d::model::vertex_t) * fms.calculated_meshes[i].vertices.size()
-        );
+      void upload_modified_vertices() {
+        for (uint32_t i = 0; i < fms.meshes.size(); ++i) {
+          fms.meshes[i].VAO.bind(gloco->get_context());
+          fms.meshes[i].VBO.write_buffer(
+            gloco->get_context(),
+            &fms.calculated_meshes[i].vertices[0],
+            sizeof(fan_3d::model::vertex_t) * fms.calculated_meshes[i].vertices.size()
+          );
+        }
       }
 
 
