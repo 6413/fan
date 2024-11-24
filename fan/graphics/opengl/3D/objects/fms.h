@@ -515,7 +515,6 @@ namespace fan_3d {
         fp = { segment, std::clamp((dt - start) / (end - start), 0.0f, 1.0f) };
         return false;
       }
-
       bool fk_parse_bone_data(const bone_transform_track_t& btt, fan::vec3& position, fan::quat& rotation, fan::vec3& scale) {
         std::pair<uint32_t, f32_t> fp;
         {// position
@@ -572,7 +571,6 @@ namespace fan_3d {
         }
         return false;
       }
-
       void fk_get_pose(animation_data_t& animation, bone_t& bone, fan::mat4& parent_transform) {
 
         dt = fmod(dt, animation.duration);
@@ -605,7 +603,6 @@ namespace fan_3d {
          // local_transform = fan::mat4(1);
         }
         if (not_enough_info) {
-
           animation.bone_poses[bone.id].position = fan::vec3(0);
           animation.bone_poses[bone.id].rotation = fan::quat();
           animation.bone_poses[bone.id].scale = 1;
@@ -622,7 +619,6 @@ namespace fan_3d {
           fk_get_pose(animation, *child, global_transform);
         }
       }
-
       void fk_interpolate_animations(std::vector<fan::mat4>& out_bone_transforms, bone_t& bone, fan::mat4& parent_transform) {
 
         fan::vec3 position = 0, scale = 0;
@@ -657,7 +653,6 @@ namespace fan_3d {
           fk_interpolate_animations(out_bone_transforms, *child, global_transform);
         }
       }
-
       void fk_calculate_transformations(const fan::mat4& model = fan::mat4(1)) {
         std::vector<fan::mat4> fk_transformations = bone_transforms;
 
@@ -667,7 +662,6 @@ namespace fan_3d {
           calculate_vertices(fk_transformations, i, model);
         }
       }
-
       void fk_calculate_poses() {
         fan::mat4 initial{1};
         for (auto& i : animation_list) {
