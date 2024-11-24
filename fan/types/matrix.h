@@ -123,6 +123,10 @@ namespace fan {
     }
     #endif
 
+    static constexpr size_t size() {
+      return 4*4;
+    }
+
     _matrix4x4 skew(const fan::vec3& skew) {
       _matrix4x4 result(1);
       result[1][0] = skew.x;  // x-skew factor

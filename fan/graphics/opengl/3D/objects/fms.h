@@ -8,7 +8,7 @@ namespace fan_3d {
       fan::vec3 position;
       fan::vec3 normal;
       fan::vec2 uv;
-      fan::vec4 bone_ids;
+      fan::vec4i bone_ids;
       fan::vec4 bone_weights;
       fan::vec3 tangent;
       fan::vec3 bitangent;
@@ -27,18 +27,24 @@ namespace fan_3d {
     };
 
     struct animation_data_t {
-      f_t duration = 10;
-      // ticks per second
-      f_t tps = 16;
-      std::unordered_map<std::string, bone_transform_track_t> bone_transforms;
       struct bone_pose_t {
         fan::vec3 position = 0;
         fan::quat rotation;
         fan::vec3 scale = 1;
       };
+
+      f_t duration = 1.f;
+      f32_t weight = 0;
+      struct type_e {
+        enum {
+          invalid = -1,
+          nonlinear_animation,
+          custom
+        };
+      };
+      uint32_t type = type_e::invalid;
       std::vector<bone_pose_t> bone_poses;
-      std::vector<fan::mat4> pose;
-      f32_t weight = 1;
+      std::unordered_map<std::string, bone_transform_track_t> bone_transforms;
     };
 
     struct bone_t {
@@ -46,6 +52,7 @@ namespace fan_3d {
       std::string name;
       fan::mat4 offset;
       fan::mat4 transform;
+      fan::mat4 global_transform;
       bone_t* parent;
       std::vector<bone_t*> children;
 
@@ -73,13 +80,13 @@ namespace fan_3d {
     inline static std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
 
     struct pm_material_data_t {
-      std::string texture_id[AI_TEXTURE_TYPE_MAX + 1];
       fan::vec4 color[AI_TEXTURE_TYPE_MAX + 1];
     };
 
     struct fms_model_info_t {
       fan::string path;
       std::string texture_path;
+      int use_cpu = false;
     };
 
     // fan model stuff
@@ -89,8 +96,8 @@ namespace fan_3d {
         if (!load_model(fmi.path)) {
           fan::throw_error("failed to load model:" + fmi.path);
         }
-        this->scene = scene;
         calculated_meshes = meshes;
+        p = fmi;
       }
       
       // ---------------------model hierarchy---------------------
@@ -224,7 +231,7 @@ namespace fan_3d {
             return std::string(path.C_Str());
           }
           else {
-            fan::string file_path = texture_path + "/" + scene->GetShortFilename(path.C_Str());
+            fan::string file_path = p.texture_path + "/" + scene->GetShortFilename(path.C_Str());
             mesh.texture_names[texture_type] = file_path;
             auto found = cached_texture_data.find(file_path);
             if (found == cached_texture_data.end()) {
@@ -245,7 +252,6 @@ namespace fan_3d {
       pm_material_data_t load_materials(aiMesh* ai_mesh) {
         pm_material_data_t material_data;
         for(uint32_t i = 0; i <= AI_TEXTURE_TYPE_MAX; i++){
-          material_data.texture_id[i] = std::string("");
           material_data.color[i] = fan::vec4(1, 0, 1, 1);
         }
 
@@ -274,6 +280,7 @@ namespace fan_3d {
         bone->offset = fan::mat4(1.0f);
         bone_map[bone->name] = bone;
         ++bone_count;
+        bone_strings.push_back(bone->name);
         if (parent == nullptr) {
           root_bone = bone;
         }
@@ -376,6 +383,7 @@ namespace fan_3d {
         m_transform = scene->mRootNode->mTransformation;
 
         process_skeleton(scene->mRootNode, nullptr);
+        load_animations();
 
         meshes.clear();
 
@@ -383,9 +391,7 @@ namespace fan_3d {
           mesh_t mesh = process_mesh(scene->mMeshes[i]);
           aiMesh* ai_mesh = scene->mMeshes[i];
           pm_material_data_t material_data = load_materials(ai_mesh);
-          if (std::string tret = load_textures(mesh, ai_mesh); !tret.empty()) {
-            material_data.texture_id[i] = tret;
-          }
+          load_textures(mesh, ai_mesh);
           material_data_vector.push_back(material_data);
           process_bone_offsets(ai_mesh);
           meshes.push_back(mesh);
@@ -405,7 +411,7 @@ namespace fan_3d {
           else {
             fan::vec4 interpolated_bone_transform = calculate_bone_transform(bt, mesh_id, i);
             fan::vec4 vertex_position = fan::vec4(v, 1.0);
-            fan::vec4 result = interpolated_bone_transform;
+            fan::vec4 result = model * interpolated_bone_transform;
 
             calculated_meshes[mesh_id].vertices[i].position = fan::vec3(result.x, result.y, result.z);
           }
@@ -425,24 +431,29 @@ namespace fan_3d {
         fan::vec3 position[3]{};
         fan::vec3 normal[3]{};
         fan::vec2 uv[3]{};
+        uint32_t vertex_indices[3];
       };
 
-      std::vector<one_triangle_t> get_triangles(uint32_t mesh_id) {
-        std::vector<one_triangle_t> triangles;
-        static constexpr int edge_count = 3;
-        const auto& mesh = calculated_meshes[mesh_id];
-        // ignore i for now since only one scene
-        triangles.resize(mesh.indices.size() / edge_count);
-        for (uint32_t i = 0; i < calculated_meshes[mesh_id].vertices.size(); ++i) {
-          for (int j = 0; j < edge_count; ++j) {
-            uint32_t vertex_index = mesh.indices[i + j];
-            triangles[i / edge_count].position[j] = mesh.vertices[vertex_index].position;
-            triangles[i / edge_count].normal[j] = mesh.vertices[vertex_index].normal;
-            triangles[i / edge_count].uv[j] = mesh.vertices[vertex_index].uv;
-          }
+    std::vector<one_triangle_t> get_triangles(uint32_t mesh_id) {
+      std::vector<one_triangle_t> triangles;
+      static constexpr int edge_count = 3;
+      const auto& mesh = calculated_meshes[mesh_id];
+
+      size_t triangle_count = mesh.indices.size() / edge_count;
+      triangles.resize(triangle_count);
+
+      for (size_t i = 0; i < triangle_count; ++i) {
+        for (int j = 0; j < edge_count; ++j) {
+          uint32_t vertex_index = mesh.indices[i * edge_count + j];
+          triangles[i].position[j] = mesh.vertices[vertex_index].position;
+          triangles[i].normal[j] = mesh.vertices[vertex_index].normal;
+          triangles[i].uv[j] = mesh.vertices[vertex_index].uv;
+          triangles[i].vertex_indices[j] = vertex_index;
         }
-        return triangles;
       }
+
+      return triangles;
+    }
 
       // ---------------------model hierarchy---------------------
 
@@ -571,21 +582,47 @@ namespace fan_3d {
         }
         return false;
       }
-      void fk_get_pose(animation_data_t& animation, bone_t& bone, fan::mat4& parent_transform) {
+      void fk_get_pose(animation_data_t& animation, bone_t& bone) {
 
-        dt = fmod(dt, animation.duration);
+        // this fmods other animations too. dt per animation? or with weights or max of all animations?
+        if (animation.duration != 0) {
+          dt = fmod(dt, longest_animation);
+        }
+        else {
+          //dt = 0;
+        }
         fan::vec3 position = 0, scale = 1;
         fan::quat rotation;
 
         bool not_enough_info = false;
 
         auto found = animation.bone_transforms.find(bone.name);
-        f32_t prev_weight = found->second.weight;
         if (found == animation.bone_transforms.end()) {
-          fan::throw_error("invalid bone data");
+          int i = 0;
+          if (animation.bone_poses.empty()) {
+            animation.bone_poses.resize(bone_count, { .position{}, .rotation{}, .scale = 1 });
+          }
+          for (const auto& bt : animation.bone_transforms) {
+            not_enough_info = fk_parse_bone_data(bt.second, position, rotation, scale);
+           /* if (not_enough_info) {
+              animation.bone_poses[bone.id].position = fan::vec3(0);
+              animation.bone_poses[bone.id].rotation = fan::quat();
+              animation.bone_poses[bone.id].scale = 1;
+            }
+            else {
+              animation.bone_poses[bone.id].position = position;
+              animation.bone_poses[bone.id].scale = scale;
+              animation.bone_poses[bone.id].rotation = rotation;
+            }*/
+              animation.bone_poses[bone.id].position = fan::vec3(0);
+              animation.bone_poses[bone.id].rotation = fan::quat();
+              animation.bone_poses[bone.id].scale = 1;
+            ++i;
+          }
         }
         else {
-          found->second.weight = 1.f;
+         f32_t prev_weight = found->second.weight;
+          found->second.weight = animation.weight;
 
           not_enough_info = fk_parse_bone_data(found->second, position, rotation, scale);
           //                          active_bone?
@@ -595,77 +632,98 @@ namespace fan_3d {
           }*/
 
           found->second.weight = prev_weight;
+          fan::mat4 local_transform{ 0 };
+          if (not_enough_info) {
+            local_transform = bone.transform;
+           // local_transform = fan::mat4(1);
+          }
+          if (not_enough_info) {
+            animation.bone_poses[bone.id].position = fan::vec3(0);
+            animation.bone_poses[bone.id].rotation = fan::quat();
+            animation.bone_poses[bone.id].scale = 1;
+          }
+          else {
+            animation.bone_poses[bone.id].position = position;
+            animation.bone_poses[bone.id].scale = scale;
+            animation.bone_poses[bone.id].rotation = rotation;
+          }
         }
-
-        fan::mat4 local_transform{ 0 };
-        if (not_enough_info) {
-          local_transform = bone.transform;
-         // local_transform = fan::mat4(1);
-        }
-        if (not_enough_info) {
-          animation.bone_poses[bone.id].position = fan::vec3(0);
-          animation.bone_poses[bone.id].rotation = fan::quat();
-          animation.bone_poses[bone.id].scale = 1;
-        }
-        else {
-          animation.bone_poses[bone.id].position = position;
-          animation.bone_poses[bone.id].scale = scale;
-          animation.bone_poses[bone.id].rotation = rotation;
-        }
-
-        fan::mat4 global_transform = parent_transform * local_transform;
 
         for (bone_t* child : bone.children) {
-          fk_get_pose(animation, *child, global_transform);
+          fk_get_pose(animation, *child);
         }
       }
       void fk_interpolate_animations(std::vector<fan::mat4>& out_bone_transforms, bone_t& bone, fan::mat4& parent_transform) {
+        fan::mat4 local_transform = bone.transform;
 
-        fan::vec3 position = 0, scale = 0;
-        fan::quat rotation;
+        bool has_active_animation = false;
+        float total_weight = 0;
 
-        fan::mat4 global_transform;
-
-        if (animation_list.empty()) {
-          // 
-          out_bone_transforms[bone.id] = parent_transform * bone.offset;
-        }
-        else {
-          for (auto& apair : animation_list) {
-            auto& a = apair.second;
-            position += a.bone_poses[bone.id].position * a.weight;
-            fan::quat slerped_quat = fan::quat::slerp(fan::quat(1, 0, 0, 0), a.bone_poses[bone.id].rotation, a.weight);
-            rotation = (rotation * slerped_quat).normalize();
-            scale += a.bone_poses[bone.id].scale * a.weight;
+        for (const auto& [key, anim] : animation_list) {
+          if (anim.weight > 0 && !anim.bone_poses.empty() && !anim.bone_transforms.empty()) {
+            total_weight += anim.weight;
+            has_active_animation = true;
           }
-
-          // ? 
-//          fan::mat4 local_transform = bone.local_transform;
-          fan::mat4 local_transform = bone.transform;
-          local_transform = local_transform.translate(position);
-          local_transform = local_transform.rotate(rotation);
-          local_transform = local_transform.scale(scale);
-          out_bone_transforms[bone.id] = m_transform * parent_transform * local_transform * bone.offset;
-          global_transform = parent_transform * local_transform;
         }
+
+        if (has_active_animation) {
+          local_transform = bone.transform;
+
+          for (const auto& [key, anim] : animation_list) {
+            if (anim.weight > 0 && !anim.bone_poses.empty()) {
+              float normalized_weight = anim.weight / total_weight;
+              const auto& pose = anim.bone_poses[bone.id];
+
+              fan::mat4 anim_transform;
+              switch (anim.type) {
+              case animation_data_t::type_e::nonlinear_animation: {
+                anim_transform = fan::mat4(1);
+                break;
+              }
+              case animation_data_t::type_e::custom: {
+                anim_transform = bone.transform;
+                break;
+              }
+              default: {
+                fan::throw_error("invalid animation type");
+                break;
+              }
+              }
+              
+              anim_transform = anim_transform.translate(pose.position);
+              anim_transform = anim_transform * fan::mat4(pose.rotation);
+              anim_transform = anim_transform.scale(pose.scale);
+              for (int i = 0; i < fan::mat4::size(); i++) {
+                local_transform[i] = local_transform[i] * (1.0f - normalized_weight) +
+                  anim_transform[i] * normalized_weight;
+              }
+            }
+          }
+        }
+
+        fan::mat4 global_transform = parent_transform * local_transform;
+        out_bone_transforms[bone.id] = global_transform * bone.offset;
+        bone.global_transform = global_transform * bone.offset;
 
         for (bone_t* child : bone.children) {
           fk_interpolate_animations(out_bone_transforms, *child, global_transform);
         }
       }
-      void fk_calculate_transformations(const fan::mat4& model = fan::mat4(1)) {
+      std::vector<fan::mat4> fk_calculate_transformations() {
         std::vector<fan::mat4> fk_transformations = bone_transforms;
 
         fk_interpolate_animations(fk_transformations, *root_bone, m_transform);
 
-        for (uint32_t i = 0; i < meshes.size(); ++i) {
-          calculate_vertices(fk_transformations, i, model);
+        if (p.use_cpu) {
+          for (uint32_t i = 0; i < meshes.size(); ++i) {
+            calculate_vertices(fk_transformations, i, fan::mat4(1));
+          }
         }
+        return fk_transformations;
       }
       void fk_calculate_poses() {
-        fan::mat4 initial{1};
         for (auto& i : animation_list) {
-          fk_get_pose(i.second, *root_bone, initial);
+          fk_get_pose(i.second, *root_bone);
         }
       }
 
@@ -675,20 +733,60 @@ namespace fan_3d {
       // ---------------------animation---------------------
 
 
+      void load_animations() {
+        for (uint32_t j = 0; j < scene->mNumAnimations; ++j) {
+          aiAnimation* anim = scene->mAnimations[j];
+          auto& animation = animation_list[anim->mName.C_Str()];
+          if (active_anim.empty()) {
+            active_anim = anim->mName.C_Str();
+          }
+          animation.type = animation_data_t::type_e::nonlinear_animation;
+          double ticksPerSecond = anim->mTicksPerSecond != 0 ? anim->mTicksPerSecond : 25.0;
+    
+          // Convert duration from ticks to seconds, then to milliseconds
+          animation.duration = (anim->mDuration / ticksPerSecond) * 1000.0;
+          longest_animation = std::max((f32_t)animation.duration, longest_animation);
+          animation.weight = 0;
+          for (int i = 0; i < anim->mNumChannels; i++) {
+            aiNodeAnim* channel = anim->mChannels[i];
+            fan_3d::model::bone_transform_track_t track;
+            for (int j = 0; j < channel->mNumPositionKeys; j++) {
+              track.position_timestamps.push_back(channel->mPositionKeys[j].mTime);
+              track.positions.push_back(channel->mPositionKeys[j].mValue);
+            }
+            for (int j = 0; j < channel->mNumRotationKeys; j++) {
+              track.rotation_timestamps.push_back(channel->mRotationKeys[j].mTime);
+              track.rotations.push_back(channel->mRotationKeys[j].mValue);
+
+            }
+            for (int j = 0; j < channel->mNumScalingKeys; j++) {
+              track.scale_timestamps.push_back(channel->mScalingKeys[j].mTime);
+              track.scales.push_back(channel->mScalingKeys[j].mValue);
+
+            }
+            animation.bone_transforms[channel->mNodeName.C_Str()] = track;
+          }
+        }
+      }
+
       anim_key_t active_anim;
       std::unordered_map<anim_key_t, animation_data_t> animation_list;
+      f32_t longest_animation = 0;
 
-      fan::string create_an(const fan::string& key, f32_t weight = 1.f, f32_t duration = 5.f) {
+      fan::string create_an(const fan::string& key, f32_t weight = 1.f, f32_t duration = 1.f) {
         if (animation_list.empty()) {
-          active_anim = key;
+          if (active_anim.empty()) {
+            active_anim = key;
+          }
         }
         auto& node = animation_list[key];
         node.weight = weight;
         //node = m_animation;
-        node.duration = duration;
+        node.duration = duration * 1000.f;
+        node.type = animation_data_t::type_e::custom;
+        longest_animation = std::max((f32_t)node.duration, longest_animation);
         // initialize with tpose
-        node.bone_poses.resize(bone_count, { {}, {}, 1 });
-        node.pose.resize(bone_count, fan::mat4(1));
+        node.bone_poses.resize(bone_count, { .position{}, .rotation{}, .scale = 1 });
         iterate_bones(*root_bone,
           [&](bone_t& bone) {
             node.bone_transforms[bone.name];
@@ -702,6 +800,17 @@ namespace fan_3d {
         return key;
       }
 
+      uint32_t get_active_animation_id() {
+        if (active_anim.empty()) {
+          fan::throw_error("no active animation");
+        }
+        auto found = animation_list.find(active_anim);
+        if (found == animation_list.end()) {
+          fan::throw_error("trying to access invalid animation:" + active_anim);
+        }
+
+        return std::distance(animation_list.begin(), found);
+      }
       animation_data_t& get_active_animation() {
         if (active_anim.empty()) {
           fan::throw_error("no active animation");
@@ -749,9 +858,9 @@ namespace fan_3d {
           if (ImGui::Button("Reset")) {
             bone->rotation = 0;
           }
-          ImGui::SliderFloat("X", &bone->rotation.x, 0, fan::math::pi * 2, "%.3f", speed);
-          ImGui::SliderFloat("Y", &bone->rotation.y, 0, fan::math::pi * 2, "%.3f", speed);
-          ImGui::SliderFloat("Z", &bone->rotation.z, 0, fan::math::pi * 2, "%.3f", speed);
+          ImGui::SliderFloat("X", &bone->rotation.x, -fan::math::pi, fan::math::pi, "%.3f", speed);
+          ImGui::SliderFloat("Y", &bone->rotation.y, -fan::math::pi, fan::math::pi, "%.3f", speed);
+          ImGui::SliderFloat("Z", &bone->rotation.z, -fan::math::pi, fan::math::pi, "%.3f", speed);
 
           ImGui::PopItemWidth();
           ImGui::EndGroup();
@@ -793,6 +902,55 @@ namespace fan_3d {
         print_bone_recursive(root_bone);
         ImGui::End();
       }
+      void display_animations() {
+        for (auto& anim_pair : animation_list) {
+          bool nodeOpen = ImGui::TreeNode(anim_pair.first.c_str());
+          if (nodeOpen) {
+            auto& anim = anim_pair.second;
+            bool time_stamps_open = ImGui::TreeNode("timestamps");
+            if (time_stamps_open) {
+              iterate_bones(*root_bone, [&](fan_3d::model::bone_t& bone) {
+                auto& bt = anim.bone_transforms[bone.name];
+                uint32_t data_count = bt.rotation_timestamps.size();
+                if (data_count) {
+                  bool node_open = ImGui::TreeNode(bone.name.c_str());
+                  if (node_open) {
+                    for (int i = 0; i < bt.rotation_timestamps.size(); ++i) {
+                      ImGui::DragFloat(
+                        ("rotation:" + std::to_string(i)).c_str(),
+                        &anim.bone_transforms[bone.name].rotation_timestamps[i]
+                      );
+                    }
+                    ImGui::TreePop();
+                  }
+                }
+                });
+              ImGui::TreePop();
+            }
+            bool properties_open = ImGui::TreeNode("properties");
+            if (properties_open) {
+              iterate_bones(*root_bone, [&](fan_3d::model::bone_t& bone) {
+                auto& bt = anim.bone_transforms[bone.name];
+                uint32_t data_count = bt.rotations.size();
+                if (data_count) {
+                  bool node_open = ImGui::TreeNode(bone.name.c_str());
+                  if (node_open) {
+                    for (int i = 0; i < bt.rotations.size(); ++i) {
+                      ImGui::DragFloat4(
+                        ("rotation:" + std::to_string(i)).c_str(),
+                        anim.bone_transforms[bone.name].rotations[i].data()
+                      );
+                    }
+                    ImGui::TreePop();
+                  }
+                }
+              });
+              ImGui::TreePop();
+            }
+            ImGui::TreePop();
+          }
+        }
+      }
 
       // ---------------------gui---------------------
 
@@ -805,7 +963,9 @@ namespace fan_3d {
       std::vector<mesh_t> calculated_meshes;
       std::unordered_map<std::string, bone_t*> bone_map;
 
-      std::string texture_path;
+      std::vector<fan::string> bone_strings;
+
+      fms_model_info_t p;
 
       fan::mat4 m_transform{1};
       uint32_t bone_count = 0;

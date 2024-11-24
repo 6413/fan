@@ -106,7 +106,7 @@ namespace fan {
       inline static int salsa = 0;
       template <typename T>
       void shader_set_value(shader_nr_t nr, const fan::string& name, T val) {
-        static_assert(std::is_same_v<T, bool> == false, "only 4 byte supported");
+        static_assert(std::is_same_v<T, bool> == false || !std::is_same_v<T, int>, "only 4 byte supported");
         static_assert(std::is_same_v<T, double> == false, "only 4 byte supported");
         uint8_t value[sizeof(T)];
         for (uint32_t i = 0; i < sizeof(T); ++i) {
