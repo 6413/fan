@@ -2,17 +2,23 @@
 
 #include "fms.h"
 
+namespace fan_3d {
+  namespace model {
+    inline static std::unordered_map<std::string, loco_t::image_t> cached_images;
+  }
+}
+
 namespace fan {
   namespace graphics {
     using namespace opengl;
-    struct model_cpu_t {
+    struct model_t {
 
       struct properties_t : fan_3d::model::fms_model_info_t {
 
       };
-      model_cpu_t(const properties_t& p) : fms(p) {
-        std::string vs = loco_t::read_shader("shaders/opengl/3D/objects/model_cpu.vs");
-        std::string fs = loco_t::read_shader("shaders/opengl/3D/objects/model_cpu.fs");
+      model_t(const properties_t& p) : fms(p) {
+        std::string vs = loco_t::read_shader("shaders/opengl/3D/objects/model.vs");
+        std::string fs = loco_t::read_shader("shaders/opengl/3D/objects/model.fs");
         m_shader = gloco->shader_create();
         gloco->shader_set_vertex(m_shader, vs);
         gloco->shader_set_fragment(m_shader, fs);
@@ -24,8 +30,8 @@ namespace fan {
             if (name.empty()) {
               continue;
             }
-            auto found = cached_images.find(name);
-            if (found != cached_images.end()) { // check if texture has already been loaded for this cahce
+            auto found = fan_3d::model::cached_images.find(name);
+            if (found != fan_3d::model::cached_images.end()) { // check if texture has already been loaded for this cahce
              continue;
             }
             fan::image::image_info_t ii;
@@ -44,11 +50,11 @@ namespace fan {
             };
             if (ii.channels < std::size(gl_formats) && gl_formats[ii.channels]) {
               ilp.format = ilp.internal_format = gl_formats[ii.channels];
-              cached_images[name] = gloco->image_load(ii, ilp); // insert new texture, since old doesnt exist
+              fan_3d::model::cached_images[name] = gloco->image_load(ii, ilp); // insert new texture, since old doesnt exist
             } 
             else {
               fan::print("unimplemented channel", ii.channels);
-              cached_images[name] = gloco->default_texture; // insert default (missing) texture, since old doesnt exist
+              fan_3d::model::cached_images[name] = gloco->default_texture; // insert default (missing) texture, since old doesnt exist
             }
           }
           SetupMeshBuffers(mesh);
@@ -69,7 +75,6 @@ namespace fan {
         gloco->opengl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.EBO);
         gloco->opengl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW);
 
-
         gloco->opengl.glEnableVertexAttribArray(0);
         gloco->opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, position));
         gloco->opengl.glEnableVertexAttribArray(1);
@@ -77,7 +82,8 @@ namespace fan {
         gloco->opengl.glEnableVertexAttribArray(2);
         gloco->opengl.glVertexAttribPointer(2, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, uv));
         gloco->opengl.glEnableVertexAttribArray(3);
-        gloco->opengl.glVertexAttribPointer(3, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bone_ids));
+        // glVertexAttribIPointer opengl 3.0
+        gloco->opengl.glVertexAttribIPointer(3, 4, fan::opengl::GL_INT, sizeof(fan_3d::model::vertex_t), (void*)offsetof(fan_3d::model::vertex_t, bone_ids));
         gloco->opengl.glEnableVertexAttribArray(4);
         gloco->opengl.glVertexAttribPointer(4, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bone_weights));
         gloco->opengl.glEnableVertexAttribArray(5);
@@ -85,6 +91,12 @@ namespace fan {
         gloco->opengl.glEnableVertexAttribArray(6);
         gloco->opengl.glVertexAttribPointer(6, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bitangent));
         gloco->opengl.glBindVertexArray(0);
+
+        GLuint bone_transform_size = fms.bone_transforms.size() * sizeof(fan::mat4);
+        gloco->opengl.glGenBuffers(1, &ssbo_bone_buffer);
+        gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bone_buffer);
+        gloco->opengl.glBufferData(GL_SHADER_STORAGE_BUFFER, bone_transform_size, fms.bone_transforms.data(), GL_STATIC_DRAW);
+        gloco->opengl.glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_bone_buffer);
       }
 
       void upload_modified_vertices() {
@@ -92,28 +104,32 @@ namespace fan {
           fms.meshes[i].VAO.bind(gloco->get_context());
           fms.meshes[i].VBO.write_buffer(
             gloco->get_context(),
-            &fms.calculated_meshes[i].vertices[0],
+            fms.calculated_meshes[i].vertices.data(),
             sizeof(fan_3d::model::vertex_t) * fms.calculated_meshes[i].vertices.size()
           );
         }
       }
 
 
-      void draw(const fan::mat4& model_transform = fan::mat4(1)) {
+      void draw(const fan::mat4& model_transform = fan::mat4(1), const std::vector<fan::mat4>& bone_transforms = {}) {
         gloco->shader_use(m_shader);
-
+        gloco->shader_set_value(m_shader, "model", model_transform);
+        gloco->shader_set_value(m_shader, "use_cpu", fms.p.use_cpu);
         gloco->shader_set_camera(m_shader, &gloco->camera_get(gloco->perspective_camera.camera));
 
         gloco->set_depth_test(true);
 
+        if (fms.p.use_cpu == 0) {
+          gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bone_buffer);
+          gloco->opengl.glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_bone_buffer);
+          gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bone_buffer);
+          gloco->opengl.glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, bone_transforms.size() * sizeof(fan::mat4), bone_transforms.data());
+          gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        }
+
         auto& context = gloco->get_context();
         context.opengl.glDisable(fan::opengl::GL_BLEND);
-        //context.opengl.call(context.opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
         for (int mesh_index = 0; mesh_index < fms.meshes.size(); ++mesh_index) {
-          
-          // only for gpu vs
-          gloco->shader_set_value(m_shader, "model", model_transform);
-
           fms.meshes[mesh_index].VAO.bind(context);
           fan::vec3 camera_position = gloco->camera_get_position(gloco->perspective_camera.camera);
           gloco->shader_set_value(m_shader, "view_p", camera_position);
@@ -131,7 +147,7 @@ namespace fan {
               gloco->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + tex_index);
 
               gloco->shader_set_value(m_shader, oss.str(), tex_index);
-              gloco->image_bind(cached_images[tex]);
+              gloco->image_bind(fan_3d::model::cached_images[tex]);
               ++tex_index;
             }
           }
@@ -143,7 +159,7 @@ namespace fan {
         ImGui::Begin("test");
         float cursor_pos_x = 64 + ImGui::GetStyle().ItemSpacing.x;
 
-        for (auto& i : cached_images) {
+        for (auto& i : fan_3d::model::cached_images) {
           ImVec2 imageSize(64, 64);
           ImGui::Image(i.second, imageSize);
 
@@ -159,13 +175,113 @@ namespace fan {
         ImGui::End();
       }
 
+      void mouse_modify_joint() {
+        static constexpr f64_t delta_time_divier = 1e+7;
+        f32_t duration = 1.f;
+        ImGui::DragFloat("current time", &fms.dt, 0.1, 0, duration);
+        //ImGui::Text(fan::format("camera pos: {}\ntotal time: {:.2f}", gloco->default_camera_3d->camera.position, fms.default_animation.duration).c_str());
+        static bool play = false;
+        if (ImGui::Checkbox("play animation", &play)) {
+          showing_temp_rot = false;
+        }
+        static int x = 0;
+        static fan::time::clock c;
+        if (play) {
+          if (x == 0) {
+            c.start();
+            x++;
+          }
+          fms.dt = c.elapsed() / delta_time_divier;
+        }
+
+
+        int current_id = fms.get_active_animation_id();
+        std::vector<const char*> animations;
+        for (auto& i : fms.animation_list) {
+          animations.push_back(i.first.c_str());
+        }
+        if (ImGui::ListBox("animation list", &current_id, animations.data(), animations.size())) {
+          fms.active_anim = animations[current_id];
+        }
+        ImGui::DragFloat("animation weight", &fms.animation_list[fms.active_anim].weight, 0.01, 0, 1);
+
+        if (active_bone != -1) {
+          auto& anim = fms.get_active_animation();
+          auto& bt = anim.bone_transforms[fms.bone_strings[active_bone]];
+          for (int i = 0; i < bt.rotations.size(); ++i) {
+            ImGui::DragFloat4(("rotations:" + std::to_string(i)).c_str(), bt.rotations[i].data(), 0.01);
+          }
+
+          static int32_t current_frame = 0;
+          if (!play) {
+            fms.dt = current_frame;
+          }
+          else {
+            current_frame = fmodf(c.elapsed() / delta_time_divier, anim.duration);
+          }
+
+          static f32_t prev_frame = 0;
+          if (prev_frame != fms.dt) {
+            showing_temp_rot = false;
+            prev_frame = fms.dt;
+          }
+
+          if (ImGui::Button("save keyframe")) {
+            fms.fk_set_rot(fms.active_anim, fms.bone_strings[active_bone], current_frame / 1000.f, anim.bone_poses[active_bone].rotation);
+          }
+
+          //fan::print(current_frame);
+          int32_t startFrame = 0;
+          int32_t endFrame = std::ceil(duration);
+          if (ImGui::BeginNeoSequencer("Sequencer", &current_frame, &startFrame, &endFrame, fan::vec2(0),
+            ImGuiNeoSequencerFlags_EnableSelection |
+            ImGuiNeoSequencerFlags_Selection_EnableDragging |
+            ImGuiNeoSequencerFlags_Selection_EnableDeletion |
+            ImGuiNeoSequencerFlags_AllowLengthChanging)) {
+            static bool transform_open = true;
+            if (ImGui::BeginNeoGroup("Transform", &transform_open))
+            {
+
+              if (ImGui::BeginNeoTimelineEx("rotation"))
+              {
+                if (bt.rotation_timestamps.size()) {
+                  for (int i = 0; i < bt.rotation_timestamps.size(); ++i) {
+                    int32_t p = bt.rotation_timestamps[i];
+                    ImGui::NeoKeyframe(&p);
+                    bt.rotation_timestamps[i] = p;
+                    //ImGui::DragFloat(("timestamps:" + std::to_string(i)).c_str(), &bt.rotation_timestamps[i], 1);
+                  }
+                }
+                // delete
+                if (false)
+                {
+                  uint32_t count = ImGui::GetNeoKeyframeSelectionSize();
+
+                  ImGui::FrameIndexType* toRemove = new ImGui::FrameIndexType[count];
+
+                  ImGui::GetNeoKeyframeSelection(toRemove);
+
+                  //Delete keyframes from your structure
+                }
+                ImGui::EndNeoTimeLine();
+                ImGui::EndNeoGroup();
+              }
+            }
+
+            ImGui::EndNeoSequencer();
+          }
+        }
+      }
+
 
       fan_3d::model::fms_t fms;
-
       loco_t::shader_t m_shader;
       // should be stored globally among all models
-      inline static std::unordered_map<std::string, loco_t::image_t> cached_images;
 
+      bool toggle_rotate = false;
+      bool showing_temp_rot = false;
+      int active_bone = -1;
+      fan::opengl::GLuint ssbo_bone_buffer;
       fan::opengl::GLuint envMapTexture;
     };
   }
