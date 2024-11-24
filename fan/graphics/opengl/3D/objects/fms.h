@@ -31,12 +31,12 @@ namespace fan_3d {
       // ticks per second
       f_t tps = 16;
       std::unordered_map<std::string, bone_transform_track_t> bone_transforms;
-      struct joint_pose_t {
+      struct bone_pose_t {
         fan::vec3 position = 0;
         fan::quat rotation;
         fan::vec3 scale = 1;
       };
-      std::vector<joint_pose_t> joint_poses;
+      std::vector<bone_pose_t> bone_poses;
       std::vector<fan::mat4> pose;
       f32_t weight = 1;
     };
@@ -92,6 +92,8 @@ namespace fan_3d {
         this->scene = scene;
         calculated_meshes = meshes;
       }
+      
+      // ---------------------model hierarchy---------------------
 
       mesh_t process_mesh(aiMesh* mesh) {
         mesh_t new_mesh;
@@ -273,7 +275,7 @@ namespace fan_3d {
         bone_map[bone->name] = bone;
         ++bone_count;
         if (parent == nullptr) {
-          rootBone = bone;
+          root_bone = bone;
         }
         else {
           parent->children.push_back(bone);
@@ -326,11 +328,17 @@ namespace fan_3d {
       void update_bone_transforms() {
         bone_transforms.clear();
         bone_transforms.resize(bone_count);
-        if (rootBone) {
-          update_bone_transforms_impl(rootBone, m_transform);
+        if (root_bone) {
+          update_bone_transforms_impl(root_bone, m_transform);
         }
       }
-      fan::vec4 calculate_bone_transform(uint32_t mesh_id, uint32_t vertex_id) {
+      void iterate_bones(bone_t& bone, auto lambda) {
+        lambda(bone);
+        for (bone_t* child : bone.children) {
+          iterate_bones(*child, lambda);
+        }
+      }
+      fan::vec4 calculate_bone_transform(const std::vector<fan::mat4>& bt, uint32_t mesh_id, uint32_t vertex_id) {
         auto& vertex = meshes[mesh_id].vertices[vertex_id];
 
         fan::vec4 totalPosition(0.0);
@@ -342,11 +350,11 @@ namespace fan_3d {
             continue;
           }
 
-          if (boneId >= bone_transforms.size()) {
+          if (boneId >= bt.size()) {
             totalPosition = fan::vec4(vertex.position, 1.0);
             break;
           }
-          fan::vec4 local_position = bone_transforms[boneId] * fan::vec4(vertex.position, 1.0);
+          fan::vec4 local_position = bt[boneId] * fan::vec4(vertex.position, 1.0);
           totalPosition += local_position * weight;
         }
 
@@ -387,26 +395,28 @@ namespace fan_3d {
         return true;
       }
 
-      void calculate_modified_vertices(uint32_t mesh_id, const fan::mat4& model = fan::mat4(1)) {
-
-        update_bone_transforms();
-
+      void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, const fan::mat4& model) {
         for (int i = 0; i < meshes[mesh_id].vertices.size(); ++i) {
-
           fan::vec3 v = meshes[mesh_id].vertices[i].position;
-          if (bone_transforms.empty()) {
+          if (bt.empty()) {
             fan::vec4 vertex_position = m_transform * model * fan::vec4(v, 1.0);
             calculated_meshes[mesh_id].vertices[i].position = fan::vec3(vertex_position.x, vertex_position.y, vertex_position.z);
           }
           else {
-            fan::vec4 interpolated_bone_transform = calculate_bone_transform(mesh_id, i);
-
+            fan::vec4 interpolated_bone_transform = calculate_bone_transform(bt, mesh_id, i);
             fan::vec4 vertex_position = fan::vec4(v, 1.0);
-
             fan::vec4 result = interpolated_bone_transform;
 
             calculated_meshes[mesh_id].vertices[i].position = fan::vec3(result.x, result.y, result.z);
           }
+        }
+      }
+
+      // flag default, ik, fk?
+      void calculate_modified_vertices(const fan::mat4& model = fan::mat4(1)) {
+        for (uint32_t i = 0; i < meshes.size(); ++i) {
+          update_bone_transforms();
+          calculate_vertices(bone_transforms, i, model);
         }
       }
 
@@ -434,22 +444,12 @@ namespace fan_3d {
         return triangles;
       }
 
+      // ---------------------model hierarchy---------------------
+
+
+      // ---------------------forward kinematics---------------------
+
       using anim_key_t = std::string;
-
-      anim_key_t active_anim;
-      std::unordered_map<anim_key_t, animation_data_t> animation_list;
-
-      animation_data_t& get_active_animation() {
-        if (active_anim.empty()) {
-          fan::throw_error("no active animation");
-        }
-        auto found = animation_list.find(active_anim);
-        if (found == animation_list.end()) {
-          fan::throw_error("trying to access invalid animation:" + active_anim);
-        }
-        // TODO might be illegal if its temporary var
-        return found->second;
-      }
 
       uint32_t fk_set_rot(const anim_key_t& key, const fan::string& bone_id,
         f32_t dt,
@@ -487,6 +487,244 @@ namespace fan_3d {
 
         return insert_pos;
       }
+
+      static bool fk_get_time_fraction(const std::vector<f32_t>& times, f32_t dt, std::pair<uint32_t, f32_t>& fp) {
+        if (times.empty()) {
+          return true;
+        }
+        auto it = std::upper_bound(times.begin(), times.end(), dt);
+        uint32_t segment = std::distance(times.begin(), it);
+        if (times.size() == 1) {
+          if (times[0] == 0) {
+            fp = { 0, 1.f };
+          }
+          else {
+            fp = { 0,  std::clamp((dt) / (times[0]), 0.0f, 1.0f) };
+          }
+          return false;
+        }
+        if (segment == 0) {
+          segment++;
+        }
+
+        segment = fan::clamp(segment, uint32_t(0), uint32_t(times.size() - 1));
+
+        f32_t start = times[segment - 1];
+        f32_t end = times[segment];
+        // clamping with default_animation will make it have cut effect
+        fp = { segment, std::clamp((dt - start) / (end - start), 0.0f, 1.0f) };
+        return false;
+      }
+
+      bool fk_parse_bone_data(const bone_transform_track_t& btt, fan::vec3& position, fan::quat& rotation, fan::vec3& scale) {
+        std::pair<uint32_t, f32_t> fp;
+        {// position
+          if (fk_get_time_fraction(btt.position_timestamps, dt, fp)) {
+            return true;
+          }
+          if (fp.first != (uint32_t)-1) {
+            if (fp.first == 0) {
+              position = fan::mix(fan::vec3(0), btt.positions[0], fp.second);
+            }
+            else {
+              fan::vec3 p1 = btt.positions[fp.first - 1];
+              fan::vec3 p2 = btt.positions[fp.first];
+              fan::vec3 pos = fan::mix(p1, p2, fp.second);
+              // +=
+              position = pos * btt.weight;
+            }
+          }
+        }
+
+        {// rotation
+          if (fk_get_time_fraction(btt.rotation_timestamps, dt, fp)) {
+            return true;
+          }
+          if (fp.first != (uint32_t)-1) {
+            if (fp.first == 0) {
+              rotation = fan::quat::slerp(fan::quat(), btt.rotations[0], fp.second);
+            }
+            else {
+              fan::quat rotation1 = btt.rotations[fp.first - 1];
+              fan::quat rotation2 = btt.rotations[fp.first];
+
+              fan::quat rot = fan::quat::slerp(rotation1, rotation2, fp.second);
+              rotation = rot;
+            }
+          }
+        }
+
+        { // size
+          if (fk_get_time_fraction(btt.scale_timestamps, dt, fp)) {
+            return true;
+          }
+          if (fp.first != (uint32_t)-1) {
+            if (fp.first == 0) {
+              scale = fan::mix(fan::vec3(1), btt.scales[0], fp.second);
+            }
+            else {
+              fan::vec3 s1 = btt.scales[fp.first - 1];
+              fan::vec3 s2 = btt.scales[fp.first];
+              // +=
+              scale = fan::mix(s1, s2, fp.second) * btt.weight;
+            }
+          }
+        }
+        return false;
+      }
+
+      void fk_get_pose(animation_data_t& animation, bone_t& bone, fan::mat4& parent_transform) {
+
+        dt = fmod(dt, animation.duration);
+        fan::vec3 position = 0, scale = 1;
+        fan::quat rotation;
+
+        bool not_enough_info = false;
+
+        auto found = animation.bone_transforms.find(bone.name);
+        f32_t prev_weight = found->second.weight;
+        if (found == animation.bone_transforms.end()) {
+          fan::throw_error("invalid bone data");
+        }
+        else {
+          found->second.weight = 1.f;
+
+          not_enough_info = fk_parse_bone_data(found->second, position, rotation, scale);
+          //                          active_bone?
+          /*if (showing_temp_rot && bone.id == -1) {
+            rotation = temp_rotations[bone.id];
+            not_enough_info = false;
+          }*/
+
+          found->second.weight = prev_weight;
+        }
+
+        fan::mat4 local_transform{ 0 };
+        if (not_enough_info) {
+          local_transform = bone.transform;
+         // local_transform = fan::mat4(1);
+        }
+        if (not_enough_info) {
+
+          animation.bone_poses[bone.id].position = fan::vec3(0);
+          animation.bone_poses[bone.id].rotation = fan::quat();
+          animation.bone_poses[bone.id].scale = 1;
+        }
+        else {
+          animation.bone_poses[bone.id].position = position;
+          animation.bone_poses[bone.id].scale = scale;
+          animation.bone_poses[bone.id].rotation = rotation;
+        }
+
+        fan::mat4 global_transform = parent_transform * local_transform;
+
+        for (bone_t* child : bone.children) {
+          fk_get_pose(animation, *child, global_transform);
+        }
+      }
+
+      void fk_interpolate_animations(std::vector<fan::mat4>& out_bone_transforms, bone_t& bone, fan::mat4& parent_transform) {
+
+        fan::vec3 position = 0, scale = 0;
+        fan::quat rotation;
+
+        fan::mat4 global_transform;
+
+        if (animation_list.empty()) {
+          // 
+          out_bone_transforms[bone.id] = parent_transform * bone.offset;
+        }
+        else {
+          for (auto& apair : animation_list) {
+            auto& a = apair.second;
+            position += a.bone_poses[bone.id].position * a.weight;
+            fan::quat slerped_quat = fan::quat::slerp(fan::quat(1, 0, 0, 0), a.bone_poses[bone.id].rotation, a.weight);
+            rotation = (rotation * slerped_quat).normalize();
+            scale += a.bone_poses[bone.id].scale * a.weight;
+          }
+
+          // ? 
+//          fan::mat4 local_transform = bone.local_transform;
+          fan::mat4 local_transform = bone.transform;
+          local_transform = local_transform.translate(position);
+          local_transform = local_transform.rotate(rotation);
+          local_transform = local_transform.scale(scale);
+          out_bone_transforms[bone.id] = m_transform * parent_transform * local_transform * bone.offset;
+          global_transform = parent_transform * local_transform;
+        }
+
+        for (bone_t* child : bone.children) {
+          fk_interpolate_animations(out_bone_transforms, *child, global_transform);
+        }
+      }
+
+      void fk_calculate_transformations(const fan::mat4& model = fan::mat4(1)) {
+        std::vector<fan::mat4> fk_transformations = bone_transforms;
+
+        fk_interpolate_animations(fk_transformations, *root_bone, m_transform);
+
+        for (uint32_t i = 0; i < meshes.size(); ++i) {
+          calculate_vertices(fk_transformations, i, model);
+        }
+      }
+
+      void fk_calculate_poses() {
+        fan::mat4 initial{1};
+        for (auto& i : animation_list) {
+          fk_get_pose(i.second, *root_bone, initial);
+        }
+      }
+
+      // ---------------------forward kinematics---------------------
+
+
+      // ---------------------animation---------------------
+
+
+      anim_key_t active_anim;
+      std::unordered_map<anim_key_t, animation_data_t> animation_list;
+
+      fan::string create_an(const fan::string& key, f32_t weight = 1.f, f32_t duration = 5.f) {
+        if (animation_list.empty()) {
+          active_anim = key;
+        }
+        auto& node = animation_list[key];
+        node.weight = weight;
+        //node = m_animation;
+        node.duration = duration;
+        // initialize with tpose
+        node.bone_poses.resize(bone_count, { {}, {}, 1 });
+        node.pose.resize(bone_count, fan::mat4(1));
+        iterate_bones(*root_bone,
+          [&](bone_t& bone) {
+            node.bone_transforms[bone.name];
+          }
+        );
+
+        // user should worry about it
+        //for (auto& anim : animation_list) {
+        //  anim.second.weight = 1.f / animation_list.size();
+        //}
+        return key;
+      }
+
+      animation_data_t& get_active_animation() {
+        if (active_anim.empty()) {
+          fan::throw_error("no active animation");
+        }
+        auto found = animation_list.find(active_anim);
+        if (found == animation_list.end()) {
+          fan::throw_error("trying to access invalid animation:" + active_anim);
+        }
+        // TODO might be illegal if its temporary var
+        return found->second;
+      }
+
+
+      // ---------------------animation---------------------
+
+
+      // ---------------------gui---------------------
 
       void print_bone_recursive(bone_t* bone, int depth = 0) {
         if (!bone) {
@@ -537,8 +775,8 @@ namespace fan_3d {
           ImGui::Unindent(10.0f);
         }
       }
-      void print_bones(bone_t* rootBone) {
-        if (!rootBone) {
+      void print_bones(bone_t* root_bone) {
+        if (!root_bone) {
           ImGui::TextDisabled("No skeleton loaded");
           return;
         }
@@ -554,16 +792,18 @@ namespace fan_3d {
               }
             }
           };
-          reset_rotations(rootBone);
+          reset_rotations(root_bone);
         }
 
         ImGui::Separator();
-        print_bone_recursive(rootBone);
+        print_bone_recursive(root_bone);
         ImGui::End();
       }
 
+      // ---------------------gui---------------------
+
       const aiScene* scene;
-      bone_t* rootBone = nullptr;
+      bone_t* root_bone = nullptr;
 
       std::vector<pm_material_data_t> material_data_vector;
       std::vector<fan::mat4> bone_transforms;
