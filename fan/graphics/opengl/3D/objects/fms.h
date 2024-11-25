@@ -693,7 +693,7 @@ namespace fan_3d {
               anim_transform = anim_transform.translate(pose.position);
               anim_transform = anim_transform * fan::mat4(pose.rotation);
               anim_transform = anim_transform.scale(pose.scale);
-              for (int i = 0; i < fan::mat4::size(); i++) {
+              for (int i = 0; i < 4; i++) {
                 local_transform[i] = local_transform[i] * (1.0f - normalized_weight) +
                   anim_transform[i] * normalized_weight;
               }
