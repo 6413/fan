@@ -952,6 +952,108 @@ namespace fan_3d {
         }
       }
 
+      void mouse_modify_joint() {
+        static constexpr f64_t delta_time_divier = 1e+7;
+        f32_t duration = 1.f;
+        ImGui::DragFloat("current time", &dt, 0.1, 0, fmod(duration, std::max(longest_animation, 1.f)));
+        //ImGui::Text(fan::format("camera pos: {}\ntotal time: {:.2f}", gloco->default_camera_3d->camera.position, fms.default_animation.duration).c_str());
+        static bool play = false;
+        if (ImGui::Checkbox("play animation", &play)) {
+          showing_temp_rot = false;
+        }
+        static int x = 0;
+        static fan::time::clock c;
+        if (play) {
+          if (x == 0) {
+            c.start();
+            x++;
+          }
+          dt = c.elapsed() / delta_time_divier;
+        }
+
+
+        int current_id = get_active_animation_id();
+        std::vector<const char*> animations;
+        for (auto& i : animation_list) {
+          animations.push_back(i.first.c_str());
+        }
+        if (ImGui::ListBox("animation list", &current_id, animations.data(), animations.size())) {
+          active_anim = animations[current_id];
+        }
+        ImGui::DragFloat("animation weight", &animation_list[active_anim].weight, 0.01, 0, 1);
+
+        if (active_bone != -1) {
+          auto& anim = get_active_animation();
+          auto& bt = anim.bone_transforms[bone_strings[active_bone]];
+          for (int i = 0; i < bt.rotations.size(); ++i) {
+            ImGui::DragFloat4(("rotations:" + std::to_string(i)).c_str(), bt.rotations[i].data(), 0.01);
+          }
+
+          static int32_t current_frame = 0;
+          if (!play) {
+            dt = current_frame;
+          }
+          else {
+            current_frame = fmodf(c.elapsed() / delta_time_divier, anim.duration);
+          }
+
+          static f32_t prev_frame = 0;
+          if (prev_frame != dt) {
+            showing_temp_rot = false;
+            prev_frame = dt;
+          }
+
+          if (ImGui::Button("save keyframe")) {
+            fk_set_rot(active_anim, bone_strings[active_bone], current_frame / 1000.f, anim.bone_poses[active_bone].rotation);
+          }
+
+          //fan::print(current_frame);
+          int32_t startFrame = 0;
+          int32_t endFrame = std::ceil(duration);
+          if (ImGui::BeginNeoSequencer("Sequencer", &current_frame, &startFrame, &endFrame, fan::vec2(0),
+            ImGuiNeoSequencerFlags_EnableSelection |
+            ImGuiNeoSequencerFlags_Selection_EnableDragging |
+            ImGuiNeoSequencerFlags_Selection_EnableDeletion |
+            ImGuiNeoSequencerFlags_AllowLengthChanging)) {
+            static bool transform_open = true;
+            if (ImGui::BeginNeoGroup("Transform", &transform_open))
+            {
+
+              if (ImGui::BeginNeoTimelineEx("rotation"))
+              {
+                if (bt.rotation_timestamps.size()) {
+                  for (int i = 0; i < bt.rotation_timestamps.size(); ++i) {
+                    int32_t p = bt.rotation_timestamps[i];
+                    ImGui::NeoKeyframe(&p);
+                    bt.rotation_timestamps[i] = p;
+                    //ImGui::DragFloat(("timestamps:" + std::to_string(i)).c_str(), &bt.rotation_timestamps[i], 1);
+                  }
+                }
+                // delete
+                if (false)
+                {
+                  uint32_t count = ImGui::GetNeoKeyframeSelectionSize();
+
+                  ImGui::FrameIndexType* toRemove = new ImGui::FrameIndexType[count];
+
+                  ImGui::GetNeoKeyframeSelection(toRemove);
+
+                  //Delete keyframes from your structure
+                }
+                ImGui::EndNeoTimeLine();
+                ImGui::EndNeoGroup();
+              }
+            }
+
+            ImGui::EndNeoSequencer();
+          }
+        }
+      }
+
+      int active_bone = -1;
+      bool toggle_rotate = false;
+      bool showing_temp_rot = false;
+      
       // ---------------------gui---------------------
 
       const aiScene* scene;
