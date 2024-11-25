@@ -2,24 +2,36 @@
 
 #include <fan/graphics/opengl/3D/objects/model.h>
 
-#if 0
+#if 1
 int main() {
   loco_t loco;
   loco.set_vsync(0);
   fan::graphics::model_t::properties_t p;
+#if 0
   p.path = "models/player.gltf";
+#else
+  p.path = "models/X Bot.fbx";
+#endif
   p.texture_path = "models/textures";
   p.use_cpu = 0;
   fan::graphics::model_t model(p);
+
+  //model.export_animation("Idle", "anim0.gltf");
+
+  p.path = "anim0.gltf";
+  fan::graphics::model_t anim0(p);
+
+  model.import_animation(anim0);
+
   loco.console.commands.call("show_fps 1");
 
-  auto anid = model.create_an("an_name", 1.0f, 2.f);
-  auto animation_node_id = model.fk_set_rot(anid, "mixamorigRightUpLeg", 0.001/* time in seconds */,
-    fan::vec3(1, 0, 0), 0
-  );
-  auto animation_node_id3 = model.fk_set_rot(anid, "mixamorigRightUpLeg", 1/* time in seconds */,
-    fan::vec3(1, 0, 0), fan::math::pi
-  );
+  //auto anid = model.create_an("an_name", 1.0f, 2.f);
+  //auto animation_node_id = model.fk_set_rot(anid, "mixamorigRightUpLeg", 0.001/* time in seconds */,
+  //  fan::vec3(1, 0, 0), 0
+  //);
+  //auto animation_node_id3 = model.fk_set_rot(anid, "mixamorigRightUpLeg", 1/* time in seconds */,
+  //  fan::vec3(1, 0, 0), fan::math::pi
+  //);
 
   std::vector<loco_t::shape_t> joint_cubes;
 
