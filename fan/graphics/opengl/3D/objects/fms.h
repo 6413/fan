@@ -14,6 +14,7 @@ namespace fan_3d {
       fan::vec4 bone_weights;
       fan::vec3 tangent;
       fan::vec3 bitangent;
+      fan::vec4 color;
     };
 
     struct bone_transform_track_t {
@@ -134,6 +135,17 @@ namespace fan_3d {
 
           vertex.bone_ids = fan::vec4i(-1);
           vertex.bone_weights = fan::vec4(0.0f);
+          if (mesh->HasVertexColors(0)) {
+            vertex.color = fan::vec4(
+              mesh->mColors[0][i].r,
+              mesh->mColors[0][i].g,
+              mesh->mColors[0][i].b,
+              mesh->mColors[0][i].a
+            );
+          }
+          else {
+            vertex.color = fan::vec4(1.0f);
+          }
         }
         // process bones using a running maximum approach
         for (uint32_t i = 0; i < mesh->mNumBones; i++) {
@@ -254,7 +266,7 @@ namespace fan_3d {
       pm_material_data_t load_materials(aiMesh* ai_mesh) {
         pm_material_data_t material_data;
         for(uint32_t i = 0; i <= AI_TEXTURE_TYPE_MAX; i++){
-          material_data.color[i] = fan::vec4(1, 0, 1, 1);
+          material_data.color[i] = fan::vec4(1, 1, 1, 1);
         }
 
         if (scene->mNumMaterials <= ai_mesh->mMaterialIndex) {

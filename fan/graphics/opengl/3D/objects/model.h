@@ -51,7 +51,10 @@ namespace fan {
             if (ii.channels < std::size(gl_formats) && gl_formats[ii.channels]) {
               ilp.format = ilp.internal_format = gl_formats[ii.channels];
               fan_3d::model::cached_images[name] = gloco->image_load(ii, ilp); // insert new texture, since old doesnt exist
-            } 
+            }
+            else if (ii.data == nullptr) {
+              continue;
+            }
             else {
               fan::print("unimplemented channel", ii.channels);
               fan_3d::model::cached_images[name] = gloco->default_texture; // insert default (missing) texture, since old doesnt exist
@@ -90,6 +93,8 @@ namespace fan {
         gloco->opengl.glVertexAttribPointer(5, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, tangent));
         gloco->opengl.glEnableVertexAttribArray(6);
         gloco->opengl.glVertexAttribPointer(6, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bitangent));
+        gloco->opengl.glEnableVertexAttribArray(7);
+        gloco->opengl.glVertexAttribPointer(7, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, color));
         gloco->opengl.glBindVertexArray(0);
 
         GLuint bone_transform_size = bone_transforms.size() * sizeof(fan::mat4);
@@ -117,6 +122,10 @@ namespace fan {
         gloco->shader_set_value(m_shader, "use_cpu", p.use_cpu);
         gloco->shader_set_camera(m_shader, &gloco->camera_get(gloco->perspective_camera.camera));
 
+        gloco->shader_set_value(m_shader, "light_position", light_position);
+        gloco->shader_set_value(m_shader, "light_color", light_color);
+        gloco->shader_set_value(m_shader, "light_intensity", light_intensity);
+
         gloco->set_depth_test(true);
 
         if (p.use_cpu == 0) {
@@ -130,6 +139,19 @@ namespace fan {
         auto& context = gloco->get_context();
         context.opengl.glDisable(fan::opengl::GL_BLEND);
         for (int mesh_index = 0; mesh_index < meshes.size(); ++mesh_index) {
+          {
+            fan::opengl::context_t::shader_t& shader = gloco->shader_get(m_shader);
+            auto location = gloco->opengl.call(
+              gloco->opengl.glGetUniformLocation, 
+              shader.id, 
+              "material_colors"
+            );
+            gloco->opengl.glUniform4fv(
+              location, 
+              std::size(material_data_vector[mesh_index].color),
+              &material_data_vector[mesh_index].color[0][0]
+            );
+          }
           meshes[mesh_index].VAO.bind(context);
           fan::vec3 camera_position = gloco->camera_get_position(gloco->perspective_camera.camera);
           gloco->shader_set_value(m_shader, "view_p", camera_position);
@@ -175,6 +197,11 @@ namespace fan {
         ImGui::End();
       }
 
+
+      //temp
+      fan::vec3 light_position{3.46f, 1.94f, 6.22f};
+      fan::vec3 light_color{.8f,.8f,.8f};
+      f32_t light_intensity{2.f};
 
       loco_t::shader_t m_shader;
       // should be stored globally among all models
