@@ -7,7 +7,7 @@ int main() {
   loco_t loco;
   loco.set_vsync(0);
   fan::graphics::model_t::properties_t p;
-#if 0
+#if 1
   p.path = "models/player.gltf";
 #else
   p.path = "models/X Bot.fbx";
@@ -17,10 +17,10 @@ int main() {
   fan::graphics::model_t model(p);
 
   //model.export_animation("Idle", "anim0.gltf");
-
+  
   p.path = "anim0.gltf";
   fan::graphics::model_t anim0(p);
-
+  //
   model.import_animation(anim0);
 
   loco.console.commands.call("show_fps 1");
@@ -81,6 +81,10 @@ int main() {
   });
 
     //model.print_bone_recursive(model.root_bone);
+
+    fan_imgui_dragfloat1(model.light_position, 0.2);
+    ImGui::ColorEdit3("model.light_color", model.light_color.data());
+    fan_imgui_dragfloat1(model.light_intensity, 0.1);
 
     model.mouse_modify_joint();
 
