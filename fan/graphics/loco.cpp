@@ -1363,7 +1363,7 @@ void loco_t::process_frame() {
     }
   }
 
-  static constexpr uint32_t parent_window_flags = 0;
+  static constexpr uint32_t parent_window_flags = ImGuiWindowFlags_NoFocusOnAppearing;
 
   if (toggle_fps) {
     static int initial = 0;
@@ -1373,7 +1373,7 @@ void loco_t::process_frame() {
       ImGui::SetNextWindowPos(ImVec2(0, 0));
     }
 
-    ImGui::Begin("Global window", 0, parent_window_flags);
+    ImGui::Begin("Performance window", 0, parent_window_flags);
     ImGui::Text("fps:%d", (int)(1.f / delta_time));
 
     static constexpr int buffer_size = 100;
@@ -1383,19 +1383,23 @@ void loco_t::process_frame() {
     float average_frame_time_ms = std::accumulate(samples.begin(), samples.end(), 0.0f) / buffer_size;
     float lowest_ms = *std::min_element(samples.begin(), samples.end());
     float highest_ms = *std::max_element(samples.begin(), samples.end());
-    ImGui::Text("Average Frame Time: %.2f ms", average_frame_time_ms);
-    ImGui::Text("Lowest Frame Time: %.2f ms", lowest_ms);
-    ImGui::Text("Highest Frame Time: %.2f ms", highest_ms);
+    ImGui::Text("Average Frame Time: %.4f ms", average_frame_time_ms);
+    ImGui::Text("Lowest Frame Time: %.4f ms", lowest_ms);
+    ImGui::Text("Highest Frame Time: %.4f ms", highest_ms);
+
+    ImGui::Text("Average fps : %.4f ms", 1.0 / average_frame_time_ms);
+    ImGui::Text("Lowest fps: %.4f ms", 1.0 / lowest_ms);
+    ImGui::Text("Highest fps: %.4f ms", 1.0 / highest_ms);
     static uint32_t frame = 0;
     frame++;
     static constexpr int refresh_speed = 25;
     if (frame % refresh_speed == 0) {
-      samples[insert_index] = delta_time * 1000;
+      samples[insert_index] = delta_time;
       insert_index = (insert_index + 1) % buffer_size;
     }
 
-    ImGui::PlotLines("", samples.data(), buffer_size, insert_index, nullptr, 0.0f, FLT_MAX, ImVec2(0, 80));
-    ImGui::Text("Current Frame Time: %.2f ms", delta_time);
+    ImGui::PlotLines("##fps_plot", samples.data(), buffer_size, insert_index, nullptr, 0.0f, FLT_MAX, ImVec2(0, 80));
+    ImGui::Text("Current Frame Time: %.4f ms", delta_time);
     ImGui::End();
   }
 

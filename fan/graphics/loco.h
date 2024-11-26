@@ -1447,20 +1447,21 @@ public:
 
 #define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
   [&] <typename T5>(T5& var) -> bool{ \
+    fan::string label(name); \
     if constexpr(std::is_same_v<f32_t, T5>)  { \
-      return ImGui::DragFloat(fan::string(std::move(name)).c_str(), &var, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+      return ImGui::DragFloat(label.c_str(), &var, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
     else if constexpr(std::is_same_v<fan::vec2, T5>)  { \
-      return ImGui::DragFloat2(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+      return ImGui::DragFloat2(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
     else if constexpr(std::is_same_v<fan::vec3, T5>)  { \
-      return ImGui::DragFloat3(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+      return ImGui::DragFloat3(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
     else if constexpr(std::is_same_v<fan::vec4, T5>)  { \
-      return ImGui::DragFloat4(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+      return ImGui::DragFloat4(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
     else if constexpr(std::is_same_v<fan::color, T5>)  { \
-      return ImGui::DragFloat4(fan::string(std::move(name)).c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+      return ImGui::DragFloat4(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
     else {\
       fan::throw_error_impl(); \
@@ -1473,7 +1474,7 @@ public:
 
 
 #define fan_imgui_dragfloat1(variable, speed) \
-    fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, -1, -1)
+    fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, 0, 0)
 
   struct imgui_fs_var_t {
     loco_t::imgui_element_t ie;
