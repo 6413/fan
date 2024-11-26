@@ -386,6 +386,7 @@ struct loco_t : fan::opengl::context_t {
 
   using get_position_cb = fan::vec3 (*)(shape_t*);
   using get_size_cb = fan::vec2 (*)(shape_t*);
+  using get_size3_cb = fan::vec3 (*)(shape_t*);
 
   using set_rotation_point_cb = void (*)(shape_t*, const fan::vec2&);
   using get_rotation_point_cb = fan::vec2 (*)(shape_t*);
@@ -443,6 +444,7 @@ struct loco_t : fan::opengl::context_t {
     set_position3_cb set_position3;
 
     get_size_cb get_size;
+    get_size3_cb get_size3;
     set_size_cb set_size;
     set_size3_cb set_size3;
 
@@ -639,6 +641,24 @@ struct loco_t : fan::opengl::context_t {
           else {
             fan::throw_error("unimplemented get");
             return fan::vec2();
+          }
+        },
+        .get_size3 = [](shape_t* shape) {
+          if constexpr (fan_has_variable(T, size)) {
+            if constexpr (sizeof(T::size) == sizeof(fan::vec3)) {
+              return get_render_data(shape, &T::size);
+            }
+            else {
+              fan::throw_error("unimplemented get");
+              return fan::vec3();
+            }
+          }
+          else if constexpr (fan_has_variable(T, radius)) {
+            return fan::vec3(get_render_data(shape, &T::radius));
+          }
+          else {
+            fan::throw_error("unimplemented get");
+            return fan::vec3();
           }
         },
         .set_size = [](shape_t* shape, const fan::vec2& size) {
@@ -1859,6 +1879,7 @@ public:
     void set_size3(const fan::vec3& size);
 
     fan::vec2 get_size();
+    fan::vec3 get_size3();
 
     void set_rotation_point(const fan::vec2& rotation_point);
 

@@ -1858,6 +1858,10 @@ fan::vec2 loco_t::shape_t::get_size() {
   return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_size(this);
 }
 
+fan::vec3 loco_t::shape_t::get_size3() {
+  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_size3(this);
+}
+
 void loco_t::shape_t::set_rotation_point(const fan::vec2& rotation_point) {
   gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_rotation_point(this, rotation_point);
 }
