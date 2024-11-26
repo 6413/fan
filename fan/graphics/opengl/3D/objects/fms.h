@@ -2,7 +2,6 @@
 
 #include <assimp/Exporter.hpp>
 #include <locale>
-#include <omp.h>
 namespace fan_3d {
   namespace model {
     using namespace fan::opengl;
