@@ -1,10 +1,9 @@
 # compiler settings
 CC = clang
+LD = ld.gold
 
 FLAGS =
-CXXFLAGS = -fuse-ld=gold -I . -w $(FLAGS) -fpermissive
-
-
+CXXFLAGS = -I . -w $(FLAGS) -fpermissive
 
 NFD_PATH =
 OUTPUT_PATH = lib/fan/
