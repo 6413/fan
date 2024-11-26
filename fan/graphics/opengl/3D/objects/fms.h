@@ -59,6 +59,7 @@ namespace fan_3d {
       bone_t* parent;
       std::vector<bone_t*> children;
 
+      // user transform
       fan::vec3 translation = 0;
       fan::vec3 rotation = 0;
       fan::vec3 scale = 1;
@@ -341,7 +342,7 @@ namespace fan_3d {
           (translation * rotation * scale)
         ;
 
-        bone_transforms[bone->id] = globalTransform  * bone->offset;
+        bone_transforms[bone->id] = globalTransform * bone->offset;
 
         for (bone_t* child : bone->children) {
           update_bone_transforms_impl(child, globalTransform);
@@ -543,13 +544,13 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
         fp = { segment, std::clamp((dt - start) / (end - start), 0.0f, 1.0f) };
         return false;
       }
-      bool fk_parse_bone_data(const bone_transform_track_t& btt, fan::vec3& position, fan::quat& rotation, fan::vec3& scale) {
+      uint8_t interpolate_bone_transform(const bone_transform_track_t& btt, fan::vec3& position, fan::quat& rotation, fan::vec3& scale) {
         std::pair<uint32_t, f32_t> fp;
+        uint8_t ret = false;
         {// position
-          if (fk_get_time_fraction(btt.position_timestamps, dt, fp)) {
-            return true;
-          }
-          if (fp.first != (uint32_t)-1) {
+          bool tr = fk_get_time_fraction(btt.position_timestamps, dt, fp);
+          ret |= ((uint8_t)tr << 0);
+          if (!tr && fp.first != (uint32_t)-1) {
             if (fp.first == 0) {
               position = fan::mix(fan::vec3(0), btt.positions[0], fp.second);
             }
@@ -561,13 +562,15 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
               position = pos * btt.weight;
             }
           }
+          else {
+            position = btt.positions[0];
+          }
         }
 
         {// rotation
-          if (fk_get_time_fraction(btt.rotation_timestamps, dt, fp)) {
-            return true;
-          }
-          if (fp.first != (uint32_t)-1) {
+          bool tr = fk_get_time_fraction(btt.rotation_timestamps, dt, fp);
+          ret |= ((uint8_t)tr << 1);
+          if (!tr && fp.first != (uint32_t)-1) {
             if (fp.first == 0) {
               rotation = fan::quat::slerp(fan::quat(), btt.rotations[0], fp.second);
             }
@@ -579,13 +582,15 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
               rotation = rot;
             }
           }
+          else {
+            rotation = btt.rotations[0];
+          }
         }
 
         { // size
-          if (fk_get_time_fraction(btt.scale_timestamps, dt, fp)) {
-            return true;
-          }
-          if (fp.first != (uint32_t)-1) {
+          bool tr = fk_get_time_fraction(btt.scale_timestamps, dt, fp);
+          ret |= ((uint8_t)tr << 2);
+          if (!tr && fp.first != (uint32_t)-1) {
             if (fp.first == 0) {
               scale = fan::mix(fan::vec3(1), btt.scales[0], fp.second);
             }
@@ -596,8 +601,11 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
               scale = fan::mix(s1, s2, fp.second) * btt.weight;
             }
           }
+          else {
+            scale = btt.scales[0];
+          }
         }
-        return false;
+        return ret;
       }
       void fk_get_pose(animation_data_t& animation, const bone_t& bone) {
 
@@ -608,17 +616,21 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
             dt = fmod(dt, animation.duration);
           }
           else {
-            dt = fmod(dt, 10000);
+            dt = fmod(dt, 100000);
           }
         }
         fan::vec3 position = 0, scale = 1;
         fan::quat rotation;
 
-        if (!fk_parse_bone_data(animation.bone_transforms[bone.name], position, rotation, scale)) {
-          animation.bone_poses[bone.id].position = position;
-          animation.bone_poses[bone.id].scale = scale;
-          animation.bone_poses[bone.id].rotation = rotation;
+        auto& bt = animation.bone_transforms[bone.name];
+        if (bt.positions.empty()) {
+          return;
         }
+        // returns bit for successsion for position, rotation, scale
+        uint8_t r = interpolate_bone_transform(bt, position, rotation, scale);
+        animation.bone_poses[bone.id].position = position;
+        animation.bone_poses[bone.id].rotation = rotation;
+        animation.bone_poses[bone.id].scale = scale;
       }
       void fk_interpolate_animations(std::vector<fan::mat4>& out_bone_transforms, bone_t& bone, fan::mat4& parent_transform) {
         fan::mat4 local_transform = bone.transform;
@@ -749,7 +761,12 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
 
             }
             animation.bone_transforms[channel->mNodeName.C_Str()] = track;
-            fan::printcl("loading", channel->mNodeName.C_Str());
+            fan::printclh(
+              fan::console_t::highlight_e::success, 
+              std::string("loading animation:") + anim->mName.C_Str() +
+              std::string(" bone:") +
+              channel->mNodeName.C_Str()
+            );
           }
         }
       }
@@ -907,13 +924,30 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
         const std::string& target_name,
         std::string& matched_name
       ) {
-        for (const auto part : body_parts) {
+        std::vector<std::string> matching_parts;
+
+        // Find all matching parts
+        for (const auto& part : body_parts) {
           if (ci_find_substr(target_name, std::string(part)) != -1) {
-            matched_name = part;
-            return true;
+            matching_parts.push_back(part);
           }
         }
-        return false;
+
+        // If no matches found, return false
+        if (matching_parts.empty()) {
+          return false;
+        }
+
+        // Find the longest matching part
+        matched_name = *std::max_element(
+          matching_parts.begin(),
+          matching_parts.end(),
+          [](const std::string& a, const std::string& b) {
+            return a.length() < b.length();
+          }
+        );
+
+        return true;
       }
 
       
@@ -931,18 +965,18 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
       }
 
 
-      void import_animation(fms_t& anim) {
+      void import_animation(fms_t& anim, const std::string& custom_name = "") {
         if (anim.scene->mNumAnimations == 0) {
           fan::print("No animations in given animation.");
           return;
         }
         const aiAnimation* srcAnim = anim.scene->mAnimations[0];
-        std::string animation_name = srcAnim->mName.C_Str();
+        std::string animation_name = custom_name.empty() ? srcAnim->mName.C_Str() : custom_name;
 
         aiAnimation* newAnim = new aiAnimation(*srcAnim);
         bool animation_exists = false;
         for (unsigned int i = 0; i < scene->mNumAnimations; ++i) {
-          if (scene->mAnimations[i]->mName == newAnim->mName) {
+          if (scene->mAnimations[i]->mName.C_Str() == animation_name) {
             delete scene->mAnimations[i];
             scene->mAnimations[i] = newAnim;
             animation_exists = true;
@@ -956,6 +990,7 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
             newAnimations[i] = scene->mAnimations[i];
           }
           newAnimations[scene->mNumAnimations] = newAnim;
+          newAnimations[scene->mNumAnimations]->mName = animation_name;
           if (scene->mAnimations) {
             delete[] scene->mAnimations;
           }
@@ -982,6 +1017,9 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
               bone_mapper.find(our_bone.name) == bone_mapper.end()
               ) {
               found_bone = our_bone.name;
+              if (found_bone == "mixamorigLeftHandThumb4") {
+                fan::print("A");
+              }
               bone_mapper[found_bone];
               our_bone_found = true;
             }
@@ -990,9 +1028,14 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
           // && is_bone_in_anim_curve_node(scene, found_bone)
           if (our_bone_found) {
             channel->mNodeName = aiString(found_bone);
+            fan::printclh(fan::console_t::highlight_e::info, channel->mNodeName.C_Str());
           }
           else if (found_bone.empty()) {
             fan::print_no_space(std::string("Failed to resolve animation bone:'") + channel->mNodeName.C_Str() + '\'');
+            /*channel->mNodeName = "";
+            channel->mNumPositionKeys = 0;
+            channel->mNumRotationKeys = 0;
+            channel->mNumScalingKeys = 0;*/
           }
           else {
             fan::print_no_space("Bone '" + found_bone + '\'', " is missing animation");
@@ -1140,7 +1183,7 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
       }
 
       void mouse_modify_joint() {
-        static constexpr f64_t delta_time_divier = 1e+7;
+        static constexpr f64_t delta_time_divier = 1e+6;
         f32_t duration = 1.f;
         ImGui::DragFloat("current time", &dt, 0.1, 0, fmod(duration, std::max(longest_animation, 1.f)));
         //ImGui::Text(fan::format("camera pos: {}\ntotal time: {:.2f}", gloco->default_camera_3d->camera.position, fms.default_animation.duration).c_str());

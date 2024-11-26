@@ -22,8 +22,11 @@
 
 // ImPlot v0.17
 
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "implot.h"
+#ifndef IMGUI_DISABLE
 #include "implot_internal.h"
 
 //-----------------------------------------------------------------------------
@@ -51,7 +54,7 @@
     #define IMPLOT_INLINE inline
 #endif
 
-#if (defined __SSE__ || defined __x86_64__ || defined _M_X64) && !defined(IMGUI_DISABLE_SSE)
+#if defined __SSE__ || defined __x86_64__ || defined _M_X64
 #ifndef IMGUI_ENABLE_SSE
 #include <immintrin.h>
 #endif
@@ -2806,3 +2809,5 @@ void PlotDummy(const char* label_id, ImPlotDummyFlags flags) {
 }
 
 } // namespace ImPlot
+
+#endif // #ifndef IMGUI_DISABLE
