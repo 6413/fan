@@ -8,7 +8,7 @@ int main() {
   loco.set_vsync(0);
   fan::graphics::model_t::properties_t p;
 #if 1
-  p.path = "models/player.gltf";
+  p.path = "models/testt5.fbx";
 #else
   p.path = "models/X Bot.fbx";
 #endif
@@ -24,13 +24,13 @@ int main() {
 
   loco.console.commands.call("show_fps 1");
 
-  //auto anid = model.create_an("an_name", 1.0f, 2.f);
-  //auto animation_node_id = model.fk_set_rot(anid, "mixamorigRightUpLeg", 0.001/* time in seconds */,
-  //  fan::vec3(1, 0, 0), 0
-  //);
-  //auto animation_node_id3 = model.fk_set_rot(anid, "mixamorigRightUpLeg", 1/* time in seconds */,
-  //  fan::vec3(1, 0, 0), fan::math::pi
-  //);
+  auto anid = model.create_an("an_name", 1.0f, 2.f);
+  auto animation_node_id = model.fk_set_rot(anid, "Left_leg", 0.001/* time in seconds */,
+    fan::vec3(1, 0, 0), 0
+  );
+  auto animation_node_id3 = model.fk_set_rot(anid, "Left_leg", 1/* time in seconds */,
+    fan::vec3(1, 0, 0), fan::math::pi
+  );
 
   std::vector<loco_t::shape_t> joint_cubes;
 
@@ -41,6 +41,7 @@ int main() {
  // model.UpdateBoneRotation("Left_leg", -90.f, 0, 0);
 
   bool draw_lines = 0;
+  bool draw_bones = 1;
 
   
 
@@ -73,23 +74,30 @@ int main() {
     model.fk_calculate_poses();
     auto bts = model.fk_calculate_transformations();
     model.upload_modified_vertices();
-    joint_cubes.clear();
-    model.iterate_bones(*model.root_bone, [&](const fan_3d::model::bone_t& bone) {
-      if (model.get_active_animation_id() == -1) {
-        return;
-      }
-      const auto& bt = model.get_active_animation().bone_transforms;
-      if (!bt.empty() && bt.find(bone.name) == bt.end()) {
-        return;
-      }
-      loco_t::rectangle3d_t::properties_t rp;
-      rp.size = 0.1;
-      rp.color = fan::colors::red;
-      fan::vec4 v = (m * fan::vec4(bone.global_transform.get_translation(), 1.0));
-      rp.position = *(fan::vec3*)&v;
-      joint_cubes.push_back(rp);
-    });
 
+    ImGui::Text("draw bones");
+    ImGui::SameLine();
+    if (ImGui::ToggleButton("##draw bones", &draw_bones)) {
+      joint_cubes.clear();
+    }
+    if (draw_bones) {
+      joint_cubes.clear();
+      for (auto& bone : model.bones) {
+        if (model.get_active_animation_id() == -1) {
+          break;
+        }
+        const auto& bt = model.get_active_animation().bone_transforms;
+        if (!bt.empty() && bt.find(bone->name) == bt.end()) {
+          break;
+        }
+        loco_t::rectangle3d_t::properties_t rp;
+        rp.size = 0.1;
+        rp.color = fan::colors::red;
+        fan::vec4 v = (m * fan::vec4(bone->global_transform.get_translation(), 1.0));
+        rp.position = *(fan::vec3*)&v;
+        joint_cubes.push_back(rp);
+      }
+    }
     //model.print_bone_recursive(model.root_bone);
 
     fan_imgui_dragfloat1(model.light_position, 0.2);
