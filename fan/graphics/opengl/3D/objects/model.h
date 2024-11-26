@@ -23,7 +23,7 @@ namespace fan {
         gloco->shader_set_vertex(m_shader, vs);
         gloco->shader_set_fragment(m_shader, fs);
         gloco->shader_compile(m_shader);
-
+        
         // load textures
         for (fan_3d::model::mesh_t& mesh : meshes) {
           for (const std::string& name : mesh.texture_names) {
@@ -97,7 +97,7 @@ namespace fan {
         gloco->opengl.glVertexAttribPointer(7, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, color));
         gloco->opengl.glBindVertexArray(0);
 
-        GLuint bone_transform_size = bone_transforms.size() * sizeof(fan::mat4);
+        GLuint bone_transform_size = bone_count * sizeof(fan::mat4);
         gloco->opengl.glGenBuffers(1, &ssbo_bone_buffer);
         gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bone_buffer);
         gloco->opengl.glBufferData(GL_SHADER_STORAGE_BUFFER, bone_transform_size, bone_transforms.data(), GL_STATIC_DRAW);
