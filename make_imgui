@@ -1,8 +1,9 @@
 # compiler settings
 CXX = clang++
+LD = ld.gold
 
 FLAGS =
-CXXFLAGS = -fuse-ld=gold -std=c++2a -w $(FLAGS)
+CXXFLAGS =  -std=c++2a -w $(FLAGS)
 
 IMGUI_PATH =
 OUTPUT_PATH = lib/fan/
