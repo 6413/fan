@@ -2,7 +2,7 @@
 
 #include <assimp/Exporter.hpp>
 #include <locale>
-
+#include <omp.h>
 namespace fan_3d {
   namespace model {
     using namespace fan::opengl;
@@ -416,22 +416,25 @@ namespace fan_3d {
         return true;
       }
 
-      void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, const fan::mat4& model) {
-        for (int i = 0; i < meshes[mesh_id].vertices.size(); ++i) {
-          fan::vec3 v = meshes[mesh_id].vertices[i].position;
-          if (bt.empty()) {
+
+
+
+void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, const fan::mat4& model) {
+    for (int i = 0; i < meshes[mesh_id].vertices.size(); ++i) {
+        fan::vec3 v = meshes[mesh_id].vertices[i].position;
+        if (bt.empty()) {
             fan::vec4 vertex_position = m_transform * model * fan::vec4(v, 1.0);
             calculated_meshes[mesh_id].vertices[i].position = fan::vec3(vertex_position.x, vertex_position.y, vertex_position.z);
-          }
-          else {
+        } else {
             fan::vec4 interpolated_bone_transform = calculate_bone_transform(bt, mesh_id, i);
             fan::vec4 vertex_position = fan::vec4(v, 1.0);
             fan::vec4 result = model * interpolated_bone_transform;
 
             calculated_meshes[mesh_id].vertices[i].position = fan::vec3(result.x, result.y, result.z);
-          }
         }
-      }
+    }
+}
+
 
       // flag default, ik, fk?
       void calculate_modified_vertices(const fan::mat4& model = fan::mat4(1)) {

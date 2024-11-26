@@ -28,7 +28,6 @@
 #include <fan/imgui/imgui_impl_opengl3.h>
 #include <fan/imgui/imgui_impl_glfw.h>
 #include <fan/imgui/imgui_neo_sequencer.h>
-#include <fan/imgui/imgui-combo-filter.h>
 #include <fan/imgui/implot.h>
 #endif
 
