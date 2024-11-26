@@ -2,7 +2,7 @@
 CC = clang
 
 FLAGS =
-CXXFLAGS = -fuse-ld=gold -I . -w $(FLAGS)
+CXXFLAGS = -fuse-ld=gold -I . -w $(FLAGS) -fpermissive
 
 
 
