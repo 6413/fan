@@ -1,8 +1,8 @@
 # compiler settings
-CXX = clang
+CC = clang
 
 FLAGS =
-CXXFLAGS = -I . -w $(FLAGS)
+CXXFLAGS = -fuse-ld=gold -I . -w $(FLAGS)
 
 
 
