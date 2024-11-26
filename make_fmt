@@ -2,7 +2,7 @@
 CXX = clang++
 
 FLAGS =
-CXXFLAGS = -std=c++2a -w $(FLAGS)
+CXXFLAGS = -fuse-ld=gold -std=c++2a -w $(FLAGS)
 
 OUTPUT_PATH = lib/fan/
 
