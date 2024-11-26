@@ -48,6 +48,7 @@ namespace fan_3d {
       uint32_t type = type_e::invalid;
       std::vector<bone_pose_t> bone_poses;
       std::unordered_map<std::string, bone_transform_track_t> bone_transforms;
+      std::string name;
     };
 
     struct bone_t {
@@ -415,25 +416,22 @@ namespace fan_3d {
         update_bone_transforms();
         return true;
       }
-
-
-
-
-void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, const fan::mat4& model) {
-    for (int i = 0; i < meshes[mesh_id].vertices.size(); ++i) {
-        fan::vec3 v = meshes[mesh_id].vertices[i].position;
-        if (bt.empty()) {
+      void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, const fan::mat4& model) {
+        for (int i = 0; i < meshes[mesh_id].vertices.size(); ++i) {
+          fan::vec3 v = meshes[mesh_id].vertices[i].position;
+          if (bt.empty()) {
             fan::vec4 vertex_position = m_transform * model * fan::vec4(v, 1.0);
             calculated_meshes[mesh_id].vertices[i].position = fan::vec3(vertex_position.x, vertex_position.y, vertex_position.z);
-        } else {
+          }
+          else {
             fan::vec4 interpolated_bone_transform = calculate_bone_transform(bt, mesh_id, i);
             fan::vec4 vertex_position = fan::vec4(v, 1.0);
             fan::vec4 result = model * interpolated_bone_transform;
 
             calculated_meshes[mesh_id].vertices[i].position = fan::vec3(result.x, result.y, result.z);
+          }
         }
-    }
-}
+      }
 
 
       // flag default, ik, fk?
@@ -628,9 +626,9 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
         }
         // returns bit for successsion for position, rotation, scale
         uint8_t r = interpolate_bone_transform(bt, position, rotation, scale);
-        animation.bone_poses[bone.id].position = position;
-        animation.bone_poses[bone.id].rotation = rotation;
-        animation.bone_poses[bone.id].scale = scale;
+        animation.bone_poses[bone.id].position = position + bone.translation;
+        animation.bone_poses[bone.id].rotation = rotation * fan::quat::from_angles(bone.rotation);
+        animation.bone_poses[bone.id].scale = scale * bone.scale;
       }
       void fk_interpolate_animations(std::vector<fan::mat4>& out_bone_transforms, bone_t& bone, fan::mat4& parent_transform) {
         fan::mat4 local_transform = bone.transform;
@@ -719,6 +717,7 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
         for (uint32_t k = 0; k < scene->mNumAnimations; ++k) {
           aiAnimation* anim = scene->mAnimations[k];
           auto& animation = animation_list[anim->mName.C_Str()];
+          animation.name = anim->mName.C_Str();
           if (active_anim.empty()) {
             active_anim = anim->mName.C_Str();
           }
@@ -827,7 +826,7 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
 
       bool export_animation(
         const std::string& animation_name_to_export, 
-        const std::string name,
+        const std::string path,
         const std::string& format = "gltf2"
       ) {
         if (scene->mNumAnimations == 0) {
@@ -859,7 +858,7 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
         }
 
         Assimp::Exporter exporter;
-        aiReturn result = exporter.Export(new_scene, format.c_str(), name.c_str());
+        aiReturn result = exporter.Export(new_scene, format.c_str(), path.c_str());
         delete[] new_scene->mAnimations;
 
         new_scene->mRootNode = nullptr;
@@ -1184,21 +1183,14 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
 
       void mouse_modify_joint() {
         static constexpr f64_t delta_time_divier = 1e+6;
-        f32_t duration = 1.f;
-        ImGui::DragFloat("current time", &dt, 0.1, 0, fmod(duration, std::max(longest_animation, 1.f)));
+        ImGui::DragFloat("current time", &dt, 1, 0, std::max(longest_animation, 1.f));
         //ImGui::Text(fan::format("camera pos: {}\ntotal time: {:.2f}", gloco->default_camera_3d->camera.position, fms.default_animation.duration).c_str());
         static bool play = false;
         if (ImGui::Checkbox("play animation", &play)) {
           showing_temp_rot = false;
         }
-        static int x = 0;
-        static fan::time::clock c;
         if (play) {
-          if (x == 0) {
-            c.start();
-            x++;
-          }
-          dt = c.elapsed() / delta_time_divier;
+          dt += gloco->delta_time * 1000;
         }
 
 
@@ -1216,7 +1208,7 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
           auto& anim = get_active_animation();
           auto found = anim.bone_transforms.find(bone_strings[active_bone]);
           if (found == anim.bone_transforms.end()) {
-            fan::throw_error("failed to find bone");
+            return;
           }
           auto& bt = found->second;
           for (int i = 0; i < bt.rotations.size(); ++i) {
@@ -1228,7 +1220,7 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
             dt = current_frame;
           }
           else {
-            current_frame = fmodf(c.elapsed() / delta_time_divier, anim.duration);
+            current_frame = fmodf(dt, anim.duration);
           }
 
           static f32_t prev_frame = 0;
@@ -1237,14 +1229,18 @@ void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, cons
             prev_frame = dt;
           }
 
+          int32_t start_frame = 0;
+          int32_t end_frame = std::ceil(anim.duration);
+          if (end_frame <= start_frame) {
+            ImGui::Text("No bones in current animation");
+            return;
+          }
+
           if (ImGui::Button("save keyframe")) {
             fk_set_rot(active_anim, bone_strings[active_bone], current_frame / 1000.f, anim.bone_poses[active_bone].rotation);
           }
 
-          //fan::print(current_frame);
-          int32_t startFrame = 0;
-          int32_t endFrame = std::ceil(duration);
-          if (ImGui::BeginNeoSequencer("Sequencer", &current_frame, &startFrame, &endFrame, fan::vec2(0),
+          if (ImGui::BeginNeoSequencer("Sequencer", &current_frame, &start_frame, &end_frame, fan::vec2(0),
             ImGuiNeoSequencerFlags_EnableSelection |
             ImGuiNeoSequencerFlags_Selection_EnableDragging |
             ImGuiNeoSequencerFlags_Selection_EnableDeletion |

@@ -220,49 +220,45 @@ namespace fan {
       }
     }
     void to_angles(fan::vec3& angles) {
-      // Assuming the angles are in radians.
       const quaternion& q = *this;
       f32_t ysqr = q.y * q.y;
 
-      // Roll (x-axis rotation)
       f32_t t0 = 2.0f * (q.w * q.x + q.y * q.z);
       f32_t t1 = 1.0f - 2.0f * (q.x * q.x + ysqr);
       angles.x = std::atan2(t0, t1);
 
-      // Pitch (y-axis rotation)
       f32_t t2 = 2.0f * (q.w * q.y - q.z * q.x);
       t2 = t2 > 1.0f ? 1.0f : t2;
       t2 = t2 < -1.0f ? -1.0f : t2;
       angles.y = std::asin(t2);
 
-      // Yaw (z-axis rotation)
       f32_t t3 = 2.0f * (q.w * q.z + q.x * q.y);
       f32_t t4 = 1.0f - 2.0f * (ysqr + q.z * q.z);
       angles.z = std::atan2(t3, t4);
     }
 
-    //fan::vec3 to_euler() const {
-    //  fan::quaternion<T> q = *this;
-    //  // Roll (x-axis rotation)
-    //  f32_t sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
-    //  f32_t cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
-    //  f32_t roll = atan2(sinr_cosp, cosr_cosp);
+    static quaternion<T> from_angles(const fan::vec3& angles) {
+      f32_t cx = cos(angles.x * 0.5f);
+      f32_t sx = sin(angles.x * 0.5f);
+      f32_t cy = cos(angles.y * 0.5f);
+      f32_t sy = sin(angles.y * 0.5f);
+      f32_t cz = cos(angles.z * 0.5f);
+      f32_t sz = sin(angles.z * 0.5f);
 
-    //  // Pitch (y-axis rotation)
-    //  f32_t sinp = 2 * (q.w * q.y - q.z * q.x);
-    //  f32_t pitch;
-    //  if (abs(sinp) >= 1)
-    //    pitch = copysign(fan::math::pi / 2, sinp); // Use 90 degrees if out of range
-    //  else
-    //    pitch = asin(sinp);
+      quaternion<T> q;
+      q.w = cx * cy * cz + sx * sy * sz;
+      q.x = sx * cy * cz - cx * sy * sz;
+      q.y = cx * sy * cz + sx * cy * sz;
+      q.z = cx * cy * sz - sx * sy * cz;
 
-    //  // Yaw (z-axis rotation)
-    //  f32_t siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-    //  f32_t cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
-    //  f32_t yaw = atan2(siny_cosp, cosy_cosp);
+      return q;
+    }
 
-    //  return fan::vec3(roll, pitch, yaw);
-    //}
+    fan::vec3 to_euler() const {
+      fan::vec3 angles;
+      to_angles(angles);
+      return angles;
+    }
 
 	};
 
