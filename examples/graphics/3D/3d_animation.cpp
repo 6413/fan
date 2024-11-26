@@ -8,7 +8,7 @@ int main() {
   loco.set_vsync(0);
   fan::graphics::model_t::properties_t p;
 #if 1
-  p.path = "models/testt5.fbx";
+  p.path = "models/player.gltf";
 #else
   p.path = "models/X Bot.fbx";
 #endif
@@ -16,7 +16,7 @@ int main() {
   p.use_cpu = 0;
   fan::graphics::model_t model(p);
   //model.export_animation("Idle", "anim0.gltf");
-  p.path = "anim0.gltf";
+    p.path = "anim0.gltf";
   fan::graphics::model_t anim0(p);
   //anim0.fk_calculate_poses();
   //
@@ -24,13 +24,31 @@ int main() {
 
   loco.console.commands.call("show_fps 1");
 
-  auto anid = model.create_an("an_name", 1.0f, 2.f);
-  auto animation_node_id = model.fk_set_rot(anid, "Left_leg", 0.001/* time in seconds */,
-    fan::vec3(1, 0, 0), 0
-  );
-  auto animation_node_id3 = model.fk_set_rot(anid, "Left_leg", 1/* time in seconds */,
-    fan::vec3(1, 0, 0), fan::math::pi
-  );
+    //auto anid = model.create_an("an_name", 0.5);
+    ////auto anid2 = bcol_model.create_an("an_name2", 0.5);
+
+    //auto animation_node_id1 = model.fk_set_rot(anid, "Armature_Chest", 0.001/* time in seconds */,
+    //  fan::vec3(1, 0, 0), 0
+    //);
+    //auto animation_node_id = model.fk_set_rot(anid, "Armature_Chest", 0.3/* time in seconds */,
+    //  fan::vec3(1, 0, 0), fan::math::pi / 2
+    //);
+
+    //auto animation_node_id3 = model.fk_set_rot(anid, "Armature_Chest", 0.6/* time in seconds */,
+    //  fan::vec3(1, 0, 0), -fan::math::pi / 3
+    //);
+
+    //auto animation_node_id2 = model.fk_set_rot(anid, "Armature_Upper_Leg_L", 0.6/* time in seconds */,
+    //  fan::vec3(1, 0, 0), -fan::math::pi
+    //);
+
+  //auto anid = model.create_an("an_name", 1.0f, 2.f);
+  //auto animation_node_id = model.fk_set_rot(anid, "Left_leg", 0.001/* time in seconds */,
+  //  fan::vec3(1, 0, 0), 0
+  //);
+  //auto animation_node_id3 = model.fk_set_rot(anid, "Left_leg", 1/* time in seconds */,
+  //  fan::vec3(1, 0, 0), fan::math::pi
+  //);
 
   std::vector<loco_t::shape_t> joint_cubes;
 

@@ -1456,7 +1456,7 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 
   ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
   ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
-  ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+  ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
   ImGui::PopStyleColor(2);
 
   ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -2382,7 +2382,7 @@ IMGUI_API void ImGui::Image(loco_t::image_t img, const ImVec2& size, const ImVec
 }
 
 IMGUI_API bool ImGui::ImageButton(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
-  return ImGui::ImageButton((ImTextureID)gloco->image_get(img), size, uv0, uv1, frame_padding, bg_col, tint_col);
+  return ImGui::ImageButton("", (ImTextureID)gloco->image_get(img), size, uv0, uv1, bg_col, tint_col);
 }
 
 bool ImGui::ToggleButton(const char* str_id, bool* v) {
@@ -2466,7 +2466,7 @@ void fan::graphics::imgui_content_browser_t::render() {
   ImGuiStyle& style = ImGui::GetStyle();
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 16.0f));
   ImGuiWindowClass window_class;
-  window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
+  //window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar; TODO ?
   ImGui::SetNextWindowClass(&window_class);
   if (ImGui::Begin("Content Browser", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoTitleBar)) {
     if (ImGui::BeginMenuBar()) {
