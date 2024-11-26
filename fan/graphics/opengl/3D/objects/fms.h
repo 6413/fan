@@ -600,8 +600,14 @@ namespace fan_3d {
       void fk_get_pose(animation_data_t& animation, const bone_t& bone) {
 
         // this fmods other animations too. dt per animation? or with weights or max of all animations?
+        // fix xd
         if (animation.duration != 0) {
-          dt = fmod(dt, 10000); //HARDCOED
+          if (animation.weight == 1 &&get_active_animation_id() != -1 && animation.duration == get_active_animation().duration) {
+            dt = fmod(dt, animation.duration);
+          }
+          else {
+            dt = fmod(dt, 10000);
+          }
         }
         fan::vec3 position = 0, scale = 1;
         fan::quat rotation;
@@ -634,6 +640,21 @@ namespace fan_3d {
               const auto& pose = anim.bone_poses[bone.id];
 
               fan::mat4 anim_transform{1};
+              // how to remove?
+              switch (anim.type) {
+              case animation_data_t::type_e::nonlinear_animation: {
+                anim_transform = fan::mat4(1);
+                break;
+              }
+              case animation_data_t::type_e::custom: {
+                anim_transform = bone.transform;
+                break;
+              }
+              default: {
+                fan::throw_error("invalid animation type");
+                break;
+              }
+              }
               
               anim_transform = anim_transform.translate(pose.position);
               anim_transform = anim_transform * fan::mat4(pose.rotation);
@@ -967,6 +988,9 @@ namespace fan_3d {
           // && is_bone_in_anim_curve_node(scene, found_bone)
           if (our_bone_found) {
             channel->mNodeName = aiString(found_bone);
+          }
+          else if (found_bone.empty()) {
+            fan::print_no_space(std::string("Failed to resolve animation bone:'") + channel->mNodeName.C_Str() + '\'');
           }
           else {
             fan::print_no_space("Bone '" + found_bone + '\'', " is missing animation");
