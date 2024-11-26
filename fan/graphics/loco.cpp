@@ -1156,6 +1156,8 @@ void loco_t::process_frame() {
 
         switch (shape_type) {
         case shape_type_t::rectangle3d: {
+          // illegal xd
+          context.set_depth_test(false);
           if ((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) {
             context.opengl.glDrawArraysInstancedBaseInstance(
               fan::opengl::GL_TRIANGLES,

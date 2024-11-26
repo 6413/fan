@@ -15,11 +15,10 @@ int main() {
   p.texture_path = "models/textures";
   p.use_cpu = 0;
   fan::graphics::model_t model(p);
-
   //model.export_animation("Idle", "anim0.gltf");
-  
   p.path = "anim0.gltf";
   fan::graphics::model_t anim0(p);
+  //anim0.fk_calculate_poses();
   //
   model.import_animation(anim0);
 
@@ -42,7 +41,11 @@ int main() {
  // model.UpdateBoneRotation("Left_leg", -90.f, 0, 0);
 
   bool draw_lines = 0;
-  gloco->m_post_draw.push_back([&] {
+
+  
+
+  // predraw to see rectangles
+  gloco->m_pre_draw.push_back([&] {
     ImGui::Begin("window");
 
     ImGui::Text("use cpu");
@@ -56,6 +59,7 @@ int main() {
     }
 
     ImGui::Text("draw lines");
+    ImGui::SameLine();
     if (ImGui::ToggleButton("##draw lines", &draw_lines)) {
       if (draw_lines) {
         gloco->opengl.glPolygonMode(fan::opengl::GL_FRONT_AND_BACK, fan::opengl::GL_LINE);
@@ -70,15 +74,21 @@ int main() {
     auto bts = model.fk_calculate_transformations();
     model.upload_modified_vertices();
     joint_cubes.clear();
-      model.iterate_bones(*model.root_bone, [&](const fan_3d::model::bone_t& bone) {
-    
-    loco_t::rectangle3d_t::properties_t rp;
-    rp.size = 0.1;
-    rp.color = fan::colors::red;
-    rp.position = bone.global_transform.get_translation();
-    rp.position = fan::vec3(rp.position.x, rp.position.z, rp.position.y);
-    joint_cubes.push_back(rp);
-  });
+    model.iterate_bones(*model.root_bone, [&](const fan_3d::model::bone_t& bone) {
+      if (model.get_active_animation_id() == -1) {
+        return;
+      }
+      const auto& bt = model.get_active_animation().bone_transforms;
+      if (!bt.empty() && bt.find(bone.name) == bt.end()) {
+        return;
+      }
+      loco_t::rectangle3d_t::properties_t rp;
+      rp.size = 0.1;
+      rp.color = fan::colors::red;
+      fan::vec4 v = (m * fan::vec4(bone.global_transform.get_translation(), 1.0));
+      rp.position = *(fan::vec3*)&v;
+      joint_cubes.push_back(rp);
+    });
 
     //model.print_bone_recursive(model.root_bone);
 
@@ -133,8 +143,6 @@ int main() {
 
   int active_axis = -1;
 
-  model.dt = 0;
-
   loco.loop([&] {
 
     //ImGui::Begin("animations");
@@ -168,7 +176,6 @@ int main() {
       std::to_string(camera.get_pitch())
     );
 
-    loco.get_fps();
     motion = 0;
   });
 }
@@ -277,7 +284,6 @@ int main() {
       std::to_string(camera.get_pitch())
     );
 
-    loco.get_fps();
     motion = 0;
   });
 }
