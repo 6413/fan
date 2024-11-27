@@ -16,6 +16,12 @@ namespace fan {
       struct properties_t : fan_3d::model::fms_model_info_t {
 
       };
+
+      struct mesh_t :fms_t::mesh_t{
+        fan::opengl::core::vao_t VAO;
+        fan::opengl::core::vbo_t VBO;
+        fan::opengl::GLuint EBO;
+      };
       model_t(const properties_t& p) : fms_t(p) {
         std::string vs = loco_t::read_shader("shaders/opengl/3D/objects/model.vs");
         std::string fs = loco_t::read_shader("shaders/opengl/3D/objects/model.fs");
