@@ -3156,37 +3156,39 @@ void fan::camera::move(f32_t movement_speed, f32_t friction) {
   if (this->velocity.z < minimum_velocity && this->velocity.z > -minimum_velocity) {
     this->velocity.z = 0;
   }
-  if (gloco->window.key_pressed(fan::input::key_w)) {
-    this->velocity += this->m_front * (movement_speed * gloco->delta_time);
-  }
-  if (gloco->window.key_pressed(fan::input::key_s)) {
-    this->velocity -= this->m_front * (movement_speed * gloco->delta_time);
-  }
-  if (gloco->window.key_pressed(fan::input::key_a)) {
-    this->velocity -= this->m_right * (movement_speed * gloco->delta_time);
-  }
-  if (gloco->window.key_pressed(fan::input::key_d)) {
-    this->velocity += this->m_right * (movement_speed * gloco->delta_time);
-  }
+  if (!gloco->console.input.IsFocused()) {
+    if (gloco->window.key_pressed(fan::input::key_w)) {
+      this->velocity += this->m_front * (movement_speed * gloco->delta_time);
+    }
+    if (gloco->window.key_pressed(fan::input::key_s)) {
+      this->velocity -= this->m_front * (movement_speed * gloco->delta_time);
+    }
+    if (gloco->window.key_pressed(fan::input::key_a)) {
+      this->velocity -= this->m_right * (movement_speed * gloco->delta_time);
+    }
+    if (gloco->window.key_pressed(fan::input::key_d)) {
+      this->velocity += this->m_right * (movement_speed * gloco->delta_time);
+    }
 
-  if (gloco->window.key_pressed(fan::input::key_space)) {
-    this->velocity.y += movement_speed * gloco->delta_time;
-  }
-  if (gloco->window.key_pressed(fan::input::key_left_shift)) {
-    this->velocity.y -= movement_speed * gloco->delta_time;
-  }
+    if (gloco->window.key_pressed(fan::input::key_space)) {
+      this->velocity.y += movement_speed * gloco->delta_time;
+    }
+    if (gloco->window.key_pressed(fan::input::key_left_shift)) {
+      this->velocity.y -= movement_speed * gloco->delta_time;
+    }
 
-  if (gloco->window.key_pressed(fan::input::key_left)) {
-    this->set_yaw(this->get_yaw() - sensitivity * 100 * gloco->delta_time);
-  }
-  if (gloco->window.key_pressed(fan::input::key_right)) {
-    this->set_yaw(this->get_yaw() + sensitivity * 100 * gloco->delta_time);
-  }
-  if (gloco->window.key_pressed(fan::input::key_up)) {
-    this->set_pitch(this->get_pitch() + sensitivity * 100 * gloco->delta_time);
-  }
-  if (gloco->window.key_pressed(fan::input::key_down)) {
-    this->set_pitch(this->get_pitch() - sensitivity * 100 * gloco->delta_time);
+    if (gloco->window.key_pressed(fan::input::key_left)) {
+      this->set_yaw(this->get_yaw() - sensitivity * 100 * gloco->delta_time);
+    }
+    if (gloco->window.key_pressed(fan::input::key_right)) {
+      this->set_yaw(this->get_yaw() + sensitivity * 100 * gloco->delta_time);
+    }
+    if (gloco->window.key_pressed(fan::input::key_up)) {
+      this->set_pitch(this->get_pitch() + sensitivity * 100 * gloco->delta_time);
+    }
+    if (gloco->window.key_pressed(fan::input::key_down)) {
+      this->set_pitch(this->get_pitch() - sensitivity * 100 * gloco->delta_time);
+    }
   }
 
   this->position += this->velocity * gloco->delta_time;
