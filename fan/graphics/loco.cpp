@@ -1365,6 +1365,7 @@ void loco_t::process_frame() {
 
   static constexpr uint32_t parent_window_flags = ImGuiWindowFlags_NoFocusOnAppearing;
 
+  static uint64_t frame_count = 0;
   if (toggle_fps) {
     static int initial = 0;
     if (initial == 0) {
@@ -1372,34 +1373,47 @@ void loco_t::process_frame() {
       ImGui::SetNextWindowSize(fan::vec2(ImGui::GetIO().DisplaySize) / 2.5);
       ImGui::SetNextWindowPos(ImVec2(0, 0));
     }
-
     ImGui::Begin("Performance window", 0, parent_window_flags);
-    ImGui::Text("fps:%d", (int)(1.f / delta_time));
-
+  
     static constexpr int buffer_size = 100;
-    static std::array<float, buffer_size> samples;
+    static constexpr int samples_before_render = 25;
+    static std::array<float, buffer_size> samples = {0};
     static int insert_index = 0;
+    static bool stats_ready = false;
 
-    float average_frame_time_ms = std::accumulate(samples.begin(), samples.end(), 0.0f) / buffer_size;
-    float lowest_ms = *std::min_element(samples.begin(), samples.end());
-    float highest_ms = *std::max_element(samples.begin(), samples.end());
-    ImGui::Text("Average Frame Time: %.4f ms", average_frame_time_ms);
-    ImGui::Text("Lowest Frame Time: %.4f ms", lowest_ms);
-    ImGui::Text("Highest Frame Time: %.4f ms", highest_ms);
-
-    ImGui::Text("Average fps : %.4f ms", 1.0 / average_frame_time_ms);
-    ImGui::Text("Lowest fps: %.4f ms", 1.0 / lowest_ms);
-    ImGui::Text("Highest fps: %.4f ms", 1.0 / highest_ms);
     static uint32_t frame = 0;
     frame++;
-    static constexpr int refresh_speed = 25;
+    static constexpr int refresh_speed = 1;  // Capture every frame
+  
     if (frame % refresh_speed == 0) {
       samples[insert_index] = delta_time;
       insert_index = (insert_index + 1) % buffer_size;
+
+      if (insert_index >= samples_before_render) {
+        stats_ready = true;
+      }
     }
 
-    ImGui::PlotLines("##fps_plot", samples.data(), buffer_size, insert_index, nullptr, 0.0f, FLT_MAX, ImVec2(0, 80));
-    ImGui::Text("Current Frame Time: %.4f ms", delta_time);
+    if (stats_ready) {
+      float average_frame_time_ms = std::accumulate(samples.begin(), samples.end(), 0.0f) / buffer_size;
+      float lowest_ms = *std::min_element(samples.begin(), samples.end());
+      float highest_ms = *std::max_element(samples.begin(), samples.end());
+    
+      ImGui::Text("fps: %d", (int)(1.f / delta_time));
+      ImGui::Text("Average Frame Time: %.4f ms", average_frame_time_ms);
+      ImGui::Text("Lowest Frame Time: %.4f ms", lowest_ms);
+      ImGui::Text("Highest Frame Time: %.4f ms", highest_ms);
+      ImGui::Text("Average fps: %.4f", 1.0 / average_frame_time_ms);
+      ImGui::Text("Lowest fps: %.4f", 1.0 / lowest_ms);
+      ImGui::Text("Highest fps: %.4f", 1.0 / highest_ms);
+    
+      ImGui::PlotLines("##fps_plot", samples.data(), buffer_size, insert_index, nullptr, 0.0f, FLT_MAX, ImVec2(0, 80));
+      ImGui::Text("Current Frame Time: %.4f ms", delta_time);
+    }
+    else {
+      ImGui::Text("Collecting performance data...");
+    }
+
     ImGui::End();
   }
 
