@@ -417,18 +417,18 @@ namespace fan_3d {
         return true;
       }
       void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, const fan::mat4& model) {
-        for (int i = 0; i < meshes[mesh_id].vertices.size(); ++i) {
-          fan::vec3 v = meshes[mesh_id].vertices[i].position;
+        for (int i = 0; i < meshes[mesh_id].indices.size(); ++i) {
+          uint32_t vertex_index = meshes[mesh_id].indices[i];
+          fan::vec3 v = meshes[mesh_id].vertices[vertex_index].position;
           if (bt.empty()) {
             fan::vec4 vertex_position = m_transform * model * fan::vec4(v, 1.0);
-            calculated_meshes[mesh_id].vertices[i].position = fan::vec3(vertex_position.x, vertex_position.y, vertex_position.z);
+            calculated_meshes[mesh_id].vertices[vertex_index].position = fan::vec3(vertex_position.x, vertex_position.y, vertex_position.z);
           }
           else {
-            fan::vec4 interpolated_bone_transform = calculate_bone_transform(bt, mesh_id, i);
+            fan::vec4 interpolated_bone_transform = calculate_bone_transform(bt, mesh_id, vertex_index);
             fan::vec4 vertex_position = fan::vec4(v, 1.0);
             fan::vec4 result = model * interpolated_bone_transform;
-
-            calculated_meshes[mesh_id].vertices[i].position = fan::vec3(result.x, result.y, result.z);
+            calculated_meshes[mesh_id].vertices[vertex_index].position = fan::vec3(result.x, result.y, result.z);
           }
         }
       }
@@ -1064,30 +1064,9 @@ namespace fan_3d {
           ImGui::Indent(10.0f);
         }
 
-        bool node_open = ImGui::TreeNodeEx(bone->name.c_str(), flags);
+        bool node_open = ImGui::TreeNodeEx((bone->name + " | parent " + (bone->parent ? bone->parent->name : "N/A")).c_str(), flags);
 
-        if (node_open) {
-          ImGui::PushID(bone);
-
-          ImGui::BeginGroup();
-    
-          f32_t speed = 1.0f;
-          ImGui::PushItemWidth(150.0f);
-    
-          ImGui::Text("Rotation");
-          ImGui::SameLine();
-          if (ImGui::Button("Reset")) {
-            bone->rotation = 0;
-          }
-          ImGui::SliderFloat("X", &bone->rotation.x, -fan::math::pi, fan::math::pi, "%.3f", speed);
-          ImGui::SliderFloat("Y", &bone->rotation.y, -fan::math::pi, fan::math::pi, "%.3f", speed);
-          ImGui::SliderFloat("Z", &bone->rotation.z, -fan::math::pi, fan::math::pi, "%.3f", speed);
-
-          ImGui::PopItemWidth();
-          ImGui::EndGroup();
-
-          ImGui::PopID();
-
+        if (node_open)  {
           // Print children
           for (bone_t* child : bone->children) {
             print_bone_recursive(child, depth + 1);
