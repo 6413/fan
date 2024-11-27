@@ -220,6 +220,32 @@ namespace fan {
       m_array[2][2] = f32_t(1) - f32_t(2) * (qxx + qyy);
     }
 
+    constexpr std::string to_string(const std::string& per_root = "") const {
+      std::string str = per_root;
+      for (uintptr_t i = 0; i < 4; i++) {
+        for (uintptr_t j = 0; j < 4; j++) {
+          str += std::to_string((*this)[j][i]) + ' ';
+        }
+        if (i < 3) {
+          str += '\n' + per_root;
+        }
+      }
+      return str;
+    }
+    constexpr std::array<std::string, 4> to_string_r(const std::string& per_root = "") const {
+      std::array<std::string, 4> roots;
+      std::string str = per_root;
+      for (uintptr_t i = 0; i < 4; i++) {
+        for (uintptr_t j = 0; j < 4; j++) {
+          str += std::to_string((*this)[j][i]) + ' ';
+        }
+        roots[i] = str + per_root;
+        str.clear();
+      }
+      return roots;
+    }
+
+
     template <typename T>
     friend std::ostream& operator<<(std::ostream& os, const _matrix4x4<T>& matrix)
     {
