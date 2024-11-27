@@ -93,6 +93,7 @@ namespace fan_3d {
       std::string texture_path;
       int use_cpu = false;
     };
+    using properties_t = fms_model_info_t;
 
     // fan model stuff
     struct fms_t {
@@ -252,7 +253,9 @@ namespace fan_3d {
             auto found = cached_texture_data.find(file_path);
             if (found == cached_texture_data.end()) {
               fan::image::image_info_t ii;
-              fan::image::load(file_path, &ii);
+              if (fan::image::load(file_path, &ii)) {
+                return "";
+              }
               auto& td = cached_texture_data[file_path];
               td.size = ii.size;
               td.data.insert(td.data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
