@@ -2,10 +2,19 @@
 
 #include <assimp/Exporter.hpp>
 #include <locale>
+
+#include <fan/types/vector.h>
+#include <fan/types/matrix.h>
+#include <fan/types/quaternion.h>
+
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <assimp/Importer.hpp>
+
+#include <fan/graphics/image_load.h>
+
 namespace fan_3d {
   namespace model {
-    using namespace fan::opengl;
-
     struct vertex_t {
       fan::vec3 position;
       fan::vec3 normal;
@@ -70,9 +79,6 @@ namespace fan_3d {
       std::vector<fan_3d::model::vertex_t> vertices;
       std::vector<uint32_t> indices;
 
-      fan::opengl::core::vao_t VAO;
-      fan::opengl::core::vbo_t VBO;
-      fan::opengl::GLuint EBO;
       std::string texture_names[AI_TEXTURE_TYPE_MAX + 1]{};
     };
 
@@ -93,10 +99,10 @@ namespace fan_3d {
       std::string texture_path;
       int use_cpu = false;
     };
-    using properties_t = fms_model_info_t;
 
     // fan model stuff
     struct fms_t {
+      using properties_t = fms_model_info_t;
       fms_t() = default;
       fms_t(const fms_model_info_t& fmi) {
         if (!load_model(fmi.path)) {
@@ -763,12 +769,6 @@ namespace fan_3d {
 
             }
             animation.bone_transforms[channel->mNodeName.C_Str()] = track;
-            fan::printclh(
-              fan::console_t::highlight_e::success, 
-              std::string("loading animation:") + anim->mName.C_Str() +
-              std::string(" bone:") +
-              channel->mNodeName.C_Str()
-            );
           }
         }
       }
@@ -1019,28 +1019,28 @@ namespace fan_3d {
               bone_mapper.find(our_bone.name) == bone_mapper.end()
               ) {
               found_bone = our_bone.name;
-              if (found_bone == "mixamorigLeftHandThumb4") {
-                fan::print("A");
-              }
               bone_mapper[found_bone];
               our_bone_found = true;
             }
           });
           // bones might exist, but there might be no animation channel for it
           // && is_bone_in_anim_curve_node(scene, found_bone)
-          if (our_bone_found) {
+          if (false) {
             channel->mNodeName = aiString(found_bone);
-            fan::printclh(fan::console_t::highlight_e::info, channel->mNodeName.C_Str());
           }
           else if (found_bone.empty()) {
             fan::print_no_space(std::string("Failed to resolve animation bone:'") + channel->mNodeName.C_Str() + '\'');
-            /*channel->mNodeName = "";
+            channel->mNodeName = "";
             channel->mNumPositionKeys = 0;
             channel->mNumRotationKeys = 0;
-            channel->mNumScalingKeys = 0;*/
+            channel->mNumScalingKeys = 0;
           }
           else {
             fan::print_no_space("Bone '" + found_bone + '\'', " is missing animation");
+            channel->mNodeName = "";
+            channel->mNumPositionKeys = 0;
+            channel->mNumRotationKeys = 0;
+            channel->mNumScalingKeys = 0;
           }
         }
         animation_list.clear();
@@ -1163,7 +1163,7 @@ namespace fan_3d {
         }
       }
 
-      void mouse_modify_joint() {
+      void mouse_modify_joint(f32_t ddt) {
         static constexpr f64_t delta_time_divier = 1e+6;
         ImGui::DragFloat("current time", &dt, 1, 0, std::max(longest_animation, 1.f));
         //ImGui::Text(fan::format("camera pos: {}\ntotal time: {:.2f}", gloco->default_camera_3d->camera.position, fms.default_animation.duration).c_str());
@@ -1172,7 +1172,7 @@ namespace fan_3d {
           showing_temp_rot = false;
         }
         if (play) {
-          dt += gloco->delta_time * 1000;
+          dt += ddt * 1000;
         }
 
 
@@ -1222,43 +1222,43 @@ namespace fan_3d {
             fk_set_rot(active_anim, bone_strings[active_bone], current_frame / 1000.f, anim.bone_poses[active_bone].rotation);
           }
 
-          if (ImGui::BeginNeoSequencer("Sequencer", &current_frame, &start_frame, &end_frame, fan::vec2(0),
-            ImGuiNeoSequencerFlags_EnableSelection |
-            ImGuiNeoSequencerFlags_Selection_EnableDragging |
-            ImGuiNeoSequencerFlags_Selection_EnableDeletion |
-            ImGuiNeoSequencerFlags_AllowLengthChanging)) {
-            static bool transform_open = true;
-            if (ImGui::BeginNeoGroup("Transform", &transform_open))
-            {
+          //if (ImGui::BeginNeoSequencer("Sequencer", &current_frame, &start_frame, &end_frame, fan::vec2(0),
+          //  ImGuiNeoSequencerFlags_EnableSelection |
+          //  ImGuiNeoSequencerFlags_Selection_EnableDragging |
+          //  ImGuiNeoSequencerFlags_Selection_EnableDeletion |
+          //  ImGuiNeoSequencerFlags_AllowLengthChanging)) {
+          //  static bool transform_open = true;
+          //  if (ImGui::BeginNeoGroup("Transform", &transform_open))
+          //  {
 
-              if (ImGui::BeginNeoTimelineEx("rotation"))
-              {
-                if (bt.rotation_timestamps.size()) {
-                  for (int i = 0; i < bt.rotation_timestamps.size(); ++i) {
-                    int32_t p = bt.rotation_timestamps[i];
-                    ImGui::NeoKeyframe(&p);
-                    bt.rotation_timestamps[i] = p;
-                    //ImGui::DragFloat(("timestamps:" + std::to_string(i)).c_str(), &bt.rotation_timestamps[i], 1);
-                  }
-                }
-                // delete
-                if (false)
-                {
-                  uint32_t count = ImGui::GetNeoKeyframeSelectionSize();
+          //    if (ImGui::BeginNeoTimelineEx("rotation"))
+          //    {
+          //      if (bt.rotation_timestamps.size()) {
+          //        for (int i = 0; i < bt.rotation_timestamps.size(); ++i) {
+          //          int32_t p = bt.rotation_timestamps[i];
+          //          ImGui::NeoKeyframe(&p);
+          //          bt.rotation_timestamps[i] = p;
+          //          //ImGui::DragFloat(("timestamps:" + std::to_string(i)).c_str(), &bt.rotation_timestamps[i], 1);
+          //        }
+          //      }
+          //      // delete
+          //      if (false)
+          //      {
+          //        uint32_t count = ImGui::GetNeoKeyframeSelectionSize();
 
-                  ImGui::FrameIndexType* toRemove = new ImGui::FrameIndexType[count];
+          //        ImGui::FrameIndexType* toRemove = new ImGui::FrameIndexType[count];
 
-                  ImGui::GetNeoKeyframeSelection(toRemove);
+          //        ImGui::GetNeoKeyframeSelection(toRemove);
 
-                  //Delete keyframes from your structure
-                }
-                ImGui::EndNeoTimeLine();
-                ImGui::EndNeoGroup();
-              }
-            }
+          //        //Delete keyframes from your structure
+          //      }
+          //      ImGui::EndNeoTimeLine();
+          //      ImGui::EndNeoGroup();
+          //    }
+          //  }
 
-            ImGui::EndNeoSequencer();
-          }
+          //  ImGui::EndNeoSequencer();
+          //}
         }
       }
 
