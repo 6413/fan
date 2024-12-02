@@ -1416,33 +1416,38 @@ namespace fan_3d {
         fan::quat rotation_offset_quat = dst.normalize().inverse() * anim.normalize();
         fan::quat src_conjugate = src.conjugate();
 
+        
+        fan::vec3 asrc, adst, aanim;
+        src.to_angles(asrc);
+        dst.to_angles(adst);
+        animation_rotation.to_angles(aanim);
+        //fan::print("a src", asrc);
+       // fan::print("a dst", adst);
+       // fan::print("a anim", aanim);
+        fan::vec3 angle_offset = aanim - asrc;
+        fan::vec3 new_angle = adst - asrc + aanim;
+        //std::swap(aanim.z, aanim.x);
+        //std::swap(aanim.y, aanim.x);
+        //std::swap(animation_rotation.z, animation_rotation.x);
+       // std::swap(animation_rotation.y, animation_rotation.x);
+        
+    /*    fan::print(model_tpose.name);
+        fan::print("a src", asrc);
+        fan::print("a anim", aanim);
+        fan::print("a offset", angle_offset);
+        fan::print("a dst", adst);
 
-        return (rotation_offset_quat * src_conjugate).normalize();
+        fan::print("new angle", new_angle);
+        fan::print("ar", animation_rotation);*/
 
 
         if (model_tpose.name == "Left_leg") {
-          fan::print("src", src);
-          fan::print("dst", dst);
-          fan::print("anim", anim);
 
-          fan::quat n = animation_rotation;
-          fan::quat temp = n;
-          n.z = temp.x;
-          n.y = temp.w;
-          n.w = temp.y;
-          n.x = temp.z;
-          fan::print("new", n);
-          fan::print("");
-          //return updated_dst * rot;
-          //return animation_rotation;
+
+       
         }
 
-        fan::quat temp = animation_rotation;
-        animation_rotation.y = temp.x;
-        animation_rotation.w = temp.w;
-        animation_rotation.z = temp.y;
-        animation_rotation.x = temp.z;
-        return fan::quat();
+        return fan::quat::from_angles(new_angle);
       }
 
 

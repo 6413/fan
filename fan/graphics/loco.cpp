@@ -2442,7 +2442,7 @@ IMGUI_API bool ImGui::ImageButton(loco_t::image_t img, const ImVec2& size, const
 
 bool ImGui::ToggleButton(const std::string& str, bool* v) {
 
-  ImGui::Text(str.c_str());
+  ImGui::Text("%s", str.c_str());
   ImGui::SameLine();
 
   ImVec2 p = ImGui::GetCursorScreenPos();
