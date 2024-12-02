@@ -184,7 +184,7 @@ constexpr auto normalize() const { auto l = length(); if (l == 0) return vec_t(0
 constexpr vec_t square_normalize() const { return *this / abs().max(); }
 void from_string(const std::string& str) { std::stringstream ss(str); char ch; for (access_type_t i = 0; i < size(); ++i) ss >> ch >> (*this)[i]; }
 
-std::string to_string(int precision = 2) const {
+std::string to_string(int precision = 4) const {
   std::string out("{");
   for (access_type_t i = 0; i < size() - 1; ++i) { out += fan::to_string((*this)[i], precision) + ", "; }
   if constexpr (size()) {

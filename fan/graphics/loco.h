@@ -320,6 +320,7 @@ struct loco_t : fan::opengl::context_t {
       light_end,
       shader_shape,
       rectangle3d,
+      line3d,
       last
     };
   };
@@ -435,6 +436,7 @@ struct loco_t : fan::opengl::context_t {
   using draw_cb = void (*)(uint8_t draw_range);
 
   using set_line_cb = void (*)(shape_t*, const fan::vec2&, const fan::vec2&);
+  using set_line3_cb = void (*)(shape_t*, const fan::vec3&, const fan::vec3&);
 
   struct functions_t {
     push_back_cb push_back;
@@ -496,6 +498,7 @@ struct loco_t : fan::opengl::context_t {
     draw_cb draw;
 
     set_line_cb set_line;
+    set_line3_cb set_line3;
   };
 
   template <typename T, typename T2>
@@ -1287,6 +1290,15 @@ struct loco_t : fan::opengl::context_t {
           else {
             fan::throw_error("unimplemented set");
           }
+        },
+        .set_line3 = [](shape_t* shape, const fan::vec3& src, const fan::vec3& dst) {
+          if constexpr (fan_has_variable(T, src) && fan_has_variable(T, dst)) {
+            modify_render_data_element(shape, &T::src, src);
+            modify_render_data_element(shape, &T::dst, dst);
+          }
+          else {
+            fan::throw_error("unimplemented set");
+          }
         }
       };
     return funcs;
@@ -1763,6 +1775,9 @@ public:
       }
       else if constexpr (std::is_same_v<T, loco_t::rectangle3d_t::properties_t>) {
         *this = gloco->rectangle3d.push_back(properties);
+      }
+      else if constexpr (std::is_same_v<T, line3d_t::properties_t>) {
+        *this = gloco->line3d.push_back(properties);
       }
       else {
         fan::throw_error("failed to find correct shape", typeid(T).name());
@@ -2729,6 +2744,48 @@ public:
 
   }rectangle3d;
 
+  struct line3d_t {
+
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::line3d;
+    static constexpr int kpi = kp::common;
+
+#pragma pack(push, 1)
+
+    struct vi_t {
+      fan::color color;
+      fan::vec3 src;
+      fan::vec3 dst;
+    };
+    struct ri_t {
+
+    };
+
+#pragma pack(pop)
+
+    inline static std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{0, 4, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
+      shape_gl_init_t{1, 3, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
+      shape_gl_init_t{2, 3, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
+    };
+
+    struct properties_t {
+      using type_t = line_t;
+
+      fan::color color = fan::colors::white;
+      fan::vec3 src;
+      fan::vec3 dst;
+
+      bool blending = false;
+
+      loco_t::camera_t camera = gloco->perspective_camera.camera;
+      loco_t::viewport_t viewport = gloco->perspective_camera.viewport;
+    };
+
+
+    shape_t push_back(const properties_t& properties);
+
+  }line3d;
+
   //-------------------------------------shapes-------------------------------------
 
   template <typename T>
@@ -2904,27 +2961,7 @@ public:
     return convert_mouse_to_ndc(gloco->get_mouse_position(), gloco->window.get_size());
   }
 
-  static fan::ray3_t convert_mouse_to_ray(const fan::vec2i& mouse_position, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
-    fan::vec2i screen_size = gloco->window.get_size();
-
-    fan::vec4 ray_ndc((2.0f * mouse_position.x) / screen_size.x - 1.0f, 1.0f - (2.0f * mouse_position.y) / screen_size.y, 1.0f, 1.0f);
-
-    fan::mat4 inverted_projection = projection.inverse();
-
-    fan::vec4 ray_clip = inverted_projection * ray_ndc;
-
-    ray_clip.z = -1.0f;
-    ray_clip.w = 0.0f;
-
-    fan::mat4 inverted_view = view.inverse();
-
-    fan::vec4 ray_world = inverted_view * ray_clip;
-
-    fan::vec3 ray_dir = fan::vec3(ray_world.x, ray_world.y, ray_world.z).normalize();
-
-    fan::vec3 ray_origin = camera_position;
-    return fan::ray3_t(ray_origin, ray_dir);
-  }
+  static fan::ray3_t convert_mouse_to_ray(const fan::vec2i& mouse_position, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view);
 
   fan::ray3_t convert_mouse_to_ray(const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
     return convert_mouse_to_ray(gloco->get_mouse_position(), camera_position, projection, view);
@@ -3341,6 +3378,29 @@ namespace fan {
             .rotation_point = p.rotation_point,
             .color = p.color,
             .angle = p.angle
+          ));
+      }
+    };
+
+    struct line3d_properties_t {
+      camera_impl_t* camera = &gloco->perspective_camera;
+      fan::vec3 src = fan::vec3(0, 0, 0);
+      fan::vec3 dst = fan::vec3(10, 10, 10);
+      fan::color color = fan::color(1, 1, 1, 1);
+      bool blending = false;
+    };
+
+    struct line3d_t : loco_t::shape_t {
+      line3d_t(line3d_properties_t p = line3d_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            typename loco_t::line3d_t::properties_t,
+            .camera = p.camera->camera,
+            .viewport = p.camera->viewport,
+            .src = p.src,
+            .dst = p.dst,
+            .color = p.color,
+            .blending = p.blending
           ));
       }
     };
@@ -3778,8 +3838,7 @@ namespace ImGui {
   IMGUI_API void Image(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
   IMGUI_API bool ImageButton(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 
-  bool ToggleButton(const char* str_id, bool* v);
-
+  bool ToggleButton(const std::string& str, bool* v);
   bool ToggleImageButton(loco_t::image_t image, const ImVec2& size, bool* toggle);
   
   void DrawTextBottomRight(const char* text, uint32_t reverse_yoffset = 0);

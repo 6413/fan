@@ -84,6 +84,10 @@ namespace fan {
   template <typename value_type_t>
   struct vec3_wrap_t;
 
+  template <typename value_type_t>
+  struct vec4_wrap_t;
+
+
 	// wrappers for type specific functions
 	template <typename value_type_t>
   struct vec2_wrap_t {
@@ -126,6 +130,12 @@ namespace fan {
 		constexpr vec3_wrap_t(const vec2_wrap_t<T>& test0, auto value) 
       : vec3_wrap_t(test0.x, test0.y, value) { } 
 
+    template <typename T>
+    constexpr vec3_wrap_t(const vec4_wrap_t<T>& test0) 
+    : vec3_wrap_t(test0.x, test0.y, test0.z){
+
+    }
+
 
   #if defined(loco_assimp)
     vec3_wrap_t(const aiVector3D& v) {
@@ -133,13 +143,13 @@ namespace fan {
     y = v.y;
     z = v.z;
   }
- /*  operator aiVector3D() {
+   operator aiVector3D() {
     aiVector3D v;
     v.x = x;
     v.y = y;
     v.z = z;
     return v;
-  }*/
+  }
   #endif
 
    template <typename T>
