@@ -725,6 +725,19 @@ loco_t::loco_t(const properties_t& p){
       );
     }
   }
+  {
+    if (opengl.major == 2 && opengl.minor == 1) {
+      // todo implement line
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::line3d_t>(
+        &line3d,
+        "shaders/opengl/3D/objects/line.vs",
+        "shaders/opengl/3D/objects/line.fs"
+      );
+    }
+  }
 
 #if defined(loco_letter)
 #if !defined(loco_font)
@@ -1178,6 +1191,10 @@ void loco_t::process_frame() {
           }
           break;
         }
+        case shape_type_t::line3d: {
+          // illegal xd
+          context.set_depth_test(false);
+        }//fallthrough
         case shape_type_t::line: {
           if ((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) {
             context.opengl.glDrawArraysInstancedBaseInstance(
@@ -2341,6 +2358,22 @@ loco_t::shape_t loco_t::rectangle3d_t::push_back(const properties_t& properties)
   );
 }
 
+loco_t::shape_t loco_t::line3d_t::push_back(const properties_t& properties) {
+  vi_t vi;
+  vi.src = properties.src;
+  vi.dst = properties.dst;
+  vi.color = properties.color;
+  ri_t ri;
+
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.src.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
+}
+
 //-------------------------------------shapes-------------------------------------
 
 void fan::graphics::gl_font_impl::font_t::open(const fan::string& image_path) {
@@ -2407,7 +2440,11 @@ IMGUI_API bool ImGui::ImageButton(loco_t::image_t img, const ImVec2& size, const
   return ImGui::ImageButton("", (ImTextureID)gloco->image_get(img), size, uv0, uv1, bg_col, tint_col);
 }
 
-bool ImGui::ToggleButton(const char* str_id, bool* v) {
+bool ImGui::ToggleButton(const std::string& str, bool* v) {
+
+  ImGui::Text(str.c_str());
+  ImGui::SameLine();
+
   ImVec2 p = ImGui::GetCursorScreenPos();
   ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
@@ -2415,7 +2452,7 @@ bool ImGui::ToggleButton(const char* str_id, bool* v) {
   float width = height * 1.55f;
   float radius = height * 0.50f;
 
-  bool changed = ImGui::InvisibleButton(str_id, ImVec2(width, height));
+  bool changed = ImGui::InvisibleButton(("##" + str).c_str(), ImVec2(width, height));
   if (changed)
     *v = !*v;
   ImU32 col_bg;
@@ -3251,4 +3288,26 @@ std::vector<fan::json_stream_parser_t::parsed_result> fan::json_stream_parser_t:
 
   buf = pos < buf.length() ? buf.substr(pos) : "";
   return results;
+}
+
+fan::ray3_t loco_t::convert_mouse_to_ray(const fan::vec2i& mouse_position, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
+  fan::vec2i screen_size = gloco->window.get_size();
+
+  fan::vec4 ray_ndc((2.0f * mouse_position.x) / screen_size.x - 1.0f, 1.0f - (2.0f * mouse_position.y) / screen_size.y, 1.0f, 1.0f);
+
+  fan::mat4 inverted_projection = projection.inverse();
+
+  fan::vec4 ray_clip = inverted_projection * ray_ndc;
+
+  ray_clip.z = -1.0f;
+  ray_clip.w = 0.0f;
+
+  fan::mat4 inverted_view = view.inverse();
+
+  fan::vec4 ray_world = inverted_view * ray_clip;
+
+  fan::vec3 ray_dir = fan::vec3(ray_world.x, ray_world.y, ray_world.z).normalize();
+
+  fan::vec3 ray_origin = camera_position;
+  return fan::ray3_t(ray_origin, ray_dir);
 }

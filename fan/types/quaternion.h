@@ -1,9 +1,16 @@
 #pragma once
 
-#include <fan/types/matrix.h>
 #include <fan/types/vector.h>
 
+#if defined(loco_assimp)
+  #include <assimp/quaternion.h>
+#endif
+
+
 namespace fan {
+
+  template <typename type_t>
+  struct _matrix4x4;
 
 	template <typename T>
 	struct quaternion : public fan::vec4_wrap_t<T> {
@@ -16,6 +23,20 @@ namespace fan {
 		using inherited_type_t = fan::vec4_wrap_t<_Ty>;
 
 		constexpr quaternion() : fan::quaternion<T>(1, T{ 0 }, T{ 0 }, T{ 0 }) {}
+
+  #if defined(loco_assimp)
+    constexpr quaternion(const aiQuaternion& aq) {
+      this->w = aq.w;
+      this->x = aq.x;
+      this->y = aq.y;
+      this->z = aq.z;
+    }
+    operator aiQuaternion() const {
+      return aiQuaternion(this->w, this->x, this->y, this->z);
+    }
+  #endif  
+
+    quaternion(const _matrix4x4<T>& m);
 
 		constexpr quaternion(auto scalar, auto x_, auto y_, auto z_)
 		{
@@ -36,13 +57,6 @@ namespace fan {
 
 		template <typename _Ty>
 		constexpr quaternion(const fan::vec4_wrap_t<_Ty>& vector) : fan::vec4_wrap_t<T>(vector.x, vector.y, vector.z, vector.w) {}
-
-	#if defined(loco_assimp)
-		constexpr quaternion(const aiQuaternion& quat) : fan::quaternion<T>(quat.w, quat.x, quat.y, quat.z) {}
-	#endif
-
-    // defined in matrix.h
-    constexpr auto from_matrix(const auto& m) const;
 
 		template <typename _Ty>
 		constexpr quaternion<value_type> operator+(const quaternion<_Ty>& quat) const
@@ -84,6 +98,23 @@ namespace fan {
 			return fan::vec4_wrap_t<T>::operator*(value);
 		}
 
+		constexpr fan::vec3_wrap_t<value_type> operator*(const fan::vec3_wrap_t<value_type>& v) const {
+      f32_t vx = v.x;
+      f32_t vy = v.y;
+      f32_t vz = v.z;
+      return fan::vec3_wrap_t<value_type>(
+        vx * (1.0f - 2.0f * (this->y * this->y + this->z * this->z)) +
+        2.0f * (this->x * vy - this->w * vz),
+
+        vy * (1.0f - 2.0f * (this->x * this->x + this->z * this->z)) +
+        2.0f * (this->y * vx + this->w * vz),
+
+        vz * (1.0f - 2.0f * (this->x * this->x + this->y * this->y)) +
+        2.0f * (this->z * vx - this->w * vy)
+      );
+		}
+
+
 		template <typename _Ty>
 		constexpr quaternion<value_type> operator*(const quaternion<_Ty>& quat) const
 		{
@@ -118,7 +149,7 @@ namespace fan {
 		template <typename _Ty>
 		constexpr quaternion<value_type> operator/(const quaternion<_Ty>& quat) const
 		{
-			return ((*this) * quat.conjucate()) / std::pow(quat.length(), 2);
+			return ((*this) * quat.conjugate()) / std::pow(quat.length(), 2);
 		}
 
 		template <typename _Ty>
@@ -133,7 +164,7 @@ namespace fan {
 			return (*this) = this->operator/(quat);
 		}
 
-		constexpr quaternion<value_type> conjucate() const {
+		constexpr quaternion<value_type> conjugate() const {
 			return quaternion<value_type>(this->w, -this->x, -this->y, -this->z);
 		}
 
@@ -160,6 +191,24 @@ namespace fan {
 				this->z / length
 			);
 		}
+
+    constexpr quaternion inverse() const {
+      T magnitude_squared = this->w * this->w +
+        this->x * this->x +
+        this->y * this->y +
+        this->z * this->z;
+
+      if (magnitude_squared < std::numeric_limits<T>::epsilon()) {
+        return quaternion();
+      }
+
+      return quaternion(
+         this->w / magnitude_squared,
+        -this->x / magnitude_squared,
+        -this->y / magnitude_squared,
+        -this->z / magnitude_squared
+      );
+    }
 
     template <typename _Ty>
     static constexpr quaternion<T> slerp(const quaternion<_Ty>& q0, const quaternion<_Ty>& q1, f_t t) {
@@ -261,6 +310,7 @@ namespace fan {
     }
 
 	};
+  using quat = quaternion<f32_t>;
 
 	template <typename T>
 	static constexpr auto mix(T x, T y, T a) {
@@ -273,6 +323,4 @@ namespace fan {
   static constexpr auto mix(const fan::vec4& a, const fan::vec4& b, f_t t) {
     return a * (1.f - t) + b * t;
   }
-
-	using quat = quaternion<f32_t>;
 }

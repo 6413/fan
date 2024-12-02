@@ -36,7 +36,7 @@ uniform sampler2D _t20; // aiTextureType_TRANSMISSION
 uniform vec3 light_position;
 uniform vec3 light_color;
 uniform vec3 view_p;
-uniform float specular_strength = 0.5;
+uniform float specular_strength;
 uniform float light_intensity;
 
 #define AI_TEXTURE_TYPE_MAX 21

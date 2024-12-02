@@ -13,6 +13,11 @@
 
 #include <fan/graphics/image_load.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 namespace fan_3d {
   namespace model {
     struct vertex_t {
@@ -41,7 +46,7 @@ namespace fan_3d {
     struct animation_data_t {
       struct bone_pose_t {
         fan::vec3 position = 0;
-        fan::quat rotation;
+        fan::quat rotation = fan::quat(-1234, 0, 0, 0);
         fan::vec3 scale = 1;
       };
 
@@ -61,11 +66,13 @@ namespace fan_3d {
     };
 
     struct bone_t {
-      int id = -1;
+      int id = -1; // also depth
       std::string name;
       fan::mat4 offset;
+      f32_t length = 0.1f;
       fan::mat4 transform;
       fan::mat4 global_transform;
+      fan::mat4 bone_transform; // for delta
       bone_t* parent;
       std::vector<bone_t*> children;
 
@@ -80,6 +87,10 @@ namespace fan_3d {
       std::vector<uint32_t> indices;
 
       std::string texture_names[AI_TEXTURE_TYPE_MAX + 1]{};
+
+      fan::opengl::core::vao_t VAO;
+      fan::opengl::core::vbo_t VBO;
+      fan::opengl::GLuint EBO;
     };
 
     // pm -- parsed model
@@ -111,7 +122,7 @@ namespace fan_3d {
         calculated_meshes = meshes;
         p = fmi;
       }
-      
+
       // ---------------------model hierarchy---------------------
 
       mesh_t process_mesh(aiMesh* mesh) {
@@ -226,7 +237,7 @@ namespace fan_3d {
           aiTextureType_EMISSIVE,
           aiTextureType_SHININESS,
           aiTextureType_METALNESS
-        });
+          });
         aiMaterial* material = scene->mMaterials[ai_mesh->mMaterialIndex];
         for (const aiTextureType& texture_type : textures_to_load) {
           aiString path;
@@ -239,7 +250,7 @@ namespace fan_3d {
           if (embedded_texture && embedded_texture->mHeight == 0) {
             int width, height, nr_channels;
             unsigned char* data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(embedded_texture->pcData), embedded_texture->mWidth, &width, &height, &nr_channels, 0);
-            if(data == nullptr){
+            if (data == nullptr) {
               fan::throw_error("failed to load texture");
             }
 
@@ -276,7 +287,7 @@ namespace fan_3d {
       }
       pm_material_data_t load_materials(aiMesh* ai_mesh) {
         pm_material_data_t material_data;
-        for(uint32_t i = 0; i <= AI_TEXTURE_TYPE_MAX; i++){
+        for (uint32_t i = 0; i <= AI_TEXTURE_TYPE_MAX; i++) {
           material_data.color[i] = fan::vec4(1, 1, 1, 1);
         }
 
@@ -293,6 +304,65 @@ namespace fan_3d {
         return material_data;
       }
 
+      float calculate_bone_length_advanced(aiNode* node) {
+        if (node->mNumChildren == 0) {
+          return 0.1f;
+        }
+
+        std::vector<float> child_lengths;
+
+        // Extract parent position from transformation matrix
+        fan::vec3 parent_pos(
+          node->mTransformation.a4,
+          node->mTransformation.b4,
+          node->mTransformation.c4
+        );
+
+        // Collect lengths to all children
+        for (uint32_t i = 0; i < node->mNumChildren; i++) {
+          aiNode* child = node->mChildren[i];
+
+          fan::vec3 child_pos(
+            child->mTransformation.a4,
+            child->mTransformation.b4,
+            child->mTransformation.c4
+          );
+
+          // Calculate Euclidean distance
+          float length = std::sqrt(
+            std::pow(child_pos.x - parent_pos.x, 2) +
+            std::pow(child_pos.y - parent_pos.y, 2) +
+            std::pow(child_pos.z - parent_pos.z, 2)
+          );
+
+          child_lengths.push_back(length);
+        }
+
+        // If multiple children, use median or average
+        if (!child_lengths.empty()) {
+          std::sort(child_lengths.begin(), child_lengths.end());
+
+          // Return median length
+          size_t mid = child_lengths.size() / 2;
+          return child_lengths[mid];
+        }
+
+        return 0.1f;
+      }
+      float calculate_bone_height(const aiNode* node, const fan::mat4& global_transform) {
+        if (node->mNumChildren == 0) {
+          return 0.0f; // No children, height is zero
+        }
+
+        // Assuming we take the first child for the height calculation
+        aiVector3D bone_pos = global_transform * aiVector3D(0, 0, 0); // Global position of current bone
+        fan::mat4 child_global_transform = global_transform * node->mChildren[0]->mTransformation;
+        aiVector3D child_pos = child_global_transform * aiVector3D(0, 0, 0); // Global position of first child
+
+        // Calculate Euclidean distance
+        float height = sqrt(pow(child_pos.x - bone_pos.x, 2) + pow(child_pos.y - bone_pos.y, 2) + pow(child_pos.z - bone_pos.z, 2));
+        return height;
+      }
       void process_skeleton(aiNode* node, bone_t* parent) {
         if (parent == nullptr) {
           bone_count = 0;
@@ -303,6 +373,7 @@ namespace fan_3d {
         bone->parent = parent;
         bone->transform = node->mTransformation;
         bone->offset = fan::mat4(1.0f);
+        bone->length = calculate_bone_length_advanced(node);
         bone_map[bone->name] = bone;
         ++bone_count;
         bone_strings.push_back(bone->name);
@@ -312,6 +383,7 @@ namespace fan_3d {
         else {
           parent->children.push_back(bone);
         }
+        bone->global_transform = parent ? parent->global_transform * bone->transform : bone->transform;
         for (uint32_t i = 0; i < node->mNumChildren; i++) {
           process_skeleton(node->mChildren[i], bone);
         }
@@ -324,6 +396,9 @@ namespace fan_3d {
 
           auto it = bone_map.find(bone_name);
           if (it != bone_map.end()) {
+            if (root_bone->id > it->second->id) {
+              root_bone = it->second;
+            }
             bones.push_back(it->second);
             it->second->offset = bone->mOffsetMatrix;
           }
@@ -339,18 +414,12 @@ namespace fan_3d {
       void update_bone_transforms_impl(bone_t* bone, const fan::mat4& parentTransform) {
         if (!bone) return;
 
-
-        fan::mat4 translation = fan::mat4(1).translate(bone->translation);
-        fan::mat4 rotation = fan::mat4(1).rotate(bone->rotation);
-        fan::mat4 scale = fan::mat4(1).scale(bone->scale);
-
         fan::mat4 node_transform = bone->transform;
 
-        fan::mat4 globalTransform = 
-          parentTransform * 
-          node_transform * 
-          (translation * rotation * scale)
-        ;
+        fan::mat4 globalTransform =
+          parentTransform *
+          node_transform
+          ;
 
         bone_transforms[bone->id] = globalTransform * bone->offset;
 
@@ -360,7 +429,7 @@ namespace fan_3d {
       }
       void update_bone_transforms() {
         bone_transforms.clear();
-        bone_transforms.resize(bone_count);
+        bone_transforms.resize(bone_count, fan::mat4(1));
         if (root_bone) {
           update_bone_transforms_impl(root_bone, m_transform);
         }
@@ -408,6 +477,7 @@ namespace fan_3d {
 
         m_transform = scene->mRootNode->mTransformation;
 
+        bone_count = 0;
         process_skeleton(scene->mRootNode, nullptr);
         load_animations();
 
@@ -459,26 +529,26 @@ namespace fan_3d {
         uint32_t vertex_indices[3];
       };
 
-    std::vector<one_triangle_t> get_triangles(uint32_t mesh_id) {
-      std::vector<one_triangle_t> triangles;
-      static constexpr int edge_count = 3;
-      const auto& mesh = calculated_meshes[mesh_id];
+      std::vector<one_triangle_t> get_triangles(uint32_t mesh_id) {
+        std::vector<one_triangle_t> triangles;
+        static constexpr int edge_count = 3;
+        const auto& mesh = calculated_meshes[mesh_id];
 
-      size_t triangle_count = mesh.indices.size() / edge_count;
-      triangles.resize(triangle_count);
+        size_t triangle_count = mesh.indices.size() / edge_count;
+        triangles.resize(triangle_count);
 
-      for (size_t i = 0; i < triangle_count; ++i) {
-        for (int j = 0; j < edge_count; ++j) {
-          uint32_t vertex_index = mesh.indices[i * edge_count + j];
-          triangles[i].position[j] = mesh.vertices[vertex_index].position;
-          triangles[i].normal[j] = mesh.vertices[vertex_index].normal;
-          triangles[i].uv[j] = mesh.vertices[vertex_index].uv;
-          triangles[i].vertex_indices[j] = vertex_index;
+        for (size_t i = 0; i < triangle_count; ++i) {
+          for (int j = 0; j < edge_count; ++j) {
+            uint32_t vertex_index = mesh.indices[i * edge_count + j];
+            triangles[i].position[j] = mesh.vertices[vertex_index].position;
+            triangles[i].normal[j] = mesh.vertices[vertex_index].normal;
+            triangles[i].uv[j] = mesh.vertices[vertex_index].uv;
+            triangles[i].vertex_indices[j] = vertex_index;
+          }
         }
-      }
 
-      return triangles;
-    }
+        return triangles;
+      }
 
       // ---------------------model hierarchy---------------------
 
@@ -619,7 +689,7 @@ namespace fan_3d {
         // this fmods other animations too. dt per animation? or with weights or max of all animations?
         // fix xd
         if (animation.duration != 0) {
-          if (animation.weight == 1 &&get_active_animation_id() != -1 && animation.duration == get_active_animation().duration) {
+          if (animation.weight == 1 && get_active_animation_id() != -1 && animation.duration == get_active_animation().duration) {
             dt = fmod(dt, animation.duration);
           }
           else {
@@ -629,15 +699,21 @@ namespace fan_3d {
         fan::vec3 position = 0, scale = 1;
         fan::quat rotation;
 
-        auto& bt = animation.bone_transforms[bone.name];
+        auto it = animation.bone_transforms.find(bone.name);
+        if (it == animation.bone_transforms.end()) {
+          animation.bone_poses[bone.id].rotation.w = -9999;
+          return;
+          //fan::throw_error("bone not found from bone_transforms");
+        }
+        const auto& bt = it->second;
         if (bt.positions.empty()) {
           return;
         }
         // returns bit for successsion for position, rotation, scale
         uint8_t r = interpolate_bone_transform(bt, position, rotation, scale);
-        animation.bone_poses[bone.id].position = position + bone.translation;
-        animation.bone_poses[bone.id].rotation = rotation * fan::quat::from_angles(bone.rotation);
-        animation.bone_poses[bone.id].scale = scale * bone.scale;
+        animation.bone_poses[bone.id].position = position;
+        animation.bone_poses[bone.id].rotation = rotation;
+        animation.bone_poses[bone.id].scale = scale;
       }
       void fk_interpolate_animations(std::vector<fan::mat4>& out_bone_transforms, bone_t& bone, fan::mat4& parent_transform) {
         fan::mat4 local_transform = bone.transform;
@@ -654,35 +730,26 @@ namespace fan_3d {
         }
 
         if (has_active_animation) {
-          local_transform = bone.transform;
           for (const auto& [key, anim] : animation_list) {
             if (anim.weight > 0 && !anim.bone_poses.empty()) {
               float normalized_weight = anim.weight / total_weight;
               const auto& pose = anim.bone_poses[bone.id];
-
-              fan::mat4 anim_transform{1};
-              // how to remove?
-              switch (anim.type) {
-              case animation_data_t::type_e::nonlinear_animation: {
-                anim_transform = fan::mat4(1);
-                break;
+              if (pose.rotation.w == -9999) { // uninitalized
+                local_transform = bone.transform;
               }
-              case animation_data_t::type_e::custom: {
-                anim_transform = bone.transform;
-                break;
-              }
-              default: {
-                fan::throw_error("invalid animation type");
-                break;
-              }
-              }
-              
-              anim_transform = anim_transform.translate(pose.position);
-              anim_transform = anim_transform * fan::mat4(pose.rotation);
-              anim_transform = anim_transform.scale(pose.scale);
-              for (int i = 0; i < 4; i++) {
-                local_transform[i] = local_transform[i] * (1.0f - normalized_weight) +
-                  anim_transform[i] * normalized_weight;
+              else {
+                static fan::vec3 translation = 0;
+                static int f = counter;
+                if (f != counter) {
+                  //ImGui::DragFloat3("translation", translation.data(), 0.1);
+                  //dt = gloco->delta_time;
+                 // f = counter;
+                }
+                local_transform = (
+                  fan::translation_matrix(pose.position) *
+                  fan::rotation_quat_matrix(pose.rotation) *
+                  fan::scaling_matrix(pose.scale)
+                  );
               }
             }
           }
@@ -690,7 +757,7 @@ namespace fan_3d {
 
         fan::mat4 global_transform = parent_transform * local_transform;
         out_bone_transforms[bone.id] = global_transform * bone.offset;
-        bone.global_transform = global_transform;
+        bone.bone_transform = global_transform;
 
         for (bone_t* child : bone.children) {
           fk_interpolate_animations(out_bone_transforms, *child, global_transform);
@@ -710,8 +777,10 @@ namespace fan_3d {
       }
       void fk_calculate_poses() {
         for (auto& i : animation_list) {
-          for (auto& bone : bones) {
-            fk_get_pose(i.second, *bone);
+          if (i.second.weight > 0) {
+            for (auto bone : bone_map) {
+              fk_get_pose(i.second, *bone.second);
+            }
           }
         }
       }
@@ -730,21 +799,8 @@ namespace fan_3d {
           if (active_anim.empty()) {
             active_anim = anim->mName.C_Str();
           }
-
           if (animation.bone_poses.empty()) {
             animation.bone_poses.resize(bone_count);
-            iterate_bones(*root_bone, [&](bone_t& bone) {
-              fan::vec3 position;
-              fan::quat rotation;
-              fan::vec3 scale;
-              fan::vec3 skew;
-              fan::vec4 perspective;
-              bone.transform.decompose(position, rotation, scale, skew, perspective);
-              auto& bp = animation.bone_poses[bone.id];
-              bp.position = position;
-              bp.rotation = rotation;
-              bp.scale = scale;
-            });
           }
 
           animation.type = animation_data_t::type_e::nonlinear_animation;
@@ -767,6 +823,9 @@ namespace fan_3d {
               track.scale_timestamps.push_back(channel->mScalingKeys[j].mTime);
               track.scales.push_back(channel->mScalingKeys[j].mValue);
 
+            }
+            if (animation.name == "Idle2") {
+              fan::print("loading", channel->mNodeName.C_Str());
             }
             animation.bone_transforms[channel->mNodeName.C_Str()] = track;
           }
@@ -828,7 +887,7 @@ namespace fan_3d {
       }
 
       bool export_animation(
-        const std::string& animation_name_to_export, 
+        const std::string& animation_name_to_export,
         const std::string path,
         const std::string& format = "gltf2"
       ) {
@@ -855,9 +914,13 @@ namespace fan_3d {
         new_scene->mMaterials = scene->mMaterials;
         new_scene->mNumMaterials = scene->mNumMaterials;
         if (scene->mNumAnimations > 0) {
-          new_scene->mAnimations = new aiAnimation*[1];
+          new_scene->mAnimations = new aiAnimation * [1];
           new_scene->mAnimations[0] = scene->mAnimations[animation_index];
           new_scene->mNumAnimations = 1;
+        }
+
+        for (int i = 0; i < new_scene->mAnimations[0]->mNumChannels; ++i) {
+          fan::print("exporting:", new_scene->mAnimations[0]->mChannels[i]->mNodeName.C_Str());
         }
 
         Assimp::Exporter exporter;
@@ -871,8 +934,8 @@ namespace fan_3d {
         delete new_scene;
 
         if (result != aiReturn_SUCCESS) {
-            fan::print("failed to export animation", exporter.GetErrorString());
-            return 0;
+          fan::print("failed to export animation", exporter.GetErrorString());
+          return 0;
         }
 
         return 1;
@@ -880,12 +943,12 @@ namespace fan_3d {
 
       template<typename charT>
       struct my_equal {
-          my_equal( const std::locale& loc ) : loc_(loc) {}
-          bool operator()(charT ch1, charT ch2) {
-              return std::toupper(ch1, loc_) == std::toupper(ch2, loc_);
-          }
+        my_equal(const std::locale& loc) : loc_(loc) {}
+        bool operator()(charT ch1, charT ch2) {
+          return std::toupper(ch1, loc_) == std::toupper(ch2, loc_);
+        }
       private:
-          const std::locale& loc_;
+        const std::locale& loc_;
       };
 
       template<typename T>
@@ -897,85 +960,337 @@ namespace fan_3d {
         else return -1;
       }
 
-      // based on adobe mixamo
-      static constexpr const char* body_parts[] = {
-        "Hips", "Spine", "Spine1", "Spine2",
-        "Neck", "Head", "HeadTop_End", "RightShoulder",
-        "RightArm", "RightForeArm", "RightHand",
-        "RightHandThumb1", "RightHandThumb2", "RightHandThumb3",
-        "RightHandThumb4", "RightHandIndex1", "RightHandIndex2",
-        "RightHandIndex3", "RightHandIndex4", "RightHandMiddle1",
-        "RightHandMiddle2", "RightHandMiddle3", "RightHandMiddle4",
-        "RightHandRing1", "RightHandRing2", "RightHandRing3",
-        "RightHandRing4", "RightHandPinky1", "RightHandPinky2",
-        "RightHandPinky3", "RightHandPinky4", "LeftShoulder",
-        "LeftArm", "LeftForeArm", "LeftHand",
-        "LeftHandThumb1", "LeftHandThumb2", "LeftHandThumb3",
-        "LeftHandThumb4", "LeftHandIndex1", "LeftHandIndex2",
-        "LeftHandIndex3", "LeftHandIndex4", "LeftHandMiddle1",
-        "LeftHandMiddle2", "LeftHandMiddle3", "LeftHandMiddle4",
-        "LeftHandRing1", "LeftHandRing2", "LeftHandRing3",
-        "LeftHandRing4", "LeftHandPinky1", "LeftHandPinky2",
-        "LeftHandPinky3", "LeftHandPinky4", "RightUpLeg",
-        "RightLeg", "RightFoot", "RightToeBase",
-        "RightToe_End", "LeftUpLeg", "LeftLeg",
-        "LeftFoot", "LeftToeBase", "LeftToe_End"
-      };
-
-      bool find_matching_bone(
-        const std::string& target_name,
-        std::string& matched_name
-      ) {
-        std::vector<std::string> matching_parts;
-
-        // Find all matching parts
-        for (const auto& part : body_parts) {
-          if (ci_find_substr(target_name, std::string(part)) != -1) {
-            matching_parts.push_back(part);
+      bool search_bone_from_model(fan_3d::model::fms_t& model, std::string name) {
+        bool found = false;
+        model.iterate_bones(*model.root_bone, [&](fan_3d::model::bone_t& bone) {
+          if (bone.name == name) {
+            found = true;
           }
-        }
-
-        // If no matches found, return false
-        if (matching_parts.empty()) {
-          return false;
-        }
-
-        // Find the longest matching part
-        matched_name = *std::max_element(
-          matching_parts.begin(),
-          matching_parts.end(),
-          [](const std::string& a, const std::string& b) {
-            return a.length() < b.length();
-          }
-        );
-
-        return true;
+          });
+        return found;
       }
 
-      
-      bool is_bone_in_anim_curve_node(const aiScene* scene, const std::string& bone_name) {
-        for (unsigned int i = 0; i < scene->mNumAnimations; ++i) {
-          const aiAnimation* anim = scene->mAnimations[i];
-          for (unsigned int j = 0; j < anim->mNumChannels; ++j) {
-            const aiNodeAnim* channel = anim->mChannels[j];
-            if (channel->mNodeName.C_Str() == bone_name) {
-              return true;
+      uintptr_t comp_string(std::string str0, std::string str1) {
+        uintptr_t i = 0;
+        for (; i < str0.size(); i++) {
+          if (i == str1.size()) {
+            break;
+          }
+          if (std::tolower(str0[i]) != std::tolower(str1[i])) {
+            break;
+          }
+        }
+        return i;
+      }
+
+      std::vector<std::vector<std::string>> bone_names_default = {
+        {"Hips", "Torso"},
+        {"Right_Up_Leg", "Upper_Leg_R", "RightUpLeg", "Upper_Leg.R"},
+        {"Lower_Leg_R", "Lower_Leg.R", "Right_knee"},
+        {"Right_Foot", "Foot_R", "RightFoot", "Foot.R", "Right_ankle"},
+        {"Right_Toe_Base", "RightToeBase", "Right_toe"},
+        {"Right_Toe_End"},
+        {"Spine"},
+        {"Spine1", "Chest"},
+        {"Spine2"},
+        {"Neck"},
+        {"Head"},
+        {"Head_Top_End"},
+        {"Left_Shoulder", "Upper_Arm_L"},
+        {"Left_Arm"},
+        {"Left_Fore_Arm", "Lower_Arm_L", "Left_elbow"},
+        {"Left_Hand", "Hand_L", "Left_wrist"},
+        {"Left_Hand_Thumb1", "Thumb0_L"},
+        {"Left_Hand_Thumb2", "Thumb1_L"},
+        {"Left_Hand_Thumb3", "Thumb2_L"},
+        {"Left_Hand_Thumb4", "Thumb2Tip_L"},
+        {"Left_Hand_Index1", "IndexFinger1_L"},
+        {"Left_Hand_Index2", "IndexFinger2_L"},
+        {"Left_Hand_Index3", "IndexFinger3_L"},
+        {"Left_Hand_Index4", "IndexFinger3Tip_L"},
+        {"Left_Hand_Middle1", "MiddleFinger1_L"},
+        {"Left_Hand_Middle2", "MiddleFinger2_L"},
+        {"Left_Hand_Middle3", "MiddleFinger3_L"},
+        {"Left_Hand_Middle4", "MiddleFinger3Tip_L"},
+        {"Left_Hand_Ring1", "RingFinger1_L"},
+        {"Left_Hand_Ring2", "RingFinger2_L"},
+        {"Left_Hand_Ring3", "RingFinger3_L"},
+        {"Left_Hand_Ring4", "RingFinger3Tip_L"},
+        {"Left_Hand_Pinky1", "LittleFinger1_L"},
+        {"Left_Hand_Pinky2", "LittleFinger2_L"},
+        {"Left_Hand_Pinky3", "LittleFinger3_L"},
+        {"Left_Hand_Pinky4", "LittleFinger3Tip_L"},
+        {"Right_Shoulder", "Upper_Arm_R"},
+        {"Right_Arm"},
+        {"Right_Fore_Arm", "Lower_Arm_R", "Right_elbow"},
+        {"Right_Hand", "Hand_R", "Right_wrist"},
+        {"Right_Hand_Thumb1", "Thumb0_R"},
+        {"Right_Hand_Thumb2", "Thumb1_R"},
+        {"Right_Hand_Thumb3", "Thumb2_R"},
+        {"Right_Hand_Thumb4", "Thumb2Tip_R"},
+        {"Right_Hand_Index1", "IndexFinger1_R"},
+        {"Right_Hand_Index2", "IndexFinger2_R"},
+        {"Right_Hand_Index3", "IndexFinger3_R"},
+        {"Right_Hand_Index4", "IndexFinger3Tip_R"},
+        {"Right_Hand_Middle1", "MiddleFinger1_R"},
+        {"Right_Hand_Middle2", "MiddleFinger2_R"},
+        {"Right_Hand_Middle3", "MiddleFinger3_R"},
+        {"Right_Hand_Middle4", "MiddleFinger3Tip_R"},
+        {"Right_Hand_Ring1", "RingFinger1_R"},
+        {"Right_Hand_Ring2", "RingFinger2_R"},
+        {"Right_Hand_Ring3", "RingFinger3_R"},
+        {"Right_Hand_Ring4", "RingFinger3Tip_R"},
+        {"Right_Hand_Pinky1", "LittleFinger1_R"},
+        {"Right_Hand_Pinky2", "LittleFinger2_R"},
+        {"Right_Hand_Pinky3", "LittleFinger3_R"},
+        {"Right_Hand_Pinky4", "LittleFinger3Tip_R"},
+        {"Left_Up_Leg", "Upper_Leg_L", "LeftUpLeg", "Upper_Leg.L"},
+        {"Lower_Leg_L", "Lower_Leg.L", "Left_knee"},
+        {"Left_Foot", "Foot_L", "LeftFoot", "Foot.L", "Left_ankle"},
+        {"Left_Toe_Base", "LeftToeBase", "Left_toe"},
+        {"Left_Toe_End"}
+      };
+
+      std::vector<std::vector<std::string>> bone_names_anim;
+      std::vector<std::vector<std::string>> bone_names_model;
+
+      void fancy_iterator(auto& iteration, auto func) {
+        for (uintptr_t i = 0; i < iteration.size(); i++) {
+          func(iteration[i]);
+        }
+      }
+
+      uintptr_t get_bone_name_index(auto& iteration, std::string from) {
+        uintptr_t longest_name_id = (uintptr_t)-1;
+        uintptr_t longest_length = 0;
+        uintptr_t shortest_length_from = (uintptr_t)-1;
+
+        for (uintptr_t i = 0; i < iteration.size(); i++) {
+          for (uintptr_t bni1 = 0; bni1 < iteration[i].size(); bni1++) {
+            std::string bn = iteration[i][bni1];
+            for (uintptr_t ip = 0; ip < from.size(); ip++) {
+              uintptr_t bni = 0;
+              auto nfrom = from.substr(ip);
+              uintptr_t nfromi = 0;
+              while (1) {
+                if (bni == bn.size()) {
+                  if (
+                    (bni > longest_length) ||
+                    (from.size() < shortest_length_from)
+                    ) {
+                    longest_name_id = i;
+                    longest_length = bni;
+                    shortest_length_from = from.size();
+                  }
+                  break;
+                }
+
+                if (nfromi == nfrom.size()) {
+                  break;
+                }
+
+                if (std::tolower(bn[bni]) == std::tolower(nfrom[nfromi])) {
+                  bni++;
+                  nfromi++;
+                  continue;
+                }
+                else if (bn[bni] == '_') {
+                  bni++;
+                }
+                else {
+                  break;
+                }
+              }
             }
           }
         }
-        return false;
+
+        return longest_name_id;
       }
 
+      std::string get_model_bone_name(uintptr_t name_index, auto& model) {
+        std::string longest_name;
+        uintptr_t longest_length = 0;
+        uintptr_t shortest_length_from = (uintptr_t)-1;
 
-      void import_animation(fms_t& anim, const std::string& custom_name = "") {
-        if (anim.scene->mNumAnimations == 0) {
-          fan::print("No animations in given animation.");
-          return;
+        model.iterate_bones(*model.root_bone, [&](fan_3d::model::bone_t& bone) {
+          std::string from = bone.name;
+
+          for (uintptr_t bni1 = 0; bni1 < bone_names_model[name_index].size(); bni1++) {
+            std::string bn = bone_names_model[name_index][bni1];
+            for (uintptr_t ip = 0; ip < from.size(); ip++) {
+              uintptr_t bni = 0;
+              auto nfrom = from.substr(ip);
+              uintptr_t nfromi = 0;
+              while (1) {
+                if (bni == bn.size()) {
+                  if (
+                    (bni > longest_length) ||
+                    (from.size() < shortest_length_from)
+                    ) {
+                    longest_name = from;
+                    longest_length = bni;
+                    shortest_length_from = from.size();
+                  }
+                  break;
+                }
+
+                if (nfromi == nfrom.size()) {
+                  break;
+                }
+
+                if (std::tolower(bn[bni]) == std::tolower(nfrom[nfromi])) {
+                  bni++;
+                  nfromi++;
+                  continue;
+                }
+                else if (bn[bni] == '_') {
+                  bni++;
+                }
+                else {
+                  break;
+                }
+              }
+            }
+          }
+          });
+
+        return longest_name;
+      }
+
+      std::string get_bone_name_by_index(auto& model, uintptr_t index) {
+        std::string ret;
+        uintptr_t i = 0;
+        model.iterate_bones(*model.root_bone, [&](fan_3d::model::bone_t& bone) {
+          if (i == index) {
+            ret = bone.name;
+          }
+          i++;
+          });
+        return ret;
+      }
+
+      void solve_legs(auto& iterator, auto& vector) {
+        uint8_t left_leg_meaning = (uint8_t)-1;
+        std::vector<std::vector<std::string>> left_leg_vector = {
+          {"Left_leg"}
+        };
+        bool left_leg = false;
+        iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+          if (get_bone_name_index(left_leg_vector, bone.name) == 0) {
+            if (left_leg) {
+              /* multiple left leg? */
+              assert(0);
+            }
+            left_leg = true;
+          }
+          });
+        if (left_leg) {
+          std::vector<std::vector<std::string>> left_down_leg_vector = {
+            {"Lower_Leg_L", "Left_knee"}
+          };
+          iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+            if (get_bone_name_index(left_down_leg_vector, bone.name) == 0) {
+              if (left_leg_meaning != (uint8_t)-1) {
+                /* multiple left leg meaning? */
+                assert(0);
+              }
+              left_leg_meaning = 0;
+            }
+            });
+          std::vector<std::vector<std::string>> left_up_leg_vector = {
+            {"Left_Up_Leg"}
+          };
+          iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+            if (get_bone_name_index(left_up_leg_vector, bone.name) == 0) {
+              if (left_leg_meaning != (uint8_t)-1) {
+                /* multiple left leg meaning? */
+                assert(0);
+              }
+              left_leg_meaning = 1;
+            }
+            });
         }
-        const aiAnimation* srcAnim = anim.scene->mAnimations[0];
-        std::string animation_name = custom_name.empty() ? srcAnim->mName.C_Str() : custom_name;
+        if (left_leg_meaning != (uint8_t)-1) {
+          uintptr_t index;
+          if (left_leg_meaning == 0) {
+            index = get_bone_name_index(bone_names_default, "Left_Up_Leg");
+          }
+          else if (left_leg_meaning == 1) {
+            index = get_bone_name_index(bone_names_default, "Lower_Leg_L");
+          }
+          else {
+            index = (uintptr_t)-1;
+          }
+          if (index == (uintptr_t)-1) {
+            /* internal error */
+            assert(0);
+          }
 
-        aiAnimation* newAnim = new aiAnimation(*srcAnim);
+          vector[index].push_back("Left_leg");
+        }
+
+        uint8_t right_leg_meaning = (uint8_t)-1;
+        std::vector<std::vector<std::string>> right_leg_vector = {
+          {"Right_leg"}
+        };
+        bool right_leg = false;
+        iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+          if (get_bone_name_index(right_leg_vector, bone.name) == 0) {
+            if (right_leg) {
+              /* multiple right leg? */
+              assert(0);
+            }
+            right_leg = true;
+          }
+          });
+        if (right_leg) {
+          std::vector<std::vector<std::string>> right_down_leg_vector = {
+            {"Lower_Leg_R", "Right_knee"}
+          };
+          iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+            if (get_bone_name_index(right_down_leg_vector, bone.name) == 0) {
+              if (right_leg_meaning != (uint8_t)-1) {
+                /* multiple right leg meaning? */
+                assert(0);
+              }
+              right_leg_meaning = 0;
+            }
+            });
+          std::vector<std::vector<std::string>> right_up_leg_vector = {
+            {"Right_Up_Leg"}
+          };
+          iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+            if (get_bone_name_index(right_up_leg_vector, bone.name) == 0) {
+              if (right_leg_meaning != (uint8_t)-1) {
+                /* multiple right leg meaning? */
+                assert(0);
+              }
+              right_leg_meaning = 1;
+            }
+            });
+        }
+        if (right_leg_meaning != (uint8_t)-1) {
+          uintptr_t index;
+          if (right_leg_meaning == 0) {
+            index = get_bone_name_index(bone_names_default, "Right_Up_Leg");
+          }
+          else if (right_leg_meaning == 1) {
+            index = get_bone_name_index(bone_names_default, "Lower_Leg_R");
+          }
+          else {
+            index = (uintptr_t)-1;
+          }
+          if (index == (uintptr_t)-1) {
+            /* internal error */
+            assert(0);
+          }
+
+          vector[index].push_back("Right_leg");
+        }
+      }
+
+      void init_animation_import(std::string& animation_name, aiAnimation* newAnim) {
         bool animation_exists = false;
         for (unsigned int i = 0; i < scene->mNumAnimations; ++i) {
           if (scene->mAnimations[i]->mName.C_Str() == animation_name) {
@@ -999,50 +1314,286 @@ namespace fan_3d {
           scene->mAnimations = newAnimations;
           scene->mNumAnimations += 1;
         }
-        // to seperate for example LeftHand <-> LeftHandPinky3 
-        std::unordered_map<std::string, bool> bone_mapper;
-        for (unsigned int i = 0; i < newAnim->mNumChannels; ++i) {
-          aiNodeAnim* channel = newAnim->mChannels[i];
-          std::string imported_bone_name = channel->mNodeName.C_Str();
-          std::string found_bone;
+      }
 
-          bool our_bone_found = false;
-          iterate_bones(*root_bone, [this, &bone_mapper, &our_bone_found, channel, &found_bone](bone_t& our_bone) {
-            if (our_bone_found) {
-              return;
-            }
-            std::string temp, temp2;
-            bool r0 = find_matching_bone(our_bone.name, temp);
-            bool r1 = find_matching_bone(channel->mNodeName.C_Str(), temp2);
-            if (r0 && r1 && 
-              temp == temp2 && 
-              bone_mapper.find(our_bone.name) == bone_mapper.end()
-              ) {
-              found_bone = our_bone.name;
-              bone_mapper[found_bone];
-              our_bone_found = true;
-            }
-          });
-          // bones might exist, but there might be no animation channel for it
-          // && is_bone_in_anim_curve_node(scene, found_bone)
-          if (false) {
-            channel->mNodeName = aiString(found_bone);
-          }
-          else if (found_bone.empty()) {
-            fan::print_no_space(std::string("Failed to resolve animation bone:'") + channel->mNodeName.C_Str() + '\'');
-            channel->mNodeName = "";
-            channel->mNumPositionKeys = 0;
-            channel->mNumRotationKeys = 0;
-            channel->mNumScalingKeys = 0;
+      static fan::mat4 local_to_global_transform(bone_t* node) {
+        fan::mat4 globalTransform = node->transform;
+        bone_t* currentNode = node->parent;
+        while (currentNode != nullptr) {
+          globalTransform = currentNode->transform * globalTransform;
+          currentNode = currentNode->parent;
+        }
+
+        return globalTransform;
+      }
+
+      static fan::mat4 global_to_local_transform(bone_t* node) {
+        if (node->parent == nullptr) {
+          return node->global_transform;
+        }
+        else {
+          fan::mat4 parentGlobalInverse = local_to_global_transform(node->parent).inverse();
+          return parentGlobalInverse * node->global_transform;
+        }
+      }
+
+      static fan::mat4 ComputeWorldMatrixRecursive(bone_t* entity, fan::mat4 localMatrix) {
+        bone_t* parentID = entity->parent;
+        while (parentID != nullptr) {
+          localMatrix = localMatrix * parentID->transform;
+          parentID = parentID->parent;
+        }
+        return localMatrix;
+      }
+
+      static fan::mat4 ComputeInverseParentMatrixRecursive(bone_t* entity) {
+        fan::mat4 inverse_parent_matrix{ 1 };
+        bone_t* parentID = entity->parent;
+        while (parentID != nullptr) {
+          inverse_parent_matrix = inverse_parent_matrix * parentID->transform;
+          parentID = parentID->parent;
+        }
+        if (parentID != nullptr) {
+          inverse_parent_matrix = inverse_parent_matrix.inverse();
+        }
+        return inverse_parent_matrix;
+      }
+      // Function to rotate a vector by a quaternion
+      static fan::vec3 rotate_vector_by_quaternion(const fan::vec3& v, const fan::quat& q) {
+        // Extract the vector part of the quaternion
+        fan::vec3 u(q.x, q.y, q.z);
+
+        // Extract the scalar part of the quaternion
+        float s = q.w;
+
+        // Do the math
+        return
+          u * 2.0f * u.dot(v)
+          + v * (s * s - u.dot(u))
+          + u.cross(v) * 2.0f * s;
+      }
+
+      std::unordered_map<std::string, bool> bone_mapper;
+      inline static int counter = 0;
+
+      static fan::vec3 transformPosition(
+        const fan::vec3& position,
+        bone_t& source_bone,
+        bone_t& target_bone
+      ) {
+        fan::vec3 scaler = source_bone.transform.get_translation() / position;
+        fan::vec3 result = target_bone.transform.get_translation() / scaler;
+        // move the translation using same scale
+        return target_bone.transform.get_translation();
+      }
+      static fan::quat fromTwoVectors(const fan::vec3& v1, const fan::vec3& v2) {
+        fan::quat ret;
+        fan::vec3 a = v1.cross(v2);
+        ret.x = a.x;
+        ret.y = a.y;
+        ret.z = a.z;
+        f32_t v1_len = v1.length();
+        f32_t v2_len = v2.length();
+        ret.w = sqrt((v1_len * v1_len) * (v2_len * v2_len)) + v1.dot(v2);
+        return ret;
+      }
+
+
+
+
+
+      static fan::quat transformRotation(
+        fan::quat animation_rotation,
+        bone_t& animation_tpose,
+        bone_t& model_tpose
+      )
+      {
+      
+        fan::quat src = fan::quat(animation_tpose.transform);
+        fan::quat dst = fan::quat(model_tpose.transform);
+        fan::quat anim = animation_rotation;
+
+        fan::quat rotation_offset_quat = dst.normalize().inverse() * anim.normalize();
+        fan::quat src_conjugate = src.conjugate();
+
+
+        return (rotation_offset_quat * src_conjugate).normalize();
+
+
+        if (model_tpose.name == "Left_leg") {
+          fan::print("src", src);
+          fan::print("dst", dst);
+          fan::print("anim", anim);
+
+          fan::quat n = animation_rotation;
+          fan::quat temp = n;
+          n.z = temp.x;
+          n.y = temp.w;
+          n.w = temp.y;
+          n.x = temp.z;
+          fan::print("new", n);
+          fan::print("");
+          //return updated_dst * rot;
+          //return animation_rotation;
+        }
+
+        fan::quat temp = animation_rotation;
+        animation_rotation.y = temp.x;
+        animation_rotation.w = temp.w;
+        animation_rotation.z = temp.y;
+        animation_rotation.x = temp.z;
+        return fan::quat();
+      }
+
+
+      static fan::vec3 transformScale(
+        const fan::vec3& scale,
+        const bone_t& source_bone,
+        const bone_t& target_bone
+      ) {
+        //fan::vec3 animation_joint_world = fan::vec3() + source_bone.global_transform * fan::vec4(scale, 1.0f);
+
+  //      fan::vec3 model_joint_absolute_position = 
+          //target_bone.global_transform.inverse() * animation_joint_world;
+        constexpr f32_t offset = -89.7637 / -115.19;
+        //scale.x *= offset;
+        fan::vec3 v = target_bone.transform.get_scale();
+        return fan::vec3(1, 1, 1);
+      }
+
+      void import_animation(fms_t& anim, const std::string& custom_name = "") {
+        bone_names_anim = bone_names_default;
+        bone_names_model = bone_names_default;
+        if (anim.scene->mNumAnimations == 0) {
+          fan::print("No animations in given animation.");
+          return;
+        }
+        bone_mapper.clear();
+        const aiAnimation* srcAnim = anim.scene->mAnimations[0];
+        std::string animation_name = custom_name.empty() ? srcAnim->mName.C_Str() : custom_name;
+
+        aiAnimation* newAnim = new aiAnimation(*srcAnim);
+        init_animation_import(animation_name, newAnim);
+        solve_legs(anim, bone_names_anim);
+        solve_legs(*this, bone_names_model);
+
+        anim.iterate_bones(*anim.root_bone, [&](fan_3d::model::bone_t& bone) {
+          auto bone_name_index = get_bone_name_index(bone_names_anim, bone.name);
+          if (bone_name_index == (uintptr_t)-1) {
+            printf("f \"%s\"\n", bone.name.c_str());
           }
           else {
-            fan::print_no_space("Bone '" + found_bone + '\'', " is missing animation");
-            channel->mNodeName = "";
-            channel->mNumPositionKeys = 0;
-            channel->mNumRotationKeys = 0;
-            channel->mNumScalingKeys = 0;
+            auto solved_bone_name = get_model_bone_name(bone_name_index, *this);
+            if (solved_bone_name.size() == 0) {
+              printf("nu \"%s\" -> \"%s\"\n", bone.name.c_str(), bone_names_default[bone_name_index][0].c_str());
+            }
+            else {
+              printf("yay \"%s\" -> \"%s\" -> \"%s\"\n", bone.name.c_str(), bone_names_default[bone_name_index][0].c_str(), solved_bone_name.c_str());
+              if (bone_mapper.find(solved_bone_name) != bone_mapper.end()) {
+                fan::throw_error("duplicate bone from mapper:" + solved_bone_name, ", there must not be duplicate bones from mapper");
+                return;
+              }
+
+              aiNodeAnim* channel = nullptr;
+              for (unsigned int i = 0; i < newAnim->mNumChannels; ++i) {
+                std::string check_str = newAnim->mChannels[i]->mNodeName.C_Str();
+                if (check_str == bone.name) {
+                  channel = newAnim->mChannels[i];
+                  break;
+                }
+              }
+              if (channel == nullptr) {
+                return;
+              }
+              std::string original_name = channel->mNodeName.C_Str();
+
+              // need to transform original bone from animation position, rotation, scale animation keys
+              channel->mNodeName = aiString(solved_bone_name.c_str());
+
+              fms_t& bone_source = anim;
+              fms_t& bone_dest = *this;
+              bone_t& source_bone = bone;
+              auto found = bone_map.find(solved_bone_name);
+              if (found == bone_map.end()) {
+                fan::throw_error("invalid solved bone");
+              }
+              bone_t& target_bone = *bone_map[solved_bone_name];
+              model_converted_bone_names[bone.name] = target_bone.name;
+              anim_converted_bone_names[target_bone.name] = bone.name;
+              for (unsigned int i = 0; i < channel->mNumPositionKeys; i++) {
+                fan::vec3 source_pos = channel->mPositionKeys[i].mValue;
+                channel->mPositionKeys[i].mValue = transformPosition(source_pos, source_bone, target_bone);
+              }
+              //}
+
+  // For Rotation
+              for (unsigned int i = 0; i < channel->mNumRotationKeys; i++) {
+                aiQuaternion sourceRotation = channel->mRotationKeys[i].mValue;
+
+                fan::quat q;
+                q.x = sourceRotation.x;
+                q.y = sourceRotation.y;
+                q.z = sourceRotation.z;
+                q.w = sourceRotation.w;
+                fan::quat res = transformRotation(q, source_bone, target_bone);
+
+                channel->mRotationKeys[i].mValue.x = res.x;
+                channel->mRotationKeys[i].mValue.y = res.y;
+                channel->mRotationKeys[i].mValue.z = res.z;
+                channel->mRotationKeys[i].mValue.w = res.w;
+              }
+
+              // For Scaling
+              for (unsigned int i = 0; i < channel->mNumScalingKeys; i++) {
+                fan::vec3 source = channel->mScalingKeys[i].mValue;
+                //const aiVector3D position(source_bone.transform *  parentToBone * channel->mScalingKeys[i].mValue);
+
+                //channel->mScalingKeys[i].mValue = *(fan::vec3*)&position;
+                channel->mScalingKeys[i].mValue = transformScale(source, source_bone, target_bone);
+              }
+
+
+              bone_mapper[solved_bone_name];
+            }
           }
-        }
+          });
+
+        //// to seperate for example LeftHand <-> LeftHandPinky3 
+        //std::unordered_map<std::string, bool> bone_mapper;
+        //for (unsigned int i = 0; i < newAnim->mNumChannels; ++i) {
+        //  aiNodeAnim* channel = newAnim->mChannels[i];
+        //  std::string imported_bone_name = channel->mNodeName.C_Str();
+        //  std::string found_bone;
+
+        //  bool our_bone_found = false;
+        //  iterate_bones(*root_bone, [this, &bone_mapper, &our_bone_found, channel, &found_bone](bone_t& our_bone) {
+        //    if (our_bone_found) {
+        //      return;
+        //    }
+        //    std::string temp, temp2;
+        //    bool r0 = find_matching_bone(our_bone.name, temp);
+        //    bool r1 = find_matching_bone(channel->mNodeName.C_Str(), temp2);
+        //    if (r0 && r1 &&
+        //      temp == temp2 &&
+        //      bone_mapper.find(our_bone.name) == bone_mapper.end()
+        //      ) {
+        //      found_bone = our_bone.name;
+        //      bone_mapper[found_bone];
+        //      our_bone_found = true;
+        //    }
+        //    });
+        //  // bones might exist, but there might be no animation channel for it
+        //  // && is_bone_in_anim_curve_node(scene, found_bone)
+        //  if (our_bone_found && found_bone.size()) {
+        //    channel->mNodeName = aiString(found_bone);
+        //  }
+        //  else if (found_bone.empty()) {
+        //    fan::print_no_space(std::string("Failed to resolve animation bone:'") + channel->mNodeName.C_Str() + '\'');
+        //  }
+        //  else {
+        //    fan::print_no_space("Bone '" + found_bone + '\'', " is missing animation");
+        //  }
+        //}
         animation_list.clear();
         load_animations();
       }
@@ -1069,7 +1620,7 @@ namespace fan_3d {
 
         bool node_open = ImGui::TreeNodeEx((bone->name + " | parent " + (bone->parent ? bone->parent->name : "N/A")).c_str(), flags);
 
-        if (node_open)  {
+        if (node_open) {
           // Print children
           for (bone_t* child : bone->children) {
             print_bone_recursive(child, depth + 1);
@@ -1088,7 +1639,7 @@ namespace fan_3d {
         }
 
         ImGui::Begin("Bone Hierarchy");
-  
+
         if (ImGui::Button("Reset All Rotations")) {
           std::function<void(bone_t*)> reset_rotations = [&](bone_t* bone) {
             if (bone) {
@@ -1097,7 +1648,7 @@ namespace fan_3d {
                 reset_rotations(child);
               }
             }
-          };
+            };
           reset_rotations(root_bone);
         }
 
@@ -1155,7 +1706,7 @@ namespace fan_3d {
                     ImGui::TreePop();
                   }
                 }
-              });
+                });
               ImGui::TreePop();
             }
             ImGui::TreePop();
@@ -1167,11 +1718,11 @@ namespace fan_3d {
         static constexpr f64_t delta_time_divier = 1e+6;
         ImGui::DragFloat("current time", &dt, 1, 0, std::max(longest_animation, 1.f));
         //ImGui::Text(fan::format("camera pos: {}\ntotal time: {:.2f}", gloco->default_camera_3d->camera.position, fms.default_animation.duration).c_str());
-        static bool play = false;
-        if (ImGui::Checkbox("play animation", &play)) {
+
+        if (ImGui::Checkbox("play animation", &play_animation)) {
           showing_temp_rot = false;
         }
-        if (play) {
+        if (play_animation) {
           dt += ddt * 1000;
         }
 
@@ -1198,7 +1749,7 @@ namespace fan_3d {
           }
 
           static int32_t current_frame = 0;
-          if (!play) {
+          if (!play_animation) {
             dt = current_frame;
           }
           else {
@@ -1265,7 +1816,8 @@ namespace fan_3d {
       int active_bone = -1;
       bool toggle_rotate = false;
       bool showing_temp_rot = false;
-      
+      bool play_animation = false;
+
       // ---------------------gui---------------------
 
       aiScene* scene;
@@ -1276,14 +1828,30 @@ namespace fan_3d {
       std::vector<fan::mat4> bone_transforms;
       std::vector<mesh_t> meshes;
       std::vector<mesh_t> calculated_meshes;
-      std::unordered_map<std::string, bone_t*> bone_map;
+
+      struct ci_less {
+        // case-independent (ci) compare_less binary function
+        struct nocase_compare
+        {
+          bool operator() (const unsigned char& c1, const unsigned char& c2) const {
+            return tolower(c1) < tolower(c2);
+          }
+        };
+        bool operator() (const std::string& s1, const std::string& s2) const {
+          return std::lexicographical_compare
+          (s1.begin(), s1.end(),   // source range
+            s2.begin(), s2.end(),   // dest range
+            nocase_compare());  // comparison
+        }
+      };
+      std::map<std::string, bone_t*, ci_less> bone_map;
 
       std::vector<fan::string> bone_strings;
       std::vector<bone_t*> bones;
 
       fms_model_info_t p;
 
-      fan::mat4 m_transform{1};
+      fan::mat4 m_transform{ 1 };
       uint32_t bone_count = 0;
       f32_t dt = 0;
     };

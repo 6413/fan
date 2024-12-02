@@ -65,16 +65,77 @@ namespace fan {
   };
 
   template <typename type_t>
-  struct _matrix4x4 {
+  struct _matrix4x4;
+
+  template <typename T>
+  static _matrix4x4<T> translation_matrix(const fan::vec3_wrap_t<T>& translation) {
+    return _matrix4x4<T>(1).translate(translation);
+  }
+  template <typename T>
+  static _matrix4x4<T> rotation_quat_matrix(const fan::quaternion<T>& rotation) {
+    return rotation;
+  }
+  template <typename T>
+  static _matrix4x4<T> scaling_matrix(const fan::vec3_wrap_t<T>& scale) {
+    return _matrix4x4<T>(1).scale(scale);
+  }
+  template <typename T>
+  static _matrix4x4<T> inverse(const _matrix4x4<T>& m) {
+    return m.inverse();
+  }
+  template <typename T>
+  static fan::quaternion<T> to_quat(const _matrix4x4<T>& m) {
+    fan::quaternion<T> q;
+    T trace = m[0][0] + m[1][1] + m[2][2];
+    if (trace > 0) {
+      T s = 0.5f / std::sqrt(trace + 1.0f);
+      q.w = 0.25f / s;
+      q.x = (m[1][2] - m[2][1]) * s;
+      q.y = (m[2][0] - m[0][2]) * s;
+      q.z = (m[0][1] - m[1][0]) * s;
+    }
+    else {
+      if (m[0][0] > m[1][1] && m[0][0] > m[2][2]) {
+        T s = 2.0f * std::sqrt(1.0f + m[0][0] - m[1][1] - m[2][2]);
+        q.w = (m[1][2] - m[2][1]) / s;
+        q.x = 0.25f * s;
+        q.y = (m[0][1] + m[1][0]) / s;
+        q.z = (m[0][2] + m[2][0]) / s;
+      }
+      else if (m[1][1] > m[2][2]) {
+        T s = 2.0f * std::sqrt(1.0f + m[1][1] - m[0][0] - m[2][2]);
+        q.w = (m[2][0] - m[0][2]) / s;
+        q.x = (m[0][1] + m[1][0]) / s;
+        q.y = 0.25f * s;
+        q.z = (m[1][2] + m[2][1]) / s;
+      }
+      else {
+        T s = 2.0f * std::sqrt(1.0f + m[2][2] - m[0][0] - m[1][1]);
+        q.w = (m[0][1] - m[1][0]) / s;
+        q.x = (m[0][2] + m[2][0]) / s;
+        q.y = (m[1][2] + m[2][1]) / s;
+        q.z = 0.25f * s;
+      }
+    }
+    return q.normalize();
+  }
+  template <typename T>
+  static constexpr fan::quaternion<T> inverse(const fan::quaternion<T>& q) {
+    return q.inverse();
+  }
+
+  template <typename type_t>
+  struct _matrix4x4 : protected std::array<fan::vec4_wrap_t<type_t>, 4> {
 
     using value_type = fan::vec4_wrap_t<type_t>;
+    using inherit_t = std::array<fan::vec4_wrap_t<type_t>, 4>;
 
     constexpr _matrix4x4() = default;
 
     constexpr _matrix4x4(type_t value) {
-      std::memset(m_array.data(), 0, sizeof(type_t) * 4 * 4);
+      inherit_t::fill({});
       for (int i = 0; i < 4; i++) {
-        m_array[i][i] = value;
+        (*this)[i][i] = value;
       }
     }
     constexpr _matrix4x4(
@@ -83,32 +144,56 @@ namespace fan {
       type_t x2, type_t y2, type_t z2, type_t w2,
       type_t x3, type_t y3, type_t z3, type_t w3
     ) {
-      m_array[0][0] = x0;
-      m_array[1][0] = y0;
-      m_array[2][0] = z0;
-      m_array[3][0] = w0;
+      (*this)[0][0] = x0;
+      (*this)[1][0] = y0;
+      (*this)[2][0] = z0;
+      (*this)[3][0] = w0;
+      (*this)[0][1] = x1;
+      (*this)[1][1] = y1;
+      (*this)[2][1] = z1;
+      (*this)[3][1] = w1;
+      (*this)[0][2] = x2;
+      (*this)[1][2] = y2;
+      (*this)[2][2] = z2;
+      (*this)[3][2] = w2;
+      (*this)[0][3] = x3;
+      (*this)[1][3] = y3;
+      (*this)[2][3] = z3;
+      (*this)[3][3] = w3;
+    }
 
-      m_array[0][1] = x1;
-      m_array[1][1] = y1;
-      m_array[2][1] = z1;
-      m_array[3][1] = w1;
+    template <typename T>
+    constexpr _matrix4x4(const fan::quaternion<T>& quat) : _matrix4x4<type_t>(1) {
+      f32_t qxx(quat[0] * quat[0]);
+      f32_t qyy(quat[1] * quat[1]);
+      f32_t qzz(quat[2] * quat[2]);
+      f32_t qxz(quat[0] * quat[2]);
+      f32_t qxy(quat[0] * quat[1]);
+      f32_t qyz(quat[1] * quat[2]);
+      f32_t qwx(quat[3] * quat[0]);
+      f32_t qwy(quat[3] * quat[1]);
+      f32_t qwz(quat[3] * quat[2]);
 
-      m_array[0][2] = x2;
-      m_array[1][2] = y2;
-      m_array[2][2] = z2;
-      m_array[3][2] = w2;
+      (*this)[0][0] = f32_t(1) - f32_t(2) * (qyy + qzz);
+      (*this)[0][1] = f32_t(2) * (qxy + qwz);
+      (*this)[0][2] = f32_t(2) * (qxz - qwy);
+      (*this)[1][0] = f32_t(2) * (qxy - qwz);
+      (*this)[1][1] = f32_t(1) - f32_t(2) * (qxx + qzz);
+      (*this)[1][2] = f32_t(2) * (qyz + qwx);
+      (*this)[2][0] = f32_t(2) * (qxz + qwy);
+      (*this)[2][1] = f32_t(2) * (qyz - qwx);
+      (*this)[2][2] = f32_t(1) - f32_t(2) * (qxx + qyy);
+    }
 
-      m_array[0][3] = x3;
-      m_array[1][3] = y3;
-      m_array[2][3] = z3;
-      m_array[3][3] = w3;
+    static _matrix4x4 identity() {
+      return _matrix4x4((type_t)1);
     }
 
     #if defined(loco_assimp)
     _matrix4x4(const aiMatrix4x4& mat) {
       for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
-          m_array[i][j] = mat[j][i];
+          (*this)[i][j] = mat[j][i];
         }
       }
     }
@@ -116,7 +201,7 @@ namespace fan {
       aiMatrix4x4 mat;
       for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
-          mat[j][i] = m_array[i][j];
+          mat[j][i] = (*this)[i][j];
         }
       }
       return mat;
@@ -180,7 +265,7 @@ namespace fan {
       if (std::abs(scale.y) > epsilon) temp[1] /= scale.y;
       if (std::abs(scale.z) > epsilon) temp[2] /= scale.z;
 
-      rotation = fan::quat().from_matrix(temp);
+      rotation = fan::to_quat(temp);
 
       skew.x = fan::math::dot(temp[0], temp[1]);
       temp[1] = combine(temp[1], temp[0], 1, -skew.x);
@@ -196,31 +281,11 @@ namespace fan {
     }
 
     template <typename T>
-    constexpr _matrix4x4(const fan::quaternion<T>& quat) : _matrix4x4<type_t>(1) {
-      f32_t qxx(quat[0] * quat[0]);
-      f32_t qyy(quat[1] * quat[1]);
-      f32_t qzz(quat[2] * quat[2]);
-      f32_t qxz(quat[0] * quat[2]);
-      f32_t qxy(quat[0] * quat[1]);
-      f32_t qyz(quat[1] * quat[2]);
-      f32_t qwx(quat[3] * quat[0]);
-      f32_t qwy(quat[3] * quat[1]);
-      f32_t qwz(quat[3] * quat[2]);
-
-      m_array[0][0] = f32_t(1) - f32_t(2) * (qyy + qzz);
-      m_array[0][1] = f32_t(2) * (qxy + qwz);
-      m_array[0][2] = f32_t(2) * (qxz - qwy);
-
-      m_array[1][0] = f32_t(2) * (qxy - qwz);
-      m_array[1][1] = f32_t(1) - f32_t(2) * (qxx + qzz);
-      m_array[1][2] = f32_t(2) * (qyz + qwx);
-
-      m_array[2][0] = f32_t(2) * (qxz + qwy);
-      m_array[2][1] = f32_t(2) * (qyz - qwx);
-      m_array[2][2] = f32_t(1) - f32_t(2) * (qxx + qyy);
+    operator fan::quaternion<T>() {
+      return fan::to_quat(*this);
     }
 
-    constexpr std::string to_string(const std::string& per_root = "") const {
+    std::string to_string(const std::string& per_root = "") const {
       std::string str = per_root;
       for (uintptr_t i = 0; i < 4; i++) {
         for (uintptr_t j = 0; j < 4; j++) {
@@ -232,7 +297,7 @@ namespace fan {
       }
       return str;
     }
-    constexpr std::array<std::string, 4> to_string_r(const std::string& per_root = "") const {
+    std::array<std::string, 4> to_string_r(const std::string& per_root = "") const {
       std::array<std::string, 4> roots;
       std::string str = per_root;
       for (uintptr_t i = 0; i < 4; i++) {
@@ -259,11 +324,11 @@ namespace fan {
     }
 
     constexpr fan::vec4& operator[](const uintptr_t i) {
-      return m_array[i];
+      return inherit_t::operator[](i);
     }
 
     constexpr fan::vec4 operator[](const uintptr_t i) const {
-      return m_array[i];
+      return inherit_t::operator[](i);
     }
 
     constexpr _matrix4x4<type_t> operator*(const _matrix4x4<type_t>& rhs) const {
@@ -272,7 +337,7 @@ namespace fan {
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
           for (int k = 0; k < 4; k++) {
-            result[i][j] += m_array[k][j] * rhs[i][k];
+            result[i][j] += (*this)[k][j] * rhs[i][k];
           }
         }
       }
@@ -284,7 +349,7 @@ namespace fan {
 
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-          result[i] += m_array[j][i] * rhs[j];
+          result[i] += (*this)[j][i] * rhs[j];
         }
       }
 
@@ -296,7 +361,7 @@ namespace fan {
 
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-          result[i][j] = m_array[i][j] * rhs;
+          result[i][j] = (*this)[i][j] * rhs;
         }
       }
 
@@ -313,13 +378,13 @@ namespace fan {
     }
 
     constexpr _matrix4x4 translate(const fan::vec3& v) const {
-			_matrix4x4 matrix((*this));
-			matrix[3][0] = (*this)[0][0] * v[0] + (*this)[1][0] * v[1] + (v.size() < 3 ? + 0 : ((*this)[2][0] * v[2])) + (*this)[3][0];
-			matrix[3][1] = (*this)[0][1] * v[0] + (*this)[1][1] * v[1] + (v.size() < 3 ? + 0 : ((*this)[2][1] * v[2])) + (*this)[3][1];
-			matrix[3][2] = (*this)[0][2] * v[0] + (*this)[1][2] * v[1] + (v.size() < 3 ? + 0 : ((*this)[2][2] * v[2])) + (*this)[3][2];
-			matrix[3][3] = (*this)[0][3] * v[0] + (*this)[1][3] * v[1] + (v.size() < 3 ? + 0 : ((*this)[2][3] * v[2])) + (*this)[3][3];
-			return matrix;
-		}
+      _matrix4x4 matrix((*this));
+      matrix[3][0] = (*this)[3][0] + v[0];
+      matrix[3][1] = (*this)[3][1] + v[1];
+      matrix[3][2] = (*this)[3][2] + (v.size() < 3 ? 0 : v[2]);
+      matrix[3][3] = (*this)[3][3]; // This is typically 1 for homogeneous coordinates
+      return matrix;
+    }
 
     constexpr fan::vec3 get_translation() const {
 			return fan::vec3((*this)[3][0], (*this)[3][1], (*this)[3][2]);
@@ -495,8 +560,8 @@ namespace fan {
           }
         }
 
-        std::swap(result.m_array[i], result.m_array[pivot_row]);
-        std::swap(identity.m_array[i], identity.m_array[pivot_row]);
+        std::swap(result[i], result[pivot_row]);
+        std::swap(identity[i], identity[pivot_row]);
 
         type_t diag_element = result[i][i];
         if (diag_element == 0) {
@@ -560,16 +625,13 @@ namespace fan {
 
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
-          result[i] += m_array[j][i] * rhs[j];
+          result[i] += (*this)[j][i] * rhs[j];
         }
-        result[i] += m_array[3][i];
+        result[i] += (*this)[3][i];
       }
 
       return result;
     }
-
-  protected:
-    std::array<fan::vec4, 4> m_array;
   };
 
   template <uint32_t _i, uint32_t _j, typename data_t = f32_t>
@@ -880,46 +942,11 @@ namespace fan {
     }
   };
 
-  template <typename T>
-  inline constexpr auto fan::quaternion<T>::from_matrix(const auto& m) const {
-
-    fan::quaternion<T> q;
-
-    T trace = m[0][0] + m[1][1] + m[2][2];
-    if (trace > 0) {
-      T s = 0.5 / sqrt(trace + 1.0);
-      q.w = 0.25 / s;
-      q.x = (m[2][1] - m[1][2]) * s;
-      q.y = (m[0][2] - m[2][0]) * s;
-      q.z = (m[1][0] - m[0][1]) * s;
-    }
-    else {
-      if (m[0][0] > m[1][1] && m[0][0] > m[2][2]) {
-        T s = 2.0 * sqrt(1.0 + m[0][0] - m[1][1] - m[2][2]);
-        q.w = (m[2][1] - m[1][2]) / s;
-        q.x = 0.25 * s;
-        q.y = (m[0][1] + m[1][0]) / s;
-        q.z = (m[0][2] + m[2][0]) / s;
-      }
-      else if (m[1][1] > m[2][2]) {
-        T s = 2.0 * sqrt(1.0 + m[1][1] - m[0][0] - m[2][2]);
-        q.w = (m[0][2] - m[2][0]) / s;
-        q.x = (m[0][1] + m[1][0]) / s;
-        q.y = 0.25 * s;
-        q.z = (m[1][2] + m[2][1]) / s;
-      }
-      else {
-        T s = 2.0 * sqrt(1.0 + m[2][2] - m[0][0] - m[1][1]);
-        q.w = (m[1][0] - m[0][1]) / s;
-        q.x = (m[0][2] + m[2][0]) / s;
-        q.y = (m[1][2] + m[2][1]) / s;
-        q.z = 0.25 * s;
-      }
-    }
-
-    return q;
-  }
   
+  template <typename T>
+  inline fan::quaternion<T>::quaternion(const _matrix4x4<T>& m) {
+    *this = fan::to_quat(m);
+  }
 
   using matrix4x4 = _matrix4x4<cf_t>;
   using matrix4x4ui = _matrix4x4<uintptr_t>;

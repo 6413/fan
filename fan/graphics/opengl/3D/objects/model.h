@@ -17,11 +17,6 @@ namespace fan {
 
       };
 
-      struct mesh_t :fms_t::mesh_t{
-        fan::opengl::core::vao_t VAO;
-        fan::opengl::core::vbo_t VBO;
-        fan::opengl::GLuint EBO;
-      };
       model_t(const properties_t& p) : fms_t(p) {
         std::string vs = loco_t::read_shader("shaders/opengl/3D/objects/model.vs");
         std::string fs = loco_t::read_shader("shaders/opengl/3D/objects/model.fs");
@@ -175,6 +170,9 @@ namespace fan {
               gloco->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + tex_index);
 
               gloco->shader_set_value(m_shader, oss.str(), tex_index);
+              if (fan_3d::model::cached_images[tex].iic()) {
+                fan_3d::model::cached_images[tex] = gloco->default_texture;
+              }
               gloco->image_bind(fan_3d::model::cached_images[tex]);
               ++tex_index;
             }
