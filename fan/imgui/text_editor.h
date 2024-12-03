@@ -292,7 +292,7 @@ public:
   static const Palette& GetLightPalette();
   static const Palette& GetRetroBluePalette();
 
-  bool IsFocused() const;
+  bool& IsFocused();
 
 private:
   typedef std::vector<std::pair<std::regex, PaletteIndex>> RegexList;
