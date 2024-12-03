@@ -9,9 +9,6 @@ f32_t all_scale = -0.5;
 fan::vec3 scale = all_scale;
 fan::mat4 m = fan::mat4(1).translate(position) * fan::mat4(1).rotate(rotation) * fan::mat4(1).scale(scale);
 
-std::map<std::string, std::string> model_converted_bone_names;
-std::map<std::string, std::string> anim_converted_bone_names;
-
 #include <fan/graphics/opengl/3D/objects/model.h>
 
 void add_debug_rect(const fan::vec3& position, const fan::color& c) {
@@ -34,7 +31,7 @@ int main() {
 #if !1
   p.path = "models/xbot_idle.fbx";
 #else
-  p.path = "models/final_provence.fbx";
+  p.path = "models/model2.dae";
 #endif
   p.texture_path = "models/textures";
   p.use_cpu = 0;

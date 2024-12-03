@@ -1471,8 +1471,6 @@ namespace fan_3d {
                 fan::throw_error("invalid solved bone");
               }
               bone_t& target_bone = *bone_map[solved_bone_name];
-              model_converted_bone_names[bone.name] = target_bone.name;
-              anim_converted_bone_names[target_bone.name] = bone.name;
               for (unsigned int i = 0; i < channel->mNumPositionKeys; i++) {
                 fan::vec3 source_pos = channel->mPositionKeys[i].mValue;
                 channel->mPositionKeys[i].mValue = transformPosition(source_pos, source_bone, target_bone);
