@@ -12,6 +12,7 @@ fan::mat4 m = fan::mat4(1).translate(position) * fan::mat4(1).rotate(rotation) *
 std::map<std::string, std::string> model_converted_bone_names;
 std::map<std::string, std::string> anim_converted_bone_names;
 
+#include <fan/graphics/opengl/3D/objects/model.h>
 
 void add_debug_rect(const fan::vec3& position, const fan::color& c) {
   loco_t::rectangle3d_t::properties_t rp;
@@ -20,7 +21,7 @@ void add_debug_rect(const fan::vec3& position, const fan::color& c) {
   rp.size = bone_render_size;
   debug_rects.push_back(rp);
 }
-#include <fan/graphics/opengl/3D/objects/model.h>
+
 
 fan::graphics::model_t* model = nullptr;
 fan::graphics::model_t* anim0 = nullptr;
@@ -178,66 +179,6 @@ int main() {
     }
 
     ImGui::Begin("window");
-
-    static fan::vec3 aa = 0;
-    static fan::vec3 pp = 0;
-    //static fan::quat q(std::cos(fan::math::pi / 2), 0, std::sin(fan::math::pi / 2), 0);
-
-    //static fan::quat rotation_x = fan::quat(0, 1, 0, 0);
-    //static fan::quat rotation_y = fan::quat(0, 0, 1, 0);
-    //static fan::quat rotation_z = fan::quat(0, 0, 0, 1);
-
-    //ImGui::DragFloat4("bruteforce", rotation_x.data(), 0.001);
-    //ImGui::DragFloat4("bruteforce1", rotation_y.data(), 0.001);
-    //ImGui::DragFloat4("bruteforce2", rotation_z.data(), 0.001);
-
-    //auto* anim = model->scene->mAnimations[anim_index];
-    //for (uint32_t i = 0; i < anim->mNumChannels; ++i) {
-    //  aiNodeAnim* channel = anim->mChannels[i];
-    //  for (unsigned int j = 0; j < channel->mNumRotationKeys; j++) {
-    //    const auto& source_bone = *anim0->bone_map[anim_converted_bone_names[channel->mNodeName.C_Str()]];
-    //    auto found = model->bone_map.find(channel->mNodeName.C_Str());
-    //    if (found == model->bone_map.end()) {
-    //      continue;
-    //    }
-    //    const auto& destination_bone = *found->second;
-    //    //fan::quat correctionQuat(std::cos(fan::math::pi / 2),  std::sin(fan::math::pi / 2),0, 0);
-    //    fan::quat rotation = original_bone_rotations[destination_bone.name][j];
-    //    //fan::quat transformedRotation = (destination_bone.transform * fan::translation_matrix(pp)) * rotation;
-    //    auto& btt = model->animation_list["Idle2"].bone_transforms;
-    //    auto ff = btt.find(channel->mNodeName.C_Str());
-    //    if (ff == btt.end()) {
-    //      fan::throw_error("AAA");
-    //    }
-    //    if (std::string(channel->mNodeName.C_Str()).c_str() != std::string("Left_leg")) {
-    //    //  ff->second.rotations[j] = rotation;
-    //    }
-    //    else {
-    //    }
-    //    fan::quat src = source_bone.transform;
-    //    fan::quat dst = fan::quat(destination_bone.transform);
-    //    fan::quat anim = rotation;
-    //    if (c.finished()) {
-    //    //  rotation_x = fan::quat(fan::random::f32(-1, 1), fan::random::f32(-1, 1), fan::random::f32(-1, 1), fan::random::f32(-1, 1));
-    //    //  fan::print(rotation_x);
-    //      c.restart();
-    //    }
-    //    fan::quat src_conjugate = src;
-    //    src_conjugate = src_conjugate.normalize();
-    //    fan::quat relative_rotation = src_conjugate * anim;
-    //    fan::quat updated_dst = relative_rotation * dst;
-    //    updated_dst = updated_dst.normalize();
-    //    rotation = rotation.normalize();
-    //    rotation_x=rotation_x.normalize();
-    //    rotation_z = rotation_z.normalize();
-    //    fan::quat combined = rotation_z * rotation_y * rotation_x;
-    //    ff->second.rotations[j] = rotation * combined;
-    //    //found->second. = q * transformedRotation;
-    //  }
-    //}
-
-    
-
 
     static bool toggle = model->p.use_cpu;
     if (ImGui::ToggleButton("use cpu", &toggle)) {
@@ -400,7 +341,8 @@ int main() {
         fan::vec3 apply = angle;
         apply[(active_axis + 1) % apply.size()] = 0;
         apply[(active_axis + 2) % apply.size()] = 0;
-        model->bones[model->active_bone]->rotation += apply;
+        //TODO
+        //model->bones[model->active_bone]->rotation += apply;
       }
     }
 
