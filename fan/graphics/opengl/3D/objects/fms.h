@@ -25,7 +25,6 @@ namespace fan_3d {
       fan::vec3 bitangent;
       fan::vec4 color;
     };
-
     struct bone_transform_track_t {
       std::vector<f32_t> position_timestamps;
       std::vector<f32_t> rotation_timestamps;
@@ -37,7 +36,6 @@ namespace fan_3d {
 
       f32_t weight = 1.f;
     };
-
     struct animation_data_t {
       struct bone_pose_t {
         fan::vec3 position = 0;
@@ -59,30 +57,24 @@ namespace fan_3d {
       std::unordered_map<std::string, bone_transform_track_t> bone_transforms;
       std::string name;
     };
-
     struct bone_t {
       int id = -1; // also depth
       std::string name;
       fan::mat4 offset;
-      f32_t length = 0.1f;
       fan::mat4 transformation;
       fan::mat4 world_matrix;
       fan::mat4 inverse_parent_matrix;
       fan::mat4 bone_transform; // for delta
       bone_t* parent;
       std::vector<bone_t*> children;
-
-      // user transform
       fan::vec3 position = 0;
       fan::quat rotation;
       fan::vec3 scale = 1;
-
       // this appears to be different than transformation
       fan::mat4 get_local_matrix() const {
         return fan::mat4(1).translate(position) * fan::mat4(1).rotate(rotation) * fan::mat4(1).scale(scale);
       }
     };
-
     struct mesh_t {
       std::vector<fan_3d::model::vertex_t> vertices;
       std::vector<uint32_t> indices;
@@ -90,12 +82,11 @@ namespace fan_3d {
       std::string texture_names[AI_TEXTURE_TYPE_MAX + 1]{};
 
 #ifdef fms_use_opengl
-      fan::opengl::core::vao_t VAO;
-      fan::opengl::core::vbo_t VBO;
-      fan::opengl::GLuint EBO;
+      fan::opengl::core::vao_t vao;
+      fan::opengl::core::vbo_t vbo;
+      fan::opengl::GLuint ebo;
 #endif
     };
-
     // pm -- parsed model
     struct pm_texture_data_t {
       fan::vec2ui size = 0;
@@ -103,22 +94,18 @@ namespace fan_3d {
       int channels = 0;
     };
     inline static std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
-
     struct pm_material_data_t {
       fan::vec4 color[AI_TEXTURE_TYPE_MAX + 1];
     };
-
-    struct fms_model_info_t {
-      fan::string path;
-      std::string texture_path;
-      int use_cpu = false;
-    };
-
     // fan model stuff
     struct fms_t {
-      using properties_t = fms_model_info_t;
+      struct properties_t {
+        fan::string path;
+        std::string texture_path;
+        int use_cpu = false;
+      };
       fms_t() = default;
-      fms_t(const fms_model_info_t& fmi) {
+      fms_t(const properties_t& fmi) {
         if (!load_model(fmi.path)) {
           fan::throw_error("failed to load model:" + fmi.path);
         }
@@ -228,7 +215,6 @@ namespace fan_3d {
         }
         return new_mesh;
       }
-
       std::string load_textures(mesh_t& mesh, aiMesh* ai_mesh) {
         if (scene->mNumMaterials == 0) {
           return "";
@@ -306,73 +292,12 @@ namespace fan_3d {
 
         return material_data;
       }
-
-      float calculate_bone_length_advanced(aiNode* node) {
-        if (node->mNumChildren == 0) {
-          return 0.1f;
-        }
-
-        std::vector<float> child_lengths;
-
-        // Extract parent position from transformation matrix
-        fan::vec3 parent_pos(
-          node->mTransformation.a4,
-          node->mTransformation.b4,
-          node->mTransformation.c4
-        );
-
-        // Collect lengths to all children
-        for (uint32_t i = 0; i < node->mNumChildren; i++) {
-          aiNode* child = node->mChildren[i];
-
-          fan::vec3 child_pos(
-            child->mTransformation.a4,
-            child->mTransformation.b4,
-            child->mTransformation.c4
-          );
-
-          // Calculate Euclidean distance
-          float length = std::sqrt(
-            std::pow(child_pos.x - parent_pos.x, 2) +
-            std::pow(child_pos.y - parent_pos.y, 2) +
-            std::pow(child_pos.z - parent_pos.z, 2)
-          );
-
-          child_lengths.push_back(length);
-        }
-
-        // If multiple children, use median or average
-        if (!child_lengths.empty()) {
-          std::sort(child_lengths.begin(), child_lengths.end());
-
-          // Return median length
-          size_t mid = child_lengths.size() / 2;
-          return child_lengths[mid];
-        }
-
-        return 0.1f;
-      }
-      float calculate_bone_height(const aiNode* node, const fan::mat4& global_transform) {
-        if (node->mNumChildren == 0) {
-          return 0.0f; // No children, height is zero
-        }
-
-        // Assuming we take the first child for the height calculation
-        aiVector3D bone_pos = global_transform * aiVector3D(0, 0, 0); // Global position of current bone
-        fan::mat4 child_global_transform = global_transform * node->mChildren[0]->mTransformation;
-        aiVector3D child_pos = child_global_transform * aiVector3D(0, 0, 0); // Global position of first child
-
-        // Calculate Euclidean distance
-        float height = sqrt(pow(child_pos.x - bone_pos.x, 2) + pow(child_pos.y - bone_pos.y, 2) + pow(child_pos.z - bone_pos.z, 2));
-        return height;
-      }
       void process_skeleton(aiNode* node, bone_t* parent) {
         if (parent == nullptr) {
           bone_count = 0;
         }
         bone_t* bone = new bone_t();
         bone->name = node->mName.C_Str();
-        fan::print(bone->name);
         bone->id = bone_count;
         bone->parent = parent;
         aiVector3D pos, scale;
@@ -385,7 +310,6 @@ namespace fan_3d {
         bone->world_matrix = get_world_matrix(bone, bone->get_local_matrix());
         bone->inverse_parent_matrix = get_inverse_parent_matrix(bone);
         bone->offset = fan::mat4(1.0f);
-        bone->length = calculate_bone_length_advanced(node);
         bone_map[bone->name] = bone;
         ++bone_count;
         bone_strings.push_back(bone->name);
@@ -399,7 +323,6 @@ namespace fan_3d {
           process_skeleton(node->mChildren[i], bone);
         }
       }
-
       void process_bone_offsets(aiMesh* mesh) {
         for (uint32_t i = 0; i < mesh->mNumBones; i++) {
           aiBone* bone = mesh->mBones[i];
@@ -476,7 +399,6 @@ namespace fan_3d {
         fan::vec4 gl_Position = worldPos;
         return gl_Position;
       }
-
       bool load_model(const std::string& path) {
         importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
         importer.ReadFile(path, aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes | aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices);
@@ -523,8 +445,6 @@ namespace fan_3d {
           }
         }
       }
-
-
       // flag default, ik, fk?
       void calculate_modified_vertices(const fan::mat4& model = fan::mat4(1)) {
         for (uint32_t i = 0; i < meshes.size(); ++i) {
@@ -532,7 +452,6 @@ namespace fan_3d {
           calculate_vertices(bone_transforms, i, model);
         }
       }
-
       // triangle consists of 3 vertices
       struct one_triangle_t {
         fan::vec3 position[3]{};
@@ -637,6 +556,7 @@ namespace fan_3d {
         std::pair<uint32_t, f32_t> fp;
         uint8_t ret = false;
         {// position
+          position = btt.positions[0];
           bool tr = fk_get_time_fraction(btt.position_timestamps, dt, fp);
           ret |= ((uint8_t)tr << 0);
           if (!tr && fp.first != (uint32_t)-1) {
@@ -646,17 +566,12 @@ namespace fan_3d {
             else {
               fan::vec3 p1 = btt.positions[fp.first - 1];
               fan::vec3 p2 = btt.positions[fp.first];
-              fan::vec3 pos = fan::mix(p1, p2, fp.second);
-              // +=
-              position = pos * btt.weight;
+              position = fan::mix(p1, p2, fp.second) * btt.weight;
             }
           }
-          else {
-            position = btt.positions[0];
-          }
         }
-
         {// rotation
+          rotation = btt.rotations[0];
           bool tr = fk_get_time_fraction(btt.rotation_timestamps, dt, fp);
           ret |= ((uint8_t)tr << 1);
           if (!tr && fp.first != (uint32_t)-1) {
@@ -666,17 +581,12 @@ namespace fan_3d {
             else {
               fan::quat rotation1 = btt.rotations[fp.first - 1];
               fan::quat rotation2 = btt.rotations[fp.first];
-
-              fan::quat rot = fan::quat::slerp(rotation1, rotation2, fp.second);
-              rotation = rot;
+              rotation = fan::quat::slerp(rotation1, rotation2, fp.second);
             }
           }
-          else {
-            rotation = btt.rotations[0];
-          }
         }
-
         { // size
+          scale = btt.scales[0];
           bool tr = fk_get_time_fraction(btt.scale_timestamps, dt, fp);
           ret |= ((uint8_t)tr << 2);
           if (!tr && fp.first != (uint32_t)-1) {
@@ -686,18 +596,13 @@ namespace fan_3d {
             else {
               fan::vec3 s1 = btt.scales[fp.first - 1];
               fan::vec3 s2 = btt.scales[fp.first];
-              // +=
               scale = fan::mix(s1, s2, fp.second) * btt.weight;
             }
-          }
-          else {
-            scale = btt.scales[0];
           }
         }
         return ret;
       }
       void fk_get_pose(animation_data_t& animation, const bone_t& bone) {
-
         // this fmods other animations too. dt per animation? or with weights or max of all animations?
         // fix xd
         if (animation.duration != 0) {
@@ -715,7 +620,6 @@ namespace fan_3d {
         if (it == animation.bone_transforms.end()) {
           animation.bone_poses[bone.id].rotation.w = -9999;
           return;
-          //fan::throw_error("bone not found from bone_transforms");
         }
         const auto& bt = it->second;
         if (bt.positions.empty()) {
@@ -771,7 +675,6 @@ namespace fan_3d {
       }
       std::vector<fan::mat4> fk_calculate_transformations() {
         std::vector<fan::mat4> fk_transformations = bone_transforms;
-
         fk_interpolate_animations(fk_transformations, *root_bone, m_transform);
 
         if (p.use_cpu) {
@@ -795,7 +698,6 @@ namespace fan_3d {
 
 
       // ---------------------animation---------------------
-
 
       void load_animations() {
         for (uint32_t k = 0; k < scene->mNumAnimations; ++k) {
@@ -835,11 +737,6 @@ namespace fan_3d {
 
         }
       }
-
-      anim_key_t active_anim;
-      std::unordered_map<anim_key_t, animation_data_t> animation_list;
-      f32_t longest_animation = 1.f;
-
       fan::string create_an(const fan::string& key, f32_t weight = 1.f, f32_t duration = 1.f) {
         if (animation_list.empty()) {
           if (active_anim.empty()) {
@@ -848,7 +745,6 @@ namespace fan_3d {
         }
         auto& node = animation_list[key];
         node.weight = weight;
-        //node = m_animation;
         node.duration = duration * 1000.f;
         node.type = animation_data_t::type_e::custom;
         longest_animation = std::max((f32_t)node.duration, longest_animation);
@@ -859,14 +755,8 @@ namespace fan_3d {
             node.bone_transforms[bone.name];
           }
         );
-
-        // user should worry about it
-        //for (auto& anim : animation_list) {
-        //  anim.second.weight = 1.f / animation_list.size();
-        //}
         return key;
       }
-
       uint32_t get_active_animation_id() {
         if (active_anim.empty()) {
           return -1;
@@ -879,17 +769,14 @@ namespace fan_3d {
         return std::distance(animation_list.begin(), found);
       }
       animation_data_t& get_active_animation() {
-        if (active_anim.empty()) {
+        uint32_t id = get_active_animation_id();
+        if (id == -1) {
           fan::throw_error("no active animation");
         }
-        auto found = animation_list.find(active_anim);
-        if (found == animation_list.end()) {
-          fan::throw_error("trying to access invalid animation:" + active_anim);
-        }
-        // TODO might be illegal if its temporary var
-        return found->second;
+        auto it = animation_list.begin();
+        std::advance(it, id);
+        return it->second;
       }
-
       bool export_animation(
         const std::string& animation_name_to_export,
         const std::string path,
@@ -944,50 +831,7 @@ namespace fan_3d {
 
         return 1;
       }
-
-      template<typename charT>
-      struct my_equal {
-        my_equal(const std::locale& loc) : loc_(loc) {}
-        bool operator()(charT ch1, charT ch2) {
-          return std::toupper(ch1, loc_) == std::toupper(ch2, loc_);
-        }
-      private:
-        const std::locale& loc_;
-      };
-
-      template<typename T>
-      int ci_find_substr(const T& str1, const T& str2, const std::locale& loc = std::locale())
-      {
-        typename T::const_iterator it = std::search(str1.begin(), str1.end(),
-          str2.begin(), str2.end(), my_equal<typename T::value_type>(loc));
-        if (it != str1.end()) return it - str1.begin();
-        else return -1;
-      }
-
-      bool search_bone_from_model(fan_3d::model::fms_t& model, std::string name) {
-        bool found = false;
-        model.iterate_bones(*model.root_bone, [&](fan_3d::model::bone_t& bone) {
-          if (bone.name == name) {
-            found = true;
-          }
-          });
-        return found;
-      }
-
-      uintptr_t comp_string(std::string str0, std::string str1) {
-        uintptr_t i = 0;
-        for (; i < str0.size(); i++) {
-          if (i == str1.size()) {
-            break;
-          }
-          if (std::tolower(str0[i]) != std::tolower(str1[i])) {
-            break;
-          }
-        }
-        return i;
-      }
-
-      std::vector<std::vector<std::string>> bone_names_default = {
+      inline static std::vector<std::vector<std::string>> bone_names_default = {
         {"Hips", "Torso"},
         {"Right_Up_Leg", "Upper_Leg_R", "RightUpLeg", "Upper_Leg.R", "R_UpperLeg"},
         {"Lower_Leg_R", "Lower_Leg.R", "Right_knee", "R_LowerLeg"},
@@ -1054,16 +898,13 @@ namespace fan_3d {
         {"Left_Toe_Base", "LeftToeBase", "Left_toe", "L_ToeBase"},
         {"Left_Toe_End"}
       };
-
       std::vector<std::vector<std::string>> bone_names_anim;
       std::vector<std::vector<std::string>> bone_names_model;
-
       void fancy_iterator(auto& iteration, auto func) {
         for (uintptr_t i = 0; i < iteration.size(); i++) {
           func(iteration[i]);
         }
       }
-
       uintptr_t get_bone_name_index(auto& iteration, std::string from) {
         uintptr_t longest_name_id = (uintptr_t)-1;
         uintptr_t longest_length = 0;
@@ -1111,7 +952,6 @@ namespace fan_3d {
 
         return longest_name_id;
       }
-
       std::string get_model_bone_name(uintptr_t name_index, auto& model) {
         std::string longest_name;
         uintptr_t longest_length = 0;
@@ -1161,7 +1001,6 @@ namespace fan_3d {
 
         return longest_name;
       }
-
       std::string get_bone_name_by_index(auto& model, uintptr_t index) {
         std::string ret;
         uintptr_t i = 0;
@@ -1173,7 +1012,6 @@ namespace fan_3d {
           });
         return ret;
       }
-
       void solve_legs(auto& iterator, auto& vector) {
         uint8_t left_leg_meaning = (uint8_t)-1;
         std::vector<std::vector<std::string>> left_leg_vector = {
@@ -1293,7 +1131,6 @@ namespace fan_3d {
           vector[index].push_back("Right_leg");
         }
       }
-
       void init_animation_import(std::string& animation_name, aiAnimation* newAnim) {
         bool animation_exists = false;
         for (unsigned int i = 0; i < scene->mNumAnimations; ++i) {
@@ -1319,9 +1156,7 @@ namespace fan_3d {
           scene->mNumAnimations += 1;
         }
       }
-
       std::unordered_map<std::string, bool> bone_mapper;
-
       static fan::mat4 get_world_matrix(fan_3d::model::bone_t* entity, fan::mat4 localMatrix) {
         fan_3d::model::bone_t* parentID = entity->parent;
         while (parentID != nullptr)
@@ -1331,7 +1166,6 @@ namespace fan_3d {
         }
         return localMatrix;
       }
-
       static fan::mat4 get_inverse_parent_matrix(fan_3d::model::bone_t* entity) {
         fan::mat4 inverseParentMatrix(1);
         fan_3d::model::bone_t* parentID = entity->parent;
@@ -1346,7 +1180,6 @@ namespace fan_3d {
         }
         return inverseParentMatrix;
       }
-
       static fan::vec3 transformPosition(
         const fan::vec3& position,
         bone_t& source_bone,
@@ -1392,8 +1225,6 @@ namespace fan_3d {
         local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
         return fan::quat(local_matrix).inverse();
       }
-
-
       static fan::vec3 transformScale(
         const fan::vec3& scale,
         bone_t& source_bone,
@@ -1406,7 +1237,6 @@ namespace fan_3d {
         local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
         return local_matrix.get_scale();
       }
-
       void import_animation(fms_t& anim, const std::string& custom_name = "") {
         bone_names_anim = bone_names_default;
         bone_names_model = bone_names_default;
@@ -1505,6 +1335,9 @@ namespace fan_3d {
         load_animations();
       }
 
+      f32_t longest_animation = 1.f;
+      anim_key_t active_anim;
+      std::unordered_map<anim_key_t, animation_data_t> animation_list;
 
       // ---------------------animation---------------------
 
@@ -1752,12 +1585,9 @@ namespace fan_3d {
         }
       };
       std::map<std::string, bone_t*, ci_less> bone_map;
-
       std::vector<fan::string> bone_strings;
       std::vector<bone_t*> bones;
-
-      fms_model_info_t p;
-
+      properties_t p;
       fan::mat4 m_transform{ 1 };
       uint32_t bone_count = 0;
       f32_t dt = 0;
