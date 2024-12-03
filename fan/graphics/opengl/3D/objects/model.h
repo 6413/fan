@@ -1,5 +1,6 @@
 #pragma once
 
+#define fms_use_opengl
 #include "fms.h"
 
 namespace fan_3d {
