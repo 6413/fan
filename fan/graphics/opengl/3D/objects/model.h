@@ -13,11 +13,9 @@ namespace fan {
   namespace graphics {
     using namespace opengl;
     struct model_t : fan_3d::model::fms_t{
-
-      struct properties_t : fan_3d::model::fms_model_info_t {
+      struct properties_t : fan_3d::model::fms_t::properties_t {
 
       };
-
       model_t(const properties_t& p) : fms_t(p) {
         std::string vs = loco_t::read_shader("shaders/opengl/3D/objects/model.vs");
         std::string fs = loco_t::read_shader("shaders/opengl/3D/objects/model.fs");
@@ -62,22 +60,20 @@ namespace fan {
               fan_3d::model::cached_images[name] = gloco->default_texture; // insert default (missing) texture, since old doesnt exist
             }
           }
-          SetupMeshBuffers(mesh);
+          setup_mesh_buffers(mesh);
         }
       }
+      void setup_mesh_buffers(fan_3d::model::mesh_t& mesh) {
+        mesh.vao.open(*gloco);
+        mesh.vbo.open(*gloco, GL_ARRAY_BUFFER);
+        gloco->opengl.glGenBuffers(1, &mesh.ebo);
 
-      // kinda illegal here
-      void SetupMeshBuffers(fan_3d::model::mesh_t& mesh) {
-        mesh.VAO.open(*gloco);
-        mesh.VBO.open(*gloco, GL_ARRAY_BUFFER);
-        gloco->opengl.glGenBuffers(1, &mesh.EBO);
+        mesh.vao.bind(*gloco);
 
-        mesh.VAO.bind(*gloco);
-
-        mesh.VBO.bind(*gloco);
+        mesh.vbo.bind(*gloco);
         gloco->opengl.glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(fan_3d::model::vertex_t), &mesh.vertices[0], GL_STATIC_DRAW);
 
-        gloco->opengl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.EBO);
+        gloco->opengl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
         gloco->opengl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW);
 
         gloco->opengl.glEnableVertexAttribArray(0);
@@ -105,31 +101,25 @@ namespace fan {
         gloco->opengl.glBufferData(GL_SHADER_STORAGE_BUFFER, bone_transform_size, bone_transforms.data(), GL_STATIC_DRAW);
         gloco->opengl.glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_bone_buffer);
       }
-
       void upload_modified_vertices() {
         for (uint32_t i = 0; i < meshes.size(); ++i) {
-          meshes[i].VAO.bind(gloco->get_context());
-          meshes[i].VBO.write_buffer(
+          meshes[i].vao.bind(gloco->get_context());
+          meshes[i].vbo.write_buffer(
             gloco->get_context(),
             calculated_meshes[i].vertices.data(),
             sizeof(fan_3d::model::vertex_t) * calculated_meshes[i].vertices.size()
           );
         }
       }
-
-
       void draw(const fan::mat4& model_transform = fan::mat4(1), const std::vector<fan::mat4>& bone_transforms = {}) {
         gloco->shader_use(m_shader);
         gloco->shader_set_value(m_shader, "model", model_transform);
         gloco->shader_set_value(m_shader, "use_cpu", p.use_cpu);
         gloco->shader_set_camera(m_shader, &gloco->camera_get(gloco->perspective_camera.camera));
-
         gloco->shader_set_value(m_shader, "light_position", light_position);
         gloco->shader_set_value(m_shader, "light_color", light_color);
         gloco->shader_set_value(m_shader, "light_intensity", light_intensity);
-
         gloco->set_depth_test(true);
-
         if (p.use_cpu == 0) {
           gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bone_buffer);
           gloco->opengl.glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_bone_buffer);
@@ -137,7 +127,6 @@ namespace fan {
           gloco->opengl.glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, bone_transforms.size() * sizeof(fan::mat4), bone_transforms.data());
           gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
         }
-
         auto& context = gloco->get_context();
         context.opengl.glDisable(fan::opengl::GL_BLEND);
         for (int mesh_index = 0; mesh_index < meshes.size(); ++mesh_index) {
@@ -154,7 +143,7 @@ namespace fan {
               &material_data_vector[mesh_index].color[0][0]
             );
           }
-          meshes[mesh_index].VAO.bind(context);
+          meshes[mesh_index].vao.bind(context);
           fan::vec3 camera_position = gloco->camera_get_position(gloco->perspective_camera.camera);
           gloco->shader_set_value(m_shader, "view_p", camera_position);
           { // texture binding
@@ -181,7 +170,6 @@ namespace fan {
           gloco->opengl.glDrawElements(GL_TRIANGLES, meshes[mesh_index].indices.size(), GL_UNSIGNED_INT, 0);
         }
       }
-
       void draw_cached_images() {
         ImGui::Begin("test");
         float cursor_pos_x = 64 + ImGui::GetStyle().ItemSpacing.x;
@@ -202,15 +190,12 @@ namespace fan {
         ImGui::End();
       }
 
-
       //temp
       fan::vec3 light_position{3.46f, 1.94f, 6.22f};
       fan::vec3 light_color{.8f,.8f,.8f};
       f32_t light_intensity{2.f};
-
       loco_t::shader_t m_shader;
       // should be stored globally among all models
-
       fan::opengl::GLuint ssbo_bone_buffer;
       fan::opengl::GLuint envMapTexture;
     };
