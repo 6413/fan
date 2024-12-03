@@ -168,7 +168,7 @@ namespace fan_3d {
             vertex.color = fan::vec4(1.0f);
           }
         }
-        // process bones using a running maximum approach
+
         for (uint32_t i = 0; i < mesh->mNumBones; i++) {
           aiBone* bone = mesh->mBones[i];
           std::string bone_name = bone->mName.C_Str();
@@ -238,7 +238,7 @@ namespace fan_3d {
           aiTextureType_EMISSIVE,
           aiTextureType_SHININESS,
           aiTextureType_METALNESS
-          });
+        });
         aiMaterial* material = scene->mMaterials[ai_mesh->mMaterialIndex];
         for (const aiTextureType& texture_type : textures_to_load) {
           aiString path;
@@ -480,6 +480,7 @@ namespace fan_3d {
 
         scene = importer.GetOrphanedScene();
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+          fan::print(importer.GetErrorString());
           return false;
         }
 

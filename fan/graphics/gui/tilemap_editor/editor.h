@@ -947,11 +947,11 @@ struct fte_t {
 //
 //// Adjust the camera's orthographic projection to zoom towards the mouse position
       //fan::vec2 offset = gloco->get_mouse_position(camera->camera, camera->viewport);
-gloco->camera_set_ortho(
-    camera->camera,
-    (fan::vec2(-real_viewport_size.x, real_viewport_size.x) / viewport_settings.zoom) + viewport_settings.zoom_offset.x,
-    (fan::vec2(-real_viewport_size.y, real_viewport_size.y) / viewport_settings.zoom) + viewport_settings.zoom_offset.y
-);
+      gloco->camera_set_ortho(
+          camera->camera,
+          (fan::vec2(-real_viewport_size.x, real_viewport_size.x) / viewport_settings.zoom) + viewport_settings.zoom_offset.x,
+          (fan::vec2(-real_viewport_size.y, real_viewport_size.y) / viewport_settings.zoom) + viewport_settings.zoom_offset.y
+      );
 
 
 

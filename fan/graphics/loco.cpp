@@ -1441,6 +1441,7 @@ void loco_t::process_frame() {
     console.input.InsertText("a");
     console.input.SetText("");
     console.init_focus = true;
+    console.input.IsFocused() = false;
     //TextEditor::Coordinates c;
     //c.mColumn = 0;
     //c.mLine = 0;

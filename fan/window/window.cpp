@@ -518,6 +518,15 @@ void fan::window_t::set_borderless() {
 }
 
 
+void fan::window_t::set_cursor(int flag){
+  glfwSetInputMode(*this, GLFW_CURSOR, flag == 0 ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+}
+
+void fan::window_t::toggle_cursor() {
+  bool disabled = glfwGetInputMode(*this, GLFW_CURSOR) != GLFW_CURSOR_DISABLED;
+  set_cursor(disabled);
+}
+
 void fan::window_t::set_size_mode(const mode& mode) {
   switch (mode) {
     case mode::windowed: {
