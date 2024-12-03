@@ -72,7 +72,7 @@ int main() {
 #if !1
   p.path = "models/xbot_idle.fbx";
 #else
-  p.path = "models/pls.fbx";
+  p.path = "models/final_provence.fbx";
 #endif
   p.texture_path = "models/textures";
   p.use_cpu = 0;
@@ -176,8 +176,13 @@ int main() {
     auto bts = model->fk_calculate_transformations();
     model->upload_modified_vertices();
 
-    skeleton_lines.clear();
-    {
+    static bool draw_skeleton = 0;
+    if (ImGui::ToggleButton("draw skeleton", &draw_skeleton)) {
+      skeleton_lines.clear();
+    }
+
+    if (draw_skeleton) {
+      skeleton_lines.clear();
       model->iterate_bones(*model->root_bone, [&](auto& bone) {
         src = (m * fan::vec4(bone.bone_transform.get_translation(), 1.0));
         if (bone.parent != nullptr) {
@@ -193,6 +198,7 @@ int main() {
         }});
       });
     }
+
 
     static bool spin = false;
     if (spin) {
@@ -272,6 +278,17 @@ int main() {
     camera.move(100);
 
     editor.begin_render();
+
+    static fan::quat r;
+    fan::vec3 angs;
+    r.to_angles(angs);
+    ImGui::DragFloat3("angle", angs.data(), 0.01);
+    r = fan::quat::from_angles(angs);
+
+    auto parent_str = model->get_model_bone_name(12, *model);
+    auto str = model->get_model_bone_name(13, *model);
+    fan::quat parent = model->animation_list["Idle2"].bone_transforms[parent_str].rotations[0];
+    model->animation_list["Idle2"].bone_transforms[str].rotations[0] = parent.inverse() * fan::quat(fan::quat::from_angles({0, 1, 0}));
 
     fan::graphics::text(
       camera.position.to_string() + " " +

@@ -372,6 +372,7 @@ namespace fan_3d {
         }
         bone_t* bone = new bone_t();
         bone->name = node->mName.C_Str();
+        fan::print(bone->name);
         bone->id = bone_count;
         bone->parent = parent;
         aiVector3D pos, scale;
@@ -988,21 +989,21 @@ namespace fan_3d {
 
       std::vector<std::vector<std::string>> bone_names_default = {
         {"Hips", "Torso"},
-        {"Right_Up_Leg", "Upper_Leg_R", "RightUpLeg", "Upper_Leg.R"},
-        {"Lower_Leg_R", "Lower_Leg.R", "Right_knee"},
-        {"Right_Foot", "Foot_R", "RightFoot", "Foot.R", "Right_ankle"},
-        {"Right_Toe_Base", "RightToeBase", "Right_toe"},
+        {"Right_Up_Leg", "Upper_Leg_R", "RightUpLeg", "Upper_Leg.R", "R_UpperLeg"},
+        {"Lower_Leg_R", "Lower_Leg.R", "Right_knee", "R_LowerLeg"},
+        {"Right_Foot", "Foot_R", "RightFoot", "Foot.R", "Right_ankle", "R_Foot"},
+        {"Right_Toe_Base", "RightToeBase", "Right_toe", "R_ToeBase"},
         {"Right_Toe_End"},
         {"Spine"},
-        {"Spine1", "Chest"},
+        {"Spine1", "Chest", "UpperChest"},
         {"Spine2"},
         {"Neck"},
         {"Head"},
         {"Head_Top_End"},
-        {"Left_Shoulder", "Upper_Arm_L"},
-        {"Left_Arm"},
-        {"Left_Fore_Arm", "Lower_Arm_L", "Left_elbow"},
-        {"Left_Hand", "Hand_L", "Left_wrist"},
+        {"Left_Shoulder", "Upper_Arm_L", "L_Shoulder"},
+        {"Left_Arm", "L_UpperArm"},
+        {"Left_Fore_Arm", "Lower_Arm_L", "Left_elbow", "L_LowerArm"},
+        {"Left_Hand", "Hand_L", "Left_wrist", "L_Hand"},
         {"Left_Hand_Thumb1", "Thumb0_L"},
         {"Left_Hand_Thumb2", "Thumb1_L"},
         {"Left_Hand_Thumb3", "Thumb2_L"},
@@ -1023,10 +1024,10 @@ namespace fan_3d {
         {"Left_Hand_Pinky2", "LittleFinger2_L"},
         {"Left_Hand_Pinky3", "LittleFinger3_L"},
         {"Left_Hand_Pinky4", "LittleFinger3Tip_L"},
-        {"Right_Shoulder", "Upper_Arm_R"},
-        {"Right_Arm"},
-        {"Right_Fore_Arm", "Lower_Arm_R", "Right_elbow"},
-        {"Right_Hand", "Hand_R", "Right_wrist"},
+        {"Right_Shoulder", "Upper_Arm_R", "R_Shoulder"},
+        {"Right_Arm", "R_UpperArm"},
+        {"Right_Fore_Arm", "Lower_Arm_R", "Right_elbow", "R_LowerArm"},
+        {"Right_Hand", "Hand_R", "Right_wrist", "R_Hand"},
         {"Right_Hand_Thumb1", "Thumb0_R"},
         {"Right_Hand_Thumb2", "Thumb1_R"},
         {"Right_Hand_Thumb3", "Thumb2_R"},
@@ -1047,10 +1048,10 @@ namespace fan_3d {
         {"Right_Hand_Pinky2", "LittleFinger2_R"},
         {"Right_Hand_Pinky3", "LittleFinger3_R"},
         {"Right_Hand_Pinky4", "LittleFinger3Tip_R"},
-        {"Left_Up_Leg", "Upper_Leg_L", "LeftUpLeg", "Upper_Leg.L"},
-        {"Lower_Leg_L", "Lower_Leg.L", "Left_knee"},
-        {"Left_Foot", "Foot_L", "LeftFoot", "Foot.L", "Left_ankle"},
-        {"Left_Toe_Base", "LeftToeBase", "Left_toe"},
+        {"Left_Up_Leg", "Upper_Leg_L", "LeftUpLeg", "Upper_Leg.L", "L_UpperLeg"},
+        {"Lower_Leg_L", "Lower_Leg.L", "Left_knee", "L_LowerLeg"},
+        {"Left_Foot", "Foot_L", "LeftFoot", "Foot.L", "Left_ankle", "L_Foot"},
+        {"Left_Toe_Base", "LeftToeBase", "Left_toe", "L_ToeBase"},
         {"Left_Toe_End"}
       };
 
@@ -1351,18 +1352,11 @@ namespace fan_3d {
         bone_t& source_bone,
         bone_t& target_bone
       ) {
-        fan::mat4 bind_matrix = source_bone.world_matrix;
-        fan::mat4 inverse_bind_matrix = bind_matrix.inverse();
-        fan::mat4 target_matrix = target_bone.world_matrix;
-        fan::mat4 inverse_parent_matrix = target_bone.inverse_parent_matrix;
-
         fan_3d::model::bone_t transform = source_bone;
         transform.position = position;
 
-        fan::mat4 localMatrix = inverse_bind_matrix * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
-        localMatrix = target_matrix * localMatrix * inverse_parent_matrix;
-        // using this whole model moves in world? is it because of rootnode is modified too or?
-        // return localMatrix.get_translation();
+        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
         return target_bone.position;
       }
       static fan::quat transformRotation(
@@ -1371,18 +1365,32 @@ namespace fan_3d {
         bone_t& target_bone
       )
       {
-        fan::mat4 bind_matrix = source_bone.world_matrix;
-        fan::mat4 inverse_bind_matrix = bind_matrix.inverse();
-        fan::mat4 target_matrix = target_bone.world_matrix;
-        fan::mat4 inverse_parent_matrix = target_bone.inverse_parent_matrix;
+        fan::quat tpose_adjust;
+        fan::vec3 sangs, tangs;
+        source_bone.rotation.to_angles(sangs);
+        target_bone.rotation.to_angles(tangs);
+        sangs.x = fan::math::degrees(sangs.x);
+        sangs.y = fan::math::degrees(sangs.x);
+        sangs.z = fan::math::degrees(sangs.z);
+
+        tangs.x = fan::math::degrees(tangs.x);
+        tangs.y = fan::math::degrees(tangs.y);
+        tangs.z = fan::math::degrees(tangs.z);
+        if (target_bone.name == "Left_arm") {
+          tpose_adjust = fan::quat::from_angles(fan::vec3(-fan::math::radians(45), 0, 0));
+          fan::print(sangs);
+          fan::print(tangs);
+        }
+        if (target_bone.name == "Right_arm") {
+          tpose_adjust = fan::quat::from_angles(fan::vec3(-fan::math::radians(45), 0, 0));
+        }
 
         fan_3d::model::bone_t transform = source_bone;
-        transform.rotation = animation_rotation.normalize();
+        transform.rotation = (animation_rotation * tpose_adjust).normalize();
 
-
-        fan::mat4 localMatrix = inverse_bind_matrix * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
-        localMatrix = target_matrix * localMatrix * inverse_parent_matrix;
-        return fan::quat(localMatrix).inverse();
+        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
+        return fan::quat(local_matrix).inverse();
       }
 
 
@@ -1391,18 +1399,12 @@ namespace fan_3d {
         bone_t& source_bone,
         bone_t& target_bone
       ) {
-        fan::mat4 bind_matrix = source_bone.world_matrix;
-        fan::mat4 inverse_bind_matrix = bind_matrix.inverse();
-        fan::mat4 target_matrix = target_bone.world_matrix;
-        fan::mat4 inverse_parent_matrix = target_bone.inverse_parent_matrix;
-
         fan_3d::model::bone_t transform = source_bone;
         transform.scale = scale;
-  
-        fan::mat4 localMatrix = inverse_bind_matrix * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
-        localMatrix = target_matrix * localMatrix * inverse_parent_matrix;
-          
-        return localMatrix.get_scale();
+
+        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
+        return local_matrix.get_scale();
       }
 
       void import_animation(fms_t& anim, const std::string& custom_name = "") {
