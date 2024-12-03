@@ -2192,7 +2192,7 @@ const TextEditor::Palette& TextEditor::GetRetroBluePalette()
   return p;
 }
 
-bool TextEditor::IsFocused() const
+bool& TextEditor::IsFocused()
 {
   return mFocused;
 }

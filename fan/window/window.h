@@ -220,6 +220,10 @@ namespace fan {
     void set_windowed_fullscreen();
     void set_borderless();
 
+    // 0 disabled 1 enabled
+    void set_cursor(int flag);
+    void toggle_cursor();
+
     void set_size_mode(const mode& mode);
 
     fan::vec2d get_mouse_position() const;
