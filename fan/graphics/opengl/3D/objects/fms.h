@@ -89,9 +89,11 @@ namespace fan_3d {
 
       std::string texture_names[AI_TEXTURE_TYPE_MAX + 1]{};
 
+#ifdef fms_use_opengl
       fan::opengl::core::vao_t VAO;
       fan::opengl::core::vbo_t VBO;
       fan::opengl::GLuint EBO;
+#endif
     };
 
     // pm -- parsed model
@@ -811,33 +813,21 @@ namespace fan_3d {
           animation.duration = (anim->mDuration / ticksPerSecond) * 1000.0;
           longest_animation = std::max((f32_t)animation.duration, longest_animation);
           animation.weight = 0;
-          for (int i = 0; i < anim->mNumChannels; i++) {
+           for (int i = 0; i < anim->mNumChannels; i++) {
             aiNodeAnim* channel = anim->mChannels[i];
             fan_3d::model::bone_transform_track_t track;
-
-            track.position_timestamps.resize(channel->mNumPositionKeys);
-            track.positions.resize(channel->mNumPositionKeys);
             for (int j = 0; j < channel->mNumPositionKeys; j++) {
-              track.position_timestamps[j] = channel->mPositionKeys[j].mTime;
-              track.positions[j] = channel->mPositionKeys[j].mValue;
+              track.position_timestamps.push_back(channel->mPositionKeys[j].mTime);
+              track.positions.push_back(channel->mPositionKeys[j].mValue);
             }
-
-            track.rotation_timestamps.resize(channel->mNumRotationKeys);
-            track.rotations.resize(channel->mNumRotationKeys);
             for (int j = 0; j < channel->mNumRotationKeys; j++) {
-              track.rotation_timestamps[j] = channel->mRotationKeys[j].mTime;
-              track.rotations[j] = channel->mRotationKeys[j].mValue;
+              track.rotation_timestamps.push_back(channel->mRotationKeys[j].mTime);
+              track.rotations.push_back(channel->mRotationKeys[j].mValue);
             }
-
-            track.scale_timestamps.resize(channel->mNumScalingKeys);
-            track.scales.resize(channel->mNumScalingKeys);
             for (int j = 0; j < channel->mNumScalingKeys; j++) {
-              track.scale_timestamps[j] = channel->mScalingKeys[j].mTime;
-              track.scales[j] = channel->mScalingKeys[j].mValue;
-            }
+              track.scale_timestamps.push_back(channel->mScalingKeys[j].mTime);
+              track.scales.push_back(channel->mScalingKeys[j].mValue);
 
-            if (animation.name == "Idle2") {
-              fan::print("loading", channel->mNodeName.C_Str());
             }
             animation.bone_transforms[channel->mNodeName.C_Str()] = track;
           }
@@ -1772,3 +1762,7 @@ namespace fan_3d {
     };
   }
 }
+
+#ifdef fms_use_opengl
+  #undef fms_use_opengl
+#endif
