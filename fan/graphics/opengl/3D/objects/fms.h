@@ -13,11 +13,6 @@
 
 #include <fan/graphics/image_load.h>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
-
 namespace fan_3d {
   namespace model {
     struct vertex_t {
@@ -70,16 +65,22 @@ namespace fan_3d {
       std::string name;
       fan::mat4 offset;
       f32_t length = 0.1f;
-      fan::mat4 transform;
-      fan::mat4 global_transform;
+      fan::mat4 transformation;
+      fan::mat4 world_matrix;
+      fan::mat4 inverse_parent_matrix;
       fan::mat4 bone_transform; // for delta
       bone_t* parent;
       std::vector<bone_t*> children;
 
       // user transform
-      fan::vec3 translation = 0;
-      fan::vec3 rotation = 0;
+      fan::vec3 position = 0;
+      fan::quat rotation;
       fan::vec3 scale = 1;
+
+      // this appears to be different than transformation
+      fan::mat4 get_local_matrix() const {
+        return fan::mat4(1).translate(position) * fan::mat4(1).rotate(rotation) * fan::mat4(1).scale(scale);
+      }
     };
 
     struct mesh_t {
@@ -371,7 +372,15 @@ namespace fan_3d {
         bone->name = node->mName.C_Str();
         bone->id = bone_count;
         bone->parent = parent;
-        bone->transform = node->mTransformation;
+        aiVector3D pos, scale;
+        aiQuaternion rot;
+        node->mTransformation.Decompose(scale, rot, pos);
+        bone->position = pos;
+        bone->scale = scale;
+        bone->rotation = rot;
+        bone->transformation = node->mTransformation;
+        bone->world_matrix = get_world_matrix(bone, bone->get_local_matrix());
+        bone->inverse_parent_matrix = get_inverse_parent_matrix(bone);
         bone->offset = fan::mat4(1.0f);
         bone->length = calculate_bone_length_advanced(node);
         bone_map[bone->name] = bone;
@@ -383,7 +392,6 @@ namespace fan_3d {
         else {
           parent->children.push_back(bone);
         }
-        bone->global_transform = parent ? parent->global_transform * bone->transform : bone->transform;
         for (uint32_t i = 0; i < node->mNumChildren; i++) {
           process_skeleton(node->mChildren[i], bone);
         }
@@ -404,7 +412,7 @@ namespace fan_3d {
           }
         }
       }
-      void update_bone_rotation(const std::string& boneName, const fan::vec3& rotation) {
+      void update_bone_rotation(const std::string& boneName, const fan::quat& rotation) {
         auto it = bone_map.find(boneName);
         if (it != bone_map.end()) {
           bone_t* bone = it->second;
@@ -414,7 +422,7 @@ namespace fan_3d {
       void update_bone_transforms_impl(bone_t* bone, const fan::mat4& parentTransform) {
         if (!bone) return;
 
-        fan::mat4 node_transform = bone->transform;
+        fan::mat4 node_transform = bone->transformation;
 
         fan::mat4 globalTransform =
           parentTransform *
@@ -716,7 +724,7 @@ namespace fan_3d {
         animation.bone_poses[bone.id].scale = scale;
       }
       void fk_interpolate_animations(std::vector<fan::mat4>& out_bone_transforms, bone_t& bone, fan::mat4& parent_transform) {
-        fan::mat4 local_transform = bone.transform;
+        fan::mat4 local_transform = bone.transformation;
 
         bool has_active_animation = false;
         float total_weight = 0;
@@ -735,16 +743,10 @@ namespace fan_3d {
               float normalized_weight = anim.weight / total_weight;
               const auto& pose = anim.bone_poses[bone.id];
               if (pose.rotation.w == -9999) { // uninitalized
-                local_transform = bone.transform;
+                local_transform = bone.transformation;
               }
               else {
                 static fan::vec3 translation = 0;
-                static int f = counter;
-                if (f != counter) {
-                  //ImGui::DragFloat3("translation", translation.data(), 0.1);
-                  //dt = gloco->delta_time;
-                 // f = counter;
-                }
                 local_transform = (
                   fan::translation_matrix(pose.position) *
                   fan::rotation_quat_matrix(pose.rotation) *
@@ -811,24 +813,34 @@ namespace fan_3d {
           for (int i = 0; i < anim->mNumChannels; i++) {
             aiNodeAnim* channel = anim->mChannels[i];
             fan_3d::model::bone_transform_track_t track;
-            for (int j = 0; j < channel->mNumPositionKeys; j++) {
-              track.position_timestamps.push_back(channel->mPositionKeys[j].mTime);
-              track.positions.push_back(channel->mPositionKeys[j].mValue);
-            }
-            for (int j = 0; j < channel->mNumRotationKeys; j++) {
-              track.rotation_timestamps.push_back(channel->mRotationKeys[j].mTime);
-              track.rotations.push_back(channel->mRotationKeys[j].mValue);
-            }
-            for (int j = 0; j < channel->mNumScalingKeys; j++) {
-              track.scale_timestamps.push_back(channel->mScalingKeys[j].mTime);
-              track.scales.push_back(channel->mScalingKeys[j].mValue);
 
+            track.position_timestamps.resize(channel->mNumPositionKeys);
+            track.positions.resize(channel->mNumPositionKeys);
+            for (int j = 0; j < channel->mNumPositionKeys; j++) {
+              track.position_timestamps[j] = channel->mPositionKeys[j].mTime;
+              track.positions[j] = channel->mPositionKeys[j].mValue;
             }
+
+            track.rotation_timestamps.resize(channel->mNumRotationKeys);
+            track.rotations.resize(channel->mNumRotationKeys);
+            for (int j = 0; j < channel->mNumRotationKeys; j++) {
+              track.rotation_timestamps[j] = channel->mRotationKeys[j].mTime;
+              track.rotations[j] = channel->mRotationKeys[j].mValue;
+            }
+
+            track.scale_timestamps.resize(channel->mNumScalingKeys);
+            track.scales.resize(channel->mNumScalingKeys);
+            for (int j = 0; j < channel->mNumScalingKeys; j++) {
+              track.scale_timestamps[j] = channel->mScalingKeys[j].mTime;
+              track.scales[j] = channel->mScalingKeys[j].mValue;
+            }
+
             if (animation.name == "Idle2") {
               fan::print("loading", channel->mNodeName.C_Str());
             }
             animation.bone_transforms[channel->mNodeName.C_Str()] = track;
           }
+
         }
       }
 
@@ -1316,154 +1328,90 @@ namespace fan_3d {
         }
       }
 
-      static fan::mat4 local_to_global_transform(bone_t* node) {
-        fan::mat4 globalTransform = node->transform;
-        bone_t* currentNode = node->parent;
-        while (currentNode != nullptr) {
-          globalTransform = currentNode->transform * globalTransform;
-          currentNode = currentNode->parent;
-        }
+      std::unordered_map<std::string, bool> bone_mapper;
 
-        return globalTransform;
-      }
-
-      static fan::mat4 global_to_local_transform(bone_t* node) {
-        if (node->parent == nullptr) {
-          return node->global_transform;
-        }
-        else {
-          fan::mat4 parentGlobalInverse = local_to_global_transform(node->parent).inverse();
-          return parentGlobalInverse * node->global_transform;
-        }
-      }
-
-      static fan::mat4 ComputeWorldMatrixRecursive(bone_t* entity, fan::mat4 localMatrix) {
-        bone_t* parentID = entity->parent;
-        while (parentID != nullptr) {
-          localMatrix = localMatrix * parentID->transform;
+      static fan::mat4 get_world_matrix(fan_3d::model::bone_t* entity, fan::mat4 localMatrix) {
+        fan_3d::model::bone_t* parentID = entity->parent;
+        while (parentID != nullptr)
+        {
+          localMatrix = localMatrix * parentID->get_local_matrix();
           parentID = parentID->parent;
         }
         return localMatrix;
       }
 
-      static fan::mat4 ComputeInverseParentMatrixRecursive(bone_t* entity) {
-        fan::mat4 inverse_parent_matrix{ 1 };
-        bone_t* parentID = entity->parent;
-        while (parentID != nullptr) {
-          inverse_parent_matrix = inverse_parent_matrix * parentID->transform;
-          parentID = parentID->parent;
+      static fan::mat4 get_inverse_parent_matrix(fan_3d::model::bone_t* entity) {
+        fan::mat4 inverseParentMatrix(1);
+        fan_3d::model::bone_t* parentID = entity->parent;
+        if (parentID != nullptr)
+        {
+          while (parentID != nullptr)
+          {
+            inverseParentMatrix = inverseParentMatrix * parentID->get_local_matrix();
+            parentID = parentID->parent;
+          }
+          inverseParentMatrix = inverseParentMatrix.inverse();
         }
-        if (parentID != nullptr) {
-          inverse_parent_matrix = inverse_parent_matrix.inverse();
-        }
-        return inverse_parent_matrix;
+        return inverseParentMatrix;
       }
-      // Function to rotate a vector by a quaternion
-      static fan::vec3 rotate_vector_by_quaternion(const fan::vec3& v, const fan::quat& q) {
-        // Extract the vector part of the quaternion
-        fan::vec3 u(q.x, q.y, q.z);
-
-        // Extract the scalar part of the quaternion
-        float s = q.w;
-
-        // Do the math
-        return
-          u * 2.0f * u.dot(v)
-          + v * (s * s - u.dot(u))
-          + u.cross(v) * 2.0f * s;
-      }
-
-      std::unordered_map<std::string, bool> bone_mapper;
-      inline static int counter = 0;
 
       static fan::vec3 transformPosition(
         const fan::vec3& position,
         bone_t& source_bone,
         bone_t& target_bone
       ) {
-        fan::vec3 scaler = source_bone.transform.get_translation() / position;
-        fan::vec3 result = target_bone.transform.get_translation() / scaler;
-        // move the translation using same scale
-        return target_bone.transform.get_translation();
+        fan::mat4 bind_matrix = source_bone.world_matrix;
+        fan::mat4 inverse_bind_matrix = bind_matrix.inverse();
+        fan::mat4 target_matrix = target_bone.world_matrix;
+        fan::mat4 inverse_parent_matrix = target_bone.inverse_parent_matrix;
+
+        fan_3d::model::bone_t transform = source_bone;
+        transform.position = position;
+
+        fan::mat4 localMatrix = inverse_bind_matrix * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        localMatrix = target_matrix * localMatrix * inverse_parent_matrix;
+        // using this whole model moves in world? is it because of rootnode is modified too or?
+        // return localMatrix.get_translation();
+        return target_bone.position;
       }
-      static fan::quat fromTwoVectors(const fan::vec3& v1, const fan::vec3& v2) {
-        fan::quat ret;
-        fan::vec3 a = v1.cross(v2);
-        ret.x = a.x;
-        ret.y = a.y;
-        ret.z = a.z;
-        f32_t v1_len = v1.length();
-        f32_t v2_len = v2.length();
-        ret.w = sqrt((v1_len * v1_len) * (v2_len * v2_len)) + v1.dot(v2);
-        return ret;
-      }
-
-
-
-
-
       static fan::quat transformRotation(
         fan::quat animation_rotation,
-        bone_t& animation_tpose,
-        bone_t& model_tpose
+        bone_t& source_bone,
+        bone_t& target_bone
       )
       {
-      
-        fan::quat src = fan::quat(animation_tpose.transform);
-        fan::quat dst = fan::quat(model_tpose.transform);
-        fan::quat anim = animation_rotation;
+        fan::mat4 bind_matrix = source_bone.world_matrix;
+        fan::mat4 inverse_bind_matrix = bind_matrix.inverse();
+        fan::mat4 target_matrix = target_bone.world_matrix;
+        fan::mat4 inverse_parent_matrix = target_bone.inverse_parent_matrix;
 
-        fan::quat rotation_offset_quat = dst.normalize().inverse() * anim.normalize();
-        fan::quat src_conjugate = src.conjugate();
-
-        
-        fan::vec3 asrc, adst, aanim;
-        src.to_angles(asrc);
-        dst.to_angles(adst);
-        animation_rotation.to_angles(aanim);
-        //fan::print("a src", asrc);
-       // fan::print("a dst", adst);
-       // fan::print("a anim", aanim);
-        fan::vec3 angle_offset = aanim - asrc;
-        fan::vec3 new_angle = adst - asrc + aanim;
-        //std::swap(aanim.z, aanim.x);
-        //std::swap(aanim.y, aanim.x);
-        //std::swap(animation_rotation.z, animation_rotation.x);
-       // std::swap(animation_rotation.y, animation_rotation.x);
-        
-    /*    fan::print(model_tpose.name);
-        fan::print("a src", asrc);
-        fan::print("a anim", aanim);
-        fan::print("a offset", angle_offset);
-        fan::print("a dst", adst);
-
-        fan::print("new angle", new_angle);
-        fan::print("ar", animation_rotation);*/
+        fan_3d::model::bone_t transform = source_bone;
+        transform.rotation = animation_rotation.normalize();
 
 
-        if (model_tpose.name == "Left_leg") {
-
-
-       
-        }
-
-        return fan::quat::from_angles(new_angle);
+        fan::mat4 localMatrix = inverse_bind_matrix * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        localMatrix = target_matrix * localMatrix * inverse_parent_matrix;
+        return fan::quat(localMatrix).inverse();
       }
 
 
       static fan::vec3 transformScale(
         const fan::vec3& scale,
-        const bone_t& source_bone,
-        const bone_t& target_bone
+        bone_t& source_bone,
+        bone_t& target_bone
       ) {
-        //fan::vec3 animation_joint_world = fan::vec3() + source_bone.global_transform * fan::vec4(scale, 1.0f);
+        fan::mat4 bind_matrix = source_bone.world_matrix;
+        fan::mat4 inverse_bind_matrix = bind_matrix.inverse();
+        fan::mat4 target_matrix = target_bone.world_matrix;
+        fan::mat4 inverse_parent_matrix = target_bone.inverse_parent_matrix;
 
-  //      fan::vec3 model_joint_absolute_position = 
-          //target_bone.global_transform.inverse() * animation_joint_world;
-        constexpr f32_t offset = -89.7637 / -115.19;
-        //scale.x *= offset;
-        fan::vec3 v = target_bone.transform.get_scale();
-        return fan::vec3(1, 1, 1);
+        fan_3d::model::bone_t transform = source_bone;
+        transform.scale = scale;
+  
+        fan::mat4 localMatrix = inverse_bind_matrix * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        localMatrix = target_matrix * localMatrix * inverse_parent_matrix;
+          
+        return localMatrix.get_scale();
       }
 
       void import_animation(fms_t& anim, const std::string& custom_name = "") {
@@ -1561,44 +1509,7 @@ namespace fan_3d {
               bone_mapper[solved_bone_name];
             }
           }
-          });
-
-        //// to seperate for example LeftHand <-> LeftHandPinky3 
-        //std::unordered_map<std::string, bool> bone_mapper;
-        //for (unsigned int i = 0; i < newAnim->mNumChannels; ++i) {
-        //  aiNodeAnim* channel = newAnim->mChannels[i];
-        //  std::string imported_bone_name = channel->mNodeName.C_Str();
-        //  std::string found_bone;
-
-        //  bool our_bone_found = false;
-        //  iterate_bones(*root_bone, [this, &bone_mapper, &our_bone_found, channel, &found_bone](bone_t& our_bone) {
-        //    if (our_bone_found) {
-        //      return;
-        //    }
-        //    std::string temp, temp2;
-        //    bool r0 = find_matching_bone(our_bone.name, temp);
-        //    bool r1 = find_matching_bone(channel->mNodeName.C_Str(), temp2);
-        //    if (r0 && r1 &&
-        //      temp == temp2 &&
-        //      bone_mapper.find(our_bone.name) == bone_mapper.end()
-        //      ) {
-        //      found_bone = our_bone.name;
-        //      bone_mapper[found_bone];
-        //      our_bone_found = true;
-        //    }
-        //    });
-        //  // bones might exist, but there might be no animation channel for it
-        //  // && is_bone_in_anim_curve_node(scene, found_bone)
-        //  if (our_bone_found && found_bone.size()) {
-        //    channel->mNodeName = aiString(found_bone);
-        //  }
-        //  else if (found_bone.empty()) {
-        //    fan::print_no_space(std::string("Failed to resolve animation bone:'") + channel->mNodeName.C_Str() + '\'');
-        //  }
-        //  else {
-        //    fan::print_no_space("Bone '" + found_bone + '\'', " is missing animation");
-        //  }
-        //}
+        });
         animation_list.clear();
         load_animations();
       }
@@ -1648,7 +1559,7 @@ namespace fan_3d {
         if (ImGui::Button("Reset All Rotations")) {
           std::function<void(bone_t*)> reset_rotations = [&](bone_t* bone) {
             if (bone) {
-              bone->rotation = 0;
+              bone->rotation = fan::quat();
               for (bone_t* child : bone->children) {
                 reset_rotations(child);
               }
