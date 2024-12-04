@@ -1,11 +1,5 @@
 #pragma once
 
-#if defined(loco_assimp)
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#endif
-
 #include <fan/types/color.h>
 
 #include <string>

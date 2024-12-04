@@ -45,6 +45,7 @@ TextEditor::TextEditor()
   , mShowWhitespaces(true)
   , mShowLineNumbers(true)
   , mStartTime(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count())
+  , mFocused(0)
 {
   SetPalette(GetDarkPalette());
   SetLanguageDefinition(LanguageDefinition::HLSL());
