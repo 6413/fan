@@ -122,6 +122,9 @@ namespace fan {
 		struct clock {
 
 			clock() = default;
+      explicit clock(uint64_t time, bool) {
+        start(time);
+      }
 
 			template <time_unit unit>
 			clock(const base_time_unit<unit>& time_unit_) {

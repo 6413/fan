@@ -1,4 +1,3 @@
-#include <fan/pch.h>
 #include "uniform_block.h"
 
 fan::opengl::core::memory_write_queue_t::nr_t fan::opengl::core::memory_write_queue_t::push_back(const memory_edit_cb_t& cb) {

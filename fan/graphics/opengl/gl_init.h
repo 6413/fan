@@ -5,15 +5,10 @@
 #include <fan/math/random.h>
 #include <fan/time/time.h>
 
-#if defined(fan_platform_windows)
-  #include <Windows.h>
-  #pragma comment(lib, "User32.lib")
-  #pragma comment(lib, "Gdi32.lib")
-
-#elif defined(fan_platform_unix)
+//#define debug_glcall_timings
+#if defined(debug_glcall_timings)
+  #include <unordered_map>
 #endif
-
-#include <unordered_map>
 
 #include <fan/window/window.h>
 
@@ -43,8 +38,15 @@ namespace fan {
       fan::time::clock c;
 
       void open() {
+#if !defined(debug_glcall_timings)
         #define get_proc_address(type, name) \
               name = (type)get_proc_address_(#name)
+#else
+              #define get_proc_address(type, name) \
+                name = (type)get_proc_address_(#name); \
+              function_map.insert(std::make_pair((void*)name, #name))
+#endif
+        
         #include "opengl_functions.h"
       }
 
@@ -57,7 +59,7 @@ namespace fan {
         glFlush();
         glFinish();
         auto elapsed = c.elapsed();
-        if (elapsed > 1000000) {
+        if (elapsed > 1084040) {
           fan::print_no_space("slow function call ns:", elapsed, ", function::" + function_name);
         }
       }
@@ -66,11 +68,22 @@ namespace fan {
 
       template <typename T, typename... T2>
       constexpr auto call(const T& t, T2&&... args) {
-          if constexpr (std::is_same<std::invoke_result_t<T, T2...>, void>::value) {
-              t(std::forward<T2>(args)...);
-          } else {
-              return t(std::forward<T2>(args)...);
-          }
+#if defined(debug_glcall_timings)
+        execute_before(function_map[(void*)t]);
+#endif
+        if constexpr (std::is_same<std::invoke_result_t<T, T2...>, void>::value) {
+          t(std::forward<T2>(args)...);
+#if defined(debug_glcall_timings)
+          execute_after(function_map[(void*)t]);
+#endif  
+        }
+        else {
+          auto r = t(args...);
+#if defined(debug_glcall_timings)
+          execute_after(function_map[(void*)t]);
+#endif
+          return r;
+        }
       }
       #else
 

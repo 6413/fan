@@ -1,4 +1,3 @@
-#include <fan/pch.h>
 #include "fstring.h"
 
 std::string fan::trim(const std::string& str) {

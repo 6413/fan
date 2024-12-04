@@ -1,4 +1,3 @@
-#include <fan/pch.h>
 #include "window.h"
 
 struct init_manager_t {
