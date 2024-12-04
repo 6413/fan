@@ -1,4 +1,3 @@
-#include <fan/pch.h>
 #include "system.h"
 
 #include <fan/types/print.h>

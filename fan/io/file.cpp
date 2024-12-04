@@ -1,4 +1,3 @@
-#include <fan/pch.h>
 #include "file.h"
 
 std::string fan::io::file::extension(const std::string& file_path) {

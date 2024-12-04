@@ -1,8 +1,8 @@
-#include <fan/pch.h>
+#include "loco.h"
 
 #define loco_framebuffer
 #define loco_post_process
-
+//
 //#define depth_debug
 //
 global_loco_t::operator loco_t* () {
@@ -15,6 +15,34 @@ global_loco_t& global_loco_t::operator=(loco_t* l) {
 }
 
 //thread_local global_loco_t gloco;
+
+uint8_t* loco_t::A_resize(void* ptr, uintptr_t size) {
+  if (ptr) {
+    if (size) {
+      void* rptr = (void*)realloc(ptr, size);
+      if (rptr == 0) {
+        fan::throw_error_impl();
+      }
+      return (uint8_t*)rptr;
+    }
+    else {
+      free(ptr);
+      return 0;
+    }
+  }
+  else {
+    if (size) {
+      void* rptr = (void*)malloc(size);
+      if (rptr == 0) {
+        fan::throw_error_impl();
+      }
+      return (uint8_t*)rptr;
+    }
+    else {
+      return 0;
+    }
+  }
+}
 
 void loco_t::use() {
   gloco = this;
@@ -76,10 +104,9 @@ void loco_t::camera_move(fan::opengl::context_t::camera_t& camera, f64_t dt, f32
 }
 
 void loco_t::render_final_fb() {
-  auto& context = get_context();
-  context.opengl.glBindVertexArray(fb_vao);
-  context.opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
-  context.opengl.glBindVertexArray(0);
+  opengl.glBindVertexArray(fb_vao);
+  opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
+  opengl.glBindVertexArray(0);
 }
 
 
@@ -90,17 +117,788 @@ void loco_t::initialize_fb_vaos(uint32_t& vao, uint32_t& vbo) {
      1.0f, 1.0f, 0, 1.0f, 1.0f,
      1.0f, -1.0f, 0, 1.0f, 0.0f,
   };
-  auto& context = get_context();
-  context.opengl.glGenVertexArrays(1, &vao);
-  context.opengl.glGenBuffers(1, &vbo);
-  context.opengl.glBindVertexArray(vao);
-  context.opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, vbo);
-  context.opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, fan::opengl::GL_STATIC_DRAW);
-  context.opengl.glEnableVertexAttribArray(0);
-  context.opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
-  context.opengl.glEnableVertexAttribArray(1);
-  context.opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  opengl.glGenVertexArrays(1, &vao);
+  opengl.glGenBuffers(1, &vbo);
+  opengl.glBindVertexArray(vao);
+  opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, vbo);
+  opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, fan::opengl::GL_STATIC_DRAW);
+  opengl.glEnableVertexAttribArray(0);
+  opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
+  opengl.glEnableVertexAttribArray(1);
+  opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 }
+
+#define shaper_get_key_safe(return_type, kps_type, variable) \
+  [KeyPack] ()-> auto& { \
+    auto o = gloco->shaper.GetKeyOffset( \
+      offsetof(kps_t::CONCAT(_, kps_type), variable), \
+      offsetof(kps_t::kps_type, variable) \
+    );\
+    static_assert(std::is_same_v<decltype(kps_t::kps_type::variable), return_type>, "possibly unwanted behaviour"); \
+    return *(return_type*)&KeyPack[o];\
+  }()
+
+template <typename T>
+loco_t::functions_t loco_t::get_functions() {
+  functions_t funcs{
+    .get_position = [](shape_t* shape) {
+      if constexpr (fan_has_variable(T, position)) {
+        return get_render_data(shape, &T::position);
+      }
+      else {
+        fan::throw_error("unimplemented get - for line use get_src()");
+        return fan::vec3();
+      }
+    },
+    .set_position2 = [](shape_t* shape, const fan::vec2& position) {
+      if constexpr (fan_has_variable(T, position)) {
+        modify_render_data_element(shape, &T::position, position);
+      }
+      else {
+        fan::throw_error("unimplemented set - for line use set_src()");
+      }
+    },
+    .set_position3 = [](shape_t* shape, const fan::vec3& position) {
+      if constexpr (fan_has_variable(T, position)) {
+          auto sti = gloco->shaper.GetSTI(*shape);
+
+          // alloc can be avoided inside switch
+          auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+          uint8_t* KeyPack = new uint8_t[KeyPackSize];
+          gloco->shaper.WriteKeys(*shape, KeyPack);
+            
+
+          switch (sti) {       
+          case loco_t::shape_type_t::light: {
+            break;
+          }
+          // common
+          case loco_t::shape_type_t::gradient:
+          case loco_t::shape_type_t::grid:
+          case loco_t::shape_type_t::circle:
+          case loco_t::shape_type_t::rectangle:
+          case loco_t::shape_type_t::rectangle3d:
+          case loco_t::shape_type_t::line: {
+            shaper_get_key_safe(depth_t, common_t, depth) = position.z;
+            break;
+          }
+                                          // texture
+          case loco_t::shape_type_t::particles:
+          case loco_t::shape_type_t::universal_image_renderer:
+          case loco_t::shape_type_t::unlit_sprite:
+          case loco_t::shape_type_t::sprite: {
+            shaper_get_key_safe(depth_t, texture_t, depth) = position.z;
+            break;
+          }
+          default: {
+            fan::throw_error("unimplemented");
+          }
+          }
+
+    
+          auto _vi = gloco->shaper.GetRenderData(*shape);
+          auto vlen = gloco->shaper.GetRenderDataSize(sti);
+          uint8_t* vi = new uint8_t[vlen];
+          std::memcpy(vi, _vi, vlen);
+          ((T*)vi)->position = position;
+
+          auto _ri = gloco->shaper.GetData(*shape);
+          auto rlen = gloco->shaper.GetDataSize(sti);
+          uint8_t* ri = new uint8_t[rlen];
+          std::memcpy(ri, _ri, rlen);
+
+          shape->remove();
+          *shape = gloco->shaper.add(
+            sti,
+            KeyPack,
+            KeyPackSize,
+            vi,
+            ri
+          );
+#if defined(debug_shape_t)
+          fan::print("+", shape->NRI);
+#endif
+          delete[] KeyPack;
+          delete[] vi;
+          delete[] ri;
+      }
+      else {
+        fan::throw_error("unimplemented set - for line use set_src()");
+      }
+      },
+      .get_size = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, size)) {
+          if constexpr (sizeof(T::size) == sizeof(fan::vec2)) {
+            return get_render_data(shape, &T::size);
+          }
+          else {
+            fan::throw_error("unimplemented get");
+            return fan::vec2();
+          }
+        }
+        else if constexpr (fan_has_variable(T, radius)) {
+          return fan::vec2(get_render_data(shape, &T::radius));
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::vec2();
+        }
+      },
+      .get_size3 = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, size)) {
+          if constexpr (sizeof(T::size) == sizeof(fan::vec3)) {
+            return get_render_data(shape, &T::size);
+          }
+          else {
+            fan::throw_error("unimplemented get");
+            return fan::vec3();
+          }
+        }
+        else if constexpr (fan_has_variable(T, radius)) {
+          return fan::vec3(get_render_data(shape, &T::radius));
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::vec3();
+        }
+      },
+      .set_size = [](shape_t* shape, const fan::vec2& size) {
+        if constexpr (fan_has_variable(T, size)) {
+          modify_render_data_element(shape, &T::size, size);
+        }
+        else if constexpr (fan_has_variable(T, radius)) {
+          modify_render_data_element(shape, &T::radius, size.x);
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+      },
+      .set_size3 = [](shape_t* shape, const fan::vec3& size) {
+        if constexpr (fan_has_variable(T, size)) {
+          modify_render_data_element(shape, &T::size, size);
+        }
+        else if constexpr (fan_has_variable(T, radius)) {
+          modify_render_data_element(shape, &T::radius, size.x);
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+      },
+      .get_rotation_point = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, rotation_point)) {
+          return get_render_data(shape, &T::rotation_point);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::vec2();
+        }
+      },
+      .set_rotation_point = [](shape_t* shape, const fan::vec2& rotation_point) {
+        if constexpr (fan_has_variable(T, rotation_point)) {
+          modify_render_data_element(shape, &T::rotation_point, rotation_point);
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+            },
+      .get_color = [](shape_t* shape) -> fan::color{
+        if constexpr (fan_has_variable(T, color)) {
+          return *(fan::color*)&get_render_data(shape, &T::color);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::color();
+        }
+      },
+      .set_color = [](shape_t* shape, const fan::color& color) {
+        if constexpr (fan_has_variable(T, color)) {
+          if constexpr (!std::is_same_v<T, loco_t::gradient_t::vi_t>) {
+            modify_render_data_element(shape, &T::color, color);
+          }
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+      },
+      .get_angle = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, angle)) {
+          return get_render_data(shape, &T::angle);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::vec3();
+        }
+      },
+      .set_angle = [](shape_t* shape, const fan::vec3& angle) {
+        if constexpr (fan_has_variable(T, angle)) {
+          modify_render_data_element(shape, &T::angle, angle);
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+      },
+      .get_tc_position = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, tc_position)) {
+          return get_render_data(shape, &T::tc_position);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::vec2();
+        }
+      },
+      .set_tc_position = [](shape_t* shape, const fan::vec2& tc_position) {
+        if constexpr (fan_has_variable(T, tc_position)) {
+          modify_render_data_element(shape, &T::tc_position, tc_position);
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+      },
+      .get_tc_size = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, tc_size)) {
+          return get_render_data(shape, &T::tc_size);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::vec2();
+        }
+      },
+      .set_tc_size = [](shape_t* shape, const fan::vec2& tc_size) {
+        if constexpr (fan_has_variable(T, tc_size)) {
+          modify_render_data_element(shape, &T::tc_size, tc_size);
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+      },
+      .load_tp = [](shape_t* shape, loco_t::texturepack_t::ti_t* ti) -> bool {
+        if constexpr(std::is_same_v<T, loco_t::sprite_t::vi_t> ||
+        std::is_same_v<T, loco_t::unlit_sprite_t::vi_t>) {
+          auto sti = gloco->shaper.GetSTI(*shape);
+            
+          auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+          uint8_t* KeyPack = new uint8_t[KeyPackSize];
+          gloco->shaper.WriteKeys(*shape, KeyPack);
+          switch (sti) {
+            // texture
+            case loco_t::shape_type_t::particles:
+            case loco_t::shape_type_t::universal_image_renderer:
+            case loco_t::shape_type_t::unlit_sprite:
+            case loco_t::shape_type_t::sprite: {
+              shaper_get_key_safe(image_t, texture_t, image) = *ti->image;
+              break;
+            }
+            default: {
+              fan::throw_error("unimplemented");
+            }
+          }
+
+          auto& im = *ti->image;
+          auto& img = gloco->image_get_data(im);
+
+          auto _vi = gloco->shaper.GetRenderData(*shape);
+          auto vlen = gloco->shaper.GetRenderDataSize(sti);
+          uint8_t* vi = new uint8_t[vlen];
+          std::memcpy(vi, _vi, vlen);
+          ((T*)vi)->tc_position = ti->position / img.size;
+          ((T*)vi)->tc_size = ti->size / img.size;
+
+          auto _ri = gloco->shaper.GetData(*shape);
+          auto rlen = gloco->shaper.GetDataSize(sti);
+          uint8_t* ri = new uint8_t[rlen];
+          std::memcpy(ri, _ri, rlen);
+
+          shape->remove();
+          *shape = gloco->shaper.add(
+            sti,
+            KeyPack,
+            KeyPackSize,
+            vi,
+            ri
+          );
+#if defined(debug_shape_t)
+          fan::print("+", shape->NRI);
+#endif
+          delete[] KeyPack;
+          delete[] vi;
+          delete[] ri;
+          }
+        return 0;
+      },
+      .get_grid_size = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, grid_size)) {
+          return get_render_data(shape, &T::grid_size);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::vec2();
+        }
+      },
+      .set_grid_size = [](shape_t* shape, const fan::vec2& grid_size) {
+        if constexpr (fan_has_variable(T, grid_size)) {
+          modify_render_data_element(shape, &T::grid_size, grid_size);
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+      },
+      .get_camera = [](shape_t* shape) {
+        auto sti = gloco->shaper.GetSTI(*shape);
+
+        // alloc can be avoided inside switch
+        uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
+
+        switch (sti) {
+          // light
+        case loco_t::shape_type_t::light: {
+          return shaper_get_key_safe(camera_t, light_t, camera);
+        }
+                                        // common
+        case loco_t::shape_type_t::gradient:
+        case loco_t::shape_type_t::grid:
+        case loco_t::shape_type_t::circle:
+        case loco_t::shape_type_t::rectangle:
+        case loco_t::shape_type_t::line: {
+          return shaper_get_key_safe(camera_t, common_t, camera);
+        }
+                                        // texture
+        case loco_t::shape_type_t::particles:
+        case loco_t::shape_type_t::universal_image_renderer:
+        case loco_t::shape_type_t::unlit_sprite:
+        case loco_t::shape_type_t::sprite: {
+          return shaper_get_key_safe(camera_t, texture_t, camera);
+        }
+        default: {
+          fan::throw_error("unimplemented");
+        }
+        }
+        return loco_t::camera_t();
+      },
+      .set_camera = [](shape_t* shape, loco_t::camera_t camera) {
+        {
+            auto sti = gloco->shaper.GetSTI(*shape);
+
+          // alloc can be avoided inside switch
+          auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+          uint8_t* KeyPack = new uint8_t[KeyPackSize];
+          gloco->shaper.WriteKeys(*shape, KeyPack);
+
+          switch(sti) {
+            // light
+            case loco_t::shape_type_t::light: {
+              shaper_get_key_safe(camera_t, light_t, camera) = camera;
+              break;
+            }
+            // common
+            case loco_t::shape_type_t::gradient:
+            case loco_t::shape_type_t::grid:
+            case loco_t::shape_type_t::circle:
+            case loco_t::shape_type_t::rectangle:
+            case loco_t::shape_type_t::rectangle3d:
+            case loco_t::shape_type_t::line: {
+              shaper_get_key_safe(camera_t, common_t, camera) = camera;
+              break;
+            }
+            // texture
+            case loco_t::shape_type_t::particles:
+            case loco_t::shape_type_t::universal_image_renderer:
+            case loco_t::shape_type_t::unlit_sprite:
+            case loco_t::shape_type_t::sprite: {
+              shaper_get_key_safe(camera_t, texture_t, camera) = camera;
+              break;
+            }
+            default: {
+              fan::throw_error("unimplemented");
+            }
+          }
+
+          auto _vi = gloco->shaper.GetRenderData(*shape);
+          auto vlen = gloco->shaper.GetRenderDataSize(sti);
+          uint8_t* vi = new uint8_t[vlen];
+          std::memcpy(vi, _vi, vlen);
+
+          auto _ri = gloco->shaper.GetData(*shape);
+          auto rlen = gloco->shaper.GetDataSize(sti);
+          uint8_t* ri = new uint8_t[rlen];
+          std::memcpy(ri, _ri, rlen);
+
+          shape->remove();
+          *shape = gloco->shaper.add(
+            sti,
+            KeyPack,
+            KeyPackSize,
+            vi,
+            ri
+          );
+#if defined(debug_shape_t)
+          fan::print("+", shape->NRI);
+#endif
+          delete[] KeyPack;
+          delete[] vi;
+          delete[] ri;
+        }
+      },
+      .get_viewport = [](shape_t* shape) {
+        uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
+
+        auto sti = gloco->shaper.GetSTI(*shape);
+
+        switch(sti) {
+          // light
+          case loco_t::shape_type_t::light: {
+            return shaper_get_key_safe(viewport_t, light_t, viewport);
+          }
+          // common
+          case loco_t::shape_type_t::gradient:
+          case loco_t::shape_type_t::grid:
+          case loco_t::shape_type_t::circle:
+          case loco_t::shape_type_t::rectangle:
+          case loco_t::shape_type_t::line: {
+            return shaper_get_key_safe(viewport_t, common_t, viewport);
+          }
+          // texture
+          case loco_t::shape_type_t::particles:
+          case loco_t::shape_type_t::universal_image_renderer:
+          case loco_t::shape_type_t::unlit_sprite:
+          case loco_t::shape_type_t::sprite: {
+            return shaper_get_key_safe(viewport_t, texture_t, viewport);
+          }
+          default: {
+            fan::throw_error("unimplemented");
+          }
+        }
+        return loco_t::viewport_t();
+      },
+      .set_viewport = [](shape_t* shape, loco_t::viewport_t viewport) {
+        {
+          auto sti = gloco->shaper.GetSTI(*shape);
+
+          // alloc can be avoided inside switch
+          auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+          uint8_t* KeyPack = new uint8_t[KeyPackSize];
+          gloco->shaper.WriteKeys(*shape, KeyPack);
+            
+          switch(sti) {
+            // light
+            case loco_t::shape_type_t::light: {
+              shaper_get_key_safe(viewport_t, light_t, viewport) = viewport;
+              break;
+            }
+            // common
+            case loco_t::shape_type_t::gradient:
+            case loco_t::shape_type_t::grid:
+            case loco_t::shape_type_t::circle:
+            case loco_t::shape_type_t::rectangle:
+            case loco_t::shape_type_t::line: {
+              shaper_get_key_safe(viewport_t, common_t, viewport) = viewport;
+              break;
+            }
+            // texture
+            case loco_t::shape_type_t::particles:
+            case loco_t::shape_type_t::universal_image_renderer:
+            case loco_t::shape_type_t::unlit_sprite:
+            case loco_t::shape_type_t::sprite: {
+              shaper_get_key_safe(viewport_t, texture_t, viewport) = viewport;
+              break;
+            }
+            default: {
+              fan::throw_error("unimplemented");
+            }
+          }
+
+          auto _vi = gloco->shaper.GetRenderData(*shape);
+          auto vlen = gloco->shaper.GetRenderDataSize(sti);
+          uint8_t* vi = new uint8_t[vlen];
+          std::memcpy(vi, _vi, vlen);
+
+          auto _ri = gloco->shaper.GetData(*shape);
+          auto rlen = gloco->shaper.GetDataSize(sti);
+          uint8_t* ri = new uint8_t[rlen];
+          std::memcpy(ri, _ri, rlen);
+
+          shape->remove();
+          *shape = gloco->shaper.add(
+            sti,
+            KeyPack,
+            KeyPackSize,
+            vi,
+            ri
+          );
+#if defined(debug_shape_t)
+          fan::print("+", shape->NRI);
+#endif
+          delete[] KeyPack;
+          delete[] vi;
+          delete[] ri;
+        }
+      },
+
+      .get_image = [](shape_t* shape) -> loco_t::image_t {
+        auto sti = gloco->shaper.GetSTI(*shape);
+        uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
+        switch (sti) {
+        // texture
+        case loco_t::shape_type_t::particles:
+        case loco_t::shape_type_t::universal_image_renderer:
+        case loco_t::shape_type_t::unlit_sprite:
+        case loco_t::shape_type_t::sprite: {
+          return shaper_get_key_safe(image_t, texture_t, image);
+        }
+        default: {
+          fan::throw_error("unimplemented");
+        }
+        }
+        return loco_t::image_t();
+      },
+      .set_image = [](shape_t* shape, loco_t::image_t image) {
+         
+        auto sti = gloco->shaper.GetSTI(*shape);
+
+        // alloc can be avoided inside switch
+        auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+        uint8_t* KeyPack = new uint8_t[KeyPackSize];
+        gloco->shaper.WriteKeys(*shape, KeyPack);
+
+        switch (sti) {
+        // texture
+        case loco_t::shape_type_t::particles:
+        case loco_t::shape_type_t::universal_image_renderer:
+        case loco_t::shape_type_t::unlit_sprite:
+        case loco_t::shape_type_t::sprite: 
+        case loco_t::shape_type_t::shader_shape:
+        {
+          shaper_get_key_safe(image_t, texture_t, image) = image;
+          break;
+        }
+        default: {
+          fan::throw_error("unimplemented");
+        }
+        }
+            
+        auto _vi = gloco->shaper.GetRenderData(*shape);
+        auto vlen = gloco->shaper.GetRenderDataSize(sti);
+        uint8_t* vi = new uint8_t[vlen];
+        std::memcpy(vi, _vi, vlen);
+
+        auto _ri = gloco->shaper.GetData(*shape);
+        auto rlen = gloco->shaper.GetDataSize(sti);
+        uint8_t* ri = new uint8_t[rlen];
+        std::memcpy(ri, _ri, rlen);
+
+        shape->remove();
+        *shape = gloco->shaper.add(
+          sti,
+          KeyPack,
+          KeyPackSize,
+          vi,
+          ri
+        );
+#if defined(debug_shape_t)
+        fan::print("+", shape->NRI);
+#endif
+        delete[] KeyPack;
+        delete[] vi;
+        delete[] ri;
+      },
+      .get_parallax_factor = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, parallax_factor)) {
+          return get_render_data(shape, &T::parallax_factor);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return 0.0f;
+        }
+      },
+      .set_parallax_factor = [](shape_t* shape, f32_t parallax_factor) {
+        if constexpr (fan_has_variable(T, parallax_factor)) {
+          modify_render_data_element(shape, &T::parallax_factor, parallax_factor);
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+      },
+      .get_rotation_vector = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, rotation_vector)) {
+          return get_render_data(shape, &T::rotation_vector);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::vec3();
+        }
+      },
+      .get_flags = [](shape_t* shape) -> uint32_t {
+        if constexpr (fan_has_variable(T, flags)) {
+          return get_render_data(shape, &T::flags);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return 0;
+        }
+      },
+      .set_flags = [](shape_t* shape, uint32_t flags) {
+        if constexpr (fan_has_variable(T, flags)) {
+          modify_render_data_element(shape, &T::flags, flags);
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+      },
+      .get_radius = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, radius)) {
+          return get_render_data(shape, &T::radius);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return 0.0f;
+        }
+      },
+      .get_src = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, src)) {
+          return get_render_data(shape, &T::src);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::vec3();
+        }
+      },
+      .get_dst = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, dst)) {
+          return get_render_data(shape, &T::dst);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::vec3();
+        }
+      },
+      .get_outline_size = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, outline_size)) {
+          return get_render_data(shape, &T::outline_size);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return 0.0f;
+        }
+      },
+      .get_outline_color = [](shape_t* shape) {
+        if constexpr (fan_has_variable(T, outline_color)) {
+          return get_render_data(shape, &T::outline_color);
+        }
+        else {
+          fan::throw_error("unimplemented get");
+          return fan::color();
+        }
+      },
+      .reload = [](shape_t* shape, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter) {
+        if (shape->get_shape_type() != loco_t::shape_type_t::universal_image_renderer) {
+          fan::throw_error("only meant to be used with universal_image_renderer");
+        }
+        loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)gloco->shaper.GetData(*shape);
+        if (format != ri.format) {
+          auto sti = gloco->shaper.GetSTI(*shape);
+          uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
+          loco_t::image_t vi_image = shaper_get_key_safe(loco_t::image_t, texture_t, image);
+
+
+          auto shader = gloco->shaper.GetShader(sti);
+          gloco->shader_set_vertex(
+            shader,
+            read_shader("shaders/opengl/2D/objects/pixel_format_renderer.vs")
+          );
+          {
+            fan::string fs;
+            switch(format) {
+              case fan::pixel_format::yuv420p: {
+                fs = read_shader("shaders/opengl/2D/objects/yuv420p.fs");
+                break;
+              }
+              case fan::pixel_format::nv12: {
+                fs = read_shader("shaders/opengl/2D/objects/nv12.fs");
+                break;
+              }
+              default: {
+                fan::throw_error("unimplemented format");
+              }
+            }
+            gloco->shader_set_fragment(shader, fs);
+            gloco->shader_compile(shader);
+          }
+
+          uint8_t image_count_old = fan::pixel_format::get_texture_amount(ri.format);
+          uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
+          if (image_count_new < image_count_old) {
+            // -1 ? 
+            for (uint32_t i = image_count_old - 1; i > image_count_new; --i) {
+              if (i == 0) {
+                gloco->image_erase(vi_image);
+              }
+              else {
+                gloco->image_erase(ri.images_rest[i - 1]);
+              }
+            }
+          }
+          else if (image_count_new > image_count_old) {
+            loco_t::image_t images[4];
+            for (uint32_t i = image_count_old; i < image_count_new; ++i) {
+              images[i] = gloco->image_create();
+            }
+            shape->set_image(images[0]);
+            std::memcpy(ri.images_rest, &images[1], sizeof(ri.images_rest));
+          }
+        }
+
+        auto vi_image = shape->get_image();
+
+        uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
+        for (uint32_t i = 0; i < image_count_new; i++) {
+          fan::image::image_info_t image_info;
+          image_info.data = image_data[i];
+          image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
+          auto lp = fan::pixel_format::get_image_properties<loco_t::image_load_properties_t>(format)[i];
+          lp.min_filter = filter;
+          lp.mag_filter = filter;
+          if (i == 0) {
+            gloco->image_reload_pixels(
+              vi_image,
+              image_info,
+              lp
+            );
+          }
+          else {
+            gloco->image_reload_pixels(
+              ri.images_rest[i - 1],
+              image_info,
+              lp
+            );
+          }
+        }
+        ri.format = format;
+      },
+      .draw = [](uint8_t draw_range) {
+        // Implement draw function
+      },
+      .set_line = [](shape_t* shape, const fan::vec2& src, const fan::vec2& dst) {
+        if constexpr (fan_has_variable(T, src) && fan_has_variable(T, dst)) {
+          modify_render_data_element(shape, &T::src, src);
+          modify_render_data_element(shape, &T::dst, dst);
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+      },
+      .set_line3 = [](shape_t* shape, const fan::vec3& src, const fan::vec3& dst) {
+        if constexpr (fan_has_variable(T, src) && fan_has_variable(T, dst)) {
+          modify_render_data_element(shape, &T::src, src);
+          modify_render_data_element(shape, &T::dst, dst);
+        }
+        else {
+          fan::throw_error("unimplemented set");
+        }
+      }
+    };
+  return funcs;
+}
+
+#undef shaper_get_key_safe
 
 void generate_commands(loco_t* loco) {
 #if defined(loco_imgui)
@@ -299,30 +1097,26 @@ void destroy_imgui() {
 }
 
 void loco_t::init_framebuffer() {
-
-
-  auto& context = get_context();
-
   if (!((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3))) {
     window.add_resize_callback([&](const auto& d) {
-      context.viewport_set(orthographic_camera.viewport, fan::vec2(0, 0), d.size, d.size);
-      context.viewport_set(perspective_camera.viewport, fan::vec2(0, 0), d.size, d.size);
+      viewport_set(orthographic_camera.viewport, fan::vec2(0, 0), d.size, d.size);
+      viewport_set(perspective_camera.viewport, fan::vec2(0, 0), d.size, d.size);
     });
     return;
   }
 
 #if defined(loco_opengl)
 #if defined(loco_framebuffer)
-  m_framebuffer.open(context);
+  m_framebuffer.open(*this);
   // can be GL_RGB16F
-  m_framebuffer.bind(context);
+  m_framebuffer.bind(*this);
 #endif
 #endif
 
 #if defined(loco_opengl)
 
 #if defined(loco_framebuffer)
-
+  //
   static auto load_texture = [&](fan::image::image_info_t& image_info, loco_t::image_t& color_buffer, fan::opengl::GLenum attachment, bool reload = false) {
     typename fan::opengl::context_t::image_load_properties_t load_properties;
     load_properties.visual_output = fan::opengl::GL_REPEAT;
@@ -332,21 +1126,21 @@ void loco_t::init_framebuffer() {
     load_properties.min_filter = fan::opengl::GL_LINEAR;
     load_properties.mag_filter = fan::opengl::GL_LINEAR;
     if (reload == true) {
-      context.image_reload_pixels(color_buffer, image_info, load_properties);
+      image_reload_pixels(color_buffer, image_info, load_properties);
     }
     else {
-      color_buffer = context.image_load(image_info, load_properties);
+      color_buffer = image_load(image_info, load_properties);
     }
-    context.opengl.call(context.opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
-    context.image_bind(color_buffer);
-    fan::opengl::core::framebuffer_t::bind_to_texture(context, context.image_get(color_buffer), attachment);
+    opengl.call(opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+    image_bind(color_buffer);
+    fan::opengl::core::framebuffer_t::bind_to_texture(*this, image_get(color_buffer), attachment);
   };
 
   fan::image::image_info_t image_info;
   image_info.data = nullptr;
   image_info.size = window.get_size();
 
-  m_framebuffer.bind(context);
+  m_framebuffer.bind(*this);
   for (uint32_t i = 0; i < (uint32_t)std::size(color_buffers); ++i) {
     load_texture(image_info, color_buffers[i], fan::opengl::GL_COLOR_ATTACHMENT0 + i);
   }
@@ -356,31 +1150,31 @@ void loco_t::init_framebuffer() {
     image_info.data = nullptr;
     image_info.size = window.get_size();
 
-    m_framebuffer.bind(context);
+    m_framebuffer.bind(*this);
     for (uint32_t i = 0; i < (uint32_t)std::size(color_buffers); ++i) {
       load_texture(image_info, color_buffers[i], fan::opengl::GL_COLOR_ATTACHMENT0 + i, true);
     }
 
     fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
-    m_framebuffer.bind(context);
+    m_framebuffer.bind(*this);
     renderbuffer_properties.size = image_info.size;
     renderbuffer_properties.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
-    m_rbo.set_storage(context, renderbuffer_properties);
+    m_rbo.set_storage(*this, renderbuffer_properties);
 
     fan::vec2 window_size = gloco->window.get_size();
 
-    context.viewport_set(orthographic_camera.viewport, fan::vec2(0, 0), d.size, d.size);
-    context.viewport_set(perspective_camera.viewport, fan::vec2(0, 0), d.size, d.size);
+    viewport_set(orthographic_camera.viewport, fan::vec2(0, 0), d.size, d.size);
+    viewport_set(perspective_camera.viewport, fan::vec2(0, 0), d.size, d.size);
   });
 
   fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
-  m_framebuffer.bind(context);
+  m_framebuffer.bind(*this);
   renderbuffer_properties.size = image_info.size;
   renderbuffer_properties.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
-  m_rbo.open(context);
-  m_rbo.set_storage(context, renderbuffer_properties);
+  m_rbo.open(*this);
+  m_rbo.set_storage(*this, renderbuffer_properties);
   renderbuffer_properties.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
-  m_rbo.bind_to_renderbuffer(context, renderbuffer_properties);
+  m_rbo.bind_to_renderbuffer(*this, renderbuffer_properties);
 
   unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
 
@@ -388,9 +1182,9 @@ void loco_t::init_framebuffer() {
     attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
   }
 
-  context.opengl.call(context.opengl.glDrawBuffers, std::size(attachments), attachments);
+  opengl.call(opengl.glDrawBuffers, std::size(attachments), attachments);
 
-  if (!m_framebuffer.ready(context)) {
+  if (!m_framebuffer.ready(*this)) {
     fan::throw_error("framebuffer not ready");
   }
 
@@ -402,20 +1196,20 @@ void loco_t::init_framebuffer() {
   bloom.open();
 #endif
 
-  m_framebuffer.unbind(context);
+  m_framebuffer.unbind(*this);
 
   
-  m_fbo_final_shader = context.shader_create();
+  m_fbo_final_shader = shader_create();
 
-  context.shader_set_vertex(
+  shader_set_vertex(
     m_fbo_final_shader,
-    context.read_shader("shaders/opengl/2D/effects/loco_fbo.vs")
+    read_shader("shaders/opengl/2D/effects/loco_fbo.vs")
   );
-  context.shader_set_fragment(
+  shader_set_fragment(
     m_fbo_final_shader,
-    context.read_shader("shaders/opengl/2D/effects/loco_fbo.fs")
+    read_shader("shaders/opengl/2D/effects/loco_fbo.fs")
   );
-  context.shader_compile(m_fbo_final_shader);
+  shader_compile(m_fbo_final_shader);
 
 #endif
 #endif
@@ -623,19 +1417,6 @@ loco_t::loco_t(const properties_t& p){
       shape_functions.resize(shape_functions.size() + 1);
     }
     else {
-      shape_open<loco_t::letter_t>(
-        &letter,
-        "shaders/opengl/2D/objects/letter.vs",
-        "shaders/opengl/2D/objects/letter.fs"
-      );
-    }
-  }
-
-  {
-    if (opengl.major == 2 && opengl.minor == 1) {
-      shape_functions.resize(shape_functions.size() + 1);
-    }
-    else {
       shape_open<loco_t::circle_t>(
         &circle,
         "shaders/opengl/2D/objects/circle.vs",
@@ -739,13 +1520,6 @@ loco_t::loco_t(const properties_t& p){
     }
   }
 
-#if defined(loco_letter)
-#if !defined(loco_font)
-#define loco_font "fonts/bitter"
-#endif
-  font.open(loco_font);
-#endif
-
   {
     fan::vec2 window_size = window.get_size();
     {
@@ -832,58 +1606,7 @@ loco_t::~loco_t() {
   window.close();
 }
 
-void loco_t::process_frame() {
-
-  auto& context = gloco->get_context();
-
-  get_context().opengl.glViewport(0, 0, window.get_size().x, window.get_size().y);
-
-#if defined(loco_framebuffer)
-  if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
-    m_framebuffer.bind(get_context());
-
-
-    context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-    for (std::size_t i = 0; i < std::size(color_buffers); ++i) {
-      context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
-      context.image_bind(color_buffers[i]);
-      context.opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0 + (uint32_t)(std::size(color_buffers) - 1 - i));
-      if (i + (std::size_t)1 == std::size(color_buffers)) {
-        context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-      }
-      context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-    }
-  }
-  else {
-    context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-    context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-  }
-#else
-  context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-  context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
-#endif
-
-  auto it = m_update_callback.GetNodeFirst();
-  while (it != m_update_callback.dst) {
-    m_update_callback.StartSafeNext(it);
-    m_update_callback[it](this);
-    it = m_update_callback.EndSafeNext();
-  }
-
-  for (const auto& i : single_queue) {
-    i();
-  }
-
-  single_queue.clear();
-
-  shaper.ProcessBlockEditQueue();
-
-  context.viewport_set(0, window.get_size(), window.get_size());
-
-  for (const auto& i : m_pre_draw) {
-    i();
-  }
-
+void loco_t::draw_shapes() {
   shaper_t::KeyTraverse_t KeyTraverse;
   KeyTraverse.Init(shaper);
 
@@ -911,14 +1634,14 @@ void loco_t::process_frame() {
     case Key_e::blending: {
       uint8_t Key = *(uint8_t*)KeyTraverse.kd();
       if (Key) {
-        context.set_depth_test(false);
-        context.opengl.call(get_context().opengl.glEnable, fan::opengl::GL_BLEND);
-        context.opengl.call(get_context().opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+        set_depth_test(false);
+        opengl.call(opengl.glEnable, fan::opengl::GL_BLEND);
+        opengl.call(opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
         // shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderLow);
       }
       else {
-        context.opengl.call(get_context().opengl.glDisable, fan::opengl::GL_BLEND);
-        context.set_depth_test(true);
+        opengl.call(get_context().opengl.glDisable, fan::opengl::GL_BLEND);
+        set_depth_test(true);
 
         //shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderHigh);
       }
@@ -936,8 +1659,8 @@ void loco_t::process_frame() {
       loco_t::image_t texture = *(loco_t::image_t*)KeyTraverse.kd();
       if (texture.iic() == false) {
         // TODO FIX + 0
-        context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 0);
-        context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(texture));
+        opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 0);
+        opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(texture));
         //++texture_count;
       }
       break;
@@ -963,16 +1686,16 @@ void loco_t::process_frame() {
       }
       if (light_buffer_enabled == false) {
 #if defined(loco_framebuffer)
-        gloco->get_context().set_depth_test(false);
-        gloco->get_context().opengl.call(gloco->get_context().opengl.glEnable, fan::opengl::GL_BLEND);
-        gloco->get_context().opengl.call(gloco->get_context().opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
+        set_depth_test(false);
+        opengl.call(opengl.glEnable, fan::opengl::GL_BLEND);
+        opengl.call(opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
         unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
 
         for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
           attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
         }
 
-        context.opengl.call(context.opengl.glDrawBuffers, std::size(attachments), attachments);
+        opengl.call(opengl.glDrawBuffers, std::size(attachments), attachments);
         light_buffer_enabled = true;
 #endif
       }
@@ -991,7 +1714,7 @@ void loco_t::process_frame() {
           attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
         }
 
-        context.opengl.call(context.opengl.glDrawBuffers, 1, attachments);
+        opengl.call(opengl.glDrawBuffers, 1, attachments);
         light_buffer_enabled = false;
 #endif
         continue;
@@ -1008,11 +1731,6 @@ void loco_t::process_frame() {
       if (shape_type == shape_type_t::light_end) {
         break;
       }
-
-  /*     if (shape_type == shape_type_t::vfi) {
-        break;
-      }*/
-
       do {
         auto shader = shaper.GetShader(shape_type);
 #if fan_debug >= fan_debug_medium
@@ -1023,21 +1741,21 @@ void loco_t::process_frame() {
           fan::throw_error("invalid stuff");
         }
 #endif
-        context.shader_use(shader);
+        shader_use(shader);
 
         if (camera.iic() == false) {
-          context.shader_set_camera(shader, &camera);
+          shader_set_camera(shader, &camera);
         }
         else {
-          context.shader_set_camera(shader, &orthographic_camera.camera);
+          shader_set_camera(shader, &orthographic_camera.camera);
         }
         if (viewport.iic() == false) {
           auto& v = viewport_get(viewport);
-          context.viewport_set(v.viewport_position, v.viewport_size, window.get_size());
+          viewport_set(v.viewport_position, v.viewport_size, window.get_size());
         }
-        context.shader_set_value(shader, "_t00", 0);
+        shader_set_value(shader, "_t00", 0);
         if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
-          context.shader_set_value(shader, "_t01", 1);
+          shader_set_value(shader, "_t01", 1);
         }
 #if defined(depth_debug)
         if (depth_Key) {
@@ -1065,20 +1783,20 @@ void loco_t::process_frame() {
           auto& ri = *(universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
 
           if (ri.images_rest[0].iic() == false) {
-            context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 1);
-            context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[0]));
-            context.shader_set_value(shader, "_t01", 1);
+            opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 1);
+            opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(ri.images_rest[0]));
+            shader_set_value(shader, "_t01", 1);
           }
           if (ri.images_rest[1].iic() == false) {
-            context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 2);
-            context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[1]));
-            context.shader_set_value(shader, "_t02", 2);
+            opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 2);
+            opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(ri.images_rest[1]));
+            shader_set_value(shader, "_t02", 2);
           }
 
           if (ri.images_rest[2].iic() == false) {
-            context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 3);
-            context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images_rest[2]));
-            context.shader_set_value(shader, "_t03", 3);
+            opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 3);
+            opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(ri.images_rest[2]));
+            shader_set_value(shader, "_t03", 3);
           }
           //fan::throw_error("shaper design is changed");
         }
@@ -1090,9 +1808,9 @@ void loco_t::process_frame() {
           auto shader = shaper.GetShader(shape_type);
           for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
             if (ri.images[i - 2].iic() == false) {
-              context.shader_set_value(shader, "_t0" + std::to_string(i), i);
-              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
-              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(ri.images[i - 2]));
+              shader_set_value(shader, "_t0" + std::to_string(i), i);
+              opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
+              opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(ri.images[i - 2]));
             }
           }
         }
@@ -1101,19 +1819,19 @@ void loco_t::process_frame() {
 
           if (shape_type == loco_t::shape_type_t::sprite || shape_type == loco_t::shape_type_t::unlit_sprite) {
             if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
-              context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-              context.opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, context.image_get(color_buffers[1]));
+              opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+              opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(color_buffers[1]));
             }
           }
 
           auto& c = camera_get(camera);
 
-          context.shader_set_value(
+          shader_set_value(
             shader,
             "matrix_size",
             fan::vec2(c.coordinates.right - c.coordinates.left, c.coordinates.down - c.coordinates.up).abs()
           );
-          context.shader_set_value(
+          shader_set_value(
             shader,
             "viewport",
             fan::vec4(
@@ -1121,36 +1839,36 @@ void loco_t::process_frame() {
               viewport_get_size(viewport)
             )
           );
-          context.shader_set_value(
+          shader_set_value(
             shader,
             "window_size",
             fan::vec2(window.get_size())
           );
-          context.shader_set_value(
+          shader_set_value(
             shader,
             "camera_position",
             c.position
           );
-          context.shader_set_value(
+          shader_set_value(
             shader,
             "m_time",
             f32_t((fan::time::clock::now() - start_time) / 1e+9)
           );
           //fan::print(fan::time::clock::now() / 1e+9);
-          context.shader_set_value(shader, loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
+          shader_set_value(shader, loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
         }
 
         auto m_vao = shaper.GetVAO(shape_type);
         auto m_vbo = shaper.GetVAO(shape_type);
 
-        m_vao.bind(context);
-        m_vbo.bind(context);
+        m_vao.bind(*this);
+        m_vbo.bind(*this);
 
-        if (context.opengl.major < 4 || (context.opengl.major == 4 && context.opengl.minor < 2)) {
+        if (opengl.major < 4 || (opengl.major == 4 && opengl.minor < 2)) {
           uintptr_t offset = BlockTraverse.GetRenderDataOffset(shaper);
           std::vector<shape_gl_init_t>& locations = shaper.GetLocations(shape_type);
           for (const auto& location : locations) {
-            context.opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
+            opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
             switch (location.type) {
             case fan::opengl::GL_FLOAT: {
               offset += location.size * sizeof(fan::opengl::GLfloat);
@@ -1170,9 +1888,9 @@ void loco_t::process_frame() {
         switch (shape_type) {
         case shape_type_t::rectangle3d: {
           // illegal xd
-          context.set_depth_test(false);
+          set_depth_test(false);
           if ((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) {
-            context.opengl.glDrawArraysInstancedBaseInstance(
+            opengl.glDrawArraysInstancedBaseInstance(
               fan::opengl::GL_TRIANGLES,
               0,
               36,
@@ -1182,7 +1900,7 @@ void loco_t::process_frame() {
           }
           else {
             // this is broken somehow with rectangle3d
-            context.opengl.glDrawArraysInstanced(
+            opengl.glDrawArraysInstanced(
               fan::opengl::GL_TRIANGLES,
               0,
               36,
@@ -1193,11 +1911,11 @@ void loco_t::process_frame() {
         }
         case shape_type_t::line3d: {
           // illegal xd
-          context.set_depth_test(false);
+          set_depth_test(false);
         }//fallthrough
         case shape_type_t::line: {
           if ((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) {
-            context.opengl.glDrawArraysInstancedBaseInstance(
+            opengl.glDrawArraysInstancedBaseInstance(
               fan::opengl::GL_LINES,
               0,
               2,
@@ -1206,7 +1924,7 @@ void loco_t::process_frame() {
             );
           }
           else {
-            context.opengl.glDrawArraysInstanced(
+            opengl.glDrawArraysInstanced(
               fan::opengl::GL_LINES,
               0,
               2,
@@ -1224,27 +1942,27 @@ void loco_t::process_frame() {
 
           for (int i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
             auto& ri = pri[i];
-            context.shader_set_value(shader, "time", (f32_t)((fan::time::clock::now() - ri.begin_time) / 1e+9));
-            context.shader_set_value(shader, "vertex_count", 6);
-            context.shader_set_value(shader, "count", ri.count);
-            context.shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time / 1e+9));
-            context.shader_set_value(shader, "respawn_time", (f32_t)(ri.respawn_time / 1e+9));
-            context.shader_set_value(shader, "position", *(fan::vec2*)&ri.position);
-            context.shader_set_value(shader, "size", ri.size);
-            context.shader_set_value(shader, "position_velocity", ri.position_velocity);
-            context.shader_set_value(shader, "angle_velocity", ri.angle_velocity);
-            context.shader_set_value(shader, "begin_angle", ri.begin_angle);
-            context.shader_set_value(shader, "end_angle", ri.end_angle);
-            context.shader_set_value(shader, "angle", ri.angle);
-            context.shader_set_value(shader, "color", ri.color);
-            context.shader_set_value(shader, "gap_size", ri.gap_size);
-            context.shader_set_value(shader, "max_spread_size", ri.max_spread_size);
-            context.shader_set_value(shader, "size_velocity", ri.size_velocity);
+            shader_set_value(shader, "time", (f32_t)((fan::time::clock::now() - ri.begin_time) / 1e+9));
+            shader_set_value(shader, "vertex_count", 6);
+            shader_set_value(shader, "count", ri.count);
+            shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time / 1e+9));
+            shader_set_value(shader, "respawn_time", (f32_t)(ri.respawn_time / 1e+9));
+            shader_set_value(shader, "position", *(fan::vec2*)&ri.position);
+            shader_set_value(shader, "size", ri.size);
+            shader_set_value(shader, "position_velocity", ri.position_velocity);
+            shader_set_value(shader, "angle_velocity", ri.angle_velocity);
+            shader_set_value(shader, "begin_angle", ri.begin_angle);
+            shader_set_value(shader, "end_angle", ri.end_angle);
+            shader_set_value(shader, "angle", ri.angle);
+            shader_set_value(shader, "color", ri.color);
+            shader_set_value(shader, "gap_size", ri.gap_size);
+            shader_set_value(shader, "max_spread_size", ri.max_spread_size);
+            shader_set_value(shader, "size_velocity", ri.size_velocity);
 
-            context.shader_set_value(shader, "shape", ri.shape);
+            shader_set_value(shader, "shape", ri.shape);
 
             // TODO how to get begin?
-            context.opengl.glDrawArrays(
+            opengl.glDrawArrays(
               fan::opengl::GL_TRIANGLES,
               0,
               ri.count
@@ -1253,19 +1971,9 @@ void loco_t::process_frame() {
 
           break;
         }
-        case shape_type_t::letter: {// intended fallthrough
-          context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-          context.shader_set_value(
-            shader,
-            "_t00",
-            0
-          );
-          gloco->image_bind(gloco->font.image);
-
-        }// fallthrough
         default: {
           if ((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) {
-            context.opengl.glDrawArraysInstancedBaseInstance(
+            opengl.glDrawArraysInstancedBaseInstance(
               fan::opengl::GL_TRIANGLES,
               0,
               6,
@@ -1274,7 +1982,7 @@ void loco_t::process_frame() {
             );
           }
           else if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
-            context.opengl.glDrawArraysInstanced(
+            opengl.glDrawArraysInstanced(
               fan::opengl::GL_TRIANGLES,
               0,
               6,
@@ -1293,45 +2001,66 @@ void loco_t::process_frame() {
           break;
         }
         }
-
-        //offset = 0;
-        //// might be unnecessary
-        //for (const auto& location : block.locations) {
-        //  context.opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
-        //  switch (location.type) {
-        //  case fan::opengl::GL_FLOAT: {
-        //    offset += location.size * sizeof(f32_t);
-        //    break;
-        //  }
-        //  case fan::opengl::GL_UNSIGNED_INT: {
-        //    offset += location.size * sizeof(uint32_t);
-        //    break;
-        //  }
-        //  default: {
-        //    fan::throw_error_impl();
-        //  }
-        //  }
-        //}
         } while (BlockTraverse.Loop(shaper));
     }
+  }
+}
 
+void loco_t::process_frame() {
+
+  opengl.glViewport(0, 0, window.get_size().x, window.get_size().y);
+
+#if defined(loco_framebuffer)
+  if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
+    m_framebuffer.bind(*this);
+
+    opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+    for (std::size_t i = 0; i < std::size(color_buffers); ++i) {
+      opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
+      image_bind(color_buffers[i]);
+      opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0 + (uint32_t)(std::size(color_buffers) - 1 - i));
+      if (i + (std::size_t)1 == std::size(color_buffers)) {
+        opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+      }
+      opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    }
+  }
+  else {
+    opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+    opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+  }
+#else
+  opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+  opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+#endif
+
+  auto it = m_update_callback.GetNodeFirst();
+  while (it != m_update_callback.dst) {
+    m_update_callback.StartSafeNext(it);
+    m_update_callback[it](this);
+    it = m_update_callback.EndSafeNext();
   }
 
+  for (const auto& i : single_queue) {
+    i();
+  }
 
-  //uint8_t draw_range = 0;
-  //for (auto& shape : shape_info_list) {
-  //  for (uint8_t i = 0; i < shape.functions.orderio.draw_range; ++i) {
-  //    shape.functions.draw(i);
-  //  }
-  //}
+  single_queue.clear();
 
+  shaper.ProcessBlockEditQueue();
+
+  viewport_set(0, window.get_size(), window.get_size());
+
+  for (const auto& i : m_pre_draw) {
+    i();
+  }
+
+  draw_shapes();
 
 #if defined(loco_framebuffer)
 
   if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
-    m_framebuffer.unbind(get_context());
-
-  //fan::print(m_framebuffer.ready(get_context()));
+    m_framebuffer.unbind(*this);
 
 #if defined(loco_post_process)
   blur[0].draw(&color_buffers[0]);
@@ -1339,29 +2068,24 @@ void loco_t::process_frame() {
 
   //blur[1].draw(&color_buffers[3]);
 
-  context.opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-  context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+  opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+  opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
   fan::vec2 window_size = window.get_size();
-  context.viewport_set(0, window_size, window_size);
+  viewport_set(0, window_size, window_size);
 
-  context.shader_set_value(m_fbo_final_shader, "_t00", 0);
-  context.shader_set_value(m_fbo_final_shader, "_t01", 1);
+  shader_set_value(m_fbo_final_shader, "_t00", 0);
+  shader_set_value(m_fbo_final_shader, "_t01", 1);
 
-  context.shader_set_value(m_fbo_final_shader, "window_size", window_size);
+  shader_set_value(m_fbo_final_shader, "window_size", window_size);
 
-  context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
-  context.image_bind(color_buffers[0]);
+  opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+  image_bind(color_buffers[0]);
 
 #if defined(loco_post_process)
-  get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-  context.image_bind(blur[0].mips.front().image);
+  opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+  image_bind(blur[0].mips.front().image);
 #endif
-
-  //get_context().opengl.glActiveTexture(fan::opengl::GL_TEXTURE2);
-  //blur[1].mips.front().image.bind_texture();
-
   render_final_fb();
-
 #endif
   }
 
@@ -1380,92 +2104,90 @@ void loco_t::process_frame() {
     }
   }
 
-  static constexpr uint32_t parent_window_flags = ImGuiWindowFlags_NoFocusOnAppearing;
-
-  static uint64_t frame_count = 0;
-  if (toggle_fps) {
-    static int initial = 0;
-    if (initial == 0) {
-      initial = 1;
-      ImGui::SetNextWindowSize(fan::vec2(ImGui::GetIO().DisplaySize) / 2.5);
-      ImGui::SetNextWindowPos(ImVec2(0, 0));
-    }
-    ImGui::Begin("Performance window", 0, parent_window_flags);
-  
-    static constexpr int buffer_size = 100;
-    static constexpr int samples_before_render = 25;
-    static std::array<float, buffer_size> samples = {0};
-    static int insert_index = 0;
-    static bool stats_ready = false;
-
-    static uint32_t frame = 0;
-    frame++;
-    static constexpr int refresh_speed = 1;  // Capture every frame
-  
-    if (frame % refresh_speed == 0) {
-      samples[insert_index] = delta_time;
-      insert_index = (insert_index + 1) % buffer_size;
-
-      if (insert_index >= samples_before_render) {
-        stats_ready = true;
-      }
-    }
-
-    if (stats_ready) {
-      float average_frame_time_ms = std::accumulate(samples.begin(), samples.end(), 0.0f) / buffer_size;
-      float lowest_ms = *std::min_element(samples.begin(), samples.end());
-      float highest_ms = *std::max_element(samples.begin(), samples.end());
-    
-      ImGui::Text("fps: %d", (int)(1.f / delta_time));
-      ImGui::Text("Average Frame Time: %.4f ms", average_frame_time_ms);
-      ImGui::Text("Lowest Frame Time: %.4f ms", lowest_ms);
-      ImGui::Text("Highest Frame Time: %.4f ms", highest_ms);
-      ImGui::Text("Average fps: %.4f", 1.0 / average_frame_time_ms);
-      ImGui::Text("Lowest fps: %.4f", 1.0 / lowest_ms);
-      ImGui::Text("Highest fps: %.4f", 1.0 / highest_ms);
-    
-      ImGui::PlotLines("##fps_plot", samples.data(), buffer_size, insert_index, nullptr, 0.0f, FLT_MAX, ImVec2(0, 80));
-      ImGui::Text("Current Frame Time: %.4f ms", delta_time);
-    }
-    else {
-      ImGui::Text("Collecting performance data...");
-    }
-
-    ImGui::End();
-  }
-
   if (ImGui::IsKeyPressed(ImGuiKey_F3, false)) {
     render_console = !render_console;
-    
+
     // force focus xd
     console.input.InsertText("a");
     console.input.SetText("");
     console.init_focus = true;
     console.input.IsFocused() = false;
-    //TextEditor::Coordinates c;
-    //c.mColumn = 0;
-    //c.mLine = 0;
-    //console.input.SetSelection(c, c);
-    //console.input.SetText("a");
-    
-    //console.input.
-    //console.input.SelectAll();
-    //console.input.SetCursorPosition(TextEditor::Coordinates(0, 0));
   }
   if (render_console) {
     console.render();
   }
   
+  if (toggle_fps) {
+    ImGui::SetNextWindowBgAlpha(0.9f);
+    static int init = 0;
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing ;
+    if (init == 0) {
+      window_flags |= ImGuiWindowFlags_AlwaysAutoResize;
+      init = 1;
+    }
+    ImGui::Begin("Performance window", 0, window_flags);
+  
+    static constexpr int buffer_size = 128;
+    static std::array<float, buffer_size> samples = {0};
+    static int insert_index = 0;
+    static float running_sum = 0.0f;
+    static float running_min = std::numeric_limits<float>::max();
+    static float running_max = std::numeric_limits<float>::min();
+    static fan::time::clock refresh_speed{(uint64_t)0.05e9, true};
+
+    if (refresh_speed.finished()) {
+      float old_value = samples[insert_index];
+      for (int i = 0; i < buffer_size - 1; ++i) {
+          samples[i] = samples[i + 1];
+      }
+
+      samples[buffer_size - 1] = delta_time;
+
+      running_sum += samples[buffer_size - 1] - samples[0];
+
+      if (delta_time <= running_min) {
+        running_min = delta_time;
+      }
+      else if (delta_time >= running_max) {
+        running_max = delta_time;
+      }
+
+      insert_index = (insert_index + 1) % buffer_size;
+      refresh_speed.restart();
+    }
+
+    float average_frame_time_ms = running_sum / buffer_size;
+    float average_fps = 1.0f / average_frame_time_ms;
+    float lowest_fps = 1.0f / running_max;
+    float highest_fps = 1.0f / running_min;
+
+    ImGui::Text("fps: %d", (int)(1.f / delta_time));
+    ImGui::Text("Average Frame Time: %.4f ms", average_frame_time_ms);
+    ImGui::Text("Lowest Frame Time: %.4f ms", running_min);
+    ImGui::Text("Highest Frame Time: %.4f ms", running_max);
+    ImGui::Text("Average fps: %.4f", average_fps);
+    ImGui::Text("Lowest fps: %.4f", lowest_fps);
+    ImGui::Text("Highest fps: %.4f", highest_fps);
+    if (ImGui::Button("Reset lowest&highest")) {
+      running_min = std::numeric_limits<float>::max();
+      running_max = std::numeric_limits<float>::min();
+    }
+
+    if (ImPlot::BeginPlot("frame time", ImVec2(-1, 0), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend)) { 
+      ImPlot::SetupAxes("Frame Index", "FPS", ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit); //
+      ImPlot::PlotLine("FPS", samples.data(), buffer_size, 1.0, 0.0);
+      ImPlot::EndPlot();
+    }
+    ImGui::Text("Current Frame Time: %.4f ms", delta_time);
+    ImGui::End();
+  }
 
 #if defined(loco_framebuffer)
-
-  //m_framebuffer.unbind(get_context());
 
 #endif
 
   ImGui::Render();
-  //get_context().opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-  //get_context().opengl.glClear(fan::opengl::GL_COLOR_BUFFER_BIT);
+
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 #endif
@@ -1573,28 +2295,25 @@ void loco_t::loop(const fan::function_t<void()>&lambda) {
 
 
 loco_t::camera_t loco_t::open_camera(const fan::vec2& x, const fan::vec2& y) {
-  auto& context = get_context();
-  loco_t::camera_t camera = context.camera_create();
-  context.camera_set_ortho(camera, fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
+  loco_t::camera_t camera = camera_create();
+  camera_set_ortho(camera, fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
   return camera;
 }
 
 loco_t::camera_t loco_t::open_camera_perspective(f32_t fov) {
-  auto& context = get_context();
-  loco_t::camera_t camera = context.camera_create();
-  context.camera_set_perspective(camera, fov, window.get_size());
+  loco_t::camera_t camera = camera_create();
+  camera_set_perspective(camera, fov, window.get_size());
   return camera;
 }
 
 loco_t::viewport_t loco_t::open_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
-  auto& context = get_context();
-  loco_t::viewport_t viewport = context.viewport_create();
-  context.viewport_set(viewport, viewport_position, viewport_size, window.get_size());
+  loco_t::viewport_t viewport = viewport_create();
+  viewport_set(viewport, viewport_position, viewport_size, window.get_size());
   return viewport;
 }
 
 void loco_t::set_viewport(loco_t::viewport_t viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
-    get_context().viewport_set(viewport, viewport_position, viewport_size, window.get_size());
+  viewport_set(viewport, viewport_position, viewport_size, window.get_size());
 }
 
 //
@@ -1621,7 +2340,7 @@ uint32_t loco_t::get_fps() {
 }
 
 void loco_t::set_vsync(bool flag) {
-  //get_context().set_vsync(&window, flag);
+  get_context().set_vsync(&window, flag);
 }
 
 void loco_t::update_timer_interval() {
@@ -1653,6 +2372,59 @@ void loco_t::set_target_fps(int32_t new_target_fps) {
 }
 
 #if defined(loco_imgui)
+
+template <typename T>
+loco_t::imgui_fs_var_t::imgui_fs_var_t(
+  loco_t::shader_t shader_nr,
+  const fan::string& var_name,
+  T initial_,
+  f32_t speed,
+  f32_t min,
+  f32_t max
+) {
+  //fan::vec_wrap_t < sizeof(T) / fan::conditional_value_t < std::is_class_v<T>, sizeof(T{} [0] ), sizeof(T) > , f32_t > initial = initial_;
+  fan::vec_wrap_t<fan::conditional_value_t<std::is_arithmetic_v<T>, 1, sizeof(T) / sizeof(f32_t)>::value, f32_t> 
+    initial;
+  if constexpr (std::is_arithmetic_v<T>) {
+    initial = (f32_t)initial_;
+  }
+  else {
+    initial = initial_;
+  }
+    fan::opengl::context_t::shader_t& shader = gloco->shader_get(shader_nr);
+    auto found = shader.uniform_type_table.find(var_name);
+    if (found == shader.uniform_type_table.end()) {
+      //fan::print("failed to set uniform value");
+      return;
+      //fan::throw_error("failed to set uniform value");
+    }
+  ie = [str = found->second, shader_nr, var_name, speed, min, max, data = initial]() mutable {
+    bool modify = false;
+    switch(fan::get_hash(str)) {
+      case fan::get_hash(std::string_view("float")): {
+        modify = ImGui::DragFloat(fan::string(std::move(var_name)).c_str(), &data[0], (f32_t)speed, (f32_t)min, (f32_t)max);
+        break;
+      }
+      case fan::get_hash(std::string_view("vec2")): {
+        modify = ImGui::DragFloat2(fan::string(std::move(var_name)).c_str(), ((fan::vec2*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+        break;
+      }
+      case fan::get_hash(std::string_view("vec3")): {
+        modify = ImGui::DragFloat3(fan::string(std::move(var_name)).c_str(), ((fan::vec3*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+        break;
+      }
+      case fan::get_hash(std::string_view("vec4")): {
+        modify = ImGui::DragFloat4(fan::string(std::move(var_name)).c_str(), ((fan::vec4*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+        break;
+      }
+    }
+    if (modify) {
+      gloco->get_context().shader_set_value(shader_nr, var_name, data);
+    }
+  };
+  gloco->get_context().shader_set_value(shader_nr, var_name, initial);
+}
+
 void loco_t::set_imgui_viewport(loco_t::viewport_t viewport) {
   ImVec2 mainViewportPos = ImGui::GetMainViewport()->Pos;
 
@@ -2188,38 +2960,6 @@ loco_t::shape_t loco_t::unlit_sprite_t::push_back(const properties_t& properties
   );
 }
 
-loco_t::shape_t loco_t::letter_t::push_back(const properties_t& properties) {
-  //KeyPack.ShapeType = shape_type;
-  vi_t vi;
-  vi.position = properties.position;
-  vi.outline_size = properties.outline_size;
-  vi.size = properties.size;
-  vi.tc_position = properties.tc_position;
-  vi.color = properties.color;
-  vi.outline_color = properties.outline_color;
-  vi.tc_size = properties.tc_size;
-  vi.angle = properties.angle;
-  ri_t ri;
-  ri.font_size = properties.font_size;
-  ri.letter_id = properties.letter_id;
-
-  fan::font::character_info_t si = gloco->font.info.get_letter_info(properties.letter_id, properties.font_size);
-  auto& image = gloco->image_get_data(gloco->font.image);
-  vi.tc_position = si.glyph.position / image.size;
-  vi.tc_size.x = si.glyph.size.x / image.size.x;
-  vi.tc_size.y = si.glyph.size.y / image.size.y;
-
-  vi.size = si.metrics.size / 2;
-
-  return shape_add(shape_type, vi, ri,
-    Key_e::depth, (uint16_t)properties.position.z,
-    Key_e::blending, (uint8_t)properties.blending,
-    Key_e::viewport, properties.viewport,
-    Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
-  );
-}
-
 loco_t::shape_t loco_t::grid_t::push_back(const properties_t& properties) {
   vi_t vi;
   vi.position = properties.position;
@@ -2377,40 +3117,70 @@ loco_t::shape_t loco_t::line3d_t::push_back(const properties_t& properties) {
 
 //-------------------------------------shapes-------------------------------------
 
-void fan::graphics::gl_font_impl::font_t::open(const fan::string& image_path) {
-  fan::opengl::context_t::image_load_properties_t lp;
-#if defined(loco_opengl)
-  lp.min_filter = fan::opengl::GL_LINEAR;
-  lp.mag_filter = fan::opengl::GL_LINEAR;
-#elif defined(loco_vulkan)
-  // fill here
-#endif
-  image = gloco->image_load(image_path + ".webp", lp);
-  fan::font::parse_font(info, image_path + "_metrics.txt");
-}
 
-void fan::graphics::gl_font_impl::font_t::close() {
-  gloco->image_erase(image);
-}
+std::vector<uint8_t> loco_t::create_noise_image_data(const fan::vec2& image_size, int seed) {
+  FastNoiseLite noise;
+  noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+  noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+  noise.SetFrequency(0.010);
+  noise.SetFractalGain(0.5);
+  noise.SetFractalLacunarity(2.0);
+  noise.SetFractalOctaves(5);
+  noise.SetSeed(seed);
+  noise.SetFractalPingPongStrength(2.0);
+  f32_t noise_tex_min = -1;
+  f32_t noise_tex_max = 0.1;
+  //noise
+  // Gather noise data
+  std::vector<uint8_t> noiseDataRGB(image_size.multiply() * 4);
 
-inline fan::vec2 fan::graphics::gl_font_impl::font_t::get_text_size(const fan::string& text, f32_t font_size) {
-  fan::vec2 text_size = 0;
+  int index = 0;
 
-  text_size.y = info.get_line_height(font_size);
+  float scale = 255 / (noise_tex_max - noise_tex_min);
 
-
-  for (std::size_t i = 0; i < text.utf8_size(); i++) {
-    auto letter = info.get_letter_info(text.get_utf8(i), font_size);
-
-    //auto p = letter_info.metrics.offset.x + letter_info.metrics.size.x / 2 + letter_info.metrics.offset.x;
-    text_size.x += letter.metrics.advance;
-    //text_size.x += letter.metrics.size.x + letter.metrics.offset.x;
-    //if (i + 1 != text.size()) {
-    //  text_size.x += letter.metrics.offset.x;
-    //}
+  for (int y = 0; y < image_size.y; y++)
+  {
+    for (int x = 0; x < image_size.x; x++)
+    {
+      float noiseValue = noise.GetNoise((float)x, (float)y);
+      unsigned char cNoise = (unsigned char)std::max(0.0f, std::min(255.0f, (noiseValue - noise_tex_min) * scale));
+      noiseDataRGB[index * 4 + 0] = cNoise;
+      noiseDataRGB[index * 4 + 1] = cNoise;
+      noiseDataRGB[index * 4 + 2] = cNoise;
+      noiseDataRGB[index * 4 + 3] = 255;
+      index++;
+    }
   }
 
-  return text_size;
+  return noiseDataRGB;
+}
+
+fan::line3 fan::graphics::get_highlight_positions(const fan::vec3& op_, const fan::vec2& os, int index) {
+  fan::line3 positions;
+  fan::vec2 op = op_;
+  switch (index) {
+  case 0:
+    positions[0] = fan::vec3(op - os, op_.z + 1);
+    positions[1] = fan::vec3(op + fan::vec2(os.x, -os.y), op_.z + 1);
+    break;
+  case 1:
+    positions[0] = fan::vec3(op + fan::vec2(os.x, -os.y), op_.z + 1);
+    positions[1] = fan::vec3(op + os, op_.z + 1);
+    break;
+  case 2:
+    positions[0] = fan::vec3(op + os, op_.z + 1);
+    positions[1] = fan::vec3(op + fan::vec2(-os.x, os.y), op_.z + 1);
+    break;
+  case 3:
+    positions[0] = fan::vec3(op + fan::vec2(-os.x, os.y), op_.z + 1);
+    positions[1] = fan::vec3(op - os, op_.z + 1);
+    break;
+  default:
+    // Handle invalid index if necessary
+    break;
+  }
+
+  return positions;
 }
 
 #if defined(loco_imgui)
@@ -2421,7 +3191,6 @@ void fan::graphics::text(const std::string& text, const fan::vec2& position, con
   ImGui::Text("%s", text.c_str());
   ImGui::PopStyleColor();
 }
-
 void fan::graphics::text_bottom_right(const std::string& text, const fan::color& color, const fan::vec2& offset) {
   ImVec2 text_pos;
   ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
@@ -2432,15 +3201,12 @@ void fan::graphics::text_bottom_right(const std::string& text, const fan::color&
   text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
   fan::graphics::text(text, text_pos + offset, color);
 }
-
 IMGUI_API void ImGui::Image(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) {
   ImGui::Image((ImTextureID)gloco->image_get(img), size, uv0, uv1, tint_col, border_col);
 }
-
 IMGUI_API bool ImGui::ImageButton(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
   return ImGui::ImageButton("", (ImTextureID)gloco->image_get(img), size, uv0, uv1, bg_col, tint_col);
 }
-
 bool ImGui::ToggleButton(const std::string& str, bool* v) {
 
   ImGui::Text("%s", str.c_str());
@@ -2467,8 +3233,6 @@ bool ImGui::ToggleButton(const std::string& str, bool* v) {
 
   return changed;
 }
-
-
 bool ImGui::ToggleImageButton(loco_t::image_t image, const ImVec2& size, bool* toggle)
 {
   bool clicked = false;
@@ -2488,7 +3252,6 @@ bool ImGui::ToggleImageButton(loco_t::image_t image, const ImVec2& size, bool* t
 
   return clicked;
 }
-
 ImVec2 ImGui::GetPositionBottomCorner(const char* text, uint32_t reverse_yoffset) {
   ImVec2 window_pos = ImGui::GetWindowPos();
   ImVec2 window_size = ImGui::GetWindowSize();
@@ -2503,7 +3266,6 @@ ImVec2 ImGui::GetPositionBottomCorner(const char* text, uint32_t reverse_yoffset
 
   return text_pos;
 }
-
 void ImGui::DrawTextBottomRight(const char* text, uint32_t reverse_yoffset) {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
@@ -2520,8 +3282,6 @@ void ImGui::DrawTextBottomRight(const char* text, uint32_t reverse_yoffset) {
 
     draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), text);
 }
-
-
 void fan::graphics::imgui_content_browser_t::render() {
   ImGuiStyle& style = ImGui::GetStyle();
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 16.0f));
@@ -2596,6 +3356,159 @@ void fan::graphics::imgui_content_browser_t::render() {
   }
 }
 
+fan::graphics::imgui_content_browser_t::imgui_content_browser_t() {
+  search_buffer.resize(32);
+  asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
+  current_directory = std::filesystem::path(asset_path) / "images";
+  update_directory_cache();
+}
+
+void fan::graphics::imgui_content_browser_t::update_directory_cache() {
+  for (auto& img : directory_cache) {
+    if (img.preview_image.iic() == false) {
+      gloco->image_unload(img.preview_image);
+    }
+  }
+  directory_cache.clear();
+  fan::io::iterate_directory_sorted_by_name(current_directory, [this](const std::filesystem::directory_entry& path) {
+    file_info_t file_info;
+    // SLOW
+    auto relative_path = std::filesystem::relative(path, asset_path);
+    file_info.filename = relative_path.filename().string();
+    file_info.item_path = relative_path.wstring();
+    file_info.is_directory = path.is_directory();
+    file_info.some_path = path.path().filename();//?
+    //fan::print(get_file_extension(path.path().string()));
+    if (fan::io::file::extension(path.path().string()) == ".webp") {
+      file_info.preview_image = gloco->image_load(std::filesystem::absolute(path.path()).string());
+    }
+    directory_cache.push_back(file_info);
+  });
+}
+
+void fan::graphics::imgui_content_browser_t::render_large_thumbnails_view() {
+  float thumbnail_size = 128.0f;
+  float panel_width = ImGui::GetContentRegionAvail().x;
+  int column_count = std::max((int)(panel_width / (thumbnail_size + padding)), 1);
+
+  ImGui::Columns(column_count, 0, false);
+
+  int pressed_key = -1;
+  for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
+    if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
+      pressed_key = (i - ImGuiKey_A) + 'A';
+      break;
+    }
+  }
+
+  // Render thumbnails or icons
+  for (std::size_t i = 0; i < directory_cache.size(); ++i) {
+
+    // reference somehow corrupts
+    auto file_info = directory_cache[i];
+    if (std::string(search_buffer.c_str()).size() && file_info.filename.find(search_buffer) == std::string::npos) {
+      continue;
+    }
+
+    if (pressed_key != -1 && ImGui::IsWindowFocused()) {
+      if (!file_info.filename.empty() && std::tolower(file_info.filename[0]) == std::tolower(pressed_key)) {
+        ImGui::SetScrollHereY();
+      }
+    }
+
+    ImGui::PushID(file_info.filename.c_str());
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+    ImGui::ImageButton(file_info.preview_image.iic() == false ? file_info.preview_image : file_info.is_directory ? icon_directory : icon_file, ImVec2(thumbnail_size, thumbnail_size));
+
+    // Handle drag and drop, double click, etc.
+    handle_item_interaction(file_info);
+
+    ImGui::PopStyleColor();
+    ImGui::TextWrapped("%s", file_info.filename.c_str());
+    ImGui::NextColumn();
+    ImGui::PopID();
+  }
+
+  ImGui::Columns(1);
+}
+
+void fan::graphics::imgui_content_browser_t::render_list_view() {
+  if (ImGui::BeginTable("##FileTable", 1, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY
+    | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
+    | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable)) {
+    ImGui::TableSetupColumn("##Filename", ImGuiTableColumnFlags_WidthStretch);
+    ImGui::TableHeadersRow();
+
+    int pressed_key = -1;
+    for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
+      if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
+        pressed_key = (i - ImGuiKey_A) + 'A';
+        break;
+      }
+    }
+
+    // Render table view
+    for (std::size_t i = 0; i < directory_cache.size(); ++i) {
+
+      // reference somehow corrupts
+      auto file_info = directory_cache[i];
+
+      if (pressed_key != -1 && ImGui::IsWindowFocused()) {
+        if (!file_info.filename.empty() && std::tolower(file_info.filename[0]) == std::tolower(pressed_key)) {
+          ImGui::SetScrollHereY();
+        }
+      }
+
+      if (search_buffer.size() && strstr(file_info.filename.c_str(), search_buffer.c_str()) == nullptr) {
+        continue;
+      }
+      ImGui::TableNextRow();
+      ImGui::TableSetColumnIndex(0); // Icon column
+      fan::vec2 cursor_pos = ImGui::GetWindowPos() + ImGui::GetCursorPos() + fan::vec2(ImGui::GetScrollX(), -ImGui::GetScrollY());
+      fan::vec2 image_size = ImVec2(thumbnail_size / 4, thumbnail_size / 4);
+      ImGuiStyle& style = ImGui::GetStyle();
+      std::string space = "";
+      while (ImGui::CalcTextSize(space.c_str()).x < image_size.x) {
+        space += " ";
+      }
+      auto str = space + file_info.filename;
+
+      ImGui::Selectable(str.c_str());
+      if (file_info.preview_image.iic() == false) {
+        ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get(file_info.preview_image), cursor_pos, cursor_pos + image_size);
+      }
+      else if (file_info.is_directory) {
+        ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get(icon_directory), cursor_pos, cursor_pos + image_size);
+      }
+      else {
+        ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get(icon_file), cursor_pos, cursor_pos + image_size);
+      }
+
+      handle_item_interaction(file_info);
+    }
+
+    ImGui::EndTable();
+  }
+}
+
+void fan::graphics::imgui_content_browser_t::handle_item_interaction(const file_info_t& file_info) {
+  if (file_info.is_directory == false) {
+
+    if (ImGui::BeginDragDropSource()) {
+      ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEM", file_info.item_path.data(), (file_info.item_path.size() + 1) * sizeof(wchar_t));
+      ImGui::Text("%s", file_info.filename.c_str());
+      ImGui::EndDragDropSource();
+    }
+  }
+
+  if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+    if (file_info.is_directory) {
+      current_directory /= file_info.some_path;
+      update_directory_cache();
+    }
+  }
+}
+
 #endif
 
 #if defined(loco_json)
@@ -2656,18 +3569,6 @@ bool fan::graphics::shape_to_json(loco_t::shape_t& shape, fan::json* json) {
     out["tc_size"] = shape.get_tc_size();
     break;
   }
-  case loco_t::shape_type_t::letter: {
-    out["shape"] = "letter";
-    out["position"] = shape.get_position();
-    out["outline_size"] = shape.get_outline_size();
-    out["size"] = shape.get_size();
-    out["tc_position"] = shape.get_tc_position();
-    out["color"] = shape.get_color();
-    out["outline_color"] = shape.get_outline_color();
-    out["tc_size"] = shape.get_tc_size();
-    out["angle"] = shape.get_angle();
-    break;
-  }
   case loco_t::shape_type_t::text: {
     out["shape"] = "text";
     break;
@@ -2720,7 +3621,6 @@ bool fan::graphics::shape_to_json(loco_t::shape_t& shape, fan::json* json) {
   }
   return false;
 }
-
 bool fan::graphics::json_to_shape(const fan::json& in, loco_t::shape_t* shape) {
   std::string shape_type = in["shape"];
   switch (fan::get_hash(shape_type.c_str())) {
@@ -2835,18 +3735,9 @@ bool fan::graphics::json_to_shape(const fan::json& in, loco_t::shape_t* shape) {
   }
   return false;
 }
-
 bool fan::graphics::shape_serialize(loco_t::shape_t& shape, fan::json* out) {
   return shape_to_json(shape, out);
 }
-
-/*
-shape
-data{
-}
-*/
-
-
 bool fan::graphics::shape_to_bin(loco_t::shape_t& shape, std::string* str) {
   std::string& out = *str;
   switch (shape.get_shape_type()) {
@@ -2904,18 +3795,6 @@ bool fan::graphics::shape_to_bin(loco_t::shape_t& shape, std::string* str) {
     fan::write_to_string(out, shape.get_tc_size());
     break;
     }
-    case loco_t::shape_type_t::letter: {
-    fan::write_to_string(out, std::string("letter"));
-    fan::write_to_string(out, shape.get_position());
-    fan::write_to_string(out, shape.get_outline_size());
-    fan::write_to_string(out, shape.get_size());
-    fan::write_to_string(out, shape.get_tc_position());
-    fan::write_to_string(out, shape.get_color());
-    fan::write_to_string(out, shape.get_outline_color());
-    fan::write_to_string(out, shape.get_tc_size());
-    fan::write_to_string(out, shape.get_angle());
-    break;
-    }
     case loco_t::shape_type_t::circle: {
     fan::write_to_string(out, std::string("circle"));
     fan::write_to_string(out, shape.get_position());
@@ -2965,7 +3844,6 @@ bool fan::graphics::shape_to_bin(loco_t::shape_t& shape, std::string* str) {
   }
   return false;
 }
-
 bool fan::graphics::bin_to_shape(const std::string& in, loco_t::shape_t* shape, uint64_t& offset) {
   std::string shape_type = fan::read_data<std::string>(in, offset);
   switch (fan::get_hash(shape_type.c_str())) {
@@ -3078,7 +3956,6 @@ bool fan::graphics::bin_to_shape(const std::string& in, loco_t::shape_t* shape, 
   }
   return false;
 }
-
 bool fan::graphics::shape_serialize(loco_t::shape_t& shape, std::string* out) {
   return shape_to_bin(shape, out);
 }
@@ -3291,6 +4168,46 @@ std::vector<fan::json_stream_parser_t::parsed_result> fan::json_stream_parser_t:
   return results;
 }
 
+loco_t::image_t loco_t::create_noise_image(const fan::vec2& image_size) {
+
+  loco_t::image_load_properties_t lp;
+  lp.format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+  lp.internal_format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+  lp.min_filter = loco_t::image_filter::linear;
+  lp.mag_filter = loco_t::image_filter::linear;
+  lp.visual_output = fan::opengl::GL_MIRRORED_REPEAT;
+
+  loco_t::image_t image;
+
+  auto noise_data = create_noise_image_data(image_size);
+
+  fan::image::image_info_t ii;
+  ii.data = noise_data.data();
+  ii.size = image_size;
+
+  image = image_load(ii, lp);
+  return image;
+}
+
+loco_t::image_t loco_t::create_noise_image(const fan::vec2& image_size, const std::vector<uint8_t>& noise_data) {
+
+  loco_t::image_load_properties_t lp;
+  lp.format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+  lp.internal_format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+  lp.min_filter = loco_t::image_filter::linear;
+  lp.mag_filter = loco_t::image_filter::linear;
+  lp.visual_output = fan::opengl::GL_MIRRORED_REPEAT;
+
+  loco_t::image_t image;
+
+  fan::image::image_info_t ii;
+  ii.data = (void*)noise_data.data();
+  ii.size = image_size;
+
+  image = image_load(ii, lp);
+  return image;
+}
+
 fan::ray3_t loco_t::convert_mouse_to_ray(const fan::vec2i& mouse_position, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
   fan::vec2i screen_size = gloco->window.get_size();
 
@@ -3311,4 +4228,28 @@ fan::ray3_t loco_t::convert_mouse_to_ray(const fan::vec2i& mouse_position, const
 
   fan::vec3 ray_origin = camera_position;
   return fan::ray3_t(ray_origin, ray_dir);
+}
+
+fan::ray3_t loco_t::convert_mouse_to_ray(const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
+  return convert_mouse_to_ray(gloco->get_mouse_position(), camera_position, projection, view);
+}
+
+fan::ray3_t loco_t::convert_mouse_to_ray(const fan::mat4& projection, const fan::mat4& view) {
+  return convert_mouse_to_ray(gloco->get_mouse_position(), camera_get_position(perspective_camera.camera), projection, view);
+}
+
+bool loco_t::is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& position, const fan::vec3& size) {
+  fan::vec3 min_bounds = position - size;
+  fan::vec3 max_bounds = position + size;
+
+  fan::vec3 t_min = (min_bounds - ray.origin) / (ray.direction + fan::vec3(1e-6f));
+  fan::vec3 t_max = (max_bounds - ray.origin) / (ray.direction + fan::vec3(1e-6f));
+
+  fan::vec3 t1 = t_min.min(t_max);
+  fan::vec3 t2 = t_min.max(t_max);
+
+  float t_near = fan::max(t1.x, fan::max(t1.y, t1.z));
+  float t_far = fan::min(t2.x, fan::min(t2.y, t2.z));
+
+  return t_near <= t_far && t_far >= 0.0f;
 }

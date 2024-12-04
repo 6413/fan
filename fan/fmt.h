@@ -1,13 +1,13 @@
 #pragma once
 
+#include <fan/types/fstring.h>
+
 //std::format doesnt exist for clang in linux
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 #include <fmt/xchar.h>
 
 #include <vector>
-
-#include <fan/types/fstring.h>
 
 namespace fan {
 

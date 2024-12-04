@@ -54,7 +54,7 @@ namespace fan_3d {
       };
       uint32_t type = type_e::invalid;
       std::vector<bone_pose_t> bone_poses;
-      std::unordered_map<std::string, bone_transform_track_t> bone_transforms;
+      std::vector<bone_transform_track_t> bone_transforms;
       std::string name;
     };
     struct bone_t {
@@ -401,9 +401,9 @@ namespace fan_3d {
       }
       bool load_model(const std::string& path) {
         importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
-        importer.ReadFile(path, aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes | aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices);
+        scene = (aiScene*)importer.ReadFile(path, aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes | aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices);
 
-        scene = importer.GetOrphanedScene();
+        //scene = importer.GetOrphanedScene();
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
           fan::print(importer.GetErrorString());
           return false;
@@ -488,7 +488,7 @@ namespace fan_3d {
 
       using anim_key_t = std::string;
 
-      uint32_t fk_set_rot(const anim_key_t& key, const fan::string& bone_id,
+      uint32_t fk_set_rot(const anim_key_t& key, const uint32_t bone_id,
         f32_t dt,
         const fan::quat& quat
       ) {
@@ -498,17 +498,14 @@ namespace fan_3d {
         return fk_set_rot(key, bone_id, dt, axis, angle);
       }
 
-      uint32_t fk_set_rot(const anim_key_t& key, const fan::string& bone_id,
+      uint32_t fk_set_rot(const anim_key_t& key, uint32_t bone_id,
         f32_t dt,
         const fan::vec3& axis,
         f32_t angle
       ) {
         auto& node = animation_list[key];
-        auto found = node.bone_transforms.find(bone_id);
-        if (found == node.bone_transforms.end()) {
-          fan::throw_error("could not find bone:" + bone_id);
-        }
-        auto& transform = found->second;
+        
+        auto& transform = node.bone_transforms[bone_id];
 
         f32_t target = dt * 1000.f;
         auto it = std::upper_bound(transform.position_timestamps.begin(), transform.position_timestamps.end(), target);
@@ -616,12 +613,8 @@ namespace fan_3d {
         fan::vec3 position = 0, scale = 1;
         fan::quat rotation;
 
-        auto it = animation.bone_transforms.find(bone.name);
-        if (it == animation.bone_transforms.end()) {
-          animation.bone_poses[bone.id].rotation.w = -9999;
-          return;
-        }
-        const auto& bt = it->second;
+        const auto& bt = animation.bone_transforms[bone.id];
+        animation.bone_poses[bone.id].rotation.w = -9999;
         if (bt.positions.empty()) {
           return;
         }
@@ -710,14 +703,23 @@ namespace fan_3d {
           if (animation.bone_poses.empty()) {
             animation.bone_poses.resize(bone_count);
           }
-
+          if (animation.bone_transforms.empty()) {
+            animation.bone_transforms.resize(bone_count);
+          }
           animation.type = animation_data_t::type_e::nonlinear_animation;
           double ticksPerSecond = anim->mTicksPerSecond != 0 ? anim->mTicksPerSecond : 25.0;
           animation.duration = (anim->mDuration / ticksPerSecond) * 1000.0;
           longest_animation = std::max((f32_t)animation.duration, longest_animation);
           animation.weight = 0;
-           for (int i = 0; i < anim->mNumChannels; i++) {
+          int bone_id = 0;
+          for (int i = 0; i < anim->mNumChannels; i++) {
             aiNodeAnim* channel = anim->mChannels[i];
+            auto found = bone_map.find(channel->mNodeName.C_Str());
+            if (found == bone_map.end()) {
+              fan::print("unmapped bone, skipping...");
+              continue;
+            }
+            fan::print(found->first);
             fan_3d::model::bone_transform_track_t track;
             for (int j = 0; j < channel->mNumPositionKeys; j++) {
               track.position_timestamps.push_back(channel->mPositionKeys[j].mTime);
@@ -732,7 +734,7 @@ namespace fan_3d {
               track.scales.push_back(channel->mScalingKeys[j].mValue);
 
             }
-            animation.bone_transforms[channel->mNodeName.C_Str()] = track;
+            animation.bone_transforms[found->second->id] = track;
           }
 
         }
@@ -752,7 +754,7 @@ namespace fan_3d {
         node.bone_poses.resize(bone_count);
         iterate_bones(*root_bone,
           [&](bone_t& bone) {
-            node.bone_transforms[bone.name];
+            
           }
         );
         return key;
@@ -1131,14 +1133,15 @@ namespace fan_3d {
           vector[index].push_back("Right_leg");
         }
       }
-      void init_animation_import(std::string& animation_name, aiAnimation* newAnim) {
+      // returns animation index from current scene
+      uint32_t init_animation_import(std::string& animation_name, aiAnimation* newAnim) {
         bool animation_exists = false;
         for (unsigned int i = 0; i < scene->mNumAnimations; ++i) {
           if (scene->mAnimations[i]->mName.C_Str() == animation_name) {
             delete scene->mAnimations[i];
             scene->mAnimations[i] = newAnim;
             animation_exists = true;
-            break;
+            return i;
           }
         }
 
@@ -1154,7 +1157,10 @@ namespace fan_3d {
           }
           scene->mAnimations = newAnimations;
           scene->mNumAnimations += 1;
+          return scene->mNumAnimations - 1;
         }
+        __unreachable();
+        return -1;
       }
       std::unordered_map<std::string, bool> bone_mapper;
       static fan::mat4 get_world_matrix(fan_3d::model::bone_t* entity, fan::mat4 localMatrix) {
@@ -1190,7 +1196,7 @@ namespace fan_3d {
 
         fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
         local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
-        return target_bone.position;
+        return local_matrix.get_translation();
       }
       static fan::quat transformRotation(
         fan::quat animation_rotation,
@@ -1211,8 +1217,6 @@ namespace fan_3d {
         tangs.z = fan::math::degrees(tangs.z);
         if (target_bone.name == "Left_arm") {
           tpose_adjust = fan::quat::from_angles(fan::vec3(-fan::math::radians(45), 0, 0));
-          fan::print(sangs);
-          fan::print(tangs);
         }
         if (target_bone.name == "Right_arm") {
           tpose_adjust = fan::quat::from_angles(fan::vec3(-fan::math::radians(45), 0, 0));
@@ -1245,11 +1249,12 @@ namespace fan_3d {
           return;
         }
         bone_mapper.clear();
+        // only supports one animation import
         const aiAnimation* srcAnim = anim.scene->mAnimations[0];
         std::string animation_name = custom_name.empty() ? srcAnim->mName.C_Str() : custom_name;
 
-        aiAnimation* newAnim = new aiAnimation(*srcAnim);
-        init_animation_import(animation_name, newAnim);
+        uint32_t animation_index = init_animation_import(animation_name, new aiAnimation(*srcAnim));
+        aiAnimation* anim_ptr = scene->mAnimations[animation_index];
         solve_legs(anim, bone_names_anim);
         solve_legs(*this, bone_names_model);
 
@@ -1271,10 +1276,10 @@ namespace fan_3d {
               }
 
               aiNodeAnim* channel = nullptr;
-              for (unsigned int i = 0; i < newAnim->mNumChannels; ++i) {
-                std::string check_str = newAnim->mChannels[i]->mNodeName.C_Str();
+              for (unsigned int i = 0; i < anim_ptr->mNumChannels; ++i) {
+                std::string check_str = anim_ptr->mChannels[i]->mNodeName.C_Str();
                 if (check_str == bone.name) {
-                  channel = newAnim->mChannels[i];
+                  channel = anim_ptr->mChannels[i];
                   break;
                 }
               }
@@ -1284,7 +1289,7 @@ namespace fan_3d {
               std::string original_name = channel->mNodeName.C_Str();
 
               // need to transform original bone from animation position, rotation, scale animation keys
-              channel->mNodeName = aiString(solved_bone_name.c_str());
+              channel->mNodeName = bone_map[solved_bone_name]->name;
 
               fms_t& bone_source = anim;
               fms_t& bone_dest = *this;
@@ -1298,9 +1303,7 @@ namespace fan_3d {
                 fan::vec3 source_pos = channel->mPositionKeys[i].mValue;
                 channel->mPositionKeys[i].mValue = transformPosition(source_pos, source_bone, target_bone);
               }
-              //}
 
-  // For Rotation
               for (unsigned int i = 0; i < channel->mNumRotationKeys; i++) {
                 aiQuaternion sourceRotation = channel->mRotationKeys[i].mValue;
 
@@ -1404,11 +1407,7 @@ namespace fan_3d {
             bool time_stamps_open = ImGui::TreeNode("timestamps");
             if (time_stamps_open) {
               iterate_bones(*root_bone, [&](fan_3d::model::bone_t& bone) {
-                auto found = anim.bone_transforms.find(bone.name);
-                if (found == anim.bone_transforms.end()) {
-                  return;
-                }
-                auto& bt = found->second;
+                auto& bt = anim.bone_transforms[bone.id];
                 uint32_t data_count = bt.rotation_timestamps.size();
                 if (data_count) {
                   bool node_open = ImGui::TreeNode(bone.name.c_str());
@@ -1428,11 +1427,7 @@ namespace fan_3d {
             bool properties_open = ImGui::TreeNode("properties");
             if (properties_open) {
               iterate_bones(*root_bone, [&](fan_3d::model::bone_t& bone) {
-                auto found = anim.bone_transforms.find(bone.name);
-                if (found == anim.bone_transforms.end()) {
-                  return;
-                }
-                auto& bt = found->second;
+                auto& bt = anim.bone_transforms[bone.id];
                 uint32_t data_count = bt.rotations.size();
                 if (data_count) {
                   bool node_open = ImGui::TreeNode(bone.name.c_str());
@@ -1479,11 +1474,7 @@ namespace fan_3d {
 
         if (active_bone != -1) {
           auto& anim = get_active_animation();
-          auto found = anim.bone_transforms.find(bone_strings[active_bone]);
-          if (found == anim.bone_transforms.end()) {
-            return;
-          }
-          auto& bt = found->second;
+          auto& bt = anim.bone_transforms[active_bone];
           for (int i = 0; i < bt.rotations.size(); ++i) {
             ImGui::DragFloat4(("rotations:" + std::to_string(i)).c_str(), bt.rotations[i].data(), 0.01);
           }
@@ -1510,7 +1501,7 @@ namespace fan_3d {
           }
 
           if (ImGui::Button("save keyframe")) {
-            fk_set_rot(active_anim, bone_strings[active_bone], current_frame / 1000.f, anim.bone_poses[active_bone].rotation);
+            fk_set_rot(active_anim, active_bone, current_frame / 1000.f, anim.bone_poses[active_bone].rotation);
           }
 
           //if (ImGui::BeginNeoSequencer("Sequencer", &current_frame, &start_frame, &end_frame, fan::vec2(0),
@@ -1560,7 +1551,7 @@ namespace fan_3d {
 
       // ---------------------gui---------------------
 
-      aiScene* scene;
+      aiScene* scene = nullptr;
       bone_t* root_bone = nullptr;
       Assimp::Importer importer;
 

@@ -103,7 +103,7 @@ namespace fan {
         return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
         };
 
-      inline static int salsa = 0;
+      inline static std::unordered_map<size_t, int> shader_location_cache;
       template <typename T>
       void shader_set_value(shader_nr_t nr, const fan::string& name, T val) {
         static_assert(std::is_same_v<T, bool> == false || !std::is_same_v<T, int>, "only 4 byte supported");
@@ -120,15 +120,23 @@ namespace fan {
           return;
           //fan::throw_error("failed to set uniform value");
         }
-        auto location = opengl.call(opengl.glGetUniformLocation, shader.id, name.c_str());
+
+        size_t hash0 = std::hash<std::string>{}(name);
+        size_t hash1 = std::hash<decltype(shader_nr_t::NRI)>{}(nr.NRI);
+        auto shader_loc_it = shader_location_cache.find(hash0 ^ hash1);
+        if (shader_loc_it == shader_location_cache.end()) {
+          fan::opengl::GLint location = opengl.call(opengl.glGetUniformLocation, shader.id, name.c_str());
+          if (location == -1) {
+            return;
+          }
+          shader_loc_it = shader_location_cache.emplace(hash0 ^ hash1, location).first;
+        }
+        fan::opengl::GLint location = shader_loc_it->second;
+
 
 #if fan_debug >= fan_debug_insanity
         fan_validate_value(location, validate_error_message(name));
 #endif
-
-        if (location == -1) {
-          return;
-      }
 
         switch (fan::get_hash(found->second)) {
         case fan::get_hash(std::string_view("bool")): {

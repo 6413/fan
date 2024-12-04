@@ -5,6 +5,13 @@ project(fan_project)
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 20)
 
+set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS 1)
+set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_OBJECTS 1)
+
+set(CMAKE_C_RESPONSE_FILE_LINK_FLAG "@")
+set(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
+set(CMAKE_NINJA_FORCE_RESPONSE_FILE 1 CACHE INTERNAL "")
+
 # Add the include directories
 include_directories(./)
 
@@ -15,12 +22,26 @@ pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 
 # Add GTK flags to the compiler flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GTK3_CFLAGS_OTHER}")
+set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=gold")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=gold")
+set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -fuse-ld=gold")
+
+if (CMAKE_GENERATOR MATCHES "Ninja")
+    file(
+        WRITE "${CMAKE_BINARY_DIR}/GNUMakeRulesOverwrite.cmake" 
+            "STRING(REPLACE \"-MD\" \"-MMD\" CMAKE_DEPFILE_FLAGS_C \"\${CMAKE_DEPFILE_FLAGS_C}\")\n"
+            "STRING(REPLACE \"-MD\" \"-MMD\" CMAKE_DEPFILE_FLAGS_CXX \"\${CMAKE_DEPFILE_FLAGS_CXX}\")\n"
+    )
+    set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_BINARY_DIR}/GNUMakeRulesOverwrite.cmake" CACHE INTERNAL "")
+endif()
 
 # Add the GTK include directories
 include_directories(${GTK3_INCLUDE_DIRS})
 
 # Link the GTK libraries
 link_libraries(${GTK3_LIBRARIES})
+link_directories(${CMAKE_SOURCE_DIR}/lib)
+link_directories(/usr/local/lib/fan)
 
 set(CMAKE_CXX_COMPILER "clang++")
 
@@ -61,11 +82,11 @@ endif()
 set(ENABLE_IMGUI ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I ${CMAKE_CURRENT_SOURCE_DIR}/${ROOT_PATH}../ -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-bitwise-op-parentheses -Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare -Wno-unused-but-set-parameter -Wno-unused-value")
-set(DEBUG_FLAGS "-g")
+set(DEBUG_FLAGS "-gdwarf-4")
 set(RELEASE_FLAGS "-s -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -march=native -Wl,--gc-sections")
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=gold")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
 
 if(ENABLE_IMGUI)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dloco_imgui -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM -DIMGUI_DEFINE_MATH_OPERATORS -DIMGUI_DISABLE_DEBUG_TOOLS")
@@ -115,8 +136,8 @@ else()
 	if(DEFINED BUILD_FAN)
 		list(FILTER FAN_LIBS EXCLUDE REGEX ".*fan.a$")
 	endif()
+	
+		message("Libs are: ${FAN_LIBS}")
     # On Linux, use the system libraries
-    target_link_libraries(${OUTPUT} webp glfw X11 assimp opus pulse-simple uv ${FAN_LIBS})
+    target_link_libraries(${OUTPUT} webp glfw X11 assimp opus pulse-simple uv fan.so ${FAN_LIBS})
 endif()
-
-link_directories(${CMAKE_SOURCE_DIR}/lib)

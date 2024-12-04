@@ -1,4 +1,3 @@
-#include <fan/pch.h>
 #include "gl_core.h"
 
 #include <fan/physics/collision/rectangle.h>

@@ -78,7 +78,7 @@ int main() {
   p.use_cpu = 0;
   model = new fan::graphics::model_t(p);
   //return 0;
-  p.path = "anim0.gltf";
+  p.path = "anim1";
 
   anim0 = new fan::graphics::model_t(p);
   model->import_animation(*anim0, "Idle2");
@@ -285,10 +285,10 @@ int main() {
     ImGui::DragFloat3("angle", angs.data(), 0.01);
     r = fan::quat::from_angles(angs);
 
-    auto parent_str = model->get_model_bone_name(12, *model);
-    auto str = model->get_model_bone_name(13, *model);
-    fan::quat parent = model->animation_list["Idle2"].bone_transforms[parent_str].rotations[0];
-    model->animation_list["Idle2"].bone_transforms[str].rotations[0] = parent.inverse() * fan::quat(fan::quat::from_angles({0, 1, 0}));
+    //auto parent_str = model->get_model_bone_name(12, *model);
+    //auto str = model->get_model_bone_name(13, *model);
+    //fan::quat parent = model->animation_list["Idle2"].bone_transforms[parent_str].rotations[0];
+    //model->animation_list["Idle2"].bone_transforms[str].rotations[0] = parent.inverse() * fan::quat(fan::quat::from_angles({0, 1, 0}));
 
     fan::graphics::text(
       camera.position.to_string() + " " +

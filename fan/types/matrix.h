@@ -11,6 +11,10 @@
 #include <cstring>
 #include <array>
 
+#if defined(loco_assimp)
+  #include <assimp/matrix4x4.h>
+#endif
+
 namespace fan {
 
   template <typename type_t>
