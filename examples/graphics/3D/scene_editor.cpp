@@ -120,9 +120,6 @@ struct pile_t {
         entity_list.emplace(fs_path.filename().string(), std::move(entity));
       }
       void begin_render() {
-        ImGuiWindowClass window_class;
-        window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
-        ImGui::SetNextWindowClass(&window_class);
         get_editor().begin_render_common("Entity list", { initial_render_view_size.x, 0 }, { 0.5, 0.5 }, flags, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoTitleBar);
           if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("Animation")) {
