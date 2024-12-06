@@ -252,7 +252,6 @@ namespace fan {
     }
 
     void to_axis_angle(fan::vec3& axis, value_type& angle) const {
-      // kinda unnecessary normalization
       quaternion<T> qn = normalize();
       angle = 2.0f * acos(qn.w);
 
@@ -270,29 +269,29 @@ namespace fan {
     }
     void to_angles(fan::vec3& angles) {
       const quaternion& q = *this;
-      f32_t ysqr = q.y * q.y;
 
-      f32_t t0 = 2.0f * (q.w * q.x + q.y * q.z);
-      f32_t t1 = 1.0f - 2.0f * (q.x * q.x + ysqr);
-      angles.x = std::atan2(t0, t1);
+      f32_t sinr_cosp = 2.0f * (q.w * q.x + q.y * q.z);
+      f32_t cosr_cosp = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
+      angles.x = std::atan2(sinr_cosp, cosr_cosp);
 
-      f32_t t2 = 2.0f * (q.w * q.y - q.z * q.x);
-      t2 = t2 > 1.0f ? 1.0f : t2;
-      t2 = t2 < -1.0f ? -1.0f : t2;
-      angles.y = std::asin(t2);
+      f32_t sinp = 2.0f * (q.w * q.y - q.z * q.x);
+      if (std::abs(sinp) >= 1.0f)
+        angles.y = std::copysign(fan::math::pi / 2.0f, sinp);
+      else
+        angles.y = std::asin(sinp);
 
-      f32_t t3 = 2.0f * (q.w * q.z + q.x * q.y);
-      f32_t t4 = 1.0f - 2.0f * (ysqr + q.z * q.z);
-      angles.z = std::atan2(t3, t4);
+      f32_t siny_cosp = 2.0f * (q.w * q.z + q.x * q.y);
+      f32_t cosy_cosp = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
+      angles.z = std::atan2(siny_cosp, cosy_cosp);
     }
 
     static quaternion<T> from_angles(const fan::vec3& angles) {
-      f32_t cx = cos(angles.x * 0.5f);
-      f32_t sx = sin(angles.x * 0.5f);
-      f32_t cy = cos(angles.y * 0.5f);
-      f32_t sy = sin(angles.y * 0.5f);
-      f32_t cz = cos(angles.z * 0.5f);
-      f32_t sz = sin(angles.z * 0.5f);
+      f32_t cx = cos(-angles.x * 0.5f);
+      f32_t sx = sin(-angles.x * 0.5f);
+      f32_t cy = cos(-angles.y * 0.5f);
+      f32_t sy = sin(-angles.y * 0.5f);
+      f32_t cz = cos(-angles.z * 0.5f);
+      f32_t sz = sin(-angles.z * 0.5f);
 
       quaternion<T> q;
       q.w = cx * cy * cz + sx * sy * sz;
@@ -300,7 +299,7 @@ namespace fan {
       q.y = cx * sy * cz + sx * cy * sz;
       q.z = cx * cy * sz - sx * sy * cz;
 
-      return q;
+      return q.normalize();
     }
 
     fan::vec3 to_euler() const {

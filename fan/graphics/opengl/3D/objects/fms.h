@@ -11,6 +11,8 @@
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
 
+#include <fan/types/dme.h>
+
 #include <fan/graphics/image_load.h>
 
 namespace fan_3d {
@@ -54,7 +56,7 @@ namespace fan_3d {
       };
       uint32_t type = type_e::invalid;
       std::vector<bone_pose_t> bone_poses;
-      std::vector<bone_transform_track_t> bone_transforms;
+      std::vector<bone_transform_track_t> bone_transform_tracks;
       std::string name;
     };
     struct bone_t {
@@ -70,6 +72,11 @@ namespace fan_3d {
       fan::vec3 position = 0;
       fan::quat rotation;
       fan::vec3 scale = 1;
+      
+      fan::vec3 user_position = 0;
+      fan::vec3 user_rotation = 0;
+      fan::vec3 user_scale = 1;
+
       // this appears to be different than transformation
       fan::mat4 get_local_matrix() const {
         return fan::mat4(1).translate(position) * fan::mat4(1).rotate(rotation) * fan::mat4(1).scale(scale);
@@ -312,7 +319,6 @@ namespace fan_3d {
         bone->offset = fan::mat4(1.0f);
         bone_map[bone->name] = bone;
         ++bone_count;
-        bone_strings.push_back(bone->name);
         if (parent == nullptr) {
           root_bone = bone;
         }
@@ -401,7 +407,10 @@ namespace fan_3d {
       }
       bool load_model(const std::string& path) {
         importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
-        scene = (aiScene*)importer.ReadFile(path, aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes | aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices);
+        scene = (aiScene*)importer.ReadFile(path, 
+          aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes | aiProcess_Triangulate | 
+          aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | 
+          aiProcess_JoinIdenticalVertices | aiProcess_GenBoundingBoxes);
 
         //scene = importer.GetOrphanedScene();
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -425,8 +434,12 @@ namespace fan_3d {
           material_data_vector.push_back(material_data);
           process_bone_offsets(ai_mesh);
           meshes.push_back(mesh);
+          fan::vec3 min = ai_mesh->mAABB.mMin;
+          fan::vec3 max = ai_mesh->mAABB.mMax;
+          scale_divider = std::max(scale_divider, (max-min).abs().length());
         }
         update_bone_transforms();
+        m_transform = m_transform.scale(1.0 / (scale_divider / 3));
         return true;
       }
       void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, const fan::mat4& model) {
@@ -505,7 +518,7 @@ namespace fan_3d {
       ) {
         auto& node = animation_list[key];
         
-        auto& transform = node.bone_transforms[bone_id];
+        auto& transform = node.bone_transform_tracks[bone_id];
 
         f32_t target = dt * 1000.f;
         auto it = std::upper_bound(transform.position_timestamps.begin(), transform.position_timestamps.end(), target);
@@ -613,7 +626,7 @@ namespace fan_3d {
         fan::vec3 position = 0, scale = 1;
         fan::quat rotation;
 
-        const auto& bt = animation.bone_transforms[bone.id];
+        const auto& bt = animation.bone_transform_tracks[bone.id];
         animation.bone_poses[bone.id].rotation.w = -9999;
         if (bt.positions.empty()) {
           return;
@@ -631,7 +644,7 @@ namespace fan_3d {
         float total_weight = 0;
 
         for (const auto& [key, anim] : animation_list) {
-          if (anim.weight > 0 && !anim.bone_poses.empty() && !anim.bone_transforms.empty()) {
+          if (anim.weight > 0 && !anim.bone_poses.empty() && !anim.bone_transform_tracks.empty()) {
             total_weight += anim.weight;
             has_active_animation = true;
             break;
@@ -652,13 +665,18 @@ namespace fan_3d {
                   fan::translation_matrix(pose.position) *
                   fan::rotation_quat_matrix(pose.rotation) *
                   fan::scaling_matrix(pose.scale)
-                  );
+                );
               }
             }
           }
         }
 
-        fan::mat4 global_transform = parent_transform * local_transform;
+        fan::mat4 global_transform = 
+          parent_transform * 
+          (fan::translation_matrix(bone.user_position) *
+          fan::rotation_quat_matrix(fan::quat::from_angles(bone.user_rotation)) *
+          fan::scaling_matrix(bone.user_scale)) *
+          local_transform;
         out_bone_transforms[bone.id] = global_transform * bone.offset;
         bone.bone_transform = global_transform;
 
@@ -680,8 +698,8 @@ namespace fan_3d {
       void fk_calculate_poses() {
         for (auto& i : animation_list) {
           if (i.second.weight > 0) {
-            for (auto bone : bone_map) {
-              fk_get_pose(i.second, *bone.second);
+            for (auto bone : bones) {
+              fk_get_pose(i.second, *bone);
             }
           }
         }
@@ -703,8 +721,8 @@ namespace fan_3d {
           if (animation.bone_poses.empty()) {
             animation.bone_poses.resize(bone_count);
           }
-          if (animation.bone_transforms.empty()) {
-            animation.bone_transforms.resize(bone_count);
+          if (animation.bone_transform_tracks.empty()) {
+            animation.bone_transform_tracks.resize(bone_count);
           }
           animation.type = animation_data_t::type_e::nonlinear_animation;
           double ticksPerSecond = anim->mTicksPerSecond != 0 ? anim->mTicksPerSecond : 25.0;
@@ -734,7 +752,7 @@ namespace fan_3d {
               track.scales.push_back(channel->mScalingKeys[j].mValue);
 
             }
-            animation.bone_transforms[found->second->id] = track;
+            animation.bone_transform_tracks[found->second->id] = track;
           }
 
         }
@@ -833,75 +851,87 @@ namespace fan_3d {
 
         return 1;
       }
-      inline static std::vector<std::vector<std::string>> bone_names_default = {
-        {"Hips", "Torso"},
-        {"Right_Up_Leg", "Upper_Leg_R", "RightUpLeg", "Upper_Leg.R", "R_UpperLeg"},
-        {"Lower_Leg_R", "Lower_Leg.R", "Right_knee", "R_LowerLeg"},
-        {"Right_Foot", "Foot_R", "RightFoot", "Foot.R", "Right_ankle", "R_Foot"},
-        {"Right_Toe_Base", "RightToeBase", "Right_toe", "R_ToeBase"},
-        {"Right_Toe_End"},
-        {"Spine"},
-        {"Spine1", "Chest", "UpperChest"},
-        {"Spine2"},
-        {"Neck"},
-        {"Head"},
-        {"Head_Top_End"},
-        {"Left_Shoulder", "Upper_Arm_L", "L_Shoulder"},
-        {"Left_Arm", "L_UpperArm"},
-        {"Left_Fore_Arm", "Lower_Arm_L", "Left_elbow", "L_LowerArm"},
-        {"Left_Hand", "Hand_L", "Left_wrist", "L_Hand"},
-        {"Left_Hand_Thumb1", "Thumb0_L"},
-        {"Left_Hand_Thumb2", "Thumb1_L"},
-        {"Left_Hand_Thumb3", "Thumb2_L"},
-        {"Left_Hand_Thumb4", "Thumb2Tip_L"},
-        {"Left_Hand_Index1", "IndexFinger1_L"},
-        {"Left_Hand_Index2", "IndexFinger2_L"},
-        {"Left_Hand_Index3", "IndexFinger3_L"},
-        {"Left_Hand_Index4", "IndexFinger3Tip_L"},
-        {"Left_Hand_Middle1", "MiddleFinger1_L"},
-        {"Left_Hand_Middle2", "MiddleFinger2_L"},
-        {"Left_Hand_Middle3", "MiddleFinger3_L"},
-        {"Left_Hand_Middle4", "MiddleFinger3Tip_L"},
-        {"Left_Hand_Ring1", "RingFinger1_L"},
-        {"Left_Hand_Ring2", "RingFinger2_L"},
-        {"Left_Hand_Ring3", "RingFinger3_L"},
-        {"Left_Hand_Ring4", "RingFinger3Tip_L"},
-        {"Left_Hand_Pinky1", "LittleFinger1_L"},
-        {"Left_Hand_Pinky2", "LittleFinger2_L"},
-        {"Left_Hand_Pinky3", "LittleFinger3_L"},
-        {"Left_Hand_Pinky4", "LittleFinger3Tip_L"},
-        {"Right_Shoulder", "Upper_Arm_R", "R_Shoulder"},
-        {"Right_Arm", "R_UpperArm"},
-        {"Right_Fore_Arm", "Lower_Arm_R", "Right_elbow", "R_LowerArm"},
-        {"Right_Hand", "Hand_R", "Right_wrist", "R_Hand"},
-        {"Right_Hand_Thumb1", "Thumb0_R"},
-        {"Right_Hand_Thumb2", "Thumb1_R"},
-        {"Right_Hand_Thumb3", "Thumb2_R"},
-        {"Right_Hand_Thumb4", "Thumb2Tip_R"},
-        {"Right_Hand_Index1", "IndexFinger1_R"},
-        {"Right_Hand_Index2", "IndexFinger2_R"},
-        {"Right_Hand_Index3", "IndexFinger3_R"},
-        {"Right_Hand_Index4", "IndexFinger3Tip_R"},
-        {"Right_Hand_Middle1", "MiddleFinger1_R"},
-        {"Right_Hand_Middle2", "MiddleFinger2_R"},
-        {"Right_Hand_Middle3", "MiddleFinger3_R"},
-        {"Right_Hand_Middle4", "MiddleFinger3Tip_R"},
-        {"Right_Hand_Ring1", "RingFinger1_R"},
-        {"Right_Hand_Ring2", "RingFinger2_R"},
-        {"Right_Hand_Ring3", "RingFinger3_R"},
-        {"Right_Hand_Ring4", "RingFinger3Tip_R"},
-        {"Right_Hand_Pinky1", "LittleFinger1_R"},
-        {"Right_Hand_Pinky2", "LittleFinger2_R"},
-        {"Right_Hand_Pinky3", "LittleFinger3_R"},
-        {"Right_Hand_Pinky4", "LittleFinger3Tip_R"},
-        {"Left_Up_Leg", "Upper_Leg_L", "LeftUpLeg", "Upper_Leg.L", "L_UpperLeg"},
-        {"Lower_Leg_L", "Lower_Leg.L", "Left_knee", "L_LowerLeg"},
-        {"Left_Foot", "Foot_L", "LeftFoot", "Foot.L", "Left_ankle", "L_Foot"},
-        {"Left_Toe_Base", "LeftToeBase", "Left_toe", "L_ToeBase"},
-        {"Left_Toe_End"}
+      struct bone_names_default_t : __dme_inherit(bone_names_default_t, std::vector<std::string>){
+        bone_names_default_t() {}
+        #define d(name, ...) __dme(name) = {{#name, ##__VA_ARGS__}};
+        d(hips, "Torso");
+        d(right_up_leg, "Upper_Leg_R", "RightUpLeg", "Upper_Leg.R", "R_UpperLeg");
+        d(lower_leg_r, "Lower_Leg.R", "Right_knee", "R_LowerLeg");
+        d(right_foot, "Foot_R", "RightFoot", "Foot.R", "Right_ankle", "R_Foot");
+        d(right_toe_base, "RightToeBase", "Right_toe", "R_ToeBase");
+        d(right_toe_end);
+        d(spine);
+        d(spine1, "Chest", "UpperChest");
+        d(spine2);
+        d(neck);
+        d(head);
+        d(head_top_end);
+        d(left_shoulder, "Upper_Arm_L", "L_Shoulder");
+        d(left_arm, "L_UpperArm");
+        d(left_fore_arm, "Lower_Arm_L", "Left_elbow", "L_LowerArm");
+        d(left_hand, "Hand_L", "Left_wrist", "L_Hand");
+        d(left_hand_thumb1, "Thumb0_L");
+        d(left_hand_thumb2, "Thumb1_L");
+        d(left_hand_thumb3, "Thumb2_L");
+        d(left_hand_thumb4, "Thumb2Tip_L");
+        d(left_hand_index1, "IndexFinger1_L");
+        d(left_hand_index2, "IndexFinger2_L");
+        d(left_hand_index3, "IndexFinger3_L");
+        d(left_hand_index4, "IndexFinger3Tip_L");
+        d(left_hand_middle1, "MiddleFinger1_L");
+        d(left_hand_middle2, "MiddleFinger2_L");
+        d(left_hand_middle3, "MiddleFinger3_L");
+        d(left_hand_middle4, "MiddleFinger3Tip_L");
+        d(left_hand_ring1, "RingFinger1_L");
+        d(left_hand_ring2, "RingFinger2_L");
+        d(left_hand_ring3, "RingFinger3_L");
+        d(left_hand_ring4, "RingFinger3Tip_L");
+        d(left_hand_pinky1, "LittleFinger1_L");
+        d(left_hand_pinky2, "LittleFinger2_L");
+        d(left_hand_pinky3, "LittleFinger3_L");
+        d(left_hand_pinky4, "LittleFinger3Tip_L");
+        d(right_shoulder, "Upper_Arm_R", "R_Shoulder");
+        d(right_arm, "R_UpperArm");
+        d(right_fore_arm, "Lower_Arm_R", "Right_elbow", "R_LowerArm");
+        d(right_hand, "Hand_R", "Right_wrist", "R_Hand");
+        d(right_hand_thumb1, "Thumb0_R");
+        d(right_hand_thumb2, "Thumb1_R");
+        d(right_hand_thumb3, "Thumb2_R");
+        d(right_hand_thumb4, "Thumb2Tip_R");
+        d(right_hand_index1, "IndexFinger1_R");
+        d(right_hand_index2, "IndexFinger2_R");
+        d(right_hand_index3, "IndexFinger3_R");
+        d(right_hand_index4, "IndexFinger3Tip_R");
+        d(right_hand_middle1, "MiddleFinger1_R");
+        d(right_hand_middle2, "MiddleFinger2_R");
+        d(right_hand_middle3, "MiddleFinger3_R");
+        d(right_hand_middle4, "MiddleFinger3Tip_R");
+        d(right_hand_ring1, "RingFinger1_R");
+        d(right_hand_ring2, "RingFinger2_R");
+        d(right_hand_ring3, "RingFinger3_R");
+        d(right_hand_ring4, "RingFinger3Tip_R");
+        d(right_hand_pinky1, "LittleFinger1_R");
+        d(right_hand_pinky2, "LittleFinger2_R");
+        d(right_hand_pinky3, "LittleFinger3_R");
+        d(right_hand_pinky4, "LittleFinger3Tip_R");
+        d(left_up_leg, "Upper_Leg_L", "LeftUpLeg", "Upper_Leg.L", "L_UpperLeg");
+        d(lower_leg_l, "Lower_Leg.L", "Left_knee", "L_LowerLeg");
+        d(left_foot, "Foot_L", "LeftFoot", "Foot.L", "Left_ankle", "L_Foot");
+        d(left_toe_base, "LeftToeBase", "Left_toe", "L_ToeBase");
+        d(left_toe_end);
+        #undef d
+
+        uintptr_t size() {
+          return this->GetMemberAmount();
+        }
+        auto& operator[](uintptr_t i) {
+          return *this->NA(i);
+        }
       };
-      std::vector<std::vector<std::string>> bone_names_anim;
-      std::vector<std::vector<std::string>> bone_names_model;
+
+      inline static bone_names_default_t bone_names_default;
+      bone_names_default_t bone_names_anim;
+      bone_names_default_t bone_names_model;
       void fancy_iterator(auto& iteration, auto func) {
         for (uintptr_t i = 0; i < iteration.size(); i++) {
           func(iteration[i]);
@@ -1196,7 +1226,7 @@ namespace fan_3d {
 
         fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
         local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
-        return local_matrix.get_translation();
+        return target_bone.position;
       }
       static fan::quat transformRotation(
         fan::quat animation_rotation,
@@ -1306,18 +1336,7 @@ namespace fan_3d {
 
               for (unsigned int i = 0; i < channel->mNumRotationKeys; i++) {
                 aiQuaternion sourceRotation = channel->mRotationKeys[i].mValue;
-
-                fan::quat q;
-                q.x = sourceRotation.x;
-                q.y = sourceRotation.y;
-                q.z = sourceRotation.z;
-                q.w = sourceRotation.w;
-                fan::quat res = transformRotation(q, source_bone, target_bone);
-
-                channel->mRotationKeys[i].mValue.x = res.x;
-                channel->mRotationKeys[i].mValue.y = res.y;
-                channel->mRotationKeys[i].mValue.z = res.z;
-                channel->mRotationKeys[i].mValue.w = res.w;
+                channel->mRotationKeys[i].mValue = transformRotation(sourceRotation, source_bone, target_bone);
               }
 
               // For Scaling
@@ -1407,7 +1426,7 @@ namespace fan_3d {
             bool time_stamps_open = ImGui::TreeNode("timestamps");
             if (time_stamps_open) {
               iterate_bones(*root_bone, [&](fan_3d::model::bone_t& bone) {
-                auto& bt = anim.bone_transforms[bone.id];
+                auto& bt = anim.bone_transform_tracks[bone.id];
                 uint32_t data_count = bt.rotation_timestamps.size();
                 if (data_count) {
                   bool node_open = ImGui::TreeNode(bone.name.c_str());
@@ -1427,7 +1446,7 @@ namespace fan_3d {
             bool properties_open = ImGui::TreeNode("properties");
             if (properties_open) {
               iterate_bones(*root_bone, [&](fan_3d::model::bone_t& bone) {
-                auto& bt = anim.bone_transforms[bone.id];
+                auto& bt = anim.bone_transform_tracks[bone.id];
                 uint32_t data_count = bt.rotations.size();
                 if (data_count) {
                   bool node_open = ImGui::TreeNode(bone.name.c_str());
@@ -1474,7 +1493,7 @@ namespace fan_3d {
 
         if (active_bone != -1) {
           auto& anim = get_active_animation();
-          auto& bt = anim.bone_transforms[active_bone];
+          auto& bt = anim.bone_transform_tracks[active_bone];
           for (int i = 0; i < bt.rotations.size(); ++i) {
             ImGui::DragFloat4(("rotations:" + std::to_string(i)).c_str(), bt.rotations[i].data(), 0.01);
           }
@@ -1503,44 +1522,6 @@ namespace fan_3d {
           if (ImGui::Button("save keyframe")) {
             fk_set_rot(active_anim, active_bone, current_frame / 1000.f, anim.bone_poses[active_bone].rotation);
           }
-
-          //if (ImGui::BeginNeoSequencer("Sequencer", &current_frame, &start_frame, &end_frame, fan::vec2(0),
-          //  ImGuiNeoSequencerFlags_EnableSelection |
-          //  ImGuiNeoSequencerFlags_Selection_EnableDragging |
-          //  ImGuiNeoSequencerFlags_Selection_EnableDeletion |
-          //  ImGuiNeoSequencerFlags_AllowLengthChanging)) {
-          //  static bool transform_open = true;
-          //  if (ImGui::BeginNeoGroup("Transform", &transform_open))
-          //  {
-
-          //    if (ImGui::BeginNeoTimelineEx("rotation"))
-          //    {
-          //      if (bt.rotation_timestamps.size()) {
-          //        for (int i = 0; i < bt.rotation_timestamps.size(); ++i) {
-          //          int32_t p = bt.rotation_timestamps[i];
-          //          ImGui::NeoKeyframe(&p);
-          //          bt.rotation_timestamps[i] = p;
-          //          //ImGui::DragFloat(("timestamps:" + std::to_string(i)).c_str(), &bt.rotation_timestamps[i], 1);
-          //        }
-          //      }
-          //      // delete
-          //      if (false)
-          //      {
-          //        uint32_t count = ImGui::GetNeoKeyframeSelectionSize();
-
-          //        ImGui::FrameIndexType* toRemove = new ImGui::FrameIndexType[count];
-
-          //        ImGui::GetNeoKeyframeSelection(toRemove);
-
-          //        //Delete keyframes from your structure
-          //      }
-          //      ImGui::EndNeoTimeLine();
-          //      ImGui::EndNeoGroup();
-          //    }
-          //  }
-
-          //  ImGui::EndNeoSequencer();
-          //}
         }
       }
 
@@ -1576,12 +1557,12 @@ namespace fan_3d {
         }
       };
       std::map<std::string, bone_t*, ci_less> bone_map;
-      std::vector<fan::string> bone_strings;
       std::vector<bone_t*> bones;
       properties_t p;
       fan::mat4 m_transform{ 1 };
       uint32_t bone_count = 0;
       f32_t dt = 0;
+      f32_t scale_divider = 1;
     };
   }
 }

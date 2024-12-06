@@ -510,8 +510,8 @@ bool fan::opengl::context_t::shader_check_compile_errors(fan::opengl::context_t:
   return true;
 }
 
-void fan::opengl::context_t::shader_set_camera(shader_nr_t nr, void* camera_nr) {
-  camera_t& camera = camera_get(**(camera_nr_t**)&camera_nr);
+void fan::opengl::context_t::shader_set_camera(shader_nr_t nr, fan::opengl::context_t::camera_nr_t camera_nr) {
+  camera_t& camera = camera_get(camera_nr);
   opengl.call(opengl.glUniformMatrix4fv, shader_get(nr).projection_view[0], 1, fan::opengl::GL_FALSE, &camera.m_projection[0][0]);
   opengl.call(opengl.glUniformMatrix4fv, shader_get(nr).projection_view[1], 1, fan::opengl::GL_FALSE, &camera.m_view[0][0]);
 }

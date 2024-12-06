@@ -19,7 +19,6 @@ namespace fan {
         worker_thread = std::thread([&, out, filter_list] {
           nfdchar_t* nfd_out_path = NULL;
           nfdresult_t result = NFD_OpenDialog(filter_list.c_str(), NULL, &nfd_out_path);
-
           if (result == NFD_OKAY) {
             std::lock_guard<std::mutex> lock(out_path_mutex);
             out_path = nfd_out_path;

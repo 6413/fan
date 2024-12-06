@@ -1,5 +1,7 @@
 #pragma once
 
+#if !defined(__dme)
+
 #include <cstdint>
 
 
@@ -33,6 +35,7 @@
     static inline constexpr char varname##_str[] = #varname; \
     __dme_t<value_type, varname##_str, varname##_t::dss> varname##_ram
 
+
   template <typename main_t, uintptr_t index, typename T = __empty_struct>
   struct __dme_inherit_t{
     using value_type = T;
@@ -44,4 +47,5 @@
 
   #define __dme_inherit(main_t, ...) __dme_inherit_t<main_t, __COUNTER__, ##__VA_ARGS__>
 
-  #pragma pack(pop)
+#pragma pack(pop)
+#endif

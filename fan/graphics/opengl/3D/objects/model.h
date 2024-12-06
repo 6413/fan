@@ -14,9 +14,12 @@ namespace fan {
     using namespace opengl;
     struct model_t : fan_3d::model::fms_t{
       struct properties_t : fan_3d::model::fms_t::properties_t {
-
+        loco_t::camera_t camera = gloco->perspective_camera.camera;
+        loco_t::viewport_t viewport = gloco->perspective_camera.viewport;
       };
       model_t(const properties_t& p) : fms_t(p) {
+        camera_nr = p.camera;
+        viewport_nr = p.viewport;
         std::string vs = loco_t::read_shader("shaders/opengl/3D/objects/model.vs");
         std::string fs = loco_t::read_shader("shaders/opengl/3D/objects/model.fs");
         m_shader = gloco->shader_create();
@@ -95,7 +98,7 @@ namespace fan {
         gloco->opengl.glVertexAttribPointer(7, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, color));
         gloco->opengl.glBindVertexArray(0);
 
-        GLuint bone_transform_size = bone_count * sizeof(fan::mat4);
+        GLuint bone_transform_size = bone_transforms.size() * sizeof(fan::mat4);
         gloco->opengl.glGenBuffers(1, &ssbo_bone_buffer);
         gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bone_buffer);
         gloco->opengl.glBufferData(GL_SHADER_STORAGE_BUFFER, bone_transform_size, bone_transforms.data(), GL_STATIC_DRAW);
@@ -112,9 +115,15 @@ namespace fan {
         }
       }
       void draw(const fan::mat4& model_transform = fan::mat4(1), const std::vector<fan::mat4>& bone_transforms = {}) {
-        gloco->shader_set_value(m_shader, "model", model_transform);
+        auto viewport = gloco->viewport_get(viewport_nr);
+        gloco->viewport_set(viewport.viewport_position, viewport.viewport_size, gloco->window.get_size());
+        gloco->shader_set_value(m_shader, "model",
+          fan::translation_matrix(user_position) *
+          fan::rotation_quat_matrix(fan::quat::from_angles(user_rotation)) *
+          fan::scaling_matrix(user_scale)
+        );
         gloco->shader_set_value(m_shader, "use_cpu", p.use_cpu);
-        gloco->shader_set_camera(m_shader, &gloco->camera_get(gloco->perspective_camera.camera));
+        gloco->shader_set_camera(m_shader, camera_nr);
         gloco->shader_set_value(m_shader, "light_position", light_position);
         gloco->shader_set_value(m_shader, "light_color", light_color);
         gloco->shader_set_value(m_shader, "light_intensity", light_intensity);
@@ -143,7 +152,7 @@ namespace fan {
             );
           }
           meshes[mesh_index].vao.bind(context);
-          fan::vec3 camera_position = gloco->camera_get_position(gloco->perspective_camera.camera);
+          fan::vec3 camera_position = gloco->camera_get_position(camera_nr);
           gloco->shader_set_value(m_shader, "view_p", camera_position);
           { // texture binding
             uint8_t tex_index = 0;
@@ -190,13 +199,22 @@ namespace fan {
       }
 
       //temp
+      // user transform
+      fan::vec3 user_position = 0;
+      fan::vec3 user_rotation = 0;
+      fan::vec3 user_scale = 1;
+      // 
+      // user transform
+
       fan::vec3 light_position{3.46f, 1.94f, 6.22f};
       fan::vec3 light_color{.8f,.8f,.8f};
-      f32_t light_intensity{2.f};
+      f32_t light_intensity{1.f};
       loco_t::shader_t m_shader;
       // should be stored globally among all models
       fan::opengl::GLuint ssbo_bone_buffer;
       fan::opengl::GLuint envMapTexture;
+      loco_t::camera_t camera_nr;
+      loco_t::viewport_t viewport_nr;
     };
   }
 }

@@ -9,7 +9,6 @@ int main() {
     .color = fan::colors::red,
   } };
 
-
   loco.loop([&] {
 
   });

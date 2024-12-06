@@ -166,7 +166,7 @@ struct image_divider_t {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 });
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1, 0, 0, 0.3));
-        if (ImGui::ImageButton(j.image, cell_size, j.uv_pos, j.uv_pos + j.uv_size)) {
+        if (ImGui::ImageButton("", j.image, cell_size, j.uv_pos, j.uv_pos + j.uv_size)) {
 
           clicked_images[totalIndex].highlight = !clicked_images[totalIndex].highlight;
           if (clicked_images[totalIndex].highlight) {
@@ -1029,7 +1029,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           auto& animation = animations[items[current_item]];
           for (auto& tc : animation.tcs) {
             ImGui::PushID(index);
-            ImGui::ImageButton(tc.image, fan::vec2(thumbnail_size), tc.position, tc.position + tc.size);
+            ImGui::ImageButton(("##animation_image" + std::to_string(index)).c_str(), tc.image, fan::vec2(thumbnail_size), tc.position, tc.position + tc.size);
             if (ImGui::BeginDragDropTarget()) {
               if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("frames_payload")) {
                 int swap_index = *(int*)payload->Data;
