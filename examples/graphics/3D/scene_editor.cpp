@@ -304,7 +304,7 @@ struct pile_t {
             }
             case pte::bones: {
               for (auto& [name, bone] : model.bone_map) {
-                if (bone->name.contains("Neck")) {
+                if (bone->name.find("Neck") != std::string::npos) {
                   fan::vec3 camera_position = get_editor().camera.position;
 
                   fan::vec3 model_position = selected_entity->second.model->user_position +
