@@ -1,32 +1,62 @@
-#version 430 core
+#version 120
+#extension GL_EXT_gpu_shader4 : require
 
-layout (location = 0) in vec3 position;
-layout (location = 1) in vec3 normal;
-layout (location = 2) in vec2 uv;
-layout (location = 3) in ivec4 bone_ids;
-layout (location = 4) in vec4 bone_weights;
-layout (location = 5) in vec3 tangent;
-layout (location = 6) in vec3 bitangent;
-layout (location = 7) in vec4 color;
-
-layout(std430, binding = 0) buffer BoneTransforms {
-    mat4 bone_transforms[];
-};
+attribute vec3 position;
+attribute vec3 normal;
+attribute vec2 uv;
+attribute ivec4 bone_ids;
+attribute vec4 bone_weights;
+attribute vec3 tangent;
+attribute vec3 bitangent;
+attribute vec4 color;
 
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
 uniform int use_cpu;
+uniform int bone_count;
 
-out vec2 tex_coord;
-out vec3 v_normal;
-out vec3 v_pos;
-out vec4 bw;
+varying vec2 tex_coord;
+varying vec3 v_normal;
+varying vec3 v_pos;
+varying vec4 bw;
 
-out vec4 vcolor;
+varying vec4 vcolor;
 
-out vec3 c_tangent;
-out vec3 c_bitangent;
+varying vec3 c_tangent;
+varying vec3 c_bitangent;
+
+uniform mat4 bone_transforms[200];
+
+float det(mat2 matrix) {
+    return matrix[0].x * matrix[1].y - matrix[0].y * matrix[1].x;
+}
+
+mat3 lowopengl_inverse(mat3 matrix) {
+  vec3 row0 = matrix[0];
+  vec3 row1 = matrix[1];
+  vec3 row2 = matrix[2];
+
+  vec3 minors0 = vec3(
+      det(mat2(row1.y, row1.z, row2.y, row2.z)),
+      det(mat2(row1.z, row1.x, row2.z, row2.x)),
+      det(mat2(row1.x, row1.y, row2.x, row2.y))
+  );
+  vec3 minors1 = vec3(
+      det(mat2(row2.y, row2.z, row0.y, row0.z)),
+      det(mat2(row2.z, row2.x, row0.z, row0.x)),
+      det(mat2(row2.x, row2.y, row0.x, row0.y))
+  );
+  vec3 minors2 = vec3(
+      det(mat2(row0.y, row0.z, row1.y, row1.z)),
+      det(mat2(row0.z, row0.x, row1.z, row1.x)),
+      det(mat2(row0.x, row0.y, row1.x, row1.y))
+  );
+
+  mat3 adj = transpose(mat3(minors0, minors1, minors2));
+
+  return (1.0 / dot(row0, minors0)) * adj;
+}
 
 void main() {
   if (use_cpu == 0) {
@@ -35,11 +65,12 @@ void main() {
     for(int i = 0; i < 4; i++) {
       float weight = bone_weights[i];
       int bone_id = bone_ids[i];
-      if (bone_id == -1) {
+      if (weight == 0.0 || bone_id == -1) {
         continue;
-      }     
-      if (bone_id >= bone_transforms.length()) {
+      }
+      if (bone_id >= bone_count || bone_id >= 200) {
         totalPosition = vec4(position, 1.0);
+        totalNormal = normal;
         break;
       }
             
@@ -55,14 +86,14 @@ void main() {
     gl_Position = projection * view * worldPos;
         
     v_pos = vec3(worldPos);
-    v_normal = normalize(mat3(transpose(inverse(model))) * totalNormal);
+    v_normal = normalize(mat3(transpose(lowopengl_inverse(mat3(model)))) * totalNormal);
     tex_coord = uv;
   } 
   else {
     gl_Position = projection * view * model * vec4(position, 1.0);
     tex_coord = uv;
     v_pos = vec3(model * vec4(position, 1.0));
-    v_normal = normalize(mat3(transpose(inverse(model))) * normal);
+    v_normal = normalize(mat3(transpose(lowopengl_inverse(mat3(model)))) * normal);
   }
   c_tangent = tangent;
   c_bitangent = bitangent;
