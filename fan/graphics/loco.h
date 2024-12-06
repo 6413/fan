@@ -672,6 +672,9 @@ public:
     else if constexpr(std::is_same_v<fan::vec4, T5>)  { \
       return ImGui::DragFloat4(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
+    else if constexpr(std::is_same_v<fan::quat, T5>)  { \
+      return ImGui::DragFloat4(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
+    } \
     else if constexpr(std::is_same_v<fan::color, T5>)  { \
       return ImGui::DragFloat4(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
     } \
