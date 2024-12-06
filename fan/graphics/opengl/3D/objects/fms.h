@@ -413,7 +413,7 @@ namespace fan_3d {
         scene = (aiScene*)importer.ReadFile(path, 
           aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes | aiProcess_Triangulate | 
           aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | 
-          aiProcess_JoinIdenticalVertices | aiProcess_GenBoundingBoxes);
+          aiProcess_JoinIdenticalVertices | aiProcess_GenBoundingBoxes | aiProcess_SplitLargeMeshes);
 
         //scene = importer.GetOrphanedScene();
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
