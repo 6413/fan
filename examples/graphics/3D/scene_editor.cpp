@@ -1,13 +1,5 @@
 #include <fan/pch.h>
-
 #include <fan/graphics/opengl/3D/objects/model.h>
-
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
-
-#include <imgui/imgui_internal.h>
 
 struct pile_t {
   loco_t loco;
