@@ -64,7 +64,9 @@ namespace fan {
 
       //-----------------------------shader-----------------------------
 
+    protected:
       struct camera_list_NodeReference_t;
+    public:
       using camera_nr_t = camera_list_NodeReference_t;
       struct shader_t {
         fan::opengl::GLuint id = -1;
