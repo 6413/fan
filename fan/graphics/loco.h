@@ -2717,10 +2717,10 @@ namespace fan {
 #if defined(loco_imgui)
 namespace ImGui {
   IMGUI_API void Image(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
-  IMGUI_API bool ImageButton(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
+  IMGUI_API bool ImageButton(const std::string& str_id, loco_t::image_t img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 
   bool ToggleButton(const std::string& str, bool* v);
-  bool ToggleImageButton(loco_t::image_t image, const ImVec2& size, bool* toggle);
+  bool ToggleImageButton(const std::string& char_id, loco_t::image_t image, const ImVec2& size, bool* toggle);
   
   void DrawTextBottomRight(const char* text, uint32_t reverse_yoffset = 0);
 
@@ -2731,19 +2731,26 @@ namespace ImGui {
     f32_t y_pos = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y -  ImGui::GetStyle().FramePadding.y / 2;
     
     bool clicked = false;
+    bool pushed = false;
 
     for (std::size_t i = 0; i < images.size(); ++i) {
       ImVec4 tintColor = ImVec4(0.2, 0.2, 0.2, 1.0);
       if (*selectedIndex == i) {
-        tintColor = ImVec4(0.8, 0.8, 0.8, 1.0f);
+        tintColor = ImVec4(0.2, 0.2, 0.2, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, tintColor);
+        pushed = true;
       }
       /*if (ImGui::IsItemHovered()) {
         tintColor = ImVec4(1, 1, 1, 1.0f);
       }*/
       ImGui::SetCursorPosY(y_pos);
-      if (ImGui::ImageButton(images[i], size, ImVec2(0, 0), ImVec2(1, 1), 0, ImVec4(0, 0, 0, 0), tintColor)) {
+      if (ImGui::ImageButton("##toggle_image_button" + std::to_string(i) + std::to_string((uint64_t)&clicked), images[i], size)) {
         *selectedIndex = i;
         clicked = true;
+      }
+      if (pushed) {
+        ImGui::PopStyleColor();
+        pushed = false;
       }
 
       ImGui::SameLine();
@@ -2788,9 +2795,8 @@ namespace fan {
 
 
       std::wstring asset_path = L"./";
-      std::filesystem::path current_directory;
-
     public:
+      std::filesystem::path current_directory;
       enum viewmode_e {
         view_mode_list,
         view_mode_large_thumbnails,
@@ -2806,6 +2812,7 @@ namespace fan {
       void render_large_thumbnails_view();
       void render_list_view();
       void handle_item_interaction(const file_info_t& file_info);
+      // [](const std::filesystem::path& path) {}
       void receive_drag_drop_target(auto receive_func) {
         ImGui::Dummy(ImGui::GetContentRegionAvail());
 

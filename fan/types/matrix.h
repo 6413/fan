@@ -192,6 +192,13 @@ namespace fan {
     static _matrix4x4 identity() {
       return _matrix4x4((type_t)1);
     }
+    bool is_identity() const {
+      return 
+        (*this)[0][0] == 1 && (*this)[1][1] == 1 && (*this)[2][2] == 1 &&
+        (*this)[0][1] == 0 && (*this)[1][0] == 0 && (*this)[2][1] == 0 &&
+        (*this)[0][2] == 0 && (*this)[1][2] == 0 && (*this)[2][0] == 0 &&
+        (*this)[0][3] == 0 && (*this)[1][3] == 0 && (*this)[2][3] == 0;
+    }
 
     #if defined(loco_assimp)
     _matrix4x4(const aiMatrix4x4& mat) {
@@ -392,6 +399,10 @@ namespace fan {
 
     constexpr fan::vec3 get_translation() const {
 			return fan::vec3((*this)[3][0], (*this)[3][1], (*this)[3][2]);
+		}
+
+    constexpr fan::quat get_rotation() const {
+      return fan::to_quat(*this);
 		}
 
 		constexpr fan::vec3 get_scale() const {

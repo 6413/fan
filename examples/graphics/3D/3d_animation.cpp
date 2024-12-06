@@ -5,7 +5,7 @@ std::vector<loco_t::shape_t> debug_rects;
 std::vector<loco_t::shape_t> skeleton_lines;
 fan::vec3 position = 0;
 fan::vec3 rotation = fan::vec3(fan::math::pi, 0, 0);
-f32_t all_scale = -0.5;
+f32_t all_scale = -0.05;
 fan::vec3 scale = all_scale;
 fan::mat4 m = fan::mat4(1).translate(position) * fan::mat4(1).rotate(rotation) * fan::mat4(1).scale(scale);
 
@@ -76,18 +76,19 @@ int main() {
 #endif
   p.texture_path = "models/textures";
   p.use_cpu = 0;
+  delete anim0;
+  delete model;
   model = new fan::graphics::model_t(p);
   //return 0;
-  p.path = "anim1";
+  p.path = "anim0.gltf";
 
   anim0 = new fan::graphics::model_t(p);
   model->import_animation(*anim0, "Idle2");
-
+  
   model->animation_list["Idle2"].weight = 1;
   model->active_anim = "Idle2";
   
   fan::vec2 window_size = gloco->window.get_size();
-
 
   bool draw_lines = 0;
 
@@ -125,12 +126,12 @@ int main() {
 
     if (open_file_dialog.is_finished()) {
       p.path = fn;
-      delete model->scene;
-      model->scene = 0;
-      delete model;
-      model = 0;
-      delete anim0;
-      anim0 = 0;
+      //delete model->scene;
+     // model->scene = 0;
+      //delete model;
+      //model = 0;
+      //delete anim0;
+      //anim0 = 0;
       model = new fan::graphics::model_t(p);
       p.path = "anim0.gltf";
       anim0 = new fan::graphics::model_t(p);
@@ -213,7 +214,7 @@ int main() {
       scale = all_scale;
 
       model->print_bone_recursive(model->root_bone);
-
+      //
       ImGui::Indent(40.f);
       fan_imgui_dragfloat1(model->light_position, 0.2);
       ImGui::ColorEdit3("model->light_color", model->light_color.data());
@@ -268,9 +269,9 @@ int main() {
      }
   });
 
-  pile->loco.camera_set_position(pile->loco.perspective_camera.camera, { -5.36, 2.93, 4.99 });
-  camera.m_yaw = 154.49;
-  camera.m_pitch = -19.68;
+  pile->loco.camera_set_position(pile->loco.perspective_camera.camera, { 0.0426, 0.2974, 0.5768 });
+  camera.m_yaw = 178.59;
+  camera.m_pitch = -13.579;
   camera.update_view();
 
 
@@ -284,11 +285,10 @@ int main() {
     r.to_angles(angs);
     ImGui::DragFloat3("angle", angs.data(), 0.01);
     r = fan::quat::from_angles(angs);
-
-    //auto parent_str = model->get_model_bone_name(12, *model);
-    //auto str = model->get_model_bone_name(13, *model);
-    //fan::quat parent = model->animation_list["Idle2"].bone_transforms[parent_str].rotations[0];
-    //model->animation_list["Idle2"].bone_transforms[str].rotations[0] = parent.inverse() * fan::quat(fan::quat::from_angles({0, 1, 0}));
+    auto& bt = model->animation_list[model->active_anim].bone_transform_tracks;
+    auto& bones = fan_3d::model::fms_t::bone_names_default;
+    fan::quat parent = bt[bones.left_arm].rotations[0];
+   //bt[bones.left_arm].rotations[0] = parent.inverse() * fan::quat(fan::quat::from_angles({0, 1, 0}));
 
     fan::graphics::text(
       camera.position.to_string() + " " +

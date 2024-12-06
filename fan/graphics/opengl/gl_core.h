@@ -64,6 +64,8 @@ namespace fan {
 
       //-----------------------------shader-----------------------------
 
+      struct camera_list_NodeReference_t;
+      using camera_nr_t = camera_list_NodeReference_t;
       struct shader_t {
         fan::opengl::GLuint id = -1;
         int projection_view[2]{ -1, -1 };
@@ -97,7 +99,7 @@ namespace fan {
       bool shader_check_compile_errors(fan::opengl::GLuint nr, const fan::string& type);
       bool shader_check_compile_errors(fan::opengl::context_t::shader_t&, const fan::string& type);
 
-      void shader_set_camera(shader_nr_t nr, void* camera_nr);
+      void shader_set_camera(shader_nr_t nr, camera_nr_t camera_nr);
 
       static constexpr auto validate_error_message = [](const auto str) {
         return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
@@ -336,8 +338,6 @@ namespace fan {
       #include <BLL/BLL.h>
     public:
 
-      using camera_nr_t = camera_list_NodeReference_t;
-
       camera_list_t camera_list;
 
       camera_nr_t camera_create();
@@ -366,7 +366,6 @@ namespace fan {
       //-----------------------------viewport-----------------------------
 
       struct viewport_t {
-
         fan::vec2 viewport_position;
         fan::vec2 viewport_size;
       };

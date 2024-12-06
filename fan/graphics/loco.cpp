@@ -1077,7 +1077,7 @@ void init_imgui(loco_t* loco) {
 
 
   for (std::size_t i = 0; i < std::size(loco->fonts); ++i) {
-    loco->fonts[i] = io.Fonts->AddFontFromFileTTF(font_name, (int)(font_size * (1 << i)) * 2);
+    loco->fonts[i] = io.Fonts->AddFontFromFileTTF(font_name, (int)(font_size * (1 << i)) * 1.5);
     if (loco->fonts[i] == nullptr) {
       fan::throw_error(fan::string("failed to load font:") + font_name);
     }
@@ -1744,10 +1744,10 @@ void loco_t::draw_shapes() {
         shader_use(shader);
 
         if (camera.iic() == false) {
-          shader_set_camera(shader, &camera);
+          shader_set_camera(shader, camera);
         }
         else {
-          shader_set_camera(shader, &orthographic_camera.camera);
+          shader_set_camera(shader, orthographic_camera.camera);
         }
         if (viewport.iic() == false) {
           auto& v = viewport_get(viewport);
@@ -3204,8 +3204,8 @@ void fan::graphics::text_bottom_right(const std::string& text, const fan::color&
 IMGUI_API void ImGui::Image(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) {
   ImGui::Image((ImTextureID)gloco->image_get(img), size, uv0, uv1, tint_col, border_col);
 }
-IMGUI_API bool ImGui::ImageButton(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
-  return ImGui::ImageButton("", (ImTextureID)gloco->image_get(img), size, uv0, uv1, bg_col, tint_col);
+IMGUI_API bool ImGui::ImageButton(const std::string& str_id, loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
+  return ImGui::ImageButton(str_id.c_str(), (ImTextureID)gloco->image_get(img), size, uv0, uv1, bg_col, tint_col);
 }
 bool ImGui::ToggleButton(const std::string& str, bool* v) {
 
@@ -3233,7 +3233,7 @@ bool ImGui::ToggleButton(const std::string& str, bool* v) {
 
   return changed;
 }
-bool ImGui::ToggleImageButton(loco_t::image_t image, const ImVec2& size, bool* toggle)
+bool ImGui::ToggleImageButton(const std::string& char_id, loco_t::image_t image, const ImVec2& size, bool* toggle)
 {
   bool clicked = false;
 
@@ -3245,7 +3245,7 @@ bool ImGui::ToggleImageButton(loco_t::image_t image, const ImVec2& size, bool* t
     tintColor = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
   }
 
-  if (ImGui::ImageButton(image, size, ImVec2(0, 0), ImVec2(1, 1), 0, ImVec4(0, 0, 0, 0), tintColor)) {
+  if (ImGui::ImageButton(char_id, image, size, ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), tintColor)) {
     *toggle = !(*toggle);
     clicked = true;
   }
@@ -3294,14 +3294,14 @@ void fan::graphics::imgui_content_browser_t::render() {
       ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
       ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.3f));
 
-      if (ImGui::ImageButton(icon_arrow_left, fan::vec2(32))) {
+      if (ImGui::ImageButton("##icon_arrow_left", icon_arrow_left, fan::vec2(32))) {
         if (std::filesystem::equivalent(current_directory, asset_path) == false) {
           current_directory = current_directory.parent_path();
         }
         update_directory_cache();
       }
       ImGui::SameLine();
-      ImGui::ImageButton(icon_arrow_right, fan::vec2(32));
+      ImGui::ImageButton("##icon_arrow_right", icon_arrow_right, fan::vec2(32));
       ImGui::SameLine();
       ImGui::PopStyleColor(3);
 
@@ -3316,7 +3316,9 @@ void fan::graphics::imgui_content_browser_t::render() {
       bc.x -= ImGui::GetWindowPos().x;
       ImGui::SetCursorPosX(bc.x / 2);
 
-      ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - (fan::vec2(64).x + style.ItemSpacing.x) * image_list.size());
+      fan::vec2 button_sizes = 32;
+
+      ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - (button_sizes.x * 2 + style.ItemSpacing.x) * image_list.size());
 
       ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 20.0f);
       ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 7.0f));
@@ -3329,18 +3331,14 @@ void fan::graphics::imgui_content_browser_t::render() {
       }
       ImGui::PopStyleVar(2);
 
-      ImGui::ToggleImageButton(image_list, fan::vec2(64), (int*)&current_view_mode);
+      ImGui::ToggleImageButton(image_list, button_sizes, (int*)&current_view_mode);
 
       ImGui::PopStyleColor(3);
-
 
       ///ImGui::InputText("Search", search_buffer.data(), search_buffer.size());
 
       ImGui::EndMenuBar();
     }
-
-    ImGui::PopStyleVar(1);
-    // Render content based on view mode
     switch (current_view_mode) {
     case view_mode_large_thumbnails:
       render_large_thumbnails_view();
@@ -3351,15 +3349,16 @@ void fan::graphics::imgui_content_browser_t::render() {
     default:
       break;
     }
-
-    ImGui::End();
   }
+
+  ImGui::PopStyleVar(1);
+  ImGui::End();
 }
 
 fan::graphics::imgui_content_browser_t::imgui_content_browser_t() {
   search_buffer.resize(32);
   asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
-  current_directory = std::filesystem::path(asset_path) / "images";
+  current_directory = std::filesystem::path(asset_path);
   update_directory_cache();
 }
 
@@ -3403,7 +3402,6 @@ void fan::graphics::imgui_content_browser_t::render_large_thumbnails_view() {
 
   // Render thumbnails or icons
   for (std::size_t i = 0; i < directory_cache.size(); ++i) {
-
     // reference somehow corrupts
     auto file_info = directory_cache[i];
     if (std::string(search_buffer.c_str()).size() && file_info.filename.find(search_buffer) == std::string::npos) {
@@ -3418,7 +3416,7 @@ void fan::graphics::imgui_content_browser_t::render_large_thumbnails_view() {
 
     ImGui::PushID(file_info.filename.c_str());
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-    ImGui::ImageButton(file_info.preview_image.iic() == false ? file_info.preview_image : file_info.is_directory ? icon_directory : icon_file, ImVec2(thumbnail_size, thumbnail_size));
+    ImGui::ImageButton("##" + file_info.filename, file_info.preview_image.iic() == false ? file_info.preview_image : file_info.is_directory ? icon_directory : icon_file, ImVec2(thumbnail_size, thumbnail_size));
 
     // Handle drag and drop, double click, etc.
     handle_item_interaction(file_info);
