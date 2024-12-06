@@ -118,7 +118,7 @@ namespace fan {
         auto viewport = gloco->viewport_get(viewport_nr);
         gloco->viewport_set(viewport.viewport_position, viewport.viewport_size, gloco->window.get_size());
         gloco->shader_set_value(m_shader, "model",
-          fan::translation_matrix(user_position) *
+          m_transform * fan::translation_matrix(user_position) *
           fan::rotation_quat_matrix(fan::quat::from_angles(user_rotation)) *
           fan::scaling_matrix(user_scale)
         );

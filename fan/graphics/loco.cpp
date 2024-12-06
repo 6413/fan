@@ -3393,10 +3393,17 @@ void fan::graphics::imgui_content_browser_t::render_large_thumbnails_view() {
   ImGui::Columns(column_count, 0, false);
 
   int pressed_key = -1;
-  for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
-    if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
-      pressed_key = (i - ImGuiKey_A) + 'A';
-      break;
+  
+  auto& style = ImGui::GetStyle();
+  // basically bad way to check if gui is disabled. I couldn't find other way
+  if (style.DisabledAlpha != style.Alpha) {
+    if (ImGui::IsWindowFocused()) {
+      for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
+        if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
+          pressed_key = (i - ImGuiKey_A) + 'A';
+          break;
+        }
+      }
     }
   }
 
@@ -3438,10 +3445,15 @@ void fan::graphics::imgui_content_browser_t::render_list_view() {
     ImGui::TableHeadersRow();
 
     int pressed_key = -1;
-    for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
-      if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
-        pressed_key = (i - ImGuiKey_A) + 'A';
-        break;
+    ImGuiStyle& style = ImGui::GetStyle();
+    if (style.DisabledAlpha != style.Alpha) {
+      if (ImGui::IsWindowFocused()) {
+        for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
+          if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
+            pressed_key = (i - ImGuiKey_A) + 'A';
+            break;
+          }
+        }
       }
     }
 

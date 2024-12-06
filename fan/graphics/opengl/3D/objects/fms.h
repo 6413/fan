@@ -299,7 +299,7 @@ namespace fan_3d {
 
         return material_data;
       }
-      void process_skeleton(aiNode* node, bone_t* parent) {
+      void process_skeleton(aiNode* node, bone_t* parent, fan::vec3& largest_scale) {
         if (parent == nullptr) {
           bone_count = 0;
         }
@@ -314,6 +314,9 @@ namespace fan_3d {
         bone->scale = scale;
         bone->rotation = rot;
         bone->transformation = node->mTransformation;
+        if (largest_scale.length() < bone->transformation.get_scale().length()) {
+          largest_scale = bone->transformation.get_scale();
+        }
         bone->world_matrix = get_world_matrix(bone, bone->get_local_matrix());
         bone->inverse_parent_matrix = get_inverse_parent_matrix(bone);
         bone->offset = fan::mat4(1.0f);
@@ -326,7 +329,7 @@ namespace fan_3d {
           parent->children.push_back(bone);
         }
         for (uint32_t i = 0; i < node->mNumChildren; i++) {
-          process_skeleton(node->mChildren[i], bone);
+          process_skeleton(node->mChildren[i], bone, largest_scale);
         }
       }
       void process_bone_offsets(aiMesh* mesh) {
@@ -418,14 +421,19 @@ namespace fan_3d {
           return false;
         }
 
-        m_transform = scene->mRootNode->mTransformation;
+        //m_transform = scene->mRootNode->mTransformation;
+        // for centering
+        m_transform = fan::mat4{1};
 
         bone_count = 0;
-        process_skeleton(scene->mRootNode, nullptr);
+        fan::vec3 largest_bone = 0;
+        process_skeleton(scene->mRootNode, nullptr, largest_bone);
         load_animations();
 
         meshes.clear();
 
+
+        
         for (uint32_t i = 0; i < scene->mNumMeshes; i++) {
           mesh_t mesh = process_mesh(scene->mMeshes[i]);
           aiMesh* ai_mesh = scene->mMeshes[i];
@@ -436,10 +444,11 @@ namespace fan_3d {
           meshes.push_back(mesh);
           fan::vec3 min = ai_mesh->mAABB.mMin;
           fan::vec3 max = ai_mesh->mAABB.mMax;
-          scale_divider = std::max(scale_divider, (max-min).abs().length());
+
         }
+        //scale_divider = std::max(scale_divider, largest_bone.length());
         update_bone_transforms();
-        m_transform = m_transform.scale(1.0 / (scale_divider / 3));
+        //m_transform = m_transform.scale(1.0 / (scale_divider / 10));
         return true;
       }
       void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, const fan::mat4& model) {
@@ -673,10 +682,11 @@ namespace fan_3d {
 
         fan::mat4 global_transform = 
           parent_transform * 
+          local_transform *
           (fan::translation_matrix(bone.user_position) *
           fan::rotation_quat_matrix(fan::quat::from_angles(bone.user_rotation)) *
-          fan::scaling_matrix(bone.user_scale)) *
-          local_transform;
+          fan::scaling_matrix(bone.user_scale))
+          ;
         out_bone_transforms[bone.id] = global_transform * bone.offset;
         bone.bone_transform = global_transform;
 
@@ -1523,6 +1533,11 @@ namespace fan_3d {
             fk_set_rot(active_anim, active_bone, current_frame / 1000.f, anim.bone_poses[active_bone].rotation);
           }
         }
+      }
+
+      // not very accurate
+      bool is_humanoid() const {
+        return bone_transforms.size() >= 10;
       }
 
       int active_bone = -1;

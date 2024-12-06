@@ -64,9 +64,14 @@ struct pile_t {
         }
         switch (d.button) {
           case fan::mouse_right: {
-          cursor_mode = !!!cursor_mode;
-          get_loco().window.set_cursor(cursor_mode);
-          break;
+            if (d.state == fan::mouse_state::press) {
+              cursor_mode = 0;
+            }
+            else {
+              cursor_mode = 1;
+            }
+            get_loco().window.set_cursor(cursor_mode);
+            break;
           }
         }
       });
@@ -143,7 +148,11 @@ struct pile_t {
           std::size_t iterator_index = 0;
           std::size_t click_index = 0;
           std::size_t node_clicked = -1;
-          for (auto& [name, entity] : entity_list) {
+          
+          //auto& [name, entity] : entity_list
+          for (auto it = entity_list.begin(); it != entity_list.end(); ++it) {
+            const std::string name = it->first;
+            entity_t& entity = it->second;
             ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick |ImGuiTreeNodeFlags_SpanAvailWidth;
             bool is_selected = (tree_node_selection_mask & (1ull << click_index)) != 0;
             if (is_selected)
@@ -160,6 +169,21 @@ struct pile_t {
               selected_entity = entity_list.begin();
               std::advance(selected_entity, iterator_index);
               property_type = entities_t::property_types_e::none;
+            }
+            if (ImGui::IsMouseReleased(ImGuiMouseButton_Right) && ImGui::IsItemHovered()) {
+              ImGui::OpenPopup("RightClickPopUp");
+            }
+            bool did_action = 0;
+            if (ImGui::BeginPopup("RightClickPopUp")) {
+              if (ImGui::Selectable("Delete")) {
+                it = entity_list.erase(it);
+                ImGui::CloseCurrentPopup();
+                did_action = 1;
+              }
+              ImGui::EndPopup();
+            }
+            if (did_action) {
+              continue;
             }
 
             ++click_index;
@@ -197,9 +221,14 @@ struct pile_t {
 
             // push draw
             get_loco().single_queue.push_back([&] {
-              entity.model->fk_calculate_poses();
-              auto bts = entity.model->fk_calculate_transformations();
-              entity.model->draw({1}, bts);
+              if (entity.model->is_humanoid()) {
+                entity.model->fk_calculate_poses();
+                auto bts = entity.model->fk_calculate_transformations();
+                entity.model->draw({1}, bts);
+              }
+              else {
+                entity.model->draw();
+              }
             });
             ++iterator_index;
           }
@@ -320,7 +349,7 @@ struct pile_t {
     }entity_properties;
 
     void begin_render() {
-      camera.move(100 + ImGui::IsKeyPressed(ImGuiKey_LeftShift) * 100);
+      camera.move(1000);
       get_loco().camera_set_perspective(camera_nr, 90.f, viewport.viewport_size);
       ImGui::BeginDisabled(!cursor_mode);
       render_view.begin_render();
