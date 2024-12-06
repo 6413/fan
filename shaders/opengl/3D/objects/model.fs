@@ -1,15 +1,15 @@
-#version 410 core
+#version 120
 
-in vec2 tex_coord;
-in vec3 v_normal;
-in vec3 v_pos;
-in vec4 bw;
+varying vec2 tex_coord;
+varying vec3 v_normal;
+varying vec3 v_pos;
+varying vec4 bw;
 
-in vec4 vcolor;
+varying vec4 vcolor;
 
-in vec3 c_tangent;
-in vec3 c_bitangent;
-layout (location = 0) out vec4 color;
+varying vec3 c_tangent;
+varying vec3 c_bitangent;
+//layout (location = 0) out vec4 color;
 
 uniform sampler2D _t00; // aiTextureType_NONE
 uniform sampler2D _t01; // aiTextureType_DIFFUSE
@@ -43,13 +43,8 @@ uniform float light_intensity;
 uniform vec4 material_colors[AI_TEXTURE_TYPE_MAX + 1];
 
 void main() {
-  ivec2 albedo_size = textureSize(_t12, 0);
   vec4 albedo;
-  if (albedo_size.x > 0 && albedo_size.y > 0) {
-      albedo = texture(_t12, tex_coord) * material_colors[12];
-  } else {
-      albedo = material_colors[12];
-  }
+  albedo = texture2D(_t12, tex_coord) * material_colors[12];
   albedo *= vcolor;
   albedo.rgb = max(albedo.rgb, vec3(0.05));
   
@@ -64,5 +59,5 @@ void main() {
   float spec = pow(max(dot(view_dir, reflect_dir), 0.0), 32);
   vec3 specular = specular_strength * spec * adjusted_light_color;
   vec3 final_color = (ambient + diffuse + specular) * albedo.rgb;
-  color = vec4(final_color, albedo.a);
+  gl_FragColor = vec4(final_color, albedo.a);
 }
