@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
   audio.bind(&system_audio);
 
   fan::audio_t::piece_t piece;
-  sint32_t err = audio.Open(&piece, argv[1], 0);
+  sint32_t err = audio.Open(&piece, "audio/output.sac", 0);
   if (err != 0) {
     fan::throw_error("failed to open piece:", err);
   }
