@@ -97,12 +97,6 @@ namespace fan {
         gloco->opengl.glEnableVertexAttribArray(7);
         gloco->opengl.glVertexAttribPointer(7, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, color));
         gloco->opengl.glBindVertexArray(0);
-
-        GLuint bone_transform_size = bone_transforms.size() * sizeof(fan::mat4);
-        gloco->opengl.glGenBuffers(1, &ssbo_bone_buffer);
-        gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bone_buffer);
-        gloco->opengl.glBufferData(GL_SHADER_STORAGE_BUFFER, bone_transform_size, bone_transforms.data(), GL_STATIC_DRAW);
-        gloco->opengl.glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_bone_buffer);
       }
       void upload_modified_vertices() {
         for (uint32_t i = 0; i < meshes.size(); ++i) {
@@ -128,18 +122,11 @@ namespace fan {
         gloco->shader_set_value(m_shader, "light_color", light_color);
         gloco->shader_set_value(m_shader, "light_intensity", light_intensity);
         gloco->set_depth_test(true);
-        if (p.use_cpu == 0) {
-          gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bone_buffer);
-          gloco->opengl.glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_bone_buffer);
-          gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bone_buffer);
-          gloco->opengl.glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, bone_transforms.size() * sizeof(fan::mat4), bone_transforms.data());
-          gloco->opengl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-        }
         auto& context = gloco->get_context();
         context.opengl.glDisable(fan::opengl::GL_BLEND);
         for (int mesh_index = 0; mesh_index < meshes.size(); ++mesh_index) {
+          fan::opengl::context_t::shader_t& shader = gloco->shader_get(m_shader);
           {
-            fan::opengl::context_t::shader_t& shader = gloco->shader_get(m_shader);
             auto location = gloco->opengl.call(
               gloco->opengl.glGetUniformLocation, 
               shader.id, 
@@ -175,7 +162,41 @@ namespace fan {
               ++tex_index;
             }
           }
-          gloco->opengl.glDrawElements(GL_TRIANGLES, meshes[mesh_index].indices.size(), GL_UNSIGNED_INT, 0);
+          fan::opengl::GLint location = gloco->opengl.call(gloco->opengl.glGetUniformLocation, shader.id, "bone_transforms");
+          uint32_t total_bones = bone_transforms.size();
+          uint32_t bones_processed = 0;
+          uint32_t indices_processed = 0;
+
+          while (bones_processed < total_bones) {
+            // Calculate bones for this draw call (max 200)
+            uint32_t bones_this_draw = std::min<uint32_t>(200, total_bones - bones_processed);
+            uint32_t indices_this_draw = meshes[mesh_index].indices.size() * (bones_this_draw / total_bones);
+
+            // Before drawing
+              GLint bone_count_location = gloco->opengl.glGetUniformLocation(shader.id, "bone_count");
+             gloco->opengl. glUniform1i(bone_count_location, bone_transforms.size());
+
+// Then proceed with your bone transform and draw calls
+            // Upload bone transforms for this batch
+            gloco->opengl.glUniformMatrix4fv(
+              location,
+              bones_this_draw,
+              GL_FALSE,
+              (f32_t*)&bone_transforms[bones_processed]
+            );
+
+            // Draw the mesh
+            gloco->opengl.glDrawElements(
+              GL_TRIANGLES,
+              meshes[mesh_index].indices.size(),
+              GL_UNSIGNED_INT,
+              (void*)(indices_processed * sizeof(uint32_t))
+            );
+
+            // Update processed bone count
+            bones_processed += bones_this_draw;
+            indices_processed += indices_this_draw;
+          }
         }
       }
       void draw_cached_images() {
@@ -210,8 +231,6 @@ namespace fan {
       fan::vec3 light_color{.8f,.8f,.8f};
       f32_t light_intensity{1.f};
       loco_t::shader_t m_shader;
-      // should be stored globally among all models
-      fan::opengl::GLuint ssbo_bone_buffer;
       fan::opengl::GLuint envMapTexture;
       loco_t::camera_t camera_nr;
       loco_t::viewport_t viewport_nr;
