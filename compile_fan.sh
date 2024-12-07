@@ -4,4 +4,4 @@
 
 set -e
 
-make -f make_fan "$@"
+make -B -f make_fan "$@"
