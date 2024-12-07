@@ -85,13 +85,13 @@ namespace fan {
 
     struct mouse_move_cb_data_t {
       fan::window_t* window;
-      fan::vec2i position;
+      fan::vec2d position;
     };
     using mouse_move_cb_t = fan::function_t<void(const mouse_move_cb_data_t&)>;
 
     struct mouse_motion_cb_data_t {
       fan::window_t* window;
-      fan::vec2i motion;
+      fan::vec2d motion;
     };
     using mouse_motion_cb_t = fan::function_t<void(const mouse_motion_cb_data_t&)>;
 
