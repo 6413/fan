@@ -1,7 +1,6 @@
 #pragma once
 
 #include <set>
-#include <fan/graphics/file_dialog.h>
 
 struct image_divider_t {
   struct image_t {
