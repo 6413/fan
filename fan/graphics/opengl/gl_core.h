@@ -27,8 +27,8 @@ namespace fan {
         if (GLFW_NOT_INITIALIZED == error) {
           return;
         }
-        __abort();
         fan::print("window error:", description);
+        __abort();
       }
 
       void open(const properties_t& p = properties_t());
