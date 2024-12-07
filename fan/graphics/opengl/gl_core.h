@@ -24,6 +24,9 @@ namespace fan {
       fan::opengl::GLuint current_program = -1;
 
       static void error_callback(int error, const char* description) {
+        if (GLFW_NOT_INITIALIZED == error) {
+          return;
+        }
         __abort();
         fan::print("window error:", description);
       }
@@ -323,6 +326,8 @@ namespace fan {
       struct camera_t : fan::camera {
         fan::mat4 m_projection = fan::mat4(1);
         fan::mat4 m_view = fan::mat4(1);
+        f32_t zfar = 1000.f;
+        f32_t znear = 0.1f;
 
         union {
           struct {

@@ -950,7 +950,7 @@ void fan::opengl::context_t::camera_set_ortho(camera_nr_t nr, fan::vec2 x, fan::
 void fan::opengl::context_t::camera_set_perspective(camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
   camera_t& camera = camera_get(nr);
 
-  camera.m_projection = fan::math::perspective<fan::mat4>(fan::math::radians(fov), (f32_t)window_size.x / (f32_t)window_size.y, 0.1f, 1000.0f);
+  camera.m_projection = fan::math::perspective<fan::mat4>(fan::math::radians(fov), (f32_t)window_size.x / (f32_t)window_size.y, camera.znear, camera.zfar);
 
   camera.update_view();
 

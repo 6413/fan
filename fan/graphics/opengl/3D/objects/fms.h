@@ -118,6 +118,7 @@ namespace fan_3d {
         }
         calculated_meshes = meshes;
         p = fmi;
+        importer.~Importer();
       }
 
       // ---------------------model hierarchy---------------------
@@ -197,6 +198,9 @@ namespace fan_3d {
           }
         }
 
+        if (bone_count > 200) {
+          fan::print("warning: over 200 bones - might lead to undefined behaviour");
+        }
         // normalize weights
         for (auto& vertex : temp_vertices) {
           f32_t sum = vertex.bone_weights.x + vertex.bone_weights.y +
@@ -432,8 +436,6 @@ namespace fan_3d {
 
         meshes.clear();
 
-
-        
         for (uint32_t i = 0; i < scene->mNumMeshes; i++) {
           mesh_t mesh = process_mesh(scene->mMeshes[i]);
           aiMesh* ai_mesh = scene->mMeshes[i];

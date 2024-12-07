@@ -2773,9 +2773,6 @@ namespace ImGui {
 namespace fan {
   namespace graphics {
     struct imgui_content_browser_t {
-
-    protected:
-
       struct file_info_t {
         std::string filename;
         std::filesystem::path some_path; //?
@@ -2798,7 +2795,7 @@ namespace fan {
 
 
       std::wstring asset_path = L"./";
-    public:
+
       std::filesystem::path current_directory;
       enum viewmode_e {
         view_mode_list,
