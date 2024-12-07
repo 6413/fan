@@ -1958,7 +1958,7 @@ public:
   fan::vec2 convert_mouse_to_ndc() const {
     return convert_mouse_to_ndc(gloco->get_mouse_position(), gloco->window.get_size());
   }
-  static fan::ray3_t convert_mouse_to_ray(const fan::vec2i& mouse_position, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view);
+  static fan::ray3_t convert_mouse_to_ray(const fan::vec2i& mouse_position, const fan::vec2& screen_size, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view);
   fan::ray3_t convert_mouse_to_ray(const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view);
   fan::ray3_t convert_mouse_to_ray(const fan::mat4& projection, const fan::mat4& view);
   static bool is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& position, const fan::vec3& size);

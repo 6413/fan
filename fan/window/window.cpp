@@ -140,7 +140,6 @@ void fan::window::mouse_position_callback(GLFWwindow* wnd, double xpos, double y
       fan::window_t::mouse_motion_cb_data_t cbd;
       cbd.window = window;
       cbd.motion = fan::vec2d(xpos, ypos) - window->previous_mouse_position;
-      fan::print(cbd.motion, fan::vec2d(xpos, ypos) , window->previous_mouse_position);
       auto it = window->m_mouse_motion_callback.GetNodeFirst();
       while (it != window->m_mouse_motion_callback.dst) {
         window->m_mouse_motion_callback[it].data(cbd);

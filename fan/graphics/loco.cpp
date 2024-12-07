@@ -4224,8 +4224,7 @@ loco_t::image_t loco_t::create_noise_image(const fan::vec2& image_size, const st
   return image;
 }
 
-fan::ray3_t loco_t::convert_mouse_to_ray(const fan::vec2i& mouse_position, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
-  fan::vec2i screen_size = gloco->window.get_size();
+fan::ray3_t loco_t::convert_mouse_to_ray(const fan::vec2i& mouse_position, const fan::vec2& screen_size, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
 
   fan::vec4 ray_ndc((2.0f * mouse_position.x) / screen_size.x - 1.0f, 1.0f - (2.0f * mouse_position.y) / screen_size.y, 1.0f, 1.0f);
 
@@ -4247,11 +4246,11 @@ fan::ray3_t loco_t::convert_mouse_to_ray(const fan::vec2i& mouse_position, const
 }
 
 fan::ray3_t loco_t::convert_mouse_to_ray(const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
-  return convert_mouse_to_ray(gloco->get_mouse_position(), camera_position, projection, view);
+  return convert_mouse_to_ray(get_mouse_position(), window.get_size(), camera_position, projection, view);
 }
 
 fan::ray3_t loco_t::convert_mouse_to_ray(const fan::mat4& projection, const fan::mat4& view) {
-  return convert_mouse_to_ray(gloco->get_mouse_position(), camera_get_position(perspective_camera.camera), projection, view);
+  return convert_mouse_to_ray(get_mouse_position(), window.get_size(), camera_get_position(perspective_camera.camera), projection, view);
 }
 
 bool loco_t::is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& position, const fan::vec3& size) {
