@@ -250,6 +250,7 @@ namespace fan {
     // normalized
     fan::vec3 direction;
 
+    constexpr ray3_t() = default;
     constexpr ray3_t(const fan::vec3& origin_, fan::vec3& direction_) : origin(origin_), direction(direction_){}
   };
 

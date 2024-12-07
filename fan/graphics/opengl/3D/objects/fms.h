@@ -73,9 +73,10 @@ namespace fan_3d {
       fan::quat rotation;
       fan::vec3 scale = 1;
       
-      fan::vec3 user_position = 0;
-      fan::vec3 user_rotation = 0;
-      fan::vec3 user_scale = 1;
+      //fan::vec3 user_position = 0;
+      //fan::vec3 user_rotation = 0;
+      //fan::vec3 user_scale = 1;
+      fan::mat4 user_transform{1};
 
       // this appears to be different than transformation
       fan::mat4 get_local_matrix() const {
@@ -689,9 +690,7 @@ namespace fan_3d {
         fan::mat4 global_transform = 
           parent_transform * 
           local_transform *
-          (fan::translation_matrix(bone.user_position) *
-          fan::rotation_quat_matrix(fan::quat::from_angles(bone.user_rotation)) *
-          fan::scaling_matrix(bone.user_scale))
+          bone.user_transform
           ;
         out_bone_transforms[bone.id] = global_transform * bone.offset;
         bone.bone_transform = global_transform;
@@ -753,7 +752,6 @@ namespace fan_3d {
               fan::print("unmapped bone, skipping...");
               continue;
             }
-            fan::print(found->first);
             fan_3d::model::bone_transform_track_t track;
             for (int j = 0; j < channel->mNumPositionKeys; j++) {
               track.position_timestamps.push_back(channel->mPositionKeys[j].mTime);

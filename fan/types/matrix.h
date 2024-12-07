@@ -647,6 +647,9 @@ namespace fan {
 
       return result;
     }
+    type_t* data() {
+      return &(*this)[0][0];
+    }
   };
 
   template <uint32_t _i, uint32_t _j, typename data_t = f32_t>
