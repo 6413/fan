@@ -41,7 +41,7 @@ include_directories(${GTK3_INCLUDE_DIRS})
 # Link the GTK libraries
 link_libraries(${GTK3_LIBRARIES})
 link_directories(${CMAKE_SOURCE_DIR}/lib)
-link_directories(/usr/local/lib/fan)
+link_directories(/usr/local/lib/)
 
 set(CMAKE_CXX_COMPILER "clang++")
 
@@ -81,7 +81,7 @@ endif()
 
 set(ENABLE_IMGUI ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I ${CMAKE_CURRENT_SOURCE_DIR}/${ROOT_PATH}../ -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-bitwise-op-parentheses -Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare -Wno-unused-but-set-parameter -Wno-unused-value")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I ${CMAKE_CURRENT_SOURCE_DIR}/${ROOT_PATH}../ -ferror-limit=4 -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-bitwise-op-parentheses -Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare -Wno-unused-but-set-parameter -Wno-unused-value")
 set(DEBUG_FLAGS "-gdwarf-4")
 set(RELEASE_FLAGS "-O3")
 
@@ -130,14 +130,7 @@ endif()
 
 if(WIN32)
 	message("Windows back-end undone.")
-else()
-	file(GLOB FAN_LIBS "/usr/local/lib/fan/*.a")
-	message("fan libs: ${FAN_LIBS}")
-	if(DEFINED BUILD_FAN)
-		list(FILTER FAN_LIBS EXCLUDE REGEX ".*fan.a$")
-	endif()
-	
-		message("Libs are: ${FAN_LIBS}")
+else()	
     # On Linux, use the system libraries
-    target_link_libraries(${OUTPUT} webp glfw X11 assimp opus pulse-simple uv fan.so ${FAN_LIBS})
+    target_link_libraries(${OUTPUT} webp glfw X11 assimp opus pulse-simple uv fan.so libimgui.a libnfd.a)
 endif()
