@@ -37,7 +37,7 @@ FAN_LIB := libfan.$(OUT_FILE_FORMAT)
 all: $(FAN_LIB)
 
 $(FAN_LIB): $(FAN_OBJ)
-	$(LD) -shared -o $(OUTPUT_PATH)$@ $^
+	$(LD) -shared -o -fuse-ld=gold $(OUTPUT_PATH)$@ $^
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -fPIC $< -o $@

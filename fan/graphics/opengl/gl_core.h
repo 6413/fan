@@ -67,8 +67,27 @@ namespace fan {
 
       //-----------------------------shader-----------------------------
 
+      struct camera_t : fan::camera {
+        fan::mat4 m_projection = fan::mat4(1);
+        fan::mat4 m_view = fan::mat4(1);
+        f32_t zfar = 1000.f;
+        f32_t znear = 0.1f;
+
+        union {
+          struct {
+            f32_t left;
+            f32_t right;
+            f32_t up;
+            f32_t down;
+          };
+          fan::vec4 v;
+        }coordinates;
+      };
+
     protected:
-      struct camera_list_NodeReference_t;
+
+      #include <fan/graphics/opengl/camera_list_builder_settings.h>
+      #include <BLL/BLL.h>
     public:
       using camera_nr_t = camera_list_NodeReference_t;
       struct shader_t {
@@ -316,34 +335,6 @@ namespace fan {
       //-----------------------------image-----------------------------
 
       //-----------------------------camera-----------------------------
-
-      //struct viewport_resize_cb_data_t {
-      //  camera_t* camera;
-      //  fan::vec3 position;
-      //  fan::vec2 size;
-      //};
-      //using viewport_resize_cb_t = fan::function_t<void(const viewport_resize_cb_data_t&)>;
-      struct camera_t : fan::camera {
-        fan::mat4 m_projection = fan::mat4(1);
-        fan::mat4 m_view = fan::mat4(1);
-        f32_t zfar = 1000.f;
-        f32_t znear = 0.1f;
-
-        union {
-          struct {
-            f32_t left;
-            f32_t right;
-            f32_t up;
-            f32_t down;
-          };
-          fan::vec4 v;
-        }coordinates;
-      };
-
-    protected:
-      #include <fan/graphics/opengl/camera_list_builder_settings.h>
-      #include <BLL/BLL.h>
-    public:
 
       camera_list_t camera_list;
 

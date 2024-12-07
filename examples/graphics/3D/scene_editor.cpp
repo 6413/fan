@@ -95,18 +95,23 @@ struct pile_t {
           get_editor().content_browser.receive_drag_drop_target([this](const std::filesystem::path& path) {
             get_editor().entities.add_entity(path.string());
           });
-          fan::vec2 image_size = 48;
-          ImGui::SetCursorPos(fan::vec2(image_size.x / 2, image_size.y));
+          fan::vec2 image_size = 64;
+          ImGui::SetCursorPos(fan::vec2(0, image_size.y));
+          ImGui::Indent(image_size.x / 2);
           ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 20);
           ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1);
           ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-          ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2, 0.2, 0.2, 0.2));
+          ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4, 0.4, 0.4, 0.4));
           ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
           if (ImGui::ToggleImageButton("##Camera Properties", get_editor().icon_video_camera, image_size, &toggle_camera_properties)) {
             get_editor().camera_properties.render_this = !get_editor().camera_properties.render_this;
           }
+          if (ImGui::ToggleImageButton("##Lighting Properties", get_editor().icon_lightbulb, image_size, &toggle_lighting_properties )) {
+            get_editor().lighting_properties.render_this = !get_editor().lighting_properties.render_this;
+          }
           ImGui::PopStyleColor(3);
           ImGui::PopStyleVar(2);
+          ImGui::Unindent(image_size.x / 2);
         }
       }
       void end_render() {
@@ -118,6 +123,7 @@ struct pile_t {
         return flags & flags_e::hovered;
       }
       bool toggle_camera_properties = 0;
+      bool toggle_lighting_properties = 0;
       uint16_t flags = 0;
       bool toggle_focus = false;
     }render_view;
@@ -139,7 +145,6 @@ struct pile_t {
         model_properties.camera = get_editor().camera_nr;
         model_properties.viewport = get_editor().viewport_nr;
         entity.model = std::make_unique<fan::graphics::model_t>(model_properties);
-        entity.model->upload_modified_vertices();
         entity_list.emplace(fs_path.filename().string(), std::move(entity));
       }
       void begin_render() {
@@ -424,6 +429,46 @@ struct pile_t {
       bool render_this = false;
     }camera_properties;
 
+
+    struct lighting_properties_t {
+      editor_t& get_editor() {
+        return *OFFSETLESS(this, editor_t, lighting_properties);
+      }
+      loco_t& get_loco() {
+        return OFFSETLESS(&get_editor(), pile_t, editor)->loco;
+      }
+      void begin_render() {
+        if (render_this) {
+          ImGui::SetNextWindowBgAlpha(0.5f);
+          ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2);
+          ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
+          if (get_editor().begin_render_common("Lighting properties", flags)) {
+            if (get_editor().entities.selected_entity == get_editor().entities.entity_list.end()) {
+              ImGui::Text("Select model");
+            }
+            else {
+              fan::graphics::model_t& model = *get_editor().entities.selected_entity->second.model;
+              fan_imgui_dragfloat1(model.light_position, 0.2);
+              ImGui::ColorEdit3("model->light_color", model.light_color.data());
+              fan_imgui_dragfloat1(model.light_intensity, 0.1);
+              static f32_t specular_strength = 0.5;
+              if (fan_imgui_dragfloat1(specular_strength, 0.01)) {
+                get_loco().shader_set_value(model.m_shader, "specular_strength", specular_strength);
+              }
+            }
+          }
+          ImGui::PopStyleVar(2);
+        }
+      }
+      void end_render() {
+        if (render_this) {
+          ImGui::End();
+        }
+      }
+      uint16_t flags = 0;
+      bool render_this = false;
+    }lighting_properties;
+
     void begin_render() {
       ImGui::BeginMainMenuBar();
       if (ImGui::BeginMenu("Settings")) {
@@ -446,6 +491,7 @@ struct pile_t {
       get_loco().camera_set_perspective(camera_nr, camera_properties.fov, viewport.viewport_size);
       ImGui::BeginDisabled(!cursor_mode);
       render_view.begin_render();
+      lighting_properties.begin_render();
       camera_properties.begin_render();
       entities.begin_render();
       entity_properties.begin_render();
@@ -454,6 +500,7 @@ struct pile_t {
       entity_properties.end_ender();
       entities.end_render();
       camera_properties.end_render();
+      lighting_properties.end_render();
       render_view.end_render();
       content_browser.render();      
       ImGui::EndDisabled();
@@ -468,6 +515,7 @@ struct pile_t {
     fan::graphics::imgui_content_browser_t content_browser;
 
     loco_t::image_t icon_video_camera = gloco->image_load("images_editor/video-camera.webp");
+    loco_t::image_t icon_lightbulb = gloco->image_load("images_editor/lightbulb.webp");
 
     void init_editor_theme() {
 	    ImGuiStyle& style = ImGui::GetStyle();
