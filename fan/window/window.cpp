@@ -133,7 +133,7 @@ void fan::window::mouse_position_callback(GLFWwindow* wnd, double xpos, double y
         it = it.Next(&window->m_mouse_position_callback);
       }
     }
-    if (window->previous_mouse_position == -0xfff) {
+    if (window->previous_mouse_position == -0xfffff) {
       window->previous_mouse_position = fan::vec2d(xpos, ypos);
     }
     {
@@ -142,7 +142,7 @@ void fan::window::mouse_position_callback(GLFWwindow* wnd, double xpos, double y
       fan::window_t::mouse_motion_cb_data_t cbd;
       cbd.window = window;
       cbd.motion = fan::vec2d(xpos, ypos) - window->previous_mouse_position;
-
+      fan::print(fan::vec2d(xpos, ypos), cbd.motion);
       while (it != window->m_mouse_motion_callback.dst) {
         window->m_mouse_motion_callback[it].data(cbd);
 
