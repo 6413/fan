@@ -416,9 +416,9 @@ namespace fan_3d {
       bool load_model(const std::string& path) {
         importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
         scene = (aiScene*)importer.ReadFile(path, 
-          aiProcess_LimitBoneWeights | aiProcess_ImproveCacheLocality |
-          aiProcess_RemoveRedundantMaterials | aiProcess_PreTransformVertices |
-          aiProcess_FindInvalidData |
+          //aiProcess_LimitBoneWeights | aiProcess_ImproveCacheLocality |
+          //aiProcess_RemoveRedundantMaterials | aiProcess_PreTransformVertices |
+          //aiProcess_FindInvalidData |
           aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes | aiProcess_Triangulate | 
           aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | 
           aiProcess_JoinIdenticalVertices | aiProcess_GenBoundingBoxes | aiProcess_SplitLargeMeshes);
