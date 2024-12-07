@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fan/graphics/loco_settings.h>
+#include <fan/graphics/file_dialog.h>
 
 #define loco_opengl
 #define loco_framebuffer

@@ -19,13 +19,3 @@
 
 //
 #include <fan/graphics/loco.h>
-
-
-#if defined(loco_imgui) && defined(loco_vfi) && !defined(loco_no_model_maker) && defined(loco_json)
-  #include <fan/graphics/gui/model_maker/maker.h>
-#endif
-
-#if defined(loco_model_3d)
-//#include <fan/graphics/opengl/3D/objects/model.h>
-#endif
-
