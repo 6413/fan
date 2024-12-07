@@ -42,8 +42,8 @@ struct pile_t {
       camera.m_pitch = -5.9;
       ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
-      content_browser.current_directory /= "models";
-      content_browser.update_directory_cache();
+      //content_browser.current_directory /= "models";
+      //content_browser.update_directory_cache();
 
       get_loco().window.add_mouse_motion([&](const auto& d) {
         if (d.motion != 0 && cursor_mode == 0) {
@@ -402,6 +402,7 @@ struct pile_t {
           ImGui::End();
         }
       }
+#if defined(loco_json)
       // expects camera block
       void import_settings(const fan::json& data) {
         get_editor().camera.zfar = data["zfar"];
@@ -421,6 +422,7 @@ struct pile_t {
         data["friction"] = friction;
         return data;
       }
+#endif
       uint16_t flags = 0;
       f32_t fov = 90.f;
       f32_t speed = 1000;
@@ -472,6 +474,7 @@ struct pile_t {
     void begin_render() {
       ImGui::BeginMainMenuBar();
       if (ImGui::BeginMenu("Settings")) {
+#if defined(loco_json)
         if (ImGui::MenuItem("Load")) {
           std::string editor_settings;
           fan::io::file::read("scene_editor.ini", &editor_settings);
@@ -485,6 +488,7 @@ struct pile_t {
 
           fan::io::file::write("scene_editor.ini", output.dump(), std::ios_base::binary);
         }
+#endif
         ImGui::EndMenu();
       }
       ImGui::EndMainMenuBar();
