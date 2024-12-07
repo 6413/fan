@@ -3245,10 +3245,10 @@ bool ImGui::ToggleImageButton(const std::string& char_id, loco_t::image_t image,
 
   ImVec4 tintColor = ImVec4(1, 1, 1, 1);
   if (*toggle) {
-    tintColor = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+  //  tintColor = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
   }
   if (ImGui::IsItemHovered()) {
-    tintColor = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
+  //  tintColor = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
   }
 
   if (ImGui::ImageButton(char_id, image, size, ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), tintColor)) {

@@ -64,6 +64,8 @@ namespace fan {
             }
           }
           setup_mesh_buffers(mesh);
+          mesh.vertices.clear();
+          mesh.indices.clear();
         }
       }
       void setup_mesh_buffers(fan_3d::model::mesh_t& mesh) {
@@ -99,13 +101,8 @@ namespace fan {
         gloco->opengl.glBindVertexArray(0);
       }
       void upload_modified_vertices() {
-        for (uint32_t i = 0; i < meshes.size(); ++i) {
-          meshes[i].vao.bind(gloco->get_context());
-          meshes[i].vbo.write_buffer(
-            gloco->get_context(),
-            calculated_meshes[i].vertices.data(),
-            sizeof(fan_3d::model::vertex_t) * calculated_meshes[i].vertices.size()
-          );
+        if (p.use_cpu == 1) {
+          fan::throw_error("implement calculated_meshes here");
         }
       }
       void draw(const fan::mat4& model_transform = fan::mat4(1), const std::vector<fan::mat4>& bone_transforms = {}) {
@@ -173,7 +170,7 @@ namespace fan {
     
           gloco->opengl.glDrawElements(
               GL_TRIANGLES, 
-              meshes[mesh_index].indices.size(), 
+              meshes[mesh_index].indices_len, 
               GL_UNSIGNED_INT,
               0
           );
@@ -206,7 +203,6 @@ namespace fan {
       fan::vec3 user_scale = 1;
       // 
       // user transform
-
       fan::vec3 light_position{3.46f, 1.94f, 6.22f};
       fan::vec3 light_color{.8f,.8f,.8f};
       f32_t light_intensity{1.f};

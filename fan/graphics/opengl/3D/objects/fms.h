@@ -85,6 +85,7 @@ namespace fan_3d {
     struct mesh_t {
       std::vector<fan_3d::model::vertex_t> vertices;
       std::vector<uint32_t> indices;
+      uint32_t indices_len = 0;
 
       std::string texture_names[AI_TEXTURE_TYPE_MAX + 1]{};
 
@@ -116,7 +117,6 @@ namespace fan_3d {
         if (!load_model(fmi.path)) {
           fan::throw_error("failed to load model:" + fmi.path);
         }
-        calculated_meshes = meshes;
         p = fmi;
         importer.~Importer();
       }
@@ -224,6 +224,7 @@ namespace fan_3d {
             new_mesh.indices.push_back(face.mIndices[j]);
           }
         }
+        new_mesh.indices_len = new_mesh.indices.size();
         return new_mesh;
       }
       std::string load_textures(mesh_t& mesh, aiMesh* ai_mesh) {
@@ -415,6 +416,9 @@ namespace fan_3d {
       bool load_model(const std::string& path) {
         importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
         scene = (aiScene*)importer.ReadFile(path, 
+          aiProcess_LimitBoneWeights | aiProcess_ImproveCacheLocality |
+          aiProcess_RemoveRedundantMaterials | aiProcess_PreTransformVertices |
+          aiProcess_FindInvalidData |
           aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes | aiProcess_Triangulate | 
           aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | 
           aiProcess_JoinIdenticalVertices | aiProcess_GenBoundingBoxes | aiProcess_SplitLargeMeshes);

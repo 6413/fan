@@ -83,13 +83,13 @@ set(ENABLE_IMGUI ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I ${CMAKE_CURRENT_SOURCE_DIR}/${ROOT_PATH}../ -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-bitwise-op-parentheses -Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare -Wno-unused-but-set-parameter -Wno-unused-value")
 set(DEBUG_FLAGS "-gdwarf-4")
-set(RELEASE_FLAGS "-s -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -O3 -fdata-sections -ffunction-sections -march=native -Wl,--gc-sections")
+set(RELEASE_FLAGS "-O3")
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
 
 if(ENABLE_IMGUI)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dloco_imgui -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM -DIMGUI_DEFINE_MATH_OPERATORS -DIMGUI_DISABLE_DEBUG_TOOLS")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dloco_imgui -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM -DIMGUI_DEFINE_MATH_OPERATORS")
 endif()
 
 # loco_json
