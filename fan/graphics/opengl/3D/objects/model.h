@@ -162,41 +162,21 @@ namespace fan {
               ++tex_index;
             }
           }
+          gloco->shader_set_value(m_shader, "bone_count", (int)std::min((std::size_t)200, bone_transforms.size()));
           fan::opengl::GLint location = gloco->opengl.call(gloco->opengl.glGetUniformLocation, shader.id, "bone_transforms");
-          uint32_t total_bones = bone_transforms.size();
-          uint32_t bones_processed = 0;
-          uint32_t indices_processed = 0;
-
-          while (bones_processed < total_bones) {
-            // Calculate bones for this draw call (max 200)
-            uint32_t bones_this_draw = std::min<uint32_t>(200, total_bones - bones_processed);
-            uint32_t indices_this_draw = meshes[mesh_index].indices.size() * (bones_this_draw / total_bones);
-
-            // Before drawing
-              GLint bone_count_location = gloco->opengl.glGetUniformLocation(shader.id, "bone_count");
-             gloco->opengl. glUniform1i(bone_count_location, bone_transforms.size());
-
-// Then proceed with your bone transform and draw calls
-            // Upload bone transforms for this batch
-            gloco->opengl.glUniformMatrix4fv(
-              location,
-              bones_this_draw,
-              GL_FALSE,
-              (f32_t*)&bone_transforms[bones_processed]
-            );
-
-            // Draw the mesh
-            gloco->opengl.glDrawElements(
-              GL_TRIANGLES,
-              meshes[mesh_index].indices.size(),
+          gloco->opengl.glUniformMatrix4fv(
+            location,
+            std::min((std::size_t)200, bone_transforms.size()),
+            GL_FALSE,
+            (f32_t*)bone_transforms.data()
+          );
+    
+          gloco->opengl.glDrawElements(
+              GL_TRIANGLES, 
+              meshes[mesh_index].indices.size(), 
               GL_UNSIGNED_INT,
-              (void*)(indices_processed * sizeof(uint32_t))
-            );
-
-            // Update processed bone count
-            bones_processed += bones_this_draw;
-            indices_processed += indices_this_draw;
-          }
+              0
+          );
         }
       }
       void draw_cached_images() {

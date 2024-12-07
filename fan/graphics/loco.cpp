@@ -2249,7 +2249,10 @@ void loco_t::start_timer() {
   if (delay > 0) {
     uv_timer_start(&timer_handle, [](uv_timer_t* handle) {
       loco_t* loco = static_cast<loco_t*>(handle->data);
-      loco->process_loop(loco->main_loop);
+      if (loco->process_loop(loco->main_loop)) {
+        uv_timer_stop(handle);
+        uv_stop(uv_default_loop());
+      }
     }, 0, delay);
   }
 }
@@ -2257,7 +2260,10 @@ void loco_t::start_timer() {
 void loco_t::start_idle() {
   uv_idle_start(&idle_handle, [](uv_idle_t* handle) {
     loco_t* loco = static_cast<loco_t*>(handle->data);
-    loco->process_loop(loco->main_loop);
+    if (loco->process_loop(loco->main_loop)) {
+      uv_idle_stop(handle);
+      uv_stop(uv_default_loop());
+    }
   });
 }
 
