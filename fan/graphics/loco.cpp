@@ -1495,16 +1495,11 @@ loco_t::loco_t(const properties_t& p){
   }
 
   {
-    if (opengl.major == 2 && opengl.minor == 1) {
-      shape_functions.resize(shape_functions.size() + 1);
-    }
-    else {
-      shape_open<loco_t::rectangle3d_t>(
-        &rectangle3d,
-        "shaders/opengl/3D/objects/rectangle.vs",
-        "shaders/opengl/3D/objects/rectangle.fs"
-      );
-    }
+    shape_open<loco_t::rectangle3d_t>(
+      &rectangle3d,
+      "shaders/opengl/3D/objects/rectangle.vs",
+      "shaders/opengl/3D/objects/rectangle.fs"
+    );
   }
   {
     if (opengl.major == 2 && opengl.minor == 1) {
