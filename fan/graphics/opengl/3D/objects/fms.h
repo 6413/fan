@@ -115,10 +115,10 @@ namespace fan_3d {
       };
       fms_t() = default;
       fms_t(const properties_t& fmi) {
+        p = fmi;
         if (!load_model(fmi.path)) {
           fan::throw_error("failed to load model:" + fmi.path);
         }
-        p = fmi;
         importer.~Importer();
       }
 
@@ -228,23 +228,15 @@ namespace fan_3d {
         new_mesh.indices_len = new_mesh.indices.size();
         return new_mesh;
       }
-      std::string load_textures(mesh_t& mesh, aiMesh* ai_mesh) {
+      void load_textures(mesh_t& mesh, aiMesh* ai_mesh) {
         if (scene->mNumMaterials == 0) {
-          return "";
+          return;
         }
-        static constexpr auto textures_to_load = std::to_array({
-          aiTextureType_DIFFUSE,
-          aiTextureType_AMBIENT,
-          aiTextureType_SPECULAR,
-          aiTextureType_EMISSIVE,
-          aiTextureType_SHININESS,
-          aiTextureType_METALNESS
-        });
         aiMaterial* material = scene->mMaterials[ai_mesh->mMaterialIndex];
-        for (const aiTextureType& texture_type : textures_to_load) {
+        for (uint32_t texture_type = 0; texture_type < AI_TEXTURE_TYPE_MAX + 1; ++texture_type) {
           aiString path;
-          if (material->GetTexture(texture_type, 0, &path) != AI_SUCCESS) {
-            return "";
+          if (material->GetTexture((aiTextureType)texture_type, 0, &path) != AI_SUCCESS) {
+            continue;
           }
 
           auto embedded_texture = scene->GetEmbeddedTexture(path.C_Str());
@@ -253,7 +245,8 @@ namespace fan_3d {
             int width, height, nr_channels;
             unsigned char* data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(embedded_texture->pcData), embedded_texture->mWidth, &width, &height, &nr_channels, 0);
             if (data == nullptr) {
-              fan::throw_error("failed to load texture");
+              fan::print("failed to load texture");
+              continue;
             }
 
             // must not collide with other names
@@ -264,7 +257,6 @@ namespace fan_3d {
             td.data.insert(td.data.end(), data, data + td.size.multiply() * nr_channels);
             td.channels = nr_channels;
             stbi_image_free(data);
-            return std::string(path.C_Str());
           }
           else {
             fan::string file_path = p.texture_path + "/" + scene->GetShortFilename(path.C_Str());
@@ -273,19 +265,16 @@ namespace fan_3d {
             if (found == cached_texture_data.end()) {
               fan::image::image_info_t ii;
               if (fan::image::load(file_path, &ii)) {
-                return "";
+                continue;
               }
               auto& td = cached_texture_data[file_path];
               td.size = ii.size;
               td.data.insert(td.data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
               td.channels = ii.channels;
               fan::image::free(&ii);
-              return file_path;
             }
-            return found->first;
           }
         }
-        return "";
       }
       pm_material_data_t load_materials(aiMesh* ai_mesh) {
         pm_material_data_t material_data;

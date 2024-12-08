@@ -68,6 +68,7 @@ struct blur_t {
       fan::image::image_info_t ii;
       ii.data = nullptr;
       ii.size = mip_size;
+      ii.channels = 3;
       mip.image = context.image_load(ii, lp);
       mips.push_back(mip);
     }
