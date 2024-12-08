@@ -1,15 +1,16 @@
 
-#version 330
+#version 120
+#extension GL_EXT_gpu_shader4 : require
 
-out vec4 instance_color;
+varying vec4 instance_color;
 
 uniform mat4 view;
 uniform mat4 projection;
 
-layout (location = 0) in vec3 in_position;
-layout (location = 1) in vec3 in_size;
-layout (location = 2) in vec4 in_color;
-layout (location = 3) in vec3 in_angle;
+attribute vec3 in_position;
+attribute vec3 in_size;
+attribute vec4 in_color;
+attribute vec3 in_angle;
 
 
 // Define 3D cube vertices
