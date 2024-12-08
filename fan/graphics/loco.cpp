@@ -1241,7 +1241,7 @@ loco_t::loco_t(const properties_t& p){
         glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
   }
   {
-    #if 1
+    #if 0
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, opengl.major);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, opengl.minor);
     glfwWindowHint(GLFW_SAMPLES, 0);
@@ -1498,7 +1498,8 @@ loco_t::loco_t(const properties_t& p){
     shape_open<loco_t::rectangle3d_t>(
       &rectangle3d,
       "shaders/opengl/3D/objects/rectangle.vs",
-      "shaders/opengl/3D/objects/rectangle.fs"
+      "shaders/opengl/3D/objects/rectangle.fs",
+      (opengl.major == 2 && opengl.minor == 1) ? 36 : 1
     );
   }
   {
@@ -1893,13 +1894,20 @@ void loco_t::draw_shapes() {
               BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
             );
           }
-          else {
+          else if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
             // this is broken somehow with rectangle3d
             opengl.glDrawArraysInstanced(
               fan::opengl::GL_TRIANGLES,
               0,
               36,
               BlockTraverse.GetAmount(shaper)
+            );
+          }
+          else {
+            opengl.glDrawArrays(
+              fan::opengl::GL_TRIANGLES,
+              0,
+              36 * BlockTraverse.GetAmount(shaper)
             );
           }
           break;
@@ -1985,11 +1993,10 @@ void loco_t::draw_shapes() {
             );
           }
           else {
-            auto amoutn = BlockTraverse.GetAmount(shaper);
             opengl.glDrawArrays(
               fan::opengl::GL_TRIANGLES,
               0,
-              6 * amoutn
+              6 * BlockTraverse.GetAmount(shaper)
             );
           }
 
@@ -3087,17 +3094,33 @@ loco_t::shape_t loco_t::rectangle3d_t::push_back(const properties_t& properties)
   vi.position = properties.position;
   vi.size = properties.size;
   vi.color = properties.color;
-  vi.angle = properties.angle;
+  //vi.angle = properties.angle;
   ri_t ri;
 
-  // might not need depth
-  return shape_add(shape_type, vi, ri,
-    Key_e::depth, (uint16_t)properties.position.z,
-    Key_e::blending, (uint8_t)properties.blending,
-    Key_e::viewport, properties.viewport,
-    Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
-  );
+  if ((gloco->opengl.major > 3) || (gloco->opengl.major == 3 && gloco->opengl.minor >= 3)) {
+    // might not need depth
+    return shape_add(shape_type, vi, ri,
+      Key_e::depth, (uint16_t)properties.position.z,
+      Key_e::blending, (uint8_t)properties.blending,
+      Key_e::viewport, properties.viewport,
+      Key_e::camera, properties.camera,
+      Key_e::ShapeType, shape_type
+    );
+  }
+  else {
+    vi_t vertices[36];
+    for (int i = 0; i < 36; i++) {
+      vertices[i] = vi;
+    }
+
+   return shape_add(shape_type, vertices[0], ri,
+      Key_e::depth, (uint16_t)properties.position.z,
+      Key_e::blending, (uint8_t)properties.blending,
+      Key_e::viewport, properties.viewport,
+      Key_e::camera, properties.camera,
+      Key_e::ShapeType, shape_type
+    );
+  }
 }
 
 loco_t::shape_t loco_t::line3d_t::push_back(const properties_t& properties) {
