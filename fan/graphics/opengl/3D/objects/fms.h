@@ -441,6 +441,9 @@ namespace fan_3d {
 
         meshes.clear();
 
+        fan::vec3 global_min(std::numeric_limits<float>::max());
+        fan::vec3 global_max(std::numeric_limits<float>::lowest());
+
         for (uint32_t i = 0; i < scene->mNumMeshes; i++) {
           mesh_t mesh = process_mesh(scene->mMeshes[i]);
           aiMesh* ai_mesh = scene->mMeshes[i];
@@ -452,7 +455,16 @@ namespace fan_3d {
           fan::vec3 min = ai_mesh->mAABB.mMin;
           fan::vec3 max = ai_mesh->mAABB.mMax;
 
+          global_min.x = std::min(global_min.x, min.x);
+          global_min.y = std::min(global_min.y, min.y);
+          global_min.z = std::min(global_min.z, min.z);
+  
+          global_max.x = std::max(global_max.x, max.x);
+          global_max.y = std::max(global_max.y, max.y);
+          global_max.z = std::max(global_max.z, max.z);
         }
+        aabbmin = global_min == std::numeric_limits<float>::max() ? 1 : global_min;
+        aabbmax = global_max == std::numeric_limits<float>::min() ? 1 : global_max;
         //scale_divider = std::max(scale_divider, largest_bone.length());
         update_bone_transforms();
         //m_transform = m_transform.scale(1.0 / (scale_divider / 10));
@@ -1582,6 +1594,8 @@ namespace fan_3d {
       uint32_t bone_count = 0;
       f32_t dt = 0;
       f32_t scale_divider = 1;
+      fan::vec3 aabbmin = 0;
+      fan::vec3 aabbmax = 0;
     };
   }
 }

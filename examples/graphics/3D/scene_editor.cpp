@@ -186,7 +186,31 @@ struct pile_t {
             rv.viewport_size.x, rv.viewport_size.y
           );
 
-          if (get_editor().entities.selected_bone) {
+          if (get_editor().entities.gizmo_model &&
+            get_editor().entities.property_type == entities_t::property_types_e::none) {
+            ImGuizmo::Manipulate(
+              get_editor().camera.m_view.data(),
+              get_editor().camera.m_projection.data(),
+              ImGuizmo::TRANSLATE,
+              ImGuizmo::WORLD,
+              get_editor().entities.gizmo_model->user_transform.data()
+            );
+            ImGuizmo::Manipulate(
+              get_editor().camera.m_view.data(),
+              get_editor().camera.m_projection.data(),
+              ImGuizmo::ROTATE,
+              ImGuizmo::WORLD,
+              get_editor().entities.gizmo_model->user_transform.data()
+            );
+          }
+          else if (get_editor().entities.selected_bone) {
+            ImGuizmo::Manipulate(
+              get_editor().camera.m_view.data(),
+              get_editor().camera.m_projection.data(),
+              ImGuizmo::TRANSLATE,
+              ImGuizmo::WORLD,
+              get_editor().entities.selected_bone->user_transform.data()
+            );
             ImGuizmo::Manipulate(
               get_editor().camera.m_view.data(),
               get_editor().camera.m_projection.data(),
@@ -240,6 +264,7 @@ struct pile_t {
         model_properties.camera = get_editor().camera_nr;
         model_properties.viewport = get_editor().viewport_nr;
         entity.model = std::make_unique<fan::graphics::model_t>(model_properties);
+        property_type = entities_t::property_types_e::none;
         entity_list.emplace(fs_path.filename().string(), std::move(entity));
       }
       void begin_render() {
@@ -275,13 +300,13 @@ struct pile_t {
           if (ImGui::IsItemToggledOpen()) {
             tree_node_selection_mask = 0;
             node_clicked = -1;
+            property_type = entities_t::property_types_e::none;
           }
           // assigned selected element
           if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
             node_clicked = click_index;
             selected_entity = entity_list.begin();
             std::advance(selected_entity, iterator_index);
-            property_type = entities_t::property_types_e::none;
           }
           if (ImGui::IsMouseReleased(ImGuiMouseButton_Right) && ImGui::IsItemHovered()) {
             ImGui::OpenPopup("RightClickPopUp");
@@ -295,6 +320,7 @@ struct pile_t {
               it = entity_list.erase(it);
               ImGui::CloseCurrentPopup();
               did_action = 1;
+              property_type = entities_t::property_types_e::none;
             }
             ImGui::EndPopup();
           }
@@ -318,6 +344,7 @@ struct pile_t {
                 if (ImGui::IsItemToggledOpen()) {
                   tree_node_selection_mask = 0;
                   node_clicked = -1;
+                  property_type = entities_t::property_types_e::none;
                 }
 
                 if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
@@ -333,6 +360,25 @@ struct pile_t {
               ++click_index;
             }
             ImGui::TreePop();
+          }
+
+          {
+            auto& camera = get_editor().camera;
+            fan::ray3_t ray = get_loco().convert_mouse_to_ray(
+              get_loco().get_mouse_position() - get_editor().render_view.viewport_position,
+              get_editor().render_view.viewport_size,
+              camera.position,
+              camera.m_projection, 
+              camera.m_view
+            );
+            bool hovering_on_model = get_loco().is_ray_intersecting_cube(
+              ray, 
+              it->second.model->user_transform.get_translation() + it->second.model->aabbmin,
+              it->second.model->aabbmax - it->second.model->aabbmin
+            );
+            if (hovering_on_model && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+              gizmo_model = it->second.model.get();
+            }
           }
 
           // push draw
@@ -381,14 +427,10 @@ struct pile_t {
             bool picked = false;
             for (auto& [name, bone] : e.model->bone_map) {
               loco_t::rectangle3d_t::properties_t rp;
-              rp.position = (
-                (fan::translation_matrix(e.model->user_scale) *
-                fan::rotation_quat_matrix(fan::quat::from_angles(e.model->user_rotation)) *
-                fan::scaling_matrix(e.model->user_scale)) *
-                bone->bone_transform).get_translation();
-              rp.size = e.model->user_scale * get_editor().skeleton_properties.bone_scale;
-              if (loco.is_ray_intersecting_cube(ray, rp.position, rp.size) && 
-                ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !picked) 
+              rp.position = (bone->bone_transform).get_translation() + e.model->user_transform.get_translation();
+              rp.size = e.model->user_transform.get_scale().max() * get_editor().skeleton_properties.bone_scale;
+              bool hovering_on_bone = loco.is_ray_intersecting_cube(ray, rp.position, rp.size);
+              if (hovering_on_bone && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !picked) 
               {
                 if (selected_bone == bone) {
                   selected_bone = nullptr;
@@ -399,7 +441,10 @@ struct pile_t {
                 picked = true;
               }
               rp.color = get_editor().skeleton_properties.bone_color;
-                //( ? 2 : 1);
+              if (bone == selected_bone || hovering_on_bone) {
+                rp.color.r = rp.color.r * 3;
+                rp.color.g = rp.color.g * 3;
+              }
               rp.camera = get_editor().camera_nr;
               rp.viewport = get_editor().viewport_nr;
               get_editor().skeleton_properties.visual_bones.push_back(rp);
@@ -424,6 +469,7 @@ struct pile_t {
       decltype(entity_list)::iterator selected_entity = entity_list.end();
       fan_3d::model::bone_t* selected_bone = nullptr;
       uint64_t tree_node_selection_mask = 0;
+      fan::graphics::model_t* gizmo_model = nullptr;
       struct property_types_e : __dme_inherit(property_types_e, __empty_struct) {
         property_types_e() {}
 #define d(name, ...) __dme(name);
@@ -454,13 +500,25 @@ struct pile_t {
             using pte = entities_t::property_types_e;
             switch (entities.property_type) {
             case pte::none: {
-              fan_imgui_dragfloat1(model.user_position, 0.01);
-              fan_imgui_dragfloat(model.user_rotation, 0.01, -fan::math::pi, fan::math::pi);
-              fan_imgui_dragfloat1(model.user_scale, 0.01);
+              //fan_imgui_dragfloat1(model.user_position, 0.01);
+              //fan_imgui_dragfloat(model.user_rotation, 0.01, -fan::math::pi, fan::math::pi);
+              //fan_imgui_dragfloat1(model.user_scale, 0.01);
               break;
             }
             case pte::animation: {
+              fan::graphics::model_t& model = *selected_entity->second.model;
+              if (ImGui::Checkbox("play animation", &model.play_animation)) {
 
+              }
+              std::vector<const char*> animations;
+              for (auto& i : model.animation_list) {
+                animations.push_back(i.first.c_str());
+              }
+              int current_id = model.get_active_animation_id();
+              if (ImGui::ListBox("animation list", &current_id, animations.data(), animations.size())) {
+                model.active_anim = animations[current_id];
+              }
+              ImGui::DragFloat("animation weight", &model.animation_list[model.active_anim].weight, 0.01, 0, 1);
               break;
             }
             case pte::bones: {
@@ -468,6 +526,15 @@ struct pile_t {
             }
             }
           }
+        }
+        int id = 0;
+        for (auto& selected_entity : get_editor().entities.entity_list) {
+          ImGui::PushID(id++);
+          fan::graphics::model_t& model = *selected_entity.second.model;
+          if (model.play_animation) {
+            model.dt += get_loco().delta_time * 1000;
+          }
+          ImGui::PopID();
         }
       }
       void end_ender() {
