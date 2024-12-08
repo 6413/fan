@@ -132,6 +132,8 @@ namespace fan {
       inline static std::unordered_map<size_t, int> shader_location_cache;
       template <typename T>
       void shader_set_value(shader_nr_t nr, const fan::string& name, T val) {
+        static_assert(!std::is_same_v<T, uint8_t>, "only 4 byte supported");
+        static_assert(!std::is_same_v<T, uint16_t>, "only 4 byte supported");
         static_assert(std::is_same_v<T, bool> == false || !std::is_same_v<T, int>, "only 4 byte supported");
         static_assert(std::is_same_v<T, double> == false, "only 4 byte supported");
         uint8_t value[sizeof(T)];

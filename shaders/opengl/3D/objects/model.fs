@@ -43,21 +43,29 @@ uniform float light_intensity;
 uniform vec4 material_colors[AI_TEXTURE_TYPE_MAX + 1];
 
 void main() {
+  float specular_ = texture2D(_t02, tex_coord).r;
+
   vec4 albedo;
-  albedo = texture2D(_t12, tex_coord) * material_colors[12];
+  albedo = texture2D(_t12, tex_coord);
   albedo *= vcolor;
   albedo.rgb = max(albedo.rgb, vec3(0.05));
   
   vec3 adjusted_light_color = light_color * light_intensity;
-  vec3 ambient = 0.4 * adjusted_light_color;
+  float ambient = 0.4;
   vec3 norm = normalize(v_normal);
   vec3 light_dir = normalize(light_position - v_pos);
   float diff = max(dot(norm, light_dir), 0.0);
-  vec3 diffuse = diff * adjusted_light_color;
+  float diffuse = diff;
   vec3 view_dir = normalize(view_p - v_pos);
   vec3 reflect_dir = reflect(-light_dir, norm);
   float spec = pow(max(dot(view_dir, reflect_dir), 0.0), 32);
-  vec3 specular = specular_strength * spec * adjusted_light_color;
-  vec3 final_color = (ambient + diffuse + specular) * albedo.rgb;
+  vec3 specular = specular_ * spec * adjusted_light_color;
+  vec3 brightness_magic = vec3(0.2126, 0.7152, 0.0722);
+  vec3 albedo_multiply = albedo.rgb * brightness_magic;
+  float albedo_brightness = albedo_multiply.x + albedo_multiply.y + albedo_multiply.z;
+  //float albedo_brightness = max(max(albedo.r, albedo.g), albedo.b);
+  //vec3 final_color = albedo.rgb * max(diffuse, ambient);
+  float lowest = min(min(light_color.r, light_color.g), light_color.b);
+  vec3 final_color = albedo.rgb * lowest + (albedo_brightness * light_color * (1.0 - lowest)) + specular;
   gl_FragColor = vec4(final_color, albedo.a);
 }

@@ -65,9 +65,9 @@ namespace fan {
       catch (const std::filesystem::filesystem_error& e) {
         std::cerr << "error accessing directory: " << e.what() << std::endl;
       }
-      catch (const std::exception& e) {
-        std::cerr << "unexpected error: " << e.what() << std::endl;
-      }
+      //catch (const std::exception& e) {
+//        std::cerr << "unexpected error: " << e.what() << std::endl;
+      //}
       return false;
     };
 
@@ -110,9 +110,9 @@ namespace fan {
       catch (const std::filesystem::filesystem_error& e) {
         std::cerr << "error accessing directory: " << e.what() << std::endl;
       }
-      catch (const std::exception& e) {
-        std::cerr << "unexpected error: " << e.what() << std::endl;
-      }
+      //catch (const std::exception& e) {
+     //   std::cerr << "unexpected error: " << e.what() << std::endl;
+    //  }
     }
 
     static void iterate_directory(
@@ -132,9 +132,9 @@ namespace fan {
       catch (const std::filesystem::filesystem_error& e) {
         std::cerr << "error accessing directory: " << e.what() << std::endl;
       }
-      catch (const std::exception& e) {
-        std::cerr << "unexpected error: " << e.what() << std::endl;
-      }
+    //  catch (const std::exception& e) {
+    //    std::cerr << "unexpected error: " << e.what() << std::endl;
+   //   }
     }
 
    static void iterate_directory_sorted_by_name(
@@ -180,9 +180,9 @@ namespace fan {
         catch (const std::filesystem::filesystem_error& e) {
             std::cerr << "error accessing directory: " << e.what() << std::endl;
         }
-        catch (const std::exception& e) {
-            std::cerr << "unexpected error: " << e.what() << std::endl;
-        }
+     //   catch (const std::exception& e) {
+    //        std::cerr << "unexpected error: " << e.what() << std::endl;
+     //   }
     }
 
 		static void iterate_directory_files(

@@ -160,18 +160,21 @@ namespace fan {
           fan::vec3 camera_position = gloco->camera_get_position(camera_nr);
           gloco->shader_set_value(m_shader, "view_p", camera_position);
           { // texture binding
-            uint8_t tex_index = 0;
+            int tex_index = 0;
             
             for (auto& tex : meshes[mesh_index].texture_names) {
-              if (tex.empty()) {
-                continue;
-              }
               std::ostringstream oss;
               oss << "_t" << std::setw(2) << std::setfill('0') << (int)tex_index;
+              if (tex.empty()) {
+                gloco->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + tex_index);
+                gloco->shader_set_value(m_shader, oss.str(), tex_index);
+                gloco->image_bind(gloco->default_texture);
+                ++tex_index;
+                continue;
+              }
 
               //tex.second.texture_datas
               gloco->opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + tex_index);
-
               gloco->shader_set_value(m_shader, oss.str(), tex_index);
               if (fan_3d::model::cached_images[tex].iic()) {
                 fan_3d::model::cached_images[tex] = gloco->default_texture;

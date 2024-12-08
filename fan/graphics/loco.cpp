@@ -1139,6 +1139,7 @@ void loco_t::init_framebuffer() {
   fan::image::image_info_t image_info;
   image_info.data = nullptr;
   image_info.size = window.get_size();
+  image_info.channels = 3;
 
   m_framebuffer.bind(*this);
   for (uint32_t i = 0; i < (uint32_t)std::size(color_buffers); ++i) {
@@ -3402,7 +3403,7 @@ void fan::graphics::imgui_content_browser_t::update_directory_cache() {
     file_info.is_directory = path.is_directory();
     file_info.some_path = path.path().filename();//?
     //fan::print(get_file_extension(path.path().string()));
-    if (fan::io::file::extension(path.path().string()) == ".webp") {
+    if (fan::io::file::extension(path.path().string()) == ".webp" || fan::io::file::extension(path.path().string()) == ".png") {
       file_info.preview_image = gloco->image_load(std::filesystem::absolute(path.path()).string());
     }
     directory_cache.push_back(file_info);

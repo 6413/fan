@@ -259,7 +259,7 @@ struct pile_t {
         std::filesystem::path fs_path(path);
         fan::graphics::model_t::properties_t model_properties;
         model_properties.path = path;
-        model_properties.texture_path = (fs_path.parent_path() / "/textures").string();
+        model_properties.texture_path = (fs_path.parent_path() / "textures").string();
         model_properties.use_cpu = 0;
         model_properties.camera = get_editor().camera_nr;
         model_properties.viewport = get_editor().viewport_nr;
@@ -653,7 +653,9 @@ struct pile_t {
           ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2);
           ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
           if (get_editor().begin_render_common("Skeleton Properties", flags)) {
-            ImGui::ToggleButton("render bones", &render_bones);
+            if (ImGui::ToggleButton("render bones", &render_bones)) {
+              visual_bones.clear();
+            }
             ImGui::SliderFloat("bone scale", &bone_scale, 0.001, 10);
             ImGui::ColorEdit4("bone color", bone_color.data());
           }
@@ -665,7 +667,7 @@ struct pile_t {
           ImGui::End();
         }
       }
-      bool render_bones = 1;
+      bool render_bones = 0;
       fan::color bone_color = fan::colors::gray;
       f32_t bone_scale = 0.5;
       uint16_t flags = 0;

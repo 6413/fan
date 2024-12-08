@@ -597,7 +597,32 @@ fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(const fan:
   image_t& image = image_get_data(nr);
   image.size = image_info.size;
 
-  opengl.call(opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, p.internal_format, image.size.x, image.size.y, 0, p.format, p.type, image_info.data);
+  int fmt = 0;
+
+  switch(image_info.channels) {
+  case 1: {
+    fmt = fan::opengl::GL_RED;
+    break;
+  }
+  case 2: {
+    fmt = fan::opengl::GL_RG;
+    break;
+  }
+  case 3: {
+    fmt = fan::opengl::GL_RGB;
+    break;
+  }
+  case 4: {
+    fmt = fan::opengl::GL_RGBA;
+    break;
+  }
+  default:{
+    fan::throw_error("invalid channels");
+    break;
+  }
+  }
+
+  opengl.call(opengl.glTexImage2D, fan::opengl::GL_TEXTURE_2D, 0, fmt, image.size.x, image.size.y, 0, fmt, p.type, image_info.data);
 
   switch (p.min_filter) {
   case fan::opengl::GL_LINEAR_MIPMAP_LINEAR:
