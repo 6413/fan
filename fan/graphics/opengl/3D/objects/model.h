@@ -81,45 +81,45 @@ namespace fan {
         gloco->opengl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
         gloco->opengl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW);
 
-        fan::opengl::context_t::shader_t shader = gloco->opengl.shader_get(m_shader);
+        fan::opengl::context_t::shader_t shader = gloco->shader_get(m_shader);
 
-        int location = (context.opengl.major == 2 && context.opengl.minor == 1) ?
-          context.opengl.glGetAttribLocation(shader.id, "in_position") : 0;
+        int location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
+          gloco->opengl.glGetAttribLocation(shader.id, "in_position") : 0;
         gloco->opengl.glEnableVertexAttribArray(location);
         gloco->opengl.glVertexAttribPointer(location, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, position));
 
-        location = (context.opengl.major == 2 && context.opengl.minor == 1) ?
-          context.opengl.glGetAttribLocation(shader.id, "in_normal") : 1;
+        location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
+          gloco->opengl.glGetAttribLocation(shader.id, "in_normal") : 1;
         gloco->opengl.glEnableVertexAttribArray(location);
         gloco->opengl.glVertexAttribPointer(location, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, normal));
 
-        location = (context.opengl.major == 2 && context.opengl.minor == 1) ?
-          context.opengl.glGetAttribLocation(shader.id, "in_uv") : 2;
+        location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
+          gloco->opengl.glGetAttribLocation(shader.id, "in_uv") : 2;
         gloco->opengl.glEnableVertexAttribArray(location);
         gloco->opengl.glVertexAttribPointer(location, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, uv));
 
-        location = (context.opengl.major == 2 && context.opengl.minor == 1) ?
-          context.opengl.glGetAttribLocation(shader.id, "in_bone_ids") : 3;
+        location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
+          gloco->opengl.glGetAttribLocation(shader.id, "in_bone_ids") : 3;
         gloco->opengl.glEnableVertexAttribArray(location);
         gloco->opengl.glVertexAttribIPointer(location, 4, fan::opengl::GL_INT, sizeof(fan_3d::model::vertex_t), (void*)offsetof(fan_3d::model::vertex_t, bone_ids));
 
-        location = (context.opengl.major == 2 && context.opengl.minor == 1) ?
-          context.opengl.glGetAttribLocation(shader.id, "in_bone_weights") : 4;
+        location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
+          gloco->opengl.glGetAttribLocation(shader.id, "in_bone_weights") : 4;
         gloco->opengl.glEnableVertexAttribArray(location);
         gloco->opengl.glVertexAttribPointer(location, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bone_weights));
 
-        location = (context.opengl.major == 2 && context.opengl.minor == 1) ?
-          context.opengl.glGetAttribLocation(shader.id, "in_tangent") : 5;
+        location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
+          gloco->opengl.glGetAttribLocation(shader.id, "in_tangent") : 5;
         gloco->opengl.glEnableVertexAttribArray(location);
         gloco->opengl.glVertexAttribPointer(location, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, tangent));
 
-        location = (context.opengl.major == 2 && context.opengl.minor == 1) ?
-          context.opengl.glGetAttribLocation(shader.id, "in_bitangent") : 6;
+        location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
+          gloco->opengl.glGetAttribLocation(shader.id, "in_bitangent") : 6;
         gloco->opengl.glEnableVertexAttribArray(location);
         gloco->opengl.glVertexAttribPointer(location, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, bitangent));
 
-        location = (context.opengl.major == 2 && context.opengl.minor == 1) ?
-          context.opengl.glGetAttribLocation(shader.id, "in_color") : 7;
+        location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
+          gloco->opengl.glGetAttribLocation(shader.id, "in_color") : 7;
         gloco->opengl.glEnableVertexAttribArray(location);
         gloco->opengl.glVertexAttribPointer(location, 4, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, sizeof(fan_3d::model::vertex_t), (fan::opengl::GLvoid*)offsetof(fan_3d::model::vertex_t, color));
 
