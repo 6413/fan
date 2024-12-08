@@ -561,13 +561,20 @@ private:
     st.m_vbo.bind(context);
     st.shader = bp.shader;
     st.locations = bp.locations;
+    fan::opengl::context_t::shader_t shader;
+    if (!st.shader.iic()) {
+      shader = context.shader_get(st.shader);
+    }
     uint64_t ptr_offset = 0;
-    for (const auto& location : st.locations) {
-      context.opengl.glEnableVertexAttribArray(location.index);
-      context.opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)ptr_offset);
+    for (shape_gl_init_t& location : st.locations) {
+      if ((context.opengl.major == 2 && context.opengl.minor == 1) && !st.shader.iic()) {
+        location.index.first = context.opengl.glGetAttribLocation(shader.id, location.index.second);
+      }
+      context.opengl.glEnableVertexAttribArray(location.index.first);
+      context.opengl.glVertexAttribPointer(location.index.first, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)ptr_offset);
        // instancing
       if ((context.opengl.major > 3) || (context.opengl.major == 3 && context.opengl.minor >= 3)) {
-        context.opengl.glVertexAttribDivisor(location.index, 1);
+        context.opengl.glVertexAttribDivisor(location.index.first, 1);
       }
       switch (location.type) {
       case fan::opengl::GL_FLOAT: {
