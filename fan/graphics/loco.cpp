@@ -1241,7 +1241,7 @@ loco_t::loco_t(const properties_t& p){
         glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
   }
   {
-    #if 0
+    #if 1
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, opengl.major);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, opengl.minor);
     glfwWindowHint(GLFW_SAMPLES, 0);
