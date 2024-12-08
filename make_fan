@@ -15,14 +15,10 @@ OUT_FILE_FORMAT = so # Shared library extension
 
 INCLUDES =
 
-CXXFLAGS += -I $(ROOT_PATH)../ $(RELEASE_FLAGS)
+CXXFLAGS += -I $(ROOT_PATH)../
 CXXFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM -DIMGUI_DEFINE_MATH_OPERATORS
 CXXFLAGS += -Dloco_imgui -Dloco_json -Dloco_assimp
 
-.PHONY: all debug release clean
-
-debug: CXXFLAGS += $(DEBUG_FLAGS)
-release: CXXFLAGS += $(RELEASE_FLAGS)
 
 FAN_SRC := $(wildcard $(ROOT_PATH)*.cpp $(ROOT_PATH)*/*.cpp $(ROOT_PATH)*/*/*.cpp $(ROOT_PATH)*/*/*/*.cpp)
 FAN_SRC := $(filter-out $(wildcard $(ROOT_PATH)imgui/*.cpp), $(FAN_SRC))
@@ -35,6 +31,11 @@ FAN_OBJ := $(FAN_SRC:.cpp=.o)
 FAN_LIB := libfan.$(OUT_FILE_FORMAT)
 
 all: $(FAN_LIB)
+
+debug: CXXFLAGS += $(DEBUG_FLAGS)
+debug: all
+release: CXXFLAGS += $(RELEASE_FLAGS)
+release: all
 
 $(FAN_LIB): $(FAN_OBJ)
 	$(LD) -shared -fuse-ld=gold -o $(OUTPUT_PATH)$@ $^
