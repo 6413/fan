@@ -653,7 +653,6 @@ struct pile_t {
           ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2);
           ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
           if (get_editor().begin_render_common("Skeleton Properties", flags)) {
-            fan::graphics::model_t& model = *get_editor().entities.selected_entity->second.model;
             ImGui::ToggleButton("render bones", &render_bones);
             ImGui::SliderFloat("bone scale", &bone_scale, 0.001, 10);
             ImGui::ColorEdit4("bone color", bone_color.data());
