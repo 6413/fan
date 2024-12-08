@@ -108,11 +108,7 @@ namespace fan {
       void draw(const fan::mat4& model_transform = fan::mat4(1), const std::vector<fan::mat4>& bone_transforms = {}) {
         auto viewport = gloco->viewport_get(viewport_nr);
         gloco->viewport_set(viewport.viewport_position, viewport.viewport_size, gloco->window.get_size());
-        gloco->shader_set_value(m_shader, "model",
-          m_transform * fan::translation_matrix(user_position) *
-          fan::rotation_quat_matrix(fan::quat::from_angles(user_rotation)) *
-          fan::scaling_matrix(user_scale)
-        );
+        gloco->shader_set_value(m_shader, "model", m_transform * user_transform);
         gloco->shader_set_value(m_shader, "use_cpu", p.use_cpu);
         gloco->shader_set_camera(m_shader, camera_nr);
         gloco->shader_set_value(m_shader, "light_position", light_position);
@@ -198,9 +194,7 @@ namespace fan {
 
       //temp
       // user transform
-      fan::vec3 user_position = 0;
-      fan::vec3 user_rotation = 0;
-      fan::vec3 user_scale = 1;
+      fan::mat4 user_transform{1};
       // 
       // user transform
       fan::vec3 light_position{3.46f, 1.94f, 6.22f};
