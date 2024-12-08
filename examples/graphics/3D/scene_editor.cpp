@@ -427,8 +427,6 @@ struct pile_t {
             bool picked = false;
             for (auto& [name, bone] : e.model->bone_map) {
               loco_t::rectangle3d_t::properties_t rp;
-              assert(bone);
-              assert(e.model);
               rp.position = (bone->bone_transform).get_translation() + e.model->user_transform.get_translation();
               rp.size = e.model->user_transform.get_scale().max() * get_editor().skeleton_properties.bone_scale;
               bool hovering_on_bone = loco.is_ray_intersecting_cube(ray, rp.position, rp.size);

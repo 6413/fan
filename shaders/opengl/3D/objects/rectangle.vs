@@ -10,7 +10,6 @@ uniform mat4 projection;
 attribute vec3 in_position;
 attribute vec3 in_size;
 attribute vec4 in_color;
-attribute vec3 in_angle;
 
 
 // Define 3D cube vertices

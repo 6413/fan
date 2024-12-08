@@ -16,8 +16,8 @@ namespace fan {
 
   namespace opengl {
     struct opengl_t {
-      int major = -1;
-      int minor = -1;
+      int major = 2;
+      int minor = 1;
 
       static void* get_proc_address_(const char* name)
       {
