@@ -1,14 +1,14 @@
 #version 120
 #extension GL_EXT_gpu_shader4 : require
 
-attribute vec3 position;
-attribute vec3 normal;
-attribute vec2 uv;
-attribute ivec4 bone_ids;
-attribute vec4 bone_weights;
-attribute vec3 tangent;
-attribute vec3 bitangent;
-attribute vec4 color;
+attribute vec3  in_position;
+attribute vec3  in_normal;
+attribute vec2  in_uv;
+attribute ivec4 in_bone_ids;
+attribute vec4 in_bone_weights;
+attribute vec3 in_tangent;
+attribute vec3 in_bitangent;
+attribute vec4 in_color;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -63,22 +63,22 @@ void main() {
     vec4 totalPosition = vec4(0.0);
     vec3 totalNormal = vec3(0.0);
     for(int i = 0; i < 4; i++) {
-      float weight = bone_weights[i];
-      int bone_id = bone_ids[i];
+      float weight = in_bone_weights[i];
+      int bone_id = in_bone_ids[i];
       if (weight == 0.0 || bone_id == -1) {
         continue;
       }
       if (bone_id >= bone_count || bone_id >= 200) {
-        totalPosition = vec4(position, 1.0);
-        totalNormal = normal;
+        totalPosition = vec4(in_position, 1.0);
+        totalNormal = in_normal;
         break;
       }
             
       mat4 boneTransform = bone_transforms[bone_id];
-      vec4 local_position = boneTransform * vec4(position, 1.0);
+      vec4 local_position = boneTransform * vec4(in_position, 1.0);
       totalPosition += local_position * weight;
             
-      vec3 local_normal = mat3(boneTransform) * normal;
+      vec3 local_normal = mat3(boneTransform) * in_normal;
       totalNormal += local_normal * weight;
     }
 
@@ -87,15 +87,15 @@ void main() {
         
     v_pos = vec3(worldPos);
     v_normal = normalize(mat3(transpose(lowopengl_inverse(mat3(model)))) * totalNormal);
-    tex_coord = uv;
+    tex_coord = in_uv;
   } 
   else {
-    gl_Position = projection * view * model * vec4(position, 1.0);
-    tex_coord = uv;
-    v_pos = vec3(model * vec4(position, 1.0));
-    v_normal = normalize(mat3(transpose(lowopengl_inverse(mat3(model)))) * normal);
+    gl_Position = projection * view * model * vec4(in_position, 1.0);
+    tex_coord = in_uv;
+    v_pos = vec3(model * vec4(in_position, 1.0));
+    v_normal = normalize(mat3(transpose(lowopengl_inverse(mat3(model)))) * in_normal);
   }
-  c_tangent = tangent;
-  c_bitangent = bitangent;
-  vcolor = color;
+  c_tangent = in_tangent;
+  c_bitangent = in_bitangent;
+  vcolor = in_color;
 }
