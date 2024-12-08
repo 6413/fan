@@ -1863,7 +1863,7 @@ void loco_t::draw_shapes() {
           uintptr_t offset = BlockTraverse.GetRenderDataOffset(shaper);
           std::vector<shape_gl_init_t>& locations = shaper.GetLocations(shape_type);
           for (const auto& location : locations) {
-            opengl.glVertexAttribPointer(location.index, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
+            opengl.glVertexAttribPointer(location.index.first, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
             switch (location.type) {
             case fan::opengl::GL_FLOAT: {
               offset += location.size * sizeof(fan::opengl::GLfloat);
