@@ -162,6 +162,8 @@ constexpr auto min() const { return *std::min_element(begin(), end()); }
 constexpr auto min(const auto& test0) const { make_for_all_test1(ret[i] = std::min((*this)[i], test0[i])); }
 constexpr auto max() const { return *std::max_element(begin(), end()); }
 constexpr auto max(const auto& test0) const { make_for_all_test1(ret[i] = std::max((*this)[i], test0[i])); }
+constexpr auto reflect(const vec_t& normal) { return *this - normal * 2 * dot(normal); }
+constexpr auto tangential_reflect(const vec_t& normal) { return *this - normal * dot(normal); }
 
 // gives number furthest away from 0
 constexpr auto abs_max() const { 
