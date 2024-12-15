@@ -2,10 +2,8 @@
 
 #include <fan/types/function.h>
 #include <fan/types/vector.h>
-#include <fan/types/matrix.h>
 #include <fan/window/window_input.h>
 #include <fan/window/window_input_common.h>
-#include <fan/time/time.h>
 
 namespace fan {
   namespace window {
@@ -33,8 +31,6 @@ namespace fan {
       windowed_fullscreen,
       full_screen
     };
-
-    inline static std::unordered_map<GLFWwindow*, window_t*> window_map;
 
     static constexpr const char* default_window_name = "window";
     static constexpr fan::vec2i default_window_size = fan::vec2i(800, 600);
@@ -174,7 +170,7 @@ namespace fan {
     };
 
    //window_t();
-    void open(fan::vec2i window_size = fan::window_t::default_window_size, const fan::string& name = default_window_name, uint64_t flags = 0);
+    void open(fan::vec2i window_size, const std::string& name, uint64_t flags = 0);
 
     void close();
 
@@ -233,12 +229,9 @@ namespace fan {
 
     fan::vec2 get_gamepad_axis(int key) const;
 
-    uintptr_t get_fps(bool print = true);
-
     double last_frame_time = glfwGetTime();
     f64_t m_delta_time = 0;
     uint32_t m_frame_counter = 0;
-    fan::time::clock frame_timer;
 
     buttons_callback_t m_buttons_callback;
     keys_callback_t m_keys_callback;
@@ -254,39 +247,11 @@ namespace fan {
       return glfw_window;
     }
 
-    std::array<int, fan::last> prev_key_states;
-    std::array<int, fan::last> key_states;
+    int prev_key_states[fan::last]{};
+    int key_states[fan::last]{};
     GLFWwindow* glfw_window;
 
     fan::vec2d previous_mouse_position = -0xfff;
   };
   void handle_key_states();
 }
-
-//inline void window_focus_callback(GLFWwindow* wnd, int focused)
-//{
-//  // Window focus callback implementation
-//}
-
-//inline void window_iconify_callback(GLFWwindow* wnd, int iconified)
-//{
-//  // Window iconify callback implementation
-//}
-
-//inline void mouse_position_callback(GLFWwindow* wnd, double xpos, double ypos)
-//{
-//  auto found = fan::window_t::window_map.find(wnd);
-//  if (found != fan::window_t::window_map.end()) {
-//    fan::window_t* window = found->second;
-//    auto it = window->m_mouse_motion_callback.GetNodeFirst();
-//
-//    while (it != window->m_mouse_motion_callback.dst) {
-//      fan::window_t::mouse_motion_cb_data_t cbd;
-//      cbd.window = window;
-//      cbd.motion = fan::vec2i(static_cast<int>(xpos), static_cast<int>(ypos));
-//      window->m_mouse_motion_callback[it].data(cbd);
-//
-//      it = it.Next(&window->m_mouse_motion_callback);
-//    }
-//  }
-//}

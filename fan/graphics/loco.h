@@ -554,7 +554,7 @@ public:
     uint64_t window_flags = 0;
   };
 
-  uint64_t start_time = fan::time::clock::now();
+  uint64_t start_time = 0;
 
   void init_framebuffer();
 
@@ -597,7 +597,6 @@ public:
   fan::vec2 ndc_to_screen(const fan::vec2& ndc_position);
   //
 
-  uint32_t get_fps();
   void set_vsync(bool flag);
   void start_timer();
   void start_idle();

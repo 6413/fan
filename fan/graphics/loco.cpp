@@ -1,5 +1,7 @@
 #include "loco.h"
 
+#include <fan/time/time.h>
+
 #define loco_framebuffer
 #define loco_post_process
 //
@@ -1221,6 +1223,7 @@ loco_t::loco_t() : loco_t(properties_t()) {
 }
 
 loco_t::loco_t(const properties_t& p){
+  start_time = fan::time::clock::now();
   glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
@@ -2344,10 +2347,6 @@ fan::vec2 loco_t::ndc_to_screen(const fan::vec2& ndc_position) {
   return normalized_position * window_size;
 }
 
-uint32_t loco_t::get_fps() {
-  return window.get_fps();
-}
-
 void loco_t::set_vsync(bool flag) {
   get_context().set_vsync(&window, flag);
 }
@@ -2433,6 +2432,24 @@ loco_t::imgui_fs_var_t::imgui_fs_var_t(
   };
   gloco->get_context().shader_set_value(shader_nr, var_name, initial);
 }
+
+
+template loco_t::imgui_fs_var_t::imgui_fs_var_t(
+  loco_t::shader_t shader_nr,
+  const fan::string& var_name,
+  fan::vec2 initial_,
+  f32_t speed,
+  f32_t min,
+  f32_t max
+);
+template loco_t::imgui_fs_var_t::imgui_fs_var_t(
+  loco_t::shader_t shader_nr,
+  const fan::string& var_name,
+  double initial_,
+  f32_t speed,
+  f32_t min,
+  f32_t max
+);
 
 void loco_t::set_imgui_viewport(loco_t::viewport_t viewport) {
   ImVec2 mainViewportPos = ImGui::GetMainViewport()->Pos;
@@ -4219,6 +4236,7 @@ loco_t::image_t loco_t::create_noise_image(const fan::vec2& image_size) {
   fan::image::image_info_t ii;
   ii.data = noise_data.data();
   ii.size = image_size;
+  ii.channels = 3;
 
   image = image_load(ii, lp);
   return image;

@@ -10,7 +10,7 @@ struct init_manager_t {
     cleaner_t() {
       if(!initialized()) {
         if (!glfwInit()) {
-          fan::throw_error("failed to initialize context");
+          throw std::runtime_error("failed to initialize context");
         }
       }
       initialized() = true;
@@ -33,23 +33,19 @@ struct init_manager_t {
 inline init_manager_t::cleaner_t& _cleaner = init_manager_t::cleaner();
 
 void fan::window::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-  auto found = fan::window_t::window_map.find(window);
-  if (found != fan::window_t::window_map.end()) {
-    fan::window_t* pwindow = found->second;
+  fan::window_t* pwindow = (fan::window_t*)glfwGetWindowUserPointer(window);
+  pwindow->key_states[button] = action;
 
-    pwindow->key_states[button] = action;
+  auto it = pwindow->m_buttons_callback.GetNodeFirst();
 
-    auto it = pwindow->m_buttons_callback.GetNodeFirst();
+  while (it != pwindow->m_buttons_callback.dst) {
+    fan::window_t::mouse_buttons_cb_data_t cbd;
+    cbd.window = pwindow;
+    cbd.button = button;
+    cbd.state = static_cast<fan::mouse_state>(action);
+    pwindow->m_buttons_callback[it].data(cbd);
 
-    while (it != pwindow->m_buttons_callback.dst) {
-      fan::window_t::mouse_buttons_cb_data_t cbd;
-      cbd.window = pwindow;
-      cbd.button = button;
-      cbd.state = static_cast<fan::mouse_state>(action);
-      pwindow->m_buttons_callback[it].data(cbd);
-
-      it = it.Next(&pwindow->m_buttons_callback);
-    }
+    it = it.Next(&pwindow->m_buttons_callback);
   }
 }
 
@@ -59,96 +55,87 @@ void fan::window::keyboard_keys_callback(GLFWwindow* wnd, int key, int scancode,
     return;
   }
 
-  auto found = fan::window_t::window_map.find(wnd);
-  if (found != fan::window_t::window_map.end()) {
-    fan::window_t* window = found->second;
+  fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
 
     window->key_states[key] = action;
 
-    {
-      auto it = window->m_keys_callback.GetNodeFirst();
+  {
+    auto it = window->m_keys_callback.GetNodeFirst();
 
-      while (it != window->m_keys_callback.dst) {
-        fan::window_t::keyboard_keys_cb_data_t cbd;
-        cbd.window = window;
-        cbd.key = key;
-        cbd.state = static_cast<fan::keyboard_state>(action);
-        cbd.scancode = scancode;
-        window->m_keys_callback[it].data(cbd);
-        it = it.Next(&window->m_keys_callback);
-      }
+    while (it != window->m_keys_callback.dst) {
+      fan::window_t::keyboard_keys_cb_data_t cbd;
+      cbd.window = window;
+      cbd.key = key;
+      cbd.state = static_cast<fan::keyboard_state>(action);
+      cbd.scancode = scancode;
+      window->m_keys_callback[it].data(cbd);
+      it = it.Next(&window->m_keys_callback);
     }
-    {
-      auto it = window->m_key_callback.GetNodeFirst();
+  }
+  {
+    auto it = window->m_key_callback.GetNodeFirst();
 
-      while (it != window->m_key_callback.dst) {
+    while (it != window->m_key_callback.dst) {
         
-        fan::window_t::keyboard_key_cb_data_t cbd;
-        cbd.window = window;
-        cbd.key = key;
-        if (window->m_key_callback[it].data.key == key && (int)window->m_key_callback[it].data.state == action) {
-          window->m_key_callback[it].data.function(cbd);
-        }
-        it = it.Next(&window->m_key_callback);
+      fan::window_t::keyboard_key_cb_data_t cbd;
+      cbd.window = window;
+      cbd.key = key;
+      if (window->m_key_callback[it].data.key == key && (int)window->m_key_callback[it].data.state == action) {
+        window->m_key_callback[it].data.function(cbd);
       }
-      
+      it = it.Next(&window->m_key_callback);
     }
+      
   }
 }
 
 void fan::window::text_callback(GLFWwindow* wnd, unsigned int codepoint)
 {
-  auto found = fan::window_t::window_map.find(wnd);
-  if (found != fan::window_t::window_map.end()) {
-    fan::window_t* window = found->second;
-    auto it = window->m_text_callback.GetNodeFirst();
+  fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
+  auto it = window->m_text_callback.GetNodeFirst();
 
-    while (it != window->m_text_callback.dst) {
-      fan::window_t::text_cb_data_t cbd;
-      cbd.window = window;
-      cbd.character = codepoint;
-      cbd.state = fan::keyboard_state::press;
-      window->m_text_callback[it].data(cbd);
+  while (it != window->m_text_callback.dst) {
+    fan::window_t::text_cb_data_t cbd;
+    cbd.window = window;
+    cbd.character = codepoint;
+    cbd.state = fan::keyboard_state::press;
+    window->m_text_callback[it].data(cbd);
 
-      it = it.Next(&window->m_text_callback);
-    }
+    it = it.Next(&window->m_text_callback);
   }
 }
 
 void fan::window::mouse_position_callback(GLFWwindow* wnd, double xpos, double ypos)
 {
-  auto found = fan::window_t::window_map.find(wnd);
-  if (found != fan::window_t::window_map.end()) {
-    fan::window_t* window = found->second;
-    {
-      auto it = window->m_mouse_position_callback.GetNodeFirst();
+  fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
+  {
+    auto it = window->m_mouse_position_callback.GetNodeFirst();
 
-      fan::window_t::mouse_move_cb_data_t cbd;
-      cbd.window = window;
-      cbd.position = fan::vec2d(xpos, ypos);
+    fan::window_t::mouse_move_cb_data_t cbd;
+    cbd.window = window;
+    cbd.position = fan::vec2d(xpos, ypos);
 
-      while (it != window->m_mouse_position_callback.dst) {
-        window->m_mouse_position_callback[it].data(cbd);
+    while (it != window->m_mouse_position_callback.dst) {
+      window->m_mouse_position_callback[it].data(cbd);
 
-        it = it.Next(&window->m_mouse_position_callback);
-      }
+      it = it.Next(&window->m_mouse_position_callback);
     }
-    if (window->previous_mouse_position == -0xfff) {
-      window->previous_mouse_position = fan::vec2d(xpos, ypos);
-    }
-    {
-      fan::window_t::mouse_motion_cb_data_t cbd;
-      cbd.window = window;
-      cbd.motion = fan::vec2d(xpos, ypos) - window->previous_mouse_position;
-      auto it = window->m_mouse_motion_callback.GetNodeFirst();
-      while (it != window->m_mouse_motion_callback.dst) {
-        window->m_mouse_motion_callback[it].data(cbd);
-
-        it = it.Next(&window->m_mouse_motion_callback);
-      }
-    }
+  }
+  if (window->previous_mouse_position == -0xfff) {
     window->previous_mouse_position = fan::vec2d(xpos, ypos);
   }
+  {
+    fan::window_t::mouse_motion_cb_data_t cbd;
+    cbd.window = window;
+    cbd.motion = fan::vec2d(xpos, ypos) - window->previous_mouse_position;
+    auto it = window->m_mouse_motion_callback.GetNodeFirst();
+    while (it != window->m_mouse_motion_callback.dst) {
+      window->m_mouse_motion_callback[it].data(cbd);
+
+      it = it.Next(&window->m_mouse_motion_callback);
+    }
+  }
+  window->previous_mouse_position = fan::vec2d(xpos, ypos);
 }
 
 //inline void fan::window::cursor_enter_callback(GLFWwindow* wnd, int entered)
@@ -161,83 +148,66 @@ void fan::window::mouse_position_callback(GLFWwindow* wnd, double xpos, double y
 //  // Scroll callback implementation
 //}
 
-void fan::window::close_callback(GLFWwindow* wnd)
-{
-  auto found = fan::window_t::window_map.find(wnd);
-  if (found != fan::window_t::window_map.end()) {
-    fan::window_t* window = found->second;
-    auto it = window->m_close_callback.GetNodeFirst();
+void fan::window::close_callback(GLFWwindow* wnd) {
+  fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
+  auto it = window->m_close_callback.GetNodeFirst();
 
-    while (it != window->m_close_callback.dst) {
-      fan::window_t::close_cb_data_t cbd;
-      cbd.window = window;
-      window->m_close_callback[it].data(cbd);
+  while (it != window->m_close_callback.dst) {
+    fan::window_t::close_cb_data_t cbd;
+    cbd.window = window;
+    window->m_close_callback[it].data(cbd);
 
-      it = it.Next(&window->m_close_callback);
-    }
+    it = it.Next(&window->m_close_callback);
   }
 }
 
 void fan::window::resize_callback(GLFWwindow* wnd, int width, int height)
 {
-  auto found = fan::window_t::window_map.find(wnd);
-  if (found != fan::window_t::window_map.end()) {
-    fan::window_t* window = found->second;
-    auto it = window->m_resize_callback.GetNodeFirst();
+  fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
+  auto it = window->m_resize_callback.GetNodeFirst();
 
-    while (it != window->m_resize_callback.dst) {
-      fan::window_t::resize_cb_data_t cbd;
-      cbd.window = window;
-      cbd.size = fan::vec2i(width, height);
-      window->m_resize_callback[it].data(cbd);
+  while (it != window->m_resize_callback.dst) {
+    fan::window_t::resize_cb_data_t cbd;
+    cbd.window = window;
+    cbd.size = fan::vec2i(width, height);
+    window->m_resize_callback[it].data(cbd);
 
-      it = it.Next(&window->m_resize_callback);
-    }
+    it = it.Next(&window->m_resize_callback);
   }
 }
 
 void fan::window::move_callback(GLFWwindow* wnd, int xpos, int ypos)
 {
-  auto found = fan::window_t::window_map.find(wnd);
-  if (found != fan::window_t::window_map.end()) {
-    fan::window_t* window = found->second;
-    auto it = window->m_move_callback.GetNodeFirst();
+  fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
+  auto it = window->m_move_callback.GetNodeFirst();
 
-    while (it != window->m_move_callback.dst) {
-      fan::window_t::move_cb_data_t cbd;
-      cbd.window = window;
-      window->m_move_callback[it].data(cbd);
+  while (it != window->m_move_callback.dst) {
+    fan::window_t::move_cb_data_t cbd;
+    cbd.window = window;
+    window->m_move_callback[it].data(cbd);
 
-      it = it.Next(&window->m_move_callback);
-    }
+    it = it.Next(&window->m_move_callback);
   }
 }
 
 void fan::window::scroll_callback(GLFWwindow* wnd, double xoffset, double yoffset) {
-  auto found = fan::window_t::window_map.find(wnd);
-  if (found != fan::window_t::window_map.end()) {
-    fan::window_t* window = found->second;
+  fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
 
-    auto it = window->m_buttons_callback.GetNodeFirst();
+  auto it = window->m_buttons_callback.GetNodeFirst();
 
-    while (it != window->m_buttons_callback.dst) {
-      fan::window_t::mouse_buttons_cb_data_t cbd;
-      cbd.window = window;
-      cbd.button = yoffset < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up;
-      cbd.state = fan::mouse_state::press;
-      window->m_buttons_callback[it].data(cbd);
+  while (it != window->m_buttons_callback.dst) {
+    fan::window_t::mouse_buttons_cb_data_t cbd;
+    cbd.window = window;
+    cbd.button = yoffset < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up;
+    cbd.state = fan::mouse_state::press;
+    window->m_buttons_callback[it].data(cbd);
 
-      it = it.Next(&window->m_buttons_callback);
-    }
+    it = it.Next(&window->m_buttons_callback);
   }
 }
 
 void fan::window::window_focus_callback(GLFWwindow* wnd, int focused) {
-  auto found = fan::window_t::window_map.find(wnd);
-  if (found != fan::window_t::window_map.end()) {
-    return;
-  }
-  fan::window_t* window = found->second;
+  fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
   for (int i = 0; i < GLFW_KEY_LAST; i++) {
     if (window->key_states[i] != -1) {
       window->key_states[i] = GLFW_RELEASE;
@@ -249,9 +219,9 @@ void errorCallback(int error, const char* description) {
     printf("Error: %s\n", description);
 }
 
-void fan::window_t::open(fan::vec2i window_size, const fan::string& name, uint64_t flags) {
-  std::fill(key_states.begin(), key_states.end(), -1);
-  std::fill(prev_key_states.begin(), prev_key_states.end(), -1);
+void fan::window_t::open(fan::vec2i window_size, const std::string& name, uint64_t flags) {
+  std::fill(key_states, key_states + std::size(key_states), -1);
+  std::fill(prev_key_states, prev_key_states + std::size(prev_key_states), -1);
 
   if (window_size == -1) {
     const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -268,8 +238,9 @@ void fan::window_t::open(fan::vec2i window_size, const fan::string& name, uint64
   glfw_window = glfwCreateWindow(window_size.x, window_size.y, name.c_str(), NULL, NULL);
   if (glfw_window == nullptr) {
     glfwTerminate();
-    fan::throw_error("failed to create window");
+    throw std::runtime_error("failed to create window");
   }
+  glfwSetWindowUserPointer(glfw_window, this);
 
   GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
   const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
@@ -278,8 +249,6 @@ void fan::window_t::open(fan::vec2i window_size, const fan::string& name, uint64
   glfwSetWindowPos(glfw_window, window_pos.x, window_pos.y);
 
   glfwMakeContextCurrent(glfw_window);
-
-  window_map[glfw_window] = this;
 
   glfwSetMouseButtonCallback(glfw_window, fan::window::mouse_button_callback);
   glfwSetKeyCallback(glfw_window, fan::window::keyboard_keys_callback);
@@ -291,8 +260,6 @@ void fan::window_t::open(fan::vec2i window_size, const fan::string& name, uint64
   glfwSetScrollCallback(glfw_window, fan::window::scroll_callback);
 
   glfwInitHint(GLFW_JOYSTICK_HAT_BUTTONS, GLFW_TRUE);
-
-  frame_timer.start(1e+9);
 }
 
 void fan::window_t::close() {
@@ -302,9 +269,8 @@ void fan::window_t::close() {
 
 
 void fan::window_t::handle_key_states() {
-  prev_key_states = key_states;
-
-  for (std::size_t i = 0; i < key_states.size(); ++i) {
+  memcpy(prev_key_states, key_states, sizeof(key_states));
+  for (std::size_t i = 0; i < std::size(key_states); ++i) {
     if (key_states[i] == GLFW_PRESS && prev_key_states[i] == GLFW_PRESS) {
       key_states[i] = GLFW_REPEAT;
     }
@@ -321,9 +287,9 @@ void fan::window_t::handle_key_states() {
     if (present) {
       int button_count;
       const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &button_count);
-      if (i - fan::gamepad_a >= button_count) {
-        fan::print("i bigger or equal than button_count");
-      }
+      //if (i - fan::gamepad_a >= button_count) {
+      //  fan::print("i bigger or equal than button_count");
+      //}
       if (key_states[i] == GLFW_PRESS && prev_key_states[i] == GLFW_PRESS) {
         key_states[i] = GLFW_REPEAT;
       }
@@ -543,7 +509,7 @@ void fan::window_t::set_size_mode(const mode& mode) {
       break;
     }
     default: {
-      fan::throw_error("invalid mode");
+      throw std::runtime_error("invalid mode");
       break;
     }
   }
@@ -598,18 +564,4 @@ fan::vec2 fan::window_t::get_gamepad_axis(int key) const {
   }
 
   return axis;
-}
-
-uintptr_t fan::window_t::get_fps(bool print) {
-  ++m_frame_counter;
-  if (frame_timer.finished()) {
-    if (print) {
-      fan::print("fps:", m_frame_counter);
-    }
-    uintptr_t fps = m_frame_counter;
-    m_frame_counter = 0;
-    frame_timer.restart();
-    return fps;
-  }
-  return 0;
 }

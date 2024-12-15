@@ -7,7 +7,6 @@
 #include <type_traits>
 
 #include <iostream>
-#include <exception>
 #include <cstring>
 #include <array>
 

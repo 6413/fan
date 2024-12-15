@@ -866,6 +866,7 @@ namespace fan_3d {
 
         return 1;
       }
+
       struct bone_names_default_t : __dme_inherit(bone_names_default_t, std::vector<std::string>){
         bone_names_default_t() {}
         #define d(name, ...) __dme(name) = {{#name, ##__VA_ARGS__}};
@@ -939,7 +940,7 @@ namespace fan_3d {
         uintptr_t size() {
           return this->GetMemberAmount();
         }
-        auto& operator[](uintptr_t i) {
+        dme_type_t& operator[](uintptr_t i) {
           return *this->NA(i);
         }
       };

@@ -5,7 +5,6 @@
 
 #include <cfloat>
 
-#include <functional>
 #include <cmath>
 
 #include <fan/types/types.h>
@@ -297,13 +296,6 @@ namespace fan {
 				: static_cast<int64_t>(num) + ((num > 0) ? 1 : 0);
 		}
 
-		template <typename T>
-		void debugger(std::function<T> functionPtr) {
-			printf("start\n");
-			functionPtr();
-			printf("end\n");
-		}
-
 		// converts degrees to radians
 		template<typename T>
 		constexpr auto radians(T x) { return (x * pi / 180.0f); }
@@ -581,7 +573,7 @@ namespace fan {
 		}
 
 		template <typename T>
-		constexpr bool on_hit(const T& point, std::function<void()>&& lambda) {
+		constexpr bool on_hit(const T& point, auto lambda) {
 			if (ray_hit(point)) {
 				lambda();
 				return true;

@@ -8,7 +8,7 @@ int main() {
     .size = 50,
     .color = fan::colors::red,
   } };
-
+  //
   loco.loop([&] {
 
   });

@@ -4,7 +4,7 @@
 
 int main() {
   fan::trees::quadtree_t qt(0.5, 0.5, 1);
-  static constexpr f32_t n = 400;
+  static f32_t n = 4;
   for (int i = 0; i < n; ++i) {
     fan::vec2 p = fan::random::vec2(0, 1);
     fan::vec2 a, b;
@@ -30,8 +30,8 @@ int main() {
     rectangles.push_back(fan::graphics::rectangle_t{ {
       .position = fan::vec3(qtp->position * 2 - 1, index++),
       .size = qtp->boundary * 2, // because coordinate is -1 -> 1 so * 2 when viewport size is 0-1
-      .color = fan::random::color() - fan::vec4(0, 0, 0, 0.5)
-      /*fan::color::hsv((float)index / n * 360.f, 100, 100)*/,
+      .color = fan::random::color(),
+      //fan::color::hsv((float)index / n * 360.f, 100, 100),
     .blending = true
   } });
     if (qtp->divided) {
@@ -54,7 +54,14 @@ int main() {
   l(qtp);
 
   loco.loop([&] {
-
+    if (ImGui::IsMouseClicked(0)) {
+      ++n;
+      index = 0;
+      fan::vec2 a, b;
+      qt.insert(loco.get_mouse_position() / loco.window.get_size(), a, b);
+      points.clear();
+      l(qtp);
+    }
   });
 
   return 0;

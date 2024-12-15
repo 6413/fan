@@ -2,15 +2,21 @@
 
 #include <fan/graphics/opengl/gl_defines.h>
 
-#include <fan/math/random.h>
-#include <fan/time/time.h>
-
 //#define debug_glcall_timings
 #if defined(debug_glcall_timings)
   #include <unordered_map>
+  #include <fan/time/time.h>
 #endif
 
-#include <fan/window/window.h>
+#if defined(fan_platform_windows)
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
+#define GLFW_NATIVE_INCLUDE_NONE
+#endif
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
+#include <utility>
 
 namespace fan {
 
@@ -24,18 +30,12 @@ namespace fan {
         return (void*)glfwGetProcAddress(name);
       }
 
-
-    #if fan_debug >= fan_debug_high
-      // todo implement debug
-      
-      std::unordered_map<void*, fan::string> function_map;
-    #else
-      //#define get_proc_address(type, name, internal_) type name = (type)get_proc_address_(#name, internal_);
-    #endif
-      
       #if fan_debug >= fan_debug_high
 
+      #if defined(debug_glcall_timings)
+      std::unordered_map<void*, std::string> function_map;
       fan::time::clock c;
+      #endif
 
       void open() {
 #if !defined(debug_glcall_timings)
@@ -50,6 +50,7 @@ namespace fan {
         #include "opengl_functions.h"
       }
 
+      #if defined(debug_glcall_timings)
       void execute_before(const fan::string& function_name) {
         c.start();
       }
@@ -63,7 +64,7 @@ namespace fan {
           fan::print_no_space("slow function call ns:", elapsed, ", function::" + function_name);
         }
       }
-      
+#endif
       //efine call_opengl
 
       template <typename T, typename... T2>

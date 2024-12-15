@@ -1,0 +1,112 @@
+{
+  "layer_info": [
+    {
+      "depth": 32084,
+      "layer_name": "default"
+    }
+  ],
+  "lighting.ambient": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "map_size": [
+    6,
+    6
+  ],
+  "tile_size": [
+    32,
+    32
+  ],
+  "tiles": [
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile43",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        0.0,
+        128.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.75
+      ],
+      "tc_size": [
+        0.0234375,
+        0.0234375
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile44",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        64.0,
+        128.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.7890625
+      ],
+      "tc_size": [
+        0.0234375,
+        0.0234375
+      ]
+    }
+  ],
+  "version": 1
+}

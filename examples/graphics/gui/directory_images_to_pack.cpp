@@ -76,7 +76,7 @@ int main() {
 
 
   loco_t::texturepack_t tp;
-  tp.open_compiled("TexturePack");
+  tp.open_compiled("test.ftp");
 
   loco.loop([&] {
     gui_images_to_texturepack(tp);

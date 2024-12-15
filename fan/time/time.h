@@ -109,7 +109,7 @@ namespace fan {
 						break;
 					}
 					default: {
-						fan::throw_error("time unit not implemented");
+						throw std::runtime_error("time unit not implemented");
 					}
 				}
 
