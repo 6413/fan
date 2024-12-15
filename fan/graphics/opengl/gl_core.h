@@ -11,7 +11,12 @@ concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&
 !std::is_same_v<T, fan::color>;
 
 namespace fan {
+  struct window_t;
+}
+
+namespace fan {
   namespace opengl {
+    extern std::unordered_map<size_t, int> shader_location_cache;
     struct context_t {
 
       void print_version();
@@ -33,9 +38,7 @@ namespace fan {
 
       void open(const properties_t& p = properties_t());
 
-      void render(fan::window_t& window) {
-        glfwSwapBuffers(window.glfw_window);
-      }
+      void render(fan::window_t& window);
 
       void set_depth_test(bool flag);
       void set_blending(bool flag);
@@ -129,94 +132,8 @@ namespace fan {
         return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
         };
 
-      inline static std::unordered_map<size_t, int> shader_location_cache;
       template <typename T>
-      void shader_set_value(shader_nr_t nr, const fan::string& name, T val) {
-        static_assert(!std::is_same_v<T, uint8_t>, "only 4 byte supported");
-        static_assert(!std::is_same_v<T, uint16_t>, "only 4 byte supported");
-        static_assert(std::is_same_v<T, bool> == false || !std::is_same_v<T, int>, "only 4 byte supported");
-        static_assert(std::is_same_v<T, double> == false, "only 4 byte supported");
-        uint8_t value[sizeof(T)];
-        for (uint32_t i = 0; i < sizeof(T); ++i) {
-          value[i] = ((uint8_t*)&val)[i];
-        }
-        shader_use(nr);
-        shader_t& shader = shader_get(nr);
-        auto found = shader.uniform_type_table.find(name);
-        if (found == shader.uniform_type_table.end()) {
-          //fan::print("failed to set uniform value");
-          return;
-          //fan::throw_error("failed to set uniform value");
-        }
-
-        size_t hash0 = std::hash<std::string>{}(name);
-        size_t hash1 = std::hash<decltype(shader_nr_t::NRI)>{}(nr.NRI);
-        auto shader_loc_it = shader_location_cache.find(hash0 ^ hash1);
-        if (shader_loc_it == shader_location_cache.end()) {
-          fan::opengl::GLint location = opengl.call(opengl.glGetUniformLocation, shader.id, name.c_str());
-          if (location == -1) {
-            return;
-          }
-          shader_loc_it = shader_location_cache.emplace(hash0 ^ hash1, location).first;
-        }
-        fan::opengl::GLint location = shader_loc_it->second;
-
-
-#if fan_debug >= fan_debug_insanity
-        fan_validate_value(location, validate_error_message(name));
-#endif
-
-        switch (fan::get_hash(found->second)) {
-        case fan::get_hash(std::string_view("bool")): {
-          if constexpr (not_non_arithmethic_types<T>) {
-            opengl.call(opengl.glUniform1i, location, *(int*)value);
-          }
-          break;
-        }
-        case fan::get_hash(std::string_view("sampler2D")):
-        case fan::get_hash(std::string_view("int")): {
-          if constexpr (not_non_arithmethic_types<T>) {
-            opengl.call(opengl.glUniform1i, location, *(int*)value);
-          }
-          break;
-        }
-        case fan::get_hash(std::string_view("uint")): {
-          if constexpr (not_non_arithmethic_types<T>) {
-            opengl.call(opengl.glUniform1ui, location, *(uint32_t*)value);
-          }
-          break;
-        }
-        case fan::get_hash(std::string_view("float")): {
-          if constexpr (not_non_arithmethic_types<T>) {
-            opengl.call(opengl.glUniform1f, location, *(f32_t*)value);
-          }
-          break;
-        }
-        case fan::get_hash(std::string_view("vec2")): {
-          if constexpr (std::is_same_v<T, fan::vec2> ||
-            std::is_same_v<T, fan::vec3>) {
-            opengl.call(opengl.glUniform2fv, location, 1, (f32_t*)&value[0]);
-          }
-          break;
-        }
-        case fan::get_hash(std::string_view("vec3")): {
-          if constexpr (std::is_same_v<T, fan::vec3>) {
-            opengl.call(opengl.glUniform3fv, location, 1, (f32_t*)&value[0]);
-          }
-          break;
-        }
-        case fan::get_hash(std::string_view("vec4")): {
-          if constexpr (std::is_same_v<T, fan::vec4> || std::is_same_v<T, fan::color>) {
-            opengl.call(opengl.glUniform4fv, location, 1, (f32_t*)&value[0]);
-          }
-          break;
-        }
-        case fan::get_hash(std::string_view("mat4")): {
-          opengl.call(opengl.glUniformMatrix4fv, location, 1, fan::opengl::GL_FALSE, (f32_t*)&value[0]);
-          break;
-        }
-        }
-      }
+      void shader_set_value(shader_nr_t nr, const fan::string& name, const T& val);
 
       /*
       
@@ -397,7 +314,7 @@ namespace fan {
       //-----------------------------viewport-----------------------------
 
     };
-  }
+}
 }
 
 namespace fan {

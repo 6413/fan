@@ -10,7 +10,7 @@ namespace fan {
 
         memory_write_queue_t() = default;
 
-        using memory_edit_cb_t = fan::function_t<void()>;
+        using memory_edit_cb_t = std::function<void()>;
 
 
         #include "memory_bll_settings.h"

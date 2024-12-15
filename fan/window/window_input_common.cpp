@@ -2,6 +2,10 @@
 
 #include "window_input.h"
 
+#if defined(loco_imgui)
+#include <fan/imgui/imgui.h>
+#endif
+
 uint16_t fan::window_input::convert_scancode_to_fan(int key) {
   switch (key) {
     //shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
@@ -468,7 +472,7 @@ uint16_t fan::window_input::convert_fan_to_scancode(int key) {
 }
 
 #if defined(loco_imgui)
-ImGuiKey fan::window_input::fan_to_imguikey(int key)
+int fan::window_input::fan_to_imguikey(int key)
 {
   switch (key)
   {

@@ -9,12 +9,12 @@ fan::graphics::camera_t camera0;
 fan::graphics::camera_t camera1;
 
 struct player_t {
-  static constexpr fan::vec2 speed{ 150, 150 };
+  static constexpr fan::vec2 speed{ 300, 300};
 
   player_t() {
     visual = fan::graphics::sprite_t{ {
       .camera = &camera1,
-      .position = fan::vec3(-300, -300,  10),
+      .position = fan::vec3(0, 0,  10),
       .size = 32 / 2,
       .blending = true,
     } };
@@ -130,6 +130,7 @@ int main(int argc, char** argv) {
   fte_t::properties_t p;
   p.camera = &camera0;
   fte.open(p);
+  fte.open_texturepack("examples/games/hotel_puzzle/texturepack.ftp");
  // fte.fin("m_sensor.json");
 
 std::unique_ptr<player_t> player;
@@ -238,13 +239,13 @@ std::unique_ptr<player_t> player;
   loco.loop([&] {
     if (render_scene) {
       if (ImGui::Begin("Program", 0, ImGuiWindowFlags_NoBackground)) {
+        fan::vec2 s = ImGui::GetContentRegionAvail();
         player->update();
         fan::vec2 dst = player->visual.get_position();
         fan::vec2 src = loco.camera_get_position(camera1.camera);
         // smooth camera
         //fan::vec2 offset = (dst - src) * 4 * gloco->delta_time;
         //gloco->default_camera->camera.set_position(src + offset);
-        fan::vec2 s = ImGui::GetContentRegionAvail();
         loco.camera_set_ortho(
           camera1.camera,
           fan::vec2(-s.x, s.x) / zoom,

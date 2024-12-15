@@ -37,11 +37,6 @@ struct image_divider_t {
     colors[ImGuiCol_ChildBg].w = bgColor.w;
     colors[ImGuiCol_TitleBg].w = bgColor.w;
 
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
-    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ImGui::PopStyleColor(2);
-
     ImGui::Begin("Editor");
     ImGui::Columns(2, "mycolumns", false);
 
@@ -64,13 +59,13 @@ struct image_divider_t {
     );
 
     static fan::string image_path;
-    image_path.resize(40);
+    image_path.resize(50);
 
     static fan::vec2f cell_size = { 1, 1 };
     static int horizontal_line_count = 1;
     static int vertical_line_count = 1;
-    bool update_drag = ImGui::InputInt("Horizontal Line Count", &horizontal_line_count, 1, 1, 100) ||
-      ImGui::InputInt("Vertical Line Count", &vertical_line_count, 1, 1, 100);
+    bool update_drag = ImGui::InputInt("Horizontal Line Count", &horizontal_line_count, 1, 100) ||
+      ImGui::InputInt("Vertical Line Count", &vertical_line_count, 1, 100);
     if (update_drag) {
       images.clear();
       if (root_image.iic() == false) {
@@ -178,7 +173,7 @@ struct image_divider_t {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1, 0, 0, 0.3));
 
-        if (ImGui::ImageButton(j.image, cell_size, j.uv_pos, j.uv_pos + j.uv_size)) {
+        if (ImGui::ImageButton("", j.image, cell_size, j.uv_pos, j.uv_pos + j.uv_size)) {
 
           clicked_images[totalIndex].highlight = !clicked_images[totalIndex].highlight;
           if (clicked_images[totalIndex].highlight) {
@@ -219,7 +214,7 @@ struct image_divider_t {
         totalIndex++; // Increment the total index for the next image
       }
     }
-    ImGui::End();
+    ImGui::EndChild();
     ImGui::Columns(1);
 
     ImGui::End();

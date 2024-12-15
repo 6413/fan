@@ -74,7 +74,6 @@ struct pile_t {
       return OFFSETLESS(this, pile_t, editor)->loco;
     }
 
-    // takes position 0-1 and size 0-1 scale based on window size
     bool begin_render_common(const char* window_name, uint16_t& flags, uint16_t custom_flags = 0) {
       fan::vec2 window_size = get_loco().window.get_size();
       bool ret = ImGui::Begin(window_name, 0,
@@ -262,7 +261,7 @@ struct pile_t {
         model_properties.texture_path = (fs_path.parent_path() / "textures").string();
         model_properties.use_cpu = 0;
         model_properties.camera = get_editor().camera_nr;
-        model_properties.viewport = get_editor().viewport_nr;
+        model_properties.viewport = get_editor().viewport_nr;//////
         entity.model = std::make_unique<fan::graphics::model_t>(model_properties);
         property_type = entities_t::property_types_e::none;
         entity_list.emplace(fs_path.filename().string(), std::move(entity));

@@ -45,10 +45,8 @@ struct fte_renderer_t : fte_loader_t {
     clear(node);
 
     fan::vec2i src = (position / node.compiled_map->tile_size).floor();
-    src += node.compiled_map->map_size;
-    src /= 2;
-    src.x -= view_size.x / 2;
-    src.y -= view_size.y / 2;
+    //src.x -= view_size.x / 2;
+    //src.y -= view_size.y / 2;
 
     auto& map_tiles = node.compiled_map->compiled_shapes;
 
@@ -81,7 +79,7 @@ struct fte_renderer_t : fte_loader_t {
   };
 
   void add_tile(node_t& node, fte_t::tile_t& j, int x, int y, uint32_t depth) {
-    int additional_depth = y - node.compiled_map->map_size.y / 2;
+    int additional_depth = y + node.compiled_map->map_size.y / 2;
     switch (j.mesh_property) {
       case fte_t::mesh_property_t::none: {
         node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::sprite_t{ {
@@ -189,17 +187,19 @@ struct fte_renderer_t : fte_loader_t {
       return;
     }
     auto convert_to_grid = [&node, this] (fan::vec2i& src) {
-      src += node.compiled_map->map_size;
+      src -= view_size;
       src /= 2;
-      src.x -= view_size.x / 2;
-      src.y -= view_size.y / 2;
+      /*src.x += .x / 2;
+      src.y += view_size.y / 2;*/
       src = (src).floor();
     };
 
-    fan::vec2i prev_src = old_render * 2;
+    fan::vec2i prev_src = old_render;
     convert_to_grid(prev_src);
     fan::vec2i src = (position_ / node.compiled_map->tile_size).floor();
     convert_to_grid(src);
+
+    fan::print(src);
 
     fan::vec3i src_vec3 = prev_src;
 

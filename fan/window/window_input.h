@@ -1,8 +1,5 @@
 #pragma once
 
-#include <unordered_map>
-
-
 #ifdef fan_platform_windows
 
 #define NOMINMAX
@@ -25,8 +22,6 @@
 
 #include <GLFW/glfw3native.h>
 
-#include <fan/types/fstring.h>
-
 namespace fan {
 
   enum class keyboard_state {
@@ -41,8 +36,7 @@ namespace fan {
   };
 
 
-  fan_enum_string_runtime(
-    input,
+  enum input {
     key_space = GLFW_KEY_SPACE,
     key_0 = GLFW_KEY_0,
     key_1 = GLFW_KEY_1,
@@ -194,7 +188,7 @@ namespace fan {
     gamepad_r2,
     key_invalid = GLFW_KEY_UNKNOWN,
     last = gamepad_last + 1
-  );
+  };
   
   inline int input_enum_to_array_index(int key) {
     switch (key) {

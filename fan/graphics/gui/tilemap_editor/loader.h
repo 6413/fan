@@ -94,8 +94,8 @@ public:
       fte_t::tile_t tile;
       fan::vec2i gp = shape.get_position();
       convert_draw_to_grid(compiled_map.tile_size, gp);
-      gp /= compiled_map.tile_size;
-      gp += compiled_map.map_size / 2;
+      gp /= compiled_map.tile_size * compiled_map.map_size;
+      //gp += compiled_map.map_size / 2;
       tile.position = shape.get_position();
       tile.size = shape.get_size();
       tile.angle = shape.get_angle();
@@ -120,8 +120,7 @@ public:
   };
 
   static void convert_draw_to_grid(fan::vec2i tile_size, fan::vec2i& p) {
-    p -= tile_size;
-    p /= 2;
+
   }
 
  /* id_t add(compiled_map_t* compiled_map) {
