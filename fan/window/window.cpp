@@ -263,8 +263,11 @@ void fan::window_t::open(fan::vec2i window_size, const std::string& name, uint64
 }
 
 void fan::window_t::close() {
-  glfwMakeContextCurrent(nullptr);
-  glfwDestroyWindow(glfw_window);
+  if (glfw_window) {
+    glfwMakeContextCurrent(nullptr);
+    glfwDestroyWindow(glfw_window);
+    glfw_window = nullptr;
+  }
 }
 
 

@@ -130,8 +130,6 @@ int main(int argc, char** argv) {
   fte_t::properties_t p;
   p.camera = &camera0;
   fte.open(p);
-  fte.open_texturepack("examples/games/hotel_puzzle/texturepack.ftp");
- // fte.fin("m_sensor.json");
 
 std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;
