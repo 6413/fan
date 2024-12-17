@@ -98,6 +98,12 @@ namespace fan {
     template <typename T> constexpr vec2_wrap_t(const vec3_wrap_t<T>& test0) 
     : vec2_wrap_t(test0.x, test0.y) { } 
     constexpr auto copysign(const auto& test0) const { return vec2_wrap_t(fan::math::copysign(x, test0.x), fan::math::copysign(y, test0.y)); }
+    template <typename T>
+    vec2_wrap_t reflect(const T& normal) {
+      auto k = fan::math::cross(vec3_wrap_t<typename T::value_type>{ normal.x, normal.y, 0 }, vec3_wrap_t<typename T::value_type>{ 0, 0, -1 });
+      f32_t multiplier = k.dot(vec3_wrap_t<typename T::value_type>{ x, y, 0 });
+      return vec2_wrap_t( k.x * multiplier, k.y * multiplier);
+    }
 #if defined(loco_imgui)
     constexpr operator ImVec2() const { return ImVec2(x, y); }
     constexpr vec2_wrap_t(const ImVec2& v) { x = v.x; y = v.y; }
@@ -156,6 +162,13 @@ namespace fan {
 		constexpr auto cross(const fan::vec3_wrap_t<T>& vector) const {
 			return fan::math::cross<vec3_wrap_t<T>>(*this, vector);
 		}
+    template <typename T>
+    vec3_wrap_t<T> reflect(const vec3_wrap_t<T>& normal) {
+      double dot_product = dot(normal);
+      vec3_wrap_t<T> scaled_normal = normal * (2 * dot_product);
+      vec3_wrap_t<T> reflection = *this - scaled_normal;
+      return reflection;
+    }
     template <typename T>
     vec3_wrap_t<T> lerp(const vec3_wrap_t<T>& dst, T t) {
       return { x + t * (dst.x - x), y + t * (dst.y - y), z + t * (dst.z - z) };
