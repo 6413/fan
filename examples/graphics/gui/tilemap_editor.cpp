@@ -130,8 +130,9 @@ int main(int argc, char** argv) {
   fte_t::properties_t p;
   p.camera = &camera0;
   fte.open(p);
+  fte.open_texturepack("platformer.ftp");
 
-std::unique_ptr<player_t> player;
+  std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;
   bool render_scene = false;
   std::unique_ptr<fte_renderer_t::id_t> map_id0_t;
