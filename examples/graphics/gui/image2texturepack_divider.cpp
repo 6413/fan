@@ -93,9 +93,9 @@ struct image_divider_t {
     }
 
     auto& img = gloco->image_get_data(root_image);
-    fan::vec2 normalized_image_size = img.size.normalize();
-    cell_size.x = (child_window_size.min() * 0.95 * (normalized_image_size.x)) / horizontal_line_count;
-    cell_size.y = (child_window_size.min() * 0.95 * (normalized_image_size.y)) / vertical_line_count;
+    fan::vec2 normalized_image_size = img.size / img.size.max();
+    cell_size.x = (child_window_size.x < child_window_size.y ? child_window_size.min() : child_window_size.max()) / horizontal_line_count * normalized_image_size.x;
+    cell_size.y = (child_window_size.x < child_window_size.y ? child_window_size.min() : child_window_size.max()) / vertical_line_count   * normalized_image_size.y;
 
     if (ImGui::InputText(
       "image path",
@@ -141,9 +141,9 @@ struct image_divider_t {
 
     ImGui::NextColumn();
 
-    ImGui::BeginChild("image");
+    ImGui::Begin("image_view");
 
-    child_window_size = ImGui::GetWindowSize();
+    child_window_size = ImGui::GetContentRegionAvail();
 
     int totalIndex = 0;
 
@@ -214,7 +214,7 @@ struct image_divider_t {
         totalIndex++; // Increment the total index for the next image
       }
     }
-    ImGui::EndChild();
+    ImGui::End();
     ImGui::Columns(1);
 
     ImGui::End();
