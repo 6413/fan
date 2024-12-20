@@ -4318,6 +4318,8 @@ bool loco_t::is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& p
   return t_near <= t_far && t_far >= 0.0f;
 }
 
+#if defined(loco_box2d)
 void loco_t::add_physics_update(const physics_update_data_t& data) {
   shape_physics_update_cbs.emplace_back(data);
 }
+#endif
