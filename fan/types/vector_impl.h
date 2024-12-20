@@ -111,6 +111,7 @@ make_operators(%);
 #define __FAN_SWITCH_IDX(x, idx) case size() - (idx + 1): return x
 
 constexpr value_type_t& operator[](access_type_t idx) { 
+#ifndef fan_vector_array
   switch (idx) {
     #if vec_n
     __FAN__FOREACH(__FAN_SWITCH_IDX, fan_coordinate(vec_n);)
@@ -118,10 +119,14 @@ constexpr value_type_t& operator[](access_type_t idx) {
     default: return *(value_type_t*)nullptr;
       #endif
   }
+#else
+  return fan_coordinate(idx);
+#endif
     // force crash with stackoverflow or gives error if idx is knowable at compiletime
   return operator[](idx);
 }
 constexpr const value_type_t& operator[](access_type_t idx) const {
+#ifndef fan_vector_array
   switch (idx) { 
     #if vec_n
     __FAN__FOREACH(__FAN_SWITCH_IDX, fan_coordinate(vec_n);)
@@ -129,6 +134,9 @@ constexpr const value_type_t& operator[](access_type_t idx) const {
     default: return *(value_type_t*)nullptr;
     #endif
   }
+#else
+  return fan_coordinate(idx);
+#endif
     // force crash with stackoverflow or gives error if idx is knowable at compiletime
   return operator[](idx);
 }
@@ -136,10 +144,14 @@ constexpr const value_type_t& operator[](access_type_t idx) const {
 
 constexpr auto begin() const { 
   return
-  #if vec_n == 0 
+#if vec_n == 0 
     nullptr;
 #else
+#ifndef fan_vector_array
     &x;
+#else
+    &fan_coordinate(0);
+#endif
 #endif
 }
 constexpr auto end() const { return begin() + size(); }
@@ -205,7 +217,11 @@ operator std::string const() {
 }
 
 #if vec_n
-value_type_t fan_coordinate(vec_n);
+value_type_t fan_coordinate(vec_n)
+  #ifdef fan_vector_array
+  {}
+  #endif
+  ;
 #endif
 
 
