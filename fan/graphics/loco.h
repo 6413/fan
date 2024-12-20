@@ -3,6 +3,13 @@
 #include <fan/graphics/loco_settings.h>
 #include <fan/graphics/file_dialog.h>
 
+// remove
+#define loco_box2d
+
+#if defined(loco_box2d)
+  #include <fan/physics/b2_integration.hpp>
+#endif
+
 #define loco_opengl
 #define loco_framebuffer
 #define loco_post_process
@@ -735,7 +742,8 @@ public:
       none = -1,
       release = (int)fan::keyboard_state::release,
       press = (int)fan::keyboard_state::press,
-      repeat = (int)fan::keyboard_state::repeat
+      repeat = (int)fan::keyboard_state::repeat,
+      press_or_repeat
     };
 
     struct action_data_t {
@@ -786,7 +794,7 @@ public:
   private:
   int32_t target_fps = 165; // must be changed from function
   bool timer_enabled = target_fps > 0;
-  public:
+public:
   fan::function_t<void()> main_loop; // bad, but forced
 
   f64_t& delta_time = window.m_delta_time;
@@ -798,6 +806,17 @@ public:
 
   shaper_t shaper;
   
+#if defined(loco_box2d)
+  fan::physics::context_t physics_context{{}};
+  struct physics_update_data_t {
+    void* shape;
+    void* cb;
+  };
+  using shape_physics_update_cb = void(*)(const physics_update_data_t& data);
+  void add_physics_update(const physics_update_data_t& cb_data);
+  std::vector<physics_update_data_t> shape_physics_update_cbs;
+#endif
+
 #pragma pack(push, 1)
 
   struct Key_e {

@@ -2047,6 +2047,10 @@ void loco_t::process_frame() {
     it = m_update_callback.EndSafeNext();
   }
 
+  for (const physics_update_data_t& d : shape_physics_update_cbs) {
+    ((shape_physics_update_cb)d.cb)(d);
+  }
+
   for (const auto& i : single_queue) {
     i();
   }
@@ -2589,6 +2593,10 @@ bool loco_t::input_action_t::is_active(std::string_view action_name, int pstate)
         if (state == input_action_t::press && s == input_action_t::repeat) {
           state = 1;
         }
+        if (state == input_action_t::press_or_repeat) {
+          if (state == input_action_t::press && s == input_action_t::repeat) {
+          }
+        }
         else {
           state = s;
         }
@@ -2602,6 +2610,10 @@ bool loco_t::input_action_t::is_active(std::string_view action_name, int pstate)
         if (s != none) {
           state = s;
         }
+      }
+      if (pstate == input_action_t::press_or_repeat) {
+        return state == input_action_t::press || 
+          state == input_action_t::repeat;
       }
       return state == pstate;
     }
@@ -4304,4 +4316,8 @@ bool loco_t::is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& p
   float t_far = fan::min(t2.x, fan::min(t2.y, t2.z));
 
   return t_near <= t_far && t_far >= 0.0f;
+}
+
+void loco_t::add_physics_update(const physics_update_data_t& data) {
+  shape_physics_update_cbs.emplace_back(data);
 }
