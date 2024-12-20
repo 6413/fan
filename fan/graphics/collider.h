@@ -131,8 +131,15 @@ namespace fan {
     };
     struct collider_dynamic_t : loco_t::shape_t {
       collider_dynamic_t() = default;
+      collider_dynamic_t(loco_t::shape_t&& shape)
+        : loco_t::shape_t(std::move(shape)) {
+        init();
+      }
       collider_dynamic_t(const loco_t::shape_t& shape)
         : loco_t::shape_t(shape) {
+       init();
+      }
+      void init() {
         bcol_t::ObjectProperties_t p;
         p.Position = get_position();
         bcol_t::ShapeProperties_Circle_t sp;

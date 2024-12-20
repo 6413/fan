@@ -55,12 +55,17 @@ struct vec4_wrap_t {
 
 #define fan_coordinate(x) CONCAT(fan_coordinate_letters, x)
 
+
 #if defined(loco_imgui)
   #include <fan/imgui/imgui.h>
 #endif
 
 #if defined(loco_assimp)
   #include <assimp/vector3.h>
+#endif
+
+#if defined(loco_box2d)
+  #include <box2d/types.h>
 #endif
 
 namespace fan {
@@ -107,6 +112,10 @@ namespace fan {
 #if defined(loco_imgui)
     constexpr operator ImVec2() const { return ImVec2(x, y); }
     constexpr vec2_wrap_t(const ImVec2& v) { x = v.x; y = v.y; }
+#endif
+#if defined(loco_box2d)
+    constexpr operator b2Vec2() const { return b2Vec2(x, y); }
+    constexpr vec2_wrap_t(const b2Vec2& v) { x = v.x; y = v.y; }
 #endif
     // coordinate system angle. TODO need rename to something meaningful
 		constexpr auto csangle() const { return atan2(x, -y);}
@@ -262,6 +271,8 @@ namespace fan {
 #undef fan_coordinate_letters3
 #undef fan_coordinate_letters4
 #undef fan_coordinate
+#undef vec_t
+#undef vec_n
 #endif
 
 }
