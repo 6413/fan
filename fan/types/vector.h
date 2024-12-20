@@ -103,12 +103,6 @@ namespace fan {
     template <typename T> constexpr vec2_wrap_t(const vec3_wrap_t<T>& test0) 
     : vec2_wrap_t(test0.x, test0.y) { } 
     constexpr auto copysign(const auto& test0) const { return vec2_wrap_t(fan::math::copysign(x, test0.x), fan::math::copysign(y, test0.y)); }
-    template <typename T>
-    vec2_wrap_t reflect(const T& normal) {
-      auto k = fan::math::cross(vec3_wrap_t<typename T::value_type>{ normal.x, normal.y, 0 }, vec3_wrap_t<typename T::value_type>{ 0, 0, -1 });
-      f32_t multiplier = k.dot(vec3_wrap_t<typename T::value_type>{ x, y, 0 });
-      return vec2_wrap_t( k.x * multiplier, k.y * multiplier);
-    }
 #if defined(loco_imgui)
     constexpr operator ImVec2() const { return ImVec2(x, y); }
     constexpr vec2_wrap_t(const ImVec2& v) { x = v.x; y = v.y; }
@@ -171,13 +165,6 @@ namespace fan {
 		constexpr auto cross(const fan::vec3_wrap_t<T>& vector) const {
 			return fan::math::cross<vec3_wrap_t<T>>(*this, vector);
 		}
-    template <typename T>
-    vec3_wrap_t<T> reflect(const vec3_wrap_t<T>& normal) {
-      double dot_product = dot(normal);
-      vec3_wrap_t<T> scaled_normal = normal * (2 * dot_product);
-      vec3_wrap_t<T> reflection = *this - scaled_normal;
-      return reflection;
-    }
     template <typename T>
     vec3_wrap_t<T> lerp(const vec3_wrap_t<T>& dst, T t) {
       return { x + t * (dst.x - x), y + t * (dst.y - y), z + t * (dst.z - z) };
@@ -251,8 +238,40 @@ namespace fan {
 	template <typename casted_t, template<typename> typename vec_t, typename old_t>
 	constexpr vec_t<casted_t> cast(const vec_t<old_t>& v) { return vec_t<casted_t>(v); }
 
-  template <int n, typename T>
-  using vec_wrap_t = std::tuple_element_t<n, std::tuple<fan::vec0_wrap_t<T>, fan::vec1_wrap_t<T>, fan::vec2_wrap_t<T>, fan::vec3_wrap_t<T>, fan::vec4_wrap_t<T>>>;
+  #define fan_vector_array
+  #define fan_coordinate(x) arr[x]
+  template <int vector_n, typename value_type_t>
+  struct vec_wrap_t {
+    #define vec_t vec_wrap_t
+    #define vec_n vector_n
+    #include "vector_impl.h"
+    
+    template <typename T>
+    requires(vector_n >= 2)
+		constexpr vec_wrap_t(const vec2_wrap_t<T>& test0) 
+      : vec_wrap_t(test0.x, test0.y) { } 
+
+    template <typename T>
+    requires(vector_n >= 2)
+		constexpr vec_wrap_t(const vec3_wrap_t<T>& test0) 
+      : vec_wrap_t(test0.x, test0.y) { } 
+
+    template <typename T>
+    requires(vector_n >= 3)
+		constexpr vec_wrap_t(const vec3_wrap_t<T>& test0) 
+      : vec_wrap_t(test0.x, test0.y, test0.z) { } 
+
+    template <typename T>
+    requires(vector_n >= 2)
+    operator vec2_wrap_t<T>() const {
+      return vec2_wrap_t<T>(operator[](0), operator[](1));
+    }
+    template <typename T>
+    requires(vector_n >= 3)
+    operator vec3_wrap_t<T>() const {
+      return vec3_wrap_t<T>(operator[](0), operator[](1), operator[](2));
+    }
+  };
 
   struct ray3_t {
     fan::vec3 origin;
@@ -271,8 +290,6 @@ namespace fan {
 #undef fan_coordinate_letters3
 #undef fan_coordinate_letters4
 #undef fan_coordinate
-#undef vec_t
-#undef vec_n
 #endif
 
 }

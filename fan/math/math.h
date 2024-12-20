@@ -17,7 +17,7 @@ namespace fan {
 
 		template <typename vector_t>
 		constexpr auto dot(const vector_t& x, const auto& y) {
-			decltype(vector_t::x) ret = 0;
+			f64_t ret = 0;
 			for (uint16_t i = 0; i < vector_t::size(); ++i) {
 				ret += x[i] * y[i];
 			}

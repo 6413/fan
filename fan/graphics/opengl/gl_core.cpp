@@ -124,7 +124,9 @@ template void fan::opengl::context_t::shader_set_value<uint32_t>(shader_nr_t nr,
 template void fan::opengl::context_t::shader_set_value<uint64_t>(shader_nr_t nr, const fan::string& name, const uint64_t& val);
 template void fan::opengl::context_t::shader_set_value<int>(shader_nr_t nr, const fan::string& name, const int& val);
 template void fan::opengl::context_t::shader_set_value<f32_t>(shader_nr_t nr, const fan::string& name, const f32_t& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec1_wrap_t<float>>(shader_nr_t nr, const fan::string& name, const fan::vec1_wrap_t<float>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec1_wrap_t<f32_t>>(shader_nr_t nr, const fan::string& name, const fan::vec1_wrap_t<f32_t>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<1, f32_t>>(shader_nr_t nr, const fan::string& name, const fan::vec_wrap_t<1, f32_t>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<2, f32_t>>(shader_nr_t nr, const fan::string& name, const fan::vec_wrap_t<2, f32_t>& val);
 
 
 
