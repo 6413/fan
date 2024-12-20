@@ -74,8 +74,13 @@ constexpr vec_t(Args&&...args) {
   access_type_t i = 0;
   ((this->operator[](i++) = args), ...);
 }
-template <typename T>
-constexpr vec_t(const vec_t<T>& test0) { for (int i = 0; i < size(); ++i) operator[](i) = test0[i]; } 
+#ifndef fan_vector_array
+  template <typename T>
+  constexpr vec_t(const vec_t<T>& test0) { for (int i = 0; i < size(); ++i) operator[](i) = test0[i]; } 
+#else
+  template <typename T>
+  constexpr vec_t(const vec_t<vec_n, T>& test0) { for (int i = 0; i < size(); ++i) operator[](i) = test0[i]; } 
+#endif
 
 constexpr std::partial_ordering operator<=>(const auto& rhs) const {
   for (access_type_t i = 0; i < std::min(size(), rhs.size()); ++i) {
@@ -144,7 +149,7 @@ constexpr const value_type_t& operator[](access_type_t idx) const {
 
 constexpr auto begin() const { 
   return
-#if vec_n == 0 
+#if !defined(fan_vector_array) && vec_n == 0 
     nullptr;
 #else
 #ifndef fan_vector_array
@@ -174,6 +179,8 @@ constexpr auto min() const { return *std::min_element(begin(), end()); }
 constexpr auto min(const auto& test0) const { make_for_all_test1(ret[i] = std::min((*this)[i], test0[i])); }
 constexpr auto max() const { return *std::max_element(begin(), end()); }
 constexpr auto max(const auto& test0) const { make_for_all_test1(ret[i] = std::max((*this)[i], test0[i])); }
+constexpr auto reflect(const vec_t& normal) { return *this - normal * (value_type)2 * dot(normal); }
+constexpr auto tangential_reflect(const vec_t& normal) { return *this - normal * dot(normal); }
 
 // gives number furthest away from 0
 constexpr auto abs_max() const { 
@@ -216,12 +223,10 @@ operator std::string const() {
   return to_string();
 }
 
-#if vec_n
-value_type_t fan_coordinate(vec_n)
-  #ifdef fan_vector_array
-  {}
-  #endif
-  ;
+#if !defined(fan_vector_array) && vec_n
+value_type_t fan_coordinate(vec_n);
+#elif defined(fan_vector_array)
+  value_type_t fan_coordinate(vec_n){};
 #endif
 
 
@@ -235,5 +240,6 @@ value_type_t fan_coordinate(vec_n)
 #undef make_for_all_test1
 #undef make_for_all_test2
 #undef __FAN_PTR_EACH
+#undef fan_vector_array
 
 #pragma pack(pop)
