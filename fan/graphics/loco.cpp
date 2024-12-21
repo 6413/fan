@@ -2040,15 +2040,22 @@ void loco_t::process_frame() {
   opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
 #endif
 
-  auto it = m_update_callback.GetNodeFirst();
-  while (it != m_update_callback.dst) {
-    m_update_callback.StartSafeNext(it);
-    m_update_callback[it](this);
-    it = m_update_callback.EndSafeNext();
+  {
+    auto it = m_update_callback.GetNodeFirst();
+    while (it != m_update_callback.dst) {
+      m_update_callback.StartSafeNext(it);
+      m_update_callback[it](this);
+      it = m_update_callback.EndSafeNext();
+    }
   }
 
-  for (const physics_update_data_t& d : shape_physics_update_cbs) {
-    ((shape_physics_update_cb)d.cb)(d);
+  {
+    auto it = shape_physics_update_cbs.GetNodeFirst();
+    while (it != shape_physics_update_cbs.dst) {
+      shape_physics_update_cbs.StartSafeNext(it);
+      ((shape_physics_update_cb)shape_physics_update_cbs[it].cb)(shape_physics_update_cbs[it]);
+      it = shape_physics_update_cbs.EndSafeNext();
+    }
   }
 
   for (const auto& i : single_queue) {
@@ -4319,7 +4326,12 @@ bool loco_t::is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& p
 }
 
 #if defined(loco_box2d)
-void loco_t::add_physics_update(const physics_update_data_t& data) {
-  shape_physics_update_cbs.emplace_back(data);
+loco_t::physics_update_cbs_t::nr_t loco_t::add_physics_update(const physics_update_data_t& data) {
+  auto it = shape_physics_update_cbs.NewNodeLast();
+  shape_physics_update_cbs[it] = data;
+  return it;
+}
+void loco_t::remove_physics_update(loco_t::physics_update_cbs_t::nr_t nr) {
+  shape_physics_update_cbs.unlrec(nr);
 }
 #endif

@@ -14,6 +14,10 @@ namespace fan {
       using b2Polygon::b2Polygon;
       polygon_t(const b2Polygon& polygon) : b2Polygon(polygon) {}
     };
+    struct circle_t : b2Circle {
+      using b2Circle::b2Circle;
+      circle_t(const b2Circle& circle) : b2Circle(circle) {}
+    };
     /// A line segment with two-sided collision.
     struct segment_t : b2Segment {
       using b2Segment::b2Segment;
@@ -26,14 +30,14 @@ namespace fan {
 
     struct body_id_t : b2BodyId {
       using b2BodyId::b2BodyId;
+      operator b2BodyId() const {
+        return *this;
+      }
       body_id_t(const b2BodyId& body_id) : b2BodyId(body_id) {}
     };
-    // half size
-    polygon_t make_box(const fan::vec2& size);
 
     struct entity_t {
       body_id_t body_id;
-      fan::vec2 extent;
     };
 
     struct body_type_e {
@@ -57,7 +61,8 @@ namespace fan {
       };
       context_t(const properties_t& properties = properties_t());
       
-      entity_t create_box(const fan::vec2& position, const fan::vec2& size, uint8_t body_type = body_type_e::static_body);
+      entity_t create_box(const fan::vec2& position, const fan::vec2& size, uint8_t body_type);
+      entity_t create_circle(const fan::vec2& position, f32_t radius, uint8_t body_type);
 
       void step(f32_t dt);
 

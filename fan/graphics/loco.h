@@ -809,12 +809,22 @@ public:
 #if defined(loco_box2d)
   fan::physics::context_t physics_context{{}};
   struct physics_update_data_t {
-    void* shape;
+    shaper_t::ShapeID_t shape_id;
+    b2BodyId body_id;
     void* cb;
   };
   using shape_physics_update_cb = void(*)(const physics_update_data_t& data);
-  void add_physics_update(const physics_update_data_t& cb_data);
-  std::vector<physics_update_data_t> shape_physics_update_cbs;
+  #define BLL_set_SafeNext 1
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_prefix physics_update_cbs
+  #include <fan/fan_bll_preset.h>
+  #define BLL_set_Link 1
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType physics_update_data_t
+  #include <BLL/BLL.h>
+  physics_update_cbs_t::nr_t add_physics_update(const physics_update_data_t& cb_data);
+  void remove_physics_update(physics_update_cbs_t::nr_t nr);
+  physics_update_cbs_t shape_physics_update_cbs;
 #endif
 
 #pragma pack(push, 1)
