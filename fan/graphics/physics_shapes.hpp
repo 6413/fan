@@ -107,11 +107,12 @@ namespace fan {
           }
           uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
+          fan::physics::shape_properties_t shape_properties;
         };
         rectangle_t() = default;
         rectangle_t(const properties_t& p) : base_shape_t(
           loco_t::shape_t(fan::graphics::rectangle_t{p}),
-          fan::physics::entity_t(gloco->physics_context.create_box(p.position, p.size, p.body_type)),
+          fan::physics::entity_t(gloco->physics_context.create_box(p.position, p.size, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -147,11 +148,12 @@ namespace fan {
           }
           uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
+          fan::physics::shape_properties_t shape_properties;
         };
         circle_t() = default;
         circle_t(const properties_t& p) : base_shape_t(
           loco_t::shape_t(fan::graphics::circle_t{p}),
-          fan::physics::entity_t(gloco->physics_context.create_circle(p.position, p.radius, p.body_type)),
+          fan::physics::entity_t(gloco->physics_context.create_circle(p.position, p.radius, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -162,6 +164,52 @@ namespace fan {
           return *this;
         }
         circle_t& operator=(circle_t&& r) {
+          base_shape_t::operator=(std::move(r));
+          return *this;
+        }
+      };
+      struct capsule_t : base_shape_t {
+        struct properties_t {
+          camera_impl_t* camera = &gloco->orthographic_camera;
+          fan::vec3 position = fan::vec3(0, 0, 0);
+          fan::vec2 center0 = 0;
+          fan::vec2 center1{0, 128.f};
+          f32_t radius = 32.f;
+          fan::color color = fan::color(1, 1, 1, 1);
+          fan::color outline_color = color;
+          bool blending = true;
+          uint32_t flags = 0;
+          operator fan::graphics::capsule_properties_t() const {
+            return fan::graphics::capsule_properties_t{
+              .camera = camera,
+              .position = position,
+              .center0 = center0,
+              .center1 = center1,
+              .radius = radius,
+              .color = color,
+              .outline_color = outline_color,
+              .blending = blending,
+              .flags = flags
+            };
+          }
+          uint8_t body_type = fan::physics::body_type_e::static_body;
+          mass_data_t mass_data;
+          fan::physics::shape_properties_t shape_properties;
+        };
+        capsule_t() = default;
+        capsule_t(const properties_t& p) : base_shape_t(
+          loco_t::shape_t(fan::graphics::capsule_t{p}),
+          fan::physics::entity_t(gloco->physics_context.create_capsule(p.position, b2Capsule{.center1 = p.center0, .center2 = p.center1, .radius = p.radius}, p.body_type, p.shape_properties)),
+          p.mass_data
+        ) {
+        }
+        capsule_t(const capsule_t& r) : base_shape_t(r) {}
+        capsule_t(capsule_t&& r) : base_shape_t(std::move(r)) {}
+        capsule_t& operator=(const capsule_t& r) {
+          base_shape_t::operator=(r);
+          return *this;
+        }
+        capsule_t& operator=(capsule_t&& r) {
           base_shape_t::operator=(std::move(r));
           return *this;
         }

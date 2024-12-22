@@ -1,17 +1,19 @@
 #include <fan/pch.h>
-#include <fan/graphics/physics_shapes.hpp>
+#include <fan/time/timer.h>
 
 int main() {
   loco_t loco;
-
+  loco_t::shape_t shape;
+  shape.get_position();
   std::vector<fan::graphics::physics_shapes::circle_t> entities;
   for (int i = 0; i < 10; ++i) {
     entities.push_back(fan::graphics::physics_shapes::circle_t{{
       .position = fan::vec2(i * 50 + 200, 400),
-      .radius = 50,
+      .radius = 5,
       .color = fan::random::color(),
       .body_type = fan::physics::body_type_e::dynamic_body,
-      .mass_data{.mass = 0.01f}
+      .mass_data{.mass = 10.01f},
+      .shape_properties{.friction=0.001f, .density= 0.001f}
     }});
   }
 
@@ -95,14 +97,14 @@ int main() {
   
   fan::graphics::physics_shapes::rectangle_t anchor{{
     .position = fan::vec3(fan::vec2(spinner.get_position()), 10),
-    .size = fan::vec2(10, 10), // Small size for the anchor
+    .size = fan::vec2(10, 10),
     .color = fan::colors::green,
     .body_type = fan::physics::body_type_e::static_body
   }};
 
   fan::graphics::physics_shapes::rectangle_t anchor2{{
     .position = fan::vec3(fan::vec2(spinner2.get_position()), 10),
-    .size = fan::vec2(10, 10), // Small size for the anchor
+    .size = fan::vec2(10, 10),
     .color = fan::colors::green,
     .body_type = fan::physics::body_type_e::static_body
   }};
@@ -113,11 +115,11 @@ int main() {
   revoluteJointDef.bodyIdB = spinner;
 
   fan::vec2 pivot = spinner.get_position();
-  revoluteJointDef.localAnchorA = b2Body_GetLocalPoint( revoluteJointDef.bodyIdA, pivot );
-	revoluteJointDef.localAnchorB = b2Body_GetLocalPoint( revoluteJointDef.bodyIdB, pivot );
+  revoluteJointDef.localAnchorA = b2Body_GetLocalPoint(revoluteJointDef.bodyIdA, pivot);
+	revoluteJointDef.localAnchorB = b2Body_GetLocalPoint(revoluteJointDef.bodyIdB, pivot);
   revoluteJointDef.enableMotor = true;
-  revoluteJointDef.motorSpeed = 2.0f; // Set desired motor speed (radians per second)
-  revoluteJointDef.maxMotorTorque = 100000000000.0f; // Set maximum motor torque
+  revoluteJointDef.motorSpeed = 2.0f;
+  revoluteJointDef.maxMotorTorque = 10000000000.0f;
   revoluteJointDef.collideConnected = false;
 
   auto joint = b2CreateRevoluteJoint(loco.physics_context.world_id, &revoluteJointDef);
@@ -126,40 +128,45 @@ int main() {
   revoluteJointDef.bodyIdB = spinner2;
 
   pivot = spinner2.get_position();
-  revoluteJointDef.localAnchorA = b2Body_GetLocalPoint( revoluteJointDef.bodyIdA, pivot );
-	revoluteJointDef.localAnchorB = b2Body_GetLocalPoint( revoluteJointDef.bodyIdB, pivot );
+  revoluteJointDef.localAnchorA = b2Body_GetLocalPoint(revoluteJointDef.bodyIdA, pivot);
+	revoluteJointDef.localAnchorB = b2Body_GetLocalPoint(revoluteJointDef.bodyIdB, pivot);
   revoluteJointDef.enableMotor = true;
-  revoluteJointDef.motorSpeed = -2.0f; // Set desired motor speed (radians per second)
-  revoluteJointDef.maxMotorTorque = 100000000000.0f; // Set maximum motor torque
+  revoluteJointDef.motorSpeed = -2.0f;
+  revoluteJointDef.maxMotorTorque = 10000000000.0f;
   revoluteJointDef.collideConnected = false;
 
   auto joint2 = b2CreateRevoluteJoint(loco.physics_context.world_id, &revoluteJointDef);
-
+  
   f32_t angle = 0;
+  fan::time::clock c;
+  uint64_t physics_time = 0;
   loco.loop([&] {
     b2RevoluteJoint_SetMotorSpeed(joint, -2.f);
     b2RevoluteJoint_SetMotorSpeed(joint2, 20.f);
+
     b2Body_ApplyAngularImpulse(spinner3, 1000000, true);
     if (ImGui::IsMouseDown(0)) {
-      for (int i = 0; i < 1; ++i)
+      for (int i = 0; i < 10; ++i)
       entities.push_back(fan::graphics::physics_shapes::circle_t{{
         .position = loco.get_mouse_position() / 1.28f,
-        .radius = 50,
+        .radius = 5,
         .color = fan::random::color(),
         .body_type = fan::physics::body_type_e::dynamic_body,
-        .mass_data{.mass=0.01f}
+        .mass_data{.mass=10.01f},
+        .shape_properties{.friction=0.001f, .density= 0.001f, .fixed_rotation=true}
       }});
     }
-    //static int x = 0;
-    //if (x % 1000 == 0)
-    //fan::printcl(entities.size());
-    //x++;
-    //b2Body_SetTransform(entity2.body_id, fan::vec2(800, 400), b2Body_GetRotation(entity2.body_id));
-    //b2Body_SetLinearVelocity(entity2.body_id, b2Vec2_zero);
-    //b2Body_ApplyTorque(entity2.body_id, 100000, true);
-    //b2Body_SetAngularVelocity(entity2.body_id, 2.f);
-    //b2Body_SetLinearVelocity(entity2.body_id, fan::vec2(0));
-    //b2Body_SetTransform(entity2.body_id, )
+    //
+
+    fan::printcl(
+      "physics:", physics_time / 1e9, 
+      "render:", loco.delta_time - physics_time / 1e9,
+      "delta_time:", loco.delta_time,
+      "elapsed:", physics_time / 1e9
+    );
+
+    c.start();
     loco.physics_context.step(loco.delta_time);
+    physics_time = c.elapsed();
   });
 }
