@@ -36,6 +36,15 @@ namespace fan {
       body_id_t(const b2BodyId& body_id) : b2BodyId(body_id) {}
     };
 
+    struct shape_properties_t {
+      f32_t friction = 0.6f;
+	    f32_t density = 1.0f;
+      f32_t restitution = 0.01f;
+      f32_t rolling_resistance = 0.01;
+      bool fixed_rotation = false;
+      bool enable_presolve_events = false;
+    };
+
     struct entity_t {
       body_id_t body_id;
     };
@@ -61,8 +70,9 @@ namespace fan {
       };
       context_t(const properties_t& properties = properties_t());
       
-      entity_t create_box(const fan::vec2& position, const fan::vec2& size, uint8_t body_type);
-      entity_t create_circle(const fan::vec2& position, f32_t radius, uint8_t body_type);
+      entity_t create_box(const fan::vec2& position, const fan::vec2& size, uint8_t body_type, const shape_properties_t& shape_properties);
+      entity_t create_circle(const fan::vec2& position, f32_t radius, uint8_t body_type, const shape_properties_t& shape_properties);
+      fan::physics::entity_t create_capsule(const fan::vec2& position, const b2Capsule& info, uint8_t body_type, const shape_properties_t& shape_properties);
 
       void step(f32_t dt);
 

@@ -264,6 +264,7 @@ struct loco_t : fan::opengl::context_t {
       light,
       unlit_sprite,
       circle,
+      capsule,
       grid,
       vfi,
       particles,
@@ -762,6 +763,8 @@ public:
     void add_keycombo(std::initializer_list<int> keys, std::string_view action_name);
 
     bool is_active(std::string_view action_name, int state = loco_t::input_action_t::press);
+    bool is_action_clicked(std::string_view action_name);
+    bool is_action_down(std::string_view action_name);
 
     std::unordered_map<std::string_view, action_data_t> input_actions;
   }input_action;
@@ -921,6 +924,9 @@ public:
         if constexpr (fan_has_variable(loco_t, circle)) {
           *this = gloco->circle.push_back(properties);
         }
+      }
+      else if constexpr (std::is_same_v<T, capsule_t::properties_t>) {
+        *this = gloco->capsule.push_back(properties);
       }
       else if constexpr (std::is_same_v<T, grid_t::properties_t>) {
         *this = gloco->grid.push_back(properties);
@@ -1498,6 +1504,66 @@ public:
     loco_t::shape_t push_back(const circle_t::properties_t& properties);
 
   }circle;
+
+  struct capsule_t {
+
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::capsule;
+    static constexpr int kpi = kp::common;
+
+#pragma pack(push, 1)
+
+    struct vi_t {
+      fan::vec3 position;
+      fan::vec2 center0;
+      fan::vec2 center1;
+      f32_t radius;
+      fan::vec2 rotation_point;
+      fan::color color;
+      fan::vec3 rotation_vector;
+      fan::vec3 angle;
+      uint32_t flags;
+      fan::color outline_color;
+    };
+    struct ri_t {
+
+    };
+
+#pragma pack(pop)
+
+    inline static std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position) },
+      shape_gl_init_t{{1, "in_center0"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, center0)) },
+      shape_gl_init_t{{2, "in_center1"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, center1)) },
+      shape_gl_init_t{{3, "in_radius"}, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
+      shape_gl_init_t{{4, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
+      shape_gl_init_t{{5, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
+      shape_gl_init_t{{6, "in_rotation_vector"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector)) },
+      shape_gl_init_t{{7, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) },
+      shape_gl_init_t{{8, "in_flags"}, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+      shape_gl_init_t{{9, "in_outline_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color)) },
+    };
+
+    struct properties_t {
+      using type_t = capsule_t;
+
+      fan::vec3 position = 0;
+      fan::vec2 center0 = 0;
+      fan::vec2 center1 = {0, 1.f};
+      f32_t radius = 0;
+      fan::vec2 rotation_point = 0;
+      fan::color color = fan::colors::white;
+      fan::color outline_color = color;
+      fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
+      fan::vec3 angle = 0;
+      uint32_t flags = 0;
+
+      bool blending = true;
+
+      loco_t::camera_t camera = gloco->orthographic_camera.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+    };
+    loco_t::shape_t push_back(const capsule_t::properties_t& properties);
+  }capsule;
 
   struct grid_t {
 
@@ -2274,7 +2340,7 @@ namespace fan {
     struct circle_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
       fan::vec3 position = fan::vec3(0, 0, 0);
-      f32_t radius = 0.1f;
+      f32_t radius = 32.f;
       fan::color color = fan::color(1, 1, 1, 1);
       bool blending = false;
       uint32_t flags = 0;
@@ -2296,6 +2362,37 @@ namespace fan {
       }
     };
 #endif
+
+    struct capsule_properties_t {
+      camera_impl_t* camera = &gloco->orthographic_camera;
+      fan::vec3 position = fan::vec3(0, 0, 0);
+      fan::vec2 center0 = 0;
+      fan::vec2 center1{0, 128.f};
+      f32_t radius = 64.0f;
+      fan::color color = fan::color(1, 1, 1, 1);
+      fan::color outline_color = color;
+      bool blending = true;
+      uint32_t flags = 0;
+    };
+
+    struct capsule_t : loco_t::shape_t {
+      capsule_t(capsule_properties_t p = capsule_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            typename loco_t::capsule_t::properties_t,
+            .camera = p.camera->camera,
+            .viewport = p.camera->viewport,
+            .position = p.position,
+            .center0 = p.center0,
+            .center1 = p.center1,
+            .radius = p.radius,
+            .color = p.color,
+            .outline_color = p.outline_color,
+            .blending = p.blending,
+            .flags = p.flags
+          ));
+      }
+    };
 
     struct grid_properties_t {
       fan::vec3 position = fan::vec3(0, 0, 0);
@@ -2946,3 +3043,6 @@ void fan::printclh(int highlight, auto&&... values) {
 }
 #endif
 #include <fan/graphics/collider.h>
+#if defined(loco_box2d)
+  #include <fan/graphics/physics_shapes.hpp>
+#endif

@@ -175,6 +175,7 @@ loco_t::functions_t loco_t::get_functions() {
             break;
           }
           // common
+          case loco_t::shape_type_t::capsule:
           case loco_t::shape_type_t::gradient:
           case loco_t::shape_type_t::grid:
           case loco_t::shape_type_t::circle:
@@ -456,6 +457,7 @@ loco_t::functions_t loco_t::get_functions() {
           return shaper_get_key_safe(camera_t, light_t, camera);
         }
                                         // common
+        case loco_t::shape_type_t::capsule:
         case loco_t::shape_type_t::gradient:
         case loco_t::shape_type_t::grid:
         case loco_t::shape_type_t::circle:
@@ -492,6 +494,7 @@ loco_t::functions_t loco_t::get_functions() {
               break;
             }
             // common
+            case loco_t::shape_type_t::capsule:
             case loco_t::shape_type_t::gradient:
             case loco_t::shape_type_t::grid:
             case loco_t::shape_type_t::circle:
@@ -551,6 +554,7 @@ loco_t::functions_t loco_t::get_functions() {
             return shaper_get_key_safe(viewport_t, light_t, viewport);
           }
           // common
+          case loco_t::shape_type_t::capsule:
           case loco_t::shape_type_t::gradient:
           case loco_t::shape_type_t::grid:
           case loco_t::shape_type_t::circle:
@@ -587,6 +591,7 @@ loco_t::functions_t loco_t::get_functions() {
               break;
             }
             // common
+            case loco_t::shape_type_t::capsule:
             case loco_t::shape_type_t::gradient:
             case loco_t::shape_type_t::grid:
             case loco_t::shape_type_t::circle:
@@ -1425,6 +1430,18 @@ loco_t::loco_t(const properties_t& p){
         &circle,
         "shaders/opengl/2D/objects/circle.vs",
         "shaders/opengl/2D/objects/circle.fs"
+      );
+    }
+  }
+  {
+    if (opengl.major == 2 && opengl.minor == 1) {
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::capsule_t>(
+        &capsule,
+        "shaders/opengl/2D/objects/capsule.vs",
+        "shaders/opengl/2D/objects/capsule.fs"
       );
     }
   }
@@ -2628,6 +2645,13 @@ bool loco_t::input_action_t::is_active(std::string_view action_name, int pstate)
   return none == pstate;
 }
 
+bool loco_t::input_action_t::is_action_clicked(std::string_view action_name) {
+  return is_active(action_name);
+}
+bool loco_t::input_action_t::is_action_down(std::string_view action_name) {
+  return is_active(action_name, press_or_repeat);
+}
+
 static fan::vec2 transform_position(const fan::vec2& p, loco_t::viewport_t viewport, loco_t::camera_t camera) {
 
   auto& context = gloco->get_context();
@@ -2931,6 +2955,29 @@ loco_t::shape_t loco_t::circle_t::push_back(const circle_t::properties_t& proper
     Key_e::ShapeType, shape_type
   );
 }
+
+loco_t::shape_t loco_t::capsule_t::push_back(const loco_t::capsule_t::properties_t& properties) {
+  capsule_t::vi_t vi;
+  vi.position = properties.position;
+  vi.center0 = properties.center0;
+  vi.center1 = properties.center1;
+  vi.radius = properties.radius;
+  vi.rotation_point = properties.rotation_point;
+  vi.color = properties.color;
+  vi.outline_color = properties.outline_color;
+  vi.rotation_vector = properties.rotation_vector;
+  vi.angle = properties.angle;
+  vi.flags = properties.flags;
+  capsule_t::ri_t ri;
+  return shape_add(shape_type, vi, ri,
+    Key_e::depth, (uint16_t)properties.position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
+}
+
 
 loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
 
