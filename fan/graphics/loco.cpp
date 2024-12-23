@@ -2924,6 +2924,7 @@ loco_t::shape_t loco_t::rectangle_t::push_back(const properties_t& properties) {
   vi.position = properties.position;
   vi.size = properties.size;
   vi.color = properties.color;
+  vi.outline_color = properties.outline_color;
   vi.angle = properties.angle;
   vi.rotation_point = properties.rotation_point;
   ri_t ri;
