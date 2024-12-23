@@ -1233,6 +1233,7 @@ public:
       fan::vec2 size;
       fan::vec2 rotation_point;
       fan::color color;
+      fan::color outline_color;
       fan::vec3 angle;
     };
     struct ri_t {
@@ -1246,7 +1247,8 @@ public:
       shape_gl_init_t{{1, "in_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
       shape_gl_init_t{{2, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
       shape_gl_init_t{{3, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-      shape_gl_init_t{{4, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
+      shape_gl_init_t{{4, "in_outline_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color))},
+      shape_gl_init_t{{5, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
     };
 
     struct properties_t {
@@ -1255,6 +1257,7 @@ public:
       fan::vec3 position = 0;
       fan::vec2 size = 0;
       fan::color color = fan::colors::white;
+      fan::color outline_color = color;
       bool blending = false;
       fan::vec3 angle = 0;
       fan::vec2 rotation_point = 0;
@@ -2241,6 +2244,7 @@ namespace fan {
       fan::vec3 position = fan::vec3(0, 0, 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
       fan::color color = fan::color(1, 1, 1, 1);
+      fan::color outline_color = color;
       fan::vec3 angle = 0;
       fan::vec2 rotation_point = 0;
       bool blending = false;
@@ -2257,6 +2261,7 @@ namespace fan {
             .position = p.position,
             .size = p.size,
             .color = p.color,
+            .outline_color = p.outline_color,
             .angle = p.angle,
             .rotation_point = p.rotation_point,
             .blending = p.blending

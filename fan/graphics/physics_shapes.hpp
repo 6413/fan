@@ -14,9 +14,9 @@ namespace fan {
         // kgs
         f32_t mass = -1.f;
         fan::vec2 center_of_mass = 0.f;
-        f32_t rotational_intertia = -1.f;
+        f32_t rotational_inertia = -1.f;
         operator b2MassData() const {
-          return b2MassData{.mass = mass, .center = center_of_mass, .rotationalInertia = rotational_intertia};
+          return b2MassData{.mass = mass, .center = center_of_mass, .rotationalInertia = rotational_inertia};
         }
       };
 
@@ -38,8 +38,8 @@ namespace fan {
           if (mass_data.center_of_mass == 0) {
             md_copy.center_of_mass = md.center;
           }
-          if (mass_data.rotational_intertia < 0.f) {
-            md_copy.rotational_intertia = md.rotationalInertia;
+          if (mass_data.rotational_inertia < 0.f) {
+            md_copy.rotational_inertia = md.rotationalInertia;
           }
           b2Body_SetMassData(body_id, md_copy);
         }
@@ -91,6 +91,7 @@ namespace fan {
           fan::vec3 position = fan::vec3(0, 0, 0);
           fan::vec2 size = fan::vec2(0.1, 0.1);
           fan::color color = fan::color(1, 1, 1, 1);
+          fan::color outline_color = color;
           fan::vec3 angle = 0;
           fan::vec2 rotation_point = 0;
           bool blending = false;
@@ -100,6 +101,7 @@ namespace fan {
               .position = position,
               .size = size,
               .color = color,
+              .outline_color = outline_color,
               .angle = angle,
               .rotation_point = rotation_point,
               .blending = blending
