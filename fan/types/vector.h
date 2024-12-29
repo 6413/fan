@@ -239,6 +239,7 @@ namespace fan {
 	constexpr vec_t<casted_t> cast(const vec_t<old_t>& v) { return vec_t<casted_t>(v); }
 
   #define fan_vector_array
+  #undef fan_coordinate
   #define fan_coordinate(x) arr[x]
   template <int vector_n, typename value_type_t>
   struct vec_wrap_t {

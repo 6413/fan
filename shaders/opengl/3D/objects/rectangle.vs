@@ -1,6 +1,6 @@
 
 #version 120
-#extension GL_EXT_gpu_shader4 : require
+#extension GL_EXT_gpu_shader4 : enable
 
 varying vec4 instance_color;
 

@@ -28,7 +28,7 @@ namespace fan {
           physics_update_nr = gloco->add_physics_update({
             .shape_id = *this,
             .body_id = body_id,
-            .cb = shape_physics_update
+            .cb = (void*)shape_physics_update
           });
           b2MassData md = b2Body_GetMassData(*this);
           mass_data_t md_copy = mass_data;
@@ -47,7 +47,7 @@ namespace fan {
            physics_update_nr = gloco->add_physics_update({
             .shape_id = *this,
             .body_id = body_id,
-            .cb = shape_physics_update
+            .cb = (void*)shape_physics_update
           });
         }
         base_shape_t(base_shape_t&& r) : loco_t::shape_t(std::move(r)), fan::physics::entity_t(std::move(r)) {
@@ -67,7 +67,7 @@ namespace fan {
           physics_update_nr =  gloco->add_physics_update({
             .shape_id = *this,
             .body_id = r.body_id,
-            .cb = shape_physics_update
+            .cb = (void*)shape_physics_update
           });
           return *this;
         }

@@ -23,16 +23,13 @@ namespace fan {
       using b2Segment::b2Segment;
       segment_t(const b2Segment& segment) : b2Segment(segment) {}
     };
-    struct chain_segment_t : b2ChainSegment {
-      using b2ChainSegment::b2ChainSegment;
-      chain_segment_t(const b2ChainSegment& segment) : b2ChainSegment(segment) {}
-    };
+    // struct chain_segment_t : b2ChainSegment {
+    //   using b2ChainSegment::b2ChainSegment;
+    //   chain_segment_t(const b2ChainSegment& segment) : b2ChainSegment(segment) {}
+    // };
 
     struct body_id_t : b2BodyId {
       using b2BodyId::b2BodyId;
-      operator b2BodyId() const {
-        return *this;
-      }
       body_id_t(const b2BodyId& body_id) : b2BodyId(body_id) {}
     };
 
@@ -64,7 +61,7 @@ namespace fan {
 
       struct properties_t {
         // clang
-        properties_t() = default;
+        properties_t() {};
         f32_t length_units_per_meter{128.f};
         fan::vec2 gravity{0, 9.8f * length_units_per_meter};
       };

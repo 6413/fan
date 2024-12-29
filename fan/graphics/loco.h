@@ -3,9 +3,6 @@
 #include <fan/graphics/loco_settings.h>
 #include <fan/graphics/file_dialog.h>
 
-// remove
-#define loco_box2d
-
 #if defined(loco_box2d)
   #include <fan/physics/b2_integration.hpp>
 #endif

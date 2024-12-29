@@ -29,10 +29,10 @@ namespace fan {
       fan::opengl::GLuint current_program = -1;
 
       static void error_callback(int error, const char* description) {
-        if (GLFW_NOT_INITIALIZED == error) {
+        if (error == GLFW_NOT_INITIALIZED) {
           return;
         }
-        fan::print("window error:", description);
+        fan::print("window error " + std::to_string(error) + ": " + description);
         __abort();
       }
 

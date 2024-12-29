@@ -20,8 +20,6 @@ else
 	OUT_FILE_FORMAT+=a
 endif
 
-CXXFLAGS += -I $(ROOT_PATH)../
-
 #note
 CXXFLAGS += $(RELEASE_FLAGS)
 

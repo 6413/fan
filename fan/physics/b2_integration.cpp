@@ -20,7 +20,7 @@ fan::physics::entity_t fan::physics::context_t::create_box(const fan::vec2& posi
   shape_def.density = shape_properties.density;
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
-  shape_def.rollingResistance = shape_properties.rolling_resistance;
+  //shape_def.rollingResistance = shape_properties.rolling_resistance;
   b2CreatePolygonShape(entity.body_id, &shape_def, &shape);
   return entity;
 }
@@ -41,7 +41,7 @@ fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& p
   shape_def.density = shape_properties.density;
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
-  shape_def.rollingResistance = shape_properties.rolling_resistance;
+  //shape_def.rollingResistance = shape_properties.rolling_resistance;
   b2CreateCircleShape(entity.body_id, &shape_def, &shape);
   return entity;
 }
@@ -60,7 +60,7 @@ fan::physics::entity_t fan::physics::context_t::create_capsule(const fan::vec2& 
   shape_def.density = shape_properties.density;
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
-  shape_def.rollingResistance = shape_properties.rolling_resistance;
+  //shape_def.rollingResistance = shape_properties.rolling_resistance;
   b2CreateCapsuleShape(entity.body_id, &shape_def, &shape);
   return entity;
 }

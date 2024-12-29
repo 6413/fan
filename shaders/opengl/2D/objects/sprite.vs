@@ -91,7 +91,7 @@ void main() {
   mat4 m = mat4(1);
   mat4 t1 = translate(mat4(1), -vec3(in_rotation_point, 0));
   mat4 t2 = translate(mat4(1), vec3(in_rotation_point, 0));
-  mat4 r = rotate(mat4(1), in_angle); 
+  mat4 r = rotate(mat4(1), -in_angle); 
   m = t2 * r * t1;
 
   vec2 rotated = vec4(m * vec4(rp * in_size, 0, 1)).xy;
