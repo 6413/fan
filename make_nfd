@@ -2,7 +2,7 @@
 CC = clang
 
 FLAGS =
-CCFLAGS = -fuse-ld=gold -I . -w $(FLAGS) -fpermissive
+CCFLAGS = -fuse-ld=gold -w $(FLAGS) -fpermissive
 
 
 
@@ -25,8 +25,6 @@ else
 	NFD_PATH += $(ROOT_PATH)nativefiledialog/
 	OUT_FILE_FORMAT+=a
 endif
-
-CCFLAGS += -I $(ROOT_PATH)../
 
 #NOTE
 CCFLAGS += $(RELEASE_FLAGS)

@@ -3,7 +3,7 @@ CXX = clang++
 LD = clang++
 
 FLAGS =
-CXXFLAGS = $(FLAGS) -std=c++2a -ferror-limit=3 -Wextra -Wall -Werror -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-bitwise-op-parentheses -Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare -Wno-unused-but-set-parameter -Wno-unused
+CXXFLAGS = $(FLAGS) -fPIC -std=c++2a -ferror-limit=3 -Wextra -Wall -Werror -ferror-limit=4 -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast -Wno-unused-parameter -Wno-unused-function -Wno-shift-op-parentheses -Wno-unused-variable -Wno-bitwise-op-parentheses -Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare -Wno-unused-but-set-parameter -Wno-unused
 
 OUTPUT_PATH = lib/fan/
 ROOT_PATH = ./fan/
@@ -15,9 +15,8 @@ OUT_FILE_FORMAT = so # Shared library extension
 
 INCLUDES =
 
-CXXFLAGS += -I $(ROOT_PATH)../
 CXXFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM -DIMGUI_DEFINE_MATH_OPERATORS
-CXXFLAGS += -Dloco_imgui -Dloco_json -Dloco_assimp
+CXXFLAGS += -Dloco_imgui -Dloco_json -Dloco_assimp -Dloco_box2d
 
 
 FAN_SRC := $(wildcard $(ROOT_PATH)*.cpp $(ROOT_PATH)*/*.cpp $(ROOT_PATH)*/*/*.cpp $(ROOT_PATH)*/*/*/*.cpp)
@@ -41,7 +40,7 @@ $(FAN_LIB): $(FAN_OBJ)
 	$(LD) -shared -fuse-ld=gold -o $(OUTPUT_PATH)$@ $^
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c -fPIC $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(FAN_OBJ) $(OUTPUT_PATH)$(FAN_LIB)

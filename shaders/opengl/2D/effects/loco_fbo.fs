@@ -9,7 +9,7 @@ uniform sampler2D _t01; // Bloom texture
 uniform sampler2D _t02; // Bloom texture
 uniform float bloom_strength = 0;
 uniform float gamma = 1.03;
-uniform float gamma2 = 1.03;
+uniform float gamma2 = 1.00;
 uniform float bloom_gamma = 1.03;
 uniform float exposure = 1.0;
 
@@ -46,6 +46,9 @@ vec3 apply_bloom(vec3 hdrColor, vec3 bloomColor) {
     // result = uncharted2_tone_mapping(result);
 
     result = pow(result, vec3(1.0 / gamma2));
+    if (brightness < 0.5) {
+      return hdrColor;
+    }
 
     return result;
 }
@@ -143,6 +146,6 @@ vec2 uv = gl_FragCoord.xy / window_size;
   //  color = rgb_split(texture_coordinate, color);
 
     color = apply_bloom(hdrColor, bloomColor);
-    color.rgb = 1.0 - exp(-color.rgb * exposure);
+    //color.rgb = 1.0 - exp(-color.rgb * exposure);
     o_attachment0 = vec4(color, 1.0);
 }
