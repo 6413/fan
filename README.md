@@ -100,6 +100,8 @@ Check out the [examples](examples/) directory for sample projects demonstrating 
 Developer console support (F3)
 ![image](https://github.com/6413/fan/assets/56801084/7556ce24-ba0f-43c6-85d6-b951351bb59c)
 
+[tilemap editor](examples/graphics/gui/tilemap_editor.cpp)
+![image](https://github.com/user-attachments/assets/3d1b82d1-63d2-40d5-b3da-07821232ee0d)
 
 [quadtree_visualize](examples/graphics/2D/quadtree_visualize.cpp)
 ![image_2023-11-11_20-24-01](https://github.com/6413/fan/assets/56801084/0aac1cbb-2d41-40ef-b0d0-5ab838b9b3d1)
