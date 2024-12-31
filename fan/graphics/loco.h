@@ -3048,3 +3048,20 @@ void fan::printclh(int highlight, auto&&... values) {
 #if defined(loco_box2d)
   #include <fan/graphics/physics_shapes.hpp>
 #endif
+
+namespace fan {
+  namespace graphics {
+    struct interactive_camera_t {
+      f32_t zoom = 2;
+      bool hovered = false;
+      loco_t::camera_t reference_camera;
+      fan::window_t::buttons_callback_t::nr_t button_cb_nr;
+
+      interactive_camera_t(loco_t::camera_t camera_nr = gloco->orthographic_camera.camera);
+      ~interactive_camera_t();
+
+      // called in loop
+      void move_by_cursor();
+    };
+  }
+}

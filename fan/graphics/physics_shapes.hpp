@@ -216,6 +216,34 @@ namespace fan {
           return *this;
         }
       };
+      std::array<fan::graphics::physics_shapes::rectangle_t, 4> create_stroked_rectangle(
+        const fan::vec2& center_position,
+        const fan::vec2& half_size,
+        f32_t thickness,
+        const fan::color& color = fan::color::hex(0x6e8d6eff),
+        std::array<fan::physics::shape_properties_t, 4> shape_properties = { {
+          {.friction = 0},
+          {.friction = 0.6},
+          {.friction = 0},
+          {.friction = 0}
+        } });
     }
+
+    struct character2d_t {
+
+      inline character2d_t(auto&& shape) : character(std::move(shape)) {
+          gloco->input_action.add(fan::key_a, "move_left");
+          gloco->input_action.add(fan::key_d, "move_right");
+          gloco->input_action.add(fan::key_space, "move_up");
+      }
+
+      void process_movement(f32_t friction = 12);
+
+      f32_t force = 25.f;
+      f32_t impulse = 10.f;
+      f32_t jump_delay = 0.25f;
+      bool jumping = false;
+      fan::graphics::physics_shapes::capsule_t character;
+    };
   }
 }

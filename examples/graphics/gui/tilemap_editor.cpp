@@ -9,59 +9,30 @@ fan::graphics::camera_t camera0;
 fan::graphics::camera_t camera1;
 
 struct player_t {
-  static constexpr fan::vec2 speed{ 300, 300};
-
-  player_t() {
-    visual = fan::graphics::sprite_t{ {
-      .camera = &camera1,
-      .position = fan::vec3(0, 0,  10),
-      .size = 32 / 2,
-      .blending = true,
-    } };
-    loco_t::light_t::properties_t lp;
-    lp.position = visual.get_position();
-    lp.size = 256;
-    lp.color = fan::color(1, 0.4, 0.4, 1);
-    lp.camera = camera1.camera;
-    lp.viewport = camera1.viewport;
-
-    lighting = lp;
+   player_t() {
+    b2World_SetPreSolveCallback(gloco->physics_context.world_id, presolve_static, this);
   }
-  void update() {
-    f32_t dt = gloco->delta_time;
-    f32_t multiplier = 1;
-    if (gloco->window.key_pressed(fan::key_shift)) {
-      multiplier = 3;
-    }
-    if (gloco->window.key_pressed(fan::key_d)) {
-      velocity.x = speed.x * multiplier;
-    }
-    else if (gloco->window.key_pressed(fan::key_a)) {
-      velocity.x = -speed.x * multiplier;
-    }
-    else {
-      velocity.x = 0;
-    }
-
-    if (gloco->window.key_pressed(fan::key_w)) {
-      velocity.y = -speed.y * multiplier;
-    }
-    else if (gloco->window.key_pressed(fan::key_s)) {
-      velocity.y = speed.y * multiplier;
-    }
-    else {
-      velocity.y = 0;
-    }
-
-    visual.set_velocity(velocity);
-
-    fan::vec2 position = visual.get_collider_position();
-    visual.set_position(fan::vec3(position, floor(position.y / 64) + fte_t::shape_depths_t::max_layer_depth / 2));
-    lighting.set_position(visual.get_position());
+  static bool presolve_static(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, void* context) {
+    player_t* pl = static_cast<player_t*>(context);
+    return pl->presolve(shapeIdA, shapeIdB, manifold);
   }
-  fan::vec2 velocity = 0;
-  fan::graphics::collider_dynamic_t visual;
-  loco_t::shape_t lighting;
+  bool presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold) const {
+    return fan::physics::presolve_oneway_collision(shapeIdA, shapeIdB, manifold, player.character);
+  }
+
+  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::capsule_t{{
+    .camera = &camera1,
+    .position = fan::vec3(400, 400, 10),
+    .center0 = {0.f, -128.f},
+    .center1 = {0.f, 128.0f},
+    .radius = 16.f,
+    .color = fan::color::hex(0x715a5eff),
+    .outline_color = fan::color::hex(0x715a5eff) * 2,
+    .blending = true,
+    .body_type = fan::physics::body_type_e::dynamic_body,
+    .mass_data{.mass = 0.01f},
+    .shape_properties{.friction = 0.6f, .density = 0.1f, .fixed_rotation = true},
+  }} };
 };
 
 f32_t zoom = 2;
@@ -162,36 +133,6 @@ int main(int argc, char** argv) {
       p.camera = &camera1;
       map_id0_t = std::make_unique<fte_renderer_t::id_t>(renderer->add(&compiled_map, p));
 
-      fan::graphics::bcol.PreSolve_Shape_cb = [](
-        bcol_t* bcol,
-        const bcol_t::ShapeInfoPack_t* sip0,
-        const bcol_t::ShapeInfoPack_t* sip1,
-        bcol_t::Contact_Shape_t* Contact
-        ) {
-          // player
-          auto* obj0 = bcol->GetObjectExtraData(sip0->ObjectID);
-          // wall
-          auto* obj1 = bcol->GetObjectExtraData(sip1->ObjectID);
-          if (obj1->collider_type == fan::collider::types_e::collider_sensor) {
-            bcol->Contact_Shape_DisableContact(Contact);
-          }
-
-          switch (obj1->collider_type) {
-            case fan::collider::types_e::collider_static:
-            case fan::collider::types_e::collider_dynamic: {
-              // can access shape by obj0->shape
-              break;
-            }
-            case fan::collider::types_e::collider_hidden: {
-              break;
-            }
-            case fan::collider::types_e::collider_sensor: {
-              fan::print("sensor triggered");
-              break;
-            }
-          }
-        };
-
       loco.set_vsync(0);
       //loco.window.set_max_fps(3);
       f32_t total_delta = 0;
@@ -239,8 +180,7 @@ int main(int argc, char** argv) {
     if (render_scene) {
       if (ImGui::Begin("Program", 0, ImGuiWindowFlags_NoBackground)) {
         fan::vec2 s = ImGui::GetContentRegionAvail();
-        player->update();
-        fan::vec2 dst = player->visual.get_position();
+        fan::vec2 dst = player->player.character.get_position();
         fan::vec2 src = loco.camera_get_position(camera1.camera);
         // smooth camera
         //fan::vec2 offset = (dst - src) * 4 * gloco->delta_time;
@@ -255,8 +195,10 @@ int main(int argc, char** argv) {
           camera1.camera,
           dst
         );
+        player->player.process_movement();
         renderer->update(*map_id0_t, dst);
         loco.set_imgui_viewport(camera1.viewport);
+        loco.physics_context.step(loco.delta_time);
       }
       else {
         loco.viewport_zero(

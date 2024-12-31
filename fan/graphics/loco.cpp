@@ -4383,3 +4383,48 @@ void loco_t::remove_physics_update(loco_t::physics_update_cbs_t::nr_t nr) {
   shape_physics_update_cbs.unlrec(nr);
 }
 #endif
+
+fan::graphics::interactive_camera_t::interactive_camera_t(loco_t::camera_t camera_nr) :
+  reference_camera(camera_nr)
+{
+  auto& window = gloco->window;
+  auto update_ortho = [&] {
+    fan::vec2 s = gloco->window.get_size();
+    gloco->camera_set_ortho(
+      reference_camera,
+      fan::vec2(-s.x, s.x) / zoom,
+      fan::vec2(-s.y, s.y) / zoom
+    );
+    };
+
+  update_ortho();
+
+  button_cb_nr = window.add_buttons_callback([&](const auto& d) {
+    if (d.button == fan::mouse_scroll_up) {
+      zoom *= 1.2;
+    }
+    else if (d.button == fan::mouse_scroll_down) {
+      zoom /= 1.2;
+    }
+    update_ortho();
+    });
+}
+
+fan::graphics::interactive_camera_t::~interactive_camera_t() {
+  if (button_cb_nr.iic() == false) {
+    gloco->window.remove_buttons_callback(button_cb_nr);
+    button_cb_nr.sic();
+  }
+}
+
+// called in loop
+void fan::graphics::interactive_camera_t::move_by_cursor() {
+  if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle)) {
+    fan::vec2 drag_delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Middle);
+    gloco->camera_set_position(
+      gloco->orthographic_camera.camera,
+      gloco->camera_get_position(gloco->orthographic_camera.camera) - (drag_delta / zoom) * 2
+    );
+    ImGui::ResetMouseDragDelta(ImGuiMouseButton_Middle);
+  }
+}
