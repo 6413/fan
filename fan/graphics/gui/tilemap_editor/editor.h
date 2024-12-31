@@ -98,6 +98,7 @@ struct fte_t {
   }
 
   void reset_map() {
+    physics_shapes.clear();
     visual_layers.clear();
     map_tiles.clear();
     resize_map();
@@ -386,33 +387,11 @@ struct fte_t {
     uint32_t idx = find_layer_shape(layers);
 
     if (idx == invalid && 
-    (brush.type == brush_t::type_e::light ||
-    brush.type == brush_t::type_e::collider ||
-    brush.type == brush_t::type_e::sensor)) {
+    (brush.type == brush_t::type_e::light)) {
       layers.resize(layers.size() + 1);
       layers.back().tile.position = fan::vec3(position, brush.depth);
       layers.back().tile.size = tile_size * brush.tile_size;
       switch (brush.type) {
-      case brush_t::type_e::sensor:
-      case brush_t::type_e::collider: {
-        layers.back().shape = fan::graphics::sprite_t{ {
-            .camera = camera,
-            .position = fan::vec3(position, brush.depth),
-            .size = tile_size * brush.tile_size,
-            .angle = brush.dynamics_angle == brush_t::dynamics_e::randomize ?
-                  fan::vec3(0, 0, get_snapped_angle()) : brush.angle,
-            .color = brush.dynamics_color == brush_t::dynamics_e::randomize ? fan::random::color() : brush.color,
-            .blending = true
-        } };
-        layers.back().shape.set_image(grid_visualize.collider_color);
-        if (brush.type == brush_t::type_e::sensor) {
-          layers.back().tile.mesh_property = mesh_property_t::sensor;
-        }
-        else {
-          layers.back().tile.mesh_property = mesh_property_t::collider;
-        }
-        break;
-      }
       case brush_t::type_e::light: {
         loco_t::light_t::properties_t lp;
         auto& shape = layers.back().shape;
@@ -443,24 +422,12 @@ struct fte_t {
       return false;
     }
     else if ((brush.type == brush_t::type_e::light ||
-    brush.type == brush_t::type_e::collider ||
     brush.type == brush_t::type_e::sensor)){
       if (idx != invalid || idx < layers.size()) {
         auto& layer = layers[idx];
         layer.tile.id = brush.id;
         layer.tile.size = tile_size;
         switch (brush.type) {
-        case brush_t::type_e::sensor:
-        case brush_t::type_e::collider: {
-          layer.shape.set_image(grid_visualize.collider_color);
-          if (brush.type == brush_t::type_e::sensor) {
-            layer.tile.mesh_property = mesh_property_t::sensor;
-          }
-          else {
-            layer.tile.mesh_property = mesh_property_t::collider;
-          }
-          break;
-        }
         case brush_t::type_e::light: {
           loco_t::light_t::properties_t lp;
           auto& shape = layer.shape;
@@ -590,18 +557,34 @@ struct fte_t {
   }
 
   bool handle_tile_erase(fan::vec2i& position, int& j, int& i) {
+
+    fan::vec2i grid_position = position;
+    convert_draw_to_grid(grid_position);
+    grid_position /= tile_size * 2;
+
+    if (!is_in_constraints(position, j, i)) {
+      return true;
+    }
+
+    {
+      auto found = physics_shapes.find(brush.depth);
+      if (found != physics_shapes.end()) {
+        // find mouse hit from this depth
+        for (auto it = found->second.begin(); it != found->second.end(); ++it) {
+          if (fan_2d::collision::rectangle::point_inside_no_rotation(position, it->visual.get_position(), it->visual.get_size())) {
+            it = found->second.erase(it);
+            return false;
+          }
+        }
+      }
+    }
+
     if (brush.jitter) {
       if (brush.jitter_chance <= fan::random::value_f32(0, 1)) {
         return true;
       }
       position += (fan::random::vec2i(-brush.jitter, brush.jitter) * 2 + 1) * tile_size + tile_size;
     }
-    if (!is_in_constraints(position, j, i)) {
-      return true;
-    }
-    fan::vec2i grid_position = position;
-    convert_draw_to_grid(grid_position);
-    grid_position /= tile_size * 2;
     
     auto found = map_tiles.find(grid_position);
     if (found != map_tiles.end()) {
@@ -653,11 +636,86 @@ struct fte_t {
     if (!editor_settings.hovered)
       return;
 
+    static std::vector<loco_t::shape_t> select;
+    static fan::vec2i copy_src;
+    static fan::vec2i copy_dst;
+    bool is_mouse_left_clicked = ImGui::IsMouseClicked(fan::window_input::fan_to_imguikey(fan::mouse_left));
+    bool is_mouse_left_down = ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_left));
+    bool is_mouse_left_released = ImGui::IsMouseReleased(fan::window_input::fan_to_imguikey(fan::mouse_left));
+    bool is_mouse_right_clicked = ImGui::IsMouseClicked(fan::window_input::fan_to_imguikey(fan::mouse_right));
+    bool is_mouse_right_down = ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_right));
+
+    static auto handle_select_tiles = [&] {
+      select.clear();
+      fan::vec2i mouse_grid_pos;
+      if (mouse_to_grid(mouse_grid_pos)) {
+        fan::vec2i src = copy_src;
+        fan::vec2i dst = mouse_grid_pos;
+        copy_dst = dst;
+        // 2 is coordinate specific
+        int stepx = (src.x <= dst.x) ? 1 : -1;
+        int stepy = (src.y <= dst.y) ? 1 : -1;
+        for (int j = src.y; j != dst.y + stepy; j += stepy) {
+          for (int i = src.x; i != dst.x + stepx; i += stepx) {
+            select.push_back(fan::graphics::unlit_sprite_t{ {
+                .camera = camera,
+                .position = fan::vec3(fan::vec2(i, j) * tile_size * 2, shape_depths_t::cursor_highlight_depth),
+                .size = tile_size,
+                .image = grid_visualize.highlight_color,
+                .blending = true
+            } });
+          }
+        }
+      }
+    };
+
     switch (brush.mode) {
       case brush_t::mode_e::draw: {
+        
+        switch (brush.type) {
+        case brush_t::type_e::physics_shape:{
+
+            if (is_mouse_left_clicked) {
+              select.clear();
+              fan::vec2i mouse_grid_pos;
+              if (mouse_to_grid(mouse_grid_pos)) {
+                copy_src = mouse_grid_pos;
+              }
+            }
+            if (is_mouse_left_down) {
+              handle_select_tiles();
+            }
+            if (is_mouse_left_released) {
+              select.clear();
+              fan::vec2i mouse_grid_pos;
+              if (mouse_to_grid(mouse_grid_pos)) {
+                auto& layers = physics_shapes[brush.depth];
+                layers.push_back({
+                  .visual = fan::graphics::sprite_t{ {
+                    .camera = camera,
+                    .position = fan::vec3((fan::vec2(copy_src) + (fan::vec2(copy_dst) - fan::vec2(copy_src)) / 2) * tile_size * 2, brush.depth),
+                    .size = (((copy_dst - copy_src) + fan::vec2(1, 1)) * fan::vec2(tile_size)).abs(),
+                    .image = grid_visualize.collider_color,
+                    .blending = true
+                  } },
+                  .type = brush.physics_type,
+                  .body_type = brush.physics_body_type,
+                  .draw = brush.physics_draw,
+                  .shape_properties = brush.physics_shape_properties
+                });
+              }
+            }
+            if (!(is_mouse_right_clicked || is_mouse_right_down)) {
+              return;
+            }
+            break;
+          }
+        default: {
+          break;
+        }
+        }
+
         fan::vec2i position;
-        bool is_mouse_left_down = ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_left));
-        bool is_mouse_right_down = ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_right));
         bool is_ctrl_pressed = gloco->window.key_pressed(fan::key_left_control);
         bool is_shift_pressed = gloco->window.key_pressed(fan::key_left_shift);
 
@@ -674,16 +732,6 @@ struct fte_t {
         break;
       }
       case brush_t::mode_e::copy: {
-
-        static fan::vec2i copy_src;
-        static fan::vec2i copy_dst;
-        bool is_mouse_left_clicked = ImGui::IsMouseClicked(fan::window_input::fan_to_imguikey(fan::mouse_left));
-        bool is_mouse_left_held = ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_left));
-        bool is_mouse_left_released = ImGui::IsMouseReleased(fan::window_input::fan_to_imguikey(fan::mouse_left));
-        bool is_mouse_right_clicked = ImGui::IsMouseClicked(fan::window_input::fan_to_imguikey(fan::mouse_right));
-
-        static std::vector<loco_t::shape_t> select;
-
         if (is_mouse_left_clicked) {
           select.clear();
           copy_buffer.clear();
@@ -692,28 +740,8 @@ struct fte_t {
             copy_src = mouse_grid_pos;
           }
         }
-        if (is_mouse_left_held) {
-          select.clear();
-          fan::vec2i mouse_grid_pos;
-          if (mouse_to_grid(mouse_grid_pos)) {
-            fan::vec2i src = copy_src;
-            fan::vec2i dst = mouse_grid_pos;
-            copy_dst = dst;
-            // 2 is coordinate specific
-            int stepx = (src.x <= dst.x) ? 1 : -1;
-            int stepy = (src.y <= dst.y) ? 1 : -1;
-            for (int j = src.y; j != dst.y + stepy; j += stepy) {
-              for (int i = src.x; i != dst.x + stepx; i += stepx) {
-                select.push_back(fan::graphics::unlit_sprite_t{ {
-                    .camera = camera,
-                    .position = fan::vec3(fan::vec2(i, j) * tile_size * 2, shape_depths_t::cursor_highlight_depth),
-                    .size = tile_size,
-                    .image = grid_visualize.highlight_color,
-                    .blending = true
-                } });
-              }
-            }
-          }
+        if (is_mouse_left_down) {
+          handle_select_tiles();
         }
         if (is_mouse_left_released) {
           select.clear();
@@ -1542,6 +1570,47 @@ struct fte_t {
       }
 
       ImGui::ColorEdit4("color", (float*)brush.color.data());
+
+      switch (brush.type) {
+      case brush_t::type_e::physics_shape: {
+
+        {
+          static int default_value = 0;
+          if (ImGui::Combo("Physics shape type", &default_value, brush.physics_type_names, std::size(brush.physics_type_names))) {
+            brush.physics_type = default_value;
+          }
+        }
+        {
+          static int default_value = 0;
+          if (ImGui::Combo("Physics body type", &default_value, brush.physics_body_type_names, std::size(brush.physics_body_type_names))) {
+            brush.physics_body_type = default_value;
+          }
+        }
+        {
+          static bool default_value = 0;
+          if (ImGui::ToggleButton("Physics shape draw", &default_value)) {
+            brush.physics_draw = default_value;
+          }
+        }
+        {
+          static fan::physics::shape_properties_t shape_properties;
+          if (fan_imgui_dragfloat_named("Physics shape friction", shape_properties.friction, 0.01, 0, 1)) {
+            brush.physics_shape_properties.friction = shape_properties.friction;
+          }
+          if (fan_imgui_dragfloat_named("Physics shape density", shape_properties.density, 0.01, 0, 1)) {
+            brush.physics_shape_properties.density = shape_properties.density;
+          }
+          if (ImGui::ToggleButton("Physics shape fixed rotation", &shape_properties.fixed_rotation)) {
+            brush.physics_shape_properties.fixed_rotation = shape_properties.fixed_rotation;
+          }
+          if (ImGui::ToggleButton("Physics shape enable presolve events", &shape_properties.enable_presolve_events)) {
+            brush.physics_shape_properties.enable_presolve_events = shape_properties.enable_presolve_events;
+          }
+        }
+
+        break;
+      }
+      }
     }
     ImGui::End();
   }
@@ -1694,6 +1763,40 @@ struct fte_t {
         tiles.push_back(tile);
       }
     }
+    for (auto& i : physics_shapes) {
+      for (auto& j : i.second) {
+        fan::json tile;
+        if (j.visual.get_size() == 0) {
+          fan::print("warning out size 0", j.visual.get_position());
+        }
+        fan::graphics::shape_serialize(j.visual, &tile);
+        tile["image_name"] = tile_t().image_name;
+        tile["mesh_property"] = fte_t::mesh_property_t::physics_shape;
+        tile["id"] = tile_t().id;
+        tile["action"] = tile_t().action;
+        tile["key"] = tile_t().key;
+        tile["key_state"] = tile_t().key_state;
+        tile["object_names"] = tile_t().object_names;
+
+        /*
+        uint8_t type = type_e::box;
+    uint8_t body_type = fan::physics::body_type_e::static_body;
+    bool draw = false;
+    fan::physics::shape_properties_t shape_properties;
+        */
+
+        fan::json physics_shape_data;
+        physics_shape_data["type"] = j.type;
+        physics_shape_data["body_type"] = j.body_type;
+        physics_shape_data["draw"] = j.draw;
+        physics_shape_data["friction"] = j.shape_properties.friction;
+        physics_shape_data["density"] = j.shape_properties.density;
+        physics_shape_data["fixed_rotation"] = j.shape_properties.fixed_rotation;
+        physics_shape_data["enable_presolve_events"] = j.shape_properties.enable_presolve_events;
+        tile["physics_shape_data"] = physics_shape_data;
+        tiles.push_back(tile);
+      }
+    }
 
     
     fan::json j;
@@ -1740,12 +1843,33 @@ shape data{
     map_tiles.clear();
     visual_layers.clear();
     visual_shapes.clear();
+    physics_shapes.clear();
     resize_map();
 
     fan::graphics::shape_deserialize_t it;
     loco_t::shape_t shape;
     while (it.iterate(json["tiles"], &shape)) {
       const auto& shape_json = *(it.data.it - 1);
+      if (shape_json["mesh_property"] == fte_t::mesh_property_t::physics_shape) {
+        auto& physics_shape = physics_shapes[shape.get_position().z];
+        physics_shape.resize(physics_shape.size() + 1);
+        auto& physics_element = physics_shape.back();
+        shape.set_camera(camera->camera);
+        shape.set_viewport(camera->viewport);
+        shape.set_image(grid_visualize.collider_color);
+        if (shape_json.contains("physics_shape_data")) {
+          const fan::json& physics_shape_data = shape_json["physics_shape_data"];
+          physics_element.type = physics_shape_data["type"];
+          physics_element.body_type = physics_shape_data["body_type"];
+          physics_element.draw = physics_shape_data["draw"];
+          physics_element.shape_properties.friction = physics_shape_data["friction"] ;
+          physics_element.shape_properties.density = physics_shape_data["density"] ;
+          physics_element.shape_properties.fixed_rotation = physics_shape_data["fixed_rotation"] ;
+          physics_element.shape_properties.enable_presolve_events = physics_shape_data["enable_presolve_events"];
+        }
+        physics_element.visual = std::move(shape);
+        continue;
+      }
       fan::vec2i gp = shape.get_position();
       uint16_t depth = shape.get_position().z;
       convert_draw_to_grid(gp);
@@ -1753,21 +1877,12 @@ shape data{
       auto found = map_tiles.find(gp);
       fte_t::shapes_t::global_t::layer_t* layer = nullptr;
       visual_layers[depth].positions[gp];
-      /*if (gp.x == -9 && gp.y == -9 && depth - shape_depths_t::max_layer_depth / 2 == 1) {
-        fan::print("a");
-      }*/
       if (found != map_tiles.end()) {
         found->second.layers.resize(found->second.layers.size() + 1);
-        //if (depth != map_tiles[gp].layers.size() - 1 + shape_depths_t::max_layer_depth / 2) {
-        //  //fan::print(gp);
-        //}
         layer = &found->second.layers.back();
       }
       else {
         map_tiles[gp].layers.resize(1);
-        //if (depth != map_tiles[gp].layers.size() - 1 + shape_depths_t::max_layer_depth / 2) {
-        // // fan::print(gp);
-        //}
         layer = &map_tiles[gp].layers.back();
       }
 
@@ -1790,17 +1905,6 @@ shape data{
           layer->shape.set_camera(camera->camera);
           layer->shape.set_viewport(camera->viewport);
           layer->shape.set_tp(&ti);
-          break;
-        }
-        case fte_t::mesh_property_t::sensor:
-        case fte_t::mesh_property_t::collider: {
-          //map_tile.layers.back().shape.set_image(&fte->grid_visualize.collider_color);
-          layer->shape.set_camera(camera->camera);
-          layer->shape.set_viewport(camera->viewport);
-          layer->shape.set_image(grid_visualize.collider_color);
-          layer->tile.action = shape_json.value("action", actions_e::none);
-          layer->tile.key = shape_json.value("key", fan::key_invalid);
-          layer->tile.key_state = shape_json.value("key_state", (int)fan::keyboard_state::press);
           break;
         }
         case fte_t::mesh_property_t::light: {
@@ -1887,6 +1991,9 @@ shape data{
   std::map<fan::vec2i, int, sort_by_y_t> current_image_indices;
 
   std::unordered_map<fan::vec2i, shapes_t::global_t, vec2i_hasher> map_tiles;
+  // key by depth, slow to loop all and check aabb collision
+
+  std::unordered_map<f32_t, std::vector<fte_t::physics_shapes_t>> physics_shapes;
   struct visualize_t {
     loco_t::shape_t shape;
   };
@@ -1930,11 +2037,11 @@ shape data{
     static constexpr const char* mode_names[] = {"Draw", "Copy"};
     enum class type_e : uint8_t {
       texture,
-      collider,
+      physics_shape = fte_t::mesh_property_t::physics_shape,
       sensor,
       light
     };
-    static constexpr const char* type_names[] = { "Texture", "Collider", "Sensor", "Light"};
+    static constexpr const char* type_names[] = { "Texture", "Physics shape", "Sensor", "Light"};
     type_e type = type_e::texture;
 
     enum class dynamics_e : uint8_t {
@@ -1953,6 +2060,14 @@ shape data{
     f32_t jitter_chance = 0.33;
     fan::string id;
     fan::color color = fan::color(1);
+
+    // physics stuff
+    uint8_t physics_type = physics_shapes_t::type_e::box;
+    static constexpr const char* physics_type_names[] = { "Box", "Circle" };
+    uint8_t physics_body_type = fan::physics::body_type_e::static_body;
+    static constexpr const char* physics_body_type_names[] = { "Static", "Kinematic", "Dynamic" };
+    bool physics_draw = false;
+    fan::physics::shape_properties_t physics_shape_properties;
   }brush;
 
   struct {

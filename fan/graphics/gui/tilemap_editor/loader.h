@@ -1,6 +1,6 @@
-#include <variant>
 #include <fan/io/file.h>
 #include <fan/io/json_impl.h>
+#include <variant>
 
 struct fte_loader_t {
 
@@ -33,20 +33,31 @@ struct fte_loader_t {
     fan::vec2i tile_size;
     #if tilemap_renderer == 0
     std::vector<std::vector<std::vector<fte_t::tile_t>>> compiled_shapes;
+    struct physics_data_t {
+      fan::vec3 position;
+      fan::vec2 size;
+      fte_t::physics_shapes_t physics_shapes;
+    };
+    std::vector<physics_data_t> physics_shapes;
     #elif tilemap_renderer == 1
     std::unordered_map<fan::vec2i, fan::mp_t<current_version_t::shapes_t>, vec2i_hasher> compiled_shapes;
     #endif
   };
 
-  using tile_draw_data_t = std::variant<loco_t::shape_t,
-    fan::graphics::collider_hidden_t, 
-    fan::graphics::collider_sensor_t>;
+  using tile_draw_data_t = loco_t::shape_t;
     
   #include <fan/fan_bll_preset.h>
 
   struct map_list_data_t{
     compiled_map_t* compiled_map;
     std::unordered_map<fan::vec3i, tile_draw_data_t, vec3i_hasher> tiles;
+    struct physics_entities_t {
+      std::variant<
+        fan::graphics::physics_shapes::rectangle_t,
+        fan::graphics::physics_shapes::circle_t
+      >visual;
+    };
+    std::vector<physics_entities_t> physics_entities;
   };
 
   #define BLL_set_prefix map_list
@@ -91,9 +102,26 @@ public:
     loco_t::shape_t shape;
     while (it.iterate(json["tiles"], &shape)) {
       auto shape_json = *(it.data.it - 1);
+      if (shape_json["mesh_property"] == fte_t::mesh_property_t::physics_shape) {
+        compiled_map.physics_shapes.resize(compiled_map.physics_shapes.size() + 1);
+        compiled_map_t::physics_data_t& physics_element = compiled_map.physics_shapes.back();
+
+        physics_element.position = shape.get_position();
+        physics_element.size = shape.get_size();
+
+        const fan::json& physics_shape_data = shape_json["physics_shape_data"];
+        physics_element.physics_shapes.type = physics_shape_data["type"];
+        physics_element.physics_shapes.body_type = physics_shape_data["body_type"];
+        physics_element.physics_shapes.draw = physics_shape_data["draw"];
+        physics_element.physics_shapes.shape_properties.friction = physics_shape_data["friction"] ;
+        physics_element.physics_shapes.shape_properties.density = physics_shape_data["density"] ;
+        physics_element.physics_shapes.shape_properties.fixed_rotation = physics_shape_data["fixed_rotation"] ;
+        physics_element.physics_shapes.shape_properties.enable_presolve_events = physics_shape_data["enable_presolve_events"];
+       
+        continue;
+      }
       fte_t::tile_t tile;
       fan::vec2i gp = shape.get_position();
-      convert_draw_to_grid(compiled_map.tile_size, gp);
       gp /= compiled_map.tile_size * compiled_map.map_size;
       //gp += compiled_map.map_size / 2;
       tile.position = shape.get_position();
@@ -118,76 +146,6 @@ public:
     fan::vec3 offset = 0;
     fan::graphics::camera_t* camera = nullptr;
   };
-
-  static void convert_draw_to_grid(fan::vec2i tile_size, fan::vec2i& p) {
-
-  }
-
- /* id_t add(compiled_map_t* compiled_map) {
-    add(compiled_map, properties_t());
-  }*/
-
-  //id_t add(compiled_map_t* compiled_map, const properties_t& p) {
-  //  auto it = map_list.NewNodeLast();
-  //  auto& node = map_list[it];
-  //  node.compiled_map = compiled_map;
-  //  fan::vec2 origin = 0;//-fan::vec2(compiled_map->map_size * compiled_map->tile_size / 2) * p.size;
-  //  for (auto& i : compiled_map->compiled_shapes) {
-  //    for (auto x : i) {
-  //      for (auto& j : x.tile.layers) {
-  //        p.object_add_cb(j);
-
-  //        switch (j.mesh_property) {
-  //          case fte_t::mesh_property_t::none: {
-  //            // set map origin point to 0
-  //            node.tiles.push_back(fan::graphics::sprite_t{ {
-  //                .position = fan::vec3(origin + *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size, j.position.z + p.position.z),
-  //                .size = j.size * p.size,
-  //                .angle = j.angle,
-  //                .color = j.color
-  //            } });
-  //            loco_t::texturepack_t::ti_t ti;
-  //            if (texturepack->qti(j.image_hash, &ti)) {
-  //              fan::throw_error("failed to load image from .fte - corrupted save file");
-  //            }
-  //            gloco->sprite.load_tp(
-  //              map_list[it].tiles.back(),
-  //              &ti
-  //            );
-  //            break;
-  //          }
-  //          case fte_t::mesh_property_t::collider: {
-  //            node.collider_hidden.push_back(
-  //              fan::graphics::collider_hidden_t(
-  //                *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size,
-  //                j.size * p.size
-  //              )
-  //            );
-  //            break;
-  //          }
-  //          case fte_t::mesh_property_t::sensor: {
-  //            node.collider_sensor.push_back(
-  //              fan::graphics::collider_sensor_t(
-  //                *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size,
-  //                j.size * p.size
-  //              )
-  //            );
-  //            break;
-  //          }
-  //          case fte_t::mesh_property_t::light: {
-  //            node.tiles.push_back(fan::graphics::light_t{ {
-  //              .position = fan::vec3(origin + *(fan::vec2*)&p.position + fan::vec2(j.position) * p.size, j.position.z + p.position.z),
-  //              .size = j.size * p.size,
-  //              .color = j.color
-  //            } });
-  //            break;
-  //          }
-  //        }
-  //      }
-  //    }
-  //  }
-  //  return it;
-  //}
 
   loco_t::texturepack_t* texturepack;
 };

@@ -31,6 +31,9 @@ namespace fan {
     struct body_id_t : b2BodyId {
       using b2BodyId::b2BodyId;
       body_id_t(const b2BodyId& body_id) : b2BodyId(body_id) {}
+      void destroy() {
+        b2DestroyBody(*this);
+      }
     };
 
     struct shape_properties_t {
@@ -75,5 +78,10 @@ namespace fan {
 
       b2WorldId world_id;
     };
+
+    // This callback must be thread-safe. It may be called multiple times simultaneously.
+// Notice how this method is constant and doesn't change any data. It also
+// does not try to access any values in the world that may be changing, such as contact data.
+    bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body);
   }
 }

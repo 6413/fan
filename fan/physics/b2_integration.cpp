@@ -68,3 +68,39 @@ fan::physics::entity_t fan::physics::context_t::create_capsule(const fan::vec2& 
 void fan::physics::context_t::step(f32_t dt) {
   b2World_Step(world_id, dt, 4);
 }
+
+bool fan::physics::presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body) {
+    assert(b2Shape_IsValid(shapeIdA));
+    assert(b2Shape_IsValid(shapeIdB));
+
+    float sign = 0.0f;
+    if (B2_ID_EQUALS(shapeIdA, character_body)) {
+        sign = 1.0f;
+    }
+    else if (B2_ID_EQUALS(shapeIdB, character_body)) {
+        sign = -1.0f;
+    }
+    else {
+        // not colliding with the player, enable contact
+        return true;
+    }
+
+    b2Vec2 normal = manifold->normal;
+    if (sign * normal.y > 0.95f) {
+        return true;
+    }
+
+    float separation = 0.0f;
+    for (int i = 0; i < manifold->pointCount; ++i) {
+        float s = manifold->points[i].separation;
+        separation = separation < s ? separation : s;
+    }
+
+    if (separation > 0.1f * 64.f) {
+        // shallow overlap
+        return true;
+    }
+
+    // normal points down, disable contact
+    return false;
+}

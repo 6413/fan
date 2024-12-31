@@ -1,3 +1,4 @@
+// old, newer lib makes code much smaller
 #include <fan/pch.h>
 #include <fan/time/timer.h>
 

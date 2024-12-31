@@ -71,6 +71,39 @@ struct fte_renderer_t : fte_loader_t {
         }
       }
     }
+    for (compiled_map_t::physics_data_t& pd : node.compiled_map->physics_shapes) {
+      switch (pd.physics_shapes.type) {
+      case fte_t::physics_shapes_t::type_e::box: {
+        node.physics_entities.push_back({
+          .visual = fan::graphics::physics_shapes::rectangle_t{{
+              .camera = camera,
+              .position = pd.position,
+              .size = pd.size,
+              .color = pd.physics_shapes.draw ? fan::color::hex(0x6e8d6eff) : fan::colors::transparent,
+              .outline_color = (pd.physics_shapes.draw ? fan::color::hex(0x6e8d6eff) : fan::colors::transparent) * 2,
+              .blending = true,
+              .body_type = pd.physics_shapes.body_type,
+              .shape_properties = pd.physics_shapes.shape_properties,
+            }}
+        });
+        break;
+      }
+      case fte_t::physics_shapes_t::type_e::circle: {
+        node.physics_entities.push_back({
+          .visual = fan::graphics::physics_shapes::circle_t{{
+              .camera = camera,
+              .position = pd.position,
+              .radius = pd.size.max(),
+              .color = pd.physics_shapes.draw ? fan::color::hex(0x6e8d6eff) : fan::colors::transparent,
+              .blending = true,
+              .body_type = pd.physics_shapes.body_type,
+              .shape_properties = pd.physics_shapes.shape_properties
+            }}
+        });
+        break;
+      }
+      }
+    }
   }
 
   struct userdata_t {
@@ -95,7 +128,7 @@ struct fte_renderer_t : fte_loader_t {
         if (texturepack->qti(j.image_name, &ti)) {
           fan::throw_error("failed to load image from .fte - corrupted save file");
         }
-        std::get<loco_t::shape_t>(node.tiles[fan::vec3i(x, y, depth)]).load_tp(
+        node.tiles[fan::vec3i(x, y, depth)].load_tp(
           &ti
         );
         break;
@@ -109,42 +142,10 @@ struct fte_renderer_t : fte_loader_t {
         } };
         break;
       }
-      case fte_t::mesh_property_t::collider: {
-        node.tiles[fan::vec3i(x, y, depth)] =
-          fan::graphics::collider_hidden_t(
-            *(fan::vec2*)&position + fan::vec2(j.position) * size,
-            j.size * size
-          )
-        ;
-        break;
-      }
-      case fte_t::mesh_property_t::sensor: {
-        userdata_t userdata;
-        userdata.key = j.key;
-        userdata.key_state = j.key_state;
-        node.tiles[fan::vec3i(x, y, depth)] =
-          fan::graphics::collider_sensor_t(
-            *(fan::vec2*)&position + fan::vec2(j.position) * size,
-            j.size * size,
-            userdata
-          )
-        ;
-        break;
-      }
       default: {
         fan::throw_error("unimplemented switch");
       }
     }
-    std::visit([&]<typename T>(T & v) {
-      if constexpr (!std::is_same_v<fan::graphics::collider_sensor_t, T> &&
-        !std::is_same_v<fan::graphics::collider_hidden_t, T>) {
-       // fan::print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", v.get_parallax_factor());
-        //v.set_camera(camera->camera);
-      }
-      //if constexpr (fan_has_function(T, set_camera (v))) {
-
-      //}
-    }, node.tiles[fan::vec3i(x, y, depth)]);
 
     auto found = id_callbacks.find(j.id);
     if (found != id_callbacks.end()) {
@@ -153,16 +154,11 @@ struct fte_renderer_t : fte_loader_t {
   }
 
   void clear(node_t& node) {
-    for (auto& i : node.tiles) {
-      std::visit([]<typename T>(T & v) {
-        if constexpr (fan::same_as_any<T,
-          fan::graphics::collider_hidden_t,
-          fan::graphics::collider_sensor_t>) {
-          v.close();
-        }
-      }, i.second);
-    }
     node.tiles.clear();
+    for (auto& j : node.physics_entities) {
+      std::visit([](auto& obj){obj.body_id.destroy();}, j.visual);
+    }
+    node.physics_entities.clear();
   }
 
   struct shape_depths_t {
@@ -199,8 +195,6 @@ struct fte_renderer_t : fte_loader_t {
     fan::vec2i src = (position_ / node.compiled_map->tile_size).floor();
     convert_to_grid(src);
 
-    fan::print(src);
-
     fan::vec3i src_vec3 = prev_src;
 
     for (int off = 0; off < std::abs(offset.y); ++off) {
@@ -211,14 +205,6 @@ struct fte_renderer_t : fte_loader_t {
             y,
             (offset.y < 0 ? view_size.y - off - 1 : off),
             depth);
-          std::visit([]<typename T>(T& v) {
-            if constexpr (fan::same_as_any<T,
-              fan::graphics::collider_hidden_t,
-              fan::graphics::collider_sensor_t>) {
-              fan::print("closing collider");
-              v.close();
-            }
-          }, node.tiles[erase_at]);
           node.tiles.erase(erase_at);
         }
         fan::vec2i grid_pos = src;
@@ -253,14 +239,6 @@ struct fte_renderer_t : fte_loader_t {
             (offset.x < 0 ? view_size.x - off - 1 : off),
             x,
             depth);
-          std::visit([]<typename T>(T & v) {
-            if constexpr (fan::same_as_any<T,
-              fan::graphics::collider_hidden_t,
-              fan::graphics::collider_sensor_t>) {
-              fan::print("closing collider");
-              v.close();
-            }
-          }, node.tiles[erase_at]);
           node.tiles.erase(erase_at);
         }
         fan::vec2i grid_pos = src;
