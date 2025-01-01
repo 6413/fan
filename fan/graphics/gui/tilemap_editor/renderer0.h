@@ -30,8 +30,8 @@ struct fte_renderer_t : fte_loader_t {
     auto& node = map_list[it];
     node.compiled_map = compiled_map;
    
-    view_size = p.size / node.compiled_map->tile_size / 2;
-    prev_render = (p.position / node.compiled_map->tile_size / 2).floor();
+    view_size = p.size * 2;
+    prev_render = (p.position / node.compiled_map->tile_size).floor();
 
     position = p.offset;
     initialize(node, p.position);
@@ -45,17 +45,14 @@ struct fte_renderer_t : fte_loader_t {
     clear(node);
 
     fan::vec2i src = (position / node.compiled_map->tile_size).floor();
-    //src.x -= view_size.x / 2;
-    //src.y -= view_size.y / 2;
+    src.x -= view_size.x / 2;
+    src.y -= view_size.y / 2;
 
     auto& map_tiles = node.compiled_map->compiled_shapes;
 
     for (int y = 0; y < view_size.y; ++y) {
       for (int x = 0; x < view_size.x; ++x) {
         fan::vec2i grid_pos = src + fan::vec2i(x, y);
-        if (!(grid_pos.y < (int64_t)map_tiles.size() && grid_pos.x < (int64_t)map_tiles[grid_pos.y].size())) {
-          continue;
-        }
         if (grid_pos.y >= (int64_t)map_tiles.size() || grid_pos.x >= (int64_t)map_tiles[grid_pos.y].size()) {
           continue;
         }
@@ -169,13 +166,13 @@ struct fte_renderer_t : fte_loader_t {
 
   void update(id_t id, const fan::vec2& position_) {
     auto& node = map_list[id];
-    if (prev_render == (position_ / node.compiled_map->tile_size / 2).floor()) {
+    if (prev_render == (position_ / node.compiled_map->tile_size).floor()) {
       return;
     }
     fan::vec2i old_render = prev_render;
     auto& map_tiles = node.compiled_map->compiled_shapes;
 
-    prev_render = (position_ / node.compiled_map->tile_size / 2).floor();
+    prev_render = (position_ / node.compiled_map->map_size).floor();
     fan::vec2i offset = prev_render - old_render;
 
     if (offset.x > view_size.x || offset.y > view_size.y) {
@@ -183,16 +180,24 @@ struct fte_renderer_t : fte_loader_t {
       return;
     }
     auto convert_to_grid = [&node, this] (fan::vec2i& src) {
-      src -= view_size;
+            //p = ((p - tile_size) / tile_size).floor() * tile_size;
+      //src.x -= view_size.x;
+      //src.y -= view_size.y;
       src /= 2;
-      /*src.x += .x / 2;
-      src.y += view_size.y / 2;*/
-      src = (src).floor();
+      src.x -= view_size.x / 2;
+      src.y -= view_size.y / 2;
+      src += 1;
+     // src.x /= 2;
+     //// src /= 2;
+     // /*src.x += .x / 2;*/
+     // src.y += view_size.y * 3.5;
+      //src.x -= view_size.y / ;
+      //src = (src).floor();
     };
 
     fan::vec2i prev_src = old_render;
     convert_to_grid(prev_src);
-    fan::vec2i src = (position_ / node.compiled_map->tile_size).floor();
+    fan::vec2i src = (position_ / node.compiled_map->map_size).floor();
     convert_to_grid(src);
 
     fan::vec3i src_vec3 = prev_src;
@@ -214,16 +219,10 @@ struct fte_renderer_t : fte_loader_t {
         else {
           grid_pos += fan::vec2i(y, off);
         }
-        if (!(grid_pos.y < (int64_t)map_tiles.size() && grid_pos.x < (int64_t)map_tiles[grid_pos.y].size())) {
-          continue;
-        }
         if (grid_pos.x < 0 || grid_pos.y < 0) {
           continue;
         }
         if (grid_pos.y >= (int64_t)map_tiles.size() || grid_pos.x >= (int64_t)map_tiles[grid_pos.y].size()) {
-          continue;
-        }
-        if (map_tiles[grid_pos.y][grid_pos.x].empty()) {
           continue;
         }
         int depth = 0;
@@ -248,16 +247,10 @@ struct fte_renderer_t : fte_loader_t {
         else {
           grid_pos += fan::vec2i(off, x);
         }
-        if (!(grid_pos.y < (int64_t)map_tiles.size() && grid_pos.x < (int64_t)map_tiles[grid_pos.y].size())) {
-          continue;
-        }
         if (grid_pos.x < 0 || grid_pos.y < 0) {
           continue;
         }
         if (grid_pos.y >= (int64_t)map_tiles.size() || grid_pos.x >= (int64_t)map_tiles[grid_pos.y].size()) {
-          continue;
-        }
-        if (map_tiles[grid_pos.y][grid_pos.x].empty()) {
           continue;
         }
         int depth = 0;
