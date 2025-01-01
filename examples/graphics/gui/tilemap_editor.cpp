@@ -122,14 +122,13 @@ int main(int argc, char** argv) {
       static fte_loader_t::compiled_map_t compiled_map;
       compiled_map = renderer->compile(fte.file_name + "temp");
       fan::vec2i render_size(16, 9);
-      render_size *= 2;
-      render_size += 3;
+      //render_size *= 2;
+      //render_size += 3;
 
       fte_loader_t::properties_t p;
 
       p.position = fan::vec3(0, 0, 0);
-      p.size = (render_size * 2) * 32;
-
+      p.size = (render_size);
       p.camera = &camera1;
       map_id0_t = std::make_unique<fte_renderer_t::id_t>(renderer->add(&compiled_map, p));
 
@@ -175,6 +174,8 @@ int main(int argc, char** argv) {
   };
 
   loco.set_vsync(0);
+
+  fte.fin("example.json");
 
   loco.loop([&] {
     if (render_scene) {
