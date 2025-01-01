@@ -122,7 +122,7 @@ public:
       }
       fte_t::tile_t tile;
       fan::vec2i gp = shape.get_position();
-      gp /= compiled_map.tile_size * compiled_map.map_size;
+      gp /= compiled_map.map_size * 2;
       //gp += compiled_map.map_size / 2;
       tile.position = shape.get_position();
       tile.size = shape.get_size();
