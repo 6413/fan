@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/ev/ev.h>
+
 #include <fan/graphics/loco_settings.h>
 #include <fan/graphics/file_dialog.h>
 
@@ -2848,6 +2850,7 @@ namespace fan {
 namespace ImGui {
   IMGUI_API void Image(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
   IMGUI_API bool ImageButton(const std::string& str_id, loco_t::image_t img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
+  IMGUI_API bool ImageTextButton(loco_t::image_t img, const std::string& text, const fan::color& color, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 
   bool ToggleButton(const std::string& str, bool* v);
   bool ToggleImageButton(const std::string& char_id, loco_t::image_t image, const ImVec2& size, bool* toggle);
@@ -2953,6 +2956,8 @@ namespace fan {
         }
       }
     };
+
+    void text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0);
   }
 }
 #endif
@@ -3062,6 +3067,37 @@ namespace fan {
 
       // called in loop
       void move_by_cursor();
+    };
+
+    struct dialogue_box_t {
+
+      dialogue_box_t();
+
+      // 0-1
+      void set_cursor_position(const fan::vec2& pos);
+      fan::ev::task_t text(const std::string& text);
+
+      fan::ev::task_t button(const std::string& text, const fan::vec2& position = -1, const fan::vec2& size = {0, 0});
+      int get_button_choice() const;
+
+      fan::ev::task_t wait_user_input();
+
+      void render(const std::string& window_name, ImFont* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing);
+
+      bool finish_dialog = false; // for skipping
+      bool wait_user = false;
+      std::string active_dialogue;
+
+      uint64_t character_per_s = 20;
+      std::size_t render_pos = 0;
+      fan::vec2 cursor_position = -1;
+      struct button_t {
+        fan::vec2 position = -1;
+        fan::vec2 size = 0;
+        std::string text;
+      };
+      std::vector<button_t> buttons;
+      int button_choice = -1;
     };
   }
 }

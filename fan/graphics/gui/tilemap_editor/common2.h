@@ -43,4 +43,5 @@ struct physics_shapes_t {
   uint8_t body_type = fan::physics::body_type_e::static_body;
   bool draw = false;
   fan::physics::shape_properties_t shape_properties;
+  std::string id;
 };

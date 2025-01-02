@@ -5,6 +5,8 @@
 #include <chrono>
 
 #include <uv.h>
+#undef min
+#undef max
 
 using namespace std::chrono_literals;
 

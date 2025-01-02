@@ -34,40 +34,9 @@ struct player_t {
     .shape_properties{.friction = 0.6f, .density = 0.1f, .fixed_rotation = true},
   }} };
 };
-
-f32_t zoom = 2;
-bool hovered = false;
-void init_zoom() {
-  auto& window = gloco->window;
-  auto update_ortho = [&] {
-    fan::vec2 s = gloco->window.get_size();
-    gloco->camera_set_ortho(
-      camera1.camera,
-      fan::vec2(-s.x, s.x) / zoom,
-      fan::vec2(-s.y, s.y) / zoom
-    );
-  };
-
-  update_ortho();
-
-  window.add_buttons_callback([&](const auto& d) {
-    if (!hovered) {
-      return;
-    }
-    if (d.button == fan::mouse_scroll_up) {
-      zoom *= 1.2;
-    }
-    else if (d.button == fan::mouse_scroll_down) {
-      zoom /= 1.2;
-    }
-    update_ortho();
-    });
-}
-
 int main(int argc, char** argv) {
-
-  //
   loco_t loco;
+  
   loco.window.set_windowed_fullscreen();
 
 
@@ -85,6 +54,8 @@ int main(int argc, char** argv) {
     fan::vec2(-window_size.y, window_size.y)
   );
 
+  fan::graphics::interactive_camera_t ic(camera1.camera);
+
   camera0.viewport = loco.open_viewport(
     0,
     { 1, 1 }
@@ -93,9 +64,6 @@ int main(int argc, char** argv) {
     0,
     { 1, 1 }
   );
-
-
-  init_zoom();
 
   fte_t fte;//
   fte_t::properties_t p;
@@ -183,14 +151,6 @@ int main(int argc, char** argv) {
         fan::vec2 s = ImGui::GetContentRegionAvail();
         fan::vec2 dst = player->player.character.get_position();
         fan::vec2 src = loco.camera_get_position(camera1.camera);
-        // smooth camera
-        //fan::vec2 offset = (dst - src) * 4 * gloco->delta_time;
-        //gloco->default_camera->camera.set_position(src + offset);
-        loco.camera_set_ortho(
-          camera1.camera,
-          fan::vec2(-s.x, s.x) / zoom,
-          fan::vec2(-s.y, s.y) / zoom
-        );
 
         loco.camera_set_position(
           camera1.camera,
@@ -206,7 +166,6 @@ int main(int argc, char** argv) {
           camera1.viewport
         );
       }
-      hovered = ImGui::IsWindowHovered();
       ImGui::End();
 
     }
