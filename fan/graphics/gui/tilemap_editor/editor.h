@@ -421,8 +421,7 @@ struct fte_t {
       current_tile.layer_index = layers.size() - 1;
       return false;
     }
-    else if ((brush.type == brush_t::type_e::light ||
-    brush.type == brush_t::type_e::sensor)){
+    else if (brush.type == brush_t::type_e::light){
       if (idx != invalid || idx < layers.size()) {
         auto& layer = layers[idx];
         layer.tile.id = brush.id;
@@ -701,7 +700,8 @@ struct fte_t {
                   .type = brush.physics_type,
                   .body_type = brush.physics_body_type,
                   .draw = brush.physics_draw,
-                  .shape_properties = brush.physics_shape_properties
+                  .shape_properties = brush.physics_shape_properties,
+                  .id = brush.id
                 });
               }
             }
@@ -1606,6 +1606,9 @@ struct fte_t {
           if (ImGui::ToggleButton("Physics shape enable presolve events", &shape_properties.enable_presolve_events)) {
             brush.physics_shape_properties.enable_presolve_events = shape_properties.enable_presolve_events;
           }
+          if (ImGui::ToggleButton("Is sensor", &shape_properties.is_sensor)) {
+            brush.physics_shape_properties.is_sensor = shape_properties.is_sensor;
+          }
         }
 
         break;
@@ -1772,7 +1775,7 @@ struct fte_t {
         fan::graphics::shape_serialize(j.visual, &tile);
         tile["image_name"] = tile_t().image_name;
         tile["mesh_property"] = fte_t::mesh_property_t::physics_shape;
-        tile["id"] = tile_t().id;
+        tile["id"] = j.id;
         tile["action"] = tile_t().action;
         tile["key"] = tile_t().key;
         tile["key_state"] = tile_t().key_state;
@@ -1793,6 +1796,7 @@ struct fte_t {
         physics_shape_data["density"] = j.shape_properties.density;
         physics_shape_data["fixed_rotation"] = j.shape_properties.fixed_rotation;
         physics_shape_data["enable_presolve_events"] = j.shape_properties.enable_presolve_events;
+        physics_shape_data["is_sensor"] = j.shape_properties.is_sensor;
         tile["physics_shape_data"] = physics_shape_data;
         tiles.push_back(tile);
       }
@@ -1858,6 +1862,7 @@ shape data{
         shape.set_viewport(camera->viewport);
         shape.set_image(grid_visualize.collider_color);
         if (shape_json.contains("physics_shape_data")) {
+          physics_element.id  = shape_json["id"];
           const fan::json& physics_shape_data = shape_json["physics_shape_data"];
           physics_element.type = physics_shape_data["type"];
           physics_element.body_type = physics_shape_data["body_type"];
@@ -1866,6 +1871,7 @@ shape data{
           physics_element.shape_properties.density = physics_shape_data["density"] ;
           physics_element.shape_properties.fixed_rotation = physics_shape_data["fixed_rotation"] ;
           physics_element.shape_properties.enable_presolve_events = physics_shape_data["enable_presolve_events"];
+          physics_element.shape_properties.is_sensor = physics_shape_data["is_sensor"];
         }
         physics_element.visual = std::move(shape);
         continue;
@@ -2038,7 +2044,6 @@ shape data{
     enum class type_e : uint8_t {
       texture,
       physics_shape = fte_t::mesh_property_t::physics_shape,
-      sensor,
       light
     };
     static constexpr const char* type_names[] = { "Texture", "Physics shape", "Sensor", "Light"};

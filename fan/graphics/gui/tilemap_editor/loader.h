@@ -45,7 +45,7 @@ struct fte_loader_t {
   };
 
   using tile_draw_data_t = loco_t::shape_t;
-    
+
   #include <fan/fan_bll_preset.h>
 
   struct map_list_data_t{
@@ -58,6 +58,9 @@ struct fte_loader_t {
       >visual;
     };
     std::vector<physics_entities_t> physics_entities;
+    fan::vec3 position = 0;
+    fan::vec2 size = 1;
+    fan::vec2i prev_render = 0;
   };
 
   #define BLL_set_prefix map_list
@@ -108,6 +111,7 @@ public:
 
         physics_element.position = shape.get_position();
         physics_element.size = shape.get_size();
+        physics_element.physics_shapes.id = shape_json["id"];
 
         const fan::json& physics_shape_data = shape_json["physics_shape_data"];
         physics_element.physics_shapes.type = physics_shape_data["type"];
@@ -117,6 +121,7 @@ public:
         physics_element.physics_shapes.shape_properties.density = physics_shape_data["density"] ;
         physics_element.physics_shapes.shape_properties.fixed_rotation = physics_shape_data["fixed_rotation"] ;
         physics_element.physics_shapes.shape_properties.enable_presolve_events = physics_shape_data["enable_presolve_events"];
+        physics_element.physics_shapes.shape_properties.is_sensor = physics_shape_data["is_sensor"];
        
         continue;
       }
@@ -144,8 +149,12 @@ public:
     fan::vec3 position = 0;
     fan::vec2 size = 1;
     fan::vec3 offset = 0;
+    fan::vec2 scale = 1;
     fan::graphics::camera_t* camera = nullptr;
   };
 
   loco_t::texturepack_t* texturepack;
+
+  using physics_entities_t = map_list_data_t::physics_entities_t;
+  using physics_data_t = compiled_map_t::physics_data_t;
 };

@@ -1079,12 +1079,13 @@ void init_imgui(loco_t* loco) {
   const char* glsl_version = "#version 120";
   ImGui_ImplOpenGL3_Init(glsl_version);
 
-  static constexpr const char* font_name = "fonts/SourceCodePro-Regular.ttf";
+  static constexpr const char* font_name = "fonts/PixelatedEleganceRegular-ovyAA.ttf";
   static constexpr f32_t font_size = 4;
 
 
   for (std::size_t i = 0; i < std::size(loco->fonts); ++i) {
     loco->fonts[i] = io.Fonts->AddFontFromFileTTF(font_name, (int)(font_size * (1 << i)) * 1.5);
+
     if (loco->fonts[i] == nullptr) {
       fan::throw_error(fan::string("failed to load font:") + font_name);
     }
@@ -3316,6 +3317,16 @@ IMGUI_API void ImGui::Image(loco_t::image_t img, const ImVec2& size, const ImVec
 IMGUI_API bool ImGui::ImageButton(const std::string& str_id, loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
   return ImGui::ImageButton(str_id.c_str(), (ImTextureID)gloco->image_get(img), size, uv0, uv1, bg_col, tint_col);
 }
+IMGUI_API bool ImGui::ImageTextButton(loco_t::image_t img, const std::string& text, const fan::color& color, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
+
+  bool ret = ImGui::ImageButton(text.c_str(), (ImTextureID)gloco->image_get(img), size, uv0, uv1, bg_col, tint_col);
+  ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
+  ImVec2 pos = ImGui::GetItemRectMin(); 
+  pos.x += (size.x - text_size.x) * 0.5f;
+  pos.y += (size.y - text_size.y) * 0.5f;
+  ImGui::GetWindowDrawList()->AddText(pos, ImGui::GetColorU32(color), text.c_str());
+  return ret;
+}
 bool ImGui::ToggleButton(const std::string& str, bool* v) {
 
   ImGui::Text("%s", str.c_str());
@@ -4190,7 +4201,9 @@ void fan::camera::move(f32_t movement_speed, f32_t friction) {
   if (this->velocity.z < minimum_velocity && this->velocity.z > -minimum_velocity) {
     this->velocity.z = 0;
   }
+  #if defined(loco_imgui)
   if (!gloco->console.input.IsFocused()) {
+#endif
     if (gloco->window.key_pressed(fan::input::key_w)) {
       this->velocity += this->m_front * (movement_speed * gloco->delta_time);
     }
@@ -4223,7 +4236,9 @@ void fan::camera::move(f32_t movement_speed, f32_t friction) {
     if (gloco->window.key_pressed(fan::input::key_down)) {
       this->set_pitch(this->get_pitch() - sensitivity * 100 * gloco->delta_time);
     }
+  #if defined(loco_imgui)
   }
+#endif
 
   this->position += this->velocity * gloco->delta_time;
   this->update_view();
@@ -4388,7 +4403,7 @@ fan::graphics::interactive_camera_t::interactive_camera_t(loco_t::camera_t camer
   reference_camera(camera_nr)
 {
   auto& window = gloco->window;
-  auto update_ortho = [&] {
+  static auto update_ortho = [&] {
     fan::vec2 s = gloco->window.get_size();
     gloco->camera_set_ortho(
       reference_camera,
@@ -4417,6 +4432,8 @@ fan::graphics::interactive_camera_t::~interactive_camera_t() {
   }
 }
 
+#if defined(loco_imgui)
+
 // called in loop
 void fan::graphics::interactive_camera_t::move_by_cursor() {
   if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle)) {
@@ -4428,3 +4445,213 @@ void fan::graphics::interactive_camera_t::move_by_cursor() {
     ImGui::ResetMouseDragDelta(ImGuiMouseButton_Middle);
   }
 }
+
+void fan::graphics::text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing) {
+  static auto find_next_word = [](const std::string& str, std::size_t offset) -> std::size_t {
+    std::size_t found = str.find(' ', offset);
+    if (found == std::string::npos) {
+      found = str.size();
+    }
+    if (found != std::string::npos) {
+    }
+    return found;
+    };
+  static auto find_previous_word = [](const std::string& str, std::size_t offset) -> std::size_t {
+    std::size_t found = str.rfind(' ', offset);
+    if (found == std::string::npos) {
+      found = str.size();
+    }
+    if (found != std::string::npos) {
+    }
+    return found;
+  };
+
+  std::vector<std::string> lines;
+  std::size_t previous_word = 0;
+  std::size_t previous_push = 0;
+  bool found = false;
+  for (std::size_t i = 0; i < text.size(); ++i) {
+    std::size_t word_index = text.find(' ', i);
+    if (word_index == std::string::npos) {
+      word_index = text.size();
+    }
+
+    std::string str = text.substr(previous_push, word_index - previous_push);
+    f32_t width = ImGui::CalcTextSize(str.c_str()).x;
+
+    if (width >= wrap_width) {
+      if (previous_push == previous_word) {
+        lines.push_back(text.substr(previous_push, i - previous_push));
+        previous_push = i;
+      }
+      else {
+        lines.push_back(text.substr(previous_push, previous_word - previous_push));
+        previous_push = previous_word + 1;
+        i = previous_word;
+      }
+    }
+    previous_word = word_index;
+    i = word_index;
+  }
+
+  // Add remaining text as last line
+  if (previous_push < text.size()) {
+    lines.push_back(text.substr(previous_push));
+  }
+
+  std::size_t empty_lines = 0;
+  std::size_t character_offset = 0;
+  ImVec2 pos = ImGui::GetCursorScreenPos();
+  for (const auto& line : lines) {
+    if (line.empty()) {
+      ++empty_lines;
+      continue;
+    }
+    std::size_t empty = 0;
+    if (empty >= line.size()) {
+      break;
+    }
+    while (line[empty] == ' ') {
+      if (empty >= line.size()) {
+        break;
+      }
+      ++empty;
+    }
+    if (character_offset >= render_pos) {
+      break;
+    }
+    std::string render_text = line.substr(empty).c_str();
+    ImGui::SetCursorScreenPos(pos);
+    if (character_offset + render_text.size() >= render_pos) {
+      ImGui::TextUnformatted(render_text.substr(0, render_pos - character_offset).c_str());
+      break;
+    }
+    else {
+      ImGui::TextUnformatted(render_text.c_str());
+      if (render_text.back() != ' ') {
+        character_offset += 1;
+      }
+      character_offset += render_text.size();
+      pos.y += ImGui::GetTextLineHeightWithSpacing() + line_spacing;
+    }
+  }
+  if (empty_lines) {
+    ImGui::TextColored(fan::colors::red, "warning empty lines:%d", empty_lines);
+  }
+}
+
+fan::graphics::dialogue_box_t::dialogue_box_t() {
+  gloco->input_action.add(fan::mouse_left, "skip or continue dialog");
+}
+
+void fan::graphics::dialogue_box_t::set_cursor_position(const fan::vec2& cursor_position) {
+  this->cursor_position = cursor_position;
+}
+
+fan::ev::task_t fan::graphics::dialogue_box_t::text(const std::string& text) {
+  active_dialogue = text;
+  render_pos = 0;
+  finish_dialog = false;
+  while (render_pos < active_dialogue.size() && !finish_dialog) {
+    ++render_pos;
+    co_await fan::co_sleep(1000 / character_per_s);
+  }
+  render_pos = active_dialogue.size();
+}
+
+fan::ev::task_t fan::graphics::dialogue_box_t::button(const std::string& text, const fan::vec2& position, const fan::vec2& size) {
+  button_choice = -1;
+  button_t button;
+  button.position = position;
+  button.size = size;
+  button.text = text;
+  buttons.push_back(button);
+  co_return;
+}
+
+int fan::graphics::dialogue_box_t::get_button_choice() const {
+  return button_choice;
+}
+
+fan::ev::task_t fan::graphics::dialogue_box_t::wait_user_input() {
+  wait_user = true;
+  fan::time::clock c;
+  c.start(0.5e9);
+  int prev_render = render_pos;
+  while (wait_user) {
+    if (c.finished()) {
+      if (prev_render == render_pos) {
+        render_pos = std::max(prev_render - 1, 0);
+      }
+      else {
+        render_pos = prev_render;
+      }
+      c.restart();
+    }
+    co_await fan::co_sleep(10);
+  }
+  render_pos = prev_render;
+}
+
+void fan::graphics::dialogue_box_t::render(const std::string& window_name, ImFont* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) {
+  ImGui::PushFont(font);
+  fan::vec2 root_window_size = ImGui::GetWindowSize();
+  fan::vec2 next_window_pos;
+  next_window_pos.x = (root_window_size.x - window_size.x) / 2.0f;
+  next_window_pos.y = (root_window_size.y - window_size.y) / 1.1;
+  ImGui::SetNextWindowPos(next_window_pos);
+
+  ImGui::SetNextWindowSize(window_size);
+  ImGui::Begin(window_name.c_str(), 0, 
+    ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar | 
+    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar
+  );
+  if (wait_user == false) {
+    ImGui::SetScrollY(ImGui::GetScrollMaxY());
+  }
+  fan::graphics::text_partial_render(active_dialogue.c_str(), render_pos, wrap_width, line_spacing);
+  if (wait_user) {
+    fan::vec2 first_pos = -1;
+
+
+    // calculate biggest button
+    fan::vec2 button_size = 0;
+    for (std::size_t i = 0; i < buttons.size(); ++i) {
+      fan::vec2 text_size = ImGui::CalcTextSize(buttons[i].text.c_str());
+      float padding_x = ImGui::GetStyle().FramePadding.x; 
+      float padding_y = ImGui::GetStyle().FramePadding.y; 
+      ImVec2 bs = ImVec2(text_size.x + padding_x * 2.0f, text_size.y + padding_y * 2.0f);
+      button_size = button_size.max(fan::vec2(bs));
+    }
+
+    for (std::size_t i = 0; i < buttons.size(); ++i) {
+      const auto& button = buttons[i];
+      if (button.position != -1) {
+        first_pos = button.position;
+        ImGui::SetCursorPos((button.position * window_size) - button_size / 2);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetScrollY());
+      }
+      else {
+        ImGui::SetCursorPosX(first_pos.x * window_size.x - button_size.x / 2);
+      }
+      ImGui::PushID(i);
+
+      if (ImGui::ImageTextButton(gloco->default_texture, button.text.c_str(), fan::colors::white, button.size == 0 ? button_size : button.size)) {
+        button_choice = i;
+        buttons.clear();
+        wait_user = false;
+        ImGui::PopID();
+        break;
+      }
+      ImGui::PopID();
+    }
+  }
+  if (gloco->input_action.is_active("skip or continue dialog") && ImGui::IsWindowHovered()) {
+    finish_dialog = true;
+    wait_user = false;
+  }
+  ImGui::End();
+  ImGui::PopFont();
+}
+
+#endif

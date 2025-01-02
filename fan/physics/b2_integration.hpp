@@ -31,6 +31,16 @@ namespace fan {
     struct body_id_t : b2BodyId {
       using b2BodyId::b2BodyId;
       body_id_t(const b2BodyId& body_id) : b2BodyId(body_id) {}
+      bool operator==(const body_id_t& b) const {
+        b2BodyId a = *this;
+        return B2_ID_EQUALS(a, b);
+      }
+      bool operator!=(const body_id_t& b) const {
+        return !this->operator==(b);
+      }
+      bool is_valid() {
+        return *this != b2_nullBodyId;
+      }
       void destroy() {
         b2DestroyBody(*this);
       }
@@ -43,6 +53,7 @@ namespace fan {
       f32_t rolling_resistance = 0.01;
       bool fixed_rotation = false;
       bool enable_presolve_events = false;
+      bool is_sensor = false;
     };
 
     struct entity_t {
@@ -60,6 +71,21 @@ namespace fan {
 
     using body_type = b2BodyType;
 
+    struct sensor_events_t {
+      struct sensor_contact_t {
+        fan::physics::body_id_t sensor_id;
+        fan::physics::body_id_t object_id;
+        bool is_in_contact = 0;
+      };
+      void update(b2WorldId world_id);
+
+      void update_contact(b2BodyId sensor_id, b2BodyId object_id, bool is_in_contact);
+
+      bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const;
+      b2SensorEvents sensor_events;
+      std::vector<sensor_contact_t> contacts;
+    };
+
     struct context_t {
 
       struct properties_t {
@@ -76,7 +102,10 @@ namespace fan {
 
       void step(f32_t dt);
 
+      bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const;
+
       b2WorldId world_id;
+      sensor_events_t sensor_events;
     };
 
     // This callback must be thread-safe. It may be called multiple times simultaneously.

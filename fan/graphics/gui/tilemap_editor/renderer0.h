@@ -5,13 +5,10 @@
 struct fte_renderer_t : fte_loader_t {
 
   std::unordered_map<std::string, fan::function_t<void(tile_draw_data_t&, fte_t::tile_t&)>> id_callbacks;
+  std::unordered_map<std::string, fan::function_t<void(map_list_data_t::physics_entities_t&, compiled_map_t::physics_data_t&)>> sensor_id_callbacks;
 
-  fan::vec3 position = 0;
-  fan::vec2 size = 1;
   fan::vec2i view_size = 1;
   fan::graphics::camera_t* camera = nullptr;
-
-  fan::vec2i prev_render = 0;
 
   id_t add(compiled_map_t* compiled_map) {
     return add(compiled_map, properties_t());
@@ -31,22 +28,25 @@ struct fte_renderer_t : fte_loader_t {
     node.compiled_map = compiled_map;
    
     view_size = p.size * 2;
-    prev_render = (p.position / node.compiled_map->tile_size).floor();
+    node.prev_render = convert_to_grid(p.position, node);
+    node.size = p.scale;
 
-    position = p.offset;
+    node.position = p.offset;
     initialize(node, p.position);
 
 
     return it;
   }
 
+  void initialize(id_t& node_id, const fan::vec2& position) {
+    initialize(map_list[node_id], position);
+  }
   void initialize(node_t& node, const fan::vec2& position) {
 
     clear(node);
 
-    fan::vec2i src = (position / node.compiled_map->tile_size).floor();
-    src.x -= view_size.x / 2;
-    src.y -= view_size.y / 2;
+    fan::vec2i src = convert_to_grid(position, node);
+    adjust_view(src);
 
     auto& map_tiles = node.compiled_map->compiled_shapes;
 
@@ -74,8 +74,8 @@ struct fte_renderer_t : fte_loader_t {
         node.physics_entities.push_back({
           .visual = fan::graphics::physics_shapes::rectangle_t{{
               .camera = camera,
-              .position = pd.position,
-              .size = pd.size,
+              .position = node.position + pd.position * node.size,
+              .size = pd.size * node.size,
               .color = pd.physics_shapes.draw ? fan::color::hex(0x6e8d6eff) : fan::colors::transparent,
               .outline_color = (pd.physics_shapes.draw ? fan::color::hex(0x6e8d6eff) : fan::colors::transparent) * 2,
               .blending = true,
@@ -83,14 +83,16 @@ struct fte_renderer_t : fte_loader_t {
               .shape_properties = pd.physics_shapes.shape_properties,
             }}
         });
+        //pd.physics_shapes.
+        //std::get<fan::graphics::physics_shapes::rectangle_t>(node.physics_entities.back().visual).body_id
         break;
       }
       case fte_t::physics_shapes_t::type_e::circle: {
         node.physics_entities.push_back({
           .visual = fan::graphics::physics_shapes::circle_t{{
               .camera = camera,
-              .position = pd.position,
-              .radius = pd.size.max(),
+              .position = node.position + pd.position * node.size,
+              .radius = pd.size.max() * node.size.x == 1 ? node.size.y : node.size.x,
               .color = pd.physics_shapes.draw ? fan::color::hex(0x6e8d6eff) : fan::colors::transparent,
               .blending = true,
               .body_type = pd.physics_shapes.body_type,
@@ -99,6 +101,10 @@ struct fte_renderer_t : fte_loader_t {
         });
         break;
       }
+      }
+      auto found = sensor_id_callbacks.find(pd.physics_shapes.id);
+      if (found != sensor_id_callbacks.end()) {
+        found->second(node.physics_entities.back(), pd);
       }
     }
   }
@@ -114,8 +120,8 @@ struct fte_renderer_t : fte_loader_t {
       case fte_t::mesh_property_t::none: {
         node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::sprite_t{ {
             .camera = camera,
-            .position = position + fan::vec3(fan::vec2(j.position) * size, additional_depth + j.position.z),
-            .size = j.size * size,
+            .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, additional_depth + j.position.z),
+            .size = j.size * node.size,
             .angle = j.angle,
             .color = j.color,
             .parallax_factor = 0,
@@ -133,8 +139,8 @@ struct fte_renderer_t : fte_loader_t {
       case fte_t::mesh_property_t::light: {
         node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::light_t{ {
           .camera = camera,
-          .position = position + fan::vec3(fan::vec2(j.position) * size, additional_depth + j.position.z),
-          .size = j.size * size,
+          .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, additional_depth + j.position.z),
+          .size = j.size * node.size,
           .color = j.color
         } };
         break;
@@ -150,6 +156,9 @@ struct fte_renderer_t : fte_loader_t {
     }
   }
 
+  void clear(id_t& id) {
+    clear(map_list[id]);
+  }
   void clear(node_t& node) {
     node.tiles.clear();
     for (auto& j : node.physics_entities) {
@@ -158,47 +167,47 @@ struct fte_renderer_t : fte_loader_t {
     node.physics_entities.clear();
   }
 
+  void erase(id_t& id) {
+    clear(id);
+    map_list.unlrec(id);
+  }
+
   struct shape_depths_t {
     static constexpr int max_layer_depth = 0xFAAA - 2;
   };
 
   static constexpr int max_layer_depth = 128;
 
+  fan::vec2 convert_to_grid(const fan::vec2& p, const node_t& node) {
+    return ((p / node.size) / (node.compiled_map->map_size)).floor();
+  }
+  void adjust_view(fan::vec2i& src) {
+    src /= 2;
+    src.x -= view_size.x / 2;
+    src.y -= view_size.y / 2;
+    src += 1;
+  };
+
   void update(id_t id, const fan::vec2& position_) {
     auto& node = map_list[id];
-    if (prev_render == (position_ / node.compiled_map->tile_size).floor()) {
+    if (node.prev_render == convert_to_grid(position_, node)) {
       return;
     }
-    fan::vec2i old_render = prev_render;
+    fan::vec2i old_render = node.prev_render;
     auto& map_tiles = node.compiled_map->compiled_shapes;
 
-    prev_render = (position_ / node.compiled_map->map_size).floor();
-    fan::vec2i offset = prev_render - old_render;
+    node.prev_render = convert_to_grid(position_, node);
+    fan::vec2i offset = node.prev_render - old_render;
 
     if (offset.x > view_size.x || offset.y > view_size.y) {
       initialize(node, position_);
       return;
     }
-    auto convert_to_grid = [&node, this] (fan::vec2i& src) {
-            //p = ((p - tile_size) / tile_size).floor() * tile_size;
-      //src.x -= view_size.x;
-      //src.y -= view_size.y;
-      src /= 2;
-      src.x -= view_size.x / 2;
-      src.y -= view_size.y / 2;
-      src += 1;
-     // src.x /= 2;
-     //// src /= 2;
-     // /*src.x += .x / 2;*/
-     // src.y += view_size.y * 3.5;
-      //src.x -= view_size.y / ;
-      //src = (src).floor();
-    };
 
     fan::vec2i prev_src = old_render;
-    convert_to_grid(prev_src);
-    fan::vec2i src = (position_ / node.compiled_map->map_size).floor();
-    convert_to_grid(src);
+    adjust_view(prev_src);
+    fan::vec2i src = convert_to_grid(position_, node);
+    adjust_view(src);
 
     fan::vec3i src_vec3 = prev_src;
 
