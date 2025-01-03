@@ -9,18 +9,14 @@ struct pile_t {
     return pile->presolve(shapeIdA, shapeIdB, manifold);
   }
   bool presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold) const {
-    return fan::physics::presolve_oneway_collision(shapeIdA, shapeIdB, manifold, player.character);
+    return fan::physics::presolve_oneway_collision(shapeIdA, shapeIdB, manifold, player);
   }
   loco_t loco;
 
-  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::capsule_t{{
+  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::sprite_t{{
     .position = fan::vec3(400, 400, 10),
-    .center0 = {0.f, -128.f},
-    .center1 = {0.f, 128.0f},
-    .radius = 16.f,
-    .color = fan::color::hex(0x715a5eff),
-    .outline_color = fan::color::hex(0x715a5eff) * 2,
-    .blending = true,
+    .size = 100,
+    .image = gloco->default_texture,
     .body_type = fan::physics::body_type_e::dynamic_body,
     .mass_data{.mass = 0.01f},
     .shape_properties{.friction = 0.6f, .density = 0.1f, .fixed_rotation = true},

@@ -53,21 +53,36 @@ std::array<fan::graphics::physics_shapes::rectangle_t, 4> fan::graphics::physics
   return walls;
 }
 
+fan::graphics::character2d_t::character2d_t() {
+  add_inputs();
+}
+
+void fan::graphics::character2d_t::add_inputs() {
+  gloco->input_action.add(fan::key_a, "move_left");
+  gloco->input_action.add(fan::key_d, "move_right");
+  gloco->input_action.add(fan::key_space, "move_up");
+  gloco->input_action.add(fan::key_s, "move_down");
+}
+
 void fan::graphics::character2d_t::process_movement(f32_t friction) {
   bool can_jump = false;
 
-  b2Vec2 velocity = b2Body_GetLinearVelocity(character);
+  b2Vec2 velocity = b2Body_GetLinearVelocity(*this);
   for (int i = 0; i < 2; ++i) {
-    b2Vec2 velocity = b2Body_GetLinearVelocity(feet[i]);
+    fan::physics::body_id_t body_id = feet[i];
+    if (body_id.is_valid() == false) {
+      body_id = *this;
+    }
+    b2Vec2 velocity = b2Body_GetLinearVelocity(body_id);
     if (jump_delay == 0.0f && jumping == false && velocity.y < 0.01f) {
-      int capacity = b2Body_GetContactCapacity(feet[i]);
+      int capacity = b2Body_GetContactCapacity(body_id);
       capacity = b2MinInt(capacity, 4);
       b2ContactData contactData[4];
-      int count = b2Body_GetContactData(feet[i], contactData, capacity);
+      int count = b2Body_GetContactData(body_id, contactData, capacity);
       for (int i = 0; i < count; ++i) {
         b2BodyId bodyIdA = b2Shape_GetBody(contactData[i].shapeIdA);
         float sign = 0.0f;
-        if (B2_ID_EQUALS(bodyIdA, feet[i])) {
+        if (B2_ID_EQUALS(bodyIdA, body_id)) {
           // normal points from A to B
           sign = -1.0f;
         }
@@ -84,14 +99,14 @@ void fan::graphics::character2d_t::process_movement(f32_t friction) {
 
   walk_force = 0;
   if (gloco->input_action.is_action_down("move_left")) {
-    if (std::abs(velocity.x) <= max_speed) {
-      b2Body_ApplyForceToCenter(character, { -force, 0 }, true);
+    if (velocity.x > -max_speed) {
+      b2Body_ApplyForceToCenter(*this, { -force, 0 }, true);
       walk_force = -force;
     }
   }
   if (gloco->input_action.is_action_down("move_right")) {
-    if (std::abs(velocity.x) <= max_speed) {
-      b2Body_ApplyForceToCenter(character, { force, 0 }, true);
+    if (velocity.x <= max_speed) {
+      b2Body_ApplyForceToCenter(*this, { force, 0 }, true);
       walk_force = force;
     }
   }
@@ -102,7 +117,7 @@ void fan::graphics::character2d_t::process_movement(f32_t friction) {
   bool move_up = gloco->input_action.is_action_down("move_up");
   if (move_up) {
     if (can_jump) {
-      b2Body_ApplyLinearImpulseToCenter(character, { 0, -impulse }, true);
+      b2Body_ApplyLinearImpulseToCenter(*this, { 0, -impulse }, true);
       jump_delay = 0.5f;
       jumping = true;
     }
@@ -115,45 +130,52 @@ void fan::graphics::character2d_t::process_movement(f32_t friction) {
 
 void fan::graphics::UpdateReferenceAngle(b2WorldId world, b2JointId& joint_id, float new_reference_angle) {
 
-  b2BodyId bodyIdA = b2Joint_GetBodyA(joint_id);
-  b2BodyId bodyIdB = b2Joint_GetBodyB(joint_id);
+    b2BodyId bodyIdA = b2Joint_GetBodyA(joint_id);
+    b2BodyId bodyIdB = b2Joint_GetBodyB(joint_id);
 
-  b2Vec2 anchor = b2Joint_GetLocalAnchorA(joint_id);
-  bool enableLimit = b2RevoluteJoint_IsLimitEnabled(joint_id);
-  float lowerAngle = b2RevoluteJoint_GetLowerLimit(joint_id);
-  float upperAngle = b2RevoluteJoint_GetUpperLimit(joint_id);
-  bool enableMotor = b2RevoluteJoint_IsMotorEnabled(joint_id);
-  float motorSpeed = b2RevoluteJoint_GetMotorSpeed(joint_id);
-  float maxMotorTorque = b2RevoluteJoint_GetMaxMotorTorque(joint_id);
-  float hertz = b2RevoluteJoint_GetSpringHertz(joint_id);
-  float damping_ratio = b2RevoluteJoint_GetSpringDampingRatio(joint_id);
+    b2Vec2 localAnchorA = b2Joint_GetLocalAnchorA(joint_id);
+    b2Vec2 localAnchorB = b2Joint_GetLocalAnchorB(joint_id);
+    bool enableLimit = b2RevoluteJoint_IsLimitEnabled(joint_id);
+    float lowerAngle = b2RevoluteJoint_GetLowerLimit(joint_id);
+    float upperAngle = b2RevoluteJoint_GetUpperLimit(joint_id);
+    bool enableMotor = b2RevoluteJoint_IsMotorEnabled(joint_id);
+    float motorSpeed = b2RevoluteJoint_GetMotorSpeed(joint_id);
+    float maxMotorTorque = b2RevoluteJoint_GetMaxMotorTorque(joint_id);
+    float hertz = b2RevoluteJoint_GetSpringHertz(joint_id);
+    float damping_ratio = b2RevoluteJoint_GetSpringDampingRatio(joint_id);
 
-  b2DestroyJoint(joint_id);
+    b2DestroyJoint(joint_id);
 
-  b2RevoluteJointDef jointDef;
-  jointDef.bodyIdA = bodyIdA;
-  jointDef.bodyIdB = bodyIdB;
-  jointDef.localAnchorA = b2Vec2{ anchor.x, anchor.y };
-  jointDef.localAnchorB = b2Vec2{ anchor.x, anchor.y };
-  jointDef.referenceAngle = new_reference_angle;
-  jointDef.enableLimit = enableLimit;
-  jointDef.lowerAngle = lowerAngle;
-  jointDef.upperAngle = upperAngle;
-  jointDef.enableMotor = enableMotor;
-  jointDef.motorSpeed = motorSpeed;
-  jointDef.maxMotorTorque = maxMotorTorque;
-  jointDef.enableSpring = hertz > 0.0f;
-  jointDef.hertz = hertz;
-  jointDef.dampingRatio = damping_ratio;
+    b2RevoluteJointDef jointDef;
+    jointDef.bodyIdA = bodyIdA;
+    jointDef.bodyIdB = bodyIdB;
+    jointDef.localAnchorA = localAnchorA;
+    jointDef.localAnchorB = localAnchorB;
+    jointDef.referenceAngle = new_reference_angle;
+    jointDef.enableLimit = enableLimit;
+    jointDef.lowerAngle = lowerAngle;
+    jointDef.upperAngle = upperAngle;
+    jointDef.enableMotor = enableMotor;
+    jointDef.motorSpeed = motorSpeed;
+    jointDef.maxMotorTorque = maxMotorTorque;
+    jointDef.enableSpring = hertz > 0.0f;
+    jointDef.hertz = hertz;
+    jointDef.dampingRatio = damping_ratio;
 
-  joint_id = b2CreateRevoluteJoint(world, &jointDef);
+    joint_id = b2CreateRevoluteJoint(world, &jointDef);
 }
 
-void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position, f32_t scale, f32_t frictionTorque, f32_t hertz, f32_t dampingRatio, int groupIndex, void* userData, bool colorize)
-{
+void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position, f32_t scale, f32_t frictionTorque, f32_t hertz, f32_t dampingRatio, int groupIndex, void* userData, const std::array<loco_t::image_t, bone_e::bone_count>& images) {
+  auto verified_images = images;
+  for (auto& image : verified_images) {
+    if (image.iic()) {
+      image = gloco->default_texture;
+    }
+  }
+
+
   assert(human->is_spawned == false);
 
-  position.y = gloco->window.get_size().y - position.y;
 
   for (int i = 0; i < bone_e::bone_count; ++i)
   {
@@ -170,20 +192,15 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
   bodyDef.userData = userData;
 
   b2ShapeDef shapeDef = b2DefaultShapeDef();
-  shapeDef.friction = 0.2f;
+  shapeDef.friction = 0.5f;
   shapeDef.filter.groupIndex = -groupIndex;
   shapeDef.filter.categoryBits = 2;
   shapeDef.filter.maskBits = (1 | 2);
 
   b2ShapeDef footShapeDef = shapeDef;
-  footShapeDef.friction = 0.001f;
+  footShapeDef.friction = 0.5f;
   footShapeDef.filter.categoryBits = 2;
   footShapeDef.filter.maskBits = 1;
-
-  if (colorize)
-  {
-    footShapeDef.customColor = b2_colorSaddleBrown;
-  }
 
   f32_t s = scale;
   f32_t maxTorque = frictionTorque * s;
@@ -203,18 +220,18 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     bodyDef.position = b2Add(b2Vec2{ 0.0f, -0.95f * s }, position);
     bodyDef.linearDamping = 0.0f;
 
-    bone->visual = fan::graphics::physics_shapes::capsule_t{ {
-        .position = fan::vec3(fan::vec2(bodyDef.position), 100),
+    bone->visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
+        .position = fan::vec3(fan::vec2(bodyDef.position), 50),
         .center0 = { 0.0f, 0.02f * s },
         .center1 = { 0.0f, -0.02f * s },
-        .radius = 0.095f * s,
-        .color = fan::color::hex(pantColor),
+        .radius = 0.064f * s,
+        .image = images[bone_e::hip],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{
-        .fixed_rotation = true,
-        .linear_damping = 0.0,
-        .filter = shapeDef.filter
-    }
+          .fixed_rotation = true,
+          .linear_damping = 0.0,
+          .filter = shapeDef.filter
+        }
       } };
   }
 
@@ -224,16 +241,15 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     bone->parent_index = bone_e::hip;
 
     bodyDef.position = b2Add(b2Vec2{ 0.0f, -1.2f * s }, position);
-    bone->visual = fan::graphics::physics_shapes::capsule_t{ {
+    bone->visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
         .position = fan::vec3(fan::vec2(bodyDef.position), 50),
         .center0 = { 0.0f, 0.135f * s },
         .center1 = { 0.0f, -0.135f * s },
-        .radius = 0.09f * s,
-        .color = fan::color::hex(shirtColor),
+        .radius = 0.085f * s,
+        .image = images[bone_e::torso],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{
         .fixed_rotation = true,
-        .linear_damping = 0.0,
         .filter = shapeDef.filter
     }
       } };
@@ -263,20 +279,15 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     Bone* bone = human->bones + bone_e::head;
     bone->parent_index = bone_e::torso;
 
-    bodyDef.position = b2Add(b2Vec2{ 0.0f, -1.475f * s }, position);
+    bodyDef.position = b2Add(b2Vec2{ 0.0f, -1.555f * s }, position);
     bone->friction_scale = 0.25f;
 
-    if (colorize)
-    {
-      shapeDef.customColor = skinColor;
-    }
-
-    bone->visual = fan::graphics::physics_shapes::capsule_t{ {
+    bone->visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
         .position = fan::vec3(fan::vec2(bodyDef.position), 100),
         .center0 = { 0.0f, 0.038f * s },
         .center1 = { 0.0f, -0.039f * s },
-        .radius = 0.075f * s,
-        .color = fan::color::hex(skinColor),
+        .radius = 0.124f * s,
+        .image = images[bone_e::head],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{ .fixed_rotation = false, .linear_damping = 0.1f,
         .filter = shapeDef.filter },
@@ -309,12 +320,12 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     bodyDef.position = b2Add(b2Vec2{ 0.0f, -0.775f * s }, position);
     bodyDef.linearDamping = 0.0f;
 
-    bone->visual = fan::graphics::physics_shapes::capsule_t{ {
-        .position = fan::vec3(fan::vec2(bodyDef.position), 100),
+    bone->visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
+        .position = fan::vec3(fan::vec2(bodyDef.position), 10),
         .center0 = { 0.0f, 0.125f * s },
-        .center1 = { 0.0f, -0.125f * s },
-        .radius = 0.06f * s,
-        .color = fan::color::hex(pantColor) * 1.5,
+        .center1 = { 0.0f, -0.125f * s},
+        .radius = 0.064f * s,
+        .image = images[bone_e::upper_left_leg],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{ .fixed_rotation = false, .linear_damping = 0.0f,
         .filter = shapeDef.filter },
@@ -329,8 +340,8 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     jointDef.localAnchorA = b2Body_GetLocalPoint(jointDef.bodyIdA, pivot);
     jointDef.localAnchorB = b2Body_GetLocalPoint(jointDef.bodyIdB, pivot);
     jointDef.enableLimit = enableLimit;
-    jointDef.lowerAngle = -fan::math::pi / 10;
-    jointDef.upperAngle = fan::math::pi / 10;
+		jointDef.lowerAngle = -0.5f * fan::math::pi;
+		jointDef.upperAngle = 0.5f * fan::math::pi;
     jointDef.enableMotor = enableMotor;
     jointDef.maxMotorTorque = bone->friction_scale * maxTorque * scale * 100000000.f;
     jointDef.enableSpring = hertz > 0.0f;
@@ -360,15 +371,16 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     bodyDef.linearDamping = 0.0f;
     bone->friction_scale = 0.5f;
 
-    bone->visual = fan::graphics::physics_shapes::capsule_t{ {
-        .position = fan::vec3(fan::vec2(bodyDef.position), 100),
-        .center0 = { 0.0f, 0.155f * s },
-        .center1 = { 0.0f, -0.125f * s },
-        .radius = 0.045f * s,
-        .color = fan::color::hex(pantColor) * 1.5,
+    bone->visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
+        .position = fan::vec3(fan::vec2(bodyDef.position), 15),
+        .center0 = { 0.0f, 0.125f * s },
+        .center1 = { 0.0f, -0.125f * s},
+        .radius = 0.094f * s,
+        .image = images[bone_e::lower_left_leg],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{
-        .fixed_rotation = true,
+        .friction=shapeDef.friction,
+        .fixed_rotation = false,
         .linear_damping = 0.0f,
         .filter = shapeDef.filter
     },
@@ -382,10 +394,10 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     jointDef.localAnchorA = b2Body_GetLocalPoint(jointDef.bodyIdA, pivot);
     jointDef.localAnchorB = b2Body_GetLocalPoint(jointDef.bodyIdB, pivot);
     jointDef.enableLimit = enableLimit;
-    //jointDef.lowerAngle = -fan::math::pi / 10;
-    //jointDef.upperAngle = -fan::math::pi / 10;
+		jointDef.lowerAngle = -0.5f * fan::math::pi;
+		jointDef.upperAngle = 0.5f * fan::math::pi;
     jointDef.enableMotor = enableMotor;
-    jointDef.maxMotorTorque = bone->friction_scale * maxTorque * scale;
+    jointDef.maxMotorTorque = bone->friction_scale * maxTorque * scale * 100000000.f;
     jointDef.enableSpring = hertz > 0.0f;
     jointDef.hertz = hertz;
     jointDef.dampingRatio = dampingRatio;
@@ -400,12 +412,12 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     bone->parent_index = bone_e::hip;
 
     bodyDef.position = b2Add(b2Vec2{ 0.0f, -0.775f * s }, position);
-    bone->visual = fan::graphics::physics_shapes::capsule_t{ {
+    bone->visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
         .position = fan::vec3(fan::vec2(bodyDef.position), 100),
-        .center0 = { 0.0f, 0.125f * s },
+        .center0 = { 0.0f, 0.125f * s  },
         .center1 = { 0.0f, -0.125f * s },
-        .radius = 0.06f * s,
-        .color = fan::color::hex(pantColor),
+        .radius = 0.064f * s,
+        .image = images[bone_e::upper_right_leg],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{ .fixed_rotation = false, .linear_damping = 0.0f,
         .filter = shapeDef.filter },
@@ -419,8 +431,8 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     jointDef.localAnchorA = b2Body_GetLocalPoint(jointDef.bodyIdA, pivot);
     jointDef.localAnchorB = b2Body_GetLocalPoint(jointDef.bodyIdB, pivot);
     jointDef.enableLimit = enableLimit;
-    jointDef.lowerAngle = -fan::math::pi / 10;
-    jointDef.upperAngle = fan::math::pi / 10;
+		jointDef.lowerAngle = -0.5f * fan::math::pi;
+		jointDef.upperAngle = 0.5f * fan::math::pi;
     jointDef.enableMotor = enableMotor;
     jointDef.maxMotorTorque = bone->friction_scale * maxTorque * scale * 100000000.f;
     jointDef.enableSpring = hertz > 0.0f;
@@ -435,22 +447,23 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
   {
     Bone* bone = human->bones + bone_e::lower_right_leg;
     bone->parent_index = bone_e::upper_right_leg;
+    bone->friction_scale = 0.5f;
 
     bodyDef.position = b2Add(b2Vec2{ 0.0f, -0.475f * s }, position);
-    bone->visual = fan::graphics::physics_shapes::capsule_t{ {
-        .position = fan::vec3(fan::vec2(bodyDef.position), 100),
-        .center0 = { 0.0f, 0.155f * s },
-        .center1 = { 0.0f, -0.125f * s },
-        .radius = 0.045f * s,
-        .color = fan::color::hex(pantColor),
+    bone->visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
+        .position = fan::vec3(fan::vec2(bodyDef.position), 150),
+        .center0 = { 0.0f, 0.125f * s },
+        .center1 = { 0.0f, -0.125f * s},
+        .radius = 0.094f * s,
+        .image = images[bone_e::lower_right_leg],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{
-        .fixed_rotation = true,
+        .friction=shapeDef.friction,
+        .fixed_rotation = false,
         .linear_damping = 0.0f,
         .filter = shapeDef.filter
     },
       } };
-    bone->friction_scale = 0.5f;
 
     // b2Polygon box = b2MakeOffsetBox(0.1f * s, 0.03f * s, {0.05f * s, -0.175f * s}, 0.0f);
     // b2CreatePolygonShape(bone->visual, &shapeDef, &box);
@@ -467,10 +480,10 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     jointDef.localAnchorA = b2Body_GetLocalPoint(jointDef.bodyIdA, pivot);
     jointDef.localAnchorB = b2Body_GetLocalPoint(jointDef.bodyIdB, pivot);
     jointDef.enableLimit = enableLimit;
-    //  jointDef.lowerAngle = -fan::math::pi / 10;
-    //jointDef.upperAngle = -fan::math::pi / 10;
+		jointDef.lowerAngle = -0.5f * fan::math::pi;
+		jointDef.upperAngle = 0.5f * fan::math::pi;
     jointDef.enableMotor = enableMotor;
-    jointDef.maxMotorTorque = bone->friction_scale * maxTorque * scale;
+    jointDef.maxMotorTorque = bone->friction_scale * maxTorque * scale * 100000000.f;
     jointDef.enableSpring = hertz > 0.0f;
     jointDef.hertz = hertz;
     jointDef.dampingRatio = dampingRatio;
@@ -485,16 +498,16 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     bone->parent_index = bone_e::torso;
     bone->friction_scale = 0.5f;
 
-    bodyDef.position = b2Add(b2Vec2{ 0.0f, -1.225f * s }, position);
+    bodyDef.position = b2Add(b2Vec2{ 0.0f, -1.145f * s }, position);
     bodyDef.linearDamping = 0.0f;
-    bone->visual = fan::graphics::physics_shapes::capsule_t{ {
-        .position = fan::vec3(fan::vec2(bodyDef.position), 100),
+    bone->visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
+        .position = fan::vec3(fan::vec2(bodyDef.position), 10),
         .center0 = { 0.0f, 0.125f * s },
-        .center1 = { 0.0f, -0.125f * s },
-        .radius = 0.035f * s,
-        .color = fan::color::hex(shirtColor),
+        .center1 = { 0.0f, -0.125f * s},
+        .radius = 0.064f * s,
+        .image = images[bone_e::upper_left_arm],
         .body_type = fan::physics::body_type_e::dynamic_body,
-        .shape_properties{ .fixed_rotation = false, .linear_damping = 0.0f,
+        .shape_properties{ .fixed_rotation = false, .linear_damping = 0.5f,
         .filter = shapeDef.filter },
       } };
 
@@ -505,12 +518,12 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     jointDef.localAnchorA = b2Body_GetLocalPoint(jointDef.bodyIdA, pivot);
     jointDef.localAnchorB = b2Body_GetLocalPoint(jointDef.bodyIdB, pivot);
     jointDef.enableLimit = enableLimit;
-    jointDef.lowerAngle = -0.1f * fan::math::pi;
-    jointDef.upperAngle = 0.8f * fan::math::pi;
+    jointDef.lowerAngle = -0.5f * fan::math::pi;
+    jointDef.upperAngle = 0.5f * fan::math::pi;
     jointDef.enableMotor = enableMotor;
     jointDef.maxMotorTorque = bone->friction_scale * maxTorque * scale;
     jointDef.enableSpring = hertz > 0.0f;
-    jointDef.hertz = hertz;
+    jointDef.hertz = hertz*5;
     jointDef.dampingRatio = dampingRatio;
     jointDef.drawSize = drawSize;
 
@@ -522,16 +535,16 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     Bone* bone = human->bones + bone_e::lower_left_arm;
     bone->parent_index = bone_e::upper_left_arm;
 
-    bodyDef.position = b2Add(b2Vec2{ 0.0f, -0.975f * s }, position);
+    bodyDef.position = b2Add(b2Vec2{ -0.1f, -0.925f * s }, position);
     bodyDef.linearDamping = 0.1f;
-    bone->visual = fan::graphics::physics_shapes::capsule_t{ {
-        .position = fan::vec3(fan::vec2(bodyDef.position), 100),
+    bone->visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
+        .position = fan::vec3(fan::vec2(bodyDef.position), 15),
         .center0 = { 0.0f, 0.125f * s },
-        .center1 = { 0.0f, -0.125f * s },
-        .radius = 0.03f * s,
-        .color = fan::color::hex(skinColor),
+        .center1 = { 0.0f, -0.125f * s},
+        .radius = 0.064f * s,
+        .image = images[bone_e::lower_left_arm],
         .body_type = fan::physics::body_type_e::dynamic_body,
-        .shape_properties{ .fixed_rotation = false, .linear_damping = 0.1f,
+        .shape_properties{ .fixed_rotation = false, .linear_damping = 0.5f,
         .filter = shapeDef.filter },
       } };
     bone->friction_scale = 0.1f;
@@ -544,12 +557,12 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     jointDef.localAnchorB = b2Body_GetLocalPoint(jointDef.bodyIdB, pivot);
     jointDef.referenceAngle = -0.25f * fan::math::pi;
     jointDef.enableLimit = enableLimit;
-    jointDef.lowerAngle = -0.2f * fan::math::pi;
-    jointDef.upperAngle = 0.3f * fan::math::pi;
+    jointDef.lowerAngle = -0.5f * fan::math::pi;
+    jointDef.upperAngle = 0.5f * fan::math::pi;
     jointDef.enableMotor = enableMotor;
     jointDef.maxMotorTorque = bone->friction_scale * maxTorque * scale;
     jointDef.enableSpring = hertz > 0.0f;
-    jointDef.hertz = hertz;
+    jointDef.hertz = hertz*5;
     jointDef.dampingRatio = dampingRatio;
     jointDef.drawSize = drawSize;
 
@@ -561,16 +574,16 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     Bone* bone = human->bones + bone_e::upper_right_arm;
     bone->parent_index = bone_e::torso;
 
-    bodyDef.position = b2Add(b2Vec2{ 0.0f, -1.225f * s }, position);
+    bodyDef.position = b2Add(b2Vec2{ 0.0f, -1.145f * s }, position);
     bodyDef.linearDamping = 0.0f;
-    bone->visual = fan::graphics::physics_shapes::capsule_t{ {
+    bone->visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
         .position = fan::vec3(fan::vec2(bodyDef.position), 100),
         .center0 = { 0.0f, 0.125f * s },
-        .center1 = { 0.0f, -0.125f * s },
-        .radius = 0.035f * s,
-        .color = fan::color::hex(skinColor),
+        .center1 = { 0.0f, -0.125f * s},
+        .radius = 0.064f * s,
+        .image = images[bone_e::upper_right_arm],
         .body_type = fan::physics::body_type_e::dynamic_body,
-        .shape_properties{ .fixed_rotation = false, .linear_damping = 0.0f,
+        .shape_properties{ .fixed_rotation = false, .linear_damping = 0.5f,
         .filter = shapeDef.filter },
       } };
     bone->friction_scale = 0.5f;
@@ -582,12 +595,12 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     jointDef.localAnchorA = b2Body_GetLocalPoint(jointDef.bodyIdA, pivot);
     jointDef.localAnchorB = b2Body_GetLocalPoint(jointDef.bodyIdB, pivot);
     jointDef.enableLimit = enableLimit;
-    jointDef.lowerAngle = -0.1f * fan::math::pi;
-    jointDef.upperAngle = 0.8f * fan::math::pi;
+    jointDef.lowerAngle = -0.5f * fan::math::pi;
+    jointDef.upperAngle = 0.5f * fan::math::pi;
     jointDef.enableMotor = enableMotor;
     jointDef.maxMotorTorque = bone->friction_scale * maxTorque * scale;
     jointDef.enableSpring = hertz > 0.0f;
-    jointDef.hertz = hertz;
+    jointDef.hertz = hertz*5;
     jointDef.dampingRatio = dampingRatio;
     jointDef.drawSize = drawSize;
 
@@ -599,16 +612,16 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     Bone* bone = human->bones + bone_e::lower_right_arm;
     bone->parent_index = bone_e::upper_right_arm;
 
-    bodyDef.position = b2Add(b2Vec2{ 0.0f, -0.975f * s }, position);
+    bodyDef.position = b2Add(b2Vec2{ -0.1f, -0.975f * s }, position);
     bodyDef.linearDamping = 0.1f;
-    bone->visual = fan::graphics::physics_shapes::capsule_t{ {
-        .position = fan::vec3(fan::vec2(bodyDef.position), 100),
-        .center0 = { 0.0f, 0.125f * s },
+    bone->visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
+        .position = fan::vec3(fan::vec2(bodyDef.position), 110),
+        .center0 = { 0.0f,  0.125f * s },
         .center1 = { 0.0f, -0.125f * s },
-        .radius = 0.03f * s,
-        .color = fan::color::hex(skinColor),
+        .radius = 0.064f * s,
+        .image = images[bone_e::lower_right_arm],
         .body_type = fan::physics::body_type_e::dynamic_body,
-        .shape_properties{ .fixed_rotation = false, .linear_damping = 0.1f,
+        .shape_properties{ .fixed_rotation = false, .linear_damping = 0.5f,
         .filter = shapeDef.filter },
       } };
     bone->friction_scale = 0.1f;
@@ -621,12 +634,12 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
     jointDef.localAnchorB = b2Body_GetLocalPoint(jointDef.bodyIdB, pivot);
     jointDef.referenceAngle = -0.25f * fan::math::pi;
     jointDef.enableLimit = enableLimit;
-    jointDef.lowerAngle = -0.2f * fan::math::pi;
-    jointDef.upperAngle = 0.3f * fan::math::pi;
+    jointDef.lowerAngle = -0.5f * fan::math::pi;
+    jointDef.upperAngle = 0.5f * fan::math::pi;
     jointDef.enableMotor = enableMotor;
     jointDef.maxMotorTorque = bone->friction_scale * maxTorque * scale;
     jointDef.enableSpring = hertz > 0.0f;
-    jointDef.hertz = hertz;
+    jointDef.hertz = hertz*5;
     jointDef.dampingRatio = dampingRatio;
     jointDef.drawSize = drawSize;
 
@@ -743,9 +756,6 @@ void fan::graphics::human_animate_walk(Human* human, f32_t force, f32_t dt) {
   b2BodyId torsoId = human->bones[bone_e::torso].visual;
   b2Vec2 force_ = { force * massScale, 0 };
 
-  b2BodyId leftLegId = human->bones[bone_e::upper_left_leg].visual;
-  b2BodyId rightLegId = human->bones[bone_e::upper_right_leg].visual;
-
   Bone& blower_left_arm = human->bones[bone_e::lower_left_arm];
   Bone& blower_right_arm = human->bones[bone_e::lower_right_arm];
   Bone& bupper_left_leg = human->bones[bone_e::upper_left_leg];
@@ -763,46 +773,154 @@ void fan::graphics::human_animate_walk(Human* human, f32_t force, f32_t dt) {
   f32_t swing_speed = torso_vel_x ? (vel_sgn * 0.f + torso_vel_x / 15.f) : 0;
 
   f32_t ttransform = b2Rot_GetAngle(b2Body_GetRotation(human->bones[bone_e::torso].visual));
-  f32_t ltransform = b2Rot_GetAngle(b2Body_GetRotation(leftLegId));
-  f32_t rtransform = b2Rot_GetAngle(b2Body_GetRotation(rightLegId));
+  f32_t lutransform = b2Rot_GetAngle(b2Body_GetRotation(bupper_left_leg.visual));
+  f32_t rutransform = b2Rot_GetAngle(b2Body_GetRotation(bupper_right_leg.visual));
 
-  static int last_valid_direction = 0;
+  f32_t lltransform = b2Rot_GetAngle(b2Body_GetRotation(blower_left_leg.visual));
+  f32_t rltransform = b2Rot_GetAngle(b2Body_GetRotation(blower_right_leg.visual));
+
+  if (std::abs(torso_vel_x) / 100.f > 1.f && torso_vel_x) {
+    for (int i = 0; i < bone_e::bone_count; ++i) {
+      human->bones[i].visual.set_tc_size(fan::vec2(vel_sgn, 1));
+    }
+  }
+
+  static int direction = 1;
+  static int look_direction = vel_sgn;
 
   if (torso_vel_x || counter == 0) {
-    counter += swing_speed * dt;
+    counter = 1;
+    if (!force) {
+      b2Body_ApplyForceToCenter(torsoId, fan::vec2(-torso_vel_x*100000.f, 0), true);
+    }
 
-    f32_t quarter_pi = 0.25f * fan::math::pi;
-    quarter_pi *= 3; // why this is required?
+    f32_t quarter_pi = -0.25f * fan::math::pi;
+    //quarter_pi *= 3; // why this is required?
+    //quarter_pi += fan::math::pi;
 
     if (std::abs(torso_vel_x) / 100.f > 1.f && torso_vel_x) {
-      last_valid_direction = vel_sgn;
-      UpdateReferenceAngle(gloco->physics_context.world_id, blower_left_arm.joint_id, last_valid_direction == 1 ? quarter_pi : -quarter_pi);
-      UpdateReferenceAngle(gloco->physics_context.world_id, blower_right_arm.joint_id, last_valid_direction == 1 ? quarter_pi : -quarter_pi);
-      
+      UpdateReferenceAngle(gloco->physics_context.world_id, blower_left_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
+      UpdateReferenceAngle(gloco->physics_context.world_id, blower_right_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
+      look_direction = vel_sgn;
     }
-    //}
-
-    f32_t ang = fan::math::pi / 4.f;
-    b2RevoluteJoint_SetLimits(blower_left_leg.joint_id, vel_sgn * -ang, vel_sgn * ang);
-    b2RevoluteJoint_SetLimits(blower_right_leg.joint_id, vel_sgn * -ang, vel_sgn * ang);
-
-    b2RevoluteJoint_SetLimits(bupper_left_leg.joint_id, vel_sgn * -ang, vel_sgn * ang);
-    b2RevoluteJoint_SetLimits(bupper_right_leg.joint_id, vel_sgn * -ang, vel_sgn * ang);
-
 
     if (force || std::abs(torso_vel_x / 100.f) > 1.f) {
-      if (sin(counter) < 0) {
-        b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id, (ttransform - ltransform) * std::abs(torso_vel_x / 25.f));
-        b2RevoluteJoint_SetMotorSpeed(bupper_right_leg.joint_id, vel_sgn * -std::abs(sin(counter)) * 10);
+      f32_t leg_turn =  0.4;
+
+      if (rutransform < (look_direction == 1 ? -leg_turn / 2 : -leg_turn)) {
+        direction = 0;
+      }
+      if (rutransform > (look_direction == -1 ? leg_turn / 2 : leg_turn)) {
+        direction = 1;
+      }
+
+      f32_t rotate_speed = 1.3 * std::abs(torso_vel_x) / 200.f;
+
+      if (direction == 1) {
+        b2RevoluteJoint_SetMotorSpeed(bupper_right_leg.joint_id, -rotate_speed);
+        b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id, rotate_speed);
+        
       }
       else {
-        b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id, vel_sgn * -std::abs(sin(counter)) * 10);
-        b2RevoluteJoint_SetMotorSpeed(bupper_right_leg.joint_id, (ttransform - rtransform) * std::abs(torso_vel_x / 25.f));
+        b2RevoluteJoint_SetMotorSpeed(bupper_right_leg.joint_id, rotate_speed);
+        b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id, -rotate_speed);
+        
+      }
+      b2RevoluteJoint_SetMotorSpeed(blower_right_leg.joint_id, (look_direction * leg_turn/2 - rltransform));
+      b2RevoluteJoint_SetMotorSpeed(blower_left_leg.joint_id,(look_direction * leg_turn/2 - lltransform));
+    }
+    else {
+      b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id, (ttransform - lutransform) * 5);
+      b2RevoluteJoint_SetMotorSpeed(bupper_right_leg.joint_id, (ttransform - rutransform) * 5);
+
+      b2RevoluteJoint_SetMotorSpeed(blower_left_leg.joint_id, (ttransform - lltransform) * 5);
+      b2RevoluteJoint_SetMotorSpeed(blower_right_leg.joint_id, (ttransform - rltransform) * 5);
+    }
+  }
+}
+
+fan::graphics::human_t::human_t(const fan::vec2& position, const f32_t scale, const std::array<loco_t::image_t, bone_e::bone_count>& images) {
+  f32_t m_jointFrictionTorque = 0.03f;
+  f32_t _jointHertz = 3.0f;
+  f32_t _jointDampingRatio = 0.5f;
+  fan::graphics::CreateHuman(
+    dynamic_cast<Human*>(this),
+    gloco->physics_context.world_id,
+    position,
+    scale,
+    m_jointFrictionTorque,
+    _jointHertz,
+    _jointDampingRatio,
+    1,
+    nullptr,
+    images
+  );
+}
+
+void fan::graphics::human_t::animate_walk(f32_t force, f32_t dt) {
+  human_animate_walk(dynamic_cast<Human*>(this), force, dt);
+}
+
+bool fan::graphics::mouse_joint_t::QueryCallback(b2ShapeId shapeId, void* context) {
+  QueryContext* queryContext = static_cast<QueryContext*>(context);
+
+  b2BodyId bodyId = b2Shape_GetBody(shapeId);
+  b2BodyType bodyType = b2Body_GetType(bodyId);
+  if (bodyType != b2_dynamicBody)
+  {
+    // continue query
+    return true;
+  }
+
+  bool overlap = b2Shape_TestPoint(shapeId, queryContext->point);
+  if (overlap)
+  {
+    // found shape
+    queryContext->bodyId = bodyId;
+    return false;
+  }
+
+  return true;
+}
+
+fan::graphics::mouse_joint_t::mouse_joint_t(fan::physics::body_id_t tb) {
+  this->target_body = tb;
+}
+
+void fan::graphics::mouse_joint_t::update_mouse(b2WorldId world_id, const fan::vec2& position) {
+  if (ImGui::IsMouseDown(0)) {
+    fan::vec2 p = gloco->get_mouse_position();
+    if (!B2_IS_NON_NULL(mouse_joint)) {
+      b2AABB box;
+      b2Vec2 d = { 0.001f, 0.001f };
+      box.lowerBound = b2Sub(p, d);
+      box.upperBound = b2Add(p, d);
+
+      QueryContext queryContext = { p, b2_nullBodyId };
+      b2World_OverlapAABB(world_id, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
+      if (B2_IS_NON_NULL(queryContext.bodyId)) {
+
+        b2MouseJointDef mouseDef = b2DefaultMouseJointDef();
+        mouseDef.bodyIdA = target_body;
+        mouseDef.bodyIdB = queryContext.bodyId;
+        mouseDef.target = p;
+        mouseDef.hertz = 5.0f;
+        mouseDef.dampingRatio = 0.7f;
+        mouseDef.maxForce = 100000.0f * b2Body_GetMass(queryContext.bodyId);
+        mouse_joint = b2CreateMouseJoint(world_id, &mouseDef);
+        b2Body_SetAwake(queryContext.bodyId, true);
       }
     }
     else {
-      b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id, (ttransform - ltransform) * 5);
-      b2RevoluteJoint_SetMotorSpeed(bupper_right_leg.joint_id, (ttransform - rtransform) * 5);
+      b2MouseJoint_SetTarget(mouse_joint, p);
+      b2BodyId bodyIdB = b2Joint_GetBodyB(mouse_joint);
+      b2Body_SetAwake(bodyIdB, true);
+    }
+  }
+  else if (ImGui::IsMouseReleased(0)) {
+    if (B2_IS_NON_NULL(mouse_joint)) {
+      b2DestroyJoint(mouse_joint);
+      mouse_joint = b2_nullJointId;
     }
   }
 }
