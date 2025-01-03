@@ -54,6 +54,8 @@ namespace fan {
       bool fixed_rotation = false;
       bool enable_presolve_events = false;
       bool is_sensor = false;
+      f32_t linear_damping = 0.0;
+      b2Filter filter = b2DefaultFilter();
     };
 
     struct entity_t {
