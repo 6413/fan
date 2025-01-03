@@ -3,6 +3,7 @@
 // for shapes
 #include <fan/graphics/loco.h>
 #include <fan/physics/b2_integration.hpp>
+#include <array>
 
 namespace fan {
   namespace graphics {
@@ -130,6 +131,57 @@ namespace fan {
         }
       };
 
+      struct sprite_t : base_shape_t {
+        struct properties_t {
+          camera_impl_t* camera = &gloco->orthographic_camera;
+          fan::vec3 position = fan::vec3(0, 0, 0);
+          fan::vec2 size = fan::vec2(0.1, 0.1);
+          fan::vec3 angle = 0;
+          fan::color color = fan::color(1, 1, 1, 1);
+          fan::vec2 rotation_point = 0;
+          loco_t::image_t image = gloco->default_texture;
+          std::array<loco_t::image_t, 30> images;
+          f32_t parallax_factor = 0;
+          bool blending = true;
+          uint32_t flags = 0;
+          operator fan::graphics::sprite_properties_t() const {
+            return fan::graphics::sprite_properties_t{
+              .camera = camera,
+              .position = position,
+              .size = size,
+              .angle = angle,
+              .color = color,
+              .rotation_point = rotation_point,
+              .image = image,
+              .images = images,
+              .parallax_factor = parallax_factor,
+              .blending = blending,
+              .flags = flags
+            };
+          }
+          uint8_t body_type = fan::physics::body_type_e::static_body;
+          mass_data_t mass_data;
+          fan::physics::shape_properties_t shape_properties;
+        };
+        sprite_t() = default;
+        sprite_t(const properties_t& p) : base_shape_t(
+          loco_t::shape_t(fan::graphics::sprite_t{ p }),
+          fan::physics::entity_t(gloco->physics_context.create_box(p.position, p.size, p.body_type, p.shape_properties)),
+          p.mass_data
+        ) {
+        }
+        sprite_t(const sprite_t& r) : base_shape_t(r) {}
+        sprite_t(sprite_t&& r) : base_shape_t(std::move(r)) {}
+        sprite_t& operator=(const sprite_t& r) {
+          base_shape_t::operator=(r);
+          return *this;
+        }
+        sprite_t& operator=(sprite_t&& r) {
+          base_shape_t::operator=(std::move(r));
+          return *this;
+        }
+      };
+
       struct circle_t : base_shape_t {
         struct properties_t {
           camera_impl_t* camera = &gloco->orthographic_camera;
@@ -216,6 +268,62 @@ namespace fan {
           return *this;
         }
       };
+
+      struct capsule_sprite_t : base_shape_t {
+        struct properties_t {
+          camera_impl_t* camera = &gloco->orthographic_camera;
+          fan::vec3 position = fan::vec3(0, 0, 0);
+          fan::vec2 center0 = 0;
+          fan::vec2 center1{ 0, 128.f };
+          f32_t radius = 64.0f;
+          fan::vec3 angle = 0;
+          fan::color color = fan::color(1, 1, 1, 1);
+          fan::vec2 rotation_point = 0;
+          loco_t::image_t image = gloco->default_texture;
+          std::array<loco_t::image_t, 30> images;
+          f32_t parallax_factor = 0;
+          bool blending = true;
+          uint32_t flags = 0;
+
+          uint8_t body_type = fan::physics::body_type_e::static_body;
+          mass_data_t mass_data;
+          fan::physics::shape_properties_t shape_properties;
+
+          operator fan::graphics::sprite_properties_t() const {
+            return fan::graphics::sprite_properties_t{
+              .camera = camera,
+              .position = position,
+              .size = radius*2.3,
+              .angle = angle,
+              .color = color,
+              .rotation_point = rotation_point,
+              .image = image,
+              .images = images,
+              .parallax_factor = parallax_factor,
+              .blending = blending,
+              .flags = flags
+            };
+          }
+        };
+        capsule_sprite_t() = default;
+        capsule_sprite_t(const properties_t& p) : base_shape_t(
+          loco_t::shape_t(fan::graphics::sprite_t{p}),
+          fan::physics::entity_t(gloco->physics_context.create_capsule(p.position, b2Capsule{.center1 = p.center0, .center2 = p.center1, .radius = p.radius}, p.body_type, p.shape_properties)),
+          p.mass_data
+        ) {
+        }
+        capsule_sprite_t(const capsule_sprite_t& r) : base_shape_t(r) {}
+        capsule_sprite_t(capsule_sprite_t&& r) : base_shape_t(std::move(r)) {}
+        capsule_sprite_t& operator=(const capsule_sprite_t& r) {
+          base_shape_t::operator=(r);
+          return *this;
+        }
+        capsule_sprite_t& operator=(capsule_sprite_t&& r) {
+          base_shape_t::operator=(std::move(r));
+          return *this;
+        }
+      };
+
       std::array<fan::graphics::physics_shapes::rectangle_t, 4> create_stroked_rectangle(
         const fan::vec2& center_position,
         const fan::vec2& half_size,
@@ -229,26 +337,18 @@ namespace fan {
         } });
     }
 
-    struct character2d_t {
-
-      inline character2d_t() {
-        gloco->input_action.add(fan::key_a, "move_left");
-        gloco->input_action.add(fan::key_d, "move_right");
-        gloco->input_action.add(fan::key_space, "move_up");
-        gloco->input_action.add(fan::key_s, "move_down");
+    struct character2d_t : physics_shapes::base_shape_t {
+      character2d_t();
+      inline character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {
+        add_inputs();
       }
-      inline character2d_t(auto&& shape) : character2d_t(), character(std::move(shape)) {
-        
-      }
-
+      void add_inputs();
       void process_movement(f32_t friction = 12);
-
       f32_t force = 25.f;
       f32_t impulse = 10.f;
       f32_t max_speed = 500.f;
       f32_t jump_delay = 0.25f;
       bool jumping = false;
-      fan::graphics::physics_shapes::capsule_t character;
       fan::physics::body_id_t feet[2];
       f32_t walk_force = 0;
     };
@@ -272,7 +372,7 @@ namespace fan {
 
     typedef struct Bone
     {
-      fan::graphics::physics_shapes::capsule_t visual;
+      fan::graphics::physics_shapes::base_shape_t visual;
       b2JointId joint_id;
       f32_t friction_scale;
       int parent_index;
@@ -288,7 +388,7 @@ namespace fan {
      void UpdateReferenceAngle(b2WorldId world, b2JointId& joint_id, float new_reference_angle);
 
     void CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position, f32_t scale, f32_t frictionTorque, f32_t hertz, f32_t dampingRatio,
-      int groupIndex, void* userData, bool colorize);
+      int groupIndex, void* userData, const std::array<loco_t::image_t, bone_e::bone_count>& images);
 
     void DestroyHuman(Human* human);
 
@@ -305,26 +405,8 @@ namespace fan {
     void human_animate_walk(Human* human, f32_t force, f32_t dt);
 
     struct human_t : Human{
-      human_t(const fan::vec2& position, const f32_t scale = 200.f) {
-        f32_t m_jointFrictionTorque = 0.03f;
-        f32_t _jointHertz = 5.0f;
-        f32_t _jointDampingRatio = 2.01f;
-        fan::graphics::CreateHuman(
-          dynamic_cast<Human*>(this),
-          gloco->physics_context.world_id, 
-          position, 
-          scale, 
-          m_jointFrictionTorque, 
-          _jointHertz, 
-          _jointDampingRatio, 
-          1,       
-          nullptr, 
-          false
-        );
-      }
-      void animate_walk(f32_t force, f32_t dt) {
-        human_animate_walk(dynamic_cast<Human*>(this), force, dt);
-      }
+      human_t(const fan::vec2& position, const f32_t scale = 200.f, const std::array<loco_t::image_t, bone_e::bone_count>& images={});
+      void animate_walk(f32_t force, f32_t dt);
     };
 
     struct mouse_joint_t {
@@ -335,70 +417,11 @@ namespace fan {
         b2BodyId bodyId = b2_nullBodyId;
       };
 
+      static bool QueryCallback(b2ShapeId shapeId, void* context);
 
-      static bool QueryCallback(b2ShapeId shapeId, void* context) {
-        QueryContext* queryContext = static_cast<QueryContext*>(context);
+      mouse_joint_t(fan::physics::body_id_t tb);
 
-        b2BodyId bodyId = b2Shape_GetBody(shapeId);
-        b2BodyType bodyType = b2Body_GetType(bodyId);
-        if (bodyType != b2_dynamicBody)
-        {
-          // continue query
-          return true;
-        }
-
-        bool overlap = b2Shape_TestPoint(shapeId, queryContext->point);
-        if (overlap)
-        {
-          // found shape
-          queryContext->bodyId = bodyId;
-          return false;
-        }
-
-        return true;
-      }
-
-      mouse_joint_t(fan::physics::body_id_t tb) {
-        this->target_body = tb;
-      }
-
-      void update_mouse(b2WorldId world_id, const fan::vec2& position) {
-        if (ImGui::IsMouseDown(0)) {
-          fan::vec2 p = gloco->get_mouse_position();
-          if (!B2_IS_NON_NULL(mouse_joint)) {
-            b2AABB box;
-            b2Vec2 d = { 0.001f, 0.001f };
-            box.lowerBound = b2Sub(p, d);
-            box.upperBound = b2Add(p, d);
-
-            QueryContext queryContext = { p, b2_nullBodyId };
-            b2World_OverlapAABB(world_id, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
-            if (B2_IS_NON_NULL(queryContext.bodyId)) {
-
-              b2MouseJointDef mouseDef = b2DefaultMouseJointDef();
-              mouseDef.bodyIdA = target_body;
-              mouseDef.bodyIdB = queryContext.bodyId;
-              mouseDef.target = p;
-              mouseDef.hertz = 5.0f;
-              mouseDef.dampingRatio = 0.7f;
-              mouseDef.maxForce = 10000.0f * b2Body_GetMass(queryContext.bodyId);
-              mouse_joint = b2CreateMouseJoint(world_id, &mouseDef);
-              b2Body_SetAwake(queryContext.bodyId, true);
-            }
-          }
-          else {
-            b2MouseJoint_SetTarget(mouse_joint, p);
-            b2BodyId bodyIdB = b2Joint_GetBodyB(mouse_joint);
-            b2Body_SetAwake(bodyIdB, true);
-          }
-        }
-        else if (ImGui::IsMouseReleased(0)) {
-          if (B2_IS_NON_NULL(mouse_joint)) {
-            b2DestroyJoint(mouse_joint);
-            mouse_joint = b2_nullJointId;
-          }
-        }
-      }
+      void update_mouse(b2WorldId world_id, const fan::vec2& position);
 
       fan::physics::body_id_t target_body;
       b2JointId mouse_joint = b2_nullJointId;

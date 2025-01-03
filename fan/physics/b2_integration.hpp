@@ -6,6 +6,15 @@
 
 namespace fan {
   namespace physics {
+    struct shapes_e {
+      enum {
+        capsule,
+        polygon,
+        circle,
+        box,
+      };
+    };
+
     struct capsule_t : b2Capsule {
       using b2Capsule::b2Capsule;
       capsule_t(const b2Capsule& capsule) : b2Capsule(capsule) {}

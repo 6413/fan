@@ -60,6 +60,31 @@ namespace fan {
 				(hex >> 0) & 0xff
 			);
 		}
+    // reverse endian
+    static constexpr color hexr(unsigned int hex) {
+			return color::rgb(
+        (hex >> 0) & 0xff,
+        (hex >> 8) & 0xff,
+        (hex >> 16) & 0xff,
+        (hex >> 24) & 0xff
+      );
+		}
+    static constexpr color hexa(unsigned int hex) {
+			return color::rgb(
+        (hex >> 16) & 0xff,
+        (hex >> 8) & 0xff,
+        (hex >> 0) & 0xff,
+        0xff
+      );
+		}
+    static constexpr color hexar(unsigned int hex) {
+			return color::rgb(
+        (hex >> 0) & 0xff,
+        (hex >> 8) & 0xff,
+        (hex >> 16) & 0xff,
+        0xff
+      );
+		}
 
     constexpr color() = default;
 
