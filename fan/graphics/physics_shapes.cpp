@@ -64,17 +64,14 @@ void fan::graphics::character2d_t::add_inputs() {
   gloco->input_action.add(fan::key_s, "move_down");
 }
 
-void fan::graphics::character2d_t::process_movement(f32_t friction) {
-  bool can_jump = false;
-
-  b2Vec2 velocity = b2Body_GetLinearVelocity(*this);
+bool fan::graphics::character2d_t::is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping) {
   for (int i = 0; i < 2; ++i) {
     fan::physics::body_id_t body_id = feet[i];
     if (body_id.is_valid() == false) {
-      body_id = *this;
+      body_id = main;
     }
     b2Vec2 velocity = b2Body_GetLinearVelocity(body_id);
-    if (jump_delay == 0.0f && jumping == false && velocity.y < 0.01f) {
+    if (jumping == false && velocity.y < 0.01f) {
       int capacity = b2Body_GetContactCapacity(body_id);
       capacity = b2MinInt(capacity, 4);
       b2ContactData contactData[4];
@@ -90,12 +87,20 @@ void fan::graphics::character2d_t::process_movement(f32_t friction) {
           sign = 1.0f;
         }
         if (sign * contactData[i].manifold.normal.y < -0.9f) {
-          can_jump = true;
-          break;
+          return true;
         }
       }
     }
   }
+  return false;
+}
+
+void fan::graphics::character2d_t::process_movement(f32_t friction) {
+  bool can_jump = false;
+
+  b2Vec2 velocity = b2Body_GetLinearVelocity(*this);
+
+  can_jump = is_on_ground(*this, std::to_array(feet), jumping);
 
   walk_force = 0;
   if (gloco->input_action.is_action_down("move_left")) {
@@ -114,12 +119,15 @@ void fan::graphics::character2d_t::process_movement(f32_t friction) {
   //  b2Body_ApplyForceToCenter(character, { 0, impulse*10 }, true);
   //}
 
-  bool move_up = gloco->input_action.is_action_down("move_up");
+  bool move_up = gloco->input_action.is_action_clicked("move_up");
   if (move_up) {
     if (can_jump) {
-      b2Body_ApplyLinearImpulseToCenter(*this, { 0, -impulse }, true);
-      jump_delay = 0.5f;
+      //b2Body_ApplyLinearImpulseToCenter(*this, { 0, -impulse }, true);
+      jump_delay = 0.f;
       jumping = true;
+    }
+    else {
+      jumping = false;
     }
   }
   else {
@@ -165,14 +173,13 @@ void fan::graphics::UpdateReferenceAngle(b2WorldId world, b2JointId& joint_id, f
     joint_id = b2CreateRevoluteJoint(world, &jointDef);
 }
 
-void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position, f32_t scale, f32_t frictionTorque, f32_t hertz, f32_t dampingRatio, int groupIndex, void* userData, const std::array<loco_t::image_t, bone_e::bone_count>& images) {
+void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position, f32_t scale, f32_t frictionTorque, f32_t hertz, f32_t dampingRatio, int groupIndex, void* userData, const std::array<loco_t::image_t, bone_e::bone_count>& images, const fan::color& color) {
   auto verified_images = images;
   for (auto& image : verified_images) {
     if (image.iic()) {
       image = gloco->default_texture;
     }
   }
-
 
   assert(human->is_spawned == false);
 
@@ -225,6 +232,7 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
         .center0 = { 0.0f, 0.02f * s },
         .center1 = { 0.0f, -0.02f * s },
         .radius = 0.064f * s,
+        .color = color,
         .image = images[bone_e::hip],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{
@@ -246,6 +254,7 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
         .center0 = { 0.0f, 0.135f * s },
         .center1 = { 0.0f, -0.135f * s },
         .radius = 0.085f * s,
+        .color = color,
         .image = images[bone_e::torso],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{
@@ -287,6 +296,7 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
         .center0 = { 0.0f, 0.038f * s },
         .center1 = { 0.0f, -0.039f * s },
         .radius = 0.124f * s,
+        .color = color,
         .image = images[bone_e::head],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{ .fixed_rotation = false, .linear_damping = 0.1f,
@@ -325,6 +335,7 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
         .center0 = { 0.0f, 0.125f * s },
         .center1 = { 0.0f, -0.125f * s},
         .radius = 0.064f * s,
+        .color = color,
         .image = images[bone_e::upper_left_leg],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{ .fixed_rotation = false, .linear_damping = 0.0f,
@@ -376,6 +387,7 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
         .center0 = { 0.0f, 0.125f * s },
         .center1 = { 0.0f, -0.125f * s},
         .radius = 0.094f * s,
+        .color = color,
         .image = images[bone_e::lower_left_leg],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{
@@ -417,6 +429,7 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
         .center0 = { 0.0f, 0.125f * s  },
         .center1 = { 0.0f, -0.125f * s },
         .radius = 0.064f * s,
+        .color = color,
         .image = images[bone_e::upper_right_leg],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{ .fixed_rotation = false, .linear_damping = 0.0f,
@@ -455,6 +468,7 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
         .center0 = { 0.0f, 0.125f * s },
         .center1 = { 0.0f, -0.125f * s},
         .radius = 0.094f * s,
+        .color = color,
         .image = images[bone_e::lower_right_leg],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{
@@ -505,6 +519,7 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
         .center0 = { 0.0f, 0.125f * s },
         .center1 = { 0.0f, -0.125f * s},
         .radius = 0.064f * s,
+        .color = color,
         .image = images[bone_e::upper_left_arm],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{ .fixed_rotation = false, .linear_damping = 0.5f,
@@ -542,6 +557,7 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
         .center0 = { 0.0f, 0.125f * s },
         .center1 = { 0.0f, -0.125f * s},
         .radius = 0.064f * s,
+        .color = color,
         .image = images[bone_e::lower_left_arm],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{ .fixed_rotation = false, .linear_damping = 0.5f,
@@ -581,6 +597,7 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
         .center0 = { 0.0f, 0.125f * s },
         .center1 = { 0.0f, -0.125f * s},
         .radius = 0.064f * s,
+        .color = color,
         .image = images[bone_e::upper_right_arm],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{ .fixed_rotation = false, .linear_damping = 0.5f,
@@ -619,6 +636,7 @@ void fan::graphics::CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position
         .center0 = { 0.0f,  0.125f * s },
         .center1 = { 0.0f, -0.125f * s },
         .radius = 0.064f * s,
+        .color = color,
         .image = images[bone_e::lower_right_arm],
         .body_type = fan::physics::body_type_e::dynamic_body,
         .shape_properties{ .fixed_rotation = false, .linear_damping = 0.5f,
@@ -763,9 +781,6 @@ void fan::graphics::human_animate_walk(Human* human, f32_t force, f32_t dt) {
   Bone& blower_left_leg = human->bones[bone_e::lower_left_leg];
   Bone& blower_right_leg = human->bones[bone_e::lower_right_leg];
 
-  static f32_t counter = 0;
-  static f32_t prev = force;
-
   f32_t torso_vel_x = b2Body_GetLinearVelocity(torsoId).x;
   f32_t torso_vel_y = b2Body_GetLinearVelocity(torsoId).y;
   int vel_sgn = fan::math::sgn(torso_vel_x);
@@ -779,17 +794,13 @@ void fan::graphics::human_animate_walk(Human* human, f32_t force, f32_t dt) {
   f32_t lltransform = b2Rot_GetAngle(b2Body_GetRotation(blower_left_leg.visual));
   f32_t rltransform = b2Rot_GetAngle(b2Body_GetRotation(blower_right_leg.visual));
 
-  if (std::abs(torso_vel_x) / 100.f > 1.f && torso_vel_x) {
+  if (std::abs(torso_vel_x) / 130.f > 1.f && torso_vel_x) {
     for (int i = 0; i < bone_e::bone_count; ++i) {
       human->bones[i].visual.set_tc_size(fan::vec2(vel_sgn, 1));
     }
   }
 
-  static int direction = 1;
-  static int look_direction = vel_sgn;
-
-  if (torso_vel_x || counter == 0) {
-    counter = 1;
+  if (torso_vel_x) {
     if (!force) {
       b2Body_ApplyForceToCenter(torsoId, fan::vec2(-torso_vel_x*100000.f, 0), true);
     }
@@ -798,25 +809,25 @@ void fan::graphics::human_animate_walk(Human* human, f32_t force, f32_t dt) {
     //quarter_pi *= 3; // why this is required?
     //quarter_pi += fan::math::pi;
 
-    if (std::abs(torso_vel_x) / 100.f > 1.f && torso_vel_x) {
+    if (std::abs(torso_vel_x) / 130.f > 1.f && torso_vel_x) {
       UpdateReferenceAngle(gloco->physics_context.world_id, blower_left_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
       UpdateReferenceAngle(gloco->physics_context.world_id, blower_right_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
-      look_direction = vel_sgn;
+      human->look_direction = vel_sgn;
     }
 
     if (force || std::abs(torso_vel_x / 100.f) > 1.f) {
       f32_t leg_turn =  0.4;
 
-      if (rutransform < (look_direction == 1 ? -leg_turn / 2 : -leg_turn)) {
-        direction = 0;
+      if (rutransform < (human->look_direction == 1 ? -leg_turn / 2 : -leg_turn)) {
+        human->direction = 0;
       }
-      if (rutransform > (look_direction == -1 ? leg_turn / 2 : leg_turn)) {
-        direction = 1;
+      if (rutransform > (human->look_direction == -1 ? leg_turn / 2 : leg_turn)) {
+        human->direction = 1;
       }
 
       f32_t rotate_speed = 1.3 * std::abs(torso_vel_x) / 200.f;
 
-      if (direction == 1) {
+      if (human->direction == 1) {
         b2RevoluteJoint_SetMotorSpeed(bupper_right_leg.joint_id, -rotate_speed);
         b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id, rotate_speed);
         
@@ -826,8 +837,8 @@ void fan::graphics::human_animate_walk(Human* human, f32_t force, f32_t dt) {
         b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id, -rotate_speed);
         
       }
-      b2RevoluteJoint_SetMotorSpeed(blower_right_leg.joint_id, (look_direction * leg_turn/2 - rltransform));
-      b2RevoluteJoint_SetMotorSpeed(blower_left_leg.joint_id,(look_direction * leg_turn/2 - lltransform));
+      b2RevoluteJoint_SetMotorSpeed(blower_right_leg.joint_id, (human->look_direction * leg_turn/2 - rltransform));
+      b2RevoluteJoint_SetMotorSpeed(blower_left_leg.joint_id,(human->look_direction * leg_turn/2 - lltransform));
     }
     else {
       b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id, (ttransform - lutransform) * 5);
@@ -839,7 +850,44 @@ void fan::graphics::human_animate_walk(Human* human, f32_t force, f32_t dt) {
   }
 }
 
-fan::graphics::human_t::human_t(const fan::vec2& position, const f32_t scale, const std::array<loco_t::image_t, bone_e::bone_count>& images) {
+void fan::graphics::human_animate_jump(Human* human, f32_t impulse, f32_t dt, bool is_jumping) {
+  Bone& bupper_left_leg = human->bones[bone_e::upper_left_leg];
+  Bone& bupper_right_leg = human->bones[bone_e::upper_right_leg];
+  Bone& blower_left_leg = human->bones[bone_e::lower_left_leg];
+  Bone& blower_right_leg = human->bones[bone_e::lower_right_leg];
+  f32_t massScale = 250.0f;
+  //impulse *= massScale;
+  if (is_jumping) {
+    human->go_up = 0;
+  }
+  if (human->go_up == 1 && !human->jump_animation_timer.finished()) {
+    b2Body_ApplyLinearImpulseToCenter(human->bones[bone_e::torso].visual, fan::vec2(0, impulse/2.f), true);
+  }
+  else if (human->go_up == 1 && human->jump_animation_timer.finished()) {
+    b2Body_ApplyLinearImpulseToCenter(human->bones[bone_e::torso].visual, fan::vec2(0, -impulse), true);
+    human->go_up = 0;
+  }
+  if (human->go_up == 0 && is_jumping) {
+    //f32_t torso_vel_x = b2Body_GetLinearVelocity(human->bones[bone_e::torso].visual).x;
+    //b2RevoluteJoint_SetSpringHertz(blower_left_leg.joint_id, 1);
+    //b2RevoluteJoint_SetSpringHertz(blower_right_leg.joint_id, 1);
+
+    //b2RevoluteJoint_SetMotorSpeed(blower_left_leg.joint_id, fan::math::sgn(torso_vel_x) * 10.2 );
+    //b2RevoluteJoint_SetMotorSpeed(blower_left_leg.joint_id, fan::math::sgn(torso_vel_x) * 10.2 );
+
+    //b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id,  fan::math::sgn(torso_vel_x) *  -10.2 );
+    //b2RevoluteJoint_SetMotorSpeed(bupper_right_leg.joint_id, fan::math::sgn(torso_vel_x) *  -10.2);
+
+    human->go_up = 1;
+    human->jump_animation_timer.start(0.09e9);
+  }
+}
+
+fan::graphics::human_t::human_t(const fan::vec2& position, const f32_t scale, const std::array<loco_t::image_t, bone_e::bone_count>& images, const fan::color& color) {
+  load(position, scale, images, color);
+}
+
+void fan::graphics::human_t::load(const fan::vec2& position, const f32_t scale, const std::array<loco_t::image_t, bone_e::bone_count>& images, const fan::color& color) {
   f32_t m_jointFrictionTorque = 0.03f;
   f32_t _jointHertz = 3.0f;
   f32_t _jointDampingRatio = 0.5f;
@@ -853,12 +901,15 @@ fan::graphics::human_t::human_t(const fan::vec2& position, const f32_t scale, co
     _jointDampingRatio,
     1,
     nullptr,
-    images
+    images,
+    color
   );
 }
-
 void fan::graphics::human_t::animate_walk(f32_t force, f32_t dt) {
   human_animate_walk(dynamic_cast<Human*>(this), force, dt);
+}
+void fan::graphics::human_t::animate_jump(f32_t force, f32_t dt, bool is_jumping) {
+  human_animate_jump(dynamic_cast<Human*>(this), force, dt, is_jumping);
 }
 
 bool fan::graphics::mouse_joint_t::QueryCallback(b2ShapeId shapeId, void* context) {

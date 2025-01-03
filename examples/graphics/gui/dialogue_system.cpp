@@ -1,5 +1,4 @@
 #include <fan/pch.h>
-#include <fan/ev/ev.h>
 
 f32_t guide_reputation = 0.8f;
 static inline std::string lore_chapter1_dialogue[] = {

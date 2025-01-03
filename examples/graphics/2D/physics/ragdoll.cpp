@@ -51,13 +51,13 @@ int main() {
   character_images[fan::graphics::bone_e::upper_right_arm] = pile.loco.image_load("characters/upper_right_arm.webp", lp);
   character_images[fan::graphics::bone_e::lower_right_arm] = pile.loco.image_load("characters/lower_right_arm.webp", lp);
 
-  fan::graphics::human_t human({ 800.f, 500.0f }, 200.f, std::to_array(character_images));
+  fan::graphics::human_t human({ 800.f, 500.0f }, 150.f, std::to_array(character_images));
 
 
   fan::graphics::character2d_t character;
   character.body_id = human.bones[fan::graphics::bone_e::torso].visual;
-  character.force = 600000.f * human.scale;
-  character.impulse = character.force / 10;
+  character.force = 200000.f * human.scale;
+  character.impulse = character.force / 3;
   character.max_speed = character.max_speed / (character.max_speed  / human.scale);
   character.feet[0] = human.bones[fan::graphics::bone_e::lower_left_leg].visual;
   character.feet[1] = human.bones[fan::graphics::bone_e::lower_right_leg].visual;
@@ -69,6 +69,7 @@ int main() {
     mouse_joint.update_mouse(pile.loco.physics_context.world_id, pile.loco.get_mouse_position());
 
     human.animate_walk(character.walk_force, pile.loco.delta_time);
+    human.animate_jump(character.impulse, pile.loco.delta_time, character.jumping);
 
     character.process_movement();
 

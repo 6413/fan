@@ -3,7 +3,9 @@
 // for shapes
 #include <fan/graphics/loco.h>
 #include <fan/physics/b2_integration.hpp>
+
 #include <array>
+#include <fan/time/timer.h>
 
 namespace fan {
   namespace graphics {
@@ -342,6 +344,7 @@ namespace fan {
       inline character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {
         add_inputs();
       }
+      static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping);
       void add_inputs();
       void process_movement(f32_t friction = 12);
       f32_t force = 25.f;
@@ -380,15 +383,19 @@ namespace fan {
 
     typedef struct Human
     {
-      Bone bones[bone_e::bone_count];
-      f32_t scale;
-      bool is_spawned;
+      Bone bones[bone_e::bone_count]{};
+      f32_t scale=1.f;
+      bool is_spawned=false;
+      int direction = 1;
+      int look_direction = direction;
+      int go_up = 0;
+      fan::time::clock jump_animation_timer;
     } Human;
 
      void UpdateReferenceAngle(b2WorldId world, b2JointId& joint_id, float new_reference_angle);
 
     void CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position, f32_t scale, f32_t frictionTorque, f32_t hertz, f32_t dampingRatio,
-      int groupIndex, void* userData, const std::array<loco_t::image_t, bone_e::bone_count>& images);
+      int groupIndex, void* userData, const std::array<loco_t::image_t, bone_e::bone_count>& images, const fan::color& color);
 
     void DestroyHuman(Human* human);
 
@@ -403,10 +410,16 @@ namespace fan {
     void Human_SetJointDampingRatio(Human* human, f32_t dampingRatio);
 
     void human_animate_walk(Human* human, f32_t force, f32_t dt);
+    void human_animate_jump(Human* human, f32_t impulse, f32_t dt, bool is_jumping);
 
     struct human_t : Human{
-      human_t(const fan::vec2& position, const f32_t scale = 200.f, const std::array<loco_t::image_t, bone_e::bone_count>& images={});
+      human_t() = default;
+      human_t(const fan::vec2& position, const f32_t scale = 200.f, const std::array<loco_t::image_t, bone_e::bone_count>& images={}, const fan::color& color=fan::colors::white);
+
+      void load(const fan::vec2& position, const f32_t scale = 200.f, const std::array<loco_t::image_t, bone_e::bone_count>& images={}, const fan::color& color=fan::colors::white);
+
       void animate_walk(f32_t force, f32_t dt);
+      void animate_jump(f32_t impulse, f32_t dt, bool is_jumping);
     };
 
     struct mouse_joint_t {
