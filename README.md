@@ -8,8 +8,14 @@
 
 - **Shapes:** Draw lines, rectangles, and sprite.
 - **Lighting:** Illuminate your scenes with customizable lighting effects.
-- **GUI:** Easily integrate graphical user interfaces into your applications.
-- **Collisions:** Simple collisions Circle<->Circle, Rectangle<->Circle (no rotation for rectangles)
+- **GUI: (Dear ImGui)** Easily integrate graphical user interfaces into your applications.
+- **Collisions (Box2D)**:
+  - Continuous collision detection
+  - Contact events and sensors
+  - Convex polygons, capsules, circles, rounded polygons, segments, and chains
+  - Multiple shapes per body
+  - Collision filtering
+  - Ray casts, shape casts, and overlap queries
 - **Image formats:**
   JPEG (baseline & progressive),
   PNG (1/2/4/8/16-bit-per-channel),
