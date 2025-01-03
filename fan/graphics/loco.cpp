@@ -4606,10 +4606,14 @@ void fan::graphics::dialogue_box_t::render(const std::string& window_name, ImFon
     ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar | 
     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar
   );
+  ImGui::SetCursorPos(ImVec2(100.0f, 100.f));
+  ImGui::BeginChild((window_name + "child").c_str(), fan::vec2(wrap_width, 0), 0, ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar | 
+    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
   if (wait_user == false) {
     ImGui::SetScrollY(ImGui::GetScrollMaxY());
   }
   fan::graphics::text_partial_render(active_dialogue.c_str(), render_pos, wrap_width, line_spacing);
+  ImGui::EndChild();
   if (wait_user) {
     fan::vec2 first_pos = -1;
 
@@ -4646,7 +4650,7 @@ void fan::graphics::dialogue_box_t::render(const std::string& window_name, ImFon
       ImGui::PopID();
     }
   }
-  if (gloco->input_action.is_active("skip or continue dialog") && ImGui::IsWindowHovered()) {
+  if (gloco->input_action.is_active("skip or continue dialog") && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem  )) {
     finish_dialog = true;
     wait_user = false;
   }

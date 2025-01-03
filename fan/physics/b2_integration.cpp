@@ -16,6 +16,7 @@ fan::physics::entity_t fan::physics::context_t::create_box(const fan::vec2& posi
   body_def.position = position;
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
+  body_def.linearDamping = shape_properties.linear_damping;
   entity.body_id = b2CreateBody(world_id, &body_def);
   b2ShapeDef shape_def = b2DefaultShapeDef();
   shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
@@ -23,6 +24,7 @@ fan::physics::entity_t fan::physics::context_t::create_box(const fan::vec2& posi
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
   shape_def.isSensor = shape_properties.is_sensor;
+  shape_def.filter = shape_properties.filter;
   //shape_def.rollingResistance = shape_properties.rolling_resistance;
   b2CreatePolygonShape(entity.body_id, &shape_def, &shape);
   return entity;
@@ -38,6 +40,7 @@ fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& p
   body_def.position = position;
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
+  body_def.linearDamping = shape_properties.linear_damping;
   entity.body_id = b2CreateBody(world_id, &body_def);
   b2ShapeDef shape_def = b2DefaultShapeDef();
   shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
@@ -45,6 +48,7 @@ fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& p
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
   shape_def.isSensor = shape_properties.is_sensor;
+  shape_def.filter = shape_properties.filter;
   //shape_def.rollingResistance = shape_properties.rolling_resistance;
   b2CreateCircleShape(entity.body_id, &shape_def, &shape);
   return entity;
@@ -58,6 +62,7 @@ fan::physics::entity_t fan::physics::context_t::create_capsule(const fan::vec2& 
   body_def.position = position;
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
+  body_def.linearDamping = shape_properties.linear_damping;
   entity.body_id = b2CreateBody(world_id, &body_def);
   b2ShapeDef shape_def = b2DefaultShapeDef();
   shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
@@ -65,6 +70,7 @@ fan::physics::entity_t fan::physics::context_t::create_capsule(const fan::vec2& 
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
   shape_def.isSensor = shape_properties.is_sensor;
+  shape_def.filter = shape_properties.filter;
   //shape_def.rollingResistance = shape_properties.rolling_resistance;
   b2CreateCapsuleShape(entity.body_id, &shape_def, &shape);
   return entity;
