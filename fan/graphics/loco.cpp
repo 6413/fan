@@ -3403,6 +3403,8 @@ void ImGui::DrawTextBottomRight(const char* text, uint32_t reverse_yoffset) {
     draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), text);
 }
 void fan::graphics::imgui_content_browser_t::render() {
+  item_right_clicked = false;
+  item_right_clicked_name.clear();
   ImGuiStyle& style = ImGui::GetStyle();
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 16.0f));
   ImGuiWindowClass window_class;
@@ -3545,6 +3547,13 @@ void fan::graphics::imgui_content_browser_t::render_large_thumbnails_view() {
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
     ImGui::ImageButton("##" + file_info.filename, file_info.preview_image.iic() == false ? file_info.preview_image : file_info.is_directory ? icon_directory : icon_file, ImVec2(thumbnail_size, thumbnail_size));
 
+    bool item_hovered = ImGui::IsItemHovered();
+    if (item_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+      item_right_clicked = true;
+      item_right_clicked_name = file_info.filename;
+      item_right_clicked_name.erase(std::remove_if(item_right_clicked_name.begin(), item_right_clicked_name.end(), isspace), item_right_clicked_name.end());
+    }
+
     // Handle drag and drop, double click, etc.
     handle_item_interaction(file_info);
 
@@ -3604,6 +3613,12 @@ void fan::graphics::imgui_content_browser_t::render_list_view() {
       auto str = space + file_info.filename;
 
       ImGui::Selectable(str.c_str());
+      bool item_hovered = ImGui::IsItemHovered();
+      if (item_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+        item_right_clicked_name = str;
+        item_right_clicked_name.erase(std::remove_if(item_right_clicked_name.begin(), item_right_clicked_name.end(), isspace), item_right_clicked_name.end());
+        item_right_clicked = true;
+      }
       if (file_info.preview_image.iic() == false) {
         ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get(file_info.preview_image), cursor_pos, cursor_pos + image_size);
       }
