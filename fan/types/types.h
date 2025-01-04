@@ -256,8 +256,8 @@ namespace fan {
   }
 
 
-  #define __FAN_PRINT_EACH(x) fan::print_no_endline("", #x"=",x, ",")
-  #define fan_print(...) __FAN__FOREACH_NS(__FAN_PRINT_EACH, __VA_ARGS__);fan::print("")
+  #define __FAN_PRINT_EACH__(x) fan::print_no_endline("", #x"=",x, ",")
+  #define fan_print(...) __FAN__FOREACH_NS(__FAN_PRINT_EACH__, __VA_ARGS__);fan::print("")
 
   void assert_test(bool test);
 

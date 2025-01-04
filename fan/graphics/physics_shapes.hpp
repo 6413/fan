@@ -19,20 +19,23 @@ namespace fan {
         fan::vec2 center_of_mass = 0.f;
         f32_t rotational_inertia = -1.f;
         operator b2MassData() const {
-          return b2MassData{.mass = mass, .center = center_of_mass, .rotationalInertia = rotational_inertia};
+          return b2MassData{ .mass = mass, .center = center_of_mass, .rotationalInertia = rotational_inertia };
         }
       };
 
-      struct base_shape_t : loco_t::shape_t, fan::physics::entity_t{
+      struct base_shape_t : loco_t::shape_t, fan::physics::entity_t {
         base_shape_t() = default;
         base_shape_t(loco_t::shape_t&& shape, fan::physics::entity_t&& entity, const mass_data_t& mass_data) :
           loco_t::shape_t(std::move(shape)),
-          fan::physics::entity_t(std::move(entity)){
+          fan::physics::entity_t(std::move(entity)) {
+          if (physics_update_nr.iic() == false) {
+            gloco->remove_physics_update(physics_update_nr);
+          }
           physics_update_nr = gloco->add_physics_update({
             .shape_id = *this,
-            .body_id = body_id,
+            .body_id = *this,
             .cb = (void*)shape_physics_update
-          });
+            });
           b2MassData md = b2Body_GetMassData(*this);
           mass_data_t md_copy = mass_data;
           if (mass_data.mass < 0.f) {
@@ -44,45 +47,89 @@ namespace fan {
           if (mass_data.rotational_inertia < 0.f) {
             md_copy.rotational_inertia = md.rotationalInertia;
           }
-          b2Body_SetMassData(body_id, md_copy);
+          b2Body_SetMassData(*this, md_copy);
         }
         base_shape_t(const base_shape_t& r) : loco_t::shape_t(r), fan::physics::entity_t(r) {
-           physics_update_nr = gloco->add_physics_update({
+          //if (this != )
+          fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gloco->physics_context.world_id, r);
+          if (!B2_ID_EQUALS(r, (*this))) {
+            destroy();
+          }
+          set_body(new_body_id);
+          b2Body_GetWorldPoint(*this, fan::vec2(0));
+          if (physics_update_nr.iic() == false) {
+            gloco->remove_physics_update(physics_update_nr);
+            physics_update_nr.sic();
+          }
+          if (!fan::physics::entity_t::is_valid()) {
+            return;
+          }
+          physics_update_nr = gloco->add_physics_update({
             .shape_id = *this,
-            .body_id = body_id,
+            .body_id = *this,
             .cb = (void*)shape_physics_update
           });
         }
         base_shape_t(base_shape_t&& r) : loco_t::shape_t(std::move(r)), fan::physics::entity_t(std::move(r)) {
+          if (!B2_ID_EQUALS(r, (*this))) {
+            destroy();
+          }
           physics_update_nr = r.physics_update_nr;
           r.physics_update_nr.sic();
+          r.set_body(b2_nullBodyId);
         }
         ~base_shape_t() {
-          if (physics_update_nr.iic()) {
-            return;
-          }
-          gloco->remove_physics_update(physics_update_nr);
-          physics_update_nr.sic();
+
+          erase();
         }
         base_shape_t& operator=(const base_shape_t& r) {
-          loco_t::shape_t::operator=(r);
-          fan::physics::entity_t::operator=(r);
-          physics_update_nr =  gloco->add_physics_update({
-            .shape_id = *this,
-            .body_id = r.body_id,
-            .cb = (void*)shape_physics_update
-          });
+          if (physics_update_nr.iic() == false) {
+            gloco->remove_physics_update(physics_update_nr);
+            physics_update_nr.sic();
+          }
+          if (this != &r) {
+            loco_t::shape_t::operator=(r);
+
+            fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gloco->physics_context.world_id, r);
+            if (!B2_ID_EQUALS(r, (*this))) {
+              destroy();
+            }
+            set_body(new_body_id);
+            if (!fan::physics::entity_t::is_valid()) {
+              return *this;
+            }
+            physics_update_nr =  gloco->add_physics_update({
+              .shape_id = *this,
+              .body_id = *this,
+              .cb = (void*)shape_physics_update
+            });
+          }
           return *this;
         }
         base_shape_t& operator=(base_shape_t&& r) {
-          loco_t::shape_t::operator=(std::move(r));
-          fan::physics::entity_t::operator=(std::move(r));
-          physics_update_nr = r.physics_update_nr;
-          r.physics_update_nr.sic();
+          if (!B2_ID_EQUALS(r, (*this))) {
+            destroy();
+          }
+          if (physics_update_nr.iic() == false) {
+            gloco->remove_physics_update(physics_update_nr);
+            physics_update_nr.sic();
+          }
+          if (this != &r) {
+            loco_t::shape_t::operator=(std::move(r));
+            fan::physics::entity_t::operator=(std::move(r));
+            r.set_body(b2_nullBodyId);
+            physics_update_nr = r.physics_update_nr;
+            r.physics_update_nr.sic();
+          }
           return *this;
         }
-        operator fan::physics::body_id_t() const {
-          return body_id;
+        void erase() {
+          loco_t::shape_t::erase();
+          fan::physics::entity_t::destroy();
+          if (physics_update_nr.iic() == false) {
+            gloco->remove_physics_update(physics_update_nr);
+          }
+          physics_update_nr.sic();
         }
 
         loco_t::physics_update_cbs_t::nr_t physics_update_nr;
@@ -228,8 +275,8 @@ namespace fan {
         struct properties_t {
           camera_impl_t* camera = &gloco->orthographic_camera;
           fan::vec3 position = fan::vec3(0, 0, 0);
-          fan::vec2 center0 = 0;
-          fan::vec2 center1{0, 128.f};
+          fan::vec2 center0{0, -32.f};
+          fan::vec2 center1{0, 32.f};
           f32_t radius = 32.f;
           fan::color color = fan::color(1, 1, 1, 1);
           fan::color outline_color = color;
@@ -275,8 +322,8 @@ namespace fan {
         struct properties_t {
           camera_impl_t* camera = &gloco->orthographic_camera;
           fan::vec3 position = fan::vec3(0, 0, 0);
-          fan::vec2 center0 = 0;
-          fan::vec2 center1{ 0, 128.f };
+          fan::vec2 center0{0, -32.f};
+          fan::vec2 center1{ 0, 32.f };
           f32_t radius = 64.0f;
           fan::vec3 angle = 0;
           fan::color color = fan::color(1, 1, 1, 1);
@@ -295,7 +342,7 @@ namespace fan {
             return fan::graphics::sprite_properties_t{
               .camera = camera,
               .position = position,
-              .size = radius*2.3,
+              .size = radius,
               .angle = angle,
               .color = color,
               .rotation_point = rotation_point,
@@ -348,12 +395,13 @@ namespace fan {
       void add_inputs();
       void process_movement(f32_t friction = 12);
       f32_t force = 25.f;
-      f32_t impulse = 10.f;
+      f32_t impulse = 3.f;
       f32_t max_speed = 500.f;
       f32_t jump_delay = 0.25f;
       bool jumping = false;
       fan::physics::body_id_t feet[2];
       f32_t walk_force = 0;
+      bool handle_jump = true;
     };
 
     struct bone_e {
@@ -372,54 +420,68 @@ namespace fan {
         bone_count = 11,
       };
     };
+    inline std::string bone_to_string(int bone) {
+      switch (bone) {
+      case bone_e::hip: return "hip";
+      case bone_e::torso: return "torso";
+      case bone_e::head: return "head";
+      case bone_e::upper_left_leg: return "upper_left_leg";
+      case bone_e::lower_left_leg: return "lower_left_leg";
+      case bone_e::upper_right_leg: return "upper_right_leg";
+      case bone_e::lower_right_leg: return "lower_right_leg";
+      case bone_e::upper_left_arm: return "upper_left_arm";
+      case bone_e::lower_left_arm: return "lower_left_arm";
+      case bone_e::upper_right_arm: return "upper_right_arm";
+      case bone_e::lower_right_arm: return "lower_right_arm";
+      default: return "unknown";
+      }
+    }
 
-    typedef struct Bone
-    {
+    struct bone_t {
       fan::graphics::physics_shapes::base_shape_t visual;
-      b2JointId joint_id;
+      b2JointId joint_id = b2_nullJointId;
       f32_t friction_scale;
       int parent_index;
-    } Bone;
+      // local
+      fan::vec3 position = 0;
+      fan::vec2 size = 1;
+      fan::vec2 pivot = 0;
+      fan::vec2 offset = 0;
+      f32_t scale = 1;
+      f32_t lower_angle = 0;
+      f32_t upper_angle = 0;
+      f32_t reference_angle = 0;
+      fan::vec2 center0 = 0;
+      fan::vec2 center1 = 0;
+    };
 
-    typedef struct Human
-    {
-      Bone bones[bone_e::bone_count]{};
+     void update_reference_angle(b2WorldId world, b2JointId& joint_id, float new_reference_angle);
+
+    struct human_t {
+      using bone_images_t = std::array<loco_t::image_t, bone_e::bone_count>;
+      using bones_t = std::array<bone_t, bone_e::bone_count>;
+
+      human_t() = default;
+      human_t(const fan::vec2& position, const f32_t scale = 1.f, const bone_images_t& images={}, const fan::color& color=fan::colors::white);
+
+      static void load_bones(const fan::vec2& position, f32_t scale, std::array<fan::graphics::bone_t, fan::graphics::bone_e::bone_count>& bones);
+      static bone_images_t load_character_images(const std::string& character_folder_path, const loco_t::image_load_properties_t& lp);
+
+      void load_preset(const fan::vec2& position, const f32_t scale, const bone_images_t& images, std::array<bone_t, bone_e::bone_count>& bones, const fan::color& color = fan::colors::white);
+      void load(const fan::vec2& position, const f32_t scale = 1.f, const bone_images_t& images={}, const fan::color& color=fan::colors::white);
+
+      void animate_walk(f32_t force, f32_t dt);
+      void animate_jump(f32_t impulse, f32_t dt, bool is_jumping);
+
+      void erase();
+
+      bones_t bones;
       f32_t scale=1.f;
       bool is_spawned=false;
       int direction = 1;
       int look_direction = direction;
       int go_up = 0;
       fan::time::clock jump_animation_timer;
-    } Human;
-
-     void UpdateReferenceAngle(b2WorldId world, b2JointId& joint_id, float new_reference_angle);
-
-    void CreateHuman(Human* human, b2WorldId worldId, b2Vec2 position, f32_t scale, f32_t frictionTorque, f32_t hertz, f32_t dampingRatio,
-      int groupIndex, void* userData, const std::array<loco_t::image_t, bone_e::bone_count>& images, const fan::color& color);
-
-    void DestroyHuman(Human* human);
-
-    void Human_SetVelocity(Human* human, b2Vec2 velocity);
-
-    void Human_ApplyRandomAngularImpulse(Human* human, f32_t magnitude);
-
-    void Human_SetJointFrictionTorque(Human* human, f32_t torque);
-
-    void Human_SetJointSpringHertz(Human* human, f32_t hertz);
-
-    void Human_SetJointDampingRatio(Human* human, f32_t dampingRatio);
-
-    void human_animate_walk(Human* human, f32_t force, f32_t dt);
-    void human_animate_jump(Human* human, f32_t impulse, f32_t dt, bool is_jumping);
-
-    struct human_t : Human{
-      human_t() = default;
-      human_t(const fan::vec2& position, const f32_t scale = 200.f, const std::array<loco_t::image_t, bone_e::bone_count>& images={}, const fan::color& color=fan::colors::white);
-
-      void load(const fan::vec2& position, const f32_t scale = 200.f, const std::array<loco_t::image_t, bone_e::bone_count>& images={}, const fan::color& color=fan::colors::white);
-
-      void animate_walk(f32_t force, f32_t dt);
-      void animate_jump(f32_t impulse, f32_t dt, bool is_jumping);
     };
 
     struct mouse_joint_t {

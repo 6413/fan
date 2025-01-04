@@ -15,6 +15,8 @@ namespace fan {
       };
     };
 
+    inline static f32_t length_units_per_meter = 1024.f;
+
     struct capsule_t : b2Capsule {
       using b2Capsule::b2Capsule;
       capsule_t(const b2Capsule& capsule) : b2Capsule(capsule) {}
@@ -39,7 +41,13 @@ namespace fan {
 
     struct body_id_t : b2BodyId {
       using b2BodyId::b2BodyId;
-      body_id_t(const b2BodyId& body_id) : b2BodyId(body_id) {}
+      body_id_t() : b2BodyId(b2_nullBodyId){}
+      body_id_t(const b2BodyId& body_id) : b2BodyId(body_id) {
+
+      }
+      void set_body(const body_id_t& b) {
+        *this = b;
+      }
       bool operator==(const body_id_t& b) const {
         b2BodyId a = *this;
         return B2_ID_EQUALS(a, b);
@@ -51,24 +59,48 @@ namespace fan {
         return *this != b2_nullBodyId;
       }
       void destroy() {
+        if (is_valid() == false) {
+          return;
+        }
         b2DestroyBody(*this);
+        *this = b2_nullBodyId;
+      }
+
+      fan::vec2 get_linear_velocity() const {
+        return fan::vec2(b2Body_GetLinearVelocity(*this)) * length_units_per_meter;
+      }
+      void set_linear_velocity(const fan::vec2& v) {
+        b2Body_SetLinearVelocity(*this, v / length_units_per_meter);
+      }
+      void apply_force_center(const fan::vec2& v) {
+        b2Body_ApplyForceToCenter(*this, v / length_units_per_meter, true);
+      }
+      void apply_linear_impulse_center(const fan::vec2& v) {
+        b2Body_ApplyLinearImpulseToCenter(*this, v / length_units_per_meter, true);
+      }
+      void apply_angular_impulse(f32_t impulse) {
+        b2Body_ApplyAngularImpulse(*this, impulse / length_units_per_meter, true);
+      }
+      fan::vec2 get_physics_position() const {
+        return b2Body_GetPosition(*this);
       }
     };
 
     struct shape_properties_t {
       f32_t friction = 0.6f;
 	    f32_t density = 1.0f;
-      f32_t restitution = 0.01f;
-      f32_t rolling_resistance = 0.01;
+      f32_t restitution = 0.0f;
+      f32_t rolling_resistance = 0.f;
       bool fixed_rotation = false;
       bool enable_presolve_events = false;
       bool is_sensor = false;
-      f32_t linear_damping = 0.0;
+      f32_t linear_damping = 0.0f;
       b2Filter filter = b2DefaultFilter();
     };
 
-    struct entity_t {
-      body_id_t body_id;
+    struct entity_t : body_id_t {
+      using body_id_t::body_id_t;
+
     };
 
     struct body_type_e {
@@ -102,8 +134,7 @@ namespace fan {
       struct properties_t {
         // clang
         properties_t() {};
-        f32_t length_units_per_meter{128.f};
-        fan::vec2 gravity{0, 9.8f * length_units_per_meter};
+        fan::vec2 gravity{0, 9.8f/length_units_per_meter};
       };
       context_t(const properties_t& properties = properties_t());
       
@@ -123,5 +154,7 @@ namespace fan {
 // Notice how this method is constant and doesn't change any data. It also
 // does not try to access any values in the world that may be changing, such as contact data.
     bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body);
+
+    fan::physics::body_id_t deep_copy_body(b2WorldId worldId, fan::physics::body_id_t sourceBodyId);
   }
 }

@@ -2923,6 +2923,8 @@ namespace fan {
       loco_t::image_t icon_files_list = gloco->image_load("images_content_browser/files_list.webp");
       loco_t::image_t icon_files_big_thumbnail = gloco->image_load("images_content_browser/files_big_thumbnail.webp");
 
+      bool item_right_clicked = false;
+      std::string item_right_clicked_name;
 
       std::wstring asset_path = L"./";
 

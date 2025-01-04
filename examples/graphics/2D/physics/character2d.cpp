@@ -13,13 +13,11 @@ struct pile_t {
   }
   loco_t loco;
 
-  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::sprite_t{{
+  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::capsule_t{{
     .position = fan::vec3(400, 400, 10),
-    .size = 100,
-    .image = gloco->default_texture,
+    .radius = 16,
     .body_type = fan::physics::body_type_e::dynamic_body,
-    .mass_data{.mass = 0.01f},
-    .shape_properties{.friction = 0.6f, .density = 0.1f, .fixed_rotation = true},
+    .shape_properties{.friction = 0.6f, .fixed_rotation = true},
   }} };
 };
 
@@ -51,10 +49,10 @@ int main() {
     pile.player.process_movement();
     pile.loco.physics_context.step(pile.loco.delta_time);
     if (platforms[0].get_position().x < window_size.x / 4) {
-      b2Body_SetLinearVelocity(platforms[0], { 200, 0 });
+      platforms[0].set_linear_velocity({200, 0});
     }
     else if (platforms[0].get_position().x > window_size.x / 1.5) {
-      b2Body_SetLinearVelocity(platforms[0], { -200, 0 });
+      platforms[0].set_linear_velocity({ -200, 0 });
     }
   });
 }

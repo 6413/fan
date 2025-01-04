@@ -53,10 +53,10 @@ struct fte_renderer_t : fte_loader_t {
     for (int y = 0; y < view_size.y; ++y) {
       for (int x = 0; x < view_size.x; ++x) {
         fan::vec2i grid_pos = src + fan::vec2i(x, y);
-        if (grid_pos.y >= (int64_t)map_tiles.size() || grid_pos.x >= (int64_t)map_tiles[grid_pos.y].size()) {
+        if (grid_pos.x < 0 || grid_pos.y < 0) {
           continue;
         }
-        if (grid_pos.x < 0 || grid_pos.y < 0) {
+        if (grid_pos.y >= (int64_t)map_tiles.size() || grid_pos.x >= (int64_t)map_tiles[grid_pos.y].size()) {
           continue;
         }
         if (map_tiles[grid_pos.y][grid_pos.x].empty()) {
@@ -162,7 +162,7 @@ struct fte_renderer_t : fte_loader_t {
   void clear(node_t& node) {
     node.tiles.clear();
     for (auto& j : node.physics_entities) {
-      std::visit([](auto& obj){obj.body_id.destroy();}, j.visual);
+      std::visit([](auto& obj){obj.destroy();}, j.visual);
     }
     node.physics_entities.clear();
   }
