@@ -106,6 +106,7 @@ constexpr std::partial_ordering operator<=>(const T& rhs) const {
   make_operator_assign(arithmetic)
 
 constexpr vec_t operator-() const { make_for_all(ret[i] = -(*this)[i]); }
+constexpr vec_t operator+() const { make_for_all(ret[i] = +(*this)[i]); }
 make_operators(-);  make_operator_comparison(==);
 make_operators(+);  make_operator_comparison(!=);
 make_operators(*);
