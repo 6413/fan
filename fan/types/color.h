@@ -156,6 +156,9 @@ namespace fan {
     constexpr uint32_t get_hex() const {
       return ((uint32_t)(r * 255.0) << 24) | ((uint32_t)(g * 255.0) << 16) | ((uint32_t)(b * 255.0) << 8) | (uint32_t)(a * 255.0);
     }
+    constexpr uint32_t get_hexr() const {
+      return ((uint32_t)(r * 255.0)) | ((uint32_t)(g * 255.0) << 8) | ((uint32_t)(b * 255.0) << 16) | ((uint32_t)((a * 255.0))<<8) ;
+    }
 
 		static constexpr uint32_t size() {
 			return 4;

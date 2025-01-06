@@ -1,5 +1,9 @@
 #include <fan/pch.h>
 
+struct bone_t : fan::graphics::bone_t{
+  bool is_dragging = false;
+};
+
 struct human_editor_t {
   human_editor_t() {
     content_browser.current_directory /= "characters";
@@ -98,6 +102,7 @@ struct human_editor_t {
     ImGui::Begin("Editor", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBackground);
     render_menubar();
 
+
     std::vector<int> indices(bones.size());
     std::iota(indices.begin(), indices.end(), 0);
 
@@ -140,6 +145,18 @@ struct human_editor_t {
       human->load_preset(fan::vec2(0, 0), 1.0f, bone_images, human->bones);
     }
 
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5, 0.5, 0.5, 0.5));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.5, 0.5, 0.5, 0.5));
+
+    fan::vec2 window_size = ImGui::GetWindowSize();
+    fan::vec2 scale_factor = window_size / (fan::window_t::resolutions::r_1920x1080 / 2);
+
+    static bool flip_x = 0;
+    f32_t center_x = bones[fan::graphics::bone_e::hip].position.x;
+    fan::vec2 image_size = 0;
+    bool dragging_bone = false;
     for (int index : indices) {
       const auto& bone = bones[index];
 
@@ -157,48 +174,57 @@ struct human_editor_t {
 
       ImGui::PushID(index);
 
-      fan::vec2 window_size = ImGui::GetWindowSize();
-      fan::vec2 scale_factor = window_size / (fan::window_t::resolutions::r_1920x1080 / 2);
+      fan::vec2 scaled_size = (bone.size * bone.scale) * scale_factor.y * fan::physics::length_units_per_meter;
+      fan::vec2 final_pos = bone.position;
+      if (flip_x) {
+        final_pos.x += (center_x - bone.position.x) * scale_factor.y;
+      }
+      final_pos = (final_pos + bone.offset) * scale_factor.y * fan::physics::length_units_per_meter;
 
-      fan::vec2 scaled_size = (bone.size * bone.scale) * scale_factor.y;
-      fan::vec2 final_pos = (bone.position + bone.offset) * scale_factor.y;
+      image_size = scaled_size.max(scaled_size);
+      ImGui::SetCursorPos(final_pos - ((bone.size * bone.scale)/2)*scale_factor.y*fan::physics::length_units_per_meter);
+      ImGui::SetNextItemAllowOverlap();
+      ImGui::ImageButton("", bone_images[index], scaled_size, flip_x == 0 ? fan::vec2(0, 0) : fan::vec2(1, 0), flip_x == 0 ? fan::vec2(1, 1) : fan::vec2(0, 1));
 
-      ImGui::SetCursorPos(final_pos);
-      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-      ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5, 0.5, 0.5, 0.5));
-      ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.5, 0.5, 0.5, 0.5));
-
-      ImGui::ImageButton("", bone_images[index], scaled_size);
-
-      if (ImGui::IsItemClicked(0)) {
+      if (!is_dragging_pivot && ImGui::IsItemActive()) {
+        dragging_bone = true;
         bones[index].is_dragging = true;
-        bones[index].drag_start = ImGui::GetMousePos();
+        bones[index].position = fan::vec2(ImGui::GetMousePos() / scale_factor.y / fan::physics::length_units_per_meter);
         selected_bone = index;
       }
-
-      if (bones[index].is_dragging) {
-        if (ImGui::IsMouseDown(0)) {
-          ImVec2 mouse_pos = ImGui::GetMousePos();
-          ImVec2 delta(mouse_pos.x - bones[index].drag_start.x, mouse_pos.y - bones[index].drag_start.y);
-
-          bones[index].offset.x += delta.x / scale_factor.y;
-          bones[index].offset.y += delta.y / scale_factor.y;
-          bones[index].drag_start = mouse_pos;
-        }
-        else {
-          bones[index].is_dragging = false;
-        }
-      }
-
-      ImGui::PopStyleColor(3);
       ImGui::PopID();
     }
 
+    if (image_size > 0) {
+      fan::vec2 pivot_screen_pos = global_pivot_position * scale_factor.y;
+
+      ImGui::SetCursorPos(pivot_screen_pos * fan::physics::length_units_per_meter - fan::vec2(10) * scale_factor.y);
+      ImGui::InvisibleButton("pivot hitbox", fan::vec2(20)*scale_factor.y);
+      //fan::print(global_pivot_position);
+      if (!dragging_bone && ImGui::IsMouseDown(0) && ImGui::IsItemActive()) {
+        global_pivot_position = ImGui::GetMousePos() / scale_factor.y / fan::physics::length_units_per_meter;
+
+        is_dragging_pivot = true;
+      }
+      else {
+        is_dragging_pivot = false;
+      }
+
+      ImGui::GetWindowDrawList()->AddRectFilled(
+        (pivot_screen_pos)*fan::physics::length_units_per_meter - fan::vec2(10) * scale_factor.y,
+        (pivot_screen_pos)*fan::physics::length_units_per_meter + fan::vec2(10) * scale_factor.y,
+        0xffffffff
+      );
+    }
+
+    ImGui::PopStyleColor(3);
     ImGui::End();
 
     ImGui::Begin("Bone settings");
     if (selected_bone != -1) {
       ImGui::Text(fan::graphics::bone_to_string(selected_bone).c_str());
+      ImGui::Text(("parent:" + fan::graphics::bone_to_string(bones[selected_bone].parent_index)).c_str());
+
       fan::vec2 position = bones[selected_bone].position;
       if (fan_imgui_dragfloat1(position, 1)) {
         bones[selected_bone].position = position;
@@ -209,26 +235,20 @@ struct human_editor_t {
         bones[selected_bone].scale = scale;
       }
     }
+
+    if (ImGui::Button("Flip x")) {
+      flip_x = !flip_x;
+    }
+
+    if (ImGui::Combo("Select Bone", &selected_pivot_bone , fan::graphics::bone_names + 1, std::size(fan::graphics::bone_names) - 1)) {
+      global_pivot_position = bones[selected_pivot_bone  + 1].pivot;
+    }
+    if (ImGui::Button("Set pivot")) {
+      bones[selected_pivot_bone  + 1].pivot = global_pivot_position;
+    }
+
     ImGui::End();
   }
-
-  /*
-  struct bone_t {
-      fan::graphics::physics_shapes::base_shape_t visual;
-      b2JointId joint_id = b2_nullJointId;
-      f32_t friction_scale;
-      int parent_index;
-      // local
-      fan::vec3 position = 0;
-      fan::vec2 size = 1;
-      fan::vec2 pivot = 0;
-      fan::vec2 offset = 0;
-      f32_t scale = 1;
-      f32_t lower_angle = 0;
-      f32_t upper_angle = 0;
-      f32_t reference_angle = 0;
-    };
-  */
 
   void fout(const std::string& filename) {
     if (current_directory.empty()) {
@@ -291,13 +311,9 @@ struct human_editor_t {
       int bone_id = bone_info["boneid"];
       bones[bone_id] = bone;
     }
+    global_pivot_position = bones[selected_pivot_bone + 1].pivot;
   }
 
-
-  struct bone_t : fan::graphics::bone_t{
-    bool is_dragging = false;
-    fan::vec2 drag_start = 0;
-  };
 
   std::array<bone_t, fan::graphics::bone_e::bone_count> bones;
   std::array<loco_t::image_t, fan::graphics::bone_e::bone_count> bone_images;
@@ -310,6 +326,11 @@ struct human_editor_t {
   f32_t human_scale = 1;
   fan::graphics::human_t* human = nullptr;
   int selected_bone = -1;
+  fan::vec2 pivot = 400 / fan::physics::length_units_per_meter;
+  bool is_dragging_pivot = false;
+  fan::vec2 global_pivot_position = 400 / fan::physics::length_units_per_meter;
+
+  int selected_pivot_bone = 0;  
 };
 
 int main() {
@@ -318,9 +339,9 @@ int main() {
   human_editor_t human_editor;
   human_editor.fin("human.json");
 
-    fan::vec2 window_size = engine.window.get_size();
+  fan::vec2 window_size = engine.window.get_size();
   f32_t wall_thickness = 50.f;
-  auto walls = fan::graphics::physics_shapes::create_stroked_rectangle(window_size / 2, window_size / 2, wall_thickness);
+  //auto walls = fan::graphics::physics_shapes::create_stroked_rectangle(window_size / 2, window_size / 2, wall_thickness);
 
   engine.loop([&] {
     human_editor.render();

@@ -11,6 +11,10 @@ namespace fan {
   namespace graphics {
     namespace physics_shapes {
 
+      // debug
+      inline std::unordered_map<void*, loco_t::shape_t> hitbox_visualize;
+      inline std::unordered_map<const void*, std::vector<loco_t::shape_t>> joint_visualize;
+
       void shape_physics_update(const loco_t::physics_update_data_t& data);
 
       struct mass_data_t {
@@ -420,26 +424,23 @@ namespace fan {
         bone_count = 11,
       };
     };
+    static constexpr const char* bone_names[] = {
+      "Hip", "Torso", "Head", 
+      "Upper Left Leg", "Lower Left Leg",
+      "Upper Right Leg", "Lower Right Leg",
+      "Upper Left Arm", "Lower Left Arm",
+      "Upper Right Arm", "Lower Right Arm"
+    };
     inline std::string bone_to_string(int bone) {
-      switch (bone) {
-      case bone_e::hip: return "hip";
-      case bone_e::torso: return "torso";
-      case bone_e::head: return "head";
-      case bone_e::upper_left_leg: return "upper_left_leg";
-      case bone_e::lower_left_leg: return "lower_left_leg";
-      case bone_e::upper_right_leg: return "upper_right_leg";
-      case bone_e::lower_right_leg: return "lower_right_leg";
-      case bone_e::upper_left_arm: return "upper_left_arm";
-      case bone_e::lower_left_arm: return "lower_left_arm";
-      case bone_e::upper_right_arm: return "upper_right_arm";
-      case bone_e::lower_right_arm: return "lower_right_arm";
-      default: return "unknown";
+      if (bone >= std::size(bone_names)) {
+        return "N/A";
       }
+      return bone_names[bone];
     }
 
     struct bone_t {
       fan::graphics::physics_shapes::base_shape_t visual;
-      b2JointId joint_id = b2_nullJointId;
+      fan::physics::joint_id_t joint_id = b2_nullJointId;
       f32_t friction_scale;
       int parent_index;
       // local
@@ -455,7 +456,7 @@ namespace fan {
       fan::vec2 center1 = 0;
     };
 
-     void update_reference_angle(b2WorldId world, b2JointId& joint_id, float new_reference_angle);
+    void update_reference_angle(b2WorldId world, fan::physics::joint_id_t& joint_id, float new_reference_angle);
 
     struct human_t {
       using bone_images_t = std::array<loco_t::image_t, bone_e::bone_count>;
@@ -499,7 +500,7 @@ namespace fan {
       void update_mouse(b2WorldId world_id, const fan::vec2& position);
 
       fan::physics::body_id_t target_body;
-      b2JointId mouse_joint = b2_nullJointId;
+      fan::physics::joint_id_t mouse_joint = b2_nullJointId;
     };
   }
 }
