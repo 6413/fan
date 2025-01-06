@@ -203,7 +203,7 @@ struct shaper_t{
   constexpr static KeyBitOrder_t KeyBitOrderHigh = Key_t::BitOrderHigh;
   constexpr static KeyBitOrder_t KeyBitOrderAny = Key_t::BitOrderAny;
 
-  private: /* ------------------------------------------------------------------------------- */
+  public: /* ------------------------------------------------------------------------------- */
 
   struct KeyType_t{
     KeySizeInBytes_t Size;

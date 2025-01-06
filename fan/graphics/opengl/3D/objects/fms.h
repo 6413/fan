@@ -742,7 +742,8 @@ namespace fan_3d {
           }
           animation.type = animation_data_t::type_e::nonlinear_animation;
           double ticksPerSecond = anim->mTicksPerSecond != 0 ? anim->mTicksPerSecond : 25.0;
-          animation.duration = (anim->mDuration / ticksPerSecond) * 1000.0;
+          f64_t time_scale = 1000.0 / ticksPerSecond;
+          animation.duration = anim->mDuration * time_scale;
           longest_animation = std::max((f32_t)animation.duration, longest_animation);
           animation.weight = 0;
           int bone_id = 0;
@@ -755,15 +756,15 @@ namespace fan_3d {
             }
             fan_3d::model::bone_transform_track_t track;
             for (int j = 0; j < channel->mNumPositionKeys; j++) {
-              track.position_timestamps.push_back(channel->mPositionKeys[j].mTime);
+              track.position_timestamps.push_back(channel->mPositionKeys[j].mTime * time_scale);
               track.positions.push_back(channel->mPositionKeys[j].mValue);
             }
             for (int j = 0; j < channel->mNumRotationKeys; j++) {
-              track.rotation_timestamps.push_back(channel->mRotationKeys[j].mTime);
+              track.rotation_timestamps.push_back(channel->mRotationKeys[j].mTime* time_scale);
               track.rotations.push_back(channel->mRotationKeys[j].mValue);
             }
             for (int j = 0; j < channel->mNumScalingKeys; j++) {
-              track.scale_timestamps.push_back(channel->mScalingKeys[j].mTime);
+              track.scale_timestamps.push_back(channel->mScalingKeys[j].mTime* time_scale);
               track.scales.push_back(channel->mScalingKeys[j].mValue);
 
             }

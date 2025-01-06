@@ -38,7 +38,7 @@ int main() {
 
   loco_t::image_load_properties_t lp;
   lp.visual_output = loco_t::image_sampler_address_mode::repeat;
-  auto character_images = fan::graphics::human_t::load_character_images("characters/cowboy", lp);
+  auto character_images = fan::graphics::human_t::load_character_images("characters/oldman", lp);
 
   fan::graphics::human_t human({ 800.f, 900.0f }, 0.5f, character_images);
 

@@ -41,6 +41,7 @@ fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& p
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
   body_def.linearDamping = shape_properties.linear_damping;
+
   entity = b2CreateBody(world_id, &body_def);
   b2ShapeDef shape_def = b2DefaultShapeDef();
   shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
@@ -49,6 +50,7 @@ fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& p
   shape_def.restitution = shape_properties.restitution;
   shape_def.isSensor = shape_properties.is_sensor;
   shape_def.filter = shape_properties.filter;
+
   //shape_def.rollingResistance = shape_properties.rolling_resistance;
   b2CreateCircleShape(entity, &shape_def, &shape);
   return entity;
@@ -83,8 +85,30 @@ fan::physics::entity_t fan::physics::context_t::create_capsule(const fan::vec2& 
 }
 
 void fan::physics::context_t::step(f32_t dt) {
-  b2World_Step(world_id, dt, 4);
-  sensor_events.update(world_id);
+  static f32_t skip = 0;
+  static f32_t x = 0;
+  x += dt;
+  skip += dt;
+  if (skip == 0) {
+    b2World_Step(world_id, 1.0 / 30, 4);
+    return;
+  }
+  f32_t timestep = 1.0/256.0;
+  while (x > timestep) {
+    {
+      auto it = body_updates.GetNodeFirst();
+      while (it != body_updates.dst) {
+        body_updates.StartSafeNext(it);
+        auto& node = body_updates[it];
+        node.cb();
+        it = body_updates.EndSafeNext();
+      }
+    }
+    b2World_Step(world_id, timestep, 4);
+    sensor_events.update(world_id);
+    x -= timestep;
+  }
+  body_updates.Clear();
 }
 
 bool fan::physics::context_t::is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const {

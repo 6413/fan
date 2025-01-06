@@ -39,6 +39,27 @@ namespace fan {
     //   chain_segment_t(const b2ChainSegment& segment) : b2ChainSegment(segment) {}
     // };
 
+    struct body_update_data_t {
+      std::function<void()> cb;
+    };
+    #define BLL_set_SafeNext 1
+    #define BLL_set_AreWeInsideStruct 0
+    #define BLL_set_prefix body_updates
+    #define BLL_set_CPP_CopyAtPointerChange 1
+    #include <fan/fan_bll_preset.h>
+    #define BLL_set_Link 1
+    #define BLL_set_type_node uint16_t
+    #define BLL_set_NodeDataType body_update_data_t
+    #include <BLL/BLL.h>
+
+    inline body_updates_t body_updates;
+    body_updates_t::nr_t push_body_update(const auto& l) {
+      auto it = body_updates.NewNodeLast();
+      auto& node = body_updates[it];
+      node.cb = l;
+      return it;
+    }
+
     struct body_id_t : b2BodyId {
       using b2BodyId::b2BodyId;
       body_id_t() : b2BodyId(b2_nullBodyId){}
@@ -58,6 +79,9 @@ namespace fan {
       bool is_valid() {
         return *this != b2_nullBodyId;
       }
+      void invalidate() {
+        *this = b2_nullBodyId;
+      }
       void destroy() {
         if (is_valid() == false) {
           return;
@@ -70,19 +94,64 @@ namespace fan {
         return fan::vec2(b2Body_GetLinearVelocity(*this)) * length_units_per_meter;
       }
       void set_linear_velocity(const fan::vec2& v) {
-        b2Body_SetLinearVelocity(*this, v / length_units_per_meter);
+        push_body_update([v, id = (b2BodyId)*this]{
+          b2Body_SetLinearVelocity(id, v / length_units_per_meter);
+        });
       }
       void apply_force_center(const fan::vec2& v) {
-        b2Body_ApplyForceToCenter(*this, v / length_units_per_meter, true);
+        push_body_update([v, id = (b2BodyId)*this]{
+          b2Body_ApplyForceToCenter(id, v / length_units_per_meter, true);
+        });
       }
       void apply_linear_impulse_center(const fan::vec2& v) {
-        b2Body_ApplyLinearImpulseToCenter(*this, v / length_units_per_meter, true);
+        push_body_update([v, id = (b2BodyId)*this]{
+          b2Body_ApplyLinearImpulseToCenter(id, v / length_units_per_meter, true);
+        });
       }
-      void apply_angular_impulse(f32_t impulse) {
-        b2Body_ApplyAngularImpulse(*this, impulse / length_units_per_meter, true);
+      void apply_angular_impulse(f32_t v) {
+        push_body_update([v, id = (b2BodyId)*this]{
+          b2Body_ApplyAngularImpulse(id, v / length_units_per_meter, true);
+        });
       }
       fan::vec2 get_physics_position() const {
         return b2Body_GetPosition(*this);
+      }
+    };
+
+    struct joint_id_t : b2JointId {
+      using b2JointId::b2JointId;
+      joint_id_t() : b2JointId(b2_nullJointId){}
+      joint_id_t(const b2JointId& body_id) : b2JointId(body_id) {
+
+      }
+      void set_joint(const joint_id_t& b) {
+        *this = b;
+      }
+      bool operator==(const joint_id_t& b) const {
+        b2JointId a = *this;
+        return B2_ID_EQUALS(a, b);
+      }
+      bool operator!=(const joint_id_t& b) const {
+        return !this->operator==(b);
+      }
+      bool is_valid() {
+        return *this != b2_nullJointId;
+      }
+      void invalidate() {
+        *this = b2_nullJointId;
+      }
+      void destroy() {
+        if (is_valid() == false) {
+          return;
+        }
+        b2DestroyJoint(*this);
+        invalidate();
+      }
+
+      void revolute_joint_set_motor_speed(f32_t v) {
+        push_body_update([v, id = *this] {
+          b2RevoluteJoint_SetMotorSpeed(id, v);
+        });
       }
     };
 
@@ -90,7 +159,6 @@ namespace fan {
       f32_t friction = 0.6f;
 	    f32_t density = 1.0f;
       f32_t restitution = 0.0f;
-      f32_t rolling_resistance = 0.f;
       bool fixed_rotation = false;
       bool enable_presolve_events = false;
       bool is_sensor = false;

@@ -1035,6 +1035,9 @@ public:
 #if defined(debug_shape_t)
       fan::print("-", NRI);
 #endif
+      if (gloco->shaper.ShapeList.Usage() == 0) {
+        return;
+      }
       if (get_shape_type() == loco_t::shape_type_t::vfi) {
         gloco->vfi.erase(*this);
       }
