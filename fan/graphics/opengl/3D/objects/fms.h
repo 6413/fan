@@ -405,7 +405,9 @@ namespace fan_3d {
       }
       bool load_model(const std::string& path) {
         importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
-        scene = (aiScene*)importer.ReadFile(path, 
+        // corruption when exporting animations, but faster model import
+        //scene = (aiScene*)
+        importer.ReadFile(path, 
           /*aiProcess_LimitBoneWeights | aiProcess_ImproveCacheLocality |
           aiProcess_RemoveRedundantMaterials | aiProcess_PreTransformVertices |
           aiProcess_FindInvalidData |*/
@@ -413,7 +415,8 @@ namespace fan_3d {
           aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | 
           aiProcess_JoinIdenticalVertices | aiProcess_GenBoundingBoxes | aiProcess_SplitLargeMeshes);
 
-        //scene = importer.GetOrphanedScene();
+        
+        scene = importer.GetOrphanedScene();
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
           fan::print(importer.GetErrorString());
           return false;
@@ -630,10 +633,13 @@ namespace fan_3d {
         return ret;
       }
       void fk_get_pose(animation_data_t& animation, const bone_t& bone) {
+        if (animation.bone_poses.empty()) {
+          return;
+        }
         // this fmods other animations too. dt per animation? or with weights or max of all animations?
         // fix xd
         if (animation.duration != 0) {
-          if (animation.weight == 1 && get_active_animation_id() != -1 && animation.duration == get_active_animation().duration) {
+          if (/*animation.weight == 1 && */get_active_animation_id() != -1 && animation.duration == get_active_animation().duration) {
             dt = fmod(dt, animation.duration);
           }
           else {
@@ -656,43 +662,37 @@ namespace fan_3d {
       }
       void fk_interpolate_animations(std::vector<fan::mat4>& out_bone_transforms, bone_t& bone, fan::mat4& parent_transform) {
         fan::mat4 local_transform = bone.transformation;
-
         bool has_active_animation = false;
-        float total_weight = 0;
 
+        fan::vec3 position = 0, scale = 0;
+        fan::quat rotation;
+        float total_weight = 0.0f;
         for (const auto& [key, anim] : animation_list) {
           if (anim.weight > 0 && !anim.bone_poses.empty() && !anim.bone_transform_tracks.empty()) {
-            total_weight += anim.weight;
-            has_active_animation = true;
-            break;
-          }
-        }
-
-        if (has_active_animation) {
-          for (const auto& [key, anim] : animation_list) {
-            if (anim.weight > 0 && !anim.bone_poses.empty()) {
-              float normalized_weight = anim.weight / total_weight;
-              const auto& pose = anim.bone_poses[bone.id];
-              if (pose.rotation.w == -9999) { // uninitalized
-                local_transform = bone.transformation;
-              }
-              else {
-                static fan::vec3 translation = 0;
-                local_transform = (
-                  fan::translation_matrix(pose.position) *
-                  fan::rotation_quat_matrix(pose.rotation) *
-                  fan::scaling_matrix(pose.scale)
-                );
-              }
+            const auto& pose = anim.bone_poses[bone.id];
+            if (pose.rotation.w == -9999) {
+              local_transform = bone.transformation;
+            }
+            else {
+              position += pose.position * anim.weight;
+              fan::quat normalized_rotation = pose.rotation.normalize();
+              rotation = fan::quat::slerp(rotation, normalized_rotation, anim.weight / (total_weight + anim.weight));
+              scale += pose.scale * anim.weight;
+              total_weight += anim.weight;
             }
           }
         }
 
-        fan::mat4 global_transform = 
-          parent_transform * 
+        if (total_weight > 0) {
+          rotation = rotation.normalize(); local_transform = fan::translation_matrix(position) * fan::rotation_quat_matrix(rotation) * fan::scaling_matrix(scale);
+        }
+        else { local_transform = bone.transformation; }
+
+        fan::mat4 global_transform =
+          parent_transform *
           local_transform *
-          bone.user_transform
-          ;
+          bone.user_transform;
+
         out_bone_transforms[bone.id] = global_transform * bone.offset;
         bone.bone_transform = global_transform;
 
@@ -813,6 +813,7 @@ namespace fan_3d {
         std::advance(it, id);
         return it->second;
       }
+      // works best with fbx
       bool export_animation(
         const std::string& animation_name_to_export,
         const std::string path,
@@ -861,7 +862,7 @@ namespace fan_3d {
         delete new_scene;
 
         if (result != aiReturn_SUCCESS) {
-          fan::print("failed to export animation", exporter.GetErrorString());
+          fan::print(std::string("failed to export animation:") + exporter.GetErrorString());
           return 0;
         }
 

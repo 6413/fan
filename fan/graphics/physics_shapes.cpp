@@ -165,6 +165,7 @@ void fan::graphics::character2d_t::process_movement(f32_t friction) {
   if (move_up) {
     if (can_jump) {
       if (handle_jump) {
+        set_linear_velocity(fan::vec2(get_linear_velocity().x, 0));
         apply_linear_impulse_center({0, -impulse});
       }
       jump_delay = 0.f;
