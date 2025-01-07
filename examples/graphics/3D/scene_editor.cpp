@@ -530,7 +530,7 @@ struct pile_t {
         for (auto& selected_entity : get_editor().entities.entity_list) {
           ImGui::PushID(id++);
           fan::graphics::model_t& model = *selected_entity.second.model;
-          if (model.play_animation) {
+          if (true) {
             model.dt += get_loco().delta_time * 1000;
           }
           ImGui::PopID();
