@@ -24,7 +24,7 @@ void set_colors(auto& grid, fan::vec2 world_pos, f32_t radius) {
       dx = radius;
     } 
     else {
-      dx = fan::math::sqrt(fan::math::abs(radius * radius - offsety * offsety));
+      dx = sqrt(fan::math::abs(radius * radius - offsety * offsety));
     }
     f32_t left = (world_pos.x - dx) / grid_size.x;
     f32_t right = (world_pos.x + dx) / grid_size.x;
@@ -147,6 +147,6 @@ loco.set_vsync(0);
     fan::vec2 world_pos = loco.get_mouse_position();
     c.set_position(world_pos);
     set_colors2(grid, world_pos, c.get_size().x);
-    loco.get_fps();
+    //loco.get_fps();
   });
 }
