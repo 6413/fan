@@ -16,9 +16,9 @@ namespace fan {
 		constexpr f32_t two_pi = pi * 2;
 
 		template <typename vector_t>
-		constexpr auto dot(const vector_t& x, const auto& y) {
-			f64_t ret = 0;
-			for (uint16_t i = 0; i < vector_t::size(); ++i) {
+		constexpr vector_t::value_type dot(const vector_t& x, const vector_t& y) {
+		  typename vector_t::value_type ret = 0;
+			for (uintptr_t i = 0; i < vector_t::size(); ++i) {
 				ret += x[i] * y[i];
 			}
 			return ret;
@@ -48,11 +48,6 @@ namespace fan_2d {
 			return velocity_dst + vector2d_t(direction.x * cos_ - direction.y * sin_, -(direction.x * sin_ + direction.y * cos_));
 		}
 
-		template <typename vector_t>
-		constexpr auto dot(const vector_t& x, const vector_t& y) {
-			return x[0] * y[0] + x[1] * y[1];
-		}
-
 		template <typename _Ty, typename _Ty2>
 		constexpr f_t distance(const _Ty& src, const _Ty2& dst) {
 			const auto x = src[0] - dst[0];
@@ -68,7 +63,7 @@ namespace fan_2d {
 
 		template <typename T>
 		inline T normalize(const T& vector) {
-			f_t length = sqrt(fan_2d::math::dot(vector, vector));
+			f_t length = sqrt(fan::math::dot(vector, vector));
 			if (!length) {
 				return T();
 			}
