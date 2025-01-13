@@ -2568,7 +2568,6 @@ namespace fan {
             if (this->resize && this->move) {
               fan::vec2 new_size = (d.position - get_position());
               static constexpr fan::vec2 min_size(10, 10);
-              new_size.clamp(min_size);
               this->set_size(new_size.x);
               fan::vec3 op = children[0].get_position();
               fan::vec2 os = children[0].get_size();
