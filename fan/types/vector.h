@@ -161,10 +161,6 @@ namespace fan {
       y = test0.y;
       return *this;
     }
-		template <typename T>
-		constexpr auto cross(const fan::vec3_wrap_t<T>& vector) const {
-			return fan::math::cross<vec3_wrap_t<T>>(*this, vector);
-		}
     template <typename T>
     vec3_wrap_t<T> lerp(const vec3_wrap_t<T>& dst, T t) {
       return { x + t * (dst.x - x), y + t * (dst.y - y), z + t * (dst.z - z) };
