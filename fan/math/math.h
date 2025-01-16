@@ -319,7 +319,7 @@ namespace fan {
 				return mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
 			}
 			val_type det = 0;
-			if constexpr(n != 0){
+			if constexpr(n != 1){
 				for (uintptr_t j = 0; j < n; ++j) {
 					val_type submat[n - 1][n - 1];
 					for (uintptr_t row = 1; row < n; ++row) {
@@ -336,42 +336,30 @@ namespace fan {
 				}
 			}
 			
-			return det;
-		}
+      return det;
+    }
 
-		template <typename... Ts>
-		constexpr auto cross(Ts... args){
-			constexpr uintptr_t n = (!!(sizeof(Ts) + 1) + ...) + 1;
-			([&](auto arg){
-				static_assert(decltype(arg)::size() == n);
-			}(args), ...);
-			auto get_vec = [&](uintptr_t wanted){
-				uintptr_t i = 0;
-				return ([&](auto arg){
-					if(i++ == wanted){
-						return arg;
-					}
-				}(args), ...);
-			};
-			using float_t = decltype(get_vec(0))::value_type;
-			decltype(get_vec(0)) result;
-			for (uintptr_t i = 0; i < n; ++i) {
-				float_t submat[n - 1][n - 1];
-				for (uintptr_t row = 0; row < n - 1; ++row) {
-					uintptr_t colIdx = 0;
-					for (uintptr_t col = 0; col < n; ++col) {
-						if (col != i) {
-							submat[row][colIdx] = get_vec(row)[col];
-							++colIdx;
-						}
-					}
-				}
-				float_t det = cross_matrix_determinant<float_t, n - 1>(submat);
-				result[i] = i % 2 ? -det : det;
-			}
-			
-			return result;
-		}
+    template <typename vec_t, typename... vecs_t>
+    constexpr auto cross(const vec_t& first, const vecs_t&... rest) {
+      constexpr size_t n = sizeof...(vecs_t) + 1;
+      using value_type = typename vec_t::value_type;
+      vec_t result;
+      const vec_t* vectors[] = { &first, &rest... };
+      for (size_t i = 0; i < vec_t::size(); ++i) {
+        value_type submat[n][n];
+        for (size_t row = 0; row < n; ++row) {
+          size_t colIdx = 0;
+          for (size_t col = 0; col < vec_t::size(); ++col) {
+            if (col != i) {
+              submat[row][colIdx++] = (*vectors[row])[col];
+            }
+          }
+        }
+        value_type det = cross_matrix_determinant<value_type, n>(submat);
+        result[i] = (i % 2 == 0) ? det : -det;
+      }
+      return result;
+    }
 
 		template <typename vector_t>
 		constexpr vector_t normalize_no_sqrt(const vector_t& vector) {
