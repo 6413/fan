@@ -95,38 +95,6 @@ namespace fan {
       }
       return code;
     }
-    constexpr uint32_t get_utf8(std::size_t i) const {
-      const std::u8string_view& sv = (char8_t*)c_str();
-      uint32_t code = 0;
-      uint32_t offset = 0;
-      for (uint32_t k = 0; k <= i; k++) {
-        code = 0;
-        int len = 1;
-        if ((sv[offset] & 0xF8) == 0xF0) { len = 4; }
-        else if ((sv[offset] & 0xF0) == 0xE0) { len = 3; }
-        else if ((sv[offset] & 0xE0) == 0xC0) { len = 2; }
-        for (int j = 0; j < len; j++) {
-          code <<= 8;
-          code |= sv[offset];
-          offset++;
-        }
-      }
-      return code;
-    }
-
-    std::size_t utf8_size(std::size_t i) const {
-      return UTF8_SizeOfCharacter((*this)[i]);
-    }
-    std::size_t utf8_size() const {
-      std::size_t count = 0;
-      for (auto i = begin(); i != end(); i++){
-        if ((*i & 0xC0) != 0x80) {
-          count++;
-        }
-      }
-      return count;
-    }
-
     void replace_all(const std::string& from, const std::string& to) {
       if(from.empty())
           return;

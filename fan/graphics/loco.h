@@ -181,11 +181,7 @@ struct global_loco_t {
 };
 // might crash if pch or lib is built with extern/inline so if its different, 
 // it will crash in random places
-#if defined(fan_compiler_clang)
-  inline global_loco_t gloco;
-#elif defined(fan_compiler_msvc)
-  inline global_loco_t gloco;
-#endif
+inline global_loco_t gloco;
 
 namespace fan {
   void printcl(auto&&... values);
