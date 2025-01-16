@@ -4553,7 +4553,7 @@ void fan::graphics::text_partial_render(const std::string& text, size_t render_p
     }
   }
   if (empty_lines) {
-    ImGui::TextColored(fan::colors::red, "warning empty lines:%d", empty_lines);
+    ImGui::TextColored(fan::colors::red, "warning empty lines:%zu", empty_lines);
   }
 }
 

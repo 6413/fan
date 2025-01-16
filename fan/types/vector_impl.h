@@ -193,7 +193,8 @@ constexpr auto abs_max() const {
 }
 
 constexpr auto dot(const auto& test0) const { return fan::math::dot(*this, test0); }
-// for cross product, its only for vec3 so make custom
+template <typename... Ts>
+constexpr auto cross(Ts... args) const { return fan::math::cross(*this, args...); }
 constexpr auto length() const { return sqrt(dot(*this)); }
 constexpr auto normalize() const { auto l = length(); if (l == 0) return vec_t(0); make_for_all(ret[i] = (*this)[i] / l); }
 constexpr vec_t square_normalize() const { return *this / abs().max(); }
