@@ -310,13 +310,67 @@ namespace fan {
 			return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
 		}
 
-		template <typename vector_t>
-		constexpr auto cross(const vector_t& a, const vector_t& b) {
-			return vector_t(
-				a[1] * b[2] - b[1] * a[2],
-				a[2] * b[0] - b[2] * a[0],
-				a[0] * b[1] - b[0] * a[1]
-			);
+    template <typename val_type, uintptr_t n>
+		val_type cross_matrix_determinant(const auto &mat) {
+			if constexpr(n == 1) {
+				return mat[0][0];
+			}
+			if constexpr(n == 2) {
+				return mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
+			}
+			val_type det = 0;
+			if constexpr(n != 0){
+				for (uintptr_t j = 0; j < n; ++j) {
+					val_type submat[n - 1][n - 1];
+					for (uintptr_t row = 1; row < n; ++row) {
+						uintptr_t colIdx = 0;
+						for (uintptr_t col = 0; col < n; ++col) {
+							if (col != j) {
+								submat[row - 1][colIdx] = mat[row][col];
+								++colIdx;
+							}
+						}
+					}
+					
+					det += (j % 2 ? -1 : +1) * mat[0][j] * cross_matrix_determinant<val_type, n - 1>(submat);
+				}
+			}
+			
+			return det;
+		}
+
+		template <typename... Ts>
+		constexpr auto cross(Ts... args){
+			constexpr uintptr_t n = (!!(sizeof(Ts) + 1) + ...) + 1;
+			([&](auto arg){
+				static_assert(decltype(arg)::size() == n);
+			}(args), ...);
+			auto get_vec = [&](uintptr_t wanted){
+				uintptr_t i = 0;
+				return ([&](auto arg){
+					if(i++ == wanted){
+						return arg;
+					}
+				}(args), ...);
+			};
+			using float_t = decltype(get_vec(0))::value_type;
+			decltype(get_vec(0)) result;
+			for (uintptr_t i = 0; i < n; ++i) {
+				float_t submat[n - 1][n - 1];
+				for (uintptr_t row = 0; row < n - 1; ++row) {
+					uintptr_t colIdx = 0;
+					for (uintptr_t col = 0; col < n; ++col) {
+						if (col != i) {
+							submat[row][colIdx] = get_vec(row)[col];
+							++colIdx;
+						}
+					}
+				}
+				float_t det = cross_matrix_determinant<float_t, n - 1>(submat);
+				result[i] = i % 2 ? -det : det;
+			}
+			
+			return result;
 		}
 
 		template <typename vector_t>
