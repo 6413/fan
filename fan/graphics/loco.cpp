@@ -2067,6 +2067,7 @@ void loco_t::process_frame() {
     }
   }
 
+#if defined(loco_box2d)
   {
     auto it = shape_physics_update_cbs.GetNodeFirst();
     while (it != shape_physics_update_cbs.dst) {
@@ -2075,6 +2076,7 @@ void loco_t::process_frame() {
       it = shape_physics_update_cbs.EndSafeNext();
     }
   }
+#endif
 
   for (const auto& i : single_queue) {
     i();
@@ -4551,7 +4553,7 @@ void fan::graphics::text_partial_render(const std::string& text, size_t render_p
     }
   }
   if (empty_lines) {
-    ImGui::TextColored(fan::colors::red, "warning empty lines:%zu", empty_lines);
+    ImGui::TextColored(fan::colors::red, "warning empty lines:%d", empty_lines);
   }
 }
 
