@@ -1,22 +1,26 @@
 cmake_minimum_required(VERSION 3.15)
 project(fan)
 
+# Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Response file settings for large command lines
 set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS 1)
 set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_OBJECTS 1)
 set(CMAKE_C_RESPONSE_FILE_LINK_FLAG "@")
 set(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
 set(CMAKE_NINJA_FORCE_RESPONSE_FILE 1 CACHE INTERNAL "")
 
+# Define build options
 option(LOCO_BOX2D "Enable Box2D" ON)
 option(LOCO_IMGUI "Enable ImGui" ON)
 option(LOCO_JSON "Enable JSON" ON)
 option(LOCO_ASSIMP "Enable Assimp" ON)
 option(BUILD_MAIN "Build main executable" ON)
 
-set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+# Set compiler and flags
+set(CMAKE_CXX_COMPILER "clang++")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -fPIC -fpermissive -ferror-limit=4")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses")
@@ -25,20 +29,32 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-parameter -Wno-unuse
 set(CMAKE_CXX_FLAGS_DEBUG "-gdwarf-4")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+# Linker flags
 set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=gold")
 set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=gold")
 set(CMAKE_MODULE_LINKER_FLAGS "-fuse-ld=gold")
 
-set(ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/fan/)
+# Define paths and create output directory
+set(ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 set(OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan)
 file(MAKE_DIRECTORY ${OUTPUT_PATH})
 
+# Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
+# Find required packages
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 
+# Box2D
+include(FetchContent)
+FetchContent_Declare(
+    box2d
+    GIT_REPOSITORY https://github.com/erincatto/box2d.git
+    GIT_TAG v3.0.0
+)
 set(BUILD_SHARED_LIBS ON)
+FetchContent_MakeAvailable(box2d)
 
 # Common compile definitions function
 function(apply_loco_definitions target)
@@ -60,12 +76,14 @@ function(apply_loco_definitions target)
     )
 endfunction()
 
+# FMT library
 add_library(fmt STATIC ${ROOT_PATH}/fmt.cpp)
 set_target_properties(fmt PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_PATH}
     OUTPUT_NAME "fmt"
 )
 
+# ImGui library
 if(LOCO_IMGUI)
     file(GLOB IMGUI_SOURCES ${ROOT_PATH}/imgui/*.cpp)
     add_library(imgui STATIC ${IMGUI_SOURCES})
@@ -103,13 +121,13 @@ set_target_properties(nfd PROPERTIES
     OUTPUT_NAME "nfd"
 )
 
+# Main fan library
 file(GLOB_RECURSE FAN_SOURCES 
     ${ROOT_PATH}/*.cpp
     ${ROOT_PATH}/*/*.cpp
     ${ROOT_PATH}/*/*/*.cpp
     ${ROOT_PATH}/*/*/*/*.cpp
 )
-
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*imgui/.*")
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*nativefiledialog/.*")
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*fmt\\.cpp$")
@@ -121,14 +139,14 @@ set_target_properties(fan PROPERTIES
     OUTPUT_NAME "fan"
 )
 
+# Main executable
 if(BUILD_MAIN)
     if(NOT DEFINED MAIN)
         set(MAIN examples/graphics/2D/shapes/rectangle.cpp)
     endif()
     
     add_executable(a.exe ${MAIN})
-    apply_loco_definitions(a.exe)
-		
+    
     if(UNIX)
         target_link_libraries(a.exe
             fan

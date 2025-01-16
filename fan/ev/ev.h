@@ -3,6 +3,7 @@
 #include <functional>
 #include <queue>
 #include <chrono>
+#include <memory>
 
 #include <uv.h>
 #undef min
