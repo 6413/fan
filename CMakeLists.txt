@@ -112,7 +112,6 @@ file(GLOB_RECURSE FAN_SOURCES
 
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*imgui/.*")
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*nativefiledialog/.*")
-list(FILTER FAN_SOURCES EXCLUDE REGEX ".*fmt\\.cpp$")
 if(NOT LOCO_BOX2D)
 	list(FILTER FAN_SOURCES EXCLUDE REGEX ".*physics_shapes\\.cpp$")
 	list(FILTER FAN_SOURCES EXCLUDE REGEX ".*b2_integration\\.cpp$")
