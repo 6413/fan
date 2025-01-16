@@ -10,11 +10,11 @@ set(CMAKE_C_RESPONSE_FILE_LINK_FLAG "@")
 set(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
 set(CMAKE_NINJA_FORCE_RESPONSE_FILE 1 CACHE INTERNAL "")
 
-option(LOCO_BOX2D "Enable Box2D" ON)
-option(LOCO_IMGUI "Enable ImGui" ON)
-option(LOCO_JSON "Enable JSON" ON)
-option(LOCO_ASSIMP "Enable Assimp" ON)
-option(BUILD_MAIN "Build main executable" ON)
+set(LOCO_BOX2D ON)
+set(LOCO_IMGUI ON)
+set(LOCO_JSON ON)
+set(LOCO_ASSIMP ON)
+set(BUILD_MAIN ON)
 
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -fPIC -fpermissive -ferror-limit=4")
@@ -40,7 +40,7 @@ pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 
 set(BUILD_SHARED_LIBS ON)
 
-# Common compile definitions function
+
 function(apply_loco_definitions target)
     if(LOCO_IMGUI)
         target_compile_definitions(${target} PRIVATE -Dloco_imgui)
@@ -113,6 +113,11 @@ file(GLOB_RECURSE FAN_SOURCES
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*imgui/.*")
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*nativefiledialog/.*")
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*fmt\\.cpp$")
+if(NOT LOCO_BOX2D)
+	list(FILTER FAN_SOURCES EXCLUDE REGEX ".*physics_shapes\\.cpp$")
+	list(FILTER FAN_SOURCES EXCLUDE REGEX ".*b2_integration\\.cpp$")
+endif()
+
 
 add_library(fan SHARED ${FAN_SOURCES})
 apply_loco_definitions(fan)
@@ -130,22 +135,30 @@ if(BUILD_MAIN)
     apply_loco_definitions(a.exe)
 		
     if(UNIX)
-        target_link_libraries(a.exe
-            fan
-            imgui
-            nfd
-            fmt
-            box2d
-            webp
-            glfw
-            X11
-            assimp
-            opus
-            pulse-simple
-            uv
-            ${GTK3_LIBRARIES}
-        )
-    else()
-        message(WARNING "Windows backend not implemented")
-    endif()
+			target_link_libraries(a.exe
+					fan
+					fmt
+					nfd
+					webp
+					glfw
+					X11
+					opus
+					pulse-simple
+					uv
+					${GTK3_LIBRARIES}
+			)
+
+			if(LOCO_BOX2D MATCHES ON)
+					target_link_libraries(a.exe box2d)
+			endif()
+			if(LOCO_IMGUI MATCHES ON)
+					target_link_libraries(a.exe imgui)
+			endif()
+			if(LOCO_ASSIMP MATCHES ON)
+					target_link_libraries(a.exe assimp)
+			endif()
+	else()
+			message(WARNING "Windows backend not implemented")
+	endif()
+
 endif()
