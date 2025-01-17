@@ -260,6 +260,7 @@ struct loco_t : fan::opengl::context_t {
       unlit_sprite,
       circle,
       capsule,
+      polygon,
       grid,
       vfi,
       particles,
@@ -923,6 +924,9 @@ public:
       else if constexpr (std::is_same_v<T, capsule_t::properties_t>) {
         *this = gloco->capsule.push_back(properties);
       }
+      else if constexpr (std::is_same_v<T, polygon_t::properties_t>) {
+        *this = gloco->polygon.push_back(properties);
+      }
       else if constexpr (std::is_same_v<T, grid_t::properties_t>) {
         *this = gloco->grid.push_back(properties);
       }
@@ -1566,6 +1570,46 @@ public:
     loco_t::shape_t push_back(const capsule_t::properties_t& properties);
   }capsule;
 
+  struct vertex_t {
+    fan::vec3 position;
+    fan::color color;
+  };
+
+  struct polygon_t {
+    static constexpr uint16_t max_polygons = 400;
+
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::polygon;
+    static constexpr int kpi = kp::common;
+
+#pragma pack(push, 1)
+
+    // vertex
+    struct vi_t {
+      fan::vec3 position;
+      fan::color color;
+    };
+    struct ri_t {
+
+    };
+
+#pragma pack(pop)
+
+    inline static std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, position)) },
+      shape_gl_init_t{{1, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
+    };
+
+    struct properties_t {
+      using type_t = polygon_t;
+
+      std::vector<vertex_t> vertices;
+      bool blending = true;
+      loco_t::camera_t camera = gloco->orthographic_camera.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+    };
+    loco_t::shape_t push_back(const properties_t& properties);
+  }polygon;
+
   struct grid_t {
 
     static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::grid;
@@ -1960,7 +2004,7 @@ public:
   //-------------------------------------shapes-------------------------------------
 
   template <typename T>
-  inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment, loco_t::shaper_t::ShapeRenderDataSize_t instance_count = 1) {
+  inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment, loco_t::shaper_t::ShapeRenderDataSize_t instance_count = 1, bool instanced = true) {
     auto& context = gloco->get_context();
 
     loco_t::shader_t shader = context.shader_create();
@@ -1982,7 +2026,8 @@ public:
         .RenderDataSize = (decltype(loco_t::shaper_t::BlockProperties_t::RenderDataSize))(sizeof(typename T::vi_t) * instance_count),
         .DataSize = sizeof(typename T::ri_t),
         .locations = T::locations,
-        .shader = shader
+        .shader = shader,
+        .instanced = instanced
       }
     );
 
@@ -2393,6 +2438,26 @@ namespace fan {
             .outline_color = p.outline_color,
             .blending = p.blending,
             .flags = p.flags
+          ));
+      }
+    };
+
+    using vertex_t = loco_t::vertex_t;
+    struct polygon_properties_t {
+      camera_impl_t* camera = &gloco->orthographic_camera;
+      std::vector<vertex_t> vertices;
+      bool blending = true;
+    };
+
+    struct polygon_t : loco_t::shape_t {
+      polygon_t(polygon_properties_t p = polygon_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            typename loco_t::polygon_t::properties_t,
+            .camera = p.camera->camera,
+            .viewport = p.camera->viewport,
+            .vertices = p.vertices,
+            .blending = p.blending,
           ));
       }
     };
@@ -3069,6 +3134,7 @@ namespace fan {
       void move_by_cursor();
     };
 
+#if defined(loco_imgui)
     struct dialogue_box_t {
 
       dialogue_box_t();
@@ -3099,5 +3165,6 @@ namespace fan {
       std::vector<button_t> buttons;
       int button_choice = -1;
     };
+#endif
   }
 }

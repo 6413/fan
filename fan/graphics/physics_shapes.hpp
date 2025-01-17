@@ -376,6 +376,49 @@ namespace fan {
           return *this;
         }
       };
+      struct polygon_t : base_shape_t {
+        struct properties_t {
+          camera_impl_t* camera = &gloco->orthographic_camera;
+          std::vector<vertex_t> vertices;
+          bool blending = true;
+          operator fan::graphics::polygon_properties_t() const {
+            return fan::graphics::polygon_properties_t{
+              .camera = camera,
+              .vertices = vertices,
+              .blending = blending
+            };
+          }
+          uint8_t body_type = fan::physics::body_type_e::static_body;
+          mass_data_t mass_data;
+          fan::physics::shape_properties_t shape_properties;
+        };
+        polygon_t() = default;
+        polygon_t(const properties_t& p) : base_shape_t(
+          loco_t::shape_t(fan::graphics::polygon_t{ p }),
+          fan::physics::entity_t(
+            [&]{
+              std::vector<fan::vec2> points(p.vertices.size());
+              for (std::size_t i = 0; i < points.size(); ++i) {
+                points[i] = p.vertices[i].position;
+              }
+              return gloco->physics_context.create_segment(
+                points, p.body_type, p.shape_properties
+              );
+            }()),
+          p.mass_data
+        ) {
+        }
+        polygon_t(const capsule_t& r) : base_shape_t(r) {}
+        polygon_t(capsule_t&& r) : base_shape_t(std::move(r)) {}
+        polygon_t& operator=(const polygon_t& r) {
+          base_shape_t::operator=(r);
+          return *this;
+        }
+        polygon_t& operator=(polygon_t&& r) {
+          base_shape_t::operator=(std::move(r));
+          return *this;
+        }
+      };
 
       std::array<fan::graphics::physics_shapes::rectangle_t, 4> create_stroked_rectangle(
         const fan::vec2& center_position,
