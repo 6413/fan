@@ -210,6 +210,8 @@ namespace fan {
       entity_t create_circle(const fan::vec2& position, f32_t radius, uint8_t body_type, const shape_properties_t& shape_properties);
       fan::physics::entity_t create_capsule(const fan::vec2& position, const b2Capsule& info, uint8_t body_type, const shape_properties_t& shape_properties);
 
+      fan::physics::entity_t create_segment(const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties);
+
       void step(f32_t dt);
 
       bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const;

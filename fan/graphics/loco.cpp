@@ -1446,6 +1446,22 @@ loco_t::loco_t(const properties_t& p){
       );
     }
   }
+  {
+    if (opengl.major == 2 && opengl.minor == 1) {
+      shape_functions.resize(shape_functions.size() + 1);
+    }
+    else {
+      shape_open<loco_t::polygon_t>(
+        &polygon,
+        "shaders/opengl/2D/objects/polygon.vs",
+        "shaders/opengl/2D/objects/polygon.fs",
+        loco_t::polygon_t::max_polygons,
+        false
+      );
+      shaper.GetShapeTypes(loco_t::shape_type_t::polygon).vertex_count = loco_t::polygon_t::max_polygons;
+      shaper.GetShapeTypes(loco_t::shape_type_t::polygon).draw_mode = fan::opengl::GL_TRIANGLES;
+    }
+  }
 
   {
     if (opengl.major == 2 && opengl.minor == 1) {
@@ -1997,28 +2013,29 @@ void loco_t::draw_shapes() {
           break;
         }
         default: {
-          if ((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) {
-            opengl.glDrawArraysInstancedBaseInstance(
-              fan::opengl::GL_TRIANGLES,
+          auto& shape_data = shaper.GetShapeTypes(shape_type);
+          if (((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2))) {
+           opengl.glDrawArraysInstancedBaseInstance(
+              shape_data.draw_mode,
               0,
-              6,
+              shape_data.vertex_count,
               BlockTraverse.GetAmount(shaper),
               BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
             );
           }
-          else if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
+          else if (((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3))) {
             opengl.glDrawArraysInstanced(
-              fan::opengl::GL_TRIANGLES,
+              shape_data.draw_mode,
               0,
-              6,
+              shape_data.vertex_count,
               BlockTraverse.GetAmount(shaper)
             );
           }
           else {
             opengl.glDrawArrays(
-              fan::opengl::GL_TRIANGLES,
+              shape_data.draw_mode,
               0,
-              6 * BlockTraverse.GetAmount(shaper)
+              shape_data.vertex_count * BlockTraverse.GetAmount(shaper)
             );
           }
 
@@ -2982,6 +2999,29 @@ loco_t::shape_t loco_t::capsule_t::push_back(const loco_t::capsule_t::properties
   );
 }
 
+loco_t::shape_t loco_t::polygon_t::push_back(const loco_t::polygon_t::properties_t& properties) {
+  if (properties.vertices.size() > loco_t::polygon_t::max_polygons) {
+    fan::throw_error("maximum polygons reached");
+  }
+  std::vector<vi_t> vis(loco_t::polygon_t::max_polygons);
+  for (std::size_t i = 0; i < properties.vertices.size(); ++i) {
+    vis[i].position = properties.vertices[i].position;
+    vis[i].color = properties.vertices[i].color;
+  }
+  // fill gaps
+  for (std::size_t i = properties.vertices.size(); i < vis.size(); ++i) {
+    vis[i].position = vis[i - 1].position;
+    vis[i].color = vis[i - 1].color;
+  }
+  ri_t ri;
+  return shape_add(shape_type, vis[0], ri,
+    Key_e::depth, (uint16_t)properties.vertices[0].position.z,
+    Key_e::blending, (uint8_t)properties.blending,
+    Key_e::viewport, properties.viewport,
+    Key_e::camera, properties.camera,
+    Key_e::ShapeType, shape_type
+  );
+}
 
 loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
 
@@ -4557,6 +4597,7 @@ void fan::graphics::text_partial_render(const std::string& text, size_t render_p
   }
 }
 
+#if defined(loco_imgui)
 fan::graphics::dialogue_box_t::dialogue_box_t() {
   gloco->input_action.add(fan::mouse_left, "skip or continue dialog");
 }
@@ -4674,5 +4715,7 @@ void fan::graphics::dialogue_box_t::render(const std::string& window_name, ImFon
   ImGui::End();
   ImGui::PopFont();
 }
+
+#endif
 
 #endif

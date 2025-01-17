@@ -247,6 +247,9 @@ struct shaper_t{
 
     std::vector<shape_gl_init_t> locations;
     fan::opengl::context_t::shader_nr_t shader;
+    bool instanced = true;
+    fan::opengl::GLuint draw_mode = fan::opengl::GL_TRIANGLES;
+    fan::opengl::GLsizei vertex_count = 6;
     #endif
 
     MaxElementPerBlock_t MaxElementPerBlock(){
@@ -395,6 +398,9 @@ private:
     std::vector<shape_gl_init_t>& GetLocations(ShapeTypeIndex_t sti) {
       return ShapeTypes[sti].locations;
     }
+    ShapeTypes_NodeData_t& GetShapeTypes(ShapeTypeIndex_t sti) {
+      return ShapeTypes[sti];
+    }
   #endif
 
   ShapeTypeIndex_t GetSTI(ShapeID_t ShapeID){
@@ -477,6 +483,9 @@ private:
     #if shaper_set_fan
     std::vector<shape_gl_init_t> locations;
     fan::opengl::context_t::shader_nr_t shader;
+    bool instanced = true;
+    fan::opengl::GLuint draw_mode = fan::opengl::GL_TRIANGLES;
+    fan::opengl::GLsizei vertex_count = 6;
     #endif
   };
 
@@ -561,6 +570,9 @@ private:
     st.m_vbo.bind(context);
     st.shader = bp.shader;
     st.locations = bp.locations;
+    st.instanced = bp.instanced;
+    st.draw_mode = bp.draw_mode;
+    st.vertex_count = bp.vertex_count;
     fan::opengl::context_t::shader_t shader;
     if (!st.shader.iic()) {
       shader = context.shader_get(st.shader);
@@ -574,7 +586,9 @@ private:
       context.opengl.glVertexAttribPointer(location.index.first, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)ptr_offset);
        // instancing
       if ((context.opengl.major > 3) || (context.opengl.major == 3 && context.opengl.minor >= 3)) {
-        context.opengl.glVertexAttribDivisor(location.index.first, 1);
+        if (st.instanced) {
+          context.opengl.glVertexAttribDivisor(location.index.first, 1);
+        }
       }
       switch (location.type) {
       case fan::opengl::GL_FLOAT: {
@@ -674,6 +688,10 @@ private:
     st.m_vao.bind(get_loco()->get_context());
     #endif
     while(traverse.Loop(&st.BlockList)){
+      for (int i = 0; i < st.RenderDataSize * st.MaxElementPerBlock() - GetRenderDataOffset(sti, traverse.nr); ++i) {
+        printf("bc %02x", (uint32_t)((uint8_t*)_GetRenderData(sti, traverse.nr, 0))[GetRenderDataOffset(sti, traverse.nr) + i]);
+      }
+      fan::print("\n");
       #if shaper_set_fan
       fan::opengl::core::edit_glbuffer(
         get_loco()->get_context(),

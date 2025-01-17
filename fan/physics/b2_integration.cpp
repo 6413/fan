@@ -64,7 +64,6 @@ fan::physics::entity_t fan::physics::context_t::create_capsule(const fan::vec2& 
   shape.center2.y /= length_units_per_meter;
   shape.radius /= length_units_per_meter;
 
-
   entity_t entity;
   b2BodyDef body_def = b2DefaultBodyDef();
   body_def.position = position / length_units_per_meter;
@@ -81,6 +80,37 @@ fan::physics::entity_t fan::physics::context_t::create_capsule(const fan::vec2& 
   shape_def.filter = shape_properties.filter;
   //shape_def.rollingResistance = shape_properties.rolling_resistance;
   b2CreateCapsuleShape(entity, &shape_def, &shape);
+  return entity;
+}
+
+fan::physics::entity_t fan::physics::context_t::create_segment(const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties) {
+  entity_t entity;
+  b2BodyDef body_def = b2DefaultBodyDef();
+  body_def.type = (b2BodyType)body_type;
+  body_def.fixedRotation = shape_properties.fixed_rotation;
+  body_def.linearDamping = shape_properties.linear_damping;
+  entity = b2CreateBody(world_id, &body_def);
+  b2ShapeDef shape_def = b2DefaultShapeDef();
+  shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
+  shape_def.density = shape_properties.density;
+  shape_def.friction = shape_properties.friction;
+  shape_def.restitution = shape_properties.restitution;
+  shape_def.isSensor = shape_properties.is_sensor;
+  shape_def.filter = shape_properties.filter;
+
+  for (std::size_t i = 0; i < points.size() - 1; ++i) {
+    segment_t shape;
+    shape.point1 = points[i] / length_units_per_meter;
+    shape.point2 = points[i + 1] / length_units_per_meter;
+    b2CreateSegmentShape(entity, &shape_def, &shape);
+  }
+  // connnect last to first
+  if (points.size() > 2) {
+    segment_t shape;
+    shape.point1 = points.back() / length_units_per_meter;
+    shape.point2 = points.front() / length_units_per_meter;
+    b2CreateSegmentShape(entity, &shape_def, &shape);
+  }
   return entity;
 }
 
