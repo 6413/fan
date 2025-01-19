@@ -1307,7 +1307,7 @@ public:
 #pragma pack(pop)
 
   inline static std::vector<shape_gl_init_t> locations = {
-    shape_gl_init_t{{0, "in_positio"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+    shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
     shape_gl_init_t{{1, "in_parallax_factor"}, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
     shape_gl_init_t{{2, "in_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
     shape_gl_init_t{{3, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
@@ -1580,7 +1580,7 @@ public:
   };
 
   struct polygon_t {
-    static constexpr uint16_t max_polygons = 400;
+    static constexpr uint16_t max_vertices_per_element = 400;
 
     static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::polygon;
     static constexpr int kpi = kp::common;
@@ -1589,8 +1589,7 @@ public:
 
     // vertex
     struct vi_t {
-      fan::vec3 position;
-      fan::color color;
+      vertex_t vertices[max_vertices_per_element];
     };
     struct ri_t {
 
@@ -1599,8 +1598,8 @@ public:
 #pragma pack(pop)
 
     inline static std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, position)) },
-      shape_gl_init_t{{1, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
+      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vertex_t), (void*)(offsetof(vertex_t, position)) },
+      shape_gl_init_t{{1, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vertex_t), (void*)(offsetof(vertex_t, color)) },
     };
 
     struct properties_t {
@@ -2454,7 +2453,8 @@ namespace fan {
     };
 
     struct polygon_t : loco_t::shape_t {
-      polygon_t(polygon_properties_t p = polygon_properties_t()) {
+      polygon_t() = default;
+      polygon_t(polygon_properties_t p) {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::polygon_t::properties_t,

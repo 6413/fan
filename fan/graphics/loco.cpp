@@ -1455,10 +1455,10 @@ loco_t::loco_t(const properties_t& p){
         &polygon,
         "shaders/opengl/2D/objects/polygon.vs",
         "shaders/opengl/2D/objects/polygon.fs",
-        loco_t::polygon_t::max_polygons,
+        1,
         false
       );
-      shaper.GetShapeTypes(loco_t::shape_type_t::polygon).vertex_count = loco_t::polygon_t::max_polygons;
+      shaper.GetShapeTypes(loco_t::shape_type_t::polygon).vertex_count = loco_t::polygon_t::max_vertices_per_element;
       shaper.GetShapeTypes(loco_t::shape_type_t::polygon).draw_mode = fan::opengl::GL_TRIANGLES;
     }
   }
@@ -2014,16 +2014,16 @@ void loco_t::draw_shapes() {
         }
         default: {
           auto& shape_data = shaper.GetShapeTypes(shape_type);
-          if (((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2))) {
+          if (((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) && shape_data.instanced) {
            opengl.glDrawArraysInstancedBaseInstance(
               shape_data.draw_mode,
               0,
-              shape_data.vertex_count,
+              polygon_t::max_vertices_per_element,
               BlockTraverse.GetAmount(shaper),
               BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
             );
           }
-          else if (((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3))) {
+          else if (((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3))&& shape_data.instanced) {
             opengl.glDrawArraysInstanced(
               shape_data.draw_mode,
               0,
@@ -2034,7 +2034,7 @@ void loco_t::draw_shapes() {
           else {
             opengl.glDrawArrays(
               shape_data.draw_mode,
-              0,
+              (!!!(opengl.major == 2 && opengl.minor == 1)) * (BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)) * shape_data.vertex_count,
               shape_data.vertex_count * BlockTraverse.GetAmount(shaper)
             );
           }
@@ -3000,21 +3000,24 @@ loco_t::shape_t loco_t::capsule_t::push_back(const loco_t::capsule_t::properties
 }
 
 loco_t::shape_t loco_t::polygon_t::push_back(const loco_t::polygon_t::properties_t& properties) {
-  if (properties.vertices.size() > loco_t::polygon_t::max_polygons) {
+  if (properties.vertices.empty()) {
+    fan::throw_error("invalid vertices");
+  }
+  if (properties.vertices.size() > loco_t::polygon_t::max_vertices_per_element) {
     fan::throw_error("maximum polygons reached");
   }
-  std::vector<vi_t> vis(loco_t::polygon_t::max_polygons);
+  vi_t vis;
   for (std::size_t i = 0; i < properties.vertices.size(); ++i) {
-    vis[i].position = properties.vertices[i].position;
-    vis[i].color = properties.vertices[i].color;
+    vis.vertices[i].position = properties.vertices[i].position;
+    vis.vertices[i].color = properties.vertices[i].color;
   }
   // fill gaps
-  for (std::size_t i = properties.vertices.size(); i < vis.size(); ++i) {
-    vis[i].position = vis[i - 1].position;
-    vis[i].color = vis[i - 1].color;
+  for (std::size_t i = properties.vertices.size(); i < std::size(vis.vertices); ++i) {
+    vis.vertices[i].position = vis.vertices[i - 1].position;
+    vis.vertices[i].color = vis.vertices[i - 1].color;
   }
   ri_t ri;
-  return shape_add(shape_type, vis[0], ri,
+  return shape_add(shape_type, vis, ri,
     Key_e::depth, (uint16_t)properties.vertices[0].position.z,
     Key_e::blending, (uint8_t)properties.blending,
     Key_e::viewport, properties.viewport,

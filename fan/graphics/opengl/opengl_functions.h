@@ -121,6 +121,7 @@ get_proc_address(PFNGLMAPBUFFERPROC, glMapBuffer);
 get_proc_address(PFNGLUNMAPBUFFERPROC, glUnmapBuffer);
 get_proc_address(PFNGLVERTEXATTRIBIPOINTERPROC, glVertexAttribIPointer);
 get_proc_address(PFNGLBINDBUFFERBASEPROC, glBindBufferBase);
+get_proc_address(PFNGLPOINTSIZEPROC, glPointSize);
 
 
 
