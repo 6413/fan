@@ -790,6 +790,10 @@ public:
   fan::window_t window;
   uv_idle_t idle_handle;
   uv_timer_t timer_handle;
+
+  fan::opengl::GLenum blend_src_factor = fan::opengl::GL_SRC_ALPHA;
+  fan::opengl::GLenum blend_dst_factor = fan::opengl::GL_ONE_MINUS_SRC_ALPHA;
+
   private:
   int32_t target_fps = 165; // must be changed from function
   bool timer_enabled = target_fps > 0;

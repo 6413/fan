@@ -194,6 +194,9 @@ namespace fan {
 		auto end() {
 			return begin() + size();
 		}
+    color set_alpha(f32_t alpha) const {
+      return color(r, g, b, alpha);
+    }
 
     cf_t r = 0, g = 0, b = 0, a = 1;
 	};

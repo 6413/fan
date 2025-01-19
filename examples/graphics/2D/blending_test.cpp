@@ -1,48 +1,32 @@
 #include <fan/pch.h>
 
 int main() {
-  loco_t loco;
+  fan::graphics::engine_t engine{{.window_size=800}};
+  engine.clear_color = fan::colors::black;
+  engine.blend_src_factor = fan::opengl::GL_ONE;
+  engine.blend_dst_factor = fan::opengl::GL_ONE;
 
-  loco.default_camera->camera.set_ortho(
-    fan::vec2(-1, 1),
-    fan::vec2(-1, 1)
-  );
-
-  loco_t::image_t images[2];
-  images[0].load("images/brick.webp");
-  images[1].load("images/brick_inverted.webp");
-
-  fan::graphics::sprite_t s0{{
-    .position = fan::vec3(0, 0, 2),
-    .size = 0.5,
-    .color = {1, 1, 1, 0.5},
-    .image = images,
+  fan::graphics::circle_t rr{{
+    .position = fan::vec3(350, 300, 0),
+    .radius = 128,
+    .color = fan::colors::red.set_alpha(0.5),
+    .blending = true
+  }};
+  fan::graphics::circle_t rg{{
+    .position = fan::vec3(450, 300, 1),
+    .radius = 128,
+    .color = fan::colors::green.set_alpha(0.5),
+    .blending = true
+  }};
+  fan::graphics::circle_t rb{{
+    .position = fan::vec3(400, 400, 2),
+    .radius = 128,
+    .color = fan::colors::blue.set_alpha(0.5),
     .blending = true
   }};
 
-  fan::graphics::sprite_t s1{{
-    .position = fan::vec3(-0.25, -0.25, 0),
-    .size = 0.5,
-    .color = {1, 1, 1, 0.5},
-    .image = images + 1,
-    .blending = true
-  }};
+  engine.loop([&] {
 
-  fan::graphics::rectangle_t r0{{
-    .position = fan::vec3(0.25, 0.25, 1),
-    .size = 0.5,
-    .color = fan::colors::red,
-    .blending = true
-  }};
-  fan::graphics::rectangle_t r1{{
-    .position = fan::vec3(-0.25, 0.5, 3),
-    .size = 0.5,
-    .color = fan::colors::green - fan::color(0, 0, 0, .5),
-    .blending = true
-  }};
-
-  loco.loop([&] {
-    loco.get_fps();
   });
 
   return 0;

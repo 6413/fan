@@ -680,8 +680,12 @@ private:
   void _RenderDataReset(ShapeTypeIndex_t sti){
     auto &st = ShapeTypes[sti];
 
+    uint64_t u = 0;
     /* TODO remove all block edit queue stuff */
-
+    for (int i = 0; i < st.RenderDataSize * st.MaxElementPerBlock(); ++i) {
+    //  printf("bc %02x", (uint32_t)((uint8_t*)_GetRenderData(sti, *(loco_t::shaper_t::BlockList_t::nr_t*)&u, 0))[i]);
+    }
+    //fan::print("\n");
     BlockList_t::nrtra_t traverse;
     traverse.Open(&st.BlockList);
     #if shaper_set_fan
@@ -689,9 +693,9 @@ private:
     #endif
     while(traverse.Loop(&st.BlockList)){
       for (int i = 0; i < st.RenderDataSize * st.MaxElementPerBlock() - GetRenderDataOffset(sti, traverse.nr); ++i) {
-        printf("bc %02x", (uint32_t)((uint8_t*)_GetRenderData(sti, traverse.nr, 0))[GetRenderDataOffset(sti, traverse.nr) + i]);
+        //printf("bc %02x", (uint32_t)((uint8_t*)_GetRenderData(sti, traverse.nr, 0))[GetRenderDataOffset(sti, traverse.nr) + i]);
       }
-      fan::print("\n");
+    //  fan::print("\n");
       #if shaper_set_fan
       fan::opengl::core::edit_glbuffer(
         get_loco()->get_context(),
