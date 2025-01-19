@@ -46,7 +46,7 @@ void main() {
   float specular_ = texture2D(_t02, tex_coord).r;
 
   vec4 albedo;
-  albedo = texture2D(_t12, tex_coord);
+  albedo = texture2D(_t01, tex_coord);
   albedo *= vcolor;
   albedo.rgb = max(albedo.rgb, vec3(0.05));
   

@@ -1670,7 +1670,7 @@ void loco_t::draw_shapes() {
       if (Key) {
         set_depth_test(false);
         opengl.call(opengl.glEnable, fan::opengl::GL_BLEND);
-        opengl.call(opengl.glBlendFunc, fan::opengl::GL_SRC_ALPHA, fan::opengl::GL_ONE_MINUS_SRC_ALPHA);
+        opengl.call(opengl.glBlendFunc, blend_src_factor, blend_dst_factor);
         // shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderLow);
       }
       else {
