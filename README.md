@@ -2,13 +2,13 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-2D graphics library using OpenGL, designed to support various shapes, lighting, GUI elements, collisions, and particle effects.
+2D graphics library using OpenGL.
 
 ## Features
 
-- **Shapes:** Draw lines, rectangles, and sprite.
-- **Lighting:** Illuminate your scenes with customizable lighting effects.
-- **GUI: (Dear ImGui)** Easily integrate graphical user interfaces into your applications.
+- **Shapes:** line, circle, rectangle, sprite, etc...
+- **Lighting:** Library supports lighting.
+- **GUI: (Dear ImGui)** Uses Dear ImGui for the GUI.
 - **Collisions (Box2D)**:
   - Continuous collision detection
   - Contact events and sensors
@@ -101,6 +101,9 @@ Developer console support (F3)
 [tilemap editor](examples/graphics/gui/tilemap_editor.cpp)
 ![image](https://github.com/user-attachments/assets/3d1b82d1-63d2-40d5-b3da-07821232ee0d)
 ![image_2023-11-11_20-32-21](https://github.com/6413/fan/assets/56801084/b41e7417-04fb-4d7f-be6a-2e13379cf521)
+
+[alpha blending](examples/graphics/2D/blending_test.cpp)  
+![image](https://github.com/user-attachments/assets/ba4637e6-c102-408e-b043-0d724d02e350)
 
 [quadtree_visualize](examples/graphics/2D/quadtree_visualize.cpp)
 ![image_2023-11-11_20-24-01](https://github.com/6413/fan/assets/56801084/0aac1cbb-2d41-40ef-b0d0-5ab838b9b3d1)
