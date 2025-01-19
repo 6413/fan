@@ -592,7 +592,7 @@ private:
       }
       switch (location.type) {
       case fan::opengl::GL_FLOAT: {
-        ptr_offset += location.size * sizeof(f32_t);
+        ptr_offset += location.size * sizeof(fan::opengl::GLfloat);
         break;
       }
       case fan::opengl::GL_UNSIGNED_INT: {
