@@ -41,10 +41,6 @@
 #ifndef shaper_set_fan
   #define shaper_set_fan 0
 #endif
-#ifdef gloco
-  #error use cpp not c
-#endif
-#define gloco gloco_is_not_allowed
 
 struct shaper_t{
   public: /* -------------------------------------------------------------------------------- */
@@ -183,25 +179,23 @@ struct shaper_t{
   */
   typedef uint16_t _blid_t;
 
-  #define BDBT_set_prefix KeyTree
+  #define BDBT_set_prefix _KeyTree
   #define BDBT_set_type_node ktbmnr_t
   #define BDBT_set_lcpp
-  #define BDBT_set_KeySize 0
   #ifdef shaper_set_MaxKeySize
     #define BDBT_set_MaxKeySize (shaper_set_MaxKeySize * 8)
   #endif
   #define BDBT_set_AreWeInsideStruct 1
   #include <BDBT/BDBT.h>
-  KeyTree_t KeyTree;
-  typedef KeyTree_Key_t Key_t;
-  KeyTree_NodeReference_t KeyTree_root;
+  _KeyTree_t _KeyTree;
+  _KeyTree_NodeReference_t _KeyTree_root;
 
   public: /* -------------------------------------------------------------------------------- */
 
-  typedef Key_t::BitOrder_t KeyBitOrder_t;
-  constexpr static KeyBitOrder_t KeyBitOrderLow = Key_t::BitOrderLow;
-  constexpr static KeyBitOrder_t KeyBitOrderHigh = Key_t::BitOrderHigh;
-  constexpr static KeyBitOrder_t KeyBitOrderAny = Key_t::BitOrderAny;
+  typedef _KeyTree_BitOrder_t KeyBitOrder_t;
+  constexpr static KeyBitOrder_t KeyBitOrderLow = _KeyTree_BitOrderLow;
+  constexpr static KeyBitOrder_t KeyBitOrderHigh = _KeyTree_BitOrderHigh;
+  constexpr static KeyBitOrder_t KeyBitOrderAny = _KeyTree_BitOrderAny;
 
   public: /* ------------------------------------------------------------------------------- */
 
@@ -214,7 +208,7 @@ struct shaper_t{
       return (KeySizeInBits_t)Size * 8;
     }
   };
-  KeyType_t *KeyTypes;
+  KeyType_t *_KeyTypes;
   KeyTypeAmount_t KeyTypeAmount;
 
   #define BLL_set_prefix BlockList
@@ -491,10 +485,10 @@ private:
 
   void Open(){
     KeyTypeAmount = 0;
-    KeyTypes = NULL;
+    _KeyTypes = NULL;
 
-    KeyTree.Open();
-    KeyTree_root = KeyTree.NewNode();
+    _KeyTree.Open();
+    _KeyTree_root = _KeyTree.NewNode();
     BlockManager.Open();
     BlockEditQueue.Open();
     ShapeList.Open();
@@ -503,31 +497,31 @@ private:
     ShapeList.Close();
     BlockEditQueue.Close();
     BlockManager.Close();
-    KeyTree.Close();
+    _KeyTree.Close();
 
     for(auto &st : ShapeTypes){
       st.BlockList.Close();
     }
 
-    A_resize(KeyTypes, 0);
+    A_resize(_KeyTypes, 0);
   }
 
   void AddKey(KeyTypeIndex_t KeyTypeIndex, KeySizeInBytes_t Size, KeyBitOrder_t BitOrder){
     if(KeyTypeIndex >= KeyTypeAmount){
       KeyTypeAmount = KeyTypeIndex;
       KeyTypeAmount++;
-      KeyTypes = (KeyType_t *)A_resize(
-        KeyTypes,
+      _KeyTypes = (KeyType_t *)A_resize(
+        _KeyTypes,
         (uintptr_t)KeyTypeAmount * sizeof(KeyType_t)
       );
     }
 
-    KeyTypes[KeyTypeIndex].Size = Size;
-    KeyTypes[KeyTypeIndex].BitOrder = BitOrder;
+    _KeyTypes[KeyTypeIndex].Size = Size;
+    _KeyTypes[KeyTypeIndex].BitOrder = BitOrder;
   }
 
   void SetKeyOrder(KeyTypeIndex_t KeyTypeIndex, KeyBitOrder_t BitOrder){
-    KeyTypes[KeyTypeIndex].BitOrder = BitOrder;
+    _KeyTypes[KeyTypeIndex].BitOrder = BitOrder;
   }
 
   loco_t* get_loco() {
@@ -680,22 +674,13 @@ private:
   void _RenderDataReset(ShapeTypeIndex_t sti){
     auto &st = ShapeTypes[sti];
 
-    uint64_t u = 0;
     /* TODO remove all block edit queue stuff */
-    for (int i = 0; i < st.RenderDataSize * st.MaxElementPerBlock(); ++i) {
-    //  printf("bc %02x", (uint32_t)((uint8_t*)_GetRenderData(sti, *(loco_t::shaper_t::BlockList_t::nr_t*)&u, 0))[i]);
-    }
-    //fan::print("\n");
     BlockList_t::nrtra_t traverse;
     traverse.Open(&st.BlockList);
     #if shaper_set_fan
     st.m_vao.bind(get_loco()->get_context());
     #endif
     while(traverse.Loop(&st.BlockList)){
-      for (int i = 0; i < st.RenderDataSize * st.MaxElementPerBlock() - GetRenderDataOffset(sti, traverse.nr); ++i) {
-        //printf("bc %02x", (uint32_t)((uint8_t*)_GetRenderData(sti, traverse.nr, 0))[GetRenderDataOffset(sti, traverse.nr) + i]);
-      }
-    //  fan::print("\n");
       #if shaper_set_fan
       fan::opengl::core::edit_glbuffer(
         get_loco()->get_context(),
@@ -785,9 +770,9 @@ private:
 
     auto &st = ShapeTypes[sti];
 
-    KeyTree_NodeReference_t nr = KeyTree_root;
+    _KeyTree_NodeReference_t nr = _KeyTree_root;
     KeyPackSize_t ikp = 0;
-    Key_t::KeySize_t bdbt_ki;
+    _KeyTree_KeySize_t bdbt_ki;
     KeyType_t *kt;
     uint8_t step;
 
@@ -795,15 +780,15 @@ private:
     while(ikp != KeyPackSize){
 
       auto kti = (KeyTypeIndex_t *)&_KeyPack[ikp];
-      Key_t::q(&KeyTree, sizeof(*kti) * 8, kti, &bdbt_ki, &nr);
+      _KeyTree_QueryNoPointer(&_KeyTree, true, sizeof(*kti) * 8, kti, &bdbt_ki, &nr);
       if(bdbt_ki != sizeof(*kti) * 8){
         step = 0;
         goto gt_newbm;
       }
       ikp += sizeof(*kti);
 
-      kt = &KeyTypes[_kti_GetNormal(*kti)];
-      Key_t::q(&KeyTree, kt->sibit(), &_KeyPack[ikp], &bdbt_ki, &nr);
+      kt = &_KeyTypes[_kti_GetNormal(*kti)];
+      _KeyTree_QueryNoPointer(&_KeyTree, true, kt->sibit(), &_KeyPack[ikp], &bdbt_ki, &nr);
       if(bdbt_ki != kt->sibit()){
         step = 1;
         goto gt_newbm;
@@ -838,26 +823,26 @@ private:
 
     /* DEBUG_HINT if this loop goes above KeyPackSize, your KeyPack is bad */
     while(ikp != KeyPackSize){
-      KeyTree_NodeReference_t out;
+      _KeyTree_NodeReference_t out;
       if(step == 0){
         auto kti = (KeyTypeIndex_t *)&_KeyPack[ikp];
-        kt = &KeyTypes[_kti_GetNormal(*kti)];
+        kt = &_KeyTypes[_kti_GetNormal(*kti)];
 
-        out = KeyTree.NewNode();
+        out = _KeyTree.NewNode();
 
-        Key_t::a(&KeyTree, sizeof(*kti) * 8, kti, bdbt_ki, nr, out);
+        _KeyTree_Add(&_KeyTree, true, sizeof(*kti) * 8, kti, bdbt_ki, nr, out);
 
         ikp += sizeof(*kti);
       }
       else if(step == 1){
         if(ikp + kt->Size != KeyPackSize){
-          out = KeyTree.NewNode();
+          out = _KeyTree.NewNode();
         }
         else{
-          out = *(KeyTree_NodeReference_t *)&bmid;
+          out = *(_KeyTree_NodeReference_t *)&bmid;
         }
 
-        Key_t::a(&KeyTree, kt->sibit(), &_KeyPack[ikp], bdbt_ki, nr, out);
+        _KeyTree_Add(&_KeyTree, true, kt->sibit(), &_KeyPack[ikp], bdbt_ki, nr, out);
 
         ikp += kt->Size;
       }
@@ -952,25 +937,26 @@ private:
 
     _deleteblid(sti, bm.LastBlockNR);
 
-    KeyTree_NodeReference_t knrs[shaper_set_MaxKeyAmountInBM * 2];
+    _KeyTree_NodeReference_t knrs[shaper_set_MaxKeyAmountInBM * 2];
     KeySizeInBytes_t ks[shaper_set_MaxKeyAmountInBM * 2];
 
     auto KeyPack = bm.KeyPack;
-    auto knr = KeyTree_root;
     KeyPackSize_t ikp = 0;
     _KeyIndexInBM_t _kiibm = 0;
-    while(ikp != bm.KeyPackSize){
-      auto kti = (KeyTypeIndex_t *)&KeyPack[ikp];
-      knrs[_kiibm] = knr;
-      ks[_kiibm++] = sizeof(*kti);
-      Key_t::cq(&KeyTree, sizeof(*kti) * 8, kti, &knr);
-      ikp += sizeof(*kti);
-
-      auto &kt = KeyTypes[_kti_GetNormal(*kti)];
-      knrs[_kiibm] = knr;
-      ks[_kiibm++] = kt.Size;
-      Key_t::cq(&KeyTree, kt.sibit(), &KeyPack[ikp], &knr);
-      ikp += kt.Size;
+    {
+      auto knr = _KeyTree_root;
+      while (ikp != bm.KeyPackSize) {
+        auto kti = (KeyTypeIndex_t*)&KeyPack[ikp];
+        knrs[_kiibm] = knr;
+        ks[_kiibm++] = sizeof(*kti);
+        _KeyTree_ConfidentQuery(&_KeyTree, true, sizeof(*kti) * 8, kti, &knr);
+        ikp += sizeof(*kti);
+        auto& kt = _KeyTypes[_kti_GetNormal(*kti)];
+        knrs[_kiibm] = knr;
+        ks[_kiibm++] = kt.Size;
+        _KeyTree_ConfidentQuery(&_KeyTree, true, kt.sibit(), &KeyPack[ikp], &knr);
+        ikp += kt.Size;
+      }
     }
 
     /* TODO this part can be faster if used some different function instead of .r */
@@ -978,14 +964,17 @@ private:
     while(1){
       auto size = ks[_kiibm];
       ikp -= size;
-      Key_t::r(&KeyTree, (KeySizeInBits_t)size * 8, &KeyPack[ikp], knrs[_kiibm]);
-      if(KeyTree.inrhc(knrs[_kiibm])){
+      {
+        auto knr = knrs[_kiibm];
+        _KeyTree_Remove(&_KeyTree, true, (KeySizeInBits_t)size * 8, &KeyPack[ikp], &knr);
+      }
+      if(_KeyTree.inrhc(knrs[_kiibm])){
         break;
       }
       if(_kiibm == 0){
         break;
       }
-      KeyTree.Recycle(knrs[_kiibm]);
+      _KeyTree.Recycle(knrs[_kiibm]);
       _kiibm--;
     }
 
@@ -996,22 +985,22 @@ private:
   struct KeyTraverse_t{
     uint8_t State;
     KeyIndexInBM_t kiibm;
-    KeyTree_NodeReference_t knr;
+    _KeyTree_NodeReference_t knr;
     KeyType_t *kt;
     bool isbm;
 
     KeyTypeIndex_t kd0[shaper_set_MaxKeyAmountInBM];
     KeyData_t kd1[shaper_set_MaxKeySizesSum][shaper_set_MaxKeyAmountInBM];
-    Key_t::Traverse_t tra0[shaper_set_MaxKeyAmountInBM];
-    Key_t::Traverse_t behindtra; /* little maneuver */
-    Key_t::Traverse_t tra1[shaper_set_MaxKeyAmountInBM];
+    _KeyTree_Traverse_t tra0[shaper_set_MaxKeyAmountInBM];
+    _KeyTree_Traverse_t behindtra; /* little maneuver */
+    _KeyTree_Traverse_t tra1[shaper_set_MaxKeyAmountInBM];
 
     void Init(
       shaper_t &shaper
     ){
       State = 0;
       kiibm = 0;
-      behindtra.Output = shaper.KeyTree_root;
+      behindtra.Output = shaper._KeyTree_root;
     }
     bool Loop(
       shaper_t &shaper
@@ -1020,42 +1009,48 @@ private:
 
       switch(State){
         case 0:{
-          tra0[kiibm].i0(
-            tra1[(uintptr_t)kiibm - 1].Output, /* tra1 index is underflowable on purpose */
-            KeyBitOrderLow
+         _KeyTree_TraverseInit(
+            &tra0[kiibm],
+            KeyBitOrderLow,
+            tra1[(uintptr_t)kiibm - 1].Output /* tra1 index is underflowable on purpose */
           );
           State = 1;
         }
         case 1:{
-          if(tra0[kiibm].t0(
-            &shaper.KeyTree,
+          if(_KeyTree_Traverse(
+            &shaper._KeyTree,
+            &tra0[kiibm],
+            true,
+            KeyBitOrderLow,
             sizeof(*kd0) * 8,
-            &kd0[kiibm],
-            KeyBitOrderLow
+            &kd0[kiibm]
           ) == false){
             if(kiibm == 0){
               return false;
             }
             --kiibm;
             isbm = false;
-            kt = &shaper.KeyTypes[kd0[kiibm]];
+            kt = &shaper._KeyTypes[kd0[kiibm]];
             State = 2;
             goto gt_reswitch;
           }
           isbm = _kti_GetLastBit(kd0[kiibm]);
-          kt = &shaper.KeyTypes[_kti_GetNormal(kd0[kiibm])];
-          tra1[kiibm].i0(
-            tra0[kiibm].Output,
-            kt->BitOrder
+          kt = &shaper._KeyTypes[_kti_GetNormal(kd0[kiibm])];
+          _KeyTree_TraverseInit(
+            &tra1[kiibm],
+            kt->BitOrder,
+            tra0[kiibm].Output
           );
           State = 2;
         }
         case 2:{
-          if(tra1[kiibm].t0(
-            &shaper.KeyTree,
+          if(_KeyTree_Traverse(
+            &shaper._KeyTree,
+            &tra1[kiibm],
+            true,
+            kt->BitOrder,
             kt->sibit(),
-            &kd1[kiibm],
-            kt->BitOrder
+            &kd1[kiibm]
           ) == false){
             State = 1;
             goto gt_reswitch;
@@ -1073,7 +1068,7 @@ private:
       return kd1[kiibm - !isbm];
     }
     KeyTypeIndex_t kti(shaper_t &shaper){
-      return ((uintptr_t)kt - (uintptr_t)shaper.KeyTypes) / sizeof(KeyTypes[0]);
+      return ((uintptr_t)kt - (uintptr_t)shaper._KeyTypes) / sizeof(_KeyTypes[0]);
     }
     bmid_t bmid(){
       return *(bmid_t *)&tra1[kiibm].Output;

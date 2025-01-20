@@ -54,16 +54,32 @@ namespace fan {
 
   struct console_t {
 
+    #define BLL_set_SafeNext 1
+    #define BLL_set_AreWeInsideStruct 1
+    #define BLL_set_prefix frame_cb
+    #include <fan/fan_bll_preset.h>
+    #define BLL_set_Link 1
+    #define BLL_set_type_node uint16_t
+    #define BLL_set_NodeDataType std::function<void()>
+    #include <BLL/BLL.h>
+
     using highlight_e = fan::graphics::highlight_e;
 
     void open();
 
     void render();
 
-    void print(const fan::string& msg, int highlight = graphics::highlight_e::text);
-    void println(const fan::string& msg, int highlight = graphics::highlight_e::text);
-    void print_colored(const fan::string& msg, const fan::color& color);
-    void println_colored(const fan::string& msg, const fan::color& color);
+    void print(const std::string& msg, int highlight = graphics::highlight_e::text);
+    void println(const std::string& msg, int highlight = graphics::highlight_e::text);
+    void print_colored(const std::string& msg, const fan::color& color);
+    void println_colored(const std::string& msg, const fan::color& color);
+
+    inline frame_cb_t::nr_t push_frame_process(auto func) {
+      auto it = frame_cbs.NewNodeLast();
+      frame_cbs[it] = func;
+      return it;
+    }
+    void erase_frame_process(frame_cb_t::nr_t& nr);
 
     std::vector<std::string> command_history;
     std::string current_command;
@@ -78,6 +94,8 @@ namespace fan {
     TextEditor input;
     uint32_t transparency;
     bool init_focus = false;
+
+    frame_cb_t frame_cbs;
   };
 }
 #endif

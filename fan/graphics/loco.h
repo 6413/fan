@@ -3172,6 +3172,10 @@ namespace fan {
       std::vector<button_t> buttons;
       int button_choice = -1;
     };
+
+    // fan_track_allocations() must be called in global scope before calling this function
+    void render_allocations_plot();
+
 #endif
   }
 }
