@@ -93,7 +93,7 @@ namespace fan_3d {
 #ifdef fms_use_opengl
       fan::opengl::core::vao_t vao;
       fan::opengl::core::vbo_t vbo;
-      fan::opengl::GLuint ebo;
+      GLuint ebo;
 #endif
     };
     // pm -- parsed model

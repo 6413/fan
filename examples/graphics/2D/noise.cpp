@@ -20,11 +20,11 @@ int main() {
 
 
   loco_t::image_load_properties_t lp;
-  lp.format = fan::opengl::GL_RGBA; // Change this to GL_RGB
-  lp.internal_format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+  lp.format = GL_RGBA; // Change this to GL_RGB
+  lp.internal_format = GL_RGBA; // Change this to GL_RGB
   lp.min_filter = loco_t::image_filter::linear;
   lp.mag_filter = loco_t::image_filter::linear;
-  lp.visual_output = fan::opengl::GL_MIRRORED_REPEAT;
+  lp.visual_output = GL_MIRRORED_REPEAT;
 
   loco_t::image_t image_dirt = loco.image_load("images/Dirt3.webp", lp);
   loco_t::image_t image_lava_top_layer = loco.image_load("images/lava_layer.webp", lp);

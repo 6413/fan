@@ -1,7 +1,5 @@
 #pragma once
 
-#include <fan/types/color.h>
-
 #include <string>
 #include <vector>
 #include <array>
@@ -148,7 +146,7 @@ public:
   {
     Char mChar;
     PaletteIndex mColorIndex = PaletteIndex::Default;
-    fan::color custom_color;
+    ImVec4 custom_color;
     bool mComment : 1;
     bool mMultiLineComment : 1;
     bool mPreprocessor : 1;
@@ -156,7 +154,7 @@ public:
 
     Glyph(Char aChar, PaletteIndex aColorIndex) : mChar(aChar), mColorIndex(aColorIndex),
       mComment(false), mMultiLineComment(false), mPreprocessor(false), mColorOverride(false) {}
-    Glyph(Char aChar, const fan::color& color) : mChar(aChar), custom_color(color),
+    Glyph(Char aChar, const ImVec4& color) : mChar(aChar), custom_color(color),
       mComment(false), mMultiLineComment(false), mPreprocessor(false), mColorOverride(true) {}
   };
 
@@ -254,7 +252,7 @@ public:
 
   void InsertText(const std::string& aValue);
   void InsertText(const char* aValue);
-  void InsertTextColored(const std::string& aValue, const fan::color& color);
+  void InsertTextColored(const std::string& aValue, const ImVec4& color);
 
   void MoveUp(int aAmount = 1, bool aSelect = false);
   void MoveDown(int aAmount = 1, bool aSelect = false);
@@ -346,7 +344,7 @@ private:
   void Advance(Coordinates& aCoordinates) const;
   void DeleteRange(const Coordinates& aStart, const Coordinates& aEnd);
   int InsertTextAt(Coordinates& aWhere, const char* aValue);
-  int InsertTextColoredAt(Coordinates& /* inout */ aWhere, const char* aValue, const fan::color& color);
+  int InsertTextColoredAt(Coordinates& /* inout */ aWhere, const char* aValue, const ImVec4& color);
   void AddUndo(UndoRecord& aValue);
   Coordinates ScreenPosToCoordinates(const ImVec2& aPosition) const;
   Coordinates FindWordStart(const Coordinates& aFrom) const;

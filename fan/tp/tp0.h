@@ -40,7 +40,7 @@ namespace fan {
 
         fan::vec2ui preferred_pack_size = 1024;
         uint32_t visual_output = fan::opengl::context_t::image_load_properties_defaults::visual_output;
-        uint32_t min_filter = fan::opengl::GL_LINEAR_MIPMAP_LINEAR;
+        uint32_t min_filter = GL_LINEAR_MIPMAP_LINEAR;
         uint32_t mag_filter = fan::opengl::context_t::image_load_properties_defaults::mag_filter;
       };
 

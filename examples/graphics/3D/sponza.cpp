@@ -17,24 +17,24 @@ int main() {
 
   auto& opengl = gloco->get_context().opengl;
 
-  opengl.glGenTextures(1, &model.envMapTexture);
-  opengl.glBindTexture(fan::opengl::GL_TEXTURE_CUBE_MAP, model.envMapTexture);
+  fan_opengl_call(GenTextures(1, &model.envMapTexture));;
+  fan_opengl_call(glBindTexture(GL_TEXTURE_CUBE_MAP, model.envMapTexture));;
 
   fan::vec2 window_size = gloco->window.get_size();
 
 
-  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_MIN_FILTER, fan::opengl::GL_LINEAR);
-  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_MAG_FILTER, fan::opengl::GL_LINEAR);
-  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_S, fan::opengl::GL_CLAMP_TO_EDGE);
-  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_T, fan::opengl::GL_CLAMP_TO_EDGE);
-  opengl.glTexParameteri(fan::opengl::GL_TEXTURE_CUBE_MAP, fan::opengl::GL_TEXTURE_WRAP_R, fan::opengl::GL_CLAMP_TO_EDGE);
+  fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR));;
+  fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR));;
+  fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));;
+  fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));;
+  fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE));;
 
-  for (fan::opengl::GLuint i = 0; i < 6; ++i) {
+  for (GLuint i = 0; i < 6; ++i) {
     fan::image::image_info_t image_info;
     if (fan::image::load(("images/" + std::to_string(i) + ".webp"), &image_info)) {
       fan::throw_error("a");
     }
-    opengl.glTexImage2D(fan::opengl::GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, fan::opengl::GL_RGBA, image_info.size.x, image_info.size.y, 0, fan::opengl::GL_RGBA, fan::opengl::GL_UNSIGNED_BYTE, image_info.data);
+    fan_opengl_call(TexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, image_info.size.x, image_info.size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_info.data));;
     fan::image::free(&image_info);
   }
 

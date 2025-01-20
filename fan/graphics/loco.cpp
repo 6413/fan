@@ -106,9 +106,9 @@ void loco_t::camera_move(fan::opengl::context_t::camera_t& camera, f64_t dt, f32
 }
 
 void loco_t::render_final_fb() {
-  opengl.glBindVertexArray(fb_vao);
-  opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
-  opengl.glBindVertexArray(0);
+  fan_opengl_call(glBindVertexArray(fb_vao));;
+  fan_opengl_call(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));;
+  fan_opengl_call(glBindVertexArray(0));;
 }
 
 
@@ -119,15 +119,15 @@ void loco_t::initialize_fb_vaos(uint32_t& vao, uint32_t& vbo) {
      1.0f, 1.0f, 0, 1.0f, 1.0f,
      1.0f, -1.0f, 0, 1.0f, 0.0f,
   };
-  opengl.glGenVertexArrays(1, &vao);
-  opengl.glGenBuffers(1, &vbo);
-  opengl.glBindVertexArray(vao);
-  opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, vbo);
-  opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, fan::opengl::GL_STATIC_DRAW);
-  opengl.glEnableVertexAttribArray(0);
-  opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
-  opengl.glEnableVertexAttribArray(1);
-  opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  fan_opengl_call(glGenVertexArrays(1, &vao));;
+  fan_opengl_call(glGenBuffers(1, &vbo));
+  fan_opengl_call(glBindVertexArray(vao));
+  fan_opengl_call(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+  fan_opengl_call(glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW));
+  fan_opengl_call(glEnableVertexAttribArray(0));
+  fan_opengl_call(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0));
+  fan_opengl_call(glEnableVertexAttribArray(1));
+  fan_opengl_call(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))));
 }
 
 #define shaper_get_key_safe(return_type, kps_type, variable) \
@@ -1125,21 +1125,21 @@ void loco_t::init_framebuffer() {
 
 #if defined(loco_framebuffer)
   //
-  static auto load_texture = [&](fan::image::image_info_t& image_info, loco_t::image_t& color_buffer, fan::opengl::GLenum attachment, bool reload = false) {
+  static auto load_texture = [&](fan::image::image_info_t& image_info, loco_t::image_t& color_buffer, GLenum attachment, bool reload = false) {
     typename fan::opengl::context_t::image_load_properties_t load_properties;
-    load_properties.visual_output = fan::opengl::GL_REPEAT;
-    load_properties.internal_format = fan::opengl::GL_RGB;
-    load_properties.format = fan::opengl::GL_RGB;
-    load_properties.type = fan::opengl::GL_FLOAT;
-    load_properties.min_filter = fan::opengl::GL_LINEAR;
-    load_properties.mag_filter = fan::opengl::GL_LINEAR;
+    load_properties.visual_output = GL_REPEAT;
+    load_properties.internal_format = GL_RGB;
+    load_properties.format = GL_RGB;
+    load_properties.type = GL_FLOAT;
+    load_properties.min_filter = GL_LINEAR;
+    load_properties.mag_filter = GL_LINEAR;
     if (reload == true) {
       image_reload_pixels(color_buffer, image_info, load_properties);
     }
     else {
       color_buffer = image_load(image_info, load_properties);
     }
-    opengl.call(opengl.glGenerateMipmap, fan::opengl::GL_TEXTURE_2D);
+    fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
     image_bind(color_buffer);
     fan::opengl::core::framebuffer_t::bind_to_texture(*this, image_get(color_buffer), attachment);
   };
@@ -1151,7 +1151,7 @@ void loco_t::init_framebuffer() {
 
   m_framebuffer.bind(*this);
   for (uint32_t i = 0; i < (uint32_t)std::size(color_buffers); ++i) {
-    load_texture(image_info, color_buffers[i], fan::opengl::GL_COLOR_ATTACHMENT0 + i);
+    load_texture(image_info, color_buffers[i], GL_COLOR_ATTACHMENT0 + i);
   }
 
   window.add_resize_callback([&](const auto& d) {
@@ -1161,13 +1161,13 @@ void loco_t::init_framebuffer() {
 
     m_framebuffer.bind(*this);
     for (uint32_t i = 0; i < (uint32_t)std::size(color_buffers); ++i) {
-      load_texture(image_info, color_buffers[i], fan::opengl::GL_COLOR_ATTACHMENT0 + i, true);
+      load_texture(image_info, color_buffers[i], GL_COLOR_ATTACHMENT0 + i, true);
     }
 
     fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
     m_framebuffer.bind(*this);
     renderbuffer_properties.size = image_info.size;
-    renderbuffer_properties.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
+    renderbuffer_properties.internalformat = GL_DEPTH_COMPONENT;
     m_rbo.set_storage(*this, renderbuffer_properties);
 
     fan::vec2 window_size = gloco->window.get_size();
@@ -1179,19 +1179,19 @@ void loco_t::init_framebuffer() {
   fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
   m_framebuffer.bind(*this);
   renderbuffer_properties.size = image_info.size;
-  renderbuffer_properties.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
+  renderbuffer_properties.internalformat = GL_DEPTH_COMPONENT;
   m_rbo.open(*this);
   m_rbo.set_storage(*this, renderbuffer_properties);
-  renderbuffer_properties.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
+  renderbuffer_properties.internalformat = GL_DEPTH_ATTACHMENT;
   m_rbo.bind_to_renderbuffer(*this, renderbuffer_properties);
 
   unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
 
   for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-    attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+    attachments[i] = GL_COLOR_ATTACHMENT0 + i;
   }
 
-  opengl.call(opengl.glDrawBuffers, std::size(attachments), attachments);
+  fan_opengl_call(glDrawBuffers(std::size(attachments), attachments));
 
   if (!m_framebuffer.ready(*this)) {
     fan::throw_error("framebuffer not ready");
@@ -1243,7 +1243,7 @@ loco_t::loco_t(const properties_t& p){
   context_t::open();
   {
       if (opengl.major == -1 || opengl.minor == -1) {
-          const char* gl_version = (const char*)opengl.glGetString(fan::opengl::GL_VERSION);
+          const char* gl_version = (const char*)fan_opengl_call(glGetString(GL_VERSION));
           sscanf(gl_version, "%d.%d", &opengl.major, &opengl.minor);
         }
         glfwMakeContextCurrent(nullptr);
@@ -1459,7 +1459,7 @@ loco_t::loco_t(const properties_t& p){
         false
       );
       shaper.GetShapeTypes(loco_t::shape_type_t::polygon).vertex_count = loco_t::polygon_t::max_vertices_per_element;
-      shaper.GetShapeTypes(loco_t::shape_type_t::polygon).draw_mode = fan::opengl::GL_TRIANGLES;
+      shaper.GetShapeTypes(loco_t::shape_type_t::polygon).draw_mode = GL_TRIANGLES;
     }
   }
 
@@ -1669,12 +1669,12 @@ void loco_t::draw_shapes() {
       uint8_t Key = *(uint8_t*)KeyTraverse.kd();
       if (Key) {
         set_depth_test(false);
-        opengl.call(opengl.glEnable, fan::opengl::GL_BLEND);
-        opengl.call(opengl.glBlendFunc, blend_src_factor, blend_dst_factor);
+        fan_opengl_call(glEnable(GL_BLEND));
+        fan_opengl_call(glBlendFunc(blend_src_factor, blend_dst_factor));
         // shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderLow);
       }
       else {
-        opengl.call(get_context().opengl.glDisable, fan::opengl::GL_BLEND);
+        fan_opengl_call(glDisable(GL_BLEND));
         set_depth_test(true);
 
         //shaper.SetKeyOrder(Key_e::depth, shaper_t::KeyBitOrderHigh);
@@ -1693,8 +1693,8 @@ void loco_t::draw_shapes() {
       loco_t::image_t texture = *(loco_t::image_t*)KeyTraverse.kd();
       if (texture.iic() == false) {
         // TODO FIX + 0
-        opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 0);
-        opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(texture));
+        fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 0));;
+        fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(texture)););
         //++texture_count;
       }
       break;
@@ -1721,15 +1721,15 @@ void loco_t::draw_shapes() {
       if (light_buffer_enabled == false) {
 #if defined(loco_framebuffer)
         set_depth_test(false);
-        opengl.call(opengl.glEnable, fan::opengl::GL_BLEND);
-        opengl.call(opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
+        fan_opengl_call(glEnable(GL_BLEND));
+        fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
         unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
 
         for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-          attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+          attachments[i] = GL_COLOR_ATTACHMENT0 + i;
         }
 
-        opengl.call(opengl.glDrawBuffers, std::size(attachments), attachments);
+        fan_opengl_call(glDrawBuffers(std::size(attachments), attachments));
         light_buffer_enabled = true;
 #endif
       }
@@ -1745,10 +1745,10 @@ void loco_t::draw_shapes() {
         unsigned int attachments[sizeof(color_buffers) / sizeof(color_buffers[0])];
 
         for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-          attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+          attachments[i] = GL_COLOR_ATTACHMENT0 + i;
         }
 
-        opengl.call(opengl.glDrawBuffers, 1, attachments);
+        fan_opengl_call(glDrawBuffers(1, attachments));
         light_buffer_enabled = false;
 #endif
         continue;
@@ -1817,19 +1817,19 @@ void loco_t::draw_shapes() {
           auto& ri = *(universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
 
           if (ri.images_rest[0].iic() == false) {
-            opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 1);
-            opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(ri.images_rest[0]));
+            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 1));;
+            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images_rest[0])););
             shader_set_value(shader, "_t01", 1);
           }
           if (ri.images_rest[1].iic() == false) {
-            opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 2);
-            opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(ri.images_rest[1]));
+            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 2));;
+            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images_rest[1])););
             shader_set_value(shader, "_t02", 2);
           }
 
           if (ri.images_rest[2].iic() == false) {
-            opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + 3);
-            opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(ri.images_rest[2]));
+            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 3));;
+            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images_rest[2])););
             shader_set_value(shader, "_t03", 3);
           }
           //fan::throw_error("shaper design is changed");
@@ -1843,8 +1843,8 @@ void loco_t::draw_shapes() {
           for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
             if (ri.images[i - 2].iic() == false) {
               shader_set_value(shader, "_t0" + std::to_string(i), i);
-              opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
-              opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(ri.images[i - 2]));
+              fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));;
+              fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images[i - 2])););
             }
           }
         }
@@ -1853,8 +1853,8 @@ void loco_t::draw_shapes() {
 
           if (shape_type == loco_t::shape_type_t::sprite || shape_type == loco_t::shape_type_t::unlit_sprite) {
             if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
-              opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
-              opengl.glBindTexture(fan::opengl::GL_TEXTURE_2D, image_get(color_buffers[1]));
+              fan_opengl_call(glActiveTexture(GL_TEXTURE1));;
+              fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(color_buffers[1])););
             }
           }
 
@@ -1902,14 +1902,14 @@ void loco_t::draw_shapes() {
           uintptr_t offset = BlockTraverse.GetRenderDataOffset(shaper);
           std::vector<shape_gl_init_t>& locations = shaper.GetLocations(shape_type);
           for (const auto& location : locations) {
-            opengl.glVertexAttribPointer(location.index.first, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)offset);
+            fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)offset));
             switch (location.type) {
-            case fan::opengl::GL_FLOAT: {
-              offset += location.size * sizeof(fan::opengl::GLfloat);
+            case GL_FLOAT: {
+              offset += location.size * sizeof(GLfloat);
               break;
             }
-            case fan::opengl::GL_UNSIGNED_INT: {
-              offset += location.size * sizeof(fan::opengl::GLuint);
+            case GL_UNSIGNED_INT: {
+              offset += location.size * sizeof(GLuint);
               break;
             }
             default: {
@@ -1924,29 +1924,29 @@ void loco_t::draw_shapes() {
           // illegal xd
           set_depth_test(false);
           if ((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) {
-            opengl.glDrawArraysInstancedBaseInstance(
-              fan::opengl::GL_TRIANGLES,
+            fan_opengl_call(glDrawArraysInstancedBaseInstance(
+              GL_TRIANGLES,
               0,
               36,
               BlockTraverse.GetAmount(shaper),
               BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
-            );
+            ));
           }
           else if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
             // this is broken somehow with rectangle3d
-            opengl.glDrawArraysInstanced(
-              fan::opengl::GL_TRIANGLES,
+            fan_opengl_call(glDrawArraysInstanced(
+              GL_TRIANGLES,
               0,
               36,
               BlockTraverse.GetAmount(shaper)
-            );
+            ));
           }
           else {
-            opengl.glDrawArrays(
-              fan::opengl::GL_TRIANGLES,
+            fan_opengl_call(glDrawArrays(
+              GL_TRIANGLES,
               0,
               36 * BlockTraverse.GetAmount(shaper)
-            );
+            ));
           }
           break;
         }
@@ -1956,21 +1956,21 @@ void loco_t::draw_shapes() {
         }//fallthrough
         case shape_type_t::line: {
           if ((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) {
-            opengl.glDrawArraysInstancedBaseInstance(
-              fan::opengl::GL_LINES,
+            fan_opengl_call(glDrawArraysInstancedBaseInstance(
+              GL_LINES,
               0,
               2,
               BlockTraverse.GetAmount(shaper),
               BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
-            );
+            ));
           }
           else {
-            opengl.glDrawArraysInstanced(
-              fan::opengl::GL_LINES,
+            fan_opengl_call(glDrawArraysInstanced(
+              GL_LINES,
               0,
               2,
               BlockTraverse.GetAmount(shaper)
-            );
+            ));
           }
 
 
@@ -2003,11 +2003,11 @@ void loco_t::draw_shapes() {
             shader_set_value(shader, "shape", ri.shape);
 
             // TODO how to get begin?
-            opengl.glDrawArrays(
-              fan::opengl::GL_TRIANGLES,
+            fan_opengl_call(glDrawArrays(
+              GL_TRIANGLES,
               0,
               ri.count
-            );
+            ));
           }
 
           break;
@@ -2015,28 +2015,28 @@ void loco_t::draw_shapes() {
         default: {
           auto& shape_data = shaper.GetShapeTypes(shape_type);
           if (((opengl.major > 4) || (opengl.major == 4 && opengl.minor >= 2)) && shape_data.instanced) {
-           opengl.glDrawArraysInstancedBaseInstance(
+           fan_opengl_call(glDrawArraysInstancedBaseInstance(
               shape_data.draw_mode,
               0,
               polygon_t::max_vertices_per_element,
               BlockTraverse.GetAmount(shaper),
               BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
-            );
+            ));
           }
           else if (((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3))&& shape_data.instanced) {
-            opengl.glDrawArraysInstanced(
+            fan_opengl_call(glDrawArraysInstanced(
               shape_data.draw_mode,
               0,
               shape_data.vertex_count,
               BlockTraverse.GetAmount(shaper)
-            );
+            ));
           }
           else {
-            opengl.glDrawArrays(
+            fan_opengl_call(glDrawArrays(
               shape_data.draw_mode,
               (!!!(opengl.major == 2 && opengl.minor == 1)) * (BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)) * shape_data.vertex_count,
               shape_data.vertex_count * BlockTraverse.GetAmount(shaper)
-            );
+            ));
           }
 
           break;
@@ -2049,30 +2049,30 @@ void loco_t::draw_shapes() {
 
 void loco_t::process_frame() {
 
-  opengl.glViewport(0, 0, window.get_size().x, window.get_size().y);
+  fan_opengl_call(glViewport(0, 0, window.get_size().x, window.get_size().y));
 
 #if defined(loco_framebuffer)
   if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
     m_framebuffer.bind(*this);
 
-    opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+    fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));;
     for (std::size_t i = 0; i < std::size(color_buffers); ++i) {
-      opengl.glActiveTexture(fan::opengl::GL_TEXTURE0 + i);
+      fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));;
       image_bind(color_buffers[i]);
-      opengl.glDrawBuffer(fan::opengl::GL_COLOR_ATTACHMENT0 + (uint32_t)(std::size(color_buffers) - 1 - i));
+      fan_opengl_call(glDrawBuffer(GL_COLOR_ATTACHMENT0 + (uint32_t)std::size(color_buffers) - 1 - i));
       if (i + (std::size_t)1 == std::size(color_buffers)) {
-        opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+        fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));;
       }
-      opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+      fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     }
   }
   else {
-    opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-    opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));;
+    fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
   }
 #else
-  opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-  opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+  fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));;
+  fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 #endif
 
   {
@@ -2122,8 +2122,8 @@ void loco_t::process_frame() {
 
   //blur[1].draw(&color_buffers[3]);
 
-  opengl.glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-  opengl.call(opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+  fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));;
+  fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
   fan::vec2 window_size = window.get_size();
   viewport_set(0, window_size, window_size);
 
@@ -2132,11 +2132,11 @@ void loco_t::process_frame() {
 
   shader_set_value(m_fbo_final_shader, "window_size", window_size);
 
-  opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+  fan_opengl_call(glActiveTexture(GL_TEXTURE0));;
   image_bind(color_buffers[0]);
 
 #if defined(loco_post_process)
-  opengl.glActiveTexture(fan::opengl::GL_TEXTURE1);
+  fan_opengl_call(glActiveTexture(GL_TEXTURE1));;
   image_bind(blur[0].mips.front().image);
 #endif
   render_final_fb();
@@ -4168,7 +4168,7 @@ bool fan::graphics::texture_packe0::push_texture(fan::opengl::context_t::image_n
   auto& context = gloco->get_context();
   auto& img = context.image_get_data(image);
 
-  auto data = context.image_get_pixel_data(image, fan::opengl::GL_RGBA, texture_properties.uv_pos, texture_properties.uv_size);
+  auto data = context.image_get_pixel_data(image, GL_RGBA, texture_properties.uv_pos, texture_properties.uv_size);
   fan::vec2ui image_size(
     (uint32_t)(img.size.x * texture_properties.uv_size.x),
     (uint32_t)(img.size.y * texture_properties.uv_size.y)
@@ -4365,11 +4365,11 @@ std::vector<fan::json_stream_parser_t::parsed_result> fan::json_stream_parser_t:
 loco_t::image_t loco_t::create_noise_image(const fan::vec2& image_size) {
 
   loco_t::image_load_properties_t lp;
-  lp.format = fan::opengl::GL_RGBA; // Change this to GL_RGB
-  lp.internal_format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+  lp.format = GL_RGBA; // Change this to GL_RGB
+  lp.internal_format = GL_RGBA; // Change this to GL_RGB
   lp.min_filter = loco_t::image_filter::linear;
   lp.mag_filter = loco_t::image_filter::linear;
-  lp.visual_output = fan::opengl::GL_MIRRORED_REPEAT;
+  lp.visual_output = GL_MIRRORED_REPEAT;
 
   loco_t::image_t image;
 
@@ -4387,11 +4387,11 @@ loco_t::image_t loco_t::create_noise_image(const fan::vec2& image_size) {
 loco_t::image_t loco_t::create_noise_image(const fan::vec2& image_size, const std::vector<uint8_t>& noise_data) {
 
   loco_t::image_load_properties_t lp;
-  lp.format = fan::opengl::GL_RGBA; // Change this to GL_RGB
-  lp.internal_format = fan::opengl::GL_RGBA; // Change this to GL_RGB
+  lp.format = GL_RGBA; // Change this to GL_RGB
+  lp.internal_format = GL_RGBA; // Change this to GL_RGB
   lp.min_filter = loco_t::image_filter::linear;
   lp.mag_filter = loco_t::image_filter::linear;
-  lp.visual_output = fan::opengl::GL_MIRRORED_REPEAT;
+  lp.visual_output = GL_MIRRORED_REPEAT;
 
   loco_t::image_t image;
 

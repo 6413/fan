@@ -340,7 +340,7 @@ void SimpleCapture::OnFrameArrived(
 
         loco_t::image_load_properties_t lp;
         lp.format = loco_t::image_format::b8g8r8a8_unorm;
-        lp.internal_format = fan::opengl::GL_RGBA;
+        lp.internal_format = GL_RGBA;
 
         if (window_image.iic() == false) {
           gloco->image_unload(window_image);

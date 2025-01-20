@@ -96,7 +96,7 @@ int main() {
   auto points = ground_points(fan::vec2(0, 800), amplitude, frequency, width, ground_width);
   loco.physics_context.create_segment(points, b2_staticBody, {});
 
-  loco.shaper.GetShapeTypes(loco_t::shape_type_t::polygon).draw_mode = fan::opengl::GL_TRIANGLE_STRIP;
+  loco.shaper.GetShapeTypes(loco_t::shape_type_t::polygon).draw_mode = GL_TRIANGLE_STRIP;
 
   loco.loop([&] {
     loco.physics_context.step(loco.delta_time);

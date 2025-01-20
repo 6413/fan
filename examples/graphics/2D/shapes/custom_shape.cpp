@@ -38,7 +38,7 @@ struct hexagon_t {
   };
 
   inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {
-  shaper_t::ShapeType_t::init_t{0, sizeof(vi_t::position) / sizeof(f32_t), fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)}
+  shaper_t::ShapeType_t::init_t{0, sizeof(vi_t::position) / sizeof(f32_t), GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)}
   };
 
   loco_t::shape_t push_back(const properties_t& properties) {

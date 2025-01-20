@@ -3,8 +3,8 @@
 int main() {
   fan::graphics::engine_t engine{{.window_size=800}};
   engine.clear_color = fan::colors::black;
-  engine.blend_src_factor = fan::opengl::GL_ONE;
-  engine.blend_dst_factor = fan::opengl::GL_ONE;
+  engine.blend_src_factor = GL_ONE;
+  engine.blend_dst_factor = GL_ONE;
 
   fan::graphics::circle_t rr{{
     .position = fan::vec3(350, 300, 0),

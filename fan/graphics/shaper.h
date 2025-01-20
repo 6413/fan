@@ -248,8 +248,8 @@ struct shaper_t{
     std::vector<shape_gl_init_t> locations;
     fan::opengl::context_t::shader_nr_t shader;
     bool instanced = true;
-    fan::opengl::GLuint draw_mode = fan::opengl::GL_TRIANGLES;
-    fan::opengl::GLsizei vertex_count = 6;
+    GLuint draw_mode = GL_TRIANGLES;
+    GLsizei vertex_count = 6;
     #endif
 
     MaxElementPerBlock_t MaxElementPerBlock(){
@@ -484,8 +484,8 @@ private:
     std::vector<shape_gl_init_t> locations;
     fan::opengl::context_t::shader_nr_t shader;
     bool instanced = true;
-    fan::opengl::GLuint draw_mode = fan::opengl::GL_TRIANGLES;
-    fan::opengl::GLsizei vertex_count = 6;
+    GLuint draw_mode = GL_TRIANGLES;
+    GLsizei vertex_count = 6;
     #endif
   };
 
@@ -565,7 +565,7 @@ private:
     auto& context = get_loco()->get_context();
 
     st.m_vao.open(context);
-    st.m_vbo.open(context, fan::opengl::GL_ARRAY_BUFFER);
+    st.m_vbo.open(context, GL_ARRAY_BUFFER);
     st.m_vao.bind(context);
     st.m_vbo.bind(context);
     st.shader = bp.shader;
@@ -580,23 +580,23 @@ private:
     uint64_t ptr_offset = 0;
     for (shape_gl_init_t& location : st.locations) {
       if ((context.opengl.major == 2 && context.opengl.minor == 1) && !st.shader.iic()) {
-        location.index.first = context.opengl.glGetAttribLocation(shader.id, location.index.second);
+        location.index.first = fan_opengl_call(glGetAttribLocation(shader.id, location.index.second));;
       }
-      context.opengl.glEnableVertexAttribArray(location.index.first);
-      context.opengl.glVertexAttribPointer(location.index.first, location.size, location.type, fan::opengl::GL_FALSE, location.stride, (void*)ptr_offset);
+      fan_opengl_call(glEnableVertexAttribArray(location.index.first));;
+      fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
        // instancing
       if ((context.opengl.major > 3) || (context.opengl.major == 3 && context.opengl.minor >= 3)) {
         if (st.instanced) {
-          context.opengl.glVertexAttribDivisor(location.index.first, 1);
+          fan_opengl_call(glVertexAttribDivisor(location.index.first, 1));;
         }
       }
       switch (location.type) {
-      case fan::opengl::GL_FLOAT: {
-        ptr_offset += location.size * sizeof(fan::opengl::GLfloat);
+      case GL_FLOAT: {
+        ptr_offset += location.size * sizeof(GLfloat);
         break;
       }
-      case fan::opengl::GL_UNSIGNED_INT: {
-        ptr_offset += location.size * sizeof(fan::opengl::GLuint);
+      case GL_UNSIGNED_INT: {
+        ptr_offset += location.size * sizeof(GLuint);
         break;
       }
       default: {
@@ -626,7 +626,7 @@ private:
         _GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,
         GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit,
         bu.MaxEdit - bu.MinEdit,
-        fan::opengl::GL_ARRAY_BUFFER
+        GL_ARRAY_BUFFER
       );
       #endif
 
@@ -703,7 +703,7 @@ private:
         _GetRenderData(sti, traverse.nr, 0),
         GetRenderDataOffset(sti, traverse.nr),
         st.RenderDataSize * st.MaxElementPerBlock(),
-        fan::opengl::GL_ARRAY_BUFFER
+        GL_ARRAY_BUFFER
       );
       #endif
     }
@@ -719,8 +719,8 @@ private:
       st.m_vbo.m_buffer,
       0,
       New * st.RenderDataSize * st.MaxElementPerBlock(),
-      fan::opengl::GL_DYNAMIC_DRAW,
-      fan::opengl::GL_ARRAY_BUFFER
+      GL_DYNAMIC_DRAW,
+      GL_ARRAY_BUFFER
     );
     _RenderDataReset(sti);
     #endif

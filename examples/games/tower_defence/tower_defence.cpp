@@ -343,8 +343,8 @@ int main() {
 
   loco_t::image_load_properties_t lp;
   lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
-  lp.min_filter = fan::opengl::GL_NEAREST;
-  lp.mag_filter = fan::opengl::GL_NEAREST;
+  lp.min_filter = GL_NEAREST;
+  lp.mag_filter = GL_NEAREST;
   loco_t::texturepack_t tp;
 
   fan::string root_folder = "examples/games/tower_defence/";

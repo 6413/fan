@@ -7,10 +7,10 @@ struct blur_t {
 
     fan::opengl::core::renderbuffer_t::properties_t rp;
     rp.size = gloco->window.get_size();
-    rp.internalformat = fan::opengl::GL_DEPTH_COMPONENT;
+    rp.internalformat = GL_DEPTH_COMPONENT;
     rbo.open(gloco->get_context());
     rbo.set_storage(gloco->get_context(), rp);
-    rp.internalformat = fan::opengl::GL_DEPTH_ATTACHMENT;
+    rp.internalformat = GL_DEPTH_ATTACHMENT;
     rbo.bind_to_renderbuffer(gloco->get_context(), rp);
 
     auto& context = gloco->get_context();
@@ -59,12 +59,12 @@ struct blur_t {
       mip.int_size = mip_int_size;
 
       fan::opengl::context_t::image_load_properties_t lp;
-      lp.internal_format = fan::opengl::GL_R11F_G11F_B10F;
-      lp.format = fan::opengl::GL_RGB;
-      lp.type = fan::opengl::GL_FLOAT;
-      lp.min_filter = fan::opengl::GL_LINEAR;
-      lp.mag_filter = fan::opengl::GL_LINEAR;
-      lp.visual_output = fan::opengl::GL_CLAMP_TO_EDGE;
+      lp.internal_format = GL_R11F_G11F_B10F;
+      lp.format = GL_RGB;
+      lp.type = GL_FLOAT;
+      lp.min_filter = GL_LINEAR;
+      lp.mag_filter = GL_LINEAR;
+      lp.visual_output = GL_CLAMP_TO_EDGE;
       fan::image::image_info_t ii;
       ii.data = nullptr;
       ii.size = mip_size;
@@ -93,33 +93,33 @@ struct blur_t {
          1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
          1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
       };
-      context.opengl.glGenVertexArrays(1, &quadVAO);
-      context.opengl.glGenBuffers(1, &quadVBO);
-      context.opengl.glBindVertexArray(quadVAO);
-      context.opengl.glBindBuffer(fan::opengl::GL_ARRAY_BUFFER, quadVBO);
-      context.opengl.glBufferData(fan::opengl::GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, fan::opengl::GL_STATIC_DRAW);
-      context.opengl.glEnableVertexAttribArray(0);
-      context.opengl.glVertexAttribPointer(0, 3, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)0);
-      context.opengl.glEnableVertexAttribArray(1);
-      context.opengl.glVertexAttribPointer(1, 2, fan::opengl::GL_FLOAT, fan::opengl::GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+      fan_opengl_call(glGenVertexArrays(1, &quadVAO));;
+      fan_opengl_call(glGenBuffers(1, &quadVBO));;
+      fan_opengl_call(glBindVertexArray(quadVAO));;
+      fan_opengl_call(glBindBuffer(GL_ARRAY_BUFFER, quadVBO));;
+      fan_opengl_call(glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW));
+      fan_opengl_call(glEnableVertexAttribArray(0));;
+      fan_opengl_call(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0));
+      fan_opengl_call(glEnableVertexAttribArray(1));;
+      fan_opengl_call(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))));
     }
-    context.opengl.glBindVertexArray(quadVAO);
-    context.opengl.glDrawArrays(fan::opengl::GL_TRIANGLE_STRIP, 0, 4);
-    context.opengl.glBindVertexArray(0);
+    fan_opengl_call(glBindVertexArray(quadVAO));;
+    fan_opengl_call(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));;
+    fan_opengl_call(glBindVertexArray(0));;
   }
 
   void draw_downsamples(loco_t::image_t* image) {
     auto& context = gloco->get_context();
     context.set_depth_test(false);
-    context.opengl.call(context.opengl.glDisable, fan::opengl::GL_BLEND);
-    context.opengl.call(context.opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
+    fan_opengl_call(glDisable(GL_BLEND));
+    fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
 
     fan::vec2 window_size = gloco->window.get_size();
 
     context.shader_set_value(shader_downsample, "resolution", window_size);
     context.shader_set_value(shader_downsample, "mipLevel", 0);
 
-    context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+    fan_opengl_call(glActiveTexture(GL_TEXTURE0));;
     context.image_bind(*image);
 
     for (uint32_t i = 0; i < mips.size(); i++) {
@@ -129,11 +129,11 @@ struct blur_t {
         fan::throw_error("mip size too small (less than 1)");
       }
 #endif
-      gloco->get_context().opengl.glViewport(0, 0, mip.size.x, mip.size.y);
+      fan_opengl_call(glViewport(0, 0, mip.size.x, mip.size.y));;
       brightness_fbo.bind_to_texture(
         gloco->get_context(),
         context.image_get(mip.image),
-        fan::opengl::GL_COLOR_ATTACHMENT0
+        GL_COLOR_ATTACHMENT0
       );
 
       renderQuad();
@@ -152,29 +152,29 @@ struct blur_t {
 
     context.shader_set_value(shader_upsample, "filter_radius", filter_radius);
 
-    context.opengl.call(context.opengl.glEnable, fan::opengl::GL_BLEND);
-    context.opengl.call(context.opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
-    context.opengl.call(context.opengl.glBlendEquation, fan::opengl::GL_FUNC_ADD);
+    fan_opengl_call(glEnable(GL_BLEND));
+    fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
+    fan_opengl_call(glBlendEquation(GL_FUNC_ADD));
 
     for (int i = (int)mips.size() - 1; i > 0; i--)
     {
       mip_t mip = mips[i];
       mip_t next_mip = mips[i - 1];
 
-      context.opengl.glActiveTexture(fan::opengl::GL_TEXTURE0);
+      fan_opengl_call(glActiveTexture(GL_TEXTURE0));;
       context.image_bind(mip.image);
 
-      gloco->get_context().opengl.glViewport(0, 0, next_mip.size.x, next_mip.size.y);
+      fan_opengl_call(glViewport(0, 0, next_mip.size.x, next_mip.size.y));;
 
       fan::opengl::core::framebuffer_t::bind_to_texture(
         gloco->get_context(),
         context.image_get(next_mip.image),
-        fan::opengl::GL_COLOR_ATTACHMENT0
+        GL_COLOR_ATTACHMENT0
       );
       renderQuad();
     }
 
-    gloco->get_context().opengl.call(gloco->get_context().opengl.glDisable, fan::opengl::GL_BLEND);
+    fan_opengl_call(glDisable(GL_BLEND));
   }
 
   void draw(loco_t::image_t* color_texture, f32_t filter_radius) {
@@ -182,9 +182,9 @@ struct blur_t {
 
     brightness_fbo.bind(context);
 
-    context.opengl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    fan_opengl_call(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));;
 
-    context.opengl.call(context.opengl.glClear, fan::opengl::GL_COLOR_BUFFER_BIT | fan::opengl::GL_DEPTH_BUFFER_BIT);
+    fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
     draw_downsamples(color_texture);
     draw_upsamples(filter_radius);
@@ -192,7 +192,7 @@ struct blur_t {
 
 
     fan::vec2 window_size = gloco->window.get_size();
-    context.opengl.glViewport(0, 0, window_size.x, window_size.y);
+    fan_opengl_call(glViewport(0, 0, window_size.x, window_size.y));
   }
 
   void draw(loco_t::image_t* color_texture) {

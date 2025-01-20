@@ -158,7 +158,7 @@ namespace fan {
 }
 
 extern "C" {
-  extern __host__ cudaError_t CUDARTAPI cudaGraphicsGLRegisterImage(struct cudaGraphicsResource** resource, fan::opengl::GLuint image, fan::opengl::GLenum target, unsigned int flags);
+  extern __host__ cudaError_t CUDARTAPI cudaGraphicsGLRegisterImage(struct cudaGraphicsResource** resource, GLuint image, GLenum target, unsigned int flags);
 }
 
 #endif
@@ -791,8 +791,8 @@ public:
   uv_idle_t idle_handle;
   uv_timer_t timer_handle;
 
-  fan::opengl::GLenum blend_src_factor = fan::opengl::GL_SRC_ALPHA;
-  fan::opengl::GLenum blend_dst_factor = fan::opengl::GL_ONE_MINUS_SRC_ALPHA;
+  GLenum blend_src_factor = GL_SRC_ALPHA;
+  GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
 
   private:
   int32_t target_fps = 165; // must be changed from function
@@ -1122,8 +1122,8 @@ public:
     f32_t get_outline_size();
     fan::color get_outline_color();
 
-    void reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR);
-    void reload(uint8_t format, const fan::vec2& image_size, uint32_t filter = fan::opengl::GL_LINEAR);
+    void reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter = GL_LINEAR);
+    void reload(uint8_t format, const fan::vec2& image_size, uint32_t filter = GL_LINEAR);
 
     void set_line(const fan::vec2& src, const fan::vec2& dst);
 
@@ -1155,14 +1155,14 @@ public:
 #pragma pack(pop)
 
     inline static std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-      shape_gl_init_t{{1, "in_parallax_factor"}, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
-      shape_gl_init_t{{2, "in_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-      shape_gl_init_t{{3, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-      shape_gl_init_t{{4, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-      shape_gl_init_t{{5, "in_rotation_vector"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector))},
-      shape_gl_init_t{{6, "in_flags"}, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-      shape_gl_init_t{{7, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
+      shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+      shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+      shape_gl_init_t{{5, "in_rotation_vector"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector))},
+      shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+      shape_gl_init_t{{7, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
     };
 
     struct properties_t {
@@ -1204,9 +1204,9 @@ public:
 #pragma pack(pop)
 
   inline static std::vector<shape_gl_init_t> locations = {
-    shape_gl_init_t{{0, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
-    shape_gl_init_t{{1, "in_src"}, 3, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
-    shape_gl_init_t{{2, "in_dst"}, 3, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
+    shape_gl_init_t{{0, "in_color"}, 4, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
+    shape_gl_init_t{{1, "in_src"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
+    shape_gl_init_t{{2, "in_dst"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
   };
 
     struct properties_t {
@@ -1249,12 +1249,12 @@ public:
 #pragma pack(pop)
 
     inline static  std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-      shape_gl_init_t{{1, "in_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-      shape_gl_init_t{{2, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-      shape_gl_init_t{{3, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-      shape_gl_init_t{{4, "in_outline_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color))},
-      shape_gl_init_t{{5, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+      shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+      shape_gl_init_t{{4, "in_outline_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color))},
+      shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
     };
 
     struct properties_t {
@@ -1307,16 +1307,16 @@ public:
 #pragma pack(pop)
 
   inline static std::vector<shape_gl_init_t> locations = {
-    shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-    shape_gl_init_t{{1, "in_parallax_factor"}, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
-    shape_gl_init_t{{2, "in_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-    shape_gl_init_t{{3, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-    shape_gl_init_t{{4, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-    shape_gl_init_t{{5, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
-    shape_gl_init_t{{6, "in_flags"}, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-    shape_gl_init_t{{7, "in_tc_position"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-    shape_gl_init_t{{8, "in_tc_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
-    shape_gl_init_t{{9, "in_seed"}, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
+    shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+    shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
+    shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+    shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+    shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+    shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
+    shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+    shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
+    shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
+    shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
   };
 
     struct properties_t {
@@ -1382,16 +1382,16 @@ public:
 #pragma pack(pop)
 
     inline static std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-      shape_gl_init_t{{1, "in_parallax_factor"}, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
-      shape_gl_init_t{{2, "in_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-      shape_gl_init_t{{3, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-      shape_gl_init_t{{4, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-      shape_gl_init_t{{5, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
-      shape_gl_init_t{{6, "in_flags"}, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-      shape_gl_init_t{{7, "in_tc_position"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-      shape_gl_init_t{{8, "in_tc_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
-      shape_gl_init_t{{9, "in_seed"}, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
+      shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+      shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+      shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
+      shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+      shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
+      shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
+      shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
     };
 
     struct properties_t {
@@ -1483,13 +1483,13 @@ public:
 #pragma pack(pop)
 
     inline static std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position) },
-      shape_gl_init_t{{1, "in_radius"}, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
-      shape_gl_init_t{{2, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
-      shape_gl_init_t{{3, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
-      shape_gl_init_t{{4, "in_rotation_vector"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector)) },
-      shape_gl_init_t{{5, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) },
-      shape_gl_init_t{{6, "in_flags"}, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))}
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position) },
+      shape_gl_init_t{{1, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
+      shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
+      shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
+      shape_gl_init_t{{4, "in_rotation_vector"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector)) },
+      shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) },
+      shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))}
     };
 
     struct properties_t {
@@ -1540,16 +1540,16 @@ public:
 #pragma pack(pop)
 
     inline static std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position) },
-      shape_gl_init_t{{1, "in_center0"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, center0)) },
-      shape_gl_init_t{{2, "in_center1"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, center1)) },
-      shape_gl_init_t{{3, "in_radius"}, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
-      shape_gl_init_t{{4, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
-      shape_gl_init_t{{5, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
-      shape_gl_init_t{{6, "in_rotation_vector"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector)) },
-      shape_gl_init_t{{7, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) },
-      shape_gl_init_t{{8, "in_flags"}, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-      shape_gl_init_t{{9, "in_outline_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color)) },
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position) },
+      shape_gl_init_t{{1, "in_center0"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, center0)) },
+      shape_gl_init_t{{2, "in_center1"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, center1)) },
+      shape_gl_init_t{{3, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
+      shape_gl_init_t{{4, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
+      shape_gl_init_t{{5, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
+      shape_gl_init_t{{6, "in_rotation_vector"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector)) },
+      shape_gl_init_t{{7, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) },
+      shape_gl_init_t{{8, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+      shape_gl_init_t{{9, "in_outline_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color)) },
     };
 
     struct properties_t {
@@ -1598,8 +1598,8 @@ public:
 #pragma pack(pop)
 
     inline static std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vertex_t), (void*)(offsetof(vertex_t, position)) },
-      shape_gl_init_t{{1, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vertex_t), (void*)(offsetof(vertex_t, color)) },
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vertex_t), (void*)(offsetof(vertex_t, position)) },
+      shape_gl_init_t{{1, "in_color"}, 4, GL_FLOAT, sizeof(vertex_t), (void*)(offsetof(vertex_t, color)) },
     };
 
     struct properties_t {
@@ -1635,12 +1635,12 @@ public:
 #pragma pack(pop)
 
     inline static std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-      shape_gl_init_t{{1, "in_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, size)},
-      shape_gl_init_t{{2, "in_grid_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, grid_size)},
-      shape_gl_init_t{{3, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, rotation_point)},
-      shape_gl_init_t{{4, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, color)},
-      shape_gl_init_t{{5, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, angle)},
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, size)},
+      shape_gl_init_t{{2, "in_grid_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, grid_size)},
+      shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, rotation_point)},
+      shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, color)},
+      shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, angle)},
     };
 
     struct properties_t {
@@ -1766,10 +1766,10 @@ public:
 #pragma pack(pop)
 
   inline static std::vector<shape_gl_init_t> locations = {
-    shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-    shape_gl_init_t{{1, "in_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-    shape_gl_init_t{{2, "in_tc_position"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-    shape_gl_init_t{{3, "in_tc_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))}
+    shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+    shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+    shape_gl_init_t{{2, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
+    shape_gl_init_t{{3, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))}
   };
 
     struct properties_t {
@@ -1819,14 +1819,14 @@ public:
 #pragma pack(pop)
 
     inline static std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-      shape_gl_init_t{{1, "in_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-      shape_gl_init_t{{2, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-      shape_gl_init_t{{3, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 0)},
-      shape_gl_init_t{{4, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 1)},
-      shape_gl_init_t{{5, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 2)},
-      shape_gl_init_t{{6, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 3)},
-      shape_gl_init_t{{7, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+      shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 0)},
+      shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 1)},
+      shape_gl_init_t{{5, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 2)},
+      shape_gl_init_t{{6, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 3)},
+      shape_gl_init_t{{7, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
     };
 
     struct properties_t {
@@ -1880,16 +1880,16 @@ public:
 #pragma pack(pop)
 
     inline static std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-      shape_gl_init_t{{1, "in_parallax_factor"}, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
-      shape_gl_init_t{{2, "in_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-      shape_gl_init_t{{3, "in_rotation_point"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-      shape_gl_init_t{{4, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-      shape_gl_init_t{{5, "in_angle"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
-      shape_gl_init_t{{6, "in_flags"}, 1, fan::opengl::GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-      shape_gl_init_t{{7, "in_tc_position"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-      shape_gl_init_t{{8, "in_tc_size"}, 2, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
-      shape_gl_init_t{{9, "in_seed"}, 1, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
+      shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+      shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+      shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
+      shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+      shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
+      shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
+      shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
     };
 
     struct properties_t {
@@ -1939,9 +1939,9 @@ public:
 #pragma pack(pop)
 
     inline static  std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_position"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t,  position)},
-      shape_gl_init_t{{1, "in_size"}, 3, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-      shape_gl_init_t{{2, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))}
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t,  position)},
+      shape_gl_init_t{{1, "in_size"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{{2, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))}
     };
 
     struct properties_t {
@@ -1981,9 +1981,9 @@ public:
 #pragma pack(pop)
 
     inline static std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_color"}, 4, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
-      shape_gl_init_t{{1, "in_src"}, 3, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
-      shape_gl_init_t{{2, "in_dst"}, 3, fan::opengl::GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
+      shape_gl_init_t{{0, "in_color"}, 4, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
+      shape_gl_init_t{{1, "in_src"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
+      shape_gl_init_t{{2, "in_dst"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
     };
 
     struct properties_t {
@@ -2174,7 +2174,7 @@ public:
 
     struct graphics_resource_t {
       void open(int texture_id) {
-        fan::cuda::check_error(cudaGraphicsGLRegisterImage(&resource, texture_id, fan::opengl::GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
+        fan::cuda::check_error(cudaGraphicsGLRegisterImage(&resource, texture_id, GL_TEXTURE_2D, cudaGraphicsMapFlagsNone));
         map();
       }
       void close() {
