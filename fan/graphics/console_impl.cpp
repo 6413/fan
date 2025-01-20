@@ -149,6 +149,15 @@ void fan::console_t::render() {
     current_command.resize(buffer_size);
   }
 
+  {
+    auto it = frame_cbs.GetNodeFirst();
+    while (it != frame_cbs.dst) {
+      frame_cbs.StartSafeNext(it);
+      frame_cbs[it]();
+      it = frame_cbs.EndSafeNext();
+    }
+  }
+
   ImGui::Begin("console", 0);
 
   ImGui::BeginChild("output_buffer", ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() * 1), false);
@@ -252,7 +261,7 @@ void fan::console_t::render() {
   ImGui::End();
 }
 
-void fan::console_t::print(const fan::string& msg, int highlight) {
+void fan::console_t::print(const std::string& msg, int highlight) {
   commands_t::output_t out;
   out.text = msg;
   out.highlight = highlight;
@@ -261,19 +270,24 @@ void fan::console_t::print(const fan::string& msg, int highlight) {
   //set_input_focus();
 }
 
-void fan::console_t::println(const fan::string& msg, int highlight) {
+void fan::console_t::println(const std::string& msg, int highlight) {
   print(msg + "\n", highlight);
 }
 
-void fan::console_t::print_colored(const fan::string& msg, const fan::color& color) {
+void fan::console_t::print_colored(const std::string& msg, const fan::color& color) {
   commands.output_colored_cb(msg, color);
 
   input.MoveEnd();
   //set_input_focus();
 }
 
-void fan::console_t::println_colored(const fan::string& msg, const fan::color& color) {
+void fan::console_t::println_colored(const std::string& msg, const fan::color& color) {
   print_colored(msg + "\n", color);
+}
+
+void fan::console_t::erase_frame_process(frame_cb_t::nr_t& nr) {
+    frame_cbs.unlrec(nr);
+    nr.sic();
 }
 
 #endif

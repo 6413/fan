@@ -1,11 +1,14 @@
 #include <fan/pch.h>
+#include <fan/imgui/implot_internal.h>
 
-loco_t::polygon_t::properties_t create_hexagon(const fan::vec2& position, f32_t radius, const fan::color& color) { 
-  loco_t::polygon_t::properties_t pp; 
+fan_track_allocations();
+
+loco_t::polygon_t::properties_t create_hexagon(const fan::vec2& position, f32_t radius, const fan::color& color) {
+  loco_t::polygon_t::properties_t pp;
   // for triangle strip
-  for (int i = 0; i < 6; ++i) { 
+  for (int i = 0; i < 6; ++i) {
     pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(position, 100), color });
-    
+
     f32_t angle1 = 2 * fan::math::pi * i / 6; 
     f32_t x1 = position.x + radius * std::cos(angle1); 
     f32_t y1 = position.y + radius * std::sin(angle1); 
@@ -55,13 +58,13 @@ int main() {
   loco_t loco;
 
   std::vector<fan::graphics::physics_shapes::circle_t> entities;
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 0x80; ++i) {
     entities.push_back(fan::graphics::physics_shapes::circle_t{{
       .position = fan::vec3(30 + i*50, -100, 400),
       .radius = fan::random::f32(16, 86),
       .color = fan::random::color(),
       .body_type = fan::physics::body_type_e::dynamic_body,
-      .shape_properties{.friction=0.001f}
+      .shape_properties{.friction=0}
     }});
   }
 

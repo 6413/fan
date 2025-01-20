@@ -12,6 +12,8 @@
 #endif
 
 
+#include <fan/memory/memory.hpp>
+
 #include <fan/types/types.h>
 
 //#define loco_vulkan
