@@ -141,7 +141,7 @@ struct grass_2d_t {
     else {
       m_current_shader = &m_shader;
     }
-    sb_draw1(key_root, fan::opengl::GL_TRIANGLES);
+    sb_draw1(key_root, GL_TRIANGLES);
   }
 
   // can be bigger with vulkan
@@ -375,17 +375,17 @@ struct shader_light_t {
 
   void draw() {
     gloco->get_context().set_depth_test(false);
-    gloco->get_context().opengl.call(gloco->get_context().opengl.glEnable, fan::opengl::GL_BLEND);
-    gloco->get_context().opengl.call(gloco->get_context().opengl.glBlendFunc, fan::opengl::GL_ONE, fan::opengl::GL_ONE);
+    gloco->get_context().opengl.call(fan_opengl_call(Enable(GL_BLEND));;
+    gloco->get_context().opengl.call(fan_opengl_call(BlendFunc(GL_ONE, GL_ONE));;
 
     #if defined(loco_framebuffer)
     unsigned int attachments[sizeof(gloco->color_buffers) / sizeof(gloco->color_buffers[0])];
 
     for (uint8_t i = 0; i < std::size(gloco->color_buffers); ++i) {
-      attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+      attachments[i] = GL_COLOR_ATTACHMENT0 + i;
     }
 
-    gloco->get_context().opengl.call(gloco->get_context().opengl.glDrawBuffers, std::size(attachments), attachments);
+    gloco->get_context().opengl.call(fan_opengl_call(DrawBuffers(std::size(attachments));, attachments);
     #endif
     //
     sb_draw(key_root);
@@ -394,10 +394,10 @@ struct shader_light_t {
 
     #if defined(loco_framebuffer)
     for (uint8_t i = 0; i < std::size(gloco->color_buffers); ++i) {
-      attachments[i] = fan::opengl::GL_COLOR_ATTACHMENT0 + i;
+      attachments[i] = GL_COLOR_ATTACHMENT0 + i;
     }
 
-    gloco->get_context().opengl.call(gloco->get_context().opengl.glDrawBuffers, std::size(attachments), attachments);
+    gloco->get_context().opengl.call(fan_opengl_call(DrawBuffers(std::size(attachments));, attachments);
     #endif
   }
 

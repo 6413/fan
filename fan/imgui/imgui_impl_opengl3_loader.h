@@ -177,61 +177,61 @@ typedef unsigned char GLboolean;
 #define GL_LINEAR                         0x2601
 #define GL_TEXTURE_MAG_FILTER             0x2800
 #define GL_TEXTURE_MIN_FILTER             0x2801
-typedef void (APIENTRYP PFNGLPOLYGONMODEPROC) (fan::opengl::GLenum face, fan::opengl::GLenum mode);
+typedef void (APIENTRYP PFNGLPOLYGONMODEPROC) (GLenum face, GLenum mode);
 typedef void (APIENTRYP PFNGLSCISSORPROC) (GLint x, GLint y, GLsizei width, GLsizei height);
-typedef void (APIENTRYP PFNGLTEXPARAMETERIPROC) (fan::opengl::GLenum target, fan::opengl::GLenum pname, GLint param);
-typedef void (APIENTRYP PFNGLTEXIMAGE2DPROC) (fan::opengl::GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, fan::opengl::GLenum format, fan::opengl::GLenum type, const void *pixels);
+typedef void (APIENTRYP PFNGLTEXPARAMETERIPROC) (GLenum target, GLenum pname, GLint param);
+typedef void (APIENTRYP PFNGLTEXIMAGE2DPROC) (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels);
 typedef void (APIENTRYP PFNGLCLEARPROC) (GLbitfield mask);
-typedef void (APIENTRYP PFNGLCLEARCOLORPROC) (fan::opengl::GLfloat red, fan::opengl::GLfloat green, fan::opengl::GLfloat blue, fan::opengl::GLfloat alpha);
-typedef void (APIENTRYP PFNGLDISABLEPROC) (fan::opengl::GLenum cap);
-typedef void (APIENTRYP PFNGLENABLEPROC) (fan::opengl::GLenum cap);
+typedef void (APIENTRYP PFNGLCLEARCOLORPROC) (GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
+typedef void (APIENTRYP PFNGLDISABLEPROC) (GLenum cap);
+typedef void (APIENTRYP PFNGLENABLEPROC) (GLenum cap);
 typedef void (APIENTRYP PFNGLFLUSHPROC) (void);
-typedef void (APIENTRYP PFNGLPIXELSTOREIPROC) (fan::opengl::GLenum pname, GLint param);
-typedef void (APIENTRYP PFNGLREADPIXELSPROC) (GLint x, GLint y, GLsizei width, GLsizei height, fan::opengl::GLenum format, fan::opengl::GLenum type, void *pixels);
-typedef fan::opengl::GLenum (APIENTRYP PFNGLGETERRORPROC) (void);
-typedef void (APIENTRYP PFNGLGETINTEGERVPROC) (fan::opengl::GLenum pname, GLint *data);
-typedef const fan::opengl::GLubyte *(APIENTRYP PFNGLGETSTRINGPROC) (fan::opengl::GLenum name);
-typedef GLboolean (APIENTRYP PFNGLISENABLEDPROC) (fan::opengl::GLenum cap);
+typedef void (APIENTRYP PFNGLPIXELSTOREIPROC) (GLenum pname, GLint param);
+typedef void (APIENTRYP PFNGLREADPIXELSPROC) (GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels);
+typedef GLenum (APIENTRYP PFNGLGETERRORPROC) (void);
+typedef void (APIENTRYP PFNGLGETINTEGERVPROC) (GLenum pname, GLint *data);
+typedef const GLubyte *(APIENTRYP PFNGLGETSTRINGPROC) (GLenum name);
+typedef GLboolean (APIENTRYP PFNGLISENABLEDPROC) (GLenum cap);
 typedef void (APIENTRYP PFNGLVIEWPORTPROC) (GLint x, GLint y, GLsizei width, GLsizei height);
 #ifdef GL_GLEXT_PROTOTYPES
-GLAPI void APIENTRY glPolygonMode (fan::opengl::GLenum face, fan::opengl::GLenum mode);
+GLAPI void APIENTRY glPolygonMode (GLenum face, GLenum mode);
 GLAPI void APIENTRY glScissor (GLint x, GLint y, GLsizei width, GLsizei height);
-GLAPI void APIENTRY glTexParameteri (fan::opengl::GLenum target, fan::opengl::GLenum pname, GLint param);
-GLAPI void APIENTRY glTexImage2D (fan::opengl::GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, fan::opengl::GLenum format, fan::opengl::GLenum type, const void *pixels);
+GLAPI void APIENTRY glTexParameteri (GLenum target, GLenum pname, GLint param);
+GLAPI void APIENTRY glTexImage2D (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels);
 GLAPI void APIENTRY glClear (GLbitfield mask);
 GLAPI void APIENTRY glClearColor (GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-GLAPI void APIENTRY glDisable (fan::opengl::GLenum cap);
-GLAPI void APIENTRY glEnable (fan::opengl::GLenum cap);
+GLAPI void APIENTRY glDisable (GLenum cap);
+GLAPI void APIENTRY glEnable (GLenum cap);
 GLAPI void APIENTRY glFlush (void);
-GLAPI void APIENTRY glPixelStorei (fan::opengl::GLenum pname, GLint param);
-GLAPI void APIENTRY glReadPixels (GLint x, GLint y, GLsizei width, GLsizei height, fan::opengl::GLenum format, fan::opengl::GLenum type, void *pixels);
-GLAPI fan::opengl::GLenum APIENTRY glGetError (void);
-GLAPI void APIENTRY glGetIntegerv (fan::opengl::GLenum pname, GLint *data);
-GLAPI const GLubyte *APIENTRY glGetString (fan::opengl::GLenum name);
-GLAPI GLboolean APIENTRY glIsEnabled (fan::opengl::GLenum cap);
+GLAPI void APIENTRY glPixelStorei (GLenum pname, GLint param);
+GLAPI void APIENTRY glReadPixels (GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels);
+GLAPI GLenum APIENTRY glGetError (void);
+GLAPI void APIENTRY glGetIntegerv (GLenum pname, GLint *data);
+GLAPI const GLubyte *APIENTRY glGetString (GLenum name);
+GLAPI GLboolean APIENTRY glIsEnabled (GLenum cap);
 GLAPI void APIENTRY glViewport (GLint x, GLint y, GLsizei width, GLsizei height);
 #endif
 #endif /* GL_VERSION_1_0 */
 #ifndef GL_VERSION_1_1
 typedef double GLclampd;
 #define GL_TEXTURE_BINDING_2D             0x8069
-typedef void (APIENTRYP PFNGLDRAWELEMENTSPROC) (fan::opengl::GLenum mode, GLsizei count, fan::opengl::GLenum type, const void *indices);
-typedef void (APIENTRYP PFNGLBINDTEXTUREPROC) (fan::opengl::GLenum target, fan::opengl::GLuint texture);
-typedef void (APIENTRYP PFNGLDELETETEXTURESPROC) (GLsizei n, const fan::opengl::GLuint *textures);
-typedef void (APIENTRYP PFNGLGENTEXTURESPROC) (GLsizei n, fan::opengl::GLuint *textures);
+typedef void (APIENTRYP PFNGLDRAWELEMENTSPROC) (GLenum mode, GLsizei count, GLenum type, const void *indices);
+typedef void (APIENTRYP PFNGLBINDTEXTUREPROC) (GLenum target, GLuint texture);
+typedef void (APIENTRYP PFNGLDELETETEXTURESPROC) (GLsizei n, const GLuint *textures);
+typedef void (APIENTRYP PFNGLGENTEXTURESPROC) (GLsizei n, GLuint *textures);
 #ifdef GL_GLEXT_PROTOTYPES
-GLAPI void APIENTRY glDrawElements (fan::opengl::GLenum mode, GLsizei count, fan::opengl::GLenum type, const void *indices);
-GLAPI void APIENTRY glBindTexture (fan::opengl::GLenum target, fan::opengl::GLuint texture);
-GLAPI void APIENTRY glDeleteTextures (GLsizei n, const fan::opengl::GLuint *textures);
-GLAPI void APIENTRY glGenTextures (GLsizei n, fan::opengl::GLuint *textures);
+GLAPI void APIENTRY glDrawElements (GLenum mode, GLsizei count, GLenum type, const void *indices);
+GLAPI void APIENTRY glBindTexture (GLenum target, GLuint texture);
+GLAPI void APIENTRY glDeleteTextures (GLsizei n, const GLuint *textures);
+GLAPI void APIENTRY glGenTextures (GLsizei n, GLuint *textures);
 #endif
 #endif /* GL_VERSION_1_1 */
 #ifndef GL_VERSION_1_3
 #define GL_TEXTURE0                       0x84C0
 #define GL_ACTIVE_TEXTURE                 0x84E0
-typedef void (APIENTRYP PFNGLACTIVETEXTUREPROC) (fan::opengl::GLenum texture);
+typedef void (APIENTRYP PFNGLACTIVETEXTUREPROC) (GLenum texture);
 #ifdef GL_GLEXT_PROTOTYPES
-GLAPI void APIENTRY glActiveTexture (fan::opengl::GLenum texture);
+GLAPI void APIENTRY glActiveTexture (GLenum texture);
 #endif
 #endif /* GL_VERSION_1_3 */
 #ifndef GL_VERSION_1_4
@@ -240,11 +240,11 @@ GLAPI void APIENTRY glActiveTexture (fan::opengl::GLenum texture);
 #define GL_BLEND_DST_ALPHA                0x80CA
 #define GL_BLEND_SRC_ALPHA                0x80CB
 #define GL_FUNC_ADD                       0x8006
-typedef void (APIENTRYP PFNGLBLENDFUNCSEPARATEPROC) (fan::opengl::GLenum sfactorRGB, fan::opengl::GLenum dfactorRGB, fan::opengl::GLenum sfactorAlpha, fan::opengl::GLenum dfactorAlpha);
-typedef void (APIENTRYP PFNGLBLENDEQUATIONPROC) (fan::opengl::GLenum mode);
+typedef void (APIENTRYP PFNGLBLENDFUNCSEPARATEPROC) (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha);
+typedef void (APIENTRYP PFNGLBLENDEQUATIONPROC) (GLenum mode);
 #ifdef GL_GLEXT_PROTOTYPES
-GLAPI void APIENTRY glBlendFuncSeparate (fan::opengl::GLenum sfactorRGB, fan::opengl::GLenum dfactorRGB, fan::opengl::GLenum sfactorAlpha, fan::opengl::GLenum dfactorAlpha);
-GLAPI void APIENTRY glBlendEquation (fan::opengl::GLenum mode);
+GLAPI void APIENTRY glBlendFuncSeparate (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha);
+GLAPI void APIENTRY glBlendEquation (GLenum mode);
 #endif
 #endif /* GL_VERSION_1_4 */
 #ifndef GL_VERSION_1_5
@@ -253,17 +253,17 @@ GLAPI void APIENTRY glBlendEquation (fan::opengl::GLenum mode);
 #define GL_ARRAY_BUFFER_BINDING           0x8894
 #define GL_ELEMENT_ARRAY_BUFFER_BINDING   0x8895
 #define GL_STREAM_DRAW                    0x88E0
-typedef void (APIENTRYP PFNGLBINDBUFFERPROC) (fan::opengl::GLenum target, fan::opengl::GLuint buffer);
-typedef void (APIENTRYP PFNGLDELETEBUFFERSPROC) (GLsizei n, const fan::opengl::GLuint *buffers);
-typedef void (APIENTRYP PFNGLGENBUFFERSPROC) (GLsizei n, fan::opengl::GLuint *buffers);
-typedef void (APIENTRYP PFNGLBUFFERDATAPROC) (fan::opengl::GLenum target, fan::opengl::GLsizeiptr size, const void *data, fan::opengl::GLenum usage);
-typedef void (APIENTRYP PFNGLBUFFERSUBDATAPROC) (fan::opengl::GLenum target, GLintptr offset, fan::opengl::GLsizeiptr size, const void *data);
+typedef void (APIENTRYP PFNGLBINDBUFFERPROC) (GLenum target, GLuint buffer);
+typedef void (APIENTRYP PFNGLDELETEBUFFERSPROC) (GLsizei n, const GLuint *buffers);
+typedef void (APIENTRYP PFNGLGENBUFFERSPROC) (GLsizei n, GLuint *buffers);
+typedef void (APIENTRYP PFNGLBUFFERDATAPROC) (GLenum target, GLsizeiptr size, const void *data, GLenum usage);
+typedef void (APIENTRYP PFNGLBUFFERSUBDATAPROC) (GLenum target, GLintptr offset, GLsizeiptr size, const void *data);
 #ifdef GL_GLEXT_PROTOTYPES
-GLAPI void APIENTRY glBindBuffer (fan::opengl::GLenum target, fan::opengl::GLuint buffer);
-GLAPI void APIENTRY glDeleteBuffers (GLsizei n, const fan::opengl::GLuint *buffers);
-GLAPI void APIENTRY glGenBuffers (GLsizei n, fan::opengl::GLuint *buffers);
-GLAPI void APIENTRY glBufferData (fan::opengl::GLenum target, fan::opengl::GLsizeiptr size, const void *data, fan::opengl::GLenum usage);
-GLAPI void APIENTRY glBufferSubData (fan::opengl::GLenum target, GLintptr offset, fan::opengl::GLsizeiptr size, const void *data);
+GLAPI void APIENTRY glBindBuffer (GLenum target, GLuint buffer);
+GLAPI void APIENTRY glDeleteBuffers (GLsizei n, const GLuint *buffers);
+GLAPI void APIENTRY glGenBuffers (GLsizei n, GLuint *buffers);
+GLAPI void APIENTRY glBufferData (GLenum target, GLsizeiptr size, const void *data, GLenum usage);
+GLAPI void APIENTRY glBufferSubData (GLenum target, GLintptr offset, GLsizeiptr size, const void *data);
 #endif
 #endif /* GL_VERSION_1_5 */
 #ifndef GL_VERSION_2_0
@@ -283,57 +283,57 @@ typedef char GLchar;
 #define GL_INFO_LOG_LENGTH                0x8B84
 #define GL_CURRENT_PROGRAM                0x8B8D
 #define GL_UPPER_LEFT                     0x8CA2
-typedef void (APIENTRYP PFNGLBLENDEQUATIONSEPARATEPROC) (fan::opengl::GLenum modeRGB, fan::opengl::GLenum modeAlpha);
-typedef void (APIENTRYP PFNGLATTACHSHADERPROC) (fan::opengl::GLuint program, fan::opengl::GLuint shader);
-typedef void (APIENTRYP PFNGLCOMPILESHADERPROC) (fan::opengl::GLuint shader);
-typedef fan::opengl::GLuint (APIENTRYP PFNGLCREATEPROGRAMPROC) (void);
-typedef fan::opengl::GLuint (APIENTRYP PFNGLCREATESHADERPROC) (fan::opengl::GLenum type);
-typedef void (APIENTRYP PFNGLDELETEPROGRAMPROC) (fan::opengl::GLuint program);
-typedef void (APIENTRYP PFNGLDELETESHADERPROC) (fan::opengl::GLuint shader);
-typedef void (APIENTRYP PFNGLDETACHSHADERPROC) (fan::opengl::GLuint program, fan::opengl::GLuint shader);
-typedef void (APIENTRYP PFNGLDISABLEVERTEXATTRIBARRAYPROC) (fan::opengl::GLuint index);
-typedef void (APIENTRYP PFNGLENABLEVERTEXATTRIBARRAYPROC) (fan::opengl::GLuint index);
-typedef GLint (APIENTRYP PFNGLGETATTRIBLOCATIONPROC) (fan::opengl::GLuint program, const GLchar *name);
-typedef void (APIENTRYP PFNGLGETPROGRAMIVPROC) (fan::opengl::GLuint program, fan::opengl::GLenum pname, GLint *params);
-typedef void (APIENTRYP PFNGLGETPROGRAMINFOLOGPROC) (fan::opengl::GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
-typedef void (APIENTRYP PFNGLGETSHADERIVPROC) (fan::opengl::GLuint shader, fan::opengl::GLenum pname, GLint *params);
-typedef void (APIENTRYP PFNGLGETSHADERINFOLOGPROC) (fan::opengl::GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
-typedef GLint (APIENTRYP PFNGLGETUNIFORMLOCATIONPROC) (fan::opengl::GLuint program, const GLchar *name);
-typedef void (APIENTRYP PFNGLGETVERTEXATTRIBIVPROC) (fan::opengl::GLuint index, fan::opengl::GLenum pname, GLint *params);
-typedef void (APIENTRYP PFNGLGETVERTEXATTRIBPOINTERVPROC) (fan::opengl::GLuint index, fan::opengl::GLenum pname, void **pointer);
-typedef GLboolean (APIENTRYP PFNGLISPROGRAMPROC) (fan::opengl::GLuint program);
-typedef void (APIENTRYP PFNGLLINKPROGRAMPROC) (fan::opengl::GLuint program);
-typedef void (APIENTRYP PFNGLSHADERSOURCEPROC) (fan::opengl::GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
-typedef void (APIENTRYP PFNGLUSEPROGRAMPROC) (fan::opengl::GLuint program);
+typedef void (APIENTRYP PFNGLBLENDEQUATIONSEPARATEPROC) (GLenum modeRGB, GLenum modeAlpha);
+typedef void (APIENTRYP PFNGLATTACHSHADERPROC) (GLuint program, GLuint shader);
+typedef void (APIENTRYP PFNGLCOMPILESHADERPROC) (GLuint shader);
+typedef GLuint (APIENTRYP PFNGLCREATEPROGRAMPROC) (void);
+typedef GLuint (APIENTRYP PFNGLCREATESHADERPROC) (GLenum type);
+typedef void (APIENTRYP PFNGLDELETEPROGRAMPROC) (GLuint program);
+typedef void (APIENTRYP PFNGLDELETESHADERPROC) (GLuint shader);
+typedef void (APIENTRYP PFNGLDETACHSHADERPROC) (GLuint program, GLuint shader);
+typedef void (APIENTRYP PFNGLDISABLEVERTEXATTRIBARRAYPROC) (GLuint index);
+typedef void (APIENTRYP PFNGLENABLEVERTEXATTRIBARRAYPROC) (GLuint index);
+typedef GLint (APIENTRYP PFNGLGETATTRIBLOCATIONPROC) (GLuint program, const GLchar *name);
+typedef void (APIENTRYP PFNGLGETPROGRAMIVPROC) (GLuint program, GLenum pname, GLint *params);
+typedef void (APIENTRYP PFNGLGETPROGRAMINFOLOGPROC) (GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+typedef void (APIENTRYP PFNGLGETSHADERIVPROC) (GLuint shader, GLenum pname, GLint *params);
+typedef void (APIENTRYP PFNGLGETSHADERINFOLOGPROC) (GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+typedef GLint (APIENTRYP PFNGLGETUNIFORMLOCATIONPROC) (GLuint program, const GLchar *name);
+typedef void (APIENTRYP PFNGLGETVERTEXATTRIBIVPROC) (GLuint index, GLenum pname, GLint *params);
+typedef void (APIENTRYP PFNGLGETVERTEXATTRIBPOINTERVPROC) (GLuint index, GLenum pname, void **pointer);
+typedef GLboolean (APIENTRYP PFNGLISPROGRAMPROC) (GLuint program);
+typedef void (APIENTRYP PFNGLLINKPROGRAMPROC) (GLuint program);
+typedef void (APIENTRYP PFNGLSHADERSOURCEPROC) (GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
+typedef void (APIENTRYP PFNGLUSEPROGRAMPROC) (GLuint program);
 typedef void (APIENTRYP PFNGLUNIFORM1IPROC) (GLint location, GLint v0);
 typedef void (APIENTRYP PFNGLUNIFORMMATRIX4FVPROC) (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
-typedef void (APIENTRYP PFNGLVERTEXATTRIBPOINTERPROC) (fan::opengl::GLuint index, GLint size, fan::opengl::GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
+typedef void (APIENTRYP PFNGLVERTEXATTRIBPOINTERPROC) (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
 #ifdef GL_GLEXT_PROTOTYPES
-GLAPI void APIENTRY glBlendEquationSeparate (fan::opengl::GLenum modeRGB, fan::opengl::GLenum modeAlpha);
-GLAPI void APIENTRY glAttachShader (fan::opengl::GLuint program, fan::opengl::GLuint shader);
-GLAPI void APIENTRY glCompileShader (fan::opengl::GLuint shader);
-GLAPI fan::opengl::GLuint APIENTRY glCreateProgram (void);
-GLAPI fan::opengl::GLuint APIENTRY glCreateShader (fan::opengl::GLenum type);
-GLAPI void APIENTRY glDeleteProgram (fan::opengl::GLuint program);
-GLAPI void APIENTRY glDeleteShader (fan::opengl::GLuint shader);
-GLAPI void APIENTRY glDetachShader (fan::opengl::GLuint program, fan::opengl::GLuint shader);
-GLAPI void APIENTRY glDisableVertexAttribArray (fan::opengl::GLuint index);
-GLAPI void APIENTRY glEnableVertexAttribArray (fan::opengl::GLuint index);
-GLAPI GLint APIENTRY glGetAttribLocation (fan::opengl::GLuint program, const GLchar *name);
-GLAPI void APIENTRY glGetProgramiv (fan::opengl::GLuint program, fan::opengl::GLenum pname, GLint *params);
-GLAPI void APIENTRY glGetProgramInfoLog (fan::opengl::GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
-GLAPI void APIENTRY glGetShaderiv (fan::opengl::GLuint shader, fan::opengl::GLenum pname, GLint *params);
-GLAPI void APIENTRY glGetShaderInfoLog (fan::opengl::GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
-GLAPI GLint APIENTRY glGetUniformLocation (fan::opengl::GLuint program, const GLchar *name);
-GLAPI void APIENTRY glGetVertexAttribiv (fan::opengl::GLuint index, fan::opengl::GLenum pname, GLint *params);
-GLAPI void APIENTRY glGetVertexAttribPointerv (fan::opengl::GLuint index, fan::opengl::GLenum pname, void **pointer);
-GLAPI GLboolean APIENTRY glIsProgram (fan::opengl::GLuint program);
-GLAPI void APIENTRY glLinkProgram (fan::opengl::GLuint program);
-GLAPI void APIENTRY glShaderSource (fan::opengl::GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
-GLAPI void APIENTRY glUseProgram (fan::opengl::GLuint program);
+GLAPI void APIENTRY glBlendEquationSeparate (GLenum modeRGB, GLenum modeAlpha);
+GLAPI void APIENTRY glAttachShader (GLuint program, GLuint shader);
+GLAPI void APIENTRY glCompileShader (GLuint shader);
+GLAPI GLuint APIENTRY glCreateProgram (void);
+GLAPI GLuint APIENTRY glCreateShader (GLenum type);
+GLAPI void APIENTRY glDeleteProgram (GLuint program);
+GLAPI void APIENTRY glDeleteShader (GLuint shader);
+GLAPI void APIENTRY glDetachShader (GLuint program, GLuint shader);
+GLAPI void APIENTRY glDisableVertexAttribArray (GLuint index);
+GLAPI void APIENTRY glEnableVertexAttribArray (GLuint index);
+GLAPI GLint APIENTRY glGetAttribLocation (GLuint program, const GLchar *name);
+GLAPI void APIENTRY glGetProgramiv (GLuint program, GLenum pname, GLint *params);
+GLAPI void APIENTRY glGetProgramInfoLog (GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+GLAPI void APIENTRY glGetShaderiv (GLuint shader, GLenum pname, GLint *params);
+GLAPI void APIENTRY glGetShaderInfoLog (GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+GLAPI GLint APIENTRY glGetUniformLocation (GLuint program, const GLchar *name);
+GLAPI void APIENTRY glGetVertexAttribiv (GLuint index, GLenum pname, GLint *params);
+GLAPI void APIENTRY glGetVertexAttribPointerv (GLuint index, GLenum pname, void **pointer);
+GLAPI GLboolean APIENTRY glIsProgram (GLuint program);
+GLAPI void APIENTRY glLinkProgram (GLuint program);
+GLAPI void APIENTRY glShaderSource (GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
+GLAPI void APIENTRY glUseProgram (GLuint program);
 GLAPI void APIENTRY glUniform1i (GLint location, GLint v0);
 GLAPI void APIENTRY glUniformMatrix4fv (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
-GLAPI void APIENTRY glVertexAttribPointer (fan::opengl::GLuint index, GLint size, fan::opengl::GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
+GLAPI void APIENTRY glVertexAttribPointer (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
 #endif
 #endif /* GL_VERSION_2_0 */
 #ifndef GL_VERSION_3_0
@@ -342,17 +342,17 @@ GLAPI void APIENTRY glVertexAttribPointer (fan::opengl::GLuint index, GLint size
 #define GL_NUM_EXTENSIONS                 0x821D
 #define GL_FRAMEBUFFER_SRGB               0x8DB9
 #define GL_VERTEX_ARRAY_BINDING           0x85B5
-typedef void (APIENTRYP PFNGLGETBOOLEANI_VPROC) (fan::opengl::GLenum target, fan::opengl::GLuint index, GLboolean *data);
-typedef void (APIENTRYP PFNGLGETINTEGERI_VPROC) (fan::opengl::GLenum target, fan::opengl::GLuint index, GLint *data);
-typedef const fan::opengl::GLubyte *(APIENTRYP PFNGLGETSTRINGIPROC) (fan::opengl::GLenum name, fan::opengl::GLuint index);
-typedef void (APIENTRYP PFNGLBINDVERTEXARRAYPROC) (fan::opengl::GLuint array);
-typedef void (APIENTRYP PFNGLDELETEVERTEXARRAYSPROC) (GLsizei n, const fan::opengl::GLuint *arrays);
-typedef void (APIENTRYP PFNGLGENVERTEXARRAYSPROC) (GLsizei n, fan::opengl::GLuint *arrays);
+typedef void (APIENTRYP PFNGLGETBOOLEANI_VPROC) (GLenum target, GLuint index, GLboolean *data);
+typedef void (APIENTRYP PFNGLGETINTEGERI_VPROC) (GLenum target, GLuint index, GLint *data);
+typedef const GLubyte *(APIENTRYP PFNGLGETSTRINGIPROC) (GLenum name, GLuint index);
+typedef void (APIENTRYP PFNGLBINDVERTEXARRAYPROC) (GLuint array);
+typedef void (APIENTRYP PFNGLDELETEVERTEXARRAYSPROC) (GLsizei n, const GLuint *arrays);
+typedef void (APIENTRYP PFNGLGENVERTEXARRAYSPROC) (GLsizei n, GLuint *arrays);
 #ifdef GL_GLEXT_PROTOTYPES
-GLAPI const GLubyte *APIENTRY glGetStringi (fan::opengl::GLenum name, fan::opengl::GLuint index);
-GLAPI void APIENTRY glBindVertexArray (fan::opengl::GLuint array);
-GLAPI void APIENTRY glDeleteVertexArrays (GLsizei n, const fan::opengl::GLuint *arrays);
-GLAPI void APIENTRY glGenVertexArrays (GLsizei n, fan::opengl::GLuint *arrays);
+GLAPI const GLubyte *APIENTRY glGetStringi (GLenum name, GLuint index);
+GLAPI void APIENTRY glBindVertexArray (GLuint array);
+GLAPI void APIENTRY glDeleteVertexArrays (GLsizei n, const GLuint *arrays);
+GLAPI void APIENTRY glGenVertexArrays (GLsizei n, GLuint *arrays);
 #endif
 #endif /* GL_VERSION_3_0 */
 #ifndef GL_VERSION_3_1
@@ -364,31 +364,31 @@ GLAPI void APIENTRY glGenVertexArrays (GLsizei n, fan::opengl::GLuint *arrays);
 typedef struct __GLsync *GLsync;
 #define GL_CONTEXT_COMPATIBILITY_PROFILE_BIT 0x00000002
 #define GL_CONTEXT_PROFILE_MASK           0x9126
-typedef void (APIENTRYP PFNGLDRAWELEMENTSBASEVERTEXPROC) (fan::opengl::GLenum mode, GLsizei count, fan::opengl::GLenum type, const void *indices, GLint basevertex);
-typedef void (APIENTRYP PFNGLGETINTEGER64I_VPROC) (fan::opengl::GLenum target, fan::opengl::GLuint index, GLint64 *data);
+typedef void (APIENTRYP PFNGLDRAWELEMENTSBASEVERTEXPROC) (GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex);
+typedef void (APIENTRYP PFNGLGETINTEGER64I_VPROC) (GLenum target, GLuint index, GLint64 *data);
 #ifdef GL_GLEXT_PROTOTYPES
-GLAPI void APIENTRY glDrawElementsBaseVertex (fan::opengl::GLenum mode, GLsizei count, fan::opengl::GLenum type, const void *indices, GLint basevertex);
+GLAPI void APIENTRY glDrawElementsBaseVertex (GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex);
 #endif
 #endif /* GL_VERSION_3_2 */
 #ifndef GL_VERSION_3_3
 #define GL_VERSION_3_3 1
 #define GL_SAMPLER_BINDING                0x8919
-typedef void (APIENTRYP PFNGLBINDSAMPLERPROC) (fan::opengl::GLuint unit, fan::opengl::GLuint sampler);
+typedef void (APIENTRYP PFNGLBINDSAMPLERPROC) (GLuint unit, GLuint sampler);
 #ifdef GL_GLEXT_PROTOTYPES
-GLAPI void APIENTRY glBindSampler (fan::opengl::GLuint unit, fan::opengl::GLuint sampler);
+GLAPI void APIENTRY glBindSampler (GLuint unit, GLuint sampler);
 #endif
 #endif /* GL_VERSION_3_3 */
 #ifndef GL_VERSION_4_1
-typedef void (APIENTRYP PFNGLGETFLOATI_VPROC) (fan::opengl::GLenum target, fan::opengl::GLuint index, fan::opengl::GLfloat *data);
-typedef void (APIENTRYP PFNGLGETDOUBLEI_VPROC) (fan::opengl::GLenum target, fan::opengl::GLuint index, GLdouble *data);
+typedef void (APIENTRYP PFNGLGETFLOATI_VPROC) (GLenum target, GLuint index, GLfloat *data);
+typedef void (APIENTRYP PFNGLGETDOUBLEI_VPROC) (GLenum target, GLuint index, GLdouble *data);
 #endif /* GL_VERSION_4_1 */
 #ifndef GL_VERSION_4_3
-typedef void (APIENTRY  *GLDEBUGPROC)(fan::opengl::GLenum source,fan::opengl::GLenum type,fan::opengl::GLuint id,fan::opengl::GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
+typedef void (APIENTRY  *GLDEBUGPROC)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
 #endif /* GL_VERSION_4_3 */
 #ifndef GL_VERSION_4_5
 #define GL_CLIP_ORIGIN                    0x935C
-typedef void (APIENTRYP PFNGLGETTRANSFORMFEEDBACKI_VPROC) (fan::opengl::GLuint xfb, fan::opengl::GLenum pname, fan::opengl::GLuint index, GLint *param);
-typedef void (APIENTRYP PFNGLGETTRANSFORMFEEDBACKI64_VPROC) (fan::opengl::GLuint xfb, fan::opengl::GLenum pname, fan::opengl::GLuint index, GLint64 *param);
+typedef void (APIENTRYP PFNGLGETTRANSFORMFEEDBACKI_VPROC) (GLuint xfb, GLenum pname, GLuint index, GLint *param);
+typedef void (APIENTRYP PFNGLGETTRANSFORMFEEDBACKI64_VPROC) (GLuint xfb, GLenum pname, GLuint index, GLint64 *param);
 #endif /* GL_VERSION_4_5 */
 #ifndef GL_ARB_bindless_texture
 #endif /* GL_ARB_bindless_texture */
@@ -400,17 +400,17 @@ struct _cl_event;
 #define GL_ARB_clip_control 1
 #endif /* GL_ARB_clip_control */
 #ifndef GL_ARB_debug_output
-typedef void (APIENTRY  *GLDEBUGPROCARB)(fan::opengl::GLenum source,fan::opengl::GLenum type,fan::opengl::GLuint id,fan::opengl::GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
+typedef void (APIENTRY  *GLDEBUGPROCARB)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
 #endif /* GL_ARB_debug_output */
 #ifndef GL_EXT_EGL_image_storage
 typedef void *GLeglImageOES;
 #endif /* GL_EXT_EGL_image_storage */
 #ifndef GL_EXT_direct_state_access
-typedef void (APIENTRYP PFNGLGETFLOATI_VEXTPROC) (fan::opengl::GLenum pname, fan::opengl::GLuint index, fan::opengl::GLfloat *params);
-typedef void (APIENTRYP PFNGLGETDOUBLEI_VEXTPROC) (fan::opengl::GLenum pname, fan::opengl::GLuint index, GLdouble *params);
-typedef void (APIENTRYP PFNGLGETPOINTERI_VEXTPROC) (fan::opengl::GLenum pname, fan::opengl::GLuint index, void **params);
-typedef void (APIENTRYP PFNGLGETVERTEXARRAYINTEGERI_VEXTPROC) (fan::opengl::GLuint vaobj, fan::opengl::GLuint index, fan::opengl::GLenum pname, GLint *param);
-typedef void (APIENTRYP PFNGLGETVERTEXARRAYPOINTERI_VEXTPROC) (fan::opengl::GLuint vaobj, fan::opengl::GLuint index, fan::opengl::GLenum pname, void **param);
+typedef void (APIENTRYP PFNGLGETFLOATI_VEXTPROC) (GLenum pname, GLuint index, GLfloat *params);
+typedef void (APIENTRYP PFNGLGETDOUBLEI_VEXTPROC) (GLenum pname, GLuint index, GLdouble *params);
+typedef void (APIENTRYP PFNGLGETPOINTERI_VEXTPROC) (GLenum pname, GLuint index, void **params);
+typedef void (APIENTRYP PFNGLGETVERTEXARRAYINTEGERI_VEXTPROC) (GLuint vaobj, GLuint index, GLenum pname, GLint *param);
+typedef void (APIENTRYP PFNGLGETVERTEXARRAYPOINTERI_VEXTPROC) (GLuint vaobj, GLuint index, GLenum pname, void **param);
 #endif /* GL_EXT_direct_state_access */
 #ifndef GL_NV_draw_vulkan_image
 typedef void (APIENTRY  *GLVULKANPROCNV)(void);
@@ -419,7 +419,7 @@ typedef void (APIENTRY  *GLVULKANPROCNV)(void);
 typedef khronos_int64_t GLint64EXT;
 #endif /* GL_NV_gpu_shader5 */
 #ifndef GL_NV_vertex_buffer_unified_memory
-typedef void (APIENTRYP PFNGLGETINTEGERUI64I_VNVPROC) (fan::opengl::GLenum value, fan::opengl::GLuint index, fan::opengl::GLuint64EXT *result);
+typedef void (APIENTRYP PFNGLGETINTEGERUI64I_VNVPROC) (GLenum value, GLuint index, GLuint64EXT *result);
 #endif /* GL_NV_vertex_buffer_unified_memory */
 #ifdef __cplusplus
 }
@@ -456,7 +456,7 @@ GL3W_API GL3WglProc imgl3wGetProcAddress(const char *proc);
 union GL3WProcs {
     GL3WglProc ptr[59];
     struct {
-        PFNGLACTIVETEXTUREPROC            ActiveTexture;
+        PFNGLACTIVETEXTUREPROC            glActiveTexture;
         PFNGLATTACHSHADERPROC             AttachShader;
         PFNGLBINDBUFFERPROC               BindBuffer;
         PFNGLBINDSAMPLERPROC              BindSampler;
@@ -521,7 +521,7 @@ union GL3WProcs {
 GL3W_API extern union GL3WProcs imgl3wProcs;
 
 /* OpenGL functions */
-#define glActiveTexture                   imgl3wProcs.gl.ActiveTexture
+#define glActiveTexture                   imgl3wProcs.gl.glActiveTexture
 #define glAttachShader                    imgl3wProcs.gl.AttachShader
 #define glBindBuffer                      imgl3wProcs.gl.BindBuffer
 #define glBindSampler                     imgl3wProcs.gl.BindSampler

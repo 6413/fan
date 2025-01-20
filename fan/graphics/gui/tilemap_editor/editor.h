@@ -141,8 +141,8 @@ struct fte_t {
   void open(const properties_t& properties) {
     loco_t::image_load_properties_t lp;
     lp.visual_output = loco_t::image_sampler_address_mode::repeat;
-    lp.min_filter = fan::opengl::GL_NEAREST;
-    lp.mag_filter = fan::opengl::GL_NEAREST;
+    lp.min_filter = GL_NEAREST;
+    lp.mag_filter = GL_NEAREST;
     if (properties.camera == nullptr) {
       camera = &gloco->orthographic_camera;
     }

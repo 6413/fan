@@ -17,7 +17,7 @@ void joystick_callback(int jid, int event)
   }
 }
 
-bool LoadTextureFromFile(const char* filename, fan::opengl::GLuint* out_texture, fan::vec2* image_size) {
+bool LoadTextureFromFile(const char* filename, GLuint* out_texture, fan::vec2* image_size) {
   using namespace fan::opengl;
   fan::image::image_info_t ii;
   if (fan::image::load(filename, &ii)) {
@@ -26,17 +26,17 @@ bool LoadTextureFromFile(const char* filename, fan::opengl::GLuint* out_texture,
 
   auto& opengl = gloco->get_context().opengl;
   // Create a OpenGL texture identifier
-  fan::opengl::GLuint image_texture;
-  opengl.glGenTextures(1, &image_texture);
-  opengl.glBindTexture(GL_TEXTURE_2D, image_texture);
+  GLuint image_texture;
+  fan_opengl_call(GenTextures(1, &image_texture));;
+  fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_texture));;
 
   // Setup filtering parameters for display
-  opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
-  opengl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
+  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));;
+  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));;
+  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));; // This is required on WebGL for non power-of-two textures
+  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));; // Same
 
-  opengl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ii.size.x, ii.size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, ii.data);
+  fan_opengl_call(TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ii.size.x, ii.size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, ii.data));;
 
   *out_texture = image_texture;
   *image_size = ii.size;
@@ -53,35 +53,35 @@ int main() {
   loco.get_context().set_vsync(loco.window, false);
   std::string str = fan::random::string(32);
 
-  fan::opengl::GLuint texture;
+  GLuint texture;
   fan::vec2 image_size;
   LoadTextureFromFile("controller_images/controller.webp", &texture, &image_size);
 
-  fan::opengl::GLuint texture2;
+  GLuint texture2;
   {
     fan::vec2 image_size;
     LoadTextureFromFile("controller_images/tatti.webp", &texture2, &image_size);
   }
 
-  fan::opengl::GLuint texture3;
+  GLuint texture3;
   {
     fan::vec2 image_size;
     LoadTextureFromFile("controller_images/tatti.webp", &texture3, &image_size);
   }
 
-  fan::opengl::GLuint texture4;
+  GLuint texture4;
   {
     fan::vec2 image_size;
     LoadTextureFromFile("controller_images/l2r2.webp", &texture4, &image_size);
   }
 
-  fan::opengl::GLuint texture5;
+  GLuint texture5;
   {
     fan::vec2 image_size;
     LoadTextureFromFile("controller_images/button.webp", &texture5, &image_size);
   }
 
-  fan::opengl::GLuint texture6;
+  GLuint texture6;
   {
     fan::vec2 image_size;
     LoadTextureFromFile("controller_images/bumper.webp", &texture6, &image_size);

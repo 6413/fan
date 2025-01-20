@@ -568,7 +568,7 @@ public:
     }
   }
 
-  void sb_draw(loco_bdbt_NodeReference_t key_nr, uint32_t draw_mode = fan::opengl::GL_TRIANGLES) {
+  void sb_draw(loco_bdbt_NodeReference_t key_nr, uint32_t draw_mode = GL_TRIANGLES) {
     m_current_shader->use();
     // todo remove
     m_current_shader->set_vec3(loco_t::lighting_t::ambient_name, gloco->lighting.ambient);

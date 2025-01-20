@@ -154,14 +154,14 @@ namespace fan {
 
           loco_t::image_t::load_properties_t lp;
           // cudaGraphicsGLRegisterImage accepts only GL_RED
-          lp.internal_format = fan::opengl::GL_RED;
-          lp.format = fan::opengl::GL_RED;
+          lp.internal_format = GL_RED;
+          lp.format = GL_RED;
           lp.filter = loco_t::image_t::filter::linear;
           lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
           decoder->image_y_resource.open(&pile->loco, decoder->frame_size, lp);
 
-          lp.internal_format = fan::opengl::GL_RG;
-          lp.format = fan::opengl::GL_RG;
+          lp.internal_format = GL_RG;
+          lp.format = GL_RG;
           decoder->image_vu_resource.open(&pile->loco, decoder->frame_size, lp);
 
           decoder->sequence_cb();

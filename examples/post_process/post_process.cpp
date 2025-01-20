@@ -56,7 +56,7 @@ int main() {
 
 	fan::opengl::image_t image;
 	fan::opengl::image_t::load_properties_t lp;
-	lp.filter = fan::opengl::GL_LINEAR;
+	lp.filter = GL_LINEAR;
 	image.load(pile->loco.get_context(), "images/sky.webp");
 	p.image = &image;
 	p.size = 1;

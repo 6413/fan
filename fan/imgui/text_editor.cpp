@@ -1,9 +1,8 @@
-#include <fan/pch.h>
 #include "text_editor.h"
 
 #include <cassert>
-#include <fan/types/fstring.h>
 #include <chrono>
+#include <cmath>
 
 // TODO
 // - multiline comments vs single-line: latter is blocking start of a ML
@@ -312,7 +311,7 @@ int TextEditor::InsertTextAt(Coordinates& /* inout */ aWhere, const char* aValue
   return totalLines;
 }
 
-int TextEditor::InsertTextColoredAt(Coordinates& /* inout */ aWhere, const char* aValue, const fan::color& color)
+int TextEditor::InsertTextColoredAt(Coordinates& /* inout */ aWhere, const char* aValue, const ImVec4& color)
 {
   assert(!mReadOnly);
 
@@ -732,10 +731,10 @@ std::string TextEditor::GetWordAt(const Coordinates& aCoords) const
 ImU32 TextEditor::GetGlyphColor(const Glyph& aGlyph) const
 {
   if (aGlyph.mColorOverride) {
-    return static_cast<ImU32>((static_cast<ImU32>(aGlyph.custom_color.r * 255) << 0) |
-      (static_cast<ImU32>(aGlyph.custom_color.g * 255) << 8) |
-      (static_cast<ImU32>(aGlyph.custom_color.b * 255) << 16) |
-      (static_cast<ImU32>(aGlyph.custom_color.a * 255) << 24));
+    return static_cast<ImU32>((static_cast<ImU32>(aGlyph.custom_color.x * 255) << 0) |
+      (static_cast<ImU32>(aGlyph.custom_color.y * 255) << 8) |
+      (static_cast<ImU32>(aGlyph.custom_color.z * 255) << 16) |
+      (static_cast<ImU32>(aGlyph.custom_color.w * 255) << 24));
   }
   if (!mColorizerEnabled)
     return mPalette[(int)PaletteIndex::Default];
@@ -917,25 +916,6 @@ void TextEditor::HandleMouseInputs()
       }
     }
   }
-}
-
-int scan_for_color(const std::string& text, fan::color& color) {
-  switch (text[0]) {
-    case '{': {
-      auto bracket_end = text.find("}");
-      if (bracket_end != std::string::npos) {
-        static constexpr std::string_view string_to_be_found = "color:";
-        auto found = text.substr(0, bracket_end).find(string_to_be_found);
-        if (found != std::string::npos) {
-          fan::string str_color = text.substr(string_to_be_found.size() + 1, bracket_end - string_to_be_found.size() - 1);
-          color = fan::color::hex(std::stoul(str_color, 0, 16));
-          return bracket_end - string_to_be_found.size();
-        }
-      }
-      break;
-    }
-  }
-  return 0;
 }
 
 void TextEditor::Render()
@@ -1572,7 +1552,7 @@ void TextEditor::InsertText(const char* aValue)
 }
 
 
-void TextEditor::InsertTextColored(const std::string& aValue, const fan::color& color)
+void TextEditor::InsertTextColored(const std::string& aValue, const ImVec4& color)
 {
   if (aValue.empty())
     return;

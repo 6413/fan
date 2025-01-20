@@ -26,7 +26,7 @@ namespace fan {
       };
   
       fan::opengl::opengl_t opengl;
-      fan::opengl::GLuint current_program = -1;
+      GLuint current_program = -1;
 
       static void error_callback(int error, const char* description) {
         if (error == GLFW_NOT_INITIALIZED) {
@@ -94,7 +94,7 @@ namespace fan {
     public:
       using camera_nr_t = camera_list_NodeReference_t;
       struct shader_t {
-        fan::opengl::GLuint id = -1;
+        GLuint id = -1;
         int projection_view[2]{ -1, -1 };
         uint32_t vertex = -1, fragment = -1;
         // can be risky without constructor copy
@@ -123,7 +123,7 @@ namespace fan {
       void shader_set_vertex(shader_nr_t nr, const fan::string& vertex_code);
       void shader_set_fragment(shader_nr_t nr, const fan::string& fragment_code);
       bool shader_compile(shader_nr_t nr);
-      bool shader_check_compile_errors(fan::opengl::GLuint nr, const fan::string& type);
+      bool shader_check_compile_errors(GLuint nr, const fan::string& type);
       bool shader_check_compile_errors(fan::opengl::context_t::shader_t&, const fan::string& type);
 
       void shader_set_camera(shader_nr_t nr, camera_nr_t camera_nr);
@@ -159,7 +159,7 @@ namespace fan {
       //-----------------------------image-----------------------------
 
       struct image_t {
-        fan::opengl::GLuint texture_id;
+        GLuint texture_id;
         fan::vec2 size;
       };
 
@@ -175,31 +175,31 @@ namespace fan {
       using image_nr_t = gl_image_impl::image_list_NodeReference_t;
 
       struct image_format {
-        static constexpr auto b8g8r8a8_unorm = fan::opengl::GL_BGRA;
-        static constexpr auto r8_unorm = fan::opengl::GL_RED;
-        static constexpr auto rg8_unorm = fan::opengl::GL_RG;
+        static constexpr auto b8g8r8a8_unorm = GL_BGRA;
+        static constexpr auto r8_unorm = GL_RED;
+        static constexpr auto rg8_unorm = GL_RG;
       };
 
       struct image_sampler_address_mode {
-        static constexpr auto repeat = fan::opengl::GL_REPEAT;
-        static constexpr auto mirrored_repeat = fan::opengl::GL_MIRRORED_REPEAT;
-        static constexpr auto clamp_to_edge = fan::opengl::GL_CLAMP_TO_EDGE;
-        static constexpr auto clamp_to_border = fan::opengl::GL_CLAMP_TO_BORDER;
-        static constexpr auto mirrored_clamp_to_edge = fan::opengl::GL_MIRROR_CLAMP_TO_EDGE;
+        static constexpr auto repeat = GL_REPEAT;
+        static constexpr auto mirrored_repeat = GL_MIRRORED_REPEAT;
+        static constexpr auto clamp_to_edge = GL_CLAMP_TO_EDGE;
+        static constexpr auto clamp_to_border = GL_CLAMP_TO_BORDER;
+        static constexpr auto mirrored_clamp_to_edge = GL_MIRROR_CLAMP_TO_EDGE;
       };
 
       struct image_filter {
-        static constexpr auto nearest = fan::opengl::GL_NEAREST;
-        static constexpr auto linear = fan::opengl::GL_LINEAR;
+        static constexpr auto nearest = GL_NEAREST;
+        static constexpr auto linear = GL_LINEAR;
       };
 
       struct image_load_properties_defaults {
-        static constexpr uint32_t visual_output = fan::opengl::GL_REPEAT;
-        static constexpr uint32_t internal_format = fan::opengl::GL_RGBA;
-        static constexpr uint32_t format = fan::opengl::GL_RGBA;
-        static constexpr uint32_t type = fan::opengl::GL_UNSIGNED_BYTE;
-        static constexpr uint32_t min_filter = fan::opengl::GL_NEAREST;
-        static constexpr uint32_t mag_filter = fan::opengl::GL_NEAREST;
+        static constexpr uint32_t visual_output = GL_REPEAT;
+        static constexpr uint32_t internal_format = GL_RGBA;
+        static constexpr uint32_t format = GL_RGBA;
+        static constexpr uint32_t type = GL_UNSIGNED_BYTE;
+        static constexpr uint32_t min_filter = GL_NEAREST;
+        static constexpr uint32_t mag_filter = GL_NEAREST;
       };
 
       struct image_load_properties_t {
@@ -219,7 +219,7 @@ namespace fan {
       );
 
       image_nr_t image_create();
-      fan::opengl::GLuint& image_get(image_nr_t nr);
+      GLuint& image_get(image_nr_t nr);
       image_t& image_get_data(image_nr_t nr);
 
       void image_erase(image_nr_t nr);
@@ -244,7 +244,7 @@ namespace fan {
       void image_reload_pixels(image_nr_t nr, const fan::image::image_info_t& image_info);
       void image_reload_pixels(image_nr_t nr, const fan::image::image_info_t& image_info, const image_load_properties_t& p);
 
-      std::unique_ptr<uint8_t[]> image_get_pixel_data(image_nr_t nr, fan::opengl::GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
+      std::unique_ptr<uint8_t[]> image_get_pixel_data(image_nr_t nr, GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
 
       image_nr_t create_image(const fan::color& color);
       image_nr_t create_image(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p);
@@ -361,14 +361,14 @@ namespace fan {
 
         GLuint m_buffer = -1;
         GLenum m_target = -1;
-        uint32_t m_usage = fan::opengl::GL_DYNAMIC_DRAW;
+        uint32_t m_usage = GL_DYNAMIC_DRAW;
       };
 
       struct framebuffer_t {
 
         struct properties_t {
           properties_t() {}
-          fan::opengl::GLenum internalformat = fan::opengl::GL_DEPTH_STENCIL_ATTACHMENT;
+          GLenum internalformat = GL_DEPTH_STENCIL_ATTACHMENT;
         };
 
         void open(fan::opengl::context_t& context);
@@ -379,19 +379,19 @@ namespace fan {
 
         bool ready(fan::opengl::context_t& context) const;
 
-        void bind_to_renderbuffer(fan::opengl::context_t& context, fan::opengl::GLenum renderbuffer, const properties_t& p = properties_t());
+        void bind_to_renderbuffer(fan::opengl::context_t& context, GLenum renderbuffer, const properties_t& p = properties_t());
 
         // texture must be binded with texture.bind();
-        static void bind_to_texture(fan::opengl::context_t& context, fan::opengl::GLuint texture, fan::opengl::GLenum attatchment);
+        static void bind_to_texture(fan::opengl::context_t& context, GLuint texture, GLenum attatchment);
 
-        fan::opengl::GLuint framebuffer;
+        GLuint framebuffer;
       };
 
       struct renderbuffer_t {
 
         struct properties_t {
           properties_t() {}
-          GLenum internalformat = fan::opengl::GL_DEPTH24_STENCIL8;
+          GLenum internalformat = GL_DEPTH24_STENCIL8;
           fan::vec2ui size;
         };
 
@@ -401,7 +401,7 @@ namespace fan {
         void set_storage(fan::opengl::context_t& context, const properties_t& p) const;
         void bind_to_renderbuffer(fan::opengl::context_t& context, const properties_t& p = properties_t());
 
-        fan::opengl::GLuint renderbuffer;
+        GLuint renderbuffer;
       };
     }
   }

@@ -23,9 +23,9 @@
 
     struct load_properties_defaults {
       static constexpr VkSamplerAddressMode visual_output = sampler_address_mode::clamp_to_border;
-      //static constexpr uint32_t internal_format = fan::opengl::GL_RGBA;
+      //static constexpr uint32_t internal_format = GL_RGBA;
       static constexpr VkFormat format = format::r8b8g8a8_unorm;
-      //static constexpr uint32_t type = fan::opengl::GL_UNSIGNED_BYTE;
+      //static constexpr uint32_t type = GL_UNSIGNED_BYTE;
       static constexpr VkFilter min_filter = filter::nearest;
       static constexpr VkFilter mag_filter = filter::nearest;
     };
