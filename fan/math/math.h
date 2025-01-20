@@ -642,7 +642,7 @@ namespace fan {
 
 			if (!infinite_long_ray) {
 				if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-					return T(p1Start[0] + t * (p1End[0] - p1Start[0]), p1Start[1] + t * (p1End[1] - p1Start[1]));;
+					return T(p1Start[0] + t * (p1End[0] - p1Start[0]), p1Start[1] + t * (p1End[1] - p1Start[1]));
 				}
 			}
 			else {

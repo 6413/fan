@@ -3,6 +3,9 @@
 #if defined(loco_imgui)
 #include <fan/types/color.h>
 #include <fan/imgui/text_editor.h>
+#include <fan/graphics/types.h>
+
+#include <fan/graphics/types.h>
 
 namespace fan {
   struct commands_t {
@@ -24,24 +27,8 @@ namespace fan {
       };
     };
 
-    struct highlight_e {
-      enum {
-        text,
-        error,
-        success,
-        info
-      };
-    };
-
-    static constexpr fan::color highlight_color_table[] = {
-      fan::colors::white,
-      fan::colors::red,
-      fan::colors::green,
-      fan::colors::orange,
-    };
-
     struct output_t {
-      uint16_t highlight = highlight_e::text;
+      uint16_t highlight = fan::graphics::highlight_e::text;
       std::string text;
     };
 
@@ -67,14 +54,14 @@ namespace fan {
 
   struct console_t {
 
-    using highlight_e = fan::commands_t::highlight_e;
+    using highlight_e = fan::graphics::highlight_e;
 
     void open();
 
     void render();
 
-    void print(const fan::string& msg, int highlight = commands_t::highlight_e::text);
-    void println(const fan::string& msg, int highlight = commands_t::highlight_e::text);
+    void print(const fan::string& msg, int highlight = graphics::highlight_e::text);
+    void println(const fan::string& msg, int highlight = graphics::highlight_e::text);
     void print_colored(const fan::string& msg, const fan::color& color);
     void println_colored(const fan::string& msg, const fan::color& color);
 

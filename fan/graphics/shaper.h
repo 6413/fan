@@ -580,14 +580,14 @@ private:
     uint64_t ptr_offset = 0;
     for (shape_gl_init_t& location : st.locations) {
       if ((context.opengl.major == 2 && context.opengl.minor == 1) && !st.shader.iic()) {
-        location.index.first = fan_opengl_call(glGetAttribLocation(shader.id, location.index.second));;
+        location.index.first = fan_opengl_call(glGetAttribLocation(shader.id, location.index.second));
       }
-      fan_opengl_call(glEnableVertexAttribArray(location.index.first));;
+      fan_opengl_call(glEnableVertexAttribArray(location.index.first));
       fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
        // instancing
       if ((context.opengl.major > 3) || (context.opengl.major == 3 && context.opengl.minor >= 3)) {
         if (st.instanced) {
-          fan_opengl_call(glVertexAttribDivisor(location.index.first, 1));;
+          fan_opengl_call(glVertexAttribDivisor(location.index.first, 1));
         }
       }
       switch (location.type) {

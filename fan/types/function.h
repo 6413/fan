@@ -241,7 +241,7 @@ namespace fan
 
 			static void store_functor(manager_storage_type& self, T to_store)
 			{
-				Allocator& allocator = self.get_allocator<Allocator>();;
+				Allocator& allocator = self.get_allocator<Allocator>();
 				static_assert(sizeof(typename std::allocator_traits<Allocator>::pointer) <= sizeof(self.functor), "The allocator's pointer type is too big");
 				typename std::allocator_traits<Allocator>::pointer* ptr = new (&get_functor_ptr_ref(self)) typename std::allocator_traits<Allocator>::pointer(std::allocator_traits<Allocator>::allocate(allocator, 1));
 				std::allocator_traits<Allocator>::construct(allocator, *ptr, FUNC_FORWARD(T, to_store));

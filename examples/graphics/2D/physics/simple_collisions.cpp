@@ -121,8 +121,8 @@ int main() {
     b2RevoluteJoint_SetMotorSpeed(joint2, 20.f);
 
    spinner3.apply_angular_impulse(100);
-    if (ImGui::IsMouseDown(0)) {
-      for (int i = 0; i < 1; ++i)
+    if (ImGui::IsMouseDown(0) && !gloco->console.input.IsFocused()) {
+      for (int i = 0; i < 10; ++i)
       entities.push_back(fan::graphics::physics_shapes::circle_t{{
         .position = loco.get_mouse_position() / 1.28f,
         .radius = 10,
@@ -133,12 +133,12 @@ int main() {
     }
     //
 
-    fan::printcl(
-      "physics:", physics_time / 1e9, 
-      "render:", loco.delta_time - physics_time / 1e9,
-      "delta_time:", loco.delta_time,
-      "elapsed:", physics_time / 1e9
-    );
+    //fan::printcl(
+    //  "physics:", physics_time / 1e9, 
+    //  "render:", loco.delta_time - physics_time / 1e9,
+    //  "delta_time:", loco.delta_time,
+    //  "elapsed:", physics_time / 1e9
+    //);
 
     c.start();
     loco.physics_context.step(loco.delta_time);

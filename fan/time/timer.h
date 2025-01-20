@@ -4,6 +4,7 @@
 
 #include <set>
 #include <map>
+#include <functional>
 
 namespace fan {
 
@@ -31,7 +32,7 @@ namespace fan {
       uint64_t ns;
       uint64_t time_left;
       bool repeat;
-      fan::function_t<void()> cb = [] {};
+      std::function<void()> cb = [] {};
       id_t id;
       bool operator<(const timer_t& r) const {
         return time_left < r.time_left;

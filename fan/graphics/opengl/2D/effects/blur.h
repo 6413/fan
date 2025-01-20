@@ -93,19 +93,19 @@ struct blur_t {
          1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
          1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
       };
-      fan_opengl_call(glGenVertexArrays(1, &quadVAO));;
-      fan_opengl_call(glGenBuffers(1, &quadVBO));;
-      fan_opengl_call(glBindVertexArray(quadVAO));;
-      fan_opengl_call(glBindBuffer(GL_ARRAY_BUFFER, quadVBO));;
+      fan_opengl_call(glGenVertexArrays(1, &quadVAO));
+      fan_opengl_call(glGenBuffers(1, &quadVBO));
+      fan_opengl_call(glBindVertexArray(quadVAO));
+      fan_opengl_call(glBindBuffer(GL_ARRAY_BUFFER, quadVBO));
       fan_opengl_call(glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW));
-      fan_opengl_call(glEnableVertexAttribArray(0));;
+      fan_opengl_call(glEnableVertexAttribArray(0));
       fan_opengl_call(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0));
-      fan_opengl_call(glEnableVertexAttribArray(1));;
+      fan_opengl_call(glEnableVertexAttribArray(1));
       fan_opengl_call(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))));
     }
-    fan_opengl_call(glBindVertexArray(quadVAO));;
-    fan_opengl_call(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));;
-    fan_opengl_call(glBindVertexArray(0));;
+    fan_opengl_call(glBindVertexArray(quadVAO));
+    fan_opengl_call(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
+    fan_opengl_call(glBindVertexArray(0));
   }
 
   void draw_downsamples(loco_t::image_t* image) {
@@ -119,7 +119,7 @@ struct blur_t {
     context.shader_set_value(shader_downsample, "resolution", window_size);
     context.shader_set_value(shader_downsample, "mipLevel", 0);
 
-    fan_opengl_call(glActiveTexture(GL_TEXTURE0));;
+    fan_opengl_call(glActiveTexture(GL_TEXTURE0));
     context.image_bind(*image);
 
     for (uint32_t i = 0; i < mips.size(); i++) {
@@ -129,7 +129,7 @@ struct blur_t {
         fan::throw_error("mip size too small (less than 1)");
       }
 #endif
-      fan_opengl_call(glViewport(0, 0, mip.size.x, mip.size.y));;
+      fan_opengl_call(glViewport(0, 0, mip.size.x, mip.size.y));
       brightness_fbo.bind_to_texture(
         gloco->get_context(),
         context.image_get(mip.image),
@@ -161,10 +161,10 @@ struct blur_t {
       mip_t mip = mips[i];
       mip_t next_mip = mips[i - 1];
 
-      fan_opengl_call(glActiveTexture(GL_TEXTURE0));;
+      fan_opengl_call(glActiveTexture(GL_TEXTURE0));
       context.image_bind(mip.image);
 
-      fan_opengl_call(glViewport(0, 0, next_mip.size.x, next_mip.size.y));;
+      fan_opengl_call(glViewport(0, 0, next_mip.size.x, next_mip.size.y));
 
       fan::opengl::core::framebuffer_t::bind_to_texture(
         gloco->get_context(),
@@ -182,7 +182,7 @@ struct blur_t {
 
     brightness_fbo.bind(context);
 
-    fan_opengl_call(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));;
+    fan_opengl_call(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
 
     fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 

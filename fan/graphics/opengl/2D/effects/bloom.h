@@ -27,7 +27,7 @@ struct bloom_t {
     context.shader_set_value(shader_bloom, "bloom", bloomamount);
     /*
     
-        fan_opengl_call(glActiveTexture(GL_TEXTURE0));;
+        fan_opengl_call(glActiveTexture(GL_TEXTURE0));
     mips[0].image.bind_texture();
     color_texture->bind();
     fan::opengl::core::framebuffer_t::bind_to_texture(
@@ -44,10 +44,10 @@ struct bloom_t {
       GL_COLOR_ATTACHMENT0
     );*/
     //gloco->m_framebuffer.bind(gloco->get_context());
-    //fan_opengl_call(glActiveTexture(GL_TEXTURE0));;
+    //fan_opengl_call(glActiveTexture(GL_TEXTURE0));
     //gloco->color_buffers[0].bind_texture();
     //
-    //fan_opengl_call(glActiveTexture(GL_TEXTURE1));;
+    //fan_opengl_call(glActiveTexture(GL_TEXTURE1));
     //gloco->blur.mips.front().image.bind_texture();
     //
     //gloco->blur.renderQuad();

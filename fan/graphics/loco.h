@@ -183,11 +183,6 @@ struct global_loco_t {
 // it will crash in random places
 inline global_loco_t gloco;
 
-namespace fan {
-  void printcl(auto&&... values);
-  void printclh(int highlight = 0, auto&&... values);
-}
-
 struct loco_t : fan::opengl::context_t {
 
   static uint8_t* A_resize(void* ptr, uintptr_t size);
@@ -3100,21 +3095,29 @@ namespace fan {
 #endif
 
 #if defined (loco_imgui)
-void fan::printcl(auto&&... values) {
+
+void fan::printclnn(auto&&... values) {
   ([&](const auto& value) {
     std::ostringstream oss;
     oss << value;
     gloco->console.print(oss.str() + " ", 0);
     }(values), ...);
+}
+void fan::printcl(auto&&... values) {
+  fan::printclnn(values...);
   gloco->console.print("\n", 0);
 }
 
-void fan::printclh(int highlight, auto&&... values) {
+void fan::printclnnh(int highlight, auto&&... values) {
   ([&](const auto& value) {
     std::ostringstream oss;
     oss << value;
     gloco->console.print(oss.str() + " ", highlight);
     }(values), ...);
+}
+
+void fan::printclh(int highlight, auto&&... values) {
+  fan::printclnnh(highlight, values...);
   gloco->console.print("\n", highlight);
 }
 #endif

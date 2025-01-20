@@ -375,8 +375,8 @@ struct shader_light_t {
 
   void draw() {
     gloco->get_context().set_depth_test(false);
-    gloco->get_context().opengl.call(fan_opengl_call(Enable(GL_BLEND));;
-    gloco->get_context().opengl.call(fan_opengl_call(BlendFunc(GL_ONE, GL_ONE));;
+    gloco->get_context().opengl.call(fan_opengl_call(Enable(GL_BLEND));
+    gloco->get_context().opengl.call(fan_opengl_call(BlendFunc(GL_ONE, GL_ONE));
 
     #if defined(loco_framebuffer)
     unsigned int attachments[sizeof(gloco->color_buffers) / sizeof(gloco->color_buffers[0])];

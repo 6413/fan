@@ -23,13 +23,13 @@
 //      static loaded_skybox_t load_skybox(fan::opengl::context_t* context, const loaded_skybox_properties_t& p) {
 //        loaded_skybox_t loaded_skybox;
 //
-//        context->fan_opengl_call(GenTextures(1, &loaded_skybox.texture));;
-//        context->fan_opengl_call(glBindTexture(GL_TEXTURE_CUBE_MAP, loaded_skybox.texture));;
+//        context->fan_opengl_call(GenTextures(1, &loaded_skybox.texture));
+//        context->fan_opengl_call(glBindTexture(GL_TEXTURE_CUBE_MAP, loaded_skybox.texture));
 //
 //        auto load_side = [] (fan::opengl::context_t* context, std::string_view path, uint8_t i) {
 //          fan::webp::image_info_t info;
 //          fan::webp::load(path, &info);
-//          context->fan_opengl_call(TexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, info.size.x, info.size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, info.data));;
+//          context->fan_opengl_call(TexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, info.size.x, info.size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, info.data));
 //          fan::webp::free_image(info.data);
 //        };
 //
@@ -40,11 +40,11 @@
 //        load_side(context, p.front, 4);
 //        load_side(context, p.back, 5);
 //
-//        context->fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR));;
-//        context->fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR));;
-//        context->fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));;
-//        context->fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));;
-//        context->fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE));;
+//        context->fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+//        context->fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+//        context->fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+//        context->fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+//        context->fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE));
 //
 //        return loaded_skybox;
 //      }
@@ -80,7 +80,7 @@
 //        }
 //        #endif
 //
-//        context->fan_opengl_call(DeleteTextures(1, &m_texture));;
+//        context->fan_opengl_call(DeleteTextures(1, &m_texture));
 //      }
 //
 //      void set(fan::opengl::context_t* context, const properties_t& properties) {
@@ -105,7 +105,7 @@
 //
 //        context->set_depth_test(true);
 //
-//        context->fan_opengl_call(DepthFunc(GL_LEQUAL));;
+//        context->fan_opengl_call(DepthFunc(GL_LEQUAL));
 //        fan::mat4 projection(1);
 //        projection = fan::math::perspective<fan::mat4>(fan::math::radians(90.0), (f32_t)context->viewport_size.x / (f32_t)context->viewport_size.y, 0.1f, 1000.0f);
 //
@@ -115,10 +115,10 @@
 //
 //        m_shader.use(context);
 //
-//        context->fan_opengl_call(glActiveTexture(GL_TEXTURE0));;
-//        context->fan_opengl_call(glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture));;
-//        context->fan_opengl_call(DrawArrays(GL_TRIANGLES, 0, 36));;
-//        context->fan_opengl_call(DepthFunc(GL_LESS));;
+//        context->fan_opengl_call(glActiveTexture(GL_TEXTURE0));
+//        context->fan_opengl_call(glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture));
+//        context->fan_opengl_call(DrawArrays(GL_TRIANGLES, 0, 36));
+//        context->fan_opengl_call(DepthFunc(GL_LESS));
 //      }
 //
 //      uint32_t m_texture;
