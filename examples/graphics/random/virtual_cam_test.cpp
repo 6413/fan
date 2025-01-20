@@ -192,9 +192,9 @@ int main() {
 
   loco_t::image_t image;
   loco_t::image_t::load_properties_t lp;
-  lp.internal_format = fan::opengl::GL_RGB;
-  lp.format = fan::opengl::GL_BGR;
-  lp.type = fan::opengl::GL_UNSIGNED_BYTE;
+  lp.internal_format = GL_RGB;
+  lp.format = GL_BGR;
+  lp.type = GL_UNSIGNED_BYTE;
   image.load(ii, lp);
 
   fan::graphics::sprite_t s{{
@@ -312,7 +312,7 @@ int main() {
         //image.bind_texture();
         loco.color_buffers[0].bind_texture();
         //loco.color_buffers[0].get_texture()
-        loco.get_context()->opengl.glGetTexImage(fan::opengl::GL_TEXTURE_2D, 0, fan::opengl::GL_RGBA, fan::opengl::GL_UNSIGNED_BYTE, pixels);
+        loco.get_context()->fan_opengl_call(GetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));;
 
         cv::Mat image_rgb;
 
