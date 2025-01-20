@@ -312,7 +312,7 @@ int main() {
         //image.bind_texture();
         loco.color_buffers[0].bind_texture();
         //loco.color_buffers[0].get_texture()
-        loco.get_context()->fan_opengl_call(GetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));;
+        loco.get_context()->fan_opengl_call(GetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
 
         cv::Mat image_rgb;
 

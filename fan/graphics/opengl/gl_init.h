@@ -12,7 +12,35 @@
 
 #include <utility>
 
-#define fan_opengl_call(x) x
+#ifndef debug_glcall_timings
+  #define debug_glcall_timings
+#endif
+#if defined(debug_glcall_timings)
+  #include <fan/time/timer.h>
+#endif
+
+#include <fan/graphics/types.h>
+
+#define fan_opengl_call(func) \
+  [&]() { \
+    struct measure_func_t { \
+      measure_func_t() { \
+        c.start(); \
+      }\
+      ~measure_func_t() { \
+        glFlush(); \
+        glFinish(); \
+        if (c.elapsed() / 1e+9 > 0.01) {\
+          std::string func_call = #func; \
+          std::string func_name = func_call.substr(0, func_call.find('(')); \
+          fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":"); \
+          fan::printclh(fan::graphics::highlight_e::warning,  fan::to_string(c.elapsed() / 1e+6) + "ms"); \
+        }\
+      } \
+      fan::time::clock c; \
+    }mf; \
+    return func; \
+  }()
 
 namespace fan {
   namespace opengl {

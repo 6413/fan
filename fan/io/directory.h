@@ -26,10 +26,10 @@ namespace fan {
 		};
 
     static void handle_string_out(fan::string& str) {
-      return std::replace(str.begin(), str.end(), '\\', '/');;
+      return std::replace(str.begin(), str.end(), '\\', '/');
     }
     static void handle_string_in(fan::string& str) {
-      std::replace(str.begin(), str.end(), '/', '\\');;
+      std::replace(str.begin(), str.end(), '/', '\\');
     }
 
 		static void iterate_directory_by_image_size_(

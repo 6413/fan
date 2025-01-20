@@ -545,7 +545,7 @@ bool fan::opengl::context_t::shader_check_compile_errors(GLuint shader, const fa
   }
 
   int buffer_size = 0;
-  fan_opengl_call(glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &buffer_size));;
+  fan_opengl_call(glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &buffer_size));
 
 
   if (buffer_size <= 0) {
@@ -592,7 +592,7 @@ bool fan::opengl::context_t::shader_check_compile_errors(fan::opengl::context_t:
   }
 
   int buffer_size = 0;
-  fan_opengl_call(glGetShaderiv(vertex ? shader.vertex : shader.fragment, GL_INFO_LOG_LENGTH, &buffer_size));;
+  fan_opengl_call(glGetShaderiv(vertex ? shader.vertex : shader.fragment, GL_INFO_LOG_LENGTH, &buffer_size));
 
 
   if (buffer_size <= 0) {
@@ -674,7 +674,7 @@ fan::opengl::context_t::image_t& fan::opengl::context_t::image_get_data(image_nr
 }
 
 void fan::opengl::context_t::image_erase(image_nr_t nr) {
-  fan_opengl_call(glDeleteTextures(1, &image_get(nr)););
+  fan_opengl_call(glDeleteTextures(1, &image_get(nr)));
   image_list.Recycle(nr);
 }
 

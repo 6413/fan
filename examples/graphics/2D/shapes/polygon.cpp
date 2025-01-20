@@ -53,7 +53,7 @@ std::vector<fan::vec2> ground_points(const fan::vec2& position, f32_t amplitude,
 
 int main() {
   loco_t loco;
-  
+
   std::vector<fan::graphics::physics_shapes::circle_t> entities;
   for (int i = 0; i < 10; ++i) {
     entities.push_back(fan::graphics::physics_shapes::circle_t{{

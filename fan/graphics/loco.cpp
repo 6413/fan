@@ -106,9 +106,9 @@ void loco_t::camera_move(fan::opengl::context_t::camera_t& camera, f64_t dt, f32
 }
 
 void loco_t::render_final_fb() {
-  fan_opengl_call(glBindVertexArray(fb_vao));;
-  fan_opengl_call(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));;
-  fan_opengl_call(glBindVertexArray(0));;
+  fan_opengl_call(glBindVertexArray(fb_vao));
+  fan_opengl_call(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
+  fan_opengl_call(glBindVertexArray(0));
 }
 
 
@@ -119,7 +119,7 @@ void loco_t::initialize_fb_vaos(uint32_t& vao, uint32_t& vbo) {
      1.0f, 1.0f, 0, 1.0f, 1.0f,
      1.0f, -1.0f, 0, 1.0f, 0.0f,
   };
-  fan_opengl_call(glGenVertexArrays(1, &vao));;
+  fan_opengl_call(glGenVertexArrays(1, &vao));
   fan_opengl_call(glGenBuffers(1, &vbo));
   fan_opengl_call(glBindVertexArray(vao));
   fan_opengl_call(glBindBuffer(GL_ARRAY_BUFFER, vbo));
@@ -914,14 +914,14 @@ void generate_commands(loco_t* loco) {
   loco->console.commands.add("echo", [](const fan::commands_t::arg_t& args) {
     fan::commands_t::output_t out;
     out.text = fan::append_args(args) + "\n";
-    out.highlight = fan::commands_t::highlight_e::info;
+    out.highlight = fan::graphics::highlight_e::info;
     gloco->console.commands.output_cb(out);
   }).description = "prints something - usage echo [args]";
 
   loco->console.commands.add("help", [](const fan::commands_t::arg_t& args) {
     if (args.empty()) {
       fan::commands_t::output_t out;
-      out.highlight = fan::commands_t::highlight_e::info;
+      out.highlight = fan::graphics::highlight_e::info;
       std::string out_str;
       out_str += "{\n";
       for (const auto& i : gloco->console.commands.func_table) {
@@ -940,7 +940,7 @@ void generate_commands(loco_t* loco) {
       }
       fan::commands_t::output_t out;
       out.text = found->second.description + "\n";
-      out.highlight = fan::commands_t::highlight_e::info;
+      out.highlight = fan::graphics::highlight_e::info;
       gloco->console.commands.output_cb(out);
     }
     else {
@@ -956,7 +956,7 @@ void generate_commands(loco_t* loco) {
 
     fan::commands_t::output_t out;
     out.text = out_str;
-    out.highlight = fan::commands_t::highlight_e::info;
+    out.highlight = fan::graphics::highlight_e::info;
 
     gloco->console.commands.output_cb(out);
   }).description = "lists all commands - usage list";
@@ -1693,8 +1693,8 @@ void loco_t::draw_shapes() {
       loco_t::image_t texture = *(loco_t::image_t*)KeyTraverse.kd();
       if (texture.iic() == false) {
         // TODO FIX + 0
-        fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 0));;
-        fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(texture)););
+        fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 0));
+        fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(texture)));
         //++texture_count;
       }
       break;
@@ -1817,19 +1817,19 @@ void loco_t::draw_shapes() {
           auto& ri = *(universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
 
           if (ri.images_rest[0].iic() == false) {
-            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 1));;
-            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images_rest[0])););
+            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 1));
+            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images_rest[0])));
             shader_set_value(shader, "_t01", 1);
           }
           if (ri.images_rest[1].iic() == false) {
-            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 2));;
-            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images_rest[1])););
+            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 2));
+            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images_rest[1])));
             shader_set_value(shader, "_t02", 2);
           }
 
           if (ri.images_rest[2].iic() == false) {
-            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 3));;
-            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images_rest[2])););
+            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 3));
+            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images_rest[2])));
             shader_set_value(shader, "_t03", 3);
           }
           //fan::throw_error("shaper design is changed");
@@ -1843,8 +1843,8 @@ void loco_t::draw_shapes() {
           for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
             if (ri.images[i - 2].iic() == false) {
               shader_set_value(shader, "_t0" + std::to_string(i), i);
-              fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));;
-              fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images[i - 2])););
+              fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));
+              fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(ri.images[i - 2])));
             }
           }
         }
@@ -1853,8 +1853,8 @@ void loco_t::draw_shapes() {
 
           if (shape_type == loco_t::shape_type_t::sprite || shape_type == loco_t::shape_type_t::unlit_sprite) {
             if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
-              fan_opengl_call(glActiveTexture(GL_TEXTURE1));;
-              fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(color_buffers[1])););
+              fan_opengl_call(glActiveTexture(GL_TEXTURE1));
+              fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(color_buffers[1])));
             }
           }
 
@@ -2055,23 +2055,23 @@ void loco_t::process_frame() {
   if ((opengl.major > 3) || (opengl.major == 3 && opengl.minor >= 3)) {
     m_framebuffer.bind(*this);
 
-    fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));;
+    fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));
     for (std::size_t i = 0; i < std::size(color_buffers); ++i) {
-      fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));;
+      fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));
       image_bind(color_buffers[i]);
       fan_opengl_call(glDrawBuffer(GL_COLOR_ATTACHMENT0 + (uint32_t)std::size(color_buffers) - 1 - i));
       if (i + (std::size_t)1 == std::size(color_buffers)) {
-        fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));;
+        fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));
       }
       fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     }
   }
   else {
-    fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));;
+    fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));
     fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
   }
 #else
-  fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));;
+  fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));
   fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 #endif
 
@@ -2122,7 +2122,7 @@ void loco_t::process_frame() {
 
   //blur[1].draw(&color_buffers[3]);
 
-  fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));;
+  fan_opengl_call(glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a));
   fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
   fan::vec2 window_size = window.get_size();
   viewport_set(0, window_size, window_size);
@@ -2132,11 +2132,11 @@ void loco_t::process_frame() {
 
   shader_set_value(m_fbo_final_shader, "window_size", window_size);
 
-  fan_opengl_call(glActiveTexture(GL_TEXTURE0));;
+  fan_opengl_call(glActiveTexture(GL_TEXTURE0));
   image_bind(color_buffers[0]);
 
 #if defined(loco_post_process)
-  fan_opengl_call(glActiveTexture(GL_TEXTURE1));;
+  fan_opengl_call(glActiveTexture(GL_TEXTURE1));
   image_bind(blur[0].mips.front().image);
 #endif
   render_final_fb();

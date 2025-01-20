@@ -83,6 +83,7 @@ if(LOCO_IMGUI)
     )
 endif()
 
+# Native File Dialog library
 if(UNIX)
     file(GLOB NFD_SOURCES ${ROOT_PATH}/nativefiledialog/*.c)
     list(FILTER NFD_SOURCES EXCLUDE REGEX ".*nfd_zenity\\.c$")
@@ -143,6 +144,8 @@ if(BUILD_MAIN)
 					opus
 					pulse-simple
 					uv
+					GL
+					GLEW
 					${GTK3_LIBRARIES}
 			)
 

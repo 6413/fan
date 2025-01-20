@@ -67,7 +67,7 @@ void init_zoom() {
     gloco->default_camera->camera.set_ortho(
       fan::vec2(-s.x, s.x) / zoom,
       fan::vec2(-s.y, s.y) / zoom
-    );;
+    );
     };
 
   update_ortho();

@@ -27,16 +27,16 @@ bool LoadTextureFromFile(const char* filename, GLuint* out_texture, fan::vec2* i
   auto& opengl = gloco->get_context().opengl;
   // Create a OpenGL texture identifier
   GLuint image_texture;
-  fan_opengl_call(GenTextures(1, &image_texture));;
-  fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_texture));;
+  fan_opengl_call(GenTextures(1, &image_texture));
+  fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_texture));
 
   // Setup filtering parameters for display
-  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));;
-  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));;
-  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));; // This is required on WebGL for non power-of-two textures
-  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));; // Same
+  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)); // This is required on WebGL for non power-of-two textures
+  fan_opengl_call(TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)); // Same
 
-  fan_opengl_call(TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ii.size.x, ii.size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, ii.data));;
+  fan_opengl_call(TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ii.size.x, ii.size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, ii.data));
 
   *out_texture = image_texture;
   *image_size = ii.size;

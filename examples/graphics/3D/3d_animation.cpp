@@ -166,10 +166,10 @@ int main() {
 
     if (ImGui::ToggleButton("draw lines", &draw_lines)) {
       if (draw_lines) {
-        gloco->fan_opengl_call(PolygonMode(GL_FRONT_AND_BACK, GL_LINE));;
+        gloco->fan_opengl_call(PolygonMode(GL_FRONT_AND_BACK, GL_LINE));
       }
       else {
-        gloco->fan_opengl_call(PolygonMode(GL_FRONT_AND_BACK, GL_FILL));;
+        gloco->fan_opengl_call(PolygonMode(GL_FRONT_AND_BACK, GL_FILL));
       }
     }
 

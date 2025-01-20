@@ -51,14 +51,14 @@ int fan::commands_t::insert_to_command_chain(const commands_t::arg_t& args)
 void fan::commands_t::print_invalid_arg_count() {
   output_t out;
   out.text = "invalid amount of arguments\n";
-  out.highlight = highlight_e::error;
+  out.highlight = fan::graphics::highlight_e::error;
   output_cb(out);
 }
 
 void fan::commands_t::print_command_not_found(const std::string& cmd) {
   output_t out;
   out.text = "\"" + cmd + "\"" " command not found\n";
-  out.highlight = highlight_e::error;
+  out.highlight = fan::graphics::highlight_e::error;
   output_cb(out);
 }
 
@@ -79,7 +79,7 @@ std::string fan::append_args(const std::vector<std::string>& args, uint64_t offs
 void fan::console_t::open() {
   static auto l = [&](const fan::commands_t::output_t& out) {
     editor.SetReadOnly(false);
-    fan::color color = fan::commands_t::highlight_color_table[out.highlight];
+    fan::color color = fan::graphics::highlight_color_table[out.highlight];
     editor.SetCursorPosition(TextEditor::Coordinates(editor.GetTotalLines(), 0));
     editor.MoveEnd();
     editor.InsertTextColored(out.text, color);
