@@ -133,14 +133,16 @@ namespace fan {
 
     void deallocate_memory(void* p) {
       if (enabled) {
-        auto found = memory_map.find(p);
-        if (found == memory_map.end()) {
-          printf("freeing non-mapped memory: %p\n", p);
-        }
-        else {
-          memory_set.erase(found->second);
-          memory_map.erase(found);
-          current_allocation_size -= found->second.n;
+        if (p) {
+          auto found = memory_map.find(p);
+          if (found == memory_map.end()) {
+            printf("freeing non-mapped memory: %p\n", p);
+          }
+          else {
+            memory_set.erase(found->second);
+            memory_map.erase(found);
+            current_allocation_size -= found->second.n;
+          }
         }
       }
       std::free(p);

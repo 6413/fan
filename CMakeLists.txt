@@ -17,7 +17,7 @@ set(LOCO_ASSIMP ON)
 set(BUILD_MAIN ON)
 
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L/usr/local/lib/ -w -fPIC -fpermissive -ferror-limit=4")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L/usr/local/lib/ -w -fPIC -fpermissive -ferror-limit=4 -stdlib=libstdc++ -lstdc++_libbacktrace -fsized-deallocation -no-pie")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare")
@@ -146,6 +146,7 @@ if(BUILD_MAIN)
 					uv
 					GL
 					GLEW
+					stdc++exp
 					${GTK3_LIBRARIES}
 			)
 
