@@ -2044,7 +2044,7 @@ void loco_t::draw_shapes() {
            fan_opengl_call(glDrawArraysInstancedBaseInstance(
               shape_data.draw_mode,
               0,
-              polygon_t::max_vertices_per_element,
+              6,//polygon_t::max_vertices_per_element breaks light
               BlockTraverse.GetAmount(shaper),
               BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
             ));

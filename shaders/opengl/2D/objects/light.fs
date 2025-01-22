@@ -25,7 +25,6 @@ void main() {
         intensity = 1.0 - smoothstep(radius / 3 - smooth_edge, radius, distance);
     } else if (fs_flags == floatBitsToUint(1.0)){
         // Square lighting
-         // Square lighting
         smooth_edge *= multiplier;
 		radius *= multiplier2;
         vec3 diff = abs(frag_position - instance_position) - vec3(radius);
