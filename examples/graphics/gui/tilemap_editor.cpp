@@ -17,7 +17,7 @@ struct player_t {
     return pl->presolve(shapeIdA, shapeIdB, manifold);
   }
   bool presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold) const {
-    return fan::physics::presolve_oneway_collision(shapeIdA, shapeIdB, manifold, player.character);
+    return fan::physics::presolve_oneway_collision(shapeIdA, shapeIdB, manifold, player);
   }
 
   fan::graphics::character2d_t player{ fan::graphics::physics_shapes::capsule_t{{
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
   fte_t::properties_t p;
   p.camera = &camera0;
   fte.open(p);
-  fte.open_texturepack("platformer.ftp");
+  fte.open_texturepack("forest_tileset.ftp");
 
   std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;
@@ -143,13 +143,15 @@ int main(int argc, char** argv) {
 
   loco.set_vsync(0);
 
-  fte.fin("example.json");
+  
+
+  fte.fin("forest.json");
 
   loco.loop([&] {
     if (render_scene) {
       if (ImGui::Begin("Program", 0, ImGuiWindowFlags_NoBackground)) {
         fan::vec2 s = ImGui::GetContentRegionAvail();
-        fan::vec2 dst = player->player.character.get_position();
+        fan::vec2 dst = player->player.get_position();
         fan::vec2 src = loco.camera_get_position(camera1.camera);
 
         loco.camera_set_position(
