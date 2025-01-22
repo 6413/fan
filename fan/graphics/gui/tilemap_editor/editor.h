@@ -950,7 +950,7 @@ struct fte_t {
       }
     ImGui::EndMainMenuBar();
     fan::vec2 initial_pos = ImGui::GetCursorScreenPos();
-    ImGui::Begin("Tilemap Editor", 0, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDecoration | ImGuiDockNodeFlags_AutoHideTabBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::Begin("Tilemap Editor2", 0, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDecoration | ImGuiDockNodeFlags_AutoHideTabBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollWithMouse);
       fan::vec2 window_size = ImGui::GetIO().DisplaySize;
       fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
 
@@ -1457,46 +1457,46 @@ struct fte_t {
             layer.tile.mesh_property = (mesh_property_t)mesh_property;
           } 
         }
-        if (layer.tile.mesh_property == mesh_property_t::sensor) {
-          if (ImGui::BeginChild("Actions")) {
-            ImGui::Text("Actions:");
-            if (ImGui::Combo("##actions", (int*)&layer.tile.action, actions_e_strings, std::size(actions_e_strings))) {
+        //if (layer.tile.mesh_property == mesh_property_t::sensor) {
+        //  if (ImGui::BeginChild("Actions")) {
+        //    ImGui::Text("Actions:");
+        //    if (ImGui::Combo("##actions", (int*)&layer.tile.action, actions_e_strings, std::size(actions_e_strings))) {
 
-            }
+        //    }
 
-            switch(layer.tile.action) {
-              case actions_e::open_model: {
-                static std::vector<std::string> model_names;
-                if (ImGui::Button("select models")) {
-                  model_names.clear();
-                  models_open_file_dialog.load("json", &model_names);
-                }
+        //    switch(layer.tile.action) {
+        //      case actions_e::open_model: {
+        //        static std::vector<std::string> model_names;
+        //        if (ImGui::Button("select models")) {
+        //          model_names.clear();
+        //          models_open_file_dialog.load("json", &model_names);
+        //        }
 
-                if (models_open_file_dialog.is_finished()) {
-                  layer.tile.object_names.clear();
-                  for (const auto& model_name : model_names) {
-                    std::string base_filename = model_name.substr(model_name.find_last_of("/\\") + 1);
-                    std::string extension = base_filename.substr(base_filename.find_last_of('.') + 1);
-                    base_filename = base_filename.substr(0, base_filename.find_last_of('.'));
-                    layer.tile.object_names.push_back(base_filename + "." + extension);
-                  }
-                  models_open_file_dialog.finished = true;
-                }
+        //        if (models_open_file_dialog.is_finished()) {
+        //          layer.tile.object_names.clear();
+        //          for (const auto& model_name : model_names) {
+        //            std::string base_filename = model_name.substr(model_name.find_last_of("/\\") + 1);
+        //            std::string extension = base_filename.substr(base_filename.find_last_of('.') + 1);
+        //            base_filename = base_filename.substr(0, base_filename.find_last_of('.'));
+        //            layer.tile.object_names.push_back(base_filename + "." + extension);
+        //          }
+        //          models_open_file_dialog.finished = true;
+        //        }
 
-                /*static int key = fan::input_enum_to_array_index(layer.tile.key);
-                if (ImGui::ComboAutoSelect("Open Key", key, fan::input_strings, gloco->item_getter1, ImGuiComboFlags_HeightRegular)) {
-                  layer.tile.key = fan::array_index_to_enum_input(key);
-                }*/
-                break;
-              }
-              default: {
-                fan::throw_error("unimplemented");
-              }
-            }
+        //        /*static int key = fan::input_enum_to_array_index(layer.tile.key);
+        //        if (ImGui::ComboAutoSelect("Open Key", key, fan::input_strings, gloco->item_getter1, ImGuiComboFlags_HeightRegular)) {
+        //          layer.tile.key = fan::array_index_to_enum_input(key);
+        //        }*/
+        //        break;
+        //      }
+        //      default: {
+        //        fan::throw_error("unimplemented");
+        //      }
+        //    }
 
-          }
-          ImGui::EndChild();
-        }
+        //  }
+        //  ImGui::EndChild();
+        //}
       }
     }
     ImGui::End();
@@ -2046,7 +2046,7 @@ shape data{
       physics_shape = fte_t::mesh_property_t::physics_shape,
       light
     };
-    static constexpr const char* type_names[] = { "Texture", "Physics shape", "Sensor", "Light"};
+    static constexpr const char* type_names[] = { "Texture", "Physics shape", "Light"};
     type_e type = type_e::texture;
 
     enum class dynamics_e : uint8_t {
