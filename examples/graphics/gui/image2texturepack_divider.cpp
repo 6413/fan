@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
     fan::print("vertical horizontal input output; example: 2 2 *.png *fte");
     return -1;
   }
-  loco_t loco;
+  loco_t loco{{.visible=false}};
 
   image_divider_t image_divider;
 

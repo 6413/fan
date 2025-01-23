@@ -170,7 +170,7 @@ namespace fan {
     };
 
    //window_t();
-    void open(fan::vec2i window_size, const std::string& name, uint64_t flags = 0);
+    void open(fan::vec2i window_size, const std::string& name, bool visible = true, uint64_t flags = 0);
 
     void close();
 

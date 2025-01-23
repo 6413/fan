@@ -15,9 +15,6 @@
 #define loco_vfi
 #define loco_physics
 
-#include <uv.h>
-#undef min
-#undef max
 //
 #include <fan/window/window.h>
 #include <fan/graphics/opengl/gl_core.h>
@@ -550,6 +547,7 @@ public:
   struct properties_t {
     bool vsync = true;
     fan::vec2 window_size = -1;
+    bool visible = true;
     uint64_t window_flags = 0;
   };
 
@@ -2959,6 +2957,7 @@ namespace ImGui {
 
   ImVec2 GetPositionBottomCorner(const char* text = "", uint32_t reverse_yoffset = 0);
 
+  void ImageRotated(ImTextureID user_texture_id, const ImVec2& size, int angle, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0));
 }
 // Imgui extensions
 

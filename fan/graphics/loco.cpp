@@ -3,6 +3,10 @@
 #include <fan/time/time.h>
 #include <fan/memory/memory.hpp>
 
+#if defined(loco_imgui)
+  #include <fan/imgui/imgui_internal.h>
+#endif
+
 #define loco_framebuffer
 #define loco_post_process
 //
@@ -1300,7 +1304,7 @@ loco_t::loco_t(const properties_t& p){
 
     glfwSetErrorCallback(error_callback);
   }
-  window.open(p.window_size, fan::window_t::default_window_name, p.window_flags);
+  window.open(p.window_size, fan::window_t::default_window_name, p.visible, p.window_flags);
   gloco = this;
   set_vsync(false); // using libuv
   //fan::print("less pain", this, (void*)&lighting, (void*)((uint8_t*)&lighting - (uint8_t*)this), sizeof(*this), lighting.ambient);
@@ -3467,6 +3471,57 @@ ImVec2 ImGui::GetPositionBottomCorner(const char* text, uint32_t reverse_yoffset
   text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
 
   return text_pos;
+}
+void ImGui::ImageRotated(ImTextureID user_texture_id, const ImVec2& size, int angle, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+{
+  IM_ASSERT(angle % 90 == 0);
+  ImVec2 _uv0, _uv1, _uv2, _uv3;
+  switch (angle % 360)
+  {
+  case 0:
+    Image(user_texture_id, size, uv0, uv1, tint_col, border_col);
+    return;
+  case 180:
+    Image(user_texture_id, size, uv1, uv0, tint_col, border_col);
+    return;
+  case 90:
+    _uv3 = uv0;
+    _uv1 = uv1;
+    _uv0 = ImVec2(uv1.x, uv0.y);
+    _uv2 = ImVec2(uv0.x, uv1.y);
+    break;
+  case 270:
+    _uv1 = uv0;
+    _uv3 = uv1;
+    _uv0 = ImVec2(uv0.x, uv1.y);
+    _uv2 = ImVec2(uv1.x, uv0.y);
+    break;
+  }
+  ImGuiWindow* window = GetCurrentWindow();
+  if (window->SkipItems)
+    return;
+  ImVec2 _size(size.y, size.x);
+  ImRect bb(window->DC.CursorPos, window->DC.CursorPos + _size);
+  if (border_col.w > 0.0f)
+    bb.Max += ImVec2(2, 2);
+  ItemSize(bb);
+  if (!ItemAdd(bb, 0))
+    return;
+  if (border_col.w > 0.0f)
+  {
+    window->DrawList->AddRect(bb.Min, bb.Max, GetColorU32(border_col), 0.0f);
+    ImVec2 x0 = bb.Min + ImVec2(1, 1);
+    ImVec2 x2 = bb.Max - ImVec2(1, 1);
+    ImVec2 x1 = ImVec2(x2.x, x0.y);
+    ImVec2 x3 = ImVec2(x0.x, x2.y);
+    window->DrawList->AddImageQuad(user_texture_id, x0, x1, x2, x3, _uv0, _uv1, _uv2, _uv3, GetColorU32(tint_col));
+  }
+  else
+  {
+    ImVec2 x1 = ImVec2(bb.Max.x, bb.Min.y);
+    ImVec2 x3 = ImVec2(bb.Min.x, bb.Max.y);
+    window->DrawList->AddImageQuad(user_texture_id, bb.Min, x1, bb.Max, x3, _uv0, _uv1, _uv2, _uv3, GetColorU32(tint_col));
+  }
 }
 void ImGui::DrawTextBottomRight(const char* text, uint32_t reverse_yoffset) {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();

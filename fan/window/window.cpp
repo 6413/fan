@@ -219,7 +219,7 @@ void errorCallback(int error, const char* description) {
     printf("Error: %s\n", description);
 }
 
-void fan::window_t::open(fan::vec2i window_size, const std::string& name, uint64_t flags) {
+void fan::window_t::open(fan::vec2i window_size, const std::string& name, bool visible, uint64_t flags) {
   std::fill(key_states, key_states + std::size(key_states), -1);
   std::fill(prev_key_states, prev_key_states + std::size(prev_key_states), -1);
 
@@ -234,6 +234,12 @@ void fan::window_t::open(fan::vec2i window_size, const std::string& name, uint64
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
   #endif
 
+  if (visible) {
+    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+  }
+  else {
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+  }
   using namespace fan::window;
   glfw_window = glfwCreateWindow(window_size.x, window_size.y, name.c_str(), NULL, NULL);
   if (glfw_window == nullptr) {

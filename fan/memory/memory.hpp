@@ -139,9 +139,9 @@ namespace fan {
             printf("freeing non-mapped memory: %p\n", p);
           }
           else {
+            current_allocation_size -= found->second.n;
             memory_set.erase(found->second);
             memory_map.erase(found);
-            current_allocation_size -= found->second.n;
           }
         }
       }

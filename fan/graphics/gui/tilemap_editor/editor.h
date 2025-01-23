@@ -160,7 +160,7 @@ struct fte_t {
         if (window_relative_to_grid(d.position, &p)) {
           //convert_draw_to_grid(p);
           grid_visualize.highlight_hover.set_position(fan::vec2(p) + tile_size * brush.offset);
-          grid_visualize.highlight_hover.set_size(tile_size * brush.tile_size);
+          grid_visualize.highlight_hover.set_size(tile_size * brush.tile_size * brush.size);
           grid_visualize.highlight_hover.set_color(fan::color(1, 1, 1, 0.6));
         }
         else {
@@ -246,6 +246,10 @@ struct fte_t {
       }
 
       switch (d.key) {
+      case fan::key_r: {
+        brush.angle.z = fmod(brush.angle.z + fan::math::pi / 2, fan::math::pi * 2);
+        break;
+      }
       case fan::key_delete: {
         if (gloco->window.key_pressed(fan::key_left_control)) {
           reset_map();
@@ -558,13 +562,13 @@ struct fte_t {
 
   bool handle_tile_erase(fan::vec2i& position, int& j, int& i) {
 
-    fan::vec2i grid_position = position;
-    convert_draw_to_grid(grid_position);
-    grid_position /= tile_size * 2;
-
     if (!is_in_constraints(position, j, i)) {
       return true;
     }
+
+    fan::vec2i grid_position = position;
+    convert_draw_to_grid(grid_position);
+    grid_position /= tile_size * 2;
 
     {
       auto found = physics_shapes.find(brush.depth);
@@ -1029,9 +1033,11 @@ struct fte_t {
           idx++;
           
           auto& img = gloco->image_get_data(*j.ti.image);
-          ImGui::Image(
+
+          ImGui::ImageRotated(
             (ImTextureID)gloco->image_get(*j.ti.image),
             (tile_viewer_sprite_size / std::max(1.f, current_tile_brush_count.x / 5.f))  * viewport_settings.zoom,
+            fan::math::degrees(brush.angle.z),
             j.ti.position / img.size,
             j.ti.position / img.size +
             j.ti.size / img.size,
@@ -1225,7 +1231,6 @@ struct fte_t {
       }
       f32_t x_size = ImGui::GetContentRegionAvail().x;
       f32_t y_size = ImGui::GetContentRegionAvail().y;
-      static int original_image_width = 2048;
       ImGui::DragInt("original image width", &original_image_width, 1, 0, 1000);
       auto& style = ImGui::GetStyle();
       fan::vec2 prev_item_spacing = style.ItemSpacing;
@@ -1235,6 +1240,11 @@ struct fte_t {
       int total_images = texturepack_images.size();
 
       int images_per_row = (original_image_width / (texturepack_single_image_size.x));
+      if (images_per_row == 0) {
+        ImGui::PopStyleColor(5);
+        ImGui::PopStyleVar();
+        return;
+      }
 
       int rows_needed = (total_images + images_per_row - 1) / images_per_row == 0 ? 1 : images_per_row;
 
@@ -1518,7 +1528,7 @@ struct fte_t {
       }
       {
         
-        if (fan_imgui_dragfloat(brush.jitter_chance, 1, 0, 1)) {
+        if (fan_imgui_dragfloat(brush.jitter_chance, 1, 0, 0.01)) {
 
         }
       }
@@ -2102,4 +2112,5 @@ shape data{
 
   std::string previous_file_name;
   loco_t::shape_t visual_line;
+  int original_image_width = 2048;
 };
