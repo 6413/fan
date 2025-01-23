@@ -11,6 +11,7 @@ fan::graphics::camera_t camera1;
 struct player_t {
    player_t() {
     b2World_SetPreSolveCallback(gloco->physics_context.world_id, presolve_static, this);
+    gloco->input_action.edit(fan::key_w, "move_up");
   }
   static bool presolve_static(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, void* context) {
     player_t* pl = static_cast<player_t*>(context);
@@ -19,26 +20,27 @@ struct player_t {
   bool presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold) const {
     return fan::physics::presolve_oneway_collision(shapeIdA, shapeIdB, manifold, player);
   }
-
-  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::capsule_t{{
+  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::circle_t{{
     .camera = &camera1,
     .position = fan::vec3(400, 400, 10),
-    .center0 = {0.f, -128.f},
-    .center1 = {0.f, 128.0f},
     .radius = 16.f,
     .color = fan::color::hex(0x715a5eff),
-    .outline_color = fan::color::hex(0x715a5eff) * 2,
     .blending = true,
     .body_type = fan::physics::body_type_e::dynamic_body,
     .mass_data{.mass = 0.01f},
-    .shape_properties{.friction = 0.6f, .density = 0.1f, .fixed_rotation = true},
-  }} };
+    .shape_properties{
+      .friction = 0.6f, 
+      .density = 0.1f, 
+      .fixed_rotation = true,
+      .linear_damping = 10,
+      .collision_multiplier = fan::vec2(1, 1)
+    },
+  }}};
 };
 int main(int argc, char** argv) {
   loco_t loco;
   
   loco.window.set_windowed_fullscreen();
-
 
   camera0.camera = loco.camera_create();
   camera1.camera = loco.camera_create();
@@ -54,8 +56,6 @@ int main(int argc, char** argv) {
     fan::vec2(-window_size.y, window_size.y)
   );
 
-  fan::graphics::interactive_camera_t ic(camera1.camera);
-
   camera0.viewport = loco.open_viewport(
     0,
     { 1, 1 }
@@ -65,11 +65,13 @@ int main(int argc, char** argv) {
     { 1, 1 }
   );
 
+  fan::graphics::interactive_camera_t ic(camera1.camera, camera1.viewport);
+
   fte_t fte;//
   fte_t::properties_t p;
   p.camera = &camera0;
   fte.open(p);
-  fte.open_texturepack("forest_tileset.ftp");
+  fte.open_texturepack("examples/games/forest game/forest_tileset.ftp");
 
   std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;
@@ -143,12 +145,28 @@ int main(int argc, char** argv) {
 
   loco.set_vsync(0);
 
-  
+  fte.fin("examples/games/forest game/forest.json");
+  f32_t z = 17;
 
-  fte.fin("forest.json");
+  //fan::graphics::physics_shapes::physics_update_cb = [&](loco_t::shape_t& shape, const fan::vec3& p, const fan::vec2& size, f32_t radians) {
+  //  fan::graphics::physics_shapes::hitbox_visualize[&shape] = fan::graphics::rectangle_t{ {
+  //    .camera = &camera1,
+  //    .position = fan::vec3(fan::vec2(p), 60000),
+  //    .size=size,
+  //    .color = fan::color(0, 1, 0, 0.2),
+  //    .outline_color=fan::color(0, 1, 0, 0.2)*2,
+  //    .angle = fan::vec3(0, 0, radians),
+  //    .blending=true
+  //  }};
+  //};
 
   loco.loop([&] {
-    if (render_scene) {
+    
+    if (render_scene) {/*
+      for (auto& i : fan::graphics::physics_shapes::hitbox_visualize) {
+        i.second.set_camera(camera1.camera);
+        i.second.set_viewport(camera1.viewport);
+      }*/
       if (ImGui::Begin("Program", 0, ImGuiWindowFlags_NoBackground)) {
         fan::vec2 s = ImGui::GetContentRegionAvail();
         fan::vec2 dst = player->player.get_position();
@@ -158,10 +176,16 @@ int main(int argc, char** argv) {
           camera1.camera,
           dst
         );
-        player->player.process_movement();
+        fan::vec2 position = player->player.get_position();
+        player->player.set_position(fan::vec3(position, floor(position.y / 64) + (0xFAAA - 2) / 2) +z);
+        player->player.process_movement(fan::graphics::character2d_t::movement_e::top_view);
         renderer->update(*map_id0_t, dst);
         loco.set_imgui_viewport(camera1.viewport);
         loco.physics_context.step(loco.delta_time);
+
+        loco.viewport_zero(
+          camera0.viewport
+        );
       }
       else {
         loco.viewport_zero(
