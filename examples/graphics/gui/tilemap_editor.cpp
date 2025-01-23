@@ -68,6 +68,7 @@ int main(int argc, char** argv) {
   fan::graphics::interactive_camera_t ic(camera1.camera, camera1.viewport);
 
   fte_t fte;//
+  fte.original_image_width = 1024;
   fte_t::properties_t p;
   p.camera = &camera0;
   fte.open(p);
@@ -159,6 +160,29 @@ int main(int argc, char** argv) {
   //    .blending=true
   //  }};
   //};
+
+  fan::ev::fs_watcher_t fs_watcher(uv_default_loop(), "examples/games/forest game/");
+
+  fs_watcher.start([&](const std::string& filename, int events) {
+    if (!(events & UV_CHANGE)) {
+      return;
+    }
+    if (filename.contains("tileset.png")) {
+      std::string image_path = fs_watcher.watch_path + "tileset.png";
+      loco_t::image_t img = loco.image_load(image_path);
+      fan::vec2 img_size = loco.image_get_data(img).size;
+      fan::vec2i size = img_size / 32;
+      loco.image_unload(img);
+      std::string str = (std::string("image2texturepack.exe ") + 
+        std::to_string(size.x) + " " + std::to_string(size.y) + 
+         " \"" + image_path + "\"" +
+         " \"" + fte.texturepack.file_path + "\""
+      );
+      system(str.c_str());
+      fte.open_texturepack(fte.texturepack.file_path);
+      fte.fin(fte.previous_file_name);
+    }
+  });
 
   loco.loop([&] {
     

@@ -116,7 +116,7 @@ struct fte_renderer_t : fte_loader_t {
   };
 
   void add_tile(node_t& node, fte_t::tile_t& j, int x, int y, uint32_t depth) {
-    int additional_depth = y + node.compiled_map->map_size.y / 2;
+    int additional_depth = y + node.compiled_map->tile_size.y / 2;
     switch (j.mesh_property) {
       case fte_t::mesh_property_t::none: {
         node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::sprite_t{ {
@@ -126,6 +126,7 @@ struct fte_renderer_t : fte_loader_t {
             .angle = j.angle,
             .color = j.color,
             .parallax_factor = 0,
+            .blending = true,
             .flags = j.flags
         } };
         loco_t::texturepack_t::ti_t ti;
@@ -180,7 +181,7 @@ struct fte_renderer_t : fte_loader_t {
   static constexpr int max_layer_depth = 128;
 
   fan::vec2 convert_to_grid(const fan::vec2& p, const node_t& node) {
-    return ((p / node.size) / (node.compiled_map->map_size)).floor();
+    return ((p / node.size) / (node.compiled_map->tile_size)).floor();
   }
   void adjust_view(fan::vec2i& src) {
     src /= 2;

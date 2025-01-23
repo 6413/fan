@@ -142,6 +142,103 @@ namespace fan {
 
       std::coroutine_handle<task_promise_t> _handle;
     };
+
+    struct fs_watcher_t {
+      struct file_event {
+        std::string filename;
+        int events;
+        std::chrono::steady_clock::time_point timestamp;
+      };
+
+      uv_fs_event_t fs_event;
+      uv_loop_t* loop;
+      uv_timer_t timer;
+      std::string watch_path;
+      std::function<void(const std::string&, int)> event_callback;
+      std::unordered_map<std::string, file_event> pending_events;
+
+      static void timer_callback(uv_timer_t* handle) {
+        fs_watcher_t* watcher = static_cast<fs_watcher_t*>(handle->data);
+        watcher->process_latest_events();
+      }
+
+      static void fs_event_callback(uv_fs_event_t* handle, const char* filename, int events, int status) {
+        if (status < 0) return;
+
+        fs_watcher_t* watcher = static_cast<fs_watcher_t*>(handle->data);
+
+        if (filename) {
+          std::string file_str(filename);
+          auto now = std::chrono::steady_clock::now();
+
+          watcher->pending_events[file_str] = {
+              file_str,
+              events,
+              now
+          };
+        }
+      }
+
+      void process_latest_events() {
+        for (auto& event_pair : pending_events) {
+          if (event_callback) {
+            event_callback(event_pair.second.filename, event_pair.second.events);
+          }
+        }
+        pending_events.clear();
+      }
+
+      fs_watcher_t(uv_loop_t* event_loop, const std::string& path)
+        : loop(event_loop), watch_path(path) {
+        fs_event.data = this;
+        timer.data = this;
+      }
+
+      bool start(std::function<void(const std::string&, int)> callback) {
+        event_callback = callback;
+
+        int result = uv_fs_event_init(loop, &fs_event);
+        if (result < 0) return false;
+
+        result = uv_fs_event_start(&fs_event, fs_event_callback,
+          watch_path.c_str(), UV_FS_EVENT_RECURSIVE);
+        if (result < 0) return false;
+
+        result = uv_timer_init(loop, &timer);
+        if (result < 0) return false;
+
+        result = uv_timer_start(&timer, timer_callback, 0, 50);
+        if (result < 0) return false;
+
+        return true;
+      }
+
+      void stop() {
+        uv_fs_event_stop(&fs_event);
+        uv_timer_stop(&timer);
+      }
+    };
+    fan::ev::task_t timer_task(uint64_t time, auto l) {
+      while (true) {
+        if (l()) {
+          break;
+        }
+        co_await ev::timer_t(time);
+      }
+    }
+
+    // executes given code every 'time_ms'
+    // destroys when out of scope
+    #define fan_ev_timer(time_ms, code) \
+      auto CONCAT(timer__var__, __COUNTER__) = fan::ev::timer_task(time_ms, [&]() -> bool {code return false; })
+    #define fan_ev_timer_loop(time_ms, code) \
+      [&]{ \
+        static fan::time::clock c{(uint64_t)time_ms * (uint64_t)1e+6, true}; \
+        if (c.finished()) { \
+          code \
+          c.restart(); \
+        } \
+      }()
   }
   using co_sleep = ev::timer_t;
 }
