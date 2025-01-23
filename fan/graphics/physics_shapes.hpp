@@ -13,6 +13,9 @@ namespace fan {
 
       // debug
       inline std::unordered_map<void*, loco_t::shape_t> hitbox_visualize;
+      // position & aabb & angle
+      inline std::function<void(loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t)> physics_update_cb = 
+        [](loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t) {};
       inline std::unordered_map<const void*, std::vector<loco_t::shape_t>> joint_visualize;
 
       void shape_physics_update(const loco_t::physics_update_data_t& data);
@@ -434,13 +437,20 @@ namespace fan {
     }
 
     struct character2d_t : physics_shapes::base_shape_t {
+      struct movement_e {
+        enum {
+          side_view, // left, right, space to jump
+          top_view // left, right, up, down wasd
+        };
+      };
+
       character2d_t();
       inline character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {
         add_inputs();
       }
       static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping);
       void add_inputs();
-      void process_movement(f32_t friction = 12);
+      void process_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12);
       f32_t force = 25.f;
       f32_t impulse = 3.f;
       f32_t max_speed = 500.f;

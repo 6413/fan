@@ -9,8 +9,16 @@ fan::physics::context_t::context_t(const properties_t& properties) {
   world_id = b2CreateWorld(&world_def);
 }
 
+void fan::physics::context_t::set_gravity(const fan::vec2& gravity){
+  b2World_SetGravity(world_id, gravity);
+}
+
+fan::vec2 fan::physics::context_t::get_gravity() const {
+  return b2World_GetGravity(world_id);
+}
+
 fan::physics::entity_t fan::physics::context_t::create_box(const fan::vec2& position, const fan::vec2& size, uint8_t body_type, const shape_properties_t& shape_properties) {
-  polygon_t shape = b2MakeBox(size.x / length_units_per_meter, size.y/ length_units_per_meter);
+  polygon_t shape = b2MakeBox(size.x / length_units_per_meter * shape_properties.collision_multiplier.x, size.y/ length_units_per_meter * shape_properties.collision_multiplier.y);
   entity_t entity;
   b2BodyDef body_def = b2DefaultBodyDef();
   body_def.position = position / length_units_per_meter;
@@ -33,7 +41,7 @@ fan::physics::entity_t fan::physics::context_t::create_box(const fan::vec2& posi
 fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& position, f32_t radius, uint8_t body_type, const shape_properties_t& shape_properties) {
   circle_t shape;
   shape.center = fan::vec2(0);
-  shape.radius = radius / length_units_per_meter;
+  shape.radius = radius / length_units_per_meter * shape_properties.collision_multiplier.x;
 
   entity_t entity;
   b2BodyDef body_def = b2DefaultBodyDef();
@@ -58,11 +66,11 @@ fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& p
 
 fan::physics::entity_t fan::physics::context_t::create_capsule(const fan::vec2& position, const b2Capsule& info, uint8_t body_type, const shape_properties_t& shape_properties) {
   capsule_t shape = info;
-  shape.center1.x /= length_units_per_meter;
-  shape.center1.y /= length_units_per_meter;
-  shape.center2.x /= length_units_per_meter;
-  shape.center2.y /= length_units_per_meter;
-  shape.radius /= length_units_per_meter;
+  shape.center1.x /= length_units_per_meter / shape_properties.collision_multiplier.x;
+  shape.center1.y /= length_units_per_meter / shape_properties.collision_multiplier.y;
+  shape.center2.x /= length_units_per_meter / shape_properties.collision_multiplier.x;
+  shape.center2.y /= length_units_per_meter / shape_properties.collision_multiplier.y;
+  shape.radius /= length_units_per_meter / shape_properties.collision_multiplier.x;
 
   entity_t entity;
   b2BodyDef body_def = b2DefaultBodyDef();

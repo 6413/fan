@@ -751,6 +751,8 @@ public:
     void add(int key, std::string_view action_name);
     void add(std::initializer_list<int> keys, std::string_view action_name);
 
+    void edit(int key, std::string_view action_name);
+
     void add_keycombo(std::initializer_list<int> keys, std::string_view action_name);
 
     bool is_active(std::string_view action_name, int state = loco_t::input_action_t::press);
@@ -3129,12 +3131,17 @@ void fan::printclh(int highlight, auto&&... values) {
 namespace fan {
   namespace graphics {
     struct interactive_camera_t {
+      loco_t::update_callback_nr_t uc_nr;
       f32_t zoom = 2;
       bool hovered = false;
       loco_t::camera_t reference_camera;
+      loco_t::viewport_t reference_viewport;
       fan::window_t::buttons_callback_t::nr_t button_cb_nr;
 
-      interactive_camera_t(loco_t::camera_t camera_nr = gloco->orthographic_camera.camera);
+      interactive_camera_t(
+        loco_t::camera_t camera_nr = gloco->orthographic_camera.camera, 
+        loco_t::viewport_t viewport_nr = gloco->orthographic_camera.viewport
+      );
       ~interactive_camera_t();
 
       // called in loop

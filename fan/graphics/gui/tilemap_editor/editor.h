@@ -159,7 +159,8 @@ struct fte_t {
       {
         if (window_relative_to_grid(d.position, &p)) {
           //convert_draw_to_grid(p);
-          grid_visualize.highlight_hover.set_position(fan::vec2(p));
+          grid_visualize.highlight_hover.set_position(fan::vec2(p) + tile_size * brush.offset);
+          grid_visualize.highlight_hover.set_size(tile_size * brush.tile_size);
           grid_visualize.highlight_hover.set_color(fan::color(1, 1, 1, 0.6));
         }
         else {
@@ -691,9 +692,9 @@ struct fte_t {
                 auto& layers = physics_shapes[brush.depth];
                 layers.push_back({
                   .visual = fan::graphics::sprite_t{ {
-                    .camera = camera,
-                    .position = fan::vec3((fan::vec2(copy_src) + (fan::vec2(copy_dst) - fan::vec2(copy_src)) / 2) * tile_size * 2, brush.depth),
-                    .size = (((copy_dst - copy_src) + fan::vec2(1, 1)) * fan::vec2(tile_size)).abs(),
+                    .camera = camera, // since its one shape, cant have offsets with multidrag
+                    .position = fan::vec3(((fan::vec2(copy_src) + (fan::vec2(copy_dst) - fan::vec2(copy_src)) / 2) + brush.offset/2) * tile_size * 2, brush.depth),
+                    .size = (((copy_dst - copy_src) + fan::vec2(1, 1)) * fan::vec2(tile_size)).abs() * brush.tile_size,
                     .image = grid_visualize.collider_color,
                     .blending = true
                   } },
@@ -966,20 +967,7 @@ struct fte_t {
 
       real_viewport_size.x = fan::clamp(real_viewport_size.x, 1.f, real_viewport_size.x);
       real_viewport_size.y = fan::clamp(real_viewport_size.y, 1.f, real_viewport_size.y);
-      
-//     fan::vec2 mouseViewportPos = gloco->get_mouse_position(camera->camera, camera->viewport) - (viewport_pos + windowPos + mainViewportPos);
-//
-//// Normalize mouse position in the viewport (range 0 to 1)
-//fan::vec2 mouseViewportNorm = mouseViewportPos / real_viewport_size;
-//
-//// Calculate the new viewport size based on the zoom level
-//fan::vec2 newViewportSize = real_viewport_size / viewport_settings.zoom;
-//
-//// Calculate the offset to keep the mouse position stable after zoom
-//fan::vec2 zoomOffset = (mouseViewportNorm * real_viewport_size) - (mouseViewportNorm * newViewportSize);
-//
-//// Adjust the camera's orthographic projection to zoom towards the mouse position
-      //fan::vec2 offset = gloco->get_mouse_position(camera->camera, camera->viewport);
+
       gloco->camera_set_ortho(
           camera->camera,
           (fan::vec2(-real_viewport_size.x / 2, real_viewport_size.x / 2) / viewport_settings.zoom) + viewport_settings.zoom_offset.x,
@@ -1555,7 +1543,7 @@ struct fte_t {
         }
       }
       {
-        if (ImGui::SliderInt("tile size", &brush.tile_size, 1, 100)) {
+        if (ImGui::SliderFloat2("tile size", brush.tile_size.data(), 0.1, 1)) {
           //brush.tile_size = brush.tile_size;
         }
       }
@@ -1573,7 +1561,11 @@ struct fte_t {
 
       switch (brush.type) {
       case brush_t::type_e::physics_shape: {
-
+        {
+          if (ImGui::SliderFloat2("offset", brush.offset.data(), 0, 1)) {
+            
+          }
+        }
         {
           static int default_value = 0;
           if (ImGui::Combo("Physics shape type", &default_value, brush.physics_type_names, std::size(brush.physics_type_names))) {
@@ -1620,13 +1612,18 @@ struct fte_t {
 
   void handle_lighting_settings_window() {
     if (ImGui::Begin("lighting settings")) {
-      float arr[3];
-      arr[0] = gloco->lighting.ambient.data()[0];
-      arr[1] = gloco->lighting.ambient.data()[1];
-      arr[2] = gloco->lighting.ambient.data()[2];
-      //fan::print("suffering", (void*)gloco.loco, &gloco.loco->lighting, (void*)((uint8_t*)&gloco.loco->lighting - (uint8_t*)gloco.loco), sizeof(*gloco.loco), arr[0], arr[1], arr[2]);
       if (ImGui::ColorEdit3("ambient", gloco->lighting.ambient.data())) {
 
+      }
+    }
+    ImGui::End();
+  }
+
+  void handle_physics_settings_window() {
+    if (ImGui::Begin("physics settings")) {
+      fan::vec2 gravity = gloco->physics_context.get_gravity();
+      if (fan_imgui_dragfloat1(gravity, 0.01)) {
+        gloco->physics_context.set_gravity(gravity);
       }
     }
     ImGui::End();
@@ -1702,6 +1699,7 @@ struct fte_t {
     handle_brush_settings_window();
     
     handle_lighting_settings_window();
+    handle_physics_settings_window();
 
     if (editor_settings.hovered && ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_left))) {
       if (gloco->window.key_pressed(fan::key_left_control)) {
@@ -1745,6 +1743,7 @@ struct fte_t {
     ostr["map_size"] = map_size;
     ostr["tile_size"] = tile_size;
     ostr["lighting.ambient"] = gloco->lighting.ambient;
+    ostr["gravity"] = gloco->physics_context.get_gravity();
 
     fan::json tiles = fan::json::array();
 
@@ -1843,6 +1842,9 @@ shape data{
 
     map_size = json["map_size"];
     tile_size = json["tile_size"];
+    if (json.contains("gravity")) {
+      gloco->physics_context.set_gravity(json["gravity"]);
+    }
     gloco->lighting.ambient = json["lighting.ambient"];
     map_tiles.clear();
     visual_layers.clear();
@@ -2058,7 +2060,7 @@ shape data{
     dynamics_e dynamics_color = dynamics_e::original;
 
     fan::vec2i size = 1;
-    int tile_size = 1;
+    fan::vec2 tile_size = 1;
     fan::vec3 angle = 0;
     f32_t depth = shape_depths_t::max_layer_depth / 2;
     int jitter = 0;
@@ -2067,6 +2069,7 @@ shape data{
     fan::color color = fan::color(1);
 
     // physics stuff
+    fan::vec2 offset = 0;
     uint8_t physics_type = physics_shapes_t::type_e::box;
     static constexpr const char* physics_type_names[] = { "Box", "Circle" };
     uint8_t physics_body_type = fan::physics::body_type_e::static_body;

@@ -39,6 +39,7 @@ struct fte_loader_t {
       fte_t::physics_shapes_t physics_shapes;
     };
     std::vector<physics_data_t> physics_shapes;
+    loco_t::lighting_t lighting = gloco->lighting;
     #elif tilemap_renderer == 1
     std::unordered_map<fan::vec2i, fan::mp_t<current_version_t::shapes_t>, vec2i_hasher> compiled_shapes;
     #endif
@@ -93,8 +94,12 @@ public:
 
     compiled_map_t compiled_map;
 
+    compiled_map.lighting.ambient = json["lighting.ambient"];
     compiled_map.map_size = json["map_size"];
     compiled_map.tile_size = json["tile_size"];
+    if (json.contains("gravity")) {
+      gloco->physics_context.set_gravity(json["gravity"]);
+    }
 
     compiled_map.compiled_shapes.resize(compiled_map.map_size.y);
     for (auto& i : compiled_map.compiled_shapes) {
