@@ -32,10 +32,16 @@ struct player_t {
       .friction = 0.6f, 
       .density = 0.1f, 
       .fixed_rotation = true,
-      .linear_damping = 10,
+      .linear_damping = 30,
       .collision_multiplier = fan::vec2(1, 1)
     },
   }}};
+  loco_t::shape_t player_light = fan::graphics::light_t{ {
+    .camera = &camera1,
+    .position = player.get_position(),
+    .size = player.get_size()*8,
+    .color = fan::color::hex(0xe8c170ff)
+  }};
 };
 int main(int argc, char** argv) {
   loco_t loco;
@@ -202,6 +208,15 @@ int main(int argc, char** argv) {
         );
         fan::vec2 position = player->player.get_position();
         player->player.set_position(fan::vec3(position, floor(position.y / 64) + (0xFAAA - 2) / 2) +z);
+        fan::color c = player->player_light.get_color();
+        if (ImGui::ColorEdit4("color", c.data())) {
+          player->player_light.set_color(c);
+        }
+        fan::vec2 size = player->player_light.get_size();
+        if (fan_imgui_dragfloat1(size, 0.1)) {
+          player->player_light.set_size(size);
+        }
+        player->player_light.set_position(player->player.get_position()-player->player.get_size());
         player->player.process_movement(fan::graphics::character2d_t::movement_e::top_view);
         renderer->update(*map_id0_t, dst);
         loco.set_imgui_viewport(camera1.viewport);
