@@ -24,7 +24,6 @@ struct player_t {
     },
   }}};
 };
-  
 
 int main() {
   loco_t loco;
@@ -40,7 +39,7 @@ int main() {
   renderer.open(&tp);
   auto compiled_map = renderer.compile("examples/games/forest game/forest.json");
   fan::vec2i render_size(16, 9);
-  render_size /= 2;
+  render_size /= 1.5;
   player_t player;
   fte_loader_t::properties_t p;
   p.size = render_size;
