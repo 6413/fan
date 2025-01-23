@@ -33,6 +33,7 @@ struct fte_renderer_t : fte_loader_t {
 
     node.position = p.offset;
     initialize(node, p.position);
+    gloco->lighting = compiled_map->lighting;
 
 
     return it;
@@ -92,7 +93,7 @@ struct fte_renderer_t : fte_loader_t {
           .visual = fan::graphics::physics_shapes::circle_t{{
               .camera = camera,
               .position = node.position + pd.position * node.size,
-              .radius = pd.size.max() * node.size.x == 1 ? node.size.y : node.size.x,
+              .radius = (pd.size.max() * node.size.x == node.compiled_map->tile_size.x ? pd.size.y * node.size.y : pd.size.x  *  node.size.x),
               .color = pd.physics_shapes.draw ? fan::color::hex(0x6e8d6eff) : fan::colors::transparent,
               .blending = true,
               .body_type = pd.physics_shapes.body_type,

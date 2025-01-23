@@ -6,9 +6,7 @@ void fan::graphics::physics_shapes::shape_physics_update(const loco_t::physics_u
     fan::print("invalid body data (corruption)");
     return;
   }
-  if (b2Body_GetType(data.body_id) == b2_staticBody) {
-    return;
-  }
+
   fan::vec2 p = b2Body_GetWorldPoint(data.body_id, fan::vec2(0));
   b2Rot rotation = b2Body_GetRotation(data.body_id);
   f32_t radians = b2Rot_GetAngle(rotation);
@@ -16,15 +14,11 @@ void fan::graphics::physics_shapes::shape_physics_update(const loco_t::physics_u
   loco_t::shape_t& shape = *(loco_t::shape_t*)&data.shape_id;
   shape.set_position(p * fan::physics::length_units_per_meter);
   shape.set_angle(fan::vec3(0, 0, radians));
-  
- /* hitbox_visualize[&shape] = fan::graphics::rectangle_t{ {
-    .position = fan::vec3(p * fan::physics::length_units_per_meter, 60000),
-    .size=shape.get_size(),
-    .color = fan::color(0, 1, 0, 0.2),
-    .outline_color=fan::color(0, 1, 0, 0.2)*2,
-    .angle = fan::vec3(0, 0, radians),
-    .blending=true
-  }};*/
+  b2ShapeId id[1];
+  b2Body_GetShapes(data.body_id, id, 1);
+  auto aabb = b2Shape_GetAABB(id[0]);
+  fan::vec2 size = fan::vec2(aabb.upperBound - aabb.lowerBound) / 2;
+  fan::graphics::physics_shapes::physics_update_cb(shape, shape.get_position(), size* fan::physics::length_units_per_meter/2, radians);
 
   // joint debug
   
@@ -144,45 +138,72 @@ bool fan::graphics::character2d_t::is_on_ground(fan::physics::body_id_t main, st
   return false;
 }
 
-void fan::graphics::character2d_t::process_movement(f32_t friction) {
-  bool can_jump = false;
-
+void fan::graphics::character2d_t::process_movement(uint8_t movement, f32_t friction) {
   fan::vec2 velocity = get_linear_velocity();
 
-  can_jump = is_on_ground(*this, std::to_array(feet), jumping);
-
-  walk_force = 0;
-  if (gloco->input_action.is_action_down("move_left")) {
-    if (velocity.x > -max_speed) {
-      apply_force_center({ -force, 0 });
-      walk_force = -force;
-    }
-  }
-  if (gloco->input_action.is_action_down("move_right")) {
-    if (velocity.x <= max_speed) {
-      apply_force_center({ force, 0 });
-      walk_force = force;
-    }
-  }
-
-  bool move_up = gloco->input_action.is_action_clicked("move_up");
-  if (move_up) {
-    if (can_jump) {
-      if (handle_jump) {
-        set_linear_velocity(fan::vec2(get_linear_velocity().x, 0));
-        apply_linear_impulse_center({0, -impulse});
+  auto movement_left_right = [&] {
+    walk_force = 0;
+    if (gloco->input_action.is_action_down("move_left")) {
+      if (velocity.x > -max_speed) {
+        apply_force_center({ -force, 0 });
+        walk_force = -force;
       }
-      jump_delay = 0.f;
-      jumping = true;
+    }
+    if (gloco->input_action.is_action_down("move_right")) {
+      if (velocity.x <= max_speed) {
+        apply_force_center({ force, 0 });
+        walk_force = force;
+      }
+    }
+  };
+  auto movement_up_down = [&] {
+    walk_force = 0;
+    if (gloco->input_action.is_action_down("move_up")) {
+      if (velocity.y > -max_speed) {
+        apply_force_center({ 0, -force });
+      }
+    }
+    if (gloco->input_action.is_action_down("move_down")) {
+      if (velocity.y <= max_speed) {
+        apply_force_center({ 0, force });
+      }
+    }
+  };
+  switch (movement) {
+  case movement_e::side_view: {
+
+    movement_left_right();
+
+    bool can_jump = false;
+
+    can_jump = is_on_ground(*this, std::to_array(feet), jumping);
+
+    bool move_up = gloco->input_action.is_action_clicked("move_up");
+    if (move_up) {
+      if (can_jump) {
+        if (handle_jump) {
+          set_linear_velocity(fan::vec2(get_linear_velocity().x, 0));
+          apply_linear_impulse_center({ 0, -impulse });
+        }
+        jump_delay = 0.f;
+        jumping = true;
+      }
+      else {
+        jumping = false;
+      }
     }
     else {
       jumping = false;
     }
+    jump_delay = 0;
+    break;
   }
-  else {
-    jumping = false;
+  case movement_e::top_view: {
+    movement_left_right();
+    movement_up_down();
+    break;
   }
-  jump_delay = 0;
+  }
 }
 
 void fan::graphics::update_reference_angle(b2WorldId world, fan::physics::joint_id_t& joint_id, float new_reference_angle) {

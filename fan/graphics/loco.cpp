@@ -2641,6 +2641,17 @@ void loco_t::input_action_t::add(std::initializer_list<int> keys, std::string_vi
   add(keys.begin(), keys.size(), action_name);
 }
 
+void loco_t::input_action_t::edit(int key, std::string_view action_name) {
+  auto found = input_actions.find(action_name);
+  if (found == input_actions.end()) {
+    fan::throw_error("trying to modify non existing action");
+  }
+  std::memset(found->second.keys, sizeof(found->second.keys), 0);
+  found->second.keys[0] = key;
+  found->second.count = 1;
+  found->second.combo_count = 0;
+}
+
 void loco_t::input_action_t::add_keycombo(std::initializer_list<int> keys, std::string_view action_name) {
   action_data_t action_data;
   action_data.combo_count = (uint8_t)keys.size();
@@ -4485,20 +4496,21 @@ void loco_t::remove_physics_update(loco_t::physics_update_cbs_t::nr_t nr) {
 }
 #endif
 
-fan::graphics::interactive_camera_t::interactive_camera_t(loco_t::camera_t camera_nr) :
-  reference_camera(camera_nr)
+fan::graphics::interactive_camera_t::interactive_camera_t(loco_t::camera_t camera_nr, loco_t::viewport_t viewport_nr) :
+  reference_camera(camera_nr), reference_viewport(viewport_nr)
 {
   auto& window = gloco->window;
-  static auto update_ortho = [&] {
-    fan::vec2 s = gloco->window.get_size();
-    gloco->camera_set_ortho(
+  static auto update_ortho = [&] (loco_t* loco){
+    fan::vec2 s = loco->viewport_get_size(reference_viewport);
+    loco->camera_set_ortho(
       reference_camera,
       fan::vec2(-s.x, s.x) / zoom,
       fan::vec2(-s.y, s.y) / zoom
     );
-    };
+  };
 
-  update_ortho();
+  auto it = gloco->m_update_callback.NewNodeLast();
+  gloco->m_update_callback[it] = update_ortho;
 
   button_cb_nr = window.add_buttons_callback([&](const auto& d) {
     if (d.button == fan::mouse_scroll_up) {
@@ -4507,14 +4519,17 @@ fan::graphics::interactive_camera_t::interactive_camera_t(loco_t::camera_t camer
     else if (d.button == fan::mouse_scroll_down) {
       zoom /= 1.2;
     }
-    update_ortho();
-    });
+  });
 }
 
 fan::graphics::interactive_camera_t::~interactive_camera_t() {
   if (button_cb_nr.iic() == false) {
     gloco->window.remove_buttons_callback(button_cb_nr);
     button_cb_nr.sic();
+  }
+  if (uc_nr.iic() == false) {
+    gloco->m_update_callback.unlrec(uc_nr);
+    uc_nr.sic();
   }
 }
 

@@ -16,7 +16,7 @@ fan_enum_string(
 
 struct tile_t {
   fan::vec3i position;
-  fan::vec2i size;
+  fan::vec2 size;
   fan::vec3 angle;
   fan::color color;
   std::string image_name;

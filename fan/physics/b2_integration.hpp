@@ -163,6 +163,7 @@ namespace fan {
       bool enable_presolve_events = false;
       bool is_sensor = false;
       f32_t linear_damping = 0.0f;
+      fan::vec2 collision_multiplier = 1; // possibility to change multiplier of collision size
       b2Filter filter = b2DefaultFilter();
     };
 
@@ -205,7 +206,9 @@ namespace fan {
         fan::vec2 gravity{0, 9.8f/length_units_per_meter};
       };
       context_t(const properties_t& properties = properties_t());
-      
+      void set_gravity(const fan::vec2& gravity);
+      fan::vec2 get_gravity() const;
+
       entity_t create_box(const fan::vec2& position, const fan::vec2& size, uint8_t body_type, const shape_properties_t& shape_properties);
       entity_t create_circle(const fan::vec2& position, f32_t radius, uint8_t body_type, const shape_properties_t& shape_properties);
       fan::physics::entity_t create_capsule(const fan::vec2& position, const b2Capsule& info, uint8_t body_type, const shape_properties_t& shape_properties);
