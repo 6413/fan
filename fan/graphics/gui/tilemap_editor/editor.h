@@ -1037,7 +1037,7 @@ struct fte_t {
           ImGui::ImageRotated(
             (ImTextureID)gloco->image_get(*j.ti.image),
             (tile_viewer_sprite_size / std::max(1.f, current_tile_brush_count.x / 5.f))  * viewport_settings.zoom,
-            fan::math::degrees(brush.angle.z),
+            360.f - fan::math::degrees(brush.angle.z),
             j.ti.position / img.size,
             j.ti.position / img.size +
             j.ti.size / img.size,
@@ -1131,6 +1131,14 @@ struct fte_t {
       visual_line.set_line(brush.line_src, line_dst);
       if (gloco->window.key_state(fan::mouse_left) == 1) {
         //fan::print(brush.line_src, line_dst);
+         brush.line_src = ((brush.line_src + tile_size) / (tile_size * 2)).floor() * tile_size * 2;
+         line_dst = ((line_dst + tile_size) / (tile_size * 2)).floor() * tile_size * 2;
+         if (line_dst.x - brush.line_src.x > tile_size.x*2) {
+          line_dst.x += tile_size.x * 2;
+         }
+         if (line_dst.y - brush.line_src.y > tile_size.y*2) {
+          line_dst.y += tile_size.y * 2;
+         }
         std::vector<fan::vec2i> raycast_positions = fan::graphics::algorithm::grid_raycast({ brush.line_src / 2, line_dst / 2 }, tile_size);
         int i = 0;
         for (fan::vec2i& i : raycast_positions) {
@@ -1138,7 +1146,6 @@ struct fte_t {
          // p /= 2;
           //p -= tile_size;
           p *= (tile_size * 2);
-          p += tile_size;
           //convert_grid_to_draw(p);
         //  fan::print(p);
           //fan::vec2 p2 = 
