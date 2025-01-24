@@ -106,6 +106,7 @@ int main() {
     fan::vec2 s = ImGui::GetContentRegionAvail();
     fan::vec2 dst = player.player.get_position();
     fan::vec2 src = loco.camera_get_position(gloco->orthographic_camera.camera);
+
     fan_ev_timer_loop_init(150, 
       loco.input_action.is_action_clicked("move_up") || 
       loco.input_action.is_action_clicked("move_down"),
@@ -125,18 +126,18 @@ int main() {
         ++i;
       }
       else {
-        player.prev_dir.y = 0;
         if (player.prev_dir.y < 0) {
           player.player.set_image(player.img_idle[0]);
         }
         else if (player.prev_dir.y > 0) {
           player.player.set_image(player.img_idle[1]);
         }
+        player.prev_dir.y = 0;
       }
     });
 
     if (player.prev_dir.y == 0) {
-      fan_ev_timer_loop_init(200, 
+      fan_ev_timer_loop_init(150,
         loco.input_action.is_action_clicked("move_left") || 
         loco.input_action.is_action_clicked("move_right"),
         {
@@ -155,13 +156,13 @@ int main() {
           ++i;
         }
         else {
-          player.prev_dir.x = 0;
           if (player.prev_dir.x < 0) {
             player.player.set_image(player.img_idle[2]);
           }
           else if (player.prev_dir.x > 0) {
             player.player.set_image(player.img_idle[3]);
           }
+          player.prev_dir.x = 0;
         }
       });
     }
