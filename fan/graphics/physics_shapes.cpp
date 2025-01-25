@@ -144,29 +144,19 @@ void fan::graphics::character2d_t::process_movement(uint8_t movement, f32_t fric
   auto movement_left_right = [&] {
     walk_force = 0;
     if (gloco->input_action.is_action_down("move_left")) {
-      if (velocity.x > -max_speed) {
-        apply_force_center({ -force, 0 });
-        walk_force = -force;
-      }
+      move_to_direction(fan::vec2(-1, 0));
     }
     if (gloco->input_action.is_action_down("move_right")) {
-      if (velocity.x <= max_speed) {
-        apply_force_center({ force, 0 });
-        walk_force = force;
-      }
+      move_to_direction(fan::vec2(1, 0));
     }
   };
   auto movement_up_down = [&] {
     walk_force = 0;
     if (gloco->input_action.is_action_down("move_up")) {
-      if (velocity.y > -max_speed) {
-        apply_force_center({ 0, -force });
-      }
+      move_to_direction(fan::vec2(0, -1));
     }
     if (gloco->input_action.is_action_down("move_down")) {
-      if (velocity.y <= max_speed) {
-        apply_force_center({ 0, force });
-      }
+      move_to_direction(fan::vec2(0, 1));
     }
   };
   switch (movement) {
@@ -203,6 +193,30 @@ void fan::graphics::character2d_t::process_movement(uint8_t movement, f32_t fric
     movement_up_down();
     break;
   }
+  }
+}
+
+void fan::graphics::character2d_t::move_to_direction(const fan::vec2& direction){
+  fan::vec2 velocity = get_linear_velocity();
+  if (direction.x < 0) {
+    if (velocity.x > -max_speed) {
+      apply_force_center({ -force, 0 });
+    }
+  }
+  else if (direction.x > 0) {
+    if (velocity.x <= max_speed) {
+      apply_force_center({ force, 0 });
+    }
+  }
+  if (direction.y < 0) {
+    if (velocity.y > -max_speed) {
+      apply_force_center({ 0, -force });
+    }
+  }
+  if (direction.y > 0) {
+    if (velocity.y <= max_speed) {
+      apply_force_center({ 0, force });
+    }
   }
 }
 

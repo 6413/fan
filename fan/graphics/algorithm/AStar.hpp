@@ -34,7 +34,7 @@ namespace AStar
           x = v.x;
           y = v.y;
         }
-        operator fan::vec2i const() {
+        operator fan::vec2i const() const {
           return {x, y};
         }
     };
