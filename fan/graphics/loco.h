@@ -3183,5 +3183,81 @@ namespace fan {
     void render_allocations_plot();
 
 #endif
+
+    struct animator_t {
+      fan::vec2 prev_dir = 0;
+
+      uint64_t animation_update_time = 150;//ms
+      uint16_t i_down = 0, i_up = 0, i_left = 0, i_right = 0;
+
+      template <uint16_t images_per_action>
+      void process_walk(loco_t::shape_t& shape,
+        const fan::vec2& vel,
+        const std::array<loco_t::image_t, 4>& img_idle,
+        const std::array<loco_t::image_t, images_per_action>& img_movement_up,
+        const std::array<loco_t::image_t, images_per_action>& img_movement_down,
+        const std::array<loco_t::image_t, images_per_action>& img_movement_left,
+        const std::array<loco_t::image_t, images_per_action>& img_movement_right
+      ) {
+        f32_t animation_velocity_threshold = 10.f;
+        fan_ev_timer_loop_init(animation_update_time,
+          0/*vel.y*/,
+          {
+          if (vel.y > animation_velocity_threshold) {
+            shape.set_image(img_movement_down[i_down % images_per_action]);
+            prev_dir.y = 1;
+            prev_dir.x = 0;
+            ++i_down;
+          }
+          else if (vel.y < -animation_velocity_threshold) {
+            static int i = 0;
+            shape.set_image(img_movement_up[i_up % images_per_action]);
+            prev_dir.y = -1;
+            prev_dir.x = 0;
+            ++i_up;
+          }
+          else {
+            if (prev_dir.y < 0) {
+              shape.set_image(img_idle[0]);
+            }
+            else if (prev_dir.y > 0) {
+              shape.set_image(img_idle[1]);
+            }
+            prev_dir.y = 0;
+          }
+          });
+
+        if (prev_dir.y == 0) {
+          fan_ev_timer_loop_init(animation_update_time,
+            0/*vel.x*/,
+            {
+            if (vel.x > animation_velocity_threshold) {
+              static int i = 0;
+              shape.set_image(img_movement_right[i_right % images_per_action]);
+              prev_dir.y = 0;
+              prev_dir.x = 1;
+              ++i_right;
+            }
+            else if (vel.x < -animation_velocity_threshold) {
+              static int i = 0;
+              shape.set_image(img_movement_left[i_left % images_per_action]);
+              prev_dir.y = 0;
+              prev_dir.x = -1;
+              ++i_left;
+            }
+            else {
+              if (prev_dir.x < 0) {
+                shape.set_image(img_idle[2]);
+              }
+              else if (prev_dir.x > 0) {
+                shape.set_image(img_idle[3]);
+              }
+              prev_dir.x = 0;
+            }
+            });
+        }
+      }
+    };
+
   }
 }

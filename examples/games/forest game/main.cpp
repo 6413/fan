@@ -1,82 +1,10 @@
 #include <fan/pch.h>
-#include <fan/graphics/algorithm/AStar.hpp>
+#include <fan/graphics/algorithm/astar.h>
 #include <fan/graphics/gui/tilemap_editor/renderer0.h>
 
 fan_track_allocations();
 
 std::string asset_path = "examples/games/forest game/";
-
-struct animator_t {
-  fan::vec2 prev_dir = 0;
-
-  void process_walk(loco_t::shape_t& shape,
-    const fan::vec2& vel,
-    const std::array<loco_t::image_t, 4>& img_idle,
-    const std::array<loco_t::image_t, 4>& img_movement_up,
-    const std::array<loco_t::image_t, 4>& img_movement_down,
-    const std::array<loco_t::image_t, 4>& img_movement_left,
-    const std::array<loco_t::image_t, 4>& img_movement_right
-  ) {
-    f32_t animation_velocity_threshold = 10.f;
-    fan_ev_timer_loop_init(150,
-      0/*vel.y*/,
-      {
-      if (vel.y > animation_velocity_threshold) {
-        static int i = 0;
-        shape.set_image(img_movement_down[i % std::size(img_movement_left)]);
-        prev_dir.y = 1;
-        prev_dir.x = 0;
-        ++i;
-      }
-      else if (vel.y < -animation_velocity_threshold) {
-        static int i = 0;
-        shape.set_image(img_movement_up[i % std::size(img_movement_left)]);
-        prev_dir.y = -1;
-        prev_dir.x = 0;
-        ++i;
-      }
-      else {
-        if (prev_dir.y < 0) {
-          shape.set_image(img_idle[0]);
-        }
-        else if (prev_dir.y > 0) {
-          shape.set_image(img_idle[1]);
-        }
-        prev_dir.y = 0;
-      }
-      });
-
-    if (prev_dir.y == 0) {
-      fan_ev_timer_loop_init(150,
-        0/*vel.x*/,
-        {
-        if (vel.x > animation_velocity_threshold) {
-          static int i = 0;
-          shape.set_image(img_movement_right[i % std::size(img_movement_left)]);
-          prev_dir.y = 0;
-          prev_dir.x = 1;
-          ++i;
-        }
-        else if (vel.x < -animation_velocity_threshold) {
-          static int i = 0;
-          shape.set_image(img_movement_left[i % std::size(img_movement_left)]);
-          prev_dir.y = 0;
-          prev_dir.x = -1;
-          ++i;
-        }
-        else {
-          if (prev_dir.x < 0) {
-            shape.set_image(img_idle[2]);
-          }
-          else if (prev_dir.x > 0) {
-            shape.set_image(img_idle[3]);
-          }
-          prev_dir.x = 0;
-        }
-        });
-    }
-  }
-};
 
 struct player_t {
   fan::vec2 velocity = 0;
@@ -122,7 +50,7 @@ struct player_t {
   }
 
   void animate_player_walk() {
-    walk_animation.process_walk(
+    animator.process_walk(
       player,
       player.get_linear_velocity(),
       img_idle, img_movement_up, img_movement_down,
@@ -146,45 +74,7 @@ struct player_t {
       .collision_multiplier = fan::vec2(1, 1)
     },
   }}};
-  animator_t walk_animation;
-};
-
-struct path_solver_t {
-  using path_t = AStar::CoordinateList;
-  path_solver_t(const fan::vec2i& map_size_, const fan::vec2& tile_size_) {
-    this->map_size = map_size_;
-    generator.setWorldSize(map_size);
-    generator.setHeuristic(AStar::Heuristic::euclidean);
-    generator.setDiagonalMovement(false);
-    tile_size = tile_size_;
-  }
-  path_t get_path(const fan::vec2& src_ = -1) {
-    if (src_ != -1) {
-      src = get_grid(src_);
-    }
-    path_t v = generator.findPath(src, dst);
-    v.pop_back();
-    std::reverse(v.begin(), v.end());
-    return v;
-  }
-  fan::vec2i get_grid(const fan::vec2& p) const {
-    return (p / tile_size).floor();
-  }
-  // takes raw position and converts it to grid automatically
-  void set_src(const fan::vec2& src_) {
-    src = get_grid(src_);
-  }
-  void set_dst(const fan::vec2& dst_) {
-    dst = get_grid(dst_);
-  }
-  void add_collision(const fan::vec2& p) {
-    generator.addCollision(get_grid(p));
-  }
-  AStar::Generator generator;
-  fan::vec2i src = 0;
-  fan::vec2i dst = 0;
-  fan::vec2i map_size;
-  fan::vec2 tile_size;
+  fan::graphics::animator_t animator;
 };
 
 struct pile_t {
@@ -249,12 +139,7 @@ int main() {
 
   //auto shape = loco.grid.push_back(loco_t::grid_t::properties_t{.position= fan::vec3(fan::vec2(32*32+32-32*6), 50000),.size = 32 * 32, .grid_size = 32});
 
-  path_solver_t path_solver(pile.compiled_map0.map_size, pile.compiled_map0.tile_size);
-  bool move = false;
-  bool init = true;
-
-  path_solver_t::path_t path;
-  int current_position = 0;
+  fan::algorithm::path_solver_t path_solver(pile.compiled_map0.map_size*2, pile.compiled_map0.tile_size);
 
   pile.loco.input_action.add(fan::mouse_left, "move_to_position");
   fan::graphics::rectangle_t rect_dst{ {
@@ -266,13 +151,14 @@ int main() {
   std::vector<fan::graphics::rectangle_t> rect_path;
   pile.loco.loop([&] {
     if (pile.loco.input_action.is_action_clicked("move_to_position")) {
+      rect_path.clear();
       fan::vec2 dst = pile.loco.get_mouse_position(gloco->orthographic_camera.camera, gloco->orthographic_camera.viewport);
       path_solver.set_dst(dst);
       rect_dst.set_position(fan::vec3(dst, 50000));
-      
-      path = path_solver.get_path(pile.player.player.get_position());
-      rect_path.reserve(path.size());
-      for (const auto& p : path) {
+      path_solver.init(pile.player.player.get_position());
+
+      rect_path.reserve(path_solver.path.size());
+      for (const auto& p : path_solver.path) {
         rect_path.push_back({ {
           .position = fan::vec3(fan::vec2i(p) * pile.compiled_map0.tile_size, 50000),
           .size = pile.compiled_map0.tile_size/4,
@@ -280,28 +166,9 @@ int main() {
           .blending = true
         }});
       }
-      move = true;
-      init = true;
     }
-    
-    if (move) {
-      fan::vec2i src_pos = path_solver.get_grid(pile.player.player.get_position());
-      if (init) {
-        current_position = 0;
-        init = false;
-      }
-      if (src_pos == fan::vec2i(path[current_position])) {
-        ++current_position;
-      }
-      if (src_pos == path_solver.dst) {
-        move = false;
-      }
-      else {
-        fan::vec2i current = current_position >= path.size() ? path_solver.dst : fan::vec2i(path[current_position]);
-        fan::vec2i direction = current - src_pos;
-        pile.player.player.move_to_direction(direction);
-      }
-    }
+
+    pile.player.player.move_to_direction(path_solver.step(pile.player.player.get_position()));
 
     pile.step();
   });
