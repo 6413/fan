@@ -2686,6 +2686,10 @@ bool loco_t::input_action_t::is_active(std::string_view action_name, int pstate)
           state = s;
         }
       }
+      if (pstate == input_action_t::press_or_repeat) {
+        return state == input_action_t::press || 
+          state == input_action_t::repeat;
+      }
       return state == pstate;
     }
     else if (action_data.count){
