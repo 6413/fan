@@ -451,6 +451,7 @@ namespace fan {
       static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping);
       void add_inputs();
       void process_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12);
+      void move_to_direction(const fan::vec2& direction);
       f32_t force = 25.f;
       f32_t impulse = 3.f;
       f32_t max_speed = 500.f;
