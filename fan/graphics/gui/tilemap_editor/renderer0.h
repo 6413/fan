@@ -1,7 +1,6 @@
 #define tilemap_renderer 0
 #include "loader.h"
 
-
 struct fte_renderer_t : fte_loader_t {
 
   std::unordered_map<std::string, fan::function_t<void(tile_draw_data_t&, fte_t::tile_t&)>> id_callbacks;

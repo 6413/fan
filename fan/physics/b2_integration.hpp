@@ -169,7 +169,6 @@ namespace fan {
 
     struct entity_t : body_id_t {
       using body_id_t::body_id_t;
-
     };
 
     struct body_type_e {

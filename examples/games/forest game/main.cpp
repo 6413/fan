@@ -58,8 +58,11 @@ struct player_t {
     );
   }
 
-  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::sprite_t{{
+  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::circle_sprite_t{{
     .position = fan::vec3(1019.59076, 934.117065, 10),
+    // collision radius
+    .radius = 8,
+    // image size
     .size = fan::vec2(16, 32),
     .image = img_idle[1],
     /*.color = fan::color::hex(0x715a5eff),*/
@@ -110,7 +113,10 @@ struct pile_t {
       src + (dst - src) * loco.delta_time * 10
     );
     fan::vec2 position = player.player.get_position();
-    static f32_t z = 17;
+    //ImGui::Begin("A");
+    static f32_t z = 18;
+    //ImGui::DragFloat("z", &z, 1);
+    ///ImGui::End();
     player.player.set_position(fan::vec3(position, floor((position.y) / 64) + (0xFAAA - 2) / 2) + z);
     player.player.process_movement(fan::graphics::character2d_t::movement_e::top_view);
     renderer.update(map_id0, dst);
@@ -137,10 +143,9 @@ int main() {
     gloco->orthographic_camera.viewport
   );
 
-  //auto shape = loco.grid.push_back(loco_t::grid_t::properties_t{.position= fan::vec3(fan::vec2(32*32+32-32*6), 50000),.size = 32 * 32, .grid_size = 32});
+  auto shape = pile.loco.grid.push_back(loco_t::grid_t::properties_t{.position= fan::vec3(fan::vec2(32*32+32-32*6), 50000),.size = 32 * 32, .grid_size = 32});
 
-  fan::algorithm::path_solver_t path_solver(pile.compiled_map0.map_size*2, pile.compiled_map0.tile_size);
-
+  fan::algorithm::path_solver_t path_solver(pile.compiled_map0.map_size*2, pile.compiled_map0.tile_size*2);
   pile.loco.input_action.add(fan::mouse_left, "move_to_position");
   fan::graphics::rectangle_t rect_dst{ {
     .position = 0,
@@ -149,6 +154,32 @@ int main() {
     .blending = true
   }};
   std::vector<fan::graphics::rectangle_t> rect_path;
+
+  std::vector<fan::physics::entity_t> collisions;
+
+  std::vector<fan::graphics::circle_t> visual_collisions;
+  for (auto& x : pile.compiled_map0.compiled_shapes) {
+    for (auto& y : x) {
+      for (auto& z : y) {
+        if (z.image_name == "tile0" || z.image_name == "tile1" || z.image_name == "tile2") {
+          collisions.push_back(pile.loco.physics_context.create_circle(
+            fan::vec2(z.position) + fan::vec2(0, -z.size.y / 6),
+            z.size.y / 2.f,
+            fan::physics::body_type_e::static_body,
+            fan::physics::shape_properties_t{.friction=0}
+          ));
+          visual_collisions.push_back(fan::graphics::circle_t{ {
+            .position = fan::vec3(fan::vec2(z.position)+ fan::vec2(0, -z.size.y / 6), 50000),
+            .radius = z.size.y / 2.f,
+            .color = fan::colors::red.set_alpha(0.5),
+            .blending = true
+          }});
+          path_solver.add_collision(visual_collisions.back().get_position());
+        }
+      }
+    }
+  }
+
   pile.loco.loop([&] {
     if (pile.loco.input_action.is_action_clicked("move_to_position")) {
       rect_path.clear();
@@ -159,14 +190,17 @@ int main() {
 
       rect_path.reserve(path_solver.path.size());
       for (const auto& p : path_solver.path) {
+        fan::vec2i pe = p;
         rect_path.push_back({ {
-          .position = fan::vec3(fan::vec2i(p) * pile.compiled_map0.tile_size, 50000),
+          .position = fan::vec3(pe * pile.compiled_map0.tile_size*2, 50000),
           .size = pile.compiled_map0.tile_size/4,
           .color = fan::colors::cyan.set_alpha(0.3),
           .blending = true
         }});
       }
     }
+    if (rect_path.size() && path_solver.current_position < rect_path.size())
+    rect_path[path_solver.current_position].set_color(fan::colors::green);
 
     pile.player.player.move_to_direction(path_solver.step(pile.player.player.get_position()));
 
