@@ -21,10 +21,7 @@ namespace fan {
 struct player_t {
   fan::vec2 velocity = 0;
   std::array<loco_t::image_t, 4> img_idle;
-  std::array<loco_t::image_t, 4> img_movement_left;
-  std::array<loco_t::image_t, 4> img_movement_right;
-  std::array<loco_t::image_t, 4> img_movement_up;
-  std::array<loco_t::image_t, 4> img_movement_down;
+  std::array<std::array<loco_t::image_t, 4>, std::size(fan::movement_e::_strings)> img_movement;
 
   player_t();
 
@@ -32,40 +29,27 @@ struct player_t {
     animator.process_walk(
       player,
       player.get_linear_velocity(),
-      img_idle, img_movement_up, img_movement_down,
-      img_movement_left, img_movement_right
+      img_idle, img_movement[fan::movement_e::left], img_movement[fan::movement_e::right],
+      img_movement[fan::movement_e::up], img_movement[fan::movement_e::down]
     );
     light.set_position(player.get_position());
     fan::vec2 dir = animator.prev_dir;
     uint32_t flag = 3;
-    if (dir.x < 0) {
-      flag = 3;
-    }
-    if (dir.x > 0) {
-      flag = 4;
-    }
-    if (dir.y < 0) {
-      flag = 6;
-    }
-    if (dir.y > 0) {
-      flag = 5;
-    }
-    if (player.get_linear_velocity().is_near(0, 5)) {
-      auto player_img = player.get_image();
-      if (player_img == img_idle[0]) {
-        flag = 6;
-      }
-      if (player_img == img_idle[1]) {
-        flag = 5;
-      }
-      if (player_img == img_idle[2]) {
-        flag = 3;
-      }
-      if (player_img == img_idle[3]) {
-        flag = 4;
+    auto player_img = player.get_image();
+    for (auto [i, d] : std::views::enumerate(img_idle)) {
+      if (player_img == d) {
+        flag = i + 3;
+        break;
       }
     }
-
+    for (auto [j, d] : std::views::enumerate(img_movement)) {
+      for (auto [i, d2] : std::views::enumerate(d)) {
+        if (player_img == d2) {
+          flag = j + 3;
+          break;
+        }
+      }
+    }
     light.set_flags(flag);
   }
 
@@ -74,7 +58,7 @@ struct player_t {
     // collision radius
     .radius = 8,
     // image size
-    .size = fan::vec2(16, 32),
+    .size = fan::vec2(8, 16),
     /*.color = fan::color::hex(0x715a5eff),*/
     .blending = true,
     .body_type = fan::physics::body_type_e::dynamic_body,
@@ -110,6 +94,15 @@ struct pile_t {
     lp.mag_filter = GL_NEAREST;
 
     tp.open_compiled("examples/games/forest game/forest_tileset.ftp", lp);
+    // dont use
+    //renderer.sensor_id_callbacks["npc0_door"] = 
+    //  [&](fte_renderer_t::map_list_data_t::physics_entities_t& pe, fte_renderer_t::compiled_map_t::physics_data_t& pd) {
+    //  std::visit([&]<typename T>(T& entity) { 
+    //    if constexpr (std::is_same_v<T, fan::graphics::physics_shapes::rectangle_t>) {
+    //      npc0_door_sensor = entity;
+    //    }
+    //  }, pe.visual);
+    //};
 
     renderer.open(&tp);
     compiled_map0 = renderer.compile("examples/games/forest game/forest.json");
@@ -155,6 +148,7 @@ struct pile_t {
   fte_loader_t::id_t map_id0;
 
   player_t player;
+  fan::physics::body_id_t npc0_door_sensor;
 
   weather_t weather;
 }*pile;
@@ -180,10 +174,10 @@ player_t::player_t() {
     }
     };
 
-  load_movement_images(img_movement_up, "up");
-  load_movement_images(img_movement_down, "down");
-  load_movement_images(img_movement_left, "left");
-  load_movement_images(img_movement_right, "right");
+  load_movement_images(img_movement[fan::movement_e::left], "left");
+  load_movement_images(img_movement[fan::movement_e::right], "right");
+  load_movement_images(img_movement[fan::movement_e::up], "up");
+  load_movement_images(img_movement[fan::movement_e::down], "down");
 
   player.set_image(img_idle[fan::movement_e::down]);
 
@@ -253,7 +247,8 @@ void load_rain(loco_t::shape_t& rain_particles) {
 int main() {
   pile = (pile_t*)malloc(sizeof(pile_t));
   std::construct_at(pile);
-
+  pile->player.player.force = 50;
+  pile->player.player.max_speed = 1000;
   fan::graphics::interactive_camera_t ic(
     getp().loco.orthographic_camera.camera, 
     getp().loco.orthographic_camera.viewport
@@ -279,8 +274,28 @@ int main() {
   loco_t::shape_t rain_particles;
   load_rain(rain_particles);
 
+  for (auto& i : getp().renderer.map_list[getp().map_id0].physics_entities) {
+    if (i.id == "npc0_door") {
+      std::visit([&]<typename T>(T& entity) { 
+        if constexpr (std::is_same_v<T, fan::graphics::physics_shapes::rectangle_t>) {
+          getp().npc0_door_sensor = entity;
+        }
+      }, i.visual);
+      break;
+    }
+  }
+
+  if (getp().npc0_door_sensor.is_valid() == false) {
+    fan::throw_error("sensor not found");
+  }
+
   getp().loco.loop([&] {
-    pile->weather.lightning();
+ //   pile->weather.lightning();
+
+    if (getp().loco.physics_context.is_on_sensor(getp().player.player, getp().npc0_door_sensor)) {
+      if (getp().loco.lighting.ambient > -1)
+      getp().loco.lighting.ambient -= pile->loco.delta_time * 5;
+    }
     
     if (getp().loco.input_action.is_action_clicked("move_to_position")) {
       rect_path.clear();

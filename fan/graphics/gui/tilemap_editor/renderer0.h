@@ -102,6 +102,7 @@ struct fte_renderer_t : fte_loader_t {
         break;
       }
       }
+      node.physics_entities.back().id = pd.physics_shapes.id;
       auto found = sensor_id_callbacks.find(pd.physics_shapes.id);
       if (found != sensor_id_callbacks.end()) {
         found->second(node.physics_entities.back(), pd);
