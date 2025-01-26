@@ -15,6 +15,12 @@ namespace fan {
 	struct color {
 
     template <typename T>
+    constexpr color(const fan::vec3_wrap_t<T>& v) {
+      r = v.x;
+      g = v.y;
+      b = v.z;
+    }
+    template <typename T>
     constexpr color(const fan::vec4_wrap_t<T>& v) {
       *(fan::vec4*)this = v;
     }
@@ -28,6 +34,9 @@ namespace fan {
     }
     constexpr operator ImVec4() const {
       return *(ImVec4*)this;
+    }
+    constexpr operator fan::vec3() const {
+      return fan::vec3{r, g, b};
     }
 #endif
     constexpr uint32_t to_u32() const {

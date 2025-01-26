@@ -1,40 +1,42 @@
 #include <fan/pch.h>
 #include <fan/network/network.h>
 
-fan::ev::task_t tcp_server_test(loco_t::shape_t& r) {
-  try {
-    co_await fan::network::tcp_listen({.port = 43253}, [&r](auto&& client) -> fan::ev::task_t {
+fan::graphics::engine_t engine;
+fan::graphics::rectangle_t r{ {
+    .position = fan::vec3(400, 400, 0),
+    .size = 50,
+    .color = fan::colors::red
+} };
+
+fan::ev::task_t tcp_server_test() {
+ // try {
+    co_await fan::network::tcp_listen({.port = 7777}, [](auto&& client) -> fan::ev::task_t {
       fan::json_stream_parser_t parser;
       auto reader = client.read();
       while (auto data = co_await reader) {
-        try {
-          auto results = parser.process(data);
-          for (const auto& result : results) {
-            fan::vec3 p = result.value["position"];
-            r.set_position(p);
-          }
-        }
-        catch (const std::exception& e) {
-          //fan::print("err");
+        auto results = parser.process(data);
+        for (const auto& result : results) {
+          fan::vec3 p = result.value["position"];
+          r.set_position(p);
         }
       }
       fan::print("");
     });
-  }
-  catch (std::exception& e) {
-    fan::print_warning(std::string("server error:") + e.what());
-  }
+ // }
+//  catch (std::exception& e) {
+//    fan::print_warning(std::string("server error:") + e.what());
+//  }
 }
 
-fan::ev::task_t tcp_client_test(loco_t::shape_t& r) {
+fan::ev::task_t tcp_client_test() {
   try {
     fan::network::tcp_t client;
-    co_await client.connect("127.0.0.1", 43253);
+    co_await client.connect("85.156.160.229", 7777);
     fan::json j;
     while (1) {
       j["position"] = r.get_position();
       co_await client.write(j.dump());
-      co_await fan::co_sleep(10);
+      co_await fan::co_sleep(1000);
     }
   }
   catch (std::exception& e) {
@@ -44,16 +46,8 @@ fan::ev::task_t tcp_client_test(loco_t::shape_t& r) {
 
 int main() {
   try {
-    fan::graphics::engine_t engine;
-
-    fan::graphics::rectangle_t r{ {
-        .position = fan::vec3(400, 400, 0),
-        .size = 50,
-        .color = fan::colors::red
-    } };
-
-    auto tcp_server = tcp_server_test(r);
-    //auto tcp_client = tcp_client_test();
+ // auto tcp_server = tcp_server_test();
+    auto tcp_client = tcp_client_test();
 
     engine.input_action.add(fan::key_a, "a");
     engine.input_action.add(fan::key_d, "d");
