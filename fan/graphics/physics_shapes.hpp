@@ -278,6 +278,49 @@ namespace fan {
           return *this;
         }
       };
+      struct circle_sprite_t : base_shape_t {
+        struct properties_t {
+          camera_impl_t* camera = &gloco->orthographic_camera;
+          fan::vec3 position = fan::vec3(0, 0, 0);
+          f32_t radius = 0.1f;
+          fan::vec2 size = radius;
+          loco_t::image_t image = gloco->default_texture;
+          fan::color color = fan::color(1, 1, 1, 1);
+          bool blending = true;
+          uint32_t flags = 0;
+          operator fan::graphics::sprite_properties_t() const {
+            return fan::graphics::sprite_properties_t{
+              .camera = camera,
+              .position = position,
+              .size = size,
+              .color = color,
+              .image = image,
+              .blending = blending,
+              .flags = flags
+            };
+          }
+          uint8_t body_type = fan::physics::body_type_e::static_body;
+          mass_data_t mass_data;
+          fan::physics::shape_properties_t shape_properties;
+        };
+        circle_sprite_t() = default;
+        circle_sprite_t(const properties_t& p) : base_shape_t(
+          loco_t::shape_t(fan::graphics::sprite_t{p}),
+          fan::physics::entity_t(gloco->physics_context.create_circle(p.position, p.radius, p.body_type, p.shape_properties)),
+          p.mass_data
+        ) {
+        }
+        circle_sprite_t(const circle_sprite_t& r) : base_shape_t(r) {}
+        circle_sprite_t(circle_sprite_t&& r) : base_shape_t(std::move(r)) {}
+        circle_sprite_t& operator=(const circle_sprite_t& r) {
+          base_shape_t::operator=(r);
+          return *this;
+        }
+        circle_sprite_t& operator=(circle_sprite_t&& r) {
+          base_shape_t::operator=(std::move(r));
+          return *this;
+        }
+      };
       struct capsule_t : base_shape_t {
         struct properties_t {
           camera_impl_t* camera = &gloco->orthographic_camera;
