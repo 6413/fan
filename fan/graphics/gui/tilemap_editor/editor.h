@@ -1579,7 +1579,7 @@ struct fte_t {
       switch (brush.type) {
       case brush_t::type_e::physics_shape: {
         {
-          if (ImGui::SliderFloat2("offset", brush.offset.data(), 0, 1)) {
+          if (ImGui::SliderFloat2("offset", brush.offset.data(), -1, 1)) {
             
           }
         }

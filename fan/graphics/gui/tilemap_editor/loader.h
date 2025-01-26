@@ -57,6 +57,7 @@ struct fte_loader_t {
         fan::graphics::physics_shapes::rectangle_t,
         fan::graphics::physics_shapes::circle_t
       >visual;
+      std::string id;
     };
     std::vector<physics_entities_t> physics_entities;
     fan::vec3 position = 0;

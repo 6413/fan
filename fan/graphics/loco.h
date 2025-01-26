@@ -3194,10 +3194,10 @@ namespace fan {
       void process_walk(loco_t::shape_t& shape,
         const fan::vec2& vel,
         const std::array<loco_t::image_t, 4>& img_idle,
-        const std::array<loco_t::image_t, images_per_action>& img_movement_up,
-        const std::array<loco_t::image_t, images_per_action>& img_movement_down,
         const std::array<loco_t::image_t, images_per_action>& img_movement_left,
-        const std::array<loco_t::image_t, images_per_action>& img_movement_right
+        const std::array<loco_t::image_t, images_per_action>& img_movement_right,
+        const std::array<loco_t::image_t, images_per_action>& img_movement_up,
+        const std::array<loco_t::image_t, images_per_action>& img_movement_down
       ) {
         f32_t animation_velocity_threshold = 10.f;
         fan_ev_timer_loop_init(animation_update_time,
@@ -3218,10 +3218,10 @@ namespace fan {
           }
           else {
             if (prev_dir.y < 0) {
-              shape.set_image(img_idle[0]);
+              shape.set_image(img_idle[2]);
             }
             else if (prev_dir.y > 0) {
-              shape.set_image(img_idle[1]);
+              shape.set_image(img_idle[3]);
             }
             prev_dir.y = 0;
           }
@@ -3247,10 +3247,10 @@ namespace fan {
             }
             else {
               if (prev_dir.x < 0) {
-                shape.set_image(img_idle[2]);
+                shape.set_image(img_idle[0]);
               }
               else if (prev_dir.x > 0) {
-                shape.set_image(img_idle[3]);
+                shape.set_image(img_idle[1]);
               }
               prev_dir.x = 0;
             }
