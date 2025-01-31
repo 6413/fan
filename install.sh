@@ -17,7 +17,8 @@ apt install -y clang \
 				 libopus-dev \
 				 libuv1 \
 				 libuv1-dev \
-     				 ninja-build
+				 ninja-build \
+				 libglew-dev
 
 git clone https://github.com/7244/WITCH.git
 mv WITCH /usr/local/include/WITCH
