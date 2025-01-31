@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
 
   loco.set_vsync(0);
 
-  fte.fin("examples/games/forest game/forest.json");
+  //fte.fin("examples/games/forest game/forest.json");
   f32_t z = 17;
 
   //fan::graphics::physics_shapes::physics_update_cb = [&](loco_t::shape_t& shape, const fan::vec3& p, const fan::vec2& size, f32_t radians) {

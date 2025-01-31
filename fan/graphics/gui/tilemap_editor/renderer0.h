@@ -172,6 +172,7 @@ struct fte_renderer_t : fte_loader_t {
   void erase(id_t& id) {
     clear(id);
     map_list.unlrec(id);
+    id.sic();
   }
 
   struct shape_depths_t {
@@ -191,6 +192,9 @@ struct fte_renderer_t : fte_loader_t {
   };
 
   void update(id_t id, const fan::vec2& position_) {
+    if (id.iic()) {
+      return;
+    }
     auto& node = map_list[id];
     if (node.prev_render == convert_to_grid(position_, node)) {
       return;

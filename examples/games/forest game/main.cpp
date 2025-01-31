@@ -34,8 +34,8 @@ struct player_t {
     );
     light.set_position(player.get_position());
     fan::vec2 dir = animator.prev_dir;
-    uint32_t flag = 3;
-    auto player_img = player.get_image();
+    uint32_t flag = 0;
+    /*auto player_img = player.get_image();
     for (auto [i, d] : std::views::enumerate(img_idle)) {
       if (player_img == d) {
         flag = i + 3;
@@ -49,7 +49,7 @@ struct player_t {
           break;
         }
       }
-    }
+    }*/
     light.set_flags(flag);
   }
 
@@ -103,7 +103,7 @@ struct pile_t {
     //    }
     //  }, pe.visual);
     //};
-
+    
     renderer.open(&tp);
     compiled_map0 = renderer.compile("examples/games/forest game/forest.json");
     fan::vec2i render_size(16, 9);
@@ -112,6 +112,11 @@ struct pile_t {
     p.size = render_size;
     p.position = player.player.get_position();
     map_id0 = renderer.add(&compiled_map0, p);
+    fan::vec2 dst = player.player.get_position();
+    loco.camera_set_position(
+      loco.orthographic_camera.camera,
+      dst
+    );
   }
 
   void step() {
@@ -247,20 +252,24 @@ void load_rain(loco_t::shape_t& rain_particles) {
 int main() {
   pile = (pile_t*)malloc(sizeof(pile_t));
   std::construct_at(pile);
+  pile->loco.clear_color = 0;
   pile->player.player.force = 50;
   pile->player.player.max_speed = 1000;
+
+  pile_t& pile_r = getp();
+
   fan::graphics::interactive_camera_t ic(
-    getp().loco.orthographic_camera.camera, 
-    getp().loco.orthographic_camera.viewport
+    pile_r.loco.orthographic_camera.camera, 
+    pile_r.loco.orthographic_camera.viewport
   );
 
- // auto shape = getp().loco.grid.push_back(loco_t::grid_t::properties_t{.position= fan::vec3(fan::vec2(32*32+32-32*6), 50000),.size = 32 * 32, .grid_size = 32});
+ // auto shape = pile_r.loco.grid.push_back(loco_t::grid_t::properties_t{.position= fan::vec3(fan::vec2(32*32+32-32*6), 50000),.size = 32 * 32, .grid_size = 32});
 
-  fan::algorithm::path_solver_t path_solver(getp().compiled_map0.map_size*2, getp().compiled_map0.tile_size*2);
-  getp().loco.input_action.add(fan::mouse_left, "move_to_position");
+  fan::algorithm::path_solver_t path_solver(pile_r.compiled_map0.map_size*2, pile_r.compiled_map0.tile_size*2);
+  pile_r.loco.input_action.add(fan::mouse_left, "move_to_position");
   fan::graphics::rectangle_t rect_dst{ {
     .position = 0,
-    .size = getp().compiled_map0.tile_size/4,
+    .size = pile_r.compiled_map0.tile_size/4,
     .color = fan::colors::red.set_alpha(0.3),
     .blending = true
   }};
@@ -274,42 +283,78 @@ int main() {
   loco_t::shape_t rain_particles;
   load_rain(rain_particles);
 
-  for (auto& i : getp().renderer.map_list[getp().map_id0].physics_entities) {
+  for (auto& i : pile_r.renderer.map_list[pile_r.map_id0].physics_entities) {
     if (i.id == "npc0_door") {
       std::visit([&]<typename T>(T& entity) { 
         if constexpr (std::is_same_v<T, fan::graphics::physics_shapes::rectangle_t>) {
-          getp().npc0_door_sensor = entity;
+          pile_r.npc0_door_sensor = entity;
         }
       }, i.visual);
       break;
     }
   }
 
-  if (getp().npc0_door_sensor.is_valid() == false) {
+  if (pile_r.npc0_door_sensor.is_valid() == false) {
     fan::throw_error("sensor not found");
   }
 
-  getp().loco.loop([&] {
- //   pile->weather.lightning();
+  pile_r.loco.loop([&] {
+    ImGui::Begin("A");
+    static bool v = 0;
+    ImGui::ToggleButton("lightning", &v);
+    ImGui::End();
+    if (v)
+    pile->weather.lightning();
 
-    if (getp().loco.physics_context.is_on_sensor(getp().player.player, getp().npc0_door_sensor)) {
-      if (getp().loco.lighting.ambient > -1)
-      getp().loco.lighting.ambient -= pile->loco.delta_time * 5;
+    static int x = 0;
+    if (pile_r.loco.physics_context.is_on_sensor(pile_r.player.player, pile_r.npc0_door_sensor) && x == 0) {
+      if (pile_r.loco.lighting.ambient > -1) {
+        pile_r.loco.lighting.ambient -= pile->loco.delta_time * 5;
+      }
+      else {
+        if (pile_r.map_id0.iic() == false && x == 0) {
+          pile_r.renderer.erase(pile_r.map_id0);
+          pile_r.compiled_map0 = pile_r.renderer.compile("examples/games/forest game/shop/shop.json");
+          fan::vec2i render_size(16, 9);
+          render_size /= 1.5;
+          fte_loader_t::properties_t p;
+          p.size = render_size;
+          pile_r.player.player.set_position(fan::vec2{320.384949, 382.723236 });
+          pile_r.player.player.set_physics_position(pile_r.player.player.get_position());
+          p.position = pile_r.player.player.get_position();
+          pile_r.map_id0 = pile_r.renderer.add(&pile_r.compiled_map0, p);
+          fan::vec2 dst = pile_r.player.player.get_position();
+          pile_r.loco.camera_set_position(
+            pile_r.loco.orthographic_camera.camera,
+            dst
+          );
+          pile_r.loco.lighting.ambient = -1;
+          x = 1;
+        }
+      }
+    }
+    if (x) {
+      if (pile_r.loco.lighting.ambient < 1) {
+        pile_r.loco.lighting.ambient += pile_r.loco.delta_time * 5;
+      }
+      else {
+        pile_r.loco.lighting.ambient = 1;
+      }
     }
     
-    if (getp().loco.input_action.is_action_clicked("move_to_position")) {
+    if (pile_r.loco.input_action.is_action_clicked("move_to_position") && !ImGui::IsAnyItemHovered()) {
       rect_path.clear();
-      fan::vec2 dst = getp().loco.get_mouse_position(getp().loco.orthographic_camera.camera, getp().loco.orthographic_camera.viewport);
+      fan::vec2 dst = pile_r.loco.get_mouse_position(pile_r.loco.orthographic_camera.camera, pile_r.loco.orthographic_camera.viewport);
       path_solver.set_dst(dst);
       rect_dst.set_position(fan::vec3(dst, 50000));
-      path_solver.init(getp().player.player.get_position());
+      path_solver.init(pile_r.player.player.get_position());
 
       rect_path.reserve(path_solver.path.size());
       for (const auto& p : path_solver.path) {
         fan::vec2i pe = p;
         rect_path.push_back({ {
-          .position = fan::vec3(pe * getp().compiled_map0.tile_size*2, 50000),
-          .size = getp().compiled_map0.tile_size/4,
+          .position = fan::vec3(pe * pile_r.compiled_map0.tile_size*2, 50000),
+          .size = pile_r.compiled_map0.tile_size/4,
           .color = fan::colors::cyan.set_alpha(0.3),
           .blending = true
         }});
@@ -318,8 +363,8 @@ int main() {
     if (rect_path.size() && path_solver.current_position < rect_path.size())
     rect_path[path_solver.current_position].set_color(fan::colors::green);
 
-    getp().player.player.move_to_direction(path_solver.step(getp().player.player.get_position()));
+    pile_r.player.player.move_to_direction(path_solver.step(pile_r.player.player.get_position()));
 
-    getp().step();
+    pile_r.step();
   });
 }

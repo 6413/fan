@@ -71,6 +71,7 @@ struct fte_loader_t {
   #define BLL_set_NodeDataType map_list_data_t
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
+  #include <fan/fan_bll_preset.h>
 protected:
   #include <BLL/BLL.h>
 public:
