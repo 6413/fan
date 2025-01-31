@@ -16,7 +16,7 @@ namespace fan {
 		constexpr f32_t two_pi = pi * 2;
 
 		template <typename vector_t>
-		constexpr vector_t::value_type dot(const vector_t& x, const vector_t& y) {
+		constexpr typename vector_t::value_type dot(const vector_t& x, const vector_t& y) {
 		  typename vector_t::value_type ret = 0;
 			for (uintptr_t i = 0; i < vector_t::size(); ++i) {
 				ret += x[i] * y[i];
