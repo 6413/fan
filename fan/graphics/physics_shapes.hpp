@@ -43,7 +43,9 @@ namespace fan {
             .body_id = *this,
             .cb = (void*)shape_physics_update
             });
-          b2MassData md = b2Body_GetMassData(*this);
+          auto body_ptr = dynamic_cast<b2BodyId*>(this);
+          fan::print("CRAAASH", index1, world0, revision, (void*)body_ptr);
+          b2MassData md = b2Body_GetMassData(*body_ptr);
           mass_data_t md_copy = mass_data;
           if (mass_data.mass < 0.f) {
             md_copy.mass = md.mass;
@@ -54,16 +56,16 @@ namespace fan {
           if (mass_data.rotational_inertia < 0.f) {
             md_copy.rotational_inertia = md.rotationalInertia;
           }
-          b2Body_SetMassData(*this, md_copy);
+          b2Body_SetMassData(*dynamic_cast<b2BodyId*>(this), md_copy);
         }
         base_shape_t(const base_shape_t& r) : loco_t::shape_t(r), fan::physics::entity_t(r) {
           //if (this != )
-          fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gloco->physics_context.world_id, r);
+          fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gloco->physics_context.world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
           if (!B2_ID_EQUALS(r, (*this))) {
             destroy();
           }
           set_body(new_body_id);
-          b2Body_GetWorldPoint(*this, fan::vec2(0));
+          b2Body_GetWorldPoint(*dynamic_cast<b2BodyId*>(this), fan::vec2(0));
           if (physics_update_nr.iic() == false) {
             gloco->remove_physics_update(physics_update_nr);
             physics_update_nr.sic();
@@ -97,7 +99,7 @@ namespace fan {
           if (this != &r) {
             loco_t::shape_t::operator=(r);
 
-            fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gloco->physics_context.world_id, r);
+            fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gloco->physics_context.world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
             if (!B2_ID_EQUALS(r, (*this))) {
               destroy();
             }
@@ -123,7 +125,7 @@ namespace fan {
           }
           if (this != &r) {
             loco_t::shape_t::operator=(std::move(r));
-            fan::physics::entity_t::operator=(std::move(r));
+            fan::physics::entity_t::operator=(std::move(*dynamic_cast<fan::physics::entity_t*>(&r)));
             r.set_body(b2_nullBodyId);
             physics_update_nr = r.physics_update_nr;
             r.physics_update_nr.sic();

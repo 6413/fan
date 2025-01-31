@@ -1,6 +1,8 @@
 // include before all, because it uses some macros which override default allocation functions
 #pragma once
 
+#define fan_tracking_allocations
+
 #include <source_location>
 #include <set>
 #include <map>

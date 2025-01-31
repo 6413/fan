@@ -21,7 +21,7 @@
 //-----------------------------context-----------------------------
 //-----------------------------context-----------------------------
 
-std::unordered_map<size_t, int> fan::opengl::shader_location_cache;
+//std::unordered_map<size_t, int> fan::opengl::shader_location_cache;
 
 void fan::opengl::context_t::print_version() {
   fan::print("opengl version supported:", fan_opengl_call(glGetString(GL_VERSION)));

@@ -1,36 +1,6 @@
 #include "window.h"
 
-struct init_manager_t {
-  static bool& initialized() {
-    static bool instance = false;
-    return instance;
-  }
-
-  struct cleaner_t {
-    cleaner_t() {
-      if(!initialized()) {
-        if (!glfwInit()) {
-          throw std::runtime_error("failed to initialize context");
-        }
-      }
-      initialized() = true;
-    }
-
-    ~cleaner_t() {
-      if (initialized()) {
-        glfwTerminate();
-        initialized() = false;
-      }
-    }
-};
-
-  static cleaner_t& cleaner() {
-    static cleaner_t instance;
-    return instance;
-  }
-};
-
-inline init_manager_t::cleaner_t& _cleaner = init_manager_t::cleaner();
+inline fan::init_manager_t::cleaner_t& _cleaner = fan::init_manager_t::cleaner();
 
 void fan::window::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
   fan::window_t* pwindow = (fan::window_t*)glfwGetWindowUserPointer(window);
