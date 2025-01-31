@@ -104,11 +104,11 @@ namespace fan {
     : vec2_wrap_t(test0.x, test0.y) { } 
     constexpr auto copysign(const auto& test0) const { return vec2_wrap_t(fan::math::copysign(x, test0.x), fan::math::copysign(y, test0.y)); }
 #if defined(loco_imgui)
-    constexpr operator ImVec2() const { return ImVec2(x, y); }
+    constexpr operator ImVec2() const { return ImVec2{(f32_t)x, (f32_t)y}; }
     constexpr vec2_wrap_t(const ImVec2& v) { x = v.x; y = v.y; }
 #endif
 #if defined(loco_box2d)
-    constexpr operator b2Vec2() const { return b2Vec2(x, y); }
+    constexpr operator b2Vec2() const { return b2Vec2{(f32_t)x, (f32_t)y}; }
     constexpr vec2_wrap_t(const b2Vec2& v) { x = v.x; y = v.y; }
 #endif
     // coordinate system angle. TODO need rename to something meaningful
