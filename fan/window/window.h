@@ -4,6 +4,46 @@
 #include <fan/types/vector.h>
 #include <fan/window/window_input.h>
 #include <fan/window/window_input_common.h>
+namespace fan {
+  struct init_manager_t {
+    static bool& initialized() {
+      static bool instance = false;
+      return instance;
+    }
+
+    static void initialize() {
+      if (initialized()) {
+        return;
+      }
+      if (!glfwInit()) {
+        throw std::runtime_error("failed to initialize context");
+      }
+      initialized() = true;
+    }
+    static void uninitialize() {
+      if (initialized() == false) {
+        return;
+      }
+      glfwTerminate();
+      initialized() = false;
+    }
+
+    struct cleaner_t {
+      cleaner_t() {
+        initialize();
+      }
+
+      ~cleaner_t() {
+        uninitialize();
+      }
+    };
+
+    static cleaner_t& cleaner() {
+      static cleaner_t instance;
+      return instance;
+    }
+  };
+}
 
 namespace fan {
   namespace window {

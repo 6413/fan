@@ -3,7 +3,7 @@
 #endif
 
 #define stage_maker_loader
-#include _FAN_PATH(graphics/gui/fgm/common.h)
+#include <fan/graphics/gui/fgm/common.h>
 
 struct stage_loader_t;
 
@@ -166,17 +166,10 @@ public:
     return stage_ptr->stage_common.cid_list[found->second];
   }
 
-  void open(loco_t::texturepack_t* tp) {
-    texturepack = tp;
-  }
-  void close() {
-
-  }
-
   void load_fgm(auto* stage, const stage_open_properties_t& op, const char* stage_name) {
     fan::string filename = fan::string("stages_runtime/") + stage_name + ".fgm";
     #define only_struct_data
-    #include _FAN_PATH(graphics/gui/stage_maker/loader_versions/1.h)
+    #include <fan/graphics/gui/stage_maker/loader_versions/1.h>
   }
 
   void erase_stage(nr_t id) {
@@ -189,10 +182,8 @@ public:
    // std::destroy_at(stage);
   }
 
-  loco_t::texturepack_t* texturepack = 0;
-
   lstd_defstruct(custom_base_t)
-    #include _FAN_PATH(graphics/gui/stage_maker/preset.h)
+    #include <fan/graphics/gui/stage_maker/preset.h>
 
     static constexpr auto stage_name = "";
 

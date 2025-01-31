@@ -6,6 +6,7 @@ namespace fan {
   namespace algorithm {
     struct path_solver_t {
       using path_t = AStar::CoordinateList;
+      path_solver_t() = default;
       path_solver_t(const fan::vec2i& map_size_, const fan::vec2& tile_size_) {
         this->map_size = map_size_;
         generator.setWorldSize(map_size);

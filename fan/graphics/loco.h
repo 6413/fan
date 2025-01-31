@@ -5,6 +5,8 @@
 #include <fan/graphics/loco_settings.h>
 #include <fan/graphics/file_dialog.h>
 
+#include <fan/types/lazy_compiler_devs.h>
+
 #if defined(loco_box2d)
   #include <fan/physics/b2_integration.hpp>
 #endif
@@ -3190,7 +3192,7 @@ namespace fan {
       uint64_t animation_update_time = 150;//ms
       uint16_t i_down = 0, i_up = 0, i_left = 0, i_right = 0;
 
-      template <uint16_t images_per_action>
+      template <std::size_t images_per_action>
       void process_walk(loco_t::shape_t& shape,
         const fan::vec2& vel,
         const std::array<loco_t::image_t, 4>& img_idle,
@@ -3260,4 +3262,14 @@ namespace fan {
     };
 
   }
+
+  struct movement_e {
+    fan_enum_string(
+      ,
+      left,
+      right,
+      up,
+      down
+    );
+  };
 }

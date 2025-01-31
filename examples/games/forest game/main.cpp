@@ -2,21 +2,13 @@
 #include <fan/graphics/algorithm/astar.h>
 #include <fan/graphics/gui/tilemap_editor/renderer0.h>
 
-fan_track_allocations();
+#define stage_loader_path .
+#include <fan/graphics/gui/stage_maker/loader.h>
+
+//fan_track_allocations();
+
 
 std::string asset_path = "examples/games/forest game/";
-
-namespace fan {
-  struct movement_e {
-    fan_enum_string(
-      ,
-      left,
-      right,
-      up,
-      down
-    );
-  };
-}
 
 struct player_t {
   fan::vec2 velocity = 0;
@@ -77,47 +69,20 @@ struct player_t {
 
 struct weather_t {
   weather_t() {
-
+    load_rain(rain_particles);
   }
   void lightning();
+  void load_rain(loco_t::shape_t& rain_particles);
+
 
   bool on = false;
   f32_t sin_var = 0;
   uint16_t repeat_count = 0;
+  loco_t::shape_t rain_particles;
 };
 
 struct pile_t {
-  pile_t() {
-    loco_t::image_load_properties_t lp;
-    lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
-    lp.min_filter = GL_NEAREST;
-    lp.mag_filter = GL_NEAREST;
-
-    tp.open_compiled("examples/games/forest game/forest_tileset.ftp", lp);
-    // dont use
-    //renderer.sensor_id_callbacks["npc0_door"] = 
-    //  [&](fte_renderer_t::map_list_data_t::physics_entities_t& pe, fte_renderer_t::compiled_map_t::physics_data_t& pd) {
-    //  std::visit([&]<typename T>(T& entity) { 
-    //    if constexpr (std::is_same_v<T, fan::graphics::physics_shapes::rectangle_t>) {
-    //      npc0_door_sensor = entity;
-    //    }
-    //  }, pe.visual);
-    //};
-    
-    renderer.open(&tp);
-    compiled_map0 = renderer.compile("examples/games/forest game/forest.json");
-    fan::vec2i render_size(16, 9);
-    render_size /= 1.5;
-    fte_loader_t::properties_t p;
-    p.size = render_size;
-    p.position = player.player.get_position();
-    map_id0 = renderer.add(&compiled_map0, p);
-    fan::vec2 dst = player.player.get_position();
-    loco.camera_set_position(
-      loco.orthographic_camera.camera,
-      dst
-    );
-  }
+  pile_t();
 
   void step() {
 
@@ -147,19 +112,58 @@ struct pile_t {
   }
 
   loco_t loco;
+  player_t player;
   loco_t::texturepack_t tp;
   fte_renderer_t renderer;
   fte_loader_t::compiled_map_t compiled_map0;
   fte_loader_t::id_t map_id0;
 
-  player_t player;
   fan::physics::body_id_t npc0_door_sensor;
 
+  fan::algorithm::path_solver_t path_solver;
+
   weather_t weather;
-}*pile;
+
+  std::unique_ptr<stage_loader_t> stage_loader;
+  stage_loader_t::nr_t current_stage;
+}pile;
 
 pile_t& getp() {
-  return *pile;
+  return pile;
+}
+
+lstd_defstruct(stage_forest_t)
+  #include _FAN_PATH(graphics/gui/stage_maker/preset.h)
+  static constexpr auto stage_name = "";
+
+  #include "stage_forest.h"
+};
+
+pile_t::pile_t() {
+  loco_t::image_load_properties_t lp;
+  lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
+  lp.min_filter = GL_NEAREST;
+  lp.mag_filter = GL_NEAREST;
+
+  tp.open_compiled("examples/games/forest game/forest_tileset.ftp", lp);
+
+  renderer.open(&tp);
+  compiled_map0 = renderer.compile("examples/games/forest game/forest.json");
+  fan::vec2i render_size(16, 9);
+  render_size /= 1.5;
+  fte_loader_t::properties_t p;
+  p.size = render_size;
+  p.position = player.player.get_position();
+  map_id0 = renderer.add(&compiled_map0, p);
+  fan::vec2 dst = player.player.get_position();
+  loco.camera_set_position(
+    loco.orthographic_camera.camera,
+    dst
+  );
+
+  stage_loader = std::make_unique<stage_loader_t>();
+  stage_loader_t::stage_open_properties_t op;
+  current_stage = stage_loader_t::open_stage<stage_forest_t>(op);
 }
 
 player_t::player_t() {
@@ -174,10 +178,10 @@ player_t::player_t() {
         "static_" + direction + ".png"
     };
 
-    for (const auto& [i, pose] : std::views::enumerate(pose_variants)) {
+    for (const auto& [i, pose] : pose_variants | fan::enumerate) {
       images[i] = (getp().loco.image_load(asset_path + "npc/" + pose));
     }
-    };
+  };
 
   load_movement_images(img_movement[fan::movement_e::left], "left");
   load_movement_images(img_movement[fan::movement_e::right], "right");
@@ -211,31 +215,7 @@ void weather_t::lightning() {
   }
 }
 
-void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions, fan::algorithm::path_solver_t& path_solver) {
-  for (auto& x : getp().compiled_map0.compiled_shapes) {
-    for (auto& y : x) {
-      for (auto& z : y) {
-        if (z.image_name == "tile0" || z.image_name == "tile1" || z.image_name == "tile2") {
-          collisions.push_back(getp().loco.physics_context.create_circle(
-            fan::vec2(z.position) + fan::vec2(0, -z.size.y / 6),
-            z.size.y / 2.f,
-            fan::physics::body_type_e::static_body,
-            fan::physics::shape_properties_t{ .friction = 0 }
-          ));
-          /* visual_collisions.push_back(fan::graphics::circle_t{ {
-          .position = fan::vec3(fan::vec2(z.position)+ fan::vec2(0, -z.size.y / 6), 50000),
-          .radius = z.size.y / 2.f,
-          .color = fan::colors::red.set_alpha(0.5),
-          .blending = true
-          }});*/
-          path_solver.add_collision(fan::vec3(fan::vec2(z.position) + fan::vec2(0, -z.size.y / 6), 50000));
-        }
-      }
-    }
-  }
-}
-
-void load_rain(loco_t::shape_t& rain_particles) {
+void weather_t::load_rain(loco_t::shape_t& rain_particles) {
   std::string data;
   fan::io::file::read("rain.json", &data);
   fan::json in = fan::json::parse(data);
@@ -243,20 +223,18 @@ void load_rain(loco_t::shape_t& rain_particles) {
   while (it.iterate(in, &rain_particles)) {
   }
   auto image_star = getp().loco.image_load("images/waterdrop.webp");
-  rain_particles.set_image(image_star);;
+  rain_particles.set_image(image_star);
   auto& ri = *(loco_t::particles_t::ri_t*)getp().loco.shaper.GetData(rain_particles);
   //fan::vec3 position = fan::vec3(;
   //sky_particles.set_position(position);
 }
 
 int main() {
-  pile = (pile_t*)malloc(sizeof(pile_t));
-  std::construct_at(pile);
-  pile->loco.clear_color = 0;
-  pile->player.player.force = 50;
-  pile->player.player.max_speed = 1000;
-
   pile_t& pile_r = getp();
+  
+  pile_r.loco.clear_color = 0;
+  pile_r.player.player.force = 50;
+  pile_r.player.player.max_speed = 1000;
 
   fan::graphics::interactive_camera_t ic(
     pile_r.loco.orthographic_camera.camera, 
@@ -265,74 +243,19 @@ int main() {
 
  // auto shape = pile_r.loco.grid.push_back(loco_t::grid_t::properties_t{.position= fan::vec3(fan::vec2(32*32+32-32*6), 50000),.size = 32 * 32, .grid_size = 32});
 
-  fan::algorithm::path_solver_t path_solver(pile_r.compiled_map0.map_size*2, pile_r.compiled_map0.tile_size*2);
   pile_r.loco.input_action.add(fan::mouse_left, "move_to_position");
-  fan::graphics::rectangle_t rect_dst{ {
-    .position = 0,
-    .size = pile_r.compiled_map0.tile_size/4,
-    .color = fan::colors::red.set_alpha(0.3),
-    .blending = true
-  }};
-  std::vector<fan::graphics::rectangle_t> rect_path;
-
-  std::vector<fan::physics::entity_t> collisions;
-
-  std::vector<fan::graphics::circle_t> visual_collisions;
-  create_manual_collisions(collisions, path_solver);
-
-  loco_t::shape_t rain_particles;
-  load_rain(rain_particles);
-
-  for (auto& i : pile_r.renderer.map_list[pile_r.map_id0].physics_entities) {
-    if (i.id == "npc0_door") {
-      std::visit([&]<typename T>(T& entity) { 
-        if constexpr (std::is_same_v<T, fan::graphics::physics_shapes::rectangle_t>) {
-          pile_r.npc0_door_sensor = entity;
-        }
-      }, i.visual);
-      break;
-    }
-  }
-
-  if (pile_r.npc0_door_sensor.is_valid() == false) {
-    fan::throw_error("sensor not found");
-  }
 
   pile_r.loco.loop([&] {
     ImGui::Begin("A");
     static bool v = 0;
     ImGui::ToggleButton("lightning", &v);
     ImGui::End();
-    if (v)
-    pile->weather.lightning();
+    if (v) {
+      pile_r.weather.lightning();
+    }
 
     static int x = 0;
-    if (pile_r.loco.physics_context.is_on_sensor(pile_r.player.player, pile_r.npc0_door_sensor) && x == 0) {
-      if (pile_r.loco.lighting.ambient > -1) {
-        pile_r.loco.lighting.ambient -= pile->loco.delta_time * 5;
-      }
-      else {
-        if (pile_r.map_id0.iic() == false && x == 0) {
-          pile_r.renderer.erase(pile_r.map_id0);
-          pile_r.compiled_map0 = pile_r.renderer.compile("examples/games/forest game/shop/shop.json");
-          fan::vec2i render_size(16, 9);
-          render_size /= 1.5;
-          fte_loader_t::properties_t p;
-          p.size = render_size;
-          pile_r.player.player.set_position(fan::vec2{320.384949, 382.723236 });
-          pile_r.player.player.set_physics_position(pile_r.player.player.get_position());
-          p.position = pile_r.player.player.get_position();
-          pile_r.map_id0 = pile_r.renderer.add(&pile_r.compiled_map0, p);
-          fan::vec2 dst = pile_r.player.player.get_position();
-          pile_r.loco.camera_set_position(
-            pile_r.loco.orthographic_camera.camera,
-            dst
-          );
-          pile_r.loco.lighting.ambient = -1;
-          x = 1;
-        }
-      }
-    }
+    
     if (x) {
       if (pile_r.loco.lighting.ambient < 1) {
         pile_r.loco.lighting.ambient += pile_r.loco.delta_time * 5;
@@ -341,29 +264,8 @@ int main() {
         pile_r.loco.lighting.ambient = 1;
       }
     }
-    
-    if (pile_r.loco.input_action.is_action_clicked("move_to_position") && !ImGui::IsAnyItemHovered()) {
-      rect_path.clear();
-      fan::vec2 dst = pile_r.loco.get_mouse_position(pile_r.loco.orthographic_camera.camera, pile_r.loco.orthographic_camera.viewport);
-      path_solver.set_dst(dst);
-      rect_dst.set_position(fan::vec3(dst, 50000));
-      path_solver.init(pile_r.player.player.get_position());
 
-      rect_path.reserve(path_solver.path.size());
-      for (const auto& p : path_solver.path) {
-        fan::vec2i pe = p;
-        rect_path.push_back({ {
-          .position = fan::vec3(pe * pile_r.compiled_map0.tile_size*2, 50000),
-          .size = pile_r.compiled_map0.tile_size/4,
-          .color = fan::colors::cyan.set_alpha(0.3),
-          .blending = true
-        }});
-      }
-    }
-    if (rect_path.size() && path_solver.current_position < rect_path.size())
-    rect_path[path_solver.current_position].set_color(fan::colors::green);
-
-    pile_r.player.player.move_to_direction(path_solver.step(pile_r.player.player.get_position()));
+    pile_r.player.player.move_to_direction(pile_r.path_solver.step(pile_r.player.player.get_position()));
 
     pile_r.step();
   });

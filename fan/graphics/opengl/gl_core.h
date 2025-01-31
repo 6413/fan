@@ -16,7 +16,7 @@ namespace fan {
 
 namespace fan {
   namespace opengl {
-    extern std::unordered_map<size_t, int> shader_location_cache;
+    inline std::unordered_map<size_t, int> shader_location_cache;
     struct context_t {
 
       void print_version();

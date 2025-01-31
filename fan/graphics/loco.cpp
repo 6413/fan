@@ -1,7 +1,19 @@
 #include "loco.h"
 
 #include <fan/time/time.h>
-#include <fan/memory/memory.hpp>
+//#include <fan/memory/memory.hpp>
+
+#ifndef __generic_malloc
+  #define __generic_malloc(n) malloc(n)
+#endif
+
+#ifndef __generic_realloc
+  #define __generic_realloc(ptr, n) realloc(ptr, n)
+#endif
+
+#ifndef __generic_free
+  #define __generic_free(ptr) free(ptr)
+#endif
 
 #if defined(loco_imgui)
   #include <fan/imgui/imgui_internal.h>
@@ -1259,6 +1271,10 @@ loco_t::loco_t() : loco_t(properties_t()) {
 }
 
 loco_t::loco_t(const properties_t& p){
+  if (fan::init_manager_t::initialized() == false) {
+    fan::init_manager_t::initialize();
+  }
+
   start_time = fan::time::clock::now();
   glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
@@ -1272,13 +1288,13 @@ loco_t::loco_t(const properties_t& p){
   glfwMakeContextCurrent(dummy_window);
   context_t::open();
   {
-      if (opengl.major == -1 || opengl.minor == -1) {
-          const char* gl_version = (const char*)fan_opengl_call(glGetString(GL_VERSION));
-          sscanf(gl_version, "%d.%d", &opengl.major, &opengl.minor);
-        }
-        glfwMakeContextCurrent(nullptr);
-        glfwDestroyWindow(dummy_window);
-        glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+    if (opengl.major == -1 || opengl.minor == -1) {
+      const char* gl_version = (const char*)fan_opengl_call(glGetString(GL_VERSION));
+      sscanf(gl_version, "%d.%d", &opengl.major, &opengl.minor);
+    }
+    glfwMakeContextCurrent(nullptr);
+    glfwDestroyWindow(dummy_window);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
   }
   {
     #if 1
@@ -4825,6 +4841,7 @@ void fan::graphics::dialogue_box_t::render(const std::string& window_name, ImFon
 
 // fan_track_allocations() must be called in global scope before calling this function
 void fan::graphics::render_allocations_plot() {
+#if defined(fan_tracking_allocations)
   static std::vector<f32_t> allocation_sizes;
   static std::vector<fan::heap_profiler_t::memory_data_t> allocations;
 
@@ -4917,4 +4934,5 @@ void fan::graphics::render_allocations_plot() {
     }
     ImPlot::EndPlot();
   }
+#endif
 }
