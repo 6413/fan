@@ -1,6 +1,6 @@
 #include <fan/pch.h>
 
-fan_track_allocations();
+//fan_track_allocations();
 
 int main() {
 

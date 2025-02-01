@@ -1,5 +1,7 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.20)
 project(fan)
+
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,7 +19,7 @@ set(LOCO_ASSIMP ON)
 set(BUILD_MAIN ON)
 
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L/usr/local/lib/ -w -fPIC -fpermissive -ferror-limit=4 -stdlib=libstdc++ -lstdc++_libbacktrace -fsized-deallocation -no-pie")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -MD -MT -L/usr/local/lib/ -Wall -Wextra -fpermissive -ferror-limit=4 -stdlib=libstdc++ -fsized-deallocation -fPIC")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare")
@@ -39,7 +41,6 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 
 set(BUILD_SHARED_LIBS ON)
-
 
 function(apply_loco_definitions target)
     if(LOCO_IMGUI)
@@ -113,12 +114,16 @@ file(GLOB_RECURSE FAN_SOURCES
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*imgui/.*")
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*nativefiledialog/.*")
 if(NOT LOCO_BOX2D)
-	list(FILTER FAN_SOURCES EXCLUDE REGEX ".*physics_shapes\\.cpp$")
-	list(FILTER FAN_SOURCES EXCLUDE REGEX ".*b2_integration\\.cpp$")
+    list(FILTER FAN_SOURCES EXCLUDE REGEX ".*physics_shapes\\.cpp$")
+    list(FILTER FAN_SOURCES EXCLUDE REGEX ".*b2_integration\\.cpp$")
 endif()
 
+# compile all fan sources into an object library
+add_library(fan_obj OBJECT ${FAN_SOURCES})
+apply_loco_definitions(fan_obj)
 
-add_library(fan SHARED ${FAN_SOURCES})
+# link the object library into the shared library
+add_library(fan SHARED $<TARGET_OBJECTS:fan_obj>)
 apply_loco_definitions(fan)
 set_target_properties(fan PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_PATH}
@@ -130,38 +135,35 @@ if(BUILD_MAIN)
         set(MAIN examples/graphics/2D/shapes/rectangle.cpp)
     endif()
     
-    add_executable(a.exe ${MAIN})
+    add_executable(a.exe ${MAIN} $<TARGET_OBJECTS:fan_obj>)
     apply_loco_definitions(a.exe)
-		
+    
     if(UNIX)
-			target_link_libraries(a.exe
-					fan
-					fmt
-					nfd
-					webp
-					glfw
-					X11
-					opus
-					pulse-simple
-					uv
-					GL
-					GLEW
-					stdc++exp
-					${GTK3_LIBRARIES}
-			)
+        target_link_libraries(a.exe PUBLIC
+            fan
+            fmt
+            nfd
+            webp
+            glfw
+            X11
+            opus
+            pulse-simple
+            uv
+            GL
+            GLEW
+            ${GTK3_LIBRARIES}
+        )
+				if (LOCO_BOX2D MATCHES ON)
+					target_link_libraries(a.exe PUBLIC box2d)
+				endif()
 
-			if(LOCO_BOX2D MATCHES ON)
-					target_link_libraries(a.exe box2d)
-					target_link_libraries(fan PRIVATE box2d)
-			endif()
-			if(LOCO_IMGUI MATCHES ON)
-					target_link_libraries(a.exe imgui)
-			endif()
-			if(LOCO_ASSIMP MATCHES ON)
-					target_link_libraries(a.exe assimp)
-			endif()
-	else()
-			message(WARNING "Windows backend not implemented")
-	endif()
-
+        if(LOCO_IMGUI MATCHES ON)
+            target_link_libraries(a.exe PUBLIC imgui)
+        endif()
+        if(LOCO_ASSIMP MATCHES ON)
+            target_link_libraries(a.exe PUBLIC assimp)
+        endif()
+    else()
+        message(WARNING "Windows backend not implemented")
+    endif()
 endif()

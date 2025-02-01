@@ -7,7 +7,6 @@
 
 //fan_track_allocations();
 
-
 std::string asset_path = "examples/games/forest game/";
 
 struct player_t {

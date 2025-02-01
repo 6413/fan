@@ -34,3 +34,15 @@ mv BVEC /usr/local/include/BVEC
 
 git clone https://github.com/7244/BDBT.git
 mv BDBT /usr/local/include/BDBT
+
+: '
+FOR INSTALLING BOX2D
+git clone https://github.com/erincatto/box2d.git
+cd box2d
+git checkout v3.0.0
+mkdir build
+cd build
+cmake -DBOX2D_SAMPLES=OFF -DBOX2D_BENCHMARKS=OFF -DBOX2D_DOCS=OFF -DBOX2D_PROFILE=OFF -DBOX2D_VALIDATE=OFF -DBOX2D_UNIT_TESTS=OFF -DUSE_SIMD=OFF -DBOX2D_AVX2=OFF ..
+make
+sudo make install
+'

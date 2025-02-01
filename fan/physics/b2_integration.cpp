@@ -7,7 +7,6 @@ fan::physics::context_t::context_t(const properties_t& properties) {
   b2WorldDef world_def = b2DefaultWorldDef();
   world_def.gravity = properties.gravity * length_units_per_meter;
   world_id = b2CreateWorld(&world_def);
-  printf("\n\nINIIIT\n\n");
 }
 
 void fan::physics::context_t::set_gravity(const fan::vec2& gravity){
@@ -62,7 +61,6 @@ fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& p
 
   //shape_def.rollingResistance = shape_properties.rolling_resistance;
   b2CreateCircleShape(entity, &shape_def, &shape);
-  printf("+ %d %lu %lu\n", entity.index1, entity.world0, entity.revision);
   return entity;
 }
 

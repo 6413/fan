@@ -15,7 +15,7 @@ namespace fan {
       };
     };
 
-    inline static f32_t length_units_per_meter = 1024.f;
+    inline f32_t length_units_per_meter = 1024.f;
 
     struct capsule_t : b2Capsule {
       using b2Capsule::b2Capsule;
