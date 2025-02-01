@@ -1,7 +1,7 @@
 #include "loco.h"
 
 #include <fan/time/time.h>
-//#include <fan/memory/memory.hpp>
+#include <fan/memory/memory.hpp>
 
 #ifndef __generic_malloc
   #define __generic_malloc(n) malloc(n)
@@ -2666,7 +2666,7 @@ void loco_t::input_action_t::edit(int key, std::string_view action_name) {
   if (found == input_actions.end()) {
     fan::throw_error("trying to modify non existing action");
   }
-  std::memset(found->second.keys, sizeof(found->second.keys), 0);
+  std::memset(found->second.keys, 0, sizeof(found->second.keys));
   found->second.keys[0] = key;
   found->second.count = 1;
   found->second.combo_count = 0;

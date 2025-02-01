@@ -43,9 +43,7 @@ namespace fan {
             .body_id = *this,
             .cb = (void*)shape_physics_update
             });
-          auto body_ptr = dynamic_cast<b2BodyId*>(this);
-          fan::print("CRAAASH", index1, world0, revision, (void*)body_ptr);
-          b2MassData md = b2Body_GetMassData(*body_ptr);
+          b2MassData md = b2Body_GetMassData(*dynamic_cast<b2BodyId*>(this));
           mass_data_t md_copy = mass_data;
           if (mass_data.mass < 0.f) {
             md_copy.mass = md.mass;
