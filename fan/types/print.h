@@ -6,12 +6,8 @@
 #include <string>
 #include <sstream>
 
-#if __cplusplus >= 202004L && defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
-  #define fan_std23
-#endif
-
 #if defined(fan_std23)
-#include <stacktrace>
+  #include <stacktrace>
 #endif
 
 namespace fan {

@@ -117,10 +117,8 @@ namespace fan {
         return b2Body_GetPosition(*this);
       }
       void set_physics_position(const fan::vec2& p) {
-         push_body_update([p, id = (b2BodyId)*this]{
-          b2Rot rotation = b2Body_GetRotation(id);
-          b2Body_SetTransform(id, p / length_units_per_meter, rotation);
-        });
+        b2Rot rotation = b2Body_GetRotation(*this);
+        b2Body_SetTransform(*this, p / length_units_per_meter, rotation);
       }
     };
 

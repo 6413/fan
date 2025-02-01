@@ -2147,6 +2147,10 @@ void loco_t::process_frame() {
 
   single_queue.clear();
 
+  #if defined(loco_imgui)
+    ImGui::End();
+#endif
+
   shaper.ProcessBlockEditQueue();
 
   viewport_set(0, window.get_size(), window.get_size());
@@ -2323,10 +2327,6 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 #endif
 
   lambda();
-
-#if defined(loco_imgui)
-    ImGui::End();
-#endif
 
   process_frame();
   window.handle_events();
@@ -2556,7 +2556,12 @@ void loco_t::set_imgui_viewport(loco_t::viewport_t viewport) {
 
   fan::vec2 window_size = window.get_size();
   fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
-  fan::vec2 viewport_pos = fan::vec2(windowPosRelativeToMainViewport + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
+
+  ImVec2 padding = ImGui::GetStyle().WindowPadding;
+  viewport_size.x += padding.x * 2;
+  viewport_size.y += padding.y * 2;
+
+  fan::vec2 viewport_pos = fan::vec2(windowPosRelativeToMainViewport);
   viewport_set(
     viewport,
     viewport_pos,

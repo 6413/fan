@@ -1,6 +1,10 @@
 // include before all, because it uses some macros which override default allocation functions
 #pragma once
 
+#include <fan/types/types.h>
+
+#if defined(fan_std23)
+
 #define fan_tracking_allocations
 
 #include <source_location>
@@ -183,3 +187,5 @@ namespace fan {
  \
   void operator delete(void* p, std::size_t) noexcept { fan::heap_profiler_t::instance().deallocate_memory(p); } \
   void operator delete[](void* p, std::size_t) noexcept { fan::heap_profiler_t::instance().deallocate_memory(p); }
+
+#endif
