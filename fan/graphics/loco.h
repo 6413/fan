@@ -3272,4 +3272,10 @@ namespace fan {
       down
     );
   };
+
+#if defined(loco_box2d)
+  namespace physics {
+    bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id);
+  }
+#endif
 }

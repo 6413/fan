@@ -1,5 +1,5 @@
 void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions, fan::algorithm::path_solver_t& path_solver) {
-  for (auto& x : pile.compiled_map0.compiled_shapes) {
+  for (auto& x : main_compiled_map.compiled_shapes) {
     for (auto& y : x) {
       for (auto& z : y) {
         if (z.image_name == "tile0" || z.image_name == "tile1" || z.image_name == "tile2") {
@@ -23,23 +23,35 @@ void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions, f
 }
 
 void open(void* sod) {
-  pile.path_solver = fan::algorithm::path_solver_t(pile.compiled_map0.map_size*2, pile.compiled_map0.tile_size*2);
+  main_compiled_map = pile.renderer.compile("examples/games/forest game/forest.json");
+  fan::vec2i render_size(16, 9);
+  render_size /= 1.5;
+  fte_loader_t::properties_t p;
+  p.size = render_size;
+  p.position = pile.player.player.get_position();
+  main_map_id = pile.renderer.add(&main_compiled_map, p);
+
+  pile.path_solver = fan::algorithm::path_solver_t(main_compiled_map.map_size * 2, main_compiled_map.tile_size * 2);
   create_manual_collisions(collisions, pile.path_solver);
 
-  for (auto& i : pile.renderer.map_list[pile.map_id0].physics_entities) {
-    if (i.id == "npc0_door") {
-      std::visit([&]<typename T>(T& entity) { 
-        if constexpr (std::is_same_v<T, fan::graphics::physics_shapes::rectangle_t>) {
-          pile.npc0_door_sensor = entity;
-        }
-      }, i.visual);
-      break;
+  pile.renderer.iterate_physics_entities(main_map_id, 
+    [&]<typename T>(auto& entity, T& entity_visual) {
+    if (entity.id == "player_sensor_door" &&
+      std::is_same_v<T, fan::graphics::physics_shapes::rectangle_t>) {
+      player_sensor_door = entity_visual;
     }
-  }
+  });
 
-  if (pile.npc0_door_sensor.is_valid() == false) {
+  if (player_sensor_door.is_valid() == false) {
     fan::throw_error("sensor not found");
   }
+
+  rect_dst = { {
+  .position = 0,
+  .size = main_compiled_map.tile_size / 4,
+  .color = fan::colors::red.set_alpha(0.3),
+  .blending = true
+  }};
 }
 
 void close() {
@@ -47,32 +59,25 @@ void close() {
 }
 
 void update() {
-  if (pile.loco.physics_context.is_on_sensor(pile.player.player, pile.npc0_door_sensor)) {
+  if (fan::physics::is_on_sensor(pile.player.player, player_sensor_door)) {
     if (pile.loco.lighting.ambient > -1) {
       pile.loco.lighting.ambient -= pile.loco.delta_time * 5;
     }
     else {
-      if (pile.map_id0.iic() == false) {
-        pile.renderer.erase(pile.map_id0);
-        pile.compiled_map0 = pile.renderer.compile("examples/games/forest game/shop/shop.json");
-        fan::vec2i render_size(16, 9);
-        render_size /= 1.5;
-        fte_loader_t::properties_t p;
-        p.size = render_size;
-        pile.player.player.set_position(fan::vec2{ 320.384949, 382.723236 });
-        pile.player.player.set_physics_position(pile.player.player.get_position());
-        p.position = pile.player.player.get_position();
-        pile.map_id0 = pile.renderer.add(&pile.compiled_map0, p);
-        fan::vec2 dst = pile.player.player.get_position();
-        pile.loco.camera_set_position(
-          pile.loco.orthographic_camera.camera,
-          dst
-        );
-        pile.loco.lighting.ambient = -1;
-        pile.stage_loader->erase_stage(this->stage_common.stage_id);
-        pile.current_stage = pile.stage_loader->open_stage<stage_shop_t>({}).NRI;
+      if (main_map_id.iic() == false) {
+        pile.renderer.erase(main_map_id);
+        pile.stage_loader.erase_stage(this->stage_common.stage_id);
+        pile.current_stage = pile.stage_loader.open_stage<stage_shop_t>().NRI;
         return;
       }
+    }
+  }
+  else {
+    if (pile.loco.lighting.ambient < 1) {
+      pile.loco.lighting.ambient += pile.loco.delta_time * 5;
+    }
+    else {
+      pile.loco.lighting.ambient = 1;
     }
   }
 
@@ -87,8 +92,8 @@ void update() {
     for (const auto& p : pile.path_solver.path) {
       fan::vec2i pe = p;
       rect_path.push_back({ {
-        .position = fan::vec3(pe * pile.compiled_map0.tile_size * 2, 50000),
-        .size = pile.compiled_map0.tile_size / 4,
+        .position = fan::vec3(pe * main_compiled_map.tile_size * 2, 50000),
+        .size = main_compiled_map.tile_size / 4,
         .color = fan::colors::cyan.set_alpha(0.3),
         .blending = true
       } });
@@ -98,13 +103,13 @@ void update() {
     rect_path[pile.path_solver.current_position].set_color(fan::colors::green);
   }
   pile.step();
+  pile.renderer.update(main_map_id, pile.player.player.get_position());
 }
 
 std::vector<fan::physics::entity_t> collisions;
 std::vector<fan::graphics::rectangle_t> rect_path;
-fan::graphics::rectangle_t rect_dst{ {
-  .position = 0,
-  .size = pile.compiled_map0.tile_size / 4,
-  .color = fan::colors::red.set_alpha(0.3),
-  .blending = true
-}};
+fan::graphics::rectangle_t rect_dst;
+fan::physics::body_id_t player_sensor_door;
+
+fte_loader_t::id_t main_map_id;
+fte_loader_t::compiled_map_t main_compiled_map;
