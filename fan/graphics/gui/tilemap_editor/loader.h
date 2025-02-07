@@ -29,8 +29,8 @@ struct fte_loader_t {
   };
 
   struct compiled_map_t {
-    fan::vec2i map_size;
-    fan::vec2i tile_size;
+    fan::vec2i map_size = 0;
+    fan::vec2i tile_size = 0;
     #if tilemap_renderer == 0
     std::vector<std::vector<std::vector<fte_t::tile_t>>> compiled_shapes;
     struct physics_data_t {
@@ -80,6 +80,15 @@ public:
   using node_t = map_list_NodeData_t;
 
   map_list_t map_list;
+
+  void iterate_physics_entities(id_t map_id, auto l) {
+    auto& node = map_list[map_id];
+    for (auto& i : node.physics_entities) {
+      std::visit([&]<typename T>(T & entity) {
+        l(i, entity);
+      }, i.visual);
+    }
+  }
 
   void open(loco_t::texturepack_t* tp) {
     texturepack = tp;

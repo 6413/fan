@@ -114,6 +114,10 @@ public:
     T::_stage_open(stage, op.sod);
     return stage->stage_common.stage_id;
   }
+  template <typename T>
+  static stage_list_NodeReference_t open_stage() {
+    return open_stage<T>(stage_open_properties_t());
+  }
 
   #include _PATH_QUOTE(stage_loader_path/stages_compile/stage.h)
 

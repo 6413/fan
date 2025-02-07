@@ -75,15 +75,17 @@ struct weather_t {
   f32_t sin_var = 0;
   uint16_t repeat_count = 0;
   loco_t::shape_t rain_particles;
+
+  f32_t lightning_duration = 0;
 };
 
-struct stage_loader_t;
+#define stage_loader_path .
+#include <fan/graphics/gui/stage_maker/loader.h>
 
 struct pile_t {
   pile_t();
 
   void step() {
-
     //player updates
     player.step();
 
@@ -102,7 +104,7 @@ struct pile_t {
     ///ImGui::End();
     player.player.set_position(fan::vec3(position, floor((position.y) / 64) + (0xFAAA - 2) / 2) + z);
     player.player.process_movement(fan::graphics::character2d_t::movement_e::top_view);
-    renderer.update(map_id0, dst);
+    
     loco.set_imgui_viewport(loco.orthographic_camera.viewport);
 
     // physics step
@@ -113,35 +115,26 @@ struct pile_t {
   player_t player;
   loco_t::texturepack_t tp;
   fte_renderer_t renderer;
-  fte_loader_t::compiled_map_t compiled_map0;
-  fte_loader_t::id_t map_id0;
-
-  fan::physics::body_id_t npc0_door_sensor;
 
   fan::algorithm::path_solver_t path_solver;
 
   weather_t weather;
 
-  std::unique_ptr<stage_loader_t> stage_loader;
+  stage_loader_t stage_loader;
   uint16_t current_stage = 0;
 }pile;
-
-#define stage_loader_path .
-#include <fan/graphics/gui/stage_maker/loader.h>
 
 struct stage_shop_t;
 
 lstd_defstruct(stage_forest_t)
   #include <fan/graphics/gui/stage_maker/preset.h>
   static constexpr auto stage_name = "";
-
   #include "stage_forest.h"
 };
 
 lstd_defstruct(stage_shop_t)
   #include <fan/graphics/gui/stage_maker/preset.h>
   static constexpr auto stage_name = "";
-
   #include "stage_shop.h"
 };
 
@@ -154,22 +147,14 @@ pile_t::pile_t() {
   tp.open_compiled("examples/games/forest game/forest_tileset.ftp", lp);
 
   renderer.open(&tp);
-  compiled_map0 = renderer.compile("examples/games/forest game/forest.json");
-  fan::vec2i render_size(16, 9);
-  render_size /= 1.5;
-  fte_loader_t::properties_t p;
-  p.size = render_size;
-  p.position = player.player.get_position();
-  map_id0 = renderer.add(&compiled_map0, p);
+  
   fan::vec2 dst = player.player.get_position();
   loco.camera_set_position(
     loco.orthographic_camera.camera,
     dst
   );
 
-  stage_loader = std::make_unique<stage_loader_t>();
-  stage_loader_t::stage_open_properties_t op;
-  current_stage = stage_loader_t::open_stage<stage_forest_t>(op).NRI;
+  current_stage = stage_loader_t::open_stage<stage_forest_t>().NRI;
 }
 
 player_t::player_t() {
@@ -210,9 +195,10 @@ void weather_t::lightning() {
   if (on) {
     pile.loco.lighting.ambient = fan::color::hsv(224.0, std::max(sin(sin_var * 2), 0.f) * 100.f, std::max(sin(sin_var), 0.f) * 100.f);
     sin_var += pile.loco.delta_time * 10;
-    repeat_count++;
-    if (repeat_count == 20) {
-      repeat_count = 0;
+    lightning_duration += pile.loco.delta_time;
+    
+    if (lightning_duration >= 1.0f) {
+      lightning_duration = 0;
       on = false;
     }
   }
@@ -230,9 +216,6 @@ void weather_t::load_rain(loco_t::shape_t& rain_particles) {
   }
   auto image_star = pile.loco.image_load("images/waterdrop.webp");
   rain_particles.set_image(image_star);
-  auto& ri = *(loco_t::particles_t::ri_t*)pile.loco.shaper.GetData(rain_particles);
-  //fan::vec3 position = fan::vec3(;
-  //sky_particles.set_position(position);
 }
 
 int main() {

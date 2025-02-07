@@ -4941,3 +4941,7 @@ void fan::graphics::render_allocations_plot() {
   }
 #endif
 }
+
+bool fan::physics::is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id){
+  return gloco->physics_context.is_on_sensor(test_id, sensor_id);
+}
