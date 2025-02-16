@@ -2737,6 +2737,15 @@ bool loco_t::input_action_t::is_action_clicked(std::string_view action_name) {
 bool loco_t::input_action_t::is_action_down(std::string_view action_name) {
   return is_active(action_name, press_or_repeat);
 }
+bool loco_t::input_action_t::exists(std::string_view action_name) {
+  return input_actions.find(action_name) != input_actions.end();
+}
+void loco_t::input_action_t::insert_or_assign(int key, std::string_view action_name) {
+  action_data_t action_data;
+  action_data.count = (uint8_t)1;
+  std::memcpy(action_data.keys, &key, sizeof(int) * 1);
+  input_actions.insert_or_assign(action_name, action_data);
+}
 
 static fan::vec2 transform_position(const fan::vec2& p, loco_t::viewport_t viewport, loco_t::camera_t camera) {
 
@@ -2795,6 +2804,159 @@ fan::vec2 loco_t::translate_position(const fan::vec2& p, loco_t::viewport_t view
 
 fan::vec2 loco_t::translate_position(const fan::vec2& p) {
   return translate_position(p, orthographic_camera.viewport, orthographic_camera.camera);
+}
+
+void loco_t::shape_t::erase() {
+  remove();
+}
+
+loco_t::shape_t::shape_t() {
+  sic();
+}
+
+loco_t::shape_t::shape_t(shaper_t::ShapeID_t&& s) {
+  NRI = s.NRI;
+  s.sic();
+}
+
+loco_t::shape_t::shape_t(const shaper_t::ShapeID_t& s) : shape_t() {
+
+  if (s.iic()) {
+    return;
+  }
+
+  {
+    auto sti = gloco->shaper.GetSTI(s);
+
+    // alloc can be avoided inside switch
+    uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
+    gloco->shaper.WriteKeys(s, KeyPack);
+
+
+    auto _vi = gloco->shaper.GetRenderData(s);
+    auto vlen = gloco->shaper.GetRenderDataSize(sti);
+    uint8_t* vi = new uint8_t[vlen];
+    std::memcpy(vi, _vi, vlen);
+
+    auto _ri = gloco->shaper.GetData(s);
+    auto rlen = gloco->shaper.GetDataSize(sti);
+    uint8_t* ri = new uint8_t[rlen];
+    std::memcpy(ri, _ri, rlen);
+
+    *this = gloco->shaper.add(
+      sti,
+      KeyPack,
+      gloco->shaper.GetKeysSize(s),
+      vi,
+      ri
+    );
+#if defined(debug_shape_t)
+    fan::print("+", NRI);
+#endif
+    delete[] KeyPack;
+    delete[] vi;
+    delete[] ri;
+  }
+}
+
+loco_t::shape_t::shape_t(shape_t&& s) : shape_t(std::move(*dynamic_cast<shaper_t::ShapeID_t*>(&s))) {
+
+}
+
+loco_t::shape_t::shape_t(const loco_t::shape_t& s) : shape_t(*dynamic_cast<const shaper_t::ShapeID_t*>(&s)) {
+  //NRI = s.NRI;
+}
+
+loco_t::shape_t& loco_t::shape_t::operator=(const loco_t::shape_t& s) {
+  if (iic() == false) {
+    remove();
+  }
+  if (s.iic()) {
+    return *this;
+  }
+  if (this != &s) {
+    {
+      auto sti = gloco->shaper.GetSTI(s);
+
+      // alloc can be avoided inside switch
+      uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
+      gloco->shaper.WriteKeys(s, KeyPack);
+
+
+      auto _vi = gloco->shaper.GetRenderData(s);
+      auto vlen = gloco->shaper.GetRenderDataSize(sti);
+      uint8_t* vi = new uint8_t[vlen];
+      std::memcpy(vi, _vi, vlen);
+
+      auto _ri = gloco->shaper.GetData(s);
+      auto rlen = gloco->shaper.GetDataSize(sti);
+      uint8_t* ri = new uint8_t[rlen];
+      std::memcpy(ri, _ri, rlen);
+
+      *this = gloco->shaper.add(
+        sti,
+        KeyPack,
+        gloco->shaper.GetKeysSize(s),
+        vi,
+        ri
+      );
+#if defined(debug_shape_t)
+      fan::print("+", NRI);
+#endif
+
+      delete[] KeyPack;
+      delete[] vi;
+      delete[] ri;
+    }
+    //fan::print("i dont know what to do");
+    //NRI = s.NRI;
+  }
+  return *this;
+}
+
+loco_t::shape_t& loco_t::shape_t::operator=(loco_t::shape_t&& s) {
+  if (iic() == false) {
+    remove();
+  }
+  if (s.iic()) {
+    return *this;
+  }
+
+  if (this != &s) {
+    NRI = s.NRI;
+    s.sic();
+  }
+  return *this;
+}
+
+loco_t::shape_t::~shape_t() {
+  remove();
+}
+
+void loco_t::shape_t::remove() {
+  if (iic()) {
+    return;
+  }
+#if defined(debug_shape_t)
+  fan::print("-", NRI);
+#endif
+  if (gloco->shaper.ShapeList.Usage() == 0) {
+    return;
+  }
+  if (get_shape_type() == loco_t::shape_type_t::vfi) {
+    gloco->vfi.erase(*this);
+  }
+  else {
+    gloco->shaper.remove(*this);
+  }
+  sic();
+}
+
+
+// many things assume uint16_t so thats why not shaper_t::ShapeTypeIndex_t
+
+uint16_t loco_t::shape_t::get_shape_type() {
+  return gloco->shaper.GetSTI(*this);
 }
 
 void loco_t::shape_t::set_position(const fan::vec3& position) {
@@ -3402,6 +3564,10 @@ fan::line3 fan::graphics::get_highlight_positions(const fan::vec3& op_, const fa
   }
 
   return positions;
+}
+
+fan::vec2 fan::graphics::get_mouse_position(const loco_t::camera_t& camera, const loco_t::viewport_t& viewport) {
+  return transform_position(gloco->get_mouse_position(), viewport, camera);
 }
 
 #if defined(loco_imgui)
@@ -4944,4 +5110,64 @@ void fan::graphics::render_allocations_plot() {
 
 bool fan::physics::is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id){
   return gloco->physics_context.is_on_sensor(test_id, sensor_id);
+}
+
+fan::physics::ray_result_t fan::physics::raycast(const fan::vec2& src, const fan::vec2& dst) {
+  return gloco->physics_context.raycast(src, dst);
+}
+
+bool loco_t::is_mouse_clicked(int button) {
+  return window.key_state(button) == (int)fan::mouse_state::press;
+}
+
+bool loco_t::is_mouse_down(int button) {
+  int state = window.key_state(button);
+  return 
+    state == (int)fan::mouse_state::press ||
+    state == (int)fan::mouse_state::repeat;
+}
+
+bool loco_t::is_mouse_released(int button) {
+  return window.key_state(button) == (int)fan::mouse_state::release;
+}
+
+fan::vec2 loco_t::get_mouse_drag(int button) {
+  if (is_mouse_down(button)) {
+    if (window.drag_delta_start != -1) {
+      return window.get_mouse_position() - window.drag_delta_start;
+    }
+  }
+  return fan::vec2();
+}
+
+bool fan::graphics::is_mouse_clicked(int button) {
+  return gloco->is_mouse_clicked(button);
+}
+
+bool fan::graphics::is_mouse_down(int button) {
+  return gloco->is_mouse_down(button);
+}
+
+bool fan::graphics::is_mouse_released(int button) {
+  return gloco->is_mouse_released(button);
+}
+
+fan::vec2 fan::graphics::get_mouse_drag(int button) {
+  return gloco->get_mouse_drag(button);
+}
+
+void fan::graphics::set_window_size(const fan::vec2& size) {
+  gloco->window.set_size(size);
+  gloco->viewport_set(gloco->orthographic_camera.viewport, fan::vec2(0, 0), size, size);
+  gloco->camera_set_ortho(
+    gloco->orthographic_camera.camera, 
+    fan::vec2(0, size.x),
+    fan::vec2(0, size.y)
+  );
+  gloco->viewport_set(gloco->perspective_camera.viewport, fan::vec2(0, 0), size, size);
+  gloco->camera_set_ortho(
+    gloco->perspective_camera.camera, 
+    fan::vec2(0, size.x),
+    fan::vec2(0, size.y)
+  );
 }

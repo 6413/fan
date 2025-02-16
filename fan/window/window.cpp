@@ -165,10 +165,14 @@ void fan::window::scroll_callback(GLFWwindow* wnd, double xoffset, double yoffse
 
   auto it = window->m_buttons_callback.GetNodeFirst();
 
+  int button = yoffset < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up;
+
+  window->key_states[button] = (int)fan::mouse_state::press;
+
   while (it != window->m_buttons_callback.dst) {
     fan::window_t::mouse_buttons_cb_data_t cbd;
     cbd.window = window;
-    cbd.button = yoffset < 0 ? fan::input::mouse_scroll_down : fan::input::mouse_scroll_up;
+    cbd.button = button;
     cbd.state = fan::mouse_state::press;
     window->m_buttons_callback[it].data(cbd);
 
@@ -248,6 +252,21 @@ void fan::window_t::close() {
 
 
 void fan::window_t::handle_key_states() {
+  // can be 1 or 2 aka press or repeat
+  if (key_state(fan::mouse_left) == 1 || key_state(fan::mouse_middle) == 1|| key_state(fan::mouse_right) == 1) {
+    drag_delta_start = get_mouse_position();
+  }
+  else if (key_state(fan::mouse_left) == 0 || key_state(fan::mouse_middle) == 0|| key_state(fan::mouse_right) == 0) {
+    drag_delta_start = -1;
+  }
+
+  if (key_states[fan::mouse_scroll_up] == 1) {
+    key_states[fan::mouse_scroll_up] = 0;
+  }
+  if (key_states[fan::mouse_scroll_down] == 1) {
+    key_states[fan::mouse_scroll_down] = 0;
+  }
+
   memcpy(prev_key_states, key_states, sizeof(key_states));
   for (std::size_t i = 0; i < std::size(key_states); ++i) {
     if (key_states[i] == GLFW_PRESS && prev_key_states[i] == GLFW_PRESS) {
