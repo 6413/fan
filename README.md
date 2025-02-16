@@ -94,7 +94,7 @@ Check out the [examples](examples/) directory for sample projects demonstrating 
 Developer console support (F3)
 ![image](https://github.com/6413/fan/assets/56801084/7556ce24-ba0f-43c6-85d6-b951351bb59c)
 
-[laser shooting mirrors](examples/graphics/engine_demos/mirrors.cpp)
+[laser shooting mirrors](examples/engine_demos/mirrors.cpp)
 ![output](https://github.com/user-attachments/assets/fdb8ae2e-0c76-49bf-9ee4-088a1a582945)
 
 [tilemap editor](examples/graphics/gui/tilemap_editor.cpp)
