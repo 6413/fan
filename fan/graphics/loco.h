@@ -758,6 +758,8 @@ public:
     bool is_active(std::string_view action_name, int state = loco_t::input_action_t::press);
     bool is_action_clicked(std::string_view action_name);
     bool is_action_down(std::string_view action_name);
+    bool exists(std::string_view action_name);
+    void insert_or_assign(int key, std::string_view action_name);
 
     std::unordered_map<std::string_view, action_data_t> input_actions;
   }input_action;
@@ -791,10 +793,9 @@ public:
   GLenum blend_src_factor = GL_SRC_ALPHA;
   GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
 
-  private:
   int32_t target_fps = 165; // must be changed from function
   bool timer_enabled = target_fps > 0;
-public:
+
   fan::function_t<void()> main_loop; // bad, but forced
 
   f64_t& delta_time = window.m_delta_time;
@@ -851,53 +852,15 @@ public:
   static fan::vec2 translate_position(const fan::vec2& p, loco_t::viewport_t viewport, loco_t::camera_t camera);
   fan::vec2 translate_position(const fan::vec2& p);
 
+  bool is_mouse_clicked(int button = fan::mouse_left);
+  bool is_mouse_down(int button = fan::mouse_left);
+  bool is_mouse_released(int button = fan::mouse_left);
+  fan::vec2 get_mouse_drag(int button = fan::mouse_left);
+
   struct shape_t : shaper_t::ShapeID_t{
-    shape_t() {
-      sic();
-    }
-    shape_t(shaper_t::ShapeID_t&& s) {
-      NRI = s.NRI;
-      s.sic();
-    }
-    shape_t(const shaper_t::ShapeID_t& s) : shape_t() {
-
-      if (s.iic()) {
-        return;
-      }
-
-      {
-        auto sti = gloco->shaper.GetSTI(s);
-
-        // alloc can be avoided inside switch
-        uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
-        gloco->shaper.WriteKeys(s, KeyPack);
-
-
-        auto _vi = gloco->shaper.GetRenderData(s);
-        auto vlen = gloco->shaper.GetRenderDataSize(sti);
-        uint8_t* vi = new uint8_t[vlen];
-        std::memcpy(vi, _vi, vlen);
-
-        auto _ri = gloco->shaper.GetData(s);
-        auto rlen = gloco->shaper.GetDataSize(sti);
-        uint8_t* ri = new uint8_t[rlen];
-        std::memcpy(ri, _ri, rlen);
-
-        *this = gloco->shaper.add(
-          sti, 
-          KeyPack,
-          gloco->shaper.GetKeysSize(s),
-          vi, 
-          ri
-        );
-#if defined(debug_shape_t)
-        fan::print("+", NRI);
-#endif
-        delete[] KeyPack;
-        delete[] vi;
-        delete[] ri;
-      }
-    }
+    shape_t();
+    shape_t(shaper_t::ShapeID_t&& s);
+    shape_t(const shaper_t::ShapeID_t& s);
 
     template <typename T>
     requires requires(T t) { typename T::type_t; }
@@ -959,103 +922,18 @@ public:
       fan::print("+", NRI);
 #endif
     }
-    shape_t(shape_t&& s) : shape_t(std::move(*dynamic_cast<shaper_t::ShapeID_t*>(&s))) {
+    shape_t(shape_t&& s);
+    shape_t(const shape_t& s);
+    shape_t& operator=(const shape_t& s);
+    shape_t& operator=(shape_t&& s);
+    ~shape_t();
 
-    }
-    shape_t(const shape_t& s) : shape_t(*dynamic_cast<const shaper_t::ShapeID_t*>(&s)) {
-      //NRI = s.NRI;
-    }
-    shape_t& operator=(const shape_t& s) {
-      if (iic() == false) {
-        remove();
-      }
-      if (s.iic()) {
-        return *this;
-      }
-      if (this != &s) {
-        {
-          auto sti = gloco->shaper.GetSTI(s);
+    void remove();
 
-          // alloc can be avoided inside switch
-          uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
-          gloco->shaper.WriteKeys(s, KeyPack);
-
-
-          auto _vi = gloco->shaper.GetRenderData(s);
-          auto vlen = gloco->shaper.GetRenderDataSize(sti);
-          uint8_t* vi = new uint8_t[vlen];
-          std::memcpy(vi, _vi, vlen);
-
-          auto _ri = gloco->shaper.GetData(s);
-          auto rlen = gloco->shaper.GetDataSize(sti);
-          uint8_t* ri = new uint8_t[rlen];
-          std::memcpy(ri, _ri, rlen);
-
-          *this = gloco->shaper.add(
-            sti,
-            KeyPack,
-            gloco->shaper.GetKeysSize(s),
-            vi,
-            ri
-          );
-#if defined(debug_shape_t)
-          fan::print("+", NRI);
-#endif
-
-          delete[] KeyPack;
-          delete[] vi;
-          delete[] ri;
-        }
-        //fan::print("i dont know what to do");
-        //NRI = s.NRI;
-      }
-      return *this;
-    }
-    shape_t& operator=(shape_t&& s) {
-      if (iic() == false) {
-        remove();
-      }
-      if (s.iic()) {
-        return *this;
-      }
-
-      if (this != &s) {
-        NRI = s.NRI;
-        s.sic();
-      }
-      return *this;
-    }
-    ~shape_t() {
-      remove();
-    }
-
-    void remove() {
-      if (iic()) {
-        return;
-      }
-#if defined(debug_shape_t)
-      fan::print("-", NRI);
-#endif
-      if (gloco->shaper.ShapeList.Usage() == 0) {
-        return;
-      }
-      if (get_shape_type() == loco_t::shape_type_t::vfi) {
-        gloco->vfi.erase(*this);
-      }
-      else {
-        gloco->shaper.remove(*this);
-      }
-      sic();
-    }
-
-    void erase() {
-      remove();
-    }
+    void erase();
 
     // many things assume uint16_t so thats why not shaper_t::ShapeTypeIndex_t
-    uint16_t get_shape_type() {
-      return gloco->shaper.GetSTI(*this);
-    }
+    uint16_t get_shape_type();
 
     template <typename T>
     void set_position(const fan::vec2_wrap_t<T>& position) {
@@ -2056,7 +1934,10 @@ public:
   bloom_t bloom;
 #endif
 
-  fan::color clear_color = { 0.10f, 0.10f, 0.131f, 1.f };
+  fan::color clear_color = { 
+    /*0.10f, 0.10f, 0.131f, 1.f */
+    0.f, 0.f, 0.f, 1.f
+  };
 
 #if defined(loco_framebuffer)
 #if defined(loco_opengl)
@@ -2213,6 +2094,18 @@ namespace fan {
 
     using engine_t = loco_t;
     using image_t = loco_t::image_t;
+
+    fan::vec2 get_mouse_position(
+      const loco_t::camera_t& camera = gloco->orthographic_camera.camera, 
+      const loco_t::viewport_t& viewport = gloco->orthographic_camera.viewport
+    );
+
+    bool is_mouse_clicked(int button = fan::mouse_left);
+    bool is_mouse_down(int button = fan::mouse_left);
+    bool is_mouse_released(int button = fan::mouse_left);
+    fan::vec2 get_mouse_drag(int button = fan::mouse_left);
+
+    void set_window_size(const fan::vec2& size);
 
 #if defined(loco_imgui)
     using imgui_element_t = loco_t::imgui_element_t;
@@ -3276,6 +3169,29 @@ namespace fan {
 #if defined(loco_box2d)
   namespace physics {
     bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id);
+    fan::physics::ray_result_t raycast(const fan::vec2& src, const fan::vec2& dst);
   }
 #endif
 }
+
+// makes shorter code
+#define fan_language \
+  void main_entry(); \
+  using namespace fan::graphics; \
+  using namespace fan; \
+  int main() { \
+    fan::graphics::engine_t engine; \
+    main_entry(); \
+    return 0; \
+  } \
+  void main_entry()
+
+#define fan_window_loop \
+  static std::function<void()> loop_entry=[]{}; \
+  /*destructor_magic*/ \
+  struct dm_t { \
+    ~dm_t() { \
+      gloco->loop(loop_entry); \
+    } \
+  }dm; \
+  loop_entry = [&]()

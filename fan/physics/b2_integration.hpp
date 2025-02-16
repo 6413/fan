@@ -34,6 +34,17 @@ namespace fan {
       using b2Segment::b2Segment;
       segment_t(const b2Segment& segment) : b2Segment(segment) {}
     };
+
+    struct ray_result_t : b2RayResult{
+      b2ShapeId shapeId;
+	    fan::vec2 point;
+	    fan::vec2 normal;
+	    float fraction;
+	    bool hit;
+      operator bool() {
+        return hit;
+      }
+    };
     // struct chain_segment_t : b2ChainSegment {
     //   using b2ChainSegment::b2ChainSegment;
     //   chain_segment_t(const b2ChainSegment& segment) : b2ChainSegment(segment) {}
@@ -221,6 +232,9 @@ namespace fan {
       void step(f32_t dt);
 
       bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const;
+
+      // screen coordinates
+      ray_result_t raycast(const fan::vec2& src_, const fan::vec2& dst_);
 
       b2WorldId world_id;
       sensor_events_t sensor_events;

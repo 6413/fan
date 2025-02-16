@@ -115,7 +115,7 @@ namespace fan {
      * @return A random 2D floating-point vector with components between v0 and v1.
      */
     inline fan::vec2 vec2(const fan::vec2& v0, const fan::vec2& v1) {
-      return fan::vec2(fan::random::value_f32(v0.x, v0.y), fan::random::value_f32(v1.x, v1.y));
+      return fan::vec2(fan::random::value_f32(v0.x, v1.x), fan::random::value_f32(v0.y, v1.y));
     }
 
     /**

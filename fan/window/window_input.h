@@ -32,7 +32,8 @@ namespace fan {
 
   enum class mouse_state {
     release = GLFW_RELEASE,
-    press = GLFW_PRESS
+    press = GLFW_PRESS,
+    repeat = GLFW_REPEAT
   };
 
 

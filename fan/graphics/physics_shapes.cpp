@@ -6,6 +6,9 @@ void fan::graphics::physics_shapes::shape_physics_update(const loco_t::physics_u
     fan::print("invalid body data (corruption)");
     return;
   }
+  if (b2Body_GetType(data.body_id) == b2_staticBody) {
+    return;
+  }
 
   fan::vec2 p = b2Body_GetWorldPoint(data.body_id, fan::vec2(0));
   b2Rot rotation = b2Body_GetRotation(data.body_id);

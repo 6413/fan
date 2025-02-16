@@ -153,6 +153,26 @@ bool fan::physics::context_t::is_on_sensor(fan::physics::body_id_t test_id, fan:
   return sensor_events.is_on_sensor(test_id, sensor_id);
 }
 
+
+// screen coordinates
+fan::physics::ray_result_t fan::physics::context_t::raycast(const fan::vec2& src_, const fan::vec2& dst_) {
+  fan::vec2 src = src_ / fan::physics::length_units_per_meter;
+  fan::vec2 dst = dst_ / fan::physics::length_units_per_meter;
+  b2QueryFilter qf = b2DefaultQueryFilter();
+
+  b2Vec2 translation = dst - src;
+
+  b2RayResult b2result = b2World_CastRayClosest(world_id, src, translation, qf);
+  ray_result_t result;
+  result.shapeId = b2result.shapeId;
+  result.point = b2result.point;
+  result.normal = b2result.normal;
+  result.fraction = b2result.fraction;
+  result.hit = b2result.hit;
+  result.point *= fan::physics::length_units_per_meter;
+  return result;
+}
+
 bool fan::physics::presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body) {
     assert(b2Shape_IsValid(shapeIdA));
     assert(b2Shape_IsValid(shapeIdB));

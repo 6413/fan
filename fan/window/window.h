@@ -292,6 +292,8 @@ namespace fan {
     GLFWwindow* glfw_window;
 
     fan::vec2d previous_mouse_position = -0xfff;
+
+    fan::vec2 drag_delta_start = -1;
   };
   void handle_key_states();
 }
