@@ -98,6 +98,10 @@ Developer console support (F3)
 ![image](https://github.com/user-attachments/assets/3d1b82d1-63d2-40d5-b3da-07821232ee0d)
 ![image_2023-11-11_20-32-21](https://github.com/6413/fan/assets/56801084/b41e7417-04fb-4d7f-be6a-2e13379cf521)
 
+[laser shooting mirrors](examples/graphics/engine_demos/mirrors.cpp)
+![output](https://github.com/user-attachments/assets/fdb8ae2e-0c76-49bf-9ee4-088a1a582945)
+
+
 [alpha blending](examples/graphics/2D/blending_test.cpp)  
 ![image](https://github.com/user-attachments/assets/ba4637e6-c102-408e-b043-0d724d02e350)
 
