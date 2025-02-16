@@ -28,11 +28,7 @@
   PNM (PPM and PGM binary only),
   WebP
 - **Audio**: Currently only [SAC](https://github.com/7244/SAC-container) is supported.
-
-## Limitations
-- Limited shapes for collisions
-- The library is still in development, bugs and missing features to be expected
-
+- 
 ## Installation
 
 Requires c++20
