@@ -76,6 +76,13 @@ struct settings_menu_t {
     ImGui::TableNextRow();
     render_target_fps();
   }
+  void render_separator_with_margin(f32_t width, f32_t margin = 0.f) {
+    ImVec2 separator_start = ImGui::GetCursorScreenPos();
+    ImVec2 separator_end = ImVec2(separator_start.x + width - margin * 2, separator_start.y);
+    separator_start.x += margin;
+
+    ImGui::GetWindowDrawList()->AddLine(separator_start, separator_end, ImGui::GetColorU32(ImGuiCol_Separator), 1.0f);
+  }
   void render_settings_left_column() {
     ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.5f);
 
@@ -83,13 +90,7 @@ struct settings_menu_t {
     case GRAPHICS: {
       ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "DISPLAY");
 
-      ImVec2 separator_start = ImGui::GetCursorScreenPos();
-      separator_start.x = ImGui::GetCursorScreenPos().x;
-      separator_start.y = ImGui::GetCursorScreenPos().y + ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.y;
-      ImVec2 separator_end = ImVec2(separator_start.x + ImGui::GetWindowWidth() * 0.5f, separator_start.y);
-      separator_start.y -= 25.f;
-      separator_end.y -= 25.f;
-      ImGui::GetWindowDrawList()->AddLine(separator_start, separator_end, ImGui::GetColorU32(ImGuiCol_Separator), 1.0f);
+      render_separator_with_margin(ImGui::GetWindowWidth() * 0.5f);
 
       ImGui::Dummy(ImVec2(0, 4.0f));
 
@@ -128,12 +129,12 @@ struct settings_menu_t {
     ImGui::Text("Settings");
     ImGui::PopFont();
 
-    ImGui::Separator();
-    f32_t options_x = 356.f;
+    render_separator_with_margin(ImGui::GetContentRegionAvail().x - min_x);
+    f32_t options_x = 256.f;
     ImGui::Indent(options_x);
     ImGui::PushFont(gloco->fonts_bold[2]);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(64, 5.f));
-    ImGui::BeginTable("##settings_top_table", 2);
+    ImGui::BeginTable("##settings_top_table", 6);
     ImGui::TableNextRow();
     for (std::size_t i = 0; i < std::size(settings_options_strings); ++i) {
       ImGui::TableNextColumn();
@@ -160,7 +161,7 @@ struct settings_menu_t {
 
     ImGui::PopFont();
     ImGui::Unindent(options_x);
-    ImGui::Separator();
+    render_separator_with_margin(ImGui::GetContentRegionAvail().x - min_x);
   }
   void render() {
     f32_t min_x = 40.f;
