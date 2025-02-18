@@ -69,7 +69,8 @@ namespace fan {
       windowed,
       borderless,
       windowed_fullscreen,
-      full_screen
+      full_screen,
+      count
     };
 
     static constexpr const char* default_window_name = "window";
@@ -260,7 +261,7 @@ namespace fan {
     void set_cursor(int flag);
     void toggle_cursor();
 
-    void set_size_mode(const mode& mode);
+    void set_display_mode(const mode& mode);
 
     fan::vec2d get_mouse_position() const;
 
@@ -294,6 +295,7 @@ namespace fan {
     fan::vec2d previous_mouse_position = -0xfff;
 
     fan::vec2 drag_delta_start = -1;
+    uint8_t display_mode = (uint8_t)mode::windowed;
   };
   void handle_key_states();
 }

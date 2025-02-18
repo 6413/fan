@@ -17,6 +17,7 @@
 
 #if defined(loco_imgui)
   #include <fan/imgui/imgui_internal.h>
+  #include <fan/graphics/gui/imgui_themes.h>
 #endif
 
 #define loco_framebuffer
@@ -1094,6 +1095,17 @@ void generate_commands(loco_t* loco) {
 #endif
 }
 
+void load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t font_size = 4) {
+  for (std::size_t i = 0; i < std::size(fonts); ++i) {
+    fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), (int)(font_size * (1 << i)) * 1.5);
+
+    if (fonts[i] == nullptr) {
+      fan::throw_error(fan::string("failed to load font:") + name);
+    }
+  }
+  io.Fonts->Build();
+}
+
 void init_imgui(loco_t* loco) {
 #if defined(loco_imgui)
   ImGui::CreateContext();
@@ -1110,29 +1122,22 @@ void init_imgui(loco_t* loco) {
   ImGuiStyle& style = ImGui::GetStyle();
   if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
   {
-    style.WindowRounding = 0.0f;
-    style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    style.WindowRounding = 0.;
   }
+  style.FrameRounding = 5.f;
+  style.FramePadding = ImVec2(12.f, 5.f);
+  style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 
-  //loco_t::imgui_themes::dark();
+  imgui_themes::dark();
 
   glfwMakeContextCurrent(loco->window);
   ImGui_ImplGlfw_InitForOpenGL(loco->window, true);
   const char* glsl_version = "#version 120";
   ImGui_ImplOpenGL3_Init(glsl_version);
 
-  static constexpr const char* font_name = "fonts/PixelatedEleganceRegular-ovyAA.ttf";
-  static constexpr f32_t font_size = 4;
-
-
-  for (std::size_t i = 0; i < std::size(loco->fonts); ++i) {
-    loco->fonts[i] = io.Fonts->AddFontFromFileTTF(font_name, (int)(font_size * (1 << i)) * 1.5);
-
-    if (loco->fonts[i] == nullptr) {
-      fan::throw_error(fan::string("failed to load font:") + font_name);
-    }
-  }
-  io.Fonts->Build();
+  load_fonts(loco->fonts, io, "fonts/SourceCodePro-Regular.ttf", 4.f);
+  load_fonts(loco->fonts_bold, io, "fonts/SourceCodePro-Bold.ttf", 4.f);
+  
   io.FontDefault = loco->fonts[2];
 #endif
 }
@@ -1640,7 +1645,7 @@ loco_t::loco_t(const properties_t& p){
       [windowed](const fan::window_t::keyboard_keys_cb_data_t& data) mutable {
         if (data.key == fan::key_enter && data.state == fan::keyboard_state::press && gloco->window.key_pressed(fan::key_left_alt)) {
           windowed = !windowed;
-          gloco->window.set_size_mode(windowed ? fan::window_t::mode::windowed : fan::window_t::mode::borderless);
+          gloco->window.set_display_mode(windowed ? fan::window_t::mode::windowed : fan::window_t::mode::borderless);
         }
       }
     );
@@ -5169,5 +5174,15 @@ void fan::graphics::set_window_size(const fan::vec2& size) {
     gloco->perspective_camera.camera, 
     fan::vec2(0, size.x),
     fan::vec2(0, size.y)
+  );
+}
+
+bool fan::graphics::gui::render_blank_window(const std::string& name) {
+  ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+  ImGui::SetNextWindowPos(ImVec2(0, 0));
+  return ImGui::Begin(name.c_str(), 0,
+    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | 
+    ImGuiWindowFlags_NoResize | 
+    ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar
   );
 }

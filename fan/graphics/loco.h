@@ -1962,6 +1962,7 @@ public:
   bool toggle_fps = false;
 
   ImFont* fonts[6];
+  ImFont* fonts_bold[6];
 #endif
   //gui
 
@@ -2178,7 +2179,7 @@ namespace fan {
     struct rectangle_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
       fan::vec3 position = fan::vec3(0, 0, 0);
-      fan::vec2 size = fan::vec2(0.1, 0.1);
+      fan::vec2 size = fan::vec2(32, 32);
       fan::color color = fan::color(1, 1, 1, 1);
       fan::color outline_color = color;
       fan::vec3 angle = 0;
@@ -3195,3 +3196,11 @@ namespace fan {
     } \
   }dm; \
   loop_entry = [&]()
+
+namespace fan {
+  namespace graphics {
+    namespace gui {
+      bool render_blank_window(const std::string& name);
+    }
+  }
+}
