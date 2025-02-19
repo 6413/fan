@@ -21,6 +21,8 @@
 
 #include <fan/graphics/types.h>
 
+inline int track_opengl_calls = 0;
+
 #define fan_opengl_call(func) \
   [&]() { \
     struct measure_func_t { \
@@ -28,14 +30,16 @@
         c.start(); \
       }\
       ~measure_func_t() { \
-        glFlush(); \
-        glFinish(); \
-        if (c.elapsed() / 1e+9 > 0.01) {\
-          std::string func_call = #func; \
-          std::string func_name = func_call.substr(0, func_call.find('(')); \
-          fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":"); \
-          fan::printclh(fan::graphics::highlight_e::warning,  fan::to_string(c.elapsed() / 1e+6) + "ms"); \
-        }\
+        if (track_opengl_calls) { \
+          glFlush(); \
+          glFinish(); \
+          if (c.elapsed() / 1e+9 > 0.01) {\
+            std::string func_call = #func; \
+            std::string func_name = func_call.substr(0, func_call.find('(')); \
+            fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":"); \
+            fan::printclh(fan::graphics::highlight_e::warning,  fan::to_string(c.elapsed() / 1e+6) + "ms"); \
+          }\
+        } \
       } \
       fan::time::clock c; \
     }mf; \

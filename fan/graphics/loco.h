@@ -1930,8 +1930,6 @@ public:
 #if defined(loco_post_process)
   #include <fan/graphics/opengl/2D/effects/blur.h>
     blur_t blur[1];
-  #include <fan/graphics/opengl/2D/effects/bloom.h>
-  bloom_t bloom;
 #endif
 
   fan::color clear_color = { 
@@ -2105,6 +2103,11 @@ namespace fan {
     bool is_mouse_down(int button = fan::mouse_left);
     bool is_mouse_released(int button = fan::mouse_left);
     fan::vec2 get_mouse_drag(int button = fan::mouse_left);
+
+    void add_input_action(const int* keys, std::size_t count, std::string_view action_name);
+    void add_input_action(std::initializer_list<int> keys, std::string_view action_name);
+    void add_input_action(int key, std::string_view action_name);
+    bool is_input_action_active(std::string_view action_name, int pstate = loco_t::input_action_t::press);
 
     void set_window_size(const fan::vec2& size);
 

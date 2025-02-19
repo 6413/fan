@@ -43,7 +43,31 @@ void main() {
         intensity = 1.0 - smoothstep(radius - smooth_edge, radius, edge_distance);
 
         }
-    }
+    }else if (fs_flags == floatBitsToUint(3.0)) {
+           vec3 lightDir = vec3(-1.0, 0.0, 0.0);
+           vec3 pixelDir = normalize(frag_position - instance_position);
+           float angle = max(dot(lightDir, pixelDir), 0.0);
+           intensity = smoothstep(0.8, 1.0, angle);
+           intensity *= 1.0 - smoothstep(radius / 2, radius, distance);
+       } else if (fs_flags == floatBitsToUint(4.0)) {
+           vec3 lightDir = vec3(1.0, 0.0, 0.0);
+           vec3 pixelDir = normalize(frag_position - instance_position);
+           float angle = max(dot(lightDir, pixelDir), 0.0);
+           intensity = smoothstep(0.8, 1.0, angle);
+           intensity *= 1.0 - smoothstep(radius / 2, radius, distance);
+       } else if (fs_flags == floatBitsToUint(5.0)) {
+           vec3 lightDir = vec3(0.0, -1.0, 0.0);
+           vec3 pixelDir = normalize(frag_position - instance_position);
+           float angle = max(dot(lightDir, pixelDir), 0.0);
+           intensity = smoothstep(0.8, 1.0, angle);
+           intensity *= 1.0 - smoothstep(radius / 2, radius, distance);
+       } else if (fs_flags == floatBitsToUint(6.0)) {
+           vec3 lightDir = vec3(0.0, 1.0, 0.0);
+           vec3 pixelDir = normalize(frag_position - instance_position);
+           float angle = max(dot(lightDir, pixelDir), 0.0);
+           intensity = smoothstep(0.8, 1.0, angle);
+           intensity *= 1.0 - smoothstep(radius / 2, radius, distance);
+       }
 
 
     lightColor = instance_color * intensity;
