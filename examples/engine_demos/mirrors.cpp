@@ -5,8 +5,6 @@ void modify_reflect_depth(std::vector<fan::graphics::rectangle_t>& ray_hit_point
 int reflect_depth = 4;
 
 fan_language{
-  set_window_size(1024);
-  
   std::vector<vertex_t> triangle_vertices{
     {vec2(400, 400), colors::orange},
     {vec2(400, 600), colors::orange},
@@ -34,7 +32,7 @@ fan_language{
   int prev_reflect_depth = reflect_depth;
   fan_window_loop{
     modify_reflect_depth(ray_hit_point, rays, prev_reflect_depth);
-
+  
     fan::vec2 src = ray.get_src();
     fan::vec2 dst = ray.get_dst();
     ray.set_line(src, dst);
