@@ -77,20 +77,37 @@ namespace fan {
     static constexpr fan::vec2i default_window_size = fan::vec2i(800, 600);
     static constexpr mode default_size_mode = mode::windowed;
 
-    struct resolutions {
-      constexpr static fan::vec2i r_800x600 = fan::vec2i(800, 600);
-      constexpr static fan::vec2i r_1024x768 = fan::vec2i(1024, 768);
-      constexpr static fan::vec2i r_1280x720 = fan::vec2i(1280, 720);
-      constexpr static fan::vec2i r_1280x800 = fan::vec2i(1280, 800);
-      constexpr static fan::vec2i r_1280x900 = fan::vec2i(1280, 900);
-      constexpr static fan::vec2i r_1280x1024 = fan::vec2i(1280, 1024);
-      constexpr static fan::vec2i r_1360x768 = fan::vec2(1360, 768);
-      constexpr static fan::vec2i r_1440x900 = fan::vec2i(1440, 900);
-      constexpr static fan::vec2i r_1600x900 = fan::vec2i(1600, 900);
-      constexpr static fan::vec2i r_1600x1024 = fan::vec2i(1600, 1024);
-      constexpr static fan::vec2i r_1680x1050 = fan::vec2i(1680, 1050);
-      constexpr static fan::vec2i r_1920x1080 = fan::vec2i(1920, 1080);
+    static constexpr fan::vec2i resolutions[] = {
+      {800, 600},
+      {1024, 768},
+      {1280, 720},
+      {1280, 800},
+      {1280, 900},
+      {1280, 1024},
+      {1360, 768},
+      {1440, 900},
+      {1600, 900},
+      {1600, 1024},
+      {1680, 1050},
+      {1920, 1080},
+      {2560, 1440}
     };
+    static constexpr const char* resolution_labels[] = {
+      "800x600",
+      "1024x768",
+      "1280x720",
+      "1280x800",
+      "1280x900",
+      "1280x1024",
+      "1360x768",
+      "1440x900",
+      "1600x900",
+      "1600x1024",
+      "1680x1050",
+      "1920x1080",
+      "2560x1440"
+    };
+    int current_resolution = 8;
 
     struct mouse_buttons_cb_data_t {
       fan::window_t* window;

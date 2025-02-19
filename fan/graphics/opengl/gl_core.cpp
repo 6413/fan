@@ -739,10 +739,10 @@ fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(const fan:
   case GL_NEAREST_MIPMAP_LINEAR:
   case GL_LINEAR_MIPMAP_NEAREST:
   case GL_NEAREST_MIPMAP_NEAREST: {
-    fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
     break;
   }
   }
+  fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
 
   return nr;
 }

@@ -3,6 +3,8 @@
 #include <fan/time/time.h>
 #include <fan/memory/memory.hpp>
 
+#include <fan/graphics/gui/settings_menu.h>
+
 #ifndef __generic_malloc
   #define __generic_malloc(n) malloc(n)
 #endif
@@ -1139,6 +1141,8 @@ void init_imgui(loco_t* loco) {
   load_fonts(loco->fonts_bold, io, "fonts/SourceCodePro-Bold.ttf", 4.f);
   
   io.FontDefault = loco->fonts[2];
+
+  fan::graphics::add_input_action(fan::key_escape, "open_settings");
 #endif
 }
 
@@ -1248,8 +1252,6 @@ void loco_t::init_framebuffer() {
 #if defined(loco_post_process)
   static constexpr uint32_t mip_count = 8;
   blur[0].open(window.get_size(), mip_count);
-
-  bloom.open();
 #endif
 
   m_framebuffer.unbind(*this);
@@ -2224,6 +2226,15 @@ void loco_t::process_frame() {
   }
   if (render_console) {
     console.render();
+  }
+  static bool render_settings_menu = 0;
+  
+  if (fan::graphics::is_input_action_active("open_settings")) {
+    render_settings_menu = !render_settings_menu;
+  }
+  static settings_menu_t settings_menu;
+  if (render_settings_menu) {
+    settings_menu.render();
   }
   
   if (toggle_fps) {
@@ -5159,6 +5170,19 @@ bool fan::graphics::is_mouse_released(int button) {
 
 fan::vec2 fan::graphics::get_mouse_drag(int button) {
   return gloco->get_mouse_drag(button);
+}
+
+void fan::graphics::add_input_action(const int* keys, std::size_t count, std::string_view action_name) {
+  gloco->input_action.add(keys, count, action_name);
+}
+void fan::graphics::add_input_action(std::initializer_list<int> keys, std::string_view action_name) {
+  gloco->input_action.add(keys, action_name);
+}
+void fan::graphics::add_input_action(int key, std::string_view action_name) {
+  gloco->input_action.add(key, action_name);
+}
+bool fan::graphics::is_input_action_active(std::string_view action_name, int pstate) {
+  return gloco->input_action.is_active(action_name);
 }
 
 void fan::graphics::set_window_size(const fan::vec2& size) {

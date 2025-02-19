@@ -200,8 +200,7 @@ void fan::window_t::open(fan::vec2i window_size, const std::string& name, bool v
   if (window_size == -1) {
     const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
-    window_size.x = mode->width / 1.5;
-    window_size.y = mode->height / 1.5;
+    window_size = resolutions[current_resolution];
   }
 
   #if fan_debug >= fan_debug_high

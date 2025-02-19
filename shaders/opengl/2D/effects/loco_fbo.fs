@@ -33,22 +33,7 @@ vec3 uncharted2_tone_mapping(vec3 color) {
 vec3 apply_bloom(vec3 hdrColor, vec3 bloomColor) {
     float brightness = dot(bloomColor, vec3(0.2126, 0.7152, 0.0722));
 
-    float bloomFactor = smoothstep(0.6, 1.0, bloom_strength * brightness);
-
-    hdrColor = pow(hdrColor, vec3(1.0 / gamma));
-    bloomColor = pow(bloomColor, vec3(1.0 / bloom_gamma));
-
-    vec3 result = hdrColor + bloomColor * bloomFactor * bloom_intensity;
-
-    // Apply tone mapping
-   // result = reinhard_tone_mapping(result);
-    // Or use the Uncharted 2 tone mapping operator
-    // result = uncharted2_tone_mapping(result);
-
-    result = pow(result, vec3(1.0 / gamma2));
-    if (brightness < 0.5) {
-      return hdrColor;
-    }
+    vec3 result = mix(hdrColor, bloomColor, bloom_strength);
 
     return result;
 }
