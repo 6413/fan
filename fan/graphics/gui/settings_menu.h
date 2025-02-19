@@ -159,6 +159,23 @@ struct settings_menu_t {
 
         ImGui::EndTable();
       }
+      ImGui::NewLine();
+      ImGui::NewLine();
+      {
+        ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "PERFORMANCE");
+        ImGui::BeginTable("settings_left_table_post_processing", 2,
+          ImGuiTableFlags_BordersInnerH |
+          ImGuiTableFlags_BordersOuterH
+        );
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Track OpenGL calls");
+        ImGui::TableNextColumn();
+        bool x;
+        ImGui::Checkbox("#aaa", &x);
+
+        ImGui::EndTable();
+      }
       break;
     }
     }
