@@ -41,7 +41,6 @@ int main() {
 	loco.loop([&] {
     fan::vec2 p = shape.get_position();
     shape.set_position(loco.get_mouse_position());
-		loco.get_fps();
 	});
 
 	return 0;

@@ -1,20 +1,18 @@
 #include <fan/pch.h>
 
+fan_language{
+  fan_window_loop{
+
+  };
+}
+/*
+or more manual
+
 int main() {
-  loco_t loco;
+  fan::graphics::engine_t engine;
+  engine.loop([&] {
 
-  loco.set_vsync(0);
-
-  glfwSwapInterval(0);
-
-  while (1) {
-    loco.get_fps();
-    loco.window.handle_events();
-    glfwSwapBuffers(loco.window.glfw_window);
-  }
-
-  /*loco.loop([&] {
-    
-  });*/
+  });
   return 0;
 }
+*/

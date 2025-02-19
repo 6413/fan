@@ -42,7 +42,7 @@ int main() {
 
   fan::string str;
   fan::io::file::read(
-    _FAN_PATH_QUOTE(graphics/loco.h),
+     "fan/graphics/loco.h",
     &str
   );
 
@@ -122,7 +122,6 @@ int main() {
   });
 
   loco.loop([&] {
-    loco.get_fps();
     ImGui::Begin("window");
     editor.Render("editor");
 
