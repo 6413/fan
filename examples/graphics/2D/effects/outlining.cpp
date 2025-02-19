@@ -36,7 +36,6 @@ int main() {
       }
     }
     
-    loco.get_fps();
     });
 
   return 0;

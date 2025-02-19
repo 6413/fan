@@ -69,7 +69,6 @@ int main() {
   }
 
   loco.loop([&] {
-    loco.get_fps();
 
 
     //pile->loco.pixel_format_renderer.set_position(&pile->cids[0], pile->loco.get_mouse_position(pile->viewport));

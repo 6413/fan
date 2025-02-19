@@ -53,7 +53,7 @@ int main() {
 
   loco.loop([&] {
 
-    loco.shader_set_value(shader, "time", c.elapsed() / 1e+9);
+    loco.shader_set_value(shader, "time", c.elapsed() / 1e+9f);
 
     static bool toggle_color = false;
     if (ImGui::Checkbox("toggle color", &toggle_color)) {
