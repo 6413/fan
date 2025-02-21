@@ -171,7 +171,7 @@ void fan::opengl::context_t::set_stencil_op(GLenum sfail, GLenum dpfail, GLenum 
 }
 
 void fan::opengl::context_t::set_vsync(fan::window_t* window, bool flag) {
-    glfwSwapInterval(flag);
+  glfwSwapInterval(flag);
 }
 
 void fan::opengl::context_t::message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {

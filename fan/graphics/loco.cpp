@@ -1108,6 +1108,10 @@ void load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t font_si
   io.Fonts->Build();
 }
 
+void check_vk_result(VkResult err) {
+  fan::print("vkerr", (int)err);
+}
+
 void init_imgui(loco_t* loco) {
 #if defined(loco_imgui)
   ImGui::CreateContext();
@@ -1132,10 +1136,31 @@ void init_imgui(loco_t* loco) {
 
   imgui_themes::dark();
 
-  glfwMakeContextCurrent(loco->window);
-  ImGui_ImplGlfw_InitForOpenGL(loco->window, true);
-  const char* glsl_version = "#version 120";
-  ImGui_ImplOpenGL3_Init(glsl_version);
+  if (loco->window.flags & fan::window_t::flags::opengl) {
+    glfwMakeContextCurrent(loco->window);
+    ImGui_ImplGlfw_InitForOpenGL(loco->window, true);
+    const char* glsl_version = "#version 120";
+    ImGui_ImplOpenGL3_Init(glsl_version);
+  }
+  else if (loco->window.flags & fan::window_t::flags::vulkan) {
+    ImGui_ImplGlfw_InitForVulkan(loco->window, true);
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = loco->vk_context.instance;
+    init_info.PhysicalDevice = loco->vk_context.physicalDevice;
+    init_info.Device = loco->vk_context.device;
+    init_info.QueueFamily = loco->vk_context.queue_family;
+    init_info.Queue = loco->vk_context.graphicsQueue;
+    init_info.DescriptorPool = loco->vk_context.descriptor_pool.m_descriptor_pool;
+    init_info.Subpass = 0;
+    init_info.MinImageCount = loco->vk_context.min_image_count;
+    init_info.ImageCount = loco->vk_context.image_count;
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    init_info.CheckVkResultFn = check_vk_result;
+    init_info.RenderPass = loco->vk_context.gui_renderpass;
+
+    ImGui_ImplVulkan_Init(&init_info);
+    ImGui_ImplVulkan_CreateFontsTexture();
+  }
 
   load_fonts(loco->fonts, io, "fonts/SourceCodePro-Regular.ttf", 4.f);
   load_fonts(loco->fonts_bold, io, "fonts/SourceCodePro-Bold.ttf", 4.f);
@@ -1146,9 +1171,11 @@ void init_imgui(loco_t* loco) {
 #endif
 }
 
-void destroy_imgui() {
+void destroy_imgui(fan::window_t& window) {
 #if defined(loco_imgui)
-  ImGui_ImplOpenGL3_Shutdown();
+  if (window.flags & fan::window_t::flags::opengl) {
+    ImGui_ImplOpenGL3_Shutdown();
+  }
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
   ImPlot::DestroyContext();
@@ -1256,19 +1283,6 @@ void loco_t::init_framebuffer() {
 
   m_framebuffer.unbind(*this);
 
-  
-  m_fbo_final_shader = shader_create();
-
-  shader_set_vertex(
-    m_fbo_final_shader,
-    read_shader("shaders/opengl/2D/effects/loco_fbo.vs")
-  );
-  shader_set_fragment(
-    m_fbo_final_shader,
-    read_shader("shaders/opengl/2D/effects/loco_fbo.fs")
-  );
-  shader_compile(m_fbo_final_shader);
-
 #endif
 #endif
 }
@@ -1331,7 +1345,9 @@ loco_t::loco_t(const properties_t& p){
   gloco = this;
   set_vsync(false); // using libuv
   //fan::print("less pain", this, (void*)&lighting, (void*)((uint8_t*)&lighting - (uint8_t*)this), sizeof(*this), lighting.ambient);
-  glfwMakeContextCurrent(window);
+  if (window.flags & fan::window_t::flags::opengl) {
+    glfwMakeContextCurrent(window);
+  }
 
 #if fan_debug >= fan_debug_high
   get_context().set_error_callback();
@@ -1633,13 +1649,28 @@ loco_t::loco_t(const properties_t& p){
     fan::graphics::open_bcol();
 #endif
 
+    vk_context.open(window);
 
 #if defined(loco_imgui)
     init_imgui(this);
     generate_commands(this);
 #endif
 
-    init_framebuffer();
+    if (window.flags & fan::window_t::flags::opengl) {
+      init_framebuffer();
+    }
+
+    m_fbo_final_shader = shader_create();
+
+    shader_set_vertex(
+      m_fbo_final_shader,
+      read_shader("shaders/opengl/2D/effects/loco_fbo.vs")
+    );
+    shader_set_fragment(
+      m_fbo_final_shader,
+      read_shader("shaders/opengl/2D/effects/loco_fbo.fs")
+    );
+    shader_compile(m_fbo_final_shader);
 
     bool windowed = true;
     // free this xd
@@ -1688,7 +1719,7 @@ loco_t::~loco_t() {
   fan::graphics::close_bcol();
   shaper.Close();
 #if defined(loco_imgui)
-  destroy_imgui();
+  destroy_imgui(window);
 #endif
   window.close();
 }
@@ -2174,7 +2205,10 @@ void loco_t::process_frame() {
     m_framebuffer.unbind(*this);
 
 #if defined(loco_post_process)
-  blur[0].draw(&color_buffers[0]);
+    
+    if (window.flags & fan::window_t::flags::opengl) {
+      blur[0].draw(&color_buffers[0]);
+    }
 #endif
 
   //blur[1].draw(&color_buffers[3]);
@@ -2189,16 +2223,23 @@ void loco_t::process_frame() {
 
   shader_set_value(m_fbo_final_shader, "window_size", window_size);
 
-  fan_opengl_call(glActiveTexture(GL_TEXTURE0));
-  image_bind(color_buffers[0]);
+  
+  if (window.flags & fan::window_t::flags::opengl) {
+    fan_opengl_call(glActiveTexture(GL_TEXTURE0));
+    image_bind(color_buffers[0]);
+  }
 
+  if (window.flags & fan::window_t::flags::opengl) {
 #if defined(loco_post_process)
+  
   fan_opengl_call(glActiveTexture(GL_TEXTURE1));
   image_bind(blur[0].mips.front().image);
 #endif
-  render_final_fb();
+    render_final_fb();
+  }
 #endif
   }
+
 
   for (const auto& i : m_post_draw) {
     i();
@@ -2308,11 +2349,15 @@ void loco_t::process_frame() {
 
   ImGui::Render();
 
-  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
+  
+  if (window.flags & fan::window_t::flags::opengl) {
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+  }
 #endif
 
-  glfwSwapBuffers(window);
+  if (window.flags & fan::window_t::flags::opengl) {
+    glfwSwapBuffers(window);
+  }
 }
 
 bool loco_t::should_close() {
@@ -2321,7 +2366,13 @@ bool loco_t::should_close() {
 
 bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 #if defined(loco_imgui)
-  ImGui_ImplOpenGL3_NewFrame();
+  if (window.flags & fan::window_t::flags::opengl) {
+    ImGui_ImplOpenGL3_NewFrame();
+  }
+  else if (window.flags & fan::window_t::flags::vulkan) {
+    ImGui_ImplVulkan_NewFrame();
+  }
+
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
@@ -2458,7 +2509,10 @@ fan::vec2 loco_t::ndc_to_screen(const fan::vec2& ndc_position) {
 }
 
 void loco_t::set_vsync(bool flag) {
-  get_context().set_vsync(&window, flag);
+  // vulkan vsync is enabled by presentation mode in swap chain
+  if (window.flags & fan::window_t::flags::opengl) {
+   get_context().set_vsync(&window, flag);
+  }
 }
 
 void loco_t::update_timer_interval() {

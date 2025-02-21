@@ -1,13 +1,13 @@
 struct shader_t {
 
-  shader_list_NodeData_t& get_shader() const {
-    return gloco->shader_list[shader_reference];
+  fan::vulkan::context_t::shader_list_NodeData_t& get_shader(fan::vulkan::context_t& context) const {
+    return context.shader_list[shader_reference];
   }
-  shader_list_NodeData_t& get_shader() {
-    return gloco->shader_list[shader_reference];
+  fan::vulkan::context_t::shader_list_NodeData_t& get_shader(fan::vulkan::context_t& context) {
+    return context.shader_list[shader_reference];
   }
 
-  shader_list_NodeReference_t shader_reference;
+  fan::vulkan::context_t::shader_list_NodeReference_t shader_reference;
 
   static std::string preprocess_shader(const std::string& source_name,
     shaderc_shader_kind kind,
@@ -54,24 +54,26 @@ struct shader_t {
 
   void open(fan::vulkan::context_t& context, fan::vulkan::core::memory_write_queue_t* wq) {
     
-    shader_reference = gloco->shader_list.NewNode();
-    auto& shader = get_shader();
-    shader.projection_view_block.open(context);
+    shader_reference = context.shader_list.NewNode();
+    auto& shader = get_shader(context);
+    //TODO
+    /*shader.projection_view_block.open(context);
     for (uint32_t i = 0; i < fan::vulkan::max_camera; ++i) {
       shader.projection_view_block.push_ram_instance(context, wq, {});
-    }
+    }*/
   }
 
   void close(fan::vulkan::context_t& context, fan::vulkan::core::memory_write_queue_t* write_queue) {
-    auto& shader = get_shader();
+    auto& shader = get_shader(context);
     vkDestroyShaderModule(context.device, shader.shaderStages[0].module, nullptr);
     vkDestroyShaderModule(context.device, shader.shaderStages[1].module, nullptr);
-    shader.projection_view_block.close(context, write_queue);
-    gloco->shader_list.Recycle(shader_reference);
+    //TODO
+    //shader.projection_view_block.close(context, write_queue);
+    context.shader_list.Recycle(shader_reference);
   }
 
   void set_vertex(fan::vulkan::context_t& context, const fan::string& shader_name, const fan::string& shader_code) {
-    auto& shader = get_shader();
+    auto& shader = get_shader(context);
     // fan::print(
     //   "processed vertex shader:", path, "resulted in:",
     // preprocess_shader(shader_name.c_str(), shaderc_glsl_vertex_shader, shader_code);
@@ -92,7 +94,7 @@ struct shader_t {
   }
   void set_fragment(fan::vulkan::context_t& context, const fan::string& shader_name, const fan::string& shader_code) {
 
-    auto& shader = get_shader();
+    auto& shader = get_shader(context);
     //fan::print(
       // "processed vertex shader:", path, "resulted in:",
     //preprocess_shader(shader_name.c_str(), shaderc_glsl_fragment_shader, shader_code);
@@ -126,10 +128,11 @@ struct shader_t {
     return shaderModule;
   }
 
-  void set_camera(auto* camera, uint32_t flags) {
+  void set_camera(fan::vulkan::context_t& context, auto* camera, uint32_t flags) {
     auto& shader = get_shader();
-    auto& m = gloco->camera_list[camera->camera_reference];
-    shader.projection_view_block.edit_instance(gloco->get_context(), &gloco->m_write_queue, flags, &viewprojection_t::projection, camera->m_projection);
-    shader.projection_view_block.edit_instance(gloco->get_context(), &gloco->m_write_queue, flags, &viewprojection_t::view, camera->m_view);
+    //auto& m = context.camera_list[camera->camera_reference];
+    fan::print("TODO");
+    //shader.projection_view_block.edit_instance(gloco->get_context(), &gloco->m_write_queue, flags, &fan::vulkan::context_t::viewprojection_t::projection, camera->m_projection);
+    //shader.projection_view_block.edit_instance(gloco->get_context(), &gloco->m_write_queue, flags, &fan::vulkan::context_t::viewprojection_t::view, camera->m_view);
   }
 };

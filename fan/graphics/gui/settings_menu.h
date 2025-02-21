@@ -106,24 +106,6 @@ struct settings_menu_t {
       ImGui::EndCombo();
     }
   }
-  void render_options_display() {
-    ImGui::TableNextRow();
-    render_display_mode();
-    ImGui::TableNextRow();
-    render_target_fps();
-    ImGui::TableNextRow();
-    render_resolution_dropdown();
-  }
-
-  void render_options_post_processing() {
-    ImGui::TableNextRow();
-    ImGui::TableNextColumn();
-    ImGui::Text("Bloom Strength");
-    ImGui::TableNextColumn();
-    if (ImGui::SliderFloat("##BloomStrengthSlider", &bloom_strength, 0, 1)) {
-      gloco->shader_set_value(gloco->m_fbo_final_shader, "bloom_strength", bloom_strength);
-    }
-  }
 
   void render_separator_with_margin(f32_t width, f32_t margin = 0.f) {
     ImVec2 separator_start = ImGui::GetCursorScreenPos();
@@ -143,7 +125,14 @@ struct settings_menu_t {
           ImGuiTableFlags_BordersInnerH |
           ImGuiTableFlags_BordersOuterH
         );
-        render_options_display();
+        {
+          ImGui::TableNextRow();
+          render_display_mode();
+          ImGui::TableNextRow();
+          render_target_fps();
+          ImGui::TableNextRow();
+          render_resolution_dropdown();
+        }
 
         ImGui::EndTable();
       }
@@ -155,25 +144,35 @@ struct settings_menu_t {
           ImGuiTableFlags_BordersInnerH |
           ImGuiTableFlags_BordersOuterH
         );
-        render_options_post_processing();
+
+        {
+          ImGui::TableNextRow();
+          ImGui::TableNextColumn();
+          ImGui::Text("Bloom Strength");
+          ImGui::TableNextColumn();
+          if (ImGui::SliderFloat("##BloomStrengthSlider", &bloom_strength, 0, 1)) {
+            gloco->shader_set_value(gloco->m_fbo_final_shader, "bloom_strength", bloom_strength);
+          }
+        }
 
         ImGui::EndTable();
       }
       ImGui::NewLine();
       ImGui::NewLine();
       {
-        ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "PERFORMANCE");
+        ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "PERFORMANCE STATS");
         ImGui::BeginTable("settings_left_table_post_processing", 2,
           ImGuiTableFlags_BordersInnerH |
           ImGuiTableFlags_BordersOuterH
         );
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("Track OpenGL calls");
-        ImGui::TableNextColumn();
-        bool x;
-        ImGui::Checkbox("#aaa", &x);
-
+        {
+          ImGui::TableNextRow();
+          ImGui::TableNextColumn();
+          ImGui::Text("Track OpenGL calls");
+          ImGui::TableNextColumn();
+          ImGui::Checkbox("##track_opengl_calls", (bool*)&fan_track_opengl_calls);
+        }
+        
         ImGui::EndTable();
       }
       break;
