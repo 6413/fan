@@ -2,7 +2,7 @@
 
 void modify_reflect_depth(std::vector<fan::graphics::rectangle_t>& ray_hit_point, std::vector<fan::graphics::line_t>& rays, int& prev_reflect_depth);
 
-int reflect_depth = 4;
+int reflect_depth = 100000;
 
 fan_language{
   std::vector<vertex_t> triangle_vertices{

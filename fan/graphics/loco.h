@@ -25,6 +25,7 @@
 #if defined(loco_imgui)
 #include <fan/imgui/imgui.h>
 #include <fan/imgui/imgui_impl_opengl3.h>
+#include <fan/imgui/imgui_impl_vulkan.h>
 #include <fan/imgui/imgui_impl_glfw.h>
 #include <fan/imgui/imgui_neo_sequencer.h>
 #include <fan/imgui/implot.h>
@@ -182,6 +183,9 @@ struct global_loco_t {
 // it will crash in random places
 inline global_loco_t gloco;
 
+#include <shaderc/shaderc.hpp>
+#include <fan/graphics/vulkan/vk_core.h>
+#include <fan/graphics/vulkan/ssbo.h>
 struct loco_t : fan::opengl::context_t {
 
   static uint8_t* A_resize(void* ptr, uintptr_t size);
@@ -550,7 +554,7 @@ public:
     bool vsync = true;
     fan::vec2 window_size = -1;
     bool visible = true;
-    uint64_t window_flags = 0;
+    uint64_t window_flags = fan::window_t::flags::opengl;
   };
 
   uint64_t start_time = 0;
@@ -721,6 +725,8 @@ public:
   //-----------------------------gui-----------------------------
 
   fan::opengl::context_t& get_context();
+  fan::vulkan::context_t vk_context;
+  fan::vulkan::descriptor_t<1> descriptor;//temp
 
   struct camera_impl_t {
 
@@ -3207,3 +3213,8 @@ namespace fan {
     }
   }
 }
+
+//vk
+
+#include <fan/graphics/vulkan/uniform_block.h>
+#include <fan/graphics/vulkan/memory.h>

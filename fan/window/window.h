@@ -218,18 +218,20 @@ namespace fan {
     #include <BLL/BLL.h>
 
     struct flags {
-      static constexpr int no_mouse = 1 << 0;
-      static constexpr int no_resize = 1 << 1;
-      static constexpr int mode = 1 << 2;
-      static constexpr int borderless = 1 << 3;
-      static constexpr int full_screen = 1 << 4;
-      static constexpr int no_decorate = 1 << 5;
-      static constexpr int transparent = 1 << 6;
+      static constexpr uint64_t no_mouse = 1 << 0;
+      static constexpr uint64_t no_resize = 1 << 1;
+      static constexpr uint64_t mode = 1 << 2;
+      static constexpr uint64_t borderless = 1 << 3;
+      static constexpr uint64_t full_screen = 1 << 4;
+      static constexpr uint64_t no_decorate = 1 << 5;
+      static constexpr uint64_t transparent = 1 << 6;
+      static constexpr uint64_t vulkan = 1 << 7;
+      static constexpr uint64_t opengl = 1 << 8;
     };
 
    //window_t();
-    void open(fan::vec2i window_size, const std::string& name, bool visible = true, uint64_t flags = 0);
-
+    void open(uint64_t flags);
+    void open(fan::vec2i window_size, const std::string& name, bool visible = true, uint64_t flags = flags::opengl);
     void close();
 
     void handle_key_states();
@@ -300,6 +302,7 @@ namespace fan {
     close_callback_t m_close_callback;
     mouse_position_callback_t m_mouse_position_callback;
     mouse_motion_callback_t m_mouse_motion_callback;
+    uint64_t flags = 0;
 
     operator GLFWwindow* () {
       return glfw_window;

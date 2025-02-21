@@ -21,7 +21,7 @@
 
 #include <fan/graphics/types.h>
 
-inline int track_opengl_calls = 0;
+inline int fan_track_opengl_calls = 0;
 
 #define fan_opengl_call(func) \
   [&]() { \
@@ -30,7 +30,7 @@ inline int track_opengl_calls = 0;
         c.start(); \
       }\
       ~measure_func_t() { \
-        if (track_opengl_calls) { \
+        if (fan_track_opengl_calls) { \
           glFlush(); \
           glFinish(); \
           if (c.elapsed() / 1e+9 > 0.01) {\

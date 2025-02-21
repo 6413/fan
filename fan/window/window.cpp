@@ -193,7 +193,11 @@ void errorCallback(int error, const char* description) {
     printf("Error: %s\n", description);
 }
 
+void fan::window_t::open(uint64_t flags) {
+  fan::window_t::open(default_window_size, default_window_name, true, flags);
+}
 void fan::window_t::open(fan::vec2i window_size, const std::string& name, bool visible, uint64_t flags) {
+  this->flags = flags;
   std::fill(key_states, key_states + std::size(key_states), -1);
   std::fill(prev_key_states, prev_key_states + std::size(prev_key_states), -1);
 
@@ -214,6 +218,10 @@ void fan::window_t::open(fan::vec2i window_size, const std::string& name, bool v
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
   }
   using namespace fan::window;
+
+  if (flags & flags::vulkan) {
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  }
   glfw_window = glfwCreateWindow(window_size.x, window_size.y, name.c_str(), NULL, NULL);
   if (glfw_window == nullptr) {
     glfwTerminate();
@@ -227,7 +235,9 @@ void fan::window_t::open(fan::vec2i window_size, const std::string& name, bool v
   fan::vec2 window_pos = (screen_size - window_size) / 2;
   glfwSetWindowPos(glfw_window, window_pos.x, window_pos.y);
 
-  glfwMakeContextCurrent(glfw_window);
+  if (flags & flags::opengl) {
+    glfwMakeContextCurrent(glfw_window);
+  }
 
   glfwSetMouseButtonCallback(glfw_window, fan::window::mouse_button_callback);
   glfwSetKeyCallback(glfw_window, fan::window::keyboard_keys_callback);

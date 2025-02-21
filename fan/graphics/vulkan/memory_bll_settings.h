@@ -1,5 +1,4 @@
 #include <fan/fan_bll_preset.h>
-//#define BLL_set_namespace
 #define BLL_set_SafeNext 1
 #define BLL_set_prefix write_queue
 #define BLL_set_type_node uint32_t
