@@ -236,11 +236,11 @@ struct loco_t : fan::opengl::context_t {
     return gloco->shaper.add(sti, &a, s, &rd, &d);
   }
 
-
-  loco_t(const loco_t&) = delete;
-  loco_t& operator=(const loco_t&) = delete;
-  loco_t(loco_t&&) = delete;
-  loco_t& operator=(loco_t&&) = delete;
+  // unsafe
+  //loco_t(const loco_t&) = delete;
+  //loco_t& operator=(const loco_t&) = delete;
+  //loco_t(loco_t&&) = delete;
+  //loco_t& operator=(loco_t&&) = delete;
 
   struct shape_type_t {
     enum {
@@ -549,15 +549,23 @@ public:
 
   std::vector<fan::function_t<void()>> m_pre_draw;
   std::vector<fan::function_t<void()>> m_post_draw;
+  using renderer_t = fan::window_t::renderer_t;
 
   struct properties_t {
     bool vsync = true;
     fan::vec2 window_size = -1;
-    bool visible = true;
-    uint64_t window_flags = fan::window_t::flags::opengl;
+    uint64_t window_flags = 0;
+    uint8_t renderer = renderer_t::opengl;
   };
 
   uint64_t start_time = 0;
+
+  // -1 no reload, opengl = 0 etc
+  uint8_t reload_renderer_to = -1;
+  void load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t font_size = 4);
+
+  void init_imgui();
+  void destroy_imgui();
 
   void init_framebuffer();
 
@@ -804,7 +812,7 @@ public:
 
   fan::function_t<void()> main_loop; // bad, but forced
 
-  f64_t& delta_time = window.m_delta_time;
+  f64_t delta_time = window.m_delta_time;
 
   std::vector<functions_t> shape_functions;
 

@@ -12,7 +12,9 @@ struct settings_menu_t {
   settings_menu_t() {
     set_settings_theme();
     options_toggle[0] = 1;
-    gloco->shader_set_value(gloco->m_fbo_final_shader, "bloom_strength", bloom_strength);
+    if (gloco->window.renderer == fan::window_t::renderer_t::opengl) {
+      gloco->shader_set_value(gloco->m_fbo_final_shader, "bloom_strength", bloom_strength);
+    }
   }
 
   void change_target_fps(int direction) {
@@ -132,6 +134,37 @@ struct settings_menu_t {
           render_target_fps();
           ImGui::TableNextRow();
           render_resolution_dropdown();
+
+          {
+            static const char* renderers[] = {
+              "OpenGL",
+              "Vulkan",
+            };
+            ImGui::TableNextColumn();
+            ImGui::Text("Renderer");
+            ImGui::TableNextColumn();
+            if (ImGui::BeginCombo("##Renderer", renderers[gloco->window.renderer])) {
+              for (int i = 0; i < std::size(renderers); ++i) {
+                bool is_selected = (gloco->window.renderer == i);
+                if (ImGui::Selectable(renderers[i], is_selected)) {
+                  switch (i) {
+                  case 0: {
+                    gloco->reload_renderer_to = fan::window_t::renderer_t::opengl;
+                    break;
+                  }
+                  case 1: {
+                    gloco->reload_renderer_to = fan::window_t::renderer_t::vulkan;
+                    break;
+                  }
+                  }
+                }
+                if (is_selected) {
+                  ImGui::SetItemDefaultFocus();
+                }
+              }
+              ImGui::EndCombo();
+            }
+          }
         }
 
         ImGui::EndTable();
@@ -240,6 +273,10 @@ struct settings_menu_t {
     render_separator_with_margin(ImGui::GetContentRegionAvail().x - min_x);
   }
   void render() {
+    if (gloco->reload_renderer_to != -1) {
+      set_settings_theme();
+    }
+
     f32_t min_x = 40.f;
 
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 0.9f));

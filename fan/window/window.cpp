@@ -194,9 +194,9 @@ void errorCallback(int error, const char* description) {
 }
 
 void fan::window_t::open(uint64_t flags) {
-  fan::window_t::open(default_window_size, default_window_name, true, flags);
+  fan::window_t::open(default_window_size, default_window_name, flags);
 }
-void fan::window_t::open(fan::vec2i window_size, const std::string& name, bool visible, uint64_t flags) {
+void fan::window_t::open(fan::vec2i window_size, const std::string& name, uint64_t flags) {
   this->flags = flags;
   std::fill(key_states, key_states + std::size(key_states), -1);
   std::fill(prev_key_states, prev_key_states + std::size(prev_key_states), -1);
@@ -211,7 +211,7 @@ void fan::window_t::open(fan::vec2i window_size, const std::string& name, bool v
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
   #endif
 
-  if (visible) {
+  if (!(flags & flags::no_visible)) {
     glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
   }
   else {
@@ -219,8 +219,11 @@ void fan::window_t::open(fan::vec2i window_size, const std::string& name, bool v
   }
   using namespace fan::window;
 
-  if (flags & flags::vulkan) {
+  if (renderer == renderer_t::vulkan) {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  }
+  else if (renderer == renderer_t::opengl) {
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
   }
   glfw_window = glfwCreateWindow(window_size.x, window_size.y, name.c_str(), NULL, NULL);
   if (glfw_window == nullptr) {
@@ -235,7 +238,7 @@ void fan::window_t::open(fan::vec2i window_size, const std::string& name, bool v
   fan::vec2 window_pos = (screen_size - window_size) / 2;
   glfwSetWindowPos(glfw_window, window_pos.x, window_pos.y);
 
-  if (flags & flags::opengl) {
+  if (renderer == renderer_t::opengl) {
     glfwMakeContextCurrent(glfw_window);
   }
 
@@ -437,6 +440,12 @@ fan::vec2i fan::window_t::get_size() const {
 
 void fan::window_t::set_size(const fan::vec2i& window_size) {
   glfwSetWindowSize(glfw_window, window_size.x, window_size.y);
+}
+
+fan::vec2 fan::window_t::get_position() const {
+  int xpos, ypos;
+  glfwGetWindowPos(glfw_window, &xpos, &ypos);
+  return fan::vec2(xpos, ypos);
 }
 
 void fan::window_t::set_position(const fan::vec2& position) {

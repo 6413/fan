@@ -142,6 +142,10 @@ void fan::console_t::open() {
   input.SetPalette(palette);
 }
 
+void fan::console_t::close() {
+  frame_cbs.Clear();
+}
+
 void fan::console_t::render() {
   possible_choices.clear();
 

@@ -489,7 +489,7 @@ namespace fan {
 #define __ca__ ,
 
 #ifndef fan_debug
-	#define fan_debug fan_debug_none
+	#define fan_debug fan_debug_high
 #endif
 
 #ifndef fan_use_uninitialized

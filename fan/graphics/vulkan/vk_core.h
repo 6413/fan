@@ -334,52 +334,19 @@ namespace fan {
 #define loco_vulkan_descriptor_uniform_block
 #define loco_vulkan_descriptor_image_sampler
         void open(fan::vulkan::context_t& context) {
-          uint32_t total = 0;
-          //VkDescriptorPoolSize pool_sizes[] = {
-          //  #ifdef loco_vulkan_descriptor_ssbo
-          //  {
-          //    VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          //    fan::vulkan::MAX_FRAMES_IN_FLIGHT
-          //  },
-          //  #endif
-          //  #ifdef loco_vulkan_descriptor_uniform_block
-          //  {
-          //    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          //    fan::vulkan::MAX_FRAMES_IN_FLIGHT
-          //  },
-          //  #endif
-          //  #ifdef loco_vulkan_descriptor_image_sampler
-          //  {
-          //    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          //    fan::vulkan::MAX_FRAMES_IN_FLIGHT
-          //  },
-          //  #endif
-          //};
-
           VkDescriptorPoolSize pool_sizes[] =
-	{
-		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
-	};
-
-
-          VkDescriptorPoolCreateInfo pool_info{};
+          {
+              { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
+          };
+          VkDescriptorPoolCreateInfo pool_info = {};
           pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-          pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT; // new
-
-          pool_info.poolSizeCount = std::size(pool_sizes);
+          pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+          pool_info.maxSets = 0;
+          for (VkDescriptorPoolSize& pool_size : pool_sizes)
+            pool_info.maxSets += pool_size.descriptorCount;
+          pool_info.poolSizeCount = (uint32_t)std::size(pool_sizes);
           pool_info.pPoolSizes = pool_sizes;
-          pool_info.maxSets = fan::vulkan::MAX_FRAMES_IN_FLIGHT * 10;
-
+          ;
           fan::vulkan::validate(vkCreateDescriptorPool(context.device, &pool_info, nullptr, &m_descriptor_pool));
         }
         void close(fan::vulkan::context_t& context) {
@@ -416,7 +383,8 @@ namespace fan {
 #if defined(loco_window)
       void open(fan::window_t& window) {
         window.add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-          recreateSwapChain(d.size);
+          SwapChainRebuild = true;
+          recreateSwapChain(d.window, VK_ERROR_OUT_OF_DATE_KHR);
         });
 
         createInstance();
@@ -427,7 +395,6 @@ namespace fan {
         createSwapChain(window.get_size());
         createImageViews();
         createRenderPass();
-        createImGuiRenderPass();
         createCommandPool();
 #if defined(loco_wboit)
         create_wboit_views();
@@ -438,35 +405,56 @@ namespace fan {
         createCommandBuffers();
         createSyncObjects();
         descriptor_pool.open(*this);
+        ImGuiSetupVulkanWindow();
       }
 #endif
 
-      ~context_t() {
-        cleanupSwapChain();
-
-        vkDestroyRenderPass(device, renderPass, nullptr);
-
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-          vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
-          vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
-          vkDestroyFence(device, inFlightFences[i], nullptr);
+      void destroy_vulkan_soft() {
+        vkDeviceWaitIdle(device);
+        for (auto& i : vai_bitmap) {
+          i.close(*this);
         }
 
-        vkDestroyCommandPool(device, commandPool, nullptr);
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+          if (renderFinishedSemaphores.size())
+            vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
+          if (imageAvailableSemaphores.size())
+            vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
+          if (inFlightFences.size())
+            vkDestroyFence(device, inFlightFences[i], nullptr);
+        }
 
-        vkDestroyDevice(device, nullptr);
+        vkDestroyRenderPass(device, renderPass, nullptr);
+        vkDestroyCommandPool(device, commandPool, nullptr);
 
 #if fan_debug >= fan_debug_high
         if (supports_validation_layers) {
           DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
 #endif
+      }
 
-        vkDestroySurfaceKHR(instance, surface, nullptr);
+    public:
+      void imgui_close() {
+        vkFreeCommandBuffers(device, commandPool, commandBuffers.size(), commandBuffers.data());
+        cleanup_swap_chain_dependencies();
+        descriptor_pool.close(*this);
+        destroy_vulkan_soft();
+        ImGui_ImplVulkanH_DestroyWindow(instance, device, &MainWindowData, nullptr);
+
+        vkDestroyDevice(device, nullptr);
         vkDestroyInstance(instance, nullptr);
       }
 
-      void cleanupSwapChain() {
+      void close() {
+        cleanupSwapChain();
+        vkDestroySurfaceKHR(instance, surface, nullptr);
+        destroy_vulkan_soft();
+        vkDestroyDevice(device, nullptr);
+        vkDestroyInstance(instance, nullptr);
+      }
+
+      void cleanup_swap_chain_dependencies() {
         vai_depth.close(*this);
 
         for (auto framebuffer : swapChainFramebuffers) {
@@ -476,23 +464,64 @@ namespace fan {
         for (auto imageView : swapChainImageViews) {
           vkDestroyImageView(device, imageView, nullptr);
         }
+      }
 
-        vkDestroySwapchainKHR(device, swapChain, nullptr);
+      void cleanupSwapChain() {
+        cleanup_swap_chain_dependencies();
+        if (swapChain != VK_NULL_HANDLE) {
+          vkDestroySwapchainKHR(device, swapChain, nullptr);
+          swapChain = VK_NULL_HANDLE;
+        }
       }
 
 #if defined(loco_window)
-      void recreateSwapChain(const fan::vec2i& window_size) {
-
-        vkDeviceWaitIdle(device);
-
-        cleanupSwapChain();
-
-        createSwapChain(window_size);
+      void recreate_swap_chain_dependencies() {
         createImageViews();
         createDepthResources();
         createFramebuffers();
       }
+
+      // if swapchain changes, reque
+      void update_swapchain_dependencies() {
+        cleanup_swap_chain_dependencies();
+        uint32_t imageCount = MinImageCount + 1;
+        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
+        swapChainImages.resize(imageCount);
+        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
+        recreate_swap_chain_dependencies();
+      }
+
+      void recreateSwapChain(fan::window_t* window, VkResult err) {
+        if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
+           int fb_width, fb_height;
+          glfwGetFramebufferSize(*window, &fb_width, &fb_height);
+          if (fb_width > 0 && fb_height > 0 && (SwapChainRebuild || MainWindowData.Width != fb_width || MainWindowData.Height != fb_height))
+          {
+            ImGui_ImplVulkan_SetMinImageCount(MinImageCount);
+            ImGui_ImplVulkanH_CreateOrResizeWindow(instance, physicalDevice, device, &MainWindowData, queue_family, /*g_Allocator*/nullptr, fb_width, fb_height, MinImageCount);
+            currentFrame = MainWindowData.FrameIndex = 0;
+            SwapChainRebuild = false;
+            swapChain = MainWindowData.Swapchain;
+            swap_chain_size = fan::vec2(fb_width, fb_height);
+            update_swapchain_dependencies();
+          }
+#else
+          recreateSwapChain(window.get_size());
 #endif
+        }
+      else if (err != VK_SUCCESS) {
+        throw std::runtime_error("failed to present swap chain image");
+      }
+      }
+
+      void recreateSwapChain(const fan::vec2i& window_size) {
+        vkDeviceWaitIdle(device);
+        cleanupSwapChain();
+        createSwapChain(window_size);
+        recreate_swap_chain_dependencies();
+        // need to recreate some imgui's swapchain dependencies
+        MainWindowData.Swapchain = swapChain;
+      }
 
       void createInstance() {
 #if fan_debug >= fan_debug_high
@@ -655,8 +684,8 @@ namespace fan {
       void createSwapChain(const fan::vec2ui& framebuffer_size) {
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
-        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+        surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+        presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = chooseSwapExtent(framebuffer_size, swapChainSupport.capabilities);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -878,84 +907,11 @@ namespace fan {
         }
       }
 
-      void createImGuiRenderPass() {
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = swapChainImageFormat;
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentDescription depthAttachment{};
-        int useDepth = 0;
-        if (useDepth) {
-          //depthAttachment.format = depthFormat;
-          depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-          depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-          depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-          depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-          depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-          depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-          depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        }
-
-        VkAttachmentReference colorAttachmentRef{};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference depthAttachmentRef{};
-        if (useDepth) {
-          depthAttachmentRef.attachment = 1;
-          depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        }
-
-        VkSubpassDescription subpass{};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
-        subpass.pDepthStencilAttachment = useDepth ? &depthAttachmentRef : nullptr;
-
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-        std::vector<VkAttachmentDescription> attachments = { colorAttachment };
-        if (useDepth) {
-          attachments.push_back(depthAttachment);
-        }
-
-        VkRenderPassCreateInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        renderPassInfo.pAttachments = attachments.data();
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
-
-        if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &gui_renderpass) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create ImGui render pass!");
-        }
-      }
-
-
       void createFramebuffers() {
         swapChainFramebuffers.resize(swapChainImageViews.size());
 
         for (size_t i = 0; i < swapChainImageViews.size(); i++) {
           VkImageView attachments[] = {
-            #if defined(loco_wboit)
-              vai_wboit_color.image_view,
-              vai_wboit_reveal.image_view,
-            #endif
-
             vai_bitmap[0].image_view,
             vai_bitmap[1].image_view,
             swapChainImageViews[i],
@@ -977,29 +933,6 @@ namespace fan {
           }
         }
       }
-
-     /* VkFramebuffer createImGuiFramebuffer() {
-        std::vector<VkImageView> attachments = { colorImageView };
-        if (useDepth) {
-          attachments.push_back(depthImageView);
-        }
-
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = renderPass;
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = extent.width;
-        framebufferInfo.height = extent.height;
-        framebufferInfo.layers = 1;
-
-        VkFramebuffer framebuffer;
-        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &framebuffer) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create ImGui framebuffer!");
-        }
-
-        return framebuffer;
-      }*/
 
       void createCommandPool() {
         QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
@@ -1236,27 +1169,8 @@ namespace fan {
       //  memcpy(data, &ubo, sizeof(ubo));
       //  vkUnmapMemory(device, uniform_block.common.memory[currentImage].device_memory);
       //}
-#if defined(loco_window)
-      void begin_render(fan::window_t* window, const fan::color& clear_color) {
+      void begin_render(const fan::color& clear_color) {
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-
-        VkResult result = vkAcquireNextImageKHR(
-          device,
-          swapChain,
-          UINT64_MAX,
-          imageAvailableSemaphores[currentFrame],
-          VK_NULL_HANDLE,
-          &image_index
-        );
-
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-          recreateSwapChain(window->get_size());
-          return;
-        }
-        else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-          fan::throw_error("failed to acquire swap chain image!");
-        }
-
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
@@ -1280,42 +1194,29 @@ namespace fan {
 
         // TODO
 
-#if defined(loco_wboit)
-        VkClearValue clearValues[4]{};
-        clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
-        clearValues[3].depthStencil = { 1.0f, 0 };
-
-        clearValues[0].color.float32[0] = 0.0f;
-        clearValues[0].color.float32[1] = 0.0f;
-        clearValues[0].color.float32[2] = 0.0f;
-        clearValues[0].color.float32[3] = 0.0f;
-        clearValues[1].color.float32[0] = 1.f;  // Initially, all pixels show through all the way (reveal = 100%)
-
-#else
         VkClearValue clearValues[
           5
         ]{};
-          clearValues[0].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a} };
-          clearValues[1].color = { {clear_color.r, clear_color.g, clear_color.b, clear_color.a} };
-          clearValues[2].color = { {clear_color.r, clear_color.g, clear_color.b, clear_color.a} };
-          clearValues[3].color = { {clear_color.r, clear_color.g, clear_color.b, clear_color.a} };
-          clearValues[4].depthStencil = { 1.0f, 0 };
-#endif
+        clearValues[0].color = { {clear_color.r, clear_color.g, clear_color.b, clear_color.a} };
+        clearValues[1].color = { {clear_color.r, clear_color.g, clear_color.b, clear_color.a} };
+        clearValues[2].color = { {clear_color.r, clear_color.g, clear_color.b, clear_color.a} };
+        clearValues[3].color = { {clear_color.r, clear_color.g, clear_color.b, clear_color.a} };
+        clearValues[4].depthStencil = { 1.0f, 0 };
 
-          renderPassInfo.clearValueCount = std::size(clearValues);
-          renderPassInfo.pClearValues = clearValues;
+        renderPassInfo.clearValueCount = std::size(clearValues);
+        renderPassInfo.pClearValues = clearValues;
 
-          vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-           //TODO set viewport
+          //TODO set viewport
         //fan::vulkan::viewport_t::set_viewport(0, swap_chain_size, swap_chain_size);
 
         {//TODO WRAP
           VkViewport viewport = {};
           viewport.x = 0.0f;
           viewport.y = 0.0f;
-          viewport.width = static_cast<float>(swap_chain_size.x);
-          viewport.height = static_cast<float>(swap_chain_size.y);
+          viewport.width = swap_chain_size.x;
+          viewport.height = swap_chain_size.y;
           viewport.minDepth = 0.0f;
           viewport.maxDepth = 1.0f;
 
@@ -1327,46 +1228,69 @@ namespace fan {
           scissor.extent.height = swap_chain_size.y;
 
           vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor);
-
         }
-       // ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffers[currentFrame]);
+
+        vkCmdNextSubpass(commandBuffers[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdEndRenderPass(commandBuffers[currentFrame]);
       }
 
-      void end_render(fan::window_t* window) {
-#if defined(loco_wboit)
-        vkCmdNextSubpass(commandBuffers[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);
-        vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
-#endif
+       //----------------------------------------------imgui stuff----------------------------------------------
 
-        //// render_fullscreen_pl loco fbo?
-        //vkCmdNextSubpass(commandBuffers[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
+      ImGui_ImplVulkanH_Window MainWindowData;
+      uint32_t                 MinImageCount = 2;
+      bool                     SwapChainRebuild = false;
+      
+      void ImGuiSetupVulkanWindow() {
+        MainWindowData.Surface = surface;
+        MainWindowData.SurfaceFormat = surfaceFormat;
+        MainWindowData.Swapchain = swapChain;
+        MainWindowData.PresentMode = presentMode;
 
-        //vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, render_fullscreen_pl.m_pipeline);
+        IM_ASSERT(MinImageCount >= 2);
+        ImGui_ImplVulkanH_CreateOrResizeWindow(instance, physicalDevice, device, &MainWindowData, queue_family, /*g_Allocator*/nullptr, swap_chain_size.x, swap_chain_size.y, MinImageCount);
+        swapChain = MainWindowData.Swapchain;
+        update_swapchain_dependencies();
+      }
 
-        //  {//TODO WRAP
-        //  VkViewport viewport = {};
-        //  viewport.x = 0.0f;
-        //  viewport.y = 0.0f;
-        //  viewport.width = static_cast<float>(swap_chain_size.x);
-        //  viewport.height = static_cast<float>(swap_chain_size.y);
-        //  viewport.minDepth = 0.0f;
-        //  viewport.maxDepth = 1.0f;
+      void ImGuiFrameRender(VkResult next_image_khr_err, fan::color clear_color) {
+        MainWindowData.ClearValue.color.float32[0] = clear_color[0];
+        MainWindowData.ClearValue.color.float32[1] = clear_color[1];
+        MainWindowData.ClearValue.color.float32[2] = clear_color[2];
+        MainWindowData.ClearValue.color.float32[3] = clear_color[3];
+        ImGui_ImplVulkanH_Window* wd = &MainWindowData;
+        VkResult err = next_image_khr_err;
+        if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR)
+          SwapChainRebuild = true;
+        if (err == VK_ERROR_OUT_OF_DATE_KHR)
+          return;
+        if (err != VK_SUBOPTIMAL_KHR)
+          fan::vulkan::validate(err);
 
-        //  vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport);
+        wd->FrameIndex = image_index;
 
-        //  VkRect2D scissor = {};
-        //  scissor.offset = {0, 0};
-        //  scissor.extent.width = swap_chain_size.x; // make operator vkextent
-        //  scissor.extent.height = swap_chain_size.y;
+        ImGui_ImplVulkanH_Frame* fd = &wd->Frames[wd->FrameIndex];
 
-        //  vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor);
+        VkRenderPassBeginInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        info.renderPass = wd->RenderPass;
+        info.framebuffer = fd->Framebuffer;
+        info.renderArea.extent.width = wd->Width;
+        info.renderArea.extent.height = wd->Height;
+        info.clearValueCount = 1;
+        info.pClearValues = &wd->ClearValue;
+        vkCmdBeginRenderPass(commandBuffers[currentFrame], &info, VK_SUBPASS_CONTENTS_INLINE);
 
-        //}
-       //vkCmdDraw(commandBuffers[currentFrame], 6, 1, 0, 0);
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffers[currentFrame]);
 
         vkCmdEndRenderPass(commandBuffers[currentFrame]);
+      }
+      //----------------------------------------------imgui stuff----------------------------------------------
 
+      VkResult end_render() {
+        //// render_fullscreen_pl loco fbo?
+        if (!command_buffer_in_use) {
+            return VK_SUCCESS;
+        }
         if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
           fan::throw_error("failed to record command buffer!");
         }
@@ -1392,7 +1316,6 @@ namespace fan {
         if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
           throw std::runtime_error("failed to submit draw command buffer!");
         }
-
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -1402,20 +1325,12 @@ namespace fan {
         VkSwapchainKHR swapChains[] = { swapChain };
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
-
         presentInfo.pImageIndices = &image_index;
         auto result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-          recreateSwapChain(window->get_size());
-        }
-        else if (result != VK_SUCCESS) {
-          throw std::runtime_error("failed to present swap chain image!");
-        }
-
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        return result;
       }
-#endif
 
       void begin_compute_shader() {
         //?
@@ -1723,9 +1638,10 @@ namespace fan {
       fan::vec2 swap_chain_size;
       std::vector<VkImageView> swapChainImageViews;
       std::vector<VkFramebuffer> swapChainFramebuffers;
+      VkPresentModeKHR presentMode;
+      VkSurfaceFormatKHR surfaceFormat;
 
       VkRenderPass renderPass;
-      VkRenderPass gui_renderpass;
 
       VkCommandPool commandPool;
       uint32_t queue_family = -1;
@@ -1734,10 +1650,6 @@ namespace fan {
 
       vai_t vai_depth;
       vai_t vai_bitmap[2];
-#if defined(loco_wboit)
-      vai_t vai_wboit_color;
-      vai_t vai_wboit_reveal;
-#endif
 
       std::vector<VkCommandBuffer> commandBuffers;
 
@@ -1812,22 +1724,6 @@ namespace fan {
       vai_bitmap[1].open(*this, p);
       vai_bitmap[1].transition_image_layout(*this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
-
-#if defined(loco_wboit)
-    void context_t::create_wboit_views() {
-      vai_t::properties_t p;
-      p.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-      p.swap_chain_size = swap_chain_size;
-      p.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-      p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
-      vai_wboit_color.open(this, p);
-      vai_wboit_color.transition_image_layout(this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-      p.format = VK_FORMAT_R16_SFLOAT;
-      vai_wboit_reveal.open(this, p);
-      vai_wboit_reveal.transition_image_layout(this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    }
-#endif
 
     template <uint32_t count>
     inline void descriptor_t<count>::open(fan::vulkan::context_t& context, std::array<fan::vulkan::write_descriptor_set_t, count> properties) {

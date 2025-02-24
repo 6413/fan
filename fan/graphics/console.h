@@ -66,6 +66,7 @@ namespace fan {
     using highlight_e = fan::graphics::highlight_e;
 
     void open();
+    void close();
 
     void render();
 
