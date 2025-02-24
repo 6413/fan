@@ -49,7 +49,7 @@ struct QueueFamilyIndices {
   std::optional<uint32_t> presentFamily;
 #endif
 
-  bool isComplete() {
+  bool is_complete() {
     return graphicsFamily.has_value()
 #if defined(loco_window)
       && presentFamily.has_value()
@@ -75,7 +75,7 @@ namespace fan {
 
     struct context_t;
 
-    static void createImage(fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+    static void create_image(fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
   }
 }
 
@@ -241,7 +241,7 @@ namespace fan {
         VkImageAspectFlags aspect_flags;
       };
       void open(auto& context, const properties_t& p) {
-        fan::vulkan::createImage(
+        fan::vulkan::create_image(
           context,
           p.swap_chain_size,
           p.format,
@@ -251,7 +251,7 @@ namespace fan {
           image,
           memory
         );
-        image_view = context.createImageView(image, p.format, p.aspect_flags);
+        image_view = context.create_image_view(image, p.format, p.aspect_flags);
         format = p.format;
       }
       void close(auto& context) {
@@ -261,7 +261,7 @@ namespace fan {
       }
 
       void transition_image_layout(auto& context, VkImageLayout newLayout) {
-        VkCommandBuffer commandBuffer = context.beginSingleTimeCommands(&context);
+        VkCommandBuffer commandBuffer = context.begin_single_time_commands();
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -294,7 +294,7 @@ namespace fan {
           1, &barrier
         );
 
-        context.endSingleTimeCommands(&context, commandBuffer);
+        context.end_single_time_commands(commandBuffer);
 
         old_layout = newLayout;
       }
@@ -309,16 +309,6 @@ namespace fan {
     };
   }
 }
-
-#if defined(loco_window)
-
-namespace fan {
-  namespace vulkan {
-  
-  }
-}
-
-#endif
 
 namespace fan {
   namespace vulkan {
@@ -370,39 +360,39 @@ namespace fan {
       static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
 
       void open_no_window() {
-        createInstance();
-        setupDebugMessenger();
-        createInstance();
-        setupDebugMessenger();
-        pickPhysicalDevice();
-        createLogicalDevice();
-        createCommandPool();
-        createCommandBuffers();
+        create_instance();
+        setup_debug_messenger();
+        create_instance();
+        setup_debug_messenger();
+        pick_physical_device();
+        create_logical_device();
+        create_command_pool();
+        create_command_buffers();
         createSyncObjects();
       }
 #if defined(loco_window)
       void open(fan::window_t& window) {
         window.add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
           SwapChainRebuild = true;
-          recreateSwapChain(d.window, VK_ERROR_OUT_OF_DATE_KHR);
+          recreate_swap_chain(d.window, VK_ERROR_OUT_OF_DATE_KHR);
         });
 
-        createInstance();
-        setupDebugMessenger();
-        createSurface(window);
-        pickPhysicalDevice();
-        createLogicalDevice();
-        createSwapChain(window.get_size());
-        createImageViews();
-        createRenderPass();
-        createCommandPool();
+        create_instance();
+        setup_debug_messenger();
+        create_surface(window);
+        pick_physical_device();
+        create_logical_device();
+        create_swap_chain(window.get_size());
+        create_image_views();
+        create_render_pass();
+        create_command_pool();
 #if defined(loco_wboit)
         create_wboit_views();
 #endif
         create_loco_framebuffer();
         createDepthResources();
-        createFramebuffers();
-        createCommandBuffers();
+        create_framebuffers();
+        create_command_buffers();
         createSyncObjects();
         descriptor_pool.open(*this);
         ImGuiSetupVulkanWindow();
@@ -476,9 +466,9 @@ namespace fan {
 
 #if defined(loco_window)
       void recreate_swap_chain_dependencies() {
-        createImageViews();
+        create_image_views();
         createDepthResources();
-        createFramebuffers();
+        create_framebuffers();
       }
 
       // if swapchain changes, reque
@@ -491,7 +481,7 @@ namespace fan {
         recreate_swap_chain_dependencies();
       }
 
-      void recreateSwapChain(fan::window_t* window, VkResult err) {
+      void recreate_swap_chain(fan::window_t* window, VkResult err) {
         if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
            int fb_width, fb_height;
           glfwGetFramebufferSize(*window, &fb_width, &fb_height);
@@ -506,7 +496,7 @@ namespace fan {
             update_swapchain_dependencies();
           }
 #else
-          recreateSwapChain(window.get_size());
+          recreate_swap_chain(window.get_size());
 #endif
         }
       else if (err != VK_SUCCESS) {
@@ -514,18 +504,18 @@ namespace fan {
       }
       }
 
-      void recreateSwapChain(const fan::vec2i& window_size) {
+      void recreate_swap_chain(const fan::vec2i& window_size) {
         vkDeviceWaitIdle(device);
         cleanupSwapChain();
-        createSwapChain(window_size);
+        create_swap_chain(window_size);
         recreate_swap_chain_dependencies();
         // need to recreate some imgui's swapchain dependencies
         MainWindowData.Swapchain = swapChain;
       }
 
-      void createInstance() {
+      void create_instance() {
 #if fan_debug >= fan_debug_high
-        if (!checkValidationLayerSupport()) {
+        if (!check_validation_layer_support()) {
           fan::print_warning("validation layers not supported");
           supports_validation_layers = false;
         }
@@ -543,7 +533,7 @@ namespace fan {
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
 
-        auto extensions = getRequiredExtensions();
+        auto extensions = get_required_extensions();
         createInfo.enabledExtensionCount = extensions.size();
         std::vector<char*> extension_names(extensions.size() + 1);
         for (uint32_t i = 0; i < extensions.size(); ++i) {
@@ -558,7 +548,7 @@ namespace fan {
           createInfo.enabledLayerCount = validationLayers.size();
           createInfo.ppEnabledLayerNames = validationLayers.data();
 
-          populateDebugMessengerCreateInfo(debugCreateInfo);
+          populate_debug_messenger_create_info(debugCreateInfo);
           createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
         }
 #endif
@@ -568,9 +558,7 @@ namespace fan {
         }
       }
 
-
-
-      void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+      void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
         createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -578,7 +566,7 @@ namespace fan {
         createInfo.pfnUserCallback = debugCallback;
       }
 
-      void setupDebugMessenger() {
+      void setup_debug_messenger() {
 #if fan_debug < fan_debug_high
         return;
 #endif
@@ -588,7 +576,7 @@ namespace fan {
         }
 
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
-        populateDebugMessengerCreateInfo(createInfo);
+        populate_debug_messenger_create_info(createInfo);
 
         if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
           throw std::runtime_error("failed to set up debug messenger!");
@@ -596,14 +584,14 @@ namespace fan {
       }
 
 #if defined(loco_window)
-      void createSurface(GLFWwindow* window) {
+      void create_surface(GLFWwindow* window) {
          if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
             throw std::runtime_error("failed to create window surface!");
         }
       }
 #endif
 
-      void pickPhysicalDevice() {
+      void pick_physical_device() {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
@@ -615,7 +603,7 @@ namespace fan {
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
         for (const auto& device : devices) {
-          if (isDeviceSuitable(device)) {
+          if (is_device_suitable(device)) {
             physicalDevice = device;
             break;
           }
@@ -626,8 +614,8 @@ namespace fan {
         }
       }
 
-      void createLogicalDevice() {
-        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+      void create_logical_device() {
+        QueueFamilyIndices indices = find_queue_families(physicalDevice);
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = {
@@ -681,12 +669,12 @@ namespace fan {
       }
 
 #if defined(loco_window)
-      void createSwapChain(const fan::vec2ui& framebuffer_size) {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
+      void create_swap_chain(const fan::vec2ui& framebuffer_size) {
+        SwapChainSupportDetails swapChainSupport = query_swap_chain_support(physicalDevice);
 
-        surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-        presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = chooseSwapExtent(framebuffer_size, swapChainSupport.capabilities);
+        surfaceFormat = choose_swap_surface_format(swapChainSupport.formats);
+        presentMode = choose_swap_present_mode(swapChainSupport.presentModes);
+        VkExtent2D extent = choose_swap_extent(framebuffer_size, swapChainSupport.capabilities);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
         min_image_count = swapChainSupport.capabilities.minImageCount;
@@ -706,7 +694,7 @@ namespace fan {
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        QueueFamilyIndices indices = find_queue_families(physicalDevice);
         queue_family = indices.graphicsFamily.value();
         uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
@@ -738,7 +726,7 @@ namespace fan {
       }
 #endif
 
-      VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+      VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = image;
@@ -759,15 +747,15 @@ namespace fan {
         return imageView;
       }
 
-      void createImageViews() {
+      void create_image_views() {
         swapChainImageViews.resize(swapChainImages.size());
 
         for (uint32_t i = 0; i < swapChainImages.size(); i++) {
-          swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+          swapChainImageViews[i] = create_image_view(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
         }
       }
 
-      void createRenderPass() {
+      void create_render_pass() {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = swapChainImageFormat;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -779,7 +767,7 @@ namespace fan {
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = findDepthFormat();
+        depthAttachment.format = find_depth_format();
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -907,7 +895,7 @@ namespace fan {
         }
       }
 
-      void createFramebuffers() {
+      void create_framebuffers() {
         swapChainFramebuffers.resize(swapChainImageViews.size());
 
         for (size_t i = 0; i < swapChainImageViews.size(); i++) {
@@ -934,8 +922,8 @@ namespace fan {
         }
       }
 
-      void createCommandPool() {
-        QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+      void create_command_pool() {
+        QueueFamilyIndices queueFamilyIndices = find_queue_families(physicalDevice);
 
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -952,7 +940,7 @@ namespace fan {
       void create_wboit_views();
       void createDepthResources();
 
-      VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+      VkFormat find_supported_foramt(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
         for (VkFormat format : candidates) {
           VkFormatProperties props;
           vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
@@ -968,19 +956,19 @@ namespace fan {
         throw std::runtime_error("failed to find supported format!");
       }
 
-      VkFormat findDepthFormat() {
-        return findSupportedFormat(
+      VkFormat find_depth_format() {
+        return find_supported_foramt(
           { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
           VK_IMAGE_TILING_OPTIMAL,
           VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
         );
       }
 
-      bool hasStencilComponent(VkFormat format) {
+      bool has_stencil_component(VkFormat format) {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
       }
 
-      void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+      void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = size;
@@ -997,7 +985,7 @@ namespace fan {
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+        allocInfo.memoryTypeIndex = find_memory_type(memRequirements.memoryTypeBits, properties);
 
         if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
           throw std::runtime_error("failed to allocate buffer memory!");
@@ -1006,15 +994,15 @@ namespace fan {
         vkBindBufferMemory(device, buffer, bufferMemory, 0);
       }
 
-      static VkCommandBuffer beginSingleTimeCommands(fan::vulkan::context_t* context) {
+      VkCommandBuffer begin_single_time_commands() {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = context->commandPool;
+        allocInfo.commandPool = commandPool;
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
-        vkAllocateCommandBuffers(context->device, &allocInfo, &commandBuffer);
+        vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1025,7 +1013,7 @@ namespace fan {
         return commandBuffer;
       }
 
-      static void endSingleTimeCommands(fan::vulkan::context_t* context, VkCommandBuffer commandBuffer) {
+      void end_single_time_commands(VkCommandBuffer commandBuffer) {
         vkEndCommandBuffer(commandBuffer);
 
         VkSubmitInfo submitInfo{};
@@ -1033,23 +1021,23 @@ namespace fan {
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
 
-        vkQueueSubmit(context->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(context->graphicsQueue);
+        vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphicsQueue);
 
-        vkFreeCommandBuffers(context->device, context->commandPool, 1, &commandBuffer);
+        vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
       }
 
-      void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(this);
+      void copy_buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+        VkCommandBuffer commandBuffer = begin_single_time_commands();
 
         VkBufferCopy copyRegion{};
         copyRegion.size = size;
         vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-        endSingleTimeCommands(this, commandBuffer);
+        end_single_time_commands(commandBuffer);
       }
 
-      uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+      uint32_t find_memory_type(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
         VkPhysicalDeviceMemoryProperties memProperties;
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
@@ -1062,7 +1050,7 @@ namespace fan {
         throw std::runtime_error("failed to find suitable memory type!");
       }
 
-      void createCommandBuffers() {
+      void create_command_buffers() {
         commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
         VkCommandBufferAllocateInfo allocInfo{};
@@ -1368,21 +1356,7 @@ namespace fan {
         }
       }
 
-      VkShaderModule createShaderModule(const std::vector<char>& code) {
-        VkShaderModuleCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-        VkShaderModule shaderModule;
-        if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create shader module!");
-        }
-
-        return shaderModule;
-      }
-
-      VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+      VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
         for (const auto& availableFormat : availableFormats) {
           // VK_FORMAT_B8G8R8A8_SRGB
 
@@ -1394,7 +1368,7 @@ namespace fan {
         return availableFormats[0];
       }
 
-      VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+      VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
         for (const auto& available_present_mode : availablePresentModes) {
           if (available_present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR && !vsync) {
             return VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -1407,7 +1381,7 @@ namespace fan {
         return availablePresentModes[0];
       }
 
-      VkExtent2D chooseSwapExtent(const fan::vec2ui& framebuffer_size, const VkSurfaceCapabilitiesKHR& capabilities) {
+      VkExtent2D choose_swap_extent(const fan::vec2ui& framebuffer_size, const VkSurfaceCapabilitiesKHR& capabilities) {
         if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
           return capabilities.currentExtent;
         }
@@ -1424,7 +1398,7 @@ namespace fan {
         }
       }
 
-      SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
+      SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice device) {
         SwapChainSupportDetails details;
 
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -1448,16 +1422,16 @@ namespace fan {
         return details;
       }
 
-      bool isDeviceSuitable(VkPhysicalDevice device) {
-        QueueFamilyIndices indices = findQueueFamilies(device);
+      bool is_device_suitable(VkPhysicalDevice device) {
+        QueueFamilyIndices indices = find_queue_families(device);
 
-        bool extensionsSupported = checkDeviceExtensionSupport(device);
+        bool extensionsSupported = check_device_extension_support(device);
 
         bool swapChainAdequate
 #if defined(loco_window)
           = false;
         if (extensionsSupported) {
-          SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+          SwapChainSupportDetails swapChainSupport = query_swap_chain_support(device);
           swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
 #else
@@ -1467,10 +1441,10 @@ namespace fan {
         VkPhysicalDeviceFeatures supportedFeatures;
         vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-        return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+        return indices.is_complete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
       }
 
-      bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
+      bool check_device_extension_support(VkPhysicalDevice device) {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
@@ -1486,7 +1460,7 @@ namespace fan {
         return requiredExtensions.empty();
       }
 
-      QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+      QueueFamilyIndices find_queue_families(VkPhysicalDevice device) {
         QueueFamilyIndices indices;
 
         uint32_t queueFamilyCount = 0;
@@ -1511,7 +1485,7 @@ namespace fan {
           }
 #endif
 
-          if (indices.isComplete()) {
+          if (indices.is_complete()) {
             break;
           }
 
@@ -1521,7 +1495,7 @@ namespace fan {
         return indices;
       }
 
-      std::vector<fan::string> getRequiredExtensions() {
+      std::vector<fan::string> get_required_extensions() {
 
         uint32_t extensions_count = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr);
@@ -1554,7 +1528,7 @@ namespace fan {
         return extension_str;
       }
 
-      bool checkValidationLayerSupport() {
+      bool check_validation_layer_support() {
         uint32_t layerCount;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
@@ -1579,24 +1553,6 @@ namespace fan {
         return true;
       }
 
-      static std::vector<char> readFile(const std::string& filename) {
-        std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-        if (!file.is_open()) {
-          throw std::runtime_error("failed to open file!");
-        }
-
-        size_t fileSize = (size_t)file.tellg();
-        std::vector<char> buffer(fileSize);
-
-        file.seekg(0);
-        file.read(buffer.data(), fileSize);
-
-        file.close();
-
-        return buffer;
-      }
-
       static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -1616,7 +1572,7 @@ namespace fan {
 #if defined(loco_window)
       void set_vsync(fan::window_t* window, bool flag) {
         vsync = flag;
-        recreateSwapChain(window->get_size());
+        recreate_swap_chain(window->get_size());
       }
 #endif
 
@@ -1677,7 +1633,7 @@ namespace fan {
 namespace fan {
   namespace vulkan {
 
-    static void createImage(fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
+    static void create_image(fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
       VkImageCreateInfo imageInfo{};
       imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
       imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -1809,7 +1765,7 @@ namespace fan {
 inline void fan::vulkan::context_t::createDepthResources() {
   vai_t::properties_t p;
   p.swap_chain_size = swap_chain_size;
-  p.format = findDepthFormat();
+  p.format = find_depth_format();
   p.usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
   p.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
   vai_depth.open(*this, p);
