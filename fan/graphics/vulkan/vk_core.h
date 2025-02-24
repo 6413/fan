@@ -18,6 +18,7 @@
 #endif
 
 #include <vulkan/vulkan.h>
+#include <shaderc/shaderc.hpp>
 
 #include <fan/types/matrix.h>
 
@@ -130,8 +131,29 @@ namespace fan {
 
     struct context_t {
 
+      template <uint32_t count>
+      struct descriptor_t {
+
+        void open(fan::vulkan::context_t& context, std::array<fan::vulkan::write_descriptor_set_t, count> properties);
+        void close(fan::vulkan::context_t& context);
+
+        // for buffer update, need to manually call .m_properties.common
+        void update(
+          fan::vulkan::context_t& context,
+          uint32_t n = count,
+          uint32_t begin = 0,
+          uint32_t texture_n = max_textures,
+          uint32_t texture_begin = 0
+        );
+
+        std::array<fan::vulkan::write_descriptor_set_t, count> m_properties;
+        VkDescriptorSetLayout m_layout;
+        VkDescriptorSet m_descriptor_set[fan::vulkan::max_frames_in_flight];
+      };
+
       #include "memory.h"
       #include "uniform_block.h"
+      #include "ssbo.h"
 
       struct descriptor_pool_t {
 
@@ -189,25 +211,9 @@ namespace fan {
         VkPipeline m_pipeline;
       };
 
-      template <uint32_t count>
-      struct descriptor_t {
-
-        void open(fan::vulkan::context_t& context, std::array<fan::vulkan::write_descriptor_set_t, count> properties);
-        void close(fan::vulkan::context_t& context);
-
-        // for buffer update, need to manually call .m_properties.common
-        void update(
-          fan::vulkan::context_t& context,
-          uint32_t n = count,
-          uint32_t begin = 0,
-          uint32_t texture_n = max_textures,
-          uint32_t texture_begin = 0
-        );
-
-        std::array<fan::vulkan::write_descriptor_set_t, count> m_properties;
-        VkDescriptorSetLayout m_layout;
-        VkDescriptorSet m_descriptor_set[fan::vulkan::max_frames_in_flight];
-      };
+      static std::vector<uint32_t> compile_file(const fan::string& source_name,
+        shaderc_shader_kind kind,
+        const fan::string& source);
 
       shader_nr_t shader_create();
       shader_t& shader_get(shader_nr_t nr);
