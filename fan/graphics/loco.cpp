@@ -2400,7 +2400,7 @@ void loco_t::process_frame() {
       &vk_context.image_index
     );
 
-    vk_context.recreateSwapChain(&window, err);
+    vk_context.recreate_swap_chain(&window, err);
     
     vk_context.begin_render(clear_color);
     ImDrawData* draw_data = ImGui::GetDrawData();
@@ -2410,7 +2410,7 @@ void loco_t::process_frame() {
       //vk_context.ImGuiFramePresent();
     }
     err = vk_context.end_render();
-    vk_context.recreateSwapChain(&window, err);
+    vk_context.recreate_swap_chain(&window, err);
   }
 #endif
 
