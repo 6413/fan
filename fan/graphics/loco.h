@@ -185,7 +185,7 @@ inline global_loco_t gloco;
 
 #include <shaderc/shaderc.hpp>
 #include <fan/graphics/vulkan/vk_core.h>
-#include <fan/graphics/vulkan/ssbo.h>
+//#include <fan/graphics/vulkan/ssbo.h>
 struct loco_t : fan::opengl::context_t {
 
   static uint8_t* A_resize(void* ptr, uintptr_t size);
