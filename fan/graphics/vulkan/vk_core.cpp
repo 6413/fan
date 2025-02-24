@@ -68,6 +68,30 @@ void fan::vulkan::create_image(fan::vulkan::context_t& context, const fan::vec2u
   vkBindImageMemory(context.device, image, imageMemory, 0);
 }
 
+std::vector<uint32_t> fan::vulkan::context_t::compile_file(
+  const fan::string& source_name,
+  shaderc_shader_kind kind,
+  const fan::string& source) {
+  shaderc::Compiler compiler;
+  shaderc::CompileOptions options;
+
+  // Like -DMY_DEFINE=1
+  //options.AddMacroDefinition("MY_DEFINE", "1");
+#if fan_debug > 1
+  options.SetOptimizationLevel(shaderc_optimization_level_zero);
+#else
+  options.SetOptimizationLevel(shaderc_optimization_level_performance);
+#endif
+
+  shaderc::SpvCompilationResult module =
+    compiler.CompileGlslToSpv(source.c_str(), kind, source_name.c_str(), options);
+
+  if (module.GetCompilationStatus() != shaderc_compilation_status_success) {
+    fan::throw_error(module.GetErrorMessage().c_str());
+  }
+
+  return { module.cbegin(), module.cend() };
+}
 
 fan::vulkan::context_t::shader_nr_t fan::vulkan::context_t::shader_create() {
   shader_nr_t nr = shader_list.NewNode();
@@ -89,7 +113,7 @@ void fan::vulkan::context_t::shader_erase(shader_nr_t nr) {
   vkDestroyShaderModule(device, shader.shader_stages[0].module, nullptr);
   vkDestroyShaderModule(device, shader.shader_stages[1].module, nullptr);
   //TODO
-  //shader.projection_view_block.close(context, write_queue);
+  shader.projection_view_block.close(*this);
   shader_list.Recycle(nr);
 }
 
@@ -97,40 +121,84 @@ void fan::vulkan::context_t::shader_use(shader_nr_t nr) {
   shader_t& shader = shader_get(nr);
 }
 
+VkShaderModule create_shader_module(fan::vulkan::context_t& context, const std::vector<uint32_t>& code) {
+  VkShaderModuleCreateInfo createInfo{};
+  createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+  createInfo.codeSize = code.size() * sizeof(typename std::remove_reference_t<decltype(code)>::value_type);
+  createInfo.pCode = code.data();
+
+  VkShaderModule shaderModule;
+  if (vkCreateShaderModule(context.device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+    fan::throw_error("failed to create shader module!");
+  }
+
+  return shaderModule;
+}
+
 void fan::vulkan::context_t::shader_set_vertex(shader_nr_t nr, const fan::string& vertex_code) {
   auto& shader = shader_get(nr);
+  shader.svertex = vertex_code;
+  // fan::print(
+  //   "processed vertex shader:", path, "resulted in:",
+  // preprocess_shader(shader_name.c_str(), shaderc_glsl_vertex_shader, shader_code);
+  // );
 }
 
 void fan::vulkan::context_t::shader_set_fragment(shader_nr_t nr, const fan::string& fragment_code) {
   shader_t& shader = shader_get(nr);
-
+  shader.sfragment = fragment_code;
+  //fan::print(
+    // "processed vertex shader:", path, "resulted in:",
+  //preprocess_shader(shader_name.c_str(), shaderc_glsl_fragment_shader, shader_code);
+  //);
 }
 
 bool fan::vulkan::context_t::shader_compile(shader_nr_t nr) {
   shader_t& shader = shader_get(nr);
+  {
+    auto spirv = compile_file(/*vertex_code.c_str()*/ "some vertex file", shaderc_glsl_vertex_shader, shader.svertex);
+
+    auto module_vertex = create_shader_module(*this, spirv);
+
+    VkPipelineShaderStageCreateInfo vert{};
+    vert.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vert.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vert.module = module_vertex;
+    vert.pName = "main";
+
+    shader.shader_stages[0] = vert;
+  }
+  {
+    auto spirv = compile_file(/*shader_name.c_str()*/"some fragment file", shaderc_glsl_fragment_shader, shader.sfragment);
+
+    auto module_fragment = create_shader_module(*this, spirv);
+
+    VkPipelineShaderStageCreateInfo frag{};
+    frag.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    frag.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    frag.module = module_fragment;
+    frag.pName = "main";
+
+    shader.shader_stages[1] = frag;
+  }
 
   std::regex uniformRegex(R"(uniform\s+(\w+)\s+(\w+)(\s*=\s*[\d\.]+)?;)");
 
-  // Read vertex shader source code
   fan::string vertexData = shader.svertex;
 
-  // Extract uniforms from vertex shader
   std::smatch match;
   while (std::regex_search(vertexData, match, uniformRegex)) {
-      shader.uniform_type_table[match[2]] = match[1];
-      vertexData = match.suffix().str();
+    shader.uniform_type_table[match[2]] = match[1];
+    vertexData = match.suffix().str();
   }
 
-  // Read fragment shader source code
   fan::string fragmentData = shader.sfragment;
 
-  // Extract uniforms from fragment shader
   while (std::regex_search(fragmentData, match, uniformRegex)) {
-      shader.uniform_type_table[match[2]] = match[1];
-      fragmentData = match.suffix().str();
+    shader.uniform_type_table[match[2]] = match[1];
+    fragmentData = match.suffix().str();
   }
 
-  //return ret;
   return 0;
 }
 

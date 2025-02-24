@@ -1,5 +1,4 @@
 #include <fan/pch.h>
-//#include <fan/graphics/vulkan/ssbo.h>
 
 int main() {
   fan::graphics::engine_t engine{{
