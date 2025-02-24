@@ -53,7 +53,7 @@ void sb_open() {
 
   m_ssbo.open_descriptors(context, gloco->descriptor_pool.m_descriptor_pool, ds_properties);
   m_ssbo.m_descriptor.update(context, 2, ds_offset);
-  ds_properties[1].buffer = m_shader.get_shader().projection_view_block.common.memory[context.currentFrame].buffer;
+  ds_properties[1].buffer = m_shader.get_shader().projection_view_block.common.memory[context.current_frame].buffer;
   m_ssbo.m_descriptor.m_properties[1] = ds_properties[1];
   m_ssbo.m_descriptor.update(context, 1, 1, 0, 0);
 
@@ -454,7 +454,7 @@ void sb_draw(loco_bdbt_NodeReference_t key_nr, uint32_t draw_mode = 0) {
   gloco->get_context().bind_draw(
     m_pipeline,
     1,
-    &m_ssbo.m_descriptor.m_descriptor_set[gloco->get_context().currentFrame]
+    &m_ssbo.m_descriptor.m_descriptor_set[gloco->get_context().current_frame]
   );
   traverse_draw(key_nr);
 }

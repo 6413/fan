@@ -57,7 +57,7 @@ namespace fan {
 
 			template <typename nr_t, typename instance_id_t>
 			struct memory_common_t {
-				static constexpr auto buffer_count = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
+				static constexpr auto buffer_count = fan::vulkan::max_frames_in_flight;
 
 				struct index_t {
 					nr_t nr;
@@ -81,7 +81,7 @@ namespace fan {
 						queue->erase(m_edit_index);
 					}
 
-					for (uint32_t i = 0; i < fan::vulkan::MAX_FRAMES_IN_FLIGHT; ++i) {
+					for (uint32_t i = 0; i < fan::vulkan::max_frames_in_flight; ++i) {
 						vkDestroyBuffer(context.device, memory[i].buffer, nullptr);
 						vkFreeMemory(context.device, memory[i].device_memory, nullptr);
 					}

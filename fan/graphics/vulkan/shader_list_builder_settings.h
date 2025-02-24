@@ -1,7 +1,3 @@
-struct viewprojection_t {
-  fan::mat4 projection;
-  fan::mat4 view;
-};
 #include <fan/fan_bll_preset.h>
 #define BLL_set_StoreFormat 1
 #define BLL_set_prefix shader_list

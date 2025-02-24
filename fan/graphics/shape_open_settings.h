@@ -6,7 +6,7 @@ ds_properties[0].binding = 0;
 ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 ds_properties[0].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 ds_properties[0].range = VK_WHOLE_SIZE;
-ds_properties[0].buffer = m_ssbo.common.memory[gloco->get_context().currentFrame].buffer;
+ds_properties[0].buffer = m_ssbo.common.memory[gloco->get_context().current_frame].buffer;
 ds_properties[0].dst_binding = 0;
 #endif
 
@@ -14,7 +14,7 @@ ds_properties[0].dst_binding = 0;
 ds_properties[1].binding = 1;
 ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-ds_properties[1].buffer = m_shader.get_shader().projection_view_block.common.memory[gloco->get_context().currentFrame].buffer;
+ds_properties[1].buffer = m_shader.get_shader().projection_view_block.common.memory[gloco->get_context().current_frame].buffer;
 ds_properties[1].range = m_shader.get_shader().projection_view_block.m_size;
 ds_properties[1].dst_binding = 1;
 #endif

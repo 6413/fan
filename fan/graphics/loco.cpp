@@ -1162,7 +1162,7 @@ void loco_t::init_imgui() {
     init_info.PhysicalDevice = vk_context.physicalDevice;
     init_info.Device = vk_context.device;
     init_info.QueueFamily = vk_context.queue_family;
-    init_info.Queue = vk_context.graphicsQueue;
+    init_info.Queue = vk_context.graphics_queue;
     init_info.DescriptorPool = vk_context.descriptor_pool.m_descriptor_pool;
     init_info.RenderPass = vk_context.MainWindowData.RenderPass;
     init_info.Subpass = 0;
@@ -2389,13 +2389,13 @@ void loco_t::process_frame() {
   }
   else if (window.renderer == renderer_t::vulkan) {
     
-    vkWaitForFences(vk_context.device, 1, &vk_context.inFlightFences[vk_context.currentFrame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(vk_context.device, 1, &vk_context.in_flight_fences[vk_context.current_frame], VK_TRUE, UINT64_MAX);
     
     VkResult err = vkAcquireNextImageKHR(
       vk_context.device,
-      vk_context.swapChain,
+      vk_context.swap_chain,
       UINT64_MAX,
-      vk_context.imageAvailableSemaphores[vk_context.currentFrame],
+      vk_context.image_available_semaphores[vk_context.current_frame],
       VK_NULL_HANDLE,
       &vk_context.image_index
     );
@@ -2725,7 +2725,9 @@ void loco_t::set_imgui_viewport(loco_t::viewport_t viewport) {
 fan::opengl::context_t& loco_t::get_context() {
   return *dynamic_cast<fan::opengl::context_t*>(this);
 }
-
+loco_t::operator fan::vulkan::context_t& () {
+   return vk_context;
+}
 
 
 #if defined(loco_imgui)
