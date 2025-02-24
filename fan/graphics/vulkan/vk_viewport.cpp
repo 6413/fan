@@ -29,19 +29,19 @@ inline void fan::vulkan::viewport_t::set(const fan::vec2& viewport_position_, co
   auto& context = gloco->get_context();
 
   if (!context.command_buffer_in_use) {
-    VkResult result = vkGetFenceStatus(context.device, context.inFlightFences[context.currentFrame]);
+    VkResult result = vkGetFenceStatus(context.device, context.in_flight_fences[context.current_frame]);
     if (result == VK_NOT_READY) {
       vkDeviceWaitIdle(context.device);
     }
 
-    if (vkBeginCommandBuffer(context.commandBuffers[context.currentFrame], &beginInfo) != VK_SUCCESS) {
+    if (vkBeginCommandBuffer(context.command_buffers[context.current_frame], &beginInfo) != VK_SUCCESS) {
       fan::throw_error("failed to begin recording command buffer!");
     }
   }
-  vkCmdSetViewport(context.commandBuffers[context.currentFrame], 0, 1, &viewport);
+  vkCmdSetViewport(context.command_buffers[context.current_frame], 0, 1, &viewport);
 
   if (!context.command_buffer_in_use) {
-    if (vkEndCommandBuffer(context.commandBuffers[context.currentFrame]) != VK_SUCCESS) {
+    if (vkEndCommandBuffer(context.command_buffers[context.current_frame]) != VK_SUCCESS) {
       fan::throw_error("failed to record command buffer!");
     }
     context.command_buffer_in_use = false;
@@ -62,19 +62,19 @@ inline void fan::vulkan::viewport_t::set_viewport(const fan::vec2& viewport_posi
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
   if (!context.command_buffer_in_use) {
-    VkResult result = vkGetFenceStatus(context.device, context.inFlightFences[context.currentFrame]);
+    VkResult result = vkGetFenceStatus(context.device, context.in_flight_fences[context.current_frame]);
     if (result == VK_NOT_READY) {
       vkDeviceWaitIdle(context.device);
     }
 
-    if (vkBeginCommandBuffer(context.commandBuffers[context.currentFrame], &beginInfo) != VK_SUCCESS) {
+    if (vkBeginCommandBuffer(context.command_buffers[context.current_frame], &beginInfo) != VK_SUCCESS) {
       fan::throw_error("failed to begin recording command buffer!");
     }
   }
-  vkCmdSetViewport(context.commandBuffers[context.currentFrame], 0, 1, &viewport);
+  vkCmdSetViewport(context.command_buffers[context.current_frame], 0, 1, &viewport);
 
   if (!context.command_buffer_in_use) {
-    if (vkEndCommandBuffer(context.commandBuffers[context.currentFrame]) != VK_SUCCESS) {
+    if (vkEndCommandBuffer(context.command_buffers[context.current_frame]) != VK_SUCCESS) {
       fan::throw_error("failed to record command buffer!");
     }
     context.command_buffer_in_use = false;

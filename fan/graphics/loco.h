@@ -733,8 +733,9 @@ public:
   //-----------------------------gui-----------------------------
 
   fan::opengl::context_t& get_context();
+  operator fan::vulkan::context_t& ();
   fan::vulkan::context_t vk_context;
-  fan::vulkan::descriptor_t<1> descriptor;//temp
+  fan::vulkan::context_t::descriptor_t<1> descriptor;//temp
 
   struct camera_impl_t {
 

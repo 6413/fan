@@ -54,7 +54,7 @@ struct compute_shader_t {
 
 	void execute(loco_t* loco, const fan::vec3ui& group_count) {
 		auto& context = loco->get_context();
-		auto cmd = context.commandBuffers[context.currentFrame];
+		auto cmd = context.commandBuffers[context.current_frame];
 		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline);
 
 		vkCmdBindDescriptorSets(
@@ -73,7 +73,7 @@ struct compute_shader_t {
 
 	void wait_finish(loco_t* loco) {
 		auto& context = loco->get_context();
-		vkWaitForFences(context.device, 1, &context.inFlightFences[context.currentFrame], VK_TRUE, UINT64_MAX);
+		vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
 	}
 
 	VkShaderModule m_shader_module;

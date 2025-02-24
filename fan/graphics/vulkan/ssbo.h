@@ -8,7 +8,7 @@ namespace fan {
 			template <typename vi_t, typename ri_t, uint32_t max_instance_size, uint32_t descriptor_count>
 			struct ssbo_t	 {
 
-				static constexpr auto buffer_count = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
+				static constexpr auto buffer_count = fan::vulkan::max_frames_in_flight;
 
 			//	#define BLL_set_MultipleType_Sizes sizeof(vi_t) * max_instance_size, sizeof(ri_t) * max_instance_size
 			//	#include <fan/fan_bll_preset.h>
@@ -36,13 +36,13 @@ namespace fan {
 
         using instance_id_t = uint32_t;
 
-				void allocate(fan::vulkan::context_t& context, uint64_t size, uint32_t frame) {
+				void allocate(fan::vulkan::context_t& context, uint64_t size) {
 
-					if (instance_list.Usage() != 0) {
-						if (common.memory[frame].buffer != nullptr) {
+					if (instance_list.size() != 0) {
+						if (common.memory[context.current_frame].buffer != nullptr) {
 							vkDeviceWaitIdle(context.device);
-							vkDestroyBuffer(context.device, common.memory[frame].buffer, 0);
-							vkUnmapMemory(context.device, common.memory[frame].device_memory);
+							vkDestroyBuffer(context.device, common.memory[context.current_frame].buffer, 0);
+							vkUnmapMemory(context.device, common.memory[context.current_frame].device_memory);
 						}
 					}
 
@@ -53,13 +53,13 @@ namespace fan {
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 						//VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // ?
 						// faster ^? depends about buffer size maxMemoryAllocationCount maybe
-						common.memory[frame].buffer,
-						common.memory[frame].device_memory
+						common.memory[context.current_frame].buffer,
+						common.memory[context.current_frame].device_memory
 					);
-					validate(vkMapMemory(context.device, common.memory[frame].device_memory, 0, vram_capacity, 0, (void**)&data));
+					validate(vkMapMemory(context.device, common.memory[context.current_frame].device_memory, 0, size, 0, (void**)&data));
 				}
 
-				void write(fan::vulkan::context_t& context, uint32_t frame) {
+				void write(fan::vulkan::context_t& context) {
 					
           // write all for now
           auto& ptr = instance_list[0];
@@ -94,13 +94,13 @@ namespace fan {
 
 				void open(fan::vulkan::context_t& context) {
 					common.open(context, [&context, this] {
-						for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+						for (uint32_t i = 0; i < max_frames_in_flight; ++i) {
 							write(context, i);
 						}
 					});
 				}
 				void close(fan::vulkan::context_t& context, memory_write_queue_t* queue) {
-					vkUnmapMemory(context.device, common.memory[context.currentFrame].device_memory);
+					vkUnmapMemory(context.device, common.memory[context.current_frame].device_memory);
 					common.close(context, queue);
 				}
 
@@ -123,7 +123,7 @@ namespace fan {
 					
 					if (vram_capacity < instance_list.GetAmountOfAllocated() * sizeof(vi_t) * max_instance_size) {
 						vram_capacity = instance_list.GetAmountOfAllocated() * sizeof(vi_t) * max_instance_size;
-						for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+						for (uint32_t i = 0; i < max_frames_in_flight; ++i) {
 							allocate(context, vram_capacity, i);
 							if (old_size) {
 								common.edit(context, wq, 0, old_size);
@@ -181,7 +181,7 @@ namespace fan {
 				memory_common_t<int, instance_id_t> common;
 				std::vector<instance_list_t> instance_list;
 				uint64_t vram_capacity = 0;
-				fan::vulkan::descriptor_t<descriptor_count> m_descriptor;
+				fan::vulkan::context_t::descriptor_t<descriptor_count> m_descriptor;
 				uint8_t* data;
 			};
 		}

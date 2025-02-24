@@ -502,28 +502,20 @@ bool fan::opengl::context_t::shader_compile(shader_nr_t nr) {
 
   std::regex uniformRegex(R"(uniform\s+(\w+)\s+(\w+)(\s*=\s*[\d\.]+)?;)");
 
-  // Read vertex shader source code
   fan::string vertexData = shader.svertex;
 
-  // Extract uniforms from vertex shader
   std::smatch match;
   while (std::regex_search(vertexData, match, uniformRegex)) {
       shader.uniform_type_table[match[2]] = match[1];
       vertexData = match.suffix().str();
   }
 
-  // Read fragment shader source code
   fan::string fragmentData = shader.sfragment;
 
-  // Extract uniforms from fragment shader
   while (std::regex_search(fragmentData, match, uniformRegex)) {
       shader.uniform_type_table[match[2]] = match[1];
       fragmentData = match.suffix().str();
   }
-
-
-
-
   return ret;
 }
 

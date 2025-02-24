@@ -7,7 +7,7 @@ namespace fan {
 			template <typename type_t, uint32_t element_size>
 			struct uniform_block_t {
 
-				static constexpr auto buffer_count = fan::vulkan::MAX_FRAMES_IN_FLIGHT;
+				static constexpr auto buffer_count = fan::vulkan::max_frames_in_flight;
 
 				struct open_properties_t {
 					open_properties_t() {}
@@ -24,7 +24,7 @@ namespace fan {
 
 				void open(fan::vulkan::context_t& context, open_properties_t op_ = open_properties_t()) {
 					common.open(context, [&context, this] () {
-						for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame) {
+						for (uint32_t frame = 0; frame < max_frames_in_flight; ++frame) {
 
 							uint8_t* data;
 							validate(vkMapMemory(context.device, common.memory[frame].device_memory, 0, element_size * sizeof(type_t), 0, (void**)&data));
