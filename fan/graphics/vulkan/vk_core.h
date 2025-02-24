@@ -37,7 +37,7 @@ const std::vector<const char*> deviceExtensions = {
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
 
-struct QueueFamilyIndices {
+struct queue_family_indices_t {
   std::optional<uint32_t> graphicsFamily;
 #if defined(loco_window)
   std::optional<uint32_t> presentFamily;
@@ -46,13 +46,13 @@ struct QueueFamilyIndices {
   bool is_complete();
 };
 
-struct SwapChainSupportDetails {
+struct swap_chain_support_details_t {
   VkSurfaceCapabilitiesKHR capabilities;
   std::vector<VkSurfaceFormatKHR> formats;
   std::vector<VkPresentModeKHR> present_modes;
 };
 
-struct UniformBufferObject {
+struct uniform_buffer_object_t {
   alignas(16) fan::mat4 model;
   alignas(16) fan::mat4 view;
   alignas(16) fan::mat4 proj;
@@ -128,11 +128,11 @@ namespace fan {
 namespace fan {
   namespace vulkan {
 
-    namespace core {
-      struct memory_write_queue_t;
-    }
-
     struct context_t {
+
+      #include "memory.h"
+      #include "uniform_block.h"
+
       struct descriptor_pool_t {
 
 #define loco_vulkan_descriptor_uniform_block
@@ -143,9 +143,14 @@ namespace fan {
         VkDescriptorPool m_descriptor_pool;
       }descriptor_pool;
 
+      struct view_projection_t {
+        fan::mat4 view;
+        fan::mat4 projection;
+      };
+
       struct shader_t {
         int projection_view[2]{ -1, -1 };
-        //fan::vulkan::core::uniform_block_t<fan::vulkan::context_t::viewprojection_t, fan::vulkan::max_camera> projection_view_block;
+        fan::vulkan::context_t::uniform_block_t<fan::vulkan::context_t::view_projection_t, fan::vulkan::context_t::max_camera> projection_view_block;
         VkPipelineShaderStageCreateInfo shader_stages[2];
         // can be risky without constructor copy
         std::string svertex, sfragment;
@@ -340,13 +345,13 @@ namespace fan {
 
       VkExtent2D choose_swap_extent(const fan::vec2ui& framebuffer_size, const VkSurfaceCapabilitiesKHR& capabilities);
 
-      SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice device);
+      swap_chain_support_details_t query_swap_chain_support(VkPhysicalDevice device);
 
       bool is_device_suitable(VkPhysicalDevice device);
 
       bool check_device_extension_support(VkPhysicalDevice device);
 
-      QueueFamilyIndices find_queue_families(VkPhysicalDevice device);
+      queue_family_indices_t find_queue_families(VkPhysicalDevice device);
 
       std::vector<fan::string> get_required_extensions();
 
@@ -407,14 +412,12 @@ namespace fan {
       fan::vulkan::context_t::pipeline_t render_fullscreen_pl;
 
       bool command_buffer_in_use = false;
-
       bool supports_validation_layers = true;
+
+      fan::vulkan::context_t::memory_write_queue_t memory_queue;
     };
   }
 }
-
-#include "memory.h"
-#include "uniform_block.h"
 //#include "ssbo.h"
 
 namespace fan {

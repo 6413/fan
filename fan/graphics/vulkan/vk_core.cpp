@@ -19,7 +19,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
   }
 }
 
-inline bool QueueFamilyIndices::is_complete() {
+bool queue_family_indices_t::is_complete() {
   return graphicsFamily.has_value()
 #if defined(loco_window)
     && presentFamily.has_value()
@@ -59,7 +59,7 @@ void fan::vulkan::create_image(fan::vulkan::context_t& context, const fan::vec2u
   VkMemoryAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = fan::vulkan::core::findMemoryType(context, memRequirements.memoryTypeBits, properties);
+  allocInfo.memoryTypeIndex = fan::vulkan::context_t::find_memory_type(context, memRequirements.memoryTypeBits, properties);
 
   if (vkAllocateMemory(context.device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate image memory!");
@@ -70,12 +70,14 @@ void fan::vulkan::create_image(fan::vulkan::context_t& context, const fan::vec2u
 
 
 fan::vulkan::context_t::shader_nr_t fan::vulkan::context_t::shader_create() {
+  shader_nr_t nr = shader_list.NewNode();
+  auto& shader = shader_get(nr);
   //TODO
-  /*shader.projection_view_block.open(context);
+  shader.projection_view_block.open(*this);
   for (uint32_t i = 0; i < fan::vulkan::max_camera; ++i) {
-    shader.projection_view_block.push_ram_instance(context, wq, {});
-  }*/
-  return shader_list.NewNode();
+    shader.projection_view_block.push_ram_instance(*this, {});
+  }
+  return nr;
 }
 
 fan::vulkan::context_t::shader_t& fan::vulkan::context_t::shader_get(shader_nr_t nr) {
@@ -84,7 +86,10 @@ fan::vulkan::context_t::shader_t& fan::vulkan::context_t::shader_get(shader_nr_t
 
 void fan::vulkan::context_t::shader_erase(shader_nr_t nr) {
   shader_t& shader = shader_get(nr);
-
+  vkDestroyShaderModule(device, shader.shader_stages[0].module, nullptr);
+  vkDestroyShaderModule(device, shader.shader_stages[1].module, nullptr);
+  //TODO
+  //shader.projection_view_block.close(context, write_queue);
   shader_list.Recycle(nr);
 }
 
@@ -370,7 +375,7 @@ void fan::vulkan::context_t::pick_physical_device() {
 }
 
 void fan::vulkan::context_t::create_logical_device() {
-  QueueFamilyIndices indices = find_queue_families(physicalDevice);
+  queue_family_indices_t indices = find_queue_families(physicalDevice);
 
   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
   std::set<uint32_t> uniqueQueueFamilies = {
@@ -424,7 +429,7 @@ void fan::vulkan::context_t::create_logical_device() {
 }
 
 void fan::vulkan::context_t::create_swap_chain(const fan::vec2ui& framebuffer_size) {
-  SwapChainSupportDetails swapChainSupport = query_swap_chain_support(physicalDevice);
+  swap_chain_support_details_t swapChainSupport = query_swap_chain_support(physicalDevice);
 
   surface_format = choose_swap_surface_format(swapChainSupport.formats);
   present_mode = choose_swap_present_mode(swapChainSupport.present_modes);
@@ -448,7 +453,7 @@ void fan::vulkan::context_t::create_swap_chain(const fan::vec2ui& framebuffer_si
   createInfo.imageArrayLayers = 1;
   createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 
-  QueueFamilyIndices indices = find_queue_families(physicalDevice);
+  queue_family_indices_t indices = find_queue_families(physicalDevice);
   queue_family = indices.graphicsFamily.value();
   uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
@@ -676,7 +681,7 @@ void fan::vulkan::context_t::create_framebuffers() {
 }
 
 void fan::vulkan::context_t::create_command_pool() {
-  QueueFamilyIndices queueFamilyIndices = find_queue_families(physicalDevice);
+  queue_family_indices_t queueFamilyIndices = find_queue_families(physicalDevice);
 
   VkCommandPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1226,8 +1231,8 @@ void fan::vulkan::context_t::begin_compute_shader() {
   command_buffer_in_use = true;
 }
 
-SwapChainSupportDetails fan::vulkan::context_t::query_swap_chain_support(VkPhysicalDevice device) {
-  SwapChainSupportDetails details;
+swap_chain_support_details_t fan::vulkan::context_t::query_swap_chain_support(VkPhysicalDevice device) {
+  swap_chain_support_details_t details;
 
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
@@ -1251,7 +1256,7 @@ SwapChainSupportDetails fan::vulkan::context_t::query_swap_chain_support(VkPhysi
 }
 
 bool fan::vulkan::context_t::is_device_suitable(VkPhysicalDevice device) {
-  QueueFamilyIndices indices = find_queue_families(device);
+  queue_family_indices_t indices = find_queue_families(device);
 
   bool extensionsSupported = check_device_extension_support(device);
 
@@ -1259,7 +1264,7 @@ bool fan::vulkan::context_t::is_device_suitable(VkPhysicalDevice device) {
 #if defined(loco_window)
     = false;
   if (extensionsSupported) {
-    SwapChainSupportDetails swapChainSupport = query_swap_chain_support(device);
+    swap_chain_support_details_t swapChainSupport = query_swap_chain_support(device);
     swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.present_modes.empty();
   }
 #else
@@ -1288,8 +1293,8 @@ bool fan::vulkan::context_t::check_device_extension_support(VkPhysicalDevice dev
   return requiredExtensions.empty();
 }
 
-QueueFamilyIndices fan::vulkan::context_t::find_queue_families(VkPhysicalDevice device) {
-  QueueFamilyIndices indices;
+queue_family_indices_t fan::vulkan::context_t::find_queue_families(VkPhysicalDevice device) {
+  queue_family_indices_t indices;
 
   uint32_t queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
@@ -1475,7 +1480,7 @@ uint32_t fan::vulkan::makeAccessMaskPipelineStageFlags(uint32_t accessMask) {
   return pipes;
 }
 
-inline void fan::vulkan::vai_t::open(auto& context, const properties_t& p) {
+void fan::vulkan::vai_t::open(auto& context, const properties_t& p) {
   fan::vulkan::create_image(
     context,
     p.swap_chain_size,
@@ -1490,13 +1495,13 @@ inline void fan::vulkan::vai_t::open(auto& context, const properties_t& p) {
   format = p.format;
 }
 
-inline void fan::vulkan::vai_t::close(auto& context) {
+void fan::vulkan::vai_t::close(auto& context) {
   vkDestroyImageView(context.device, image_view, nullptr);
   vkDestroyImage(context.device, image, nullptr);
   vkFreeMemory(context.device, memory, nullptr);
 }
 
-inline void fan::vulkan::vai_t::transition_image_layout(auto& context, VkImageLayout newLayout) {
+void fan::vulkan::vai_t::transition_image_layout(auto& context, VkImageLayout newLayout) {
   VkCommandBuffer commandBuffer = context.begin_single_time_commands();
 
   VkImageMemoryBarrier barrier{};
@@ -1535,7 +1540,7 @@ inline void fan::vulkan::vai_t::transition_image_layout(auto& context, VkImageLa
   old_layout = newLayout;
 }
 
-inline void fan::vulkan::context_t::descriptor_pool_t::open(fan::vulkan::context_t& context) {
+void fan::vulkan::context_t::descriptor_pool_t::open(fan::vulkan::context_t& context) {
   VkDescriptorPoolSize pool_sizes[] =
   {
     { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
@@ -1552,11 +1557,11 @@ inline void fan::vulkan::context_t::descriptor_pool_t::open(fan::vulkan::context
   fan::vulkan::validate(vkCreateDescriptorPool(context.device, &pool_info, nullptr, &m_descriptor_pool));
 }
 
-inline void fan::vulkan::context_t::descriptor_pool_t::close(fan::vulkan::context_t& context) {
+void fan::vulkan::context_t::descriptor_pool_t::close(fan::vulkan::context_t& context) {
   vkDestroyDescriptorPool(context.device, m_descriptor_pool, nullptr);
 }
 
-inline void fan::vulkan::context_t::create_loco_framebuffer() {
+void fan::vulkan::context_t::create_loco_framebuffer() {
   vai_t::properties_t p;
   p.format = swap_chain_image_format;
   p.swap_chain_size = swap_chain_size;

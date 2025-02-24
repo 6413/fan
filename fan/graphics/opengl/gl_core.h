@@ -94,7 +94,7 @@ namespace fan {
     public:
       using camera_nr_t = camera_list_NodeReference_t;
 
-      struct viewprojection_t {
+      struct view_projection_t {
         fan::mat4 projection;
         fan::mat4 view;
       };
