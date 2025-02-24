@@ -225,13 +225,18 @@ namespace fan {
       static constexpr uint64_t full_screen = 1 << 4;
       static constexpr uint64_t no_decorate = 1 << 5;
       static constexpr uint64_t transparent = 1 << 6;
-      static constexpr uint64_t vulkan = 1 << 7;
-      static constexpr uint64_t opengl = 1 << 8;
+      static constexpr uint64_t no_visible = 1 << 7;
     };
+
+    struct renderer_t {
+      static constexpr uint8_t opengl = 0;
+      static constexpr uint8_t vulkan = 1;
+    };
+    uint8_t renderer = renderer_t::opengl;
 
    //window_t();
     void open(uint64_t flags);
-    void open(fan::vec2i window_size, const std::string& name, bool visible = true, uint64_t flags = flags::opengl);
+    void open(fan::vec2i window_size, const std::string& name, uint64_t flags = 0);
     void close();
 
     void handle_key_states();
@@ -269,6 +274,7 @@ namespace fan {
 
     void set_size(const fan::vec2i& window_size);
 
+    fan::vec2 get_position() const;
     void set_position(const fan::vec2& position);
 
     void set_windowed();

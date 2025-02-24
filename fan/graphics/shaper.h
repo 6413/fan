@@ -730,6 +730,9 @@ private:
     BlockList_t::nr_t blid
   ){
     auto &st = ShapeTypes[sti];
+    
+    // how to do without gloco xd
+    gloco->shader_erase(st.shader);
 
     GetBlockUnique(sti, blid).destructor(*this);
 
