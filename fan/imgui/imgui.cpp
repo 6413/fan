@@ -19339,8 +19339,8 @@ ImGuiDockNode* ImGui::DockNodeTreeFindVisibleNodeByPos(ImGuiDockNode* node, ImVe
     const float dock_spacing = 0.0f;// g.Style.ItemInnerSpacing.x; // FIXME: Relation to DOCKING_SPLITTER_SIZE?
     ImRect r(node->Pos, node->Pos + node->Size);
     r.Expand(dock_spacing * 0.5f);
-    bool inside = r.Contains(pos);
-    if (!inside)
+    bool viewport_inside = r.Contains(pos);
+    if (!viewport_inside)
         return NULL;
 
     if (node->IsLeafNode())

@@ -18,7 +18,7 @@ namespace fan {
       uint32_t pack_id;
       fan::vec2 position;
       fan::vec2 size;
-      fan::opengl::context_t::image_nr_t* image = 0;
+      fan::graphics::context_image_nr_t* image = 0;
     };
 
     struct texture_packe0 {
@@ -147,7 +147,7 @@ namespace fan {
         return 0;
       }
 
-      bool push_texture(fan::opengl::context_t::image_nr_t image, const texture_properties_t& texture_properties);
+      bool push_texture(fan::graphics::context_image_nr_t image, const texture_properties_t& texture_properties);
 
       void process() {
         pack_list.clear();

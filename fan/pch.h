@@ -11,6 +11,9 @@
   #define fan_verbose_print_level 1
 #endif
 
+#if defined(loco_imgui) && !defined(text_editor_include)
+  #include <fan/imgui/text_editor.h>
+#endif
 
 #include <fan/memory/memory.hpp>
 

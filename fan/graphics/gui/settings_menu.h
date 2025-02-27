@@ -13,7 +13,7 @@ struct settings_menu_t {
     set_settings_theme();
     options_toggle[0] = 1;
     if (gloco->window.renderer == fan::window_t::renderer_t::opengl) {
-      gloco->shader_set_value(gloco->m_fbo_final_shader, "bloom_strength", bloom_strength);
+      gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "bloom_strength", bloom_strength);
     }
   }
 
@@ -184,7 +184,9 @@ struct settings_menu_t {
           ImGui::Text("Bloom Strength");
           ImGui::TableNextColumn();
           if (ImGui::SliderFloat("##BloomStrengthSlider", &bloom_strength, 0, 1)) {
-            gloco->shader_set_value(gloco->m_fbo_final_shader, "bloom_strength", bloom_strength);
+            if (gloco->window.renderer == fan::window_t::renderer_t::opengl) {
+              gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "bloom_strength", bloom_strength);
+            }
           }
         }
 

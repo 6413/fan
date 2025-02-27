@@ -2,7 +2,6 @@
 
 #include <fan/ev/ev.h>
 
-#include <fan/graphics/loco_settings.h>
 #include <fan/graphics/file_dialog.h>
 
 #include <fan/types/lazy_compiler_devs.h>
@@ -19,7 +18,6 @@
 
 //
 #include <fan/window/window.h>
-#include <fan/graphics/opengl/gl_core.h>
 #include <fan/io/file.h>
 
 #if defined(loco_imgui)
@@ -34,6 +32,8 @@
 #include <fan/physics/collision/rectangle.h>
 
 #include <fan/graphics/algorithm/FastNoiseLite.h>
+
+#include <fan/graphics/common_context.h>
 
 #if defined(loco_imgui)
 #include <fan/graphics/console.h>
@@ -184,9 +184,98 @@ struct global_loco_t {
 inline global_loco_t gloco;
 
 #include <shaderc/shaderc.hpp>
-#include <fan/graphics/vulkan/vk_core.h>
 //#include <fan/graphics/vulkan/ssbo.h>
-struct loco_t : fan::opengl::context_t {
+struct loco_t {
+  using renderer_t = fan::window_t::renderer_t;
+  uint8_t get_renderer() {
+    return window.renderer;
+  }
+  
+  using shader_t = fan::graphics::context_shader_nr_t;
+  using image_t = fan::graphics::context_image_nr_t;
+  using camera_t = fan::graphics::context_camera_nr_t;
+  using viewport_t = fan::graphics::context_viewport_nr_t;
+  using image_load_properties_t = fan::graphics::image_load_properties_t;
+
+  fan::graphics::context_shader_nr_t shader_create();
+  fan::graphics::context_shader_t shader_get(fan::graphics::context_shader_nr_t nr);
+  void shader_erase(fan::graphics::context_shader_nr_t nr);
+  void shader_use(fan::graphics::context_shader_nr_t nr);
+  void shader_set_vertex(fan::graphics::context_shader_nr_t nr, const std::string& vertex_code);
+  void shader_set_fragment(fan::graphics::context_shader_nr_t nr, const std::string& fragment_code);
+  bool shader_compile(fan::graphics::context_shader_nr_t nr);
+  template <typename T>
+  void shader_set_value(fan::graphics::context_shader_nr_t nr, const std::string& name, const T& val) {
+    if (window.renderer == renderer_t::opengl) {
+      context.gl.shader_set_value(nr.gl, name, val);
+    }
+    else if (window.renderer == renderer_t::vulkan) {
+      fan::throw_error("todo");
+    }
+  }
+  void shader_set_camera(shader_t nr, camera_t camera_nr) {
+
+  }
+
+  std::unique_ptr<uint8_t[]> image_get_pixel_data(fan::graphics::context_image_nr_t nr, GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) {
+    fan::throw_error("");
+    return {};
+  }
+
+  fan::graphics::context_image_nr_t image_create();
+  fan::graphics::context_image_t image_get(fan::graphics::context_image_nr_t nr);
+  uint64_t image_get_handle(fan::graphics::context_image_nr_t nr);
+  void image_erase(fan::graphics::context_image_nr_t nr);
+  void image_bind(fan::graphics::context_image_nr_t nr);
+  void image_unbind(fan::graphics::context_image_nr_t nr);
+  void image_set_settings(const fan::graphics::image_load_properties_t& settings);
+  fan::graphics::context_image_nr_t image_load(const fan::image::image_info_t& image_info);
+  fan::graphics::context_image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::context_image_nr_t image_load(const fan::string& path);
+  fan::graphics::context_image_nr_t image_load(const fan::string& path, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::context_image_nr_t image_load(fan::color* colors, const fan::vec2ui& size);
+  fan::graphics::context_image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
+  void image_unload(fan::graphics::context_image_nr_t nr);
+  fan::graphics::context_image_nr_t create_missing_texture();
+  fan::graphics::context_image_nr_t create_transparent_texture();
+  void image_reload_pixels(fan::graphics::context_image_nr_t nr, const fan::image::image_info_t& image_info);
+  void image_reload_pixels(fan::graphics::context_image_nr_t nr, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::context_image_nr_t image_create(const fan::color& color);
+  fan::graphics::context_image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
+
+
+  fan::graphics::context_camera_nr_t camera_create();
+  fan::graphics::context_camera_t camera_get(fan::graphics::context_camera_nr_t nr);
+  void camera_erase(fan::graphics::context_camera_nr_t nr);
+  fan::graphics::context_camera_nr_t camera_open(const fan::vec2& x, const fan::vec2& y);
+  fan::vec3 camera_get_position(fan::graphics::context_camera_nr_t nr);
+  void camera_set_position(fan::graphics::context_camera_nr_t nr, const fan::vec3& cp);
+  fan::vec2 camera_get_size(fan::graphics::context_camera_nr_t nr);
+  void camera_set_ortho(fan::graphics::context_camera_nr_t nr, fan::vec2 x, fan::vec2 y);
+  void camera_set_perspective(fan::graphics::context_camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
+  void camera_rotate(fan::graphics::context_camera_nr_t nr, const fan::vec2& offset);
+
+
+  fan::graphics::context_viewport_nr_t viewport_create();
+  fan::graphics::context_viewport_t viewport_get(fan::graphics::context_viewport_nr_t nr);
+  void viewport_erase(fan::graphics::context_viewport_nr_t nr);
+  fan::vec2 viewport_get_position(fan::graphics::context_viewport_nr_t nr);
+  fan::vec2 viewport_get_size(fan::graphics::context_viewport_nr_t nr);
+  void viewport_set(const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size);
+  void viewport_set(fan::graphics::context_viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size);
+  void viewport_zero(fan::graphics::context_viewport_nr_t nr);
+  bool inside(fan::graphics::context_viewport_nr_t nr, const fan::vec2& position);
+  bool inside_wir(fan::graphics::context_viewport_nr_t nr, const fan::vec2& position);
+
+  fan::graphics::context_functions_t context_functions;
+  fan::graphics::context_t context;
+
+
+  static fan::string read_shader(const fan::string& path) {
+    fan::string code;
+    fan::io::file::read(path, &code);
+    return code;
+  }
 
   static uint8_t* A_resize(void* ptr, uintptr_t size);
 
@@ -306,7 +395,6 @@ struct loco_t : fan::opengl::context_t {
 
   void use();
 
-  using camera_t = fan::opengl::context_t::camera_nr_t;
   void camera_move(fan::opengl::context_t::camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction);
 
   uint32_t fb_vao;
@@ -315,11 +403,6 @@ struct loco_t : fan::opengl::context_t {
   void initialize_fb_vaos(uint32_t& vao, uint32_t& vbo);
 
   using texture_packe0 = fan::graphics::texture_packe0;
-
-  using viewport_t = fan::opengl::context_t::viewport_nr_t;
-  using image_t = fan::opengl::context_t::image_nr_t;
-
-  using shader_t = fan::opengl::context_t::shader_nr_t;
 
   struct shape_t;
 
@@ -448,6 +531,26 @@ struct loco_t : fan::opengl::context_t {
     set_line3_cb set_line3;
   };
 
+  #if defined(loco_opengl)
+  // opengl namespace
+  struct opengl {
+    #include <fan/graphics/opengl/engine_functions.h>
+    #include <fan/graphics/opengl/2D/effects/blur.h>
+
+    blur_t blur;
+
+    fan::opengl::core::framebuffer_t m_framebuffer;
+    fan::opengl::core::renderbuffer_t m_rbo;
+    loco_t::image_t color_buffers[4];
+    loco_t::shader_t m_fbo_final_shader;
+
+    GLenum blend_src_factor = GL_SRC_ALPHA;
+    GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
+
+    #undef loco
+  }gl;
+#endif
+
   template <typename T, typename T2>
   static T2& get_render_data(shape_t* shape, T2 T::* attribute) {
     shaper_t::ShapeRenderData_t* data = gloco->shaper.GetRenderData(*shape);
@@ -458,42 +561,26 @@ struct loco_t : fan::opengl::context_t {
   static void modify_render_data_element(shape_t* shape, T2 T::* attribute, const T3& value) {
     shaper_t::ShapeRenderData_t* data = gloco->shaper.GetRenderData(*shape);
 
-    if ((gloco->opengl.major > 3) || (gloco->opengl.major == 3 && gloco->opengl.minor >= 3)) {
-      ((T*)data)->*attribute = value;
-      gloco->shaper.ElementIsPartiallyEdited(
-        gloco->shaper.GetSTI(*shape),
-        gloco->shaper.GetBLID(*shape),
-        gloco->shaper.GetElementIndex(*shape),
-        fan::member_offset(attribute),
-        sizeof(T3)
-      );
+    // remove gloco
+    if (gloco->window.renderer == renderer_t::opengl) {
+      gloco->gl.modify_render_data_element(shape, data, attribute, value);
     }
-    else {
-      for (int i = 0; i < 6; ++i) {
-        auto& v = ((T*)data)[i];
-        ((T*)&v)->*attribute = value;
-        gloco->shaper.ElementIsPartiallyEdited(
-          gloco->shaper.GetSTI(*shape),
-          gloco->shaper.GetBLID(*shape),
-          gloco->shaper.GetElementIndex(*shape),
-          fan::member_offset(attribute) + sizeof(T) * i,
-          sizeof(T3)
-        );
-      }
+    else if (gloco->window.renderer == renderer_t::vulkan) {
+      fan::throw_error("todo");
     }
-  };
+  }
 
   template <typename T>
   static functions_t get_functions();
 
 #pragma pack(push, 1)
 
-#define st(name, inside) \
+#define st(name, viewport_inside) \
   template <bool cond> \
   struct CONCAT(name, _cond) { \
     template <typename T> \
     using d = typename fan::type_or_uint8_t<cond>::template d<T>; \
-    inside \
+    viewport_inside \
   }; \
   using name = CONCAT(name, _cond)<1>; \
   struct CONCAT(_, name) : CONCAT(name, _cond<0>) {};
@@ -549,7 +636,7 @@ public:
 
   std::vector<fan::function_t<void()>> m_pre_draw;
   std::vector<fan::function_t<void()>> m_post_draw;
-  using renderer_t = fan::window_t::renderer_t;
+  
 
   struct properties_t {
     bool vsync = true;
@@ -732,10 +819,9 @@ public:
 #endif
   //-----------------------------gui-----------------------------
 
-  fan::opengl::context_t& get_context();
-  operator fan::vulkan::context_t& ();
-  fan::vulkan::context_t vk_context;
-  fan::vulkan::context_t::descriptor_t<1> descriptor;//temp
+  fan::graphics::context_t& get_context() {
+    return context;
+  }
 
   struct camera_impl_t {
 
@@ -804,9 +890,6 @@ public:
   fan::window_t window;
   uv_idle_t idle_handle;
   uv_timer_t timer_handle;
-
-  GLenum blend_src_factor = GL_SRC_ALPHA;
-  GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
 
   int32_t target_fps = 165; // must be changed from function
   bool timer_enabled = target_fps > 0;
@@ -1071,7 +1154,6 @@ public:
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
     };
 
-
     shape_t push_back(const properties_t& properties);
   }light;
 
@@ -1093,11 +1175,11 @@ public:
 
 #pragma pack(pop)
 
-  inline static auto locations = std::to_array({
-    shape_gl_init_t{{0, "in_color"}, 4, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
-    shape_gl_init_t{{1, "in_src"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
-    shape_gl_init_t{{2, "in_dst"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
-  });
+    inline static auto locations = std::to_array({
+      shape_gl_init_t{{0, "in_color"}, 4, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
+      shape_gl_init_t{{1, "in_src"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
+      shape_gl_init_t{{2, "in_dst"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
+    });
 
     struct properties_t {
       using type_t = line_t;
@@ -1226,7 +1308,7 @@ public:
       bool load_tp(loco_t::texturepack_t::ti_t* ti) {
         auto& im = *ti->image;
         image = im;
-        auto& img = gloco->image_get_data(im);
+        auto img = gloco->image_get(im);
         tc_position = ti->position / img.size;
         tc_size = ti->size / img.size;
         return 0;
@@ -1308,7 +1390,7 @@ public:
       bool load_tp(loco_t::texturepack_t::ti_t* ti) {
         auto& im = *ti->image;
         image = im;
-        auto& img = gloco->image_get_data(im);
+        auto img = gloco->image_get(im);
         tc_position = ti->position / img.size;
         tc_size = ti->size / img.size;
         return 0;
@@ -1897,20 +1979,18 @@ public:
   //-------------------------------------shapes-------------------------------------
 
   template <typename T>
-  inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment, loco_t::shaper_t::ShapeRenderDataSize_t instance_count = 1, bool instanced = true) {
-    auto& context = gloco->get_context();
+  inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment, loco_t::shaper_t::ShapeRenderDataSize_t instance_count = 1, bool instanced = true) {    
+    loco_t::shader_t shader = shader_create();
 
-    loco_t::shader_t shader = context.shader_create();
-
-    context.shader_set_vertex(shader,
-      context.read_shader(vertex)
+    shader_set_vertex(shader,
+      read_shader(vertex)
     );
 
-    context.shader_set_fragment(shader,
-      context.read_shader(fragment)
+    shader_set_fragment(shader,
+      read_shader(fragment)
     );
 
-    context.shader_compile(shader);
+    shader_compile(shader);
 
     gloco->shaper.AddShapeType(
       shape->shape_type,
@@ -1942,26 +2022,10 @@ public:
 //#if defined(loco_texture_pack)
 //#endif
 
-#if defined(loco_post_process)
-  #include <fan/graphics/opengl/2D/effects/blur.h>
-    blur_t blur[1];
-#endif
-
   fan::color clear_color = { 
     /*0.10f, 0.10f, 0.131f, 1.f */
     0.f, 0.f, 0.f, 1.f
   };
-
-#if defined(loco_framebuffer)
-#if defined(loco_opengl)
-
-  fan::opengl::core::framebuffer_t m_framebuffer;
-  fan::opengl::core::renderbuffer_t m_rbo;
-  loco_t::image_t color_buffers[4];
-  loco_t::shader_t m_fbo_final_shader;
-
-#endif
-#endif
 
   struct lighting_t {
     static constexpr const char* ambient_name = "lighting_ambient";
@@ -2038,7 +2102,7 @@ public:
       }
       else {
 
-        if (gloco->image_get_data(vi_image).size == size) {
+        if (gloco->image_get(vi_image).size == size) {
           return;
         }
 
@@ -2503,7 +2567,7 @@ namespace fan {
               }
             return 0;
           }
-          if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+          if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::viewport_inside) {
             return 0;
           }
 
@@ -2744,7 +2808,7 @@ namespace fan {
           if (d.button_state != fan::mouse_state::press) {
             return user_cb(d);
           }
-          if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::inside) {
+          if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::viewport_inside) {
             return user_cb(d);
           }
 

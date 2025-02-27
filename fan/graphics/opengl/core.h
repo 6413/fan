@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/graphics/opengl/gl_init.h>
+#include <fan/graphics/opengl/init.h>
 #include <fan/graphics/image_load.h>
 #include <fan/graphics/camera.h>
 
@@ -60,15 +60,7 @@ namespace fan {
 
       void set_current(fan::window_t* window);
 
-
-
-      static fan::string read_shader(const fan::string& path) {
-        fan::string code;
-        fan::io::file::read(path, &code);
-        return code;
-      }
-
-      //-----------------------------shader-----------------------------
+      //-----------------------------camera-----------------------------
 
       struct camera_t : fan::camera {
         fan::mat4 m_projection = fan::mat4(1);
@@ -87,13 +79,36 @@ namespace fan {
         }coordinates;
       };
 
-    protected:
+      static constexpr f32_t znearfar = 0xffff;
 
+    protected:
       #include <fan/graphics/opengl/camera_list_builder_settings.h>
       #include <BLL/BLL.h>
     public:
       using camera_nr_t = camera_list_NodeReference_t;
 
+      camera_list_t camera_list;
+
+      camera_nr_t camera_create();
+      camera_t& camera_get(camera_nr_t nr);
+      void camera_erase(camera_nr_t nr);
+
+      camera_nr_t camera_open(const fan::vec2& x, const fan::vec2& y);
+
+      fan::vec3 camera_get_position(camera_nr_t nr);
+      void camera_set_position(camera_nr_t nr, const fan::vec3& cp);
+      fan::vec2 camera_get_size(camera_nr_t nr);
+
+      void camera_set_ortho(camera_nr_t nr, fan::vec2 x, fan::vec2 y);
+      void camera_set_perspective(camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
+
+      void camera_rotate(camera_nr_t nr, const fan::vec2& offset);
+
+      //-----------------------------camera-----------------------------
+
+      //-----------------------------shader-----------------------------
+
+      
       struct view_projection_t {
         fan::mat4 projection;
         fan::mat4 view;
@@ -165,20 +180,17 @@ namespace fan {
       //-----------------------------image-----------------------------
 
       struct image_t {
-        GLuint texture_id;
+        // --common--
         fan::vec2 size;
+        // --common--
+        GLuint texture_id;
       };
 
-      struct gl_image_impl {
-        #include <fan/graphics/opengl/image_list_builder_settings.h>
-        #if defined(loco_opengl)
-        #elif defined(loco_vulkan)
-        #include <fan/graphics/vulkan/image_list_builder_settings.h>
-        #endif
-        #include <BLL/BLL.h>
-      };
+      #include <fan/graphics/opengl/image_list_builder_settings.h>
+      #include <BLL/BLL.h>
+      image_list_t image_list;
 
-      using image_nr_t = gl_image_impl::image_list_NodeReference_t;
+      using image_nr_t = image_list_NodeReference_t;
 
       struct image_format {
         static constexpr auto b8g8r8a8_unorm = GL_BGRA;
@@ -225,8 +237,8 @@ namespace fan {
       );
 
       image_nr_t image_create();
-      GLuint& image_get(image_nr_t nr);
-      image_t& image_get_data(image_nr_t nr);
+      GLuint& image_get_handle(image_nr_t nr);
+      image_t& image_get(image_nr_t nr);
 
       void image_erase(image_nr_t nr);
 
@@ -252,38 +264,10 @@ namespace fan {
 
       std::unique_ptr<uint8_t[]> image_get_pixel_data(image_nr_t nr, GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
 
-      image_nr_t create_image(const fan::color& color);
-      image_nr_t create_image(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p);
-
-      gl_image_impl::image_list_t image_list;
+      image_nr_t image_create(const fan::color& color);
+      image_nr_t image_create(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p);
 
       //-----------------------------image-----------------------------
-
-      //-----------------------------camera-----------------------------
-
-      camera_list_t camera_list;
-
-      camera_nr_t camera_create();
-      camera_t& camera_get(camera_nr_t nr);
-      void camera_erase(camera_nr_t nr);
-
-      //void link(const camera_t& t);
-
-      static constexpr f32_t znearfar = 0xffff;
-
-      camera_nr_t camera_open(const fan::vec2& x, const fan::vec2& y);
-
-      fan::vec3 camera_get_position(camera_nr_t nr);
-      void camera_set_position(camera_nr_t nr, const fan::vec3& cp);
-
-      fan::vec2 camera_get_size(camera_nr_t nr);
-
-      void camera_set_ortho(camera_nr_t nr, fan::vec2 x, fan::vec2 y);
-      void camera_set_perspective(camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
-
-      void camera_rotate(camera_nr_t nr, const fan::vec2& offset);
-
-      //-----------------------------camera-----------------------------
 
 
       //-----------------------------viewport-----------------------------
@@ -309,18 +293,17 @@ namespace fan {
       fan::vec2 viewport_get_position(viewport_nr_t nr);
       fan::vec2 viewport_get_size(viewport_nr_t nr);
 
-
       void viewport_set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
       void viewport_set(viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
       void viewport_zero(viewport_nr_t nr);
 
-      bool inside(viewport_nr_t nr, const fan::vec2& position);
-      bool inside_wir(viewport_nr_t nr, const fan::vec2& position);
+      bool viewport_inside(viewport_nr_t nr, const fan::vec2& position);
+      bool viewport_inside_wir(viewport_nr_t nr, const fan::vec2& position);
 
       //-----------------------------viewport-----------------------------
 
     };
-}
+  }
 }
 
 namespace fan {
@@ -409,85 +392,8 @@ namespace fan {
 
         GLuint renderbuffer;
       };
+
+
     }
   }
-}
-
-namespace fan {
-  struct pixel_format {
-    enum {
-      undefined,
-      yuv420p,
-      nv12,
-    };
-
-    constexpr static uint8_t get_texture_amount(uint8_t format) {
-      switch (format) {
-      case undefined: {
-        return 0;
-      }
-      case yuv420p: {
-        return 3;
-      }
-      case nv12: {
-        return 2;
-      }
-      default: {
-        fan::throw_error("invalid format");
-        return undefined;
-      }
-      }
-    }
-    constexpr static std::array<fan::vec2ui, 4> get_image_sizes(uint8_t format, const fan::vec2ui& image_size) {
-      switch (format) {
-      case yuv420p: {
-        return std::array<fan::vec2ui, 4>{image_size, image_size / 2, image_size / 2};
-      }
-      case nv12: {
-        return std::array<fan::vec2ui, 4>{image_size, fan::vec2ui{ image_size.x / 2, image_size.y / 2}};
-      }
-      default: {
-        fan::throw_error("invalid format");
-        return std::array<fan::vec2ui, 4>{};
-      }
-      }
-    }
-    template <typename T>
-    static constexpr std::array<T, 4> get_image_properties(uint8_t format) {
-      switch (format) {
-      case yuv420p: {
-        return std::array<fan::opengl::context_t::image_load_properties_t, 4>{
-          fan::opengl::context_t::image_load_properties_t{
-            .internal_format = fan::opengl::context_t::image_format::r8_unorm,
-            .format = fan::opengl::context_t::image_format::r8_unorm
-          },
-          fan::opengl::context_t::image_load_properties_t{
-              .internal_format = fan::opengl::context_t::image_format::r8_unorm,
-              .format = fan::opengl::context_t::image_format::r8_unorm
-          },
-          fan::opengl::context_t::image_load_properties_t{
-              .internal_format = fan::opengl::context_t::image_format::r8_unorm,
-              .format = fan::opengl::context_t::image_format::r8_unorm
-          }
-        };
-      }
-      case nv12: {
-        return std::array<fan::opengl::context_t::image_load_properties_t, 4>{
-          fan::opengl::context_t::image_load_properties_t{
-            .internal_format = fan::opengl::context_t::image_format::r8_unorm,
-            .format = fan::opengl::context_t::image_format::r8_unorm
-          },
-            fan::opengl::context_t::image_load_properties_t{
-              .internal_format = fan::opengl::context_t::image_format::rg8_unorm,
-              .format = fan::opengl::context_t::image_format::rg8_unorm
-          }
-        };
-      }
-      default: {
-        fan::throw_error("invalid format");
-        return std::array<fan::opengl::context_t::image_load_properties_t, 4>{};
-      }
-      }
-    }
-  };
 }

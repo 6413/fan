@@ -109,7 +109,7 @@ struct button_t {
       vfip.mouse_move_cb = [this, udata = p.udata, id_ = id](const loco_t::vfi_t::mouse_move_data_t& mm_d) mutable -> int {
         loco_t::mouse_move_data_t mmd = mm_d;
         if (mm_d.flag->ignore_move_focus_check == false && !gloco->button.sb_get_ri(id_).selected) {
-          if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
+          if (mm_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::viewport_inside) {
             gloco->button.set_theme(id_, gloco->button.get_theme(id_), hovered);
           }
           else {
@@ -136,7 +136,7 @@ struct button_t {
         } 
         else if (!gloco->button.sb_get_ri(id_).selected) {
           if (ii_d.button == fan::mouse_left && ii_d.button_state == fan::mouse_state::release) {
-            if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::inside) {
+            if (ii_d.mouse_stage == loco_t::vfi_t::mouse_stage_e::viewport_inside) {
               gloco->button.set_theme(id_, gloco->button.get_theme(id_), hovered);
             }
             else {

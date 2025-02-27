@@ -1,51 +1,54 @@
 struct blur_t {
+  loco_t& get_loco() {
+    return (*OFFSETLESS(this, loco_t, gl.blur));
+  }
+  #define loco get_loco()
 
   void open(const fan::vec2& resolution, uint32_t mip_count) {
 
-    brightness_fbo.open(gloco->get_context());
-    brightness_fbo.bind(gloco->get_context());
+    brightness_fbo.open(loco.context.gl);
+    brightness_fbo.bind(loco.context.gl);
 
     fan::opengl::core::renderbuffer_t::properties_t rp;
     rp.size = gloco->window.get_size();
     rp.internalformat = GL_DEPTH_COMPONENT;
-    rbo.open(gloco->get_context());
-    rbo.set_storage(gloco->get_context(), rp);
+    rbo.open(loco.context.gl);
+    rbo.set_storage(loco.context.gl, rp);
     rp.internalformat = GL_DEPTH_ATTACHMENT;
-    rbo.bind_to_renderbuffer(gloco->get_context(), rp);
+    rbo.bind_to_renderbuffer(loco.context.gl, rp);
 
-    auto& context = gloco->get_context();
-    shader_downsample = context.shader_create();
+    shader_downsample = loco.shader_create();
 
-    context.shader_set_vertex(
+    loco.shader_set_vertex(
       shader_downsample,
-      context.read_shader("shaders/opengl/2D/effects/downsample.vs")
+      loco.read_shader("shaders/opengl/2D/effects/downsample.vs")
     );
 
-    context.shader_set_fragment(
+    loco.shader_set_fragment(
       shader_downsample,
-      context.read_shader("shaders/opengl/2D/effects/downsample.fs")
+      loco.read_shader("shaders/opengl/2D/effects/downsample.fs")
     );
 
-    context.shader_compile(shader_downsample);
+    loco.shader_compile(shader_downsample);
 
-    context.shader_set_value(shader_downsample, "_t00", 0);
+    loco.shader_set_value(shader_downsample, "_t00", 0);
 
     //
-    shader_upsample = context.shader_create();
+    shader_upsample = loco.shader_create();
 
-    context.shader_set_vertex(
+    loco.shader_set_vertex(
       shader_upsample,
-      context.read_shader("shaders/opengl/2D/effects/downsample.vs")
+      loco.read_shader("shaders/opengl/2D/effects/downsample.vs")
     );
 
-    context.shader_set_fragment(
+    loco.shader_set_fragment(
       shader_upsample,
-      context.read_shader("shaders/opengl/2D/effects/upsample.fs")
+      loco.read_shader("shaders/opengl/2D/effects/upsample.fs")
     );
 
-    context.shader_compile(shader_upsample);
+    loco.shader_compile(shader_upsample);
 
-    context.shader_set_value(shader_upsample, "_t00", 0);
+    loco.shader_set_value(shader_upsample, "_t00", 0);
 
     fan::vec2 mip_size = resolution;
     fan::vec2i mip_int_size = resolution;
@@ -69,22 +72,21 @@ struct blur_t {
       ii.data = nullptr;
       ii.size = mip_size;
       ii.channels = 3;
-      mip.image = context.image_load(ii, lp);
+      mip.image = loco.image_load(ii, lp);
       mips.push_back(mip);
     }
 
-    if (!brightness_fbo.ready(gloco->get_context())) {
+    if (!brightness_fbo.ready(loco.context.gl)) {
       fan::throw_error_impl();
     }
 
-    brightness_fbo.unbind(gloco->get_context());
+    brightness_fbo.unbind(loco.context.gl);
   }
 
   inline static unsigned int quadVAO = 0;
   inline static unsigned int quadVBO;
   static void renderQuad()
   {
-    auto& context = gloco->get_context();
     if (quadVAO == 0)
     {
       float quadVertices[] = {
@@ -109,18 +111,17 @@ struct blur_t {
   }
 
   void draw_downsamples(loco_t::image_t* image) {
-    auto& context = gloco->get_context();
-    context.set_depth_test(false);
+    loco.context.gl.set_depth_test(false);
     fan_opengl_call(glDisable(GL_BLEND));
     fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
 
     fan::vec2 window_size = gloco->window.get_size();
 
-    context.shader_set_value(shader_downsample, "resolution", window_size);
-    context.shader_set_value(shader_downsample, "mipLevel", 0);
+    loco.shader_set_value(shader_downsample, "resolution", window_size);
+    loco.shader_set_value(shader_downsample, "mipLevel", 0);
 
     fan_opengl_call(glActiveTexture(GL_TEXTURE0));
-    context.image_bind(*image);
+    loco.image_bind(*image);
 
     for (uint32_t i = 0; i < mips.size(); i++) {
       mip_t mip = mips[i];
@@ -131,26 +132,26 @@ struct blur_t {
 #endif
       fan_opengl_call(glViewport(0, 0, mip.size.x, mip.size.y));
       brightness_fbo.bind_to_texture(
-        gloco->get_context(),
-        context.image_get(mip.image),
+        loco.context.gl,
+        loco.image_get_handle(mip.image),
         GL_COLOR_ATTACHMENT0
       );
 
       renderQuad();
 
-      context.shader_set_value(shader_downsample, "resolution", mip.size);
+      loco.shader_set_value(shader_downsample, "resolution", mip.size);
 
-      context.image_bind(mip.image);
+      loco.image_bind(mip.image);
       if (i == 0) {
-        context.shader_set_value(shader_downsample, "mipLevel", 1);
+        loco.shader_set_value(shader_downsample, "mipLevel", 1);
       }
     }
   }
 
   void draw_upsamples(f32_t filter_radius) {
-    auto& context = gloco->get_context();
+    auto& context = loco.context.gl;
 
-    context.shader_set_value(shader_upsample, "filter_radius", filter_radius);
+    loco.shader_set_value(shader_upsample, "filter_radius", filter_radius);
 
     fan_opengl_call(glEnable(GL_BLEND));
     fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
@@ -162,13 +163,13 @@ struct blur_t {
       mip_t next_mip = mips[i - 1];
 
       fan_opengl_call(glActiveTexture(GL_TEXTURE0));
-      context.image_bind(mip.image);
+      loco.image_bind(mip.image);
 
       fan_opengl_call(glViewport(0, 0, next_mip.size.x, next_mip.size.y));
 
       fan::opengl::core::framebuffer_t::bind_to_texture(
-        gloco->get_context(),
-        context.image_get(next_mip.image),
+        loco.context.gl,
+        loco.image_get_handle(next_mip.image),
         GL_COLOR_ATTACHMENT0
       );
       renderQuad();
@@ -178,7 +179,7 @@ struct blur_t {
   }
 
   void draw(loco_t::image_t* color_texture, f32_t filter_radius) {
-    auto& context = gloco->get_context();
+    auto& context = loco.context.gl;
 
     brightness_fbo.bind(context);
 
@@ -215,3 +216,4 @@ struct blur_t {
   loco_t::shader_t shader_downsample;
   loco_t::shader_t shader_upsample;
 };
+#undef loco
