@@ -45,6 +45,9 @@
 
 struct loco_t;
 
+// shaper
+#include <variant>
+
 namespace fan {
   using namespace nlohmann;
 }
@@ -117,6 +120,11 @@ namespace fan {
 
     void clear() noexcept { buf.clear(); }
   };
+  namespace graphics {
+    namespace gui {
+      bool render_blank_window(const std::string& name);
+    }
+  }
 }
 
 #endif
@@ -554,6 +562,12 @@ struct loco_t {
 
     #undef loco
   }gl;
+#endif
+
+#if defined(loco_vulkan)
+  struct vulkan {
+    #include <fan/graphics/vulkan/engine_functions.h>
+  }vk;
 #endif
 
   template <typename T, typename T2>
@@ -1999,15 +2013,31 @@ public:
 
     shader_compile(shader);
 
+    decltype(loco_t::shaper_t::BlockProperties_t::renderer) data;
+
+    if (window.renderer == renderer_t::opengl) {
+      data = loco_t::shaper_t::BlockProperties_t::gl_t{
+        .locations = decltype(loco_t::shaper_t::BlockProperties_t::gl_t::locations)(std::begin(T::locations), std::end(T::locations)),
+        .shader = shader,
+        .instanced = instanced
+      };
+    }
+    else {
+      fan::throw_error("");
+     /* data = loco_t::shaper_t::BlockProperties_t::vk_t{
+        .locations = decltype(loco_t::shaper_t::BlockProperties_t::vk_t::locations)(std::begin(T::locations), std::end(T::locations)),
+        .shader = shader,
+        .instanced = instanced
+      };*/
+    }
+
     gloco->shaper.AddShapeType(
       shape->shape_type,
       {
         .MaxElementPerBlock = (loco_t::shaper_t::MaxElementPerBlock_t)MaxElementPerBlock,
         .RenderDataSize = (decltype(loco_t::shaper_t::BlockProperties_t::RenderDataSize))(sizeof(typename T::vi_t) * instance_count),
         .DataSize = sizeof(typename T::ri_t),
-        .locations = decltype(loco_t::shaper_t::BlockProperties_t::locations)(std::begin(T::locations), std::end(T::locations)),
-        .shader = shader,
-        .instanced = instanced
+        .renderer = data
       }
     );
 
@@ -2047,6 +2077,9 @@ public:
 
   ImFont* fonts[6];
   ImFont* fonts_bold[6];
+
+  #include <fan/graphics/gui/settings_menu.h>
+  settings_menu_t settings_menu;
 #endif
   //gui
 
@@ -2193,10 +2226,6 @@ namespace fan {
     );
 
     void text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0);
-
-    namespace gui {
-      bool render_blank_window(const std::string& name);
-    }
   }
 }
 
@@ -2234,5 +2263,3 @@ void fan::printclh(int highlight, auto&&... values) {
 
 #include <fan/graphics/vulkan/uniform_block.h>
 #include <fan/graphics/vulkan/memory.h>
-
-#include <fan/graphics/gui/settings_menu.h>
