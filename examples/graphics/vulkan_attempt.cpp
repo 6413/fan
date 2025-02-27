@@ -2,7 +2,7 @@
 
 int main() {
   fan::graphics::engine_t engine{{
-    .renderer=fan::graphics::engine_t::renderer_t::opengl
+    .renderer=fan::graphics::engine_t::renderer_t::vulkan
   }};
   //fan::vulkan::core::shader_t shader;
   //fan::vulkan::core::memory_write_queue_t wq;

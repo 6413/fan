@@ -361,10 +361,10 @@ struct vfi_t {
     fan::vec2 viewport_position = v.viewport_position;
     fan::vec2 viewport_size = v.viewport_size;
 
-    f32_t l = c.coordinates.left;
-    f32_t r = c.coordinates.right;
-    f32_t t = c.coordinates.up;
-    f32_t b = c.coordinates.down;
+    f32_t l = c.gl->coordinates.left;
+    f32_t r = c.gl->coordinates.right;
+    f32_t t = c.gl->coordinates.up;
+    f32_t b = c.gl->coordinates.down;
 
     fan::vec2 tp = p - viewport_position;
     fan::vec2 d = viewport_size;
@@ -404,7 +404,7 @@ struct vfi_t {
       return v;
     }
     case shape_t::rectangle: {
-      fan::vec2 v = gloco->camera_get(shape_data->shape.rectangle->camera).position;
+      fan::vec2 v = gloco->camera_get(shape_data->shape.rectangle->camera).gl->position;
       auto p = transform_position(
         v,
         shape_data->shape.rectangle->viewport,

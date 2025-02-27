@@ -25,13 +25,13 @@ namespace fan {
     struct context_shader_nr_t {
       context_shader_nr_t() {}
       ~context_shader_nr_t() {}
-      struct {
-        uint8_t nr[sizeof(fan::opengl::context_t::shader_nr_t)];
-      };
       bool iic() const {
         return ((fan::opengl::context_t::shader_nr_t*)&nr)->iic();
       }
       union {
+        struct {
+          uint8_t nr[sizeof(fan::opengl::context_t::shader_nr_t)];
+        };
         fan::opengl::context_t::shader_nr_t gl;
         fan::vulkan::context_t::shader_nr_t vk;
       };
@@ -136,20 +136,21 @@ namespace fan {
       };
     };
     struct context_image_nr_common_t {
-      uint8_t nr[2];
-      bool iic() const {
-        return ((fan::opengl::context_t::image_nr_t*)&nr)->iic();
-      }
+      
     };
-    struct context_image_nr_t : context_image_nr_common_t {
+    struct context_image_nr_t {
       context_image_nr_t() {}
       ~context_image_nr_t() {}
       union {
+        uint8_t nr[sizeof(fan::opengl::context_t::image_nr_t)];
         fan::opengl::context_t::image_nr_t gl;
         static_assert(sizeof(nr) == sizeof(gl), "invalid context image common nr");
         fan::vulkan::context_t::image_nr_t vk;
         static_assert(sizeof(nr) == sizeof(vk), "invalid context image common nr");
       };
+      bool iic() const {
+        return ((fan::opengl::context_t::image_nr_t*)&nr)->iic();
+      }
     };
     typedef context_image_nr_t (*image_create_t)(context_t&);
     typedef context_image_t  (*image_get_t)(context_t&, context_image_nr_t nr); // 
@@ -189,8 +190,7 @@ namespace fan {
       }coordinates;
     };
 
-    // probably wrong
-    struct context_camera_t : context_camera_common_t{
+    struct context_camera_t {
       context_camera_t() {}
       union {
         fan::opengl::context_t::camera_t* gl;
@@ -200,9 +200,6 @@ namespace fan {
     struct context_camera_nr_t {
       context_camera_nr_t() {}
       ~context_camera_nr_t() {}
-      struct {
-        uint8_t nr[sizeof(fan::opengl::context_t::camera_nr_t)];
-      };
       bool iic() const {
         return ((fan::opengl::context_t::camera_nr_t*)&nr)->iic();
       }
@@ -210,6 +207,9 @@ namespace fan {
         ((fan::opengl::context_t::camera_nr_t*)&nr)->sic();
       }
       union {
+        struct {
+          uint8_t nr[sizeof(fan::opengl::context_t::camera_nr_t)];
+        };
         fan::opengl::context_t::camera_nr_t gl;
         fan::vulkan::context_t::camera_nr_t vk;
       };
@@ -229,9 +229,11 @@ namespace fan {
     struct context_viewport_t {
       context_viewport_t() {}
       ~context_viewport_t() {}
-      fan::vec2 viewport_position;
-      fan::vec2 viewport_size;
       union {
+        struct {
+          fan::vec2 viewport_position;
+          fan::vec2 viewport_size;
+        };
         fan::opengl::context_t::viewport_t gl;
         fan::vulkan::context_t::viewport_t vk;
       };
@@ -239,9 +241,6 @@ namespace fan {
     struct context_viewport_nr_t {
       context_viewport_nr_t() {}
       ~context_viewport_nr_t() {}
-      struct {
-        uint8_t nr[sizeof(fan::opengl::context_t::viewport_nr_t)];
-      };
       bool iic() const {
         return ((fan::opengl::context_t::viewport_nr_t*)&nr)->iic();
       }
@@ -249,6 +248,9 @@ namespace fan {
         ((fan::opengl::context_t::viewport_nr_t*)&nr)->sic();
       }
       union {
+        struct {
+          uint8_t nr[sizeof(fan::opengl::context_t::viewport_nr_t)];
+        };
         fan::opengl::context_t::viewport_nr_t gl;
         fan::vulkan::context_t::viewport_nr_t vk;
       };
