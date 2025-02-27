@@ -1089,6 +1089,7 @@ loco_t::functions_t loco_t::get_functions() {
 #undef shaper_get_key_safe
 
 void close_loco(loco_t* loco) {
+  loco->image_erase(loco->default_texture);
   loco->console.commands.func_table.clear();
   loco->console.close();
   fan::graphics::close_bcol();
@@ -1467,18 +1468,7 @@ loco_t::loco_t(const properties_t& p){
     gl.shapes_open();
   }
   else if (window.renderer == renderer_t::vulkan) {
-    shape_functions.resize(shape_functions.size() + 1); // button
-    shape_functions.resize(shape_functions.size() + 1); // sprite
-    shape_functions.resize(shape_functions.size() + 1); // text
-    shape_functions.resize(shape_functions.size() + 1); // hitbox
-    shape_functions.resize(shape_functions.size() + 1); // line
-    shape_functions.resize(shape_functions.size() + 1); // mark
-
-    //shape_open<loco_t::rectangle_t>(
-    //  &rectangle,
-    //  "shaders/vulkan/2D/objects/rectangle.vertex",
-    //  "shaders/vulkan/2D/objects/rectangle.frag"
-    //);
+    vk.shapes_open();
   }
 
 
@@ -1501,6 +1491,7 @@ loco_t::loco_t(const properties_t& p){
       }
     }
   );
+  settings_menu.open();
 }
 
 loco_t::~loco_t() {
@@ -1591,7 +1582,6 @@ void loco_t::process_frame() {
   if (fan::graphics::is_input_action_active("open_settings")) {
     render_settings_menu = !render_settings_menu;
   }
-  static settings_menu_t settings_menu;
   if (render_settings_menu) {
     settings_menu.render();
   }
@@ -1712,8 +1702,8 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 #if defined(loco_imgui)
 
   if (reload_renderer_to != (decltype(reload_renderer_to))-1) {
-    fan::print("TODO");
-   /* auto f = lambda;
+    //fan::print("TODO");
+    auto f = lambda;
     fan::vec2 window_size = window.get_size();
     fan::vec2 window_position = window.get_position();
     uint64_t flags = window.flags;
@@ -1727,7 +1717,8 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
     glfwShowWindow(window);
     window.flags = flags;
     reload_renderer_to = -1;
-    main_loop = f;*/
+    settings_menu.set_settings_theme();
+    main_loop = f;
   }
 
 

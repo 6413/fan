@@ -329,7 +329,7 @@ namespace fan {
         void bind(fan::opengl::context_t& context) const;
         void unbind(fan::opengl::context_t& context) const;
 
-        GLuint m_buffer = -1;
+        GLuint m_buffer = (GLuint)-1;
       };
 
       struct vbo_t {
@@ -348,8 +348,8 @@ namespace fan {
 
         void write_buffer(fan::opengl::context_t& context, const void* data, uintptr_t size);
 
-        GLuint m_buffer = -1;
-        GLenum m_target = -1;
+        GLuint m_buffer = (GLuint)-1;
+        GLenum m_target = (GLuint)-1;
         uint32_t m_usage = GL_DYNAMIC_DRAW;
       };
 

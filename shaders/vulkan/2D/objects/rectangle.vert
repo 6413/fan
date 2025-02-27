@@ -1,4 +1,3 @@
-R"(
 #version 430
 
 #define get_instance() instances[gl_InstanceIndex]
@@ -105,4 +104,3 @@ void main() {
 	data.color = get_instance().color;
 	data.depth = view_position.z;
 }
-)"

@@ -236,14 +236,23 @@ struct shaper_t{
     ShapeDataSize_t DataSize;
 
     #if shaper_set_fan
-    fan::opengl::core::vao_t m_vao;
-    fan::opengl::core::vbo_t m_vbo;
+    struct gl_t {
+      fan::opengl::core::vao_t m_vao;
+      fan::opengl::core::vbo_t m_vbo;
 
-    std::vector<shape_gl_init_t> locations;
-    fan::graphics::context_shader_nr_t shader;
-    bool instanced = true;
-    GLuint draw_mode = GL_TRIANGLES;
-    GLsizei vertex_count = 6;
+      std::vector<shape_gl_init_t> locations;
+      fan::graphics::context_shader_nr_t shader;
+      bool instanced = true;
+      GLuint draw_mode = GL_TRIANGLES;
+      GLsizei vertex_count = 6;
+    };
+    struct vk_t {
+
+    };
+    std::variant<
+      gl_t,
+      vk_t
+    > renderer;
     #endif
 
     MaxElementPerBlock_t MaxElementPerBlock(){
@@ -381,16 +390,40 @@ private:
 
   #if shaper_set_fan
     fan::graphics::context_shader_nr_t& GetShader(ShapeTypeIndex_t sti) {
-      return ShapeTypes[sti].shader;
+      auto& d = ShapeTypes[sti];
+      if (std::holds_alternative<ShapeType_t::gl_t>(d.renderer)) {
+        return std::get<ShapeType_t::gl_t>(d.renderer).shader;
+      }
+      fan::throw_error("");
+      fan::graphics::context_shader_nr_t doesnt_happen;
+      return doesnt_happen;
     }
     fan::opengl::core::vao_t GetVAO(ShapeTypeIndex_t sti) {
-      return ShapeTypes[sti].m_vao;
+      auto& st = ShapeTypes[sti];
+      if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
+        return std::get<ShapeType_t::gl_t>(st.renderer).m_vao;
+      }
+      fan::throw_error("Unsupported renderer type");
+      fan::opengl::core::vao_t doesnt_happen;
+      return doesnt_happen;
     }
     fan::opengl::core::vbo_t GetVBO(ShapeTypeIndex_t sti) {
-      return ShapeTypes[sti].m_vbo;
+      auto& st = ShapeTypes[sti];
+      if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
+        return std::get<ShapeType_t::gl_t>(st.renderer).m_vbo;
+      }
+      fan::throw_error("Unsupported renderer type");
+      fan::opengl::core::vbo_t doesnt_happen;
+      return doesnt_happen;
     }
     std::vector<shape_gl_init_t>& GetLocations(ShapeTypeIndex_t sti) {
-      return ShapeTypes[sti].locations;
+      auto& st = ShapeTypes[sti];
+      if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
+        return std::get<ShapeType_t::gl_t>(st.renderer).locations;
+      }
+      fan::throw_error("Unsupported renderer type");
+      static std::vector<shape_gl_init_t> doesnt_happen;
+      return doesnt_happen;
     }
     ShapeTypes_NodeData_t& GetShapeTypes(ShapeTypeIndex_t sti) {
       return ShapeTypes[sti];
@@ -475,11 +508,21 @@ private:
     decltype(ShapeType_t::DataSize) DataSize;
 
     #if shaper_set_fan
-    std::vector<shape_gl_init_t> locations;
-    fan::graphics::context_shader_nr_t shader;
-    bool instanced = true;
-    GLuint draw_mode = GL_TRIANGLES;
-    GLsizei vertex_count = 6;
+    struct gl_t {
+      std::vector<shape_gl_init_t> locations;
+      fan::graphics::context_shader_nr_t shader;
+      bool instanced = true;
+      GLuint draw_mode = GL_TRIANGLES;
+      GLsizei vertex_count = 6;
+    };
+    struct vk_t {
+
+    };
+    std::variant<
+      gl_t,
+      vk_t
+    > renderer;
+
     #endif
   };
 
@@ -556,7 +599,12 @@ private:
     st.DataSize = bp.DataSize;
 
   #if shaper_set_fan
-    get_loco()->gl.add_shape_type(st, bp);
+    if (std::holds_alternative<BlockProperties_t::gl_t>(bp.renderer)) {
+      get_loco()->gl.add_shape_type(st, bp);
+    }
+    else if (std::holds_alternative<BlockProperties_t::vk_t>(bp.renderer)) {
+      //st.renderer.emplace<ShapeType_t::vk_t>();
+    }
   #endif
   }
 
@@ -572,15 +620,18 @@ private:
       auto &bu = GetBlockUnique(be.sti, be.blid);
 
       #if shaper_set_fan
-      st.m_vao.bind(context);
-      fan::opengl::core::edit_glbuffer(
-        context,
-        st.m_vbo.m_buffer,
-        _GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,
-        GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit,
-        bu.MaxEdit - bu.MinEdit,
-        GL_ARRAY_BUFFER
-      );
+      if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
+        auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
+        gl.m_vao.bind(context);
+        fan::opengl::core::edit_glbuffer(
+          context,
+          gl.m_vbo.m_buffer,
+          _GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,
+          GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit,
+          bu.MaxEdit - bu.MinEdit,
+          GL_ARRAY_BUFFER
+        );
+      }
       #endif
 
       bu.clear();
@@ -633,42 +684,51 @@ private:
   void _RenderDataReset(ShapeTypeIndex_t sti){
     auto &st = ShapeTypes[sti];
     #if shaper_set_fan
-    fan::opengl::context_t &context = get_loco()->context.gl;
-    #endif
-    /* TODO remove all block edit queue stuff */
-    BlockList_t::nrtra_t traverse;
-    traverse.Open(&st.BlockList);
-    #if shaper_set_fan
-    st.m_vao.bind(context);
-    #endif
-    while(traverse.Loop(&st.BlockList)){
-      #if shaper_set_fan
-      fan::opengl::core::edit_glbuffer(
-        context,
-        st.m_vbo.m_buffer,
-        _GetRenderData(sti, traverse.nr, 0),
-        GetRenderDataOffset(sti, traverse.nr),
-        st.RenderDataSize * st.MaxElementPerBlock(),
-        GL_ARRAY_BUFFER
-      );
-      #endif
+    if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
+      auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
+      fan::opengl::context_t &context = get_loco()->context.gl;
+    
+      /* TODO remove all block edit queue stuff */
+      BlockList_t::nrtra_t traverse;
+      traverse.Open(&st.BlockList);
+      gl.m_vao.bind(context);
+      while(traverse.Loop(&st.BlockList)){
+        fan::opengl::core::edit_glbuffer(
+          context,
+          gl.m_vbo.m_buffer,
+          _GetRenderData(sti, traverse.nr, 0),
+          GetRenderDataOffset(sti, traverse.nr),
+          st.RenderDataSize * st.MaxElementPerBlock(),
+          GL_ARRAY_BUFFER
+        );
+      }
+      traverse.Close(&st.BlockList);
     }
-    traverse.Close(&st.BlockList);
+    else {
+      fan::throw_error("");
+    }
+    #endif
   }
   void _BlockListBufferChange(ShapeTypeIndex_t sti, uintptr_t New){
     auto &st = ShapeTypes[sti];
 
     #if shaper_set_fan
-    st.m_vbo.bind(get_loco()->get_context().gl);
-    fan::opengl::core::write_glbuffer(
-      get_loco()->get_context().gl,
-      st.m_vbo.m_buffer,
-      0,
-      New * st.RenderDataSize * st.MaxElementPerBlock(),
-      GL_DYNAMIC_DRAW,
-      GL_ARRAY_BUFFER
-    );
-    _RenderDataReset(sti);
+    if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
+      auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
+      gl.m_vbo.bind(get_loco()->get_context().gl);
+      fan::opengl::core::write_glbuffer(
+        get_loco()->get_context().gl,
+        gl.m_vbo.m_buffer,
+        0,
+        New * st.RenderDataSize * st.MaxElementPerBlock(),
+        GL_DYNAMIC_DRAW,
+        GL_ARRAY_BUFFER
+      );
+      _RenderDataReset(sti);
+    }
+    else {
+      fan::throw_error("");
+    }
     #endif
   }
 
@@ -693,7 +753,13 @@ private:
     auto &st = ShapeTypes[sti];
     
     // how to do without gloco xd
-    gloco->shader_erase(st.shader);
+    if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
+      auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
+      get_loco()->shader_erase(gl.shader);
+    }
+    else {
+      fan::throw_error("");
+    }
 
     GetBlockUnique(sti, blid).destructor(*this);
 

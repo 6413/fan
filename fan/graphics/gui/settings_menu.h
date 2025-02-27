@@ -9,7 +9,7 @@ struct settings_menu_t {
     AUDIO
   );
 
-  settings_menu_t() {
+  void open() {
     set_settings_theme();
     options_toggle[0] = 1;
     if (gloco->window.renderer == fan::window_t::renderer_t::opengl) {
@@ -149,11 +149,15 @@ struct settings_menu_t {
                 if (ImGui::Selectable(renderers[i], is_selected)) {
                   switch (i) {
                   case 0: {
-                    gloco->reload_renderer_to = fan::window_t::renderer_t::opengl;
+                    if (gloco->window.renderer != fan::window_t::renderer_t::opengl) {
+                      gloco->reload_renderer_to = fan::window_t::renderer_t::opengl;
+                    }
                     break;
                   }
                   case 1: {
-                    gloco->reload_renderer_to = fan::window_t::renderer_t::vulkan;
+                    if (gloco->window.renderer != fan::window_t::renderer_t::vulkan) {
+                      gloco->reload_renderer_to = fan::window_t::renderer_t::vulkan;
+                    }
                     break;
                   }
                   }

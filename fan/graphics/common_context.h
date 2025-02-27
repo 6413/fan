@@ -8,6 +8,7 @@ namespace fan {
     struct context_t {
       context_t(){}
       ~context_t(){}
+      context_t(const context_t&) {}
       union {
         fan::opengl::context_t gl;
         fan::vulkan::context_t vk;

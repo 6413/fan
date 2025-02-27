@@ -362,6 +362,7 @@ fan::vulkan::context_t::image_t& fan::vulkan::context_t::image_get(image_nr_t nr
 
 void fan::vulkan::context_t::image_erase(image_nr_t nr) {
   image_t& image = image_get(nr);
+  vkDestroySampler(device, image.sampler, nullptr);
   vkDestroyBuffer(device, image.staging_buffer, nullptr);
   vkFreeMemory(device, image.staging_buffer_memory, nullptr);
   vkDestroyImage(device, image.image_index, 0);
@@ -863,7 +864,7 @@ void fan::vulkan::context_t::update_swapchain_dependencies() {
 }
 
 void fan::vulkan::context_t::recreate_swap_chain(fan::window_t* window, VkResult err) {
-  if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
+  if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR || SwapChainRebuild) {
     int fb_width, fb_height;
     glfwGetFramebufferSize(*window, &fb_width, &fb_height);
     if (fb_width > 0 && fb_height > 0 && (SwapChainRebuild || MainWindowData.Width != fb_width || MainWindowData.Height != fb_height))
