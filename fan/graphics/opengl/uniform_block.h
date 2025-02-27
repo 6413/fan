@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/graphics/opengl/gl_core.h>
+#include <fan/graphics/opengl/core.h>
 
 namespace fan {
   namespace opengl {

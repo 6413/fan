@@ -1,4 +1,4 @@
-#include "gl_core.h"
+#include "core.h"
 
 #include <fan/physics/collision/rectangle.h>
 // for parsing uniform values
@@ -653,25 +653,25 @@ void fan::opengl::context_t::shader_set_camera(shader_nr_t nr, fan::opengl::cont
 fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_create() {
   image_nr_t texture_reference = image_list.NewNode();
   //gloco->image_list[texture_reference].image = this;
-  fan_opengl_call(glGenTextures(1, &image_get(texture_reference)));
+  fan_opengl_call(glGenTextures(1, &image_get_handle(texture_reference)));
   return texture_reference;
 }
 
-GLuint& fan::opengl::context_t::image_get(image_nr_t nr) {
+GLuint& fan::opengl::context_t::image_get_handle(image_nr_t nr) {
   return image_list[nr].texture_id;
 }
 
-fan::opengl::context_t::image_t& fan::opengl::context_t::image_get_data(image_nr_t nr) {
+fan::opengl::context_t::image_t& fan::opengl::context_t::image_get(image_nr_t nr) {
   return image_list[nr];
 }
 
 void fan::opengl::context_t::image_erase(image_nr_t nr) {
-  fan_opengl_call(glDeleteTextures(1, &image_get(nr)));
+  fan_opengl_call(glDeleteTextures(1, &image_get_handle(nr)));
   image_list.Recycle(nr);
 }
 
 void fan::opengl::context_t::image_bind(image_nr_t nr) {
-  fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get(nr)));
+  fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get_handle(nr)));
 }
 
 void fan::opengl::context_t::image_unbind(image_nr_t nr) {
@@ -696,7 +696,7 @@ fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(const fan:
 
   image_set_settings(p);
 
-  image_t& image = image_get_data(nr);
+  image_t& image = image_get(nr);
   image.size = image_info.size;
 
   int fmt = 0;
@@ -777,7 +777,7 @@ fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_load(fan::color
 
   image_set_settings(p);
 
-  image_t& image = image_get_data(nr);
+  image_t& image = image_get(nr);
   image.size = size_;
 
   fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, image.size.x, image.size.y, 0, p.format, GL_FLOAT, (uint8_t*)colors));
@@ -798,32 +798,15 @@ fan::opengl::context_t::image_nr_t fan::opengl::context_t::create_missing_textur
   image_bind(nr);
 
   image_set_settings(p);
-  image_t& image = image_get_data(nr);
+  image_t& image = image_get(nr);
   image.size = fan::vec2i(2, 2);
 
-  uint8_t pixels[2*2*4];
-
-  uint32_t pixel = 0;
-
-  pixels[pixel++] = 0;
-  pixels[pixel++] = 0;
-  pixels[pixel++] = 0;
-  pixels[pixel++] = 255;
-
-  pixels[pixel++] = 255;
-  pixels[pixel++] = 0;
-  pixels[pixel++] = 220;
-  pixels[pixel++] = 255;
-
-  pixels[pixel++] = 255;
-  pixels[pixel++] = 0;
-  pixels[pixel++] = 220;
-  pixels[pixel++] = 255;
-
-  pixels[pixel++] = 0;
-  pixels[pixel++] = 0;
-  pixels[pixel++] = 0;
-  pixels[pixel++] = 255;
+  uint8_t pixels[16] = {
+    0, 0, 0, 255,
+    255, 0, 220, 255,
+    255, 0, 220, 255,
+    0, 0, 0, 255
+  };
 
   fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, image.size.x, image.size.y, 0, p.format, p.type, pixels));
 
@@ -833,48 +816,30 @@ fan::opengl::context_t::image_nr_t fan::opengl::context_t::create_missing_textur
 }
 
 fan::opengl::context_t::image_nr_t fan::opengl::context_t::create_transparent_texture() {
-    image_load_properties_t p;
+  image_load_properties_t p;
 
-    uint8_t* pixels = (uint8_t*)malloc(sizeof(uint8_t) * (2 * 2 * fan::color::size()));
-    uint32_t pixel = 0;
+  uint8_t pixels[16] = {
+    60, 60, 60, 255,
+    40, 40, 40, 255,
+    40, 40, 40, 255,
+    60, 60, 60, 255
+  };
 
-    pixels[pixel++] = 60;
-    pixels[pixel++] = 60;
-    pixels[pixel++] = 60;
-    pixels[pixel++] = 255;
+  p.visual_output = GL_REPEAT;
 
-    pixels[pixel++] = 40;
-    pixels[pixel++] = 40;
-    pixels[pixel++] = 40;
-    pixels[pixel++] = 255;
+  image_nr_t nr = image_create();
+  image_bind(nr);
 
-    pixels[pixel++] = 40;
-    pixels[pixel++] = 40;
-    pixels[pixel++] = 40;
-    pixels[pixel++] = 255;
+  auto& img = image_get(nr);
 
-    pixels[pixel++] = 60;
-    pixels[pixel++] = 60;
-    pixels[pixel++] = 60;
-    pixels[pixel++] = 255;
+  image_set_settings(p);
 
-    p.visual_output = GL_REPEAT;
+  img.size = fan::vec2i(2, 2);
 
-    image_nr_t nr = image_create();
-    image_bind(nr);
+  fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, 2, 2, 0, p.format, p.type, pixels));
 
-    auto& img = image_get_data(nr);
-
-    image_set_settings(p);
-
-    img.size = fan::vec2i(2, 2);
-
-    fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, 2, 2, 0, p.format, p.type, pixels));
-
-    free(pixels);
-
-    fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
-    return nr;
+  fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
+  return nr;
 }
 
 void fan::opengl::context_t::image_reload_pixels(image_nr_t nr, const fan::image::image_info_t& image_info) {
@@ -887,13 +852,13 @@ void fan::opengl::context_t::image_reload_pixels(image_nr_t nr, const fan::image
 
   image_set_settings(p);
 
-  image_t& image = image_get_data(nr);
+  image_t& image = image_get(nr);
   image.size = image_info.size;
   fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, image.size.x, image.size.y, 0, p.format, p.type, image_info.data));
 }
 
 std::unique_ptr<uint8_t[]> fan::opengl::context_t::image_get_pixel_data(image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
-  image_t& image = image_get_data(nr);
+  image_t& image = image_get(nr);
   image_bind(nr);
 
   fan::vec2ui uv_size = {
@@ -926,13 +891,13 @@ std::unique_ptr<uint8_t[]> fan::opengl::context_t::image_get_pixel_data(image_nr
   return ptr;
 }
 
-fan::opengl::context_t::image_nr_t fan::opengl::context_t::create_image(const fan::color& color)
+fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_create(const fan::color& color)
 {
-  return create_image(color, image_load_properties_t());
+  return image_create(color, image_load_properties_t());
 }
 
 // creates single colored text size.x*size.y sized
-fan::opengl::context_t::image_nr_t fan::opengl::context_t::create_image(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p) {
+fan::opengl::context_t::image_nr_t fan::opengl::context_t::image_create(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p) {
 
   uint8_t pixels[4];
   for (uint32_t p = 0; p < fan::color::size(); p++) {
@@ -946,7 +911,7 @@ fan::opengl::context_t::image_nr_t fan::opengl::context_t::create_image(const fa
 
   fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, 1, 1, 0, p.format, p.type, pixels));
 
-  image_t& image = image_get_data(nr);
+  image_t& image = image_get(nr);
   image.size = 1;
 
   fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
@@ -1183,12 +1148,12 @@ void fan::opengl::context_t::viewport_zero(viewport_nr_t nr) {
   fan_opengl_call(glViewport(0, 0, 0, 0));
 }
 
-bool fan::opengl::context_t::inside(viewport_nr_t nr, const fan::vec2& position) {
+bool fan::opengl::context_t::viewport_inside(viewport_nr_t nr, const fan::vec2& position) {
   viewport_t& viewport = viewport_get(nr);
   return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.viewport_position + viewport.viewport_size / 2, viewport.viewport_size / 2);
 }
 
-bool fan::opengl::context_t::inside_wir(viewport_nr_t nr, const fan::vec2& position) {
+bool fan::opengl::context_t::viewport_inside_wir(viewport_nr_t nr, const fan::vec2& position) {
   viewport_t& viewport = viewport_get(nr);
   return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.viewport_size / 2, viewport.viewport_size / 2);
 }

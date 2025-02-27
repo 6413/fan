@@ -240,7 +240,7 @@ struct shaper_t{
     fan::opengl::core::vbo_t m_vbo;
 
     std::vector<shape_gl_init_t> locations;
-    fan::opengl::context_t::shader_nr_t shader;
+    fan::graphics::context_shader_nr_t shader;
     bool instanced = true;
     GLuint draw_mode = GL_TRIANGLES;
     GLsizei vertex_count = 6;
@@ -380,7 +380,7 @@ private:
   using ShapeID_t = ShapeList_t::nr_t;
 
   #if shaper_set_fan
-    fan::opengl::context_t::shader_nr_t& GetShader(ShapeTypeIndex_t sti) {
+    fan::graphics::context_shader_nr_t& GetShader(ShapeTypeIndex_t sti) {
       return ShapeTypes[sti].shader;
     }
     fan::opengl::core::vao_t GetVAO(ShapeTypeIndex_t sti) {
@@ -476,7 +476,7 @@ private:
 
     #if shaper_set_fan
     std::vector<shape_gl_init_t> locations;
-    fan::opengl::context_t::shader_nr_t shader;
+    fan::graphics::context_shader_nr_t shader;
     bool instanced = true;
     GLuint draw_mode = GL_TRIANGLES;
     GLsizei vertex_count = 6;
@@ -555,55 +555,14 @@ private:
     st.RenderDataSize = bp.RenderDataSize;
     st.DataSize = bp.DataSize;
 
-    #if shaper_set_fan
-    auto& context = get_loco()->get_context();
-
-    st.m_vao.open(context);
-    st.m_vbo.open(context, GL_ARRAY_BUFFER);
-    st.m_vao.bind(context);
-    st.m_vbo.bind(context);
-    st.shader = bp.shader;
-    st.locations = bp.locations;
-    st.instanced = bp.instanced;
-    st.draw_mode = bp.draw_mode;
-    st.vertex_count = bp.vertex_count;
-    fan::opengl::context_t::shader_t shader;
-    if (!st.shader.iic()) {
-      shader = context.shader_get(st.shader);
-    }
-    uint64_t ptr_offset = 0;
-    for (shape_gl_init_t& location : st.locations) {
-      if ((context.opengl.major == 2 && context.opengl.minor == 1) && !st.shader.iic()) {
-        location.index.first = fan_opengl_call(glGetAttribLocation(shader.id, location.index.second));
-      }
-      fan_opengl_call(glEnableVertexAttribArray(location.index.first));
-      fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
-       // instancing
-      if ((context.opengl.major > 3) || (context.opengl.major == 3 && context.opengl.minor >= 3)) {
-        if (st.instanced) {
-          fan_opengl_call(glVertexAttribDivisor(location.index.first, 1));
-        }
-      }
-      switch (location.type) {
-      case GL_FLOAT: {
-        ptr_offset += location.size * sizeof(GLfloat);
-        break;
-      }
-      case GL_UNSIGNED_INT: {
-        ptr_offset += location.size * sizeof(GLuint);
-        break;
-      }
-      default: {
-        fan::throw_error_impl();
-      }
-      }
-    }
-    #endif
+  #if shaper_set_fan
+    get_loco()->gl.add_shape_type(st, bp);
+  #endif
   }
 
   void ProcessBlockEditQueue(){
     #if shaper_set_fan
-    fan::opengl::context_t &context = get_loco()->get_context();
+    fan::opengl::context_t &context = get_loco()->context.gl;
     #endif
 
     auto beid = BlockEditQueue.GetNodeFirst();
@@ -615,7 +574,7 @@ private:
       #if shaper_set_fan
       st.m_vao.bind(context);
       fan::opengl::core::edit_glbuffer(
-        get_loco()->get_context(),
+        context,
         st.m_vbo.m_buffer,
         _GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,
         GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit,
@@ -673,17 +632,19 @@ private:
 
   void _RenderDataReset(ShapeTypeIndex_t sti){
     auto &st = ShapeTypes[sti];
-
+    #if shaper_set_fan
+    fan::opengl::context_t &context = get_loco()->context.gl;
+    #endif
     /* TODO remove all block edit queue stuff */
     BlockList_t::nrtra_t traverse;
     traverse.Open(&st.BlockList);
     #if shaper_set_fan
-    st.m_vao.bind(get_loco()->get_context());
+    st.m_vao.bind(context);
     #endif
     while(traverse.Loop(&st.BlockList)){
       #if shaper_set_fan
       fan::opengl::core::edit_glbuffer(
-        get_loco()->get_context(),
+        context,
         st.m_vbo.m_buffer,
         _GetRenderData(sti, traverse.nr, 0),
         GetRenderDataOffset(sti, traverse.nr),
@@ -698,9 +659,9 @@ private:
     auto &st = ShapeTypes[sti];
 
     #if shaper_set_fan
-    st.m_vbo.bind(get_loco()->get_context());
+    st.m_vbo.bind(get_loco()->get_context().gl);
     fan::opengl::core::write_glbuffer(
-      get_loco()->get_context(),
+      get_loco()->get_context().gl,
       st.m_vbo.m_buffer,
       0,
       New * st.RenderDataSize * st.MaxElementPerBlock(),

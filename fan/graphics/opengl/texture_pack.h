@@ -46,7 +46,6 @@ struct texturepack_t {
     pixel_data_list.clear();
 
     file_path = filename;
-    auto& context = gloco->get_context();
 
     fan::string in;
     fan::io::file::read(filename, &in);
@@ -77,7 +76,7 @@ struct texturepack_t {
         &image_info.size.y
       );
       image_info.channels = 4;
-      pixel_data_list[i].image = context.image_load(image_info, lp);
+      pixel_data_list[i].image =  gloco->image_load(image_info, lp);
       WebPFree(image_info.data);
 
       //pixel_data_list[i].visual_output = 

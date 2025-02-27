@@ -81,7 +81,7 @@ struct image_divider_t {
       image_loaded = false;
       images.clear();
       if (root_image.iic() == false) {
-        auto& img = gloco->image_get_data(root_image);
+        auto& img = gloco->image_get(root_image);
         fan::vec2i divider = { horizontal_line_count, vertical_line_count };
         fan::vec2 uv_size = img.size / divider / img.size;
 
@@ -104,7 +104,7 @@ struct image_divider_t {
       }
     }
 
-    auto& img = gloco->image_get_data(root_image);
+    auto& img = gloco->image_get(root_image);
     fan::vec2 normalized_image_size = img.size.normalize();
     cell_size.x = (child_window_size.max() * 0.95 * (normalized_image_size.x)) / horizontal_line_count;
     cell_size.y = (child_window_size.max() * 0.95 * (normalized_image_size.y)) / vertical_line_count;
@@ -124,7 +124,7 @@ struct image_divider_t {
       root_image = gloco->image_load(
         fn
       );
-      auto& img = gloco->image_get_data(root_image);
+      auto& img = gloco->image_get(root_image);
       open_properties.preferred_pack_size = img.size;
       image_loaded = true;
       open_file_dialog.finished = false;
@@ -151,7 +151,7 @@ struct image_divider_t {
         if (x) {
           ImGui::SameLine();
         }
-        auto& jimg = gloco->image_get_data(j.image);
+        auto& jimg = gloco->image_get(j.image);
 
         if (clicked_images[totalIndex].highlight) {
           ImGui::PushStyleColor(ImGuiCol_Border, fan::color::hex(0x00e0ffff));

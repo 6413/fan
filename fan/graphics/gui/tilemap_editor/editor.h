@@ -284,7 +284,7 @@ struct fte_t {
     lp.mag_filter = loco_t::image_filter::nearest;
 
     grid_visualize.highlight_color = gloco->image_load("images/highlight_hover.webp", lp);
-    grid_visualize.collider_color = gloco->create_image(fan::color(0, 0.5, 0, 0.5));
+    grid_visualize.collider_color = gloco->image_create(fan::color(0, 0.5, 0, 0.5));
     grid_visualize.light_color = gloco->image_load("images/lightbulb.webp", lp);
 
     grid_visualize.highlight_hover = fan::graphics::unlit_sprite_t{ {
@@ -903,7 +903,7 @@ struct fte_t {
       ii.image_name = image.image_name;
 
       texturepack_images.push_back(ii);
-      texturepack_size = texturepack_size.max(fan::vec2(gloco->image_get_data(texturepack.get_pixel_data(pack_id).image).size));
+      texturepack_size = texturepack_size.max(fan::vec2(gloco->image_get(texturepack.get_pixel_data(pack_id).image).size));
       texturepack_single_image_size = texturepack_single_image_size.max(fan::vec2(image.size));
     });
   }
@@ -1032,7 +1032,7 @@ struct fte_t {
           }
           idx++;
           
-          auto& img = gloco->image_get_data(*j.ti.image);
+          auto& img = gloco->image_get(*j.ti.image);
 
           ImGui::ImageRotated(
             (ImTextureID)gloco->image_get(*j.ti.image),
@@ -1286,7 +1286,7 @@ struct fte_t {
         fan::vec2i grid_index(i % images_per_row, i / images_per_row);
         bool selected = false;
 
-        auto& img = gloco->image_get_data(*node.ti.image);
+        auto& img = gloco->image_get(*node.ti.image);
 
         fan::vec2 cursor_pos_global = ImGui::GetCursorScreenPos();
         sprite_size = fan::vec2(final_image_size * zoom);
