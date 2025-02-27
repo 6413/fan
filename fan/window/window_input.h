@@ -18,7 +18,6 @@
   #define GLFW_NATIVE_INCLUDE_NONE
 #endif
 #define GLFW_INCLUDE_NONE
-#define GLFW_NO_API
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>  // Add this
 

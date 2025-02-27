@@ -275,7 +275,7 @@ struct settings_menu_t {
     render_separator_with_margin(ImGui::GetContentRegionAvail().x - min_x);
   }
   void render() {
-    if (gloco->reload_renderer_to != -1) {
+    if (gloco->reload_renderer_to != (decltype(gloco->reload_renderer_to))-1) {
       set_settings_theme();
     }
 

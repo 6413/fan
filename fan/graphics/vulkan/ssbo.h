@@ -40,8 +40,7 @@ struct ssbo_t	 {
 			}
 		}
 
-		create_buffer(
-			context,
+		context.create_buffer(
 			size,
 			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -93,9 +92,9 @@ struct ssbo_t	 {
 			}
 		});
 	}
-	void close(fan::vulkan::context_t& context, memory_write_queue_t* queue) {
+	void close(fan::vulkan::context_t& context) {
 		vkUnmapMemory(context.device, common.memory[context.current_frame].device_memory);
-		common.close(context, queue);
+		common.close(context);
 	}
 
 	void open_descriptors(

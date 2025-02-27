@@ -302,7 +302,7 @@ namespace fan {
 
       void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
       void copy_buffer_to_image(VkBuffer buffer, VkImage image, VkFormat format, const fan::vec2ui& size, const fan::vec2ui& stride = 1);
-      void create_texture_sampler(VkSampler& sampler, const image_load_properties_t& lp = image_load_properties_t());
+      void create_texture_sampler(VkSampler& sampler, const image_load_properties_t& lp);
 
             // TODO
       struct image_list_texture_index_t {

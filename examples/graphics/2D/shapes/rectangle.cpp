@@ -3,15 +3,19 @@
 //fan_track_allocations();
 
 int main() {
+  using namespace fan::graphics;
 
-  loco_t loco;
-  loco_t::shape_t rect = fan::graphics::rectangle_t{ {
+  engine_t engine{{
+    .renderer=engine_t::renderer_t::opengl
+  }};
+
+  rectangle_t rect{ {
     .position = fan::vec3(fan::vec2(400, 400), 0),
     .size = 200,
     .color = fan::colors::red,
   } };
 
-  loco.loop([&] {
-
-  });
+  fan_window_loop{
+    rect.set_position(get_mouse_position());
+  };
 }
