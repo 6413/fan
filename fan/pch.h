@@ -23,4 +23,4 @@
 //#define loco_compute_shader
 
 //
-#include <fan/graphics/loco.h>
+#include <fan/graphics/graphics.h>

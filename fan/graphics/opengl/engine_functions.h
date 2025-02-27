@@ -736,7 +736,7 @@ void draw_shapes() {
           loco.shader_set_value(
             shader,
             "matrix_size",
-            fan::vec2(c.coordinates.right - c.coordinates.left, c.coordinates.down - c.coordinates.up).abs()
+            fan::vec2(c.gl->coordinates.right - c.gl->coordinates.left, c.gl->coordinates.down - c.gl->coordinates.up).abs()
           );
           loco.shader_set_value(
             shader,
@@ -754,7 +754,7 @@ void draw_shapes() {
           loco.shader_set_value(
             shader,
             "camera_position",
-            c.position
+            c.gl->position
           );
           loco.shader_set_value(
             shader,
@@ -955,7 +955,7 @@ void draw_shapes() {
         fan_opengl_call(glActiveTexture(GL_TEXTURE1));
         loco.image_bind(loco.gl.blur.mips.front().image);
 #endif
-        loco.render_final_fb();
+        render_final_fb();
       }
 #endif
     }
@@ -986,4 +986,29 @@ void begin_process_frame() {
   fan_opengl_call(glClearColor(loco.clear_color.r, loco.clear_color.g, loco.clear_color.b, loco.clear_color.a));
   fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
+
+void initialize_fb_vaos() {
+  static constexpr f32_t quad_vertices[] = {
+     -1.0f, 1.0f, 0, 0.0f, 1.0f,
+     -1.0f, -1.0f, 0, 0.0f, 0.0f,
+     1.0f, 1.0f, 0, 1.0f, 1.0f,
+     1.0f, -1.0f, 0, 1.0f, 0.0f,
+  };
+  fan_opengl_call(glGenVertexArrays(1, &fb_vao));
+  fan_opengl_call(glGenBuffers(1, &fb_vbo));
+  fan_opengl_call(glBindVertexArray(fb_vao));
+  fan_opengl_call(glBindBuffer(GL_ARRAY_BUFFER, fb_vbo));
+  fan_opengl_call(glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW));
+  fan_opengl_call(glEnableVertexAttribArray(0));
+  fan_opengl_call(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(f32_t), (void*)0));
+  fan_opengl_call(glEnableVertexAttribArray(1));
+  fan_opengl_call(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(f32_t), (void*)(3 * sizeof(f32_t))));
+}
+
+void render_final_fb() {
+  fan_opengl_call(glBindVertexArray(loco.gl.fb_vao));
+  fan_opengl_call(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
+  fan_opengl_call(glBindVertexArray(0));
+}
+
 #undef loco
