@@ -1,7 +1,6 @@
 #include "text_editor.h"
 
 #include <cassert>
-#include <chrono>
 #include <cmath>
 
 // TODO
@@ -20,31 +19,6 @@ bool equals(InputIt1 first1, InputIt1 last1,
 }
 
 TextEditor::TextEditor()
-  : mLineSpacing(1.0f)
-  , mUndoIndex(0)
-  , mTabSize(4)
-  , mOverwrite(false)
-  , mReadOnly(false)
-  , mWithinRender(false)
-  , mScrollToCursor(false)
-  , mScrollToTop(false)
-  , mTextChanged(false)
-  , mColorizerEnabled(true)
-  , mTextStart(20.0f)
-  , mLeftMargin(10)
-  , mCursorPositionChanged(false)
-  , mColorRangeMin(0)
-  , mColorRangeMax(0)
-  , mSelectionMode(SelectionMode::Normal)
-  , mCheckComments(true)
-  , mLastClick(-1.0f)
-  , mHandleKeyboardInputs(true)
-  , mHandleMouseInputs(true)
-  , mIgnoreImGuiChild(false)
-  , mShowWhitespaces(true)
-  , mShowLineNumbers(true)
-  , mStartTime(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count())
-  , mFocused(0)
 {
   SetPalette(GetDarkPalette());
   SetLanguageDefinition(LanguageDefinition::HLSL());
@@ -968,7 +942,7 @@ void TextEditor::Render()
 
       auto& line = mLines[lineNo];
       longest = std::max(mTextStart + TextDistanceToLineStart(Coordinates(lineNo, GetLineMaxColumn(lineNo))), longest);
-      auto columnNo = 0;
+      
       Coordinates lineStartCoord(lineNo, 0);
       Coordinates lineEndCoord(lineNo, GetLineMaxColumn(lineNo));
 
@@ -1134,7 +1108,6 @@ void TextEditor::Render()
           while (l-- > 0)
             mLineBuffer.push_back(line[i++].mChar);
         }
-        ++columnNo;
       }
 
       if (!mLineBuffer.empty())

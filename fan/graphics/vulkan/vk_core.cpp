@@ -197,7 +197,7 @@ void fan::vulkan::image_create(fan::vulkan::context_t& context, const fan::vec2u
   VkMemoryAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = fan::vulkan::context_t::find_memory_type(context, memRequirements.memoryTypeBits, properties);
+  allocInfo.memoryTypeIndex = context.find_memory_type(memRequirements.memoryTypeBits, properties);
 
   if (vkAllocateMemory(context.device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate image memory!");
@@ -269,10 +269,12 @@ constexpr static uint32_t get_image_multiplier(VkFormat format) {
   case fan::vulkan::context_t::image_format::r8b8g8a8_unorm: {
     return 4;
   }
-  default: {
-    fan::throw_error("failed to find format for image multiplier");
+  default: {// removes warning
+    break;
   }
   }
+  fan::throw_error("failed to find format for image multiplier");
+  return {};
 }
 
 void fan::vulkan::context_t::copy_buffer_to_image(VkBuffer buffer, VkImage image, VkFormat format, const fan::vec2ui& size, const fan::vec2ui& stride) {
@@ -395,7 +397,6 @@ fan::vulkan::context_t::image_nr_t fan::vulkan::context_t::image_load(const fan:
   VkDeviceSize image_size = image_info.size.multiply() * image_multiplier;
 
   create_buffer(
-    *this,
     image_size,
     VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
     //VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ,
@@ -1516,32 +1517,6 @@ bool fan::vulkan::context_t::has_stencil_component(VkFormat format) {
   return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void fan::vulkan::context_t::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
-  VkBufferCreateInfo bufferInfo{};
-  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = size;
-  bufferInfo.usage = usage;
-  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-  if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create buffer!");
-  }
-
-  VkMemoryRequirements memRequirements;
-  vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
-
-  VkMemoryAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = find_memory_type(memRequirements.memoryTypeBits, properties);
-
-  if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate buffer memory!");
-  }
-
-  vkBindBufferMemory(device, buffer, bufferMemory, 0);
-}
-
 VkCommandBuffer fan::vulkan::context_t::begin_single_time_commands() {
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1583,19 +1558,6 @@ void fan::vulkan::context_t::copy_buffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
   vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
   end_single_time_commands(commandBuffer);
-}
-
-uint32_t fan::vulkan::context_t::find_memory_type(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-  VkPhysicalDeviceMemoryProperties memProperties;
-  vkGetPhysicalDeviceMemoryProperties(physical_device, &memProperties);
-
-  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-    if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-      return i;
-    }
-  }
-
-  throw std::runtime_error("failed to find suitable memory type!");
 }
 
 void fan::vulkan::context_t::create_command_buffers() {
@@ -2174,6 +2136,41 @@ void fan::vulkan::context_t::descriptor_pool_t::open(fan::vulkan::context_t& con
 
 void fan::vulkan::context_t::descriptor_pool_t::close(fan::vulkan::context_t& context) {
   vkDestroyDescriptorPool(context.device, m_descriptor_pool, nullptr);
+}
+
+uint32_t fan::vulkan::context_t::find_memory_type(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+	VkPhysicalDeviceMemoryProperties memProperties;
+	vkGetPhysicalDeviceMemoryProperties(physical_device, &memProperties);
+
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+			return i;
+		}
+	}
+
+	fan::throw_error("failed to find suitable memory type!");
+  return {};
+}
+
+void fan::vulkan::context_t::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+	VkBufferCreateInfo bufferInfo{};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.size = size;
+	bufferInfo.usage = usage;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	fan::vulkan::validate(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer));
+
+	VkMemoryRequirements memRequirements;
+	vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memRequirements.size;
+	allocInfo.memoryTypeIndex = find_memory_type(memRequirements.memoryTypeBits, properties);
+
+	fan::vulkan::validate(vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory));
+	fan::vulkan::validate(vkBindBufferMemory(device, buffer, bufferMemory, 0));
 }
 
 void fan::vulkan::context_t::create_loco_framebuffer() {

@@ -21,7 +21,7 @@ struct uniform_block_t {
 			for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; ++frame) {
 
 				uint8_t* data;
-				validate(vkMapMemory(context.device, common.memory[frame].device_memory, 0, element_size * sizeof(type_t), 0, (void**)&data));
+				fan::vulkan::validate(vkMapMemory(context.device, common.memory[frame].device_memory, 0, element_size * sizeof(type_t), 0, (void**)&data));
 							
 				for (auto j : common.indices) {
 					((type_t*)data)[j.i] = ((type_t*)buffer)[j.i];
@@ -40,8 +40,7 @@ struct uniform_block_t {
 		VkDeviceSize bufferSize = sizeof(type_t) * element_size;
 
 		for (size_t i = 0; i < buffer_count; i++) {
-			create_buffer(
-				context,
+			context.create_buffer(
 				bufferSize, 
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 

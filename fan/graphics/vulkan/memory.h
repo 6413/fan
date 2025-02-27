@@ -116,44 +116,10 @@ struct memory_common_t {
 	}
 
 	std::vector<index_t> indices;
-	memory_write_queue_t::nr_t m_edit_index;
+	fan::vulkan::context_t::memory_write_queue_t::nr_t m_edit_index;
 
 	uint64_t m_min_edit;
 	uint64_t m_max_edit;
 
 	bool queued;
 };
-
-static uint32_t find_memory_type(fan::vulkan::context_t& context, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(context.physical_device, &memProperties);
-
-	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-			return i;
-		}
-	}
-
-	fan::throw_error("failed to find suitable memory type!");
-}
-
-static void create_buffer(fan::vulkan::context_t& context, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
-	VkBufferCreateInfo bufferInfo{};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = size;
-	bufferInfo.usage = usage;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	fan::vulkan::validate(vkCreateBuffer(context.device, &bufferInfo, nullptr, &buffer));
-
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(context.device, buffer, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = find_memory_type(context, memRequirements.memoryTypeBits, properties);
-
-	fan::vulkan::validate(vkAllocateMemory(context.device, &allocInfo, nullptr, &bufferMemory));
-	fan::vulkan::validate(vkBindBufferMemory(context.device, buffer, bufferMemory, 0));
-}

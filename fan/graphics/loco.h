@@ -197,6 +197,8 @@ struct loco_t {
   using viewport_t = fan::graphics::context_viewport_nr_t;
   using image_load_properties_t = fan::graphics::image_load_properties_t;
 
+  using image_sampler_address_mode = fan::graphics::image_sampler_address_mode;
+
   fan::graphics::context_shader_nr_t shader_create();
   fan::graphics::context_shader_t shader_get(fan::graphics::context_shader_nr_t nr);
   void shader_erase(fan::graphics::context_shader_nr_t nr);

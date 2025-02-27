@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <map>
 #include <regex>
+#include <chrono>
 
 #include <fan/imgui/imgui.h>
 
@@ -369,49 +370,49 @@ private:
   void HandleMouseInputs();
   void Render();
 
-  float mLineSpacing;
+  float mLineSpacing = 1.f;
   Lines mLines;
   EditorState mState;
   UndoBuffer mUndoBuffer;
-  int mUndoIndex;
+  int mUndoIndex = 0;
 
-  bool mFocused;
-  bool mShowLineNumbers;
-  int mTabSize;
-  bool mOverwrite;
-  bool mReadOnly;
-  bool mWithinRender;
-  bool mScrollToCursor;
-  bool mScrollToTop;
-  bool mTextChanged;
-  bool mColorizerEnabled;
-  float mTextStart;                   // position (in pixels) where a code line starts relative to the left of the TextEditor.
-  int  mLeftMargin;
-  bool mCursorPositionChanged;
-  int mColorRangeMin, mColorRangeMax;
-  SelectionMode mSelectionMode;
-  bool mHandleKeyboardInputs;
-  bool mHandleMouseInputs;
-  bool mIgnoreImGuiChild;
-  bool mShowWhitespaces;
+  bool mFocused = 0;
+  bool mShowLineNumbers = true;
+  int mTabSize = 2;
+  bool mOverwrite = false;
+  bool mReadOnly = false;
+  bool mWithinRender = false;
+  bool mScrollToCursor = false;
+  bool mScrollToTop = false;
+  bool mTextChanged = false;
+  bool mColorizerEnabled = true;
+  float mTextStart = 20.f;                   // position (in pixels) where a code line starts relative to the left of the TextEditor.
+  int  mLeftMargin = 10;
+  bool mCursorPositionChanged = false;
+  int mColorRangeMin = 0, mColorRangeMax = 0;
+  SelectionMode mSelectionMode = SelectionMode::Normal;
+  bool mHandleKeyboardInputs = true;
+  bool mHandleMouseInputs = true;
+  bool mIgnoreImGuiChild = false;
+  bool mShowWhitespaces = true;
 
   Palette mPaletteBase;
   Palette mPalette;
   LanguageDefinition mLanguageDefinition;
   RegexList mRegexList;
 
-  bool mCheckComments;
+  bool mCheckComments = true;
   Breakpoints mBreakpoints;
   ErrorMarkers mErrorMarkers;
   ImVec2 mCharAdvance;
   Coordinates mInteractiveStart, mInteractiveEnd;
   std::string mLineBuffer;
-  uint64_t mStartTime;
+  uint64_t mStartTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
   public:
   bool ignore_window_refocus = true;
   bool ignore_comments = true;
   private:
 
-  float mLastClick;
+  float mLastClick = -1.f;
 };
