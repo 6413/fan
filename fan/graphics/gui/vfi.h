@@ -683,11 +683,12 @@ struct vfi_t {
     focus.keyboard.sic();
     focus.text.sic();
 
-    gloco->shaper.AddShapeType(loco_t::shape_type_t::vfi, {
-      .MaxElementPerBlock = (loco_t::shaper_t::MaxElementPerBlock_t)MaxElementPerBlock,
-      .RenderDataSize = 0,
-      .DataSize = sizeof(ri_t),
-    });
+    loco_t::shaper_t::BlockProperties_t bp;
+    bp.MaxElementPerBlock = (loco_t::shaper_t::MaxElementPerBlock_t)MaxElementPerBlock;
+    bp.RenderDataSize = 0;
+    bp.DataSize = sizeof(ri_t);
+
+    gloco->shaper.AddShapeType(loco_t::shape_type_t::vfi, bp);
 
 
     loco_t::functions_t functions;
