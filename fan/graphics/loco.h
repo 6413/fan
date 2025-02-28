@@ -2010,7 +2010,7 @@ public:
     shader_set_fragment(shader,
       read_shader(fragment)
     );
-
+    
     shader_compile(shader);
 
     decltype(loco_t::shaper_t::BlockProperties_t::renderer) data;
@@ -2022,23 +2022,122 @@ public:
         .instanced = instanced
       };
     }
-    else {
-      fan::throw_error("");
-     /* data = loco_t::shaper_t::BlockProperties_t::vk_t{
-        .locations = decltype(loco_t::shaper_t::BlockProperties_t::vk_t::locations)(std::begin(T::locations), std::end(T::locations)),
-        .shader = shader,
-        .instanced = instanced
-      };*/
+#if defined(loco_vulkan)
+    else if (window.renderer == renderer_t::vulkan) {
+      VkPipelineColorBlendAttachmentState color_blend_attachment[2]{};
+      color_blend_attachment[0].colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT |
+        VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT |
+        VK_COLOR_COMPONENT_A_BIT
+        ;
+      color_blend_attachment[0].blendEnable = VK_TRUE;
+      color_blend_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+      color_blend_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+      color_blend_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
+      color_blend_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+      color_blend_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+      color_blend_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
+
+      color_blend_attachment[1] = color_blend_attachment[0];
+
+      // 2 for rect instance, upv
+      static constexpr auto vulkan_buffer_count = 4;
+      fan::vulkan::context_t::descriptor_t<vulkan_buffer_count> rect;
+      decltype(rect)::properties_t rectp;
+      // image
+      //uint32_t ds_offset = 3;
+      auto shaderd = gloco->shader_get(shader);
+      uint32_t ds_offset = 2;
+      std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties{ 0 };
+      {
+        ds_properties[0].binding = 0;
+        ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        ds_properties[0].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        ds_properties[0].range = VK_WHOLE_SIZE;
+        //ds_properties[0].buffer = m_ssbo.common.memory[gloco->get_context().vk.current_frame].buffer;
+        ds_properties[0].dst_binding = 0;
+
+        ds_properties[1].binding = 1;
+        ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        ds_properties[1].buffer = shaderd.vk->projection_view_block.common.memory[gloco->get_context().vk.current_frame].buffer;
+        ds_properties[1].range = shaderd.vk->projection_view_block.m_size;
+        ds_properties[1].dst_binding = 1;
+
+        //VkDescriptorImageInfo imageInfo{};
+        //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        //auto img = gloco->image_get(gloco->default_texture);
+        //imageInfo.imageView = img.vk.image_view;
+        //imageInfo.sampler = img.vk.sampler;
+
+        //ds_properties[2].use_image = 1;
+        //ds_properties[2].binding = 2;
+        //ds_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        //ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        //for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
+        //  ds_properties[2].image_infos[i] = imageInfo;
+        //}
+        //ds_properties[2].dst_binding = 2;
+
+
+        VkDescriptorImageInfo imageInfo{};
+
+        VkSampler sampler;
+        gloco->context.vk.create_texture_sampler(sampler, fan::vulkan::context_t::image_load_properties_t());
+
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = gloco->get_context().vk.vai_bitmap[0].image_view;
+        imageInfo.sampler = sampler;
+
+        ds_properties[ds_offset].use_image = 1;
+        ds_properties[ds_offset].binding = 3;
+        ds_properties[ds_offset].dst_binding = 3;
+        ds_properties[ds_offset].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        ds_properties[ds_offset].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
+          ds_properties[ds_offset].image_infos[i] = imageInfo;
+        }
+
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = gloco->get_context().vk.vai_bitmap[1].image_view;
+        imageInfo.sampler = sampler;
+
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        ds_properties[ds_offset + 1].use_image = 1;
+        ds_properties[ds_offset + 1].binding = 4;
+        ds_properties[ds_offset + 1].dst_binding = 4;
+        ds_properties[ds_offset + 1].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        ds_properties[ds_offset + 1].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
+          ds_properties[ds_offset + 1].image_infos[i] = imageInfo;
+        }
+      }
+      rect.open(context.vk, ds_properties);
+      rect.update(context.vk, 2, ds_offset);
+      fan::vulkan::context_t::pipeline_t p;
+      fan::vulkan::context_t::pipeline_t::properties_t pipe_p;
+      pipe_p.color_blend_attachment_count = std::size(color_blend_attachment);
+      pipe_p.color_blend_attachment = color_blend_attachment;
+      pipe_p.shader = shader.vk;
+      pipe_p.descriptor_layout = &rect.m_layout;
+      pipe_p.descriptor_layout_count = vulkan_buffer_count;
+      p.open(context.vk, pipe_p);
+      loco_t::shaper_t::BlockProperties_t::vk_t vk;
+      vk.pipeline = p;
+      data = vk;
     }
+#endif
+
+    shaper_t::BlockProperties_t bp;
+    bp.MaxElementPerBlock = (loco_t::shaper_t::MaxElementPerBlock_t)MaxElementPerBlock;
+    bp.RenderDataSize = (decltype(loco_t::shaper_t::BlockProperties_t::RenderDataSize))(sizeof(typename T::vi_t) * instance_count);
+    bp.DataSize = sizeof(typename T::ri_t);
+    bp.renderer = data;
 
     gloco->shaper.AddShapeType(
       shape->shape_type,
-      {
-        .MaxElementPerBlock = (loco_t::shaper_t::MaxElementPerBlock_t)MaxElementPerBlock,
-        .RenderDataSize = (decltype(loco_t::shaper_t::BlockProperties_t::RenderDataSize))(sizeof(typename T::vi_t) * instance_count),
-        .DataSize = sizeof(typename T::ri_t),
-        .renderer = data
-      }
+      bp
     );
 
     loco_t::functions_t functions = loco_t::get_functions<typename T::vi_t>();

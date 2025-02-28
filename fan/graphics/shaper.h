@@ -221,6 +221,7 @@ struct shaper_t{
   #define BLL_set_type_node _blid_t
   #include <BLL/BLL.h>
   struct ShapeType_t{
+    ShapeType_t() {}
     /* this will be used from BlockList callbacks with offsetless */
     shaper_t *shaper;
     ShapeTypeAmount_t sti;
@@ -395,7 +396,7 @@ private:
         return std::get<ShapeType_t::gl_t>(d.renderer).shader;
       }
       fan::throw_error("");
-      fan::graphics::context_shader_nr_t doesnt_happen;
+      static fan::graphics::context_shader_nr_t doesnt_happen;
       return doesnt_happen;
     }
     fan::opengl::core::vao_t GetVAO(ShapeTypeIndex_t sti) {
@@ -503,6 +504,7 @@ private:
   }
 
   struct BlockProperties_t{
+    BlockProperties_t() {}
     MaxElementPerBlock_t MaxElementPerBlock;
     decltype(ShapeType_t::RenderDataSize) RenderDataSize;
     decltype(ShapeType_t::DataSize) DataSize;
@@ -516,7 +518,7 @@ private:
       GLsizei vertex_count = 6;
     };
     struct vk_t {
-
+      fan::vulkan::context_t::pipeline_t pipeline;
     };
     std::variant<
       gl_t,

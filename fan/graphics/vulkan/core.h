@@ -136,7 +136,9 @@ namespace fan {
       template <uint32_t count>
       struct descriptor_t {
 
-        void open(fan::vulkan::context_t& context, std::array<fan::vulkan::write_descriptor_set_t, count> properties);
+        using properties_t = std::array<fan::vulkan::write_descriptor_set_t, count>;
+
+        void open(fan::vulkan::context_t& context, const properties_t& properties);
         void close(fan::vulkan::context_t& context);
 
         // for buffer update, need to manually call .m_properties.common
@@ -148,7 +150,7 @@ namespace fan {
           uint32_t texture_begin = 0
         );
 
-        std::array<fan::vulkan::write_descriptor_set_t, count> m_properties;
+        properties_t m_properties;
         VkDescriptorSetLayout m_layout;
         VkDescriptorSet m_descriptor_set[fan::vulkan::max_frames_in_flight];
       };
@@ -623,7 +625,7 @@ namespace fan {
   namespace vulkan {
 
     template <uint32_t count>
-    inline void fan::vulkan::context_t::descriptor_t<count>::open(fan::vulkan::context_t& context, std::array<fan::vulkan::write_descriptor_set_t, count> properties) {
+    inline void fan::vulkan::context_t::descriptor_t<count>::open(fan::vulkan::context_t& context, const std::array<fan::vulkan::write_descriptor_set_t, count>& properties) {
       m_properties = properties;
 
       VkDescriptorSetLayoutBinding uboLayoutBinding[count]{};
