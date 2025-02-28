@@ -11,11 +11,11 @@ void shapes_open() {
   loco.shape_functions.resize(loco.shape_functions.size() + 1); // line
   loco.shape_functions.resize(loco.shape_functions.size() + 1); // mark
 
-  //loco.shape_open<loco_t::rectangle_t>(
-  //  &loco.rectangle,
-  //  "shaders/vulkan/2D/objects/rectangle.vert",
-  //  "shaders/vulkan/2D/objects/rectangle.frag"
-  //);
+ /* loco.shape_open<loco_t::rectangle_t>(
+    &loco.rectangle,
+    "shaders/vulkan/2D/objects/rectangle.vert",
+    "shaders/vulkan/2D/objects/rectangle.frag"
+  );*/
 }
 
 #undef loco
