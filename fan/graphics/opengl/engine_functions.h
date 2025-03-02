@@ -405,27 +405,6 @@ void shapes_open() {
     }
   }
 
-  {
-    fan::vec2 window_size = loco.window.get_size();
-    {
-      loco.orthographic_camera.camera = loco.open_camera(
-        fan::vec2(0, window_size.x),
-        fan::vec2(0, window_size.y)
-      );
-      loco.orthographic_camera.viewport = loco.open_viewport(
-        fan::vec2(0, 0),
-        window_size
-      );
-    }
-    {
-      loco.perspective_camera.camera = loco.open_camera_perspective();
-      loco.perspective_camera.viewport = loco.open_viewport(
-        fan::vec2(0, 0),
-        window_size
-      );
-    }
-  }
-
   init_framebuffer();
 
   loco.gl.m_fbo_final_shader = loco.shader_create();

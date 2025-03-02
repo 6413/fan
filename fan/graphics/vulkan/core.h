@@ -115,7 +115,7 @@ namespace fan {
       void open(auto& context, const properties_t& p);
       void close(auto& context);
 
-      void transition_image_layout(auto& context, VkImageLayout newLayout);
+      void transition_image_layout(auto& context, VkImageLayout newLayout, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
 
       VkFormat format;
 
@@ -133,10 +133,14 @@ namespace fan {
 
     struct context_t {
 
-      template <uint32_t count>
+      struct push_constants_t {
+        uint32_t texture_id;
+        uint32_t camera_id;
+      };
+
       struct descriptor_t {
 
-        using properties_t = std::array<fan::vulkan::write_descriptor_set_t, count>;
+        using properties_t = std::vector<fan::vulkan::write_descriptor_set_t>;
 
         void open(fan::vulkan::context_t& context, const properties_t& properties);
         void close(fan::vulkan::context_t& context);
@@ -144,7 +148,7 @@ namespace fan {
         // for buffer update, need to manually call .m_properties.common
         void update(
           fan::vulkan::context_t& context,
-          uint32_t n = count,
+          uint32_t n,
           uint32_t begin = 0,
           uint32_t texture_n = max_textures,
           uint32_t texture_begin = 0
@@ -165,6 +169,10 @@ namespace fan {
 #define loco_vulkan_descriptor_image_sampler
         void open(fan::vulkan::context_t& context);
         void close(fan::vulkan::context_t& context);
+
+        operator VkDescriptorPool() const {
+          return m_descriptor_pool;
+        }
 
         VkDescriptorPool m_descriptor_pool;
       }descriptor_pool;
@@ -218,8 +226,8 @@ namespace fan {
 
       //-----------------------------shader-----------------------------
       struct view_projection_t {
-        fan::mat4 view;
         fan::mat4 projection;
+        fan::mat4 view;
       };
 
       struct shader_t {
@@ -399,7 +407,7 @@ namespace fan {
       struct pipeline_t {
 
         struct properties_t {
-          uint32_t descriptor_layout_count;
+          uint32_t descriptor_layout_count = 0;
           VkDescriptorSetLayout* descriptor_layout;
           fan::vulkan::context_t::shader_nr_t shader;
           uint32_t push_constants_size = 0;
@@ -415,6 +423,12 @@ namespace fan {
 
         void open(fan::vulkan::context_t& context, const properties_t& p);
         void close(fan::vulkan::context_t& context);
+
+        fan::vulkan::context_t::shader_nr_t shader_nr;
+
+        operator VkPipeline() const {
+          return m_pipeline;
+        }
 
         VkPipelineLayout m_layout;
         VkPipeline m_pipeline;
@@ -475,11 +489,6 @@ namespace fan {
       void create_framebuffers();
 
       void create_command_pool();
-
-      void create_loco_framebuffer();
-
-      void create_wboit_views();
-      void create_depth_resources();
 
       VkFormat find_supported_foramt(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
@@ -581,11 +590,19 @@ namespace fan {
       VkQueue present_queue;
 #endif
 
-      VkSwapchainKHR swap_chain;
+      std::vector<vai_t> mainColorImageViews;
+      std::vector<vai_t> postProcessedColorImageViews;
+      std::vector<vai_t> depthImageViews;
+      std::vector<vai_t> downscaleImageViews1;
+      std::vector<vai_t> upscaleImageViews1;
+      std::vector<vai_t> vai_depth;
+
       std::vector<VkImage> swap_chain_images;
+      std::vector<VkImageView> swap_chain_image_views;
+
+      VkSwapchainKHR swap_chain;
       VkFormat swap_chain_image_format;
       fan::vec2 swap_chain_size;
-      std::vector<VkImageView> swap_chain_image_views;
       std::vector<VkFramebuffer> swap_chain_framebuffers;
       VkPresentModeKHR present_mode;
       VkSurfaceFormatKHR surface_format;
@@ -596,10 +613,7 @@ namespace fan {
       uint32_t queue_family = -1;
       uint32_t min_image_count = 0;
       uint32_t image_count = 0;
-
-      vai_t vai_depth;
-      vai_t vai_bitmap[2];
-
+      
       std::vector<VkCommandBuffer> command_buffers;
 
       std::vector<VkSemaphore> image_available_semaphores;
@@ -624,12 +638,11 @@ namespace fan {
 namespace fan {
   namespace vulkan {
 
-    template <uint32_t count>
-    inline void fan::vulkan::context_t::descriptor_t<count>::open(fan::vulkan::context_t& context, const std::array<fan::vulkan::write_descriptor_set_t, count>& properties) {
+    inline void fan::vulkan::context_t::descriptor_t::open(fan::vulkan::context_t& context, const std::vector<fan::vulkan::write_descriptor_set_t>& properties) {
       m_properties = properties;
 
-      VkDescriptorSetLayoutBinding uboLayoutBinding[count]{};
-      for (uint16_t i = 0; i < count; ++i) {
+      std::vector<VkDescriptorSetLayoutBinding> uboLayoutBinding(properties.size());
+      for (uint16_t i = 0; i < properties.size(); ++i) {
         uboLayoutBinding[i].binding = properties[i].binding;
         uboLayoutBinding[i].descriptorCount = 1;
         if (m_properties[i].use_image) {
@@ -642,7 +655,7 @@ namespace fan {
       VkDescriptorSetLayoutCreateInfo layoutInfo{};
       layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
       layoutInfo.bindingCount = std::size(uboLayoutBinding);
-      layoutInfo.pBindings = uboLayoutBinding;
+      layoutInfo.pBindings = uboLayoutBinding.data();
 
       validate(vkCreateDescriptorSetLayout(context.device, &layoutInfo, nullptr, &m_layout));
 
@@ -659,38 +672,36 @@ namespace fan {
       validate(vkAllocateDescriptorSets(context.device, &allocInfo, m_descriptor_set));
     }
 
-    template <uint32_t count>
-    inline void fan::vulkan::context_t::descriptor_t<count>::close(fan::vulkan::context_t& context) {
+    inline void fan::vulkan::context_t::descriptor_t::close(fan::vulkan::context_t& context) {
       vkDestroyDescriptorSetLayout(context.device, m_layout, 0);
     }
 
-    template <uint32_t count>
-    inline void fan::vulkan::context_t::descriptor_t<count>::update(
+    inline void fan::vulkan::context_t::descriptor_t::update(
       fan::vulkan::context_t& context,
       uint32_t n,
       uint32_t begin,
       uint32_t texture_n,
       uint32_t texture_begin
     ) {
-      VkDescriptorBufferInfo bufferInfo[count * max_frames_in_flight]{};
+      std::vector<VkDescriptorBufferInfo> bufferInfo(n * max_frames_in_flight);
 
       for (size_t frame = 0; frame < max_frames_in_flight; frame++) {
 
-        std::array<VkWriteDescriptorSet, count> descriptorWrites{};
+        std::vector<VkWriteDescriptorSet> descriptorWrites(n);
 
         for (uint32_t j = begin; j < begin + n; ++j) {
 
           if (m_properties[j].buffer) {
-            bufferInfo[frame * count + j].buffer = m_properties[j].buffer;
-            bufferInfo[frame * count + j].offset = 0;
-            bufferInfo[frame * count + j].range = m_properties[j].range;
+            bufferInfo[frame * n + j].buffer = m_properties[j].buffer;
+            bufferInfo[frame * n + j].offset = 0;
+            bufferInfo[frame * n + j].range = m_properties[j].range;
           }
 
           descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
           descriptorWrites[j].dstSet = m_descriptor_set[frame];
           descriptorWrites[j].descriptorType = m_properties[j].type;
           descriptorWrites[j].descriptorCount = 1;
-          descriptorWrites[j].pBufferInfo = &bufferInfo[frame * count + j];
+          descriptorWrites[j].pBufferInfo = &bufferInfo[frame * n + j];
           descriptorWrites[j].dstBinding = m_properties[j].dst_binding;
 
           // FIX

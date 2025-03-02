@@ -248,14 +248,15 @@ struct shaper_t{
       GLsizei vertex_count = 6;
     };
     struct vk_t {
-
+      fan::vulkan::context_t::pipeline_t pipeline;
+      fan::vulkan::context_t::ssbo_t shape_data;
     };
     std::variant<
       gl_t,
       vk_t
     > renderer;
     #endif
-
+    //fan::vulkan::context_t::descriptor_t<vulkan_buffer_count>
     MaxElementPerBlock_t MaxElementPerBlock(){
       return (MaxElementPerBlock_t)MaxElementPerBlock_m1 + 1;
     }
@@ -390,10 +391,15 @@ private:
   using ShapeID_t = ShapeList_t::nr_t;
 
   #if shaper_set_fan
-    fan::graphics::context_shader_nr_t& GetShader(ShapeTypeIndex_t sti) {
+    fan::graphics::context_shader_nr_t GetShader(ShapeTypeIndex_t sti) {
       auto& d = ShapeTypes[sti];
       if (std::holds_alternative<ShapeType_t::gl_t>(d.renderer)) {
         return std::get<ShapeType_t::gl_t>(d.renderer).shader;
+      }
+      if (std::holds_alternative<ShapeType_t::vk_t>(d.renderer)) {
+        fan::graphics::context_shader_nr_t s_nr;
+        s_nr.vk = std::get<ShapeType_t::vk_t>(d.renderer).pipeline.shader_nr;
+        return s_nr;
       }
       fan::throw_error("");
       static fan::graphics::context_shader_nr_t doesnt_happen;
@@ -519,6 +525,7 @@ private:
     };
     struct vk_t {
       fan::vulkan::context_t::pipeline_t pipeline;
+      fan::vulkan::context_t::ssbo_t shape_data;
     };
     std::variant<
       gl_t,
@@ -605,6 +612,10 @@ private:
       get_loco()->gl.add_shape_type(st, bp);
     }
     else if (std::holds_alternative<BlockProperties_t::vk_t>(bp.renderer)) {
+      ShapeType_t::vk_t d;
+      d.pipeline = std::get<BlockProperties_t::vk_t>(bp.renderer).pipeline;
+      d.shape_data = std::get<BlockProperties_t::vk_t>(bp.renderer).shape_data;
+      st.renderer = d;
       //st.renderer.emplace<ShapeType_t::vk_t>();
     }
   #endif
@@ -632,6 +643,14 @@ private:
           GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit,
           bu.MaxEdit - bu.MinEdit,
           GL_ARRAY_BUFFER
+        );
+      }
+      else if (std::holds_alternative<ShapeType_t::vk_t>(st.renderer)) {
+        auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
+        memcpy(
+          vk.shape_data.data, // data  + offset
+          _GetRenderData(be.sti, be.blid, 0) + bu.MinEdit + (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit),
+          bu.MaxEdit - bu.MinEdit
         );
       }
       #endif
@@ -686,13 +705,13 @@ private:
   void _RenderDataReset(ShapeTypeIndex_t sti){
     auto &st = ShapeTypes[sti];
     #if shaper_set_fan
+    /* TODO remove all block edit queue stuff */
+    BlockList_t::nrtra_t traverse;
+    traverse.Open(&st.BlockList);
+    
     if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
       auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
       fan::opengl::context_t &context = get_loco()->context.gl;
-    
-      /* TODO remove all block edit queue stuff */
-      BlockList_t::nrtra_t traverse;
-      traverse.Open(&st.BlockList);
       gl.m_vao.bind(context);
       while(traverse.Loop(&st.BlockList)){
         fan::opengl::core::edit_glbuffer(
@@ -707,7 +726,11 @@ private:
       traverse.Close(&st.BlockList);
     }
     else {
-      fan::throw_error("");
+      auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
+      while (traverse.Loop(&st.BlockList)) {
+        memcpy(vk.shape_data.data, _GetRenderData(sti, traverse.nr, 0), st.RenderDataSize * st.MaxElementPerBlock());
+      }
+      traverse.Close(&st.BlockList);
     }
     #endif
   }
@@ -729,7 +752,12 @@ private:
       _RenderDataReset(sti);
     }
     else {
-      fan::throw_error("");
+      auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
+      //memcpy(vk.shape_data.data, _GetRenderData(sti, traverse.nr, 0) + GetRenderDataOffset(sti, traverse.nr), st.RenderDataSize * st.MaxElementPerBlock());
+      //vk.shape_data.allocate(gloco->context.vk, New * st.RenderDataSize * st.MaxElementPerBlock());
+      //vk.shape_data.m_descriptor.update(gloco->context.vk, 1, 0, 1, 0);
+      //fan::throw_error("");
+      _RenderDataReset(sti);
     }
     #endif
   }
