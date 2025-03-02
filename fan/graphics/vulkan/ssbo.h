@@ -1,6 +1,8 @@
 // vram instance, ram instance
-template <typename vi_t, typename ri_t, uint32_t max_instance_size, uint32_t descriptor_count>
-struct ssbo_t	 {
+struct ssbo_t	{
+
+  uint32_t max_instance_size = 1024;
+  uint32_t descriptor_count = 0;
 
 	static constexpr auto buffer_count = fan::vulkan::max_frames_in_flight;
 
@@ -49,7 +51,7 @@ struct ssbo_t	 {
 			common.memory[context.current_frame].buffer,
 			common.memory[context.current_frame].device_memory
 		);
-		validate(vkMapMemory(context.device, common.memory[context.current_frame].device_memory, 0, size, 0, (void**)&data));
+		fan::vulkan::validate(vkMapMemory(context.device, common.memory[context.current_frame].device_memory, 0, size, 0, (void**)&data));
 	}
 
 	void write(fan::vulkan::context_t& context) {
@@ -57,7 +59,7 @@ struct ssbo_t	 {
     // write all for now
     auto& ptr = instance_list[0];
 		memcpy(data, &ptr, instance_list.size() * sizeof(instance_id_t));
-
+    // for loop for each frame
 		//if (common.m_min_edit != (uint64_t)-1) {
 //       // TODO not probably best way
 //       
@@ -85,11 +87,11 @@ struct ssbo_t	 {
 	//	common.on_edit(context);
 	//}
 
-	void open(fan::vulkan::context_t& context) {
+	void open(fan::vulkan::context_t& context, uint32_t descriptor_count, uint32_t max_instance_size = 256) {
+    this->descriptor_count = descriptor_count;
+    this->max_instance_size = max_instance_size;
 		common.open(context, [&context, this] {
-			for (uint32_t i = 0; i < max_frames_in_flight; ++i) {
-				write(context, i);
-			}
+			write(context);
 		});
 	}
 	void close(fan::vulkan::context_t& context) {
@@ -99,10 +101,9 @@ struct ssbo_t	 {
 
 	void open_descriptors(
 		fan::vulkan::context_t& context,
-		VkDescriptorPool descriptor_pool, 
-		std::array<fan::vulkan::write_descriptor_set_t, descriptor_count> properties
+		const std::vector<fan::vulkan::write_descriptor_set_t>& properties
 	) {
-		m_descriptor.open(context, descriptor_pool, properties);
+		m_descriptor.open(context, properties);
 	}
 
 /*		uint32_t size() const {
@@ -167,13 +168,13 @@ struct ssbo_t	 {
 	}*/
 
   struct instance_list_t {
-    vi_t vi;
-    ri_t ri;
+    void* vi;
+    void* ri;
   };
 
 	memory_common_t<int, instance_id_t> common;
 	std::vector<instance_list_t> instance_list;
 	uint64_t vram_capacity = 0;
-	fan::vulkan::context_t::descriptor_t<descriptor_count> m_descriptor;
+	fan::vulkan::context_t::descriptor_t m_descriptor;
 	uint8_t* data;
 };
