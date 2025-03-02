@@ -603,10 +603,10 @@ void fan::vulkan::context_t::camera_set_ortho(camera_nr_t nr, fan::vec2 x, fan::
   camera.m_projection = fan::math::ortho<fan::mat4>(
     camera.coordinates.left,
     camera.coordinates.right,
-    camera.coordinates.down,
     camera.coordinates.up,
-    0.1,
-    znearfar
+    camera.coordinates.down,
+    -znearfar / 2,
+    znearfar / 2
   );
 
   camera.m_view[3][0] = 0;
@@ -672,7 +672,7 @@ fan::vulkan::context_t::viewport_nr_t fan::vulkan::context_t::viewport_create()
 
   viewport_set(
     nr,
-    0, 0, 0
+    0, 1, 0
   );
   return nr;
 }
@@ -775,14 +775,9 @@ void fan::vulkan::context_t::open(fan::window_t& window) {
   pick_physical_device();
   create_logical_device();
   create_swap_chain(window.get_size());
+  create_command_pool();
   create_image_views();
   create_render_pass();
-  create_command_pool();
-#if defined(loco_wboit)
-  create_wboit_views();
-#endif
-  create_loco_framebuffer();
-  create_depth_resources();
   create_framebuffers();
   create_command_buffers();
   create_sync_objects();
@@ -790,12 +785,22 @@ void fan::vulkan::context_t::open(fan::window_t& window) {
   ImGuiSetupVulkanWindow();
 }
 
+void close_vais(fan::vulkan::context_t& c, std::vector<fan::vulkan::vai_t> v) {
+  for (auto& e : v) {
+    e.close(c);
+  }
+}
+
 void fan::vulkan::context_t::destroy_vulkan_soft() {
   vkDeviceWaitIdle(device);
-  for (auto& i : vai_bitmap) {
-    i.close(*this);
-  }
 
+  close_vais(*this, mainColorImageViews);
+  close_vais(*this, postProcessedColorImageViews);
+  close_vais(*this, depthImageViews);
+  close_vais(*this, downscaleImageViews1);
+  close_vais(*this, upscaleImageViews1);
+  close_vais(*this, vai_depth);
+  
   for (size_t i = 0; i < max_frames_in_flight; i++) {
     if (render_finished_semaphores.size())
       vkDestroySemaphore(device, render_finished_semaphores[i], nullptr);
@@ -835,20 +840,20 @@ void fan::vulkan::context_t::close() {
 }
 
 void fan::vulkan::context_t::cleanup_swap_chain_dependencies() {
-  vai_depth.close(*this);
+  close_vais(*this, mainColorImageViews);
+  close_vais(*this, postProcessedColorImageViews);
+  close_vais(*this, depthImageViews);
+  close_vais(*this, downscaleImageViews1);
+  close_vais(*this, upscaleImageViews1);
+  close_vais(*this, vai_depth);
 
   for (auto framebuffer : swap_chain_framebuffers) {
     vkDestroyFramebuffer(device, framebuffer, nullptr);
-  }
-
-  for (auto imageView : swap_chain_image_views) {
-    vkDestroyImageView(device, imageView, nullptr);
   }
 }
 
 void fan::vulkan::context_t::recreate_swap_chain_dependencies() {
   create_image_views();
-  create_depth_resources();
   create_framebuffers();
 }
 
@@ -859,6 +864,13 @@ void fan::vulkan::context_t::update_swapchain_dependencies() {
   uint32_t imageCount = MinImageCount + 1;
   vkGetSwapchainImagesKHR(device, swap_chain, &imageCount, nullptr);
   swap_chain_images.resize(imageCount);
+  mainColorImageViews.resize(imageCount);
+  postProcessedColorImageViews.resize(imageCount);
+  depthImageViews.resize(imageCount);
+  downscaleImageViews1.resize(imageCount);
+  upscaleImageViews1.resize(imageCount);
+  vai_depth.resize(imageCount);
+
   vkGetSwapchainImagesKHR(device, swap_chain, &imageCount, swap_chain_images.data());
   recreate_swap_chain_dependencies();
 }
@@ -1125,21 +1137,67 @@ VkImageView fan::vulkan::context_t::create_image_view(VkImage image, VkFormat fo
 void fan::vulkan::context_t::create_image_views() {
   swap_chain_image_views.resize(swap_chain_images.size());
 
+  fan::vulkan::vai_t::properties_t vp;
+  vp.format = swap_chain_image_format;
+  vp.swap_chain_size = swap_chain_size;
+  vp.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+  vp.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
+
+  // Resize vectors to hold image views for each swap chain image
+  mainColorImageViews.resize(swap_chain_image_views.size());
+  postProcessedColorImageViews.resize(swap_chain_image_views.size());
+  depthImageViews.resize(swap_chain_image_views.size());
+  downscaleImageViews1.resize(swap_chain_image_views.size());
+  upscaleImageViews1.resize(swap_chain_image_views.size());
+
+  for (size_t i = 0; i < swap_chain_image_views.size(); i++) {
+    mainColorImageViews[i].open(*this, vp);
+    mainColorImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+
+    postProcessedColorImageViews[i].open(*this, vp);
+    postProcessedColorImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+
+    fan::vulkan::vai_t::properties_t depth_vp = vp;
+    depth_vp.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
+    depth_vp.format = find_depth_format();
+    depth_vp.usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    depthImageViews[i].open(*this, depth_vp);
+    depthImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, depth_vp.aspect_flags);
+
+    downscaleImageViews1[i].open(*this, vp);
+    downscaleImageViews1[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+
+    upscaleImageViews1[i].open(*this, vp);
+    upscaleImageViews1[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+  }
+
   for (uint32_t i = 0; i < swap_chain_images.size(); i++) {
     swap_chain_image_views[i] = create_image_view(swap_chain_images[i], swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
   }
 }
 
 void fan::vulkan::context_t::create_render_pass() {
-  VkAttachmentDescription colorAttachment{};
-  colorAttachment.format = swap_chain_image_format;
-  colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-  colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-  colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  //--------------attachment description--------------
+
+  VkAttachmentDescription mainColorAttachment{};
+  mainColorAttachment.format = swap_chain_image_format;
+  mainColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  mainColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  mainColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  mainColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  mainColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  mainColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  mainColorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // For post-process input
+
+  VkAttachmentDescription postProcessedColorAttachment{};
+  postProcessedColorAttachment.format = swap_chain_image_format;
+  postProcessedColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  postProcessedColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  postProcessedColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  postProcessedColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  postProcessedColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  postProcessedColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  postProcessedColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
   VkAttachmentDescription depthAttachment{};
   depthAttachment.format = find_depth_format();
@@ -1151,135 +1209,101 @@ void fan::vulkan::context_t::create_render_pass() {
   depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-  VkAttachmentReference colorAttachmentRef[2]{};
-  colorAttachmentRef[0].attachment = 0;
-  colorAttachmentRef[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  colorAttachmentRef[1].attachment = 1;
-  colorAttachmentRef[1].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  //--------------attachment description--------------
 
+  VkAttachmentReference mainSceneColorRef{};
+  mainSceneColorRef.attachment = 0;
+  mainSceneColorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-  VkAttachmentReference depthAttachmentRef{};
-  depthAttachmentRef.attachment = 4;
-  depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+  VkAttachmentReference postProcessInputRef{};
+  postProcessInputRef.attachment = 0;
+  postProcessInputRef.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-  VkAttachmentDescription fbo_color_attachment[2]{};
+  VkAttachmentReference postProcessOutputRef{};
+  postProcessOutputRef.attachment = 1;
+  postProcessOutputRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-  fbo_color_attachment[0].format = swap_chain_image_format;
-  fbo_color_attachment[0].samples = VK_SAMPLE_COUNT_1_BIT;
-  fbo_color_attachment[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-  fbo_color_attachment[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-  fbo_color_attachment[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  fbo_color_attachment[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  fbo_color_attachment[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  fbo_color_attachment[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  VkAttachmentReference depthRef{};
+  depthRef.attachment = 2;
+  depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-  fbo_color_attachment[1].format = swap_chain_image_format;
-  fbo_color_attachment[1].samples = VK_SAMPLE_COUNT_1_BIT;
-  fbo_color_attachment[1].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  fbo_color_attachment[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-  fbo_color_attachment[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  fbo_color_attachment[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  fbo_color_attachment[1].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  fbo_color_attachment[1].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  VkSubpassDescription mainSceneSubpass{};
+  mainSceneSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+  mainSceneSubpass.colorAttachmentCount = 1;
+  mainSceneSubpass.pColorAttachments = &mainSceneColorRef;
+  mainSceneSubpass.pDepthStencilAttachment = &depthRef;
 
-  VkAttachmentReference inputAttachmentRef[] = {
-    {
-      .attachment = 0,
-      .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    },
-    //{
-    //  .attachment = 1,
-    //  .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    //}
-  };
+  VkSubpassDescription postProcessSubpass{};
+  postProcessSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+  postProcessSubpass.inputAttachmentCount = 1;
+  postProcessSubpass.pInputAttachments = &postProcessInputRef;
+  postProcessSubpass.colorAttachmentCount = 1;
+  postProcessSubpass.pColorAttachments = &postProcessOutputRef;
 
-  VkAttachmentReference subpasscolor_locofbo_attachments[]{
-    {
-      .attachment = 2,
-      .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-    },
-  };
+  VkSubpassDependency extToMainDep{};
+  extToMainDep.srcSubpass = VK_SUBPASS_EXTERNAL;
+  extToMainDep.dstSubpass = 0;
+  extToMainDep.srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+  extToMainDep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  extToMainDep.srcAccessMask = 0;
+  extToMainDep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-  //subpasscolor_locofbo_attachments[1].attachment = 3;
-  //subpasscolor_locofbo_attachments[1].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  VkSubpassDependency mainToPostDep{};
+  mainToPostDep.srcSubpass = 0;
+  mainToPostDep.dstSubpass = 1;
+  mainToPostDep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  mainToPostDep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  mainToPostDep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  mainToPostDep.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-  VkSubpassDescription subpass[]{
-    {
-      .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-      .colorAttachmentCount = std::size(colorAttachmentRef),
-      .pColorAttachments = colorAttachmentRef,
-      .pDepthStencilAttachment = &depthAttachmentRef
-    },
-          {
-            .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .inputAttachmentCount = std::size(inputAttachmentRef),
-            .pInputAttachments = inputAttachmentRef,
-            .colorAttachmentCount = std::size(subpasscolor_locofbo_attachments),
-            .pColorAttachments = subpasscolor_locofbo_attachments,
-            .pDepthStencilAttachment = &depthAttachmentRef,
-          }
-  };
-
-  VkSubpassDependency subpassDependencies[4]{};
-  subpassDependencies[0].srcSubpass = 0;
-  subpassDependencies[0].dstSubpass = VK_SUBPASS_EXTERNAL;
-  subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  subpassDependencies[0].srcAccessMask = 0;
-  subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-  subpassDependencies[1].srcSubpass = 0;
-  subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-  subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  subpassDependencies[1].srcAccessMask = 0;
-  subpassDependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-  subpassDependencies[2].srcSubpass = 0;
-  subpassDependencies[2].dstSubpass = 1;
-  subpassDependencies[2].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-  subpassDependencies[2].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  subpassDependencies[2].srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-  subpassDependencies[2].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-  subpassDependencies[3].srcSubpass = 0;
-  subpassDependencies[3].dstSubpass = 1;
-  subpassDependencies[3].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-  subpassDependencies[3].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  subpassDependencies[3].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-  subpassDependencies[3].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  VkSubpassDependency postToExtDep{};
+  postToExtDep.srcSubpass = 1;
+  postToExtDep.dstSubpass = VK_SUBPASS_EXTERNAL;
+  postToExtDep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  postToExtDep.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+  postToExtDep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  postToExtDep.dstAccessMask = 0;
 
   VkAttachmentDescription attachments[] = {
-    fbo_color_attachment[0],
-    fbo_color_attachment[0],
-    colorAttachment,
-    fbo_color_attachment[1],
-    depthAttachment,
+    mainColorAttachment,
+    postProcessedColorAttachment,
+    depthAttachment
   };
+
+  VkSubpassDescription subpasses[] = {
+    mainSceneSubpass,
+    postProcessSubpass
+  };
+
+  VkSubpassDependency dependencies[] = {
+    extToMainDep,
+    mainToPostDep,
+    postToExtDep
+  };
+
   VkRenderPassCreateInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   renderPassInfo.attachmentCount = std::size(attachments);
   renderPassInfo.pAttachments = attachments;
-  renderPassInfo.subpassCount = std::size(subpass);
-  renderPassInfo.pSubpasses = subpass;
-  renderPassInfo.dependencyCount = std::size(subpassDependencies);
-  renderPassInfo.pDependencies = subpassDependencies;
+  renderPassInfo.subpassCount = std::size(subpasses);
+  renderPassInfo.pSubpasses = subpasses;
+  renderPassInfo.dependencyCount = std::size(dependencies);
+  renderPassInfo.pDependencies = dependencies;
 
   if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &render_pass) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create renderpass");
+    throw std::runtime_error("failed to create render pass");
   }
 }
+
 
 void fan::vulkan::context_t::create_framebuffers() {
   swap_chain_framebuffers.resize(swap_chain_image_views.size());
 
   for (size_t i = 0; i < swap_chain_image_views.size(); i++) {
     VkImageView attachments[] = {
-      vai_bitmap[0].image_view,
-      vai_bitmap[1].image_view,
+      mainColorImageViews[i].image_view,
       swap_chain_image_views[i],
-      vai_bitmap[1].image_view,
-      vai_depth.image_view,
+      depthImageViews[i].image_view,
     };
 
     VkFramebufferCreateInfo framebufferInfo{};
@@ -1317,16 +1341,6 @@ void fan::vulkan::context_t::cleanup_swap_chain() {
     swap_chain = VK_NULL_HANDLE;
   }
 }
-
-void fan::vulkan::context_t::create_depth_resources() {
-  vai_t::properties_t p;
-  p.swap_chain_size = swap_chain_size;
-  p.format = find_depth_format();
-  p.usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-  p.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
-  vai_depth.open(*this, p);
-}
-
 
 void fan::vulkan::context_t::pipeline_t::close(fan::vulkan::context_t& context) {
   vkDestroyPipeline(context.device, m_pipeline, nullptr);
@@ -1401,7 +1415,7 @@ void fan::vulkan::context_t::pipeline_t::open(fan::vulkan::context_t& context, c
   push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
   pipelineLayoutInfo.pPushConstantRanges = &push_constant;
-  pipelineLayoutInfo.pushConstantRangeCount = 1;
+  pipelineLayoutInfo.pushConstantRangeCount = p.push_constants_size == 0 ? 0 : 1;
 
   if (vkCreatePipelineLayout(context.device, &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS) {
     fan::throw_error("failed to create pipeline layout!");
@@ -1423,6 +1437,8 @@ void fan::vulkan::context_t::pipeline_t::open(fan::vulkan::context_t& context, c
   pipelineInfo.renderPass = context.render_pass;
   pipelineInfo.subpass = p.subpass;
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+  shader_nr = p.shader;
 
   if (vkCreateGraphicsPipelines(context.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
     fan::throw_error("failed to create graphics pipeline");
@@ -1598,46 +1614,45 @@ void fan::vulkan::context_t::begin_render(const fan::color& clear_color) {
   renderPassInfo.renderArea.extent.width = swap_chain_size.x;
   renderPassInfo.renderArea.extent.height = swap_chain_size.y;
 
+
   // TODO
 
   VkClearValue clearValues[
-    5
+    3
   ]{};
-    clearValues[0].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
-    clearValues[1].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
-    clearValues[2].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
-    clearValues[3].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
-    clearValues[4].depthStencil = { 1.0f, 0 };
+  clearValues[0].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
+  clearValues[1].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
+  clearValues[2].depthStencil = { 1.0f, 0 };
+  
 
-    renderPassInfo.clearValueCount = std::size(clearValues);
-    renderPassInfo.pClearValues = clearValues;
+  renderPassInfo.clearValueCount = std::size(clearValues);
+  renderPassInfo.pClearValues = clearValues;
 
-    vkCmdBeginRenderPass(command_buffers[current_frame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(command_buffers[current_frame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    //TODO set viewport
-    //fan::vulkan::viewport_t::set_viewport(0, swap_chain_size, swap_chain_size);
+  //TODO set viewport
+  //fan::vulkan::viewport_t::set_viewport(0, swap_chain_size, swap_chain_size);
 
-    {//TODO WRAP
-      VkViewport viewport = {};
-      viewport.x = 0.0f;
-      viewport.y = 0.0f;
-      viewport.width = swap_chain_size.x;
-      viewport.height = swap_chain_size.y;
-      viewport.minDepth = 0.0f;
-      viewport.maxDepth = 1.0f;
+  {//TODO WRAP
+    VkViewport viewport = {};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = swap_chain_size.x;
+    viewport.height = swap_chain_size.y;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
 
-      vkCmdSetViewport(command_buffers[current_frame], 0, 1, &viewport);
+    vkCmdSetViewport(command_buffers[current_frame], 0, 1, &viewport);
 
-      VkRect2D scissor = {};
-      scissor.offset = { 0, 0 };
-      scissor.extent.width = swap_chain_size.x; // make operator vkextent
-      scissor.extent.height = swap_chain_size.y;
+    VkRect2D scissor = {};
+    scissor.offset = { 0, 0 };
+    scissor.extent.width = swap_chain_size.x; // make operator vkextent
+    scissor.extent.height = swap_chain_size.y;
 
-      vkCmdSetScissor(command_buffers[current_frame], 0, 1, &scissor);
-    }
+    vkCmdSetScissor(command_buffers[current_frame], 0, 1, &scissor);
+  }
 
-    vkCmdNextSubpass(command_buffers[current_frame], VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdEndRenderPass(command_buffers[current_frame]);
+  //vkCmdNextSubpass(command_buffers[current_frame], VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void fan::vulkan::context_t::ImGuiSetupVulkanWindow() {
@@ -1679,7 +1694,6 @@ void fan::vulkan::context_t::ImGuiFrameRender(VkResult next_image_khr_err, fan::
   info.clearValueCount = 1;
   info.pClearValues = &wd->ClearValue;
   vkCmdBeginRenderPass(command_buffers[current_frame], &info, VK_SUBPASS_CONTENTS_INLINE);
-
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffers[current_frame]);
 
   vkCmdEndRenderPass(command_buffers[current_frame]);
@@ -2079,7 +2093,11 @@ void fan::vulkan::vai_t::close(auto& context) {
   vkFreeMemory(context.device, memory, nullptr);
 }
 
-void fan::vulkan::vai_t::transition_image_layout(auto& context, VkImageLayout newLayout) {
+void fan::vulkan::vai_t::transition_image_layout(auto& context, VkImageLayout newLayout, VkImageAspectFlags aspectFlags) {
+  if (old_layout == newLayout) {
+        return;
+    }
+
   VkCommandBuffer commandBuffer = context.begin_single_time_commands();
 
   VkImageMemoryBarrier barrier{};
@@ -2089,7 +2107,7 @@ void fan::vulkan::vai_t::transition_image_layout(auto& context, VkImageLayout ne
   barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.image = image;
-  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  barrier.subresourceRange.aspectMask = aspectFlags;
   barrier.subresourceRange.baseMipLevel = 0;
   barrier.subresourceRange.levelCount = 1;
   barrier.subresourceRange.baseArrayLayer = 0;
@@ -2098,11 +2116,27 @@ void fan::vulkan::vai_t::transition_image_layout(auto& context, VkImageLayout ne
   VkPipelineStageFlags sourceStage;
   VkPipelineStageFlags destinationStage;
 
-  barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-  barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
-
-  sourceStage = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
-  destinationStage = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
+  if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  }
+  else if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  }
+  else if (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  }
+  else {
+    throw std::invalid_argument("unsupported layout transition!");
+  }
 
   vkCmdPipelineBarrier(
     commandBuffer,
@@ -2118,10 +2152,12 @@ void fan::vulkan::vai_t::transition_image_layout(auto& context, VkImageLayout ne
   old_layout = newLayout;
 }
 
+
+
 void fan::vulkan::context_t::descriptor_pool_t::open(fan::vulkan::context_t& context) {
   VkDescriptorPoolSize pool_sizes[] =
   {
-    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE + 2 },
   };
   VkDescriptorPoolCreateInfo pool_info = {};
   pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -2172,17 +2208,4 @@ void fan::vulkan::context_t::create_buffer(VkDeviceSize size, VkBufferUsageFlags
 
 	fan::vulkan::validate(vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory));
 	fan::vulkan::validate(vkBindBufferMemory(device, buffer, bufferMemory, 0));
-}
-
-void fan::vulkan::context_t::create_loco_framebuffer() {
-  vai_t::properties_t p;
-  p.format = swap_chain_image_format;
-  p.swap_chain_size = swap_chain_size;
-  p.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-  p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
-  vai_bitmap[0].open(*this, p);
-  vai_bitmap[0].transition_image_layout(*this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-  p.format = VK_FORMAT_B8G8R8A8_UNORM; // TODO should it be VK_FORMAT_R8_UINT?
-  vai_bitmap[1].open(*this, p);
-  vai_bitmap[1].transition_image_layout(*this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }

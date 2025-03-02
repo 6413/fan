@@ -6,7 +6,7 @@ int main() {
   using namespace fan::graphics;
 
   engine_t engine{{
-    .renderer=engine_t::renderer_t::opengl
+    .renderer=engine_t::renderer_t::vulkan
   }};
 
   rectangle_t rect{ {
