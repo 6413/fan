@@ -125,6 +125,8 @@ namespace fan {
       VkImageView image_view;
       VkDeviceMemory memory;
     };
+
+    VkPipelineColorBlendAttachmentState get_default_color_blend();
   }
 }
 
@@ -288,7 +290,7 @@ namespace fan {
       };
 
       struct image_load_properties_defaults {
-        static constexpr VkSamplerAddressMode visual_output = image_sampler_address_mode::clamp_to_border;
+        static constexpr VkSamplerAddressMode visual_output = image_sampler_address_mode::repeat;
         //static constexpr uint32_t internal_format = GL_RGBA;
         static constexpr VkFormat format = image_format::r8b8g8a8_unorm;
         //static constexpr uint32_t type = GL_UNSIGNED_BYTE;

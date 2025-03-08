@@ -207,6 +207,13 @@ struct settings_menu_t {
         {
           ImGui::TableNextRow();
           ImGui::TableNextColumn();
+          ImGui::Text("Show fps");
+          ImGui::TableNextColumn();
+          ImGui::Checkbox("##show_fps", (bool*)&gloco->toggle_fps);
+        }
+        {
+          ImGui::TableNextRow();
+          ImGui::TableNextColumn();
           ImGui::Text("Track OpenGL calls");
           ImGui::TableNextColumn();
           ImGui::Checkbox("##track_opengl_calls", (bool*)&fan_track_opengl_calls);

@@ -4,6 +4,5 @@
 #define BLL_set_NodeData fan::vulkan::viewport_t* viewport_id;
 #define BLL_set_Link 0
 #define BLL_set_AreWeInsideStruct 0
-#define BLL_set_StructFormat 1
 #define BLL_set_NodeReference_Overload_Declare \
   viewport_list_NodeReference_t(fan::vulkan::viewport_t*);

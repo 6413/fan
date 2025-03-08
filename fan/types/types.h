@@ -480,6 +480,12 @@ namespace fan {
 		((t_m *)((uint8_t *)(ptr_m) - offsetof(t_m, d_m)))
 #endif
 
+#if defined(_DEBUG) || defined(DEBUG)
+    #define fan_debug_build 1
+#else
+    #define fan_debug_build 0
+#endif
+
 #define fan_debug_none 0
 #define fan_debug_low 1
 #define fan_debug_medium 2
@@ -489,7 +495,11 @@ namespace fan {
 #define __ca__ ,
 
 #ifndef fan_debug
+#if fan_debug_build
 	#define fan_debug fan_debug_high
+#else
+  #define fan_debug fan_debug_none
+#endif
 #endif
 
 #ifndef fan_use_uninitialized
@@ -501,6 +511,17 @@ namespace fan {
 #endif
 
 using DWORD = unsigned long;
+
+#if defined(_MSC_VER)
+  #ifndef __builtin_memset
+    #define __builtin_memset memset
+  #endif
+  #ifndef __builtin_memcpy
+    #define __builtin_memcpy memcpy
+  #endif
+#endif
+
+#define __platform_libc
 
 #ifndef __clz
 #define __clz __clz
@@ -819,4 +840,8 @@ namespace fan {
 
 #if __cplusplus >= 202302L && !defined(fan_compiler_msvc) && __has_include("stacktrace")
   #define fan_std23
+#endif
+
+#if !defined(fan_compiler_msvc)
+  #define __forceinline inline __attribute__((always_inline))
 #endif

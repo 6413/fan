@@ -58,6 +58,9 @@ function(apply_loco_definitions target)
     if(LOCO_BOX2D)
         target_compile_definitions(${target} PRIVATE -Dloco_box2d)
     endif()
+		if (LOCO_VULKAN)
+			target_compile_definitions(${target} PRIVATE -Dloco_vulkan)
+		endif()
     target_compile_definitions(${target} PRIVATE
         IMGUI_IMPL_OPENGL_LOADER_CUSTOM
         IMGUI_DEFINE_MATH_OPERATORS

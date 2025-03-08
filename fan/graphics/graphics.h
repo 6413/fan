@@ -114,7 +114,7 @@ namespace fan {
     struct sprite_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
       fan::vec3 position = fan::vec3(0, 0, 0);
-      fan::vec2 size = fan::vec2(0.1, 0.1);
+      fan::vec2 size = fan::vec2(32, 32);
       fan::vec3 angle = 0;
       fan::color color = fan::color(1, 1, 1, 1);
       fan::vec2 rotation_point = 0;

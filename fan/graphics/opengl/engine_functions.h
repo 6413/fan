@@ -431,10 +431,9 @@ void shapes_open() {
 
   loco.shader_compile(shader);
 
-  loco_t::shaper_t::BlockProperties_t::gl_t st_gl{
-    .locations = {},
-    .shader = shader
-  };
+  loco_t::shaper_t::BlockProperties_t::gl_t st_gl;
+  st_gl.locations = {};
+  st_gl.shader = shader;
 
   loco_t::shaper_t::BlockProperties_t bp;
   bp.MaxElementPerBlock = (loco_t::shaper_t::MaxElementPerBlock_t)loco.MaxElementPerBlock,
