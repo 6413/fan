@@ -381,7 +381,7 @@ struct fgm_t {
   //
 #include _FAN_PATH(graphics/gui/fgm/common.h)
 
-//#define BLL_set_StoreFormat 1
+//#define bcontainer_set_StoreFormat 1
 //#define BLL_set_CPP_CopyAtPointerChange 1
 #define BLL_set_AreWeInsideStruct 1
 #include <fan/fan_bll_preset.h>

@@ -38,7 +38,7 @@ protected:
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix stage_list
   #define BLL_set_type_node uint16_t
-  #define BLL_set_StoreFormat 1
+  #define bcontainer_set_StoreFormat 1
   #define BLL_set_NodeData \
   loco_t::update_callback_nr_t update_nr; \
   fan::window_t::resize_callback_NodeReference_t resize_id; \
@@ -48,7 +48,7 @@ public:
 
 protected:
   // for safety for getting reference to shape_t in get_id()
-  #define BLL_set_StoreFormat 1
+  #define bcontainer_set_StoreFormat 1
   //#define BLL_set_CPP_CopyAtPointerChange 1
   #include <fan/fan_bll_preset.h>
   #define BLL_set_prefix cid_list

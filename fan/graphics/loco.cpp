@@ -1517,10 +1517,14 @@ loco_t::~loco_t() {
   close_loco(this);
 }
 
-void loco_t::draw_shapes() {
+uint32_t loco_t::draw_shapes() {
   if (window.renderer == renderer_t::opengl) {
     gl.draw_shapes();
   }
+  else if (window.renderer == renderer_t::vulkan) {
+    return vk.draw_shapes();
+  }
+  return 0;
 }
 
 void loco_t::process_frame() {
@@ -1567,7 +1571,7 @@ void loco_t::process_frame() {
     i();
   }
 
-  draw_shapes();
+  uint32_t err = draw_shapes();
 
   for (const auto& i : m_post_draw) {
     i();
@@ -1681,62 +1685,8 @@ void loco_t::process_frame() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   }
   else if (window.renderer == renderer_t::vulkan) {
-    
-    vkWaitForFences(context.vk.device, 1, &context.vk.in_flight_fences[context.vk.current_frame], VK_TRUE, UINT64_MAX);
-    
-    VkResult err = vkAcquireNextImageKHR(
-      context.vk.device,
-      context.vk.swap_chain,
-      UINT64_MAX,
-      context.vk.image_available_semaphores[context.vk.current_frame],
-      VK_NULL_HANDLE,
-      &context.vk.image_index
-    );
-
-    context.vk.recreate_swap_chain(&window, err);
-    auto shader_nr = shaper.GetShader(loco_t::shape_type_t::rectangle);
-    
-    auto c = camera_get(orthographic_camera.camera);
-
-    auto shader = shader_get(shader_nr).vk;
-    shader->projection_view_block.edit_instance(gloco->get_context().vk, 0, &fan::vulkan::context_t::view_projection_t::view, c.vk->m_view);
-    shader->projection_view_block.edit_instance(gloco->get_context().vk, 0, &fan::vulkan::context_t::view_projection_t::projection, c.vk->m_projection);
-
-
-    context.vk.memory_queue.process(context.vk);
-
-    context.vk.begin_render(clear_color);
-    auto& st = shaper.GetShapeTypes(loco_t::shape_type_t::rectangle);
-    auto& d = std::get<shaper_t::ShapeType_t::vk_t>(st.renderer);
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
-    //vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, d.pipeline.m_pipeline);
-    vkCmdBindDescriptorSets(
-      cmd_buffer,
-      VK_PIPELINE_BIND_POINT_GRAPHICS,
-      d.pipeline.m_layout,
-      0,
-      1,
-      d.shape_data.m_descriptor.m_descriptor_set,
-      0,
-      nullptr
-    );
-    fan::vulkan::context_t::push_constants_t vp;
-    vp.camera_id = 0;
-    vp.texture_id = 0;
-    vkCmdPushConstants(
-      cmd_buffer, 
-      d.pipeline.m_layout,
-      VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,
-      0,
-      sizeof(fan::vulkan::context_t::push_constants_t),
-      &vp
-    );
-    vkCmdDraw(cmd_buffer, 6, 1, 0, 0);
-    //?
-    //vkCmdNextSubpass(context.vk.command_buffers[context.vk.current_frame], VK_SUBPASS_CONTENTS_INLINE);
     vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
-    //vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk.post_process);
     vkCmdBindDescriptorSets(
       cmd_buffer,
@@ -1749,26 +1699,26 @@ void loco_t::process_frame() {
       nullptr
     );
 
+    // render post process
     vkCmdDraw(cmd_buffer, 6, 1, 0, 0);
 
     vkCmdEndRenderPass(cmd_buffer);
 
-    //ImDrawData* draw_data = ImGui::GetDrawData();
-    //const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
-    //if (!is_minimized) {
-    // context.vk.ImGuiFrameRender(err, clear_color);
-    //  //context.vk.ImGuiFramePresent();
-    //}
-
-    //vkCmdNextSubpass(context.vk.command_buffers[context.vk.current_frame], VK_SUBPASS_CONTENTS_INLINE);
-   
-    err = context.vk.end_render();
-    context.vk.recreate_swap_chain(&window, err);
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
+    if (!is_minimized) {
+     context.vk.ImGuiFrameRender((VkResult)err, clear_color);
+      //context.vk.ImGuiFramePresent();
+    }
   }
 #endif
 
   if (window.renderer == renderer_t::opengl) {
     glfwSwapBuffers(window);
+  }
+  else if (window.renderer == renderer_t::vulkan) {
+    VkResult err = context.vk.end_render();
+    context.vk.recreate_swap_chain(&window, err);
   }
 }
 
@@ -2803,8 +2753,17 @@ loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
       );
     }
   }
+  else if (loco.window.renderer == renderer_t::vulkan) {
+    return shape_add(
+      shape_type, vi, ri, Key_e::depth,
+      static_cast<uint16_t>(properties.position.z),
+      Key_e::blending, static_cast<uint8_t>(properties.blending),
+      Key_e::image, properties.image, Key_e::viewport,
+      properties.viewport, Key_e::camera, properties.camera,
+      Key_e::ShapeType, shape_type
+    );
+  }
   
-  fan::throw_error("");
   return {};
 }
 

@@ -133,7 +133,7 @@ typedef uint32_t SoundPlayUnique_t;
 
 #define BLL_set_Language 1
 #define BLL_set_AreWeInsideStruct 1
-#define BLL_set_StoreFormat 1
+#define bcontainer_set_StoreFormat 1
 #define BLL_set_IsNodeRecycled 1
 #define BLL_set_StoreFormat1_ElementPerBlock 0x100
 #define BLL_set_prefix _PlayInfoList

@@ -4,4 +4,3 @@
 #define BLL_set_NodeDataType viewport_t
 #define BLL_set_Link 0
 #define BLL_set_AreWeInsideStruct 1
-#define BLL_set_StructFormat 1

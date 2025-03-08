@@ -35,6 +35,9 @@ mv BVEC /usr/local/include/BVEC
 git clone https://github.com/7244/BDBT.git
 mv BDBT /usr/local/include/BDBT
 
+git clone https://github.com/7244/bcontainer.git
+mv bcontainer /usr/local/include/bcontainer
+
 : '
 FOR INSTALLING BOX2D
 git clone https://github.com/erincatto/box2d.git

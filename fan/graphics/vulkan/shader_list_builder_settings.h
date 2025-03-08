@@ -1,5 +1,5 @@
 #include <fan/fan_bll_preset.h>
-#define BLL_set_StoreFormat 1
+#define bcontainer_set_StoreFormat 1
 #define BLL_set_prefix shader_list
 #define BLL_set_type_node uint8_t
 #define BLL_set_NodeData \

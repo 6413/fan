@@ -211,17 +211,19 @@ struct shaper_t{
   KeyType_t *_KeyTypes;
   KeyTypeAmount_t KeyTypeAmount;
 
+  #define BLL_set_Clear 1
+  #define BLL_set_nrtra 1
   #define BLL_set_prefix BlockList
-  #define BLL_set_BufferUpdateInfo \
+  #define BLL_set_CapacityUpdateInfo \
     auto st = OFFSETLESS(bll, ShapeType_t, BlockList); \
-    st->shaper->_BlockListBufferChange(st->sti, New);
+    st->shaper->_BlockListCapacityChange(st->sti, old_capacity, new_capacity);
   #define BLL_set_Link 1
   #define BLL_set_LinkSentinel 0
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_type_node _blid_t
   #include <BLL/BLL.h>
   struct ShapeType_t{
-    ShapeType_t() {}
+    ShapeType_t() : renderer(gl_t{}){}
     /* this will be used from BlockList callbacks with offsetless */
     shaper_t *shaper;
     ShapeTypeAmount_t sti;
@@ -238,6 +240,7 @@ struct shaper_t{
 
     #if shaper_set_fan
     struct gl_t {
+      gl_t() = default;
       fan::opengl::core::vao_t m_vao;
       fan::opengl::core::vbo_t m_vbo;
 
@@ -248,8 +251,10 @@ struct shaper_t{
       GLsizei vertex_count = 6;
     };
     struct vk_t {
+      vk_t() = default;
       fan::vulkan::context_t::pipeline_t pipeline;
       fan::vulkan::context_t::ssbo_t shape_data;
+      uint32_t vertex_count = 6;
     };
     std::variant<
       gl_t,
@@ -270,6 +275,7 @@ struct shaper_t{
   #define BLL_set_CPP_CopyAtPointerChange 1
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_NodeDataType ShapeType_t
+  #define BLL_set_Usage 1
   #define BLL_set_type_node ShapeTypeAmount_t
   #include <BLL/BLL.h>
   ShapeTypes_t ShapeTypes;
@@ -301,6 +307,7 @@ struct shaper_t{
     };
   #pragma pack(pop)
 
+  #define BLL_set_Usage 1
   #define BLL_set_prefix ShapeList
   #define BLL_set_Link 0
   #define BLL_set_NodeDataType shape_t
@@ -354,6 +361,7 @@ public:
   }
 private:
 
+  #define BLL_set_Clear 1
   #define BLL_set_prefix BlockEditQueue
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
@@ -510,13 +518,14 @@ private:
   }
 
   struct BlockProperties_t{
-    BlockProperties_t() {}
+    BlockProperties_t() : renderer(gl_t{}) {}
     MaxElementPerBlock_t MaxElementPerBlock;
     decltype(ShapeType_t::RenderDataSize) RenderDataSize;
     decltype(ShapeType_t::DataSize) DataSize;
 
     #if shaper_set_fan
     struct gl_t {
+      gl_t() = default;
       std::vector<shape_gl_init_t> locations;
       fan::graphics::context_shader_nr_t shader;
       bool instanced = true;
@@ -524,8 +533,10 @@ private:
       GLsizei vertex_count = 6;
     };
     struct vk_t {
+      vk_t() = default;
       fan::vulkan::context_t::pipeline_t pipeline;
       fan::vulkan::context_t::ssbo_t shape_data;
+      uint32_t vertex_count = 6;
     };
     std::variant<
       gl_t,
@@ -613,8 +624,10 @@ private:
     }
     else if (std::holds_alternative<BlockProperties_t::vk_t>(bp.renderer)) {
       ShapeType_t::vk_t d;
-      d.pipeline = std::get<BlockProperties_t::vk_t>(bp.renderer).pipeline;
-      d.shape_data = std::get<BlockProperties_t::vk_t>(bp.renderer).shape_data;
+      auto& bpr = std::get<BlockProperties_t::vk_t>(bp.renderer);
+      d.pipeline = bpr.pipeline;
+      d.shape_data = bpr.shape_data;
+      d.vertex_count = bpr.vertex_count;
       st.renderer = d;
       //st.renderer.emplace<ShapeType_t::vk_t>();
     }
@@ -647,11 +660,14 @@ private:
       }
       else if (std::holds_alternative<ShapeType_t::vk_t>(st.renderer)) {
         auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
+        auto wrote = bu.MaxEdit - bu.MinEdit;
+        //fan::print(((decltype(get_loco()->rectangle)::vi_t*)(_GetRenderData(be.sti, be.blid, 0) + bu.MinEdit))->position, (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit) / GetRenderDataSize(be.sti));
         memcpy(
-          vk.shape_data.data, // data  + offset
-          _GetRenderData(be.sti, be.blid, 0) + bu.MinEdit + (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit),
-          bu.MaxEdit - bu.MinEdit
+          vk.shape_data.data + (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit), // data  + offset
+          _GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,
+          wrote
         );
+        
       }
       #endif
 
@@ -707,18 +723,18 @@ private:
     #if shaper_set_fan
     /* TODO remove all block edit queue stuff */
     BlockList_t::nrtra_t traverse;
-    traverse.Open(&st.BlockList);
+    BlockList_t::nr_t node_id;
+    traverse.Open(&st.BlockList, &node_id);
     
     if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
       auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
       fan::opengl::context_t &context = get_loco()->context.gl;
-      gl.m_vao.bind(context);
-      while(traverse.Loop(&st.BlockList)){
+      while(traverse.Loop(&st.BlockList, &node_id)){
         fan::opengl::core::edit_glbuffer(
           context,
           gl.m_vbo.m_buffer,
-          _GetRenderData(sti, traverse.nr, 0),
-          GetRenderDataOffset(sti, traverse.nr),
+          _GetRenderData(sti, node_id, 0),
+          GetRenderDataOffset(sti, node_id),
           st.RenderDataSize * st.MaxElementPerBlock(),
           GL_ARRAY_BUFFER
         );
@@ -727,14 +743,18 @@ private:
     }
     else {
       auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
-      while (traverse.Loop(&st.BlockList)) {
-        memcpy(vk.shape_data.data, _GetRenderData(sti, traverse.nr, 0), st.RenderDataSize * st.MaxElementPerBlock());
+      while (traverse.Loop(&st.BlockList, &node_id)) {
+        memcpy(vk.shape_data.data, _GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());
       }
       traverse.Close(&st.BlockList);
     }
     #endif
   }
-  void _BlockListBufferChange(ShapeTypeIndex_t sti, uintptr_t New){
+  void _BlockListCapacityChange(
+    ShapeTypeIndex_t sti,
+    uintptr_t old_capacity,
+    uintptr_t new_capacity
+  ){
     auto &st = ShapeTypes[sti];
 
     #if shaper_set_fan
@@ -745,7 +765,7 @@ private:
         get_loco()->get_context().gl,
         gl.m_vbo.m_buffer,
         0,
-        New * st.RenderDataSize * st.MaxElementPerBlock(),
+        new_capacity * st.RenderDataSize * st.MaxElementPerBlock(),
         GL_DYNAMIC_DRAW,
         GL_ARRAY_BUFFER
       );
@@ -753,7 +773,7 @@ private:
     }
     else {
       auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
-      //memcpy(vk.shape_data.data, _GetRenderData(sti, traverse.nr, 0) + GetRenderDataOffset(sti, traverse.nr), st.RenderDataSize * st.MaxElementPerBlock());
+      //memcpy(vk.shape_data.data, _GetRenderData(sti, node_id, 0) + GetRenderDataOffset(sti, node_id), st.RenderDataSize * st.MaxElementPerBlock());
       //vk.shape_data.allocate(gloco->context.vk, New * st.RenderDataSize * st.MaxElementPerBlock());
       //vk.shape_data.m_descriptor.update(gloco->context.vk, 1, 0, 1, 0);
       //fan::throw_error("");
@@ -788,7 +808,11 @@ private:
       get_loco()->shader_erase(gl.shader);
     }
     else {
-      fan::throw_error("");
+      //
+      //auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
+      //get_loco()->context.vk.shader_erase(vk.pipeline.shader_nr);
+      //vk.pipeline.close(get_loco()->context.vk);
+      //vk.shape_data.close(get_loco()->context.vk);
     }
 
     GetBlockUnique(sti, blid).destructor(*this);

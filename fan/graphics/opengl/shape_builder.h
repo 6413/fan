@@ -26,7 +26,7 @@ protected:
   #define BLL_set_prefix bll_block
   #include <fan/fan_bll_preset.h>
   #define BLL_set_Link 1
-  #define BLL_set_StoreFormat 1
+  #define bcontainer_set_StoreFormat 1
   //#define BLL_set_StoreFormat1_alloc_open malloc
   //#define BLL_set_StoreFormat1_alloc_close free
   #define BLL_set_type_node uint16_t

@@ -36,6 +36,25 @@ void fan::vulkan::validate(VkResult result) {
   }
 }
 
+VkPipelineColorBlendAttachmentState fan::vulkan::get_default_color_blend() {
+  VkPipelineColorBlendAttachmentState color_blend_attachment{};
+  color_blend_attachment.colorWriteMask =
+    VK_COLOR_COMPONENT_R_BIT |
+    VK_COLOR_COMPONENT_G_BIT |
+    VK_COLOR_COMPONENT_B_BIT |
+    VK_COLOR_COMPONENT_A_BIT
+  ;
+  color_blend_attachment.blendEnable = VK_TRUE;
+  color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+  color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+  return color_blend_attachment;
+}
+
+
 std::vector<uint32_t> fan::vulkan::context_t::compile_file(
   const fan::string& source_name,
   shaderc_shader_kind kind,
@@ -395,10 +414,10 @@ fan::vulkan::context_t::image_nr_t fan::vulkan::context_t::image_load(const fan:
 
   auto image_multiplier = get_image_multiplier(p.format);
 
-  VkDeviceSize image_size = image_info.size.multiply() * image_multiplier;
+  VkDeviceSize image_size_bytes = image_info.size.multiply() * image_multiplier;
 
   create_buffer(
-    image_size,
+    image_size_bytes,
     VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
     //VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ,
     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -406,12 +425,12 @@ fan::vulkan::context_t::image_nr_t fan::vulkan::context_t::image_load(const fan:
     image.staging_buffer_memory
   );
 
-  vkMapMemory(device, image.staging_buffer_memory, 0, image_size, 0, &image.data);
-  memcpy(image.data, image_info.data, image_size); // TODO  / 4 in yuv420p
+  vkMapMemory(device, image.staging_buffer_memory, 0, image_size_bytes, 0, &image.data);
+  memcpy(image.data, image_info.data, image_size_bytes); // TODO  / 4 in yuv420p
 
   fan::vulkan::image_create(
     *this,
-    image_size,
+    image_info.size,
     p.format,
     VK_IMAGE_TILING_OPTIMAL,
     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -1629,30 +1648,6 @@ void fan::vulkan::context_t::begin_render(const fan::color& clear_color) {
   renderPassInfo.pClearValues = clearValues;
 
   vkCmdBeginRenderPass(command_buffers[current_frame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-  //TODO set viewport
-  //fan::vulkan::viewport_t::set_viewport(0, swap_chain_size, swap_chain_size);
-
-  {//TODO WRAP
-    VkViewport viewport = {};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = swap_chain_size.x;
-    viewport.height = swap_chain_size.y;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-
-    vkCmdSetViewport(command_buffers[current_frame], 0, 1, &viewport);
-
-    VkRect2D scissor = {};
-    scissor.offset = { 0, 0 };
-    scissor.extent.width = swap_chain_size.x; // make operator vkextent
-    scissor.extent.height = swap_chain_size.y;
-
-    vkCmdSetScissor(command_buffers[current_frame], 0, 1, &scissor);
-  }
-
-  //vkCmdNextSubpass(command_buffers[current_frame], VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void fan::vulkan::context_t::ImGuiSetupVulkanWindow() {
@@ -1660,6 +1655,7 @@ void fan::vulkan::context_t::ImGuiSetupVulkanWindow() {
   MainWindowData.SurfaceFormat = surface_format;
   MainWindowData.Swapchain = swap_chain;
   MainWindowData.PresentMode = present_mode;
+  MainWindowData.ClearEnable = false;
 
   IM_ASSERT(MinImageCount >= 2);
   ImGui_ImplVulkanH_CreateOrResizeWindow(instance, physical_device, device, &MainWindowData, queue_family, /*g_Allocator*/nullptr, swap_chain_size.x, swap_chain_size.y, MinImageCount);
@@ -1668,10 +1664,6 @@ void fan::vulkan::context_t::ImGuiSetupVulkanWindow() {
 }
 
 void fan::vulkan::context_t::ImGuiFrameRender(VkResult next_image_khr_err, fan::color clear_color) {
-  MainWindowData.ClearValue.color.float32[0] = clear_color[0];
-  MainWindowData.ClearValue.color.float32[1] = clear_color[1];
-  MainWindowData.ClearValue.color.float32[2] = clear_color[2];
-  MainWindowData.ClearValue.color.float32[3] = clear_color[3];
   ImGui_ImplVulkanH_Window* wd = &MainWindowData;
   VkResult err = next_image_khr_err;
   if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR)
@@ -1691,8 +1683,6 @@ void fan::vulkan::context_t::ImGuiFrameRender(VkResult next_image_khr_err, fan::
   info.framebuffer = fd->Framebuffer;
   info.renderArea.extent.width = wd->Width;
   info.renderArea.extent.height = wd->Height;
-  info.clearValueCount = 1;
-  info.pClearValues = &wd->ClearValue;
   vkCmdBeginRenderPass(command_buffers[current_frame], &info, VK_SUBPASS_CONTENTS_INLINE);
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffers[current_frame]);
 
@@ -2157,7 +2147,8 @@ void fan::vulkan::vai_t::transition_image_layout(auto& context, VkImageLayout ne
 void fan::vulkan::context_t::descriptor_pool_t::open(fan::vulkan::context_t& context) {
   VkDescriptorPoolSize pool_sizes[] =
   {
-    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE + 2 },
+    
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE + 5 },
   };
   VkDescriptorPoolCreateInfo pool_info = {};
   pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;

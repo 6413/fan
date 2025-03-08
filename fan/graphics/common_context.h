@@ -152,6 +152,9 @@ namespace fan {
       bool iic() const {
         return ((fan::opengl::context_t::image_nr_t*)&nr)->iic();
       }
+      void sic() {
+        ((fan::opengl::context_t::image_nr_t*)&nr)->sic();
+      }
     };
     typedef context_image_nr_t (*image_create_t)(context_t&);
     typedef context_image_t  (*image_get_t)(context_t&, context_image_nr_t nr); // 
