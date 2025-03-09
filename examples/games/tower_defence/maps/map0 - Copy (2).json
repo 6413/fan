@@ -1,0 +1,7585 @@
+{
+  "layer_info": [
+    {
+      "depth": 32085,
+      "layer_name": "ground\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+    },
+    {
+      "depth": 32086,
+      "layer_name": "default\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+    },
+    {
+      "depth": 32087,
+      "layer_name": "default"
+    }
+  ],
+  "lighting.ambient": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "map_size": [
+    16,
+    9
+  ],
+  "tile_size": [
+    32,
+    32
+  ],
+  "tiles": [
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -32.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile023",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        288.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile001",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -480.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "path0",
+      "image_name": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 3,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -480.0,
+        64.0,
+        32087.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "rotation_vector": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "light",
+      "size": [
+        32.0,
+        32.0
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        480.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile134",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        480.0,
+        128.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7109375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile001",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -416.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        352.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile001",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -288.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile001",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -224.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile047",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -32.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile130",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        0.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.2890625,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile025",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        224.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7109375,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile001",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -160.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        352.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile023",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -96.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -480.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile023",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        288.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile023",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        288.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        416.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile027",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -96.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "path1",
+      "image_name": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 3,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -96.0,
+        64.0,
+        32087.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "rotation_vector": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "light",
+      "size": [
+        32.0,
+        32.0
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -480.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile004",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        288.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile048",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -160.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5703125,
+        0.5703125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile023",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        288.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile023",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -96.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -32.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        3.1415927410125732
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile132",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        64.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile025",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        224.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7109375,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile023",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        288.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        416.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile299",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -96.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5703125,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "path2",
+      "image_name": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 3,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -96.0,
+        -128.0,
+        32087.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "rotation_vector": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "light",
+      "size": [
+        32.0,
+        32.0
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        416.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile025",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -160.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7109375,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile157",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        64.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile025",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -160.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7109375,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile047",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        224.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile130",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        0.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.2890625,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile157",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        128.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile023",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        288.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "path4",
+      "image_name": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 3,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        288.0,
+        256.0,
+        32087.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "rotation_vector": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "light",
+      "size": [
+        32.0,
+        32.0
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -32.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile003",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -160.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.2890625,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -32.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        128.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile047",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -96.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -160.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile025",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        224.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7109375,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -224.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile047",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -224.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile157",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        64.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile157",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        192.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile047",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile001",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -32.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile047",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile025",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        224.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7109375,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile001",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile001",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile001",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile002",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        224.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile025",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        224.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7109375,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile023",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        288.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "path3",
+      "image_name": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 3,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        288.0,
+        -128.0,
+        32087.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "rotation_vector": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "light",
+      "size": [
+        32.0,
+        32.0
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile025",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        224.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7109375,
+        0.1484375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -32.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        4.71238899230957
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile136",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        192.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.2890625,
+        0.4296875
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        416.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -96.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        352.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -288.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -352.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        480.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -416.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -480.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        4.71238899230957
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile128",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -480.0,
+        192.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.7109375
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -480.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -416.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -352.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -288.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -224.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -160.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -96.0,
+        128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -32.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile129",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -32.0,
+        192.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -160.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile132",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -160.0,
+        192.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -224.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile130",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -224.0,
+        192.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.2890625,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -288.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -352.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -416.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -480.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -416.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -352.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -288.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        480.0,
+        256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -224.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -224.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -224.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -288.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -352.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -416.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -480.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -480.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        480.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -416.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile132",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -416.0,
+        -128.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -352.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -352.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile132",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -352.0,
+        -192.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -416.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile133",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -416.0,
+        -192.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5703125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -288.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        352.0,
+        -192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -288.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -160.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -96.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -32.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile132",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -32.0,
+        -256.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile132",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        32.0,
+        -256.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        96.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile132",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        160.0,
+        -256.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        224.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        3.1415927410125732
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile132",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        224.0,
+        -256.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        288.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        352.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        416.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        480.0,
+        -256.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        480.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile135",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        480.0,
+        -128.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8515625,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        480.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        480.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        480.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        352.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        352.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        352.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        352.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        416.0,
+        -128.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        416.0,
+        -64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile136",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        416.0,
+        -64.0,
+        32086.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.2890625,
+        0.4296875
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        416.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile231",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        416.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1484375,
+        0.2890625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile047",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -224.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile047",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -288.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile047",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -352.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile047",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -416.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile047",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -480.0,
+        0.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4296875,
+        0.8515625
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile001",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -352.0,
+        64.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "/towerDefense_tile162",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        -96.0,
+        192.0,
+        32085.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8515625,
+        0.0078125
+      ],
+      "tc_size": [
+        0.125,
+        0.125
+      ]
+    }
+  ],
+  "version": 1
+}

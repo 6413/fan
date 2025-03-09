@@ -2,9 +2,9 @@
 
 #include <future>
 
-#include <fan/graphics/direct3d11.interop.h>
-#include <fan/graphics/capture.interop.h>
-#include <fan/graphics/d3dHelpers.h>
+#include <fan/graphics/third_party/direct3d11.interop.h>
+#include <fan/graphics/third_party/capture.interop.h>
+#include <fan/graphics/third_party/d3dHelpers.h>
 
 #include <dwmapi.h>
 
@@ -130,7 +130,6 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
 //
 //*********************************************************
 
-#include "pch.h"
 struct SimpleCapture {
 
   SimpleCapture(
@@ -339,7 +338,7 @@ void SimpleCapture::OnFrameArrived(
         ii.data = data;
 
         loco_t::image_load_properties_t lp;
-        lp.format = loco_t::image_format::b8g8r8a8_unorm;
+        lp.format = fan::graphics::image_format::b8g8r8a8_unorm;
         lp.internal_format = GL_RGBA;
 
         if (window_image.iic() == false) {
@@ -554,12 +553,12 @@ int main() {
   loco.input_action.add_keycombo({ fan::key_left_alt, fan::key_5 }, "toggle_overlay");
 
   loco.shader_set_vertex(
-    loco.m_fbo_final_shader,
-    loco.shader_get(loco.m_fbo_final_shader).svertex
+    loco.gl.m_fbo_final_shader,
+    loco.shader_get(loco.gl.m_fbo_final_shader).gl->svertex
   );
 
   loco.shader_set_fragment(
-    loco.m_fbo_final_shader,
+    loco.gl.m_fbo_final_shader,
     R"(#version 330
 
 in vec2 texture_coordinate;
@@ -604,7 +603,7 @@ void main() {
 })"
 );
 
-  loco.shader_compile(loco.m_fbo_final_shader);
+  loco.shader_compile(loco.gl.m_fbo_final_shader);
 
 
   // override console commands
@@ -615,7 +614,7 @@ void main() {
       gloco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->shader_set_value(gloco->m_fbo_final_shader, "brightness", std::stof(args[0]));
+    gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "brightness", std::stof(args[0]));
     }).description = "sets brightness for postprocess shader";
 
   loco.console.commands.add("set_contrast", [](const fan::commands_t::arg_t& args) {
@@ -623,7 +622,7 @@ void main() {
       gloco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->shader_set_value(gloco->m_fbo_final_shader, "contrast", std::stof(args[0]));
+    gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "contrast", std::stof(args[0]));
     }).description = "sets contrast for postprocess shader";
 
   loco.console.commands.add("set_gamma", [](const fan::commands_t::arg_t& args) {
@@ -631,7 +630,7 @@ void main() {
       gloco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->shader_set_value(gloco->m_fbo_final_shader, "gamma", std::stof(args[0]));
+    gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "gamma", std::stof(args[0]));
     }).description = "sets gamma for postprocess shader";
 
   loco.console.commands.add("set_color", [](const fan::commands_t::arg_t& args) {
@@ -639,7 +638,7 @@ void main() {
       gloco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->shader_set_value(gloco->m_fbo_final_shader, "color_override",
+    gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "color_override",
       fan::vec3(
         std::stof(args[0]),
         std::stof(args[1]),
@@ -652,7 +651,7 @@ void main() {
       gloco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->shader_set_value(gloco->m_fbo_final_shader, "shadows", std::stof(args[0]));
+    gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "shadows", std::stof(args[0]));
     }).description = "sets shadows for postprocess shader";
 
   loco.console.commands.add("set_highlights", [](const fan::commands_t::arg_t& args) {
@@ -660,7 +659,7 @@ void main() {
       gloco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->shader_set_value(gloco->m_fbo_final_shader, "highlights", std::stof(args[0]));
+    gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "highlights", std::stof(args[0]));
     }).description = "sets highlights for postprocess shader";
 
 
