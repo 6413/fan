@@ -34,7 +34,6 @@ include/opencv2
 include/dpp
 *.dll
 x64/Debug
-*.json
 *.command
 *.ifc
 a.out
