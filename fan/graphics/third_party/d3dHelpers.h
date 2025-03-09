@@ -1,5 +1,5 @@
 #pragma once
-#include <fan/graphics/composition.interop.h>
+#include <fan/graphics/third_party/composition.interop.h>
 
 struct SurfaceContext
 {

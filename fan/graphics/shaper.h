@@ -806,10 +806,9 @@ private:
   ){
     auto &st = ShapeTypes[sti];
     
-    // how to do without gloco xd
     if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
-      auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
-      get_loco()->shader_erase(gl.shader);
+      //auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
+      //get_loco()->shader_erase(gl.shader);
     }
     else {
       //

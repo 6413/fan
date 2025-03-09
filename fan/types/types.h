@@ -497,6 +497,7 @@ namespace fan {
 #ifndef fan_debug
 #if fan_debug_build
 	#define fan_debug fan_debug_high
+  #define __sanit 1
 #else
   #define fan_debug fan_debug_none
 #endif
