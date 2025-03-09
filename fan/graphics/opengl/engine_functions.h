@@ -112,8 +112,8 @@ void init_framebuffer() {
   static auto load_texture = [&](fan::image::image_info_t& image_info, loco_t::image_t& color_buffer, GLenum attachment, bool reload = false) {
     typename fan::opengl::context_t::image_load_properties_t load_properties;
     load_properties.visual_output = GL_REPEAT;
-    load_properties.internal_format = GL_RGB;
-    load_properties.format = GL_RGB;
+    load_properties.internal_format = GL_RGBA;
+    load_properties.format = GL_RGBA;
     load_properties.type = GL_FLOAT;
     load_properties.min_filter = GL_LINEAR;
     load_properties.mag_filter = GL_LINEAR;
@@ -131,7 +131,7 @@ void init_framebuffer() {
   fan::image::image_info_t image_info;
   image_info.data = nullptr;
   image_info.size = loco.window.get_size();
-  image_info.channels = 3;
+  image_info.channels = 4;
 
   loco.gl.m_framebuffer.bind(loco.context.gl);
   for (uint32_t i = 0; i < (uint32_t)std::size(loco.gl.color_buffers); ++i) {

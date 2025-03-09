@@ -1,7 +1,7 @@
 #ifndef shaper_set_MaxShapeTypes
   #define shaper_set_MaxShapeTypes 0x80
 #endif
-
+//////////
 /* in bytes */
 #ifndef shaper_set_MaxKeySize
   #define shaper_set_MaxKeySize 8
@@ -603,6 +603,9 @@ private:
       st.shaper = this;
       st.sti = csti;
       st.BlockList.Open(1);
+      #if fan_debug >= fan_debug_high
+      st.sti = -1;
+      #endif
     }
 
     auto &st = ShapeTypes[sti];
@@ -614,6 +617,7 @@ private:
       ) * (bp.MaxElementPerBlock) + sizeof(BlockUnique_t)
     );
 
+    st.sti = sti;
     st.MaxElementPerBlock_m1 = bp.MaxElementPerBlock - 1;
     st.RenderDataSize = bp.RenderDataSize;
     st.DataSize = bp.DataSize;
@@ -853,6 +857,11 @@ private:
     BlockManager_NodeData_t *bm;
 
     auto &st = ShapeTypes[sti];
+  #if fan_debug >= fan_debug_high
+    if (st.sti == (decltype(st.sti))-1) {
+      fan::throw_error("");
+    }
+  #endif
 
     _KeyTree_NodeReference_t nr = _KeyTree_root;
     KeyPackSize_t ikp = 0;

@@ -53,18 +53,21 @@ namespace fan {
     struct body_update_data_t {
       std::function<void()> cb;
     };
-    #define BLL_set_SafeNext 1
-    #define BLL_set_AreWeInsideStruct 0
-    #define BLL_set_prefix body_updates
-    #define BLL_set_CPP_CopyAtPointerChange 1
-    #include <fan/fan_bll_preset.h>
-    #define BLL_set_Link 1
-    #define BLL_set_type_node uint16_t
-    #define BLL_set_NodeDataType body_update_data_t
-    #include <BLL/BLL.h>
+    struct test_t {
+      #define BLL_set_SafeNext 1
+      #define BLL_set_AreWeInsideStruct 1
+      #define BLL_set_prefix body_updates
+      #define BLL_set_CPP_CopyAtPointerChange 1
+      #include <fan/fan_bll_preset.h>
+      #define BLL_set_Link 1
+      #define BLL_set_type_node uint16_t
+      #define BLL_set_NodeDataType body_update_data_t
+      #include <BLL/BLL.h>
+    };
 
-    inline body_updates_t body_updates;
-    body_updates_t::nr_t push_body_update(const auto& l) {
+
+    inline test_t::body_updates_t body_updates;
+    test_t::body_updates_t::nr_t push_body_update(const auto& l) {
       auto it = body_updates.NewNodeLast();
       auto& node = body_updates[it];
       node.cb = l;

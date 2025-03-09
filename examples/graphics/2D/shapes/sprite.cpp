@@ -8,7 +8,6 @@ int main() {
   fan::graphics::sprite_t us{ {
     .position = fan::vec3(400, 400, 254),
     .size = 100,
-    .rotation_point = fan::vec2(100, 0),
     .image = image,
   } };
 
