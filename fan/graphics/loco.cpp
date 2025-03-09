@@ -1682,6 +1682,10 @@ void loco_t::process_frame() {
 
   
   if (window.renderer == renderer_t::opengl) {
+
+    //glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    //glClear(GL_COLOR_BUFFER_BIT);
+
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   }
   else if (window.renderer == renderer_t::vulkan) {
@@ -1763,10 +1767,6 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 
   auto& style = ImGui::GetStyle();
   ImVec4* colors = style.Colors;
-  const ImVec4 bgColor = ImVec4(0.0f, 0.0f, 0.0f, 0.4f);
-  colors[ImGuiCol_WindowBg] = bgColor;
-  colors[ImGuiCol_ChildBg] = bgColor;
-  colors[ImGuiCol_TitleBg] = bgColor;
 
   ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
   ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));

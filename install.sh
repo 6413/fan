@@ -20,23 +20,35 @@ apt install -y clang \
 				 ninja-build \
 				 libglew-dev
 
-git clone https://github.com/7244/WITCH.git
-mv WITCH /usr/local/include/WITCH
+move_and_pull() {
+	REPO_URL=$1
+	DIR_NAME=$2
+	
+	git clone "$REPO_URL" "$DIR_NAME"
+	
+	if [ -d "/usr/local/include/$DIR_NAME" ]; then
+		rm -rf "/usr/local/include/$DIR_NAME"
+	fi
+	if [ ! -L "/usr/local/include/$DIR_NAME" ]; then
+		mv "$DIR_NAME" "/usr/local/include/$DIR_NAME"
+	else
+		cd "/usr/local/include/$DIR_NAME"
+		git pull
+		if [ $? -ne 0 ]; then
+			echo "git pull failed for $DIR_NAME"
+			exit 1
+		else
+			echo "git pull succeeded for $DIR_NAME"
+		fi
+	fi
+}
 
-git clone https://github.com/7244/BCOL.git
-mv BCOL /usr/local/include/BCOL
-
-git clone https://github.com/7244/BLL.git
-mv BLL /usr/local/include/BLL
-
-git clone https://github.com/7244/BVEC.git
-mv BVEC /usr/local/include/BVEC
-
-git clone https://github.com/7244/BDBT.git
-mv BDBT /usr/local/include/BDBT
-
-git clone https://github.com/7244/bcontainer.git
-mv bcontainer /usr/local/include/bcontainer
+move_and_pull "https://github.com/7244/WITCH.git" "WITCH"
+move_and_pull "https://github.com/7244/BCOL.git" "BCOL"
+move_and_pull "https://github.com/7244/BLL.git" "BLL"
+move_and_pull "https://github.com/7244/BVEC.git" "BVEC"
+move_and_pull "https://github.com/7244/BDBT.git" "BDBT"
+move_and_pull "https://github.com/7244/bcontainer.git" "bcontainer"
 
 : '
 FOR INSTALLING BOX2D

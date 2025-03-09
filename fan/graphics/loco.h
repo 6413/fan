@@ -11,8 +11,8 @@
 #endif
 
 #define loco_opengl
-#define loco_framebuffer
-#define loco_post_process
+//#define loco_framebuffer
+//#define loco_post_process
 #define loco_vfi
 #define loco_physics
 
