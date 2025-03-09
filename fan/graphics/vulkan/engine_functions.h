@@ -89,6 +89,7 @@ uint32_t draw_shapes() {
   );
 
   loco.context.vk.recreate_swap_chain(&loco.window, err);
+
   loco.context.vk.memory_queue.process(loco.context.vk);
 
   loco_t::shaper_t::KeyTraverse_t KeyTraverse;
