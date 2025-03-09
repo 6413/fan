@@ -1,3 +1,8 @@
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winuser.h>
+#undef min
+#undef max
 #include <fan/pch.h>
 #include <future>
 #include <fan/graphics/third_party/direct3d11.interop.h>
@@ -335,6 +340,7 @@ void SimpleCapture::OnFrameArrived(
         fan::image::image_info_t ii;
         ii.size = fan::vec2(rowPitch / 4, desc.Height);
         ii.data = data;
+        ii.channels = 4;
 
         loco_t::image_load_properties_t lp;
         lp.format = fan::graphics::image_format::b8g8r8a8_unorm;
@@ -471,7 +477,6 @@ void App::StartCapture(HWND hwnd)
 #include <winrt/Windows.Graphics.DirectX.h>
 #include <winrt/Windows.Graphics.DirectX.Direct3d11.h>
 
-#include <windows.ui.composition.interop.h>
 #include <DispatcherQueue.h>
 
 // STL
@@ -876,12 +881,15 @@ void main() {
       glfwSetWindowAttrib(gloco->window.glfw_window, GLFW_TRANSPARENT_FRAMEBUFFER, transparent);
     }
 
-    ImGui::Begin("", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar);
+    ImGui::Begin("##someempty", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar);
 
     static int current_hwnd = 0;
     if (ImGui::BeginCombo("list of hwnds", windows[current_hwnd].Title().c_str())) {
       for (int i = 0; i < windows.size(); i++) {
         auto title = windows[i].Title();
+        if (title.empty()) {
+          continue;
+        }
         if (ImGui::Selectable(title.c_str(), current_hwnd == i)) {
           current_hwnd = i;
           auto compositor = Compositor();
