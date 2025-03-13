@@ -1,6 +1,7 @@
 #include <fan/io/file.h>
 #include <fan/io/json_impl.h>
 #include <variant>
+#include <fan/graphics/physics_shapes.hpp>
 
 struct fte_loader_t {
 

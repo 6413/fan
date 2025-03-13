@@ -36,192 +36,212 @@ global_loco_t& global_loco_t::operator=(loco_t* l) {
 
 //thread_local global_loco_t gloco;
 
-fan::graphics::context_shader_nr_t loco_t::shader_create() {
-  return context_functions.shader_create(context);
+fan::graphics::shader_nr_t loco_t::shader_create() {
+  return context_functions.shader_create(&context);
 }
 
-fan::graphics::context_shader_t loco_t::shader_get(fan::graphics::context_shader_nr_t nr) {
-  return context_functions.shader_get(context, nr);
+// warning does deep copy, addresses can die
+fan::graphics::context_shader_t loco_t::shader_get(fan::graphics::shader_nr_t nr) {
+  fan::graphics::context_shader_t context_shader;
+  if (window.renderer == renderer_t::opengl) {
+    context_shader = *(fan::opengl::context_t::shader_t*)context_functions.shader_get(&context, nr);
+  }
+  else if (window.renderer == renderer_t::vulkan) {
+    context_shader = *(fan::vulkan::context_t::shader_t*)context_functions.shader_get(&context, nr);
+  }
+  return context_shader;
 }
 
-void loco_t::shader_erase(fan::graphics::context_shader_nr_t nr) {
-  context_functions.shader_erase(context, nr);
+void loco_t::shader_erase(fan::graphics::shader_nr_t nr) {
+  context_functions.shader_erase(&context, nr);
 }
 
-void loco_t::shader_use(fan::graphics::context_shader_nr_t nr) {
-  context_functions.shader_use(context, nr);
+void loco_t::shader_use(fan::graphics::shader_nr_t nr) {
+  context_functions.shader_use(&context, nr);
 }
 
-void loco_t::shader_set_vertex(fan::graphics::context_shader_nr_t nr, const std::string& vertex_code) {
-  context_functions.shader_set_vertex(context, nr, vertex_code);
+void loco_t::shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
+  context_functions.shader_set_vertex(&context, nr, vertex_code);
 }
 
-void loco_t::shader_set_fragment(fan::graphics::context_shader_nr_t nr, const std::string& fragment_code) {
-  context_functions.shader_set_fragment(context, nr, fragment_code);
+void loco_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
+  context_functions.shader_set_fragment(&context, nr, fragment_code);
 }
 
-bool loco_t::shader_compile(fan::graphics::context_shader_nr_t nr) {
-  return context_functions.shader_compile(context, nr);
+bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
+  return context_functions.shader_compile(&context, nr);
 }
 
-fan::graphics::context_image_nr_t loco_t::image_create() {
-  return context_functions.image_create(context);
+fan::graphics::image_nr_t loco_t::image_create() {
+  return context_functions.image_create(&context);
 }
 
-fan::graphics::context_image_t loco_t::image_get(fan::graphics::context_image_nr_t nr) {
-  return context_functions.image_get(context, nr);
+fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_nr_t nr) {
+  fan::graphics::context_image_t img;
+  if (window.renderer == renderer_t::opengl) {
+    img = *(fan::opengl::context_t::image_t*)context_functions.image_get(&context, nr);
+  }
+  else if (window.renderer == renderer_t::vulkan) {
+    img = *(fan::vulkan::context_t::image_t*)context_functions.image_get(&context, nr);
+  }
+  return img;
 }
 
-uint64_t loco_t::image_get_handle(fan::graphics::context_image_nr_t nr) {
-  return context_functions.image_get_handle(context, nr);
+uint64_t loco_t::image_get_handle(fan::graphics::image_nr_t nr) {
+  return context_functions.image_get_handle(&context, nr);
 }
 
-void loco_t::image_erase(fan::graphics::context_image_nr_t nr) {
-  context_functions.image_erase(context, nr);
+void loco_t::image_erase(fan::graphics::image_nr_t nr) {
+  context_functions.image_erase(&context, nr);
 }
 
-void loco_t::image_bind(fan::graphics::context_image_nr_t nr) {
-  context_functions.image_bind(context, nr);
+void loco_t::image_bind(fan::graphics::image_nr_t nr) {
+  context_functions.image_bind(&context, nr);
 }
 
-void loco_t::image_unbind(fan::graphics::context_image_nr_t nr) {
-  context_functions.image_unbind(context, nr);
+void loco_t::image_unbind(fan::graphics::image_nr_t nr) {
+  context_functions.image_unbind(&context, nr);
 }
 
 void loco_t::image_set_settings(const fan::graphics::image_load_properties_t& settings) {
-  context_functions.image_set_settings(context, settings);
+  context_functions.image_set_settings(&context, settings);
 }
 
-fan::graphics::context_image_nr_t loco_t::image_load(const fan::image::image_info_t& image_info) {
-  return context_functions.image_load_info(context, image_info);
+fan::graphics::image_nr_t loco_t::image_load(const fan::image::image_info_t& image_info) {
+  return context_functions.image_load_info(&context, image_info);
 }
 
-fan::graphics::context_image_nr_t loco_t::image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) {
-  return context_functions.image_load_info_props(context, image_info, p);
+fan::graphics::image_nr_t loco_t::image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+  return context_functions.image_load_info_props(&context, image_info, p);
 }
 
-fan::graphics::context_image_nr_t loco_t::image_load(const fan::string& path) {
-  return context_functions.image_load_path(context, path);
+fan::graphics::image_nr_t loco_t::image_load(const fan::string& path) {
+  return context_functions.image_load_path(&context, path);
 }
 
-fan::graphics::context_image_nr_t loco_t::image_load(const fan::string& path, const fan::graphics::image_load_properties_t& p) {
-  return context_functions.image_load_path_props(context, path, p);
+fan::graphics::image_nr_t loco_t::image_load(const fan::string& path, const fan::graphics::image_load_properties_t& p) {
+  return context_functions.image_load_path_props(&context, path, p);
 }
 
-fan::graphics::context_image_nr_t loco_t::image_load(fan::color* colors, const fan::vec2ui& size) {
-  return context_functions.image_load_colors(context, colors, size);
+fan::graphics::image_nr_t loco_t::image_load(fan::color* colors, const fan::vec2ui& size) {
+  return context_functions.image_load_colors(&context, colors, size);
 }
 
-fan::graphics::context_image_nr_t loco_t::image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
-  return context_functions.image_load_colors_props(context, colors, size, p);
+fan::graphics::image_nr_t loco_t::image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
+  return context_functions.image_load_colors_props(&context, colors, size, p);
 }
 
-void loco_t::image_unload(fan::graphics::context_image_nr_t nr) {
-  context_functions.image_unload(context, nr);
+void loco_t::image_unload(fan::graphics::image_nr_t nr) {
+  context_functions.image_unload(&context, nr);
 }
 
-fan::graphics::context_image_nr_t loco_t::create_missing_texture() {
-  return context_functions.create_missing_texture(context);
+fan::graphics::image_nr_t loco_t::create_missing_texture() {
+  return context_functions.create_missing_texture(&context);
 }
 
-fan::graphics::context_image_nr_t loco_t::create_transparent_texture() {
-  return context_functions.create_transparent_texture(context);
+fan::graphics::image_nr_t loco_t::create_transparent_texture() {
+  return context_functions.create_transparent_texture(&context);
 }
 
-void loco_t::image_reload_pixels(fan::graphics::context_image_nr_t nr, const fan::image::image_info_t& image_info) {
-  context_functions.image_reload_pixels(context, nr, image_info);
+void loco_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info) {
+  context_functions.image_reload_image_info(&context, nr, image_info);
+}
+void loco_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+  context_functions.image_reload_image_info_props(&context, nr, image_info, p);
+}
+void loco_t::image_reload(fan::graphics::image_nr_t nr, const std::string& path) {
+  context_functions.image_reload_path(&context, nr, path);
+}
+void loco_t::image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p) {
+  context_functions.image_reload_path_props(&context, nr, path, p);
 }
 
-void loco_t::image_reload_pixels(fan::graphics::context_image_nr_t nr, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) {
-  context_functions.image_reload_pixels_props(context, nr, image_info, p);
+fan::graphics::image_nr_t loco_t::image_create(const fan::color& color) {
+  return context_functions.image_create_color(&context, color);
 }
 
-fan::graphics::context_image_nr_t loco_t::image_create(const fan::color& color) {
-  return context_functions.image_create_color(context, color);
+fan::graphics::image_nr_t loco_t::image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p) {
+  return context_functions.image_create_color_props(&context, color, p);
 }
 
-fan::graphics::context_image_nr_t loco_t::image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p) {
-  return context_functions.image_create_color_props(context, color, p);
+fan::graphics::camera_nr_t loco_t::camera_create() {
+  return context_functions.camera_create(&context);
 }
 
-fan::graphics::context_camera_nr_t loco_t::camera_create() {
-  return context_functions.camera_create(context);
+fan::graphics::context_camera_t& loco_t::camera_get(fan::graphics::camera_nr_t nr) {
+  return context_functions.camera_get(&context, nr);
 }
 
-fan::graphics::context_camera_t loco_t::camera_get(fan::graphics::context_camera_nr_t nr) {
-  return context_functions.camera_get(context, nr);
+void loco_t::camera_erase(fan::graphics::camera_nr_t nr) {
+  context_functions.camera_erase(&context, nr);
 }
 
-void loco_t::camera_erase(fan::graphics::context_camera_nr_t nr) {
-  context_functions.camera_erase(context, nr);
+fan::graphics::camera_nr_t loco_t::camera_open(const fan::vec2& x, const fan::vec2& y) {
+  return context_functions.camera_open(&context, x, y);
 }
 
-fan::graphics::context_camera_nr_t loco_t::camera_open(const fan::vec2& x, const fan::vec2& y) {
-  return context_functions.camera_open(context, x, y);
+fan::vec3 loco_t::camera_get_position(fan::graphics::camera_nr_t nr) {
+  return context_functions.camera_get_position(&context, nr);
 }
 
-fan::vec3 loco_t::camera_get_position(fan::graphics::context_camera_nr_t nr) {
-  return context_functions.camera_get_position(context, nr);
+void loco_t::camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
+  context_functions.camera_set_position(&context, nr, cp);
 }
 
-void loco_t::camera_set_position(fan::graphics::context_camera_nr_t nr, const fan::vec3& cp) {
-  context_functions.camera_set_position(context, nr, cp);
+fan::vec2 loco_t::camera_get_size(fan::graphics::camera_nr_t nr) {
+  return context_functions.camera_get_size(&context, nr);
 }
 
-fan::vec2 loco_t::camera_get_size(fan::graphics::context_camera_nr_t nr) {
-  return context_functions.camera_get_size(context, nr);
+void loco_t::camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
+  context_functions.camera_set_ortho(&context, nr, x, y);
 }
 
-void loco_t::camera_set_ortho(fan::graphics::context_camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
-  context_functions.camera_set_ortho(context, nr, x, y);
+void loco_t::camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
+  context_functions.camera_set_perspective(&context, nr, fov, window_size);
 }
 
-void loco_t::camera_set_perspective(fan::graphics::context_camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
-  context_functions.camera_set_perspective(context, nr, fov, window_size);
+void loco_t::camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset) {
+  context_functions.camera_rotate(&context, nr, offset);
 }
 
-void loco_t::camera_rotate(fan::graphics::context_camera_nr_t nr, const fan::vec2& offset) {
-  context_functions.camera_rotate(context, nr, offset);
+fan::graphics::viewport_nr_t loco_t::viewport_create() {
+  return context_functions.viewport_create(&context);
 }
 
-fan::graphics::context_viewport_nr_t loco_t::viewport_create() {
-  return context_functions.viewport_create(context);
+fan::graphics::context_viewport_t loco_t::viewport_get(fan::graphics::viewport_nr_t nr) {
+  return context_functions.viewport_get(&context, nr);
 }
 
-fan::graphics::context_viewport_t loco_t::viewport_get(fan::graphics::context_viewport_nr_t nr) {
-  return context_functions.viewport_get(context, nr);
+void loco_t::viewport_erase(fan::graphics::viewport_nr_t nr) {
+  context_functions.viewport_erase(&context, nr);
 }
 
-void loco_t::viewport_erase(fan::graphics::context_viewport_nr_t nr) {
-  context_functions.viewport_erase(context, nr);
+fan::vec2 loco_t::viewport_get_position(fan::graphics::viewport_nr_t nr) {
+  return context_functions.viewport_get_position(&context, nr);
 }
 
-fan::vec2 loco_t::viewport_get_position(fan::graphics::context_viewport_nr_t nr) {
-  return context_functions.viewport_get_position(context, nr);
-}
-
-fan::vec2 loco_t::viewport_get_size(fan::graphics::context_viewport_nr_t nr) {
-  return context_functions.viewport_get_size(context, nr);
+fan::vec2 loco_t::viewport_get_size(fan::graphics::viewport_nr_t nr) {
+  return context_functions.viewport_get_size(&context, nr);
 }
 
 void loco_t::viewport_set(const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size) {
-  context_functions.viewport_set(context, viewport_position, viewport_size, window_size);
+  context_functions.viewport_set(&context, viewport_position, viewport_size, window_size);
 }
 
-void loco_t::viewport_set(fan::graphics::context_viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size) {
-  context_functions.viewport_set_nr(context, nr, viewport_position, viewport_size, window_size);
+void loco_t::viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size) {
+  context_functions.viewport_set_nr(&context, nr, viewport_position, viewport_size, window_size);
 }
 
-void loco_t::viewport_zero(fan::graphics::context_viewport_nr_t nr) {
-  context_functions.viewport_zero(context, nr);
+void loco_t::viewport_zero(fan::graphics::viewport_nr_t nr) {
+  context_functions.viewport_zero(&context, nr);
 }
 
-bool loco_t::inside(fan::graphics::context_viewport_nr_t nr, const fan::vec2& position) {
-  return context_functions.viewport_inside(context, nr, position);
+bool loco_t::inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
+  return context_functions.viewport_inside(&context, nr, position);
 }
 
-bool loco_t::inside_wir(fan::graphics::context_viewport_nr_t nr, const fan::vec2& position) {
-  return context_functions.viewport_inside_wir(context, nr, position);
+bool loco_t::inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
+  return context_functions.viewport_inside_wir(&context, nr, position);
 }
 
 uint8_t* loco_t::A_resize(void* ptr, uintptr_t size) {
@@ -257,58 +277,58 @@ void loco_t::use() {
 }
 
 void loco_t::camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction) {
-  camera.gl->velocity /= friction * dt + 1;
+  camera.velocity /= friction * dt + 1;
   static constexpr auto minimum_velocity = 0.001;
   static constexpr f32_t camera_rotate_speed = 100;
-  if (camera.gl->velocity.x < minimum_velocity && camera.gl->velocity.x > -minimum_velocity) {
-    camera.gl->velocity.x = 0;
+  if (camera.velocity.x < minimum_velocity && camera.velocity.x > -minimum_velocity) {
+    camera.velocity.x = 0;
   }
-  if (camera.gl->velocity.y < minimum_velocity && camera.gl->velocity.y > -minimum_velocity) {
-    camera.gl->velocity.y = 0;
+  if (camera.velocity.y < minimum_velocity && camera.velocity.y > -minimum_velocity) {
+    camera.velocity.y = 0;
   }
-  if (camera.gl->velocity.z < minimum_velocity && camera.gl->velocity.z > -minimum_velocity) {
-    camera.gl->velocity.z = 0;
+  if (camera.velocity.z < minimum_velocity && camera.velocity.z > -minimum_velocity) {
+    camera.velocity.z = 0;
   }
 
   f64_t msd = (movement_speed * dt);
   if (gloco->window.key_pressed(fan::input::key_w)) {
-    camera.gl->velocity += camera.gl->m_front * msd;
+    camera.velocity += camera.m_front * msd;
   }
   if (gloco->window.key_pressed(fan::input::key_s)) {
-    camera.gl->velocity -= camera.gl->m_front * msd;
+    camera.velocity -= camera.m_front * msd;
   }
   if (gloco->window.key_pressed(fan::input::key_a)) {
-    camera.gl->velocity -= camera.gl->m_right * msd;
+    camera.velocity -= camera.m_right * msd;
   }
   if (gloco->window.key_pressed(fan::input::key_d)) {
-    camera.gl->velocity += camera.gl->m_right * msd;
+    camera.velocity += camera.m_right * msd;
   }
 
   if (gloco->window.key_pressed(fan::input::key_space)) {
-    camera.gl->velocity.y += movement_speed * gloco->delta_time;
+    camera.velocity.y += movement_speed * gloco->delta_time;
   }
   if (gloco->window.key_pressed(fan::input::key_left_shift)) {
-    camera.gl->velocity.y -= movement_speed * gloco->delta_time;
+    camera.velocity.y -= movement_speed * gloco->delta_time;
   }
 
-  f64_t rotate = camera.gl->sensitivity * camera_rotate_speed * gloco->delta_time;
+  f64_t rotate = camera.sensitivity * camera_rotate_speed * gloco->delta_time;
   if (gloco->window.key_pressed(fan::input::key_left)) {
-    camera.gl->set_yaw(camera.gl->get_yaw() - rotate);
+    camera.set_yaw(camera.get_yaw() - rotate);
   }
   if (gloco->window.key_pressed(fan::input::key_right)) {
-    camera.gl->set_yaw(camera.gl->get_yaw() + rotate);
+    camera.set_yaw(camera.get_yaw() + rotate);
   }
   if (gloco->window.key_pressed(fan::input::key_up)) {
-    camera.gl->set_pitch(camera.gl->get_pitch() + rotate);
+    camera.set_pitch(camera.get_pitch() + rotate);
   }
   if (gloco->window.key_pressed(fan::input::key_down)) {
-    camera.gl->set_pitch(camera.gl->get_pitch() - rotate);
+    camera.set_pitch(camera.get_pitch() - rotate);
   }
 
-  camera.gl->position += camera.gl->velocity * gloco->delta_time;
-  camera.gl->update_view();
+  camera.position += camera.velocity * gloco->delta_time;
+  camera.update_view();
 
-  camera.gl->m_view = camera.gl->get_view_matrix();
+  camera.m_view = camera.get_view_matrix();
 }
 
 #define shaper_get_key_safe(return_type, kps_type, variable) \
@@ -343,7 +363,7 @@ loco_t::functions_t loco_t::get_functions() {
     },
     .set_position3 = [](shape_t* shape, const fan::vec3& position) {
       if constexpr (fan_has_variable(T, position)) {
-          auto sti = gloco->shaper.GetSTI(*shape);
+          auto sti = gloco->shaper.ShapeList[*shape].sti;
 
           // alloc can be avoided inside switch
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
@@ -380,13 +400,13 @@ loco_t::functions_t loco_t::get_functions() {
           }
 
     
-          auto _vi = gloco->shaper.GetRenderData(*shape);
+          auto _vi = shape->GetRenderData(gloco->shaper);
           auto vlen = gloco->shaper.GetRenderDataSize(sti);
           uint8_t* vi = new uint8_t[vlen];
           std::memcpy(vi, _vi, vlen);
           ((T*)vi)->position = position;
 
-          auto _ri = gloco->shaper.GetData(*shape);
+          auto _ri = shape->GetData(gloco->shaper);
           auto rlen = gloco->shaper.GetDataSize(sti);
           uint8_t* ri = new uint8_t[rlen];
           std::memcpy(ri, _ri, rlen);
@@ -558,7 +578,7 @@ loco_t::functions_t loco_t::get_functions() {
       .load_tp = [](shape_t* shape, loco_t::texturepack_t::ti_t* ti) -> bool {
         if constexpr(std::is_same_v<T, loco_t::sprite_t::vi_t> ||
         std::is_same_v<T, loco_t::unlit_sprite_t::vi_t>) {
-          auto sti = gloco->shaper.GetSTI(*shape);
+          auto sti = gloco->shaper.ShapeList[*shape].sti;
             
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
@@ -580,14 +600,16 @@ loco_t::functions_t loco_t::get_functions() {
           auto& im = *ti->image;
           auto img = gloco->image_get(im);
 
-          auto _vi = gloco->shaper.GetRenderData(*shape);
+          auto _vi = shape->GetRenderData(gloco->shaper);
           auto vlen = gloco->shaper.GetRenderDataSize(sti);
           uint8_t* vi = new uint8_t[vlen];
           std::memcpy(vi, _vi, vlen);
-          ((T*)vi)->tc_position = ti->position / img.size;
-          ((T*)vi)->tc_size = ti->size / img.size;
+          std::visit([vi, ti] (const auto& v) {
+            ((T*)vi)->tc_position = ti->position / v.size;
+            ((T*)vi)->tc_size = ti->size / v.size;
+          }, img);
 
-          auto _ri = gloco->shaper.GetData(*shape);
+          auto _ri = shape->GetData(gloco->shaper);
           auto rlen = gloco->shaper.GetDataSize(sti);
           uint8_t* ri = new uint8_t[rlen];
           std::memcpy(ri, _ri, rlen);
@@ -627,7 +649,7 @@ loco_t::functions_t loco_t::get_functions() {
         }
       },
       .get_camera = [](shape_t* shape) {
-        auto sti = gloco->shaper.GetSTI(*shape);
+        auto sti = gloco->shaper.ShapeList[*shape].sti;
 
         // alloc can be avoided inside switch
         uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
@@ -661,7 +683,7 @@ loco_t::functions_t loco_t::get_functions() {
       },
       .set_camera = [](shape_t* shape, loco_t::camera_t camera) {
         {
-            auto sti = gloco->shaper.GetSTI(*shape);
+            auto sti = gloco->shaper.ShapeList[*shape].sti;
 
           // alloc can be avoided inside switch
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
@@ -698,12 +720,12 @@ loco_t::functions_t loco_t::get_functions() {
             }
           }
 
-          auto _vi = gloco->shaper.GetRenderData(*shape);
+          auto _vi = shape->GetRenderData(gloco->shaper);
           auto vlen = gloco->shaper.GetRenderDataSize(sti);
           uint8_t* vi = new uint8_t[vlen];
           std::memcpy(vi, _vi, vlen);
 
-          auto _ri = gloco->shaper.GetData(*shape);
+          auto _ri = shape->GetData(gloco->shaper);
           auto rlen = gloco->shaper.GetDataSize(sti);
           uint8_t* ri = new uint8_t[rlen];
           std::memcpy(ri, _ri, rlen);
@@ -727,7 +749,7 @@ loco_t::functions_t loco_t::get_functions() {
       .get_viewport = [](shape_t* shape) {
         uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
 
-        auto sti = gloco->shaper.GetSTI(*shape);
+        auto sti = gloco->shaper.ShapeList[*shape].sti;
 
         switch(sti) {
           // light
@@ -758,7 +780,7 @@ loco_t::functions_t loco_t::get_functions() {
       },
       .set_viewport = [](shape_t* shape, loco_t::viewport_t viewport) {
         {
-          auto sti = gloco->shaper.GetSTI(*shape);
+          auto sti = gloco->shaper.ShapeList[*shape].sti;
 
           // alloc can be avoided inside switch
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
@@ -794,12 +816,12 @@ loco_t::functions_t loco_t::get_functions() {
             }
           }
 
-          auto _vi = gloco->shaper.GetRenderData(*shape);
+          auto _vi = shape->GetRenderData(gloco->shaper);
           auto vlen = gloco->shaper.GetRenderDataSize(sti);
           uint8_t* vi = new uint8_t[vlen];
           std::memcpy(vi, _vi, vlen);
 
-          auto _ri = gloco->shaper.GetData(*shape);
+          auto _ri = shape->GetData(gloco->shaper);
           auto rlen = gloco->shaper.GetDataSize(sti);
           uint8_t* ri = new uint8_t[rlen];
           std::memcpy(ri, _ri, rlen);
@@ -822,7 +844,7 @@ loco_t::functions_t loco_t::get_functions() {
       },
 
       .get_image = [](shape_t* shape) -> loco_t::image_t {
-        auto sti = gloco->shaper.GetSTI(*shape);
+        auto sti = gloco->shaper.ShapeList[*shape].sti;
         uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
         switch (sti) {
         // texture
@@ -840,7 +862,7 @@ loco_t::functions_t loco_t::get_functions() {
       },
       .set_image = [](shape_t* shape, loco_t::image_t image) {
          
-        auto sti = gloco->shaper.GetSTI(*shape);
+        auto sti = gloco->shaper.ShapeList[*shape].sti;
 
         // alloc can be avoided inside switch
         auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
@@ -863,12 +885,12 @@ loco_t::functions_t loco_t::get_functions() {
         }
         }
             
-        auto _vi = gloco->shaper.GetRenderData(*shape);
+        auto _vi = shape->GetRenderData(gloco->shaper);
         auto vlen = gloco->shaper.GetRenderDataSize(sti);
         uint8_t* vi = new uint8_t[vlen];
         std::memcpy(vi, _vi, vlen);
 
-        auto _ri = gloco->shaper.GetData(*shape);
+        auto _ri = shape->GetData(gloco->shaper);
         auto rlen = gloco->shaper.GetDataSize(sti);
         uint8_t* ri = new uint8_t[rlen];
         std::memcpy(ri, _ri, rlen);
@@ -980,9 +1002,9 @@ loco_t::functions_t loco_t::get_functions() {
         if (shape->get_shape_type() != loco_t::shape_type_t::universal_image_renderer) {
           fan::throw_error("only meant to be used with universal_image_renderer");
         }
-        loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)gloco->shaper.GetData(*shape);
+        loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)shape->GetData(gloco->shaper);
         if (format != ri.format) {
-          auto sti = gloco->shaper.GetSTI(*shape);
+          auto sti = gloco->shaper.ShapeList[*shape].sti;
           uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
           loco_t::image_t vi_image = shaper_get_key_safe(loco_t::image_t, texture_t, image);
 
@@ -1045,14 +1067,14 @@ loco_t::functions_t loco_t::get_functions() {
           lp.min_filter = filter;
           lp.mag_filter = filter;
           if (i == 0) {
-            gloco->image_reload_pixels(
+            gloco->image_reload(
               vi_image,
               image_info,
               lp
             );
           }
           else {
-            gloco->image_reload_pixels(
+            gloco->image_reload(
               ri.images_rest[i - 1],
               image_info,
               lp
@@ -1089,10 +1111,17 @@ loco_t::functions_t loco_t::get_functions() {
 #undef shaper_get_key_safe
 
 void close_loco(loco_t* loco) {
-  loco->image_erase(loco->default_texture);
+  #if defined(loco_imgui)
   loco->console.commands.func_table.clear();
   loco->console.close();
+#endif
   fan::graphics::close_bcol();
+  if (loco->window.renderer == loco_t::renderer_t::vulkan) {
+    vkDeviceWaitIdle(loco->context.vk.device);
+    vkDestroySampler(loco->context.vk.device, loco->vk.post_process_sampler, nullptr);
+    loco->vk.d_attachments.close(loco->context.vk);
+    loco->vk.post_process.close(loco->context.vk);
+  }
   loco->shaper.Close();
 #if defined(loco_imgui)
   loco->destroy_imgui();
@@ -1270,6 +1299,7 @@ void generate_commands(loco_t* loco) {
 #endif
 }
 
+#if defined(loco_imgui)
 void loco_t::load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t font_size) {
   for (std::size_t i = 0; i < std::size(fonts); ++i) {
     fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), (int)(font_size * (1 << i)) * 1.5);
@@ -1280,6 +1310,7 @@ void loco_t::load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t
   }
   io.Fonts->Build();
 }
+#endif
 
 void check_vk_result(VkResult err) {
   if (err != VK_SUCCESS) {
@@ -1287,8 +1318,8 @@ void check_vk_result(VkResult err) {
   }
 }
 
-void loco_t::init_imgui() {
 #if defined(loco_imgui)
+void loco_t::init_imgui() {
   ImGui::CreateContext();
   ImPlot::CreateContext();
   auto& input_map = ImPlot::GetInputMap();
@@ -1342,11 +1373,9 @@ void loco_t::init_imgui() {
   io.FontDefault = fonts[2];
 
   fan::graphics::add_input_action(fan::key_escape, "open_settings");
-#endif
-}
 
+}
 void loco_t::destroy_imgui() {
-#if defined(loco_imgui)
   if (window.renderer == renderer_t::opengl) {
     ImGui_ImplOpenGL3_Shutdown();
   }
@@ -1361,8 +1390,9 @@ void loco_t::destroy_imgui() {
     context.vk.imgui_close();
   }
 
-#endif
 }
+#endif
+
 
 void loco_t::init_framebuffer() {
   if (window.renderer == renderer_t::opengl) {
@@ -1374,26 +1404,27 @@ loco_t::loco_t() : loco_t(properties_t()) {
 
 }
 
-loco_t::loco_t(const properties_t& p){
+loco_t::loco_t(const properties_t& p) {
   if (fan::init_manager_t::initialized() == false) {
     fan::init_manager_t::initialize();
   }
   window.renderer = p.renderer;
   if (window.renderer == renderer_t::opengl) {
-    context_functions = fan::graphics::get_gl_context_functions();
     new (&context.gl) fan::opengl::context_t();
+    context_functions = fan::graphics::get_gl_context_functions();
     gl.open();
   }
 
-  start_time = fan::time::clock::now();
-
   window.open(p.window_size, fan::window_t::default_window_name, p.window_flags);
   gloco = this;
+
   if(window.renderer == renderer_t::vulkan) {
     context_functions = fan::graphics::get_vk_context_functions();
     new (&context.vk) fan::vulkan::context_t();
     context.vk.open(window);
   }
+
+  start_time = fan::time::clock::now();
 
   set_vsync(false); // using libuv
   //fan::print("less pain", this, (void*)&lighting, (void*)((uint8_t*)&lighting - (uint8_t*)this), sizeof(*this), lighting.ambient);
@@ -1411,7 +1442,7 @@ loco_t::loco_t(const properties_t& p){
   window.add_buttons_callback([this](const fan::window_t::mouse_buttons_cb_data_t& d) {
     fan::vec2 window_size = window.get_size();
     vfi.feed_mouse_button(d.button, d.state);
-    });
+  });
 
   window.add_keys_callback([&](const fan::window_t::keyboard_keys_cb_data_t& d) {
     vfi.feed_keyboard(d.key, d.state);
@@ -1423,7 +1454,7 @@ loco_t::loco_t(const properties_t& p){
 
   window.add_text_callback([&](const fan::window_t::text_cb_data_t& d) {
     vfi.feed_text(d.character);
-    });
+  });
 #endif
 
   default_texture = create_missing_texture();
@@ -1510,11 +1541,179 @@ loco_t::loco_t(const properties_t& p){
       }
     }
   );
+  #if defined(loco_imgui)
   settings_menu.open();
+  #endif
 }
 
 loco_t::~loco_t() {
   close_loco(this);
+}
+
+void loco_t::switch_renderer(uint8_t renderer) {
+  std::vector<std::string> image_paths;
+  fan::vec2 window_size = window.get_size();
+  fan::vec2 window_position = window.get_position();
+  uint64_t flags = window.flags;
+
+  {// close
+    if (window.renderer == loco_t::renderer_t::vulkan) {
+      // todo wrap to vk.
+      vkDeviceWaitIdle(context.vk.device);
+      vkDestroySampler(context.vk.device, vk.post_process_sampler, nullptr);
+      vk.d_attachments.close(context.vk);
+      vk.post_process.close(context.vk);
+      //CLOOOOSEEE POSTPROCESSS IMAGEEES
+    }
+    else if (window.renderer == loco_t::renderer_t::opengl) {
+      for(auto &st : shaper.ShapeTypes){
+        if (std::holds_alternative<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer)) {
+          auto& str = std::get<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer);
+          str.shape_data.close(context.vk);
+          str.pipeline.close(context.vk);
+        }
+        //st.BlockList.Close();
+      }
+      glDeleteVertexArrays(1, &gl.fb_vao);
+      glDeleteBuffers(1, &gl.fb_vbo);
+      context.gl.internal_close();
+    }
+#if defined(loco_imgui)
+    destroy_imgui();
+#endif
+    window.close();
+  }
+  {// reopen
+    window.renderer = reload_renderer_to; // i dont like this {window.renderer = ...}
+    if (window.renderer == renderer_t::opengl) {
+      context_functions = fan::graphics::get_gl_context_functions();
+      new (&context.gl) fan::opengl::context_t();
+      gl.open();
+    }
+
+    window.open(window_size, fan::window_t::default_window_name, flags | fan::window_t::flags::no_visible);
+    window.set_position(window_position);
+    window.set_position(window_position);
+    glfwShowWindow(window);
+    window.flags = flags;
+    if(window.renderer == renderer_t::vulkan) {
+      new (&context.vk) fan::vulkan::context_t();
+      context_functions = fan::graphics::get_vk_context_functions();
+      context.vk.open(window);
+    }
+  }
+  {// reload
+    {
+      {
+        fan::graphics::camera_list_t::nrtra_t nrtra;
+        fan::graphics::camera_nr_t nr;
+        nrtra.Open(&camera_list, &nr);
+        while (nrtra.Loop(&camera_list, &nr)) {
+          auto& cam = camera_list[nr];
+          camera_set_ortho(
+            nr,
+            fan::vec2(cam.coordinates.left, cam.coordinates.right),
+            fan::vec2(cam.coordinates.up, cam.coordinates.down)
+          );
+        }
+        nrtra.Close(&camera_list);
+      }
+      {
+        fan::graphics::viewport_list_t::nrtra_t nrtra;
+        fan::graphics::viewport_nr_t nr;
+        nrtra.Open(&viewport_list, &nr);
+        while (nrtra.Loop(&viewport_list, &nr)) {
+          auto& viewport = viewport_list[nr];
+          viewport_set(
+            nr,
+            viewport.viewport_position,
+            viewport.viewport_size,
+            window.get_size()
+          );
+        }
+        nrtra.Close(&viewport_list);
+      }
+    }
+
+    {
+      {
+        {
+          fan::graphics::image_list_t::nrtra_t nrtra;
+          fan::graphics::image_nr_t nr;
+          nrtra.Open(&image_list, &nr);
+          while (nrtra.Loop(&image_list, &nr)) {
+            
+            if(window.renderer == renderer_t::opengl) {
+              // illegal
+              image_list[nr].internal = new fan::opengl::context_t::image_t;
+              fan_opengl_call(glGenTextures(1, &((fan::opengl::context_t::image_t*)context_functions.image_get(&context.vk, nr))->texture_id));
+            }
+            else if(window.renderer == renderer_t::vulkan) {
+              // illegal
+              
+              image_list[nr].internal = new fan::vulkan::context_t::image_t;
+            }
+            // handle blur?
+            auto image_path = image_list[nr].image_path;
+            if (image_path.empty()) {
+              fan::image::image_info_t info;
+              info.data = (void*)fan::image::missing_texture_pixels;
+              info.size = 2;
+              info.channels = 4;
+              fan::graphics::image_load_properties_t lp;
+              lp.min_filter = fan::graphics::image_filter::nearest;
+              lp.mag_filter = fan::graphics::image_filter::nearest;
+              lp.visual_output = fan::graphics::image_sampler_address_mode::repeat;
+              image_reload(nr, info, lp);
+            }
+            else {
+              image_reload(nr, image_list[nr].image_path);
+            }
+          }
+          nrtra.Close(&image_list);
+        }
+        {
+          fan::graphics::shader_list_t::nrtra_t nrtra;
+          fan::graphics::shader_nr_t nr;
+          nrtra.Open(&shader_list, &nr);
+          while (nrtra.Loop(&shader_list, &nr)) {
+            if(window.renderer == renderer_t::opengl) {
+              shader_list[nr].internal = new fan::opengl::context_t::shader_t;
+            }
+            else if(window.renderer == renderer_t::vulkan) {
+              shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
+            }
+          }
+          nrtra.Close(&shader_list);
+        }
+      }
+      fan::image::image_info_t info;
+      info.data = (void*)fan::image::missing_texture_pixels;
+      info.size = 2;
+      info.channels = 4;
+      fan::graphics::image_load_properties_t lp;
+      lp.min_filter = fan::graphics::image_filter::nearest;
+      lp.mag_filter = fan::graphics::image_filter::nearest;
+      lp.visual_output = fan::graphics::image_sampler_address_mode::repeat;
+      image_reload(default_texture, info, lp);
+    }
+    shape_functions.clear();
+    if (window.renderer == renderer_t::opengl) {
+      gl.shapes_open();
+      gl.initialize_fb_vaos();
+    }
+    else if (window.renderer == renderer_t::vulkan) {
+      vk.shapes_open();
+    }
+    init_imgui();
+    #if defined(loco_imgui)
+      settings_menu.open();
+    #endif
+
+    shaper._BlockListCapacityChange(shape_type_t::rectangle, 0, 1);
+    shaper._BlockListCapacityChange(shape_type_t::sprite, 0, 1);
+  }
+  reload_renderer_to = -1;
 }
 
 uint32_t loco_t::draw_shapes() {
@@ -1691,21 +1890,26 @@ void loco_t::process_frame() {
   else if (window.renderer == renderer_t::vulkan) {
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
     vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk.post_process);
-    vkCmdBindDescriptorSets(
-      cmd_buffer,
-      VK_PIPELINE_BIND_POINT_GRAPHICS,
-      vk.post_process.m_layout,
-      0,
-      1,
-      vk.d_attachments.m_descriptor_set,
-      0,
-      nullptr
-    );
+    // did draw
+    if (err != (decltype(err))-0xfff) {
+      vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk.post_process);
+      vkCmdBindDescriptorSets(
+        cmd_buffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vk.post_process.m_layout,
+        0,
+        1,
+        vk.d_attachments.m_descriptor_set,
+        0,
+        nullptr
+      );
 
-    // render post process
-    vkCmdDraw(cmd_buffer, 6, 1, 0, 0);
-
+      // render post process
+      vkCmdDraw(cmd_buffer, 6, 1, 0, 0);
+    }
+    else {
+      err = VK_SUCCESS;
+    }
     vkCmdEndRenderPass(cmd_buffer);
 
     ImDrawData* draw_data = ImGui::GetDrawData();
@@ -1721,39 +1925,35 @@ void loco_t::process_frame() {
     glfwSwapBuffers(window);
   }
   else if (window.renderer == renderer_t::vulkan) {
+#if !defined(loco_imgui)
+    auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
+    // did draw
+    vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdEndRenderPass(cmd_buffer);
+#endif
     VkResult err = context.vk.end_render();
     context.vk.recreate_swap_chain(&window, err);
   }
 }
 
 bool loco_t::should_close() {
+  if (window == nullptr) {
+    return true;
+  }
   return glfwWindowShouldClose(window);
 }
 
 bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 
 #if defined(loco_imgui)
-
+  std::vector<uint8_t> temp;
+  struct shape_info_t {
+    shape_t shape;
+  };
+  static std::vector<shape_t> shapes;
   if (reload_renderer_to != (decltype(reload_renderer_to))-1) {
-    //fan::print("TODO");
-    auto f = lambda;
-    fan::vec2 window_size = window.get_size();
-    fan::vec2 window_position = window.get_position();
-    uint64_t flags = window.flags;
-    close_loco(this);
-    new (this) loco_t({{
-      .window_size=window_size,
-      .window_flags = flags | fan::window_t::flags::no_visible,
-      .renderer=reload_renderer_to,
-    }});
-    window.set_position(window_position);
-    glfwShowWindow(window);
-    window.flags = flags;
-    reload_renderer_to = -1;
-    settings_menu.set_settings_theme();
-    main_loop = f;
+    switch_renderer(reload_renderer_to);
   }
-
 
   if (window.renderer == renderer_t::opengl) {
     ImGui_ImplOpenGL3_NewFrame();
@@ -1788,6 +1988,7 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
     window.close();
     return 1;
   }//
+    
   return 0;
 }
 
@@ -1801,10 +2002,11 @@ void loco_t::start_timer() {
   }
   if (delay > 0) {
     uv_timer_start(&timer_handle, [](uv_timer_t* handle) {
-      loco_t* loco = static_cast<loco_t*>(handle->data);
+      loco_t* loco = static_cast<loco_t*>(handle->data);    
       if (loco->process_loop(loco->main_loop)) {
         uv_timer_stop(handle);
         uv_stop(uv_default_loop());
+        loco->window.glfw_window = nullptr;
       }
     }, 0, delay);
   }
@@ -1823,10 +2025,17 @@ void loco_t::start_idle() {
 
 void loco_t::loop(const fan::function_t<void()>& lambda) {
   main_loop = lambda;
+g_loop:
   double delay = std::round(1.0 / target_fps * 1000.0);
 
-  uv_timer_init(uv_default_loop(), &timer_handle);
-  uv_idle_init(uv_default_loop(), &idle_handle);
+  if (!timer_init)  {
+    uv_timer_init(uv_default_loop(), &timer_handle);
+    timer_init = true;
+  }
+  if (!idle_init) {
+    uv_idle_init(uv_default_loop(), &idle_handle);
+    idle_init = true;
+  }
 
   timer_handle.data = this;
   idle_handle.data = this;
@@ -1839,7 +2048,9 @@ void loco_t::loop(const fan::function_t<void()>& lambda) {
   }
 
   uv_run(uv_default_loop(), UV_RUN_DEFAULT);
-
+  if (should_close() == false) {
+    goto g_loop;
+  }
 }
 
 /*
@@ -1920,6 +2131,11 @@ void loco_t::update_timer_interval() {
   }
   else {
     uv_timer_stop(&timer_handle);
+    if (!idle_init) {
+      uv_idle_init(uv_default_loop(), &idle_handle);
+      idle_handle.data = this;
+      idle_init = true;
+    }
     start_idle(); 
   }
 }
@@ -1949,12 +2165,12 @@ loco_t::imgui_fs_var_t::imgui_fs_var_t(
   else {
     initial = initial_;
   }
-  fan::graphics::context_shader_t shader = gloco->shader_get(shader_nr);
+  fan::opengl::context_t::shader_t shader = std::get<fan::opengl::context_t::shader_t>(gloco->shader_get(shader_nr));
   if (gloco->window.renderer == renderer_t::vulkan) {
     fan::throw_error("");
   }
-  auto found = shader.gl->uniform_type_table.find(var_name);
-  if (found == shader.gl->uniform_type_table.end()) {
+  auto found = gloco->shader_list[shader_nr].uniform_type_table.find(var_name);
+  if (found == gloco->shader_list[shader_nr].uniform_type_table.end()) {
     //fan::print("failed to set uniform value");
     return;
     //fan::throw_error("failed to set uniform value");
@@ -2208,16 +2424,16 @@ fan::vec2 loco_t::transform_position(const fan::vec2& p, loco_t::viewport_t view
   fan::vec2 viewport_position = v.viewport_position;
   fan::vec2 viewport_size = v.viewport_size;
 
-  f32_t l = c.gl->coordinates.left;
-  f32_t r = c.gl->coordinates.right;
-  f32_t t = c.gl->coordinates.up;
-  f32_t b = c.gl->coordinates.down;
+  f32_t l = c.coordinates.left;
+  f32_t r = c.coordinates.right;
+  f32_t t = c.coordinates.up;
+  f32_t b = c.coordinates.down;
 
   fan::vec2 tp = p - viewport_position;
   fan::vec2 d = viewport_size;
   tp /= d;
   tp = fan::vec2(r * tp.x - l * tp.x + l, b * tp.y - t * tp.y + t);
-  tp += c.gl->position;
+  tp += c.position;
   return tp;
 }
 
@@ -2242,10 +2458,10 @@ fan::vec2 loco_t::translate_position(const fan::vec2& p, loco_t::viewport_t view
 
   auto c = gloco->camera_get(camera);
 
-  f32_t l = c.gl->coordinates.left;
-  f32_t r = c.gl->coordinates.right;
-  f32_t t = c.gl->coordinates.up;
-  f32_t b = c.gl->coordinates.down;
+  f32_t l = c.coordinates.left;
+  f32_t r = c.coordinates.right;
+  f32_t t = c.coordinates.up;
+  f32_t b = c.coordinates.down;
 
   fan::vec2 tp = p - viewport_position;
   fan::vec2 d = viewport_size;
@@ -2278,19 +2494,19 @@ loco_t::shape_t::shape_t(const shaper_t::ShapeID_t& s) : shape_t() {
   }
 
   {
-    auto sti = gloco->shaper.GetSTI(s);
+    auto sti = gloco->shaper.ShapeList[s].sti;
 
     // alloc can be avoided inside switch
     uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
     gloco->shaper.WriteKeys(s, KeyPack);
 
 
-    auto _vi = gloco->shaper.GetRenderData(s);
+    auto _vi = s.GetRenderData(gloco->shaper);
     auto vlen = gloco->shaper.GetRenderDataSize(sti);
     uint8_t* vi = new uint8_t[vlen];
     std::memcpy(vi, _vi, vlen);
 
-    auto _ri = gloco->shaper.GetData(s);
+    auto _ri = s.GetData(gloco->shaper);
     auto rlen = gloco->shaper.GetDataSize(sti);
     uint8_t* ri = new uint8_t[rlen];
     std::memcpy(ri, _ri, rlen);
@@ -2328,19 +2544,19 @@ loco_t::shape_t& loco_t::shape_t::operator=(const loco_t::shape_t& s) {
   }
   if (this != &s) {
     {
-      auto sti = gloco->shaper.GetSTI(s);
+      auto sti = gloco->shaper.ShapeList[s].sti;
 
       // alloc can be avoided inside switch
       uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
       gloco->shaper.WriteKeys(s, KeyPack);
 
 
-      auto _vi = gloco->shaper.GetRenderData(s);
+      auto _vi = s.GetRenderData(gloco->shaper);
       auto vlen = gloco->shaper.GetRenderDataSize(sti);
       uint8_t* vi = new uint8_t[vlen];
       std::memcpy(vi, _vi, vlen);
 
-      auto _ri = gloco->shaper.GetData(s);
+      auto _ri = s.GetData(gloco->shaper);
       auto rlen = gloco->shaper.GetDataSize(sti);
       uint8_t* ri = new uint8_t[rlen];
       std::memcpy(ri, _ri, rlen);
@@ -2408,83 +2624,86 @@ void loco_t::shape_t::remove() {
 // many things assume uint16_t so thats why not shaper_t::ShapeTypeIndex_t
 
 uint16_t loco_t::shape_t::get_shape_type() {
-  return gloco->shaper.GetSTI(*this);
+  return gloco->shaper.ShapeList[*this].sti;
 }
 
 void loco_t::shape_t::set_position(const fan::vec3& position) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_position3(this, position);
+  gloco->shape_functions[get_shape_type()].set_position3(this, position);
 }
 
 fan::vec3 loco_t::shape_t::get_position() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_position(this);
+  return gloco->shape_functions[get_shape_type()].get_position(this);
 }
 
 void loco_t::shape_t::set_size(const fan::vec2& size) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_size(this, size);
+  gloco->shape_functions[get_shape_type()].set_size(this, size);
 }
 
 void loco_t::shape_t::set_size3(const fan::vec3& size) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_size3(this, size);
+  gloco->shape_functions[get_shape_type()].set_size3(this, size);
 }
 
 fan::vec2 loco_t::shape_t::get_size() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_size(this);
+  return gloco->shape_functions[get_shape_type()].get_size(this);
 }
 
 fan::vec3 loco_t::shape_t::get_size3() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_size3(this);
+  return gloco->shape_functions[get_shape_type()].get_size3(this);
 }
 
 void loco_t::shape_t::set_rotation_point(const fan::vec2& rotation_point) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_rotation_point(this, rotation_point);
+  gloco->shape_functions[get_shape_type()].set_rotation_point(this, rotation_point);
 }
 
 fan::vec2 loco_t::shape_t::get_rotation_point() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_rotation_point(this);
+  return gloco->shape_functions[get_shape_type()].get_rotation_point(this);
 }
 
 void loco_t::shape_t::set_color(const fan::color& color) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_color(this, color);
+  gloco->shape_functions[get_shape_type()].set_color(this, color);
 }
 
 fan::color loco_t::shape_t::get_color() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_color(this);
+  return gloco->shape_functions[get_shape_type()].get_color(this);
 }
 
 void loco_t::shape_t::set_angle(const fan::vec3& angle) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_angle(this, angle);
+  gloco->shape_functions[get_shape_type()].set_angle(this, angle);
 }
 
 fan::vec3 loco_t::shape_t::get_angle() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_angle(this);
+  return gloco->shape_functions[get_shape_type()].get_angle(this);
 }
 
 fan::vec2 loco_t::shape_t::get_tc_position() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_tc_position(this);
+  return gloco->shape_functions[get_shape_type()].get_tc_position(this);
 }
 
 void loco_t::shape_t::set_tc_position(const fan::vec2& tc_position) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_tc_position(this, tc_position);
+  gloco->shape_functions[get_shape_type()].set_tc_position(this, tc_position);
 }
 
 fan::vec2 loco_t::shape_t::get_tc_size() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_tc_size(this);
+  return gloco->shape_functions[get_shape_type()].get_tc_size(this);
 }
 
 void loco_t::shape_t::set_tc_size(const fan::vec2& tc_size) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_tc_size(this, tc_size);
+  gloco->shape_functions[get_shape_type()].set_tc_size(this, tc_size);
 }
 
 bool loco_t::shape_t::load_tp(loco_t::texturepack_t::ti_t* ti) {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].load_tp(this, ti);
+  return gloco->shape_functions[get_shape_type()].load_tp(this, ti);
 }
 
 loco_t::texturepack_t::ti_t loco_t::shape_t::get_tp() {
   loco_t::texturepack_t::ti_t ti;
   ti.image = &gloco->default_texture;
   auto img = gloco->image_get(*ti.image);
-  ti.position = get_tc_position() * img.size;
-  ti.size = get_tc_size() * img.size;
+  std::visit([this, &ti] (const auto& v) {
+    ti.position = get_tc_position() * v.size;
+    ti.size = get_tc_size() * v.size;
+  }, img);
+
   return ti;
   //return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_tp(this);
 }
@@ -2494,88 +2713,88 @@ bool loco_t::shape_t::set_tp(loco_t::texturepack_t::ti_t* ti) {
 }
 
 loco_t::camera_t loco_t::shape_t::get_camera() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_camera(this);
+  return gloco->shape_functions[get_shape_type()].get_camera(this);
 }
 
 void loco_t::shape_t::set_camera(loco_t::camera_t camera) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_camera(this, camera);
+  gloco->shape_functions[get_shape_type()].set_camera(this, camera);
 }
 
 loco_t::viewport_t loco_t::shape_t::get_viewport() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_viewport(this);
+  return gloco->shape_functions[get_shape_type()].get_viewport(this);
 }
 
 void loco_t::shape_t::set_viewport(loco_t::viewport_t viewport) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_viewport(this, viewport);
+  gloco->shape_functions[get_shape_type()].set_viewport(this, viewport);
 }
 
 fan::vec2 loco_t::shape_t::get_grid_size() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_grid_size(this);
+  return gloco->shape_functions[get_shape_type()].get_grid_size(this);
 }
 
 void loco_t::shape_t::set_grid_size(const fan::vec2& grid_size) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_grid_size(this, grid_size);
+  gloco->shape_functions[get_shape_type()].set_grid_size(this, grid_size);
 }
 
 loco_t::image_t loco_t::shape_t::get_image() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_image(this);
+  return gloco->shape_functions[get_shape_type()].get_image(this);
 }
 
 void loco_t::shape_t::set_image(loco_t::image_t image) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_image(this, image);
+  gloco->shape_functions[get_shape_type()].set_image(this, image);
 }
 
 f32_t loco_t::shape_t::get_parallax_factor() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_parallax_factor(this);
+  return gloco->shape_functions[get_shape_type()].get_parallax_factor(this);
 }
 
 void loco_t::shape_t::set_parallax_factor(f32_t parallax_factor) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_parallax_factor(this, parallax_factor);
+  gloco->shape_functions[get_shape_type()].set_parallax_factor(this, parallax_factor);
 }
 
 fan::vec3 loco_t::shape_t::get_rotation_vector() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_rotation_vector(this);
+  return gloco->shape_functions[get_shape_type()].get_rotation_vector(this);
 }
 
 uint32_t loco_t::shape_t::get_flags() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_flags(this);
+  return gloco->shape_functions[get_shape_type()].get_flags(this);
 }
 
 void loco_t::shape_t::set_flags(uint32_t flag) {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_flags(this, flag);
+  return gloco->shape_functions[get_shape_type()].set_flags(this, flag);
 }
 
 f32_t loco_t::shape_t::get_radius() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_radius(this);
+  return gloco->shape_functions[get_shape_type()].get_radius(this);
 }
 
 fan::vec3 loco_t::shape_t::get_src() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_src(this);
+  return gloco->shape_functions[get_shape_type()].get_src(this);
 }
 
 fan::vec3 loco_t::shape_t::get_dst() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_dst(this);
+  return gloco->shape_functions[get_shape_type()].get_dst(this);
 }
 
 f32_t loco_t::shape_t::get_outline_size() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_outline_size(this);
+  return gloco->shape_functions[get_shape_type()].get_outline_size(this);
 }
 
 fan::color loco_t::shape_t::get_outline_color() {
-  return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_outline_color(this);
+  return gloco->shape_functions[get_shape_type()].get_outline_color(this);
 }
 
 void loco_t::shape_t::reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].reload(this, format, image_data, image_size, filter);
+  gloco->shape_functions[get_shape_type()].reload(this, format, image_data, image_size, filter);
 }
 
 void loco_t::shape_t::reload(uint8_t format, const fan::vec2& image_size, uint32_t filter) {
   void* data[4]{};
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].reload(this, format, data, image_size, filter);
+  gloco->shape_functions[get_shape_type()].reload(this, format, data, image_size, filter);
 }
 
 void loco_t::shape_t::set_line(const fan::vec2& src, const fan::vec2& dst) {
-  gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_line(this, src, dst);
+  gloco->shape_functions[get_shape_type()].set_line(this, src, dst);
 }
 
 /// shapes +
@@ -3170,7 +3389,9 @@ loco_t::physics_update_cbs_t::nr_t loco_t::add_physics_update(const physics_upda
 void loco_t::remove_physics_update(loco_t::physics_update_cbs_t::nr_t nr) {
   shape_physics_update_cbs.unlrec(nr);
 }
+#endif
 
+#if defined(loco_imgui)
 void fan::graphics::text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing) {
   static auto find_next_word = [](const std::string& str, std::size_t offset) -> std::size_t {
     std::size_t found = str.find(' ', offset);
@@ -3267,6 +3488,7 @@ void fan::graphics::text_partial_render(const std::string& text, size_t render_p
 
 #endif
 
+#if defined(loco_imgui)
 // fan_track_allocations() must be called in global scope before calling this function
 void fan::graphics::render_allocations_plot() {
 #if defined(fan_tracking_allocations)
@@ -3364,6 +3586,7 @@ void fan::graphics::render_allocations_plot() {
   }
 #endif
 }
+#endif
 
 bool loco_t::is_mouse_clicked(int button) {
   return window.key_state(button) == (int)fan::mouse_state::press;
@@ -3401,7 +3624,7 @@ void fan::graphics::add_input_action(int key, std::string_view action_name) {
 bool fan::graphics::is_input_action_active(std::string_view action_name, int pstate) {
   return gloco->input_action.is_active(action_name);
 }
-
+#if defined(loco_imgui)
 bool fan::graphics::gui::render_blank_window(const std::string& name) {
   ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
   ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -3411,3 +3634,503 @@ bool fan::graphics::gui::render_blank_window(const std::string& name) {
     ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar
   );
 }
+#endif
+
+#if defined(loco_json)
+bool fan::graphics::shape_to_json(loco_t::shape_t& shape, fan::json* json) {
+  fan::json& out = *json;
+  switch (shape.get_shape_type()) {
+  case loco_t::shape_type_t::light: {
+    out["shape"] = "light";
+    out["position"] = shape.get_position();
+    out["parallax_factor"] = shape.get_parallax_factor();
+    out["size"] = shape.get_size();
+    out["rotation_point"] = shape.get_rotation_point();
+    out["color"] = shape.get_color();
+    out["rotation_vector"] = shape.get_rotation_vector();
+    out["flags"] = shape.get_flags();
+    out["angle"] = shape.get_angle();
+    break;
+  }
+  case loco_t::shape_type_t::line: {
+    out["shape"] = "line";
+    out["color"] = shape.get_color();
+    out["src"] = shape.get_src();
+    out["dst"] = shape.get_dst();
+    break;
+  }
+  case loco_t::shape_type_t::rectangle: {
+    out["shape"] = "rectangle";
+    out["position"] = shape.get_position();
+    out["size"] = shape.get_size();
+    out["rotation_point"] = shape.get_rotation_point();
+    out["color"] = shape.get_color();
+    out["angle"] = shape.get_angle();
+    break;
+  }
+  case loco_t::shape_type_t::sprite: {
+    out["shape"] = "sprite";
+    out["position"] = shape.get_position();
+    out["parallax_factor"] = shape.get_parallax_factor();
+    out["size"] = shape.get_size();
+    out["rotation_point"] = shape.get_rotation_point();
+    out["color"] = shape.get_color();
+    out["angle"] = shape.get_angle();
+    out["flags"] = shape.get_flags();
+    out["tc_position"] = shape.get_tc_position();
+    out["tc_size"] = shape.get_tc_size();
+    break;
+  }
+  case loco_t::shape_type_t::unlit_sprite: {
+    out["shape"] = "unlit_sprite";
+    out["position"] = shape.get_position();
+    out["parallax_factor"] = shape.get_parallax_factor();
+    out["size"] = shape.get_size();
+    out["rotation_point"] = shape.get_rotation_point();
+    out["color"] = shape.get_color();
+    out["angle"] = shape.get_angle();
+    out["flags"] = shape.get_flags();
+    out["tc_position"] = shape.get_tc_position();
+    out["tc_size"] = shape.get_tc_size();
+    break;
+  }
+  case loco_t::shape_type_t::text: {
+    out["shape"] = "text";
+    break;
+  }
+  case loco_t::shape_type_t::circle: {
+    out["shape"] = "circle";
+    out["position"] = shape.get_position();
+    out["radius"] = shape.get_radius();
+    out["rotation_point"] = shape.get_rotation_point();
+    out["color"] = shape.get_color();
+    out["rotation_vector"] = shape.get_rotation_vector();
+    out["angle"] = shape.get_angle();
+    break;
+  }
+  case loco_t::shape_type_t::grid: {
+    out["shape"] = "grid";
+    out["position"] = shape.get_position();
+    out["size"] = shape.get_size();
+    out["grid_size"] = shape.get_grid_size();
+    out["rotation_point"] = shape.get_rotation_point();
+    out["color"] = shape.get_color();
+    out["angle"] = shape.get_angle();
+    break;
+  }
+  case loco_t::shape_type_t::particles: {
+    auto& ri = *(loco_t::particles_t::ri_t*)shape.GetData(gloco->shaper);
+    out["shape"] = "particles";
+    out["position"] = ri.position;
+    out["size"] = ri.size;
+    out["color"] = ri.color;
+    out["begin_time"] = ri.begin_time;
+    out["alive_time"] = ri.alive_time;
+    out["respawn_time"] = ri.respawn_time;
+    out["count"] = ri.count;
+    out["position_velocity"] = ri.position_velocity;
+    out["angle_velocity"] = ri.angle_velocity;
+    out["begin_angle"] = ri.begin_angle;
+    out["end_angle"] = ri.end_angle;
+    out["angle"] = ri.angle;
+    out["gap_size"] = ri.gap_size;
+    out["max_spread_size"] = ri.max_spread_size;
+    out["size_velocity"] = ri.size_velocity;
+    out["particle_shape"] = ri.shape;
+    out["blending"] = ri.blending;
+    break;
+  }
+  default: {
+    fan::throw_error("unimplemented shape");
+  }
+  }
+  return false;
+}
+bool fan::graphics::json_to_shape(const fan::json& in, loco_t::shape_t* shape) {
+  std::string shape_type = in["shape"];
+  switch (fan::get_hash(shape_type.c_str())) {
+  case fan::get_hash("rectangle"): {
+    loco_t::rectangle_t::properties_t p;
+    p.position = in["position"];
+    p.size = in["size"];
+    p.rotation_point = in["rotation_point"];
+    p.color = in["color"];
+    p.angle = in["angle"];
+    *shape = p;
+    break;
+  }
+    case fan::get_hash("light"): {
+    loco_t::light_t::properties_t p;
+    p.position = in["position"];
+    p.parallax_factor = in["parallax_factor"];
+    p.size = in["size"];
+    p.rotation_point = in["rotation_point"];
+    p.color = in["color"];
+    p.rotation_vector = in["rotation_vector"];
+    p.flags = in["flags"];
+    p.angle = in["angle"];
+    *shape = p;
+    break;
+  }
+  case fan::get_hash("line"): {
+    loco_t::line_t::properties_t p;
+    p.color = in["color"];
+    p.src = in["src"];
+    p.dst = in["dst"];
+    *shape = p;
+    break;
+  }
+  case fan::get_hash("sprite"): {
+    loco_t::sprite_t::properties_t p;
+    p.blending = true;
+    p.position = in["position"];
+    p.parallax_factor = in["parallax_factor"];
+    p.size = in["size"];
+    p.rotation_point = in["rotation_point"];
+    p.color = in["color"];
+    p.angle = in["angle"];
+    p.flags = in["flags"];
+    p.tc_position = in["tc_position"];
+    p.tc_size = in["tc_size"];
+    *shape = p;
+    break;
+  }
+  case fan::get_hash("unlit_sprite"): {
+    loco_t::unlit_sprite_t::properties_t p;
+    p.blending = true;
+    p.position = in["position"];
+    p.parallax_factor = in["parallax_factor"];
+    p.size = in["size"];
+    p.rotation_point = in["rotation_point"];
+    p.color = in["color"];
+    p.angle = in["angle"];
+    p.flags = in["flags"];
+    p.tc_position = in["tc_position"];
+    p.tc_size = in["tc_size"];
+    *shape = p;
+    break;
+  }
+  case fan::get_hash("circle"): {
+    loco_t::circle_t::properties_t p;
+    p.position = in["position"];
+    p.radius = in["radius"];
+    p.rotation_point = in["rotation_point"];
+    p.color = in["color"];
+    p.rotation_vector = in["rotation_vector"];
+    p.angle = in["angle"];
+    *shape = p;
+    break;
+  }
+  case fan::get_hash("grid"): {
+    loco_t::grid_t::properties_t p;
+    p.position = in["position"];
+    p.size = in["size"];
+    p.grid_size = in["grid_size"];
+    p.rotation_point = in["rotation_point"];
+    p.color = in["color"];
+    p.angle = in["angle"];
+    *shape = p;
+    break;
+  }
+  case fan::get_hash("particles"): {
+    loco_t::particles_t::properties_t p;
+    p.position = in["position"];
+    p.size = in["size"];
+    p.color = in["color"];
+    p.begin_time = in["begin_time"];
+    p.alive_time = in["alive_time"];
+    p.respawn_time = in["respawn_time"];
+    p.count = in["count"];
+    p.position_velocity = in["position_velocity"];
+    p.angle_velocity = in["angle_velocity"];
+    p.begin_angle = in["begin_angle"];
+    p.end_angle = in["end_angle"];
+    p.angle = in["angle"];
+    p.gap_size = in["gap_size"];
+    p.max_spread_size = in["max_spread_size"];
+    p.size_velocity = in["size_velocity"];
+    p.shape = in["particle_shape"];
+    p.blending = in["blending"];
+    *shape = p;
+    break;
+  }
+  default: {
+    fan::throw_error("unimplemented shape");
+  }
+  }
+  return false;
+}
+bool fan::graphics::shape_serialize(loco_t::shape_t& shape, fan::json* out) {
+  return shape_to_json(shape, out);
+}
+bool fan::graphics::shape_to_bin(loco_t::shape_t& shape, std::vector<uint8_t>* data) {
+  std::vector<uint8_t>& out = *data;
+  fan::write_to_vector(out, shape.get_shape_type());
+  fan::write_to_vector(out, shape.gint());
+  switch (shape.get_shape_type()) {
+  case loco_t::shape_type_t::light: {
+    fan::write_to_vector(out, shape.get_position());
+    fan::write_to_vector(out, shape.get_parallax_factor());
+    fan::write_to_vector(out, shape.get_size());
+    fan::write_to_vector(out, shape.get_rotation_point());
+    fan::write_to_vector(out, shape.get_color());
+    fan::write_to_vector(out, shape.get_rotation_vector());
+    fan::write_to_vector(out, shape.get_flags());
+    fan::write_to_vector(out, shape.get_angle());
+    break;
+  }
+  case loco_t::shape_type_t::line: {
+    fan::write_to_vector(out, shape.get_color());
+    fan::write_to_vector(out, shape.get_src());
+    fan::write_to_vector(out, shape.get_dst());
+    break;
+    case loco_t::shape_type_t::rectangle: {
+    fan::write_to_vector(out, shape.get_position());
+    fan::write_to_vector(out, shape.get_size());
+    fan::write_to_vector(out, shape.get_rotation_point());
+    fan::write_to_vector(out, shape.get_color());
+    fan::write_to_vector(out, shape.get_angle());
+    break;
+    }
+    case loco_t::shape_type_t::sprite: {
+    fan::write_to_vector(out, shape.get_position());
+    fan::write_to_vector(out, shape.get_parallax_factor());
+    fan::write_to_vector(out, shape.get_size());
+    fan::write_to_vector(out, shape.get_rotation_point());
+    fan::write_to_vector(out, shape.get_color());
+    fan::write_to_vector(out, shape.get_angle());
+    fan::write_to_vector(out, shape.get_flags());
+    fan::write_to_vector(out, shape.get_tc_position());
+    fan::write_to_vector(out, shape.get_tc_size());
+    break;
+    }
+    case loco_t::shape_type_t::unlit_sprite: {
+    fan::write_to_vector(out, shape.get_position());
+    fan::write_to_vector(out, shape.get_parallax_factor());
+    fan::write_to_vector(out, shape.get_size());
+    fan::write_to_vector(out, shape.get_rotation_point());
+    fan::write_to_vector(out, shape.get_color());
+    fan::write_to_vector(out, shape.get_angle());
+    fan::write_to_vector(out, shape.get_flags());
+    fan::write_to_vector(out, shape.get_tc_position());
+    fan::write_to_vector(out, shape.get_tc_size());
+    break;
+    }
+    case loco_t::shape_type_t::circle: {
+    fan::write_to_vector(out, shape.get_position());
+    fan::write_to_vector(out, shape.get_radius());
+    fan::write_to_vector(out, shape.get_rotation_point());
+    fan::write_to_vector(out, shape.get_color());
+    fan::write_to_vector(out, shape.get_rotation_vector());
+    fan::write_to_vector(out, shape.get_angle());
+    break;
+    }
+    case loco_t::shape_type_t::grid: {
+    fan::write_to_vector(out, shape.get_position());
+    fan::write_to_vector(out, shape.get_size());
+    fan::write_to_vector(out, shape.get_grid_size());
+    fan::write_to_vector(out, shape.get_rotation_point());
+    fan::write_to_vector(out, shape.get_color());
+    fan::write_to_vector(out, shape.get_angle());
+    break;
+    }
+    case loco_t::shape_type_t::particles: {
+    auto& ri = *(loco_t::particles_t::ri_t*)shape.GetData(gloco->shaper);
+    fan::write_to_vector(out, ri.position);
+    fan::write_to_vector(out, ri.size);
+    fan::write_to_vector(out, ri.color);
+    fan::write_to_vector(out, ri.begin_time);
+    fan::write_to_vector(out, ri.alive_time);
+    fan::write_to_vector(out, ri.respawn_time);
+    fan::write_to_vector(out, ri.count);
+    fan::write_to_vector(out, ri.position_velocity);
+    fan::write_to_vector(out, ri.angle_velocity);
+    fan::write_to_vector(out, ri.begin_angle);
+    fan::write_to_vector(out, ri.end_angle);
+    fan::write_to_vector(out, ri.angle);
+    fan::write_to_vector(out, ri.gap_size);
+    fan::write_to_vector(out, ri.max_spread_size);
+    fan::write_to_vector(out, ri.size_velocity);
+    fan::write_to_vector(out, ri.shape);
+    fan::write_to_vector(out, ri.blending);
+    break;
+    }
+  }
+  case loco_t::shape_type_t::light_end: {
+    break;
+  }
+  default: {
+    fan::throw_error("unimplemented shape");
+  }
+  }
+  return false;
+}
+bool fan::graphics::bin_to_shape(const std::vector<uint8_t>& in, loco_t::shape_t* shape, uint64_t& offset) {
+  using sti_t = std::remove_reference_t<decltype(loco_t::shape_t().get_shape_type())>;
+  using nr_t = std::remove_reference_t<decltype(loco_t::shape_t().gint())>;
+  sti_t shape_type = fan::vector_read_data<sti_t>(in, offset);
+  nr_t nri = fan::vector_read_data<nr_t>(in, offset);
+  switch (shape_type) {
+  case loco_t::shape_type_t::rectangle: {
+    loco_t::rectangle_t::properties_t p;
+    p.position = fan::vector_read_data<decltype(p.position)>(in, offset);
+    p.size = fan::vector_read_data<decltype(p.size)>(in, offset);
+    p.rotation_point = fan::vector_read_data<decltype(p.rotation_point)>(in, offset);
+    p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
+    p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
+    p.outline_color = p.color;
+    *shape = p;
+    return false;
+  }
+  case loco_t::shape_type_t::light: {
+    loco_t::light_t::properties_t p;
+    p.position = fan::vector_read_data<decltype(p.position)>(in, offset);
+    p.parallax_factor = fan::vector_read_data<decltype(p.parallax_factor)>(in, offset);
+    p.size = fan::vector_read_data<decltype(p.size)>(in, offset);
+    p.rotation_point = fan::vector_read_data<decltype(p.rotation_point)>(in, offset);
+    p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
+    p.rotation_vector = fan::vector_read_data<decltype(p.rotation_vector)>(in, offset);
+    p.flags = fan::vector_read_data<decltype(p.flags)>(in, offset);
+    p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
+    *shape = p;
+    break;
+  }
+  case loco_t::shape_type_t::line: {
+    loco_t::line_t::properties_t p;
+    p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
+    p.src = fan::vector_read_data<decltype(p.src)>(in, offset);
+    p.dst = fan::vector_read_data<decltype(p.dst)>(in, offset);
+    *shape = p;
+    break;
+  }
+  case loco_t::shape_type_t::sprite: {
+    loco_t::sprite_t::properties_t p;
+    p.position = fan::vector_read_data<decltype(p.position)>(in, offset);
+    p.parallax_factor = fan::vector_read_data<decltype(p.parallax_factor)>(in, offset);
+    p.size = fan::vector_read_data<decltype(p.size)>(in, offset);
+    p.rotation_point = fan::vector_read_data<decltype(p.rotation_point)>(in, offset);
+    p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
+    p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
+    p.flags = fan::vector_read_data<decltype(p.flags)>(in, offset);
+    p.tc_position = fan::vector_read_data<decltype(p.tc_position)>(in, offset);
+    p.tc_size = fan::vector_read_data<decltype(p.tc_size)>(in, offset);
+    *shape = p;
+    break;
+  }
+  case loco_t::shape_type_t::unlit_sprite: {
+    loco_t::unlit_sprite_t::properties_t p;
+    p.position = fan::vector_read_data<decltype(p.position)>(in, offset);
+    p.parallax_factor = fan::vector_read_data<decltype(p.parallax_factor)>(in, offset);
+    p.size = fan::vector_read_data<decltype(p.size)>(in, offset);
+    p.rotation_point = fan::vector_read_data<decltype(p.rotation_point)>(in, offset);
+    p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
+    p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
+    p.flags = fan::vector_read_data<decltype(p.flags)>(in, offset);
+    p.tc_position = fan::vector_read_data<decltype(p.tc_position)>(in, offset);
+    p.tc_size = fan::vector_read_data<decltype(p.tc_size)>(in, offset);
+    *shape = p;
+    break;
+  }
+  case loco_t::shape_type_t::circle: {
+    loco_t::circle_t::properties_t p;
+    p.position = fan::vector_read_data<decltype(p.position)>(in, offset);
+    p.radius = fan::vector_read_data<decltype(p.radius)>(in, offset);
+    p.rotation_point = fan::vector_read_data<decltype(p.rotation_point)>(in, offset);
+    p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
+    p.rotation_vector = fan::vector_read_data<decltype(p.rotation_vector)>(in, offset);
+    p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
+    *shape = p;
+    break;
+  }
+  case loco_t::shape_type_t::grid: {
+    loco_t::grid_t::properties_t p;
+    p.position = fan::vector_read_data<decltype(p.position)>(in, offset);
+    p.size = fan::vector_read_data<decltype(p.size)>(in, offset);
+    p.grid_size = fan::vector_read_data<decltype(p.grid_size)>(in, offset);
+    p.rotation_point = fan::vector_read_data<decltype(p.rotation_point)>(in, offset);
+    p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
+    p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
+    *shape = p;
+    break;
+  }
+  case loco_t::shape_type_t::particles: {
+    loco_t::particles_t::properties_t p;
+    p.position = fan::vector_read_data<decltype(p.position)>(in, offset);
+    p.size = fan::vector_read_data<decltype(p.size)>(in, offset);
+    p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
+    p.begin_time = fan::vector_read_data<decltype(p.begin_time)>(in, offset);
+    p.alive_time = fan::vector_read_data<decltype(p.alive_time)>(in, offset);
+    p.respawn_time = fan::vector_read_data<decltype(p.respawn_time)>(in, offset);
+    p.count = fan::vector_read_data<decltype(p.count)>(in, offset);
+    p.position_velocity = fan::vector_read_data<decltype(p.position_velocity)>(in, offset);
+    p.angle_velocity = fan::vector_read_data<decltype(p.angle_velocity)>(in, offset);
+    p.begin_angle = fan::vector_read_data<decltype(p.begin_angle)>(in, offset);
+    p.end_angle = fan::vector_read_data<decltype(p.end_angle)>(in, offset);
+    p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
+    p.gap_size = fan::vector_read_data<decltype(p.gap_size)>(in, offset);
+    p.max_spread_size = fan::vector_read_data<decltype(p.max_spread_size)>(in, offset);
+    p.size_velocity = fan::vector_read_data<decltype(p.size_velocity)>(in, offset);
+    p.shape = fan::vector_read_data<decltype(p.shape)>(in, offset);
+    p.blending = fan::vector_read_data<decltype(p.blending)>(in, offset);
+    *shape = p;
+    break;
+  }
+  case loco_t::shape_type_t::light_end: {
+    return false;
+  }
+  default: {
+    fan::throw_error("unimplemented");
+  }
+  }
+  if (shape->gint() != nri) {
+    fan::throw_error("");
+  }
+  return false;
+}
+bool fan::graphics::shape_serialize(loco_t::shape_t& shape, std::vector<uint8_t>* out) {
+  return shape_to_bin(shape, out);
+}
+
+bool fan::graphics::shape_deserialize_t::iterate(const fan::json& json, loco_t::shape_t* shape) {
+  if (init == false) {
+    data.it = json.cbegin();
+    init = true;
+  }
+  if (data.it == json.cend()) {
+    return 0;
+  }
+  if (json.type() == fan::json::value_t::object) {
+    json_to_shape(json, shape);
+    return 0;
+  }
+  else {
+    json_to_shape(*data.it, shape);
+    ++data.it;
+  }
+  return 1;
+}
+
+bool fan::graphics::shape_deserialize_t::iterate(const std::vector<uint8_t>& bin_data, loco_t::shape_t* shape) {
+  if (bin_data.empty()) {
+    return 0;
+  }
+  else if (data.offset >= bin_data.size()) {
+    return 0;
+  }
+  bin_to_shape(bin_data, shape, data.offset);
+  return 1;
+}
+#endif
+
+fan::graphics::this_offset_camera_list_t fan::graphics::this_offset_camera_list = []() -> uintptr_t {
+  return offsetof(loco_t, camera_list) - offsetof(loco_t, context);
+};
+fan::graphics::this_offset_shader_list_t fan::graphics::this_offset_shader_list = []() -> uintptr_t{
+  return offsetof(loco_t, shader_list) - offsetof(loco_t, context);
+};
+fan::graphics::this_offset_image_list_t fan::graphics::this_offset_image_list = []() -> uintptr_t{
+  return offsetof(loco_t, image_list) - offsetof(loco_t, context);
+};
+fan::graphics::this_offset_viewport_list_t fan::graphics::this_offset_viewport_list = []() -> uintptr_t{
+  return offsetof(loco_t, viewport_list) - offsetof(loco_t, context);
+};

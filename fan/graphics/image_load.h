@@ -44,7 +44,18 @@ namespace fan {
         #endif
       }
     }
-
+    static constexpr uint8_t missing_texture_pixels[16] = {
+      0, 0, 0, 255,
+      255, 0, 220, 255,
+      255, 0, 220, 255,
+      0, 0, 0, 255
+    };
+    static constexpr uint8_t transparent_texture_pixels[16] = {
+      60, 60, 60, 255,
+      40, 40, 40, 255,
+      40, 40, 40, 255,
+      60, 60, 60, 255
+    };
   }
 }
 

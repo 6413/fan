@@ -59,6 +59,10 @@ void close() {
 }
 
 void update() {
+  ImGui::Begin("A");
+  static bool v = 0;
+  ImGui::ToggleButton("lightning", &v);
+  ImGui::End();
   if (fan::physics::is_on_sensor(pile.player.player, player_sensor_door)) {
     if (pile.loco.lighting.ambient > -1) {
       pile.loco.lighting.ambient -= pile.loco.delta_time * 5;
@@ -71,6 +75,9 @@ void update() {
         return;
       }
     }
+  }
+  else if (v) {
+    pile.weather.lightning();
   }
   else {
     if (pile.loco.lighting.ambient < 1) {

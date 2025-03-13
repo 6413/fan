@@ -227,7 +227,7 @@ void update(){
     fan::string in;
     fan::io::file::read(filename, &in);
     uint64_t off = 0;
-    uint32_t version = fan::read_data<uint32_t>(in, off);
+    uint32_t version = fan::string_read_data<uint32_t>(in, off);
     if (version != current_version) {
       fan::print_format("invalid file version, file:{}, current:{}", version, current_version);
       return;

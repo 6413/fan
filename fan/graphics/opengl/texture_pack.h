@@ -31,17 +31,17 @@ struct texturepack_t {
   }
 
   void open_compiled(const fan::string& filename) {
-    fan::opengl::context_t::image_load_properties_t lp;
+    fan::graphics::image_load_properties_t lp;
     lp.visual_output = fan::opengl::context_t::image_sampler_address_mode::clamp_to_edge;
-    lp.min_filter = GL_NEAREST;
-    lp.mag_filter = GL_NEAREST;
+    lp.min_filter = fan::graphics::image_filter::nearest;
+    lp.mag_filter = fan::graphics::image_filter::nearest;
     /*
     lp.min_filter = (decltype(lp.min_filter))min_filter;
     lp.mag_filter = (decltype(lp.mag_filter))mag_filter;
     */
     open_compiled(filename, lp);
   }
-  void open_compiled(const fan::string& filename, fan::opengl::context_t::image_load_properties_t lp) {
+  void open_compiled(const fan::string& filename, fan::graphics::image_load_properties_t lp) {
     texture_list.clear();
     pixel_data_list.clear();
 
@@ -51,23 +51,23 @@ struct texturepack_t {
     fan::io::file::read(filename, &in);
 
     std::size_t offset = 0;
-    std::size_t pack_list_size = fan::read_data<std::size_t>(in, offset);
+    std::size_t pack_list_size = fan::string_read_data<std::size_t>(in, offset);
 
 
     pixel_data_list.resize(pack_list_size);
     texture_list.resize(pack_list_size);
     for (std::size_t i = 0; i < pack_list_size; i++) {
-      std::size_t texture_list_size = fan::read_data<std::size_t>(in, offset);
+      std::size_t texture_list_size = fan::string_read_data<std::size_t>(in, offset);
       texture_list[i].resize(texture_list_size);
       for (std::size_t k = 0; k < texture_list_size; k++) {
         texturepack_t::texture_t texture;
-        texture.image_name = fan::read_data<fan::string>(in, offset);
-        texture.position = fan::read_data<fan::vec2ui>(in, offset);
-        texture.size = fan::read_data<fan::vec2ui>(in, offset);
+        texture.image_name = fan::string_read_data<fan::string>(in, offset);
+        texture.position = fan::string_read_data<fan::vec2ui>(in, offset);
+        texture.size = fan::string_read_data<fan::vec2ui>(in, offset);
         texture_list[i][k] = texture;
       }
 
-      std::vector<uint8_t> pixel_data = fan::read_data<std::vector<uint8_t>>(in, offset);
+      std::vector<uint8_t> pixel_data = fan::string_read_data<std::vector<uint8_t>>(in, offset);
       fan::image::image_info_t image_info;
       image_info.data = WebPDecodeRGBA(
         pixel_data.data(),
@@ -80,11 +80,11 @@ struct texturepack_t {
       WebPFree(image_info.data);
 
       //pixel_data_list[i].visual_output = 
-      fan::read_data<uint32_t>(in, offset);
+      fan::string_read_data<uint32_t>(in, offset);
       //pixel_data_list[i].min_filter = 
-      fan::read_data<uint32_t>(in, offset);
+      fan::string_read_data<uint32_t>(in, offset);
       //pixel_data_list[i].mag_filter = 
-      fan::read_data<uint32_t>(in, offset);
+      fan::string_read_data<uint32_t>(in, offset);
     }
   }
 

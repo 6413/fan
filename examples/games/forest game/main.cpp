@@ -141,8 +141,8 @@ lstd_defstruct(stage_shop_t)
 pile_t::pile_t() {
   loco_t::image_load_properties_t lp;
   lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
-  lp.min_filter = GL_NEAREST;
-  lp.mag_filter = GL_NEAREST;
+  lp.min_filter = fan::graphics::image_filter::nearest;
+  lp.mag_filter = fan::graphics::image_filter::nearest;
 
   tp.open_compiled("examples/games/forest game/forest_tileset.ftp", lp);
 
@@ -233,14 +233,6 @@ int main() {
   pile.loco.input_action.add(fan::mouse_left, "move_to_position");
 
   pile.loco.loop([&] {
-    ImGui::Begin("A");
-    static bool v = 0;
-    ImGui::ToggleButton("lightning", &v);
-    ImGui::End();
-    if (v) {
-      pile.weather.lightning();
-    }
-
     pile.player.player.move_to_direction(pile.path_solver.step(pile.player.player.get_position()));
   });
 }

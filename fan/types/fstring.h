@@ -114,10 +114,10 @@ namespace fan {
   struct is_std_vector<std::vector<T, A>> : std::true_type {};
 
   template <typename T>
-  T read_data(auto& f, auto& off) {
+  T string_read_data(auto& f, auto& off) {
     if constexpr (std::is_same<fan::string, T>::value || 
       std::is_same<std::string, T>::value) {
-      uint64_t len = read_data<uint64_t>(f, off);
+      uint64_t len = string_read_data<uint64_t>(f, off);
       fan::string str;
       str.resize(len);
       memcpy(str.data(), &f[off], len);
@@ -125,7 +125,7 @@ namespace fan {
       return str;
     }
     else if constexpr (is_std_vector<T>::value) {
-      uint64_t len = read_data<uint64_t>(f, off);
+      uint64_t len = string_read_data<uint64_t>(f, off);
       std::vector<typename T::value_type> vec(len);
       if (len > 0) {
         memcpy(vec.data(), &f[off], len * sizeof(typename T::value_type));
@@ -158,8 +158,34 @@ namespace fan {
     }
   }
   template <typename T>
+  T vector_read_data(const std::vector<uint8_t>& vec, size_t& off) {
+    if constexpr (std::is_same<std::string, T>::value) {
+      uint64_t len = vector_read_data<uint64_t>(vec, off);
+      std::string str(len, '\0');
+      std::memcpy(str.data(), vec.data() + off, len);
+      off += len;
+      return str;
+    }
+    else if constexpr (is_std_vector<T>::value) {
+      uint64_t len = vector_read_data<uint64_t>(vec, off);
+      std::vector<typename T::value_type> vec(len);
+      if (len > 0) {
+        std::memcpy(vec.data(), vec.data() + off, len * sizeof(typename T::value_type));
+        off += len * sizeof(typename T::value_type);
+      }
+      return vec;
+    }
+    else {
+      T obj;
+      std::memcpy(&obj, vec.data() + off, sizeof(T));
+      off += sizeof(T);
+      return obj;
+    }
+  }
+
+  template <typename T>
   void read_from_string(auto& f, auto& off, T& data) {
-    data = fan::read_data<T>(f, off);
+    data = fan::string_read_data<T>(f, off);
   }
 
   template <typename T>
@@ -167,6 +193,29 @@ namespace fan {
     T out;
     out.from_string(fstring);
     return out;
+  }
+
+
+  template <typename T>
+  void write_to_vector(std::vector<uint8_t>& vec, const T& o) {
+    if constexpr (std::is_same<std::string, T>::value) {
+      uint64_t len = o.size();
+      vec.insert(vec.end(), reinterpret_cast<const uint8_t*>(&len), reinterpret_cast<const uint8_t*>(&len + 1));
+      vec.insert(vec.end(), o.begin(), o.end());
+    }
+    else if constexpr (is_std_vector<T>::value) {
+      uint64_t len = o.size();
+      vec.insert(vec.end(), reinterpret_cast<const uint8_t*>(&len), reinterpret_cast<const uint8_t*>(&len + 1));
+      vec.insert(vec.end(), reinterpret_cast<const uint8_t*>(o.data()), reinterpret_cast<const uint8_t*>(o.data() + len));
+    }
+    else {
+      vec.insert(vec.end(), reinterpret_cast<const uint8_t*>(&o), reinterpret_cast<const uint8_t*>(&o + 1));
+    }
+  }
+
+  template <typename T>
+  void read_from_vector(const std::vector<uint8_t>& vec, size_t& off, T& data) {
+    data = vector_read_data<T>(vec, off);
   }
 
   std::string trim(const std::string& str);

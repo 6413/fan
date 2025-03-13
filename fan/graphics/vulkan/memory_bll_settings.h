@@ -6,3 +6,4 @@
 	memory_edit_cb_t cb;
 #define BLL_set_Link 1
 #define BLL_set_AreWeInsideStruct 1
+#define BLL_set_CPP_CopyAtPointerChange 1

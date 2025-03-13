@@ -61,7 +61,7 @@ struct blur_t {
       mip.size = mip_size;
       mip.int_size = mip_int_size;
 
-      fan::opengl::context_t::image_load_properties_t lp;
+      fan::graphics::image_load_properties_t lp;
       lp.internal_format = GL_R11F_G11F_B10F;
       lp.format = GL_RGB;
       lp.type = GL_FLOAT;
