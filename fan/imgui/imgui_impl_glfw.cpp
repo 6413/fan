@@ -119,6 +119,9 @@
 #include <unistd.h>             // for usleep()
 #endif
 
+// FAN CUSTOMMMMMM
+#undef GLFW_MOUSE_PASSTHROUGH
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>

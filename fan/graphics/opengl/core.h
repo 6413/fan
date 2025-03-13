@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/graphics/common_context.h>
+
 #include <fan/graphics/opengl/init.h>
 #include <fan/graphics/image_load.h>
 #include <fan/graphics/camera.h>
@@ -37,6 +39,8 @@ namespace fan {
       }
 
       void open(const properties_t& p = properties_t());
+      void close();
+      void internal_close();
 
       void render(fan::window_t& window);
 
@@ -60,55 +64,8 @@ namespace fan {
 
       void set_current(fan::window_t* window);
 
-      //-----------------------------camera-----------------------------
-
-      struct camera_t : fan::camera {
-        fan::mat4 m_projection = fan::mat4(1);
-        fan::mat4 m_view = fan::mat4(1);
-        f32_t zfar = 1000.f;
-        f32_t znear = 0.1f;
-
-        union {
-          struct {
-            f32_t left;
-            f32_t right;
-            f32_t up;
-            f32_t down;
-          };
-          fan::vec4 v;
-        }coordinates;
-      };
-
-      static constexpr f32_t znearfar = 0xffff;
-
-    protected:
-      #include <fan/graphics/opengl/camera_list_builder_settings.h>
-      #include <BLL/BLL.h>
-    public:
-      using camera_nr_t = camera_list_NodeReference_t;
-
-      camera_list_t camera_list;
-
-      camera_nr_t camera_create();
-      camera_t& camera_get(camera_nr_t nr);
-      void camera_erase(camera_nr_t nr);
-
-      camera_nr_t camera_open(const fan::vec2& x, const fan::vec2& y);
-
-      fan::vec3 camera_get_position(camera_nr_t nr);
-      void camera_set_position(camera_nr_t nr, const fan::vec3& cp);
-      fan::vec2 camera_get_size(camera_nr_t nr);
-
-      void camera_set_ortho(camera_nr_t nr, fan::vec2 x, fan::vec2 y);
-      void camera_set_perspective(camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
-
-      void camera_rotate(camera_nr_t nr, const fan::vec2& offset);
-
-      //-----------------------------camera-----------------------------
-
       //-----------------------------shader-----------------------------
 
-      
       struct view_projection_t {
         fan::mat4 projection;
         fan::mat4 view;
@@ -118,79 +75,28 @@ namespace fan {
         GLuint id = -1;
         int projection_view[2]{ -1, -1 };
         uint32_t vertex = -1, fragment = -1;
-        // can be risky without constructor copy
-        std::string svertex, sfragment;
-
-        std::unordered_map<std::string, std::string> uniform_type_table;
       };
-    protected:
-      #include <fan/graphics/opengl/shader_list_builder_settings.h>
-      #include <BLL/BLL.h>
-    public:
-      shader_list_t shader_list;
-
-      using shader_nr_t = shader_list_NodeReference_t;
 
       static constexpr auto shader_validate_error_message = [](const auto str) {
         return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
       };
-
-      shader_nr_t shader_create();
-      shader_t& shader_get(shader_nr_t nr);
-      void shader_erase(shader_nr_t nr);
-
-      void shader_use(shader_nr_t nr);
-
-      void shader_set_vertex(shader_nr_t nr, const fan::string& vertex_code);
-      void shader_set_fragment(shader_nr_t nr, const fan::string& fragment_code);
-      bool shader_compile(shader_nr_t nr);
-      bool shader_check_compile_errors(GLuint nr, const fan::string& type);
-      bool shader_check_compile_errors(fan::opengl::context_t::shader_t&, const fan::string& type);
-
-      void shader_set_camera(shader_nr_t nr, camera_nr_t camera_nr);
 
       static constexpr auto validate_error_message = [](const auto str) {
         return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
         };
 
       template <typename T>
-      void shader_set_value(shader_nr_t nr, const fan::string& name, const T& val);
+      void shader_set_value(fan::graphics::shader_nr_t nr, const fan::string& name, const T& val);
+      void shader_set_camera(fan::graphics::shader_nr_t nr, fan::graphics::camera_nr_t camera_nr);
 
-      /*
-      
-        case fan::get_hash(std::string_view("int[]")): {
-          shader->set_int(var_name, initial);
-          break;
-        }
-        case fan::get_hash(std::string_view("uint[]")): {
-          shader->set_int(var_name, initial);
-          break;
-        }
-        case fan::get_hash(std::string_view("float[]")): {
-          shader->set_float(var_name, initial);
-          break;
-        }
-      */
-
-      //-----------------------------shader-----------------------------
-
-
-
+     //-----------------------------shader-----------------------------
 
       //-----------------------------image-----------------------------
 
       struct image_t {
-        // --common--
-        fan::vec2 size;
-        // --common--
+        #include <fan/graphics/image_common.h>
         GLuint texture_id;
       };
-
-      #include <fan/graphics/opengl/image_list_builder_settings.h>
-      #include <BLL/BLL.h>
-      image_list_t image_list;
-
-      using image_nr_t = image_list_NodeReference_t;
 
       struct image_format {
         static constexpr auto b8g8r8a8_unorm = GL_BGRA;
@@ -235,70 +141,9 @@ namespace fan {
         fan::vec2(1, 1),
         fan::vec2(0, 1)
       );
-
-      image_nr_t image_create();
-      GLuint& image_get_handle(image_nr_t nr);
-      image_t& image_get(image_nr_t nr);
-
-      void image_erase(image_nr_t nr);
-
-      void image_bind(image_nr_t nr);
-      void image_unbind(image_nr_t nr);
-
-      void image_set_settings(const image_load_properties_t& p);
-
-      image_nr_t image_load(const fan::image::image_info_t& image_info);
-      image_nr_t image_load(const fan::image::image_info_t& image_info, const image_load_properties_t& p);
-      image_nr_t image_load(const fan::string& path);
-      image_nr_t image_load(const fan::string& path, const image_load_properties_t& p);
-      image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_);
-      image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_, const image_load_properties_t& p);
-
-      void image_unload(image_nr_t nr);
-
-      image_nr_t create_missing_texture();
-      image_nr_t create_transparent_texture();
-
-      void image_reload_pixels(image_nr_t nr, const fan::image::image_info_t& image_info);
-      void image_reload_pixels(image_nr_t nr, const fan::image::image_info_t& image_info, const image_load_properties_t& p);
-
-      std::unique_ptr<uint8_t[]> image_get_pixel_data(image_nr_t nr, GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
-
-      image_nr_t image_create(const fan::color& color);
-      image_nr_t image_create(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p);
-
       //-----------------------------image-----------------------------
 
-
       //-----------------------------viewport-----------------------------
-
-      struct viewport_t {
-        fan::vec2 viewport_position;
-        fan::vec2 viewport_size;
-      };
-
-    protected:
-      #include "viewport_list_builder_settings.h"
-      #include <BLL/BLL.h>
-    public:
-
-      using viewport_nr_t = viewport_list_NodeReference_t;
-
-      viewport_list_t viewport_list;
-
-      viewport_nr_t viewport_create();
-      viewport_t& viewport_get(viewport_nr_t nr);
-      void viewport_erase(viewport_nr_t nr);
-
-      fan::vec2 viewport_get_position(viewport_nr_t nr);
-      fan::vec2 viewport_get_size(viewport_nr_t nr);
-
-      void viewport_set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
-      void viewport_set(viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
-      void viewport_zero(viewport_nr_t nr);
-
-      bool viewport_inside(viewport_nr_t nr, const fan::vec2& position);
-      bool viewport_inside_wir(viewport_nr_t nr, const fan::vec2& position);
 
       //-----------------------------viewport-----------------------------
 

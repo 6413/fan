@@ -3,7 +3,7 @@
 int main() {
   loco_t loco;//
   fan::time::clock c;
-  c.start();
+  
 
   // serialize
   {
@@ -14,6 +14,7 @@ int main() {
     } };
     // json
     {
+      c.start();
       fan::json out;
       for (int i = 0; i < 35000; ++i) {
         fan::json temp;
@@ -22,19 +23,21 @@ int main() {
       }
 
       fan::io::file::write("shapes.json", out.dump(2), std::ios_base::binary);
+      fan::print("json serialize time:", c.elapsed());
     }
     // bin
     {
-      fan::string out;
+      c.start();
+      std::vector<uint8_t> out;
       {
         for (int i = 0; i < 35000; ++i) {
-          fan::string temp;
+          std::vector<uint8_t> temp;
           fan::graphics::shape_serialize(r, &temp);
-          out += temp;
+          out.insert(out.end(), temp.begin(), temp.end());
         }
       }
-      fan::print(c.elapsed());
       fan::io::file::write("shapes.bin", out, std::ios_base::binary);
+      fan::print("bin serialize time:", c.elapsed());
     }
   }
 
@@ -60,7 +63,7 @@ int main() {
       loco_t::shape_t shape;
       int i = 0;
       while (it.iterate(out, &shape)) {
-        fan::print(i++);
+        //fan::print(i++);
       }
     }
   }

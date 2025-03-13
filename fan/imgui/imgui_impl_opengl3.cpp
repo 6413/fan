@@ -272,19 +272,19 @@ struct ImGui_ImplOpenGL3_VtxAttribState
     GLint   Enabled, Size, Type, Normalized, Stride;
     GLvoid* Ptr;
 
-    void GetState(GLint index)
+    void GetState(GLint index_t)
     {
-        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &Enabled);
-        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_SIZE, &Size);
-        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_TYPE, &Type);
-        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &Normalized);
-        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &Stride);
-        glGetVertexAttribPointerv(index, GL_VERTEX_ATTRIB_ARRAY_POINTER, &Ptr);
+        glGetVertexAttribiv(index_t, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &Enabled);
+        glGetVertexAttribiv(index_t, GL_VERTEX_ATTRIB_ARRAY_SIZE, &Size);
+        glGetVertexAttribiv(index_t, GL_VERTEX_ATTRIB_ARRAY_TYPE, &Type);
+        glGetVertexAttribiv(index_t, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &Normalized);
+        glGetVertexAttribiv(index_t, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &Stride);
+        glGetVertexAttribPointerv(index_t, GL_VERTEX_ATTRIB_ARRAY_POINTER, &Ptr);
     }
-    void SetState(GLint index)
+    void SetState(GLint index_t)
     {
-        glVertexAttribPointer(index, Size, Type, (GLboolean)Normalized, Stride, Ptr);
-        if (Enabled) glEnableVertexAttribArray(index); else glDisableVertexAttribArray(index);
+        glVertexAttribPointer(index_t, Size, Type, (GLboolean)Normalized, Stride, Ptr);
+        if (Enabled) glEnableVertexAttribArray(index_t); else glDisableVertexAttribArray(index_t);
     }
 };
 #endif

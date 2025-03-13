@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/graphics/common_context.h>
+
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -35,7 +37,8 @@ const std::vector<const char*> validationLayers = {
 };
 
 const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME
 };
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
@@ -68,13 +71,18 @@ namespace fan {
   }
 }
 
+namespace fan::graphics::format_converter {
+  VkSamplerAddressMode global_to_vulkan_address_mode(uintptr_t mode);
+  VkFilter global_to_vulkan_filter(uintptr_t filter);
+}
+
 namespace fan {
   namespace vulkan {
 
     void validate(VkResult result);
 
     static constexpr uint16_t max_camera = 16;
-    static constexpr uint16_t max_textures = 16;
+    static constexpr uint16_t max_textures = 0xffff;
 
     struct write_descriptor_set_t {
       // glsl layout binding
@@ -97,7 +105,7 @@ namespace fan {
       // for only VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
       // imageLayout can be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
       bool use_image = false;
-      VkDescriptorImageInfo image_infos[max_textures];
+      std::vector<VkDescriptorImageInfo> image_infos{max_textures};
     };
 
     static constexpr uint32_t max_frames_in_flight = 1;
@@ -179,53 +187,6 @@ namespace fan {
         VkDescriptorPool m_descriptor_pool;
       }descriptor_pool;
 
-      //-----------------------------camera-----------------------------
-
-      struct camera_t : fan::camera {
-        fan::mat4 m_projection = fan::mat4(1);
-        fan::mat4 m_view = fan::mat4(1);
-        f32_t zfar = 1000.f;
-        f32_t znear = 0.1f;
-
-        union {
-          struct {
-            f32_t left;
-            f32_t right;
-            f32_t up;
-            f32_t down;
-          };
-          fan::vec4 v;
-        }coordinates;
-      };
-
-    static constexpr f32_t znearfar = 0xffff;
-
-    protected:
-
-      #include <fan/graphics/opengl/camera_list_builder_settings.h>
-      #include <BLL/BLL.h>
-    public:
-      using camera_nr_t = camera_list_NodeReference_t;
-
-      camera_list_t camera_list;
-
-      camera_nr_t camera_create();
-      camera_t& camera_get(camera_nr_t nr);
-      void camera_erase(camera_nr_t nr);
-
-      camera_nr_t camera_open(const fan::vec2& x, const fan::vec2& y);
-
-      fan::vec3 camera_get_position(camera_nr_t nr);
-      void camera_set_position(camera_nr_t nr, const fan::vec3& cp);
-      fan::vec2 camera_get_size(camera_nr_t nr);
-
-      void camera_set_ortho(camera_nr_t nr, fan::vec2 x, fan::vec2 y);
-      void camera_set_perspective(camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
-
-      void camera_rotate(camera_nr_t nr, const fan::vec2& offset);
-
-      //-----------------------------camera-----------------------------
-
       //-----------------------------shader-----------------------------
       struct view_projection_t {
         fan::mat4 projection;
@@ -235,34 +196,12 @@ namespace fan {
       struct shader_t {
         int projection_view[2]{ -1, -1 };
         fan::vulkan::context_t::uniform_block_t<fan::vulkan::context_t::view_projection_t, fan::vulkan::max_camera> projection_view_block;
-        VkPipelineShaderStageCreateInfo shader_stages[2];
-        // can be risky without constructor copy
-        std::string svertex, sfragment;
-
-        std::unordered_map<std::string, std::string> uniform_type_table;
+        VkPipelineShaderStageCreateInfo shader_stages[2]{};
       };
 
-      // NOTE opengl, should probably be combined into global since they are same
-      #include <fan/graphics/opengl/shader_list_builder_settings.h>
-      #include <BLL/BLL.h>
-      shader_list_t shader_list;
-
-      using shader_nr_t = shader_list_NodeReference_t;
-
-      
       static std::vector<uint32_t> compile_file(const fan::string& source_name,
         shaderc_shader_kind kind,
         const fan::string& source);
-
-      shader_nr_t shader_create();
-      shader_t& shader_get(shader_nr_t nr);
-      void shader_erase(shader_nr_t nr);
-
-      void shader_use(shader_nr_t nr);
-
-      void shader_set_vertex(shader_nr_t nr, const fan::string& vertex_code);
-      void shader_set_fragment(shader_nr_t nr, const fan::string& fragment_code);
-      bool shader_compile(shader_nr_t nr);
 
       //-----------------------------shader-----------------------------
 
@@ -302,33 +241,23 @@ namespace fan {
         //constexpr load_properties_t(auto a, auto b, auto c, auto d, auto e)
           //: visual_output(a), internal_format(b), format(c), type(d), filter(e) {}
         VkSamplerAddressMode visual_output = image_load_properties_defaults::visual_output;
+        // unused opengl filler
+        uint8_t internal_format = 0;
         //uintptr_t           internal_format = load_properties_defaults::internal_format;
         //uintptr_t           format = load_properties_defaults::format;
         //uintptr_t           type = load_properties_defaults::type;
         VkFormat format = image_load_properties_defaults::format;
         VkFilter           min_filter = image_load_properties_defaults::min_filter;
         VkFilter           mag_filter = image_load_properties_defaults::mag_filter;
-        // unused opengl filler
-        uint8_t internal_format = 0;
       };
 
       void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
       void copy_buffer_to_image(VkBuffer buffer, VkImage image, VkFormat format, const fan::vec2ui& size, const fan::vec2ui& stride = 1);
       void create_texture_sampler(VkSampler& sampler, const image_load_properties_t& lp);
 
-            // TODO
-      struct image_list_texture_index_t {
-        uint8_t sprite = -1;
-        uint8_t letter = -1;
-        uint8_t yuv420p = -1;
-      };
-
       struct image_t {
-        // --common--
-        fan::vec2 size;
-        // --common--
-        image_list_texture_index_t texture_index;
-        VkImage image_index;
+        #include <fan/graphics/image_common.h>
+        VkImage image_index = 0;
         VkImageView image_view;
         VkDeviceMemory image_memory;
         VkSampler sampler;
@@ -337,72 +266,10 @@ namespace fan {
         void* data;
       };
 
-      #include <fan/graphics/opengl/image_list_builder_settings.h>
-      #include <BLL/BLL.h>
-      image_list_t image_list;
-
-      using image_nr_t = image_list_NodeReference_t;
-      
-      image_nr_t image_create();
-      uint64_t image_get_handle(image_nr_t nr);
-      image_t& image_get(image_nr_t nr);
-
-      void image_erase(image_nr_t nr);
-
-      void image_bind(image_nr_t nr);
-      void image_unbind(image_nr_t nr);
-
-      void image_set_settings(const image_load_properties_t& p);
-
-      image_nr_t image_load(const fan::image::image_info_t& image_info);
-      image_nr_t image_load(const fan::image::image_info_t& image_info, const image_load_properties_t& p);
-      image_nr_t image_load(const fan::string& path);
-      image_nr_t image_load(const fan::string& path, const image_load_properties_t& p);
-      image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_);
-      image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_, const image_load_properties_t& p);
-
-      void image_unload(image_nr_t nr);
-
-      image_nr_t create_missing_texture();
-      image_nr_t create_transparent_texture();
-
-      void image_reload_pixels(image_nr_t nr, const fan::image::image_info_t& image_info);
-      void image_reload_pixels(image_nr_t nr, const fan::image::image_info_t& image_info, const image_load_properties_t& p);
-
-      image_nr_t image_create(const fan::color& color);
-      image_nr_t image_create(const fan::color& color, const fan::vulkan::context_t::image_load_properties_t& p);
-
+      std::vector<VkDescriptorImageInfo> image_pool; // for draw
       //-----------------------------image-----------------------------
 
       //-----------------------------viewport-----------------------------
-
-      struct viewport_t {
-        fan::vec2 viewport_position;
-        fan::vec2 viewport_size;
-      };
-
-    protected:
-      #include <fan/graphics/opengl/viewport_list_builder_settings.h>
-      #include <BLL/BLL.h>
-    public:
-
-      using viewport_nr_t = viewport_list_NodeReference_t;
-
-      viewport_list_t viewport_list;
-
-      viewport_nr_t viewport_create();
-      viewport_t& viewport_get(viewport_nr_t nr);
-      void viewport_erase(viewport_nr_t nr);
-
-      fan::vec2 viewport_get_position(viewport_nr_t nr);
-      fan::vec2 viewport_get_size(viewport_nr_t nr);
-
-      void viewport_set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
-      void viewport_set(viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
-      void viewport_zero(viewport_nr_t nr);
-
-      bool viewport_inside(viewport_nr_t nr, const fan::vec2& position);
-      bool viewport_inside_wir(viewport_nr_t nr, const fan::vec2& position);
 
       //-----------------------------viewport-----------------------------
 
@@ -411,7 +278,7 @@ namespace fan {
         struct properties_t {
           uint32_t descriptor_layout_count = 0;
           VkDescriptorSetLayout* descriptor_layout;
-          fan::vulkan::context_t::shader_nr_t shader;
+          fan::graphics::shader_nr_t shader;
           uint32_t push_constants_size = 0;
           uint32_t subpass = 0;
 
@@ -426,7 +293,7 @@ namespace fan {
         void open(fan::vulkan::context_t& context, const properties_t& p);
         void close(fan::vulkan::context_t& context);
 
-        fan::vulkan::context_t::shader_nr_t shader_nr;
+        fan::graphics::shader_nr_t shader_nr;
 
         operator VkPipeline() const {
           return m_pipeline;
@@ -532,19 +399,19 @@ namespace fan {
 
       void create_sync_objects();
 
-      void begin_render(const fan::color& clear_color);
+      void begin_render(const fan::color& clear_color, std::function<void()> cmd_buffer_reset_cb);
 
        //----------------------------------------------imgui stuff----------------------------------------------
-
+      bool                     SwapChainRebuild = false;
+      #if defined(loco_imgui)
       ImGui_ImplVulkanH_Window MainWindowData;
       uint32_t                 MinImageCount = 2;
-      bool                     SwapChainRebuild = false;
       
       void ImGuiSetupVulkanWindow();
 
       void ImGuiFrameRender(VkResult next_image_khr_err, fan::color clear_color);
       //----------------------------------------------imgui stuff----------------------------------------------
-
+#endif
       VkResult end_render();
 
       void begin_compute_shader();
@@ -685,35 +552,34 @@ namespace fan {
       uint32_t texture_n,
       uint32_t texture_begin
     ) {
-      std::vector<VkDescriptorBufferInfo> bufferInfo(n * max_frames_in_flight);
+      uint32_t frame = context.current_frame;
+      
+      std::vector<VkDescriptorBufferInfo> bufferInfo(n);
 
-      for (size_t frame = 0; frame < max_frames_in_flight; frame++) {
+      std::vector<VkWriteDescriptorSet> descriptorWrites(begin + n);
 
-        std::vector<VkWriteDescriptorSet> descriptorWrites(n);
+      for (uint32_t j = begin; j < begin + n; ++j) {
 
-        for (uint32_t j = begin; j < begin + n; ++j) {
-
-          if (m_properties[j].buffer) {
-            bufferInfo[frame * n + j].buffer = m_properties[j].buffer;
-            bufferInfo[frame * n + j].offset = 0;
-            bufferInfo[frame * n + j].range = m_properties[j].range;
-          }
-
-          descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-          descriptorWrites[j].dstSet = m_descriptor_set[frame];
-          descriptorWrites[j].descriptorType = m_properties[j].type;
-          descriptorWrites[j].descriptorCount = 1;
-          descriptorWrites[j].pBufferInfo = &bufferInfo[frame * n + j];
-          descriptorWrites[j].dstBinding = m_properties[j].dst_binding;
-
-          // FIX
-          if (m_properties[j].use_image) {
-            descriptorWrites[j].pImageInfo = &m_properties[j].image_infos[texture_begin];
-            descriptorWrites[j].descriptorCount = texture_n;
-          }
+        if (m_properties[j].buffer) {
+          bufferInfo[j].buffer = m_properties[j].buffer;
+          bufferInfo[j].offset = 0;
+          bufferInfo[j].range = m_properties[j].range;
         }
-        vkUpdateDescriptorSets(context.device, n, descriptorWrites.data() + begin, 0, nullptr);
+
+        descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[j].dstSet = m_descriptor_set[0];
+        descriptorWrites[j].descriptorType = m_properties[j].type;
+        descriptorWrites[j].descriptorCount = 1;
+        descriptorWrites[j].pBufferInfo = &bufferInfo[j];
+        descriptorWrites[j].dstBinding = m_properties[j].dst_binding;
+
+        // FIX
+        if (m_properties[j].use_image) {
+          descriptorWrites[j].pImageInfo = &m_properties[j].image_infos[texture_begin];
+          descriptorWrites[j].descriptorCount = texture_n;
+        }
       }
+      vkUpdateDescriptorSets(context.device, n, descriptorWrites.data() + begin, 0, nullptr);
     }
   }
 }

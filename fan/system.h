@@ -25,7 +25,7 @@
 
 #include <dlfcn.h>
 
-#undef index // xos.h
+#undef index_t // xos.h
 
 #include <sys/time.h>
 #include <unistd.h>

@@ -121,5 +121,5 @@ struct memory_common_t {
 	uint64_t m_min_edit;
 	uint64_t m_max_edit;
 
-	bool queued;
+	bool queued = 0;
 };

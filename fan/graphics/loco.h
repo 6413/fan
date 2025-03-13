@@ -33,7 +33,13 @@
 
 #include <fan/graphics/algorithm/FastNoiseLite.h>
 
-#include <fan/graphics/common_context.h>
+#include <fan/graphics/opengl/core.h>
+#include <fan/graphics/vulkan/core.h>
+
+#undef camera_list;
+#undef shader_list;
+#undef image_list;
+#undef viewport_list;
 
 #if defined(loco_imgui)
   #include <fan/graphics/console.h>
@@ -187,9 +193,38 @@ struct global_loco_t {
     return loco;
   }
 };
+
+struct loco_t;
 // might crash if pch or lib is built with extern/inline so if its different, 
 // it will crash in random places
 inline global_loco_t gloco;
+
+namespace fan {
+  namespace graphics {
+    using context_shader_init_t = std::variant<
+      fan::opengl::context_t::shader_t,
+      fan::vulkan::context_t::shader_t
+    >;
+    struct context_shader_t : context_shader_init_t {
+      using context_shader_init_t::variant;
+    };
+    using context_image_init_t = std::variant<
+      fan::opengl::context_t::image_t,
+      fan::vulkan::context_t::image_t
+    >;
+    struct context_image_t : context_image_init_t {
+      using context_image_init_t::variant;
+    };
+    struct context_t {
+      context_t() {}
+      ~context_t() {}
+      union {
+        fan::opengl::context_t gl;
+        fan::vulkan::context_t vk;
+      };
+    };
+  }
+}
 
 #include <shaderc/shaderc.hpp>
 //#include <fan/graphics/vulkan/ssbo.h>
@@ -199,25 +234,25 @@ struct loco_t {
     return window.renderer;
   }
   
-  using shader_t = fan::graphics::context_shader_nr_t;
-  using image_t = fan::graphics::context_image_nr_t;
-  using camera_t = fan::graphics::context_camera_nr_t;
-  using viewport_t = fan::graphics::context_viewport_nr_t;
+  using shader_t = fan::graphics::shader_nr_t;
+  using image_t = fan::graphics::image_nr_t;
+  using camera_t = fan::graphics::camera_nr_t;
+  using viewport_t = fan::graphics::viewport_nr_t;
   using image_load_properties_t = fan::graphics::image_load_properties_t;
 
   using image_sampler_address_mode = fan::graphics::image_sampler_address_mode;
 
-  fan::graphics::context_shader_nr_t shader_create();
-  fan::graphics::context_shader_t shader_get(fan::graphics::context_shader_nr_t nr);
-  void shader_erase(fan::graphics::context_shader_nr_t nr);
-  void shader_use(fan::graphics::context_shader_nr_t nr);
-  void shader_set_vertex(fan::graphics::context_shader_nr_t nr, const std::string& vertex_code);
-  void shader_set_fragment(fan::graphics::context_shader_nr_t nr, const std::string& fragment_code);
-  bool shader_compile(fan::graphics::context_shader_nr_t nr);
+  fan::graphics::shader_nr_t shader_create();
+  fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr);
+  void shader_erase(fan::graphics::shader_nr_t nr);
+  void shader_use(fan::graphics::shader_nr_t nr);
+  void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code);
+  void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code);
+  bool shader_compile(fan::graphics::shader_nr_t nr);
   template <typename T>
-  void shader_set_value(fan::graphics::context_shader_nr_t nr, const std::string& name, const T& val) {
+  void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
     if (window.renderer == renderer_t::opengl) {
-      context.gl.shader_set_value(nr.gl, name, val);
+      context.gl.shader_set_value(nr, name, val);
     }
     else if (window.renderer == renderer_t::vulkan) {
       fan::throw_error("todo");
@@ -225,62 +260,69 @@ struct loco_t {
   }
   void shader_set_camera(shader_t nr, camera_t camera_nr) {
     if (window.renderer == renderer_t::opengl) {
-      context.gl.shader_set_camera(nr.gl, camera_nr.gl);
+      context.gl.shader_set_camera(nr, camera_nr);
     }
     else if (window.renderer == renderer_t::vulkan) {
       fan::throw_error("todo");
     }
   }
 
-  std::unique_ptr<uint8_t[]> image_get_pixel_data(fan::graphics::context_image_nr_t nr, GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) {
+  fan::graphics::camera_list_t camera_list;
+  fan::graphics::shader_list_t shader_list;
+  fan::graphics::image_list_t image_list;
+  fan::graphics::viewport_list_t viewport_list;
+
+  std::unique_ptr<uint8_t[]> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) {
     fan::throw_error("");
     return {};
   }
 
-  fan::graphics::context_image_nr_t image_create();
-  fan::graphics::context_image_t image_get(fan::graphics::context_image_nr_t nr);
-  uint64_t image_get_handle(fan::graphics::context_image_nr_t nr);
-  void image_erase(fan::graphics::context_image_nr_t nr);
-  void image_bind(fan::graphics::context_image_nr_t nr);
-  void image_unbind(fan::graphics::context_image_nr_t nr);
+  fan::graphics::image_nr_t image_create();
+  fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr);
+  uint64_t image_get_handle(fan::graphics::image_nr_t nr);
+  void image_erase(fan::graphics::image_nr_t nr);
+  void image_bind(fan::graphics::image_nr_t nr);
+  void image_unbind(fan::graphics::image_nr_t nr);
   void image_set_settings(const fan::graphics::image_load_properties_t& settings);
-  fan::graphics::context_image_nr_t image_load(const fan::image::image_info_t& image_info);
-  fan::graphics::context_image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p);
-  fan::graphics::context_image_nr_t image_load(const fan::string& path);
-  fan::graphics::context_image_nr_t image_load(const fan::string& path, const fan::graphics::image_load_properties_t& p);
-  fan::graphics::context_image_nr_t image_load(fan::color* colors, const fan::vec2ui& size);
-  fan::graphics::context_image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
-  void image_unload(fan::graphics::context_image_nr_t nr);
-  fan::graphics::context_image_nr_t create_missing_texture();
-  fan::graphics::context_image_nr_t create_transparent_texture();
-  void image_reload_pixels(fan::graphics::context_image_nr_t nr, const fan::image::image_info_t& image_info);
-  void image_reload_pixels(fan::graphics::context_image_nr_t nr, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p);
-  fan::graphics::context_image_nr_t image_create(const fan::color& color);
-  fan::graphics::context_image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info);
+  fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_nr_t image_load(const fan::string& path);
+  fan::graphics::image_nr_t image_load(const fan::string& path, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size);
+  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
+  void image_unload(fan::graphics::image_nr_t nr);
+  fan::graphics::image_nr_t create_missing_texture();
+  fan::graphics::image_nr_t create_transparent_texture();
+  void image_reload(fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info);
+  void image_reload(fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p);
+  void image_reload(fan::graphics::image_nr_t nr, const std::string& image_info);
+  void image_reload(fan::graphics::image_nr_t nr, const std::string& image_info, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_nr_t image_create(const fan::color& color);
+  fan::graphics::image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
 
 
-  fan::graphics::context_camera_nr_t camera_create();
-  fan::graphics::context_camera_t camera_get(fan::graphics::context_camera_nr_t nr);
-  void camera_erase(fan::graphics::context_camera_nr_t nr);
-  fan::graphics::context_camera_nr_t camera_open(const fan::vec2& x, const fan::vec2& y);
-  fan::vec3 camera_get_position(fan::graphics::context_camera_nr_t nr);
-  void camera_set_position(fan::graphics::context_camera_nr_t nr, const fan::vec3& cp);
-  fan::vec2 camera_get_size(fan::graphics::context_camera_nr_t nr);
-  void camera_set_ortho(fan::graphics::context_camera_nr_t nr, fan::vec2 x, fan::vec2 y);
-  void camera_set_perspective(fan::graphics::context_camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
-  void camera_rotate(fan::graphics::context_camera_nr_t nr, const fan::vec2& offset);
+  fan::graphics::camera_nr_t camera_create();
+  fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr);
+  void camera_erase(fan::graphics::camera_nr_t nr);
+  fan::graphics::camera_nr_t camera_open(const fan::vec2& x, const fan::vec2& y);
+  fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
+  void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
+  fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
+  void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
+  void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
+  void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset);
 
 
-  fan::graphics::context_viewport_nr_t viewport_create();
-  fan::graphics::context_viewport_t viewport_get(fan::graphics::context_viewport_nr_t nr);
-  void viewport_erase(fan::graphics::context_viewport_nr_t nr);
-  fan::vec2 viewport_get_position(fan::graphics::context_viewport_nr_t nr);
-  fan::vec2 viewport_get_size(fan::graphics::context_viewport_nr_t nr);
+  fan::graphics::viewport_nr_t viewport_create();
+  fan::graphics::context_viewport_t viewport_get(fan::graphics::viewport_nr_t nr);
+  void viewport_erase(fan::graphics::viewport_nr_t nr);
+  fan::vec2 viewport_get_position(fan::graphics::viewport_nr_t nr);
+  fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr);
   void viewport_set(const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size);
-  void viewport_set(fan::graphics::context_viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size);
-  void viewport_zero(fan::graphics::context_viewport_nr_t nr);
-  bool inside(fan::graphics::context_viewport_nr_t nr, const fan::vec2& position);
-  bool inside_wir(fan::graphics::context_viewport_nr_t nr, const fan::vec2& position);
+  void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size);
+  void viewport_zero(fan::graphics::viewport_nr_t nr);
+  bool inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
+  bool inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
 
   fan::graphics::context_functions_t context_functions;
   fan::graphics::context_t context;
@@ -309,6 +351,22 @@ struct loco_t {
   // sizeof(image_t) == 2
   static_assert(sizeof(loco_t::image_t) == 2, "update shaper_set_MaxKeySize");
   #define shaper_set_MaxKeySize 2 * 30
+  /*
+  * void _ShapeTypeChange(
+    ShapeTypeIndex_t sti,
+    KeyPackSize_t keypack_size,
+    uint8_t *keypack,
+    MaxElementPerBlock_t element_count,
+    const void *old_renderdata,
+    const void *old_data,
+    void *new_renderdata,
+    void *new_data
+  ){
+  */
+  // will die if renderer has different sizes of structs
+  #define shaper_set_ShapeTypeChange \
+    __builtin_memcpy(new_renderdata, old_renderdata, element_count * get_loco()->shaper.GetRenderDataSize(sti)); \
+    __builtin_memcpy(new_data, old_data, element_count * get_loco()->shaper.GetDataSize(sti));
   #include <fan/graphics/shaper.h>
 
   template<
@@ -329,7 +387,7 @@ struct loco_t {
     structarr_t a;
     uintptr_t i = 0;
     ([&](auto arg) {
-      __MemoryCopy(&arg, &a[i], sizeof(arg));
+      __builtin_memcpy(&a[i], &arg, sizeof(arg));
       i += sizeof(arg);
       }(args), ...);
     constexpr uintptr_t count = (!!(sizeof(Ts) + 1) + ...);
@@ -575,13 +633,13 @@ struct loco_t {
 
   template <typename T, typename T2>
   static T2& get_render_data(shape_t* shape, T2 T::* attribute) {
-    shaper_t::ShapeRenderData_t* data = gloco->shaper.GetRenderData(*shape);
+    shaper_t::ShapeRenderData_t* data = shape->GetRenderData(gloco->shaper);
     return ((T*)data)->*attribute;
   }
 
   template <typename T, typename T2, typename T3>
   static void modify_render_data_element(shape_t* shape, T2 T::* attribute, const T3& value) {
-    shaper_t::ShapeRenderData_t* data = gloco->shaper.GetRenderData(*shape);
+    shaper_t::ShapeRenderData_t* data = shape->GetRenderData(gloco->shaper);
 
     // remove gloco
     if (gloco->window.renderer == renderer_t::opengl) {
@@ -589,10 +647,11 @@ struct loco_t {
     }
     else if (gloco->window.renderer == renderer_t::vulkan) {
       ((T*)data)->*attribute = value;
+      auto& data = gloco->shaper.ShapeList[*shape];
       gloco->shaper.ElementIsPartiallyEdited(
-        gloco->shaper.GetSTI(*shape),
-        gloco->shaper.GetBLID(*shape),
-        gloco->shaper.GetElementIndex(*shape),
+        data.sti,
+        data.blid,
+        data.ElementIndex,
         fan::member_offset(attribute),
         sizeof(T3)
       );
@@ -678,16 +737,21 @@ public:
 
   // -1 no reload, opengl = 0 etc
   uint8_t reload_renderer_to = -1;
+  #if defined(loco_imgui)
   void load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t font_size = 4);
 
   void init_imgui();
   void destroy_imgui();
-
+#endif
   void init_framebuffer();
 
   loco_t();
   loco_t(const properties_t& p);
   ~loco_t();
+
+  // for renderer switch
+  // input loco_t::renderer_t::
+  void switch_renderer(uint8_t renderer);
 
   uint32_t draw_shapes();
   void process_frame();
@@ -900,10 +964,11 @@ protected:
   #define BLL_set_SafeNext 1
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_prefix update_callback
-  #include _FAN_PATH(fan_bll_preset.h)
+  #include <fan/fan_bll_preset.h>
   #define BLL_set_Link 1
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeDataType fan::function_t<void(loco_t*)>
+  #define BLL_set_CPP_CopyAtPointerChange 1
   #include <BLL/BLL.h>
 public:
 
@@ -919,7 +984,9 @@ public:
   camera_impl_t perspective_camera;
 
   fan::window_t window;
+  bool idle_init = false;
   uv_idle_t idle_handle;
+  bool timer_init = false;
   uv_timer_t timer_handle;
 
   int32_t target_fps = 165; // must be changed from function
@@ -987,6 +1054,7 @@ public:
   fan::vec2 get_mouse_drag(int button = fan::mouse_left);
 
   struct shape_t : shaper_t::ShapeID_t{
+    using shaper_t::ShapeID_t::ShapeID_t;
     shape_t();
     shape_t(shaper_t::ShapeID_t&& s);
     shape_t(const shaper_t::ShapeID_t& s);
@@ -1066,7 +1134,7 @@ public:
 
     template <typename T>
     void set_position(const fan::vec2_wrap_t<T>& position) {
-      gloco->shape_functions[gloco->shaper.GetSTI(*this)].set_position2(this, position);
+      gloco->shape_functions[gloco->shaper.ShapeList[*this].sti].set_position2(this, position);
     }
 
     void set_position(const fan::vec3& position);
@@ -1130,6 +1198,8 @@ public:
     void reload(uint8_t format, const fan::vec2& image_size, uint32_t filter = GL_LINEAR);
 
     void set_line(const fan::vec2& src, const fan::vec2& dst);
+
+    
 
   private:
   };
@@ -1304,6 +1374,7 @@ public:
       fan::vec2 tc_position;
       fan::vec2 tc_size;
       f32_t seed;
+      fan::vec3 pad;
     };
     struct ri_t {
       // main image + light buffer + 30
@@ -1343,8 +1414,10 @@ public:
         auto& im = *ti->image;
         image = im;
         auto img = gloco->image_get(im);
-        tc_position = ti->position / img.size;
-        tc_size = ti->size / img.size;
+        std::visit([this, ti] (const auto& v) {
+          tc_position = ti->position / v.size;
+          tc_size = ti->size / v.size;
+        }, img);
         return 0;
       }
 
@@ -1425,8 +1498,10 @@ public:
         auto& im = *ti->image;
         image = im;
         auto img = gloco->image_get(im);
-        tc_position = ti->position / img.size;
-        tc_size = ti->size / img.size;
+        std::visit([this, ti](auto& v) {
+          tc_position = ti->position / v.size;
+          tc_size = ti->size / v.size;
+        }, img);
         return 0;
       }
     };
@@ -2044,12 +2119,12 @@ public:
       decltype(vk.shape_data.m_descriptor)::properties_t rectp;
       // image
       //uint32_t ds_offset = 3;
-      auto shaderd = gloco->shader_get(shader);
+      auto& shaderd = *(fan::vulkan::context_t::shader_t*)gloco->context_functions.shader_get(&gloco->context.vk, shader);
       uint32_t ds_offset = 2;
       vk.shape_data.open(gloco->context.vk, 1);
       vk.shape_data.allocate(gloco->context.vk, 0xffffff);
       
-      std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties{ 0 };
+      std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties{ {0} };
       {
         ds_properties[0].binding = 0;
         ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -2061,15 +2136,15 @@ public:
         ds_properties[1].binding = 1;
         ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        ds_properties[1].buffer = shaderd.vk->projection_view_block.common.memory[gloco->get_context().vk.current_frame].buffer;
-        ds_properties[1].range = shaderd.vk->projection_view_block.m_size;
+        ds_properties[1].buffer = shaderd.projection_view_block.common.memory[gloco->get_context().vk.current_frame].buffer;
+        ds_properties[1].range = shaderd.projection_view_block.m_size;
         ds_properties[1].dst_binding = 1;
 
         VkDescriptorImageInfo imageInfo{};
-        auto img = gloco->image_get(gloco->default_texture);
+        auto img = std::get<fan::vulkan::context_t::image_t>(gloco->image_get(gloco->default_texture));
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = img.vk.image_view;
-        imageInfo.sampler = img.vk.sampler;
+        imageInfo.imageView = img.image_view;
+        imageInfo.sampler = img.sampler;
 
         ds_properties[2].use_image = 1;
         ds_properties[2].binding = 2;
@@ -2102,7 +2177,7 @@ public:
       VkPipelineColorBlendAttachmentState attachment = fan::vulkan::get_default_color_blend();
       pipe_p.color_blend_attachment_count = 1;
       pipe_p.color_blend_attachment = &attachment;
-      pipe_p.shader = shader.vk;
+      pipe_p.shader = shader;
       pipe_p.descriptor_layout = &vk.shape_data.m_descriptor.m_layout;
       pipe_p.descriptor_layout_count = /*vulkan_buffer_count*/1;
       pipe_p.push_constants_size = sizeof(fan::vulkan::context_t::push_constants_t);
@@ -2118,7 +2193,7 @@ public:
     bp.DataSize = sizeof(typename T::ri_t);
     bp.renderer = data;
 
-    gloco->shaper.AddShapeType(
+    gloco->shaper.SetShapeType(
       shape->shape_type,
       bp
     );
@@ -2246,8 +2321,8 @@ public:
       }
     }
 
-    cudaArray_t& get_array(uint32_t index) {
-      return wresources[index].cuda_array;
+    cudaArray_t& get_array(uint32_t index_t) {
+      return wresources[index_t].cuda_array;
     }
 
     struct graphics_resource_t {
@@ -2311,33 +2386,77 @@ namespace fan {
   }
 }
 
-#if defined (loco_imgui)
 
 void fan::printclnn(auto&&... values) {
+#if defined (loco_imgui)
   ([&](const auto& value) {
     std::ostringstream oss;
     oss << value;
     gloco->console.print(oss.str() + " ", 0);
   }(values), ...);
+  #endif
 }
 void fan::printcl(auto&&... values) {
+  #if defined(loco_imgui)
   fan::printclnn(values...);
   gloco->console.print("\n", 0);
+  #endif
 }
 
 void fan::printclnnh(int highlight, auto&&... values) {
+  #if defined(loco_imgui)
   ([&](const auto& value) {
     std::ostringstream oss;
     oss << value;
     gloco->console.print(oss.str() + " ", highlight);
   }(values), ...);
+  #endif
 }
 
 void fan::printclh(int highlight, auto&&... values) {
+  #if defined(loco_imgui)
   fan::printclnnh(highlight, values...);
   gloco->console.print("\n", highlight);
+  #endif
 }
+
+#if defined(loco_json)
+  namespace fan {
+    namespace graphics {
+      bool shape_to_json(loco_t::shape_t& shape, fan::json* json);
+
+      bool json_to_shape(const fan::json& in, loco_t::shape_t* shape);
+
+      bool shape_serialize(loco_t::shape_t& shape, fan::json* out);
+    }
+  }
+
+  namespace fan {
+
+    namespace graphics {
+      bool shape_to_bin(loco_t::shape_t& shape, std::vector<uint8_t>* data);
+
+      bool bin_to_shape(const std::vector<uint8_t>& in, loco_t::shape_t* shape, uint64_t& offset);
+
+      bool shape_serialize(loco_t::shape_t& shape, std::vector<uint8_t>* out);
+
+      struct shape_deserialize_t {
+        struct {
+          // json::iterator doesnt support union
+          // i dont want to use variant either so i accept few extra bytes
+          json::const_iterator it;
+          uint64_t offset = 0;
+        }data;
+        bool init = false;
+
+        bool iterate(const fan::json& json, loco_t::shape_t* shape);
+        bool iterate(const std::vector<uint8_t>& bin_data, loco_t::shape_t* shape);
+      };
+    }
+  }
+
 #endif
+
 
 #include <fan/graphics/collider.h>
 

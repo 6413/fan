@@ -340,7 +340,6 @@ void SimpleCapture::OnFrameArrived(
         fan::image::image_info_t ii;
         ii.size = fan::vec2(rowPitch / 4, desc.Height);
         ii.data = data;
-        ii.channels = 4;
 
         loco_t::image_load_properties_t lp;
         lp.format = fan::graphics::image_format::b8g8r8a8_unorm;

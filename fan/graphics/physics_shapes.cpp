@@ -735,6 +735,7 @@ fan::graphics::mouse_joint_t::mouse_joint_t(fan::physics::body_id_t tb) {
 }
 
 void fan::graphics::mouse_joint_t::update_mouse(b2WorldId world_id, const fan::vec2& position) {
+  #if defined(loco_imgui)
   if (ImGui::IsMouseDown(0)) {
     fan::vec2 p = gloco->get_mouse_position();
     if (!B2_IS_NON_NULL(mouse_joint)) {
@@ -770,4 +771,5 @@ void fan::graphics::mouse_joint_t::update_mouse(b2WorldId world_id, const fan::v
       mouse_joint = b2_nullJointId;
     }
   }
+#endif
 }

@@ -1,3 +1,7 @@
+#ifndef shaper_set_ShapeTypeChange
+  #define shaper_set_ShapeTypeChange
+#endif
+
 #ifndef shaper_set_MaxShapeTypes
   #define shaper_set_MaxShapeTypes 0x80
 #endif
@@ -211,17 +215,21 @@ struct shaper_t{
   KeyType_t *_KeyTypes;
   KeyTypeAmount_t KeyTypeAmount;
 
+  bool _InformCapacity;
   #define BLL_set_Clear 1
   #define BLL_set_nrtra 1
   #define BLL_set_prefix BlockList
   #define BLL_set_CapacityUpdateInfo \
     auto st = OFFSETLESS(bll, ShapeType_t, BlockList); \
-    st->shaper->_BlockListCapacityChange(st->sti, old_capacity, new_capacity);
+    if(st->shaper->_InformCapacity){ \
+      st->shaper->_BlockListCapacityChange(st->sti, old_capacity, new_capacity); \
+    }
   #define BLL_set_Link 1
   #define BLL_set_LinkSentinel 0
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_type_node _blid_t
   #include <BLL/BLL.h>
+  using blid_t = BlockList_t::nr_t;
   struct ShapeType_t{
     ShapeType_t() : renderer(gl_t{}){}
     /* this will be used from BlockList callbacks with offsetless */
@@ -245,7 +253,7 @@ struct shaper_t{
       fan::opengl::core::vbo_t m_vbo;
 
       std::vector<shape_gl_init_t> locations;
-      fan::graphics::context_shader_nr_t shader;
+      fan::graphics::shader_nr_t shader;
       bool instanced = true;
       GLuint draw_mode = GL_TRIANGLES;
       GLsizei vertex_count = 6;
@@ -317,50 +325,6 @@ struct shaper_t{
   #include <BLL/BLL.h>
   ShapeList_t ShapeList;
 
-  /*
-    block data format is this. %30
-    RenderData   Data         ShapeID
-    [|||       ] [|||       ] [|||       ]
-  */
-
-  /* TODO those are made uintptr_t to not overflow, maybe there is better way? */
-  ShapeRenderData_t *_GetRenderData(
-    ShapeTypeIndex_t sti,
-    BlockList_t::nr_t blid,
-    uintptr_t ElementIndex
-  ){
-    auto &st = ShapeTypes[sti];
-    return &((ShapeRenderData_t *)st.BlockList[blid])[
-      (uintptr_t)st.RenderDataSize * ElementIndex
-    ];
-  }
-public:
-  ShapeData_t *_GetData(
-    ShapeTypeIndex_t sti,
-    BlockList_t::nr_t blid,
-    uintptr_t ElementIndex
-  ){
-    auto &st = ShapeTypes[sti];
-    return &_GetRenderData(
-      sti,
-      blid,
-      st.MaxElementPerBlock()
-    )[(uintptr_t)st.DataSize * ElementIndex];
-  }
-  ShapeList_t::nr_t &_GetShapeID(
-    ShapeTypeIndex_t sti,
-    BlockList_t::nr_t blid,
-    uintptr_t ElementIndex
-  ){
-    auto &st = ShapeTypes[sti];
-    return *(ShapeList_t::nr_t *)&_GetData(
-      sti,
-      blid,
-      st.MaxElementPerBlock()
-    )[sizeof(ShapeList_t::nr_t) * ElementIndex];
-  }
-private:
-
   #define BLL_set_Clear 1
   #define BLL_set_prefix BlockEditQueue
   #define BLL_set_Link 1
@@ -392,25 +356,153 @@ private:
     }
   };
 
+  /*
+    block data format is this. %30
+    RenderData   Data         ShapeID
+    [|||       ] [|||       ] [|||       ]
+  */
+
+  /* TODO those are made uintptr_t to not overflow, maybe there is better way? */
+  ShapeRenderData_t *_GetRenderData(
+    BlockList_t &BlockList,
+    ShapeRenderDataSize_t RenderDataSize,
+    ShapeDataSize_t DataSize,
+    MaxElementPerBlock_t MaxElementPerBlock,
+    BlockList_t::nr_t blid,
+    uintptr_t ElementIndex
+  ){
+    return &((ShapeRenderData_t *)BlockList[blid])[
+      (uintptr_t)RenderDataSize * ElementIndex
+    ];
+  }
+  ShapeData_t *_GetData(
+    BlockList_t &BlockList,
+    ShapeRenderDataSize_t RenderDataSize,
+    ShapeDataSize_t DataSize,
+    MaxElementPerBlock_t MaxElementPerBlock,
+    BlockList_t::nr_t blid,
+    uintptr_t ElementIndex
+  ){
+    return &_GetRenderData(
+      BlockList,
+      RenderDataSize,
+      DataSize,
+      MaxElementPerBlock,
+      blid,
+      MaxElementPerBlock
+    )[(uintptr_t)DataSize * ElementIndex];
+  }
+  ShapeList_t::nr_t *_GetShapeID(
+    BlockList_t &BlockList,
+    ShapeRenderDataSize_t RenderDataSize,
+    ShapeDataSize_t DataSize,
+    MaxElementPerBlock_t MaxElementPerBlock,
+    BlockList_t::nr_t blid,
+    uintptr_t ElementIndex
+  ){
+    return (ShapeList_t::nr_t *)&_GetData(
+      BlockList,
+      RenderDataSize,
+      DataSize,
+      MaxElementPerBlock,
+      blid,
+      MaxElementPerBlock
+    )[sizeof(ShapeList_t::nr_t) * ElementIndex];
+  }
+  BlockUnique_t &_GetBlockUnique(
+    BlockList_t &BlockList,
+    ShapeRenderDataSize_t RenderDataSize,
+    ShapeDataSize_t DataSize,
+    MaxElementPerBlock_t MaxElementPerBlock,
+    BlockList_t::nr_t blid
+  ){
+    return *(BlockUnique_t *)_GetShapeID(
+      BlockList,
+      RenderDataSize,
+      DataSize,
+      MaxElementPerBlock,
+      blid,
+      MaxElementPerBlock
+    );
+  }
+
+  ShapeRenderData_t *GetRenderData(
+    ShapeTypeIndex_t sti,
+    BlockList_t::nr_t blid,
+    uintptr_t ElementIndex
+  ){
+    auto &st = ShapeTypes[sti];
+    return _GetRenderData(
+      st.BlockList,
+      st.RenderDataSize,
+      st.DataSize,
+      st.MaxElementPerBlock(),
+      blid,
+      ElementIndex
+    );
+  }
+  ShapeData_t *GetData(
+    ShapeTypeIndex_t sti,
+    BlockList_t::nr_t blid,
+    uintptr_t ElementIndex
+  ){
+    auto &st = ShapeTypes[sti];
+    return _GetData(
+      st.BlockList,
+      st.RenderDataSize,
+      st.DataSize,
+      st.MaxElementPerBlock(),
+      blid,
+      ElementIndex
+    );
+  }
+  ShapeList_t::nr_t *GetShapeID(
+    ShapeTypeIndex_t sti,
+    BlockList_t::nr_t blid,
+    uintptr_t ElementIndex
+  ){
+    auto &st = ShapeTypes[sti];
+    return _GetShapeID(
+      st.BlockList,
+      st.RenderDataSize,
+      st.DataSize,
+      st.MaxElementPerBlock(),
+      blid,
+      ElementIndex
+    );
+  }
+  BlockUnique_t &GetBlockUnique(
+    ShapeTypeIndex_t sti,
+    BlockList_t::nr_t blid
+  ){
+    auto &st = ShapeTypes[sti];
+    return _GetBlockUnique(
+      st.BlockList,
+      st.RenderDataSize,
+      st.DataSize,
+      st.MaxElementPerBlock(),
+      blid
+    );
+  }
+
   public: /* -------------------------------------------------------------------------------- */
 
-  using blid_t = BlockList_t::nr_t;
+  
   using bmid_t = BlockManager_t::nr_t;
-  using ShapeID_t = ShapeList_t::nr_t;
 
   #if shaper_set_fan
-    fan::graphics::context_shader_nr_t GetShader(ShapeTypeIndex_t sti) {
+    fan::graphics::shader_nr_t GetShader(ShapeTypeIndex_t sti) {
       auto& d = ShapeTypes[sti];
       if (std::holds_alternative<ShapeType_t::gl_t>(d.renderer)) {
         return std::get<ShapeType_t::gl_t>(d.renderer).shader;
       }
       if (std::holds_alternative<ShapeType_t::vk_t>(d.renderer)) {
-        fan::graphics::context_shader_nr_t s_nr;
-        s_nr.vk = std::get<ShapeType_t::vk_t>(d.renderer).pipeline.shader_nr;
+        fan::graphics::shader_nr_t s_nr;
+        s_nr = std::get<ShapeType_t::vk_t>(d.renderer).pipeline.shader_nr;
         return s_nr;
       }
       fan::throw_error("");
-      static fan::graphics::context_shader_nr_t doesnt_happen;
+      static fan::graphics::shader_nr_t doesnt_happen;
       return doesnt_happen;
     }
     fan::opengl::core::vao_t GetVAO(ShapeTypeIndex_t sti) {
@@ -445,15 +537,33 @@ private:
     }
   #endif
 
-  ShapeTypeIndex_t GetSTI(ShapeID_t ShapeID){
-    return ShapeList[ShapeID].sti;
-  }
-  blid_t GetBLID(ShapeID_t ShapeID){
-    return ShapeList[ShapeID].blid;
-  }
-  ElementIndexInBlock_t GetElementIndex(ShapeID_t ShapeID){
-    return ShapeList[ShapeID].ElementIndex;
-  }
+  struct ShapeID_t : ShapeList_t::nr_t{
+    
+    ShapeTypeIndex_t sti(shaper_t &shaper){
+      return shaper.ShapeList[*this].sti;
+    }
+    bmid_t bmid(shaper_t &shaper){
+      return shaper.ShapeList[*this].bmid;
+    }
+    blid_t blid(shaper_t &shaper){
+      return shaper.ShapeList[*this].blid;
+    }
+    ElementIndexInBlock_t eiib(shaper_t &shaper){
+      return shaper.ShapeList[*this].ElementIndex;
+    }
+
+    ShapeRenderData_t *GetRenderData(shaper_t &shaper) const {
+      auto &s = shaper.ShapeList[*this];
+      return shaper.GetRenderData(s.sti, s.blid, s.ElementIndex);
+    }
+    ShapeData_t *GetData(shaper_t &shaper) const {
+      auto &s = shaper.ShapeList[*this];
+      return shaper.GetData(s.sti, s.blid, s.ElementIndex);
+    }
+
+    using ShapeList_t::nr_t::nr_t;
+    constexpr ShapeID_t(ShapeList_t::nr_t nr) : ShapeList_t::nr_t(nr) {}
+  };
 
   ShapeRenderDataSize_t GetRenderDataSize(ShapeTypeIndex_t sti){
     return ShapeTypes[sti].RenderDataSize;
@@ -481,30 +591,7 @@ private:
   void WriteKeys(ShapeID_t ShapeID, void *dst){
     auto &s = ShapeList[ShapeID];
     auto &bm = BlockManager[s.bmid];
-    __MemoryCopy(bm.KeyPack, dst, bm.KeyPackSize);
-  }
-
-  ShapeRenderData_t *GetRenderData(
-    ShapeID_t ShapeID
-  ){
-    auto &s = ShapeList[ShapeID];
-    return _GetRenderData(s.sti, s.blid, s.ElementIndex);
-  }
-  ShapeData_t *GetData(
-    ShapeID_t ShapeID
-  ){
-    auto &s = ShapeList[ShapeID];
-    return _GetData(s.sti, s.blid, s.ElementIndex);
-  }
-  BlockUnique_t &GetBlockUnique(
-    ShapeTypeIndex_t sti,
-    blid_t BlockID
-  ){
-    return *(BlockUnique_t *)&_GetShapeID(
-      sti,
-      BlockID,
-      ShapeTypes[sti].MaxElementPerBlock()
-    );
+    __builtin_memcpy(dst, bm.KeyPack, bm.KeyPackSize);
   }
 
   shaper_set_RenderDataOffsetType GetRenderDataOffset(
@@ -527,7 +614,7 @@ private:
     struct gl_t {
       gl_t() = default;
       std::vector<shape_gl_init_t> locations;
-      fan::graphics::context_shader_nr_t shader;
+      fan::graphics::shader_nr_t shader;
       bool instanced = true;
       GLuint draw_mode = GL_TRIANGLES;
       GLsizei vertex_count = 6;
@@ -549,6 +636,7 @@ private:
   void Open(){
     KeyTypeAmount = 0;
     _KeyTypes = NULL;
+    _InformCapacity = 1;
 
     _KeyTree.Open();
     _KeyTree_root = _KeyTree.NewNode();
@@ -561,11 +649,6 @@ private:
     BlockEditQueue.Close();
     BlockManager.Close();
     _KeyTree.Close();
-
-    for(auto &st : ShapeTypes){
-      st.BlockList.Close();
-    }
-
     A_resize(_KeyTypes, 0);
   }
 
@@ -591,7 +674,20 @@ private:
     return OFFSETLESS(this, loco_t, shaper);
   }
 
-  void AddShapeType(
+  void _ShapeTypeChange(
+    ShapeTypeIndex_t sti,
+    KeyPackSize_t keypack_size,
+    uint8_t *keypack,
+    MaxElementPerBlock_t element_count,
+    const void *old_renderdata,
+    const void *old_data,
+    void *new_renderdata,
+    void *new_data
+  ){
+    shaper_set_ShapeTypeChange
+  }
+
+  void SetShapeType(
     ShapeTypeIndex_t sti,
     const BlockProperties_t bp
   ){
@@ -610,12 +706,104 @@ private:
 
     auto &st = ShapeTypes[sti];
 
-    st.BlockList.Close();
-    st.BlockList.Open(
-      (
-        (uintptr_t)bp.RenderDataSize + bp.DataSize + sizeof(ShapeList_t::nr_t)
-      ) * (bp.MaxElementPerBlock) + sizeof(BlockUnique_t)
-    );
+    _InformCapacity = 0;
+    {
+      BlockList_t BlockList = st.BlockList;
+      st.BlockList.Open(
+        (
+          (uintptr_t)bp.RenderDataSize + bp.DataSize + sizeof(ShapeList_t::nr_t)
+        ) * (bp.MaxElementPerBlock) + sizeof(BlockUnique_t)
+      );
+
+      /* slow and steady */
+      while(st.BlockList.SizeNormalized() != BlockList.SizeNormalized()){
+        st.BlockList.NewNode();
+      }
+
+      {
+        BlockList_t::RecycleTraverse_t rt;
+        BlockList_t::nr_t node_id;
+        rt.Open(&BlockList, &node_id);
+        while(rt.Loop(&BlockList, &node_id)){
+          st.BlockList.Recycle(node_id);
+        }
+        rt.Close(&BlockList);
+      }
+
+      {
+        BlockManager_t::nrtra_t t;
+        BlockManager_t::nr_t bm_id;
+        t.Open(&BlockManager, &bm_id);
+        while(t.Loop(&BlockManager, &bm_id)){
+          auto &bm = BlockManager[bm_id];
+          if(bm.sti != sti){
+            continue;
+          }
+
+          auto block_id = bm.FirstBlockNR;
+          while(1){
+            MaxElementPerBlock_t element_count = st.MaxElementPerBlock_m1;
+            if(block_id == bm.LastBlockNR){
+              element_count = bm.LastBlockElementCount;
+            }
+            element_count++;
+
+            if(st.MaxElementPerBlock() != bp.MaxElementPerBlock){
+              /* not supported yet */
+              __abort();
+            }
+
+            _ShapeTypeChange(
+              sti,
+              bm.KeyPackSize,
+              bm.KeyPack,
+              element_count,
+              (const void *)_GetRenderData(
+                BlockList,
+                st.RenderDataSize,
+                st.DataSize,
+                st.MaxElementPerBlock(),
+                block_id,
+                0
+              ),
+              (const void *)_GetData(
+                BlockList,
+                st.RenderDataSize,
+                st.DataSize,
+                st.MaxElementPerBlock(),
+                block_id,
+                0
+              ),
+              (void *)_GetRenderData(
+                st.BlockList,
+                bp.RenderDataSize,
+                bp.DataSize,
+                bp.MaxElementPerBlock,
+                block_id,
+                0
+              ),
+              (void *)_GetData(
+                st.BlockList,
+                bp.RenderDataSize,
+                bp.DataSize,
+                bp.MaxElementPerBlock,
+                block_id,
+                0
+              )
+            );
+
+            if(block_id == bm.LastBlockNR){
+              break;
+            }
+            block_id = block_id.Next(&BlockList);
+          }
+        }
+        t.Close(&BlockManager);
+      }
+
+      BlockList.Close();
+    }
+    _InformCapacity = 1;
 
     st.sti = sti;
     st.MaxElementPerBlock_m1 = bp.MaxElementPerBlock - 1;
@@ -624,6 +812,7 @@ private:
 
   #if shaper_set_fan
     if (std::holds_alternative<BlockProperties_t::gl_t>(bp.renderer)) {
+      st.renderer = ShapeType_t::gl_t{};
       get_loco()->gl.add_shape_type(st, bp);
     }
     else if (std::holds_alternative<BlockProperties_t::vk_t>(bp.renderer)) {
@@ -656,7 +845,7 @@ private:
         fan::opengl::core::edit_glbuffer(
           context,
           gl.m_vbo.m_buffer,
-          _GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,
+          GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,
           GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit,
           bu.MaxEdit - bu.MinEdit,
           GL_ARRAY_BUFFER
@@ -666,11 +855,13 @@ private:
         auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
         auto wrote = bu.MaxEdit - bu.MinEdit;
         //fan::print(((decltype(get_loco()->rectangle)::vi_t*)(_GetRenderData(be.sti, be.blid, 0) + bu.MinEdit))->position, (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit) / GetRenderDataSize(be.sti));
-        memcpy(
-          vk.shape_data.data + (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit), // data  + offset
-          _GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,
-          wrote
-        );
+        for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
+          memcpy(
+            vk.shape_data.data[frame] + (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit), // data  + offset
+            GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,
+            wrote
+          );
+        }
         
       }
       #endif
@@ -733,25 +924,27 @@ private:
     if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
       auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
       fan::opengl::context_t &context = get_loco()->context.gl;
+      gl.m_vao.bind(context);
       while(traverse.Loop(&st.BlockList, &node_id)){
         fan::opengl::core::edit_glbuffer(
           context,
           gl.m_vbo.m_buffer,
-          _GetRenderData(sti, node_id, 0),
+          GetRenderData(sti, node_id, 0),
           GetRenderDataOffset(sti, node_id),
           st.RenderDataSize * st.MaxElementPerBlock(),
           GL_ARRAY_BUFFER
         );
       }
-      traverse.Close(&st.BlockList);
     }
     else {
       auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
       while (traverse.Loop(&st.BlockList, &node_id)) {
-        memcpy(vk.shape_data.data, _GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());
+        for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
+          memcpy(vk.shape_data.data[frame], GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());
+        }
       }
-      traverse.Close(&st.BlockList);
     }
+    traverse.Close(&st.BlockList);
     #endif
   }
   void _BlockListCapacityChange(
@@ -776,7 +969,6 @@ private:
       _RenderDataReset(sti);
     }
     else {
-      auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
       //memcpy(vk.shape_data.data, _GetRenderData(sti, node_id, 0) + GetRenderDataOffset(sti, node_id), st.RenderDataSize * st.MaxElementPerBlock());
       //vk.shape_data.allocate(gloco->context.vk, New * st.RenderDataSize * st.MaxElementPerBlock());
       //vk.shape_data.m_descriptor.update(gloco->context.vk, 1, 0, 1, 0);
@@ -909,7 +1101,7 @@ private:
     bm = &BlockManager[bmid];
     bm->KeyPackSize = KeyPackSize;
     bm->KeyPack = (uint8_t *)A_resize(NULL, bm->KeyPackSize);
-    __MemoryCopy(KeyPack, bm->KeyPack, bm->KeyPackSize);
+    __builtin_memcpy(bm->KeyPack, KeyPack, bm->KeyPackSize);
     bm->sti = sti;
     bm->FirstBlockNR = _newblid(sti, bm);
 
@@ -954,17 +1146,17 @@ private:
     ShapeList[shapeid].blid = bm->LastBlockNR;
     ShapeList[shapeid].ElementIndex = bm->LastBlockElementCount;
 
-    __MemoryCopy(
+    __builtin_memcpy(
+      GetRenderData(sti, bm->LastBlockNR, bm->LastBlockElementCount),
       RenderData,
-      _GetRenderData(sti, bm->LastBlockNR, bm->LastBlockElementCount),
       st.RenderDataSize
     );
-    __MemoryCopy(
+    __builtin_memcpy(
+      GetData(sti, bm->LastBlockNR, bm->LastBlockElementCount),
       Data,
-      _GetData(sti, bm->LastBlockNR, bm->LastBlockElementCount),
       st.DataSize
     );
-    _GetShapeID(sti, bm->LastBlockNR, bm->LastBlockElementCount) = shapeid;
+    *GetShapeID(sti, bm->LastBlockNR, bm->LastBlockElementCount) = shapeid;
 
     ElementIsFullyEdited(sti, bm->LastBlockNR, bm->LastBlockElementCount);
 
@@ -980,25 +1172,25 @@ private:
     auto &st = ShapeTypes[sti];
     auto bmid = s.bmid;
     auto &bm = BlockManager[bmid];
-    auto lsid = _GetShapeID(sti, bm.LastBlockNR, bm.LastBlockElementCount);
+    auto lsid = *GetShapeID(sti, bm.LastBlockNR, bm.LastBlockElementCount);
     if(sid != lsid){
       ElementIsFullyEdited(sti, s.blid, s.ElementIndex);
     }
 
     auto &ls = ShapeList[lsid];
-
-    __MemoryMove(
-      _GetRenderData(sti, s.blid, s.ElementIndex),
-      _GetRenderData(sti, ls.blid, ls.ElementIndex),
+    
+    __builtin_memmove(
+      GetRenderData(sti, ls.blid, ls.ElementIndex),
+      GetRenderData(sti, s.blid, s.ElementIndex),
       st.RenderDataSize
     );
-    __MemoryMove(
-      _GetData(sti, s.blid, s.ElementIndex),
-      _GetData(sti, ls.blid, ls.ElementIndex),
+    __builtin_memmove(
+      GetData(sti, ls.blid, ls.ElementIndex),
+      GetData(sti, s.blid, s.ElementIndex),
       st.DataSize
     );
-    _GetShapeID(sti, s.blid, s.ElementIndex) =
-      _GetShapeID(sti, ls.blid, ls.ElementIndex);
+    *GetShapeID(sti, s.blid, s.ElementIndex) =
+      *GetShapeID(sti, ls.blid, ls.ElementIndex);
 
     ls.blid = s.blid;
     ls.ElementIndex = s.ElementIndex;
@@ -1203,13 +1395,13 @@ private:
       return shaper.GetRenderDataOffset(sti, From);
     }
     void *GetRenderData(shaper_t &shaper){
-      return shaper._GetRenderData(sti, From, 0);
+      return shaper.GetRenderData(sti, From, 0);
     }
     BlockList_t::nr_t GetBlockID() {
       return From;
     }
     void *GetData(shaper_t &shaper){
-      return shaper._GetData(sti, From, 0);
+      return shaper.GetData(sti, From, 0);
     }
   };
 };
@@ -1226,3 +1418,4 @@ private:
 #undef shaper_set_MaxKeyType
 #undef shaper_set_MaxKeySize
 #undef shaper_set_MaxShapeTypes
+#undef shaper_set_ShapeTypeChange

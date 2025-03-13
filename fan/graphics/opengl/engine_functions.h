@@ -9,10 +9,11 @@ template <typename T, typename T2, typename T3>
 static void modify_render_data_element(loco_t::shape_t* shape, loco_t::shaper_t::ShapeRenderData_t* data, T2 T::* attribute, const T3& value) {
   if ((gloco->context.gl.opengl.major > 3) || (gloco->context.gl.opengl.major == 3 && gloco->context.gl.opengl.minor >= 3)) {
     ((T*)data)->*attribute = value;
+    auto& data = gloco->shaper.ShapeList[*shape];
     gloco->shaper.ElementIsPartiallyEdited(
-      gloco->shaper.GetSTI(*shape),
-      gloco->shaper.GetBLID(*shape),
-      gloco->shaper.GetElementIndex(*shape),
+      data.sti,
+      data.blid,
+      data.ElementIndex,
       fan::member_offset(attribute),
       sizeof(T3)
     );
@@ -21,10 +22,11 @@ static void modify_render_data_element(loco_t::shape_t* shape, loco_t::shaper_t:
     for (int i = 0; i < 6; ++i) {
       auto& v = ((T*)data)[i];
       ((T*)&v)->*attribute = value;
+      auto& data = gloco->shaper.ShapeList[*shape];
       gloco->shaper.ElementIsPartiallyEdited(
-        gloco->shaper.GetSTI(*shape),
-        gloco->shaper.GetBLID(*shape),
-        gloco->shaper.GetElementIndex(*shape),
+        data.sti,
+        data.blid,
+        data.ElementIndex,
         fan::member_offset(attribute) + sizeof(T) * i,
         sizeof(T3)
       );
@@ -110,15 +112,15 @@ void init_framebuffer() {
 #if defined(loco_framebuffer)
   //
   static auto load_texture = [&](fan::image::image_info_t& image_info, loco_t::image_t& color_buffer, GLenum attachment, bool reload = false) {
-    typename fan::opengl::context_t::image_load_properties_t load_properties;
-    load_properties.visual_output = GL_REPEAT;
-    load_properties.internal_format = GL_RGBA;
-    load_properties.format = GL_RGBA;
-    load_properties.type = GL_FLOAT;
-    load_properties.min_filter = GL_LINEAR;
-    load_properties.mag_filter = GL_LINEAR;
+    fan::graphics::image_load_properties_t load_properties;
+    load_properties.visual_output = fan::graphics::image_sampler_address_mode::repeat;
+    load_properties.internal_format = fan::graphics::image_format::r8b8g8a8_unorm;
+    load_properties.format = fan::graphics::image_format::r8b8g8a8_unorm;
+    load_properties.type = fan::graphics::fan_float;
+    load_properties.min_filter = fan::graphics::image_filter::linear;
+    load_properties.mag_filter = fan::graphics::image_filter::linear;
     if (reload == true) {
-      loco.image_reload_pixels(color_buffer, image_info, load_properties);
+      loco.image_reload(color_buffer, image_info, load_properties);
     }
     else {
       color_buffer = loco.image_load(image_info, load_properties);
@@ -441,7 +443,7 @@ void shapes_open() {
   bp.DataSize = 0,
   bp.renderer = st_gl;
 
-  gloco->shaper.AddShapeType(
+  gloco->shaper.SetShapeType(
     loco_t::shape_type_t::light_end,
     bp
   );
@@ -468,12 +470,12 @@ void add_shape_type(loco_t::shaper_t::ShapeTypes_NodeData_t& st, const loco_t::s
   data.vertex_count = bpdata.vertex_count;
   fan::graphics::context_shader_t shader;
   if (!data.shader.iic()) {
-    shader.gl = loco.shader_get(data.shader).gl;
+    shader = loco.shader_get(data.shader);
   }
   uint64_t ptr_offset = 0;
   for (shape_gl_init_t& location : data.locations) {
     if ((loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) && !data.shader.iic()) {
-      location.index.first = fan_opengl_call(glGetAttribLocation(shader.gl->id, location.index.second));
+      location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
     }
     fan_opengl_call(glEnableVertexAttribArray(location.index.first));
     fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
@@ -512,7 +514,7 @@ void draw_shapes() {
   bool light_buffer_enabled = false;
 
   { // update 3d view every frame
-    auto& camera_perspective = *loco.camera_get(loco.perspective_camera.camera).gl;
+    auto& camera_perspective = loco.camera_get(loco.perspective_camera.camera);
     camera_perspective.update_view();
 
     camera_perspective.m_view = camera_perspective.get_view_matrix();
@@ -722,7 +724,7 @@ void draw_shapes() {
           loco.shader_set_value(
             shader,
             "matrix_size",
-            fan::vec2(c.gl->coordinates.right - c.gl->coordinates.left, c.gl->coordinates.down - c.gl->coordinates.up).abs()
+            fan::vec2(c.coordinates.right - c.coordinates.left, c.coordinates.down - c.coordinates.up).abs()
           );
           loco.shader_set_value(
             shader,
@@ -740,7 +742,7 @@ void draw_shapes() {
           loco.shader_set_value(
             shader,
             "camera_position",
-            c.gl->position
+            c.position
           );
           loco.shader_set_value(
             shader,

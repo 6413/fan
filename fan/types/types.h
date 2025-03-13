@@ -520,6 +520,9 @@ using DWORD = unsigned long;
   #ifndef __builtin_memcpy
     #define __builtin_memcpy memcpy
   #endif
+  #ifndef __builtin_memmove
+    #define __builtin_memmove memmove
+  #endif
 #endif
 
 #define __platform_libc
