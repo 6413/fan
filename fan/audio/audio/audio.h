@@ -169,8 +169,8 @@ SoundPlayID_t SoundPlay(piece_t *piece, const PropertiesSoundPlay_t *Properties)
     TH_lock(&system_audio->Process.PlayInfoListMutex);
     system_audio->Process.GroupList = (system_audio_t::Process_t::_Group_t *)A_resize(system_audio->Process.GroupList, sizeof(system_audio_t::Process_t::_Group_t) * (Properties->GroupID + 1));
     for(; system_audio->Process.GroupAmount <= Properties->GroupID; ++system_audio->Process.GroupAmount){
-      system_audio->Process.GroupList[system_audio->Process.GroupAmount].FirstReference = system_audio->Process.PlayInfoList.NewNodeLast_alloc();
-      system_audio->Process.GroupList[system_audio->Process.GroupAmount].LastReference = system_audio->Process.PlayInfoList.NewNodeLast_alloc();
+      system_audio->Process.GroupList[system_audio->Process.GroupAmount].FirstReference = system_audio->Process.PlayInfoList.NewNodeLast();
+      system_audio->Process.GroupList[system_audio->Process.GroupAmount].LastReference = system_audio->Process.PlayInfoList.NewNodeLast();
     }
   }
   else{

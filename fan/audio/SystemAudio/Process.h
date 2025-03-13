@@ -54,7 +54,7 @@ sint32_t Open() {
     _DecoderList_t *dl = &this->DecoderList[Channel];
     dl->Open(size);
     for(uint32_t i = 0; i < _constants::Opus::CacheDecoderPerChannel; i++){
-      _DecoderList_NodeReference_t r = dl->NewNodeLast_alloc();
+      _DecoderList_NodeReference_t r = dl->NewNodeLast();
 
       auto DecoderHead = (_DecoderHead_t *)(*dl)[r];
       DecoderHead->CacheID = _CacheList_gnric();
@@ -69,7 +69,7 @@ sint32_t Open() {
 
   this->CacheList.Open();
   for(uint32_t i = 0; i < _constants::Opus::CacheSegmentAmount; i++){
-    _CacheList_NodeReference_t r = this->CacheList.NewNodeLast_alloc();
+    _CacheList_NodeReference_t r = this->CacheList.NewNodeLast();
     auto Cache = &this->CacheList[r];
     Cache->SegmentID = (_SegmentID_t)-1;
     Cache->DecoderID.sic();
