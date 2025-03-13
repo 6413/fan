@@ -1,3 +1,5 @@
+VkSampler post_process_sampler;
+
 loco_t& get_loco() {
   return (*OFFSETLESS(this, loco_t, vk));
 }
@@ -33,12 +35,11 @@ void shapes_open() {
     std::vector<fan::vulkan::write_descriptor_set_t> ds_properties(2);
 
     VkDescriptorImageInfo imageInfo{};
-    VkSampler sampler;
-    gloco->context.vk.create_texture_sampler(sampler, fan::vulkan::context_t::image_load_properties_t());
+    gloco->context.vk.create_texture_sampler(post_process_sampler, fan::vulkan::context_t::image_load_properties_t());
 
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = gloco->get_context().vk.mainColorImageViews[0].image_view;
-    imageInfo.sampler = sampler;
+    imageInfo.sampler = post_process_sampler;
 
     ds_properties[0].use_image = 1;
     ds_properties[0].binding = 1;
@@ -51,7 +52,7 @@ void shapes_open() {
 
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = gloco->get_context().vk.postProcessedColorImageViews[0].image_view;
-    imageInfo.sampler = sampler;
+    imageInfo.sampler = post_process_sampler;
 
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     ds_properties[1].use_image = 1;
@@ -66,7 +67,7 @@ void shapes_open() {
     loco.vk.d_attachments.open(loco.context.vk, ds_properties);
     loco.vk.d_attachments.update(loco.context.vk, 2);
 
-    p.shader = nr.vk;
+    p.shader = nr;
     p.subpass = 1;
     p.descriptor_layout = &loco.vk.d_attachments.m_layout;
     p.descriptor_layout_count = 1;
@@ -103,19 +104,47 @@ uint32_t draw_shapes() {
   loco_t::image_t texture;
   texture.sic();
 
+  bool did_draw = false;
 
   bool light_buffer_enabled = false;
 
-  loco.context.vk.begin_render(loco.clear_color);
+  auto update_descriptors_after_cmd_buffer_reset = [&] {
+    {
+      for (auto& st : loco.shaper.ShapeTypes) {
+        if (st.sti == (decltype(st.sti))-1) {
+          continue;
+        }
+        // TODO add more shapes here to enable textures
+        if (st.sti != loco_t::shape_type_t::sprite) {
+          continue;
+        }
+        auto& vk_data = std::get<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer);
+        // todo slow, use only pointer
+        vk_data.shape_data.m_descriptor.m_properties[2].image_infos = loco.context.vk.image_pool;
+        // doesnt like multiple frames in flight
+        vk_data.shape_data.m_descriptor.update(loco.context.vk, 1, 2, vk_data.shape_data.m_descriptor.m_properties[2].image_infos.size());
+      }
+    }
+  };
+
+  loco.context.vk.begin_render(loco.clear_color, update_descriptors_after_cmd_buffer_reset);
 
   auto& cmd_buffer = loco.context.vk.command_buffers[loco.context.vk.current_frame];
     
   while (KeyTraverse.Loop(loco.shaper)) {
+    did_draw = true;
     
     loco_t::shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(loco.shaper);
 
 
     switch (kti) {
+    case Key_e::ShapeType: {
+      // if i remove this why it breaks/corrupts?
+      if (*(loco_t::shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd() == loco_t::shape_type_t::light_end) {
+        continue;
+      }
+      break;
+      }
       case Key_e::blending: {
         
         break;
@@ -151,45 +180,22 @@ uint32_t draw_shapes() {
         auto shader_nr = loco.shaper.GetShader(shape_type);
         auto camera_data = loco.camera_get(camera);
 
-        auto shader = loco.shader_get(shader_nr).vk;
-        shader->projection_view_block.edit_instance(
+        auto& shader = *(fan::vulkan::context_t::shader_t*)loco.context_functions.shader_get(&loco.context.vk, shader_nr);
+        shader.projection_view_block.edit_instance(
           loco.context.vk, 
           0, 
           &fan::vulkan::context_t::view_projection_t::view, 
-          camera_data.vk->m_view
+          camera_data.m_view
         );
-        shader->projection_view_block.edit_instance(
+        shader.projection_view_block.edit_instance(
           loco.context.vk,
           0, 
           &fan::vulkan::context_t::view_projection_t::projection,
-          camera_data.vk->m_projection
+          camera_data.m_projection
         );
 
-
-
         auto& st = loco.shaper.GetShapeTypes(shape_type);
-        auto& vk_data = std::get<shaper_t::ShapeType_t::vk_t>(st.renderer);
-        {
-          VkDescriptorImageInfo imageInfo{};
-          auto img = gloco->image_get(texture);
-          imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-          imageInfo.imageView = img.vk.image_view;
-          imageInfo.sampler = img.vk.sampler;
-
-          for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
-            vk_data.shape_data.m_descriptor.m_properties[2].image_infos[i] = imageInfo;
-          }
-          VkWriteDescriptorSet descriptorWrite{};
-          descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-          descriptorWrite.dstSet = vk_data.shape_data.m_descriptor.m_descriptor_set[0];
-          descriptorWrite.dstBinding = 2;
-          descriptorWrite.dstArrayElement = 0;
-          descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-          descriptorWrite.descriptorCount = 1;
-          descriptorWrite.pImageInfo = &imageInfo;
-
-          vkUpdateDescriptorSets(loco.context.vk.device, 1, &descriptorWrite, 0, nullptr);
-        }
+        auto& vk_data = std::get<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer);
         {
            vkCmdBindDescriptorSets(
             cmd_buffer,
@@ -234,7 +240,7 @@ uint32_t draw_shapes() {
         );
         fan::vulkan::context_t::push_constants_t vp;
         vp.camera_id = 0;
-        vp.texture_id = 0;
+        vp.texture_id = texture.NRI; // hope that bll doesnt hold sentinels
         // todo use shaper
         vkCmdPushConstants(
           cmd_buffer, 
@@ -257,6 +263,9 @@ uint32_t draw_shapes() {
         );
       } while (BlockTraverse.Loop(loco.shaper));
     }
+  }
+  if (did_draw == false) {
+    return -0xfff;
   }
   return err;
 }
