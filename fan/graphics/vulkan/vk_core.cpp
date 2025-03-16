@@ -2587,7 +2587,7 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
   cf.viewport_create = [](void* context) {
     return viewport_create(*(fan::vulkan::context_t*)context);
   };
-  cf.viewport_get = [](void* context, viewport_nr_t nr) { 
+  cf.viewport_get = [](void* context, viewport_nr_t nr) -> fan::graphics::context_viewport_t&{ 
     return viewport_get(*(fan::vulkan::context_t*)context, nr);
   };
   cf.viewport_erase = [](void* context, viewport_nr_t nr) { 

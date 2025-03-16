@@ -208,7 +208,7 @@ fan::graphics::viewport_nr_t loco_t::viewport_create() {
   return context_functions.viewport_create(&context);
 }
 
-fan::graphics::context_viewport_t loco_t::viewport_get(fan::graphics::viewport_nr_t nr) {
+fan::graphics::context_viewport_t& loco_t::viewport_get(fan::graphics::viewport_nr_t nr) {
   return context_functions.viewport_get(&context, nr);
 }
 

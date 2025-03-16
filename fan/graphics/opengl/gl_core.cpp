@@ -1443,7 +1443,7 @@ fan::graphics::context_functions_t fan::graphics::get_gl_context_functions() {
   cf.viewport_create = [](void* context) {
     return viewport_create(*(fan::opengl::context_t*)context);
   };
-  cf.viewport_get = [](void* context, viewport_nr_t nr) { 
+  cf.viewport_get = [](void* context, viewport_nr_t nr) -> fan::graphics::context_viewport_t&{ 
     return viewport_get(*(fan::opengl::context_t*)context, nr);
   };
   cf.viewport_erase = [](void* context, viewport_nr_t nr) { 
