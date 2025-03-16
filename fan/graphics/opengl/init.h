@@ -19,9 +19,9 @@
   #include <fan/time/timer.h>
 #endif
 
-#include <fan/graphics/types.h>
-
 inline int fan_track_opengl_calls = 0;
+inline std::function<void(std::string func_name, uint64_t elapsed)> fan_opengl_track_print = [](std::string func_name, uint64_t elapsed){ };
+
 
 #define fan_opengl_call(func) \
   [&]() { \
@@ -36,8 +36,7 @@ inline int fan_track_opengl_calls = 0;
           if (c.elapsed() / 1e+9 > 0.01) {\
             std::string func_call = #func; \
             std::string func_name = func_call.substr(0, func_call.find('(')); \
-            fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":"); \
-            fan::printclh(fan::graphics::highlight_e::warning,  fan::to_string(c.elapsed() / 1e+6) + "ms"); \
+            fan_opengl_track_print(func_name, c.elapsed()); \
           }\
         } \
       } \
