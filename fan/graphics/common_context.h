@@ -94,15 +94,15 @@ namespace fan {
     #include <BLL/BLL.h>
     using viewport_nr_t = viewport_list_NodeReference_t;
 
-    typedef uintptr_t(*this_offset_camera_list_t)();
-    typedef uintptr_t(*this_offset_shader_list_t)();
-    typedef uintptr_t(*this_offset_image_list_t)();
-    typedef uintptr_t(*this_offset_viewport_list_t)();
+    typedef uint8_t*(*this_offset_camera_list_t)(uint8_t* context);
+    typedef uint8_t*(*this_offset_shader_list_t)(uint8_t* context);
+    typedef uint8_t*(*this_offset_image_list_t)(uint8_t* context);
+    typedef uint8_t*(*this_offset_viewport_list_t)(uint8_t* context);
 
-    extern this_offset_camera_list_t this_offset_camera_list;
-    extern this_offset_shader_list_t this_offset_shader_list;
-    extern this_offset_image_list_t this_offset_image_list;
-    extern this_offset_viewport_list_t this_offset_viewport_list;
+    extern this_offset_camera_list_t get_camera_list;
+    extern this_offset_shader_list_t get_shader_list;
+    extern this_offset_image_list_t get_image_list;
+    extern this_offset_viewport_list_t get_viewport_list;
 
     static constexpr f32_t znearfar = 0xffff;
 
@@ -194,17 +194,17 @@ namespace fan {
 #undef context_declare_func2
 
 #ifndef camera_list
-  #define camera_list (*(fan::graphics::camera_list_t*)((uint8_t*)&context + fan::graphics::this_offset_camera_list()))
+  #define camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)&context))
 #endif
 
 #ifndef shader_list
-  #define shader_list (*(fan::graphics::shader_list_t*)((uint8_t*)&context + fan::graphics::this_offset_shader_list()))
+  #define shader_list (*(fan::graphics::shader_list_t*)fan::graphics::get_shader_list((uint8_t*)&context))
 #endif
 
 #ifndef image_list
-  #define image_list (*(fan::graphics::image_list_t*)((uint8_t*)&context + fan::graphics::this_offset_image_list()))
+  #define image_list (*(fan::graphics::image_list_t*)fan::graphics::get_image_list((uint8_t*)&context))
 #endif
 
 #ifndef viewport_list
-  #define viewport_list (*(fan::graphics::viewport_list_t*)((uint8_t*)&context + fan::graphics::this_offset_viewport_list()))
+  #define viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)&context))
 #endif

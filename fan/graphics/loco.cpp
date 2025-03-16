@@ -4122,15 +4122,15 @@ bool fan::graphics::shape_deserialize_t::iterate(const std::vector<uint8_t>& bin
 }
 #endif
 
-fan::graphics::this_offset_camera_list_t fan::graphics::this_offset_camera_list = []() -> uintptr_t {
-  return offsetof(loco_t, camera_list) - offsetof(loco_t, context);
+fan::graphics::this_offset_camera_list_t fan::graphics::get_camera_list = [](uint8_t* context) -> uint8_t* {
+  return (uint8_t*)&OFFSETLESS(context, loco_t, context)->camera_list;
 };
-fan::graphics::this_offset_shader_list_t fan::graphics::this_offset_shader_list = []() -> uintptr_t{
-  return offsetof(loco_t, shader_list) - offsetof(loco_t, context);
+fan::graphics::this_offset_shader_list_t fan::graphics::get_shader_list = [](uint8_t* context) -> uint8_t*{
+  return (uint8_t*)&OFFSETLESS(context, loco_t, context)->shader_list;
 };
-fan::graphics::this_offset_image_list_t fan::graphics::this_offset_image_list = []() -> uintptr_t{
-  return offsetof(loco_t, image_list) - offsetof(loco_t, context);
+fan::graphics::this_offset_image_list_t fan::graphics::get_image_list = [](uint8_t* context) -> uint8_t*{
+  return (uint8_t*)&OFFSETLESS(context, loco_t, context)->image_list;
 };
-fan::graphics::this_offset_viewport_list_t fan::graphics::this_offset_viewport_list = []() -> uintptr_t{
-  return offsetof(loco_t, viewport_list) - offsetof(loco_t, context);
+fan::graphics::this_offset_viewport_list_t fan::graphics::get_viewport_list = [](uint8_t* context) -> uint8_t*{
+  return (uint8_t*)&OFFSETLESS(context, loco_t, context)->viewport_list;
 };
