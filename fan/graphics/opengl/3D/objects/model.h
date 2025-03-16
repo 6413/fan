@@ -71,59 +71,59 @@ namespace fan {
       void setup_mesh_buffers(fan_3d::model::mesh_t& mesh) {
         mesh.vao.open(*gloco);
         mesh.vbo.open(*gloco, GL_ARRAY_BUFFER);
-        gloco->fan_opengl_call(GenBuffers(1, &mesh.ebo));
+        fan_opengl_call(GenBuffers(1, &mesh.ebo));
 
         mesh.vao.bind(*gloco);
 
         mesh.vbo.bind(*gloco);
-        gloco->fan_opengl_call(BufferData(GL_ARRAY_BUFFER, mesh.vertices.size()); * sizeof(fan_3d::model::vertex_t), &mesh.vertices[0], GL_STATIC_DRAW);
+        fan_opengl_call(BufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(fan_3d::model::vertex_t), &mesh.vertices[0], GL_STATIC_DRAW));
 
-        gloco->fan_opengl_call(BindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo));
-        gloco->fan_opengl_call(BufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size()); * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW);
+        fan_opengl_call(BindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo));
+        fan_opengl_call(BufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW));
 
         fan::opengl::context_t::shader_t shader = gloco->shader_get(m_shader);
 
         int location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
-          gloco->fan_opengl_call(GetAttribLocation(shader.id, "in_position")); : 0;
-        gloco->fan_opengl_call(EnableVertexAttribArray(location));
-        gloco->fan_opengl_call(VertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t));, (GLvoid*)offsetof(fan_3d::model::vertex_t, position));
+          fan_opengl_call(GetAttribLocation(shader.id, "in_position")); : 0;
+        fan_opengl_call(EnableVertexAttribArray(location));
+        fan_opengl_call(VertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, position)));
 
         location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
-          gloco->fan_opengl_call(GetAttribLocation(shader.id, "in_normal")); : 1;
-        gloco->fan_opengl_call(EnableVertexAttribArray(location));
-        gloco->fan_opengl_call(VertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t));, (GLvoid*)offsetof(fan_3d::model::vertex_t, normal));
+          fan_opengl_call(GetAttribLocation(shader.id, "in_normal")); : 1;
+        fan_opengl_call(EnableVertexAttribArray(location));
+        fan_opengl_call(VertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, normal)));
 
         location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
-          gloco->fan_opengl_call(GetAttribLocation(shader.id, "in_uv")); : 2;
-        gloco->fan_opengl_call(EnableVertexAttribArray(location));
-        gloco->fan_opengl_call(VertexAttribPointer(location, 2, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t));, (GLvoid*)offsetof(fan_3d::model::vertex_t, uv));
+          fan_opengl_call(GetAttribLocation(shader.id, "in_uv")) : 2;
+        fan_opengl_call(EnableVertexAttribArray(location));
+        fan_opengl_call(VertexAttribPointer(location, 2, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, uv)));
 
         location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
-          gloco->fan_opengl_call(GetAttribLocation(shader.id, "in_bone_ids")); : 3;
-        gloco->fan_opengl_call(EnableVertexAttribArray(location));
-        gloco->fan_opengl_call(VertexAttribIPointer(location, 4, GL_INT, sizeof(fan_3d::model::vertex_t));, (void*)offsetof(fan_3d::model::vertex_t, bone_ids));
+          fan_opengl_call(GetAttribLocation(shader.id, "in_bone_ids")); : 3;
+        fan_opengl_call(EnableVertexAttribArray(location));
+        fan_opengl_call(VertexAttribIPointer(location, 4, GL_INT, sizeof(fan_3d::model::vertex_t), (void*)offsetof(fan_3d::model::vertex_t, bone_ids)));
 
         location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
-          gloco->fan_opengl_call(GetAttribLocation(shader.id, "in_bone_weights")); : 4;
-        gloco->fan_opengl_call(EnableVertexAttribArray(location));
-        gloco->fan_opengl_call(VertexAttribPointer(location, 4, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t));, (GLvoid*)offsetof(fan_3d::model::vertex_t, bone_weights));
+          fan_opengl_call(GetAttribLocation(shader.id, "in_bone_weights")); : 4;
+        fan_opengl_call(EnableVertexAttribArray(location));
+        fan_opengl_call(VertexAttribPointer(location, 4, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, bone_weights)));
 
         location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
-          gloco->fan_opengl_call(GetAttribLocation(shader.id, "in_tangent")); : 5;
-        gloco->fan_opengl_call(EnableVertexAttribArray(location));
-        gloco->fan_opengl_call(VertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t));, (GLvoid*)offsetof(fan_3d::model::vertex_t, tangent));
+          fan_opengl_call(GetAttribLocation(shader.id, "in_tangent")) : 5;
+        fan_opengl_call(EnableVertexAttribArray(location));
+        fan_opengl_call(VertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, tangent)));
 
         location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
-          gloco->fan_opengl_call(GetAttribLocation(shader.id, "in_bitangent")); : 6;
-        gloco->fan_opengl_call(EnableVertexAttribArray(location));
-        gloco->fan_opengl_call(VertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t));, (GLvoid*)offsetof(fan_3d::model::vertex_t, bitangent));
+          fan_opengl_call(GetAttribLocation(shader.id, "in_bitangent")); : 6;
+        fan_opengl_call(EnableVertexAttribArray(location));
+        fan_opengl_call(VertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, bitangent)));
 
         location = (gloco->opengl.major == 2 && gloco->opengl.minor == 1) ?
-          gloco->fan_opengl_call(GetAttribLocation(shader.id, "in_color")); : 7;
-        gloco->fan_opengl_call(EnableVertexAttribArray(location));
-        gloco->fan_opengl_call(VertexAttribPointer(location, 4, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t));, (GLvoid*)offsetof(fan_3d::model::vertex_t, color));
+          fan_opengl_call(GetAttribLocation(shader.id, "in_color")); : 7;
+        fan_opengl_call(EnableVertexAttribArray(location));
+        fan_opengl_call(VertexAttribPointer(location, 4, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, color)));
 
-        gloco->fan_opengl_call(BindVertexArray(0));
+        fan_opengl_call(BindVertexArray(0));
       }
       void upload_modified_vertices() {
         if (p.use_cpu == 1) {
@@ -166,7 +166,7 @@ namespace fan {
               std::ostringstream oss;
               oss << "_t" << std::setw(2) << std::setfill('0') << (int)tex_index;
               if (tex.empty()) {
-                gloco->fan_opengl_call(glActiveTexture(GL_TEXTURE0 + tex_index));
+                fan_opengl_call(glActiveTexture(GL_TEXTURE0 + tex_index));
                 gloco->shader_set_value(m_shader, oss.str(), tex_index);
                 gloco->image_bind(gloco->default_texture);
                 ++tex_index;
@@ -174,7 +174,7 @@ namespace fan {
               }
 
               //tex.second.texture_datas
-              gloco->fan_opengl_call(glActiveTexture(GL_TEXTURE0 + tex_index));
+              fan_opengl_call(glActiveTexture(GL_TEXTURE0 + tex_index));
               gloco->shader_set_value(m_shader, oss.str(), tex_index);
               if (fan_3d::model::cached_images[tex].iic()) {
                 fan_3d::model::cached_images[tex] = gloco->default_texture;
@@ -184,7 +184,7 @@ namespace fan {
             }
           }
           gloco->shader_set_value(m_shader, "bone_count", (int)std::min((std::size_t)200, bone_transforms.size()));
-          GLint location = gloco->opengl.call(gloco->fan_opengl_call(GetUniformLocation(shader.id, "bone_transforms"));
+          GLint location = gloco->opengl.call(fan_opengl_call(GetUniformLocation(shader.id, "bone_transforms"));
           gloco->opengl.glUniformMatrix4fv(
             location,
             std::min((std::size_t)200, bone_transforms.size()),
