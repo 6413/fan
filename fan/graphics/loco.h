@@ -314,7 +314,7 @@ struct loco_t {
 
 
   fan::graphics::viewport_nr_t viewport_create();
-  fan::graphics::context_viewport_t viewport_get(fan::graphics::viewport_nr_t nr);
+  fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr);
   void viewport_erase(fan::graphics::viewport_nr_t nr);
   fan::vec2 viewport_get_position(fan::graphics::viewport_nr_t nr);
   fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr);

@@ -719,8 +719,8 @@ struct pile_t {
 
     loco_t::camera_t camera_nr;
     loco_t::viewport_t viewport_nr;
-    fan::opengl::context_t::camera_t& camera;
-    fan::opengl::context_t::viewport_t& viewport;
+    fan::graphics::context_camera_t& camera;
+    fan::graphics::context_viewport_t& viewport;
     fan::graphics::imgui_content_browser_t content_browser;
 
     loco_t::image_t icon_video_camera = gloco->image_load("images_editor/video-camera.webp");
