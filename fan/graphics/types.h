@@ -3,11 +3,6 @@
 #include <fan/types/color.h>
 
 namespace fan {
-  void printclnn(auto&&... values);
-  void printcl(auto&&... values);
-  void printclnnh(int highlight, auto&&... values);
-  void printclh(int highlight = 0, auto&&... values);
-
   namespace graphics {
     struct highlight_e {
       enum {

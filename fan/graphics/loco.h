@@ -20,6 +20,8 @@
 #include <fan/window/window.h>
 #include <fan/io/file.h>
 
+#include <fan/graphics/types.h>
+
 #if defined(loco_imgui)
 #include <fan/imgui/imgui.h>
 #include <fan/imgui/imgui_impl_opengl3.h>
@@ -2259,6 +2261,39 @@ public:
   static bool is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& position, const fan::vec3& size);
 
 
+  void printclnn(auto&&... values) {
+#if defined (loco_imgui)
+    ([&](const auto& value) {
+      std::ostringstream oss;
+      oss << value;
+      console.print(oss.str() + " ", 0);
+      }(values), ...);
+#endif
+  }
+  void printcl(auto&&... values) {
+#if defined(loco_imgui)
+    printclnn(values...);
+    console.print("\n", 0);
+#endif
+  }
+
+  void printclnnh(int highlight, auto&&... values) {
+#if defined(loco_imgui)
+    ([&](const auto& value) {
+      std::ostringstream oss;
+      oss << value;
+      console.print(oss.str() + " ", highlight);
+    }(values), ...);
+#endif
+  }
+
+  void printclh(int highlight, auto&&... values) {
+#if defined(loco_imgui)
+    printclnnh(highlight, values...);
+    console.print("\n", highlight);
+#endif
+  }
+
 
 #if defined(loco_cuda)
 
@@ -2387,38 +2422,38 @@ namespace fan {
 }
 
 
-void fan::printclnn(auto&&... values) {
+namespace fan {
+  inline void printclnn(auto&&... values) {
 #if defined (loco_imgui)
-  ([&](const auto& value) {
-    std::ostringstream oss;
-    oss << value;
-    gloco->console.print(oss.str() + " ", 0);
-  }(values), ...);
-  #endif
-}
-void fan::printcl(auto&&... values) {
-  #if defined(loco_imgui)
-  fan::printclnn(values...);
-  gloco->console.print("\n", 0);
-  #endif
+    gloco->printclnn(values...);
+#endif
+  }
+  inline void printcl(auto&&... values) {
+#if defined(loco_imgui)
+    gloco->printcl(values...);
+#endif
+  }
+
+  inline void printclnnh(int highlight, auto&&... values) {
+#if defined(loco_imgui)
+    gloco->printclnnh(highlight, values...);
+#endif
+  }
+
+  inline void printclh(int highlight, auto&&... values) {
+#if defined(loco_imgui)
+    gloco->printclh(highlight, values...);
+#endif
+  }
 }
 
-void fan::printclnnh(int highlight, auto&&... values) {
-  #if defined(loco_imgui)
-  ([&](const auto& value) {
-    std::ostringstream oss;
-    oss << value;
-    gloco->console.print(oss.str() + " ", highlight);
-  }(values), ...);
-  #endif
-}
-
-void fan::printclh(int highlight, auto&&... values) {
-  #if defined(loco_imgui)
-  fan::printclnnh(highlight, values...);
-  gloco->console.print("\n", highlight);
-  #endif
-}
+inline bool init_fan_track_opengl_print = []() {
+  fan_opengl_track_print = [](std::string func_name, uint64_t elapsed){
+    fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":");
+    fan::printclh(fan::graphics::highlight_e::warning,  fan::to_string(elapsed / 1e+6) + "ms");
+  };
+  return 1;
+}();
 
 #if defined(loco_json)
   namespace fan {
