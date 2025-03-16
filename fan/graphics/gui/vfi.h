@@ -277,14 +277,14 @@ struct vfi_t {
         instance.shape_data->depth = p.shape.rectangle->position.z;
         if (p.shape.rectangle->camera.iic()) {
           instance.shape_data->shape.rectangle->camera = gloco->orthographic_camera.camera;
-          fan::printcl("warning using default camera");
+          fan::print("warning using default camera");
         }
         else {
           instance.shape_data->shape.rectangle->camera = p.shape.rectangle->camera;
         } 
         if (p.shape.rectangle->viewport.iic()) {
           instance.shape_data->shape.rectangle->viewport = gloco->orthographic_camera.viewport;
-          fan::printcl("warning using default viewport");
+          fan::print("warning using default viewport");
         }
         else {
           instance.shape_data->shape.rectangle->viewport = p.shape.rectangle->viewport;
