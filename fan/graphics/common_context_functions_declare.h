@@ -49,7 +49,7 @@
 
 #define context_build_viewport_functions(build_function) \
   CONCAT(build_function, 2)(viewport_create, fan::graphics::viewport_nr_t) \
-  build_function(viewport_get, fan::graphics::context_viewport_t, fan::graphics::viewport_nr_t nr) \
+  build_function(viewport_get, fan::graphics::context_viewport_t&, fan::graphics::viewport_nr_t nr) \
   build_function(viewport_erase, void, fan::graphics::viewport_nr_t nr) \
   build_function(viewport_get_position, fan::vec2, fan::graphics::viewport_nr_t nr) \
   build_function(viewport_get_size, fan::vec2, fan::graphics::viewport_nr_t nr) \
