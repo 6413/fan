@@ -107,7 +107,7 @@ void shader_erase(fan::vulkan::context_t& context, shader_nr_t nr, int recycle =
   }
   //TODO
   shader.projection_view_block.close(context);
-  delete shader_list[nr].internal;
+  delete static_cast<fan::vulkan::context_t::shader_t*>(shader_list[nr].internal);
   if (recycle) {
     shader_list.Recycle(nr);
   }
@@ -396,7 +396,7 @@ void image_erase(fan::vulkan::context_t& context, image_nr_t nr, int recycle = 1
   vkDestroyImage(context.device, image.image_index, 0);
   vkDestroyImageView(context.device, image.image_view, 0);
   vkFreeMemory(context.device, image.image_memory, nullptr);
-  delete image_list[nr].internal;
+  delete static_cast<fan::vulkan::context_t::image_t*>(image_list[nr].internal);
   if (recycle) {
     image_list.Recycle(nr);
   }

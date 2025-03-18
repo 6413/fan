@@ -314,7 +314,7 @@ void shader_erase(fan::opengl::context_t& context, shader_nr_t nr) {
     }
     shader.id = fan::uninitialized;
   });
-  delete shader_list[nr].internal;
+  delete static_cast<fan::opengl::context_t::shader_t*>(shader_list[nr].internal);
   shader_list.Recycle(nr);
 }
 
@@ -680,7 +680,7 @@ fan::graphics::image_nr_t image_create(fan::opengl::context_t& context) {
 void image_erase(fan::opengl::context_t& context, image_nr_t nr) {
   auto handle = image_get_handle(context, nr);
   fan_opengl_call(glDeleteTextures(1, (GLuint*)&handle));
-  delete image_list[nr].internal;
+  delete static_cast<fan::opengl::context_t::image_t*>(image_list[nr].internal);
   image_list.Recycle(nr);
 }
 
@@ -1248,7 +1248,7 @@ void fan::opengl::context_t::internal_close() {
     fan::graphics::shader_nr_t nr;
     nrtra.Open(&shader_list, &nr);
     while (nrtra.Loop(&shader_list, &nr)) {
-      delete shader_list[nr].internal;
+      delete static_cast<fan::opengl::context_t::shader_t*>(shader_list[nr].internal);
     }
     nrtra.Close(&shader_list);
   }
@@ -1257,7 +1257,7 @@ void fan::opengl::context_t::internal_close() {
     fan::graphics::image_nr_t nr;
     nrtra.Open(&image_list, &nr);
     while (nrtra.Loop(&image_list, &nr)) {
-      delete image_list[nr].internal;
+      delete static_cast<fan::opengl::context_t::image_t*>(image_list[nr].internal);
     }
     nrtra.Close(&image_list);
   }
