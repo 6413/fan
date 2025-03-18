@@ -369,10 +369,6 @@ loco_t::functions_t loco_t::get_functions() {
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
-                      for (size_t i = 0; i < KeyPackSize; ++i) {
-            printf("%02x ", KeyPack[i]);
-          }
-          printf("\n");
 
           switch (sti) {       
           case loco_t::shape_type_t::light: {
@@ -586,10 +582,7 @@ loco_t::functions_t loco_t::get_functions() {
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
-          for (size_t i = 0; i < KeyPackSize; ++i) {
-            printf("%02x ", KeyPack[i]);
-          }
-          printf("\n");
+
           switch (sti) {
             // texture
             case loco_t::shape_type_t::particles:
@@ -696,10 +689,7 @@ loco_t::functions_t loco_t::get_functions() {
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
-                    for (size_t i = 0; i < KeyPackSize; ++i) {
-            printf("%02x ", KeyPack[i]);
-          }
-          printf("\n");
+
           switch(sti) {
             // light
             case loco_t::shape_type_t::light: {
@@ -796,10 +786,7 @@ loco_t::functions_t loco_t::get_functions() {
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
-                      for (size_t i = 0; i < KeyPackSize; ++i) {
-            printf("%02x ", KeyPack[i]);
-          }
-          printf("\n");
+
           switch(sti) {
             // light
             case loco_t::shape_type_t::light: {
@@ -881,10 +868,7 @@ loco_t::functions_t loco_t::get_functions() {
         auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
         uint8_t* KeyPack = new uint8_t[KeyPackSize];
         gloco->shaper.WriteKeys(*shape, KeyPack);
-                  for (size_t i = 0; i < KeyPackSize; ++i) {
-            printf("%02x ", KeyPack[i]);
-          }
-          printf("\n");
+
         switch (sti) {
         // texture
         case loco_t::shape_type_t::particles:
@@ -2517,10 +2501,6 @@ loco_t::shape_t::shape_t(const shaper_t::ShapeID_t& s) : shape_t() {
     // alloc can be avoided inside switch
     uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
     gloco->shaper.WriteKeys(s, KeyPack);
-              for (size_t i = 0; i < gloco->shaper.GetKeysSize(s); ++i) {
-            printf("%02x ", KeyPack[i]);
-          }
-          printf("\n");
 
     auto _vi = s.GetRenderData(gloco->shaper);
     auto vlen = gloco->shaper.GetRenderDataSize(sti);
@@ -2570,10 +2550,6 @@ loco_t::shape_t& loco_t::shape_t::operator=(const loco_t::shape_t& s) {
       // alloc can be avoided inside switch
       uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
       gloco->shaper.WriteKeys(s, KeyPack);
-                for (size_t i = 0; i < gloco->shaper.GetKeysSize(s); ++i) {
-            printf("%02x ", KeyPack[i]);
-          }
-          printf("\n");
 
       auto _vi = s.GetRenderData(gloco->shaper);
       auto vlen = gloco->shaper.GetRenderDataSize(sti);
