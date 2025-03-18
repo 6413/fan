@@ -46,7 +46,7 @@ struct player_t {
 int main(int argc, char** argv) {
   loco_t loco;
   
-  loco.window.set_windowed_fullscreen();
+ // loco.window.set_windowed_fullscreen();
 
   camera0.camera = loco.camera_create();
   camera1.camera = loco.camera_create();
@@ -91,8 +91,8 @@ int main(int argc, char** argv) {
 
       loco_t::image_load_properties_t lp;
       lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
-      lp.min_filter = GL_NEAREST;
-      lp.mag_filter = GL_NEAREST;
+      lp.min_filter = fan::graphics::image_filter::nearest;
+      lp.mag_filter = fan::graphics::image_filter::nearest;
       renderer->open(&fte.texturepack);
 
       // STATIC POINTER
@@ -176,8 +176,13 @@ int main(int argc, char** argv) {
     if (filename.contains("tileset.png")) {
       std::string image_path = fs_watcher.watch_path + "tileset.png";
       loco_t::image_t img = loco.image_load(image_path);
-      fan::vec2 img_size = loco.image_get_data(img).size;
-      fan::vec2i size = img_size / 32;
+      fan::vec2 size = 0;
+      auto img_d = loco.image_get(img);
+      std::visit([&size](auto& v) ->void {
+        size = v.size;
+      }, *dynamic_cast<fan::graphics::context_image_init_t*>(&img_d));
+      fan::vec2 img_size = size;
+      size = img_size / 32;
       loco.image_unload(img);
       std::string str = (std::string("image2texturepack.exe ") + 
         std::to_string(size.x) + " " + std::to_string(size.y) + 
