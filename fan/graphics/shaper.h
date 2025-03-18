@@ -1178,13 +1178,13 @@ struct shaper_t{
     auto &ls = ShapeList[lsid];
     
     __builtin_memmove(
-      GetRenderData(sti, ls.blid, ls.ElementIndex),
       GetRenderData(sti, s.blid, s.ElementIndex),
+      GetRenderData(sti, ls.blid, ls.ElementIndex),
       st.RenderDataSize
     );
     __builtin_memmove(
-      GetData(sti, ls.blid, ls.ElementIndex),
       GetData(sti, s.blid, s.ElementIndex),
+      GetData(sti, ls.blid, ls.ElementIndex),
       st.DataSize
     );
     *GetShapeID(sti, s.blid, s.ElementIndex) =
