@@ -2079,7 +2079,7 @@ shape data{
     static constexpr const char* mode_names[] = {"Draw", "Copy"};
     enum class type_e : uint8_t {
       texture,
-      physics_shape = fte_t::mesh_property_t::physics_shape,
+      physics_shape = (uint8_t)fte_t::mesh_property_t::physics_shape,
       light
     };
     static constexpr const char* type_names[] = { "Texture", "Physics shape", "Light"};
