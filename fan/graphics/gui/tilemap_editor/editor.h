@@ -280,8 +280,8 @@ struct fte_t {
       .image = transparent_texture,
     } };
 
-    lp.min_filter = loco_t::image_filter::nearest;
-    lp.mag_filter = loco_t::image_filter::nearest;
+    lp.min_filter = fan::graphics::image_filter::nearest;
+    lp.mag_filter = fan::graphics::image_filter::nearest;
 
     grid_visualize.highlight_color = gloco->image_load("images/highlight_hover.webp", lp);
     grid_visualize.collider_color = gloco->image_create(fan::color(0, 0.5, 0, 0.5));
@@ -902,8 +902,14 @@ struct fte_t {
 
       ii.image_name = image.image_name;
 
+      fan::vec2 size = 0;
+      auto img_d = gloco->image_get(texturepack.get_pixel_data(pack_id).image);
+      std::visit([&size](auto& v) ->void {
+        size = v.size;
+      }, *dynamic_cast<fan::graphics::context_image_init_t*>(&img_d));
+
       texturepack_images.push_back(ii);
-      texturepack_size = texturepack_size.max(fan::vec2(gloco->image_get(texturepack.get_pixel_data(pack_id).image).size));
+      texturepack_size = texturepack_size.max(fan::vec2(size));
       texturepack_single_image_size = texturepack_single_image_size.max(fan::vec2(image.size));
     });
   }
@@ -955,7 +961,9 @@ struct fte_t {
       }
     ImGui::EndMainMenuBar();
     fan::vec2 initial_pos = ImGui::GetCursorScreenPos();
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
     ImGui::Begin("Tilemap Editor2", 0, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDecoration | ImGuiDockNodeFlags_AutoHideTabBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::PopStyleColor();
       fan::vec2 window_size = ImGui::GetIO().DisplaySize;
       fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
 
@@ -1032,15 +1040,19 @@ struct fte_t {
           }
           idx++;
           
-          auto& img = gloco->image_get(*j.ti.image);
+          auto img = gloco->image_get(*j.ti.image);
+          fan::vec2 size = 0;
+          std::visit([&size](auto& v) ->void {
+            size = v.size;
+          }, *dynamic_cast<fan::graphics::context_image_init_t*>(&img));
 
           ImGui::ImageRotated(
-            (ImTextureID)gloco->image_get(*j.ti.image),
+            (ImTextureID)gloco->image_get_handle(*j.ti.image),
             (tile_viewer_sprite_size / std::max(1.f, current_tile_brush_count.x / 5.f))  * viewport_settings.zoom,
             360.f - fan::math::degrees(brush.angle.z),
-            j.ti.position / img.size,
-            j.ti.position / img.size +
-            j.ti.size / img.size,
+            j.ti.position / size,
+            j.ti.position / size +
+            j.ti.size / size,
             ImVec4(1, 1, 1, 0.9)
           );
         }
@@ -1286,17 +1298,22 @@ struct fte_t {
         fan::vec2i grid_index(i % images_per_row, i / images_per_row);
         bool selected = false;
 
-        auto& img = gloco->image_get(*node.ti.image);
+        auto img = gloco->image_get(*node.ti.image);
 
         fan::vec2 cursor_pos_global = ImGui::GetCursorScreenPos();
         sprite_size = fan::vec2(final_image_size * zoom);
 
+        fan::vec2 size = 0;
+        std::visit([&size](auto& v) ->void {
+          size = v.size;
+        }, *dynamic_cast<fan::graphics::context_image_init_t*>(&img));
+
         ImGui::ImageButton(
           (fan::string("##ibutton") + std::to_string(i)).c_str(),
-          gloco->image_get(*node.ti.image),
+          gloco->image_get_handle(*node.ti.image),
           sprite_size,
-          node.ti.position / img.size,
-          node.ti.position / img.size + node.ti.size / img.size
+          node.ti.position / size,
+          node.ti.position / size + node.ti.size / size
         );
 
         if (current_image_indices.find(grid_index) != current_image_indices.end()) {

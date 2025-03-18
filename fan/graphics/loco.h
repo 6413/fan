@@ -2499,3 +2499,29 @@ inline bool init_fan_track_opengl_print = []() {
 
 #include <fan/graphics/vulkan/uniform_block.h>
 #include <fan/graphics/vulkan/memory.h>
+//
+//namespace fan {
+//  namespace graphics {
+//    inline bool b = [] {
+//      
+//      return 0;
+//    }();
+//  }
+//}
+
+inline bool x = []{
+  fan::graphics::get_camera_list = [](uint8_t* context) -> uint8_t* {
+    auto ptr = OFFSETLESS(context, loco_t, context);
+    return (uint8_t*)&ptr->camera_list;
+  };
+  fan::graphics::get_shader_list = [](uint8_t* context) -> uint8_t* {
+    return (uint8_t*)&OFFSETLESS(context, loco_t, context)->shader_list;
+  };
+  fan::graphics::get_image_list = [](uint8_t* context) -> uint8_t* {
+    return (uint8_t*)&OFFSETLESS(context, loco_t, context)->image_list;
+  };
+  fan::graphics::get_viewport_list = [](uint8_t* context) -> uint8_t* {
+    return (uint8_t*)&OFFSETLESS(context, loco_t, context)->viewport_list;
+  };  
+  return 0;
+}();

@@ -19,6 +19,7 @@ namespace fan {
       rgba_unorm,
       r8_uint,
       r8g8b8a8_srgb,
+      r11f_g11f_b10f
     };
     enum image_sampler_address_mode {
       repeat,
@@ -99,10 +100,10 @@ namespace fan {
     typedef uint8_t*(*this_offset_image_list_t)(uint8_t* context);
     typedef uint8_t*(*this_offset_viewport_list_t)(uint8_t* context);
 
-    extern this_offset_camera_list_t get_camera_list;
-    extern this_offset_shader_list_t get_shader_list;
-    extern this_offset_image_list_t get_image_list;
-    extern this_offset_viewport_list_t get_viewport_list;
+    inline this_offset_camera_list_t get_camera_list;
+    inline this_offset_shader_list_t get_shader_list;
+    inline this_offset_image_list_t get_image_list;
+    inline this_offset_viewport_list_t get_viewport_list;
 
     static constexpr f32_t znearfar = 0xffff;
 
