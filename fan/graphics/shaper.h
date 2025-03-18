@@ -1028,13 +1028,12 @@ struct shaper_t{
   }
 
   void PrepareKeysForAdd(
-      const void *KeyPack,
-      KeyPackSize_t LastKeyOffset
-    ){
-      auto _KeyPack = (KeyData_t *)KeyPack;
-      _kti_SetLastBit(*(KeyTypeIndex_t *)&_KeyPack[LastKeyOffset]);
-    }
-  inline static int counter = 0;
+    const void *KeyPack,
+    KeyPackSize_t LastKeyOffset
+  ){
+    auto _KeyPack = (KeyData_t *)KeyPack;
+    _kti_SetLastBit(*(KeyTypeIndex_t *)&_KeyPack[LastKeyOffset]);
+  }
   ShapeID_t add(
     ShapeTypeIndex_t sti,
     const void *KeyPack,
@@ -1042,7 +1041,6 @@ struct shaper_t{
     const void *RenderData,
     const void *Data
   ){
-    ++counter;
     auto _KeyPack = (KeyData_t *)KeyPack;
 
     bmid_t bmid;
@@ -1062,7 +1060,6 @@ struct shaper_t{
     uint8_t step;
 
     /* DEBUG_HINT if this loop goes above KeyPackSize, your KeyPack is bad */
-    int ccounter = 0;
     while(ikp != KeyPackSize){
 
       auto kti = (KeyTypeIndex_t *)&_KeyPack[ikp];
@@ -1080,7 +1077,6 @@ struct shaper_t{
         goto gt_newbm;
       }
       ikp += kt->Size;
-      ++ccounter;
     }
 
     bmid = *(BlockManager_t::nr_t *)&nr;
@@ -1162,19 +1158,17 @@ struct shaper_t{
     *GetShapeID(sti, bm->LastBlockNR, bm->LastBlockElementCount) = shapeid;
 
     ElementIsFullyEdited(sti, bm->LastBlockNR, bm->LastBlockElementCount);
-    fan::print("+", (int)bmid.NRI, shapeid.NRI);
+
     return shapeid;
   }
 
   void remove(
     ShapeList_t::nr_t sid
   ){
-    --counter;
     auto &s = ShapeList[sid];
     auto sti = s.sti;
     auto &st = ShapeTypes[sti];
     auto bmid = s.bmid;
-    fan::print("-", (int)bmid.NRI, sid.NRI);
     auto &bm = BlockManager[bmid];
     auto lsid = *GetShapeID(sti, bm.LastBlockNR, bm.LastBlockElementCount);
     if(sid != lsid){

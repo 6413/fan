@@ -398,11 +398,6 @@ struct loco_t {
     constexpr uintptr_t last_sizeof = (static_cast<uintptr_t>(0), ..., sizeof(Ts));
     uintptr_t LastKeyOffset = s - last_sizeof - 1;
     gloco->shaper.PrepareKeysForAdd(&a, LastKeyOffset);
-    printf("add\n");
-    for (i = 0; i < s; ++i) {
-      printf("%02x ", a[i]);
-    }
-    printf("\n");
     return gloco->shaper.add(sti, &a, s, &rd, &d);
   }
 
