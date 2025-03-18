@@ -110,7 +110,6 @@ struct pile_t {
     // physics step
     loco.physics_context.step(loco.delta_time);
   }
-
   loco_t loco;
   player_t player;
   loco_t::texturepack_t tp;
@@ -139,6 +138,7 @@ lstd_defstruct(stage_shop_t)
 };
 
 pile_t::pile_t() {
+
   loco_t::image_load_properties_t lp;
   lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
   lp.min_filter = fan::graphics::image_filter::nearest;

@@ -1034,7 +1034,7 @@ struct shaper_t{
       auto _KeyPack = (KeyData_t *)KeyPack;
       _kti_SetLastBit(*(KeyTypeIndex_t *)&_KeyPack[LastKeyOffset]);
     }
-
+  inline static int counter = 0;
   ShapeID_t add(
     ShapeTypeIndex_t sti,
     const void *KeyPack,
@@ -1042,6 +1042,7 @@ struct shaper_t{
     const void *RenderData,
     const void *Data
   ){
+    ++counter;
     auto _KeyPack = (KeyData_t *)KeyPack;
 
     bmid_t bmid;
@@ -1166,7 +1167,7 @@ struct shaper_t{
   void remove(
     ShapeList_t::nr_t sid
   ){
-
+    --counter;
     auto &s = ShapeList[sid];
     auto sti = s.sti;
     auto &st = ShapeTypes[sti];

@@ -32,7 +32,7 @@ struct texturepack_t {
 
   void open_compiled(const fan::string& filename) {
     fan::graphics::image_load_properties_t lp;
-    lp.visual_output = fan::opengl::context_t::image_sampler_address_mode::clamp_to_edge;
+    lp.visual_output =fan::graphics::image_sampler_address_mode::clamp_to_edge;
     lp.min_filter = fan::graphics::image_filter::nearest;
     lp.mag_filter = fan::graphics::image_filter::nearest;
     /*

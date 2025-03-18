@@ -668,6 +668,9 @@ GLuint& image_get_handle(fan::opengl::context_t& context, image_nr_t nr) {
 }
 
 fan::graphics::image_nr_t image_create(fan::opengl::context_t& context) {
+  uint8_t* cptr = (uint8_t*)&context;
+  auto* ptr = fan::graphics::get_image_list(cptr);
+
   image_nr_t nr = image_list.NewNode();
   image_list[nr].internal = new fan::opengl::context_t::image_t;
   fan_opengl_call(glGenTextures(1, &image_get_handle(context, nr)));
@@ -1196,6 +1199,7 @@ uint32_t global_to_opengl_format(uintptr_t format) {
   if (format == image_format::rgba_unorm) return GL_RGBA;
   if (format == image_format::r8_uint) return GL_RED_INTEGER;
   if (format == image_format::r8g8b8a8_srgb) return GL_SRGB8_ALPHA8;
+  if (format == image_format::r11f_g11f_b10f) return GL_R11F_G11F_B10F;
 #if fan_debug >= fan_debug_high
   fan::throw_error("invalid format");
 #endif
