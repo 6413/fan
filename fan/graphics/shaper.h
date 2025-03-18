@@ -1062,6 +1062,7 @@ struct shaper_t{
     uint8_t step;
 
     /* DEBUG_HINT if this loop goes above KeyPackSize, your KeyPack is bad */
+    int ccounter = 0;
     while(ikp != KeyPackSize){
 
       auto kti = (KeyTypeIndex_t *)&_KeyPack[ikp];
@@ -1079,6 +1080,7 @@ struct shaper_t{
         goto gt_newbm;
       }
       ikp += kt->Size;
+      ++ccounter;
     }
 
     bmid = *(BlockManager_t::nr_t *)&nr;
@@ -1160,7 +1162,7 @@ struct shaper_t{
     *GetShapeID(sti, bm->LastBlockNR, bm->LastBlockElementCount) = shapeid;
 
     ElementIsFullyEdited(sti, bm->LastBlockNR, bm->LastBlockElementCount);
-
+    fan::print("+", (int)bmid.NRI, shapeid.NRI);
     return shapeid;
   }
 
@@ -1172,6 +1174,7 @@ struct shaper_t{
     auto sti = s.sti;
     auto &st = ShapeTypes[sti];
     auto bmid = s.bmid;
+    fan::print("-", (int)bmid.NRI, sid.NRI);
     auto &bm = BlockManager[bmid];
     auto lsid = *GetShapeID(sti, bm.LastBlockNR, bm.LastBlockElementCount);
     if(sid != lsid){

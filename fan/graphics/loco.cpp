@@ -369,7 +369,10 @@ loco_t::functions_t loco_t::get_functions() {
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
-            
+                      for (size_t i = 0; i < KeyPackSize; ++i) {
+            printf("%02x ", KeyPack[i]);
+          }
+          printf("\n");
 
           switch (sti) {       
           case loco_t::shape_type_t::light: {
@@ -583,6 +586,10 @@ loco_t::functions_t loco_t::get_functions() {
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
+          for (size_t i = 0; i < KeyPackSize; ++i) {
+            printf("%02x ", KeyPack[i]);
+          }
+          printf("\n");
           switch (sti) {
             // texture
             case loco_t::shape_type_t::particles:
@@ -689,7 +696,10 @@ loco_t::functions_t loco_t::get_functions() {
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
-
+                    for (size_t i = 0; i < KeyPackSize; ++i) {
+            printf("%02x ", KeyPack[i]);
+          }
+          printf("\n");
           switch(sti) {
             // light
             case loco_t::shape_type_t::light: {
@@ -786,7 +796,10 @@ loco_t::functions_t loco_t::get_functions() {
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
-            
+                      for (size_t i = 0; i < KeyPackSize; ++i) {
+            printf("%02x ", KeyPack[i]);
+          }
+          printf("\n");
           switch(sti) {
             // light
             case loco_t::shape_type_t::light: {
@@ -868,7 +881,10 @@ loco_t::functions_t loco_t::get_functions() {
         auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
         uint8_t* KeyPack = new uint8_t[KeyPackSize];
         gloco->shaper.WriteKeys(*shape, KeyPack);
-
+                  for (size_t i = 0; i < KeyPackSize; ++i) {
+            printf("%02x ", KeyPack[i]);
+          }
+          printf("\n");
         switch (sti) {
         // texture
         case loco_t::shape_type_t::particles:
@@ -1717,9 +1733,10 @@ void loco_t::switch_renderer(uint8_t renderer) {
 }
 
 uint32_t loco_t::draw_shapes() {
-  fan::print(shaper.counter);
+  //fan::print(shaper.counter);
   if (window.renderer == renderer_t::opengl) {
     gl.draw_shapes();
+   // fan::print("\n");
   }
   else if (window.renderer == renderer_t::vulkan) {
     return vk.draw_shapes();
@@ -2500,7 +2517,10 @@ loco_t::shape_t::shape_t(const shaper_t::ShapeID_t& s) : shape_t() {
     // alloc can be avoided inside switch
     uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
     gloco->shaper.WriteKeys(s, KeyPack);
-
+              for (size_t i = 0; i < gloco->shaper.GetKeysSize(s); ++i) {
+            printf("%02x ", KeyPack[i]);
+          }
+          printf("\n");
 
     auto _vi = s.GetRenderData(gloco->shaper);
     auto vlen = gloco->shaper.GetRenderDataSize(sti);
@@ -2550,7 +2570,10 @@ loco_t::shape_t& loco_t::shape_t::operator=(const loco_t::shape_t& s) {
       // alloc can be avoided inside switch
       uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
       gloco->shaper.WriteKeys(s, KeyPack);
-
+                for (size_t i = 0; i < gloco->shaper.GetKeysSize(s); ++i) {
+            printf("%02x ", KeyPack[i]);
+          }
+          printf("\n");
 
       auto _vi = s.GetRenderData(gloco->shaper);
       auto vlen = gloco->shaper.GetRenderDataSize(sti);
@@ -2926,6 +2949,10 @@ loco_t::shape_t loco_t::polygon_t::push_back(const loco_t::polygon_t::properties
   );
 }
 
+void printAsBytes(uint16_t value) {
+    printf("%02x %02x ", value & 0xFF, (value >> 8) & 0xFF);
+}
+
 loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
 
   vi_t vi;
@@ -2944,8 +2971,8 @@ loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
   ri.images = properties.images;
 
   loco_t& loco = *OFFSETLESS(this, loco_t, sprite);
-
   if (loco.window.renderer == loco_t::renderer_t::opengl) {
+
     if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
       return shape_add(
         shape_type, vi, ri, Key_e::depth,
