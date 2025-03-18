@@ -626,6 +626,15 @@ void draw_shapes() {
       if (shape_type == shape_type_t::light_end) {
         break;
       }
+      for (uint32_t i = 0; i < BlockTraverse.GetAmount(loco.shaper); ++i) {
+        loco_t::shape_t* s = (loco_t::shape_t*)loco.shaper.GetShapeID(shape_type, BlockTraverse.GetBlockID(), i);
+     //   if (s->NRI == 8)
+        //fan::print_no_endline(
+       //   s->get_position(),
+       //   s->get_size()          
+      //  );
+      }
+    //  fan::print_no_endline("end");
       do {
         auto shader = loco.shaper.GetShader(shape_type);
 #if fan_debug >= fan_debug_medium
