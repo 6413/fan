@@ -470,7 +470,7 @@ bool fan::graphics::texture_packe0::push_texture(fan::graphics::image_nr_t image
   auto data = gloco->image_get_pixel_data(image, GL_RGBA, texture_properties.uv_pos, texture_properties.uv_size);
 
   fan::vec2ui image_size = 0;
-  std::visit([this, &image_size, &texture_properties] (const auto& v) {
+  std::visit([&image_size, &texture_properties] (const auto& v) {
     image_size = {
       (uint32_t)(v.size.x * texture_properties.uv_size.x),
       (uint32_t)(v.size.y * texture_properties.uv_size.y)

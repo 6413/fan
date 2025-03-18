@@ -24,7 +24,7 @@ void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions, f
 
 void open(void* sod) {
   main_compiled_map = pile.renderer.compile("examples/games/forest game/forest.json");
-  fan::vec2i render_size(4, 4);
+  fan::vec2i render_size(16, 9);
   render_size /= 1.5;
   fte_loader_t::properties_t p;
   p.size = render_size;

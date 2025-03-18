@@ -854,7 +854,6 @@ struct shaper_t{
       else if (std::holds_alternative<ShapeType_t::vk_t>(st.renderer)) {
         auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
         auto wrote = bu.MaxEdit - bu.MinEdit;
-        //fan::print(((decltype(get_loco()->rectangle)::vi_t*)(_GetRenderData(be.sti, be.blid, 0) + bu.MinEdit))->position, (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit) / GetRenderDataSize(be.sti));
         for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
           memcpy(
             vk.shape_data.data[frame] + (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit), // data  + offset
@@ -1028,11 +1027,11 @@ struct shaper_t{
   }
 
   void PrepareKeysForAdd(
-    const void *KeyPack,
-    KeyPackSize_t LastKeyOffset
-  ){
-    auto _KeyPack = (KeyData_t *)KeyPack;
-    _kti_SetLastBit(*(KeyTypeIndex_t *)&_KeyPack[LastKeyOffset]);
+      const void *KeyPack,
+      KeyPackSize_t LastKeyOffset
+    ){
+      auto _KeyPack = (KeyData_t *)KeyPack;
+      _kti_SetLastBit(*(KeyTypeIndex_t *)&_KeyPack[LastKeyOffset]);
   }
   ShapeID_t add(
     ShapeTypeIndex_t sti,
@@ -1158,7 +1157,6 @@ struct shaper_t{
     *GetShapeID(sti, bm->LastBlockNR, bm->LastBlockElementCount) = shapeid;
 
     ElementIsFullyEdited(sti, bm->LastBlockNR, bm->LastBlockElementCount);
-
     return shapeid;
   }
 

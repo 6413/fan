@@ -582,7 +582,6 @@ loco_t::functions_t loco_t::get_functions() {
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
-
           switch (sti) {
             // texture
             case loco_t::shape_type_t::particles:
@@ -689,7 +688,6 @@ loco_t::functions_t loco_t::get_functions() {
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
-
           switch(sti) {
             // light
             case loco_t::shape_type_t::light: {
@@ -786,7 +784,6 @@ loco_t::functions_t loco_t::get_functions() {
           auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
           uint8_t* KeyPack = new uint8_t[KeyPackSize];
           gloco->shaper.WriteKeys(*shape, KeyPack);
-
           switch(sti) {
             // light
             case loco_t::shape_type_t::light: {
@@ -868,7 +865,6 @@ loco_t::functions_t loco_t::get_functions() {
         auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
         uint8_t* KeyPack = new uint8_t[KeyPackSize];
         gloco->shaper.WriteKeys(*shape, KeyPack);
-
         switch (sti) {
         // texture
         case loco_t::shape_type_t::particles:
@@ -1717,10 +1713,8 @@ void loco_t::switch_renderer(uint8_t renderer) {
 }
 
 uint32_t loco_t::draw_shapes() {
-  //fan::print(shaper.counter);
   if (window.renderer == renderer_t::opengl) {
     gl.draw_shapes();
-   // fan::print("\n");
   }
   else if (window.renderer == renderer_t::vulkan) {
     return vk.draw_shapes();
@@ -2925,10 +2919,6 @@ loco_t::shape_t loco_t::polygon_t::push_back(const loco_t::polygon_t::properties
   );
 }
 
-void printAsBytes(uint16_t value) {
-    printf("%02x %02x ", value & 0xFF, (value >> 8) & 0xFF);
-}
-
 loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
 
   vi_t vi;
@@ -2951,11 +2941,13 @@ loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
 
     if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
       return shape_add(
-        shape_type, vi, ri, Key_e::depth,
+        shape_type, vi, ri, 
+        Key_e::depth,
         static_cast<uint16_t>(properties.position.z),
         Key_e::blending, static_cast<uint8_t>(properties.blending),
-        Key_e::image, properties.image, Key_e::viewport,
-        properties.viewport, Key_e::camera, properties.camera,
+        Key_e::image, properties.image, 
+        Key_e::viewport, properties.viewport, 
+        Key_e::camera, properties.camera,
         Key_e::ShapeType, shape_type
       );
     }
@@ -3250,7 +3242,7 @@ loco_t::shader_t loco_t::create_sprite_shader(const fan::string& fragment) {
   shader_compile(shader);
   return shader;
 }
-
+#if defined(loco_json)
 [[nodiscard]]
 std::pair<size_t, size_t> fan::json_stream_parser_t::find_next_json_bounds(std::string_view s, size_t pos) const noexcept {
     pos = s.find('{', pos);
@@ -3297,6 +3289,8 @@ std::vector<fan::json_stream_parser_t::parsed_result> fan::json_stream_parser_t:
   buf = pos < buf.length() ? buf.substr(pos) : "";
   return results;
 }
+
+#endif
 
 loco_t::image_t loco_t::create_noise_image(const fan::vec2& image_size) {
 

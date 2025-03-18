@@ -38,10 +38,10 @@
 #include <fan/graphics/opengl/core.h>
 #include <fan/graphics/vulkan/core.h>
 
-#undef camera_list;
-#undef shader_list;
-#undef image_list;
-#undef viewport_list;
+#undef camera_list
+#undef shader_list
+#undef image_list
+#undef viewport_list
 
 #if defined(loco_imgui)
   #include <fan/graphics/console.h>
@@ -128,11 +128,6 @@ namespace fan {
 
     void clear() noexcept { buf.clear(); }
   };
-  namespace graphics {
-    namespace gui {
-      bool render_blank_window(const std::string& name);
-    }
-  }
 }
 
 #endif
@@ -203,6 +198,9 @@ inline global_loco_t gloco;
 
 namespace fan {
   namespace graphics {
+    namespace gui {
+      bool render_blank_window(const std::string& name);
+    }
     using context_shader_init_t = std::variant<
       fan::opengl::context_t::shader_t,
       fan::vulkan::context_t::shader_t
@@ -2127,7 +2125,7 @@ public:
       vk.shape_data.open(gloco->context.vk, 1);
       vk.shape_data.allocate(gloco->context.vk, 0xffffff);
       
-      std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties{ {0} };
+      std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties{ {{0}} };
       {
         ds_properties[0].binding = 0;
         ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;

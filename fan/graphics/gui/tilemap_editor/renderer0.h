@@ -119,7 +119,6 @@ struct fte_renderer_t : fte_loader_t {
     int additional_depth = y + node.compiled_map->tile_size.y / 2;
     switch (j.mesh_property) {
       case fte_t::mesh_property_t::none: {
-      fan::print("+", node.position + fan::vec3(fan::vec2(j.position) * node.size, additional_depth + j.position.z), j.size * node.size);
         node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::sprite_t{ {
             .camera = camera,
             .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, additional_depth + j.position.z),
