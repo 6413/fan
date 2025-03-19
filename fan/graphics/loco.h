@@ -191,7 +191,6 @@ struct global_loco_t {
   }
 };
 
-struct loco_t;
 // might crash if pch or lib is built with extern/inline so if its different, 
 // it will crash in random places
 inline global_loco_t gloco;
