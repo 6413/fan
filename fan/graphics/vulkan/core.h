@@ -399,8 +399,6 @@ namespace fan {
 
       void create_sync_objects();
 
-      void begin_render(const fan::color& clear_color, std::function<void()> cmd_buffer_reset_cb);
-
        //----------------------------------------------imgui stuff----------------------------------------------
       bool                     SwapChainRebuild = false;
       #if defined(loco_imgui)
@@ -489,6 +487,9 @@ namespace fan {
       std::vector<VkSemaphore> render_finished_semaphores;
       std::vector<VkFence> in_flight_fences;
       uint32_t current_frame = 0;
+
+      bool enable_clear = true;
+      bool shapes_top = false;
 
       bool vsync = true;
       uint32_t image_index;

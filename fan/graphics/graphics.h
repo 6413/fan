@@ -5,6 +5,7 @@
 
 // user friendly functions
 /***************************************/
+
 namespace fan {
   namespace graphics {
 

@@ -648,6 +648,7 @@ void draw_shapes() {
         if (viewport.iic() == false) {
           auto v = loco.viewport_get(viewport);
           loco.viewport_set(v.viewport_position, v.viewport_size, loco.window.get_size());
+         // fan::print(v.viewport_position, v.viewport_size);
         }
         loco.shader_set_value(shader, "_t00", 0);
         if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {

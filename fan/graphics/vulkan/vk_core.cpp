@@ -861,9 +861,34 @@ void fan::vulkan::context_t::open(fan::window_t& window) {
   create_command_buffers();
   create_sync_objects();
   descriptor_pool.open(*this);
-  #if defined(loco_imgui)
+#if defined(loco_imgui)
   ImGuiSetupVulkanWindow();
 #endif
+
+  //{
+  //  VkImageMemoryBarrier barrier = {};
+  //  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  //  barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Layout after the first render pass
+  //  barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Layout for the second render pass
+  //  barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // Access in the first pass
+  //  barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // Access in the second pass
+  //  barrier.image = swap_chain; // Your color attachment image
+  //  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // For color attachments
+  //  barrier.subresourceRange.baseMipLevel = 0;
+  //  barrier.subresourceRange.levelCount = 1;
+  //  barrier.subresourceRange.baseArrayLayer = 0;
+  //  barrier.subresourceRange.layerCount = 1;
+
+  //  // Insert the pipeline barrier
+  //  vkCmdPipelineBarrier(commandBuffer,
+  //    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Source stage
+  //    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Destination stage
+  //    0, // No dependency flags
+  //    0, nullptr, // No memory barriers
+  //    0, nullptr, // No buffer barriers
+  //    1, &barrier); // One image barrier
+  //}
+
 }
 
 void close_vais(fan::vulkan::context_t& c, std::vector<fan::vulkan::vai_t>& v) {
@@ -1387,17 +1412,17 @@ void fan::vulkan::context_t::create_render_pass() {
   mainColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   mainColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   mainColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  mainColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  mainColorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // For post-process input
+  mainColorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  mainColorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // For post-process input
 
   VkAttachmentDescription postProcessedColorAttachment{};
   postProcessedColorAttachment.format = swap_chain_image_format;
   postProcessedColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  postProcessedColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  postProcessedColorAttachment.loadOp = shapes_top ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   postProcessedColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   postProcessedColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   postProcessedColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  postProcessedColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  postProcessedColorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   postProcessedColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
   VkAttachmentDescription depthAttachment{};
@@ -1579,7 +1604,7 @@ void fan::vulkan::context_t::pipeline_t::open(fan::vulkan::context_t& context, c
 
   VkPipelineDepthStencilStateCreateInfo depthStencil{};
   depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-  depthStencil.depthTestEnable = VK_FALSE;//p.enable_depth_test;
+  depthStencil.depthTestEnable = VK_TRUE;//p.enable_depth_test;
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = p.depth_test_compare_op;
   depthStencil.depthBoundsTestEnable = VK_FALSE;
@@ -1684,65 +1709,6 @@ void fan::vulkan::context_t::create_sync_objects() {
       throw std::runtime_error("failed to create synchronization objects for a frame!");
     }
   }
-}
-
-void fan::vulkan::context_t::begin_render(const fan::color& clear_color, std::function<void()> cmd_buffer_reset_cb) {
-  vkWaitForFences(device, 1, &in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
-  vkResetFences(device, 1, &in_flight_fences[current_frame]);
-
-  vkResetCommandBuffer(command_buffers[current_frame], /*VkCommandBufferResetFlagBits*/ 0);
-  fan::vulkan::context_t& context = *this;
-  {
-    fan::graphics::image_list_t::nrtra_t nrtra;
-    fan::graphics::image_nr_t nr;
-    nrtra.Open(&image_list, &nr);
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    image_pool.resize(image_list.Usage());
-    uintptr_t idx = 0;
-    while (nrtra.Loop(&image_list, &nr)) {
-      auto& img = image_get(context, nr);
-      imageInfo.imageView = img.image_view;
-      imageInfo.sampler = img.sampler;
-      image_pool[idx++] = imageInfo;
-    }
-    nrtra.Close(&image_list);
-  }
-
-  cmd_buffer_reset_cb();
-
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-  if (vkBeginCommandBuffer(command_buffers[current_frame], &beginInfo) != VK_SUCCESS) {
-    fan::throw_error("failed to begin recording command buffer!");
-  }
-
-  command_buffer_in_use = true;
-
-  VkRenderPassBeginInfo renderPassInfo{};
-  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass = render_pass;
-  renderPassInfo.framebuffer = swap_chain_framebuffers[image_index];
-  renderPassInfo.renderArea.offset = { 0, 0 };
-  renderPassInfo.renderArea.extent.width = swap_chain_size.x;
-  renderPassInfo.renderArea.extent.height = swap_chain_size.y;
-
-
-  // TODO
-
-  VkClearValue clearValues[
-    3
-  ]{};
-    clearValues[0].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
-    clearValues[1].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
-    clearValues[2].depthStencil = { 1.0f, 0 };
-
-
-    renderPassInfo.clearValueCount = std::size(clearValues);
-    renderPassInfo.pClearValues = clearValues;
-
-    vkCmdBeginRenderPass(command_buffers[current_frame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void fan::vulkan::context_t::bind_draw(const fan::vulkan::context_t::pipeline_t& pipeline, uint32_t descriptor_count, VkDescriptorSet* descriptor_sets) {
@@ -1858,7 +1824,7 @@ void fan::vulkan::context_t::ImGuiSetupVulkanWindow() {
   MainWindowData.SurfaceFormat = surface_format;
   MainWindowData.Swapchain = swap_chain;
   MainWindowData.PresentMode = present_mode;
-  MainWindowData.ClearEnable = false;
+  MainWindowData.ClearEnable = shapes_top;
 
   IM_ASSERT(MinImageCount >= 2);
   ImGui_ImplVulkanH_CreateOrResizeWindow(instance, physical_device, device, &MainWindowData, queue_family, /*g_Allocator*/nullptr, swap_chain_size.x, swap_chain_size.y, MinImageCount);
@@ -1886,6 +1852,7 @@ void fan::vulkan::context_t::ImGuiFrameRender(VkResult next_image_khr_err, fan::
   info.framebuffer = fd->Framebuffer;
   info.renderArea.extent.width = wd->Width;
   info.renderArea.extent.height = wd->Height;
+
   vkCmdBeginRenderPass(command_buffers[current_frame], &info, VK_SUBPASS_CONTENTS_INLINE);
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffers[current_frame]);
 

@@ -1404,6 +1404,7 @@ loco_t::loco_t(const properties_t& p) {
   if (fan::init_manager_t::initialized() == false) {
     fan::init_manager_t::initialize();
   }
+  render_shapes_top = p.render_shapes_top;
   window.renderer = p.renderer;
   if (window.renderer == renderer_t::opengl) {
     new (&context.gl) fan::opengl::context_t();
@@ -1417,6 +1418,8 @@ loco_t::loco_t(const properties_t& p) {
   if(window.renderer == renderer_t::vulkan) {
     context_functions = fan::graphics::get_vk_context_functions();
     new (&context.vk) fan::vulkan::context_t();
+    //context.vk.enable_clear = !render_shapes_top;
+    context.vk.shapes_top = render_shapes_top;
     context.vk.open(window);
   }
 
@@ -1703,7 +1706,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
     }
     init_imgui();
     #if defined(loco_imgui)
-      settings_menu.open();
+      settings_menu.set_settings_theme();
     #endif
 
     shaper._BlockListCapacityChange(shape_type_t::rectangle, 0, 1);
@@ -1712,68 +1715,60 @@ void loco_t::switch_renderer(uint8_t renderer) {
   reload_renderer_to = -1;
 }
 
-uint32_t loco_t::draw_shapes() {
+void loco_t::draw_shapes() {
   if (window.renderer == renderer_t::opengl) {
     gl.draw_shapes();
   }
   else if (window.renderer == renderer_t::vulkan) {
-    return vk.draw_shapes();
+    vk.draw_shapes();
   }
-  return 0;
 }
 
-void loco_t::process_frame() {
+void loco_t::process_shapes() {
 
-  if (window.renderer == renderer_t::opengl) {
-    gl.begin_process_frame();
-  }
-
-  {
-    auto it = m_update_callback.GetNodeFirst();
-    while (it != m_update_callback.dst) {
-      m_update_callback.StartSafeNext(it);
-      m_update_callback[it](this);
-      it = m_update_callback.EndSafeNext();
+  if (window.renderer == renderer_t::vulkan) {
+    if (render_shapes_top == true) {
+      vk.begin_render_pass();
     }
   }
-
-#if defined(loco_box2d)
-  {
-    auto it = shape_physics_update_cbs.GetNodeFirst();
-    while (it != shape_physics_update_cbs.dst) {
-      shape_physics_update_cbs.StartSafeNext(it);
-      ((shape_physics_update_cb)shape_physics_update_cbs[it].cb)(shape_physics_update_cbs[it]);
-      it = shape_physics_update_cbs.EndSafeNext();
-    }
-  }
-#endif
-
-  for (const auto& i : single_queue) {
-    i();
-  }
-
-  single_queue.clear();
-
-  #if defined(loco_imgui)
-    ImGui::End();
-#endif
-
-  shaper.ProcessBlockEditQueue();
-
-  viewport_set(0, window.get_size(), window.get_size());
 
   for (const auto& i : m_pre_draw) {
     i();
   }
 
-  uint32_t err = draw_shapes();
+  draw_shapes();
 
   for (const auto& i : m_post_draw) {
     i();
   }
 
-#if defined(loco_imgui)
+  if (window.renderer == renderer_t::vulkan) {
+    auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
+    if (vk.image_error != (decltype(vk.image_error))-0xfff) {
+      vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk.post_process);
+      vkCmdBindDescriptorSets(
+        cmd_buffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vk.post_process.m_layout,
+        0,
+        1,
+        vk.d_attachments.m_descriptor_set,
+        0,
+        nullptr
+      );
 
+      // render post process
+      vkCmdDraw(cmd_buffer, 6, 1, 0, 0);
+    }
+    if (render_shapes_top == true) {
+      vkCmdEndRenderPass(cmd_buffer);
+    }
+  }
+}
+
+void loco_t::process_gui() {
+#if defined(loco_imgui)
   {
     auto it = m_imgui_draw_cb.GetNodeFirst();
     while (it != m_imgui_draw_cb.dst) {
@@ -1885,37 +1880,76 @@ void loco_t::process_frame() {
   }
   else if (window.renderer == renderer_t::vulkan) {
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
-    vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
     // did draw
-    if (err != (decltype(err))-0xfff) {
-      vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk.post_process);
-      vkCmdBindDescriptorSets(
-        cmd_buffer,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        vk.post_process.m_layout,
-        0,
-        1,
-        vk.d_attachments.m_descriptor_set,
-        0,
-        nullptr
-      );
-
-      // render post process
-      vkCmdDraw(cmd_buffer, 6, 1, 0, 0);
+    if (vk.image_error == (decltype(vk.image_error))-0xfff) {
+      vk.image_error = VK_SUCCESS;
     }
-    else {
-      err = VK_SUCCESS;
+    if (render_shapes_top == false) {
+      vkCmdEndRenderPass(cmd_buffer);
     }
-    vkCmdEndRenderPass(cmd_buffer);
 
     ImDrawData* draw_data = ImGui::GetDrawData();
     const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
     if (!is_minimized) {
-     context.vk.ImGuiFrameRender((VkResult)err, clear_color);
-      //context.vk.ImGuiFramePresent();
+     context.vk.ImGuiFrameRender(vk.image_error, clear_color);
     }
   }
 #endif
+}
+
+void loco_t::process_frame() {
+
+  if (window.renderer == renderer_t::opengl) {
+    gl.begin_process_frame();
+  }
+
+  {
+    auto it = m_update_callback.GetNodeFirst();
+    while (it != m_update_callback.dst) {
+      m_update_callback.StartSafeNext(it);
+      m_update_callback[it](this);
+      it = m_update_callback.EndSafeNext();
+    }
+  }
+
+#if defined(loco_box2d)
+  {
+    auto it = shape_physics_update_cbs.GetNodeFirst();
+    while (it != shape_physics_update_cbs.dst) {
+      shape_physics_update_cbs.StartSafeNext(it);
+      ((shape_physics_update_cb)shape_physics_update_cbs[it].cb)(shape_physics_update_cbs[it]);
+      it = shape_physics_update_cbs.EndSafeNext();
+    }
+  }
+#endif
+
+  for (const auto& i : single_queue) {
+    i();
+  }
+
+  single_queue.clear();
+
+  #if defined(loco_imgui)
+    ImGui::End();
+#endif
+
+  shaper.ProcessBlockEditQueue();
+
+
+  if (window.renderer == renderer_t::vulkan){
+    vk.begin_draw();
+  }
+
+  viewport_set(0, window.get_size(), window.get_size());
+
+  if (render_shapes_top == false) {
+    process_shapes();
+    process_gui();
+  }
+  else {
+    process_gui();
+    process_shapes();
+  }
 
   if (window.renderer == renderer_t::opengl) {
     glfwSwapBuffers(window);

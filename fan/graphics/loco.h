@@ -628,6 +628,7 @@ struct loco_t {
 
     fan::vulkan::context_t::descriptor_t d_attachments;
     fan::vulkan::context_t::pipeline_t post_process;
+    VkResult image_error = VK_SUCCESS;
   }vk;
 #endif
 
@@ -727,6 +728,7 @@ public:
   
 
   struct properties_t {
+    bool render_shapes_top = false;
     bool vsync = true;
     fan::vec2 window_size = -1;
     uint64_t window_flags = 0;
@@ -753,7 +755,9 @@ public:
   // input loco_t::renderer_t::
   void switch_renderer(uint8_t renderer);
 
-  uint32_t draw_shapes();
+  void draw_shapes();
+  void process_shapes();
+  void process_gui();
   void process_frame();
 
   bool should_close();
@@ -2237,6 +2241,7 @@ public:
 
   #include <fan/graphics/gui/settings_menu.h>
   settings_menu_t settings_menu;
+  bool render_shapes_top = false;
 #endif
   //gui
 
@@ -2409,10 +2414,11 @@ namespace fan {
     void add_input_action(int key, std::string_view action_name);
     bool is_input_action_active(std::string_view action_name, int pstate = loco_t::input_action_t::press);
 
+    fan::vec2 get_mouse_position();
     fan::vec2 get_mouse_position(const fan::graphics::camera_t& camera);
     fan::vec2 get_mouse_position(
-      const loco_t::camera_t& camera = gloco->orthographic_camera.camera, 
-      const loco_t::viewport_t& viewport = gloco->orthographic_camera.viewport
+      const loco_t::camera_t& camera, 
+      const loco_t::viewport_t& viewport
     );
 
     void text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0);
