@@ -77,19 +77,102 @@ void shapes_open() {
   }
 }
 
-uint32_t draw_shapes() {
-  vkWaitForFences(loco.context.vk.device, 1, &loco.context.vk.in_flight_fences[loco.context.vk.current_frame], VK_TRUE, UINT64_MAX);
+void begin_render_pass() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  VkRenderPassBeginInfo renderPassInfo{};
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.renderPass = context.render_pass;
+  renderPassInfo.framebuffer = context.swap_chain_framebuffers[context.image_index];
+  renderPassInfo.renderArea.offset = { 0, 0 };
+  renderPassInfo.renderArea.extent.width = context.swap_chain_size.x;
+  renderPassInfo.renderArea.extent.height = context.swap_chain_size.y;
+
+  // TODO
+  VkClearValue clear_values[
+    3
+  ]{};
+  fan::color clear_color = loco.clear_color;
+  clear_values[0].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
+  clear_values[1].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
+  clear_values[2].depthStencil = { 1.0f, 0 };
+
+
+  renderPassInfo.clearValueCount = std::size(clear_values);
+  renderPassInfo.pClearValues = clear_values;
+
+  if (loco.render_shapes_top) {
+  //  renderPassInfo.clearValueCount = 0;
+  }
+
+
+  vkCmdBeginRenderPass(context.command_buffers[context.current_frame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+void begin_draw() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
     
-  VkResult err = vkAcquireNextImageKHR(
-    loco.context.vk.device,
-    loco.context.vk.swap_chain,
+  loco.vk.image_error = vkAcquireNextImageKHR(
+    context.device,
+    context.swap_chain,
     UINT64_MAX,
-    loco.context.vk.image_available_semaphores[loco.context.vk.current_frame],
+    context.image_available_semaphores[context.current_frame],
     VK_NULL_HANDLE,
-    &loco.context.vk.image_index
+    &context.image_index
   );
 
-  loco.context.vk.recreate_swap_chain(&loco.window, err);
+  context.recreate_swap_chain(&loco.window, loco.vk.image_error);
+  vkResetFences(context.device, 1, &context.in_flight_fences[context.current_frame]);
+  vkResetCommandBuffer(context.command_buffers[context.current_frame], /*VkCommandBufferResetFlagBits*/ 0);
+  {
+    fan::graphics::image_list_t::nrtra_t nrtra;
+    fan::graphics::image_nr_t nr;
+    nrtra.Open(&loco.image_list, &nr);
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    context.image_pool.resize(loco.image_list.Usage());
+    uintptr_t idx = 0;
+    while (nrtra.Loop(&loco.image_list, &nr)) {
+      fan::vulkan::context_t::image_t img = std::get<fan::vulkan::context_t::image_t>(loco.image_get(nr));
+      imageInfo.imageView = img.image_view;
+      imageInfo.sampler = img.sampler;
+      context.image_pool[idx++] = imageInfo;
+    }
+    nrtra.Close(&loco.image_list);
+  }
+
+  {
+    for (auto& st : loco.shaper.ShapeTypes) {
+      if (st.sti == (decltype(st.sti))-1) {
+        continue;
+      }
+      // TODO add more shapes here to enable textures
+      if (st.sti != loco_t::shape_type_t::sprite) {
+        continue;
+      }
+      auto& vk_data = std::get<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer);
+      // todo slow, use only pointer
+      vk_data.shape_data.m_descriptor.m_properties[2].image_infos = loco.context.vk.image_pool;
+      // doesnt like multiple frames in flight
+      vk_data.shape_data.m_descriptor.update(loco.context.vk, 1, 2, vk_data.shape_data.m_descriptor.m_properties[2].image_infos.size());
+    }
+  }
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+  if (vkBeginCommandBuffer(context.command_buffers[context.current_frame], &beginInfo) != VK_SUCCESS) {
+    fan::throw_error("failed to begin recording command buffer!");
+  }
+
+  context.command_buffer_in_use = true;
+  
+  if (loco.render_shapes_top == false) {
+    begin_render_pass();
+  }
+}
+
+void draw_shapes() {
 
   loco.context.vk.memory_queue.process(loco.context.vk);
 
@@ -107,27 +190,6 @@ uint32_t draw_shapes() {
   bool did_draw = false;
 
   bool light_buffer_enabled = false;
-
-  auto update_descriptors_after_cmd_buffer_reset = [&] {
-    {
-      for (auto& st : loco.shaper.ShapeTypes) {
-        if (st.sti == (decltype(st.sti))-1) {
-          continue;
-        }
-        // TODO add more shapes here to enable textures
-        if (st.sti != loco_t::shape_type_t::sprite) {
-          continue;
-        }
-        auto& vk_data = std::get<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer);
-        // todo slow, use only pointer
-        vk_data.shape_data.m_descriptor.m_properties[2].image_infos = loco.context.vk.image_pool;
-        // doesnt like multiple frames in flight
-        vk_data.shape_data.m_descriptor.update(loco.context.vk, 1, 2, vk_data.shape_data.m_descriptor.m_properties[2].image_infos.size());
-      }
-    }
-  };
-
-  loco.context.vk.begin_render(loco.clear_color, update_descriptors_after_cmd_buffer_reset);
 
   auto& cmd_buffer = loco.context.vk.command_buffers[loco.context.vk.current_frame];
     
@@ -221,7 +283,8 @@ uint32_t draw_shapes() {
           vkCmdSetViewport(cmd_buffer, 0, 1, &vk_viewport);
 
           VkRect2D scissor = {};
-          scissor.offset = { 0, 0 };
+          scissor.offset.x = viewport_data.viewport_position.x;
+          scissor.offset.y = viewport_data.viewport_position.y;
           scissor.extent = viewport_data.viewport_size;
 
           vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
@@ -265,9 +328,8 @@ uint32_t draw_shapes() {
     }
   }
   if (did_draw == false) {
-    return -0xfff;
+    loco.vk.image_error = (VkResult)-0xfff;
   }
-  return err;
 }
 
 #undef loco
