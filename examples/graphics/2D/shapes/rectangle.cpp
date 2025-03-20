@@ -16,10 +16,6 @@ int main() {
     .color = fan::colors::blue,
   } };
   }
-  //fan::time::clock c;
-  //c.start(1e+9);
-  //int f = 0;
-  int f = 0;
   fan_window_loop{
 
   };
