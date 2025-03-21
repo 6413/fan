@@ -311,7 +311,7 @@ void shapes_open() {
       );
       auto& st = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(loco.shaper.GetShapeTypes(loco_t::shape_type_t::polygon).renderer);
       st.vertex_count = loco_t::polygon_t::max_vertices_per_element;
-      st.draw_mode = GL_TRIANGLES;
+      st.draw_mode = GL_TRIANGLE_STRIP;
     }
   }
 
