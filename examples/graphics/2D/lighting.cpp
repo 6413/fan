@@ -42,7 +42,6 @@ int main() {
   f32_t x = 0;
   loco.loop([&] {
     //fan_imgui_dragfloat(loco.blur.bloom_filter_radius, 0.01, 0, 3);
-    loco.get_fps();
     l0.set_position(loco.get_mouse_position());
     if (loco.window.key_pressed(fan::key_w)) {
       l0.set_size(l0.get_size() * 10);

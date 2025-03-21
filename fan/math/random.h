@@ -19,7 +19,7 @@ namespace fan {
     template <typename type_t>
     struct fast_rand_t {
 
-      fast_rand_t(type_t min, type_t max) : 
+      fast_rand_t(type_t min, type_t max) :
         m_random(m_device()),
         m_distance(min, max)
       { }
@@ -41,22 +41,32 @@ namespace fan {
 
     };
 
-   inline int64_t value_i64(int64_t min, int64_t max) {
+    template <typename T>
+    T value(const T& vmin, const T& vmax) {
       static std::random_device device;
       static std::mt19937_64 random(device());
 
-      std::uniform_int_distribution<int64_t> distance(min, max);
-
-      return distance(random);
+      if constexpr (std::is_integral_v<T>) {
+        std::uniform_int_distribution<T> distribution(vmin, vmax);
+        return distribution(random);
+      }
+      else if constexpr (std::is_floating_point_v<T>) {
+        std::uniform_real_distribution<T> distribution(vmin, vmax);
+        return distribution(random);
+      }
+      else {
+        static_assert(std::is_arithmetic_v<T>, "Arguments must be arithmetic");
+      }
     }
-   inline int64_t i64(int64_t min, int64_t max) {
-     return value_i64(min, max);
-   }
-    
-    static constexpr auto float_accuracy = 1000000;
-
+    // legacy
+    inline int64_t value_i64(int64_t min, int64_t max) {
+      return value<int64_t>(min, max);
+    }
+    inline int64_t i64(int64_t min, int64_t max) {
+      return value_i64(min, max);
+    }
     inline f32_t value_f32(f32_t min, f32_t max) {
-      return (f32_t)value_i64(min * float_accuracy, max * float_accuracy) / float_accuracy;
+      return value<f32_t>(min, max);
     }
     inline f32_t f32(f32_t min, f32_t max) {
       return value_f32(min, max);
@@ -67,7 +77,7 @@ namespace fan {
       fan::string newstr;
       std::size_t pos;
       newstr.reserve(len);
-      while(newstr.size() != len) {
+      while (newstr.size() != len) {
         pos = fan::random::value_i64(0, str.size() - 1);
         newstr += str[pos];
       }
@@ -85,78 +95,36 @@ namespace fan {
     //   return newstr;
     // }
 
-    /**
-     * Generates a random 2D integer vector with components between min and max (inclusive).
-     * 
-     * @param min The minimum value of the vector components.
-     * @param max The maximum value of the vector components.
-     * @return A random 2D integer vector with components between min and max.
-     */
     inline fan::vec2i vec2i(int64_t min, int64_t max) {
       return fan::vec2i(fan::random::value_i64(min, max), fan::random::value_i64(min, max));
     }
 
-    /**
-     * Generates a random 2D floating-point vector with components between min and max (inclusive).
-     * 
-     * @param min The minimum value of the vector components.
-     * @param max The maximum value of the vector components.
-     * @return A random 2D floating-point vector with components between min and max.
-     */
     inline fan::vec2 vec2(f32_t min, f32_t max) {
       return fan::vec2(fan::random::value_f32(min, max), fan::random::value_f32(min, max));
     }
 
-    /**
-     * Generates a random 2D floating-point vector with components between the corresponding components of v0 and v1.
-     * 
-     * @param v0 The minimum values of the vector components.
-     * @param v1 The maximum values of the vector components.
-     * @return A random 2D floating-point vector with components between v0 and v1.
-     */
     inline fan::vec2 vec2(const fan::vec2& v0, const fan::vec2& v1) {
       return fan::vec2(fan::random::value_f32(v0.x, v1.x), fan::random::value_f32(v0.y, v1.y));
     }
 
-    /**
-     * Generates a random 3D floating-point vector with components between min and max (inclusive).
-     * 
-     * @param min The minimum value of the vector components.
-     * @param max The maximum value of the vector components.
-     * @return A random 3D floating-point vector with components between min and max.
-     */
     inline fan::vec3 vec3(f32_t min, f32_t max) {
       return fan::vec3(fan::random::value_f32(min, max), fan::random::value_f32(min, max), fan::random::value_f32(min, max));
     }
 
-    /**
-     * Generates a random color with RGB components between 0 and 1, and alpha component set to 1.
-     * 
-     * @return A random color.
-     */
     inline fan::color color() {
       return fan::color(
-        fan::random::value_f32(0, 1), 
         fan::random::value_f32(0, 1),
-        fan::random::value_f32(0, 1), 
+        fan::random::value_f32(0, 1),
+        fan::random::value_f32(0, 1),
         1
       );
     }
 
-    /**
-     * Represents a percent-output pair.
-     */
     struct percent_output_t {
-      f32_t percent; /**< The percentage chance of the output. */
-      uint32_t output; /**< The output value. */
+      f32_t percent;
+      uint32_t output;
     };
 
-    /**
-     * Returns an output value based on the specified percentage chances.
-     * 
-     * @param po A vector of percent-output pairs.
-     * @return An output value based on the percentage chances.
-     */
     static uint32_t get_output_with_percent(const std::vector<percent_output_t>& po) {
 
       for (std::size_t i = 0; i < po.size(); i++) {
@@ -168,13 +136,6 @@ namespace fan {
       return -1;
     }
 
-    /**
-     * Generates a random 2D vector representing a direction with an angle between min and max (inclusive).
-     * 
-     * @param min The minimum angle in radians.
-     * @param max The maximum angle in radians.
-     * @return A random 2D vector representing a direction with an angle between min and max.
-     */
     inline fan::vec2 vec2_direction(f32_t min, f32_t max) {
       min = -min;
       max = -max;
