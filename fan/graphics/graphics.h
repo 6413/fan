@@ -1011,3 +1011,7 @@ namespace fan {
     } \
   }dm; \
   loop_entry = [&]()
+
+#define fan_window_close() \
+  gloco->close(); \
+  return
