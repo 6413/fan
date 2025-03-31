@@ -1002,15 +1002,15 @@ namespace fan {
   } \
   void main_entry()
 
+struct fan_window_loop_t{
+  fan_window_loop_t(const auto& lambda) {
+    gloco->loop(lambda);
+  }
+};
+
+// static called inside scope, so its fine for linking
 #define fan_window_loop \
-  static std::function<void()> loop_entry=[]{}; \
-  /*destructor_magic*/ \
-  struct dm_t { \
-    ~dm_t() { \
-      gloco->loop(loop_entry); \
-    } \
-  }dm; \
-  loop_entry = [&]()
+  static fan_window_loop_t __fan_window_loop_entry = [&]()
 
 #define fan_window_close() \
   gloco->close(); \
