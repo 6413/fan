@@ -11,10 +11,11 @@ layout(location = 0) out travel_data_t data;
 
 struct block_instance_t{
 	vec3 position;
-	vec2 size;
-	vec2 rotation_point;
-	vec4 color;
-	vec3 angle;
+  vec2 size;
+  vec2 rotation_point;
+  vec4 color;
+  vec4 outline_color;
+  vec3 angle;
 };
 
 layout(std140, binding = 0) readonly buffer instances_t{
