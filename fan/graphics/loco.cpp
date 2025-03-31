@@ -1124,23 +1124,8 @@ loco_t::functions_t loco_t::get_functions() {
 
 #undef shaper_get_key_safe
 
-void close_loco(loco_t* loco) {
-  #if defined(loco_imgui)
-  loco->console.commands.func_table.clear();
-  loco->console.close();
-#endif
-  fan::graphics::close_bcol();
-  if (loco->window.renderer == loco_t::renderer_t::vulkan) {
-    vkDeviceWaitIdle(loco->context.vk.device);
-    vkDestroySampler(loco->context.vk.device, loco->vk.post_process_sampler, nullptr);
-    loco->vk.d_attachments.close(loco->context.vk);
-    loco->vk.post_process.close(loco->context.vk);
-  }
-  loco->shaper.Close();
-#if defined(loco_imgui)
-  loco->destroy_imgui();
-#endif
-  loco->window.close();
+void loco_t::close() {
+  window.close();
 }
 
 void generate_commands(loco_t* loco) {
@@ -1563,8 +1548,30 @@ loco_t::loco_t(const properties_t& p) {
   #endif
 }
 
+void loco_t::destroy() {
+  if (window == nullptr) {
+    return;
+  }
+#if defined(loco_imgui)
+  console.commands.func_table.clear();
+  console.close();
+#endif
+  fan::graphics::close_bcol();
+  if (window.renderer == loco_t::renderer_t::vulkan) {
+    vkDeviceWaitIdle(context.vk.device);
+    vkDestroySampler(context.vk.device, vk.post_process_sampler, nullptr);
+    vk.d_attachments.close(context.vk);
+    vk.post_process.close(context.vk);
+  }
+  shaper.Close();
+#if defined(loco_imgui)
+  destroy_imgui();
+#endif
+  window.close();
+}
+
 loco_t::~loco_t() {
-  close_loco(this);
+  destroy();
 }
 
 void loco_t::switch_renderer(uint8_t renderer) {
@@ -2030,7 +2037,7 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 
   // user can terminate from main loop
   if (should_close()) {
-    window.close();
+    close();
     return 1;
   }//
 
@@ -2040,7 +2047,7 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
   
   // window can also be closed from window cb
   if (should_close()) {
-    window.close();
+    close();
     return 1;
   }//
     
