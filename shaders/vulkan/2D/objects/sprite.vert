@@ -1,5 +1,4 @@
-R"(
-#version 450
+#version 430
 
 #define get_instance() instances[gl_InstanceIndex]
 
@@ -7,14 +6,19 @@ layout(location = 0) out vec4 instance_color;
 layout(location = 1) out vec2 texture_coordinate;
 layout(location = 2) out flat uint flag;
 
+
+
 struct block_instance_t{
 	vec3 position;
-	vec2 size;
-	vec2 rotation_point;
-	vec4 color;
-	vec3 angle;
-	vec2 tc_position;
-	vec2 tc_size;
+  float parallax_factor;
+  vec2 size;
+  vec2 rotation_point;
+  vec4 color;
+  vec3 angle;
+  uint flags;
+  vec2 tc_position;
+  vec2 tc_size;
+  float seed;
 };
 
 layout(std140, binding = 0) readonly buffer instances_t{
@@ -35,6 +39,15 @@ layout(binding = 1) uniform upv_t {
 	pv_t pv[16];
 };
 
+vec2 tc[] = vec2[](
+	vec2(0, 0), // top left
+	vec2(1, 0), // top right
+	vec2(1, 1), // bottom right
+	vec2(1, 1), // bottom right
+	vec2(0, 1), // bottom left
+	vec2(0, 0) // top left
+);
+
 vec2 rectangle_vertices[] = vec2[](
 	vec2(-1.0, -1.0),
 	vec2(1.0, -1.0),
@@ -43,15 +56,6 @@ vec2 rectangle_vertices[] = vec2[](
 	vec2(1.0, 1.0),
 	vec2(-1.0, 1.0),
 	vec2(-1.0, -1.0)
-);
-
-vec2 tc[] = vec2[](
-	vec2(0, 0), // top left
-	vec2(1, 0), // top right
-	vec2(1, 1), // bottom right
-	vec2(1, 1), // bottom right
-	vec2(0, 1), // bottom left
-	vec2(0, 0) // top left
 );
 
 mat4 translate(mat4 m, vec3 v) {
@@ -108,8 +112,9 @@ void main() {
 
   vec2 rotated = vec4(m * vec4(rp * get_instance().size, 0, 1)).xy;
 
-  gl_Position = pv[constants.camera_id].projection * view_mat * vec4(rotated + get_instance().position.xy, get_instance().position.z, 1);
+  vec4 view_position = view * vec4(rotated + get_instance().position.xy, get_instance().position.z, 1);
+
+  gl_Position = pv[constants.camera_id].projection * view_position;
 	instance_color = get_instance().color;
 	texture_coordinate = tc[id] * get_instance().tc_size + get_instance().tc_position;
 }
-)"

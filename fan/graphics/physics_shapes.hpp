@@ -425,12 +425,18 @@ namespace fan {
       struct polygon_t : base_shape_t {
         struct properties_t {
           camera_impl_t* camera = &gloco->orthographic_camera;
+          fan::vec3 position = 0;
+          fan::vec3 angle = 0;
+          fan::vec2 rotation_point = 0;
           std::vector<vertex_t> vertices;
           bool blending = true;
           operator fan::graphics::polygon_properties_t() const {
             return fan::graphics::polygon_properties_t{
               .camera = camera,
+              .position = position,
               .vertices = vertices,
+              .angle = angle,
+              .rotation_point = rotation_point,
               .blending = blending
             };
           }
@@ -447,7 +453,8 @@ namespace fan {
               for (std::size_t i = 0; i < points.size(); ++i) {
                 points[i] = p.vertices[i].position;
               }
-              return gloco->physics_context.create_segment(
+              return gloco->physics_context.create_polygon(
+                p.position,
                 points, p.body_type, p.shape_properties
               );
             }()),

@@ -183,6 +183,7 @@ namespace fan {
       f32_t linear_damping = 0.0f;
       fan::vec2 collision_multiplier = 1; // possibility to change multiplier of collision size
       b2Filter filter = b2DefaultFilter();
+      bool allow_fast_rotation = false;
     };
 
     struct entity_t : body_id_t {
@@ -230,7 +231,8 @@ namespace fan {
       entity_t create_circle(const fan::vec2& position, f32_t radius, uint8_t body_type, const shape_properties_t& shape_properties);
       fan::physics::entity_t create_capsule(const fan::vec2& position, const b2Capsule& info, uint8_t body_type, const shape_properties_t& shape_properties);
 
-      fan::physics::entity_t create_segment(const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties);
+      fan::physics::entity_t create_segment(const fan::vec2& position, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties);
+      fan::physics::entity_t create_polygon(const fan::vec2& position, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties);
 
       void step(f32_t dt);
 

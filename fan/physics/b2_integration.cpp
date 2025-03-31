@@ -25,6 +25,7 @@ fan::physics::entity_t fan::physics::context_t::create_box(const fan::vec2& posi
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
   body_def.linearDamping = shape_properties.linear_damping;
+  body_def.allowFastRotation = shape_properties.allow_fast_rotation;
   entity = b2CreateBody(world_id, &body_def);
   b2ShapeDef shape_def = b2DefaultShapeDef();
   shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
@@ -49,11 +50,12 @@ fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& p
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
   body_def.linearDamping = shape_properties.linear_damping;
+  body_def.allowFastRotation = shape_properties.allow_fast_rotation;
 
   entity = b2CreateBody(world_id, &body_def);
   b2ShapeDef shape_def = b2DefaultShapeDef();
   shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
-  //shape_def.density = shape_properties.density;
+  shape_def.density = shape_properties.density;
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
   shape_def.isSensor = shape_properties.is_sensor;
@@ -78,6 +80,7 @@ fan::physics::entity_t fan::physics::context_t::create_capsule(const fan::vec2& 
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
   body_def.linearDamping = shape_properties.linear_damping;
+  body_def.allowFastRotation = shape_properties.allow_fast_rotation;
   entity = b2CreateBody(world_id, &body_def);
   b2ShapeDef shape_def = b2DefaultShapeDef();
   shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
@@ -91,12 +94,14 @@ fan::physics::entity_t fan::physics::context_t::create_capsule(const fan::vec2& 
   return entity;
 }
 
-fan::physics::entity_t fan::physics::context_t::create_segment(const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties) {
+fan::physics::entity_t fan::physics::context_t::create_segment(const fan::vec2& position, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties) {
   entity_t entity;
   b2BodyDef body_def = b2DefaultBodyDef();
+  body_def.position = position / length_units_per_meter;
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
   body_def.linearDamping = shape_properties.linear_damping;
+  body_def.allowFastRotation = shape_properties.allow_fast_rotation;
   entity = b2CreateBody(world_id, &body_def);
   b2ShapeDef shape_def = b2DefaultShapeDef();
   shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
@@ -121,6 +126,38 @@ fan::physics::entity_t fan::physics::context_t::create_segment(const std::vector
   }
   return entity;
 }
+
+fan::physics::entity_t fan::physics::context_t::create_polygon(const fan::vec2& position, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties) {
+  entity_t entity;
+  b2BodyDef body_def = b2DefaultBodyDef();
+  body_def.position = position / length_units_per_meter;
+  body_def.type = (b2BodyType)body_type;
+  body_def.fixedRotation = shape_properties.fixed_rotation;
+  body_def.linearDamping = shape_properties.linear_damping;
+  body_def.allowFastRotation = shape_properties.allow_fast_rotation;
+  entity = b2CreateBody(world_id, &body_def);
+  b2ShapeDef shape_def = b2DefaultShapeDef();
+  shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
+  shape_def.density = shape_properties.density;
+  shape_def.friction = shape_properties.friction;
+  shape_def.restitution = shape_properties.restitution;
+  shape_def.isSensor = shape_properties.is_sensor;
+  shape_def.filter = shape_properties.filter;
+
+  std::vector<b2Vec2> b2_points(points.size());
+  for (std::size_t i = 0; i < b2_points.size(); ++i) {
+    b2_points[i] = points[i] / length_units_per_meter;
+  }
+
+  b2Hull hull = b2ComputeHull(b2_points.data(), b2_points.size());
+
+  // TODO radius
+  b2Polygon polygon = b2MakePolygon(&hull, 0.15);
+
+  b2CreatePolygonShape(entity, &shape_def, &polygon);
+  return entity;
+}
+
 
 void fan::physics::context_t::step(f32_t dt) {
   static f32_t skip = 0;

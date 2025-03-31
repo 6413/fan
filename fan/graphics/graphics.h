@@ -243,7 +243,10 @@ namespace fan {
     using vertex_t = loco_t::vertex_t;
     struct polygon_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
+      fan::vec3 position = 0;
       std::vector<vertex_t> vertices;
+      fan::vec3 angle = 0;
+      fan::vec2 rotation_point = 0;
       bool blending = true;
     };
 
@@ -255,13 +258,17 @@ namespace fan {
             typename loco_t::polygon_t::properties_t,
             .camera = p.camera->camera,
             .viewport = p.camera->viewport,
+            .position = p.position,
             .vertices = p.vertices,
+            .angle = p.angle,
+            .rotation_point = p.rotation_point,
             .blending = p.blending,
           ));
       }
     };
 
     struct grid_properties_t {
+      camera_impl_t* camera = &gloco->orthographic_camera;
       fan::vec3 position = fan::vec3(0, 0, 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
       fan::vec2 grid_size = fan::vec2(1, 1);
@@ -274,6 +281,8 @@ namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::grid_t::properties_t,
+            .camera = p.camera->camera,
+            .viewport = p.camera->viewport,
             .position = p.position,
             .size = p.size,
             .grid_size = p.grid_size,
@@ -307,6 +316,7 @@ namespace fan {
       }
     };
 
+    loco_t::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color);
 
 #if defined(loco_vfi)
 
