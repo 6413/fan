@@ -4,6 +4,35 @@ loco_t& get_loco() {
 }
 #define loco get_loco()
 
+template <typename T, typename T2, typename T3, typename T4>
+static void modify_render_data_element_arr(loco_t::shape_t* shape, loco_t::shaper_t::ShapeRenderData_t* data, T2 T::* attribute, std::size_t j, auto T4::*arr_member, const T3& value) {
+  if ((gloco->context.gl.opengl.major > 3) || (gloco->context.gl.opengl.major == 3 && gloco->context.gl.opengl.minor >= 3)) {
+    (((T*)data)->*attribute)[j].*arr_member = value;
+    auto& data = gloco->shaper.ShapeList[*shape];
+    gloco->shaper.ElementIsPartiallyEdited(
+      data.sti,
+      data.blid,
+      data.ElementIndex,
+      fan::member_offset(attribute) + sizeof(std::remove_all_extents_t<T2>) * j + fan::member_offset(arr_member),
+      sizeof(T3)
+    );
+  }
+  else {
+    for (int i = 0; i < 6; ++i) {
+      auto& v = ((T*)data)[i];
+      (((T*)&v)->*attribute)[j].*arr_member = value;
+      auto& data = gloco->shaper.ShapeList[*shape];
+      gloco->shaper.ElementIsPartiallyEdited(
+        data.sti,
+        data.blid,
+        data.ElementIndex,
+        fan::member_offset(attribute) + sizeof(std::remove_all_extents_t<T2>) * (j + i) + fan::member_offset(arr_member),
+        sizeof(T3)
+      );
+    }
+  }
+}
+
 // remove gloco
 template <typename T, typename T2, typename T3>
 static void modify_render_data_element(loco_t::shape_t* shape, loco_t::shaper_t::ShapeRenderData_t* data, T2 T::* attribute, const T3& value) {

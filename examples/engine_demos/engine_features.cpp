@@ -5,6 +5,18 @@ using menu_t = engine_t::settings_menu_t;
 
 struct engine_demo_t {
 
+  static void demo_static_grid(engine_demo_t* engine_demo) {
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    engine_demo->shapes.clear();
+    engine_demo->shapes.emplace_back(fan::graphics::grid_t{{
+    .camera = &engine_demo->right_column_view,
+    .position = fan::vec3(-8, -8, 0),
+    .size = viewport_size.max(),
+    .grid_size = 32,
+    .color = fan::colors::white
+    }});
+  }
+
   static void demo_static_lighting(engine_demo_t* engine_demo) {
     engine_demo->shapes.clear();
 
@@ -181,7 +193,7 @@ struct engine_demo_t {
     shape_t{.name="Capsule", .demo_function=0},
     shape_t{.name="Circle", .demo_function=0},
     shape_t{.name="Gradient", .demo_function=0},
-    shape_t{.name="Grid", .demo_function=0},
+    shape_t{.name="Grid", .demo_function=demo_static_grid},
     shape_t{.name="Image Renderer", .demo_function=0}, // can be used to decode specific formats straight in gpu
     shape_t{.name="Light", .demo_function=demo_static_lighting, .update_function=demo_static_lighting_update},
     shape_t{.name="Particles", .demo_function=demo_static_particles},

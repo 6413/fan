@@ -638,6 +638,27 @@ struct loco_t {
     return ((T*)data)->*attribute;
   }
 
+  template <typename T, typename T2, typename T3, typename T4>
+  static void modify_render_data_element_arr(shape_t* shape, T2 T::* attribute, std::size_t i, auto T4::*arr_member, const T3& value) {
+    shaper_t::ShapeRenderData_t* data = shape->GetRenderData(gloco->shaper);
+
+    // remove gloco
+    if (gloco->window.renderer == renderer_t::opengl) {
+      gloco->gl.modify_render_data_element_arr(shape, data, attribute, i, arr_member, value);
+    }
+    else if (gloco->window.renderer == renderer_t::vulkan) {
+      (((T*)data)->*attribute)[i].*arr_member = value;
+      auto& data = gloco->shaper.ShapeList[*shape];
+      gloco->shaper.ElementIsPartiallyEdited(
+        data.sti,
+        data.blid,
+        data.ElementIndex,
+        fan::member_offset(attribute),
+        sizeof(T3)
+      );
+    }
+  }
+
   template <typename T, typename T2, typename T3>
   static void modify_render_data_element(shape_t* shape, T2 T::* attribute, const T3& value) {
     shaper_t::ShapeRenderData_t* data = shape->GetRenderData(gloco->shaper);
@@ -1659,9 +1680,20 @@ public:
     loco_t::shape_t push_back(const capsule_t::properties_t& properties);
   }capsule;
 
+  
+#pragma pack(push, 1)
+
   struct vertex_t {
     fan::vec3 position;
     fan::color color;
+  };
+
+  struct polygon_vertex_t {
+    fan::vec3 position;
+    fan::color color;
+    fan::vec3 offset;
+    fan::vec3 angle;
+    fan::vec2 rotation_point;
   };
 
   struct polygon_t {
@@ -1670,11 +1702,10 @@ public:
     static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::polygon;
     static constexpr int kpi = kp::common;
 
-#pragma pack(push, 1)
 
     // vertex
     struct vi_t {
-      vertex_t vertices[max_vertices_per_element];
+      polygon_vertex_t vertices[max_vertices_per_element];
     };
     struct ri_t {
 
@@ -1683,13 +1714,18 @@ public:
 #pragma pack(pop)
 
     inline static auto locations = std::to_array({
-      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vertex_t), (void*)(offsetof(vertex_t, position)) },
-      shape_gl_init_t{{1, "in_color"}, 4, GL_FLOAT, sizeof(vertex_t), (void*)(offsetof(vertex_t, color)) },
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, position)) },
+      shape_gl_init_t{{1, "in_color"}, 4, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, color)) },
+      shape_gl_init_t{{2, "in_offset"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, offset)) },
+      shape_gl_init_t{{3, "in_angle"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, angle)) },
+      shape_gl_init_t{{4, "in_rotation_point"}, 2, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, rotation_point)) },
     });
 
     struct properties_t {
       using type_t = polygon_t;
-
+      fan::vec3 position = 0;
+      fan::vec3 angle = 0;
+      fan::vec2 rotation_point = 0;
       std::vector<vertex_t> vertices;
       bool blending = true;
       loco_t::camera_t camera = gloco->orthographic_camera.camera;

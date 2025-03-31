@@ -18,10 +18,17 @@ void fan::graphics::physics_shapes::shape_physics_update(const loco_t::physics_u
   shape.set_position(p * fan::physics::length_units_per_meter);
   shape.set_angle(fan::vec3(0, 0, radians));
   b2ShapeId id[1];
-  b2Body_GetShapes(data.body_id, id, 1);
-  auto aabb = b2Shape_GetAABB(id[0]);
-  fan::vec2 size = fan::vec2(aabb.upperBound - aabb.lowerBound) / 2;
-  fan::graphics::physics_shapes::physics_update_cb(shape, shape.get_position(), size* fan::physics::length_units_per_meter/2, radians);
+  if (b2Body_GetShapes(data.body_id, id, 1)) {
+    auto aabb = b2Shape_GetAABB(id[0]);
+    fan::vec2 size = fan::vec2(aabb.upperBound - aabb.lowerBound) / 2;
+    fan::graphics::physics_shapes::physics_update_cb(shape, shape.get_position(), size* fan::physics::length_units_per_meter/2, radians);
+  }
+  //hitbox_visualize[(void*) & data.body_id] = fan::graphics::rectangle_t{{
+  //    .position = fan::vec3(p * fan::physics::length_units_per_meter, 0xffff-100),
+  //    .size = 30,
+  //    .color = fan::colors::green
+  //}};
+
 
   // joint debug
   

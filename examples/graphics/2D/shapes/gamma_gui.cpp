@@ -102,7 +102,7 @@ bool set_monitor_gamma_ramp(const std::string& device_name, const gamma_ramp_t& 
   return result != 0;
 }
 
-void set_monitors_gamma(std::vector<HMONITOR>& monitors, f32_t gamma) {
+void set_monitors_gamma(const std::vector<HMONITOR>& monitors, f32_t gamma) {
   for (size_t i = 0; i < monitors.size(); i++) {
     MONITORINFOEX monitorInfo;
     if (get_monitor_info(monitors[i], monitorInfo)) {
@@ -142,7 +142,7 @@ bool set_monitor_gamma_contrast(const std::string& device_name, f32_t gamma, f32
   return result != 0;
 }
 
-void set_monitors_gamma_contrast(std::vector<HMONITOR>& monitors, f32_t gamma, f32_t contrast) {
+void set_monitors_gamma_contrast(const std::vector<HMONITOR>& monitors, f32_t gamma, f32_t contrast) {
   for (size_t i = 0; i < monitors.size(); i++) {
     MONITORINFOEX monitor_info;
     if (get_monitor_info(monitors[i], monitor_info)) {
@@ -151,7 +151,7 @@ void set_monitors_gamma_contrast(std::vector<HMONITOR>& monitors, f32_t gamma, f
   }
 }
 
-void render_set_gamma(std::vector<HMONITOR>& monitors, f32_t& gamma, f32_t& contrast) {
+void render_set_gamma(const std::vector<HMONITOR>& monitors, f32_t& gamma, f32_t& contrast) {
   ImGui::Begin("##gamma settings");
 
   if (ImGui::SliderFloat("gamma", &gamma, 0.3f, 2.8f, "%.2f")) {
@@ -161,6 +161,15 @@ void render_set_gamma(std::vector<HMONITOR>& monitors, f32_t& gamma, f32_t& cont
     set_monitors_gamma_contrast(monitors, gamma, contrast);
   }
   ImGui::End();
+}
+
+void restore_original_gammas(const std::vector<HMONITOR>& monitors, const std::vector<gamma_ramp_t>& original_gammas) {
+  for (size_t i = 0; i < monitors.size(); i++) {
+    MONITORINFOEX monitorInfo;
+    if (get_monitor_info(monitors[i], monitorInfo)) {
+      set_monitor_gamma_ramp(monitorInfo.szDevice, original_gammas[i]);
+    }
+  }
 }
 
 int main() {
@@ -191,16 +200,33 @@ int main() {
   }
 
   {
+    std::string window_title;
+    HWND top_window;
+    std::string previous_title;
+    int state = -1;
     fan_window_loop{
       render_set_gamma(monitors, gamma, contrast);
+      top_window = GetForegroundWindow();
+      window_title.resize(256);
+      int len = GetWindowText(top_window, window_title.data(), window_title.size());
+      if (len > 0) {
+        window_title.resize(len);
+      }
+      else {
+        window_title.clear();
+      }
+      if (previous_title != window_title) {
+        if (window_title == "EscapeFromTarkov" && state != 0) {
+          set_monitors_gamma_contrast(monitors, gamma, contrast);
+          state = 0;
+        }
+        else if (state != 1) {
+          restore_original_gammas(monitors, original_gammas);
+          state = 1;
+        }
+      }
+      previous_title = window_title;
     };
   }
-
-  // restore
-  for (size_t i = 0; i < monitors.size(); i++) {
-    MONITORINFOEX monitorInfo;
-    if (get_monitor_info(monitors[i], monitorInfo)) {
-      set_monitor_gamma_ramp(monitorInfo.szDevice, original_gammas[i]);
-    }
-  }
+  restore_original_gammas(monitors, original_gammas);
 }

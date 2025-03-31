@@ -348,6 +348,9 @@ loco_t::functions_t loco_t::get_functions() {
       if constexpr (fan_has_variable(T, position)) {
         return get_render_data(shape, &T::position);
       }
+      else if constexpr (fan_has_variable(T, vertices)) {
+        return get_render_data(shape, &T::vertices)[0].offset;
+      }
       else {
         fan::throw_error("unimplemented get - for line use get_src()");
         return fan::vec3();
@@ -356,6 +359,11 @@ loco_t::functions_t loco_t::get_functions() {
     .set_position2 = [](shape_t* shape, const fan::vec2& position) {
       if constexpr (fan_has_variable(T, position)) {
         modify_render_data_element(shape, &T::position, position);
+      }
+      else if constexpr (fan_has_variable(T, vertices)) {
+        for (uint32_t i = 0; i < polygon_t::max_vertices_per_element; ++i) {
+          modify_render_data_element_arr(shape, &T::vertices, i, &polygon_vertex_t::offset, position);
+        }
       }
       else {
         fan::throw_error("unimplemented set - for line use set_src()");
@@ -500,6 +508,11 @@ loco_t::functions_t loco_t::get_functions() {
         if constexpr (fan_has_variable(T, rotation_point)) {
           modify_render_data_element(shape, &T::rotation_point, rotation_point);
         }
+        else if constexpr (fan_has_variable(T, vertices)) {
+          for (uint32_t i = 0; i < polygon_t::max_vertices_per_element; ++i) {
+            modify_render_data_element_arr(shape, &T::vertices, i, &polygon_vertex_t::rotation_point, rotation_point);
+          }
+        }
         else {
           fan::throw_error("unimplemented set");
         }
@@ -535,6 +548,11 @@ loco_t::functions_t loco_t::get_functions() {
       .set_angle = [](shape_t* shape, const fan::vec3& angle) {
         if constexpr (fan_has_variable(T, angle)) {
           modify_render_data_element(shape, &T::angle, angle);
+        }
+        else if constexpr (fan_has_variable(T, vertices)) {
+          for (uint32_t i = 0; i < polygon_t::max_vertices_per_element; ++i) {
+            modify_render_data_element_arr(shape, &T::vertices, i, &polygon_vertex_t::angle, angle);
+          }
         }
         else {
           fan::throw_error("unimplemented set");
@@ -2010,10 +2028,17 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 
   lambda();
 
+  // user can terminate from main loop
+  if (should_close()) {
+    window.close();
+    return 1;
+  }//
+
   process_frame();
   window.handle_events();
   delta_time = window.m_delta_time;
   
+  // window can also be closed from window cb
   if (should_close()) {
     window.close();
     return 1;
@@ -2937,15 +2962,22 @@ loco_t::shape_t loco_t::polygon_t::push_back(const loco_t::polygon_t::properties
   for (std::size_t i = 0; i < properties.vertices.size(); ++i) {
     vis.vertices[i].position = properties.vertices[i].position;
     vis.vertices[i].color = properties.vertices[i].color;
+    vis.vertices[i].offset = properties.position;
+    vis.vertices[i].angle = properties.angle;
+    vis.vertices[i].rotation_point = properties.rotation_point;
   }
+
   // fill gaps
   for (std::size_t i = properties.vertices.size(); i < std::size(vis.vertices); ++i) {
     vis.vertices[i].position = vis.vertices[i - 1].position;
     vis.vertices[i].color = vis.vertices[i - 1].color;
+    vis.vertices[i].offset = vis.vertices[i - 1].offset;
+    vis.vertices[i].angle = vis.vertices[i - 1].angle;
+    vis.vertices[i].rotation_point = vis.vertices[i - 1].rotation_point;
   }
   ri_t ri;
   return shape_add(shape_type, vis, ri,
-    Key_e::depth, (uint16_t)properties.vertices[0].position.z,
+    Key_e::depth, (uint16_t)properties.position.z,
     Key_e::blending, (uint8_t)properties.blending,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,

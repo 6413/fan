@@ -3,26 +3,6 @@
 
 fan_track_allocations();
 
-loco_t::polygon_t::properties_t create_hexagon(const fan::vec2& position, f32_t radius, const fan::color& color) {
-  loco_t::polygon_t::properties_t pp;
-  // for triangle strip
-  for (int i = 0; i < 6; ++i) {
-    pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(position, 100), color });
-
-    f32_t angle1 = 2 * fan::math::pi * i / 6; 
-    f32_t x1 = position.x + radius * std::cos(angle1); 
-    f32_t y1 = position.y + radius * std::sin(angle1); 
-    pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(fan::vec2(x1, y1), 100), color });
-    
-    f32_t angle2 = 2 * fan::math::pi * ((i + 1) % 6) / 6;
-    f32_t x2 = position.x + radius * std::cos(angle2); 
-    f32_t y2 = position.y + radius * std::sin(angle2); 
-    pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(fan::vec2(x2, y2), 100), color });
-  }
-  
-  return pp;
-}
-
 loco_t::polygon_t::properties_t create_sine_ground(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth) {
   loco_t::polygon_t::properties_t pp;
   // for triangle strip
@@ -76,7 +56,7 @@ int main() {
   fan::graphics::polygon_t hexagon;
   fan::physics::entity_t hexagon_entity;
   {
-    auto hexagon_pp = create_hexagon(fan::vec2(600, 300), 50, fan::colors::blue);
+    auto hexagon_pp = fan::graphics::create_hexagon(50, fan::colors::blue);
     hexagon = {{ 
       .vertices = hexagon_pp.vertices,
     }};
@@ -99,9 +79,8 @@ int main() {
   auto points = ground_points(fan::vec2(0, 800), amplitude, frequency, width, ground_width);
   loco.physics_context.create_segment(points, b2_staticBody, {});
 
-  loco.shaper.GetShapeTypes(loco_t::shape_type_t::polygon).draw_mode = GL_TRIANGLE_STRIP;
-
   loco.loop([&] {
     loco.physics_context.step(loco.delta_time);
+    hexagon.set_position(fan::graphics::get_mouse_position());
   });
 }

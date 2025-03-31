@@ -5,6 +5,26 @@
   #include <fan/graphics/gui/imgui_themes.h>
 #endif
 
+loco_t::polygon_t::properties_t fan::graphics::create_hexagon(f32_t radius, const fan::color& color) {
+  loco_t::polygon_t::properties_t pp;
+  // for triangle strip
+  for (int i = 0; i < 6; ++i) {
+    pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(0, 0, 0), color });
+
+    f32_t angle1 = 2 * fan::math::pi * i / 6;
+    f32_t x1 = radius * std::cos(angle1);
+    f32_t y1 = radius * std::sin(angle1);
+    pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(fan::vec2(x1, y1), 0), color });
+
+    f32_t angle2 = 2 * fan::math::pi * ((i + 1) % 6) / 6;
+    f32_t x2 = radius * std::cos(angle2);
+    f32_t y2 = radius * std::sin(angle2);
+    pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(fan::vec2(x2, y2), 0), color });
+  }
+
+  return pp;
+}
+
 fan::line3 fan::graphics::get_highlight_positions(const fan::vec3& op_, const fan::vec2& os, int index) {
   fan::line3 positions;
   fan::vec2 op = op_;
