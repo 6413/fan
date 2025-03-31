@@ -772,6 +772,9 @@ public:
   loco_t(const properties_t& p);
   ~loco_t();
 
+  void destroy();
+  void close();
+
   // for renderer switch
   // input loco_t::renderer_t::
   void switch_renderer(uint8_t renderer);
