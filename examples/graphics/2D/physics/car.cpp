@@ -1,69 +1,34 @@
 #include <fan/pch.h>
 
-fan::graphics::physics_shapes::polygon_t* draw_p = 0;
-
-/// Draw a closed polygon provided in CCW order.
-void DrawPolygon(const b2Vec2* vertices, int vertexCount, b2HexColor color, void* context) {
-  //printf("DrawPolygon\n");
-  if (draw_p == nullptr) {
-    draw_p = new std::remove_pointer_t<decltype(draw_p)>();
+loco_t::polygon_t::properties_t create_sine_ground(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth) {
+  loco_t::polygon_t::properties_t pp;
+  // for triangle strip
+  for (f32_t x = 0; x < groundWidth - width; x += width) {
+    f32_t y1 = position.y / 2 + amplitude * std::sin(frequency * x);
+    f32_t y2 = position.y / 2 + amplitude * std::sin(frequency * (x + width));
+    
+    // top
+    pp.vertices.push_back({ fan::vec2(position.x + x, y1), fan::colors::red });
+    // bottom
+    pp.vertices.push_back({ fan::vec2(position.x + x, position.y), fan::colors::white });
+    // next top
+    pp.vertices.push_back({ fan::vec2(position.x + x + width, y2), fan::colors::red });
+    // next bottom
+    pp.vertices.push_back({ fan::vec2(position.x + x + width, position.y), fan::colors::white });
   }
-  std::vector<fan::graphics::vertex_t> vs(vertexCount + 1);
-  for (auto [i, v] : fan::enumerate(vs)) {
-    v.position = fan::vec2(vertices[i]) * fan::physics::length_units_per_meter;
-    v.color = fan::random::color();
+  
+  return pp;
+}
+
+std::vector<fan::vec2> ground_points(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth) {
+  std::vector<fan::vec2> outline_points;
+  for (f32_t x = 0; x <= groundWidth; x += width) {
+    f32_t y = position.y / 2 + amplitude * std::sin(frequency * x);
+    outline_points.push_back(fan::vec2(position.x + x, y));
   }
-  vs.back() = vs.front();
-  *draw_p = fan::graphics::physics_shapes::polygon_t{ {
-    .vertices = vs
-  }};
-}
-
-/// Draw a solid closed polygon provided in CCW order.
-void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexCount, float radius, b2HexColor color,
-  void* context) {
-    printf("DrawSolidPolygon\n");
-}
-
-/// Draw a circle.
-void DrawCircle(b2Vec2 center, float radius, b2HexColor color, void* context) {
-    printf("DrawCircle\n");
-}
-
-/// Draw a solid circle.
-void DrawSolidCircle(b2Transform transform, float radius, b2HexColor color, void* context) {
-    printf("DrawSolidCircle\n");
-}
-
-/// Draw a capsule.
-void DrawCapsule(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
-    printf("DrawCapsule\n");
-}
-
-/// Draw a solid capsule.
-void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
-    printf("DrawSolidCapsule\n");
-}
-
-/// Draw a line segment.
-void DrawSegment(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context) {
-    printf("DrawSegment\n");
-}
-
-/// Draw a transform. Choose your own length scale.
-void DrawTransform(b2Transform transform, void* context) {
-    printf("DrawTransform\n");
-}
-
-/// Draw a point.
-void DrawPoint(b2Vec2 p, float size, b2HexColor color, void* context) {
-    printf("DrawPoint\n");
-}
-
-/// Draw a string.
-void DrawString(b2Vec2 p, const char* s, void* context) {
-  fan::graphics::text(s, fan::vec2(p) * fan::physics::length_units_per_meter);
-    //printf("DrawString\n");
+  outline_points.push_back(fan::vec2(position.x + groundWidth, position.y));
+  outline_points.push_back(fan::vec2(position.x, position.y));
+  return outline_points;
 }
 
 
@@ -71,15 +36,16 @@ int main() {
   using namespace fan::graphics;
   engine_t engine;
 
-  f32_t scale = 0.1;
+  f32_t scale = 0.05;
 
-  fan::vec2 position = 500.0 / fan::physics::length_units_per_meter;
+  fan::vec2 position = fan::physics::render_to_physics(500.0);
 
   b2Vec2 b2_vertices[6] = {
-		{ -1.5f, -0.5f }, { 1.5f, -0.5f }, 
-    { 1.5f, 0.0f }, { 0.0f, 0.9f }, 
-    { -1.15f, 0.9f }, { -1.5f, 0.2f },
-	};
+    { -1.5f, 0.5f }, { 1.5f, 0.5f },
+    { 1.5f, -0.0f }, { 0.0f, -0.9f },
+    { -1.15f, -0.9f }, { -1.5f, -0.2f },
+  };
+
 
 	for ( int i = 0; i < 6; ++i )
 	{
@@ -90,52 +56,56 @@ int main() {
   std::vector<fan::graphics::vertex_t> vertices;
   for (uint32_t i = 0; i < std::size(b2_vertices); ++i) {
     fan::graphics::vertex_t v;
-    v.position = fan::vec2(b2_vertices[i]) * fan::physics::length_units_per_meter;
-    v.color = fan::colors::red;
+    v.position = fan::physics::physics_to_render(b2_vertices[i]);
+    v.color = fan::colors::white;
     vertices.emplace_back(v);
   }
   fan::graphics::physics_shapes::polygon_t chassis{{
-    .position = fan::vec2(500) + fan::vec2(0, 1.0f * scale) * fan::physics::length_units_per_meter,
+    .position = fan::physics::physics_to_render(position + fan::vec2(0, -1.0f * scale)),
+    .radius = 0.15f * scale,
     .vertices = vertices,
-    .body_type=fan::physics::body_type_e::dynamic_body
+    .draw_mode=fan::graphics::primitive_topology_t::triangle_fan,
+    .body_type=fan::physics::body_type_e::dynamic_body,
   }};
 
 	b2ShapeDef shapeDef = b2DefaultShapeDef();
 	shapeDef.density = 1.0f / scale;
 	shapeDef.friction = 0.2f;
 
-  fan::vec2 pos = fan::vec2(b2Add( { -1.0f * scale, 0.35f * scale }, position ));
-  fan::graphics::physics_shapes::circle_t m_rearWheelId{{
-    .position = pos * fan::physics::length_units_per_meter,
-    .radius = 50,
-    .color = fan::colors::gray,
+  static auto image_tire = engine.image_load("images/tire.webp");
+
+  fan::vec2 pos = fan::vec2(b2Add( { -1.0f * scale, -0.35f * scale }, position ));
+  fan::graphics::physics_shapes::circle_sprite_t rear_wheel{{
+    .position = fan::vec3(fan::physics::physics_to_render(pos), 1),
+    .radius = 25,
+    .size = 25,
+    .image = image_tire,
     .body_type = fan::physics::body_type_e::dynamic_body,
     .shape_properties{.friction=1.5f, .density= 2.0f / scale, .allow_fast_rotation=true}
   }};
-  pos = b2Add( { 1.0f * scale, 0.4f * scale }, position );
-  fan::graphics::physics_shapes::circle_t m_frontWheelId{{
-    .position = pos * fan::physics::length_units_per_meter,
-    .radius = 50,
-    .color = fan::colors::gray,
+  pos = b2Add( { 1.0f * scale, -0.4f * scale }, position );
+  fan::graphics::physics_shapes::circle_sprite_t front_wheel{{
+    .position = fan::vec3(fan::physics::physics_to_render(pos), 1),
+    .radius = 25,
+    .size = 25,
+    .image = image_tire,
     .body_type = fan::physics::body_type_e::dynamic_body,
     .shape_properties{.friction=1.5f, .density= 2.0f / scale, .allow_fast_rotation=true}
   }};
 
 
-
-	b2Vec2 axis = { 0.0f, 1.0f };
-	b2Vec2 pivot = b2Body_GetPosition( m_rearWheelId );
+	b2Vec2 axis = { 0.0f, -1.0f };
+	b2Vec2 pivot = b2Body_GetPosition( rear_wheel );
 
 	float throttle = 0.0f;
-	float speed = 35.0f;
+	float speed = 50.0f;
 	float torque = 2.5f * scale;
 	float hertz = 5.0f;
 	float dampingRatio = 0.7f;
 
 	b2WheelJointDef jointDef = b2DefaultWheelJointDef();
-
 	jointDef.bodyIdA = chassis;
-	jointDef.bodyIdB = m_rearWheelId;
+	jointDef.bodyIdB = rear_wheel;
 	jointDef.localAxisA = b2Body_GetLocalVector( jointDef.bodyIdA, axis );
 	jointDef.localAnchorA = b2Body_GetLocalPoint( jointDef.bodyIdA, pivot );
 	jointDef.localAnchorB = b2Body_GetLocalPoint( jointDef.bodyIdB, pivot );
@@ -149,12 +119,12 @@ int main() {
 	jointDef.enableLimit = true;
 	auto m_rearAxleId = b2CreateWheelJoint( engine.physics_context.world_id, &jointDef );
 
-	pivot = b2Body_GetPosition( m_frontWheelId );
+	pivot = b2Body_GetPosition(front_wheel);
 	jointDef.bodyIdA = chassis;
-	jointDef.bodyIdB = m_frontWheelId;
-	jointDef.localAxisA = b2Body_GetLocalVector( jointDef.bodyIdA, axis );
-	jointDef.localAnchorA = b2Body_GetLocalPoint( jointDef.bodyIdA, pivot );
-	jointDef.localAnchorB = b2Body_GetLocalPoint( jointDef.bodyIdB, pivot );
+	jointDef.bodyIdB = front_wheel;
+	jointDef.localAxisA = b2Body_GetLocalVector(jointDef.bodyIdA, axis);
+	jointDef.localAnchorA = b2Body_GetLocalPoint(jointDef.bodyIdA, pivot);
+	jointDef.localAnchorB = b2Body_GetLocalPoint(jointDef.bodyIdB, pivot);
 	jointDef.motorSpeed = 0.0f;
 	jointDef.maxMotorTorque = torque;
 	jointDef.enableMotor = true;
@@ -163,36 +133,48 @@ int main() {
 	jointDef.lowerTranslation = -0.25f * scale;
 	jointDef.upperTranslation = 0.25f * scale;
 	jointDef.enableLimit = true;
-	auto m_frontAxleId = b2CreateWheelJoint( engine.physics_context.world_id, &jointDef );
+	auto m_frontAxleId = b2CreateWheelJoint(engine.physics_context.world_id, &jointDef);
 
   fan::vec2 window_size = engine.window.get_size();
   f32_t wall_thickness = 50.f;
   auto walls = fan::graphics::physics_shapes::create_stroked_rectangle(window_size / 2, window_size / 2, wall_thickness);
-  b2WheelJoint_SetMotorSpeed( m_rearAxleId, speed );
-	b2WheelJoint_SetMotorSpeed( m_frontAxleId, speed );
-	b2Joint_WakeBodies( m_rearAxleId );
-  fan::graphics::mouse_joint_t mouse_joint(chassis);
-  b2DebugDraw b{};
-  b.drawAABBs = true;
 
-  b.DrawPolygon = DrawPolygon;
-  b.DrawSolidPolygon = DrawSolidPolygon;
-  b.DrawCircle = DrawCircle;
-  b.DrawSolidCircle = DrawSolidCircle;
-  b.DrawCapsule = DrawCapsule;
-  b.DrawSolidCapsule = DrawSolidCapsule;
-  b.DrawSegment = DrawSegment;
-  b.DrawTransform = DrawTransform;
-  b.DrawPoint = DrawPoint;
-  b.DrawString = DrawString;
+	b2Joint_WakeBodies(m_rearAxleId);
+
+  fan::graphics::mouse_joint_t mouse_joint(chassis);
+
+  fan::graphics::physics_shapes::debug_draw(false);
+
+  static constexpr f32_t amplitude = 150.0f;
+  static constexpr f32_t frequency = 0.15f;
+  static constexpr f32_t width = 40.0f;
+  static constexpr f32_t ground_width = 2560;
+
+  auto pp = create_sine_ground(fan::vec2(0, 1200), amplitude, frequency, width, ground_width);
+  fan::graphics::polygon_t ground{{
+    .vertices = pp.vertices,
+  }};
+
+  auto points = ground_points(fan::vec2(0, 1200), amplitude, frequency, width, ground_width);
+  engine.physics_context.create_segment(0, points, b2_staticBody, {});
 
   fan_window_loop{
-    if (is_mouse_clicked()) {
-      engine.window.close();
-      return;
+    if (engine.window.key_state(fan::key_a) != -1) {
+      b2WheelJoint_SetMotorSpeed(m_rearAxleId,  -speed);
+	    b2WheelJoint_SetMotorSpeed(m_frontAxleId, -speed);
     }
-    mouse_joint.update_mouse(engine.physics_context.world_id, get_mouse_position());
-    b2World_Draw(engine.physics_context.world_id, &b);
-    engine.physics_context.step(30);
+    else if (engine.window.key_state(fan::key_d) != -1) {
+      b2WheelJoint_SetMotorSpeed(m_rearAxleId, speed);
+	    b2WheelJoint_SetMotorSpeed(m_frontAxleId, speed);
+    }
+    else {
+      b2WheelJoint_SetMotorSpeed(m_rearAxleId, 0);
+	    b2WheelJoint_SetMotorSpeed(m_frontAxleId, 0);
+    }
+    
+
+    //fan::print(chassis.get_physics_position());
+    mouse_joint.update_mouse(engine.physics_context.world_id);
+    engine.physics_context.step(engine.delta_time);
   };
 }

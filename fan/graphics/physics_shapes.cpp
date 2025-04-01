@@ -524,13 +524,13 @@ void fan::graphics::human_t::load_preset(const fan::vec2& position, const f32_t 
     }
     fan::vec2 physics_position = bone.visual.get_physics_position();
     fan::vec2 pivot = (position / fan::physics::length_units_per_meter) + bone.pivot * scale;
-    fan::graphics::physics_shapes::hitbox_visualize[&bones[i]] = fan::graphics::rectangle_t{{
-    .position = fan::vec3(position + bone.pivot * scale * fan::physics::length_units_per_meter, 60001),
-    .size=5,
-    .color = fan::color(0, 0, 1, 0.2),
-    .outline_color=fan::color(0, 0, 1, 0.2)*2,
-    .blending=true
-  }};
+  //  fan::graphics::physics_shapes::hitbox_visualize[&bones[i]] = fan::graphics::rectangle_t{{
+  //  .position = fan::vec3(position + bone.pivot * scale * fan::physics::length_units_per_meter, 60001),
+  //  .size=5,
+  //  .color = fan::color(0, 0, 1, 0.2),
+  //  .outline_color=fan::color(0, 0, 1, 0.2)*2,
+  //  .blending=true
+  //}};
     b2RevoluteJointDef joint_def = b2DefaultRevoluteJointDef();
     joint_def.bodyIdA = bones[bone.parent_index].visual;
     joint_def.bodyIdB = bone.visual;
@@ -741,10 +741,10 @@ fan::graphics::mouse_joint_t::mouse_joint_t(fan::physics::body_id_t tb) {
   this->target_body = tb;
 }
 
-void fan::graphics::mouse_joint_t::update_mouse(b2WorldId world_id, const fan::vec2& position) {
+void fan::graphics::mouse_joint_t::update_mouse(b2WorldId world_id) {
   #if defined(loco_imgui)
   if (ImGui::IsMouseDown(0)) {
-    fan::vec2 p = gloco->get_mouse_position();
+    fan::vec2 p = gloco->get_mouse_position() / fan::physics::length_units_per_meter;
     if (!B2_IS_NON_NULL(mouse_joint)) {
       b2AABB box;
       b2Vec2 d = { 0.001f, 0.001f };
@@ -761,7 +761,7 @@ void fan::graphics::mouse_joint_t::update_mouse(b2WorldId world_id, const fan::v
         mouseDef.target = p;
         mouseDef.hertz = 5.0f;
         mouseDef.dampingRatio = 0.7f;
-        mouseDef.maxForce = b2Body_GetMass(queryContext.bodyId);
+        mouseDef.maxForce = 1000.0f * b2Body_GetMass(queryContext.bodyId);
         mouse_joint = b2CreateMouseJoint(world_id, &mouseDef);
         b2Body_SetAwake(queryContext.bodyId, true);
       }
@@ -779,4 +779,139 @@ void fan::graphics::mouse_joint_t::update_mouse(b2WorldId world_id, const fan::v
     }
   }
 #endif
+}
+
+int z_depth = 0;
+std::vector<fan::graphics::line_t> debug_draw_polygon;
+std::vector<fan::graphics::polygon_t> debug_draw_solid_polygon;
+std::vector<fan::graphics::circle_t> debug_draw_circle;
+std::vector<fan::graphics::line_t> debug_draw_line;
+/// Draw a closed polygon provided in CCW order.
+void DrawPolygon(const b2Vec2* vertices, int vertexCount, b2HexColor color, void* context) {
+  for (int i = 0; i < vertexCount; i++) {
+    int nextIndex = (i + 1) % vertexCount;
+    
+    debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
+      .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), 0x1f00 + z_depth),
+      .dst = fan::physics::physics_to_render(vertices[nextIndex]),
+      .color = fan::color::hexa(color)
+    }});
+  }
+
+  ++z_depth;
+}
+
+/// Draw a solid closed polygon provided in CCW order.
+void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexCount, float radius, b2HexColor color,
+  void* context) {
+  std::vector<fan::graphics::vertex_t> vs(vertexCount);
+  for (auto [i, v] : fan::enumerate(vs)) {
+    v.position = fan::physics::physics_to_render(vertices[i]);
+    v.color = fan::color::hexa(color);
+  }
+  debug_draw_solid_polygon.emplace_back(fan::graphics::polygon_t{ {
+    .position = fan::vec3(0, 0, 0x1f00 + z_depth),
+    .vertices = vs,
+    .draw_mode=fan::graphics::primitive_topology_t::triangle_fan,
+  }});
+  ++z_depth;
+}
+
+/// Draw a circle.
+void DrawCircle(b2Vec2 center, float radius, b2HexColor color, void* context) {
+  debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
+    .position = fan::vec3(fan::physics::physics_to_render(center), 0x1f00 + z_depth),
+    .radius = fan::physics::physics_to_render(radius).x,
+    .color = fan::color::hexa(color),
+  }});
+  ++z_depth;
+}
+
+/// Draw a solid circle.
+void DrawSolidCircle(b2Transform transform, float radius, b2HexColor color, void* context) {
+  debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
+    .position = fan::vec3(fan::physics::physics_to_render(transform.p), 0x1f00 + z_depth),
+    .radius = fan::physics::physics_to_render(radius).x,
+    .color = fan::color::hexa(color),
+  }});
+  ++z_depth;
+}
+
+/// Draw a capsule.
+void DrawCapsule(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
+  printf("DrawCapsule\n");
+}
+
+/// Draw a solid capsule.
+void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
+  printf("DrawSolidCapsule\n");
+}
+
+/// Draw a line segment.
+void DrawSegment(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context) {
+  debug_draw_line.emplace_back(fan::graphics::line_t{ {
+    .src = fan::vec3(fan::physics::physics_to_render(p1), 0x1f00 + z_depth),
+    .dst = fan::vec3(fan::physics::physics_to_render(p2), 0x1f00 + z_depth),
+    .color = fan::color::hexa(color),
+  }});
+  ++z_depth;
+}
+
+/// Draw a transform. Choose your own length scale.
+void DrawTransform(b2Transform transform, void* context) {
+    printf("DrawTransform\n");
+}
+
+/// Draw a point.
+void DrawPoint(b2Vec2 p, float size, b2HexColor color, void* context) {
+  //vs.back() = vs.front();
+  debug_draw_circle.emplace_back(fan::graphics::circle_t{{
+    .position = fan::vec3(fan::physics::physics_to_render(p), 0x1f00 + z_depth),
+    .radius = size,
+    .color = fan::color::hexa(color)
+  }});
+  ++z_depth;
+}
+
+/// Draw a string.
+void DrawString(b2Vec2 p, const char* s, void* context) {
+  fan::graphics::text(s, fan::physics::physics_to_render(p));
+}
+
+
+b2DebugDraw initialize_debug(bool enabled) {
+  return b2DebugDraw{
+  .DrawPolygon = DrawPolygon,
+  .DrawSolidPolygon = DrawSolidPolygon,
+  .DrawCircle = DrawCircle,
+  .DrawSolidCircle = DrawSolidCircle,
+  .DrawCapsule = DrawCapsule,
+  .DrawSolidCapsule = DrawSolidCapsule,
+  .DrawSegment = DrawSegment,
+  .DrawTransform = DrawTransform,
+  .DrawPoint = DrawPoint,
+  .DrawString = DrawString,
+  .drawJoints = enabled,
+  .drawAABBs = enabled,
+  };
+}
+
+b2DebugDraw fan::graphics::physics_shapes::box2d_debug_draw = []{
+  auto init_it = fan::graphics::engine_init_cbs.NewNodeLast();
+  fan::graphics::engine_init_cbs[init_it] = [](loco_t* loco){
+    auto it = loco->m_update_callback.NewNodeLast();
+    loco->m_update_callback[it] = [](loco_t* loco) {
+      z_depth = 0;
+      debug_draw_polygon.clear();
+      debug_draw_solid_polygon.clear();
+      debug_draw_circle.clear();
+      debug_draw_line.clear();
+      b2World_Draw(loco->physics_context.world_id, &fan::graphics::physics_shapes::box2d_debug_draw);
+    };
+  };
+  return initialize_debug(false);
+}();
+
+void fan::graphics::physics_shapes::debug_draw(bool enabled) {
+  fan::graphics::physics_shapes::box2d_debug_draw = initialize_debug(enabled);
 }

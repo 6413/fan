@@ -2583,3 +2583,31 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
   };
   return cf;
 }
+
+uint32_t fan::vulkan::core::get_draw_mode(uint8_t draw_mode) {
+  switch (draw_mode) {
+  case primitive_topology_t::points:
+    return fan::vulkan::context_t::primitive_topology_t::points;
+  case primitive_topology_t::lines:
+    return fan::vulkan::context_t::primitive_topology_t::lines;
+  case primitive_topology_t::line_strip:
+    return fan::vulkan::context_t::primitive_topology_t::line_strip;
+  case primitive_topology_t::triangles:
+    return fan::vulkan::context_t::primitive_topology_t::triangles;
+  case primitive_topology_t::triangle_strip:
+    return fan::vulkan::context_t::primitive_topology_t::triangle_strip;
+  case primitive_topology_t::triangle_fan:
+    return fan::vulkan::context_t::primitive_topology_t::triangle_fan;
+  case primitive_topology_t::lines_with_adjacency:
+    return fan::vulkan::context_t::primitive_topology_t::lines_with_adjacency;
+  case primitive_topology_t::line_strip_with_adjacency:
+    return fan::vulkan::context_t::primitive_topology_t::line_strip_with_adjacency;
+  case primitive_topology_t::triangles_with_adjacency:
+    return fan::vulkan::context_t::primitive_topology_t::triangles_with_adjacency;
+  case primitive_topology_t::triangle_strip_with_adjacency:
+    return fan::vulkan::context_t::primitive_topology_t::triangle_strip_with_adjacency;
+  default:
+    fan::throw_error("invalid draw mode");
+    return -1;
+  }
+}
