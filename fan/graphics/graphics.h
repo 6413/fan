@@ -972,6 +972,9 @@ namespace fan {
       }
     };
 
+    loco_t::polygon_t::properties_t create_sine_ground(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth);
+    std::vector<fan::vec2> ground_points(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth);
+
   }
 
   struct movement_e {

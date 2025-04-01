@@ -149,16 +149,16 @@ namespace fan {
 
       // draw modes
       struct primitive_topology_t {
-        static constexpr auto points = GL_POINTS;
-        static constexpr auto lines = GL_LINES;
-        static constexpr auto line_strip = GL_LINE_STRIP;
-        static constexpr auto triangles = GL_TRIANGLES;
-        static constexpr auto triangle_strip = GL_TRIANGLE_STRIP;
-        static constexpr auto triangle_fan = GL_TRIANGLE_FAN;
-        static constexpr auto lines_with_adjacency = GL_LINES_ADJACENCY;
-        static constexpr auto line_strip_with_adjacency = GL_LINE_STRIP_ADJACENCY;
-        static constexpr auto triangles_with_adjacency = GL_TRIANGLES_ADJACENCY;
-        static constexpr auto triangle_strip_with_adjacency = GL_TRIANGLE_STRIP_ADJACENCY;
+        static constexpr uint32_t points = GL_POINTS;
+        static constexpr uint32_t lines = GL_LINES;
+        static constexpr uint32_t line_strip = GL_LINE_STRIP;
+        static constexpr uint32_t triangles = GL_TRIANGLES;
+        static constexpr uint32_t triangle_strip = GL_TRIANGLE_STRIP;
+        static constexpr uint32_t triangle_fan = GL_TRIANGLE_FAN;
+        static constexpr uint32_t lines_with_adjacency = GL_LINES_ADJACENCY;
+        static constexpr uint32_t line_strip_with_adjacency = GL_LINE_STRIP_ADJACENCY;
+        static constexpr uint32_t triangles_with_adjacency = GL_TRIANGLES_ADJACENCY;
+        static constexpr uint32_t triangle_strip_with_adjacency = GL_TRIANGLE_STRIP_ADJACENCY;
       };
     };
   }

@@ -252,16 +252,16 @@ namespace fan {
       };
 
       struct primitive_topology_t {
-        static constexpr auto points = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-        static constexpr auto lines = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-        static constexpr auto line_strip = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-        static constexpr auto triangles = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        static constexpr auto triangle_strip = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-        static constexpr auto triangle_fan = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
-        static constexpr auto lines_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
-        static constexpr auto line_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
-        static constexpr auto triangles_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
-        static constexpr auto triangle_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
+        static constexpr uint32_t points = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+        static constexpr uint32_t lines = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        static constexpr uint32_t line_strip = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+        static constexpr uint32_t triangles = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        static constexpr uint32_t triangle_strip = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        static constexpr uint32_t triangle_fan = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+        static constexpr uint32_t lines_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
+        static constexpr uint32_t line_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
+        static constexpr uint32_t triangles_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
+        static constexpr uint32_t triangle_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
       };
 
       void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
