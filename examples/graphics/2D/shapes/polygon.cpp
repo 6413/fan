@@ -3,37 +3,6 @@
 
 fan_track_allocations();
 
-loco_t::polygon_t::properties_t create_sine_ground(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth) {
-  loco_t::polygon_t::properties_t pp;
-  // for triangle strip
-  for (f32_t x = 0; x < groundWidth - width; x += width) {
-    f32_t y1 = position.y / 2 + amplitude * std::sin(frequency * x);
-    f32_t y2 = position.y / 2 + amplitude * std::sin(frequency * (x + width));
-    
-    // top
-    pp.vertices.push_back({ fan::vec2(position.x + x, y1), fan::colors::red });
-    // bottom
-    pp.vertices.push_back({ fan::vec2(position.x + x, position.y), fan::colors::white });
-    // next top
-    pp.vertices.push_back({ fan::vec2(position.x + x + width, y2), fan::colors::red });
-    // next bottom
-    pp.vertices.push_back({ fan::vec2(position.x + x + width, position.y), fan::colors::white });
-  }
-  
-  return pp;
-}
-
-std::vector<fan::vec2> ground_points(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth) {
-  std::vector<fan::vec2> outline_points;
-  for (f32_t x = 0; x <= groundWidth; x += width) {
-    f32_t y = position.y / 2 + amplitude * std::sin(frequency * x);
-    outline_points.push_back(fan::vec2(position.x + x, y));
-  }
-  outline_points.push_back(fan::vec2(position.x + groundWidth, position.y));
-  outline_points.push_back(fan::vec2(position.x, position.y));
-  return outline_points;
-}
-
 int main() {
   loco_t loco;
 
@@ -71,12 +40,12 @@ int main() {
   }
   
   
-  auto pp = create_sine_ground(fan::vec2(0, 800), amplitude, frequency, width, ground_width);
+  auto pp = fan::graphics::create_sine_ground(fan::vec2(0, 800), amplitude, frequency, width, ground_width);
   fan::graphics::polygon_t ground{{
       .vertices = pp.vertices,
   }};
 
-  auto points = ground_points(fan::vec2(0, 800), amplitude, frequency, width, ground_width);
+  auto points = fan::graphics::ground_points(fan::vec2(0, 800), amplitude, frequency, width, ground_width);
   loco.physics_context.create_segment(0, points, b2_staticBody, {});
 
   loco.loop([&] {
