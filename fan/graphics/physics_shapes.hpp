@@ -10,13 +10,11 @@
 namespace fan {
   namespace graphics {
     namespace physics_shapes {
-
-      // debug
-      inline std::unordered_map<void*, loco_t::shape_t> hitbox_visualize;
+      extern b2DebugDraw box2d_debug_draw;
+      void debug_draw(bool enabled);
       // position & aabb & angle
       inline std::function<void(loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t)> physics_update_cb = 
         [](loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t) {};
-      inline std::unordered_map<const void*, std::vector<loco_t::shape_t>> joint_visualize;
 
       void shape_physics_update(const loco_t::physics_update_data_t& data);
 
@@ -426,10 +424,12 @@ namespace fan {
         struct properties_t {
           camera_impl_t* camera = &gloco->orthographic_camera;
           fan::vec3 position = 0;
+          f32_t radius = 32;
           fan::vec3 angle = 0;
           fan::vec2 rotation_point = 0;
           std::vector<vertex_t> vertices;
           bool blending = true;
+          uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
           operator fan::graphics::polygon_properties_t() const {
             return fan::graphics::polygon_properties_t{
               .camera = camera,
@@ -437,7 +437,8 @@ namespace fan {
               .vertices = vertices,
               .angle = angle,
               .rotation_point = rotation_point,
-              .blending = blending
+              .blending = blending,
+              .draw_mode = draw_mode
             };
           }
           uint8_t body_type = fan::physics::body_type_e::static_body;
@@ -455,6 +456,7 @@ namespace fan {
               }
               return gloco->physics_context.create_polygon(
                 p.position,
+                p.radius,
                 points, p.body_type, p.shape_properties
               );
             }()),
@@ -601,7 +603,7 @@ namespace fan {
 
       mouse_joint_t(fan::physics::body_id_t tb);
 
-      void update_mouse(b2WorldId world_id, const fan::vec2& position);
+      void update_mouse(b2WorldId world_id);
 
       fan::physics::body_id_t target_body;
       fan::physics::joint_id_t mouse_joint = b2_nullJointId;

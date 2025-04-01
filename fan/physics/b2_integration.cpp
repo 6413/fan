@@ -127,7 +127,7 @@ fan::physics::entity_t fan::physics::context_t::create_segment(const fan::vec2& 
   return entity;
 }
 
-fan::physics::entity_t fan::physics::context_t::create_polygon(const fan::vec2& position, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties) {
+fan::physics::entity_t fan::physics::context_t::create_polygon(const fan::vec2& position, f32_t radius, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties) {
   entity_t entity;
   b2BodyDef body_def = b2DefaultBodyDef();
   body_def.position = position / length_units_per_meter;
@@ -150,9 +150,7 @@ fan::physics::entity_t fan::physics::context_t::create_polygon(const fan::vec2& 
   }
 
   b2Hull hull = b2ComputeHull(b2_points.data(), b2_points.size());
-
-  // TODO radius
-  b2Polygon polygon = b2MakePolygon(&hull, 0.15);
+  b2Polygon polygon = b2MakePolygon(&hull, radius);
 
   b2CreatePolygonShape(entity, &shape_def, &polygon);
   return entity;
@@ -269,7 +267,7 @@ void fan::physics::sensor_events_t::update_contact(b2BodyId sensor_id, b2BodyId 
     .sensor_id = sensor_id,
     .object_id = object_id,
     .is_in_contact = is_in_contact
-    });
+  });
 }
 
 bool fan::physics::sensor_events_t::is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const {
@@ -365,3 +363,12 @@ fan::physics::body_id_t fan::physics::deep_copy_body(b2WorldId worldId, fan::phy
   }
   return newBodyId;
 }
+
+fan::vec2 fan::physics::physics_to_render(const fan::vec2& p){
+  return p * fan::physics::length_units_per_meter;
+}
+
+fan::vec2 fan::physics::render_to_physics(const fan::vec2& p){
+  return p / fan::physics::length_units_per_meter;
+}
+

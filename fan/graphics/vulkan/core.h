@@ -251,6 +251,19 @@ namespace fan {
         VkFilter           mag_filter = image_load_properties_defaults::mag_filter;
       };
 
+      struct primitive_topology_t {
+        static constexpr auto points = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+        static constexpr auto lines = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        static constexpr auto line_strip = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+        static constexpr auto triangles = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        static constexpr auto triangle_strip = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        static constexpr auto triangle_fan = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+        static constexpr auto lines_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
+        static constexpr auto line_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
+        static constexpr auto triangles_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
+        static constexpr auto triangle_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
+      };
+
       void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
       void copy_buffer_to_image(VkBuffer buffer, VkImage image, VkFormat format, const fan::vec2ui& size, const fan::vec2ui& stride = 1);
       void create_texture_sampler(VkSampler& sampler, const image_load_properties_t& lp);
@@ -581,6 +594,10 @@ namespace fan {
         }
       }
       vkUpdateDescriptorSets(context.device, n, descriptorWrites.data() + begin, 0, nullptr);
+    }
+
+    namespace core {
+      uint32_t get_draw_mode(uint8_t draw_mode);
     }
   }
 }

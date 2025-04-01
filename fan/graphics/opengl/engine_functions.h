@@ -339,8 +339,6 @@ void shapes_open() {
         false
       );
       auto& st = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(loco.shaper.GetShapeTypes(loco_t::shape_type_t::polygon).renderer);
-      st.vertex_count = loco_t::polygon_t::max_vertices_per_element;
-      st.draw_mode = GL_TRIANGLE_STRIP;
     }
   }
 
@@ -495,7 +493,6 @@ void add_shape_type(loco_t::shaper_t::ShapeTypes_NodeData_t& st, const loco_t::s
   data.shader = bpdata.shader;
   data.locations = bpdata.locations;
   data.instanced = bpdata.instanced;
-  data.draw_mode = bpdata.draw_mode;
   data.vertex_count = bpdata.vertex_count;
   fan::graphics::context_shader_t shader;
   if (!data.shader.iic()) {
@@ -548,7 +545,8 @@ void draw_shapes() {
 
     camera_perspective.m_view = camera_perspective.get_view_matrix();
   }
-
+  uint64_t draw_mode = -1;
+  uint32_t vertex_count = -1;
   while (KeyTraverse.Loop(loco.shaper)) {
     
     loco_t::shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(loco.shaper);
@@ -645,10 +643,28 @@ void draw_shapes() {
       }
       break;
     }
+    case Key_e::draw_mode: {
+      draw_mode = *(uint8_t*)KeyTraverse.kd();
+      draw_mode = fan::graphics::get_draw_mode(draw_mode);
+      break;
+    }
+    case Key_e::vertex_count: {
+      vertex_count = *(uint32_t*)KeyTraverse.kd();
+      break;
+    }
     }
 
     if (KeyTraverse.isbm) {
       
+#if fan_debug >= fan_debug_medium
+      if (draw_mode == (decltype(draw_mode))-1) {
+        fan::throw_error("uninitialized draw mode");
+      }
+      if (vertex_count == (decltype(draw_mode))-1) {
+        fan::throw_error("uninitialized vertex count");
+      }
+#endif
+
       loco_t::shaper_t::BlockTraverse_t BlockTraverse;
       loco_t::shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(loco.shaper, KeyTraverse.bmid());
 
@@ -815,59 +831,12 @@ void draw_shapes() {
         case shape_type_t::rectangle3d: {
           // illegal xd
           loco.context.gl.set_depth_test(false);
-          if ((loco.context.gl.opengl.major > 4) || (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor >= 2)) {
-            fan_opengl_call(glDrawArraysInstancedBaseInstance(
-              GL_TRIANGLES,
-              0,
-              36,
-              BlockTraverse.GetAmount(loco.shaper),
-              BlockTraverse.GetRenderDataOffset(loco.shaper) / loco.shaper.GetRenderDataSize(shape_type)
-            ));
-          }
-          else if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
-            // this is broken somehow with rectangle3d
-            fan_opengl_call(glDrawArraysInstanced(
-              GL_TRIANGLES,
-              0,
-              36,
-              BlockTraverse.GetAmount(loco.shaper)
-            ));
-          }
-          else {
-            fan_opengl_call(glDrawArrays(
-              GL_TRIANGLES,
-              0,
-              36 * BlockTraverse.GetAmount(loco.shaper)
-                ));
-          }
           break;
         }
         case shape_type_t::line3d: {
           // illegal xd
           loco.context.gl.set_depth_test(false);
         }//fallthrough
-        case shape_type_t::line: {
-          if ((loco.context.gl.opengl.major > 4) || (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor >= 2)) {
-            fan_opengl_call(glDrawArraysInstancedBaseInstance(
-              GL_LINES,
-              0,
-              2,
-              BlockTraverse.GetAmount(loco.shaper),
-              BlockTraverse.GetRenderDataOffset(loco.shaper) / loco.shaper.GetRenderDataSize(shape_type)
-            ));
-          }
-          else {
-            fan_opengl_call(glDrawArraysInstanced(
-              GL_LINES,
-              0,
-              2,
-              BlockTraverse.GetAmount(loco.shaper)
-            ));
-          }
-
-
-          break;
-        }
         case shape_type_t::particles: {
           //fan::print("shaper design is changed");
           particles_t::ri_t* pri = (particles_t::ri_t*)BlockTraverse.GetData(loco.shaper);
@@ -904,33 +873,52 @@ void draw_shapes() {
 
           break;
         }
+        case shape_type_t::polygon: {
+
+          polygon_t::ri_t* pri = (polygon_t::ri_t*)BlockTraverse.GetData(loco.shaper);
+
+          for (int i = 0; i < BlockTraverse.GetAmount(loco.shaper); ++i) {
+            auto& ri = pri[i];
+
+            auto& shape_data = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(loco.shaper.GetShapeTypes(shape_type).renderer);
+
+            ri.vao.bind(loco.context.gl);
+            ri.vbo.bind(loco.context.gl);
+
+            fan_opengl_call(glDrawArrays(
+              draw_mode,
+              0,
+              ri.buffer_size / sizeof(loco_t::polygon_vertex_t)
+            ));
+          }
+          break;
+        }
         default: {
           auto& shape_data = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(loco.shaper.GetShapeTypes(shape_type).renderer);
           if (((loco.context.gl.opengl.major > 4) || (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor >= 2)) && shape_data.instanced) {
             fan_opengl_call(glDrawArraysInstancedBaseInstance(
-              shape_data.draw_mode,
+              draw_mode,
               0,
-              6,//polygon_t::max_vertices_per_element breaks light
+              vertex_count,//polygon_t::max_vertices_per_element breaks light
               BlockTraverse.GetAmount(loco.shaper),
               BlockTraverse.GetRenderDataOffset(loco.shaper) / loco.shaper.GetRenderDataSize(shape_type)
             ));
           }
           else if (((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) && shape_data.instanced) {
             fan_opengl_call(glDrawArraysInstanced(
-              shape_data.draw_mode,
+              draw_mode,
               0,
-              shape_data.vertex_count,
+              vertex_count,
               BlockTraverse.GetAmount(loco.shaper)
             ));
           }
           else {
             fan_opengl_call(glDrawArrays(
-              shape_data.draw_mode,
+              draw_mode,
               (!!!(loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1)) * (BlockTraverse.GetRenderDataOffset(loco.shaper) / loco.shaper.GetRenderDataSize(shape_type)) * shape_data.vertex_count,
-              shape_data.vertex_count * BlockTraverse.GetAmount(loco.shaper)
+              vertex_count * BlockTraverse.GetAmount(loco.shaper)
             ));
           }
-
           break;
         }
         }

@@ -197,6 +197,26 @@ inline global_loco_t gloco;
 
 namespace fan {
   namespace graphics {
+
+    struct engine_init_t {
+      #define BLL_set_SafeNext 1
+      #define BLL_set_AreWeInsideStruct 1
+      #define BLL_set_prefix init_callback
+      #include <fan/fan_bll_preset.h>
+      #define BLL_set_Link 1
+      #define BLL_set_type_node uint16_t
+      #define BLL_set_NodeDataType fan::function_t<void(loco_t*)>
+      #define BLL_set_CPP_CopyAtPointerChange 1
+      #include <BLL/BLL.h>
+
+      using init_callback_nr_t = init_callback_NodeReference_t;
+    };
+
+    // cbs called every time engine opens
+    inline engine_init_t::init_callback_t engine_init_cbs;
+
+    uint32_t get_draw_mode(uint8_t internal_draw_mode);
+
     namespace gui {
       bool render_blank_window(const std::string& name);
     }
@@ -599,6 +619,23 @@ struct loco_t {
     set_line3_cb set_line3;
   };
 
+  #pragma pack(push, 1)
+
+  struct vertex_t {
+    fan::vec3 position;
+    fan::color color;
+  };
+
+  struct polygon_vertex_t {
+    fan::vec3 position;
+    fan::color color;
+    fan::vec3 offset;
+    fan::vec3 angle;
+    fan::vec2 rotation_point;
+  };
+
+  #pragma pack(pop)
+
   #if defined(loco_opengl)
   // opengl namespace
   struct opengl {
@@ -703,6 +740,8 @@ struct loco_t {
       d<loco_t::viewport_t> viewport;
       d<loco_t::camera_t> camera;
       d<shaper_t::ShapeTypeIndex_t> ShapeType;
+      d<uint8_t> draw_mode;
+      d<uint32_t> vertex_count;
     );
     st(common_t,
       d<depth_t> depth;
@@ -710,6 +749,8 @@ struct loco_t {
       d<loco_t::viewport_t> viewport;
       d<loco_t::camera_t> camera;
       d<shaper_t::ShapeTypeIndex_t> ShapeType;
+      d<uint8_t> draw_mode;
+      d<uint32_t> vertex_count;
     );
     st(vfi_t,
       d<uint8_t> filler = 0;
@@ -721,6 +762,8 @@ struct loco_t {
       d<loco_t::viewport_t> viewport;
       d<loco_t::camera_t> camera;
       d<shaper_t::ShapeTypeIndex_t> ShapeType;
+      d<uint8_t> draw_mode;
+      d<uint32_t> vertex_count;
     );
     // for universal_image_renderer
     // struct texture4_t {
@@ -1064,7 +1107,9 @@ public:
       viewport,
       camera,
       ShapeType,
-      filler
+      filler,
+      draw_mode,
+      vertex_count
     };
   };
 
@@ -1270,6 +1315,7 @@ public:
     struct properties_t {
       using type_t = light_t;
 
+
       fan::vec3 position = 0;
       f32_t parallax_factor = 0;
       fan::vec2 size = 0;
@@ -1281,6 +1327,9 @@ public:
 
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
 
     shape_t push_back(const properties_t& properties);
@@ -1321,6 +1370,9 @@ public:
 
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
+      uint32_t vertex_count = 2;
     };
 
 
@@ -1374,6 +1426,8 @@ public:
 
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
 
 
@@ -1456,6 +1510,8 @@ public:
 
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
 
     shape_t push_back(const properties_t& properties);
@@ -1522,6 +1578,9 @@ public:
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
 
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
+
       bool load_tp(loco_t::texturepack_t::ti_t* ti) {
         auto& im = *ti->image;
         image = im;
@@ -1564,6 +1623,9 @@ public:
       fan::vec3 angle = 0;
 
       fan::string text;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
 
     shape_t push_back(const properties_t& properties);
@@ -1616,6 +1678,9 @@ public:
 
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
 
 
@@ -1679,6 +1744,9 @@ public:
 
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
     loco_t::shape_t push_back(const capsule_t::properties_t& properties);
   }capsule;
@@ -1686,32 +1754,19 @@ public:
   
 #pragma pack(push, 1)
 
-  struct vertex_t {
-    fan::vec3 position;
-    fan::color color;
-  };
-
-  struct polygon_vertex_t {
-    fan::vec3 position;
-    fan::color color;
-    fan::vec3 offset;
-    fan::vec3 angle;
-    fan::vec2 rotation_point;
-  };
-
   struct polygon_t {
-    static constexpr uint16_t max_vertices_per_element = 400;
-
     static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::polygon;
     static constexpr int kpi = kp::common;
 
 
     // vertex
     struct vi_t {
-      polygon_vertex_t vertices[max_vertices_per_element];
+      
     };
     struct ri_t {
-
+      uint32_t buffer_size = 0;
+      fan::opengl::core::vao_t vao;
+      fan::opengl::core::vbo_t vbo;
     };
 
 #pragma pack(pop)
@@ -1733,6 +1788,9 @@ public:
       bool blending = true;
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 0;
     };
     loco_t::shape_t push_back(const properties_t& properties);
   }polygon;
@@ -1781,6 +1839,9 @@ public:
 
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
 
     shape_t push_back(const properties_t& properties);
@@ -1863,6 +1924,9 @@ public:
       loco_t::image_t image = gloco->default_texture;
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
 
     shape_t push_back(const properties_t& properties);
@@ -1914,6 +1978,9 @@ public:
       };
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
 
     shape_t push_back(const properties_t& properties);
@@ -1970,6 +2037,9 @@ public:
 
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
 
 
@@ -2037,6 +2107,9 @@ public:
 
       loco_t::camera_t camera = gloco->orthographic_camera.camera;
       loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
 
     shape_t push_back(const properties_t& properties);
@@ -2079,6 +2152,9 @@ public:
 
       loco_t::camera_t camera = gloco->perspective_camera.camera;
       loco_t::viewport_t viewport = gloco->perspective_camera.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 36;
     };
 
 
@@ -2121,8 +2197,10 @@ public:
 
       loco_t::camera_t camera = gloco->perspective_camera.camera;
       loco_t::viewport_t viewport = gloco->perspective_camera.viewport;
-    };
 
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
+      uint32_t vertex_count = 2;
+    };
 
     shape_t push_back(const properties_t& properties);
 

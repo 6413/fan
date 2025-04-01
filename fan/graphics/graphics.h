@@ -188,7 +188,7 @@ namespace fan {
       fan::vec3 position = fan::vec3(0, 0, 0);
       f32_t radius = 32.f;
       fan::color color = fan::color(1, 1, 1, 1);
-      bool blending = false;
+      bool blending = true;
       uint32_t flags = 0;
     };
 
@@ -248,6 +248,7 @@ namespace fan {
       fan::vec3 angle = 0;
       fan::vec2 rotation_point = 0;
       bool blending = true;
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
     };
 
     struct polygon_t : loco_t::shape_t {
@@ -263,6 +264,7 @@ namespace fan {
             .angle = p.angle,
             .rotation_point = p.rotation_point,
             .blending = p.blending,
+            .draw_mode = p.draw_mode
           ));
       }
     };

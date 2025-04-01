@@ -34,6 +34,23 @@ global_loco_t& global_loco_t::operator=(loco_t* l) {
   return *this;
 }
 
+uint32_t fan::graphics::get_draw_mode(uint8_t internal_draw_mode) {
+  if (gloco->get_renderer() == loco_t::renderer_t::opengl) {
+#if defined(loco_opengl)
+    return fan::opengl::core::get_draw_mode(internal_draw_mode);
+#endif
+  }
+  else if (gloco->get_renderer() == loco_t::renderer_t::vulkan) {
+#if defined(loco_vulkan)
+    return fan::vulkan::core::get_draw_mode(internal_draw_mode);
+#endif
+  }
+#if fan_debug >= fan_debug_medium
+  fan::throw_error("invalid get");
+#endif
+  return -1;
+}
+
 //thread_local global_loco_t gloco;
 
 fan::graphics::shader_nr_t loco_t::shader_create() {
@@ -352,7 +369,23 @@ loco_t::functions_t loco_t::get_functions() {
         return get_render_data(shape, &T::vertices)[0].offset;
       }
       else {
-        fan::throw_error("unimplemented get - for line use get_src()");
+        if (shape->get_shape_type() == shape_type_t::polygon) {
+          auto ri = (polygon_t::ri_t*)shape->GetData(gloco->shaper);
+          fan::vec3 position = 0;
+          fan::opengl::core::get_glbuffer(
+            gloco->context.gl,
+            &position,
+            ri->vbo.m_buffer,
+            sizeof(position),
+            sizeof(polygon_vertex_t) * 0 + fan::member_offset(&polygon_vertex_t::offset),
+            ri->vbo.m_target
+          );
+          return position;
+        }
+        else {
+          fan::throw_error("unimplemented get - for line use get_src()");
+        }
+        
         return fan::vec3();
       }
     },
@@ -360,13 +393,26 @@ loco_t::functions_t loco_t::get_functions() {
       if constexpr (fan_has_variable(T, position)) {
         modify_render_data_element(shape, &T::position, position);
       }
-      else if constexpr (fan_has_variable(T, vertices)) {
-        for (uint32_t i = 0; i < polygon_t::max_vertices_per_element; ++i) {
-          modify_render_data_element_arr(shape, &T::vertices, i, &polygon_vertex_t::offset, position);
-        }
-      }
       else {
-        fan::throw_error("unimplemented set - for line use set_src()");
+        if (shape->get_shape_type() == shape_type_t::polygon) {
+          auto ri = (polygon_t::ri_t*)shape->GetData(gloco->shaper);
+          ri->vao.bind(gloco->context.gl);
+          ri->vbo.bind(gloco->context.gl);
+          uint32_t vertex_count = ri->buffer_size / sizeof(polygon_vertex_t);
+          for (uint32_t i = 0; i < vertex_count; ++i) {
+            fan::opengl::core::edit_glbuffer(
+              gloco->context.gl, 
+              ri->vbo.m_buffer, 
+              &position, 
+              sizeof(polygon_vertex_t) * i + fan::member_offset(&polygon_vertex_t::offset),
+              sizeof(position),
+              ri->vbo.m_target
+            );
+          }
+        }
+        else {
+          fan::throw_error("unimplemented set - for line use set_src()");
+        }
       }
     },
     .set_position3 = [](shape_t* shape, const fan::vec3& position) {
@@ -509,9 +555,7 @@ loco_t::functions_t loco_t::get_functions() {
           modify_render_data_element(shape, &T::rotation_point, rotation_point);
         }
         else if constexpr (fan_has_variable(T, vertices)) {
-          for (uint32_t i = 0; i < polygon_t::max_vertices_per_element; ++i) {
-            modify_render_data_element_arr(shape, &T::vertices, i, &polygon_vertex_t::rotation_point, rotation_point);
-          }
+          
         }
         else {
           fan::throw_error("unimplemented set");
@@ -549,13 +593,26 @@ loco_t::functions_t loco_t::get_functions() {
         if constexpr (fan_has_variable(T, angle)) {
           modify_render_data_element(shape, &T::angle, angle);
         }
-        else if constexpr (fan_has_variable(T, vertices)) {
-          for (uint32_t i = 0; i < polygon_t::max_vertices_per_element; ++i) {
-            modify_render_data_element_arr(shape, &T::vertices, i, &polygon_vertex_t::angle, angle);
-          }
-        }
         else {
-          fan::throw_error("unimplemented set");
+          if (shape->get_shape_type() == shape_type_t::polygon) {
+            auto ri = (polygon_t::ri_t*)shape->GetData(gloco->shaper);
+            ri->vao.bind(gloco->context.gl);
+            ri->vbo.bind(gloco->context.gl);
+            uint32_t vertex_count = ri->buffer_size / sizeof(polygon_vertex_t);
+            for (uint32_t i = 0; i < vertex_count; ++i) {
+              fan::opengl::core::edit_glbuffer(
+                gloco->context.gl,
+                ri->vbo.m_buffer,
+                &angle,
+                sizeof(polygon_vertex_t) * i + fan::member_offset(&polygon_vertex_t::angle),
+                sizeof(angle),
+                ri->vbo.m_target
+              );
+            }
+          }
+          else {
+            fan::throw_error("unimplemented set");
+          }
         }
       },
       .get_tc_position = [](shape_t* shape) {
@@ -1475,6 +1532,8 @@ loco_t::loco_t(const properties_t& p) {
     shaper.AddKey(Key_e::camera, sizeof(loco_t::camera_t), shaper_t::KeyBitOrderAny);
     shaper.AddKey(Key_e::ShapeType, sizeof(shaper_t::ShapeTypeIndex_t), shaper_t::KeyBitOrderAny);
     shaper.AddKey(Key_e::filler, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
+    shaper.AddKey(Key_e::draw_mode, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
+    shaper.AddKey(Key_e::vertex_count, sizeof(uint32_t), shaper_t::KeyBitOrderAny);
 
     //gloco->shaper.AddKey(Key_e::image4, sizeof(loco_t::image_t) * 4, shaper_t::KeyBitOrderLow);
   }
@@ -1546,6 +1605,13 @@ loco_t::loco_t(const properties_t& p) {
   #if defined(loco_imgui)
   settings_menu.open();
   #endif
+
+  auto it = fan::graphics::engine_init_cbs.GetNodeFirst();
+  while (it != fan::graphics::engine_init_cbs.dst) {
+    fan::graphics::engine_init_cbs.StartSafeNext(it);
+    fan::graphics::engine_init_cbs[it](this);
+    it = fan::graphics::engine_init_cbs.EndSafeNext();
+  }
 }
 
 void loco_t::destroy() {
@@ -2671,12 +2737,18 @@ void loco_t::shape_t::remove() {
   if (gloco->shaper.ShapeList.Usage() == 0) {
     return;
   }
-  if (get_shape_type() == loco_t::shape_type_t::vfi) {
+  auto shape_type = get_shape_type();
+  if (shape_type == loco_t::shape_type_t::vfi) {
     gloco->vfi.erase(*this);
+    sic();
+    return;
   }
-  else {
-    gloco->shaper.remove(*this);
+  if (shape_type == loco_t::shape_type_t::polygon) {
+     auto ri = (polygon_t::ri_t*)GetData(gloco->shaper);
+     ri->vbo.close(gloco->context.gl);
+     ri->vao.close(gloco->context.gl);
   }
+  gloco->shaper.remove(*this);
   sic();
 }
 
@@ -2878,7 +2950,9 @@ loco_t::shape_t loco_t::light_t::push_back(const properties_t& properties) {
     Key_e::light, (uint8_t)0,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
 }
 
@@ -2894,7 +2968,9 @@ loco_t::shape_t loco_t::line_t::push_back(const properties_t& properties) {
     Key_e::blending, (uint8_t)properties.blending,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
 }
 
@@ -2913,7 +2989,9 @@ loco_t::shape_t loco_t::rectangle_t::push_back(const properties_t& properties) {
     Key_e::blending, (uint8_t)properties.blending,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
 }
 
@@ -2932,7 +3010,9 @@ loco_t::shape_t loco_t::circle_t::push_back(const circle_t::properties_t& proper
     Key_e::blending, (uint8_t)properties.blending,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
 }
 
@@ -2954,7 +3034,9 @@ loco_t::shape_t loco_t::capsule_t::push_back(const loco_t::capsule_t::properties
     Key_e::blending, (uint8_t)properties.blending,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
 }
 
@@ -2962,33 +3044,73 @@ loco_t::shape_t loco_t::polygon_t::push_back(const loco_t::polygon_t::properties
   if (properties.vertices.empty()) {
     fan::throw_error("invalid vertices");
   }
-  if (properties.vertices.size() > loco_t::polygon_t::max_vertices_per_element) {
-    fan::throw_error("maximum polygons reached");
-  }
-  vi_t vis;
+
+  std::vector<loco_t::polygon_vertex_t> polygon_vertices(properties.vertices.size());
   for (std::size_t i = 0; i < properties.vertices.size(); ++i) {
-    vis.vertices[i].position = properties.vertices[i].position;
-    vis.vertices[i].color = properties.vertices[i].color;
-    vis.vertices[i].offset = properties.position;
-    vis.vertices[i].angle = properties.angle;
-    vis.vertices[i].rotation_point = properties.rotation_point;
+    polygon_vertices[i].position = properties.vertices[i].position;
+    polygon_vertices[i].color = properties.vertices[i].color;
+    polygon_vertices[i].offset = properties.position;
+    polygon_vertices[i].angle = properties.angle;
+    polygon_vertices[i].rotation_point = properties.rotation_point;
   }
 
-  // fill gaps
-  for (std::size_t i = properties.vertices.size(); i < std::size(vis.vertices); ++i) {
-    vis.vertices[i].position = vis.vertices[i - 1].position;
-    vis.vertices[i].color = vis.vertices[i - 1].color;
-    vis.vertices[i].offset = vis.vertices[i - 1].offset;
-    vis.vertices[i].angle = vis.vertices[i - 1].angle;
-    vis.vertices[i].rotation_point = vis.vertices[i - 1].rotation_point;
-  }
+  vi_t vis;
   ri_t ri;
+  ri.buffer_size = sizeof(decltype(polygon_vertices)::value_type) * polygon_vertices.size();
+  ri.vao.open(gloco->context.gl);
+  ri.vao.bind(gloco->context.gl);
+  ri.vbo.open(gloco->context.gl, GL_ARRAY_BUFFER);
+  fan::opengl::core::write_glbuffer(
+    gloco->context.gl, 
+    ri.vbo.m_buffer, 
+    polygon_vertices.data(), 
+    ri.buffer_size,
+    GL_STATIC_DRAW,
+    ri.vbo.m_target
+  );
+
+  auto& shape_data = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(gloco->shaper.GetShapeTypes(shape_type).renderer);
+
+  fan::graphics::context_shader_t shader;
+  if (!shape_data.shader.iic()) {
+    shader = gloco->shader_get(shape_data.shader);
+  }
+  uint64_t ptr_offset = 0;
+  for (shape_gl_init_t& location : locations) {
+    if ((gloco->context.gl.opengl.major == 2 && gloco->context.gl.opengl.minor == 1) && !shape_data.shader.iic()) {
+      location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
+    }
+    fan_opengl_call(glEnableVertexAttribArray(location.index.first));
+    fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
+    // instancing
+    if ((gloco->context.gl.opengl.major > 3) || (gloco->context.gl.opengl.major == 3 && gloco->context.gl.opengl.minor >= 3)) {
+      if (shape_data.instanced) {
+        fan_opengl_call(glVertexAttribDivisor(location.index.first, 1));
+      }
+    }
+    switch (location.type) {
+    case GL_FLOAT: {
+      ptr_offset += location.size * sizeof(GLfloat);
+      break;
+    }
+    case GL_UNSIGNED_INT: {
+      ptr_offset += location.size * sizeof(GLuint);
+      break;
+    }
+    default: {
+      fan::throw_error_impl();
+    }
+    }
+  }
+
   return shape_add(shape_type, vis, ri,
     Key_e::depth, (uint16_t)properties.position.z,
     Key_e::blending, (uint8_t)properties.blending,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, (uint32_t)properties.vertices.size()
   );
 }
 
@@ -3021,7 +3143,9 @@ loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
         Key_e::image, properties.image, 
         Key_e::viewport, properties.viewport, 
         Key_e::camera, properties.camera,
-        Key_e::ShapeType, shape_type
+        Key_e::ShapeType, shape_type,
+        Key_e::draw_mode, properties.draw_mode,
+        Key_e::vertex_count, properties.vertex_count
       );
     }
     else {
@@ -3037,7 +3161,9 @@ loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
         Key_e::blending, static_cast<uint8_t>(properties.blending),
         Key_e::image, properties.image, Key_e::viewport,
         properties.viewport, Key_e::camera, properties.camera,
-        Key_e::ShapeType, shape_type
+        Key_e::ShapeType, shape_type,
+        Key_e::draw_mode, properties.draw_mode,
+        Key_e::vertex_count, properties.vertex_count
       );
     }
   }
@@ -3048,7 +3174,9 @@ loco_t::shape_t loco_t::sprite_t::push_back(const properties_t& properties) {
       Key_e::blending, static_cast<uint8_t>(properties.blending),
       Key_e::image, properties.image, Key_e::viewport,
       properties.viewport, Key_e::camera, properties.camera,
-      Key_e::ShapeType, shape_type
+      Key_e::ShapeType, shape_type,
+      Key_e::draw_mode, properties.draw_mode,
+      Key_e::vertex_count, properties.vertex_count
     );
   }
   
@@ -3080,7 +3208,9 @@ loco_t::shape_t loco_t::unlit_sprite_t::push_back(const properties_t& properties
     Key_e::image, properties.image,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
 }
 
@@ -3098,7 +3228,9 @@ loco_t::shape_t loco_t::grid_t::push_back(const properties_t& properties) {
     Key_e::blending, (uint8_t)properties.blending,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
 }
 
@@ -3130,7 +3262,9 @@ loco_t::shape_t loco_t::particles_t::push_back(const properties_t& properties) {
     Key_e::image, properties.image,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
 }
 
@@ -3149,7 +3283,9 @@ loco_t::shape_t loco_t::universal_image_renderer_t::push_back(const properties_t
     Key_e::image, properties.images[0],
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
 }
 
@@ -3173,7 +3309,9 @@ loco_t::shape_t loco_t::gradient_t::push_back(const properties_t& properties) {
     Key_e::blending, (uint8_t)properties.blending,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
 }
 
@@ -3198,7 +3336,9 @@ loco_t::shape_t loco_t::shader_shape_t::push_back(const properties_t& properties
     Key_e::image, properties.image,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
   gloco->shaper.GetShader(shape_type) = properties.shader;
   return ret;
@@ -3223,7 +3363,9 @@ loco_t::shape_t loco_t::rectangle3d_t::push_back(const properties_t& properties)
         Key_e::blending, (uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
-        Key_e::ShapeType, shape_type
+        Key_e::ShapeType, shape_type,
+        Key_e::draw_mode, properties.draw_mode,
+        Key_e::vertex_count, properties.vertex_count
       );
     }
     else {
@@ -3237,7 +3379,9 @@ loco_t::shape_t loco_t::rectangle3d_t::push_back(const properties_t& properties)
         Key_e::blending, (uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
-        Key_e::ShapeType, shape_type
+        Key_e::ShapeType, shape_type,
+        Key_e::draw_mode, properties.draw_mode,
+        Key_e::vertex_count, properties.vertex_count
       );
     }
   }
@@ -3260,7 +3404,9 @@ loco_t::shape_t loco_t::line3d_t::push_back(const properties_t& properties) {
     Key_e::blending, (uint8_t)properties.blending,
     Key_e::viewport, properties.viewport,
     Key_e::camera, properties.camera,
-    Key_e::ShapeType, shape_type
+    Key_e::ShapeType, shape_type,
+    Key_e::draw_mode, properties.draw_mode,
+    Key_e::vertex_count, properties.vertex_count
   );
 }
 

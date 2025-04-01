@@ -503,6 +503,11 @@ struct vfi_t {
             continue;
           }
         }
+        switch (kti) {
+            case loco_t::Key_e::draw_mode: 
+            case loco_t::Key_e::vertex_count: 
+            continue;
+        }
         if (!KeyTraverse.isbm) {
           continue;
         }

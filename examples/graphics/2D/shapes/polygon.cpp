@@ -67,7 +67,7 @@ int main() {
         hexagon_collision_points[i-1] = hexagon_pp.vertices[i].position;
       }
     }
-    hexagon_entity = loco.physics_context.create_segment(hexagon_collision_points, b2_staticBody, {});
+    hexagon_entity = loco.physics_context.create_segment(0, hexagon_collision_points, b2_staticBody, {});
   }
   
   
@@ -77,7 +77,7 @@ int main() {
   }};
 
   auto points = ground_points(fan::vec2(0, 800), amplitude, frequency, width, ground_width);
-  loco.physics_context.create_segment(points, b2_staticBody, {});
+  loco.physics_context.create_segment(0, points, b2_staticBody, {});
 
   loco.loop([&] {
     loco.physics_context.step(loco.delta_time);

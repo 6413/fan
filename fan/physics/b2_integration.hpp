@@ -232,7 +232,7 @@ namespace fan {
       fan::physics::entity_t create_capsule(const fan::vec2& position, const b2Capsule& info, uint8_t body_type, const shape_properties_t& shape_properties);
 
       fan::physics::entity_t create_segment(const fan::vec2& position, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties);
-      fan::physics::entity_t create_polygon(const fan::vec2& position, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties);
+      fan::physics::entity_t create_polygon(const fan::vec2& position, f32_t radius, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties);
 
       void step(f32_t dt);
 
@@ -251,5 +251,7 @@ namespace fan {
     bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body);
 
     fan::physics::body_id_t deep_copy_body(b2WorldId worldId, fan::physics::body_id_t sourceBodyId);
+    fan::vec2 physics_to_render(const fan::vec2& p);
+    fan::vec2 render_to_physics(const fan::vec2& p);
   }
 }

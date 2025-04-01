@@ -115,6 +115,20 @@ namespace fan {
       uintptr_t min_filter = image_load_properties_defaults::min_filter;
       uintptr_t mag_filter = image_load_properties_defaults::mag_filter;
     };
+
+    struct primitive_topology_t {
+      static constexpr auto points = 0;
+      static constexpr auto lines = 1;
+      static constexpr auto line_strip = 2;
+      static constexpr auto triangles = 3;
+      static constexpr auto triangle_strip = 4;
+      static constexpr auto triangle_fan = 5;
+      static constexpr auto lines_with_adjacency = 6;
+      static constexpr auto line_strip_with_adjacency = 7;
+      static constexpr auto triangles_with_adjacency = 8;
+      static constexpr auto triangle_strip_with_adjacency = 9;
+    };
+
     struct context_functions_t {
       context_build_shader_functions(context_typedef_func_ptr);
       context_build_image_functions(context_typedef_func_ptr);

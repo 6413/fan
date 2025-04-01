@@ -255,7 +255,6 @@ struct shaper_t{
       std::vector<shape_gl_init_t> locations;
       fan::graphics::shader_nr_t shader;
       bool instanced = true;
-      GLuint draw_mode = GL_TRIANGLES;
       GLsizei vertex_count = 6;
     };
     struct vk_t {
