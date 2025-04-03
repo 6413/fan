@@ -1123,7 +1123,7 @@ loco_t::functions_t loco_t::get_functions() {
               images[i] = gloco->image_create();
             }
             shape->set_image(images[0]);
-            std::memcpy(ri.images_rest, &images[1], sizeof(ri.images_rest));
+            std::copy(&images[1], &images[0] + ri.images_rest.size(), ri.images_rest.data());
           }
         }
 
@@ -1880,9 +1880,7 @@ void loco_t::process_gui() {
   }
   if (render_console) {
     console.render();
-  }
-  static bool render_settings_menu = 0;
-  
+  }  
   if (fan::graphics::is_input_action_active("open_settings")) {
     render_settings_menu = !render_settings_menu;
   }
@@ -2096,7 +2094,7 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 
   ImGui::SetNextWindowPos(ImVec2(0, 0));
   ImGui::SetNextWindowSize(window.get_size());
-  ImGui::Begin("##text_render", 0, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar);
+  ImGui::Begin("##text_render", 0, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
 #endif
 
   lambda();
@@ -3276,7 +3274,7 @@ loco_t::shape_t loco_t::universal_image_renderer_t::push_back(const properties_t
   vi.tc_size = properties.tc_size;
   ri_t ri;
   // + 1
-  std::memcpy(ri.images_rest, &properties.images[1], sizeof(ri.images_rest));
+  std::copy(&properties.images[1], &properties.images[0] + properties.images.size(), ri.images_rest.data());
   return shape_add(shape_type, vi, ri,
     Key_e::depth, (uint16_t)properties.position.z,
     Key_e::blending, (uint8_t)properties.blending,
@@ -3299,7 +3297,7 @@ loco_t::shape_t loco_t::gradient_t::push_back(const properties_t& properties) {
   vi_t vi;
   vi.position = properties.position;
   vi.size = properties.size;
-  std::memcpy(vi.color, properties.color, sizeof(vi.color));
+  vi.color = properties.color;
   vi.angle = properties.angle;
   vi.rotation_point = properties.rotation_point;
   ri_t ri;
@@ -3451,34 +3449,37 @@ std::vector<uint8_t> loco_t::create_noise_image_data(const fan::vec2& image_size
 }
 
 
-loco_t::shader_t loco_t::create_sprite_shader(const fan::string& fragment) {
+loco_t::shader_t loco_t::get_sprite_vertex_shader(const fan::string& fragment) {
   loco_t::shader_t shader = shader_create();
   shader_set_vertex(
     shader,
     loco_t::read_shader("shaders/opengl/2D/objects/sprite.vs")
   );
   shader_set_fragment(shader, fragment);
-  shader_compile(shader);
+  if (!shader_compile(shader)) {
+    shader_erase(shader);
+    shader.sic();
+  }
   return shader;
 }
 #if defined(loco_json)
 [[nodiscard]]
 std::pair<size_t, size_t> fan::json_stream_parser_t::find_next_json_bounds(std::string_view s, size_t pos) const noexcept {
-    pos = s.find('{', pos);
-    if (pos == std::string::npos) return { pos, pos };
+  pos = s.find('{', pos);
+  if (pos == std::string::npos) return { pos, pos };
 
-    int depth = 0;
-    bool in_str = false;
+  int depth = 0;
+  bool in_str = false;
 
-    for (size_t i = pos; i < s.length(); i++) {
-        char c = s[i];
-        if (c == '"' && (i == 0 || s[i - 1] != '\\')) in_str = !in_str;
-        else if (!in_str) {
-            if (c == '{') depth++;
-            else if (c == '}' && --depth == 0) return { pos, i + 1 };
-        }
+  for (size_t i = pos; i < s.length(); i++) {
+    char c = s[i];
+    if (c == '"' && (i == 0 || s[i - 1] != '\\')) in_str = !in_str;
+    else if (!in_str) {
+      if (c == '{') depth++;
+      else if (c == '}' && --depth == 0) return { pos, i + 1 };
     }
-    return { pos, std::string::npos };
+  }
+  return { pos, std::string::npos };
 }
 
 std::vector<fan::json_stream_parser_t::parsed_result> fan::json_stream_parser_t::process(std::string_view chunk) {
@@ -3848,7 +3849,7 @@ bool fan::graphics::gui::render_blank_window(const std::string& name) {
   return ImGui::Begin(name.c_str(), 0,
     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | 
     ImGuiWindowFlags_NoResize | 
-    ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar
+    ImGuiWindowFlags_NoTitleBar
   );
 }
 #endif

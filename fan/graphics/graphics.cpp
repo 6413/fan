@@ -79,6 +79,9 @@ void fan::graphics::text_bottom_right(const std::string& text, const fan::color&
   text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
   fan::graphics::text(text, text_pos + offset, color);
 }
+void ImGui::Text(const std::string& str) {
+  ImGui::Text(str.c_str());
+}
 IMGUI_API void ImGui::Image(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) {
   ImGui::Image((ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, tint_col, border_col);
 }
@@ -845,7 +848,14 @@ void fan::graphics::set_window_size(const fan::vec2& size) {
   );
 }
 
-void loco_t::settings_menu_t::menu_graphics_left(settings_menu_t* menu) {
+static constexpr int wnd_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | 
+    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
+
+void loco_t::settings_menu_t::menu_graphics_left(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+
+  ImGui::SetNextWindowPos(next_window_position);
+  ImGui::SetNextWindowSize(next_window_size);
+  ImGui::Begin("##Menu Graphics Left", 0, wnd_flags);
   {
     ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "DISPLAY");
     ImGui::BeginTable("settings_left_table_display", 2,
@@ -946,9 +956,15 @@ void loco_t::settings_menu_t::menu_graphics_left(settings_menu_t* menu) {
 
     ImGui::EndTable();
   }
+  ImGui::End();
 }
 
-void loco_t::settings_menu_t::menu_graphics_right(loco_t::settings_menu_t* menu) {
+void loco_t::settings_menu_t::menu_graphics_right(loco_t::settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+
+  ImGui::SetNextWindowPos(next_window_position);
+  ImGui::SetNextWindowSize(next_window_size);
+  ImGui::Begin("##Menu Graphics Right", 0, wnd_flags);
+
   ImGui::PushFont(gloco->fonts_bold[std::size(gloco->fonts_bold) - 3]);
   ImGui::Indent(menu->min_x);
   ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "Setting Info");
@@ -965,14 +981,16 @@ void loco_t::settings_menu_t::menu_graphics_right(loco_t::settings_menu_t* menu)
   line_end.y += ImGui::GetContentRegionMax().y;
 
   draw_list->AddLine(line_start, line_end, IM_COL32(255, 255, 255, 255));
+
+  ImGui::End();
 }
 
-void loco_t::settings_menu_t::menu_audio_left(loco_t::settings_menu_t* menu) {
+void loco_t::settings_menu_t::menu_audio_left(loco_t::settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
 
 }
 
-void loco_t::settings_menu_t::menu_audio_right(loco_t::settings_menu_t* menu) {
-  loco_t::settings_menu_t::menu_graphics_right(menu);
+void loco_t::settings_menu_t::menu_audio_right(loco_t::settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+  loco_t::settings_menu_t::menu_graphics_right(menu, next_window_position, next_window_size);
 }
 
 void loco_t::settings_menu_t::set_settings_theme() {
@@ -1189,17 +1207,23 @@ void loco_t::settings_menu_t::render_separator_with_margin(f32_t width, f32_t ma
   ImGui::GetWindowDrawList()->AddLine(separator_start, separator_end, ImGui::GetColorU32(ImGuiCol_Separator), 1.0f);
 }
 
-void loco_t::settings_menu_t::render_settings_left_column() {
-  ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.5f);
-  pages[current_page].page_left_render(this);
+void loco_t::settings_menu_t::render_settings_left(const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+  pages[current_page].page_left_render(this, next_window_position, next_window_size);
 }
 
-void loco_t::settings_menu_t::render_settings_right_column(f32_t min_x) {
-  ImGui::NextColumn();
-  pages[current_page].page_right_render(this);
+void loco_t::settings_menu_t::render_settings_right(const fan::vec2& next_window_position, const fan::vec2& next_window_size, f32_t min_x) {
+  pages[current_page].page_right_render(this, next_window_position, next_window_size);
 }
 
-void loco_t::settings_menu_t::render_settings_top(f32_t min_x) {
+fan::vec2 loco_t::settings_menu_t::render_settings_top(f32_t min_x) {
+  fan::vec2 main_window_size = gloco->window.get_size();
+  ImGui::SetNextWindowPos(ImVec2(0, 0));
+  ImGui::SetNextWindowSize(fan::vec2(main_window_size.x, main_window_size.y / 5));
+  ImGui::Begin("##Fan Settings Nav", 0,
+    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | 
+    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar
+  );
+
   ImGui::PushFont(gloco->fonts_bold[std::size(gloco->fonts_bold) - 2]);
   ImGui::Indent(min_x);
   ImGui::Text("Settings");
@@ -1238,6 +1262,10 @@ void loco_t::settings_menu_t::render_settings_top(f32_t min_x) {
   ImGui::PopFont();
   ImGui::Unindent(options_x);
   render_separator_with_margin(ImGui::GetContentRegionAvail().x - min_x);
+  fan::vec2 window_size = ImGui::GetWindowSize();
+  ImGui::Unindent();
+  ImGui::End();
+  return window_size;
 }
 
 void loco_t::settings_menu_t::render() {
@@ -1247,22 +1275,18 @@ void loco_t::settings_menu_t::render() {
 
   ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 0.9f));
   ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.8, 0.8, 0.8, 1.0f));
-  fan::graphics::gui::render_blank_window("Fan Settings Menu");
 
-  render_settings_top(min_x);
+  fan::vec2 main_window_size = gloco->window.get_size();
+  fan::vec2 window_size = render_settings_top(min_x);
 
-  ImGui::NewLine();
-  ImGui::Columns(2);
+  fan::vec2 next_window_position = fan::vec2(0, window_size.y);
+  fan::vec2 next_window_size = fan::vec2(main_window_size.x / 2.f, main_window_size.y - next_window_position.y);
+  render_settings_left(next_window_position, next_window_size);
 
-  // 50% left
-  render_settings_left_column();
+  next_window_position = next_window_position + fan::vec2(main_window_size.x / 2.f, 0);
+  next_window_size = fan::vec2(main_window_size.x / 2.f, main_window_size.y - next_window_position.y);
+  render_settings_right(next_window_position, next_window_size, min_x);
 
-  // %50 right
-  render_settings_right_column(min_x);
-  ImGui::Columns(1);
-
-  ImGui::Unindent(min_x);
-  ImGui::End();
   ImGui::PopStyleColor(2);
 }
 

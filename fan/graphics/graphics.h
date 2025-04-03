@@ -295,6 +295,124 @@ namespace fan {
       }
     };
 
+    struct universal_image_renderer_properties_t {
+      camera_impl_t* camera = &gloco->orthographic_camera;
+      fan::vec3 position = 0;
+      fan::vec2 size = 0;
+      fan::vec2 tc_position = 0;
+      fan::vec2 tc_size = 1;
+
+      bool blending = false;
+
+      std::array<loco_t::image_t, 4> images = {
+        gloco->default_texture,
+        gloco->default_texture,
+        gloco->default_texture,
+        gloco->default_texture
+      };
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    };
+
+    struct universal_image_renderer_t : loco_t::shape_t {
+      universal_image_renderer_t(const universal_image_renderer_properties_t& p = universal_image_renderer_properties_t()) {
+         *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            typename loco_t::universal_image_renderer_t::properties_t,
+            .camera = p.camera->camera,
+            .viewport = p.camera->viewport,
+            .position = p.position,
+            .size = p.size,
+            .tc_position = p.tc_position,
+            .tc_size = p.tc_size,
+            .blending = p.blending,
+            .images = p.images,
+            .draw_mode = p.draw_mode,
+          )
+        );
+      }
+    };
+
+    struct gradient_properties_t {
+      camera_impl_t* camera = &gloco->perspective_camera;
+
+      fan::vec3 position = 0;
+      fan::vec2 size = 0;
+      std::array<fan::color, 4> color = {
+        fan::random::color(),
+        fan::random::color(),
+        fan::random::color(),
+        fan::random::color()
+      };
+      bool blending = true;
+      fan::vec3 angle = 0;
+      fan::vec2 rotation_point = 0;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    };
+
+    struct gradient_t : loco_t::shape_t{
+      gradient_t(const gradient_properties_t& p = gradient_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            typename loco_t::gradient_t::properties_t,
+            .camera = p.camera->camera,
+            .viewport = p.camera->viewport,
+            .position = p.position,
+            .size = p.size,
+            .color = p.color,
+            .blending = p.blending,
+            .angle = p.angle,
+            .rotation_point = p.rotation_point
+          )
+        );
+      }
+    };
+
+    struct shader_shape_properties_t {
+      camera_impl_t* camera = &gloco->perspective_camera;
+
+      fan::vec3 position = 0;
+      fan::vec2 size = 0;
+      fan::vec2 rotation_point = 0;
+      fan::color color = fan::colors::white;
+      fan::vec3 angle = fan::vec3(0);
+      uint32_t flags = 0;
+      fan::vec2 tc_position = 0;
+      fan::vec2 tc_size = 1;
+      loco_t::shader_t shader;
+      bool blending = true;
+
+      loco_t::image_t image = gloco->default_texture;
+      std::array<loco_t::image_t, 30> images;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    };
+
+    struct shader_shape_t : loco_t::shape_t {
+      shader_shape_t(const shader_shape_properties_t& p = shader_shape_properties_t()) {
+       *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            typename loco_t::shader_shape_t::properties_t,
+            .camera = p.camera->camera,
+            .viewport = p.camera->viewport,
+            .position = p.position,
+            .size = p.size,
+            .rotation_point = p.rotation_point,
+            .color = p.color,
+            .angle = p.angle,
+            .flags = p.flags,
+            .tc_position = p.tc_position,
+            .tc_size = p.tc_size,
+            .shader = p.shader,
+            .blending = p.blending,
+            .image = p.image,
+            .images = p.images,
+            .draw_mode = p.draw_mode
+          )
+        );
+      }
+    };
+
     struct line3d_properties_t {
       camera_impl_t* camera = &gloco->perspective_camera;
       fan::vec3 src = fan::vec3(0, 0, 0);
@@ -720,6 +838,8 @@ namespace fan {
 // Imgui extensions
 #if defined(loco_imgui)
 namespace ImGui {
+  void Text(const std::string& str);
+
   IMGUI_API void Image(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
   IMGUI_API bool ImageButton(const std::string& str_id, loco_t::image_t img, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
   IMGUI_API bool ImageTextButton(loco_t::image_t img, const std::string& text, const fan::color& color, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));

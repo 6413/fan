@@ -1267,12 +1267,10 @@ public:
     f32_t get_outline_size();
     fan::color get_outline_color();
 
-    void reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter = GL_LINEAR);
-    void reload(uint8_t format, const fan::vec2& image_size, uint32_t filter = GL_LINEAR);
+    void reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter = fan::graphics::image_filter::linear);
+    void reload(uint8_t format, const fan::vec2& image_size, uint32_t filter = fan::graphics::image_filter::linear);
 
     void set_line(const fan::vec2& src, const fan::vec2& dst);
-
-    
 
   private:
   };
@@ -1947,7 +1945,7 @@ public:
       fan::vec2 tc_size = 1;
     };
     struct ri_t {
-      loco_t::image_t images_rest[3]; // 3 + 1 (pk)
+      std::array<loco_t::image_t, 3> images_rest; // 3 + 1 (pk)
       uint8_t format = fan::pixel_format::undefined;
     };
 
@@ -1970,7 +1968,7 @@ public:
 
       bool blending = false;
 
-      loco_t::image_t images[4] = {
+      std::array<loco_t::image_t, 4> images = {
         gloco->default_texture,
         gloco->default_texture,
         gloco->default_texture,
@@ -2000,7 +1998,7 @@ public:
       fan::vec2 rotation_point;
       // top left, top right
       // bottom left, bottom right
-      fan::color color[4];
+      std::array<fan::color, 4> color;
       fan::vec3 angle;
     };
     struct ri_t {
@@ -2025,7 +2023,7 @@ public:
 
       fan::vec3 position = 0;
       fan::vec2 size = 0;
-      fan::color color[4] = {
+      std::array<fan::color, 4> color = {
         fan::random::color(),
         fan::random::color(),
         fan::random::color(),
@@ -2100,7 +2098,7 @@ public:
       fan::vec2 tc_size = 1;
       f32_t seed = 0;
       loco_t::shader_t shader;
-      bool blending = false;
+      bool blending = true;
 
       loco_t::image_t image = gloco->default_texture;
       std::array<loco_t::image_t, 30> images;
@@ -2325,7 +2323,7 @@ public:
 
 
 #if defined(loco_sprite)
-  loco_t::shader_t create_sprite_shader(const fan::string& fragment);
+  loco_t::shader_t get_sprite_vertex_shader(const fan::string& fragment);
 #endif
 
 
@@ -2352,6 +2350,7 @@ public:
   fan::console_t console;
   bool render_console = false;
   bool toggle_fps = false;
+  bool render_settings_menu = 0;
 
   ImFont* fonts[6];
   ImFont* fonts_bold[6];

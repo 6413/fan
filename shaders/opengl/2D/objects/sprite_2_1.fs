@@ -8,7 +8,7 @@ uniform sampler2D _t01;
 uniform sampler2D _t02;
 uniform vec3 lighting_ambient;
 uniform vec2 window_size;
-uniform float m_time;
+uniform float _time;
 uniform vec2 offset;
 
 void main() {

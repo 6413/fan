@@ -429,7 +429,7 @@ namespace fan {
           fan::vec2 rotation_point = 0;
           std::vector<vertex_t> vertices;
           bool blending = true;
-          uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
+          uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_fan;
           operator fan::graphics::polygon_properties_t() const {
             return fan::graphics::polygon_properties_t{
               .camera = camera,
@@ -475,6 +475,59 @@ namespace fan {
         }
       };
 
+      struct polygon_strip_t : base_shape_t {
+        struct properties_t {
+          camera_impl_t* camera = &gloco->orthographic_camera;
+          fan::vec3 position = 0;
+          fan::vec3 angle = 0;
+          fan::vec2 rotation_point = 0;
+          std::vector<vertex_t> vertices;
+          bool blending = true;
+          uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
+          operator fan::graphics::polygon_properties_t() const {
+            return fan::graphics::polygon_properties_t{
+              .camera = camera,
+              .position = position,
+              .vertices = vertices,
+              .angle = angle,
+              .rotation_point = rotation_point,
+              .blending = blending,
+              .draw_mode = draw_mode
+            };
+          }
+          uint8_t body_type = fan::physics::body_type_e::static_body;
+          mass_data_t mass_data;
+          fan::physics::shape_properties_t shape_properties;
+        };
+        polygon_strip_t() = default;
+        polygon_strip_t(const properties_t& p) : base_shape_t(
+          loco_t::shape_t(fan::graphics::polygon_t{ p }),
+          fan::physics::entity_t(
+            [&]{
+              std::vector<fan::vec2> points(p.vertices.size());
+              for (std::size_t i = 0; i < points.size(); ++i) {
+                points[i] = p.vertices[i].position;
+              }
+              return gloco->physics_context.create_segment(
+                p.position,
+                points, p.body_type, p.shape_properties
+              );
+            }()),
+          p.mass_data
+        ) {
+        }
+        polygon_strip_t(const capsule_t& r) : base_shape_t(r) {}
+        polygon_strip_t(capsule_t&& r) : base_shape_t(std::move(r)) {}
+        polygon_strip_t& operator=(const polygon_strip_t& r) {
+          base_shape_t::operator=(r);
+          return *this;
+        }
+        polygon_strip_t& operator=(polygon_strip_t&& r) {
+          base_shape_t::operator=(std::move(r));
+          return *this;
+        }
+      };
+
       std::array<fan::graphics::physics_shapes::rectangle_t, 4> create_stroked_rectangle(
         const fan::vec2& center_position,
         const fan::vec2& half_size,
@@ -485,7 +538,8 @@ namespace fan {
           {.friction = 0.6},
           {.friction = 0},
           {.friction = 0}
-        } });
+        } }
+      );
     }
 
     struct character2d_t : physics_shapes::base_shape_t {
