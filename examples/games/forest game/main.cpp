@@ -139,8 +139,8 @@ lstd_defstruct(stage_shop_t)
 
 pile_t::pile_t() {
 
-  loco_t::image_load_properties_t lp;
-  lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
+  fan::graphics::image_load_properties_t lp;
+  lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_border;
   lp.min_filter = fan::graphics::image_filter::nearest;
   lp.mag_filter = fan::graphics::image_filter::nearest;
 

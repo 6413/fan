@@ -471,7 +471,7 @@ public:
   }
 
   static inline std::vector<fan::function_t<void()>> draw_queue_helper;
-
+  
   template <uint32_t depth = 0>
   void traverse_draw(loco_bdbt_NodeReference_t nr, uint32_t draw_mode) {
     if constexpr (depth == context_key_t::key_t::count + 1) {
