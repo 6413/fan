@@ -16,7 +16,7 @@ uniform mat4 projection;
 
 uniform vec2 window_size;
 
-uniform float m_time;
+uniform float _time;
 
 struct block_instance_t{
 	vec3 position;
@@ -102,7 +102,7 @@ float rotation_speed = 1;
 float rotation_angle = 1;
 
 float calculate_vertex_angle(int plane) {
-  float time = m_time;
+  float time = _time;
   float id = gl_VertexID / total_vertex;
   time -= id;
   float wind = sin(time * rotation_speed);

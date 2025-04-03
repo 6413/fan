@@ -719,9 +719,7 @@ void draw_shapes() {
         }
 #endif
 
-        if (shape_type == loco_t::shape_type_t::universal_image_renderer) {
-          auto shader = loco.shaper.GetShader(shape_type);
-          
+        if (shape_type == loco_t::shape_type_t::universal_image_renderer) {          
           auto& ri = *(universal_image_renderer_t::ri_t*)BlockTraverse.GetData(loco.shaper);
 
           if (ri.images_rest[0].iic() == false) {
@@ -793,7 +791,7 @@ void draw_shapes() {
           );
           loco.shader_set_value(
             shader,
-            "m_time",
+            "_time",
             f32_t((fan::time::clock::now() - loco.start_time) / 1e+9)
           );
           //fan::print(fan::time::clock::now() / 1e+9);
@@ -840,8 +838,6 @@ void draw_shapes() {
         case shape_type_t::particles: {
           //fan::print("shaper design is changed");
           particles_t::ri_t* pri = (particles_t::ri_t*)BlockTraverse.GetData(loco.shaper);
-          loco_t::shader_t shader = loco.shaper.GetShader(shape_type_t::particles);
-
           for (int i = 0; i < BlockTraverse.GetAmount(loco.shaper); ++i) {
             auto& ri = pri[i];
             loco.shader_set_value(shader, "time", (f32_t)((fan::time::clock::now() - ri.begin_time) / 1e+9));

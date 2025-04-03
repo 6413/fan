@@ -484,7 +484,7 @@ public:
       auto& bm = bm_list[*(shape_bm_NodeReference_t*)&nr];
       auto block_id = bm.first_block;
 
-      m_current_shader->set_float("m_time", (double)gloco->m_time.elapsed() / 1e+9);
+      m_current_shader->set_float("_time", (double)gloco->m_time.elapsed() / 1e+9);
 
       while (1) {
         auto block_node = blocks.GetNodeByReference(block_id);
@@ -536,7 +536,7 @@ public:
       auto& bm = bm_list[*(shape_bm_NodeReference_t*)&nr];
       auto block_id = bm.first_block;
 
-      m_shader.set_float("m_time", (double)gloco->m_time.elapsed() / 1e+9);
+      m_shader.set_float("_time", (double)gloco->m_time.elapsed() / 1e+9);
 
       while (1) {
         auto block_node = blocks.GetNodeByReference(block_id);

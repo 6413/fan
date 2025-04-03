@@ -2,7 +2,7 @@
 
 void modify_reflect_depth(std::vector<fan::graphics::rectangle_t>& ray_hit_point, std::vector<fan::graphics::line_t>& rays, int& prev_reflect_depth);
 
-int reflect_depth = 100000;
+int reflect_depth = 10;
 
 fan_language{
   std::vector<vertex_t> triangle_vertices{
@@ -10,7 +10,7 @@ fan_language{
     {vec2(400, 600), colors::orange},
     {vec2(700, 600), colors::orange},
   };
-  physics_shapes::polygon_t triangle{{
+  physics_shapes::polygon_strip_t triangle{{
     .vertices = triangle_vertices
   }};
   std::vector<physics_shapes::circle_t> circles;

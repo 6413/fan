@@ -5,14 +5,14 @@ layout (location = 0) out vec4 o_attachment0;
 
 uniform sampler2D _t00;
 uniform sampler2D _t01;
-uniform float m_time;
+uniform float _time;
 uniform float bloom_strength = 0.004;
 uniform float gamma = 2.2f;
 uniform float edge0 = 0.3f;
 uniform float edge1 = 1.0f;
 uniform float exposure = 1.0f;
 
-float iTime = m_time;
+float iTime = _time;
 
 
 vec3 apply_bloom(vec3 hdrColor, vec3 bloomColor)

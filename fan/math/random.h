@@ -119,6 +119,12 @@ namespace fan {
         1
       );
     }
+    // always makes one channel brightest and scales other channels accordingly
+    inline fan::color bright_color() {
+      fan::color rand_color = fan::random::color();
+      f32_t max_channel = std::max({rand_color.r, rand_color.g, rand_color.b});
+      return rand_color / max_channel;
+    }
 
     struct percent_output_t {
       f32_t percent;

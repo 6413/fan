@@ -490,15 +490,13 @@ struct shaper_t{
   using bmid_t = BlockManager_t::nr_t;
 
   #if shaper_set_fan
-    fan::graphics::shader_nr_t GetShader(ShapeTypeIndex_t sti) {
+    fan::graphics::shader_nr_t& GetShader(ShapeTypeIndex_t sti) {
       auto& d = ShapeTypes[sti];
       if (std::holds_alternative<ShapeType_t::gl_t>(d.renderer)) {
         return std::get<ShapeType_t::gl_t>(d.renderer).shader;
       }
       if (std::holds_alternative<ShapeType_t::vk_t>(d.renderer)) {
-        fan::graphics::shader_nr_t s_nr;
-        s_nr = std::get<ShapeType_t::vk_t>(d.renderer).pipeline.shader_nr;
-        return s_nr;
+        return std::get<ShapeType_t::vk_t>(d.renderer).pipeline.shader_nr;
       }
       fan::throw_error("");
       static fan::graphics::shader_nr_t doesnt_happen;
