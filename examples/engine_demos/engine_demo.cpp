@@ -336,7 +336,7 @@ void main() {
     int reflect_depth = 2;
     std::vector<rectangle_t> ray_hit_point;
     std::vector<line_t> rays;
-    std::vector<physics_shapes::circle_t> circles;
+    std::vector<fan::graphics::physics_shapes::circle_t> circles;
     fan::graphics::physics_shapes::polygon_strip_t triangle;
     std::array<physics_shapes::rectangle_t, 4> walls;
     line_t user_ray;
@@ -452,20 +452,21 @@ void main() {
   };
 
   inline static auto demos = std::to_array({
-    demo_t{.name="Capsule", .demo_function=demo_static_capsule},
-    demo_t{.name="Circle", .demo_function=demo_static_circle},
-    demo_t{.name="Gradient", .demo_function=demo_static_gradient},
-    demo_t{.name="Grid", .demo_function=demo_static_grid},
-    demo_t{.name="Image Decoder", .demo_function=demo_static_universal_image_renderer}, // can be used to decode specific formats straight in gpu
-    demo_t{.name="Light", .demo_function=demo_static_lighting, .update_function=demo_static_lighting_update},
-    demo_t{.name="Particles", .demo_function=demo_static_particles},
-    demo_t{.name="Polygon", .demo_function=demo_static_polygon},
-    demo_t{.name="Rectangle", .demo_function=demo_static_rectangle},
-    demo_t{.name="Shader", .demo_function=demo_static_shader_shape, .update_function=demo_static_shader_shape_update},
-    demo_t{.name="Sprite", .demo_function=demo_static_sprite},
-    demo_t{.name="_next"}, // begin next title
-    demo_t{.name="Reflective Mirrors", .demo_function=demo_physics_mirrors, .update_function=demo_physics_mirrors_update, .cleanup_function=demo_physics_mirrors_cleanup},
+    demo_t{.name = "Capsule", .demo_function = demo_static_capsule, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Circle", .demo_function = demo_static_circle, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Gradient", .demo_function = demo_static_gradient, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Grid", .demo_function = demo_static_grid, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Image Decoder", .demo_function = demo_static_universal_image_renderer, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Light", .demo_function = demo_static_lighting, .update_function = demo_static_lighting_update, .cleanup_function = nullptr},
+    demo_t{.name = "Particles", .demo_function = demo_static_particles, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Polygon", .demo_function = demo_static_polygon, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Rectangle", .demo_function = demo_static_rectangle, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Shader", .demo_function = demo_static_shader_shape, .update_function = demo_static_shader_shape_update, .cleanup_function = nullptr},
+    demo_t{.name = "Sprite", .demo_function = demo_static_sprite, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "_next", .demo_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
+    demo_t{.name = "Reflective Mirrors", .demo_function = demo_physics_mirrors, .update_function = demo_physics_mirrors_update, .cleanup_function = demo_physics_mirrors_cleanup},
   });
+
 
   static constexpr int wnd_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | 
     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
@@ -585,6 +586,7 @@ void main() {
   }
 
   void update() {
+    engine.render_settings_menu = true;
     if (engine.settings_menu.current_page != 0) {
       shapes.clear();
     }
@@ -597,9 +599,9 @@ void main() {
 };
 
 int main() {
-
   engine_demo_t demo;
   demo.create_gui();
+
   fan_window_loop{
     demo.update();
   };
