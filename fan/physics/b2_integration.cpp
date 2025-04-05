@@ -2,10 +2,15 @@
 
 #include <cassert>
 
+fan::physics::context_t::operator b2WorldId& () {
+  return world_id;
+}
+
 fan::physics::context_t::context_t(const properties_t& properties) {
   //b2SetLengthUnitsPerMeter(properties.length_units_per_meter);
   b2WorldDef world_def = b2DefaultWorldDef();
   world_def.gravity = properties.gravity * length_units_per_meter;
+  b2SetLengthUnitsPerMeter(1.f / 512.f);
   world_id = b2CreateWorld(&world_def);
 }
 
@@ -17,18 +22,24 @@ fan::vec2 fan::physics::context_t::get_gravity() const {
   return b2World_GetGravity(world_id);
 }
 
-fan::physics::entity_t fan::physics::context_t::create_box(const fan::vec2& position, const fan::vec2& size, uint8_t body_type, const shape_properties_t& shape_properties) {
+fan::physics::entity_t fan::physics::context_t::create_box(const fan::vec2& position, const fan::vec2& size, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
   polygon_t shape = b2MakeBox(size.x / length_units_per_meter * shape_properties.collision_multiplier.x, size.y/ length_units_per_meter * shape_properties.collision_multiplier.y);
   entity_t entity;
   b2BodyDef body_def = b2DefaultBodyDef();
   body_def.position = position / length_units_per_meter;
+  body_def.rotation = b2MakeRot(angle);
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
   body_def.linearDamping = shape_properties.linear_damping;
-  body_def.allowFastRotation = shape_properties.allow_fast_rotation;
+  body_def.allowFastRotation = shape_properties.fast_rotation;
   entity = b2CreateBody(world_id, &body_def);
+#if fan_debug >= fan_debug_medium
+  if (entity.is_valid() == false) {
+    fan::throw_error_impl();
+  }
+#endif
   b2ShapeDef shape_def = b2DefaultShapeDef();
-  shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
+  shape_def.enablePreSolveEvents = shape_properties.presolve_events;
   shape_def.density = shape_properties.density;
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
@@ -39,7 +50,7 @@ fan::physics::entity_t fan::physics::context_t::create_box(const fan::vec2& posi
   return entity;
 }
 
-fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& position, f32_t radius, uint8_t body_type, const shape_properties_t& shape_properties) {
+fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& position, f32_t radius, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
   circle_t shape;
   shape.center = fan::vec2(0);
   shape.radius = radius / length_units_per_meter * shape_properties.collision_multiplier.x;
@@ -47,14 +58,20 @@ fan::physics::entity_t fan::physics::context_t::create_circle(const fan::vec2& p
   entity_t entity;
   b2BodyDef body_def = b2DefaultBodyDef();
   body_def.position = position / length_units_per_meter;
+  body_def.rotation = b2MakeRot(angle);
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
   body_def.linearDamping = shape_properties.linear_damping;
-  body_def.allowFastRotation = shape_properties.allow_fast_rotation;
+  body_def.allowFastRotation = shape_properties.fast_rotation;
 
   entity = b2CreateBody(world_id, &body_def);
+#if fan_debug >= fan_debug_medium
+  if (entity.is_valid() == false) {
+    fan::throw_error_impl();
+  }
+#endif
   b2ShapeDef shape_def = b2DefaultShapeDef();
-  shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
+  shape_def.enablePreSolveEvents = shape_properties.presolve_events;
   shape_def.density = shape_properties.density;
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
@@ -80,10 +97,15 @@ fan::physics::entity_t fan::physics::context_t::create_capsule(const fan::vec2& 
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
   body_def.linearDamping = shape_properties.linear_damping;
-  body_def.allowFastRotation = shape_properties.allow_fast_rotation;
+  body_def.allowFastRotation = shape_properties.fast_rotation;
   entity = b2CreateBody(world_id, &body_def);
+#if fan_debug >= fan_debug_medium
+  if (entity.is_valid() == false) {
+    fan::throw_error_impl();
+  }
+#endif
   b2ShapeDef shape_def = b2DefaultShapeDef();
-  shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
+  shape_def.enablePreSolveEvents = shape_properties.presolve_events;
   shape_def.density = shape_properties.density;
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
@@ -101,10 +123,15 @@ fan::physics::entity_t fan::physics::context_t::create_segment(const fan::vec2& 
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
   body_def.linearDamping = shape_properties.linear_damping;
-  body_def.allowFastRotation = shape_properties.allow_fast_rotation;
+  body_def.allowFastRotation = shape_properties.fast_rotation;
   entity = b2CreateBody(world_id, &body_def);
+#if fan_debug >= fan_debug_medium
+  if (entity.is_valid() == false) {
+    fan::throw_error_impl();
+  }
+#endif
   b2ShapeDef shape_def = b2DefaultShapeDef();
-  shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
+  shape_def.enablePreSolveEvents = shape_properties.presolve_events;
   shape_def.density = shape_properties.density;
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
@@ -134,10 +161,17 @@ fan::physics::entity_t fan::physics::context_t::create_polygon(const fan::vec2& 
   body_def.type = (b2BodyType)body_type;
   body_def.fixedRotation = shape_properties.fixed_rotation;
   body_def.linearDamping = shape_properties.linear_damping;
-  body_def.allowFastRotation = shape_properties.allow_fast_rotation;
+  body_def.allowFastRotation = shape_properties.fast_rotation;
   entity = b2CreateBody(world_id, &body_def);
+
+#if fan_debug >= fan_debug_medium
+  // world probably locked
+  if (entity.is_valid() == false) {
+    fan::throw_error_impl();
+  }
+#endif
   b2ShapeDef shape_def = b2DefaultShapeDef();
-  shape_def.enablePreSolveEvents = shape_properties.enable_presolve_events;
+  shape_def.enablePreSolveEvents = shape_properties.presolve_events;
   shape_def.density = shape_properties.density;
   shape_def.friction = shape_properties.friction;
   shape_def.restitution = shape_properties.restitution;
@@ -209,39 +243,39 @@ fan::physics::ray_result_t fan::physics::context_t::raycast(const fan::vec2& src
 }
 
 bool fan::physics::presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body) {
-    assert(b2Shape_IsValid(shapeIdA));
-    assert(b2Shape_IsValid(shapeIdB));
+  assert(b2Shape_IsValid(shapeIdA));
+  assert(b2Shape_IsValid(shapeIdB));
 
-    float sign = 0.0f;
-    if (B2_ID_EQUALS(shapeIdA, character_body)) {
-        sign = 1.0f;
-    }
-    else if (B2_ID_EQUALS(shapeIdB, character_body)) {
-        sign = -1.0f;
-    }
-    else {
-        // not colliding with the player, enable contact
-        return true;
-    }
+  float sign = 0.0f;
+  if (B2_ID_EQUALS(shapeIdA, character_body)) {
+      sign = 1.0f;
+  }
+  else if (B2_ID_EQUALS(shapeIdB, character_body)) {
+      sign = -1.0f;
+  }
+  else {
+      // not colliding with the player, enable contact
+      return true;
+  }
 
-    b2Vec2 normal = manifold->normal;
-    if (sign * normal.y > 0.95f) {
-        return true;
-    }
+  b2Vec2 normal = manifold->normal;
+  if (sign * normal.y > 0.95f) {
+      return true;
+  }
 
-    float separation = 0.0f;
-    for (int i = 0; i < manifold->pointCount; ++i) {
-        float s = manifold->points[i].separation;
-        separation = separation < s ? separation : s;
-    }
+  float separation = 0.0f;
+  for (int i = 0; i < manifold->pointCount; ++i) {
+      float s = manifold->points[i].separation;
+      separation = separation < s ? separation : s;
+  }
 
-    if (separation > 0.1f * 64.f) {
-        // shallow overlap
-        return true;
-    }
+  if (separation > 0.1f * 64.f) {
+      // shallow overlap
+      return true;
+  }
 
-    // normal points down, disable contact
-    return false;
+  // normal points down, disable contact
+  return false;
 }
 
 void fan::physics::sensor_events_t::update(b2WorldId world_id) {

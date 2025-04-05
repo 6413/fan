@@ -177,6 +177,9 @@ void fan::opengl::core::vao_t::open(fan::opengl::context_t& context) {
 }
 
 void fan::opengl::core::vao_t::close(fan::opengl::context_t& context) {
+  if (m_buffer == (decltype(m_buffer))-1) {
+    return;
+  }
   fan_opengl_call(glDeleteVertexArrays(1, &m_buffer));
 }
 
@@ -196,7 +199,8 @@ void fan::opengl::core::vbo_t::open(fan::opengl::context_t& context, GLenum targ
 void fan::opengl::core::vbo_t::close(fan::opengl::context_t& context) {
   #if fan_debug >= fan_debug_medium
   if (m_buffer == (GLuint)-1) {
-    fan::throw_error("tried to remove non existent vbo");
+    return;
+    //fan::throw_error("tried to remove non existent vbo");
   }
   #endif
   fan_opengl_call(glDeleteBuffers(1, &m_buffer));

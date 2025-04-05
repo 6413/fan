@@ -9,7 +9,9 @@
 
 namespace fan {
   namespace graphics {
-    namespace physics_shapes {
+    namespace physics {
+
+      void step(f32_t dt);
       extern b2DebugDraw box2d_debug_draw;
       void debug_draw(bool enabled);
       // position & aabb & angle
@@ -169,7 +171,7 @@ namespace fan {
         rectangle_t() = default;
         rectangle_t(const properties_t& p) : base_shape_t(
           loco_t::shape_t(fan::graphics::rectangle_t{p}),
-          fan::physics::entity_t(gloco->physics_context.create_box(p.position, p.size, p.body_type, p.shape_properties)),
+          fan::physics::entity_t(gloco->physics_context.create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -220,7 +222,7 @@ namespace fan {
         sprite_t() = default;
         sprite_t(const properties_t& p) : base_shape_t(
           loco_t::shape_t(fan::graphics::sprite_t{ p }),
-          fan::physics::entity_t(gloco->physics_context.create_box(p.position, p.size, p.body_type, p.shape_properties)),
+          fan::physics::entity_t(gloco->physics_context.create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -241,6 +243,7 @@ namespace fan {
           camera_impl_t* camera = &gloco->orthographic_camera;
           fan::vec3 position = fan::vec3(0, 0, 0);
           f32_t radius = 0.1f;
+          fan::vec3 angle = 0;
           fan::color color = fan::color(1, 1, 1, 1);
           bool blending = true;
           uint32_t flags = 0;
@@ -249,6 +252,7 @@ namespace fan {
               .camera = camera,
               .position = position,
               .radius = radius,
+              .angle = angle,
               .color = color,
               .blending = blending,
               .flags = flags
@@ -261,7 +265,7 @@ namespace fan {
         circle_t() = default;
         circle_t(const properties_t& p) : base_shape_t(
           loco_t::shape_t(fan::graphics::circle_t{p}),
-          fan::physics::entity_t(gloco->physics_context.create_circle(p.position, p.radius, p.body_type, p.shape_properties)),
+          fan::physics::entity_t(gloco->physics_context.create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -282,6 +286,7 @@ namespace fan {
           fan::vec3 position = fan::vec3(0, 0, 0);
           f32_t radius = 0.1f;
           fan::vec2 size = radius;
+          fan::vec3 angle = 0;
           loco_t::image_t image = gloco->default_texture;
           fan::color color = fan::color(1, 1, 1, 1);
           bool blending = true;
@@ -291,6 +296,7 @@ namespace fan {
               .camera = camera,
               .position = position,
               .size = size,
+              .angle = angle,
               .color = color,
               .image = image,
               .blending = blending,
@@ -304,7 +310,7 @@ namespace fan {
         circle_sprite_t() = default;
         circle_sprite_t(const properties_t& p) : base_shape_t(
           loco_t::shape_t(fan::graphics::sprite_t{p}),
-          fan::physics::entity_t(gloco->physics_context.create_circle(p.position, p.radius, p.body_type, p.shape_properties)),
+          fan::physics::entity_t(gloco->physics_context.create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -424,7 +430,7 @@ namespace fan {
         struct properties_t {
           camera_impl_t* camera = &gloco->orthographic_camera;
           fan::vec3 position = 0;
-          f32_t radius = 32;
+          f32_t radius = 0.005;
           fan::vec3 angle = 0;
           fan::vec2 rotation_point = 0;
           std::vector<vertex_t> vertices;
@@ -463,8 +469,8 @@ namespace fan {
           p.mass_data
         ) {
         }
-        polygon_t(const capsule_t& r) : base_shape_t(r) {}
-        polygon_t(capsule_t&& r) : base_shape_t(std::move(r)) {}
+        polygon_t(const polygon_t& r) : base_shape_t(r) {}
+        polygon_t(polygon_t&& r) : base_shape_t(std::move(r)) {}
         polygon_t& operator=(const polygon_t& r) {
           base_shape_t::operator=(r);
           return *this;
@@ -516,8 +522,8 @@ namespace fan {
           p.mass_data
         ) {
         }
-        polygon_strip_t(const capsule_t& r) : base_shape_t(r) {}
-        polygon_strip_t(capsule_t&& r) : base_shape_t(std::move(r)) {}
+        polygon_strip_t(const polygon_strip_t& r) : base_shape_t(r) {}
+        polygon_strip_t(polygon_strip_t&& r) : base_shape_t(std::move(r)) {}
         polygon_strip_t& operator=(const polygon_strip_t& r) {
           base_shape_t::operator=(r);
           return *this;
@@ -528,7 +534,7 @@ namespace fan {
         }
       };
 
-      std::array<fan::graphics::physics_shapes::rectangle_t, 4> create_stroked_rectangle(
+      std::array<fan::graphics::physics::rectangle_t, 4> create_stroked_rectangle(
         const fan::vec2& center_position,
         const fan::vec2& half_size,
         f32_t thickness,
@@ -540,127 +546,127 @@ namespace fan {
           {.friction = 0}
         } }
       );
-    }
 
-    struct character2d_t : physics_shapes::base_shape_t {
-      struct movement_e {
+      struct character2d_t : physics::base_shape_t {
+        struct movement_e {
+          enum {
+            side_view, // left, right, space to jump
+            top_view // left, right, up, down wasd
+          };
+        };
+
+        character2d_t();
+        inline character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {
+          add_inputs();
+        }
+        static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping);
+        void add_inputs();
+        void process_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12);
+        void move_to_direction(const fan::vec2& direction);
+        f32_t force = 25.f;
+        f32_t impulse = 3.f;
+        f32_t max_speed = 500.f;
+        f32_t jump_delay = 0.25f;
+        bool jumping = false;
+        fan::physics::body_id_t feet[2];
+        f32_t walk_force = 0;
+        bool handle_jump = true;
+      };
+
+      struct bone_e {
         enum {
-          side_view, // left, right, space to jump
-          top_view // left, right, up, down wasd
+          hip = 0,
+          torso = 1,
+          head = 2,
+          upper_left_leg = 3,
+          lower_left_leg = 4,
+          upper_right_leg = 5,
+          lower_right_leg = 6,
+          upper_left_arm = 7,
+          lower_left_arm = 8,
+          upper_right_arm = 9,
+          lower_right_arm = 10,
+          bone_count = 11,
         };
       };
-
-      character2d_t();
-      inline character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {
-        add_inputs();
-      }
-      static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping);
-      void add_inputs();
-      void process_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12);
-      void move_to_direction(const fan::vec2& direction);
-      f32_t force = 25.f;
-      f32_t impulse = 3.f;
-      f32_t max_speed = 500.f;
-      f32_t jump_delay = 0.25f;
-      bool jumping = false;
-      fan::physics::body_id_t feet[2];
-      f32_t walk_force = 0;
-      bool handle_jump = true;
-    };
-
-    struct bone_e {
-      enum {
-        hip = 0,
-        torso = 1,
-        head = 2,
-        upper_left_leg = 3,
-        lower_left_leg = 4,
-        upper_right_leg = 5,
-        lower_right_leg = 6,
-        upper_left_arm = 7,
-        lower_left_arm = 8,
-        upper_right_arm = 9,
-        lower_right_arm = 10,
-        bone_count = 11,
+      static constexpr const char* bone_names[] = {
+        "Hip", "Torso", "Head", 
+        "Upper Left Leg", "Lower Left Leg",
+        "Upper Right Leg", "Lower Right Leg",
+        "Upper Left Arm", "Lower Left Arm",
+        "Upper Right Arm", "Lower Right Arm"
       };
-    };
-    static constexpr const char* bone_names[] = {
-      "Hip", "Torso", "Head", 
-      "Upper Left Leg", "Lower Left Leg",
-      "Upper Right Leg", "Lower Right Leg",
-      "Upper Left Arm", "Lower Left Arm",
-      "Upper Right Arm", "Lower Right Arm"
-    };
-    inline std::string bone_to_string(int bone) {
-      if (bone >= std::size(bone_names)) {
-        return "N/A";
+      inline std::string bone_to_string(int bone) {
+        if (bone >= std::size(bone_names)) {
+          return "N/A";
+        }
+        return bone_names[bone];
       }
-      return bone_names[bone];
+
+      struct bone_t {
+        fan::graphics::physics::base_shape_t visual;
+        fan::physics::joint_id_t joint_id = b2_nullJointId;
+        f32_t friction_scale;
+        int parent_index;
+        // local
+        fan::vec3 position = 0;
+        fan::vec2 size = 1;
+        fan::vec2 pivot = 0;
+        fan::vec2 offset = 0;
+        f32_t scale = 1;
+        f32_t lower_angle = 0;
+        f32_t upper_angle = 0;
+        f32_t reference_angle = 0;
+        fan::vec2 center0 = 0;
+        fan::vec2 center1 = 0;
+      };
+
+      void update_reference_angle(b2WorldId world, fan::physics::joint_id_t& joint_id, float new_reference_angle);
+
+      struct human_t {
+        using bone_images_t = std::array<loco_t::image_t, bone_e::bone_count>;
+        using bones_t = std::array<bone_t, bone_e::bone_count>;
+
+        human_t() = default;
+        human_t(const fan::vec2& position, const f32_t scale = 1.f, const bone_images_t& images={}, const fan::color& color=fan::colors::white);
+
+        static void load_bones(const fan::vec2& position, f32_t scale, std::array<fan::graphics::physics::bone_t, fan::graphics::physics::bone_e::bone_count>& bones);
+        static bone_images_t load_character_images(const std::string& character_folder_path, const loco_t::image_load_properties_t& lp);
+
+        void load_preset(const fan::vec2& position, const f32_t scale, const bone_images_t& images, std::array<bone_t, bone_e::bone_count>& bones, const fan::color& color = fan::colors::white);
+        void load(const fan::vec2& position, const f32_t scale = 1.f, const bone_images_t& images={}, const fan::color& color=fan::colors::white);
+
+        void animate_walk(f32_t force, f32_t dt);
+        void animate_jump(f32_t impulse, f32_t dt, bool is_jumping);
+
+        void erase();
+
+        bones_t bones;
+        f32_t scale=1.f;
+        bool is_spawned=false;
+        int direction = 1;
+        int look_direction = direction;
+        int go_up = 0;
+        fan::time::clock jump_animation_timer;
+      };
+
+      struct mouse_joint_t {
+        fan::physics::body_id_t dummy_body;
+        fan::graphics::engine_t::update_callback_nr_t nr;
+
+        struct QueryContext {
+          b2Vec2 point;
+          b2BodyId bodyId = b2_nullBodyId;
+        };
+
+        static bool QueryCallback(b2ShapeId shapeId, void* context);
+
+        mouse_joint_t();
+        ~mouse_joint_t();
+
+        fan::physics::body_id_t target_body;
+        fan::physics::joint_id_t mouse_joint = b2_nullJointId;
+      };
     }
-
-    struct bone_t {
-      fan::graphics::physics_shapes::base_shape_t visual;
-      fan::physics::joint_id_t joint_id = b2_nullJointId;
-      f32_t friction_scale;
-      int parent_index;
-      // local
-      fan::vec3 position = 0;
-      fan::vec2 size = 1;
-      fan::vec2 pivot = 0;
-      fan::vec2 offset = 0;
-      f32_t scale = 1;
-      f32_t lower_angle = 0;
-      f32_t upper_angle = 0;
-      f32_t reference_angle = 0;
-      fan::vec2 center0 = 0;
-      fan::vec2 center1 = 0;
-    };
-
-    void update_reference_angle(b2WorldId world, fan::physics::joint_id_t& joint_id, float new_reference_angle);
-
-    struct human_t {
-      using bone_images_t = std::array<loco_t::image_t, bone_e::bone_count>;
-      using bones_t = std::array<bone_t, bone_e::bone_count>;
-
-      human_t() = default;
-      human_t(const fan::vec2& position, const f32_t scale = 1.f, const bone_images_t& images={}, const fan::color& color=fan::colors::white);
-
-      static void load_bones(const fan::vec2& position, f32_t scale, std::array<fan::graphics::bone_t, fan::graphics::bone_e::bone_count>& bones);
-      static bone_images_t load_character_images(const std::string& character_folder_path, const loco_t::image_load_properties_t& lp);
-
-      void load_preset(const fan::vec2& position, const f32_t scale, const bone_images_t& images, std::array<bone_t, bone_e::bone_count>& bones, const fan::color& color = fan::colors::white);
-      void load(const fan::vec2& position, const f32_t scale = 1.f, const bone_images_t& images={}, const fan::color& color=fan::colors::white);
-
-      void animate_walk(f32_t force, f32_t dt);
-      void animate_jump(f32_t impulse, f32_t dt, bool is_jumping);
-
-      void erase();
-
-      bones_t bones;
-      f32_t scale=1.f;
-      bool is_spawned=false;
-      int direction = 1;
-      int look_direction = direction;
-      int go_up = 0;
-      fan::time::clock jump_animation_timer;
-    };
-
-    struct mouse_joint_t {
-
-      struct QueryContext
-      {
-        b2Vec2 point;
-        b2BodyId bodyId = b2_nullBodyId;
-      };
-
-      static bool QueryCallback(b2ShapeId shapeId, void* context);
-
-      mouse_joint_t(fan::physics::body_id_t tb);
-
-      void update_mouse(b2WorldId world_id);
-
-      fan::physics::body_id_t target_body;
-      fan::physics::joint_id_t mouse_joint = b2_nullJointId;
-    };
   }
 }

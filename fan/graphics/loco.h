@@ -1203,7 +1203,7 @@ public:
     void erase();
 
     // many things assume uint16_t so thats why not shaper_t::ShapeTypeIndex_t
-    uint16_t get_shape_type();
+    uint16_t get_shape_type() const;
 
     template <typename T>
     void set_position(const fan::vec2_wrap_t<T>& position) {

@@ -816,6 +816,10 @@ fan::physics::ray_result_t fan::physics::raycast(const fan::vec2& src, const fan
   return gloco->physics_context.raycast(src, dst);
 }
 
+fan::vec2 fan::graphics::window_size(){
+  return gloco->window.get_size();
+}
+
 bool fan::graphics::is_mouse_clicked(int button) {
   return gloco->is_mouse_clicked(button);
 }

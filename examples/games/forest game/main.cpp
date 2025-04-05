@@ -41,7 +41,7 @@ struct player_t {
     light.set_flags(flag);
   }
 
-  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::circle_sprite_t{{
+  fan::graphics::physics::character2d_t player{ fan::graphics::physics_shapes::circle_sprite_t{{
     .position = fan::vec3(1019.59076, 934.117065, 10),
     // collision radius
     .radius = 8,
@@ -103,7 +103,7 @@ struct pile_t {
     //ImGui::DragFloat("z", &z, 1);
     ///ImGui::End();
     player.player.set_position(fan::vec3(position, floor((position.y) / 64) + (0xFAAA - 2) / 2) + z);
-    player.player.process_movement(fan::graphics::character2d_t::movement_e::top_view);
+    player.player.process_movement(fan::graphics::physics::character2d_t::movement_e::top_view);
     
     loco.set_imgui_viewport(loco.orthographic_camera.viewport);
 

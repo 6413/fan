@@ -71,7 +71,6 @@ struct engine_demo_t {
   static void demo_static_universal_image_renderer(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
 
-    
     engine_demo->shapes.emplace_back(fan::graphics::universal_image_renderer_t{{
       .camera = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 0),    
@@ -187,7 +186,7 @@ struct engine_demo_t {
       sides = std::max(3u, sides);
 
       fan::vec2 position = fan::random::vec2(0, viewport_size);
-      float radius = fan::random::value(50.0f, 150.0f);
+      float radius = fan::random::value(50.f, 200.f);
       fan::color color = fan::random::color();
 
       loco_t::polygon_t::properties_t pp;
@@ -336,9 +335,9 @@ void main() {
     int reflect_depth = 2;
     std::vector<rectangle_t> ray_hit_point;
     std::vector<line_t> rays;
-    std::vector<fan::graphics::physics_shapes::circle_t> circles;
-    fan::graphics::physics_shapes::polygon_strip_t triangle;
-    std::array<physics_shapes::rectangle_t, 4> walls;
+    std::vector<fan::graphics::physics::circle_t> circles;
+    fan::graphics::physics::polygon_strip_t triangle;
+    std::array<physics::rectangle_t, 4> walls;
     line_t user_ray;
   }*demo_physics_mirrors_data=0;
 
@@ -362,7 +361,7 @@ void main() {
      {fan::vec2(400, 600), fan::colors::orange},
      {fan::vec2(700, 600), fan::colors::orange},
     };
-    engine_demo->demo_physics_mirrors_data->triangle = fan::graphics::physics_shapes::polygon_strip_t{ {
+    engine_demo->demo_physics_mirrors_data->triangle = fan::graphics::physics::polygon_strip_t{ {
       .camera = &engine_demo->right_column_view,
       .vertices = triangle_vertices
     } };
@@ -374,7 +373,7 @@ void main() {
         .color = fan::colors::orange,
       } });
     }
-    engine_demo->demo_physics_mirrors_data->walls = physics_shapes::create_stroked_rectangle(viewport_size / 2, viewport_size / 2, 3);
+    engine_demo->demo_physics_mirrors_data->walls = physics::create_stroked_rectangle(viewport_size / 2, viewport_size / 2, 3);
     for (auto& wall : engine_demo->demo_physics_mirrors_data->walls) {
       wall.set_camera(engine_demo->right_column_view.camera);
       wall.set_viewport(engine_demo->right_column_view.viewport);
