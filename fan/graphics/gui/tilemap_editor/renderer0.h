@@ -72,7 +72,7 @@ struct fte_renderer_t : fte_loader_t {
       switch (pd.physics_shapes.type) {
       case fte_t::physics_shapes_t::type_e::box: {
         node.physics_entities.push_back({
-          .visual = fan::graphics::physics_shapes::rectangle_t{{
+          .visual = fan::graphics::physics::rectangle_t{{
               .camera = camera,
               .position = node.position + pd.position * node.size,
               .size = pd.size * node.size,
@@ -84,12 +84,12 @@ struct fte_renderer_t : fte_loader_t {
             }}
         });
         //pd.physics_shapes.
-        //std::get<fan::graphics::physics_shapes::rectangle_t>(node.physics_entities.back().visual).body_id
+        //std::get<fan::graphics::physics::rectangle_t>(node.physics_entities.back().visual).body_id
         break;
       }
       case fte_t::physics_shapes_t::type_e::circle: {
         node.physics_entities.push_back({
-          .visual = fan::graphics::physics_shapes::circle_t{{
+          .visual = fan::graphics::physics::circle_t{{
               .camera = camera,
               .position = node.position + pd.position * node.size,
               .radius = (pd.size.max() * node.size.x == node.compiled_map->tile_size.x ? pd.size.y * node.size.y : pd.size.x  *  node.size.x),

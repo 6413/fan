@@ -20,7 +20,7 @@ struct player_t {
   bool presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold) const {
     return fan::physics::presolve_oneway_collision(shapeIdA, shapeIdB, manifold, player);
   }
-  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::circle_t{{
+  fan::graphics::physics::character2d_t player{ fan::graphics::physics_shapes::circle_t{{
     .camera = &camera1,
     .position = fan::vec3(400, 400, 10),
     .radius = 16.f,
@@ -222,7 +222,7 @@ int main(int argc, char** argv) {
           player->player_light.set_size(size);
         }
         player->player_light.set_position(player->player.get_position()-player->player.get_size());
-        player->player.process_movement(fan::graphics::character2d_t::movement_e::top_view);
+        player->player.process_movement(fan::graphics::physics::character2d_t::movement_e::top_view);
         renderer->update(*map_id0_t, dst);
         loco.set_imgui_viewport(camera1.viewport);
         loco.physics_context.step(loco.delta_time);

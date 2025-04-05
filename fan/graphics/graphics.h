@@ -9,6 +9,8 @@
 namespace fan {
   namespace graphics {
 
+    fan::vec2 window_size();
+
     bool is_mouse_clicked(int button = fan::mouse_left);
     bool is_mouse_down(int button = fan::mouse_left);
     bool is_mouse_released(int button = fan::mouse_left);
@@ -187,6 +189,7 @@ namespace fan {
       camera_impl_t* camera = &gloco->orthographic_camera;
       fan::vec3 position = fan::vec3(0, 0, 0);
       f32_t radius = 32.f;
+      fan::vec3 angle = 0;
       fan::color color = fan::color(1, 1, 1, 1);
       bool blending = true;
       uint32_t flags = 0;
@@ -201,6 +204,7 @@ namespace fan {
             .viewport = p.camera->viewport,
             .position = p.position,
             .radius = p.radius,
+            .angle = p.angle,
             .color = p.color,
             .blending = p.blending,
             .flags = p.flags

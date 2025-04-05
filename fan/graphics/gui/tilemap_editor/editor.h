@@ -1629,8 +1629,8 @@ struct fte_t {
           if (ImGui::ToggleButton("Physics shape fixed rotation", &shape_properties.fixed_rotation)) {
             brush.physics_shape_properties.fixed_rotation = shape_properties.fixed_rotation;
           }
-          if (ImGui::ToggleButton("Physics shape enable presolve events", &shape_properties.enable_presolve_events)) {
-            brush.physics_shape_properties.enable_presolve_events = shape_properties.enable_presolve_events;
+          if (ImGui::ToggleButton("Physics shape enable presolve events", &shape_properties.presolve_events)) {
+            brush.physics_shape_properties.presolve_events = shape_properties.presolve_events;
           }
           if (ImGui::ToggleButton("Is sensor", &shape_properties.is_sensor)) {
             brush.physics_shape_properties.is_sensor = shape_properties.is_sensor;
@@ -1828,7 +1828,7 @@ struct fte_t {
         physics_shape_data["friction"] = j.shape_properties.friction;
         physics_shape_data["density"] = j.shape_properties.density;
         physics_shape_data["fixed_rotation"] = j.shape_properties.fixed_rotation;
-        physics_shape_data["enable_presolve_events"] = j.shape_properties.enable_presolve_events;
+        physics_shape_data["presolve_events"] = j.shape_properties.presolve_events;
         physics_shape_data["is_sensor"] = j.shape_properties.is_sensor;
         tile["physics_shape_data"] = physics_shape_data;
         tiles.push_back(tile);
@@ -1906,7 +1906,7 @@ shape data{
           physics_element.shape_properties.friction = physics_shape_data["friction"] ;
           physics_element.shape_properties.density = physics_shape_data["density"] ;
           physics_element.shape_properties.fixed_rotation = physics_shape_data["fixed_rotation"] ;
-          physics_element.shape_properties.enable_presolve_events = physics_shape_data["enable_presolve_events"];
+          physics_element.shape_properties.presolve_events = physics_shape_data["presolve_events"];
           physics_element.shape_properties.is_sensor = physics_shape_data["is_sensor"];
         }
         physics_element.visual = std::move(shape);

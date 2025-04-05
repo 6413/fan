@@ -13,7 +13,7 @@ struct pile_t {
   }
   loco_t loco;
 
-  fan::graphics::character2d_t player{ fan::graphics::physics_shapes::capsule_t{{
+  fan::graphics::physics::character2d_t player{ fan::graphics::physics_shapes::capsule_t{{
     .position = fan::vec3(400, 400, 10),
     .center0 = {0.f, -128.f},
     .center1 = {0.f, 128.0f},

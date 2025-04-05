@@ -51,6 +51,38 @@ uint32_t fan::graphics::get_draw_mode(uint8_t internal_draw_mode) {
   return -1;
 }
 
+void shaper_deep_copy(loco_t::shape_t* dst, const loco_t::shape_t* const src, loco_t::shaper_t::ShapeTypeIndex_t sti) {
+  // alloc can be avoided inside switch
+  uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(*src)];
+  gloco->shaper.WriteKeys(*src, KeyPack);
+
+  auto _vi = src->GetRenderData(gloco->shaper);
+  auto vlen = gloco->shaper.GetRenderDataSize(sti);
+  uint8_t* vi = new uint8_t[vlen];
+  std::memcpy(vi, _vi, vlen);
+
+  auto _ri = src->GetData(gloco->shaper);
+  auto rlen = gloco->shaper.GetDataSize(sti);
+
+  uint8_t* ri = new uint8_t[rlen];
+  std::memcpy(ri, _ri, rlen);
+
+  *dst = gloco->shaper.add(
+    sti,
+    KeyPack,
+    gloco->shaper.GetKeysSize(*src),
+    vi,
+    ri
+  );
+#if defined(debug_shape_t)
+  fan::print("+", NRI);
+#endif
+
+  delete[] KeyPack;
+  delete[] vi;
+  delete[] ri;
+}
+
 //thread_local global_loco_t gloco;
 
 fan::graphics::shader_nr_t loco_t::shader_create() {
@@ -2094,7 +2126,7 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 
   ImGui::SetNextWindowPos(ImVec2(0, 0));
   ImGui::SetNextWindowSize(window.get_size());
-  ImGui::Begin("##text_render", 0, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
+  ImGui::Begin("##global_renderer", 0, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |  ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
 #endif
 
   lambda();
@@ -2609,6 +2641,13 @@ loco_t::shape_t::shape_t() {
 }
 
 loco_t::shape_t::shape_t(shaper_t::ShapeID_t&& s) {
+  //if (s.iic() == false) {
+  //  if (((shape_t*)&s)->get_shape_type() == shape_type_t::polygon) {
+  //    loco_t::polygon_t::ri_t* src_data = (loco_t::polygon_t::ri_t*)s.GetData(gloco->shaper);
+  //    loco_t::polygon_t::ri_t* dst_data = (loco_t::polygon_t::ri_t*)GetData(gloco->shaper);
+  //    *dst_data = *src_data;
+  //  }
+  //}
   NRI = s.NRI;
   s.sic();
 }
@@ -2621,34 +2660,62 @@ loco_t::shape_t::shape_t(const shaper_t::ShapeID_t& s) : shape_t() {
 
   {
     auto sti = gloco->shaper.ShapeList[s].sti;
+    shaper_deep_copy(this, (const loco_t::shape_t*)&s, sti);
+  }
+  if (((shape_t*)&s)->get_shape_type() == shape_type_t::polygon) {
+    loco_t::polygon_t::ri_t* src_data = (loco_t::polygon_t::ri_t*)s.GetData(gloco->shaper);
+    loco_t::polygon_t::ri_t* dst_data = (loco_t::polygon_t::ri_t*)GetData(gloco->shaper);
+    if (gloco->get_renderer() == renderer_t::opengl) {
+      dst_data->vao.open(gloco->context.gl);
+      dst_data->vbo.open(gloco->context.gl, src_data->vbo.m_target);
 
-    // alloc can be avoided inside switch
-    uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
-    gloco->shaper.WriteKeys(s, KeyPack);
-
-    auto _vi = s.GetRenderData(gloco->shaper);
-    auto vlen = gloco->shaper.GetRenderDataSize(sti);
-    uint8_t* vi = new uint8_t[vlen];
-    std::memcpy(vi, _vi, vlen);
-
-    auto _ri = s.GetData(gloco->shaper);
-    auto rlen = gloco->shaper.GetDataSize(sti);
-    uint8_t* ri = new uint8_t[rlen];
-    std::memcpy(ri, _ri, rlen);
-
-    *this = gloco->shaper.add(
-      sti,
-      KeyPack,
-      gloco->shaper.GetKeysSize(s),
-      vi,
-      ri
-    );
-#if defined(debug_shape_t)
-    fan::print("+", NRI);
-#endif
-    delete[] KeyPack;
-    delete[] vi;
-    delete[] ri;
+      auto& shape_data = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(gloco->shaper.GetShapeTypes(shape_type_t::polygon).renderer);
+      fan::graphics::context_shader_t shader;
+      if (!shape_data.shader.iic()) {
+        shader = gloco->shader_get(shape_data.shader);
+      }
+      dst_data->vao.bind(gloco->context.gl);
+        dst_data->vbo.bind(gloco->context.gl);
+      uint64_t ptr_offset = 0;
+      for (shape_gl_init_t& location : polygon_t::locations) {
+        if ((gloco->context.gl.opengl.major == 2 && gloco->context.gl.opengl.minor == 1) && !shape_data.shader.iic()) {
+          location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
+        }
+        fan_opengl_call(glEnableVertexAttribArray(location.index.first));
+        fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
+        // instancing
+        if ((gloco->context.gl.opengl.major > 3) || (gloco->context.gl.opengl.major == 3 && gloco->context.gl.opengl.minor >= 3)) {
+          if (shape_data.instanced) {
+            fan_opengl_call(glVertexAttribDivisor(location.index.first, 1));
+          }
+        }
+        switch (location.type) {
+        case GL_FLOAT: {
+          ptr_offset += location.size * sizeof(GLfloat);
+          break;
+        }
+        case GL_UNSIGNED_INT: {
+          ptr_offset += location.size * sizeof(GLuint);
+          break;
+        }
+        default: {
+          fan::throw_error_impl();
+        }
+        }
+      }
+      fan::opengl::core::write_glbuffer(gloco->context.gl, dst_data->vbo.m_buffer, 0, dst_data->buffer_size, dst_data->vbo.m_usage, dst_data->vbo.m_target);
+      glBindBuffer(GL_COPY_READ_BUFFER, src_data->vbo.m_buffer);
+      glBindBuffer(GL_COPY_WRITE_BUFFER, dst_data->vbo.m_buffer);
+      glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, dst_data->buffer_size);
+      loco_t::polygon_vertex_t* ri = new loco_t::polygon_vertex_t[dst_data->buffer_size / sizeof(loco_t::polygon_vertex_t)];
+      loco_t::polygon_vertex_t* ri2 = new loco_t::polygon_vertex_t[dst_data->buffer_size / sizeof(loco_t::polygon_vertex_t)];
+      fan::opengl::core::get_glbuffer(gloco->context.gl, ri, dst_data->vbo.m_buffer, dst_data->buffer_size, 0, dst_data->vbo.m_target);
+      fan::opengl::core::get_glbuffer(gloco->context.gl, ri2, src_data->vbo.m_buffer, src_data->buffer_size, 0, src_data->vbo.m_target);
+      delete[] ri;
+    }
+    else {
+      fan::throw_error_impl();
+    }
   }
 }
 
@@ -2671,34 +2738,57 @@ loco_t::shape_t& loco_t::shape_t::operator=(const loco_t::shape_t& s) {
     {
       auto sti = gloco->shaper.ShapeList[s].sti;
 
-      // alloc can be avoided inside switch
-      uint8_t* KeyPack = new uint8_t[gloco->shaper.GetKeysSize(s)];
-      gloco->shaper.WriteKeys(s, KeyPack);
+      shaper_deep_copy(this, (const loco_t::shape_t*)&s, sti);
+    }
+    if (((shape_t*)&s)->get_shape_type() == shape_type_t::polygon) {
+      loco_t::polygon_t::ri_t* src_data = (loco_t::polygon_t::ri_t*)s.GetData(gloco->shaper);
+      loco_t::polygon_t::ri_t* dst_data = (loco_t::polygon_t::ri_t*)GetData(gloco->shaper);
+      if (gloco->get_renderer() == renderer_t::opengl) {
+        dst_data->vao.open(gloco->context.gl);
+        dst_data->vbo.open(gloco->context.gl, src_data->vbo.m_target);
 
-      auto _vi = s.GetRenderData(gloco->shaper);
-      auto vlen = gloco->shaper.GetRenderDataSize(sti);
-      uint8_t* vi = new uint8_t[vlen];
-      std::memcpy(vi, _vi, vlen);
-
-      auto _ri = s.GetData(gloco->shaper);
-      auto rlen = gloco->shaper.GetDataSize(sti);
-      uint8_t* ri = new uint8_t[rlen];
-      std::memcpy(ri, _ri, rlen);
-
-      *this = gloco->shaper.add(
-        sti,
-        KeyPack,
-        gloco->shaper.GetKeysSize(s),
-        vi,
-        ri
-      );
-#if defined(debug_shape_t)
-      fan::print("+", NRI);
-#endif
-
-      delete[] KeyPack;
-      delete[] vi;
-      delete[] ri;
+        auto& shape_data = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(gloco->shaper.GetShapeTypes(shape_type_t::polygon).renderer);
+        fan::graphics::context_shader_t shader;
+        if (!shape_data.shader.iic()) {
+          shader = gloco->shader_get(shape_data.shader);
+        }
+        dst_data->vao.bind(gloco->context.gl);
+        dst_data->vbo.bind(gloco->context.gl);
+        uint64_t ptr_offset = 0;
+        for (shape_gl_init_t& location : polygon_t::locations) {
+          if ((gloco->context.gl.opengl.major == 2 && gloco->context.gl.opengl.minor == 1) && !shape_data.shader.iic()) {
+            location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
+          }
+          fan_opengl_call(glEnableVertexAttribArray(location.index.first));
+          fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
+          // instancing
+          if ((gloco->context.gl.opengl.major > 3) || (gloco->context.gl.opengl.major == 3 && gloco->context.gl.opengl.minor >= 3)) {
+            if (shape_data.instanced) {
+              fan_opengl_call(glVertexAttribDivisor(location.index.first, 1));
+            }
+          }
+          switch (location.type) {
+          case GL_FLOAT: {
+            ptr_offset += location.size * sizeof(GLfloat);
+            break;
+          }
+          case GL_UNSIGNED_INT: {
+            ptr_offset += location.size * sizeof(GLuint);
+            break;
+          }
+          default: {
+            fan::throw_error_impl();
+          }
+          }
+          fan::opengl::core::write_glbuffer(gloco->context.gl, dst_data->vbo.m_buffer, 0, dst_data->buffer_size, dst_data->vbo.m_usage, dst_data->vbo.m_target);
+          glBindBuffer(GL_COPY_READ_BUFFER, src_data->vbo.m_buffer);
+          glBindBuffer(GL_COPY_WRITE_BUFFER, dst_data->vbo.m_buffer);
+          glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, dst_data->buffer_size);
+        }
+      }
+      else {
+        fan::throw_error_impl();
+      }
     }
     //fan::print("i dont know what to do");
     //NRI = s.NRI;
@@ -2715,6 +2805,9 @@ loco_t::shape_t& loco_t::shape_t::operator=(loco_t::shape_t&& s) {
   }
 
   if (this != &s) {
+    if (s.iic() == false) {
+
+    }
     NRI = s.NRI;
     s.sic();
   }
@@ -2753,7 +2846,7 @@ void loco_t::shape_t::remove() {
 
 // many things assume uint16_t so thats why not shaper_t::ShapeTypeIndex_t
 
-uint16_t loco_t::shape_t::get_shape_type() {
+uint16_t loco_t::shape_t::get_shape_type() const {
   return gloco->shaper.ShapeList[*this].sti;
 }
 

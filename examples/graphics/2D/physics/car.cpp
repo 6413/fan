@@ -3,8 +3,9 @@
 int main() {
   using namespace fan::graphics;
   engine_t engine;
+  
 
-  f32_t scale = 0.05;
+  f32_t scale = 0.2;
 
   fan::vec2 position = fan::physics::render_to_physics(500.0);
 
@@ -28,7 +29,7 @@ int main() {
     v.color = fan::colors::white;
     vertices.emplace_back(v);
   }
-  fan::graphics::physics_shapes::polygon_t chassis{{
+  fan::graphics::physics::polygon_t chassis{{
     .position = fan::physics::physics_to_render(position + fan::vec2(0, -1.0f * scale)),
     .radius = 0.15f * scale,
     .vertices = vertices,
@@ -43,22 +44,22 @@ int main() {
   static auto image_tire = engine.image_load("images/tire.webp");
 
   fan::vec2 pos = fan::vec2(b2Add( { -1.0f * scale, -0.35f * scale }, position ));
-  fan::graphics::physics_shapes::circle_sprite_t rear_wheel{{
+  fan::graphics::physics::circle_sprite_t rear_wheel{{
     .position = fan::vec3(fan::physics::physics_to_render(pos), 1),
     .radius = 25,
     .size = 25,
     .image = image_tire,
     .body_type = fan::physics::body_type_e::dynamic_body,
-    .shape_properties{.friction=1.5f, .density= 2.0f / scale, .allow_fast_rotation=true}
+    .shape_properties{.friction=1.5f, .density= 2.0f / scale, .fast_rotation=true}
   }};
   pos = b2Add( { 1.0f * scale, -0.4f * scale }, position );
-  fan::graphics::physics_shapes::circle_sprite_t front_wheel{{
+  fan::graphics::physics::circle_sprite_t front_wheel{{
     .position = fan::vec3(fan::physics::physics_to_render(pos), 1),
     .radius = 25,
     .size = 25,
     .image = image_tire,
     .body_type = fan::physics::body_type_e::dynamic_body,
-    .shape_properties{.friction=1.5f, .density= 2.0f / scale, .allow_fast_rotation=true}
+    .shape_properties{.friction=1.5f, .density= 2.0f / scale, .fast_rotation=true}
   }};
 
 
@@ -105,13 +106,13 @@ int main() {
 
   fan::vec2 window_size = engine.window.get_size();
   f32_t wall_thickness = 50.f;
-  auto walls = fan::graphics::physics_shapes::create_stroked_rectangle(window_size / 2, window_size / 2, wall_thickness);
+  auto walls = fan::graphics::physics::create_stroked_rectangle(window_size / 2, window_size / 2, wall_thickness);
 
 	b2Joint_WakeBodies(m_rearAxleId);
 
-  fan::graphics::mouse_joint_t mouse_joint(chassis);
+  fan::graphics::physics::mouse_joint_t mouse_joint;
 
-  fan::graphics::physics_shapes::debug_draw(false);
+  fan::graphics::physics::debug_draw(false);
 
   static constexpr f32_t amplitude = 150.0f;
   static constexpr f32_t frequency = 0.15f;
@@ -142,7 +143,6 @@ int main() {
     
 
     //fan::print(chassis.get_physics_position());
-    mouse_joint.update_mouse(engine.physics_context.world_id);
     engine.physics_context.step(engine.delta_time);
   };
 }

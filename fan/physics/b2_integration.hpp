@@ -15,7 +15,7 @@ namespace fan {
       };
     };
 
-    inline f32_t length_units_per_meter = 1024.f;
+    inline f32_t length_units_per_meter = 512.f;
 
     struct capsule_t : b2Capsule {
       using b2Capsule::b2Capsule;
@@ -134,6 +134,28 @@ namespace fan {
         b2Rot rotation = b2Body_GetRotation(*this);
         b2Body_SetTransform(*this, p / length_units_per_meter, rotation);
       }
+
+      b2ShapeId get_shape_id() const {
+         b2ShapeId shape_id = b2_nullShapeId;
+#if fan_debug >= fan_debug_medium
+         if (!b2Body_GetShapes(*this, &shape_id, 1)) {
+           fan::throw_error_impl();
+         }
+#else
+         b2Body_GetShapes(*this, &shape_id, 1);
+#endif
+        return shape_id;
+      }
+
+      f32_t get_density() const {
+        return b2Shape_GetDensity(get_shape_id());
+      }
+      f32_t get_friction() const {
+        return b2Shape_GetFriction(get_shape_id());
+      }
+      f32_t get_restitution() const {
+        return b2Shape_GetRestitution(get_shape_id());
+      }
     };
 
     struct joint_id_t : b2JointId {
@@ -178,12 +200,12 @@ namespace fan {
 	    f32_t density = 1.0f;
       f32_t restitution = 0.0f;
       bool fixed_rotation = false;
-      bool enable_presolve_events = false;
+      bool presolve_events = false;
       bool is_sensor = false;
       f32_t linear_damping = 0.0f;
       fan::vec2 collision_multiplier = 1; // possibility to change multiplier of collision size
       b2Filter filter = b2DefaultFilter();
-      bool allow_fast_rotation = false;
+      bool fast_rotation = false;
     };
 
     struct entity_t : body_id_t {
@@ -218,6 +240,8 @@ namespace fan {
 
     struct context_t {
 
+      operator b2WorldId&();
+
       struct properties_t {
         // clang
         properties_t() {};
@@ -227,8 +251,8 @@ namespace fan {
       void set_gravity(const fan::vec2& gravity);
       fan::vec2 get_gravity() const;
 
-      entity_t create_box(const fan::vec2& position, const fan::vec2& size, uint8_t body_type, const shape_properties_t& shape_properties);
-      entity_t create_circle(const fan::vec2& position, f32_t radius, uint8_t body_type, const shape_properties_t& shape_properties);
+      entity_t create_box(const fan::vec2& position, const fan::vec2& size, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties);
+      entity_t create_circle(const fan::vec2& position, f32_t radius, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties);
       fan::physics::entity_t create_capsule(const fan::vec2& position, const b2Capsule& info, uint8_t body_type, const shape_properties_t& shape_properties);
 
       fan::physics::entity_t create_segment(const fan::vec2& position, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties);

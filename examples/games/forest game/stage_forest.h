@@ -37,7 +37,7 @@ void open(void* sod) {
   pile.renderer.iterate_physics_entities(main_map_id, 
     [&]<typename T>(auto& entity, T& entity_visual) {
     if (entity.id == "player_sensor_door" &&
-      std::is_same_v<T, fan::graphics::physics_shapes::rectangle_t>) {
+      std::is_same_v<T, fan::graphics::physics::rectangle_t>) {
       player_sensor_door = entity_visual;
     }
   });

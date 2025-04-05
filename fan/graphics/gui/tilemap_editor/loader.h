@@ -55,8 +55,8 @@ struct fte_loader_t {
     std::unordered_map<fan::vec3i, tile_draw_data_t, vec3i_hasher> tiles;
     struct physics_entities_t {
       std::variant<
-        fan::graphics::physics_shapes::rectangle_t,
-        fan::graphics::physics_shapes::circle_t
+        fan::graphics::physics::rectangle_t,
+        fan::graphics::physics::circle_t
       >visual;
       std::string id;
     };
@@ -137,7 +137,7 @@ public:
         physics_element.physics_shapes.shape_properties.friction = physics_shape_data["friction"] ;
         physics_element.physics_shapes.shape_properties.density = physics_shape_data["density"] ;
         physics_element.physics_shapes.shape_properties.fixed_rotation = physics_shape_data["fixed_rotation"] ;
-        physics_element.physics_shapes.shape_properties.enable_presolve_events = physics_shape_data["enable_presolve_events"];
+        physics_element.physics_shapes.shape_properties.presolve_events = physics_shape_data["presolve_events"];
         physics_element.physics_shapes.shape_properties.is_sensor = physics_shape_data["is_sensor"];
        
         continue;

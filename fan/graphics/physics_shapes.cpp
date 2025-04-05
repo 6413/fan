@@ -1,7 +1,7 @@
 #include "physics_shapes.hpp"
 
 
-void fan::graphics::physics_shapes::shape_physics_update(const loco_t::physics_update_data_t& data) {
+void fan::graphics::physics::shape_physics_update(const loco_t::physics_update_data_t& data) {
   if (!b2Body_IsValid(data.body_id)) {
     fan::print("invalid body data (corruption)");
     return;
@@ -21,7 +21,7 @@ void fan::graphics::physics_shapes::shape_physics_update(const loco_t::physics_u
   if (b2Body_GetShapes(data.body_id, id, 1)) {
     auto aabb = b2Shape_GetAABB(id[0]);
     fan::vec2 size = fan::vec2(aabb.upperBound - aabb.lowerBound) / 2;
-    fan::graphics::physics_shapes::physics_update_cb(shape, shape.get_position(), size* fan::physics::length_units_per_meter/2, radians);
+    fan::graphics::physics::physics_update_cb(shape, shape.get_position(), size* fan::physics::length_units_per_meter/2, radians);
   }
   //hitbox_visualize[(void*) & data.body_id] = fan::graphics::rectangle_t{{
   //    .position = fan::vec3(p * fan::physics::length_units_per_meter, 0xffff-100),
@@ -62,17 +62,17 @@ void fan::graphics::physics_shapes::shape_physics_update(const loco_t::physics_u
   }*/
 }
 
-std::array<fan::graphics::physics_shapes::rectangle_t, 4> fan::graphics::physics_shapes::create_stroked_rectangle(
+std::array<fan::graphics::physics::rectangle_t, 4> fan::graphics::physics::create_stroked_rectangle(
   const fan::vec2& center_position, 
   const fan::vec2& half_size,
   f32_t thickness,
   const fan::color& wall_color, 
   std::array<fan::physics::shape_properties_t, 4> shape_properties
 ) {
-  std::array<fan::graphics::physics_shapes::rectangle_t, 4> walls;
+  std::array<fan::graphics::physics::rectangle_t, 4> walls;
   const fan::color wall_outline = wall_color * 2;
   // top
-  walls[0] = fan::graphics::physics_shapes::rectangle_t{ {
+  walls[0] = fan::graphics::physics::rectangle_t{ {
       .position = fan::vec2(center_position.x, center_position.y - half_size.y),
       .size = fan::vec2(half_size.x * 2, thickness),
       .color = wall_color,
@@ -80,7 +80,7 @@ std::array<fan::graphics::physics_shapes::rectangle_t, 4> fan::graphics::physics
       .shape_properties = shape_properties[0]
     } };
   // bottom
-  walls[1] = fan::graphics::physics_shapes::rectangle_t{ {
+  walls[1] = fan::graphics::physics::rectangle_t{ {
       .position = fan::vec2(center_position.x, center_position.y + half_size.y),
       .size = fan::vec2(half_size.x * 2, thickness),
       .color = wall_color,
@@ -88,7 +88,7 @@ std::array<fan::graphics::physics_shapes::rectangle_t, 4> fan::graphics::physics
       .shape_properties = shape_properties[1]
     } };
   // left
-  walls[2] = fan::graphics::physics_shapes::rectangle_t{ {
+  walls[2] = fan::graphics::physics::rectangle_t{ {
       .position = fan::vec2(center_position.x - half_size.x, center_position.y),
       .size = fan::vec2(thickness, half_size.y * 2),
       .color = wall_color,
@@ -96,7 +96,7 @@ std::array<fan::graphics::physics_shapes::rectangle_t, 4> fan::graphics::physics
       .shape_properties = shape_properties[2]
     } };
   // right
-  walls[3] = fan::graphics::physics_shapes::rectangle_t{ {
+  walls[3] = fan::graphics::physics::rectangle_t{ {
       .position = fan::vec2(center_position.x + half_size.x, center_position.y),
       .size = fan::vec2(thickness, half_size.y * 2),
       .color = wall_color,
@@ -106,18 +106,18 @@ std::array<fan::graphics::physics_shapes::rectangle_t, 4> fan::graphics::physics
   return walls;
 }
 
-fan::graphics::character2d_t::character2d_t() {
+fan::graphics::physics::character2d_t::character2d_t() {
   add_inputs();
 }
 
-void fan::graphics::character2d_t::add_inputs() {
+void fan::graphics::physics::character2d_t::add_inputs() {
   gloco->input_action.add(fan::key_a, "move_left");
   gloco->input_action.add(fan::key_d, "move_right");
   gloco->input_action.add(fan::key_space, "move_up");
   gloco->input_action.add(fan::key_s, "move_down");
 }
 
-bool fan::graphics::character2d_t::is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping) {
+bool fan::graphics::physics::character2d_t::is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping) {
   for (int i = 0; i < 2; ++i) {
     fan::physics::body_id_t body_id = feet[i];
     if (body_id.is_valid() == false) {
@@ -148,7 +148,7 @@ bool fan::graphics::character2d_t::is_on_ground(fan::physics::body_id_t main, st
   return false;
 }
 
-void fan::graphics::character2d_t::process_movement(uint8_t movement, f32_t friction) {
+void fan::graphics::physics::character2d_t::process_movement(uint8_t movement, f32_t friction) {
   fan::vec2 velocity = get_linear_velocity();
 
   auto movement_left_right = [&] {
@@ -206,7 +206,7 @@ void fan::graphics::character2d_t::process_movement(uint8_t movement, f32_t fric
   }
 }
 
-void fan::graphics::character2d_t::move_to_direction(const fan::vec2& direction){
+void fan::graphics::physics::character2d_t::move_to_direction(const fan::vec2& direction){
   fan::vec2 velocity = get_linear_velocity();
   if (direction.x < 0) {
     if (velocity.x > -max_speed) {
@@ -230,7 +230,7 @@ void fan::graphics::character2d_t::move_to_direction(const fan::vec2& direction)
   }
 }
 
-void fan::graphics::update_reference_angle(b2WorldId world, fan::physics::joint_id_t& joint_id, float new_reference_angle) {
+void fan::graphics::physics::update_reference_angle(b2WorldId world, fan::physics::joint_id_t& joint_id, float new_reference_angle) {
 
     b2BodyId bodyIdA = b2Joint_GetBodyA(joint_id);
     b2BodyId bodyIdB = b2Joint_GetBodyB(joint_id);
@@ -305,12 +305,12 @@ void update_position(b2WorldId world, fan::physics::joint_id_t& joint_id, fan::v
     joint_id = b2CreateRevoluteJoint(world, &jointDef);
 }
 
-fan::graphics::human_t::human_t(const fan::vec2& position, const f32_t scale, const std::array<loco_t::image_t, bone_e::bone_count>& images, const fan::color& color) {
+fan::graphics::physics::human_t::human_t(const fan::vec2& position, const f32_t scale, const std::array<loco_t::image_t, bone_e::bone_count>& images, const fan::color& color) {
   load(position, scale, images, color);
 }
 
-void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, std::array<fan::graphics::bone_t, fan::graphics::bone_e::bone_count>& bones) {
-  for (int i = 0; i < fan::graphics::bone_e::bone_count; ++i) {
+void fan::graphics::physics::human_t::load_bones(const fan::vec2& position, f32_t scale, std::array<fan::graphics::physics::bone_t, fan::graphics::physics::bone_e::bone_count>& bones) {
+  for (int i = 0; i < fan::graphics::physics::bone_e::bone_count; ++i) {
     bones[i].joint_id = b2_nullJointId;
     bones[i].friction_scale = 1.0f;
     bones[i].parent_index = -1;
@@ -343,7 +343,7 @@ void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, 
       .center1 = {0.f, 0.02f}
     },
     { // torso
-      .parent_index = fan::graphics::bone_e::hip,
+      .parent_index = fan::graphics::physics::bone_e::hip,
       .position = {0.0f, -1.2f, 60},
       .size = 0.09f,
       .friction_scale = 0.5f,
@@ -355,7 +355,7 @@ void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, 
       .center1 = {0.f, 0.135f}
     },
     { // head
-      .parent_index = fan::graphics::bone_e::torso,
+      .parent_index = fan::graphics::physics::bone_e::torso,
       .position = {0.0f, -1.475f, 44},
       .size = 0.075f,
       .friction_scale = 0.25f,
@@ -367,7 +367,7 @@ void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, 
       .center1 = {0.f, 0.039f}
     },
     { // upper left leg
-      .parent_index = fan::graphics::bone_e::hip,
+      .parent_index = fan::graphics::physics::bone_e::hip,
       .position = {0.0f, -0.775f, 52},
       .size = 0.06f,
       .friction_scale = 1.0f,
@@ -379,7 +379,7 @@ void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, 
       .center1 = {0.f, 0.125f}
     },
     { // lower left leg
-      .parent_index = fan::graphics::bone_e::upper_left_leg,
+      .parent_index = fan::graphics::physics::bone_e::upper_left_leg,
       .position = {0.0f, -0.475f, 51},
       .size = 0.045f,
       .friction_scale = 0.5f,
@@ -391,7 +391,7 @@ void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, 
       .center1 = {0.f, 0.045f}
     },
     { // upper right leg
-      .parent_index = fan::graphics::bone_e::hip,
+      .parent_index = fan::graphics::physics::bone_e::hip,
       .position = {0.0f, -0.775f, 54},
       .size = 0.06f,
       .friction_scale = 1.0f,
@@ -403,7 +403,7 @@ void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, 
       .center1 = {0.f, 0.125f}
     },
     { // lower right leg
-      .parent_index = fan::graphics::bone_e::upper_right_leg,
+      .parent_index = fan::graphics::physics::bone_e::upper_right_leg,
       .position = {0.0f, -0.475f, 53},
       .size = 0.045f,
       .friction_scale = 0.5f,
@@ -415,7 +415,7 @@ void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, 
       .center1 = {0.f, 0.125f}
     },
     { // upper left arm
-      .parent_index = fan::graphics::bone_e::torso,
+      .parent_index = fan::graphics::physics::bone_e::torso,
       .position = {0.0f, -1.225f, 62},
       .size = 0.035f,
       .friction_scale = 0.5f,
@@ -427,7 +427,7 @@ void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, 
       .center1 = {0.f, 0.125f}
     },
     { // lower left arm
-      .parent_index = fan::graphics::bone_e::upper_left_arm,
+      .parent_index = fan::graphics::physics::bone_e::upper_left_arm,
       .position = {0.0f, -0.975f, 61},
       .size = 0.03f,
       .friction_scale = 0.1f,
@@ -439,7 +439,7 @@ void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, 
       .center1 = {0.f, 0.125f}
     },
     { // upper right arm
-      .parent_index = fan::graphics::bone_e::torso,
+      .parent_index = fan::graphics::physics::bone_e::torso,
       .position = {0.0f, -1.225f, 64},
       .size = 0.035f,
       .friction_scale = 0.5f,
@@ -451,7 +451,7 @@ void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, 
       .center1 = {0.f, 0.125f}
     },
     { // lower right arm
-      .parent_index = fan::graphics::bone_e::upper_right_arm,
+      .parent_index = fan::graphics::physics::bone_e::upper_right_arm,
       .position = {0.0f, -0.975f, 63},
       .size = 0.03f,
       .friction_scale = 0.1f,
@@ -479,7 +479,7 @@ void fan::graphics::human_t::load_bones(const fan::vec2& position, f32_t scale, 
   }
 }
 
-void fan::graphics::human_t::load_preset(const fan::vec2& position, const f32_t scale, const bone_images_t& images, std::array<bone_t, bone_e::bone_count>& bones, const fan::color& color) {
+void fan::graphics::physics::human_t::load_preset(const fan::vec2& position, const f32_t scale, const bone_images_t& images, std::array<bone_t, bone_e::bone_count>& bones, const fan::color& color) {
   this->scale = scale;
   int groupIndex = 1;
   f32_t frictionTorque = 0.03f;
@@ -499,7 +499,7 @@ void fan::graphics::human_t::load_preset(const fan::vec2& position, const f32_t 
 
   for (int i = 0; i < std::size(bones); ++i) {
     auto& bone = bones[i];
-    bone.visual = fan::graphics::physics_shapes::capsule_sprite_t{ {
+    bone.visual = fan::graphics::physics::capsule_sprite_t{ {
       .position = fan::vec3(position + (fan::vec2(bone.position) * fan::physics::length_units_per_meter + bone.offset) * scale, bone.position.z),
       /*
         bone.center0 * fan::physics::length_units_per_meter * bone.scale * scale
@@ -524,7 +524,7 @@ void fan::graphics::human_t::load_preset(const fan::vec2& position, const f32_t 
     }
     fan::vec2 physics_position = bone.visual.get_physics_position();
     fan::vec2 pivot = (position / fan::physics::length_units_per_meter) + bone.pivot * scale;
-  //  fan::graphics::physics_shapes::hitbox_visualize[&bones[i]] = fan::graphics::rectangle_t{{
+  //  fan::graphics::physics::hitbox_visualize[&bones[i]] = fan::graphics::rectangle_t{{
   //  .position = fan::vec3(position + bone.pivot * scale * fan::physics::length_units_per_meter, 60001),
   //  .size=5,
   //  .color = fan::color(0, 0, 1, 0.2),
@@ -551,30 +551,30 @@ void fan::graphics::human_t::load_preset(const fan::vec2& position, const f32_t 
   is_spawned = true;
 }
 
-void fan::graphics::human_t::load(const fan::vec2& position, const f32_t scale, const std::array<loco_t::image_t, bone_e::bone_count>& images, const fan::color& color) {
+void fan::graphics::physics::human_t::load(const fan::vec2& position, const f32_t scale, const std::array<loco_t::image_t, bone_e::bone_count>& images, const fan::color& color) {
   load_bones(position, scale, bones);
   load_preset(position, scale, images, bones, color);
 }
 
-fan::graphics::human_t::bone_images_t fan::graphics::human_t::load_character_images(
+fan::graphics::physics::human_t::bone_images_t fan::graphics::physics::human_t::load_character_images(
   const std::string& character_folder_path,
   const loco_t::image_load_properties_t& lp
 ){
-  fan::graphics::human_t::bone_images_t character_images;
-  character_images[fan::graphics::bone_e::head] = gloco->image_load(character_folder_path + "/head.webp", lp);
-  character_images[fan::graphics::bone_e::torso] = gloco->image_load(character_folder_path + "/torso.webp", lp);
-  character_images[fan::graphics::bone_e::hip] = gloco->image_load(character_folder_path + "/hip.webp", lp);
-  character_images[fan::graphics::bone_e::upper_left_leg] = gloco->image_load(character_folder_path + "/upper_leg.webp", lp);
-  character_images[fan::graphics::bone_e::lower_left_leg] = gloco->image_load(character_folder_path + "/lower_leg.webp", lp);
-  character_images[fan::graphics::bone_e::upper_right_leg] = character_images[fan::graphics::bone_e::upper_left_leg];
-  character_images[fan::graphics::bone_e::lower_right_leg] = character_images[fan::graphics::bone_e::lower_left_leg];
-  character_images[fan::graphics::bone_e::upper_left_arm] = gloco->image_load(character_folder_path + "/upper_arm.webp", lp);
-  character_images[fan::graphics::bone_e::lower_left_arm] = gloco->image_load(character_folder_path + "/lower_arm.webp", lp);
-  character_images[fan::graphics::bone_e::upper_right_arm] = character_images[fan::graphics::bone_e::upper_left_arm];
-  character_images[fan::graphics::bone_e::lower_right_arm] = character_images[fan::graphics::bone_e::lower_left_arm];
+  fan::graphics::physics::human_t::bone_images_t character_images;
+  character_images[fan::graphics::physics::bone_e::head] = gloco->image_load(character_folder_path + "/head.webp", lp);
+  character_images[fan::graphics::physics::bone_e::torso] = gloco->image_load(character_folder_path + "/torso.webp", lp);
+  character_images[fan::graphics::physics::bone_e::hip] = gloco->image_load(character_folder_path + "/hip.webp", lp);
+  character_images[fan::graphics::physics::bone_e::upper_left_leg] = gloco->image_load(character_folder_path + "/upper_leg.webp", lp);
+  character_images[fan::graphics::physics::bone_e::lower_left_leg] = gloco->image_load(character_folder_path + "/lower_leg.webp", lp);
+  character_images[fan::graphics::physics::bone_e::upper_right_leg] = character_images[fan::graphics::physics::bone_e::upper_left_leg];
+  character_images[fan::graphics::physics::bone_e::lower_right_leg] = character_images[fan::graphics::physics::bone_e::lower_left_leg];
+  character_images[fan::graphics::physics::bone_e::upper_left_arm] = gloco->image_load(character_folder_path + "/upper_arm.webp", lp);
+  character_images[fan::graphics::physics::bone_e::lower_left_arm] = gloco->image_load(character_folder_path + "/lower_arm.webp", lp);
+  character_images[fan::graphics::physics::bone_e::upper_right_arm] = character_images[fan::graphics::physics::bone_e::upper_left_arm];
+  character_images[fan::graphics::physics::bone_e::lower_right_arm] = character_images[fan::graphics::physics::bone_e::lower_left_arm];
   return character_images;
 }
-void fan::graphics::human_t::animate_walk(f32_t force, f32_t dt) {
+void fan::graphics::physics::human_t::animate_walk(f32_t force, f32_t dt) {
   
   fan::physics::body_id_t torso_id = bones[bone_e::torso].visual;
   b2Vec2 force_ = { force, 0 };
@@ -668,7 +668,7 @@ void fan::graphics::human_t::animate_walk(f32_t force, f32_t dt) {
   }
 
 }
-void fan::graphics::human_t::animate_jump(f32_t impulse, f32_t dt, bool is_jumping) {
+void fan::graphics::physics::human_t::animate_jump(f32_t impulse, f32_t dt, bool is_jumping) {
   bone_t& bupper_left_leg = bones[bone_e::upper_left_leg];
   bone_t& bupper_right_leg = bones[bone_e::upper_right_leg];
   bone_t& blower_left_leg = bones[bone_e::lower_left_leg];
@@ -699,7 +699,7 @@ void fan::graphics::human_t::animate_jump(f32_t impulse, f32_t dt, bool is_jumpi
   }
 }
 
-void fan::graphics::human_t::erase(){
+void fan::graphics::physics::human_t::erase(){
   assert(is_spawned == true);
 
   for (int i = 0; i < bone_e::bone_count; ++i) {
@@ -715,7 +715,7 @@ void fan::graphics::human_t::erase(){
   }
 }
 
-bool fan::graphics::mouse_joint_t::QueryCallback(b2ShapeId shapeId, void* context) {
+bool fan::graphics::physics::mouse_joint_t::QueryCallback(b2ShapeId shapeId, void* context) {
   QueryContext* queryContext = static_cast<QueryContext*>(context);
 
   b2BodyId bodyId = b2Shape_GetBody(shapeId);
@@ -737,48 +737,61 @@ bool fan::graphics::mouse_joint_t::QueryCallback(b2ShapeId shapeId, void* contex
   return true;
 }
 
-fan::graphics::mouse_joint_t::mouse_joint_t(fan::physics::body_id_t tb) {
-  this->target_body = tb;
-}
+fan::graphics::physics::mouse_joint_t::mouse_joint_t() {
+  
+  auto default_body = b2DefaultBodyDef();
+  dummy_body.set_body(b2CreateBody(gloco->physics_context, &default_body));
+  nr = gloco->m_update_callback.NewNodeLast();
+  // not copy safe
+  gloco->m_update_callback[nr] = [this](loco_t* loco) {
+#if defined(loco_imgui)
+    if (ImGui::IsMouseDown(0)) {
+      fan::vec2 p = gloco->get_mouse_position() / fan::physics::length_units_per_meter;
+      if (!B2_IS_NON_NULL(mouse_joint)) {
+        b2AABB box;
+        b2Vec2 d = { 0.001f, 0.001f };
+        box.lowerBound = b2Sub(p, d);
+        box.upperBound = b2Add(p, d);
 
-void fan::graphics::mouse_joint_t::update_mouse(b2WorldId world_id) {
-  #if defined(loco_imgui)
-  if (ImGui::IsMouseDown(0)) {
-    fan::vec2 p = gloco->get_mouse_position() / fan::physics::length_units_per_meter;
-    if (!B2_IS_NON_NULL(mouse_joint)) {
-      b2AABB box;
-      b2Vec2 d = { 0.001f, 0.001f };
-      box.lowerBound = b2Sub(p, d);
-      box.upperBound = b2Add(p, d);
+        QueryContext queryContext = { p, b2_nullBodyId };
+        b2World_OverlapAABB(loco->physics_context, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
+        if (B2_IS_NON_NULL(queryContext.bodyId)) {
 
-      QueryContext queryContext = { p, b2_nullBodyId };
-      b2World_OverlapAABB(world_id, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
-      if (B2_IS_NON_NULL(queryContext.bodyId)) {
-
-        b2MouseJointDef mouseDef = b2DefaultMouseJointDef();
-        mouseDef.bodyIdA = target_body;
-        mouseDef.bodyIdB = queryContext.bodyId;
-        mouseDef.target = p;
-        mouseDef.hertz = 5.0f;
-        mouseDef.dampingRatio = 0.7f;
-        mouseDef.maxForce = 1000.0f * b2Body_GetMass(queryContext.bodyId);
-        mouse_joint = b2CreateMouseJoint(world_id, &mouseDef);
-        b2Body_SetAwake(queryContext.bodyId, true);
+          b2MouseJointDef mouseDef = b2DefaultMouseJointDef();
+          mouseDef.bodyIdA = dummy_body;
+          mouseDef.bodyIdB = queryContext.bodyId;
+          mouseDef.target = p;
+          mouseDef.hertz = 5.0f;
+          mouseDef.dampingRatio = 0.7f;
+          mouseDef.maxForce = 1000.0f * b2Body_GetMass(queryContext.bodyId);
+          mouse_joint = b2CreateMouseJoint(loco->physics_context, &mouseDef);
+          b2Body_SetAwake(queryContext.bodyId, true);
+        }
+      }
+      else {
+        b2MouseJoint_SetTarget(mouse_joint, p);
+        b2BodyId bodyIdB = b2Joint_GetBodyB(mouse_joint);
+        b2Body_SetAwake(bodyIdB, true);
       }
     }
-    else {
-      b2MouseJoint_SetTarget(mouse_joint, p);
-      b2BodyId bodyIdB = b2Joint_GetBodyB(mouse_joint);
-      b2Body_SetAwake(bodyIdB, true);
+    else if (ImGui::IsMouseReleased(0)) {
+      if (B2_IS_NON_NULL(mouse_joint)) {
+        b2DestroyJoint(mouse_joint);
+        mouse_joint = b2_nullJointId;
+      }
     }
-  }
-  else if (ImGui::IsMouseReleased(0)) {
-    if (B2_IS_NON_NULL(mouse_joint)) {
-      b2DestroyJoint(mouse_joint);
-      mouse_joint = b2_nullJointId;
-    }
-  }
 #endif
+  };
+}
+
+fan::graphics::physics::mouse_joint_t::~mouse_joint_t() {
+  if (dummy_body.is_valid()) {
+    dummy_body.destroy();
+  }
+  if (nr.iic() == false) {
+    gloco->m_update_callback.unlrec(nr);
+    nr.sic();
+  }
 }
 
 int z_depth = 0;
@@ -787,13 +800,13 @@ std::vector<fan::graphics::polygon_t> debug_draw_solid_polygon;
 std::vector<fan::graphics::circle_t> debug_draw_circle;
 std::vector<fan::graphics::line_t> debug_draw_line;
 /// Draw a closed polygon provided in CCW order.
-void DrawPolygon(const b2Vec2* vertices, int vertexCount, b2HexColor color, void* context) {
+void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, void* context) {
   for (int i = 0; i < vertexCount; i++) {
-    int nextIndex = (i + 1) % vertexCount;
+    int next_i = (i + 1) % vertexCount;
     
     debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
       .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), 0x1f00 + z_depth),
-      .dst = fan::physics::physics_to_render(vertices[nextIndex]),
+      .dst = fan::physics::physics_to_render(vertices[next_i]),
       .color = fan::color::hexa(color)
     }});
   }
@@ -881,7 +894,7 @@ void DrawString(b2Vec2 p, const char* s, void* context) {
 
 b2DebugDraw initialize_debug(bool enabled) {
   return b2DebugDraw{
-  .DrawPolygon = DrawPolygon,
+  .DrawPolygon = (decltype(b2DebugDraw::DrawPolygon))DrawPolygon,
   .DrawSolidPolygon = DrawSolidPolygon,
   .DrawCircle = DrawCircle,
   .DrawSolidCircle = DrawSolidCircle,
@@ -896,7 +909,7 @@ b2DebugDraw initialize_debug(bool enabled) {
   };
 }
 
-b2DebugDraw fan::graphics::physics_shapes::box2d_debug_draw = []{
+b2DebugDraw fan::graphics::physics::box2d_debug_draw = []{
   auto init_it = fan::graphics::engine_init_cbs.NewNodeLast();
   fan::graphics::engine_init_cbs[init_it] = [](loco_t* loco){
     auto it = loco->m_update_callback.NewNodeLast();
@@ -906,12 +919,16 @@ b2DebugDraw fan::graphics::physics_shapes::box2d_debug_draw = []{
       debug_draw_solid_polygon.clear();
       debug_draw_circle.clear();
       debug_draw_line.clear();
-      b2World_Draw(loco->physics_context.world_id, &fan::graphics::physics_shapes::box2d_debug_draw);
+      b2World_Draw(loco->physics_context.world_id, &fan::graphics::physics::box2d_debug_draw);
     };
   };
   return initialize_debug(false);
 }();
 
-void fan::graphics::physics_shapes::debug_draw(bool enabled) {
-  fan::graphics::physics_shapes::box2d_debug_draw = initialize_debug(enabled);
+void fan::graphics::physics::step(f32_t dt) {
+  gloco->physics_context.step(dt);
+}
+
+void fan::graphics::physics::debug_draw(bool enabled) {
+  fan::graphics::physics::box2d_debug_draw = initialize_debug(enabled);
 }
