@@ -2565,6 +2565,16 @@ namespace fan {
     gloco->printclh(highlight, values...);
 #endif
   }
+  inline void printcl_err(auto&&... values) {
+#if defined(loco_imgui)
+    printclh(fan::graphics::highlight_e::error, values...);
+#endif
+  }
+  inline void printcl_warn(auto&&... values) {
+#if defined(loco_imgui)
+    printclh(fan::graphics::highlight_e::warning, values...);
+#endif
+  }
 }
 
 inline bool init_fan_track_opengl_print = []() {
