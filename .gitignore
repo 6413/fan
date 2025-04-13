@@ -13,7 +13,6 @@
 *.log
 *.idb
 *.a
-*.d
 2D/.vs/2D/v16/Browse.VC.db-wal
 2D/.vs/2D/v16/Browse.VC.db-shm
 *.db-shm
@@ -31,9 +30,13 @@
 .vscode/settings.json
 *.TMP
 include/opencv2
+lib/opencv
 include/dpp
+lib/dpp
+lib/cmake
 *.dll
 x64/Debug
+*.json
 *.command
 *.ifc
 a.out
@@ -48,5 +51,7 @@ include/baseclasses
 include/softcam
 include/softcamcore
 include/imgui
+lib/
 ignore/
-lib/*
+thirdparty/
+*.d
