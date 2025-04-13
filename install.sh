@@ -60,7 +60,6 @@ packages=(
 	libgtk-3-dev
 	libassimp-dev
 	libpulse-dev
-	libpulse-dev
 	libopus0
 	libopus-dev
 	libuv1
