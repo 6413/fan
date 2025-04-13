@@ -5,7 +5,7 @@
 int main() {
   using namespace fan::graphics;
   engine_t engine{{
-    .renderer=engine_t::renderer_t::vulkan
+    .renderer=engine_t::renderer_t::opengl
   }};
 
   std::vector<rectangle_t>rects(1);

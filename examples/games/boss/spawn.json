@@ -1,0 +1,9052 @@
+{
+  "gravity": [
+    0.0,
+    19.600000381469727
+  ],
+  "layer_info": [
+    {
+      "depth": 32083,
+      "layer_name": "default"
+    },
+    {
+      "depth": 32084,
+      "layer_name": "default"
+    }
+  ],
+  "lighting.ambient": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "map_size": [
+    128,
+    128
+  ],
+  "tile_size": [
+    32,
+    32
+  ],
+  "tiles": [
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6421",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        320.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1328125,
+        0.4453125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4895",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        576.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5390625,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4768",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        448.0,
+        448.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.4140625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2216",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        448.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4894",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        512.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5078125,
+        0.9765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6805",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        512.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.3828125,
+        0.9453125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1958",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4255",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        256.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.2578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4512",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        704.0,
+        256.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7578125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1831",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        704.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7890625,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4383",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        320.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1328125,
+        0.7578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1958",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1832",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        960.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8203125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4766",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        384.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6328125,
+        0.4140625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4511",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        384.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7265625,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2086",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4512",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        384.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7578125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2087",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4254",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        256.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1833",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8515625,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4256",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        256.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1830",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7578125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4640",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        448.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4453125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2215",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4382",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        320.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1328125,
+        0.7265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1961",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.8203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4384",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        320.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1328125,
+        0.7890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1959",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1542",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        320.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.2890625,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1944",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6640625,
+        0.8828125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1960",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4638",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        448.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.3828125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2217",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1945",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        960.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6640625,
+        0.9140625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1961",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        960.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.8203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4639",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        448.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4140625,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2214",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6550",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        384.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4453125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2087",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6292",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        256.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8203125,
+        0.0703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1833",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8515625,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile5024",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        640.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8203125,
+        0.6953125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2214",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4766",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        512.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6328125,
+        0.4140625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1961",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.8203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6293",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        256.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8515625,
+        0.0703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1830",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7578125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4767",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        512.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6640625,
+        0.4140625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6294",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        256.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8828125,
+        0.0703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1831",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7890625,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4768",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        512.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.4140625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1958",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6678",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        448.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.2890625,
+        0.8203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2215",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6420",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        320.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1328125,
+        0.4140625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1961",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.8203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile5152",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        704.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.0390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4894",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        576.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5078125,
+        0.9765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2089",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6422",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        320.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.1328125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1959",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile4896",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        576.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5703125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2086",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        640.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6548",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        384.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.3828125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2089",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1926",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        512.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6328125,
+        0.9765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1958",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile5022",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        640.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7578125,
+        0.6953125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2217",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6549",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        384.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.4140625,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile5023",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        640.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7890625,
+        0.6953125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6676",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        448.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.2890625,
+        0.7578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2217",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile5150",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        704.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.9453125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1961",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        704.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.8203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6677",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        448.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.2890625,
+        0.7890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2214",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile5151",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        576.0,
+        704.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.9765625,
+        0.0078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1798",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        448.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2200",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.9453125,
+        0.0703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2216",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1540",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        320.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.9453125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1958",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1541",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        832.0,
+        320.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.9765625,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1668",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        384.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.3828125,
+        0.4140625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2089",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2086",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1669",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        832.0,
+        384.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.3828125,
+        0.4453125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2087",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        832.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1670",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        384.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.3828125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2072",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7578125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2088",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1796",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        448.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6328125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2217",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2214",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1797",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        832.0,
+        448.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6640625,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2215",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        832.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1924",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        512.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6328125,
+        0.9140625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1960",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1925",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        832.0,
+        512.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6328125,
+        0.9453125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1961",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        832.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.8203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2215",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1947",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1088.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6640625,
+        0.9765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6804",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        512.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.3828125,
+        0.9140625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2089",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6806",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        512.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.3828125,
+        0.9765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1959",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6932",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        576.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5078125,
+        0.6640625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2217",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1833",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1024.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8515625,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6933",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        576.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5078125,
+        0.6953125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2086",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile6934",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        576.0,
+        32084.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5078125,
+        0.7265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2087",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1831",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7890625,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1819",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1088.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5078125,
+        0.8828125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1820",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1152.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.5078125,
+        0.9140625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2086",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        64.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1946",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1024.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6640625,
+        0.9453125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2088",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        192.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1948",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1152.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.6953125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2073",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        960.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7890625,
+        0.0078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2089",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        960.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2074",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1024.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8203125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2075",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1088.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8515625,
+        0.0078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2076",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1152.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8828125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2201",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        960.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.9765625,
+        0.0703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2217",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        960.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2202",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1024.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.1015625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2203",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1088.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.1328125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2204",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1152.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.1640625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1829",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        0.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7265625,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1830",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        64.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7578125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1831",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        128.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7890625,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1832",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        192.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8203125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1957",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        0.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.9765625,
+        0.6953125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1958",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        64.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1959",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        128.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1960",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        192.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2085",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        0.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.1953125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2086",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        64.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2087",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        128.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2088",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        192.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2213",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        0.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4453125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2214",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        64.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2215",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        128.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2216",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        192.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1960",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        448.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2088",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        448.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2089",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1960",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        704.0,
+        320.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2088",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        704.0,
+        384.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2216",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        704.0,
+        448.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1832",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        448.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8203125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1832",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.8203125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1830",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        832.0,
+        256.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.7578125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2085",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        0.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.1953125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2086",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        64.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2087",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        128.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2088",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        192.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2213",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        0.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4453125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2214",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        64.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2215",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        128.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2216",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        192.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2085",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        0.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.1953125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2087",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        128.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2089",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2213",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        0.0,
+        704.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4453125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2214",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        64.0,
+        704.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2215",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        128.0,
+        704.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2216",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        192.0,
+        704.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2217",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        256.0,
+        704.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1960",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        448.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2088",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        448.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2214",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2216",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        448.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1958",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        704.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1959",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        704.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1960",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        448.0,
+        704.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2086",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        768.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2087",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        768.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2088",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        448.0,
+        768.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2089",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        768.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2214",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        320.0,
+        832.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2215",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        384.0,
+        832.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2216",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        448.0,
+        832.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2217",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        512.0,
+        832.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1959",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        704.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2087",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        704.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2088",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2089",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        832.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2215",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        704.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2216",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        768.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2217",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        832.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1959",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        960.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1960",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1024.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.7890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile1961",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1088.0,
+        512.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.6953125,
+        0.8203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2086",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2265625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2087",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        960.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2578125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2088",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1024.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2089",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1088.0,
+        576.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0078125,
+        0.3203125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2214",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        896.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2215",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        960.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5078125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2216",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1024.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5390625
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    },
+    {
+      "action": 0,
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "id": "",
+      "image_name": "tile2217",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 0,
+      "object_names": [],
+      "parallax_factor": 0.0,
+      "position": [
+        1088.0,
+        640.0,
+        32083.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ],
+      "tc_position": [
+        0.0703125,
+        0.5703125
+      ],
+      "tc_size": [
+        0.015625,
+        0.015625
+      ]
+    }
+  ],
+  "version": 1
+}

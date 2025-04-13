@@ -4,9 +4,9 @@
 
 int main() {
   loco_t loco;
-  std::vector<fan::graphics::physics_shapes::circle_t> entities;
+  std::vector<fan::graphics::physics::circle_t> entities;
   for (int i = 0; i < 10; ++i) {
-    entities.push_back(fan::graphics::physics_shapes::circle_t{{
+    entities.push_back(fan::graphics::physics::circle_t{{
       .position = fan::vec2(i * 50 + 200, 400),
       .radius = 10,
       .color = fan::random::color(),
@@ -17,9 +17,9 @@ int main() {
 
   fan::vec2 window_size = loco.window.get_size();
   f32_t wall_thickness = 50.f;
-  auto walls = fan::graphics::physics_shapes::create_stroked_rectangle(window_size / 2, window_size / 2, wall_thickness);
+  auto walls = fan::graphics::physics::create_stroked_rectangle(window_size / 2, window_size / 2, wall_thickness);
 
-  fan::graphics::physics_shapes::rectangle_t spinner{{
+  fan::graphics::physics::rectangle_t spinner{{
     .position = fan::vec2(window_size.x / 4, 400),
     .size = fan::vec2(600, 10),
     .color = fan::colors::red,
@@ -27,14 +27,14 @@ int main() {
     .mass_data{.mass=1.f}
   }};
 
-  fan::graphics::physics_shapes::rectangle_t spinner2{{
+  fan::graphics::physics::rectangle_t spinner2{{
     .position = fan::vec2(window_size.x / 1.5, 400),
     .size = fan::vec2(300, 10),
     .color = fan::colors::yellow,
     .body_type = fan::physics::body_type_e::dynamic_body,
   }};
 
-  fan::graphics::physics_shapes::rectangle_t spinner3{{
+  fan::graphics::physics::rectangle_t spinner3{{
     .position = fan::vec2(window_size.x / 1.5, 400),
     .size = fan::vec2(100, 10),
     .color = fan::colors::pink,
@@ -52,8 +52,8 @@ int main() {
   
   auto ignore_walls_and_spinner = [](b2ShapeId a, b2ShapeId b, void* context) ->bool {
     filter_context_t* filter = (filter_context_t*)context;
-    auto* walls = (fan::graphics::physics_shapes::rectangle_t*)filter->walls;
-    auto* spinner = (fan::graphics::physics_shapes::rectangle_t*)filter->spinner;
+    auto* walls = (fan::graphics::physics::rectangle_t*)filter->walls;
+    auto* spinner = (fan::graphics::physics::rectangle_t*)filter->spinner;
     if (b2Body_GetType(b2Shape_GetBody(a)) == fan::physics::body_type_e::static_body &&
       b2Body_GetType(b2Shape_GetBody(b)) == fan::physics::body_type_e::dynamic_body &&
       (B2_ID_EQUALS(b, (*spinner))) ||
@@ -71,14 +71,14 @@ int main() {
 
   b2World_SetCustomFilterCallback(loco.physics_context.world_id, ignore_walls_and_spinner, &filter_context);
   
-  fan::graphics::physics_shapes::rectangle_t anchor{{
+  fan::graphics::physics::rectangle_t anchor{{
     .position = fan::vec3(fan::vec2(spinner.get_position()), 10),
     .size = fan::vec2(10, 10),
     .color = fan::colors::green,
     .body_type = fan::physics::body_type_e::static_body
   }};
 
-  fan::graphics::physics_shapes::rectangle_t anchor2{{
+  fan::graphics::physics::rectangle_t anchor2{{
     .position = fan::vec3(fan::vec2(spinner2.get_position()), 10),
     .size = fan::vec2(10, 10),
     .color = fan::colors::green,
@@ -123,7 +123,7 @@ int main() {
    spinner3.apply_angular_impulse(100);
     if (ImGui::IsMouseDown(0) && !gloco->console.input.IsFocused()) {
       for (int i = 0; i < 10; ++i)
-      entities.push_back(fan::graphics::physics_shapes::circle_t{{
+      entities.push_back(fan::graphics::physics::circle_t{{
         .position = loco.get_mouse_position() / 1.28f,
         .radius = 10,
         .color = fan::random::color(),

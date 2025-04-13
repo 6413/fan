@@ -15,7 +15,7 @@ namespace fan {
       };
     };
 
-    inline f32_t length_units_per_meter = 512.f;
+    inline f32_t length_units_per_meter = 256.f;
 
     struct capsule_t : b2Capsule {
       using b2Capsule::b2Capsule;
@@ -110,6 +110,14 @@ namespace fan {
       void set_linear_velocity(const fan::vec2& v) {
         push_body_update([v, id = (b2BodyId)*this]{
           b2Body_SetLinearVelocity(id, v / length_units_per_meter);
+        });
+      }
+      f32_t get_angular_velocity() const {
+        return b2Body_GetAngularVelocity(*this) * length_units_per_meter;
+      }
+      void set_angular_velocity(f32_t v) {
+        push_body_update([v, id = (b2BodyId)*this]{
+          b2Body_SetAngularVelocity(id, v / length_units_per_meter);
         });
       }
       void apply_force_center(const fan::vec2& v) {

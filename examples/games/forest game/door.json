@@ -128624,7 +128624,7 @@
         "body_type": 0,
         "density": 1.0,
         "draw": false,
-        "enable_presolve_events": false,
+        "presolve_events": false,
         "fixed_rotation": false,
         "friction": 0.6000000238418579,
         "is_sensor": true,

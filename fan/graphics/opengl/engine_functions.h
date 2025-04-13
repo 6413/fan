@@ -1,4 +1,5 @@
 #define loco_framebuffer
+#define loco_post_process
 loco_t& get_loco() {
   return (*OFFSETLESS(this, loco_t, gl));
 }

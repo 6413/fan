@@ -1270,7 +1270,6 @@ struct fte_t {
       float image_width = x_size / images_per_row;
       float image_height = y_size / rows_needed;
 
-      // Ensure the images maintain a 1:1 aspect ratio by using the minimum dimension
       float final_image_size = std::max(image_width, image_height);
 
       static fan::vec2 selection_start(-1, -1);

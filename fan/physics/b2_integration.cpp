@@ -9,7 +9,7 @@ fan::physics::context_t::operator b2WorldId& () {
 fan::physics::context_t::context_t(const properties_t& properties) {
   //b2SetLengthUnitsPerMeter(properties.length_units_per_meter);
   b2WorldDef world_def = b2DefaultWorldDef();
-  world_def.gravity = properties.gravity * length_units_per_meter;
+  world_def.gravity = properties.gravity * length_units_per_meter*2;
   b2SetLengthUnitsPerMeter(1.f / 512.f);
   world_id = b2CreateWorld(&world_def);
 }

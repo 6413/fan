@@ -2,195 +2,194 @@
 
 using namespace fan::graphics;
 
-std::vector< physics::polygon_t> m_pieces;
+std::vector<physics::polygon_t> m_pieces;
 
-void SortVerticesClockwise(std::vector<fan::vec2>& vertices, const fan::vec2& center);
-void CreatePieceFromPoint(
-  fan::vec2 vertices[4],
-  const std::vector<fan::vec2>& points,
-  size_t pointIndex,
-  float density,
-  float friction,
-  float restitution,
-  const fan::vec2& impactPoint,
-  float impulseForce,
-  engine_t& engine,
-  const std::vector<fan::vec2>& existingCenters,
-  float minDistance
-);
+/*
+equal division
+std::vector<physics::polygon_t> create_pieces(physics::rectangle_t& rectangle, int n) {
+  std::vector<physics::polygon_t> pieces;
+  pieces.reserve(n);
+  
+  fan::vec2 center = rectangle.get_position();
+  fan::vec2 size = rectangle.get_size();
+  f32_t angle = rectangle.get_angle().z;
+  
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  
+  std::vector<fan::vec2> perimeter_points;
+  perimeter_points.reserve(n);
+  
+  for (int i = 0; i < n; i++) {
+    f32_t point_angle = (2 * fan::math::pi * i) / n;
+    
+    fan::vec2 dir(std::cos(point_angle), std::sin(point_angle));
+    
+    f32_t scale_x = (dir.x != 0) ? ((dir.x > 0 ? size.x : -size.x) / dir.x) : std::numeric_limits<f32_t>::max();
+    f32_t scale_y = (dir.y != 0) ? ((dir.y > 0 ? size.y : -size.y) / dir.y) : std::numeric_limits<f32_t>::max();
+    
+    f32_t scale = std::min(std::abs(scale_x), std::abs(scale_y));
+    
+    fan::vec2 local_point = dir * scale;
+    fan::vec2 world_point = center + local_point.rotate(angle);
+    
+    perimeter_points.push_back(world_point);
+  }
+  
+  for (int i = 0; i < n; i++) {
+    std::vector<fan::graphics::vertex_t> vertices;
+    vertices.reserve(3);
+    
+    fan::color random_color = fan::random::color();
+    
+    fan::graphics::vertex_t center_vertex;
+    center_vertex.position = fan::vec3(center.x, center.y, 0);
+    center_vertex.color = random_color;
+    vertices.push_back(center_vertex);
+    
+    int idx1 = i;
+    int idx2 = (i + 1) % n;
+    
+    fan::graphics::vertex_t vertex1;
+    vertex1.position = fan::vec3(perimeter_points[idx1].x, perimeter_points[idx1].y, 0);
+    vertex1.color = random_color;
+    vertices.push_back(vertex1);
+    
+    fan::graphics::vertex_t vertex2;
+    vertex2.position = fan::vec3(perimeter_points[idx2].x, perimeter_points[idx2].y, 0);
+    vertex2.color = random_color;
+    vertices.push_back(vertex2);
+    
+    physics::polygon_t poly({{
+      .vertices = vertices,
+      .body_type = fan::physics::body_type_e::dynamic_body
+    }});
+    
+    std::uniform_real_distribution<f32_t> vel_dist(-10.0f, 10.0f);
+    poly.set_linear_velocity({vel_dist(gen), vel_dist(gen)});
+    
+    pieces.push_back(poly);
+  }
+  
+  return pieces;
+}
+*/
 
-bool isTooClose(const fan::vec2& newPoint, const std::vector<fan::vec2>& existingPoints, float minDistance) {
-  for (const auto& point : existingPoints) {
-    if ((newPoint - point).length() < minDistance) {
-      return true;
+std::vector<physics::polygon_t> create_pieces(physics::rectangle_t& rectangle, int n) {
+  std::vector<physics::polygon_t> pieces;
+  pieces.reserve(n);
+  
+  fan::vec2 center = rectangle.get_position();
+  fan::vec2 size = rectangle.get_size();
+  f32_t angle = rectangle.get_angle().z;
+
+  std::vector<fan::vec2> perimeter_points;
+  perimeter_points.reserve(n);
+  
+  for (int i = 0; i < n; i++) {
+    f32_t point_angle = (2 * fan::math::pi * i) / n;
+
+    point_angle += fan::random::value(-fan::math::pi / (2 * n), fan::math::pi / (2 * n));
+    
+    fan::vec2 dir(std::cos(point_angle), std::sin(point_angle));
+    
+    f32_t scale_x = (dir.x != 0) ? ((dir.x > 0 ? size.x : -size.x) / dir.x) : std::numeric_limits<f32_t>::max();
+    f32_t scale_y = (dir.y != 0) ? ((dir.y > 0 ? size.y : -size.y) / dir.y) : std::numeric_limits<f32_t>::max();
+    
+    f32_t scale = std::min(std::abs(scale_x), std::abs(scale_y));
+    
+    fan::vec2 local_point = dir * scale;
+    fan::vec2 world_point = center + local_point.rotate(angle);
+    
+    perimeter_points.push_back(world_point);
+  }
+  
+  std::vector<fan::vec2> internal_points;
+  internal_points.reserve(n);
+  
+  for (int i = 0; i < n; i++) {
+    f32_t factor = fan::random::value(0.2f, 0.7f);
+    
+    fan::vec2 internal_pt = center + (perimeter_points[i] - center) * factor;
+    internal_points.push_back(internal_pt);
+  }
+  
+  for (int i = 0; i < n; i++) {
+    std::vector<fan::graphics::vertex_t> vertices;
+    
+    fan::color random_color = rectangle.get_color();
+    
+    fan::graphics::vertex_t center_vertex;
+    center_vertex.position = fan::vec3(center.x, center.y, 0);
+    center_vertex.color = random_color;
+    
+    fan::graphics::vertex_t internal_vertex;
+    internal_vertex.position = fan::vec3(internal_points[i].x, internal_points[i].y, 0);
+    internal_vertex.color = random_color;
+    
+    int idx1 = i;
+    int idx2 = (i + 1) % n;
+    
+    fan::graphics::vertex_t vertex1;
+    vertex1.position = fan::vec3(perimeter_points[idx1].x, perimeter_points[idx1].y, 0);
+    vertex1.color = random_color;
+    
+    fan::graphics::vertex_t vertex2;
+    vertex2.position = fan::vec3(perimeter_points[idx2].x, perimeter_points[idx2].y, 0);
+    vertex2.color = random_color;
+    
+    std::uniform_int_distribution<int> dist_pattern(0, 2);
+    int pattern = fan::random::value(0, 2);
+
+    if (pattern == 0) {
+      vertices.push_back(internal_vertex);
+      vertices.push_back(vertex1);
+      vertices.push_back(vertex2);
     }
-  }
-  return false;
-}
-
-void GenerateWallPieces(fan::vec2 vertices[4], const fan::vec2& impactPoint, int numPieces,
-  float density, float friction, float restitution, float impulseForce, engine_t& engine) {
-
-  std::vector<fan::vec2> points;
-
-  points.push_back(impactPoint);
-
-  float minDistance = 0.01f;
-
-  while (points.size() < numPieces) {
-    fan::vec2 newPoint(
-      fan::random::f32(std::min(vertices[0].x, vertices[2].x), std::max(vertices[0].x, vertices[2].x)),
-      fan::random::f32(std::min(vertices[0].y, vertices[2].y), std::max(vertices[0].y, vertices[2].y))
-    );
-
-    if (!isTooClose(newPoint, points, minDistance)) {
-      points.push_back(newPoint);
+    else if (pattern == 1) {
+      vertices.push_back(center_vertex);
+      vertices.push_back(internal_vertex);
+      vertices.push_back(vertex1);
+      vertices.push_back(vertex2);
     }
-  }
-
-  std::vector<fan::vec2> existingCenters;
-
-  for (size_t i = 0; i < points.size(); i++) {
-    CreatePieceFromPoint(vertices, points, i, density, friction, restitution, impactPoint, impulseForce, engine, existingCenters, 10.0f);
-  }
-
-}
-
-void CreatePieceFromPoint(
-  fan::vec2 vertices[4],
-  const std::vector<fan::vec2>& points,
-  size_t pointIndex,
-  float density,
-  float friction,
-  float restitution,
-  const fan::vec2& impactPoint,
-  float impulseForce,
-  engine_t& engine,
-  const std::vector<fan::vec2>& existingCenters,
-  float minDistance
-) {
-  fan::vec2 center = points[pointIndex];
-  for (const auto& existingCenter : existingCenters) {
-    if ((center - existingCenter).length() < minDistance) {
-      return;
+    else {
+      vertices.push_back(center_vertex);
+      vertices.push_back(vertex1);
+      vertices.push_back(internal_vertex);
+      vertices.push_back(vertex2);
     }
+
+    physics::polygon_t poly({ {
+      .vertices = vertices,
+      .body_type = fan::physics::body_type_e::dynamic_body
+    } });
+
+    poly.set_linear_velocity(rectangle.get_linear_velocity());
+    poly.set_angular_velocity(rectangle.get_angular_velocity());
+
+    pieces.push_back(poly);
   }
 
-  int numVertices = fan::random::value(3, 8);
-  std::vector<fan::vec2> pieceVertices;
-
-  float minX = std::min({ vertices[0].x, vertices[1].x, vertices[2].x, vertices[3].x });
-  float maxX = std::max({ vertices[0].x, vertices[1].x, vertices[2].x, vertices[3].x });
-  float minY = std::min({ vertices[0].y, vertices[1].y, vertices[2].y, vertices[3].y });
-  float maxY = std::max({ vertices[0].y, vertices[1].y, vertices[2].y, vertices[3].y });
-  float width = maxX - minX;
-  float height = maxY - minY;
-
-  // Generate vertices for the polygon
-  for (int i = 0; i < numVertices; i++) {
-    float angle = 2.0f * fan::math::pi * i / numVertices;
-    angle += fan::random::f32(-0.2f, 0.2f);
-
-    float maxRadiusX = cosf(angle) > 0 ? (maxX - center.x) / cosf(angle) : (minX - center.x) / cosf(angle);
-    float maxRadiusY = sinf(angle) > 0 ? (maxY - center.y) / sinf(angle) : (minY - center.y) / sinf(angle);
-    float maxRadius = std::min(fabsf(maxRadiusX), fabsf(maxRadiusY));
-    float radius = fan::random::f32(0.3f * maxRadius, 0.8f * maxRadius)*6;
-
-    fan::vec2 vertex(
-      center.x + radius * cosf(angle),
-      center.y + radius * sinf(angle)
-    );
-    vertex.x = std::max(minX, std::min(vertex.x, maxX));
-    vertex.y = std::max(minY, std::min(vertex.y, maxY));
-    pieceVertices.push_back(vertex);
-  }
-
-  SortVerticesClockwise(pieceVertices, center);
-
-  auto c = fan::random::color();
-  std::vector<vertex_t> localVertices;
-  for (const auto& v : pieceVertices) {
-    localVertices.push_back({
-        .position = fan::physics::physics_to_render(v - center)/2,
-        .color = c
-      });
-  }
-
-  physics::polygon_t piece{ {
-      .position = fan::physics::physics_to_render(center),
-      .vertices = localVertices,
-      .body_type = fan::physics::body_type_e::dynamic_body,
-      .shape_properties = {
-          .friction = friction,
-          .density = density,
-          .restitution = restitution
-      }
-  } };
-
-  // Apply impulse from impact point
-  fan::vec2 impulseDir = center - impactPoint;
-  float impulseDirLength = sqrt(impulseDir.x * impulseDir.x + impulseDir.y * impulseDir.y);
-  if (impulseDirLength > 0) {
-    impulseDir = impulseDir / impulseDirLength;
-    float distanceFactor = 1.0f / (1.0f + impulseDirLength);
-    //  piece.apply_linear_impulse_center(impulseDir * impulseForce * distanceFactor);
-   //   piece.apply_angular_impulse(fan::random::f32(-impulseForce, impulseForce));
-  }
-
-  // Add to pieces list for management
-  m_pieces.push_back(std::move(piece));
-}
-
-
-void SortVerticesClockwise(std::vector<fan::vec2>& vertices, const fan::vec2& center) {
-  std::sort(vertices.begin(), vertices.end(), [center](const fan::vec2& a, const fan::vec2& b) {
-    float angleA = atan2f(a.y - center.y, a.x - center.x);
-    float angleB = atan2f(b.y - center.y, b.x - center.x);
-    return angleA < angleB;
-    });
-}
-
-void ShatterWall(physics::rectangle_t& wall, const fan::vec2& impactPoint, int numPieces, float impulseForce, engine_t& engine) {
-
-  fan::vec2 position = wall.get_physics_position();
-  fan::vec2 size = fan::physics::render_to_physics(wall.get_size());
-  float angle = wall.get_angle().z;
-
-
-  float density = wall.get_density();
-  float friction = wall.get_friction();
-  float restitution = wall.get_restitution();
-
-  fan::vec2 vertices[4];
-  float hw = size.x / 2;
-  float hh = size.y / 2;
-
-  fan::vec2 localVertices[4] = {
-    {-hw, -hh},
-    {hw, -hh},
-    {hw, hh},
-    {-hw, hh}
-  };
-
-  float c = cosf(angle);
-  float s = sinf(angle);
-  for (int i = 0; i < 4; i++) {
-    float rotX = localVertices[i].x * c - localVertices[i].y * s;
-    float rotY = localVertices[i].x * s + localVertices[i].y * c;
-
-    vertices[i].x = rotX + position.x;
-    vertices[i].y = rotY + position.y;
-  }
-
-  wall.erase();
-
-  GenerateWallPieces(vertices, impactPoint, numPieces, density, friction, restitution, impulseForce, engine);
+  return pieces;
 }
 
 struct pile_t {
   engine_t engine;
   pile_t() {
     b2World_SetPreSolveCallback(engine.physics_context, presolve_static, this);
+
+    for (int i = 0; i < 20; ++i) {
+      physics::rectangle_t wall{ {
+        .position = fan::random::vec2(100, fan::vec2(engine.window.get_size().x / 1.2, 600)),
+        .size = fan::vec2(50),
+        .color = fan::colors::red,
+        .angle = 0,
+        .body_type = fan::physics::body_type_e::dynamic_body,
+        .shape_properties{.presolve_events = true}
+      } };
+
+      walls[wall.get_shape_id()] = std::move(wall);
+    }
   }
   static bool presolve_static(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, void* context) {
     pile_t* pile = static_cast<pile_t*>(context);
@@ -198,56 +197,69 @@ struct pile_t {
   }
 
   bool presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold) {
-
-    if (wall.is_valid() == false) {
-      return true;
+    std::unordered_map<b2ShapeId, physics::rectangle_t>::iterator found;
+    if (found = walls.find(shapeIdA); found != walls.end()) {
+      if (found->second.is_valid() == false) {
+        return true;
+      }
     }
-
+    else if (found = walls.find(shapeIdB); found == walls.end()) {
+      if (found->second.is_valid() == false) {
+        return true;
+      }
+    }
+    auto& wall = found->second;
     if (wall.get_shape_type() != engine_t::shape_type_t::rectangle) {
       return true;
     }
 
-    gloco->single_queue.push_back([this, manifold, shapeIdA, shapeIdB] {
+    gloco->single_queue.push_back([this, &wall, manifold, shapeIdA, shapeIdB] {
       if (wall.is_valid() == false) {
         return;
       }
-
       if (wall.get_shape_type() != engine_t::shape_type_t::rectangle) {
         return;
       }
-      fan::print("A");
-      assert(b2Shape_IsValid(shapeIdA));
-      assert(b2Shape_IsValid(shapeIdB));
 
-      float sign = 0.0f;
+      if (!b2Shape_IsValid(shapeIdA)) {
+        return;
+        }
+      if (!b2Shape_IsValid(shapeIdB)) {
+        return;
+      }
+
       b2ShapeId wallShapeId = wall.get_shape_id();
       b2BodyId colliderBodyId = b2_nullBodyId;
-
-      b2Vec2 impactPoint;
+      fan::vec2 impact_point;
 
       if (manifold->pointCount > 0) {
-        fan::print(manifold->points, manifold->pointCount);
-        impactPoint = manifold->points[0].point;
+        impact_point = manifold->points[0].point;
 
-        ShatterWall(wall, impactPoint, 8, 5.0f, engine);
-        // wall.erase();
+        const int num_pieces = 8;
+        auto pieces = create_pieces(wall, num_pieces);
+        m_pieces.insert(m_pieces.end(), pieces.begin(), pieces.end());
+
+        wall.erase();
       }
-      });
+    });
+
     return true;
   }
-
-  physics::rectangle_t wall{ {
-    .position = fan::vec2(500, 500),
-    .size = fan::vec2(50),
-    .color = fan::colors::white,
-    .angle = 0,
-    .body_type = fan::physics::body_type_e::dynamic_body,
-    .shape_properties{.presolve_events = true}
-  } };
+  struct key_hasher_t {
+    std::size_t operator()(const b2ShapeId& k) const {
+      using std::hash;
+      return ((hash<int32_t>()(k.index1)
+        ^ (hash<uint16_t>()(k.revision) << 1)) >> 1)
+        ^ (hash<uint16_t>()(k.world0) << 1);
+    }
+  };
+  inline static auto equal = [](const b2ShapeId& l, const b2ShapeId& r){return l.index1 == r.index1 && l.revision == r.revision && l.world0 == r.world0;};
+  std::unordered_map<b2ShapeId, physics::rectangle_t, key_hasher_t, decltype(equal)> walls;
 };
 
 int main() {
   pile_t pile;
+ // pile.engine.physics_context.set_gravity(0);
   //b2SetLengthUnitsPerMeter(1 / 512.f);
   b2World_SetContactTuning(pile.engine.physics_context, 0, 0, 10);
   fan::vec2 ws = window_size();
