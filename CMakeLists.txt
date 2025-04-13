@@ -157,11 +157,15 @@ if(BUILD_MAIN)
             uv
             GL
             GLEW
-						stdc++exp
             ${GTK3_LIBRARIES}
         )
 				if (LOCO_BOX2D MATCHES ON)
-					target_link_libraries(a.exe PUBLIC box2d)
+					find_library(BOX2D_LIB box2d 
+						PATHS 
+						/usr/local/lib
+						/usr/lib
+						NO_DEFAULT_PATH
+					)
 				endif()
 
         if(LOCO_IMGUI MATCHES ON)
@@ -173,7 +177,11 @@ if(BUILD_MAIN)
 				if(LOCO_VULKAN MATCHES ON)
             target_link_libraries(a.exe PUBLIC vulkan)
 						find_package(Vulkan REQUIRED)
-						find_library(SHADERC_LIB shaderc_shared PATHS /usr/local/lib)
+						find_library(SHADERC_LIB shaderc_shared 
+							PATHS 
+							/usr/local/lib
+							/usr/lib
+						)
 						target_link_libraries(a.exe PUBLIC Vulkan::Vulkan ${SHADERC_LIB})
         endif()
     else()
