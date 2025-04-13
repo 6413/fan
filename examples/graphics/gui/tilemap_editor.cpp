@@ -20,7 +20,7 @@ struct player_t {
   bool presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold) const {
     return fan::physics::presolve_oneway_collision(shapeIdA, shapeIdB, manifold, player);
   }
-  fan::graphics::physics::character2d_t player{ fan::graphics::physics_shapes::circle_t{{
+  fan::graphics::physics::character2d_t player{ fan::graphics::physics::circle_t{{
     .camera = &camera1,
     .position = fan::vec3(400, 400, 10),
     .radius = 16.f,
@@ -74,11 +74,12 @@ int main(int argc, char** argv) {
   fan::graphics::interactive_camera_t ic(camera1.camera, camera1.viewport);
 
   fte_t fte;//
-  fte.original_image_width = 1024;
+  fte.original_image_width = 2048;
   fte_t::properties_t p;
   p.camera = &camera0;
   fte.open(p);
-  fte.open_texturepack("examples/games/forest game/forest_tileset.ftp");
+  fte.open_texturepack("examples/games/boss/tileset.ftp");
+  fte.fin("examples/games/boss/spawn.json");
 
   std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;
@@ -167,7 +168,7 @@ int main(int argc, char** argv) {
   //  }};
   //};
 
-  fan::ev::fs_watcher_t fs_watcher(uv_default_loop(), "examples/games/forest game/");
+  fan::ev::fs_watcher_t fs_watcher(uv_default_loop(), "examples/games/boss/");
 
   fs_watcher.start([&](const std::string& filename, int events) {
     if (!(events & UV_CHANGE)) {
@@ -182,7 +183,7 @@ int main(int argc, char** argv) {
         size = v.size;
       }, *dynamic_cast<fan::graphics::context_image_init_t*>(&img_d));
       fan::vec2 img_size = size;
-      size = img_size / 32;
+      size = img_size / 128;
       loco.image_unload(img);
       std::string str = (std::string("image2texturepack.exe ") + 
         std::to_string(size.x) + " " + std::to_string(size.y) + 
@@ -191,7 +192,9 @@ int main(int argc, char** argv) {
       );
       system(str.c_str());
       fte.open_texturepack(fte.texturepack.file_path);
-      fte.fin(fte.previous_file_name);
+      if (fte.previous_file_name.size()) {
+        fte.fin(fte.previous_file_name);
+      }
     }
   });
 
