@@ -40,6 +40,12 @@ file(MAKE_DIRECTORY ${OUTPUT_PATH})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
+set(THIRDPARTY_PATH ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fan)
+
+include_directories(${THIRDPARTY_PATH}/include)
+
+link_directories(${THIRDPARTY_PATH}/lib)
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 
@@ -166,9 +172,10 @@ if(BUILD_MAIN)
         )
 				if (LOCO_BOX2D MATCHES ON)
 					find_library(BOX2D_LIB box2d 
-						PATHS 
-						/usr/local/lib
-						/usr/lib
+						PATHS
+							${THIRDPARTY_PATH}/lib
+							/usr/local/lib
+							/usr/lib
 						NO_DEFAULT_PATH
 					)
 					if(BOX2D_LIB)
@@ -189,8 +196,10 @@ if(BUILD_MAIN)
 						find_package(Vulkan REQUIRED)
 						find_library(SHADERC_LIB shaderc_shared 
 							PATHS 
-							/usr/local/lib
-							/usr/lib
+								${THIRDPARTY_PATH}/lib
+								/usr/local/lib
+								/usr/lib
+							NO_DEFAULT_PATH
 						)
 						if(SHADERC_LIB)
 							target_link_libraries(a.exe PUBLIC Vulkan::Vulkan ${SHADERC_LIB})
