@@ -685,7 +685,6 @@ void fan::graphics::interactive_camera_t::move_by_cursor() {
   }
 }
 
-#if defined(loco_imgui)
 fan::graphics::dialogue_box_t::dialogue_box_t() {
   gloco->input_action.add(fan::mouse_left, "skip or continue dialog");
 }
@@ -806,8 +805,7 @@ void fan::graphics::dialogue_box_t::render(const std::string& window_name, ImFon
 
 #endif
 
-#endif
-
+#if defined(loco_box2d)
 bool fan::physics::is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id){
   return gloco->physics_context.is_on_sensor(test_id, sensor_id);
 }
@@ -815,6 +813,7 @@ bool fan::physics::is_on_sensor(fan::physics::body_id_t test_id, fan::physics::b
 fan::physics::ray_result_t fan::physics::raycast(const fan::vec2& src, const fan::vec2& dst) {
   return gloco->physics_context.raycast(src, dst);
 }
+#endif
 
 fan::vec2 fan::graphics::window_size(){
   return gloco->window.get_size();
