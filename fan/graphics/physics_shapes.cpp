@@ -919,7 +919,7 @@ b2DebugDraw fan::graphics::physics::box2d_debug_draw = []{
       debug_draw_solid_polygon.clear();
       debug_draw_circle.clear();
       debug_draw_line.clear();
-      b2World_Draw(loco->physics_context.world_id, &fan::graphics::physics::box2d_debug_draw);
+      //b2World_Draw(loco->physics_context.world_id, &fan::graphics::physics::box2d_debug_draw);
     };
   };
   return initialize_debug(false);

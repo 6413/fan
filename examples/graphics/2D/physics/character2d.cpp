@@ -13,7 +13,7 @@ struct pile_t {
   }
   loco_t loco;
 
-  fan::graphics::physics::character2d_t player{ fan::graphics::physics_shapes::capsule_t{{
+  fan::graphics::physics::character2d_t player{ fan::graphics::physics::capsule_t{{
     .position = fan::vec3(400, 400, 10),
     .radius = 16,
     .body_type = fan::physics::body_type_e::dynamic_body,
@@ -25,18 +25,18 @@ int main() {
   pile_t pile;
   fan::vec2 window_size = pile.loco.window.get_size();
   f32_t wall_thickness = 50.f;
-  auto walls = fan::graphics::physics_shapes::create_stroked_rectangle(window_size / 2, window_size / 2, wall_thickness);
+  auto walls = fan::graphics::physics::create_stroked_rectangle(window_size / 2, window_size / 2, wall_thickness);
 
-  fan::graphics::physics_shapes::rectangle_t platforms[2];
-  platforms[0] = fan::graphics::physics_shapes::rectangle_t{ {
+  fan::graphics::physics::rectangle_t platforms[2];
+  platforms[0] = fan::graphics::physics::rectangle_t{ {
     .position = fan::vec2(window_size.x / 5, window_size.y / 1.5),
     .size = fan::vec2(wall_thickness * 4, wall_thickness / 4),
     .color = fan::color::hex(0x30a6b6ff),
     .outline_color = fan::color::hex(0x30a6b6ff) * 2,
     .body_type = fan::physics::body_type_e::kinematic_body,
-    .shape_properties{.enable_presolve_events = true},
+    .shape_properties{.presolve_events = true},
   } };
-  platforms[1] = fan::graphics::physics_shapes::rectangle_t{ {
+  platforms[1] = fan::graphics::physics::rectangle_t{ {
     .position = fan::vec2(500, 500),
     .size = wall_thickness / 4,
     .color = fan::color::hex(0x30a6b6ff),
