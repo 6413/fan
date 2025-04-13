@@ -161,6 +161,7 @@ if(BUILD_MAIN)
             uv
             GL
             GLEW
+						stdc++exp
             ${GTK3_LIBRARIES}
         )
 				if (LOCO_BOX2D MATCHES ON)
