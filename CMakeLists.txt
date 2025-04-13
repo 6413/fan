@@ -18,7 +18,7 @@ set(LOCO_IMGUI ON)
 set(LOCO_JSON ON)
 set(LOCO_ASSIMP ON)
 set(LOCO_OPENGL ON)
-set(LOCO_VULKAN ON)
+set(LOCO_VULKAN OFF)
 set(BUILD_MAIN ON)
 
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
@@ -122,6 +122,10 @@ list(FILTER FAN_SOURCES EXCLUDE REGEX ".*nativefiledialog/.*")
 if(NOT LOCO_BOX2D)
     list(FILTER FAN_SOURCES EXCLUDE REGEX ".*physics_shapes\\.cpp$")
     list(FILTER FAN_SOURCES EXCLUDE REGEX ".*b2_integration\\.cpp$")
+endif()
+
+if(NOT LOCO_VULKAN)
+    list(FILTER FAN_SOURCES EXCLUDE REGEX ".*fan/.*/vk_.*\\.cpp$")
 endif()
 
 # compile all fan sources into an object library
