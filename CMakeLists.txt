@@ -166,6 +166,11 @@ if(BUILD_MAIN)
 						/usr/lib
 						NO_DEFAULT_PATH
 					)
+					if(BOX2D_LIB)
+						target_link_libraries(a.exe PUBLIC ${BOX2D_LIB})
+					else()
+							message(FATAL_ERROR "Box2D not found")
+					endif()
 				endif()
 
         if(LOCO_IMGUI MATCHES ON)
@@ -182,7 +187,12 @@ if(BUILD_MAIN)
 							/usr/local/lib
 							/usr/lib
 						)
-						target_link_libraries(a.exe PUBLIC Vulkan::Vulkan ${SHADERC_LIB})
+						if(SHADERC_LIB)
+							target_link_libraries(a.exe PUBLIC Vulkan::Vulkan ${SHADERC_LIB})
+						else()
+							message(FATAL_ERROR "SHADERC not found")
+						endif()
+						
         endif()
     else()
         message(WARNING "Windows backend not implemented")
