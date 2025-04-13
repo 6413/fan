@@ -851,6 +851,8 @@ void fan::graphics::set_window_size(const fan::vec2& size) {
   );
 }
 
+#if defined(loco_imgui)
+
 static constexpr int wnd_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | 
     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
 
@@ -1298,6 +1300,8 @@ void loco_t::settings_menu_t::reset_page_selection() {
     page.toggle = 0;
   }
 }
+
+#endif
 
 loco_t::polygon_t::properties_t fan::graphics::create_sine_ground(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth) {
   loco_t::polygon_t::properties_t pp;
