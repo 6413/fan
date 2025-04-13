@@ -1404,11 +1404,13 @@ void loco_t::load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t
 }
 #endif
 
+#if defined(loco_vulkan)
 void check_vk_result(VkResult err) {
   if (err != VK_SUCCESS) {
     fan::print("vkerr", (int)err);
   }
 }
+#endif
 
 #if defined(loco_imgui)
 void loco_t::init_imgui() {
@@ -1855,8 +1857,8 @@ void loco_t::switch_renderer(uint8_t renderer) {
       vk.shapes_open();
     }
 #endif
-    init_imgui();
     #if defined(loco_imgui)
+      init_imgui();
       settings_menu.set_settings_theme();
     #endif
 

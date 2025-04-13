@@ -11,7 +11,9 @@
 
 #endif
 
+#if defined(loco_vulkan)
 #include <vulkan/vulkan.h>
+#endif
 #if defined(fan_platform_windows)
   #define GLFW_EXPOSE_NATIVE_WIN32
   #define GLFW_EXPOSE_NATIVE_WGL

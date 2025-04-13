@@ -2375,8 +2375,8 @@ public:
 
   #include <fan/graphics/gui/settings_menu.h>
   settings_menu_t settings_menu;
-  bool render_shapes_top = false;
 #endif
+  bool render_shapes_top = false;
   //gui
 
   std::vector<uint8_t> create_noise_image_data(const fan::vec2& image_size, int seed = fan::random::value_i64(0, ((uint32_t)-1) / 2));
