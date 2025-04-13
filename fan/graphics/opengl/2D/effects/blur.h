@@ -63,10 +63,10 @@ struct blur_t {
 
       fan::graphics::image_load_properties_t lp;
       lp.internal_format = fan::graphics::r11f_g11f_b10f;
-      lp.format = GL_RGB;
+      lp.format = fan::graphics::image_format::rgb_unorm;
       lp.type = fan::graphics::fan_float;
-      lp.min_filter = fan::graphics::image_filter::nearest;
-      lp.mag_filter = fan::graphics::image_filter::nearest;
+      lp.min_filter = fan::graphics::image_filter::linear;
+      lp.mag_filter = fan::graphics::image_filter::linear;
       lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_edge;
       fan::image::image_info_t ii;
       ii.data = nullptr;

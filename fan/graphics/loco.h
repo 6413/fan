@@ -11,8 +11,8 @@
 #endif
 
 #define loco_opengl
-//#define loco_framebuffer
-//#define loco_post_process
+#define loco_framebuffer
+#define loco_post_process
 #define loco_vfi
 #define loco_physics
 
@@ -25,7 +25,9 @@
 #if defined(loco_imgui)
 #include <fan/imgui/imgui.h>
 #include <fan/imgui/imgui_impl_opengl3.h>
+#if defined(loco_vulkan)
 #include <fan/imgui/imgui_impl_vulkan.h>
+#endif
 #include <fan/imgui/imgui_impl_glfw.h>
 #include <fan/imgui/imgui_neo_sequencer.h>
 #include <fan/imgui/implot.h>
@@ -36,7 +38,9 @@
 #include <fan/graphics/algorithm/FastNoiseLite.h>
 
 #include <fan/graphics/opengl/core.h>
+#if defined(loco_vulkan)
 #include <fan/graphics/vulkan/core.h>
+#endif
 
 #undef camera_list
 #undef shader_list
@@ -221,15 +225,19 @@ namespace fan {
       bool render_blank_window(const std::string& name);
     }
     using context_shader_init_t = std::variant<
-      fan::opengl::context_t::shader_t,
-      fan::vulkan::context_t::shader_t
+      fan::opengl::context_t::shader_t
+#if defined(loco_vulkan)
+      ,fan::vulkan::context_t::shader_t
+#endif
     >;
     struct context_shader_t : context_shader_init_t {
       using context_shader_init_t::variant;
     };
     using context_image_init_t = std::variant<
-      fan::opengl::context_t::image_t,
-      fan::vulkan::context_t::image_t
+      fan::opengl::context_t::image_t
+  #if defined(loco_vulkan)
+      ,fan::vulkan::context_t::image_t
+#endif
     >;
     struct context_image_t : context_image_init_t {
       using context_image_init_t::variant;
@@ -239,7 +247,9 @@ namespace fan {
       ~context_t() {}
       union {
         fan::opengl::context_t gl;
+  #if defined(loco_vulkan)
         fan::vulkan::context_t vk;
+#endif
       };
     };
   }
@@ -281,9 +291,11 @@ struct loco_t {
     if (window.renderer == renderer_t::opengl) {
       context.gl.shader_set_camera(nr, camera_nr);
     }
+#if defined(loco_vulkan)
     else if (window.renderer == renderer_t::vulkan) {
       fan::throw_error("todo");
     }
+#endif
   }
 
   fan::graphics::camera_list_t camera_list;
@@ -683,6 +695,7 @@ struct loco_t {
     if (gloco->window.renderer == renderer_t::opengl) {
       gloco->gl.modify_render_data_element_arr(shape, data, attribute, i, arr_member, value);
     }
+    #if defined(loco_vulkan)
     else if (gloco->window.renderer == renderer_t::vulkan) {
       (((T*)data)->*attribute)[i].*arr_member = value;
       auto& data = gloco->shaper.ShapeList[*shape];
@@ -694,6 +707,7 @@ struct loco_t {
         sizeof(T3)
       );
     }
+    #endif
   }
 
   template <typename T, typename T2, typename T3>
@@ -704,6 +718,7 @@ struct loco_t {
     if (gloco->window.renderer == renderer_t::opengl) {
       gloco->gl.modify_render_data_element(shape, data, attribute, value);
     }
+#if defined(loco_vulkan)
     else if (gloco->window.renderer == renderer_t::vulkan) {
       ((T*)data)->*attribute = value;
       auto& data = gloco->shaper.ShapeList[*shape];
@@ -715,6 +730,7 @@ struct loco_t {
         sizeof(T3)
       );
     }
+#endif
   }
 
   template <typename T>
@@ -808,6 +824,7 @@ public:
 
   void init_imgui();
   void destroy_imgui();
+  bool enable_overlay = false;
 #endif
   void init_framebuffer();
 
@@ -2627,8 +2644,10 @@ inline bool init_fan_track_opengl_print = []() {
 
 //vk
 
-#include <fan/graphics/vulkan/uniform_block.h>
-#include <fan/graphics/vulkan/memory.h>
+#if defined(loco_vulkan)
+  #include <fan/graphics/vulkan/uniform_block.h>
+  #include <fan/graphics/vulkan/memory.h>
+#endif
 //
 //namespace fan {
 //  namespace graphics {
@@ -2639,7 +2658,7 @@ inline bool init_fan_track_opengl_print = []() {
 //  }
 //}
 
-inline bool x = []{
+inline bool fan__init_list = []{
   fan::graphics::get_camera_list = [](uint8_t* context) -> uint8_t* {
     auto ptr = OFFSETLESS(context, loco_t, context);
     return (uint8_t*)&ptr->camera_list;

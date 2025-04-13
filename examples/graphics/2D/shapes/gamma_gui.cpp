@@ -178,8 +178,12 @@ void set_monitors_gamma_contrast(const std::vector<monitor_t>& monitors, f32_t g
 
 bool change_gamma_when_going_in_game = true;
 
+bool restore_gammas = true;
+
 void render_set_gamma(std::vector<monitor_t>& monitors, f32_t& gamma, f32_t& contrast) {
   ImGui::Begin("##gamma settings");
+
+  ImGui::Checkbox("Restore gammas on close", &restore_gammas);
 
   ImGui::Checkbox("Change gamma when going in game", &change_gamma_when_going_in_game);
 
@@ -197,7 +201,7 @@ void render_set_gamma(std::vector<monitor_t>& monitors, f32_t& gamma, f32_t& con
       }
 
       ImGui::PushID(i);
-      if (ImGui::SliderFloat("gamma", &monitors[i].gamma, 0.3f, 2.8f, "%.2f")) {
+      if (ImGui::SliderFloat("gamma", &monitors[i].gamma, 0.3f, 5.0f, "%.2f")) {
         set_monitor_gamma_contrast(monitors[i]);
       }
       if (ImGui::SliderFloat("contrast", &monitors[i].contrast, .5f, 2.f)) {
@@ -207,7 +211,7 @@ void render_set_gamma(std::vector<monitor_t>& monitors, f32_t& gamma, f32_t& con
     }
   }
   else {
-    if (ImGui::SliderFloat("gamma", &gamma, 0.3f, 2.8f, "%.2f")) {
+    if (ImGui::SliderFloat("gamma", &gamma, 0.3f, 5.0f, "%.2f")) {
       set_monitors_gamma_contrast(monitors, gamma, contrast);
     }
     if (ImGui::SliderFloat("contrast", &contrast, .5f, 2.f)) {
@@ -368,5 +372,7 @@ int main() {
       }
     };
   }
-  restore_original_gammas(monitors, original_gammas);
+  if (restore_gammas) {
+    restore_original_gammas(monitors, original_gammas);
+  }
 }

@@ -41,7 +41,7 @@ struct player_t {
     light.set_flags(flag);
   }
 
-  fan::graphics::physics::character2d_t player{ fan::graphics::physics_shapes::circle_sprite_t{{
+  fan::graphics::physics::character2d_t player{ fan::graphics::physics::circle_sprite_t{{
     .position = fan::vec3(1019.59076, 934.117065, 10),
     // collision radius
     .radius = 8,

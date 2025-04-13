@@ -95,9 +95,11 @@ fan::graphics::context_shader_t loco_t::shader_get(fan::graphics::shader_nr_t nr
   if (window.renderer == renderer_t::opengl) {
     context_shader = *(fan::opengl::context_t::shader_t*)context_functions.shader_get(&context, nr);
   }
+  #if defined(loco_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     context_shader = *(fan::vulkan::context_t::shader_t*)context_functions.shader_get(&context, nr);
   }
+  #endif
   return context_shader;
 }
 
@@ -130,9 +132,11 @@ fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_nr_t nr) {
   if (window.renderer == renderer_t::opengl) {
     img = *(fan::opengl::context_t::image_t*)context_functions.image_get(&context, nr);
   }
+  #if defined(loco_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     img = *(fan::vulkan::context_t::image_t*)context_functions.image_get(&context, nr);
   }
+  #endif
   return img;
 }
 
@@ -1436,6 +1440,7 @@ void loco_t::init_imgui() {
     const char* glsl_version = "#version 120";
     ImGui_ImplOpenGL3_Init(glsl_version);
   }
+  #if defined(loco_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     ImGui_ImplGlfw_InitForVulkan(window, true);
     ImGui_ImplVulkan_InitInfo init_info = {};
@@ -1454,6 +1459,7 @@ void loco_t::init_imgui() {
 
     ImGui_ImplVulkan_Init(&init_info);
   }
+  #endif
 
   load_fonts(fonts, io, "fonts/SourceCodePro-Regular.ttf", 4.f);
   load_fonts(fonts_bold, io, "fonts/SourceCodePro-Bold.ttf", 4.f);
@@ -1467,16 +1473,20 @@ void loco_t::destroy_imgui() {
   if (window.renderer == renderer_t::opengl) {
     ImGui_ImplOpenGL3_Shutdown();
   }
+#if defined(loco_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     vkDeviceWaitIdle(context.vk.device);
     ImGui_ImplVulkan_Shutdown();
   }
+#endif
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
   ImPlot::DestroyContext();
+  #if defined(loco_vulkan)
   if (window.renderer == renderer_t::vulkan) {
     context.vk.imgui_close();
   }
+  #endif
 
 }
 #endif
@@ -1507,6 +1517,7 @@ loco_t::loco_t(const properties_t& p) {
   window.open(p.window_size, fan::window_t::default_window_name, p.window_flags);
   gloco = this;
 
+  #if defined(loco_vulkan)
   if(window.renderer == renderer_t::vulkan) {
     context_functions = fan::graphics::get_vk_context_functions();
     new (&context.vk) fan::vulkan::context_t();
@@ -1514,6 +1525,7 @@ loco_t::loco_t(const properties_t& p) {
     context.vk.shapes_top = render_shapes_top;
     context.vk.open(window);
   }
+#endif
 
   start_time = fan::time::clock::now();
 
@@ -1610,9 +1622,11 @@ loco_t::loco_t(const properties_t& p) {
   if (window.renderer == renderer_t::opengl) {
     gl.shapes_open();
   }
+#if defined(loco_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     vk.shapes_open();
   }
+#endif
 
 
 #if defined(loco_physics)
@@ -1655,12 +1669,14 @@ void loco_t::destroy() {
   console.close();
 #endif
   fan::graphics::close_bcol();
+#if defined(loco_vulkan)
   if (window.renderer == loco_t::renderer_t::vulkan) {
     vkDeviceWaitIdle(context.vk.device);
     vkDestroySampler(context.vk.device, vk.post_process_sampler, nullptr);
     vk.d_attachments.close(context.vk);
     vk.post_process.close(context.vk);
   }
+#endif
   shaper.Close();
 #if defined(loco_imgui)
   destroy_imgui();
@@ -1679,6 +1695,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
   uint64_t flags = window.flags;
 
   {// close
+    #if defined(loco_vulkan)
     if (window.renderer == loco_t::renderer_t::vulkan) {
       // todo wrap to vk.
       vkDeviceWaitIdle(context.vk.device);
@@ -1687,13 +1704,17 @@ void loco_t::switch_renderer(uint8_t renderer) {
       vk.post_process.close(context.vk);
       //CLOOOOSEEE POSTPROCESSS IMAGEEES
     }
-    else if (window.renderer == loco_t::renderer_t::opengl) {
+    else 
+#endif
+      if (window.renderer == loco_t::renderer_t::opengl) {
       for(auto &st : shaper.ShapeTypes){
+        #if defined(loco_vulkan)
         if (std::holds_alternative<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer)) {
           auto& str = std::get<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer);
           str.shape_data.close(context.vk);
           str.pipeline.close(context.vk);
         }
+        #endif
         //st.BlockList.Close();
       }
       glDeleteVertexArrays(1, &gl.fb_vao);
@@ -1718,11 +1739,13 @@ void loco_t::switch_renderer(uint8_t renderer) {
     window.set_position(window_position);
     glfwShowWindow(window);
     window.flags = flags;
+    #if defined(loco_vulkan)
     if(window.renderer == renderer_t::vulkan) {
       new (&context.vk) fan::vulkan::context_t();
       context_functions = fan::graphics::get_vk_context_functions();
       context.vk.open(window);
     }
+    #endif
   }
   {// reload
     {
@@ -1768,13 +1791,14 @@ void loco_t::switch_renderer(uint8_t renderer) {
             if(window.renderer == renderer_t::opengl) {
               // illegal
               image_list[nr].internal = new fan::opengl::context_t::image_t;
-              fan_opengl_call(glGenTextures(1, &((fan::opengl::context_t::image_t*)context_functions.image_get(&context.vk, nr))->texture_id));
+              fan_opengl_call(glGenTextures(1, &((fan::opengl::context_t::image_t*)context_functions.image_get(&context.gl, nr))->texture_id));
             }
+            #if defined(loco_vulkan)
             else if(window.renderer == renderer_t::vulkan) {
               // illegal
-              
               image_list[nr].internal = new fan::vulkan::context_t::image_t;
             }
+            #endif
             // handle blur?
             auto image_path = image_list[nr].image_path;
             if (image_path.empty()) {
@@ -1802,9 +1826,11 @@ void loco_t::switch_renderer(uint8_t renderer) {
             if(window.renderer == renderer_t::opengl) {
               shader_list[nr].internal = new fan::opengl::context_t::shader_t;
             }
+            #if defined(loco_vulkan)
             else if(window.renderer == renderer_t::vulkan) {
               shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
             }
+            #endif
           }
           nrtra.Close(&shader_list);
         }
@@ -1824,9 +1850,11 @@ void loco_t::switch_renderer(uint8_t renderer) {
       gl.shapes_open();
       gl.initialize_fb_vaos();
     }
+    #if defined(loco_vulkan)
     else if (window.renderer == renderer_t::vulkan) {
       vk.shapes_open();
     }
+#endif
     init_imgui();
     #if defined(loco_imgui)
       settings_menu.set_settings_theme();
@@ -1842,19 +1870,23 @@ void loco_t::draw_shapes() {
   if (window.renderer == renderer_t::opengl) {
     gl.draw_shapes();
   }
-  else if (window.renderer == renderer_t::vulkan) {
+  #if defined(loco_vulkan)
+  else 
+    if (window.renderer == renderer_t::vulkan) {
     vk.draw_shapes();
   }
+#endif
 }
 
 void loco_t::process_shapes() {
 
+  #if defined(loco_vulkan)
   if (window.renderer == renderer_t::vulkan) {
     if (render_shapes_top == true) {
       vk.begin_render_pass();
     }
   }
-
+#endif
   for (const auto& i : m_pre_draw) {
     i();
   }
@@ -1865,6 +1897,7 @@ void loco_t::process_shapes() {
     i();
   }
 
+  #if defined(loco_vulkan)
   if (window.renderer == renderer_t::vulkan) {
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
     if (vk.image_error != (decltype(vk.image_error))-0xfff) {
@@ -1888,6 +1921,7 @@ void loco_t::process_shapes() {
       vkCmdEndRenderPass(cmd_buffer);
     }
   }
+#endif
 }
 
 void loco_t::process_gui() {
@@ -1999,6 +2033,7 @@ void loco_t::process_gui() {
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   }
+  #if defined(loco_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
     // did draw
@@ -2015,6 +2050,7 @@ void loco_t::process_gui() {
      context.vk.ImGuiFrameRender(vk.image_error, clear_color);
     }
   }
+#endif
 #endif
 }
 
@@ -2056,10 +2092,11 @@ void loco_t::process_frame() {
 
   shaper.ProcessBlockEditQueue();
 
-
+  #if defined(loco_vulkan)
   if (window.renderer == renderer_t::vulkan){
     vk.begin_draw();
   }
+#endif
 
   viewport_set(0, window.get_size(), window.get_size());
 
@@ -2075,6 +2112,7 @@ void loco_t::process_frame() {
   if (window.renderer == renderer_t::opengl) {
     glfwSwapBuffers(window);
   }
+  #if defined(loco_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
 #if !defined(loco_imgui)
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
@@ -2085,6 +2123,7 @@ void loco_t::process_frame() {
     VkResult err = context.vk.end_render();
     context.vk.recreate_swap_chain(&window, err);
   }
+#endif
 }
 
 bool loco_t::should_close() {
@@ -2109,9 +2148,11 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
   if (window.renderer == renderer_t::opengl) {
     ImGui_ImplOpenGL3_NewFrame();
   }
+  #if defined(loco_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     ImGui_ImplVulkan_NewFrame();
   }
+  #endif
 
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
@@ -2126,7 +2167,14 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 
   ImGui::SetNextWindowPos(ImVec2(0, 0));
   ImGui::SetNextWindowSize(window.get_size());
-  ImGui::Begin("##global_renderer", 0, ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |  ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
+
+  int flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar;
+
+  if (!enable_overlay) {
+    flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav;
+  }
+  
+  ImGui::Begin("##global_renderer", 0, flags);
 #endif
 
   lambda();
@@ -3516,13 +3564,12 @@ std::vector<uint8_t> loco_t::create_noise_image_data(const fan::vec2& image_size
   noise.SetFractalPingPongStrength(2.0);
   f32_t noise_tex_min = -1;
   f32_t noise_tex_max = 0.1;
-  //noise
-  // Gather noise data
-  std::vector<uint8_t> noiseDataRGB(image_size.multiply() * 4);
+
+  std::vector<uint8_t> noise_data_rgb(image_size.multiply() * 3);
 
   int index = 0;
 
-  float scale = 255 / (noise_tex_max - noise_tex_min);
+  float scale = 255.f / (noise_tex_max - noise_tex_min);
 
   for (int y = 0; y < image_size.y; y++)
   {
@@ -3530,15 +3577,14 @@ std::vector<uint8_t> loco_t::create_noise_image_data(const fan::vec2& image_size
     {
       float noiseValue = noise.GetNoise((float)x, (float)y);
       unsigned char cNoise = (unsigned char)std::max(0.0f, std::min(255.0f, (noiseValue - noise_tex_min) * scale));
-      noiseDataRGB[index * 4 + 0] = cNoise;
-      noiseDataRGB[index * 4 + 1] = cNoise;
-      noiseDataRGB[index * 4 + 2] = cNoise;
-      noiseDataRGB[index * 4 + 3] = 255;
+      noise_data_rgb[index * 3 + 0] = cNoise;
+      noise_data_rgb[index * 3 + 1] = cNoise;
+      noise_data_rgb[index * 3 + 2] = cNoise;
       index++;
     }
   }
 
-  return noiseDataRGB;
+  return noise_data_rgb;
 }
 
 
@@ -3608,11 +3654,11 @@ std::vector<fan::json_stream_parser_t::parsed_result> fan::json_stream_parser_t:
 loco_t::image_t loco_t::create_noise_image(const fan::vec2& image_size) {
 
   loco_t::image_load_properties_t lp;
-  lp.format = GL_RGBA; // Change this to GL_RGB
-  lp.internal_format = GL_RGBA; // Change this to GL_RGB
+  lp.format = fan::graphics::image_format::rgb_unorm;
+  lp.internal_format = fan::graphics::image_format::rgb_unorm;
   lp.min_filter = fan::graphics::image_filter::linear;
   lp.mag_filter = fan::graphics::image_filter::linear;
-  lp.visual_output = GL_MIRRORED_REPEAT;
+  lp.visual_output = fan::graphics::image_sampler_address_mode::mirrored_repeat;
 
   loco_t::image_t image;
 
@@ -3630,17 +3676,18 @@ loco_t::image_t loco_t::create_noise_image(const fan::vec2& image_size) {
 loco_t::image_t loco_t::create_noise_image(const fan::vec2& image_size, const std::vector<uint8_t>& noise_data) {
 
   loco_t::image_load_properties_t lp;
-  lp.format = GL_RGBA; // Change this to GL_RGB
-  lp.internal_format = GL_RGBA; // Change this to GL_RGB
+  lp.format = fan::graphics::image_format::rgb_unorm;
+  lp.internal_format = fan::graphics::image_format::rgb_unorm;
   lp.min_filter = fan::graphics::image_filter::linear;
   lp.mag_filter = fan::graphics::image_filter::linear;
-  lp.visual_output = GL_MIRRORED_REPEAT;
+  lp.visual_output = fan::graphics::image_sampler_address_mode::mirrored_repeat;
 
   loco_t::image_t image;
 
   fan::image::image_info_t ii;
   ii.data = (void*)noise_data.data();
   ii.size = image_size;
+  ii.channels = 3;
 
   image = image_load(ii, lp);
   return image;

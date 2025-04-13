@@ -200,6 +200,23 @@ constexpr auto normalize() const { auto l = length(); if (l == 0) return vec_t(0
 constexpr vec_t square_normalize() const { return *this / abs().max(); }
 void from_string(const std::string& str) { std::stringstream ss(str); char ch; for (access_type_t i = 0; i < size(); ++i) ss >> ch >> (*this)[i]; }
 
+constexpr vec_t rotate(value_type_t angle) const {
+  if constexpr (size() >= 2) {
+    vec_t ret = *this;
+    value_type_t cos_angle = std::cos(angle);
+    value_type_t sin_angle = std::sin(angle);
+    value_type_t x = (*this)[0];
+    value_type_t y = (*this)[1];
+    ret[0] = x * cos_angle - y * sin_angle;
+    ret[1] = x * sin_angle + y * cos_angle;
+    return ret;
+  }
+  else {
+    return *this;
+  }
+}
+
+
 std::string to_string(int precision = 4) const {
   std::string out("{");
   for (access_type_t i = 0; i < size() - 1; ++i) { out += fan::to_string((*this)[i], precision) + ", "; }

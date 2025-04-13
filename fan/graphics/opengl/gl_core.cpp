@@ -726,7 +726,7 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const fan:
   image_list[nr].image_path = "";
 
   int fmt = 0;
-  int internal_fmt = 0;
+  int internal_fmt = p.internal_format;
 
   switch(image_info.channels) {
   case 1: {
@@ -743,12 +743,10 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const fan:
   }
   case 4: {
     fmt = GL_RGBA;
-    internal_fmt = fmt;
     break;
   }
   case 0: {
     fmt = p.format;
-    internal_fmt = p.internal_format;
     break;
   }
   default:{

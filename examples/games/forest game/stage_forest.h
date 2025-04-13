@@ -6,6 +6,7 @@ void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions, f
           collisions.push_back(pile.loco.physics_context.create_circle(
             fan::vec2(z.position) + fan::vec2(0, -z.size.y / 6),
             z.size.y / 2.f,
+            0,
             fan::physics::body_type_e::static_body,
             fan::physics::shape_properties_t{ .friction = 0 }
           ));
