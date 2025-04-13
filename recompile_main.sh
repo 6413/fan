@@ -2,7 +2,7 @@
 
 #used after cmake is setup
 
-mkdir build
+mkdir -p build
 
 set -e
 
