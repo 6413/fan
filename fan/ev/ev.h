@@ -107,7 +107,7 @@ namespace fan {
 
     struct task_t {
       using promise_type = task_promise_t;
-
+      task_t() {}
       task_t(std::coroutine_handle<task_promise_t> ch) : _handle(ch) { }
       task_t(const task_t&) = delete;
       task_t(task_t&& f) : _handle(f._handle) {
@@ -139,7 +139,7 @@ namespace fan {
         }
       }
 
-      std::coroutine_handle<task_promise_t> _handle;
+      std::coroutine_handle<task_promise_t> _handle = nullptr;
     };
 
     struct fs_watcher_t {
