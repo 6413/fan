@@ -4481,3 +4481,18 @@ bool fan::graphics::shape_deserialize_t::iterate(const std::vector<uint8_t>& bin
   return 1;
 }
 #endif
+
+bool loco_t::is_key_pressed(int key) {
+  return window.key_state(key) == (int)fan::mouse_state::press;
+}
+
+bool loco_t::is_key_down(int key) {
+  int state = window.key_state(key);
+  return 
+    state == (int)fan::mouse_state::press ||
+    state == (int)fan::mouse_state::repeat;
+}
+
+bool loco_t::is_key_released(int key) {
+  return window.key_state(key) == (int)fan::mouse_state::release;
+}

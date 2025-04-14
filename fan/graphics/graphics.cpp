@@ -82,10 +82,10 @@ void fan::graphics::text_bottom_right(const std::string& text, const fan::color&
 void ImGui::Text(const std::string& str) {
   ImGui::Text(str.c_str());
 }
-IMGUI_API void ImGui::Image(loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) {
+IMGUI_API void ImGui::Image(loco_t::image_t img, const fan::vec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) {
   ImGui::Image((ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, tint_col, border_col);
 }
-IMGUI_API bool ImGui::ImageButton(const std::string& str_id, loco_t::image_t img, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
+IMGUI_API bool ImGui::ImageButton(const std::string& str_id, loco_t::image_t img, const fan::vec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
   return ImGui::ImageButton(str_id.c_str(), (ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
 }
 IMGUI_API bool ImGui::ImageTextButton(loco_t::image_t img, const std::string& text, const fan::color& color, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
@@ -833,6 +833,18 @@ bool fan::graphics::is_mouse_released(int button) {
 
 fan::vec2 fan::graphics::get_mouse_drag(int button) {
   return gloco->get_mouse_drag(button);
+}
+
+bool fan::graphics::is_key_pressed(int key) {
+  return gloco->is_key_pressed(key);
+}
+
+bool fan::graphics::is_key_down(int key) {
+  return gloco->is_key_down(key);
+}
+
+bool fan::graphics::is_key_released(int key) {
+  return gloco->is_key_released(key);
 }
 
 void fan::graphics::set_window_size(const fan::vec2& size) {
