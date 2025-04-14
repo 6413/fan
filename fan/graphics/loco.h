@@ -1144,6 +1144,10 @@ public:
   bool is_mouse_released(int button = fan::mouse_left);
   fan::vec2 get_mouse_drag(int button = fan::mouse_left);
 
+  bool is_key_pressed(int key);
+  bool is_key_down(int key);
+  bool is_key_released(int key);
+
   struct shape_t : shaper_t::ShapeID_t{
     using shaper_t::ShapeID_t::ShapeID_t;
     shape_t();
