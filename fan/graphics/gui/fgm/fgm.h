@@ -31,9 +31,9 @@ struct image_divider_t {
 
   image_divider_t() {
     e.open(open_properties);
-    texture_properties.visual_output = loco_t::image_sampler_address_mode::clamp_to_edge;
-    texture_properties.min_filter = loco_t::image_filter::nearest;
-    texture_properties.mag_filter = loco_t::image_filter::nearest;
+    texture_properties.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_edge;
+    texture_properties.min_filter = fan::graphics::image_filter::nearest;
+    texture_properties.mag_filter = fan::graphics::image_filter::nearest;
   }
 
   bool render() {
@@ -81,9 +81,13 @@ struct image_divider_t {
       image_loaded = false;
       images.clear();
       if (root_image.iic() == false) {
-        auto& img = gloco->image_get(root_image);
+        auto img = gloco->image_get(root_image);
+        fan::vec2 img_size = 0;
+        std::visit([&img_size](auto& img) {
+          img_size = img.size;
+        }, img);
         fan::vec2i divider = { horizontal_line_count, vertical_line_count };
-        fan::vec2 uv_size = img.size / divider / img.size;
+        fan::vec2 uv_size = img_size / divider / img_size;
 
         images.resize(divider.y);
         for (int i = 0; i < divider.y; ++i) {
@@ -104,16 +108,18 @@ struct image_divider_t {
       }
     }
 
-    auto& img = gloco->image_get(root_image);
-    fan::vec2 normalized_image_size = img.size.normalize();
+    auto img = gloco->image_get(root_image);
+    fan::vec2 img_size = 0;
+    std::visit([&img_size](auto& img) {
+      img_size = img.size;
+    }, img);
+    
+    fan::vec2 normalized_image_size = img_size.normalize();
     cell_size.x = (child_window_size.max() * 0.95 * (normalized_image_size.x)) / horizontal_line_count;
     cell_size.y = (child_window_size.max() * 0.95 * (normalized_image_size.y)) / vertical_line_count;
 
 
     static fan::graphics::file_open_dialog_t open_file_dialog;
-
-
-
 
     static std::string fn;
     if (ImGui::Button("image path")) {
@@ -124,8 +130,12 @@ struct image_divider_t {
       root_image = gloco->image_load(
         fn
       );
-      auto& img = gloco->image_get(root_image);
-      open_properties.preferred_pack_size = img.size;
+      auto img = gloco->image_get(root_image);
+      fan::vec2 img_size = 0;
+      std::visit([&img_size](auto& img) {
+        img_size = img.size;
+      }, img);
+      open_properties.preferred_pack_size = img_size;
       image_loaded = true;
       open_file_dialog.finished = false;
     }
@@ -151,7 +161,6 @@ struct image_divider_t {
         if (x) {
           ImGui::SameLine();
         }
-        auto& jimg = gloco->image_get(j.image);
 
         if (clicked_images[totalIndex].highlight) {
           ImGui::PushStyleColor(ImGuiCol_Border, fan::color::hex(0x00e0ffff));
@@ -224,13 +233,18 @@ struct image_divider_t {
 };
 
 struct fgm_t {
-  fgm_t() {}
+  fgm_t() {
+    
+  }
 
   static constexpr f32_t scroll_speed = 1.2;
 
   loco_t::shape_t xy_lines[2];
 
-  void open(const fan::string& texturepack_name) {
+  void open(const fan::string& texturepack_name, const std::wstring& asset_path) {
+
+    content_browser = fan::graphics::imgui_content_browser_t(asset_path);
+    content_browser.current_view_mode = fan::graphics::imgui_content_browser_t::view_mode_large_thumbnails;
 
     camera.camera = gloco->open_camera(
       fan::vec2(0, 1),
@@ -379,7 +393,7 @@ struct fgm_t {
     };
   };
   //
-#include _FAN_PATH(graphics/gui/fgm/common.h)
+#include <fan/graphics/gui/fgm/common.h>
 
 //#define bcontainer_set_StoreFormat 1
 //#define BLL_set_CPP_CopyAtPointerChange 1
@@ -410,10 +424,10 @@ struct fgm_t {
     str.resize(str.size() + 10); \
  \
     ImGui::Indent();\
-    fan_imgui_dragfloat_named(STRINGIFY_DEFINE(prop), v, 0.1, -1, -1); \
-        ImGui::Unindent(); \
-        \
+    if (fan_imgui_dragfloat_named(STRINGIFY_DEFINE(prop), v, 0.1, 0, 0)) { \
           shape->CONCAT(set_, prop)(v); \
+    }\
+    ImGui::Unindent(); \
   }
 
   bool id_exists(const fan::string& id) {
@@ -485,23 +499,54 @@ struct fgm_t {
     switch (shape->children[0].get_shape_type()) {
     case loco_t::shape_type_t::unlit_sprite:
     case loco_t::shape_type_t::sprite: {
-      auto current_image = shape->children[0].get_image();
-      fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
-      uv1 += uv0;
-      ImGui::Image(current_image, fan::vec2(64), uv0, uv1);
-      if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
-          const wchar_t* path = (const wchar_t*)payload->Data;
-          if (current_image != gloco->default_texture) {
-            gloco->image_unload(current_image);
+      {
+        auto current_image = shape->children[0].get_image();
+        fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
+        uv1 += uv0;
+        ImGui::Image(current_image, fan::vec2(64), uv0, uv1);
+        if (ImGui::BeginDragDropTarget()) {
+          if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+            const wchar_t* path = (const wchar_t*)payload->Data;
+            if (current_image != gloco->default_texture) {
+              gloco->image_unload(current_image);
+            }
+            shape->children[0].set_image(gloco->image_load(std::filesystem::absolute(content_browser.current_directory / path).string()));
+            shape->children[0].set_tc_position(0);
+            shape->children[0].set_tc_size(1);
+            //fan::print(std::filesystem::path(path));
           }
-          shape->children[0].set_image(gloco->image_load(std::filesystem::absolute(std::filesystem::path(path)).string()));
-          shape->children[0].set_tc_position(0);
-          shape->children[0].set_tc_size(1);
-          //fan::print(std::filesystem::path(path));
+          ImGui::EndDragDropTarget();
         }
-        ImGui::EndDragDropTarget();
+        ImGui::SameLine();
+        ImGui::Text("Base texture");
       }
+
+      {
+        auto current_image = shape->children[0].get_images()[0];
+        if (current_image.iic()) {
+          current_image = gloco->default_texture;
+        }
+        fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
+        uv1 += uv0;
+        ImGui::Image(current_image, fan::vec2(64), uv0, uv1);
+        if (ImGui::BeginDragDropTarget()) {
+          if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+            const wchar_t* path = (const wchar_t*)payload->Data;
+            if (current_image != gloco->default_texture) {
+              gloco->image_unload(current_image);
+            }
+            shape->children[0].set_images({gloco->image_load(std::filesystem::absolute(content_browser.current_directory / path).string())});
+            shape->children[0].set_tc_position(0);
+            shape->children[0].set_tc_size(1);
+            //fan::print(std::filesystem::path(path));
+          }
+          ImGui::EndDragDropTarget();
+        }
+        ImGui::SameLine();
+        ImGui::Text("Normal map");
+      }
+
+
 
       fan::string& current = shape->shape_data.sprite.image_name;
       fan::string str = current;
@@ -824,7 +869,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
             if (extension == ".json") {
               fin(file);
             }
-            else if (extension == ".webp") {
+            else {
               auto nr = push_shape(loco_t::shape_type_t::sprite, get_mouse_position());
               shape_list[nr]->children[0].set_image(gloco->image_load(std::filesystem::absolute(fs).string()));
             }
@@ -965,9 +1010,9 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
 
           if (play) { 
             auto& animation = animations[items[current_item]];
-            float frame_duration = 1.0f / animation.fps; // Duration of each frame
-            static float elapsed_time = 0.0f; // Time since last frame change
-            static int current_frame = 0; // Current frame index
+            float frame_duration = 1.0f / animation.fps;
+            static float elapsed_time = 0.0f;
+            static int current_frame = 0; 
 
             for (auto& obj : fan::graphics::vfi_root_t::selected_objects) {
               
@@ -978,12 +1023,12 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
                 obj->children[0].set_tc_size(frame.size);
               }
             }
-            // Increment elapsed time by the actual time passed since the last frame
+           
             if (animation.tcs.size()) {
-              elapsed_time += gloco->delta_time; // Use gloco->delta_time to get the actual time passed
-              if (elapsed_time >= frame_duration) { // Check if it's time to move to the next frame
-                elapsed_time = 0.0f; // Reset elapsed time
-                current_frame = (current_frame + 1) % animation.tcs.size(); // Advance to the next frame
+              elapsed_time += gloco->delta_time; 
+              if (elapsed_time >= frame_duration) {
+                elapsed_time = 0.0f; 
+                current_frame = (current_frame + 1) % animation.tcs.size();
               }
             }
             
@@ -1036,7 +1081,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
               }
               if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
                 const wchar_t* path = (const wchar_t*)payload->Data;
-                tc.image = gloco->image_load(std::filesystem::absolute(std::filesystem::path(path)).string());
+                tc.image = gloco->image_load(std::filesystem::absolute(content_browser.current_directory / path).string());
                 tc.position = 0;
                 tc.size = 1;
                 //fan::print(std::filesystem::path(path));
@@ -1247,6 +1292,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
     auto it = shape_list.GetNodeFirst();
     while (it != shape_list.dst) {
       if (current_shape == shape_list[it]) {
+        shape_list[it]->previous_focus = 0;
         delete shape_list[it];
         shape_list.unlrec(it);
         invalidate_current();
@@ -1258,7 +1304,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
 
   fan::graphics::camera_t camera;
 
-  fan::graphics::imgui_content_browser_t content_browser;
+  fan::graphics::imgui_content_browser_t content_browser{false};
 
   event_type_e event_type = event_type_e::none;
   uint16_t selected_shape_type = loco_t::shape_type_t::invalid;

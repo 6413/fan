@@ -7,7 +7,7 @@ f32_t Volume = 1;
 
 IXAudio2 *ctx = NULL;
 IXAudio2MasteringVoice *MasterVoice = NULL;
-IXAudio2SourceVoice *SourceVoice;
+IXAudio2SourceVoice *SourceVoice = NULL;
 
 f32_t frames[2][_constants::CallFrameCount * _constants::ChannelAmount];
 uint8_t framesi = 0;
@@ -126,19 +126,15 @@ void Close(){
 }
 
 void SetVolume(f32_t Volume) {
-  //fan::throw_error_impl();
-  //__atomic_store(&this->Volume, &Volume, __ATOMIC_RELAXED);
+  __atomic_store_n(&this->Volume, Volume, __ATOMIC_RELAXED);
 }
 f32_t GetVolume() {
-  //fan::throw_error_impl();
-  f32_t r;
-  //__atomic_store(&r, &this->Volume, __ATOMIC_RELAXED);
-  return 1;
+  return __atomic_load_n(&this->Volume, __ATOMIC_RELAXED);
 }
 
 void Pause() {
-  fan::throw_error("TODO not yet");
+  this->SourceVoice->Stop(0);
 }
 void Resume() {
-  fan::throw_error("TODO not yet");
+  this->SourceVoice->Start(0);
 }

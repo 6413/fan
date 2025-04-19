@@ -948,6 +948,8 @@ namespace fan {
       std::string search_buffer;
 
       imgui_content_browser_t();
+      imgui_content_browser_t(bool no_init);
+      imgui_content_browser_t(const std::wstring& path);
       void update_directory_cache();
       void render();
       void render_large_thumbnails_view();
@@ -960,7 +962,7 @@ namespace fan {
         if (ImGui::BeginDragDropTarget()) {
           if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
             const wchar_t* path = (const wchar_t*)payload->Data;
-            receive_func(std::filesystem::path(path));
+            receive_func(std::filesystem::absolute(current_directory / path));
             //fan::print(std::filesystem::path(path));
           }
           ImGui::EndDragDropTarget();

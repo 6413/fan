@@ -3012,6 +3012,35 @@ void loco_t::shape_t::set_image(loco_t::image_t image) {
   gloco->shape_functions[get_shape_type()].set_image(this, image);
 }
 
+std::array<loco_t::image_t, 30> loco_t::shape_t::get_images() {
+  auto shape_type = get_shape_type();
+  if (shape_type == shape_type_t::sprite) {
+    return ((sprite_t::ri_t*)loco_t::shape_t::ShapeID_t::GetData(gloco->shaper))->images;
+  }
+  else if (shape_type == shape_type_t::unlit_sprite) {
+    return ((unlit_sprite_t::ri_t*)loco_t::shape_t::ShapeID_t::GetData(gloco->shaper))->images;
+  }
+#if fan_debug >= fan_debug_medium
+  fan::throw_error("only for sprite and unlit_sprite");
+#endif
+  return {};
+}
+
+void loco_t::shape_t::set_images(const std::array<loco_t::image_t, 30>& images) {
+  auto shape_type = get_shape_type();
+  if (shape_type == shape_type_t::sprite) {
+    ((sprite_t::ri_t*)loco_t::shape_t::ShapeID_t::GetData(gloco->shaper))->images = images;
+  }
+  else if (shape_type == shape_type_t::unlit_sprite) {
+    ((unlit_sprite_t::ri_t*)loco_t::shape_t::ShapeID_t::GetData(gloco->shaper))->images = images;
+  }
+#if fan_debug >= fan_debug_medium
+  else {
+  fan::throw_error("only for sprite and unlit_sprite");
+  }
+#endif
+}
+
 f32_t loco_t::shape_t::get_parallax_factor() {
   return gloco->shape_functions[get_shape_type()].get_parallax_factor(this);
 }

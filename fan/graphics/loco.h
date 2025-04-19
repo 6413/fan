@@ -1275,6 +1275,9 @@ public:
     loco_t::image_t get_image();
     void set_image(loco_t::image_t image);
 
+    std::array<loco_t::image_t, 30> get_images();
+    void set_images(const std::array<loco_t::image_t, 30>& images);
+
     f32_t get_parallax_factor();
     void set_parallax_factor(f32_t parallax_factor);
 
@@ -1480,7 +1483,7 @@ public:
     };
     struct ri_t {
       // main image + light buffer + 30
-      std::array<loco_t::image_t, 30> images;
+      std::array<loco_t::image_t, 30> images; // what about tc_pos and tc_size
     };
 
 #pragma pack(pop)

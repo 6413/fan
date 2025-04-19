@@ -1,5 +1,7 @@
 #include <fan/pch.h>
 
+#include <fan/graphics/gui/model_maker/maker.h>
+
 int main(int argc, char** argv) {
   if (argc < 2) {//
     fan::throw_error("usage: TexturePackCompiled");
@@ -10,8 +12,7 @@ int main(int argc, char** argv) {
 
   model_maker_t mm;////
 
-  
-  mm.open("texture_packs/TexturePack");
+  mm.open("texture_packs/TexturePack", L"images");
   //if(argc == 3){
     //mm.load("ship.json");
   //}
