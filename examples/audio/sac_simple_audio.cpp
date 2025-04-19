@@ -10,6 +10,8 @@
 
 #include <fan/pch.h>
 
+#define test
+
 // argv[1] == audio/w_voice.sac 
 int main(int argc, char** argv) {
   loco_t loco;
@@ -28,7 +30,7 @@ int main(int argc, char** argv) {
   if (err != 0) {
     fan::throw_error("failed to open piece:", err);
   }
-
+  
   {
     fan::audio_t::PropertiesSoundPlay_t p;
     p.Flags.Loop = true;
@@ -41,6 +43,11 @@ int main(int argc, char** argv) {
 
   loco.loop([&] {
     ImGui::Begin("audio controls");
+    if (ImGui::Button("toggle pause")) {
+      static int audio_toggle = 0;
+      ((audio_toggle++)& 1) == 0 ? audio.Pause() : audio.Resume();
+
+    }
     if (ImGui::DragFloat("volume", &volume, 0.01f, 0.0f, 1.0f)) {
       audio.SetVolume(volume);
     }
