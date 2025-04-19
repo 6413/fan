@@ -22,6 +22,14 @@ namespace fan {
 
     void set_window_size(const fan::vec2& size);
 
+    fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info);
+    fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p);
+    fan::graphics::image_nr_t image_load(const fan::string& path);
+    fan::graphics::image_nr_t image_load(const fan::string& path, const fan::graphics::image_load_properties_t& p);
+    fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size);
+    fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
+    void image_unload(fan::graphics::image_nr_t nr);
+
 #if defined(loco_imgui)
     using imgui_element_t = loco_t::imgui_element_t;
 

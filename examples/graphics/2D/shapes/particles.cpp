@@ -57,7 +57,6 @@ int main() {
   int current_shape = 0;
 
   loco.loop([&] {
-    loco.get_fps();
     if (ImGui::BeginMainMenuBar()) {
 
       if (ImGui::BeginMenu("File"))
@@ -119,7 +118,7 @@ int main() {
     }
 
 
-    auto& ri = *(loco_t::particles_t::ri_t*)loco.shaper.GetData(s);
+    auto& ri = *(loco_t::particles_t::ri_t*)s.GetData(loco.shaper);
 
     static fan::color color = p.color;
     {

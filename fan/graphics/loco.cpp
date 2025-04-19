@@ -2094,7 +2094,7 @@ void loco_t::process_frame() {
 
   shaper.ProcessBlockEditQueue();
 
-  #if defined(loco_vulkan)
+#if defined(loco_vulkan)
   if (window.renderer == renderer_t::vulkan){
     vk.begin_draw();
   }
@@ -2138,11 +2138,6 @@ bool loco_t::should_close() {
 bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 
 #if defined(loco_imgui)
-  std::vector<uint8_t> temp;
-  struct shape_info_t {
-    shape_t shape;
-  };
-  static std::vector<shape_t> shapes;
   if (reload_renderer_to != (decltype(reload_renderer_to))-1) {
     switch_renderer(reload_renderer_to);
   }

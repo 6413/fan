@@ -87,42 +87,42 @@ int main() {
         float centerX = image_size.x / 2.0f;
         fan::color c = temperature_to_color(depth_to_temperature((f32_t)y / 3));
         f32_t scale = 255.f / (noise_tex_max - noise_tex_min);
-        int noise = (uint8_t)std::max(0.0f, std::min(255.0f, (noise_value - noise_tex_min) * scale));
+        int noise =255.0 - (uint8_t)std::max(0.0f, std::min(255.0f, (noise_value - noise_tex_min) * scale));
 
-        //noise = std::clamp((f32_t)noise, 0.0f, 180.0f);
-        //float edgeFactor = std::max(0.0f, 1.0f - std::abs(x - centerX) / centerX);
+        noise = std::clamp((f32_t)noise, 0.0f, 255.0f);
+        float edgeFactor = std::max(0.0f, 1.0f - std::abs(x - centerX) / centerX);
 
-        //noise *= edgeFactor;
+        noise *= edgeFactor;
 
-        //if (noise < 30.0f) {
-        //  noise = 0.0f;
-        //}
+        if (noise < 30.0f) {
+          noise = 0.0f;
+        }
 
 
-        //noise -= (image_size.y - y) / image_size.y * 255.f;
+        noise -= (image_size.y - y) / image_size.y * 255.f;
 
-        //float dx = (x - centerX) / centerX;
-        //float distance = dx * dx;
+        float dx = (x - centerX) / centerX;
+        float distance = dx * dx;
 
-        //float peak = 255.0f * 0.5f;
-        //float intensity = std::exp(-distance * width);
+        float peak = 255.0f * 0.5f;
+        float intensity = std::exp(-distance * width);
 
-        //noise += intensity * peak;
-        //noise = std::clamp((f32_t)noise, 0.0f, 255.0f);
+        noise += intensity * peak;
+        noise = std::clamp((f32_t)noise, 0.0f, 255.0f);
 
-        //noise = std::max(noise, 0);
-        //noise = std::clamp((f32_t)noise, 0.0f, 85.0f);
-        //float amplificationFactor = std::max(0.0f, 1.0f - distance); 
-        //noise *= amplificationFactor * 3;
-        //noise = pow(noise / 255.f, 2.f) * 255.f;
+        noise = std::max(noise, 0);
+        noise = std::clamp((f32_t)noise, 0.0f, 85.0f);
+        float amplificationFactor = std::max(0.0f, 1.0f - distance); 
+        noise *= amplificationFactor * 3;
+        noise = pow(noise / 255.f, 2.f) * 255.f;
 
-        //if (y < 5) {
-        //  noise = 0;
-        //}
+        if (y < 5) {
+          noise = 0;
+        }
 
-        noise_data_rgb[index * 3 + 0] = noise;
-        noise_data_rgb[index * 3 + 1] = noise;
-        noise_data_rgb[index * 3 + 2] = noise;
+        noise_data_rgb[index * 3 + 0] = c.r * 255.f * (noise / 255.f);
+        noise_data_rgb[index * 3 + 1] = c.g * 255.f * (noise / 255.f);
+        noise_data_rgb[index * 3 + 2] = c.b * 255.f * (noise / 255.f);
         index++;
       }
     }

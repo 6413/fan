@@ -39,7 +39,7 @@ public:
 
       ImGui::PushID(filename_string.c_str());
       ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-      ImGui::ImageButton(path.is_directory() ? directory_icon : file_icon, fan::vec2(thumbnail_size));
+      ImGui::ImageButton(filename_string, path.is_directory() ? directory_icon : file_icon, fan::vec2(thumbnail_size));
 
       if (ImGui::BeginDragDropSource()) {
         const wchar_t* item_path = relative_path.c_str();

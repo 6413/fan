@@ -130,10 +130,7 @@ bool ImGui::ToggleImageButton(const std::string& char_id, loco_t::image_t image,
 
   ImVec4 tintColor = ImVec4(1, 1, 1, 1);
   if (*toggle) {
-  //  tintColor = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
-  }
-  if (ImGui::IsItemHovered()) {
-  //  tintColor = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
+    tintColor = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
   }
 
   if (ImGui::ImageButton(char_id, image, size, ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), tintColor)) {
@@ -861,6 +858,34 @@ void fan::graphics::set_window_size(const fan::vec2& size) {
     fan::vec2(0, size.x),
     fan::vec2(0, size.y)
   );
+}
+
+fan::graphics::image_nr_t fan::graphics::image_load(const fan::image::image_info_t& image_info) {
+  return gloco->image_load(image_info);
+}
+
+fan::graphics::image_nr_t fan::graphics::image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+  return gloco->image_load(image_info, p);
+}
+
+fan::graphics::image_nr_t fan::graphics::image_load(const fan::string& path) {
+  return gloco->image_load(path);
+}
+
+fan::graphics::image_nr_t fan::graphics::image_load(const fan::string& path, const fan::graphics::image_load_properties_t& p) {
+  return gloco->image_load(path, p);
+}
+
+fan::graphics::image_nr_t fan::graphics::image_load(fan::color* colors, const fan::vec2ui& size) {
+  return gloco->image_load(colors, size);
+}
+
+fan::graphics::image_nr_t fan::graphics::image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
+  return gloco->image_load(colors, size, p);
+}
+
+void fan::graphics::image_unload(fan::graphics::image_nr_t nr){
+  return gloco->image_unload(nr);
 }
 
 #if defined(loco_imgui)

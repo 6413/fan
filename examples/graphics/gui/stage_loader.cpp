@@ -45,8 +45,6 @@ lstd_defstruct(custom_t)
   }
 };
 
-
-
 int main() {
 
   fan::vec2 window_size = pile.loco.window.get_size();
@@ -60,7 +58,6 @@ int main() {
   loco_t::texturepack_t tp;
   tp.open_compiled("TexturePack");
   pile.stage_loader = new stage_loader_t;
-  pile.stage_loader->open(&tp);
 
   stage_loader_t::stage_open_properties_t op;
 
