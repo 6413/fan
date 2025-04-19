@@ -233,3 +233,10 @@ void SetVolume(f32_t Volume) {
 f32_t GetVolume() {
   return system_audio->Out.GetVolume();
 }
+
+void Pause() {
+  system_audio->Out.Pause();
+}
+void Resume() {
+  system_audio->Out.Resume();
+}

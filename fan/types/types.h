@@ -546,7 +546,7 @@ using DWORD = unsigned long;
   #error ?
   #endif
   }
-  #define __clz32
+  #define __clz32 __clz32
 #endif
 
 #ifndef __clz64
@@ -567,7 +567,7 @@ inline uint8_t __clz64(uint64_t p0) {
 //#error ?
 #endif
 }
-#define __clz64
+#define __clz64 __clz64
 #endif
 #if defined(__x86_64__) || defined(_M_AMD64)
 	#define SYSTEM_BIT 64

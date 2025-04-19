@@ -302,6 +302,15 @@ fan::graphics::imgui_content_browser_t::imgui_content_browser_t() {
   current_directory = std::filesystem::path(asset_path);
   update_directory_cache();
 }
+fan::graphics::imgui_content_browser_t::imgui_content_browser_t(bool no_init) {
+
+}
+fan::graphics::imgui_content_browser_t::imgui_content_browser_t(const std::wstring& path) {
+  search_buffer.resize(32);
+  asset_path = std::filesystem::absolute(std::filesystem::path(path)).wstring();
+  current_directory = std::filesystem::path(asset_path);
+  update_directory_cache();
+}
 
 void fan::graphics::imgui_content_browser_t::update_directory_cache() {
   for (auto& img : directory_cache) {

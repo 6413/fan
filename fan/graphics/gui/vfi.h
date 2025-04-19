@@ -404,12 +404,12 @@ struct vfi_t {
       return v;
     }
     case shape_t::rectangle: {
-      fan::vec2 v = gloco->camera_get(shape_data->shape.rectangle->camera).position;
+      fan::vec2 camera_position = gloco->camera_get(shape_data->shape.rectangle->camera).position;
       auto p = transform_position(
         v,
         shape_data->shape.rectangle->viewport,
         shape_data->shape.rectangle->camera
-      ) + v;
+      ) + camera_position;
       return p;
     }
     default: {
