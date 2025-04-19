@@ -747,6 +747,7 @@ void draw_shapes() {
           //fan::print("shaper design is changed");
           auto& ri = *(sprite_t::ri_t*)BlockTraverse.GetData(loco.shaper);
           auto shader = loco.shaper.GetShader(shape_type);
+          loco.shader_set_value(shader, "draw_mode", int(!ri.images[0].iic()));
           for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
             if (ri.images[i - 2].iic() == false) {
               loco.shader_set_value(shader, "_t0" + std::to_string(i), i);
@@ -794,6 +795,11 @@ void draw_shapes() {
             shader,
             "_time",
             f32_t((fan::time::clock::now() - loco.start_time) / 1e+9)
+          );
+          loco.shader_set_value(
+            shader,
+            "mouse_position",
+            loco.get_mouse_position()
           );
           //fan::print(fan::time::clock::now() / 1e+9);
           loco.shader_set_value(shader, loco_t::lighting_t::ambient_name, gloco->lighting.ambient);

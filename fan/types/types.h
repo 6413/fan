@@ -529,23 +529,27 @@ using DWORD = unsigned long;
 
 #ifndef __clz
 #define __clz __clz
-inline uint8_t __clz32(uint32_t p0)
-{
-#if defined(__GNUC__)
-  return __builtin_clz(p0);
-#elif defined(_MSC_VER)
-  DWORD trailing_zero = 0;
-  if (_BitScanReverse(&trailing_zero, p0)) {
-    return uint8_t((DWORD)31 - trailing_zero);
+#ifndef __clz32
+  inline uint8_t __clz32(uint32_t p0)
+  {
+  #if defined(__GNUC__)
+    return __builtin_clz(p0);
+  #elif defined(_MSC_VER)
+    DWORD trailing_zero = 0;
+    if (_BitScanReverse(&trailing_zero, p0)) {
+      return uint8_t((DWORD)31 - trailing_zero);
+    }
+    else {
+      return 0;
+    }
+  #else
+  #error ?
+  #endif
   }
-  else {
-    return 0;
-  }
-#else
-#error ?
+  #define __clz32
 #endif
-}
 
+#ifndef __clz64
 inline uint8_t __clz64(uint64_t p0) {
 #if defined(__GNUC__)
   return __builtin_clzll(p0);
@@ -563,7 +567,8 @@ inline uint8_t __clz64(uint64_t p0) {
 //#error ?
 #endif
 }
-
+#define __clz64
+#endif
 #if defined(__x86_64__) || defined(_M_AMD64)
 	#define SYSTEM_BIT 64
 	#define SYSTEM_BYTE 8
