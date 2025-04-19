@@ -99,9 +99,9 @@ void _DecodeCopy(
       break;
     }
     case 2:{
-      MEM_copy(
-        F2_20,
+      __builtin_memcpy(
         Output,
+        F2_20,
         _constants::Opus::SegmentFrameAmount20 * 2 * sizeof(f32_t));
       break;
     }

@@ -12,11 +12,6 @@
 
 // argv[1] == audio/w_voice.sac 
 int main(int argc, char** argv) {
-  if (argc != 2) {
-    fan::print("usage: .exe *.sac");
-    return 1;
-  }
-
   loco_t loco;
 
   fan::system_audio_t system_audio;
