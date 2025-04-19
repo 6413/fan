@@ -298,20 +298,23 @@ struct vfi_t {
       }
     }
 
+    auto ret = gloco->shape_add(loco_t::shape_type_t::vfi, 0, instance,
+      loco_t::Key_e::depth, (uint16_t)p.shape.rectangle->position.z,
+      loco_t::Key_e::viewport, p.shape.rectangle->viewport,
+      loco_t::Key_e::camera, p.shape.rectangle->camera,
+      loco_t::Key_e::ShapeType, (loco_t::loco_t::shaper_t::ShapeTypeIndex_t)loco_t::shape_type_t::vfi
+    );
+
     fan::vec2 mouse_position = gloco->get_mouse_position();
     fan::vec2 tp = transform(mouse_position, p.shape_type, instance.shape_data);
+
     if (focus.mouse.iic()) {
       if (!p.ignore_init_move && viewport_inside(p.shape_type, instance.shape_data, tp) == mouse_stage_e::viewport_inside) {
         feed_mouse_move(mouse_position);
       }
     }
 
-    return gloco->shape_add(loco_t::shape_type_t::vfi, 0, instance,
-      loco_t::Key_e::depth, (uint16_t)p.shape.rectangle->position.z,
-      loco_t::Key_e::viewport, p.shape.rectangle->viewport,
-      loco_t::Key_e::camera, p.shape.rectangle->camera,
-      loco_t::Key_e::ShapeType, (loco_t::loco_t::shaper_t::ShapeTypeIndex_t)loco_t::shape_type_t::vfi
-    );
+    return ret;
   }
   void erase(loco_t::shape_t& in) {
     bool fm = focus.mouse == in;
