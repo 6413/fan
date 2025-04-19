@@ -83,8 +83,18 @@ namespace fan {
     #include <BLL/BLL.h>
     using shader_nr_t = shader_list_NodeReference_t;
 
+    struct image_load_properties_t {
+      uint32_t visual_output = image_load_properties_defaults::visual_output;
+      uintptr_t internal_format = image_load_properties_defaults::internal_format;
+      uintptr_t format = image_load_properties_defaults::format;
+      uintptr_t type = image_load_properties_defaults::type;
+      uintptr_t min_filter = image_load_properties_defaults::min_filter;
+      uintptr_t mag_filter = image_load_properties_defaults::mag_filter;
+    };
+
     struct image_data_t {
       std::string image_path;
+      image_load_properties_t image_settings;
       void* internal;
     };
     #include "image_list_builder_settings.h"
@@ -106,15 +116,6 @@ namespace fan {
     inline this_offset_viewport_list_t get_viewport_list;
 
     static constexpr f32_t znearfar = 0xffff;
-
-    struct image_load_properties_t {
-      uint32_t visual_output = image_load_properties_defaults::visual_output;
-      uintptr_t internal_format = image_load_properties_defaults::internal_format;
-      uintptr_t format = image_load_properties_defaults::format;
-      uintptr_t type = image_load_properties_defaults::type;
-      uintptr_t min_filter = image_load_properties_defaults::min_filter;
-      uintptr_t mag_filter = image_load_properties_defaults::mag_filter;
-    };
 
     struct primitive_topology_t {
       static constexpr uint32_t points = 0;

@@ -410,6 +410,10 @@ void image_unbind(fan::vulkan::context_t& context, image_nr_t nr) {
   
 }
 
+fan::graphics::image_load_properties_t& image_get_settings(fan::vulkan::context_t& context, image_nr_t nr) {
+  return image_list[nr].image_settings;
+}
+
 void image_set_settings(fan::vulkan::context_t& context, const fan::vulkan::context_t::image_load_properties_t& p) {
 
 }
@@ -2471,7 +2475,11 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
   cf.image_unbind = [](void* context, image_nr_t nr) { 
     image_unbind(*(fan::vulkan::context_t*)context,nr); 
   }; 
-  cf.image_set_settings = [](void* context, const fan::graphics::image_load_properties_t& settings) { 
+  cf.image_get_settings = [](void* context, fan::graphics::image_nr_t nr) -> fan::graphics::image_load_properties_t& {
+    return image_get_settings(*(fan::vulkan::context_t*)context, nr);
+  };
+  cf.image_set_settings = [](void* context, fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings) { 
+    image_bind(*(fan::vulkan::context_t*)context, nr);
     image_set_settings(*(fan::vulkan::context_t*)context, image_global_to_vulkan(settings));
   }; 
   cf.image_load_info = [](void* context, const fan::image::image_info_t& image_info) { 

@@ -696,7 +696,14 @@ void image_unbind(fan::opengl::context_t& context, image_nr_t nr) {
   fan_opengl_call(glBindTexture(GL_TEXTURE_2D, 0));
 }
 
-void image_set_settings(fan::opengl::context_t& context, const fan::opengl::context_t::image_load_properties_t& p) {
+fan::graphics::image_load_properties_t& image_get_settings(fan::opengl::context_t& context, image_nr_t nr) {
+  return image_list[nr].image_settings;
+}
+
+fan::graphics::image_load_properties_t image_opengl_to_global(const fan::opengl::context_t::image_load_properties_t& p);
+
+void image_set_settings(fan::opengl::context_t& context, image_nr_t nr, const fan::opengl::context_t::image_load_properties_t& p) {
+  image_bind(context, nr);
 #if fan_debug >= fan_debug_high
   if (p.visual_output < 0xff) {
     fan::throw_error("invalid format");
@@ -712,14 +719,16 @@ void image_set_settings(fan::opengl::context_t& context, const fan::opengl::cont
   fan_opengl_call(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, p.visual_output));
   fan_opengl_call(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.min_filter));
   fan_opengl_call(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, p.mag_filter));
+
+  image_list[nr].image_settings = image_opengl_to_global(p);
 }
 
 fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const fan::image::image_info_t& image_info, const fan::opengl::context_t::image_load_properties_t& p) {
 
-  image_set_settings(context, p);
 
   image_nr_t nr = image_create(context);
   image_bind(context, nr);
+  image_set_settings(context, nr, p);
 
   auto& image = image_get(context, nr);
   image.size = image_info.size;
@@ -755,6 +764,20 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const fan:
   }
   }
 
+  uint32_t bytes_per_row = (int)(image.size.x * image_info.channels);
+  if ((bytes_per_row % 8) == 0) {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
+  }
+  else if ((bytes_per_row % 4) == 0) {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  }
+  else if ((bytes_per_row % 2) == 0) {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+  }
+  else {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  }
+
   fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, internal_fmt, image.size.x, image.size.y, 0, fmt, p.type, image_info.data));
 
   switch (p.min_filter) {
@@ -778,7 +801,7 @@ fan::graphics::image_nr_t create_missing_texture(fan::opengl::context_t& context
   image_nr_t nr = image_create(context);
   image_bind(context, nr);
 
-  image_set_settings(context, p);
+  image_set_settings(context, nr, p);
   auto& image = image_get(context, nr);
   image.size = fan::vec2i(2, 2);
 
@@ -811,7 +834,7 @@ fan::graphics::image_nr_t create_transparent_texture(fan::opengl::context_t& con
 
   auto& img = image_get(context, nr);
 
-  image_set_settings(context, p);
+  image_set_settings(context, nr, p);
 
   img.size = fan::vec2i(2, 2);
 
@@ -854,7 +877,7 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, fan::color
   image_nr_t nr = image_create(context);
   image_bind(context, nr);
 
-  image_set_settings(context, p);
+  image_set_settings(context, nr, p);
 
   auto& image = image_get(context, nr);
   image.size = size_;
@@ -880,7 +903,7 @@ void image_reload(fan::opengl::context_t& context, image_nr_t nr, const fan::ima
 
   image_bind(context, nr);
 
-  image_set_settings(context, p);
+  image_set_settings(context, nr, p);
 
   auto& image = image_get(context, nr);
   image.size = image_info.size;
@@ -953,7 +976,7 @@ fan::graphics::image_nr_t image_create(fan::opengl::context_t& context, const fa
   image_nr_t nr = image_create(context);
   image_bind(context, nr);
 
-  image_set_settings(context, p);
+  image_set_settings(context, nr, p);
 
   fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, 1, 1, 0, p.format, p.type, pixels));
 
@@ -1239,6 +1262,53 @@ uint32_t global_to_opengl_filter(uintptr_t filter) {
   return GL_NEAREST;
 }
 
+uint32_t opengl_to_global_format(uintptr_t format) {
+  if (format == GL_BGRA) return image_format::b8g8r8a8_unorm;
+  if (format == GL_RGBA) return image_format::r8b8g8a8_unorm;
+  if (format == GL_RED) return image_format::r8_unorm;
+  if (format == GL_RG) return image_format::rg8_unorm;
+  if (format == GL_RGB) return image_format::rgb_unorm;
+  if (format == GL_RED_INTEGER) return image_format::r8_uint;
+  if (format == GL_SRGB8_ALPHA8) return image_format::r8g8b8a8_srgb;
+  if (format == GL_R11F_G11F_B10F) return image_format::r11f_g11f_b10f;
+#if fan_debug >= fan_debug_high
+  fan::throw_error("invalid format");
+#endif
+  return image_format::rgba_unorm;
+}
+
+uint32_t opengl_to_global_type(uintptr_t type) {
+  if (type == GL_UNSIGNED_BYTE) return fan_unsigned_byte;
+  if (type == GL_UNSIGNED_INT) return fan_unsigned_int;
+  if (type == GL_FLOAT) return fan_float;
+#if fan_debug >= fan_debug_high
+  fan::throw_error("invalid format");
+#endif
+  return 0;
+}
+
+uint32_t opengl_to_global_address_mode(uint32_t mode) {
+  if (mode == GL_REPEAT) return image_sampler_address_mode::repeat;
+  if (mode == GL_MIRRORED_REPEAT) return image_sampler_address_mode::mirrored_repeat;
+  if (mode == GL_CLAMP_TO_EDGE) return image_sampler_address_mode::clamp_to_edge;
+  if (mode == GL_CLAMP_TO_BORDER) return image_sampler_address_mode::clamp_to_border;
+  if (mode == GL_MIRROR_CLAMP_TO_EDGE) return image_sampler_address_mode::mirrored_clamp_to_edge;
+#if fan_debug >= fan_debug_high
+  fan::throw_error("invalid format");
+#endif
+  return image_sampler_address_mode::repeat;
+}
+
+uint32_t opengl_to_global_filter(uintptr_t filter) {
+  if (filter == GL_NEAREST) return image_filter::nearest;
+  if (filter == GL_LINEAR) return image_filter::linear;
+#if fan_debug >= fan_debug_high
+  fan::throw_error("invalid format");
+#endif
+  return image_filter::nearest;
+}
+
+
 void open(fan::opengl::context_t& context, const fan::opengl::context_t::properties_t&) {
   context.opengl.open();
 }
@@ -1324,6 +1394,17 @@ fan::opengl::context_t::image_load_properties_t image_global_to_opengl(const fan
   };
 }
 
+fan::graphics::image_load_properties_t image_opengl_to_global(const fan::opengl::context_t::image_load_properties_t& p) {
+  return {
+    .visual_output = opengl_to_global_address_mode(p.visual_output),
+    .internal_format = opengl_to_global_format(p.internal_format),
+    .format = opengl_to_global_format(p.format),
+    .type = opengl_to_global_type(p.type),
+    .min_filter = opengl_to_global_filter(p.min_filter),
+    .mag_filter = opengl_to_global_filter(p.mag_filter),
+  };
+}
+
 fan::graphics::context_functions_t fan::graphics::get_gl_context_functions() {
 	fan::graphics::context_functions_t cf;
   cf.shader_create = [](void* context) { 
@@ -1366,8 +1447,11 @@ fan::graphics::context_functions_t fan::graphics::get_gl_context_functions() {
   cf.image_unbind = [](void* context, image_nr_t nr) { 
     image_unbind(*(fan::opengl::context_t*)context,nr); 
   }; 
-  cf.image_set_settings = [](void* context, const fan::graphics::image_load_properties_t& settings) { 
-    image_set_settings(*(fan::opengl::context_t*)context, image_global_to_opengl(settings));
+  cf.image_get_settings = [](void* context, fan::graphics::image_nr_t nr) -> fan::graphics::image_load_properties_t& {
+    return image_get_settings(*(fan::opengl::context_t*)context, nr);
+  };
+  cf.image_set_settings = [](void* context, image_nr_t nr, const fan::graphics::image_load_properties_t& settings) {
+    image_set_settings(*(fan::opengl::context_t*)context, nr, image_global_to_opengl(settings));
   }; 
   cf.image_load_info = [](void* context, const fan::image::image_info_t& image_info) { 
     return image_load(*(fan::opengl::context_t*)context, image_info);

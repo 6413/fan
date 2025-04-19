@@ -192,14 +192,14 @@ struct image_divider_t {
         ImGui::PopStyleVar(2);
 
         if (clicked_images[totalIndex].highlight) {
-          ImVec2 p = ImGui::GetItemRectMin(); // Top-left of the image button
-          ImVec2 size = ImGui::GetItemRectSize(); // Size of the image button
+          ImVec2 p = ImGui::GetItemRectMin();
+          ImVec2 size = ImGui::GetItemRectSize();
           ImVec2 text_size = ImGui::CalcTextSize(std::to_string(totalIndex).c_str());
           ImVec2 text_pos = ImVec2(p.x + 2, p.y + 2);
 
-          ImU32 outline_col = IM_COL32(0, 0, 0, 255); // Black
-          // Original text color
-          ImU32 text_col = IM_COL32(255, 255, 255, 255); // White
+          ImU32 outline_col = IM_COL32(0, 0, 0, 255);
+          
+          ImU32 text_col = IM_COL32(255, 255, 255, 255);
 
           ImGui::GetWindowDrawList()->AddText(ImVec2(text_pos.x + 1, text_pos.y), outline_col, std::to_string(clicked_images[totalIndex].count_index).c_str());
           ImGui::GetWindowDrawList()->AddText(ImVec2(text_pos.x - 1, text_pos.y), outline_col, std::to_string(clicked_images[totalIndex].count_index).c_str());
@@ -212,21 +212,21 @@ struct image_divider_t {
         ImGui::PopID();
 
         x++;
-        totalIndex++; // Increment the total index for the next image
+        totalIndex++;
       }
     }
     if (ImGui::Button("save")) {
       render_select_frames = false;
-      ImGui::End();
+      ImGui::EndChild();
       ImGui::Columns(1);
 
-      ImGui::End();
+      ImGui::EndChild();
       return false;
     }
-    ImGui::End();
+    ImGui::EndChild();
     ImGui::Columns(1);
 
-    ImGui::End();
+    ImGui::EndChild();
     return true;
   }
 
@@ -350,12 +350,6 @@ struct fgm_t {
 
   struct shapes_t {
     struct global_t : fan::graphics::vfi_root_t, fan::graphics::imgui_element_t {
-
-      struct shape_data {
-        struct sprite_t {
-          fan::string image_name;
-        }sprite;
-      }shape_data;
 
       global_t() = default;
 
@@ -510,7 +504,7 @@ struct fgm_t {
             if (current_image != gloco->default_texture) {
               gloco->image_unload(current_image);
             }
-            shape->children[0].set_image(gloco->image_load(std::filesystem::absolute(content_browser.current_directory / path).string()));
+            shape->children[0].set_image(gloco->image_load(std::filesystem::absolute(std::filesystem::path(content_browser.asset_path) / path).string()));
             shape->children[0].set_tc_position(0);
             shape->children[0].set_tc_size(1);
             //fan::print(std::filesystem::path(path));
@@ -535,7 +529,7 @@ struct fgm_t {
             if (current_image != gloco->default_texture) {
               gloco->image_unload(current_image);
             }
-            shape->children[0].set_images({gloco->image_load(std::filesystem::absolute(content_browser.current_directory / path).string())});
+            shape->children[0].set_images({gloco->image_load(std::filesystem::absolute(std::filesystem::path(content_browser.asset_path) / path).string())});
             shape->children[0].set_tc_position(0);
             shape->children[0].set_tc_size(1);
             //fan::print(std::filesystem::path(path));
@@ -546,9 +540,24 @@ struct fgm_t {
         ImGui::Text("Normal map");
       }
 
+      {
+        int current_image_filter = gloco->image_get_settings(shape->children[0].get_image()).min_filter;
 
+        static const char* image_filters[] = {
+          "nearest", "linear"
+        };
+        if (ImGui::Combo("image filter", &current_image_filter, image_filters, std::size(image_filters))) {
+          fan::graphics::image_load_properties_t ilp;
+          ilp.min_filter = current_image_filter;
+          ilp.mag_filter = current_image_filter;
+          gloco->image_set_settings(shape->children[0].get_image(), ilp);
+          if (shape->children[0].get_images()[0].iic() == false) {
+            gloco->image_set_settings(shape->children[0].get_images()[0], ilp);
+          }
+        }
+      }
 
-      fan::string& current = shape->shape_data.sprite.image_name;
+      std::string& current = shape->children[0].get_image_data().image_path;
       fan::string str = current;
       str.resize(max_path_input);
       ImGui::Text("image name");
@@ -557,7 +566,6 @@ struct fgm_t {
         if (ImGui::IsItemDeactivatedAfterEdit()) {
           loco_t::texturepack_t::ti_t ti;
           if (texturepack.qti(str.c_str(), &ti)) {
-
             fan::print_no_space("failed to load texture:", str);
           }
           else {
@@ -749,7 +757,6 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
   fan::graphics::imgui_element_t main_view =
     fan::graphics::imgui_element_t(
       [&] {
-        fan::printcl(viewport_settings.editor_hovered, ImGui::IsMouseClicked(0));
         if (viewport_settings.editor_hovered && ImGui::IsMouseClicked(0) && !fan::graphics::vfi_root_t::moving_object) {
           drag_start = get_mouse_position();
         }
@@ -760,11 +767,11 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           drag_select.set_size(size / 2);
         }
         else if (ImGui::IsMouseReleased(0)) {
+          fan::graphics::vfi_root_t::selected_objects.clear();
           if (!fan::graphics::vfi_root_t::moving_object &&
             (drag_select.get_size().x >= 1 && drag_select.get_size().y >= 1)) {
             auto it = shape_list.GetNodeFirst();
             int i = 0;
-            fan::graphics::vfi_root_t::selected_objects.clear();
             while (it != shape_list.dst) {
               auto& shape = shape_list[it];
               if (fan_2d::collision::rectangle::check_collision(
@@ -780,6 +787,30 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
                 shape->disable_highlight();
               }
               it = it.Next(&shape_list);
+            }
+          }
+          else {
+            auto it = shape_list.GetNodeFirst();
+            bool is_hovering = false;
+            while (it != shape_list.dst) {
+              auto& shape = shape_list[it];
+              if (fan_2d::collision::rectangle::point_inside_no_rotation(
+                get_mouse_position(),
+                shape->children[0].get_position(),
+                shape->children[0].get_size()
+              )) {
+                  is_hovering = true;
+                  break;
+              }
+              it = it.Next(&shape_list);
+            }
+            if (is_hovering) {
+              it = shape_list.GetNodeFirst();
+              while (it != shape_list.dst) {
+                auto& shape = shape_list[it];
+                shape->disable_highlight();
+                it = it.Next(&shape_list);
+              }
             }
           }
           drag_select.set_size(fan::vec2(0));
@@ -810,10 +841,9 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           fan::vec2 ratio = viewport_size / viewport_size.max();
           fan::vec2 s = viewport_size;
 
-          if (ImGui::IsMouseClicked(0)) {
-            fan::graphics::vfi_root_t::g_ignore_mouse = !ImGui::IsWindowHovered();
-          }
           viewport_settings.editor_hovered = ImGui::IsWindowHovered();
+          fan::graphics::vfi_root_t::g_ignore_mouse = !viewport_settings.editor_hovered;
+          //fan::print(viewport_settings.editor_hovered);
 
           auto& style = ImGui::GetStyle();
           fan::vec2 frame_padding = style.FramePadding;
@@ -921,6 +951,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
             fin(fn);
           }
           open_file_dialog.finished = false;
+          ImGui::End();
           return;
         }
         if (save_file_dialog.is_finished()) {
@@ -990,123 +1021,121 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
 
         ImGui::End();
 
-        {
-          ImGui::Begin("Animations");
+      //  {
+      //    ImGui::Begin("Animations");
 
-          ImGui::Columns(2, "mycolumns", false);
+      //    ImGui::Columns(2, "mycolumns", false);
 
-          ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x * 0.2f);
-          int current_item = editable_list_box(items);
+      //    ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x * 0.2f);
+      //    int current_item = editable_list_box(items);
 
-          ImGui::NextColumn();
-          ImGui::BeginChild("child");
+      //    ImGui::NextColumn();
+      //    ImGui::BeginChild("child");
 
-          static bool play = false;
-          if (ImGui::Button("Play")) {
-            play = true;
+      //    static bool play = false;
+      //    if (ImGui::Button("Play")) {
+      //      play = true;
 
-          }
-          ImGui::InputInt("fps", &animations[items[current_item]].fps);
+      //    }
+      //    ImGui::InputInt("fps", &animations[items[current_item]].fps);
 
-          if (play) { 
-            auto& animation = animations[items[current_item]];
-            float frame_duration = 1.0f / animation.fps;
-            static float elapsed_time = 0.0f;
-            static int current_frame = 0; 
+      //    if (play) { 
+      //      auto& animation = animations[items[current_item]];
+      //      float frame_duration = 1.0f / animation.fps;
+      //      static float elapsed_time = 0.0f;
+      //      static int current_frame = 0; 
 
-            for (auto& obj : fan::graphics::vfi_root_t::selected_objects) {
-              
-              if (animation.tcs.size()) {
-                auto& frame = animation.tcs[current_frame];
-                obj->children[0].set_image(frame.image);
-                obj->children[0].set_tc_position(frame.position);
-                obj->children[0].set_tc_size(frame.size);
-              }
-            }
-           
-            if (animation.tcs.size()) {
-              elapsed_time += gloco->delta_time; 
-              if (elapsed_time >= frame_duration) {
-                elapsed_time = 0.0f; 
-                current_frame = (current_frame + 1) % animation.tcs.size();
-              }
-            }
-            
-          }
+      //      for (auto& obj : fan::graphics::vfi_root_t::selected_objects) {
+      //        
+      //        if (animation.tcs.size()) {
+      //          auto& frame = animation.tcs[current_frame];
+      //          obj->children[0].set_image(frame.image);
+      //          obj->children[0].set_tc_position(frame.position);
+      //          obj->children[0].set_tc_size(frame.size);
+      //        }
+      //      }
+      //     
+      //      if (animation.tcs.size()) {
+      //        elapsed_time += gloco->delta_time; 
+      //        if (elapsed_time >= frame_duration) {
+      //          elapsed_time = 0.0f; 
+      //          current_frame = (current_frame + 1) % animation.tcs.size();
+      //        }
+      //      }
+      //      
+      //    }
 
-        if (ImGui::Button("Select frames")) {
-          image_divider.render_select_frames = true;
-        }
+      //  if (ImGui::Button("Select frames")) {
+      //    image_divider.render_select_frames = true;
+      //  }
 
-        if (image_divider.render_select_frames) {
-          if (image_divider.render() == false) {
-            if (current_item != -1) {
-              int index = 0;
-              animations[items[current_item]].tcs.clear();
-              for (auto& item : image_divider.clicked_images) {
-                if (item.highlight == false) {
-                  continue;
-                }
-                int row = index % image_divider.horizontal_line_count;
-                int col = index / image_divider.horizontal_line_count;
-                animation_t::texture_coordinates_t tc;
-                auto& img = image_divider.images[col][row];
-                tc.position = img.uv_pos;
-                tc.size = img.uv_size;
-                tc.image = img.image;
+      //  if (image_divider.render_select_frames) {
+      //    if (image_divider.render() == false) {
+      //      if (current_item != -1) {
+      //        int index = 0;
+      //        animations[items[current_item]].tcs.clear();
+      //        for (auto& item : image_divider.clicked_images) {
+      //          if (item.highlight == false) {
+      //            continue;
+      //          }
+      //          int row = index % image_divider.horizontal_line_count;
+      //          int col = index / image_divider.horizontal_line_count;
+      //          animation_t::texture_coordinates_t tc;
+      //          auto& img = image_divider.images[col][row];
+      //          tc.position = img.uv_pos;
+      //          tc.size = img.uv_size;
+      //          tc.image = img.image;
 
-                animations[items[current_item]].tcs.push_back(tc);
-                index += 1;
-              }
-            }
-          }
-        }
+      //          animations[items[current_item]].tcs.push_back(tc);
+      //          index += 1;
+      //        }
+      //      }
+      //    }
+      //  }
 
-        f32_t padding = 16.0f;
-        float thumbnail_size = 128.0f;
-        float panel_width = ImGui::GetContentRegionAvail().x;
-        int column_count = std::max((int)(panel_width / (thumbnail_size + padding)), 1);
+      //  f32_t padding = 16.0f;
+      //  float thumbnail_size = 128.0f;
+      //  float panel_width = ImGui::GetContentRegionAvail().x;
+      //  int column_count = std::max((int)(panel_width / (thumbnail_size + padding)), 1);
 
-        ImGui::Columns(column_count, 0, false);
-        int index = 0;
-        if (!items.empty()) {
-          auto& animation = animations[items[current_item]];
-          for (auto& tc : animation.tcs) {
-            ImGui::PushID(index);
-            ImGui::ImageButton(("##animation_image" + std::to_string(index)).c_str(), tc.image, fan::vec2(thumbnail_size), tc.position, tc.position + tc.size);
-            if (ImGui::BeginDragDropTarget()) {
-              if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("frames_payload")) {
-                int swap_index = *(int*)payload->Data;
-                std::swap(tc, animation.tcs[swap_index]);
-              }
-              if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
-                const wchar_t* path = (const wchar_t*)payload->Data;
-                tc.image = gloco->image_load(std::filesystem::absolute(content_browser.current_directory / path).string());
-                tc.position = 0;
-                tc.size = 1;
-                //fan::print(std::filesystem::path(path));
-              }
+      //  ImGui::Columns(column_count, 0, false);
+      //  int index = 0;
+      //  if (!items.empty()) {
+      //    auto& animation = animations[items[current_item]];
+      //    for (auto& tc : animation.tcs) {
+      //      ImGui::PushID(index);
+      //      ImGui::ImageButton(("##animation_image" + std::to_string(index)).c_str(), tc.image, fan::vec2(thumbnail_size), tc.position, tc.position + tc.size);
+      //      if (ImGui::BeginDragDropTarget()) {
+      //        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("frames_payload")) {
+      //          int swap_index = *(int*)payload->Data;
+      //          std::swap(tc, animation.tcs[swap_index]);
+      //        }
+      //        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+      //          const wchar_t* path = (const wchar_t*)payload->Data;
+      //          tc.image = gloco->image_load(std::filesystem::absolute(content_browser.current_directory / path).string());
+      //          tc.position = 0;
+      //          tc.size = 1;
+      //          //fan::print(std::filesystem::path(path));
+      //        }
 
-              ImGui::EndDragDropTarget();
-            }
+      //        ImGui::EndDragDropTarget();
+      //      }
 
-            if (ImGui::BeginDragDropSource()) {
-              ImGui::SetDragDropPayload("frames_payload", &index, sizeof(index));
-              ImGui::EndDragDropSource();
-            }
-            ImGui::NextColumn();
-            ImGui::PopID();
-            index++;
-          }
-        }
+      //      if (ImGui::BeginDragDropSource()) {
+      //        ImGui::SetDragDropPayload("frames_payload", &index, sizeof(index));
+      //        ImGui::EndDragDropSource();
+      //      }
+      //      ImGui::NextColumn();
+      //      ImGui::PopID();
+      //      index++;
+      //    }
+      //  }
 
-        ImGui::EndChild();
-        ImGui::Columns(1);
+      //  ImGui::EndChild();
+       // ImGui::Columns(1);
 
-        ImGui::Columns(1);
-
-        ImGui::End();
-      }
+      //  ImGui::End();
+      //}
 });
   /*
   header 4 byte
@@ -1134,14 +1163,12 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
         fan::graphics::shape_serialize(shape, &shape_json);
         shape_json["id"] = shape_instance->id;
         shape_json["group_id"] = shape_instance->group_id;
-        shape_json["image_name"] = shape_instance->shape_data.sprite.image_name;
         break;
       }
       case loco_t::shape_type_t::unlit_sprite: {
         fan::graphics::shape_serialize(shape, &shape_json);
         shape_json["id"] = shape_instance->id;
         shape_json["group_id"] = shape_instance->group_id;
-        shape_json["image_name"] = shape_instance->shape_data.sprite.image_name;
         break;
       }
       case loco_t::shape_type_t::rectangle: {
@@ -1171,8 +1198,8 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
 
   void load_tp(fgm_t::shape_list_NodeData_t& node) {
     loco_t::texturepack_t::ti_t ti;
-    if (texturepack.qti(node->shape_data.sprite.image_name, &ti)) {
-      fan::print_no_space("failed to load texture:", node->shape_data.sprite.image_name);
+    if (texturepack.qti(node->children[0].get_image_data().image_path, &ti)) {
+      fan::print_no_space("non texturepack texture or failed to load texture:", node->children[0].get_image_data().image_path);
     }
     else {
       auto& data = texturepack.get_pixel_data(ti.pack_id);
@@ -1220,7 +1247,6 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
         const auto& shape_json = *(iterator.data.it - 1);
         node->id = shape_json["id"].get<fan::string>();
         node->group_id = shape_json["group_id"].get<uint32_t>();
-        node->shape_data.sprite.image_name = shape_json["image_name"].get<fan::string>();
 
         load_tp(node);
         break;
@@ -1235,7 +1261,6 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
         const auto& shape_json = *(iterator.data.it - 1);
         node->id = shape_json["id"].get<fan::string>();
         node->group_id = shape_json["group_id"].get<uint32_t>();
-        node->shape_data.sprite.image_name = shape_json["image_name"].get<fan::string>();
 
         load_tp(node);
         break;

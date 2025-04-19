@@ -962,7 +962,7 @@ namespace fan {
         if (ImGui::BeginDragDropTarget()) {
           if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
             const wchar_t* path = (const wchar_t*)payload->Data;
-            receive_func(std::filesystem::absolute(current_directory / path));
+            receive_func(std::filesystem::absolute(std::filesystem::path(asset_path) / path));
             //fan::print(std::filesystem::path(path));
           }
           ImGui::EndDragDropTarget();

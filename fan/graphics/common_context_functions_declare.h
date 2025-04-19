@@ -29,7 +29,8 @@
   build_function(image_erase, void, fan::graphics::image_nr_t nr) \
   build_function(image_bind, void, fan::graphics::image_nr_t nr) \
   build_function(image_unbind, void, fan::graphics::image_nr_t nr) \
-  build_function(image_set_settings, void, const image_load_properties_t& p) \
+  build_function(image_get_settings, image_load_properties_t&,  fan::graphics::image_nr_t nr) \
+  build_function(image_set_settings, void,  fan::graphics::image_nr_t nr, const image_load_properties_t& p) \
   build_function(image_load_info, fan::graphics::image_nr_t, const fan::image::image_info_t& image_info) \
   build_function(image_load_info_props, fan::graphics::image_nr_t, const fan::image::image_info_t& image_info, const image_load_properties_t& p) \
   build_function(image_load_path, fan::graphics::image_nr_t, const std::string& path) \

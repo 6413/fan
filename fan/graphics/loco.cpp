@@ -156,8 +156,12 @@ void loco_t::image_unbind(fan::graphics::image_nr_t nr) {
   context_functions.image_unbind(&context, nr);
 }
 
-void loco_t::image_set_settings(const fan::graphics::image_load_properties_t& settings) {
-  context_functions.image_set_settings(&context, settings);
+fan::graphics::image_load_properties_t& loco_t::image_get_settings(fan::graphics::image_nr_t nr) {
+  return context_functions.image_get_settings(&context, nr);
+}
+
+void loco_t::image_set_settings(fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings) {
+  context_functions.image_set_settings(&context, nr, settings);
 }
 
 fan::graphics::image_nr_t loco_t::image_load(const fan::image::image_info_t& image_info) {
@@ -1016,6 +1020,9 @@ loco_t::functions_t loco_t::get_functions() {
         delete[] KeyPack;
         delete[] vi;
         delete[] ri;
+      },
+      .get_image_data = [](shape_t* shape) -> fan::graphics::image_data_t& {
+        return gloco->image_list[shape->get_image()];
       },
       .get_parallax_factor = [](shape_t* shape) {
         if constexpr (fan_has_variable(T, parallax_factor)) {
@@ -3012,6 +3019,10 @@ void loco_t::shape_t::set_image(loco_t::image_t image) {
   gloco->shape_functions[get_shape_type()].set_image(this, image);
 }
 
+fan::graphics::image_data_t& loco_t::shape_t::get_image_data() {
+  return gloco->shape_functions[get_shape_type()].get_image_data(this);
+}
+
 std::array<loco_t::image_t, 30> loco_t::shape_t::get_images() {
   auto shape_type = get_shape_type();
   if (shape_type == shape_type_t::sprite) {
@@ -4061,8 +4072,15 @@ bool fan::graphics::shape_to_json(loco_t::shape_t& shape, fan::json* json) {
     out["color"] = shape.get_color();
     out["angle"] = shape.get_angle();
     out["flags"] = shape.get_flags();
+    out["image_path"] = shape.get_image_data().image_path;
     out["tc_position"] = shape.get_tc_position();
     out["tc_size"] = shape.get_tc_size();
+    fan::graphics::image_load_properties_t lp = gloco->image_get_settings(shape.get_image());
+    out["image_visual_output"] = lp.visual_output;
+    out["image_format"] = lp.format;
+    out["image_type"] = lp.type;
+    out["image_min_filter"] = lp.min_filter;
+    out["image_mag_filter"] = lp.mag_filter;
     break;
   }
   case loco_t::shape_type_t::unlit_sprite: {
@@ -4074,8 +4092,15 @@ bool fan::graphics::shape_to_json(loco_t::shape_t& shape, fan::json* json) {
     out["color"] = shape.get_color();
     out["angle"] = shape.get_angle();
     out["flags"] = shape.get_flags();
+    out["image_path"] = shape.get_image_data().image_path;
     out["tc_position"] = shape.get_tc_position();
     out["tc_size"] = shape.get_tc_size();
+    fan::graphics::image_load_properties_t lp = gloco->image_get_settings(shape.get_image());
+    out["image_visual_output"] = lp.visual_output;
+    out["image_format"] = lp.format;
+    out["image_type"] = lp.type;
+    out["image_min_filter"] = lp.min_filter;
+    out["image_mag_filter"] = lp.mag_filter;
     break;
   }
   case loco_t::shape_type_t::text: {
@@ -4177,6 +4202,25 @@ bool fan::graphics::json_to_shape(const fan::json& in, loco_t::shape_t* shape) {
     p.tc_position = in["tc_position"];
     p.tc_size = in["tc_size"];
     *shape = p;
+    fan::graphics::image_load_properties_t lp;
+    if (in.contains("image_visual_output")) {
+      lp.visual_output = in["image_visual_output"];
+    }
+    if (in.contains("image_format")) {
+      lp.format = in["image_format"];
+    }
+    if (in.contains("image_type")) {
+      lp.type = in["image_type"];
+    }
+    if (in.contains("image_min_filter")) {
+      lp.min_filter = in["image_min_filter"];
+    }
+    if (in.contains("image_mag_filter")) {
+      lp.mag_filter = in["image_mag_filter"];
+    }
+    if (in.contains("image_path")) {
+      shape->set_image(gloco->image_load(in["image_path"], lp));
+    }
     break;
   }
   case fan::get_hash("unlit_sprite"): {
@@ -4192,6 +4236,28 @@ bool fan::graphics::json_to_shape(const fan::json& in, loco_t::shape_t* shape) {
     p.tc_position = in["tc_position"];
     p.tc_size = in["tc_size"];
     *shape = p;
+    fan::graphics::image_load_properties_t lp;
+    if (in.contains("image_visual_output")) {
+      lp.visual_output = in["image_visual_output"];
+    }
+    if (in.contains("image_format")) {
+      lp.format = in["image_format"];
+    }
+    if (in.contains("image_type")) {
+      lp.type = in["image_type"];
+    }
+    if (in.contains("image_min_filter")) {
+      lp.min_filter = in["image_min_filter"];
+    }
+    if (in.contains("image_mag_filter")) {
+      lp.mag_filter = in["image_mag_filter"];
+    }
+    if (in.contains("image_path")) {
+      shape->set_image(gloco->image_load(in["image_path"], lp));
+    }
+    if (in.contains("image_path")) {
+      shape->set_image(gloco->image_load(in["image_path"]));
+    }
     break;
   }
   case fan::get_hash("circle"): {
@@ -4284,6 +4350,13 @@ bool fan::graphics::shape_to_bin(loco_t::shape_t& shape, std::vector<uint8_t>* d
     fan::write_to_vector(out, shape.get_color());
     fan::write_to_vector(out, shape.get_angle());
     fan::write_to_vector(out, shape.get_flags());
+    fan::write_to_vector(out, shape.get_image_data().image_path);
+    fan::graphics::image_load_properties_t ilp = gloco->image_get_settings(shape.get_image());
+    fan::write_to_vector(out, ilp.visual_output);
+    fan::write_to_vector(out, ilp.format);
+    fan::write_to_vector(out, ilp.type);
+    fan::write_to_vector(out, ilp.min_filter);
+    fan::write_to_vector(out, ilp.mag_filter);
     fan::write_to_vector(out, shape.get_tc_position());
     fan::write_to_vector(out, shape.get_tc_size());
     break;
@@ -4296,6 +4369,13 @@ bool fan::graphics::shape_to_bin(loco_t::shape_t& shape, std::vector<uint8_t>* d
     fan::write_to_vector(out, shape.get_color());
     fan::write_to_vector(out, shape.get_angle());
     fan::write_to_vector(out, shape.get_flags());
+    fan::write_to_vector(out, shape.get_image_data().image_path);
+    fan::graphics::image_load_properties_t ilp = gloco->image_get_settings(shape.get_image());
+    fan::write_to_vector(out, ilp.visual_output);
+    fan::write_to_vector(out, ilp.format);
+    fan::write_to_vector(out, ilp.type);
+    fan::write_to_vector(out, ilp.min_filter);
+    fan::write_to_vector(out, ilp.mag_filter);
     fan::write_to_vector(out, shape.get_tc_position());
     fan::write_to_vector(out, shape.get_tc_size());
     break;
@@ -4396,9 +4476,20 @@ bool fan::graphics::bin_to_shape(const std::vector<uint8_t>& in, loco_t::shape_t
     p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
     p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
     p.flags = fan::vector_read_data<decltype(p.flags)>(in, offset);
+
+    std::string image_path = fan::vector_read_data<std::string>(in, offset);
+    fan::graphics::image_load_properties_t ilp;
+    ilp.visual_output = fan::vector_read_data<decltype(ilp.visual_output)>(in, offset);
+    ilp.format = fan::vector_read_data<decltype(ilp.format)>(in, offset);
+    ilp.type = fan::vector_read_data<decltype(ilp.type)>(in, offset);
+    ilp.min_filter = fan::vector_read_data<decltype(ilp.min_filter)>(in, offset);
+    ilp.mag_filter = fan::vector_read_data<decltype(ilp.mag_filter)>(in, offset);
     p.tc_position = fan::vector_read_data<decltype(p.tc_position)>(in, offset);
     p.tc_size = fan::vector_read_data<decltype(p.tc_size)>(in, offset);
     *shape = p;
+    if (image_path.size()) {
+      shape->set_image(gloco->image_load(image_path, ilp));
+    }
     break;
   }
   case loco_t::shape_type_t::unlit_sprite: {
@@ -4410,9 +4501,19 @@ bool fan::graphics::bin_to_shape(const std::vector<uint8_t>& in, loco_t::shape_t
     p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
     p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
     p.flags = fan::vector_read_data<decltype(p.flags)>(in, offset);
+    std::string image_path = fan::vector_read_data<std::string>(in, offset);
+    fan::graphics::image_load_properties_t ilp;
+    ilp.visual_output = fan::vector_read_data<decltype(ilp.visual_output)>(in, offset);
+    ilp.format = fan::vector_read_data<decltype(ilp.format)>(in, offset);
+    ilp.type = fan::vector_read_data<decltype(ilp.type)>(in, offset);
+    ilp.min_filter = fan::vector_read_data<decltype(ilp.min_filter)>(in, offset);
+    ilp.mag_filter = fan::vector_read_data<decltype(ilp.mag_filter)>(in, offset);
     p.tc_position = fan::vector_read_data<decltype(p.tc_position)>(in, offset);
     p.tc_size = fan::vector_read_data<decltype(p.tc_size)>(in, offset);
     *shape = p;
+    if (image_path.size()) {
+      shape->set_image(gloco->image_load(image_path, ilp));
+    }
     break;
   }
   case loco_t::shape_type_t::circle: {

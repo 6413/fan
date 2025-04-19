@@ -33,20 +33,23 @@ void main() {
   else if (draw_mode == 1) { // normal calculation
     vec3 normal_tangent = texture(_t02, texture_coordinate).rgb * 2.0 - 1.0;
     vec3 normal_world = normalize(normal_tangent);
-
     vec3 corrected_frag_coord = vec3(gl_FragCoord.x, window_size.y - gl_FragCoord.y, gl_FragCoord.z);
-
     vec4 light_map = texture(_t01, gl_FragCoord.xy / window_size);
     vec3 light_dir = normalize(vec3(light_map.r * 2.0 - 1.0, light_map.g * 2.0 - 1.0, 1.0));
-
     float diff = max(dot(normal_world, light_dir), 0.0);
-
     vec3 normal_shading = normal_world * 0.5 + 0.5;
 
-    vec3 ambient = lighting_ambient * tex_color.rgb * normal_shading;
+    //vec3 ambient = lighting_ambient * tex_color.rgb * normal_shading;
+    //vec3 lighting = ambient + diff * tex_color.rgb * light_map.rgb;
+    //o_attachment0 = vec4(lighting, tex_color.a);
 
-    vec3 lighting = ambient + diff * tex_color.rgb * light_map.rgb;
-
+    vec3 ambient = lighting_ambient * tex_color.rgb;
+    
+    vec3 normal_influence = mix(vec3(1.0), normal_shading, 0.5);
+    vec3 ambient_with_normals = ambient * normal_influence;
+    
+    vec3 diffuse = diff * tex_color.rgb * light_map.rgb;
+    vec3 lighting = ambient_with_normals + diffuse;
     o_attachment0 = vec4(lighting, tex_color.a);
   }
 }
