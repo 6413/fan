@@ -315,7 +315,8 @@ struct loco_t {
   void image_erase(fan::graphics::image_nr_t nr);
   void image_bind(fan::graphics::image_nr_t nr);
   void image_unbind(fan::graphics::image_nr_t nr);
-  void image_set_settings(const fan::graphics::image_load_properties_t& settings);
+  fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_nr_t nr);
+  void image_set_settings(fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings);
   fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info);
   fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p);
   fan::graphics::image_nr_t image_load(const fan::string& path);
@@ -550,6 +551,8 @@ struct loco_t {
   using get_image_cb = loco_t::image_t(*)(shape_t*);
   using set_image_cb = void (*)(shape_t*, loco_t::image_t);
 
+  using get_image_data_cb = fan::graphics::image_data_t&(*)(shape_t*);
+
   using get_parallax_factor_cb = f32_t (*)(shape_t*);
   using set_parallax_factor_cb = void (*)(shape_t*, f32_t);
   using get_rotation_vector_cb = fan::vec3 (*)(shape_t*);
@@ -609,6 +612,8 @@ struct loco_t {
 
     get_image_cb get_image;
     set_image_cb set_image;
+
+    get_image_data_cb get_image_data;
 
     get_parallax_factor_cb get_parallax_factor;
     set_parallax_factor_cb set_parallax_factor;
@@ -1274,6 +1279,7 @@ public:
 
     loco_t::image_t get_image();
     void set_image(loco_t::image_t image);
+    fan::graphics::image_data_t& get_image_data();
 
     std::array<loco_t::image_t, 30> get_images();
     void set_images(const std::array<loco_t::image_t, 30>& images);

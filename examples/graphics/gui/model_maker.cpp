@@ -9,10 +9,10 @@ int main(int argc, char** argv) {
   //////////
   //////////
   loco_t loco;
-
+  
   model_maker_t mm;////
 
-  mm.open("texture_packs/TexturePack", L"images");
+  mm.open("texture_packs/TexturePack", L"examples/games/puzzle");
   //if(argc == 3){
     //mm.load("ship.json");
   //}
