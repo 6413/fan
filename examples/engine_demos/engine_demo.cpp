@@ -94,7 +94,7 @@ struct engine_demo_t {
 
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     
-    static auto image_background = engine_demo->engine.image_create(fan::color(0, 0, 0, 1));
+    static auto image_background = engine_demo->engine.image_create(fan::color(0.5, 0.5, 0.5, 1));
     // bg
     engine_demo->shapes.emplace_back(fan::graphics::sprite_t{{
       .camera = &engine_demo->right_column_view,
