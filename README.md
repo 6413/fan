@@ -62,9 +62,9 @@ Requires c++20
           .color = fan::colors::red
       }};
       
-      loco.loop([&] {
+      fan_window_loop{
     
-      });
+      };
     }
     ```
 - Text rendering:
@@ -74,10 +74,10 @@ Requires c++20
   int main() {
     loco_t loco;
   
-    loco.loop([&] {
-      fan::graphics::text("top left", fan::vec2(0, 0), fan::colors::red);
-      fan::graphics::text_bottom_right("bottom right", fan::colors::green);
-    });
+    fan_window_loop{
+      fan::graphics::gui::text("top left", fan::vec2(0, 0), fan::colors::red);
+      fan::graphics::gui::text_bottom_right("bottom right", fan::colors::green);
+    };
   
     return 0;
   }
