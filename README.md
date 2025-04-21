@@ -87,8 +87,12 @@ Check out the [examples](examples/) directory for sample projects demonstrating 
 
 ## Demos
 
-#### Game demo using fan
+A game demo using fan
 ![image](https://github.com/6413/fan/assets/56801084/973f2fa6-fcd7-4b6a-b66b-b92eefae9bba)
+
+[A program that demonstrates the engine's features](examples/engine_demos/engine_demo.cpp)
+![image](https://github.com/user-attachments/assets/3b6af145-c91e-4cfd-89b3-9fa2e93905c8)
+
 
 Developer console support (F3)
 ![image](https://github.com/6413/fan/assets/56801084/7556ce24-ba0f-43c6-85d6-b951351bb59c)
