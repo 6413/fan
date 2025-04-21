@@ -12,9 +12,15 @@ int main(int argc, char** argv) {
   fan::audio::set_volume(0.01);
   f32_t volume = fan::audio::get_volume();
 
+
   engine.loop([&] {
     ImGui::Begin("audio controls");
-    if (fan::graphics::audio_button("click me")) {
+    if (fan::graphics::is_mouse_clicked()) {
+      fan::print("A");
+    }
+
+    for (int i = 0; i < 100; ++i)
+    if (fan::graphics::audio_button("click me" + std::to_string(i))) {
 
     }
     if (ImGui::Button("toggle pause")) {
