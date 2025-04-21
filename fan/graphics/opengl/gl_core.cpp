@@ -409,7 +409,7 @@ bool shader_check_compile_errors(fan::graphics::shader_data_t& common_shader, co
 
     get_info_log(program, vertex ? shader.vertex : shader.fragment, buffer, buffer_size);
 
-    fan::print("failed to compile: " + type, "filenames", common_shader.svertex, common_shader.sfragment, buffer);
+    fan::print("failed to compile: " + type, buffer, "filenames", common_shader.svertex, common_shader.sfragment);
 
     return false;
   }

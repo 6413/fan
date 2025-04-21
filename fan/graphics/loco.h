@@ -1205,6 +1205,15 @@ public:
   private:
   };
 
+  struct light_flags_e {
+    enum {
+      circle = 0,
+      square = 1 << 0,
+      beam = 1 << 1,
+      additive = 1 << 2,
+      multiplicative = 1 << 3,
+    };
+  };
 
   struct light_t {
 
@@ -1415,7 +1424,7 @@ public:
       fan::vec2 rotation_point = 0;
       fan::color color = fan::colors::white;
       fan::vec3 angle = fan::vec3(0);
-      uint32_t flags = 0;
+      uint32_t flags = light_flags_e::circle | light_flags_e::additive;
       fan::vec2 tc_position = 0;
       fan::vec2 tc_size = 1;
       f32_t seed = 0;

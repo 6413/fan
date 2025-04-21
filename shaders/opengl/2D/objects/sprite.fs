@@ -6,6 +6,8 @@ in vec2 texture_coordinate;
 in vec4 instance_color;
 in vec3 frag_position;
 
+flat in uint fs_flags;
+
 uniform sampler2D _t00; // texture
 uniform sampler2D _t01; // light map
 uniform sampler2D _t02; // normal map
@@ -22,11 +24,14 @@ void main() {
 
   if (draw_mode == 0) {
     vec4 lighting_texture = vec4(texture(_t01, gl_FragCoord.xy / window_size).rgb, 1);
-    //vec3 base_lit = tex_color.rgb * lighting_ambient;
-    //vec3 additive_light = lighting_texture.rgb;
-    //tex_color.rgb = base_lit + additive_light;
-
-    tex_color.rgb *= lighting_ambient + lighting_texture.rgb;
+    if (bool(fs_flags & 4u)) {
+      vec3 base_lit = tex_color.rgb * lighting_ambient;
+      vec3 additive_light = lighting_texture.rgb;
+      tex_color.rgb = base_lit + additive_light;
+    }
+    else if (bool(fs_flags & 8u)) {
+      tex_color.rgb *= lighting_ambient + lighting_texture.rgb;
+    }
 
     o_attachment0 = tex_color;
   }

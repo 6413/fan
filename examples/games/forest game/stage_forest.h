@@ -62,7 +62,7 @@ void close() {
 void update() {
   ImGui::Begin("A");
   static bool v = 0;
-  ImGui::ToggleButton("lightning", &v);
+  fan::graphics::gui::toggle_button("lightning", &v);
   ImGui::End();
   if (fan::physics::is_on_sensor(pile.player.player, player_sensor_door)) {
     if (pile.loco.lighting.ambient > -1) {
