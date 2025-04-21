@@ -177,11 +177,8 @@ int main(int argc, char** argv) {
     if (filename.contains("tileset.png")) {
       std::string image_path = fs_watcher.watch_path + "tileset.png";
       loco_t::image_t img = loco.image_load(image_path);
-      fan::vec2 size = 0;
-      auto img_d = loco.image_get(img);
-      std::visit([&size](auto& v) ->void {
-        size = v.size;
-      }, *dynamic_cast<fan::graphics::context_image_init_t*>(&img_d));
+      auto& img_data = loco.image_get_data(img);
+      fan::vec2 size = img_data.size;
       fan::vec2 img_size = size;
       size = img_size / 128;
       loco.image_unload(img);
@@ -227,7 +224,7 @@ int main(int argc, char** argv) {
         player->player_light.set_position(player->player.get_position()-player->player.get_size());
         player->player.process_movement(fan::graphics::physics::character2d_t::movement_e::top_view);
         renderer->update(*map_id0_t, dst);
-        loco.set_imgui_viewport(camera1.viewport);
+        fan::graphics::gui::set_viewport(camera1.viewport);
         loco.physics_context.step(loco.delta_time);
 
         loco.viewport_zero(
