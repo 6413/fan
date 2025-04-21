@@ -54,7 +54,7 @@ Requires c++20
     #include <fan/pch.h>
 
     int main() {
-      loco_t loco;
+      fan::graphics::engine_t engine;
     
       fan::graphics::rectangle_t rect{{
           .position = 400,
@@ -72,7 +72,7 @@ Requires c++20
   #include <fan/pch.h>
   
   int main() {
-    loco_t loco;
+    fan::graphics::engine_t engine;
   
     fan_window_loop{
       fan::graphics::gui::text("top left", fan::vec2(0, 0), fan::colors::red);
