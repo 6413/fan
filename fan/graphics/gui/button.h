@@ -65,7 +65,7 @@ struct button_t {
     get_key_value(loco_t::camera_list_NodeReference_t) = p.camera;
     get_key_value(fan::graphics::viewport_list_NodeReference_t) = p.viewport;
 
-    #if defined(loco_vulkan)
+    #if defined(fan_vulkan)
       auto& camera = gloco->camera_list[p.camera];
       if (camera.camera_index.button == (decltype(camera.camera_index.button))-1) {
         camera.camera_index.button = m_camera_index++;
@@ -419,7 +419,7 @@ struct button_t {
     return ri.original_size;
   }
 
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
   uint32_t m_camera_index = 0;
   #endif
 };

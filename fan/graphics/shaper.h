@@ -257,7 +257,7 @@ struct shaper_t{
       bool instanced = true;
       GLsizei vertex_count = 6;
     };
-    #if defined(loco_vulkan)
+    #if defined(fan_vulkan)
     struct vk_t {
       vk_t() = default;
       fan::vulkan::context_t::pipeline_t pipeline;
@@ -267,7 +267,7 @@ struct shaper_t{
     #endif
     std::variant<
       gl_t
-      #if defined(loco_vulkan)
+      #if defined(fan_vulkan)
       ,vk_t
       #endif
     > renderer;
@@ -499,7 +499,7 @@ struct shaper_t{
       if (std::holds_alternative<ShapeType_t::gl_t>(d.renderer)) {
         return std::get<ShapeType_t::gl_t>(d.renderer).shader;
       }
-      #if defined(loco_vulkan)
+      #if defined(fan_vulkan)
       if (std::holds_alternative<ShapeType_t::vk_t>(d.renderer)) {
         return std::get<ShapeType_t::vk_t>(d.renderer).pipeline.shader_nr;
       }
@@ -622,7 +622,7 @@ struct shaper_t{
       GLuint draw_mode = GL_TRIANGLES;
       GLsizei vertex_count = 6;
     };
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
     struct vk_t {
       vk_t() = default;
       fan::vulkan::context_t::pipeline_t pipeline;
@@ -632,7 +632,7 @@ struct shaper_t{
 #endif
     std::variant<
       gl_t
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
       ,vk_t
 #endif
     > renderer;
@@ -822,7 +822,7 @@ struct shaper_t{
       st.renderer = ShapeType_t::gl_t{};
       get_loco()->gl.add_shape_type(st, bp);
     }
-    #if defined(loco_vulkan)
+    #if defined(fan_vulkan)
     else if (std::holds_alternative<BlockProperties_t::vk_t>(bp.renderer)) {
       ShapeType_t::vk_t d;
       auto& bpr = std::get<BlockProperties_t::vk_t>(bp.renderer);
@@ -860,7 +860,7 @@ struct shaper_t{
           GL_ARRAY_BUFFER
         );
       }
-      #if defined(loco_vulkan)
+      #if defined(fan_vulkan)
       else if (std::holds_alternative<ShapeType_t::vk_t>(st.renderer)) {
         auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
         auto wrote = bu.MaxEdit - bu.MinEdit;
@@ -946,7 +946,7 @@ struct shaper_t{
         );
       }
     }
-    #if defined(loco_vulkan)
+    #if defined(fan_vulkan)
     else {
       auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
       while (traverse.Loop(&st.BlockList, &node_id)) {

@@ -516,7 +516,7 @@ namespace fan {
 
         #if !defined(__INTELLISENSE__)
         #define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
-          drag_float(name, &variable, speed, min, max)
+          fan::graphics::gui::drag_float(name, &variable, speed, m_min, m_max)
         #endif
 
         #define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
@@ -538,7 +538,7 @@ namespace fan {
         }
 
         using imgui_draw_cb_nr_t = ns_imgui_draw::imgui_draw_cb_NodeReference_t;
-        inline static ns_imgui_draw::imgui_draw_cb_t m_imgui_draw_cb;
+        inline ns_imgui_draw::imgui_draw_cb_t m_imgui_draw_cb;
 
         struct imgui_element_nr_t : imgui_draw_cb_nr_t {
           using base_t = imgui_draw_cb_nr_t;
@@ -594,7 +594,7 @@ namespace fan {
 
         static const char* item_getter1(const std::vector<std::string>& items, int index);
 
-        void set_imgui_viewport(fan::graphics::viewport_t viewport);
+        void set_viewport(fan::graphics::viewport_t viewport);
 
         /// <summary>
         /// Draws the specified button, with its position influenced by other GUI elements.

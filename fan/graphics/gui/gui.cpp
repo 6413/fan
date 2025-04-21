@@ -349,7 +349,7 @@ template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
   f32_t max
 );
 
-void fan::graphics::gui::set_imgui_viewport(fan::graphics::viewport_t viewport) {
+void fan::graphics::gui::set_viewport(fan::graphics::viewport_t viewport) {
   ImVec2 mainViewportPos = ImGui::GetMainViewport()->Pos;
 
   ImVec2 windowPos = ImGui::GetWindowPos();
@@ -467,7 +467,7 @@ bool fan::graphics::gui::audio_button(
 ) {
   ImGui::PushID(label.c_str());
   ImGuiStorage* storage = ImGui::GetStateStorage();
-  ImGuiID id = ImGui::GetID("prev_hovered");
+  ImGuiID id = ImGui::GetID("audio_button_prev_hovered");
   bool previously_hovered = storage->GetBool(id);
   
   bool pressed = ImGui::Button(label.c_str(), size);

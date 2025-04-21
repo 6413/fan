@@ -11,7 +11,7 @@
 
 #endif
 
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
 #include <vulkan/vulkan.h>
 #endif
 #if defined(fan_platform_windows)

@@ -902,11 +902,8 @@ struct fte_t {
 
       ii.image_name = image.image_name;
 
-      fan::vec2 size = 0;
-      auto img_d = gloco->image_get(texturepack.get_pixel_data(pack_id).image);
-      std::visit([&size](auto& v) ->void {
-        size = v.size;
-      }, *dynamic_cast<fan::graphics::context_image_init_t*>(&img_d));
+      auto& img_data = gloco->image_get_data(texturepack.get_pixel_data(pack_id).image);
+      fan::vec2 size = img_data.size;
 
       texturepack_images.push_back(ii);
       texturepack_size = texturepack_size.max(fan::vec2(size));
@@ -1040,20 +1037,17 @@ struct fte_t {
           }
           idx++;
           
-          auto img = gloco->image_get(*j.ti.image);
-          fan::vec2 size = 0;
-          std::visit([&size](auto& v) ->void {
-            size = v.size;
-          }, *dynamic_cast<fan::graphics::context_image_init_t*>(&img));
+          auto& img_data = gloco->image_get_data(*j.ti.image);
+          fan::vec2 size = img_data.size;
 
-          ImGui::ImageRotated(
-            (ImTextureID)gloco->image_get_handle(*j.ti.image),
+          fan::graphics::gui::image_rotated(
+            *j.ti.image,
             (tile_viewer_sprite_size / std::max(1.f, current_tile_brush_count.x / 5.f))  * viewport_settings.zoom,
             360.f - fan::math::degrees(brush.angle.z),
             j.ti.position / size,
             j.ti.position / size +
             j.ti.size / size,
-            ImVec4(1, 1, 1, 0.9)
+            fan::color(1, 1, 1, 0.9)
           );
         }
       }
@@ -1067,7 +1061,7 @@ struct fte_t {
         fan::vec2i grid_pos;
         if (window_relative_to_grid(cursor_position, &grid_pos)) {
           auto str = grid_pos.to_string();
-          ImGui::DrawTextBottomRight(str.c_str(), 0);
+          fan::graphics::gui::text_bottom_right(str.c_str(), 0);
         }
       }
 
@@ -1078,7 +1072,7 @@ struct fte_t {
           layer.text.resize(32);
           uint16_t depth = layer_pair.first;
           auto fmt = fan::format("Layer {}", depth - shape_depths_t::max_layer_depth / 2);
-          if (ImGui::ToggleButton(("Visible " + fmt).c_str(), &layer.visible)) {
+          if (fan::graphics::gui::toggle_button(("Visible " + fmt).c_str(), &layer.visible)) {
             static auto iterate_positions = [&] (auto l) {
               auto visual_found = visual_layers.find(depth);
               if (visual_found == visual_layers.end()) {
@@ -1297,15 +1291,13 @@ struct fte_t {
         fan::vec2i grid_index(i % images_per_row, i / images_per_row);
         bool selected = false;
 
-        auto img = gloco->image_get(*node.ti.image);
 
         fan::vec2 cursor_pos_global = ImGui::GetCursorScreenPos();
         sprite_size = fan::vec2(final_image_size * zoom);
 
-        fan::vec2 size = 0;
-        std::visit([&size](auto& v) ->void {
-          size = v.size;
-        }, *dynamic_cast<fan::graphics::context_image_init_t*>(&img));
+        auto& img_data = gloco->image_get_data(*node.ti.image);
+
+        fan::vec2 size = img_data.size;
 
         ImGui::ImageButton(
           (fan::string("##ibutton") + std::to_string(i)).c_str(),
@@ -1613,7 +1605,7 @@ struct fte_t {
         }
         {
           static bool default_value = 0;
-          if (ImGui::ToggleButton("Physics shape draw", &default_value)) {
+          if (fan::graphics::gui::toggle_button("Physics shape draw", &default_value)) {
             brush.physics_draw = default_value;
           }
         }
@@ -1625,13 +1617,13 @@ struct fte_t {
           if (fan_imgui_dragfloat_named("Physics shape density", shape_properties.density, 0.01, 0, 1)) {
             brush.physics_shape_properties.density = shape_properties.density;
           }
-          if (ImGui::ToggleButton("Physics shape fixed rotation", &shape_properties.fixed_rotation)) {
+          if (fan::graphics::gui::toggle_button("Physics shape fixed rotation", &shape_properties.fixed_rotation)) {
             brush.physics_shape_properties.fixed_rotation = shape_properties.fixed_rotation;
           }
-          if (ImGui::ToggleButton("Physics shape enable presolve events", &shape_properties.presolve_events)) {
+          if (fan::graphics::gui::toggle_button("Physics shape enable presolve events", &shape_properties.presolve_events)) {
             brush.physics_shape_properties.presolve_events = shape_properties.presolve_events;
           }
-          if (ImGui::ToggleButton("Is sensor", &shape_properties.is_sensor)) {
+          if (fan::graphics::gui::toggle_button("Is sensor", &shape_properties.is_sensor)) {
             brush.physics_shape_properties.is_sensor = shape_properties.is_sensor;
           }
         }
@@ -1748,8 +1740,8 @@ struct fte_t {
     ImGui::End();
   }
 
-  fan::graphics::imgui_element_t main_view =
-    fan::graphics::imgui_element_t([&] {handle_imgui(); });
+  fan::graphics::gui::imgui_element_t main_view =
+    fan::graphics::gui::imgui_element_t([&] {handle_imgui(); });
 
   /*
   * header
