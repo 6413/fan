@@ -309,7 +309,7 @@ void main() {
     engine_demo->engine.shader_set_value(engine_demo->demo_static_shader_shape_shader, "custom_color", engine_demo->custom_color);
   }
   static void demo_static_shader_shape_update(engine_demo_t* engine_demo) {
-    if (ImGui::ColorEdit4("##c0", engine_demo->custom_color.data())) {
+    if (fan::graphics::gui::color_edit4("##c0", &engine_demo->custom_color)) {
       engine_demo->engine.shader_set_value(engine_demo->demo_static_shader_shape_shader, "custom_color", engine_demo->custom_color);
     }
   }
@@ -390,10 +390,10 @@ void main() {
     fan::vec2 dst = engine_demo->demo_physics_mirrors_data->user_ray.get_dst();
     engine_demo->demo_physics_mirrors_data->user_ray.set_line(src, dst);
     bool mouse_inside_viewport = engine_demo->engine.inside_wir(engine_demo->right_column_view.viewport, get_mouse_position(engine_demo->right_column_view));
-    if (is_mouse_down(fan::mouse_right) && mouse_inside_viewport) {
+    if (fan::window::is_mouse_down(fan::mouse_right) && mouse_inside_viewport) {
       engine_demo->demo_physics_mirrors_data->user_ray.set_line(get_mouse_position(engine_demo->right_column_view), dst);
     }
-    if (is_mouse_down() && mouse_inside_viewport) {
+    if (fan::window::is_mouse_down() && mouse_inside_viewport) {
       engine_demo->demo_physics_mirrors_data->user_ray.set_line(src, get_mouse_position(engine_demo->right_column_view));
     }
     for (auto [i, d] : fan::enumerate(engine_demo->demo_physics_mirrors_data->ray_hit_point)) {
@@ -424,8 +424,8 @@ void main() {
       }
     }
 
-    ImGui::Text("Hold Right Click to set ray's STARTING point\nHold Left Click to set ray's ENDING point");
-    if (ImGui::InputInt("Max reflections", &engine_demo->demo_physics_mirrors_data->reflect_depth)) {
+    fan::graphics::gui::text("Hold Right Click to set ray's STARTING point\nHold Left Click to set ray's ENDING point");
+    if (fan::graphics::gui::input_int("Max reflections", &engine_demo->demo_physics_mirrors_data->reflect_depth)) {
       engine_demo->demo_physics_mirrors_data->reflect_depth = std::max(0, engine_demo->demo_physics_mirrors_data->reflect_depth);
       on_reflect_depth_resize(engine_demo);
     }
@@ -467,38 +467,40 @@ void main() {
   });
 
 
-  static constexpr int wnd_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | 
-    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
+  static constexpr int wnd_flags = gui::window_flags_no_move| 
+    gui::window_flags_no_collapse | gui::window_flags_no_resize| gui::window_flags_no_title_bar;
   #define engine_demo (*OFFSETLESS(OFFSETLESS(menu, fan::graphics::engine_t, settings_menu), engine_demo_t, engine))
 
   static void render_demos(menu_t* menu, const std::vector<std::string>& titles) {
     std::size_t title_index = 0;
     std::string title = titles[title_index];
-    ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, title.c_str());
-    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
-    #define make_table ImGui::BeginTable((title + "_settings_left_table_display").c_str(), 1, \
-      ImGuiTableFlags_BordersInnerH | \
-      ImGuiTableFlags_BordersOuterH \
-    )
-    make_table;
-    {
+    gui::text(title, fan::color::hex(0x948c80ff) * 1.5);
+    gui::push_style_var(gui::style_var_cell_padding, fan::vec2(0));
+    fan_graphics_gui_table(
+      (title + "_settings_left_table_display").c_str(), 
+      1, 
+      gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h
+    ) {
       {
-        ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, fan::vec2(0.00, 0.5));
+        gui::push_style_var(gui::style_var_selectable_text_align, fan::vec2(0, 0.5));
         for (auto [i, shape_info] : fan::enumerate(demos)) {
           if (shape_info.name == "_next") {
             ++title_index;
             title = titles[title_index];
-            ImGui::EndTable();
-            ImGui::NewLine();
-            ImGui::NewLine();
-            ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, title.c_str());
-            make_table;
+            gui::end_table();
+            gui::new_line();
+            gui::new_line();
+            gui::text(title, fan::color::hex(0x948c80ff) * 1.5);
+            gui::begin_table(title + "_settings_left_table_display", 1,
+              gui::table_flags_borders_inner_h |
+              gui::table_flags_borders_outer_h
+            );
             continue;
           }
-          ImGui::TableNextRow();
-          ImGui::TableNextColumn();
-          f32_t row_height = ImGui::GetTextLineHeightWithSpacing() * 2;
-          if (ImGui::Selectable(shape_info.name, false, 0, ImVec2(0.0f, row_height))) {
+          gui::table_next_row();
+          gui::table_next_column();
+          f32_t row_height = gui::get_text_line_height_with_spacing() * 2;
+          if (gui::selectable(shape_info.name, false, 0, ImVec2(0.0f, row_height))) {
             if (demos[engine_demo.current_demo].cleanup_function) {
               demos[engine_demo.current_demo].cleanup_function(&engine_demo);
             }
@@ -507,57 +509,53 @@ void main() {
             engine_demo.current_demo = i;
           }
         }
-        ImGui::PopStyleVar();
+        gui::pop_style_var();
       }
     }
-    ImGui::EndTable();
-    ImGui::PopStyleVar();
+    gui::pop_style_var();
 #undef make_table
   }
 
   static void menus_engine_demo_left(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
-
-    ImGui::SetNextWindowPos(next_window_position);
-    ImGui::SetNextWindowSize(next_window_size);
-    ImGui::Begin("##Menu Engine Demo Left", 0, wnd_flags);
-
-    render_demos(menu, {
-      "BASIC ENGINE SHAPES",
-      "PHYSICS"
-    });
-
-    ImGui::End();
+    gui::set_next_window_pos(next_window_position);
+    gui::set_next_window_size(next_window_size);
+    fan_graphics_gui_window("##Menu Engine Demo Left", 0, wnd_flags){
+      render_demos(menu, {
+        "BASIC ENGINE SHAPES",
+        "PHYSICS"
+      });
+    }
   }
   static void menus_engine_demo_right(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
-    ImGui::SetNextWindowPos(next_window_position);
-    ImGui::SetNextWindowSize(fan::vec2(next_window_size.x, next_window_size.y / 5));
-    ImGui::Begin("##Menu Engine Demo Right Top", 0, wnd_flags);
-    
-    engine_demo.engine.lighting.ambient = 1;
-    auto& shape_info = demos[engine_demo.current_demo];
-    if (shape_info.update_function) {
-      shape_info.update_function(&engine_demo);
+    gui::set_next_window_pos(next_window_position);
+    gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y / 5));
+    fan::vec2 window_size;
+    fan_graphics_gui_window("##Menu Engine Demo Right Top", 0, wnd_flags) {
+      engine_demo.engine.lighting.ambient = 1;
+      auto& shape_info = demos[engine_demo.current_demo];
+      if (shape_info.update_function) {
+        shape_info.update_function(&engine_demo);
+      }
+      window_size = gui::get_window_size();
     }
-    fan::vec2 window_size = ImGui::GetWindowSize();
-    ImGui::End();
-    ImGui::SetNextWindowPos(next_window_position + fan::vec2(0, window_size.y));
-    ImGui::SetNextWindowSize(fan::vec2(next_window_size.x, next_window_size.y - window_size.y));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, fan::colors::transparent);
-    ImGui::Begin("##Menu Engine Demo Right Content Bottom", 0, wnd_flags | ImGuiWindowFlags_NoInputs);
-    engine_demo.engine.set_imgui_viewport(engine_demo.right_column_view.viewport);
-    fan::vec2 viewport_size = engine_demo.engine.viewport_get(engine_demo.right_column_view.viewport).viewport_size;
-    engine_demo.engine.camera_set_ortho(
-      engine_demo.right_column_view.camera,
-      fan::vec2(0, viewport_size.x),
-      fan::vec2(0, viewport_size.y)
-    );
-    //loco_t::settings_menu_t::menu_graphics_right(menu);
-    ImGui::End();
-    ImGui::PopStyleColor();
+
+    gui::set_next_window_pos(next_window_position + fan::vec2(0, window_size.y));
+    gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y - window_size.y));
+    gui::push_style_color(gui::col_window_bg, fan::colors::transparent);
+    fan_graphics_gui_window("##Menu Engine Demo Right Content Bottom", 0, wnd_flags | gui::window_flags_no_inputs) {
+      gui::set_imgui_viewport(engine_demo.right_column_view.viewport);
+      fan::vec2 viewport_size = engine_demo.engine.viewport_get(engine_demo.right_column_view.viewport).viewport_size;
+      engine_demo.engine.camera_set_ortho(
+        engine_demo.right_column_view.camera,
+        fan::vec2(0, viewport_size.x),
+        fan::vec2(0, viewport_size.y)
+      );
+    }
+    gui::pop_style_color();
   }
 
   static void menus_engine_demo_render_element_count(menu_t* menu) {
-    if (ImGui::DragInt("Shape count", &engine_demo.shape_count, 1, 0, std::numeric_limits<int>::max())) {
+    if (gui::drag_int("Shape count", &engine_demo.shape_count, 1, 0, std::numeric_limits<int>::max())) {
       auto& shape_info = demos[engine_demo.current_demo];
       if (shape_info.demo_function) {
         shape_info.demo_function(&engine_demo);

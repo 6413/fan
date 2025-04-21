@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 
 struct imgui_themes {
   static void dark() {
