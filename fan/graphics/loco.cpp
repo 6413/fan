@@ -15,7 +15,7 @@
   #define __generic_free(ptr) free(ptr)
 #endif
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
   #include <fan/imgui/imgui_internal.h>
   #include <fan/graphics/gui/imgui_themes.h>
 #endif
@@ -1232,7 +1232,7 @@ void loco_t::close() {
 }
 
 void generate_commands(loco_t* loco) {
-#if defined(loco_imgui)
+#if defined(fan_gui)
   loco->console.open();
 
   loco->console.commands.add("echo", [](const fan::commands_t::arg_t& args) {
@@ -1401,7 +1401,7 @@ void generate_commands(loco_t* loco) {
 #endif
 }
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 void loco_t::load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t font_size) {
   for (std::size_t i = 0; i < std::size(fonts); ++i) {
     fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), (int)(font_size * (1 << i)) * 1.5);
@@ -1422,7 +1422,7 @@ void check_vk_result(VkResult err) {
 }
 #endif
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 void loco_t::init_imgui() {
   ImGui::CreateContext();
   ImPlot::CreateContext();
@@ -1641,11 +1641,11 @@ loco_t::loco_t(const properties_t& p) {
 #endif
 
 
-#if defined(loco_physics)
+#if defined(fan_physics)
   fan::graphics::open_bcol();
 #endif
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
   init_imgui();
   generate_commands(this);
 #endif
@@ -1660,7 +1660,7 @@ loco_t::loco_t(const properties_t& p) {
       }
     }
   );
-  #if defined(loco_imgui)
+  #if defined(fan_gui)
   settings_menu.open();
   #endif
 
@@ -1688,7 +1688,7 @@ void loco_t::destroy() {
   if (window == nullptr) {
     return;
   }
-#if defined(loco_imgui)
+#if defined(fan_gui)
   console.commands.func_table.clear();
   console.close();
 #endif
@@ -1702,7 +1702,7 @@ void loco_t::destroy() {
   }
 #endif
   shaper.Close();
-#if defined(loco_imgui)
+#if defined(fan_gui)
   destroy_imgui();
 #endif
   window.close();
@@ -1749,7 +1749,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
       glDeleteBuffers(1, &gl.fb_vbo);
       context.gl.internal_close();
     }
-#if defined(loco_imgui)
+#if defined(fan_gui)
     destroy_imgui();
 #endif
     window.close();
@@ -1883,7 +1883,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
       vk.shapes_open();
     }
 #endif
-    #if defined(loco_imgui)
+    #if defined(fan_gui)
       init_imgui();
       settings_menu.set_settings_theme();
     #endif
@@ -1960,15 +1960,8 @@ void loco_t::process_shapes() {
 }
 
 void loco_t::process_gui() {
-#if defined(loco_imgui)
-  {
-    auto it = m_imgui_draw_cb.GetNodeFirst();
-    while (it != m_imgui_draw_cb.dst) {
-      m_imgui_draw_cb.StartSafeNext(it);
-      m_imgui_draw_cb[it]();
-      it = m_imgui_draw_cb.EndSafeNext();
-    }
-  }
+#if defined(fan_gui)
+  fan::graphics::gui::process_loop();
 
   if (ImGui::IsKeyPressed(ImGuiKey_F3, false)) {
     render_console = !render_console;
@@ -2104,7 +2097,7 @@ void loco_t::process_frame() {
     }
   }
 
-#if defined(loco_box2d)
+#if defined(fan_physics)
   {
     auto it = shape_physics_update_cbs.GetNodeFirst();
     while (it != shape_physics_update_cbs.dst) {
@@ -2121,7 +2114,7 @@ void loco_t::process_frame() {
 
   single_queue.clear();
 
-  #if defined(loco_imgui)
+  #if defined(fan_gui)
     ImGui::End();
 #endif
 
@@ -2149,7 +2142,7 @@ void loco_t::process_frame() {
   }
   #if defined(loco_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
-#if !defined(loco_imgui)
+#if !defined(fan_gui)
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
     // did draw
     vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
@@ -2170,7 +2163,7 @@ bool loco_t::should_close() {
 
 bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
   if (reload_renderer_to != (decltype(reload_renderer_to))-1) {
     switch_renderer(reload_renderer_to);
   }
@@ -2380,181 +2373,6 @@ void loco_t::set_target_fps(int32_t new_target_fps) {
   target_fps = new_target_fps;
   update_timer_interval();
 }
-
-#if defined(loco_imgui)
-
-template <typename T>
-loco_t::imgui_fs_var_t::imgui_fs_var_t(
-  loco_t::shader_t shader_nr,
-  const fan::string& var_name,
-  T initial_,
-  f32_t speed,
-  f32_t min,
-  f32_t max
-) {
-  //fan::vec_wrap_t < sizeof(T) / fan::conditional_value_t < std::is_class_v<T>, sizeof(T{} [0] ), sizeof(T) > , f32_t > initial = initial_;
-  fan::vec_wrap_t<fan::conditional_value_t<std::is_arithmetic_v<T>, 1, sizeof(T) / sizeof(f32_t)>::value, f32_t> 
-    initial;
-  if constexpr (std::is_arithmetic_v<T>) {
-    initial = (f32_t)initial_;
-  }
-  else {
-    initial = initial_;
-  }
-  fan::opengl::context_t::shader_t shader = std::get<fan::opengl::context_t::shader_t>(gloco->shader_get(shader_nr));
-  if (gloco->window.renderer == renderer_t::vulkan) {
-    fan::throw_error("");
-  }
-  auto found = gloco->shader_list[shader_nr].uniform_type_table.find(var_name);
-  if (found == gloco->shader_list[shader_nr].uniform_type_table.end()) {
-    //fan::print("failed to set uniform value");
-    return;
-    //fan::throw_error("failed to set uniform value");
-  }
-  ie = [str = found->second, shader_nr, var_name, speed, min, max, data = initial]() mutable {
-    bool modify = false;
-    switch(fan::get_hash(str)) {
-      case fan::get_hash(std::string_view("float")): {
-        modify = ImGui::DragFloat(fan::string(std::move(var_name)).c_str(), &data[0], (f32_t)speed, (f32_t)min, (f32_t)max);
-        break;
-      }
-      case fan::get_hash(std::string_view("vec2")): {
-        modify = ImGui::DragFloat2(fan::string(std::move(var_name)).c_str(), ((fan::vec2*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
-        break;
-      }
-      case fan::get_hash(std::string_view("vec3")): {
-        modify = ImGui::DragFloat3(fan::string(std::move(var_name)).c_str(), ((fan::vec3*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
-        break;
-      }
-      case fan::get_hash(std::string_view("vec4")): {
-        modify = ImGui::DragFloat4(fan::string(std::move(var_name)).c_str(), ((fan::vec4*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
-        break;
-      }
-    }
-    if (modify) {
-      gloco->shader_set_value(shader_nr, var_name, data);
-    }
-  };
-  gloco->shader_set_value(shader_nr, var_name, initial);
-}
-
-
-template loco_t::imgui_fs_var_t::imgui_fs_var_t(
-  loco_t::shader_t shader_nr,
-  const fan::string& var_name,
-  fan::vec2 initial_,
-  f32_t speed,
-  f32_t min,
-  f32_t max
-);
-template loco_t::imgui_fs_var_t::imgui_fs_var_t(
-  loco_t::shader_t shader_nr,
-  const fan::string& var_name,
-  double initial_,
-  f32_t speed,
-  f32_t min,
-  f32_t max
-);
-
-void loco_t::set_imgui_viewport(loco_t::viewport_t viewport) {
-  ImVec2 mainViewportPos = ImGui::GetMainViewport()->Pos;
-
-  ImVec2 windowPos = ImGui::GetWindowPos();
-
-  fan::vec2 windowPosRelativeToMainViewport;
-  windowPosRelativeToMainViewport.x = windowPos.x - mainViewportPos.x;
-  windowPosRelativeToMainViewport.y = windowPos.y - mainViewportPos.y;
-
-  fan::vec2 window_size = window.get_size();
-  fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
-
-  ImVec2 padding = ImGui::GetStyle().WindowPadding;
-  viewport_size.x += padding.x * 2;
-  viewport_size.y += padding.y * 2;
-
-  fan::vec2 viewport_pos = fan::vec2(windowPosRelativeToMainViewport);
-  viewport_set(
-    viewport,
-    viewport_pos,
-    viewport_size,
-    window_size
-  );
-}
-#endif
-
-#if defined(loco_imgui)
-
-loco_t::imgui_element_nr_t::imgui_element_nr_t(const imgui_element_nr_t& nr) : imgui_element_nr_t() {
-  if (nr.is_invalid()) {
-    return;
-  }
-  init();
-}
-
-loco_t::imgui_element_nr_t::imgui_element_nr_t(imgui_element_nr_t&& nr) {
-  NRI = nr.NRI;
-  nr.invalidate_soft();
-}
-
-loco_t::imgui_element_nr_t::~imgui_element_nr_t() {
-  invalidate();
-}
-
-loco_t::imgui_element_nr_t& loco_t::imgui_element_nr_t::operator=(const imgui_element_nr_t& id) {
-  if (!is_invalid()) {
-    invalidate();
-  }
-  if (id.is_invalid()) {
-    return *this;
-  }
-
-  if (this != &id) {
-    init();
-  }
-  return *this;
-}
-
-loco_t::imgui_element_nr_t& loco_t::imgui_element_nr_t::operator=(imgui_element_nr_t&& id) {
-  if (!is_invalid()) {
-    invalidate();
-  }
-  if (id.is_invalid()) {
-    return *this;
-  }
-
-  if (this != &id) {
-    if (!is_invalid()) {
-      invalidate();
-    }
-    NRI = id.NRI;
-
-    id.invalidate_soft();
-  }
-  return *this;
-}
-
-void loco_t::imgui_element_nr_t::init() {
-  *(base_t*)this = gloco->m_imgui_draw_cb.NewNodeLast();
-}
-
-bool loco_t::imgui_element_nr_t::is_invalid() const {
-  return loco_t::imgui_draw_cb_inric(*this);
-}
-
-void loco_t::imgui_element_nr_t::invalidate_soft() {
-  *(base_t*)this = gloco->m_imgui_draw_cb.gnric();
-}
-
-void loco_t::imgui_element_nr_t::invalidate() {
-  if (is_invalid()) {
-    return;
-  }
-  gloco->m_imgui_draw_cb.unlrec(*this);
-  *(base_t*)this = gloco->m_imgui_draw_cb.gnric();
-}
-
-#endif
-
 
 void loco_t::input_action_t::add(const int* keys, std::size_t count, std::string_view action_name) {
   action_data_t action_data;
@@ -3661,7 +3479,7 @@ loco_t::shader_t loco_t::get_sprite_vertex_shader(const fan::string& fragment) {
   }
   return shader;
 }
-#if defined(loco_json)
+#if defined(fan_json)
 [[nodiscard]]
 std::pair<size_t, size_t> fan::json_stream_parser_t::find_next_json_bounds(std::string_view s, size_t pos) const noexcept {
   pos = s.find('{', pos);
@@ -3798,7 +3616,7 @@ bool loco_t::is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& p
   return t_near <= t_far && t_far >= 0.0f;
 }
 
-#if defined(loco_box2d)
+#if defined(fan_physics)
 loco_t::physics_update_cbs_t::nr_t loco_t::add_physics_update(const physics_update_data_t& data) {
   auto it = shape_physics_update_cbs.NewNodeLast();
   shape_physics_update_cbs[it] = data;
@@ -3809,7 +3627,7 @@ void loco_t::remove_physics_update(loco_t::physics_update_cbs_t::nr_t nr) {
 }
 #endif
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 void fan::graphics::text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing) {
   static auto find_next_word = [](const std::string& str, std::size_t offset) -> std::size_t {
     std::size_t found = str.find(' ', offset);
@@ -3906,7 +3724,7 @@ void fan::graphics::text_partial_render(const std::string& text, size_t render_p
 
 #endif
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 // fan_track_allocations() must be called in global scope before calling this function
 void fan::graphics::render_allocations_plot() {
 #if defined(fan_tracking_allocations)
@@ -4042,7 +3860,7 @@ void fan::graphics::add_input_action(int key, std::string_view action_name) {
 bool fan::graphics::is_input_action_active(std::string_view action_name, int pstate) {
   return gloco->input_action.is_active(action_name);
 }
-#if defined(loco_imgui)
+#if defined(fan_gui)
 bool fan::graphics::gui::render_blank_window(const std::string& name) {
   ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
   ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -4054,7 +3872,7 @@ bool fan::graphics::gui::render_blank_window(const std::string& name) {
 }
 #endif
 
-#if defined(loco_json)
+#if defined(fan_json)
 bool fan::graphics::shape_to_json(loco_t::shape_t& shape, fan::json* json) {
   fan::json& out = *json;
   switch (shape.get_shape_type()) {
@@ -4655,6 +4473,12 @@ fan::audio_t::piece_t fan::audio::open_piece(const std::string& path, fan::audio
   return piece;
 }
 
+bool fan::audio::is_piece_valid(fan::audio_t::piece_t piece) {
+  char test_block [sizeof(piece)];
+  memset(test_block, 0, sizeof(piece));
+  return memcmp(&piece, test_block, sizeof(piece));
+}
+
 void fan::audio::play(fan::audio_t::piece_t piece, uint32_t group_id, bool loop) {
   fan::audio_t::PropertiesSoundPlay_t p;
   p.Flags.Loop = loop;
@@ -4677,26 +4501,4 @@ f32_t fan::audio::get_volume() {
 void fan::audio::set_volume(f32_t volume) {
   gloco->audio.SetVolume(volume);
 }
-
-bool fan::graphics::audio_button(const std::string& label, const fan::vec2& size) {
-  ImGui::PushID(label.c_str());
-  ImGuiStorage* storage = ImGui::GetStateStorage();
-  ImGuiID id = ImGui::GetID("prev_hovered");
-  bool previously_hovered = storage->GetBool(id);
-  
-  bool pressed = ImGui::Button(label.c_str(), size);
-  bool currently_hovered = ImGui::IsItemHovered();
-  
-  if (currently_hovered && !previously_hovered) {
-    fan::audio::play(gloco->piece_hover);
-  }
-  if (pressed) {
-    fan::audio::play(gloco->piece_click);
-  }
-  storage->SetBool(id, currently_hovered);
-
-  ImGui::PopID();
-  return pressed;
-}
-
 #endif

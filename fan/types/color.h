@@ -3,7 +3,7 @@
 
 #include <fan/types/vector.h>
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 #include <fan/imgui/imgui.h>
 #endif
 
@@ -25,7 +25,7 @@ namespace fan {
       *(fan::vec4*)this = v;
     }
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
     constexpr color(const ImVec4& v) {
       r = v.x;
       g = v.y;

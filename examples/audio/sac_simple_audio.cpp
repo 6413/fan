@@ -1,5 +1,4 @@
 #include <fan/pch.h>
-
 // argv[1] == audio/w_voice.sac 
 int main(int argc, char** argv) {
   fan::graphics::engine_t engine;
@@ -7,32 +6,24 @@ int main(int argc, char** argv) {
   fan::audio::piece_t piece = fan::audio::open_piece("audio/output.sac");
   uint32_t group_id = 0;
   bool loop = true;
-  //fan::audio::play(piece, group_id, loop);
+  fan::audio::play(piece, group_id, loop);
 
   fan::audio::set_volume(0.01);
   f32_t volume = fan::audio::get_volume();
 
+  fan_window_loop {
 
-  engine.loop([&] {
-    ImGui::Begin("audio controls");
-    if (fan::graphics::is_mouse_clicked()) {
-      fan::print("A");
-    }
+    fan_graphics_gui_window("audio controls"){
+      if (fan::graphics::gui::button("toggle pause")) {
+        static int audio_toggle = 0;
+        ((audio_toggle++)& 1) == 0 ? fan::audio::pause() : fan::audio::resume();
 
-    for (int i = 0; i < 100; ++i)
-    if (fan::graphics::audio_button("click me" + std::to_string(i))) {
-
+      }
+      if (fan::graphics::gui::drag_float("volume", &volume, 0.01f, 0.0f, 1.0f)) {
+        fan::audio::set_volume(volume);
+      }
     }
-    if (ImGui::Button("toggle pause")) {
-      static int audio_toggle = 0;
-      ((audio_toggle++)& 1) == 0 ? fan::audio::pause() : fan::audio::resume();
-
-    }
-    if (ImGui::DragFloat("volume", &volume, 0.01f, 0.0f, 1.0f)) {
-      fan::audio::set_volume(volume);
-    }
-    ImGui::End();
-  });
+  };
 
   return 0;
 }

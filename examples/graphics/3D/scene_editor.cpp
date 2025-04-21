@@ -570,7 +570,7 @@ struct pile_t {
           ImGui::End();
         }
       }
-#if defined(loco_json)
+#if defined(fan_json)
       // expects camera block
       void import_settings(const fan::json& data) {
         get_editor().camera.zfar = data["zfar"];
@@ -677,7 +677,7 @@ struct pile_t {
     void begin_render() {
       ImGui::BeginMainMenuBar();
       if (ImGui::BeginMenu("Settings")) {
-#if defined(loco_json)
+#if defined(fan_json)
         if (ImGui::MenuItem("Load")) {
           std::string editor_settings;
           fan::io::file::read("scene_editor.ini", &editor_settings);
@@ -721,7 +721,7 @@ struct pile_t {
     loco_t::viewport_t viewport_nr;
     fan::graphics::context_camera_t& camera;
     fan::graphics::context_viewport_t& viewport;
-    fan::graphics::imgui_content_browser_t content_browser;
+    fan::graphics::gui::imgui_content_browser_t content_browser;
 
     loco_t::image_t icon_video_camera = gloco->image_load("images_editor/video-camera.webp");
     loco_t::image_t icon_lightbulb = gloco->image_load("images_editor/lightbulb.webp");

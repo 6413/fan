@@ -237,8 +237,8 @@ struct fgm_t {
 
   void open(const fan::string& texturepack_name, const std::wstring& asset_path) {
 
-    content_browser = fan::graphics::imgui_content_browser_t(asset_path);
-    content_browser.current_view_mode = fan::graphics::imgui_content_browser_t::view_mode_large_thumbnails;
+    content_browser = fan::graphics::gui::content_browser_t(asset_path);
+    content_browser.current_view_mode = fan::graphics::gui::content_browser_t::view_mode_large_thumbnails;
 
     camera.camera = gloco->open_camera(
       fan::vec2(0, 1),
@@ -1324,7 +1324,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
 
   fan::graphics::camera_t camera;
 
-  fan::graphics::imgui_content_browser_t content_browser{false};
+  fan::graphics::gui::content_browser_t content_browser{false};
 
   event_type_e event_type = event_type_e::none;
   uint16_t selected_shape_type = loco_t::shape_type_t::invalid;

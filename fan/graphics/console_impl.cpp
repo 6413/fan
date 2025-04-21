@@ -1,6 +1,6 @@
 #include "console.h"
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 
 #include <fan/fmt.h>
 #include <regex>

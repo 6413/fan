@@ -1,0 +1,619 @@
+#pragma once
+
+#include <fan/graphics/graphics.h>
+
+namespace fan {
+  namespace graphics {
+    #if defined(fan_gui)
+      namespace gui {
+
+        using window_flags_t = int;
+        enum {
+          window_flags_none = ImGuiWindowFlags_None,
+          window_flags_no_title_bar = ImGuiWindowFlags_NoTitleBar,   
+          window_flags_no_resize = ImGuiWindowFlags_NoResize,   
+          window_flags_no_move = ImGuiWindowFlags_NoMove,   
+          window_flags_no_scrollbar = ImGuiWindowFlags_NoScrollbar,   
+          window_flags_no_scroll_with_mouse = ImGuiWindowFlags_NoScrollWithMouse,   
+          window_flags_no_collapse = ImGuiWindowFlags_NoCollapse,   
+          window_flags_always_auto_resize = ImGuiWindowFlags_AlwaysAutoResize,   
+          window_flags_no_background = ImGuiWindowFlags_NoBackground,   
+          window_flags_no_saved_settings = ImGuiWindowFlags_NoSavedSettings,   
+          window_flags_no_mouse_inputs = ImGuiWindowFlags_NoMouseInputs,   
+          window_flags_menu_bar = ImGuiWindowFlags_MenuBar,  
+          window_flags_horizontal_scrollbar = ImGuiWindowFlags_HorizontalScrollbar,  
+          window_flags_no_focus_on_appearing = ImGuiWindowFlags_NoFocusOnAppearing,  
+          window_flags_no_bring_to_front_on_focus = ImGuiWindowFlags_NoBringToFrontOnFocus,  
+          window_flags_always_vertical_scrollbar = ImGuiWindowFlags_AlwaysVerticalScrollbar,  
+          window_flags_always_horizontal_scrollbar = ImGuiWindowFlags_AlwaysHorizontalScrollbar,  
+          window_flags_no_nav_inputs = ImGuiWindowFlags_NoNavInputs,  
+          window_flags_no_nav_focus = ImGuiWindowFlags_NoNavFocus,  
+          window_flags_unsaved_document = ImGuiWindowFlags_UnsavedDocument,  
+          window_flags_no_docking = ImGuiWindowFlags_NoDocking,  
+          window_flags_no_nav = ImGuiWindowFlags_NoNav,  
+          window_flags_no_decoration = ImGuiWindowFlags_NoDecoration,  
+          window_flags_no_inputs = ImGuiWindowFlags_NoInputs,
+        };
+        using child_window_flags_t = int;
+        enum {
+          child_flags_none = ImGuiChildFlags_None,
+          child_flags_borders = ImGuiChildFlags_Borders,
+          child_flags_always_use_window_padding = ImGuiChildFlags_AlwaysUseWindowPadding,
+          child_flags_resize_x = ImGuiChildFlags_ResizeX,
+          child_flags_resize_y = ImGuiChildFlags_ResizeY,
+          child_flags_auto_resize_x = ImGuiChildFlags_AutoResizeX,
+          child_flags_auto_resize_y = ImGuiChildFlags_AutoResizeY,
+          child_flags_always_auto_resize = ImGuiChildFlags_AlwaysAutoResize,
+          child_flags_frame_style = ImGuiChildFlags_FrameStyle,
+          child_flags_nav_flattened = ImGuiChildFlags_NavFlattened,
+        };
+
+        bool begin(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0);
+        void end();
+        bool begin_child(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0);
+        void end_child();
+
+        void same_line(f32_t offset_from_start_x = 0.f, f32_t spacing_w = -1.f);
+        void new_line();
+
+        f32_t get_text_line_height_with_spacing();
+
+        using selectable_flag_t = int;
+        enum {
+          selectable_flags_none = ImGuiSelectableFlags_None,
+          selectable_flags_no_auto_close_popups = ImGuiSelectableFlags_NoAutoClosePopups,  // Clicking this doesn't close parent popup window (overrides ImGuiItemFlags_AutoClosePopups).
+          selectable_flags_span_all_columns = ImGuiSelectableFlags_SpanAllColumns,     // Frame will span all columns of its container table (text will still fit in current column).
+          selectable_flags_allow_double_click = ImGuiSelectableFlags_AllowDoubleClick,   // Generate press events on double clicks too.
+          selectable_flags_disabled = ImGuiSelectableFlags_Disabled,           // Cannot be selected, display grayed-out text.
+          selectable_flags_allow_overlap = ImGuiSelectableFlags_AllowOverlap,       // (WIP) Hit testing to allow subsequent widgets to overlap this one.
+          selectable_flags_highlight = ImGuiSelectableFlags_Highlight,          // Make the item be displayed as if it is hovered.
+        };
+
+        bool selectable(const std::string& label, bool selected = false, selectable_flag_t flags = 0, const fan::vec2& size = fan::vec2(0, 0));
+        bool selectable(const std::string& label, bool* p_selected, selectable_flag_t flags = 0, const fan::vec2& size = fan::vec2(0, 0));
+
+        using table_flags_t = int;
+        enum {
+          table_flags_none = ImGuiTableFlags_None,
+          table_flags_resizable = ImGuiTableFlags_Resizable,                  // Enable resizing columns.
+          table_flags_reorderable = ImGuiTableFlags_Reorderable,                // Enable reordering columns in header row (need calling TableSetupColumn() + TableHeadersRow() to display headers).
+          table_flags_hideable = ImGuiTableFlags_Hideable,                   // Enable hiding/disabling columns in context menu.
+          table_flags_sortable = ImGuiTableFlags_Sortable,                   // Enable sorting. Call TableGetSortSpecs() to obtain sort specs. Also see ImGuiTableFlags_SortMulti and ImGuiTableFlags_SortTristate.
+          table_flags_no_saved_settings = ImGuiTableFlags_NoSavedSettings,            // Disable persisting columns order, width, and sort settings in the .ini file.
+          table_flags_context_menu_in_body = ImGuiTableFlags_ContextMenuInBody,          // Right-click on columns body/contents will display table context menu. By default, it is available in TableHeadersRow().
+
+          // Decorations
+          table_flags_row_bg = ImGuiTableFlags_RowBg,                      // Set each RowBg color with ImGuiCol_TableRowBg or ImGuiCol_TableRowBgAlt (equivalent of calling TableSetBgColor with ImGuiTableBgFlags_RowBg0 on each row manually).
+          table_flags_borders_inner_h = ImGuiTableFlags_BordersInnerH,              // Draw horizontal borders between rows.
+          table_flags_borders_outer_h = ImGuiTableFlags_BordersOuterH,              // Draw horizontal borders at the top and bottom.
+          table_flags_borders_inner_v = ImGuiTableFlags_BordersInnerV,              // Draw vertical borders between columns.
+          table_flags_borders_outer_v = ImGuiTableFlags_BordersOuterV,              // Draw vertical borders on the left and right sides.
+          table_flags_borders_h = ImGuiTableFlags_BordersH,                   // Draw horizontal borders.
+          table_flags_borders_v = ImGuiTableFlags_BordersV,                   // Draw vertical borders.
+          table_flags_borders_inner = ImGuiTableFlags_BordersInner,               // Draw inner borders.
+          table_flags_borders_outer = ImGuiTableFlags_BordersOuter,               // Draw outer borders.
+          table_flags_borders = ImGuiTableFlags_Borders,                    // Draw all borders.
+          table_flags_no_borders_in_body = ImGuiTableFlags_NoBordersInBody,            // [ALPHA] Disable vertical borders in columns body (borders will always appear in headers). -> May move to style.
+          table_flags_no_borders_in_body_until_resize = ImGuiTableFlags_NoBordersInBodyUntilResize,  // [ALPHA] Disable vertical borders in columns body until hovered for resize (borders will always appear in headers). -> May move to style.
+
+          // Sizing Policy
+          table_flags_sizing_fixed_fit = ImGuiTableFlags_SizingFixedFit,             // Columns default to _WidthFixed or _WidthAuto (if resizable or not resizable), matching contents width.
+          table_flags_sizing_fixed_same = ImGuiTableFlags_SizingFixedSame,            // Columns default to _WidthFixed or _WidthAuto (if resizable or not resizable), matching the maximum contents width of all columns. Implicitly enable ImGuiTableFlags_NoKeepColumnsVisible.
+          table_flags_sizing_stretch_prop = ImGuiTableFlags_SizingStretchProp,          // Columns default to _WidthStretch with default weights proportional to each column's contents widths.
+          table_flags_sizing_stretch_same = ImGuiTableFlags_SizingStretchSame,          // Columns default to _WidthStretch with default weights all equal, unless overridden by TableSetupColumn().
+
+          // Sizing Extra Options
+          table_flags_no_host_extend_x = ImGuiTableFlags_NoHostExtendX,              // Make outer width auto-fit to columns, overriding outer_size.x value. Only available when ScrollX/ScrollY are disabled and stretch columns are not used.
+          table_flags_no_host_extend_y = ImGuiTableFlags_NoHostExtendY,              // Make outer height stop exactly at outer_size.y (prevent auto-extending table past the limit). Only available when ScrollX/ScrollY are disabled. Data below the limit will be clipped and not visible.
+          table_flags_no_keep_columns_visible = ImGuiTableFlags_NoKeepColumnsVisible,       // Disable keeping columns always minimally visible when ScrollX is off, and the table gets too small. Not recommended if columns are resizable.
+          table_flags_precise_widths = ImGuiTableFlags_PreciseWidths,              // Disable distributing remainder width to stretched columns (width allocation on a 100-wide table with 3 columns: Without this flag: 33,33,34. With this flag: 33,33,33). With larger number of columns, resizing will appear less smooth.
+
+          // Clipping
+          table_flags_no_clip = ImGuiTableFlags_NoClip,                     // Disable clipping rectangle for every individual column (reduce draw command count, items will be able to overflow into other columns). Generally incompatible with TableSetupScrollFreeze().
+
+          // Padding
+          table_flags_pad_outer_x = ImGuiTableFlags_PadOuterX,                  // Default if BordersOuterV is on. Enable outermost padding. Generally desirable if you have headers.
+          table_flags_no_pad_outer_x = ImGuiTableFlags_NoPadOuterX,                // Default if BordersOuterV is off. Disable outermost padding.
+          table_flags_no_pad_inner_x = ImGuiTableFlags_NoPadInnerX,                // Disable inner padding between columns (double inner padding if BordersOuterV is on, single inner padding if BordersOuterV is off).
+
+          // Scrolling
+          table_flags_scroll_x = ImGuiTableFlags_ScrollX,                    // Enable horizontal scrolling. Require 'outer_size' parameter of BeginTable() to specify the container size. Changes default sizing policy. Because this creates a child window, ScrollY is currently generally recommended when using ScrollX.
+          table_flags_scroll_y = ImGuiTableFlags_ScrollY,                    // Enable vertical scrolling. Require 'outer_size' parameter of BeginTable() to specify the container size.
+
+          // Sorting
+          table_flags_sort_multi = ImGuiTableFlags_SortMulti,                  // Hold shift when clicking headers to sort on multiple columns. TableGetSortSpecs() may return specs where (SpecsCount > 1).
+          table_flags_sort_tristate = ImGuiTableFlags_SortTristate,               // Allow no sorting, disable default sorting. TableGetSortSpecs() may return specs where (SpecsCount == 0).
+
+          // Miscellaneous
+          table_flags_highlight_hovered_column = ImGuiTableFlags_HighlightHoveredColumn,     // Highlight column headers when hovered (may evolve into a fuller highlight).
+
+        };
+
+        using table_row_flags_t = int;
+        // Flags for ImGui::TableNextRow()
+        enum {
+          table_row_flags_none = ImGuiTableRowFlags_None,
+          table_row_flags_headers = ImGuiTableRowFlags_Headers,   // Identify header row (set default background color + width of its contents accounted differently for auto column width)
+        };
+
+        using table_column_flags_t = int;
+        enum {
+          table_column_flags_none = ImGuiTableColumnFlags_None,
+          table_column_flags_disabled = ImGuiTableColumnFlags_Disabled,              // Overriding/master disable flag: hide column, won't show in context menu (unlike calling TableSetColumnEnabled() which manipulates the user accessible state).
+          table_column_flags_default_hide = ImGuiTableColumnFlags_DefaultHide,           // Default as a hidden/disabled column.
+          table_column_flags_default_sort = ImGuiTableColumnFlags_DefaultSort,           // Default as a sorting column.
+          table_column_flags_width_stretch = ImGuiTableColumnFlags_WidthStretch,          // Column will stretch. Preferable with horizontal scrolling disabled (default if table sizing policy is _SizingStretchSame or _SizingStretchProp).
+          table_column_flags_width_fixed = ImGuiTableColumnFlags_WidthFixed,            // Column will not stretch. Preferable with horizontal scrolling enabled (default if table sizing policy is _SizingFixedFit and table is resizable).
+          table_column_flags_no_resize = ImGuiTableColumnFlags_NoResize,              // Disable manual resizing.
+          table_column_flags_no_reorder = ImGuiTableColumnFlags_NoReorder,             // Disable manual reordering this column, this will also prevent other columns from crossing over this column.
+          table_column_flags_no_hide = ImGuiTableColumnFlags_NoHide,                // Disable ability to hide/disable this column.
+          table_column_flags_no_clip = ImGuiTableColumnFlags_NoClip,                // Disable clipping for this column (all NoClip columns will render in the same draw command).
+          table_column_flags_no_sort = ImGuiTableColumnFlags_NoSort,                // Disable ability to sort on this field (even if ImGuiTableFlags_Sortable is set on the table).
+          table_column_flags_no_sort_ascending = ImGuiTableColumnFlags_NoSortAscending,       // Disable ability to sort in the ascending direction.
+          table_column_flags_no_sort_descending = ImGuiTableColumnFlags_NoSortDescending,      // Disable ability to sort in the descending direction.
+          table_column_flags_no_header_label = ImGuiTableColumnFlags_NoHeaderLabel,         // TableHeadersRow() will submit an empty label for this column. Convenient for some small columns. Name will still appear in the context menu or in angled headers. You may append into this cell by calling TableSetColumnIndex() right after the TableHeadersRow() call.
+          table_column_flags_no_header_width = ImGuiTableColumnFlags_NoHeaderWidth,         // Disable header text width contribution to automatic column width.
+          table_column_flags_prefer_sort_ascending = ImGuiTableColumnFlags_PreferSortAscending,   // Make the initial sort direction Ascending when first sorting on this column (default).
+          table_column_flags_prefer_sort_descending = ImGuiTableColumnFlags_PreferSortDescending,  // Make the initial sort direction Descending when first sorting on this column.
+          table_column_flags_indent_enable = ImGuiTableColumnFlags_IndentEnable,          // Use current Indent value when entering cell (default for column 0).
+          table_column_flags_indent_disable = ImGuiTableColumnFlags_IndentDisable,         // Ignore current Indent value when entering cell (default for columns > 0). Indentation changes _within_ the cell will still be honored.
+          table_column_flags_angled_header = ImGuiTableColumnFlags_AngledHeader,          // TableHeadersRow() will submit an angled header row for this column. Note this will add an extra row.
+
+          // Output status flags, read-only via TableGetColumnFlags()
+          table_column_flags_is_enabled = ImGuiTableColumnFlags_IsEnabled,             // Status: is enabled == not hidden by user/api (referred to as "Hide" in _DefaultHide and _NoHide) flags.
+          table_column_flags_is_visible = ImGuiTableColumnFlags_IsVisible,             // Status: is visible == is enabled AND not clipped by scrolling.
+          table_column_flags_is_sorted = ImGuiTableColumnFlags_IsSorted,              // Status: is currently part of the sort specs.
+          table_column_flags_is_hovered = ImGuiTableColumnFlags_IsHovered,             // Status: is hovered by mouse.
+
+          // [Internal] Combinations and masks
+          table_column_flags_width_mask = ImGuiTableColumnFlags_WidthMask_,            // WidthStretch | WidthFixed combination.
+          table_column_flags_indent_mask = ImGuiTableColumnFlags_IndentMask_,           // IndentEnable | IndentDisable combination.
+          table_column_flags_status_mask = ImGuiTableColumnFlags_StatusMask_,           // IsEnabled | IsVisible | IsSorted | IsHovered combination.
+
+        };
+
+        bool begin_table(const std::string& str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f);
+        void end_table();
+
+        void table_next_row(table_row_flags_t row_flags = 0, f32_t min_row_height = 0.0f);
+        bool table_next_column();
+
+        /// <summary>
+        /// RAII containers for gui windows.
+        /// </summary>
+        struct window_t{
+          window_t(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0);
+          ~window_t();
+          explicit operator bool() const;
+
+        private:
+          bool is_open;
+        };
+        /// <summary>
+        /// RAII containers for gui child windows.
+        /// </summary>
+        struct child_window_t{
+          child_window_t(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0);
+          ~child_window_t();
+          explicit operator bool() const;
+
+        private:
+          bool is_open;
+        };
+
+        /// <summary>
+        /// RAII containers for gui tables.
+        /// </summary>
+        struct table_t{
+          table_t(const std::string& str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f);
+          ~table_t();
+          explicit operator bool() const;
+
+        private:
+          bool is_open;
+        };
+
+        //const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0
+        #define fan_graphics_gui_window(...) \
+            for (struct { \
+                fan::graphics::gui::window_t __window; \
+                int once; \
+              }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__window}}; \
+              __struct_var.once--;  \
+            )
+
+        //(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0)
+        #define fan_graphics_gui_child_window(...) \
+            for (struct { \
+                fan::graphics::gui::child_window_t __window; \
+                int once; \
+              }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__window}}; \
+              __struct_var.once--;  \
+            )
+
+        #define fan_graphics_gui_table(...) \
+            for (struct { \
+                fan::graphics::gui::table_t __table; \
+                int once; \
+              }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__table}}; \
+              __struct_var.once--;  \
+            )
+
+        bool button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0));
+
+        /// <summary>
+        /// Draws the specified text, with its position influenced by other GUI elements.
+        /// </summary>
+        /// <param name="text">The text to draw.</param>
+        /// <param name="color">The color of the text (defaults to white).</param>
+        void text(const std::string& text, const fan::color& color = fan::colors::white);
+
+        /// <summary>
+        /// Draws the specified text at a given position on the screen.
+        /// </summary>
+        /// <param name="text">The text to draw.</param>
+        /// <param name="position">The position of the text.</param>
+        /// <param name="color">The color of the text (defaults to white).</param>
+        void text_at(const std::string& text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white);
+
+        /// <summary>
+        /// Draws text to bottom right.
+        /// </summary>
+        /// <param name="text">The text to draw.</param>
+        /// <param name="color">The color of the text (defaults to white).</param>
+        /// <param name="offset">Offset from the bottom-right corner.</param>
+        void text_bottom_right(const std::string& text, const fan::color& color = fan::colors::white, const fan::vec2& offset = 0);
+
+
+        using slider_flags_t = int;
+        enum {
+          slider_flags_none = ImGuiSliderFlags_None,
+          slider_flags_logarithmic = ImGuiSliderFlags_Logarithmic,       // Make the widget logarithmic (linear otherwise). Consider using ImGuiSliderFlags_NoRoundToFormat with this if using a format-string with small amount of digits.
+          slider_flags_no_round_to_format = ImGuiSliderFlags_NoRoundToFormat,    // Disable rounding underlying value to match precision of the display format string (e.g. %.3f values are rounded to those 3 digits).
+          slider_flags_no_input = ImGuiSliderFlags_NoInput,            // Disable CTRL+Click or Enter key allowing to input text directly into the widget.
+          slider_flags_wrap_around = ImGuiSliderFlags_WrapAround,         // Enable wrapping around from max to min and from min to max. Only supported by DragXXX() functions for now.
+          slider_flags_clamp_on_input = ImGuiSliderFlags_ClampOnInput,       // Clamp value to min/max bounds when input manually with CTRL+Click. By default CTRL+Click allows going out of bounds.
+          slider_flags_clamp_zero_range = ImGuiSliderFlags_ClampZeroRange,     // Clamp even if min==max==0.0f. Otherwise due to legacy reason DragXXX functions don't clamp with those values. When your clamping limits are dynamic you almost always want to use it.
+          slider_flags_no_speed_tweaks = ImGuiSliderFlags_NoSpeedTweaks,      // Disable keyboard modifiers altering tweak speed. Useful if you want to alter tweak speed yourself based on your own logic.
+          slider_flags_always_clamp = ImGuiSliderFlags_AlwaysClamp,        // ClampOnInput | ClampZeroRange combination.
+        };
+
+
+        bool drag_float(const std::string& label, f32_t* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0);
+        bool drag_float(const std::string& label, fan::vec2* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f,  const std::string& format = "%.3f", slider_flags_t flags = 0);
+        bool drag_float(const std::string& label, fan::vec3* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f,  const std::string& format = "%.3f", slider_flags_t flags = 0);
+        bool drag_float(const std::string& label, fan::vec4* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f,  const std::string& format = "%.3f", slider_flags_t flags = 0);
+        bool drag_float(const std::string& label, fan::quat* q, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f,  const std::string& format = "%.3f", slider_flags_t flags = 0);
+        bool drag_float(const std::string& label, fan::color* c, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0);
+
+        bool drag_int(const std::string& label, int* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0);
+        bool drag_int(const std::string& label, fan::vec2i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0);
+        bool drag_int(const std::string& label, fan::vec3i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0);
+        bool drag_int(const std::string& label, fan::vec4i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0);
+
+        using input_text_flags_t = int;
+        enum {
+          input_text_flags_none = ImGuiInputTextFlags_None,
+          input_text_flags_chars_decimal = ImGuiInputTextFlags_CharsDecimal,        // Allow 0123456789.+-*/
+          input_text_flags_chars_hexadecimal = ImGuiInputTextFlags_CharsHexadecimal,    // Allow 0123456789ABCDEFabcdef
+          input_text_flags_chars_scientific = ImGuiInputTextFlags_CharsScientific,     // Allow 0123456789.+-*/eE (Scientific notation input)
+          input_text_flags_chars_uppercase = ImGuiInputTextFlags_CharsUppercase,      // Turn a..z into A..Z
+          input_text_flags_chars_no_blank = ImGuiInputTextFlags_CharsNoBlank,        // Filter out spaces, tabs
+
+          // Inputs
+          input_text_flags_allow_tab_input = ImGuiInputTextFlags_AllowTabInput,       // Pressing TAB inputs a '\t' character into the text field
+          input_text_flags_enter_returns_true = ImGuiInputTextFlags_EnterReturnsTrue,    // Return 'true' when Enter is pressed (as opposed to every time the value was modified). Consider using IsItemDeactivatedAfterEdit() instead!
+          input_text_flags_escape_clears_all = ImGuiInputTextFlags_EscapeClearsAll,     // Escape key clears content if not empty, and deactivate otherwise (contrast to default behavior of Escape to revert)
+          input_text_flags_ctrl_enter_for_new_line = ImGuiInputTextFlags_CtrlEnterForNewLine, // In multi-line mode, validate with Enter, add new line with Ctrl+Enter (default is opposite: validate with Ctrl+Enter, add line with Enter).
+
+          // Other options
+          input_text_flags_read_only = ImGuiInputTextFlags_ReadOnly,            // Read-only mode
+          input_text_flags_password = ImGuiInputTextFlags_Password,            // Password mode, display all characters as '*', disable copy
+          input_text_flags_always_overwrite = ImGuiInputTextFlags_AlwaysOverwrite,     // Overwrite mode
+          input_text_flags_auto_select_all = ImGuiInputTextFlags_AutoSelectAll,       // Select entire text when first taking mouse focus
+          input_text_flags_parse_empty_ref_val = ImGuiInputTextFlags_ParseEmptyRefVal,    // InputFloat(), InputInt(), InputScalar() etc. only: parse empty string as zero value.
+          input_text_flags_display_empty_ref_val = ImGuiInputTextFlags_DisplayEmptyRefVal,  // InputFloat(), InputInt(), InputScalar() etc. only: when value is zero, do not display it. Generally used with ImGuiInputTextFlags_ParseEmptyRefVal.
+          input_text_flags_no_horizontal_scroll = ImGuiInputTextFlags_NoHorizontalScroll,  // Disable following the cursor horizontally
+          input_text_flags_no_undo_redo = ImGuiInputTextFlags_NoUndoRedo,          // Disable undo/redo. Note that input text owns the text data while active, if you want to provide your own undo/redo stack you need e.g. to call ClearActiveID().
+
+          // Elide display / Alignment
+          input_text_flags_elide_left = ImGuiInputTextFlags_ElideLeft,            // When text doesn't fit, elide left side to ensure right side stays visible. Useful for path/filenames. Single-line only!
+
+          // Callback features
+          input_text_flags_callback_completion = ImGuiInputTextFlags_CallbackCompletion,  // Callback on pressing TAB (for completion handling)
+          input_text_flags_callback_history = ImGuiInputTextFlags_CallbackHistory,     // Callback on pressing Up/Down arrows (for history handling)
+          input_text_flags_callback_always = ImGuiInputTextFlags_CallbackAlways,      // Callback on each iteration. User code may query cursor position, modify text buffer.
+          input_text_flags_callback_char_filter = ImGuiInputTextFlags_CallbackCharFilter,  // Callback on character inputs to replace or discard them. Modify 'EventChar' to replace or discard, or return 1 in callback to discard.
+          input_text_flags_callback_resize = ImGuiInputTextFlags_CallbackResize,      // Callback on buffer capacity changes request (beyond 'buf_size' parameter value), allowing the string to grow. Notify when the string wants to be resized (for string types which hold a cache of their Size). You will be provided a new BufSize in the callback and NEED to honor it. (see misc/cpp/imgui_stdlib.h for an example of using this)
+          input_text_flags_callback_edit = ImGuiInputTextFlags_CallbackEdit,        // Callback on any edit. Note that InputText() already returns true on edit + you can always use IsItemEdited(). The callback is useful to manipulate the underlying buffer while focus is active.
+        };
+
+        using input_flags_t = int;
+        enum {
+          input_flags_none = ImGuiInputFlags_None,
+          input_flags_repeat = ImGuiInputFlags_Repeat,                  // Enable repeat. Return true on successive repeats. Default for legacy IsKeyPressed(). NOT Default for legacy IsMouseClicked(). MUST BE == 1.
+
+          // Flags for Shortcut(), SetNextItemShortcut()
+          // - Routing policies: RouteGlobal+OverActive >> RouteActive or RouteFocused (if owner is active item) >> RouteGlobal+OverFocused >> RouteFocused (if in focused window stack) >> RouteGlobal.
+          // - Default policy is RouteFocused. Can select only 1 policy among all available.
+          input_flags_route_active = ImGuiInputFlags_RouteActive,             // Route to active item only.
+          input_flags_route_focused = ImGuiInputFlags_RouteFocused,            // Route to windows in the focus stack (DEFAULT). Deep-most focused window takes inputs. Active item takes inputs over deep-most focused window.
+          input_flags_route_global = ImGuiInputFlags_RouteGlobal,             // Global route (unless a focused window or active item registered the route).
+          input_flags_route_always = ImGuiInputFlags_RouteAlways,             // Do not register route, poll keys directly.
+          // - Routing options
+          input_flags_route_over_focused = ImGuiInputFlags_RouteOverFocused,        // Option: global route: higher priority than focused route (unless active item in focused route).
+          input_flags_route_over_active = ImGuiInputFlags_RouteOverActive,         // Option: global route: higher priority than active item. Unlikely you need to use that: will interfere with every active items, e.g. CTRL+A registered by InputText will be overridden by this. May not be fully honored as user/internal code is likely to always assume they can access keys when active.
+          input_flags_route_unless_bg_focused = ImGuiInputFlags_RouteUnlessBgFocused,    // Option: global route: will not be applied if underlying background/void is focused (== no Dear ImGui windows are focused). Useful for overlay applications.
+          input_flags_route_from_root_window = ImGuiInputFlags_RouteFromRootWindow,     // Option: route evaluated from the point of view of root window rather than current window.
+
+          // Flags for SetNextItemShortcut()
+          input_flags_tooltip = ImGuiInputFlags_Tooltip,                 // Automatically display a tooltip when hovering item [BETA] Unsure of right api (opt-in/opt-out)
+        };
+
+        using input_text_callback_t = ImGuiInputTextCallback;
+
+        bool input_text(const std::string& label, std::string* buf, input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
+        bool input_text_multiline(const std::string& label, std::string* buf, const ImVec2& size = ImVec2(0, 0), input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
+        bool input_float(const std::string& label, f32_t* v, f32_t step = 0.0f, f32_t step_fast = 0.0f, const char* format = "%.3f", input_text_flags_t flags = 0);
+        bool input_float(const std::string& label, fan::vec2* v, const char* format = "%.3f", input_text_flags_t flags = 0);
+        bool input_float(const std::string& label, fan::vec3* v, const char* format = "%.3f", input_text_flags_t flags = 0);
+        bool input_float(const std::string& label, fan::vec4* v, const char* format = "%.3f", input_text_flags_t flags = 0);
+        bool input_int(const std::string& label,  int* v, int step = 1, int step_fast = 100, input_text_flags_t flags = 0);
+        bool input_int(const std::string& label, fan::vec2i* v, input_text_flags_t flags = 0);
+        bool input_int(const std::string& label, fan::vec3i* v, input_text_flags_t flags = 0);
+        bool input_int(const std::string& label, fan::vec4i* v, input_text_flags_t flags = 0);
+
+        using color_edit_flags_t = int;
+        enum {
+          color_edit_flags_none = ImGuiColorEditFlags_None,
+          color_edit_flags_no_alpha = ImGuiColorEditFlags_NoAlpha,         // ColorEdit, ColorPicker, ColorButton: ignore Alpha component (will only read 3 components from the input pointer).
+          color_edit_flags_no_picker = ImGuiColorEditFlags_NoPicker,        // ColorEdit: disable picker when clicking on color square.
+          color_edit_flags_no_options = ImGuiColorEditFlags_NoOptions,       // ColorEdit: disable toggling options menu when right-clicking on inputs/small preview.
+          color_edit_flags_no_small_preview = ImGuiColorEditFlags_NoSmallPreview,  // ColorEdit, ColorPicker: disable color square preview next to the inputs. (e.g. to show only the inputs)
+          color_edit_flags_no_inputs = ImGuiColorEditFlags_NoInputs,        // ColorEdit, ColorPicker: disable inputs sliders/text widgets (e.g. to show only the small preview color square).
+          color_edit_flags_no_tooltip = ImGuiColorEditFlags_NoTooltip,       // ColorEdit, ColorPicker, ColorButton: disable tooltip when hovering the preview.
+          color_edit_flags_no_label = ImGuiColorEditFlags_NoLabel,         // ColorEdit, ColorPicker: disable display of inline text label (the label is still forwarded to the tooltip and picker).
+          color_edit_flags_no_side_preview = ImGuiColorEditFlags_NoSidePreview,   // ColorPicker: disable bigger color preview on right side of the picker, use small color square preview instead.
+          color_edit_flags_no_drag_drop = ImGuiColorEditFlags_NoDragDrop,      // ColorEdit: disable drag and drop target. ColorButton: disable drag and drop source.
+          color_edit_flags_no_border = ImGuiColorEditFlags_NoBorder,        // ColorButton: disable border (which is enforced by default)
+
+          // User Options (right-click on widget to change some of them).
+          color_edit_flags_alpha_bar = ImGuiColorEditFlags_AlphaBar,        // ColorEdit, ColorPicker: show vertical alpha bar/gradient in picker.
+          color_edit_flags_alpha_preview = ImGuiColorEditFlags_AlphaPreview,    // ColorEdit, ColorPicker, ColorButton: display preview as a transparent color over a checkerboard, instead of opaque.
+          color_edit_flags_alpha_preview_half = ImGuiColorEditFlags_AlphaPreviewHalf, // ColorEdit, ColorPicker, ColorButton: display half opaque / half checkerboard, instead of opaque.
+          color_edit_flags_hdr = ImGuiColorEditFlags_HDR,             // (WIP) ColorEdit: Currently only disable 0.0f..1.0f limits in RGBA edition (note: you probably want to use ImGuiColorEditFlags_Float flag as well).
+          color_edit_flags_display_rgb = ImGuiColorEditFlags_DisplayRGB,      // [Display] ColorEdit: override _display_ type among RGB/HSV/Hex. ColorPicker: select any combination using one or more of RGB/HSV/Hex.
+          color_edit_flags_display_hsv = ImGuiColorEditFlags_DisplayHSV,      // [Display] "
+          color_edit_flags_display_hex = ImGuiColorEditFlags_DisplayHex,      // [Display] "
+          color_edit_flags_uint8 = ImGuiColorEditFlags_Uint8,           // [DataType] ColorEdit, ColorPicker, ColorButton: _display_ values formatted as 0..255.
+          color_edit_flags_float = ImGuiColorEditFlags_Float,           // [DataType] ColorEdit, ColorPicker, ColorButton: _display_ values formatted as 0.0f..1.0f floats instead of 0..255 integers. No round-trip of value via integers.
+          color_edit_flags_picker_hue_bar = ImGuiColorEditFlags_PickerHueBar,    // [Picker] ColorPicker: bar for Hue, rectangle for Sat/Value.
+          color_edit_flags_picker_hue_wheel = ImGuiColorEditFlags_PickerHueWheel,  // [Picker] ColorPicker: wheel for Hue, triangle for Sat/Value.
+          color_edit_flags_input_rgb = ImGuiColorEditFlags_InputRGB,        // [Input] ColorEdit, ColorPicker: input and output data in RGB format.
+          color_edit_flags_input_hsv = ImGuiColorEditFlags_InputHSV,        // [Input] ColorEdit, ColorPicker: input and output data in HSV format.
+
+          // Defaults Options. You can set application defaults using SetColorEditOptions(). The intent is that you probably don't want to
+          // override them in most of your calls. Let the user choose via the option menu and/or call SetColorEditOptions() once during startup.
+          color_edit_flags_default_options = ImGuiColorEditFlags_DefaultOptions_, // Uint8 | DisplayRGB | InputRGB | PickerHueBar combination.
+        };
+
+        bool color_edit3(const std::string& label, fan::color* color, color_edit_flags_t flags = 0);
+        bool color_edit3(const std::string& label, fan::vec3* color, color_edit_flags_t flags = 0);
+        bool color_edit4(const std::string& label, fan::color* color, color_edit_flags_t flags = 0);
+
+        fan::vec2 get_window_size();
+        void set_next_window_pos(const fan::vec2& position);
+        void set_next_window_size(const fan::vec2& size);
+
+        using col_t = int;
+        enum {
+          col_text = ImGuiCol_Text,
+          col_text_disabled = ImGuiCol_TextDisabled,
+          col_window_bg = ImGuiCol_WindowBg,              // Background of normal windows
+          col_child_bg = ImGuiCol_ChildBg,               // Background of child windows
+          col_popup_bg = ImGuiCol_PopupBg,               // Background of popups, menus, tooltips windows
+          col_border = ImGuiCol_Border,
+          col_border_shadow = ImGuiCol_BorderShadow,
+          col_frame_bg = ImGuiCol_FrameBg,               // Background of checkbox, radio button, plot, slider, text input
+          col_frame_bg_hovered = ImGuiCol_FrameBgHovered,
+          col_frame_bg_active = ImGuiCol_FrameBgActive,
+          col_title_bg = ImGuiCol_TitleBg,               // Title bar
+          col_title_bg_active = ImGuiCol_TitleBgActive,         // Title bar when focused
+          col_title_bg_collapsed = ImGuiCol_TitleBgCollapsed,      // Title bar when collapsed
+          col_menu_bar_bg = ImGuiCol_MenuBarBg,
+          col_scrollbar_bg = ImGuiCol_ScrollbarBg,
+          col_scrollbar_grab = ImGuiCol_ScrollbarGrab,
+          col_scrollbar_grab_hovered = ImGuiCol_ScrollbarGrabHovered,
+          col_scrollbar_grab_active = ImGuiCol_ScrollbarGrabActive,
+          col_check_mark = ImGuiCol_CheckMark,             // Checkbox tick and RadioButton circle
+          col_slider_grab = ImGuiCol_SliderGrab,
+          col_slider_grab_active = ImGuiCol_SliderGrabActive,
+          col_button = ImGuiCol_Button,
+          col_button_hovered = ImGuiCol_ButtonHovered,
+          col_button_active = ImGuiCol_ButtonActive,
+          col_header = ImGuiCol_Header,                // Header* colors are used for CollapsingHeader, TreeNode, Selectable, MenuItem
+          col_header_hovered = ImGuiCol_HeaderHovered,
+          col_header_active = ImGuiCol_HeaderActive,
+          col_separator = ImGuiCol_Separator,
+          col_separator_hovered = ImGuiCol_SeparatorHovered,
+          col_separator_active = ImGuiCol_SeparatorActive,
+          col_resize_grip = ImGuiCol_ResizeGrip,            // Resize grip in lower-right and lower-left corners of windows.
+          col_resize_grip_hovered = ImGuiCol_ResizeGripHovered,
+          col_resize_grip_active = ImGuiCol_ResizeGripActive,
+          col_tab_hovered = ImGuiCol_TabHovered,            // Tab background, when hovered
+          col_tab = ImGuiCol_Tab,                   // Tab background, when tab-bar is focused & tab is unselected
+          col_tab_selected = ImGuiCol_TabSelected,           // Tab background, when tab-bar is focused & tab is selected
+          col_tab_selected_overline = ImGuiCol_TabSelectedOverline,   // Tab horizontal overline, when tab-bar is focused & tab is selected
+          col_tab_dimmed = ImGuiCol_TabDimmed,             // Tab background, when tab-bar is unfocused & tab is unselected
+          col_tab_dimmed_selected = ImGuiCol_TabDimmedSelected,     // Tab background, when tab-bar is unfocused & tab is selected
+          col_tab_dimmed_selected_overline = ImGuiCol_TabDimmedSelectedOverline, //..horizontal overline, when tab-bar is unfocused & tab is selected
+          col_docking_preview = ImGuiCol_DockingPreview,        // Preview overlay color when about to docking something
+          col_docking_empty_bg = ImGuiCol_DockingEmptyBg,        // Background color for empty node (e.g. CentralNode with no window docked into it)
+          col_plot_lines = ImGuiCol_PlotLines,
+          col_plot_lines_hovered = ImGuiCol_PlotLinesHovered,
+          col_plot_histogram = ImGuiCol_PlotHistogram,
+          col_plot_histogram_hovered = ImGuiCol_PlotHistogramHovered,
+          col_table_header_bg = ImGuiCol_TableHeaderBg,         // Table header background
+          col_table_border_strong = ImGuiCol_TableBorderStrong,     // Table outer and header borders (prefer using Alpha=1.0 here)
+          col_table_border_light = ImGuiCol_TableBorderLight,      // Table inner borders (prefer using Alpha=1.0 here)
+          col_table_row_bg = ImGuiCol_TableRowBg,            // Table row background (even rows)
+          col_table_row_bg_alt = ImGuiCol_TableRowBgAlt,         // Table row background (odd rows)
+          col_text_link = ImGuiCol_TextLink,              // Hyperlink color
+          col_text_selected_bg = ImGuiCol_TextSelectedBg,
+          col_drag_drop_target = ImGuiCol_DragDropTarget,        // Rectangle highlighting a drop target
+          col_nav_cursor = ImGuiCol_NavCursor,             // Color of keyboard/gamepad navigation cursor/rectangle, when visible
+          col_nav_windowing_highlight = ImGuiCol_NavWindowingHighlight, // Highlight window when using CTRL+TAB
+          col_nav_windowing_dim_bg = ImGuiCol_NavWindowingDimBg,     // Darken/colorize entire screen behind the CTRL+TAB window list, when active
+          col_modal_window_dim_bg = ImGuiCol_ModalWindowDimBg,      // Darken/colorize entire screen behind a modal window, when one is active
+          col_count = ImGuiCol_COUNT,
+        };
+
+        using style_var_t = int;
+        enum {
+          style_var_alpha = ImGuiStyleVar_Alpha,                    // float     Alpha
+          style_var_disabled_alpha = ImGuiStyleVar_DisabledAlpha,            // float     DisabledAlpha
+          style_var_window_padding = ImGuiStyleVar_WindowPadding,            // ImVec2    WindowPadding
+          style_var_window_rounding = ImGuiStyleVar_WindowRounding,           // float     WindowRounding
+          style_var_window_border_size = ImGuiStyleVar_WindowBorderSize,         // float     WindowBorderSize
+          style_var_window_min_size = ImGuiStyleVar_WindowMinSize,            // ImVec2    WindowMinSize
+          style_var_window_title_align = ImGuiStyleVar_WindowTitleAlign,         // ImVec2    WindowTitleAlign
+          style_var_child_rounding = ImGuiStyleVar_ChildRounding,            // float     ChildRounding
+          style_var_child_border_size = ImGuiStyleVar_ChildBorderSize,          // float     ChildBorderSize
+          style_var_popup_rounding = ImGuiStyleVar_PopupRounding,            // float     PopupRounding
+          style_var_popup_border_size = ImGuiStyleVar_PopupBorderSize,          // float     PopupBorderSize
+          style_var_frame_padding = ImGuiStyleVar_FramePadding,             // ImVec2    FramePadding
+          style_var_frame_rounding = ImGuiStyleVar_FrameRounding,            // float     FrameRounding
+          style_var_frame_border_size = ImGuiStyleVar_FrameBorderSize,          // float     FrameBorderSize
+          style_var_item_spacing = ImGuiStyleVar_ItemSpacing,              // ImVec2    ItemSpacing
+          style_var_item_inner_spacing = ImGuiStyleVar_ItemInnerSpacing,         // ImVec2    ItemInnerSpacing
+          style_var_indent_spacing = ImGuiStyleVar_IndentSpacing,            // float     IndentSpacing
+          style_var_cell_padding = ImGuiStyleVar_CellPadding,              // ImVec2    CellPadding
+          style_var_scrollbar_size = ImGuiStyleVar_ScrollbarSize,            // float     ScrollbarSize
+          style_var_scrollbar_rounding = ImGuiStyleVar_ScrollbarRounding,        // float     ScrollbarRounding
+          style_var_grab_min_size = ImGuiStyleVar_GrabMinSize,              // float     GrabMinSize
+          style_var_grab_rounding = ImGuiStyleVar_GrabRounding,             // float     GrabRounding
+          style_var_tab_rounding = ImGuiStyleVar_TabRounding,              // float     TabRounding
+          style_var_tab_border_size = ImGuiStyleVar_TabBorderSize,          // float     TabBorderSize
+          style_var_tab_bar_border_size = ImGuiStyleVar_TabBarBorderSize,         // float     TabBarBorderSize
+          style_var_tab_bar_overline_size = ImGuiStyleVar_TabBarOverlineSize,       // float     TabBarOverlineSize
+          style_var_table_angled_headers_angle = ImGuiStyleVar_TableAngledHeadersAngle,  // float     TableAngledHeadersAngle
+          style_var_table_angled_headers_text_align = ImGuiStyleVar_TableAngledHeadersTextAlign,// ImVec2  TableAngledHeadersTextAlign
+          style_var_button_text_align = ImGuiStyleVar_ButtonTextAlign,          // ImVec2    ButtonTextAlign
+          style_var_selectable_text_align = ImGuiStyleVar_SelectableTextAlign,      // ImVec2    SelectableTextAlign
+          style_var_separator_text_border_size = ImGuiStyleVar_SeparatorTextBorderSize,  // float     SeparatorTextBorderSize
+          style_var_separator_text_align = ImGuiStyleVar_SeparatorTextAlign,       // ImVec2    SeparatorTextAlign
+          style_var_separator_text_padding = ImGuiStyleVar_SeparatorTextPadding,     // ImVec2    SeparatorTextPadding
+          style_var_docking_separator_size = ImGuiStyleVar_DockingSeparatorSize,     // float     DockingSeparatorSize
+          style_var_count = ImGuiStyleVar_COUNT
+        };
+
+        void push_style_color(col_t index, const fan::color& col);
+        void pop_style_color();
+
+        void push_style_var(style_var_t index, f32_t val);
+        void push_style_var(style_var_t index, const fan::vec2& val);
+        void pop_style_var();
+
+        #if !defined(__INTELLISENSE__)
+        #define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
+          drag_float(name, &variable, speed, min, max)
+        #endif
+
+        #define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
+            fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, m_min, m_max)
+
+
+        #define fan_imgui_dragfloat1(variable, speed) \
+            fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, 0, 0)
+
+        namespace ns_imgui_draw {
+          #define BLL_set_SafeNext 1
+          #define BLL_set_AreWeInsideStruct 0
+          #define BLL_set_prefix imgui_draw_cb
+          #include <fan/fan_bll_preset.h>
+          #define BLL_set_Link 1
+          #define BLL_set_type_node uint16_t
+          #define BLL_set_NodeDataType fan::function_t<void()>
+          #include <BLL/BLL.h>
+        }
+
+        using imgui_draw_cb_nr_t = ns_imgui_draw::imgui_draw_cb_NodeReference_t;
+        inline static ns_imgui_draw::imgui_draw_cb_t m_imgui_draw_cb;
+
+        struct imgui_element_nr_t : imgui_draw_cb_nr_t {
+          using base_t = imgui_draw_cb_nr_t;
+
+          imgui_element_nr_t() = default;
+
+          imgui_element_nr_t(const imgui_element_nr_t& nr);
+
+          imgui_element_nr_t(imgui_element_nr_t&& nr);
+          ~imgui_element_nr_t();
+
+
+          imgui_element_nr_t& operator=(const imgui_element_nr_t& id);
+
+          imgui_element_nr_t& operator=(imgui_element_nr_t&& id);
+
+          void init();
+
+          bool is_invalid() const;
+
+          void invalidate_soft();
+
+          void invalidate();
+
+          inline void set(const auto& lambda) {
+            m_imgui_draw_cb[*this] = lambda;
+          }
+        };
+
+        struct imgui_element_t : imgui_element_nr_t {
+          imgui_element_t() = default;
+          imgui_element_t(const auto& lambda) {
+            imgui_element_nr_t::init();
+            imgui_element_nr_t::set(lambda);
+          }
+        };
+
+        struct imgui_fs_var_t {
+          fan::graphics::gui::imgui_element_t ie;
+
+          imgui_fs_var_t() = default;
+
+          template <typename T>
+          imgui_fs_var_t(
+            loco_t::shader_t shader_nr,
+            const fan::string& var_name,
+            T initial_ = 0,
+            f32_t speed = 1,
+            f32_t min = -100000,
+            f32_t max = 100000
+          );
+        };
+
+        static const char* item_getter1(const std::vector<std::string>& items, int index);
+
+        void set_imgui_viewport(fan::graphics::viewport_t viewport);
+
+        /// <summary>
+        /// Draws the specified button, with its position influenced by other GUI elements.
+        /// Plays default hover and click audio piece if none specified.
+        /// </summary>
+        /// <param name="label">Name of the button. Draws the given label next to the button. The label is hideable using "##hidden_label".</param>
+        /// <param name="piece_hover">Audio piece that is played when hovering the button.</param>
+        /// <param name="piece_click">Audio piece that is played when clicking and releasing the button.</param>
+        /// <param name="size">Size of the button (defaults to automatic).</param>
+        /// <returns></returns>
+        bool audio_button(
+          const std::string& label, 
+          fan::audio::piece_t piece_hover = {0}, 
+          fan::audio::piece_t piece_click = {0}, 
+          const fan::vec2& size = fan::vec2(0, 0)
+        );
+
+      }// loco gui
+
+  #endif//loco_gui
+  }
+}

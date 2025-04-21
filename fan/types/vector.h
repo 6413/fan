@@ -59,15 +59,15 @@ struct vec4_wrap_t {
   #include <vulkan/vulkan.h>
 #endif
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
   #include <fan/imgui/imgui.h>
 #endif
 
-#if defined(loco_assimp)
+#if defined(fan_3d)
   #include <assimp/vector3.h>
 #endif
 
-#if defined(loco_box2d)
+#if defined(fan_physics)
   #include <box2d/types.h>
 #endif
 
@@ -106,11 +106,11 @@ namespace fan {
     template <typename T> constexpr vec2_wrap_t(const vec3_wrap_t<T>& test0) 
     : vec2_wrap_t(test0.x, test0.y) { } 
     constexpr auto copysign(const auto& test0) const { return vec2_wrap_t(fan::math::copysign(x, test0.x), fan::math::copysign(y, test0.y)); }
-#if defined(loco_imgui)
+#if defined(fan_gui)
     constexpr operator ImVec2() const { return ImVec2{(f32_t)x, (f32_t)y}; }
     constexpr vec2_wrap_t(const ImVec2& v) { x = v.x; y = v.y; }
 #endif
-#if defined(loco_box2d)
+#if defined(fan_physics)
     constexpr operator b2Vec2() const { return b2Vec2{(f32_t)x, (f32_t)y}; }
     constexpr vec2_wrap_t(const b2Vec2& v) { x = v.x; y = v.y; }
 #endif
@@ -147,7 +147,7 @@ namespace fan {
     }
 
 
-  #if defined(loco_assimp)
+  #if defined(fan_3d)
     vec3_wrap_t(const aiVector3D& v) {
     x = v.x;
     y = v.y;
@@ -199,7 +199,7 @@ namespace fan {
     constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0, auto value)
       : vec4_wrap_t(test0.x, test0.y, test0.z, value) { }
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
     constexpr operator ImVec4() const { return ImVec4(x, y, z, w); }
     constexpr vec4_wrap_t(const ImVec4& v) { x = v.x; y = v.y; z = v.z; w = v.w; }
 #endif

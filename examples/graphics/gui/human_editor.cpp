@@ -318,7 +318,7 @@ struct human_editor_t {
   std::array<bone_t, fan::graphics::bone_e::bone_count> bones;
   std::array<loco_t::image_t, fan::graphics::bone_e::bone_count> bone_images;
   std::string current_directory;
-  fan::graphics::imgui_content_browser_t content_browser;
+  fan::graphics::gui::imgui_content_browser_t content_browser;
 
   fan::graphics::file_save_dialog_t save_file_dialog;
   fan::graphics::file_open_dialog_t open_file_dialog;

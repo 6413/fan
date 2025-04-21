@@ -8,7 +8,7 @@
 #define VK_USE_PLATFORM_XLIB_KHR
 #endif
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
   #include <fan/imgui/imgui_impl_vulkan.h>
 #endif
 
@@ -414,7 +414,7 @@ namespace fan {
 
        //----------------------------------------------imgui stuff----------------------------------------------
       bool                     SwapChainRebuild = false;
-      #if defined(loco_imgui)
+      #if defined(fan_gui)
       ImGui_ImplVulkanH_Window MainWindowData;
       uint32_t                 MinImageCount = 2;
       

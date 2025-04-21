@@ -1,19 +1,5 @@
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
-#undef loco_assimp
-//
-
-#include <fan/types/types.h>
-
-#ifndef WITCH_INCLUDE_PATH
-  #define WITCH_INCLUDE_PATH WITCH
-#endif
-#include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
-#include <fan/audio/audio.h>
-
-#include <fftw/fftw3.h>
-
 #include <fan/pch.h>
+#include <fftw/fftw3.h>
 
 int main() {
   loco_t loco;
@@ -151,7 +137,7 @@ int main() {
       rpos.x /= 2;
       rpos.y = window_size.y - box_size.x;
 
-      auto& ri = *(loco_t::particles_t::ri_t*)loco.shaper.GetData(shapes[i]);
+      auto& ri = *(loco_t::particles_t::ri_t*)shapes[i].GetData(loco.shaper);
 
       ri.position = rpos;
       ri.size = box_size.x / 2;

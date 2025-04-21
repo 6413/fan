@@ -8,7 +8,7 @@ namespace fan {
 
     uint16_t convert_fan_to_scancode(int key);
 
-    #if defined(loco_imgui)
+    #if defined(fan_gui)
     int fan_to_imguikey(int key);
     #endif
   }
