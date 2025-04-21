@@ -2562,7 +2562,7 @@ public:
   fan::system_audio_t system_audio;
   fan::audio_t audio;
 
-  fan::audio_t::piece_t piece_click;
+  fan::audio_t::piece_t piece_hover, piece_click;
 #endif
 };
 

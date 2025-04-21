@@ -1678,7 +1678,9 @@ loco_t::loco_t(const properties_t& p) {
     fan::throw_error("failed to open fan audio");
   }
   audio.bind(&system_audio);
+  piece_hover = fan::audio::open_piece("audio/hover.sac");
   piece_click = fan::audio::open_piece("audio/click.sac");
+
 #endif
 }
 
@@ -4677,25 +4679,23 @@ void fan::audio::set_volume(f32_t volume) {
 }
 
 bool fan::graphics::audio_button(const std::string& label, const fan::vec2& size) {
-  // todo remove map
-  static std::unordered_map<std::string, bool> temporary_buttons;
+  ImGui::PushID(label.c_str());
+  ImGuiStorage* storage = ImGui::GetStateStorage();
+  ImGuiID id = ImGui::GetID("prev_hovered");
+  bool previously_hovered = storage->GetBool(id);
+  
   bool pressed = ImGui::Button(label.c_str(), size);
   bool currently_hovered = ImGui::IsItemHovered();
-  bool& previously_hovered = temporary_buttons[label];
-  if (currently_hovered && ImGui::IsMouseClicked(0)) {
-    fan::audio::play(gloco->piece_click);
-  }
+  
   if (currently_hovered && !previously_hovered) {
-    fan::audio::play(gloco->piece_click);
-    //fan::print("A");
+    fan::audio::play(gloco->piece_hover);
   }
-  else if (!currently_hovered && previously_hovered) {
-    fan::audio::play(gloco->piece_click);
-  }
-  previously_hovered = currently_hovered;
   if (pressed) {
     fan::audio::play(gloco->piece_click);
   }
+  storage->SetBool(id, currently_hovered);
+
+  ImGui::PopID();
   return pressed;
 }
 
