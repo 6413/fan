@@ -2578,7 +2578,16 @@ loco_t::shape_t::shape_t(const shaper_t::ShapeID_t& s) : shape_t() {
           location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
         }
         fan_opengl_call(glEnableVertexAttribArray(location.index.first));
-        fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
+        switch (location.type) {
+        case GL_UNSIGNED_INT:
+        case GL_INT: {
+          fan_opengl_call(glVertexAttribIPointer(location.index.first, location.size, location.type, location.stride, (void*)ptr_offset));
+          break;
+        }
+        default: {
+          fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
+        }
+        }
         // instancing
         if ((gloco->context.gl.opengl.major > 3) || (gloco->context.gl.opengl.major == 3 && gloco->context.gl.opengl.minor >= 3)) {
           if (shape_data.instanced) {
@@ -2656,7 +2665,16 @@ loco_t::shape_t& loco_t::shape_t::operator=(const loco_t::shape_t& s) {
             location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
           }
           fan_opengl_call(glEnableVertexAttribArray(location.index.first));
-          fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
+          switch(location.type) {
+          case GL_UNSIGNED_INT:
+          case GL_INT: {
+            fan_opengl_call(glVertexAttribIPointer(location.index.first, location.size, location.type, location.stride, (void*)ptr_offset));
+            break;
+          }
+          default: {
+            fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
+          }
+          }
           // instancing
           if ((gloco->context.gl.opengl.major > 3) || (gloco->context.gl.opengl.major == 3 && gloco->context.gl.opengl.minor >= 3)) {
             if (shape_data.instanced) {
@@ -3098,7 +3116,16 @@ loco_t::shape_t loco_t::polygon_t::push_back(const loco_t::polygon_t::properties
       location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
     }
     fan_opengl_call(glEnableVertexAttribArray(location.index.first));
-    fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
+    switch (location.type) {
+    case GL_UNSIGNED_INT:
+    case GL_INT: {
+      fan_opengl_call(glVertexAttribIPointer(location.index.first, location.size, location.type, location.stride, (void*)ptr_offset));
+      break;
+    }
+    default: {
+      fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
+    }
+    }
     // instancing
     if ((gloco->context.gl.opengl.major > 3) || (gloco->context.gl.opengl.major == 3 && gloco->context.gl.opengl.minor >= 3)) {
       if (shape_data.instanced) {

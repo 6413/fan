@@ -32,6 +32,8 @@ namespace fan {
     fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
     void image_unload(fan::graphics::image_nr_t nr);
 
+    using light_flags_e = loco_t::light_flags_e;
+
     struct light_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
       fan::vec3 position = fan::vec3(0, 0, 0);
@@ -132,7 +134,7 @@ namespace fan {
       std::array<loco_t::image_t, 30> images;
       f32_t parallax_factor = 0;
       bool blending = false;
-      uint32_t flags = 0;
+      uint32_t flags = light_flags_e::circle | light_flags_e::additive;
     };
 
 

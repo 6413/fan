@@ -505,7 +505,16 @@ void add_shape_type(loco_t::shaper_t::ShapeTypes_NodeData_t& st, const loco_t::s
       location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
     }
     fan_opengl_call(glEnableVertexAttribArray(location.index.first));
-    fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
+    switch (location.type) {
+    case GL_UNSIGNED_INT:
+    case GL_INT: {
+      fan_opengl_call(glVertexAttribIPointer(location.index.first, location.size, location.type, location.stride, (void*)ptr_offset));
+      break;
+    }
+    default: {
+      fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
+    }
+    }
     // instancing
     if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
       if (data.instanced) {
@@ -815,7 +824,16 @@ void draw_shapes() {
           uintptr_t offset = BlockTraverse.GetRenderDataOffset(loco.shaper);
           std::vector<shape_gl_init_t>& locations = loco.shaper.GetLocations(shape_type);
           for (const auto& location : locations) {
-            fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)offset));
+            switch (location.type) {
+            case GL_UNSIGNED_INT:
+            case GL_INT: {
+              fan_opengl_call(glVertexAttribIPointer(location.index.first, location.size, location.type, location.stride, (void*)offset));
+              break;
+            }
+            default: {
+              fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)offset));
+            }
+            }
             switch (location.type) {
             case GL_FLOAT: {
               offset += location.size * sizeof(GLfloat);

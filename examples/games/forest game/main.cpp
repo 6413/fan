@@ -105,7 +105,7 @@ struct pile_t {
     player.player.set_position(fan::vec3(position, floor((position.y) / 64) + (0xFAAA - 2) / 2) + z);
     player.player.process_movement(fan::graphics::physics::character2d_t::movement_e::top_view);
     
-    loco.set_imgui_viewport(loco.orthographic_camera.viewport);
+    fan::graphics::gui::set_imgui_viewport(loco.orthographic_camera.viewport);
 
     // physics step
     loco.physics_context.step(loco.delta_time);
@@ -185,8 +185,7 @@ player_t::player_t() {
   light = fan::graphics::light_t{ {
     .position = player.get_position(),
     .size = 200,
-    .color = fan::colors::white,
-    .flags = 3
+    .color = fan::colors::white/2
   } };
 }
 
