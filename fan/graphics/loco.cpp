@@ -22,6 +22,7 @@
 
 #define loco_framebuffer
 #define loco_post_process
+#define loco_audio
 //
 //#define depth_debug
 //
@@ -142,6 +143,10 @@ fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_nr_t nr) {
 
 uint64_t loco_t::image_get_handle(fan::graphics::image_nr_t nr) {
   return context_functions.image_get_handle(&context, nr);
+}
+
+fan::graphics::image_data_t& loco_t::image_get_data(fan::graphics::image_nr_t nr) {
+  return image_list[nr];
 }
 
 void loco_t::image_erase(fan::graphics::image_nr_t nr) {
@@ -712,16 +717,14 @@ loco_t::functions_t loco_t::get_functions() {
           }
 
           auto& im = *ti->image;
-          auto img = gloco->image_get(im);
 
           auto _vi = shape->GetRenderData(gloco->shaper);
           auto vlen = gloco->shaper.GetRenderDataSize(sti);
           uint8_t* vi = new uint8_t[vlen];
           std::memcpy(vi, _vi, vlen);
-          std::visit([vi, ti] (const auto& v) {
-            ((T*)vi)->tc_position = ti->position / v.size;
-            ((T*)vi)->tc_size = ti->size / v.size;
-          }, img);
+          auto& image_data = gloco->image_get_data(im);
+          ((T*)vi)->tc_position = ti->position / image_data.size;
+          ((T*)vi)->tc_size = ti->size / image_data.size;
 
           auto _ri = shape->GetData(gloco->shaper);
           auto rlen = gloco->shaper.GetDataSize(sti);
@@ -1667,6 +1670,16 @@ loco_t::loco_t(const properties_t& p) {
     fan::graphics::engine_init_cbs[it](this);
     it = fan::graphics::engine_init_cbs.EndSafeNext();
   }
+
+#if defined(loco_audio)
+  #include <WITCH/PlatformOpen.h>
+
+  if (system_audio.Open() != 0) {
+    fan::throw_error("failed to open fan audio");
+  }
+  audio.bind(&system_audio);
+  piece_click = fan::audio::open_piece("audio/click.sac");
+#endif
 }
 
 void loco_t::destroy() {
@@ -1691,6 +1704,10 @@ void loco_t::destroy() {
   destroy_imgui();
 #endif
   window.close();
+#if defined(loco_audio)
+  audio.unbind();
+  system_audio.Close();
+#endif
 }
 
 loco_t::~loco_t() {
@@ -1871,6 +1888,13 @@ void loco_t::switch_renderer(uint8_t renderer) {
 
     shaper._BlockListCapacityChange(shape_type_t::rectangle, 0, 1);
     shaper._BlockListCapacityChange(shape_type_t::sprite, 0, 1);
+
+  #if defined(loco_audio)
+    if (system_audio.Open() != 0) {
+      fan::throw_error("failed to open fan audio");
+    }
+    audio.bind(&system_audio);
+  #endif
   }
   reload_renderer_to = -1;
 }
@@ -2973,12 +2997,9 @@ bool loco_t::shape_t::load_tp(loco_t::texturepack_t::ti_t* ti) {
 loco_t::texturepack_t::ti_t loco_t::shape_t::get_tp() {
   loco_t::texturepack_t::ti_t ti;
   ti.image = &gloco->default_texture;
-  auto img = gloco->image_get(*ti.image);
-  std::visit([this, &ti] (const auto& v) {
-    ti.position = get_tc_position() * v.size;
-    ti.size = get_tc_size() * v.size;
-  }, img);
-
+  auto& image_data = gloco->image_get_data(*ti.image);
+  ti.position = get_tc_position() * image_data.size;
+  ti.size = get_tc_size() * image_data.size;
   return ti;
   //return gloco->shape_functions[gloco->shaper.GetSTI(*this)].get_tp(this);
 }
@@ -4621,3 +4642,61 @@ bool loco_t::is_key_down(int key) {
 bool loco_t::is_key_released(int key) {
   return window.key_state(key) == (int)fan::mouse_state::release;
 }
+
+#if defined(loco_audio)
+fan::audio_t::piece_t fan::audio::open_piece(const std::string& path, fan::audio_t::PieceFlag::t flags) {
+  fan::audio_t::piece_t piece;
+  sint32_t err = gloco->audio.Open(&piece, path, flags);
+  if (err != 0) {
+    fan::throw_error("failed to open piece:", err);
+  }
+  return piece;
+}
+
+void fan::audio::play(fan::audio_t::piece_t piece, uint32_t group_id, bool loop) {
+  fan::audio_t::PropertiesSoundPlay_t p;
+  p.Flags.Loop = loop;
+  p.GroupID = 0;
+  gloco->audio.SoundPlay(&piece, &p);
+}
+
+void fan::audio::resume(uint32_t group_id) {
+  gloco->audio.Resume();
+}
+
+void fan::audio::pause(uint32_t group_id) {
+  gloco->audio.Pause();
+}
+
+f32_t fan::audio::get_volume() {
+  return gloco->audio.GetVolume();
+}
+
+void fan::audio::set_volume(f32_t volume) {
+  gloco->audio.SetVolume(volume);
+}
+
+bool fan::graphics::audio_button(const std::string& label, const fan::vec2& size) {
+  // todo remove map
+  static std::unordered_map<std::string, bool> temporary_buttons;
+  bool pressed = ImGui::Button(label.c_str(), size);
+  bool currently_hovered = ImGui::IsItemHovered();
+  bool& previously_hovered = temporary_buttons[label];
+  if (currently_hovered && ImGui::IsMouseClicked(0)) {
+    fan::audio::play(gloco->piece_click);
+  }
+  if (currently_hovered && !previously_hovered) {
+    fan::audio::play(gloco->piece_click);
+    //fan::print("A");
+  }
+  else if (!currently_hovered && previously_hovered) {
+    fan::audio::play(gloco->piece_click);
+  }
+  previously_hovered = currently_hovered;
+  if (pressed) {
+    fan::audio::play(gloco->piece_click);
+  }
+  return pressed;
+}
+
+#endif

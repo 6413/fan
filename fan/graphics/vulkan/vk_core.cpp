@@ -422,7 +422,8 @@ fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const fan:
   image_nr_t nr = image_create(context);
 
   fan::vulkan::context_t::image_t& image = image_get(context, nr);
-  image.size = image_info.size;
+  auto& image_data = image_list[nr];
+  image_data.size = image_info.size;
   image_list[nr].image_path = "";
 
   auto image_multiplier = get_image_multiplier(p.format);
@@ -475,8 +476,8 @@ fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, fan::color
 
   image_set_settings(context, p);
 
-  fan::vulkan::context_t::image_t& image = image_get(context, nr);
-  image.size = size_;
+  auto& image_data = image_list[nr];
+  image_data.size = size_;
 
   return nr;
 }
@@ -490,8 +491,9 @@ fan::graphics::image_nr_t create_missing_texture(fan::vulkan::context_t& context
 
   fan::vec2i image_size = fan::vec2i(2, 2);
   image_nr_t nr = image_load(context, (fan::color*)fan::image::missing_texture_pixels, image_size, p);
-  fan::vulkan::context_t::image_t& image = image_get(context, nr);
-  image.size = image_size;
+
+  auto& image_data = image_list[nr];
+  image_data.size = image_size;
 
   return nr;
 }
@@ -500,8 +502,9 @@ fan::graphics::image_nr_t create_transparent_texture(fan::vulkan::context_t& con
 
   fan::vec2i image_size = fan::vec2i(2, 2);
   image_nr_t nr = image_load(context, (fan::color*)fan::image::transparent_texture_pixels, image_size, p);
-  fan::vulkan::context_t::image_t& image = image_get(context, nr);
-  image.size = image_size;
+
+  auto& image_data = image_list[nr];
+  image_data.size = image_size;
 
   return nr;
 }
@@ -544,7 +547,8 @@ void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const fan::ima
   VkDeviceSize image_size = image_info.size.multiply() * image_multiplier;
 
   fan::vulkan::context_t::image_t& image = image_get(context, nr);
-  image.size = image_info.size;
+  auto& image_data = image_list[nr];
+  image_data.size = image_info.size;
 
   if (image.image_index == 0) {
     VkDeviceSize image_size_bytes = image_info.size.multiply() * image_multiplier;

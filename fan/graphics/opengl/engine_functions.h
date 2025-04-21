@@ -675,11 +675,11 @@ void draw_shapes() {
 
       do {
         auto shader = loco.shaper.GetShader(shape_type);
-#if fan_debug >= fan_debug_medium
         if (shape_type == loco_t::shape_type_t::vfi || shape_type == loco_t::shape_type_t::light_end) {
           break;
         }
-        else if ((shape_type == 0 || shader.iic())) {
+#if fan_debug >= fan_debug_medium
+        if ((shape_type == 0 || shader.iic())) {
           fan::throw_error("invalid stuff");
         }
 #endif
@@ -978,7 +978,7 @@ void begin_process_frame() {
   if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
     loco.gl.m_framebuffer.bind(loco.context.gl);
 
-    fan_opengl_call(glClearColor(loco.clear_color.r, loco.clear_color.g, loco.clear_color.b, loco.clear_color.a));
+    fan_opengl_call(glClearColor(0, 0, 0, 1)); // light buffer
     for (std::size_t i = 0; i < std::size(loco.gl.color_buffers); ++i) {
       fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));
       loco.image_bind(loco.gl.color_buffers[i]);

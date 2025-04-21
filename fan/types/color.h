@@ -61,6 +61,16 @@ namespace fan {
 			return color(r / 255.f, g / 255.f, b / 255.f, a / 255.f);
 		}
 
+    static constexpr color readable_text(const color& background) {
+      f32_t luminance = 0.2126f * background.r + 0.7152f * background.g + 0.0722f * background.b;
+      if (luminance > 0.5f) {
+        return color(0, 0, 0, 1);
+      }
+      else {
+        return color(1, 1, 1, 1);
+      }
+    }
+
 		static constexpr color hex(unsigned int hex) {
 			return color::rgb(
 				(hex >> 24) & 0xff,

@@ -1,5 +1,21 @@
 #pragma once
 
+#define loco_audio
+
+#include <fan/types/types.h>
+#if defined(loco_audio)
+  #ifndef _INCLUDE_TOKEN
+    #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
+  #endif
+  #ifndef WITCH_INCLUDE_PATH
+    #define WITCH_INCLUDE_PATH WITCH
+  #endif
+  #define WITCH_PRE_is_not_allowed
+  #include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
+  #include <fan/audio/audio.h>
+  
+#endif
+
 #include <fan/ev/ev.h>
 
 #include <fan/graphics/file_dialog.h>
@@ -311,7 +327,9 @@ struct loco_t {
 
   fan::graphics::image_nr_t image_create();
   fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr);
+  
   uint64_t image_get_handle(fan::graphics::image_nr_t nr);
+  fan::graphics::image_data_t& image_get_data(fan::graphics::image_nr_t nr);
   void image_erase(fan::graphics::image_nr_t nr);
   void image_bind(fan::graphics::image_nr_t nr);
   void image_unbind(fan::graphics::image_nr_t nr);
@@ -1524,11 +1542,9 @@ public:
       bool load_tp(loco_t::texturepack_t::ti_t* ti) {
         auto& im = *ti->image;
         image = im;
-        auto img = gloco->image_get(im);
-        std::visit([this, ti] (const auto& v) {
-          tc_position = ti->position / v.size;
-          tc_size = ti->size / v.size;
-        }, img);
+        auto& img = gloco->image_get_data(im);
+        tc_position = ti->position / img.size;
+        tc_size = ti->size / img.size;
         return 0;
       }
 
@@ -1613,11 +1629,9 @@ public:
       bool load_tp(loco_t::texturepack_t::ti_t* ti) {
         auto& im = *ti->image;
         image = im;
-        auto img = gloco->image_get(im);
-        std::visit([this, ti](auto& v) {
-          tc_position = ti->position / v.size;
-          tc_size = ti->size / v.size;
-        }, img);
+        auto& img = gloco->image_get_data(im);
+        tc_position = ti->position / img.size;
+        tc_size = ti->size / img.size;
         return 0;
       }
     };
@@ -2543,6 +2557,13 @@ public:
   };
 
 #endif
+
+#if defined(loco_audio)
+  fan::system_audio_t system_audio;
+  fan::audio_t audio;
+
+  fan::audio_t::piece_t piece_click;
+#endif
 };
 
 namespace fan {
@@ -2688,3 +2709,20 @@ inline bool fan__init_list = []{
   };  
   return 0;
 }();
+
+#if defined(loco_audio)
+namespace fan {
+  namespace audio {
+    using piece_t = fan::audio_t::piece_t;
+    fan::audio_t::piece_t open_piece(const std::string& path, fan::audio_t::PieceFlag::t flags = 0);
+    void play(fan::audio_t::piece_t piece, uint32_t group_id = 0, bool loop = false);
+    void resume(uint32_t group_id = 0);
+    void pause(uint32_t group_id = 0);
+    f32_t get_volume();
+    void set_volume(f32_t volume);
+  }
+  namespace graphics {
+    bool audio_button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0));
+  }
+}
+#endif

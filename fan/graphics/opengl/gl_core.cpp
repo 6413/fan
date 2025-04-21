@@ -731,8 +731,9 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const fan:
   image_set_settings(context, nr, p);
 
   auto& image = image_get(context, nr);
-  image.size = image_info.size;
-  image_list[nr].image_path = "";
+  auto& image_data = image_list[nr];
+  image_data.size = image_info.size;
+  image_data.image_path = "";
 
   int fmt = 0;
   int internal_fmt = p.internal_format;
@@ -764,7 +765,7 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const fan:
   }
   }
 
-  uint32_t bytes_per_row = (int)(image.size.x * image_info.channels);
+  uint32_t bytes_per_row = (int)(image_data.size.x * image_info.channels);
   if ((bytes_per_row % 8) == 0) {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
   }
@@ -778,7 +779,7 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const fan:
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   }
 
-  fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, internal_fmt, image.size.x, image.size.y, 0, fmt, p.type, image_info.data));
+  fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, internal_fmt, image_data.size.x, image_data.size.y, 0, fmt, p.type, image_info.data));
 
   switch (p.min_filter) {
   case GL_LINEAR_MIPMAP_LINEAR:
@@ -803,15 +804,16 @@ fan::graphics::image_nr_t create_missing_texture(fan::opengl::context_t& context
 
   image_set_settings(context, nr, p);
   auto& image = image_get(context, nr);
-  image.size = fan::vec2i(2, 2);
+  auto& image_data = image_list[nr];
+  image_data.size = fan::vec2i(2, 2);
 
   fan_opengl_call(
     glTexImage2D(
       GL_TEXTURE_2D, 
       0, 
       p.internal_format, 
-      image.size.x, 
-      image.size.y, 
+      image_data.size.x, 
+      image_data.size.y, 
       0, 
       p.format, 
       p.type, 
@@ -833,10 +835,11 @@ fan::graphics::image_nr_t create_transparent_texture(fan::opengl::context_t& con
   image_bind(context, nr);
 
   auto& img = image_get(context, nr);
+  auto& image_data = image_list[nr];
 
   image_set_settings(context, nr, p);
 
-  img.size = fan::vec2i(2, 2);
+  image_data.size = fan::vec2i(2, 2);
 
   fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, 2, 2, 0, p.format, p.type, fan::image::transparent_texture_pixels));
 
@@ -879,10 +882,11 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, fan::color
 
   image_set_settings(context, nr, p);
 
-  auto& image = image_get(context, nr);
-  image.size = size_;
+  auto& image_data = image_list[nr];
 
-  fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, image.size.x, image.size.y, 0, p.format, GL_FLOAT, (uint8_t*)colors));
+  image_data.size = size_;
+
+  fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, image_data.size.x, image_data.size.y, 0, p.format, GL_FLOAT, (uint8_t*)colors));
 
   return nr;
 }
@@ -905,9 +909,9 @@ void image_reload(fan::opengl::context_t& context, image_nr_t nr, const fan::ima
 
   image_set_settings(context, nr, p);
 
-  auto& image = image_get(context, nr);
-  image.size = image_info.size;
-  fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, image.size.x, image.size.y, 0, p.format, p.type, image_info.data));
+  auto& image_data = image_list[nr];
+  image_data.size = image_info.size;
+  fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, image_data.size.x, image_data.size.y, 0, p.format, p.type, image_info.data));
 }
 
 void image_reload(fan::opengl::context_t& context, image_nr_t nr, const fan::image::image_info_t& image_info) {
@@ -935,12 +939,14 @@ std::unique_ptr<uint8_t[]> image_get_pixel_data(fan::opengl::context_t& context,
   auto& image = image_get(context, nr);
   image_bind(context, nr);
 
+  auto& image_data = image_list[nr];
+
   fan::vec2ui uv_size = {
-      (uint32_t)(image.size.x * uvs.x),
-      (uint32_t)(image.size.y * uvs.y)
+      (uint32_t)(image_data.size.x * uvs.x),
+      (uint32_t)(image_data.size.y * uvs.y)
   };
 
-  auto full_ptr = std::make_unique<uint8_t[]>(image.size.x * image.size.y * 4); // assuming rgba
+  auto full_ptr = std::make_unique<uint8_t[]>(image_data.size.x * image_data.size.y * 4); // assuming rgba
 
   fan_opengl_call(glGetTexImage(GL_TEXTURE_2D,
     0,
@@ -953,7 +959,7 @@ std::unique_ptr<uint8_t[]> image_get_pixel_data(fan::opengl::context_t& context,
 
   for (uint32_t y = 0; y < uv_size.y; ++y) {
     for (uint32_t x = 0; x < uv_size.x; ++x) {
-      uint32_t full_index = ((y + uvp.y * image.size.y) * image.size.x + (x + uvp.x * image.size.x)) * 4;
+      uint32_t full_index = ((y + uvp.y * image_data.size.y) * image_data.size.x + (x + uvp.x * image_data.size.x)) * 4;
       uint32_t index = (y * uv_size.x + x) * 4;
       ptr[index + 0] = full_ptr[full_index + 0];
       ptr[index + 1] = full_ptr[full_index + 1];
@@ -980,8 +986,8 @@ fan::graphics::image_nr_t image_create(fan::opengl::context_t& context, const fa
 
   fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, 1, 1, 0, p.format, p.type, pixels));
 
-  auto& image = image_get(context, nr);
-  image.size = 1;
+  auto& image_data = image_list[nr];
+  image_data.size = 1;
 
   fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
 
