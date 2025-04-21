@@ -12,7 +12,6 @@ int main(int argc, char** argv) {
   f32_t volume = fan::audio::get_volume();
 
   fan_window_loop {
-
     fan_graphics_gui_window("audio controls"){
       if (fan::graphics::gui::button("toggle pause")) {
         static int audio_toggle = 0;

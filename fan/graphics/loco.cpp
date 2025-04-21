@@ -42,7 +42,7 @@ uint32_t fan::graphics::get_draw_mode(uint8_t internal_draw_mode) {
 #endif
   }
   else if (gloco->get_renderer() == loco_t::renderer_t::vulkan) {
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
     return fan::vulkan::core::get_draw_mode(internal_draw_mode);
 #endif
   }
@@ -96,7 +96,7 @@ fan::graphics::context_shader_t loco_t::shader_get(fan::graphics::shader_nr_t nr
   if (window.renderer == renderer_t::opengl) {
     context_shader = *(fan::opengl::context_t::shader_t*)context_functions.shader_get(&context, nr);
   }
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     context_shader = *(fan::vulkan::context_t::shader_t*)context_functions.shader_get(&context, nr);
   }
@@ -133,7 +133,7 @@ fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_nr_t nr) {
   if (window.renderer == renderer_t::opengl) {
     img = *(fan::opengl::context_t::image_t*)context_functions.image_get(&context, nr);
   }
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     img = *(fan::vulkan::context_t::image_t*)context_functions.image_get(&context, nr);
   }
@@ -1414,7 +1414,7 @@ void loco_t::load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t
 }
 #endif
 
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
 void check_vk_result(VkResult err) {
   if (err != VK_SUCCESS) {
     fan::print("vkerr", (int)err);
@@ -1452,7 +1452,7 @@ void loco_t::init_imgui() {
     const char* glsl_version = "#version 120";
     ImGui_ImplOpenGL3_Init(glsl_version);
   }
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     ImGui_ImplGlfw_InitForVulkan(window, true);
     ImGui_ImplVulkan_InitInfo init_info = {};
@@ -1485,7 +1485,7 @@ void loco_t::destroy_imgui() {
   if (window.renderer == renderer_t::opengl) {
     ImGui_ImplOpenGL3_Shutdown();
   }
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     vkDeviceWaitIdle(context.vk.device);
     ImGui_ImplVulkan_Shutdown();
@@ -1494,7 +1494,7 @@ void loco_t::destroy_imgui() {
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
   ImPlot::DestroyContext();
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
   if (window.renderer == renderer_t::vulkan) {
     context.vk.imgui_close();
   }
@@ -1529,7 +1529,14 @@ loco_t::loco_t(const properties_t& p) {
   window.open(p.window_size, fan::window_t::default_window_name, p.window_flags);
   gloco = this;
 
-  #if defined(loco_vulkan)
+
+  #if fan_debug >= fan_debug_high && !defined(fan_vulkan)
+  if (window.renderer == renderer_t::vulkan) {
+    fan::throw_error("trying to use vulkan renderer, but fan_vulkan build flag is disabled");
+  }
+  #endif
+
+  #if defined(fan_vulkan)
   if(window.renderer == renderer_t::vulkan) {
     context_functions = fan::graphics::get_vk_context_functions();
     new (&context.vk) fan::vulkan::context_t();
@@ -1634,7 +1641,7 @@ loco_t::loco_t(const properties_t& p) {
   if (window.renderer == renderer_t::opengl) {
     gl.shapes_open();
   }
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     vk.shapes_open();
   }
@@ -1693,7 +1700,7 @@ void loco_t::destroy() {
   console.close();
 #endif
   fan::graphics::close_bcol();
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
   if (window.renderer == loco_t::renderer_t::vulkan) {
     vkDeviceWaitIdle(context.vk.device);
     vkDestroySampler(context.vk.device, vk.post_process_sampler, nullptr);
@@ -1723,7 +1730,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
   uint64_t flags = window.flags;
 
   {// close
-    #if defined(loco_vulkan)
+    #if defined(fan_vulkan)
     if (window.renderer == loco_t::renderer_t::vulkan) {
       // todo wrap to vk.
       vkDeviceWaitIdle(context.vk.device);
@@ -1736,7 +1743,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
 #endif
       if (window.renderer == loco_t::renderer_t::opengl) {
       for(auto &st : shaper.ShapeTypes){
-        #if defined(loco_vulkan)
+        #if defined(fan_vulkan)
         if (std::holds_alternative<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer)) {
           auto& str = std::get<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer);
           str.shape_data.close(context.vk);
@@ -1767,7 +1774,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
     window.set_position(window_position);
     glfwShowWindow(window);
     window.flags = flags;
-    #if defined(loco_vulkan)
+    #if defined(fan_vulkan)
     if(window.renderer == renderer_t::vulkan) {
       new (&context.vk) fan::vulkan::context_t();
       context_functions = fan::graphics::get_vk_context_functions();
@@ -1821,7 +1828,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
               image_list[nr].internal = new fan::opengl::context_t::image_t;
               fan_opengl_call(glGenTextures(1, &((fan::opengl::context_t::image_t*)context_functions.image_get(&context.gl, nr))->texture_id));
             }
-            #if defined(loco_vulkan)
+            #if defined(fan_vulkan)
             else if(window.renderer == renderer_t::vulkan) {
               // illegal
               image_list[nr].internal = new fan::vulkan::context_t::image_t;
@@ -1854,7 +1861,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
             if(window.renderer == renderer_t::opengl) {
               shader_list[nr].internal = new fan::opengl::context_t::shader_t;
             }
-            #if defined(loco_vulkan)
+            #if defined(fan_vulkan)
             else if(window.renderer == renderer_t::vulkan) {
               shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
             }
@@ -1878,7 +1885,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
       gl.shapes_open();
       gl.initialize_fb_vaos();
     }
-    #if defined(loco_vulkan)
+    #if defined(fan_vulkan)
     else if (window.renderer == renderer_t::vulkan) {
       vk.shapes_open();
     }
@@ -1905,7 +1912,7 @@ void loco_t::draw_shapes() {
   if (window.renderer == renderer_t::opengl) {
     gl.draw_shapes();
   }
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
   else 
     if (window.renderer == renderer_t::vulkan) {
     vk.draw_shapes();
@@ -1915,7 +1922,7 @@ void loco_t::draw_shapes() {
 
 void loco_t::process_shapes() {
 
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
   if (window.renderer == renderer_t::vulkan) {
     if (render_shapes_top == true) {
       vk.begin_render_pass();
@@ -1932,7 +1939,7 @@ void loco_t::process_shapes() {
     i();
   }
 
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
   if (window.renderer == renderer_t::vulkan) {
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
     if (vk.image_error != (decltype(vk.image_error))-0xfff) {
@@ -2061,7 +2068,7 @@ void loco_t::process_gui() {
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   }
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
     // did draw
@@ -2120,7 +2127,7 @@ void loco_t::process_frame() {
 
   shaper.ProcessBlockEditQueue();
 
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
   if (window.renderer == renderer_t::vulkan){
     vk.begin_draw();
   }
@@ -2140,7 +2147,7 @@ void loco_t::process_frame() {
   if (window.renderer == renderer_t::opengl) {
     glfwSwapBuffers(window);
   }
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
 #if !defined(fan_gui)
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
@@ -2171,7 +2178,7 @@ bool loco_t::process_loop(const fan::function_t<void()>& lambda) {
   if (window.renderer == renderer_t::opengl) {
     ImGui_ImplOpenGL3_NewFrame();
   }
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
   else if (window.renderer == renderer_t::vulkan) {
     ImGui_ImplVulkan_NewFrame();
   }

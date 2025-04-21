@@ -42,7 +42,7 @@
 #if defined(fan_gui)
 #include <fan/imgui/imgui.h>
 #include <fan/imgui/imgui_impl_opengl3.h>
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
 #include <fan/imgui/imgui_impl_vulkan.h>
 #endif
 #include <fan/imgui/imgui_impl_glfw.h>
@@ -55,7 +55,7 @@
 #include <fan/graphics/algorithm/FastNoiseLite.h>
 
 #include <fan/graphics/opengl/core.h>
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
 #include <fan/graphics/vulkan/core.h>
 #endif
 
@@ -243,7 +243,7 @@ namespace fan {
     }
     using context_shader_init_t = std::variant<
       fan::opengl::context_t::shader_t
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
       ,fan::vulkan::context_t::shader_t
 #endif
     >;
@@ -252,7 +252,7 @@ namespace fan {
     };
     using context_image_init_t = std::variant<
       fan::opengl::context_t::image_t
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
       ,fan::vulkan::context_t::image_t
 #endif
     >;
@@ -264,7 +264,7 @@ namespace fan {
       ~context_t() {}
       union {
         fan::opengl::context_t gl;
-  #if defined(loco_vulkan)
+  #if defined(fan_vulkan)
         fan::vulkan::context_t vk;
 #endif
       };
@@ -307,7 +307,7 @@ struct loco_t {
     if (window.renderer == renderer_t::opengl) {
       context.gl.shader_set_camera(nr, camera_nr);
     }
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
     else if (window.renderer == renderer_t::vulkan) {
       fan::throw_error("todo");
     }
@@ -694,7 +694,7 @@ struct loco_t {
   }gl;
 #endif
 
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
   struct vulkan {
     #include <fan/graphics/vulkan/engine_functions.h>
 
@@ -718,7 +718,7 @@ struct loco_t {
     if (gloco->window.renderer == renderer_t::opengl) {
       gloco->gl.modify_render_data_element_arr(shape, data, attribute, i, arr_member, value);
     }
-    #if defined(loco_vulkan)
+    #if defined(fan_vulkan)
     else if (gloco->window.renderer == renderer_t::vulkan) {
       (((T*)data)->*attribute)[i].*arr_member = value;
       auto& data = gloco->shaper.ShapeList[*shape];
@@ -741,7 +741,7 @@ struct loco_t {
     if (gloco->window.renderer == renderer_t::opengl) {
       gloco->gl.modify_render_data_element(shape, data, attribute, value);
     }
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
     else if (gloco->window.renderer == renderer_t::vulkan) {
       ((T*)data)->*attribute = value;
       auto& data = gloco->shaper.ShapeList[*shape];
@@ -2164,7 +2164,7 @@ public:
       d.instanced = instanced;
       data = d;
     }
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
     else if (window.renderer == renderer_t::vulkan) {
       loco_t::shaper_t::BlockProperties_t::vk_t vk;
 
@@ -2570,7 +2570,7 @@ inline bool init_fan_track_opengl_print = []() {
 
 //vk
 
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
   #include <fan/graphics/vulkan/uniform_block.h>
   #include <fan/graphics/vulkan/memory.h>
 #endif

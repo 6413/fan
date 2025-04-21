@@ -55,7 +55,7 @@ struct vec4_wrap_t {
 
 #define fan_coordinate(x) CONCAT(fan_coordinate_letters, x)
 
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
   #include <vulkan/vulkan.h>
 #endif
 
@@ -114,7 +114,7 @@ namespace fan {
     constexpr operator b2Vec2() const { return b2Vec2{(f32_t)x, (f32_t)y}; }
     constexpr vec2_wrap_t(const b2Vec2& v) { x = v.x; y = v.y; }
 #endif
-#if defined(loco_vulkan)
+#if defined(fan_vulkan)
     constexpr operator VkExtent2D() const { return VkExtent2D{(uint32_t)x, (uint32_t)y}; }
     constexpr vec2_wrap_t(const VkExtent2D& v) { x = v.width; y = v.height; }
 #endif

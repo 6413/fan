@@ -463,6 +463,8 @@ void main() {
     demo_t{.name = "Shader", .demo_function = demo_static_shader_shape, .update_function = demo_static_shader_shape_update, .cleanup_function = nullptr},
     demo_t{.name = "Sprite", .demo_function = demo_static_sprite, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "_next", .demo_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
+    //GUI STUFF
+    demo_t{.name = "_next", .demo_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     demo_t{.name = "Reflective Mirrors", .demo_function = demo_physics_mirrors, .update_function = demo_physics_mirrors_update, .cleanup_function = demo_physics_mirrors_cleanup},
   });
 
@@ -521,7 +523,8 @@ void main() {
     gui::set_next_window_size(next_window_size);
     fan_graphics_gui_window("##Menu Engine Demo Left", 0, wnd_flags){
       render_demos(menu, {
-        "BASIC ENGINE SHAPES",
+        "BASIC SHAPES",
+        "GUI",
         "PHYSICS"
       });
     }
@@ -543,7 +546,7 @@ void main() {
     gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y - window_size.y));
     gui::push_style_color(gui::col_window_bg, fan::colors::transparent);
     fan_graphics_gui_window("##Menu Engine Demo Right Content Bottom", 0, wnd_flags | gui::window_flags_no_inputs) {
-      gui::set_imgui_viewport(engine_demo.right_column_view.viewport);
+      gui::set_viewport(engine_demo.right_column_view.viewport);
       fan::vec2 viewport_size = engine_demo.engine.viewport_get(engine_demo.right_column_view.viewport).viewport_size;
       engine_demo.engine.camera_set_ortho(
         engine_demo.right_column_view.camera,
