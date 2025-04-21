@@ -30,11 +30,7 @@
 - **Audio**: Currently only [SAC](https://github.com/7244/SAC-container) is supported.
 ## Installation
 
-Requires c++20
-
-### Windows
-1. Clone the repository: `git clone https://github.com/6413/fan.git`
-2. Using Visual Studio use fan.sln. Alternatively compile using clang++ (currently not working for windows)
+Requires c++23
 
 ### Linux
 1. Clone the repository: `git clone https://github.com/6413/fan.git`
@@ -44,8 +40,12 @@ Requires c++20
     ```
     (```./uninstall.sh```) to remove repos from /usr/local/include/*
 3. Main usage:
--  For linux you can export files to /usr/local/lib, by doing `sudo ./copy_to_default_paths.sh`
 -  To compile main use `./compile_main.sh -DMAIN="examples/graphics/2D/shapes/rectangle.cpp"`, which also compiles fan
+
+### Windows
+1. Clone the repository: `git clone https://github.com/6413/fan.git`
+2. Code compiles using Visual Studio, external libraries are to be installed.
+
 ## Usage
 
 - Hello world rectangle:
