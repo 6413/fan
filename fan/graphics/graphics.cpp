@@ -498,18 +498,14 @@ bool fan::graphics::texture_packe0::push_texture(fan::graphics::image_nr_t image
     }
   }
 
-  auto img = gloco->image_get(image);
-
   auto data = gloco->image_get_pixel_data(image, GL_RGBA, texture_properties.uv_pos, texture_properties.uv_size);
 
   fan::vec2ui image_size = 0;
-  std::visit([&image_size, &texture_properties] (const auto& v) {
-    image_size = {
-      (uint32_t)(v.size.x * texture_properties.uv_size.x),
-      (uint32_t)(v.size.y * texture_properties.uv_size.y)
-    };
-  }, img);
-
+  auto& image_data = gloco->image_get_data(image);
+  image_size = {
+    (uint32_t)(image_data.size.x * texture_properties.uv_size.x),
+    (uint32_t)(image_data.size.y * texture_properties.uv_size.y)
+  };
 
   if ((int)image_size.x % 2 != 0 || (int)image_size.y % 2 != 0) {
     fan::print_warning("failed to load, image size is not divideable by 2");
@@ -1091,7 +1087,7 @@ void loco_t::settings_menu_t::set_settings_theme() {
   style.Colors[ImGuiCol_TitleBg] = ImVec4(0.1176470592617989f, 0.1176470592617989f, 0.1176470592617989f, 1.0f);
   style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.1568627506494522f, 0.1568627506494522f, 0.1568627506494522f, 1.0f);
   style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.1176470592617989f, 0.1176470592617989f, 0.1176470592617989f, 1.0f);
-  style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+  style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 1.f);
   style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.1098039224743843f);
   style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(1.0f, 1.0f, 1.0f, 0.3921568691730499f);
   style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(1.0f, 1.0f, 1.0f, 0.4705882370471954f);

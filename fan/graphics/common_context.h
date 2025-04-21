@@ -93,6 +93,7 @@ namespace fan {
     };
 
     struct image_data_t {
+      fan::vec2 size;
       std::string image_path;
       image_load_properties_t image_settings;
       void* internal;

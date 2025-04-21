@@ -1,62 +1,32 @@
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-
-#include <fan/types/types.h>
-
-#ifndef WITCH_INCLUDE_PATH
-  #define WITCH_INCLUDE_PATH WITCH
-#endif
-#include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
-#include <fan/audio/audio.h>
-
 #include <fan/pch.h>
-
-#define test
 
 // argv[1] == audio/w_voice.sac 
 int main(int argc, char** argv) {
-  loco_t loco;
+  fan::graphics::engine_t engine;
 
-  fan::system_audio_t system_audio;
+  fan::audio::piece_t piece = fan::audio::open_piece("audio/output.sac");
+  uint32_t group_id = 0;
+  bool loop = true;
+  //fan::audio::play(piece, group_id, loop);
 
-  if (system_audio.Open() != 0) {
-    fan::throw_error("failed to open fan audio");
-  }
+  fan::audio::set_volume(0.01);
+  f32_t volume = fan::audio::get_volume();
 
-  fan::audio_t audio;
-  audio.bind(&system_audio);
-
-  fan::audio_t::piece_t piece;
-  sint32_t err = audio.Open(&piece, "audio/output.sac", 0);
-  if (err != 0) {
-    fan::throw_error("failed to open piece:", err);
-  }
-  
-  {
-    fan::audio_t::PropertiesSoundPlay_t p;
-    p.Flags.Loop = true;
-    p.GroupID = 0;
-    audio.SoundPlay(&piece, &p);
-  }
-
-  audio.SetVolume(0.01);
-  f32_t volume = audio.GetVolume();
-
-  loco.loop([&] {
+  engine.loop([&] {
     ImGui::Begin("audio controls");
+    if (fan::graphics::audio_button("click me")) {
+
+    }
     if (ImGui::Button("toggle pause")) {
       static int audio_toggle = 0;
-      ((audio_toggle++)& 1) == 0 ? audio.Pause() : audio.Resume();
+      ((audio_toggle++)& 1) == 0 ? fan::audio::pause() : fan::audio::resume();
 
     }
     if (ImGui::DragFloat("volume", &volume, 0.01f, 0.0f, 1.0f)) {
-      audio.SetVolume(volume);
+      fan::audio::set_volume(volume);
     }
     ImGui::End();
   });
-
-  audio.unbind();
-
-  system_audio.Close();
 
   return 0;
 }

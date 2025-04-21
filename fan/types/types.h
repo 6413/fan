@@ -104,6 +104,10 @@ namespace fan {
 #endif
   }
 
+#ifndef PR_abort
+  #define PR_abort throw_error_impl
+#endif
+
 	struct string;
 
 	constexpr auto uninitialized = -1;

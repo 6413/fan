@@ -81,11 +81,9 @@ struct image_divider_t {
       image_loaded = false;
       images.clear();
       if (root_image.iic() == false) {
-        auto img = gloco->image_get(root_image);
         fan::vec2 img_size = 0;
-        std::visit([&img_size](auto& img) {
-          img_size = img.size;
-        }, img);
+        auto& image_data = gloco->image_get_data(root_image);
+        img_size = image_data.size;
         fan::vec2i divider = { horizontal_line_count, vertical_line_count };
         fan::vec2 uv_size = img_size / divider / img_size;
 
@@ -108,11 +106,9 @@ struct image_divider_t {
       }
     }
 
-    auto img = gloco->image_get(root_image);
+    auto& image_data = gloco->image_get_data(root_image);
     fan::vec2 img_size = 0;
-    std::visit([&img_size](auto& img) {
-      img_size = img.size;
-    }, img);
+    img_size = image_data.size;
     
     fan::vec2 normalized_image_size = img_size.normalize();
     cell_size.x = (child_window_size.max() * 0.95 * (normalized_image_size.x)) / horizontal_line_count;
@@ -130,11 +126,9 @@ struct image_divider_t {
       root_image = gloco->image_load(
         fn
       );
-      auto img = gloco->image_get(root_image);
+      auto& image_data = gloco->image_get_data(root_image);
       fan::vec2 img_size = 0;
-      std::visit([&img_size](auto& img) {
-        img_size = img.size;
-      }, img);
+      img_size = image_data.size;
       open_properties.preferred_pack_size = img_size;
       image_loaded = true;
       open_file_dialog.finished = false;
@@ -826,11 +820,6 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           render_content_browser = !render_content_browser;
         }
 
-        if (ImGui::BeginMainMenuBar()) {
-
-          ImGui::EndMainMenuBar();
-        }
-
         if (render_content_browser) {
           content_browser.render();
         }
@@ -910,11 +899,9 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
         static fan::graphics::file_save_dialog_t save_file_dialog;
         static fan::graphics::file_open_dialog_t open_file_dialog;
         static std::string fn;
-        if (ImGui::BeginMenuBar())
-        {
-          if (ImGui::BeginMenu("File"))
-          {
-
+        
+        if (ImGui::BeginMenuBar()) {
+          if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open..", "Ctrl+O")) {
 
               open_file_dialog.load("json;fmm", &fn);
@@ -996,11 +983,9 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
         ImGui::End();
 
         if (ImGui::Begin("lighting settings")) {
-          float arr[3];
-          arr[0] = gloco->lighting.ambient.data()[0];
-          arr[1] = gloco->lighting.ambient.data()[1];
-          arr[2] = gloco->lighting.ambient.data()[2];
-          //fan::print("suffering", (void*)gloco.loco, &gloco.loco->lighting, (void*)((uint8_t*)&gloco.loco->lighting - (uint8_t*)gloco.loco), sizeof(*gloco.loco), arr[0], arr[1], arr[2]);
+          if (ImGui::ColorEdit3("background", gloco->clear_color.data())) {
+
+          }
           if (ImGui::ColorEdit3("ambient", gloco->lighting.ambient.data())) {
 
           }
@@ -1150,6 +1135,8 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
 
     fan::json ostr;
     ostr["version"] = current_version;
+    ostr["lighting.ambient"] = gloco->lighting.ambient;
+    ostr["clear_color"] = gloco->clear_color;
     fan::json shapes = fan::json::array();
     auto it = shape_list.GetNodeFirst();
     while (it != shape_list.dst) {
@@ -1227,13 +1214,20 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
       fan::print("invalid file version, file:", version, "current:", current_version);
       return;
     }
+    if (json_in.contains("lighting.ambient")) {
+      gloco->lighting.ambient = json_in["lighting.ambient"];
+    }
+    if (json_in.contains("clear_color")) {
+      gloco->clear_color = json_in["clear_color"];
+    }
     fan::graphics::shape_deserialize_t iterator;
     loco_t::shape_t shape;
     int i = 0;
+    current_z = 0;
     while (iterator.iterate(json_in["shapes"], &shape)) {
       shape.set_camera(camera.camera);
       shape.set_viewport(camera.viewport);
-
+      current_z = std::max(current_z, shape.get_position().z);
       auto it = shape_list.NewNodeLast();
       auto& node = shape_list[it];
       switch (shape.get_shape_type()) {
@@ -1302,6 +1296,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
       }
       }
     }
+    ++current_z;
   }
 
   void invalidate_current() {
