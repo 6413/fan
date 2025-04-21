@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-2D graphics library using OpenGL.
+2D graphics library using OpenGL, (Vulkan Alpha).
 
 ## Features
 
