@@ -7,9 +7,9 @@
 /***************************************/
 
 namespace fan {
-  namespace graphics {
-
-    fan::vec2 window_size();
+  namespace window {
+    fan::vec2 get_size();
+    void set_size(const fan::vec2& size);
 
     bool is_mouse_clicked(int button = fan::mouse_left);
     bool is_mouse_down(int button = fan::mouse_left);
@@ -19,9 +19,11 @@ namespace fan {
     bool is_key_pressed(int key);
     bool is_key_down(int key);
     bool is_key_released(int key);
+  }
+}
 
-    void set_window_size(const fan::vec2& size);
-
+namespace fan {
+  namespace graphics {
     fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info);
     fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p);
     fan::graphics::image_nr_t image_load(const fan::string& path);
@@ -29,13 +31,6 @@ namespace fan {
     fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size);
     fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
     void image_unload(fan::graphics::image_nr_t nr);
-
-#if defined(loco_imgui)
-    using imgui_element_t = loco_t::imgui_element_t;
-
-    void text(const std::string& text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white);
-    void text_bottom_right(const std::string& text, const fan::color& color = fan::colors::white, const fan::vec2& offset = 0);
-#endif
 
     struct light_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
@@ -852,123 +847,127 @@ namespace fan {
 }
 
 // Imgui extensions
-#if defined(loco_imgui)
-namespace ImGui {
-  void Text(const std::string& str);
+#if defined(fan_gui)
+namespace fan {
+  namespace graphics {
+    namespace gui {
+      void image(loco_t::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::color(1, 1, 1, 1), const fan::color& border_col = fan::color(0, 0, 0, 0));
+      bool image_button(const std::string& str_id, loco_t::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), int frame_padding = -1, const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::color(1, 1, 1, 1));
+      bool image_text_button(loco_t::image_t img, const std::string& text, const fan::color& color, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), int frame_padding = -1, const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::color(1, 1, 1, 1));
 
-  IMGUI_API void Image(loco_t::image_t img, const fan::vec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
-  IMGUI_API bool ImageButton(const std::string& str_id, loco_t::image_t img, const fan::vec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
-  IMGUI_API bool ImageTextButton(loco_t::image_t img, const std::string& text, const fan::color& color, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
+      bool toggle_button(const std::string& str, bool* v);
+      bool toggle_image_button(const std::string& char_id, loco_t::image_t image, const fan::vec2& size, bool* toggle);
 
-  bool ToggleButton(const std::string& str, bool* v);
-  bool ToggleImageButton(const std::string& char_id, loco_t::image_t image, const ImVec2& size, bool* toggle);
-  
-  void DrawTextBottomRight(const char* text, uint32_t reverse_yoffset = 0);
+      void text_bottom_right(const char* text, uint32_t reverse_yoffset = 0);
 
 
-  template <std::size_t N>
-  bool ToggleImageButton(const std::array<loco_t::image_t, N>& images, const ImVec2& size, int* selectedIndex)
-  {
-    f32_t y_pos = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y -  ImGui::GetStyle().FramePadding.y / 2;
-    
-    bool clicked = false;
-    bool pushed = false;
+      template <std::size_t N>
+      bool toggle_image_button(const std::array<loco_t::image_t, N>& images, const fan::vec2& size, int* selectedIndex)
+      {
+        f32_t y_pos = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y - ImGui::GetStyle().FramePadding.y / 2;
 
-    for (std::size_t i = 0; i < images.size(); ++i) {
-      ImVec4 tintColor = ImVec4(0.2, 0.2, 0.2, 1.0);
-      if (*selectedIndex == i) {
-        tintColor = ImVec4(0.2, 0.2, 0.2, 1.0f);
-        ImGui::PushStyleColor(ImGuiCol_Button, tintColor);
-        pushed = true;
+        bool clicked = false;
+        bool pushed = false;
+
+        for (std::size_t i = 0; i < images.size(); ++i) {
+          ImVec4 tintColor = ImVec4(0.2, 0.2, 0.2, 1.0);
+          if (*selectedIndex == i) {
+            tintColor = ImVec4(0.2, 0.2, 0.2, 1.0f);
+            ImGui::PushStyleColor(ImGuiCol_Button, tintColor);
+            pushed = true;
+          }
+          /*if (ImGui::IsItemHovered()) {
+            tintColor = ImVec4(1, 1, 1, 1.0f);
+          }*/
+          ImGui::SetCursorPosY(y_pos);
+          if (fan::graphics::gui::image_button("##toggle_image_button" + std::to_string(i) + std::to_string((uint64_t)&clicked), images[i], size)) {
+            *selectedIndex = i;
+            clicked = true;
+          }
+          if (pushed) {
+            ImGui::PopStyleColor();
+            pushed = false;
+          }
+
+          ImGui::SameLine();
+        }
+
+        return clicked;
       }
-      /*if (ImGui::IsItemHovered()) {
-        tintColor = ImVec4(1, 1, 1, 1.0f);
-      }*/
-      ImGui::SetCursorPosY(y_pos);
-      if (ImGui::ImageButton("##toggle_image_button" + std::to_string(i) + std::to_string((uint64_t)&clicked), images[i], size)) {
-        *selectedIndex = i;
-        clicked = true;
-      }
-      if (pushed) {
-        ImGui::PopStyleColor();
-        pushed = false;
-      }
 
-      ImGui::SameLine();
+
+      fan::vec2 get_position_bottom_corner(const std::string& text = "", uint32_t reverse_yoffset = 0);
+
+      void image_rotated(loco_t::image_t image, const fan::vec2& size, int angle, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::color(1, 1, 1, 1), const fan::color& border_col = fan::color(0, 0, 0, 0));
+
     }
-
-    return clicked;
   }
-
-
-  ImVec2 GetPositionBottomCorner(const char* text = "", uint32_t reverse_yoffset = 0);
-
-  void ImageRotated(ImTextureID user_texture_id, const ImVec2& size, int angle, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1), const ImVec4& border_col = ImVec4(0,0,0,0));
 }
-// Imgui extensions
 
 #include <fan/io/directory.h>
 
 namespace fan {
   namespace graphics {
-    struct imgui_content_browser_t {
-      struct file_info_t {
-        std::string filename;
-        std::filesystem::path some_path; //?
-        std::wstring item_path;
-        bool is_directory;
-        loco_t::image_t preview_image;
-        //std::string 
-      };
+    namespace gui {
+      struct content_browser_t {
+        struct file_info_t {
+          std::string filename;
+          std::filesystem::path some_path; //?
+          std::wstring item_path;
+          bool is_directory;
+          loco_t::image_t preview_image;
+          //std::string 
+        };
 
-      std::vector<file_info_t> directory_cache;
+        std::vector<file_info_t> directory_cache;
 
-      loco_t::image_t icon_arrow_left = gloco->image_load("images_content_browser/arrow_left.webp");
-      loco_t::image_t icon_arrow_right = gloco->image_load("images_content_browser/arrow_right.webp");
+        loco_t::image_t icon_arrow_left = gloco->image_load("images_content_browser/arrow_left.webp");
+        loco_t::image_t icon_arrow_right = gloco->image_load("images_content_browser/arrow_right.webp");
 
-      loco_t::image_t icon_file = gloco->image_load("images_content_browser/file.webp");
-      loco_t::image_t icon_directory = gloco->image_load("images_content_browser/folder.webp");
+        loco_t::image_t icon_file = gloco->image_load("images_content_browser/file.webp");
+        loco_t::image_t icon_directory = gloco->image_load("images_content_browser/folder.webp");
 
-      loco_t::image_t icon_files_list = gloco->image_load("images_content_browser/files_list.webp");
-      loco_t::image_t icon_files_big_thumbnail = gloco->image_load("images_content_browser/files_big_thumbnail.webp");
+        loco_t::image_t icon_files_list = gloco->image_load("images_content_browser/files_list.webp");
+        loco_t::image_t icon_files_big_thumbnail = gloco->image_load("images_content_browser/files_big_thumbnail.webp");
 
-      bool item_right_clicked = false;
-      std::string item_right_clicked_name;
+        bool item_right_clicked = false;
+        std::string item_right_clicked_name;
 
-      std::wstring asset_path = L"./";
+        std::wstring asset_path = L"./";
 
-      std::filesystem::path current_directory;
-      enum viewmode_e {
-        view_mode_list,
-        view_mode_large_thumbnails,
-      };
-      viewmode_e current_view_mode = view_mode_list;
-      float thumbnail_size = 128.0f;
-      f32_t padding = 16.0f;
-      std::string search_buffer;
+        std::filesystem::path current_directory;
+        enum viewmode_e {
+          view_mode_list,
+          view_mode_large_thumbnails,
+        };
+        viewmode_e current_view_mode = view_mode_list;
+        float thumbnail_size = 128.0f;
+        f32_t padding = 16.0f;
+        std::string search_buffer;
 
-      imgui_content_browser_t();
-      imgui_content_browser_t(bool no_init);
-      imgui_content_browser_t(const std::wstring& path);
-      void update_directory_cache();
-      void render();
-      void render_large_thumbnails_view();
-      void render_list_view();
-      void handle_item_interaction(const file_info_t& file_info);
-      // [](const std::filesystem::path& path) {}
-      void receive_drag_drop_target(auto receive_func) {
-        ImGui::Dummy(ImGui::GetContentRegionAvail());
+        content_browser_t();
+        content_browser_t(bool no_init);
+        content_browser_t(const std::wstring& path);
+        void update_directory_cache();
+        void render();
+        void render_large_thumbnails_view();
+        void render_list_view();
+        void handle_item_interaction(const file_info_t& file_info);
+        // [](const std::filesystem::path& path) {}
+        void receive_drag_drop_target(auto receive_func) {
+          ImGui::Dummy(ImGui::GetContentRegionAvail());
 
-        if (ImGui::BeginDragDropTarget()) {
-          if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
-            const wchar_t* path = (const wchar_t*)payload->Data;
-            receive_func(std::filesystem::absolute(std::filesystem::path(asset_path) / path));
-            //fan::print(std::filesystem::path(path));
+          if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+              const wchar_t* path = (const wchar_t*)payload->Data;
+              receive_func(std::filesystem::absolute(std::filesystem::path(asset_path) / path));
+              //fan::print(std::filesystem::path(path));
+            }
+            ImGui::EndDragDropTarget();
           }
-          ImGui::EndDragDropTarget();
         }
-      }
-    };
+      };
+    }
   }
 }
 #endif
@@ -977,7 +976,7 @@ void init_imgui();
 
 void shape_keypack_traverse(loco_t::shaper_t::KeyTraverse_t& KeyTraverse, fan::opengl::context_t& context);
 
-#if defined(loco_box2d)
+#if defined(fan_physics)
   #include <fan/graphics/physics_shapes.hpp>
 #endif
 
@@ -1001,7 +1000,7 @@ namespace fan {
       void move_by_cursor();
     };
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
     struct dialogue_box_t {
 
       dialogue_box_t();
@@ -1112,7 +1111,6 @@ namespace fan {
 
     loco_t::polygon_t::properties_t create_sine_ground(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth);
     std::vector<fan::vec2> ground_points(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth);
-
   }
 
   struct movement_e {
@@ -1125,7 +1123,7 @@ namespace fan {
     );
   };
 
-#if defined(loco_box2d)
+#if defined(fan_physics)
   namespace physics {
     bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id);
     fan::physics::ray_result_t raycast(const fan::vec2& src, const fan::vec2& dst);

@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(loco_assimp)
+#if defined(fan_3d)
   #define loco_model_3d
   #include <assimp/Importer.hpp>
   #include <assimp/scene.h>
@@ -11,7 +11,7 @@
   #define fan_verbose_print_level 1
 #endif
 
-#if defined(loco_imgui) && !defined(text_editor_include)
+#if defined(fan_gui) && !defined(text_editor_include)
   #include <fan/imgui/text_editor.h>
 #endif
 
@@ -23,5 +23,9 @@
 //#define loco_compute_shader
 
 //
-#include <fan/graphics/graphics.h>
+#if !defined(fan_gui)
+  #include <fan/graphics/graphics.h>
+#else
+  #include <fan/graphics/gui/gui.h>
+#endif
 

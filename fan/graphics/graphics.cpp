@@ -1,6 +1,6 @@
 #include <fan/graphics/graphics.h>
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
   #include <fan/imgui/imgui_internal.h>
   #include <fan/graphics/gui/imgui_themes.h>
 #endif
@@ -61,35 +61,17 @@ fan::vec2 fan::graphics::get_mouse_position(const loco_t::camera_t& camera, cons
   return loco_t::transform_position(gloco->get_mouse_position(), viewport, camera);
 }
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 
-void fan::graphics::text(const std::string& text, const fan::vec2& position, const fan::color& color) {
-  ImGui::SetCursorPos(position);
-  ImGui::PushStyleColor(ImGuiCol_Text, color);
-  ImGui::Text("%s", text.c_str());
-  ImGui::PopStyleColor();
-}
-void fan::graphics::text_bottom_right(const std::string& text, const fan::color& color, const fan::vec2& offset) {
-  ImVec2 text_pos;
-  ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
-  ImVec2 window_pos = ImGui::GetWindowPos();
-  ImVec2 window_size = ImGui::GetWindowSize();
-
-  text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
-  text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
-  fan::graphics::text(text, text_pos + offset, color);
-}
-void ImGui::Text(const std::string& str) {
-  ImGui::Text(str.c_str());
-}
-IMGUI_API void ImGui::Image(loco_t::image_t img, const fan::vec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col) {
+void fan::graphics::gui::image(loco_t::image_t img, const fan::vec2& size, const fan::vec2& uv0, const fan::vec2& uv1, const fan::color& tint_col, const fan::color& border_col) {
   ImGui::Image((ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, tint_col, border_col);
 }
-IMGUI_API bool ImGui::ImageButton(const std::string& str_id, loco_t::image_t img, const fan::vec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
+
+bool fan::graphics::gui::image_button(const std::string& str_id, loco_t::image_t img, const fan::vec2& size, const fan::vec2& uv0, const fan::vec2& uv1, int frame_padding, const fan::color& bg_col, const fan::color& tint_col) {
   return ImGui::ImageButton(str_id.c_str(), (ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
 }
-IMGUI_API bool ImGui::ImageTextButton(loco_t::image_t img, const std::string& text, const fan::color& color, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col) {
 
+bool fan::graphics::gui::image_text_button(loco_t::image_t img, const std::string& text, const fan::color& color, const fan::vec2& size, const fan::vec2& uv0, const fan::vec2& uv1, int frame_padding, const fan::color& bg_col, const fan::color& tint_col) {
   bool ret = ImGui::ImageButton(text.c_str(), (ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
   ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
   ImVec2 pos = ImGui::GetItemRectMin(); 
@@ -98,8 +80,8 @@ IMGUI_API bool ImGui::ImageTextButton(loco_t::image_t img, const std::string& te
   ImGui::GetWindowDrawList()->AddText(pos, ImGui::GetColorU32(color), text.c_str());
   return ret;
 }
-bool ImGui::ToggleButton(const std::string& str, bool* v) {
 
+bool fan::graphics::gui::toggle_button(const std::string& str, bool* v) {
   ImGui::Text("%s", str.c_str());
   ImGui::SameLine();
 
@@ -124,8 +106,8 @@ bool ImGui::ToggleButton(const std::string& str, bool* v) {
 
   return changed;
 }
-bool ImGui::ToggleImageButton(const std::string& char_id, loco_t::image_t image, const ImVec2& size, bool* toggle)
-{
+
+bool fan::graphics::gui::toggle_image_button(const std::string& char_id, loco_t::image_t image, const fan::vec2& size, bool* toggle) {
   bool clicked = false;
 
   ImVec4 tintColor = ImVec4(1, 1, 1, 1);
@@ -133,14 +115,17 @@ bool ImGui::ToggleImageButton(const std::string& char_id, loco_t::image_t image,
     tintColor = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
   }
 
-  if (ImGui::ImageButton(char_id, image, size, ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), tintColor)) {
+  if (fan::graphics::gui::image_button(char_id, image, size, ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), tintColor)) {
     *toggle = !(*toggle);
     clicked = true;
   }
 
   return clicked;
 }
-ImVec2 ImGui::GetPositionBottomCorner(const char* text, uint32_t reverse_yoffset) {
+
+void fan::graphics::gui::text_bottom_right(const char* text, uint32_t reverse_yoffset) {
+  ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
   ImVec2 window_pos = ImGui::GetWindowPos();
   ImVec2 window_size = ImGui::GetWindowSize();
 
@@ -152,19 +137,34 @@ ImVec2 ImGui::GetPositionBottomCorner(const char* text, uint32_t reverse_yoffset
 
   text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
 
+  draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), text);
+}
+
+fan::vec2 fan::graphics::gui::get_position_bottom_corner(const std::string& text, uint32_t reverse_yoffset) {
+  fan::vec2 window_pos = ImGui::GetWindowPos();
+  fan::vec2 window_size = ImGui::GetWindowSize();
+
+  fan::vec2 text_size = ImGui::CalcTextSize(text.c_str());
+
+  fan::vec2 text_pos;
+  text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
+  text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
+
+  text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
+
   return text_pos;
 }
-void ImGui::ImageRotated(ImTextureID user_texture_id, const ImVec2& size, int angle, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
-{
+
+void fan::graphics::gui::image_rotated(loco_t::image_t image, const fan::vec2& size, int angle, const fan::vec2& uv0, const fan::vec2& uv1, const fan::color& tint_col, const fan::color& border_col) {
   IM_ASSERT(angle % 90 == 0);
   ImVec2 _uv0, _uv1, _uv2, _uv3;
   switch (angle % 360)
   {
   case 0:
-    Image(user_texture_id, size, uv0, uv1, tint_col, border_col);
+    fan::graphics::gui::image(image, size, uv0, uv1, tint_col, border_col);
     return;
   case 180:
-    Image(user_texture_id, size, uv1, uv0, tint_col, border_col);
+    fan::graphics::gui::image(image, size, uv1, uv0, tint_col, border_col);
     return;
   case 90:
     _uv3 = uv0;
@@ -179,49 +179,34 @@ void ImGui::ImageRotated(ImTextureID user_texture_id, const ImVec2& size, int an
     _uv2 = ImVec2(uv1.x, uv0.y);
     break;
   }
-  ImGuiWindow* window = GetCurrentWindow();
+  ImGuiWindow* window = ImGui::GetCurrentWindow();
   if (window->SkipItems)
     return;
   ImVec2 _size(size.y, size.x);
   ImRect bb(window->DC.CursorPos, window->DC.CursorPos + _size);
-  if (border_col.w > 0.0f)
+  if (border_col.a > 0.0f)
     bb.Max += ImVec2(2, 2);
-  ItemSize(bb);
-  if (!ItemAdd(bb, 0))
+  ImGui::ItemSize(bb);
+  if (!ImGui::ItemAdd(bb, 0))
     return;
-  if (border_col.w > 0.0f)
+  if (border_col.a > 0.0f)
   {
-    window->DrawList->AddRect(bb.Min, bb.Max, GetColorU32(border_col), 0.0f);
+    window->DrawList->AddRect(bb.Min, bb.Max, ImGui::GetColorU32(border_col), 0.0f);
     ImVec2 x0 = bb.Min + ImVec2(1, 1);
     ImVec2 x2 = bb.Max - ImVec2(1, 1);
     ImVec2 x1 = ImVec2(x2.x, x0.y);
     ImVec2 x3 = ImVec2(x0.x, x2.y);
-    window->DrawList->AddImageQuad(user_texture_id, x0, x1, x2, x3, _uv0, _uv1, _uv2, _uv3, GetColorU32(tint_col));
+    window->DrawList->AddImageQuad((ImTextureID)gloco->image_get_handle(image), x0, x1, x2, x3, _uv0, _uv1, _uv2, _uv3, ImGui::GetColorU32(tint_col));
   }
   else
   {
     ImVec2 x1 = ImVec2(bb.Max.x, bb.Min.y);
     ImVec2 x3 = ImVec2(bb.Min.x, bb.Max.y);
-    window->DrawList->AddImageQuad(user_texture_id, bb.Min, x1, bb.Max, x3, _uv0, _uv1, _uv2, _uv3, GetColorU32(tint_col));
+    window->DrawList->AddImageQuad((ImTextureID)gloco->image_get_handle(image), bb.Min, x1, bb.Max, x3, _uv0, _uv1, _uv2, _uv3, ImGui::GetColorU32(tint_col));
   }
 }
-void ImGui::DrawTextBottomRight(const char* text, uint32_t reverse_yoffset) {
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-    ImVec2 window_pos = ImGui::GetWindowPos();
-    ImVec2 window_size = ImGui::GetWindowSize();
-
-    ImVec2 text_size = ImGui::CalcTextSize(text);
-
-    ImVec2 text_pos;
-    text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
-    text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
-
-    text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
-
-    draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), text);
-}
-void fan::graphics::imgui_content_browser_t::render() {
+void fan::graphics::gui::content_browser_t::render() {
   item_right_clicked = false;
   item_right_clicked_name.clear();
   ImGuiStyle& style = ImGui::GetStyle();
@@ -235,14 +220,14 @@ void fan::graphics::imgui_content_browser_t::render() {
       ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
       ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.3f));
 
-      if (ImGui::ImageButton("##icon_arrow_left", icon_arrow_left, fan::vec2(32))) {
+      if (fan::graphics::gui::image_button("##icon_arrow_left", icon_arrow_left, fan::vec2(32))) {
         if (std::filesystem::equivalent(current_directory, asset_path) == false) {
           current_directory = current_directory.parent_path();
         }
         update_directory_cache();
       }
       ImGui::SameLine();
-      ImGui::ImageButton("##icon_arrow_right", icon_arrow_right, fan::vec2(32));
+      fan::graphics::gui::image_button("##icon_arrow_right", icon_arrow_right, fan::vec2(32));
       ImGui::SameLine();
       ImGui::PopStyleColor(3);
 
@@ -252,7 +237,7 @@ void fan::graphics::imgui_content_browser_t::render() {
 
       auto image_list = std::to_array({ icon_files_list, icon_files_big_thumbnail });
 
-      fan::vec2 bc = ImGui::GetPositionBottomCorner();
+      fan::vec2 bc = fan::graphics::gui::get_position_bottom_corner();
 
       bc.x -= ImGui::GetWindowPos().x;
       ImGui::SetCursorPosX(bc.x / 2);
@@ -272,7 +257,7 @@ void fan::graphics::imgui_content_browser_t::render() {
       }
       ImGui::PopStyleVar(2);
 
-      ImGui::ToggleImageButton(image_list, button_sizes, (int*)&current_view_mode);
+      fan::graphics::gui::toggle_image_button(image_list, button_sizes, (int*)&current_view_mode);
 
       ImGui::PopStyleColor(3);
 
@@ -296,23 +281,23 @@ void fan::graphics::imgui_content_browser_t::render() {
   ImGui::End();
 }
 
-fan::graphics::imgui_content_browser_t::imgui_content_browser_t() {
+fan::graphics::gui::content_browser_t::content_browser_t() {
   search_buffer.resize(32);
   asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
   current_directory = std::filesystem::path(asset_path);
   update_directory_cache();
 }
-fan::graphics::imgui_content_browser_t::imgui_content_browser_t(bool no_init) {
+fan::graphics::gui::content_browser_t::content_browser_t(bool no_init) {
 
 }
-fan::graphics::imgui_content_browser_t::imgui_content_browser_t(const std::wstring& path) {
+fan::graphics::gui::content_browser_t::content_browser_t(const std::wstring& path) {
   search_buffer.resize(32);
   asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
   current_directory = asset_path / std::filesystem::path(path);
   update_directory_cache();
 }
 
-void fan::graphics::imgui_content_browser_t::update_directory_cache() {
+void fan::graphics::gui::content_browser_t::update_directory_cache() {
   for (auto& img : directory_cache) {
     if (img.preview_image.iic() == false) {
       gloco->image_unload(img.preview_image);
@@ -335,7 +320,7 @@ void fan::graphics::imgui_content_browser_t::update_directory_cache() {
   });
 }
 
-void fan::graphics::imgui_content_browser_t::render_large_thumbnails_view() {
+void fan::graphics::gui::content_browser_t::render_large_thumbnails_view() {
   float thumbnail_size = 128.0f;
   float panel_width = ImGui::GetContentRegionAvail().x;
   int column_count = std::max((int)(panel_width / (thumbnail_size + padding)), 1);
@@ -373,7 +358,7 @@ void fan::graphics::imgui_content_browser_t::render_large_thumbnails_view() {
 
     ImGui::PushID(file_info.filename.c_str());
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-    ImGui::ImageButton("##" + file_info.filename, file_info.preview_image.iic() == false ? file_info.preview_image : file_info.is_directory ? icon_directory : icon_file, ImVec2(thumbnail_size, thumbnail_size));
+    fan::graphics::gui::image_button("##" + file_info.filename, file_info.preview_image.iic() == false ? file_info.preview_image : file_info.is_directory ? icon_directory : icon_file, ImVec2(thumbnail_size, thumbnail_size));
 
     bool item_hovered = ImGui::IsItemHovered();
     if (item_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
@@ -394,7 +379,7 @@ void fan::graphics::imgui_content_browser_t::render_large_thumbnails_view() {
   ImGui::Columns(1);
 }
 
-void fan::graphics::imgui_content_browser_t::render_list_view() {
+void fan::graphics::gui::content_browser_t::render_list_view() {
   if (ImGui::BeginTable("##FileTable", 1, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY
     | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
     | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable)) {
@@ -464,7 +449,7 @@ void fan::graphics::imgui_content_browser_t::render_list_view() {
   }
 }
 
-void fan::graphics::imgui_content_browser_t::handle_item_interaction(const file_info_t& file_info) {
+void fan::graphics::gui::content_browser_t::handle_item_interaction(const file_info_t& file_info) {
   if (file_info.is_directory == false) {
 
     if (ImGui::BeginDragDropSource()) {
@@ -527,7 +512,7 @@ bool fan::graphics::texture_packe0::push_texture(fan::graphics::image_nr_t image
   return 0;
 }
 
-#if defined(loco_json)
+#if defined(fan_json)
 void fan::graphics::texture_packe0::load_compiled(const char* filename) {
   std::ifstream file(filename);
   fan::json j;
@@ -593,7 +578,7 @@ void fan::camera::move(f32_t movement_speed, f32_t friction) {
   if (this->velocity.z < minimum_velocity && this->velocity.z > -minimum_velocity) {
     this->velocity.z = 0;
   }
-  #if defined(loco_imgui)
+  #if defined(fan_gui)
   if (!gloco->console.input.IsFocused()) {
 #endif
     if (gloco->window.key_pressed(fan::input::key_w)) {
@@ -628,7 +613,7 @@ void fan::camera::move(f32_t movement_speed, f32_t friction) {
     if (gloco->window.key_pressed(fan::input::key_down)) {
       this->set_pitch(this->get_pitch() - sensitivity * 100 * gloco->delta_time);
     }
-  #if defined(loco_imgui)
+  #if defined(fan_gui)
   }
 #endif
 
@@ -673,7 +658,7 @@ fan::graphics::interactive_camera_t::~interactive_camera_t() {
   }
 }
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 
 // called in loop
 void fan::graphics::interactive_camera_t::move_by_cursor() {
@@ -787,7 +772,7 @@ void fan::graphics::dialogue_box_t::render(const std::string& window_name, ImFon
       }
       ImGui::PushID(i);
 
-      if (ImGui::ImageTextButton(gloco->default_texture, button.text.c_str(), fan::colors::white, button.size == 0 ? button_size : button.size)) {
+      if (fan::graphics::gui::image_text_button(gloco->default_texture, button.text.c_str(), fan::colors::white, button.size == 0 ? button_size : button.size)) {
         button_choice = i;
         buttons.clear();
         wait_user = false;
@@ -807,7 +792,7 @@ void fan::graphics::dialogue_box_t::render(const std::string& window_name, ImFon
 
 #endif
 
-#if defined(loco_box2d)
+#if defined(fan_physics)
 bool fan::physics::is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id){
   return gloco->physics_context.is_on_sensor(test_id, sensor_id);
 }
@@ -817,39 +802,39 @@ fan::physics::ray_result_t fan::physics::raycast(const fan::vec2& src, const fan
 }
 #endif
 
-fan::vec2 fan::graphics::window_size(){
+fan::vec2 fan::window::get_size(){
   return gloco->window.get_size();
 }
 
-bool fan::graphics::is_mouse_clicked(int button) {
+bool fan::window::is_mouse_clicked(int button) {
   return gloco->is_mouse_clicked(button);
 }
 
-bool fan::graphics::is_mouse_down(int button) {
+bool fan::window::is_mouse_down(int button) {
   return gloco->is_mouse_down(button);
 }
 
-bool fan::graphics::is_mouse_released(int button) {
+bool fan::window::is_mouse_released(int button) {
   return gloco->is_mouse_released(button);
 }
 
-fan::vec2 fan::graphics::get_mouse_drag(int button) {
+fan::vec2 fan::window::get_mouse_drag(int button) {
   return gloco->get_mouse_drag(button);
 }
 
-bool fan::graphics::is_key_pressed(int key) {
+bool fan::window::is_key_pressed(int key) {
   return gloco->is_key_pressed(key);
 }
 
-bool fan::graphics::is_key_down(int key) {
+bool fan::window::is_key_down(int key) {
   return gloco->is_key_down(key);
 }
 
-bool fan::graphics::is_key_released(int key) {
+bool fan::window::is_key_released(int key) {
   return gloco->is_key_released(key);
 }
 
-void fan::graphics::set_window_size(const fan::vec2& size) {
+void fan::window::set_size(const fan::vec2& size) {
   gloco->window.set_size(size);
   gloco->viewport_set(gloco->orthographic_camera.viewport, fan::vec2(0, 0), size, size);
   gloco->camera_set_ortho(
@@ -893,7 +878,7 @@ void fan::graphics::image_unload(fan::graphics::image_nr_t nr){
   return gloco->image_unload(nr);
 }
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 
 static constexpr int wnd_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | 
     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;

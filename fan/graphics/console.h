@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 #include <fan/types/color.h>
 #include <fan/imgui/text_editor.h>
 #include <fan/graphics/types.h>

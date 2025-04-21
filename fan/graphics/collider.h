@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(loco_physics)
+#if defined(fan_physics)
 
 // change get_collider_position to get_position and use get_sprite_position etc
 

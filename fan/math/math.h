@@ -79,48 +79,7 @@ namespace fan_2d {
 		inline auto pythagorean(const T& vector) {
 			return std::sqrt((vector.x * vector.x) + (vector.y * vector.y));
 		}
-
 	}
-
-}
-
-namespace fan_3d {
-
-	namespace math {
-
-		template <typename vector_t>
-		constexpr auto dot(const vector_t& x, const vector_t& y) {
-			return (x[0] * y[0]) + (x[1] * y[1]) + (x[2] * y[2]);
-		}
-
-		template <typename _Ty, typename _Ty2>
-		constexpr f_t distance(const _Ty& src, const _Ty2& dst) {
-			const auto x = src[0] - dst[0];
-			const auto y = src[1] - dst[1];
-			const auto z = src[2] - dst[2];
-
-			return std::sqrt((x * x) + (y * y) + (z * z));
-		}
-
-		template <typename _Ty>
-		constexpr f_t vector_length(const _Ty& vector) {
-			return distance<_Ty>(_Ty(), vector);
-		}
-
-		template <typename vector_t>
-		inline vector_t normalize(const vector_t& vector) {
-			auto length = sqrt(dot(vector, vector));
-			return vector_t(vector[0] / length, vector[1] / length, vector[2] / length);
-		}
-
-		template <typename T>
-		constexpr auto manhattan_distance(const T& src, const T& dst) {
-			return std::abs(src.x - dst.x) + std::abs(src.y - dst.y) + std::abs(src.z - dst.z);
-		}
-
-	}
-
-	
 }
 
 namespace fan {
@@ -133,6 +92,7 @@ namespace fan {
     }
 
     template <typename T>
+    requires (std::is_arithmetic_v<T>)
     T normalize(T val, T min, T max) {
       return (val - min) / (max - min);
     }
@@ -363,7 +323,7 @@ namespace fan {
 
 		template <typename vector_t>
 		constexpr vector_t normalize_no_sqrt(const vector_t& vector) {
-			return vector / fan_3d::math::dot(vector, vector);
+			return vector / fan::math::dot(vector, vector);
 		}
 
 		#define PI_f32_t     3.14159265f
@@ -556,8 +516,8 @@ namespace fan {
 		template <typename matrix_t, typename vector_t>
 		constexpr auto look_at_left(const vector_t& eye, const vector_t& center, const vector_t& up)
 		{
-			const vector_t f(fan_3d::math::normalize(eye - center));
-			const vector_t s(fan_3d::math::normalize(fan::math::cross(f, up)));
+			const vector_t f((eye - center).normalize());
+			const vector_t s((fan::math::cross(f, up)).normalize());
 			const vector_t u(fan::math::cross(s, f));
 
 			matrix_t matrix(1);
@@ -570,17 +530,17 @@ namespace fan {
 			matrix[0][2] = f[0];
 			matrix[1][2] = f[1];
 			matrix[2][2] = f[2];
-			matrix[3][0] = -fan_3d::math::dot(s, eye);
-			matrix[3][1] = -fan_3d::math::dot(u, eye);
-			matrix[3][2] = -fan_3d::math::dot(f, eye);
+			matrix[3][0] = -fan::math::dot(s, eye);
+			matrix[3][1] = -fan::math::dot(u, eye);
+			matrix[3][2] = -fan::math::dot(f, eye);
  			return matrix;
 		}
 
 		//default
 		template <typename matrix_t, typename vector_t>
 		constexpr auto look_at_right(const vector_t& eye, const vector_t& center, const vector_t& up) {
-			vector_t f(fan_3d::math::normalize(center - eye));
-			vector_t s(fan_3d::math::normalize(cross(f, up)));
+			vector_t f(fan::math::normalize(center - eye));
+			vector_t s(fan::math::normalize(cross(f, up)));
 			vector_t u(fan::math::cross(s, f));
 
 			matrix_t matrix(1);
@@ -593,9 +553,9 @@ namespace fan {
 			matrix[0][2] = -f[0];
 			matrix[1][2] = -f[1];
 			matrix[2][2] = -f[2];
-			f_t x = -fan_3d::math::dot(s, eye);
-			f_t y = -fan_3d::math::dot(u, eye);
-			f_t z = fan_3d::math::dot(f, eye);
+			f_t x = -fan::math::dot(s, eye);
+			f_t y = -fan::math::dot(u, eye);
+			f_t z = fan::math::dot(f, eye);
 			matrix[3][0] = x;
 			matrix[3][1] = y;
 			matrix[3][2] = z;

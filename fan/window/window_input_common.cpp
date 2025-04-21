@@ -2,7 +2,7 @@
 
 #include "window_input.h"
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 #include <fan/imgui/imgui.h>
 #endif
 
@@ -471,7 +471,7 @@ uint16_t fan::window_input::convert_fan_to_scancode(int key) {
   }
 }
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 int fan::window_input::fan_to_imguikey(int key)
 {
   switch (key)

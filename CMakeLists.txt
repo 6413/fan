@@ -13,16 +13,16 @@ set(CMAKE_C_RESPONSE_FILE_LINK_FLAG "@")
 set(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
 set(CMAKE_NINJA_FORCE_RESPONSE_FILE 1 CACHE INTERNAL "")
 
-set(LOCO_BOX2D ON)
-set(LOCO_IMGUI ON)
-set(LOCO_JSON ON)
-set(LOCO_ASSIMP ON)
-set(LOCO_OPENGL ON)
-set(LOCO_VULKAN OFF)
+set(FAN_PHYSICS ON)
+set(FAN_GUI ON)
+set(FAN_JSON ON)
+set(FAN_3D ON)
+set(FAN_OPENGL ON)
+set(FAN_VULKAN OFF)
 set(BUILD_MAIN ON)
 
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -MD -MT -L/usr/local/lib/ -Wall -Wextra -ferror-limit=4 -stdlib=libstdc++ -fsized-deallocation -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -MD -MT -L/usr/local/lib/ -Wall -Wextra -ferror-limit=4 -stdlib=libstdc++ -fsized-deallocation -fPIC")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare")
@@ -51,21 +51,21 @@ pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 
 set(BUILD_SHARED_LIBS ON)
 
-function(apply_loco_definitions target)
-    if(LOCO_IMGUI)
-        target_compile_definitions(${target} PRIVATE -Dloco_imgui)
+function(apply_fan_definitions target)
+    if(FAN_GUI)
+        target_compile_definitions(${target} PRIVATE -Dfan_gui)
     endif()
-    if(LOCO_JSON)
-        target_compile_definitions(${target} PRIVATE -Dloco_json)
+    if(FAN_JSON)
+        target_compile_definitions(${target} PRIVATE -Dfan_json)
     endif()
-    if(LOCO_ASSIMP)
-        target_compile_definitions(${target} PRIVATE -Dloco_assimp)
+    if(FAN_3D)
+        target_compile_definitions(${target} PRIVATE -Dfan_3d)
     endif()
-    if(LOCO_BOX2D)
-        target_compile_definitions(${target} PRIVATE -Dloco_box2d)
+    if(FAN_PHYSICS)
+        target_compile_definitions(${target} PRIVATE -Dfan_physics)
     endif()
-		if (LOCO_VULKAN)
-			target_compile_definitions(${target} PRIVATE -Dloco_vulkan)
+		if (FAN_VULKAN)
+			target_compile_definitions(${target} PRIVATE -Dfan_vulkan)
 		endif()
     target_compile_definitions(${target} PRIVATE
         IMGUI_IMPL_OPENGL_LOADER_CUSTOM
@@ -79,7 +79,7 @@ set_target_properties(fmt PROPERTIES
     OUTPUT_NAME "fmt"
 )
 
-if(LOCO_IMGUI)
+if(FAN_GUI)
     file(GLOB IMGUI_SOURCES ${ROOT_PATH}/imgui/*.cpp)
     add_library(imgui STATIC ${IMGUI_SOURCES})
     target_include_directories(imgui PRIVATE ${ROOT_PATH}/imgui)
@@ -89,7 +89,7 @@ if(LOCO_IMGUI)
         IMGUI_DISABLE_SSE
         STBI_NO_SIMD
     )
-    apply_loco_definitions(imgui)
+    apply_fan_definitions(imgui)
     set_target_properties(imgui PROPERTIES
         ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_PATH}
         OUTPUT_NAME "imgui"
@@ -125,22 +125,22 @@ file(GLOB_RECURSE FAN_SOURCES
 
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*imgui/.*")
 list(FILTER FAN_SOURCES EXCLUDE REGEX ".*nativefiledialog/.*")
-if(NOT LOCO_BOX2D)
+if(NOT FAN_PHYSICS)
     list(FILTER FAN_SOURCES EXCLUDE REGEX ".*physics_shapes\\.cpp$")
     list(FILTER FAN_SOURCES EXCLUDE REGEX ".*b2_integration\\.cpp$")
 endif()
 
-if(NOT LOCO_VULKAN)
+if(NOT FAN_VULKAN)
     list(FILTER FAN_SOURCES EXCLUDE REGEX ".*fan/.*/vk_.*\\.cpp$")
 endif()
 
 # compile all fan sources into an object library
 add_library(fan_obj OBJECT ${FAN_SOURCES})
-apply_loco_definitions(fan_obj)
+apply_fan_definitions(fan_obj)
 
 # link the object library into the shared library
 add_library(fan SHARED $<TARGET_OBJECTS:fan_obj>)
-apply_loco_definitions(fan)
+apply_fan_definitions(fan)
 set_target_properties(fan PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_PATH}
     OUTPUT_NAME "fan"
@@ -152,7 +152,7 @@ if(BUILD_MAIN)
     endif()
     
     add_executable(a.exe ${MAIN} $<TARGET_OBJECTS:fan_obj>)
-    apply_loco_definitions(a.exe)
+    apply_fan_definitions(a.exe)
     
     if(UNIX)
         target_link_libraries(a.exe PUBLIC
@@ -170,7 +170,7 @@ if(BUILD_MAIN)
 						stdc++exp
             ${GTK3_LIBRARIES}
         )
-				if (LOCO_BOX2D MATCHES ON)
+				if (FAN_PHYSICS MATCHES ON)
 					find_library(BOX2D_LIB box2d 
 						PATHS
 							${THIRDPARTY_PATH}/lib
@@ -185,13 +185,13 @@ if(BUILD_MAIN)
 					endif()
 				endif()
 
-        if(LOCO_IMGUI MATCHES ON)
+        if(FAN_GUI MATCHES ON)
             target_link_libraries(a.exe PUBLIC imgui)
         endif()
-        if(LOCO_ASSIMP MATCHES ON)
+        if(FAN_3D MATCHES ON)
             target_link_libraries(a.exe PUBLIC assimp)
         endif()
-				if(LOCO_VULKAN MATCHES ON)
+				if(FAN_VULKAN MATCHES ON)
             target_link_libraries(a.exe PUBLIC vulkan)
 						find_package(Vulkan REQUIRED)
 						find_library(SHADERC_LIB shaderc_shared 

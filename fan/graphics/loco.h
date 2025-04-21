@@ -22,7 +22,7 @@
 
 #include <fan/types/lazy_compiler_devs.h>
 
-#if defined(loco_box2d)
+#if defined(fan_physics)
   #include <fan/physics/b2_integration.hpp>
 #endif
 
@@ -39,7 +39,7 @@
 
 #include <fan/graphics/types.h>
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 #include <fan/imgui/imgui.h>
 #include <fan/imgui/imgui_impl_opengl3.h>
 #if defined(loco_vulkan)
@@ -64,11 +64,11 @@
 #undef image_list
 #undef viewport_list
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
   #include <fan/graphics/console.h>
 #endif
 
-#if defined(loco_json)
+#if defined(fan_json)
 
 #include <fan/io/json_impl.h>
 
@@ -272,7 +272,6 @@ namespace fan {
   }
 }
 
-#include <shaderc/shaderc.hpp>
 //#include <fan/graphics/vulkan/ssbo.h>
 struct loco_t {
   using renderer_t = fan::window_t::renderer_t;
@@ -511,7 +510,7 @@ struct loco_t {
     "particles",
   };
 
-#if defined (loco_imgui)
+#if defined (fan_gui)
   using console_t = fan::console_t;
 #endif
 
@@ -843,7 +842,7 @@ public:
 
   // -1 no reload, opengl = 0 etc
   uint8_t reload_renderer_to = -1;
-  #if defined(loco_imgui)
+  #if defined(fan_gui)
   void load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t font_size = 4);
 
   void init_imgui();
@@ -905,124 +904,6 @@ public:
   void start_idle();
   void update_timer_interval();
   void set_target_fps(int32_t fps);
-
-  //-----------------------------gui-----------------------------
-
-#if defined(loco_imgui)
-protected:
-#define BLL_set_SafeNext 1
-#define BLL_set_AreWeInsideStruct 1
-#define BLL_set_prefix imgui_draw_cb
-#include <fan/fan_bll_preset.h>
-#define BLL_set_Link 1
-#define BLL_set_type_node uint16_t
-#define BLL_set_NodeDataType fan::function_t<void()>
-#include <BLL/BLL.h>
-public:
-
-  using imgui_draw_cb_nr_t = imgui_draw_cb_NodeReference_t;
-  imgui_draw_cb_t m_imgui_draw_cb;
-
-  struct imgui_element_nr_t : loco_t::imgui_draw_cb_nr_t {
-    using base_t = loco_t::imgui_draw_cb_nr_t;
-
-    imgui_element_nr_t() = default;
-
-    imgui_element_nr_t(const imgui_element_nr_t& nr);
-
-    imgui_element_nr_t(imgui_element_nr_t&& nr);
-    ~imgui_element_nr_t();
-
-
-    imgui_element_nr_t& operator=(const imgui_element_nr_t& id);
-
-    imgui_element_nr_t& operator=(imgui_element_nr_t&& id);
-
-    void init();
-
-    bool is_invalid() const;
-
-    void invalidate_soft();
-
-    void invalidate();
-
-    inline void set(const auto& lambda) {
-      gloco->m_imgui_draw_cb[*this] = lambda;
-    }
-  };
-
-  struct imgui_element_t : imgui_element_nr_t {
-    imgui_element_t() = default;
-    imgui_element_t(const auto& lambda) {
-      imgui_element_nr_t::init();
-      imgui_element_nr_t::set(lambda);
-    }
-  };
-
-#if !defined(__INTELLISENSE__)
-#define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
-  [&] <typename T5>(T5& var) -> bool{ \
-    fan::string label(name); \
-    if constexpr(std::is_same_v<f32_t, T5>)  { \
-      return ImGui::DragFloat(label.c_str(), &var, (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else if constexpr(std::is_same_v<fan::vec2, T5>)  { \
-      return ImGui::DragFloat2(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else if constexpr(std::is_same_v<fan::vec3, T5>)  { \
-      return ImGui::DragFloat3(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else if constexpr(std::is_same_v<fan::vec4, T5>)  { \
-      return ImGui::DragFloat4(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else if constexpr(std::is_same_v<fan::quat, T5>)  { \
-      return ImGui::DragFloat4(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else if constexpr(std::is_same_v<fan::color, T5>)  { \
-      return ImGui::DragFloat4(label.c_str(), var.data(), (f32_t)speed, (f32_t)m_min, (f32_t)m_max); \
-    } \
-    else {\
-      fan::throw_error_impl(); \
-      return 0; \
-    } \
-  }(variable)
-
-#endif
-
-#define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
-    fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, m_min, m_max)
-
-
-#define fan_imgui_dragfloat1(variable, speed) \
-    fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, 0, 0)
-
-  struct imgui_fs_var_t {
-    loco_t::imgui_element_t ie;
-
-    imgui_fs_var_t() = default;
-
-    template <typename T>
-    imgui_fs_var_t(
-      loco_t::shader_t shader_nr,
-      const fan::string& var_name,
-      T initial_ = 0,
-      f32_t speed = 1,
-      f32_t min = -100000,
-      f32_t max = 100000
-    );
-  };
-
-  static const char* item_getter1(const std::vector<std::string>& items, int index) {
-    if (index >= 0 && index < (int)items.size()) {
-      return items[index].c_str();
-    }
-    return "N/A";
-  }
-
-  void set_imgui_viewport(loco_t::viewport_t viewport);
-
-#endif
-  //-----------------------------gui-----------------------------
 
   fan::graphics::context_t& get_context() {
     return context;
@@ -1115,7 +996,7 @@ public:
 
   shaper_t shaper;
   
-#if defined(loco_box2d)
+#if defined(fan_physics)
   fan::physics::context_t physics_context{{}};
   struct physics_update_data_t {
     shaper_t::ShapeID_t shape_id;
@@ -2391,7 +2272,7 @@ public:
   }lighting;
 
   //gui
-#if defined(loco_imgui)
+#if defined(fan_gui)
   fan::console_t console;
   bool render_console = false;
   bool toggle_fps = false;
@@ -2426,7 +2307,7 @@ public:
 
 
   void printclnn(auto&&... values) {
-#if defined (loco_imgui)
+#if defined (fan_gui)
     ([&](const auto& value) {
       std::ostringstream oss;
       oss << value;
@@ -2435,14 +2316,14 @@ public:
 #endif
   }
   void printcl(auto&&... values) {
-#if defined(loco_imgui)
+#if defined(fan_gui)
     printclnn(values...);
     console.print("\n", 0);
 #endif
   }
 
   void printclnnh(int highlight, auto&&... values) {
-#if defined(loco_imgui)
+#if defined(fan_gui)
     ([&](const auto& value) {
       std::ostringstream oss;
       oss << value;
@@ -2452,7 +2333,7 @@ public:
   }
 
   void printclh(int highlight, auto&&... values) {
-#if defined(loco_imgui)
+#if defined(fan_gui)
     printclnnh(highlight, values...);
     console.print("\n", highlight);
 #endif
@@ -2574,6 +2455,7 @@ namespace fan {
     using image_t = loco_t::image_t;
     using camera_impl_t = loco_t::camera_impl_t;
     using camera_t = camera_impl_t;
+    using viewport_t = loco_t::viewport_t;
 
     // fan_track_allocations() must be called in global scope before calling this function
     void render_allocations_plot();
@@ -2596,34 +2478,34 @@ namespace fan {
 
 namespace fan {
   inline void printclnn(auto&&... values) {
-#if defined (loco_imgui)
+#if defined (fan_gui)
     gloco->printclnn(values...);
 #endif
   }
   inline void printcl(auto&&... values) {
-#if defined(loco_imgui)
+#if defined(fan_gui)
     gloco->printcl(values...);
 #endif
   }
 
   inline void printclnnh(int highlight, auto&&... values) {
-#if defined(loco_imgui)
+#if defined(fan_gui)
     gloco->printclnnh(highlight, values...);
 #endif
   }
 
   inline void printclh(int highlight, auto&&... values) {
-#if defined(loco_imgui)
+#if defined(fan_gui)
     gloco->printclh(highlight, values...);
 #endif
   }
   inline void printcl_err(auto&&... values) {
-#if defined(loco_imgui)
+#if defined(fan_gui)
     printclh(fan::graphics::highlight_e::error, values...);
 #endif
   }
   inline void printcl_warn(auto&&... values) {
-#if defined(loco_imgui)
+#if defined(fan_gui)
     printclh(fan::graphics::highlight_e::warning, values...);
 #endif
   }
@@ -2637,7 +2519,7 @@ inline bool init_fan_track_opengl_print = []() {
   return 1;
 }();
 
-#if defined(loco_json)
+#if defined(fan_json)
   namespace fan {
     namespace graphics {
       bool shape_to_json(loco_t::shape_t& shape, fan::json* json);
@@ -2683,15 +2565,6 @@ inline bool init_fan_track_opengl_print = []() {
   #include <fan/graphics/vulkan/uniform_block.h>
   #include <fan/graphics/vulkan/memory.h>
 #endif
-//
-//namespace fan {
-//  namespace graphics {
-//    inline bool b = [] {
-//      
-//      return 0;
-//    }();
-//  }
-//}
 
 inline bool fan__init_list = []{
   fan::graphics::get_camera_list = [](uint8_t* context) -> uint8_t* {
@@ -2714,15 +2587,27 @@ inline bool fan__init_list = []{
 namespace fan {
   namespace audio {
     using piece_t = fan::audio_t::piece_t;
+
     fan::audio_t::piece_t open_piece(const std::string& path, fan::audio_t::PieceFlag::t flags = 0);
+    /// <summary>
+    /// Function checks if the stored pointer equals to nullptr. Does NOT check for actual validity.
+    /// </summary>
+    /// <param name="piece">Given piece to validate.</param>
+    /// <returns></returns>
+    bool is_piece_valid(fan::audio_t::piece_t piece);
+
     void play(fan::audio_t::piece_t piece, uint32_t group_id = 0, bool loop = false);
     void resume(uint32_t group_id = 0);
     void pause(uint32_t group_id = 0);
     f32_t get_volume();
     void set_volume(f32_t volume);
   }
+#if defined(fan_gui)
   namespace graphics {
-    bool audio_button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0));
+    namespace gui {
+      void process_loop();
+    }
   }
+#endif
 }
 #endif

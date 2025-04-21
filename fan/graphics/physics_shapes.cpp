@@ -744,7 +744,7 @@ fan::graphics::physics::mouse_joint_t::mouse_joint_t() {
   nr = gloco->m_update_callback.NewNodeLast();
   // not copy safe
   gloco->m_update_callback[nr] = [this](loco_t* loco) {
-#if defined(loco_imgui)
+#if defined(fan_gui)
     if (ImGui::IsMouseDown(0)) {
       fan::vec2 p = gloco->get_mouse_position() / fan::physics::length_units_per_meter;
       if (!B2_IS_NON_NULL(mouse_joint)) {
@@ -888,7 +888,7 @@ void DrawPoint(b2Vec2 p, float size, b2HexColor color, void* context) {
 
 /// Draw a string.
 void DrawString(b2Vec2 p, const char* s, void* context) {
-  fan::graphics::text(s, fan::physics::physics_to_render(p));
+  fan::graphics::gui::text_at(s, fan::physics::physics_to_render(p));
 }
 
 

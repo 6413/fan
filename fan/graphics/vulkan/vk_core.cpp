@@ -869,7 +869,7 @@ void fan::vulkan::context_t::open(fan::window_t& window) {
   create_command_buffers();
   create_sync_objects();
   descriptor_pool.open(*this);
-#if defined(loco_imgui)
+#if defined(fan_gui)
   ImGuiSetupVulkanWindow();
 #endif
 
@@ -958,7 +958,7 @@ void fan::vulkan::context_t::imgui_close() {
   cleanup_swap_chain_dependencies();
   descriptor_pool.close(*this);
   destroy_vulkan_soft();
-  #if defined(loco_imgui)
+  #if defined(fan_gui)
   ImGui_ImplVulkanH_DestroyWindow(instance, device, &MainWindowData, nullptr);
 #endif
 
@@ -1039,7 +1039,7 @@ void fan::vulkan::context_t::recreate_swap_chain_dependencies() {
 void fan::vulkan::context_t::update_swapchain_dependencies() {
   
   uint32_t imageCount = 
-    #if defined(loco_imgui)
+    #if defined(fan_gui)
     MinImageCount + 1
 #else 
     min_image_count + 1
@@ -1063,24 +1063,24 @@ void fan::vulkan::context_t::recreate_swap_chain(fan::window_t* window, VkResult
     int fb_width, fb_height;
     glfwGetFramebufferSize(*window, &fb_width, &fb_height);
     if (fb_width > 0 && fb_height > 0 && 
-      #if defined(loco_imgui)
+      #if defined(fan_gui)
       (
 #endif
       SwapChainRebuild 
-      #if defined(loco_imgui)
+      #if defined(fan_gui)
       || MainWindowData.Width != fb_width || 
       MainWindowData.Height != fb_height)
       #endif
       )
     {
       
-      #if defined(loco_imgui)
+      #if defined(fan_gui)
       ImGui_ImplVulkan_SetMinImageCount(MinImageCount);
       ImGui_ImplVulkanH_CreateOrResizeWindow(instance, physical_device, device, &MainWindowData, queue_family, /*g_Allocator*/nullptr, fb_width, fb_height, MinImageCount);
       current_frame = MainWindowData.FrameIndex = 0;
 #endif
       SwapChainRebuild = false;
-      #if defined(loco_imgui)
+      #if defined(fan_gui)
       swap_chain = MainWindowData.Swapchain;
 #endif
       swap_chain_size = fan::vec2(fb_width, fb_height);
@@ -1098,7 +1098,7 @@ void fan::vulkan::context_t::recreate_swap_chain(const fan::vec2i& window_size) 
   create_swap_chain(window_size);
   recreate_swap_chain_dependencies();
   // need to recreate some imgui's swapchain dependencies
-  #if defined(loco_imgui)
+  #if defined(fan_gui)
   MainWindowData.Swapchain = swap_chain;
 #endif
 }
@@ -1825,7 +1825,7 @@ void fan::vulkan::context_t::create_command_buffers() {
   }
 }
 
-#if defined(loco_imgui)
+#if defined(fan_gui)
 
 void fan::vulkan::context_t::ImGuiSetupVulkanWindow() {
   MainWindowData.Surface = surface;
@@ -2338,7 +2338,7 @@ void fan::vulkan::context_t::descriptor_pool_t::open(fan::vulkan::context_t& con
   {
     
     { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-    #if defined(loco_imgui)
+    #if defined(fan_gui)
     IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE +
 #endif
     5 * max_frames_in_flight},

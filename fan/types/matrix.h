@@ -10,7 +10,7 @@
 #include <cstring>
 #include <array>
 
-#if defined(loco_assimp)
+#if defined(fan_3d)
   #include <assimp/matrix4x4.h>
 #endif
 
@@ -199,7 +199,7 @@ namespace fan {
         (*this)[0][3] == 0 && (*this)[1][3] == 0 && (*this)[2][3] == 0;
     }
 
-    #if defined(loco_assimp)
+    #if defined(fan_3d)
     _matrix4x4(const aiMatrix4x4& mat) {
       for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
@@ -440,7 +440,7 @@ namespace fan {
 			const f32_t a = angle;
 			const f32_t c = cos(a);
 			const f32_t s = sin(a);
-			fan::vec3 axis(fan_3d::math::normalize(v));
+			fan::vec3 axis(v.normalize());
 			fan::vec3 temp(axis * (1.0f - c));
 
 			_matrix4x4 rotation{};
@@ -477,7 +477,7 @@ namespace fan {
       const f32_t a = angle;
       const f32_t c = cos(a);
       const f32_t s = sin(a);
-      fan::vec3 axis(fan_3d::math::normalize(v));
+      fan::vec3 axis(v.normalize());
       fan::vec3 temp(axis * (1.0f - c));
 
       _matrix4x4 rotation{};

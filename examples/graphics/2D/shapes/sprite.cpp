@@ -41,6 +41,7 @@ int main() {
   //}};
 
   using namespace fan::graphics;
+  using namespace fan::window;
 
   loco.loop([&] {
     if (is_mouse_clicked()) {
