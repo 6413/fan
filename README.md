@@ -46,7 +46,7 @@ Requires c++23
 1. Clone the repository: `git clone https://github.com/6413/fan.git`
 2. Code compiles using Visual Studio, external libraries are to be installed.
 
-## Usage
+## Basic Usage Examples
 
 - Hello world rectangle:
     ```cpp
