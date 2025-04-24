@@ -178,6 +178,10 @@ namespace fan {
         void table_next_row(table_row_flags_t row_flags = 0, f32_t min_row_height = 0.0f);
         bool table_next_column();
 
+        void columns(int count = 1, const char* id = nullptr, bool borders = true);
+
+        void next_column();
+
         /// <summary>
         /// RAII containers for gui windows.
         /// </summary>

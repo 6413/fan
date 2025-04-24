@@ -82,12 +82,12 @@ std::vector<uint32_t> fan::vulkan::context_t::compile_file(
 }
 
 fan::vulkan::context_t::shader_t& shader_get(fan::vulkan::context_t& context, shader_nr_t nr) {
-  return *(fan::vulkan::context_t::shader_t*)shader_list[nr].internal;
+  return *(fan::vulkan::context_t::shader_t*)__fan_internal_shader_list[nr].internal;
 }
 
 fan::graphics::shader_nr_t shader_create(fan::vulkan::context_t& context) {
-  shader_nr_t nr = shader_list.NewNode();
-  shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
+  shader_nr_t nr = __fan_internal_shader_list.NewNode();
+  __fan_internal_shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
   auto& shader = shader_get(context, nr);
   //TODO
   shader.projection_view_block.open(context);
@@ -107,9 +107,9 @@ void shader_erase(fan::vulkan::context_t& context, shader_nr_t nr, int recycle =
   }
   //TODO
   shader.projection_view_block.close(context);
-  delete static_cast<fan::vulkan::context_t::shader_t*>(shader_list[nr].internal);
+  delete static_cast<fan::vulkan::context_t::shader_t*>(__fan_internal_shader_list[nr].internal);
   if (recycle) {
-    shader_list.Recycle(nr);
+    __fan_internal_shader_list.Recycle(nr);
   }
 }
 
@@ -132,7 +132,7 @@ VkShaderModule create_shader_module(fan::vulkan::context_t& context, const std::
 }
 
 void shader_set_vertex(fan::vulkan::context_t& context, shader_nr_t nr, const std::string& vertex_code) {
-  shader_list[nr].svertex = vertex_code;
+  __fan_internal_shader_list[nr].svertex = vertex_code;
   // fan::print(
   //   "processed vertex shader:", path, "resulted in:",
   // preprocess_shader(shader_name.c_str(), shaderc_glsl_vertex_shader, shader_code);
@@ -141,7 +141,7 @@ void shader_set_vertex(fan::vulkan::context_t& context, shader_nr_t nr, const st
 
 void shader_set_fragment(fan::vulkan::context_t& context, shader_nr_t nr, const std::string& fragment_code) {
   auto& shader = shader_get(context, nr);
-  shader_list[nr].sfragment = fragment_code;
+  __fan_internal_shader_list[nr].sfragment = fragment_code;
   //fan::print(
     // "processed vertex shader:", path, "resulted in:",
   //preprocess_shader(shader_name.c_str(), shaderc_glsl_fragment_shader, shader_code);
@@ -151,7 +151,7 @@ void shader_set_fragment(fan::vulkan::context_t& context, shader_nr_t nr, const 
 bool shader_compile(fan::vulkan::context_t& context, shader_nr_t nr) {
   auto& shader = shader_get(context, nr);
   {
-    auto spirv = context.compile_file(/*vertex_code.c_str()*/ "some vertex file", shaderc_glsl_vertex_shader, shader_list[nr].svertex);
+    auto spirv = context.compile_file(/*vertex_code.c_str()*/ "some vertex file", shaderc_glsl_vertex_shader, __fan_internal_shader_list[nr].svertex);
 
     auto module_vertex = create_shader_module(context, spirv);
 
@@ -164,7 +164,7 @@ bool shader_compile(fan::vulkan::context_t& context, shader_nr_t nr) {
     shader.shader_stages[0] = vert;
   }
   {
-    auto spirv = context.compile_file(/*shader_name.c_str()*/"some fragment file", shaderc_glsl_fragment_shader, shader_list[nr].sfragment);
+    auto spirv = context.compile_file(/*shader_name.c_str()*/"some fragment file", shaderc_glsl_fragment_shader, __fan_internal_shader_list[nr].sfragment);
 
     auto module_fragment = create_shader_module(context, spirv);
 
@@ -179,18 +179,18 @@ bool shader_compile(fan::vulkan::context_t& context, shader_nr_t nr) {
 
   std::regex uniformRegex(R"(uniform\s+(\w+)\s+(\w+)(\s*=\s*[\d\.]+)?;)");
 
-  fan::string vertexData = shader_list[nr].svertex;
+  fan::string vertexData = __fan_internal_shader_list[nr].svertex;
 
   std::smatch match;
   while (std::regex_search(vertexData, match, uniformRegex)) {
-    shader_list[nr].uniform_type_table[match[2]] = match[1];
+    __fan_internal_shader_list[nr].uniform_type_table[match[2]] = match[1];
     vertexData = match.suffix().str();
   }
 
-  fan::string fragmentData = shader_list[nr].sfragment;
+  fan::string fragmentData = __fan_internal_shader_list[nr].sfragment;
 
   while (std::regex_search(fragmentData, match, uniformRegex)) {
-    shader_list[nr].uniform_type_table[match[2]] = match[1];
+    __fan_internal_shader_list[nr].uniform_type_table[match[2]] = match[1];
     fragmentData = match.suffix().str();
   }
 
@@ -374,8 +374,8 @@ void fan::vulkan::context_t::create_texture_sampler(VkSampler& sampler, const im
 }
 
 fan::graphics::image_nr_t image_create(fan::vulkan::context_t& context) {
-  image_nr_t nr = image_list.NewNode();
-  image_list[nr].internal = new fan::vulkan::context_t::image_t;
+  image_nr_t nr = __fan_internal_image_list.NewNode();
+  __fan_internal_image_list[nr].internal = new fan::vulkan::context_t::image_t;
   return nr;
 }
 
@@ -385,7 +385,7 @@ uint64_t image_get_handle(fan::vulkan::context_t& context, image_nr_t nr) {
 }
 
 fan::vulkan::context_t::image_t& image_get(fan::vulkan::context_t& context, image_nr_t nr) {
-  return *(fan::vulkan::context_t::image_t*)image_list[nr].internal;
+  return *(fan::vulkan::context_t::image_t*)__fan_internal_image_list[nr].internal;
 }
 
 void image_erase(fan::vulkan::context_t& context, image_nr_t nr, int recycle = 1) {
@@ -396,9 +396,9 @@ void image_erase(fan::vulkan::context_t& context, image_nr_t nr, int recycle = 1
   vkDestroyImage(context.device, image.image_index, 0);
   vkDestroyImageView(context.device, image.image_view, 0);
   vkFreeMemory(context.device, image.image_memory, nullptr);
-  delete static_cast<fan::vulkan::context_t::image_t*>(image_list[nr].internal);
+  delete static_cast<fan::vulkan::context_t::image_t*>(__fan_internal_image_list[nr].internal);
   if (recycle) {
-    image_list.Recycle(nr);
+    __fan_internal_image_list.Recycle(nr);
   }
 }
 
@@ -411,7 +411,7 @@ void image_unbind(fan::vulkan::context_t& context, image_nr_t nr) {
 }
 
 fan::graphics::image_load_properties_t& image_get_settings(fan::vulkan::context_t& context, image_nr_t nr) {
-  return image_list[nr].image_settings;
+  return __fan_internal_image_list[nr].image_settings;
 }
 
 void image_set_settings(fan::vulkan::context_t& context, const fan::vulkan::context_t::image_load_properties_t& p) {
@@ -422,9 +422,9 @@ fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const fan:
   image_nr_t nr = image_create(context);
 
   fan::vulkan::context_t::image_t& image = image_get(context, nr);
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
   image_data.size = image_info.size;
-  image_list[nr].image_path = "";
+  __fan_internal_image_list[nr].image_path = "";
 
   auto image_multiplier = get_image_multiplier(p.format);
 
@@ -476,7 +476,7 @@ fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, fan::color
 
   image_set_settings(context, p);
 
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
   image_data.size = size_;
 
   return nr;
@@ -492,7 +492,7 @@ fan::graphics::image_nr_t create_missing_texture(fan::vulkan::context_t& context
   fan::vec2i image_size = fan::vec2i(2, 2);
   image_nr_t nr = image_load(context, (fan::color*)fan::image::missing_texture_pixels, image_size, p);
 
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
   image_data.size = image_size;
 
   return nr;
@@ -503,7 +503,7 @@ fan::graphics::image_nr_t create_transparent_texture(fan::vulkan::context_t& con
   fan::vec2i image_size = fan::vec2i(2, 2);
   image_nr_t nr = image_load(context, (fan::color*)fan::image::transparent_texture_pixels, image_size, p);
 
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
   image_data.size = image_size;
 
   return nr;
@@ -528,7 +528,7 @@ fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const std:
     return create_missing_texture(context);
   }
   image_nr_t nr = image_load(context, image_info, p);
-  image_list[nr].image_path = path;
+  __fan_internal_image_list[nr].image_path = path;
   fan::image::free(&image_info);
   return nr;
 }
@@ -547,7 +547,7 @@ void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const fan::ima
   VkDeviceSize image_size = image_info.size.multiply() * image_multiplier;
 
   fan::vulkan::context_t::image_t& image = image_get(context, nr);
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
   image_data.size = image_info.size;
 
   if (image.image_index == 0) {
@@ -600,7 +600,7 @@ void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const std::str
     image_info.type = -1; // ignore free
   }
   image_reload(context, nr, image_info, p);
-  image_list[nr].image_path = path;
+  __fan_internal_image_list[nr].image_path = path;
   fan::image::free(&image_info);
 }
 
@@ -635,15 +635,15 @@ fan::graphics::image_nr_t image_create(fan::vulkan::context_t& context, const fa
 }
 
 fan::graphics::camera_nr_t camera_create(fan::vulkan::context_t& context) {
-  return camera_list.NewNode();
+  return __fan_internal_camera_list.NewNode();
 }
 
 fan::graphics::context_camera_t& camera_get(fan::vulkan::context_t& context, camera_nr_t nr) {
-  return camera_list[nr];
+  return __fan_internal_camera_list[nr];
 }
 
 void camera_erase(fan::vulkan::context_t& context, camera_nr_t nr) {
-  camera_list.Recycle(nr);
+  __fan_internal_camera_list.Recycle(nr);
 }
 
 void camera_set_ortho(fan::vulkan::context_t& context, camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
@@ -782,7 +782,7 @@ void viewport_set(fan::vulkan::context_t& context, const fan::vec2& viewport_pos
 }
 
 fan::graphics::context_viewport_t& viewport_get(fan::vulkan::context_t& context, viewport_nr_t nr) {
-  return viewport_list[nr];
+  return __fan_internal_viewport_list[nr];
 }
 
 void viewport_set(fan::vulkan::context_t& context, viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
@@ -795,7 +795,7 @@ void viewport_set(fan::vulkan::context_t& context, viewport_nr_t nr, const fan::
 
 fan::graphics::viewport_nr_t viewport_create(fan::vulkan::context_t& context)
 {
-  auto nr = viewport_list.NewNode();
+  auto nr = __fan_internal_viewport_list.NewNode();
 
   viewport_set(
     context,
@@ -806,7 +806,7 @@ fan::graphics::viewport_nr_t viewport_create(fan::vulkan::context_t& context)
 }
 
 void viewport_erase(fan::vulkan::context_t& context, viewport_nr_t nr) {
-  viewport_list.Recycle(nr);
+  __fan_internal_viewport_list.Recycle(nr);
 }
 
 fan::vec2 viewport_get_position(fan::vulkan::context_t& context, viewport_nr_t nr) {
@@ -911,20 +911,20 @@ void fan::vulkan::context_t::destroy_vulkan_soft() {
   {
     fan::graphics::shader_list_t::nrtra_t nrtra;
     fan::graphics::shader_list_t::nr_t nr;
-    nrtra.Open(&shader_list, &nr);
-    while(nrtra.Loop(&shader_list, &nr)) {
+    nrtra.Open(&__fan_internal_shader_list, &nr);
+    while(nrtra.Loop(&__fan_internal_shader_list, &nr)) {
       shader_erase(*this, nr, 0);
     }
-    nrtra.Close(&shader_list);
+    nrtra.Close(&__fan_internal_shader_list);
   }
   {
     fan::graphics::image_list_t::nrtra_t nrtra;
     fan::graphics::image_list_t::nr_t nr;
-    nrtra.Open(&image_list, &nr);
-    while(nrtra.Loop(&image_list, &nr)) {
+    nrtra.Open(&__fan_internal_image_list, &nr);
+    while(nrtra.Loop(&__fan_internal_image_list, &nr)) {
       image_erase(*this, nr, 0);
     }
-    nrtra.Close(&image_list);
+    nrtra.Close(&__fan_internal_image_list);
   }
 
   close_vais(*this, mainColorImageViews);
@@ -975,38 +975,38 @@ void fan::vulkan::context_t::close() {
   {
     fan::graphics::camera_list_t::nrtra_t nrtra;
     fan::graphics::camera_list_t::nr_t nr;
-    nrtra.Open(&camera_list, &nr);
-    while(nrtra.Loop(&camera_list, &nr)) {
+    nrtra.Open(&__fan_internal_camera_list, &nr);
+    while(nrtra.Loop(&__fan_internal_camera_list, &nr)) {
       camera_erase(context, nr);
     }
-    nrtra.Close(&camera_list);
+    nrtra.Close(&__fan_internal_camera_list);
   }
   {
     fan::graphics::shader_list_t::nrtra_t nrtra;
     fan::graphics::shader_list_t::nr_t nr;
-    nrtra.Open(&shader_list, &nr);
-    while(nrtra.Loop(&shader_list, &nr)) {
+    nrtra.Open(&__fan_internal_shader_list, &nr);
+    while(nrtra.Loop(&__fan_internal_shader_list, &nr)) {
       shader_erase(context, nr);
     }
-    nrtra.Close(&shader_list);
+    nrtra.Close(&__fan_internal_shader_list);
   }
   {
     fan::graphics::image_list_t::nrtra_t nrtra;
     fan::graphics::image_list_t::nr_t nr;
-    nrtra.Open(&image_list, &nr);
-    while(nrtra.Loop(&image_list, &nr)) {
+    nrtra.Open(&__fan_internal_image_list, &nr);
+    while(nrtra.Loop(&__fan_internal_image_list, &nr)) {
       image_erase(context, nr);
     }
-    nrtra.Close(&image_list);
+    nrtra.Close(&__fan_internal_image_list);
   }
   {
     fan::graphics::viewport_list_t::nrtra_t nrtra;
     fan::graphics::viewport_list_t::nr_t nr;
-    nrtra.Open(&viewport_list, &nr);
-    while(nrtra.Loop(&viewport_list, &nr)) {
+    nrtra.Open(&__fan_internal_viewport_list, &nr);
+    while(nrtra.Loop(&__fan_internal_viewport_list, &nr)) {
       viewport_erase(context, nr);
     }
-    nrtra.Close(&viewport_list);
+    nrtra.Close(&__fan_internal_viewport_list);
   }
   vkDestroyDevice(device, nullptr);
   vkDestroyInstance(instance, nullptr);
@@ -2471,65 +2471,65 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
     return (void*)&image_get(*(fan::vulkan::context_t*)context, nr);
   }; 
   cf.image_erase = [](void* context, image_nr_t nr) { 
-    image_erase(*(fan::vulkan::context_t*)context,nr); 
+    ::image_erase(*(fan::vulkan::context_t*)context,nr); 
   }; 
   cf.image_bind = [](void* context, image_nr_t nr) { 
-    image_bind(*(fan::vulkan::context_t*)context,nr); 
+    ::image_bind(*(fan::vulkan::context_t*)context,nr); 
   }; 
   cf.image_unbind = [](void* context, image_nr_t nr) { 
-    image_unbind(*(fan::vulkan::context_t*)context,nr); 
+    ::image_unbind(*(fan::vulkan::context_t*)context,nr); 
   }; 
   cf.image_get_settings = [](void* context, fan::graphics::image_nr_t nr) -> fan::graphics::image_load_properties_t& {
-    return image_get_settings(*(fan::vulkan::context_t*)context, nr);
+    return ::image_get_settings(*(fan::vulkan::context_t*)context, nr);
   };
   cf.image_set_settings = [](void* context, fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings) { 
-    image_bind(*(fan::vulkan::context_t*)context, nr);
-    image_set_settings(*(fan::vulkan::context_t*)context, image_global_to_vulkan(settings));
+    ::image_bind(*(fan::vulkan::context_t*)context, nr);
+    ::image_set_settings(*(fan::vulkan::context_t*)context, image_global_to_vulkan(settings));
   }; 
   cf.image_load_info = [](void* context, const fan::image::image_info_t& image_info) { 
-    return image_load(*(fan::vulkan::context_t*)context, image_info);
+    return ::image_load(*(fan::vulkan::context_t*)context, image_info);
   }; 
   cf.image_load_info_props = [](void* context, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) { 
-    return image_load(*(fan::vulkan::context_t*)context, image_info, image_global_to_vulkan(p));
+    return ::image_load(*(fan::vulkan::context_t*)context, image_info, image_global_to_vulkan(p));
   }; 
   cf.image_load_path = [](void* context, const std::string& path) { 
-    return image_load(*(fan::vulkan::context_t*)context, path);
+    return ::image_load(*(fan::vulkan::context_t*)context, path);
   }; 
   cf.image_load_path_props = [](void* context, const std::string& path, const fan::graphics::image_load_properties_t& p) { 
-    return image_load(*(fan::vulkan::context_t*)context, path, image_global_to_vulkan(p));
+    return ::image_load(*(fan::vulkan::context_t*)context, path, image_global_to_vulkan(p));
   }; 
   cf.image_load_colors = [](void* context, fan::color* colors, const fan::vec2ui& size_) { 
-    return image_load(*(fan::vulkan::context_t*)context, colors, size_);
+    return ::image_load(*(fan::vulkan::context_t*)context, colors, size_);
   }; 
   cf.image_load_colors_props = [](void* context, fan::color* colors, const fan::vec2ui& size_, const fan::graphics::image_load_properties_t& p) { 
-    return image_load(*(fan::vulkan::context_t*)context, colors, size_, image_global_to_vulkan(p));
+    return ::image_load(*(fan::vulkan::context_t*)context, colors, size_, image_global_to_vulkan(p));
   }; 
   cf.image_unload = [](void* context, image_nr_t nr) { 
-    image_unload(*(fan::vulkan::context_t*)context, nr); 
+    ::image_unload(*(fan::vulkan::context_t*)context, nr); 
   }; 
   cf.create_missing_texture = [](void* context) { 
-    return create_missing_texture(*(fan::vulkan::context_t*)context);
+    return ::create_missing_texture(*(fan::vulkan::context_t*)context);
   }; 
   cf.create_transparent_texture = [](void* context) { 
-    return create_transparent_texture(*(fan::vulkan::context_t*)context);
+    return ::create_transparent_texture(*(fan::vulkan::context_t*)context);
   }; 
   cf.image_reload_image_info = [](void* context, image_nr_t nr, const fan::image::image_info_t& image_info) { 
-    return image_reload(*(fan::vulkan::context_t*)context, nr, image_info); 
+    return ::image_reload(*(fan::vulkan::context_t*)context, nr, image_info); 
   }; 
   cf.image_reload_image_info_props = [](void* context, image_nr_t nr, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) { 
-    return image_reload(*(fan::vulkan::context_t*)context, nr, image_info, image_global_to_vulkan(p)); 
+    return ::image_reload(*(fan::vulkan::context_t*)context, nr, image_info, image_global_to_vulkan(p)); 
   }; 
   cf.image_reload_path = [](void* context, image_nr_t nr, const std::string& path) { 
-    return image_reload(*(fan::vulkan::context_t*)context, nr, path); 
+    return ::image_reload(*(fan::vulkan::context_t*)context, nr, path); 
   }; 
   cf.image_reload_path_props = [](void* context, image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p) { 
-    return image_reload(*(fan::vulkan::context_t*)context, nr, path, image_global_to_vulkan(p)); 
+    return ::image_reload(*(fan::vulkan::context_t*)context, nr, path, image_global_to_vulkan(p)); 
   };
   cf.image_create_color = [](void* context, const fan::color& color) { 
-    return image_create(*(fan::vulkan::context_t*)context, color);
+    return ::image_create(*(fan::vulkan::context_t*)context, color);
   }; 
   cf.image_create_color_props = [](void* context, const fan::color& color, const fan::graphics::image_load_properties_t& p) { 
-    return image_create(*(fan::vulkan::context_t*)context, color, image_global_to_vulkan(p));
+    return ::image_create(*(fan::vulkan::context_t*)context, color, image_global_to_vulkan(p));
   };
   /*camera*/
   cf.camera_create = [](void* context) {
