@@ -211,17 +211,17 @@ namespace fan {
 #undef context_declare_func2
 
 #ifndef camera_list
-  #define camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)&context))
+  #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)&context))
 #endif
 
 #ifndef shader_list
-  #define shader_list (*(fan::graphics::shader_list_t*)fan::graphics::get_shader_list((uint8_t*)&context))
+  #define __fan_internal_shader_list (*(fan::graphics::shader_list_t*)fan::graphics::get_shader_list((uint8_t*)&context))
 #endif
 
 #ifndef image_list
-  #define image_list (*(fan::graphics::image_list_t*)fan::graphics::get_image_list((uint8_t*)&context))
+  #define __fan_internal_image_list (*(fan::graphics::image_list_t*)fan::graphics::get_image_list((uint8_t*)&context))
 #endif
 
 #ifndef viewport_list
-  #define viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)&context))
+  #define __fan_internal_viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)&context))
 #endif

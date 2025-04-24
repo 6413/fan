@@ -1699,7 +1699,9 @@ void loco_t::destroy() {
   console.commands.func_table.clear();
   console.close();
 #endif
+#if defined(fan_physics)
   fan::graphics::close_bcol();
+#endif
 #if defined(fan_vulkan)
   if (window.renderer == loco_t::renderer_t::vulkan) {
     vkDeviceWaitIdle(context.vk.device);
@@ -1787,23 +1789,23 @@ void loco_t::switch_renderer(uint8_t renderer) {
       {
         fan::graphics::camera_list_t::nrtra_t nrtra;
         fan::graphics::camera_nr_t nr;
-        nrtra.Open(&camera_list, &nr);
-        while (nrtra.Loop(&camera_list, &nr)) {
-          auto& cam = camera_list[nr];
+        nrtra.Open(&__fan_internal_camera_list, &nr);
+        while (nrtra.Loop(&__fan_internal_camera_list, &nr)) {
+          auto& cam = __fan_internal_camera_list[nr];
           camera_set_ortho(
             nr,
             fan::vec2(cam.coordinates.left, cam.coordinates.right),
             fan::vec2(cam.coordinates.up, cam.coordinates.down)
           );
         }
-        nrtra.Close(&camera_list);
+        nrtra.Close(&__fan_internal_camera_list);
       }
       {
         fan::graphics::viewport_list_t::nrtra_t nrtra;
         fan::graphics::viewport_nr_t nr;
-        nrtra.Open(&viewport_list, &nr);
-        while (nrtra.Loop(&viewport_list, &nr)) {
-          auto& viewport = viewport_list[nr];
+        nrtra.Open(&__fan_internal_viewport_list, &nr);
+        while (nrtra.Loop(&__fan_internal_viewport_list, &nr)) {
+          auto& viewport = __fan_internal_viewport_list[nr];
           viewport_set(
             nr,
             viewport.viewport_position,
@@ -1811,7 +1813,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
             window.get_size()
           );
         }
-        nrtra.Close(&viewport_list);
+        nrtra.Close(&__fan_internal_viewport_list);
       }
     }
 
@@ -1856,18 +1858,18 @@ void loco_t::switch_renderer(uint8_t renderer) {
         {
           fan::graphics::shader_list_t::nrtra_t nrtra;
           fan::graphics::shader_nr_t nr;
-          nrtra.Open(&shader_list, &nr);
-          while (nrtra.Loop(&shader_list, &nr)) {
+          nrtra.Open(&__fan_internal_shader_list, &nr);
+          while (nrtra.Loop(&__fan_internal_shader_list, &nr)) {
             if(window.renderer == renderer_t::opengl) {
-              shader_list[nr].internal = new fan::opengl::context_t::shader_t;
+              __fan_internal_shader_list[nr].internal = new fan::opengl::context_t::shader_t;
             }
             #if defined(fan_vulkan)
             else if(window.renderer == renderer_t::vulkan) {
-              shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
+              __fan_internal_shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
             }
             #endif
           }
-          nrtra.Close(&shader_list);
+          nrtra.Close(&__fan_internal_shader_list);
         }
       }
       fan::image::image_info_t info;
@@ -3757,6 +3759,10 @@ void fan::graphics::text_partial_render(const std::string& text, size_t render_p
 }
 
 #endif
+
+fan::vec2 fan::window::get_mouse_position() {
+  return gloco->get_mouse_position();
+}
 
 #if defined(fan_gui)
 // fan_track_allocations() must be called in global scope before calling this function

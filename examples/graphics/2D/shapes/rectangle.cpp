@@ -1,7 +1,7 @@
 #include <fan/pch.h>
 
 //fan_track_allocations();
-
+//
 int main() {
   using namespace fan::graphics;
   engine_t engine;
@@ -12,8 +12,8 @@ int main() {
     .position = fan::vec3(fan::vec2(i, i), 1),
     .size = 100,
     .color = fan::colors::blue,
-  } };//
-  }
+  } };////////
+  }//////
   fan_window_loop{
 
   };

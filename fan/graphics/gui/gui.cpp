@@ -84,6 +84,14 @@ bool fan::graphics::gui::table_next_column() {
   return ImGui::TableNextColumn();
 }
 
+void fan::graphics::gui::columns(int n, const char* id, bool borders){
+  ImGui::Columns(n, id, borders);
+}
+
+void fan::graphics::gui::next_column(){
+  ImGui::NextColumn();
+}
+
 bool fan::graphics::gui::button(const std::string& label, const fan::vec2& size) {
   return ImGui::Button(label.c_str(), size);
 }

@@ -60,6 +60,12 @@ int main() {
 
     std::vector<fan::vec2i> raycast_positions = fan::graphics::algorithm::grid_raycast({ src, dst }, tile_size);
     for (auto& pos : raycast_positions) {
+      if (pos.x < 0 || pos.x >= map_size.x) {
+        continue;
+      }
+      if (pos.y < 0 || pos.y >= map_size.y) {
+        continue;
+      }
       map[pos.y][pos.x].set_color(fan::colors::green);
     }
   });

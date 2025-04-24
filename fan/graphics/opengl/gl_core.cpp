@@ -8,8 +8,6 @@
 
 #include <fan/window/window.h>
 
-using namespace fan::graphics;
-
 //-----------------------------context-----------------------------
 //-----------------------------context-----------------------------
 //-----------------------------context-----------------------------
@@ -298,16 +296,16 @@ void fan::opengl::core::renderbuffer_t::bind_to_renderbuffer(fan::opengl::contex
 
 
 fan::graphics::shader_nr_t shader_create(fan::opengl::context_t& context) {
-  auto nr = shader_list.NewNode();
-  shader_list[nr].internal = new fan::opengl::context_t::shader_t;
+  auto nr = __fan_internal_shader_list.NewNode();
+  __fan_internal_shader_list[nr].internal = new fan::opengl::context_t::shader_t;
   return nr;
 }
 
-fan::opengl::context_t::shader_t& shader_get(fan::opengl::context_t& context, shader_nr_t nr) {
-  return *(fan::opengl::context_t::shader_t*)shader_list[nr].internal;
+fan::opengl::context_t::shader_t& shader_get(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr) {
+  return *(fan::opengl::context_t::shader_t*)__fan_internal_shader_list[nr].internal;
 }
 
-void shader_erase(fan::opengl::context_t& context, shader_nr_t nr) {
+void shader_erase(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr) {
   auto& shader = shader_get(context, nr);
   fan_validate_buffer(shader.id, {
     fan_opengl_call(glValidateProgram(shader.id));
@@ -318,8 +316,8 @@ void shader_erase(fan::opengl::context_t& context, shader_nr_t nr) {
     }
     shader.id = fan::uninitialized;
   });
-  delete static_cast<fan::opengl::context_t::shader_t*>(shader_list[nr].internal);
-  shader_list.Recycle(nr);
+  delete static_cast<fan::opengl::context_t::shader_t*>(__fan_internal_shader_list[nr].internal);
+  __fan_internal_shader_list.Recycle(nr);
 }
 
 bool shader_check_compile_errors(GLuint shader, const fan::string& type)
@@ -416,7 +414,7 @@ bool shader_check_compile_errors(fan::graphics::shader_data_t& common_shader, co
   return true;
 }
 
-void shader_use(fan::opengl::context_t& context, shader_nr_t nr) {
+void shader_use(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr) {
   auto& shader = shader_get(context, nr);
   if (shader.id == context.current_program) {
     return;
@@ -426,7 +424,7 @@ void shader_use(fan::opengl::context_t& context, shader_nr_t nr) {
 }
 
 template<typename T>
-void fan::opengl::context_t::shader_set_value(shader_nr_t nr, const fan::string& name, const T& val) {
+void fan::opengl::context_t::shader_set_value(fan::graphics::shader_nr_t nr, const fan::string& name, const T& val) {
   static_assert(!std::is_same_v<T, uint8_t>, "only 4 byte supported");
   static_assert(!std::is_same_v<T, uint16_t>, "only 4 byte supported");
   static_assert(std::is_same_v<T, bool> == false || !std::is_same_v<T, int>, "only 4 byte supported");
@@ -438,15 +436,15 @@ void fan::opengl::context_t::shader_set_value(shader_nr_t nr, const fan::string&
   shader_use(*this, nr);
   shader_t& shader = shader_get(*this, nr);
   auto& context = *this;
-  auto found = shader_list[nr].uniform_type_table.find(name);
-  if (found == shader_list[nr].uniform_type_table.end()) {
+  auto found = __fan_internal_shader_list[nr].uniform_type_table.find(name);
+  if (found == __fan_internal_shader_list[nr].uniform_type_table.end()) {
     //fan::print("failed to set uniform value");
     return;
     //fan::throw_error("failed to set uniform value");
   }
 
   size_t hash0 = std::hash<std::string>{}(name);
-  size_t hash1 = std::hash<decltype(shader_nr_t::NRI)>{}(nr.NRI);
+  size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)>{}(nr.NRI);
   auto shader_loc_it = shader_location_cache.find(hash0 ^ hash1);
   if (shader_loc_it == shader_location_cache.end()) {
     GLint location = fan_opengl_call(glGetUniformLocation(shader.id, name.c_str()));
@@ -514,21 +512,21 @@ void fan::opengl::context_t::shader_set_value(shader_nr_t nr, const fan::string&
   }
 }
 
-template void fan::opengl::context_t::shader_set_value<fan::vec2>(shader_nr_t nr, const fan::string& name, const fan::vec2& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec3>(shader_nr_t nr, const fan::string& name, const fan::vec3& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec4>(shader_nr_t nr, const fan::string& name, const fan::vec4& val);
-template void fan::opengl::context_t::shader_set_value<fan::mat4>(shader_nr_t nr, const fan::string& name, const fan::mat4& val);
-template void fan::opengl::context_t::shader_set_value<fan::color>(shader_nr_t nr, const fan::string& name, const fan::color& val);
-template void fan::opengl::context_t::shader_set_value<uint32_t>(shader_nr_t nr, const fan::string& name, const uint32_t& val);
-template void fan::opengl::context_t::shader_set_value<uint64_t>(shader_nr_t nr, const fan::string& name, const uint64_t& val);
-template void fan::opengl::context_t::shader_set_value<int>(shader_nr_t nr, const fan::string& name, const int& val);
-template void fan::opengl::context_t::shader_set_value<f32_t>(shader_nr_t nr, const fan::string& name, const f32_t& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec1_wrap_t<f32_t>>(shader_nr_t nr, const fan::string& name, const fan::vec1_wrap_t<f32_t>& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<1, f32_t>>(shader_nr_t nr, const fan::string& name, const fan::vec_wrap_t<1, f32_t>& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<2, f32_t>>(shader_nr_t nr, const fan::string& name, const fan::vec_wrap_t<2, f32_t>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec2>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec2& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec3>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec3& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec4>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec4& val);
+template void fan::opengl::context_t::shader_set_value<fan::mat4>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::mat4& val);
+template void fan::opengl::context_t::shader_set_value<fan::color>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::color& val);
+template void fan::opengl::context_t::shader_set_value<uint32_t>(fan::graphics::shader_nr_t nr, const fan::string& name, const uint32_t& val);
+template void fan::opengl::context_t::shader_set_value<uint64_t>(fan::graphics::shader_nr_t nr, const fan::string& name, const uint64_t& val);
+template void fan::opengl::context_t::shader_set_value<int>(fan::graphics::shader_nr_t nr, const fan::string& name, const int& val);
+template void fan::opengl::context_t::shader_set_value<f32_t>(fan::graphics::shader_nr_t nr, const fan::string& name, const f32_t& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec1_wrap_t<f32_t>>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec1_wrap_t<f32_t>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<1, f32_t>>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec_wrap_t<1, f32_t>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<2, f32_t>>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec_wrap_t<2, f32_t>& val);
 
 
-void shader_set_vertex(fan::opengl::context_t& context, shader_nr_t nr, const fan::string& vertex_code) {
+void shader_set_vertex(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr, const fan::string& vertex_code) {
   auto& shader = shader_get(context, nr);
 
   if (shader.vertex != (uint32_t)fan::uninitialized) {
@@ -536,7 +534,7 @@ void shader_set_vertex(fan::opengl::context_t& context, shader_nr_t nr, const fa
   }
 
   shader.vertex = fan_opengl_call(glCreateShader(GL_VERTEX_SHADER));
-  shader_list[nr].svertex = vertex_code;
+  __fan_internal_shader_list[nr].svertex = vertex_code;
 
   char* ptr = (char*)vertex_code.c_str();
   GLint length = vertex_code.size();
@@ -544,10 +542,10 @@ void shader_set_vertex(fan::opengl::context_t& context, shader_nr_t nr, const fa
   fan_opengl_call(glShaderSource(shader.vertex, 1, &ptr, &length));
   fan_opengl_call(glCompileShader(shader.vertex));
 
-  shader_check_compile_errors(shader_list[nr], "VERTEX");
+  shader_check_compile_errors(__fan_internal_shader_list[nr], "VERTEX");
 }
 
-void shader_set_fragment(fan::opengl::context_t& context, shader_nr_t nr, const fan::string& fragment_code) {
+void shader_set_fragment(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr, const fan::string& fragment_code) {
   auto& shader = shader_get(context, nr);
 
   if (shader.fragment != (uint32_t)-1) {
@@ -555,7 +553,7 @@ void shader_set_fragment(fan::opengl::context_t& context, shader_nr_t nr, const 
   }
 
   shader.fragment = fan_opengl_call(glCreateShader(GL_FRAGMENT_SHADER));
-  shader_list[nr].sfragment = fragment_code;
+  __fan_internal_shader_list[nr].sfragment = fragment_code;
 
   char* ptr = (char*)fragment_code.c_str();
   GLint length = fragment_code.size();
@@ -563,10 +561,10 @@ void shader_set_fragment(fan::opengl::context_t& context, shader_nr_t nr, const 
   fan_opengl_call(glShaderSource(shader.fragment, 1, &ptr, &length));
 
   fan_opengl_call(glCompileShader(shader.fragment));
-  shader_check_compile_errors(shader_list[nr], "FRAGMENT");
+  shader_check_compile_errors(__fan_internal_shader_list[nr], "FRAGMENT");
 }
 
-bool shader_compile(fan::opengl::context_t& context, shader_nr_t nr) {
+bool shader_compile(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr) {
   auto& shader = shader_get(context, nr);
 
   auto temp_id = fan_opengl_call(glCreateProgram());
@@ -604,28 +602,28 @@ bool shader_compile(fan::opengl::context_t& context, shader_nr_t nr) {
 
   std::regex uniformRegex(R"(uniform\s+(\w+)\s+(\w+)(\s*=\s*[\d\.]+)?;)");
 
-  fan::string vertexData = shader_list[nr].svertex;
+  fan::string vertexData = __fan_internal_shader_list[nr].svertex;
 
   std::smatch match;
   while (std::regex_search(vertexData, match, uniformRegex)) {
-      shader_list[nr].uniform_type_table[match[2]] = match[1];
+      __fan_internal_shader_list[nr].uniform_type_table[match[2]] = match[1];
       vertexData = match.suffix().str();
   }
 
-  fan::string fragmentData = shader_list[nr].sfragment;
+  fan::string fragmentData = __fan_internal_shader_list[nr].sfragment;
 
   while (std::regex_search(fragmentData, match, uniformRegex)) {
-      shader_list[nr].uniform_type_table[match[2]] = match[1];
+      __fan_internal_shader_list[nr].uniform_type_table[match[2]] = match[1];
       fragmentData = match.suffix().str();
   }
   return ret;
 }
 
-fan::graphics::context_camera_t& camera_get(fan::opengl::context_t& context, camera_nr_t nr) {
-  return camera_list[nr];
+fan::graphics::context_camera_t& camera_get(fan::opengl::context_t& context, fan::graphics::camera_nr_t nr) {
+  return __fan_internal_camera_list[nr];
 }
 
-void shader_set_camera(fan::opengl::context_t& context, shader_nr_t nr, fan::graphics::camera_nr_t camera_nr) {
+void shader_set_camera(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr, fan::graphics::camera_nr_t camera_nr) {
   auto& camera = camera_get(context, camera_nr);
   fan_opengl_call(glUniformMatrix4fv(shader_get(context, nr).projection_view[0], 1, GL_FALSE, &camera.m_projection[0][0]));
   fan_opengl_call(glUniformMatrix4fv(shader_get(context, nr).projection_view[1], 1, GL_FALSE, &camera.m_view[0][0]));
@@ -663,11 +661,11 @@ void shader_set_camera(fan::opengl::context_t& context, shader_nr_t nr, fan::gra
 //-----------------------------image-----------------------------
 //-----------------------------image-----------------------------
 
-fan::opengl::context_t::image_t& image_get(fan::opengl::context_t& context, image_nr_t nr) {
-  return *(fan::opengl::context_t::image_t*)image_list[nr].internal;
+fan::opengl::context_t::image_t& image_get(fan::opengl::context_t& context, fan::graphics::image_nr_t nr) {
+  return *(fan::opengl::context_t::image_t*)__fan_internal_image_list[nr].internal;
 }
 
-GLuint& image_get_handle(fan::opengl::context_t& context, image_nr_t nr) {
+GLuint& image_get_handle(fan::opengl::context_t& context, fan::graphics::image_nr_t nr) {
   return image_get(context, nr).texture_id;
 }
 
@@ -675,34 +673,34 @@ fan::graphics::image_nr_t image_create(fan::opengl::context_t& context) {
   uint8_t* cptr = (uint8_t*)&context;
   auto* ptr = fan::graphics::get_image_list(cptr);
 
-  image_nr_t nr = image_list.NewNode();
-  image_list[nr].internal = new fan::opengl::context_t::image_t;
+  fan::graphics::image_nr_t nr = __fan_internal_image_list.NewNode();
+  __fan_internal_image_list[nr].internal = new fan::opengl::context_t::image_t;
   fan_opengl_call(glGenTextures(1, &image_get_handle(context, nr)));
   return nr;
 }
 
-void image_erase(fan::opengl::context_t& context, image_nr_t nr) {
+void image_erase(fan::opengl::context_t& context, fan::graphics::image_nr_t nr) {
   auto handle = image_get_handle(context, nr);
   fan_opengl_call(glDeleteTextures(1, (GLuint*)&handle));
-  delete static_cast<fan::opengl::context_t::image_t*>(image_list[nr].internal);
-  image_list.Recycle(nr);
+  delete static_cast<fan::opengl::context_t::image_t*>(__fan_internal_image_list[nr].internal);
+  __fan_internal_image_list.Recycle(nr);
 }
 
-void image_bind(fan::opengl::context_t& context, image_nr_t nr) {
+void image_bind(fan::opengl::context_t& context, fan::graphics::image_nr_t nr) {
   fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get_handle(context, nr)));
 }
 
-void image_unbind(fan::opengl::context_t& context, image_nr_t nr) {
+void image_unbind(fan::opengl::context_t& context, fan::graphics::image_nr_t nr) {
   fan_opengl_call(glBindTexture(GL_TEXTURE_2D, 0));
 }
 
-fan::graphics::image_load_properties_t& image_get_settings(fan::opengl::context_t& context, image_nr_t nr) {
-  return image_list[nr].image_settings;
+fan::graphics::image_load_properties_t& image_get_settings(fan::opengl::context_t& context, fan::graphics::image_nr_t nr) {
+  return __fan_internal_image_list[nr].image_settings;
 }
 
 fan::graphics::image_load_properties_t image_opengl_to_global(const fan::opengl::context_t::image_load_properties_t& p);
 
-void image_set_settings(fan::opengl::context_t& context, image_nr_t nr, const fan::opengl::context_t::image_load_properties_t& p) {
+void image_set_settings(fan::opengl::context_t& context, fan::graphics::image_nr_t nr, const fan::opengl::context_t::image_load_properties_t& p) {
   image_bind(context, nr);
 #if fan_debug >= fan_debug_high
   if (p.visual_output < 0xff) {
@@ -720,18 +718,18 @@ void image_set_settings(fan::opengl::context_t& context, image_nr_t nr, const fa
   fan_opengl_call(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p.min_filter));
   fan_opengl_call(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, p.mag_filter));
 
-  image_list[nr].image_settings = image_opengl_to_global(p);
+  __fan_internal_image_list[nr].image_settings = image_opengl_to_global(p);
 }
 
 fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const fan::image::image_info_t& image_info, const fan::opengl::context_t::image_load_properties_t& p) {
 
 
-  image_nr_t nr = image_create(context);
+  fan::graphics::image_nr_t nr = image_create(context);
   image_bind(context, nr);
   image_set_settings(context, nr, p);
 
   auto& image = image_get(context, nr);
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
   image_data.size = image_info.size;
   image_data.image_path = "";
 
@@ -799,12 +797,12 @@ fan::graphics::image_nr_t create_missing_texture(fan::opengl::context_t& context
 
   p.visual_output = GL_REPEAT;
 
-  image_nr_t nr = image_create(context);
+  fan::graphics::image_nr_t nr = image_create(context);
   image_bind(context, nr);
 
   image_set_settings(context, nr, p);
   auto& image = image_get(context, nr);
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
   image_data.size = fan::vec2i(2, 2);
 
   fan_opengl_call(
@@ -831,11 +829,11 @@ fan::graphics::image_nr_t create_transparent_texture(fan::opengl::context_t& con
 
   p.visual_output = GL_REPEAT;
 
-  image_nr_t nr = image_create(context);
+  fan::graphics::image_nr_t nr = image_create(context);
   image_bind(context, nr);
 
   auto& img = image_get(context, nr);
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
 
   image_set_settings(context, nr, p);
 
@@ -865,8 +863,8 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const std:
   if (fan::image::load(path, &image_info)) {
     return create_missing_texture(context);
   }
-  image_nr_t nr = image_load(context, image_info, p);
-  image_list[nr].image_path = path;
+  fan::graphics::image_nr_t nr = image_load(context, image_info, p);
+  __fan_internal_image_list[nr].image_path = path;
   fan::image::free(&image_info);
   return nr;
 }
@@ -877,12 +875,12 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const fan:
 
 fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, fan::color* colors, const fan::vec2ui& size_, const fan::opengl::context_t::image_load_properties_t& p) {
 
-  image_nr_t nr = image_create(context);
+  fan::graphics::image_nr_t nr = image_create(context);
   image_bind(context, nr);
 
   image_set_settings(context, nr, p);
 
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
 
   image_data.size = size_;
 
@@ -899,26 +897,26 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const std:
   return image_load(context, path, fan::opengl::context_t::image_load_properties_t());
 }
 
-void image_unload(fan::opengl::context_t& context, image_nr_t nr) {
+void image_unload(fan::opengl::context_t& context, fan::graphics::image_nr_t nr) {
   image_erase(context, nr);
 }
 
-void image_reload(fan::opengl::context_t& context, image_nr_t nr, const fan::image::image_info_t& image_info, const fan::opengl::context_t::image_load_properties_t& p) {
+void image_reload(fan::opengl::context_t& context, fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info, const fan::opengl::context_t::image_load_properties_t& p) {
 
   image_bind(context, nr);
 
   image_set_settings(context, nr, p);
 
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
   image_data.size = image_info.size;
   fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, image_data.size.x, image_data.size.y, 0, p.format, p.type, image_info.data));
 }
 
-void image_reload(fan::opengl::context_t& context, image_nr_t nr, const fan::image::image_info_t& image_info) {
+void image_reload(fan::opengl::context_t& context, fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info) {
   image_reload(context, nr, image_info, fan::opengl::context_t::image_load_properties_t());
 }
 
-void image_reload(fan::opengl::context_t& context, image_nr_t nr, const std::string& path, const fan::opengl::context_t::image_load_properties_t& p) {
+void image_reload(fan::opengl::context_t& context, fan::graphics::image_nr_t nr, const std::string& path, const fan::opengl::context_t::image_load_properties_t& p) {
   fan::image::image_info_t image_info;
   if (fan::image::load(path, &image_info)) {
     image_info.data = (void*)fan::image::missing_texture_pixels;
@@ -927,19 +925,19 @@ void image_reload(fan::opengl::context_t& context, image_nr_t nr, const std::str
     image_info.type = -1; // ignore free
   }
   image_reload(context, nr, image_info, p);
-  image_list[nr].image_path = path;
+  __fan_internal_image_list[nr].image_path = path;
   fan::image::free(&image_info);
 }
 
-void image_reload(fan::opengl::context_t& context, image_nr_t nr, const std::string& path) {
+void image_reload(fan::opengl::context_t& context, fan::graphics::image_nr_t nr, const std::string& path) {
   image_reload(context, nr, path, fan::opengl::context_t::image_load_properties_t());
 }
 
-std::unique_ptr<uint8_t[]> image_get_pixel_data(fan::opengl::context_t& context, image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
+std::unique_ptr<uint8_t[]> image_get_pixel_data(fan::opengl::context_t& context, fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
   auto& image = image_get(context, nr);
   image_bind(context, nr);
 
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
 
   fan::vec2ui uv_size = {
       (uint32_t)(image_data.size.x * uvs.x),
@@ -979,14 +977,14 @@ fan::graphics::image_nr_t image_create(fan::opengl::context_t& context, const fa
     pixels[p] = color[p] * 255;
   }
 
-  image_nr_t nr = image_create(context);
+  fan::graphics::image_nr_t nr = image_create(context);
   image_bind(context, nr);
 
   image_set_settings(context, nr, p);
 
   fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, 1, 1, 0, p.format, p.type, pixels));
 
-  auto& image_data = image_list[nr];
+  auto& image_data = __fan_internal_image_list[nr];
   image_data.size = 1;
 
   fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
@@ -1032,14 +1030,14 @@ fan::graphics::image_nr_t image_create(fan::opengl::context_t& context, const fa
 
 
 fan::graphics::camera_nr_t camera_create(fan::opengl::context_t& context) {
-  return camera_list.NewNode();
+  return __fan_internal_camera_list.NewNode();
 }
 
-void camera_erase(fan::opengl::context_t& context, camera_nr_t nr) {
-  camera_list.Recycle(nr);
+void camera_erase(fan::opengl::context_t& context, fan::graphics::camera_nr_t nr) {
+  __fan_internal_camera_list.Recycle(nr);
 }
 
-void camera_set_ortho(fan::opengl::context_t& context, camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
+void camera_set_ortho(fan::opengl::context_t& context, fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
   auto& camera = camera_get(context, nr);
 
   camera.coordinates.left = x.x;
@@ -1053,7 +1051,7 @@ void camera_set_ortho(fan::opengl::context_t& context, camera_nr_t nr, fan::vec2
     camera.coordinates.down,
     camera.coordinates.up,
     0.1,
-    znearfar
+    fan::graphics::znearfar
   );
 
   camera.m_view[3][0] = 0;
@@ -1067,16 +1065,16 @@ void camera_set_ortho(fan::opengl::context_t& context, camera_nr_t nr, fan::vec2
 }
 
 fan::graphics::camera_nr_t camera_open(fan::opengl::context_t& context, const fan::vec2& x, const fan::vec2& y) {
-  camera_nr_t nr = camera_create(context);
+  fan::graphics::camera_nr_t nr = camera_create(context);
   camera_set_ortho(context, nr, fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
   return nr;
 }
 
-fan::vec3 camera_get_position(fan::opengl::context_t& context, camera_nr_t nr) {
+fan::vec3 camera_get_position(fan::opengl::context_t& context, fan::graphics::camera_nr_t nr) {
   return camera_get(context, nr).position;
 }
 
-void camera_set_position(fan::opengl::context_t& context, camera_nr_t nr, const fan::vec3& cp) {
+void camera_set_position(fan::opengl::context_t& context, fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
   auto& camera = camera_get(context, nr);
   camera.position = cp;
 
@@ -1090,12 +1088,12 @@ void camera_set_position(fan::opengl::context_t& context, camera_nr_t nr, const 
   camera.m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
 }
 
-fan::vec2 camera_get_size(fan::opengl::context_t& context, camera_nr_t nr) {
+fan::vec2 camera_get_size(fan::opengl::context_t& context, fan::graphics::camera_nr_t nr) {
   auto& camera = camera_get(context, nr);
   return fan::vec2(std::abs(camera.coordinates.right - camera.coordinates.left), std::abs(camera.coordinates.down - camera.coordinates.up));
 }
 
-void camera_set_perspective(fan::opengl::context_t& context, camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
+void camera_set_perspective(fan::opengl::context_t& context, fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
   auto& camera = camera_get(context, nr);
 
   camera.m_projection = fan::math::perspective<fan::mat4>(fan::math::radians(fov), (f32_t)window_size.x / (f32_t)window_size.y, camera.znear, camera.zfar);
@@ -1105,7 +1103,7 @@ void camera_set_perspective(fan::opengl::context_t& context, camera_nr_t nr, f32
   camera.m_view = camera.get_view_matrix();
 }
 
-void camera_rotate(fan::opengl::context_t& context, camera_nr_t nr, const fan::vec2& offset) {
+void camera_rotate(fan::opengl::context_t& context, fan::graphics::camera_nr_t nr, const fan::vec2& offset) {
   auto& camera = camera_get(context, nr);
   camera.rotate_camera(offset);
   camera.m_view = camera.get_view_matrix();
@@ -1126,7 +1124,7 @@ void camera_rotate(fan::opengl::context_t& context, camera_nr_t nr, const fan::v
 
 
 
-void fan::opengl::context_t::shader_set_camera(shader_nr_t nr, fan::graphics::camera_nr_t camera_nr) {
+void fan::opengl::context_t::shader_set_camera(fan::graphics::shader_nr_t nr, fan::graphics::camera_nr_t camera_nr) {
   auto& camera = camera_get(*this, camera_nr);
   fan_opengl_call(glUniformMatrix4fv(shader_get(*this, nr).projection_view[0], 1, GL_FALSE, &camera.m_projection[0][0]));
   fan_opengl_call(glUniformMatrix4fv(shader_get(*this, nr).projection_view[1], 1, GL_FALSE, &camera.m_view[0][0]));
@@ -1153,11 +1151,11 @@ void viewport_set(fan::opengl::context_t& context, const fan::vec2& viewport_pos
   ));
 }
 
-fan::graphics::context_viewport_t& viewport_get(fan::opengl::context_t& context, viewport_nr_t nr) {
-  return viewport_list[nr];
+fan::graphics::context_viewport_t& viewport_get(fan::opengl::context_t& context, fan::graphics::viewport_nr_t nr) {
+  return __fan_internal_viewport_list[nr];
 }
 
-void viewport_set(fan::opengl::context_t& context, viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
+void viewport_set(fan::opengl::context_t& context, fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
   auto& viewport = viewport_get(context, nr);
   viewport.viewport_position = viewport_position_;
   viewport.viewport_size = viewport_size_;
@@ -1166,7 +1164,7 @@ void viewport_set(fan::opengl::context_t& context, viewport_nr_t nr, const fan::
 }
 
 fan::graphics::viewport_nr_t viewport_create(fan::opengl::context_t& context) {
-  auto nr = viewport_list.NewNode();
+  auto nr = __fan_internal_viewport_list.NewNode();
 
   viewport_set(
     context,
@@ -1176,32 +1174,32 @@ fan::graphics::viewport_nr_t viewport_create(fan::opengl::context_t& context) {
   return nr;
 }
 
-void viewport_erase(fan::opengl::context_t& context, viewport_nr_t nr) {
-  viewport_list.Recycle(nr);
+void viewport_erase(fan::opengl::context_t& context, fan::graphics::viewport_nr_t nr) {
+  __fan_internal_viewport_list.Recycle(nr);
 }
 
-fan::vec2 viewport_get_position(fan::opengl::context_t& context, viewport_nr_t nr) {
+fan::vec2 viewport_get_position(fan::opengl::context_t& context, fan::graphics::viewport_nr_t nr) {
   return viewport_get(context, nr).viewport_position;
 }
 
-fan::vec2 viewport_get_size(fan::opengl::context_t& context, viewport_nr_t nr) {
+fan::vec2 viewport_get_size(fan::opengl::context_t& context, fan::graphics::viewport_nr_t nr) {
   return viewport_get(context, nr).viewport_size;
 }
 
 
-void viewport_zero(fan::opengl::context_t& context, viewport_nr_t nr) {
+void viewport_zero(fan::opengl::context_t& context, fan::graphics::viewport_nr_t nr) {
   auto& viewport = viewport_get(context, nr);
   viewport.viewport_position = 0;
   viewport.viewport_size = 0;
   fan_opengl_call(glViewport(0, 0, 0, 0));
 }
 
-bool viewport_inside(fan::opengl::context_t& context, viewport_nr_t nr, const fan::vec2& position) {
+bool viewport_inside(fan::opengl::context_t& context, fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
   auto& viewport = viewport_get(context, nr);
   return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.viewport_position + viewport.viewport_size / 2, viewport.viewport_size / 2);
 }
 
-bool viewport_inside_wir(fan::opengl::context_t& context, viewport_nr_t nr, const fan::vec2& position) {
+bool viewport_inside_wir(fan::opengl::context_t& context, fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
   auto& viewport = viewport_get(context, nr);
   return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.viewport_size / 2, viewport.viewport_size / 2);
 }
@@ -1222,15 +1220,15 @@ bool viewport_inside_wir(fan::opengl::context_t& context, viewport_nr_t nr, cons
 
 
 uint32_t global_to_opengl_format(uintptr_t format) {
-  if (format == image_format::b8g8r8a8_unorm) return GL_BGRA;
-  if (format == image_format::r8b8g8a8_unorm) return GL_RGBA;
-  if (format == image_format::r8_unorm) return GL_RED;
-  if (format == image_format::rg8_unorm) return GL_RG;
-  if (format == image_format::rgb_unorm) return GL_RGB;
-  if (format == image_format::rgba_unorm) return GL_RGBA;
-  if (format == image_format::r8_uint) return GL_RED_INTEGER;
-  if (format == image_format::r8g8b8a8_srgb) return GL_SRGB8_ALPHA8;
-  if (format == image_format::r11f_g11f_b10f) return GL_R11F_G11F_B10F;
+  if (format == fan::graphics::image_format::b8g8r8a8_unorm) return GL_BGRA;
+  if (format == fan::graphics::image_format::r8b8g8a8_unorm) return GL_RGBA;
+  if (format == fan::graphics::image_format::r8_unorm) return GL_RED;
+  if (format == fan::graphics::image_format::rg8_unorm) return GL_RG;
+  if (format == fan::graphics::image_format::rgb_unorm) return GL_RGB;
+  if (format == fan::graphics::image_format::rgba_unorm) return GL_RGBA;
+  if (format == fan::graphics::image_format::r8_uint) return GL_RED_INTEGER;
+  if (format == fan::graphics::image_format::r8g8b8a8_srgb) return GL_SRGB8_ALPHA8;
+  if (format == fan::graphics::image_format::r11f_g11f_b10f) return GL_R11F_G11F_B10F;
 #if fan_debug >= fan_debug_high
   fan::throw_error("invalid format");
 #endif
@@ -1238,9 +1236,9 @@ uint32_t global_to_opengl_format(uintptr_t format) {
 }
 
 uint32_t global_to_opengl_type(uintptr_t type) {
-  if (type == fan_unsigned_byte) return GL_UNSIGNED_BYTE;
-  if (type == fan_unsigned_int) return GL_UNSIGNED_INT;
-  if (type == fan_float) return GL_FLOAT;
+  if (type == fan::graphics::fan_unsigned_byte) return GL_UNSIGNED_BYTE;
+  if (type == fan::graphics::fan_unsigned_int) return GL_UNSIGNED_INT;
+  if (type == fan::graphics::fan_float) return GL_FLOAT;
 #if fan_debug >= fan_debug_high
   fan::throw_error("invalid format");
 #endif
@@ -1248,11 +1246,11 @@ uint32_t global_to_opengl_type(uintptr_t type) {
 }
 
 uint32_t global_to_opengl_address_mode(uint32_t mode) {
-  if (mode == image_sampler_address_mode::repeat) return GL_REPEAT;
-  if (mode == image_sampler_address_mode::mirrored_repeat) return GL_MIRRORED_REPEAT;
-  if (mode == image_sampler_address_mode::clamp_to_edge) return GL_CLAMP_TO_EDGE;
-  if (mode == image_sampler_address_mode::clamp_to_border) return GL_CLAMP_TO_BORDER;
-  if (mode == image_sampler_address_mode::mirrored_clamp_to_edge) return GL_MIRROR_CLAMP_TO_EDGE;
+  if (mode == fan::graphics::image_sampler_address_mode::repeat) return GL_REPEAT;
+  if (mode == fan::graphics::image_sampler_address_mode::mirrored_repeat) return GL_MIRRORED_REPEAT;
+  if (mode == fan::graphics::image_sampler_address_mode::clamp_to_edge) return GL_CLAMP_TO_EDGE;
+  if (mode == fan::graphics::image_sampler_address_mode::clamp_to_border) return GL_CLAMP_TO_BORDER;
+  if (mode == fan::graphics::image_sampler_address_mode::mirrored_clamp_to_edge) return GL_MIRROR_CLAMP_TO_EDGE;
 #if fan_debug >= fan_debug_high
   fan::throw_error("invalid format");
 #endif
@@ -1260,8 +1258,8 @@ uint32_t global_to_opengl_address_mode(uint32_t mode) {
 }
 
 uint32_t global_to_opengl_filter(uintptr_t filter) {
-  if (filter == image_filter::nearest) return GL_NEAREST;
-  if (filter == image_filter::linear) return GL_LINEAR;
+  if (filter == fan::graphics::image_filter::nearest) return GL_NEAREST;
+  if (filter == fan::graphics::image_filter::linear) return GL_LINEAR;
 #if fan_debug >= fan_debug_high
   fan::throw_error("invalid format");
 #endif
@@ -1269,24 +1267,24 @@ uint32_t global_to_opengl_filter(uintptr_t filter) {
 }
 
 uint32_t opengl_to_global_format(uintptr_t format) {
-  if (format == GL_BGRA) return image_format::b8g8r8a8_unorm;
-  if (format == GL_RGBA) return image_format::r8b8g8a8_unorm;
-  if (format == GL_RED) return image_format::r8_unorm;
-  if (format == GL_RG) return image_format::rg8_unorm;
-  if (format == GL_RGB) return image_format::rgb_unorm;
-  if (format == GL_RED_INTEGER) return image_format::r8_uint;
-  if (format == GL_SRGB8_ALPHA8) return image_format::r8g8b8a8_srgb;
-  if (format == GL_R11F_G11F_B10F) return image_format::r11f_g11f_b10f;
+  if (format == GL_BGRA) return fan::graphics::image_format::b8g8r8a8_unorm;
+  if (format == GL_RGBA) return fan::graphics::image_format::r8b8g8a8_unorm;
+  if (format == GL_RED) return fan::graphics::image_format::r8_unorm;
+  if (format == GL_RG) return fan::graphics::image_format::rg8_unorm;
+  if (format == GL_RGB) return fan::graphics::image_format::rgb_unorm;
+  if (format == GL_RED_INTEGER) return fan::graphics::image_format::r8_uint;
+  if (format == GL_SRGB8_ALPHA8) return fan::graphics::image_format::r8g8b8a8_srgb;
+  if (format == GL_R11F_G11F_B10F) return fan::graphics::image_format::r11f_g11f_b10f;
 #if fan_debug >= fan_debug_high
   fan::throw_error("invalid format");
 #endif
-  return image_format::rgba_unorm;
+  return fan::graphics::image_format::rgba_unorm;
 }
 
 uint32_t opengl_to_global_type(uintptr_t type) {
-  if (type == GL_UNSIGNED_BYTE) return fan_unsigned_byte;
-  if (type == GL_UNSIGNED_INT) return fan_unsigned_int;
-  if (type == GL_FLOAT) return fan_float;
+  if (type == GL_UNSIGNED_BYTE) return fan::graphics::fan_unsigned_byte;
+  if (type == GL_UNSIGNED_INT) return fan::graphics::fan_unsigned_int;
+  if (type == GL_FLOAT) return fan::graphics::fan_float;
 #if fan_debug >= fan_debug_high
   fan::throw_error("invalid format");
 #endif
@@ -1294,24 +1292,24 @@ uint32_t opengl_to_global_type(uintptr_t type) {
 }
 
 uint32_t opengl_to_global_address_mode(uint32_t mode) {
-  if (mode == GL_REPEAT) return image_sampler_address_mode::repeat;
-  if (mode == GL_MIRRORED_REPEAT) return image_sampler_address_mode::mirrored_repeat;
-  if (mode == GL_CLAMP_TO_EDGE) return image_sampler_address_mode::clamp_to_edge;
-  if (mode == GL_CLAMP_TO_BORDER) return image_sampler_address_mode::clamp_to_border;
-  if (mode == GL_MIRROR_CLAMP_TO_EDGE) return image_sampler_address_mode::mirrored_clamp_to_edge;
+  if (mode == GL_REPEAT) return fan::graphics::image_sampler_address_mode::repeat;
+  if (mode == GL_MIRRORED_REPEAT) return fan::graphics::image_sampler_address_mode::mirrored_repeat;
+  if (mode == GL_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode::clamp_to_edge;
+  if (mode == GL_CLAMP_TO_BORDER) return fan::graphics::image_sampler_address_mode::clamp_to_border;
+  if (mode == GL_MIRROR_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode::mirrored_clamp_to_edge;
 #if fan_debug >= fan_debug_high
   fan::throw_error("invalid format");
 #endif
-  return image_sampler_address_mode::repeat;
+  return fan::graphics::image_sampler_address_mode::repeat;
 }
 
 uint32_t opengl_to_global_filter(uintptr_t filter) {
-  if (filter == GL_NEAREST) return image_filter::nearest;
-  if (filter == GL_LINEAR) return image_filter::linear;
+  if (filter == GL_NEAREST) return fan::graphics::image_filter::nearest;
+  if (filter == GL_LINEAR) return fan::graphics::image_filter::linear;
 #if fan_debug >= fan_debug_high
   fan::throw_error("invalid format");
 #endif
-  return image_filter::nearest;
+  return fan::graphics::image_filter::nearest;
 }
 
 
@@ -1324,20 +1322,20 @@ void fan::opengl::context_t::internal_close() {
   {
     fan::graphics::shader_list_t::nrtra_t nrtra;
     fan::graphics::shader_nr_t nr;
-    nrtra.Open(&shader_list, &nr);
-    while (nrtra.Loop(&shader_list, &nr)) {
-      delete static_cast<fan::opengl::context_t::shader_t*>(shader_list[nr].internal);
+    nrtra.Open(&__fan_internal_shader_list, &nr);
+    while (nrtra.Loop(&__fan_internal_shader_list, &nr)) {
+      delete static_cast<fan::opengl::context_t::shader_t*>(__fan_internal_shader_list[nr].internal);
     }
-    nrtra.Close(&shader_list);
+    nrtra.Close(&__fan_internal_shader_list);
   }
   {
     fan::graphics::image_list_t::nrtra_t nrtra;
     fan::graphics::image_nr_t nr;
-    nrtra.Open(&image_list, &nr);
-    while (nrtra.Loop(&image_list, &nr)) {
-      delete static_cast<fan::opengl::context_t::image_t*>(image_list[nr].internal);
+    nrtra.Open(&__fan_internal_image_list, &nr);
+    while (nrtra.Loop(&__fan_internal_image_list, &nr)) {
+      delete static_cast<fan::opengl::context_t::image_t*>(__fan_internal_image_list[nr].internal);
     }
-    nrtra.Close(&image_list);
+    nrtra.Close(&__fan_internal_image_list);
   }
 }
 
@@ -1345,38 +1343,38 @@ void close(fan::opengl::context_t& context) {
   {
     fan::graphics::camera_list_t::nrtra_t nrtra;
     fan::graphics::camera_nr_t nr;
-    nrtra.Open(&camera_list, &nr);
-    while (nrtra.Loop(&camera_list, &nr)) {
+    nrtra.Open(&__fan_internal_camera_list, &nr);
+    while (nrtra.Loop(&__fan_internal_camera_list, &nr)) {
       camera_erase(context, nr);
     }
-    nrtra.Close(&camera_list);
+    nrtra.Close(&__fan_internal_camera_list);
   }
   {
     fan::graphics::shader_list_t::nrtra_t nrtra;
     fan::graphics::shader_nr_t nr;
-    nrtra.Open(&shader_list, &nr);
-    while (nrtra.Loop(&shader_list, &nr)) {
+    nrtra.Open(&__fan_internal_shader_list, &nr);
+    while (nrtra.Loop(&__fan_internal_shader_list, &nr)) {
       shader_erase(context, nr);
     }
-    nrtra.Close(&shader_list);
+    nrtra.Close(&__fan_internal_shader_list);
   }
   {
     fan::graphics::image_list_t::nrtra_t nrtra;
     fan::graphics::image_nr_t nr;
-    nrtra.Open(&image_list, &nr);
-    while (nrtra.Loop(&image_list, &nr)) {
+    nrtra.Open(&__fan_internal_image_list, &nr);
+    while (nrtra.Loop(&__fan_internal_image_list, &nr)) {
       image_erase(context, nr);
     }
-    nrtra.Close(&image_list);
+    nrtra.Close(&__fan_internal_image_list);
   }
   {
     fan::graphics::viewport_list_t::nrtra_t nrtra;
     fan::graphics::viewport_nr_t nr;
-    nrtra.Open(&viewport_list, &nr);
-    while (nrtra.Loop(&viewport_list, &nr)) {
+    nrtra.Open(&__fan_internal_viewport_list, &nr);
+    while (nrtra.Loop(&__fan_internal_viewport_list, &nr)) {
       viewport_erase(context, nr);
     }
-    nrtra.Close(&viewport_list);
+    nrtra.Close(&__fan_internal_viewport_list);
   }
 }
 /*
@@ -1416,93 +1414,93 @@ fan::graphics::context_functions_t fan::graphics::get_gl_context_functions() {
   cf.shader_create = [](void* context) { 
     return shader_create(*(fan::opengl::context_t*)context);
   }; 
-  cf.shader_get = [](void* context, shader_nr_t nr) { 
+  cf.shader_get = [](void* context, fan::graphics::shader_nr_t nr) { 
     return (void*)&shader_get(*(fan::opengl::context_t*)context, nr);
   }; 
-  cf.shader_erase = [](void* context, shader_nr_t nr) { 
+  cf.shader_erase = [](void* context, fan::graphics::shader_nr_t nr) { 
     shader_erase(*(fan::opengl::context_t*)context,nr); 
   }; 
-  cf.shader_use = [](void* context, shader_nr_t nr) { 
+  cf.shader_use = [](void* context, fan::graphics::shader_nr_t nr) { 
     shader_use(*(fan::opengl::context_t*)context,nr); 
   }; 
-  cf.shader_set_vertex = [](void* context, shader_nr_t nr, const std::string& vertex_code) { 
+  cf.shader_set_vertex = [](void* context, fan::graphics::shader_nr_t nr, const std::string& vertex_code) { 
     shader_set_vertex(*(fan::opengl::context_t*)context, nr, vertex_code); 
   }; 
-  cf.shader_set_fragment = [](void* context, shader_nr_t nr, const std::string& fragment_code) { 
+  cf.shader_set_fragment = [](void* context, fan::graphics::shader_nr_t nr, const std::string& fragment_code) { 
     shader_set_fragment(*(fan::opengl::context_t*)context,nr, fragment_code); 
   }; 
-  cf.shader_compile = [](void* context, shader_nr_t nr) { 
+  cf.shader_compile = [](void* context, fan::graphics::shader_nr_t nr) { 
     return shader_compile(*(fan::opengl::context_t*)context,nr); 
   }; 
     /*image*/
   cf.image_create = [](void* context) {
     return image_create(*(fan::opengl::context_t*)context);
   }; 
-  cf.image_get_handle = [](void* context, image_nr_t nr) { 
+  cf.image_get_handle = [](void* context, fan::graphics::image_nr_t nr) { 
     return (uint64_t)image_get_handle(*(fan::opengl::context_t*)context,nr); 
   }; 
-  cf.image_get = [](void* context, image_nr_t nr) {
+  cf.image_get = [](void* context, fan::graphics::image_nr_t nr) {
     return (void*)&image_get(*(fan::opengl::context_t*)context, nr);
   }; 
-  cf.image_erase = [](void* context, image_nr_t nr) { 
-    image_erase(*(fan::opengl::context_t*)context,nr); 
+  cf.image_erase = [](void* context, fan::graphics::image_nr_t nr) { 
+    ::image_erase(*(fan::opengl::context_t*)context,nr); 
   }; 
-  cf.image_bind = [](void* context, image_nr_t nr) { 
-    image_bind(*(fan::opengl::context_t*)context,nr); 
+  cf.image_bind = [](void* context, fan::graphics::image_nr_t nr) { 
+    ::image_bind(*(fan::opengl::context_t*)context,nr); 
   }; 
-  cf.image_unbind = [](void* context, image_nr_t nr) { 
-    image_unbind(*(fan::opengl::context_t*)context,nr); 
+  cf.image_unbind = [](void* context, fan::graphics::image_nr_t nr) { 
+    ::image_unbind(*(fan::opengl::context_t*)context,nr); 
   }; 
   cf.image_get_settings = [](void* context, fan::graphics::image_nr_t nr) -> fan::graphics::image_load_properties_t& {
     return image_get_settings(*(fan::opengl::context_t*)context, nr);
   };
-  cf.image_set_settings = [](void* context, image_nr_t nr, const fan::graphics::image_load_properties_t& settings) {
+  cf.image_set_settings = [](void* context, fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings) {
     image_set_settings(*(fan::opengl::context_t*)context, nr, image_global_to_opengl(settings));
   }; 
   cf.image_load_info = [](void* context, const fan::image::image_info_t& image_info) { 
-    return image_load(*(fan::opengl::context_t*)context, image_info);
+    return ::image_load(*(fan::opengl::context_t*)context, image_info);
   }; 
   cf.image_load_info_props = [](void* context, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) { 
-    return image_load(*(fan::opengl::context_t*)context, image_info, image_global_to_opengl(p));
+    return ::image_load(*(fan::opengl::context_t*)context, image_info, image_global_to_opengl(p));
   }; 
   cf.image_load_path = [](void* context, const std::string& path) { 
-    return image_load(*(fan::opengl::context_t*)context, path);
+    return ::image_load(*(fan::opengl::context_t*)context, path);
   }; 
   cf.image_load_path_props = [](void* context, const std::string& path, const fan::graphics::image_load_properties_t& p) { 
-    return image_load(*(fan::opengl::context_t*)context, path, image_global_to_opengl(p));
+    return ::image_load(*(fan::opengl::context_t*)context, path, image_global_to_opengl(p));
   }; 
   cf.image_load_colors = [](void* context, fan::color* colors, const fan::vec2ui& size_) { 
-    return image_load(*(fan::opengl::context_t*)context, colors, size_);
+    return ::image_load(*(fan::opengl::context_t*)context, colors, size_);
   }; 
   cf.image_load_colors_props = [](void* context, fan::color* colors, const fan::vec2ui& size_, const fan::graphics::image_load_properties_t& p) { 
-    return image_load(*(fan::opengl::context_t*)context, colors, size_, image_global_to_opengl(p));
+    return ::image_load(*(fan::opengl::context_t*)context, colors, size_, image_global_to_opengl(p));
   }; 
-  cf.image_unload = [](void* context, image_nr_t nr) { 
-    image_unload(*(fan::opengl::context_t*)context, nr); 
+  cf.image_unload = [](void* context, fan::graphics::image_nr_t nr) { 
+    ::image_unload(*(fan::opengl::context_t*)context, nr); 
   }; 
   cf.create_missing_texture = [](void* context) { 
-    return create_missing_texture(*(fan::opengl::context_t*)context);
+    return ::create_missing_texture(*(fan::opengl::context_t*)context);
   }; 
   cf.create_transparent_texture = [](void* context) { 
-    return create_transparent_texture(*(fan::opengl::context_t*)context);
+    return ::create_transparent_texture(*(fan::opengl::context_t*)context);
   }; 
-  cf.image_reload_image_info = [](void* context, image_nr_t nr, const fan::image::image_info_t& image_info) { 
-    return image_reload(*(fan::opengl::context_t*)context, nr, image_info); 
+  cf.image_reload_image_info = [](void* context, fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info) { 
+    return ::image_reload(*(fan::opengl::context_t*)context, nr, image_info); 
   }; 
-  cf.image_reload_image_info_props = [](void* context, image_nr_t nr, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) { 
-    return image_reload(*(fan::opengl::context_t*)context, nr, image_info, image_global_to_opengl(p)); 
+  cf.image_reload_image_info_props = [](void* context, fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) { 
+    return ::image_reload(*(fan::opengl::context_t*)context, nr, image_info, image_global_to_opengl(p)); 
   }; 
-  cf.image_reload_path = [](void* context, image_nr_t nr, const std::string& path) { 
-    return image_reload(*(fan::opengl::context_t*)context, nr, path); 
+  cf.image_reload_path = [](void* context, fan::graphics::image_nr_t nr, const std::string& path) { 
+    return ::image_reload(*(fan::opengl::context_t*)context, nr, path); 
   }; 
-  cf.image_reload_path_props = [](void* context, image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p) { 
-    return image_reload(*(fan::opengl::context_t*)context, nr, path, image_global_to_opengl(p)); 
+  cf.image_reload_path_props = [](void* context, fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p) { 
+    return ::image_reload(*(fan::opengl::context_t*)context, nr, path, image_global_to_opengl(p)); 
   };
   cf.image_create_color = [](void* context, const fan::color& color) { 
-    return image_create(*(fan::opengl::context_t*)context, color);
+    return ::image_create(*(fan::opengl::context_t*)context, color);
   }; 
   cf.image_create_color_props = [](void* context, const fan::color& color, const fan::graphics::image_load_properties_t& p) { 
-    return image_create(*(fan::opengl::context_t*)context, color, image_global_to_opengl(p));
+    return ::image_create(*(fan::opengl::context_t*)context, color, image_global_to_opengl(p));
   };
   /*camera*/
   cf.camera_create = [](void* context) {
@@ -1511,59 +1509,59 @@ fan::graphics::context_functions_t fan::graphics::get_gl_context_functions() {
   cf.camera_get = [](void* context, fan::graphics::camera_nr_t nr) -> decltype(auto) {
     return camera_get(*(fan::opengl::context_t*)context, nr);
   };
-  cf.camera_erase = [](void* context, camera_nr_t nr) { 
+  cf.camera_erase = [](void* context, fan::graphics::camera_nr_t nr) { 
     camera_erase(*(fan::opengl::context_t*)context, nr); 
   };
   cf.camera_open = [](void* context, const fan::vec2& x, const fan::vec2& y) {
     return camera_open(*(fan::opengl::context_t*)context, x, y);
   };
-  cf.camera_get_position = [](void* context, camera_nr_t nr) { 
+  cf.camera_get_position = [](void* context, fan::graphics::camera_nr_t nr) { 
     return camera_get_position(*(fan::opengl::context_t*)context, nr); 
   };
-  cf.camera_set_position = [](void* context, camera_nr_t nr, const fan::vec3& cp) { 
+  cf.camera_set_position = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec3& cp) { 
     camera_set_position(*(fan::opengl::context_t*)context, nr, cp); 
   };
-  cf.camera_get_size = [](void* context, camera_nr_t nr) { 
+  cf.camera_get_size = [](void* context, fan::graphics::camera_nr_t nr) { 
     return camera_get_size(*(fan::opengl::context_t*)context, nr); 
   };
-  cf.camera_set_ortho = [](void* context, camera_nr_t nr, fan::vec2 x, fan::vec2 y) { 
+  cf.camera_set_ortho = [](void* context, fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) { 
     camera_set_ortho(*(fan::opengl::context_t*)context, nr, x, y); 
   };
-  cf.camera_set_perspective = [](void* context, camera_nr_t nr, f32_t fov, const fan::vec2& window_size) { 
+  cf.camera_set_perspective = [](void* context, fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) { 
     camera_set_perspective(*(fan::opengl::context_t*)context, nr, fov, window_size); 
   };
-  cf.camera_rotate = [](void* context, camera_nr_t nr, const fan::vec2& offset) { 
+  cf.camera_rotate = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec2& offset) { 
     camera_rotate(*(fan::opengl::context_t*)context, nr, offset); 
   };
   /*viewport*/
   cf.viewport_create = [](void* context) {
     return viewport_create(*(fan::opengl::context_t*)context);
   };
-  cf.viewport_get = [](void* context, viewport_nr_t nr) -> fan::graphics::context_viewport_t&{ 
+  cf.viewport_get = [](void* context, fan::graphics::viewport_nr_t nr) -> fan::graphics::context_viewport_t&{ 
     return viewport_get(*(fan::opengl::context_t*)context, nr);
   };
-  cf.viewport_erase = [](void* context, viewport_nr_t nr) { 
+  cf.viewport_erase = [](void* context, fan::graphics::viewport_nr_t nr) { 
     viewport_erase(*(fan::opengl::context_t*)context, nr); 
   };
-  cf.viewport_get_position = [](void* context, viewport_nr_t nr) { 
+  cf.viewport_get_position = [](void* context, fan::graphics::viewport_nr_t nr) { 
     return viewport_get_position(*(fan::opengl::context_t*)context, nr); 
   };
-  cf.viewport_get_size = [](void* context, viewport_nr_t nr) { 
+  cf.viewport_get_size = [](void* context, fan::graphics::viewport_nr_t nr) { 
     return viewport_get_size(*(fan::opengl::context_t*)context, nr); 
   };
   cf.viewport_set = [](void* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) { 
     viewport_set(*(fan::opengl::context_t*)context, viewport_position_, viewport_size_, window_size); 
   };
-  cf.viewport_set_nr = [](void* context, viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) { 
+  cf.viewport_set_nr = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) { 
     viewport_set(*(fan::opengl::context_t*)context, nr, viewport_position_, viewport_size_, window_size); 
   };
-  cf.viewport_zero = [](void* context, viewport_nr_t nr) { 
+  cf.viewport_zero = [](void* context, fan::graphics::viewport_nr_t nr) { 
     viewport_zero(*(fan::opengl::context_t*)context, nr); 
   };
-  cf.viewport_inside = [](void* context, viewport_nr_t nr, const fan::vec2& position) { 
+  cf.viewport_inside = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& position) { 
     return viewport_inside(*(fan::opengl::context_t*)context, nr, position); 
   };
-  cf.viewport_inside_wir = [](void* context, viewport_nr_t nr, const fan::vec2& position) { 
+  cf.viewport_inside_wir = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& position) { 
     return viewport_inside_wir(*(fan::opengl::context_t*)context, nr, position); 
   };
   return cf;
@@ -1571,25 +1569,25 @@ fan::graphics::context_functions_t fan::graphics::get_gl_context_functions() {
 
 uint32_t fan::opengl::core::get_draw_mode(uint8_t draw_mode) {
   switch (draw_mode) {
-  case primitive_topology_t::points:
+  case fan::graphics::primitive_topology_t::points:
     return fan::opengl::context_t::primitive_topology_t::points;
-  case primitive_topology_t::lines:
+  case fan::graphics::primitive_topology_t::lines:
     return fan::opengl::context_t::primitive_topology_t::lines;
-  case primitive_topology_t::line_strip:
+  case fan::graphics::primitive_topology_t::line_strip:
     return fan::opengl::context_t::primitive_topology_t::line_strip;
-  case primitive_topology_t::triangles:
+  case fan::graphics::primitive_topology_t::triangles:
     return fan::opengl::context_t::primitive_topology_t::triangles;
-  case primitive_topology_t::triangle_strip:
+  case fan::graphics::primitive_topology_t::triangle_strip:
     return fan::opengl::context_t::primitive_topology_t::triangle_strip;
-  case primitive_topology_t::triangle_fan:
+  case fan::graphics::primitive_topology_t::triangle_fan:
     return fan::opengl::context_t::primitive_topology_t::triangle_fan;
-  case primitive_topology_t::lines_with_adjacency:
+  case fan::graphics::primitive_topology_t::lines_with_adjacency:
     return fan::opengl::context_t::primitive_topology_t::lines_with_adjacency;
-  case primitive_topology_t::line_strip_with_adjacency:
+  case fan::graphics::primitive_topology_t::line_strip_with_adjacency:
     return fan::opengl::context_t::primitive_topology_t::line_strip_with_adjacency;
-  case primitive_topology_t::triangles_with_adjacency:
+  case fan::graphics::primitive_topology_t::triangles_with_adjacency:
     return fan::opengl::context_t::primitive_topology_t::triangles_with_adjacency;
-  case primitive_topology_t::triangle_strip_with_adjacency:
+  case fan::graphics::primitive_topology_t::triangle_strip_with_adjacency:
     return fan::opengl::context_t::primitive_topology_t::triangle_strip_with_adjacency;
   default:
     fan::throw_error("invalid draw mode");

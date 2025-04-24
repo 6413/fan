@@ -18,7 +18,9 @@
 
 #include <fan/ev/ev.h>
 
-#include <fan/graphics/file_dialog.h>
+#if defined(fan_gui)
+  #include <fan/graphics/file_dialog.h>
+#endif
 
 #include <fan/types/lazy_compiler_devs.h>
 
@@ -59,10 +61,6 @@
 #include <fan/graphics/vulkan/core.h>
 #endif
 
-#undef camera_list
-#undef shader_list
-#undef image_list
-#undef viewport_list
 
 #if defined(fan_gui)
   #include <fan/graphics/console.h>
@@ -194,6 +192,7 @@ extern "C" {
 }
 
 #endif
+
 // -cuda
 
 //#define debug_shape_t
@@ -2455,6 +2454,12 @@ public:
   fan::audio_t::piece_t piece_hover, piece_click;
 #endif
 };
+
+namespace fan {
+  namespace window {
+    fan::vec2 get_mouse_position();
+  }
+}
 
 namespace fan {
   namespace graphics {
