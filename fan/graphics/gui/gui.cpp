@@ -1,5 +1,7 @@
 #include <fan/graphics/gui/gui.h>
 
+#include <fan/types/fstring.h>
+
 #if defined(fan_gui)
 
 bool fan::graphics::gui::begin(const std::string& window_name, bool* p_open, window_flags_t window_flags) {
@@ -287,7 +289,7 @@ void fan::graphics::gui::pop_style_var() {
 template <typename T>
 fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
   loco_t::shader_t shader_nr,
-  const fan::string& var_name,
+  const std::string& var_name,
   T initial_,
   f32_t speed,
   f32_t min,
@@ -316,19 +318,19 @@ fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
     bool modify = false;
     switch(fan::get_hash(str)) {
       case fan::get_hash(std::string_view("float")): {
-        modify = ImGui::DragFloat(fan::string(std::move(var_name)).c_str(), &data[0], (f32_t)speed, (f32_t)min, (f32_t)max);
+        modify = ImGui::DragFloat(std::string(std::move(var_name)).c_str(), &data[0], (f32_t)speed, (f32_t)min, (f32_t)max);
         break;
       }
       case fan::get_hash(std::string_view("vec2")): {
-        modify = ImGui::DragFloat2(fan::string(std::move(var_name)).c_str(), ((fan::vec2*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+        modify = ImGui::DragFloat2(std::string(std::move(var_name)).c_str(), ((fan::vec2*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
         break;
       }
       case fan::get_hash(std::string_view("vec3")): {
-        modify = ImGui::DragFloat3(fan::string(std::move(var_name)).c_str(), ((fan::vec3*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+        modify = ImGui::DragFloat3(std::string(std::move(var_name)).c_str(), ((fan::vec3*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
         break;
       }
       case fan::get_hash(std::string_view("vec4")): {
-        modify = ImGui::DragFloat4(fan::string(std::move(var_name)).c_str(), ((fan::vec4*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+        modify = ImGui::DragFloat4(std::string(std::move(var_name)).c_str(), ((fan::vec4*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
         break;
       }
     }
@@ -342,7 +344,7 @@ fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
 
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
   loco_t::shader_t shader_nr,
-  const fan::string& var_name,
+  const std::string& var_name,
   fan::vec2 initial_,
   f32_t speed,
   f32_t min,
@@ -350,7 +352,7 @@ template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
 );
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
   loco_t::shader_t shader_nr,
-  const fan::string& var_name,
+  const std::string& var_name,
   double initial_,
   f32_t speed,
   f32_t min,

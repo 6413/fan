@@ -10,7 +10,7 @@
 
 namespace fan {
   namespace io {
-		static bool directory_exists(const fan::string& directory) {
+		static bool directory_exists(const std::string& directory) {
 			return std::filesystem::exists(directory.c_str());
 		}
 
@@ -19,23 +19,23 @@ namespace fan {
     }
 
 		struct iterate_sort_t {
-			fan::string path;
+			std::string path;
 			uint64_t area;
 
 			static bool comp_cb(const iterate_sort_t& a,const iterate_sort_t& b) { return a.area > b.area; }
 		};
 
-    static void handle_string_out(fan::string& str) {
+    static void handle_string_out(std::string& str) {
       return std::replace(str.begin(), str.end(), '\\', '/');
     }
-    static void handle_string_in(fan::string& str) {
+    static void handle_string_in(std::string& str) {
       std::replace(str.begin(), str.end(), '/', '\\');
     }
 
 		static void iterate_directory_by_image_size_(
 			const std::string& path,
 			std::vector<iterate_sort_t>* sorted,
-			const std::function<void(const fan::string& path)>& function
+			const std::function<void(const std::string& path)>& function
 		) {
 
 			for (const auto& entry : std::filesystem::directory_iterator(path)) {
@@ -43,7 +43,7 @@ namespace fan {
 					iterate_directory_by_image_size_(entry.path().string(), sorted, function);
 					continue;
 				}
-				fan::string str = entry.path().string().data();
+				std::string str = entry.path().string().data();
         handle_string_out(str);
 				fan::vec2ui image_size;
 				if (fan::webp::get_image_size(str, &image_size)) {
@@ -56,7 +56,7 @@ namespace fan {
 			}
 		}
 
-    static bool is_readable_path(const fan::string& path){
+    static bool is_readable_path(const std::string& path){
       try {
         std::filesystem::directory_iterator(path.c_str());
         std::filesystem::directory_entry(path.c_str());
@@ -73,7 +73,7 @@ namespace fan {
 
 		static void iterate_directory_by_image_size(
 			const std::string& path,
-			const std::function<void(const fan::string& path)>& function
+			const std::function<void(const std::string& path)>& function
 		) {
 			std::vector<iterate_sort_t> sorted;
 			iterate_directory_by_image_size_(path, &sorted, function);
@@ -83,9 +83,9 @@ namespace fan {
 			}
 		}
 
-    static fan::string exclude_path(const fan::string& full_path) {
+    static std::string exclude_path(const std::string& full_path) {
       std::size_t found = full_path.find_last_of('/');
-      if (found == fan::string::npos) {
+      if (found == std::string::npos) {
         return full_path;
       }
       return full_path.substr(found + 1);
@@ -93,7 +93,7 @@ namespace fan {
 
     static void iterate_directory(
       const std::string& path,
-      const std::function<void(const fan::string& path, bool is_directory)>& function
+      const std::function<void(const std::string& path, bool is_directory)>& function
     ) {
 
       if (!directory_exists(path.c_str())) {
@@ -102,7 +102,7 @@ namespace fan {
 
       try {
         for (const auto& entry : std::filesystem::directory_iterator(path)) {
-          fan::string str = entry.path().string();
+          std::string str = entry.path().string();
           std::replace(str.begin(), str.end(), '\\', '/');
           function(str, entry.is_directory());
         }
@@ -187,7 +187,7 @@ namespace fan {
 
 		static void iterate_directory_files(
 			const std::string& path,
-			const std::function<void(const fan::string& path)>& function
+			const std::function<void(const std::string& path)>& function
 		) {
 
 			if (!fan::io::directory_exists(path.c_str())) {
@@ -199,7 +199,7 @@ namespace fan {
           iterate_directory_files(entry.path().string(), function);
 					continue;
 				}
-				fan::string str = entry.path().string().data();
+				std::string str = entry.path().string().data();
 				std::replace(str.begin(), str.end(), '\\', '/');
 				function(str);
 			}

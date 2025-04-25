@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(fan)
 
-set(FAN_PHYSICS OFF)
-set(FAN_GUI OFF)
-set(FAN_JSON OFF)
-set(FAN_3D OFF)
+set(FAN_PHYSICS ON)
+set(FAN_GUI ON)
+set(FAN_JSON ON)
+set(FAN_3D ON)
 set(FAN_OPENGL ON)
 set(FAN_VULKAN OFF)
-set(FAN_FMT OFF)
+set(FAN_FMT ON)
 
 set(BUILD_MAIN ON)
 
@@ -119,6 +119,7 @@ if(FAN_GUI)
 		${ROOT_PATH}/imgui/implot_items.cpp
 		${ROOT_PATH}/imgui/implot.cpp
 		${ROOT_PATH}/imgui/text_editor.cpp
+		${ROOT_PATH}/graphics/gui/gui.cpp
 	)
 	if (FAN_VULKAN)
 		list(APPEND IMGUI_SOURCES ${ROOT_PATH}/imgui/imgui_impl_vulkan.cpp)
@@ -170,11 +171,9 @@ set(FAN_PHYSICS_SOURCES "")
 set(FAN_VULKAN_SOURCES "")
 
 set(FAN_GRAPHICS_SOURCES 
-	${ROOT_PATH}/graphics/algorithm/AStar.cpp
 	${ROOT_PATH}/graphics/camera.cpp
 	${ROOT_PATH}/graphics/console_impl.cpp
 	${ROOT_PATH}/graphics/graphics.cpp
-	${ROOT_PATH}/graphics/gui/gui.cpp
 	${ROOT_PATH}/graphics/loco.cpp
 	${ROOT_PATH}/graphics/opengl/gl_core.cpp
 	${ROOT_PATH}/graphics/opengl/uniform_block.cpp	

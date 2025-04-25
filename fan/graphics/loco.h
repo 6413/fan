@@ -335,8 +335,8 @@ struct loco_t {
   void image_set_settings(fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings);
   fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info);
   fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p);
-  fan::graphics::image_nr_t image_load(const fan::string& path);
-  fan::graphics::image_nr_t image_load(const fan::string& path, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_nr_t image_load(const std::string& path);
+  fan::graphics::image_nr_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p);
   fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size);
   fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
   void image_unload(fan::graphics::image_nr_t nr);
@@ -377,8 +377,8 @@ struct loco_t {
   fan::graphics::context_t context;
 
 
-  static fan::string read_shader(const fan::string& path) {
-    fan::string code;
+  static std::string read_shader(const std::string& path) {
+    std::string code;
     fan::io::file::read(path, &code);
     return code;
   }
@@ -1449,7 +1449,7 @@ public:
       fan::vec2 tc_size;
       fan::vec3 angle = 0;
 
-      fan::string text;
+      std::string text;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
@@ -2042,11 +2042,11 @@ public:
 
   inline void shape_open(
     uint16_t shape_type, 
-    std::size_t sizeof_vi, 
+    std::size_t sizeof_vi,
     std::size_t sizeof_ri, 
     const shape_shader_locations_t& shape_shader_locations, 
-    const fan::string& vertex, 
-    const fan::string& fragment, 
+    const std::string& vertex, 
+    const std::string& fragment, 
     loco_t::shaper_t::ShapeRenderDataSize_t instance_count = 1, 
     bool instanced = true
   ) {    
@@ -2161,7 +2161,7 @@ public:
 
 
 #if defined(loco_sprite)
-  loco_t::shader_t get_sprite_vertex_shader(const fan::string& fragment);
+  loco_t::shader_t get_sprite_vertex_shader(const std::string& fragment);
 #endif
 
 
@@ -2432,7 +2432,7 @@ namespace fan {
 inline bool init_fan_track_opengl_print = []() {
   fan_opengl_track_print = [](std::string func_name, uint64_t elapsed){
     fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":");
-    fan::printclh(fan::graphics::highlight_e::warning,  fan::to_string(elapsed / 1e+6) + "ms");
+    fan::printclh(fan::graphics::highlight_e::warning, std::to_string(elapsed / 1e+6f)/*fan::to_string(elapsed / 1e+6)*/ + "ms");
   };
   return 1;
 }();

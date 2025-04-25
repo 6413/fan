@@ -588,7 +588,7 @@ namespace fan {
           template <typename T>
           imgui_fs_var_t(
             loco_t::shader_t shader_nr,
-            const fan::string& var_name,
+            const std::string& var_name,
             T initial_ = 0,
             f32_t speed = 1,
             f32_t min = -100000,

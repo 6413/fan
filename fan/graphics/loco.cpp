@@ -23,6 +23,9 @@
 #define loco_framebuffer
 #define loco_post_process
 #define loco_audio
+
+#include <fan/types/fstring.h>
+
 //
 //#define depth_debug
 //
@@ -177,11 +180,11 @@ fan::graphics::image_nr_t loco_t::image_load(const fan::image::image_info_t& ima
   return context_functions.image_load_info_props(&context, image_info, p);
 }
 
-fan::graphics::image_nr_t loco_t::image_load(const fan::string& path) {
+fan::graphics::image_nr_t loco_t::image_load(const std::string& path) {
   return context_functions.image_load_path(&context, path);
 }
 
-fan::graphics::image_nr_t loco_t::image_load(const fan::string& path, const fan::graphics::image_load_properties_t& p) {
+fan::graphics::image_nr_t loco_t::image_load(const std::string& path, const fan::graphics::image_load_properties_t& p) {
   return context_functions.image_load_path_props(&context, path, p);
 }
 
@@ -725,7 +728,7 @@ void loco_t::load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t
     fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), (int)(font_size * (1 << i)) * 1.5);
 
     if (fonts[i] == nullptr) {
-      fan::throw_error(fan::string("failed to load font:") + name);
+      fan::throw_error(std::string("failed to load font:") + name);
     }
   }
   io.Fonts->Build();
@@ -2821,7 +2824,7 @@ std::vector<uint8_t> loco_t::create_noise_image_data(const fan::vec2& image_size
 }
 
 
-loco_t::shader_t loco_t::get_sprite_vertex_shader(const fan::string& fragment) {
+loco_t::shader_t loco_t::get_sprite_vertex_shader(const std::string& fragment) {
   loco_t::shader_t shader = shader_create();
   shader_set_vertex(
     shader,
@@ -3230,6 +3233,53 @@ bool fan::graphics::gui::render_blank_window(const std::string& name) {
   );
 }
 #endif
+
+void loco_t::texturepack_t::open_compiled(const std::string& filename, fan::graphics::image_load_properties_t lp) {
+  texture_list.clear();
+  pixel_data_list.clear();
+
+  file_path = filename;
+
+  std::string in;
+  fan::io::file::read(filename, &in);
+
+  std::size_t offset = 0;
+  std::size_t pack_list_size = fan::string_read_data<std::size_t>(in, offset);
+
+
+  pixel_data_list.resize(pack_list_size);
+  texture_list.resize(pack_list_size);
+  for (std::size_t i = 0; i < pack_list_size; i++) {
+    std::size_t texture_list_size = fan::string_read_data<std::size_t>(in, offset);
+    texture_list[i].resize(texture_list_size);
+    for (std::size_t k = 0; k < texture_list_size; k++) {
+      texturepack_t::texture_t texture;
+      texture.image_name = fan::string_read_data<std::string>(in, offset);
+      texture.position = fan::string_read_data<fan::vec2ui>(in, offset);
+      texture.size = fan::string_read_data<fan::vec2ui>(in, offset);
+      texture_list[i][k] = texture;
+    }
+
+    std::vector<uint8_t> pixel_data = fan::string_read_data<std::vector<uint8_t>>(in, offset);
+    fan::image::image_info_t image_info;
+    image_info.data = WebPDecodeRGBA(
+      pixel_data.data(),
+      pixel_data.size(),
+      &image_info.size.x,
+      &image_info.size.y
+    );
+    image_info.channels = 4;
+    pixel_data_list[i].image =  gloco->image_load(image_info, lp);
+    WebPFree(image_info.data);
+
+    //pixel_data_list[i].visual_output = 
+    fan::string_read_data<uint32_t>(in, offset);
+    //pixel_data_list[i].min_filter = 
+    fan::string_read_data<uint32_t>(in, offset);
+    //pixel_data_list[i].mag_filter = 
+    fan::string_read_data<uint32_t>(in, offset);
+  }
+}
 
 #if defined(fan_json)
 bool fan::graphics::shape_to_json(loco_t::shape_t& shape, fan::json* json) {

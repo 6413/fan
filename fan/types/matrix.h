@@ -579,7 +579,7 @@ namespace fan {
 
         type_t diag_element = result[i][i];
         if (diag_element == 0) {
-          fan::throw_error("singular matrix");
+          fan::throw_error_impl(); // singular matrix
         }
 
         for (int j = 0; j < 4; ++j) {

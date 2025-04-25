@@ -11,9 +11,9 @@ int main() {
     rects[i] = { {
     .position = fan::vec3(fan::vec2(i, i), 1),
     .size = 100,
-    .color = fan::colors::blue,
-  } };////////
-  }//////
+    .color = fan::colors::blue,//////&&////
+  } };//////////////
+  }////////
   fan_window_loop{
 
   };

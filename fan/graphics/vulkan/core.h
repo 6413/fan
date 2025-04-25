@@ -199,9 +199,9 @@ namespace fan {
         VkPipelineShaderStageCreateInfo shader_stages[2]{};
       };
 
-      static std::vector<uint32_t> compile_file(const fan::string& source_name,
+      static std::vector<uint32_t> compile_file(const std::string& source_name,
         shaderc_shader_kind kind,
-        const fan::string& source);
+        const std::string& source);
 
       //-----------------------------shader-----------------------------
 
@@ -443,7 +443,7 @@ namespace fan {
 
       queue_family_indices_t find_queue_families(VkPhysicalDevice device);
 
-      std::vector<fan::string> get_required_extensions();
+      std::vector<std::string> get_required_extensions();
 
       bool check_validation_layer_support();
 

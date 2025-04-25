@@ -217,11 +217,21 @@ constexpr vec_t rotate(value_type_t angle) const {
 }
 
 
+//std::string to_string(int precision = 4) const {
+//  std::string out("{");
+//  for (access_type_t i = 0; i < size() - 1; ++i) { out += fan::to_string((*this)[i], precision) + ", "; }
+//  if constexpr (size()) {
+//    out += fan::to_string((*this)[size() - 1], precision);
+//  }
+//  out += '}';
+//  return out;
+//}
+
 std::string to_string(int precision = 4) const {
   std::string out("{");
-  for (access_type_t i = 0; i < size() - 1; ++i) { out += fan::to_string((*this)[i], precision) + ", "; }
+  for (access_type_t i = 0; i < size() - 1; ++i) { out += std::to_string((*this)[i]) + ", "; }
   if constexpr (size()) {
-    out += fan::to_string((*this)[size() - 1], precision);
+    out += std::to_string((*this)[size() - 1]);
   }
   out += '}';
   return out;

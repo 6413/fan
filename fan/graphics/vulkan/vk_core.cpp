@@ -55,9 +55,9 @@ VkPipelineColorBlendAttachmentState fan::vulkan::get_default_color_blend() {
 
 
 std::vector<uint32_t> fan::vulkan::context_t::compile_file(
-  const fan::string& source_name,
+  const std::string& source_name,
   shaderc_shader_kind kind,
-  const fan::string& source) {
+  const std::string& source) {
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
 
@@ -146,36 +146,36 @@ void shader_set_fragment(fan::vulkan::context_t& context, shader_nr_t nr, const 
   //);
 }
 
-static void parse_uniforms(fan::string& shaderData, std::unordered_map<std::string, std::string>& uniform_type_table) {
+static void parse_uniforms(std::string& shaderData, std::unordered_map<std::string, std::string>& uniform_type_table) {
   size_t pos = 0;
 
-  while ((pos = shaderData.find("uniform", pos)) != fan::string::npos) {
+  while ((pos = shaderData.find("uniform", pos)) != std::string::npos) {
     size_t endLine = shaderData.find(';', pos);
-    if (endLine == fan::string::npos) break;
+    if (endLine == std::string::npos) break;
 
-    fan::string line = shaderData.substr(pos, endLine - pos + 1);
+    std::string line = shaderData.substr(pos, endLine - pos + 1);
 
     line = line.substr(7); 
     
     size_t start = line.find_first_not_of(" \t");
-    if (start == fan::string::npos) {
+    if (start == std::string::npos) {
       pos = endLine + 1;
       continue;
     }
     line = line.substr(start);
 
     size_t space1 = line.find_first_of(" \t");
-    if (space1 == fan::string::npos) {
+    if (space1 == std::string::npos) {
       pos = endLine + 1;
       continue;
     }
 
-    fan::string type = line.substr(0, space1);
+    std::string type = line.substr(0, space1);
     line = line.substr(space1);
     line = line.substr(line.find_first_not_of(" \t"));
 
     size_t varEnd = line.find_first_of("=;");
-    fan::string name = line.substr(0, varEnd);
+    std::string name = line.substr(0, varEnd);
     
     name.erase(0, name.find_first_not_of(" \t"));
     name.erase(name.find_last_not_of(" \t") + 1);
@@ -215,10 +215,10 @@ bool shader_compile(fan::vulkan::context_t& context, shader_nr_t nr) {
     shader.shader_stages[1] = frag;
   }
 
-  fan::string vertexData = __fan_internal_shader_list[nr].svertex;
+  std::string vertexData = __fan_internal_shader_list[nr].svertex;
   parse_uniforms(vertexData, __fan_internal_shader_list[nr].uniform_type_table);
 
-  fan::string fragmentData = __fan_internal_shader_list[nr].sfragment;
+  std::string fragmentData = __fan_internal_shader_list[nr].sfragment;
   parse_uniforms(fragmentData, __fan_internal_shader_list[nr].uniform_type_table);
 
   return 0;
@@ -540,7 +540,7 @@ fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const std:
 
 #if fan_assert_if_same_path_loaded_multiple_times
 
-  static std::unordered_map<fan::string, bool> existing_images;
+  static std::unordered_map<std::string, bool> existing_images;
 
   if (existing_images.find(path) != existing_images.end()) {
     fan::throw_error("image already existing " + path);
@@ -2117,7 +2117,7 @@ queue_family_indices_t fan::vulkan::context_t::find_queue_families(VkPhysicalDev
   return indices;
 }
 
-std::vector<fan::string> fan::vulkan::context_t::get_required_extensions() {
+std::vector<std::string> fan::vulkan::context_t::get_required_extensions() {
 
   uint32_t extensions_count = 0;
   vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr);
@@ -2135,7 +2135,7 @@ std::vector<fan::string> fan::vulkan::context_t::get_required_extensions() {
     throw std::runtime_error("Could not enumerate Instance extensions.");
   }
 
-  std::vector<fan::string> extension_str(available_extensions.size());
+  std::vector<std::string> extension_str(available_extensions.size());
 
   for (int i = 0; i < available_extensions.size(); i++) {
     extension_str[i] = available_extensions[i].extensionName;
@@ -2181,7 +2181,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL fan::vulkan::context_t::debug_callback(
   const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
   void* pUserData
 ) {
-  if (pCallbackData->pMessageIdName && fan::string(pCallbackData->pMessageIdName) == "Loader Message") {
+  if (pCallbackData->pMessageIdName && std::string(pCallbackData->pMessageIdName) == "Loader Message") {
     return VK_FALSE;
   }
   fan::print("validation layer:", pCallbackData->pMessage);

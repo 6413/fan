@@ -4,7 +4,7 @@ namespace fan {
   namespace graphics {
     struct ti_t {
 
-      bool qti(auto* texture_pack, const fan::string& name) {
+      bool qti(auto* texture_pack, const std::string& name) {
         return texture_pack->qti(name, this);
       }
       bool qti(auto* texture_pack, uint64_t hash) {
@@ -26,7 +26,7 @@ namespace fan {
       struct texture_t {
         fan::vec2ui size;
         std::vector<uint8_t> decoded_data;
-        fan::string image_name;
+        std::string image_name;
         uint32_t visual_output;
         uint32_t min_filter;
         uint32_t mag_filter;
@@ -60,7 +60,7 @@ namespace fan {
         fan::vec2 uv_pos = 0;
         fan::vec2 uv_size = 1;
 
-        fan::string image_name;
+        std::string image_name;
         uint32_t visual_output = -1;
         uint32_t min_filter = -1;
         uint32_t mag_filter = -1;
@@ -105,7 +105,7 @@ namespace fan {
         return push_pack(p);
       }
 
-      bool push_texture(const fan::string& image_path, const texture_properties_t& texture_properties) {
+      bool push_texture(const std::string& image_path, const texture_properties_t& texture_properties) {
 
         if (texture_properties.image_name.empty()) {
           fan::print_warning("texture properties name empty");
@@ -328,7 +328,7 @@ namespace fan {
         fan::io::file::properties_t fp;
         fp.mode = "w+b";
         if (fan::io::file::open(&f, filename, fp)) {
-          fan::throw_error(fan::string("failed to open file:") + filename);
+          fan::throw_error(std::string("failed to open file:") + filename);
         }
 
         fan::write_to_file(f, pack_list.size());
@@ -368,7 +368,7 @@ namespace fan {
         return image_info;
       }
 
-      bool qti(const fan::string& name, ti_t* ti) {
+      bool qti(const std::string& name, ti_t* ti) {
         //std::find_if(texture_list[0].begin(), texture_list[texture_list.size()].end(),
         //  [](const texture_t& a, const texture_t& b) {
         //  return a.hash == b.hash;
@@ -406,7 +406,7 @@ namespace fan {
         struct texture_t {
           fan::vec2ui position;
           fan::vec2ui size;
-          fan::string image_name;
+          std::string image_name;
         };
         std::vector<texture_t> texture_list;
         uint32_t visual_output;
