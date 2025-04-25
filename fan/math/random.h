@@ -2,7 +2,6 @@
 
 #include <fan/types/vector.h>
 #include <fan/types/color.h>
-#include <fan/types/fstring.h>
 #include <random>
 
 namespace fan {
@@ -72,9 +71,9 @@ namespace fan {
       return value_f32(min, max);
     }
 
-    static fan::string string(uint32_t len) {
-      fan::string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-      fan::string newstr;
+    static std::string string(uint32_t len) {
+      std::string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+      std::string newstr;
       std::size_t pos;
       newstr.reserve(len);
       while (newstr.size() != len) {

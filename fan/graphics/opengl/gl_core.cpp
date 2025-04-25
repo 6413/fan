@@ -6,6 +6,8 @@
 
 #include <fan/window/window.h>
 
+#include <fan/types/fstring.h>
+
 //-----------------------------context-----------------------------
 //-----------------------------context-----------------------------
 //-----------------------------context-----------------------------
@@ -318,7 +320,7 @@ void shader_erase(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr
   __fan_internal_shader_list.Recycle(nr);
 }
 
-bool shader_check_compile_errors(GLuint shader, const fan::string& type)
+bool shader_check_compile_errors(GLuint shader, const std::string& type)
 {
   GLint success;
 
@@ -343,7 +345,7 @@ bool shader_check_compile_errors(GLuint shader, const fan::string& type)
     return false;
   }
 
-  fan::string buffer;
+  std::string buffer;
   buffer.resize(buffer_size);
 
   if (!success)
@@ -364,7 +366,7 @@ bool shader_check_compile_errors(GLuint shader, const fan::string& type)
   return true;
 }
 
-bool shader_check_compile_errors(fan::graphics::shader_data_t& common_shader, const fan::string& type)
+bool shader_check_compile_errors(fan::graphics::shader_data_t& common_shader, const std::string& type)
 {
   fan::opengl::context_t::shader_t& shader = *(fan::opengl::context_t::shader_t*)common_shader.internal;
   GLint success;
@@ -391,7 +393,7 @@ bool shader_check_compile_errors(fan::graphics::shader_data_t& common_shader, co
     return false;
   }
 
-  fan::string buffer;
+  std::string buffer;
   buffer.resize(buffer_size);
 
   if (!success)
@@ -422,7 +424,7 @@ void shader_use(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr) 
 }
 
 template<typename T>
-void fan::opengl::context_t::shader_set_value(fan::graphics::shader_nr_t nr, const fan::string& name, const T& val) {
+void fan::opengl::context_t::shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
   static_assert(!std::is_same_v<T, uint8_t>, "only 4 byte supported");
   static_assert(!std::is_same_v<T, uint16_t>, "only 4 byte supported");
   static_assert(std::is_same_v<T, bool> == false || !std::is_same_v<T, int>, "only 4 byte supported");
@@ -510,21 +512,21 @@ void fan::opengl::context_t::shader_set_value(fan::graphics::shader_nr_t nr, con
   }
 }
 
-template void fan::opengl::context_t::shader_set_value<fan::vec2>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec2& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec3>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec3& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec4>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec4& val);
-template void fan::opengl::context_t::shader_set_value<fan::mat4>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::mat4& val);
-template void fan::opengl::context_t::shader_set_value<fan::color>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::color& val);
-template void fan::opengl::context_t::shader_set_value<uint32_t>(fan::graphics::shader_nr_t nr, const fan::string& name, const uint32_t& val);
-template void fan::opengl::context_t::shader_set_value<uint64_t>(fan::graphics::shader_nr_t nr, const fan::string& name, const uint64_t& val);
-template void fan::opengl::context_t::shader_set_value<int>(fan::graphics::shader_nr_t nr, const fan::string& name, const int& val);
-template void fan::opengl::context_t::shader_set_value<f32_t>(fan::graphics::shader_nr_t nr, const fan::string& name, const f32_t& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec1_wrap_t<f32_t>>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec1_wrap_t<f32_t>& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<1, f32_t>>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec_wrap_t<1, f32_t>& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<2, f32_t>>(fan::graphics::shader_nr_t nr, const fan::string& name, const fan::vec_wrap_t<2, f32_t>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec2>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec2& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec3>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec3& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec4>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec4& val);
+template void fan::opengl::context_t::shader_set_value<fan::mat4>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::mat4& val);
+template void fan::opengl::context_t::shader_set_value<fan::color>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::color& val);
+template void fan::opengl::context_t::shader_set_value<uint32_t>(fan::graphics::shader_nr_t nr, const std::string& name, const uint32_t& val);
+template void fan::opengl::context_t::shader_set_value<uint64_t>(fan::graphics::shader_nr_t nr, const std::string& name, const uint64_t& val);
+template void fan::opengl::context_t::shader_set_value<int>(fan::graphics::shader_nr_t nr, const std::string& name, const int& val);
+template void fan::opengl::context_t::shader_set_value<f32_t>(fan::graphics::shader_nr_t nr, const std::string& name, const f32_t& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec1_wrap_t<f32_t>>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec1_wrap_t<f32_t>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<1, f32_t>>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec_wrap_t<1, f32_t>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<2, f32_t>>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec_wrap_t<2, f32_t>& val);
 
 
-void shader_set_vertex(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr, const fan::string& vertex_code) {
+void shader_set_vertex(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
   auto& shader = shader_get(context, nr);
 
   if (shader.vertex != (uint32_t)fan::uninitialized) {
@@ -543,7 +545,7 @@ void shader_set_vertex(fan::opengl::context_t& context, fan::graphics::shader_nr
   shader_check_compile_errors(__fan_internal_shader_list[nr], "VERTEX");
 }
 
-void shader_set_fragment(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr, const fan::string& fragment_code) {
+void shader_set_fragment(fan::opengl::context_t& context, fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
   auto& shader = shader_get(context, nr);
 
   if (shader.fragment != (uint32_t)-1) {
@@ -562,36 +564,36 @@ void shader_set_fragment(fan::opengl::context_t& context, fan::graphics::shader_
   shader_check_compile_errors(__fan_internal_shader_list[nr], "FRAGMENT");
 }
 
-static void parse_uniforms(fan::string& shaderData, std::unordered_map<std::string, std::string>& uniform_type_table) {
+static void parse_uniforms(std::string& shaderData, std::unordered_map<std::string, std::string>& uniform_type_table) {
   size_t pos = 0;
 
-  while ((pos = shaderData.find("uniform", pos)) != fan::string::npos) {
+  while ((pos = shaderData.find("uniform", pos)) != std::string::npos) {
     size_t endLine = shaderData.find(';', pos);
-    if (endLine == fan::string::npos) break;
+    if (endLine == std::string::npos) break;
 
-    fan::string line = shaderData.substr(pos, endLine - pos + 1);
+    std::string line = shaderData.substr(pos, endLine - pos + 1);
 
     line = line.substr(7); 
     
     size_t start = line.find_first_not_of(" \t");
-    if (start == fan::string::npos) {
+    if (start == std::string::npos) {
       pos = endLine + 1;
       continue;
     }
     line = line.substr(start);
 
     size_t space1 = line.find_first_of(" \t");
-    if (space1 == fan::string::npos) {
+    if (space1 == std::string::npos) {
       pos = endLine + 1;
       continue;
     }
 
-    fan::string type = line.substr(0, space1);
+    std::string type = line.substr(0, space1);
     line = line.substr(space1);
     line = line.substr(line.find_first_not_of(" \t"));
 
     size_t varEnd = line.find_first_of("=;");
-    fan::string name = line.substr(0, varEnd);
+    std::string name = line.substr(0, varEnd);
     
     name.erase(0, name.find_first_not_of(" \t"));
     name.erase(name.find_last_not_of(" \t") + 1);
@@ -639,10 +641,10 @@ bool shader_compile(fan::opengl::context_t& context, fan::graphics::shader_nr_t 
   shader.projection_view[0] = fan_opengl_call(glGetUniformLocation(shader.id, "projection"));
   shader.projection_view[1] = fan_opengl_call(glGetUniformLocation(shader.id, "view"));
 
-  fan::string vertexData = __fan_internal_shader_list[nr].svertex;
+  std::string vertexData = __fan_internal_shader_list[nr].svertex;
   parse_uniforms(vertexData, __fan_internal_shader_list[nr].uniform_type_table);
 
-  fan::string fragmentData = __fan_internal_shader_list[nr].sfragment;
+  std::string fragmentData = __fan_internal_shader_list[nr].sfragment;
   parse_uniforms(fragmentData, __fan_internal_shader_list[nr].uniform_type_table);
 
   return ret;
@@ -878,7 +880,7 @@ fan::graphics::image_nr_t image_load(fan::opengl::context_t& context, const std:
 
 #if fan_assert_if_same_path_loaded_multiple_times
 
-  static std::unordered_map<fan::string, bool> existing_images;
+  static std::unordered_map<std::string, bool> existing_images;
 
   if (existing_images.find(path) != existing_images.end()) {
     fan::throw_error("image already existing " + path);

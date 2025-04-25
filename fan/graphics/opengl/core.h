@@ -86,7 +86,7 @@ namespace fan {
         };
 
       template <typename T>
-      void shader_set_value(fan::graphics::shader_nr_t nr, const fan::string& name, const T& val);
+      void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val);
       void shader_set_camera(fan::graphics::shader_nr_t nr, fan::graphics::camera_nr_t camera_nr);
 
      //-----------------------------shader-----------------------------
