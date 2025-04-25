@@ -459,8 +459,7 @@ struct loco_t {
       invalid = -1,
       // render order
       // make sure shape.open() has same order - TODO remove shape.open - use shape_functions[i].open
-      button,
-      sprite = 1,
+      sprite,
       text,
       hitbox,
       line,
@@ -525,133 +524,6 @@ struct loco_t {
   struct shape_t;
 
   #include <fan/graphics/opengl/texture_pack.h>
-
-  using push_back_cb = shape_t (*)(void*);
-  using set_position2_cb = void (*)(shape_t*, const fan::vec2&);
-  // depth
-  using set_position3_cb = void (*)(shape_t*, const fan::vec3&);
-  using set_size_cb = void (*)(shape_t*, const fan::vec2&);
-  using set_size3_cb = void (*)(shape_t*, const fan::vec3&);
-
-  using get_position_cb = fan::vec3 (*)(shape_t*);
-  using get_size_cb = fan::vec2 (*)(shape_t*);
-  using get_size3_cb = fan::vec3 (*)(shape_t*);
-
-  using set_rotation_point_cb = void (*)(shape_t*, const fan::vec2&);
-  using get_rotation_point_cb = fan::vec2 (*)(shape_t*);
-
-  using set_color_cb = void (*)(shape_t*, const fan::color&);
-  using get_color_cb = fan::color (*)(shape_t*);
-
-  using set_angle_cb = void (*)(shape_t*, const fan::vec3&);
-  using get_angle_cb = fan::vec3 (*)(shape_t*);
-
-  using get_tc_position_cb = fan::vec2 (*)(shape_t*);
-  using set_tc_position_cb = void (*)(shape_t*, const fan::vec2&);
-
-  using get_tc_size_cb = fan::vec2 (*)(shape_t*);
-  using set_tc_size_cb = void (*)(shape_t*, const fan::vec2&);
-
-  using load_tp_cb = bool(*)(shape_t*, loco_t::texturepack_t::ti_t*);
-
-  using get_grid_size_cb = fan::vec2 (*)(shape_t*);
-  using set_grid_size_cb = void (*)(shape_t*, const fan::vec2&);
-
-  using get_camera_cb = loco_t::camera_t (*)(shape_t*);
-  using set_camera_cb = void (*)(shape_t*, loco_t::camera_t);
-
-  using get_viewport_cb = loco_t::viewport_t (*)(shape_t*);
-  using set_viewport_cb = void (*)(shape_t*, loco_t::viewport_t);
-
-
-  using get_image_cb = loco_t::image_t(*)(shape_t*);
-  using set_image_cb = void (*)(shape_t*, loco_t::image_t);
-
-  using get_image_data_cb = fan::graphics::image_data_t&(*)(shape_t*);
-
-  using get_parallax_factor_cb = f32_t (*)(shape_t*);
-  using set_parallax_factor_cb = void (*)(shape_t*, f32_t);
-  using get_rotation_vector_cb = fan::vec3 (*)(shape_t*);
-  using get_flags_cb = uint32_t (*)(shape_t*);
-  using set_flags_cb = void(*)(shape_t*, uint32_t);
-  //
-  using get_radius_cb = f32_t (*)(shape_t*);
-  using get_src_cb = fan::vec3 (*)(shape_t*);
-  using get_dst_cb = fan::vec3 (*)(shape_t*);
-  using get_outline_size_cb = f32_t (*)(shape_t*);
-  using get_outline_color_cb = fan::color (*)(shape_t*);
-
-  using reload_cb = void (*)(shape_t*, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter); 
-
-  using draw_cb = void (*)(uint8_t draw_range);
-
-  using set_line_cb = void (*)(shape_t*, const fan::vec2&, const fan::vec2&);
-  using set_line3_cb = void (*)(shape_t*, const fan::vec3&, const fan::vec3&);
-
-  struct functions_t {
-    push_back_cb push_back;
-
-    get_position_cb get_position;
-    set_position2_cb set_position2;
-    set_position3_cb set_position3;
-
-    get_size_cb get_size;
-    get_size3_cb get_size3;
-    set_size_cb set_size;
-    set_size3_cb set_size3;
-
-    get_rotation_point_cb get_rotation_point;
-    set_rotation_point_cb set_rotation_point;
-
-    get_color_cb get_color;
-    set_color_cb set_color;
-
-    get_angle_cb get_angle;
-    set_angle_cb set_angle;
-
-    get_tc_position_cb get_tc_position;
-    set_tc_position_cb set_tc_position;
-
-    get_tc_size_cb get_tc_size;
-    set_tc_size_cb set_tc_size;
-
-    load_tp_cb load_tp;
-
-    get_grid_size_cb get_grid_size;
-    set_grid_size_cb set_grid_size;
-
-    get_camera_cb get_camera;
-    set_camera_cb set_camera;
-
-    get_viewport_cb get_viewport;
-    set_viewport_cb set_viewport;
-
-    get_image_cb get_image;
-    set_image_cb set_image;
-
-    get_image_data_cb get_image_data;
-
-    get_parallax_factor_cb get_parallax_factor;
-    set_parallax_factor_cb set_parallax_factor;
-    get_rotation_vector_cb get_rotation_vector;
-
-
-    get_flags_cb get_flags;
-    set_flags_cb set_flags;
-
-    get_radius_cb get_radius;
-    get_src_cb get_src;
-    get_dst_cb get_dst;
-    get_outline_size_cb get_outline_size;
-    get_outline_color_cb get_outline_color;
-
-    reload_cb reload;
-
-    draw_cb draw;
-
-    set_line_cb set_line;
-    set_line3_cb set_line3;
-  };
 
   #pragma pack(push, 1)
 
@@ -755,8 +627,6 @@ struct loco_t {
 #endif
   }
 
-  template <typename T>
-  static functions_t get_functions();
 
 #pragma pack(push, 1)
 
@@ -817,12 +687,6 @@ struct loco_t {
 #undef st
 #pragma pack(pop)
 
-  struct shape_info_t {
-    functions_t functions;
-  };
-
-private:
-  std::vector<shape_info_t> shape_info_list;
 public:
 
   std::vector<fan::function_t<void()>> m_pre_draw;
@@ -988,6 +852,92 @@ public:
 
   f64_t delta_time = window.m_delta_time;
 
+  typedef loco_t::shape_t(*push_back_cb)(void*);
+  typedef fan::vec3(*get_position_cb)(loco_t::shape_t* shape);
+  typedef void (*set_position2_cb)(loco_t::shape_t* shape, const fan::vec2& position);
+  typedef void (*set_position3_cb)(loco_t::shape_t* shape, const fan::vec3& position);
+  typedef fan::vec2(*get_size_cb)(loco_t::shape_t* shape);
+  typedef fan::vec3(*get_size3_cb)(loco_t::shape_t* shape);
+  typedef void (*set_size_cb)(loco_t::shape_t* shape, const fan::vec2& size);
+  typedef void (*set_size3_cb)(loco_t::shape_t* shape, const fan::vec3& size);
+  typedef fan::vec2(*get_rotation_point_cb)(loco_t::shape_t* shape);
+  typedef void (*set_rotation_point_cb)(loco_t::shape_t* shape, const fan::vec2& point);
+  typedef fan::color(*get_color_cb)(loco_t::shape_t* shape);
+  typedef void (*set_color_cb)(loco_t::shape_t* shape, const fan::color& color);
+  typedef fan::vec3(*get_angle_cb)(loco_t::shape_t* shape);
+  typedef void (*set_angle_cb)(loco_t::shape_t* shape, const fan::vec3& angle);
+  typedef fan::vec2(*get_tc_position_cb)(loco_t::shape_t* shape);
+  typedef void (*set_tc_position_cb)(loco_t::shape_t* shape, const fan::vec2& position);
+  typedef fan::vec2(*get_tc_size_cb)(loco_t::shape_t* shape);
+  typedef void (*set_tc_size_cb)(loco_t::shape_t* shape, const fan::vec2& size);
+  typedef bool (*load_tp_cb)(loco_t::shape_t* shape, loco_t::texturepack_t::ti_t* tp);
+  typedef fan::vec2(*get_grid_size_cb)(loco_t::shape_t* shape);
+  typedef void (*set_grid_size_cb)(loco_t::shape_t* shape, const fan::vec2& size);
+  typedef loco_t::camera_t(*get_camera_cb)(loco_t::shape_t* shape);
+  typedef void (*set_camera_cb)(loco_t::shape_t* shape, loco_t::camera_t camera);
+  typedef loco_t::viewport_t(*get_viewport_cb)(loco_t::shape_t* shape);
+  typedef void (*set_viewport_cb)(loco_t::shape_t* shape, loco_t::viewport_t viewport);
+  typedef loco_t::image_t(*get_image_cb)(loco_t::shape_t* shape);
+  typedef void (*set_image_cb)(loco_t::shape_t* shape, loco_t::image_t image);
+  typedef fan::graphics::image_data_t& (*get_image_data_cb)(loco_t::shape_t*);
+  typedef f32_t(*get_parallax_factor_cb)(loco_t::shape_t* shape);
+  typedef void (*set_parallax_factor_cb)(loco_t::shape_t* shape, f32_t factor);
+  typedef uint32_t(*get_flags_cb)(loco_t::shape_t* shape);
+  typedef void (*set_flags_cb)(loco_t::shape_t* shape, uint32_t flags);
+  typedef f32_t(*get_radius_cb)(loco_t::shape_t* shape);
+  typedef fan::vec3(*get_src_cb)(loco_t::shape_t* shape);
+  typedef fan::vec3(*get_dst_cb)(loco_t::shape_t* shape);
+  typedef f32_t(*get_outline_size_cb)(loco_t::shape_t* shape);
+  typedef fan::color(*get_outline_color_cb)(loco_t::shape_t* shape);
+  typedef void (*reload_cb)(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter);
+  typedef void (*draw_cb)(uint8_t draw_range);
+  typedef void (*set_line_cb)(loco_t::shape_t* shape, const fan::vec2& src, const fan::vec2& dst);
+  typedef void (*set_line3_cb)(loco_t::shape_t* shape, const fan::vec3& src, const fan::vec3& dst);
+
+  struct functions_t {
+    push_back_cb push_back;
+    get_position_cb get_position;
+    set_position2_cb set_position2;
+    set_position3_cb set_position3;
+    get_size_cb get_size;
+    get_size3_cb get_size3;
+    set_size_cb set_size;
+    set_size3_cb set_size3;
+    get_rotation_point_cb get_rotation_point;
+    set_rotation_point_cb set_rotation_point;
+    get_color_cb get_color;
+    set_color_cb set_color;
+    get_angle_cb get_angle;
+    set_angle_cb set_angle;
+    get_tc_position_cb get_tc_position;
+    set_tc_position_cb set_tc_position;
+    get_tc_size_cb get_tc_size;
+    set_tc_size_cb set_tc_size;
+    load_tp_cb load_tp;
+    get_grid_size_cb get_grid_size;
+    set_grid_size_cb set_grid_size;
+    get_camera_cb get_camera;
+    set_camera_cb set_camera;
+    get_viewport_cb get_viewport;
+    set_viewport_cb set_viewport;
+    get_image_cb get_image;
+    set_image_cb set_image;
+    get_image_data_cb get_image_data;
+    get_parallax_factor_cb get_parallax_factor;
+    set_parallax_factor_cb set_parallax_factor;
+    get_flags_cb get_flags;
+    set_flags_cb set_flags;
+    get_radius_cb get_radius;
+    get_src_cb get_src;
+    get_dst_cb get_dst;
+    get_outline_size_cb get_outline_size;
+    get_outline_color_cb get_outline_color;
+    reload_cb reload;
+    draw_cb draw;
+    set_line_cb set_line;
+    set_line3_cb set_line3;
+  };
+
   std::vector<functions_t> shape_functions;
 
   // needs continous buffer
@@ -1060,62 +1010,7 @@ public:
     template <typename T>
     requires requires(T t) { typename T::type_t; }
     shape_t(const T& properties) : shape_t() {
-      if constexpr (std::is_same_v<T, light_t::properties_t>) {
-        *this = gloco->light.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, line_t::properties_t>) {
-        *this = gloco->line.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, rectangle_t::properties_t>) {
-        *this = gloco->rectangle.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, sprite_t::properties_t>) {
-        *this = gloco->sprite.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, unlit_sprite_t::properties_t>) {
-        *this = gloco->unlit_sprite.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, circle_t::properties_t>) {
-        if constexpr (fan_has_variable(loco_t, circle)) {
-          *this = gloco->circle.push_back(properties);
-        }
-      }
-      else if constexpr (std::is_same_v<T, capsule_t::properties_t>) {
-        *this = gloco->capsule.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, polygon_t::properties_t>) {
-        *this = gloco->polygon.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, grid_t::properties_t>) {
-        *this = gloco->grid.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, loco_t::vfi_t::common_shape_properties_t>) {
-        *this = gloco->vfi.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, loco_t::particles_t::properties_t>) {
-        *this = gloco->particles.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, loco_t::universal_image_renderer_t::properties_t>) {
-        *this = gloco->universal_image_renderer.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, loco_t::gradient_t::properties_t>) {
-        *this = gloco->gradient.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, loco_t::shader_shape_t::properties_t>) {
-        *this = gloco->shader_shape.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, loco_t::rectangle3d_t::properties_t>) {
-        *this = gloco->rectangle3d.push_back(properties);
-      }
-      else if constexpr (std::is_same_v<T, line3d_t::properties_t>) {
-        *this = gloco->line3d.push_back(properties);
-      }
-      else {
-        fan::throw_error("failed to find correct shape", typeid(T).name());
-      }
-#if defined(debug_shape_t)
-      fan::print("+", NRI);
-#endif
+      *this = gloco->shape_functions[T::type_t::shape_type].push_back((void*)&properties);
     }
     shape_t(shape_t&& s);
     shape_t(const shape_t& s);
@@ -1216,7 +1111,7 @@ public:
 
   struct light_t {
 
-    shaper_t::KeyTypeIndex_t shape_type = shape_type_t::light;
+    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::light;
     static constexpr int kpi = kp::light;
 
 #pragma pack(push, 1)
@@ -2140,8 +2035,21 @@ public:
 
   //-------------------------------------shapes-------------------------------------
 
-  template <typename T>
-  inline void shape_open(T* shape, const fan::string& vertex, const fan::string& fragment, loco_t::shaper_t::ShapeRenderDataSize_t instance_count = 1, bool instanced = true) {    
+  using shape_shader_locations_t = decltype(loco_t::shaper_t::BlockProperties_t::gl_t::locations);
+
+
+  functions_t get_shape_functions(uint16_t shape_type);
+
+  inline void shape_open(
+    uint16_t shape_type, 
+    std::size_t sizeof_vi, 
+    std::size_t sizeof_ri, 
+    const shape_shader_locations_t& shape_shader_locations, 
+    const fan::string& vertex, 
+    const fan::string& fragment, 
+    loco_t::shaper_t::ShapeRenderDataSize_t instance_count = 1, 
+    bool instanced = true
+  ) {    
     loco_t::shader_t shader = shader_create();
 
     shader_set_vertex(shader,
@@ -2158,7 +2066,7 @@ public:
 
     if (window.renderer == renderer_t::opengl) {
       loco_t::shaper_t::BlockProperties_t::gl_t d;
-      d.locations = decltype(loco_t::shaper_t::BlockProperties_t::gl_t::locations)(std::begin(T::locations), std::end(T::locations));
+      d.locations = shape_shader_locations;
       d.shader = shader;
       d.instanced = instanced;
       data = d;
@@ -2242,17 +2150,13 @@ public:
 
     shaper_t::BlockProperties_t bp;
     bp.MaxElementPerBlock = (loco_t::shaper_t::MaxElementPerBlock_t)MaxElementPerBlock;
-    bp.RenderDataSize = (decltype(loco_t::shaper_t::BlockProperties_t::RenderDataSize))(sizeof(typename T::vi_t) * instance_count);
-    bp.DataSize = sizeof(typename T::ri_t);
+    bp.RenderDataSize = (decltype(loco_t::shaper_t::BlockProperties_t::RenderDataSize))(sizeof_vi * instance_count);
+    bp.DataSize = sizeof_ri;
     bp.renderer = data;
 
-    gloco->shaper.SetShapeType(
-      shape->shape_type,
-      bp
-    );
+    gloco->shaper.SetShapeType(shape_type, bp);
 
-    loco_t::functions_t functions = loco_t::get_functions<typename T::vi_t>();
-    gloco->shape_functions.push_back(functions);
+    gloco->shape_functions.push_back(get_shape_functions(shape_type));
   }
 
 

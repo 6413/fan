@@ -396,834 +396,152 @@ void loco_t::camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_
 #define shaper_get_key_safe(return_type, kps_type, variable) \
   [KeyPack] ()-> auto& { \
     auto o = gloco->shaper.GetKeyOffset( \
-      offsetof(kps_t::CONCAT(_, kps_type), variable), \
-      offsetof(kps_t::kps_type, variable) \
+      offsetof(loco_t::kps_t::CONCAT(_, kps_type), variable), \
+      offsetof(loco_t::kps_t::kps_type, variable) \
     );\
-    static_assert(std::is_same_v<decltype(kps_t::kps_type::variable), return_type>, "possibly unwanted behaviour"); \
-    return *(return_type*)&KeyPack[o];\
+    static_assert(std::is_same_v<decltype(loco_t::kps_t::kps_type::variable), loco_t::return_type>, "possibly unwanted behaviour"); \
+    return *(loco_t::return_type*)&KeyPack[o];\
   }()
 
-template <typename T>
-loco_t::functions_t loco_t::get_functions() {
-  functions_t funcs{
-    .get_position = [](shape_t* shape) {
-      if constexpr (fan_has_variable(T, position)) {
-        return get_render_data(shape, &T::position);
-      }
-      else if constexpr (fan_has_variable(T, vertices)) {
-        return get_render_data(shape, &T::vertices)[0].offset;
-      }
-      else {
-        if (shape->get_shape_type() == shape_type_t::polygon) {
-          auto ri = (polygon_t::ri_t*)shape->GetData(gloco->shaper);
-          fan::vec3 position = 0;
-          fan::opengl::core::get_glbuffer(
-            gloco->context.gl,
-            &position,
-            ri->vbo.m_buffer,
-            sizeof(position),
-            sizeof(polygon_vertex_t) * 0 + fan::member_offset(&polygon_vertex_t::offset),
-            ri->vbo.m_target
-          );
-          return position;
-        }
-        else {
-          fan::throw_error("unimplemented get - for line use get_src()");
-        }
-        
-        return fan::vec3();
-      }
-    },
-    .set_position2 = [](shape_t* shape, const fan::vec2& position) {
-      if constexpr (fan_has_variable(T, position)) {
-        modify_render_data_element(shape, &T::position, position);
-      }
-      else {
-        if (shape->get_shape_type() == shape_type_t::polygon) {
-          auto ri = (polygon_t::ri_t*)shape->GetData(gloco->shaper);
-          ri->vao.bind(gloco->context.gl);
-          ri->vbo.bind(gloco->context.gl);
-          uint32_t vertex_count = ri->buffer_size / sizeof(polygon_vertex_t);
-          for (uint32_t i = 0; i < vertex_count; ++i) {
-            fan::opengl::core::edit_glbuffer(
-              gloco->context.gl, 
-              ri->vbo.m_buffer, 
-              &position, 
-              sizeof(polygon_vertex_t) * i + fan::member_offset(&polygon_vertex_t::offset),
-              sizeof(position),
-              ri->vbo.m_target
-            );
-          }
-        }
-        else {
-          fan::throw_error("unimplemented set - for line use set_src()");
-        }
-      }
-    },
-    .set_position3 = [](shape_t* shape, const fan::vec3& position) {
-      if constexpr (fan_has_variable(T, position)) {
-          auto sti = gloco->shaper.ShapeList[*shape].sti;
+using push_back_cb = loco_t::shape_t (*)(void*);
+using set_position2_cb = void (*)(loco_t::shape_t*, const fan::vec2&);
+// depth
+using set_position3_cb = void (*)(loco_t::shape_t*, const fan::vec3&);
+using set_size_cb = void (*)(loco_t::shape_t*, const fan::vec2&);
+using set_size3_cb = void (*)(loco_t::shape_t*, const fan::vec3&);
 
-          // alloc can be avoided inside switch
-          auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
-          uint8_t* KeyPack = new uint8_t[KeyPackSize];
-          gloco->shaper.WriteKeys(*shape, KeyPack);
+using get_position_cb = fan::vec3 (*)(loco_t::shape_t*);
+using get_size_cb = fan::vec2 (*)(loco_t::shape_t*);
+using get_size3_cb = fan::vec3 (*)(loco_t::shape_t*);
 
-          switch (sti) {       
-          case loco_t::shape_type_t::light: {
-            break;
-          }
-          // common
-          case loco_t::shape_type_t::capsule:
-          case loco_t::shape_type_t::gradient:
-          case loco_t::shape_type_t::grid:
-          case loco_t::shape_type_t::circle:
-          case loco_t::shape_type_t::rectangle:
-          case loco_t::shape_type_t::rectangle3d:
-          case loco_t::shape_type_t::line: {
-            shaper_get_key_safe(depth_t, common_t, depth) = position.z;
-            break;
-          }
-                                          // texture
-          case loco_t::shape_type_t::particles:
-          case loco_t::shape_type_t::universal_image_renderer:
-          case loco_t::shape_type_t::unlit_sprite:
-          case loco_t::shape_type_t::sprite: {
-            shaper_get_key_safe(depth_t, texture_t, depth) = position.z;
-            break;
-          }
-          default: {
-            fan::throw_error("unimplemented");
-          }
-          }
+using set_rotation_point_cb = void (*)(loco_t::shape_t*, const fan::vec2&);
+using get_rotation_point_cb = fan::vec2 (*)(loco_t::shape_t*);
 
-    
-          auto _vi = shape->GetRenderData(gloco->shaper);
-          auto vlen = gloco->shaper.GetRenderDataSize(sti);
-          uint8_t* vi = new uint8_t[vlen];
-          std::memcpy(vi, _vi, vlen);
-          ((T*)vi)->position = position;
+using set_color_cb = void (*)(loco_t::shape_t*, const fan::color&);
+using get_color_cb = fan::color (*)(loco_t::shape_t*);
 
-          auto _ri = shape->GetData(gloco->shaper);
-          auto rlen = gloco->shaper.GetDataSize(sti);
-          uint8_t* ri = new uint8_t[rlen];
-          std::memcpy(ri, _ri, rlen);
+using set_angle_cb = void (*)(loco_t::shape_t*, const fan::vec3&);
+using get_angle_cb = fan::vec3 (*)(loco_t::shape_t*);
 
-          shape->remove();
-          *shape = gloco->shaper.add(
-            sti,
-            KeyPack,
-            KeyPackSize,
-            vi,
-            ri
-          );
-#if defined(debug_shape_t)
-          fan::print("+", shape->NRI);
-#endif
-          delete[] KeyPack;
-          delete[] vi;
-          delete[] ri;
-      }
-      else {
-        fan::throw_error("unimplemented set - for line use set_src()");
-      }
-      },
-      .get_size = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, size)) {
-          if constexpr (sizeof(T::size) == sizeof(fan::vec2)) {
-            return get_render_data(shape, &T::size);
-          }
-          else {
-            fan::throw_error("unimplemented get");
-            return fan::vec2();
-          }
-        }
-        else if constexpr (fan_has_variable(T, radius)) {
-          return fan::vec2(get_render_data(shape, &T::radius));
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::vec2();
-        }
-      },
-      .get_size3 = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, size)) {
-          if constexpr (sizeof(T::size) == sizeof(fan::vec3)) {
-            return get_render_data(shape, &T::size);
-          }
-          else {
-            fan::throw_error("unimplemented get");
-            return fan::vec3();
-          }
-        }
-        else if constexpr (fan_has_variable(T, radius)) {
-          return fan::vec3(get_render_data(shape, &T::radius));
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::vec3();
-        }
-      },
-      .set_size = [](shape_t* shape, const fan::vec2& size) {
-        if constexpr (fan_has_variable(T, size)) {
-          modify_render_data_element(shape, &T::size, size);
-        }
-        else if constexpr (fan_has_variable(T, radius)) {
-          modify_render_data_element(shape, &T::radius, size.x);
-        }
-        else {
-          fan::throw_error("unimplemented set");
-        }
-      },
-      .set_size3 = [](shape_t* shape, const fan::vec3& size) {
-        if constexpr (fan_has_variable(T, size)) {
-          modify_render_data_element(shape, &T::size, size);
-        }
-        else if constexpr (fan_has_variable(T, radius)) {
-          modify_render_data_element(shape, &T::radius, size.x);
-        }
-        else {
-          fan::throw_error("unimplemented set");
-        }
-      },
-      .get_rotation_point = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, rotation_point)) {
-          return get_render_data(shape, &T::rotation_point);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::vec2();
-        }
-      },
-      .set_rotation_point = [](shape_t* shape, const fan::vec2& rotation_point) {
-        if constexpr (fan_has_variable(T, rotation_point)) {
-          modify_render_data_element(shape, &T::rotation_point, rotation_point);
-        }
-        else if constexpr (fan_has_variable(T, vertices)) {
-          
-        }
-        else {
-          fan::throw_error("unimplemented set");
-        }
-            },
-      .get_color = [](shape_t* shape) -> fan::color{
-        if constexpr (fan_has_variable(T, color)) {
-          return *(fan::color*)&get_render_data(shape, &T::color);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::color();
-        }
-      },
-      .set_color = [](shape_t* shape, const fan::color& color) {
-        if constexpr (fan_has_variable(T, color)) {
-          if constexpr (!std::is_same_v<T, loco_t::gradient_t::vi_t>) {
-            modify_render_data_element(shape, &T::color, color);
-          }
-        }
-        else {
-          fan::throw_error("unimplemented set");
-        }
-      },
-      .get_angle = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, angle)) {
-          return get_render_data(shape, &T::angle);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::vec3();
-        }
-      },
-      .set_angle = [](shape_t* shape, const fan::vec3& angle) {
-        if constexpr (fan_has_variable(T, angle)) {
-          modify_render_data_element(shape, &T::angle, angle);
-        }
-        else {
-          if (shape->get_shape_type() == shape_type_t::polygon) {
-            auto ri = (polygon_t::ri_t*)shape->GetData(gloco->shaper);
-            ri->vao.bind(gloco->context.gl);
-            ri->vbo.bind(gloco->context.gl);
-            uint32_t vertex_count = ri->buffer_size / sizeof(polygon_vertex_t);
-            for (uint32_t i = 0; i < vertex_count; ++i) {
-              fan::opengl::core::edit_glbuffer(
-                gloco->context.gl,
-                ri->vbo.m_buffer,
-                &angle,
-                sizeof(polygon_vertex_t) * i + fan::member_offset(&polygon_vertex_t::angle),
-                sizeof(angle),
-                ri->vbo.m_target
-              );
-            }
-          }
-          else {
-            fan::throw_error("unimplemented set");
-          }
-        }
-      },
-      .get_tc_position = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, tc_position)) {
-          return get_render_data(shape, &T::tc_position);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::vec2();
-        }
-      },
-      .set_tc_position = [](shape_t* shape, const fan::vec2& tc_position) {
-        if constexpr (fan_has_variable(T, tc_position)) {
-          modify_render_data_element(shape, &T::tc_position, tc_position);
-        }
-        else {
-          fan::throw_error("unimplemented set");
-        }
-      },
-      .get_tc_size = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, tc_size)) {
-          return get_render_data(shape, &T::tc_size);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::vec2();
-        }
-      },
-      .set_tc_size = [](shape_t* shape, const fan::vec2& tc_size) {
-        if constexpr (fan_has_variable(T, tc_size)) {
-          modify_render_data_element(shape, &T::tc_size, tc_size);
-        }
-        else {
-          fan::throw_error("unimplemented set");
-        }
-      },
-      .load_tp = [](shape_t* shape, loco_t::texturepack_t::ti_t* ti) -> bool {
-        if constexpr(std::is_same_v<T, loco_t::sprite_t::vi_t> ||
-        std::is_same_v<T, loco_t::unlit_sprite_t::vi_t>) {
-          auto sti = gloco->shaper.ShapeList[*shape].sti;
-            
-          auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
-          uint8_t* KeyPack = new uint8_t[KeyPackSize];
-          gloco->shaper.WriteKeys(*shape, KeyPack);
-          switch (sti) {
-            // texture
-            case loco_t::shape_type_t::particles:
-            case loco_t::shape_type_t::universal_image_renderer:
-            case loco_t::shape_type_t::unlit_sprite:
-            case loco_t::shape_type_t::sprite: {
-              shaper_get_key_safe(image_t, texture_t, image) = *ti->image;
-              break;
-            }
-            default: {
-              fan::throw_error("unimplemented");
-            }
-          }
+using get_tc_position_cb = fan::vec2 (*)(loco_t::shape_t*);
+using set_tc_position_cb = void (*)(loco_t::shape_t*, const fan::vec2&);
 
-          auto& im = *ti->image;
+using get_tc_size_cb = fan::vec2 (*)(loco_t::shape_t*);
+using set_tc_size_cb = void (*)(loco_t::shape_t*, const fan::vec2&);
 
-          auto _vi = shape->GetRenderData(gloco->shaper);
-          auto vlen = gloco->shaper.GetRenderDataSize(sti);
-          uint8_t* vi = new uint8_t[vlen];
-          std::memcpy(vi, _vi, vlen);
-          auto& image_data = gloco->image_get_data(im);
-          ((T*)vi)->tc_position = ti->position / image_data.size;
-          ((T*)vi)->tc_size = ti->size / image_data.size;
+using load_tp_cb = bool(*)(loco_t::shape_t*, loco_t::texturepack_t::ti_t*);
 
-          auto _ri = shape->GetData(gloco->shaper);
-          auto rlen = gloco->shaper.GetDataSize(sti);
-          uint8_t* ri = new uint8_t[rlen];
-          std::memcpy(ri, _ri, rlen);
+using get_grid_size_cb = fan::vec2 (*)(loco_t::shape_t*);
+using set_grid_size_cb = void (*)(loco_t::shape_t*, const fan::vec2&);
 
-          shape->remove();
-          *shape = gloco->shaper.add(
-            sti,
-            KeyPack,
-            KeyPackSize,
-            vi,
-            ri
-          );
-#if defined(debug_shape_t)
-          fan::print("+", shape->NRI);
-#endif
-          delete[] KeyPack;
-          delete[] vi;
-          delete[] ri;
-          }
-        return 0;
-      },
-      .get_grid_size = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, grid_size)) {
-          return get_render_data(shape, &T::grid_size);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::vec2();
-        }
-      },
-      .set_grid_size = [](shape_t* shape, const fan::vec2& grid_size) {
-        if constexpr (fan_has_variable(T, grid_size)) {
-          modify_render_data_element(shape, &T::grid_size, grid_size);
-        }
-        else {
-          fan::throw_error("unimplemented set");
-        }
-      },
-      .get_camera = [](shape_t* shape) {
-        auto sti = gloco->shaper.ShapeList[*shape].sti;
+using get_camera_cb = loco_t::camera_t (*)(loco_t::shape_t*);
+using set_camera_cb = void (*)(loco_t::shape_t*, loco_t::camera_t);
 
-        // alloc can be avoided inside switch
-        uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
-
-        switch (sti) {
-          // light
-        case loco_t::shape_type_t::light: {
-          return shaper_get_key_safe(camera_t, light_t, camera);
-        }
-                                        // common
-        case loco_t::shape_type_t::capsule:
-        case loco_t::shape_type_t::gradient:
-        case loco_t::shape_type_t::grid:
-        case loco_t::shape_type_t::circle:
-        case loco_t::shape_type_t::rectangle:
-        case loco_t::shape_type_t::line: {
-          return shaper_get_key_safe(camera_t, common_t, camera);
-        }
-                                        // texture
-        case loco_t::shape_type_t::particles:
-        case loco_t::shape_type_t::universal_image_renderer:
-        case loco_t::shape_type_t::unlit_sprite:
-        case loco_t::shape_type_t::sprite: {
-          return shaper_get_key_safe(camera_t, texture_t, camera);
-        }
-        default: {
-          fan::throw_error("unimplemented");
-        }
-        }
-        return loco_t::camera_t();
-      },
-      .set_camera = [](shape_t* shape, loco_t::camera_t camera) {
-        {
-            auto sti = gloco->shaper.ShapeList[*shape].sti;
-
-          // alloc can be avoided inside switch
-          auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
-          uint8_t* KeyPack = new uint8_t[KeyPackSize];
-          gloco->shaper.WriteKeys(*shape, KeyPack);
-          switch(sti) {
-            // light
-            case loco_t::shape_type_t::light: {
-              shaper_get_key_safe(camera_t, light_t, camera) = camera;
-              break;
-            }
-            // common
-            case loco_t::shape_type_t::capsule:
-            case loco_t::shape_type_t::gradient:
-            case loco_t::shape_type_t::grid:
-            case loco_t::shape_type_t::circle:
-            case loco_t::shape_type_t::rectangle:
-            case loco_t::shape_type_t::rectangle3d:
-            case loco_t::shape_type_t::line: {
-              shaper_get_key_safe(camera_t, common_t, camera) = camera;
-              break;
-            }
-            // texture
-            case loco_t::shape_type_t::particles:
-            case loco_t::shape_type_t::universal_image_renderer:
-            case loco_t::shape_type_t::unlit_sprite:
-            case loco_t::shape_type_t::sprite: {
-              shaper_get_key_safe(camera_t, texture_t, camera) = camera;
-              break;
-            }
-            default: {
-              fan::throw_error("unimplemented");
-            }
-          }
-
-          auto _vi = shape->GetRenderData(gloco->shaper);
-          auto vlen = gloco->shaper.GetRenderDataSize(sti);
-          uint8_t* vi = new uint8_t[vlen];
-          std::memcpy(vi, _vi, vlen);
-
-          auto _ri = shape->GetData(gloco->shaper);
-          auto rlen = gloco->shaper.GetDataSize(sti);
-          uint8_t* ri = new uint8_t[rlen];
-          std::memcpy(ri, _ri, rlen);
-
-          shape->remove();
-          *shape = gloco->shaper.add(
-            sti,
-            KeyPack,
-            KeyPackSize,
-            vi,
-            ri
-          );
-#if defined(debug_shape_t)
-          fan::print("+", shape->NRI);
-#endif
-          delete[] KeyPack;
-          delete[] vi;
-          delete[] ri;
-        }
-      },
-      .get_viewport = [](shape_t* shape) {
-        uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
-
-        auto sti = gloco->shaper.ShapeList[*shape].sti;
-
-        switch(sti) {
-          // light
-          case loco_t::shape_type_t::light: {
-            return shaper_get_key_safe(viewport_t, light_t, viewport);
-          }
-          // common
-          case loco_t::shape_type_t::capsule:
-          case loco_t::shape_type_t::gradient:
-          case loco_t::shape_type_t::grid:
-          case loco_t::shape_type_t::circle:
-          case loco_t::shape_type_t::rectangle:
-          case loco_t::shape_type_t::line: {
-            return shaper_get_key_safe(viewport_t, common_t, viewport);
-          }
-          // texture
-          case loco_t::shape_type_t::particles:
-          case loco_t::shape_type_t::universal_image_renderer:
-          case loco_t::shape_type_t::unlit_sprite:
-          case loco_t::shape_type_t::sprite: {
-            return shaper_get_key_safe(viewport_t, texture_t, viewport);
-          }
-          default: {
-            fan::throw_error("unimplemented");
-          }
-        }
-        return loco_t::viewport_t();
-      },
-      .set_viewport = [](shape_t* shape, loco_t::viewport_t viewport) {
-        {
-          auto sti = gloco->shaper.ShapeList[*shape].sti;
-
-          // alloc can be avoided inside switch
-          auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
-          uint8_t* KeyPack = new uint8_t[KeyPackSize];
-          gloco->shaper.WriteKeys(*shape, KeyPack);
-          switch(sti) {
-            // light
-            case loco_t::shape_type_t::light: {
-              shaper_get_key_safe(viewport_t, light_t, viewport) = viewport;
-              break;
-            }
-            // common
-            case loco_t::shape_type_t::capsule:
-            case loco_t::shape_type_t::gradient:
-            case loco_t::shape_type_t::grid:
-            case loco_t::shape_type_t::circle:
-            case loco_t::shape_type_t::rectangle:
-            case loco_t::shape_type_t::line: {
-              shaper_get_key_safe(viewport_t, common_t, viewport) = viewport;
-              break;
-            }
-            // texture
-            case loco_t::shape_type_t::particles:
-            case loco_t::shape_type_t::universal_image_renderer:
-            case loco_t::shape_type_t::unlit_sprite:
-            case loco_t::shape_type_t::sprite: {
-              shaper_get_key_safe(viewport_t, texture_t, viewport) = viewport;
-              break;
-            }
-            default: {
-              fan::throw_error("unimplemented");
-            }
-          }
-
-          auto _vi = shape->GetRenderData(gloco->shaper);
-          auto vlen = gloco->shaper.GetRenderDataSize(sti);
-          uint8_t* vi = new uint8_t[vlen];
-          std::memcpy(vi, _vi, vlen);
-
-          auto _ri = shape->GetData(gloco->shaper);
-          auto rlen = gloco->shaper.GetDataSize(sti);
-          uint8_t* ri = new uint8_t[rlen];
-          std::memcpy(ri, _ri, rlen);
-
-          shape->remove();
-          *shape = gloco->shaper.add(
-            sti,
-            KeyPack,
-            KeyPackSize,
-            vi,
-            ri
-          );
-#if defined(debug_shape_t)
-          fan::print("+", shape->NRI);
-#endif
-          delete[] KeyPack;
-          delete[] vi;
-          delete[] ri;
-        }
-      },
-
-      .get_image = [](shape_t* shape) -> loco_t::image_t {
-        auto sti = gloco->shaper.ShapeList[*shape].sti;
-        uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
-        switch (sti) {
-        // texture
-        case loco_t::shape_type_t::particles:
-        case loco_t::shape_type_t::universal_image_renderer:
-        case loco_t::shape_type_t::unlit_sprite:
-        case loco_t::shape_type_t::sprite: {
-          return shaper_get_key_safe(image_t, texture_t, image);
-        }
-        default: {
-          fan::throw_error("unimplemented");
-        }
-        }
-        return loco_t::image_t();
-      },
-      .set_image = [](shape_t* shape, loco_t::image_t image) {
-         
-        auto sti = gloco->shaper.ShapeList[*shape].sti;
-
-        // alloc can be avoided inside switch
-        auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
-        uint8_t* KeyPack = new uint8_t[KeyPackSize];
-        gloco->shaper.WriteKeys(*shape, KeyPack);
-        switch (sti) {
-        // texture
-        case loco_t::shape_type_t::particles:
-        case loco_t::shape_type_t::universal_image_renderer:
-        case loco_t::shape_type_t::unlit_sprite:
-        case loco_t::shape_type_t::sprite: 
-        case loco_t::shape_type_t::shader_shape:
-        {
-          shaper_get_key_safe(image_t, texture_t, image) = image;
-          break;
-        }
-        default: {
-          fan::throw_error("unimplemented");
-        }
-        }
-            
-        auto _vi = shape->GetRenderData(gloco->shaper);
-        auto vlen = gloco->shaper.GetRenderDataSize(sti);
-        uint8_t* vi = new uint8_t[vlen];
-        std::memcpy(vi, _vi, vlen);
-
-        auto _ri = shape->GetData(gloco->shaper);
-        auto rlen = gloco->shaper.GetDataSize(sti);
-        uint8_t* ri = new uint8_t[rlen];
-        std::memcpy(ri, _ri, rlen);
-
-        shape->remove();
-        *shape = gloco->shaper.add(
-          sti,
-          KeyPack,
-          KeyPackSize,
-          vi,
-          ri
-        );
-#if defined(debug_shape_t)
-        fan::print("+", shape->NRI);
-#endif
-        delete[] KeyPack;
-        delete[] vi;
-        delete[] ri;
-      },
-      .get_image_data = [](shape_t* shape) -> fan::graphics::image_data_t& {
-        return gloco->image_list[shape->get_image()];
-      },
-      .get_parallax_factor = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, parallax_factor)) {
-          return get_render_data(shape, &T::parallax_factor);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return 0.0f;
-        }
-      },
-      .set_parallax_factor = [](shape_t* shape, f32_t parallax_factor) {
-        if constexpr (fan_has_variable(T, parallax_factor)) {
-          modify_render_data_element(shape, &T::parallax_factor, parallax_factor);
-        }
-        else {
-          fan::throw_error("unimplemented set");
-        }
-      },
-      .get_rotation_vector = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, rotation_vector)) {
-          return get_render_data(shape, &T::rotation_vector);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::vec3();
-        }
-      },
-      .get_flags = [](shape_t* shape) -> uint32_t {
-        if constexpr (fan_has_variable(T, flags)) {
-          return get_render_data(shape, &T::flags);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return 0;
-        }
-      },
-      .set_flags = [](shape_t* shape, uint32_t flags) {
-        if constexpr (fan_has_variable(T, flags)) {
-          modify_render_data_element(shape, &T::flags, flags);
-        }
-        else {
-          fan::throw_error("unimplemented set");
-        }
-      },
-      .get_radius = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, radius)) {
-          return get_render_data(shape, &T::radius);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return 0.0f;
-        }
-      },
-      .get_src = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, src)) {
-          return get_render_data(shape, &T::src);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::vec3();
-        }
-      },
-      .get_dst = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, dst)) {
-          return get_render_data(shape, &T::dst);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::vec3();
-        }
-      },
-      .get_outline_size = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, outline_size)) {
-          return get_render_data(shape, &T::outline_size);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return 0.0f;
-        }
-      },
-      .get_outline_color = [](shape_t* shape) {
-        if constexpr (fan_has_variable(T, outline_color)) {
-          return get_render_data(shape, &T::outline_color);
-        }
-        else {
-          fan::throw_error("unimplemented get");
-          return fan::color();
-        }
-      },
-      .reload = [](shape_t* shape, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter) {
-        if (shape->get_shape_type() != loco_t::shape_type_t::universal_image_renderer) {
-          fan::throw_error("only meant to be used with universal_image_renderer");
-        }
-        loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)shape->GetData(gloco->shaper);
-        if (format != ri.format) {
-          auto sti = gloco->shaper.ShapeList[*shape].sti;
-          uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
-          loco_t::image_t vi_image = shaper_get_key_safe(loco_t::image_t, texture_t, image);
+using get_viewport_cb = loco_t::viewport_t (*)(loco_t::shape_t*);
+using set_viewport_cb = void (*)(loco_t::shape_t*, loco_t::viewport_t);
 
 
-          auto shader = gloco->shaper.GetShader(sti);
-          gloco->shader_set_vertex(
-            shader,
-            read_shader("shaders/opengl/2D/objects/pixel_format_renderer.vs")
-          );
-          {
-            fan::string fs;
-            switch(format) {
-              case fan::pixel_format::yuv420p: {
-                fs = read_shader("shaders/opengl/2D/objects/yuv420p.fs");
-                break;
-              }
-              case fan::pixel_format::nv12: {
-                fs = read_shader("shaders/opengl/2D/objects/nv12.fs");
-                break;
-              }
-              default: {
-                fan::throw_error("unimplemented format");
-              }
-            }
-            gloco->shader_set_fragment(shader, fs);
-            gloco->shader_compile(shader);
-          }
+using get_image_cb = loco_t::image_t(*)(loco_t::shape_t*);
+using set_image_cb = void (*)(loco_t::shape_t*, loco_t::image_t);
 
-          uint8_t image_count_old = fan::pixel_format::get_texture_amount(ri.format);
-          uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
-          if (image_count_new < image_count_old) {
-            // -1 ? 
-            for (uint32_t i = image_count_old - 1; i > image_count_new; --i) {
-              if (i == 0) {
-                gloco->image_erase(vi_image);
-              }
-              else {
-                gloco->image_erase(ri.images_rest[i - 1]);
-              }
-            }
-          }
-          else if (image_count_new > image_count_old) {
-            loco_t::image_t images[4];
-            for (uint32_t i = image_count_old; i < image_count_new; ++i) {
-              images[i] = gloco->image_create();
-            }
-            shape->set_image(images[0]);
-            std::copy(&images[1], &images[0] + ri.images_rest.size(), ri.images_rest.data());
-          }
-        }
+using get_image_data_cb = fan::graphics::image_data_t&(*)(loco_t::shape_t*);
 
-        auto vi_image = shape->get_image();
+using get_parallax_factor_cb = f32_t (*)(loco_t::shape_t*);
+using set_parallax_factor_cb = void (*)(loco_t::shape_t*, f32_t);
+using get_rotation_vector_cb = fan::vec3 (*)(loco_t::shape_t*);
+using get_flags_cb = uint32_t (*)(loco_t::shape_t*);
+using set_flags_cb = void(*)(loco_t::shape_t*, uint32_t);
+//
+using get_radius_cb = f32_t (*)(loco_t::shape_t*);
+using get_src_cb = fan::vec3 (*)(loco_t::shape_t*);
+using get_dst_cb = fan::vec3 (*)(loco_t::shape_t*);
+using get_outline_size_cb = f32_t (*)(loco_t::shape_t*);
+using get_outline_color_cb = fan::color (*)(loco_t::shape_t*);
 
-        uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
-        for (uint32_t i = 0; i < image_count_new; i++) {
-          fan::image::image_info_t image_info;
-          image_info.data = image_data[i];
-          image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
-          auto lp = fan::pixel_format::get_image_properties<loco_t::image_load_properties_t>(format)[i];
-          lp.min_filter = filter;
-          lp.mag_filter = filter;
-          if (i == 0) {
-            gloco->image_reload(
-              vi_image,
-              image_info,
-              lp
-            );
-          }
-          else {
-            gloco->image_reload(
-              ri.images_rest[i - 1],
-              image_info,
-              lp
-            );
-          }
-        }
-        ri.format = format;
-      },
-      .draw = [](uint8_t draw_range) {
-        // Implement draw function
-      },
-      .set_line = [](shape_t* shape, const fan::vec2& src, const fan::vec2& dst) {
-        if constexpr (fan_has_variable(T, src) && fan_has_variable(T, dst)) {
-          modify_render_data_element(shape, &T::src, src);
-          modify_render_data_element(shape, &T::dst, dst);
-        }
-        else {
-          fan::throw_error("unimplemented set");
-        }
-      },
-      .set_line3 = [](shape_t* shape, const fan::vec3& src, const fan::vec3& dst) {
-        if constexpr (fan_has_variable(T, src) && fan_has_variable(T, dst)) {
-          modify_render_data_element(shape, &T::src, src);
-          modify_render_data_element(shape, &T::dst, dst);
-        }
-        else {
-          fan::throw_error("unimplemented set");
-        }
-      }
-    };
-  return funcs;
-}
+using reload_cb = void (*)(loco_t::shape_t*, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter); 
+
+using draw_cb = void (*)(uint8_t draw_range);
+
+using set_line_cb = void (*)(loco_t::shape_t*, const fan::vec2&, const fan::vec2&);
+using set_line3_cb = void (*)(loco_t::shape_t*, const fan::vec3&, const fan::vec3&);
+
+struct functions_t {
+  push_back_cb push_back;
+
+  get_position_cb get_position;
+  set_position2_cb set_position2;
+  set_position3_cb set_position3;
+
+  get_size_cb get_size;
+  get_size3_cb get_size3;
+  set_size_cb set_size;
+  set_size3_cb set_size3;
+
+  get_rotation_point_cb get_rotation_point;
+  set_rotation_point_cb set_rotation_point;
+
+  get_color_cb get_color;
+  set_color_cb set_color;
+
+  get_angle_cb get_angle;
+  set_angle_cb set_angle;
+
+  get_tc_position_cb get_tc_position;
+  set_tc_position_cb set_tc_position;
+
+  get_tc_size_cb get_tc_size;
+  set_tc_size_cb set_tc_size;
+
+  load_tp_cb load_tp;
+
+  get_grid_size_cb get_grid_size;
+  set_grid_size_cb set_grid_size;
+
+  get_camera_cb get_camera;
+  set_camera_cb set_camera;
+
+  get_viewport_cb get_viewport;
+  set_viewport_cb set_viewport;
+
+  get_image_cb get_image;
+  set_image_cb set_image;
+
+  get_image_data_cb get_image_data;
+
+  get_parallax_factor_cb get_parallax_factor;
+  set_parallax_factor_cb set_parallax_factor;
+  get_rotation_vector_cb get_rotation_vector;
+
+
+  get_flags_cb get_flags;
+  set_flags_cb set_flags;
+
+  get_radius_cb get_radius;
+  get_src_cb get_src;
+  get_dst_cb get_dst;
+  get_outline_size_cb get_outline_size;
+  get_outline_color_cb get_outline_color;
+
+  reload_cb reload;
+
+  draw_cb draw;
+
+  set_line_cb set_line;
+  set_line3_cb set_line3;
+};
+
+get_position_cb get_position_table[loco_t::shape_type_t::last]{
+  
+};
+
+
+/*
+* sprite,
+text
+*/
+
+#include <fan/graphics/shape_functions_generated.h>
+
 
 #undef shaper_get_key_safe
 
@@ -2929,7 +2247,8 @@ void loco_t::shape_t::set_parallax_factor(f32_t parallax_factor) {
 }
 
 fan::vec3 loco_t::shape_t::get_rotation_vector() {
-  return gloco->shape_functions[get_shape_type()].get_rotation_vector(this);
+  fan::throw_error("deprecated");
+  return 0;
 }
 
 uint32_t loco_t::shape_t::get_flags() {
