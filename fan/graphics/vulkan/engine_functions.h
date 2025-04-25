@@ -6,9 +6,11 @@ loco_t& get_loco() {
 #define loco get_loco()
 
 void shapes_open() {
-  loco.shape_functions.resize(loco.shape_functions.size() + 1); // button
-  loco.shape_open<loco_t::sprite_t>(
-    &loco.sprite,
+  loco.shape_open(
+    loco_t::sprite_t::shape_type,
+    sizeof(loco_t::sprite_t::vi_t),
+    sizeof(loco_t::sprite_t::ri_t),
+    {loco_t::sprite_t::locations.begin(), loco_t::sprite_t::locations.end()},
     "shaders/vulkan/2D/objects/sprite.vert",
     "shaders/vulkan/2D/objects/sprite.frag"
   );
@@ -17,8 +19,11 @@ void shapes_open() {
   loco.shape_functions.resize(loco.shape_functions.size() + 1); // line
   loco.shape_functions.resize(loco.shape_functions.size() + 1); // mark
 
-  loco.shape_open<loco_t::rectangle_t>(
-    &loco.rectangle,
+  loco.shape_open(
+    loco_t::rectangle_t::shape_type,
+    sizeof(loco_t::rectangle_t::vi_t),
+    sizeof(loco_t::rectangle_t::ri_t),
+    {loco_t::rectangle_t::locations.begin(), loco_t::rectangle_t::locations.end()},
     "shaders/vulkan/2D/objects/rectangle.vert",
     "shaders/vulkan/2D/objects/rectangle.frag"
   );
@@ -200,18 +205,18 @@ void draw_shapes() {
 
 
     switch (kti) {
-    case Key_e::ShapeType: {
+    case loco_t::Key_e::ShapeType: {
       // if i remove this why it breaks/corrupts?
       if (*(loco_t::shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd() == loco_t::shape_type_t::light_end) {
         continue;
       }
       break;
       }
-      case Key_e::blending: {
+      case loco_t::Key_e::blending: {
         
         break;
       }
-      case Key_e::image: {
+      case loco_t::Key_e::image: {
         texture = *(loco_t::image_t*)KeyTraverse.kd();
         if (texture.iic() == false) {
           // TODO FIX + 0
@@ -220,11 +225,11 @@ void draw_shapes() {
         }
         break;
       }
-      case Key_e::viewport: {
+      case loco_t::Key_e::viewport: {
         viewport = *(loco_t::viewport_t*)KeyTraverse.kd();
         break;
       }
-      case Key_e::camera: {
+      case loco_t::Key_e::camera: {
         camera = *(loco_t::camera_t*)KeyTraverse.kd();
         break;
       }
