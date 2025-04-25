@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 project(fan)
 
-set(FAN_PHYSICS ON)
-set(FAN_GUI ON)
-set(FAN_JSON ON)
-set(FAN_3D ON)
+set(FAN_PHYSICS OFF)
+set(FAN_GUI OFF)
+set(FAN_JSON OFF)
+set(FAN_3D OFF)
 set(FAN_OPENGL ON)
 set(FAN_VULKAN OFF)
 set(FAN_FMT OFF)
@@ -50,9 +50,9 @@ set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
 set(CMAKE_CXX_FLAGS_DEBUG "-gdwarf-4")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld")
-set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=lld")
-set(CMAKE_MODULE_LINKER_FLAGS "-fuse-ld=lld")
+set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=gold")
+set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=gold")
+set(CMAKE_MODULE_LINKER_FLAGS "-fuse-ld=gold")
 
 set(ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/fan/)
 set(OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan)
@@ -87,7 +87,7 @@ endfunction()
 
 function(apply_common_compile_options target)
 	target_compile_options(${target} PRIVATE
-		-w -MD -MT -Wall -Wextra -ferror-limit=4 -stdlib=libstdc++ -fsized-deallocation -fPIC -ftime-trace
+		-w -MD -MT -Wall -Wextra -ferror-limit=4 -stdlib=libstdc++ -fsized-deallocation -fPIC
 		-Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast
 		-Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses
 		-Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare

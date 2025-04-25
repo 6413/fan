@@ -2,8 +2,6 @@
 
 #include <fan/physics/collision/rectangle.h>
 
-#include <regex>
-
 using namespace fan::graphics;
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
@@ -148,6 +146,46 @@ void shader_set_fragment(fan::vulkan::context_t& context, shader_nr_t nr, const 
   //);
 }
 
+static void parse_uniforms(fan::string& shaderData, std::unordered_map<std::string, std::string>& uniform_type_table) {
+  size_t pos = 0;
+
+  while ((pos = shaderData.find("uniform", pos)) != fan::string::npos) {
+    size_t endLine = shaderData.find(';', pos);
+    if (endLine == fan::string::npos) break;
+
+    fan::string line = shaderData.substr(pos, endLine - pos + 1);
+
+    line = line.substr(7); 
+    
+    size_t start = line.find_first_not_of(" \t");
+    if (start == fan::string::npos) {
+      pos = endLine + 1;
+      continue;
+    }
+    line = line.substr(start);
+
+    size_t space1 = line.find_first_of(" \t");
+    if (space1 == fan::string::npos) {
+      pos = endLine + 1;
+      continue;
+    }
+
+    fan::string type = line.substr(0, space1);
+    line = line.substr(space1);
+    line = line.substr(line.find_first_not_of(" \t"));
+
+    size_t varEnd = line.find_first_of("=;");
+    fan::string name = line.substr(0, varEnd);
+    
+    name.erase(0, name.find_first_not_of(" \t"));
+    name.erase(name.find_last_not_of(" \t") + 1);
+
+    uniform_type_table[name] = type;
+
+    pos = endLine + 1;
+  }
+}
+
 bool shader_compile(fan::vulkan::context_t& context, shader_nr_t nr) {
   auto& shader = shader_get(context, nr);
   {
@@ -177,22 +215,11 @@ bool shader_compile(fan::vulkan::context_t& context, shader_nr_t nr) {
     shader.shader_stages[1] = frag;
   }
 
-  std::regex uniformRegex(R"(uniform\s+(\w+)\s+(\w+)(\s*=\s*[\d\.]+)?;)");
-
   fan::string vertexData = __fan_internal_shader_list[nr].svertex;
-
-  std::smatch match;
-  while (std::regex_search(vertexData, match, uniformRegex)) {
-    __fan_internal_shader_list[nr].uniform_type_table[match[2]] = match[1];
-    vertexData = match.suffix().str();
-  }
+  parse_uniforms(vertexData, __fan_internal_shader_list[nr].uniform_type_table);
 
   fan::string fragmentData = __fan_internal_shader_list[nr].sfragment;
-
-  while (std::regex_search(fragmentData, match, uniformRegex)) {
-    __fan_internal_shader_list[nr].uniform_type_table[match[2]] = match[1];
-    fragmentData = match.suffix().str();
-  }
+  parse_uniforms(fragmentData, __fan_internal_shader_list[nr].uniform_type_table);
 
   return 0;
 }
