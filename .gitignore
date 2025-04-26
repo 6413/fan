@@ -55,3 +55,4 @@ lib/
 ignore/
 thirdparty/
 *.d
+!bin/
