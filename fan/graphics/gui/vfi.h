@@ -2,6 +2,8 @@ struct vfi_t {
 
   typedef uint16_t shape_type_t;
 
+  shape_type_t shape_type = loco_t::shape_type_t::vfi;
+
   struct shape_t {
     static constexpr shape_type_t always = 0;
     static constexpr shape_type_t rectangle = 1;
