@@ -22,6 +22,9 @@
 *.o
 .vs/fan/v17/.suo
 *.exe
+!bin/
+!bin/*.exe
+!bin/**/*.exe
 .suo
 .vs/fan/v17/.suo
 .vs/slnx.sqlite
@@ -55,4 +58,3 @@ lib/
 ignore/
 thirdparty/
 *.d
-!bin/
