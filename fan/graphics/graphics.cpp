@@ -5,6 +5,8 @@
   #include <fan/graphics/gui/imgui_themes.h>
 #endif
 
+import fan.camera;
+
 loco_t::polygon_t::properties_t fan::graphics::create_hexagon(f32_t radius, const fan::color& color) {
   loco_t::polygon_t::properties_t pp;
   // for triangle strip
@@ -566,7 +568,7 @@ void fan::graphics::texture_packe0::load_compiled(const char* filename) {
 
 #endif
 
-void fan::camera::move(f32_t movement_speed, f32_t friction) {
+/*void fan::camera::move(f32_t movement_speed, f32_t friction) {
   this->velocity /= friction * gloco->delta_time + 1;
   static constexpr auto minimum_velocity = 0.001;
   if (this->velocity.x < minimum_velocity && this->velocity.x > -minimum_velocity) {
@@ -619,7 +621,7 @@ void fan::camera::move(f32_t movement_speed, f32_t friction) {
 
   this->position += this->velocity * gloco->delta_time;
   this->update_view();
-}
+}*/
 
 fan::graphics::interactive_camera_t::interactive_camera_t(loco_t::camera_t camera_nr, loco_t::viewport_t viewport_nr) :
   reference_camera(camera_nr), reference_viewport(viewport_nr)

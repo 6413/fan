@@ -1,3 +1,4 @@
+#if defined(fan_vulkan)
 #include "core.h"
 
 #include <fan/physics/collision/rectangle.h>
@@ -2650,3 +2651,4 @@ uint32_t fan::vulkan::core::get_draw_mode(uint8_t draw_mode) {
     return -1;
   }
 }
+#endif

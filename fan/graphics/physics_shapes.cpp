@@ -1,9 +1,11 @@
 #include "physics_shapes.hpp"
 
+import fan.graphics.gui;
+
 
 void fan::graphics::physics::shape_physics_update(const loco_t::physics_update_data_t& data) {
   if (!b2Body_IsValid(data.body_id)) {
-    fan::print("invalid body data (corruption)");
+ //   fan::print("invalid body data (corruption)");
     return;
   }
   if (b2Body_GetType(data.body_id) == b2_staticBody) {
@@ -888,7 +890,9 @@ void DrawPoint(b2Vec2 p, float size, b2HexColor color, void* context) {
 
 /// Draw a string.
 void DrawString(b2Vec2 p, const char* s, void* context) {
+#if defined(fan_gui)
   fan::graphics::gui::text_at(s, fan::physics::physics_to_render(p));
+#endif
 }
 
 

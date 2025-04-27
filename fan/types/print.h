@@ -68,8 +68,8 @@ namespace fan {
   }
 
   template <typename ...Args>
-  static void throw_error(const Args&... args) {
-    fan::print(args...);
+  constexpr void throw_error(const Args&... args) {
+ //   fan::print(args...);
     fan::throw_error_impl();
   }
 
