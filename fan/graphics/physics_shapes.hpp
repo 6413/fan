@@ -2,12 +2,13 @@
 
 // for shapes
 
-#include <fan/graphics/graphics.h>
-
 #include <fan/physics/b2_integration.hpp>
 
 #include <array>
 #include <fan/time/timer.h>
+
+#include <fan/graphics/loco.h>
+import fan.graphics;
 
 namespace fan {
   namespace graphics {

@@ -11,13 +11,15 @@ set(FAN_FMT OFF)
 
 set(BUILD_MAIN ON)
 
+#set(CMAKE_NINJA_FORCE_RESPONSE_FILE 1)
+#set(CMAKE_NINJA_OUTPUT_PATH_PREFIX "")
 
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 
 set(CMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY ON)
 set(CMAKE_FIND_PACKAGE_NO_SYSTEM_PACKAGE_REGISTRY ON)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -33,9 +35,9 @@ endif()
 set(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
 set(CMAKE_NINJA_FORCE_RESPONSE_FILE 1 CACHE INTERNAL "")
 
-set(CMAKE_PCH_INSTANTIATE_TEMPLATES OFF)
-set(CMAKE_UNITY_BUILD OFF)
-set(CMAKE_UNITY_BUILD_BATCH_SIZE 1)
+set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
+set(CMAKE_UNITY_BUILD ON)
+set(CMAKE_UNITY_BUILD_BATCH_SIZE 2)
 
 
 find_program(CCACHE_PROGRAM ccache NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH)
@@ -85,7 +87,7 @@ endfunction()
 
 function(apply_common_compile_options target)
 	target_compile_options(${target} PRIVATE
-		-w -MD -MT -Wall -Wextra -ferror-limit=4 -stdlib=libstdc++ -fsized-deallocation -fPIC
+		-w -MD -MT -Wall -Wextra -ferror-limit=16 -stdlib=libstdc++ -fsized-deallocation -fPIC
 		-Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast
 		-Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses
 		-Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare
@@ -111,26 +113,55 @@ target_sources(fan_modules
     FILE_SET CXX_MODULES
     BASE_DIRS ${ROOT_PATH}
     FILES
+			${ROOT_PATH}/types/print.ixx
+			${ROOT_PATH}/types/color.ixx
+			
+			${ROOT_PATH}/types/fstring.ixx
+			
+			${ROOT_PATH}/io/file.ixx
+			
+			${ROOT_PATH}/window/window.ixx
+			${ROOT_PATH}/window/input_common.ixx
+			${ROOT_PATH}/window/input.ixx
+			
       ${ROOT_PATH}/graphics/camera.ixx
-			${ROOT_PATH}/graphics/console.ixx
+			
 			${ROOT_PATH}/graphics/opengl/core.ixx
 			${ROOT_PATH}/graphics/opengl/uniform_block.ixx
-			${ROOT_PATH}/types/color.ixx
-			#if fan gui
-			${ROOT_PATH}/graphics/gui/gui.ixx
+			${ROOT_PATH}/graphics/graphics.ixx
 )
+if(FAN_FMT)
+    list(APPEND MODULE_FILES 
+			${ROOT_PATH}/fmt.ixx
+		)
+endif()
+if(FAN_GUI)
+    list(APPEND MODULE_FILES 
+			${ROOT_PATH}/graphics/gui/gui.ixx
+			${ROOT_PATH}/graphics/console.ixx
+		)
+endif()
+
 set_target_properties(fan_modules PROPERTIES CXX_SCAN_FOR_MODULES ON)
 apply_common_compile_options(fan_modules)
 
-if (FAN_FMT)
-	add_library(fmt STATIC ${ROOT_PATH}/fmt.cpp)
-	apply_common_compile_options(fmt)
-	#target_link_libraries(fmt PRIVATE fan_pch)
-	set_target_properties(fmt PROPERTIES
-		ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_PATH}
-		OUTPUT_NAME "fmt"
-	)
-endif()
+# if (FAN_FMT)
+	# add_library(fmt STATIC)
+	# target_sources(fmt
+  # PUBLIC
+    # FILE_SET CXX_MODULES
+    # BASE_DIRS ${ROOT_PATH}
+    # FILES
+			# ${ROOT_PATH}/fmt.ixx
+	# )
+	
+	# apply_common_compile_options(fmt)
+	# #target_link_libraries(fmt PRIVATE fan_pch)
+	# set_target_properties(fmt PROPERTIES
+		# ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_PATH}
+		# OUTPUT_NAME "fmt"
+	# )
+# endif()
 	
 if(FAN_GUI)
 	set(IMGUI_SOURCES
@@ -196,14 +227,8 @@ set(FAN_PHYSICS_SOURCES "")
 set(FAN_VULKAN_SOURCES "")
 
 set(FAN_GRAPHICS_SOURCES 
-	${ROOT_PATH}/graphics/graphics.cpp
 	${ROOT_PATH}/graphics/loco.cpp
-	${ROOT_PATH}/types/fstring.cpp
 	${ROOT_PATH}/types/types.cpp
-	${ROOT_PATH}/window/window.cpp
-	${ROOT_PATH}/window/window_input_common.cpp
-	
-	${ROOT_PATH}/io/file.cpp
 )
 
 if(FAN_VULKAN)

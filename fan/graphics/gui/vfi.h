@@ -79,7 +79,7 @@ struct vfi_t {
   struct keyboard_data_t {
     vfi_t* vfi;
     int key;
-    fan::keyboard_state keyboard_state;
+    fan::keyboard_state_t keyboard_state;
   };
 
   struct text_data_t {
@@ -87,10 +87,10 @@ struct vfi_t {
     uint32_t key;
   };
 
-  using mouse_move_cb_t = fan::function_t<int(const mouse_move_data_t&)>;
-  using mouse_button_cb_t = fan::function_t<int(const mouse_button_data_t&)>;
-  using keyboard_cb_t = fan::function_t<int(const keyboard_data_t&)>;
-  using text_cb_t = fan::function_t<int(const text_data_t&)>;
+  using mouse_move_cb_t = std::function<int(const mouse_move_data_t&)>;
+  using mouse_button_cb_t = std::function<int(const mouse_button_data_t&)>;
+  using keyboard_cb_t = std::function<int(const keyboard_data_t&)>;
+  using text_cb_t = std::function<int(const text_data_t&)>;
 
   struct common_shape_data_t {
 
@@ -584,7 +584,7 @@ struct vfi_t {
     }
   }
 
-  void feed_keyboard(int key, fan::keyboard_state keyboard_state) {
+  void feed_keyboard(int key, fan::keyboard_state_t keyboard_state) {
     keyboard_data_t keyboard_data;
     keyboard_data.vfi = this;
     if (focus.keyboard.iic()) {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/types/print.h>
+import fan.types.print;
 #if defined(fan_platform_windows)
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_EXPOSE_NATIVE_WGL

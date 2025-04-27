@@ -1337,7 +1337,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
   loco_t::texturepack_t texturepack;
   bool render_content_browser = true;
 
-  fan::function_t<void()> close_cb = [] {};
+  std::function<void()> close_cb = [] {};
 
   fan::vec2 drag_start;
   loco_t::shape_t drag_select;

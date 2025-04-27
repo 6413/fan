@@ -39,8 +39,9 @@ import fan.graphics.opengl.core;
 #define loco_physics
 
 //
-#include <fan/window/window.h>
-#include <fan/io/file.h>
+import fan.window.input;
+import fan.window;
+import fan.io.file;
 
 #include <fan/graphics/types.h>
 
@@ -229,7 +230,7 @@ namespace fan {
       #include <fan/fan_bll_preset.h>
       #define BLL_set_Link 1
       #define BLL_set_type_node uint16_t
-      #define BLL_set_NodeDataType fan::function_t<void(loco_t*)>
+      #define BLL_set_NodeDataType std::function<void(loco_t*)>
       #define BLL_set_CPP_CopyAtPointerChange 1
       #include <BLL/BLL.h>
 
@@ -693,8 +694,8 @@ struct loco_t {
 
 public:
 
-  std::vector<fan::function_t<void()>> m_pre_draw;
-  std::vector<fan::function_t<void()>> m_post_draw;
+  std::vector<std::function<void()>> m_pre_draw;
+  std::vector<std::function<void()>> m_post_draw;
   
 
   struct properties_t {
@@ -737,8 +738,8 @@ public:
   bool should_close();
   void should_close(int flag);
 
-  bool process_loop(const fan::function_t<void()>& lambda = [] {});
-  void loop(const fan::function_t<void()>& lambda);
+  bool process_loop(const std::function<void()>& lambda = [] {});
+  void loop(const std::function<void()>& lambda);
 
   loco_t::camera_t open_camera(const fan::vec2 & x, const fan::vec2 & y);
   loco_t::camera_t open_camera_perspective(f32_t fov = 90.0f);
@@ -827,7 +828,7 @@ protected:
   #include <fan/fan_bll_preset.h>
   #define BLL_set_Link 1
   #define BLL_set_type_node uint16_t
-  #define BLL_set_NodeDataType fan::function_t<void(loco_t*)>
+  #define BLL_set_NodeDataType std::function<void(loco_t*)>
   #define BLL_set_CPP_CopyAtPointerChange 1
   #include <BLL/BLL.h>
 public:
@@ -836,7 +837,7 @@ public:
 
   update_callback_t m_update_callback;
 
-  std::vector<fan::function_t<void()>> single_queue;
+  std::vector<std::function<void()>> single_queue;
 
   image_t default_texture;
 
@@ -852,7 +853,7 @@ public:
   int32_t target_fps = 165; // must be changed from function
   bool timer_enabled = target_fps > 0;
 
-  fan::function_t<void()> main_loop; // bad, but forced
+  std::function<void()> main_loop; // bad, but forced
 
   f64_t delta_time = window.m_delta_time;
 
@@ -904,7 +905,7 @@ public:
   #include <fan/fan_bll_preset.h>
   #define BLL_set_Link 1
   #define BLL_set_type_node uint16_t
-  #define BLL_set_NodeDataType fan::function_t<void()>
+  #define BLL_set_NodeDataType std::function<void()>
   #include <BLL/BLL.h>
 
   gui_draw_cb_t gui_draw_cb;
@@ -2551,3 +2552,46 @@ namespace fan {
 #endif
 }
 #endif
+
+inline bool fan::graphics::texture_packe0::push_texture(fan::graphics::image_nr_t image, const loco_t::texture_packe0::texture_properties_t& texture_properties) {
+
+  if (texture_properties.image_name.empty()) {
+    fan::print_warning("texture properties name empty");
+    return 1;
+  }
+
+  for (uint32_t gti = 0; gti < texture_list.size(); gti++) {
+    if (texture_list[gti].image_name == texture_properties.image_name) {
+      texture_list.erase(texture_list.begin() + gti);
+      break;
+    }
+  }
+
+  auto data = gloco->image_get_pixel_data(image, GL_RGBA, texture_properties.uv_pos, texture_properties.uv_size);
+
+  fan::vec2ui image_size = 0;
+  auto& image_data = gloco->image_get_data(image);
+  image_size = {
+    (uint32_t)(image_data.size.x * texture_properties.uv_size.x),
+    (uint32_t)(image_data.size.y * texture_properties.uv_size.y)
+  };
+
+  if ((int)image_size.x % 2 != 0 || (int)image_size.y % 2 != 0) {
+    fan::print_warning("failed to load, image size is not divideable by 2");
+    fan::print(texture_properties.image_name, image_size);
+    return 1;
+  }
+
+  texture_t t;
+  t.size = image_size;
+  t.decoded_data.resize(t.size.multiply() * 4);
+  std::memcpy(t.decoded_data.data(), data.get(), t.size.multiply() * 4);
+  t.image_name = texture_properties.image_name;
+  t.visual_output = texture_properties.visual_output;
+  t.min_filter = texture_properties.min_filter;
+  t.mag_filter = texture_properties.mag_filter;
+  t.group_id = texture_properties.group_id;
+
+  texture_list.push_back(t);
+  return 0;
+}

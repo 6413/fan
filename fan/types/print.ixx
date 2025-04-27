@@ -1,4 +1,4 @@
-#pragma once
+module;
 
 #include <fan/types/types.h>
 
@@ -10,10 +10,12 @@
   #include <stacktrace>
 #endif
 
-namespace fan {
+export module fan.types.print;
+
+export namespace fan {
 
   template <typename ...Args>
-  static constexpr void print(const Args&... args) {
+  constexpr void print(const Args&... args) {
     int idx = 0;
     ((std::cout << args << (++idx == sizeof...(args) ? "" : ", ")), ...);
     std::cout << '\n';
@@ -30,7 +32,7 @@ namespace fan {
   }
 
   template <typename ...Args>
-  static constexpr void printn8(const Args&... args) {
+  constexpr void printn8(const Args&... args) {
     int idx = 0;
     ((std::cout << convert_uint8(args) << (++idx == sizeof...(args) ? "" : ", ")), ...);
     std::cout << '\n';
@@ -41,12 +43,12 @@ namespace fan {
     ((std::cout << args), ...) << '\n';
   }
 
-  static void print_warning(const std::string& message) {
+  void print_warning(const std::string& message) {
     #ifndef fan_disable_warnings
     fan::print("fan warning: " + message);
     #endif
   }
-  static void print_warning_no_space(const std::string& message) {
+  void print_warning_no_space(const std::string& message) {
     #ifndef fan_disable_warnings
     fan::print_no_space("fan warning:", message);
     #endif
@@ -96,7 +98,7 @@ namespace fan {
 
   namespace debug {
 
-    static void print_stacktrace() {
+    void print_stacktrace() {
       
       #if defined(fan_std23)
       std::stacktrace st;

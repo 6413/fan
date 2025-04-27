@@ -108,8 +108,6 @@ namespace fan {
 	#define PR_abort throw_error_impl
 #endif
 
-	struct string;
-
 	constexpr auto uninitialized = -1;
 
 	// converts enum to int
@@ -139,10 +137,6 @@ namespace fan {
 
 		static constexpr bool value = test<T>(0);
 	};
-
-
-	template <typename T>
-	auto to_string(const T a_value, const int n = 2);
 
 	template <typename T>
 	constexpr T clamp(T value, T min, T max) {

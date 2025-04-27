@@ -2123,7 +2123,7 @@ shape data{
   fan::vec2i copy_buffer_region = 0;
   std::vector<shapes_t::global_t> copy_buffer;
   loco_t::camera_impl_t* camera = nullptr;
-  fan::function_t<void(int)> modify_cb = [](int) {};
+  std::function<void(int)> modify_cb = [](int) {};
 
   std::string previous_file_name;
   loco_t::shape_t visual_line;

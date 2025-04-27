@@ -24,8 +24,27 @@
 
 //
 #if !defined(fan_gui)
-  #include <fan/graphics/graphics.h>
+  #include <fan/graphics/loco.h>
+  import fan.graphics;
 #else
-  #include <fan/graphics/graphics.h> // for now
+  #include <fan/graphics/loco.h>
+  import fan.graphics;
   import fan.graphics.gui;
 #endif
+#if defined(fan_physics)
+  #include <fan/graphics/physics_shapes.hpp>
+#endif
+
+struct fan_window_loop_t{
+  fan_window_loop_t(const auto& lambda) {
+    gloco->loop(lambda);
+  }
+};
+
+// static called inside scope, so its fine for linking
+#define fan_window_loop \
+  static fan_window_loop_t __fan_window_loop_entry = [&]()
+
+#define fan_window_close() \
+  gloco->close(); \
+  return

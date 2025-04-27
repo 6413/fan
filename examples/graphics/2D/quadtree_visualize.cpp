@@ -24,7 +24,7 @@ int main() {
   fan::trees::quadtree_t* qtp = &qt;
 
   int index = 0;
-  fan::function_t<void(fan::trees::quadtree_t* qtp)> l;
+  std::function<void(fan::trees::quadtree_t* qtp)> l;
   l = [&l, &rectangles, &index, &points](fan::trees::quadtree_t* qtp) -> void {
     // put this inside else divided 
     rectangles.push_back(fan::graphics::rectangle_t{ {
