@@ -12,7 +12,7 @@
 #include <fan/stb/stb_image.h>
 //#include <fan/stb/stb_image_write.h>
 
-#include <fan/io/file.h>
+import fan.io.file;
 
 namespace fan {
     namespace stb {

@@ -45,7 +45,7 @@ namespace fan {
 
 #define fan_variant_functions(...) \
  inline static auto name##__##lambdaaa = [](__VA_ARGS__){ }; \
-  using tupl = fan::function_traits<decltype(name##__##lambdaaa)>::tupl; \
+  using tupl = std::functionraits<decltype(name##__##lambdaaa)>::tupl; \
   static constexpr std::size_t len = std::tuple_size_v<tupl>; \
   \
   union { \

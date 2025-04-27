@@ -1,6 +1,8 @@
 #include "system.h"
 
-#include <fan/types/print.h>
+import fan.types.print;
+
+import fan.window.input_common;
 
 void fan::sys::set_utf8_cout() {
    #ifdef fan_platform_windows
@@ -357,7 +359,7 @@ inline fan::vec2i fan::sys::input::get_mouse_position() {
 }
 
 inline auto fan::sys::input::get_key_state(int key) {
-  return GetAsyncKeyState(fan::window_input::convert_fan_to_scancode(key));
+  return GetAsyncKeyState(fan::window::input::convert_fan_to_scancode(key));
 }
 
 inline void fan::sys::input::set_mouse_position(const fan::vec2i& position) {
@@ -408,7 +410,7 @@ inline void fan::sys::input::send_mouse_event(int key, fan::mouse_state state) {
   }
 }
 
-inline void fan::sys::input::send_keyboard_event(int key, fan::keyboard_state state) {
+inline void fan::sys::input::send_keyboard_event(int key, fan::keyboard_state_t state) {
   INPUT input;
 
   input.type = INPUT_KEYBOARD;
@@ -417,7 +419,7 @@ inline void fan::sys::input::send_keyboard_event(int key, fan::keyboard_state st
   input.ki.dwExtraInfo = 0;
   input.ki.wVk = 0;
 
-  input.ki.wScan = fan::window_input::convert_fan_to_scancode(key);
+  input.ki.wScan = fan::window::input::convert_fan_to_scancode(key);
 
   input.ki.dwFlags = (state == fan::keyboard_state::press ? 0 : KEYEVENTF_KEYUP) | KEYEVENTF_SCANCODE;
 
@@ -492,7 +494,7 @@ inline void fan::sys::input::send_string(const std::string& str, uint32_t delay_
 
 // creates another thread, non blocking
 
-inline void fan::sys::input::listen_keyboard(fan::function_t<void(int key, fan::keyboard_state keyboard_state, bool action)> input_callback_) {
+inline void fan::sys::input::listen_keyboard(std::function<void(int key, fan::keyboard_state_t keyboard_state, bool action)> input_callback_) {
 
   input_callback = input_callback_;
 
@@ -502,7 +504,7 @@ inline void fan::sys::input::listen_keyboard(fan::function_t<void(int key, fan::
 
 // BLOCKS
 
-inline void fan::sys::input::listen_mouse(fan::function_t<void(const fan::vec2i& position)> mouse_move_callback_) {
+inline void fan::sys::input::listen_mouse(std::function<void(const fan::vec2i& position)> mouse_move_callback_) {
 
   mouse_move_callback = mouse_move_callback_;
 
@@ -548,9 +550,9 @@ inline LRESULT fan::sys::input::keyboard_callback(int nCode, WPARAM wParam, LPAR
 {
   KBDLLHOOKSTRUCT hooked_key = *((KBDLLHOOKSTRUCT*)lParam);
 
-  auto key = fan::window_input::convert_scancode_to_fan(hooked_key.scanCode);
+  auto key = fan::window::input::convert_scancode_to_fan(hooked_key.scanCode);
 
-  auto state = (fan::keyboard_state)((nCode == HC_ACTION) && ((wParam == WM_SYSKEYDOWN) || (wParam == WM_KEYDOWN)));
+  auto state = (fan::keyboard_state_t)((nCode == HC_ACTION) && ((wParam == WM_SYSKEYDOWN) || (wParam == WM_KEYDOWN)));
 
   if (state == fan::keyboard_state::press && !reset_keys[key]) {
     key_down[key] = true;

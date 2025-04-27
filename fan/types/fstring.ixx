@@ -1,18 +1,19 @@
-#pragma once
+module;
 
 #include <vector>
 #include <cstring>
 #include <memory>
 #include <string>
 
-#include <fan/types/print.h> // for throw_error with msg
+import fan.types.print; // for throw_error with msg
 #include <fan/types/vector.h>
 
+export module fan.types.fstring;
 
-namespace fan {
+export namespace fan {
 
   template <typename T>
-  auto to_string(const T a_value, const int n) {
+  auto to_string(const T a_value, const int n = 2) {
     std::ostringstream out;
     out.precision(n);
     out << std::fixed << a_value;
@@ -48,11 +49,13 @@ namespace fan {
   // }
 }
 
-namespace fan {
+export namespace fan {
   struct string : public std::string {
 
     using type_t = std::string;
     using type_t::basic_string;
+
+    string() = default;
 
     string(const std::string& str) : type_t(str) {}
     template <typename T>
@@ -218,9 +221,26 @@ namespace fan {
     data = vector_read_data<T>(vec, off);
   }
 
-  std::string trim(const std::string& str);
+  std::string trim(const std::string& str) {
+    size_t first = str.find_first_not_of(' ');
+    if (std::string::npos == first) {
+      return str;
+    }
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, (last - first + 1));
+  }
 
-  std::vector<std::string> split(const std::string& s);
+  std::vector<std::string> split(const std::string& s) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, ',')) {
+      std::istringstream tokenStream2(token);
+      std::getline(tokenStream2, token, '=');
+      tokens.push_back(fan::trim(token));
+    }
+    return tokens;
+  }
 
   #define fan_enum_string_runtime(m_name, ...) \
     enum m_name { __VA_ARGS__ }; \

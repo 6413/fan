@@ -85,7 +85,7 @@ struct turret_t {
   f32_t range;
   f32_t damage;
   fan::time::clock damage_time;
-  fan::function_t<void()> dt_action;
+  std::function<void()> dt_action;
   loco_t::shape_t visual;
 };
 
@@ -152,13 +152,13 @@ struct gui_t {
   std::deque<bug_t> bugs;
   std::vector<turret_t> turrets;
 
-  inline static fan::function_t<void()> bug_zapper_action = [&] {
+  inline static std::function<void()> bug_zapper_action = [&] {
 
   };
-  inline static fan::function_t<void()> insecticide_sprayer_action = [&] {
+  inline static std::function<void()> insecticide_sprayer_action = [&] {
 
   };
-  inline static fan::function_t<void()> sticky_trap_action = [&] {
+  inline static std::function<void()> sticky_trap_action = [&] {
 
   };
 

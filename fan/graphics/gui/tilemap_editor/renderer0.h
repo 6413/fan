@@ -3,8 +3,8 @@
 
 struct fte_renderer_t : fte_loader_t {
 
-  std::unordered_map<std::string, fan::function_t<void(tile_draw_data_t&, fte_t::tile_t&)>> id_callbacks;
-  std::unordered_map<std::string, fan::function_t<void(map_list_data_t::physics_entities_t&, compiled_map_t::physics_data_t&)>> sensor_id_callbacks;
+  std::unordered_map<std::string, std::function<void(tile_draw_data_t&, fte_t::tile_t&)>> id_callbacks;
+  std::unordered_map<std::string, std::function<void(map_list_data_t::physics_entities_t&, compiled_map_t::physics_data_t&)>> sensor_id_callbacks;
 
   fan::vec2i view_size = 1;
   fan::graphics::camera_t* camera = nullptr;

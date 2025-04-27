@@ -246,7 +246,7 @@ namespace fan {
       loco_t::cuda_textures_t::graphics_resource_t image_y_resource;
       loco_t::cuda_textures_t::graphics_resource_t image_vu_resource;
 
-      fan::function_t<void()> sequence_cb = [] {};
+      std::function<void()> sequence_cb = [] {};
     };
   }
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.h>
+
 #include <unordered_map>
 
 #ifndef fan_platform_android
@@ -12,7 +14,8 @@
 #include <webp/encode.h>
 #include <webp/decode.h>
 
-#include <fan/io/file.h>
+import fan.types.print;
+import fan.io.file;
 
 namespace fan {
 	namespace webp {

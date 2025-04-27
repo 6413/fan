@@ -1,4 +1,6 @@
-#pragma once
+module;
+
+#include <fan/types/types.h>
 
 #ifdef fan_platform_windows
 
@@ -21,22 +23,25 @@
 #endif
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>  // Add this
+#include <GLFW/glfw3native.h>
 
-namespace fan {
+export module fan.window.input;
 
-  enum class keyboard_state {
-    release = GLFW_RELEASE,
-    press = GLFW_PRESS,
-    repeat = GLFW_REPEAT
+export namespace fan {
+  struct keyboard_state {
+    enum {
+      release = GLFW_RELEASE,
+      press = GLFW_PRESS,
+      repeat = GLFW_REPEAT
+    };
   };
+  using keyboard_state_t = decltype(keyboard_state::release);
 
   enum class mouse_state {
     release = GLFW_RELEASE,
     press = GLFW_PRESS,
     repeat = GLFW_REPEAT
   };
-
 
   enum input {
     key_space = GLFW_KEY_SPACE,
@@ -497,16 +502,15 @@ namespace fan {
     }
   }
 
-
 	namespace special_lparam {
-		static constexpr auto lshift_lparam_down = 0x2a0001;
-		static constexpr auto rshift_lparam_down = 0x360001;
-		static constexpr auto lctrl_lparam_down = 0x1d0001;
-		static constexpr auto rctrl_lparam_down = 0x11d0001;
-
-		static constexpr auto lshift_lparam_up = 0xC02A0001;
-		static constexpr auto rshift_lparam_up = 0xC0360001;
-		static constexpr auto lctrl_lparam_up = 0xC01D0001;
-		static constexpr auto rctrl_lparam_up = 0xC11D0001;
+		constexpr auto lshift_lparam_down = 0x2a0001;
+		constexpr auto rshift_lparam_down = 0x360001;
+		constexpr auto lctrl_lparam_down = 0x1d0001;
+		constexpr auto rctrl_lparam_down = 0x11d0001;
+    
+		constexpr auto lshift_lparam_up = 0xC02A0001;
+		constexpr auto rshift_lparam_up = 0xC0360001;
+		constexpr auto lctrl_lparam_up = 0xC01D0001;
+		constexpr auto rctrl_lparam_up = 0xC11D0001;
 	}
 }

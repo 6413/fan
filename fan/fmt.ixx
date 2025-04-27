@@ -1,6 +1,10 @@
-#pragma once
+module;
 
-#include <fan/types/fstring.h>
+#include <fan/types/types.h>
+#include <fan/types/vector.h>
+
+import fan.types.print;
+import fan.types.fstring;
 
 //std::format doesnt exist for clang in linux
 #define FMT_HEADER_ONLY
@@ -9,29 +13,60 @@
 
 #include <vector>
 
-namespace fan {
+// std::quoted
+#include <iomanip>
 
-  std::vector<std::string> split(std::string str, std::string token);
-  std::vector<std::string> split_quoted(const std::string& input);
+export module fan.fmt;
+
+export namespace fan {
+
+  std::vector<std::string> split(std::string str, std::string token) {
+    std::vector<std::string>result;
+    while (str.size()) {
+      std::size_t index = str.find(token);
+      if (index != std::string::npos) {
+        result.push_back(str.substr(0, index));
+        str = str.substr(index + token.size());
+        if (str.size() == 0)result.push_back(str);
+      }
+      else {
+        result.push_back(str);
+        str = "";
+      }
+    }
+    return result;
+  }
+
+  std::vector<std::string> split_quoted(const std::string& input) {
+    std::vector<std::string> args;
+    std::istringstream stream(input);
+    std::string arg;
+
+    while (stream >> std::quoted(arg)) {
+      args.push_back(arg);
+    }
+
+    return args;
+  }
 
   template <typename... T>
-  static FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
+  FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
     -> fan::string {
     return fmt::vformat(fmt, fmt::make_format_args(args...));
   }
 
   template <typename... args_t>
-  constexpr static auto print_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
+  constexpr auto print_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
     fan::print(fmt::format(fmt, std::forward<args_t>(args)...));
   }
 
   template <typename... args_t>
-  constexpr static auto printn8_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
+  constexpr auto printn8_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
     fan::printn8(fmt::format(fmt, std::forward<args_t>(args)...));
   }
 
   template <typename... args_t>
-  constexpr static auto throw_error_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
+  constexpr auto throw_error_format(fmt::format_string<args_t...> fmt, args_t&&... args) {
     fan::print(fmt::format(fmt, std::forward<args_t>(args)...));
     throw_error_impl();
   }

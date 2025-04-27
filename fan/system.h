@@ -1,8 +1,7 @@
 #pragma once
 
-#include <fan/types/function.h>
-#include <fan/window/window_input.h>
-#include <fan/window/window_input_common.h>
+import fan.window.input;
+
 #include <fan/types/vector.h>
 
 #if defined(fan_platform_windows)
@@ -83,15 +82,15 @@ namespace fan {
 
         void send_mouse_event(int key, fan::mouse_state state);
 
-        static void send_keyboard_event(int key, fan::keyboard_state state);
+        static void send_keyboard_event(int key, fan::keyboard_state_t state);
 
         void send_string(const std::string & str, uint32_t delay_between);
 
         // creates another thread, non blocking
-        void listen_keyboard(fan::function_t<void(int key, fan::keyboard_state keyboard_state, bool action)> input_callback_);
+        void listen_keyboard(std::function<void(int key, fan::keyboard_state_t keyboard_state, bool action)> input_callback_);
 
         // BLOCKS
-        void listen_mouse(fan::function_t<void(const fan::vec2i& position)> mouse_move_callback_);
+        void listen_mouse(std::function<void(const fan::vec2i& position)> mouse_move_callback_);
 
       //private:
 
@@ -105,8 +104,8 @@ namespace fan {
         static inline HHOOK keyboard_hook;
         static inline HHOOK mouse_hook;
 
-        static inline fan::function_t<void(uint16_t, fan::keyboard_state, bool action)> input_callback = [](uint16_t, fan::keyboard_state, bool action) {};
-        static inline fan::function_t<void(const fan::vec2i& position)> mouse_move_callback = [](const fan::vec2i& position) {};
+        static inline std::function<void(uint16_t, fan::keyboard_state_t, bool action)> input_callback = [](uint16_t, fan::keyboard_state_t, bool action) {};
+        static inline std::function<void(const fan::vec2i& position)> mouse_move_callback = [](const fan::vec2i& position) {};
 
       };
 

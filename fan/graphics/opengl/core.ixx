@@ -5,11 +5,11 @@ module;
 #include <fan/graphics/opengl/init.h>
 #include <fan/graphics/image_load.h>
 
-#include <fan/window/window.h>
+import fan.window;
 
 #include <fan/physics/collision/rectangle.h>
 
-#include <fan/types/fstring.h>
+import fan.types.fstring;
 
 import fan.camera;
 import fan.color;

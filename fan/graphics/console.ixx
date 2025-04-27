@@ -1,15 +1,19 @@
 module;
 
-#if defined(fan_gui)
-
-import fan.color;
-
-#include <fan/imgui/text_editor.h>
+#include <fan/types/types.h>
 #include <fan/graphics/types.h>
 
-#include <fan/fmt.h>
-#include <regex>
+#if defined(fan_gui)
+
+#include <fan/imgui/text_editor.h>
 #endif
+
+#include <regex>
+
+#include <functional>
+
+import fan.color;
+import fan.fmt;
 
 export module fan.console;
 
@@ -41,7 +45,7 @@ export namespace fan {
     };
 
     std::function<void(const output_t&)> output_cb = [](const auto&) {};
-    std::function<void(const fan::string&, const fan::color& color)> output_colored_cb = [](const fan::string&, const fan::color& color) {};
+    std::function<void(const std::string&, const fan::color& color)> output_colored_cb = [](const std::string&, const fan::color& color) {};
 
     inline fan::commands_t::command_t& add(const std::string& cmd, auto func) {
       command_t command;
@@ -56,13 +60,13 @@ export namespace fan {
       if (arg0_off == std::string::npos) {
         arg0_off = cmd.size();
       }
-      fan::string arg0 = cmd.substr(0, arg0_off);
+      std::string arg0 = cmd.substr(0, arg0_off);
       auto found = func_table.find(arg0);
       if (found == func_table.end()) {
         commands_t::print_command_not_found(cmd);
         return command_errors_e::function_not_found;
       }
-      fan::string rest;
+      std::string rest;
       if (arg0_off + 2 > cmd.size()) {
         rest = "";
       }
@@ -150,7 +154,7 @@ export namespace fan {
       };
       commands.output_cb = l;
 
-      static auto lc = [&](const fan::string& text, const fan::color& color) {
+      static auto lc = [&](const std::string& text, const fan::color& color) {
         editor.SetReadOnly(false);
         editor.SetCursorPosition(TextEditor::Coordinates(editor.GetTotalLines(), 0));
         editor.MoveEnd();

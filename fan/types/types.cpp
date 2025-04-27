@@ -1,6 +1,6 @@
 #include "types.h"
 
-#include <fan/types/print.h>
+import fan.types.print;
 
 void fan::assert_test(bool test) {
   if (!test) {

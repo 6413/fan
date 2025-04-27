@@ -50,7 +50,7 @@ int main(int arg) {
   }
   fan::print("assign 0", c.elapsed());
 #elif defined(test_assign) && test_assign == 1
-  std::vector<fan::function_t<int()>> cpp;
+  std::vector<std::function<int()>> cpp;
   cpp.resize(count);
   c.start();
   uint32_t x = 0;

@@ -21,7 +21,11 @@
 #include _WITCH_PATH(FS/FS.h)
 #include _WITCH_PATH(T/T.h)
 
-#include _FAN_PATH(io/file.h)
+import fan.types.print;
+import fan.io.file;
+
+// transform
+#include <algorithm>
 
 #include <opus/opus.h>
 
