@@ -1,7 +1,9 @@
 #pragma once
 
 // for shapes
-#include <fan/graphics/gui/gui.h>
+
+#include <fan/graphics/graphics.h>
+
 #include <fan/physics/b2_integration.hpp>
 
 #include <array>

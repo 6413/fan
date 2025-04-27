@@ -1,5 +1,8 @@
 #pragma once
 
+import fan.color;
+import fan.graphics.opengl.core;
+
 #define loco_audio
 
 #include <fan/types/types.h>
@@ -54,16 +57,17 @@
 
 #include <fan/physics/collision/rectangle.h>
 
-#include <fan/graphics/algorithm/FastNoiseLite.h>
+//#include <fan/graphics/algorithm/FastNoiseLite.h>
 
-#include <fan/graphics/opengl/core.h>
+
+#include <fan/graphics/opengl/init.h>
+#include <fan/graphics/common_context.h>
 #if defined(fan_vulkan)
 #include <fan/graphics/vulkan/core.h>
 #endif
 
-
 #if defined(fan_gui)
-  #include <fan/graphics/console.h>
+  import fan.console;
 #endif
 
 #if defined(fan_json)
@@ -893,7 +897,18 @@ public:
   typedef void (*draw_cb)(uint8_t draw_range);
   typedef void (*set_line_cb)(loco_t::shape_t* shape, const fan::vec2& src, const fan::vec2& dst);
   typedef void (*set_line3_cb)(loco_t::shape_t* shape, const fan::vec3& src, const fan::vec3& dst);
+#if defined(fan_gui)
+  #define BLL_set_SafeNext 1
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_prefix gui_draw_cb
+  #include <fan/fan_bll_preset.h>
+  #define BLL_set_Link 1
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType fan::function_t<void()>
+  #include <BLL/BLL.h>
 
+  gui_draw_cb_t gui_draw_cb;
+#endif
   struct functions_t {
     push_back_cb push_back;
     get_position_cb get_position;
@@ -2523,7 +2538,14 @@ namespace fan {
 #if defined(fan_gui)
   namespace graphics {
     namespace gui {
-      void process_loop();
+      inline void process_loop() {
+        auto it = gloco->gui_draw_cb.GetNodeFirst();
+        while (it != gloco->gui_draw_cb.dst) {
+          gloco->gui_draw_cb.StartSafeNext(it);
+          gloco->gui_draw_cb[it]();
+          it = gloco->gui_draw_cb.EndSafeNext();
+        }
+      }
     }
   }
 #endif

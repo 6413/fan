@@ -57,7 +57,7 @@ namespace fan {
         }
         init = 0;
         if (GLenum err = glewInit() != GLEW_OK) {
-          fan::throw_error(std::string("glew init error:") + (const char*)glewGetErrorString(err));
+          fan::throw_error(std::string("glew init error:") + std::string((const char*)glewGetErrorString(err)));
         }
       }
     };

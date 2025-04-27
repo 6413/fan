@@ -26,6 +26,6 @@
 #if !defined(fan_gui)
   #include <fan/graphics/graphics.h>
 #else
-  #include <fan/graphics/gui/gui.h>
+  #include <fan/graphics/graphics.h> // for now
+  import fan.graphics.gui;
 #endif
-

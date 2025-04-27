@@ -28,7 +28,6 @@
 #include <vector>
 #include <set>
 
-#include <fan/graphics/camera.h>
 #include <fan/graphics/image_load.h>
 
 

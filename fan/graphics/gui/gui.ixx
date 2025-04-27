@@ -1,8 +1,19 @@
-#pragma once
+module;
 
+#if defined(fan_gui)
 #include <fan/graphics/graphics.h>
 
-namespace fan {
+#include <fan/types/fstring.h>
+
+import fan.color;
+
+#endif
+
+export module fan.graphics.gui;
+
+#if defined(fan_gui)
+
+export namespace fan {
   namespace graphics {
     #if defined(fan_gui)
       namespace gui {
@@ -48,15 +59,29 @@ namespace fan {
           child_flags_nav_flattened = ImGuiChildFlags_NavFlattened,
         };
 
-        bool begin(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0);
-        void end();
-        bool begin_child(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0);
-        void end_child();
+        bool begin(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0) {
+          return ImGui::Begin(window_name.c_str(), p_open, window_flags);
+        }
+        void end() {
+          ImGui::End();
+        }
+        bool begin_child(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0) {
+          return ImGui::BeginChild(window_name.c_str(), size, window_flags);
+        }
+        void end_child() {
+          ImGui::EndChild();
+        }
 
-        void same_line(f32_t offset_from_start_x = 0.f, f32_t spacing_w = -1.f);
-        void new_line();
+        void same_line(f32_t offset_from_start_x = 0.f, f32_t spacing_w = -1.f) {
+          ImGui::SameLine(offset_from_start_x, spacing_w);
+        }
+        void new_line() {
+          ImGui::NewLine();
+        }
 
-        f32_t get_text_line_height_with_spacing();
+        f32_t get_text_line_height_with_spacing() {
+          return ImGui::GetTextLineHeightWithSpacing();
+        }
 
         using selectable_flag_t = int;
         enum {
@@ -69,8 +94,12 @@ namespace fan {
           selectable_flags_highlight = ImGuiSelectableFlags_Highlight,          // Make the item be displayed as if it is hovered.
         };
 
-        bool selectable(const std::string& label, bool selected = false, selectable_flag_t flags = 0, const fan::vec2& size = fan::vec2(0, 0));
-        bool selectable(const std::string& label, bool* p_selected, selectable_flag_t flags = 0, const fan::vec2& size = fan::vec2(0, 0));
+        bool selectable(const std::string& label, bool selected = false, selectable_flag_t flags = 0, const fan::vec2& size = fan::vec2(0, 0)) {
+          return ImGui::Selectable(label.c_str(), selected, flags, size);
+        }
+        bool selectable(const std::string& label, bool* p_selected, selectable_flag_t flags = 0, const fan::vec2& size = fan::vec2(0, 0)) {
+          return ImGui::Selectable(label.c_str(), p_selected, flags, size);
+        }
 
         using table_flags_t = int;
         enum {
@@ -172,23 +201,41 @@ namespace fan {
 
         };
 
-        bool begin_table(const std::string& str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f);
-        void end_table();
+        bool begin_table(const std::string& str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f) {
+          return ImGui::BeginTable(str_id.c_str(), columns, flags, outer_size, inner_width);
+        }
 
-        void table_next_row(table_row_flags_t row_flags = 0, f32_t min_row_height = 0.0f);
-        bool table_next_column();
+        void end_table() {
+          ImGui::EndTable();
+        }
 
-        void columns(int count = 1, const char* id = nullptr, bool borders = true);
+        void table_next_row(table_row_flags_t row_flags = 0, f32_t min_row_height = 0.0f) {
+          ImGui::TableNextRow(row_flags, min_row_height);
+        }
+        bool table_next_column() {
+          return ImGui::TableNextColumn();
+        }
 
-        void next_column();
+        void columns(int count = 1, const char* id = nullptr, bool borders = true) {
+          ImGui::Columns(count, id, borders);
+        }
+
+        void next_column() {
+          ImGui::NextColumn();
+}
 
         /// <summary>
         /// RAII containers for gui windows.
         /// </summary>
-        struct window_t{
-          window_t(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0);
-          ~window_t();
-          explicit operator bool() const;
+        struct window_t {
+          window_t(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0)
+            : is_open(fan::graphics::gui::begin(window_name.c_str(), p_open, window_flags)) {}
+          ~window_t() {
+            fan::graphics::gui::end();
+          }
+          explicit operator bool() const {
+            return is_open;
+          }
 
         private:
           bool is_open;
@@ -196,10 +243,15 @@ namespace fan {
         /// <summary>
         /// RAII containers for gui child windows.
         /// </summary>
-        struct child_window_t{
-          child_window_t(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0);
-          ~child_window_t();
-          explicit operator bool() const;
+        struct child_window_t {
+          child_window_t(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0)
+            : is_open(ImGui::BeginChild(window_name.c_str(), size, window_flags)) {}
+          ~child_window_t() {
+            ImGui::EndChild();
+          }
+          explicit operator bool() const {
+            return is_open;
+          }
 
         private:
           bool is_open;
@@ -208,10 +260,15 @@ namespace fan {
         /// <summary>
         /// RAII containers for gui tables.
         /// </summary>
-        struct table_t{
-          table_t(const std::string& str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f);
-          ~table_t();
-          explicit operator bool() const;
+        struct table_t {
+          table_t(const std::string& str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f)
+            : is_open(ImGui::BeginTable(str_id.c_str(), columns, flags, outer_size, inner_width)) {}
+          ~table_t() {
+            ImGui::EndTable();
+          }
+          explicit operator bool() const {
+            return is_open;
+          }
 
         private:
           bool is_open;
@@ -243,14 +300,20 @@ namespace fan {
               __struct_var.once--;  \
             )
 
-        bool button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0));
+        bool button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0)){
+  return ImGui::Button(label.c_str(), size);
+}
 
         /// <summary>
         /// Draws the specified text, with its position influenced by other GUI elements.
         /// </summary>
         /// <param name="text">The text to draw.</param>
         /// <param name="color">The color of the text (defaults to white).</param>
-        void text(const std::string& text, const fan::color& color = fan::colors::white);
+        void text(const std::string& text, const fan::color& color = fan::colors::white){
+  ImGui::PushStyleColor(ImGuiCol_Text, color);
+  ImGui::Text("%s", text.c_str());
+  ImGui::PopStyleColor();
+}
 
         /// <summary>
         /// Draws the specified text at a given position on the screen.
@@ -258,7 +321,12 @@ namespace fan {
         /// <param name="text">The text to draw.</param>
         /// <param name="position">The position of the text.</param>
         /// <param name="color">The color of the text (defaults to white).</param>
-        void text_at(const std::string& text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white);
+        void text_at(const std::string& text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white){
+  ImGui::SetCursorPos(position);
+  ImGui::PushStyleColor(ImGuiCol_Text, color);
+  ImGui::Text("%s", text.c_str());
+  ImGui::PopStyleColor();
+}
 
         /// <summary>
         /// Draws text to bottom right.
@@ -266,7 +334,16 @@ namespace fan {
         /// <param name="text">The text to draw.</param>
         /// <param name="color">The color of the text (defaults to white).</param>
         /// <param name="offset">Offset from the bottom-right corner.</param>
-        void text_bottom_right(const std::string& text, const fan::color& color = fan::colors::white, const fan::vec2& offset = 0);
+        void text_bottom_right(const std::string& text, const fan::color& color = fan::colors::white, const fan::vec2& offset = 0){
+  ImVec2 text_pos;
+  ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
+  ImVec2 window_pos = ImGui::GetWindowPos();
+  ImVec2 window_size = ImGui::GetWindowSize();
+
+  text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
+  text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
+  fan::graphics::gui::text_at(text, text_pos + offset, color);
+}
 
 
         using slider_flags_t = int;
@@ -283,17 +360,37 @@ namespace fan {
         };
 
 
-        bool drag_float(const std::string& label, f32_t* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0);
-        bool drag_float(const std::string& label, fan::vec2* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f,  const std::string& format = "%.3f", slider_flags_t flags = 0);
-        bool drag_float(const std::string& label, fan::vec3* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f,  const std::string& format = "%.3f", slider_flags_t flags = 0);
-        bool drag_float(const std::string& label, fan::vec4* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f,  const std::string& format = "%.3f", slider_flags_t flags = 0);
-        bool drag_float(const std::string& label, fan::quat* q, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f,  const std::string& format = "%.3f", slider_flags_t flags = 0);
-        bool drag_float(const std::string& label, fan::color* c, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0);
+        bool drag_float(const std::string& label, f32_t* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::DragFloat(label.c_str(), v, v_speed, v_min, v_max, format.c_str(), flags);
+        }
+        bool drag_float(const std::string& label, fan::vec2* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::DragFloat2(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
+        }
+        bool drag_float(const std::string& label, fan::vec3* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::DragFloat3(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
+        }
+        bool drag_float(const std::string& label, fan::vec4* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::DragFloat4(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
+        }
+        bool drag_float(const std::string& label, fan::quat* q, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::DragFloat4(label.c_str(), q->data(), v_speed, v_min, v_max, format.c_str(), flags);
+        }
+        bool drag_float(const std::string& label, fan::color* c, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::DragFloat4(label.c_str(), c->data(), v_speed, v_min, v_max, format.c_str(), flags);
+        }
 
-        bool drag_int(const std::string& label, int* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0);
-        bool drag_int(const std::string& label, fan::vec2i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0);
-        bool drag_int(const std::string& label, fan::vec3i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0);
-        bool drag_int(const std::string& label, fan::vec4i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0);
+        bool drag_int(const std::string& label, int* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::DragInt(label.c_str(), v, v_speed, v_min, v_max, format.c_str(), flags);
+        }
+        bool drag_int(const std::string& label, fan::vec2i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::DragInt2(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
+        }
+        bool drag_int(const std::string& label, fan::vec3i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::DragInt3(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
+        }
+        bool drag_int(const std::string& label, fan::vec4i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::DragInt4(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
+        }
 
         using input_text_flags_t = int;
         enum {
@@ -356,16 +453,79 @@ namespace fan {
 
         using input_text_callback_t = ImGuiInputTextCallback;
 
-        bool input_text(const std::string& label, std::string* buf, input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
-        bool input_text_multiline(const std::string& label, std::string* buf, const ImVec2& size = ImVec2(0, 0), input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
-        bool input_float(const std::string& label, f32_t* v, f32_t step = 0.0f, f32_t step_fast = 0.0f, const char* format = "%.3f", input_text_flags_t flags = 0);
-        bool input_float(const std::string& label, fan::vec2* v, const char* format = "%.3f", input_text_flags_t flags = 0);
-        bool input_float(const std::string& label, fan::vec3* v, const char* format = "%.3f", input_text_flags_t flags = 0);
-        bool input_float(const std::string& label, fan::vec4* v, const char* format = "%.3f", input_text_flags_t flags = 0);
-        bool input_int(const std::string& label,  int* v, int step = 1, int step_fast = 100, input_text_flags_t flags = 0);
-        bool input_int(const std::string& label, fan::vec2i* v, input_text_flags_t flags = 0);
-        bool input_int(const std::string& label, fan::vec3i* v, input_text_flags_t flags = 0);
-        bool input_int(const std::string& label, fan::vec4i* v, input_text_flags_t flags = 0);
+        struct InputTextCallback_UserData {
+          std::string* Str;
+          ImGuiInputTextCallback  ChainCallback;
+          void* ChainCallbackUserData;
+        };
+
+        //imgui_stdlib.cpp:
+        inline int InputTextCallback(ImGuiInputTextCallbackData* data) {
+          InputTextCallback_UserData* user_data = (InputTextCallback_UserData*)data->UserData;
+          if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+          {
+            // Resize string callback
+            // If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back to what we want.
+            std::string* str = user_data->Str;
+            IM_ASSERT(data->Buf == str->c_str());
+            str->resize(data->BufTextLen);
+            data->Buf = (char*)str->c_str();
+          }
+          else if (user_data->ChainCallback)
+          {
+            // Forward to user callback, if any
+            data->UserData = user_data->ChainCallbackUserData;
+            return user_data->ChainCallback(data);
+          }
+          return 0;
+        }
+
+
+        bool input_text(const std::string& label, std::string* buf, input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr) {
+          IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+          flags |= ImGuiInputTextFlags_CallbackResize;
+
+          InputTextCallback_UserData cb_user_data;
+          cb_user_data.Str = buf;
+          cb_user_data.ChainCallback = callback;
+          cb_user_data.ChainCallbackUserData = user_data;
+          return ImGui::InputText(label.c_str(), (char*)buf->c_str(), buf->capacity() + 1, flags, InputTextCallback, &cb_user_data);
+        }
+        bool input_text_multiline(const std::string& label, std::string* buf, const ImVec2& size = ImVec2(0, 0), input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr) {
+          IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+          flags |= ImGuiInputTextFlags_CallbackResize;
+
+          InputTextCallback_UserData cb_user_data;
+          cb_user_data.Str = buf;
+          cb_user_data.ChainCallback = callback;
+          cb_user_data.ChainCallbackUserData = user_data;
+          return ImGui::InputTextMultiline(label.c_str(), (char*)buf->c_str(), buf->capacity() + 1, size, flags, InputTextCallback, &cb_user_data);
+        }
+
+        bool input_float(const std::string& label, f32_t* v, f32_t step = 0.0f, f32_t step_fast = 0.0f, const char* format = "%.3f", input_text_flags_t flags = 0) {
+          return ImGui::InputFloat(label.c_str(), v, step, step_fast, format, flags);
+        }
+        bool input_float(const std::string& label, fan::vec2* v, const char* format = "%.3f", input_text_flags_t flags = 0) {
+          return ImGui::InputFloat2(label.c_str(), v->data(), format, flags);
+        }
+        bool input_float(const std::string& label, fan::vec3* v, const char* format = "%.3f", input_text_flags_t flags = 0) {
+          return ImGui::InputFloat3(label.c_str(), v->data(), format, flags);
+        }
+        bool input_float(const std::string& label, fan::vec4* v, const char* format = "%.3f", input_text_flags_t flags = 0) {
+          return ImGui::InputFloat4(label.c_str(), v->data(), format, flags);
+        }
+        bool input_int(const std::string& label, int* v, int step = 1, int step_fast = 100, input_text_flags_t flags = 0) {
+          return ImGui::InputInt(label.c_str(), v, step, step_fast, flags);
+        }
+        bool input_int(const std::string& label, fan::vec2i* v, input_text_flags_t flags = 0) {
+          return ImGui::InputInt2(label.c_str(), v->data(), flags);
+        }
+        bool input_int(const std::string& label, fan::vec3i* v, input_text_flags_t flags = 0) {
+          return ImGui::InputInt3(label.c_str(), v->data(), flags);
+        }
+        bool input_int(const std::string& label, fan::vec4i* v, input_text_flags_t flags = 0) {
+          return ImGui::InputInt4(label.c_str(), v->data(), flags);
+        }
 
         using color_edit_flags_t = int;
         enum {
@@ -401,13 +561,29 @@ namespace fan {
           color_edit_flags_default_options = ImGuiColorEditFlags_DefaultOptions_, // Uint8 | DisplayRGB | InputRGB | PickerHueBar combination.
         };
 
-        bool color_edit3(const std::string& label, fan::color* color, color_edit_flags_t flags = 0);
-        bool color_edit3(const std::string& label, fan::vec3* color, color_edit_flags_t flags = 0);
-        bool color_edit4(const std::string& label, fan::color* color, color_edit_flags_t flags = 0);
+        bool color_edit3(const std::string& label, fan::color* color, color_edit_flags_t flags = 0) {
+          return ImGui::ColorEdit3(label.c_str(), color->data(), flags);
+        }
 
-        fan::vec2 get_window_size();
-        void set_next_window_pos(const fan::vec2& position);
-        void set_next_window_size(const fan::vec2& size);
+        bool color_edit3(const std::string& label, fan::vec3* color, color_edit_flags_t flags= 0) {
+          return ImGui::ColorEdit3(label.c_str(), color->data(), flags);
+        }
+
+        bool color_edit4(const std::string& label, fan::color* color, color_edit_flags_t flags = 0) {
+          return ImGui::ColorEdit4(label.c_str(), color->data(), flags);
+        }
+
+        fan::vec2 get_window_size() {
+          return ImGui::GetWindowSize();
+        }
+
+        void set_next_window_pos(const fan::vec2& position) {
+          ImGui::SetNextWindowPos(position);
+        }
+
+        void set_next_window_size(const fan::vec2& size) {
+          ImGui::SetNextWindowSize(size);
+        }
 
         using col_t = int;
         enum {
@@ -511,12 +687,26 @@ namespace fan {
           style_var_count = ImGuiStyleVar_COUNT
         };
 
-        void push_style_color(col_t index, const fan::color& col);
-        void pop_style_color();
+        void push_style_color(col_t index, const fan::color& col) {
+          ImGui::PushStyleColor(index, col);
+        }
 
-        void push_style_var(style_var_t index, f32_t val);
-        void push_style_var(style_var_t index, const fan::vec2& val);
-        void pop_style_var();
+        void pop_style_color() {
+          ImGui::PopStyleColor();
+        }
+
+        void push_style_var(style_var_t index, f32_t val) {
+          ImGui::PushStyleVar(index, val);
+        }
+
+        void push_style_var(style_var_t index, const fan::vec2& val) {
+          ImGui::PushStyleVar(index, val);
+        }
+
+        void pop_style_var() {
+          ImGui::PopStyleVar();
+        }
+
 
         #if !defined(__INTELLISENSE__)
         #define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
@@ -530,45 +720,83 @@ namespace fan {
         #define fan_imgui_dragfloat1(variable, speed) \
             fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, 0, 0)
 
-        namespace ns_imgui_draw {
-          #define BLL_set_SafeNext 1
-          #define BLL_set_AreWeInsideStruct 0
-          #define BLL_set_prefix imgui_draw_cb
-          #include <fan/fan_bll_preset.h>
-          #define BLL_set_Link 1
-          #define BLL_set_type_node uint16_t
-          #define BLL_set_NodeDataType fan::function_t<void()>
-          #include <BLL/BLL.h>
-        }
+        using gui_draw_cb_nr_t = loco_t::gui_draw_cb_NodeReference_t;
 
-        using imgui_draw_cb_nr_t = ns_imgui_draw::imgui_draw_cb_NodeReference_t;
-        inline ns_imgui_draw::imgui_draw_cb_t m_imgui_draw_cb;
-
-        struct imgui_element_nr_t : imgui_draw_cb_nr_t {
-          using base_t = imgui_draw_cb_nr_t;
+        struct imgui_element_nr_t : gui_draw_cb_nr_t {
+          using base_t = gui_draw_cb_nr_t;
 
           imgui_element_nr_t() = default;
 
-          imgui_element_nr_t(const imgui_element_nr_t& nr);
+          imgui_element_nr_t(const imgui_element_nr_t& nr) : imgui_element_nr_t() {
+            if (nr.is_invalid()) {
+              return;
+            }
+            init();
+          }
 
-          imgui_element_nr_t(imgui_element_nr_t&& nr);
-          ~imgui_element_nr_t();
+          imgui_element_nr_t(imgui_element_nr_t&& nr) {
+            NRI = nr.NRI;
+            nr.invalidate_soft();
+          }
 
+          ~imgui_element_nr_t() {
+            invalidate();
+          }
 
-          imgui_element_nr_t& operator=(const imgui_element_nr_t& id);
+          fan::graphics::gui::imgui_element_nr_t& operator=(const imgui_element_nr_t& id) {
+            if (!is_invalid()) {
+              invalidate();
+            }
+            if (id.is_invalid()) {
+              return *this;
+            }
 
-          imgui_element_nr_t& operator=(imgui_element_nr_t&& id);
+            if (this != &id) {
+              init();
+            }
+            return *this;
+          }
 
-          void init();
+          fan::graphics::gui::imgui_element_nr_t& operator=(imgui_element_nr_t&& id) {
+            if (!is_invalid()) {
+              invalidate();
+            }
+            if (id.is_invalid()) {
+              return *this;
+            }
 
-          bool is_invalid() const;
+            if (this != &id) {
+              if (!is_invalid()) {
+                invalidate();
+              }
+              NRI = id.NRI;
 
-          void invalidate_soft();
+              id.invalidate_soft();
+            }
+            return *this;
+          }
+          void init() {
+            *(base_t*)this = gloco->gui_draw_cb.NewNodeLast();
+          }
 
-          void invalidate();
+          bool is_invalid() const {
+            return loco_t::gui_draw_cb_inric(*this);
+          }
 
-          inline void set(const auto& lambda) {
-            m_imgui_draw_cb[*this] = lambda;
+          void invalidate_soft() {
+            *(base_t*)this = gloco->gui_draw_cb.gnric();
+          }
+
+          void invalidate() {
+            if (is_invalid()) {
+              return;
+            }
+            gloco->gui_draw_cb.unlrec(*this);
+            *(base_t*)this = gloco->gui_draw_cb.gnric();
+          }
+
+          void set(const auto& lambda) {
+            gloco->gui_draw_cb[*this] = lambda;
           }
         };
 
@@ -580,25 +808,38 @@ namespace fan {
           }
         };
 
-        struct imgui_fs_var_t {
-          fan::graphics::gui::imgui_element_t ie;
 
-          imgui_fs_var_t() = default;
+        inline const char* item_getter1(const std::vector<std::string>& items, int index) {
+          if (index >= 0 && index < (int)items.size()) {
+            return items[index].c_str();
+          }
+          return "N/A";
+        }
 
-          template <typename T>
-          imgui_fs_var_t(
-            loco_t::shader_t shader_nr,
-            const std::string& var_name,
-            T initial_ = 0,
-            f32_t speed = 1,
-            f32_t min = -100000,
-            f32_t max = 100000
+        void set_viewport(fan::graphics::viewport_t viewport) {
+          ImVec2 mainViewportPos = ImGui::GetMainViewport()->Pos;
+
+          ImVec2 windowPos = ImGui::GetWindowPos();
+
+          fan::vec2 windowPosRelativeToMainViewport;
+          windowPosRelativeToMainViewport.x = windowPos.x - mainViewportPos.x;
+          windowPosRelativeToMainViewport.y = windowPos.y - mainViewportPos.y;
+
+          fan::vec2 window_size = gloco->window.get_size();
+          fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
+
+          ImVec2 padding = ImGui::GetStyle().WindowPadding;
+          viewport_size.x += padding.x * 2;
+          viewport_size.y += padding.y * 2;
+
+          fan::vec2 viewport_pos = fan::vec2(windowPosRelativeToMainViewport);
+          gloco->viewport_set(
+            viewport,
+            viewport_pos,
+            viewport_size,
+            window_size
           );
-        };
-
-        static const char* item_getter1(const std::vector<std::string>& items, int index);
-
-        void set_viewport(fan::graphics::viewport_t viewport);
+        }
 
         /// <summary>
         /// Draws the specified button, with its position influenced by other GUI elements.
@@ -614,10 +855,116 @@ namespace fan {
           fan::audio::piece_t piece_hover = {0}, 
           fan::audio::piece_t piece_click = {0}, 
           const fan::vec2& size = fan::vec2(0, 0)
-        );
+        ) {
+          ImGui::PushID(label.c_str());
+          ImGuiStorage* storage = ImGui::GetStateStorage();
+          ImGuiID id = ImGui::GetID("audio_button_prev_hovered");
+          bool previously_hovered = storage->GetBool(id);
+
+          bool pressed = ImGui::Button(label.c_str(), size);
+          bool currently_hovered = ImGui::IsItemHovered();
+
+          if (currently_hovered && !previously_hovered) {
+            fan::audio::piece_t& piece = fan::audio::is_piece_valid(piece_hover) ? piece_hover : gloco->piece_hover;
+            fan::audio::play(piece);
+          }
+          if (pressed) {
+            fan::audio::piece_t& piece = fan::audio::is_piece_valid(piece_click) ? piece_click : gloco->piece_click;
+            fan::audio::play(piece);
+          }
+          storage->SetBool(id, currently_hovered);
+
+          ImGui::PopID();
+          return pressed;
+        }
 
       }// loco gui
 
   #endif//loco_gui
   }
 }
+
+namespace fan {
+  namespace graphics {
+    namespace gui {
+      //struct imgui_fs_var_t {
+      //  fan::graphics::gui::imgui_element_t ie;
+
+      //  imgui_fs_var_t() = default;
+
+      //  template <typename T>
+      //  imgui_fs_var_t(
+      //    loco_t::shader_t shader_nr,
+      //    const std::string& var_name,
+      //    T initial_ = 0,
+      //    f32_t speed = 1,
+      //    f32_t min = -100000,
+      //    f32_t max = 100000
+      //  ) {
+      //    //fan::vec_wrap_t < sizeof(T) / fan::conditional_value_t < std::is_class_v<T>, sizeof(T{} [0] ), sizeof(T) > , f32_t > initial = initial_;
+      //    fan::vec_wrap_t<fan::conditional_value_t<std::is_arithmetic_v<T>, 1, sizeof(T) / sizeof(f32_t)>::value, f32_t>
+      //      initial;
+      //    if constexpr (std::is_arithmetic_v<T>) {
+      //      initial = (f32_t)initial_;
+      //    }
+      //    else {
+      //      initial = initial_;
+      //    }
+      //    fan::opengl::context_t::shader_t shader = std::get<fan::opengl::context_t::shader_t>(gloco->shader_get(shader_nr));
+      //    if (gloco->window.renderer == loco_t::renderer_t::vulkan) {
+      //      fan::throw_error("");
+      //    }
+      //    auto found = gloco->shader_list[shader_nr].uniform_type_table.find(var_name);
+      //    if (found == gloco->shader_list[shader_nr].uniform_type_table.end()) {
+      //      //fan::print("failed to set uniform value");
+      //      return;
+      //      //fan::throw_error("failed to set uniform value");
+      //    }
+      //    ie = [str = found->second, shader_nr, var_name, speed, min, max, data = initial]() mutable {
+      //      bool modify = false;
+      //      switch (fan::get_hash(str)) {
+      //      case fan::get_hash(std::string_view("float")): {
+      //        modify = ImGui::DragFloat(std::string(std::move(var_name)).c_str(), &data[0], (f32_t)speed, (f32_t)min, (f32_t)max);
+      //        break;
+      //      }
+      //      case fan::get_hash(std::string_view("vec2")): {
+      //        modify = ImGui::DragFloat2(std::string(std::move(var_name)).c_str(), ((fan::vec2*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+      //        break;
+      //      }
+      //      case fan::get_hash(std::string_view("vec3")): {
+      //        modify = ImGui::DragFloat3(std::string(std::move(var_name)).c_str(), ((fan::vec3*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+      //        break;
+      //      }
+      //      case fan::get_hash(std::string_view("vec4")): {
+      //        modify = ImGui::DragFloat4(std::string(std::move(var_name)).c_str(), ((fan::vec4*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+      //        break;
+      //      }
+      //      }
+      //      if (modify) {
+      //        gloco->shader_set_value(shader_nr, var_name, data);
+      //      }
+      //      };
+      //    gloco->shader_set_value(shader_nr, var_name, initial);
+      //  }
+      //};
+    }
+  }
+}
+
+//template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
+//  loco_t::shader_t shader_nr,
+//  const std::string& var_name,
+//  fan::vec2 initial_,
+//  f32_t speed,
+//  f32_t min,
+//  f32_t max
+//);
+//template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
+//  loco_t::shader_t shader_nr,
+//  const std::string& var_name,
+//  double initial_,
+//  f32_t speed,
+//  f32_t min,
+//  f32_t max
+//);
+#endif

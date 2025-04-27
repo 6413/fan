@@ -178,8 +178,6 @@ namespace fan {
     }
   };
 
-  struct color;
-
   template <typename value_type_t>
   struct vec4_wrap_t {
     #define vec_t vec4_wrap_t

@@ -1,13 +1,13 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.28)
 project(fan)
 
-set(FAN_PHYSICS ON)
-set(FAN_GUI ON)
-set(FAN_JSON ON)
-set(FAN_3D ON)
+set(FAN_PHYSICS OFF)
+set(FAN_GUI OFF)
+set(FAN_JSON OFF)
+set(FAN_3D OFF)
 set(FAN_OPENGL ON)
 set(FAN_VULKAN OFF)
-set(FAN_FMT ON)
+set(FAN_FMT OFF)
 
 set(BUILD_MAIN ON)
 
@@ -33,9 +33,9 @@ endif()
 set(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
 set(CMAKE_NINJA_FORCE_RESPONSE_FILE 1 CACHE INTERNAL "")
 
-set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
-set(CMAKE_UNITY_BUILD ON)
-set(CMAKE_UNITY_BUILD_BATCH_SIZE 2)
+set(CMAKE_PCH_INSTANTIATE_TEMPLATES OFF)
+set(CMAKE_UNITY_BUILD OFF)
+set(CMAKE_UNITY_BUILD_BATCH_SIZE 1)
 
 
 find_program(CCACHE_PROGRAM ccache NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH)
@@ -43,9 +43,7 @@ if(CCACHE_PROGRAM)
 		set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
-if (FAN_GUI)
-	set(CMAKE_C_COMPILER "/usr/bin/clang")
-endif()
+set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
 set(CMAKE_CXX_FLAGS_DEBUG "-gdwarf-4")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
@@ -91,17 +89,43 @@ function(apply_common_compile_options target)
 		-Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast
 		-Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses
 		-Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare
-		-Wno-unused-but-set-parameter -Wno-unused-value
+		-Wno-unused-but-set-parameter -Wno-unused-value -pthread
 	)
 endfunction()
 
-add_library(fan_pch INTERFACE)
-target_precompile_headers(fan_pch INTERFACE ${ROOT_PATH}/pch.h)
+#add_library(fan_pch INTERFACE)
+#target_precompile_headers(fan_pch INTERFACE ${ROOT_PATH}/pch.h)
+
+
+
+set(CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS "/usr/bin/clang-scan-deps")
+set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprebuilt-module-path=${CMAKE_BINARY_DIR}/CMakeFiles/fan_modules.dir")
+
+
+add_library(fan_modules STATIC)
+apply_fan_definitions(fan_modules)
+target_sources(fan_modules
+  PUBLIC
+    FILE_SET CXX_MODULES
+    BASE_DIRS ${ROOT_PATH}
+    FILES
+      ${ROOT_PATH}/graphics/camera.ixx
+			${ROOT_PATH}/graphics/console.ixx
+			${ROOT_PATH}/graphics/opengl/core.ixx
+			${ROOT_PATH}/graphics/opengl/uniform_block.ixx
+			${ROOT_PATH}/types/color.ixx
+			#if fan gui
+			${ROOT_PATH}/graphics/gui/gui.ixx
+)
+set_target_properties(fan_modules PROPERTIES CXX_SCAN_FOR_MODULES ON)
+apply_common_compile_options(fan_modules)
 
 if (FAN_FMT)
 	add_library(fmt STATIC ${ROOT_PATH}/fmt.cpp)
 	apply_common_compile_options(fmt)
-	target_link_libraries(fmt PRIVATE fan_pch)
+	#target_link_libraries(fmt PRIVATE fan_pch)
 	set_target_properties(fmt PROPERTIES
 		ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_PATH}
 		OUTPUT_NAME "fmt"
@@ -119,7 +143,6 @@ if(FAN_GUI)
 		${ROOT_PATH}/imgui/implot_items.cpp
 		${ROOT_PATH}/imgui/implot.cpp
 		${ROOT_PATH}/imgui/text_editor.cpp
-		${ROOT_PATH}/graphics/gui/gui.cpp
 	)
 	if (FAN_VULKAN)
 		list(APPEND IMGUI_SOURCES ${ROOT_PATH}/imgui/imgui_impl_vulkan.cpp)
@@ -128,7 +151,9 @@ if(FAN_GUI)
 	add_library(imgui STATIC ${IMGUI_SOURCES})
 	apply_common_compile_options(imgui)
 	target_include_directories(imgui PRIVATE ${ROOT_PATH}/imgui)
-	target_link_libraries(imgui PRIVATE fan_pch)
+	
+	#target_link_libraries(imgui PRIVATE fan_pch)
+	
 	target_compile_definitions(imgui PRIVATE 
 		IMGUI_IMPL_OPENGL_LOADER_CUSTOM
 		IMGUI_DEFINE_MATH_OPERATORS
@@ -171,13 +196,8 @@ set(FAN_PHYSICS_SOURCES "")
 set(FAN_VULKAN_SOURCES "")
 
 set(FAN_GRAPHICS_SOURCES 
-	${ROOT_PATH}/graphics/camera.cpp
-	${ROOT_PATH}/graphics/console_impl.cpp
 	${ROOT_PATH}/graphics/graphics.cpp
 	${ROOT_PATH}/graphics/loco.cpp
-	${ROOT_PATH}/graphics/opengl/gl_core.cpp
-	${ROOT_PATH}/graphics/opengl/uniform_block.cpp	
-	${ROOT_PATH}/types/color.cpp
 	${ROOT_PATH}/types/fstring.cpp
 	${ROOT_PATH}/types/types.cpp
 	${ROOT_PATH}/window/window.cpp
@@ -203,14 +223,17 @@ if(FAN_PHYSICS)
 endif()
 
 add_library(fan_obj OBJECT ${FAN_SOURCES})
+add_dependencies(fan_obj fan_modules)
 apply_common_compile_options(fan_obj)
-target_link_libraries(fan_obj PRIVATE fan_pch)
+
+target_link_libraries(fan_obj PRIVATE fan_modules)
 apply_fan_definitions(fan_obj)
 
 add_library(fan SHARED $<TARGET_OBJECTS:fan_obj>)
+add_dependencies(fan fan_modules)
 apply_common_compile_options(fan)
 apply_fan_definitions(fan)
-target_link_libraries(fan PRIVATE fan_pch)
+target_link_libraries(fan PRIVATE fan_modules)
 set_target_properties(fan PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_PATH}
 	OUTPUT_NAME "fan"
@@ -222,8 +245,10 @@ if(BUILD_MAIN)
 	endif()
 	
 	add_executable(a.exe ${MAIN} $<TARGET_OBJECTS:fan_obj>)
+	add_dependencies(a.exe fan_modules)
+	set_target_properties(a.exe PROPERTIES CXX_SCAN_FOR_MODULES ON)
 	apply_common_compile_options(a.exe)
-	target_link_libraries(a.exe PRIVATE fan_pch)
+	target_link_libraries(a.exe PRIVATE fan_modules)
 	apply_fan_definitions(a.exe)
 	
 	if(UNIX)

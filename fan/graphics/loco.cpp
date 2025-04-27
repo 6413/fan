@@ -2789,36 +2789,36 @@ loco_t::shape_t loco_t::line3d_t::push_back(const properties_t& properties) {
 
 
 std::vector<uint8_t> loco_t::create_noise_image_data(const fan::vec2& image_size, int seed) {
-  FastNoiseLite noise;
-  noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-  noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-  noise.SetFrequency(0.010);
-  noise.SetFractalGain(0.5);
-  noise.SetFractalLacunarity(2.0);
-  noise.SetFractalOctaves(5);
-  noise.SetSeed(seed);
-  noise.SetFractalPingPongStrength(2.0);
+  //FastNoiseLite noise;
+  //noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+  //noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+  //noise.SetFrequency(0.010);
+  //noise.SetFractalGain(0.5);
+  //noise.SetFractalLacunarity(2.0);
+  //noise.SetFractalOctaves(5);
+  //noise.SetSeed(seed);
+  //noise.SetFractalPingPongStrength(2.0);
   f32_t noise_tex_min = -1;
   f32_t noise_tex_max = 0.1;
 
   std::vector<uint8_t> noise_data_rgb(image_size.multiply() * 3);
 
-  int index = 0;
+  //int index = 0;
 
-  float scale = 255.f / (noise_tex_max - noise_tex_min);
+  //float scale = 255.f / (noise_tex_max - noise_tex_min);
 
-  for (int y = 0; y < image_size.y; y++)
-  {
-    for (int x = 0; x < image_size.x; x++)
-    {
-      float noiseValue = noise.GetNoise((float)x, (float)y);
-      unsigned char cNoise = (unsigned char)std::max(0.0f, std::min(255.0f, (noiseValue - noise_tex_min) * scale));
-      noise_data_rgb[index * 3 + 0] = cNoise;
-      noise_data_rgb[index * 3 + 1] = cNoise;
-      noise_data_rgb[index * 3 + 2] = cNoise;
-      index++;
-    }
-  }
+  //for (int y = 0; y < image_size.y; y++)
+  //{
+  //  for (int x = 0; x < image_size.x; x++)
+  //  {
+  //    float noiseValue = noise.GetNoise((float)x, (float)y);
+  //    unsigned char cNoise = (unsigned char)std::max(0.0f, std::min(255.0f, (noiseValue - noise_tex_min) * scale));
+  //    noise_data_rgb[index * 3 + 0] = cNoise;
+  //    noise_data_rgb[index * 3 + 1] = cNoise;
+  //    noise_data_rgb[index * 3 + 2] = cNoise;
+  //    index++;
+  //  }
+  //}
 
   return noise_data_rgb;
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/types/color.h>
+import fan.color;
 
 namespace fan {
   namespace graphics {
