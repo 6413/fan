@@ -1,15 +1,32 @@
 module;
 
-#if defined(fan_gui)
-#include <fan/graphics/graphics.h>
+#include <fan/types/types.h>
 
-#include <fan/types/fstring.h>
+#include <fan/types/quaternion.h>
+#include <fan/graphics/loco.h>
+
+#if defined(fan_gui)
+
+import fan.types.fstring;
 
 import fan.color;
 
 #endif
 
+//#if defined(fan_gui)
+//#include <fan/imgui/imgui.h>
+//#include <fan/imgui/imgui_impl_opengl3.h>
+//#if defined(fan_vulkan)
+//#include <fan/imgui/imgui_impl_vulkan.h>
+//#endif
+//#include <fan/imgui/imgui_impl_glfw.h>
+//#include <fan/imgui/imgui_neo_sequencer.h>
+//#include <fan/imgui/implot.h>
+//#endif
+
+
 export module fan.graphics.gui;
+
 
 #if defined(fan_gui)
 
@@ -301,19 +318,19 @@ export namespace fan {
             )
 
         bool button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0)){
-  return ImGui::Button(label.c_str(), size);
-}
+          return ImGui::Button(label.c_str(), size);
+        }
 
         /// <summary>
         /// Draws the specified text, with its position influenced by other GUI elements.
         /// </summary>
         /// <param name="text">The text to draw.</param>
         /// <param name="color">The color of the text (defaults to white).</param>
-        void text(const std::string& text, const fan::color& color = fan::colors::white){
-  ImGui::PushStyleColor(ImGuiCol_Text, color);
-  ImGui::Text("%s", text.c_str());
-  ImGui::PopStyleColor();
-}
+        void text(const std::string& text, const fan::color& color = fan::colors::white) {
+          ImGui::PushStyleColor(ImGuiCol_Text, color);
+          ImGui::Text("%s", text.c_str());
+          ImGui::PopStyleColor();
+        }
 
         /// <summary>
         /// Draws the specified text at a given position on the screen.
@@ -321,12 +338,12 @@ export namespace fan {
         /// <param name="text">The text to draw.</param>
         /// <param name="position">The position of the text.</param>
         /// <param name="color">The color of the text (defaults to white).</param>
-        void text_at(const std::string& text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white){
-  ImGui::SetCursorPos(position);
-  ImGui::PushStyleColor(ImGuiCol_Text, color);
-  ImGui::Text("%s", text.c_str());
-  ImGui::PopStyleColor();
-}
+        void text_at(const std::string& text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white) {
+          ImGui::SetCursorPos(position);
+          ImGui::PushStyleColor(ImGuiCol_Text, color);
+          ImGui::Text("%s", text.c_str());
+          ImGui::PopStyleColor();
+        }
 
         /// <summary>
         /// Draws text to bottom right.
@@ -334,16 +351,16 @@ export namespace fan {
         /// <param name="text">The text to draw.</param>
         /// <param name="color">The color of the text (defaults to white).</param>
         /// <param name="offset">Offset from the bottom-right corner.</param>
-        void text_bottom_right(const std::string& text, const fan::color& color = fan::colors::white, const fan::vec2& offset = 0){
-  ImVec2 text_pos;
-  ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
-  ImVec2 window_pos = ImGui::GetWindowPos();
-  ImVec2 window_size = ImGui::GetWindowSize();
+        void text_bottom_right(const std::string& text, const fan::color& color = fan::colors::white, const fan::vec2& offset = 0) {
+          ImVec2 text_pos;
+          ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
+          ImVec2 window_pos = ImGui::GetWindowPos();
+          ImVec2 window_size = ImGui::GetWindowSize();
 
-  text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
-  text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
-  fan::graphics::gui::text_at(text, text_pos + offset, color);
-}
+          text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
+          text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
+          fan::graphics::gui::text_at(text, text_pos + offset, color);
+        }
 
 
         using slider_flags_t = int;
@@ -887,84 +904,84 @@ export namespace fan {
 namespace fan {
   namespace graphics {
     namespace gui {
-      //struct imgui_fs_var_t {
-      //  fan::graphics::gui::imgui_element_t ie;
+      struct imgui_fs_var_t {
+        fan::graphics::gui::imgui_element_t ie;
 
-      //  imgui_fs_var_t() = default;
+        imgui_fs_var_t() = default;
 
-      //  template <typename T>
-      //  imgui_fs_var_t(
-      //    loco_t::shader_t shader_nr,
-      //    const std::string& var_name,
-      //    T initial_ = 0,
-      //    f32_t speed = 1,
-      //    f32_t min = -100000,
-      //    f32_t max = 100000
-      //  ) {
-      //    //fan::vec_wrap_t < sizeof(T) / fan::conditional_value_t < std::is_class_v<T>, sizeof(T{} [0] ), sizeof(T) > , f32_t > initial = initial_;
-      //    fan::vec_wrap_t<fan::conditional_value_t<std::is_arithmetic_v<T>, 1, sizeof(T) / sizeof(f32_t)>::value, f32_t>
-      //      initial;
-      //    if constexpr (std::is_arithmetic_v<T>) {
-      //      initial = (f32_t)initial_;
-      //    }
-      //    else {
-      //      initial = initial_;
-      //    }
-      //    fan::opengl::context_t::shader_t shader = std::get<fan::opengl::context_t::shader_t>(gloco->shader_get(shader_nr));
-      //    if (gloco->window.renderer == loco_t::renderer_t::vulkan) {
-      //      fan::throw_error("");
-      //    }
-      //    auto found = gloco->shader_list[shader_nr].uniform_type_table.find(var_name);
-      //    if (found == gloco->shader_list[shader_nr].uniform_type_table.end()) {
-      //      //fan::print("failed to set uniform value");
-      //      return;
-      //      //fan::throw_error("failed to set uniform value");
-      //    }
-      //    ie = [str = found->second, shader_nr, var_name, speed, min, max, data = initial]() mutable {
-      //      bool modify = false;
-      //      switch (fan::get_hash(str)) {
-      //      case fan::get_hash(std::string_view("float")): {
-      //        modify = ImGui::DragFloat(std::string(std::move(var_name)).c_str(), &data[0], (f32_t)speed, (f32_t)min, (f32_t)max);
-      //        break;
-      //      }
-      //      case fan::get_hash(std::string_view("vec2")): {
-      //        modify = ImGui::DragFloat2(std::string(std::move(var_name)).c_str(), ((fan::vec2*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
-      //        break;
-      //      }
-      //      case fan::get_hash(std::string_view("vec3")): {
-      //        modify = ImGui::DragFloat3(std::string(std::move(var_name)).c_str(), ((fan::vec3*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
-      //        break;
-      //      }
-      //      case fan::get_hash(std::string_view("vec4")): {
-      //        modify = ImGui::DragFloat4(std::string(std::move(var_name)).c_str(), ((fan::vec4*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
-      //        break;
-      //      }
-      //      }
-      //      if (modify) {
-      //        gloco->shader_set_value(shader_nr, var_name, data);
-      //      }
-      //      };
-      //    gloco->shader_set_value(shader_nr, var_name, initial);
-      //  }
-      //};
+        template <typename T>
+        imgui_fs_var_t(
+          loco_t::shader_t shader_nr,
+          const std::string& var_name,
+          T initial_ = 0,
+          f32_t speed = 1,
+          f32_t min = -100000,
+          f32_t max = 100000
+        ) {
+          //fan::vec_wrap_t < sizeof(T) / fan::conditional_value_t < std::is_class_v<T>, sizeof(T{} [0] ), sizeof(T) > , f32_t > initial = initial_;
+          fan::vec_wrap_t<fan::conditional_value_t<std::is_arithmetic_v<T>, 1, sizeof(T) / sizeof(f32_t)>::value, f32_t>
+            initial;
+          if constexpr (std::is_arithmetic_v<T>) {
+            initial = (f32_t)initial_;
+          }
+          else {
+            initial = initial_;
+          }
+          fan::opengl::context_t::shader_t shader = std::get<fan::opengl::context_t::shader_t>(gloco->shader_get(shader_nr));
+          if (gloco->window.renderer == loco_t::renderer_t::vulkan) {
+            fan::throw_error("");
+          }
+          auto found = gloco->shader_list[shader_nr].uniform_type_table.find(var_name);
+          if (found == gloco->shader_list[shader_nr].uniform_type_table.end()) {
+            //fan::print("failed to set uniform value");
+            return;
+            //fan::throw_error("failed to set uniform value");
+          }
+          ie = [str = found->second, shader_nr, var_name, speed, min, max, data = initial]() mutable {
+            bool modify = false;
+            switch (fan::get_hash(str)) {
+            case fan::get_hash(std::string_view("float")): {
+              modify = ImGui::DragFloat(std::string(std::move(var_name)).c_str(), &data[0], (f32_t)speed, (f32_t)min, (f32_t)max);
+              break;
+            }
+            case fan::get_hash(std::string_view("vec2")): {
+              modify = ImGui::DragFloat2(std::string(std::move(var_name)).c_str(), ((fan::vec2*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+              break;
+            }
+            case fan::get_hash(std::string_view("vec3")): {
+              modify = ImGui::DragFloat3(std::string(std::move(var_name)).c_str(), ((fan::vec3*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+              break;
+            }
+            case fan::get_hash(std::string_view("vec4")): {
+              modify = ImGui::DragFloat4(std::string(std::move(var_name)).c_str(), ((fan::vec4*)&data)->data(), (f32_t)speed, (f32_t)min, (f32_t)max);
+              break;
+            }
+            }
+            if (modify) {
+              gloco->shader_set_value(shader_nr, var_name, data);
+            }
+            };
+          gloco->shader_set_value(shader_nr, var_name, initial);
+        }
+      };
     }
   }
 }
 
-//template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
-//  loco_t::shader_t shader_nr,
-//  const std::string& var_name,
-//  fan::vec2 initial_,
-//  f32_t speed,
-//  f32_t min,
-//  f32_t max
-//);
-//template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
-//  loco_t::shader_t shader_nr,
-//  const std::string& var_name,
-//  double initial_,
-//  f32_t speed,
-//  f32_t min,
-//  f32_t max
-//);
+template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
+  loco_t::shader_t shader_nr,
+  const std::string& var_name,
+  fan::vec2 initial_,
+  f32_t speed,
+  f32_t min,
+  f32_t max
+);
+template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
+  loco_t::shader_t shader_nr,
+  const std::string& var_name,
+  double initial_,
+  f32_t speed,
+  f32_t min,
+  f32_t max
+);
 #endif
