@@ -14,7 +14,7 @@
 
 #undef assert
 
-static void assert(bool condition) {
+inline void assert(bool condition) {
   if (!condition) {
     std::abort();
   }
