@@ -16,6 +16,6 @@ int main() {
   } };
   }
   fan_window_loop{//
-    //
+    ////
   };
 }

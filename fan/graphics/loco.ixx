@@ -97,15 +97,6 @@ module;
 #if defined(fan_gui)
 #include <fan/imgui/imgui_internal.h>
 #include <fan/graphics/gui/imgui_themes.h>
-
-namespace fan {
-  namespace graphics {
-    namespace gui {
-      void render_allocations_plot();
-      void process_loop();
-    }
-  }
-}
 #endif
 
 #if defined(fan_json)
@@ -255,6 +246,17 @@ export namespace fan {
 #endif
 
 export module fan.graphics.loco;
+
+#if defined(fan_gui)
+namespace fan {
+  namespace graphics {
+    namespace gui {
+      void render_allocations_plot();
+      void process_loop();
+    }
+  }
+}
+#endif
 
 #if defined(loco_cuda)
 
@@ -4981,107 +4983,6 @@ export namespace fan {
     using camera_t = camera_impl_t;
     using viewport_t = loco_t::viewport_t;
 
-#if defined(fan_gui)
-    namespace gui {
-      // fan_track_allocations() must be called in global scope before calling this function
-      void render_allocations_plot() {
-#if defined(fan_tracking_allocations)
-        static std::vector<f32_t> allocation_sizes;
-        static std::vector<fan::heap_profiler_t::memory_data_t> allocations;
-
-        allocation_sizes.clear();
-        allocations.clear();
-
-
-        f32_t max_y = 0;
-        for (const auto& entry : fan::heap_profiler_t::instance().memory_map) {
-          f32_t v = (f32_t)entry.second.n / (1024 * 1024);
-          if (v < 0.001) {
-            continue;
-          }
-          allocation_sizes.push_back(v);
-          max_y = std::max(max_y, v);
-          allocations.push_back(entry.second);
-        }
-        static fan::heap_profiler_t::stacktrace_t stack;
-        if (ImPlot::BeginPlot("Memory Allocations", ImGui::GetWindowSize(), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend)) {
-          float max_allocation = *std::max_element(allocation_sizes.begin(), allocation_sizes.end());
-          ImPlot::SetupAxis(ImAxis_Y1, "Memory (MB)");
-          ImPlot::SetupAxisLimits(ImAxis_Y1, 0, max_y);
-          ImPlot::SetupAxis(ImAxis_X1, "Allocations");
-          ImPlot::SetupAxisLimits(ImAxis_X1, 0, static_cast<double>(allocation_sizes.size()));
-
-          ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
-          ImPlot::PlotBars("Allocations", allocation_sizes.data(), allocation_sizes.size());
-          //if (ImPlot::IsPlotHovered()) {
-          //  fan::print("A");
-          //}
-          ImPlot::PopStyleVar();
-
-          bool hovered = false;
-          if (ImPlot::IsPlotHovered()) {
-            ImPlotPoint mouse = ImPlot::GetPlotMousePos();
-            f32_t half_width = 0.25;
-            //mouse.x             = ImPlot::RoundTime(ImPlotTime::FromDouble(mouse.x), ImPlotTimeUnit_Day).ToDouble();
-            mouse.x = (int)mouse.x;
-            float  tool_l = ImPlot::PlotToPixels(mouse.x - half_width * 1.5, mouse.y).x;
-            float  tool_r = ImPlot::PlotToPixels(mouse.x + half_width * 1.5, mouse.y).x;
-            float  tool_t = ImPlot::GetPlotPos().y;
-            float  tool_b = tool_t + ImPlot::GetPlotSize().y;
-            ImPlot::PushPlotClipRect();
-            auto draw_list = ImGui::GetWindowDrawList();
-            draw_list->AddRectFilled(ImVec2(tool_l, tool_t), ImVec2(tool_r, tool_b), IM_COL32(128, 128, 128, 64));
-            ImPlot::PopPlotClipRect();
-
-            if (mouse.x >= 0 && mouse.x < allocation_sizes.size()) {
-              if (ImGui::IsMouseClicked(0)) {
-                ImGui::OpenPopup("view stack");
-              }
-              stack = allocations[(int)mouse.x].line_data;
-              hovered = true;
-            }
-          }
-          if (hovered) {
-            ImGui::BeginTooltip();
-            std::ostringstream oss;
-            oss << stack;
-            std::string stack_str = oss.str();
-            std::string final_str;
-            std::size_t pos = 0;
-            while (true) {
-              auto end = stack_str.find(')', pos);
-              if (end != std::string::npos) {
-                end += 1;
-                auto begin = stack_str.rfind('\\', end);
-                if (begin != std::string::npos) {
-                  begin += 1;
-                  final_str += stack_str.substr(begin, end - begin);
-                  final_str += "\n";
-                  pos = end + 1;
-                }
-                else {
-                  break;
-                }
-              }
-              else {
-                break;
-              }
-            }
-            ImGui::TextUnformatted(final_str.c_str());
-            ImGui::EndTooltip();
-          }
-          if (ImGui::BeginPopup("view stack", ImGuiWindowFlags_AlwaysHorizontalScrollbar)) {
-            std::ostringstream oss;
-            oss << stack;
-            ImGui::TextUnformatted(oss.str().c_str());
-            ImGui::EndPopup();
-          }
-          ImPlot::EndPlot();
-        }
-#endif
-      }
-    }
-#endif
     void add_input_action(const int* keys, std::size_t count, std::string_view action_name) {
       gloco->input_action.add(keys, count, action_name);
     }
@@ -5926,7 +5827,14 @@ export namespace fan {
   namespace graphics {
     using texture_packe0 = loco_t::texture_packe0;
     using ti_t = loco_t::ti_t;
+  }
+#endif
+}
+#endif
 
+#if defined(fan_gui)
+namespace fan {
+  namespace graphics {
     namespace gui {
       void process_loop() {
         auto it = gloco->gui_draw_cb.GetNodeFirst();
@@ -5936,12 +5844,107 @@ export namespace fan {
           it = gloco->gui_draw_cb.EndSafeNext();
         }
       }
+      // fan_track_allocations() must be called in global scope before calling this function
+      void render_allocations_plot() {
+#if defined(fan_tracking_allocations)
+        static std::vector<f32_t> allocation_sizes;
+        static std::vector<fan::heap_profiler_t::memory_data_t> allocations;
+
+        allocation_sizes.clear();
+        allocations.clear();
+
+
+        f32_t max_y = 0;
+        for (const auto& entry : fan::heap_profiler_t::instance().memory_map) {
+          f32_t v = (f32_t)entry.second.n / (1024 * 1024);
+          if (v < 0.001) {
+            continue;
+          }
+          allocation_sizes.push_back(v);
+          max_y = std::max(max_y, v);
+          allocations.push_back(entry.second);
+        }
+        static fan::heap_profiler_t::stacktrace_t stack;
+        if (ImPlot::BeginPlot("Memory Allocations", ImGui::GetWindowSize(), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend)) {
+          float max_allocation = *std::max_element(allocation_sizes.begin(), allocation_sizes.end());
+          ImPlot::SetupAxis(ImAxis_Y1, "Memory (MB)");
+          ImPlot::SetupAxisLimits(ImAxis_Y1, 0, max_y);
+          ImPlot::SetupAxis(ImAxis_X1, "Allocations");
+          ImPlot::SetupAxisLimits(ImAxis_X1, 0, static_cast<double>(allocation_sizes.size()));
+
+          ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+          ImPlot::PlotBars("Allocations", allocation_sizes.data(), allocation_sizes.size());
+          //if (ImPlot::IsPlotHovered()) {
+          //  fan::print("A");
+          //}
+          ImPlot::PopStyleVar();
+
+          bool hovered = false;
+          if (ImPlot::IsPlotHovered()) {
+            ImPlotPoint mouse = ImPlot::GetPlotMousePos();
+            f32_t half_width = 0.25;
+            //mouse.x             = ImPlot::RoundTime(ImPlotTime::FromDouble(mouse.x), ImPlotTimeUnit_Day).ToDouble();
+            mouse.x = (int)mouse.x;
+            float  tool_l = ImPlot::PlotToPixels(mouse.x - half_width * 1.5, mouse.y).x;
+            float  tool_r = ImPlot::PlotToPixels(mouse.x + half_width * 1.5, mouse.y).x;
+            float  tool_t = ImPlot::GetPlotPos().y;
+            float  tool_b = tool_t + ImPlot::GetPlotSize().y;
+            ImPlot::PushPlotClipRect();
+            auto draw_list = ImGui::GetWindowDrawList();
+            draw_list->AddRectFilled(ImVec2(tool_l, tool_t), ImVec2(tool_r, tool_b), IM_COL32(128, 128, 128, 64));
+            ImPlot::PopPlotClipRect();
+
+            if (mouse.x >= 0 && mouse.x < allocation_sizes.size()) {
+              if (ImGui::IsMouseClicked(0)) {
+                ImGui::OpenPopup("view stack");
+              }
+              stack = allocations[(int)mouse.x].line_data;
+              hovered = true;
+            }
+          }
+          if (hovered) {
+            ImGui::BeginTooltip();
+            std::ostringstream oss;
+            oss << stack;
+            std::string stack_str = oss.str();
+            std::string final_str;
+            std::size_t pos = 0;
+            while (true) {
+              auto end = stack_str.find(')', pos);
+              if (end != std::string::npos) {
+                end += 1;
+                auto begin = stack_str.rfind('\\', end);
+                if (begin != std::string::npos) {
+                  begin += 1;
+                  final_str += stack_str.substr(begin, end - begin);
+                  final_str += "\n";
+                  pos = end + 1;
+                }
+                else {
+                  break;
+                }
+              }
+              else {
+                break;
+              }
+            }
+            ImGui::TextUnformatted(final_str.c_str());
+            ImGui::EndTooltip();
+          }
+          if (ImGui::BeginPopup("view stack", ImGuiWindowFlags_AlwaysHorizontalScrollbar)) {
+            std::ostringstream oss;
+            oss << stack;
+            ImGui::TextUnformatted(oss.str().c_str());
+            ImGui::EndPopup();
+          }
+          ImPlot::EndPlot();
+        }
+#endif
+      }
     }
   }
-#endif
 }
 #endif
-
 
 inline uint32_t fan::graphics::get_draw_mode(uint8_t internal_draw_mode) {
   if (gloco->get_renderer() == loco_t::renderer_t::opengl) {

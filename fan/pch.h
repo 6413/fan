@@ -20,6 +20,9 @@
 //#define loco_vulkan
 //#define loco_compute_shader
 
+import fan.types.vector;
+import fan.types.color;
+
 //
 #if !defined(fan_gui)
   import fan.graphics.loco;

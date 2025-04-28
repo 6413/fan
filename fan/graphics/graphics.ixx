@@ -18,6 +18,8 @@ module;
 
 #include <array>
 
+#include <fan/graphics/image_load.h>
+
 import fan.types.vector;
 
 import fan.window;
