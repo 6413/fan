@@ -1,12 +1,20 @@
 module;
 
+#include <fan/types/types.h>
+#include <fan/types/vector.h>
+#include <fan/types/matrix.h>
+
+#include <fan/math/random.h>
+
+#include <fan/graphics/opengl/init.h>
+#include <fan/graphics/common_context.h>
+
+#include <fan/physics/collision/rectangle.h>
+
 import fan.types.color;
 import fan.graphics.opengl.core;
 
 #define loco_audio
-
-#include <fan/types/types.h>
-#include <fan/types/vector.h>
 
 #if defined(loco_audio)
 #ifndef _INCLUDE_TOKEN
@@ -60,13 +68,7 @@ import fan.types.fstring;
 #include <fan/imgui/implot.h>
 #endif
 
-#include <fan/physics/collision/rectangle.h>
-
 //#include <fan/graphics/algorithm/FastNoiseLite.h>
-
-
-#include <fan/graphics/opengl/init.h>
-#include <fan/graphics/common_context.h>
 
 #if defined(fan_vulkan)
 #include <fan/graphics/vulkan/core.h>

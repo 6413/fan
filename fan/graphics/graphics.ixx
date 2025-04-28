@@ -10,10 +10,6 @@ module;
 
 #include <fan/physics/collision/rectangle.h>
 
-import fan.window;
-import fan.graphics.opengl.core;
-import fan.graphics.loco;
-
 #include <fan/ev/types.h>
 
 #if defined(fan_gui)
@@ -22,6 +18,10 @@ import fan.graphics.loco;
 #endif
 
 #include <fan/io/directory.h>
+
+import fan.window;
+import fan.graphics.opengl.core;
+import fan.graphics.loco;
 
 import fan.camera;
 import fan.types.color;
