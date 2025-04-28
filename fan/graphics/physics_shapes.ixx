@@ -1,4 +1,4 @@
-#pragma once
+module;
 
 // for shapes
 
@@ -17,6 +17,8 @@ import fan.physics.b2_integration;
 import fan.graphics.loco;
 import fan.graphics;
 import fan.graphics.gui;
+
+export module fan.graphics.physics_shapes;
 
 namespace fan {
   namespace graphics {
