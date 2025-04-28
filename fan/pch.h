@@ -36,7 +36,7 @@
   import fan.graphics.gui;
 #endif
 #if defined(fan_physics)
-  #include <fan/graphics/physics_shapes.hpp>
+  import fan.graphics.physics_shapes;
 #endif
 
 struct fan_window_loop_t{
