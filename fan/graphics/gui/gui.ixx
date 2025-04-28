@@ -13,6 +13,7 @@ module;
 
 #include <variant>
 
+import fan.types.print;
 import fan.types.vector;
 
 #if defined(fan_gui)
