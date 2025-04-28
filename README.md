@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-2D graphics library using OpenGL, (Vulkan Alpha).
+2D graphics library using OpenGL 3.3, (Vulkan Alpha).
 
 ## Features
 
@@ -30,16 +30,19 @@
 - **Audio**: Currently only [SAC](https://github.com/7244/SAC-container) is supported.
 ## Installation
 
-Requires c++23
+Requires C++23, Clang-17 >=, CMake 2.8.* >=, Ninja 1.11.1 >=.
+Library plans to use modules in future.
 
 ### Linux
 1. Clone the repository: `git clone https://github.com/6413/fan.git`
 2. Install required dependencies
-    ```
-    sudo ./install.sh
-    ```
+   
+    ```sudo ./apt_install.sh``` (optional)
+   
+    ```./install.sh```
+    
     (```./uninstall.sh```) to remove repos from /usr/local/include/*
-3. Main usage:
+4. Main usage:
 -  To compile main use `./compile_main.sh -DMAIN="examples/graphics/2D/shapes/rectangle.cpp"`, which also compiles fan
 
 ### Windows
