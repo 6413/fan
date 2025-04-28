@@ -1,6 +1,6 @@
 #pragma once
 
-import fan.color;
+import fan.types.color;
 
 namespace fan {
   namespace graphics {

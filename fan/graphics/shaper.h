@@ -542,6 +542,8 @@ struct shaper_t{
 
   struct ShapeID_t : ShapeList_t::nr_t{
     
+    ShapeID_t() = default;
+
     ShapeTypeIndex_t sti(shaper_t &shaper){
       return shaper.ShapeList[*this].sti;
     }

@@ -1,11 +1,14 @@
 module;
 
+#include <fan/types/types.h>
+
 #include <vector>
 #include <cstring>
 #include <memory>
 #include <string>
 
 import fan.types.print; // for throw_error with msg
+
 #include <fan/types/vector.h>
 
 export module fan.types.fstring;

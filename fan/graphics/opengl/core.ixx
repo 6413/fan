@@ -1,5 +1,9 @@
 module;
 
+#include <fan/types/types.h>
+#include <fan/types/vector.h>
+#include <fan/types/matrix.h>
+
 #include <fan/graphics/common_context.h>
 
 #include <fan/graphics/opengl/init.h>
@@ -12,7 +16,7 @@ import fan.window;
 import fan.types.fstring;
 
 import fan.camera;
-import fan.color;
+import fan.types.color;
 
 template<typename T>
 concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&

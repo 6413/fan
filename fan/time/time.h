@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.h>
+
 #include <functional>
 
 #include <cmath>
@@ -109,7 +111,7 @@ namespace fan {
 						break;
 					}
 					default: {
-						throw std::runtime_error("time unit not implemented");
+						fan::throw_error_impl();
 					}
 				}
 

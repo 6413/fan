@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.28)
-project(fan)
 
 set(FAN_PHYSICS OFF)
 set(FAN_GUI OFF)
@@ -25,15 +24,15 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (FAN_GUI)
-	set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS 1)
-endif()
-set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_OBJECTS 1)
-if (FAN_GUI)
-	set(CMAKE_C_RESPONSE_FILE_LINK_FLAG "@")
-endif()
-set(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
-set(CMAKE_NINJA_FORCE_RESPONSE_FILE 1 CACHE INTERNAL "")
+# if (FAN_GUI)
+	# set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS 1)
+# endif()
+# set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_OBJECTS 1)
+# if (FAN_GUI)
+	# set(CMAKE_C_RESPONSE_FILE_LINK_FLAG "@")
+# endif()
+# #set(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
+# set(CMAKE_NINJA_FORCE_RESPONSE_FILE 1 CACHE INTERNAL "")
 
 set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
 set(CMAKE_UNITY_BUILD ON)
@@ -53,6 +52,13 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=gold")
 set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=gold")
 set(CMAKE_MODULE_LINKER_FLAGS "-fuse-ld=gold")
+
+set(CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS "/usr/bin/clang-scan-deps")
+set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprebuilt-module-path=${CMAKE_BINARY_DIR}/CMakeFiles/fan_modules.dir")
+
+project(fan)
 
 set(ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/fan/)
 set(OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan)
@@ -80,6 +86,13 @@ function(apply_fan_definitions target)
 		$<$<BOOL:${FAN_3D}>:fan_3d>
 		$<$<BOOL:${FAN_PHYSICS}>:fan_physics>
 		$<$<BOOL:${FAN_VULKAN}>:fan_vulkan>
+		loco_line
+		loco_rectangle
+		loco_sprite
+		loco_light
+		loco_circle
+		loco_responsive_text
+		loco_universal_image_renderer
 		IMGUI_IMPL_OPENGL_LOADER_CUSTOM
 		IMGUI_DEFINE_MATH_OPERATORS
 	)
@@ -97,13 +110,6 @@ endfunction()
 
 #add_library(fan_pch INTERFACE)
 #target_precompile_headers(fan_pch INTERFACE ${ROOT_PATH}/pch.h)
-
-
-
-set(CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS "/usr/bin/clang-scan-deps")
-set(CMAKE_CXX_SCAN_FOR_MODULES ON)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprebuilt-module-path=${CMAKE_BINARY_DIR}/CMakeFiles/fan_modules.dir")
 
 
 add_library(fan_modules STATIC)
@@ -128,6 +134,7 @@ target_sources(fan_modules
 			
 			${ROOT_PATH}/graphics/opengl/core.ixx
 			${ROOT_PATH}/graphics/opengl/uniform_block.ixx
+			${ROOT_PATH}/graphics/loco.ixx
 			${ROOT_PATH}/graphics/graphics.ixx
 )
 if(FAN_FMT)
@@ -226,8 +233,7 @@ set(FAN_GRAPHICS_SOURCES "")
 set(FAN_PHYSICS_SOURCES "")
 set(FAN_VULKAN_SOURCES "")
 
-set(FAN_GRAPHICS_SOURCES 
-	${ROOT_PATH}/graphics/loco.cpp
+set(FAN_GRAPHICS_SOURCES
 	${ROOT_PATH}/types/types.cpp
 )
 

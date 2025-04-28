@@ -3,7 +3,7 @@
 #include <fan/types/vector.h>
 #include <random>
 
-import fan.color;
+import fan.types.color;
 
 namespace fan {
 

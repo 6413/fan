@@ -12,7 +12,7 @@ module;
 
 #include <functional>
 
-import fan.color;
+import fan.types.color;
 import fan.fmt;
 
 export module fan.console;
