@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 set(FAN_PHYSICS OFF)
-set(FAN_GUI OFF)
+set(FAN_GUI ON)
 set(FAN_JSON OFF)
 set(FAN_3D OFF)
 set(FAN_OPENGL ON)
@@ -94,7 +94,6 @@ function(apply_fan_definitions target)
 		loco_responsive_text
 		loco_universal_image_renderer
 		IMGUI_IMPL_OPENGL_LOADER_CUSTOM
-		IMGUI_DEFINE_MATH_OPERATORS
 	)
 endfunction()
 
@@ -119,8 +118,10 @@ target_sources(fan_modules
     FILE_SET CXX_MODULES
     BASE_DIRS ${ROOT_PATH}
     FILES
+		
 			${ROOT_PATH}/types/print.ixx
 			${ROOT_PATH}/types/color.ixx
+			${ROOT_PATH}/types/vector.ixx
 			
 			${ROOT_PATH}/types/fstring.ixx
 			
@@ -132,10 +133,12 @@ target_sources(fan_modules
 			
       ${ROOT_PATH}/graphics/camera.ixx
 			
+			${ROOT_PATH}/graphics/common_context.ixx
 			${ROOT_PATH}/graphics/opengl/core.ixx
 			${ROOT_PATH}/graphics/opengl/uniform_block.ixx
 			${ROOT_PATH}/graphics/loco.ixx
 			${ROOT_PATH}/graphics/graphics.ixx
+			
 )
 if(FAN_FMT)
     list(APPEND MODULE_FILES 
@@ -146,6 +149,11 @@ if(FAN_GUI)
     list(APPEND MODULE_FILES 
 			${ROOT_PATH}/graphics/gui/gui.ixx
 			${ROOT_PATH}/graphics/console.ixx
+		)
+endif()
+if(FAN_PHYSICS)
+    list(APPEND MODULE_FILES 
+			${ROOT_PATH}/physics/b2_integration.ixx
 		)
 endif()
 
@@ -247,7 +255,6 @@ set(FAN_SOURCES ${FAN_GRAPHICS_SOURCES})
 
 if(FAN_PHYSICS)
 	set (FAN_PHYSICS_SOURCES 
-		${ROOT_PATH}/physics/b2_integration.cpp
 		${ROOT_PATH}/graphics/physics_shapes.cpp
 	)
 	list(APPEND FAN_SOURCES ${FAN_PHYSICS_SOURCES})
