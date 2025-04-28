@@ -1,8 +1,12 @@
 module;
 
+#include <fan/types/types.h>
+
 #include <box2d/box2d.h>
 
-#include <fan/types/vector.h>
+#include <cassert> // box2d
+
+import fan.types.vector;
 
 export module fan.physics.b2_integration;
 

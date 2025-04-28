@@ -23,9 +23,6 @@
 #include _WITCH_PATH(FS/FS.h)
 #include _WITCH_PATH(T/T.h)
 
-import fan.types.print;
-import fan.io.file;
-
 // transform
 #include <algorithm>
 
@@ -36,6 +33,9 @@ import fan.io.file;
 #elif fan_audio_set_backend == 1
   #include <pulse/simple.h>
 #endif
+
+import fan.types.print;
+import fan.io.file;
 
 namespace fan {
   struct system_audio_t {

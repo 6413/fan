@@ -84,7 +84,7 @@ functions = [
     
     {"name": "draw", "return_type": "void", "args": ["uint8_t draw_range"], "member": ""},
     
-    {"name": "set_line", "return_type": "void", "args": ["loco_t::shape_t* shape", "const fan::vec2& src", "const fan::vec2& dst"], "member": ""},
+    {"name": "set_line", "return_type": "void", "args": ["loco_t::shape_t* shape", "const fan::vec3& src", "const fan::vec3& dst"], "member": ""},
     {"name": "set_line3", "return_type": "void", "args": ["loco_t::shape_t* shape", "const fan::vec3& src", "const fan::vec3& dst"], "member": ""},
 ]
 
@@ -200,19 +200,63 @@ custom_implementations = {
     ("set_line", "line"): """  auto data = reinterpret_cast<loco_t::line_t::vi_t*>(shape->GetRenderData(gloco->shaper));
   data->src = fan::vec3(src.x, src.y, 0);
   data->dst = fan::vec3(dst.x, dst.y, 0);
+  if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+    auto& data = gloco->shaper.ShapeList[*shape];
+    gloco->shaper.ElementIsPartiallyEdited(
+      data.sti,
+      data.blid,
+      data.ElementIndex,
+      fan::member_offset(&loco_t::line3d_t::vi_t::src),
+      sizeof(loco_t::line3d_t::vi_t::src)
+    );
+    gloco->shaper.ElementIsPartiallyEdited(
+      data.sti,
+      data.blid,
+      data.ElementIndex,
+      fan::member_offset(&loco_t::line3d_t::vi_t::dst),
+      sizeof(loco_t::line3d_t::vi_t::dst)
+    );
+  }
 """,
     ("get_position", "line"): """  return reinterpret_cast<loco_t::line_t::vi_t*>(shape->GetRenderData(gloco->shaper))->src;
 """,
     ("set_position2", "line"): """  reinterpret_cast<loco_t::line_t::vi_t*>(shape->GetRenderData(gloco->shaper))->src = position;
 """,
 
-("set_line", "line3d"): """auto data = reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper));
+("set_line", "line3d"): """  auto data = reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper));
   data->src = fan::vec3(src.x, src.y, 0);
   data->dst = fan::vec3(dst.x, dst.y, 0);
+  if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+    auto& data = gloco->shaper.ShapeList[*shape];
+    gloco->shaper.ElementIsPartiallyEdited(
+      data.sti,
+      data.blid,
+      data.ElementIndex,
+      fan::member_offset(&loco_t::line3d_t::vi_t::src),
+      sizeof(loco_t::line3d_t::vi_t::src)
+    );
+    gloco->shaper.ElementIsPartiallyEdited(
+      data.sti,
+      data.blid,
+      data.ElementIndex,
+      fan::member_offset(&loco_t::line3d_t::vi_t::dst),
+      sizeof(loco_t::line3d_t::vi_t::dst)
+    );
+  }
 """,
     ("get_position", "line3d"): """  return reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->src;
 """,
     ("set_position3", "line3d"): """  reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->src = position;
+  if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+    auto& data = gloco->shaper.ShapeList[*shape];
+    gloco->shaper.ElementIsPartiallyEdited(
+      data.sti,
+      data.blid,
+      data.ElementIndex,
+      fan::member_offset(&loco_t::line3d_t::vi_t::src),
+      sizeof(loco_t::line3d_t::vi_t::src)
+    );
+  }
 """,
 
     ("get_position", "polygon"): """  auto ri = (loco_t::polygon_t::ri_t*)shape->GetData(gloco->shaper);
@@ -251,10 +295,40 @@ custom_implementations = {
     ("get_size", "particles"): """  return reinterpret_cast<loco_t::particles_t::ri_t*>(shape->GetData(gloco->shaper))->size;
 """,
     ("set_size", "circle"): """  reinterpret_cast<loco_t::circle_t::vi_t*>(shape->GetData(gloco->shaper))->radius = size.x;
+if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+  auto& data = gloco->shaper.ShapeList[*shape];
+  gloco->shaper.ElementIsPartiallyEdited(
+    data.sti,
+    data.blid,
+    data.ElementIndex,
+    fan::member_offset(&loco_t::circle_t::vi_t::radius),
+    sizeof(loco_t::circle_t::vi_t::radius)
+  );
+}
 """,
     ("set_size", "capsule"): """  reinterpret_cast<loco_t::capsule_t::vi_t*>(shape->GetData(gloco->shaper))->radius = size.x;
+if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+  auto& data = gloco->shaper.ShapeList[*shape];
+  gloco->shaper.ElementIsPartiallyEdited(
+    data.sti,
+    data.blid,
+    data.ElementIndex,
+    fan::member_offset(&loco_t::capsule_t::vi_t::radius),
+    sizeof(loco_t::capsule_t::vi_t::radius)
+  );
+}
 """,
     ("set_position3", "line"): """  reinterpret_cast<loco_t::line_t::vi_t*>(shape->GetData(gloco->shaper))->src = position;
+if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+  auto& data = gloco->shaper.ShapeList[*shape];
+  gloco->shaper.ElementIsPartiallyEdited(
+    data.sti,
+    data.blid,
+    data.ElementIndex,
+    fan::member_offset(&loco_t::line_t::vi_t::src),
+    sizeof(loco_t::line_t::vi_t::src)
+  );
+}
 """,
 }
 
@@ -338,7 +412,11 @@ def generate_function_impl(func, shape):
         # Extract the parameter name (last argument)
         param_name = extract_param_name(func["args"][-1])
         if param_name:
-            body += f"  reinterpret_cast<loco_t::{shape}_t::vi_t*>(shape->GetRenderData(gloco->shaper))->{func['member']} = {param_name};\n"
+            if func["name"] == "set_position3":
+                body += f"  loco_t::set_position(shape, {param_name});\n  reinterpret_cast<loco_t::{shape}_t::vi_t*>(shape->GetRenderData(gloco->shaper))->{func['member']} = {param_name};\n"
+            else:
+                body += f"  reinterpret_cast<loco_t::{shape}_t::vi_t*>(shape->GetRenderData(gloco->shaper))->{func['member']} = {param_name};\n"
+            
             body += """  if (gloco->window.renderer == loco_t::renderer_t::opengl) {
     auto& data = gloco->shaper.ShapeList[*shape];
     gloco->shaper.ElementIsPartiallyEdited(
@@ -392,6 +470,70 @@ def generate_function_getter():
     
     func_str += "\n  return funcs;\n}\n"
     return func_str
+
+def generate_position():
+    return """
+inline static void set_position(loco_t::shape_t* shape, const fan::vec3& position) {
+   // alloc can be avoided inside switch
+  auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
+  uint8_t* KeyPack = new uint8_t[KeyPackSize];
+  gloco->shaper.WriteKeys(*shape, KeyPack);
+  auto sti = shape->get_shape_type();
+  switch (sti) {       
+  case loco_t::shape_type_t::light: {
+    break;
+  }
+  // common
+  case loco_t::shape_type_t::capsule:
+  case loco_t::shape_type_t::gradient:
+  case loco_t::shape_type_t::grid:
+  case loco_t::shape_type_t::circle:
+  case loco_t::shape_type_t::rectangle:
+  case loco_t::shape_type_t::rectangle3d:
+  case loco_t::shape_type_t::line: {
+    shaper_get_key_safe(depth_t, common_t, depth) = position.z;
+    break;
+  }
+                                  // texture
+  case loco_t::shape_type_t::particles:
+  case loco_t::shape_type_t::universal_image_renderer:
+  case loco_t::shape_type_t::unlit_sprite:
+  case loco_t::shape_type_t::sprite: {
+    shaper_get_key_safe(depth_t, texture_t, depth) = position.z;
+    break;
+  }
+  default: {
+    fan::throw_error("unimplemented");
+  }
+  }
+
+
+  auto _vi = shape->GetRenderData(gloco->shaper);
+  auto vlen = gloco->shaper.GetRenderDataSize(sti);
+  uint8_t* vi = new uint8_t[vlen];
+  std::memcpy(vi, _vi, vlen);
+
+  auto _ri = shape->GetData(gloco->shaper);
+  auto rlen = gloco->shaper.GetDataSize(sti);
+  uint8_t* ri = new uint8_t[rlen];
+  std::memcpy(ri, _ri, rlen);
+
+  shape->remove();
+  *shape = gloco->shaper.add(
+    sti,
+    KeyPack,
+    KeyPackSize,
+    vi,
+    ri
+  );
+#if defined(debug_shape_t)
+  fan::print("+", shape->NRI);
+#endif
+  delete[] KeyPack;
+  delete[] vi;
+  delete[] ri;
+}
+"""
 
 def generate_camera():
     return """
@@ -675,6 +817,7 @@ def generate_code():
     
     code += generate_push_backs()
     
+    code += generate_position()
     code += generate_camera()
     code += generate_viewport()
     code += generate_image()

@@ -1,28 +1,45 @@
 module;
 
 #include <fan/types/types.h>
-#include <fan/types/vector.h>
-#include <fan/types/matrix.h>
 
-#include <fan/graphics/common_context.h>
+#include <fan/types/matrix.h>
 
 #include <fan/graphics/opengl/init.h>
 #include <fan/graphics/image_load.h>
 
-import fan.window;
-
 #include <fan/physics/collision/rectangle.h>
 
+#include <memory>
+
+import fan.types.vector;
 import fan.types.fstring;
+import fan.types.color;
 
 import fan.camera;
-import fan.types.color;
+import fan.window;
+import fan.graphics.common_context;
 
 template<typename T>
 concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&
 !std::is_same_v<T, fan::vec3> &&
 !std::is_same_v<T, fan::vec4> &&
 !std::is_same_v<T, fan::color>;
+
+#ifndef camera_list
+  #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)this))
+#endif
+
+#ifndef shader_list
+  #define __fan_internal_shader_list (*(fan::graphics::shader_list_t*)fan::graphics::get_shader_list((uint8_t*)this))
+#endif
+
+#ifndef image_list
+  #define __fan_internal_image_list (*(fan::graphics::image_list_t*)fan::graphics::get_image_list((uint8_t*)this))
+#endif
+
+#ifndef viewport_list
+  #define __fan_internal_viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)this))
+#endif
 
 export module fan.graphics.opengl.core;
 

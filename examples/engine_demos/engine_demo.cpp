@@ -1,5 +1,12 @@
 #include <fan/pch.h>
 
+// enumerate
+#include <fan/types/lazy_compiler_devs.h>
+#include <fan/math/random.h>
+
+import fan.io.file;
+import fan.graphics.common_context;
+
 using namespace fan::graphics;
 using menu_t = engine_t::settings_menu_t;
 
@@ -70,13 +77,12 @@ struct engine_demo_t {
 
   static void demo_static_universal_image_renderer(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
-
     engine_demo->shapes.emplace_back(fan::graphics::universal_image_renderer_t{{
       .camera = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 0),    
       .size = viewport_size / 2,
     }});
-    fan::string pixel_data_str;
+    std::string pixel_data_str;
     constexpr fan::vec2ui image_size = fan::vec2ui(1920, 1080);
     fan::io::file::read("images/output1920.yuv", &pixel_data_str);
     void* pixel_data = pixel_data_str.data();

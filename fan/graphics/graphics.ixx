@@ -1,26 +1,28 @@
 module;
 // extension to loco.h
 
-#include <fan/types/types.h>
-#include <fan/types/vector.h>
-#include <fan/types/matrix.h>
-
-#include <fan/graphics/opengl/init.h>
-#include <fan/graphics/common_context.h>
-
-#include <fan/physics/collision/rectangle.h>
-
-#include <fan/ev/types.h>
-
 #if defined(fan_gui)
   #include <fan/imgui/imgui_internal.h>
   #include <fan/graphics/gui/imgui_themes.h>
 #endif
 
+#include <fan/types/types.h>
+
+#include <fan/graphics/opengl/init.h>
+
+#include <fan/ev/types.h>
+
+#include <fan/math/random.h>
+
 #include <fan/io/directory.h>
+
+#include <array>
+
+import fan.types.vector;
 
 import fan.window;
 import fan.graphics.opengl.core;
+import fan.graphics.common_context;
 import fan.graphics.loco;
 
 import fan.camera;
@@ -1101,19 +1103,20 @@ namespace fan {
         return text_pos;
       }
 
+      // untested
       void image_rotated(
-        loco_t::image_t image, 
-        const fan::vec2& size, 
-        int angle, 
-        const fan::vec2& uv0 = fan::vec2(0, 0), 
-        const fan::vec2& uv1 = fan::vec2(1, 1), 
+        loco_t::image_t image,
+        const fan::vec2& size,
+        int angle,
+        const fan::vec2& uv0 = fan::vec2(0, 0),
+        const fan::vec2& uv1 = fan::vec2(1, 1),
         const fan::color& tint_col = fan::color(1, 1, 1, 1),
         const fan::color& border_col = fan::color(0, 0, 0, 0)
       ) {
         IM_ASSERT(angle % 90 == 0);
-        ImVec2 _uv0, _uv1, _uv2, _uv3;
-        switch (angle % 360)
-        {
+        fan::vec2 _uv0, _uv1, _uv2, _uv3;
+
+        switch (angle % 360) {
         case 0:
           fan::graphics::gui::image(image, size, uv0, uv1, tint_col, border_col);
           return;
@@ -1123,43 +1126,61 @@ namespace fan {
         case 90:
           _uv3 = uv0;
           _uv1 = uv1;
-          _uv0 = ImVec2(uv1.x, uv0.y);
-          _uv2 = ImVec2(uv0.x, uv1.y);
+          _uv0 = fan::vec2(uv1.x, uv0.y);
+          _uv2 = fan::vec2(uv0.x, uv1.y);
           break;
         case 270:
           _uv1 = uv0;
           _uv3 = uv1;
-          _uv0 = ImVec2(uv0.x, uv1.y);
-          _uv2 = ImVec2(uv1.x, uv0.y);
+          _uv0 = fan::vec2(uv0.x, uv1.y);
+          _uv2 = fan::vec2(uv1.x, uv0.y);
           break;
         }
+
         ImGuiWindow* window = ImGui::GetCurrentWindow();
         if (window->SkipItems)
           return;
-        ImVec2 _size(size.y, size.x);
-        ImRect bb(window->DC.CursorPos, window->DC.CursorPos + _size);
-        if (border_col.a > 0.0f)
-          bb.Max += ImVec2(2, 2);
+
+        fan::vec2 _size(size.y, size.x); // swapped for rotation
+        fan::vec2 cursor_pos = *(fan::vec2*)&window->DC.CursorPos;
+        fan::vec2 bb_max = cursor_pos + _size;
+        if (border_col.a > 0.0f) {
+          bb_max += fan::vec2(2, 2);
+        }
+
+        ImRect bb(*(ImVec2*)&cursor_pos, *(ImVec2*)&bb_max);
         ImGui::ItemSize(bb);
         if (!ImGui::ItemAdd(bb, 0))
           return;
-        if (border_col.a > 0.0f)
-        {
-          window->DrawList->AddRect(bb.Min, bb.Max, ImGui::GetColorU32(border_col), 0.0f);
-          ImVec2 x0 = bb.Min + ImVec2(1, 1);
-          ImVec2 x2 = bb.Max - ImVec2(1, 1);
-          ImVec2 x1 = ImVec2(x2.x, x0.y);
-          ImVec2 x3 = ImVec2(x0.x, x2.y);
-          window->DrawList->AddImageQuad((ImTextureID)gloco->image_get_handle(image), x0, x1, x2, x3, _uv0, _uv1, _uv2, _uv3, ImGui::GetColorU32(tint_col));
+
+        if (border_col.a > 0.0f) {
+          window->DrawList->AddRect(*(ImVec2*)&bb.Min, *(ImVec2*)&bb.Max, ImGui::GetColorU32(border_col), 0.0f);
+          fan::vec2 x0 = cursor_pos + fan::vec2(1, 1);
+          fan::vec2 x2 = bb_max - fan::vec2(1, 1);
+          fan::vec2 x1 = fan::vec2(x2.x, x0.y);
+          fan::vec2 x3 = fan::vec2(x0.x, x2.y);
+
+          window->DrawList->AddImageQuad(
+            (ImTextureID)gloco->image_get_handle(image),
+            *(ImVec2*)&x0, *(ImVec2*)&x1, *(ImVec2*)&x2, *(ImVec2*)&x3,
+            *(ImVec2*)&_uv0, *(ImVec2*)&_uv1, *(ImVec2*)&_uv2, *(ImVec2*)&_uv3,
+            ImGui::GetColorU32(tint_col)
+          );
         }
-        else
-        {
-          ImVec2 x1 = ImVec2(bb.Max.x, bb.Min.y);
-          ImVec2 x3 = ImVec2(bb.Min.x, bb.Max.y);
-          window->DrawList->AddImageQuad((ImTextureID)gloco->image_get_handle(image), bb.Min, x1, bb.Max, x3, _uv0, _uv1, _uv2, _uv3, ImGui::GetColorU32(tint_col));
+        else {
+          fan::vec2 x0 = cursor_pos;
+          fan::vec2 x1 = fan::vec2(bb_max.x, cursor_pos.y);
+          fan::vec2 x2 = bb_max;
+          fan::vec2 x3 = fan::vec2(cursor_pos.x, bb_max.y);
+
+          window->DrawList->AddImageQuad(
+            (ImTextureID)gloco->image_get_handle(image),
+            *(ImVec2*)&x0, *(ImVec2*)&x1, *(ImVec2*)&x2, *(ImVec2*)&x3,
+            *(ImVec2*)&_uv0, *(ImVec2*)&_uv1, *(ImVec2*)&_uv2, *(ImVec2*)&_uv3,
+            ImGui::GetColorU32(tint_col)
+          );
         }
       }
-
     }
   }
 }
@@ -1409,7 +1430,7 @@ export namespace fan {
               }
               ImGui::TableNextRow();
               ImGui::TableSetColumnIndex(0); // Icon column
-              fan::vec2 cursor_pos = ImGui::GetWindowPos() + ImGui::GetCursorPos() + fan::vec2(ImGui::GetScrollX(), -ImGui::GetScrollY());
+              fan::vec2 cursor_pos = fan::vec2(ImGui::GetWindowPos()) + fan::vec2(ImGui::GetCursorPos()) + fan::vec2(ImGui::GetScrollX(), -ImGui::GetScrollY());
               fan::vec2 image_size = ImVec2(thumbnail_size / 4, thumbnail_size / 4);
               ImGuiStyle& style = ImGui::GetStyle();
               std::string space = "";
@@ -1653,7 +1674,7 @@ namespace fan {
   };
 
 #if defined(fan_physics)
-  namespace physics {
+  export namespace physics {
     bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) {
       return gloco->physics_context.is_on_sensor(test_id, sensor_id);
     }

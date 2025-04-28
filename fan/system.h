@@ -1,8 +1,6 @@
 #pragma once
 
-import fan.window.input;
-
-#include <fan/types/vector.h>
+#include <fan/types/types.h>
 
 #if defined(fan_platform_windows)
 #include <DXGI.h>
@@ -31,6 +29,8 @@ import fan.window.input;
 
 #endif
 
+import fan.types.vector;
+import fan.window.input;
 
 namespace fan {
 

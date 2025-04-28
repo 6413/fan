@@ -3,15 +3,18 @@ module;
 // for shapes
 
 #include <fan/types/types.h>
-#include <fan/types/vector.h>
+#include <fan/math/math.h>
 
 #include <fan/types/lazy_compiler_devs.h>
 
-#include <array>
 #include <fan/time/timer.h>
 
 #include <box2d/box2d.h>
 
+#include <array>
+#include <cassert>
+
+import fan.types.vector;
 import fan.types.color;
 import fan.physics.b2_integration;
 import fan.graphics.loco;
@@ -20,7 +23,7 @@ import fan.graphics.gui;
 
 export module fan.graphics.physics_shapes;
 
-namespace fan {
+export namespace fan {
   namespace graphics {
     namespace physics {
 
@@ -28,7 +31,7 @@ namespace fan {
       extern b2DebugDraw box2d_debug_draw;
       void debug_draw(bool enabled);
       // position & aabb & angle
-      inline std::function<void(loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t)> physics_update_cb =
+      std::function<void(loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t)> physics_update_cb =
         [](loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t) {};
 
       void shape_physics_update(const loco_t::physics_update_data_t& data) {
@@ -120,7 +123,7 @@ namespace fan {
           if (mass_data.mass < 0.f) {
             md_copy.mass = md.mass;
           }
-          if (mass_data.center_of_mass == 0) {
+          if (mass_data.center_of_mass.x == 0 && mass_data.center_of_mass.y == 0) {
             md_copy.center_of_mass = md.center;
           }
           if (mass_data.rotational_inertia < 0.f) {
@@ -811,7 +814,7 @@ namespace fan {
           bone_count = 11,
         };
       };
-      static constexpr const char* bone_names[] = {
+      constexpr const char* bone_names[] = {
         "Hip", "Torso", "Head",
         "Upper Left Leg", "Lower Left Leg",
         "Upper Right Leg", "Lower Right Leg",
@@ -1339,7 +1342,7 @@ namespace fan {
           // not copy safe
           gloco->m_update_callback[nr] = [this](loco_t* loco) {
 #if defined(fan_gui)
-            if (ImGui::IsMouseDown(0)) {
+            if (fan::window::is_mouse_down()) {
               fan::vec2 p = gloco->get_mouse_position() / fan::physics::length_units_per_meter;
               if (!B2_IS_NON_NULL(mouse_joint)) {
                 b2AABB box;
@@ -1368,7 +1371,7 @@ namespace fan {
                 b2Body_SetAwake(bodyIdB, true);
               }
             }
-            else if (ImGui::IsMouseReleased(0)) {
+            else if (fan::window::is_mouse_released()) {
               if (B2_IS_NON_NULL(mouse_joint)) {
                 b2DestroyJoint(mouse_joint);
                 mouse_joint = b2_nullJointId;
@@ -1489,7 +1492,7 @@ void DrawPoint(b2Vec2 p, float size, b2HexColor color, void* context) {
 /// Draw a string.
 void DrawString(b2Vec2 p, const char* s, void* context) {
 #if defined(fan_gui)
-  fan::graphics::gui::text_at(s, fan::physics::physics_to_render(p));
+  //fan::graphics::gui::text_at(s, fan::physics::physics_to_render(p));
 #endif
 }
 

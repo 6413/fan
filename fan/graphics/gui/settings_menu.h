@@ -226,7 +226,7 @@ struct settings_menu_t {
 
     int current_resolution = -1;
     for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
-      if (fan::window_t::resolutions[i] == current_size) {
+      if (fan::window_t::resolutions[i] == fan::vec2i(current_size)) {
         current_resolution = i;
         break;
       }

@@ -1,19 +1,20 @@
-#pragma once
-
-#include <variant>
+module;
 
 #include <fan/types/types.h>
-#include <fan/graphics/common_context_functions_declare.h>
-
-import fan.camera;
 
 #include <fan/types/matrix.h>
 
+#include <fan/graphics/common_context_functions_declare.h>
 #include <fan/graphics/image_load.h>
 
+#include <variant>
 #include <memory>
 
-namespace fan {
+import fan.camera;
+
+export module fan.graphics.common_context;
+
+export namespace fan {
   namespace graphics {
     enum image_format {
       r8b8g8a8_unorm,
@@ -74,6 +75,7 @@ namespace fan {
       fan::vec2 viewport_size;
     };
 
+    #define BLL_API inline
     #include "camera_list_builder_settings.h"
     #include <BLL/BLL.h>
     using camera_nr_t = camera_list_NodeReference_t;
@@ -83,7 +85,9 @@ namespace fan {
       std::unordered_map<std::string, std::string> uniform_type_table;
       void* internal;
     };
+
     // stores list here and inside renderer for resetting renderer without closing nrs
+    #define BLL_API inline
     #include "shader_list_builder_settings.h"
     #include <BLL/BLL.h>
     using shader_nr_t = shader_list_NodeReference_t;
@@ -103,10 +107,12 @@ namespace fan {
       image_load_properties_t image_settings;
       void* internal;
     };
+    #define BLL_API inline
     #include "image_list_builder_settings.h"
     #include <BLL/BLL.h>
     using image_nr_t = image_list_NodeReference_t;
 
+    #define BLL_API inline
     #include "viewport_list_builder_settings.h"
     #include <BLL/BLL.h>
     using viewport_nr_t = viewport_list_NodeReference_t;
@@ -121,7 +127,7 @@ namespace fan {
     inline this_offset_image_list_t get_image_list;
     inline this_offset_viewport_list_t get_viewport_list;
 
-    static constexpr f32_t znearfar = 0xffff;
+    constexpr f32_t znearfar = 0xffff;
 
     struct primitive_topology_t {
       static constexpr uint32_t points = 0;
@@ -213,19 +219,3 @@ namespace fan {
 #undef context_typedef_func_ptr2
 #undef context_declare_func
 #undef context_declare_func2
-
-#ifndef camera_list
-  #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)this))
-#endif
-
-#ifndef shader_list
-  #define __fan_internal_shader_list (*(fan::graphics::shader_list_t*)fan::graphics::get_shader_list((uint8_t*)this))
-#endif
-
-#ifndef image_list
-  #define __fan_internal_image_list (*(fan::graphics::image_list_t*)fan::graphics::get_image_list((uint8_t*)this))
-#endif
-
-#ifndef viewport_list
-  #define __fan_internal_viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)this))
-#endif

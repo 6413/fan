@@ -1,7 +1,8 @@
 #pragma once
 
-#include <fan/types/vector.h>
 #include <fan/math/math.h>
+
+import fan.types.vector;
 
 namespace fan_2d {
 	namespace collision {

@@ -1,12 +1,16 @@
 module;
 
-#include <fan/types/vector.h>
+#include <fan/types/types.h>
 
 #if defined(fan_gui)
 #include <fan/imgui/imgui.h>
 #endif
 
 #include <random>
+#include <string>
+#include <sstream>
+
+import fan.types.vector;
 
 export module fan.types.color;
 
@@ -58,7 +62,7 @@ export namespace fan {
     using value_type = cf_t;
 
     // returns rgb from hsv
-    fan::color hsv(f32_t H, f32_t S, f32_t V) {
+    static fan::color hsv(f32_t H, f32_t S, f32_t V) {
 
       f32_t s = S / 100;
       f32_t v = V / 100;

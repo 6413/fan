@@ -13,7 +13,7 @@ namespace fan_2d {
 			}
 
       // size is half
-			static constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size) {
+			inline constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size) {
         return
           point.x >= position.x - size.x &&
           point.x <= position.x + size.x &&

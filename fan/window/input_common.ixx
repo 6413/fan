@@ -4,11 +4,11 @@ module;
 
 #include <cstdint>
 
-import fan.window.input;
-
 #if defined(fan_gui)
   #include <fan/imgui/imgui.h>
 #endif
+
+import fan.window.input;
 
 export module fan.window.input_common;
 

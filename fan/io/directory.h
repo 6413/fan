@@ -1,12 +1,15 @@
 #pragma once
 
-#include _FAN_PATH(types/vector.h)
+#include <fan/math/math.h>
 
 #include _FAN_PATH(graphics/webp.h)
 
+#include <iostream>
 #include <fstream>
 #include <string>
 #include <filesystem>
+
+import fan.types.vector;
 
 namespace fan {
   namespace io {
