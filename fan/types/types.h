@@ -95,7 +95,7 @@ typedef f32_t cf_t;
 
 namespace fan {
 
-	static void throw_error_impl() {
+	inline void throw_error_impl() {
 #ifdef fan_compiler_msvc
 		system("pause");
 #endif

@@ -1,6 +1,6 @@
 struct texturepack_t {
 
-  using ti_t = fan::graphics::ti_t;
+  using ti_t = loco_t::ti_t;
 
   struct texture_t {
 
@@ -41,7 +41,52 @@ struct texturepack_t {
     */
     open_compiled(filename, lp);
   }
-  void open_compiled(const std::string& filename, fan::graphics::image_load_properties_t lp);
+  void open_compiled(const std::string& filename, fan::graphics::image_load_properties_t lp) {
+    texture_list.clear();
+    pixel_data_list.clear();
+
+    file_path = filename;
+
+    std::string in;
+    fan::io::file::read(filename, &in);
+
+    std::size_t offset = 0;
+    std::size_t pack_list_size = fan::string_read_data<std::size_t>(in, offset);
+
+
+    pixel_data_list.resize(pack_list_size);
+    texture_list.resize(pack_list_size);
+    for (std::size_t i = 0; i < pack_list_size; i++) {
+      std::size_t texture_list_size = fan::string_read_data<std::size_t>(in, offset);
+      texture_list[i].resize(texture_list_size);
+      for (std::size_t k = 0; k < texture_list_size; k++) {
+        texturepack_t::texture_t texture;
+        texture.image_name = fan::string_read_data<std::string>(in, offset);
+        texture.position = fan::string_read_data<fan::vec2ui>(in, offset);
+        texture.size = fan::string_read_data<fan::vec2ui>(in, offset);
+        texture_list[i][k] = texture;
+      }
+
+      std::vector<uint8_t> pixel_data = fan::string_read_data<std::vector<uint8_t>>(in, offset);
+      fan::image::image_info_t image_info;
+      image_info.data = WebPDecodeRGBA(
+        pixel_data.data(),
+        pixel_data.size(),
+        &image_info.size.x,
+        &image_info.size.y
+      );
+      image_info.channels = 4;
+      pixel_data_list[i].image = gloco->image_load(image_info, lp);
+      WebPFree(image_info.data);
+
+      //pixel_data_list[i].visual_output = 
+      fan::string_read_data<uint32_t>(in, offset);
+      //pixel_data_list[i].min_filter = 
+      fan::string_read_data<uint32_t>(in, offset);
+      //pixel_data_list[i].mag_filter = 
+      fan::string_read_data<uint32_t>(in, offset);
+    }
+  }
 
   void iterate_loaded_images(auto lambda) {
     for (uint32_t i = 0; i < texture_list.size(); i++) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.h>
+
 #ifndef fan_audio_set_backend
   #if defined(fan_platform_unix)
     #if defined(fan_platform_linux)

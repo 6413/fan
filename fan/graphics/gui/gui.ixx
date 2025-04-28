@@ -3,13 +3,18 @@ module;
 #include <fan/types/types.h>
 
 #include <fan/types/quaternion.h>
-#include <fan/graphics/loco.h>
+
+#include <fan/graphics/common_context.h>
+
+import fan.graphics.opengl.core;
+import fan.graphics.loco;
+import fan.graphics;
 
 #if defined(fan_gui)
 
 import fan.types.fstring;
 
-import fan.color;
+import fan.types.color;
 
 #endif
 

@@ -18,16 +18,20 @@
 #include <fan/memory/memory.hpp>
 
 #include <fan/types/types.h>
+#include <fan/types/vector.h>
+#include <fan/types/matrix.h>
+#include <fan/types/quaternion.h>
+
 
 //#define loco_vulkan
 //#define loco_compute_shader
 
 //
 #if !defined(fan_gui)
-  #include <fan/graphics/loco.h>
+  import fan.graphics.loco;
   import fan.graphics;
 #else
-  #include <fan/graphics/loco.h>
+  import fan.graphics.loco;
   import fan.graphics;
   import fan.graphics.gui;
 #endif

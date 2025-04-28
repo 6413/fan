@@ -1,7 +1,20 @@
 module;
 // extension to loco.h
 
-#include <fan/graphics/loco.h>
+#include <fan/types/types.h>
+#include <fan/types/vector.h>
+#include <fan/types/matrix.h>
+
+#include <fan/graphics/opengl/init.h>
+#include <fan/graphics/common_context.h>
+
+#include <fan/physics/collision/rectangle.h>
+
+import fan.window;
+import fan.graphics.opengl.core;
+import fan.graphics.loco;
+
+#include <fan/ev/types.h>
 
 #if defined(fan_gui)
   #include <fan/imgui/imgui_internal.h>
@@ -11,7 +24,7 @@ module;
 #include <fan/io/directory.h>
 
 import fan.camera;
-import fan.color;
+import fan.types.color;
 
 export module fan.graphics;
 

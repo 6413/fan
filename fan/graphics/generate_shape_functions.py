@@ -259,19 +259,19 @@ custom_implementations = {
 }
 
 for shape in shapes:
-    custom_implementations[("get_camera", shape)] = """	return get_camera(shape);
+    custom_implementations[("get_camera", shape)] = """	return loco_t::get_camera(shape);
 """
-    custom_implementations[("set_camera", shape)] = """	set_camera(shape, camera);
-"""
-    
-    custom_implementations[("get_viewport", shape)] = """	return get_viewport(shape);
-"""
-    custom_implementations[("set_viewport", shape)] = """	set_viewport(shape, viewport);
+    custom_implementations[("set_camera", shape)] = """	loco_t::set_camera(shape, camera);
 """
     
-    custom_implementations[("get_image", shape)] = """	return get_image(shape);
+    custom_implementations[("get_viewport", shape)] = """	return loco_t::get_viewport(shape);
 """
-    custom_implementations[("set_image", shape)] = """	set_image(shape, image);
+    custom_implementations[("set_viewport", shape)] = """	loco_t::set_viewport(shape, viewport);
+"""
+    
+    custom_implementations[("get_image", shape)] = """	return loco_t::get_image(shape);
+"""
+    custom_implementations[("set_image", shape)] = """	loco_t::set_image(shape, image);
 """
     custom_implementations[("get_image_data", shape)] = """	return gloco->image_list[shape->get_image()];
 """
@@ -371,7 +371,7 @@ def generate_function_array(func):
     array_name = f"{func['name']}_functions"
     array_type = f"{func['name']}_cb"
     
-    array_str = f"static {array_type} {array_name}[] = {{\n"
+    array_str = f"inline static loco_t::{array_type} {array_name}[] = {{\n"
     for shape in shapes:
         if func["name"] in exclusions and shape in exclusions[func["name"]]:
             array_str += f"  nullptr,\n"
@@ -381,7 +381,7 @@ def generate_function_array(func):
     return array_str
 
 def generate_function_getter():
-    func_str = "loco_t::functions_t loco_t::get_shape_functions(uint16_t type) {\n"
+    func_str = "loco_t::functions_t get_shape_functions(uint16_t type) {\n"
     func_str += "  uint16_t index = type;\n"
     func_str += "  loco_t::functions_t funcs{};\n\n"
     
@@ -395,7 +395,7 @@ def generate_function_getter():
 
 def generate_camera():
     return """
-static loco_t::camera_t get_camera(loco_t::shape_t* shape) {
+inline static loco_t::camera_t get_camera(loco_t::shape_t* shape) {
   auto sti = shape->get_shape_type();
 
   // alloc can be avoided inside switch
@@ -429,7 +429,7 @@ static loco_t::camera_t get_camera(loco_t::shape_t* shape) {
   return loco_t::camera_t();
 }
 
-static void set_camera(loco_t::shape_t* shape, loco_t::camera_t camera) {
+inline static void set_camera(loco_t::shape_t* shape, loco_t::camera_t camera) {
    // alloc can be avoided inside switch
   auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
   uint8_t* KeyPack = new uint8_t[KeyPackSize];
@@ -493,7 +493,7 @@ static void set_camera(loco_t::shape_t* shape, loco_t::camera_t camera) {
 """
 
 def generate_viewport():
-    return """static loco_t::viewport_t get_viewport(loco_t::shape_t* shape) {
+    return """inline static loco_t::viewport_t get_viewport(loco_t::shape_t* shape) {
   uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
 
   auto sti = shape->get_shape_type();
@@ -526,7 +526,7 @@ def generate_viewport():
   __unreachable();
 }
 
-static void set_viewport(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
+inline static void set_viewport(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
   auto sti = shape->get_shape_type();
 
   // alloc can be avoided inside switch
@@ -590,7 +590,7 @@ static void set_viewport(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
 """
 
 def generate_image():
-    return """loco_t::image_t get_image(loco_t::shape_t* shape) {
+    return """inline static loco_t::image_t get_image(loco_t::shape_t* shape) {
   auto sti = gloco->shaper.ShapeList[*shape].sti;
   uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
   switch (sti) {
@@ -608,7 +608,7 @@ def generate_image():
   return loco_t::image_t();
 }
 
-static void set_image(loco_t::shape_t* shape, loco_t::image_t image) {
+inline static void set_image(loco_t::shape_t* shape, loco_t::image_t image) {
          
   auto sti = gloco->shaper.ShapeList[*shape].sti;
 

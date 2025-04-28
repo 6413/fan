@@ -71,7 +71,7 @@ static loco_t::shape_t push_back_line3d(void* properties) {
 }
 
 
-static loco_t::camera_t get_camera(loco_t::shape_t* shape) {
+inline static loco_t::camera_t get_camera(loco_t::shape_t* shape) {
   auto sti = shape->get_shape_type();
 
   // alloc can be avoided inside switch
@@ -105,7 +105,7 @@ static loco_t::camera_t get_camera(loco_t::shape_t* shape) {
   return loco_t::camera_t();
 }
 
-static void set_camera(loco_t::shape_t* shape, loco_t::camera_t camera) {
+inline static void set_camera(loco_t::shape_t* shape, loco_t::camera_t camera) {
    // alloc can be avoided inside switch
   auto KeyPackSize = gloco->shaper.GetKeysSize(*shape);
   uint8_t* KeyPack = new uint8_t[KeyPackSize];
@@ -166,7 +166,7 @@ static void set_camera(loco_t::shape_t* shape, loco_t::camera_t camera) {
   delete[] vi;
   delete[] ri;
 }
-static loco_t::viewport_t get_viewport(loco_t::shape_t* shape) {
+inline static loco_t::viewport_t get_viewport(loco_t::shape_t* shape) {
   uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
 
   auto sti = shape->get_shape_type();
@@ -199,7 +199,7 @@ static loco_t::viewport_t get_viewport(loco_t::shape_t* shape) {
   __unreachable();
 }
 
-static void set_viewport(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
+inline static void set_viewport(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
   auto sti = shape->get_shape_type();
 
   // alloc can be avoided inside switch
@@ -260,7 +260,7 @@ static void set_viewport(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
   delete[] vi;
   delete[] ri;
 }
-loco_t::image_t get_image(loco_t::shape_t* shape) {
+inline static loco_t::image_t get_image(loco_t::shape_t* shape) {
   auto sti = gloco->shaper.ShapeList[*shape].sti;
   uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
   switch (sti) {
@@ -278,7 +278,7 @@ loco_t::image_t get_image(loco_t::shape_t* shape) {
   return loco_t::image_t();
 }
 
-static void set_image(loco_t::shape_t* shape, loco_t::image_t image) {
+inline static void set_image(loco_t::shape_t* shape, loco_t::image_t image) {
          
   auto sti = gloco->shaper.ShapeList[*shape].sti;
 
@@ -1662,259 +1662,259 @@ static void set_grid_size_grid(loco_t::shape_t* shape, const fan::vec2& size) {
 }
 
 static loco_t::camera_t get_camera_sprite(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_line(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_rectangle(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_light(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_unlit_sprite(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_circle(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_capsule(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_polygon(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_grid(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_universal_image_renderer(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_gradient(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_shader_shape(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_rectangle3d(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static loco_t::camera_t get_camera_line3d(loco_t::shape_t* shape) {
-	return get_camera(shape);
+	return loco_t::get_camera(shape);
 }
 
 static void set_camera_sprite(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_line(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_rectangle(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_light(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_unlit_sprite(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_circle(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_capsule(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_polygon(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_grid(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_universal_image_renderer(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_gradient(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_shader_shape(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_rectangle3d(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static void set_camera_line3d(loco_t::shape_t* shape, loco_t::camera_t camera) {
-	set_camera(shape, camera);
+	loco_t::set_camera(shape, camera);
 }
 
 static loco_t::viewport_t get_viewport_sprite(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_line(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_rectangle(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_light(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_unlit_sprite(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_circle(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_capsule(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_polygon(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_grid(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_universal_image_renderer(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_gradient(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_shader_shape(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_rectangle3d(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static loco_t::viewport_t get_viewport_line3d(loco_t::shape_t* shape) {
-	return get_viewport(shape);
+	return loco_t::get_viewport(shape);
 }
 
 static void set_viewport_sprite(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_line(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_rectangle(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_light(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_unlit_sprite(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_circle(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_capsule(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_polygon(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_grid(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_universal_image_renderer(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_gradient(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_shader_shape(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_rectangle3d(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static void set_viewport_line3d(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
-	set_viewport(shape, viewport);
+	loco_t::set_viewport(shape, viewport);
 }
 
 static loco_t::image_t get_image_sprite(loco_t::shape_t* shape) {
-	return get_image(shape);
+	return loco_t::get_image(shape);
 }
 
 static loco_t::image_t get_image_circle(loco_t::shape_t* shape) {
-	return get_image(shape);
+	return loco_t::get_image(shape);
 }
 
 static loco_t::image_t get_image_capsule(loco_t::shape_t* shape) {
-	return get_image(shape);
+	return loco_t::get_image(shape);
 }
 
 static loco_t::image_t get_image_universal_image_renderer(loco_t::shape_t* shape) {
-	return get_image(shape);
+	return loco_t::get_image(shape);
 }
 
 static void set_image_sprite(loco_t::shape_t* shape, loco_t::image_t image) {
-	set_image(shape, image);
+	loco_t::set_image(shape, image);
 }
 
 static void set_image_circle(loco_t::shape_t* shape, loco_t::image_t image) {
-	set_image(shape, image);
+	loco_t::set_image(shape, image);
 }
 
 static void set_image_capsule(loco_t::shape_t* shape, loco_t::image_t image) {
-	set_image(shape, image);
+	loco_t::set_image(shape, image);
 }
 
 static void set_image_universal_image_renderer(loco_t::shape_t* shape, loco_t::image_t image) {
-	set_image(shape, image);
+	loco_t::set_image(shape, image);
 }
 
 static fan::graphics::image_data_t& get_image_data_sprite(loco_t::shape_t* shape) {
@@ -2152,7 +2152,7 @@ static void set_line3_line3d(loco_t::shape_t* shape, const fan::vec3& src, const
 }
 
 // function pointer arrays
-static get_position_cb get_position_functions[] = {
+inline static loco_t::get_position_cb get_position_functions[] = {
   &get_position_sprite,
   nullptr,
   nullptr,
@@ -2175,7 +2175,7 @@ static get_position_cb get_position_functions[] = {
   &get_position_line3d,
 };
 
-static set_position2_cb set_position2_functions[] = {
+inline static loco_t::set_position2_cb set_position2_functions[] = {
   &set_position2_sprite,
   nullptr,
   nullptr,
@@ -2198,7 +2198,7 @@ static set_position2_cb set_position2_functions[] = {
   nullptr,
 };
 
-static set_position3_cb set_position3_functions[] = {
+inline static loco_t::set_position3_cb set_position3_functions[] = {
   &set_position3_sprite,
   nullptr,
   nullptr,
@@ -2221,7 +2221,7 @@ static set_position3_cb set_position3_functions[] = {
   &set_position3_line3d,
 };
 
-static get_size_cb get_size_functions[] = {
+inline static loco_t::get_size_cb get_size_functions[] = {
   &get_size_sprite,
   nullptr,
   nullptr,
@@ -2244,7 +2244,7 @@ static get_size_cb get_size_functions[] = {
   nullptr,
 };
 
-static get_size3_cb get_size3_functions[] = {
+inline static loco_t::get_size3_cb get_size3_functions[] = {
   nullptr,
   nullptr,
   nullptr,
@@ -2267,7 +2267,7 @@ static get_size3_cb get_size3_functions[] = {
   nullptr,
 };
 
-static set_size_cb set_size_functions[] = {
+inline static loco_t::set_size_cb set_size_functions[] = {
   &set_size_sprite,
   nullptr,
   nullptr,
@@ -2290,7 +2290,7 @@ static set_size_cb set_size_functions[] = {
   nullptr,
 };
 
-static set_size3_cb set_size3_functions[] = {
+inline static loco_t::set_size3_cb set_size3_functions[] = {
   nullptr,
   nullptr,
   nullptr,
@@ -2313,7 +2313,7 @@ static set_size3_cb set_size3_functions[] = {
   nullptr,
 };
 
-static get_rotation_point_cb get_rotation_point_functions[] = {
+inline static loco_t::get_rotation_point_cb get_rotation_point_functions[] = {
   &get_rotation_point_sprite,
   nullptr,
   nullptr,
@@ -2336,7 +2336,7 @@ static get_rotation_point_cb get_rotation_point_functions[] = {
   nullptr,
 };
 
-static set_rotation_point_cb set_rotation_point_functions[] = {
+inline static loco_t::set_rotation_point_cb set_rotation_point_functions[] = {
   &set_rotation_point_sprite,
   nullptr,
   nullptr,
@@ -2359,7 +2359,7 @@ static set_rotation_point_cb set_rotation_point_functions[] = {
   nullptr,
 };
 
-static get_color_cb get_color_functions[] = {
+inline static loco_t::get_color_cb get_color_functions[] = {
   &get_color_sprite,
   nullptr,
   nullptr,
@@ -2382,7 +2382,7 @@ static get_color_cb get_color_functions[] = {
   &get_color_line3d,
 };
 
-static set_color_cb set_color_functions[] = {
+inline static loco_t::set_color_cb set_color_functions[] = {
   &set_color_sprite,
   nullptr,
   nullptr,
@@ -2405,7 +2405,7 @@ static set_color_cb set_color_functions[] = {
   &set_color_line3d,
 };
 
-static get_angle_cb get_angle_functions[] = {
+inline static loco_t::get_angle_cb get_angle_functions[] = {
   &get_angle_sprite,
   nullptr,
   nullptr,
@@ -2428,7 +2428,7 @@ static get_angle_cb get_angle_functions[] = {
   nullptr,
 };
 
-static set_angle_cb set_angle_functions[] = {
+inline static loco_t::set_angle_cb set_angle_functions[] = {
   &set_angle_sprite,
   nullptr,
   nullptr,
@@ -2451,7 +2451,7 @@ static set_angle_cb set_angle_functions[] = {
   nullptr,
 };
 
-static get_tc_position_cb get_tc_position_functions[] = {
+inline static loco_t::get_tc_position_cb get_tc_position_functions[] = {
   &get_tc_position_sprite,
   nullptr,
   nullptr,
@@ -2474,7 +2474,7 @@ static get_tc_position_cb get_tc_position_functions[] = {
   nullptr,
 };
 
-static set_tc_position_cb set_tc_position_functions[] = {
+inline static loco_t::set_tc_position_cb set_tc_position_functions[] = {
   &set_tc_position_sprite,
   nullptr,
   nullptr,
@@ -2497,7 +2497,7 @@ static set_tc_position_cb set_tc_position_functions[] = {
   nullptr,
 };
 
-static get_tc_size_cb get_tc_size_functions[] = {
+inline static loco_t::get_tc_size_cb get_tc_size_functions[] = {
   &get_tc_size_sprite,
   nullptr,
   nullptr,
@@ -2520,7 +2520,7 @@ static get_tc_size_cb get_tc_size_functions[] = {
   nullptr,
 };
 
-static set_tc_size_cb set_tc_size_functions[] = {
+inline static loco_t::set_tc_size_cb set_tc_size_functions[] = {
   &set_tc_size_sprite,
   nullptr,
   nullptr,
@@ -2543,7 +2543,7 @@ static set_tc_size_cb set_tc_size_functions[] = {
   nullptr,
 };
 
-static load_tp_cb load_tp_functions[] = {
+inline static loco_t::load_tp_cb load_tp_functions[] = {
   &load_tp_sprite,
   nullptr,
   nullptr,
@@ -2566,7 +2566,7 @@ static load_tp_cb load_tp_functions[] = {
   &load_tp_line3d,
 };
 
-static get_grid_size_cb get_grid_size_functions[] = {
+inline static loco_t::get_grid_size_cb get_grid_size_functions[] = {
   nullptr,
   nullptr,
   nullptr,
@@ -2589,7 +2589,7 @@ static get_grid_size_cb get_grid_size_functions[] = {
   nullptr,
 };
 
-static set_grid_size_cb set_grid_size_functions[] = {
+inline static loco_t::set_grid_size_cb set_grid_size_functions[] = {
   nullptr,
   nullptr,
   nullptr,
@@ -2612,7 +2612,7 @@ static set_grid_size_cb set_grid_size_functions[] = {
   nullptr,
 };
 
-static get_camera_cb get_camera_functions[] = {
+inline static loco_t::get_camera_cb get_camera_functions[] = {
   &get_camera_sprite,
   nullptr,
   nullptr,
@@ -2635,7 +2635,7 @@ static get_camera_cb get_camera_functions[] = {
   &get_camera_line3d,
 };
 
-static set_camera_cb set_camera_functions[] = {
+inline static loco_t::set_camera_cb set_camera_functions[] = {
   &set_camera_sprite,
   nullptr,
   nullptr,
@@ -2658,7 +2658,7 @@ static set_camera_cb set_camera_functions[] = {
   &set_camera_line3d,
 };
 
-static get_viewport_cb get_viewport_functions[] = {
+inline static loco_t::get_viewport_cb get_viewport_functions[] = {
   &get_viewport_sprite,
   nullptr,
   nullptr,
@@ -2681,7 +2681,7 @@ static get_viewport_cb get_viewport_functions[] = {
   &get_viewport_line3d,
 };
 
-static set_viewport_cb set_viewport_functions[] = {
+inline static loco_t::set_viewport_cb set_viewport_functions[] = {
   &set_viewport_sprite,
   nullptr,
   nullptr,
@@ -2704,7 +2704,7 @@ static set_viewport_cb set_viewport_functions[] = {
   &set_viewport_line3d,
 };
 
-static get_image_cb get_image_functions[] = {
+inline static loco_t::get_image_cb get_image_functions[] = {
   &get_image_sprite,
   nullptr,
   nullptr,
@@ -2727,7 +2727,7 @@ static get_image_cb get_image_functions[] = {
   nullptr,
 };
 
-static set_image_cb set_image_functions[] = {
+inline static loco_t::set_image_cb set_image_functions[] = {
   &set_image_sprite,
   nullptr,
   nullptr,
@@ -2750,7 +2750,7 @@ static set_image_cb set_image_functions[] = {
   nullptr,
 };
 
-static get_image_data_cb get_image_data_functions[] = {
+inline static loco_t::get_image_data_cb get_image_data_functions[] = {
   &get_image_data_sprite,
   nullptr,
   nullptr,
@@ -2773,7 +2773,7 @@ static get_image_data_cb get_image_data_functions[] = {
   nullptr,
 };
 
-static get_parallax_factor_cb get_parallax_factor_functions[] = {
+inline static loco_t::get_parallax_factor_cb get_parallax_factor_functions[] = {
   &get_parallax_factor_sprite,
   nullptr,
   nullptr,
@@ -2796,7 +2796,7 @@ static get_parallax_factor_cb get_parallax_factor_functions[] = {
   nullptr,
 };
 
-static set_parallax_factor_cb set_parallax_factor_functions[] = {
+inline static loco_t::set_parallax_factor_cb set_parallax_factor_functions[] = {
   &set_parallax_factor_sprite,
   nullptr,
   nullptr,
@@ -2819,7 +2819,7 @@ static set_parallax_factor_cb set_parallax_factor_functions[] = {
   nullptr,
 };
 
-static get_flags_cb get_flags_functions[] = {
+inline static loco_t::get_flags_cb get_flags_functions[] = {
   &get_flags_sprite,
   nullptr,
   nullptr,
@@ -2842,7 +2842,7 @@ static get_flags_cb get_flags_functions[] = {
   nullptr,
 };
 
-static set_flags_cb set_flags_functions[] = {
+inline static loco_t::set_flags_cb set_flags_functions[] = {
   &set_flags_sprite,
   nullptr,
   nullptr,
@@ -2865,7 +2865,7 @@ static set_flags_cb set_flags_functions[] = {
   nullptr,
 };
 
-static get_radius_cb get_radius_functions[] = {
+inline static loco_t::get_radius_cb get_radius_functions[] = {
   nullptr,
   nullptr,
   nullptr,
@@ -2888,7 +2888,7 @@ static get_radius_cb get_radius_functions[] = {
   nullptr,
 };
 
-static get_src_cb get_src_functions[] = {
+inline static loco_t::get_src_cb get_src_functions[] = {
   nullptr,
   nullptr,
   nullptr,
@@ -2911,7 +2911,7 @@ static get_src_cb get_src_functions[] = {
   &get_src_line3d,
 };
 
-static get_dst_cb get_dst_functions[] = {
+inline static loco_t::get_dst_cb get_dst_functions[] = {
   nullptr,
   nullptr,
   nullptr,
@@ -2934,7 +2934,7 @@ static get_dst_cb get_dst_functions[] = {
   &get_dst_line3d,
 };
 
-static get_outline_size_cb get_outline_size_functions[] = {
+inline static loco_t::get_outline_size_cb get_outline_size_functions[] = {
   nullptr,
   nullptr,
   nullptr,
@@ -2957,7 +2957,7 @@ static get_outline_size_cb get_outline_size_functions[] = {
   nullptr,
 };
 
-static get_outline_color_cb get_outline_color_functions[] = {
+inline static loco_t::get_outline_color_cb get_outline_color_functions[] = {
   nullptr,
   nullptr,
   nullptr,
@@ -2980,7 +2980,7 @@ static get_outline_color_cb get_outline_color_functions[] = {
   nullptr,
 };
 
-static reload_cb reload_functions[] = {
+inline static loco_t::reload_cb reload_functions[] = {
   &reload_sprite,
   nullptr,
   nullptr,
@@ -3003,7 +3003,7 @@ static reload_cb reload_functions[] = {
   &reload_line3d,
 };
 
-static draw_cb draw_functions[] = {
+inline static loco_t::draw_cb draw_functions[] = {
   &draw_sprite,
   nullptr,
   nullptr,
@@ -3026,7 +3026,7 @@ static draw_cb draw_functions[] = {
   &draw_line3d,
 };
 
-static set_line_cb set_line_functions[] = {
+inline static loco_t::set_line_cb set_line_functions[] = {
   nullptr,
   nullptr,
   nullptr,
@@ -3049,7 +3049,7 @@ static set_line_cb set_line_functions[] = {
   &set_line_line3d,
 };
 
-static set_line3_cb set_line3_functions[] = {
+inline static loco_t::set_line3_cb set_line3_functions[] = {
   nullptr,
   nullptr,
   nullptr,
@@ -3072,7 +3072,7 @@ static set_line3_cb set_line3_functions[] = {
   &set_line3_line3d,
 };
 
-static push_back_cb push_back_functions[] = {
+inline static loco_t::push_back_cb push_back_functions[] = {
   &push_back_sprite,
   &push_back_text,
   nullptr,
@@ -3096,7 +3096,7 @@ static push_back_cb push_back_functions[] = {
 };
 
 // function table generator
-loco_t::functions_t loco_t::get_shape_functions(uint16_t type) {
+loco_t::functions_t get_shape_functions(uint16_t type) {
   uint16_t index = type;
   loco_t::functions_t funcs{};
 
