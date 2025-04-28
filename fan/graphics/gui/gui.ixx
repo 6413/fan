@@ -2,32 +2,29 @@ module;
 
 #include <fan/types/types.h>
 
+#if defined(fan_gui)
+#include <fan/imgui/imgui.h>
+#include <fan/imgui/imgui_impl_glfw.h>
+#include <fan/imgui/imgui_neo_sequencer.h>
+#include <fan/imgui/implot.h>
+#endif
+
 #include <fan/types/quaternion.h>
 
-#include <fan/graphics/common_context.h>
+#include <variant>
 
-import fan.graphics.opengl.core;
-import fan.graphics.loco;
-import fan.graphics;
+import fan.types.vector;
 
 #if defined(fan_gui)
 
-import fan.types.fstring;
-
-import fan.types.color;
-
+  import fan.types.fstring;
+  import fan.types.color;
 #endif
 
-//#if defined(fan_gui)
-//#include <fan/imgui/imgui.h>
-//#include <fan/imgui/imgui_impl_opengl3.h>
-//#if defined(fan_vulkan)
-//#include <fan/imgui/imgui_impl_vulkan.h>
-//#endif
-//#include <fan/imgui/imgui_impl_glfw.h>
-//#include <fan/imgui/imgui_neo_sequencer.h>
-//#include <fan/imgui/implot.h>
-//#endif
+import fan.graphics.common_context;
+import fan.graphics.opengl.core;
+import fan.graphics.loco;
+import fan.graphics;
 
 
 export module fan.graphics.gui;
@@ -296,32 +293,6 @@ export namespace fan {
           bool is_open;
         };
 
-        //const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0
-        #define fan_graphics_gui_window(...) \
-            for (struct { \
-                fan::graphics::gui::window_t __window; \
-                int once; \
-              }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__window}}; \
-              __struct_var.once--;  \
-            )
-
-        //(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0)
-        #define fan_graphics_gui_child_window(...) \
-            for (struct { \
-                fan::graphics::gui::child_window_t __window; \
-                int once; \
-              }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__window}}; \
-              __struct_var.once--;  \
-            )
-
-        #define fan_graphics_gui_table(...) \
-            for (struct { \
-                fan::graphics::gui::table_t __table; \
-                int once; \
-              }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__table}}; \
-              __struct_var.once--;  \
-            )
-
         bool button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0)){
           return ImGui::Button(label.c_str(), size);
         }
@@ -357,10 +328,10 @@ export namespace fan {
         /// <param name="color">The color of the text (defaults to white).</param>
         /// <param name="offset">Offset from the bottom-right corner.</param>
         void text_bottom_right(const std::string& text, const fan::color& color = fan::colors::white, const fan::vec2& offset = 0) {
-          ImVec2 text_pos;
-          ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
-          ImVec2 window_pos = ImGui::GetWindowPos();
-          ImVec2 window_size = ImGui::GetWindowSize();
+          fan::vec2 text_pos;
+          fan::vec2 text_size = ImGui::CalcTextSize(text.c_str());
+          fan::vec2 window_pos = ImGui::GetWindowPos();
+          fan::vec2 window_size = ImGui::GetWindowSize();
 
           text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
           text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
@@ -401,16 +372,16 @@ export namespace fan {
           return ImGui::DragFloat4(label.c_str(), c->data(), v_speed, v_min, v_max, format.c_str(), flags);
         }
 
-        bool drag_int(const std::string& label, int* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+        bool drag_int(const std::string& label, int* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%d", slider_flags_t flags = 0) {
           return ImGui::DragInt(label.c_str(), v, v_speed, v_min, v_max, format.c_str(), flags);
         }
-        bool drag_int(const std::string& label, fan::vec2i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+        bool drag_int(const std::string& label, fan::vec2i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%d", slider_flags_t flags = 0) {
           return ImGui::DragInt2(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
         }
-        bool drag_int(const std::string& label, fan::vec3i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+        bool drag_int(const std::string& label, fan::vec3i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%d", slider_flags_t flags = 0) {
           return ImGui::DragInt3(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
         }
-        bool drag_int(const std::string& label, fan::vec4i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+        bool drag_int(const std::string& label, fan::vec4i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%d", slider_flags_t flags = 0) {
           return ImGui::DragInt4(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
         }
 

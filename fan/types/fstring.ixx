@@ -7,9 +7,11 @@ module;
 #include <memory>
 #include <string>
 
-import fan.types.print; // for throw_error with msg
+#include <ios>
+#include <sstream>
 
-#include <fan/types/vector.h>
+import fan.types.print; // for throw_error with msg
+import fan.types.vector;
 
 export module fan.types.fstring;
 

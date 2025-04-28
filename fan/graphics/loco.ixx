@@ -1,18 +1,6 @@
 module;
 
-#include <fan/types/types.h>
-#include <fan/types/vector.h>
-#include <fan/types/matrix.h>
-
-#include <fan/math/random.h>
-
 #include <fan/graphics/opengl/init.h>
-#include <fan/graphics/common_context.h>
-
-#include <fan/physics/collision/rectangle.h>
-
-import fan.types.color;
-import fan.graphics.opengl.core;
 
 #define loco_audio
 
@@ -37,10 +25,6 @@ import fan.graphics.opengl.core;
 
 #include <fan/types/lazy_compiler_devs.h>
 
-#if defined(fan_physics)
-  import fan.physics.b2_integration;
-#endif
-
 #define loco_opengl
 #define loco_framebuffer
 #define loco_post_process
@@ -48,14 +32,38 @@ import fan.graphics.opengl.core;
 
 #define loco_physics
 
-//
-import fan.window.input;
-import fan.window;
-import fan.io.file;
+#ifndef camera_list
+  #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)this))
+#endif
 
-import fan.types.fstring;
+#ifndef shader_list
+  #define __fan_internal_shader_list (*(fan::graphics::shader_list_t*)fan::graphics::get_shader_list((uint8_t*)this))
+#endif
+
+#ifndef image_list
+  #define __fan_internal_image_list (*(fan::graphics::image_list_t*)fan::graphics::get_image_list((uint8_t*)this))
+#endif
+
+#ifndef viewport_list
+  #define __fan_internal_viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)this))
+#endif
 
 #include <fan/graphics/types.h>
+
+// shaper
+#include <variant>
+
+#include <fan/time/time.h>
+#include <fan/memory/memory.hpp>
+
+#include <fan/types/types.h>
+#include <fan/types/matrix.h>
+
+#include <fan/physics/collision/rectangle.h>
+
+#include <fan/graphics/image_load.h>
+
+
 
 #if defined(fan_gui)
 #include <fan/imgui/imgui.h>
@@ -73,16 +81,6 @@ import fan.types.fstring;
 #if defined(fan_vulkan)
 #include <fan/graphics/vulkan/core.h>
 #endif
-
-#if defined(fan_gui)
-import fan.console;
-#endif
-
-// shaper
-#include <variant>
-
-#include <fan/time/time.h>
-#include <fan/memory/memory.hpp>
 
 #ifndef __generic_malloc
 #define __generic_malloc(n) malloc(n)
@@ -110,11 +108,31 @@ namespace fan {
 }
 #endif
 
+#if defined(fan_json)
+  #include <fan/io/json_impl.h>
+#endif
 
+import fan.types.vector;
+import fan.window.input;
+import fan.window;
+import fan.io.file;
+
+import fan.types.fstring;
+
+#if defined(fan_physics)
+  import fan.physics.b2_integration;
+#endif
+
+import fan.types.color;
+import fan.graphics.common_context;
+import fan.graphics.opengl.core;
+
+
+#if defined(fan_gui)
+  import fan.console;
+#endif
 
 #if defined(fan_json)
-
-#include <fan/io/json_impl.h>
 
 struct loco_t;
 
@@ -2476,7 +2494,7 @@ public:
 
   using draw_cb = void (*)(uint8_t draw_range);
 
-  using set_line_cb = void (*)(loco_t::shape_t*, const fan::vec2&, const fan::vec2&);
+  using set_line_cb = void (*)(loco_t::shape_t*, const fan::vec3&, const fan::vec3&);
   using set_line3_cb = void (*)(loco_t::shape_t*, const fan::vec3&, const fan::vec3&);
 
   struct functions_t {
@@ -2647,7 +2665,7 @@ public:
   }
   fan::vec2 get_mouse_drag(int button = fan::mouse_left) {
     if (is_mouse_down(button)) {
-      if (window.drag_delta_start != -1) {
+      if (window.drag_delta_start != fan::vec2(-1)) {
         return window.get_mouse_position() - window.drag_delta_start;
       }
     }
@@ -3097,11 +3115,11 @@ public:
       return gloco->shape_functions[get_shape_type()].get_outline_color(this);
     }
 
-    void reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter) {
+    void reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter = fan::graphics::image_filter::linear) {
       gloco->shape_functions[get_shape_type()].reload(this, format, image_data, image_size, filter);
     }
 
-    void reload(uint8_t format, const fan::vec2& image_size, uint32_t filter) {
+    void reload(uint8_t format, const fan::vec2& image_size, uint32_t filter = fan::graphics::image_filter::linear) {
       void* data[4]{};
       gloco->shape_functions[get_shape_type()].reload(this, format, data, image_size, filter);
     }
@@ -5225,7 +5243,7 @@ namespace fan {
   }
 }
 
-inline bool init_fan_track_opengl_print = []() {
+bool init_fan_track_opengl_print = []() {
   fan_opengl_track_print = [](std::string func_name, uint64_t elapsed) {
     fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":");
     fan::printclh(fan::graphics::highlight_e::warning, std::to_string(elapsed / 1e+6f)/*fan::to_string(elapsed / 1e+6)*/ + "ms");
@@ -5843,7 +5861,7 @@ export namespace fan {
 #include <fan/graphics/vulkan/memory.h>
 #endif
 
-inline bool fan__init_list = [] {
+bool fan__init_list = [] {
   fan::graphics::get_camera_list = [](uint8_t* context) -> uint8_t* {
     auto ptr = OFFSETLESS(context, loco_t, context);
     return (uint8_t*)&ptr->camera_list;
