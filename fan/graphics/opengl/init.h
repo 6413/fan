@@ -1,6 +1,5 @@
 #pragma once
 
-import fan.types.print;
 #if defined(fan_platform_windows)
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_EXPOSE_NATIVE_WGL
@@ -18,6 +17,8 @@ import fan.types.print;
 #if defined(debug_glcall_timings)
   #include <fan/time/timer.h>
 #endif
+
+import fan.types.print;
 
 inline int fan_track_opengl_calls = 0;
 inline std::function<void(std::string func_name, uint64_t elapsed)> fan_opengl_track_print = [](std::string func_name, uint64_t elapsed){ };

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <fan/types/vector.h>
 #include <random>
 
+import fan.types.vector;
 import fan.types.color;
 
 namespace fan {

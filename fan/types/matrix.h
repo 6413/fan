@@ -1,6 +1,7 @@
 #pragma once
 
-#include <fan/types/vector.h>
+#include <fan/math/math.h>
+
 #include <fan/types/quaternion.h>
 #include <fan/math/random.h>
 
@@ -9,10 +10,13 @@
 #include <iostream>
 #include <cstring>
 #include <array>
+#include <string>
 
 #if defined(fan_3d)
   #include <assimp/matrix4x4.h>
 #endif
+
+import fan.types.vector;
 
 namespace fan {
 

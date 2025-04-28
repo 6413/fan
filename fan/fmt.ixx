@@ -1,10 +1,6 @@
 module;
 
 #include <fan/types/types.h>
-#include <fan/types/vector.h>
-
-import fan.types.print;
-import fan.types.fstring;
 
 //std::format doesnt exist for clang in linux
 #define FMT_HEADER_ONLY
@@ -12,9 +8,14 @@ import fan.types.fstring;
 #include <fmt/xchar.h>
 
 #include <vector>
+#include <sstream>
 
 // std::quoted
 #include <iomanip>
+
+import fan.types.vector;
+import fan.types.print;
+import fan.types.fstring;
 
 export module fan.fmt;
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #if defined(fan_3d)
-  #define loco_model_3d
   #include <assimp/Importer.hpp>
   #include <assimp/scene.h>
   #include <assimp/postprocess.h>
@@ -15,12 +14,7 @@
   #include <fan/imgui/text_editor.h>
 #endif
 
-#include <fan/memory/memory.hpp>
-
 #include <fan/types/types.h>
-#include <fan/types/vector.h>
-#include <fan/types/matrix.h>
-#include <fan/types/quaternion.h>
 
 
 //#define loco_vulkan
@@ -52,3 +46,29 @@ struct fan_window_loop_t{
 #define fan_window_close() \
   gloco->close(); \
   return
+
+//const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0
+#define fan_graphics_gui_window(...) \
+    for (struct { \
+        fan::graphics::gui::window_t __window; \
+        int once; \
+      }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__window}}; \
+      __struct_var.once--;  \
+    )
+
+//(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0)
+#define fan_graphics_gui_child_window(...) \
+    for (struct { \
+        fan::graphics::gui::child_window_t __window; \
+        int once; \
+      }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__window}}; \
+      __struct_var.once--;  \
+    )
+
+#define fan_graphics_gui_table(...) \
+    for (struct { \
+        fan::graphics::gui::table_t __table; \
+        int once; \
+      }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__table}}; \
+      __struct_var.once--;  \
+    )

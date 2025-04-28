@@ -1,11 +1,16 @@
 #pragma once
 
-#include <fan/types/vector.h>
+#include <fan/types/types.h>
+
+#include <fan/math/math.h>
 
 #if defined(fan_3d)
   #include <assimp/quaternion.h>
 #endif
 
+#include <cmath>
+
+import fan.types.vector;
 
 namespace fan {
 

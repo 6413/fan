@@ -54,8 +54,8 @@ namespace fan {
 
 namespace fan {
   namespace graphics {
-    inline bcol_t bcol;
-    inline std::vector<std::function<void()>> bcol_update;
+    bcol_t bcol;
+    std::vector<std::function<void()>> bcol_update;
     inline void open_bcol() {
       bcol_t::OpenProperties_t OpenProperties;
 
@@ -71,8 +71,8 @@ namespace fan {
         };
       //bcol.PreSolve_Shape_cb = ...
 
-      auto nr = gloco->m_update_callback.NewNodeLast();
-      gloco->m_update_callback[nr] = [] (auto* loco) {
+  //    auto nr = gloco->m_update_callback.NewNodeLast();
+     /* gloco->m_update_callback[nr] = [] (auto* loco) {
         {
           static f32_t bcol_delta = 0;
           const f32_t bcol_delta_max = 2;
@@ -94,7 +94,7 @@ namespace fan {
           }
           bcol_update.clear();
         }
-      };
+      };*/
     }
     inline void close_bcol() {
       bcol.Close();

@@ -14,7 +14,7 @@ namespace fan {
       };
     };
 
-    static constexpr fan::color highlight_color_table[] = {
+    inline constexpr fan::color highlight_color_table[] = {
       fan::colors::white,
       fan::colors::red,
       fan::colors::green,

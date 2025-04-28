@@ -49,6 +49,42 @@ constexpr bool operator comp(const T& rhs) const { \
     return (*this <=> rhs) comp 0;\
 }
 
+#define make_operator_comparison(comp) \
+template <typename T> \
+requires (!std::is_arithmetic_v<T>) \
+constexpr bool operator comp(const T& rhs) const { \
+    return (*this <=> rhs) comp 0; \
+}\
+template <typename T> \
+requires (std::is_arithmetic_v<T>) \
+constexpr bool operator comp(const T& rhs) const { \
+    return (*this <=> rhs) comp 0;\
+}
+
+
+//#define make_operator_comparison(comp) \
+//template <typename T> \
+//requires (!std::is_arithmetic_v<T>) \
+//constexpr bool operator comp(const T& rhs) const { \
+//    for (access_type_t i = 0; i < std::min(size(), rhs.size()); ++i) { \
+//        if ((*this)[i] != rhs[i]) { \
+//            return (*this)[i] comp rhs[i]; \
+//        } \
+//    } \
+//    return size() comp rhs.size(); \
+//} \
+//template <typename T> \
+//requires (std::is_arithmetic_v<T>) \
+//constexpr bool operator comp(const T& rhs) const { \
+//    for (access_type_t i = 0; i < size(); ++i) { \
+//        if ((*this)[i] != rhs) { \
+//            return (*this)[i] comp rhs; \
+//        } \
+//    } \
+//    return false; \
+//}
+
+
 using value_type = value_type_t;
 
 static constexpr access_type_t size() { return vec_n; }
@@ -82,24 +118,24 @@ constexpr vec_t(Args&&...args) {
   constexpr vec_t(const vec_t<vec_n, T>& test0) { for (int i = 0; i < size(); ++i) operator[](i) = test0[i]; } 
 #endif
 
-constexpr std::partial_ordering operator<=>(const auto& rhs) const {
-  for (access_type_t i = 0; i < std::min(size(), rhs.size()); ++i) {
-      if (auto cmp = (*this)[i] <=> rhs[i]; cmp != 0) {
-        return cmp;
-      }
-  }
-  return size() <=> rhs.size();
-}
-template <typename T>
-requires std::is_arithmetic_v<T>
-constexpr std::partial_ordering operator<=>(const T& rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-      if (auto cmp = (*this)[i] <=> (value_type)rhs; cmp != 0) {
-        return cmp;
-      }
-  }
-  return size() <=> size();
-}
+//constexpr std::partial_ordering operator<=>(const auto& rhs) const {
+//  for (access_type_t i = 0; i < std::min(size(), rhs.size()); ++i) {
+//      if (auto cmp = (*this)[i] <=> rhs[i]; cmp != 0) {
+//        return cmp;
+//      }
+//  }
+//  return size() <=> rhs.size();
+//}
+//template <typename T>
+//requires std::is_arithmetic_v<T>
+//constexpr std::partial_ordering operator<=>(const T& rhs) const {
+//  for (access_type_t i = 0; i < size(); ++i) {
+//      if (auto cmp = (*this)[i] <=> (value_type)rhs; cmp != 0) {
+//        return cmp;
+//      }
+//  }
+//  return size() <=> size();
+//}
 
 #define make_operators(arithmetic) \
   make_operator_const(arithmetic); \
@@ -107,13 +143,55 @@ constexpr std::partial_ordering operator<=>(const T& rhs) const {
 
 constexpr vec_t operator-() const { make_for_all(ret[i] = -(*this)[i]); }
 constexpr vec_t operator+() const { make_for_all(ret[i] = +(*this)[i]); }
-make_operators(-);  make_operator_comparison(==);
-make_operators(+);  make_operator_comparison(!=);
+make_operators(-); // make_operator_comparison(==);
+make_operators(+); // make_operator_comparison(!=);
 make_operators(*);
 make_operators(/);  
 make_operators(%);  
-                    
 
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator ==(const T& rhs) const {
+  for (access_type_t i = 0; i < std::min(size(), rhs.size()); ++i) {
+    if ((*this)[i] != rhs[i]) {
+      return (*this)[i] == rhs[i];
+    }
+  }
+  return size() == rhs.size();
+}
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator ==(const T& rhs) const {
+  for (access_type_t i = 0; i < size(); ++i) {
+    if ((*this)[i] != rhs) {
+      return (*this)[i] == rhs;
+    }
+  }
+  return false;
+}
+
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator !=(const T& rhs) const {
+  for (access_type_t i = 0; i < std::min(size(), rhs.size()); ++i) {
+    if ((*this)[i] != rhs[i]) {
+      return (*this)[i] != rhs[i];
+    }
+  }
+  return size() != rhs.size();
+}
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator !=(const T& rhs) const {
+  for (access_type_t i = 0; i < size(); ++i) {
+    if ((*this)[i] != rhs) {
+      return (*this)[i] != rhs;
+    }
+  }
+  return false;
+}
+
+                    
 #define __FAN_SWITCH_IDX(x, idx) case size() - (idx + 1): return x
 
 constexpr value_type_t& operator[](access_type_t idx) { 

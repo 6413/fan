@@ -1,11 +1,6 @@
 module;
 
-#include <fan/types/vector.h>
-
 #include <fan/types/types.h>
-
-import fan.window.input_common;
-import fan.window.input;
 
 #if defined(fan_vulkan)
 #include <vulkan/vulkan.h>
@@ -19,6 +14,10 @@ import fan.window.input;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
+
+import fan.types.vector;
+import fan.window.input_common;
+import fan.window.input;
 
 export module fan.window;
 
@@ -260,7 +259,7 @@ export namespace fan {
       std::fill(key_states, key_states + std::size(key_states), -1);
       std::fill(prev_key_states, prev_key_states + std::size(prev_key_states), -1);
 
-      if (window_size == -1) {
+      if (window_size.x == -1 && window_size.y == -1) {
         const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
         window_size = resolutions[current_resolution];
@@ -748,7 +747,7 @@ void fan::window::mouse_position_callback(GLFWwindow* wnd, double xpos, double y
       it = it.Next(&window->m_mouse_position_callback);
     }
   }
-  if (window->previous_mouse_position == -0xfff) {
+  if (window->previous_mouse_position.x == -0xfff && window->previous_mouse_position.y == -0xfff) {
     window->previous_mouse_position = fan::vec2d(xpos, ypos);
   }
   {

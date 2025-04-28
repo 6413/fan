@@ -1,5 +1,6 @@
-#pragma once
+module;
 
+#include <fan/types/types.h>
 
 #if defined(fan_vector_simple)
 #include <cstdint>
@@ -71,7 +72,9 @@ struct vec4_wrap_t {
   #include <box2d/types.h>
 #endif
 
-namespace fan {
+export module fan.types.vector;
+
+export namespace fan {
 
   using access_type_t = uint16_t;
 

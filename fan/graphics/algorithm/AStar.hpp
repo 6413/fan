@@ -10,7 +10,7 @@
 #include <functional>
 #include <set>
 
-#include <fan/types/vector.h>
+import fan.types.vector;
 
 namespace AStar
 {
