@@ -1,5 +1,7 @@
 module;
 
+#include <fan/types/types.h>
+
 import fan.types.print;
 #include <fan/types/vector.h>
 

@@ -8,7 +8,7 @@ module;
 
 #include <random>
 
-export module fan.color;
+export module fan.types.color;
 
 #pragma pack(push, 1)
 
