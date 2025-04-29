@@ -1505,7 +1505,7 @@ void init_imgui();
 
 void shape_keypack_traverse(loco_t::shaper_t::KeyTraverse_t& KeyTraverse, fan::opengl::context_t& context);
 
-namespace fan {
+export namespace fan {
   namespace graphics {
     struct interactive_camera_t {
       loco_t::update_callback_nr_t uc_nr;
