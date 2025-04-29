@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.28)
 
-set(FAN_PHYSICS OFF)
-set(FAN_GUI OFF)
-set(FAN_JSON OFF)
-set(FAN_3D OFF)
+set(FAN_PHYSICS ON)
+set(FAN_GUI ON)
+set(FAN_JSON ON)
+set(FAN_3D ON)
 set(FAN_OPENGL ON)
 set(FAN_VULKAN OFF)
-set(FAN_FMT OFF)
+set(FAN_FMT ON)
 
 set(BUILD_MAIN ON)
 
@@ -78,7 +78,7 @@ endif()
 
 set(BUILD_SHARED_LIBS ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 
 
 function(apply_fan_definitions target)
@@ -102,7 +102,7 @@ endfunction()
 
 function(apply_common_compile_options target)
 	target_compile_options(${target} PRIVATE
-		-w -MD -MT -Wall -Wextra -ferror-limit=16 -stdlib=libc++ -fsized-deallocation -fPIC
+		-w -MD -MT -Wall -Wextra -ferror-limit=16 -stdlib=libstdc++ -fsized-deallocation -fPIC
 		-Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast
 		-Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses
 		-Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare
@@ -166,6 +166,7 @@ endif()
 if(FAN_PHYSICS)
     list(APPEND MODULE_FILES 
 			${ROOT_PATH}/physics/b2_integration.ixx
+			${ROOT_PATH}/graphics/physics_shapes.ixx
 		)
 endif()
 
@@ -271,13 +272,6 @@ if(FAN_VULKAN)
 endif()
 
 set(FAN_SOURCES ${FAN_GRAPHICS_SOURCES})
-
-if(FAN_PHYSICS)
-	set (FAN_PHYSICS_SOURCES 
-		${ROOT_PATH}/graphics/physics_shapes.cpp
-	)
-	list(APPEND FAN_SOURCES ${FAN_PHYSICS_SOURCES})
-endif()
 
 add_library(fan_obj OBJECT ${FAN_SOURCES})
 add_dependencies(fan_obj fan_modules)

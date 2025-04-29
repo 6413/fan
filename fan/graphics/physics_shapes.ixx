@@ -17,6 +17,8 @@ module;
 import fan.types.vector;
 import fan.types.color;
 import fan.physics.b2_integration;
+
+import fan.graphics.common_context;
 import fan.graphics.loco;
 import fan.graphics;
 
@@ -1542,6 +1544,15 @@ void fan::graphics::physics::step(f32_t dt) {
 
 void fan::graphics::physics::debug_draw(bool enabled) {
   fan::graphics::physics::box2d_debug_draw = initialize_debug(enabled);
+}
+
+export namespace fan::physics {
+  bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) {
+    return gloco->physics_context.is_on_sensor(test_id, sensor_id);
+  }
+  fan::physics::ray_result_t raycast(const fan::vec2& src, const fan::vec2& dst) {
+    return gloco->physics_context.raycast(src, dst);
+  }
 }
 
 #endif

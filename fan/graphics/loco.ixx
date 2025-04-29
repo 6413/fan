@@ -28,6 +28,7 @@ module;
 
 #include <array>
 #include <variant>
+#include <cstring>
 
 #define loco_opengl
 #define loco_framebuffer
@@ -99,6 +100,10 @@ module;
 #include <fan/types/json.h>
 #endif
 
+#if defined(fan_physics)
+  #include <box2d/id.h>
+#endif
+
 import fan.types.vector;
 import fan.types.matrix;
 import fan.window.input;
@@ -124,9 +129,9 @@ import fan.physics.collision.rectangle;
   import fan.console;
 #endif
 
-#if defined(fan_json)
+export module fan.graphics.loco;
 
-struct loco_t;
+#if defined(fan_json)
 
 export namespace fan {
   struct json_stream_parser_t {
@@ -190,8 +195,6 @@ export namespace fan {
 }
 
 #endif
-
-export module fan.graphics.loco;
 
 #if defined(fan_gui)
 namespace fan {
