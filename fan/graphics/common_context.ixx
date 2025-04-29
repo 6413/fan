@@ -1,16 +1,20 @@
 module;
 
 #include <fan/types/types.h>
-
-#include <fan/types/matrix.h>
+#include <fan/math/math.h>
 
 #include <fan/graphics/common_context_functions_declare.h>
-#include <fan/graphics/image_load.h>
+
 
 #include <variant>
 #include <memory>
 
+import fan.types.print;
+import fan.types.color;
+import fan.types.matrix;
 import fan.camera;
+
+import fan.graphics.image_load;
 
 export module fan.graphics.common_context;
 

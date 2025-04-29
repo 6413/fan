@@ -7,28 +7,25 @@ module;
 #endif
 
 #include <fan/types/types.h>
-
 #include <fan/graphics/opengl/init.h>
-
 #include <fan/ev/types.h>
 
-#include <fan/math/random.h>
-
-#include <fan/io/directory.h>
-
-#include <array>
-
-#include <fan/graphics/image_load.h>
+#include <fan/math/math.h>
 
 import fan.types.vector;
 
 import fan.window;
+import fan.graphics.image_load;
 import fan.graphics.opengl.core;
 import fan.graphics.common_context;
 import fan.graphics.loco;
 
+import fan.io.directory;
+
 import fan.camera;
 import fan.types.color;
+import fan.random;
+import fan.io.file;
 
 export module fan.graphics;
 
@@ -83,6 +80,7 @@ export namespace fan {
 
 export namespace fan {
   namespace graphics {
+    using engine_t = fan::graphics::engine_t;
     fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info) {
       return gloco->image_load(image_info);
     }

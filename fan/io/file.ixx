@@ -8,7 +8,6 @@ import fan.types.vector;
 #include <fstream>
 #include <string>
 #include <sstream>
-#undef index // xos.h
 
 export module fan.io.file;
 

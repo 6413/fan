@@ -1,30 +1,43 @@
-#pragma once
+module;
 
-#include <fan/graphics/webp.h>
+#include <fan/types/types.h>
+
 #if !defined(loco_no_stb)
-  #include <fan/graphics/stb.h>
+  import fan.graphics.stb;
 #endif
 
-namespace fan {
+import fan.types.print;
+import fan.types.vector;
+import fan.graphics.webp;
+
+export module fan.graphics.image_load;
+
+export namespace fan {
   namespace image {
+    struct image_type_e{
+      enum  {
+        webp,
+        stb
+      };
+    };
 
     struct image_info_t {
       void* data;
       fan::vec2i size;
       int channels;
-      uint8_t type; // webp, stb
+      std::uint8_t type; // webp, stb
     };
 
-    static bool load(const std::string& file, image_info_t* image_info) {
+    fan_api bool load(const std::string& file, image_info_t* image_info) {
       bool ret;
       if (fan::webp::validate_webp(file)) {
         ret = fan::webp::load(file, (fan::webp::image_info_t*)image_info);
-        image_info->type = 0;
+        image_info->type = image_type_e::webp;
       }
       else {
         #if !defined(loco_no_stb)
           ret = fan::stb::load(file, (fan::stb::image_info_t*)image_info);
-          image_info->type = 1;
+          image_info->type = image_type_e::stb;
         #endif
       }
 #if fan_debug >= fan_debug_low
@@ -34,11 +47,11 @@ namespace fan {
 #endif
       return ret;
     }
-    static void free(image_info_t* image_info) {
-      if (image_info->type == 0) { // webp
+    fan_api void free(image_info_t* image_info) {
+      if (image_info->type == image_type_e::webp) {
         fan::webp::free_image(image_info->data);
       }
-      else if (image_info->type == 1) { // stb
+      else if (image_info->type == image_type_e::stb) {
         #if !defined(loco_no_stb)
         fan::stb::free_image(image_info->data);
         #endif

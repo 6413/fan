@@ -2,21 +2,19 @@ module;
 
 #include <fan/types/types.h>
 
-#include <fan/types/matrix.h>
-
+#include <fan/math/math.h>
 #include <fan/graphics/opengl/init.h>
-#include <fan/graphics/image_load.h>
 
-#include <fan/physics/collision/rectangle.h>
-
-#include <memory>
+import fan.physics.collision.rectangle;
 
 import fan.types.vector;
+import fan.types.matrix;
 import fan.types.fstring;
 import fan.types.color;
 
 import fan.camera;
 import fan.window;
+import fan.graphics.image_load;
 import fan.graphics.common_context;
 
 template<typename T>

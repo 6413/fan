@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstring>
-
 #ifndef __empty_struct
   #define __empty_struct __empty_struct
   struct __empty_struct {

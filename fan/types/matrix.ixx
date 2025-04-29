@@ -1,9 +1,6 @@
-#pragma once
-
-#include <fan/math/math.h>
+module;
 
 #include <fan/types/quaternion.h>
-#include <fan/math/random.h>
 
 #include <type_traits>
 
@@ -16,9 +13,13 @@
   #include <assimp/matrix4x4.h>
 #endif
 
+#include <fan/math/math.h>
 import fan.types.vector;
+import fan.random;
 
-namespace fan {
+export module fan.types.matrix;
+
+export namespace fan {
 
   template <typename type_t>
   struct _matrix2x2 {
@@ -75,23 +76,23 @@ namespace fan {
   struct _matrix4x4;
 
   template <typename T>
-  static _matrix4x4<T> translation_matrix(const fan::vec3_wrap_t<T>& translation) {
+  inline _matrix4x4<T> translation_matrix(const fan::vec3_wrap_t<T>& translation) {
     return _matrix4x4<T>(1).translate(translation);
   }
   template <typename T>
-  static _matrix4x4<T> rotation_quat_matrix(const fan::quaternion<T>& rotation) {
+  inline _matrix4x4<T> rotation_quat_matrix(const fan::quaternion<T>& rotation) {
     return rotation;
   }
   template <typename T>
-  static _matrix4x4<T> scaling_matrix(const fan::vec3_wrap_t<T>& scale) {
+  inline _matrix4x4<T> scaling_matrix(const fan::vec3_wrap_t<T>& scale) {
     return _matrix4x4<T>(1).scale(scale);
   }
   template <typename T>
-  static _matrix4x4<T> inverse(const _matrix4x4<T>& m) {
+  inline  _matrix4x4<T> inverse(const _matrix4x4<T>& m) {
     return m.inverse();
   }
   template <typename T>
-  static fan::quaternion<T> to_quat(const _matrix4x4<T>& m) {
+  inline fan::quaternion<T> to_quat(const _matrix4x4<T>& m) {
     fan::quaternion<T> q;
     T trace = m[0][0] + m[1][1] + m[2][2];
     if (trace > 0) {
@@ -127,7 +128,7 @@ namespace fan {
     return q.normalize();
   }
   template <typename T>
-  static constexpr fan::quaternion<T> inverse(const fan::quaternion<T>& q) {
+  inline constexpr fan::quaternion<T> inverse(const fan::quaternion<T>& q) {
     return q.inverse();
   }
 

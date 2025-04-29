@@ -1,11 +1,15 @@
-#pragma once
+module;
+
+#include <fan/types/types.h>
 
 #include <random>
 
 import fan.types.vector;
 import fan.types.color;
 
-namespace fan {
+export module fan.random;
+
+export namespace fan {
 
   namespace random {
 
@@ -72,7 +76,7 @@ namespace fan {
       return value_f32(min, max);
     }
 
-    static std::string string(uint32_t len) {
+    fan_api std::string string(uint32_t len) {
       std::string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
       std::string newstr;
       std::size_t pos;
@@ -95,7 +99,7 @@ namespace fan {
     //   return newstr;
     // }
 
-    inline fan::vec2i vec2i(int64_t min, int64_t max) {
+    fan_api fan::vec2i vec2i(int64_t min, int64_t max) {
       return fan::vec2i(fan::random::value_i64(min, max), fan::random::value_i64(min, max));
     }
 
@@ -131,7 +135,7 @@ namespace fan {
       uint32_t output;
     };
 
-    static uint32_t get_output_with_percent(const std::vector<percent_output_t>& po) {
+    fan_api uint32_t get_output_with_percent(const std::vector<percent_output_t>& po) {
 
       for (std::size_t i = 0; i < po.size(); i++) {
         if (!(1.0 / fan::random::value_i64(0, (uint32_t)~0) < 1.0 / (po[i].percent * (f32_t)~(uint32_t)0))) {

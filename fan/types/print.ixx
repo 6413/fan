@@ -2,13 +2,7 @@ module;
 
 #include <fan/types/types.h>
 
-#include <iostream>
-#include <string>
-#include <sstream>
-
-#if defined(fan_std23)
-  #include <stacktrace>
-#endif
+import std;
 
 export module fan.types.print;
 

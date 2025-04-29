@@ -4,8 +4,6 @@
 #endif
 #include <fan/types/types.h>
 
-#include <cfloat>
-
 #include <cmath>
 
 namespace fan { 
@@ -97,7 +95,7 @@ namespace fan {
     }
 
     static double sigmoid(double x) {
-      return 1.0 / (1 + exp(-x));
+      return 1.0 / (1 + std::exp(-x));
     }
 
     static constexpr double sigmoid_derivative(double x) {
@@ -108,7 +106,7 @@ namespace fan {
       return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
     }
 
-		constexpr f_t inf = INFINITY;
+		constexpr f_t inf = ((float)(1e+300 * 1e+300));
 		constexpr f_t infinite = inf;
 		constexpr f_t infinity = infinite;
 
@@ -243,11 +241,11 @@ namespace fan {
 		}
 
 		template <typename T>
-		constexpr int64_t ceil(T num)
+		constexpr std::int64_t ceil(T num)
 		{
-			return (static_cast<f32_t>(static_cast<int64_t>(num)) == num)
-				? static_cast<int64_t>(num)
-				: static_cast<int64_t>(num) + ((num > 0) ? 1 : 0);
+			return (static_cast<f32_t>(static_cast<std::int64_t>(num)) == num)
+				? static_cast<std::int64_t>(num)
+				: static_cast<std::int64_t>(num) + ((num > 0) ? 1 : 0);
 		}
 
 		// converts degrees to radians
@@ -269,7 +267,7 @@ namespace fan {
 			return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
 		}
 
-    template <typename val_type, uintptr_t n>
+    template <typename val_type, std::uintptr_t n>
 		val_type cross_matrix_determinant(const auto &mat) {
 			if constexpr(n == 1) {
 				return mat[0][0];
@@ -279,11 +277,11 @@ namespace fan {
 			}
 			val_type det = 0;
 			if constexpr(n != 1){
-				for (uintptr_t j = 0; j < n; ++j) {
+				for (std::uintptr_t j = 0; j < n; ++j) {
 					val_type submat[n - 1][n - 1];
-					for (uintptr_t row = 1; row < n; ++row) {
-						uintptr_t colIdx = 0;
-						for (uintptr_t col = 0; col < n; ++col) {
+					for (std::uintptr_t row = 1; row < n; ++row) {
+						std::uintptr_t colIdx = 0;
+						for (std::uintptr_t col = 0; col < n; ++col) {
 							if (col != j) {
 								submat[row - 1][colIdx] = mat[row][col];
 								++colIdx;
@@ -578,7 +576,7 @@ namespace fan {
 		}
 
 		template <typename T>
-		constexpr bool dcom_fr(uintptr_t n, T x, T y) noexcept {
+		constexpr bool dcom_fr(std::uintptr_t n, T x, T y) noexcept {
 			switch (n) {
 				case 0: {
 					return x < y;
@@ -738,25 +736,25 @@ namespace fan {
 
 #ifndef __fast_8log2
   #define __fast_8log2 __fast_8log2
-  __forceinline inline uint8_t __fast_8log2(uint8_t v){
+  __forceinline inline std::uint8_t __fast_8log2(std::uint8_t v){
     return 31 - __clz32(v);
   }
 #endif
 #ifndef __fast_16log2
   #define __fast_16log2 __fast_16log2
-  __forceinline inline uint8_t __fast_16log2(uint16_t v){
+  __forceinline inline std::uint8_t __fast_16log2(std::uint16_t v){
     return 31 - __clz32(v);
   }
 #endif
 #ifndef __fast_32log2
   #define __fast_32log2 __fast_32log2
-  __forceinline inline uint8_t __fast_32log2(uint32_t v){
+  __forceinline inline std::uint8_t __fast_32log2(std::uint32_t v){
     return 31 - __clz32(v);
   }
 #endif
 #ifndef __fast_64log2
   #define __fast_64log2 __fast_64log2
-  __forceinline inline uint8_t __fast_64log2(uint64_t v){
+  __forceinline inline std::uint8_t __fast_64log2(std::uint64_t v){
     return 63 - __clz64(v);
   }
 #endif
