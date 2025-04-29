@@ -4,10 +4,10 @@ module;
 
 #include <random>
 
+export module fan.random;
+
 import fan.types.vector;
 import fan.types.color;
-
-export module fan.random;
 
 export namespace fan {
 

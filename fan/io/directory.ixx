@@ -7,7 +7,9 @@ import fan.types.vector;
 import fan.types.print;
 
 #include <filesystem>
+#include <vector>
 #include <algorithm>
+#include <functional>
 
 export module fan.io.directory;
 
@@ -35,30 +37,6 @@ export namespace fan {
       std::replace(str.begin(), str.end(), '/', '\\');
     }
 
-    fan_api void iterate_directory_by_image_size_(
-      const std::string& path,
-      std::vector<iterate_sort_t>* sorted,
-      const std::function<void(const std::string& path)>& function
-    ) {
-
-      for (const auto& entry : std::filesystem::directory_iterator(path)) {
-        if (entry.is_directory()) {
-          iterate_directory_by_image_size_(entry.path().string(), sorted, function);
-          continue;
-        }
-        std::string str = entry.path().string().data();
-        handle_string_out(str);
-        fan::vec2ui image_size;
-        if (fan::webp::get_image_size(str, &image_size)) {
-          fan::throw_error("failed to get image size:" + str);
-        }
-        iterate_sort_t sort;
-        sort.path = str;
-        sort.area = image_size.multiply();
-        sorted->push_back(sort);
-      }
-    }
-
     fan_api bool is_readable_path(const std::string& path) {
       try {
         std::filesystem::directory_iterator(path.c_str());
@@ -73,18 +51,6 @@ export namespace fan {
       //}
       return false;
     };
-
-    fan_api void iterate_directory_by_image_size(
-      const std::string& path,
-      const std::function<void(const std::string& path)>& function
-    ) {
-      std::vector<iterate_sort_t> sorted;
-      iterate_directory_by_image_size_(path, &sorted, function);
-      std::sort(sorted.begin(), sorted.end(), iterate_sort_t::comp_cb);
-      for (const auto& i : sorted) {
-        function(i.path);
-      }
-    }
 
     fan_api std::string exclude_path(const std::string& full_path) {
       std::size_t found = full_path.find_last_of('/');

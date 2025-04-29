@@ -1,4 +1,4 @@
-#pragma once
+module;
 
 #include <fan/types/types.h>
 
@@ -9,10 +9,13 @@
 #endif
 
 #include <cmath>
+#include <limits>
+
+export module fan.types.quaternion;
 
 import fan.types.vector;
 
-namespace fan {
+export namespace fan {
 
 	template <typename T>
 	struct quaternion : public fan::vec4_wrap_t<T> {
@@ -312,14 +315,14 @@ namespace fan {
   using quat = quaternion<f32_t>;
 
 	template <typename T>
-	static constexpr auto mix(T x, T y, T a) {
+	fan_api constexpr auto mix(T x, T y, T a) {
 		return x * (1.f - a) + y * a;
 	}
 
-	static constexpr auto mix(const fan::vec3& x, const fan::vec3& y, f_t t) {
+	fan_api constexpr auto mix(const fan::vec3& x, const fan::vec3& y, f_t t) {
 		return x * (1.f - t) + y * t;
 	}
-  static constexpr auto mix(const fan::vec4& a, const fan::vec4& b, f_t t) {
+  fan_api constexpr auto mix(const fan::vec4& a, const fan::vec4& b, f_t t) {
     return a * (1.f - t) + b * t;
   }
 }

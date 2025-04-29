@@ -2,14 +2,15 @@ module;
 
 #include <fan/types/types.h>
 
-import fan.types.print;
-import fan.types.vector;
-
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <vector>
 
 export module fan.io.file;
+
+import fan.types.print;
+import fan.types.vector;
 
 export namespace fan {
 	namespace io {

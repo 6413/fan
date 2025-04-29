@@ -2,11 +2,12 @@ module;
 
 #include <fan/types/types.h>
 
+#include <fan/math/math.h>
 #include <functional>
 
-import fan.graphics.opengl.core;
 export module fan.graphics.opengl.uniform_block;
 
+import fan.graphics.opengl.core;
 
 export namespace fan {
   namespace opengl {

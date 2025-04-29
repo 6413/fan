@@ -6,7 +6,30 @@
 
 #include <cmath>
 
-namespace fan { 
+namespace fan {
+
+  template <typename T>
+  constexpr T clamp(T value, T min, T max) {
+    if (value < min) {
+      return min;
+    }
+    if (value > max) {
+      return max;
+    }
+    return value;
+  }
+
+  template <typename T, typename T2>
+  requires(std::is_arithmetic_v<T>&& std::is_arithmetic_v<T2>)
+  constexpr T min(T x, T2 y) {
+    return x < y ? x : y;
+  }
+  template <typename T, typename T2>
+  requires(std::is_arithmetic_v<T>&& std::is_arithmetic_v<T2>)
+  constexpr T max(T x, T2 y) {
+    return x > y ? x : y;
+  }
+
 	namespace math {
 		constexpr f32_t pi = 3.1415927f;
 		constexpr f32_t half_pi = pi / 2;
@@ -201,7 +224,7 @@ namespace fan {
 				return false;
 			}
 
-			f32_t d_a = std::max(root1, root2);
+			f32_t d_a = root1 > root2 ? root1 : root2;
 			f32_t t = d_a / s_b;
 			T c = a + v_a * t;
 			result = (c - b).normalize();

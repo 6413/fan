@@ -1,20 +1,20 @@
 module;
 
 #include <fan/types/types.h>
-#include <fan/graphics/common_types.h>
 
 #if defined(fan_gui)
   #include <fan/imgui/text_editor.h>
 #endif
 
 #include <regex>
-
 #include <functional>
+
+export module fan.console;
 
 import fan.types.color;
 import fan.fmt;
 
-export module fan.console;
+import fan.graphics.common_types;
 
 #if defined(fan_gui)
 

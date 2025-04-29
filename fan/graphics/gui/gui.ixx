@@ -9,12 +9,15 @@ module;
 #include <fan/imgui/implot.h>
 #endif
 
-#include <fan/types/quaternion.h>
-
 #include <variant>
+#include <string>
+
+export module fan.graphics.gui;
 
 import fan.types.print;
+import fan.types.color;
 import fan.types.vector;
+import fan.types.quaternion;
 
 #if defined(fan_gui)
 
@@ -27,8 +30,6 @@ import fan.types.vector;
   import fan.graphics;
 
 #endif
-
-export module fan.graphics.gui;
 
 
 #if defined(fan_gui)
