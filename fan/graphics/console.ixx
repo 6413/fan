@@ -4,8 +4,7 @@ module;
 #include <fan/graphics/common_types.h>
 
 #if defined(fan_gui)
-
-#include <fan/imgui/text_editor.h>
+  #include <fan/imgui/text_editor.h>
 #endif
 
 #include <regex>

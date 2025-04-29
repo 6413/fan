@@ -16,6 +16,7 @@ module;
 #include <GLFW/glfw3native.h>
 
 #include <algorithm>
+#include <cstring>
 
 import fan.types.vector;
 import fan.window.input_common;
