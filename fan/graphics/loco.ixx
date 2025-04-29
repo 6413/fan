@@ -100,10 +100,6 @@ module;
 #include <fan/types/json.h>
 #endif
 
-#if defined(fan_physics)
-  #include <box2d/id.h>
-#endif
-
 import fan.types.vector;
 import fan.types.matrix;
 import fan.window.input;
@@ -2526,7 +2522,7 @@ public:
   fan::physics::context_t physics_context{ {} };
   struct physics_update_data_t {
     shaper_t::ShapeID_t shape_id;
-    b2BodyId body_id;
+    uint64_t body_id;
     void* cb;
   };
   using shape_physics_update_cb = void(*)(const physics_update_data_t& data);
@@ -2540,7 +2536,7 @@ public:
 #include <BLL/BLL.h>
   physics_update_cbs_t::nr_t add_physics_update(const physics_update_data_t& cb_data) {
     auto it = shape_physics_update_cbs.NewNodeLast();
-    shape_physics_update_cbs[it] = cb_data;
+    shape_physics_update_cbs[it] = (physics_update_data_t)cb_data;
     return it;
   }
   void remove_physics_update(physics_update_cbs_t::nr_t nr) {
@@ -2878,6 +2874,9 @@ public:
       return gloco->shaper.ShapeList[*this].sti;
     }
 
+    void set_position(const fan::vec2& position) {
+      gloco->shape_functions[get_shape_type()].set_position2(this, position);
+    }
     void set_position(const fan::vec3& position) {
       gloco->shape_functions[get_shape_type()].set_position3(this, position);
     }
