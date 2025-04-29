@@ -43,23 +43,23 @@ export namespace fan {
         [](loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t) {};
 
       void shape_physics_update(const loco_t::physics_update_data_t& data) {
-        if (!b2Body_IsValid(data.body_id)) {
+        if (!b2Body_IsValid(*(b2BodyId*)&data.body_id)) {
           //   fan::print("invalid body data (corruption)");
           return;
         }
-        if (b2Body_GetType(data.body_id) == b2_staticBody) {
+        if (b2Body_GetType(*(b2BodyId*)&data.body_id) == b2_staticBody) {
           return;
         }
 
-        fan::vec2 p = b2Body_GetWorldPoint(data.body_id, fan::vec2(0));
-        b2Rot rotation = b2Body_GetRotation(data.body_id);
+        fan::vec2 p = b2Body_GetWorldPoint(*(b2BodyId*)&data.body_id, fan::vec2(0));
+        b2Rot rotation = b2Body_GetRotation(*(b2BodyId*)&data.body_id);
         f32_t radians = b2Rot_GetAngle(rotation);
 
         loco_t::shape_t& shape = *(loco_t::shape_t*)&data.shape_id;
-        shape.set_position(p * fan::physics::length_units_per_meter);
+        shape.set_position(fan::vec2(p * fan::physics::length_units_per_meter));
         shape.set_angle(fan::vec3(0, 0, radians));
         b2ShapeId id[1];
-        if (b2Body_GetShapes(data.body_id, id, 1)) {
+        if (b2Body_GetShapes(*(b2BodyId*)&data.body_id, id, 1)) {
           auto aabb = b2Shape_GetAABB(id[0]);
           fan::vec2 size = fan::vec2(aabb.upperBound - aabb.lowerBound) / 2;
           fan::graphics::physics::physics_update_cb(shape, shape.get_position(), size * fan::physics::length_units_per_meter / 2, radians);
@@ -121,9 +121,10 @@ export namespace fan {
           if (physics_update_nr.iic() == false) {
             gloco->remove_physics_update(physics_update_nr);
           }
+          uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
           physics_update_nr = gloco->add_physics_update({
             .shape_id = *this,
-            .body_id = *this,
+            .body_id = body_id_data,
             .cb = (void*)shape_physics_update
             });
           b2MassData md = b2Body_GetMassData(*dynamic_cast<b2BodyId*>(this));
@@ -154,11 +155,12 @@ export namespace fan {
           if (!fan::physics::entity_t::is_valid()) {
             return;
           }
+          uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
           physics_update_nr = gloco->add_physics_update({
             .shape_id = *this,
-            .body_id = *this,
+            .body_id = body_id_data,
             .cb = (void*)shape_physics_update
-            });
+          });
         }
         base_shape_t(base_shape_t&& r) : loco_t::shape_t(std::move(r)), fan::physics::entity_t(std::move(r)) {
           if (!B2_ID_EQUALS(r, (*this))) {
@@ -188,9 +190,10 @@ export namespace fan {
             if (!fan::physics::entity_t::is_valid()) {
               return *this;
             }
+            uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
             physics_update_nr = gloco->add_physics_update({
               .shape_id = *this,
-              .body_id = *this,
+              .body_id = body_id_data,
               .cb = (void*)shape_physics_update
               });
           }

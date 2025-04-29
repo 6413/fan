@@ -1,4 +1,7 @@
-#include <fan/pch.h>
+#include <box2d/box2d.h>
+import fan;
+
+#include <fan/graphics/types.h>
 
 int main() {
   using namespace fan::graphics;
@@ -119,12 +122,12 @@ int main() {
   static constexpr f32_t width = 40.0f;
   static constexpr f32_t ground_width = 2560;
 
-  auto pp = create_sine_ground(fan::vec2(0, 1200), amplitude, frequency, width, ground_width);
+  auto pp = fan::graphics::create_sine_ground(fan::vec2(0, 1200), amplitude, frequency, width, ground_width);
   fan::graphics::polygon_t ground{{
     .vertices = pp.vertices,
   }};
 
-  auto points = ground_points(fan::vec2(0, 1200), amplitude, frequency, width, ground_width);
+  auto points = fan::graphics::ground_points(fan::vec2(0, 1200), amplitude, frequency, width, ground_width);
   engine.physics_context.create_segment(0, points, b2_staticBody, {});
 
   fan_window_loop{

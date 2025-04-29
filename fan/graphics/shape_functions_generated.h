@@ -1497,6 +1497,23 @@ static void set_angle_capsule(loco_t::shape_t* shape, const fan::vec3& angle) {
 	}
 }
 
+static void set_angle_polygon(loco_t::shape_t* shape, const fan::vec3& angle) {
+	auto ri = (loco_t::polygon_t::ri_t*)shape->GetData(gloco->shaper);
+	ri->vao.bind(gloco->context.gl);
+	ri->vbo.bind(gloco->context.gl);
+	uint32_t vertex_count = ri->buffer_size / sizeof(loco_t::polygon_vertex_t);
+	for (uint32_t i = 0; i < vertex_count; ++i) {
+		fan::opengl::core::edit_glbuffer(
+		 gloco->context.gl, 
+		 ri->vbo.m_buffer, 
+		 &angle, 
+		 sizeof(loco_t::polygon_vertex_t) * i + fan::member_offset(&loco_t::polygon_vertex_t::angle),
+		 sizeof(angle),
+		 ri->vbo.m_target
+		);
+	}
+}
+
 static void set_angle_grid(loco_t::shape_t* shape, const fan::vec3& angle) {
 	reinterpret_cast<loco_t::grid_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle = angle;
 	if (gloco->window.renderer == loco_t::renderer_t::opengl) {
@@ -2583,7 +2600,7 @@ inline static loco_t::set_angle_cb set_angle_functions[] = {
 	&set_angle_unlit_sprite,
 	&set_angle_circle,
 	&set_angle_capsule,
-	nullptr,
+	&set_angle_polygon,
 	&set_angle_grid,
 	nullptr,
 	nullptr,
