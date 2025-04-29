@@ -1,7 +1,7 @@
 module;
 
 #include <fan/types/types.h>
-#include <fan/graphics/types.h>
+#include <fan/graphics/common_types.h>
 
 #if defined(fan_gui)
 

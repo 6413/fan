@@ -5,8 +5,6 @@ module;
 #include <fan/types/types.h>
 #include <fan/math/math.h>
 
-#include <fan/types/lazy_compiler_devs.h>
-
 #include <fan/time/timer.h>
 
 #include <box2d/box2d.h>
@@ -19,7 +17,10 @@ import fan.types.color;
 import fan.physics.b2_integration;
 import fan.graphics.loco;
 import fan.graphics;
-import fan.graphics.gui;
+
+#if (fan_gui)
+  import fan.graphics.gui;
+#endif
 
 export module fan.graphics.physics_shapes;
 
@@ -1492,7 +1493,7 @@ void DrawPoint(b2Vec2 p, float size, b2HexColor color, void* context) {
 /// Draw a string.
 void DrawString(b2Vec2 p, const char* s, void* context) {
 #if defined(fan_gui)
-  //fan::graphics::gui::text_at(s, fan::physics::physics_to_render(p));
+  fan::graphics::gui::text_at(s, fan::physics::physics_to_render(p));
 #endif
 }
 

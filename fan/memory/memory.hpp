@@ -1,6 +1,5 @@
 // include before all, because it uses some macros which override default allocation functions
 #pragma once
-
 #include <fan/types/types.h>
 
 #if defined(fan_std23)
@@ -10,6 +9,7 @@
 #include <source_location>
 #include <set>
 #include <map>
+
 #include <stacktrace>
 
 namespace fan {

@@ -28,13 +28,17 @@
 
 #pragma pack(push, 1)
 
+#ifndef fan_api
+  #define fan_api inline
+#endif
+
 #include <fan/types/bll_types.h>
 
 template <typename T>
 struct address_wrapper_t {
 	using value_type = T;
 	constexpr operator value_type() {
-		return *(value_type*)(((uint8_t*)this) + sizeof(*this));
+		return *(value_type*)(((std::uint8_t*)this) + sizeof(*this));
 	}
 };
 #pragma pack(pop)
@@ -78,12 +82,12 @@ struct address_wrapper_t {
 	#pragma execution_character_set("utf-8")
 #endif
 
-typedef intptr_t si_t;
+typedef std::intptr_t si_t;
 //typedef uintptr_t uint_t;
-typedef intptr_t sint_t;
-typedef int8_t sint8_t;
-typedef int16_t sint16_t;
-typedef int32_t sint32_t;
+typedef std::intptr_t sint_t;
+typedef std::int8_t sint8_t;
+typedef std::int16_t sint16_t;
+typedef std::int32_t sint32_t;
 //typedef int64_t sint64_t;
 
 typedef float f32_t;
@@ -260,7 +264,7 @@ namespace fan {
 	void assert_test(bool test);
 
 	template <typename T>
-	constexpr uintptr_t vector_byte_size(const typename std::vector<T>& vector)
+	constexpr std::uintptr_t vector_byte_size(const typename std::vector<T>& vector)
 	{
 		return sizeof(T) * vector.size();
 	}
@@ -303,7 +307,7 @@ namespace fan {
 	// prints warning if value is -1
 #define fan_validate_value(value, text) if (value == (decltype(value))fan::uninitialized) { fan::throw_error(text); }
 
-	template <typename T, uint32_t duplicate_id = 0>
+	template <typename T, std::uint32_t duplicate_id = 0>
 	class class_duplicator : public T {
 
 		using T::T;
@@ -384,17 +388,17 @@ namespace fan {
 	template<typename Callable>
 	using return_type_of_t = typename decltype(std::function{ std::declval<Callable>() })::result_type;
 
-	static constexpr uint64_t get_hash(const char* str) {
-		uint64_t result = 0xcbf29ce484222325; // FNV offset basis
+	static constexpr std::uint64_t get_hash(const char* str) {
+		std::uint64_t result = 0xcbf29ce484222325; // FNV offset basis
 
-		uint32_t i = 0;
+		std::uint32_t i = 0;
 
 		if (str == nullptr) {
 			return 0;
 		}
 
 		while (str[i] != 0) {
-			result ^= (uint64_t)str[i];
+			result ^= (std::uint64_t)str[i];
 			result *= 1099511628211; // FNV prime
 			i++;
 		}
@@ -735,7 +739,7 @@ namespace fan {
 	std::ptrdiff_t member_offset(U T::* member)
 	{
 		return reinterpret_cast<std::ptrdiff_t>(
-			&(reinterpret_cast<T const volatile*>(NULL)->*member)
+			&(reinterpret_cast<T const volatile*>(nullptr)->*member)
 			);
 	}
 
@@ -832,7 +836,7 @@ namespace fan {
 }
 
 // std::unreachable
-#include <utility>
+
 #ifndef __unreachable
 #if defined(fan_compiler_msvc)
 #define __unreachable() __assume(false)
@@ -852,3 +856,66 @@ namespace fan {
 #if !defined(fan_compiler_msvc)
 	#define __forceinline inline __attribute__((always_inline))
 #endif
+
+// implements some missing c++ standard functions and or classes from some compilers
+template <typename It>
+class enumerate_iterator {
+  It _iter;
+  std::size_t _index;
+public:
+  using value_type = std::tuple<std::size_t, typename std::iterator_traits<It>::reference>;
+  using reference = value_type;
+  using pointer = void;
+
+  enumerate_iterator(It iter, std::size_t index) : _iter(iter), _index(index) {}
+
+  reference operator*() const {
+    return { _index, *_iter };
+  }
+
+  enumerate_iterator& operator++() {
+    ++_iter;
+    ++_index;
+    return *this;
+  }
+
+  bool operator!=(const enumerate_iterator& other) const {
+    return _iter != other._iter;
+  }
+};
+template <typename Container>
+class enumerate_view {
+  Container& _container;
+public:
+  using iterator = enumerate_iterator<typename std::conditional<
+    std::is_const_v<Container>,
+    typename Container::const_iterator,
+    typename Container::iterator
+  >::type>;
+
+  enumerate_view(Container& container) : _container(container) {}
+
+  iterator begin() {
+    return { std::begin(_container), 0 };
+  }
+
+  iterator end() {
+    return { std::end(_container), std::size(_container) };
+  }
+};
+
+namespace fan {
+  struct enumerate_fn {
+    template <typename Container>
+    auto operator()(Container& container) const {
+      return enumerate_view<Container>{container};
+    }
+  };
+
+  inline constexpr enumerate_fn enumerate;
+}
+
+template <typename Container>
+auto operator|(Container& container, const fan::enumerate_fn& view) {
+  return view(container);
+}

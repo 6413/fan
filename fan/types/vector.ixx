@@ -3,8 +3,8 @@ module;
 #include <fan/types/types.h>
 
 #if defined(fan_vector_simple)
-#include <cstdint>
-namespace fan {
+
+export namespace fan {
 
 using access_type_t = uint8_t;
 
@@ -38,13 +38,6 @@ struct vec4_wrap_t {
 };
 
 #else
-#include <iostream>
-#include <algorithm>
-#include <numeric>
-#include <compare>
-#include <tuple>
-#include <cstdint>
-#include <sstream>
 
 #include <fan/math/math.h>
 
@@ -69,8 +62,10 @@ struct vec4_wrap_t {
 #endif
 
 #if defined(fan_physics)
-  #include <box2d/types.h>
+  #include <box2d/math_functions.h>
 #endif
+
+import std;
 
 export module fan.types.vector;
 
