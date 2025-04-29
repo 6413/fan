@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fan/types/types.h>
+
 #if defined(fan_platform_windows)
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_EXPOSE_NATIVE_WGL
@@ -10,6 +12,7 @@
 #include <GLFW/glfw3.h>
 
 #include <utility>
+#include <string>
 
 #ifndef debug_glcall_timings
   #define debug_glcall_timings

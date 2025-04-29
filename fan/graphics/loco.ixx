@@ -53,8 +53,6 @@ module;
   #define __fan_internal_viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)this))
 #endif
 
-#include <fan/graphics/common_types.h>
-
 // shaper
 
 #include <fan/time/time.h>
@@ -97,8 +95,11 @@ module;
 #endif
 
 #if defined(fan_json)
-#include <fan/types/json.h>
+#include <fan/types/json_impl.h>
 #endif
+
+export module fan.graphics.loco;
+
 
 import fan.types.vector;
 import fan.types.matrix;
@@ -116,6 +117,7 @@ import fan.types.color;
 import fan.random;
 import fan.graphics.webp;
 import fan.graphics.image_load;
+import fan.graphics.common_types;
 import fan.graphics.common_context;
 import fan.graphics.opengl.core;
 
@@ -125,9 +127,55 @@ import fan.physics.collision.rectangle;
   import fan.console;
 #endif
 
-export module fan.graphics.loco;
-
 #if defined(fan_json)
+
+template <typename T>
+struct fan::adl_serializer<fan::vec2_wrap_t<T>> {
+  static void to_json(fan::json& j, const fan::vec2_wrap_t<T>& v) {
+    j = fan::json{ v.x, v.y };
+  }
+  static void from_json(const fan::json& j, fan::vec2_wrap_t<T>& v) {
+    v.x = j[0].get<T>();
+    v.y = j[1].get<T>();
+  }
+};
+
+template <typename T>
+struct fan::adl_serializer<fan::vec3_wrap_t<T>> {
+  static void to_json(fan::json& j, const fan::vec3_wrap_t<T>& v) {
+    j = fan::json{ v.x, v.y, v.z };
+  }
+  static void from_json(const fan::json& j, fan::vec3_wrap_t<T>& v) {
+    v.x = j[0].get<T>();
+    v.y = j[1].get<T>();
+    v.z = j[2].get<T>();
+  }
+};
+
+template <typename T>
+struct fan::adl_serializer<fan::vec4_wrap_t<T>> {
+  static void to_json(fan::json& j, const fan::vec4_wrap_t<T>& v) {
+    j = fan::json{ v.x, v.y, v.z, v.w };
+  }
+  static void from_json(const fan::json& j, fan::vec4_wrap_t<T>& v) {
+    v.x = j[0].get<T>();
+    v.y = j[1].get<T>();
+    v.z = j[2].get<T>();
+    v.w = j[3].get<T>();
+  }
+};
+
+template <> struct fan::adl_serializer<fan::color> {
+  static void to_json(json& j, const fan::color& c) {
+    j = json{ c.r, c.g, c.b, c.a };
+  }
+  static void from_json(const json& j, fan::color& c) {
+    c.r = j[0];
+    c.g = j[1];
+    c.b = j[2];
+    c.a = j[3];
+  }
+};
 
 export namespace fan {
   struct json_stream_parser_t {
@@ -335,6 +383,14 @@ export namespace fan {
       };
     };
   }
+}
+
+namespace fan {
+  template <bool cond>
+  struct type_or_uint8_t {
+    template <typename T>
+    using d = std::conditional_t<cond, T, uint8_t>;
+  };
 }
 
 //#include <fan/graphics/vulkan/ssbo.h>

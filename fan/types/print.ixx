@@ -3,7 +3,7 @@ module;
 #include <fan/types/types.h>
 
 #ifdef fan_compiler_msvc
-import std;
+
 #else
 
 #include <iostream>
@@ -14,9 +14,11 @@ import std;
 
 #endif
 
-
-
 export module fan.types.print;
+
+#ifdef fan_compiler_msvc
+import std;
+#endif
 
 export namespace fan {
 
@@ -82,20 +84,21 @@ export namespace fan {
   }
 
   template <typename T>
-  std::ostream& operator<<(std::ostream& os, const std::vector<T>& vector) noexcept
-  {
-    for (uintptr_t i = 0; i < vector.size(); i++) {
-      os << vector[i] << ' ';
+  requires requires(const T& t) { t.size(); } && (!std::is_same_v<T, std::string>)
+  std::ostream& operator<<(std::ostream& os, const T& container) noexcept {
+    for (uintptr_t i = 0; i < container.size(); i++) {
+      os << container[i] << ' ';
     }
     return os;
   }
 
   template <typename T>
-  std::ostream& operator<<(std::ostream& os, const std::vector<std::vector<T>>& vector) noexcept
+  requires requires(const T& t) { t.size.size(); }
+  std::ostream& operator<<(std::ostream& os, const T& container_within) noexcept
   {
-    for (uintptr_t i = 0; i < vector.size(); i++) {
-      for (uintptr_t j = 0; j < vector[i].size(); j++) {
-        os << vector[i][j] << ' ';
+    for (uintptr_t i = 0; i < container_within.size(); i++) {
+      for (uintptr_t j = 0; j < container_within[i].size(); j++) {
+        os << container_within[i][j] << ' ';
       }
       os << '\n';
     }
@@ -107,8 +110,8 @@ export namespace fan {
     void print_stacktrace() {
       
       #if defined(fan_std23)
-    //  std::stacktrace st;
-    //  fan::print(st.current());
+      //std::stacktrace st;
+      //fan::print(st.current());
       #elif defined(fan_platform_unix)
       // waiting for stacktrace to be released for clang lib++
       #else

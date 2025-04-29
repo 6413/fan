@@ -7,13 +7,16 @@ module;
 #include <box2d/box2d.h>
 
 #include <cassert> // box2d
+#include <functional>
 
-import fan.types.vector;
 #endif
 
 export module fan.physics.b2_integration;
 
 #if defined(fan_physics)
+
+import fan.types.vector;
+
 export namespace fan {
   namespace physics {
     struct shapes_e {

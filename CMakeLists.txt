@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 set(FAN_PHYSICS ON)
-set(FAN_GUI ON)
+set(FAN_GUI OFF)
 set(FAN_JSON ON)
 set(FAN_3D ON)
 set(FAN_OPENGL ON)
@@ -18,8 +18,8 @@ set(CMAKE_COLOR_DIAGNOSTICS ON)
 #set(CMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY ON)
 #set(CMAKE_FIND_PACKAGE_NO_SYSTEM_PACKAGE_REGISTRY ON)
 
-#set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-#set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -117,29 +117,23 @@ endfunction()
 add_library(fan_modules STATIC)
 apply_fan_definitions(fan_modules)
 
-set(MODULE_FILES
 
- 	${ROOT_PATH}/types/print.ixx
+
+set(MODULE_FILES
+	${ROOT_PATH}/types/print.ixx
 	${ROOT_PATH}/types/color.ixx
 	${ROOT_PATH}/types/vector.ixx
+	${ROOT_PATH}/types/quaternion.ixx
 	${ROOT_PATH}/types/matrix.ixx
 	
 	${ROOT_PATH}/types/fstring.ixx
 	
-	${ROOT_PATH}/random.ixx
+ 	${ROOT_PATH}/random.ixx
 	
 	${ROOT_PATH}/io/directory.ixx
 	${ROOT_PATH}/io/file.ixx
 	
-	${ROOT_PATH}/physics/collision/rectangle.ixx
-	
-	${ROOT_PATH}/window/window.ixx
-	${ROOT_PATH}/window/input_common.ixx
-	${ROOT_PATH}/window/input.ixx
-	
-	
 	${ROOT_PATH}/graphics/camera.ixx
-	
 	${ROOT_PATH}/graphics/image_load.ixx
 	${ROOT_PATH}/graphics/webp.ixx
 	${ROOT_PATH}/graphics/stb.ixx
@@ -148,6 +142,12 @@ set(MODULE_FILES
 	${ROOT_PATH}/graphics/opengl/uniform_block.ixx
 	${ROOT_PATH}/graphics/loco.ixx
 	${ROOT_PATH}/graphics/graphics.ixx
+	
+	${ROOT_PATH}/physics/collision/rectangle.ixx
+	
+	${ROOT_PATH}/window/window.ixx
+	${ROOT_PATH}/window/input_common.ixx
+	${ROOT_PATH}/window/input.ixx
 	
 	${ROOT_PATH}/fan.ixx
 )
@@ -158,13 +158,13 @@ if(FAN_FMT OR FAN_GUI)
 		)
 endif()
 if(FAN_GUI)
-    list(APPEND MODULE_FILES 
+    list(APPEND MODULE_FILES
 			${ROOT_PATH}/graphics/gui/gui.ixx
 			${ROOT_PATH}/graphics/console.ixx
 		)
 endif()
 if(FAN_PHYSICS)
-    list(APPEND MODULE_FILES 
+    list(APPEND MODULE_FILES
 			${ROOT_PATH}/physics/b2_integration.ixx
 			${ROOT_PATH}/graphics/physics_shapes.ixx
 		)
@@ -177,7 +177,7 @@ target_sources(fan_modules
     FILES ${MODULE_FILES}
 )
 
-set_target_properties(fan_modules PROPERTIES CXX_SCAN_FOR_MODULES ON)
+set_target_properties(fan_modules PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 apply_common_compile_options(fan_modules)
 
 # if (FAN_FMT)
@@ -257,45 +257,13 @@ if (FAN_GUI)
 	)
 endif()
 
-set(FAN_GRAPHICS_SOURCES "")
-set(FAN_PHYSICS_SOURCES "")
-set(FAN_VULKAN_SOURCES "")
-
-set(FAN_GRAPHICS_SOURCES
-	${ROOT_PATH}/types/types.cpp
-)
-
-if(FAN_VULKAN)
-	list(APPEND FAN_GRAPHICS_SOURCES 
-		${ROOT_PATH}/graphics/vulkan/vk_core.cpp
-	)
-endif()
-
-set(FAN_SOURCES ${FAN_GRAPHICS_SOURCES})
-
-add_library(fan_obj OBJECT ${FAN_SOURCES})
-add_dependencies(fan_obj fan_modules)
-apply_common_compile_options(fan_obj)
-
-target_link_libraries(fan_obj PRIVATE fan_modules)
-apply_fan_definitions(fan_obj)
-
-add_library(fan SHARED $<TARGET_OBJECTS:fan_obj>)
-add_dependencies(fan fan_modules)
-apply_common_compile_options(fan)
-apply_fan_definitions(fan)
-target_link_libraries(fan PRIVATE fan_modules)
-set_target_properties(fan PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_PATH}
-	OUTPUT_NAME "fan"
-)
 
 if(BUILD_MAIN)
 	if(NOT DEFINED MAIN)
 		set(MAIN examples/graphics/2D/shapes/rectangle.cpp)
 	endif()
 	
-	add_executable(a.exe ${MAIN} $<TARGET_OBJECTS:fan_obj>)
+	add_executable(a.exe ${MAIN})
 	add_dependencies(a.exe fan_modules)
 	set_target_properties(a.exe PROPERTIES CXX_SCAN_FOR_MODULES ON)
 	apply_common_compile_options(a.exe)
@@ -304,7 +272,6 @@ if(BUILD_MAIN)
 	
 	if(UNIX)
 			target_link_libraries(a.exe PRIVATE
-				fan
 				webp
 				glfw
 				X11
@@ -340,7 +307,6 @@ if(BUILD_MAIN)
 				endif()
 				set(BOX2D_WITH_FLAGS "-Wl,--whole-archive ${BOX2D_LIB} -Wl,--no-whole-archive")
 				target_link_libraries(a.exe PRIVATE ${BOX2D_WITH_FLAGS})
-				target_link_libraries(fan PRIVATE ${BOX2D_WITH_FLAGS})
 			endif()
 
 			if(FAN_GUI)

@@ -8,24 +8,6 @@ module;
 #include <memory>
 #include <string>
 
-import fan.physics.collision.rectangle;
-
-import fan.types.vector;
-import fan.types.matrix;
-import fan.types.fstring;
-import fan.types.color;
-
-import fan.camera;
-import fan.window;
-import fan.graphics.image_load;
-import fan.graphics.common_context;
-
-template<typename T>
-concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&
-!std::is_same_v<T, fan::vec3> &&
-!std::is_same_v<T, fan::vec4> &&
-!std::is_same_v<T, fan::color>;
-
 #ifndef camera_list
   #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)this))
 #endif
@@ -43,6 +25,24 @@ concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&
 #endif
 
 export module fan.graphics.opengl.core;
+
+import fan.physics.collision.rectangle;
+
+import fan.types.vector;
+import fan.types.matrix;
+import fan.types.fstring;
+import fan.types.color;
+
+import fan.camera;
+import fan.window;
+import fan.graphics.image_load;
+import fan.graphics.common_context;
+
+template<typename T>
+concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&
+!std::is_same_v<T, fan::vec3> &&
+!std::is_same_v<T, fan::vec4> &&
+!std::is_same_v<T, fan::color>;
 
 export namespace fan {
   namespace opengl {

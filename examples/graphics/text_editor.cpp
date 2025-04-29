@@ -1,4 +1,7 @@
-#include <fan/pch.h>
+import fan;
+
+#include <fan/imgui/text_editor.h>
+#include <fan/graphics/types.h>
 
 int main() {
   loco_t loco;
@@ -31,18 +34,18 @@ int main() {
 
 
   auto palette = editor.GetPalette();
-  fan::color bg = palette[(int)TextEditor::PaletteIndex::Background];
-  bg = bg * 2;
-  palette[(int)TextEditor::PaletteIndex::Background] = bg.to_u32();
+//  fan::color bg = palette[(int)TextEditor::PaletteIndex::Background];
+//  bg = bg * 2;
+//  palette[(int)TextEditor::PaletteIndex::Background] = bg.to_u32();
 
   //palette[(int)TextEditor::PaletteIndex::LineNumber] = 0;
   editor.SetPalette(palette);
   editor.SetTabSize(2);
   editor.SetShowWhitespaces(false);
 
-  fan::string str;
+  std::string str;
   fan::io::file::read(
-     "fan/graphics/loco.h",
+     "fan/graphics/loco.ixx",
     &str
   );
 
@@ -121,11 +124,12 @@ int main() {
     return;
   });
 
-  loco.loop([&] {
+  fan::graphics::gui::content_browser_t cb;
+  fan_window_loop {
+    cb.render();
     ImGui::Begin("window");
     editor.Render("editor");
 
     ImGui::End();
-
-  });
+  };
 }

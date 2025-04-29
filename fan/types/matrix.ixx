@@ -1,13 +1,12 @@
 module;
 
-#include <fan/types/quaternion.h>
+#include <fan/types/types.h>
 
 #include <type_traits>
-
-#include <iostream>
 #include <cstring>
-#include <array>
+#include <ostream>
 #include <string>
+#include <array>
 
 #if defined(fan_3d)
   #include <assimp/matrix4x4.h>
@@ -15,10 +14,11 @@ module;
 
 #include <fan/math/math.h>
 
-import fan.types.vector;
-import fan.random;
-
 export module fan.types.matrix;
+
+import fan.types.vector;
+import fan.types.quaternion;
+import fan.random;
 
 export namespace fan {
 

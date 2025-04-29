@@ -5,6 +5,8 @@ export import fan.types.color;
 export import fan.types.matrix;
 
 export import fan.random;
+export import fan.io.file;
+export import fan.io.directory;
 
 export import fan.graphics.loco;
 export import fan.graphics;

@@ -5,9 +5,11 @@ module;
 
 #include <fan/graphics/common_context_functions_declare.h>
 
-
 #include <variant>
 #include <memory>
+#include <unordered_map>
+
+export module fan.graphics.common_context;
 
 import fan.types.print;
 import fan.types.color;
@@ -17,7 +19,6 @@ import fan.camera;
 
 import fan.graphics.image_load;
 
-export module fan.graphics.common_context;
 
 export namespace fan {
   namespace graphics {

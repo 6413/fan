@@ -1,8 +1,10 @@
-#pragma once
+module;
+
+export module fan.graphics.common_types;
 
 import fan.types.color;
 
-namespace fan {
+export namespace fan {
   namespace graphics {
     struct highlight_e {
       enum {

@@ -8,16 +8,19 @@ module;
   
 #endif
 
+#include <string>
+
 // if windows fails with duplicat resource, remove mux folder from libwebp
 #define STB_IMAGE_IMPLEMENTATION
 #include <fan/stb/stb_image.h>
+
 //#include <fan/stb/stb_image_write.h>
+
+export module fan.graphics.stb;
 
 import fan.types.print;
 import fan.types.vector;
 import fan.io.file;
-
-export module fan.graphics.stb;
 
 export namespace fan {
     namespace stb {

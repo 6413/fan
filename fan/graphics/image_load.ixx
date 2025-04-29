@@ -2,6 +2,10 @@ module;
 
 #include <fan/types/types.h>
 
+#include <string>
+
+export module fan.graphics.image_load;
+
 #if !defined(loco_no_stb)
   import fan.graphics.stb;
 #endif
@@ -9,8 +13,6 @@ module;
 import fan.types.print;
 import fan.types.vector;
 import fan.graphics.webp;
-
-export module fan.graphics.image_load;
 
 export namespace fan {
   namespace image {

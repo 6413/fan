@@ -2,10 +2,10 @@ module;
 
 #include <fan/math/math.h>
 
+export module fan.camera;
+
 import fan.types.vector;
 import fan.types.matrix;
-
-export module fan.camera;
 
 export namespace fan {
   struct camera {

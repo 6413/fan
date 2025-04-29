@@ -17,12 +17,14 @@ module;
 
 #include <algorithm>
 #include <cstring>
+#include <functional>
 
+export module fan.window;
+
+import fan.types.print;
 import fan.types.vector;
 import fan.window.input_common;
 import fan.window.input;
-
-export module fan.window;
 
 export namespace fan {
   struct init_manager_t {
@@ -36,7 +38,7 @@ export namespace fan {
         return;
       }
       if (!glfwInit()) {
-        throw std::runtime_error("failed to initialize context");
+        fan::throw_error("failed to initialize context");
       }
       initialized() = true;
     }
@@ -289,7 +291,7 @@ export namespace fan {
       glfw_window = glfwCreateWindow(window_size.x, window_size.y, name.c_str(), NULL, NULL);
       if (glfw_window == nullptr) {
         glfwTerminate();
-        throw std::runtime_error("failed to create window");
+        fan::throw_error("failed to create window");
       }
       glfwSetWindowUserPointer(glfw_window, this);
 
@@ -577,7 +579,7 @@ export namespace fan {
         break;
       }
       default: {
-        throw std::runtime_error("invalid mode");
+        fan::throw_error("invalid mode");
         break;
       }
       }

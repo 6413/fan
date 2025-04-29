@@ -22,10 +22,6 @@
 #define _PATH_QUOTE(p0) STRINGIFY(p0)
 
 #include <cstdint>
-#include <vector>
-#include <functional>
-#include <stdexcept>
-#include <type_traits>
 
 #pragma pack(push, 1)
 
@@ -81,6 +77,7 @@ struct address_wrapper_t {
 // override to utf-8 - if file already utf8 it breaks somehow, probably msvc bug
 #if defined(fan_platform_windows)
 	#pragma execution_character_set("utf-8")
+  #include <cstdlib>
 #endif
 
 typedef std::intptr_t si_t;
@@ -105,7 +102,7 @@ namespace fan {
 		system("pause");
 #endif
 #if __cpp_exceptions
-		throw std::runtime_error("");
+		throw;
 #endif
 	}
 
@@ -114,56 +111,6 @@ namespace fan {
 #endif
 
 	constexpr auto uninitialized = -1;
-
-	// converts enum to int
-	template <typename Enumeration>
-	constexpr auto eti(Enumeration const value)
-		-> typename std::underlying_type<Enumeration>::type
-	{
-		return static_cast<
-			typename std::underlying_type<Enumeration>::type
-		>(value);
-	}
-
-	template<typename T>
-	struct has_bracket_operator
-	{
-		template<typename U>
-		static constexpr decltype(std::declval<U>()[0], bool{}) test(int)
-		{
-			return true;
-		}
-
-		template<typename>
-		static constexpr bool test(...)
-		{
-			return false;
-		}
-
-		static constexpr bool value = test<T>(0);
-	};
-
-	template <typename T>
-	constexpr T clamp(T value, T min, T max) {
-		if (value < min) {
-			return min;
-		}
-		if (value > max) {
-			return max;
-		}
-		return value;
-	}
-
-	template <typename T, typename T2>
-	requires(std::is_arithmetic_v<T> && std::is_arithmetic_v<T2>)
-	constexpr T min(T x, T2 y) {
-		return x < y ? x : y;
-	}
-	template <typename T, typename T2>
-	requires(std::is_arithmetic_v<T>&& std::is_arithmetic_v<T2>)
-	constexpr T max(T x, T2 y) {
-		return x > y ? x : y;
-	}
 }
 
 #define __FAN__FOREACH_1(f, x) f(x, 0)
@@ -242,33 +189,10 @@ namespace fan {
 
 namespace fan {
 
-	template <typename T>
-	constexpr bool is_aggregate_and_scalar() {
-		return std::is_aggregate_v<T> || std::is_scalar_v<T>;
-	}
-
 	#define fan_ternary_void(f0, f1) [&]{ f0;}() : [&]{f1;}()
-
-	template <typename T>
-	struct is_fan_vec3 : std::false_type {};
-
-
-	template<std::size_t I, typename... Args>
-	constexpr decltype(auto) get_variadic_element(Args&&... args) {
-		return std::get<I>(std::forward_as_tuple(args...));
-	}
-
 
 	#define __FAN_PRINT_EACH__(x) fan::print_no_endline("", #x"=",x, ",")
 	#define fan_print(...) __FAN__FOREACH_NS(__FAN_PRINT_EACH__, __VA_ARGS__);fan::print("")
-
-	void assert_test(bool test);
-
-	template <typename T>
-	constexpr std::uintptr_t vector_byte_size(const typename std::vector<T>& vector)
-	{
-		return sizeof(T) * vector.size();
-	}
 
 	//template <typename T>
 	//fan::wstring to_wstring(const T a_value, const int n = 2)
@@ -279,10 +203,6 @@ namespace fan {
 	//	return out.str().c_str();
 	//}
 
-	template <typename T, typename T2>
-	constexpr bool is_flag(T value, T2 flag) {
-		return (value & flag) == flag;
-	}
 
 	template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
 	struct conditional_value {
@@ -308,68 +228,6 @@ namespace fan {
 	// prints warning if value is -1
 #define fan_validate_value(value, text) if (value == (decltype(value))fan::uninitialized) { fan::throw_error(text); }
 
-	template <typename T, std::uint32_t duplicate_id = 0>
-	class class_duplicator : public T {
-
-		using T::T;
-
-	};
-
-	template <typename T>
-	struct ptr_maker_t {
-
-		void open() {
-			ptr = new T;
-		}
-
-		void close() {
-			delete ptr;
-		}
-
-		T& operator*() {
-			return *ptr;
-		}
-		T& operator*() const {
-			return *ptr;
-		}
-		T* operator->() {
-			return ptr;
-		}
-		T* operator->() const {
-			return ptr;
-		}
-		T& operator[](uintptr_t i) const {
-			return ptr[i];
-		}
-		T& operator[](uintptr_t i) {
-			return ptr[i];
-		}
-
-		T* ptr;
-
-	};
-
-	template <typename T, typename T2>
-	struct pair_t : std::pair<T, T2> {
-		using std::pair<T, T2>::pair;
-
-
-		template <typename dummy_t = T, typename dummy2_t = T2>
-		requires(std::is_same_v<dummy_t, dummy2_t>)
-		T& operator[](uint8_t i) {
-			return i == 0 ? std::pair<T, T2>::first : std::pair<T, T2>::second;
-		}
-		template <typename dummy_t = T, typename dummy2_t = T2>
-			requires(std::is_same_v<dummy_t, dummy2_t>)
-		T operator[](uint8_t i) const {
-			return i == 0 ? std::pair<T, T2>::first : std::pair<T, T2>::second;
-		}
-	};
-
-	// hardcoded to only lambdas
-	//template<typename T>
-	//using return_type_of_t = decltype((*(T*)nullptr)());
-
 	template <typename Callable>
 	struct return_type_of_membr;
 
@@ -386,8 +244,8 @@ namespace fan {
 	template <typename Callable>
 	using return_type_of_membr_t = typename return_type_of_membr<Callable>::type;
 
-	template<typename Callable>
-	using return_type_of_t = typename decltype(std::function{ std::declval<Callable>() })::result_type;
+	/*template<typename Callable>
+	using return_type_of_t = typename decltype(std::function{ std::declval<Callable>() })::result_type;*/
 
 	static constexpr std::uint64_t get_hash(const char* str) {
 		std::uint64_t result = 0xcbf29ce484222325; // FNV offset basis
@@ -406,39 +264,6 @@ namespace fan {
 
 		return result;
 	}
-
-	template <class T>
-	class has_member_type {
-		struct One { char a[1]; };
-		struct Two { char a[2]; };
-
-		template <class U>
-		static One foo(typename U::type*);
-
-		template <class U>
-		static Two foo(...);
-
-	public:
-		static const bool value = sizeof(foo<T>(nullptr)) == sizeof(One);
-	};
-
-	template <typename From>
-	class auto_cast {
-	public:
-		explicit constexpr auto_cast(From & t) noexcept
-			: val{ t }
-		{
-		}
-
-		template <typename To>
-		constexpr operator To() const noexcept(noexcept(reinterpret_cast<To*>(&std::declval<From>())))
-		{
-			return *reinterpret_cast<To*>(&val);
-		}
-
-	private:
-		From & val;
-	};
 
 	#define fan_requires_rule(type, rule) \
 		[] <typename dont_shadow_me2_t>() constexpr { \
@@ -474,8 +299,6 @@ namespace fan {
 		} \
 	}(ptr);
 
-	template<typename T, typename... Ts>
-	concept same_as_any = (std::is_same_v<T, Ts> || ...);
 }
 
 #ifndef OFFSETLESS
@@ -696,11 +519,6 @@ namespace fan {
 		}
 	};
 
-	template <typename E>
-	constexpr typename std::underlying_type<E>::type to_underlying(E e) noexcept {
-		return static_cast<typename std::underlying_type<E>::type>(e);
-	}
-
 	#define EXPAND(p0) p0
 
 	#define lstd_preprocessor_get_argn(p0, p1, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, n, ...) n
@@ -737,9 +555,9 @@ namespace fan {
 	std::array<type, std::initializer_list<type>{__VA_ARGS__}.size()> name = {__VA_ARGS__}
 
 	template<class T, typename U>
-	std::ptrdiff_t member_offset(U T::* member)
+	std::int64_t member_offset(U T::* member)
 	{
-		return reinterpret_cast<std::ptrdiff_t>(
+		return reinterpret_cast<std::int64_t>(
 			&(reinterpret_cast<T const volatile*>(0)->*member)
 			);
 	}
@@ -755,84 +573,6 @@ namespace fan {
 	#define fan_enum_class_string(name, ...) \
 	static constexpr const char* name##_strings[] = {__FAN__FOREACH_NS(__FAN_PRINT_EACH, __VA_ARGS__)}; \
 	enum class name { __VA_ARGS__ }
-
-
-	template <typename T> concept is_declared = requires { typeid(T); };
-}
-
-#ifndef __ofof
-#define __ofof __ofof
-#pragma pack(push, 1)
-template <typename Member, std::size_t O>
-struct __Pad_t {
-	char pad[O];
-	Member m;
-};
-#pragma pack(pop)
-
-template<typename Member>
-struct __Pad_t<Member, 0> {
-	Member m;
-};
-
-template <typename Base, typename Member, std::size_t O>
-struct __MakeUnion_t {
-	union U {
-		char c;
-		Base base;
-		__Pad_t<Member, O> pad;
-		constexpr U() noexcept : c{} {};
-	};
-	constexpr static U u{};
-};
-
-template <typename Member, typename Base, typename Orig>
-struct __ofof_impl {
-	template<std::size_t off, auto union_part = &__MakeUnion_t<Base, Member, off>::u>
-	static constexpr std::ptrdiff_t offset2(Member Orig::* member) {
-		if constexpr (off > sizeof(Base)) {
-#if __cpp_exceptions
-			throw 1;
-#endif
-		}
-		else {
-			const auto diff1 = &((static_cast<const Orig*>(&union_part->base))->*member);
-			const auto diff2 = &union_part->pad.m;
-			if (diff1 > diff2) {
-				constexpr auto MIN = sizeof(Member) < alignof(Orig) ? sizeof(Member) : alignof(Orig);
-				return offset2<off + MIN>(member);
-			}
-			else {
-				return off;
-			}
-		}
-	}
-};
-
-template<class Member, class Base>
-std::tuple<Member, Base> __get_types(Member Base::*);
-
-template <class TheBase = void, class TT>
-inline constexpr std::ptrdiff_t __ofof(TT member) {
-	using T = decltype(__get_types(std::declval<TT>()));
-	using Member = std::tuple_element_t<0, T>;
-	using Orig = std::tuple_element_t<1, T>;
-	using Base = std::conditional_t<std::is_void_v<TheBase>, Orig, TheBase>;
-	return __ofof_impl<Member, Base, Orig>::template offset2<0>(member);
-}
-
-template <auto member, class TheBase = void>
-inline constexpr std::ptrdiff_t __ofof() {
-	return __ofof<TheBase>(member);
-}
-#endif
-
-namespace fan {
-	template <bool cond>
-	struct type_or_uint8_t {
-		template <typename T>
-		using d = std::conditional_t<cond, T, uint8_t>;
-	};
 
 }
 
@@ -858,13 +598,67 @@ namespace fan {
 	#define __forceinline inline __attribute__((always_inline))
 #endif
 
-// implements some missing c++ standard functions and or classes from some compilers
+template<typename T1, typename T2>
+struct pair {
+  T1 first;
+  T2 second;
+};
+
+template<typename It>
+struct iterator_traits {
+    using reference = decltype(*(declval<It>()));
+};
+
+template <typename T>
+T&& declval() noexcept;
+
+
+template<bool B, typename T, typename F>
+struct conditional { using type = T; };
+
+template<typename T, typename F>
+struct conditional<false, T, F> { using type = F; };
+
+template<bool B, typename T, typename F>
+using conditional_t = typename conditional<B, T, F>::type;
+
+template<typename T>
+struct is_const { static constexpr bool value = false; };
+
+template<typename T>
+struct is_const<const T> { static constexpr bool value = true; };
+
+template<typename T>
+constexpr bool is_const_v = is_const<T>::value;
+
+namespace fan_detail {
+  template<typename It>
+  struct iterator_traits {
+    using reference = decltype(*(declval<It>()));
+  };
+
+  template <typename Container>
+  auto get_begin(Container& container) -> decltype(container.begin()) {
+    return container.begin();
+  }
+
+  template <typename Container>
+  auto get_end(Container& container) -> decltype(container.end()) {
+    return container.end();
+  }
+
+  template <typename Container>
+  auto get_size(Container& container) -> decltype(container.size()) {
+    return container.size();
+  }
+}
+
 template <typename It>
 class enumerate_iterator {
   It _iter;
   std::size_t _index;
 public:
-  using value_type = std::tuple<std::size_t, typename std::iterator_traits<It>::reference>;
+  using value_type = pair<std::size_t, typename fan_detail::iterator_traits<It>::reference>;
   using reference = value_type;
   using pointer = void;
 
@@ -884,24 +678,27 @@ public:
     return _iter != other._iter;
   }
 };
+
 template <typename Container>
 class enumerate_view {
   Container& _container;
 public:
-  using iterator = enumerate_iterator<typename std::conditional<
-    std::is_const_v<Container>,
-    typename Container::const_iterator,
-    typename Container::iterator
-  >::type>;
+  using iterator = enumerate_iterator<
+    conditional_t<
+    is_const_v<Container>,
+    decltype(fan_detail::get_begin(declval<const Container&>())),
+    decltype(fan_detail::get_begin(declval<Container&>()))
+    >
+  >;
 
   enumerate_view(Container& container) : _container(container) {}
 
   iterator begin() {
-    return { std::begin(_container), 0 };
+    return { fan_detail::get_begin(_container), 0 };
   }
 
   iterator end() {
-    return { std::end(_container), std::size(_container) };
+    return { fan_detail::get_end(_container), fan_detail::get_size(_container) };
   }
 };
 
@@ -913,7 +710,7 @@ namespace fan {
     }
   };
 
-  inline constexpr enumerate_fn enumerate;
+  inline constexpr enumerate_fn enumerate{};
 }
 
 template <typename Container>
