@@ -1,0 +1,27 @@
+module;
+
+export module fan.graphics.common_types;
+
+import fan.types.color;
+
+export namespace fan {
+  namespace graphics {
+    struct highlight_e {
+      enum {
+        text,
+        error,
+        success,
+        info,
+        warning
+      };
+    };
+
+    inline constexpr fan::color highlight_color_table[] = {
+      fan::colors::white,
+      fan::colors::red,
+      fan::colors::green,
+      fan::colors::orange,
+      fan::colors::yellow,
+    };
+  }
+}

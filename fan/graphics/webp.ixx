@@ -14,12 +14,14 @@ module;
 #include <webp/encode.h>
 #include <webp/decode.h>
 
+#include <string>
+
+export module fan.graphics.webp;
+
 import fan.types.vector;
 import fan.types.print;
 import fan.types.vector;
 import fan.io.file;
-
-export module fan.graphics.webp;
 
 export namespace fan {
 	namespace webp {
