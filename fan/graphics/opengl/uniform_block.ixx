@@ -3,7 +3,15 @@ module;
 #include <fan/types/types.h>
 
 #include <fan/math/math.h>
+
 #include <functional>
+
+namespace detail{
+  using memory_edit_cb_t = std::function<void()>;
+  #define BLL_API inline
+  #include "memory_bll_settings.h"
+  #include <BLL/BLL.h>
+}
 
 export module fan.graphics.opengl.uniform_block;
 
@@ -13,20 +21,16 @@ export namespace fan {
   namespace opengl {
     namespace core {
 
+
       struct memory_write_queue_t {
+
+        using memory_edit_cb_t = detail::memory_edit_cb_t;
 
         memory_write_queue_t() = default;
 
-        using memory_edit_cb_t = std::function<void()>;
+        detail::write_queue_t write_queue;
 
-
-#include "memory_bll_settings.h"
-      protected:
-#include <BLL/BLL.h>
-      public:
-        write_queue_t write_queue;
-
-        using nr_t = write_queue_NodeReference_t;
+        using nr_t = detail::write_queue_NodeReference_t;
 
         nr_t push_back(const memory_edit_cb_t& cb) {
           auto nr = write_queue.NewNodeLast();

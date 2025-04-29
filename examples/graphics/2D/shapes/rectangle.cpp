@@ -1,6 +1,5 @@
-
-import fan.types.matrix;
+import fan;
 //
-//
-int main() {
-}//////////////////////////
+int main() {//
+  fan::graphics::engine_t engine;
+}////////////////////////////////////////

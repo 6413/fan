@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 set(FAN_PHYSICS ON)
-set(FAN_GUI OFF)
+set(FAN_GUI ON)
 set(FAN_JSON ON)
 set(FAN_3D ON)
 set(FAN_OPENGL ON)
@@ -133,6 +133,8 @@ set(MODULE_FILES
 	${ROOT_PATH}/io/directory.ixx
 	${ROOT_PATH}/io/file.ixx
 	
+	${ROOT_PATH}/graphics/common_types.ixx
+	
 	${ROOT_PATH}/graphics/camera.ixx
 	${ROOT_PATH}/graphics/image_load.ixx
 	${ROOT_PATH}/graphics/webp.ixx
@@ -141,7 +143,7 @@ set(MODULE_FILES
 	${ROOT_PATH}/graphics/opengl/core.ixx
 	${ROOT_PATH}/graphics/opengl/uniform_block.ixx
 	${ROOT_PATH}/graphics/loco.ixx
-	${ROOT_PATH}/graphics/graphics.ixx
+	${ROOT_PATH}/graphics/graphics.ixx	
 	
 	${ROOT_PATH}/physics/collision/rectangle.ixx
 	
@@ -160,7 +162,7 @@ endif()
 if(FAN_GUI)
     list(APPEND MODULE_FILES
 			${ROOT_PATH}/graphics/gui/gui.ixx
-			${ROOT_PATH}/graphics/console.ixx
+			${ROOT_PATH}/graphics/gui/console.ixx
 		)
 endif()
 if(FAN_PHYSICS)
