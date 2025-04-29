@@ -1,11 +1,13 @@
-#include <fan/pch.h>
-
 // enumerate
-#include <fan/types/lazy_compiler_devs.h>
-#include <fan/math/random.h>
+#include <fan/types/types.h>
+#include <fan/graphics/types.h>
 
+import fan.random;
 import fan.io.file;
 import fan.graphics.common_context;
+import fan.graphics;
+import fan.graphics.gui;
+import fan.graphics.physics_shapes;//
 
 using namespace fan::graphics;
 using menu_t = engine_t::settings_menu_t;
