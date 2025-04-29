@@ -26,6 +26,7 @@ module;
 #include <fan/graphics/file_dialog.h>
 #endif
 
+#include <array>
 #include <variant>
 
 #define loco_opengl
@@ -56,6 +57,8 @@ module;
 // shaper
 
 #include <fan/time/time.h>
+
+
 #include <fan/memory/memory.hpp>
 
 #if defined(fan_gui)

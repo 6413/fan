@@ -25,6 +25,7 @@
 #include <vector>
 #include <functional>
 #include <stdexcept>
+#include <type_traits>
 
 #pragma pack(push, 1)
 
@@ -739,7 +740,7 @@ namespace fan {
 	std::ptrdiff_t member_offset(U T::* member)
 	{
 		return reinterpret_cast<std::ptrdiff_t>(
-			&(reinterpret_cast<T const volatile*>(nullptr)->*member)
+			&(reinterpret_cast<T const volatile*>(0)->*member)
 			);
 	}
 

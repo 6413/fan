@@ -11,6 +11,7 @@ module;
 
 import fan.types.print;
 import fan.types.color;
+import fan.types.vector;
 import fan.types.matrix;
 import fan.camera;
 

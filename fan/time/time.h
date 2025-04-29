@@ -33,6 +33,9 @@ static void delay_w(float us)
 	NtDelayExecution(false, &interval);
 }
 
+#elif defined(fan_platform_unix)
+#include <time.h>
+
 #endif
 
 

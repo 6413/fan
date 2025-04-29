@@ -14,6 +14,7 @@ module;
 #endif
 
 #include <fan/math/math.h>
+
 import fan.types.vector;
 import fan.random;
 
@@ -72,61 +73,6 @@ export namespace fan {
     std::array<fan::vec2, 2> m_array;
   };
 
-  template <typename type_t>
-  struct _matrix4x4;
-
-  template <typename T>
-  inline _matrix4x4<T> translation_matrix(const fan::vec3_wrap_t<T>& translation) {
-    return _matrix4x4<T>(1).translate(translation);
-  }
-  template <typename T>
-  inline _matrix4x4<T> rotation_quat_matrix(const fan::quaternion<T>& rotation) {
-    return rotation;
-  }
-  template <typename T>
-  inline _matrix4x4<T> scaling_matrix(const fan::vec3_wrap_t<T>& scale) {
-    return _matrix4x4<T>(1).scale(scale);
-  }
-  template <typename T>
-  inline  _matrix4x4<T> inverse(const _matrix4x4<T>& m) {
-    return m.inverse();
-  }
-  template <typename T>
-  inline fan::quaternion<T> to_quat(const _matrix4x4<T>& m) {
-    fan::quaternion<T> q;
-    T trace = m[0][0] + m[1][1] + m[2][2];
-    if (trace > 0) {
-      T s = 0.5f / std::sqrt(trace + 1.0f);
-      q.w = 0.25f / s;
-      q.x = (m[1][2] - m[2][1]) * s;
-      q.y = (m[2][0] - m[0][2]) * s;
-      q.z = (m[0][1] - m[1][0]) * s;
-    }
-    else {
-      if (m[0][0] > m[1][1] && m[0][0] > m[2][2]) {
-        T s = 2.0f * std::sqrt(1.0f + m[0][0] - m[1][1] - m[2][2]);
-        q.w = (m[1][2] - m[2][1]) / s;
-        q.x = 0.25f * s;
-        q.y = (m[0][1] + m[1][0]) / s;
-        q.z = (m[0][2] + m[2][0]) / s;
-      }
-      else if (m[1][1] > m[2][2]) {
-        T s = 2.0f * std::sqrt(1.0f + m[1][1] - m[0][0] - m[2][2]);
-        q.w = (m[2][0] - m[0][2]) / s;
-        q.x = (m[0][1] + m[1][0]) / s;
-        q.y = 0.25f * s;
-        q.z = (m[1][2] + m[2][1]) / s;
-      }
-      else {
-        T s = 2.0f * std::sqrt(1.0f + m[2][2] - m[0][0] - m[1][1]);
-        q.w = (m[0][1] - m[1][0]) / s;
-        q.x = (m[0][2] + m[2][0]) / s;
-        q.y = (m[1][2] + m[2][1]) / s;
-        q.z = 0.25f * s;
-      }
-    }
-    return q.normalize();
-  }
   template <typename T>
   inline constexpr fan::quaternion<T> inverse(const fan::quaternion<T>& q) {
     return q.inverse();
@@ -137,6 +83,43 @@ export namespace fan {
 
     using value_type = fan::vec4_wrap_t<type_t>;
     using inherit_t = std::array<fan::vec4_wrap_t<type_t>, 4>;
+
+    template <typename T>
+    static fan::quaternion<T> to_quat(const _matrix4x4<T>& m) {
+      fan::quaternion<T> q;
+      T trace = m[0][0] + m[1][1] + m[2][2];
+      if (trace > 0) {
+        T s = 0.5f / std::sqrt(trace + 1.0f);
+        q.w = 0.25f / s;
+        q.x = (m[1][2] - m[2][1]) * s;
+        q.y = (m[2][0] - m[0][2]) * s;
+        q.z = (m[0][1] - m[1][0]) * s;
+      }
+      else {
+        if (m[0][0] > m[1][1] && m[0][0] > m[2][2]) {
+          T s = 2.0f * std::sqrt(1.0f + m[0][0] - m[1][1] - m[2][2]);
+          q.w = (m[1][2] - m[2][1]) / s;
+          q.x = 0.25f * s;
+          q.y = (m[0][1] + m[1][0]) / s;
+          q.z = (m[0][2] + m[2][0]) / s;
+        }
+        else if (m[1][1] > m[2][2]) {
+          T s = 2.0f * std::sqrt(1.0f + m[1][1] - m[0][0] - m[2][2]);
+          q.w = (m[2][0] - m[0][2]) / s;
+          q.x = (m[0][1] + m[1][0]) / s;
+          q.y = 0.25f * s;
+          q.z = (m[1][2] + m[2][1]) / s;
+        }
+        else {
+          T s = 2.0f * std::sqrt(1.0f + m[2][2] - m[0][0] - m[1][1]);
+          q.w = (m[0][1] - m[1][0]) / s;
+          q.x = (m[0][2] + m[2][0]) / s;
+          q.y = (m[1][2] + m[2][1]) / s;
+          q.z = 0.25f * s;
+        }
+      }
+      return q.normalize();
+    }
 
     constexpr _matrix4x4() = default;
 
@@ -280,7 +263,7 @@ export namespace fan {
       if (std::abs(scale.y) > epsilon) temp[1] /= scale.y;
       if (std::abs(scale.z) > epsilon) temp[2] /= scale.z;
 
-      rotation = fan::to_quat(temp);
+      rotation = to_quat(temp);
 
       skew.x = fan::math::dot(temp[0], temp[1]);
       temp[1] = combine(temp[1], temp[0], 1, -skew.x);
@@ -297,7 +280,7 @@ export namespace fan {
 
     template <typename T>
     operator fan::quaternion<T>() {
-      return fan::to_quat(*this);
+      return _matrix4x4<T>::to_quat(*this);
     }
 
     std::string to_string(const std::string& per_root = "") const {
@@ -406,7 +389,7 @@ export namespace fan {
 		}
 
     constexpr fan::quat get_rotation() const {
-      return fan::to_quat(*this);
+      return _matrix4x4<f32_t>::to_quat(*this);
 		}
 
 		constexpr fan::vec3 get_scale() const {
@@ -963,11 +946,32 @@ export namespace fan {
       }
     }
   };
-
   
+  //template <typename T>
+  //inline fan::quaternion<T>::quaternion(const _matrix4x4<T>& m) {
+  //  *this = fan::to_quat(m);
+  //}
+
   template <typename T>
-  inline fan::quaternion<T>::quaternion(const _matrix4x4<T>& m) {
-    *this = fan::to_quat(m);
+  inline fan::quaternion<T> to_quat(const _matrix4x4<T>& m) {
+    return _matrix4x4<T>::to_quat(m);
+  }
+
+  template <typename T>
+  inline _matrix4x4<T> translation_matrix(const fan::vec3_wrap_t<T>& translation) {
+    return _matrix4x4<T>(1).translate(translation);
+  }
+  template <typename T>
+  inline _matrix4x4<T> rotation_quat_matrix(const fan::quaternion<T>& rotation) {
+    return rotation;
+  }
+  template <typename T>
+  inline _matrix4x4<T> scaling_matrix(const fan::vec3_wrap_t<T>& scale) {
+    return _matrix4x4<T>(1).scale(scale);
+  }
+  template <typename T>
+  inline  _matrix4x4<T> inverse(const _matrix4x4<T>& m) {
+    return m.inverse();
   }
 
   using matrix4x4 = _matrix4x4<cf_t>;

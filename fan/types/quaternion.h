@@ -14,9 +14,6 @@ import fan.types.vector;
 
 namespace fan {
 
-  template <typename type_t>
-  struct _matrix4x4;
-
 	template <typename T>
 	struct quaternion : public fan::vec4_wrap_t<T> {
 
@@ -40,8 +37,6 @@ namespace fan {
       return aiQuaternion(this->w, this->x, this->y, this->z);
     }
   #endif  
-
-    quaternion(const _matrix4x4<T>& m);
 
 		constexpr quaternion(auto scalar, auto x_, auto y_, auto z_)
 		{
