@@ -12,6 +12,8 @@ module;
 
 #include <fan/math/math.h>
 
+#include <filesystem>
+
 import fan.types.vector;
 
 import fan.window;

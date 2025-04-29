@@ -1,7 +1,5 @@
 #pragma once
 
-import fan.graphics.loco;
-
 struct fan_window_loop_t{
   fan_window_loop_t(const auto& lambda) {
     gloco->loop(lambda);

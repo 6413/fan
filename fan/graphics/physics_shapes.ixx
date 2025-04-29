@@ -2,6 +2,8 @@ module;
 
 // for shapes
 
+#if defined(fan_physics)
+
 #include <fan/types/types.h>
 #include <fan/math/math.h>
 
@@ -22,8 +24,11 @@ import fan.graphics;
   import fan.graphics.gui;
 #endif
 
+#endif
+
 export module fan.graphics.physics_shapes;
 
+#if defined(fan_physics)
 export namespace fan {
   namespace graphics {
     namespace physics {
@@ -1538,3 +1543,5 @@ void fan::graphics::physics::step(f32_t dt) {
 void fan::graphics::physics::debug_draw(bool enabled) {
   fan::graphics::physics::box2d_debug_draw = initialize_debug(enabled);
 }
+
+#endif

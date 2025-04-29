@@ -6,7 +6,8 @@ import fan.graphics.webp;
 import fan.types.vector;
 import fan.types.print;
 
-import std;
+#include <filesystem>
+#include <algorithm>
 
 export module fan.io.directory;
 
@@ -65,7 +66,7 @@ export namespace fan {
         return true;
       }
       catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "error accessing directory: " << e.what() << std::endl;
+        fan::throw_error("error accessing directory: ", e.what());
       }
       //catch (const std::exception& e) {
 //        std::cerr << "unexpected error: " << e.what() << std::endl;
@@ -110,7 +111,7 @@ export namespace fan {
         }
       }
       catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "error accessing directory: " << e.what() << std::endl;
+        fan::throw_error("error accessing directory: ", e.what());
       }
       //catch (const std::exception& e) {
      //   std::cerr << "unexpected error: " << e.what() << std::endl;
@@ -132,7 +133,7 @@ export namespace fan {
         }
       }
       catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "error accessing directory: " << e.what() << std::endl;
+        fan::throw_error("error accessing directory: ", e.what());
       }
       //  catch (const std::exception& e) {
       //    std::cerr << "unexpected error: " << e.what() << std::endl;
@@ -175,7 +176,7 @@ export namespace fan {
         }
       }
       catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "error accessing directory: " << e.what() << std::endl;
+        fan::throw_error("error accessing directory: ");
       }
       //   catch (const std::exception& e) {
      //        std::cerr << "unexpected error: " << e.what() << std::endl;
