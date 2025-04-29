@@ -13,6 +13,7 @@ module;
 
 #include <array>
 #include <cassert>
+#include <string>
 
 import fan.types.vector;
 import fan.types.color;

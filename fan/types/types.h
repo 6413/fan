@@ -22,6 +22,8 @@
 #define _PATH_QUOTE(p0) STRINGIFY(p0)
 
 #include <cstdint>
+// offsetof
+#include <cstddef>
 
 #pragma pack(push, 1)
 
