@@ -5,6 +5,9 @@ module;
 #include <fan/math/math.h>
 #include <fan/graphics/opengl/init.h>
 
+#include <memory>
+#include <string>
+
 import fan.physics.collision.rectangle;
 
 import fan.types.vector;

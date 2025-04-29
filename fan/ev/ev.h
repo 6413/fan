@@ -4,6 +4,7 @@
 #include <queue>
 #include <chrono>
 #include <memory>
+#include <exception>
 
 #include <uv.h>
 #undef min

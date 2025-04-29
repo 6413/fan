@@ -20,13 +20,13 @@ import fan.types.vector;
 
   import fan.types.fstring;
   import fan.types.color;
+
+  import fan.graphics.common_context;
+  import fan.graphics.opengl.core;
+  import fan.graphics.loco;
+  import fan.graphics;
+
 #endif
-
-import fan.graphics.common_context;
-import fan.graphics.opengl.core;
-import fan.graphics.loco;
-import fan.graphics;
-
 
 export module fan.graphics.gui;
 

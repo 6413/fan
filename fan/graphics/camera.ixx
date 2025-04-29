@@ -2,6 +2,7 @@ module;
 
 #include <fan/math/math.h>
 
+import fan.types.vector;
 import fan.types.matrix;
 
 export module fan.camera;

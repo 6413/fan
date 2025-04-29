@@ -65,7 +65,10 @@ struct vec4_wrap_t {
   #include <box2d/math_functions.h>
 #endif
 
-import std;
+#include <string>
+#include <algorithm>
+#include <numeric>
+#include <sstream>
 
 export module fan.types.vector;
 

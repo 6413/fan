@@ -2,7 +2,19 @@ module;
 
 #include <fan/types/types.h>
 
+#ifdef fan_compiler_msvc
 import std;
+#else
+
+#include <iostream>
+#include <string>
+//#include <stacktrace>
+#include <sstream>
+#include <ostream>
+
+#endif
+
+
 
 export module fan.types.print;
 
@@ -95,8 +107,8 @@ export namespace fan {
     void print_stacktrace() {
       
       #if defined(fan_std23)
-      std::stacktrace st;
-      fan::print(st.current());
+    //  std::stacktrace st;
+    //  fan::print(st.current());
       #elif defined(fan_platform_unix)
       // waiting for stacktrace to be released for clang lib++
       #else

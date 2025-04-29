@@ -9,6 +9,7 @@ module;
 #include <random>
 #include <string>
 #include <sstream>
+#include <algorithm>
 
 import fan.types.vector;
 

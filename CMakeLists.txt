@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 set(FAN_PHYSICS OFF)
-set(FAN_GUI ON)
+set(FAN_GUI OFF)
 set(FAN_JSON OFF)
 set(FAN_3D OFF)
 set(FAN_OPENGL ON)
@@ -15,11 +15,11 @@ set(BUILD_MAIN ON)
 
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 
-set(CMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY ON)
-set(CMAKE_FIND_PACKAGE_NO_SYSTEM_PACKAGE_REGISTRY ON)
+#set(CMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY ON)
+#set(CMAKE_FIND_PACKAGE_NO_SYSTEM_PACKAGE_REGISTRY ON)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+#set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+#set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -78,6 +78,9 @@ endif()
 
 set(BUILD_SHARED_LIBS ON)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+
+
 function(apply_fan_definitions target)
 	target_compile_definitions(${target} PRIVATE
 		$<$<BOOL:${FAN_OPENGL}>:fan_opengl>
@@ -99,7 +102,7 @@ endfunction()
 
 function(apply_common_compile_options target)
 	target_compile_options(${target} PRIVATE
-		-w -MD -MT -Wall -Wextra -ferror-limit=16 -stdlib=libstdc++ -fsized-deallocation -fPIC
+		-w -MD -MT -Wall -Wextra -ferror-limit=16 -stdlib=libc++ -fsized-deallocation -fPIC
 		-Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast
 		-Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses
 		-Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare
@@ -113,34 +116,43 @@ endfunction()
 
 add_library(fan_modules STATIC)
 apply_fan_definitions(fan_modules)
-target_sources(fan_modules
-  PUBLIC
-    FILE_SET CXX_MODULES
-    BASE_DIRS ${ROOT_PATH}
-    FILES
-		
-			${ROOT_PATH}/types/print.ixx
-			${ROOT_PATH}/types/color.ixx
-			${ROOT_PATH}/types/vector.ixx
-			
-			${ROOT_PATH}/types/fstring.ixx
-			
-			${ROOT_PATH}/io/file.ixx
-			
-			${ROOT_PATH}/window/window.ixx
-			${ROOT_PATH}/window/input_common.ixx
-			${ROOT_PATH}/window/input.ixx
-			
-      ${ROOT_PATH}/graphics/camera.ixx
-			
-			${ROOT_PATH}/graphics/common_context.ixx
-			${ROOT_PATH}/graphics/opengl/core.ixx
-			${ROOT_PATH}/graphics/opengl/uniform_block.ixx
-			${ROOT_PATH}/graphics/loco.ixx
-			${ROOT_PATH}/graphics/graphics.ixx
-			
+
+set(MODULE_FILES
+
+ 	${ROOT_PATH}/types/print.ixx
+	${ROOT_PATH}/types/color.ixx
+	${ROOT_PATH}/types/vector.ixx
+	${ROOT_PATH}/types/matrix.ixx
+	
+	${ROOT_PATH}/types/fstring.ixx
+	
+	${ROOT_PATH}/random.ixx
+	
+	${ROOT_PATH}/io/directory.ixx
+	${ROOT_PATH}/io/file.ixx
+	
+	${ROOT_PATH}/physics/collision/rectangle.ixx
+	
+	${ROOT_PATH}/window/window.ixx
+	${ROOT_PATH}/window/input_common.ixx
+	${ROOT_PATH}/window/input.ixx
+	
+	
+	${ROOT_PATH}/graphics/camera.ixx
+	
+	${ROOT_PATH}/graphics/image_load.ixx
+	${ROOT_PATH}/graphics/webp.ixx
+	${ROOT_PATH}/graphics/stb.ixx
+	${ROOT_PATH}/graphics/common_context.ixx
+	${ROOT_PATH}/graphics/opengl/core.ixx
+	${ROOT_PATH}/graphics/opengl/uniform_block.ixx
+	${ROOT_PATH}/graphics/loco.ixx
+	${ROOT_PATH}/graphics/graphics.ixx
+	
+	${ROOT_PATH}/fan.ixx
 )
-if(FAN_FMT)
+
+if(FAN_FMT OR FAN_GUI)
     list(APPEND MODULE_FILES 
 			${ROOT_PATH}/fmt.ixx
 		)
@@ -156,6 +168,13 @@ if(FAN_PHYSICS)
 			${ROOT_PATH}/physics/b2_integration.ixx
 		)
 endif()
+
+target_sources(fan_modules
+  PUBLIC
+    FILE_SET CXX_MODULES
+    BASE_DIRS ${ROOT_PATH}
+    FILES ${MODULE_FILES}
+)
 
 set_target_properties(fan_modules PROPERTIES CXX_SCAN_FOR_MODULES ON)
 apply_common_compile_options(fan_modules)
@@ -300,7 +319,6 @@ if(BUILD_MAIN)
 				uv
 				GL
 				GLEW
-				stdc++exp
 			)
 			if (FAN_FMT)
 				target_link_libraries(a.exe PRIVATE fmt)
