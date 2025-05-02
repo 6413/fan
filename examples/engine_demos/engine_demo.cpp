@@ -1,13 +1,14 @@
 // enumerate
 #include <fan/types/types.h>
+#include <fan/math/math.h>
+#include <vector>
+#include <string>
+#include <array>
+import fan;
+
+// include after import fan;
 #include <fan/graphics/types.h>
 
-import fan.random;
-import fan.io.file;
-import fan.graphics.common_context;
-import fan.graphics;
-import fan.graphics.gui;
-import fan.graphics.physics_shapes;//
 
 using namespace fan::graphics;
 using menu_t = engine_t::settings_menu_t;
@@ -82,12 +83,12 @@ struct engine_demo_t {
     engine_demo->shapes.emplace_back(fan::graphics::universal_image_renderer_t{{
       .camera = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 0),    
-      .size = viewport_size / 2,
-    }});
+      .size = viewport_size / 2,//
+    }});////
     std::string pixel_data_str;
     constexpr fan::vec2ui image_size = fan::vec2ui(1920, 1080);
     fan::io::file::read("images/output1920.yuv", &pixel_data_str);
-    void* pixel_data = pixel_data_str.data();
+    void* pixel_data = pixel_data_str.data();//
     void* datas[3];
     uint64_t offset = 0;
     datas[0] = pixel_data;
@@ -405,7 +406,7 @@ void main() {
       engine_demo->demo_physics_mirrors_data->user_ray.set_line(src, get_mouse_position(engine_demo->right_column_view));
     }
     for (auto [i, d] : fan::enumerate(engine_demo->demo_physics_mirrors_data->ray_hit_point)) {
-      d.set_position(-1000);
+      d.set_position(fan::vec3(-1000));
       engine_demo->demo_physics_mirrors_data->rays[i].set_line(0, 0);
     }
 
@@ -446,7 +447,7 @@ void main() {
 
   typedef void(*demo_function_t)(engine_demo_t*);
   typedef void(*demo_function_update_t)(engine_demo_t*);
-
+  //
   static void default_update_function(engine_demo_t* engine_demo) {
     menus_engine_demo_render_element_count(&engine_demo->engine.settings_menu);
   }
@@ -459,7 +460,7 @@ void main() {
   };
 
   inline static auto demos = std::to_array({
-    demo_t{.name = "Capsule", .demo_function = demo_static_capsule, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "2Capsule", .demo_function = demo_static_capsule, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "Circle", .demo_function = demo_static_circle, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "Gradient", .demo_function = demo_static_gradient, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "Grid", .demo_function = demo_static_grid, .update_function = default_update_function, .cleanup_function = nullptr},
@@ -510,7 +511,7 @@ void main() {
           gui::table_next_row();
           gui::table_next_column();
           f32_t row_height = gui::get_text_line_height_with_spacing() * 2;
-          if (gui::selectable(shape_info.name, false, 0, ImVec2(0.0f, row_height))) {
+          if (gui::selectable(shape_info.name, false, 0, fan::vec2(0.0f, row_height))) {
             if (demos[engine_demo.current_demo].cleanup_function) {
               demos[engine_demo.current_demo].cleanup_function(&engine_demo);
             }

@@ -2,17 +2,17 @@ module;
 
 #include <fan/types/types.h>
 
-#include <type_traits>
-#include <cstring>
-#include <ostream>
-#include <string>
-#include <array>
-
 #if defined(fan_3d)
   #include <assimp/matrix4x4.h>
 #endif
 
 #include <fan/math/math.h>
+
+#include <type_traits>
+#include <cstring>
+#include <array>
+#include <string>
+#include <ostream>
 
 export module fan.types.matrix;
 
@@ -746,7 +746,7 @@ export namespace fan {
       return ret;
     }
 
-    constexpr matrix2d sigmoid() const {
+    fan_api constexpr matrix2d sigmoid() const {
       matrix2d ret;
       for (uint32_t i = 0; i < _i; ++i) {
         for (uint32_t j = 0; j < _j; ++j) {
@@ -755,7 +755,7 @@ export namespace fan {
       }
       return ret;
     }
-    constexpr matrix2d sigmoid_derivative() const {
+    fan_api constexpr matrix2d sigmoid_derivative() const {
       matrix2d ret;
       for (uint32_t i = 0; i < _i; ++i) {
         for (uint32_t j = 0; j < _j; ++j) {

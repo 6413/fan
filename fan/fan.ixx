@@ -1,5 +1,6 @@
 export module fan;
 
+export import fan.types.print;
 export import fan.types.vector;
 export import fan.types.color;
 export import fan.types.matrix;
@@ -8,6 +9,7 @@ export import fan.random;
 export import fan.io.file;
 export import fan.io.directory;
 
+export import fan.graphics.common_context;
 export import fan.graphics.loco;
 export import fan.graphics;
 #if defined(fan_gui)
