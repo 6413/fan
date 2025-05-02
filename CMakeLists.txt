@@ -102,7 +102,7 @@ endfunction()
 
 function(apply_common_compile_options target)
 	target_compile_options(${target} PRIVATE
-		-w -MD -MT -Wall -Wextra -ferror-limit=16 -stdlib=libstdc++ -fsized-deallocation -fPIC
+		-w -MD -MT -Wall -Wextra -ferror-limit=16 -stdlib=libstdc++ -fsized-deallocation
 		-Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast
 		-Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses
 		-Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare
