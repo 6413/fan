@@ -1,5 +1,7 @@
-import fan;
+//import fan;
+
 //
-int main() {//
-  fan::graphics::engine_t engine;
-}////////////////////////////////////////
+//import fan.graphics.loco;
+int main() {////////
+  //fan::graphics::engine_t engine;//
+}////////

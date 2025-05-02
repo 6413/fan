@@ -5,6 +5,8 @@
 #include <fan/types/types.h>
 
 #include <cmath>
+#include <limits>
+#include <initializer_list>
 
 namespace fan {
 
@@ -28,6 +30,38 @@ namespace fan {
   requires(std::is_arithmetic_v<T>&& std::is_arithmetic_v<T2>)
   constexpr T max(T x, T2 y) {
     return x > y ? x : y;
+  }
+
+  template <typename T>
+  requires (std::is_arithmetic_v<T>)
+  constexpr T min(std::initializer_list<T> values) {
+    if (values.size() == 0) {
+      return std::numeric_limits<T>::max();
+    }
+
+    T result = *values.begin();
+    for (const T& value : values) {
+      if (value < result) {
+        result = value;
+      }
+    }
+    return result;
+  }
+
+  template <typename T>
+  requires std::is_arithmetic_v<T>
+  constexpr T max(std::initializer_list<T> values) {
+    if (values.size() == 0) {
+      return std::numeric_limits<T>::lowest();
+    }
+
+    T result = *values.begin();
+    for (const T& value : values) {
+      if (value > result) {
+        result = value;
+      }
+    }
+    return result;
   }
 
 	namespace math {
@@ -117,11 +151,11 @@ namespace fan {
       return (val - min) / (max - min);
     }
 
-    static double sigmoid(double x) {
+    fan_api double sigmoid(double x) {
       return 1.0 / (1 + std::exp(-x));
     }
 
-    static constexpr double sigmoid_derivative(double x) {
+    fan_api constexpr double sigmoid_derivative(double x) {
       return x * (1 - x);
     }
 
@@ -129,7 +163,8 @@ namespace fan {
       return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
     }
 
-		constexpr f_t inf = ((float)(1e+300 * 1e+300));
+		constexpr f_t inf = std::numeric_limits<float>::infinity();
+
 		constexpr f_t infinite = inf;
 		constexpr f_t infinity = infinite;
 
@@ -759,25 +794,25 @@ namespace fan {
 
 #ifndef __fast_8log2
   #define __fast_8log2 __fast_8log2
-  __forceinline inline std::uint8_t __fast_8log2(std::uint8_t v){
+  std::uint8_t __fast_8log2(std::uint8_t v){
     return 31 - __clz32(v);
   }
 #endif
 #ifndef __fast_16log2
   #define __fast_16log2 __fast_16log2
-  __forceinline inline std::uint8_t __fast_16log2(std::uint16_t v){
+  std::uint8_t __fast_16log2(std::uint16_t v){
     return 31 - __clz32(v);
   }
 #endif
 #ifndef __fast_32log2
   #define __fast_32log2 __fast_32log2
-  __forceinline inline std::uint8_t __fast_32log2(std::uint32_t v){
+  std::uint8_t __fast_32log2(std::uint32_t v){
     return 31 - __clz32(v);
   }
 #endif
 #ifndef __fast_64log2
   #define __fast_64log2 __fast_64log2
-  __forceinline inline std::uint8_t __fast_64log2(std::uint64_t v){
+  std::uint8_t __fast_64log2(std::uint64_t v){
     return 63 - __clz64(v);
   }
 #endif

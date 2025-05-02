@@ -596,8 +596,14 @@ namespace fan {
 	#define fan_std23
 #endif
 
-#if !defined(fan_compiler_msvc)
+#ifndef __forceinline
+#if defined(fan_compiler_clang) || defined(fan_compiler_gcc)
+#define __forceinline __attribute__((always_inline))
+#elif defined(fan_compiler_msvc)
+  // already defined
+#else
 	#define __forceinline inline __attribute__((always_inline))
+#endif
 #endif
 
 template<typename T1, typename T2>

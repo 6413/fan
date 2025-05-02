@@ -15,15 +15,12 @@ module;
 #include <filesystem>
 
 import fan.types.vector;
-
 import fan.window;
 import fan.graphics.image_load;
 import fan.graphics.opengl.core;
 import fan.graphics.common_context;
 import fan.graphics.loco;
-
 import fan.io.directory;
-
 import fan.camera;
 import fan.types.color;
 import fan.random;

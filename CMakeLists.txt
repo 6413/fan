@@ -282,6 +282,7 @@ if(BUILD_MAIN)
 				uv
 				GL
 				GLEW
+				stdc++exp
 			)
 			if (FAN_FMT)
 				target_link_libraries(a.exe PRIVATE fmt)
