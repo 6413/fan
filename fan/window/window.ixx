@@ -18,6 +18,7 @@ module;
 #include <algorithm>
 #include <cstring>
 #include <functional>
+#include <string>
 
 export module fan.window;
 

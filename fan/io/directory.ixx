@@ -2,16 +2,16 @@ module;
 
 #include <fan/math/math.h>
 
-import fan.graphics.webp;
-import fan.types.vector;
-import fan.types.print;
-
-#include <filesystem>
 #include <vector>
 #include <algorithm>
 #include <functional>
+#include <filesystem>
 
 export module fan.io.directory;
+
+import fan.graphics.webp;
+import fan.types.vector;
+import fan.types.print;
 
 export namespace fan {
   namespace io {

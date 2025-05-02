@@ -106,9 +106,7 @@ import fan.types.matrix;
 import fan.window.input;
 import fan.window;
 import fan.io.file;
-
 import fan.types.fstring;
-
 #if defined(fan_physics)
   import fan.physics.b2_integration;
 #endif

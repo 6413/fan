@@ -2,8 +2,6 @@ module;
 
 #include <fan/types/types.h>
 
-#include <unordered_map>
-
 #ifndef fan_platform_android
 
 #if defined(fan_compiler_msvc)
@@ -14,6 +12,7 @@ module;
 #include <webp/encode.h>
 #include <webp/decode.h>
 
+#include <unordered_map>
 #include <string>
 
 export module fan.graphics.webp;

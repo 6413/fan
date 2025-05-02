@@ -1,6 +1,7 @@
 module;
 
 #include <fan/types/types.h>
+#include <fan/math/math.h>
 
 #include <random>
 
@@ -19,31 +20,6 @@ export namespace fan {
       }
       return rand() % max + min;
     }
-
-    template <typename type_t>
-    struct fast_rand_t {
-
-      fast_rand_t(type_t min, type_t max) :
-        m_random(m_device()),
-        m_distance(min, max)
-      { }
-
-      type_t get() {
-        return m_distance(m_random);
-      }
-
-      void set_min_max(type_t min, type_t max) {
-        m_distance.param(std::uniform_int_distribution<type_t>::param_type(min, max));
-      }
-
-    protected:
-
-      std::random_device m_device;
-      std::mt19937_64 m_random;
-
-      std::uniform_int_distribution<type_t> m_distance;
-
-    };
 
     template <typename T>
     T value(const T& vmin, const T& vmax) {
@@ -126,7 +102,7 @@ export namespace fan {
     // always makes one channel brightest and scales other channels accordingly
     inline fan::color bright_color() {
       fan::color rand_color = fan::random::color();
-      f32_t max_channel = std::max({rand_color.r, rand_color.g, rand_color.b});
+      f32_t max_channel = fan::max({rand_color.r, rand_color.g, rand_color.b});
       return rand_color / max_channel;
     }
 

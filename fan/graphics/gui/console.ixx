@@ -8,6 +8,7 @@ module;
 
 #include <regex>
 #include <functional>
+#include <cstring>
 
 export module fan.console;
 
