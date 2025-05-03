@@ -701,29 +701,29 @@ struct vfi_t {
     gloco->shaper.SetShapeType(loco_t::shape_type_t::vfi, bp);
 
 
-    loco_t::functions_t functions;
-    functions.get_position = [](loco_t::shape_t* shaper) {
-      return gloco->vfi.get_position(*shaper);
-    };
-    functions.set_position2 = [](loco_t::shape_t* shaper, const fan::vec2& position) {
-      gloco->vfi.set_position(*shaper, fan::vec3(position, gloco->vfi.get_position(*shaper).z));
-    };
-    functions.set_position3 = [](loco_t::shape_t* shaper, const fan::vec3& position) {
-      gloco->vfi.set_position(*shaper, position);
-    };
-    functions.get_size = [](loco_t::shape_t* shaper) {
-      return gloco->vfi.get_size(*shaper);
-    };
-    functions.set_size = [](loco_t::shape_t* shaper, const fan::vec2& size) {
-      gloco->vfi.set_size(*shaper, size);
-    };
-    functions.get_color = [](loco_t::shape_t* shaper) {
-      return fan::color(1);
-    };
-    functions.set_color = [](loco_t::shape_t* shaper, const fan::color& color) {
-    };
+    //loco_t::functions_t functions;
+    //functions.get_position = [](loco_t::shape_t* shaper) {
+    //  return gloco->vfi.get_position(*shaper);
+    //};
+    //functions.set_position2 = [](loco_t::shape_t* shaper, const fan::vec2& position) {
+    //  gloco->vfi.set_position(*shaper, fan::vec3(position, gloco->vfi.get_position(*shaper).z));
+    //};
+    //functions.set_position3 = [](loco_t::shape_t* shaper, const fan::vec3& position) {
+    //  gloco->vfi.set_position(*shaper, position);
+    //};
+    //functions.get_size = [](loco_t::shape_t* shaper) {
+    //  return gloco->vfi.get_size(*shaper);
+    //};
+    //functions.set_size = [](loco_t::shape_t* shaper, const fan::vec2& size) {
+    //  gloco->vfi.set_size(*shaper, size);
+    //};
+    //functions.get_color = [](loco_t::shape_t* shaper) {
+    //  return fan::color(1);
+    //};
+    //functions.set_color = [](loco_t::shape_t* shaper, const fan::color& color) {
+    //};
 
-    gloco->shape_functions.push_back(functions);
+    //gloco->shape_functions.push_back(functions);
   }
   ~vfi_t() {
   }

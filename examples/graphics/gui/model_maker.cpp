@@ -1,4 +1,4 @@
-#include <fan/pch.h>
+import fan;
 
 #include <fan/graphics/gui/model_maker/maker.h>
 

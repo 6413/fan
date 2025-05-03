@@ -8,15 +8,15 @@ struct model_list_t {
 
   struct cm_t {
 
-    void import_from(const fan::string& path, loco_t::texturepack_t* tp) {
+    void import_from(const std::string& path, loco_t::texturepack_t* tp) {
       loco_t::texturepack_t::ti_t ti;
 
-      fan::string in;
+      std::string in;
       fan::io::file::read(path, &in);
       if (in.empty()) {
         return;
       }
-      fan::json json_in = nlohmann::json::parse(in);
+      fan::json json_in = fan::json::parse(in);
       shapes = json_in;
     }
 
@@ -83,14 +83,14 @@ struct model_list_t {
       cm_t::shape_t s = shape;
       s.set_camera(mp.camera);
       s.set_viewport(mp.viewport);
-      s.id = shape_json["id"].get<fan::string>();
+      s.id = shape_json["id"].get<std::string>();
       s.group_id = shape_json["group_id"].get<uint32_t>();
       auto st = shape.get_shape_type();
       if (st == loco_t::shape_type_t::sprite ||
         st == loco_t::shape_type_t::unlit_sprite || st == loco_t::shape_type_t::light) {
         if (st == loco_t::shape_type_t::sprite ||
           st == loco_t::shape_type_t::unlit_sprite) {
-          s.image_name = shape_json["image_name"].get<fan::string>();
+          s.image_name = shape_json["image_path"].get<std::string>();
           if (s.image_name.size()) {
             loco_t::texturepack_t::ti_t ti;
             if (tp->qti(s.image_name, &ti)) {

@@ -31,15 +31,16 @@ struct structor_t {
       outside->stage_common.it = 0;
     }
 
-    if (!fan::string(lstd_current_type::stage_name).empty()) {
+    if (!std::string(lstd_current_type::stage_name).empty()) {
       gstage->load_fgm(outside, op, lstd_current_type::stage_name);
     }
     gstage->stage_list[outside->stage_common.stage_id].update_nr = gloco->m_update_callback.NewNodeLast();
     gloco->m_update_callback[gstage->stage_list[outside->stage_common.stage_id].update_nr] = [&, outside](loco_t* loco) {
       outside->update();
       };
-      gstage->stage_list[outside->stage_common.stage_id].resize_id = gloco->window.add_resize_callback([outside](const auto& d) {
-        fan_if_has_function(outside, window_resize, ());
+    gstage->stage_list[outside->stage_common.stage_id].resize_id = gloco->window.add_resize_callback([outside](const auto& d) {
+      fan::print("todo");
+       // fan_if_has_function(outside, window_resize, ());
       });
   }
 }structor;

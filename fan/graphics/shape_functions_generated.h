@@ -1714,7 +1714,12 @@ static void set_tc_size_shader_shape(loco_t::shape_t* shape, const fan::vec2& si
 	}
 }
 
-static bool load_tp_sprite(loco_t::shape_t* shape, loco_t::texturepack_t::ti_t* tp) {
+static bool load_tp_sprite(loco_t::shape_t* shape, loco_t::texturepack_t::ti_t* ti) {
+  auto* image = ti->image;
+  set_image(shape, *image);
+  set_tc_position_sprite(shape, ti->position / gloco->image_get_data(*image).size);
+  set_tc_size_sprite(shape,  ti->size / gloco->image_get_data(*image).size);
+
 	return false;
 }
 
@@ -1730,7 +1735,12 @@ static bool load_tp_light(loco_t::shape_t* shape, loco_t::texturepack_t::ti_t* t
 	return false;
 }
 
-static bool load_tp_unlit_sprite(loco_t::shape_t* shape, loco_t::texturepack_t::ti_t* tp) {
+//TODO add to generate
+static bool load_tp_unlit_sprite(loco_t::shape_t* shape, loco_t::texturepack_t::ti_t* ti) {
+  auto* image = ti->image;
+  set_image(shape, *image);
+  set_tc_position_sprite(shape, ti->position / gloco->image_get_data(*image).size);
+  set_tc_size_sprite(shape,  ti->size / gloco->image_get_data(*image).size);
 	return false;
 }
 
@@ -1880,6 +1890,10 @@ static void set_camera_grid(loco_t::shape_t* shape, loco_t::camera_t camera) {
 	loco_t::set_camera(shape, camera);
 }
 
+static void set_camera_particles(loco_t::shape_t* shape, loco_t::camera_t camera) {
+	loco_t::set_camera(shape, camera);
+}
+
 static void set_camera_universal_image_renderer(loco_t::shape_t* shape, loco_t::camera_t camera) {
 	loco_t::set_camera(shape, camera);
 }
@@ -1992,6 +2006,10 @@ static void set_viewport_grid(loco_t::shape_t* shape, loco_t::viewport_t viewpor
 	loco_t::set_viewport(shape, viewport);
 }
 
+static void set_viewport_particles(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
+	loco_t::set_viewport(shape, viewport);
+}
+
 static void set_viewport_universal_image_renderer(loco_t::shape_t* shape, loco_t::viewport_t viewport) {
 	loco_t::set_viewport(shape, viewport);
 }
@@ -2041,6 +2059,10 @@ static void set_image_capsule(loco_t::shape_t* shape, loco_t::image_t image) {
 }
 
 static void set_image_universal_image_renderer(loco_t::shape_t* shape, loco_t::image_t image) {
+	loco_t::set_image(shape, image);
+}
+
+static void set_image_particles(loco_t::shape_t* shape, loco_t::image_t image) {
 	loco_t::set_image(shape, image);
 }
 
@@ -2203,7 +2225,87 @@ static void reload_polygon(loco_t::shape_t* shape, uint8_t format, void** image_
 static void reload_grid(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
 }
 
-static void reload_universal_image_renderer(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
+static void reload_universal_image_renderer(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter) {
+  loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)shape->GetData(gloco->shaper);
+  if (format != ri.format) {
+    auto sti = gloco->shaper.ShapeList[*shape].sti;
+    uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
+    loco_t::image_t vi_image = shaper_get_key_safe(loco_t::image_t, texture_t, image);
+
+
+    auto shader = gloco->shaper.GetShader(sti);
+    gloco->shader_set_vertex(
+      shader,
+      loco_t::read_shader("shaders/opengl/2D/objects/pixel_format_renderer.vs")
+    );
+    {
+      std::string fs;
+      switch (format) {
+      case fan::pixel_format::yuv420p: {
+        fs = loco_t::read_shader("shaders/opengl/2D/objects/yuv420p.fs");
+        break;
+      }
+      case fan::pixel_format::nv12: {
+        fs = loco_t::read_shader("shaders/opengl/2D/objects/nv12.fs");
+        break;
+      }
+      default: {
+        fan::throw_error("unimplemented format");
+      }
+      }
+      gloco->shader_set_fragment(shader, fs);
+      gloco->shader_compile(shader);
+    }
+
+    uint8_t image_count_old = fan::pixel_format::get_texture_amount(ri.format);
+    uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
+    if (image_count_new < image_count_old) {
+      // -1 ? 
+      for (uint32_t i = image_count_old - 1; i > image_count_new; --i) {
+        if (i == 0) {
+          gloco->image_erase(vi_image);
+        }
+        else {
+          gloco->image_erase(ri.images_rest[i - 1]);
+        }
+      }
+    }
+    else if (image_count_new > image_count_old) {
+      loco_t::image_t images[4];
+      for (uint32_t i = image_count_old; i < image_count_new; ++i) {
+        images[i] = gloco->image_create();
+      }
+      shape->set_image(images[0]);
+      std::copy(&images[1], &images[0] + ri.images_rest.size(), ri.images_rest.data());
+    }
+  }
+
+  auto vi_image = shape->get_image();
+
+  uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
+  for (uint32_t i = 0; i < image_count_new; i++) {
+    fan::image::image_info_t image_info;
+    image_info.data = image_data[i];
+    image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
+    auto lp = fan::pixel_format::get_image_properties<loco_t::image_load_properties_t>(format)[i];
+    lp.min_filter = filter;
+    lp.mag_filter = filter;
+    if (i == 0) {
+      gloco->image_reload(
+        vi_image,
+        image_info,
+        lp
+      );
+    }
+    else {
+      gloco->image_reload(
+        ri.images_rest[i - 1],
+        image_info,
+        lp
+      );
+    }
+  }
+  ri.format = format;
 }
 
 static void reload_gradient(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
@@ -2810,7 +2912,7 @@ inline static loco_t::set_camera_cb set_camera_functions[] = {
 	&set_camera_polygon,
 	&set_camera_grid,
 	nullptr,
-	nullptr,
+	set_camera_particles,
 	&set_camera_universal_image_renderer,
 	&set_camera_gradient,
 	nullptr,
@@ -2856,7 +2958,7 @@ inline static loco_t::set_viewport_cb set_viewport_functions[] = {
 	&set_viewport_polygon,
 	&set_viewport_grid,
 	nullptr,
-	nullptr,
+	set_viewport_particles,
 	&set_viewport_universal_image_renderer,
 	&set_viewport_gradient,
 	nullptr,
@@ -2902,7 +3004,7 @@ inline static loco_t::set_image_cb set_image_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
-	nullptr,
+	&set_image_particles,
 	&set_image_universal_image_renderer,
 	nullptr,
 	nullptr,

@@ -10,10 +10,10 @@ module;
 #include <ios>
 #include <sstream>
 
+export module fan.types.fstring;
+
 import fan.types.print; // for throw_error with msg
 import fan.types.vector;
-
-export module fan.types.fstring;
 
 export namespace fan {
 
@@ -122,11 +122,11 @@ export namespace fan {
   struct is_std_vector<std::vector<T, A>> : std::true_type {};
 
   template <typename T>
-  T string_read_data(auto& f, auto& off) {
-    if constexpr (std::is_same<fan::string, T>::value || 
+  inline T string_read_data(auto& f, auto& off) {
+    if constexpr (std::is_same<std::string, T>::value || 
       std::is_same<std::string, T>::value) {
       uint64_t len = string_read_data<uint64_t>(f, off);
-      fan::string str;
+      std::string str;
       str.resize(len);
       memcpy(str.data(), &f[off], len);
       off += len;
@@ -150,7 +150,7 @@ export namespace fan {
 
   template <typename T>
   void write_to_string(auto& f, const T& o) {
-    if constexpr (std::is_same<fan::string, T>::value ||
+    if constexpr (std::is_same<std::string, T>::value ||
       std::is_same<std::string, T>::value) {
       uint64_t len = o.size();
       f.append((char*)&len, sizeof(len));
@@ -197,7 +197,7 @@ export namespace fan {
   }
 
   template <typename T>
-  T string_to(const fan::string& fstring) {
+  T string_to(const std::string& fstring) {
     T out;
     out.from_string(fstring);
     return out;

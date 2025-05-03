@@ -1,12 +1,16 @@
-#pragma once
+module;
 
 #include <cstdint>
 #include <type_traits>
 #include <variant>
+#include <ostream>
+#include <tuple>
+
+export module fan.types.masterpiece;
 
 import fan.types.magic;
 
-namespace fan {
+export namespace fan {
   #pragma pack(push, 1)
   // reversing masterpiece
   template<typename>
@@ -424,7 +428,7 @@ namespace fan {
 //    return #obj; \
 //  }
 
-namespace fan {
+export namespace fan {
   template <typename T>
   struct mp_t : T {
     using type_t = T;
@@ -506,7 +510,7 @@ namespace fan {
   };
 
   template <typename T>
-  static constexpr std::size_t get_biggest_sizeof() {
+  inline constexpr std::size_t get_biggest_sizeof() {
     constexpr auto max_stack_size = 0xffff;
     static_assert(sizeof(T) <= max_stack_size, "too big struct for stack");
     std::size_t max_sizeof = 0;

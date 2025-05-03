@@ -1,7 +1,8 @@
-//import fan;
+//import std;
 
-//
-//import fan.graphics.loco;
-int main() {////////
-  //fan::graphics::engine_t engine;//
-}////////
+int main() {
+ // std::vector<int> v;
+  //fan::graphics::engine_t engine;
+  //
+  //
+}

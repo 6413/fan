@@ -1,4 +1,4 @@
-#pragma once
+module;
 
 #include <fan/types/types.h>
 
@@ -16,15 +16,17 @@
   #endif
 #endif
 
-#include _WITCH_PATH(WITCH.h)
+#include <WITCH/WITCH.h>
 
-#include _WITCH_PATH(TH/TH.h)
+#include <WITCH/TH/TH.h>
 
-#include _WITCH_PATH(FS/FS.h)
-#include _WITCH_PATH(T/T.h)
+#include <WITCH/FS/FS.h>
+#include <WITCH/T/T.h>
 
-// transform
+// transform todo remove
 #include <algorithm>
+#include <string>
+#include <cmath>
 
 #include <opus/opus.h>
 
@@ -34,10 +36,12 @@
   #include <pulse/simple.h>
 #endif
 
+export module fan.audio;
+
 import fan.types.print;
 import fan.io.file;
 
-namespace fan {
+export namespace fan {
   struct system_audio_t {
     #include "SystemAudio/CommonTypes.h"
   };

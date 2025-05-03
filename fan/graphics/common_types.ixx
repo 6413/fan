@@ -1,8 +1,11 @@
 module;
 
+#include <fan/types/pair.h>
+
 export module fan.graphics.common_types;
 
 import fan.types.color;
+import fan.types.vector;
 
 export namespace fan {
   namespace graphics {
@@ -24,4 +27,6 @@ export namespace fan {
       fan::colors::yellow,
     };
   }
+  using line = fan::pair_t<fan::vec2, fan::vec2>;
+  using line3 = fan::pair_t<fan::vec3, fan::vec3>;
 }

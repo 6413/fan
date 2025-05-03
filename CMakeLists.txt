@@ -151,6 +151,8 @@ set(MODULE_FILES
 	${ROOT_PATH}/window/input_common.ixx
 	${ROOT_PATH}/window/input.ixx
 	
+	${ROOT_PATH}/audio/audio.ixx
+	
 	${ROOT_PATH}/fan.ixx
 )
 

@@ -180,7 +180,7 @@ exclusions = {
         "polygon", "grid", "vfi", "particles", 
         "gradient", "shader_shape", "rectangle3d"],
     "set_image" : ["line", "line3d", "text", "rectangle", "light", "unlit_sprite", 
-        "polygon", "grid", "vfi", "particles", 
+        "polygon", "grid", "vfi", 
         "gradient", "shader_shape", "rectangle3d"],
     "push_back": ["hitbox", "mark", "light_end"]
         
@@ -344,6 +344,87 @@ if (gloco->window.renderer == loco_t::renderer_t::opengl) {
     sizeof(loco_t::line_t::vi_t::src)
   );
 }
+""",
+    ("reload", "universal_image_renderer"): """    loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)shape->GetData(gloco->shaper);
+  if (format != ri.format) {
+    auto sti = gloco->shaper.ShapeList[*shape].sti;
+    uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
+    loco_t::image_t vi_image = shaper_get_key_safe(loco_t::image_t, texture_t, image);
+
+
+    auto shader = gloco->shaper.GetShader(sti);
+    gloco->shader_set_vertex(
+      shader,
+      loco_t::read_shader("shaders/opengl/2D/objects/pixel_format_renderer.vs")
+    );
+    {
+      std::string fs;
+      switch (format) {
+      case fan::pixel_format::yuv420p: {
+        fs = loco_t::read_shader("shaders/opengl/2D/objects/yuv420p.fs");
+        break;
+      }
+      case fan::pixel_format::nv12: {
+        fs = loco_t::read_shader("shaders/opengl/2D/objects/nv12.fs");
+        break;
+      }
+      default: {
+        fan::throw_error("unimplemented format");
+      }
+      }
+      gloco->shader_set_fragment(shader, fs);
+      gloco->shader_compile(shader);
+    }
+
+    uint8_t image_count_old = fan::pixel_format::get_texture_amount(ri.format);
+    uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
+    if (image_count_new < image_count_old) {
+      // -1 ? 
+      for (uint32_t i = image_count_old - 1; i > image_count_new; --i) {
+        if (i == 0) {
+          gloco->image_erase(vi_image);
+        }
+        else {
+          gloco->image_erase(ri.images_rest[i - 1]);
+        }
+      }
+    }
+    else if (image_count_new > image_count_old) {
+      loco_t::image_t images[4];
+      for (uint32_t i = image_count_old; i < image_count_new; ++i) {
+        images[i] = gloco->image_create();
+      }
+      shape->set_image(images[0]);
+      std::copy(&images[1], &images[0] + ri.images_rest.size(), ri.images_rest.data());
+    }
+  }
+
+  auto vi_image = shape->get_image();
+
+  uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
+  for (uint32_t i = 0; i < image_count_new; i++) {
+    fan::image::image_info_t image_info;
+    image_info.data = image_data[i];
+    image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
+    auto lp = fan::pixel_format::get_image_properties<loco_t::image_load_properties_t>(format)[i];
+    lp.min_filter = filter;
+    lp.mag_filter = filter;
+    if (i == 0) {
+      gloco->image_reload(
+        vi_image,
+        image_info,
+        lp
+      );
+    }
+    else {
+      gloco->image_reload(
+        ri.images_rest[i - 1],
+        image_info,
+        lp
+      );
+    }
+  }
+  ri.format = format;
 """,
 }
 

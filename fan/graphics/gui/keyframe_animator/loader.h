@@ -53,7 +53,7 @@ namespace fan {
         std::vector<key_frame_t> key_frames;
         key_frame_t current_frame;
         // can be either image or texturepack image name
-        fan::string image_name;
+        std::string image_name;
         loco_t::shape_t sprite;
         fan::vec2 scale = 1;
         f32_t movement_scale = 1;
@@ -67,7 +67,7 @@ namespace fan {
         controls.playing = true;
       }
 
-      static void load_image(loco_t::shape_t& shape, const fan::string& name, loco_t::image_t& image) {
+      static void load_image(loco_t::shape_t& shape, const std::string& name, loco_t::image_t& image) {
         if (image.load(name)) {
           fan::print_warning("failed to load image:" + name);
         }
@@ -76,7 +76,7 @@ namespace fan {
         }
       }
 
-      static void load_image(loco_t::shape_t& shape, const fan::string& name, loco_t::texturepack_t& texturepack) {
+      static void load_image(loco_t::shape_t& shape, const std::string& name, loco_t::texturepack_t& texturepack) {
         loco_t::texturepack_t::ti_t ti;
         if (texturepack.qti(name, &ti)) {
           fan::print_warning("failed to load texturepack image:" + name);
@@ -117,8 +117,8 @@ namespace fan {
         objects[i].sprite = std::move(temp);
       }
 
-      void file_load(const fan::string& path) {
-        fan::string istr;
+      void file_load(const std::string& path) {
+        std::string istr;
         fan::io::file::read(path, &istr);
         uint32_t off = 0;
         fan::read_from_string(istr, off, controls.loop);
