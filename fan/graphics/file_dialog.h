@@ -4,6 +4,7 @@
 #include <string>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 #include <fan/nativefiledialog/nfd.h>
 

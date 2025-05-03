@@ -21,7 +21,7 @@ struct tile_t {
   fan::color color;
   std::string image_name;
   mesh_property_t mesh_property = mesh_property_t::none;
-  fan::string id;
+  std::string id;
   uint32_t flags = 0;
 
   // actions

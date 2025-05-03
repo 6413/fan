@@ -15,6 +15,12 @@ module;
 #include <cassert>
 #include <string>
 
+#endif
+
+export module fan.graphics.physics_shapes;
+
+#if defined(fan_physics)
+
 import fan.types.vector;
 import fan.types.color;
 import fan.physics.b2_integration;
@@ -27,11 +33,6 @@ import fan.graphics;
   import fan.graphics.gui;
 #endif
 
-#endif
-
-export module fan.graphics.physics_shapes;
-
-#if defined(fan_physics)
 export namespace fan {
   namespace graphics {
     namespace physics {

@@ -387,6 +387,7 @@ void shapes_open() {
 
   // vfi must be in this order
   loco.vfi.open();
+  gloco->shape_functions[loco_t::vfi_t::shape_type] = loco.get_shape_functions(loco_t::vfi_t::shape_type);
 
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {

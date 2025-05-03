@@ -7,19 +7,6 @@ module;
 
 #define loco_audio
 
-#if defined(loco_audio)
-#ifndef _INCLUDE_TOKEN
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-#endif
-#ifndef WITCH_INCLUDE_PATH
-#define WITCH_INCLUDE_PATH WITCH
-#endif
-#define WITCH_PRE_is_not_allowed
-#include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
-#include <fan/audio/audio.h>
-
-#endif
-
 #include <fan/ev/types.h>
 
 #if defined(fan_gui)
@@ -61,14 +48,14 @@ module;
 #include <fan/memory/memory.hpp>
 
 #if defined(fan_gui)
-#include <fan/imgui/imgui.h>
-#include <fan/imgui/imgui_impl_opengl3.h>
-#if defined(fan_vulkan)
-#include <fan/imgui/imgui_impl_vulkan.h>
-#endif
-#include <fan/imgui/imgui_impl_glfw.h>
-#include <fan/imgui/imgui_neo_sequencer.h>
-#include <fan/imgui/implot.h>
+  #include <fan/imgui/imgui.h>
+  #include <fan/imgui/imgui_impl_opengl3.h>
+  #if defined(fan_vulkan)
+    #include <fan/imgui/imgui_impl_vulkan.h>
+  #endif
+  #include <fan/imgui/imgui_impl_glfw.h>
+  #include <fan/imgui/imgui_neo_sequencer.h>
+  #include <fan/imgui/implot.h>
 #endif
 
 //#include <fan/graphics/algorithm/FastNoiseLite.h>
@@ -95,7 +82,7 @@ module;
 #endif
 
 #if defined(fan_json)
-#include <fan/types/json_impl.h>
+#include <fan/types/json.h>
 #endif
 
 export module fan.graphics.loco;
@@ -121,59 +108,15 @@ import fan.graphics.opengl.core;
 
 import fan.physics.collision.rectangle;
 
+#if defined(loco_audio)
+  import fan.audio;
+#endif
+
 #if defined(fan_gui)
   import fan.console;
 #endif
 
 #if defined(fan_json)
-
-template <typename T>
-struct fan::adl_serializer<fan::vec2_wrap_t<T>> {
-  static void to_json(fan::json& j, const fan::vec2_wrap_t<T>& v) {
-    j = fan::json{ v.x, v.y };
-  }
-  static void from_json(const fan::json& j, fan::vec2_wrap_t<T>& v) {
-    v.x = j[0].get<T>();
-    v.y = j[1].get<T>();
-  }
-};
-
-template <typename T>
-struct fan::adl_serializer<fan::vec3_wrap_t<T>> {
-  static void to_json(fan::json& j, const fan::vec3_wrap_t<T>& v) {
-    j = fan::json{ v.x, v.y, v.z };
-  }
-  static void from_json(const fan::json& j, fan::vec3_wrap_t<T>& v) {
-    v.x = j[0].get<T>();
-    v.y = j[1].get<T>();
-    v.z = j[2].get<T>();
-  }
-};
-
-template <typename T>
-struct fan::adl_serializer<fan::vec4_wrap_t<T>> {
-  static void to_json(fan::json& j, const fan::vec4_wrap_t<T>& v) {
-    j = fan::json{ v.x, v.y, v.z, v.w };
-  }
-  static void from_json(const fan::json& j, fan::vec4_wrap_t<T>& v) {
-    v.x = j[0].get<T>();
-    v.y = j[1].get<T>();
-    v.z = j[2].get<T>();
-    v.w = j[3].get<T>();
-  }
-};
-
-template <> struct fan::adl_serializer<fan::color> {
-  static void to_json(json& j, const fan::color& c) {
-    j = json{ c.r, c.g, c.b, c.a };
-  }
-  static void from_json(const json& j, fan::color& c) {
-    c.r = j[0];
-    c.g = j[1];
-    c.b = j[2];
-    c.a = j[3];
-  }
-};
 
 export namespace fan {
   struct json_stream_parser_t {
@@ -1398,6 +1341,7 @@ public:
     }
     render_shapes_top = p.render_shapes_top;
     window.renderer = p.renderer;
+    shape_functions.resize(shape_type_t::last);
     if (window.renderer == renderer_t::opengl) {
       new (&context.gl) fan::opengl::context_t();
       context_functions = fan::graphics::get_gl_context_functions();
@@ -2694,7 +2638,8 @@ public:
     template <typename T>
     requires requires(T t) { typename T::type_t; }
     shape_t(const T& properties) : shape_t() {
-      *this = gloco->shape_functions[T::type_t::shape_type].push_back((void*)&properties);
+      auto shape_type = T::type_t::shape_type;
+      *this = gloco->shape_functions[shape_type].push_back((void*)&properties);
     }
 
     shape_t(shaper_t::ShapeID_t&& s) {
@@ -3092,7 +3037,11 @@ public:
     }
 
     uint32_t get_flags() {
-      return gloco->shape_functions[get_shape_type()].get_flags(this);
+      auto f = gloco->shape_functions[get_shape_type()].get_flags;
+      if (f) {
+        return f(this);
+      }
+      return 0;
     }
 
     void set_flags(uint32_t flag) {
@@ -3148,7 +3097,7 @@ public:
 
   struct light_t {
 
-    static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::light;
+    static inline shaper_t::KeyTypeIndex_t shape_type = shape_type_t::light;
     static constexpr int kpi = kp::light;
 
 #pragma pack(push, 1)
@@ -4643,7 +4592,7 @@ public:
 
     gloco->shaper.SetShapeType(shape_type, bp);
 
-    gloco->shape_functions.push_back(get_shape_functions(shape_type));
+    gloco->shape_functions[shape_type] = get_shape_functions(shape_type);
   }
 
 
@@ -5345,7 +5294,11 @@ export namespace fan {
           lp.mag_filter = in["image_mag_filter"];
         }
         if (in.contains("image_path")) {
-          shape->set_image(gloco->image_load(in["image_path"], lp));
+          auto path = in["image_path"];
+          if (fan::io::file::exists(path)) {
+            shape->set_image(gloco->image_load(path, lp));
+          }
+          shape->get_image_data().image_path = path;
         }
         break;
       }
@@ -5379,10 +5332,11 @@ export namespace fan {
           lp.mag_filter = in["image_mag_filter"];
         }
         if (in.contains("image_path")) {
-          shape->set_image(gloco->image_load(in["image_path"], lp));
-        }
-        if (in.contains("image_path")) {
-          shape->set_image(gloco->image_load(in["image_path"]));
+          auto path = in["image_path"];
+          if (fan::io::file::exists(path)) {
+            shape->set_image(gloco->image_load(path, lp));
+          }
+          shape->get_image_data().image_path = path;
         }
         break;
       }
@@ -5622,6 +5576,7 @@ export namespace fan {
         p.tc_size = fan::vector_read_data<decltype(p.tc_size)>(in, offset);
         *shape = p;
         if (image_path.size()) {
+          shape->get_image_data().image_path = image_path;
           shape->set_image(gloco->image_load(image_path, ilp));
         }
         break;
@@ -5646,6 +5601,7 @@ export namespace fan {
         p.tc_size = fan::vector_read_data<decltype(p.tc_size)>(in, offset);
         *shape = p;
         if (image_path.size()) {
+          shape->get_image_data().image_path = image_path;
           shape->set_image(gloco->image_load(image_path, ilp));
         }
         break;

@@ -109,7 +109,7 @@ namespace fan {
 	}
 
 #ifndef PR_abort
-	#define PR_abort throw_error_impl
+	#define PR_abort fan::throw_error_impl
 #endif
 
 	constexpr auto uninitialized = -1;
@@ -267,39 +267,39 @@ namespace fan {
 		return result;
 	}
 
-	#define fan_requires_rule(type, rule) \
-		[] <typename dont_shadow_me2_t>() constexpr { \
-			return requires(dont_shadow_me2_t t) { rule; } == true; \
-		}.template operator()<type>()
+	//#define fan_requires_rule(type, rule) \
+	//	[] <typename dont_shadow_me2_t>() constexpr { \
+	//		return requires(dont_shadow_me2_t t) { rule; } == true; \
+	//	}.template operator()<type>()
 
-	#define fan_has_function(type, func_call) \
-		fan_requires_rule(type, t.func_call)
+	//#define fan_has_function(type, func_call) \
+	//	fan_requires_rule(type, t.func_call)
 
-	#define fan_if_has_function(ptr, func_name, params) \
-		if constexpr (fan_has_function(std::remove_reference_t<std::remove_pointer_t<decltype(ptr)>>, func_name params)) \
-		[&] <typename runtime_t>(runtime_t* This) { \
-			if constexpr (fan_has_function(runtime_t, func_name params)) { \
-				This->func_name params ;\
-			} \
-		}(ptr)
+	//#define fan_if_has_function(ptr, func_name, params) \
+	//	if constexpr (fan_has_function(std::remove_reference_t<std::remove_pointer_t<decltype(ptr)>>, func_name params)) \
+	//	[&] <typename runtime_t>(runtime_t* This) { \
+	//		if constexpr (fan_has_function(runtime_t, func_name params)) { \
+	//			This->func_name params ;\
+	//		} \
+	//	}(ptr)
 
-	#define fan_if_has_function_get(ptr, func_name, params, data) \
-		if constexpr (fan_has_function(std::remove_reference_t<std::remove_pointer_t<decltype(ptr)>>, func_name params)) \
-		[&] <typename runtime_t>(runtime_t* This) { \
-			if constexpr (fan_has_function(runtime_t, func_name params)) { \
-				data = This->func_name params ;\
-			} \
-		}(ptr)
+	//#define fan_if_has_function_get(ptr, func_name, params, data) \
+	//	if constexpr (fan_has_function(std::remove_reference_t<std::remove_pointer_t<decltype(ptr)>>, func_name params)) \
+	//	[&] <typename runtime_t>(runtime_t* This) { \
+	//		if constexpr (fan_has_function(runtime_t, func_name params)) { \
+	//			data = This->func_name params ;\
+	//		} \
+	//	}(ptr)
 
-	#define fan_has_variable(type, var_name) \
-		fan_requires_rule(type, t.var_name)
+	//#define fan_has_variable(type, var_name) \
+	//	fan_requires_rule(type, t.var_name)
 
-	#define fan_if_has_variable(ptr, var_name, todo) \
-	[&] <typename dont_shadow_me_t>(dont_shadow_me_t* This) { \
-		if constexpr (fan_has_variable(dont_shadow_me_t, var_name)) { \
-			todo ;\
-		} \
-	}(ptr);
+	//#define fan_if_has_variable(ptr, var_name, todo) \
+	//[&] <typename dont_shadow_me_t>(dont_shadow_me_t* This) { \
+	//	if constexpr (fan_has_variable(dont_shadow_me_t, var_name)) { \
+	//		todo ;\
+	//	} \
+	//}(ptr);
 
 }
 

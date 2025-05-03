@@ -37,30 +37,17 @@ constexpr vec_t operator CONCAT(arithmetic,=)(T v0) \
 	make_for_all((*this)[i] CONCAT(arithmetic,=) v0); \
 }
 
-#define make_operator_comparison(comp) \
-template <typename T> \
-requires (!std::is_arithmetic_v<T>) \
-constexpr bool operator comp(const T& rhs) const { \
-    return (*this <=> rhs) comp 0; \
-}\
-template <typename T> \
-requires (std::is_arithmetic_v<T>) \
-constexpr bool operator comp(const T& rhs) const { \
-    return (*this <=> rhs) comp 0;\
-}
-
-#define make_operator_comparison(comp) \
-template <typename T> \
-requires (!std::is_arithmetic_v<T>) \
-constexpr bool operator comp(const T& rhs) const { \
-    return (*this <=> rhs) comp 0; \
-}\
-template <typename T> \
-requires (std::is_arithmetic_v<T>) \
-constexpr bool operator comp(const T& rhs) const { \
-    return (*this <=> rhs) comp 0;\
-}
-
+//#define make_operator_comparison(comp) \
+//template <typename T> \
+//requires (!std::is_arithmetic_v<T>) \
+//constexpr bool operator comp(const T& rhs) const { \
+//    return (*this <=> rhs) comp 0; \
+//}\
+//template <typename T> \
+//requires (std::is_arithmetic_v<T>) \
+//constexpr bool operator comp(const T& rhs) const { \
+//    return (*this <=> rhs) comp 0;\
+//}
 
 //#define make_operator_comparison(comp) \
 //template <typename T> \
@@ -143,8 +130,8 @@ constexpr vec_t(Args&&...args) {
 
 constexpr vec_t operator-() const { make_for_all(ret[i] = -(*this)[i]); }
 constexpr vec_t operator+() const { make_for_all(ret[i] = +(*this)[i]); }
-make_operators(-); // make_operator_comparison(==);
-make_operators(+); // make_operator_comparison(!=);
+make_operators(-);  //make_operator_comparison(==);
+make_operators(+);  //make_operator_comparison(!=);
 make_operators(*);
 make_operators(/);  
 make_operators(%);  
@@ -152,45 +139,32 @@ make_operators(%);
 template <typename T>
   requires (!std::is_arithmetic_v<T>)
 constexpr bool operator ==(const T& rhs) const {
-  for (access_type_t i = 0; i < std::min(size(), rhs.size()); ++i) {
+  for (access_type_t i = 0; i < size(); ++i) {
     if ((*this)[i] != rhs[i]) {
-      return (*this)[i] == rhs[i];
+      return false;
     }
   }
-  return size() == rhs.size();
+  
+  return true;
 }
+
 template <typename T>
   requires (std::is_arithmetic_v<T>)
 constexpr bool operator ==(const T& rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if ((*this)[i] != rhs) {
-      return (*this)[i] == rhs;
-    }
-  }
-  return false;
+  return (*this)[0] == rhs;
 }
 
 template <typename T>
   requires (!std::is_arithmetic_v<T>)
 constexpr bool operator !=(const T& rhs) const {
-  for (access_type_t i = 0; i < std::min(size(), rhs.size()); ++i) {
-    if ((*this)[i] != rhs[i]) {
-      return (*this)[i] != rhs[i];
-    }
-  }
-  return size() != rhs.size();
+  return !(*this == rhs);
 }
+
 template <typename T>
   requires (std::is_arithmetic_v<T>)
 constexpr bool operator !=(const T& rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if ((*this)[i] != rhs) {
-      return (*this)[i] != rhs;
-    }
-  }
-  return false;
+  return !(*this == rhs);
 }
-
                     
 #define __FAN_SWITCH_IDX(x, idx) case size() - (idx + 1): return x
 

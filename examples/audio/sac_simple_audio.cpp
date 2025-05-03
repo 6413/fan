@@ -1,4 +1,6 @@
-#include <fan/pch.h>
+import fan;
+#include <fan/graphics/types.h>
+
 // argv[1] == audio/w_voice.sac 
 int main(int argc, char** argv) {
   fan::graphics::engine_t engine;

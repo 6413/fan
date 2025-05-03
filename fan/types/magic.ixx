@@ -1,11 +1,20 @@
-#pragma once
+module;
 
-#include <fan/types/fstring.h>
-#include <fan/fmt.h>
+#include <fan/types/types.h>
+#include <tuple>
+#include <ostream>
+#include <string>
+#include <functional>
 
 // slow header to use
 
-namespace fan {
+export module fan.types.magic;
+
+import fan.fmt;
+import fan.types.print;
+import fan.types.fstring;
+
+export namespace fan {
 
   template<typename ...Args>
 constexpr std::size_t va_count(Args&&...) { return sizeof...(Args); }
@@ -180,7 +189,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
       else {
         std::ostringstream os;
         os << v;
-        formatted_string += fmt::format("  Member index {}: {{\n    Type:{}, Value:{}\n  }}",
+        formatted_string += fan::format("  Member index {}: {{\n    Type:{}, Value:{}\n  }}",
           i, typeid(T2).name(), os.str()
         );
         formatted_string += "\n";

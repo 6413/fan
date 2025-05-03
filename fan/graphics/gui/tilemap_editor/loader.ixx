@@ -1,9 +1,24 @@
-#include <fan/io/file.h>
-#include <fan/io/json_impl.h>
-#include <variant>
-#include <fan/graphics/physics_shapes.hpp>
+module;
 
-struct fte_loader_t {
+#include <fan/types/types.h>
+#include <fan/math/math.h>
+
+#include <fan/types/json_impl.h>
+#include <variant>
+
+export module fan.graphics.gui.tilemap_editor.loader;
+
+import fan.types.print;
+import fan.types.vector;
+import fan.types.color;
+import fan.window.input;
+import fan.graphics.loco;
+import fan.graphics;
+import fan.physics.b2_integration;
+import fan.graphics.physics_shapes;
+import fan.io.file;
+
+export struct fte_loader_t {
 
   struct fte_t {
     #include "common2.h"

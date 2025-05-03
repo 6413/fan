@@ -3,14 +3,17 @@ module;
 #include <fan/types/types.h>
 
 #if defined(fan_gui)
-#include <fan/imgui/imgui.h>
-#include <fan/imgui/imgui_impl_glfw.h>
-#include <fan/imgui/imgui_neo_sequencer.h>
-#include <fan/imgui/implot.h>
+  #include <fan/imgui/imgui.h>
+  #include <fan/imgui/imgui_internal.h>
+  #include <fan/imgui/imgui_impl_glfw.h>
+  #include <fan/imgui/imgui_neo_sequencer.h>
+  #include <fan/imgui/implot.h>
 #endif
 
 #include <variant>
 #include <string>
+#include <array>
+#include <filesystem>
 
 export module fan.graphics.gui;
 
@@ -28,6 +31,8 @@ import fan.types.quaternion;
   import fan.graphics.opengl.core;
   import fan.graphics.loco;
   import fan.graphics;
+  import fan.io.file;
+  import fan.io.directory;
 
 #endif
 
@@ -93,6 +98,19 @@ export namespace fan {
           ImGui::EndChild();
         }
 
+        bool begin_tab_item(const std::string& label, bool* p_open = 0, window_flags_t window_flags = 0) {
+          return ImGui::BeginTabItem(label.c_str(), p_open, window_flags);
+        }
+        void end_tab_item() {
+          ImGui::EndTabItem();
+        }
+        bool begin_tab_bar(const std::string& tab_bar_name, window_flags_t window_flags = 0) {
+          return ImGui::BeginTabBar(tab_bar_name.c_str(), window_flags);
+        }
+        void end_tab_bar() {
+          ImGui::EndTabBar();
+        }
+
         void same_line(f32_t offset_from_start_x = 0.f, f32_t spacing_w = -1.f) {
           ImGui::SameLine(offset_from_start_x, spacing_w);
         }
@@ -103,6 +121,34 @@ export namespace fan {
         f32_t get_text_line_height_with_spacing() {
           return ImGui::GetTextLineHeightWithSpacing();
         }
+
+        fan::vec2 get_content_region_avail () {
+          return ImGui::GetContentRegionAvail();
+        }
+        fan::vec2 get_content_region_max() {
+          return ImGui::GetContentRegionMax();
+        }
+        void push_item_width(f32_t item_width) {
+          ImGui::PushItemWidth(item_width);
+        }
+        void pop_item_width() {
+          ImGui::PopItemWidth();
+        }
+
+        void push_id(const std::string& str_id) {
+          ImGui::PushID(str_id.c_str());
+        }
+        void push_id(int int_id) {
+          ImGui::PushID(int_id);
+        }
+        void pop_id() {
+          ImGui::PopID();
+        }
+        bool is_item_hovered() {
+          return ImGui::IsItemHovered();
+        }
+
+
 
         using selectable_flag_t = int;
         enum {
@@ -243,7 +289,51 @@ export namespace fan {
 
         void next_column() {
           ImGui::NextColumn();
-}
+        }
+        using font_t = ImFont;
+
+        void push_font(font_t* font) {
+          ImGui::PushFont(font);
+        }
+        void pop_font() {
+          ImGui::PopFont();
+        }
+        f32_t get_font_size() {
+          return ImGui::GetFontSize();
+        }
+
+
+        fan::vec2 calc_text_size(const std::string& text, const char* text_end = NULL, bool hide_text_after_double_hash = false, float wrap_width = -1.0f){
+          return ImGui::CalcTextSize(text.c_str(), text_end, hide_text_after_double_hash, wrap_width);
+        }
+        void set_cursor_pos_x(f32_t pos) {
+          ImGui::SetCursorPosX(pos);
+        }
+        void set_cursor_pos_y(f32_t pos) {
+          ImGui::SetCursorPosY(pos);
+        }
+        void set_cursor_pos(const fan::vec2& pos) {
+          ImGui::SetCursorPos(pos);
+        }
+        fan::vec2 get_cursor_pos() {
+          return ImGui::GetCursorPos();
+        }
+        f32_t get_cursor_pos_x() {
+          return ImGui::GetCursorPosX();
+        }
+        f32_t get_cursor_pos_y() {
+          return ImGui::GetCursorPosY();
+        }
+        f32_t get_column_width(int index = -1) {
+          return ImGui::GetColumnWidth(index);
+        }
+
+        bool is_item_active() {
+          return ImGui::IsItemActive();
+        }
+        f32_t get_scroll_x() {
+          return ImGui::GetScrollX();
+        }
 
         /// <summary>
         /// RAII containers for gui windows.
@@ -320,6 +410,12 @@ export namespace fan {
           ImGui::SetCursorPos(position);
           ImGui::PushStyleColor(ImGuiCol_Text, color);
           ImGui::Text("%s", text.c_str());
+          ImGui::PopStyleColor();
+        }
+
+        void text_wrapped(const std::string& text, const fan::color& color = fan::colors::white) {
+          ImGui::PushStyleColor(ImGuiCol_Text, color);
+          ImGui::TextWrapped("%s", text.c_str());
           ImGui::PopStyleColor();
         }
 
@@ -568,6 +664,9 @@ export namespace fan {
           return ImGui::ColorEdit4(label.c_str(), color->data(), flags);
         }
 
+        fan::vec2 get_window_pos() {
+          return ImGui::GetWindowPos();
+        }
         fan::vec2 get_window_size() {
           return ImGui::GetWindowSize();
         }
@@ -643,6 +742,17 @@ export namespace fan {
           col_count = ImGuiCol_COUNT,
         };
 
+        using style_t = ImGuiStyle;
+        style_t& get_style() {
+          return ImGui::GetStyle();
+        }
+
+
+        using io_t = ImGuiIO;
+        io_t& get_io() {
+          return ImGui::GetIO();
+        }
+
         using style_var_t = int;
         enum {
           style_var_alpha = ImGuiStyleVar_Alpha,                    // float     Alpha
@@ -686,8 +796,8 @@ export namespace fan {
           ImGui::PushStyleColor(index, col);
         }
 
-        void pop_style_color() {
-          ImGui::PopStyleColor();
+        void pop_style_color(int n = 1) {
+          ImGui::PopStyleColor(n);
         }
 
         void push_style_var(style_var_t index, f32_t val) {
@@ -698,10 +808,17 @@ export namespace fan {
           ImGui::PushStyleVar(index, val);
         }
 
-        void pop_style_var() {
-          ImGui::PopStyleVar();
+        void pop_style_var(int n = 1) {
+          ImGui::PopStyleVar(n);
         }
 
+        using draw_list_t = ImDrawList;
+        draw_list_t* get_window_draw_list() {
+          return ImGui::GetWindowDrawList();
+        }
+        draw_list_t* get_background_draw_list() {
+          return ImGui::GetBackgroundDrawList();
+        }
 
         #if !defined(__INTELLISENSE__)
         #define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
@@ -836,6 +953,27 @@ export namespace fan {
           );
         }
 
+        using window_handle_t = ImGuiWindow;
+        window_handle_t* get_current_window() {
+          return ImGui::GetCurrentWindow();
+        }
+
+        enum {
+          config_flags_none = ImGuiConfigFlags_None,
+          config_flags_nav_enable_keyboard = ImGuiConfigFlags_NavEnableKeyboard,
+          config_flags_nav_enable_gamepad = ImGuiConfigFlags_NavEnableGamepad,
+          config_flags_no_mouse = ImGuiConfigFlags_NoMouse,
+          config_flags_no_mouse_cursor_change = ImGuiConfigFlags_NoMouseCursorChange,
+          config_flags_no_keyboard = ImGuiConfigFlags_NoKeyboard,
+          config_flags_docking_enable = ImGuiConfigFlags_DockingEnable,
+          config_flags_viewports_enable = ImGuiConfigFlags_ViewportsEnable,
+          config_flags_dpi_enable_scale_viewports = ImGuiConfigFlags_DpiEnableScaleViewports,
+          config_flags_dpi_enable_scale_fonts = ImGuiConfigFlags_DpiEnableScaleFonts,
+          config_flags_is_srgb = ImGuiConfigFlags_IsSRGB,
+          config_flags_is_touch_screen = ImGuiConfigFlags_IsTouchScreen,
+
+        };
+
         /// <summary>
         /// Draws the specified button, with its position influenced by other GUI elements.
         /// Plays default hover and click audio piece if none specified.
@@ -871,6 +1009,243 @@ export namespace fan {
 
           ImGui::PopID();
           return pressed;
+        }
+
+        bool combo(const std::string& label, int* current_item, const char* const items[], int items_count, int popup_max_height_in_items = -1) {
+          return ImGui::Combo(label.c_str(), current_item, items, items_count, popup_max_height_in_items);
+        }
+        // Separate items with \0 within a string, end item-list with \0\0. e.g. "One\0Two\0Three\0"
+        bool combo(const std::string& label, int* current_item, const char* items_separated_by_zeros, int popup_max_height_in_items = -1){
+          return ImGui::Combo(label.c_str(), current_item, items_separated_by_zeros, popup_max_height_in_items);
+        }
+        bool combo(const std::string& label, int* current_item, const char* (*getter)(void* user_data, int idx), void* user_data, int items_count, int popup_max_height_in_items = -1) {
+          return ImGui::Combo(label.c_str(), current_item, getter, user_data, items_count, popup_max_height_in_items);
+        }
+        bool checkbox(const std::string& label, bool* v) {
+          return ImGui::Checkbox(label.c_str(), v);
+        }
+        bool list_box(const std::string &label, int* current_item, bool (*old_callback)(void* user_data, int idx, const char** out_text), void* user_data, int items_count, int height_in_items = -1) {
+          return ImGui::ListBox(label.c_str(), current_item, old_callback, user_data, items_count, height_in_items);
+        }
+        bool list_box(const std::string& label, int* current_item, const char* const items[], int items_count, int height_in_items = -1) {
+          return ImGui::ListBox(label.c_str(), current_item, items, items_count, height_in_items);
+        }
+        bool list_box(const std::string& label, int* current_item, const char* (*getter)(void* user_data, int idx), void* user_data, int items_count, int height_in_items = -1) {
+          return ImGui::ListBox(label.c_str(), current_item, getter, user_data, items_count, height_in_items);
+        }
+
+        void image(loco_t::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::color(1, 1, 1, 1), const fan::color& border_col = fan::color(0, 0, 0, 0)) {
+          ImGui::Image((ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, tint_col, border_col);
+        }
+        bool image_button(const std::string& str_id, loco_t::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), int frame_padding = -1, const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::color(1, 1, 1, 1)) {
+          return ImGui::ImageButton(str_id.c_str(), (ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
+        }
+        bool image_text_button(
+          loco_t::image_t img,
+          const std::string& text,
+          const fan::color& color,
+          const fan::vec2& size,
+          const fan::vec2& uv0 = fan::vec2(0, 0),
+          const fan::vec2& uv1 = fan::vec2(1, 1),
+          int frame_padding = -1,
+          const fan::color& bg_col = fan::color(0, 0, 0, 0),
+          const fan::color& tint_col = fan::color(1, 1, 1, 1)
+        ) {
+          bool ret = ImGui::ImageButton(text.c_str(), (ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
+          ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
+          ImVec2 pos = ImGui::GetItemRectMin();
+          pos.x += (size.x - text_size.x) * 0.5f;
+          pos.y += (size.y - text_size.y) * 0.5f;
+          ImGui::GetWindowDrawList()->AddText(pos, ImGui::GetColorU32(color), text.c_str());
+          return ret;
+        }
+
+        bool toggle_button(const std::string& str, bool* v) {
+          ImGui::Text("%s", str.c_str());
+          ImGui::SameLine();
+
+          ImVec2 p = ImGui::GetCursorScreenPos();
+          ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+          float height = ImGui::GetFrameHeight();
+          float width = height * 1.55f;
+          float radius = height * 0.50f;
+
+          bool changed = ImGui::InvisibleButton(("##" + str).c_str(), ImVec2(width, height));
+          if (changed)
+            *v = !*v;
+          ImU32 col_bg;
+          if (ImGui::IsItemHovered())
+            col_bg = *v ? IM_COL32(145 + 20, 211, 68 + 20, 255) : IM_COL32(218 - 20, 218 - 20, 218 - 20, 255);
+          else
+            col_bg = *v ? IM_COL32(145, 211, 68, 255) : IM_COL32(218, 218, 218, 255);
+
+          draw_list->AddRectFilled(p, ImVec2(p.x + width, p.y + height), col_bg, height * 0.5f);
+          draw_list->AddCircleFilled(ImVec2(*v ? (p.x + width - radius) : (p.x + radius), p.y + radius), radius - 1.5f, IM_COL32(255, 255, 255, 255));
+
+          return changed;
+        }
+        bool toggle_image_button(const std::string& char_id, loco_t::image_t image, const fan::vec2& size, bool* toggle) {
+          bool clicked = false;
+
+          ImVec4 tintColor = ImVec4(1, 1, 1, 1);
+          if (*toggle) {
+            tintColor = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+          }
+
+          if (fan::graphics::gui::image_button(char_id, image, size, ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), tintColor)) {
+            *toggle = !(*toggle);
+            clicked = true;
+          }
+
+          return clicked;
+        }
+
+        void text_bottom_right(const char* text, uint32_t reverse_yoffset = 0) {
+          ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+          ImVec2 window_pos = ImGui::GetWindowPos();
+          ImVec2 window_size = ImGui::GetWindowSize();
+
+          ImVec2 text_size = ImGui::CalcTextSize(text);
+
+          ImVec2 text_pos;
+          text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
+          text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
+
+          text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
+
+          draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), text);
+        }
+
+
+        template <std::size_t N>
+        bool toggle_image_button(const std::array<loco_t::image_t, N>& images, const fan::vec2& size, int* selectedIndex)
+        {
+          f32_t y_pos = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y - ImGui::GetStyle().FramePadding.y / 2;
+
+          bool clicked = false;
+          bool pushed = false;
+
+          for (std::size_t i = 0; i < images.size(); ++i) {
+            ImVec4 tintColor = ImVec4(0.2, 0.2, 0.2, 1.0);
+            if (*selectedIndex == i) {
+              tintColor = ImVec4(0.2, 0.2, 0.2, 1.0f);
+              ImGui::PushStyleColor(ImGuiCol_Button, tintColor);
+              pushed = true;
+            }
+            /*if (ImGui::IsItemHovered()) {
+              tintColor = ImVec4(1, 1, 1, 1.0f);
+            }*/
+            ImGui::SetCursorPosY(y_pos);
+            if (fan::graphics::gui::image_button("##toggle_image_button" + std::to_string(i) + std::to_string((uint64_t)&clicked), images[i], size)) {
+              *selectedIndex = i;
+              clicked = true;
+            }
+            if (pushed) {
+              ImGui::PopStyleColor();
+              pushed = false;
+            }
+
+            ImGui::SameLine();
+          }
+
+          return clicked;
+        }
+
+
+        fan::vec2 get_position_bottom_corner(const std::string& text = "", uint32_t reverse_yoffset = 0) {
+          fan::vec2 window_pos = ImGui::GetWindowPos();
+          fan::vec2 window_size = ImGui::GetWindowSize();
+
+          fan::vec2 text_size = ImGui::CalcTextSize(text.c_str());
+
+          fan::vec2 text_pos;
+          text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
+          text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
+
+          text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
+
+          return text_pos;
+        }
+
+        // untested
+        void image_rotated(
+          loco_t::image_t image,
+          const fan::vec2& size,
+          int angle,
+          const fan::vec2& uv0 = fan::vec2(0, 0),
+          const fan::vec2& uv1 = fan::vec2(1, 1),
+          const fan::color& tint_col = fan::color(1, 1, 1, 1),
+          const fan::color& border_col = fan::color(0, 0, 0, 0)
+        ) {
+          IM_ASSERT(angle % 90 == 0);
+          fan::vec2 _uv0, _uv1, _uv2, _uv3;
+
+          switch (angle % 360) {
+          case 0:
+            fan::graphics::gui::image(image, size, uv0, uv1, tint_col, border_col);
+            return;
+          case 180:
+            fan::graphics::gui::image(image, size, uv1, uv0, tint_col, border_col);
+            return;
+          case 90:
+            _uv3 = uv0;
+            _uv1 = uv1;
+            _uv0 = fan::vec2(uv1.x, uv0.y);
+            _uv2 = fan::vec2(uv0.x, uv1.y);
+            break;
+          case 270:
+            _uv1 = uv0;
+            _uv3 = uv1;
+            _uv0 = fan::vec2(uv0.x, uv1.y);
+            _uv2 = fan::vec2(uv1.x, uv0.y);
+            break;
+          }
+
+          ImGuiWindow* window = ImGui::GetCurrentWindow();
+          if (window->SkipItems)
+            return;
+
+          fan::vec2 _size(size.y, size.x); // swapped for rotation
+          fan::vec2 cursor_pos = *(fan::vec2*)&window->DC.CursorPos;
+          fan::vec2 bb_max = cursor_pos + _size;
+          if (border_col.a > 0.0f) {
+            bb_max += fan::vec2(2, 2);
+          }
+
+          ImRect bb(*(ImVec2*)&cursor_pos, *(ImVec2*)&bb_max);
+          ImGui::ItemSize(bb);
+          if (!ImGui::ItemAdd(bb, 0))
+            return;
+
+          if (border_col.a > 0.0f) {
+            window->DrawList->AddRect(*(ImVec2*)&bb.Min, *(ImVec2*)&bb.Max, ImGui::GetColorU32(border_col), 0.0f);
+            fan::vec2 x0 = cursor_pos + fan::vec2(1, 1);
+            fan::vec2 x2 = bb_max - fan::vec2(1, 1);
+            fan::vec2 x1 = fan::vec2(x2.x, x0.y);
+            fan::vec2 x3 = fan::vec2(x0.x, x2.y);
+
+            window->DrawList->AddImageQuad(
+              (ImTextureID)gloco->image_get_handle(image),
+              *(ImVec2*)&x0, *(ImVec2*)&x1, *(ImVec2*)&x2, *(ImVec2*)&x3,
+              *(ImVec2*)&_uv0, *(ImVec2*)&_uv1, *(ImVec2*)&_uv2, *(ImVec2*)&_uv3,
+              ImGui::GetColorU32(tint_col)
+            );
+          }
+          else {
+            fan::vec2 x0 = cursor_pos;
+            fan::vec2 x1 = fan::vec2(bb_max.x, cursor_pos.y);
+            fan::vec2 x2 = bb_max;
+            fan::vec2 x3 = fan::vec2(cursor_pos.x, bb_max.y);
+
+            window->DrawList->AddImageQuad(
+              (ImTextureID)gloco->image_get_handle(image),
+              *(ImVec2*)&x0, *(ImVec2*)&x1, *(ImVec2*)&x2, *(ImVec2*)&x3,
+              *(ImVec2*)&_uv0, *(ImVec2*)&_uv1, *(ImVec2*)&_uv2, *(ImVec2*)&_uv3,
+              ImGui::GetColorU32(tint_col)
+            );
+          }
         }
 
       }// loco gui
@@ -940,6 +1315,319 @@ namespace fan {
             }
             };
           gloco->shader_set_value(shader_nr, var_name, initial);
+        }
+      };
+    }
+  }
+}
+
+export namespace fan {
+  namespace graphics {
+    namespace gui {
+      struct content_browser_t {
+        struct file_info_t {
+          std::string filename;
+          std::filesystem::path some_path; //?
+          std::wstring item_path;
+          bool is_directory;
+          loco_t::image_t preview_image;
+          //std::string 
+        };
+
+        std::vector<file_info_t> directory_cache;
+
+        loco_t::image_t icon_arrow_left = gloco->image_load("images_content_browser/arrow_left.webp");
+        loco_t::image_t icon_arrow_right = gloco->image_load("images_content_browser/arrow_right.webp");
+
+        loco_t::image_t icon_file = gloco->image_load("images_content_browser/file.webp");
+        loco_t::image_t icon_directory = gloco->image_load("images_content_browser/folder.webp");
+
+        loco_t::image_t icon_files_list = gloco->image_load("images_content_browser/files_list.webp");
+        loco_t::image_t icon_files_big_thumbnail = gloco->image_load("images_content_browser/files_big_thumbnail.webp");
+
+        bool item_right_clicked = false;
+        std::string item_right_clicked_name;
+
+        std::wstring asset_path = L"./";
+
+        std::filesystem::path current_directory;
+        enum viewmode_e {
+          view_mode_list,
+          view_mode_large_thumbnails,
+        };
+        viewmode_e current_view_mode = view_mode_list;
+        float thumbnail_size = 128.0f;
+        f32_t padding = 16.0f;
+        std::string search_buffer;
+
+        content_browser_t() {
+          search_buffer.resize(32);
+          asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
+          current_directory = std::filesystem::path(asset_path);
+          update_directory_cache();
+        }
+        content_browser_t(bool no_init) {
+
+        }
+        content_browser_t(const std::wstring& path) {
+          search_buffer.resize(32);
+          asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
+          current_directory = asset_path / std::filesystem::path(path);
+          update_directory_cache();
+        }
+        void update_directory_cache() {
+          for (auto& img : directory_cache) {
+            if (img.preview_image.iic() == false) {
+              gloco->image_unload(img.preview_image);
+            }
+          }
+          directory_cache.clear();
+          fan::io::iterate_directory_sorted_by_name(current_directory, [this](const std::filesystem::directory_entry& path) {
+            file_info_t file_info;
+            // SLOW
+            auto relative_path = std::filesystem::relative(path, asset_path);
+            file_info.filename = relative_path.filename().string();
+            file_info.item_path = relative_path.wstring();
+            file_info.is_directory = path.is_directory();
+            file_info.some_path = path.path().filename();//?
+            //fan::print(get_file_extension(path.path().string()));
+            if (fan::io::file::extension(path.path().string()) == ".webp" || fan::io::file::extension(path.path().string()) == ".png") {
+              file_info.preview_image = gloco->image_load(std::filesystem::absolute(path.path()).string());
+            }
+            directory_cache.push_back(file_info);
+            });
+        }
+        void render() {
+          item_right_clicked = false;
+          item_right_clicked_name.clear();
+          ImGuiStyle& style = ImGui::GetStyle();
+          ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 16.0f));
+          ImGuiWindowClass window_class;
+          //window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar; TODO ?
+          ImGui::SetNextWindowClass(&window_class);
+          if (ImGui::Begin("Content Browser", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoTitleBar)) {
+            if (ImGui::BeginMenuBar()) {
+              ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+              ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
+              ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.3f));
+
+              if (fan::graphics::gui::image_button("##icon_arrow_left", icon_arrow_left, fan::vec2(32))) {
+                if (std::filesystem::equivalent(current_directory, asset_path) == false) {
+                  current_directory = current_directory.parent_path();
+                }
+                update_directory_cache();
+              }
+              ImGui::SameLine();
+              fan::graphics::gui::image_button("##icon_arrow_right", icon_arrow_right, fan::vec2(32));
+              ImGui::SameLine();
+              ImGui::PopStyleColor(3);
+
+              ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+              ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
+              ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.3f));
+
+              auto image_list = std::to_array({ icon_files_list, icon_files_big_thumbnail });
+
+              fan::vec2 bc = fan::graphics::gui::get_position_bottom_corner();
+
+              bc.x -= ImGui::GetWindowPos().x;
+              ImGui::SetCursorPosX(bc.x / 2);
+
+              fan::vec2 button_sizes = 32;
+
+              ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - (button_sizes.x * 2 + style.ItemSpacing.x) * image_list.size());
+
+              ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 20.0f);
+              ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 7.0f));
+              f32_t y_pos = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y;
+              ImGui::SetCursorPosY(y_pos);
+
+
+              if (ImGui::InputText("##content_browser_search", search_buffer.data(), search_buffer.size())) {
+
+              }
+              ImGui::PopStyleVar(2);
+
+              fan::graphics::gui::toggle_image_button(image_list, button_sizes, (int*)&current_view_mode);
+
+              ImGui::PopStyleColor(3);
+
+              ///ImGui::InputText("Search", search_buffer.data(), search_buffer.size());
+
+              ImGui::EndMenuBar();
+            }
+            switch (current_view_mode) {
+            case view_mode_large_thumbnails:
+              render_large_thumbnails_view();
+              break;
+            case view_mode_list:
+              render_list_view();
+              break;
+            default:
+              break;
+            }
+          }
+
+          ImGui::PopStyleVar(1);
+          ImGui::End();
+        }
+        void render_large_thumbnails_view() {
+          float thumbnail_size = 128.0f;
+          float panel_width = ImGui::GetContentRegionAvail().x;
+          int column_count = std::max((int)(panel_width / (thumbnail_size + padding)), 1);
+
+          ImGui::Columns(column_count, 0, false);
+
+          int pressed_key = -1;
+
+          auto& style = ImGui::GetStyle();
+          // basically bad way to check if gui is disabled. I couldn't find other way
+          if (style.DisabledAlpha != style.Alpha) {
+            if (ImGui::IsWindowFocused()) {
+              for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
+                if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
+                  pressed_key = (i - ImGuiKey_A) + 'A';
+                  break;
+                }
+              }
+            }
+          }
+
+          // Render thumbnails or icons
+          for (std::size_t i = 0; i < directory_cache.size(); ++i) {
+            // reference somehow corrupts
+            auto file_info = directory_cache[i];
+            if (std::string(search_buffer.c_str()).size() && file_info.filename.find(search_buffer) == std::string::npos) {
+              continue;
+            }
+
+            if (pressed_key != -1 && ImGui::IsWindowFocused()) {
+              if (!file_info.filename.empty() && std::tolower(file_info.filename[0]) == std::tolower(pressed_key)) {
+                ImGui::SetScrollHereY();
+              }
+            }
+
+            ImGui::PushID(file_info.filename.c_str());
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+            fan::graphics::gui::image_button("##" + file_info.filename, file_info.preview_image.iic() == false ? file_info.preview_image : file_info.is_directory ? icon_directory : icon_file, ImVec2(thumbnail_size, thumbnail_size));
+
+            bool item_hovered = ImGui::IsItemHovered();
+            if (item_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+              item_right_clicked = true;
+              item_right_clicked_name = file_info.filename;
+              item_right_clicked_name.erase(std::remove_if(item_right_clicked_name.begin(), item_right_clicked_name.end(), isspace), item_right_clicked_name.end());
+            }
+
+            // Handle drag and drop, double click, etc.
+            handle_item_interaction(file_info);
+
+            ImGui::PopStyleColor();
+            ImGui::TextWrapped("%s", file_info.filename.c_str());
+            ImGui::NextColumn();
+            ImGui::PopID();
+          }
+
+          ImGui::Columns(1);
+        }
+        void render_list_view() {
+          if (ImGui::BeginTable("##FileTable", 1, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY
+            | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
+            | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable)) {
+            ImGui::TableSetupColumn("##Filename", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableHeadersRow();
+
+            int pressed_key = -1;
+            ImGuiStyle& style = ImGui::GetStyle();
+            if (style.DisabledAlpha != style.Alpha) {
+              if (ImGui::IsWindowFocused()) {
+                for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
+                  if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
+                    pressed_key = (i - ImGuiKey_A) + 'A';
+                    break;
+                  }
+                }
+              }
+            }
+
+            // Render table view
+            for (std::size_t i = 0; i < directory_cache.size(); ++i) {
+
+              // reference somehow corrupts
+              auto file_info = directory_cache[i];
+
+              if (pressed_key != -1 && ImGui::IsWindowFocused()) {
+                if (!file_info.filename.empty() && std::tolower(file_info.filename[0]) == std::tolower(pressed_key)) {
+                  ImGui::SetScrollHereY();
+                }
+              }
+
+              if (search_buffer.size() && strstr(file_info.filename.c_str(), search_buffer.c_str()) == nullptr) {
+                continue;
+              }
+              ImGui::TableNextRow();
+              ImGui::TableSetColumnIndex(0); // Icon column
+              fan::vec2 cursor_pos = fan::vec2(ImGui::GetWindowPos()) + fan::vec2(ImGui::GetCursorPos()) + fan::vec2(ImGui::GetScrollX(), -ImGui::GetScrollY());
+              fan::vec2 image_size = ImVec2(thumbnail_size / 4, thumbnail_size / 4);
+              ImGuiStyle& style = ImGui::GetStyle();
+              std::string space = "";
+              while (ImGui::CalcTextSize(space.c_str()).x < image_size.x) {
+                space += " ";
+              }
+              auto str = space + file_info.filename;
+
+              ImGui::Selectable(str.c_str());
+              bool item_hovered = ImGui::IsItemHovered();
+              if (item_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                item_right_clicked_name = str;
+                item_right_clicked_name.erase(std::remove_if(item_right_clicked_name.begin(), item_right_clicked_name.end(), isspace), item_right_clicked_name.end());
+                item_right_clicked = true;
+              }
+              if (file_info.preview_image.iic() == false) {
+                ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get_handle(file_info.preview_image), cursor_pos, cursor_pos + image_size);
+              }
+              else if (file_info.is_directory) {
+                ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get_handle(icon_directory), cursor_pos, cursor_pos + image_size);
+              }
+              else {
+                ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get_handle(icon_file), cursor_pos, cursor_pos + image_size);
+              }
+
+              handle_item_interaction(file_info);
+            }
+
+            ImGui::EndTable();
+          }
+        }
+        void handle_item_interaction(const file_info_t& file_info) {
+          if (file_info.is_directory == false) {
+
+            if (ImGui::BeginDragDropSource()) {
+              ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEM", file_info.item_path.data(), (file_info.item_path.size() + 1) * sizeof(wchar_t));
+              ImGui::Text("%s", file_info.filename.c_str());
+              ImGui::EndDragDropSource();
+            }
+          }
+
+          if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+            if (file_info.is_directory) {
+              current_directory /= file_info.some_path;
+              update_directory_cache();
+            }
+          }
+        }
+
+        // [](const std::filesystem::path& path) {}
+        void receive_drag_drop_target(auto receive_func) {
+          ImGui::Dummy(ImGui::GetContentRegionAvail());
+
+          if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+              const wchar_t* path = (const wchar_t*)payload->Data;
+              receive_func(std::filesystem::absolute(std::filesystem::path(asset_path) / path));
+              //fan::print(std::filesystem::path(path));
+            }
+            ImGui::EndDragDropTarget();
+          }
         }
       };
     }

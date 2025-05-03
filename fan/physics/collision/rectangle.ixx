@@ -2,9 +2,10 @@ module;
 
 #include <fan/physics/collision/triangle.h>
 
-import fan.types.matrix;
 
 export module fan.physics.collision.rectangle;
+
+import fan.types.matrix;
 
 export namespace fan_2d {
 

@@ -1,6 +1,28 @@
 #pragma once
 
+#include <fan/types/types.h>
+#include <fan/math/math.h>
+#include <fan/types/json_impl.h>
+
 #include <set>
+
+#include <fan/imgui/imgui.h>
+
+import fan;
+import fan.physics.collision.rectangle;
+#include <fan/graphics/file_dialog.h>
+
+
+#define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
+          fan::graphics::gui::drag_float(name, &variable, speed, m_min, m_max)
+
+#define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
+            fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, m_min, m_max)
+
+
+#define fan_imgui_dragfloat1(variable, speed) \
+            fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, 0, 0)
+
 
 struct image_divider_t {
   struct image_t {
@@ -70,7 +92,7 @@ struct image_divider_t {
       viewport_pos, viewport_size, window_size
     );
 
-    static fan::string image_path;
+    static std::string image_path;
     image_path.resize(40);
 
     static fan::vec2f cell_size = { 1, 1 };
@@ -168,7 +190,7 @@ struct image_divider_t {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 });
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1, 0, 0, 0.3));
-        if (ImGui::ImageButton("", j.image, cell_size, j.uv_pos, j.uv_pos + j.uv_size)) {
+        if (fan::graphics::gui::image_button("", j.image, cell_size, j.uv_pos, j.uv_pos + j.uv_size)) {
 
           clicked_images[totalIndex].highlight = !clicked_images[totalIndex].highlight;
           if (clicked_images[totalIndex].highlight) {
@@ -235,7 +257,7 @@ struct fgm_t {
 
   loco_t::shape_t xy_lines[2];
 
-  void open(const fan::string& texturepack_name, const std::wstring& asset_path) {
+  void open(const std::string& texturepack_name, const std::wstring& asset_path) {
 
     content_browser = fan::graphics::gui::content_browser_t(asset_path);
     content_browser.current_view_mode = fan::graphics::gui::content_browser_t::view_mode_large_thumbnails;
@@ -340,17 +362,17 @@ struct fgm_t {
   static constexpr int max_id_input = 20;
   static constexpr fan::vec2 default_button_size{ 100, 30 };
 
-  fan::string previous_file_name;
+  std::string previous_file_name;
 
   struct shapes_t {
-    struct global_t : fan::graphics::vfi_root_t, fan::graphics::imgui_element_t {
+    struct global_t : fan::graphics::vfi_root_t, fan::graphics::gui::imgui_element_t {
 
       global_t() = default;
 
       uint16_t shape_type = 0;
 
       template <typename T>
-      global_t(uint16_t shape_type, fgm_t* fgm, const T& obj, bool shape_add = true) : fan::graphics::imgui_element_t() {
+      global_t(uint16_t shape_type, fgm_t* fgm, const T& obj, bool shape_add = true) : fan::graphics::gui::imgui_element_t() {
         T temp = obj;
         this->shape_type = shape_type;
         typename loco_t::vfi_t::properties_t vfip;
@@ -376,7 +398,7 @@ struct fgm_t {
       }
 
       // global data
-      fan::string id;
+      std::string id;
       uint32_t group_id = 0;
     };
   };
@@ -418,7 +440,7 @@ struct fgm_t {
     ImGui::Unindent(); \
   }
 
-  bool id_exists(const fan::string& id) {
+  bool id_exists(const std::string& id) {
     auto it = shape_list.GetNodeFirst();
     while (it != shape_list.dst) {
       if (shape_list[it]->id == id) {
@@ -431,7 +453,7 @@ struct fgm_t {
 
   void open_properties(fgm_t::shapes_t::global_t* shape, const fan::vec2& editor_size) {
 
-    fan::string shape_str = fan::string("Shape name:") + gloco->shape_names[shape->children[0].get_shape_type()];
+    std::string shape_str = std::string("Shape name:") + gloco->shape_names[shape->children[0].get_shape_type()];
     ImGui::Text("%s", shape_str.c_str());
 
     make_line(fan::vec3, position);
@@ -456,15 +478,15 @@ struct fgm_t {
     }
 
     {
-      fan::string& id = current_shape->id;
-      fan::string str = id;
+      std::string& id = current_shape->id;
+      std::string str = id;
       str.resize(max_id_input);
       ImGui::Text("id");
       ImGui::SameLine();
       if (ImGui::InputText("##hidden_label0" "id", str.data(), str.size())) {
         \
           if (ImGui::IsItemDeactivatedAfterEdit()) {
-            fan::string new_id = str.substr(0, std::strlen(str.c_str()));
+            std::string new_id = str.substr(0, std::strlen(str.c_str()));
             if (!id_exists(new_id)) {
               id = new_id;
             }
@@ -472,8 +494,8 @@ struct fgm_t {
       }
     }
     {
-      fan::string id = std::to_string(current_shape->group_id);
-      fan::string str = id;
+      std::string id = std::to_string(current_shape->group_id);
+      std::string str = id;
       str.resize(max_id_input);
       ImGui::Text("group id");
       ImGui::SameLine();
@@ -491,7 +513,7 @@ struct fgm_t {
         auto current_image = shape->children[0].get_image();
         fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
         uv1 += uv0;
-        ImGui::Image(current_image, fan::vec2(64), uv0, uv1);
+        fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
         if (ImGui::BeginDragDropTarget()) {
           if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
             const wchar_t* path = (const wchar_t*)payload->Data;
@@ -516,7 +538,7 @@ struct fgm_t {
         }
         fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
         uv1 += uv0;
-        ImGui::Image(current_image, fan::vec2(64), uv0, uv1);
+        fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
         if (ImGui::BeginDragDropTarget()) {
           if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
             const wchar_t* path = (const wchar_t*)payload->Data;
@@ -552,7 +574,7 @@ struct fgm_t {
       }
 
       std::string& current = shape->children[0].get_image_data().image_path;
-      fan::string str = current;
+      std::string str = current;
       str.resize(max_path_input);
       ImGui::Text("image name");
       ImGui::SameLine();
@@ -748,8 +770,8 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
     return pos;
   }
 
-  fan::graphics::imgui_element_t main_view =
-    fan::graphics::imgui_element_t(
+  fan::graphics::gui::imgui_element_t main_view =
+    fan::graphics::gui::imgui_element_t(
       [&] {
         if (viewport_settings.editor_hovered && ImGui::IsMouseClicked(0) && !fan::graphics::vfi_root_t::moving_object) {
           drag_start = get_mouse_position();
@@ -866,7 +888,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           viewport_settings.start_pos = vMin;
 
           {
-            std::string str = fan::to_string(viewport_settings.zoom * 100, 1);
+            std::string str = std::to_string(viewport_settings.zoom * 100);
             str += " %";
             DrawTextBottomRight(str.c_str(), 1);
           }
@@ -1130,7 +1152,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
     ...
   }
   */
-  void fout(const fan::string& filename) {
+  void fout(const std::string& filename) {
     previous_file_name = filename;
 
     fan::json ostr;
@@ -1202,13 +1224,13 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
     ...
   }
   */
-  void fin(const fan::string& filename) {
+  void fin(const std::string& filename) {
 
     previous_file_name = filename;
 
-    fan::string in;
+    std::string in;
     fan::io::file::read(filename, &in);
-    fan::json json_in = nlohmann::json::parse(in);
+    fan::json json_in = fan::json::parse(in);
     auto version = json_in["version"].get<decltype(current_version)>();
     if (version != current_version) {
       fan::print("invalid file version, file:", version, "current:", current_version);
@@ -1239,8 +1261,9 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           false
         );
         const auto& shape_json = *(iterator.data.it - 1);
-        node->id = shape_json["id"].get<fan::string>();
+        node->id = shape_json["id"].get<std::string>();
         node->group_id = shape_json["group_id"].get<uint32_t>();
+        node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
 
         load_tp(node);
         break;
@@ -1253,8 +1276,9 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           false
         );
         const auto& shape_json = *(iterator.data.it - 1);
-        node->id = shape_json["id"].get<fan::string>();
+        node->id = shape_json["id"].get<std::string>();
         node->group_id = shape_json["group_id"].get<uint32_t>();
+        node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
 
         load_tp(node);
         break;
@@ -1267,7 +1291,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           false
         );
         const auto& shape_json = *(iterator.data.it - 1);
-        node->id = shape_json["id"].get<fan::string>();
+        node->id = shape_json["id"].get<std::string>();
         node->group_id = shape_json["group_id"].get<uint32_t>();
         break;
       }
@@ -1286,7 +1310,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           .blending = true
         } });
         const auto& shape_json = *(iterator.data.it - 1);
-        node->id = shape_json["id"].get<fan::string>();
+        node->id = shape_json["id"].get<std::string>();
         node->group_id = shape_json["group_id"].get<uint32_t>();
         break;
       }

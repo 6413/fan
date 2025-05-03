@@ -138,7 +138,7 @@ public:
 
   stage_list_t stage_list;
 
-  using key_t = std::pair<void*, fan::string>;
+  using key_t = std::pair<void*, std::string>;
 
   struct pair_hasher_t {
     std::size_t operator()(const key_t& pair) const {
@@ -161,7 +161,7 @@ public:
   using cid_map_t = std::unordered_map<key_t, cid_nr_t, pair_hasher_t, pair_equal_t>;
   cid_map_t cid_map;
 
-  loco_t::shape_t& get_id(auto* stage_ptr, const fan::string id) {
+  loco_t::shape_t& get_id(auto* stage_ptr, const std::string id) {
     auto found = cid_map.find(std::make_pair(stage_ptr, id));
     if (found == cid_map.end()) {
       fan::throw_error("invalid fetch for id - usage shape_{id}", id);
@@ -171,7 +171,7 @@ public:
   }
 
   void load_fgm(auto* stage, const stage_open_properties_t& op, const char* stage_name) {
-    fan::string filename = fan::string("stages_runtime/") + stage_name + ".fgm";
+    std::string filename = std::string("stages_runtime/") + stage_name + ".fgm";
     #define only_struct_data
     #include <fan/graphics/gui/stage_maker/loader_versions/1.h>
   }
@@ -185,29 +185,5 @@ public:
     //stage->close();
    // std::destroy_at(stage);
   }
-
-  lstd_defstruct(custom_base_t)
-    #include <fan/graphics/gui/stage_maker/preset.h>
-
-    static constexpr auto stage_name = "";
-
-  void open(void* sod) {
-
-  }
-
-  void close() {
-
-  }
-
-  void window_resize() {
-
-  }
-
-  void update() {
-
-  }
-
-};
-
 };
 #undef stage_loader_path

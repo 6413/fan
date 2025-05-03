@@ -13,11 +13,11 @@ module;
 // std::quoted
 #include <iomanip>
 
+export module fan.fmt;
+
 import fan.types.vector;
 import fan.types.print;
 import fan.types.fstring;
-
-export module fan.fmt;
 
 export namespace fan {
 
@@ -52,7 +52,7 @@ export namespace fan {
 
   template <typename... T>
   FMT_INLINE auto format(fmt::format_string<T...> fmt, T&&... args)
-    -> fan::string {
+    -> std::string {
     return fmt::vformat(fmt, fmt::make_format_args(args...));
   }
 

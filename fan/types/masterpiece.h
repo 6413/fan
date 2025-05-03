@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <variant>
 
-#include <fan/types/magic.h>
+import fan.types.magic;
 
 namespace fan {
   #pragma pack(push, 1)
@@ -575,6 +575,6 @@ namespace fan {
   }
 
   template <typename T>
-  using union_mp = fan::return_type_of_t<decltype(make_union_mp<T>)>;
+  using union_mp = decltype((*(decltype(make_union_mp<T>)*)nullptr)());;
 
 }

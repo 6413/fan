@@ -794,25 +794,25 @@ namespace fan {
 
 #ifndef __fast_8log2
   #define __fast_8log2 __fast_8log2
-  std::uint8_t __fast_8log2(std::uint8_t v){
+  __forceinline std::uint8_t __fast_8log2(std::uint8_t v){
     return 31 - __clz32(v);
   }
 #endif
 #ifndef __fast_16log2
   #define __fast_16log2 __fast_16log2
-  std::uint8_t __fast_16log2(std::uint16_t v){
+  inline std::uint8_t __fast_16log2(std::uint16_t v){
     return 31 - __clz32(v);
   }
 #endif
 #ifndef __fast_32log2
   #define __fast_32log2 __fast_32log2
-  std::uint8_t __fast_32log2(std::uint32_t v){
+  inline std::uint8_t __fast_32log2(std::uint32_t v){
     return 31 - __clz32(v);
   }
 #endif
 #ifndef __fast_64log2
   #define __fast_64log2 __fast_64log2
-  std::uint8_t __fast_64log2(std::uint64_t v){
+  inline std::uint8_t __fast_64log2(std::uint64_t v){
     return 63 - __clz64(v);
   }
 #endif
