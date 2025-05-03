@@ -574,7 +574,7 @@ void _DataCallback(f32_t *Output) {
       nihl.LossTime = nihl.MaxLossTime;
       nihl.c();
     }
-    nihl.LossTime = max(nihl.LossTime - _constants::DataCallbackTime, 0);
+    nihl.LossTime = std::max(nihl.LossTime - _constants::DataCallbackTime, (decltype(nihl.LossTime))0);
     for(uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++){
       Output[i] /= nihl.LossDivision;
     }

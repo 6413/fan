@@ -2,7 +2,7 @@
 #define tilemap_renderer -1
 #endif
 
-fan::string in;
+std::string in;
 if (fan::io::file::read(filename, &in)) {
   #if defined(tilemap_editor_loader) 
     fan::throw_error_format(
@@ -15,7 +15,7 @@ if (fan::io::file::read(filename, &in)) {
   #endif
 }
 uint64_t off = 0;
-uint32_t version = fan::string_read_data<uint32_t>(in, off);
+uint32_t version = std::string_read_data<uint32_t>(in, off);
 if (version != current_version) {
   #if defined(tilemap_editor_loader) 
     fan::throw_error_format(
@@ -28,9 +28,9 @@ if (version != current_version) {
   #endif
 }
 // global data
-map_size = fan::string_read_data<fan::vec2ui>(in, off);
-tile_size = fan::string_read_data<fan::vec2ui>(in, off);
-gloco->lighting.ambient = fan::string_read_data<fan::vec3>(in, off);
+map_size = std::string_read_data<fan::vec2ui>(in, off);
+tile_size = std::string_read_data<fan::vec2ui>(in, off);
+gloco->lighting.ambient = std::string_read_data<fan::vec3>(in, off);
 
 #if tilemap_renderer == 0
 compiled_map.compiled_shapes.resize(map_size.y);
@@ -51,22 +51,22 @@ while (off != in.size()) {
     fan::mp_t<T> shape;
     shape.iterate([&]<auto i, typename T2>(T2 & v) {
       uint32_t byte_count = 0;
-      byte_count = fan::string_read_data<uint32_t>(in, off);
+      byte_count = std::string_read_data<uint32_t>(in, off);
 
       if constexpr (fan_requires_rule(T2, typename T2::value_type)) {
         if constexpr (std::is_same_v<T2, std::vector<typename T2::value_type>>) {
-          uint32_t element_count = fan::string_read_data<uint32_t>(in, off);
+          uint32_t element_count = std::string_read_data<uint32_t>(in, off);
           for (int k = 0; k < element_count; ++k) {
             fan::mp_t<std::remove_reference_t<typename T2::value_type>> tile;
             tile.iterate([&]<auto i2, typename T3>(T3 & v){
-              if constexpr(std::is_same_v<T3, fan::string>) {
-                uint32_t len = fan::string_read_data<uint32_t>(in, off);
+              if constexpr(std::is_same_v<T3, std::string>) {
+                uint32_t len = std::string_read_data<uint32_t>(in, off);
                 v.resize(len);
                 memcpy(v.data(), &in[off], len);
                 off += len;
               }
               else {
-                v = fan::string_read_data<T3>(in, off);
+                v = std::string_read_data<T3>(in, off);
               }
             });
             v.push_back(tile);
@@ -74,7 +74,7 @@ while (off != in.size()) {
         }
       }
       else {
-        v = fan::string_read_data<T2>(in, off);
+        v = std::string_read_data<T2>(in, off);
       }
     });
 

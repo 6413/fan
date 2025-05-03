@@ -460,7 +460,7 @@ void main() {
   };
 
   inline static auto demos = std::to_array({
-    demo_t{.name = "2Capsule", .demo_function = demo_static_capsule, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Capsule", .demo_function = demo_static_capsule, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "Circle", .demo_function = demo_static_circle, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "Gradient", .demo_function = demo_static_gradient, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "Grid", .demo_function = demo_static_grid, .update_function = default_update_function, .cleanup_function = nullptr},
