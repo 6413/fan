@@ -1,4 +1,4 @@
-#pragma once
+module;
 
 #include <atomic>
 #include <string>
@@ -8,7 +8,9 @@
 
 #include <fan/nativefiledialog/nfd.h>
 
-namespace fan {
+export module fan.file_dialog;
+
+export namespace fan {
   namespace graphics {
     struct file_open_dialog_t {
       std::atomic<bool> finished{ false };

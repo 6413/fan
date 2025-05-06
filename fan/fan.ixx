@@ -15,6 +15,8 @@ export import fan.graphics.common_context;
 export import fan.graphics.loco;
 export import fan.graphics;
 
+export import fan.event;
+
 #define fan_audio
 #if defined(fan_audio)
   export import fan.audio;

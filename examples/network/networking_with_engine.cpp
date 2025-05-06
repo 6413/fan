@@ -1,7 +1,7 @@
 #include <fan/pch.h>
 #include <fan/network/network.h>
 
-fan::ev::task_t tcp_test() {
+fan::event::task_t tcp_test() {
   try {
     fan::network::getaddrinfo_t info("www.google.com", "80");
     int result = co_await info;
@@ -32,13 +32,13 @@ Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0
   }
 }
 
-fan::ev::task_t tcp_server_test() {
+fan::event::task_t tcp_server_test() {
   try {
     fan::print("TCPSEVER THREAD", std::hash<std::thread::id>{}(std::this_thread::get_id()));
     std::vector<fan::network::tcp_t> clients;
     fan::network::tcp_t tcp;
 
-    co_await tcp.listen({.port=8080}, [&](auto&& client) -> fan::ev::task_t{
+    co_await tcp.listen({.port=8080}, [&](auto&& client) -> fan::event::task_t{
       while (auto msg = co_await client.read()) {
         fan::print_no_endline("server received buffer:", msg);
       }
@@ -50,7 +50,7 @@ fan::ev::task_t tcp_server_test() {
   }
 }
 
-fan::ev::task_t tcp_client_test() {
+fan::event::task_t tcp_client_test() {
   try {
     fan::print("TCPCLIENT THREAD", std::hash<std::thread::id>{}(std::this_thread::get_id()));
     fan::network::tcp_t client;

@@ -298,6 +298,9 @@ export namespace fan {
         void pop_font() {
           ImGui::PopFont();
         }
+        font_t* get_font() {
+          return ImGui::GetFont();
+        }
         f32_t get_font_size() {
           return ImGui::GetFontSize();
         }
@@ -417,6 +420,9 @@ export namespace fan {
           ImGui::PushStyleColor(ImGuiCol_Text, color);
           ImGui::TextWrapped("%s", text.c_str());
           ImGui::PopStyleColor();
+        }
+        void text_unformatted(const std::string& text, const char* text_end = NULL) {
+          ImGui::TextUnformatted(text.c_str(), text_end);
         }
 
         /// <summary>
@@ -677,6 +683,10 @@ export namespace fan {
 
         void set_next_window_size(const fan::vec2& size) {
           ImGui::SetNextWindowSize(size);
+        }
+
+        void set_window_font_scale(f32_t scale) {
+          ImGui::SetWindowFontScale(scale);
         }
 
         using col_t = int;

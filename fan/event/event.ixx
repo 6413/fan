@@ -1,4 +1,4 @@
-#pragma once
+module;
 #include <coroutine>
 #include <functional>
 #include <queue>
@@ -12,8 +12,12 @@
 
 using namespace std::chrono_literals;
 
-namespace fan {
-  namespace ev {
+export module fan.event;
+
+import fan.types.print;
+
+export namespace fan {
+  namespace event {
     struct error_code_t {
       int code;
       constexpr error_code_t(int code) noexcept : code(code) {}
@@ -218,14 +222,52 @@ namespace fan {
         uv_timer_stop(&timer);
       }
     };
-    fan::ev::task_t timer_task(uint64_t time, auto l) {
+    fan::event::task_t timer_task(uint64_t time, auto l) {
       while (true) {
         if (l()) {
           break;
         }
-        co_await ev::timer_t(time);
+        co_await event::timer_t(time);
       }
     }
+
+    //thread stuff
+    using thread_id_t = uv_thread_t;
+
+    template <typename cb_t, typename ...args_t>
+    struct thread_task_t {
+      cb_t cb;
+      std::tuple<args_t...> args;
+      thread_task_t(cb_t&& cb, args_t&&... args) :
+        cb(std::forward<cb_t>(cb)),
+        args(std::forward<args_t>(args)...) { }
+      void operator()() {
+        std::apply(cb, args);
+      }
+    };
+
+    template <typename cb_t, typename ...args_t>
+    thread_id_t thread_create(cb_t&& cb, args_t&&... args, int* error = 0) {
+      thread_id_t id;
+      thread_task_t<cb_t, args_t...>* cb_copy = new thread_task_t<cb_t, args_t...>(
+        std::forward<cb_t>(cb),
+        std::forward<args_t>(args)...
+      );
+      int uv_error = uv_thread_create(&id, [](void* arg){
+        auto* task = static_cast<thread_task_t<cb_t, args_t...>*>(arg);
+        (*task)();
+        delete task;
+      }, cb_copy);
+      if (error && uv_error < 0) {
+        *error = uv_error;
+        delete cb_copy;
+        fan::print_warning(std::string("thread create error:") + uv_strerror(*error));
+      }
+      return id;
+    }
+    void sleep(unsigned int msec) {
+      uv_sleep(msec);
+    }
   }
-  using co_sleep = ev::timer_t;
+  using co_sleep = event::timer_t;
 }

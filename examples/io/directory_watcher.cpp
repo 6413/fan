@@ -4,7 +4,7 @@
 int main() {
   uv_loop_t* loop = uv_default_loop();
 
-  fan::ev::fs_watcher_t watcher(loop, "./watch_dir");
+  fan::event::fs_watcher_t watcher(loop, "./watch_dir");
 
   watcher.start([](const std::string& filename, int events) {
     fan::print("latest event for file: " + filename);

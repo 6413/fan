@@ -274,7 +274,6 @@ export namespace fan {
       //-----------------------------image-----------------------------
 
       struct image_t {
-        #include <fan/graphics/image_common.h>
         GLuint texture_id;
       };
 
@@ -704,37 +703,7 @@ export namespace fan {
         image_data.size = image_info.size;
         image_data.image_path = "";
 
-        int fmt = 0;
-        int internal_fmt = p.internal_format;
-
-        switch (image_info.channels) {
-        case 1: {
-          fmt = GL_RED;
-          break;
-        }
-        case 2: {
-          fmt = GL_RG;
-          break;
-        }
-        case 3: {
-          fmt = GL_RGB;
-          break;
-        }
-        case 4: {
-          fmt = GL_RGBA;
-          break;
-        }
-        case 0: {
-          fmt = p.format;
-          break;
-        }
-        default: {
-          fan::throw_error("invalid channels");
-          break;
-        }
-        }
-
-        uint32_t bytes_per_row = (int)(image_data.size.x * image_info.channels);
+        uint32_t bytes_per_row = (int)(image_data.size.x * fan::graphics::get_channel_amount(p.format));
         if ((bytes_per_row % 8) == 0) {
           glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
         }
@@ -748,7 +717,7 @@ export namespace fan {
           glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         }
 
-        fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, internal_fmt, image_data.size.x, image_data.size.y, 0, fmt, p.type, image_info.data));
+        fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, image_data.size.x, image_data.size.y, 0, p.format, p.type, image_info.data));
 
         switch (p.min_filter) {
         case GL_LINEAR_MIPMAP_LINEAR:
@@ -791,6 +760,8 @@ export namespace fan {
         );
 
         fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
+
+        __fan_internal_image_list[nr].image_settings = image_opengl_to_global(p);
 
         return nr;
       }
@@ -877,6 +848,20 @@ export namespace fan {
         image_bind(nr);
 
         image_set_settings(nr, p);
+
+        uint32_t bytes_per_row = (int)(image_info.size.x * fan::graphics::get_channel_amount(p.format));
+        if ((bytes_per_row % 8) == 0) {
+          glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
+        }
+        else if ((bytes_per_row % 4) == 0) {
+          glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        }
+        else if ((bytes_per_row % 2) == 0) {
+          glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+        }
+        else {
+          glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        }
 
         auto& image_data = __fan_internal_image_list[nr];
         image_data.size = image_info.size;

@@ -293,7 +293,7 @@ namespace fan {
 
     struct tcp_t;
 
-    using listen_cb_t = std::function<fan::ev::task_t(tcp_t&&)>;
+    using listen_cb_t = std::function<fan::event::task_t(tcp_t&&)>;
 
     struct tcp_t {
       std::shared_ptr<uv_tcp_t> socket;
@@ -315,17 +315,17 @@ namespace fan {
       tcp_t(tcp_t&&) = default;
       tcp_t& operator=(tcp_t&&) = delete;
 
-      ev::error_code_t accept(tcp_t& client) noexcept {
+      event::error_code_t accept(tcp_t& client) noexcept {
         return uv_accept(reinterpret_cast<uv_stream_t*>(socket.get()),
           reinterpret_cast<uv_stream_t*>(client.socket.get()));
       }
-      ev::error_code_t bind(std::string ip, int port) noexcept {
+      event::error_code_t bind(std::string ip, int port) noexcept {
         struct sockaddr_in bind_addr;
         uv_ip4_addr(ip.c_str(), port, &bind_addr);
         return uv_tcp_bind(socket.get(), reinterpret_cast<sockaddr*>(&bind_addr), 0);
       }
 
-      fan::ev::task_t listen(const listen_address_t& address, listen_cb_t lambda);
+      fan::event::task_t listen(const listen_address_t& address, listen_cb_t lambda);
       connector_t connect(const char* ip, int port) {
         return connector_t{ *this, ip, port };
       }
@@ -347,7 +347,7 @@ namespace fan {
       }
     };
 
-    fan::ev::task_t tcp_t::listen(const listen_address_t& address, listen_cb_t lambda) {
+    fan::event::task_t tcp_t::listen(const listen_address_t& address, listen_cb_t lambda) {
       if (address.port == 0) {
         fan::throw_error("invalid port");
       }
@@ -365,7 +365,7 @@ namespace fan {
       }
       co_return;
     }
-    static fan::ev::task_t tcp_listen(listen_address_t address, listen_cb_t lambda) {
+    static fan::event::task_t tcp_listen(listen_address_t address, listen_cb_t lambda) {
       tcp_t tcp;
       co_await tcp.listen(address, lambda);
     }
