@@ -8,7 +8,7 @@ using namespace std::chrono_literals;
 std::vector<loco_t::shape_t> shapes;
 
 
-fan::ev::task_t spawn_rectangles() {
+fan::event::task_t spawn_rectangles() {
   fan::print("start");
   while (true) {
     shapes.clear();

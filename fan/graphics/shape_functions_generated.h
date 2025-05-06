@@ -2198,35 +2198,9 @@ static fan::vec3 get_dst_line3d(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->dst;
 }
 
-static void reload_sprite(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
-}
-
-static void reload_line(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
-}
-
-static void reload_rectangle(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
-}
-
-static void reload_light(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
-}
-
-static void reload_unlit_sprite(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
-}
-
-static void reload_circle(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
-}
-
-static void reload_capsule(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
-}
-
-static void reload_polygon(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
-}
-
-static void reload_grid(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& size, uint32_t filter) {
-}
-
 static void reload_universal_image_renderer(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter) {
   loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)shape->GetData(gloco->shaper);
+  uint8_t image_count_new = fan::graphics::get_channel_amount(format);
   if (format != ri.format) {
     auto sti = gloco->shaper.ShapeList[*shape].sti;
     uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
@@ -2241,11 +2215,11 @@ static void reload_universal_image_renderer(loco_t::shape_t* shape, uint8_t form
     {
       std::string fs;
       switch (format) {
-      case fan::pixel_format::yuv420p: {
+      case fan::graphics::image_format::yuv420p: {
         fs = loco_t::read_shader("shaders/opengl/2D/objects/yuv420p.fs");
         break;
       }
-      case fan::pixel_format::nv12: {
+      case fan::graphics::image_format::nv12: {
         fs = loco_t::read_shader("shaders/opengl/2D/objects/nv12.fs");
         break;
       }
@@ -2257,8 +2231,7 @@ static void reload_universal_image_renderer(loco_t::shape_t* shape, uint8_t form
       gloco->shader_compile(shader);
     }
 
-    uint8_t image_count_old = fan::pixel_format::get_texture_amount(ri.format);
-    uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
+    uint8_t image_count_old = fan::graphics::get_channel_amount(ri.format);
     if (image_count_new < image_count_old) {
       // -1 ? 
       for (uint32_t i = image_count_old - 1; i > image_count_new; --i) {
@@ -2282,12 +2255,25 @@ static void reload_universal_image_renderer(loco_t::shape_t* shape, uint8_t form
 
   auto vi_image = shape->get_image();
 
-  uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
+  for (uint32_t i = 0; i < image_count_new; ++i) {
+    if (i == 0) {
+      if (vi_image.iic() || vi_image== gloco->default_texture) {
+        vi_image = gloco->image_create();
+        shape->set_image(vi_image);
+      }
+    }
+    else {
+      if (ri.images_rest[i - 1].iic() || ri.images_rest[i - 1] == gloco->default_texture) {
+        ri.images_rest[i - 1] = gloco->image_create();
+      }
+    }
+  }
+
   for (uint32_t i = 0; i < image_count_new; i++) {
     fan::image::image_info_t image_info;
     image_info.data = image_data[i];
-    image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
-    auto lp = fan::pixel_format::get_image_properties<loco_t::image_load_properties_t>(format)[i];
+    image_info.size = fan::graphics::get_image_sizes(format, image_size)[i];
+    auto lp = fan::graphics::get_image_properties<loco_t::image_load_properties_t>(format)[i];
     lp.min_filter = filter;
     lp.mag_filter = filter;
     if (i == 0) {
@@ -3244,18 +3230,18 @@ inline static loco_t::get_outline_color_cb get_outline_color_functions[] = {
 };
 
 inline static loco_t::reload_cb reload_functions[] = {
-	&reload_sprite,
 	nullptr,
 	nullptr,
-	&reload_line,
 	nullptr,
-	&reload_rectangle,
-	&reload_light,
-	&reload_unlit_sprite,
-	&reload_circle,
-	&reload_capsule,
-	&reload_polygon,
-	&reload_grid,
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr,
 	nullptr,
 	nullptr,
 	&reload_universal_image_renderer,

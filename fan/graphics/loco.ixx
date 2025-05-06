@@ -7,10 +7,12 @@ module;
 
 #define loco_audio
 
-#include <fan/ev/types.h>
+import fan.event;
+#include <fan/event/types.h>
+#include <uv.h>
 
 #if defined(fan_gui)
-#include <fan/graphics/file_dialog.h>
+import fan.file_dialog;
 #endif
 
 #include <array>
@@ -1531,7 +1533,7 @@ public:
 #endif
   }
   void close() {
-    window.close();
+    destroy();
   }
 
   // for renderer switch
@@ -2139,7 +2141,6 @@ public:
         if (loco->process_loop(loco->main_loop)) {
           uv_timer_stop(handle);
           uv_stop(uv_default_loop());
-          loco->window.glfw_window = nullptr;
         }
         }, 0, delay);
     }
@@ -4082,7 +4083,7 @@ public:
     };
     struct ri_t {
       std::array<loco_t::image_t, 3> images_rest; // 3 + 1 (pk)
-      uint8_t format = fan::pixel_format::undefined;
+      uint8_t format = fan::graphics::image_format::undefined;
     };
 
 #pragma pack(pop)
@@ -4126,7 +4127,7 @@ public:
       ri_t ri;
       // + 1
       std::copy(&properties.images[1], &properties.images[0] + properties.images.size(), ri.images_rest.data());
-      return shape_add(shape_type, vi, ri,
+      shape_t shape = shape_add(shape_type, vi, ri,
         Key_e::depth, (uint16_t)properties.position.z,
         Key_e::blending, (uint8_t)properties.blending,
         Key_e::image, properties.images[0],
@@ -4136,6 +4137,9 @@ public:
         Key_e::draw_mode, properties.draw_mode,
         Key_e::vertex_count, properties.vertex_count
       );
+      ((ri_t*)shape.GetData(gloco->shaper))->format = shape.get_image_data().image_settings.format;
+
+      return shape;
     }
 
   }universal_image_renderer;
@@ -5060,7 +5064,7 @@ export namespace fan {
 }
 
 
-namespace fan {
+export namespace fan {
   inline void printclnn(auto&&... values) {
 #if defined (fan_gui)
     gloco->printclnn(values...);

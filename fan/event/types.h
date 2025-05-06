@@ -2,12 +2,10 @@
 
 // this file is intended for macros
 
-#include <fan/ev/ev.h>
-
 // executes given code every 'time_ms'
 // destroys when out of scope
 #define fan_ev_timer(time_ms, code) \
-  auto CONCAT(timer__var__, __COUNTER__) = fan::ev::timer_task(time_ms, [&]() -> bool {code return false; })
+  auto CONCAT(timer__var__, __COUNTER__) = fan::event::timer_task(time_ms, [&]() -> bool {code return false; })
 #define fan_ev_timer_loop(time_ms, code) \
   [&]{ \
     static fan::time::clock c{(uint64_t)time_ms * (uint64_t)1e+6, true}; \

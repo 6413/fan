@@ -264,4 +264,83 @@ struct model_list_t {
   }
 };
 
-#undef loco_var
+struct _model_list_filler_t {
+  struct _model_list_t : model_list_t {
+    struct cm_t : model_list_t::cm_t {
+      inline static std::string model_path = "models/";
+      cm_t(const std::string& Name) {
+        import_from(model_path + Name, &engine::tp);
+      }
+      ~cm_t() {
+        //_model_list_filler_t::model_list.erase(internal_id);
+      }
+    };
+    struct id_t {
+      model_list_t::model_id_t internal_id;
+      ~id_t() {
+        _model_list_filler_t::model_list.erase(internal_id);
+      }
+      operator model_list_t::model_id_t() {
+        return internal_id;
+      }
+      void add(cm_t* cm, const model_list_t::properties_t& p) {
+        internal_id = _model_list_filler_t::model_list.push_model(&engine::tp, cm, p);
+      }
+      void add_shape(uint32_t group_id, const auto& shape) {
+        _model_list_filler_t::model_list.push_shape(internal_id, group_id, model_list_t::cm_t::shape_t(shape));
+      }
+      void iterate(uint32_t group_id, auto lambda) {
+        _model_list_filler_t::model_list.iterate(internal_id, group_id, lambda);
+      }
+      void iterate(auto lambda) {
+        _model_list_filler_t::model_list.iterate(internal_id, lambda);
+      }
+      void iterate_marks(uint32_t group_id, auto lambda) {
+        _model_list_filler_t::model_list.iterate_marks(internal_id, group_id, lambda);
+      }
+      void rem() {
+        _model_list_filler_t::model_list.erase(internal_id);
+      }
+      void rem(uint32_t group_id) {
+        _model_list_filler_t::model_list.erase(internal_id, group_id);
+      }
+      fan::vec3 get_position() {
+        return _model_list_filler_t::model_list.get_instance(internal_id).position;
+      }
+      void set_position(const fan::vec3& Position) {
+        _model_list_filler_t::model_list.set_position(internal_id, Position);
+      }
+      void set_position(const fan::vec2& Position) {
+        _model_list_filler_t::model_list.set_position(internal_id, Position);
+      }
+      void set_position(uint32_t group_id, const fan::vec2& Position) {
+        _model_list_filler_t::model_list.set_position(internal_id, group_id, Position);
+      }
+      void set_position(uint32_t group_id, const fan::vec3& Position) {
+        _model_list_filler_t::model_list.set_position(internal_id, group_id, Position);
+      }
+      void set_size(const fan::vec2& Size) {
+        _model_list_filler_t::model_list.set_size(internal_id, Size);
+      }
+      void set_size(uint32_t group_id, const fan::vec2& Size) {
+        _model_list_filler_t::model_list.set_size(internal_id, group_id, Size);
+      }
+      auto& get_instance() {
+        return _model_list_filler_t::model_list.get_instance(internal_id);
+      }
+      void set_angle(const fan::vec3& angle) {
+        _model_list_filler_t::model_list.set_angle(internal_id, angle);
+      }
+      fan::vec3 get_angle(uint32_t group_id) {
+        return _model_list_filler_t::model_list.get_angle(internal_id, group_id);
+      }
+      void set_angle(uint32_t group_id, const fan::vec3& angle) {
+        _model_list_filler_t::model_list.set_angle(internal_id, group_id, angle);
+      }
+      void set_rotation_point(uint32_t group_id, const fan::vec2& rotation_point) {
+        _model_list_filler_t::model_list.set_rotation_point(internal_id, group_id, rotation_point);
+      }
+    };
+  };
+  inline static _model_list_t model_list;
+};

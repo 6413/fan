@@ -8,7 +8,7 @@ module;
 
 #include <fan/types/types.h>
 #include <fan/graphics/opengl/init.h>
-#include <fan/ev/types.h>
+#include <fan/event/types.h>
 
 #include <fan/math/math.h>
 
@@ -20,9 +20,11 @@ export module fan.graphics;
 
 import fan.types.vector;
 import fan.window;
+import fan.window.input;
 import fan.graphics.image_load;
 import fan.graphics.opengl.core;
 import fan.graphics.common_context;
+import fan.graphics.common_types;
 import fan.graphics.loco;
 import fan.io.directory;
 import fan.camera;
@@ -141,7 +143,7 @@ export namespace fan {
 
       struct line_properties_t {
         camera_impl_t* camera = &gloco->orthographic_camera;
-        fan::vec3 src = fan::vec3(0, 0, 0);
+        fan::vec3 src = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
         fan::vec2 dst = fan::vec2(1, 1);
         fan::color color = fan::color(1, 1, 1, 1);
         bool blending = false;
@@ -166,7 +168,7 @@ export namespace fan {
 //#if defined(loco_rectangle)
     struct rectangle_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
-      fan::vec3 position = fan::vec3(0, 0, 0);
+      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       fan::vec2 size = fan::vec2(32, 32);
       fan::color color = fan::color(1, 1, 1, 1);
       fan::color outline_color = color;
@@ -197,7 +199,7 @@ export namespace fan {
 
     struct sprite_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
-      fan::vec3 position = fan::vec3(0, 0, 0);
+      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       fan::vec2 size = fan::vec2(32, 32);
       fan::vec3 angle = 0;
       fan::color color = fan::color(1, 1, 1, 1);
@@ -233,7 +235,7 @@ export namespace fan {
 
     struct unlit_sprite_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
-      fan::vec3 position = fan::vec3(0, 0, 0);
+      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
       fan::vec3 angle = 0;
       fan::color color = fan::color(1, 1, 1, 1);
@@ -268,7 +270,7 @@ export namespace fan {
 #if defined(loco_circle)
     struct circle_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
-      fan::vec3 position = fan::vec3(0, 0, 0);
+      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       f32_t radius = 32.f;
       fan::vec3 angle = 0;
       fan::color color = fan::color(1, 1, 1, 1);
@@ -296,7 +298,7 @@ export namespace fan {
 
     struct capsule_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
-      fan::vec3 position = fan::vec3(0, 0, 0);
+      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       fan::vec2 center0 = 0;
       fan::vec2 center1{0, 128.f};
       f32_t radius = 64.0f;
@@ -328,7 +330,7 @@ export namespace fan {
     using vertex_t = loco_t::vertex_t;
     struct polygon_properties_t {
       camera_impl_t* camera = &gloco->orthographic_camera;
-      fan::vec3 position = 0;
+      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       std::vector<vertex_t> vertices;
       fan::vec3 angle = 0;
       fan::vec2 rotation_point = 0;

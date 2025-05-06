@@ -522,7 +522,7 @@ fan::graphics::image_nr_t create_missing_texture(fan::vulkan::context_t& context
 
   auto& image_data = __fan_internal_image_list[nr];
   image_data.size = image_size;
-
+  __fan_internal_image_list[nr].image_settings = image_global_to_vulkan(p);
   return nr;
 }
 fan::graphics::image_nr_t create_transparent_texture(fan::vulkan::context_t& context) {

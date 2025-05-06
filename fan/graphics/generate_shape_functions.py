@@ -80,7 +80,7 @@ functions = [
     {"name": "get_outline_size", "return_type": "f32_t", "args": ["loco_t::shape_t* shape"], "member": "outline_size"},
     {"name": "get_outline_color", "return_type": "fan::color", "args": ["loco_t::shape_t* shape"], "member": "outline_color"},
     
-    {"name": "reload", "return_type": "void", "args": ["loco_t::shape_t* shape", "uint8_t format", "void** image_data", "const fan::vec2& size", "uint32_t filter"], "member": ""},
+    #{"name": "reload", "return_type": "void", "args": ["loco_t::shape_t* shape", "uint8_t format", "void** image_data", "const fan::vec2& size", "uint32_t filter"], "member": ""},
     
     {"name": "draw", "return_type": "void", "args": ["uint8_t draw_range"], "member": ""},
     

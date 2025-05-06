@@ -8,9 +8,9 @@ fan::graphics::rectangle_t r{ {
     .color = fan::colors::red
 } };
 
-fan::ev::task_t tcp_server_test() {
+fan::event::task_t tcp_server_test() {
  // try {
-    co_await fan::network::tcp_listen({.port = 7777}, [](auto&& client) -> fan::ev::task_t {
+    co_await fan::network::tcp_listen({.port = 7777}, [](auto&& client) -> fan::event::task_t {
       fan::json_stream_parser_t parser;
       auto reader = client.read();
       while (auto data = co_await reader) {
@@ -28,7 +28,7 @@ fan::ev::task_t tcp_server_test() {
 //  }
 }
 
-fan::ev::task_t tcp_client_test() {
+fan::event::task_t tcp_client_test() {
   try {
     fan::network::tcp_t client;
     co_await client.connect("85.156.160.229", 7777);
