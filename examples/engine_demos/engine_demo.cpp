@@ -19,7 +19,7 @@ struct engine_demo_t {
   }};
 
   // ------------------------STATIC------------------------
-  static void demo_static_capsule(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_capsule(engine_demo_t* engine_demo) {
     engine_demo->shapes.resize(engine_demo->shape_count);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
@@ -33,7 +33,7 @@ struct engine_demo_t {
       }};
     }
   }
-  static void demo_static_circle(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_circle(engine_demo_t* engine_demo) {
     engine_demo->shapes.resize(engine_demo->shape_count);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
@@ -45,7 +45,7 @@ struct engine_demo_t {
       }};
     }
   }
-  static void demo_static_gradient(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_gradient(engine_demo_t* engine_demo) {
     for (auto& i : engine_demo->shapes) {
       i.erase();
     }
@@ -66,7 +66,7 @@ struct engine_demo_t {
     }
   }
 
-  static void demo_static_grid(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_grid(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     
     engine_demo->shapes.emplace_back(fan::graphics::grid_t{{
@@ -78,7 +78,7 @@ struct engine_demo_t {
     }});
   }
 
-  static void demo_static_universal_image_renderer(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_universal_image_renderer(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     engine_demo->shapes.emplace_back(fan::graphics::universal_image_renderer_t{{
       .camera = &engine_demo->right_column_view,
@@ -94,11 +94,11 @@ struct engine_demo_t {
     datas[0] = pixel_data;
     datas[1] = (uint8_t*)pixel_data + (offset += image_size.multiply());
     datas[2] = (uint8_t*)pixel_data + (offset += image_size.multiply() / 4);
-    engine_demo->shapes.back().reload(fan::pixel_format::yuv420p, datas, image_size);
+    engine_demo->shapes.back().reload(fan::graphics::image_format::yuv420p, datas, image_size);
   }
 
-  loco_t::image_t image_tire = engine.image_load("images/tire.webp");
-  static void demo_static_lighting(engine_demo_t* engine_demo) {
+  fan::graphics::image_t image_tire = engine.image_load("images/tire.webp");
+  static void demo_shapes_init_lighting(engine_demo_t* engine_demo) {
     
 
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
@@ -164,7 +164,7 @@ struct engine_demo_t {
     engine_demo->shapes.back().set_position(get_mouse_position(engine_demo->right_column_view));
   }
 
-  static void demo_static_particles(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_particles(engine_demo_t* engine_demo) {
     
     static auto particle_texture = engine_demo->engine.image_load("images/waterdrop.webp");
 
@@ -186,7 +186,7 @@ struct engine_demo_t {
     engine_demo->shapes.push_back(p);
   }
 
-  static void demo_static_polygon(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_polygon(engine_demo_t* engine_demo) {
     engine_demo->shapes.resize(engine_demo->shape_count);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
 
@@ -237,12 +237,13 @@ struct engine_demo_t {
       engine_demo->shapes[i] = fan::graphics::polygon_t{
         {
           .camera = &engine_demo->right_column_view,
+          .position = 0,
           .vertices = pp.vertices
         }
       };
     }
   }
-  static void demo_static_rectangle(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_rectangle(engine_demo_t* engine_demo) {
     
     engine_demo->shapes.resize(engine_demo->shape_count);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
@@ -299,14 +300,14 @@ void main() {
 
   loco_t::shader_t demo_static_shader_shape_shader{engine.get_sprite_vertex_shader(demo_static_shader_shape_fragment_shader)};
   fan::color custom_color = fan::colors::red;
-  static void demo_static_shader_shape(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_shader_shape(engine_demo_t* engine_demo) {
     if (engine_demo->demo_static_shader_shape_shader.iic()) {
       fan::throw_error("failed to compile custom shader");
     }
     
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
 
-    loco_t::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
+    fan::graphics::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
     engine_demo->shapes.emplace_back(fan::graphics::shader_shape_t{{
       .camera = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 3),
@@ -323,7 +324,7 @@ void main() {
     }
   }
 
-  static void demo_static_sprite(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_sprite(engine_demo_t* engine_demo) {
     engine_demo->shapes.resize(engine_demo->shape_count);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
@@ -337,6 +338,10 @@ void main() {
     }
   }
   // ------------------------STATIC------------------------
+
+  // ------------------------GUI------------------------
+
+  // ------------------------GUI------------------------
 
   // ------------------------PHYSICS------------------------
 
@@ -362,7 +367,7 @@ void main() {
       .color = fan::colors::green
     } });
   }
-  static void demo_physics_mirrors(engine_demo_t* engine_demo) {
+  static void demo_physics_init_mirrors(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     engine_demo->demo_physics_mirrors_data = new demo_physics_mirrors_t();
     static std::vector<vertex_t> triangle_vertices{
@@ -394,7 +399,7 @@ void main() {
       } };
     on_reflect_depth_resize(engine_demo);
   }
-  static void demo_physics_mirrors_update(engine_demo_t* engine_demo) {
+  static void demo_physics_update_mirrors(engine_demo_t* engine_demo) {
     fan::vec2 src = engine_demo->demo_physics_mirrors_data->user_ray.get_src();
     fan::vec2 dst = engine_demo->demo_physics_mirrors_data->user_ray.get_dst();
     engine_demo->demo_physics_mirrors_data->user_ray.set_line(src, dst);
@@ -439,11 +444,127 @@ void main() {
       on_reflect_depth_resize(engine_demo);
     }
   }
-  static void demo_physics_mirrors_cleanup(engine_demo_t* engine_demo) {
+  static void demo_physics_cleanup_mirrors(engine_demo_t* engine_demo) {
     delete engine_demo->demo_physics_mirrors_data;
   }
 
   // ------------------------PHYSICS------------------------
+
+
+  // ------------------------MULTITHREADING------------------------
+
+  struct demo_multithreaded_image_loading_t {
+    std::vector<uint8_t> rgb_data;
+    fan::vec2ui image_size;
+    std::atomic<uint32_t> generated_rows{0};
+    std::mutex data_mutex;
+    std::atomic<bool> should_quit{false};
+    std::atomic<bool> generation_complete{false};
+    std::atomic<bool> needs_update{false}; 
+    std::string progress_message = "Generating image: 0%";
+
+    sprite_t image_sprite;
+    image_t procedural_image;
+    fan::graphics::image_load_properties_t image_load_properties{
+      .internal_format = fan::graphics::image_format::rgb_unorm,
+      .format = fan::graphics::image_format::rgb_unorm,
+    };
+  }*demo_multithreaded_image_loading_data=0;
+
+  void demo_generate_procedural_image(demo_multithreaded_image_loading_t* data) {
+    data->image_size = fan::vec2ui(1024, 1024);
+    size_t total_size = data->image_size.x * data->image_size.y * 3;
+    {
+      std::lock_guard<std::mutex> lock(data->data_mutex);
+      data->rgb_data.resize(total_size, 0);
+    }
+    for (uint32_t y = 0; y < data->image_size.y; ++y) {
+      if (data->should_quit) {
+        return;
+      }
+      {
+        std::lock_guard<std::mutex> lock(data->data_mutex);
+        for (uint32_t x = 0; x < data->image_size.x; ++x) {
+          size_t pixel_offset = (y * data->image_size.x + x) * 3;
+          float cx = x * 2.0f / data->image_size.x - 1.0f, cy = y * 2.0f / data->image_size.y - 1.0f;
+          float dist = std::sqrt(cx * cx + cy * cy), time_factor = y * 0.02f;
+          float r = std::sin(cx * 5.0f + time_factor) * std::cos(cy * 5.0f);
+          float g = std::sin(dist * 10.0f + time_factor * 2.0f) * 0.5f + 0.5f;
+          float b = std::sin(std::atan2(cy, cx) * 5.0f + dist * 10.0f - time_factor * 3.0f) * 0.5f + 0.5f;
+          data->rgb_data[pixel_offset] = (uint8_t)((r * 0.5f + 0.5f) * 255.0f);
+          data->rgb_data[pixel_offset + 1] = (uint8_t)(g * 255.0f);
+          data->rgb_data[pixel_offset + 2] = (uint8_t)(b * 255.0f);
+        }
+      }
+      fan::event::sleep(5);
+      data->generated_rows.store(y + 1);
+      data->needs_update.store(true);
+    }
+    data->generation_complete.store(true);
+  }
+
+  static void demo_init_multithreaded_image_loading(engine_demo_t* engine_demo) {
+    engine_demo->demo_multithreaded_image_loading_data = new demo_multithreaded_image_loading_t;
+    auto& data = *engine_demo->demo_multithreaded_image_loading_data;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    int height = viewport_size.y / 2;
+    height -= height % 4;
+    data.image_sprite = {{
+      .camera = &engine_demo->right_column_view,
+      .position = viewport_size / 2,
+      .size = viewport_size.y / 2
+    } };
+
+    data.needs_update.store(false);
+
+    fan::vec2ui texture_size(1024, 1024);
+    std::vector<uint8_t> initial_texture(texture_size.x * texture_size.y * 3, 0);
+
+    fan::image::image_info_t image_info;
+    image_info.data = initial_texture.data();
+    image_info.size = texture_size;
+    data.procedural_image = engine_demo->engine.image_load(image_info, data.image_load_properties);
+
+    data.image_sprite.set_image(data.procedural_image);
+
+    auto thread_id = fan::event::thread_create([engine_demo, &data] {
+      engine_demo->demo_generate_procedural_image(&data);
+    });
+  }
+  static void demo_update_multithreaded_image_loading(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_multithreaded_image_loading_data;
+    if (data.needs_update.load()) {
+      uint32_t current_rows = data.generated_rows.load();
+
+      std::vector<uint8_t> temp_data;
+      {
+        std::lock_guard<std::mutex> lock(data.data_mutex);
+        temp_data = data.rgb_data;
+      }
+
+      fan::image::image_info_t update_info;
+      update_info.data = temp_data.data();
+      update_info.size = data.image_size;
+
+      engine_demo->engine.image_reload(data.procedural_image, update_info, data.image_load_properties);
+
+      data.needs_update.store(false);
+
+      float progress = ceil((float)current_rows / data.image_size.y * 100.0f);
+      data.progress_message = "Generating image: " + std::to_string(int(progress)) + "%";
+    }
+
+    gui::text(data.progress_message);
+    gui::text_wrapped("Generates the image procedurally in a background thread while rendering it on the main thread as it's being generated");
+    gui::text("The image is purposefully generated slowly to simulate load", fan::colors::yellow);
+  }
+  static void demo_cleanup_multithreaded_image_loading(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_multithreaded_image_loading_data;
+    data.should_quit = true;
+    delete &data;
+  }
+
+  // ------------------------MULTITHREADING------------------------
 
   typedef void(*demo_function_t)(engine_demo_t*);
   typedef void(*demo_function_update_t)(engine_demo_t*);
@@ -454,33 +575,76 @@ void main() {
 
   struct demo_t {
     const char* name;
-    demo_function_t demo_function = 0;
+    demo_function_t init_function = 0;
     demo_function_update_t update_function = default_update_function;
     demo_function_t cleanup_function = 0;
   };
 
+  #define engine_demo (*OFFSETLESS(OFFSETLESS(menu, fan::graphics::engine_t, settings_menu), engine_demo_t, engine))
+
   inline static auto demos = std::to_array({
-    demo_t{.name = "Capsule", .demo_function = demo_static_capsule, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Circle", .demo_function = demo_static_circle, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Gradient", .demo_function = demo_static_gradient, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Grid", .demo_function = demo_static_grid, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Image Decoder", .demo_function = demo_static_universal_image_renderer, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Light", .demo_function = demo_static_lighting, .update_function = demo_static_lighting_update, .cleanup_function = nullptr},
-    demo_t{.name = "Particles", .demo_function = demo_static_particles, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Polygon", .demo_function = demo_static_polygon, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Rectangle", .demo_function = demo_static_rectangle, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Shader", .demo_function = demo_static_shader_shape, .update_function = demo_static_shader_shape_update, .cleanup_function = nullptr},
-    demo_t{.name = "Sprite", .demo_function = demo_static_sprite, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "_next", .demo_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
+    demo_t{.name = "Capsule", .init_function = demo_shapes_init_capsule, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Circle", .init_function = demo_shapes_init_circle, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Gradient", .init_function = demo_shapes_init_gradient, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Grid", .init_function = demo_shapes_init_grid, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Image Decoder", .init_function = demo_shapes_init_universal_image_renderer, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Light", .init_function = demo_shapes_init_lighting, .update_function = demo_static_lighting_update, .cleanup_function = nullptr},
+    demo_t{.name = "Particles", .init_function = demo_shapes_init_particles, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Polygon", .init_function = demo_shapes_init_polygon, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Rectangle", .init_function = demo_shapes_init_rectangle, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "Shader", .init_function = demo_shapes_init_shader_shape, .update_function = demo_static_shader_shape_update, .cleanup_function = nullptr},
+    demo_t{.name = "Sprite", .init_function = demo_shapes_init_sprite, .update_function = default_update_function, .cleanup_function = nullptr},
+    demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     //GUI STUFF
-    demo_t{.name = "_next", .demo_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
-    demo_t{.name = "Reflective Mirrors", .demo_function = demo_physics_mirrors, .update_function = demo_physics_mirrors_update, .cleanup_function = demo_physics_mirrors_cleanup},
+    demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
+    demo_t{.name = "Reflective Mirrors", .init_function = demo_physics_init_mirrors, .update_function = demo_physics_update_mirrors, .cleanup_function = demo_physics_cleanup_mirrors},
+    demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
+    demo_t{.name = "Multithreaded image loading", .init_function = demo_init_multithreaded_image_loading, .update_function = demo_update_multithreaded_image_loading, .cleanup_function = demo_cleanup_multithreaded_image_loading},
   });
+
+  static void menus_engine_demo_left(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+    gui::set_next_window_pos(next_window_position);
+    gui::set_next_window_size(next_window_size);
+    fan_graphics_gui_window("##Menu Engine Demo Left", 0, wnd_flags){
+      render_demos(menu, {
+        "SHAPES",
+        "GUI",
+        "PHYSICS",
+        "MULTITHREADING"
+      });
+    }
+  }
+  static void menus_engine_demo_right(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+    gui::set_next_window_pos(next_window_position);
+    gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y / 5));
+    fan::vec2 window_size;
+    fan_graphics_gui_window("##Menu Engine Demo Right Top", 0, wnd_flags) {
+      engine_demo.engine.lighting.ambient = 1;
+      auto& shape_info = demos[engine_demo.current_demo];
+      if (shape_info.update_function) {
+        shape_info.update_function(&engine_demo);
+      }
+      window_size = gui::get_window_size();
+    }
+
+    gui::set_next_window_pos(next_window_position + fan::vec2(0, window_size.y));
+    gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y - window_size.y));
+    gui::push_style_color(gui::col_window_bg, fan::colors::transparent);
+    fan_graphics_gui_window("##Menu Engine Demo Right Content Bottom", 0, wnd_flags | gui::window_flags_no_inputs) {
+      gui::set_viewport(engine_demo.right_column_view.viewport);
+      fan::vec2 viewport_size = engine_demo.engine.viewport_get(engine_demo.right_column_view.viewport).viewport_size;
+      engine_demo.engine.camera_set_ortho(
+        engine_demo.right_column_view.camera,
+        fan::vec2(0, viewport_size.x),
+        fan::vec2(0, viewport_size.y)
+      );
+    }
+    gui::pop_style_color();
+  }
 
 
   static constexpr int wnd_flags = gui::window_flags_no_move| 
     gui::window_flags_no_collapse | gui::window_flags_no_resize| gui::window_flags_no_title_bar;
-  #define engine_demo (*OFFSETLESS(OFFSETLESS(menu, fan::graphics::engine_t, settings_menu), engine_demo_t, engine))
 
   static void render_demos(menu_t* menu, const std::vector<std::string>& titles) {
     std::size_t title_index = 0;
@@ -516,7 +680,7 @@ void main() {
               demos[engine_demo.current_demo].cleanup_function(&engine_demo);
             }
             engine_demo.shapes.clear();
-            shape_info.demo_function(&engine_demo);
+            shape_info.init_function(&engine_demo);
             engine_demo.current_demo = i;
           }
         }
@@ -527,50 +691,11 @@ void main() {
 #undef make_table
   }
 
-  static void menus_engine_demo_left(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
-    gui::set_next_window_pos(next_window_position);
-    gui::set_next_window_size(next_window_size);
-    fan_graphics_gui_window("##Menu Engine Demo Left", 0, wnd_flags){
-      render_demos(menu, {
-        "BASIC SHAPES",
-        "GUI",
-        "PHYSICS"
-      });
-    }
-  }
-  static void menus_engine_demo_right(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
-    gui::set_next_window_pos(next_window_position);
-    gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y / 5));
-    fan::vec2 window_size;
-    fan_graphics_gui_window("##Menu Engine Demo Right Top", 0, wnd_flags) {
-      engine_demo.engine.lighting.ambient = 1;
-      auto& shape_info = demos[engine_demo.current_demo];
-      if (shape_info.update_function) {
-        shape_info.update_function(&engine_demo);
-      }
-      window_size = gui::get_window_size();
-    }
-
-    gui::set_next_window_pos(next_window_position + fan::vec2(0, window_size.y));
-    gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y - window_size.y));
-    gui::push_style_color(gui::col_window_bg, fan::colors::transparent);
-    fan_graphics_gui_window("##Menu Engine Demo Right Content Bottom", 0, wnd_flags | gui::window_flags_no_inputs) {
-      gui::set_viewport(engine_demo.right_column_view.viewport);
-      fan::vec2 viewport_size = engine_demo.engine.viewport_get(engine_demo.right_column_view.viewport).viewport_size;
-      engine_demo.engine.camera_set_ortho(
-        engine_demo.right_column_view.camera,
-        fan::vec2(0, viewport_size.x),
-        fan::vec2(0, viewport_size.y)
-      );
-    }
-    gui::pop_style_color();
-  }
-
   static void menus_engine_demo_render_element_count(menu_t* menu) {
     if (gui::drag_int("Shape count", &engine_demo.shape_count, 1, 0, std::numeric_limits<int>::max())) {
       auto& shape_info = demos[engine_demo.current_demo];
-      if (shape_info.demo_function) {
-        shape_info.demo_function(&engine_demo);
+      if (shape_info.init_function) {
+        shape_info.init_function(&engine_demo);
       }
     }
   }

@@ -26,7 +26,7 @@ export namespace fan {
     struct image_info_t {
       void* data;
       fan::vec2i size;
-      int channels;
+      int channels = -1;
       std::uint8_t type; // webp, stb
     };
 

@@ -116,13 +116,10 @@ sint32_t Open(){
   return 0;
 }
 void Close(){
-  __abort();
-  /* TODO
   this->SourceVoice->DestroyVoice();
   this->MasterVoice->DestroyVoice();
   this->ctx->Release();
   CoUninitialize();
-  */
 }
 
 void SetVolume(f32_t Volume) {
