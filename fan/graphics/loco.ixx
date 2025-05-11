@@ -12,7 +12,8 @@ import fan.event;
 #include <uv.h>
 
 #if defined(fan_gui)
-import fan.file_dialog;
+  import fan.file_dialog;
+  #include <deque>
 #endif
 
 #include <array>

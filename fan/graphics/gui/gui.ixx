@@ -16,6 +16,7 @@ module;
 #include <string>
 #include <array>
 #include <filesystem>
+#include <coroutine>
 
 export module fan.graphics.gui;
 

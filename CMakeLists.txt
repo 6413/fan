@@ -143,7 +143,8 @@ set(MODULE_FILES
 	${ROOT_PATH}/graphics/opengl/core.ixx
 	${ROOT_PATH}/graphics/opengl/uniform_block.ixx
 	${ROOT_PATH}/graphics/loco.ixx
-	${ROOT_PATH}/graphics/graphics.ixx	
+	${ROOT_PATH}/graphics/graphics.ixx
+	${ROOT_PATH}/graphics/file_dialog.ixx
 	
 	${ROOT_PATH}/physics/collision/rectangle.ixx
 	
@@ -152,6 +153,8 @@ set(MODULE_FILES
 	${ROOT_PATH}/window/input.ixx
 	
 	${ROOT_PATH}/audio/audio.ixx
+	
+	${ROOT_PATH}/event/event.ixx
 	
 	${ROOT_PATH}/fan.ixx
 )
