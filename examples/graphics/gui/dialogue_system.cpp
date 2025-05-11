@@ -1,4 +1,11 @@
-#include <fan/pch.h>
+#include <fan/types/types.h>
+#include <string>
+
+import fan;
+
+#include <fan/graphics/types.h>
+
+using namespace fan::graphics;
 
 f32_t guide_reputation = 0.8f;
 static inline std::string lore_chapter1_dialogue[] = {
@@ -15,7 +22,7 @@ static inline std::string lore_chapter1_answers[] = {
   "No."
 };
 
-fan::ev::task_t chapter1_dialogue(fan::graphics::dialogue_box_t& db) {
+fan::event::task_t chapter1_dialogue(fan::graphics::gui::dialogue_box_t& db) {
   for (int i = 0; i < std::size(lore_chapter1_dialogue); ++i) {
     co_await db.text(lore_chapter1_dialogue[i]);
     if (i + 1 != std::size(lore_chapter1_dialogue)) {
@@ -40,13 +47,13 @@ fan::ev::task_t chapter1_dialogue(fan::graphics::dialogue_box_t& db) {
 int main() {
   loco_t loco;
 
-  fan::graphics::dialogue_box_t dialogue_box;
+  fan::graphics::gui::dialogue_box_t dialogue_box;
   auto chapter1_task = chapter1_dialogue(dialogue_box);
-  loco.loop([&] {
+  fan_window_loop {
     // padding
-    fan::vec2 window_size = ImGui::GetWindowSize();
+    fan::vec2 window_size = gui::get_window_size();
     window_size.x /= 1.2;
     window_size.y /= 3;
-    dialogue_box.render("Dialogue box", loco.fonts[3], window_size, ImGui::GetWindowWidth() / 2, 32);
-  });
+    dialogue_box.render("Dialogue box", loco.fonts[3], window_size, gui::get_window_size().x / 2, 32);
+  };
 }
