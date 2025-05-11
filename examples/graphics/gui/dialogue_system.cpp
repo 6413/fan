@@ -1,5 +1,6 @@
 #include <fan/types/types.h>
 #include <string>
+#include <coroutine>
 
 import fan;
 
