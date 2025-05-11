@@ -990,40 +990,6 @@ export namespace fan {
       void move_by_cursor();
     };
 
-#if defined(fan_gui)
-    //struct dialogue_box_t {
-
-    //  dialogue_box_t();
-
-    //  // 0-1
-    //  void set_cursor_position(const fan::vec2& pos);
-    //  fan::ev::task_t text(const std::string& text);
-
-    //  fan::ev::task_t button(const std::string& text, const fan::vec2& position = -1, const fan::vec2& size = {0, 0});
-    //  int get_button_choice() const;
-
-    //  fan::ev::task_t wait_user_input();
-
-    //  void render(const std::string& window_name, ImFont* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing);
-
-    //  bool finish_dialog = false; // for skipping
-    //  bool wait_user = false;
-    //  std::string active_dialogue;
-
-    //  uint64_t character_per_s = 20;
-    //  std::size_t render_pos = 0;
-    //  fan::vec2 cursor_position = -1;
-    //  struct button_t {
-    //    fan::vec2 position = -1;
-    //    fan::vec2 size = 0;
-    //    std::string text;
-    //  };
-    //  std::vector<button_t> buttons;
-    //  int button_choice = -1;
-    //};
-
-#endif
-
     struct animator_t {
       fan::vec2 prev_dir = 0;
 

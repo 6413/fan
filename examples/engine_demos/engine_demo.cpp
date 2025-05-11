@@ -195,7 +195,7 @@ struct engine_demo_t {
       sides = std::max(3u, sides);
 
       fan::vec2 position = fan::random::vec2(0, viewport_size);
-      float radius = fan::random::value(50.f, 200.f);
+      f32_t radius = fan::random::value(50.f, 200.f);
       fan::color color = fan::random::color();
 
       loco_t::polygon_t::properties_t pp;
@@ -204,9 +204,9 @@ struct engine_demo_t {
       std::vector<fan::vec2> polygon_points;
       polygon_points.reserve(sides);
 
-      float angle_step = 2.0f * fan::math::pi / sides;
+      f32_t angle_step = 2.0f * fan::math::pi / sides;
       for (uint32_t j = 0; j < sides; ++j) {
-        float angle = j * angle_step;
+        f32_t angle = j * angle_step;
         fan::vec2 vertex_position = position + fan::vec2(std::cos(angle), std::sin(angle)) * radius;
         polygon_points.push_back(vertex_position);
       }
@@ -486,11 +486,11 @@ void main() {
         std::lock_guard<std::mutex> lock(data->data_mutex);
         for (uint32_t x = 0; x < data->image_size.x; ++x) {
           size_t pixel_offset = (y * data->image_size.x + x) * 3;
-          float cx = x * 2.0f / data->image_size.x - 1.0f, cy = y * 2.0f / data->image_size.y - 1.0f;
-          float dist = std::sqrt(cx * cx + cy * cy), time_factor = y * 0.02f;
-          float r = std::sin(cx * 5.0f + time_factor) * std::cos(cy * 5.0f);
-          float g = std::sin(dist * 10.0f + time_factor * 2.0f) * 0.5f + 0.5f;
-          float b = std::sin(std::atan2(cy, cx) * 5.0f + dist * 10.0f - time_factor * 3.0f) * 0.5f + 0.5f;
+          f32_t cx = x * 2.0f / data->image_size.x - 1.0f, cy = y * 2.0f / data->image_size.y - 1.0f;
+          f32_t dist = std::sqrt(cx * cx + cy * cy), time_factor = y * 0.02f;
+          f32_t r = std::sin(cx * 5.0f + time_factor) * std::cos(cy * 5.0f);
+          f32_t g = std::sin(dist * 10.0f + time_factor * 2.0f) * 0.5f + 0.5f;
+          f32_t b = std::sin(std::atan2(cy, cx) * 5.0f + dist * 10.0f - time_factor * 3.0f) * 0.5f + 0.5f;
           data->rgb_data[pixel_offset] = (uint8_t)((r * 0.5f + 0.5f) * 255.0f);
           data->rgb_data[pixel_offset + 1] = (uint8_t)(g * 255.0f);
           data->rgb_data[pixel_offset + 2] = (uint8_t)(b * 255.0f);
@@ -550,7 +550,7 @@ void main() {
 
       data.needs_update.store(false);
 
-      float progress = ceil((float)current_rows / data.image_size.y * 100.0f);
+      f32_t progress = ceil((f32_t)current_rows / data.image_size.y * 100.0f);
       data.progress_message = "Generating image: " + std::to_string(int(progress)) + "%";
     }
 
