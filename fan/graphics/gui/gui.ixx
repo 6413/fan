@@ -1645,41 +1645,41 @@ export namespace fan {
         }
       };
 
-          struct dialogue_box_t {
+      struct dialogue_box_t {
 
-      dialogue_box_t() {
-        gloco->input_action.add(fan::mouse_left, "skip or continue dialog");
-      }
-
-      // 0-1
-      void set_cursor_position(const fan::vec2& pos) {
-        this->cursor_position = cursor_position;
-      }
-      fan::event::task_t text(const std::string& text) {
-        active_dialogue = text;
-        render_pos = 0;
-        finish_dialog = false;
-        while (render_pos < active_dialogue.size() && !finish_dialog) {
-          ++render_pos;
-          co_await fan::co_sleep(1000 / character_per_s);
+        dialogue_box_t() {
+          gloco->input_action.add(fan::mouse_left, "skip or continue dialog");
         }
-        render_pos = active_dialogue.size();
-      }
 
-      fan::event::task_t button(const std::string& text, const fan::vec2& position = -1, const fan::vec2& size = { 0, 0 }) {
-        button_choice = -1;
-        button_t button;
-        button.position = position;
-        button.size = size;
-        button.text = text;
-        buttons.push_back(button);
-        co_return;
-      }
-      int get_button_choice() const {
-        return button_choice;
-      }
+        // 0-1
+        void set_cursor_position(const fan::vec2& pos) {
+          this->cursor_position = cursor_position;
+        }
+        fan::event::task_t text(const std::string& text) {
+          active_dialogue = text;
+          render_pos = 0;
+          finish_dialog = false;
+          while (render_pos < active_dialogue.size() && !finish_dialog) {
+            ++render_pos;
+            co_await fan::co_sleep(1000 / character_per_s);
+          }
+          render_pos = active_dialogue.size();
+        }
 
-      fan::event::task_t wait_user_input() {
+        fan::event::task_t button(const std::string& text, const fan::vec2& position = -1, const fan::vec2& size = { 0, 0 }) {
+          button_choice = -1;
+          button_t button;
+          button.position = position;
+          button.size = size;
+          button.text = text;
+          buttons.push_back(button);
+          co_return;
+        }
+        int get_button_choice() const {
+          return button_choice;
+        }
+
+        fan::event::task_t wait_user_input() {
           wait_user = true;
           fan::time::clock c;
           c.start(0.5e9);
@@ -1697,72 +1697,72 @@ export namespace fan {
             co_await fan::co_sleep(10);
           }
           render_pos = prev_render;
-      }
-
-      void render(const std::string& window_name, ImFont* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) {
-        ImGui::PushFont(font);
-        fan::vec2 root_window_size = ImGui::GetWindowSize();
-        fan::vec2 next_window_pos;
-        next_window_pos.x = (root_window_size.x - window_size.x) / 2.0f;
-        next_window_pos.y = (root_window_size.y - window_size.y) / 1.1;
-        ImGui::SetNextWindowPos(next_window_pos);
-
-        ImGui::SetNextWindowSize(window_size);
-        ImGui::Begin(window_name.c_str(), 0,
-          ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar |
-          ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar
-        );
-        ImGui::SetCursorPos(ImVec2(100.0f, 100.f));
-        ImGui::BeginChild((window_name + "child").c_str(), fan::vec2(wrap_width, 0), 0, ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar |
-          ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
-        if (wait_user == false) {
-          ImGui::SetScrollY(ImGui::GetScrollMaxY());
         }
-        fan::graphics::text_partial_render(active_dialogue.c_str(), render_pos, wrap_width, line_spacing);
-        ImGui::EndChild();
-        if (wait_user) {
-          fan::vec2 first_pos = -1;
 
+        void render(const std::string& window_name, ImFont* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) {
+          ImGui::PushFont(font);
+          fan::vec2 root_window_size = ImGui::GetWindowSize();
+          fan::vec2 next_window_pos;
+          next_window_pos.x = (root_window_size.x - window_size.x) / 2.0f;
+          next_window_pos.y = (root_window_size.y - window_size.y) / 1.1;
+          ImGui::SetNextWindowPos(next_window_pos);
 
-          // calculate biggest button
-          fan::vec2 button_size = 0;
-          for (std::size_t i = 0; i < buttons.size(); ++i) {
-            fan::vec2 text_size = ImGui::CalcTextSize(buttons[i].text.c_str());
-            float padding_x = ImGui::GetStyle().FramePadding.x;
-            float padding_y = ImGui::GetStyle().FramePadding.y;
-            ImVec2 bs = ImVec2(text_size.x + padding_x * 2.0f, text_size.y + padding_y * 2.0f);
-            button_size = button_size.max(fan::vec2(bs));
+          ImGui::SetNextWindowSize(window_size);
+          ImGui::Begin(window_name.c_str(), 0,
+            ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar |
+            ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar
+          );
+          ImGui::SetCursorPos(ImVec2(100.0f, 100.f));
+          ImGui::BeginChild((window_name + "child").c_str(), fan::vec2(wrap_width, 0), 0, ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar |
+            ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
+          if (wait_user == false) {
+            ImGui::SetScrollY(ImGui::GetScrollMaxY());
           }
+          fan::graphics::text_partial_render(active_dialogue.c_str(), render_pos, wrap_width, line_spacing);
+          ImGui::EndChild();
+          if (wait_user) {
+            fan::vec2 first_pos = -1;
 
-          for (std::size_t i = 0; i < buttons.size(); ++i) {
-            const auto& button = buttons[i];
-            if (button.position != -1) {
-              first_pos = button.position;
-              ImGui::SetCursorPos((button.position * window_size) - button_size / 2);
-              ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetScrollY());
-            }
-            else {
-              ImGui::SetCursorPosX(first_pos.x * window_size.x - button_size.x / 2);
-            }
-            ImGui::PushID(i);
 
-            if (fan::graphics::gui::image_text_button(gloco->default_texture, button.text.c_str(), fan::colors::white, button.size == 0 ? button_size : button.size)) {
-              button_choice = i;
-              buttons.clear();
-              wait_user = false;
+            // calculate biggest button
+            fan::vec2 button_size = 0;
+            for (std::size_t i = 0; i < buttons.size(); ++i) {
+              fan::vec2 text_size = ImGui::CalcTextSize(buttons[i].text.c_str());
+              float padding_x = ImGui::GetStyle().FramePadding.x;
+              float padding_y = ImGui::GetStyle().FramePadding.y;
+              ImVec2 bs = ImVec2(text_size.x + padding_x * 2.0f, text_size.y + padding_y * 2.0f);
+              button_size = button_size.max(fan::vec2(bs));
+            }
+
+            for (std::size_t i = 0; i < buttons.size(); ++i) {
+              const auto& button = buttons[i];
+              if (button.position != -1) {
+                first_pos = button.position;
+                ImGui::SetCursorPos((button.position * window_size) - button_size / 2);
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetScrollY());
+              }
+              else {
+                ImGui::SetCursorPosX(first_pos.x * window_size.x - button_size.x / 2);
+              }
+              ImGui::PushID(i);
+
+              if (fan::graphics::gui::image_text_button(gloco->default_texture, button.text.c_str(), fan::colors::white, button.size == 0 ? button_size : button.size)) {
+                button_choice = i;
+                buttons.clear();
+                wait_user = false;
+                ImGui::PopID();
+                break;
+              }
               ImGui::PopID();
-              break;
             }
-            ImGui::PopID();
           }
+          if (gloco->input_action.is_active("skip or continue dialog") && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)) {
+            finish_dialog = true;
+            wait_user = false;
+          }
+          ImGui::End();
+          ImGui::PopFont();
         }
-        if (gloco->input_action.is_active("skip or continue dialog") && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)) {
-          finish_dialog = true;
-          wait_user = false;
-        }
-        ImGui::End();
-        ImGui::PopFont();
-      }
 
         bool finish_dialog = false; // for skipping
         bool wait_user = false;
