@@ -16,6 +16,79 @@ export module fan.event;
 
 import fan.types.print;
 
+
+export namespace fan{
+  inline constexpr int fs_o_append      = UV_FS_O_APPEND;
+  inline constexpr int fs_o_creat       = UV_FS_O_CREAT;
+  inline constexpr int fs_o_excl        = UV_FS_O_EXCL;
+  inline constexpr int fs_o_filemap     = UV_FS_O_FILEMAP;
+  inline constexpr int fs_o_random      = UV_FS_O_RANDOM;
+  inline constexpr int fs_o_rdonly     = UV_FS_O_RDONLY;
+  inline constexpr int fs_o_rdwr        = UV_FS_O_RDWR;
+  inline constexpr int fs_o_sequential  = UV_FS_O_SEQUENTIAL;
+  inline constexpr int fs_o_short_lived = UV_FS_O_SHORT_LIVED;
+  inline constexpr int fs_o_temporary   = UV_FS_O_TEMPORARY;
+  inline constexpr int fs_o_trunc       = UV_FS_O_TRUNC;
+  inline constexpr int fs_o_wronly      = UV_FS_O_WRONLY;
+
+  inline constexpr int fs_o_direct      = UV_FS_O_DIRECT;
+  inline constexpr int fs_o_directory   = UV_FS_O_DIRECTORY;
+  inline constexpr int fs_o_dsync       = UV_FS_O_DSYNC; 
+  inline constexpr int fs_o_exlock      = UV_FS_O_EXLOCK; 
+  inline constexpr int fs_o_noatime     = UV_FS_O_NOATIME;
+  inline constexpr int fs_o_noctty      = UV_FS_O_NOCTTY;
+  inline constexpr int fs_o_nofollow    = UV_FS_O_NOFOLLOW;
+  inline constexpr int fs_o_nonblock    = UV_FS_O_NONBLOCK;
+  inline constexpr int fs_o_symlink     = UV_FS_O_SYMLINK;
+  inline constexpr int fs_o_sync        = UV_FS_O_SYNC;
+
+  inline constexpr int fs_in        = UV_FS_O_RDONLY;
+  inline constexpr int fs_out       = UV_FS_O_WRONLY | UV_FS_O_CREAT | UV_FS_O_TRUNC;
+  inline constexpr int fs_app       = UV_FS_O_WRONLY | UV_FS_O_APPEND;
+  inline constexpr int fs_trunc     = UV_FS_O_TRUNC;
+  inline constexpr int fs_ate       = UV_FS_O_RDWR;
+  inline constexpr int fs_nocreate  = UV_FS_O_EXCL;
+  inline constexpr int fs_noreplace = UV_FS_O_EXCL;
+
+
+  // User (owner) permissions
+  constexpr int s_irusr = 0400;  // Read permission bit for the owner of the file
+  constexpr int s_iread = 0400;  // Obsolete synonym for BSD compatibility
+
+  constexpr int s_iwusr = 0200;  // Write permission bit for the owner of the file
+  constexpr int s_iwrite = 0200;  // Obsolete synonym for BSD compatibility
+
+  constexpr int s_ixusr = 0100;  // Execute (for ordinary files) or search (for directories) permission bit for the owner
+  constexpr int s_iexec = 0100;  // Obsolete synonym for BSD compatibility
+
+  constexpr int s_irwxu = (s_irusr | s_iwusr | s_ixusr);  // Equivalent to (S_IRUSR | S_IWUSR | S_IXUSR)
+
+  // Group permissions
+  constexpr int s_irgrp = 040;   // Read permission bit for the group owner of the file
+  constexpr int s_iwgrp = 020;   // Write permission bit for the group owner of the file
+  constexpr int s_ixgrp = 010;   // Execute or search permission bit for the group owner of the file
+
+  constexpr int s_irwxg = (s_irgrp | s_iwgrp | s_ixgrp);  // Equivalent to (S_IRGRP | S_IWGRP | S_IXGRP)
+
+  // Other users' permissions
+  constexpr int s_iroth = 04;    // Read permission bit for other users
+  constexpr int s_iwoth = 02;    // Write permission bit for other users
+  constexpr int s_ixoth = 01;    // Execute or search permission bit for other users
+
+  constexpr int s_irwxo = (s_iroth | s_iwoth | s_ixoth);  // Equivalent to (S_IROTH | S_IWOTH | S_IXOTH)
+
+  // Special permission bits
+  constexpr int s_isuid = 04000; // Set-user-ID on execute bit
+  constexpr int s_isgid = 02000; // Set-group-ID on execute bit
+  constexpr int s_isvtx = 01000; // Sticky bit
+
+  constexpr int s_usr_rw = (s_irusr | s_iwusr);   // User read/write
+  constexpr int s_grp_r = s_irgrp;                 // Group read
+  constexpr int s_oth_r = s_iroth;                 // Other read
+
+  constexpr int perm_0644 = s_usr_rw | s_grp_r | s_oth_r;
+}
+
 export namespace fan {
   template <typename T, typename = void>
 struct is_awaitable : std::false_type {};
@@ -114,8 +187,9 @@ inline constexpr bool is_awaitable_v = is_awaitable<T>::value;
           bool await_ready() noexcept { return false; }
 
           void await_suspend(std::coroutine_handle<task_value_promise_t> h) noexcept {
-            if (h.promise().continuation)
+            if (h.promise().continuation) {
               h.promise().continuation.resume();
+            }
           }
 
           void await_resume() noexcept {}
@@ -145,8 +219,9 @@ inline constexpr bool is_awaitable_v = is_awaitable<T>::value;
         struct final_awaiter {
           bool await_ready() noexcept { return false; }
           void await_suspend(std::coroutine_handle<task_value_promise_t> h) noexcept {
-            if (h.promise().continuation)
+            if (h.promise().continuation) {
               h.promise().continuation.resume();
+            }
           }
           void await_resume() noexcept {}
         };
@@ -232,6 +307,7 @@ inline constexpr bool is_awaitable_v = is_awaitable<T>::value;
       ~task_value_wrap_t() {
         if (handle) {
           handle.destroy();
+          handle = nullptr;
         }
       }
       bool valid() const {
@@ -271,26 +347,19 @@ inline constexpr bool is_awaitable_v = is_awaitable<T>::value;
     struct uv_fs_awaitable {
       uv_fs_t req;
       std::coroutine_handle<> handle;
+      bool closed = false;
 
-      uv_fs_awaitable() {
-        req.data = this;
-      }
-
-      ~uv_fs_awaitable() {
-        uv_fs_req_cleanup(&req);
-      }
-
+      uv_fs_awaitable() { req.data = this; }
+      ~uv_fs_awaitable() { uv_fs_req_cleanup(&req); closed = true; }
       uv_fs_awaitable(const uv_fs_awaitable&) = delete;
       uv_fs_awaitable& operator=(const uv_fs_awaitable&) = delete;
       uv_fs_awaitable(uv_fs_awaitable&&) = delete;
       uv_fs_awaitable& operator=(uv_fs_awaitable&&) = delete;
 
       bool await_ready() const noexcept { return false; }
-
       void await_suspend(std::coroutine_handle<> h) noexcept {
         handle = h;
       }
-
       void await_resume() noexcept {}
     };
 
@@ -302,6 +371,9 @@ inline constexpr bool is_awaitable_v = is_awaitable<T>::value;
 
       static void on_open_cb(uv_fs_t* r) {
         auto self = static_cast<uv_fs_open_awaitable*>(r->data);
+        if (self->closed) {
+          return;
+        }
         if (self->handle) {
           self->handle.resume();
         }
@@ -319,12 +391,31 @@ inline constexpr bool is_awaitable_v = is_awaitable<T>::value;
           fan::throw_error("uv_error"_str + uv_strerror(ret));
         }
       }
-
       static void on_read_cb(uv_fs_t* r) {
         auto self = static_cast<uv_fs_read_awaitable*>(r->data);
+        if (self->closed) {
+          return;
+        }
         self->handle.resume();
       }
+      ssize_t result() const noexcept {
+        return req.result;
+      }
+    };
 
+    struct uv_fs_write_awaitable : uv_fs_awaitable {
+      uv_fs_write_awaitable(int fd, const char* buffer, size_t length, int64_t offset) {
+        req.data = this;
+        uv_buf_t buf = uv_buf_init(const_cast<char*>(buffer), length);
+        uv_fs_write(uv_default_loop(), &req, fd, &buf, 1, offset, on_write_cb);
+      }
+      static void on_write_cb(uv_fs_t* req) {
+        auto self = static_cast<uv_fs_write_awaitable*>(req->data);
+        if (self->closed) {
+          return;
+        }
+        self->handle.resume();
+      }
       ssize_t result() const noexcept {
         return req.result;
       }
@@ -335,13 +426,14 @@ inline constexpr bool is_awaitable_v = is_awaitable<T>::value;
         req.data = this;
         uv_fs_close(uv_default_loop(), &req, file, on_close_cb);
       }
-
       static void on_close_cb(uv_fs_t* r) {
         auto self = static_cast<uv_fs_close_awaitable*>(r->data);
+        if (self->closed) {
+          return;
+        }
         self->handle.resume();
       }
     };
-
 
     struct fs_watcher_t {
       struct file_event {
@@ -472,94 +564,100 @@ inline constexpr bool is_awaitable_v = is_awaitable<T>::value;
   using co_sleep = event::timer_t;
 }
 
-export namespace fan {
-  namespace io {
-    namespace file {
-      fan::event::task_value_resume_t<int> async_open(const std::string& path) {
-        fan::event::uv_fs_open_awaitable open_req(path, O_RDONLY, 0);
-        co_await open_req;
-        auto r = open_req.result();
-        if (r < 0) {
-          fan::throw_error("failed to open file:" + path, "error:"_str + uv_strerror(r));
-        }
-        co_return r;
-      }
-
-      fan::event::task_value_resume_t<ssize_t> async_read(int file, char* buffer, size_t buffer_size, int64_t offset) {
-        uv_buf_t buf = uv_buf_init(buffer, buffer_size);
-        fan::event::uv_fs_read_awaitable read_req(file, buf, offset);
-        co_await read_req;
-        auto r = read_req.result();
-        if (r < 0) {
-          fan::throw_error("error reading file", std::to_string(r));
-        }
-        co_return r;
-      }
-      fan::event::task_value_resume_t<ssize_t> async_read(int file, std::string* buffer, int64_t offset, unsigned int buffer_size = 4096) {
-        buffer->resize(buffer_size);
-        uv_buf_t buf = uv_buf_init(buffer->data(), buffer_size);
-        fan::event::uv_fs_read_awaitable read_req(file, buf, offset);
-        co_await read_req;
-        auto r = read_req.result();
-        if (r < 0) {
-          fan::throw_error("error reading file", std::to_string(r));
-        }
-        buffer->resize(r);
-        co_return r;
-      }
-
-      fan::event::task_t async_close(int file) {
-        fan::event::uv_fs_close_awaitable close_req(file);
-        co_await close_req;
-      }
-
-      /*
-      requires cb to be async
-      fan::event::task_value_t<int64_t> async_size(int file) {
-        uv_fs_t stat_req;
-        int r = uv_fs_fstat(uv_default_loop(), &stat_req, file, NULL);
-        if (r < 0) {
-          co_return -1;
-        }
-        co_return stat_req.statbuf.st_size;
-      }
-
-      fan::event::task_value_t<int64_t> async_size(const std::string& path) {
-        uv_fs_t stat_req;
-        int r = uv_fs_stat(uv_default_loop(), &stat_req, path.c_str(), NULL);
-        if (r < 0) {
-          co_return -1;
-        }
-        co_return stat_req.statbuf.st_size;
-      }*/
-
-      template <typename lambda_t>
-      fan::event::task_t async_read_cb(const std::string& path, lambda_t&& lambda, int buffer_size = 64) {
-        int fd = co_await fan::io::file::async_open(path);
-        int offset = 0;
-        std::string buffer;
-        buffer.resize(buffer_size);
-        while (true) {
-
-          std::size_t result = co_await fan::io::file::async_read(fd, buffer.data(), buffer.size(), offset);
-          if (result == 0) {
-            break;
-          }
-
-          std::string chunk(buffer.data(), result);
-
-          if constexpr (is_awaitable_v<decltype(lambda(chunk))>) {
-            co_await lambda(chunk);
-          }
-          else {
-            lambda(chunk);
-          }
-
-          offset += result;
-        }
-
-        co_await fan::io::file::async_close(fd);
-      }
+export namespace fan::io::file {
+  fan::event::task_value_resume_t<int> async_open(const std::string& path, int flags = fan::fs_in, int mode = fan::perm_0644) {
+    fan::event::uv_fs_open_awaitable open_req(path, flags, mode);
+    co_await open_req;
+    auto r = open_req.result();
+    if (r < 0) {
+      fan::throw_error("failed to open file:" + path, "error:"_str + uv_strerror(r));
     }
+    co_return r;
+  }
+
+  fan::event::task_value_resume_t<ssize_t> async_read(int file, char* buffer, size_t buffer_size, int64_t offset) {
+    uv_buf_t buf = uv_buf_init(buffer, buffer_size);
+    fan::event::uv_fs_read_awaitable read_req(file, buf, offset);
+    co_await read_req;
+    auto r = read_req.result();
+    if (r < 0) {
+      fan::throw_error("error reading file", std::to_string(r));
+    }
+    co_return r;
+  }
+  fan::event::task_value_resume_t<ssize_t> async_read(int file, std::string* buffer, int64_t offset, unsigned int buffer_size = 4096) {
+    buffer->resize(buffer_size);
+    uv_buf_t buf = uv_buf_init(buffer->data(), buffer_size);
+    fan::event::uv_fs_read_awaitable read_req(file, buf, offset);
+    co_await read_req;
+    auto r = read_req.result();
+    if (r < 0) {
+      fan::throw_error("error reading file", std::to_string(r));
+    }
+    buffer->resize(r);
+    co_return r;
+  }
+
+  fan::event::task_value_resume_t<ssize_t> async_write(int fd, const char* buffer, size_t length, int64_t offset = 0) {
+    fan::event::uv_fs_write_awaitable write_req(fd, buffer, length, offset);
+    co_await write_req;
+    ssize_t written = write_req.result();
+    if (written < 0) {
+      fan::throw_error("failed to write to file: error:"_str + uv_strerror(static_cast<int>(written)));
+    }
+    co_return written;
+  }
+
+  fan::event::task_t async_close(int file) {
+    fan::event::uv_fs_close_awaitable close_req(file);
+    co_await close_req;
+  }
+
+  /*
+  requires cb to be async
+  fan::event::task_value_t<int64_t> async_size(int file) {
+    uv_fs_t stat_req;
+    int r = uv_fs_fstat(uv_default_loop(), &stat_req, file, NULL);
+    if (r < 0) {
+      co_return -1;
+    }
+    co_return stat_req.statbuf.st_size;
+  }
+
+  fan::event::task_value_t<int64_t> async_size(const std::string& path) {
+    uv_fs_t stat_req;
+    int r = uv_fs_stat(uv_default_loop(), &stat_req, path.c_str(), NULL);
+    if (r < 0) {
+      co_return -1;
+    }
+    co_return stat_req.statbuf.st_size;
+  }*/
+
+  template <typename lambda_t>
+  fan::event::task_t async_read_cb(const std::string& path, lambda_t&& lambda, int buffer_size = 64) {
+    int fd = co_await fan::io::file::async_open(path);
+    int offset = 0;
+    std::string buffer;
+    buffer.resize(buffer_size);
+    while (true) {
+
+      std::size_t result = co_await fan::io::file::async_read(fd, buffer.data(), buffer.size(), offset);
+      if (result == 0) {
+        break;
+      }
+
+      std::string chunk(buffer.data(), result);
+
+      if constexpr (is_awaitable_v<decltype(lambda(chunk))>) {
+        co_await lambda(chunk);
+      }
+      else {
+        lambda(chunk);
+      }
+
+      offset += result;
+    }
+
+    co_await fan::io::file::async_close(fd);
   }
 }
