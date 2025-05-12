@@ -71,25 +71,20 @@ fan::event::task_t example_async_file_write_string(const std::string& path, cons
 int main() {
   auto example_tasks = []() -> fan::event::task_t {
     std::string data;
-    auto task_read_file = example_async_file_read_string("CMakeLists.txt");
-    auto task_read_file_char = example_async_file_read_char("CMakeLists.txt");
-
-    auto task = fan::io::file::async_read_cb("CMakeLists.txt", [&data](const std::string& chunk) {
+    co_await example_async_file_read_string("CMakeLists.txt");
+    co_await example_async_file_read_char("CMakeLists.txt");
+    co_await fan::io::file::async_read_cb("CMakeLists.txt", [&data](const std::string& chunk) {
       data += chunk;
       fan::printr(chunk);
     });
 
-    auto task2 = fan::io::file::async_read_cb("CMakeLists.txt", [](const std::string& chunk) -> fan::event::task_t {
+    co_await fan::io::file::async_read_cb("CMakeLists.txt", [](const std::string& chunk) -> fan::event::task_t {
       fan::printr(chunk);
       co_await fan::co_sleep(100);
     });
 
-    co_await task_read_file;
-    co_await task_read_file_char;
-    co_await task;
-    co_await task2;
-    auto task3 = example_async_file_write_string("2.txt", data);
-    co_await task3;
+    co_await example_async_file_write_string("2.txt", data);
+    co_await fan::io::file::async_write("3.txt", data);
   }();
 
 

@@ -640,24 +640,40 @@ export namespace fan::io::file {
     std::string buffer;
     buffer.resize(buffer_size);
     while (true) {
-
       std::size_t result = co_await fan::io::file::async_read(fd, buffer.data(), buffer.size(), offset);
       if (result == 0) {
         break;
       }
-
       std::string chunk(buffer.data(), result);
-
       if constexpr (is_awaitable_v<decltype(lambda(chunk))>) {
         co_await lambda(chunk);
       }
       else {
         lambda(chunk);
       }
-
       offset += result;
     }
-
     co_await fan::io::file::async_close(fd);
   }
+  fan::event::task_t async_write(const std::string& path, const std::string& data) {
+    int fd = co_await fan::io::file::async_open(path, fan::fs_out);
+
+    size_t offset = 0;
+    size_t buffer_size = 4096;
+    size_t total_written = 0;
+
+    while (total_written < data.size()) {
+      size_t remaining = data.size() - total_written;
+      size_t to_write = std::min(remaining, buffer_size);
+
+      std::string buffer(data.data() + total_written, to_write);
+      std::size_t written = co_await fan::io::file::async_write(fd, buffer.data(), buffer.size(), offset + total_written);
+      if (written == 0) {
+        fan::throw_error("write failed");
+      }
+      total_written += written;
+    }
+    co_await fan::io::file::async_close(fd);
+  }
+
 }
