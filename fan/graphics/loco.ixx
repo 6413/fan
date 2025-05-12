@@ -2041,7 +2041,7 @@ public:
 
     return 0;
   }
-  void loop(const std::function<void()>& lambda) {
+  void loop(const std::function<void()>& lambda = []{}) {
     main_loop = lambda;
   g_loop:
     double delay = std::round(1.0 / target_fps * 1000.0);

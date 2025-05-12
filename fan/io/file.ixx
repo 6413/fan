@@ -149,7 +149,7 @@ export namespace fan {
 				return 0;
 			}
 
-			uint64_t file_size(const std::string& filename) {
+			uint64_t size(const std::string& filename) {
 				std::ifstream f(filename.c_str(), std::ifstream::ate | std::ifstream::binary);
 				return f.tellg();
 			}
