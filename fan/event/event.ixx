@@ -17,6 +17,19 @@ export module fan.event;
 import fan.types.print;
 
 export namespace fan {
+  template <typename T, typename = void>
+struct is_awaitable : std::false_type {};
+
+template <typename T>
+struct is_awaitable<T, std::void_t<
+    decltype(std::declval<T>().await_ready()),
+    decltype(std::declval<T>().await_suspend(std::declval<std::coroutine_handle<>>())),
+    decltype(std::declval<T>().await_resume())
+>> : std::true_type {};
+
+template <typename T>
+inline constexpr bool is_awaitable_v = is_awaitable<T>::value;
+
   namespace event {
     struct error_code_t {
       int code;
@@ -30,7 +43,7 @@ export namespace fan {
     struct timer_t {
       struct timer_data {
         uv_timer_t timer_handle;
-        std::coroutine_handle<> co_handle;
+        std::coroutine_handle<> co_handle = nullptr;
         int ready{ 0 };
       };
 
@@ -48,15 +61,16 @@ export namespace fan {
         uv_timer_init(uv_default_loop(), &data->timer_handle);
         data->timer_handle.data = data.get();
       }
-
-      timer_t(uint64_t  timeout, uint64_t repeat = 0)
+      // timeout in ms
+      timer_t(uint64_t timeout, uint64_t repeat = 0)
         : data(new timer_data{}, timer_deleter{}) {
         uv_timer_init(uv_default_loop(), &data->timer_handle);
         data->timer_handle.data = data.get();
         start(timeout, repeat);
       }
 
-      error_code_t start(uint64_t  timeout, uint64_t repeat = 0) noexcept {
+      // timeout in ms
+      error_code_t start(uint64_t timeout, uint64_t repeat = 0) noexcept {
         return uv_timer_start(&data->timer_handle, [](uv_timer_t* timer_handle) {
           auto data = static_cast<timer_data*>(timer_handle->data);
           ++data->ready;
@@ -84,68 +98,250 @@ export namespace fan {
       };
     };
 
-    struct task_promise_t {
-      std::coroutine_handle<> _continuation;
-      std::exception_ptr _exception;
+    template<typename T, typename suspend_type_t>
+    struct task_value_wrap_t;
 
-      task_promise_t() : _continuation{ std::noop_coroutine() } { }
-      task_promise_t(const task_promise_t&) = delete;
-      task_promise_t(task_promise_t&&) = default;
+    template<typename T, typename suspend_type_t>
+    struct task_value_promise_t {
+      T value;
+      std::exception_ptr exception = nullptr;
+      std::coroutine_handle<> continuation = nullptr;
 
-      std::coroutine_handle<task_promise_t> get_return_object() noexcept {
-        return std::coroutine_handle<task_promise_t>::from_promise(*this);
-      }
-      std::coroutine_handle<> continuation() const noexcept { return _continuation; }
-      void set_continuation(std::coroutine_handle<> h) noexcept { _continuation = h; }
-      std::suspend_never initial_suspend() { return {}; }
+      task_value_wrap_t<T, suspend_type_t> get_return_object();
+      suspend_type_t initial_suspend() noexcept { return {}; }
       auto final_suspend() noexcept {
-        struct final_awaiter_t {
-          bool await_ready() const noexcept { return false; }
-          auto await_suspend(std::coroutine_handle<task_promise_t> ch) const noexcept { return ch.promise()._continuation; }
-          void await_resume() const noexcept {}
+        struct final_awaiter {
+          bool await_ready() noexcept { return false; }
+
+          void await_suspend(std::coroutine_handle<task_value_promise_t> h) noexcept {
+            if (h.promise().continuation)
+              h.promise().continuation.resume();
+          }
+
+          void await_resume() noexcept {}
         };
-        return final_awaiter_t{};
+
+        return final_awaiter{};
       }
-      void unhandled_exception() { _exception = std::current_exception(); }
-      void return_void() {}
+      void return_value(T&& val) {
+        value = std::move(val);
+      }
+      void return_value(const T& val) {
+        value = val;
+      }
+      void unhandled_exception() {
+        exception = std::current_exception();
+      }
     };
 
-    struct task_t {
-      using promise_type = task_promise_t;
-      task_t() {}
-      task_t(std::coroutine_handle<task_promise_t> ch) : _handle(ch) { }
-      task_t(const task_t&) = delete;
-      task_t(task_t&& f) : _handle(f._handle) {
-        f._handle = nullptr;
+    template<typename suspend_type_t>
+    struct task_value_promise_t<void, suspend_type_t> {
+      std::exception_ptr exception = nullptr;
+      std::coroutine_handle<> continuation = nullptr;
+
+      task_value_wrap_t<void, suspend_type_t> get_return_object();
+      suspend_type_t initial_suspend() noexcept { return {}; }
+      auto final_suspend() noexcept {
+        struct final_awaiter {
+          bool await_ready() noexcept { return false; }
+          void await_suspend(std::coroutine_handle<task_value_promise_t> h) noexcept {
+            if (h.promise().continuation)
+              h.promise().continuation.resume();
+          }
+          void await_resume() noexcept {}
+        };
+        return final_awaiter{};
       }
-      task_t& operator=(task_t&& f) {
+      void return_void() {}
+      void unhandled_exception() {
+        exception = std::current_exception();
+      }
+    };
+
+    template<typename T, typename suspend_type_t>
+    struct task_value_wrap_t {
+      using promise_type = task_value_promise_t<T, suspend_type_t>;
+
+      task_value_wrap_t() {}
+      task_value_wrap_t(std::coroutine_handle<promise_type> ch) : handle(ch) {}
+      task_value_wrap_t(const task_value_wrap_t&) = delete;
+      task_value_wrap_t(task_value_wrap_t&& other) : handle(other.handle) {
+        other.handle = nullptr;
+      }
+      task_value_wrap_t& operator=(task_value_wrap_t&& other) {
         destroy();
-        std::swap(_handle, f._handle);
+        std::swap(handle, other.handle);
         return *this;
       }
       void destroy() {
-        if (_handle) {
-          _handle.destroy();
-          _handle = nullptr;
+        if (handle) {
+          handle.destroy();
+          handle = nullptr;
         }
       }
-      ~task_t() { if (_handle) { _handle.destroy(); } }
-
-      bool valid() const { return static_cast<bool>(_handle); }
-      bool await_ready() const noexcept {
-        return _handle.done();
+      ~task_value_wrap_t() {
+        if (handle) {
+          handle.destroy();
+        }
       }
-      void await_suspend(std::coroutine_handle<> ch) noexcept {
-        _handle.promise()._continuation = ch;
+      bool valid() const {
+        return static_cast<bool>(handle);
+      }
+      bool await_ready() const noexcept {
+        return handle.done();
+      }
+      void await_suspend(std::coroutine_handle<> continuation_handle) noexcept {
+        handle.promise().continuation = continuation_handle;
+      }
+      T await_resume() {
+        if (handle.promise().exception) {
+          std::rethrow_exception(handle.promise().exception);
+        }
+        return std::move(handle.promise().value);
+      }
+
+      std::coroutine_handle<promise_type> handle = nullptr;
+    };
+
+    template <typename T, typename suspend_type_t>
+    task_value_wrap_t<T, suspend_type_t> task_value_promise_t<T, suspend_type_t>::get_return_object() {
+      return task_value_wrap_t<T, suspend_type_t>{std::coroutine_handle<task_value_promise_t<T, suspend_type_t>>::from_promise(*this)};
+    }
+
+    template<typename suspend_type_t>
+    struct task_value_wrap_t<void, suspend_type_t> {
+      using promise_type = task_value_promise_t<void, suspend_type_t>;
+
+      task_value_wrap_t() {}
+      task_value_wrap_t(std::coroutine_handle<promise_type> ch) : handle(ch) {}
+      task_value_wrap_t(const task_value_wrap_t&) = delete;
+      task_value_wrap_t(task_value_wrap_t&& other) : handle(other.handle) {
+        other.handle = nullptr;
+      }
+      task_value_wrap_t& operator=(task_value_wrap_t&& other) {
+        destroy();
+        std::swap(handle, other.handle);
+        return *this;
+      }
+      void destroy() {
+        if (handle) {
+          handle.destroy();
+          handle = nullptr;
+        }
+      }
+      ~task_value_wrap_t() {
+        if (handle) {
+          handle.destroy();
+        }
+      }
+      bool valid() const {
+        return static_cast<bool>(handle);
+      }
+      bool await_ready() const noexcept {
+        return handle.done();
+      }
+      void await_suspend(std::coroutine_handle<> continuation_handle) noexcept {
+        handle.promise().continuation = continuation_handle;
       }
       void await_resume() {
-        if (_handle.promise()._exception) {
-          std::rethrow_exception(_handle.promise()._exception);
+        if (handle.promise().exception) {
+          std::rethrow_exception(handle.promise().exception);
         }
       }
 
-      std::coroutine_handle<task_promise_t> _handle = nullptr;
+      std::coroutine_handle<promise_type> handle = nullptr;
     };
+
+    template <typename suspend_type_t>
+    task_value_wrap_t<void, suspend_type_t> task_value_promise_t<void, suspend_type_t>::get_return_object() {
+      return task_value_wrap_t<void, suspend_type_t>{std::coroutine_handle<task_value_promise_t<void, suspend_type_t>>::from_promise(*this)};
+    }
+
+    using task_suspend_t = task_value_wrap_t<void, std::suspend_always>;
+    using task_resume_t = task_value_wrap_t<void, std::suspend_never>;
+
+    template <typename T>
+    using task_value_t = task_value_wrap_t<T, std::suspend_always>;
+
+    template <typename T>
+    using task_value_resume_t = task_value_wrap_t<T, std::suspend_never>;
+
+    using task_t = task_resume_t;
+
+    struct uv_fs_awaitable {
+      uv_fs_t req;
+      std::coroutine_handle<> handle;
+
+      uv_fs_awaitable() {
+        req.data = this;
+      }
+
+      ~uv_fs_awaitable() {
+        uv_fs_req_cleanup(&req);
+      }
+
+      uv_fs_awaitable(const uv_fs_awaitable&) = delete;
+      uv_fs_awaitable& operator=(const uv_fs_awaitable&) = delete;
+      uv_fs_awaitable(uv_fs_awaitable&&) = delete;
+      uv_fs_awaitable& operator=(uv_fs_awaitable&&) = delete;
+
+      bool await_ready() const noexcept { return false; }
+
+      void await_suspend(std::coroutine_handle<> h) noexcept {
+        handle = h;
+      }
+
+      void await_resume() noexcept {}
+    };
+
+    struct uv_fs_open_awaitable : uv_fs_awaitable {
+      uv_fs_open_awaitable(const std::string& path, int flags, int mode) {
+        req.data = this;
+        uv_fs_open(uv_default_loop(), &req, path.c_str(), flags, mode, on_open_cb);
+      }
+
+      static void on_open_cb(uv_fs_t* r) {
+        auto self = static_cast<uv_fs_open_awaitable*>(r->data);
+        if (self->handle) {
+          self->handle.resume();
+        }
+      }
+
+      int result() const noexcept {
+        return req.result;
+      }
+    };
+
+    struct uv_fs_read_awaitable : uv_fs_awaitable {
+      uv_fs_read_awaitable(int file, uv_buf_t buf, int64_t offset) {
+        int ret = uv_fs_read(uv_default_loop(), &req, file, &buf, 1, offset, on_read_cb);
+        if (ret < 0) {
+          fan::throw_error("uv_error"_str + uv_strerror(ret));
+        }
+      }
+
+      static void on_read_cb(uv_fs_t* r) {
+        auto self = static_cast<uv_fs_read_awaitable*>(r->data);
+        self->handle.resume();
+      }
+
+      ssize_t result() const noexcept {
+        return req.result;
+      }
+    };
+
+    struct uv_fs_close_awaitable : uv_fs_awaitable {
+      uv_fs_close_awaitable(int file) {
+        req.data = this;
+        uv_fs_close(uv_default_loop(), &req, file, on_close_cb);
+      }
+
+      static void on_close_cb(uv_fs_t* r) {
+        auto self = static_cast<uv_fs_close_awaitable*>(r->data);
+        self->handle.resume();
+      }
+    };
+
 
     struct fs_watcher_t {
       struct file_event {
@@ -222,6 +418,7 @@ export namespace fan {
         uv_timer_stop(&timer);
       }
     };
+
     fan::event::task_t timer_task(uint64_t time, auto l) {
       while (true) {
         if (l()) {
@@ -268,6 +465,101 @@ export namespace fan {
     void sleep(unsigned int msec) {
       uv_sleep(msec);
     }
+    void loop() {
+      uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+    }
   }
   using co_sleep = event::timer_t;
+}
+
+export namespace fan {
+  namespace io {
+    namespace file {
+      fan::event::task_value_resume_t<int> async_open(const std::string& path) {
+        fan::event::uv_fs_open_awaitable open_req(path, O_RDONLY, 0);
+        co_await open_req;
+        auto r = open_req.result();
+        if (r < 0) {
+          fan::throw_error("failed to open file:" + path, "error:"_str + uv_strerror(r));
+        }
+        co_return r;
+      }
+
+      fan::event::task_value_resume_t<ssize_t> async_read(int file, char* buffer, size_t buffer_size, int64_t offset) {
+        uv_buf_t buf = uv_buf_init(buffer, buffer_size);
+        fan::event::uv_fs_read_awaitable read_req(file, buf, offset);
+        co_await read_req;
+        auto r = read_req.result();
+        if (r < 0) {
+          fan::throw_error("error reading file", std::to_string(r));
+        }
+        co_return r;
+      }
+      fan::event::task_value_resume_t<ssize_t> async_read(int file, std::string* buffer, int64_t offset, unsigned int buffer_size = 4096) {
+        buffer->resize(buffer_size);
+        uv_buf_t buf = uv_buf_init(buffer->data(), buffer_size);
+        fan::event::uv_fs_read_awaitable read_req(file, buf, offset);
+        co_await read_req;
+        auto r = read_req.result();
+        if (r < 0) {
+          fan::throw_error("error reading file", std::to_string(r));
+        }
+        buffer->resize(r);
+        co_return r;
+      }
+
+      fan::event::task_t async_close(int file) {
+        fan::event::uv_fs_close_awaitable close_req(file);
+        co_await close_req;
+      }
+
+      /*
+      requires cb to be async
+      fan::event::task_value_t<int64_t> async_size(int file) {
+        uv_fs_t stat_req;
+        int r = uv_fs_fstat(uv_default_loop(), &stat_req, file, NULL);
+        if (r < 0) {
+          co_return -1;
+        }
+        co_return stat_req.statbuf.st_size;
+      }
+
+      fan::event::task_value_t<int64_t> async_size(const std::string& path) {
+        uv_fs_t stat_req;
+        int r = uv_fs_stat(uv_default_loop(), &stat_req, path.c_str(), NULL);
+        if (r < 0) {
+          co_return -1;
+        }
+        co_return stat_req.statbuf.st_size;
+      }*/
+
+      template <typename lambda_t>
+      fan::event::task_t async_read_cb(const std::string& path, lambda_t&& lambda, int buffer_size = 64) {
+        int fd = co_await fan::io::file::async_open(path);
+        int offset = 0;
+        std::string buffer;
+        buffer.resize(buffer_size);
+        while (true) {
+
+          std::size_t result = co_await fan::io::file::async_read(fd, buffer.data(), buffer.size(), offset);
+          if (result == 0) {
+            break;
+          }
+
+          std::string chunk(buffer.data(), result);
+
+          if constexpr (is_awaitable_v<decltype(lambda(chunk))>) {
+            co_await lambda(chunk);
+          }
+          else {
+            lambda(chunk);
+          }
+
+          offset += result;
+        }
+
+        co_await fan::io::file::async_close(fd);
+      }
+    }
+  }
 }
