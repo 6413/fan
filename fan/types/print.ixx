@@ -28,6 +28,12 @@ export namespace fan {
     ((std::cout << args << (++idx == sizeof...(args) ? "" : ", ")), ...);
     std::cout << '\n';
   }
+  // print raw
+  template <typename ...Args>
+  constexpr void printr(const Args&... args) {
+    int idx = 0;
+    ((std::cout << args), ...);
+  }
 
   template<typename T>
   auto convert_uint8(T value) {
@@ -79,7 +85,7 @@ export namespace fan {
 
   template <typename ...Args>
   constexpr void throw_error(const Args&... args) {
- //   fan::print(args...);
+    fan::print(args...);
     fan::throw_error_impl();
   }
 
@@ -119,4 +125,8 @@ export namespace fan {
       #endif
     }
   }
+}
+
+export constexpr std::string operator"" _str(const char* str, std::size_t) {
+  return std::string(str);
 }
