@@ -17,7 +17,7 @@ fan::event::task_t example_async_file_read_string(const std::string& path) {
 
     fan::printr(buffer);
     offset += result;
-    co_await fan::co_sleep(100);
+    co_await fan::co_sleep(10);
   }
 
   co_await fan::io::file::async_close(fd);
@@ -35,7 +35,7 @@ fan::event::task_t example_async_file_read_char(const std::string& path) {
     buffer[result] = '\0';
     fan::printr(buffer);
     offset += result;
-    co_await fan::co_sleep(100);
+    co_await fan::co_sleep(10);
   }
 
   co_await fan::io::file::async_close(fd);
@@ -80,13 +80,17 @@ int main() {
 
     co_await fan::io::file::async_read_cb("CMakeLists.txt", [](const std::string& chunk) -> fan::event::task_t {
       fan::printr(chunk);
-      co_await fan::co_sleep(100);
+      co_await fan::co_sleep(50);
     });
+
+    fan::print("\n\n\n");
+
+    std::string contents = co_await fan::io::file::async_read("3.txt");
+    fan::print(contents);
 
     co_await example_async_file_write_string("2.txt", data);
     co_await fan::io::file::async_write("3.txt", data);
   }();
-
 
   fan::event::loop();
 

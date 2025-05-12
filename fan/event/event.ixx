@@ -655,6 +655,26 @@ export namespace fan::io::file {
     }
     co_await fan::io::file::async_close(fd);
   }
+  fan::event::task_value_resume_t<std::string> async_read(const std::string& path, int buffer_size = 4096) {
+    int fd = co_await fan::io::file::async_open(path);
+    int offset = 0;
+    std::string buffer;
+    buffer.resize(buffer_size);
+    std::string content;
+
+    while (true) {
+      std::size_t result = co_await fan::io::file::async_read(fd, buffer.data(), buffer.size(), offset);
+      if (result == 0) {
+        break;
+      }
+      content.append(buffer.data(), result);
+      offset += result;
+    }
+
+    co_await fan::io::file::async_close(fd);
+    co_return content;
+  }
+
   fan::event::task_t async_write(const std::string& path, const std::string& data) {
     int fd = co_await fan::io::file::async_open(path, fan::fs_out);
 
