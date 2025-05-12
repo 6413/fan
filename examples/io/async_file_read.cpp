@@ -1,9 +1,6 @@
 #include <coroutine>
 #include <string>
 #include <fstream>
-#include <uv.h>
-#undef min
-#undef max
 
 import fan;
 
