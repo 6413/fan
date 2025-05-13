@@ -2,7 +2,7 @@
 
 #include <ios>
 
-import fan.types.print;
+import fan.print;
 import fan.window.input_common;
 
 void fan::sys::set_utf8_cout() {

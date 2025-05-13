@@ -18,7 +18,7 @@ module;
 
 export module fan.graphics.stb;
 
-import fan.types.print;
+import fan.print;
 import fan.types.vector;
 import fan.io.file;
 

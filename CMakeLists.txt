@@ -120,7 +120,7 @@ apply_fan_definitions(fan_modules)
 
 
 set(MODULE_FILES
-	${ROOT_PATH}/types/print.ixx
+	${ROOT_PATH}/print.ixx
 	${ROOT_PATH}/types/color.ixx
 	${ROOT_PATH}/types/vector.ixx
 	${ROOT_PATH}/types/quaternion.ixx

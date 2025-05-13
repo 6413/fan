@@ -12,7 +12,7 @@ module;
 
 export module fan.types.fstring;
 
-import fan.types.print; // for throw_error with msg
+import fan.print; // for throw_error with msg
 import fan.types.vector;
 
 export namespace fan {

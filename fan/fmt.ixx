@@ -16,7 +16,7 @@ module;
 export module fan.fmt;
 
 import fan.types.vector;
-import fan.types.print;
+import fan.print;
 import fan.types.fstring;
 
 export namespace fan {

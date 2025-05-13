@@ -20,7 +20,7 @@ module;
 
 export module fan.graphics.gui;
 
-import fan.types.print;
+import fan.print;
 import fan.types.color;
 import fan.types.vector;
 import fan.types.quaternion;

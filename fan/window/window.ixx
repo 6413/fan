@@ -22,7 +22,7 @@ module;
 
 export module fan.window;
 
-import fan.types.print;
+import fan.print;
 import fan.types.vector;
 import fan.window.input_common;
 import fan.window.input;

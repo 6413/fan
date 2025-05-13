@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
   //  }};
   //};
 
-  fan::ev::fs_watcher_t fs_watcher(uv_default_loop(), "examples/games/boss/");
+  fan::ev::fs_watcher_t fs_watcher("examples/games/boss/");
 
   fs_watcher.start([&](const std::string& filename, int events) {
     if (!(events & UV_CHANGE)) {
