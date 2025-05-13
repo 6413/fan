@@ -1,6 +1,6 @@
 export module fan;
 
-export import fan.types.print;
+export import fan.print;
 export import fan.types.vector;
 export import fan.types.color;
 export import fan.types.matrix;

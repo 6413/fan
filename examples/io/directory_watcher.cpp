@@ -1,23 +1,20 @@
-#include <fan/ev/ev.h>
-#include <fan/types/print.h>
+import fan.print;
+import fan.event;
 
 int main() {
-  uv_loop_t* loop = uv_default_loop();
-
-  fan::event::fs_watcher_t watcher(loop, "./watch_dir");
+  fan::event::fs_watcher_t watcher("./");
 
   watcher.start([](const std::string& filename, int events) {
     fan::print("latest event for file: " + filename);
-    if (events & UV_CHANGE) {
+    if (events & fan::fs_change) {
       fan::print("file modified");
     }
-    if (events & UV_RENAME) {
+    if (events & fan::fs_rename) {
       fan::print("file renamed/deleted");
     }
   });
 
-  uv_run(loop, UV_RUN_DEFAULT);
-  uv_loop_close(loop);
+  fan::event::loop();
 
   return 0;
 }

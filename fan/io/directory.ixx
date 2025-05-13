@@ -11,7 +11,7 @@ export module fan.io.directory;
 
 import fan.graphics.webp;
 import fan.types.vector;
-import fan.types.print;
+import fan.print;
 
 export namespace fan {
   namespace io {

@@ -11,7 +11,7 @@ module;
 export module fan.types.magic;
 
 import fan.fmt;
-import fan.types.print;
+import fan.print;
 import fan.types.fstring;
 
 export namespace fan {

@@ -9,7 +9,7 @@ module;
 
 export module fan.io.file;
 
-import fan.types.print;
+import fan.print;
 import fan.types.vector;
 
 export namespace fan {

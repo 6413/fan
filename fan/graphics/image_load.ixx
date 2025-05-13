@@ -10,7 +10,7 @@ export module fan.graphics.image_load;
   import fan.graphics.stb;
 #endif
 
-import fan.types.print;
+import fan.print;
 import fan.types.vector;
 import fan.graphics.webp;
 

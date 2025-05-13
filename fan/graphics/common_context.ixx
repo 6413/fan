@@ -11,7 +11,7 @@ module;
 
 export module fan.graphics.common_context;
 
-import fan.types.print;
+import fan.print;
 import fan.types.color;
 import fan.types.vector;
 import fan.types.matrix;

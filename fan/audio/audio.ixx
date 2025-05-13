@@ -38,7 +38,7 @@ module;
 
 export module fan.audio;
 
-import fan.types.print;
+import fan.print;
 import fan.io.file;
 
 export namespace fan {

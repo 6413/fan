@@ -8,7 +8,7 @@ module;
 
 export module fan.graphics.gui.tilemap_editor.loader;
 
-import fan.types.print;
+import fan.print;
 import fan.types.vector;
 import fan.types.color;
 import fan.window.input;
