@@ -613,7 +613,8 @@ export namespace fan {
 
       void set_root(const loco_t::vfi_t::properties_t& p) {
         fan::graphics::vfi_t::properties_t in = p;
-        in.shape_type = loco_t::vfi_t::shape_t::rectangle;
+        fan::throw_error("A");
+        //in.shape_type = loco_t::vfi_t::shape_t::rectangle;
         in.shape.rectangle->viewport = p.shape.rectangle->viewport;
         in.shape.rectangle->camera = p.shape.rectangle->camera;
         in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {
@@ -833,7 +834,8 @@ export namespace fan {
     struct vfi_multiroot_custom_t {
       void push_root(const loco_t::vfi_t::properties_t& p) {
         loco_t::vfi_t::properties_t in = p;
-        in.shape_type = loco_t::vfi_t::shape_t::rectangle;
+        fan::throw_error("?");
+        //in.shape_type = loco_t::vfi_t::shape_t::rectangle;
         in.shape.rectangle->viewport = p.shape.rectangle->viewport;
         in.shape.rectangle->camera = p.shape.rectangle->camera;
         in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {

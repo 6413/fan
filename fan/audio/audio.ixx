@@ -27,7 +27,8 @@ module;
 #include <algorithm>
 #include <string>
 #include <cmath>
-
+#include <chrono>
+#include <functional>
 #include <opus/opus.h>
 
 #if fan_audio_set_backend == 0

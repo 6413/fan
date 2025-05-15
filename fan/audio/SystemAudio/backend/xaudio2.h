@@ -9,43 +9,47 @@ IXAudio2 *ctx = NULL;
 IXAudio2MasteringVoice *MasterVoice = NULL;
 IXAudio2SourceVoice *SourceVoice = NULL;
 
-f32_t frames[2][_constants::CallFrameCount * _constants::ChannelAmount];
-uint8_t framesi = 0;
+static constexpr int buffer_count = 2;
 
+f32_t frames[buffer_count][_constants::CallFrameCount * _constants::ChannelAmount];
+uint8_t framesi = 0;
 struct xacb_t : IXAudio2VoiceCallback{
   void __stdcall OnStreamEnd() { }
 
   void __stdcall OnVoiceProcessingPassEnd() { }
   void __stdcall OnVoiceProcessingPassStart(UINT32 SamplesRequired) { }
-  void __stdcall OnBufferEnd(void *p){
-    auto system_audio = (system_audio_t *)p;
+  void __stdcall OnBufferEnd(void* p) {
+    auto system_audio = (system_audio_t*)p;
     auto This = &system_audio->Out;
 
-    f32_t *frames = This->frames[This->framesi];
-
+    f32_t* frames = This->frames[This->framesi];
     __builtin_memset(frames, 0, sizeof(This->frames[0]));
 
     system_audio->Process._DataCallback(frames);
 
-    f32_t Volume = This->Volume * This->InternalVolume;
+    //system_audio->Process._DataCallbackPcm(frames);
 
-    for(uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++){
+
+    f32_t Volume = This->Volume * This->InternalVolume;
+    for (uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++) {
       frames[i] *= Volume;
     }
 
-    XAUDIO2_BUFFER xabuf = {0};
+    XAUDIO2_BUFFER xabuf = { 0 };
     xabuf.AudioBytes = _constants::CallFrameCount * _constants::ChannelAmount * sizeof(f32_t);
-    xabuf.pAudioData = (uint8_t *)frames;
+    xabuf.pAudioData = (uint8_t*)frames;
     xabuf.pContext = p;
 
     HRESULT hr = This->SourceVoice->SubmitSourceBuffer(&xabuf);
-    if(FAILED(hr)){
+    if (FAILED(hr)) {
       fan::throw_error("xaudio2", __LINE__);
     }
 
     This->framesi++;
-    This->framesi %= 2;
+    This->framesi %= buffer_count;
   }
+
+
   void __stdcall OnBufferStart(void* pBufferContext) { }
   void __stdcall OnLoopEnd(void* pBufferContext) { }
   void __stdcall OnVoiceError(void* pBufferContext, HRESULT Error) { }
@@ -96,7 +100,7 @@ sint32_t Open(){
 
   this->SourceVoice->Start(0);
 
-  for(uint8_t i = 0; i < 2; i++){
+  for(uint8_t i = 0; i < buffer_count; i++){
     __builtin_memset(frames[framesi], 0, sizeof(frames[0]));
 
     XAUDIO2_BUFFER xabuf = {0};
@@ -110,7 +114,7 @@ sint32_t Open(){
     }
 
     framesi++;
-    framesi = framesi % 2;
+    framesi = framesi % buffer_count;
   }
 
   return 0;

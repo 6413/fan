@@ -1,5 +1,10 @@
-#include <fan/pch.h>
+#include <fan/types/types.h>
 
+import fan.event;
+import fan.audio;
+import fan.print;
+import fan.graphics.loco;
+import fan.graphics;
 static constexpr f32_t zoom_sensitivity = 1.2;
 
 static constexpr f32_t amplitude = 1;

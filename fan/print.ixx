@@ -25,7 +25,7 @@ export namespace fan {
   template <typename ...Args>
   constexpr void print(const Args&... args) {
     int idx = 0;
-    ((std::cout << args << (++idx == sizeof...(args) ? "" : ", ")), ...);
+    ((std::cout << args << (++idx == sizeof...(args) ? "" : " ")), ...);
     std::cout << '\n';
   }
   // print raw
@@ -33,6 +33,12 @@ export namespace fan {
   constexpr void printr(const Args&... args) {
     int idx = 0;
     ((std::cout << args), ...);
+  }
+  template <typename ...Args>
+  constexpr void printc(const Args&... args) {
+    int idx = 0;
+    ((std::cout << args << (++idx == sizeof...(args) ? "" : ", ")), ...);
+    std::cout << '\n';
   }
 
   template<typename T>

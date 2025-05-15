@@ -1,4 +1,5 @@
 using piece_t = system_audio_t::piece_t;
+using stream_t = system_audio_t::stream_t;
 using SoundPlayID_t = system_audio_t::SoundPlayID_t;
 using PropertiesSoundPlay_t = system_audio_t::PropertiesSoundPlay_t;
 using PropertiesSoundStop_t = system_audio_t::PropertiesSoundStop_t;
@@ -15,6 +16,17 @@ void bind(system_audio_t *p_system_audio){
 }
 void unbind(){
 
+}
+
+sint32_t OpenStream(stream_t *stream){
+  stream->_stream = new system_audio_t::_stream_t;
+  system_audio_t::_stream_t  *_stream; _stream = stream->_stream;
+
+  _stream->ChannelAmount = system_audio_t::_constants::ChannelAmount;
+  _stream->BeginCut = 0; // ?
+  _stream->TotalSegments = 0;
+  _stream->FrameAmount = 2;
+  return 0;
 }
 
 sint32_t Open(piece_t *piece, FS_file_t *file, PieceFlag::t Flag){
@@ -179,6 +191,7 @@ SoundPlayID_t SoundPlay(piece_t *piece, const PropertiesSoundPlay_t *Properties)
   auto pnr = system_audio->Process.PlayInfoList.NewNode();
   auto PlayInfo = &system_audio->Process.PlayInfoList[pnr];
   PlayInfo->_piece = piece->_piece;
+  PlayInfo->PlayType = 0;
   PlayInfo->GroupID = Properties->GroupID;
   PlayInfo->PlayID = (uint32_t)-1;
   PlayInfo->properties = *Properties;
@@ -204,6 +217,41 @@ void SoundStop(SoundPlayID_t &SoundPlayID, const PropertiesSoundStop_t *Properti
   Message->Data.SoundStop.SoundPlayID = SoundPlayID;
   Message->Data.SoundStop.Properties = *Properties;
   TH_unlock(&system_audio->Process.MessageQueueListMutex);
+}
+
+// kinda duplicate
+SoundPlayID_t StreamPlay(stream_t *stream, const PropertiesSoundPlay_t *Properties) {
+  if(Properties->GroupID >= system_audio->Process.GroupAmount) {
+    TH_lock(&system_audio->Process.PlayInfoListMutex);
+    system_audio->Process.GroupList = (system_audio_t::Process_t::_Group_t *)A_resize(system_audio->Process.GroupList, sizeof(system_audio_t::Process_t::_Group_t) * (Properties->GroupID + 1));
+    for(; system_audio->Process.GroupAmount <= Properties->GroupID; ++system_audio->Process.GroupAmount){
+      system_audio->Process.GroupList[system_audio->Process.GroupAmount].FirstReference = system_audio->Process.PlayInfoList.NewNodeLast();
+      system_audio->Process.GroupList[system_audio->Process.GroupAmount].LastReference = system_audio->Process.PlayInfoList.NewNodeLast();
+    }
+  }
+  else{
+    TH_lock(&system_audio->Process.PlayInfoListMutex);
+  }
+  auto pnr = system_audio->Process.PlayInfoList.NewNode();
+  auto PlayInfo = &system_audio->Process.PlayInfoList[pnr];
+  PlayInfo->_stream = stream->_stream;
+  PlayInfo->PlayType = 1; // 1 stream
+  PlayInfo->GroupID = Properties->GroupID;
+  PlayInfo->PlayID = (uint32_t)-1;
+  PlayInfo->properties = *Properties;
+  PlayInfo->offset = 0;
+  PlayInfo->unique = system_audio->Process.PlayInfoListUnique++;
+  system_audio->Process.PlayInfoList.linkPrev(system_audio->Process.GroupList[Properties->GroupID].LastReference, pnr);
+  TH_unlock(&system_audio->Process.PlayInfoListMutex);
+
+  TH_lock(&system_audio->Process.MessageQueueListMutex);
+  VEC_handle0(&system_audio->Process.MessageQueueList, 1);
+  _Message_t* Message = &((_Message_t *)system_audio->Process.MessageQueueList.ptr)[system_audio->Process.MessageQueueList.Current - 1];
+  Message->Type = _MessageType_t::SoundPlay;
+  Message->Data.SoundPlay.PlayInfoReference = pnr;
+  TH_unlock(&system_audio->Process.MessageQueueListMutex);
+
+  return {.nr = pnr, .unique = PlayInfo->unique};
 }
 
 void PauseGroup(uint32_t GroupID) {

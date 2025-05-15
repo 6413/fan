@@ -6,6 +6,7 @@ module;
 #include <vulkan/vulkan.h>
 #endif
 #if defined(fan_platform_windows)
+  #define WIN32_LEAN_AND_MEAN
   #include <Windows.h>
   #define GLFW_EXPOSE_NATIVE_WIN32
   #define GLFW_EXPOSE_NATIVE_WGL

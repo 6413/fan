@@ -98,6 +98,46 @@ struct piece_t {
   _piece_t *_piece = 0;
 };
 
+struct pcm_format{
+  enum {
+    int8,
+    int16,
+    int24,
+    int32,
+    float32,
+    float64,
+    half_float
+    // do I need planar
+  };
+};
+
+struct Process_t;
+
+struct _stream_t {
+  uint8_t type = pcm_format::float32;
+  uint8_t ChannelAmount;
+  uint16_t BeginCut;
+  uint32_t TotalSegments;
+  uint64_t FrameAmount;
+
+  int64_t GetFrameAmount(){
+    return FrameAmount - BeginCut;
+  }
+
+  std::function<void(Process_t *, f32_t *, uint32_t)> buffer_end_cb = [](Process_t *, f32_t *, uint32_t){};
+
+  uint32_t ReferenceCount = 0;
+  bool WantClose = false;
+};
+
+struct stream_t {
+  _stream_t *_stream = 0;
+
+  void set_buffer_end_cb(const std::function<void(Process_t *, f32_t *, uint32_t)>& cb) {
+    _stream->buffer_end_cb = cb;
+  }
+};
+
 #define BLL_set_Language 1
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix _CacheList
@@ -139,6 +179,8 @@ typedef uint32_t SoundPlayUnique_t;
 #define BLL_set_type_node uint32_t
 #define BLL_set_NodeData \
   _piece_t *_piece; \
+  _stream_t *_stream; \
+  uint32_t PlayType; \
   uint32_t GroupID; \
   uint32_t PlayID; \
   PropertiesSoundPlay_t properties; \
