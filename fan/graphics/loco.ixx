@@ -2436,6 +2436,7 @@ public:
   using get_dst_cb = fan::vec3(*)(loco_t::shape_t*);
   using get_outline_size_cb = f32_t(*)(loco_t::shape_t*);
   using get_outline_color_cb = fan::color(*)(loco_t::shape_t*);
+  using set_outline_color_cb = void(*)(loco_t::shape_t*, const fan::color&);
 
   using reload_cb = void (*)(loco_t::shape_t*, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter);
 
@@ -2500,6 +2501,7 @@ public:
     get_dst_cb get_dst;
     get_outline_size_cb get_outline_size;
     get_outline_color_cb get_outline_color;
+    set_outline_color_cb set_outline_color;
 
     reload_cb reload;
 
@@ -3068,6 +3070,10 @@ public:
 
     fan::color get_outline_color() {
       return gloco->shape_functions[get_shape_type()].get_outline_color(this);
+    }
+
+    void set_outline_color(const fan::color& color) {
+      return gloco->shape_functions[get_shape_type()].set_outline_color(this, color);
     }
 
     void reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter = fan::graphics::image_filter::linear) {

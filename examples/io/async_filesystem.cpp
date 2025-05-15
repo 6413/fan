@@ -119,6 +119,5 @@ int main() {
   }();
 
   fan::event::loop();
-
   return 0;
 }
