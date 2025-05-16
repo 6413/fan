@@ -25,6 +25,7 @@ export import fan.event;
 export import fan.graphics.gui;
 #endif
 #if defined(fan_physics)
+export import fan.physics.collision.rectangle;
 export import fan.physics.b2_integration;
 export import fan.graphics.physics_shapes;
 #endif

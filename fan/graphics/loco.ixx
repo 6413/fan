@@ -3089,6 +3089,20 @@ public:
       gloco->shape_functions[get_shape_type()].set_line(this, src, dst);
     }
 
+    bool is_mouse_inside() {
+      switch (get_shape_type()) {
+      case shape_type_t::rectangle: {
+        return fan_2d::collision::rectangle::point_inside_no_rotation(
+          gloco->get_mouse_position(get_camera(), get_viewport()),
+          get_position(),
+          get_size()
+        );
+      }
+      default: {
+        break;
+      }
+      }
+    }
 
   private:
   };
@@ -5772,11 +5786,16 @@ export namespace fan {
       return memcmp(&piece, test_block, sizeof(piece));
     }
 
-    void play(fan::audio_t::piece_t piece, uint32_t group_id = 0, bool loop = false) {
-      fan::audio_t::PropertiesSoundPlay_t p;
+    fan::audio_t::SoundPlayID_t play(fan::audio_t::piece_t piece, uint32_t group_id = 0, bool loop = false) {
+      fan::audio_t::PropertiesSoundPlay_t p{};
       p.Flags.Loop = loop;
       p.GroupID = 0;
-      gloco->audio.SoundPlay(&piece, &p);
+      return gloco->audio.SoundPlay(&piece, &p);
+    }
+    void stop(fan::audio_t::SoundPlayID_t id) {
+      fan::audio_t::PropertiesSoundStop_t p{};
+      p.FadeOutTo = 0;
+      gloco->audio.SoundStop(id, &p);
     }
     void resume(uint32_t group_id = 0) {
       gloco->audio.Resume();
