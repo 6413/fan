@@ -528,9 +528,13 @@ void _DataCallback(f32_t *Output) {
         Properties->FadeFrom += (f32_t)FrameCacheAmount / _constants::opus_decode_sample_rate;
       }
       else {
+        // is size always same
+        std::vector<f32_t> temporary_audio(std::size_t(FrameCacheAmount * _constants::ChannelAmount));
+        std::memcpy(temporary_audio.data(), FrameCachePointer, FrameCacheAmount* _constants::ChannelAmount*sizeof(f32_t));
+        _piece->buffer_end_cb(this, _piece, PlayInfoReference.NRI, temporary_audio.data(), FrameCacheAmount);
         std::transform(
-          &FrameCachePointer[0],
-          &FrameCachePointer[FrameCacheAmount * _constants::ChannelAmount],
+          &temporary_audio.data()[0],
+          &temporary_audio.data()[FrameCacheAmount * _constants::ChannelAmount],
           &((f32_t*)Output)[OutputIndex * _constants::ChannelAmount],
           &((f32_t*)Output)[OutputIndex * _constants::ChannelAmount],
           std::plus<f32_t>{});
