@@ -30,7 +30,7 @@
 - **Audio**: Currently only [SAC](https://github.com/7244/SAC-container) is supported.
 ## Installation
 
-Requires C++23, Clang-17 >=, CMake 2.8.* >=, Ninja 1.11.1 >=.
+Requires C++23, Clang-20 >=, CMake 2.8.* >=, Ninja 1.11.1 >=.
 Library plans to use modules in future.
 
 ### Linux
