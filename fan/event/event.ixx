@@ -576,8 +576,8 @@ export namespace fan {
     void sleep(unsigned int msec) {
       uv_sleep(msec);
     }
-    void loop() {
-      uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+    void loop(bool once = false) {
+      uv_run(uv_default_loop(), once ? UV_RUN_ONCE : UV_RUN_DEFAULT);
     }
 
     std::string strerror(int err) {

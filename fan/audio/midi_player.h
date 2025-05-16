@@ -207,44 +207,17 @@ g_return:
 
 std::vector<fan::audio::piece_t> pieces;
 
+
 struct EventGroup {
   double timestamp_ms;
   std::vector<midi_midi_event> events;
   bool is_chord;
 };
 
+
 std::queue<EventGroup> event_queue;
 std::mutex queue_mutex;
 
-void midi_event_cb(midi_player& player, const midi_midi_event& event) {
-  double tick_duration_ms = 0;
-
-  if (player.header.time_division > 0) {
-    tick_duration_ms = (double)player.tempo_us_per_quarter / 1000.0 / player.header.time_division;
-  }
-
-  player.current_time_ms += player.parser.vtime * tick_duration_ms;
-  
-  std::lock_guard<std::mutex> lock(queue_mutex);
-
-  // < 15 ms  apart = octave
-  if (event_queue.empty() || std::abs(event_queue.back().timestamp_ms - player.current_time_ms) > 2.0) {
-    EventGroup new_group;
-    new_group.timestamp_ms = player.current_time_ms;
-    new_group.events.push_back(event);
-    event_queue.push(new_group);
-  }
-  else {
-    event_queue.back().events.push_back(event);
-  }
-
-  if (event.status == MIDI_STATUS_NOTE_ON && event.param2 > 0) {
-    // Uncomment if needed
-    // fan::print("Queued note:", (int)event.param1, "velocity:", (int)event.param2,
-    //   "channel:", (int)event.channel, "at time:", player.current_time_ms, "ms", 
-    //   "tempo:", current_bpm, "BPM");
-  }
-}
 
 void meta_event_cb(midi_player& player, const midi_meta_event& event) {
   if (event.type == MIDI_META_TRACK_NAME && event.length > 0) {
@@ -273,45 +246,97 @@ void sysex_event_cb(midi_player& player, const midi_sysex_event& event) {
 
 void play_event_group(const EventGroup& group);
 
-fan::event::task_t process_event_queue() {
-  double last_timestamp = 0;
+struct PlaybackState {
+  int64_t playback_start_time_us;
+  bool is_playing;               
+  double current_position_ms;    
+  f32_t playback_speed;         
+  std::mutex state_mutex;        
+};
+
+PlaybackState playback_state = {
+  .playback_start_time_us = 0,
+  .is_playing = false,
+  .current_position_ms = 0,
+  .playback_speed = 1.0
+};
+
+void midi_timer_callback() {
+  std::lock_guard<std::mutex> lock(playback_state.state_mutex);
   
-  while (true) {
-    bool has_events = false;
-    EventGroup current_group;
+  if (!playback_state.is_playing) {
+    return;
+  }
+  
+  int64_t elapsed_us = (fan::time::clock::now() / 1000.0) - playback_state.playback_start_time_us;
+  double current_music_time_ms = (elapsed_us / 1000.0) * playback_state.playback_speed;
+  playback_state.current_position_ms = current_music_time_ms;
+  
+  std::vector<EventGroup> events_to_play;
+  
+  {
+    std::lock_guard<std::mutex> queue_lock(queue_mutex);
+    while (!event_queue.empty() && event_queue.front().timestamp_ms <= current_music_time_ms) {
+      events_to_play.push_back(event_queue.front());
+      event_queue.pop();
+    }
+  }
+  
+  for (const auto& group : events_to_play) {
+    play_event_group(group);
+  }
+}
+
+void start_playback(double start_position_ms = 0.0) {
+  std::lock_guard<std::mutex> lock(playback_state.state_mutex);
+  
+  playback_state.playback_start_time_us = (fan::time::clock::now() / 1000.0) - 
+    static_cast<int64_t>((start_position_ms / playback_state.playback_speed) * 1000);
+  playback_state.current_position_ms = start_position_ms;
+  playback_state.is_playing = true;
+}
+
+void pause_playback() {
+  std::lock_guard<std::mutex> lock(playback_state.state_mutex);
+  playback_state.is_playing = false;
+}
+
+void set_playback_speed(double speed) {
+  std::lock_guard<std::mutex> lock(playback_state.state_mutex);
+  
+  if (playback_state.is_playing) {
+    int64_t now = (fan::time::clock::now() / 1000.0);
+    int64_t elapsed_us = now - playback_state.playback_start_time_us;
+    double old_position_ms = (elapsed_us / 1000.0) * playback_state.playback_speed;
     
-    {
-      std::lock_guard<std::mutex> lock(queue_mutex);
-      if (!event_queue.empty()) {
-        has_events = true;
-        current_group = event_queue.front();
-        event_queue.pop();
-      }
-    }
-    
-    if (has_events) {
-      // Calculate sleep time based on timestamp difference
-      if (last_timestamp > 0) {
-        double sleep_time = current_group.timestamp_ms - last_timestamp;
-        
-        // Use current_bpm for timing, which gets updated whenever tempo changes
-        //double time_per_beat_ms = 60000.0 / current_bpm;
-        
-        // Calculate how long we should actually wait based on current tempo
-        double time_adjusted_for_bpm = sleep_time;
-        
-        if (time_adjusted_for_bpm > 0) {
-          co_await fan::co_sleep(time_adjusted_for_bpm);
-        }
-      }
-      
-      // Play all events in this group simultaneously
-      play_event_group(current_group);
-      last_timestamp = current_group.timestamp_ms;
-    }
-    else {
-      // No events to process, yield for a short time
-      co_await fan::co_sleep(1);
-    }
+    playback_state.playback_start_time_us = now - 
+      static_cast<int64_t>((old_position_ms / speed) * 1000);
+  }
+  
+  playback_state.playback_speed = speed;
+}
+
+void midi_event_cb(midi_player& player, const midi_midi_event& event) {
+  double tick_duration_ms = 0;
+
+  if (player.header.time_division > 0) {
+    tick_duration_ms = (double)player.tempo_us_per_quarter / 1000.0 / player.header.time_division;
+  }
+
+  player.current_time_ms += player.parser.vtime * tick_duration_ms;
+  
+  std::lock_guard<std::mutex> lock(queue_mutex);
+
+  // octave
+  if ((event_queue.empty() || std::abs(event_queue.back().timestamp_ms - player.current_time_ms) > 1.0)) {
+    EventGroup new_group;
+    new_group.timestamp_ms = player.current_time_ms;
+    new_group.events.push_back(event);
+    new_group.is_chord = false;
+    event_queue.push(new_group);
+  }
+  else {
+    event_queue.back().events.push_back(event);
+    event_queue.back().is_chord = true;
   }
 }

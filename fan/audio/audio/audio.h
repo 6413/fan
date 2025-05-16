@@ -1,4 +1,5 @@
 using piece_t = system_audio_t::piece_t;
+using _piece_t = system_audio_t::_piece_t;
 using stream_t = system_audio_t::stream_t;
 using SoundPlayID_t = system_audio_t::SoundPlayID_t;
 using PropertiesSoundPlay_t = system_audio_t::PropertiesSoundPlay_t;

@@ -20,37 +20,42 @@
 #include <fan/math/math.h>
 
 #include <fan/imgui/implot.h>
+#include <fan/time/timer.h>
 
 import fan;
 
 #include <fan/graphics/types.h>
 
+
 #include <fan/audio/midi_parser.h>
 #include <fan/audio/midi_player.h>
 
 void load_audio_pieces() {
-  static constexpr const char* notes[] = {
-    "a", "as", "b", "c", "cs", "d", "ds", "e", "f", "fs", "g", "gs"
-  };
+  //static constexpr const char* notes[] = {
+  //  "a", "as", "b", "c", "cs", "d", "ds", "e", "f", "fs", "g", "gs"
+  //};
 
-  pieces.reserve(88);
+  //pieces.reserve(88);
 
-  int octave_counter = 9;
+  //int octave_counter = 9;
 
-  //int inital_note_offset = 
-  for (int i = 0; i < 8; ++i) {
-    for (int note = 0; note < std::size(notes); ++note) {
-      if (i == 7 && note == 4) {
-        break;
-      }
-      //fan::print(octave_counter / 12, notes[note]);
-      std::string path = "audio/piano keys/" + (std::to_string(octave_counter / 12) + "-" + notes[note]) + ".sac";
-      pieces.push_back(fan::audio::open_piece(path));
-      octave_counter = (octave_counter + 1);
-    }
+  ////int inital_note_offset = 
+  //for (int i = 0; i < 8; ++i) {
+  //  for (int note = 0; note < std::size(notes); ++note) {
+  //    if (i == 7 && note == 4) {
+  //      break;
+  //    }
+  //    //fan::print(octave_counter / 12, notes[note]);
+  //    std::string path = "audio/piano keys/" + (std::to_string(octave_counter / 12) + "-" + notes[note]) + ".sac";
+  //    pieces.push_back(fan::audio::open_piece(path));
+  //    octave_counter = (octave_counter + 1);
+  //  }
+  //}
+  for (int i = 1; i <= 88; ++i) {
+    std::string path = "audio/steinway keys/" + (std::to_string(i)) + ".sac";
+    pieces.push_back(fan::audio::open_piece(path));
   }
 }
-
 
 struct piano_key_t {
   fan::graphics::rectangle_t visual;
@@ -66,7 +71,6 @@ static constexpr int total_keys = last_midi_note - first_midi_note + 1;
 const std::array<std::string, 12> note_names = {
   "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
 };
-
 
 struct piano_t {
 
@@ -130,11 +134,80 @@ struct piano_t {
 }piano;
 
 
-void play_event_group(const EventGroup& group) {
-  fan::print("Playing event group at time:", group.timestamp_ms, "ms with", group.events.size(), "events");
+struct envelope_t {
 
+  static constexpr f32_t attack_time = 0.005f;
+  static constexpr f32_t decay_time = 0.8f;
+  static constexpr f32_t sustain_level = 0.4f;
+  static constexpr f32_t release_time = 0.1f;
+
+  static constexpr uint32_t sample_rate = fan::system_audio_t::_constants::opus_decode_sample_rate;
+  static constexpr uint32_t channel_count = fan::system_audio_t::_constants::ChannelAmount;
+  static constexpr int attack_samples = attack_time * sample_rate;
+  static constexpr int decay_samples = decay_time * sample_rate;
+  static constexpr int sustain_samples = sample_rate;
+  static constexpr int release_samples = release_time * sample_rate;
+
+  static constexpr int total_samples = channel_count * (attack_samples + decay_samples + sustain_samples + release_samples);
+
+  // hardcoded for 2 channels
+  static std::vector<f32_t> generate() {
+    std::vector<f32_t> envelope;
+    envelope.reserve(total_samples);
+
+    for (int i = 0; i < attack_samples; ++i) {
+      f32_t value = f32_t(i) / attack_samples;
+      envelope.push_back(value);
+      envelope.push_back(value * 0.98);
+    }
+    for (int i = 0; i < decay_samples; ++i) {
+      f32_t value = 1.0f - (1.0f - sustain_level) * (f32_t(i) / decay_samples);
+      envelope.push_back(value);
+      envelope.push_back(value * 0.99);
+    }
+     f32_t last_sustain_value = 0.0f;
+     for (int i = 0; i < sustain_samples; ++i) {
+       //f32_t decay_factor = std::pow(0.01f, static_cast<f32_t>(i) / sustain_samples);
+       f32_t decay_factor = 1.0f - (1.0f - sustain_level) * (f32_t(i) / sustain_samples);
+       f32_t value = sustain_level * decay_factor;
+       last_sustain_value = value; // store last value
+       envelope.push_back(value);
+       envelope.push_back(value);
+     }
+
+     if (last_sustain_value < 1e-5f) {
+       for (int i = 0; i < release_samples; ++i) {
+         envelope.push_back(0.0f);
+         envelope.push_back(0.0f);
+       }
+     }
+     else {
+       for (int i = 0; i < release_samples; ++i) {
+         f32_t value = last_sustain_value * (1.0f - static_cast<f32_t>(i) / release_samples);
+         envelope.push_back(value);
+         envelope.push_back(value * 0.97f);
+       }
+     }
+    return envelope;
+  }
+};
+
+std::vector<f32_t> envelope = envelope_t::generate();
+
+
+
+struct key_info_t {
+  int position = 0;
+  f32_t velocity = 0;
+  fan::audio_t::SoundPlayID_t play_id;
+};
+
+std::unordered_map<fan::audio_t::_piece_t*, std::vector<key_info_t>> key_info;
+
+void play_event_group(const EventGroup& group) {
   std::vector<int> notes_to_play;
   std::vector<int> notes_to_stop;
+  std::vector<uint8_t> note_velocities;
 
   for (const auto& event : group.events) {
     constexpr int midi_key_offset = 21; // A0
@@ -143,8 +216,7 @@ void play_event_group(const EventGroup& group) {
       int index = event.param1 - midi_key_offset;
       if (index >= 0 && index < pieces.size()) {
         notes_to_play.push_back(index);
-        //fan::print("  Note ON:", (int)event.param1, "velocity:", (int)event.param2,
-        //  "channel:", (int)event.channel);
+        note_velocities.push_back(event.param2);
       }
     }
     else if (event.status == MIDI_STATUS_NOTE_OFF ||
@@ -152,19 +224,41 @@ void play_event_group(const EventGroup& group) {
     {
       int index = event.param1 - midi_key_offset;
       notes_to_stop.push_back(index);
-      //  fan::print("  Note OFF:", (int)event.param1, "channel:", (int)event.channel);
     }
   }
 
-  for (int index : notes_to_play) {
+  for (size_t i = 0; i < notes_to_play.size(); i++) {
+    int index = notes_to_play[i];
+    uint8_t velocity = note_velocities[i];
+    
     if (index >= 0 && index < pieces.size()) {
-      fan::audio::play(pieces[index]);
-      piano.keys[index].visual.set_color(fan::color::rgb(168, 59, 59));
+      auto found = key_info.find(pieces[index]._piece);
+      if (found == key_info.end()) {
+        fan::throw_error("AA");
+      }
+
+      found->second.push_back({});
+      auto& sound = found->second.back();
+      float velocity_normalized = velocity / 127.0f;
+
+      sound.velocity = velocity_normalized;
+
+      fan::color key_color = fan::color::rgb(
+        168 + (87 * (1.0f - velocity_normalized)),
+        59 * velocity_normalized,
+        59 * velocity_normalized
+      );
+      piano.keys[index].visual.set_color(key_color);
+
+      // Play the note
+      sound.play_id = fan::audio::play(pieces[index]);
+      sound.position = 0;
     }
   }
+  
   for (int index : notes_to_stop) {
     if (index >= 0 && index < pieces.size()) {
-       int note_in_octave = index % 12;
+      int note_in_octave = index % 12;
 
       bool is_black = (
         note_in_octave == 1  ||  // A#
@@ -181,7 +275,65 @@ void play_event_group(const EventGroup& group) {
       }
     }
   }
+}
+
+void apply_envelope(fan::graphics::engine_t& engine) {
+  auto lambda = [](fan::system_audio_t::Process_t* Process, fan::audio_t::_piece_t* piece, uint32_t play_id, f32_t* samples, uint32_t samplesi) {
+    const int attack_samples = envelope_t::attack_samples;
+    const int decay_samples = envelope_t::decay_samples;
+    const int sustain_samples = envelope_t::sustain_samples;
+    const int release_samples = envelope_t::release_samples;
+
+    const int pre_release_samples = attack_samples + decay_samples + sustain_samples;
+
+    auto found = key_info.find(piece);
+    if (found == key_info.end()) {
+      fan::throw_error("AA");
+    }
+
+    for (int j = 0; j < found->second.size(); ++j) {
+      auto& sound = found->second[j];
+      if (sound.play_id.nr.NRI != play_id) {
+        continue;
+      }
+
+      for (int i = 0; i < samplesi; ++i) {
+        int envelope_index = sound.position;
+        ++sound.position;
+
+        int left_idx = envelope_index * 2;
+        int right_idx = left_idx + 1;
+
+        if (right_idx > envelope.size()) {
+          sound.position = 0;
+          if (sound.play_id.iic() == false) {
+            fan::audio::stop(sound.play_id);
+            sound.play_id.sic();
+          }
+          std::memset(samples, 0, samplesi * 2 * sizeof(f32_t));
+          found->second.erase(found->second.begin() + j); // --i?
+          --j;
+          continue;
+        }
+        if (right_idx < envelope.size()) {
+          samples[i * 2] *= envelope[left_idx] * sound.velocity;
+          samples[i * 2 + 1] *= envelope[right_idx] * sound.velocity;
+        }
+        else {
+          samples[i * 2] = 0;
+          samples[i * 2 + 1] = 0;
+        }
+      }
+      if (sound.play_id.nr.NRI == play_id) {
+        break;
+      }
+    }
+  };
   
+  for (auto& piece : pieces) {
+    piece._piece->buffer_end_cb = lambda;
+    key_info[piece._piece];
+  }
 }
 
 int main() {
@@ -191,10 +343,12 @@ int main() {
 
   load_audio_pieces();
 
-  std::string midi_file_path = "audio/ballade4.mid";
+  std::string midi_file_path = "audio/rhapsody22.mid";
   midi_player midi_player;
 
-  auto queue_processor = process_event_queue();
+  //auto queue_processor = process_event_queue();
+
+  apply_envelope(engine);
 
   auto midi_task = [&]()->fan::event::task_t {
     midi_player = co_await create_midi_player(
@@ -205,7 +359,7 @@ int main() {
     );
     
     while (co_await process_midi_events(midi_player)) {
-      co_await fan::co_sleep(0);
+      co_await fan::co_sleep(1);
     }
   }();
 
@@ -213,13 +367,23 @@ int main() {
 
   piano.init(engine);
 
+  midi_timer_callback();
+
+  start_playback();
+
   engine.loop([&] {
-   /* fan_graphics_gui_window("audio controls") {
+    midi_timer_callback();
+
+    fan_graphics_gui_window("audio controls") {
       
+      if (fan::graphics::gui::drag_float("bpm", &playback_state.playback_speed, 0.01, 0.01)) {
+
+      }
+
       if (fan::graphics::gui::drag_float("volume", &volume, 0.01f, 0.0f, 1.0f)) {
         fan::audio::set_volume(volume);
       }
-    }*/
+    }
     
 
     if (ImPlot::BeginPlot("pcm")) {

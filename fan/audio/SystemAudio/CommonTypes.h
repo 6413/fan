@@ -63,6 +63,9 @@ struct PieceFlag{
   static constexpr t nonsimu = 0x00000001;
 };
 
+struct Process_t;
+struct piece_t;
+
 struct _piece_t{
   uint8_t ChannelAmount;
   uint16_t BeginCut;
@@ -93,6 +96,8 @@ struct _piece_t{
   uint64_t GetFrameAmount(){
     return FrameAmount - BeginCut;
   }
+
+  std::function<void(Process_t *, _piece_t*, uint32_t, f32_t *, uint32_t)> buffer_end_cb = [](Process_t *, _piece_t*, uint32_t, f32_t *, uint32_t){};
 };
 struct piece_t {
   _piece_t *_piece = 0;
@@ -110,8 +115,6 @@ struct pcm_format{
     // do I need planar
   };
 };
-
-struct Process_t;
 
 struct _stream_t {
   uint8_t type = pcm_format::float32;
