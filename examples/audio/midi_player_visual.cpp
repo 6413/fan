@@ -352,12 +352,14 @@ int main() {
 
   midi_timer_callback();
 
-  start_playback();
 
   engine.loop([&] {
     midi_timer_callback();
 
     fan_graphics_gui_window("audio controls") {
+      if (fan::graphics::gui::button("play")) {
+        start_playback();
+      }
       static f32_t playback_speed = 1.0;
       if (fan::graphics::gui::drag_float("bpm", &playback_speed, 0.01, 0.01)) {
         set_playback_speed(playback_speed);
