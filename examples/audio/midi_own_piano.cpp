@@ -58,7 +58,7 @@ HWND hWnd = NULL;
 
 std::string getNoteNameFromNumber(int midiNote) {
   const char* noteNames[] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
-  int octave = (midiNote / 12) - 1;  // MIDI note 60 is C4
+  int octave = (midiNote / 12) - 1;
   int noteInOctave = midiNote % 12;
   return noteNames[noteInOctave] + std::to_string(octave);
 }
@@ -301,7 +301,6 @@ void scanAndOpenMidiDevices() {
     midiInGetDevCaps(i, &midiInCaps, sizeof(MIDIINCAPS));
     std::cout << "[" << i << "] " << midiInCaps.szPname << std::endl;
 
-    // Try to open each device
     openMidiDevice(i);
   }
 
@@ -315,9 +314,7 @@ void scanAndOpenMidiDevices() {
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
   switch (uMsg) {
   case WM_DEVICECHANGE: {
-    // Device change detected
     if (wParam == DBT_DEVICEARRIVAL || wParam == DBT_DEVICEREMOVECOMPLETE) {
-      // Trigger device scanning in main thread to avoid thread safety issues
       PostMessage(hwnd, WM_MIDIDEVICE_CHANGE, 0, 0);
     }
     break;
@@ -332,7 +329,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 }
 
 HWND createHiddenWindow() {
-  // Register window class
   WNDCLASSEX wc = { 0 };
   wc.cbSize = sizeof(WNDCLASSEX);
   wc.lpfnWndProc = WindowProc;
@@ -347,8 +343,8 @@ HWND createHiddenWindow() {
     "MidiDeviceNotification",
     "Midi Device Notification Window",
     0,
-    0, 0, 0, 0,  // Position and size (not visible)
-    HWND_MESSAGE,  // Message-only window
+    0, 0, 0, 0,
+    HWND_MESSAGE,
     NULL,
     GetModuleHandle(NULL),
     NULL
@@ -357,13 +353,11 @@ HWND createHiddenWindow() {
   return hwnd;
 }
 
-// Register for device notifications
 void registerForDeviceNotifications(HWND hwnd) {
   DEV_BROADCAST_DEVICEINTERFACE notificationFilter = { 0 };
   notificationFilter.dbcc_size = sizeof(DEV_BROADCAST_DEVICEINTERFACE);
   notificationFilter.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
 
-  // Register for device interface changes
   HDEVNOTIFY hDevNotify = RegisterDeviceNotification(
     hwnd,
     &notificationFilter,
@@ -375,12 +369,10 @@ void registerForDeviceNotifications(HWND hwnd) {
   }
 }
 
-// Window message processing thread
 void messageLoop() {
   MSG msg;
   while (GetMessage(&msg, NULL, 0, 0) > 0) {
     if (msg.message == WM_MIDIDEVICE_CHANGE) {
-      // Device change notification
       std::cout << "\nMIDI device change detected - rescanning devices...\n" << std::endl;
       scanAndOpenMidiDevices();
     }
@@ -393,7 +385,7 @@ void messageLoop() {
 BOOL WINAPI ConsoleHandler(DWORD signal) {
   if (signal == CTRL_C_EVENT) {
     isRunning = false;
-    PostQuitMessage(0);  // Exit message loop
+    PostQuitMessage(0);
     return TRUE;
   }
   return FALSE;

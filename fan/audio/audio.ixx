@@ -30,6 +30,7 @@ module;
 #include <chrono>
 #include <functional>
 #include <opus/opus.h>
+#include <cstring>
 
 #if fan_audio_set_backend == 0
   #include <xaudio2.h>
