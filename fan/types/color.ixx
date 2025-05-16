@@ -302,6 +302,7 @@ export namespace fan {
 		inline constexpr fan::color orange = fan::color::hex(0xFFA500FF);
 		inline constexpr fan::color pink = fan::color::hex(0xFF35B8FF);
 		inline constexpr fan::color yellow = fan::color::hex(0xFFFF00FF);
+    inline constexpr fan::color gold = fan::color::hex(0xFFD700FF);
 		inline constexpr fan::color cyan = fan::color::hex(0x00FFFFFF);
 		inline constexpr fan::color magenta = fan::color::hex(0xFF00FFFF);
 		inline constexpr fan::color transparent = fan::color(0, 0, 0, 0);

@@ -31,26 +31,6 @@ import fan;
 #include <fan/audio/midi_player.h>
 
 void load_audio_pieces() {
-  //static constexpr const char* notes[] = {
-  //  "a", "as", "b", "c", "cs", "d", "ds", "e", "f", "fs", "g", "gs"
-  //};
-
-  //pieces.reserve(88);
-
-  //int octave_counter = 9;
-
-  ////int inital_note_offset = 
-  //for (int i = 0; i < 8; ++i) {
-  //  for (int note = 0; note < std::size(notes); ++note) {
-  //    if (i == 7 && note == 4) {
-  //      break;
-  //    }
-  //    //fan::print(octave_counter / 12, notes[note]);
-  //    std::string path = "audio/piano keys/" + (std::to_string(octave_counter / 12) + "-" + notes[note]) + ".sac";
-  //    pieces.push_back(fan::audio::open_piece(path));
-  //    octave_counter = (octave_counter + 1);
-  //  }
-  //}
   for (int i = 1; i <= 88; ++i) {
     std::string path = "audio/steinway keys/" + (std::to_string(i)) + ".sac";
     pieces.push_back(fan::audio::open_piece(path));
@@ -133,13 +113,12 @@ struct piano_t {
   std::vector<piano_key_t> keys;
 }piano;
 
-
 struct envelope_t {
 
-  static constexpr f32_t attack_time = 0.005f;
-  static constexpr f32_t decay_time = 0.8f;
-  static constexpr f32_t sustain_level = 0.4f;
-  static constexpr f32_t release_time = 0.1f;
+  static constexpr f32_t attack_time = 0.003f;        
+  static constexpr f32_t decay_time = 0.9f;           
+  static constexpr f32_t sustain_level = 0.35f;       
+  static constexpr f32_t release_time = 2.0f;         
 
   static constexpr uint32_t sample_rate = fan::system_audio_t::_constants::opus_decode_sample_rate;
   static constexpr uint32_t channel_count = fan::system_audio_t::_constants::ChannelAmount;
@@ -194,8 +173,6 @@ struct envelope_t {
 
 std::vector<f32_t> envelope = envelope_t::generate();
 
-
-
 struct key_info_t {
   int position = 0;
   f32_t velocity = 0;
@@ -234,25 +211,29 @@ void play_event_group(const EventGroup& group) {
     if (index >= 0 && index < pieces.size()) {
       auto found = key_info.find(pieces[index]._piece);
       if (found == key_info.end()) {
-        fan::throw_error("AA");
+        key_info[pieces[index]._piece] = std::vector<key_info_t>();
+        found = key_info.find(pieces[index]._piece);
       }
 
-      found->second.push_back({});
+      key_info_t new_key_info;
+      new_key_info.position = 0;
+      new_key_info.velocity = velocity / 127.0f;
+      
+      if (found->second.size() + 1 > found->second.capacity()) {
+        found->second.reserve(found->second.size() + 10);
+      }
+      
+      found->second.push_back(new_key_info);
       auto& sound = found->second.back();
-      float velocity_normalized = velocity / 127.0f;
-
-      sound.velocity = velocity_normalized;
 
       fan::color key_color = fan::color::rgb(
-        168 + (87 * (1.0f - velocity_normalized)),
-        59 * velocity_normalized,
-        59 * velocity_normalized
+        168 + (87 * (1.0f - sound.velocity)),
+        59 * sound.velocity,
+        59 * sound.velocity
       );
       piano.keys[index].visual.set_color(key_color);
 
-      // Play the note
       sound.play_id = fan::audio::play(pieces[index]);
-      sound.position = 0;
     }
   }
   
@@ -277,6 +258,7 @@ void play_event_group(const EventGroup& group) {
   }
 }
 
+
 void apply_envelope(fan::graphics::engine_t& engine) {
   auto lambda = [](fan::system_audio_t::Process_t* Process, fan::audio_t::_piece_t* piece, uint32_t play_id, f32_t* samples, uint32_t samplesi) {
     const int attack_samples = envelope_t::attack_samples;
@@ -288,7 +270,7 @@ void apply_envelope(fan::graphics::engine_t& engine) {
 
     auto found = key_info.find(piece);
     if (found == key_info.end()) {
-      fan::throw_error("AA");
+      return;
     }
 
     for (int j = 0; j < found->second.size(); ++j) {
@@ -304,26 +286,25 @@ void apply_envelope(fan::graphics::engine_t& engine) {
         int left_idx = envelope_index * 2;
         int right_idx = left_idx + 1;
 
-        if (right_idx > envelope.size()) {
+        if (left_idx >= envelope.size() || right_idx >= envelope.size()) {
           sound.position = 0;
           if (sound.play_id.iic() == false) {
             fan::audio::stop(sound.play_id);
             sound.play_id.sic();
           }
           std::memset(samples, 0, samplesi * 2 * sizeof(f32_t));
-          found->second.erase(found->second.begin() + j); // --i?
-          --j;
-          continue;
+          
+          if (j < found->second.size()) {
+            found->second.erase(found->second.begin() + j);
+            --j;
+          }
+          break;
         }
-        if (right_idx < envelope.size()) {
-          samples[i * 2] *= envelope[left_idx] * sound.velocity;
-          samples[i * 2 + 1] *= envelope[right_idx] * sound.velocity;
-        }
-        else {
-          samples[i * 2] = 0;
-          samples[i * 2 + 1] = 0;
-        }
+        
+        samples[i * 2] *= envelope[left_idx] * sound.velocity;
+        samples[i * 2 + 1] *= envelope[right_idx] * sound.velocity;
       }
+      
       if (sound.play_id.nr.NRI == play_id) {
         break;
       }
@@ -332,7 +313,9 @@ void apply_envelope(fan::graphics::engine_t& engine) {
   
   for (auto& piece : pieces) {
     piece._piece->buffer_end_cb = lambda;
-    key_info[piece._piece];
+    if (key_info.find(piece._piece) == key_info.end()) {
+      key_info[piece._piece] = std::vector<key_info_t>();
+    }
   }
 }
 
@@ -375,9 +358,9 @@ int main() {
     midi_timer_callback();
 
     fan_graphics_gui_window("audio controls") {
-      
-      if (fan::graphics::gui::drag_float("bpm", &playback_state.playback_speed, 0.01, 0.01)) {
-
+      static f32_t playback_speed = 1.0;
+      if (fan::graphics::gui::drag_float("bpm", &playback_speed, 0.01, 0.01)) {
+        set_playback_speed(playback_speed);
       }
 
       if (fan::graphics::gui::drag_float("volume", &volume, 0.01f, 0.0f, 1.0f)) {
