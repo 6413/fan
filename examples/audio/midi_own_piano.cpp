@@ -424,10 +424,10 @@ void load_audio_pieces() {
 
 struct envelope_t {
 
-  static constexpr f32_t attack_time = 0.005f;
-  static constexpr f32_t decay_time = 0.3f;
-  static constexpr f32_t sustain_level = 0.4f;
-  static constexpr f32_t release_time = 0.1f;
+  static constexpr f32_t attack_time = 0.003f;        
+  static constexpr f32_t decay_time = 0.9f;           
+  static constexpr f32_t sustain_level = 0.35f;       
+  static constexpr f32_t release_time = 2.0f;         
 
   static constexpr uint32_t sample_rate = fan::system_audio_t::_constants::opus_decode_sample_rate;
   static constexpr uint32_t channel_count = fan::system_audio_t::_constants::ChannelAmount;
@@ -455,8 +455,8 @@ struct envelope_t {
     }
      f32_t last_sustain_value = 0.0f;
      for (int i = 0; i < sustain_samples; ++i) {
-       f32_t decay_factor = std::pow(0.01f, static_cast<f32_t>(i) / sustain_samples);
-       //f32_t decay_factor = 1.0f - (1.0f - sustain_level) * (f32_t(i) / sustain_samples);
+       //f32_t decay_factor = std::pow(0.01f, static_cast<f32_t>(i) / sustain_samples);
+       f32_t decay_factor = 1.0f - (1.0f - sustain_level) * (f32_t(i) / sustain_samples);
        f32_t value = sustain_level * decay_factor;
        last_sustain_value = value; // store last value
        envelope.push_back(value);
@@ -503,7 +503,7 @@ void apply_envelope(fan::graphics::engine_t& engine) {
 
     auto found = key_info.find(piece);
     if (found == key_info.end()) {
-      fan::throw_error("AA");
+      return;
     }
 
     for (int j = 0; j < found->second.size(); ++j) {
@@ -519,26 +519,25 @@ void apply_envelope(fan::graphics::engine_t& engine) {
         int left_idx = envelope_index * 2;
         int right_idx = left_idx + 1;
 
-        if (right_idx > envelope.size()) {
+        if (left_idx >= envelope.size() || right_idx >= envelope.size()) {
           sound.position = 0;
           if (sound.play_id.iic() == false) {
             fan::audio::stop(sound.play_id);
             sound.play_id.sic();
           }
           std::memset(samples, 0, samplesi * 2 * sizeof(f32_t));
-          found->second.erase(found->second.begin() + j); // --i?
-          --j;
-          continue;
+          
+          if (j < found->second.size()) {
+            found->second.erase(found->second.begin() + j);
+            --j;
+          }
+          break;
         }
-        if (right_idx < envelope.size()) {
-          samples[i * 2] *= envelope[left_idx] * sound.velocity;
-          samples[i * 2 + 1] *= envelope[right_idx] * sound.velocity;
-        }
-        else {
-          samples[i * 2] = 0;
-          samples[i * 2 + 1] = 0;
-        }
+        
+        samples[i * 2] *= envelope[left_idx] * sound.velocity;
+        samples[i * 2 + 1] *= envelope[right_idx] * sound.velocity;
       }
+      
       if (sound.play_id.nr.NRI == play_id) {
         break;
       }
@@ -547,7 +546,9 @@ void apply_envelope(fan::graphics::engine_t& engine) {
   
   for (auto& piece : pieces) {
     piece._piece->buffer_end_cb = lambda;
-    key_info[piece._piece];
+    if (key_info.find(piece._piece) == key_info.end()) {
+      key_info[piece._piece] = std::vector<key_info_t>();
+    }
   }
 }
 
@@ -586,10 +587,6 @@ int main() {
 
   engine.loop([&] {
 
-    if (ImPlot::BeginPlot("My Sine Wave")) {
-      ImPlot::PlotLine("Sine", envelope.data(), envelope.size());
-      ImPlot::EndPlot();
-    }
     fan_graphics_gui_window("audio controls") {
       
       if (fan::graphics::gui::drag_float("bpm", &playback_state.playback_speed, 0.01, 0.01)) {
@@ -611,7 +608,7 @@ int main() {
 
         found->second.push_back({});
         auto& sound = found->second.back();
-        sound.velocity = 1;
+        sound.velocity = 0.7;
         sound.play_id = fan::audio::play(pieces[i]);
         sound.position = 0;
         break;

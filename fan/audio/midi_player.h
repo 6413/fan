@@ -227,17 +227,41 @@ void meta_event_cb(midi_player& player, const midi_meta_event& event) {
     int8_t key = event.bytes[0];
     uint8_t scale = event.bytes[1]; // 0=major, 1=minor
     int key_index = key + 7;
-    fan::print("Key signature", key_names[key_index], scales[scale]);
+    if (key_index >= 0 && key_index < 15) {  // Safety check
+      fan::print("Key signature", key_names[key_index], scales[scale]);
+    }
   } 
   else if (event.type == MIDI_META_SET_TEMPO && event.length >= 3) {
-    uint32_t tempo_us_per_quarter = (static_cast<uint32_t>(event.bytes[0]) << 16) |
-                                   (static_cast<uint32_t>(event.bytes[1]) << 8) |
-                                   static_cast<uint32_t>(event.bytes[2]);
+    uint32_t new_tempo_us_per_quarter = (static_cast<uint32_t>(event.bytes[0]) << 16) |
+                                       (static_cast<uint32_t>(event.bytes[1]) << 8) |
+                                       static_cast<uint32_t>(event.bytes[2]);
     
-    double bpm = 60000000.0 / tempo_us_per_quarter;
+    double bpm = 60000000.0 / new_tempo_us_per_quarter;
     fan::print("Tempo changed to:", bpm, "BPM");
     
-    player.tempo_us_per_quarter = tempo_us_per_quarter;
+    // Store the current time before changing tempo
+    double old_current_time_ms = player.current_time_ms;
+    
+    // Update the tempo
+    player.tempo_us_per_quarter = new_tempo_us_per_quarter;
+    
+    // Ensure the tempo change itself is scheduled
+    if (player.on_midi_event) {
+      // Note: This uses CC 111 which is typically unused, as a marker for tempo change
+      midi_midi_event tempo_change_event = {};
+      tempo_change_event.status = MIDI_STATUS_CC;
+      tempo_change_event.channel = 0;
+      tempo_change_event.param1 = 111;  // Special CC number for tempo change
+      tempo_change_event.param2 = static_cast<uint8_t>(bpm > 127 ? 127 : bpm);
+      
+      // Add to event queue with the precise timing
+      std::lock_guard<std::mutex> lock(queue_mutex);
+      EventGroup tempo_group;
+      tempo_group.timestamp_ms = old_current_time_ms;
+      tempo_group.events.push_back(tempo_change_event);
+      tempo_group.is_chord = false;
+      event_queue.push(tempo_group);
+    }
   }
 }
 
@@ -261,6 +285,8 @@ PlaybackState playback_state = {
   .playback_speed = 1.0
 };
 
+void set_playback_speed(double speed);
+
 void midi_timer_callback() {
   std::lock_guard<std::mutex> lock(playback_state.state_mutex);
   
@@ -268,31 +294,64 @@ void midi_timer_callback() {
     return;
   }
   
-  int64_t elapsed_us = (fan::time::clock::now() / 1000.0) - playback_state.playback_start_time_us;
-  double current_music_time_ms = (elapsed_us / 1000.0) * playback_state.playback_speed;
+  int64_t now_ns = fan::time::clock::now();
+  int64_t start_time_ns = playback_state.playback_start_time_us * 1000;  // Convert us to ns
+
+  int64_t elapsed_ns = now_ns - start_time_ns;
+  double elapsed_ms = elapsed_ns / 1'000'000.0;
+  
+  double current_music_time_ms = elapsed_ms * playback_state.playback_speed;
   playback_state.current_position_ms = current_music_time_ms;
   
   std::vector<EventGroup> events_to_play;
   
   {
     std::lock_guard<std::mutex> queue_lock(queue_mutex);
+    
+    // Process all events that should have played by now
     while (!event_queue.empty() && event_queue.front().timestamp_ms <= current_music_time_ms) {
       events_to_play.push_back(event_queue.front());
       event_queue.pop();
     }
+    
+    if (event_queue.size() > 1000) {
+    //  fan::print("Warning: Large event queue size:", event_queue.size());
+    }
   }
   
   for (const auto& group : events_to_play) {
-    play_event_group(group);
+    bool has_tempo_change = false;
+    for (const auto& event : group.events) {
+      if (event.status == MIDI_STATUS_CC && event.param1 == 111) {
+        has_tempo_change = true;
+        
+        double original_speed = playback_state.playback_speed;
+        
+        // This playback speed adjustment is optional - uncomment if you
+        // want tempo changes in the MIDI to affect the playback speed
+        
+         double scale_factor = event.param2 / 120.0;  // Normalize around 120 BPM
+         set_playback_speed(1.0 * scale_factor);
+        
+        break;
+      }
+    }
+    
+    if (!has_tempo_change) {
+      play_event_group(group);
+    }
   }
 }
 
 void start_playback(double start_position_ms = 0.0) {
   std::lock_guard<std::mutex> lock(playback_state.state_mutex);
   
-  playback_state.playback_start_time_us = (fan::time::clock::now() / 1000.0) - 
-    static_cast<int64_t>((start_position_ms / playback_state.playback_speed) * 1000);
+  int64_t now_ns = fan::time::clock::now();
+  int64_t offset_ns = static_cast<int64_t>((start_position_ms / playback_state.playback_speed) * 1'000'000);
+
+  playback_state.playback_start_time_us = (now_ns - offset_ns) / 1000;
   playback_state.current_position_ms = start_position_ms;
+
   playback_state.is_playing = true;
 }
 
@@ -302,19 +361,21 @@ void pause_playback() {
 }
 
 void set_playback_speed(double speed) {
-  std::lock_guard<std::mutex> lock(playback_state.state_mutex);
   
   if (playback_state.is_playing) {
-    int64_t now = (fan::time::clock::now() / 1000.0);
-    int64_t elapsed_us = now - playback_state.playback_start_time_us;
-    double old_position_ms = (elapsed_us / 1000.0) * playback_state.playback_speed;
+    int64_t now_ns = fan::time::clock::now();
+    int64_t elapsed_ns = now_ns - playback_state.playback_start_time_us * 1000; // Convert stored us to ns
     
-    playback_state.playback_start_time_us = now - 
-      static_cast<int64_t>((old_position_ms / speed) * 1000);
+    double old_position_ms = (elapsed_ns / 1'000'000.0) * playback_state.playback_speed;
+
+    int64_t new_start_time_ns = now_ns - static_cast<int64_t>((old_position_ms / speed) * 1'000'000);
+
+    playback_state.playback_start_time_us = new_start_time_ns / 1000;  // Store in microseconds
   }
-  
+
   playback_state.playback_speed = speed;
 }
+
 
 void midi_event_cb(midi_player& player, const midi_midi_event& event) {
   double tick_duration_ms = 0;
@@ -325,10 +386,20 @@ void midi_event_cb(midi_player& player, const midi_midi_event& event) {
 
   player.current_time_ms += player.parser.vtime * tick_duration_ms;
   
+  if (event.status == MIDI_STATUS_CC && event.param1 == 64) {
+    EventGroup pedal_group;
+    pedal_group.timestamp_ms = player.current_time_ms;
+    pedal_group.events.push_back(event);
+    pedal_group.is_chord = false;
+    
+    std::lock_guard<std::mutex> lock(queue_mutex);
+    event_queue.push(pedal_group);
+    return;
+  }
+  
   std::lock_guard<std::mutex> lock(queue_mutex);
 
-  // octave
-  if ((event_queue.empty() || std::abs(event_queue.back().timestamp_ms - player.current_time_ms) > 1.0)) {
+  if ((event_queue.empty() || std::abs(event_queue.back().timestamp_ms - player.current_time_ms) > 15.0)) {
     EventGroup new_group;
     new_group.timestamp_ms = player.current_time_ms;
     new_group.events.push_back(event);
