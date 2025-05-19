@@ -47,7 +47,11 @@ import fan.event;
 
 #include <fan/time/time.h>
 
-
+#if defined(fan_compiler_msvc)
+  #ifndef fan_std23
+    #define fan_std23
+  #endif
+#endif
 #include <fan/memory/memory.hpp>
 
 #if defined(fan_gui)
@@ -3111,7 +3115,7 @@ public:
     enum {
       circle = 0,
       square = 1 << 0,
-      beam = 1 << 1,
+      lava = 1 << 1, // does this belong here
       additive = 1 << 2,
       multiplicative = 1 << 3,
     };
@@ -5834,7 +5838,6 @@ namespace fan {
       }
       // fan_track_allocations() must be called in global scope before calling this function
       void render_allocations_plot() {
-#if defined(fan_tracking_allocations)
         static std::vector<f32_t> allocation_sizes;
         static std::vector<fan::heap_profiler_t::memory_data_t> allocations;
 
@@ -5927,7 +5930,6 @@ namespace fan {
           }
           ImPlot::EndPlot();
         }
-#endif
       }
     }
   }
