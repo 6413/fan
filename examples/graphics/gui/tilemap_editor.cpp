@@ -1,7 +1,10 @@
-#include <fan/pch.h>
+import fan;
+import fan.graphics.gui.tilemap_editor.renderer;
+import fan.graphics.gui.tilemap_editor.editor;
+import fan.event;
+import fan.io.file;
 
-#include <fan/graphics/gui/tilemap_editor/editor.h>
-#include <fan/graphics/gui/tilemap_editor/renderer0.h>
+#include <box2d/box2d.h>
 
 // editor
 fan::graphics::camera_t camera0;
@@ -10,7 +13,7 @@ fan::graphics::camera_t camera1;
 
 struct player_t {
    player_t() {
-    b2World_SetPreSolveCallback(gloco->physics_context.world_id, presolve_static, this);
+    fan::physics::set_pre_solve_callback(gloco->physics_context.world_id, presolve_static, this);
     gloco->input_action.edit(fan::key_w, "move_up");
   }
   static bool presolve_static(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, void* context) {
@@ -78,8 +81,8 @@ int main(int argc, char** argv) {
   fte_t::properties_t p;
   p.camera = &camera0;
   fte.open(p);
-  fte.open_texturepack("examples/games/boss/tileset.ftp");
-  fte.fin("examples/games/boss/spawn.json");
+  fte.open_texturepack("texture_packs/TexturePack");
+  fte.fin("map_game0_1.json");
 
   std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;
@@ -168,10 +171,10 @@ int main(int argc, char** argv) {
   //  }};
   //};
 
-  fan::ev::fs_watcher_t fs_watcher("examples/games/boss/");
+ /* fan::event::fs_watcher_t fs_watcher("examples/games/boss/");
 
   fs_watcher.start([&](const std::string& filename, int events) {
-    if (!(events & UV_CHANGE)) {
+    if (!(events & fan::fs_change)) {
       return;
     }
     if (filename.contains("tileset.png")) {
@@ -193,17 +196,19 @@ int main(int argc, char** argv) {
         fte.fin(fte.previous_file_name);
       }
     }
-  });
+  });*/
 
   loco.loop([&] {
+
+    fte.render();
     
     if (render_scene) {/*
       for (auto& i : fan::graphics::physics_shapes::hitbox_visualize) {
         i.second.set_camera(camera1.camera);
         i.second.set_viewport(camera1.viewport);
       }*/
-      if (ImGui::Begin("Program", 0, ImGuiWindowFlags_NoBackground)) {
-        fan::vec2 s = ImGui::GetContentRegionAvail();
+      if (fan::graphics::gui::begin("Program", 0, fan::graphics::gui::window_flags_no_background)) {
+        fan::vec2 s = fan::graphics::gui::get_content_region_avail();
         fan::vec2 dst = player->player.get_position();
         fan::vec2 src = loco.camera_get_position(camera1.camera);
 
@@ -214,11 +219,11 @@ int main(int argc, char** argv) {
         fan::vec2 position = player->player.get_position();
         player->player.set_position(fan::vec3(position, floor(position.y / 64) + (0xFAAA - 2) / 2) +z);
         fan::color c = player->player_light.get_color();
-        if (ImGui::ColorEdit4("color", c.data())) {
+        if (fan::graphics::gui::color_edit4("color", &c)) {
           player->player_light.set_color(c);
         }
         fan::vec2 size = player->player_light.get_size();
-        if (fan_imgui_dragfloat1(size, 0.1)) {
+        if (fan::graphics::gui::drag_float("size", & size, 0.1)) {
           player->player_light.set_size(size);
         }
         player->player_light.set_position(player->player.get_position()-player->player.get_size());
@@ -236,8 +241,7 @@ int main(int argc, char** argv) {
           camera1.viewport
         );
       }
-      ImGui::End();
-
+      fan::graphics::gui::end();
     }
   });
   //

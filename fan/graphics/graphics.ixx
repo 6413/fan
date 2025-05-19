@@ -132,7 +132,6 @@ export namespace fan {
             .size = p.size,
             .rotation_point = p.rotation_point,
             .color = p.color,
-            .rotation_vector = p.rotation_vector,
             .flags = p.flags,
             .angle = p.angle
           ));
@@ -613,8 +612,9 @@ export namespace fan {
 
       void set_root(const loco_t::vfi_t::properties_t& p) {
         fan::graphics::vfi_t::properties_t in = p;
-        fan::throw_error("A");
+        //fan::throw_error("A");
         //in.shape_type = loco_t::vfi_t::shape_t::rectangle;
+        in.shape_type = 1;
         in.shape.rectangle->viewport = p.shape.rectangle->viewport;
         in.shape.rectangle->camera = p.shape.rectangle->camera;
         in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {
@@ -985,8 +985,40 @@ export namespace fan {
       interactive_camera_t(
         loco_t::camera_t camera_nr = gloco->orthographic_camera.camera, 
         loco_t::viewport_t viewport_nr = gloco->orthographic_camera.viewport
-      );
-      ~interactive_camera_t();
+      ) : reference_camera(camera_nr), reference_viewport(viewport_nr)
+      {
+        auto& window = gloco->window;
+        static auto update_ortho = [&](loco_t* loco) {
+          fan::vec2 s = loco->viewport_get_size(reference_viewport);
+          loco->camera_set_ortho(
+            reference_camera,
+            fan::vec2(-s.x, s.x) / zoom,
+            fan::vec2(-s.y, s.y) / zoom
+          );
+          };
+
+        auto it = gloco->m_update_callback.NewNodeLast();
+        gloco->m_update_callback[it] = update_ortho;
+
+        button_cb_nr = window.add_buttons_callback([&](const auto& d) {
+          if (d.button == fan::mouse_scroll_up) {
+            zoom *= 1.2;
+          }
+          else if (d.button == fan::mouse_scroll_down) {
+            zoom /= 1.2;
+          }
+          });
+      }
+      ~interactive_camera_t() {
+        if (button_cb_nr.iic() == false) {
+          gloco->window.remove_buttons_callback(button_cb_nr);
+          button_cb_nr.sic();
+        }
+        if (uc_nr.iic() == false) {
+          gloco->m_update_callback.unlrec(uc_nr);
+          uc_nr.sic();
+        }
+      }
 
       // called in loop
       void move_by_cursor();

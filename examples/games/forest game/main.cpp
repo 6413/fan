@@ -1,6 +1,16 @@
-#include <fan/pch.h>
+#include <fan/types/types.h>
+#include <fan/math/math.h>
+#include <fan/time/timer.h>
+#include <fan/event/types.h>
+
+#include <fan/types/json.h>
+
+#include <string>
+
+import fan;
+import fan.graphics.gui.tilemap_editor.renderer;
 #include <fan/graphics/algorithm/astar.h>
-#include <fan/graphics/gui/tilemap_editor/renderer0.h>
+
 
 //fan_track_allocations();
 
@@ -38,7 +48,7 @@ struct player_t {
         }
       }
     }*/
-    light.set_flags(flag);
+   // light.set_flags(flag);
   }
 
   fan::graphics::physics::character2d_t player{ fan::graphics::physics::circle_sprite_t{{
@@ -86,11 +96,12 @@ struct pile_t {
   pile_t();
 
   void step() {
+    using namespace fan::graphics;
     //player updates
     player.step();
 
     // map renderer & camera update
-    fan::vec2 s = ImGui::GetContentRegionAvail();
+    fan::vec2 s = gui::get_content_region_avail();
     fan::vec2 dst = player.player.get_position();
     fan::vec2 src = loco.camera_get_position(loco.orthographic_camera.camera);
     loco.camera_set_position(
@@ -105,7 +116,7 @@ struct pile_t {
     player.player.set_position(fan::vec3(position, floor((position.y) / 64) + (0xFAAA - 2) / 2) + z);
     player.player.process_movement(fan::graphics::physics::character2d_t::movement_e::top_view);
     
-    fan::graphics::gui::set_imgui_viewport(loco.orthographic_camera.viewport);
+    fan::graphics::gui::set_viewport(loco.orthographic_camera.viewport);
 
     // physics step
     loco.physics_context.step(loco.delta_time);
@@ -208,7 +219,7 @@ void weather_t::lightning() {
 
 void weather_t::load_rain(loco_t::shape_t& rain_particles) {
   std::string data;
-  fan::io::file::read("rain.json", &data);
+  fan::io::file::read("effects/rain.json", &data);
   fan::json in = fan::json::parse(data);
   fan::graphics::shape_deserialize_t it;
   while (it.iterate(in, &rain_particles)) {

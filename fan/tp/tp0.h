@@ -175,7 +175,7 @@ struct texture_packe0 {
     texture_t t;
     t.size = image_size;
     t.decoded_data.resize(t.size.multiply() * 4);
-    std::memcpy(t.decoded_data.data(), data.get(), t.size.multiply() * 4);
+    std::memcpy(t.decoded_data.data(), data.data(), t.size.multiply() * 4);
     t.image_name = texture_properties.image_name;
     t.visual_output = texture_properties.visual_output;
     t.min_filter = texture_properties.min_filter;

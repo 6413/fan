@@ -34,7 +34,7 @@ void close() {
 
 void update() {
   if (fan::physics::is_on_sensor(pile.player.player, player_sensor_door)) {
-    if (pile.loco.lighting.ambient > -1) {
+    if (pile.loco.lighting.ambient.x > -1) {
       pile.loco.lighting.ambient -= pile.loco.delta_time * 5;
     }
     else {
@@ -51,7 +51,7 @@ void update() {
     }
   }
   else {
-    if (pile.loco.lighting.ambient < 1) {
+    if (pile.loco.lighting.ambient.x < 1) {
       pile.loco.lighting.ambient += pile.loco.delta_time * 5;
     }
     else {

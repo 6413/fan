@@ -60,12 +60,13 @@ void close() {
 }
 
 void update() {
-  ImGui::Begin("A");
+  using namespace fan::graphics;
+  gui::begin("A");
   static bool v = 0;
   fan::graphics::gui::toggle_button("lightning", &v);
-  ImGui::End();
+  gui::end();
   if (fan::physics::is_on_sensor(pile.player.player, player_sensor_door)) {
-    if (pile.loco.lighting.ambient > -1) {
+    if (pile.loco.lighting.ambient.x > -1) {
       pile.loco.lighting.ambient -= pile.loco.delta_time * 5;
     }
     else {
@@ -81,7 +82,7 @@ void update() {
     pile.weather.lightning();
   }
   else {
-    if (pile.loco.lighting.ambient < 1) {
+    if (pile.loco.lighting.ambient.x < 1) {
       pile.loco.lighting.ambient += pile.loco.delta_time * 5;
     }
     else {
@@ -89,7 +90,7 @@ void update() {
     }
   }
 
-  if (pile.loco.input_action.is_action_clicked("move_to_position") && !ImGui::IsAnyItemHovered()) {
+  if (pile.loco.input_action.is_action_clicked("move_to_position") && !gui::is_any_item_hovered()) {
     rect_path.clear();
     fan::vec2 dst = pile.loco.get_mouse_position(pile.loco.orthographic_camera.camera, pile.loco.orthographic_camera.viewport);
     pile.path_solver.set_dst(dst);
