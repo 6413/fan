@@ -154,10 +154,12 @@ export namespace fan {
 				return f.tellg();
 			}
 
+      using fs_mode = decltype(std::ios_base::binary | std::ios_base::app);
+
 			bool write(
 				std::string path,
 				const std::string& data,
-				decltype(std::ios_base::binary | std::ios_base::app) mode = std::ios_base::binary | std::ios_base::app
+				fs_mode mode = std::ios_base::binary | std::ios_base::app
 			) {
 				std::ofstream ofile(path.c_str(), mode);
 				if (ofile.fail()) {
@@ -172,7 +174,7 @@ export namespace fan {
 			void write(
 				std::string path,
 				const std::vector<T>& vector,
-				decltype(std::ios_base::binary | std::ios_base::app) mode = std::ios_base::binary | std::ios_base::app
+				fs_mode mode = std::ios_base::binary | std::ios_base::app
 			) {
 				std::ofstream ofile(path.c_str(), mode);
 				if (ofile.fail()) {
@@ -193,6 +195,18 @@ export namespace fan {
 				}
 				return data;
 			}
+
+      // writes only if file does not exist
+      bool try_write(
+        std::string path,
+				const std::string& data,
+        fs_mode mode = std::ios_base::binary | std::ios_base::app
+      ) {
+        if (fan::io::file::exists(path)) {
+          return false;
+        }
+        return write(path, data, mode);
+      }
 
 			bool read(const std::string& path, std::string* str) {
 

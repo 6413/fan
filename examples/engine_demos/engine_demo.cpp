@@ -99,24 +99,27 @@ struct engine_demo_t {
 
   fan::graphics::image_t image_tire = engine.image_load("images/tire.webp");
   static void demo_shapes_init_lighting(engine_demo_t* engine_demo) {
-    
 
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     
     static auto image_background = engine_demo->engine.image_create(fan::color(0.5, 0.5, 0.5, 1));
+    uint32_t lighting_flags = engine_t::light_flags_e::additive | engine_t::light_flags_e::circle;
+
     // bg
     engine_demo->shapes.emplace_back(fan::graphics::sprite_t{{
       .camera = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 0),
       .size = viewport_size/2,
-      .image = image_background
+      .image = image_background,
+      .flags = lighting_flags
     }});
 
     engine_demo->shapes.emplace_back(fan::graphics::sprite_t{{
       .camera = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 1),
       .size = viewport_size.min()/6,
-      .image = engine_demo->image_tire
+      .image = engine_demo->image_tire,
+      .flags = lighting_flags
     }});
 
     engine_demo->shapes.emplace_back(fan::graphics::light_t{ {
@@ -144,7 +147,7 @@ struct engine_demo_t {
       .color = fan::colors::purple
     }});
   }
-  static void demo_static_lighting_update(engine_demo_t* engine_demo) {
+  static void demo_lighting_update(engine_demo_t* engine_demo) {
     if (engine_demo->shapes.empty()) {
       return;
     }
@@ -257,7 +260,7 @@ struct engine_demo_t {
     }
   }
 
-  inline static const char* demo_static_shader_shape_fragment_shader = R"(#version 330
+  inline static const char* demo_shader_shape_fragment_shader = R"(#version 330
 layout (location = 0) out vec4 o_attachment0;
 
 in vec2 texture_coordinate;
@@ -298,10 +301,10 @@ void main() {
   o_attachment0 = tex_color;
 })";
 
-  loco_t::shader_t demo_static_shader_shape_shader{engine.get_sprite_vertex_shader(demo_static_shader_shape_fragment_shader)};
+  loco_t::shader_t demo_shader_shape_shader{engine.get_sprite_vertex_shader(demo_shader_shape_fragment_shader)};
   fan::color custom_color = fan::colors::red;
   static void demo_shapes_init_shader_shape(engine_demo_t* engine_demo) {
-    if (engine_demo->demo_static_shader_shape_shader.iic()) {
+    if (engine_demo->demo_shader_shape_shader.iic()) {
       fan::throw_error("failed to compile custom shader");
     }
     
@@ -312,15 +315,15 @@ void main() {
       .camera = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 3),
       .size = viewport_size / 2,
-      .shader = engine_demo->demo_static_shader_shape_shader,
+      .shader = engine_demo->demo_shader_shape_shader,
       .image = image,
     }});
     // init
-    engine_demo->engine.shader_set_value(engine_demo->demo_static_shader_shape_shader, "custom_color", engine_demo->custom_color);
+    engine_demo->engine.shader_set_value(engine_demo->demo_shader_shape_shader, "custom_color", engine_demo->custom_color);
   }
-  static void demo_static_shader_shape_update(engine_demo_t* engine_demo) {
+  static void demo_shader_shape_update(engine_demo_t* engine_demo) {
     if (fan::graphics::gui::color_edit4("##c0", &engine_demo->custom_color)) {
-      engine_demo->engine.shader_set_value(engine_demo->demo_static_shader_shape_shader, "custom_color", engine_demo->custom_color);
+      engine_demo->engine.shader_set_value(engine_demo->demo_shader_shape_shader, "custom_color", engine_demo->custom_color);
     }
   }
 
@@ -588,11 +591,11 @@ void main() {
     demo_t{.name = "Gradient", .init_function = demo_shapes_init_gradient, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "Grid", .init_function = demo_shapes_init_grid, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "Image Decoder", .init_function = demo_shapes_init_universal_image_renderer, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Light", .init_function = demo_shapes_init_lighting, .update_function = demo_static_lighting_update, .cleanup_function = nullptr},
+    demo_t{.name = "Light", .init_function = demo_shapes_init_lighting, .update_function = demo_lighting_update, .cleanup_function = nullptr},
     demo_t{.name = "Particles", .init_function = demo_shapes_init_particles, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "Polygon", .init_function = demo_shapes_init_polygon, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "Rectangle", .init_function = demo_shapes_init_rectangle, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Shader", .init_function = demo_shapes_init_shader_shape, .update_function = demo_static_shader_shape_update, .cleanup_function = nullptr},
+    demo_t{.name = "Shader", .init_function = demo_shapes_init_shader_shape, .update_function = demo_shader_shape_update, .cleanup_function = nullptr},
     demo_t{.name = "Sprite", .init_function = demo_shapes_init_sprite, .update_function = default_update_function, .cleanup_function = nullptr},
     demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     //GUI STUFF

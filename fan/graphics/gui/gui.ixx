@@ -116,6 +116,31 @@ export namespace fan {
           ImGui::EndTabBar();
         }
 
+        bool begin_main_menu_bar() {
+          return ImGui::BeginMainMenuBar();
+        }
+        void end_main_menu_bar() {
+          ImGui::EndMainMenuBar();
+        }
+
+        bool begin_menu_bar() {
+          return ImGui::BeginMenuBar();
+        }
+
+        void end_menu_bar() {
+          ImGui::EndMenuBar();
+        }
+
+        bool begin_menu(const std::string& label) {
+          return ImGui::BeginMenu(label.c_str());
+        }
+        void end_menu() {
+          ImGui::EndMenu();
+        }
+        bool menu_item(const std::string& label, const std::string& shortcut = "", bool selected = false, bool enabled = true) {
+          return ImGui::MenuItem(label.c_str(), shortcut.empty() ? nullptr : shortcut.c_str(), selected, enabled);
+        }
+
         void same_line(f32_t offset_from_start_x = 0.f, f32_t spacing_w = -1.f) {
           ImGui::SameLine(offset_from_start_x, spacing_w);
         }
@@ -123,9 +148,19 @@ export namespace fan {
           ImGui::NewLine();
         }
 
+        ImGuiViewport* get_main_viewport() {
+          return ImGui::GetMainViewport();
+        }
+
         f32_t get_text_line_height_with_spacing() {
           return ImGui::GetTextLineHeightWithSpacing();
         }
+
+        fan::vec2 get_mouse_pos() {
+          ImVec2 pos = ImGui::GetMousePos();
+          return fan::vec2(pos.x, pos.y);
+        }
+
 
         fan::vec2 get_content_region_avail () {
           return ImGui::GetContentRegionAvail();
@@ -140,6 +175,11 @@ export namespace fan {
           ImGui::PopItemWidth();
         }
 
+        void set_cursor_screen_pos(const fan::vec2& pos) {
+          ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y));
+        }
+
+
         void push_id(const std::string& str_id) {
           ImGui::PushID(str_id.c_str());
         }
@@ -149,11 +189,48 @@ export namespace fan {
         void pop_id() {
           ImGui::PopID();
         }
-        bool is_item_hovered() {
-          return ImGui::IsItemHovered();
+
+        using hovered_flag_t = int;
+        enum {
+          hovered_flags_none = ImGuiHoveredFlags_None,                          // Return true if directly over the item/window, not obstructed by another window, not obstructed by an active popup or modal blocking inputs under them.
+          hovered_flags_child_windows = ImGuiHoveredFlags_ChildWindows,                 // IsWindowHovered() only: Return true if any children of the window is hovered
+          hovered_flags_root_window = ImGuiHoveredFlags_RootWindow,                   // IsWindowHovered() only: Test from root window (top most parent of the current hierarchy)
+          hovered_flags_any_window = ImGuiHoveredFlags_AnyWindow,                    // IsWindowHovered() only: Return true if any window is hovered
+          hovered_flags_no_popup_hierarchy = ImGuiHoveredFlags_NoPopupHierarchy,            // IsWindowHovered() only: Do not consider popup hierarchy (do not treat popup emitter as parent of popup) (when used with _ChildWindows or _RootWindow)
+          hovered_flags_dock_hierarchy = ImGuiHoveredFlags_DockHierarchy,                // IsWindowHovered() only: Consider docking hierarchy (treat dockspace host as parent of docked window) (when used with _ChildWindows or _RootWindow)
+          hovered_flags_allow_when_blocked_by_popup = ImGuiHoveredFlags_AllowWhenBlockedByPopup,      // Return true even if a popup window is normally blocking access to this item/window
+          //hovered_flags_allow_when_blocked_by_modal = ImGuiHoveredFlags_AllowWhenBlockedByModal,     // Return true even if a modal popup window is normally blocking access to this item/window. FIXME-TODO: Unavailable yet.
+          hovered_flags_allow_when_blocked_by_active_item = ImGuiHoveredFlags_AllowWhenBlockedByActiveItem,  // Return true even if an active item is blocking access to this item/window. Useful for Drag and Drop patterns.
+          hovered_flags_allow_when_overlapped_by_item = ImGuiHoveredFlags_AllowWhenOverlappedByItem, // IsItemHovered() only: Return true even if the item uses AllowOverlap mode and is overlapped by another hoverable item.
+          hovered_flags_allow_when_overlapped_by_window = ImGuiHoveredFlags_AllowWhenOverlappedByWindow, // IsItemHovered() only: Return true even if the position is obstructed or overlapped by another window.
+          hovered_flags_allow_when_disabled = ImGuiHoveredFlags_AllowWhenDisabled,             // IsItemHovered() only: Return true even if the item is disabled
+          hovered_flags_no_nav_override = ImGuiHoveredFlags_NoNavOverride,                 // IsItemHovered() only: Disable using keyboard/gamepad navigation state when active, always query mouse
+          hovered_flags_allow_when_overlapped = ImGuiHoveredFlags_AllowWhenOverlapped,           // Combined flag
+          hovered_flags_rect_only = ImGuiHoveredFlags_RectOnly,                      // Combined flag
+          hovered_flags_root_and_child_windows = ImGuiHoveredFlags_RootAndChildWindows,           // Combined flag
+
+          // Tooltips mode
+          hovered_flags_for_tooltip = ImGuiHoveredFlags_ForTooltip,                    // Shortcut for standard flags when using IsItemHovered() + SetTooltip() sequence.
+
+          // (Advanced) Mouse Hovering delays.
+          hovered_flags_stationary = ImGuiHoveredFlags_Stationary,                    // Require mouse to be stationary for style.HoverStationaryDelay (~0.15 sec) _at least one time_. After this, can move on same item/window. Using the stationary test tends to reduces the need for a long delay.
+          hovered_flags_delay_none = ImGuiHoveredFlags_DelayNone,                     // IsItemHovered() only: Return true immediately (default). As this is the default you generally ignore this.
+          hovered_flags_delay_short = ImGuiHoveredFlags_DelayShort,                    // IsItemHovered() only: Return true after style.HoverDelayShort elapsed (~0.15 sec) (shared between items) + requires mouse to be stationary for style.HoverStationaryDelay (once per item).
+          hovered_flags_delay_normal = ImGuiHoveredFlags_DelayNormal,                   // IsItemHovered() only: Return true after style.HoverDelayNormal elapsed (~0.40 sec) (shared between items) + requires mouse to be stationary for style.HoverStationaryDelay (once per item).
+          hovered_flags_no_shared_delay = ImGuiHoveredFlags_NoSharedDelay,                 // IsItemHovered() only: Disable shared delay system where moving from one item to the next keeps the previous timer for a short time (standard for tooltips with long delays)
+        };
+
+
+
+        bool is_item_hovered(hovered_flag_t flags = 0) {
+          return ImGui::IsItemHovered(flags);
         }
-
-
+        bool is_any_item_hovered() {
+          return ImGui::IsAnyItemHovered();
+        }
+        bool is_any_item_active() {
+          return ImGui::IsAnyItemActive();
+        }
 
         using selectable_flag_t = int;
         enum {
@@ -332,6 +409,22 @@ export namespace fan {
         f32_t get_cursor_pos_y() {
           return ImGui::GetCursorPosY();
         }
+        fan::vec2 get_cursor_screen_pos() {
+          ImVec2 pos = ImGui::GetCursorScreenPos();
+          return fan::vec2(pos.x, pos.y);
+        }
+
+        bool is_window_hovered() {
+          return ImGui::IsWindowHovered();
+        }
+
+
+        fan::vec2 get_window_content_region_min() {
+          ImVec2 min = ImGui::GetWindowContentRegionMin();
+          return fan::vec2(min.x, min.y);
+        }
+
+
         f32_t get_column_width(int index = -1) {
           return ImGui::GetColumnWidth(index);
         }
@@ -339,9 +432,31 @@ export namespace fan {
         bool is_item_active() {
           return ImGui::IsItemActive();
         }
+
+
+        fan::vec2 get_mouse_drag_delta(int button = 0, float lock_threshold = -1.0f) {
+          ImVec2 delta = ImGui::GetMouseDragDelta(button, lock_threshold);
+          return fan::vec2(delta.x, delta.y);
+        }
+
+        void reset_mouse_drag_delta(int button = 0) {
+          ImGui::ResetMouseDragDelta(button);
+        }
+
+        void set_scroll_x(float scroll_x) {
+          ImGui::SetScrollX(scroll_x);
+        }
+
+        void set_scroll_y(float scroll_y) {
+          ImGui::SetScrollY(scroll_y);
+        }
         f32_t get_scroll_x() {
           return ImGui::GetScrollX();
         }
+        float get_scroll_y() {
+          return ImGui::GetScrollY();
+        }
+
 
         /// <summary>
         /// RAII containers for gui windows.
@@ -461,6 +576,7 @@ export namespace fan {
           slider_flags_always_clamp = ImGuiSliderFlags_AlwaysClamp,        // ClampOnInput | ClampZeroRange combination.
         };
 
+        // todo make drag(), slider()
 
         bool drag_float(const std::string& label, f32_t* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
           return ImGui::DragFloat(label.c_str(), v, v_speed, v_min, v_max, format.c_str(), flags);
@@ -493,6 +609,39 @@ export namespace fan {
         bool drag_int(const std::string& label, fan::vec4i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%d", slider_flags_t flags = 0) {
           return ImGui::DragInt4(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
         }
+
+        bool slider_int(const std::string& label, int* v, int v_min, int v_max, const std::string& format = "%d", slider_flags_t flags = 0) {
+          return ImGui::SliderInt(label.c_str(), v, v_min, v_max, format.c_str(), flags);
+        }
+
+        bool slider_int(const std::string& label, fan::vec2i* v, int v_min, int v_max, const std::string& format = "%d", slider_flags_t flags = 0) {
+          return ImGui::SliderInt2(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
+        }
+
+        bool slider_int(const std::string& label, fan::vec3i* v, int v_min, int v_max, const std::string& format = "%d", slider_flags_t flags = 0) {
+          return ImGui::SliderInt3(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
+        }
+
+        bool slider_int(const std::string& label, fan::vec4i* v, int v_min, int v_max, const std::string& format = "%d", slider_flags_t flags = 0) {
+          return ImGui::SliderInt4(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
+        }
+
+        bool slider_float(const std::string& label, float* v, float v_min, float v_max, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::SliderFloat(label.c_str(), v, v_min, v_max, format.c_str(), flags);
+        }
+
+        bool slider_float(const std::string& label, fan::vec2f* v, float v_min, float v_max, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::SliderFloat2(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
+        }
+
+        bool slider_float(const std::string& label, fan::vec3f* v, float v_min, float v_max, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::SliderFloat3(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
+        }
+
+        bool slider_float(const std::string& label, fan::vec4f* v, float v_min, float v_max, const std::string& format = "%.3f", slider_flags_t flags = 0) {
+          return ImGui::SliderFloat4(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
+        }
+
 
         using input_text_flags_t = int;
         enum {
@@ -693,6 +842,11 @@ export namespace fan {
         void set_window_font_scale(f32_t scale) {
           ImGui::SetWindowFontScale(scale);
         }
+
+        bool is_mouse_dragging(int button = 0, float threshold = -1.0f) {
+          return ImGui::IsMouseDragging(button, threshold);
+        }
+
 
         using col_t = int;
         enum {
@@ -1269,7 +1423,7 @@ export namespace fan {
   }
 }
 
-namespace fan {
+export namespace fan {
   namespace graphics {
     namespace gui {
       struct imgui_fs_var_t {

@@ -2,8 +2,6 @@
 #include <string>
 #include <fstream>
 
-//import fan.print;
-//import fan.event;
 import fan;
 
 fan::event::task_t example_async_file_read_string(const std::string& path) {
@@ -68,11 +66,6 @@ fan::event::task_t example_async_file_write_string(const std::string& path, cons
 
   co_await fan::io::file::async_close(fd);
 }
-
-
-#include <Windows.h>
-#include <thread>
-
 
 int main() {
   auto example_tasks = []() -> fan::event::task_t {

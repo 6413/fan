@@ -421,7 +421,7 @@ export struct loco_t {
   fan::graphics::image_list_t image_list;
   fan::graphics::viewport_list_t viewport_list;
 
-  std::unique_ptr<uint8_t[]> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) {
+  std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) {
     fan::throw_error("");
     return {};
   }
@@ -1331,7 +1331,7 @@ public:
 #endif
 
   }
-  bool enable_overlay = false;
+  bool enable_overlay = true;
 #endif
   void init_framebuffer() {
     if (window.renderer == renderer_t::opengl) {
@@ -2016,10 +2016,10 @@ public:
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(window.get_size());
 
-    int flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar;
+    int flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
     if (!enable_overlay) {
-      flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav;
+      flags |= ImGuiWindowFlags_NoNav;
     }
 
     ImGui::Begin("##global_renderer", 0, flags);
@@ -2431,7 +2431,6 @@ public:
 
   using get_parallax_factor_cb = f32_t(*)(loco_t::shape_t*);
   using set_parallax_factor_cb = void (*)(loco_t::shape_t*, f32_t);
-  using get_rotation_vector_cb = fan::vec3(*)(loco_t::shape_t*);
   using get_flags_cb = uint32_t(*)(loco_t::shape_t*);
   using set_flags_cb = void(*)(loco_t::shape_t*, uint32_t);
   //
@@ -2494,7 +2493,6 @@ public:
 
     get_parallax_factor_cb get_parallax_factor;
     set_parallax_factor_cb set_parallax_factor;
-    get_rotation_vector_cb get_rotation_vector;
 
 
     get_flags_cb get_flags;
@@ -2889,7 +2887,8 @@ public:
     }
 
     fan::vec3 get_position() {
-      return gloco->shape_functions[get_shape_type()].get_position(this);
+      auto shape_type = get_shape_type();
+      return gloco->shape_functions[shape_type].get_position(this);
     }
 
     void set_size(const fan::vec2& size) {
@@ -3039,11 +3038,6 @@ public:
       gloco->shape_functions[get_shape_type()].set_parallax_factor(this, parallax_factor);
     }
 
-    fan::vec3 get_rotation_vector() {
-      fan::throw_error("deprecated");
-      return 0;
-    }
-
     uint32_t get_flags() {
       auto f = gloco->shape_functions[get_shape_type()].get_flags;
       if (f) {
@@ -3134,7 +3128,6 @@ public:
       fan::vec2 size;
       fan::vec2 rotation_point;
       fan::color color;
-      fan::vec3 rotation_vector;
       uint32_t flags = 0;
       fan::vec3 angle;
     };;
@@ -3150,9 +3143,8 @@ public:
       shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
       shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
       shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-      shape_gl_init_t{{5, "in_rotation_vector"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector))},
-      shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-      shape_gl_init_t{{7, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
+      shape_gl_init_t{{5, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+      shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
       });
 
     struct properties_t {
@@ -3164,7 +3156,6 @@ public:
       fan::vec2 size = 0;
       fan::vec2 rotation_point = 0;
       fan::color color = fan::colors::white;
-      fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
       uint32_t flags = 0;
       fan::vec3 angle = 0;
 
@@ -3182,7 +3173,6 @@ public:
       vi.size = properties.size;
       vi.rotation_point = properties.rotation_point;
       vi.color = properties.color;
-      vi.rotation_vector = properties.rotation_vector;
       vi.flags = properties.flags;
       vi.angle = properties.angle;
       ri_t ri;
@@ -3385,7 +3375,7 @@ public:
       fan::vec2 rotation_point = 0;
       fan::color color = fan::colors::white;
       fan::vec3 angle = fan::vec3(0);
-      uint32_t flags = light_flags_e::circle | light_flags_e::additive;
+      uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
       fan::vec2 tc_position = 0;
       fan::vec2 tc_size = 1;
       f32_t seed = 0;
@@ -3631,7 +3621,6 @@ public:
       f32_t radius;
       fan::vec2 rotation_point;
       fan::color color;
-      fan::vec3 rotation_vector;
       fan::vec3 angle;
       uint32_t flags;
     };
@@ -3646,7 +3635,6 @@ public:
       shape_gl_init_t{{1, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
       shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
       shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
-      shape_gl_init_t{{4, "in_rotation_vector"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector)) },
       shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) },
       shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))}
       });
@@ -3658,7 +3646,6 @@ public:
       f32_t radius = 0;
       fan::vec2 rotation_point = 0;
       fan::color color = fan::colors::white;
-      fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
       fan::vec3 angle = 0;
       uint32_t flags = 0;
 
@@ -3678,7 +3665,6 @@ public:
       vi.radius = properties.radius;
       vi.rotation_point = properties.rotation_point;
       vi.color = properties.color;
-      vi.rotation_vector = properties.rotation_vector;
       vi.angle = properties.angle;
       vi.flags = properties.flags;
       circle_t::ri_t ri;
@@ -3709,7 +3695,6 @@ public:
       f32_t radius;
       fan::vec2 rotation_point;
       fan::color color;
-      fan::vec3 rotation_vector;
       fan::vec3 angle;
       uint32_t flags;
       fan::color outline_color;
@@ -3727,10 +3712,9 @@ public:
       shape_gl_init_t{{3, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
       shape_gl_init_t{{4, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
       shape_gl_init_t{{5, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
-      shape_gl_init_t{{6, "in_rotation_vector"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_vector)) },
-      shape_gl_init_t{{7, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) },
-      shape_gl_init_t{{8, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-      shape_gl_init_t{{9, "in_outline_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color)) },
+      shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) },
+      shape_gl_init_t{{7, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+      shape_gl_init_t{{8, "in_outline_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color)) },
       });
 
     struct properties_t {
@@ -3743,7 +3727,6 @@ public:
       fan::vec2 rotation_point = 0;
       fan::color color = fan::colors::white;
       fan::color outline_color = color;
-      fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
       fan::vec3 angle = 0;
       uint32_t flags = 0;
 
@@ -3764,7 +3747,6 @@ public:
       vi.rotation_point = properties.rotation_point;
       vi.color = properties.color;
       vi.outline_color = properties.outline_color;
-      vi.rotation_vector = properties.rotation_vector;
       vi.angle = properties.angle;
       vi.flags = properties.flags;
       capsule_t::ri_t ri;
@@ -4963,6 +4945,11 @@ export namespace fan {
     using camera_t = camera_impl_t;
     using viewport_t = loco_t::viewport_t;
 
+    fan::graphics::image_t invalid_image = []{
+      image_t image;
+      image.sic();
+      return image;
+    }();
     void add_input_action(const int* keys, std::size_t count, std::string_view action_name) {
       gloco->input_action.add(keys, count, action_name);
     }
@@ -5145,7 +5132,6 @@ export namespace fan {
         out["size"] = shape.get_size();
         out["rotation_point"] = shape.get_rotation_point();
         out["color"] = shape.get_color();
-        out["rotation_vector"] = shape.get_rotation_vector();
         out["flags"] = shape.get_flags();
         out["angle"] = shape.get_angle();
         break;
@@ -5216,7 +5202,6 @@ export namespace fan {
         out["radius"] = shape.get_radius();
         out["rotation_point"] = shape.get_rotation_point();
         out["color"] = shape.get_color();
-        out["rotation_vector"] = shape.get_rotation_vector();
         out["angle"] = shape.get_angle();
         break;
       }
@@ -5279,7 +5264,6 @@ export namespace fan {
         p.size = in["size"];
         p.rotation_point = in["rotation_point"];
         p.color = in["color"];
-        p.rotation_vector = in["rotation_vector"];
         p.flags = in["flags"];
         p.angle = in["angle"];
         *shape = p;
@@ -5375,7 +5359,6 @@ export namespace fan {
         p.radius = in["radius"];
         p.rotation_point = in["rotation_point"];
         p.color = in["color"];
-        p.rotation_vector = in["rotation_vector"];
         p.angle = in["angle"];
         *shape = p;
         break;
@@ -5440,7 +5423,6 @@ export namespace fan {
         fan::write_to_vector(out, shape.get_size());
         fan::write_to_vector(out, shape.get_rotation_point());
         fan::write_to_vector(out, shape.get_color());
-        fan::write_to_vector(out, shape.get_rotation_vector());
         fan::write_to_vector(out, shape.get_flags());
         fan::write_to_vector(out, shape.get_angle());
         break;
@@ -5501,7 +5483,6 @@ export namespace fan {
         fan::write_to_vector(out, shape.get_radius());
         fan::write_to_vector(out, shape.get_rotation_point());
         fan::write_to_vector(out, shape.get_color());
-        fan::write_to_vector(out, shape.get_rotation_vector());
         fan::write_to_vector(out, shape.get_angle());
         break;
       }
@@ -5570,7 +5551,6 @@ export namespace fan {
         p.size = fan::vector_read_data<decltype(p.size)>(in, offset);
         p.rotation_point = fan::vector_read_data<decltype(p.rotation_point)>(in, offset);
         p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
-        p.rotation_vector = fan::vector_read_data<decltype(p.rotation_vector)>(in, offset);
         p.flags = fan::vector_read_data<decltype(p.flags)>(in, offset);
         p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
         *shape = p;
@@ -5641,7 +5621,6 @@ export namespace fan {
         p.radius = fan::vector_read_data<decltype(p.radius)>(in, offset);
         p.rotation_point = fan::vector_read_data<decltype(p.rotation_point)>(in, offset);
         p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
-        p.rotation_vector = fan::vector_read_data<decltype(p.rotation_vector)>(in, offset);
         p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
         *shape = p;
         break;

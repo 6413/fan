@@ -5,7 +5,7 @@ module;
 #include <fan/math/math.h>
 #include <fan/graphics/opengl/init.h>
 
-#include <memory>
+#include <vector>
 #include <string>
 
 #ifndef camera_list
@@ -889,40 +889,33 @@ export namespace fan {
         image_reload(nr, path, fan::opengl::context_t::image_load_properties_t());
       }
 
-      std::unique_ptr<uint8_t[]> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
+      std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
         auto& image = image_get(nr);
         image_bind(nr);
-
         auto& image_data = __fan_internal_image_list[nr];
-
         fan::vec2ui uv_size = {
             (uint32_t)(image_data.size.x * uvs.x),
             (uint32_t)(image_data.size.y * uvs.y)
         };
-
-        auto full_ptr = std::make_unique<uint8_t[]>(image_data.size.x * image_data.size.y * 4); // assuming rgba
-
+        std::vector<uint8_t> full_data(image_data.size.x * image_data.size.y * 4); // assuming rgba
         fan_opengl_call(glGetTexImage(GL_TEXTURE_2D,
           0,
           format,
           GL_UNSIGNED_BYTE,
-          full_ptr.get())
+          full_data.data())
         );
-
-        auto ptr = std::make_unique<uint8_t[]>(uv_size.x * uv_size.y * 4); // assuming rgba
-
+        std::vector<uint8_t> result_data(uv_size.x * uv_size.y * 4); // assuming rgba
         for (uint32_t y = 0; y < uv_size.y; ++y) {
           for (uint32_t x = 0; x < uv_size.x; ++x) {
             uint32_t full_index = ((y + uvp.y * image_data.size.y) * image_data.size.x + (x + uvp.x * image_data.size.x)) * 4;
             uint32_t index = (y * uv_size.x + x) * 4;
-            ptr[index + 0] = full_ptr[full_index + 0];
-            ptr[index + 1] = full_ptr[full_index + 1];
-            ptr[index + 2] = full_ptr[full_index + 2];
-            ptr[index + 3] = full_ptr[full_index + 3];
+            result_data[index + 0] = full_data[full_index + 0];
+            result_data[index + 1] = full_data[full_index + 1];
+            result_data[index + 2] = full_data[full_index + 2];
+            result_data[index + 3] = full_data[full_index + 3];
           }
         }
-
-        return ptr;
+        return result_data;
       }
 
       // creates single colored text size.x*size.y sized

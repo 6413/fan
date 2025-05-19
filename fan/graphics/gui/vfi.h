@@ -700,30 +700,21 @@ struct vfi_t {
 
     gloco->shaper.SetShapeType(loco_t::shape_type_t::vfi, bp);
 
-
-    //loco_t::functions_t functions;
-    //functions.get_position = [](loco_t::shape_t* shaper) {
-    //  return gloco->vfi.get_position(*shaper);
-    //};
-    //functions.set_position2 = [](loco_t::shape_t* shaper, const fan::vec2& position) {
-    //  gloco->vfi.set_position(*shaper, fan::vec3(position, gloco->vfi.get_position(*shaper).z));
-    //};
-    //functions.set_position3 = [](loco_t::shape_t* shaper, const fan::vec3& position) {
-    //  gloco->vfi.set_position(*shaper, position);
-    //};
-    //functions.get_size = [](loco_t::shape_t* shaper) {
-    //  return gloco->vfi.get_size(*shaper);
-    //};
-    //functions.set_size = [](loco_t::shape_t* shaper, const fan::vec2& size) {
-    //  gloco->vfi.set_size(*shaper, size);
-    //};
-    //functions.get_color = [](loco_t::shape_t* shaper) {
-    //  return fan::color(1);
-    //};
-    //functions.set_color = [](loco_t::shape_t* shaper, const fan::color& color) {
-    //};
-
-    //gloco->shape_functions.push_back(functions);
+    loco_t::get_position_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape) {
+      return gloco->vfi.get_position(*shape);
+    };
+    loco_t::set_position2_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec2& position) {
+      gloco->vfi.set_position(*shape, fan::vec3(position, gloco->vfi.get_position(*shape).z));
+    };
+    loco_t::set_position3_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec3& position) {
+      gloco->vfi.set_position(*shape, position);
+    };
+    loco_t::get_size_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape) {
+      return gloco->vfi.get_size(*shape);
+    };
+    loco_t::set_size_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec2& size) {
+      gloco->vfi.set_size(*shape, size);
+    };
   }
   ~vfi_t() {
   }

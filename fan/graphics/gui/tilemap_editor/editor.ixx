@@ -1,12 +1,28 @@
-#pragma once
+module;
 
-#include <map>
+#include <string>
+#include <vector>
 
-#include <fan/fmt.h>
-
+#include <fan/types/types.h>
+#include <fan/math/math.h>
 #include <fan/graphics/algorithm/raycast_grid.h>
 
-struct fte_t {
+#include <fan/types/json.h>
+
+export module fan.graphics.gui.tilemap_editor.editor;
+
+import fan.print;
+import fan.file_dialog;
+
+import fan.graphics.loco;
+import fan.graphics;
+
+import fan.graphics.gui;
+import fan.io.file;
+
+import fan.physics.collision.rectangle;
+
+export struct fte_t {
   static constexpr int max_id_len = 48;
   static constexpr fan::vec2 default_button_size{ 100, 30 };
   static constexpr fan::vec2 tile_viewer_sprite_size{ 64, 64 };
@@ -21,7 +37,7 @@ struct fte_t {
     static constexpr int cursor_highlight_depth = 0xFAAA - 1;
   };
 
-  fan::string file_name = "tilemap_editor.json";
+  std::string file_name = "tilemap_editor.json";
 
   #include "common2.h"
 
@@ -141,8 +157,8 @@ struct fte_t {
   void open(const properties_t& properties) {
     loco_t::image_load_properties_t lp;
     lp.visual_output = loco_t::image_sampler_address_mode::repeat;
-    lp.min_filter = GL_NEAREST;
-    lp.mag_filter = GL_NEAREST;
+    lp.min_filter = fan::graphics::image_filter::nearest;
+    lp.mag_filter = fan::graphics::image_filter::nearest;
     if (properties.camera == nullptr) {
       camera = &gloco->orthographic_camera;
     }
@@ -201,7 +217,7 @@ struct fte_t {
           else {
             viewport_settings.zoom *= scroll_speed;
 
-            auto& style = ImGui::GetStyle();
+            auto& style = fan::graphics::gui::get_style();
             fan::vec2 frame_padding = style.FramePadding;
             fan::vec2 pos = (gloco->window.get_mouse_position() - viewport_settings.window_related_mouse_pos);
             pos /= gloco->window.get_size();
@@ -241,7 +257,7 @@ struct fte_t {
       if (d.state != fan::keyboard_state::press) {
         return;
       }
-      if (ImGui::IsAnyItemActive()) {
+      if (fan::graphics::gui::is_any_item_active()) {
         return;
       }
 
@@ -643,11 +659,11 @@ struct fte_t {
     static std::vector<loco_t::shape_t> select;
     static fan::vec2i copy_src;
     static fan::vec2i copy_dst;
-    bool is_mouse_left_clicked = ImGui::IsMouseClicked(fan::window_input::fan_to_imguikey(fan::mouse_left));
-    bool is_mouse_left_down = ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_left));
-    bool is_mouse_left_released = ImGui::IsMouseReleased(fan::window_input::fan_to_imguikey(fan::mouse_left));
-    bool is_mouse_right_clicked = ImGui::IsMouseClicked(fan::window_input::fan_to_imguikey(fan::mouse_right));
-    bool is_mouse_right_down = ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_right));
+    bool is_mouse_left_clicked = fan::window::is_mouse_clicked();
+    bool is_mouse_left_down = fan::window::is_mouse_down();
+    bool is_mouse_left_released = fan::window::is_mouse_released();
+    bool is_mouse_right_clicked = fan::window::is_mouse_clicked(fan::mouse_right);
+    bool is_mouse_right_down = fan::window::is_mouse_down(fan::mouse_right);
 
     static auto handle_select_tiles = [&] {
       select.clear();
@@ -912,31 +928,39 @@ struct fte_t {
   }
 
   bool handle_editor_window(fan::vec2& editor_size) {
-    if (ImGui::BeginMainMenuBar()) {
+    if (fan::graphics::gui::begin_main_menu_bar()) {
       {
         static std::string fn;
-          if (ImGui::BeginMenu("File"))
-          {
-            if (ImGui::MenuItem("Open..")) {
-              open_file_dialog.load("json;fmm", &fn);
-            }
-            if (ImGui::MenuItem("Save")) {
-              fout(previous_file_name);
-            }
-            if (ImGui::MenuItem("Save as")) {
-              save_file_dialog.save("json;fmm", &fn);
-            }
-            if (ImGui::MenuItem("Quit")) {
-              ImGui::End();
-            }
-            ImGui::EndMenu();
+        if (fan::graphics::gui::begin_menu("File")) {
+
+          if (fan::graphics::gui::menu_item("Open..")) {
+            open_file_dialog.load("json;fmm", &fn);
           }
-          if (ImGui::BeginMenu("Texture Pack")) {
-            if (ImGui::MenuItem("Open..")) {
-              open_tp_dialog.load("ftp", &fn);
-            }
-            ImGui::EndMenu();
+
+          if (fan::graphics::gui::menu_item("Save")) {
+            fout(previous_file_name);
           }
+
+          if (fan::graphics::gui::menu_item("Save as")) {
+            save_file_dialog.save("json;fmm", &fn);
+          }
+
+          if (fan::graphics::gui::menu_item("Quit")) {
+            fan::graphics::gui::end();
+          }
+
+          fan::graphics::gui::end_menu();
+        }
+
+        if (fan::graphics::gui::begin_menu("Texture Pack")) {
+
+          if (fan::graphics::gui::menu_item("Open..")) {
+            open_tp_dialog.load("ftp", &fn);
+          }
+
+          fan::graphics::gui::end_menu();
+        }
+
         if (open_file_dialog.is_finished()) {
           if (fn.size() != 0) {
             fin(fn);
@@ -956,21 +980,35 @@ struct fte_t {
           open_tp_dialog.finished = false;
         }
       }
-    ImGui::EndMainMenuBar();
-    fan::vec2 initial_pos = ImGui::GetCursorScreenPos();
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-    ImGui::Begin("Tilemap Editor2", 0, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDecoration | ImGuiDockNodeFlags_AutoHideTabBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollWithMouse);
-    ImGui::PopStyleColor();
-      fan::vec2 window_size = ImGui::GetIO().DisplaySize;
-      fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
+      fan::graphics::gui::end_main_menu_bar();
 
-      fan::vec2 mainViewportPos = ImGui::GetMainViewport()->Pos;
+      fan::vec2 initial_pos = fan::graphics::gui::get_cursor_screen_pos();
 
-      fan::vec2 windowPos = ImGui::GetWindowPos();
+      fan::graphics::gui::push_style_color(fan::graphics::gui::col_window_bg, fan::color(0, 0, 0, 0));
 
-      auto& style = ImGui::GetStyle();
+      fan::graphics::gui::begin(
+        "Tilemap Editor2",
+        nullptr,
+        fan::graphics::gui::window_flags_no_background |
+        fan::graphics::gui::window_flags_no_title_bar |
+        fan::graphics::gui::window_flags_no_decoration |
+        fan::graphics::gui::window_flags_no_collapse |
+        fan::graphics::gui::window_flags_no_scroll_with_mouse
+      );
+
+      fan::graphics::gui::pop_style_color();
+
+      fan::vec2 window_size = fan::graphics::gui::get_io().DisplaySize;
+
+      fan::vec2 viewport_size = fan::graphics::gui::get_content_region_avail();
+
+      fan::vec2 mainViewportPos = fan::graphics::gui::get_main_viewport()->Pos;
+
+      fan::vec2 windowPos = fan::graphics::gui::get_window_pos();
+
+      auto& style = fan::graphics::gui::get_style();
       fan::vec2 frame_padding = style.FramePadding;
-      fan::vec2 viewport_pos = ImGui::GetWindowContentRegionMin() - frame_padding;
+      fan::vec2 viewport_pos = fan::graphics::gui::get_window_content_region_min() - frame_padding;
 
       fan::vec2 real_viewport_size = viewport_size + frame_padding * 2 + fan::vec2(0, style.WindowPadding.y * 2);
 
@@ -1000,40 +1038,36 @@ struct fte_t {
         init = 1;
       }
 
-      viewport_settings.window_related_mouse_pos = fan::vec2(fan::vec2(ImGui::GetWindowPos()) + fan::vec2(ImGui::GetWindowSize() / 2) + fan::vec2(0, style.WindowPadding.y * 2 - frame_padding.y * 2));
+      viewport_settings.window_related_mouse_pos = fan::vec2(fan::vec2(fan::graphics::gui::get_window_pos()) + fan::vec2(fan::graphics::gui::get_window_size() / 2) + fan::vec2(0, style.WindowPadding.y * 2 - frame_padding.y * 2));
 
-      ImGui::SetWindowFontScale(1.5);
+      fan::graphics::gui::set_window_font_scale(1.5);
       //viewport_settings.window_related_mouse_pos = ImGui::GetMousePos();
       {
-        auto fmt =  fan::format("brush type: {}", brush.type_names[(uint8_t)brush.type]);
-        ImGui::TextColored(ImVec4(1, 1, 1, 1), "%s", fmt.c_str());
-      }
-      {
-        auto fmt = fan::format("brush depth: {}", (int)brush.depth - shape_depths_t::max_layer_depth / 2);
-        ImGui::TextColored(ImVec4(1, 1, 1, 1), "%s", fmt.c_str());
+        fan::graphics::gui::text("brush type: "_str + brush.type_names[(uint8_t)brush.type]);
+        fan::graphics::gui::text("brush depth: " + std::to_string((int)brush.depth - shape_depths_t::max_layer_depth / 2));
       }
 
       fan::vec2 prev_item_spacing = style.ItemSpacing;
 
       style.ItemSpacing = fan::vec2(0);
 
-      fan::vec2 old_cursorpos = ImGui::GetCursorPos();
+      fan::vec2 old_cursorpos = fan::graphics::gui::get_cursor_pos();
       //fan::vec2 draw_start = ((initial_pos + fan::vec2( - initial_pos)) / tile_viewer_sprite_size).floor() * tile_viewer_sprite_size;
-      fan::vec2 draw_start = ImGui::GetMousePos();
+      fan::vec2 draw_start = fan::graphics::gui::get_mouse_pos();
       fan::vec2 cursor_pos = 0;
       cursor_pos.y = -(tile_viewer_sprite_size.y / std::max(1.f, current_tile_brush_count.y / 5.f));
-      ImGui::SetCursorScreenPos(draw_start);
+      fan::graphics::gui::set_cursor_screen_pos(draw_start);
       for (auto& i : current_tile_images) {
         int idx = 0;
         for (auto& j : i) {
           if (idx != 0) {
             cursor_pos.x += tile_viewer_sprite_size.x / std::max(1.f, current_tile_brush_count.x / 5.f);
-            ImGui::SameLine();
+            fan::graphics::gui::same_line();
           }
           else {
             cursor_pos.y += (tile_viewer_sprite_size.y / std::max(1.f, current_tile_brush_count.y / 5.f));
             cursor_pos.x = 0;
-            ImGui::SetCursorScreenPos(fan::vec2(draw_start.x, ImGui::GetCursorScreenPos().y));
+            fan::graphics::gui::set_cursor_screen_pos(fan::vec2(draw_start.x, fan::graphics::gui::get_cursor_screen_pos().y));
           }
           idx++;
           
@@ -1052,7 +1086,7 @@ struct fte_t {
         }
       }
 
-      ImGui::SetCursorPos(old_cursorpos);
+      fan::graphics::gui::set_cursor_pos(old_cursorpos);
       style.ItemSpacing = prev_item_spacing;
 
       
@@ -1066,12 +1100,12 @@ struct fte_t {
       }
 
 
-      if (ImGui::Begin("Layer window")) {
+      if (fan::graphics::gui::begin("Layer window")) {
         for (auto& layer_pair : visual_layers) {
           auto& layer = layer_pair.second; 
           layer.text.resize(32);
           uint16_t depth = layer_pair.first;
-          auto fmt = fan::format("Layer {}", depth - shape_depths_t::max_layer_depth / 2);
+          auto fmt = ("Layer " + std::to_string(depth - shape_depths_t::max_layer_depth / 2));
           if (fan::graphics::gui::toggle_button(("Visible " + fmt).c_str(), &layer.visible)) {
             static auto iterate_positions = [&] (auto l) {
               auto visual_found = visual_layers.find(depth);
@@ -1112,8 +1146,8 @@ struct fte_t {
             }
             modify_cb(0);
           }
-          ImGui::SameLine();
-          ImGui::InputText(fmt.c_str(), layer.text.data(), layer.text.size());
+          fan::graphics::gui::same_line();
+          fan::graphics::gui::input_text(fmt, &layer.text);
         }
         // if (ImGui::Button("+")) {
         //   layers.push_back(data_t{ .text = "default" });
@@ -1123,14 +1157,14 @@ struct fte_t {
         //   layers.pop_back();
         // }
       }
-        ImGui::End();
+      fan::graphics::gui::end();
     }
     else {
       gloco->viewport_zero(camera->viewport);
       return true;
     }
-    editor_settings.hovered = ImGui::IsWindowHovered();
-    ImGui::End();
+    editor_settings.hovered = fan::graphics::gui::is_window_hovered();
+    fan::graphics::gui::end();
 
     if (gloco->window.key_state(fan::key_shift) != -1) {
       fan::vec2 line_dst = gloco->get_mouse_position(camera->camera, camera->viewport);
@@ -1175,12 +1209,12 @@ struct fte_t {
   }
 
   bool handle_editor_settings_window() {
-    if (ImGui::Begin("Editor settings")) {
+    if (fan::graphics::gui::begin("Editor settings")) {
       {
-        if (ImGui::InputInt2("map size", map_size.data())) {
+        if (fan::graphics::gui::input_int("map size", &map_size)) {
           resize_map();
         }
-        if (ImGui::InputInt2("tile size", tile_size.data())) {
+        if (fan::graphics::gui::input_int("tile size", &tile_size)) {
           resize_map();
           for (auto& i : map_tiles) {
             for (auto& j : i.second.layers) {
@@ -1193,7 +1227,7 @@ struct fte_t {
           }
         }
 
-        if (ImGui::Checkbox("render grid", &grid_visualize.render_grid)) {
+        if (fan::graphics::gui::checkbox("render grid", &grid_visualize.render_grid)) {
           if (grid_visualize.render_grid) {
             grid_visualize.grid.set_size(map_size * (tile_size / 2) * 2);
           }
@@ -1219,43 +1253,51 @@ struct fte_t {
         }*/
       }
     }
-    ImGui::End();
+    fan::graphics::gui::end();
     return false;
   }
 
   void handle_tiles_window() {
     static f32_t zoom = 1;
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    ImGui::PushStyleColor(ImGuiCol_Button, fan::color::rgb(31, 31, 31));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, fan::color::rgb(31, 31, 31));
-    if (ImGui::Begin("tiles", nullptr, ImGuiWindowFlags_NoScrollWithMouse)) {
-      if (ImGui::IsWindowHovered()) {
-        zoom += ImGui::GetIO().MouseWheel / 3.f;
-      }
-      if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Middle)) {
-        ImVec2 mouseDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Middle);
+    fan::graphics::gui::push_style_color(fan::graphics::gui::col_button, fan::color(0.f, 0.f, 0.f, 0.f));
+    fan::graphics::gui::push_style_color(fan::graphics::gui::col_button_active, fan::color(0.f, 0.f, 0.f, 0.f));
+    fan::graphics::gui::push_style_color(fan::graphics::gui::col_button_hovered, fan::color(0.f, 0.f, 0.f, 0.f));
+    fan::graphics::gui::push_style_var(fan::graphics::gui::style_var_frame_padding, fan::vec2(0, 0));
 
-        ImGui::ResetMouseDragDelta(ImGuiMouseButton_Middle);
-        ImGui::SetScrollX(ImGui::GetScrollX() - mouseDelta.x);
-        ImGui::SetScrollY(ImGui::GetScrollY() - mouseDelta.y);
+    fan::graphics::gui::push_style_color(fan::graphics::gui::col_button, fan::color::rgb(31, 31, 31));
+    fan::graphics::gui::push_style_color(fan::graphics::gui::col_window_bg, fan::color::rgb(31, 31, 31));
+
+    if (fan::graphics::gui::begin("tiles", nullptr, fan::graphics::gui::window_flags_no_scroll_with_mouse)) {
+
+      if (fan::graphics::gui::is_window_hovered()) {
+        zoom += fan::graphics::gui::get_io().MouseWheel / 3.f;
       }
-      f32_t x_size = ImGui::GetContentRegionAvail().x;
-      f32_t y_size = ImGui::GetContentRegionAvail().y;
-      ImGui::DragInt("original image width", &original_image_width, 1, 0, 1000);
-      auto& style = ImGui::GetStyle();
+
+      if (fan::graphics::gui::is_window_hovered() && fan::graphics::gui::is_mouse_dragging(fan::mouse_middle)) {
+        fan::vec2 mouse_delta = fan::graphics::gui::get_mouse_drag_delta(fan::mouse_middle);
+
+        fan::graphics::gui::reset_mouse_drag_delta(fan::mouse_middle);
+        fan::graphics::gui::set_scroll_x(fan::graphics::gui::get_scroll_x() - mouse_delta.x);
+        fan::graphics::gui::set_scroll_y(fan::graphics::gui::get_scroll_y() - mouse_delta.y);
+      }
+
+      f32_t x_size = fan::graphics::gui::get_content_region_avail().x;
+      f32_t y_size = fan::graphics::gui::get_content_region_avail().y;
+
+      fan::graphics::gui::drag_int("original image width", &original_image_width, 1, 0, 1000);
+
+      auto& style = fan::graphics::gui::get_style();
       fan::vec2 prev_item_spacing = style.ItemSpacing;
       style.ItemSpacing = fan::vec2(0);
+
       current_tile_brush_count = 0;
 
       int total_images = texturepack_images.size();
 
       int images_per_row = (original_image_width / (texturepack_single_image_size.x));
       if (images_per_row == 0) {
-        ImGui::PopStyleColor(5);
-        ImGui::PopStyleVar();
+        fan::graphics::gui::pop_style_color(5);
+        fan::graphics::gui::pop_style_var();
         return;
       }
 
@@ -1274,17 +1316,18 @@ struct fte_t {
       static fan::vec2 max_rect_draw = -1;
       static bool is_selecting = false;
 
-      bool is_left_mouse_button_clicked = ImGui::IsMouseClicked(0);
-      bool is_left_mouse_drag = ImGui::IsMouseDown(0) && ImGui::IsMouseDragging(0);
-      bool is_right_mouse_button_clicked = ImGui::IsMouseClicked(1);
-      bool is_right_mouse_drag = ImGui::IsMouseDown(1) && ImGui::IsMouseDragging(1);
-      bool is_left_ctrl_key_pressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl);
-      bool is_left_mouse_button_released = ImGui::IsMouseReleased(0);
+      bool is_left_mouse_button_clicked = fan::window::is_mouse_clicked(0);
+      bool is_left_mouse_drag = fan::window::is_mouse_down(0) && fan::graphics::gui::is_mouse_dragging(0);
+      bool is_right_mouse_button_clicked = fan::window::is_mouse_clicked(1);
+      bool is_right_mouse_drag = fan::window::is_mouse_down(1) && fan::graphics::gui::is_mouse_dragging(1);
+      bool is_left_ctrl_key_pressed = fan::window::is_key_down(fan::key_left_control);
+      bool is_left_mouse_button_released = fan::window::is_mouse_released(0);
+
 
       fan::vec2 sprite_size;
-      fan::vec2 initial_pos = ImGui::GetCursorScreenPos();
+      fan::vec2 initial_pos = fan::graphics::gui::get_cursor_screen_pos();
 
-      ImDrawList* draw_list = ImGui::GetWindowDrawList();
+      auto* draw_list = fan::graphics::gui::get_window_draw_list();
 
       for (uint32_t i = 0; i < texturepack_images.size(); i++) {
         auto& node = texturepack_images[i];
@@ -1292,16 +1335,16 @@ struct fte_t {
         bool selected = false;
 
 
-        fan::vec2 cursor_pos_global = ImGui::GetCursorScreenPos();
+        fan::vec2 cursor_pos_global = fan::graphics::gui::get_cursor_screen_pos();
         sprite_size = fan::vec2(final_image_size * zoom);
 
         auto& img_data = gloco->image_get_data(*node.ti.image);
 
         fan::vec2 size = img_data.size;
 
-        ImGui::ImageButton(
-          (fan::string("##ibutton") + std::to_string(i)).c_str(),
-          gloco->image_get_handle(*node.ti.image),
+        fan::graphics::gui::image_button(
+          (std::string("##ibutton") + std::to_string(i)).c_str(),
+          *node.ti.image,
           sprite_size,
           node.ti.position / size,
           node.ti.position / size + node.ti.size / size
@@ -1313,11 +1356,11 @@ struct fte_t {
         }
 
         if (!is_selecting && fan_2d::collision::rectangle::point_inside_no_rotation(
-          cursor_pos_global, ImGui::GetMousePos() - sprite_size / 2, sprite_size / 2
+          cursor_pos_global, fan::graphics::gui::get_mouse_pos() - sprite_size / 2, sprite_size / 2
         )) {
           draw_list->AddRect(cursor_pos_global, cursor_pos_global + sprite_size, 0xff0077ff, 0, 0, 3);
         }
-        bool is_mouse_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly);
+        bool is_mouse_hovered = fan::graphics::gui::is_item_hovered(fan::graphics::gui::hovered_flags_rect_only);
 
         if (is_mouse_hovered && is_left_mouse_drag) {
           min_rect_draw = min_rect_draw.min(cursor_pos_global);
@@ -1329,7 +1372,7 @@ struct fte_t {
         if (is_mouse_hovered && is_left_mouse_button_clicked && !is_left_ctrl_key_pressed) {
           //current_image_indices[grid_index] = i;
           is_selecting = true;
-          selection_start = ImGui::GetMousePos();
+          selection_start = fan::graphics::gui::get_mouse_pos();
         }
         else if ((is_left_mouse_button_clicked || is_left_mouse_drag) && is_mouse_hovered) {
           current_image_indices.clear();
@@ -1349,15 +1392,15 @@ struct fte_t {
         }
 
         if ((i + 1) % images_per_row != 0) {
-          ImGui::SameLine();
+          fan::graphics::gui::same_line();
         }
       }
 
-      fan::vec2 cursor_grid = ImGui::GetMousePos() - initial_pos;
+      fan::vec2 cursor_grid = fan::graphics::gui::get_mouse_pos() - initial_pos;
       cursor_grid /= sprite_size;
       cursor_grid = cursor_grid.floor();
       if (is_selecting) {
-        selection_end = ImGui::GetMousePos();
+        selection_end = fan::graphics::gui::get_mouse_pos();
         fan::vec2 max_rect_draw_adjusted = max_rect_draw + sprite_size;
         max_rect_draw_adjusted = max_rect_draw_adjusted.min(initial_pos + cursor_grid * sprite_size + sprite_size);
         if (min_rect != (uint32_t)~0 && max_rect != -1) {
@@ -1403,46 +1446,46 @@ struct fte_t {
       current_tile_brush_count.x = std::max(current_tile_brush_count.x, x);
       current_tile_brush_count.y = y;
     }
-    ImGui::PopStyleColor(5);
-    ImGui::PopStyleVar();
+    fan::graphics::gui::pop_style_color(5);
+    fan::graphics::gui::pop_style_var();
   }
 
 
   void handle_tile_settings_window() {
-    if (ImGui::Begin("Tile settings")) {
+    if (fan::graphics::gui::begin("Tile settings")) {
       if (current_tile.layer != nullptr) {
         auto& layer = current_tile.layer[current_tile.layer_index];
 
         {
           fan::vec2 offset = fan::vec2(layer.shape.get_position()) - current_tile.position;
 
-          if (fan_imgui_dragfloat(offset, 0.1, 0, 0)) {
+          if (fan::graphics::gui::drag_float("offset", &offset, 0.1, 0, 0)) {
             layer.shape.set_position(fan::vec2(current_tile.position) + offset);
           }
         }
         {
           fan::vec2 tile_size = layer.shape.get_size();
-          if (ImGui::DragFloat2("tile size", tile_size.data())) {
+          if (fan::graphics::gui::drag_float("tile size", &tile_size)) {
             layer.shape.set_size(tile_size);
           }
         }
          {
-          fan::string temp = layer.tile.id;
+          std::string temp = layer.tile.id;
           temp.resize(max_id_len);
-          if (ImGui::InputText("id", temp.data(), temp.size())) {
+          if (fan::graphics::gui::input_text("id", &temp)) {
             layer.tile.id = temp.substr(0, strlen(temp.c_str()));
           }
         }
         {
-           fan::vec3 angle = layer.shape.get_angle();
-          if (ImGui::DragFloat3("angle", angle.data(), fan::math::radians(1))) {
+          fan::vec3 angle = layer.shape.get_angle();
+          if (fan::graphics::gui::drag_float("angle", &angle, fan::math::radians(1))) {
             layer.shape.set_angle(angle);
           }
         }
         {
           fan::vec2 rotation_point = layer.shape.get_rotation_point();
           
-          if (fan_imgui_dragfloat(rotation_point, 0.1, -tile_size.max() * 2, tile_size.max() * 2)) {
+          if (fan::graphics::gui::drag_float("rotation_point", &rotation_point, 0.1, -tile_size.max() * 2, tile_size.max() * 2)) {
             layer.shape.set_rotation_point(rotation_point);
           }
         }/*
@@ -1454,19 +1497,19 @@ struct fte_t {
         }*/
         {
           uint32_t flags = layer.shape.get_flags();
-          if (ImGui::InputInt("special flags", (int*)&flags, 1, 1)) {
+          if (fan::graphics::gui::input_int("special flags", (int*)&flags, 1, 1)) {
             layer.shape.set_flags(flags);
           }
         }
         {
           fan::color color = layer.shape.get_color();
-          if (ImGui::ColorEdit4("color", (float*)color.data())) {
+          if (fan::graphics::gui::color_edit4("color", &color)) {
             layer.shape.set_color(color);
           }
         }
         {
           int mesh_property = (int)layer.tile.mesh_property;
-          if (ImGui::SliderInt("mesh flags", &mesh_property, 0, (int)mesh_property_t::size - 1)) {
+          if (fan::graphics::gui::slider_int("mesh flags", &mesh_property, 0, (int)mesh_property_t::size - 1)) {
             layer.tile.mesh_property = (mesh_property_t)mesh_property;
           } 
         }
@@ -1512,94 +1555,94 @@ struct fte_t {
         //}
       }
     }
-    ImGui::End();
+    fan::graphics::gui::end();
   }
 
   void handle_brush_settings_window() {
-    if (ImGui::Begin("Brush settings")) {
+    if (fan::graphics::gui::begin("Brush settings")) {
       {
         int idx = (int)brush.depth - shape_depths_t::max_layer_depth / 2;
-        if (ImGui::DragInt("depth", (int*)&idx, 1, 0, shape_depths_t::max_layer_depth)) {
+        if (fan::graphics::gui::drag_int("depth", (int*)&idx, 1, 0, shape_depths_t::max_layer_depth)) {
           brush.depth = idx + shape_depths_t::max_layer_depth / 2;
         }
       }
       {
         int idx = (int)brush.mode;
-        if (ImGui::Combo("mode", (int*)&idx, brush.mode_names, std::size(brush.mode_names))) {
+        if (fan::graphics::gui::combo("mode", (int*)&idx, brush.mode_names, std::size(brush.mode_names))) {
           brush.mode = (brush_t::mode_e)idx;
         }
       }
       {
         int idx = (int)brush.type;
-        if (ImGui::Combo("type", (int*)&idx, brush.type_names, std::size(brush.type_names))) {
+        if (fan::graphics::gui::combo("type", (int*)&idx, brush.type_names, std::size(brush.type_names))) {
           brush.type = (brush_t::type_e)idx;
         }
       }
 
       {
-        if (ImGui::SliderInt("jitter", &brush.jitter, 0, brush.size.min())) {
+        if (fan::graphics::gui::slider_int("jitter", &brush.jitter, 0, brush.size.min())) {
           grid_visualize.highlight_hover.set_size(tile_size * brush.size);
         }
       }
       {
         
-        if (fan_imgui_dragfloat(brush.jitter_chance, 1, 0, 0.01)) {
+        if (fan::graphics::gui::drag_float("jitter_chance", &brush.jitter_chance, 1, 0, 0.01)) {
 
         }
       }
 
       {
         static int default_value = 0;
-        if (ImGui::Combo("dynamics angle", &default_value, brush.dynamics_names, std::size(brush.dynamics_names))) {
+        if (fan::graphics::gui::combo("dynamics angle", &default_value, brush.dynamics_names, std::size(brush.dynamics_names))) {
           brush.dynamics_angle = (brush_t::dynamics_e)default_value;
         }
       }
       {
         static int default_value = 0;
-        if (ImGui::Combo("dynamics color", &default_value, brush.dynamics_names, std::size(brush.dynamics_names))) {
+        if (fan::graphics::gui::combo("dynamics color", &default_value, brush.dynamics_names, std::size(brush.dynamics_names))) {
           brush.dynamics_color = (brush_t::dynamics_e)default_value;
         }
       }
 
 
       {
-        if (ImGui::SliderInt2("size", brush.size.data(), 1, 4096)) {
+        if (fan::graphics::gui::slider_int("size", &brush.size, 1, 4096)) {
           grid_visualize.highlight_hover.set_size(tile_size * brush.size);
         }
       }
       {
-        if (ImGui::SliderFloat2("tile size", brush.tile_size.data(), 0.1, 1)) {
+        if (fan::graphics::gui::slider_float("tile size", &brush.tile_size, 0.1, 1)) {
           //brush.tile_size = brush.tile_size;
         }
       }
 
-      ImGui::DragFloat3("angle", brush.angle.data());
+      fan::graphics::gui::drag_float("angle", &brush.angle);
       {
-        fan::string temp = brush.id;
+        std::string temp = brush.id;
         temp.resize(max_id_len);
-        if (ImGui::InputText("id", temp.data(), temp.size())) {
+        if (fan::graphics::gui::input_text("id", &temp)) {
           brush.id = temp.substr(0, strlen(temp.c_str()));
         }
       }
 
-      ImGui::ColorEdit4("color", (float*)brush.color.data());
+      fan::graphics::gui::color_edit4("color", &brush.color);
 
       switch (brush.type) {
       case brush_t::type_e::physics_shape: {
         {
-          if (ImGui::SliderFloat2("offset", brush.offset.data(), -1, 1)) {
+          if (fan::graphics::gui::slider_float("offset", &brush.offset, -1, 1)) {
             
           }
         }
         {
           static int default_value = 0;
-          if (ImGui::Combo("Physics shape type", &default_value, brush.physics_type_names, std::size(brush.physics_type_names))) {
+          if (fan::graphics::gui::combo("Physics shape type", &default_value, brush.physics_type_names, std::size(brush.physics_type_names))) {
             brush.physics_type = default_value;
           }
         }
         {
           static int default_value = 0;
-          if (ImGui::Combo("Physics body type", &default_value, brush.physics_body_type_names, std::size(brush.physics_body_type_names))) {
+          if (fan::graphics::gui::combo("Physics body type", &default_value, brush.physics_body_type_names, std::size(brush.physics_body_type_names))) {
             brush.physics_body_type = default_value;
           }
         }
@@ -1611,10 +1654,10 @@ struct fte_t {
         }
         {
           static fan::physics::shape_properties_t shape_properties;
-          if (fan_imgui_dragfloat_named("Physics shape friction", shape_properties.friction, 0.01, 0, 1)) {
+          if (fan::graphics::gui::drag_float("Physics shape friction", &shape_properties.friction, 0.01, 0, 1)) {
             brush.physics_shape_properties.friction = shape_properties.friction;
           }
-          if (fan_imgui_dragfloat_named("Physics shape density", shape_properties.density, 0.01, 0, 1)) {
+          if (fan::graphics::gui::drag_float("Physics shape density", &shape_properties.density, 0.01, 0, 1)) {
             brush.physics_shape_properties.density = shape_properties.density;
           }
           if (fan::graphics::gui::toggle_button("Physics shape fixed rotation", &shape_properties.fixed_rotation)) {
@@ -1632,26 +1675,26 @@ struct fte_t {
       }
       }
     }
-    ImGui::End();
+    fan::graphics::gui::end();
   }
 
   void handle_lighting_settings_window() {
-    if (ImGui::Begin("lighting settings")) {
-      if (ImGui::ColorEdit3("ambient", gloco->lighting.ambient.data())) {
+    if (fan::graphics::gui::begin("lighting settings")) {
+      if (fan::graphics::gui::color_edit3("ambient", &gloco->lighting.ambient)) {
 
       }
     }
-    ImGui::End();
+    fan::graphics::gui::end();
   }
 
   void handle_physics_settings_window() {
-    if (ImGui::Begin("physics settings")) {
+    if (fan::graphics::gui::begin("physics settings")) {
       fan::vec2 gravity = gloco->physics_context.get_gravity();
-      if (fan_imgui_dragfloat1(gravity, 0.01)) {
+      if (fan::graphics::gui::drag_float("gravity", &gravity, 0.01)) {
         gloco->physics_context.set_gravity(gravity);
       }
     }
-    ImGui::End();
+    fan::graphics::gui::end();
   }
 
   void handle_pick_tile() {
@@ -1709,7 +1752,7 @@ struct fte_t {
     fan::vec2 editor_size;
 
     if (handle_editor_window(editor_size)) {
-      ImGui::End();
+      fan::graphics::gui::end();
       return;
     }
 
@@ -1726,7 +1769,7 @@ struct fte_t {
     handle_lighting_settings_window();
     handle_physics_settings_window();
 
-    if (editor_settings.hovered && ImGui::IsMouseDown(fan::window_input::fan_to_imguikey(fan::mouse_left))) {
+    if (editor_settings.hovered && fan::window::is_mouse_down()) {
       if (gloco->window.key_pressed(fan::key_left_control)) {
         handle_pick_tile();
       }
@@ -1737,11 +1780,12 @@ struct fte_t {
 
     handle_tile_brush();
 
-    ImGui::End();
+    fan::graphics::gui::end();
   }
 
-  fan::graphics::gui::imgui_element_t main_view =
-    fan::graphics::gui::imgui_element_t([&] {handle_imgui(); });
+  void render() {
+    handle_imgui();
+  }
 
   /*
   * header
@@ -1760,7 +1804,7 @@ struct fte_t {
     uint16_t depth;
   };
 
-  void fout(const fan::string& filename) {
+  void fout(const std::string& filename) {
     previous_file_name = filename;
 
     fan::json ostr;
@@ -1851,7 +1895,7 @@ shape data{
   ...
 }
 */
-  void fin(const fan::string& filename) {
+  void fin(const std::string& filename) {
     if (texturepack.texture_list.size() == 0) {
       fan::print("open valid texturepack");
       return;
@@ -2090,7 +2134,7 @@ shape data{
     f32_t depth = shape_depths_t::max_layer_depth / 2;
     int jitter = 0;
     f32_t jitter_chance = 0.33;
-    fan::string id;
+    std::string id;
     fan::color color = fan::color(1);
 
     // physics stuff

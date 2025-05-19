@@ -1,6 +1,10 @@
 #pragma once
 
-#include <fan/types/vector.h>
+#include <fan/types/types.h>
+#include <vector>
+
+import fan.types.vector;
+import fan.graphics.common_types;
 
 namespace fan {
   namespace graphics {

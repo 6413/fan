@@ -2110,6 +2110,10 @@ static f32_t get_parallax_factor_sprite(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->parallax_factor;
 }
 
+static f32_t get_parallax_factor_light(loco_t::shape_t* shape) {
+	return reinterpret_cast<loco_t::light_t::vi_t*>(shape->GetRenderData(gloco->shaper))->parallax_factor;
+}
+
 static void set_parallax_factor_sprite(loco_t::shape_t* shape, f32_t factor) {
 	reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->parallax_factor = factor;
 	if (gloco->window.renderer == loco_t::renderer_t::opengl) {
@@ -2120,6 +2124,20 @@ static void set_parallax_factor_sprite(loco_t::shape_t* shape, f32_t factor) {
 			data.ElementIndex,
 			fan::member_offset(&loco_t::sprite_t::vi_t::parallax_factor),
 			sizeof(loco_t::sprite_t::vi_t::parallax_factor)
+		);
+	}
+}
+
+static void set_parallax_factor_light(loco_t::shape_t* shape, f32_t factor) {
+	reinterpret_cast<loco_t::light_t::vi_t*>(shape->GetRenderData(gloco->shaper))->parallax_factor = factor;
+	if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+		auto& data = gloco->shaper.ShapeList[*shape];
+		gloco->shaper.ElementIsPartiallyEdited(
+			data.sti,
+			data.blid,
+			data.ElementIndex,
+			fan::member_offset(&loco_t::light_t::vi_t::parallax_factor),
+			sizeof(loco_t::light_t::vi_t::parallax_factor)
 		);
 	}
 }
@@ -3047,7 +3065,7 @@ inline static loco_t::get_parallax_factor_cb get_parallax_factor_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
-	nullptr,
+	&get_parallax_factor_light,
 	nullptr,
 	nullptr,
 	nullptr,
@@ -3070,7 +3088,7 @@ inline static loco_t::set_parallax_factor_cb set_parallax_factor_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
-	nullptr,
+	&set_parallax_factor_light,
 	nullptr,
 	nullptr,
 	nullptr,

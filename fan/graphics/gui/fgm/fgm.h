@@ -10,7 +10,7 @@
 
 import fan;
 import fan.physics.collision.rectangle;
-#include <fan/graphics/file_dialog.h>
+import fan.file_dialog;
 
 
 #define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
@@ -1262,10 +1262,11 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
         );
         const auto& shape_json = *(iterator.data.it - 1);
         node->id = shape_json["id"].get<std::string>();
-        node->group_id = shape_json["group_id"].get<uint32_t>();
-        node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
-
+        if (shape_json.contains("group_id")) {
+          node->group_id = shape_json["group_id"].get<uint32_t>();
+        }
         load_tp(node);
+        node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
         break;
       }
       case loco_t::shape_type_t::unlit_sprite: {
@@ -1277,10 +1278,11 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
         );
         const auto& shape_json = *(iterator.data.it - 1);
         node->id = shape_json["id"].get<std::string>();
-        node->group_id = shape_json["group_id"].get<uint32_t>();
-        node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
-
+        if (shape_json.contains("group_id")) {
+          node->group_id = shape_json["group_id"].get<uint32_t>();
+        }
         load_tp(node);
+        node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
         break;
       }
       case loco_t::shape_type_t::rectangle: {
@@ -1311,7 +1313,9 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
         } });
         const auto& shape_json = *(iterator.data.it - 1);
         node->id = shape_json["id"].get<std::string>();
-        node->group_id = shape_json["group_id"].get<uint32_t>();
+        if (shape_json.contains("group_id")) {
+          node->group_id = shape_json["group_id"].get<uint32_t>();
+        }
         break;
       }
       default: {
