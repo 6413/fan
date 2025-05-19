@@ -31,11 +31,13 @@ struct model_list_t {
     fan::json shapes;
   };
 
-  struct group_data_t {
-    loco_t::shape_t shape;
+  struct group_data_t{
+    cm_t::shape_t shape;
+
     fan::vec3 position = 0; //offset from root
     fan::vec2 size = 0;
     fan::vec3 angle = 0;
+    std::string id;
   };
 
   struct model_data_t {
@@ -55,10 +57,13 @@ struct model_list_t {
   #define BLL_set_NodeDataType model_data_t
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_CPP_CopyAtPointerChange 1
   #include <BLL/BLL.h>
 
   using model_id_t = internal_model_list_NodeReference_t;
   internal_model_list_t model_list;
+
+  std::unordered_map<std::string, fan::vec3> mark_positions;
 
   model_id_t push_model(loco_t::texturepack_t* tp, cm_t* cms, const properties_t& mp) {
     auto nr = model_list.NewNodeLast();
@@ -112,18 +117,29 @@ struct model_list_t {
         }
         push_shape(nr, s.group_id, std::move(s));
       }
+      else if (st == loco_t::shape_type_t::rectangle) {// mark - for example invisble position to get a reference point
+        if (s.id.size()) {
+          auto [it, emplaced] = mark_positions.try_emplace(s.id);
+          if (!emplaced) {
+            fan::print("error: duplicate model id - undefined behaviour");
+          }
+          else {
+            it->second = s.get_position() - node.position;
+          }
+        }
+      }
     }
     set_position(nr, mp.position);
     return nr;
   }
-  void push_shape(model_id_t model_id, uint32_t group_id, const cm_t::shape_t& shape) {
+  void push_shape(model_id_t model_id, uint32_t group_id, cm_t::shape_t&& shape) {
     auto& model = model_list[model_id];
     if (model.groups.size() < group_id + 1) {
       model.groups.resize(group_id + 1);
     }
     auto& group = model.groups[group_id];
     group.push_back(group_data_t{ 
-      .shape = shape
+      .shape = std::move(shape)
     });
     group.back().position = group.back().shape.get_position() - model.position;
     group.back().size = group.back().shape.get_size(); // ?
@@ -135,7 +151,8 @@ struct model_list_t {
   }
   // what happens when group ids change at erase
   void erase(model_id_t model_id, uint32_t group_id) {
-    model_list[model_id].groups.erase(model_list[model_id].groups.begin() + group_id);
+    auto& model = model_list[model_id];
+    model.groups.erase(model_list[model_id].groups.begin() + group_id);
   }
 
   void iterate(model_id_t model_id, uint32_t group_id, auto lambda) {
@@ -153,6 +170,23 @@ struct model_list_t {
         lambda(i);
       }
     }
+  }
+
+  fan::vec3 get_position(model_id_t model_id, const std::string& id) {
+    if (auto found = mark_positions.find(id); found != mark_positions.end()) {
+      return found->second;
+    }
+
+    auto& model = model_list[model_id];
+    for (auto& group : model.groups) {
+      for (auto& shape : group) {
+        if (shape.id == id) {
+          return shape.shape.get_position();
+        }
+      }
+    }
+    fan::throw_error("id not found from model");
+    return fan::vec3();
   }
 
   void set_position(model_id_t model_id, const fan::vec3& position) {
@@ -306,6 +340,9 @@ struct _model_list_filler_t {
       }
       fan::vec3 get_position() {
         return _model_list_filler_t::model_list.get_instance(internal_id).position;
+      }
+      fan::vec3 get_position(const std::string& id) {
+        return _model_list_filler_t::model_list.get_position(internal_id, id);
       }
       void set_position(const fan::vec3& Position) {
         _model_list_filler_t::model_list.set_position(internal_id, Position);

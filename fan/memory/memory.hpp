@@ -4,8 +4,6 @@
 
 #if defined(fan_std23)
 
-#define fan_tracking_allocations
-
 #include <source_location>
 #include <set>
 #include <map>
@@ -44,7 +42,9 @@ namespace fan {
         std::free(p);
       }
     };
+
     using stacktrace_t = std::basic_stacktrace<custom_alloc_t<std::stacktrace_entry>>;
+
     struct memory_data_t {
       std::size_t n = 0;
       void* p = 0;
@@ -77,11 +77,15 @@ namespace fan {
     }
 
     void* allocate_memory(std::size_t n) {
+      bool was_enabled = enabled;
+      enabled = false;
       void* p = std::malloc(n);
       if (!p) {
+        enabled = was_enabled;
         throw std::bad_alloc();
       }
-      if (enabled) {
+      if (was_enabled) {
+        enabled = true;
         memory_data_t md;
         md.p = p;
         md.n = n;
@@ -109,7 +113,7 @@ namespace fan {
       else {
         void* new_ptr = std::realloc(ptr, n);
         if (!new_ptr) {
-          throw std::bad_alloc();
+          return nullptr;
         }
 
         current_allocation_size -= found->second.n;
@@ -165,6 +169,7 @@ namespace fan {
   };
 }
 
+
 #ifndef __generic_malloc
   #define __generic_malloc(n) fan::heap_profiler_t::instance().allocate_memory(n)
 #endif
@@ -179,13 +184,33 @@ namespace fan {
 
 #define fan_track_allocations() \
   bool fan_heap_profiler_init__ = []{ fan::heap_profiler_t::instance().enabled = true; return 0; }(); \
+  \
+  \
   void* operator new(std::size_t n) { return fan::heap_profiler_t::instance().allocate_memory(n); } \
   void operator delete(void* p) noexcept { fan::heap_profiler_t::instance().deallocate_memory(p); } \
- \
+  \
+  \
   void* operator new[](std::size_t n) { return fan::heap_profiler_t::instance().allocate_memory(n); } \
   void operator delete[](void* p) noexcept { fan::heap_profiler_t::instance().deallocate_memory(p); } \
- \
+  \
+  \
   void operator delete(void* p, std::size_t) noexcept { fan::heap_profiler_t::instance().deallocate_memory(p); } \
-  void operator delete[](void* p, std::size_t) noexcept { fan::heap_profiler_t::instance().deallocate_memory(p); }
+  void operator delete[](void* p, std::size_t) noexcept { fan::heap_profiler_t::instance().deallocate_memory(p); } \
+  \
+  \
+  void* operator new(std::size_t n, const std::nothrow_t&) noexcept { \
+    try { return fan::heap_profiler_t::instance().allocate_memory(n); } \
+    catch(const std::bad_alloc&) { return nullptr; } \
+  } \
+  void* operator new[](std::size_t n, const std::nothrow_t&) noexcept { \
+    try { return fan::heap_profiler_t::instance().allocate_memory(n); } \
+    catch(const std::bad_alloc&) { return nullptr; } \
+  } \
+  void operator delete(void* p, const std::nothrow_t&) noexcept { \
+    fan::heap_profiler_t::instance().deallocate_memory(p); \
+  } \
+  void operator delete[](void* p, const std::nothrow_t&) noexcept { \
+    fan::heap_profiler_t::instance().deallocate_memory(p); \
+  }
 
 #endif
