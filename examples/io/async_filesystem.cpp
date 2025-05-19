@@ -70,12 +70,57 @@ fan::event::task_t example_async_file_write_string(const std::string& path, cons
 }
 
 
-int main() {
-  for (int i = 0; i < 16; ++i)
-  fan::event::thread_create([] {
-    while(true) {}
-  });
+#include <Windows.h>
+#include <thread>
 
-  std::getchar();
+
+int main() {
+  auto example_tasks = []() -> fan::event::task_t {
+    {
+      std::string data;
+      co_await example_async_file_read_string("CMakeLists.txt");
+      co_await example_async_file_read_char("CMakeLists.txt");
+      co_await fan::io::file::async_read_cb("CMakeLists.txt", [&data](const std::string& chunk) {
+        data += chunk;
+        fan::printr(chunk);
+        });
+
+      co_await fan::io::file::async_read_cb("CMakeLists.txt", [](const std::string& chunk) -> fan::event::task_t {
+        fan::printr(chunk);
+        co_await fan::co_sleep(50);
+      });
+
+      fan::print("\n\n\n");
+
+      std::string contents = co_await fan::io::file::async_read("3.txt");
+      fan::print(contents);
+
+      co_await example_async_file_write_string("2.txt", data);
+      co_await fan::io::file::async_write("3.txt", data);
+    }
+    {// raii
+      fan::io::file::async_read_t reader;
+      co_await reader.open("CMakeLists.txt");
+      std::string data;
+      std::string chunk = co_await reader.read();
+      while (!chunk.empty()) {
+        chunk = co_await reader.read();
+        data += chunk;
+        fan::printr(chunk);
+      }
+
+      co_await reader.close();
+      fan::print("\n");
+      fan::io::file::async_write_t writer;
+      co_await writer.open("4.txt");
+      while (int wrote = co_await writer.write(data)) {
+        fan::print("wrote " + std::to_string(wrote) + " bytes");
+        co_await fan::co_sleep(1000);
+      }
+      co_await writer.close();
+    }
+  }();
+
+  fan::event::loop();
   return 0;
 }
