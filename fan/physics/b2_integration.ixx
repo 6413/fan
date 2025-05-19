@@ -663,6 +663,10 @@ export namespace fan {
       return p / fan::physics::length_units_per_meter;
     }
 
+    void set_pre_solve_callback(b2WorldId world_id, b2PreSolveFcn* fcn, void* context) {
+      b2World_SetPreSolveCallback(world_id, fcn, context);
+    }
+
   }
 }
 #endif

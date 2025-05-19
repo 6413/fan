@@ -286,14 +286,11 @@ struct model_list_t {
   }
 
   void iterate(model_id_t model_id, auto l) {
-
-    auto& node = model_list[model_id];
-    fan::graphics::shape_deserialize_t iterator;
-    loco_t::shape_t shape;
-    int i = 0;
-    while (iterator.iterate(node.cm.shapes["shapes"], &shape)) {
-      const auto& shape_json = *(iterator.data.it - 1);
-      l(shape_json);
+    auto& model = model_list[model_id];
+    for (auto& group : model.groups) {
+      for (auto& j : group) {
+        l(j);
+      }
     }
   }
 };
