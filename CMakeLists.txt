@@ -127,6 +127,7 @@ set(MODULE_FILES
 	${ROOT_PATH}/types/vector.ixx
 	${ROOT_PATH}/types/quaternion.ixx
 	${ROOT_PATH}/types/matrix.ixx
+	${ROOT_PATH}/types/masterpiece.ixx
 	
 	${ROOT_PATH}/types/fstring.ixx
 	
