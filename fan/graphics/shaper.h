@@ -231,7 +231,9 @@ struct shaper_t{
   #include <BLL/BLL.h>
   using blid_t = BlockList_t::nr_t;
   struct ShapeType_t{
-    ShapeType_t() : renderer(gl_t{}){}
+    ShapeType_t() {
+      std::construct_at(&renderer.gl, gl_t{});
+    }
     /* this will be used from BlockList callbacks with offsetless */
     shaper_t *shaper;
     ShapeTypeAmount_t sti;
@@ -264,13 +266,86 @@ struct shaper_t{
       fan::vulkan::context_t::ssbo_t shape_data;
       uint32_t vertex_count = 6;
     };
-    #endif
-    std::variant<
-      gl_t
-      #if defined(fan_vulkan)
-      ,vk_t
-      #endif
-    > renderer;
+#endif
+    struct renderer_t {
+      enum class type_t {
+        none,
+        gl,
+#if defined(fan_vulkan)
+        vk
+#endif
+      };
+
+      type_t type = type_t::gl;
+
+      renderer_t() {}
+
+      renderer_t(const renderer_t& other) {
+        type = other.type;
+        switch (type) {
+        case type_t::gl:
+          new (&gl) gl_t(other.gl);
+          break;
+#if defined(fan_vulkan)
+        case type_t::vk:
+          new (&vk) vk_t(other.vk);
+          break;
+#endif
+        case type_t::none:
+          break;
+        }
+      }
+
+      renderer_t& operator=(const renderer_t& other) {
+        if (this == &other) return *this;
+
+        destroy();
+
+        type = other.type;
+        switch (type) {
+        case type_t::gl:
+          new (&gl) gl_t(other.gl);
+          break;
+#if defined(fan_vulkan)
+        case type_t::vk:
+          new (&vk) vk_t(other.vk);
+          break;
+#endif
+        case type_t::none:
+          break;
+        }
+
+        return *this;
+      }
+
+      ~renderer_t() {
+        destroy();
+      }
+
+      void destroy() {
+        switch (type) {
+        case type_t::gl:
+          gl.~gl_t();
+          break;
+#if defined(fan_vulkan)
+        case type_t::vk:
+          vk.~vk_t();
+          break;
+#endif
+        case type_t::none:
+          break;
+        }
+        type = type_t::none;
+      }
+
+      union {
+        gl_t gl;
+#if defined(fan_vulkan)
+        vk_t vk;
+#endif
+      };
+    }renderer;
+
     #endif
     //fan::vulkan::context_t::descriptor_t<vulkan_buffer_count>
     MaxElementPerBlock_t MaxElementPerBlock(){
@@ -496,12 +571,12 @@ struct shaper_t{
   #if shaper_set_fan
     fan::graphics::shader_nr_t& GetShader(ShapeTypeIndex_t sti) {
       auto& d = ShapeTypes[sti];
-      if (std::holds_alternative<ShapeType_t::gl_t>(d.renderer)) {
-        return std::get<ShapeType_t::gl_t>(d.renderer).shader;
+      if (get_loco()->get_renderer() == loco_t::renderer_t::opengl) {
+        return d.renderer.gl.shader;
       }
       #if defined(fan_vulkan)
-      if (std::holds_alternative<ShapeType_t::vk_t>(d.renderer)) {
-        return std::get<ShapeType_t::vk_t>(d.renderer).pipeline.shader_nr;
+      else if (get_loco()->get_renderer() == loco_t::renderer_t::vulkan) {
+        return d.renderer.vk.pipeline.shader_nr;
       }
       #endif
       fan::throw_error("");
@@ -510,8 +585,8 @@ struct shaper_t{
     }
     fan::opengl::core::vao_t GetVAO(ShapeTypeIndex_t sti) {
       auto& st = ShapeTypes[sti];
-      if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
-        return std::get<ShapeType_t::gl_t>(st.renderer).m_vao;
+      if (get_loco()->get_renderer() == loco_t::renderer_t::opengl) {
+        return st.renderer.gl.m_vao;
       }
       fan::throw_error("Unsupported renderer type");
       fan::opengl::core::vao_t doesnt_happen;
@@ -519,8 +594,8 @@ struct shaper_t{
     }
     fan::opengl::core::vbo_t GetVBO(ShapeTypeIndex_t sti) {
       auto& st = ShapeTypes[sti];
-      if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
-        return std::get<ShapeType_t::gl_t>(st.renderer).m_vbo;
+      if (get_loco()->get_renderer() == loco_t::renderer_t::opengl) {
+        return st.renderer.gl.m_vbo;
       }
       fan::throw_error("Unsupported renderer type");
       fan::opengl::core::vbo_t doesnt_happen;
@@ -528,8 +603,8 @@ struct shaper_t{
     }
     std::vector<shape_gl_init_t>& GetLocations(ShapeTypeIndex_t sti) {
       auto& st = ShapeTypes[sti];
-      if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
-        return std::get<ShapeType_t::gl_t>(st.renderer).locations;
+      if (get_loco()->get_renderer() == loco_t::renderer_t::opengl) {
+        return st.renderer.gl.locations;
       }
       fan::throw_error("Unsupported renderer type");
       static std::vector<shape_gl_init_t> doesnt_happen;
@@ -610,7 +685,9 @@ struct shaper_t{
   }
 
   struct BlockProperties_t{
-    BlockProperties_t() : renderer(gl_t{}) {}
+    BlockProperties_t() {
+      std::construct_at(&renderer.gl, gl_t{});
+    }
     MaxElementPerBlock_t MaxElementPerBlock;
     decltype(ShapeType_t::RenderDataSize) RenderDataSize;
     decltype(ShapeType_t::DataSize) DataSize;
@@ -632,12 +709,16 @@ struct shaper_t{
       uint32_t vertex_count = 6;
     };
 #endif
-    std::variant<
-      gl_t
-#if defined(fan_vulkan)
-      ,vk_t
-#endif
-    > renderer;
+    struct renderer_t {
+      renderer_t() {}
+      ~renderer_t() {}
+      union {
+        gl_t gl;
+      #if defined(fan_vulkan)
+        vk_t vk;
+      #endif
+      };
+    }renderer;
 
     #endif
   };
@@ -698,7 +779,7 @@ struct shaper_t{
 
   void SetShapeType(
     ShapeTypeIndex_t sti,
-    const BlockProperties_t bp
+    const BlockProperties_t& bp
   ){
     while(sti >= ShapeTypes.Usage()){
       auto csti = ShapeTypes.NewNode();
@@ -820,14 +901,14 @@ struct shaper_t{
     st.DataSize = bp.DataSize;
 
   #if shaper_set_fan
-    if (std::holds_alternative<BlockProperties_t::gl_t>(bp.renderer)) {
-      st.renderer = ShapeType_t::gl_t{};
+    if (get_loco()->get_renderer() == loco_t::renderer_t::opengl) {
+      st.renderer.gl = ShapeType_t::gl_t{};
       get_loco()->gl.add_shape_type(st, bp);
     }
     #if defined(fan_vulkan)
-    else if (std::holds_alternative<BlockProperties_t::vk_t>(bp.renderer)) {
+    else if (get_loco()->get_renderer() == loco_t::renderer_t::vulkan) {
       ShapeType_t::vk_t d;
-      auto& bpr = std::get<BlockProperties_t::vk_t>(bp.renderer);
+      auto& bpr = bp.renderer.vk;
       d.pipeline = bpr.pipeline;
       d.shape_data = bpr.shape_data;
       d.vertex_count = bpr.vertex_count;
@@ -850,8 +931,8 @@ struct shaper_t{
       auto &bu = GetBlockUnique(be.sti, be.blid);
 
       #if shaper_set_fan
-      if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
-        auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
+      if (get_loco()->get_renderer() == loco_t::renderer_t::opengl) {
+        auto& gl = st.renderer.gl;
         gl.m_vao.bind(context);
         fan::opengl::core::edit_glbuffer(
           context,
@@ -863,8 +944,8 @@ struct shaper_t{
         );
       }
       #if defined(fan_vulkan)
-      else if (std::holds_alternative<ShapeType_t::vk_t>(st.renderer)) {
-        auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
+      else if (get_loco()->get_renderer() == loco_t::renderer_t::vulkan) {
+        auto& vk = st.renderer.vk;
         auto wrote = bu.MaxEdit - bu.MinEdit;
         for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
           memcpy(
@@ -933,8 +1014,8 @@ struct shaper_t{
     BlockList_t::nr_t node_id;
     traverse.Open(&st.BlockList, &node_id);
     
-    if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
-      auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
+    if (get_loco()->get_renderer() == loco_t::renderer_t::opengl) {
+      auto& gl = st.renderer.gl;
       fan::opengl::context_t &context = get_loco()->context.gl;
       gl.m_vao.bind(context);
       while(traverse.Loop(&st.BlockList, &node_id)){
@@ -949,8 +1030,8 @@ struct shaper_t{
       }
     }
     #if defined(fan_vulkan)
-    else {
-      auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
+    else if (get_loco()->get_renderer() == loco_t::renderer_t::vulkan){
+      auto& vk = st.renderer.vk;
       while (traverse.Loop(&st.BlockList, &node_id)) {
         for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
           memcpy(vk.shape_data.data[frame], GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());
@@ -969,8 +1050,8 @@ struct shaper_t{
     auto &st = ShapeTypes[sti];
 
     #if shaper_set_fan
-    if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
-      auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
+    if (get_loco()->get_renderer() == loco_t::renderer_t::opengl) {
+      auto& gl = st.renderer.gl;
       gl.m_vbo.bind(get_loco()->get_context().gl);
       fan::opengl::core::write_glbuffer(
         get_loco()->get_context().gl,
@@ -982,7 +1063,7 @@ struct shaper_t{
       );
       _RenderDataReset(sti);
     }
-    else {
+    else if (get_loco()->get_renderer() == loco_t::renderer_t::vulkan){
       //memcpy(vk.shape_data.data, _GetRenderData(sti, node_id, 0) + GetRenderDataOffset(sti, node_id), st.RenderDataSize * st.MaxElementPerBlock());
       //vk.shape_data.allocate(gloco->context.vk, New * st.RenderDataSize * st.MaxElementPerBlock());
       //vk.shape_data.m_descriptor.update(gloco->context.vk, 1, 0, 1, 0);
@@ -1011,18 +1092,18 @@ struct shaper_t{
     BlockList_t::nr_t blid
   ){
     auto &st = ShapeTypes[sti];
-    
-    if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
-      //auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
-      //get_loco()->shader_erase(gl.shader);
-    }
-    else {
-      //
-      //auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
-      //get_loco()->context.vk.shader_erase(vk.pipeline.shader_nr);
-      //vk.pipeline.close(get_loco()->context.vk);
-      //vk.shape_data.close(get_loco()->context.vk);
-    }
+    //
+    //if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
+    //  //auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
+    //  //get_loco()->shader_erase(gl.shader);
+    //}
+    //else {
+    //  //
+    //  //auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
+    //  //get_loco()->context.vk.shader_erase(vk.pipeline.shader_nr);
+    //  //vk.pipeline.close(get_loco()->context.vk);
+    //  //vk.shape_data.close(get_loco()->context.vk);
+    //}
 
     GetBlockUnique(sti, blid).destructor(*this);
 

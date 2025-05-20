@@ -22,8 +22,6 @@
   #include <fan/time/timer.h>
 #endif
 
-import fan.print;
-
 inline int fan_track_opengl_calls = 0;
 inline std::function<void(std::string func_name, uint64_t elapsed)> fan_opengl_track_print = [](std::string func_name, uint64_t elapsed){ };
 
@@ -62,7 +60,8 @@ namespace fan {
         }
         init = 0;
         if (GLenum err = glewInit() != GLEW_OK) {
-          fan::throw_error(std::string("glew init error:") + std::string((const char*)glewGetErrorString(err)));
+          fan::throw_error_impl();
+          //fan::throw_error(std::string("glew init error:") + std::string((const char*)glewGetErrorString(err)));
         }
       }
     };

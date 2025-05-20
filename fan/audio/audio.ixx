@@ -38,10 +38,10 @@ module;
   #include <pulse/simple.h>
 #endif
 
-export module fan.audio;
+export module fan:audio;
 
-import fan.print;
-import fan.io.file;
+import :print;
+import :io.file;
 
 export namespace fan {
   struct system_audio_t {

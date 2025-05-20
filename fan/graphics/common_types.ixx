@@ -2,10 +2,10 @@ module;
 
 #include <fan/types/pair.h>
 
-export module fan.graphics.common_types;
+export module fan:graphics.common_types;
 
-import fan.types.color;
-import fan.types.vector;
+import :types.color;
+import :types.vector;
 
 export namespace fan {
   namespace graphics {

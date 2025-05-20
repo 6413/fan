@@ -5,22 +5,18 @@ module;
 
 #include <fan/types/types.h>
 #include <fan/math/math.h>
-#include <fan/graphics/algorithm/raycast_grid.h>
 
-#include <fan/types/json.h>
+export module fan:graphics.gui.tilemap_editor.editor;
 
-export module fan.graphics.gui.tilemap_editor.editor;
+#if defined(fan_gui)
 
-import fan.print;
-import fan.file_dialog;
+export import :graphics.gui; // export?
 
-import fan.graphics.loco;
-import fan.graphics;
+import :graphics.algorithm.raycast_grid;
 
-import fan.graphics.gui;
-import fan.io.file;
-
-import fan.physics.collision.rectangle;
+import :print;
+import :file_dialog;
+import :io.file;
 
 export struct fte_t {
   static constexpr int max_id_len = 48;
@@ -1805,6 +1801,7 @@ export struct fte_t {
   };
 
   void fout(const std::string& filename) {
+#if defined(fan_json)
     previous_file_name = filename;
 
     fan::json ostr;
@@ -1883,6 +1880,10 @@ export struct fte_t {
 
     ostr["tiles"] = tiles;
     fan::io::file::write(filename, ostr.dump(2), std::ios_base::binary);
+#else
+    fan::throw_error("fan_json not enabled");
+    __unreachable();
+#endif
   }
 
   /*
@@ -1896,6 +1897,7 @@ shape data{
 }
 */
   void fin(const std::string& filename) {
+#if defined(fan_json)
     if (texturepack.texture_list.size() == 0) {
       fan::print("open valid texturepack");
       return;
@@ -2017,6 +2019,10 @@ shape data{
         }
       }
     }
+#else 
+    fan::throw_error("fan_json not enabled");
+    __unreachable();
+#endif
   }
 
   fan::vec2i map_size{ 6, 6 };
@@ -2173,3 +2179,5 @@ shape data{
   loco_t::shape_t visual_line;
   int original_image_width = 2048;
 };
+
+#endif

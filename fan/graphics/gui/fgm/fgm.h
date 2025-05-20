@@ -8,10 +8,9 @@
 
 #include <fan/imgui/imgui.h>
 
-import fan;
+import fan.graphics;
 import fan.physics.collision.rectangle;
 import fan.file_dialog;
-
 
 #define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
           fan::graphics::gui::drag_float(name, &variable, speed, m_min, m_max)

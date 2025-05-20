@@ -25,7 +25,7 @@ module;
 #include <GLFW/glfw3native.h>
 
 
-export module fan.window.input;
+export module fan:window.input;
 
 export namespace fan {
   struct keyboard_state {

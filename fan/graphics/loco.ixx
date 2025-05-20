@@ -7,25 +7,21 @@ module;
 
 #define loco_audio
 
-import fan.event;
-#include <fan/event/types.h>
-#include <uv.h>
-
-#if defined(fan_gui)
-  import fan.file_dialog;
-  #include <deque>
-#endif
-
-#include <array>
-#include <variant>
-#include <cstring>
-
-#define loco_opengl
 #define loco_framebuffer
 #define loco_post_process
 #define loco_vfi
 
 #define loco_physics
+
+#if defined(fan_gui)
+  #include <deque>
+#endif
+
+#include <cstring>
+#include <memory> // shared_ptr tp0.h
+#include <array>
+
+#define loco_opengl
 
 #ifndef camera_list
   #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)this))
@@ -88,42 +84,40 @@ import fan.event;
 #include <fan/graphics/gui/imgui_themes.h>
 #endif
 
-#if defined(fan_json)
-#include <fan/types/json.h>
-#endif
+#include <fan/event/types.h>
+#include <uv.h>
 
-export module fan.graphics.loco;
+export module fan:graphics.loco;
 
+import :event;
+import :file_dialog;
 
-import fan.types.vector;
-import fan.types.matrix;
-import fan.window.input;
-import fan.window;
-import fan.io.file;
-import fan.types.fstring;
+import :window;
+import :types.color;
+import :random;
+
+import :io.file;
+import :types.fstring;
 #if defined(fan_physics)
-  import fan.physics.b2_integration;
+  import :physics.b2_integration;
 #endif
-
-import fan.types.color;
-import fan.random;
-import fan.graphics.webp;
-import fan.graphics.image_load;
-import fan.graphics.common_types;
-import fan.graphics.common_context;
-import fan.graphics.opengl.core;
-
-import fan.physics.collision.rectangle;
 
 #if defined(loco_audio)
-  import fan.audio;
+  import :audio;
 #endif
 
 #if defined(fan_gui)
-  import fan.console;
+  import :console;
 #endif
 
+import :graphics.webp;
+import :graphics.opengl.core;
+
+import :physics.collision.rectangle;
+
 #if defined(fan_json)
+
+import :types.json;
 
 export namespace fan {
   struct json_stream_parser_t {
@@ -236,7 +230,7 @@ extern "C" {
 
 export struct loco_t;
 
-#if defined(fan_physics) 
+#if defined(fan_physics)
 namespace fan {
   namespace graphics {
     void open_bcol();
@@ -302,23 +296,25 @@ export namespace fan {
       }
     }
 #endif
-    using context_shader_init_t = std::variant<
-      fan::opengl::context_t::shader_t
+    struct context_shader_t {
+      context_shader_t() {}
+      ~context_shader_t() {}
+      union {
+        fan::opengl::context_t::shader_t gl;
 #if defined(fan_vulkan)
-      , fan::vulkan::context_t::shader_t
+        fan::vulkan::context_t::shader_t vk;
 #endif
-    >;
-    struct context_shader_t : context_shader_init_t {
-      using context_shader_init_t::variant;
+      };
     };
-    using context_image_init_t = std::variant<
-      fan::opengl::context_t::image_t
+    struct context_image_t {
+      context_image_t() {}
+      ~context_image_t() {}
+      union {
+        fan::opengl::context_t::image_t gl;
 #if defined(fan_vulkan)
-      , fan::vulkan::context_t::image_t
+        fan::vulkan::context_t::image_t vk; // note vk::image_t uses vector 
 #endif
-    >;
-    struct context_image_t : context_image_init_t {
-      using context_image_init_t::variant;
+      };
     };
     struct context_t {
       context_t() {}
@@ -366,11 +362,11 @@ export struct loco_t {
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr) {
     fan::graphics::context_shader_t context_shader;
     if (window.renderer == renderer_t::opengl) {
-      context_shader = *(fan::opengl::context_t::shader_t*)context_functions.shader_get(&context, nr);
+      context_shader.gl = *(fan::opengl::context_t::shader_t*)context_functions.shader_get(&context, nr);
     }
 #if defined(fan_vulkan)
     else if (window.renderer == renderer_t::vulkan) {
-      context_shader = *(fan::vulkan::context_t::shader_t*)context_functions.shader_get(&context, nr);
+      context_shader.vk = *(fan::vulkan::context_t::shader_t*)context_functions.shader_get(&context, nr);
     }
 #endif
     return context_shader;
@@ -433,11 +429,11 @@ export struct loco_t {
   fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr) {
     fan::graphics::context_image_t img;
     if (window.renderer == renderer_t::opengl) {
-      img = *(fan::opengl::context_t::image_t*)context_functions.image_get(&context, nr);
+      img.gl = *(fan::opengl::context_t::image_t*)context_functions.image_get(&context, nr);
     }
 #if defined(fan_vulkan)
     else if (window.renderer == renderer_t::vulkan) {
-      img = *(fan::vulkan::context_t::image_t*)context_functions.image_get(&context, nr);
+      img.vk = *(fan::vulkan::context_t::image_t*)context_functions.image_get(&context, nr);
     }
 #endif
     return img;
@@ -2097,14 +2093,14 @@ public:
   }
 
   // for checking whether you set depth or no
-  struct position3_t : public fan::vec3 {
-    using fan::vec3::vec3;
-    using fan::vec3::operator=;
-    position3_t& operator=(const position3_t& p) {
-      fan::vec3::operator=(p);
-      return *this;
-    }
-  };
+  //struct position3_t : public fan::vec3 {
+  //  using fan::vec3::vec3;
+  //  using fan::vec3::operator=;
+  //  position3_t& operator=(const position3_t& p) {
+  //    fan::vec3::operator=(p);
+  //    return *this;
+  //  }
+  //};
 
 
   //
@@ -2127,6 +2123,7 @@ public:
   //
 
   void set_vsync(bool flag) {
+    vsync = flag;
     // vulkan vsync is enabled by presentation mode in swap chain
     if (window.renderer == renderer_t::opengl) {
       context.gl.set_vsync(&window, flag);
@@ -2368,6 +2365,7 @@ public:
 
   int32_t target_fps = 165; // must be changed from function
   bool timer_enabled = target_fps > 0;
+  bool vsync = false;
 
   std::function<void()> main_loop; // bad, but forced
 
@@ -2677,7 +2675,7 @@ public:
           dst_data->vao.open(gloco->context.gl);
           dst_data->vbo.open(gloco->context.gl, src_data->vbo.m_target);
 
-          auto& shape_data = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(gloco->shaper.GetShapeTypes(shape_type_t::polygon).renderer);
+          auto& shape_data = gloco->shaper.GetShapeTypes(shape_type_t::polygon).renderer.gl;
           fan::graphics::context_shader_t shader;
           if (!shape_data.shader.iic()) {
             shader = gloco->shader_get(shape_data.shader);
@@ -2687,7 +2685,7 @@ public:
           uint64_t ptr_offset = 0;
           for (shape_gl_init_t& location : polygon_t::locations) {
             if ((gloco->context.gl.opengl.major == 2 && gloco->context.gl.opengl.minor == 1) && !shape_data.shader.iic()) {
-              location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
+              location.index.first = fan_opengl_call(glGetAttribLocation(shader.gl.id, location.index.second));
             }
             fan_opengl_call(glEnableVertexAttribArray(location.index.first));
             switch (location.type) {
@@ -2764,7 +2762,7 @@ public:
             dst_data->vao.open(gloco->context.gl);
             dst_data->vbo.open(gloco->context.gl, src_data->vbo.m_target);
 
-            auto& shape_data = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(gloco->shaper.GetShapeTypes(shape_type_t::polygon).renderer);
+            auto& shape_data = gloco->shaper.GetShapeTypes(shape_type_t::polygon).renderer.gl;
             fan::graphics::context_shader_t shader;
             if (!shape_data.shader.iic()) {
               shader = gloco->shader_get(shape_data.shader);
@@ -2774,7 +2772,7 @@ public:
             uint64_t ptr_offset = 0;
             for (shape_gl_init_t& location : polygon_t::locations) {
               if ((gloco->context.gl.opengl.major == 2 && gloco->context.gl.opengl.minor == 1) && !shape_data.shader.iic()) {
-                location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
+                location.index.first = fan_opengl_call(glGetAttribLocation(shader.gl.id, location.index.second));
               }
               fan_opengl_call(glEnableVertexAttribArray(location.index.first));
               switch (location.type) {
@@ -2855,11 +2853,13 @@ public:
         return;
       }
       auto shape_type = get_shape_type();
+#if defined(loco_vfi)
       if (shape_type == loco_t::shape_type_t::vfi) {
         gloco->vfi.erase(*this);
         sic();
         return;
       }
+#endif
       if (shape_type == loco_t::shape_type_t::polygon) {
         auto ri = (polygon_t::ri_t*)GetData(gloco->shaper);
         ri->vbo.close(gloco->context.gl);
@@ -3832,7 +3832,7 @@ public:
         ri.vbo.m_target
       );
 
-      auto& shape_data = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(gloco->shaper.GetShapeTypes(shape_type).renderer);
+      auto& shape_data = gloco->shaper.GetShapeTypes(shape_type).renderer.gl;
 
       fan::graphics::context_shader_t shader;
       if (!shape_data.shader.iic()) {
@@ -3841,7 +3841,7 @@ public:
       uint64_t ptr_offset = 0;
       for (shape_gl_init_t& location : locations) {
         if ((gloco->context.gl.opengl.major == 2 && gloco->context.gl.opengl.minor == 1) && !shape_data.shader.iic()) {
-          location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
+          location.index.first = fan_opengl_call(glGetAttribLocation(shader.gl.id, location.index.second));
         }
         fan_opengl_call(glEnableVertexAttribArray(location.index.first));
         switch (location.type) {
@@ -4509,14 +4509,17 @@ public:
 
     shader_compile(shader);
 
-    decltype(loco_t::shaper_t::BlockProperties_t::renderer) data{ loco_t::shaper_t::BlockProperties_t::gl_t{} };
+    shaper_t::BlockProperties_t bp;
+    bp.MaxElementPerBlock = (loco_t::shaper_t::MaxElementPerBlock_t)MaxElementPerBlock;
+    bp.RenderDataSize = (decltype(loco_t::shaper_t::BlockProperties_t::RenderDataSize))(sizeof_vi * instance_count);
+    bp.DataSize = sizeof_ri;
 
     if (window.renderer == renderer_t::opengl) {
       loco_t::shaper_t::BlockProperties_t::gl_t d;
       d.locations = shape_shader_locations;
       d.shader = shader;
       d.instanced = instanced;
-      data = d;
+      bp.renderer.gl = d;
     }
 #if defined(fan_vulkan)
     else if (window.renderer == renderer_t::vulkan) {
@@ -4591,15 +4594,9 @@ public:
       pipe_p.push_constants_size = sizeof(fan::vulkan::context_t::push_constants_t);
       p.open(context.vk, pipe_p);
       vk.pipeline = p;
-      data = vk;
+      bp.renderer.vk = d;
     }
 #endif
-
-    shaper_t::BlockProperties_t bp;
-    bp.MaxElementPerBlock = (loco_t::shaper_t::MaxElementPerBlock_t)MaxElementPerBlock;
-    bp.RenderDataSize = (decltype(loco_t::shaper_t::BlockProperties_t::RenderDataSize))(sizeof_vi * instance_count);
-    bp.DataSize = sizeof_ri;
-    bp.renderer = data;
 
     gloco->shaper.SetShapeType(shape_type, bp);
 
@@ -4626,8 +4623,8 @@ public:
 
 #if defined(loco_vfi)
 #include <fan/graphics/gui/vfi.h>
-#endif
   vfi_t vfi;
+#endif
 
   //#if defined(loco_texture_pack)
   //#endif
@@ -4926,198 +4923,6 @@ public:
   fan::audio_t::piece_t piece_hover, piece_click;
 #endif
 };
-
-export namespace fan {
-  namespace window {
-    fan::vec2 get_mouse_position() {
-      return gloco->get_mouse_position();
-    }
-  }
-}
-
-export namespace fan {
-  namespace graphics {
-    using vfi_t = loco_t::vfi_t;
-
-    using engine_t = loco_t;
-    using image_t = loco_t::image_t;
-    using camera_impl_t = loco_t::camera_impl_t;
-    using camera_t = camera_impl_t;
-    using viewport_t = loco_t::viewport_t;
-
-    fan::graphics::image_t invalid_image = []{
-      image_t image;
-      image.sic();
-      return image;
-    }();
-    void add_input_action(const int* keys, std::size_t count, std::string_view action_name) {
-      gloco->input_action.add(keys, count, action_name);
-    }
-    void add_input_action(std::initializer_list<int> keys, std::string_view action_name) {
-      gloco->input_action.add(keys, action_name);
-    }
-    void add_input_action(int key, std::string_view action_name) {
-      gloco->input_action.add(key, action_name);
-    }
-    bool is_input_action_active(std::string_view action_name, int pstate = loco_t::input_action_t::press) {
-      return gloco->input_action.is_active(action_name);
-    }
-
-    fan::vec2 get_mouse_position() {
-      return gloco->get_mouse_position();
-    }
-    fan::vec2 get_mouse_position(const fan::graphics::camera_t& camera) {
-      return loco_t::transform_position(gloco->get_mouse_position(), camera.viewport, camera.camera);
-    }
-    fan::vec2 get_mouse_position(
-      const loco_t::camera_t& camera,
-      const loco_t::viewport_t& viewport
-    ) {
-      return gloco->get_mouse_position(camera, viewport);
-    }
-
-#if defined(fan_gui)
-
-    void text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0) {
-      static auto find_next_word = [](const std::string& str, std::size_t offset) -> std::size_t {
-        std::size_t found = str.find(' ', offset);
-        if (found == std::string::npos) {
-          found = str.size();
-        }
-        if (found != std::string::npos) {
-        }
-        return found;
-        };
-      static auto find_previous_word = [](const std::string& str, std::size_t offset) -> std::size_t {
-        std::size_t found = str.rfind(' ', offset);
-        if (found == std::string::npos) {
-          found = str.size();
-        }
-        if (found != std::string::npos) {
-        }
-        return found;
-        };
-
-      std::vector<std::string> lines;
-      std::size_t previous_word = 0;
-      std::size_t previous_push = 0;
-      bool found = false;
-      for (std::size_t i = 0; i < text.size(); ++i) {
-        std::size_t word_index = text.find(' ', i);
-        if (word_index == std::string::npos) {
-          word_index = text.size();
-        }
-
-        std::string str = text.substr(previous_push, word_index - previous_push);
-        f32_t width = ImGui::CalcTextSize(str.c_str()).x;
-
-        if (width >= wrap_width) {
-          if (previous_push == previous_word) {
-            lines.push_back(text.substr(previous_push, i - previous_push));
-            previous_push = i;
-          }
-          else {
-            lines.push_back(text.substr(previous_push, previous_word - previous_push));
-            previous_push = previous_word + 1;
-            i = previous_word;
-          }
-        }
-        previous_word = word_index;
-        i = word_index;
-      }
-
-      // Add remaining text as last line
-      if (previous_push < text.size()) {
-        lines.push_back(text.substr(previous_push));
-      }
-
-      std::size_t empty_lines = 0;
-      std::size_t character_offset = 0;
-      ImVec2 pos = ImGui::GetCursorScreenPos();
-      for (const auto& line : lines) {
-        if (line.empty()) {
-          ++empty_lines;
-          continue;
-        }
-        std::size_t empty = 0;
-        if (empty >= line.size()) {
-          break;
-        }
-        while (line[empty] == ' ') {
-          if (empty >= line.size()) {
-            break;
-          }
-          ++empty;
-        }
-        if (character_offset >= render_pos) {
-          break;
-        }
-        std::string render_text = line.substr(empty).c_str();
-        ImGui::SetCursorScreenPos(pos);
-        if (character_offset + render_text.size() >= render_pos) {
-          ImGui::TextUnformatted(render_text.substr(0, render_pos - character_offset).c_str());
-          break;
-        }
-        else {
-          ImGui::TextUnformatted(render_text.c_str());
-          if (render_text.back() != ' ') {
-            character_offset += 1;
-          }
-          character_offset += render_text.size();
-          pos.y += ImGui::GetTextLineHeightWithSpacing() + line_spacing;
-        }
-      }
-      if (empty_lines) {
-        ImGui::TextColored(fan::colors::red, "warning empty lines:%zu", empty_lines);
-      }
-    }
-#endif
-  }
-}
-
-
-export namespace fan {
-  inline void printclnn(auto&&... values) {
-#if defined (fan_gui)
-    gloco->printclnn(values...);
-#endif
-  }
-  inline void printcl(auto&&... values) {
-#if defined(fan_gui)
-    gloco->printcl(values...);
-#endif
-  }
-
-  inline void printclnnh(int highlight, auto&&... values) {
-#if defined(fan_gui)
-    gloco->printclnnh(highlight, values...);
-#endif
-  }
-
-  inline void printclh(int highlight, auto&&... values) {
-#if defined(fan_gui)
-    gloco->printclh(highlight, values...);
-#endif
-  }
-  inline void printcl_err(auto&&... values) {
-#if defined(fan_gui)
-    printclh(fan::graphics::highlight_e::error, values...);
-#endif
-  }
-  inline void printcl_warn(auto&&... values) {
-#if defined(fan_gui)
-    printclh(fan::graphics::highlight_e::warning, values...);
-#endif
-  }
-}
-
-bool init_fan_track_opengl_print = []() {
-  fan_opengl_track_print = [](std::string func_name, uint64_t elapsed) {
-    fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":");
-    fan::printclh(fan::graphics::highlight_e::warning, std::to_string(elapsed / 1e+6f)/*fan::to_string(elapsed / 1e+6)*/ + "ms");
-    };
-  return 1;
-  }();
 
 #if defined(fan_json)
 export namespace fan {
@@ -5817,6 +5622,7 @@ namespace fan {
       }
       // fan_track_allocations() must be called in global scope before calling this function
       void render_allocations_plot() {
+#if defined(fan_std23)
         static std::vector<f32_t> allocation_sizes;
         static std::vector<fan::heap_profiler_t::memory_data_t> allocations;
 
@@ -5834,7 +5640,7 @@ namespace fan {
           max_y = std::max(max_y, v);
           allocations.push_back(entry.second);
         }
-        static fan::heap_profiler_t::stacktrace_t stack;
+        static std::stacktrace stack;
         if (ImPlot::BeginPlot("Memory Allocations", ImGui::GetWindowSize(), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend)) {
           float max_allocation = *std::max_element(allocation_sizes.begin(), allocation_sizes.end());
           ImPlot::SetupAxis(ImAxis_Y1, "Memory (MB)");
@@ -5909,6 +5715,10 @@ namespace fan {
           }
           ImPlot::EndPlot();
         }
+
+#else
+        ImGui::Text("std::stacktrace not supported");
+#endif
       }
     }
   }

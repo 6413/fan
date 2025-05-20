@@ -14,11 +14,11 @@ module;
 #include <string>
 #include <ostream>
 
-export module fan.types.matrix;
+export module fan:types.matrix;
 
-import fan.types.vector;
-import fan.types.quaternion;
-import fan.random;
+export import :types.vector;
+export import :types.quaternion;
+import :random;
 
 export namespace fan {
 

@@ -21,12 +21,12 @@ module;
 #include <functional>
 #include <string>
 
-export module fan.window;
+export module fan:window;
 
-import fan.print;
-import fan.types.vector;
-import fan.window.input_common;
-import fan.window.input;
+import :print;
+export import :window.input_common;
+
+export import :types.vector;
 
 export namespace fan {
   struct init_manager_t {

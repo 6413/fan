@@ -2,8 +2,6 @@
 
 #include <fan/types/types.h>
 
-#include <functional>
-
 #include <cmath>
 
 #ifdef fan_platform_windows

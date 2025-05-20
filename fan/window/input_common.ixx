@@ -8,9 +8,9 @@ module;
   #include <fan/imgui/imgui.h>
 #endif
 
-export module fan.window.input_common;
+export module fan:window.input_common;
 
-import fan.window.input;
+export import :window.input;
 
 export namespace fan {
   namespace window {

@@ -10,6 +10,8 @@ int main(int argc, char** argv) {
   //////////
   loco_t loco;
   
+  auto image = loco.image_load("images/brick_wall.png");
+
   model_maker_t mm;////
 
   mm.open("texture_packs/TexturePack", L"examples/games/puzzle");

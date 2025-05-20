@@ -1,8 +1,10 @@
-#pragma once
+module;
 
 #include <fan/math/math.h>
 
-import fan.types.vector;
+export module fan:physics.collision.triangle;
+
+import :types.vector;
 
 namespace fan_2d {
 	namespace collision {

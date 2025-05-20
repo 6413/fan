@@ -43,12 +43,10 @@ namespace fan {
       }
     };
 
-    using stacktrace_t = std::basic_stacktrace<custom_alloc_t<std::stacktrace_entry>>;
-
     struct memory_data_t {
       std::size_t n = 0;
       void* p = 0;
-      stacktrace_t line_data;
+      std::stacktrace line_data;
     };
 
     struct compare_alloc_size_t {
@@ -89,7 +87,7 @@ namespace fan {
         memory_data_t md;
         md.p = p;
         md.n = n;
-        md.line_data = std::basic_stacktrace<custom_alloc_t<std::stacktrace_entry>>::current(0, 20);
+        md.line_data = std::stacktrace::current(0, 20);
 
         auto result_map = memory_map.insert(std::make_pair(p, md));
         if (!result_map.second) {
@@ -125,7 +123,7 @@ namespace fan {
         memory_data_t md;
         md.p = new_ptr;
         md.n = n;
-        md.line_data = std::basic_stacktrace<custom_alloc_t<std::stacktrace_entry>>::current(0, 20);
+        md.line_data = std::stacktrace::current(0, 20);
 
         auto result_map = memory_map.insert(std::make_pair(new_ptr, md));
         if (!result_map.second) {

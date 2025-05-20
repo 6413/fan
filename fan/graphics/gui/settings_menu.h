@@ -102,6 +102,15 @@ struct settings_menu_t {
       {
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
+        ImGui::Text("Enable VSync");
+        ImGui::TableNextColumn();
+        if (ImGui::Checkbox("##enable_vsync", (bool*)&gloco->vsync)) {
+          gloco->set_vsync(gloco->vsync);
+        }
+      }
+      {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
         ImGui::Text("Show fps");
         ImGui::TableNextColumn();
         ImGui::Checkbox("##show_fps", (bool*)&gloco->toggle_fps);

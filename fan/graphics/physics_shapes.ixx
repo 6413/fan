@@ -17,20 +17,18 @@ module;
 
 #endif
 
-export module fan.graphics.physics_shapes;
+export module fan:graphics.physics_shapes;
 
 #if defined(fan_physics)
 
-import fan.types.vector;
-import fan.types.color;
-import fan.physics.b2_integration;
-
-import fan.graphics.common_context;
-import fan.graphics.loco;
-import fan.graphics;
+import :types.vector;
+import :types.color;
+import :physics.b2_integration;
 
 #if (fan_gui)
-  import fan.graphics.gui;
+  import :graphics.gui;
+#else
+  import :graphics;
 #endif
 
 export namespace fan {

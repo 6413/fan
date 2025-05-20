@@ -11,9 +11,9 @@ module;
 #include <cmath>
 #include <limits>
 
-export module fan.types.quaternion;
+export module fan:types.quaternion;
 
-import fan.types.vector;
+export import :types.vector;
 
 export namespace fan {
 

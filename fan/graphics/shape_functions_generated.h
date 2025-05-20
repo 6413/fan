@@ -42,9 +42,11 @@ static loco_t::shape_t push_back_grid(void* properties) {
 	return gloco->grid.push_back(*reinterpret_cast<loco_t::grid_t::properties_t*>(properties));
 }
 
+#if defined(loco_vfi)
 static loco_t::shape_t push_back_vfi(void* properties) {
 	return gloco->vfi.push_back(*reinterpret_cast<loco_t::vfi_t::properties_t*>(properties));
 }
+#endif
 
 static loco_t::shape_t push_back_particles(void* properties) {
 	return gloco->particles.push_back(*reinterpret_cast<loco_t::particles_t::properties_t*>(properties));
@@ -3393,7 +3395,9 @@ inline static loco_t::push_back_cb push_back_functions[] = {
 	&push_back_capsule,
 	&push_back_polygon,
 	&push_back_grid,
+#if defined(loco_vfi)
 	&push_back_vfi,
+#endif
 	&push_back_particles,
 	&push_back_universal_image_renderer,
 	&push_back_gradient,

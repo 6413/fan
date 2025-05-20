@@ -1,7 +1,6 @@
 module;
 
 #include <fan/types/types.h>
-
 #include <fan/math/math.h>
 
 #include <functional>
@@ -13,9 +12,9 @@ namespace detail{
   #include <BLL/BLL.h>
 }
 
-export module fan.graphics.opengl.uniform_block;
+export module fan:graphics.opengl.uniform_block;
 
-import fan.graphics.opengl.core;
+import :graphics.opengl.core;
 
 export namespace fan {
   namespace opengl {

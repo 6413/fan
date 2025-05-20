@@ -5,20 +5,17 @@ module;
 
 #include <fan/graphics/common_context_functions_declare.h>
 
-#include <variant>
-#include <memory>
 #include <unordered_map>
+#include <memory>
+#include <string>
 
-export module fan.graphics.common_context;
+export module fan:graphics.common_context;
 
-import fan.print;
-import fan.types.color;
-import fan.types.vector;
-import fan.types.matrix;
-import fan.camera;
+export import :types.color;
+export import :graphics.image_load;
+export import :camera;
 
-import fan.graphics.image_load;
-
+import :print;
 
 export namespace fan {
   namespace graphics {

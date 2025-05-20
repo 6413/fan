@@ -15,12 +15,12 @@ module;
 #include <unordered_map>
 #include <string>
 
-export module fan.graphics.webp;
+export module fan:graphics.webp;
 
-import fan.types.vector;
-import fan.print;
-import fan.types.vector;
-import fan.io.file;
+import :types.vector;
+import :print;
+import :types.vector;
+import :io.file;
 
 export namespace fan {
 	namespace webp {
