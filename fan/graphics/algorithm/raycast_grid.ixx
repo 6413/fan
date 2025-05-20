@@ -3,8 +3,10 @@
 #include <fan/types/types.h>
 #include <vector>
 
-import fan.types.vector;
-import fan.graphics.common_types;
+export module fan:graphics.algorithm.raycast_grid;
+
+export import :types.vector;
+import :graphics.common_types;
 
 namespace fan {
   namespace graphics {

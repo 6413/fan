@@ -55,8 +55,10 @@ set(CMAKE_MODULE_LINKER_FLAGS "-fuse-ld=gold")
 
 set(CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS "/usr/bin/clang-scan-deps")
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+set(CMAKE_CXX_MODULE_MAP_FLAG "-fmodule-mapper=")
+set(CMAKE_CXX_MODULE_BMI_ONLY_FLAG "-fmodule-only")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprebuilt-module-path=${CMAKE_BINARY_DIR}/CMakeFiles/fan_modules.dir")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -fprebuilt-module-path=${CMAKE_BINARY_DIR}/CMakeFiles/fan_modules.dir")
 
 project(fan)
 
@@ -102,7 +104,7 @@ endfunction()
 
 function(apply_common_compile_options target)
 	target_compile_options(${target} PRIVATE
-		-w -MD -MT -Wall -Wextra -ferror-limit=16 -stdlib=libstdc++ -fsized-deallocation
+		-MD -MT -Wall -Wextra -ferror-limit=16 -stdlib=libstdc++ -fsized-deallocation
 		-Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast
 		-Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses
 		-Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare
@@ -147,6 +149,7 @@ set(MODULE_FILES
 	${ROOT_PATH}/graphics/file_dialog.ixx
 	
 	${ROOT_PATH}/physics/collision/rectangle.ixx
+	${ROOT_PATH}/physics/collision/triangle.ixx
 	
 	${ROOT_PATH}/window/window.ixx
 	${ROOT_PATH}/window/input_common.ixx
@@ -159,22 +162,28 @@ set(MODULE_FILES
 	${ROOT_PATH}/fan.ixx
 )
 
+if (FAN_JSON)
+	list(APPEND MODULE_FILES
+		${ROOT_PATH}/types/json.ixx
+	)
+endif()
+
 if(FAN_FMT OR FAN_GUI)
-    list(APPEND MODULE_FILES 
-			${ROOT_PATH}/fmt.ixx
-		)
+	list(APPEND MODULE_FILES 
+		${ROOT_PATH}/fmt.ixx
+	)
 endif()
 if(FAN_GUI)
-    list(APPEND MODULE_FILES
-			${ROOT_PATH}/graphics/gui/gui.ixx
-			${ROOT_PATH}/graphics/gui/console.ixx
-		)
+	list(APPEND MODULE_FILES
+		${ROOT_PATH}/graphics/gui/gui.ixx
+		${ROOT_PATH}/graphics/gui/console.ixx
+	)
 endif()
 if(FAN_PHYSICS)
-    list(APPEND MODULE_FILES
-			${ROOT_PATH}/physics/b2_integration.ixx
-			${ROOT_PATH}/graphics/physics_shapes.ixx
-		)
+	list(APPEND MODULE_FILES
+		${ROOT_PATH}/physics/b2_integration.ixx
+		${ROOT_PATH}/graphics/physics_shapes.ixx
+	)
 endif()
 
 target_sources(fan_modules
@@ -287,7 +296,7 @@ if(BUILD_MAIN)
 				uv
 				GL
 				GLEW
-				stdc++exp
+				#stdc++exp
 			)
 			if (FAN_FMT)
 				target_link_libraries(a.exe PRIVATE fmt)

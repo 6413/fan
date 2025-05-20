@@ -11,9 +11,9 @@ module;
 #include <sstream>
 #include <algorithm>
 
-export module fan.types.color;
+export module fan:types.color;
 
-import fan.types.vector;
+import :types.vector;
 
 #pragma pack(push, 1)
 

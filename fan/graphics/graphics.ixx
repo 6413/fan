@@ -1,6 +1,7 @@
 module;
 // extension to loco.h
 
+
 #if defined(fan_gui)
   #include <fan/imgui/imgui_internal.h>
   #include <fan/graphics/gui/imgui_themes.h>
@@ -16,21 +17,13 @@ module;
 
 #define loco_vfi
 
-export module fan.graphics;
+export module fan:graphics;
 
-import fan.types.vector;
-import fan.window;
-import fan.window.input;
-import fan.graphics.image_load;
-import fan.graphics.opengl.core;
-import fan.graphics.common_context;
-import fan.graphics.common_types;
-import fan.graphics.loco;
-import fan.io.directory;
-import fan.camera;
-import fan.types.color;
-import fan.random;
-import fan.io.file;
+//import :graphics.opengl.core; // TODO this should not be here
+import :graphics.loco;
+import :io.directory;
+import :io.file;
+import :types.color;
 
 // user friendly functions
 /***************************************/
@@ -80,6 +73,198 @@ export namespace fan {
     }
   }
 }
+
+export namespace fan {
+  namespace window {
+    fan::vec2 get_mouse_position() {
+      return gloco->get_mouse_position();
+    }
+  }
+}
+
+export namespace fan {
+  namespace graphics {
+    using vfi_t = loco_t::vfi_t;
+
+    using engine_t = loco_t;
+    using image_t = loco_t::image_t;
+    using camera_impl_t = loco_t::camera_impl_t;
+    using camera_t = camera_impl_t;
+    using viewport_t = loco_t::viewport_t;
+
+    fan::graphics::image_t invalid_image = []{
+      image_t image;
+      image.sic();
+      return image;
+    }();
+    void add_input_action(const int* keys, std::size_t count, std::string_view action_name) {
+      gloco->input_action.add(keys, count, action_name);
+    }
+    void add_input_action(std::initializer_list<int> keys, std::string_view action_name) {
+      gloco->input_action.add(keys, action_name);
+    }
+    void add_input_action(int key, std::string_view action_name) {
+      gloco->input_action.add(key, action_name);
+    }
+    bool is_input_action_active(std::string_view action_name, int pstate = loco_t::input_action_t::press) {
+      return gloco->input_action.is_active(action_name);
+    }
+
+    fan::vec2 get_mouse_position() {
+      return gloco->get_mouse_position();
+    }
+    fan::vec2 get_mouse_position(const fan::graphics::camera_t& camera) {
+      return loco_t::transform_position(gloco->get_mouse_position(), camera.viewport, camera.camera);
+    }
+    fan::vec2 get_mouse_position(
+      const loco_t::camera_t& camera,
+      const loco_t::viewport_t& viewport
+    ) {
+      return gloco->get_mouse_position(camera, viewport);
+    }
+
+#if defined(fan_gui)
+
+    void text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0) {
+      static auto find_next_word = [](const std::string& str, std::size_t offset) -> std::size_t {
+        std::size_t found = str.find(' ', offset);
+        if (found == std::string::npos) {
+          found = str.size();
+        }
+        if (found != std::string::npos) {
+        }
+        return found;
+        };
+      static auto find_previous_word = [](const std::string& str, std::size_t offset) -> std::size_t {
+        std::size_t found = str.rfind(' ', offset);
+        if (found == std::string::npos) {
+          found = str.size();
+        }
+        if (found != std::string::npos) {
+        }
+        return found;
+        };
+
+      std::vector<std::string> lines;
+      std::size_t previous_word = 0;
+      std::size_t previous_push = 0;
+      bool found = false;
+      for (std::size_t i = 0; i < text.size(); ++i) {
+        std::size_t word_index = text.find(' ', i);
+        if (word_index == std::string::npos) {
+          word_index = text.size();
+        }
+
+        std::string str = text.substr(previous_push, word_index - previous_push);
+        f32_t width = ImGui::CalcTextSize(str.c_str()).x;
+
+        if (width >= wrap_width) {
+          if (previous_push == previous_word) {
+            lines.push_back(text.substr(previous_push, i - previous_push));
+            previous_push = i;
+          }
+          else {
+            lines.push_back(text.substr(previous_push, previous_word - previous_push));
+            previous_push = previous_word + 1;
+            i = previous_word;
+          }
+        }
+        previous_word = word_index;
+        i = word_index;
+      }
+
+      // Add remaining text as last line
+      if (previous_push < text.size()) {
+        lines.push_back(text.substr(previous_push));
+      }
+
+      std::size_t empty_lines = 0;
+      std::size_t character_offset = 0;
+      ImVec2 pos = ImGui::GetCursorScreenPos();
+      for (const auto& line : lines) {
+        if (line.empty()) {
+          ++empty_lines;
+          continue;
+        }
+        std::size_t empty = 0;
+        if (empty >= line.size()) {
+          break;
+        }
+        while (line[empty] == ' ') {
+          if (empty >= line.size()) {
+            break;
+          }
+          ++empty;
+        }
+        if (character_offset >= render_pos) {
+          break;
+        }
+        std::string render_text = line.substr(empty).c_str();
+        ImGui::SetCursorScreenPos(pos);
+        if (character_offset + render_text.size() >= render_pos) {
+          ImGui::TextUnformatted(render_text.substr(0, render_pos - character_offset).c_str());
+          break;
+        }
+        else {
+          ImGui::TextUnformatted(render_text.c_str());
+          if (render_text.back() != ' ') {
+            character_offset += 1;
+          }
+          character_offset += render_text.size();
+          pos.y += ImGui::GetTextLineHeightWithSpacing() + line_spacing;
+        }
+      }
+      if (empty_lines) {
+        ImGui::TextColored(fan::colors::red, "warning empty lines:%zu", empty_lines);
+      }
+    }
+#endif
+  }
+}
+
+
+export namespace fan {
+  inline void printclnn(auto&&... values) {
+#if defined (fan_gui)
+    gloco->printclnn(values...);
+#endif
+  }
+  inline void printcl(auto&&... values) {
+#if defined(fan_gui)
+    gloco->printcl(values...);
+#endif
+  }
+
+  inline void printclnnh(int highlight, auto&&... values) {
+#if defined(fan_gui)
+    gloco->printclnnh(highlight, values...);
+#endif
+  }
+
+  inline void printclh(int highlight, auto&&... values) {
+#if defined(fan_gui)
+    gloco->printclh(highlight, values...);
+#endif
+  }
+  inline void printcl_err(auto&&... values) {
+#if defined(fan_gui)
+    printclh(fan::graphics::highlight_e::error, values...);
+#endif
+  }
+  inline void printcl_warn(auto&&... values) {
+#if defined(fan_gui)
+    printclh(fan::graphics::highlight_e::warning, values...);
+#endif
+  }
+}
+
+bool init_fan_track_opengl_print = []() {
+  fan_opengl_track_print = [](std::string func_name, uint64_t elapsed) {
+    fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":");
+    fan::printclh(fan::graphics::highlight_e::warning, std::to_string(elapsed / 1e+6f)/*fan::to_string(elapsed / 1e+6)*/ + "ms");
+    };
+  return 1;
+  }();
 
 export namespace fan {
   namespace graphics {
@@ -970,8 +1155,6 @@ export namespace fan {
 
 void init_imgui();
 
-void shape_keypack_traverse(loco_t::shaper_t::KeyTraverse_t& KeyTraverse, fan::opengl::context_t& context);
-
 export namespace fan {
   namespace graphics {
     struct interactive_camera_t {
@@ -1019,9 +1202,6 @@ export namespace fan {
           uc_nr.sic();
         }
       }
-
-      // called in loop
-      void move_by_cursor();
     };
 
     struct animator_t {

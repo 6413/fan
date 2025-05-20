@@ -14,7 +14,7 @@ module;
 
 #endif
 
-export module fan.print;
+export module fan:print;
 
 #ifdef fan_compiler_msvc
 import std;
@@ -133,6 +133,6 @@ export namespace fan {
   }
 }
 
-export constexpr std::string operator"" _str(const char* str, std::size_t) {
+export constexpr std::string operator""_str(const char* str, std::size_t) {
   return std::string(str);
 }

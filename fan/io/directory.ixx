@@ -7,11 +7,9 @@ module;
 #include <functional>
 #include <filesystem>
 
-export module fan.io.directory;
+export module fan:io.directory;
 
-import fan.graphics.webp;
-import fan.types.vector;
-import fan.print;
+import :print;
 
 export namespace fan {
   namespace io {

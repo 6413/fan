@@ -13,11 +13,11 @@ module;
 // std::quoted
 #include <iomanip>
 
-export module fan.fmt;
+export module fan:fmt;
 
-import fan.types.vector;
-import fan.print;
-import fan.types.fstring;
+export import :print;
+export import :types.fstring;
+import :types.vector;
 
 export namespace fan {
 

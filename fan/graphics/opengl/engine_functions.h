@@ -365,7 +365,6 @@ void shapes_open() {
         1,
         false
       );
-      auto& st = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(loco.shaper.GetShapeTypes(loco_t::shape_type_t::polygon).renderer);
     }
   }
 
@@ -386,8 +385,10 @@ void shapes_open() {
   }
 
   // vfi must be in this order
+#if defined(loco_vfi)
   loco.vfi.open();
   gloco->shape_functions[loco_t::vfi_t::shape_type] = loco.get_shape_functions(loco_t::vfi_t::shape_type);
+#endif
 
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
@@ -517,7 +518,7 @@ void shapes_open() {
   bp.MaxElementPerBlock = (loco_t::shaper_t::MaxElementPerBlock_t)loco.MaxElementPerBlock,
   bp.RenderDataSize = 0,
   bp.DataSize = 0,
-  bp.renderer = st_gl;
+  bp.renderer.gl = st_gl;
 
   gloco->shaper.SetShapeType(
     loco_t::shape_type_t::light_end,
@@ -533,8 +534,8 @@ void shapes_open() {
 }
 
 void add_shape_type(loco_t::shaper_t::ShapeTypes_NodeData_t& st, const loco_t::shaper_t::BlockProperties_t& bp) {
-  auto& bpdata = std::get<loco_t::shaper_t::BlockProperties_t::gl_t>(bp.renderer);
-  auto& data = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(st.renderer);
+  auto& bpdata = bp.renderer.gl;
+  auto& data = st.renderer.gl;
   data.m_vao.open(loco.context.gl);
   data.m_vbo.open(loco.context.gl, GL_ARRAY_BUFFER);
   data.m_vao.bind(loco.context.gl);
@@ -550,7 +551,7 @@ void add_shape_type(loco_t::shaper_t::ShapeTypes_NodeData_t& st, const loco_t::s
   uint64_t ptr_offset = 0;
   for (shape_gl_init_t& location : data.locations) {
     if ((loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) && !data.shader.iic()) {
-      location.index.first = fan_opengl_call(glGetAttribLocation(std::get<fan::opengl::context_t::shader_t>(shader).id, location.index.second));
+      location.index.first = fan_opengl_call(glGetAttribLocation(shader.gl.id, location.index.second));
     }
     fan_opengl_call(glEnableVertexAttribArray(location.index.first));
     switch (location.type) {
@@ -949,7 +950,7 @@ void draw_shapes() {
           for (int i = 0; i < BlockTraverse.GetAmount(loco.shaper); ++i) {
             auto& ri = pri[i];
 
-            auto& shape_data = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(loco.shaper.GetShapeTypes(shape_type).renderer);
+            auto& shape_data = loco.shaper.GetShapeTypes(shape_type).renderer.gl;
 
             ri.vao.bind(loco.context.gl);
             ri.vbo.bind(loco.context.gl);
@@ -963,7 +964,7 @@ void draw_shapes() {
           break;
         }
         default: {
-          auto& shape_data = std::get<loco_t::shaper_t::ShapeType_t::gl_t>(loco.shaper.GetShapeTypes(shape_type).renderer);
+          auto& shape_data = loco.shaper.GetShapeTypes(shape_type).renderer.gl;
           if (((loco.context.gl.opengl.major > 4) || (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor >= 2)) && shape_data.instanced) {
             fan_opengl_call(glDrawArraysInstancedBaseInstance(
               draw_mode,
