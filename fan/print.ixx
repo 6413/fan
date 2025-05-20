@@ -133,6 +133,6 @@ export namespace fan {
   }
 }
 
-export constexpr std::string operator""_str(const char* str, std::size_t) {
-  return std::string(str);
+export std::string operator""_str(const char* str, std::size_t) {
+  return std::string{ str };
 }
