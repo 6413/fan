@@ -3,20 +3,14 @@ module;
 #include <fan/types/types.h>
 #include <fan/math/math.h>
 
-#include <fan/types/json_impl.h>
-#include <variant>
+export module fan:graphics.gui.tilemap_editor.renderer;
 
-export module fan.graphics.gui.tilemap_editor.renderer;
+export import :graphics.gui.tilemap_editor.loader;
 
-export import fan.graphics.gui.tilemap_editor.loader;
-
-import fan.print;
-import fan.types.color;
-import fan.types.vector;
-import fan.graphics.loco;
-import fan.graphics;
-import fan.graphics.physics_shapes;
-import fan.physics.b2_integration;
+import :print;
+import :graphics;
+import :graphics.physics_shapes;
+import :physics.b2_integration;
 //import fan;
 
 export struct fte_renderer_t : fte_loader_t {

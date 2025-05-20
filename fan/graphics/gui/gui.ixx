@@ -12,32 +12,22 @@ module;
   #include <fan/imgui/implot.h>
 #endif
 
-#include <variant>
 #include <string>
 #include <array>
 #include <filesystem>
 #include <coroutine>
 
-export module fan.graphics.gui;
+export module fan:graphics.gui;
 
-import fan.print;
-import fan.types.color;
-import fan.types.vector;
-import fan.types.quaternion;
+import :print;
 
 #if defined(fan_gui)
-  import fan.event;
+  import :types.fstring;
+  import :event;
 
-
-  import fan.types.fstring;
-  import fan.types.color;
-
-  import fan.graphics.common_context;
-  import fan.graphics.opengl.core;
-  import fan.graphics.loco;
-  import fan.graphics;
-  import fan.io.file;
-  import fan.io.directory;
+  import :graphics;
+  import :io.file;
+  import :io.directory;
 
 #endif
 
@@ -1449,7 +1439,7 @@ export namespace fan {
           else {
             initial = initial_;
           }
-          fan::opengl::context_t::shader_t shader = std::get<fan::opengl::context_t::shader_t>(gloco->shader_get(shader_nr));
+          fan::opengl::context_t::shader_t shader = gloco->shader_get(shader_nr).gl;
           if (gloco->window.renderer == loco_t::renderer_t::vulkan) {
             fan::throw_error("");
           }
@@ -1808,7 +1798,7 @@ export namespace fan {
 
         // 0-1
         void set_cursor_position(const fan::vec2& pos) {
-          this->cursor_position = cursor_position;
+          this->cursor_position = pos;
         }
         fan::event::task_t text(const std::string& text) {
           active_dialogue = text;

@@ -11,11 +11,11 @@ module;
 
 #endif
 
-export module fan.physics.b2_integration;
+export module fan:physics.b2_integration;
 
 #if defined(fan_physics)
 
-import fan.types.vector;
+import :types.vector;
 
 export namespace fan {
   namespace physics {

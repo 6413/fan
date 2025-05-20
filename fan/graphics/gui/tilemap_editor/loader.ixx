@@ -3,20 +3,15 @@ module;
 #include <fan/types/types.h>
 #include <fan/math/math.h>
 
-#include <fan/types/json_impl.h>
 #include <variant>
 
-export module fan.graphics.gui.tilemap_editor.loader;
+export module fan:graphics.gui.tilemap_editor.loader;
 
-import fan.print;
-import fan.types.vector;
-import fan.types.color;
-import fan.window.input;
-import fan.graphics.loco;
-import fan.graphics;
-import fan.physics.b2_integration;
-import fan.graphics.physics_shapes;
-import fan.io.file;
+import :print;
+import :graphics;
+import :physics.b2_integration;
+import :graphics.physics_shapes;
+import :io.file;
 
 export struct fte_loader_t {
 
@@ -111,7 +106,7 @@ public:
   }
 
   compiled_map_t compile(const std::string& filename) {
-
+#if defined (fan_json)
     std::string out;
     fan::io::file::read(filename, &out);
     fan::json json = fan::json::parse(out);
@@ -175,6 +170,10 @@ public:
       compiled_map.compiled_shapes[gp.y][gp.x].push_back(tile);
     }//
     return compiled_map;
+#else
+    fan::throw_error("fan_json not enabled");
+    __unreachable();
+#endif
   }
 
   struct properties_t {

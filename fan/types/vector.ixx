@@ -4,6 +4,44 @@ module;
 
 #if defined(fan_vector_simple)
 
+#else
+
+#include <fan/math/math.h>
+
+#define fan_coordinate_letters0
+#define fan_coordinate_letters1 x
+#define fan_coordinate_letters2 x, y
+#define fan_coordinate_letters3 x, y, z
+#define fan_coordinate_letters4 x, y, z, w
+
+#define fan_coordinate(x) CONCAT(fan_coordinate_letters, x)
+
+#if defined(fan_vulkan)
+  #include <vulkan/vulkan.h>
+  #endif
+
+  #if defined(fan_gui)
+  #include <fan/imgui/imgui.h>
+  #endif
+
+  #if defined(fan_3d)
+  #include <assimp/vector3.h>
+  #endif
+
+  #if defined(fan_physics)
+  #include <box2d/math_functions.h>
+  #endif
+
+  #include <string>
+  #include <algorithm>
+  #include <numeric>
+  #include <sstream>
+#endif
+
+export module fan:types.vector;
+
+#if defined(fan_vector_simple)
+
 export namespace fan {
 
 using access_type_t = uint8_t;
@@ -38,39 +76,6 @@ struct vec4_wrap_t {
 };
 
 #else
-
-#include <fan/math/math.h>
-
-#define fan_coordinate_letters0
-#define fan_coordinate_letters1 x
-#define fan_coordinate_letters2 x, y
-#define fan_coordinate_letters3 x, y, z
-#define fan_coordinate_letters4 x, y, z, w
-
-#define fan_coordinate(x) CONCAT(fan_coordinate_letters, x)
-
-#if defined(fan_vulkan)
-  #include <vulkan/vulkan.h>
-#endif
-
-#if defined(fan_gui)
-  #include <fan/imgui/imgui.h>
-#endif
-
-#if defined(fan_3d)
-  #include <assimp/vector3.h>
-#endif
-
-#if defined(fan_physics)
-  #include <box2d/math_functions.h>
-#endif
-
-#include <string>
-#include <algorithm>
-#include <numeric>
-#include <sstream>
-
-export module fan.types.vector;
 
 export namespace fan {
 

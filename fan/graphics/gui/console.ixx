@@ -10,12 +10,12 @@ module;
 #include <functional>
 #include <cstring>
 
-export module fan.console;
+export module fan:console;
 
-import fan.types.color;
-import fan.fmt;
+export import :types.color;
 
-import fan.graphics.common_types;
+import :fmt;
+import :graphics.common_types;
 
 #if defined(fan_gui)
 
