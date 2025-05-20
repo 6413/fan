@@ -3,6 +3,9 @@ module;
 #include <fan/types/types.h>
 #include <fan/math/math.h>
 
+#include <unordered_map>
+#include <vector>
+#include <string>
 #include <variant>
 
 export module fan:graphics.gui.tilemap_editor.loader;

@@ -127,6 +127,7 @@ set(MODULE_FILES
 	${ROOT_PATH}/types/vector.ixx
 	${ROOT_PATH}/types/quaternion.ixx
 	${ROOT_PATH}/types/matrix.ixx
+	${ROOT_PATH}/types/magic.ixx
 	${ROOT_PATH}/types/masterpiece.ixx
 	
 	${ROOT_PATH}/types/fstring.ixx
@@ -176,6 +177,9 @@ if(FAN_FMT OR FAN_GUI)
 endif()
 if(FAN_GUI)
 	list(APPEND MODULE_FILES
+		${ROOT_PATH}/graphics/gui/tilemap_editor/renderer0.ixx
+		${ROOT_PATH}/graphics/gui/tilemap_editor/loader.ixx
+	
 		${ROOT_PATH}/graphics/gui/gui.ixx
 		${ROOT_PATH}/graphics/gui/console.ixx
 	)
