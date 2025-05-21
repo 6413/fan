@@ -4,8 +4,8 @@ import fan;
 
 using namespace fan::graphics;
 
-void main_loop() {
-  gui::begin("aa");
+void main_loop() {//
+  gui::begin("aa");//
   static std::string buffer;
   gui::input_text("input", &buffer);
   static auto hover = fan::audio::open_piece("hover");
