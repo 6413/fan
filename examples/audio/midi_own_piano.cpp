@@ -177,6 +177,13 @@ struct piano_t {
   std::vector<piano_key_t> keys;
 }visual_piano;
 
+struct key_info_t {
+  int position = 0;
+  f32_t velocity = 0;
+  fan::audio_t::SoundPlayID_t play_id;
+};
+
+std::unordered_map<fan::audio_t::_piece_t*, std::vector<key_info_t>> key_info;
 
 void play_event_group(const EventGroup& group) {
 
@@ -190,17 +197,27 @@ void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD
 
     BYTE msgType = status & 0xF0;
 
-    if (data1 >= 21 && data1 <= 108) {
-      int pianoIndex = data1 - 21;
+    std::vector<int> notes_to_play;
+    std::vector<int> notes_to_stop;
+    std::vector<uint8_t> note_velocities;
 
+    static constexpr int midi_key_offset = 21;
+
+    if (data1 >= midi_key_offset && data1 <= 108) {
+      int pianoIndex = data1 - midi_key_offset;
       if (msgType == 0x90 && data2 > 0) {  // Note On
+        if (pianoIndex >= 0 && pianoIndex < pieces.size()) {
+          notes_to_play.push_back(pianoIndex);
+          note_velocities.push_back(data2);
+        }
         piano[pianoIndex].isPressed = true;
         std::cout << "Note On: " << piano[pianoIndex].noteName
           << " (MIDI: " << (int)data1 << ") Velocity: " << (int)data2 << std::endl;
-        fan::audio::play(pieces[pianoIndex]);
+        
         visual_piano.keys[pianoIndex].visual.set_color(fan::color::rgb(168, 59, 59));
       }
       else if (msgType == 0x80 || (msgType == 0x90 && data2 == 0)) {  // Note Off
+        notes_to_stop.push_back(pianoIndex);
         piano[pianoIndex].isPressed = false;
         std::cout << "Note Off: " << piano[pianoIndex].noteName
           << " (MIDI: " << (int)data1 << ")" << std::endl;
@@ -218,6 +235,32 @@ void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD
         }
         else {
           visual_piano.keys[pianoIndex].visual.set_color(1);
+        }
+      }
+
+      for (size_t i = 0; i < notes_to_play.size(); i++) {
+        int index = notes_to_play[i];
+        uint8_t velocity = note_velocities[i];
+
+        if (index >= 0 && index < pieces.size()) {
+          auto found = key_info.find(pieces[index]._piece);
+          if (found == key_info.end()) {
+            key_info[pieces[index]._piece] = std::vector<key_info_t>();
+            found = key_info.find(pieces[index]._piece);
+          }
+
+          key_info_t new_key_info;
+          new_key_info.position = 0;
+          new_key_info.velocity = velocity / 127.0f;
+
+          if (found->second.size() + 1 > found->second.capacity()) {
+            found->second.reserve(found->second.size() + 10);
+          }
+
+          found->second.push_back(new_key_info);
+          auto& sound = found->second.back();
+           
+          sound.play_id = fan::audio::play(pieces[index]);
         }
       }
 
@@ -417,9 +460,9 @@ void load_audio_pieces() {
 struct envelope_t {
 
   static constexpr f32_t attack_time = 0.003f;        
-  static constexpr f32_t decay_time = 0.9f;           
-  static constexpr f32_t sustain_level = 0.35f;       
-  static constexpr f32_t release_time = 2.0f;         
+  static constexpr f32_t decay_time = 1.9f;           
+  static constexpr f32_t sustain_level = 0.15f;       
+  static constexpr f32_t release_time = 0.5f;         
 
   static constexpr uint32_t sample_rate = fan::system_audio_t::_constants::opus_decode_sample_rate;
   static constexpr uint32_t channel_count = fan::system_audio_t::_constants::ChannelAmount;
@@ -475,14 +518,6 @@ struct envelope_t {
 std::vector<f32_t> envelope = envelope_t::generate();
 
 std::mutex mut;
-
-struct key_info_t {
-  int position = 0;
-  f32_t velocity = 0;
-  fan::audio_t::SoundPlayID_t play_id;
-};
-
-std::unordered_map<fan::audio_t::_piece_t*, std::vector<key_info_t>> key_info;
 
 void apply_envelope(fan::graphics::engine_t& engine) {
   auto lambda = [](fan::system_audio_t::Process_t* Process, fan::audio_t::_piece_t* piece, uint32_t play_id, f32_t* samples, uint32_t samplesi) {

@@ -43,8 +43,8 @@ concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&
 
 export namespace fan {
   namespace opengl {
-    inline std::unordered_map<size_t, int> shader_location_cache;
     struct context_t {
+      std::unordered_map<size_t, int> shader_location_cache;
 
       void print_version() {
         fan::print("opengl version supported:", fan_opengl_call(glGetString(GL_VERSION)));

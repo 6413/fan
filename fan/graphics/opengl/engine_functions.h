@@ -231,7 +231,7 @@ void shapes_open() {
         loco_t::sprite_t::shape_type,
         sizeof(loco_t::sprite_t::vi_t),
         sizeof(loco_t::sprite_t::ri_t),
-        {loco_t::sprite_t::locations.begin(), loco_t::sprite_t::locations.end()},
+        {gloco->sprite.locations.begin(), gloco->sprite.locations.end()},
         "shaders/opengl/2D/objects/sprite_2_1.vs",
         "shaders/opengl/2D/objects/sprite_2_1.fs",
         6 // set instance count to 6 vertices, in opengl 2.1 there is no instancing,
@@ -243,7 +243,7 @@ void shapes_open() {
         loco_t::sprite_t::shape_type,
         sizeof(loco_t::sprite_t::vi_t),
         sizeof(loco_t::sprite_t::ri_t),
-        {loco_t::sprite_t::locations.begin(), loco_t::sprite_t::locations.end()},
+        {gloco->sprite.locations.begin(), gloco->sprite.locations.end()},
         "shaders/opengl/2D/objects/sprite.vs",
         "shaders/opengl/2D/objects/sprite.fs"
       );
@@ -262,7 +262,7 @@ void shapes_open() {
         loco_t::line_t::shape_type,
         sizeof(loco_t::line_t::vi_t),
         sizeof(loco_t::line_t::ri_t),
-        {loco_t::line_t::locations.begin(), loco_t::line_t::locations.end()},
+        { gloco->line.locations.begin(), gloco->line.locations.end()},
         "shaders/opengl/2D/objects/line.vs",
         "shaders/opengl/2D/objects/line.fs"
       );
@@ -280,7 +280,7 @@ void shapes_open() {
         loco_t::rectangle_t::shape_type,
         sizeof(loco_t::rectangle_t::vi_t),
         sizeof(loco_t::rectangle_t::ri_t),
-        {loco_t::rectangle_t::locations.begin(), loco_t::rectangle_t::locations.end()},
+        {gloco->rectangle.locations.begin(), gloco->rectangle.locations.end()},
         "shaders/opengl/2D/objects/rectangle.vs",
         "shaders/opengl/2D/objects/rectangle.fs"
       );
@@ -297,7 +297,7 @@ void shapes_open() {
         loco_t::light_t::shape_type,
         sizeof(loco_t::light_t::vi_t),
         sizeof(loco_t::light_t::ri_t),
-        {loco_t::light_t::locations.begin(), loco_t::light_t::locations.end()},
+        { gloco->light.locations.begin(), gloco->light.locations.end() },
         "shaders/opengl/2D/objects/light.vs",
         "shaders/opengl/2D/objects/light.fs"
       );
@@ -313,7 +313,7 @@ void shapes_open() {
         loco_t::unlit_sprite_t::shape_type,
         sizeof(loco_t::unlit_sprite_t::vi_t),
         sizeof(loco_t::unlit_sprite_t::ri_t),
-        {loco_t::unlit_sprite_t::locations.begin(), loco_t::unlit_sprite_t::locations.end()},
+        { gloco->unlit_sprite.locations.begin(), gloco->unlit_sprite.locations.end() },
         "shaders/opengl/2D/objects/sprite.vs",
         "shaders/opengl/2D/objects/unlit_sprite.fs"
       );
@@ -329,7 +329,7 @@ void shapes_open() {
         loco_t::circle_t::shape_type,
         sizeof(loco_t::circle_t::vi_t),
         sizeof(loco_t::circle_t::ri_t),
-        {loco_t::circle_t::locations.begin(), loco_t::circle_t::locations.end()},
+        { gloco->circle.locations.begin(), gloco->circle.locations.end() },
         "shaders/opengl/2D/objects/circle.vs",
         "shaders/opengl/2D/objects/circle.fs"
       );
@@ -344,7 +344,7 @@ void shapes_open() {
         loco_t::capsule_t::shape_type,
         sizeof(loco_t::capsule_t::vi_t),
         sizeof(loco_t::capsule_t::ri_t),
-        {loco_t::capsule_t::locations.begin(), loco_t::capsule_t::locations.end()},
+        { gloco->capsule.locations.begin(), gloco->capsule.locations.end() },
         "shaders/opengl/2D/objects/capsule.vs",
         "shaders/opengl/2D/objects/capsule.fs"
       );
@@ -359,7 +359,7 @@ void shapes_open() {
         loco_t::polygon_t::shape_type,
         sizeof(loco_t::polygon_t::vi_t),
         sizeof(loco_t::polygon_t::ri_t),
-        {loco_t::polygon_t::locations.begin(), loco_t::polygon_t::locations.end()},
+        { gloco->polygon.locations.begin(), gloco->polygon.locations.end() },
         "shaders/opengl/2D/objects/polygon.vs",
         "shaders/opengl/2D/objects/polygon.fs",
         1,
@@ -377,7 +377,7 @@ void shapes_open() {
         loco_t::grid_t::shape_type,
         sizeof(loco_t::grid_t::vi_t),
         sizeof(loco_t::grid_t::ri_t),
-        {loco_t::grid_t::locations.begin(), loco_t::grid_t::locations.end()},
+        { gloco->grid.locations.begin(), gloco->grid.locations.end() },
         "shaders/opengl/2D/objects/grid.vs",
         "shaders/opengl/2D/objects/grid.fs"
       );
@@ -399,7 +399,7 @@ void shapes_open() {
         loco_t::particles_t::shape_type,
         sizeof(loco_t::particles_t::vi_t),
         sizeof(loco_t::particles_t::ri_t),
-        {loco_t::particles_t::locations.begin(), loco_t::particles_t::locations.end()},
+        { gloco->particles.locations.begin(), gloco->particles.locations.end() },
         "shaders/opengl/2D/effects/particles.vs",
         "shaders/opengl/2D/effects/particles.fs"
       );
@@ -415,7 +415,7 @@ void shapes_open() {
         loco_t::universal_image_renderer_t::shape_type,
         sizeof(loco_t::universal_image_renderer_t::vi_t),
         sizeof(loco_t::universal_image_renderer_t::ri_t),
-        {loco_t::universal_image_renderer_t::locations.begin(), loco_t::universal_image_renderer_t::locations.end()},
+        { gloco->universal_image_renderer.locations.begin(), gloco->universal_image_renderer.locations.end() },
         "shaders/opengl/2D/objects/pixel_format_renderer.vs",
         "shaders/opengl/2D/objects/yuv420p.fs"
       );
@@ -431,7 +431,7 @@ void shapes_open() {
         loco_t::gradient_t::shape_type,
         sizeof(loco_t::gradient_t::vi_t),
         sizeof(loco_t::gradient_t::ri_t),
-        {loco_t::gradient_t::locations.begin(), loco_t::gradient_t::locations.end()},
+        { gloco->gradient.locations.begin(), gloco->gradient.locations.end() },
         "shaders/opengl/2D/effects/gradient.vs",
         "shaders/opengl/2D/effects/gradient.fs"
       );
@@ -449,7 +449,7 @@ void shapes_open() {
         loco_t::shader_shape_t::shape_type,
         sizeof(loco_t::shader_shape_t::vi_t),
         sizeof(loco_t::shader_shape_t::ri_t),
-        {loco_t::shader_shape_t::locations.begin(), loco_t::shader_shape_t::locations.end()},
+        { gloco->shader_shape.locations.begin(), gloco->shader_shape.locations.end() },
         "shaders/opengl/2D/objects/sprite.vs",
         "shaders/opengl/2D/objects/sprite.fs"
       );
@@ -461,7 +461,7 @@ void shapes_open() {
       loco_t::rectangle3d_t::shape_type,
       sizeof(loco_t::rectangle3d_t::vi_t),
       sizeof(loco_t::rectangle3d_t::ri_t),
-      {loco_t::rectangle3d_t::locations.begin(), loco_t::rectangle3d_t::locations.end()},
+      { gloco->rectangle3d.locations.begin(), gloco->rectangle3d.locations.end() },
       "shaders/opengl/3D/objects/rectangle.vs",
       "shaders/opengl/3D/objects/rectangle.fs",
       (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) ? 36 : 1
@@ -477,13 +477,12 @@ void shapes_open() {
         loco_t::line3d_t::shape_type,
         sizeof(loco_t::line3d_t::vi_t),
         sizeof(loco_t::line3d_t::ri_t),
-        {loco_t::line3d_t::locations.begin(), loco_t::line3d_t::locations.end()},
+        { gloco->line3d.locations.begin(), gloco->line3d.locations.end() },
         "shaders/opengl/3D/objects/line.vs",
         "shaders/opengl/3D/objects/line.fs"
       );
     }
   }
-
   init_framebuffer();
 
   loco.gl.m_fbo_final_shader = loco.shader_create();
