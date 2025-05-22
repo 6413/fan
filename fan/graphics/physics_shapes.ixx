@@ -31,12 +31,149 @@ import :physics.b2_integration;
   import :graphics;
 #endif
 
+int z_depth = 0;
+std::vector<fan::graphics::line_t> debug_draw_polygon;
+std::vector<fan::graphics::polygon_t> debug_draw_solid_polygon;
+std::vector<fan::graphics::circle_t> debug_draw_circle;
+std::vector<fan::graphics::line_t> debug_draw_line;
+/// Draw a closed polygon provided in CCW order.
+void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, void* context) {
+  for (int i = 0; i < vertexCount; i++) {
+    int next_i = (i + 1) % vertexCount;
+
+    debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
+      .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), 0x1f00 + z_depth),
+      .dst = fan::physics::physics_to_render(vertices[next_i]),
+      .color = fan::color::hexa(color)
+    } });
+  }
+
+  ++z_depth;
+}
+
+/// Draw a solid closed polygon provided in CCW order.
+void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexCount, float radius, b2HexColor color,
+  void* context) {
+  std::vector<fan::graphics::vertex_t> vs(vertexCount);
+  for (auto [i, v] : fan::enumerate(vs)) {
+    v.position = fan::physics::physics_to_render(vertices[i]);
+    v.color = fan::color::hexa(color);
+  }
+  debug_draw_solid_polygon.emplace_back(fan::graphics::polygon_t{ {
+    .position = fan::vec3(0, 0, 0x1f00 + z_depth),
+    .vertices = vs,
+    .draw_mode = fan::graphics::primitive_topology_t::triangle_fan,
+  } });
+  ++z_depth;
+}
+
+/// Draw a circle.
+void DrawCircle(b2Vec2 center, float radius, b2HexColor color, void* context) {
+  debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
+    .position = fan::vec3(fan::physics::physics_to_render(center), 0x1f00 + z_depth),
+    .radius = fan::physics::physics_to_render(radius).x,
+    .color = fan::color::hexa(color),
+  } });
+  ++z_depth;
+}
+
+/// Draw a solid circle.
+void DrawSolidCircle(b2Transform transform, float radius, b2HexColor color, void* context) {
+  debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
+    .position = fan::vec3(fan::physics::physics_to_render(transform.p), 0x1f00 + z_depth),
+    .radius = fan::physics::physics_to_render(radius).x,
+    .color = fan::color::hexa(color),
+  } });
+  ++z_depth;
+}
+
+/// Draw a capsule.
+void DrawCapsule(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
+  printf("DrawCapsule\n");
+}
+
+/// Draw a solid capsule.
+void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
+  printf("DrawSolidCapsule\n");
+}
+
+/// Draw a line segment.
+void DrawSegment(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context) {
+  debug_draw_line.emplace_back(fan::graphics::line_t{ {
+    .src = fan::vec3(fan::physics::physics_to_render(p1), 0x1f00 + z_depth),
+    .dst = fan::vec3(fan::physics::physics_to_render(p2), 0x1f00 + z_depth),
+    .color = fan::color::hexa(color),
+  } });
+  ++z_depth;
+}
+
+/// Draw a transform. Choose your own length scale.
+void DrawTransform(b2Transform transform, void* context) {
+  printf("DrawTransform\n");
+}
+
+/// Draw a point.
+void DrawPoint(b2Vec2 p, float size, b2HexColor color, void* context) {
+  //vs.back() = vs.front();
+  debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
+    .position = fan::vec3(fan::physics::physics_to_render(p), 0x1f00 + z_depth),
+    .radius = size,
+    .color = fan::color::hexa(color)
+  } });
+  ++z_depth;
+}
+
+/// Draw a string.
+void DrawString(b2Vec2 p, const char* s, void* context) {
+#if defined(fan_gui)
+  fan::graphics::gui::text_at(s, fan::physics::physics_to_render(p));
+#endif
+}
+
+
+b2DebugDraw initialize_debug(bool enabled) {
+  return b2DebugDraw{
+  .DrawPolygon = (decltype(b2DebugDraw::DrawPolygon))DrawPolygon,
+  .DrawSolidPolygon = DrawSolidPolygon,
+  .DrawCircle = DrawCircle,
+  .DrawSolidCircle = DrawSolidCircle,
+  .DrawCapsule = DrawCapsule,
+  .DrawSolidCapsule = DrawSolidCapsule,
+  .DrawSegment = DrawSegment,
+  .DrawTransform = DrawTransform,
+  .DrawPoint = DrawPoint,
+  .DrawString = DrawString,
+  .drawJoints = enabled,
+  .drawAABBs = enabled,
+  };
+}
+
+//b2DebugDraw fan::graphics::physics::box2d_debug_draw;
+
 export namespace fan {
   namespace graphics {
     namespace physics {
 
+      //void init() {
+      //box2d_debug_draw = [] {
+      //  auto init_it = fan::graphics::engine_init_cbs.NewNodeLast();
+      //  fan::graphics::engine_init_cbs[init_it] = [](loco_t* loco) {
+      //    auto it = loco->m_update_callback.NewNodeLast();
+      //    loco->m_update_callback[it] = [](loco_t* loco) {
+      //      z_depth = 0;
+      //      debug_draw_polygon.clear();
+      //      debug_draw_solid_polygon.clear();
+      //      debug_draw_circle.clear();
+      //      debug_draw_line.clear();
+      //      //b2World_Draw(loco->physics_context.world_id, &fan::graphics::physics::box2d_debug_draw);
+      //      };
+      //    };
+      //  return initialize_debug(false);
+      //  }(),
+      //}
+
       void step(f32_t dt);
-      extern b2DebugDraw box2d_debug_draw;
+      //extern b2DebugDraw box2d_debug_draw;
       void debug_draw(bool enabled);
       // position & aabb & angle
       std::function<void(loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t)> physics_update_cb =
@@ -1408,145 +1545,12 @@ export namespace fan {
   }
 }
 
-int z_depth = 0;
-std::vector<fan::graphics::line_t> debug_draw_polygon;
-std::vector<fan::graphics::polygon_t> debug_draw_solid_polygon;
-std::vector<fan::graphics::circle_t> debug_draw_circle;
-std::vector<fan::graphics::line_t> debug_draw_line;
-/// Draw a closed polygon provided in CCW order.
-void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, void* context) {
-  for (int i = 0; i < vertexCount; i++) {
-    int next_i = (i + 1) % vertexCount;
-
-    debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
-      .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), 0x1f00 + z_depth),
-      .dst = fan::physics::physics_to_render(vertices[next_i]),
-      .color = fan::color::hexa(color)
-    } });
-  }
-
-  ++z_depth;
-}
-
-/// Draw a solid closed polygon provided in CCW order.
-void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexCount, float radius, b2HexColor color,
-  void* context) {
-  std::vector<fan::graphics::vertex_t> vs(vertexCount);
-  for (auto [i, v] : fan::enumerate(vs)) {
-    v.position = fan::physics::physics_to_render(vertices[i]);
-    v.color = fan::color::hexa(color);
-  }
-  debug_draw_solid_polygon.emplace_back(fan::graphics::polygon_t{ {
-    .position = fan::vec3(0, 0, 0x1f00 + z_depth),
-    .vertices = vs,
-    .draw_mode = fan::graphics::primitive_topology_t::triangle_fan,
-  } });
-  ++z_depth;
-}
-
-/// Draw a circle.
-void DrawCircle(b2Vec2 center, float radius, b2HexColor color, void* context) {
-  debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
-    .position = fan::vec3(fan::physics::physics_to_render(center), 0x1f00 + z_depth),
-    .radius = fan::physics::physics_to_render(radius).x,
-    .color = fan::color::hexa(color),
-  } });
-  ++z_depth;
-}
-
-/// Draw a solid circle.
-void DrawSolidCircle(b2Transform transform, float radius, b2HexColor color, void* context) {
-  debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
-    .position = fan::vec3(fan::physics::physics_to_render(transform.p), 0x1f00 + z_depth),
-    .radius = fan::physics::physics_to_render(radius).x,
-    .color = fan::color::hexa(color),
-  } });
-  ++z_depth;
-}
-
-/// Draw a capsule.
-void DrawCapsule(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
-  printf("DrawCapsule\n");
-}
-
-/// Draw a solid capsule.
-void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
-  printf("DrawSolidCapsule\n");
-}
-
-/// Draw a line segment.
-void DrawSegment(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context) {
-  debug_draw_line.emplace_back(fan::graphics::line_t{ {
-    .src = fan::vec3(fan::physics::physics_to_render(p1), 0x1f00 + z_depth),
-    .dst = fan::vec3(fan::physics::physics_to_render(p2), 0x1f00 + z_depth),
-    .color = fan::color::hexa(color),
-  } });
-  ++z_depth;
-}
-
-/// Draw a transform. Choose your own length scale.
-void DrawTransform(b2Transform transform, void* context) {
-  printf("DrawTransform\n");
-}
-
-/// Draw a point.
-void DrawPoint(b2Vec2 p, float size, b2HexColor color, void* context) {
-  //vs.back() = vs.front();
-  debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
-    .position = fan::vec3(fan::physics::physics_to_render(p), 0x1f00 + z_depth),
-    .radius = size,
-    .color = fan::color::hexa(color)
-  } });
-  ++z_depth;
-}
-
-/// Draw a string.
-void DrawString(b2Vec2 p, const char* s, void* context) {
-#if defined(fan_gui)
-  fan::graphics::gui::text_at(s, fan::physics::physics_to_render(p));
-#endif
-}
-
-
-b2DebugDraw initialize_debug(bool enabled) {
-  return b2DebugDraw{
-  .DrawPolygon = (decltype(b2DebugDraw::DrawPolygon))DrawPolygon,
-  .DrawSolidPolygon = DrawSolidPolygon,
-  .DrawCircle = DrawCircle,
-  .DrawSolidCircle = DrawSolidCircle,
-  .DrawCapsule = DrawCapsule,
-  .DrawSolidCapsule = DrawSolidCapsule,
-  .DrawSegment = DrawSegment,
-  .DrawTransform = DrawTransform,
-  .DrawPoint = DrawPoint,
-  .DrawString = DrawString,
-  .drawJoints = enabled,
-  .drawAABBs = enabled,
-  };
-}
-
-b2DebugDraw fan::graphics::physics::box2d_debug_draw = [] {
-  auto init_it = fan::graphics::engine_init_cbs.NewNodeLast();
-  fan::graphics::engine_init_cbs[init_it] = [](loco_t* loco) {
-    auto it = loco->m_update_callback.NewNodeLast();
-    loco->m_update_callback[it] = [](loco_t* loco) {
-      z_depth = 0;
-      debug_draw_polygon.clear();
-      debug_draw_solid_polygon.clear();
-      debug_draw_circle.clear();
-      debug_draw_line.clear();
-      //b2World_Draw(loco->physics_context.world_id, &fan::graphics::physics::box2d_debug_draw);
-      };
-    };
-  return initialize_debug(false);
-  }();
-
 void fan::graphics::physics::step(f32_t dt) {
   gloco->physics_context.step(dt);
 }
 
 void fan::graphics::physics::debug_draw(bool enabled) {
-  fan::graphics::physics::box2d_debug_draw = initialize_debug(enabled);
+ // fan::graphics::physics::box2d_debug_draw = initialize_debug(enabled);
 }
 
 export namespace fan::physics {

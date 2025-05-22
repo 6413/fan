@@ -13,5 +13,5 @@ void main() {
 	uint id = uint(gl_VertexID);
 
 	gl_Position = projection * view * vec4(((id & 1u) == 0u) ? src.xy : dst.xy, src.z, 1);
-	instance_color = ((id & 1u) == 0u) ? color : vec4(0, 0, 0, 1);
+	instance_color = color;
 }

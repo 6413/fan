@@ -5,10 +5,9 @@ layout (location = 2) in vec2 in_center1;
 layout (location = 3) in float in_radius;
 layout (location = 4) in vec2 in_rotation_point;
 layout (location = 5) in vec4 in_color;
-layout (location = 6) in vec3 in_rotation_vector;
-layout (location = 7) in vec3 in_angle;
-layout (location = 8) in uint in_flags;
-layout (location = 9) in vec4 in_outline_color;
+layout (location = 6) in vec3 in_angle;
+layout (location = 7) in uint in_flags;
+layout (location = 8) in vec4 in_outline_color;
 
 out vec4 instance_color;
 out vec4 instance_outline_color;

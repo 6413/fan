@@ -2,7 +2,7 @@ import fan;
 
 int main() {
   loco_t loco;
-  loco.lighting.ambient = 0;
+  loco.lighting.ambient = 0.2;
 
   fan::graphics::image_load_properties_t lp;
   lp.min_filter = fan::graphics::image_filter::linear;

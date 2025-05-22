@@ -1,252 +1,3 @@
-#pragma once
-
-#include <fan/types/types.h>
-#include <fan/math/math.h>
-#include <fan/types/json_impl.h>
-
-#include <set>
-
-#include <fan/imgui/imgui.h>
-
-import fan.graphics;
-import fan.physics.collision.rectangle;
-import fan.file_dialog;
-
-#define fan_imgui_dragfloat_named(name, variable, speed, m_min, m_max) \
-          fan::graphics::gui::drag_float(name, &variable, speed, m_min, m_max)
-
-#define fan_imgui_dragfloat(variable, speed, m_min, m_max) \
-            fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, m_min, m_max)
-
-
-#define fan_imgui_dragfloat1(variable, speed) \
-            fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, 0, 0)
-
-
-struct image_divider_t {
-  struct image_t {
-    fan::vec2 uv_pos;
-    fan::vec2 uv_size;
-    loco_t::image_t image;
-  };
-
-  loco_t::image_t root_image = gloco->default_texture;
-
-  std::vector<std::vector<image_t>> images;
-  fan::vec2 child_window_size = 1;
-
-  int horizontal_line_count = 8;
-  int vertical_line_count = 1;
-
-  struct image_click_t {
-    int highlight = 0;
-    int count_index;
-  };
-
-  std::vector<image_click_t> clicked_images;
-  loco_t::texture_packe0::open_properties_t open_properties;
-  loco_t::texture_packe0 e;
-  loco_t::texture_packe0::texture_properties_t texture_properties;
-
-  bool render_select_frames = false;
-
-  image_divider_t() {
-    e.open(open_properties);
-    texture_properties.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_edge;
-    texture_properties.min_filter = fan::graphics::image_filter::nearest;
-    texture_properties.mag_filter = fan::graphics::image_filter::nearest;
-  }
-
-  bool render() {
-    auto& style = ImGui::GetStyle();
-    ImVec4* colors = style.Colors;
-    const ImVec4 bgColor = ImVec4(0.1, 0.1, 0.1, 0.1);
-    colors[ImGuiCol_WindowBg].w = bgColor.w;
-    colors[ImGuiCol_ChildBg].w = bgColor.w;
-    colors[ImGuiCol_TitleBg].w = bgColor.w;
-
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
-    ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
-    ImGui::PopStyleColor(2);
-
-    ImGui::BeginChild("Editor");
-    ImGui::Columns(2, "mycolumns", false);
-
-    ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x * 0.4f);
-
-    fan::vec2 window_size = gloco->window.get_size();
-
-    fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
-    fan::vec2 viewport_pos = fan::vec2(ImGui::GetWindowPos() + fan::vec2(0, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2));
-    fan::vec2 offset = viewport_size - viewport_size;
-    fan::vec2 s = viewport_size;
-    gloco->camera_set_ortho(
-      gloco->orthographic_camera.camera,
-      fan::vec2(-s.x, s.x),
-      fan::vec2(-s.y, s.y)
-    );
-    gloco->viewport_set(
-      gloco->orthographic_camera.viewport,
-      viewport_pos, viewport_size, window_size
-    );
-
-    static std::string image_path;
-    image_path.resize(40);
-
-    static fan::vec2f cell_size = { 1, 1 };
-    static bool image_loaded = false;
-    bool update_drag = ImGui::InputInt("Horizontal Line Count", &horizontal_line_count, 1, 1, 100) ||
-      ImGui::InputInt("Vertical Line Count", &vertical_line_count, 1, 1, 100);
-    if (update_drag || image_loaded) {
-      image_loaded = false;
-      images.clear();
-      if (root_image.iic() == false) {
-        fan::vec2 img_size = 0;
-        auto& image_data = gloco->image_get_data(root_image);
-        img_size = image_data.size;
-        fan::vec2i divider = { horizontal_line_count, vertical_line_count };
-        fan::vec2 uv_size = img_size / divider / img_size;
-
-        images.resize(divider.y);
-        for (int i = 0; i < divider.y; ++i) {
-          images[i].resize(divider.x);
-          for (int j = 0; j < divider.x; ++j) {
-            images[i][j] = image_t{
-              .uv_pos = uv_size * fan::vec2(j, i),
-              .uv_size = uv_size,
-              .image = root_image
-            };
-          }
-        }
-        clicked_images.resize(divider.multiply());
-        for (auto& i : clicked_images) {
-          i.highlight = 0;
-          i.count_index = 0;
-        }
-      }
-    }
-
-    auto& image_data = gloco->image_get_data(root_image);
-    fan::vec2 img_size = 0;
-    img_size = image_data.size;
-    
-    fan::vec2 normalized_image_size = img_size.normalize();
-    cell_size.x = (child_window_size.max() * 0.95 * (normalized_image_size.x)) / horizontal_line_count;
-    cell_size.y = (child_window_size.max() * 0.95 * (normalized_image_size.y)) / vertical_line_count;
-
-
-    static fan::graphics::file_open_dialog_t open_file_dialog;
-
-    static std::string fn;
-    if (ImGui::Button("image path")) {
-        open_file_dialog.load("webp,png", &fn);
-      
-    }
-    if (open_file_dialog.is_finished()) {
-      root_image = gloco->image_load(
-        fn
-      );
-      auto& image_data = gloco->image_get_data(root_image);
-      fan::vec2 img_size = 0;
-      img_size = image_data.size;
-      open_properties.preferred_pack_size = img_size;
-      image_loaded = true;
-      open_file_dialog.finished = false;
-    }
-    ImGui::GetStyle().ItemSpacing.x = 1;
-    ImGui::GetStyle().ItemSpacing.y = 1;
-
-    ImGui::NextColumn();
-
-    ImGui::BeginChild("image");
-
-    child_window_size = ImGui::GetWindowSize();
-
-    int totalIndex = 0;
-
-    int highlighted_count = 0;
-    for (int k = 0; k < clicked_images.size(); ++k) {
-      highlighted_count += clicked_images[k].highlight;
-    }
-
-    for (auto& i : images) {
-      int x = 0;
-      for (auto& j : i) {
-        if (x) {
-          ImGui::SameLine();
-        }
-
-        if (clicked_images[totalIndex].highlight) {
-          ImGui::PushStyleColor(ImGuiCol_Border, fan::color::hex(0x00e0ffff));
-        }
-        else {
-          ImGui::PushStyleColor(ImGuiCol_Border, fan::color(0.3, 0.3, 0.3, 1));
-        }
-
-        ImGui::PushID(totalIndex);
-
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 });
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1, 0, 0, 0.3));
-        if (fan::graphics::gui::image_button("", j.image, cell_size, j.uv_pos, j.uv_pos + j.uv_size)) {
-
-          clicked_images[totalIndex].highlight = !clicked_images[totalIndex].highlight;
-          if (clicked_images[totalIndex].highlight) {
-            clicked_images[totalIndex].count_index = highlighted_count;
-          }
-          else {
-            for (int k = 0; k < clicked_images.size(); ++k) {
-              if (clicked_images[totalIndex].count_index < clicked_images[k].count_index) {
-                --clicked_images[k].count_index;
-              }
-            }
-          }
-        }
-        ImGui::PopStyleColor(2);
-        ImGui::PopStyleVar(2);
-
-        if (clicked_images[totalIndex].highlight) {
-          ImVec2 p = ImGui::GetItemRectMin();
-          ImVec2 size = ImGui::GetItemRectSize();
-          ImVec2 text_size = ImGui::CalcTextSize(std::to_string(totalIndex).c_str());
-          ImVec2 text_pos = ImVec2(p.x + 2, p.y + 2);
-
-          ImU32 outline_col = IM_COL32(0, 0, 0, 255);
-          
-          ImU32 text_col = IM_COL32(255, 255, 255, 255);
-
-          ImGui::GetWindowDrawList()->AddText(ImVec2(text_pos.x + 1, text_pos.y), outline_col, std::to_string(clicked_images[totalIndex].count_index).c_str());
-          ImGui::GetWindowDrawList()->AddText(ImVec2(text_pos.x - 1, text_pos.y), outline_col, std::to_string(clicked_images[totalIndex].count_index).c_str());
-          ImGui::GetWindowDrawList()->AddText(ImVec2(text_pos.x, text_pos.y + 1), outline_col, std::to_string(clicked_images[totalIndex].count_index).c_str());
-          ImGui::GetWindowDrawList()->AddText(ImVec2(text_pos.x, text_pos.y - 1), outline_col, std::to_string(clicked_images[totalIndex].count_index).c_str());
-
-          ImGui::GetWindowDrawList()->AddText(text_pos, text_col, std::to_string(clicked_images[totalIndex].count_index).c_str());
-        }
-
-        ImGui::PopID();
-
-        x++;
-        totalIndex++;
-      }
-    }
-    if (ImGui::Button("save")) {
-      render_select_frames = false;
-      ImGui::EndChild();
-      ImGui::Columns(1);
-
-      ImGui::EndChild();
-      return false;
-    }
-    ImGui::EndChild();
-    ImGui::Columns(1);
-
-    ImGui::EndChild();
-    return true;
-  }
-
-};
-
 struct fgm_t {
   fgm_t() {
     
@@ -271,6 +22,15 @@ struct fgm_t {
       fan::vec2(1)
     );
 
+    auto transparent_texture = gloco->create_transparent_texture();
+
+    background = fan::graphics::sprite_t{ {
+      .camera = &camera,
+      .position = 0,
+      .size = 0,
+      .image = transparent_texture,
+    } };
+
     texturepack.open_compiled(texturepack_name);
 
     gloco->window.add_keys_callback([this](const auto& d) {
@@ -294,7 +54,13 @@ struct fgm_t {
     gloco->window.add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom;
-        gloco->camera_set_position(camera.camera, viewport_settings.pos - move_off);
+        auto camera_pos = viewport_settings.pos - move_off;
+        gloco->camera_set_position(camera.camera, camera_pos);
+      //  background.set_position(fan::vec2(editor_pos) + camera_pos);
+        /*fan::vec2 half_ground_size = ground_size * 0.5f;
+        fan::vec2 top_left_world = camera_pos - half_ground_size;
+        fan::vec2 tc_position = top_left_world / 64.f;*/
+    //    background.set_tc_position(tc_position);
       }
       });
 
@@ -326,14 +92,14 @@ struct fgm_t {
       });
     xy_lines[0] = fan::graphics::line_t{ {
       .camera = &camera,
-      .src = fan::vec2(-0xffffff, 0),
+      .src = fan::vec3(-0xffffff, 0, 0x1fff),
       .dst = fan::vec2(0xffffff, 0),
       .color = fan::colors::red / 2
     } };
 
     xy_lines[1] = fan::graphics::line_t{ {
         .camera = &camera,
-        .src = fan::vec2(0, -0xffffff),
+        .src = fan::vec3(0, -0xffffff, 0x1fff),
         .dst = fan::vec2(0, 0xffffff),
         .color = fan::colors::green / 2
     } };
@@ -433,7 +199,7 @@ struct fgm_t {
     str.resize(str.size() + 10); \
  \
     ImGui::Indent();\
-    if (fan_imgui_dragfloat_named(STRINGIFY_DEFINE(prop), v, 0.1, 0, 0)) { \
+    if (fan::graphics::gui::drag_float(STRINGIFY_DEFINE(prop), &v, 0.1, 0, 0)) { \
           shape->CONCAT(set_, prop)(v); \
     }\
     ImGui::Unindent(); \
@@ -720,48 +486,6 @@ struct fgm_t {
     }
   }
 
-void UpdateSelection(int index, std::set<int>& selectionSet) {
-    bool isShiftPressed = ImGui::GetIO().KeyShift;
-    bool isCtrlPressed = ImGui::GetIO().KeyCtrl;
-
-    if (!isCtrlPressed && !isShiftPressed) {
-        selectionSet.clear();
-        selectionSet.insert(index);
-    } else if (isShiftPressed) {
-        // Simplified example; implement range selection logic as needed
-        selectionSet.insert(index);
-    } else if (isCtrlPressed) {
-        if (selectionSet.find(index) != selectionSet.end()) {
-            selectionSet.erase(index);
-        } else {
-            selectionSet.insert(index);
-        }
-    }
-}
-
-  void DrawTextBottomRight(const char* text, uint32_t reverse_yoffset = 0)
-  {
-    // Retrieve the current window draw list
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
-    // Retrieve the current window position and size
-    ImVec2 window_pos = ImGui::GetWindowPos();
-    ImVec2 window_size = ImGui::GetWindowSize();
-
-    // Calculate the size of the text
-    ImVec2 text_size = ImGui::CalcTextSize(text);
-
-    // Calculate the position to draw the text (bottom-right corner)
-    ImVec2 text_pos;
-    text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
-    text_pos.y = window_pos.y + window_size.y - text_size.y - ImGui::GetStyle().WindowPadding.y;
-
-    text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
-
-    // Draw the text at the calculated position
-    draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), text);
-  }
-
   fan::vec2 get_mouse_position() {
     auto& style = ImGui::GetStyle();
     fan::vec2 pos = fan::vec2((ImGui::GetMousePos() - viewport_settings.start_pos + style.WindowPadding) - viewport_settings.size / 2);
@@ -851,6 +575,28 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           fan::vec2 ratio = viewport_size / viewport_size.max();
           fan::vec2 s = viewport_size;
 
+          editor_pos = ImGui::GetWindowPos();
+
+          f32_t zoom = viewport_settings.zoom;
+          fan::vec2 ground_size = viewport_size * (1.0f / zoom);
+          fan::vec2 camera_pos = gloco->camera_get_position(camera.camera);
+
+          auto world_size = viewport_size / zoom;
+
+          background.set_position(camera_pos);
+          background.set_size(world_size / 2);
+
+          f32_t tile_size = 128.0f;
+          fan::vec2 tc_size = world_size / tile_size;
+          background.set_tc_size(tc_size);
+
+
+          fan::vec2 tc_offset = camera_pos / tile_size;
+          tc_offset.x = tc_offset.x - floor(tc_offset.x);
+          tc_offset.y = tc_offset.y - floor(tc_offset.y);
+
+          background.set_tc_position(tc_offset - tc_size / 2);
+
           viewport_settings.editor_hovered = ImGui::IsWindowHovered();
           fan::graphics::vfi_root_t::g_ignore_mouse = !viewport_settings.editor_hovered;
           //fan::print(viewport_settings.editor_hovered);
@@ -889,14 +635,14 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           {
             std::string str = std::to_string(viewport_settings.zoom * 100);
             str += " %";
-            DrawTextBottomRight(str.c_str(), 1);
+            fan::graphics::gui::text_bottom_right(str, 1);
           }
 
           {
             fan::vec2 cursor_pos = ((ImGui::GetMousePos() - viewport_settings.start_pos + style.WindowPadding) - viewport_settings.size / 2);
             std::string cursor_pos_str = cursor_pos.to_string();
             std::string  str = cursor_pos_str.substr(1, cursor_pos_str.size() - 2);
-            DrawTextBottomRight(str.c_str(), 0);
+            fan::graphics::gui::text_bottom_right(str.c_str(), 0);
           }
 
           ImGui::SetCursorPos(ImGui::GetCursorStartPos());
@@ -977,30 +723,6 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
           }
         }
 
-        //ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(0, 0, 0, 0)); // Make plot background transparent
-        //ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(0, 0, 0, 0)); // Optional: Make frame background transparent
-        //ImPlot::PushStyleColor(ImPlotCol_PlotBorder, IM_COL32(0, 0, 0, 0)); // Make plot border transparent
-
-        //ImVec2 regionAvail = ImGui::GetContentRegionAvail();
-        //ImGui::SetCursorPos(ImGui::GetCursorStartPos());
-        //if (ImPlot::BeginPlot("##Coordinate System", regionAvail)) {
-        //  // Set plot limits
-        //  ImPlot::SetupAxisLimits(ImAxis_X1, -10, 10);
-        //  ImPlot::SetupAxisLimits(ImAxis_Y1, -10, 10);
-
-        //  //float x_axis[2] = { -10.0f, 10.0f };
-        //  //float y_axis[2] = { 0.0f, 0.0f };
-        //  //float y_axis_x[2] = { 0.0f, 0.0f };
-        //  //float y_axis_y[2] = { -10.0f, 10.0f };
-
-        //  //ImPlot::PlotLine("X-Axis", x_axis, y_axis, 2);
-        //  //ImPlot::PlotLine("Y-Axis", y_axis_x, y_axis_y, 2);
-
-
-        //  ImPlot::EndPlot();
-        //}
-        //ImPlot::PopStyleColor(3);
-
         ImGui::End();
 
         if (ImGui::Begin("lighting settings")) {
@@ -1027,130 +749,7 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
 
         ImGui::End();
 
-      //  {
-      //    ImGui::Begin("Animations");
-
-      //    ImGui::Columns(2, "mycolumns", false);
-
-      //    ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x * 0.2f);
-      //    int current_item = editable_list_box(items);
-
-      //    ImGui::NextColumn();
-      //    ImGui::BeginChild("child");
-
-      //    static bool play = false;
-      //    if (ImGui::Button("Play")) {
-      //      play = true;
-
-      //    }
-      //    ImGui::InputInt("fps", &animations[items[current_item]].fps);
-
-      //    if (play) { 
-      //      auto& animation = animations[items[current_item]];
-      //      float frame_duration = 1.0f / animation.fps;
-      //      static float elapsed_time = 0.0f;
-      //      static int current_frame = 0; 
-
-      //      for (auto& obj : fan::graphics::vfi_root_t::selected_objects) {
-      //        
-      //        if (animation.tcs.size()) {
-      //          auto& frame = animation.tcs[current_frame];
-      //          obj->children[0].set_image(frame.image);
-      //          obj->children[0].set_tc_position(frame.position);
-      //          obj->children[0].set_tc_size(frame.size);
-      //        }
-      //      }
-      //     
-      //      if (animation.tcs.size()) {
-      //        elapsed_time += gloco->delta_time; 
-      //        if (elapsed_time >= frame_duration) {
-      //          elapsed_time = 0.0f; 
-      //          current_frame = (current_frame + 1) % animation.tcs.size();
-      //        }
-      //      }
-      //      
-      //    }
-
-      //  if (ImGui::Button("Select frames")) {
-      //    image_divider.render_select_frames = true;
-      //  }
-
-      //  if (image_divider.render_select_frames) {
-      //    if (image_divider.render() == false) {
-      //      if (current_item != -1) {
-      //        int index = 0;
-      //        animations[items[current_item]].tcs.clear();
-      //        for (auto& item : image_divider.clicked_images) {
-      //          if (item.highlight == false) {
-      //            continue;
-      //          }
-      //          int row = index % image_divider.horizontal_line_count;
-      //          int col = index / image_divider.horizontal_line_count;
-      //          animation_t::texture_coordinates_t tc;
-      //          auto& img = image_divider.images[col][row];
-      //          tc.position = img.uv_pos;
-      //          tc.size = img.uv_size;
-      //          tc.image = img.image;
-
-      //          animations[items[current_item]].tcs.push_back(tc);
-      //          index += 1;
-      //        }
-      //      }
-      //    }
-      //  }
-
-      //  f32_t padding = 16.0f;
-      //  float thumbnail_size = 128.0f;
-      //  float panel_width = ImGui::GetContentRegionAvail().x;
-      //  int column_count = std::max((int)(panel_width / (thumbnail_size + padding)), 1);
-
-      //  ImGui::Columns(column_count, 0, false);
-      //  int index = 0;
-      //  if (!items.empty()) {
-      //    auto& animation = animations[items[current_item]];
-      //    for (auto& tc : animation.tcs) {
-      //      ImGui::PushID(index);
-      //      ImGui::ImageButton(("##animation_image" + std::to_string(index)).c_str(), tc.image, fan::vec2(thumbnail_size), tc.position, tc.position + tc.size);
-      //      if (ImGui::BeginDragDropTarget()) {
-      //        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("frames_payload")) {
-      //          int swap_index = *(int*)payload->Data;
-      //          std::swap(tc, animation.tcs[swap_index]);
-      //        }
-      //        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
-      //          const wchar_t* path = (const wchar_t*)payload->Data;
-      //          tc.image = gloco->image_load(std::filesystem::absolute(content_browser.current_directory / path).string());
-      //          tc.position = 0;
-      //          tc.size = 1;
-      //          //fan::print(std::filesystem::path(path));
-      //        }
-
-      //        ImGui::EndDragDropTarget();
-      //      }
-
-      //      if (ImGui::BeginDragDropSource()) {
-      //        ImGui::SetDragDropPayload("frames_payload", &index, sizeof(index));
-      //        ImGui::EndDragDropSource();
-      //      }
-      //      ImGui::NextColumn();
-      //      ImGui::PopID();
-      //      index++;
-      //    }
-      //  }
-
-      //  ImGui::EndChild();
-       // ImGui::Columns(1);
-
-      //  ImGui::End();
-      //}
 });
-  /*
-  header 4 byte
-  shape_type 2 byte
-  struct size x byte
-  data{
-    ...
-  }
-  */
   void fout(const std::string& filename) {
     previous_file_name = filename;
 
@@ -1438,5 +1037,6 @@ void UpdateSelection(int index, std::set<int>& selectionSet) {
   std::unordered_map<std::string, animation_t> animations;
   std::vector<std::string> items{ "default" };
 
-  image_divider_t image_divider;
+  fan::vec2 editor_pos = 0;
+  fan::graphics::sprite_t background;
 };
