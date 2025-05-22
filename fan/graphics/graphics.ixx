@@ -392,7 +392,7 @@ export namespace fan {
       std::array<loco_t::image_t, 30> images;
       f32_t parallax_factor = 0;
       bool blending = false;
-      uint32_t flags = light_flags_e::circle | light_flags_e::additive;
+      uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
     };
 
 

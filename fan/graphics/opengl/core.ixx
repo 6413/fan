@@ -311,6 +311,16 @@ export namespace fan {
         uintptr_t           mag_filter = image_load_properties_defaults::mag_filter;
       };
 
+      GLenum get_format_from_channels(int channels) {
+        switch (channels) {
+        case 1: return GL_RED;
+        case 2: return GL_RG;
+        case 3: return GL_RGB;
+        case 4: return GL_RGBA;
+        default: return GL_RGBA;
+        }
+      }
+
       static constexpr fan::vec4_wrap_t<fan::vec2> default_texture_coordinates = fan::vec4_wrap_t<fan::vec2>(
         fan::vec2(0, 0),
         fan::vec2(1, 0),
@@ -688,8 +698,27 @@ export namespace fan {
         __fan_internal_image_list[nr].image_settings = image_opengl_to_global(p);
       }
 
-      fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::opengl::context_t::image_load_properties_t& p) {
+      fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::opengl::context_t::image_load_properties_t& lp) {
 
+        auto p = lp;
+
+        // If channels is specified in image_info but format is default
+        if (image_info.channels > 0 && p.format == image_load_properties_defaults::format) {
+          p.format = get_format_from_channels(image_info.channels);
+        }
+        else if (image_info.channels <= 0 && p.format != image_load_properties_defaults::format) {
+          // Use the specified format
+        }
+        // Both specified - potential conflict
+        else if (image_info.channels > 0 && p.format != image_load_properties_defaults::format) {
+          // Check if there's a mismatch
+          int format_channels = fan::graphics::get_channel_amount(opengl_to_global_format(p.format));
+          if (format_channels != image_info.channels) {
+            fan::print("Warning: Format/channels mismatch. Format specifies",
+              format_channels, "channels but image_info specifies",
+              image_info.channels, "channels. Using format specification.");
+          }
+        }
 
         fan::graphics::image_nr_t nr = image_create();
         image_bind(nr);
@@ -700,7 +729,7 @@ export namespace fan {
         image_data.size = image_info.size;
         image_data.image_path = "";
 
-        uint32_t bytes_per_row = (int)(image_data.size.x * fan::graphics::get_channel_amount(p.format));
+        uint32_t bytes_per_row = (int)(image_data.size.x * fan::graphics::get_channel_amount(opengl_to_global_format(p.format)));
         if ((bytes_per_row % 8) == 0) {
           glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
         }
@@ -840,13 +869,33 @@ export namespace fan {
         image_erase(nr);
       }
 
-      void image_reload(fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info, const fan::opengl::context_t::image_load_properties_t& p) {
+      void image_reload(fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info, const fan::opengl::context_t::image_load_properties_t& lp) {
+
+        auto p = lp;
+
+        // If channels is specified in image_info but format is default
+        if (image_info.channels > 0 && p.format == image_load_properties_defaults::format) {
+          p.format = get_format_from_channels(image_info.channels);
+        }
+        else if (image_info.channels <= 0 && p.format != image_load_properties_defaults::format) {
+          // Use the specified format
+        }
+        // Both specified - potential conflict
+        else if (image_info.channels > 0 && p.format != image_load_properties_defaults::format) {
+          // Check if there's a mismatch
+          int format_channels = get_format_from_channels(p.format);
+          if (format_channels != image_info.channels) {
+            fan::print("Warning: Format/channels mismatch. Format specifies",
+              format_channels, "channels but image_info specifies",
+              image_info.channels, "channels. Using format specification.");
+          }
+        }
 
         image_bind(nr);
 
         image_set_settings(nr, p);
 
-        uint32_t bytes_per_row = (int)(image_info.size.x * fan::graphics::get_channel_amount(p.format));
+        uint32_t bytes_per_row = (int)(image_info.size.x * fan::graphics::get_channel_amount(opengl_to_global_format(p.format)));
         if ((bytes_per_row % 8) == 0) {
           glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
         }

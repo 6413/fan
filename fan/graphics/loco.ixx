@@ -273,6 +273,7 @@ export namespace fan {
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeDataType std::function<void(loco_t*)>
 #define BLL_set_CPP_CopyAtPointerChange 1
+#undef BLL_set_CPP_ConstructDestruct
 #include <BLL/BLL.h>
 
       using init_callback_nr_t = init_callback_NodeReference_t;
@@ -1359,6 +1360,7 @@ public:
     if (fan::init_manager_t::initialized() == false) {
       fan::init_manager_t::initialize();
     }
+    fan::graphics::engine_init_cbs.Open();
     render_shapes_top = p.render_shapes_top;
     window.renderer = p.renderer;
     shape_functions.resize(shape_type_t::last);
@@ -1522,6 +1524,7 @@ public:
   }
 
   void destroy() {
+    fan::graphics::engine_init_cbs.Close();
     if (window == nullptr) {
       return;
     }

@@ -41,13 +41,14 @@ void main() {
 			vec2 tc_offset = texture_coordinate + vec2(0, -_time * speed) + fract(vec2(object_seed, object_seed) * 5.324);
 
 			tex_color = texture(_t00, tc_offset + 0.6 * noise_combined.rg) * instance_color;
+      tex_color.rgb *= lighting_ambient + lighting_texture.rgb;
 		}
-    else if (bool(fs_flags & 4u)) {
+    else if (bool(fs_flags & 4u)) { // additive
       vec3 base_lit = tex_color.rgb * lighting_ambient;
       vec3 additive_light = lighting_texture.rgb;
       tex_color.rgb = base_lit + additive_light;
     }
-    else if (bool(fs_flags & 8u)) {
+    else if (bool(fs_flags & 8u)) { // multiplicative
       tex_color.rgb *= lighting_ambient + lighting_texture.rgb;
     }
 

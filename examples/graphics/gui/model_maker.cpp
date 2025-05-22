@@ -1,3 +1,8 @@
+#include <fan/types/types.h>
+#include <fan/math/math.h>
+
+#include <fan/imgui/imgui.h>
+
 import fan;
 
 #include <fan/graphics/gui/model_maker/maker.h>
@@ -8,13 +13,11 @@ int main(int argc, char** argv) {
   }////
   //////////
   //////////
-  loco_t loco;
-  
-  auto image = loco.image_load("images/brick_wall.png");
+  loco_t loco;////
 
   model_maker_t mm;////
 
-  mm.open("texture_packs/TexturePack", L"examples/games/puzzle");
+  mm.open("texture_packs/TexturePack", L"");
   //if(argc == 3){
     //mm.load("ship.json");
   //}

@@ -5,6 +5,7 @@ export import :types.masterpiece;
 export import :types.matrix;
 export import :io.file;
 export import :io.directory;
+export import :types.json;
 
 export import :graphics.loco;
 export import :graphics;
@@ -17,6 +18,7 @@ export import :event;
   export import :audio;
 #endif
 #if defined(fan_gui)
+  export import :file_dialog;
   export import :graphics.gui.tilemap_editor.renderer;
 //export import fan.graphics.gui;
 #endif
