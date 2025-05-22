@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
   
 
   loco.loop([&] {
-  
+    mm.render();
   });
   // pile->close();
 

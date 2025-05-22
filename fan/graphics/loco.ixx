@@ -2213,8 +2213,6 @@ public:
   }
 
   struct camera_impl_t {
-
-    camera_impl_t() = default;
     loco_t::camera_t camera;
     loco_t::viewport_t viewport;
   };

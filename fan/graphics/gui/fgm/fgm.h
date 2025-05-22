@@ -47,7 +47,7 @@ struct fgm_t {
         break;
       }
       }
-      });
+    });
     gloco->input_action.add_keycombo({ fan::input::key_left_control, fan::input::key_space }, "toggle_content_browser");
     gloco->input_action.add_keycombo({ fan::input::key_left_control, fan::input::key_f }, "set_windowed_fullscreen");
 
@@ -193,13 +193,8 @@ struct fgm_t {
 #define make_line(T, prop) \
   { \
     T v = shape->CONCAT(get_, prop)(); \
- \
-    static auto str = v.to_string(); \
- \
-    str.resize(str.size() + 10); \
- \
     ImGui::Indent();\
-    if (fan::graphics::gui::drag_float(STRINGIFY_DEFINE(prop), &v, 0.1, 0, 0)) { \
+    if (fan::graphics::gui::drag_float(STRINGIFY_DEFINE(prop), &v, 0.1, 0, FLT_MAX, "%.3f", fan::graphics::gui::slider_flags_always_clamp)) { \
           shape->CONCAT(set_, prop)(v); \
     }\
     ImGui::Unindent(); \
@@ -217,11 +212,33 @@ struct fgm_t {
   }
 
   void open_properties(fgm_t::shapes_t::global_t* shape, const fan::vec2& editor_size) {
+    using namespace fan::graphics;
 
     std::string shape_str = std::string("Shape name:") + gloco->shape_names[shape->children[0].get_shape_type()];
     ImGui::Text("%s", shape_str.c_str());
 
-    make_line(fan::vec3, position);
+    {
+      fan::vec3 v = shape->get_position();
+      gui::indent();
+
+      bool changed = false;
+
+      changed |= gui::drag_float("Position X", &v.x, 0.1f, 0.0f, FLT_MAX, "%.3f", gui::slider_flags_always_clamp);
+      changed |= gui::drag_float("Position Y", &v.y, 0.1f, 0.0f, FLT_MAX, "%.3f", gui::slider_flags_always_clamp);
+      int z = static_cast<int>(v.z);
+      if (gui::drag_int("Position Z", &z, 1.0f, 0, INT_MAX, "%d", gui::slider_flags_always_clamp)) {
+        v.z = static_cast<float>(z);
+        changed = true;
+      }
+
+      if (changed) {
+        v.z = (int)v.z; // if user types manually
+        shape->set_position(v);
+      }
+
+      gui::unindent();
+    }
+
     make_line(fan::vec2, size);
     fan::color c = shape->get_color();
 
@@ -493,263 +510,284 @@ struct fgm_t {
     return pos;
   }
 
-  fan::graphics::gui::imgui_element_t main_view =
-    fan::graphics::gui::imgui_element_t(
-      [&] {
-        if (viewport_settings.editor_hovered && ImGui::IsMouseClicked(0) && !fan::graphics::vfi_root_t::moving_object) {
-          drag_start = get_mouse_position();
-        }
-        else if (viewport_settings.editor_hovered && ImGui::IsMouseDown(0) && !fan::graphics::vfi_root_t::moving_object) {
-          fan::vec2 size = get_mouse_position() - drag_start;
-
-          drag_select.set_position(drag_start + size / 2);
-          drag_select.set_size(size / 2);
-        }
-        else if (ImGui::IsMouseReleased(0)) {
-          fan::graphics::vfi_root_t::selected_objects.clear();
+  void render() {
+    if (viewport_settings.editor_hovered && ImGui::IsMouseClicked(0) && !fan::graphics::vfi_root_t::moving_object) {
+      drag_start = get_mouse_position();
+    }
+    else if (viewport_settings.editor_hovered && ImGui::IsMouseDown(0) && !fan::graphics::vfi_root_t::moving_object) {
+      fan::vec2 size = get_mouse_position() - drag_start;
+      for (auto& i : fan::graphics::vfi_root_t::selected_objects) {
+        i->disable_highlight();
+      }
+      fan::graphics::vfi_root_t::selected_objects.clear();
+      drag_select.set_position(drag_start + size / 2);
+      drag_select.set_size(size / 2);
+    }
+    else if (ImGui::IsMouseReleased(0)) {
+      bool hit_any = false;
+      auto it = shape_list.GetNodeFirst();
+      while (it != shape_list.dst) {
+        auto& shape = shape_list[it];
+        if (fan_2d::collision::rectangle::check_collision(
+          drag_select.get_position(),
+          drag_select.get_size(),
+          shape->children[0].get_position(),
+          shape->children[0].get_size()
+        )) {
           if (!fan::graphics::vfi_root_t::moving_object &&
             (drag_select.get_size().x >= 1 && drag_select.get_size().y >= 1)) {
-            auto it = shape_list.GetNodeFirst();
-            int i = 0;
-            while (it != shape_list.dst) {
-              auto& shape = shape_list[it];
-              if (fan_2d::collision::rectangle::check_collision(
-                drag_select.get_position(),
-                drag_select.get_size(),
-                shape->children[0].get_position(),
-                shape->children[0].get_size()
-              )) {
-                shape->create_highlight();
-                fan::graphics::vfi_root_t::selected_objects.push_back(shape);
-              }
-              else {
-                shape->disable_highlight();
-              }
-              it = it.Next(&shape_list);
-            }
+            shape->create_highlight();
+            fan::graphics::vfi_root_t::selected_objects.push_back(shape);
           }
-          else {
-            auto it = shape_list.GetNodeFirst();
-            bool is_hovering = false;
-            while (it != shape_list.dst) {
-              auto& shape = shape_list[it];
-              if (fan_2d::collision::rectangle::point_inside_no_rotation(
-                get_mouse_position(),
-                shape->children[0].get_position(),
-                shape->children[0].get_size()
-              )) {
-                  is_hovering = true;
-                  break;
-              }
-              it = it.Next(&shape_list);
-            }
-            if (is_hovering) {
-              it = shape_list.GetNodeFirst();
-              while (it != shape_list.dst) {
-                auto& shape = shape_list[it];
-                shape->disable_highlight();
-                it = it.Next(&shape_list);
-              }
-            }
+        }
+        if (fan_2d::collision::rectangle::point_inside_no_rotation(
+          get_mouse_position(), shape->children[0].get_position(),
+          shape->children[0].get_size()
+        ))
+        {
+          hit_any = true;
+        }
+        it = it.Next(&shape_list);
+      }
+      if (hit_any == false && drag_select.get_size().x == 0) {
+        it = shape_list.GetNodeFirst();
+        while (it != shape_list.dst) {
+          auto& shape = shape_list[it];
+          shape->disable_highlight();
+          it = it.Next(&shape_list);
+        }
+        fan::graphics::vfi_root_t::selected_objects.clear();
+      }
+      drag_select.set_size(fan::vec2(0));
+    }
+
+    fan::vec2 editor_size;
+
+    if (gloco->input_action.is_active("set_windowed_fullscreen")) {
+      gloco->window.set_windowed_fullscreen();
+    }
+
+    if (gloco->input_action.is_active("toggle_content_browser")) {
+      render_content_browser = !render_content_browser;
+    }
+
+    if (render_content_browser) {
+      content_browser.render();
+    }
+
+    if (ImGui::Begin(editor_str, nullptr, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBackground)) {
+      fan::vec2 window_size = gloco->window.get_size();
+      fan::vec2 viewport_size = ImGui::GetWindowSize();
+      fan::vec2 ratio = viewport_size / viewport_size.max();
+      fan::vec2 s = viewport_size;
+
+      editor_pos = ImGui::GetWindowPos();
+
+      f32_t zoom = viewport_settings.zoom;
+      fan::vec2 ground_size = viewport_size * (1.0f / zoom);
+      fan::vec2 camera_pos = gloco->camera_get_position(camera.camera);
+
+      auto world_size = viewport_size / zoom;
+
+      background.set_position(camera_pos);
+      background.set_size(world_size / 2);
+
+      f32_t tile_size = 128.0f;
+      fan::vec2 tc_size = world_size / tile_size;
+      background.set_tc_size(tc_size);
+
+
+      fan::vec2 tc_offset = camera_pos / tile_size;
+      tc_offset.x = tc_offset.x - floor(tc_offset.x);
+      tc_offset.y = tc_offset.y - floor(tc_offset.y);
+
+      background.set_tc_position(tc_offset - tc_size / 2);
+
+      viewport_settings.editor_hovered = ImGui::IsWindowHovered();
+      fan::graphics::vfi_root_t::g_ignore_mouse = !viewport_settings.editor_hovered;
+      //fan::print(viewport_settings.editor_hovered);
+
+      auto& style = ImGui::GetStyle();
+      fan::vec2 frame_padding = style.FramePadding;
+      fan::vec2 viewport_pos = fan::vec2(0, frame_padding.y * 2);
+
+      ImVec2 vMin = ImGui::GetWindowContentRegionMin();
+      ImVec2 vMax = ImGui::GetWindowContentRegionMax();
+
+      vMin.x += ImGui::GetWindowPos().x;
+      vMin.y += ImGui::GetWindowPos().y;
+      vMax.x += ImGui::GetWindowPos().x;
+      vMax.y += ImGui::GetWindowPos().y;
+
+      viewport_size = vMax - vMin + style.WindowPadding * 2;
+
+      gloco->viewport_set(
+        camera.viewport,
+        vMin - style.WindowPadding,
+        viewport_size,
+        window_size
+      );
+
+      gloco->camera_set_ortho(
+        camera.camera,
+        fan::vec2(-viewport_size.x / 2, viewport_size.x / 2) / viewport_settings.zoom,
+        fan::vec2(-viewport_size.y / 2, viewport_size.y / 2) / viewport_settings.zoom
+      );
+
+
+      viewport_settings.size = viewport_size;
+      viewport_settings.start_pos = vMin;
+
+      {
+        std::string str = std::to_string(viewport_settings.zoom * 100);
+        str += " %";
+        fan::graphics::gui::text_bottom_right(str, 1);
+      }
+
+      {
+        fan::vec2 cursor_pos = ((ImGui::GetMousePos() - viewport_settings.start_pos + style.WindowPadding) - viewport_settings.size / 2);
+        std::string cursor_pos_str = cursor_pos.to_string();
+        std::string  str = cursor_pos_str.substr(1, cursor_pos_str.size() - 2);
+        fan::graphics::gui::text_bottom_right(str.c_str(), 0);
+      }
+
+      ImGui::SetCursorPos(ImGui::GetCursorStartPos());
+
+
+      content_browser.receive_drag_drop_target([&](const std::filesystem::path& fs) {
+
+        auto file = fs.string();
+        auto extension = fan::io::file::extension(file);
+        if (extension == ".json") {
+          fin(file);
+        }
+        else {
+          auto nr = push_shape(loco_t::shape_type_t::sprite, get_mouse_position());
+          shape_list[nr]->children[0].set_image(gloco->image_load(std::filesystem::absolute(fs).string()));
+        }
+      });
+
+    }
+
+    // keybinds
+    if (fan::window::is_key_down(fan::key_left_control)) {
+      if (fan::window::is_key_pressed(fan::key_d)) {
+        for (auto& i : fan::graphics::vfi_root_t::selected_objects) {
+          for (auto& child : i->children) {
+            auto it = shape_list.NewNodeLast();
+            auto& node = shape_list[it];
+            node = new shapes_t::global_t{
+            child.get_shape_type(),
+            this, child };
           }
-          drag_select.set_size(fan::vec2(0));
         }
+        fan::graphics::vfi_root_t::selected_objects.clear();
+      }
+    }
 
-        fan::vec2 editor_size;
+    static fan::graphics::file_save_dialog_t save_file_dialog;
+    static fan::graphics::file_open_dialog_t open_file_dialog;
+    static std::string fn;
 
-        if (gloco->input_action.is_active("set_windowed_fullscreen")) {
-          gloco->window.set_windowed_fullscreen();
+    if (ImGui::BeginMenuBar()) {
+      if (ImGui::BeginMenu("File")) {
+        if (ImGui::MenuItem("Open..", "Ctrl+O")) {
+
+          open_file_dialog.load("json;fmm", &fn);
         }
-
-        if (gloco->input_action.is_active("toggle_content_browser")) {
-          render_content_browser = !render_content_browser;
+        if (ImGui::MenuItem("Save", "Ctrl+S")) {
+          fout(previous_file_name);
         }
-
-        if (render_content_browser) {
-          content_browser.render();
+        if (ImGui::MenuItem("Save as", "Ctrl+Shift+S")) {
+          save_file_dialog.save("json;fmm", &fn);
         }
-
-        if (ImGui::Begin(editor_str, nullptr, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBackground)) {
-          fan::vec2 window_size = gloco->window.get_size();
-          fan::vec2 viewport_size = ImGui::GetWindowSize();
-          fan::vec2 ratio = viewport_size / viewport_size.max();
-          fan::vec2 s = viewport_size;
-
-          editor_pos = ImGui::GetWindowPos();
-
-          f32_t zoom = viewport_settings.zoom;
-          fan::vec2 ground_size = viewport_size * (1.0f / zoom);
-          fan::vec2 camera_pos = gloco->camera_get_position(camera.camera);
-
-          auto world_size = viewport_size / zoom;
-
-          background.set_position(camera_pos);
-          background.set_size(world_size / 2);
-
-          f32_t tile_size = 128.0f;
-          fan::vec2 tc_size = world_size / tile_size;
-          background.set_tc_size(tc_size);
-
-
-          fan::vec2 tc_offset = camera_pos / tile_size;
-          tc_offset.x = tc_offset.x - floor(tc_offset.x);
-          tc_offset.y = tc_offset.y - floor(tc_offset.y);
-
-          background.set_tc_position(tc_offset - tc_size / 2);
-
-          viewport_settings.editor_hovered = ImGui::IsWindowHovered();
-          fan::graphics::vfi_root_t::g_ignore_mouse = !viewport_settings.editor_hovered;
-          //fan::print(viewport_settings.editor_hovered);
-
-          auto& style = ImGui::GetStyle();
-          fan::vec2 frame_padding = style.FramePadding;
-          fan::vec2 viewport_pos = fan::vec2(0, frame_padding.y * 2);
-
-          ImVec2 vMin = ImGui::GetWindowContentRegionMin();
-          ImVec2 vMax = ImGui::GetWindowContentRegionMax();
-
-          vMin.x += ImGui::GetWindowPos().x;
-          vMin.y += ImGui::GetWindowPos().y;
-          vMax.x += ImGui::GetWindowPos().x;
-          vMax.y += ImGui::GetWindowPos().y;
-
-          viewport_size = vMax - vMin + style.WindowPadding * 2;
-
-          gloco->viewport_set(
-            camera.viewport,
-            vMin - style.WindowPadding,
-            viewport_size,
-            window_size
-          );
-
-          gloco->camera_set_ortho(
-            camera.camera,
-            fan::vec2(-viewport_size.x / 2, viewport_size.x / 2) / viewport_settings.zoom,
-            fan::vec2(-viewport_size.y / 2, viewport_size.y / 2) / viewport_settings.zoom
-          );
-
-
-          viewport_settings.size = viewport_size;
-          viewport_settings.start_pos = vMin;
-
-          {
-            std::string str = std::to_string(viewport_settings.zoom * 100);
-            str += " %";
-            fan::graphics::gui::text_bottom_right(str, 1);
+        if (ImGui::MenuItem("Quit")) {
+          auto it = shape_list.GetNodeFirst();
+          while (it != shape_list.dst) {
+            delete shape_list[it];
+            it = it.Next(&shape_list);
           }
+          shape_list.Clear();
 
-          {
-            fan::vec2 cursor_pos = ((ImGui::GetMousePos() - viewport_settings.start_pos + style.WindowPadding) - viewport_settings.size / 2);
-            std::string cursor_pos_str = cursor_pos.to_string();
-            std::string  str = cursor_pos_str.substr(1, cursor_pos_str.size() - 2);
-            fan::graphics::gui::text_bottom_right(str.c_str(), 0);
-          }
-
-          ImGui::SetCursorPos(ImGui::GetCursorStartPos());
-
-
-          content_browser.receive_drag_drop_target([&](const std::filesystem::path& fs) {
-
-            auto file = fs.string();
-            auto extension = fan::io::file::extension(file);
-            if (extension == ".json") {
-              fin(file);
-            }
-            else {
-              auto nr = push_shape(loco_t::shape_type_t::sprite, get_mouse_position());
-              shape_list[nr]->children[0].set_image(gloco->image_load(std::filesystem::absolute(fs).string()));
-            }
-            });
-
+          close_cb();
+          ImGui::End();
         }
+        ImGui::EndMenu();
+      }
+      ImGui::EndMenuBar();
+    }
+    if (open_file_dialog.is_finished()) {
+      if (fn.size() != 0) {
+        auto it = shape_list.GetNodeFirst();
+        while (it != shape_list.dst) {
+          delete shape_list[it];
+          it = it.Next(&shape_list);
+        }
+        shape_list.Clear();
+        fin(fn);
+      }
+      open_file_dialog.finished = false;
+      ImGui::End();
+      return;
+    }
+    if (save_file_dialog.is_finished()) {
+      if (fn.size() != 0) {
+        fout(fn);
+      }
+      save_file_dialog.finished = false;
+    }
 
-        static fan::graphics::file_save_dialog_t save_file_dialog;
-        static fan::graphics::file_open_dialog_t open_file_dialog;
-        static std::string fn;
-        
-        if (ImGui::BeginMenuBar()) {
-          if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Open..", "Ctrl+O")) {
+    ImGui::End();
 
-              open_file_dialog.load("json;fmm", &fn);
-            }
-            if (ImGui::MenuItem("Save", "Ctrl+S")) {
-              fout(previous_file_name);
-            }
-            if (ImGui::MenuItem("Save as", "Ctrl+Shift+S")) {
-              save_file_dialog.save("json;fmm", &fn);
-            }
-            if (ImGui::MenuItem("Quit")) {
-              auto it = shape_list.GetNodeFirst();
-              while (it != shape_list.dst) {
-                delete shape_list[it];
-                it = it.Next(&shape_list);
-              }
-              shape_list.Clear();
+    if (ImGui::Begin("lighting settings")) {
+      if (ImGui::ColorEdit3("background", gloco->clear_color.data())) {
 
-              close_cb();
-              ImGui::End();
+      }
+      if (ImGui::ColorEdit3("ambient", gloco->lighting.ambient.data())) {
+
+      }
+    }
+    ImGui::End();
+
+    if (ImGui::Begin(properties_str, nullptr)) {
+      if (current_shape != nullptr) {
+        open_properties(current_shape, editor_size);
+      }
+    }
+
+    ImGui::End();
+
+    if (ImGui::Begin(create_str, nullptr)) {
+      if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+        ImGui::OpenPopup("ContextMenu");
+      }
+      if (ImGui::BeginPopup("ContextMenu")) {
+        if (ImGui::BeginMenu("Create")) {
+          if (ImGui::BeginMenu("Shapes")) {
+            if (ImGui::MenuItem("Sprite")) {
+              push_shape(loco_t::shape_type_t::sprite, 0);
             }
             ImGui::EndMenu();
           }
-          ImGui::EndMenuBar();
-        }
-        if (open_file_dialog.is_finished()) {
-          if (fn.size() != 0) {
-            auto it = shape_list.GetNodeFirst();
-            while (it != shape_list.dst) {
-              delete shape_list[it];
-              it = it.Next(&shape_list);
+          if (ImGui::BeginMenu("Lights")) {
+            if (ImGui::MenuItem("Circle")) {
+              push_shape(loco_t::shape_type_t::light, 0);
             }
-            shape_list.Clear();
-            fin(fn);
+            ImGui::EndMenu();
           }
-          open_file_dialog.finished = false;
-          ImGui::End();
-          return;
-        }
-        if (save_file_dialog.is_finished()) {
-          if (fn.size() != 0) {
-            fout(fn);
-          }
-          save_file_dialog.finished = false;
+
+          ImGui::EndMenu();
         }
 
+        ImGui::EndPopup();
+      }
+      RenderTreeWithUnifiedSelection();
+    }
 
-        if (ImGui::IsWindowHovered()) {
-          if (ImGui::IsMouseClicked(0) &&
-            event_type == event_type_e::add) {
-           // push_shape(selected_shape_type, get_mouse_position());
-          }
-        }
+    ImGui::End();
 
-        ImGui::End();
+  }
 
-        if (ImGui::Begin("lighting settings")) {
-          if (ImGui::ColorEdit3("background", gloco->clear_color.data())) {
-
-          }
-          if (ImGui::ColorEdit3("ambient", gloco->lighting.ambient.data())) {
-
-          }
-        }
-        ImGui::End();
-
-        if (ImGui::Begin(properties_str, nullptr)) {
-          if (current_shape != nullptr) {
-            open_properties(current_shape, editor_size);
-          }
-        }
-
-        ImGui::End();
-       
-        if (ImGui::Begin(create_str, nullptr)) {
-          RenderTreeWithUnifiedSelection();
-        }
-
-        ImGui::End();
-
-});
   void fout(const std::string& filename) {
     previous_file_name = filename;
 
@@ -938,6 +976,10 @@ struct fgm_t {
     auto it = shape_list.GetNodeFirst();
     while (it != shape_list.dst) {
       if (current_shape == shape_list[it]) {
+        auto& selected_objs = fan::graphics::vfi_root_t::selected_objects;
+        if (auto it = std::find(selected_objs.begin(), selected_objs.end(), current_shape); it != selected_objs.end()) {
+          selected_objs.erase(it);
+        }
         shape_list[it]->previous_focus = 0;
         delete shape_list[it];
         shape_list.unlrec(it);
@@ -957,7 +999,7 @@ struct fgm_t {
   shapes_t::global_t* current_shape = nullptr;
   shape_list_t shape_list;
 
-  f32_t current_z = 0;
+  f32_t current_z = 1;
   uint32_t current_id = 0;
 
   loco_t::texturepack_t texturepack;
@@ -981,49 +1023,6 @@ struct fgm_t {
 
   //
 
-
-
-  int editable_list_box(std::vector<std::string>& items) {
-    static int current_item = 0;
-    static int item_to_edit = -1;
-    static bool set_focus = false;
-    char buf[128];
-
-    if (ImGui::Button("+")) {
-      items.push_back("abc" + std::to_string(items.size() + 1));
-    }
-
-    for (int i = 0; i < items.size(); i++) {
-      if (i == item_to_edit) {
-        std::snprintf(buf, sizeof(buf), "%s", items[i].c_str());
-        ImGui::PushID(i);
-        if (set_focus) {
-          ImGui::SetKeyboardFocusHere();
-          set_focus = false;
-        }
-        if (ImGui::InputText("##edit", buf, sizeof(buf), ImGuiInputTextFlags_EnterReturnsTrue)) {
-          items[i] = std::string(buf);
-          item_to_edit = -1;
-        }
-        ImGui::PopID();
-      }
-      else {
-        ImGui::PushID(i);
-        if (ImGui::Selectable(items[i].c_str(), current_item == i, ImGuiSelectableFlags_AllowDoubleClick)) {
-          if (ImGui::IsMouseDoubleClicked(0)) {
-            item_to_edit = i;
-            set_focus = true;
-          }
-          current_item = i;
-        }
-        ImGui::PopID();
-      }
-    }
-    return current_item;
-  }
-
-
-
   struct animation_t {
     int fps = 30;
     struct texture_coordinates_t {
@@ -1039,4 +1038,5 @@ struct fgm_t {
 
   fan::vec2 editor_pos = 0;
   fan::graphics::sprite_t background;
+  std::vector<loco_t::shape_t> copy_buffer;
 };

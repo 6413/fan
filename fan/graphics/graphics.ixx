@@ -391,7 +391,7 @@ export namespace fan {
       loco_t::image_t image = gloco->default_texture;
       std::array<loco_t::image_t, 30> images;
       f32_t parallax_factor = 0;
-      bool blending = false;
+      bool blending = true;
       uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
     };
 
@@ -762,34 +762,27 @@ export namespace fan {
     // also container that it's stored in, must not change pointers
     template <typename T>
     struct vfi_root_custom_t {
+      using shape_t = loco_t::shape_t;
+
       void create_highlight() {
-        fan::vec3 op = children[0].get_position();
-        fan::vec2 os = children[0].get_size();
-        loco_t::camera_t c = children[0].get_camera();
-        loco_t::viewport_t v = children[0].get_viewport();
-        fan::graphics::camera_t cam;
-        cam.camera = c;
-        cam.viewport = v;
-        for (std::size_t j = 0; j < highlight.size(); ++j) {
-          for (std::size_t i = 0; i < highlight[0].size(); ++i) {
-            fan::line3 line = get_highlight_positions(op, os, i);
-            highlight[j][i] = fan::graphics::line_t{ {
-              .camera = &cam,
-              .src = line[0],
-              .dst = line[1],
-              .color = fan::color(1, 0.5, 0, 1)
-            } };
-          }
-        }
+        apply_highlight([](auto& h, const fan::line3& line, fan::graphics::camera_t& cam) {
+          h = fan::graphics::line_t{ {
+            .camera = &cam,
+            .src = line[0],
+            .dst = line[1],
+            .color = fan::color(1, 0.5, 0, 1)
+          } };
+          });
       }
+
       void disable_highlight() {
         fan::vec3 op = children[0].get_position();
         fan::vec2 os = children[0].get_size();
-        for (std::size_t j = 0; j < highlight.size(); ++j) {
-          for (std::size_t i = 0; i < highlight[j].size(); ++i) {
-            fan::line3 line = get_highlight_positions(op, os, i);
-            if (highlight[j][i].iic() == false) {
-              highlight[j][i].set_line(0, 0);
+        for (auto& row : highlight) {
+          for (size_t i = 0; i < row.size(); ++i) {
+            auto& h = row[i];
+            if (!h.iic()) {
+              h.set_line(0, 0);
             }
           }
         }
@@ -797,48 +790,31 @@ export namespace fan {
 
       void set_root(const loco_t::vfi_t::properties_t& p) {
         fan::graphics::vfi_t::properties_t in = p;
-        //fan::throw_error("A");
-        //in.shape_type = loco_t::vfi_t::shape_t::rectangle;
         in.shape_type = 1;
-        in.shape.rectangle->viewport = p.shape.rectangle->viewport;
         in.shape.rectangle->camera = p.shape.rectangle->camera;
-        in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {
-          if (d.key == fan::key_c &&
+        in.shape.rectangle->viewport = p.shape.rectangle->viewport;
+
+        in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) {
+          resize = (d.key == fan::key_c &&
             (d.keyboard_state == fan::keyboard_state::press ||
-              d.keyboard_state == fan::keyboard_state::repeat)) {
-            this->resize = true;
-            return user_cb(d);
-          }
-          this->resize = false;
-          return 0;
-          };
-        in.mouse_button_cb = [this, user_cb = p.mouse_button_cb](const auto& d) -> int {
-          if (g_ignore_mouse) {
+              d.keyboard_state == fan::keyboard_state::repeat));
+          return resize ? user_cb(d) : 0;
+        };
+
+        in.mouse_button_cb = [this, user_cb = p.mouse_button_cb](const auto& d) {
+          if (g_ignore_mouse || d.button != fan::mouse_left) return 0;
+          if (d.button_state != fan::mouse_state::press) {
+            move = moving_object = false;
+            d.flag->ignore_move_focus_check = false;
+            if (previous_click_position == d.position) {
+              for (auto& i : selected_objects) i->disable_highlight();
+              selected_objects = { this };
+              create_highlight();
+            }
             return 0;
           }
 
-          if (d.button != fan::mouse_left) {
-            return 0;
-          }
-          if (d.button_state != fan::mouse_state::press) {
-            this->move = false;
-            moving_object = false;
-            d.flag->ignore_move_focus_check = false;
-              if (previous_click_position == d.position) {
-                for (auto it = selected_objects.begin(); it != selected_objects.end(); ) {
-                    (*it)->disable_highlight();
-                    if (*it != this) {
-                      it = selected_objects.erase(it);
-                    } else {
-                      ++it;
-                    }
-                  }
-              }
-            return 0;
-          }
-          if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::viewport_inside) {
-            return 0;
-          }
+          if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::viewport_inside) return 0;
 
           if (previous_focus && previous_focus != this) {
             for (std::size_t i = 0; i < previous_focus->highlight[0].size(); ++i) {
@@ -846,145 +822,127 @@ export namespace fan {
                 previous_focus->highlight[0][i].set_line(0, 0);
               }
             }
+
+            // if only changing focus from one to another
+            // if there is multiple objects selected, don't remove the previous focus
+            if (selected_objects.size() == 1) {
+              if (selected_objects.back() == previous_focus) {
+                selected_objects.erase(selected_objects.begin());
+              }
+            }
           }
-          //selected_objects.clear();
+
           if (std::find(selected_objects.begin(), selected_objects.end(), this) == selected_objects.end()) {
             selected_objects.push_back(this);
           }
-          //selected_objects.push_back(this);
+
           create_highlight();
           previous_focus = this;
 
           if (move_and_resize_auto) {
             previous_click_position = d.position;
+            click_offset = get_position() - d.position;
+            move = moving_object = true;
             d.flag->ignore_move_focus_check = true;
-            this->move = true;
-            moving_object = true;
-            this->click_offset = get_position() - d.position;
-            
             gloco->vfi.set_focus_keyboard(d.vfi->focus.mouse);
           }
+
           return user_cb(d);
-          };
-        in.mouse_move_cb = [this, user_cb = p.mouse_move_cb](const auto& d) -> int {
-          if (g_ignore_mouse) {
-            return 0;
+        };
+
+        in.mouse_move_cb = [this, user_cb = p.mouse_move_cb](const auto& d) {
+          if (g_ignore_mouse) return 0;
+          if (!move_and_resize_auto) return user_cb(d);
+
+          if (resize && move) {
+            set_size((d.position - get_position()).x);
+            update_highlight_position(this);
+          }
+          else if (move) {
+            fan::vec3 new_pos = fan::vec3(d.position + click_offset, get_position().z);
+            new_pos.x = std::round(new_pos.x / 32.f) * 32;
+            new_pos.y = std::round(new_pos.y / 32.f) * 32;
+            set_position(new_pos, false);
           }
 
-          if (move_and_resize_auto) {
-            if (this->resize && this->move) {
-              fan::vec2 new_size = (d.position - get_position());
-              static constexpr fan::vec2 min_size(10, 10);
-              this->set_size(new_size.x);
-              fan::vec3 op = children[0].get_position();
-              fan::vec2 os = children[0].get_size();
-              for (std::size_t j = 0; j < highlight.size(); ++j) {
-                for (std::size_t i = 0; i < highlight[j].size(); ++i) {
-                  fan::line3 line = get_highlight_positions(op, os, i);
-                  if (highlight[j][i].iic() == false) {
-                    highlight[j][i].set_line(line[0], line[1]);
-                  }
-                }
-              }
-              if (previous_focus && previous_focus != this) {
-                for (std::size_t i = 0; i < previous_focus->highlight[0].size(); ++i) {
-                  if (previous_focus->highlight[0][i].iic() == false) {
-                    previous_focus->highlight[0][i].set_line(0, 0);
-                  }
-                }
-                previous_focus = this;
-              }
-              return user_cb(d);
-            }
-            else if (this->move) {
-              fan::vec3 p = get_position();
-              p = fan::vec3(d.position + click_offset, p.z);
-              p.x = std::round(p.x / 32.0f) * 32.0f;
-              p.y = std::round(p.y / 32.0f) * 32.0f;
-              this->set_position(p);
-              return user_cb(d);
-            }
-          }
-          else {
-            return user_cb(d);
-          }
-          return 0;
+          return user_cb(d);
           };
+
         vfi_root = in;
       }
-      void push_child(const loco_t::shape_t& shape) {
+
+      void push_child(const shape_t& shape) {
         children.push_back({ shape });
       }
+
       fan::vec3 get_position() {
         return vfi_root.get_position();
       }
 
-      static void update_highlight_position(vfi_root_custom_t<T>* instance) {
-        fan::vec3 op = instance->children[0].get_position();
-        fan::vec2 os = instance->children[0].get_size();
-        for (std::size_t j = 0; j < instance->highlight.size(); ++j) {
-          for (std::size_t i = 0; i < instance->highlight[j].size(); ++i) {
-            fan::line3 line = get_highlight_positions(op, os, i);
-            if (instance->highlight[j][i].iic() == false) {
-              instance->highlight[j][i].set_line(line[0], line[1]);
-            }
-          }
-        }
-      }
-
-      void set_position(const fan::vec3& position) {
-        fan::vec2 root_pos = vfi_root.get_position();
-        fan::vec2 offset = position - root_pos;
-        vfi_root.set_position(fan::vec3(root_pos + offset, position.z));
+      void set_position(const fan::vec3& position, bool modify_depth = true) {
+        fan::vec3 old_root_pos = vfi_root.get_position();
+        fan::vec2 delta = fan::vec2(position - old_root_pos);
+        vfi_root.set_position(position);
 
         for (auto& child : children) {
-          child.set_position(fan::vec3(fan::vec2(child.get_position()) + offset, position.z));
+          fan::vec3 child_pos = child.get_position();
+          child.set_position(fan::vec3(fan::vec2(child_pos) + delta, modify_depth ? position.z : child_pos.z));
         }
         update_highlight_position(this);
 
-        if (previous_focus && previous_focus != this) {
-          for (std::size_t i = 0; i < previous_focus->highlight[0].size(); ++i) {
-            if (previous_focus->highlight[0][i].iic() == false) {
-              previous_focus->highlight[0][i].set_line(0, 0);
-            }
-          }
-          previous_focus = this;
-        }
-
         for (auto* i : selected_objects) {
-          if (i == this) {
-            continue;
-          }
-          fan::vec2 root_pos = i->vfi_root.get_position();
-          i->vfi_root.set_position(fan::vec3(root_pos + offset, position.z));
+          if (i == this) continue;
+
+          fan::vec3 other_old_pos = i->vfi_root.get_position();
+          fan::vec2 other_delta = fan::vec2(position - old_root_pos);
+          i->vfi_root.set_position(fan::vec3(fan::vec2(other_old_pos) + other_delta, modify_depth ? position.z : other_old_pos.z));
 
           for (auto& child : i->children) {
-            child.set_position(fan::vec3(fan::vec2(child.get_position()) + offset, position.z));
+            fan::vec3 child_pos = child.get_position();
+            child.set_position(fan::vec3(fan::vec2(child_pos) + other_delta, modify_depth ? position.z : child_pos.z));
           }
           update_highlight_position(i);
         }
       }
+
+
       fan::vec2 get_size() {
         return vfi_root.get_size();
       }
+
       void set_size(const fan::vec2& size) {
-        fan::vec2 root_pos = vfi_root.get_size();
-        fan::vec2 offset = size - root_pos;
-        vfi_root.set_size(root_pos + offset);
+        fan::vec2 offset = size - vfi_root.get_size();
+        vfi_root.set_size(size);
         for (auto& child : children) {
-          child.set_size(fan::vec2(child.get_size()) + offset);
+          child.set_size(child.get_size() + offset);
         }
       }
 
       fan::color get_color() {
-        if (children.size()) {
-          return children[0].get_color();
-        }
-        return fan::color(1);
+        return children.empty() ? fan::color(1) : children[0].get_color();
       }
-      void set_color(const fan::color& color) {
-        for (auto& child : children) {
-          child.set_color(color);
+
+      void set_color(const fan::color& c) {
+        for (auto& child : children) child.set_color(c);
+      }
+
+      static void update_highlight_position(vfi_root_custom_t<T>* instance) {
+        instance->apply_highlight([](auto& h, const fan::line3& line, fan::graphics::camera_t&) {
+          if (!h.iic()) h.set_line(line[0], line[1]);
+          });
+      }
+
+      template<typename F>
+      void apply_highlight(F&& func) {
+        fan::vec3 op = children[0].get_position();
+        fan::vec2 os = children[0].get_size();
+        fan::graphics::camera_t cam{ children[0].get_camera(), children[0].get_viewport() };
+        for (size_t j = 0; j < highlight.size(); ++j) {
+          for (size_t i = 0; i < highlight[0].size(); ++i) {
+            auto& h = highlight[j][i];
+            auto line = get_highlight_positions(op, os, i);
+            func(h, line, cam);
+          }
         }
       }
 
@@ -995,158 +953,20 @@ export namespace fan {
       fan::vec2 previous_click_position;
       bool move = false;
       bool resize = false;
-
       bool move_and_resize_auto = true;
 
-      loco_t::shape_t vfi_root;
-      struct child_data_t : loco_t::shape_t, T {
+      shape_t vfi_root;
 
-      };
+      struct child_data_t : shape_t, T {};
       std::vector<child_data_t> children;
 
       inline static std::vector<vfi_root_custom_t<T>*> selected_objects;
-
       inline static vfi_root_custom_t<T>* previous_focus = nullptr;
 
-      // 4 lines for square
-      std::vector<std::array<loco_t::shape_t, 4>> highlight{ 1 };
+      std::vector<std::array<shape_t, 4>> highlight{ 1 };
     };
 
     using vfi_root_t = vfi_root_custom_t<__empty_struct>;
-
-
-    template <typename T>
-    struct vfi_multiroot_custom_t {
-      void push_root(const loco_t::vfi_t::properties_t& p) {
-        loco_t::vfi_t::properties_t in = p;
-        fan::throw_error("?");
-        //in.shape_type = loco_t::vfi_t::shape_t::rectangle;
-        in.shape.rectangle->viewport = p.shape.rectangle->viewport;
-        in.shape.rectangle->camera = p.shape.rectangle->camera;
-        in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) -> int {
-          if (d.key == fan::key_c &&
-            (d.keyboard_state == fan::keyboard_state::press ||
-              d.keyboard_state == fan::keyboard_state::repeat)) {
-            this->resize = true;
-            return 0;
-          }
-          this->resize = false;
-          return user_cb(d);
-          };
-        in.mouse_button_cb = [this, root_reference = vfi_root.empty() ? 0 : vfi_root.size() - 1, user_cb = p.mouse_button_cb](const auto& d) -> int {
-          if (g_ignore_mouse) {
-            return 0;
-          }
-
-          if (d.button != fan::mouse_left) {
-            return user_cb(d);
-          }
-
-          if (d.button_state == fan::mouse_state::press && move_and_resize_auto) {
-            this->move = true;
-            gloco->vfi.focus.method.mouse.flags.ignore_move_focus_check = true;
-          }
-          else if (d.button_state == fan::mouse_state::release && move_and_resize_auto) {
-            this->move = false;
-            gloco->vfi.focus.method.mouse.flags.ignore_move_focus_check = false;
-          }
-
-          if (d.button_state == fan::mouse_state::release) {
-            for (auto& root : vfi_root) {
-              auto position = root->get_position();
-              auto p = fan::vec3(fan::vec2(position), position.z);
-              if (grid_size.x > 0) {
-                p.x = floor(p.x / grid_size.x) * grid_size.x + grid_size.x / 2;
-              }
-              if (grid_size.y > 0) {
-                p.y = floor(p.y / grid_size.y) * grid_size.y + grid_size.y / 2;
-              }
-              root->set_position(p);
-            }
-            for (auto& child : children) {
-              auto position = child.get_position();
-              auto p = fan::vec3(fan::vec2(position), position.z);
-              if (grid_size.x > 0) {
-                p.x = floor(p.x / grid_size.x) * grid_size.x + grid_size.x / 2;
-              }
-              if (grid_size.y > 0) {
-                p.y = floor(p.y / grid_size.y) * grid_size.y + grid_size.y / 2;
-              }
-              child.set_position(p);
-            }
-          }
-          if (d.button_state != fan::mouse_state::press) {
-            return user_cb(d);
-          }
-          if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::viewport_inside) {
-            return user_cb(d);
-          }
-
-          if (move_and_resize_auto) {
-            this->click_offset = get_position(root_reference) - d.position;
-            gloco->vfi.set_focus_keyboard(d.vfi->focus.mouse);
-          }
-          return user_cb(d);
-          };
-        in.mouse_move_cb = [this, root_reference = vfi_root.empty() ? 0 : vfi_root.size() - 1, user_cb = p.mouse_move_cb](const auto& d) -> int {
-          if (g_ignore_mouse) {
-            return 0;
-          }
-
-          if (move_and_resize_auto) {
-            if (this->resize && this->move) {
-              return user_cb(d);
-            }
-            else if (this->move) {
-              fan::vec3 p = get_position(root_reference);
-              p = fan::vec3(d.position + click_offset, p.z);
-              this->set_position(root_reference, p);
-              return user_cb(d);
-            }
-          }
-          else {
-            return user_cb(d);
-          }
-          return 0;
-          };
-        vfi_root.push_back(std::make_unique<loco_t::shape_t>(in));
-      }
-      void push_child(const loco_t::shape_t& shape) {
-        children.push_back({ shape });
-      }
-      fan::vec3 get_position(uint32_t index) {
-        return vfi_root[index]->get_position();
-      }
-      void set_position(uint32_t root_reference, const fan::vec3& position) {
-        fan::vec2 root_pos = vfi_root[root_reference]->get_position();
-        fan::vec2 offset = position - root_pos;
-        for (auto& root : vfi_root) {
-          auto p = fan::vec3(fan::vec2(root->get_position()) + offset, position.z);
-          root->set_position(fan::vec3(p.x, p.y, p.z));
-        }
-        for (auto& child : children) {
-          auto p = fan::vec3(fan::vec2(child.get_position()) + offset, position.z);
-          child.set_position(p);
-        }
-      }
-
-      inline static bool g_ignore_mouse = false;
-
-      fan::vec2 click_offset = 0;
-      bool move = false;
-      bool resize = false;
-      fan::vec2 grid_size = 0;
-
-      bool move_and_resize_auto = true;
-
-      std::vector<std::unique_ptr<loco_t::shape_t>> vfi_root;
-      struct child_data_t : loco_t::shape_t, T {
-
-      };
-      std::vector<child_data_t> children;
-    };
-
-    using vfi_multiroot_t = vfi_multiroot_custom_t<__empty_struct>;
 
   #endif
 //#endif

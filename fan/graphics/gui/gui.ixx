@@ -376,6 +376,13 @@ export namespace fan {
         f32_t get_font_size() {
           return ImGui::GetFontSize();
         }
+        void indent(f32_t indent_w = 0.0f) {
+          ImGui::Indent(indent_w);
+        }
+        void unindent(f32_t indent_w = 0.0f) {
+          ImGui::Indent(indent_w);
+        }
+
 
 
         fan::vec2 calc_text_size(const std::string& text, const char* text_end = NULL, bool hide_text_after_double_hash = false, float wrap_width = -1.0f){
@@ -1652,11 +1659,10 @@ export namespace fan {
             }
           }
 
-          // Render thumbnails or icons
           for (std::size_t i = 0; i < directory_cache.size(); ++i) {
             // reference somehow corrupts
             auto file_info = directory_cache[i];
-            if (std::string(search_buffer.c_str()).size() && file_info.filename.find(search_buffer) == std::string::npos) {
+            if (search_buffer.size() && strstr(file_info.filename.c_str(), search_buffer.c_str()) == nullptr) {
               continue;
             }
 
