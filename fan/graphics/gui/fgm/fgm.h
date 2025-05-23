@@ -59,6 +59,7 @@ struct fgm_t {
       fan::vec2(1)
     );
 
+    // TODO leak
     auto transparent_texture = gloco->create_transparent_texture();
 
     background = fan::graphics::sprite_t{ {
@@ -379,6 +380,48 @@ struct fgm_t {
         });
         ImGui::SameLine();
         ImGui::Text("Normal map");
+      }
+      {
+        auto current_image = shape->children[0].get_images()[1];
+        if (current_image.iic()) {
+          current_image = gloco->default_texture;
+        }
+        fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
+        uv1 += uv0;
+        fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
+        gui::receive_drag_drop_target("CONTENT_BROWSER_ITEM", [&](const std::string& path) {
+          if (current_image != gloco->default_texture) {
+            gloco->image_unload(current_image);
+          }
+          auto images = shape->children[0].get_images();
+          images[1] = gloco->image_load(std::filesystem::absolute(std::filesystem::path(content_browser.asset_path) / path).string());
+          shape->children[0].set_images(images);
+          shape->children[0].set_tc_position(0);
+          shape->children[0].set_tc_size(1);
+          });
+        ImGui::SameLine();
+        ImGui::Text("Specular map");
+      }
+      {
+        auto current_image = shape->children[0].get_images()[2];
+        if (current_image.iic()) {
+          current_image = gloco->default_texture;
+        }
+        fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
+        uv1 += uv0;
+        fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
+        gui::receive_drag_drop_target("CONTENT_BROWSER_ITEM", [&](const std::string& path) {
+          if (current_image != gloco->default_texture) {
+            gloco->image_unload(current_image);
+          }
+          auto images = shape->children[0].get_images();
+          images[2] = gloco->image_load(std::filesystem::absolute(std::filesystem::path(content_browser.asset_path) / path).string());
+          shape->children[0].set_images(images);
+          shape->children[0].set_tc_position(0);
+          shape->children[0].set_tc_size(1);
+          });
+        ImGui::SameLine();
+        ImGui::Text("Occlusion map");
       }
 
       {

@@ -13,6 +13,7 @@ out vec4 instance_color;
 out vec3 instance_position;
 out vec2 instance_size;
 out vec3 frag_position;
+out vec2 uv;
 
 out vec2 texture_coordinate;
 flat out uint fs_flags;
@@ -56,7 +57,8 @@ void main() {
 	vec4 fs2 = vec4(vec4(vec2(x, y) * in_size + p, in_position.z, 1));
 
 	frag_position = fs.xyz;
-
+  
+  uv = rp;
 	gl_Position = projection * view_mat * fs2;
 
 	instance_color = in_color;

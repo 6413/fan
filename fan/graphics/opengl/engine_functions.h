@@ -804,7 +804,9 @@ void draw_shapes() {
           //fan::print("shaper design is changed");
           auto& ri = *(sprite_t::ri_t*)BlockTraverse.GetData(loco.shaper);
           auto shader = loco.shaper.GetShader(shape_type);
-          loco.shader_set_value(shader, "draw_mode", int(!ri.images[0].iic()));
+          loco.shader_set_value(shader, "has_normal_map", int(!ri.images[0].iic()));
+          loco.shader_set_value(shader, "has_specular_map", int(!ri.images[1].iic()));
+          loco.shader_set_value(shader, "has_occlusion_map", int(!ri.images[2].iic()));
           for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
             if (ri.images[i - 2].iic() == false) {
               loco.shader_set_value(shader, "_t0" + std::to_string(i), i);
@@ -859,8 +861,8 @@ void draw_shapes() {
             loco.get_mouse_position()
           );
           //fan::print(fan::time::clock::now() / 1e+9);
-          loco.shader_set_value(shader, loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
         }
+        loco.shader_set_value(shader, loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
 
         auto m_vao = loco.shaper.GetVAO(shape_type);
         auto m_vbo = loco.shaper.GetVAO(shape_type);
