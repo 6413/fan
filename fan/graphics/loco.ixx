@@ -4943,6 +4943,26 @@ public:
 #if defined(fan_json)
 export namespace fan {
   namespace graphics {
+
+    fan::json image_to_json(const auto& image) {
+      fan::json image_json;
+      if (image.iic()) {
+        return image_json;
+      }
+
+      auto shape_data = gloco->image_list[image];
+      image_json["image_path"] = shape_data.image_path;
+
+      auto lp = gloco->image_get_settings(image);
+      image_json["image_visual_output"] = lp.visual_output;
+      image_json["image_format"] = lp.format;
+      image_json["image_type"] = lp.type;
+      image_json["image_min_filter"] = lp.min_filter;
+      image_json["image_mag_filter"] = lp.mag_filter;
+
+      return image_json;
+    }
+
     bool shape_to_json(loco_t::shape_t& shape, fan::json* json) {
       fan::json& out = *json;
       switch (shape.get_shape_type()) {
@@ -4982,15 +5002,19 @@ export namespace fan {
         out["color"] = shape.get_color();
         out["angle"] = shape.get_angle();
         out["flags"] = shape.get_flags();
-        out["image_path"] = shape.get_image_data().image_path;
         out["tc_position"] = shape.get_tc_position();
         out["tc_size"] = shape.get_tc_size();
-        fan::graphics::image_load_properties_t lp = gloco->image_get_settings(shape.get_image());
-        out["image_visual_output"] = lp.visual_output;
-        out["image_format"] = lp.format;
-        out["image_type"] = lp.type;
-        out["image_min_filter"] = lp.min_filter;
-        out["image_mag_filter"] = lp.mag_filter;
+        fan::json images_array = fan::json::array();
+
+        auto main_image = shape.get_image();
+        images_array.push_back(image_to_json(main_image));
+
+        auto images = shape.get_images();
+        for (auto& image : images) {
+          images_array.push_back(image_to_json(image));
+        }
+
+        out["images"] = images_array;
         break;
       }
       case loco_t::shape_type_t::unlit_sprite: {
@@ -5002,15 +5026,21 @@ export namespace fan {
         out["color"] = shape.get_color();
         out["angle"] = shape.get_angle();
         out["flags"] = shape.get_flags();
-        out["image_path"] = shape.get_image_data().image_path;
         out["tc_position"] = shape.get_tc_position();
         out["tc_size"] = shape.get_tc_size();
-        fan::graphics::image_load_properties_t lp = gloco->image_get_settings(shape.get_image());
-        out["image_visual_output"] = lp.visual_output;
-        out["image_format"] = lp.format;
-        out["image_type"] = lp.type;
-        out["image_min_filter"] = lp.min_filter;
-        out["image_mag_filter"] = lp.mag_filter;
+
+        fan::json images_array = fan::json::array();
+
+        auto main_image = shape.get_image();
+        images_array.push_back(image_to_json(main_image));
+
+        auto images = shape.get_images();
+        for (auto& image : images) {
+          images_array.push_back(image_to_json(image));
+        }
+
+        out["images"] = images_array;
+        
         break;
       }
       case loco_t::shape_type_t::text: {
@@ -5127,13 +5157,35 @@ export namespace fan {
         if (in.contains("image_mag_filter")) {
           lp.mag_filter = in["image_mag_filter"];
         }
-        if (in.contains("image_path")) {
-          auto path = in["image_path"];
-          if (fan::io::file::exists(path)) {
-            shape->set_image(gloco->image_load(path, lp));
+        if (in.contains("images") && in["images"].is_array()) {
+          for (const auto [i, image_json] : fan::enumerate(in["images"])) {
+            if (!image_json.contains("image_path")) continue;
+
+            auto path = image_json["image_path"];
+            if (fan::io::file::exists(path)) {
+              fan::graphics::image_load_properties_t lp;
+
+              if (image_json.contains("image_visual_output")) lp.visual_output = image_json["image_visual_output"];
+              if (image_json.contains("image_format")) lp.format = image_json["image_format"];
+              if (image_json.contains("image_type")) lp.type = image_json["image_type"];
+              if (image_json.contains("image_min_filter")) lp.min_filter = image_json["image_min_filter"];
+              if (image_json.contains("image_mag_filter")) lp.mag_filter = image_json["image_mag_filter"];
+
+              auto image = gloco->image_load(path, lp);
+
+              if (i == 0) {
+                shape->set_image(image);
+              }
+              else {
+                auto images = shape->get_images();
+                images[i - 1] = image;
+                shape->set_images(images);
+              }
+              gloco->image_list[image].image_path = path;
+            }
           }
-          shape->get_image_data().image_path = path;
         }
+
         break;
       }
       case fan::get_hash("unlit_sprite"): {
@@ -5165,13 +5217,36 @@ export namespace fan {
         if (in.contains("image_mag_filter")) {
           lp.mag_filter = in["image_mag_filter"];
         }
-        if (in.contains("image_path")) {
-          auto path = in["image_path"];
-          if (fan::io::file::exists(path)) {
-            shape->set_image(gloco->image_load(path, lp));
+       
+        if (in.contains("images") && in["images"].is_array()) {
+          for (const auto [i, image_json] : fan::enumerate(in["images"])) {
+            if (!image_json.contains("image_path")) continue;
+
+            auto path = image_json["image_path"];
+            if (fan::io::file::exists(path)) {
+              fan::graphics::image_load_properties_t lp;
+
+              if (image_json.contains("image_visual_output")) lp.visual_output = image_json["image_visual_output"];
+              if (image_json.contains("image_format")) lp.format = image_json["image_format"];
+              if (image_json.contains("image_type")) lp.type = image_json["image_type"];
+              if (image_json.contains("image_min_filter")) lp.min_filter = image_json["image_min_filter"];
+              if (image_json.contains("image_mag_filter")) lp.mag_filter = image_json["image_mag_filter"];
+
+              auto image = gloco->image_load(path, lp);
+
+              if (i == 0) {
+                shape->set_image(image);
+              }
+              else {
+                auto images = shape->get_images();
+                images[i - 1] = image;
+                shape->set_images(images);
+              }
+              gloco->image_list[image].image_path = path;
+            }
           }
-          shape->get_image_data().image_path = path;
         }
+
         break;
       }
       case fan::get_hash("circle"): {

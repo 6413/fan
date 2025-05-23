@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
   model_maker_t mm;////
 
   mm.open("texture_packs/TexturePack", L"");
+ // mm.fin("normal_map_tests.json");
 
   engine.loop([&] {
     mm.render();
