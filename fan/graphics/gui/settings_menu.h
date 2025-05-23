@@ -113,7 +113,7 @@ struct settings_menu_t {
         ImGui::TableNextColumn();
         ImGui::Text("Show fps");
         ImGui::TableNextColumn();
-        ImGui::Checkbox("##show_fps", (bool*)&gloco->toggle_fps);
+        ImGui::Checkbox("##show_fps", (bool*)&gloco->show_fps);
       }
       {
         ImGui::TableNextRow();

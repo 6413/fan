@@ -210,7 +210,7 @@ export namespace fan {
         GLint location = shader_loc_it->second;
 
 
-#if fan_debug >= fan_debug_insanity
+#if fan_debug >= fan_debug_insane
         fan_validate_value(location, validate_error_message(name));
 #endif
 

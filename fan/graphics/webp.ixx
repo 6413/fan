@@ -69,7 +69,7 @@ export namespace fan {
       WebPFree(ptr);
     }
 
-    fan_api bool validate_webp(const std::string& file_path) {
+    fan_api bool validate(const std::string& file_path) {
       std::string data;
       static constexpr uint32_t webp_header_size = 32;
       if (fan::io::file::read(file_path, &data, webp_header_size)) {

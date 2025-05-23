@@ -8,6 +8,9 @@ struct model_maker_t : fgm_t {
   model_maker_t() {
 
   }
+  ~model_maker_t() {
+    close();
+  }
 
   void open(const char* texturepack_name, const std::wstring& asset_path) {
     fgm_t::open(texturepack_name, asset_path);

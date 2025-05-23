@@ -855,13 +855,30 @@ export namespace fan {
           if (!move_and_resize_auto) return user_cb(d);
 
           if (resize && move) {
-            set_size((d.position - get_position()).x);
+            fan::vec2 old_size = get_size();
+            f32_t aspect_ratio = old_size.x / old_size.y;
+            fan::vec2 drag_delta = d.position - get_position();
+            if (snap) {
+              drag_delta = (drag_delta / snap).round() * snap;
+            }
+            drag_delta = drag_delta.abs();
+            fan::vec2 new_size = fan::vec2(drag_delta.x, drag_delta.x / aspect_ratio);
+            if (new_size.x < 1.0f) {
+              new_size.x = 1.0f;
+              new_size.y = 1.0f / aspect_ratio;
+            }
+            if (new_size.y < 1.0f) {
+              new_size.y = 1.0f;
+              new_size.x = aspect_ratio;
+            }
+            set_size(new_size);
             update_highlight_position(this);
           }
           else if (move) {
             fan::vec3 new_pos = fan::vec3(d.position + click_offset, get_position().z);
-            new_pos.x = std::round(new_pos.x / 32.f) * 32;
-            new_pos.y = std::round(new_pos.y / 32.f) * 32;
+            if (snap) {
+              new_pos = (new_pos / snap).round() * snap;
+            }
             set_position(new_pos, false);
           }
 
@@ -964,6 +981,7 @@ export namespace fan {
       inline static vfi_root_custom_t<T>* previous_focus = nullptr;
 
       std::vector<std::array<shape_t, 4>> highlight{ 1 };
+      inline static f32_t snap = 32.f;
     };
 
     using vfi_root_t = vfi_root_custom_t<__empty_struct>;
