@@ -639,6 +639,13 @@ export namespace fan {
           return ImGui::SliderFloat4(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
         }
 
+        f32_t calc_item_width() {
+          return ImGui::CalcItemWidth();
+        }
+
+        f32_t get_item_width() {
+          return calc_item_width();
+        }
 
         using input_text_flags_t = int;
         enum {
@@ -1413,6 +1420,27 @@ export namespace fan {
             );
           }
         }
+        void send_drag_drop_item(const std::string& id, const std::wstring& path, const std::string& popup = "") {
+          std::string popup_ = popup;
+          if (popup.empty()) {
+            popup_ = { path.begin(), path.end() };
+          }
+          if (ImGui::BeginDragDropSource()) {
+            ImGui::SetDragDropPayload(id.c_str(), path.data(), (path.size() + 1) * sizeof(wchar_t));
+            ImGui::Text("%s", popup_.c_str());
+            ImGui::EndDragDropSource();
+          }
+        }
+        void receive_drag_drop_target(const std::string& id, auto receive_func, bool use_absolute_path = true) {
+          if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(id.c_str())) {
+              const wchar_t* path = (const wchar_t*)payload->Data;
+              std::wstring wstr = path;
+              receive_func(use_absolute_path ? std::filesystem::absolute(path).string() : std::string(wstr.begin(), wstr.end()));
+            }
+            ImGui::EndDragDropTarget();
+          }
+        }
 
       }// loco gui
 
@@ -1516,6 +1544,8 @@ export namespace fan {
 
         std::wstring asset_path = L"./";
 
+        inline static fan::io::async_directory_iterator_t directory_iterator;
+
         std::filesystem::path current_directory;
         enum viewmode_e {
           view_mode_list,
@@ -1525,6 +1555,10 @@ export namespace fan {
         float thumbnail_size = 128.0f;
         f32_t padding = 16.0f;
         std::string search_buffer;
+
+        // lambda [this] capture
+        content_browser_t(const content_browser_t&) = delete;
+        content_browser_t(content_browser_t&&) = delete;
 
         content_browser_t() {
           search_buffer.resize(32);
@@ -1536,6 +1570,9 @@ export namespace fan {
 
         }
         content_browser_t(const std::wstring& path) {
+          init(path);
+        }
+        void init(const std::wstring& path) {
           search_buffer.resize(32);
           asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
           current_directory = asset_path / std::filesystem::path(path);
@@ -1548,20 +1585,37 @@ export namespace fan {
             }
           }
           directory_cache.clear();
-          fan::io::iterate_directory_sorted_by_name(current_directory, [this](const std::filesystem::directory_entry& path) {
-            file_info_t file_info;
-            // SLOW
-            auto relative_path = std::filesystem::relative(path, asset_path);
-            file_info.filename = relative_path.filename().string();
-            file_info.item_path = relative_path.wstring();
-            file_info.is_directory = path.is_directory();
-            file_info.some_path = path.path().filename();//?
-            //fan::print(get_file_extension(path.path().string()));
-            if (fan::io::file::extension(path.path().string()) == ".webp" || fan::io::file::extension(path.path().string()) == ".png") {
-              file_info.preview_image = gloco->image_load(std::filesystem::absolute(path.path()).string());
-            }
-            directory_cache.push_back(file_info);
-            });
+
+          if (!directory_iterator.callback) {
+            directory_iterator.sort_alphabetically = true;
+            directory_iterator.callback = [this](const std::filesystem::directory_entry& entry) -> fan::event::task_t {
+              file_info_t file_info;
+              std::filesystem::path relative_path;
+              try {
+                // SLOW
+                relative_path = std::filesystem::relative(entry, asset_path);
+              }
+              catch (const std::exception& e) {
+                fan::print("exception came", e.what());
+              }
+              
+              file_info.filename = relative_path.filename().string();
+              file_info.item_path = relative_path.wstring();
+              file_info.is_directory = entry.is_directory();
+              file_info.some_path = entry.path().filename();//?
+              //fan::print(get_file_extension(path.path().string()));
+              if (fan::image::valid(entry.path().string())) {
+                file_info.preview_image = gloco->image_load(std::filesystem::absolute(entry.path()).string());
+              }
+              directory_cache.push_back(file_info);
+              co_return;
+            };
+          }
+          
+          fan::io::async_directory_iterate(
+            &directory_iterator,
+            current_directory.string()
+          );
         }
         void render() {
           item_right_clicked = false;
@@ -1789,7 +1843,6 @@ export namespace fan {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
               const wchar_t* path = (const wchar_t*)payload->Data;
               receive_func(std::filesystem::absolute(std::filesystem::path(asset_path) / path));
-              //fan::print(std::filesystem::path(path));
             }
             ImGui::EndDragDropTarget();
           }

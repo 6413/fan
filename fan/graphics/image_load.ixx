@@ -30,9 +30,19 @@ export namespace fan {
       std::uint8_t type; // webp, stb
     };
 
-    fan_api bool load(const std::string& file, image_info_t* image_info) {
+    bool valid(const std::string& path) {
+      if (fan::webp::validate(path)) {
+        return true;
+      }
+      else if (fan::stb::validate(path)) {
+        return true;
+      }
+      return false;
+    }
+
+    bool load(const std::string& file, image_info_t* image_info) {
       bool ret;
-      if (fan::webp::validate_webp(file)) {
+      if (fan::webp::validate(file)) {
         ret = fan::webp::load(file, (fan::webp::image_info_t*)image_info);
         image_info->type = image_type_e::webp;
       }

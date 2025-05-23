@@ -318,7 +318,7 @@ namespace fan {
 #define fan_debug_low 1
 #define fan_debug_medium 2
 #define fan_debug_high 3
-#define fan_debug_insanity 4
+#define fan_debug_insane 4
 
 #define __ca__ ,
 

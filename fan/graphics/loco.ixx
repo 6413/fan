@@ -1146,7 +1146,7 @@ public:
         gloco->console.commands.print_invalid_arg_count();
         return;
       }
-      gloco->toggle_fps = std::stoi(args[0]);
+      gloco->show_fps = std::stoi(args[0]);
       }).description = "toggles fps - usage show_fps [value]";
 
     loco->console.commands.add("quit", [](const fan::commands_t::arg_t& args) {
@@ -1823,7 +1823,7 @@ public:
       settings_menu.render();
     }
 
-    if (toggle_fps) {
+    if (show_fps) {
       ImGui::SetNextWindowBgAlpha(0.9f);
       static int init = 0;
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing;
@@ -2045,7 +2045,6 @@ public:
 
     // user can terminate from main loop
     if (should_close()) {
-      close();
       return 1;
     }//
 
@@ -2055,7 +2054,6 @@ public:
 
     // window can also be closed from window cb
     if (should_close()) {
-      close();
       return 1;
     }//
 
@@ -2379,7 +2377,7 @@ public:
   bool idle_init = false;
   uv_idle_t idle_handle;
   bool timer_init = false;
-  uv_timer_t timer_handle;
+  uv_timer_t timer_handle{};
 
   int32_t target_fps = 165; // must be changed from function
   bool timer_enabled = target_fps > 0;
@@ -4661,7 +4659,7 @@ public:
 #if defined(fan_gui)
   fan::console_t console;
   bool render_console = false;
-  bool toggle_fps = false;
+  bool show_fps = false;
   bool render_settings_menu = 0;
 
   ImFont* fonts[6];

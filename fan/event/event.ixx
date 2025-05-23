@@ -15,6 +15,7 @@ using namespace std::chrono_literals;
 export module fan:event;
 
 import :print;
+import :types.traits;
 
 export namespace fan{
   inline constexpr int fs_o_append      = UV_FS_O_APPEND;
@@ -90,19 +91,6 @@ export namespace fan{
   constexpr int fs_change = UV_CHANGE;
   constexpr int fs_rename = UV_RENAME;
 }
-
-template <typename T, typename = void>
-struct is_awaitable : std::false_type {};
-
-template <typename T>
-struct is_awaitable<T, std::void_t<
-    decltype(std::declval<T>().await_ready()),
-    decltype(std::declval<T>().await_suspend(std::declval<std::coroutine_handle<>>())),
-    decltype(std::declval<T>().await_resume())
->> : std::true_type {};
-
-template <typename T>
-constexpr bool is_awaitable_v = is_awaitable<T>::value;
 
 template<typename promise_type_t>
 struct final_awaiter {
@@ -547,7 +535,8 @@ export namespace fan {
       std::tuple<args_t...> args;
       thread_task_t(cb_t&& cb, args_t&&... args) :
         cb(std::forward<cb_t>(cb)),
-        args(std::forward<args_t>(args)...) { }
+        args(std::forward<args_t>(args)...) {
+      }
       void operator()() {
         std::apply(cb, args);
       }
@@ -560,11 +549,11 @@ export namespace fan {
         std::forward<cb_t>(cb),
         std::forward<args_t>(args)...
       );
-      int uv_error = uv_thread_create(&id, [](void* arg){
+      int uv_error = uv_thread_create(&id, [](void* arg) {
         auto* task = static_cast<thread_task_t<cb_t, args_t...>*>(arg);
         (*task)();
         delete task;
-      }, cb_copy);
+        }, cb_copy);
       if (error && uv_error < 0) {
         *error = uv_error;
         delete cb_copy;
@@ -758,6 +747,106 @@ export namespace fan::io::file {
       co_return result;
     }
   };
+}
+
+export namespace fan::io {
+
+  struct ev_next_tick_awaiter {
+    uv_idle_t* idle_handle = nullptr;
+    std::coroutine_handle<> coro;
+
+    bool await_ready() noexcept { return false; }
+
+    void await_suspend(std::coroutine_handle<> h) noexcept {
+      coro = h;
+      idle_handle = new uv_idle_t;
+      uv_idle_init(uv_default_loop(), idle_handle);
+      idle_handle->data = this;
+      uv_idle_start(idle_handle, [](uv_idle_t* handle) {
+        auto* awaiter = static_cast<ev_next_tick_awaiter*>(handle->data);
+        uv_idle_stop(handle);
+        uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t* h) {
+          delete reinterpret_cast<uv_idle_t*>(h);
+        });
+        awaiter->coro.resume();
+      });
+    }
+
+    void await_resume() noexcept {}
+  };
+
+
+  struct async_directory_iterator_t {
+    uv_fs_t req{};
+    std::vector<std::filesystem::directory_entry> entries;
+    std::function<fan::event::task_t(const std::filesystem::directory_entry&)> callback;
+    std::string base_path;
+    bool sort_alphabetically = false;
+    size_t current_index = 0;
+    bool stopped = false;
+
+    fan::event::task_t iteration_task;
+
+    void stop() {
+      stopped = true;
+    }
+  };
+
+  fan::event::task_t iterate_directory(async_directory_iterator_t* state) {
+    while (state->current_index < state->entries.size()) {
+      if (state->stopped) co_return;
+
+      co_await state->callback(state->entries[state->current_index]);
+
+      ++state->current_index;
+      co_await ev_next_tick_awaiter{};
+    }
+    co_return;
+  }
+
+  void async_directory_iterate(async_directory_iterator_t* state, const std::string& path) {
+    state->stopped = false;
+    state->base_path = path;
+    state->req.data = state;
+    state->entries.clear();
+    state->current_index = 0;
+
+    int ret = uv_fs_scandir(uv_default_loop(), &state->req, path.c_str(), 0,
+      [](uv_fs_t* req) {
+        auto* state = static_cast<async_directory_iterator_t*>(req->data);
+        uv_dirent_t ent;
+
+        while (uv_fs_scandir_next(req, &ent) != UV_EOF) {
+          std::filesystem::path full_path = std::filesystem::path(state->base_path) / ent.name;
+          state->entries.emplace_back(std::filesystem::absolute(full_path));
+        }
+        if (state->sort_alphabetically) {
+          std::sort(state->entries.begin(), state->entries.end(),
+            [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) -> bool {
+              if (a.is_directory() == b.is_directory()) {
+                std::string a_stem = a.path().stem().string();
+                std::string b_stem = b.path().stem().string();
+
+                std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(),
+                  [](unsigned char c) { return std::tolower(c); });
+                std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(),
+                  [](unsigned char c) { return std::tolower(c); });
+
+                return a_stem < b_stem;
+              }
+              return a.is_directory() && !b.is_directory();
+            }
+          );
+        }
+
+        uv_fs_req_cleanup(req);
+
+        state->iteration_task = iterate_directory(state);
+    });
+    if (ret < 0) {
+      fan::throw_error("error fs_scandir:"_str + fan::event::strerror(ret));
+    }
+  }
 }
 
 struct cleaner_t {
