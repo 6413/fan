@@ -211,7 +211,9 @@ export namespace fan {
 
 				std::ifstream file(path.c_str(), std::ifstream::ate | std::ifstream::binary);
 				if (file.fail()) {
+#if fan_debug >= fan_debug_insane
 					fan::print_warning_no_space("path does not exist:" + path);
+#endif
 					return 1;
 				}
 				str->resize(file.tellg());
@@ -224,7 +226,9 @@ export namespace fan {
 
 				std::ifstream file(path.c_str(), std::ifstream::binary);
 				if (file.fail()) {
+#if fan_debug >= fan_debug_insane
 					fan::print_warning_no_space("path does not exist:" + path);
+#endif
 					return 1;
 				}
 				str->resize(length);

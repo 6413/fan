@@ -6,6 +6,7 @@ export import :types.matrix;
 export import :io.file;
 export import :io.directory;
 export import :types.json;
+export import :random;
 
 export import :graphics.loco;
 export import :graphics;
