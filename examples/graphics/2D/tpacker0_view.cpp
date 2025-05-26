@@ -1,4 +1,4 @@
-#include <fan/pch.h>
+import fan;
 
 int main() {
   loco_t loco;
@@ -9,7 +9,7 @@ int main() {
   );
 
   loco_t::texturepack_t texturepack;
-  texturepack.open_compiled("controller");
+  texturepack.open_compiled("texture_packs/TexturePack");
 
   loco_t::sprite_t::properties_t p;
 
@@ -18,7 +18,7 @@ int main() {
     return 1;
   }
   p.load_tp(&ti);*/
-  p.image = texturepack.pixel_data_list[0].image;
+  p.image = texturepack.pixel_data_list[2].image;
 
   p.position = 0;
   p.size = 1;

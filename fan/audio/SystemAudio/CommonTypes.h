@@ -251,6 +251,9 @@ struct Out_t{
 }Out;
 
 sint32_t Open(){
+
+  #include <WITCH/PlatformOpen.h> // should this be here?
+
   sint32_t r;
   r = Process.Open();
   if(r != 0){

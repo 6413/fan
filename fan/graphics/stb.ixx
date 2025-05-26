@@ -41,7 +41,7 @@ export namespace fan {
     
       image_info->data = stbi_load(file.c_str(), &image_info->size.x, &image_info->size.y, &image_info->channels, 0);
       if (!image_info->data) {
-        fan::print_warning(std::string("failed to load image:") + std::string(file));
+        fan::print_warning(std::string("failed to load image:") + std::string(file) + ", error:" + stbi_failure_reason());
         return true;
       }
 

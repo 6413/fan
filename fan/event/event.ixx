@@ -649,7 +649,7 @@ export namespace fan::io::file {
         break;
       }
       std::string chunk(buffer.data(), result);
-      if constexpr (is_awaitable_v<decltype(lambda(chunk))>) {
+      if constexpr (fan::is_awaitable_v<decltype(lambda(chunk))>) {
         co_await lambda(chunk);
       }
       else {

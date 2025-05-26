@@ -1,5 +1,7 @@
 module;
 
+#if defined(fan_physics) && defined(fan_gui)
+
 #include <fan/types/types.h>
 #include <fan/math/math.h>
 
@@ -8,8 +10,11 @@ module;
 #include <string>
 #include <variant>
 
+#endif
+
 export module fan:graphics.gui.tilemap_editor.loader;
 
+#if defined(fan_physics) && defined(fan_gui)
 import :print;
 import :graphics;
 import :physics.b2_integration;
@@ -192,3 +197,4 @@ public:
   using physics_entities_t = map_list_data_t::physics_entities_t;
   using physics_data_t = compiled_map_t::physics_data_t;
 };
+#endif

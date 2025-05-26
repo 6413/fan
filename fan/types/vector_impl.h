@@ -268,26 +268,33 @@ constexpr vec_t rotate(value_type_t angle) const {
   }
 }
 
-
-//std::string to_string(int precision = 4) const {
-//  std::string out("{");
-//  for (access_type_t i = 0; i < size() - 1; ++i) { out += fan::to_string((*this)[i], precision) + ", "; }
-//  if constexpr (size()) {
-//    out += fan::to_string((*this)[size() - 1], precision);
-//  }
-//  out += '}';
-//  return out;
-//}
+template <typename T>
+static auto val_to_string(const T a_value, const int n = 2) {
+  std::ostringstream out;
+  out.precision(n);
+  out << std::fixed << a_value;
+  return out.str();
+}
 
 std::string to_string(int precision = 4) const {
   std::string out("{");
-  for (access_type_t i = 0; i < size() - 1; ++i) { out += std::to_string((*this)[i]) + ", "; }
+  for (access_type_t i = 0; i < size() - 1; ++i) { out += val_to_string((*this)[i], precision) + ", "; }
   if constexpr (size()) {
-    out += std::to_string((*this)[size() - 1]);
+    out += val_to_string((*this)[size() - 1], precision);
   }
   out += '}';
   return out;
 }
+
+//std::string to_string(int precision = 4) const {
+//  std::string out("{");
+//  for (access_type_t i = 0; i < size() - 1; ++i) { out += std::to_string((*this)[i]) + ", "; }
+//  if constexpr (size()) {
+//    out += std::to_string((*this)[size() - 1]);
+//  }
+//  out += '}';
+//  return out;
+//}
 
 bool is_near(const vec_t& test0, value_type_t epsilon) const { 
   make_for_all_test1_noret(if (!fan::math::is_near((*this)[i], test0[i], epsilon)) return false;);

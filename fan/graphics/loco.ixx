@@ -87,6 +87,14 @@ module;
 #include <fan/event/types.h>
 #include <uv.h>
 
+#if defined(loco_cuda)
+// +cuda
+#include "cuda_runtime.h"
+#include <cuda.h>
+#include <nvcuvid.h>
+
+#endif
+
 export module fan:graphics.loco;
 
 import :event;
@@ -194,12 +202,6 @@ namespace fan {
 #endif
 
 #if defined(loco_cuda)
-
-// +cuda
-#include "cuda_runtime.h"
-#include <cuda.h>
-#include <nvcuvid.h>
-
 
 namespace fan {
   namespace cuda {
@@ -1508,7 +1510,6 @@ public:
     }
 
 #if defined(loco_audio)
-#include <WITCH/PlatformOpen.h>
 
     if (system_audio.Open() != 0) {
       fan::throw_error("failed to open fan audio");
@@ -4843,41 +4844,41 @@ public:
     ~cuda_textures_t() {
     }
     void close(loco_t* loco, loco_t::shape_t& cid) {
-      loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)gloco->shaper.GetData(cid);
-      uint8_t image_amount = fan::pixel_format::get_texture_amount(ri.format);
+      loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)cid.GetData(gloco->shaper);
+      uint8_t image_amount = fan::graphics::get_texture_amount(ri.format);
       for (uint32_t i = 0; i < image_amount; ++i) {
         wresources[i].close();
         gloco->image_unload(ri.images_rest[i]);
       }
     }
 
-    void resize(loco_t* loco, loco_t::shape_t& id, uint8_t format, fan::vec2ui size, uint32_t filter = loco_t::image_filter::linear) {
+    void resize(loco_t* loco, loco_t::shape_t& id, uint8_t format, fan::vec2ui size, uint32_t filter = fan::graphics::image_filter::linear) {
       id.reload(format, size, filter);
-      auto& ri = *(universal_image_renderer_t::ri_t*)gloco->shaper.GetData(id);
+      auto& ri = *(universal_image_renderer_t::ri_t*)id.GetData(loco->shaper);
       auto vi_image = id.get_image();
-      uint8_t image_amount = fan::pixel_format::get_texture_amount(format);
+      uint8_t image_amount = fan::graphics::get_texture_amount(format);
       if (inited == false) {
         // purge cid's images here
         // update cids images
         for (uint32_t i = 0; i < image_amount; ++i) {
           // a bit bad from fan side
           if (i == 0) {
-            wresources[i].open(gloco->image_get(vi_image));
+            wresources[i].open(gloco->image_get_handle(vi_image));
           }
           else {
-            wresources[i].open(gloco->image_get(ri.images_rest[i - 1]));
+            wresources[i].open(gloco->image_get_handle(ri.images_rest[i - 1]));
           }
         }
         inited = true;
       }
       else {
 
-        if (gloco->image_get(vi_image).size == size) {
+        if (gloco->image_get_data(vi_image).size == size) {
           return;
         }
 
         // update cids images
-        for (uint32_t i = 0; i < fan::pixel_format::get_texture_amount(ri.format); ++i) {
+        for (uint32_t i = 0; i < fan::graphics::get_texture_amount(ri.format); ++i) {
           wresources[i].close();
         }
 
@@ -4885,10 +4886,10 @@ public:
 
         for (uint32_t i = 0; i < image_amount; ++i) {
           if (i == 0) {
-            wresources[i].open(gloco->image_get(vi_image));
+            wresources[i].open(gloco->image_get_handle(vi_image));
           }
           else {
-            wresources[i].open(gloco->image_get(ri.images_rest[i - 1]));
+            wresources[i].open(gloco->image_get_handle(ri.images_rest[i - 1]));
           }
         }
       }
