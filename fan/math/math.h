@@ -141,8 +141,8 @@ namespace fan {
 	namespace math {
 
     template <typename T>
-    T lerp(T src, T dst, T t) {
-      return { src + t * (dst - src) };
+    T lerp(T src, T dst, double t) {
+      return { src + (dst - src) * t };
     }
 
     template <typename T>

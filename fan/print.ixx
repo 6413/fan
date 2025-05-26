@@ -8,6 +8,7 @@ module;
 
 #include <iostream>
 #include <string>
+#include <string_view>
 //#include <stacktrace>
 #include <sstream>
 #include <ostream>
@@ -46,10 +47,14 @@ export namespace fan {
     if constexpr (std::is_same_v<T, uint8_t>) {
       return static_cast<int>(value);
     }
+    else if constexpr (std::is_same_v<T, std::string_view>) {
+      return std::string(value);
+    }
     else {
       return value;
     }
   }
+
 
   template <typename ...Args>
   constexpr void printn8(const Args&... args) {

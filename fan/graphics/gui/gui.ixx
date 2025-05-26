@@ -39,6 +39,33 @@ export namespace fan {
     #if defined(fan_gui)
       namespace gui {
 
+        using dock_flag_t = int;
+        enum {
+          dock_space = ImGuiDockNodeFlags_DockSpace,
+          dock_central_node = ImGuiDockNodeFlags_CentralNode,
+          dock_no_tab_bar = ImGuiDockNodeFlags_NoTabBar,
+          dock_hidden_tab_bar = ImGuiDockNodeFlags_HiddenTabBar,
+          dock_no_window_menu_button = ImGuiDockNodeFlags_NoWindowMenuButton,
+          dock_no_close_button = ImGuiDockNodeFlags_NoCloseButton,
+          dock_no_resize_x = ImGuiDockNodeFlags_NoResizeX,
+          dock_no_resize_y = ImGuiDockNodeFlags_NoResizeY,
+          dock_focus_routed_windows = ImGuiDockNodeFlags_DockedWindowsInFocusRoute,
+
+          // Docking restrictions
+          dock_no_docking_split_other = ImGuiDockNodeFlags_NoDockingSplitOther,
+          dock_no_docking_over_me = ImGuiDockNodeFlags_NoDockingOverMe,
+          dock_no_docking_over_other = ImGuiDockNodeFlags_NoDockingOverOther,
+          dock_no_docking_over_empty = ImGuiDockNodeFlags_NoDockingOverEmpty,
+          dock_no_docking = ImGuiDockNodeFlags_NoDocking,
+
+          // Masks
+          dock_inherit_mask = ImGuiDockNodeFlags_SharedFlagsInheritMask_,
+          dock_no_resize_mask = ImGuiDockNodeFlags_NoResizeFlagsMask_,
+          dock_transfer_mask = ImGuiDockNodeFlags_LocalFlagsTransferMask_,
+          dock_saved_mask = ImGuiDockNodeFlags_SavedFlagsMask_,
+        };
+
+
         using window_flags_t = int;
         enum {
           window_flags_none = ImGuiWindowFlags_None,
@@ -64,7 +91,7 @@ export namespace fan {
           window_flags_no_docking = ImGuiWindowFlags_NoDocking,  
           window_flags_no_nav = ImGuiWindowFlags_NoNav,  
           window_flags_no_decoration = ImGuiWindowFlags_NoDecoration,  
-          window_flags_no_inputs = ImGuiWindowFlags_NoInputs,
+          window_flags_no_inputs = ImGuiWindowFlags_NoInputs
         };
         using child_window_flags_t = int;
         enum {
@@ -80,7 +107,14 @@ export namespace fan {
           child_flags_nav_flattened = ImGuiChildFlags_NavFlattened,
         };
 
-        bool begin(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0) {
+        bool begin(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0)  {
+
+          if (window_flags & window_flags_no_title_bar) {
+            ImGuiWindowClass window_class;
+            window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
+            ImGui::SetNextWindowClass(&window_class);
+          }
+
           return ImGui::Begin(window_name.c_str(), p_open, window_flags);
         }
         void end() {
@@ -121,8 +155,8 @@ export namespace fan {
           ImGui::EndMenuBar();
         }
 
-        bool begin_menu(const std::string& label) {
-          return ImGui::BeginMenu(label.c_str());
+        bool begin_menu(const std::string& label, bool enabled = true) {
+          return ImGui::BeginMenu(label.c_str(), enabled);
         }
         void end_menu() {
           ImGui::EndMenu();
@@ -835,12 +869,22 @@ export namespace fan {
           return ImGui::GetWindowSize();
         }
 
-        void set_next_window_pos(const fan::vec2& position) {
-          ImGui::SetNextWindowPos(position);
+
+        using cond_t = int;
+        enum {
+          cond_none = ImGuiCond_None,        // No condition (always set the variable), same as _Always
+          cond_always = ImGuiCond_Always,   // No condition (always set the variable), same as _None
+          cond_once = ImGuiCond_Once,   // Set the variable once per runtime session (only the first call will succeed)
+          cond_first_use_ever = ImGuiCond_FirstUseEver,   // Set the variable if the object/window has no persistently saved data (no entry in .ini file)
+          cond_appearing = ImGuiCond_Appearing,   // Set the variable if the object/window is appearing after being hidden/inactive (or the first time)
+        };
+
+        void set_next_window_pos(const fan::vec2& position, cond_t cond = cond_none) {
+          ImGui::SetNextWindowPos(position, cond);
         }
 
-        void set_next_window_size(const fan::vec2& size) {
-          ImGui::SetNextWindowSize(size);
+        void set_next_window_size(const fan::vec2& size, cond_t cond = cond_none) {
+          ImGui::SetNextWindowSize(size, cond);
         }
 
         void set_window_font_scale(f32_t scale) {
@@ -918,6 +962,16 @@ export namespace fan {
         using style_t = ImGuiStyle;
         style_t& get_style() {
           return ImGui::GetStyle();
+        }
+        fan::color get_color(col_t idx) {
+          return get_style().Colors[idx];
+        }
+
+        void separator() {
+          ImGui::Separator();
+        }
+        void spacing() {
+          ImGui::Spacing();
         }
 
 
@@ -1274,13 +1328,13 @@ export namespace fan {
           return clicked;
         }
 
-        void text_bottom_right(const char* text, uint32_t reverse_yoffset = 0) {
+        void text_bottom_right(const std::string& text, uint32_t reverse_yoffset = 0) {
           ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
           ImVec2 window_pos = ImGui::GetWindowPos();
           ImVec2 window_size = ImGui::GetWindowSize();
 
-          ImVec2 text_size = ImGui::CalcTextSize(text);
+          ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
 
           ImVec2 text_pos;
           text_pos.x = window_pos.x + window_size.x - text_size.x - ImGui::GetStyle().WindowPadding.x;
@@ -1288,7 +1342,7 @@ export namespace fan {
 
           text_pos.y -= reverse_yoffset * ImGui::GetTextLineHeightWithSpacing();
 
-          draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), text);
+          draw_list->AddText(text_pos, IM_COL32(255, 255, 255, 255), text.c_str());
         }
 
 
@@ -1983,6 +2037,111 @@ export namespace fan {
         std::vector<button_t> buttons;
         int button_choice = -1;
       };
+
+      bool begin_popup(const std::string& id, window_flags_t flags = 0) {
+        return ImGui::BeginPopup(id.c_str(), flags);
+      }
+      bool begin_popup_modal(const std::string& id, window_flags_t flags = 0) {
+        return ImGui::BeginPopupModal(id.c_str(), 0, flags);
+      }
+      void end_popup() {
+        ImGui::EndPopup();
+      }
+      void open_popup(const std::string& id) {
+        ImGui::OpenPopup(id.c_str());
+      }
+      void close_current_popup() {
+        ImGui::CloseCurrentPopup();
+      }
+
+      // called inside window begin end
+      void animated_popup_window(
+        const std::string& popup_id,
+        const fan::vec2& popup_size,
+        const fan::vec2& start_pos,
+        const fan::vec2& target_pos,
+        auto content_cb,
+        const f32_t anim_duration = 0.25f,
+        const f32_t hide_delay = 0.5f
+      ) {
+        ImGuiStorage* storage = ImGui::GetStateStorage();
+        ImGuiID anim_time_id = ImGui::GetID((popup_id + "_anim_time").c_str());
+        ImGuiID hide_timer_id = ImGui::GetID((popup_id + "_hide_timer").c_str());
+        ImGuiID last_mouse_x_id = ImGui::GetID((popup_id + "_last_mouse_x").c_str());
+        ImGuiID last_mouse_y_id = ImGui::GetID((popup_id + "_last_mouse_y").c_str());
+        ImGuiID hovering_popup_id = ImGui::GetID((popup_id + "_hovering").c_str());
+        ImGuiID popup_visible_id = ImGui::GetID((popup_id + "_visible").c_str());
+
+        f32_t delta_time = ImGui::GetIO().DeltaTime;
+        f32_t popup_anim_time = storage->GetFloat(anim_time_id, 0.0f);
+        f32_t hide_timer = storage->GetFloat(hide_timer_id, 0.0f);
+        f32_t last_mouse_x = storage->GetFloat(last_mouse_x_id, ImGui::GetIO().MousePos.x);
+        f32_t last_mouse_y = storage->GetFloat(last_mouse_y_id, ImGui::GetIO().MousePos.y);
+        bool hovering_popup = storage->GetBool(hovering_popup_id, false);
+        bool popup_visible = storage->GetBool(popup_visible_id, false);
+
+        fan::vec2 current_mouse_pos = ImGui::GetIO().MousePos;
+        bool inside_window = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+        bool mouse_moved = inside_window && (current_mouse_pos.x != last_mouse_x || current_mouse_pos.y != last_mouse_y);
+
+        last_mouse_x = current_mouse_pos.x;
+        last_mouse_y = current_mouse_pos.y;
+
+        if (mouse_moved || hovering_popup) {
+          popup_visible = true;
+          hide_timer = 0.0f;
+        }
+        else {
+          hide_timer += delta_time;
+        }
+
+        if (popup_visible) {
+          popup_anim_time = hide_timer < hide_delay ? std::min(popup_anim_time + delta_time, anim_duration)
+            : std::max(popup_anim_time - delta_time, 0.0f);
+
+          if (popup_anim_time == 0.0f) {
+            popup_visible = false;
+          }
+
+          if (popup_anim_time > 0.0f) {
+            f32_t t = popup_anim_time / anim_duration;
+            t = t * t * (3.0f - 2.0f * t); // smoothstep
+
+            // Simple interpolation between start and target positions
+            fan::vec2 popup_pos = start_pos + (target_pos - start_pos) * t;
+
+            ImGui::SetNextWindowPos(popup_pos);
+            ImGui::SetNextWindowSize(popup_size);
+
+            if (ImGui::Begin(popup_id.c_str(), nullptr,
+              ImGuiWindowFlags_NoTitleBar |
+              ImGuiWindowFlags_NoResize |
+              ImGuiWindowFlags_NoMove |
+              ImGuiWindowFlags_NoSavedSettings |
+              ImGuiWindowFlags_NoCollapse |
+              ImGuiWindowFlags_NoScrollbar |
+              ImGuiWindowFlags_NoFocusOnAppearing)) {
+
+              hovering_popup = ImGui::IsWindowHovered(
+                ImGuiHoveredFlags_ChildWindows |
+                ImGuiHoveredFlags_NoPopupHierarchy |
+                ImGuiHoveredFlags_AllowWhenBlockedByPopup |
+                ImGuiHoveredFlags_AllowWhenBlockedByActiveItem
+              );
+
+              content_cb();
+            }
+            ImGui::End();
+          }
+        }
+
+        storage->SetFloat(anim_time_id, popup_anim_time);
+        storage->SetFloat(hide_timer_id, hide_timer);
+        storage->SetFloat(last_mouse_x_id, last_mouse_x);
+        storage->SetFloat(last_mouse_y_id, last_mouse_y);
+        storage->SetBool(hovering_popup_id, hovering_popup);
+        storage->SetBool(popup_visible_id, popup_visible);
+      }
     }
   }
 }

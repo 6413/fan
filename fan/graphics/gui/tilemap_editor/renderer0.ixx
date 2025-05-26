@@ -1,5 +1,6 @@
 module;
 
+#if defined(fan_physics) && defined(fan_gui)
 #include <fan/types/types.h>
 #include <fan/math/math.h>
 
@@ -8,7 +9,11 @@ module;
 #include <string>
 #include <variant>
 
+#endif
+
 export module fan:graphics.gui.tilemap_editor.renderer;
+
+#if defined(fan_physics) && defined(fan_gui)
 
 export import :graphics.gui.tilemap_editor.loader;
 
@@ -298,3 +303,4 @@ private:
 };
 
 #undef tilemap_renderer
+#endif

@@ -16,6 +16,8 @@ module;
   #endif
 #endif
 
+#define WITCH_PRE_is_not_allowed
+
 #include <WITCH/WITCH.h>
 
 #include <WITCH/TH/TH.h>

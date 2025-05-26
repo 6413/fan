@@ -1,11 +1,6 @@
 module;
 
 #include <fan/types/types.h>
-
-#if defined(fan_vector_simple)
-
-#else
-
 #include <fan/math/math.h>
 
 #define fan_coordinate_letters0
@@ -18,64 +13,26 @@ module;
 
 #if defined(fan_vulkan)
   #include <vulkan/vulkan.h>
-  #endif
-
-  #if defined(fan_gui)
-  #include <fan/imgui/imgui.h>
-  #endif
-
-  #if defined(fan_3d)
-  #include <assimp/vector3.h>
-  #endif
-
-  #if defined(fan_physics)
-  #include <box2d/math_functions.h>
-  #endif
-
-  #include <string>
-  #include <algorithm>
-  #include <numeric>
-  #include <sstream>
 #endif
 
+#if defined(fan_gui)
+  #include <fan/imgui/imgui.h>
+#endif
+
+#if defined(fan_3d)
+  #include <assimp/vector3.h>
+#endif
+
+#if defined(fan_physics)
+  #include <box2d/math_functions.h>
+#endif
+
+#include <string>
+#include <algorithm>
+#include <numeric>
+#include <sstream>
+
 export module fan:types.vector;
-
-#if defined(fan_vector_simple)
-
-export namespace fan {
-
-using access_type_t = uint8_t;
-
-template <typename T>
-struct vec0_wrap_t {
-
-};
-template <typename T>
-struct vec1_wrap_t {
-  T x = 0;
-  constexpr T& operator[](access_type_t idx) { return x; }
-  constexpr const T& operator[](access_type_t idx) const { return x; }
-};
-template <typename T>
-struct vec2_wrap_t {
-  T x = 0, y = 0;
-  constexpr T& operator[](access_type_t idx) { return (idx == 0) ? x : y; }
-  constexpr const T& operator[](access_type_t idx) const { return (idx == 0) ? x : y; }
-};
-template <typename T>
-struct vec3_wrap_t {
-  T x = 0, y = 0, z = 0;
-  constexpr T& operator[](access_type_t idx) { return (&x)[idx]; }
-  constexpr const T& operator[](access_type_t idx) const { return (&x)[idx]; }
-};
-template <typename T>
-struct vec4_wrap_t {
-  T x = 0, y = 0, z = 0, w = 0;
-  constexpr T& operator[](access_type_t idx) { return (&x)[idx]; }
-  constexpr const T& operator[](access_type_t idx) const { return (&x)[idx]; }
-};
-
-#else
 
 export namespace fan {
 
@@ -208,7 +165,6 @@ export namespace fan {
     constexpr vec4_wrap_t(const ImVec4& v) { x = v.x; y = v.y; z = v.z; w = v.w; }
 #endif
   };
-#endif
 	 using vec1b = vec1_wrap_t<bool>;
    using vec2b = vec2_wrap_t<bool>;
 	 using vec3b = vec3_wrap_t<bool>;
@@ -243,8 +199,6 @@ export namespace fan {
 	 using vec2 = vec2_wrap_t<f32_t>;
 	 using vec3 = vec3_wrap_t<f32_t>;
 	 using vec4 = vec4_wrap_t<f32_t>;
-
-#if !defined(fan_vector_simple)
 
 	template <typename casted_t, template<typename> typename vec_t, typename old_t>
 	constexpr vec_t<casted_t> cast(const vec_t<old_t>& v) { return vec_t<casted_t>(v); }
@@ -300,8 +254,5 @@ export namespace fan {
 #undef fan_coordinate_letters3
 #undef fan_coordinate_letters4
 #undef fan_coordinate
-#endif
 
 }
-
-#undef fan_vector_simple

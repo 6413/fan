@@ -1,8 +1,4 @@
 import fan;
-import fan.graphics.gui.tilemap_editor.renderer;
-import fan.graphics.gui.tilemap_editor.editor;
-import fan.event;
-import fan.io.file;
 
 #include <box2d/box2d.h>
 
@@ -81,8 +77,8 @@ int main(int argc, char** argv) {
   fte_t::properties_t p;
   p.camera = &camera0;
   fte.open(p);
-  fte.open_texturepack("texture_packs/TexturePack");
-  fte.fin("map_game0_1.json");
+  fte.open_texturepack("examples/games/forest game/forest_tileset.ftp");
+ // fte.fin("map_game0_1.json");
 
   std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;
