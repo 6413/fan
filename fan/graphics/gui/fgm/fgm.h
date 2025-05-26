@@ -727,7 +727,7 @@ struct fgm_t {
       viewport_settings.start_pos = vMin;
 
       {
-        std::string str = std::to_string(viewport_settings.zoom * 100);
+        std::string str = fan::to_string(viewport_settings.zoom * 100);
         str += " %";
         fan::graphics::gui::text_bottom_right(str, 1);
       }

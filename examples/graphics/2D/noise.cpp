@@ -51,7 +51,12 @@ int main() {
     .position = fan::vec3(fan::vec2(640, 360), 254),
     .size = 160 / 2,
     .image = image, // no normal image
-    .images = {fan::graphics::invalid_image, noise_image},
+    .images = {
+      fan::graphics::invalid_image, 
+      fan::graphics::invalid_image,
+      fan::graphics::invalid_image,
+      noise_image
+    },
     .blending = true,
     .flags = 2
   } });

@@ -16,10 +16,18 @@ module;
 #include <filesystem>
 
 #define loco_vfi
+#define loco_line
+#define loco_rectangle
+#define loco_sprite
+#define loco_light
+#define loco_circle
+#define loco_responsive_text
+#define loco_universal_image_renderer
 
 export module fan:graphics;
 
 //import :graphics.opengl.core; // TODO this should not be here
+import :graphics.common_types;
 import :graphics.loco;
 import :io.directory;
 import :io.file;

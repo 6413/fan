@@ -33,6 +33,23 @@ export namespace fan {
       yuv420p,
       nv12,
     };
+    constexpr uint8_t get_texture_amount(uint8_t format) {
+      switch (format) {
+      case undefined: {
+        return 0;
+      }
+      case yuv420p: {
+        return 3;
+      }
+      case nv12: {
+        return 2;
+      }
+      default: {
+        fan::throw_error("invalid format");
+        return undefined;
+      }
+      }
+    }
     enum image_sampler_address_mode {
       repeat,
       mirrored_repeat,
@@ -55,8 +72,8 @@ export namespace fan {
       static constexpr uint32_t internal_format = rgba_unorm;
       static constexpr uint32_t format = rgba_unorm;
       static constexpr uint32_t type = fan_unsigned_byte; // internal
-      static constexpr uint32_t min_filter = nearest;
-      static constexpr uint32_t mag_filter = nearest;
+      static constexpr uint32_t min_filter = linear;
+      static constexpr uint32_t mag_filter = linear;
     };
 
     struct context_camera_t : fan::camera {
