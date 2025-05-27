@@ -5,7 +5,7 @@
   CONCAT(build_function, 2)(camera_create, fan::graphics::camera_nr_t) \
   build_function(camera_get, fan::graphics::context_camera_t&, fan::graphics::camera_nr_t nr) \
   build_function(camera_erase, void, fan::graphics::camera_nr_t nr) \
-  build_function(camera_open, fan::graphics::camera_nr_t, const fan::vec2& x, const fan::vec2& y) \
+  build_function(camera_create_params, fan::graphics::camera_nr_t, const fan::vec2& x, const fan::vec2& y) \
   build_function(camera_get_position, fan::vec3, fan::graphics::camera_nr_t nr) \
   build_function(camera_set_position, void, fan::graphics::camera_nr_t nr, const fan::vec3& cp) \
   build_function(camera_get_size, fan::vec2, fan::graphics::camera_nr_t nr) \
@@ -50,6 +50,7 @@
 
 #define context_build_viewport_functions(build_function) \
   CONCAT(build_function, 2)(viewport_create, fan::graphics::viewport_nr_t) \
+  build_function(viewport_create_params, fan::graphics::viewport_nr_t, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) \
   build_function(viewport_get, fan::graphics::context_viewport_t&, fan::graphics::viewport_nr_t nr) \
   build_function(viewport_erase, void, fan::graphics::viewport_nr_t nr) \
   build_function(viewport_get_position, fan::vec2, fan::graphics::viewport_nr_t nr) \

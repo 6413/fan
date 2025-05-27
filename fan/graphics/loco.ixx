@@ -87,12 +87,12 @@ module;
 #include <fan/event/types.h>
 #include <uv.h>
 
-#if defined(loco_cuda)
 // +cuda
-#include "cuda_runtime.h"
-#include <cuda.h>
-#include <nvcuvid.h>
-
+#if __has_include("cuda.h")
+  #include "cuda_runtime.h"
+  #include <cuda.h>
+  #include <nvcuvid.h>
+  #define loco_cuda
 #endif
 
 export module fan:graphics.loco;
@@ -203,7 +203,7 @@ namespace fan {
 
 #if defined(loco_cuda)
 
-namespace fan {
+export namespace fan {
   namespace cuda {
     void check_error(auto result) {
       if (result != CUDA_SUCCESS) {
@@ -220,7 +220,7 @@ namespace fan {
   }
 }
 
-extern "C" {
+export extern "C" {
   extern __host__ cudaError_t CUDARTAPI cudaGraphicsGLRegisterImage(struct cudaGraphicsResource** resource, GLuint image, GLenum target, unsigned int flags);
 }
 
@@ -556,8 +556,8 @@ export struct loco_t {
     context_functions.camera_erase(&context, nr);
   }
 
-  fan::graphics::camera_nr_t camera_open(const fan::vec2& x, const fan::vec2& y) {
-    return context_functions.camera_open(&context, x, y);
+  fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y) {
+    return context_functions.camera_create_params(&context, x, y);
   }
 
   fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr) {
@@ -586,6 +586,9 @@ export struct loco_t {
 
   fan::graphics::viewport_nr_t viewport_create() {
     return context_functions.viewport_create(&context);
+  }
+  fan::graphics::viewport_nr_t viewport_create(const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size) {
+    return context_functions.viewport_create_params(&context, viewport_position, viewport_size, window_size);
   }
 
   fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr) {
@@ -2066,11 +2069,11 @@ public:
     double delay = std::round(1.0 / target_fps * 1000.0);
 
     if (!timer_init) {
-      uv_timer_init(uv_default_loop(), &timer_handle);
+      uv_timer_init(fan::event::event_loop, &timer_handle);
       timer_init = true;
     }
     if (!idle_init) {
-      uv_idle_init(uv_default_loop(), &idle_handle);
+      uv_idle_init(fan::event::event_loop, &idle_handle);
       idle_init = true;
     }
 
@@ -2084,7 +2087,7 @@ public:
       start_idle();
     }
 
-    uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+    uv_run(fan::event::event_loop, UV_RUN_DEFAULT);
     if (should_close() == false) {
       goto g_loop;
     }
@@ -2161,7 +2164,7 @@ public:
         loco_t* loco = static_cast<loco_t*>(handle->data);
         if (loco->process_loop(loco->main_loop)) {
           uv_timer_stop(handle);
-          uv_stop(uv_default_loop());
+          uv_stop(fan::event::event_loop);
         }
         }, 0, delay);
     }
@@ -2171,7 +2174,7 @@ public:
       loco_t* loco = static_cast<loco_t*>(handle->data);
       if (loco->process_loop(loco->main_loop)) {
         uv_idle_stop(handle);
-        uv_stop(uv_default_loop());
+        uv_stop(fan::event::event_loop);
       }
       });
   }
@@ -2195,7 +2198,7 @@ public:
     else {
       uv_timer_stop(&timer_handle);
       if (!idle_init) {
-        uv_idle_init(uv_default_loop(), &idle_handle);
+        uv_idle_init(fan::event::event_loop, &idle_handle);
         idle_handle.data = this;
         idle_init = true;
       }
@@ -3098,6 +3101,45 @@ public:
     void reload(uint8_t format, const fan::vec2& image_size, uint32_t filter = fan::graphics::image_filter::linear) {
       void* data[4]{};
       gloco->shape_functions[get_shape_type()].reload(this, format, data, image_size, filter);
+    }
+
+    // universal image specific
+    void reload(uint8_t format, loco_t::image_t images[4], uint32_t filter = fan::graphics::image_filter::linear) {
+      loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)GetData(gloco->shaper);
+      uint8_t image_count_new = fan::graphics::get_channel_amount(format);
+      if (format != ri.format) {
+        auto sti = gloco->shaper.ShapeList[*this].sti;
+        uint8_t* KeyPack = gloco->shaper.GetKeys(*this);
+        loco_t::image_t vi_image = shaper_get_key_safe(loco_t::image_t, texture_t, image);
+
+
+        auto shader = gloco->shaper.GetShader(sti);
+        gloco->shader_set_vertex(
+          shader,
+          loco_t::read_shader("shaders/opengl/2D/objects/pixel_format_renderer.vs")
+        );
+        {
+          std::string fs;
+          switch (format) {
+          case fan::graphics::image_format::yuv420p: {
+            fs = loco_t::read_shader("shaders/opengl/2D/objects/yuv420p.fs");
+            break;
+          }
+          case fan::graphics::image_format::nv12: {
+            fs = loco_t::read_shader("shaders/opengl/2D/objects/nv12.fs");
+            break;
+          }
+          default: {
+            fan::throw_error("unimplemented format");
+          }
+          }
+          gloco->shader_set_fragment(shader, fs);
+          gloco->shader_compile(shader);
+        }
+        set_image(images[0]);
+        std::copy(&images[1], &images[0] + ri.images_rest.size(), ri.images_rest.data());
+        ri.format = format;
+      }
     }
 
     void set_line(const fan::vec2& src, const fan::vec2& dst) {
@@ -4845,7 +4887,7 @@ public:
     }
     void close(loco_t* loco, loco_t::shape_t& cid) {
       loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)cid.GetData(gloco->shaper);
-      uint8_t image_amount = fan::graphics::get_texture_amount(ri.format);
+      uint8_t image_amount = fan::graphics::get_channel_amount(ri.format);
       for (uint32_t i = 0; i < image_amount; ++i) {
         wresources[i].close();
         gloco->image_unload(ri.images_rest[i]);
@@ -4853,10 +4895,14 @@ public:
     }
 
     void resize(loco_t* loco, loco_t::shape_t& id, uint8_t format, fan::vec2ui size, uint32_t filter = fan::graphics::image_filter::linear) {
-      id.reload(format, size, filter);
-      auto& ri = *(universal_image_renderer_t::ri_t*)id.GetData(loco->shaper);
       auto vi_image = id.get_image();
-      uint8_t image_amount = fan::graphics::get_texture_amount(format);
+      if (vi_image.iic() || vi_image == loco->default_texture) {
+        id.reload(format, size, filter);
+      }
+      id.reload(format, size, filter);
+      vi_image = id.get_image();
+      auto& ri = *(universal_image_renderer_t::ri_t*)id.GetData(loco->shaper);
+      uint8_t image_amount = fan::graphics::get_channel_amount(format);
       if (inited == false) {
         // purge cid's images here
         // update cids images
@@ -4878,7 +4924,7 @@ public:
         }
 
         // update cids images
-        for (uint32_t i = 0; i < fan::graphics::get_texture_amount(ri.format); ++i) {
+        for (uint32_t i = 0; i < fan::graphics::get_channel_amount(ri.format); ++i) {
           wresources[i].close();
         }
 
@@ -4905,6 +4951,9 @@ public:
         map();
       }
       void close() {
+        if (resource == nullptr) {
+          return;
+        }
         unmap();
         fan::cuda::check_error(cudaGraphicsUnregisterResource(resource));
         resource = nullptr;

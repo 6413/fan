@@ -746,7 +746,7 @@ export namespace fan {
       return ret;
     }
 
-    fan_api constexpr matrix2d sigmoid() const {
+    fan_module_api constexpr matrix2d sigmoid() const {
       matrix2d ret;
       for (uint32_t i = 0; i < _i; ++i) {
         for (uint32_t j = 0; j < _j; ++j) {
@@ -755,7 +755,7 @@ export namespace fan {
       }
       return ret;
     }
-    fan_api constexpr matrix2d sigmoid_derivative() const {
+    fan_module_api constexpr matrix2d sigmoid_derivative() const {
       matrix2d ret;
       for (uint32_t i = 0; i < _i; ++i) {
         for (uint32_t j = 0; j < _j; ++j) {

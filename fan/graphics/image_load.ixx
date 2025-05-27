@@ -59,7 +59,7 @@ export namespace fan {
 #endif
       return ret;
     }
-    fan_api void free(image_info_t* image_info) {
+    fan_module_api void free(image_info_t* image_info) {
       if (image_info->type == image_type_e::webp) {
         fan::webp::free_image(image_info->data);
       }

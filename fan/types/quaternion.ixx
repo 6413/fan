@@ -315,14 +315,14 @@ export namespace fan {
   using quat = quaternion<f32_t>;
 
 	template <typename T>
-	fan_api constexpr auto mix(T x, T y, T a) {
+  fan_module_api constexpr auto mix(T x, T y, T a) {
 		return x * (1.f - a) + y * a;
 	}
 
-	fan_api constexpr auto mix(const fan::vec3& x, const fan::vec3& y, f_t t) {
+  fan_module_api constexpr auto mix(const fan::vec3& x, const fan::vec3& y, f_t t) {
 		return x * (1.f - t) + y * t;
 	}
-  fan_api constexpr auto mix(const fan::vec4& a, const fan::vec4& b, f_t t) {
+  fan_module_api constexpr auto mix(const fan::vec4& a, const fan::vec4& b, f_t t) {
     return a * (1.f - t) + b * t;
   }
 }
