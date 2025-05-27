@@ -22,14 +22,14 @@ namespace fan {
         int device_count = 0;
         fan::cuda::check_error(cuDeviceGetCount(&device_count));
 
-        fan::print_format("{} cuda device(s) found", device_count);
+        fan::print(device_count, "cuda device(s) found");
 
         fan::cuda::check_error(cuDeviceGet(&device, 0));
 
         char name[80] = { 0 };
         fan::cuda::check_error(cuDeviceGetName(name, sizeof(name), device));
 
-        fan::print_format("cuda device: {}", name);
+        fan::print("cuda device: ", name);
 
         fan::cuda::check_error(cuCtxCreate(&context, 0, device));
 
@@ -65,13 +65,20 @@ namespace fan {
         fan::cuda::check_error(cuCtxDestroy(context));
       }
 
-      void start_decoding(const fan::string& nal_data) {
+      void start_decoding(const std::string& nal_data) {
         CUVIDSOURCEDATAPACKET pkt;
         pkt.flags = 0;
         pkt.payload_size = nal_data.size();
         pkt.payload = (uint8_t*)nal_data.data();
         pkt.timestamp = 0;
         fan::cuda::check_error(cuvidParseVideoData(parser, &pkt));
+
+        CUVIDSOURCEDATAPACKET eos_pkt = {};
+        eos_pkt.flags = CUVID_PKT_ENDOFSTREAM;
+        eos_pkt.payload_size = 0;
+        eos_pkt.payload = nullptr;
+        eos_pkt.timestamp = 0;
+        fan::cuda::check_error(cuvidParseVideoData(parser, &eos_pkt));
       }
 
       static unsigned long GetNumDecodeSurfaces(cudaVideoCodec eCodec, unsigned int nWidth, unsigned int nHeight) {
@@ -109,9 +116,9 @@ namespace fan {
 
         nv_decoder_t* decoder = (nv_decoder_t*)user;
 
-        fan::print_format("coded size: {}x{}", fmt->coded_width, fmt->coded_height);
-        fan::print_format("display area: {} {} {} {}", fmt->display_area.left, fmt->display_area.top, fmt->display_area.right, fmt->display_area.bottom);
-        fan::print_format("birate {}", fmt->bitrate);
+        fan::print("coded size: ", std::to_string(fmt->coded_width) + "x" + std::to_string(fmt->coded_height));
+        fan::print("display area: ", fmt->display_area.left, fmt->display_area.top, fmt->display_area.right, fmt->display_area.bottom);
+        fan::print("bitrate ", fmt->bitrate);
 
         bool resized = decoder->frame_size != fan::vec2ui(fmt->coded_width, fmt->coded_height);
 
@@ -152,17 +159,24 @@ namespace fan {
           decoder->image_y_resource.close();
           decoder->image_vu_resource.close();
 
-          loco_t::image_t::load_properties_t lp;
+          fan::graphics::image_load_properties_t lp;
           // cudaGraphicsGLRegisterImage accepts only GL_RED
-          lp.internal_format = GL_RED;
-          lp.format = GL_RED;
-          lp.filter = loco_t::image_t::filter::linear;
-          lp.visual_output = loco_t::image_t::sampler_address_mode::clamp_to_edge;
-          decoder->image_y_resource.open(&pile->loco, decoder->frame_size, lp);
+          lp.internal_format = fan::graphics::image_format::r8_unorm;
+          lp.format = lp.internal_format;
+          lp.min_filter = fan::graphics::image_filter::linear;
+          lp.mag_filter = lp.min_filter;
+          lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_edge;
+          fan::image::image_info_t image_info;
+          image_info.data = 0;
+          image_info.size = decoder->frame_size;
+          decoder->images[0] = gloco->image_load(image_info, lp);
+          decoder->image_y_resource.open(gloco->image_get_handle(decoder->images[0]));
 
-          lp.internal_format = GL_RG;
-          lp.format = GL_RG;
-          decoder->image_vu_resource.open(&pile->loco, decoder->frame_size, lp);
+          lp.internal_format = fan::graphics::image_format::rg8_unorm;
+          lp.format = lp.internal_format;
+          image_info.size /= 2;
+          decoder->images[1] = gloco->image_load(image_info, lp);
+          decoder->image_vu_resource.open(gloco->image_get_handle(decoder->images[1]));
 
           decoder->sequence_cb();
 
@@ -242,6 +256,8 @@ namespace fan {
 
       fan::time::clock timestamp;
       uint32_t current_frame = 0;
+
+      fan::graphics::image_t images[2];
 
       loco_t::cuda_textures_t::graphics_resource_t image_y_resource;
       loco_t::cuda_textures_t::graphics_resource_t image_vu_resource;

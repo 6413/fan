@@ -1,6 +1,10 @@
 module;
 
+#include <functional>
+#include <map>
+#include <unordered_map>
 #include <string>
+#include <cstring>
 #include <vector>
 
 #include <fan/types/types.h>
@@ -8,7 +12,7 @@ module;
 
 export module fan:graphics.gui.tilemap_editor.editor;
 
-#if defined(fan_gui)
+#if defined(fan_gui) && defined(fan_physics)
 
 export import :graphics.gui; // export?
 
@@ -1469,7 +1473,7 @@ export struct fte_t {
           std::string temp = layer.tile.id;
           temp.resize(max_id_len);
           if (fan::graphics::gui::input_text("id", &temp)) {
-            layer.tile.id = temp.substr(0, strlen(temp.c_str()));
+            layer.tile.id = temp.substr(0, std::strlen(temp.c_str()));
           }
         }
         {

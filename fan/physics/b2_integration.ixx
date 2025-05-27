@@ -67,16 +67,16 @@ export namespace fan {
       std::function<void()> cb;
     };
     struct test_t {
-#define BLL_API inline static 
-#define BLL_set_SafeNext 1
-#define BLL_set_AreWeInsideStruct 1
-#define BLL_set_prefix body_updates
-#define BLL_set_CPP_CopyAtPointerChange 1
-#include <fan/fan_bll_preset.h>
-#define BLL_set_Link 1
-#define BLL_set_type_node uint16_t
-#define BLL_set_NodeDataType body_update_data_t
-#include <BLL/BLL.h>
+      #define BLL_API inline static 
+      #define BLL_set_SafeNext 1
+      #define BLL_set_AreWeInsideStruct 1
+      #define BLL_set_prefix body_updates
+      #define BLL_set_CPP_CopyAtPointerChange 1
+      #include <fan/fan_bll_preset.h>
+      #define BLL_set_Link 1
+      #define BLL_set_type_node uint16_t
+      #define BLL_set_NodeDataType body_update_data_t
+      #include <BLL/BLL.h>
     };
 
 

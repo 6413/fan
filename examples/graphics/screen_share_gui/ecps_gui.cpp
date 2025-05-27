@@ -4,6 +4,8 @@
 #include <fan/math/math.h>
 import fan;
 
+//TODO make shortcut to open stats menu
+
 using namespace fan::graphics;
 
 fan::graphics::image_t image_stream;
@@ -140,9 +142,9 @@ struct ecps_gui_t {
         }
         gui::pop_style_color();
       }
-      else {
+      else {////
         gui::push_style_color(gui::col_button, fan::vec4(0.2f, 0.8f, 0.2f, 1.0f));
-        if (gui::button("Start Stream", fan::vec2(button_width, button_size.y))) {
+        if (gui::button("Start Stream", fan::vec2(button_width - 100.f, button_size.y))) {
           is_streaming = true;
         }
         gui::pop_style_color();
@@ -203,7 +205,7 @@ struct ecps_gui_t {
           gui::columns(1);
           gui::spacing();
 
-          gui::text("Bitrate: %d kbps", bitrate_kbps);
+          gui::text("Bitrate: kbps " + std::to_string(bitrate_kbps));
           gui::push_item_width(-1);
           gui::input_int("##bitrate", &bitrate_kbps, 1000, 10000);
           gui::pop_item_width();

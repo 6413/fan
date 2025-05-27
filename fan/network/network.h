@@ -23,7 +23,7 @@ namespace fan {
       getaddrinfo_t(const char* node, const char* service, struct addrinfo* hints = nullptr) :
         data(std::make_unique<getaddrinfo_data_t>()) {
         data->getaddrinfo_handle.data = data.get();
-        uv_getaddrinfo(uv_default_loop(), &data->getaddrinfo_handle, [](uv_getaddrinfo_t* getaddrinfo_handle, int status, struct addrinfo* res) {
+        uv_getaddrinfo(fan::event::event_loop, &data->getaddrinfo_handle, [](uv_getaddrinfo_t* getaddrinfo_handle, int status, struct addrinfo* res) {
           auto data = static_cast<getaddrinfo_data_t*>(getaddrinfo_handle->data);
           if (status == UV_ECANCELED) {
             delete data;
@@ -308,7 +308,7 @@ namespace fan {
       };
 
       tcp_t() : socket(new uv_tcp_t, tcp_deleter_t{}), reader(*this) {
-        uv_tcp_init(uv_default_loop(), socket.get());
+        uv_tcp_init(fan::event::event_loop, socket.get());
       }
       tcp_t(const tcp_t&) = delete;
       tcp_t& operator=(const tcp_t&) = delete;

@@ -13,11 +13,11 @@ import :print;
 
 export namespace fan {
   namespace io {
-    fan_api bool directory_exists(const std::string& directory) {
+    fan_module_api bool directory_exists(const std::string& directory) {
       return std::filesystem::exists(directory.c_str());
     }
 
-    fan_api void create_directory(const std::string& folders) {
+    fan_module_api void create_directory(const std::string& folders) {
       std::filesystem::create_directories(folders);
     }
 
@@ -25,17 +25,17 @@ export namespace fan {
       std::string path;
       uint64_t area;
 
-      static fan_api bool comp_cb(const iterate_sort_t& a, const iterate_sort_t& b) { return a.area > b.area; }
+      static bool comp_cb(const iterate_sort_t& a, const iterate_sort_t& b) { return a.area > b.area; }
     };
 
-    fan_api void handle_string_out(std::string& str) {
+    fan_module_api void handle_string_out(std::string& str) {
       return std::replace(str.begin(), str.end(), '\\', '/');
     }
-    fan_api void handle_string_in(std::string& str) {
+    fan_module_api void handle_string_in(std::string& str) {
       std::replace(str.begin(), str.end(), '/', '\\');
     }
 
-    fan_api bool is_readable_path(const std::string& path) {
+    fan_module_api bool is_readable_path(const std::string& path) {
       try {
         std::filesystem::directory_iterator(path.c_str());
         std::filesystem::directory_entry(path.c_str());
@@ -50,7 +50,7 @@ export namespace fan {
       return false;
     };
 
-    fan_api std::string exclude_path(const std::string& full_path) {
+    fan_module_api std::string exclude_path(const std::string& full_path) {
       std::size_t found = full_path.find_last_of('/');
       if (found == std::string::npos) {
         return full_path;
@@ -58,7 +58,7 @@ export namespace fan {
       return full_path.substr(found + 1);
     }
 
-    fan_api void iterate_directory(
+    fan_module_api void iterate_directory(
       const std::string& path,
       const std::function<void(const std::string& path, bool is_directory)>& function
     ) {
@@ -82,7 +82,7 @@ export namespace fan {
     //  }
     }
 
-    fan_api void iterate_directory(
+    fan_module_api void iterate_directory(
       const std::filesystem::path& path,
       const std::function<void(const std::filesystem::directory_entry& path)>& function
     ) {
@@ -104,7 +104,7 @@ export namespace fan {
      //   }
     }
 
-    fan_api void iterate_directory_sorted_by_name(
+    fan_module_api void iterate_directory_sorted_by_name(
       const std::filesystem::path& path,
       const std::function<void(const std::filesystem::directory_entry&)>& function
     ) {
@@ -147,7 +147,7 @@ export namespace fan {
       //   }
     }
 
-    fan_api void iterate_directory_files(
+    fan_module_api void iterate_directory_files(
       const std::string& path,
       const std::function<void(const std::string& path)>& function
     ) {

@@ -100,6 +100,8 @@ export namespace fan {
     using camera_t = camera_impl_t;
     using viewport_t = loco_t::viewport_t;
 
+    using shape_t = loco_t::shape_t;
+
     fan::graphics::image_t invalid_image = []{
       image_t image;
       image.sic();
