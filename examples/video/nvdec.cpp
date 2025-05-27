@@ -1,23 +1,13 @@
-// Creates window, opengl context and renders a rectangle
+#include <fan/time/timer.h>
 
-#define _INCLUDE_TOKEN(p0, p1) <p0/p1>
+#include "cuda_runtime.h"
+#include <cuda.h>
+#include <nvcuvid.h>
 
-#ifndef FAN_INCLUDE_PATH
-#define FAN_INCLUDE_PATH C:/libs/fan/include
-#endif
-#define fan_debug 1
-#include _INCLUDE_TOKEN(FAN_INCLUDE_PATH, fan/types/types.h)
+
+import fan;
 
 //#define loco_vulkan
-
-
-#define loco_window
-#define loco_context
-
-#define loco_cuda
-#define loco_nv12
-#define loco_pixel_format_renderer
-#include _FAN_PATH(graphics/loco.h)
 
 struct pile_t {
 
@@ -27,34 +17,22 @@ struct pile_t {
   pile_t() {
 
     fan::vec2 window_size = loco.window.get_size();
-    loco.open_camera(
-      &camera,
+    camera = loco.camera_create(
       ortho_x,
       ortho_y
     );
-    loco.window.add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
-      fan::vec2 window_size = d.size;
-    //fan::vec2 ratio = window_size / window_size.max();
-    //std::swap(ratio.x, ratio.y);
-    //camera.set_ortho(
-    //  ortho_x * ratio.x, 
-    //  ortho_y * ratio.y
-    //);
-    viewport.set(loco.get_context(), 0, d.size, d.size);
-     });
-    viewport.open(loco.get_context());
-    viewport.set(loco.get_context(), 0, window_size, window_size);
+    viewport = loco.viewport_create(0, window_size, window_size);
   }
 
   loco_t loco;
   loco_t::camera_t camera;
   fan::graphics::viewport_t viewport;
-  fan::graphics::cid_t cid[5];
+  fan::graphics::shape_t cid[5];
 };
 
 pile_t* pile = new pile_t;
 
-#include _FAN_PATH(video/nvdec.h)
+#include <fan/video/nvdec.h>
 
 int main() {
   pile->loco.set_vsync(false);
@@ -65,26 +43,40 @@ int main() {
 
   nv.sequence_cb = [&] {
     if (!pushed) {
-      pile->loco.pixel_format_renderer.erase(&pile->cid[1]);
+      pile->cid[1].erase();
     }
-    loco_t::pixel_format_renderer_t::properties_t p;
-    p.camera = &pile->camera;
-    p.viewport = &pile->viewport;
+    loco_t::universal_image_renderer_t::properties_t p;
+    p.camera = pile->camera;
+    p.viewport = pile->viewport;
     p.size = 1;
-    p.images[0] = &nv.image_y_resource.image;
-    //nv.image_vu.texture_reference.
-    p.images[1] = &nv.image_vu_resource.image;
-    pile->loco.pixel_format_renderer.push_back(&pile->cid[1], p);
+    pile->cid[1] = pile->loco.universal_image_renderer.push_back(p);
     pushed = true;
   };
 
   fan::string video_data;
-  fan::io::file::read("o4.264", &video_data);
+  fan::io::file::read("videos/output.h264", &video_data);
+
+  auto nr = pile->loco.m_update_callback.NewNodeLast();
+  pile->loco.m_update_callback[nr] = [&nv] (loco_t* loco) {
+    if (nv.images[0].iic() == false) {
+      fan::graphics::image_t images[4]{};
+      images[0] = nv.images[0];
+      images[1] = nv.images[1];
+      pile->cid[1].reload(fan::graphics::image_format::nv12, images);
+    }
+    fan::vec2 window_size = loco->window.get_size();
+    loco->viewport_set(pile->viewport, 0, window_size, window_size);
+  };
 
   nv.start_decoding(video_data);
+ /* pile->loco.loop([&] {
+    
+    
+  });*/
+
   //pile->loco.loop([] {});
 
-   //fan::print(nv.timestamp.elapsed(), nv.current_frame, nv.timestamp.elapsed() / nv.current_frame);
+   fan::print(nv.timestamp.elapsed(), nv.current_frame, nv.timestamp.elapsed() / nv.current_frame);
 
   return 0;
 }

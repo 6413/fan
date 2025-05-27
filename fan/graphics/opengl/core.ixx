@@ -1059,7 +1059,7 @@ export namespace fan {
         camera.m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
       }
 
-      fan::graphics::camera_nr_t camera_open(const fan::vec2& x, const fan::vec2& y) {
+      fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y) {
         fan::graphics::camera_nr_t nr = camera_create();
         camera_set_ortho(nr, fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
         return nr;
@@ -1710,8 +1710,8 @@ namespace fan {
       cf.camera_erase = [](void* context, fan::graphics::camera_nr_t nr) {
         ((fan::opengl::context_t*)context)->camera_erase(nr);
         };
-      cf.camera_open = [](void* context, const fan::vec2& x, const fan::vec2& y) {
-        return ((fan::opengl::context_t*)context)->camera_open(x, y);
+      cf.camera_create_params = [](void* context, const fan::vec2& x, const fan::vec2& y) {
+        return ((fan::opengl::context_t*)context)->camera_create(x, y);
         };
       cf.camera_get_position = [](void* context, fan::graphics::camera_nr_t nr) {
         return ((fan::opengl::context_t*)context)->camera_get_position(nr);
@@ -1735,6 +1735,12 @@ namespace fan {
       cf.viewport_create = [](void* context) {
         return ((fan::opengl::context_t*)context)->viewport_create();
         };
+      cf.viewport_create_params = [](void* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
+        auto gl_context = ((fan::opengl::context_t*)context);
+        auto nr = gl_context->viewport_create();
+        gl_context->viewport_set(nr, viewport_position_, viewport_size_, window_size);
+        return nr;
+      };
       cf.viewport_get = [](void* context, fan::graphics::viewport_nr_t nr) -> fan::graphics::context_viewport_t& {
         return ((fan::opengl::context_t*)context)->viewport_get(nr);
         };

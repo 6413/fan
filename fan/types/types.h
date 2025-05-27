@@ -27,8 +27,20 @@
 
 #pragma pack(push, 1)
 
+#ifndef __gfunc_api
+  #define __gfunc_api static
+#endif
+
+#ifndef __gfunc_module_api
+  #define __gfunc_module_api inline
+#endif
+
 #ifndef fan_api
-  #define fan_api inline
+  #define fan_api __gfunc_api
+#endif
+
+#ifndef fan_module_api
+  #define fan_module_api __gfunc_module_api
 #endif
 
 #include <fan/types/bll_types.h>
@@ -108,8 +120,8 @@ namespace fan {
 #endif
 	}
 
-#ifndef PR_abort
-	#define PR_abort fan::throw_error_impl
+#ifndef __abort
+	#define __abort fan::throw_error_impl
 #endif
 
 	constexpr auto uninitialized = -1;

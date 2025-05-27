@@ -716,7 +716,7 @@ void camera_set_ortho(fan::vulkan::context_t& context, camera_nr_t nr, fan::vec2
   //}
 }
 
-fan::graphics::camera_nr_t camera_open(fan::vulkan::context_t& context, const fan::vec2& x, const fan::vec2& y) {
+fan::graphics::camera_nr_t camera_create(fan::vulkan::context_t& context, const fan::vec2& x, const fan::vec2& y) {
   camera_nr_t nr = camera_create(context);
   camera_set_ortho(context, nr, fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
   return nr;
@@ -2569,8 +2569,8 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
   cf.camera_erase = [](void* context, camera_nr_t nr) { 
     camera_erase(*(fan::vulkan::context_t*)context, nr); 
   };
-  cf.camera_open = [](void* context, const fan::vec2& x, const fan::vec2& y) {
-    return camera_open(*(fan::vulkan::context_t*)context, x, y);
+  cf.camera_create = [](void* context, const fan::vec2& x, const fan::vec2& y) {
+    return camera_create(*(fan::vulkan::context_t*)context, x, y);
   };
   cf.camera_get_position = [](void* context, camera_nr_t nr) { 
     return camera_get_position(*(fan::vulkan::context_t*)context, nr); 

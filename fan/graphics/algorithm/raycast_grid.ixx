@@ -1,6 +1,7 @@
-#pragma once
+module;
 
 #include <fan/types/types.h>
+#include <cmath>
 #include <vector>
 
 export module fan:graphics.algorithm.raycast_grid;
