@@ -1,5 +1,6 @@
-#include <fan/pch.h>
-#include <fan/network/network.h>
+#include <coroutine>
+
+import fan;
 
 fan::event::task_t tcp_test() {
   try {
@@ -78,7 +79,7 @@ int main() {
    // auto tcp_client = tcp_client_test();
 
     engine.loop([&] {
-      fan::graphics::text(fan::random::string(10));
+      fan::graphics::gui::text(fan::random::string(10));
     });
   }
   catch (const std::exception& e) {
