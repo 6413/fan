@@ -176,6 +176,10 @@ export namespace fan {
           return ImGui::GetMainViewport();
         }
 
+        f32_t get_frame_height() {
+          return ImGui::GetFrameHeight();
+        }
+
         f32_t get_text_line_height_with_spacing() {
           return ImGui::GetTextLineHeightWithSpacing();
         }
@@ -416,7 +420,6 @@ export namespace fan {
         void unindent(f32_t indent_w = 0.0f) {
           ImGui::Indent(indent_w);
         }
-
 
 
         fan::vec2 calc_text_size(const std::string& text, const char* text_end = NULL, bool hide_text_after_double_hash = false, float wrap_width = -1.0f){
@@ -885,6 +888,10 @@ export namespace fan {
 
         void set_next_window_size(const fan::vec2& size, cond_t cond = cond_none) {
           ImGui::SetNextWindowSize(size, cond);
+        }
+        
+        void set_next_window_bg_alpha(f32_t a) {
+          ImGui::SetNextWindowBgAlpha(a);
         }
 
         void set_window_font_scale(f32_t scale) {
@@ -2080,13 +2087,26 @@ export namespace fan {
         bool hovering_popup = storage->GetBool(hovering_popup_id, false);
         bool popup_visible = storage->GetBool(popup_visible_id, false);
 
+        fan::vec2 parent_min = ImGui::GetWindowPos();
+        fan::vec2 parent_max = ImVec2(parent_min.x + ImGui::GetWindowSize().x,
+          parent_min.y + ImGui::GetWindowSize().y);
+
         fan::vec2 current_mouse_pos = ImGui::GetIO().MousePos;
-        bool inside_window = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+
+        // Check if mouse is in parent window area
+        //bool mouse_in_parent = (current_mouse_pos.x >= parent_min.x &&
+        //  current_mouse_pos.x <= parent_max.x &&
+        //  current_mouse_pos.y >= parent_min.y &&
+        //  current_mouse_pos.y <= parent_max.y);
+
+        ImGui::Dummy(parent_max - parent_min);
+
+        bool inside_window = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenOverlappedByWindow) ;
+
         bool mouse_moved = inside_window && (current_mouse_pos.x != last_mouse_x || current_mouse_pos.y != last_mouse_y);
 
         last_mouse_x = current_mouse_pos.x;
         last_mouse_y = current_mouse_pos.y;
-
         if (mouse_moved || hovering_popup) {
           popup_visible = true;
           hide_timer = 0.0f;

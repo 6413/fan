@@ -316,6 +316,8 @@ export namespace fan {
     };
 
     struct light_t : loco_t::shape_t {
+      using loco_t::shape_t::shape_t;
+      using loco_t::shape_t::operator=;
       light_t(light_properties_t p = light_properties_t()) {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
@@ -344,6 +346,8 @@ export namespace fan {
       };
 
       struct line_t : loco_t::shape_t {
+        using loco_t::shape_t::shape_t;
+        using loco_t::shape_t::operator=;
         line_t(line_properties_t p = line_properties_t()) {
           *(loco_t::shape_t*)this = loco_t::shape_t(
             fan_init_struct(
@@ -373,6 +377,8 @@ export namespace fan {
 
     // make sure you dont do position = vec2
     struct rectangle_t : loco_t::shape_t {
+      using loco_t::shape_t::shape_t;
+      using loco_t::shape_t::operator=;
       rectangle_t(rectangle_properties_t p = rectangle_properties_t()) {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
@@ -407,6 +413,8 @@ export namespace fan {
 
 
     struct sprite_t : loco_t::shape_t {
+      using loco_t::shape_t::shape_t;
+      using loco_t::shape_t::operator=;
       sprite_t(sprite_properties_t p = sprite_properties_t()) {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
@@ -442,6 +450,8 @@ export namespace fan {
     };
 
     struct unlit_sprite_t : loco_t::shape_t {
+      using loco_t::shape_t::shape_t;
+      using loco_t::shape_t::operator=;
       unlit_sprite_t(unlit_sprite_properties_t p = unlit_sprite_properties_t()) {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
@@ -473,6 +483,8 @@ export namespace fan {
     };
 
     struct circle_t : loco_t::shape_t {
+      using loco_t::shape_t::shape_t;
+      using loco_t::shape_t::operator=;
       circle_t(circle_properties_t p = circle_properties_t()) {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
@@ -503,6 +515,8 @@ export namespace fan {
     };
 
     struct capsule_t : loco_t::shape_t {
+      using loco_t::shape_t::shape_t;
+      using loco_t::shape_t::operator=;
       capsule_t(capsule_properties_t p = capsule_properties_t()) {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
@@ -533,6 +547,8 @@ export namespace fan {
     };
 
     struct polygon_t : loco_t::shape_t {
+      using loco_t::shape_t::shape_t;
+      using loco_t::shape_t::operator=;
       polygon_t() = default;
       polygon_t(polygon_properties_t p) {
         *(loco_t::shape_t*)this = loco_t::shape_t(
@@ -560,6 +576,8 @@ export namespace fan {
       fan::vec3 angle = fan::vec3(0, 0, 0);
     };
     struct grid_t : loco_t::shape_t {
+      using loco_t::shape_t::shape_t;
+      using loco_t::shape_t::operator=;
       grid_t(grid_properties_t p = grid_properties_t()) {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
@@ -595,6 +613,8 @@ export namespace fan {
     };
 
     struct universal_image_renderer_t : loco_t::shape_t {
+      using loco_t::shape_t::shape_t;
+      using loco_t::shape_t::operator=;
       universal_image_renderer_t(const universal_image_renderer_properties_t& p = universal_image_renderer_properties_t()) {
          *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
