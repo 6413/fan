@@ -2861,7 +2861,9 @@ public:
     }
 #if defined(fan_json)
     operator fan::json();
+    operator std::string();
     shape_t& operator=(const fan::json& json);
+    shape_t& operator=(const std::string&); // assume json string
 #endif
 
     ~shape_t() {
@@ -5678,9 +5680,17 @@ loco_t::shape_t::operator fan::json() {
   fan::graphics::shape_to_json(*this, &out);
   return out;
 }
+loco_t::shape_t::operator std::string() {
+  fan::json out;
+  fan::graphics::shape_to_json(*this, &out);
+  return out.dump(2);
+}
 loco_t::shape_t& loco_t::shape_t::operator=(const fan::json& json) {
   fan::graphics::json_to_shape(json, this);
   return *this;
+}
+loco_t::shape_t& loco_t::shape_t::operator=(const std::string& json_string) {
+  return loco_t::shape_t::operator=(fan::json::parse(json_string));
 }
 #endif
 
