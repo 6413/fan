@@ -176,6 +176,27 @@ export namespace fan {
       }
     };
 
+    namespace error_code {
+      enum {
+        ok = 0,
+        unknown = UV_UNKNOWN,
+      };
+    }
+
+    struct data_t {
+      std::string buffer;
+      ssize_t status = error_code::unknown;
+      operator bool() {
+        return status == error_code::ok;
+      }
+      operator ssize_t() const {
+        return status;
+      }
+      operator const std::string&() const {
+        return buffer;
+      }
+    };
+
     struct raw_reader_t {
       std::shared_ptr<uv_stream_t> stream;
       std::string buf;
@@ -209,21 +230,23 @@ export namespace fan {
           [](uv_stream_t* req, ssize_t nread, const uv_buf_t* buf) {
             auto self = static_cast<raw_reader_t*>(req->data);
             self->nread = nread;
-            [[likely]] if (self->co_handle)
+            [[likely]] if (self->co_handle) {
               self->co_handle();
+            }
           }
         );
       }
       bool await_ready() const { return nread > 0; }
       void await_suspend(std::coroutine_handle<> h) { co_handle = h; }
-      const char* await_resume() {
-        const char* out = nullptr;
+      data_t await_resume() {
+        data_t data;
+        data.status = nread < 0 ? nread : error_code::ok;
         if (nread > 0) {
-          out = buf.c_str();
-          nread = 0;
+          data.buffer = buf.c_str();
         }
+        nread = 0;
         co_handle = nullptr;
-        return out;
+        return data;
       }
 
       ~raw_reader_t() {
@@ -280,8 +303,7 @@ export namespace fan {
       }
 
       ~raw_writer_t() {
-        if (data && data->status == 1)
-        {
+        if (data && data->status == 1) {
           data->write_handle.cb = [](uv_write_t* write_handle, int) {
             delete static_cast<writer_data_t*>(write_handle->data);
             };
@@ -291,8 +313,19 @@ export namespace fan {
     };
 
     struct message_t {
-      bool done;
       std::string buffer;
+      ssize_t status;
+      bool done;
+
+      operator bool() {
+        return status == error_code::ok;
+      }
+      operator ssize_t() const {
+        return status;
+      }
+      operator const std::string& () const {
+        return buffer;
+      }
     };
 
     struct reader_t {
@@ -343,8 +376,9 @@ export namespace fan {
             if (nread > 0) {
               self->accumulated_buf.append(self->temp_buf.data(), nread);
             }
-            [[likely]] if (self->co_handle)
+            [[likely]] if (self->co_handle) {
               self->co_handle();
+            }
           }
         );
       }
@@ -364,45 +398,36 @@ export namespace fan {
         co_handle = h;
       }
 
-      message_t* await_resume() {
-        static message_t msg;
-        msg.done = false;
-        msg.buffer.clear();
-
+      message_t await_resume() {
+        // Handle errors
         if (nread < 0) {
-          msg.done = true;
           co_handle = nullptr;
-          return &msg;
-        }
-
-        if (reading_header && accumulated_buf.size() >= header_size) {
-          std::memcpy(&expected_size, accumulated_buf.data(), header_size);
-
-          accumulated_buf.erase(0, header_size);
-          reading_header = false;
-          bytes_read = 0;
-
-          if (accumulated_buf.size() < expected_size) {
-            co_handle = nullptr;
-            nread = 0;
-            return nullptr;
-          }
-        }
-
-        if (!reading_header && accumulated_buf.size() >= expected_size) {
-          msg.buffer = accumulated_buf.substr(0, expected_size);
-          msg.done = true;
-
-          accumulated_buf.erase(0, expected_size);
-
-          reading_header = true;
-          expected_size = 0;
-          bytes_read = 0;
+          auto error_status = nread;
+          nread = 0;
+          return { .buffer = "", .status = error_status, .done = true };
         }
 
         co_handle = nullptr;
+
+        if (reading_header && accumulated_buf.size() >= header_size) {
+          std::memcpy(&expected_size, accumulated_buf.data(), header_size);
+          accumulated_buf.erase(0, header_size);
+          reading_header = false;
+          bytes_read = 0;
+        }
+
+        if (!reading_header && accumulated_buf.size() >= expected_size) {
+          auto buffer = accumulated_buf.substr(0, expected_size);
+          accumulated_buf.erase(0, expected_size);
+          reading_header = true;
+          expected_size = bytes_read = 0;
+          nread = 0;
+          return { .buffer = buffer, .status = error_code::ok, .done = true};
+        }
+
+        auto buffer = reading_header ? "" : accumulated_buf.substr(0, nread);
         nread = 0;
-        return msg.done ? &msg : nullptr;
+        return { .buffer = buffer, .status = error_code::ok, .done = false };
       }
 
       ~reader_t() {
@@ -432,7 +457,6 @@ export namespace fan {
         message_data.reserve(sizeof(uint64_t) + data_size);
 
         message_data.append(reinterpret_cast<const char*>(&data_size), sizeof(uint64_t));
-
         message_data.append(user_data);
 
         return raw_writer.write(message_data);
