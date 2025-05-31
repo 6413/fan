@@ -1,5 +1,9 @@
-#include <fan/pch.h>
-#include <fan/network/network.h>
+#include <string>
+#include <ranges>
+#include <fan/time/timer.h>
+#include <string_view>
+
+import fan;
 
 fan::graphics::engine_t engine;
 fan::graphics::rectangle_t r{ {
@@ -9,68 +13,81 @@ fan::graphics::rectangle_t r{ {
 } };
 
 fan::event::task_t tcp_server_test() {
- // try {
-    co_await fan::network::tcp_listen({.port = 7777}, [](auto&& client) -> fan::event::task_t {
-      fan::json_stream_parser_t parser;
-      auto reader = client.read();
-      while (auto data = co_await reader) {
-        auto results = parser.process(data);
-        for (const auto& result : results) {
-          fan::vec3 p = result.value["position"];
-          r.set_position(p);
-        }
+  co_await fan::network::tcp_listen({ .port = 7777 }, [](auto&& client) -> fan::event::task_t {
+    std::string json_data;
+
+    auto reader = client.read();
+    while (fan::network::message_t* data = co_await reader) {
+      json_data.insert(json_data.end(), data->buffer.begin(), data->buffer.end());
+      if (!data->done) {
+        continue;
       }
-      fan::print("");
-    });
- // }
-//  catch (std::exception& e) {
-//    fan::print_warning(std::string("server error:") + e.what());
-//  }
+      if (json_data.empty()) {
+        continue;
+      }
+      try {
+        fan::json result = fan::json::parse(json_data);
+        r = result;
+        // set other properties
+      }
+      catch (const std::exception& e) {
+        fan::print("\n\n", data, json_data.size(), json_data);
+        fan::print_warning("Failed to deserialize rectangle: " + std::string(e.what()));
+      }
+      json_data.clear();
+    }
+  });
 }
 
 fan::event::task_t tcp_client_test() {
   try {
     fan::network::tcp_t client;
-    co_await client.connect("85.156.160.229", 7777);
-    fan::json j;
+    co_await client.connect("127.0.0.1", 7777);
+
+    fan::vec3 last_sent_position = r.get_position();
+
     while (1) {
-      j["position"] = r.get_position();
-      co_await client.write(j.dump());
-      co_await fan::co_sleep(1000);
+      fan::vec3 current_pos = r.get_position();
+
+      fan::json j = r;
+      std::string json_data = j.dump();
+      co_await client.write(json_data);
+      last_sent_position = current_pos;
+      co_await fan::co_sleep(1000.0 / 64.f);
     }
   }
   catch (std::exception& e) {
-    fan::print_warning(std::string("client error:") + e.what());
+    fan::print_warning(std::string("Client error:") + e.what());
   }
 }
 
 int main() {
   try {
- // auto tcp_server = tcp_server_test();
+#define SERVER 1
+#if SERVER == 1
+    auto tcp_server = tcp_server_test();
+#else
     auto tcp_client = tcp_client_test();
-
-    engine.input_action.add(fan::key_a, "a");
-    engine.input_action.add(fan::key_d, "d");
-    engine.input_action.add(fan::key_w, "w");
-    engine.input_action.add(fan::key_s, "s");
-
+#endif
     engine.loop([&] {
-      fan::graphics::text(fan::random::string(10));
-        auto pos = r.get_position();
-        const float speed = 500 * engine.delta_time;
-  
-        pos += fan::vec3(
-          speed * (engine.input_action.is_active("d", 2) - engine.input_action.is_active("a", 2)),
-          speed * (engine.input_action.is_active("s", 2) - engine.input_action.is_active("w", 2)),
-          0
-        );
-  
-        r.set_position(pos);
+      fan::graphics::gui::text(fan::random::string(10));
+
+      auto pos = r.get_position();
+      const float speed = 500 * engine.delta_time;
+
+      pos += fan::vec3(
+        speed * (fan::window::is_key_down(fan::key_d) - fan::window::is_key_down(fan::key_a)),
+        speed * (fan::window::is_key_down(fan::key_s) - fan::window::is_key_down(fan::key_w)),
+        0
+      );
+
+#if SERVER == 0
+      r.set_position(pos);
+#endif
     });
   }
   catch (const std::exception& e) {
-    fan::print(std::string("exception:") + e.what());
+    fan::print(std::string("Exception:") + e.what());
   }
-
   return 0;
 }

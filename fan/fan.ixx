@@ -13,6 +13,8 @@ export import :graphics.loco;
 export import :graphics;
 export import :graphics.gui;
 
+export import :network;
+
 export import :event;
 
 #define fan_audio

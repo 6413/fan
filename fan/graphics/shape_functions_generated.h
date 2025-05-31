@@ -1159,6 +1159,10 @@ static void set_rotation_point_shader_shape(loco_t::shape_t* shape, const fan::v
 	}
 }
 
+static fan::color get_outline_color_rectangle(loco_t::shape_t* shape) {
+  return reinterpret_cast<loco_t::rectangle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->outline_color;
+}
+
 static fan::color get_color_sprite(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
@@ -3250,7 +3254,7 @@ inline static loco_t::get_outline_color_cb get_outline_color_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
-	nullptr,
+	&get_outline_color_rectangle,
 	nullptr,
 	nullptr,
 	nullptr,

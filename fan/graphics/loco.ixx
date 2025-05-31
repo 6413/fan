@@ -2054,6 +2054,7 @@ public:
 
     process_frame();
     window.handle_events();
+    
     delta_time = window.m_delta_time;
 
     // window can also be closed from window cb
@@ -2309,6 +2310,7 @@ public:
             return state == input_action_t::press ||
               state == input_action_t::repeat;
           }
+          //fan::print(state, pstate, state == pstate);
           return state == pstate;
         }
       }
@@ -2857,6 +2859,10 @@ public:
       }
       return *this;
     }
+#if defined(fan_json)
+    operator fan::json();
+    shape_t& operator=(const fan::json& json);
+#endif
 
     ~shape_t() {
       remove();
@@ -5040,6 +5046,7 @@ export namespace fan {
         out["size"] = shape.get_size();
         out["rotation_point"] = shape.get_rotation_point();
         out["color"] = shape.get_color();
+        out["outline_color"] = shape.get_outline_color();
         out["angle"] = shape.get_angle();
         break;
       }
@@ -5154,6 +5161,7 @@ export namespace fan {
         p.size = in["size"];
         p.rotation_point = in["rotation_point"];
         p.color = in["color"];
+        p.outline_color = in.contains("outline_color") ? in["outline_color"].template get<fan::color>() : p.color;
         p.angle = in["angle"];
         *shape = p;
         break;
@@ -5664,6 +5672,17 @@ export namespace fan {
 
 #endif
 
+#if defined(fan_json)
+loco_t::shape_t::operator fan::json() {
+  fan::json out;
+  fan::graphics::shape_to_json(*this, &out);
+  return out;
+}
+loco_t::shape_t& loco_t::shape_t::operator=(const fan::json& json) {
+  fan::graphics::json_to_shape(json, this);
+  return *this;
+}
+#endif
 
 #include <fan/graphics/collider.h>
 

@@ -691,8 +691,7 @@ void fan::window::keyboard_keys_callback(GLFWwindow* wnd, int key, int scancode,
   }
 
   fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
-
-    window->key_states[key] = action;
+  window->key_states[key] = action;
 
   {
     auto it = window->m_keys_callback.GetNodeFirst();
