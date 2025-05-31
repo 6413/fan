@@ -23,9 +23,8 @@ Cache-Control: max-age=0
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8)";
     httpget += "\n\n";
     co_await tcp.write(httpget);
-    auto reader = tcp.read();
-    while (auto data = co_await reader) {
-      fan::print(data);
+    while (auto data = co_await tcp.read()) {
+       fan::print(data.buffer);
     }
   }
   catch (std::exception& e) {
@@ -41,7 +40,7 @@ fan::event::task_t tcp_server_test() {
 
     co_await tcp.listen({.port=8080}, [&](auto&& client) -> fan::event::task_t{
       while (auto msg = co_await client.read()) {
-        fan::print_no_endline("server received buffer:", msg);
+        fan::print_no_endline("server received buffer:", msg.buffer);
       }
       clients.push_back(std::move(client));
     });
@@ -61,7 +60,7 @@ fan::event::task_t tcp_client_test() {
     fan::print("sending:" + msg);
     co_await client.write(msg);
     while (auto msg = co_await client.read()) {
-      fan::print_no_endline("client received buffer:", msg);
+      fan::print_no_endline("client received buffer:", msg.buffer);
     }
   }
   catch (std::exception& e) {

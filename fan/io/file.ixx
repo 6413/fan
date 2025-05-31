@@ -7,9 +7,9 @@ module;
 #include <sstream>
 #include <vector>
 
-export module fan:io.file;
+export module fan.io.file;
 
-import :print;
+import fan.print;
 
 export namespace fan {
 	namespace io {

@@ -17,18 +17,19 @@ module;
 
 #endif
 
-export module fan:graphics.physics_shapes;
+export module fan.graphics.physics_shapes;
 
 #if defined(fan_physics)
 
-import :types.vector;
-import :types.color;
-import :physics.b2_integration;
+import fan.types.vector;
+import fan.types.color;
+import fan.physics.b2_integration;
 
 #if (fan_gui)
-  import :graphics.gui;
+  import fan.graphics;
+  import fan.graphics.gui;
 #else
-  import :graphics;
+  import fan.graphics;
 #endif
 
 int z_depth = 0;

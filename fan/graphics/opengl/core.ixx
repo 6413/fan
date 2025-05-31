@@ -24,16 +24,17 @@ module;
   #define __fan_internal_viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)this))
 #endif
 
-export module fan:graphics.opengl.core;
+export module fan.graphics.opengl.core;
 
-import :physics.collision.rectangle;
+import fan.physics.collision.rectangle;
 
-import :types.fstring;
-import :types.color;
+import fan.types.fstring;
+import fan.types.color;
 
-import :window;
-export import :graphics.image_load;
-export import :graphics.common_context;
+import fan.window;
+export import fan.print;
+export import fan.graphics.image_load;
+export import fan.graphics.common_context;
 
 template<typename T>
 concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&

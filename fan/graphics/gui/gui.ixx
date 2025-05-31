@@ -17,17 +17,21 @@ module;
 #include <filesystem>
 #include <coroutine>
 
-export module fan:graphics.gui;
+export module fan.graphics.gui;
 
-import :print;
 
 #if defined(fan_gui)
-  import :types.fstring;
-  import :event;
+  import fan.print;
+  import fan.types.vector;
+  import fan.types.color;
+  import fan.types.quaternion;
+  import fan.types.fstring;
+  import fan.event;
 
-  import :graphics;
-  import :io.file;
-  import :io.directory;
+  import fan.graphics.loco;
+  import fan.graphics;
+  import fan.io.file;
+  import fan.io.directory;
 
 #endif
 

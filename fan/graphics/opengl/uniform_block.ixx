@@ -12,9 +12,9 @@ namespace detail{
   #include <BLL/BLL.h>
 }
 
-export module fan:graphics.opengl.uniform_block;
+export module fan.graphics.opengl.uniform_block;
 
-import :graphics.opengl.core;
+import fan.graphics.opengl.core;
 
 export namespace fan {
   namespace opengl {

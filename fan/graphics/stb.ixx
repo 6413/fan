@@ -16,11 +16,11 @@ module;
 
 //#include <fan/stb/stb_image_write.h>
 
-export module fan:graphics.stb;
+export module fan.graphics.stb;
 
-import :print;
-import :types.vector;
-import :io.file;
+import fan.print;
+import fan.types.vector;
+import fan.io.file;
 
 export namespace fan {
     namespace stb {

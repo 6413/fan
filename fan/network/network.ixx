@@ -1,16 +1,18 @@
 module;
 
 #include <uv.h>
+#undef min
+#undef max
+#include <cstring>
 #include <stdexcept>
 #include <memory>
 #include <coroutine>
-#undef min
-#undef max
+#include <functional>
 
-export module fan:network;
+export module fan.network;
 
-import :print;
-import :event;
+import fan.print;
+import fan.event;
 
 export namespace fan {
   namespace network {

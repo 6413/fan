@@ -6,9 +6,9 @@ module;
 #include <ostream>
 #include <tuple>
 
-export module fan:types.masterpiece;
+export module fan.types.masterpiece;
 
-import :types.magic;
+import fan.types.magic;
 
 export namespace fan {
   #pragma pack(push, 1)

@@ -15,7 +15,7 @@ module;
 
 #endif
 
-export module fan:print;
+export module fan.print;
 
 #ifdef fan_compiler_msvc
 import std;

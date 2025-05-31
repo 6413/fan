@@ -7,9 +7,9 @@ module;
 #include <functional>
 #include <filesystem>
 
-export module fan:io.directory;
+export module fan.io.directory;
 
-import :print;
+import fan.print;
 
 export namespace fan {
   namespace io {

@@ -24,14 +24,13 @@ module;
 #define loco_responsive_text
 #define loco_universal_image_renderer
 
-export module fan:graphics;
+export module fan.graphics;
 
 //import :graphics.opengl.core; // TODO this should not be here
-import :graphics.common_types;
-import :graphics.loco;
-import :io.directory;
-import :io.file;
-import :types.color;
+export import fan.graphics.loco;
+import fan.graphics.common_types;
+import fan.io.directory;
+import fan.io.file;
 
 // user friendly functions
 /***************************************/

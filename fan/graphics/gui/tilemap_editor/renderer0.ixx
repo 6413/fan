@@ -11,16 +11,16 @@ module;
 
 #endif
 
-export module fan:graphics.gui.tilemap_editor.renderer;
+export module fan.graphics.gui.tilemap_editor.renderer;
 
 #if defined(fan_physics) && defined(fan_gui)
 
-export import :graphics.gui.tilemap_editor.loader;
+export import fan.graphics.gui.tilemap_editor.loader;
 
-import :print;
-import :graphics;
-import :graphics.physics_shapes;
-import :physics.b2_integration;
+import fan.print;
+import fan.graphics;
+import fan.graphics.physics_shapes;
+import fan.physics.b2_integration;
 //import fan;
 
 export struct fte_renderer_t : fte_loader_t {

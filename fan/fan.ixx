@@ -1,34 +1,34 @@
 export module fan;
 
-export import :print;
-export import :types.masterpiece;
-export import :types.matrix;
-export import :types.fstring;
-export import :io.file;
-export import :io.directory;
-export import :types.json;
-export import :random;
+export import fan.print;
+export import fan.types.masterpiece;
+export import fan.types.matrix;
+export import fan.types.fstring;
+export import fan.io.file;
+export import fan.io.directory;
+export import fan.types.json;
+export import fan.random;
 
-export import :graphics.loco;
-export import :graphics;
-export import :graphics.gui;
+export import fan.graphics.loco;
+export import fan.graphics;
+export import fan.graphics.gui;
 
-export import :network;
+export import fan.network;
 
-export import :event;
+export import fan.event;
 
 #define fan_audio
 #if defined(fan_audio)
-  export import :audio;
+  export import fan.audio;
 #endif
 #if defined(fan_gui)
-  export import :file_dialog;
-  export import :graphics.gui.tilemap_editor.renderer;
-  export import :graphics.gui.tilemap_editor.editor;
+  export import fan.file_dialog;
+  export import fan.graphics.gui.tilemap_editor.renderer;
+  export import fan.graphics.gui.tilemap_editor.editor;
 //export import fan.graphics.gui;
 #endif
 #if defined(fan_physics)
-export import :physics.collision.rectangle;
-export import :physics.b2_integration;
-export import :graphics.physics_shapes;
+export import fan.physics.collision.rectangle;
+export import fan.physics.b2_integration;
+export import fan.graphics.physics_shapes;
 #endif

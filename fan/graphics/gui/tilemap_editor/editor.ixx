@@ -10,17 +10,21 @@ module;
 #include <fan/types/types.h>
 #include <fan/math/math.h>
 
-export module fan:graphics.gui.tilemap_editor.editor;
+export module fan.graphics.gui.tilemap_editor.editor;
 
 #if defined(fan_gui) && defined(fan_physics)
 
-export import :graphics.gui; // export?
+export import fan.graphics.gui; // export?
 
-import :graphics.algorithm.raycast_grid;
+import fan.graphics.algorithm.raycast_grid;
 
-import :print;
-import :file_dialog;
-import :io.file;
+import fan.types.color;
+import fan.types.vector;
+import fan.print;
+import fan.file_dialog;
+import fan.io.file;
+import fan.graphics;
+import fan.physics.b2_integration;
 
 export struct fte_t {
   static constexpr int max_id_len = 48;

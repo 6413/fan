@@ -8,7 +8,7 @@ module;
 
 #include <fan/nativefiledialog/nfd.h>
 
-export module fan:file_dialog;
+export module fan.file_dialog;
 
 export namespace fan {
   namespace graphics {

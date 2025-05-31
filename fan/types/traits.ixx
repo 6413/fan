@@ -3,7 +3,7 @@ module;
 #include <type_traits>
 #include <coroutine>
 
-export module fan:types.traits;
+export module fan.types.traits;
 
 export namespace fan {
   template <typename T, typename = void>

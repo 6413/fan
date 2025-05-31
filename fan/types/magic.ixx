@@ -8,11 +8,11 @@ module;
 
 // slow header to use
 
-export module fan:types.magic;
+export module fan.types.magic;
 
-import :fmt;
-import :print;
-import :types.fstring;
+import fan.fmt;
+import fan.print;
+import fan.types.fstring;
 
 export namespace fan {
 

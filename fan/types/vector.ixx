@@ -32,7 +32,7 @@ module;
 #include <numeric>
 #include <sstream>
 
-export module fan:types.vector;
+export module fan.types.vector;
 
 export namespace fan {
 

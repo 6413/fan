@@ -104,11 +104,11 @@ endfunction()
 
 function(apply_common_compile_options target)
 	target_compile_options(${target} PRIVATE
-		-MD -MT -Wall -Wextra -ferror-limit=16 -stdlib=libstdc++ -fsized-deallocation
+		-MD -MT -Wall -Wextra -ferror-limit=2 -stdlib=libstdc++ -fsized-deallocation
 		-Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast
 		-Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses
 		-Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare
-		-Wno-unused-but-set-parameter -Wno-unused-value -pthread
+		-Wno-unused-but-set-parameter -Wno-unused-value -pthread -w
 	)
 endfunction()
 
@@ -129,6 +129,7 @@ set(MODULE_FILES
 	${ROOT_PATH}/types/matrix.ixx
 	${ROOT_PATH}/types/magic.ixx
 	${ROOT_PATH}/types/masterpiece.ixx
+	${ROOT_PATH}/types/traits.ixx
 	
 	${ROOT_PATH}/types/fstring.ixx
 	
@@ -149,6 +150,7 @@ set(MODULE_FILES
 	${ROOT_PATH}/graphics/loco.ixx
 	${ROOT_PATH}/graphics/graphics.ixx
 	${ROOT_PATH}/graphics/file_dialog.ixx
+	${ROOT_PATH}/graphics/algorithm/raycast_grid.ixx
 	
 	${ROOT_PATH}/physics/collision/rectangle.ixx
 	${ROOT_PATH}/physics/collision/triangle.ixx
@@ -160,6 +162,8 @@ set(MODULE_FILES
 	${ROOT_PATH}/audio/audio.ixx
 	
 	${ROOT_PATH}/event/event.ixx
+	
+	${ROOT_PATH}/network/network.ixx
 	
 	${ROOT_PATH}/fan.ixx
 )
@@ -179,6 +183,7 @@ if(FAN_GUI)
 	list(APPEND MODULE_FILES
 		${ROOT_PATH}/graphics/gui/tilemap_editor/renderer0.ixx
 		${ROOT_PATH}/graphics/gui/tilemap_editor/loader.ixx
+		${ROOT_PATH}/graphics/gui/tilemap_editor/editor.ixx
 	
 		${ROOT_PATH}/graphics/gui/gui.ixx
 		${ROOT_PATH}/graphics/gui/console.ixx
