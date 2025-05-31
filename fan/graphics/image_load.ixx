@@ -4,15 +4,15 @@ module;
 
 #include <string>
 
-export module fan:graphics.image_load;
+export module fan.graphics.image_load;
 
 #if !defined(loco_no_stb)
-  import :graphics.stb;
+  import fan.graphics.stb;
 #endif
 
-import :print;
-import :types.vector;
-import :graphics.webp;
+import fan.print;
+import fan.types.vector;
+import fan.graphics.webp;
 
 export namespace fan {
   namespace image {

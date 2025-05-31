@@ -7,10 +7,10 @@ module;
   #include <fan/types/json_impl.h>
 #endif
 
-export module fan:types.json;
+export module fan.types.json;
 
-import :types.vector;
-import :types.color;
+import fan.types.vector;
+import fan.types.color;
 
 export {
   namespace fan {

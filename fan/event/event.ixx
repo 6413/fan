@@ -13,10 +13,10 @@ module;
 
 using namespace std::chrono_literals;
 
-export module fan:event;
+export module fan.event;
 
-import :print;
-import :types.traits;
+import fan.print;
+import fan.types.traits;
 
 export namespace fan{
   inline constexpr int fs_o_append      = UV_FS_O_APPEND;

@@ -4,12 +4,12 @@ module;
 #include <cmath>
 #include <vector>
 
-export module fan:graphics.algorithm.raycast_grid;
+export module fan.graphics.algorithm.raycast_grid;
 
-export import :types.vector;
-import :graphics.common_types;
+export import fan.types.vector;
+import fan.graphics.common_types;
 
-namespace fan {
+export namespace fan {
   namespace graphics {
     namespace algorithm {
       struct ray_grid_result_t {
