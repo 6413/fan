@@ -9,13 +9,13 @@ module;
 #include <memory>
 #include <string>
 
-export module fan:graphics.common_context;
+export module fan.graphics.common_context;
 
-export import :types.color;
-export import :graphics.image_load;
-export import :camera;
+export import fan.types.color;
+export import fan.graphics.image_load;
+export import fan.camera;
 
-import :print;
+import fan.print;
 
 export namespace fan {
   namespace graphics {

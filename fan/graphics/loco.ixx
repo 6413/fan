@@ -95,37 +95,37 @@ module;
   #define loco_cuda
 #endif
 
-export module fan:graphics.loco;
+export module fan.graphics.loco;
 
-import :event;
-import :file_dialog;
+export import fan.event;
+export import fan.file_dialog;
 
-import :window;
-import :types.color;
-import :random;
+export import fan.window;
+export import fan.types.color;
+export import fan.random;
 
-import :io.file;
-import :types.fstring;
+export import fan.io.file;
+export import fan.types.fstring;
 #if defined(fan_physics)
-  import :physics.b2_integration;
+  import fan.physics.b2_integration;
 #endif
 
 #if defined(loco_audio)
-  import :audio;
+  export import fan.audio;
 #endif
 
 #if defined(fan_gui)
-  import :console;
+  export import fan.console;
 #endif
 
-import :graphics.webp;
-import :graphics.opengl.core;
+import fan.graphics.webp;
+export import fan.graphics.opengl.core;
 
-import :physics.collision.rectangle;
+export import fan.physics.collision.rectangle;
 
 #if defined(fan_json)
 
-import :types.json;
+export import fan.types.json;
 
 export namespace fan {
   struct json_stream_parser_t {

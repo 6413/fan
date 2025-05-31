@@ -10,10 +10,10 @@ module;
 #include <ios>
 #include <sstream>
 
-export module fan:types.fstring;
+export module fan.types.fstring;
 
-import :print; // for throw_error with msg
-import :types.vector;
+import fan.print; // for throw_error with msg
+import fan.types.vector;
 
 export namespace fan {
 
