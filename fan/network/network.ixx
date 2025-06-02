@@ -8,15 +8,18 @@ module;
 #include <memory>
 #include <coroutine>
 #include <functional>
+#include <unordered_map>
+#include <array>
+
+#include <fan/types/types.h>
 
 export module fan.network;
 
-import fan.print;
-import fan.event;
+export import fan.event;
+export import fan.print;
 
 export namespace fan {
   namespace network {
-    struct tcp_t;
     struct getaddrinfo_t {
       struct getaddrinfo_data_t {
         uv_getaddrinfo_t getaddrinfo_handle;
@@ -57,6 +60,8 @@ export namespace fan {
       }
     };
 
+    // -------------------------------TCP-------------------------------
+    struct tcp_t;
     struct connector_t {
       struct connector_data_t {
         uv_connect_t req;
@@ -68,12 +73,12 @@ export namespace fan {
 
       template <typename T>
       requires (std::is_same_v<T, tcp_t>)
-      connector_t(const T& tcp, const char* ip, int port) :
+      connector_t(const T& tcp, const std::string& ip, int port) :
         data{ std::make_unique<connector_data_t>() }
       {
         data->req.data = data.get();
         struct sockaddr_in client_addr;
-        auto result = uv_ip4_addr(ip, port, &client_addr);
+        auto result = uv_ip4_addr(ip.c_str(), port, &client_addr);
 
         if (result != 0) {
           fan::throw_error("failed to resolve address");
@@ -185,8 +190,10 @@ export namespace fan {
       };
     }
 
+    using buffer_t = std::vector<char>;
+
     struct data_t {
-      std::string buffer;
+      buffer_t buffer;
       ssize_t status = error_code::unknown;
       operator bool() {
         return status == error_code::ok;
@@ -194,14 +201,17 @@ export namespace fan {
       operator ssize_t() const {
         return status;
       }
-      operator const std::string&() const {
+      operator const std::string() const {
+        return { buffer.begin(), buffer.end() };
+      }
+      operator const buffer_t&() const {
         return buffer;
       }
     };
 
     struct raw_reader_t {
       std::shared_ptr<uv_stream_t> stream;
-      std::string buf;
+      buffer_t buf;
       ssize_t nread{ 0 };
       std::coroutine_handle<> co_handle;
 
@@ -232,7 +242,7 @@ export namespace fan {
           [](uv_stream_t* req, ssize_t nread, const uv_buf_t* buf) {
             auto self = static_cast<raw_reader_t*>(req->data);
             self->nread = nread;
-            [[likely]] if (self->co_handle) {
+            [[likely]] if (self->co_handle && nread != 0) {
               self->co_handle();
             }
           }
@@ -244,7 +254,7 @@ export namespace fan {
         data_t data;
         data.status = nread < 0 ? nread : error_code::ok;
         if (nread > 0) {
-          data.buffer = buf.c_str();
+          data.buffer = buffer_t(buf.begin(), buf.begin() + nread);
         }
         nread = 0;
         co_handle = nullptr;
@@ -263,7 +273,7 @@ export namespace fan {
       struct writer_data_t {
         std::shared_ptr<uv_stream_t> stream;
         uv_write_t write_handle;
-        std::string to_write;
+        buffer_t to_write;
         std::coroutine_handle<> co_handle;
         int status{ 0 };
       };
@@ -279,7 +289,7 @@ export namespace fan {
       raw_writer_t(raw_writer_t&&) = default;
       raw_writer_t& operator=(raw_writer_t&&) = default;
 
-      int write(const std::string& some_data) {
+      int write(const buffer_t& some_data) {
         data->to_write = some_data;
         data->status = 1;
         uv_buf_t buf = uv_buf_init(data->to_write.data(), data->to_write.size());
@@ -315,7 +325,7 @@ export namespace fan {
     };
 
     struct message_t {
-      std::string buffer;
+      buffer_t buffer;
       ssize_t status;
       bool done;
 
@@ -325,25 +335,30 @@ export namespace fan {
       operator ssize_t() const {
         return status;
       }
-      operator const std::string& () const {
+      operator const std::string () const {
+        return { buffer.begin(), buffer.end() };
+      }
+      operator const buffer_t& () const {
         return buffer;
       }
     };
 
     struct reader_t {
       std::shared_ptr<uv_stream_t> stream;
-      std::string accumulated_buf;
-      std::string temp_buf;
+      buffer_t accumulated_buf;
+      buffer_t temp_buf;
       ssize_t nread{ 0 };
       std::coroutine_handle<> co_handle;
 
       uint64_t expected_size{ 0 };
       uint64_t bytes_read{ 0 };
       bool reading_header{ true };
+      bool is_raw_read{ false };
+      bool is_fixed_size_read{ false };
       static constexpr size_t header_size = sizeof(uint64_t);
 
       template <typename T>
-      requires (std::is_same_v<T, tcp_t>)
+        requires (std::is_same_v<T, tcp_t>)
       reader_t(const T& tcp) : stream{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) } {
         stream->data = this;
       }
@@ -357,14 +372,33 @@ export namespace fan {
         co_handle{ std::move(r.co_handle) },
         expected_size{ r.expected_size },
         bytes_read{ r.bytes_read },
-        reading_header{ r.reading_header } {
+        reading_header{ r.reading_header },
+        is_raw_read{ r.is_raw_read },
+        is_fixed_size_read{ r.is_fixed_size_read } {
         stream->data = this;
       }
 
+      void setup_fixed_size_read(ssize_t len) {
+        reading_header = false;
+        expected_size = len;
+        is_raw_read = false;
+        is_fixed_size_read = true;
+      }
+      void setup_raw_read() {
+        reading_header = false;
+        expected_size = 0;
+        is_raw_read = true;
+        is_fixed_size_read = false;
+      }
+      void setup_header_read() {
+        reading_header = true;
+        expected_size = 0;
+        is_raw_read = false;
+        is_fixed_size_read = false;
+      }
       void stop() {
         uv_read_stop(stream.get());
       }
-
       int start() noexcept {
         return uv_read_start(stream.get(),
           [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
@@ -376,60 +410,85 @@ export namespace fan {
             auto self = static_cast<reader_t*>(req->data);
             self->nread = nread;
             if (nread > 0) {
-              self->accumulated_buf.append(self->temp_buf.data(), nread);
+              self->accumulated_buf.insert(self->accumulated_buf.end(), self->temp_buf.begin(), self->temp_buf.begin() + nread);
             }
-            [[likely]] if (self->co_handle) {
+            [[likely]] if (self->co_handle && nread != 0) {
               self->co_handle();
             }
           }
         );
       }
-
       bool await_ready() const {
         if (nread < 0) return true;
+      //  if (nread == 0) return false;
 
-        if (reading_header) {
-          return accumulated_buf.size() >= header_size;
+        if (is_raw_read) {
+          return nread > 0 || !accumulated_buf.empty();
         }
-        else {
+        else if (is_fixed_size_read) {
           return accumulated_buf.size() >= expected_size;
         }
+        else {
+          if (reading_header) {
+            return accumulated_buf.size() >= header_size;
+          }
+          else {
+            return accumulated_buf.size() >= expected_size;
+          }
+        }
       }
-
       void await_suspend(std::coroutine_handle<> h) {
         co_handle = h;
       }
-
       message_t await_resume() {
-        // Handle errors
         if (nread < 0) {
           co_handle = nullptr;
           auto error_status = nread;
           nread = 0;
-          return { .buffer = "", .status = error_status, .done = true };
+          return { .status = error_status, .done = true };
         }
 
         co_handle = nullptr;
 
-        if (reading_header && accumulated_buf.size() >= header_size) {
-          std::memcpy(&expected_size, accumulated_buf.data(), header_size);
-          accumulated_buf.erase(0, header_size);
-          reading_header = false;
-          bytes_read = 0;
-        }
-
-        if (!reading_header && accumulated_buf.size() >= expected_size) {
-          auto buffer = accumulated_buf.substr(0, expected_size);
-          accumulated_buf.erase(0, expected_size);
-          reading_header = true;
-          expected_size = bytes_read = 0;
+        if (is_raw_read) {
+          buffer_t buffer;
+          if (!accumulated_buf.empty()) {
+            buffer = std::move(accumulated_buf);
+            accumulated_buf.clear();
+          }
           nread = 0;
-          return { .buffer = buffer, .status = error_code::ok, .done = true};
+          return { .buffer = std::move(buffer), .status = error_code::ok, .done = false };
         }
+        else if (is_fixed_size_read) {
+          if (accumulated_buf.size() >= expected_size) {
+            buffer_t buffer(accumulated_buf.begin(), accumulated_buf.begin() + expected_size);
+            accumulated_buf.erase(accumulated_buf.begin(), accumulated_buf.begin() + expected_size);
+            nread = 0;
+            return { .buffer = buffer, .status = error_code::ok, .done = true };
+          }
+          nread = 0;
+          return { .status = error_code::ok, .done = false };
+        }
+        else {
+          if (reading_header && accumulated_buf.size() >= header_size) {
+            std::memcpy(&expected_size, accumulated_buf.data(), header_size);
+            accumulated_buf.erase(accumulated_buf.begin(), accumulated_buf.begin() + header_size);
+            reading_header = false;
+            bytes_read = 0;
+          }
 
-        auto buffer = reading_header ? "" : accumulated_buf.substr(0, nread);
-        nread = 0;
-        return { .buffer = buffer, .status = error_code::ok, .done = false };
+          if (!reading_header && accumulated_buf.size() >= expected_size) {
+            buffer_t buffer(accumulated_buf.begin(), accumulated_buf.begin() + expected_size);
+            accumulated_buf.erase(accumulated_buf.begin(), accumulated_buf.begin() + expected_size);
+            reading_header = true;
+            expected_size = bytes_read = 0;
+            nread = 0;
+            return { .buffer = buffer, .status = error_code::ok, .done = true };
+          }
+
+          nread = 0;
+          return { .status = error_code::ok, .done = false };
+        }
       }
 
       ~reader_t() {
@@ -441,11 +500,71 @@ export namespace fan {
       }
     };
 
+    template<typename T>
+    struct typed_message_t {
+      T data;
+      ssize_t status;
+      bool done;
+
+      operator bool() const {
+        return status == error_code::ok;
+      }
+      operator ssize_t() const {
+        return status;
+      }
+      const T& operator*() const {
+        return data;
+      }
+      T& operator*() {
+        return data;
+      }
+      const T* operator->() const {
+        return &data;
+      }
+      T* operator->() {
+        return &data;
+      }
+    };
+
+    template<typename T>
+    struct typed_reader_t {
+      reader_t& base_reader;
+
+      typed_reader_t(reader_t& reader) : base_reader(reader) {
+        base_reader.setup_fixed_size_read(sizeof(T));
+      }
+
+      bool await_ready() const {
+        return base_reader.await_ready();
+      }
+
+      void await_suspend(std::coroutine_handle<> h) {
+        base_reader.await_suspend(h);
+      }
+
+      typed_message_t<T> await_resume() {
+        auto msg = base_reader.await_resume();
+        typed_message_t<T> result;
+        result.status = msg.status;
+        result.done = msg.done;
+
+        if (msg.status == error_code::ok && msg.buffer.size() >= sizeof(T)) {
+          std::memcpy(&result.data, msg.buffer.data(), sizeof(T));
+        }
+        else {
+          result.data = T{};
+        }
+
+        return result;
+      }
+    };
+
     struct writer_t {
       raw_writer_t raw_writer;
+      std::vector<fan::event::task_t> client_tasks;
 
       template <typename T>
-        requires (std::is_same_v<T, tcp_t>)
+      requires (std::is_same_v<T, tcp_t>)
       writer_t(const T& tcp) : raw_writer(tcp) {}
 
       writer_t(const writer_t&) = delete;
@@ -453,13 +572,17 @@ export namespace fan {
       writer_t(writer_t&&) = default;
       writer_t& operator=(writer_t&&) = default;
 
-      int write(const std::string& user_data) {
+      int write(const buffer_t& user_data) {
         uint64_t data_size = user_data.size();
-        std::string message_data;
+        buffer_t message_data;
         message_data.reserve(sizeof(uint64_t) + data_size);
 
-        message_data.append(reinterpret_cast<const char*>(&data_size), sizeof(uint64_t));
-        message_data.append(user_data);
+        message_data.insert(
+          message_data.end(), 
+          reinterpret_cast<const char*>(&data_size), 
+          reinterpret_cast<const char*>(&data_size) + sizeof(uint64_t)
+        );
+        message_data.insert(message_data.end(), user_data.begin(), user_data.end());
 
         return raw_writer.write(message_data);
       }
@@ -486,11 +609,44 @@ export namespace fan {
       uint16_t port = 0;
     };
 
-    struct tcp_t;
+    struct client_handler_t {
+#define BLL_set_SafeNext 1
+#define BLL_set_AreWeInsideStruct 1
+#define BLL_set_prefix client_list
+#include <fan/fan_bll_preset.h>
+#define BLL_set_Link 1
+#define BLL_set_type_node uint32_t
+#define BLL_set_NodeDataType fan::network::tcp_t*
+#define BLL_set_CPP_CopyAtPointerChange 1
+#include <BLL/BLL.h>
 
-    using listen_cb_t = std::function<fan::event::task_t(tcp_t&&)>;
+      using nr_t = client_list_t::nr_t;
+      client_list_t client_list;
+
+      nr_t add_client();
+
+      tcp_t& get_client(nr_t id) {
+        return *client_list[id];
+      }
+      const tcp_t& get_client(nr_t id) const {
+        return get_client(id);
+      }
+
+      tcp_t& operator[](nr_t id) {
+        return get_client(id);
+      }
+      const tcp_t& operator[](nr_t id) const {
+        return get_client(id);
+      }
+      uint32_t amount_of_connections = 128;
+    };
+    client_handler_t client_handler;
 
     struct tcp_t {
+      client_handler_t::nr_t nr;
+      fan::event::task_t task;
+      using listen_cb_t = std::function<fan::event::task_t(tcp_t&)>;
+
       std::shared_ptr<uv_tcp_t> socket;
       reader_t reader;
 
@@ -503,6 +659,9 @@ export namespace fan {
       };
 
       tcp_t() : socket(new uv_tcp_t, tcp_deleter_t{}), reader(*this) {
+        client_handler_t::nr_t nr = client_handler.client_list.NewNodeLast();
+        client_handler.client_list[nr] = this;
+        client_handler.client_list[nr]->nr = nr;
         uv_tcp_init(fan::event::event_loop, socket.get());
       }
       tcp_t(const tcp_t&) = delete;
@@ -521,23 +680,73 @@ export namespace fan {
       }
 
       fan::event::task_t listen(const listen_address_t& address, listen_cb_t lambda);
-      connector_t connect(const char* ip, int port) {
+      connector_t connect(const std::string& ip, int port) {
         return connector_t{ *this, ip, port };
       }
       connector_t connect(const getaddrinfo_t& info) {
         return connector_t{ *this, info };
       }
-      reader_t read() {
-        reader_t r{ *this };
-        if (int result = r.start() != 0) {
-          fan::throw_error("failed to start reading:", result);
+      
+      mutable std::unique_ptr<reader_t> persistent_reader;
+      reader_t& get_reader() const {
+        if (!persistent_reader) {
+          persistent_reader = std::make_unique<reader_t>(*this);
+          persistent_reader->start();
         }
+        return *persistent_reader;
+      }
+      reader_t& read(ssize_t len) const {
+        auto& r = get_reader();
+        r.setup_fixed_size_read(len);
         return r;
       }
-      writer_t write(const std::string& data) {
+      reader_t& read_raw() const {
+        auto& r = get_reader();
+        r.setup_raw_read();
+        return r;
+      }
+      reader_t& read() const {
+        auto& r = get_reader();
+        r.setup_header_read();
+        return r;
+      }
+      template <typename T>
+      typed_reader_t<T> read() const {
+        auto& r = get_reader();
+        return typed_reader_t<T>(r);
+      }
+
+      writer_t write(const buffer_t& data) const {
         writer_t w{ *this };
         w.write(data);
         return w;
+      }
+      writer_t write(const std::string& data) const {
+        return write(buffer_t(data.begin(), data.end()));
+      }
+      raw_writer_t write_raw(const buffer_t& data) const {
+        raw_writer_t w{ *this };
+        w.write(data);
+        return w;
+      }
+      raw_writer_t write_raw(const std::string& data) const {
+        return write_raw(buffer_t(data.begin(), data.end()));
+      }
+      template <typename T>
+      raw_writer_t write_raw(T* data, ssize_t length) const {
+        return write_raw(std::string((const char*)data, (const char*)data + length));
+      }
+
+      void broadcast(auto lambda) const {
+        auto it = client_handler.client_list.GetNodeFirst();
+        while (it != client_handler.client_list.dst) {
+          client_handler.client_list.StartSafeNext(it);
+          tcp_t* node = client_handler.client_list[it];
+          if (node->nr != nr) {
+            lambda(*node);
+          }
+          it = client_handler.client_list.EndSafeNext();
+        }
       }
     };
 
@@ -546,22 +755,631 @@ export namespace fan {
         fan::throw_error("invalid port");
       }
       bind(address.ip, address.port);
-      static constexpr auto amount_of_connections = 128;
-      listener_t listener = listener_t{ *this, amount_of_connections };
+      
+      listener_t listener(*this, client_handler.amount_of_connections);
       while (true) {
-        fan::network::tcp_t client;
+        auto client_id = client_handler.add_client();
+        tcp_t& client = client_handler[client_id];
         if (co_await listener != 0) {
           continue;
         }
         if (accept(client) == 0) {
-          co_await lambda(std::move(client));
+          client.task = [client_id] (const auto& lambda) -> fan::event::task_t { co_await lambda(client_handler[client_id]); }(lambda);
         }
       }
       co_return;
     }
-    fan::event::task_t tcp_listen(listen_address_t address, listen_cb_t lambda) {
+    fan::event::task_t tcp_listen(listen_address_t address, tcp_t::listen_cb_t lambda) {
       tcp_t tcp;
       co_await tcp.listen(address, lambda);
     }
+    // -------------------------------TCP-------------------------------
+
+
+    // -------------------------------UDP-------------------------------
+    struct udp_t;
+    struct socket_address_t {
+      union {
+        struct sockaddr_storage storage;
+        struct sockaddr_in ipv4;
+        struct sockaddr_in6 ipv6;
+        struct sockaddr generic;
+      } addr;
+
+      socket_address_t() {
+        std::memset(&addr, 0, sizeof(addr));
+      }
+
+      socket_address_t(const std::string& ip, int port) {
+        std::memset(&addr, 0, sizeof(addr));
+        if (uv_ip4_addr(ip.c_str(), port, &addr.ipv4) == 0) {
+        }
+        else if (uv_ip6_addr(ip.c_str(), port, &addr.ipv6) == 0) {
+        }
+        else {
+          fan::throw_error("Invalid IP address: " + ip);
+        }
+      }
+
+      socket_address_t(const struct sockaddr* sa) {
+        std::memset(&addr, 0, sizeof(addr));
+        if (sa->sa_family == AF_INET) {
+          std::memcpy(&addr.ipv4, sa, sizeof(struct sockaddr_in));
+        }
+        else if (sa->sa_family == AF_INET6) {
+          std::memcpy(&addr.ipv6, sa, sizeof(struct sockaddr_in6));
+        }
+      }
+
+      std::string get_ip() const {
+        char ip_str[INET6_ADDRSTRLEN];
+        if (addr.generic.sa_family == AF_INET) {
+          uv_ip4_name(&addr.ipv4, ip_str, sizeof(ip_str));
+        }
+        else if (addr.generic.sa_family == AF_INET6) {
+          uv_ip6_name(&addr.ipv6, ip_str, sizeof(ip_str));
+        }
+        else {
+          return "unknown";
+        }
+        return std::string(ip_str);
+      }
+
+      int get_port() const {
+        if (addr.generic.sa_family == AF_INET) {
+          return ntohs(addr.ipv4.sin_port);
+        }
+        else if (addr.generic.sa_family == AF_INET6) {
+          return ntohs(addr.ipv6.sin6_port);
+        }
+        return 0;
+      }
+
+      const struct sockaddr* sockaddr_ptr() const {
+        return &addr.generic;
+      }
+
+      int sockaddr_len() const {
+        if (addr.generic.sa_family == AF_INET) {
+          return sizeof(struct sockaddr_in);
+        }
+        else if (addr.generic.sa_family == AF_INET6) {
+          return sizeof(struct sockaddr_in6);
+        }
+        return sizeof(struct sockaddr_storage);
+      }
+    };
+
+    struct udp_datagram_t {
+      buffer_t data;
+      socket_address_t sender;
+      ssize_t status;
+
+      udp_datagram_t() : status(0) {}
+
+      udp_datagram_t(const buffer_t& msg, const socket_address_t& addr, ssize_t stat = 0)
+        : data(msg), sender(addr), status(stat) {
+      }
+
+      operator bool() const {
+        return status >= 0;
+      }
+      operator const std::string& () const {
+        return { data.begin(), data.end() };
+      }
+      operator const buffer_t() const {
+        return data;
+      }
+
+      const buffer_t& message() const { return data; }
+      std::string sender_ip() const { return sender.get_ip(); }
+      int sender_port() const { return sender.get_port(); }
+      bool is_error() const { return status < 0; }
+      bool is_empty() const { return data.empty(); }
+      size_t size() const { return data.size(); }
+    };
+
+    struct udp_send_t {
+      struct send_data_t {
+        uv_udp_send_t req;
+        buffer_t data_buffer;
+        socket_address_t destination;
+        std::coroutine_handle<> co_handle;
+        int status{ 1 }; // 1 = pending, 0 = success, <0 = error
+      };
+
+      std::unique_ptr<send_data_t> data;
+
+      template <typename T>
+      requires (std::is_same_v<T, udp_t>)
+      udp_send_t(const T& udp, const buffer_t& message, const socket_address_t& addr);
+      template <typename T>
+      requires (std::is_same_v<T, udp_t>)
+      udp_send_t(const T& udp, const buffer_t& message, const std::string& ip, int port);
+
+      template <typename T>
+      requires (std::is_same_v<T, udp_t>)
+      udp_send_t(const T& udp, const std::string& message, const std::string& ip, int port);
+      template <typename T>
+      requires (std::is_same_v<T, udp_t>)
+      udp_send_t(const T& udp, const std::string& message, const socket_address_t& addr);
+      udp_send_t(udp_send_t&&) = default;
+      udp_send_t& operator=(udp_send_t&&) = default;
+
+      bool await_ready() const { return data->status <= 0; }
+      void await_suspend(std::coroutine_handle<> h) { data->co_handle = h; }
+      int await_resume() {
+        if (data->status < 0) {
+          throw std::runtime_error(std::string("UDP send failed: ") + uv_strerror(data->status));
+        }
+        return data->status;
+      }
+
+      ~udp_send_t() {
+        if (data && data->status == 1) {
+          data->req.cb = [](uv_udp_send_t* req, int) {
+            delete static_cast<send_data_t*>(req->data);
+            };
+          data.release();
+        }
+      }
+    };
+
+    struct udp_recv_t {
+      std::shared_ptr<uv_udp_t> socket;
+      std::coroutine_handle<> co_handle;
+      udp_datagram_t datagram;
+      bool ready{ false };
+      bool receiving{ false };
+
+      template <typename T>
+      requires (std::is_same_v<T, udp_t>)
+      udp_recv_t(const T& udp);
+      udp_recv_t(const udp_recv_t&) = delete;
+      udp_recv_t(udp_recv_t&& r) noexcept :
+        socket{ std::move(r.socket) },
+        co_handle{ std::move(r.co_handle) },
+        datagram{ std::move(r.datagram) },
+        ready{ r.ready },
+        receiving{ r.receiving } {
+        if (socket) {
+          socket->data = this;
+        }
+      }
+
+      int start() {
+        if (receiving) return 0;
+        receiving = true;
+        socket->data = this;
+        return uv_udp_recv_start(socket.get(),
+          [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+            auto self = static_cast<udp_recv_t*>(handle->data);
+            self->datagram.data.resize(suggested_size);
+            *buf = uv_buf_init(self->datagram.data.data(), suggested_size);
+          },
+          [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags) {
+            auto self = static_cast<udp_recv_t*>(handle->data);
+
+            self->datagram.status = nread;
+            self->ready = true;
+
+            if (nread > 0 && addr) {
+              self->datagram.data.resize(nread);
+              self->datagram.sender = socket_address_t(addr);
+            }
+            else if (nread <= 0) {
+              self->datagram.data.clear();
+            }
+
+            uv_udp_recv_stop(handle);
+            self->receiving = false;
+
+            if (self->co_handle) {
+              self->co_handle();
+            }
+          }
+        );
+      }
+      void stop() {
+        if (receiving) {
+          uv_udp_recv_stop(socket.get());
+          receiving = false;
+        }
+      }
+      bool await_ready() const { return ready; }
+      void await_suspend(std::coroutine_handle<> h) {
+        co_handle = h;
+        start();
+      }
+      udp_datagram_t await_resume() {
+        ready = false;
+        co_handle = nullptr;
+        return std::move(datagram);
+      }
+
+      ~udp_recv_t() {
+        stop();
+      }
+    };
+
+    struct udp_t {
+      using recv_cb_t = std::function<fan::event::task_t(udp_t&, const udp_datagram_t&)>;
+
+      std::shared_ptr<uv_udp_t> socket;
+      fan::event::task_t task;
+
+      struct udp_deleter_t {
+        void operator()(void* p) const {
+          uv_close(static_cast<uv_handle_t*>(p), [](uv_handle_t* req) {
+            delete reinterpret_cast<uv_udp_t*>(req);
+          });
+        }
+      };
+
+      udp_t() : socket(new uv_udp_t, udp_deleter_t{}) {
+        int result = uv_udp_init(fan::event::event_loop, socket.get());
+        if (result != 0) {
+          fan::throw_error("Failed to initialize UDP socket", result);
+        }
+      }
+
+      udp_t(const udp_t&) = delete;
+      udp_t& operator=(const udp_t&) = delete;
+      udp_t(udp_t&&) = default;
+      udp_t& operator=(udp_t&&) = delete;
+
+      fan::event::error_code_t bind(const std::string& ip, int port, unsigned int flags = 0) noexcept {
+        socket_address_t addr(ip, port);
+        return uv_udp_bind(socket.get(), addr.sockaddr_ptr(), flags);
+      }
+      udp_send_t send(const std::string& data, const std::string& ip, int port) {
+        return udp_send_t{ *this, data, ip, port };
+      }
+      udp_send_t send(const std::string& data, const socket_address_t& addr) {
+        return udp_send_t{ *this, data, addr };
+      }
+      udp_send_t send(const buffer_t& data, const std::string& ip, int port) {
+        return udp_send_t{ *this, data, ip, port };
+      }
+      udp_send_t send(const buffer_t& data, const socket_address_t& addr) {
+        return udp_send_t{ *this, data, addr };
+      }
+      udp_send_t reply(const udp_datagram_t& received, const std::string& response) {
+        return udp_send_t{ *this, response, received.sender };
+      }
+      udp_recv_t recv() {
+        return udp_recv_t{ *this };
+      }
+
+      fan::event::task_t listen(const listen_address_t& address, recv_cb_t callback) {
+        if (address.port == 0) {
+          fan::throw_error("invalid port");
+        }
+
+        auto bind_result = bind(address.ip, address.port);
+        if (bind_result != 0) {
+          fan::throw_error("UDP bind failed", bind_result);
+        }
+
+        while (true) {
+          auto datagram = co_await recv();
+          if (datagram.is_error()) {
+            if (datagram.status == UV_EOF) {
+              break;
+            }
+            continue;
+          }
+
+          if (!datagram.is_empty()) {
+            co_await callback(*this, datagram);
+          }
+        }
+
+        co_return;
+      }
+
+      socket_address_t get_sockname() const {
+        struct sockaddr_storage addr;
+        int namelen = sizeof(addr);
+        int result = uv_udp_getsockname(socket.get(), reinterpret_cast<struct sockaddr*>(&addr), &namelen);
+
+        if (result != 0) {
+          return socket_address_t();
+        }
+
+        return socket_address_t(reinterpret_cast<struct sockaddr*>(&addr));
+      }
+
+      fan::event::error_code_t set_broadcast(bool enable) noexcept {
+        return uv_udp_set_broadcast(socket.get(), enable ? 1 : 0);
+      }
+      fan::event::error_code_t set_ttl(int ttl) noexcept {
+        return uv_udp_set_ttl(socket.get(), ttl);
+      }
+      fan::event::error_code_t join_multicast(const std::string& multicast_addr, const std::string& interface_addr = "") noexcept {
+        return uv_udp_set_membership(socket.get(), multicast_addr.c_str(),
+          interface_addr.empty() ? nullptr : interface_addr.c_str(),
+          UV_JOIN_GROUP);
+      }
+      fan::event::error_code_t leave_multicast(const std::string& multicast_addr, const std::string& interface_addr = "") noexcept {
+        return uv_udp_set_membership(socket.get(), multicast_addr.c_str(),
+          interface_addr.empty() ? nullptr : interface_addr.c_str(),
+          UV_LEAVE_GROUP);
+      }
+      fan::event::error_code_t set_multicast_ttl(int ttl) noexcept {
+        return uv_udp_set_multicast_ttl(socket.get(), ttl);
+      }
+      fan::event::error_code_t set_multicast_interface(const std::string& interface_addr) noexcept {
+        return uv_udp_set_multicast_interface(socket.get(), interface_addr.c_str());
+      }
+
+      fan::event::error_code_t set_multicast_loop(bool enable) noexcept {
+        return uv_udp_set_multicast_loop(socket.get(), enable ? 1 : 0);
+      }
+
+      bool is_bound() const {
+        auto addr = get_sockname();
+        return addr.get_port() != 0;
+      }
+    };
+
+    template <typename T>
+    requires (std::is_same_v<T, udp_t>)
+    udp_send_t::udp_send_t(const T& udp, const buffer_t& message, const socket_address_t& addr) :
+      data(std::make_unique<send_data_t>()) {
+      data->req.data = data.get();
+      data->data_buffer = message;
+      data->destination = addr;
+      uv_buf_t buf = uv_buf_init(data->data_buffer.data(), data->data_buffer.size());
+      data->status = uv_udp_send(&data->req, udp.socket.get(), &buf, 1,
+        data->destination.sockaddr_ptr(),
+        [](uv_udp_send_t* req, int status) {
+          auto* data = static_cast<send_data_t*>(req->data);
+          data->status = status;
+          if (data->co_handle) {
+            data->co_handle();
+          }
+        }
+      );
+
+      if (data->status == 0) {
+        data->status = 1;
+      }
+    }
+
+    template <typename T>
+    requires (std::is_same_v<T, udp_t>)
+    udp_send_t::udp_send_t(const T& udp, const buffer_t& message, const std::string& ip, int port) :
+      udp_send_t(udp, message, socket_address_t(ip, port)) {}
+    template <typename T>
+      requires (std::is_same_v<T, udp_t>)
+    udp_send_t::udp_send_t(const T& udp, const std::string& message, const socket_address_t& addr) :
+      udp_send_t(udp, buffer_t{ message.begin(), message.end() }, addr) {
+    }
+    template <typename T>
+      requires (std::is_same_v<T, udp_t>)
+    udp_send_t::udp_send_t(const T& udp, const std::string& message, const std::string& ip, int port) :
+      udp_send_t(udp, message, socket_address_t(ip, port)) {
+    }
+
+    template <typename T>
+    requires (std::is_same_v<T, udp_t>)
+    udp_recv_t::udp_recv_t(const T& udp) : socket(udp.socket) {
+      socket->data = this;
+    }
+    fan::event::task_t udp_listen(listen_address_t address, udp_t::recv_cb_t callback) {
+      udp_t udp;
+      co_await udp.listen(address, callback);
+    }
+    // -------------------------------UDP-------------------------------
+
+
+
+    struct keep_alive_config_t {
+      static constexpr size_t timer_step_limit = 7;
+      std::array<int, timer_step_limit> timer_steps{ 30, 1, 2, 2, 4, 4, 4 };
+      size_t current_step = 0;
+      bool is_running = false;
+    };
+
+    template<typename ConnectionType>
+    struct keep_alive_timer_t {
+    public:
+      using timeout_callback_t = std::function<void()>;
+      using send_keepalive_callback_t = std::function<fan::event::task_t(ConnectionType&)>;
+    private:
+      ConnectionType& connection;
+      keep_alive_config_t config;
+      fan::event::task_t timer_task;
+      send_keepalive_callback_t send_callback;
+      timeout_callback_t timeout_callback;
+      bool should_stop = false;
+      bool should_reset = false;
+
+      fan::event::task_t timer_coroutine() {
+        while (!should_stop && config.is_running) {
+          co_await fan::co_sleep(config.timer_steps[config.current_step] * 1000);
+
+          if (should_reset) {
+            should_reset = false;
+            config.current_step = 0;
+            continue;
+          }
+
+          if (send_callback) {
+            try {
+              co_await send_callback(connection);
+            }
+            catch (const std::exception& e) {
+              fan::print("Keep alive send failed: ", e.what());
+            }
+          }
+
+          if (config.current_step == config.timer_step_limit - 1) {
+            if (timeout_callback) {
+              timeout_callback();
+            }
+            break;
+          }
+          else {
+            config.current_step++;
+          }
+        }
+        co_return;
+      }
+
+    public:
+      keep_alive_timer_t(ConnectionType& conn,
+        send_keepalive_callback_t send_cb,
+        timeout_callback_t timeout_cb = nullptr)
+        : connection(conn), send_callback(send_cb), timeout_callback(timeout_cb) {
+      }
+
+      ~keep_alive_timer_t() {
+        stop();
+      }
+
+      void start() {
+        if (config.is_running) {
+          return;
+        }
+        config.current_step = 0;
+        config.is_running = true;
+        should_stop = false;
+        should_reset = false;
+        timer_task = timer_coroutine();
+      }
+
+      void stop() {
+        should_stop = true;
+        config.is_running = false;
+      }
+
+      void reset() {
+        if (config.is_running) {
+          should_reset = true;
+        }
+        else {
+          start();
+        }
+      }
+      bool is_running() const {
+        return config.is_running;
+      }
+      size_t get_current_step() const {
+        return config.current_step;
+      }
+    };
+
+    class tcp_keep_alive_t {
+    private:
+      tcp_t& tcp_connection;
+      std::unique_ptr<keep_alive_timer_t<tcp_t>> timer;
+
+      fan::event::task_t send_keep_alive(tcp_t& tcp, const buffer_t& payload) {
+        try {
+          co_await tcp.write_raw(payload);
+        }
+        catch (const std::exception& e) {
+          throw;
+        }
+        co_return;
+      }
+
+      void on_timeout() {
+        fan::print("TCP keep alive timeout");
+      }
+
+    public:
+      explicit tcp_keep_alive_t(tcp_t& tcp_conn, const buffer_t& payload)
+        : tcp_connection(tcp_conn) {
+        timer = std::make_unique<keep_alive_timer_t<tcp_t>>(
+          tcp_connection,
+          [this, payload](tcp_t& tcp) -> fan::event::task_t {
+            co_await send_keep_alive(tcp, payload);
+          },
+          [this]() { on_timeout(); }
+        );
+      }
+      void start() {
+        timer->start();
+      }
+      void stop() {
+        timer->stop();
+      }
+      void reset() {
+        timer->reset();
+      }
+      bool is_running() const {
+        return timer->is_running();
+      }
+    };
+
+    struct udp_keep_alive_t {
+    private:
+      udp_t& udp_connection;
+      socket_address_t server_address;
+      std::unique_ptr<keep_alive_timer_t<udp_t>> timer;
+
+      fan::event::task_t send_keep_alive(udp_t& udp, const buffer_t& payload) {
+        try {
+          co_await udp.send(payload, server_address);
+        }
+        catch (const std::exception& e) {
+          throw;
+        }
+        co_return;
+      }
+
+      void on_timeout() {
+        fan::print("UDP keep alive timeout");
+      }
+
+    public:
+      udp_keep_alive_t(udp_t& udp_conn) : udp_connection(udp_conn) {}
+
+      void set_server(const buffer_t& payload, const socket_address_t& server_addr) {
+        this->server_address = server_addr;
+        timer = std::make_unique<keep_alive_timer_t<udp_t>>(
+          udp_connection,
+          [this, payload](udp_t& udp) -> fan::event::task_t {
+            co_await send_keep_alive(udp, payload);
+          },
+          [this]() { on_timeout(); }
+        );
+      }
+
+      udp_keep_alive_t(udp_t& udp_conn, const buffer_t& payload, const socket_address_t& server_addr)
+        : udp_connection(udp_conn) {
+        set_server(payload, server_addr);
+      }
+      udp_keep_alive_t(udp_t& udp_conn, const buffer_t& payload, const std::string& server_ip, int server_port)
+        : udp_keep_alive_t(udp_conn, payload, socket_address_t(server_ip, server_port)) {}
+      void start() {
+        timer->start();
+      }
+      void stop() {
+        timer->stop();
+      }
+      void reset() {
+        timer->reset();
+      }
+      bool is_running() const {
+        return timer->is_running();
+      }
+      void update_server_address(const std::string& server_ip, int server_port) {
+        server_address = socket_address_t(server_ip, server_port);
+      }
+      void update_server_address(const socket_address_t& server_addr) {
+        server_address = server_addr;
+      }
+    };
   }
+}
+
+fan::network::client_handler_t::nr_t fan::network::client_handler_t::add_client() {
+  nr_t nr = client_list.NewNodeLast();
+  client_list[nr] = new fan::network::tcp_t;
+  client_list[nr]->nr = nr;
+  return nr;
 }
