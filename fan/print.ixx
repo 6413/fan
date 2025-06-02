@@ -35,12 +35,29 @@ export namespace fan {
     int idx = 0;
     ((std::cout << args), ...);
   }
+  // print comma
   template <typename ...Args>
   constexpr void printc(const Args&... args) {
     int idx = 0;
     ((std::cout << args << (++idx == sizeof...(args) ? "" : ", ")), ...);
     std::cout << '\n';
   }
+
+  //print tab size
+  template <typename ...Args>
+  constexpr void prints(std::streamsize w, const Args&... args) {
+    std::ios init(0);
+    init.copyfmt(std::cout);
+    std::setw(w);
+    fan::print(args...);
+    std::cout.copyfmt(init);
+  }
+  //print tab
+  template <typename ...Args>
+  constexpr void printt(const Args&... args) {
+    fan::prints(2, args...);
+  }
+
 
   template<typename T>
   auto convert_uint8(T value) {

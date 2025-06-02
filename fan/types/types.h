@@ -506,6 +506,9 @@ static uint8_t __clz(uintptr_t p0) {
 #endif
 
 namespace fan {
+  template<typename T>
+  using return_type_of_t = decltype((*(T*)nullptr)());
+
 	#define fan_temporary_struct_maker(data) __return_type_of<decltype([]{ struct {data}v; return v; })>
 
 	template <typename T>
@@ -563,10 +566,6 @@ namespace fan {
 	#define _lstd_preprocessor_combine_every_2_start(n, ...) CONCAT(_lstd_preprocessor_combine_every_2_,n(__VA_ARGS__))
 	#define lstd_preprocessor_combine_every_2(...) _lstd_preprocessor_combine_every_2_start(lstd_preprocessor_get_arg_count(__VA_ARGS__), __VA_ARGS__)
 	#endif
-
-	//// __VA_ARGS__ is not compile time in clang according to clang
-	#define fan_make_flexible_array(type, name, ...) \
-	std::array<type, std::initializer_list<type>{__VA_ARGS__}.size()> name = {__VA_ARGS__}
 
 	template<class T, typename U>
 	std::int64_t member_offset(U T::* member)

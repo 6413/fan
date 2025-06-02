@@ -10,13 +10,13 @@ import fan;
 fan::graphics::engine_t engine;
 fan::graphics::rectangle_t r{ {
     .position = fan::vec3(400, 400, 0),
-    .size = 50,
+    .size = 50,////
     .color = fan::colors::red
 } };
 
 fan::event::task_t tcp_server_test() {
   using namespace fan;
-  co_await network::tcp_listen({ .port = 7777 }, [](auto&& client) -> event::task_t {
+  co_await network::tcp_listen({ .port = 7777 }, [](const fan::network::tcp_t& client) -> event::task_t {
     std::string json_data;
     network::message_t data;
     while (data = co_await client.read()) {
@@ -39,12 +39,12 @@ fan::event::task_t tcp_client_test() {
   using namespace fan;
   while (1) {
     try {
-      fan::network::tcp_t client;
-      co_await client.connect("127.0.0.1", 7777);
+      fan::network::tcp_t server;
+      co_await server.connect("127.0.0.1", 7777);
 
       ssize_t error = network::error_code::ok;
       while (error == network::error_code::ok) {
-        error = co_await client.write(r);
+        error = co_await server.write(r);
         co_await fan::co_sleep(1000.0 / 64.f);
       }
     }
