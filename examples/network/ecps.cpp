@@ -16,20 +16,6 @@ struct ecps_backend_t {
 
   #include "prot.h"
 
-  struct pending_request_t {
-    uint32_t request_id;
-    std::coroutine_handle<> continuation;
-    uint16_t channel_id = 0;
-    bool completed = false;
-  };
-
-  std::unordered_map<uint32_t, pending_request_t> pending_requests;
-
-  template<class T, typename U>
-  void access(U T::* v) {
-    
-  }
-
   ecps_backend_t() {
     __dme_get(Protocol_S2C, KeepAlive) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
       fan::print("tcp keep alive came");
@@ -82,7 +68,6 @@ ChannelID: {}
 }})", base.ID, msg->ChannelID);
     };
   }
-
   struct channel_create_awaiter {
     ecps_backend_t& backend;
     uint32_t request_id;
@@ -111,7 +96,6 @@ ChannelID: {}
       throw std::runtime_error("Channel creation request not found");
     }
   };
-
   fan::event::task_t tcp_read() {
     while (1) {
       auto msg = co_await tcp_client.read<tcp::ProtocolBasePacket_t>();
@@ -122,7 +106,6 @@ ChannelID: {}
       co_await (*Protocol_S2C.NA(msg->Command))(*this, msg.data);
     }
   }
-
   fan::event::task_value_resume_t<uint32_t> tcp_write(int command, void* data = 0, uint32_t len = 0) {
     static int id = 0;
     tcp::ProtocolBasePacket_t bp;
@@ -163,11 +146,9 @@ ChannelID: {}
     udp_keep_alive.reset();
     task_tcp_read = tcp_read();
   }
-
   fan::event::task_t login() {
     co_await tcp_write(Protocol_C2S_t::Request_Login);
   }
-
   fan::event::task_value_resume_t<uint16_t> channel_create() {
     uint32_t request_id = co_await tcp_write(Protocol_C2S_t::CreateChannel);
 
@@ -180,7 +161,6 @@ ChannelID: {}
 
     co_return co_await channel_create_awaiter(*this, request_id);
   }
-
   fan::event::task_t channel_join(uint16_t channel_id) {
     co_await tcp_write(Protocol_C2S_t::JoinChannel, &channel_id, sizeof(channel_id));
   }
@@ -202,6 +182,14 @@ ChannelID: {}
     }
   };
   fan::network::udp_keep_alive_t udp_keep_alive{ udp_client };
+
+  struct pending_request_t {
+    uint32_t request_id;
+    std::coroutine_handle<> continuation;
+    uint16_t channel_id = 0;
+    bool completed = false;
+  };
+  std::unordered_map<uint32_t, pending_request_t> pending_requests;
 
 }ecps_backend;
 
