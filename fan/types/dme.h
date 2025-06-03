@@ -14,6 +14,10 @@
 
   template<typename T, const char* str, uintptr_t dt_size>
   struct __dme_t : T {
+    __dme_t& operator=(const T v) requires (!std::is_same_v<T, __empty_struct>) {
+      *dynamic_cast<T*>(this) = v;
+      return *this;
+    }
     const char *sn = str;
     uint32_t m_DSS = dt_size;
   };
@@ -46,6 +50,7 @@
   };
 
   #define __dme_inherit(main_t, ...) __dme_inherit_t<main_t, __COUNTER__, ##__VA_ARGS__>
+  #define __dme_get(dme_var, enum_value) dme_var.enum_value##_ram
 
 #pragma pack(pop)
 #endif
