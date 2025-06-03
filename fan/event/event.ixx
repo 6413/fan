@@ -6,6 +6,7 @@ module;
 #include <memory>
 #include <exception>
 #include <filesystem>
+#include <algorithm>
 
 #include <uv.h>
 #undef min
