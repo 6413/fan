@@ -23,10 +23,7 @@ struct ecps_backend_t {
       co_return;
     };
     __dme_get(Protocol_S2C, Response_Login) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
-      auto msg = co_await backend.tcp_client.read< fan_temporary_struct_maker(
-        Protocol_AccountID_t AccountID;
-        Protocol_SessionID_t SessionID;
-      )> ();
+      auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Response_Login_t>();
       fan::print_format(R"({{
   [SERVER] Response_login
   SessionID: {}
@@ -34,11 +31,7 @@ struct ecps_backend_t {
 }})", msg->SessionID.i, msg->AccountID.i);
     };
     __dme_get(Protocol_S2C, CreateChannel_OK) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
-      auto msg = co_await backend.tcp_client.read<fan_temporary_struct_maker(
-        uint8_t Type;
-        uint16_t ChannelID;
-        uint32_t ChannelSessionID;
-      )> ();
+      auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::CreateChannel_OK_t>();
       fan::print_format(R"({{
 [SERVER] CreateChannel_OK
 ID: {}
@@ -54,13 +47,8 @@ ChannelID: {}
         }
       }
     };
-
     __dme_get(Protocol_S2C, JoinChannel_OK) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
-      auto msg = co_await backend.tcp_client.read < fan_temporary_struct_maker(
-        uint8_t Type;
-        uint16_t ChannelID;
-        uint32_t ChannelSessionID;
-      ) > ();
+      auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::JoinChannel_OK_t>();
       fan::print_format(R"({{
   [SERVER] JoinChannel_OK
   ID: {}
@@ -78,14 +66,12 @@ ChannelID: {}
       auto it = backend.pending_requests.find(request_id);
       return it != backend.pending_requests.end() && it->second.completed;
     }
-
     void await_suspend(std::coroutine_handle<> h) noexcept {
       auto it = backend.pending_requests.find(request_id);
       if (it != backend.pending_requests.end()) {
         it->second.continuation = h;
       }
     }
-
     uint16_t await_resume() {
       auto it = backend.pending_requests.find(request_id);
       if (it != backend.pending_requests.end()) {
@@ -151,14 +137,12 @@ ChannelID: {}
   }
   fan::event::task_value_resume_t<uint16_t> channel_create() {
     uint32_t request_id = co_await tcp_write(Protocol_C2S_t::CreateChannel);
-
     pending_requests[request_id] = pending_request_t{
       .request_id = request_id,
       .continuation = {},
       .channel_id = 0,
       .completed = false
     };
-
     co_return co_await channel_create_awaiter(*this, request_id);
   }
   fan::event::task_t channel_join(uint16_t channel_id) {
