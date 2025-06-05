@@ -736,3 +736,6 @@ template <typename Container>
 auto operator|(Container& container, const fan::enumerate_fn& view) {
   return view(container);
 }
+
+#define fan_make_flexible_array(type, name, ...) \
+	std::array<type, std::initializer_list<type>{__VA_ARGS__}.size()> name = {__VA_ARGS__}

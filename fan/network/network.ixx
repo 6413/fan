@@ -134,7 +134,7 @@ export namespace fan {
       void await_suspend(std::coroutine_handle<> h) { data->co_handle = h; }
       int await_resume() {
         if (data->status != 0) {
-          throw std::runtime_error(std::string("connection failed with") + uv_strerror(data->status));
+          throw std::runtime_error(std::string("connection failed with:") + uv_strerror(data->status));
         }
         return data->status;
       }
@@ -302,7 +302,7 @@ export namespace fan {
             }
           });
         if (r < 0) {
-          fan::throw_error("tcp write failed", r);
+          fan::throw_error("tcp write failed:", uv_strerror(r));
         }
         return r;
       }

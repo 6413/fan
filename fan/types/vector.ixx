@@ -19,7 +19,7 @@ module;
   #include <fan/imgui/imgui.h>
 #endif
 
-#if defined(fan_3d)
+#if defined(fan_3D)
   #include <assimp/vector3.h>
 #endif
 
@@ -110,7 +110,7 @@ export namespace fan {
     }
 
 
-  #if defined(fan_3d)
+  #if defined(fan_3D)
     vec3_wrap_t(const aiVector3D& v) {
     x = v.x;
     y = v.y;

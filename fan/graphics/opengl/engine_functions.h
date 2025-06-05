@@ -780,18 +780,18 @@ void draw_shapes() {
         if (shape_type == loco_t::shape_type_t::universal_image_renderer) {          
           auto& ri = *(universal_image_renderer_t::ri_t*)BlockTraverse.GetData(loco.shaper);
 
-          if (ri.images_rest[0].iic() == false) {
+          if (ri.images_rest[0].iic() == false && ri.images_rest[0] != loco.default_texture) {
             fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 1));
             fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images_rest[0])));
             loco.shader_set_value(shader, "_t01", 1);
           }
-          if (ri.images_rest[1].iic() == false) {
+          if (ri.images_rest[1].iic() == false && ri.images_rest[1] != loco.default_texture) {
             fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 2));
             fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images_rest[1])));
             loco.shader_set_value(shader, "_t02", 2);
           }
 
-          if (ri.images_rest[2].iic() == false) {
+          if (ri.images_rest[2].iic() == false && ri.images_rest[2] != loco.default_texture) {
             fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 3));
             fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images_rest[2])));
             loco.shader_set_value(shader, "_t03", 3);
@@ -804,9 +804,9 @@ void draw_shapes() {
           //fan::print("shaper design is changed");
           auto& ri = *(sprite_t::ri_t*)BlockTraverse.GetData(loco.shaper);
           auto shader = loco.shaper.GetShader(shape_type);
-          loco.shader_set_value(shader, "has_normal_map", int(!ri.images[0].iic()));
-          loco.shader_set_value(shader, "has_specular_map", int(!ri.images[1].iic()));
-          loco.shader_set_value(shader, "has_occlusion_map", int(!ri.images[2].iic()));
+          loco.shader_set_value(shader, "has_normal_map", int(!ri.images[0].iic() && ri.images[0] != loco.default_texture));
+          loco.shader_set_value(shader, "has_specular_map", int(!ri.images[1].iic() && ri.images[1] != loco.default_texture));
+          loco.shader_set_value(shader, "has_occlusion_map", int(!ri.images[2].iic() && ri.images[2] != loco.default_texture));
           for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
             if (ri.images[i - 2].iic() == false) {
               loco.shader_set_value(shader, "_t0" + std::to_string(i), i);

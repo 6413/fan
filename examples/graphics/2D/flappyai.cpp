@@ -1,21 +1,24 @@
-#include <fan/pch.h>
+#include <fan/time/timer.h>
 
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
-#include _INCLUDE_TOKEN(WITCH_INCLUDE_PATH,WITCH.h)
+#include <WITCH/WITCH.h>
 
+import fan;
 
 constexpr static f32_t BCOLStepTime = 0.001;
 #define BCOL_set_Dimension 2
 #define BCOL_set_IncludePath FAN_INCLUDE_PATH/fan
 #define BCOL_set_prefix BCOL
 #define BCOL_set_DynamicDeltaFunction \
-  ObjectData0->Velocity.y += delta * 200;
+  ObjectData0->Velocity[1] += delta * 10;
 #define BCOL_set_StoreExtraDataInsideObject 1
 #define BCOL_set_ExtraDataInsideObject \
   bool IsItPipe;
 #include <BCOL/BCOL.h>
 
-f32_t initial_speed = 4;
+
+
+f32_t initial_speed = 0.5;
 
 struct pile_t {
 
@@ -64,9 +67,9 @@ struct pipe_t {
 
       BCOL_t::ObjectProperties_t p;
       p.Position = xpos;
-      p.Position.y = -1 - pipe_size.y + r;
+      p.Position[1] = -1 - pipe_size.y + r;
       if (i == 1) {
-        p.Position.y += pipe_size.y * 2 + gap_size;
+        p.Position[1] += pipe_size.y * 2 + gap_size;
       }
 
       p.ExtraData.IsItPipe = true;
@@ -79,7 +82,7 @@ struct pipe_t {
 
       loco_t::rectangle_t::properties_t pipe_properties;
 
-      pipe_properties.position = p.Position;
+      pipe_properties.position = *(fan::vec2*)&p.Position;
       pipe_properties.size = sp.Size;
       pipe_properties.camera = pile->camera;
       pipe_properties.viewport = pile->viewport;
@@ -143,8 +146,8 @@ struct bird_t{
       bcol.NewShape_Circle(oid, &sp);
 
       loco_t::rectangle_t::properties_t player_properties;
-      player_properties.position.x = bcol.GetObject_Position(oid).x;
-      player_properties.position.y = bcol.GetObject_Position(oid).y;
+      player_properties.position.x = bcol.GetObject_Position(oid)[0];
+      player_properties.position.y = bcol.GetObject_Position(oid)[1];
       player_properties.position.z = 1;
       player_properties.size = sp.Size;
       player_properties.camera = pile->camera;
@@ -210,7 +213,7 @@ struct bird_t{
     neural_network[2].resize(TOTAL_OUTPUT_NODES, 0);
 
     //Input layer.
-    neural_network[0][0] = bcol.GetObject_Velocity(oid).x;
+    neural_network[0][0] = bcol.GetObject_Velocity(oid)[0];
     neural_network[0][1] = get_gap_difference();
 
     bool b = false;
@@ -356,7 +359,6 @@ int main() {
   c.start(fan::time::nanoseconds(5e+8));
 
   pile->loco.loop([&] {
-    pile->loco.get_fps();
 
 
     {
@@ -390,12 +392,12 @@ int main() {
     if (restart == 0) {
       for (uint32_t i = 0; i < birds.size(); ++i) {
         if (!birds[i].dead) {
-          birds[i].fitness = bcol.GetObject_Position(birds[i].oid).x;
+          birds[i].fitness = bcol.GetObject_Position(birds[i].oid)[0];
 
           if (birds[i].do_ai_stuff()) {
-            f32_t y = bcol.GetObject_Velocity(birds[i].oid).y;
+            f32_t y = bcol.GetObject_Velocity(birds[i].oid)[1];
             y = std::max(y, -10.f);
-            bcol.SetObject_Velocity(birds[i].oid, fan::vec2(initial_speed, -4));
+            bcol.SetObject_Velocity(birds[i].oid, fan::vec2(initial_speed, -1));
           }
         }
       }

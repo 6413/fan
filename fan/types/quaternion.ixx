@@ -4,7 +4,7 @@ module;
 
 #include <fan/math/math.h>
 
-#if defined(fan_3d)
+#if defined(fan_3D)
   #include <assimp/quaternion.h>
 #endif
 
@@ -29,7 +29,7 @@ export namespace fan {
 
 		constexpr quaternion() : fan::quaternion<T>(1, T{ 0 }, T{ 0 }, T{ 0 }) {}
 
-  #if defined(fan_3d)
+  #if defined(fan_3D)
     constexpr quaternion(const aiQuaternion& aq) {
       this->w = aq.w;
       this->x = aq.x;

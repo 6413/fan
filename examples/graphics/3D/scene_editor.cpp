@@ -1,7 +1,13 @@
-#include <fan/pch.h>
-#include <fan/graphics/opengl/3D/objects/model.h>
 
+#include <fan/types/types.h>
+#include <fan/types/dme.h>
+
+#include <fan/imgui/imgui.h>
 #include <fan/imgui/ImGuizmo.h>
+
+import fan;
+import fan.graphics.opengl3D.objects.model;
+
 
 void draw_world_orientation_axes(const fan::vec2& origin, const fan::vec2& window_pos, const fan::vec2& window_size, const fan::vec2& viewport_size, const fan::mat4& view, float size = 1.0f) {
   ImU32 red = IM_COL32(255, 0, 0, 255);
@@ -125,7 +131,7 @@ struct pile_t {
           break;
         }
         }
-        });
+      });
     }
 
     struct render_view_t {
@@ -143,9 +149,9 @@ struct pile_t {
           toggle_focus = false;
         }
         if (get_editor().begin_render_common("Render view", flags)) {
-          get_loco().set_imgui_viewport(get_editor().viewport_nr);
+          fan::graphics::gui::set_viewport(get_editor().viewport_nr);
           if (ImGui::IsWindowFocused()) {
-            get_editor().camera.move(get_editor().camera_properties.speed, get_editor().camera_properties.friction);
+            get_loco().camera_move(get_editor().camera, gloco->delta_time, get_editor().camera_properties.speed, get_editor().camera_properties.friction);
           }
 
           // drag and drop
@@ -160,13 +166,13 @@ struct pile_t {
           ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
           ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4, 0.4, 0.4, 0.4));
           ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
-          if (ImGui::ToggleImageButton("##Camera Properties", get_editor().icon_video_camera, image_size, &toggle_camera_properties)) {
+          if (fan::graphics::gui::toggle_image_button("##Camera Properties", get_editor().icon_video_camera, image_size, &toggle_camera_properties)) {
             get_editor().camera_properties.render_this = !get_editor().camera_properties.render_this;
           }
-          if (ImGui::ToggleImageButton("##Lighting Properties", get_editor().icon_lightbulb, image_size, &toggle_lighting_properties)) {
+          if (fan::graphics::gui::toggle_image_button("##Lighting Properties", get_editor().icon_lightbulb, image_size, &toggle_lighting_properties)) {
             get_editor().lighting_properties.render_this = !get_editor().lighting_properties.render_this;
           }
-          if (ImGui::ToggleImageButton("##Skeleton Properties", get_editor().icon_skeleton, image_size, &toggle_skeleton_properties)) {
+          if (fan::graphics::gui::toggle_image_button("##Skeleton Properties", get_editor().icon_skeleton, image_size, &toggle_skeleton_properties)) {
             get_editor().skeleton_properties.render_this = !get_editor().skeleton_properties.render_this;
           }
           ImGui::PopStyleColor(3);
@@ -618,11 +624,11 @@ struct pile_t {
             }
             else {
               fan::graphics::model_t& model = *get_editor().entities.selected_entity->second.model;
-              fan_imgui_dragfloat1(model.light_position, 0.2);
+              fan::graphics::gui::drag_float("light_position", &model.light_position, 0.2);
               ImGui::ColorEdit3("model->light_color", model.light_color.data());
-              fan_imgui_dragfloat1(model.light_intensity, 0.1);
+              fan::graphics::gui::drag_float("light_intensity", &model.light_intensity, 0.1);
               static f32_t specular_strength = 0.5;
-              if (fan_imgui_dragfloat1(specular_strength, 0.01)) {
+              if (fan::graphics::gui::drag_float("specular_strength", &specular_strength, 0.01)) {
                 get_loco().shader_set_value(model.m_shader, "specular_strength", specular_strength);
               }
             }
@@ -652,7 +658,7 @@ struct pile_t {
           ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2);
           ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
           if (get_editor().begin_render_common("Skeleton Properties", flags)) {
-            if (ImGui::ToggleButton("render bones", &render_bones)) {
+            if (fan::graphics::gui::toggle_button("render bones", &render_bones)) {
               visual_bones.clear();
             }
             ImGui::SliderFloat("bone scale", &bone_scale, 0.001, 10);
@@ -721,7 +727,7 @@ struct pile_t {
     loco_t::viewport_t viewport_nr;
     fan::graphics::context_camera_t& camera;
     fan::graphics::context_viewport_t& viewport;
-    fan::graphics::gui::imgui_content_browser_t content_browser;
+    fan::graphics::gui::content_browser_t content_browser;
 
     loco_t::image_t icon_video_camera = gloco->image_load("images_editor/video-camera.webp");
     loco_t::image_t icon_lightbulb = gloco->image_load("images_editor/lightbulb.webp");
@@ -824,5 +830,5 @@ int main() {
   pile->loco.loop([&] {
     pile->editor.begin_render();
     pile->editor.end_render();
-    });
+  });
 }
