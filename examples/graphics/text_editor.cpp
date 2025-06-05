@@ -1,8 +1,8 @@
-import fan;
 
 #include <fan/imgui/text_editor.h>
-#include <fan/graphics/types.h>
 
+import fan;
+#include <fan/graphics/types.h>
 int main() {
   loco_t loco;
 

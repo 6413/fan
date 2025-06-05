@@ -781,18 +781,20 @@ export namespace fan::io {
 
 
   struct async_directory_iterator_t {
-    uv_fs_t req{};
     std::vector<std::filesystem::directory_entry> entries;
     std::function<fan::event::task_t(const std::filesystem::directory_entry&)> callback;
     std::string base_path;
+    std::string next_path;
     bool sort_alphabetically = false;
     size_t current_index = 0;
     bool stopped = false;
-
+    bool operation_in_progress = false;
+    bool switch_requested = false;
     fan::event::task_t iteration_task;
-
+    
     void stop() {
       stopped = true;
+      switch_requested = false;
     }
   };
 
@@ -801,55 +803,98 @@ export namespace fan::io {
       if (state->stopped) co_return;
 
       co_await state->callback(state->entries[state->current_index]);
-
       ++state->current_index;
+
+      if (state->stopped) co_return;
+
       co_await ev_next_tick_awaiter{};
     }
     co_return;
   }
 
   void async_directory_iterate(async_directory_iterator_t* state, const std::string& path) {
-    state->stopped = false;
-    state->base_path = path;
-    state->req.data = state;
-    state->entries.clear();
-    state->current_index = 0;
+      if (state->operation_in_progress) {
+        state->stopped = true;
+        state->switch_requested = true;
+        state->next_path = path;
+        return;
+      }
 
-    int ret = uv_fs_scandir(fan::event::event_loop, &state->req, path.c_str(), 0,
-      [](uv_fs_t* req) {
-        auto* state = static_cast<async_directory_iterator_t*>(req->data);
-        uv_dirent_t ent;
+      state->operation_in_progress = true;
+      state->stopped = false;
+      state->switch_requested = false;
+      state->base_path = path;
+      state->entries.clear();
+      state->current_index = 0;
 
-        while (uv_fs_scandir_next(req, &ent) != UV_EOF) {
-          std::filesystem::path full_path = std::filesystem::path(state->base_path) / ent.name;
-          state->entries.emplace_back(std::filesystem::absolute(full_path));
-        }
-        if (state->sort_alphabetically) {
-          std::sort(state->entries.begin(), state->entries.end(),
-            [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) -> bool {
-              if (a.is_directory() == b.is_directory()) {
-                std::string a_stem = a.path().stem().string();
-                std::string b_stem = b.path().stem().string();
+      uv_fs_t* req = new uv_fs_t;
+      memset(req, 0, sizeof(uv_fs_t));
+      req->data = state;
 
-                std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(),
-                  [](unsigned char c) { return std::tolower(c); });
-                std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(),
-                  [](unsigned char c) { return std::tolower(c); });
+      int ret = uv_fs_scandir(fan::event::event_loop, req, path.c_str(), 0,
+        [](uv_fs_t* req) {
+          auto* state = static_cast<async_directory_iterator_t*>(req->data);
 
-                return a_stem < b_stem;
-              }
-              return a.is_directory() && !b.is_directory();
+          if (!state->stopped) {
+            uv_dirent_t ent;
+            while (uv_fs_scandir_next(req, &ent) != UV_EOF) {
+              std::filesystem::path full_path = std::filesystem::path(state->base_path) / ent.name;
+              state->entries.emplace_back(std::filesystem::absolute(full_path));
             }
-          );
-        }
 
-        uv_fs_req_cleanup(req);
+            if (state->sort_alphabetically) {
+              std::sort(state->entries.begin(), state->entries.end(),
+                [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) -> bool {
+                  if (a.is_directory() == b.is_directory()) {
+                    std::string a_stem = a.path().stem().string();
+                    std::string b_stem = b.path().stem().string();
+                    std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(),
+                      [](unsigned char c) { return std::tolower(c); });
+                    std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(),
+                      [](unsigned char c) { return std::tolower(c); });
+                    return a_stem < b_stem;
+                  }
+                  return a.is_directory() && !b.is_directory();
+                }
+              );
+            }
 
-        state->iteration_task = iterate_directory(state);
-    });
-    if (ret < 0) {
-      fan::throw_error("error fs_scandir:"_str + fan::event::strerror(ret));
-    }
+            if (!state->stopped) {
+              state->iteration_task = iterate_directory(state);
+            }
+          }
+
+          uv_fs_req_cleanup(req);
+          delete req;
+
+          state->operation_in_progress = false;
+
+          if (state->switch_requested) {
+            std::string new_path = state->next_path;
+            state->switch_requested = false;
+
+            uv_idle_t* idle = new uv_idle_t;
+            idle->data = state;
+            uv_idle_init(fan::event::event_loop, idle);
+            uv_idle_start(idle, [](uv_idle_t* handle) {
+              auto* state = static_cast<async_directory_iterator_t*>(handle->data);
+              std::string path = state->next_path;
+
+              uv_idle_stop(handle);
+              uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t* h) {
+                delete reinterpret_cast<uv_idle_t*>(h);
+              });
+
+              async_directory_iterate(state, path);
+            });
+          }
+        });
+
+      if (ret < 0) {
+        delete req;
+        state->operation_in_progress = false;
+        fan::throw_error("error fs_scandir:"_str + fan::event::strerror(ret));
+      }
   }
 }
 

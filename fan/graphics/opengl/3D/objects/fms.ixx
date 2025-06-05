@@ -1,21 +1,34 @@
-#pragma once
+module;
 
-#include <assimp/Exporter.hpp>
+#define fms_use_opengl
+
+#include <fan/types/types.h>
+#include <fan/math/math.h>
+#include <fan/types/dme.h>
+
+#include <vector>
+#include <cassert>
 #include <locale>
 
-#include <fan/types/vector.h>
-#include <fan/types/matrix.h>
-#include <fan/types/quaternion.h>
-
+#include <assimp/Exporter.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
 
-#include <fan/types/dme.h>
+#include <fan/imgui/imgui.h>
 
-#include <fan/graphics/image_load.h>
+//#define STB_IMAGE_IMPLEMENTATION
+#include <fan/stb/stb_image.h>
 
-namespace fan_3d {
+export module fan.graphics.opengl3D.objects.fms;
+
+export import fan.types.matrix;
+export import fan.print;
+export import fan.graphics;
+
+
+#undef fan_3d
+export namespace fan_3d {
   namespace model {
     struct vertex_t {
       fan::vec3 position;
@@ -102,14 +115,14 @@ namespace fan_3d {
       std::vector<uint8_t> data;
       int channels = 0;
     };
-    inline static std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
+    std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
     struct pm_material_data_t {
       fan::vec4 color[AI_TEXTURE_TYPE_MAX + 1];
     };
     // fan model stuff
     struct fms_t {
       struct properties_t {
-        fan::string path;
+        std::string path;
         std::string texture_path;
         int use_cpu = false;
       };
@@ -259,7 +272,7 @@ namespace fan_3d {
             stbi_image_free(data);
           }
           else {
-            fan::string file_path = p.texture_path + "/" + scene->GetShortFilename(path.C_Str());
+            std::string file_path = p.texture_path + "/" + scene->GetShortFilename(path.C_Str());
             mesh.texture_names[texture_type] = file_path;
             auto found = cached_texture_data.find(file_path);
             if (found == cached_texture_data.end()) {
@@ -773,7 +786,7 @@ namespace fan_3d {
 
         }
       }
-      fan::string create_an(const fan::string& key, f32_t weight = 1.f, f32_t duration = 1.f) {
+      std::string create_an(const std::string& key, f32_t weight = 1.f, f32_t duration = 1.f) {
         if (animation_list.empty()) {
           if (active_anim.empty()) {
             active_anim = key;

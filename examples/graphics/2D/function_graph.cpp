@@ -25,7 +25,7 @@ f64_t f(f64_t x) {
 }
 
 f64_t f2(f64_t x) {
-  return cos(x);
+  return pow(x, 2);
 }
 
 void handle_zoom_and_move() {

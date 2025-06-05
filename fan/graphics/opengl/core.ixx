@@ -44,6 +44,7 @@ concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&
 
 export namespace fan {
   namespace opengl {
+    using ::fan_track_opengl_calls;
     struct context_t {
       std::unordered_map<size_t, int> shader_location_cache;
 
@@ -909,7 +910,7 @@ export namespace fan {
         else {
           glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         }
-
+        
         auto& image_data = __fan_internal_image_list[nr];
         image_data.size = image_info.size;
         fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, image_data.size.x, image_data.size.y, 0, p.format, p.type, image_info.data));

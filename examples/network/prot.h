@@ -1,16 +1,47 @@
 #pragma pack(push, 1)
 
-struct Protocol_AccountID_t {
-  uint32_t i;
-};
 struct Protocol_SessionID_t {
-  uint32_t i;
+  typedef uint32_t Type;
+  Type i;
+  operator Type&() { return i; }
+  Protocol_SessionID_t() = default;
+  Protocol_SessionID_t(Type v) : i(v) {}
 };
+struct Protocol_AccountID_t {
+  typedef uint32_t Type;
+  Type i;
+  operator Type& () { return i; }
+  Protocol_AccountID_t() = default;
+  Protocol_AccountID_t(Type v) : i(v) {}
+};
+struct Protocol_ChannelID_t {
+  typedef uint16_t Type;
+  Type i;
+  operator Type& () { return i; }
+  Protocol_ChannelID_t() = default;
+  Protocol_ChannelID_t(Type v) : i(v) {}
+};
+struct Protocol_ChannelSessionID_t {
+  typedef uint32_t Type;
+  Type i;
+  operator Type& () { return i; }
+  Protocol_ChannelSessionID_t() = default;
+  Protocol_ChannelSessionID_t(Type v) : i(v) {}
+};
+struct Protocol_SessionChannelID_t {
+  typedef Protocol_ChannelID_t::Type Type;
+  Type i;
+  operator Type& () { return i; }
+  Protocol_SessionChannelID_t() = default;
+  Protocol_SessionChannelID_t(Type v) : i(v) {}
+};
+
+typedef uint16_t Protocol_CI_t;
 
 struct tcp {
   struct ProtocolBasePacket_t {
     uint32_t ID;
-    uint16_t Command;
+    Protocol_CI_t Command;
   };
 };
 
@@ -19,7 +50,7 @@ struct udp {
     Protocol_SessionID_t SessionID;
     uint32_t ID;
     uint64_t IdentifySecret;
-    uint16_t Command;
+    Protocol_CI_t Command;
   };
 };
 
@@ -77,45 +108,45 @@ struct Protocol_C2S_t : __dme_inherit(Protocol_C2S_t){
     uint8_t Type;
   );
   __dme(JoinChannel,
-    uint16_t ChannelID;
+    Protocol_ChannelID_t ChannelID;
   );
   __dme(QuitChannel,
-    uint16_t ChannelID;
-    uint32_t ChannelSessionID;
+    Protocol_ChannelID_t ChannelID;
+    Protocol_ChannelSessionID_t ChannelSessionID;
   );
   __dme(Response_UDPIdentifySecret,
     uint64_t UDPIdentifySecret;
   );
   __dme(Channel_ScreenShare_Share_InformationToViewSetFlag,
-    uint16_t ChannelID;
-    uint32_t ChannelSessionID;
+    Protocol_ChannelID_t ChannelID;
+    Protocol_ChannelSessionID_t ChannelSessionID;
     ProtocolChannel::ScreenShare::ChannelFlag::_t Flag;
   );
   __dme(Channel_ScreenShare_Share_InformationToViewMouseCoordinate,
-    uint16_t ChannelID;
-    uint32_t ChannelSessionID;
+    Protocol_ChannelID_t ChannelID;
+    Protocol_ChannelSessionID_t ChannelSessionID;
     fan::vec2ui pos;
   );
   __dme(Channel_ScreenShare_View_ApplyToHostMouseCoordinate,
-    uint16_t ChannelID;
-    uint32_t ChannelSessionID;
+    Protocol_ChannelID_t ChannelID;
+    Protocol_ChannelSessionID_t ChannelSessionID;
     fan::vec2si pos;
   );
   __dme(Channel_ScreenShare_View_ApplyToHostMouseMotion,
-    uint16_t ChannelID;
-    uint32_t ChannelSessionID;
+    Protocol_ChannelID_t ChannelID;
+    Protocol_ChannelSessionID_t ChannelSessionID;
     fan::vec2si Motion;
   );
   __dme(Channel_ScreenShare_View_ApplyToHostMouseButton,
-    uint16_t ChannelID;
-    uint32_t ChannelSessionID;
+    Protocol_ChannelID_t ChannelID;
+    Protocol_ChannelSessionID_t ChannelSessionID;
     uint8_t key;
     bool state;
     fan::vec2si pos;
   );
   __dme(Channel_ScreenShare_View_ApplyToHostKeyboard,
-    uint16_t ChannelID;
-    uint32_t ChannelSessionID;
+    Protocol_ChannelID_t ChannelID;
+    Protocol_ChannelSessionID_t ChannelSessionID;
     uint16_t Scancode;
     bool State;
   );
@@ -134,65 +165,65 @@ struct S2C_callback_t : S2C_callback_inherit_t {
   ) { };
 };
 
-struct Protocol_S2C_t : __dme_inherit(Protocol_S2C_t, S2C_callback_t){
+struct Protocol_S2C_t : __dme_inherit(Protocol_S2C_t, S2C_callback_t) {
   __dme(KeepAlive);
   __dme(InformInvalidIdentify,
     uint64_t ClientIdentify;
-    uint64_t ServerIdentify;
-  );
+  uint64_t ServerIdentify;
+    );
   __dme(Response_Login,
     Protocol_AccountID_t AccountID;
-    Protocol_SessionID_t SessionID;
-  );
+  Protocol_SessionID_t SessionID;
+    );
   __dme(CreateChannel_OK,
     uint8_t Type;
-    uint16_t ChannelID;
-    uint32_t ChannelSessionID;
-  );
+  Protocol_ChannelID_t ChannelID;
+  Protocol_ChannelSessionID_t ChannelSessionID;
+    );
   __dme(CreateChannel_Error,
     Protocol::JoinChannel_Error_Reason_t Reason;
   );
   __dme(JoinChannel_OK,
     uint8_t Type;
-    uint16_t ChannelID;
-    uint32_t ChannelSessionID;
-  );
+  Protocol_ChannelID_t ChannelID;
+  Protocol_ChannelSessionID_t ChannelSessionID;
+    );
   __dme(JoinChannel_Error,
     Protocol::JoinChannel_Error_Reason_t Reason;
   );
   __dme(KickedFromChannel,
-    uint16_t ChannelID;
-    Protocol::KickedFromChannel_Reason_t Reason;
-  );
+    Protocol_ChannelID_t ChannelID;
+  Protocol::KickedFromChannel_Reason_t Reason;
+    );
   __dme(Request_UDPIdentifySecret);
   __dme(UseThisUDPIdentifySecret,
     uint64_t UDPIdentifySecret;
   );
   __dme(Channel_ScreenShare_View_InformationToViewSetFlag,
-    uint16_t ChannelID;
-    ProtocolChannel::ScreenShare::ChannelFlag::_t Flag;
-  );
+    Protocol_ChannelID_t ChannelID;
+  ProtocolChannel::ScreenShare::ChannelFlag::_t Flag;
+    );
   __dme(Channel_ScreenShare_View_InformationToViewMouseCoordinate,
-    uint16_t ChannelID;
-    fan::vec2ui pos;
-  );
+    Protocol_ChannelID_t ChannelID;
+  fan::vec2ui pos;
+    );
   __dme(Channel_ScreenShare_Share_ApplyToHostMouseCoordinate,
-    uint16_t ChannelID;
-    fan::vec2si pos;
-  );
+    Protocol_ChannelID_t ChannelID;
+  fan::vec2si pos;
+    );
   __dme(Channel_ScreenShare_Share_ApplyToHostMouseMotion,
-    uint16_t ChannelID;
-    fan::vec2si Motion;
-  );
+    Protocol_ChannelID_t ChannelID;
+  fan::vec2si Motion;
+    );
   __dme(Channel_ScreenShare_Share_ApplyToHostMouseButton,
-    uint16_t ChannelID;
-    uint8_t key;
-    bool state;
-    fan::vec2si pos;
-  );
+    Protocol_ChannelID_t ChannelID;
+  uint8_t key;
+  bool state;
+  fan::vec2si pos;
+    );
   __dme(Channel_ScreenShare_Share_ApplyToHostKeyboard,
-    uint16_t ChannelID;
-    uint16_t Scancode;
-    uint8_t State;
-  );
+    Protocol_ChannelID_t ChannelID;
+  uint16_t Scancode;
+  uint8_t State;
+    );
 }Protocol_S2C;

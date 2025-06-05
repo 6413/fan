@@ -1,15 +1,20 @@
-#pragma once
+module;
 
-#define fms_use_opengl
-#include "fms.h"
+#include <fan/graphics/opengl/init.h>
+#include <fan/imgui/imgui.h>
+
+export module fan.graphics.opengl3D.objects.model;
+
+export import fan.graphics.opengl3D.objects.fms;
+export import fan.graphics.gui;
 
 namespace fan_3d {
   namespace model {
-    inline static std::unordered_map<std::string, loco_t::image_t> cached_images;
+    inline static std::unordered_map<std::string, fan::graphics::image_t> cached_images;
   }
 }
 
-namespace fan {
+export namespace fan {
   namespace graphics {
     using namespace opengl;
     struct model_t : fan_3d::model::fms_t{
@@ -81,7 +86,7 @@ namespace fan {
         fan_opengl_call(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo));
         fan_opengl_call(glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW));
 
-        fan::opengl::context_t::shader_t shader = std::get<fan::opengl::context_t::shader_t>(gloco->shader_get(m_shader));
+        fan::opengl::context_t::shader_t shader = gloco->shader_get(m_shader).gl;
 
         int location = (gloco->context.gl.opengl.major == 2 && gloco->context.gl.opengl.minor == 1) ?
           fan_opengl_call(glGetAttribLocation(shader.id, "in_position")) : 0;
@@ -143,7 +148,7 @@ namespace fan {
         auto& context = gloco->get_context();
         fan_opengl_call(glDisable(GL_BLEND));
         for (int mesh_index = 0; mesh_index < meshes.size(); ++mesh_index) {
-          fan::opengl::context_t::shader_t shader = std::get<fan::opengl::context_t::shader_t>(gloco->shader_get(m_shader));
+          fan::opengl::context_t::shader_t shader = gloco->shader_get(m_shader).gl;
           {
             auto location = fan_opengl_call(
               glGetUniformLocation(
@@ -207,7 +212,7 @@ namespace fan {
 
         for (auto& i : fan_3d::model::cached_images) {
           ImVec2 imageSize(64, 64);
-          ImGui::Image(i.second, imageSize);
+          fan::graphics::gui::image(i.second, imageSize);
 
           if (cursor_pos_x + imageSize.x > ImGui::GetContentRegionAvail().x) {
             ImGui::NewLine();
