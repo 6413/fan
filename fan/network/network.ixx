@@ -32,7 +32,7 @@ export namespace fan {
       getaddrinfo_t(const char* node, const char* service, struct addrinfo* hints = nullptr) :
         data(std::make_unique<getaddrinfo_data_t>()) {
         data->getaddrinfo_handle.data = data.get();
-        uv_getaddrinfo(fan::event::event_loop, &data->getaddrinfo_handle, [](uv_getaddrinfo_t* getaddrinfo_handle, int status, struct addrinfo* res) {
+        uv_getaddrinfo(fan::event::get_event_loop(), &data->getaddrinfo_handle, [](uv_getaddrinfo_t* getaddrinfo_handle, int status, struct addrinfo* res) {
           auto data = static_cast<getaddrinfo_data_t*>(getaddrinfo_handle->data);
           if (status == UV_ECANCELED) {
             delete data;
@@ -640,7 +640,10 @@ export namespace fan {
       }
       uint32_t amount_of_connections = 128;
     };
-    client_handler_t client_handler;
+    client_handler_t& get_client_handler() {
+      static client_handler_t client_handler;
+      return client_handler;
+    }
 
     struct tcp_t {
       client_handler_t::nr_t nr;
@@ -659,10 +662,10 @@ export namespace fan {
       };
 
       tcp_t() : socket(new uv_tcp_t, tcp_deleter_t{}), reader(*this) {
-        client_handler_t::nr_t nr = client_handler.client_list.NewNodeLast();
-        client_handler.client_list[nr] = this;
-        client_handler.client_list[nr]->nr = nr;
-        uv_tcp_init(fan::event::event_loop, socket.get());
+        client_handler_t::nr_t nr = get_client_handler().client_list.NewNodeLast();
+        get_client_handler().client_list[nr] = this;
+        get_client_handler().client_list[nr]->nr = nr;
+        uv_tcp_init(fan::event::get_event_loop(), socket.get());
       }
       tcp_t(const tcp_t&) = delete;
       tcp_t& operator=(const tcp_t&) = delete;
@@ -738,14 +741,14 @@ export namespace fan {
       }
 
       void broadcast(auto lambda) const {
-        auto it = client_handler.client_list.GetNodeFirst();
-        while (it != client_handler.client_list.dst) {
-          client_handler.client_list.StartSafeNext(it);
-          tcp_t* node = client_handler.client_list[it];
+        auto it = get_client_handler().client_list.GetNodeFirst();
+        while (it != get_client_handler().client_list.dst) {
+          get_client_handler().client_list.StartSafeNext(it);
+          tcp_t* node = get_client_handler().client_list[it];
           if (node->nr != nr) {
             lambda(*node);
           }
-          it = client_handler.client_list.EndSafeNext();
+          it = get_client_handler().client_list.EndSafeNext();
         }
       }
     };
@@ -756,15 +759,15 @@ export namespace fan {
       }
       bind(address.ip, address.port);
       
-      listener_t listener(*this, client_handler.amount_of_connections);
+      listener_t listener(*this, get_client_handler().amount_of_connections);
       while (true) {
-        auto client_id = client_handler.add_client();
-        tcp_t& client = client_handler[client_id];
+        auto client_id = get_client_handler().add_client();
+        tcp_t& client = get_client_handler()[client_id];
         if (co_await listener != 0) {
           continue;
         }
         if (accept(client) == 0) {
-          client.task = [client_id] (const auto& lambda) -> fan::event::task_t { co_await lambda(client_handler[client_id]); }(lambda);
+          client.task = [client_id] (const auto& lambda) -> fan::event::task_t { co_await lambda(get_client_handler()[client_id]); }(lambda);
         }
       }
       co_return;
@@ -1017,7 +1020,7 @@ export namespace fan {
       };
 
       udp_t() : socket(new uv_udp_t, udp_deleter_t{}) {
-        int result = uv_udp_init(fan::event::event_loop, socket.get());
+        int result = uv_udp_init(fan::event::get_event_loop(), socket.get());
         if (result != 0) {
           fan::throw_error("Failed to initialize UDP socket", result);
         }

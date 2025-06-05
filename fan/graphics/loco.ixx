@@ -1836,58 +1836,85 @@ public:
         init = 1;
       }
       ImGui::Begin("Performance window", 0, window_flags);
-
       static constexpr int buffer_size = 128;
-      static std::array<float, buffer_size> samples = { 0 };
       static int insert_index = 0;
+      static int valid_samples = 0;
       static float running_sum = 0.0f;
       static float running_min = std::numeric_limits<float>::max();
       static float running_max = std::numeric_limits<float>::min();
       static fan::time::clock refresh_speed{ (uint64_t)0.05e9, true };
+      static std::array<float, buffer_size> samples{};
 
       if (refresh_speed.finished()) {
-        float old_value = samples[insert_index];
-        for (int i = 0; i < buffer_size - 1; ++i) {
-          samples[i] = samples[i + 1];
+        float old_value = (valid_samples >= buffer_size) ? samples[insert_index] : 0.0f;
+        samples[insert_index] = delta_time;
+        if (valid_samples < buffer_size) {
+          running_sum += delta_time;
+          valid_samples++;
         }
-
-        samples[buffer_size - 1] = delta_time;
-
-        running_sum += samples[buffer_size - 1] - samples[0];
-
-        if (delta_time <= running_min) {
+        else {
+          running_sum += delta_time - old_value;
+        }
+        if (delta_time < running_min) {
           running_min = delta_time;
         }
-        else if (delta_time >= running_max) {
+        if (delta_time > running_max) {
           running_max = delta_time;
         }
-
         insert_index = (insert_index + 1) % buffer_size;
         refresh_speed.restart();
       }
 
-      float average_frame_time_ms = running_sum / buffer_size;
+      // Calculate averages based on actual collected samples
+      int sample_count = std::min(valid_samples, buffer_size);
+      float average_frame_time_ms = (sample_count > 0) ? running_sum / sample_count : delta_time;
       float average_fps = 1.0f / average_frame_time_ms;
-      float lowest_fps = 1.0f / running_max;
-      float highest_fps = 1.0f / running_min;
+      float lowest_fps = (running_max > 0) ? 1.0f / running_max : 0.0f;
+      float highest_fps = (running_min < std::numeric_limits<float>::max()) ? 1.0f / running_min : 0.0f;
 
       ImGui::Text("fps: %d", (int)(1.f / delta_time));
-      ImGui::Text("Average Frame Time: %.4f ms", average_frame_time_ms);
+      ImGui::Text("Average Frame Time: %.4f ms (samples: %d)", average_frame_time_ms, sample_count);
       ImGui::Text("Lowest Frame Time: %.4f ms", running_min);
       ImGui::Text("Highest Frame Time: %.4f ms", running_max);
       ImGui::Text("Average fps: %.4f", average_fps);
       ImGui::Text("Lowest fps: %.4f", lowest_fps);
       ImGui::Text("Highest fps: %.4f", highest_fps);
-      if (ImGui::Button("Reset lowest&highest")) {
+
+      if (ImGui::Button("Reset data")) {
         running_min = std::numeric_limits<float>::max();
         running_max = std::numeric_limits<float>::min();
+        running_sum = 0.0f;
+        insert_index = 0;
+        valid_samples = 0;
+        samples.fill(0.0f);
       }
 
       if (ImPlot::BeginPlot("frame time", ImVec2(-1, 0), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend)) {
-        ImPlot::SetupAxes("Frame Index", "FPS", ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit); //
-        ImPlot::PlotLine("FPS", samples.data(), buffer_size, 1.0, 0.0);
+        ImPlot::SetupAxes("Frame Index", "Frame Time",
+          /*ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit*/
+           ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit
+        );
+
+        if (valid_samples > 0) {
+          static std::array<float, buffer_size> plot_data{};
+          int plot_count = std::min(valid_samples, buffer_size);
+          if (valid_samples >= buffer_size) {
+            for (int i = 0; i < buffer_size; ++i) {
+              int src_index = (insert_index + i) % buffer_size;
+              plot_data[i] = samples[src_index];
+            }
+            ImPlot::PlotLine("Frame Time", plot_data.data(), buffer_size, 1.0, 0.0);
+          }
+          else {
+            for (int i = 0; i < valid_samples; ++i) {
+              plot_data[i] = samples[i];
+            }
+            ImPlot::PlotLine("Frame Time", plot_data.data(), valid_samples, 1.0, 0.0);
+          }
+        }
         ImPlot::EndPlot();
       }
+
       ImGui::Text("Current Frame Time: %.4f ms", delta_time);
       ImGui::End();
     }
@@ -2070,11 +2097,11 @@ public:
     double delay = std::round(1.0 / target_fps * 1000.0);
 
     if (!timer_init) {
-      uv_timer_init(fan::event::event_loop, &timer_handle);
+      uv_timer_init(fan::event::get_event_loop(), &timer_handle);
       timer_init = true;
     }
     if (!idle_init) {
-      uv_idle_init(fan::event::event_loop, &idle_handle);
+      uv_idle_init(fan::event::get_event_loop(), &idle_handle);
       idle_init = true;
     }
 
@@ -2088,7 +2115,7 @@ public:
       start_idle();
     }
 
-    uv_run(fan::event::event_loop, UV_RUN_DEFAULT);
+    uv_run(fan::event::get_event_loop(), UV_RUN_DEFAULT);
     if (should_close() == false) {
       goto g_loop;
     }
@@ -2165,7 +2192,7 @@ public:
         loco_t* loco = static_cast<loco_t*>(handle->data);
         if (loco->process_loop(loco->main_loop)) {
           uv_timer_stop(handle);
-          uv_stop(fan::event::event_loop);
+          uv_stop(fan::event::get_event_loop());
         }
         }, 0, delay);
     }
@@ -2175,7 +2202,7 @@ public:
       loco_t* loco = static_cast<loco_t*>(handle->data);
       if (loco->process_loop(loco->main_loop)) {
         uv_idle_stop(handle);
-        uv_stop(fan::event::event_loop);
+        uv_stop(fan::event::get_event_loop());
       }
       });
   }
@@ -2199,7 +2226,7 @@ public:
     else {
       uv_timer_stop(&timer_handle);
       if (!idle_init) {
-        uv_idle_init(fan::event::event_loop, &idle_handle);
+        uv_idle_init(fan::event::get_event_loop(), &idle_handle);
         idle_handle.data = this;
         idle_init = true;
       }
