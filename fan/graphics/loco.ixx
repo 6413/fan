@@ -833,7 +833,7 @@ export struct loco_t {
     gloco = this;
   }
 
-  void camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction) {
+  void camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction = 12) {
     camera.velocity /= friction * dt + 1;
     static constexpr auto minimum_velocity = 0.001;
     static constexpr f32_t camera_rotate_speed = 100;
@@ -862,10 +862,10 @@ export struct loco_t {
     }
 
     if (gloco->window.key_pressed(fan::input::key_space)) {
-      camera.velocity.y += movement_speed * gloco->delta_time;
+       camera.velocity.y += msd;
     }
     if (gloco->window.key_pressed(fan::input::key_left_shift)) {
-      camera.velocity.y -= movement_speed * gloco->delta_time;
+      camera.velocity.y -= msd;
     }
 
     f64_t rotate = camera.sensitivity * camera_rotate_speed * gloco->delta_time;
@@ -4907,15 +4907,16 @@ public:
       if (vi_image.iic() || vi_image == loco->default_texture) {
         id.reload(format, size, filter);
       }
-      id.reload(format, size, filter);
-      vi_image = id.get_image();
+
       auto& ri = *(universal_image_renderer_t::ri_t*)id.GetData(loco->shaper);
-      uint8_t image_amount = fan::graphics::get_channel_amount(format);
+
       if (inited == false) {
-        // purge cid's images here
-        // update cids images
+        id.reload(format, size, filter);
+        vi_image = id.get_image();
+
+        uint8_t image_amount = fan::graphics::get_channel_amount(format);
+
         for (uint32_t i = 0; i < image_amount; ++i) {
-          // a bit bad from fan side
           if (i == 0) {
             wresources[i].open(gloco->image_get_handle(vi_image));
           }
@@ -4926,18 +4927,22 @@ public:
         inited = true;
       }
       else {
-
         if (gloco->image_get_data(vi_image).size == size) {
           return;
         }
 
-        // update cids images
         for (uint32_t i = 0; i < fan::graphics::get_channel_amount(ri.format); ++i) {
           wresources[i].close();
         }
 
         id.reload(format, size, filter);
+        vi_image = id.get_image();
 
+        ri = *(universal_image_renderer_t::ri_t*)id.GetData(loco->shaper);
+
+        uint8_t image_amount = fan::graphics::get_channel_amount(format);
+
+        // Re-register with CUDA after successful reload
         for (uint32_t i = 0; i < image_amount; ++i) {
           if (i == 0) {
             wresources[i].open(gloco->image_get_handle(vi_image));
