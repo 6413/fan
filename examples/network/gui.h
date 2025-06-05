@@ -439,6 +439,7 @@ struct ecps_gui_t {
               encoder_options.size())) {
               screen_encode.mutex.lock();
               screen_encode.name = encoder_names[selected_encoder];
+              screen_encode.EncoderID = selected_encoder;
               screen_encode.update_flags |= ::screen_encode_t::update_e::encoder;
               screen_encode.mutex.unlock();
             }
@@ -473,6 +474,7 @@ struct ecps_gui_t {
               decoder_options.size())) {
               screen_encode.mutex.lock();
               render_thread->screen_decode.name = decoder_names[selected_decoder];
+              render_thread->screen_decode.DecoderID = selected_decoder;
               render_thread->screen_decode.updated = true;
               screen_encode.mutex.unlock();
             }

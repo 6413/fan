@@ -252,7 +252,7 @@ export namespace fan {
 
   namespace event {
     
-    uv_loop_t* get_event_loop() {
+    uv_loop_t*& get_event_loop() {
       static uv_loop_t* event_loop = uv_default_loop();
       return event_loop;
     }

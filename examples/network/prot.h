@@ -99,6 +99,28 @@ struct Protocol {
   };
 };
 
+struct ProtocolUDP {
+  struct BasePacket_t {
+    Protocol_SessionID_t SessionID;
+    uint32_t ID;
+    uint64_t IdentifySecret;
+    Protocol_CI_t Command;
+  };
+  struct C2S_t : __dme_inherit(C2S_t) {
+    __dme(KeepAlive);
+    __dme(Channel_ScreenShare_Host_StreamData,
+      Protocol_ChannelID_t ChannelID;
+      Protocol_ChannelSessionID_t ChannelSessionID;
+    );
+  }C2S;
+  struct S2C_t : __dme_inherit(S2C_t) {
+    __dme(KeepAlive);
+    __dme(Channel_ScreenShare_View_StreamData,
+      Protocol_ChannelID_t ChannelID;
+    );
+  }S2C;
+};
+
 struct Protocol_C2S_t : __dme_inherit(Protocol_C2S_t){
   __dme(KeepAlive);
   __dme(Request_Login,
@@ -227,3 +249,55 @@ struct Protocol_S2C_t : __dme_inherit(Protocol_S2C_t, S2C_callback_t) {
     uint8_t State;
   );
 }Protocol_S2C;
+
+#pragma pack(push, 1)
+
+struct ScreenShare_StreamHeader_Body_t {
+  uint8_t sc[3];
+
+  void SetSequence(uint16_t Sequence) {
+    *(uint16_t*)&sc[0] ^= *(uint16_t*)&sc[0] & 0xf0ff;
+    *(uint16_t*)&sc[0] |= Sequence & 0x00ff | (Sequence & 0x0f00) << 4;
+  }
+  uint16_t GetSequence() {
+    return *(uint16_t*)&sc[0] & 0x00ff | (*(uint16_t*)&sc[0] & 0xf000) >> 4;
+  }
+  void SetCurrent(uint16_t Current) {
+    *(uint16_t*)&sc[1] ^= *(uint16_t*)&sc[1] & 0xff0f;
+    *(uint16_t*)&sc[1] |= Current & 0x000f | (Current & 0x0ff0) << 4;
+  }
+  uint16_t GetCurrent() {
+    return *(uint16_t*)&sc[1] & 0x000f | (*(uint16_t*)&sc[1] & 0xff00) >> 4;
+  }
+};
+struct ScreenShare_StreamHeader_Head_t{
+  ScreenShare_StreamHeader_Body_t Body;
+  uint8_t pf[2];
+  #if set_VerboseProtocol_HoldStreamTimes == 1
+    struct _VerboseTime_t{
+      uint64_t ScreenRead = 0;
+      uint64_t SourceOptimize = 0;
+      uint64_t Encode = 0;
+      uint64_t WriteQueue = 0;
+      uint64_t ThreadFrameEnd = 0;
+      uint64_t NetworkWrite = 0;
+    }_VerboseTime;
+  #endif
+
+  void SetPossible(uint16_t Possible){
+    *(uint16_t *)&pf[0] ^= *(uint16_t *)&pf[0] & 0xf0ff;
+    *(uint16_t *)&pf[0] |= Possible & 0x00ff | (Possible & 0x0f00) << 4;
+  }
+  uint16_t GetPossible(){
+    return *(uint16_t *)&pf[0] & 0x00ff | (*(uint16_t *)&pf[0] & 0xf000) >> 4;
+  }
+  void SetFlag(uint8_t Flag){
+    *(uint8_t *)&pf[1] ^= *(uint16_t *)&pf[2] & 0x0f;
+    *(uint8_t *)&pf[1] |= Flag & 0x0f;
+  }
+  uint8_t GetFlag(){
+    return *(uint8_t *)&pf[1] & 0x0f;
+  }
+};
+
+#pragma pack(pop)
