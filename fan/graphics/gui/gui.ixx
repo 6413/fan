@@ -906,6 +906,9 @@ export namespace fan {
           return ImGui::IsMouseDragging(button, threshold);
         }
 
+        bool is_item_deactivated_after_edit() {
+          return ImGui::IsItemDeactivatedAfterEdit();
+        }
 
         using col_t = int;
         enum {

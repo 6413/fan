@@ -251,7 +251,11 @@ task_value_wrap_t<void, suspend_type_t> task_value_promise_t<void, suspend_type_
 export namespace fan {
 
   namespace event {
-    uv_loop_t* event_loop = uv_default_loop();
+    
+    uv_loop_t* get_event_loop() {
+      static uv_loop_t* event_loop = uv_default_loop();
+      return event_loop;
+    }
 
     struct error_code_t {
       int code;
@@ -280,13 +284,13 @@ export namespace fan {
       std::unique_ptr<timer_data, timer_deleter> data;
 
       timer_t() : data(new timer_data{}, timer_deleter{}) {
-        uv_timer_init(fan::event::event_loop, &data->timer_handle);
+        uv_timer_init(fan::event::get_event_loop(), &data->timer_handle);
         data->timer_handle.data = data.get();
       }
       // timeout in ms
       timer_t(uint64_t timeout, uint64_t repeat = 0)
         : data(new timer_data{}, timer_deleter{}) {
-        uv_timer_init(fan::event::event_loop, &data->timer_handle);
+        uv_timer_init(fan::event::get_event_loop(), &data->timer_handle);
         data->timer_handle.data = data.get();
         start(timeout, repeat);
       }
@@ -354,7 +358,7 @@ export namespace fan {
     struct uv_fs_open_awaitable : uv_fs_awaitable {
       uv_fs_open_awaitable(const std::string& path, int flags, int mode) {
         req.data = this;
-        uv_fs_open(event_loop, &req, path.c_str(), flags, mode, on_open_cb);
+        uv_fs_open(get_event_loop(), &req, path.c_str(), flags, mode, on_open_cb);
       }
 
       static void on_open_cb(uv_fs_t* r) {
@@ -374,10 +378,10 @@ export namespace fan {
 
     struct uv_fs_size_awaitable : uv_fs_awaitable {
       uv_fs_size_awaitable(int file) {
-        uv_fs_fstat(event_loop, &req, file, on_size_cb);
+        uv_fs_fstat(get_event_loop(), &req, file, on_size_cb);
       }
       uv_fs_size_awaitable(const std::string& path) {
-        uv_fs_stat(fan::event::event_loop, &req, path.c_str(), on_size_cb);
+        uv_fs_stat(fan::event::get_event_loop(), &req, path.c_str(), on_size_cb);
       }
       static void on_size_cb(uv_fs_t* r) {
         auto self = static_cast<uv_fs_size_awaitable*>(r->data);
@@ -396,7 +400,7 @@ export namespace fan {
 
     struct uv_fs_read_awaitable : uv_fs_awaitable {
       uv_fs_read_awaitable(int file, uv_buf_t buf, int64_t offset) {
-        int ret = uv_fs_read(fan::event::event_loop, &req, file, &buf, 1, offset, on_read_cb);
+        int ret = uv_fs_read(fan::event::get_event_loop(), &req, file, &buf, 1, offset, on_read_cb);
         if (ret < 0) {
           fan::throw_error("uv_error"_str + uv_strerror(ret));
         }
@@ -417,7 +421,7 @@ export namespace fan {
       uv_fs_write_awaitable(int fd, const char* buffer, size_t length, int64_t offset) {
         req.data = this;
         uv_buf_t buf = uv_buf_init(const_cast<char*>(buffer), length);
-        uv_fs_write(fan::event::event_loop, &req, fd, &buf, 1, offset, on_write_cb);
+        uv_fs_write(fan::event::get_event_loop(), &req, fd, &buf, 1, offset, on_write_cb);
       }
       static void on_write_cb(uv_fs_t* req) {
         auto self = static_cast<uv_fs_write_awaitable*>(req->data);
@@ -434,7 +438,7 @@ export namespace fan {
     struct uv_fs_close_awaitable : uv_fs_awaitable {
       uv_fs_close_awaitable(int file) {
         req.data = this;
-        uv_fs_close(fan::event::event_loop, &req, file, on_close_cb);
+        uv_fs_close(fan::event::get_event_loop(), &req, file, on_close_cb);
       }
       static void on_close_cb(uv_fs_t* r) {
         auto self = static_cast<uv_fs_close_awaitable*>(r->data);
@@ -491,7 +495,7 @@ export namespace fan {
       }
 
       fs_watcher_t(const std::string& path)
-        : loop(fan::event::event_loop), watch_path(path) {
+        : loop(fan::event::get_event_loop()), watch_path(path) {
         fs_event.data = this;
         timer.data = this;
       }
@@ -521,7 +525,7 @@ export namespace fan {
       }
     };
 
-    fan::event::task_t timer_task(uint64_t time, auto l) {
+    fan::event::task_t task_timer(uint64_t time, auto l) {
       while (true) {
         if (l()) {
           break;
@@ -569,11 +573,77 @@ export namespace fan {
       uv_sleep(msec);
     }
     void loop(bool once = false) {
-      uv_run(fan::event::event_loop, once ? UV_RUN_ONCE : UV_RUN_DEFAULT);
+      uv_run(fan::event::get_event_loop(), once ? UV_RUN_ONCE : UV_RUN_DEFAULT);
     }
 
     std::string strerror(int err) {
       return uv_strerror(err);
+    }
+
+    using idle_id_t = uv_idle_t*;
+
+    struct idle_task {
+    private:
+      struct idle_data {
+        std::function<task_t()> callback;
+        task_t task;
+        bool has_task = false;
+
+        idle_data(std::function<task_t()> cb) : callback(std::move(cb)) {}
+      };
+
+      static void idle_callback(uv_idle_t* handle) {
+        auto* data = static_cast<idle_data*>(handle->data);
+
+        // Start new task if none active
+        if (!data->has_task) {
+          data->task = data->callback();
+          data->has_task = true;
+        }
+
+        // Check if task is done
+        if (data->task.await_ready()) {
+          data->task.await_resume();
+          data->has_task = false;
+        }
+      }
+
+      static void close_callback(uv_handle_t* handle) {
+        auto* idle_handle = reinterpret_cast<uv_idle_t*>(handle);
+        delete static_cast<idle_data*>(idle_handle->data);
+        delete idle_handle;
+      }
+
+    public:
+      static idle_id_t task_idle(std::function<task_t()> callback) {
+        auto* idle_handle = new uv_idle_t;
+        idle_handle->data = new idle_data(std::move(callback));
+
+        if (uv_idle_init(get_event_loop(), idle_handle) != 0 ||
+          uv_idle_start(idle_handle, idle_callback) != 0) {
+          delete static_cast<idle_data*>(idle_handle->data);
+          delete idle_handle;
+          return nullptr;
+        }
+
+        return idle_handle;
+      }
+
+      static void idle_stop(idle_id_t idle_handle) {
+        if (idle_handle) {
+          uv_idle_stop(idle_handle);
+          uv_close(reinterpret_cast<uv_handle_t*>(idle_handle), close_callback);
+        }
+      }
+    };
+
+
+    idle_id_t task_idle(std::function<task_t()> callback) {
+      return idle_task::task_idle(std::move(callback));
+    }
+
+    void idle_stop(idle_id_t idle_handle) {
+      idle_task::idle_stop(idle_handle);
     }
   }
   using co_sleep = event::timer_t;
@@ -764,7 +834,7 @@ export namespace fan::io {
     void await_suspend(std::coroutine_handle<> h) noexcept {
       coro = h;
       idle_handle = new uv_idle_t;
-      uv_idle_init(fan::event::event_loop, idle_handle);
+      uv_idle_init(fan::event::get_event_loop(), idle_handle);
       idle_handle->data = this;
       uv_idle_start(idle_handle, [](uv_idle_t* handle) {
         auto* awaiter = static_cast<ev_next_tick_awaiter*>(handle->data);
@@ -831,7 +901,7 @@ export namespace fan::io {
       memset(req, 0, sizeof(uv_fs_t));
       req->data = state;
 
-      int ret = uv_fs_scandir(fan::event::event_loop, req, path.c_str(), 0,
+      int ret = uv_fs_scandir(fan::event::get_event_loop(), req, path.c_str(), 0,
         [](uv_fs_t* req) {
           auto* state = static_cast<async_directory_iterator_t*>(req->data);
 
@@ -875,7 +945,7 @@ export namespace fan::io {
 
             uv_idle_t* idle = new uv_idle_t;
             idle->data = state;
-            uv_idle_init(fan::event::event_loop, idle);
+            uv_idle_init(fan::event::get_event_loop(), idle);
             uv_idle_start(idle, [](uv_idle_t* handle) {
               auto* state = static_cast<async_directory_iterator_t*>(handle->data);
               std::string path = state->next_path;
@@ -900,6 +970,6 @@ export namespace fan::io {
 
 struct cleaner_t {
   ~cleaner_t() {
-    uv_loop_close(fan::event::event_loop);
+    uv_loop_close(fan::event::get_event_loop());
   }
 }cleaner;

@@ -169,61 +169,61 @@ struct Protocol_S2C_t : __dme_inherit(Protocol_S2C_t, S2C_callback_t) {
   __dme(KeepAlive);
   __dme(InformInvalidIdentify,
     uint64_t ClientIdentify;
-  uint64_t ServerIdentify;
-    );
+    uint64_t ServerIdentify;
+  );
   __dme(Response_Login,
     Protocol_AccountID_t AccountID;
-  Protocol_SessionID_t SessionID;
-    );
+    Protocol_SessionID_t SessionID;
+  );
   __dme(CreateChannel_OK,
     uint8_t Type;
-  Protocol_ChannelID_t ChannelID;
-  Protocol_ChannelSessionID_t ChannelSessionID;
-    );
+    Protocol_ChannelID_t ChannelID;
+    Protocol_ChannelSessionID_t ChannelSessionID;
+  );
   __dme(CreateChannel_Error,
     Protocol::JoinChannel_Error_Reason_t Reason;
   );
   __dme(JoinChannel_OK,
     uint8_t Type;
-  Protocol_ChannelID_t ChannelID;
-  Protocol_ChannelSessionID_t ChannelSessionID;
-    );
+    Protocol_ChannelID_t ChannelID;
+    Protocol_ChannelSessionID_t ChannelSessionID;
+  );
   __dme(JoinChannel_Error,
     Protocol::JoinChannel_Error_Reason_t Reason;
   );
   __dme(KickedFromChannel,
     Protocol_ChannelID_t ChannelID;
-  Protocol::KickedFromChannel_Reason_t Reason;
-    );
+    Protocol::KickedFromChannel_Reason_t Reason;
+  );
   __dme(Request_UDPIdentifySecret);
   __dme(UseThisUDPIdentifySecret,
     uint64_t UDPIdentifySecret;
   );
   __dme(Channel_ScreenShare_View_InformationToViewSetFlag,
     Protocol_ChannelID_t ChannelID;
-  ProtocolChannel::ScreenShare::ChannelFlag::_t Flag;
-    );
+    ProtocolChannel::ScreenShare::ChannelFlag::_t Flag;
+  );
   __dme(Channel_ScreenShare_View_InformationToViewMouseCoordinate,
     Protocol_ChannelID_t ChannelID;
-  fan::vec2ui pos;
-    );
+    fan::vec2ui pos;
+  );
   __dme(Channel_ScreenShare_Share_ApplyToHostMouseCoordinate,
     Protocol_ChannelID_t ChannelID;
-  fan::vec2si pos;
-    );
+    fan::vec2si pos;
+  );
   __dme(Channel_ScreenShare_Share_ApplyToHostMouseMotion,
     Protocol_ChannelID_t ChannelID;
-  fan::vec2si Motion;
-    );
+    fan::vec2si Motion;
+  );
   __dme(Channel_ScreenShare_Share_ApplyToHostMouseButton,
     Protocol_ChannelID_t ChannelID;
-  uint8_t key;
-  bool state;
-  fan::vec2si pos;
-    );
+    uint8_t key;
+    bool state;
+    fan::vec2si pos;
+  );
   __dme(Channel_ScreenShare_Share_ApplyToHostKeyboard,
     Protocol_ChannelID_t ChannelID;
-  uint16_t Scancode;
-  uint8_t State;
-    );
+    uint16_t Scancode;
+    uint8_t State;
+  );
 }Protocol_S2C;
