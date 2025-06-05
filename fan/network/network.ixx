@@ -936,7 +936,7 @@ export namespace fan {
       bool receiving{ false };
 
       template <typename T>
-      requires (std::is_same_v<T, udp_t>)
+        requires (std::is_same_v<T, udp_t>)
       udp_recv_t(const T& udp);
       udp_recv_t(const udp_recv_t&) = delete;
       udp_recv_t(udp_recv_t&& r) noexcept :
@@ -1005,6 +1005,121 @@ export namespace fan {
       }
     };
 
+    struct udp_recvfrom_t {
+      std::shared_ptr<uv_udp_t> socket;
+      std::coroutine_handle<> co_handle;
+      udp_datagram_t datagram;
+      bool ready{ false };
+      bool receiving{ false };
+      bool filter_sender{ false };
+      socket_address_t expected_sender;
+
+      template<typename T>
+        requires(std::is_same_v<T, udp_t>)
+      udp_recvfrom_t(const T& udp) : socket(udp.socket) {
+        socket->data = this;
+      }
+
+      void set_expected_sender(const socket_address_t& sender) {
+        expected_sender = sender;
+        filter_sender = true;
+      }
+
+      void set_expected_sender(const std::string& ip, int port) {
+        expected_sender = socket_address_t(ip, port);
+        filter_sender = true;
+      }
+
+      bool matches_expected_sender(const socket_address_t& actual_sender) const {
+        if (!filter_sender) return true;
+
+        return (expected_sender.get_ip() == actual_sender.get_ip() &&
+          expected_sender.get_port() == actual_sender.get_port());
+      }
+
+      udp_recvfrom_t(const udp_recvfrom_t&) = delete;
+      udp_recvfrom_t(udp_recvfrom_t&& r) noexcept
+        : socket{ std::move(r.socket) },
+        co_handle{ std::move(r.co_handle) },
+        datagram{ std::move(r.datagram) },
+        ready{ r.ready },
+        receiving{ r.receiving } {
+        if (socket) {
+          socket->data = this;
+        }
+      }
+
+      int start() {
+        if (receiving) return 0;
+        receiving = true;
+        socket->data = this;
+
+        return uv_udp_recv_start(socket.get(),
+          [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+            auto self = static_cast<udp_recvfrom_t*>(handle->data);
+            self->datagram.data.resize(suggested_size);
+            *buf = uv_buf_init(self->datagram.data.data(), suggested_size);
+          },
+          [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
+            const struct sockaddr* addr, unsigned flags) 
+          {
+            auto self = static_cast<udp_recvfrom_t*>(handle->data);
+
+            if (nread > 0 && addr) {
+              socket_address_t sender_addr(addr);
+
+              if (self->filter_sender && !self->matches_expected_sender(sender_addr)) {
+                return;
+              }
+
+              self->datagram.status = nread;
+              self->datagram.data.resize(nread);
+              self->datagram.sender = sender_addr;
+            }
+            else {
+              self->datagram.status = nread;
+              self->datagram.data.clear();
+            }
+
+            self->ready = true;
+            uv_udp_recv_stop(handle);
+            self->receiving = false;
+
+            if (self->co_handle) {
+              self->co_handle();
+            }
+          }
+        );
+      }
+
+      void stop() {
+        if (receiving) {
+          uv_udp_recv_stop(socket.get());
+          receiving = false;
+        }
+      }
+
+      bool await_ready() const {
+        return ready;
+      }
+
+      void await_suspend(std::coroutine_handle<> h) {
+        co_handle = h;
+        start();
+      }
+
+      udp_datagram_t await_resume() {
+        ready = false;
+        co_handle = nullptr;
+        return std::move(datagram);
+      }
+
+      ~udp_recvfrom_t() {
+        stop();
+      }
+    };
+
+
     struct udp_t {
       using recv_cb_t = std::function<fan::event::task_t(udp_t&, const udp_datagram_t&)>;
 
@@ -1053,19 +1168,34 @@ export namespace fan {
       udp_recv_t recv() {
         return udp_recv_t{ *this };
       }
+      udp_recvfrom_t recvfrom() {
+        return udp_recvfrom_t{ *this };
+      }
+      fan::event::task_value_resume_t<udp_datagram_t> recvfrom(const std::string& ip, int port) {
+        auto recvfrom = udp_recvfrom_t{ *this };
+        recvfrom.set_expected_sender(ip, port);
+        co_return co_await recvfrom;
+      }
+      fan::event::task_value_resume_t<udp_datagram_t> recvfrom(const socket_address_t& addr) {
+        auto recvfrom = udp_recvfrom_t{ *this };
+        recvfrom.set_expected_sender(addr);
+        co_return co_await recvfrom;
+      }
 
       fan::event::task_t listen(const listen_address_t& address, recv_cb_t callback) {
-        if (address.port == 0) {
+        std::string ip = address.ip;
+        int port = address.port;
+        if (port == 0) {
           fan::throw_error("invalid port");
         }
 
-        auto bind_result = bind(address.ip, address.port);
+        auto bind_result = bind(ip, port);
         if (bind_result != 0) {
           fan::throw_error("UDP bind failed", bind_result);
         }
 
         while (true) {
-          auto datagram = co_await recv();
+          auto datagram = co_await recvfrom(ip, port);
           if (datagram.is_error()) {
             if (datagram.status == UV_EOF) {
               break;
@@ -1170,7 +1300,7 @@ export namespace fan {
     udp_recv_t::udp_recv_t(const T& udp) : socket(udp.socket) {
       socket->data = this;
     }
-    fan::event::task_t udp_listen(listen_address_t address, udp_t::recv_cb_t callback) {
+    fan::event::task_t udp_listen(const listen_address_t& address, udp_t::recv_cb_t callback) {
       udp_t udp;
       co_await udp.listen(address, callback);
     }
