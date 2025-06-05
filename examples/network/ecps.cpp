@@ -1,4 +1,6 @@
 #include <fan/types/types.h>
+#include <fan/time/timer.h>
+#include <fan/event/types.h>
 #include <fan/types/dme.h>
 #include <unordered_map>
 #include <exception>
@@ -9,6 +11,8 @@
 #include <functional>
 #include <mutex>
 #include <vector>
+
+#include <cuda.h>
 
 import fan;
 import fan.fmt;
@@ -199,9 +203,12 @@ ChannelID: {}
   std::vector<channel_info_t> channel_info;
 }ecps_backend;
 
-struct screen_codec_t : fan::graphics::screen_codec_t {
+struct screen_encode_t : fan::graphics::screen_encode_t {
+  std::vector<uint8_t> buffer_copy;
   std::mutex mutex;
-}screen_codec;
+  std::atomic<uint64_t> decoder_timestamp{0};
+  std::atomic<uint64_t> frame_counter{0};
+}screen_encode;
 
 struct render_thread_t {
   engine_t engine;
@@ -210,6 +217,7 @@ struct render_thread_t {
   ecps_gui_t ecps_gui;
   std::mutex mutex;
 
+  // static fan::graphics::image_t image = engine.image_create(gui::get_color(gui::col_window_bg));
   fan::graphics::universal_image_renderer_t screen_frame{{
     .position = fan::vec3(gloco->window.get_size() / 2, 0),
     .size = gloco->window.get_size() / 2,
@@ -218,33 +226,119 @@ struct render_thread_t {
   void render() {
     render_thread->engine.process_loop([&]{ ecps_gui.render(); });
   }
+
+  struct screen_decode_t : fan::graphics::screen_decode_t {
+
+  }screen_decode;
 }*render_thread=0;
 
+std::atomic<bool> can_encode = true;
+uint64_t timestamp = 0;
+
 int main() {
-  auto thread_id = fan::event::thread_create([] {
-    render_thread = new render_thread_t;
+  std::promise<void> render_thread_promise;
+  std::future<void> render_thread_future = render_thread_promise.get_future();
+
+  uint64_t encode_start = 0;
+
+  auto thread_id = fan::event::thread_create([&render_thread_promise, &encode_start] {
+    render_thread = (render_thread_t*)malloc(sizeof(render_thread_t));
+    std::construct_at(render_thread);
+
+    render_thread_promise.set_value(); // signal
+
     while (!render_thread->engine.should_close()) {
+      render_thread->mutex.lock();
+      if (encode_start != 0) {
+        if (render_thread->screen_decode.FrameProcessStartTime == 0) {
+          render_thread->screen_decode.init(encode_start);
+        }
+        //screen_encode.mutex.lock();
+        if (screen_encode.buffer_copy.size() > 0) {
+          render_thread->screen_decode.decode(
+            screen_encode.buffer_copy.data(),
+            screen_encode.buffer_copy.size(),
+            render_thread->screen_frame
+          );
+
+          //uint64_t current_time = fan::time::clock::now();
+          //uint64_t latency_ms = (current_time - timestamp) / 1000000;
+          //  
+          //if (latency_ms > 20) {
+          //  fan::print_format("Latency: {}ms", latency_ms);
+          //}
+
+          screen_encode.buffer_copy.clear();
+          can_encode.store(true);
+        }
+        //screen_encode.mutex.unlock();
+        render_thread->screen_decode.sleep_thread(screen_encode.settings.InputFrameRate);
+      }
+      render_thread->mutex.unlock();
+
       render_thread->render();
     }
     delete render_thread;
   });
 
-  auto task_process_backend_queue = []() -> fan::event::task_t {
-    while (true) {
-      if (render_thread != nullptr) {
-        std::vector<std::function<fan::event::task_t()>> local_tasks;
-        {
-          std::lock_guard<std::mutex> lock(render_thread->mutex);
-          local_tasks = std::move(render_thread->ecps_gui.task_queue);
-          render_thread->ecps_gui.task_queue.clear();
-        }
-        for (const auto& f : local_tasks) {
-          co_await f();
-        }
-      }
-      co_await fan::co_sleep(1);
+  render_thread_future.wait(); // wait for render_thread init
+
+  // task queue - render thread -> main thread, process ecps_backend calls
+  fan::event::task_idle([]() -> fan::event::task_t {
+    if (render_thread == nullptr) {
+      co_return;
     }
-  }();
+    std::vector<std::function<fan::event::task_t()>> local_tasks;
+    {
+      std::lock_guard<std::mutex> lock(render_thread->mutex);
+      local_tasks = std::move(render_thread->ecps_gui.task_queue);
+      render_thread->ecps_gui.task_queue.clear();
+    }
+    for (const auto& f : local_tasks) {
+      co_await f();
+    }
+  });
+
+
+  // codec task
+  fan::event::task_idle([&encode_start]() -> fan::event::task_t {
+    if (render_thread == nullptr) {
+      co_return;
+    }
+
+    if (can_encode.load() == false) {
+      co_return;
+    }
+
+    std::lock_guard<std::mutex> lock1(render_thread->mutex);
+    if (render_thread->ecps_gui.is_streaming) {
+      if (encode_start == 0) {
+        encode_start = fan::time::clock::now();
+        screen_encode.init(encode_start);
+      }
+      if (!screen_encode.screen_read()) {
+        co_return;
+      }
+      timestamp = fan::time::clock::now();
+      if (!screen_encode.encode_write(render_thread->screen_decode.FrameProcessStartTime)) {
+        co_return;
+      }
+      screen_encode.encode_read();
+
+      screen_encode.buffer_copy.resize(screen_encode.amount);
+      std::memcpy(screen_encode.buffer_copy.data(), screen_encode.data, screen_encode.amount);
+      screen_encode.frame_counter.fetch_add(1);
+      static uint64_t last_stats = 0;
+      uint64_t now = fan::time::clock::now();
+
+      if (now - last_stats > 5000000000ULL) {
+        fan::print_format("Frames encoded: {}, latest size: {} bytes",
+          screen_encode.frame_counter.load(), screen_encode.amount);
+        last_stats = now;
+      }
+      can_encode.store(!screen_encode.amount);
+    }
+  });
 
   fan::event::loop();
 }
