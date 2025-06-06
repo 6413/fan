@@ -162,7 +162,7 @@ export namespace fan {
             self->co_handle();
           });
         if (r != 0) {
-          fan::throw_error("listen error", r);
+          fan::throw_error("listen error:"_str + uv_strerror(r));
         }
       }
 
@@ -617,7 +617,7 @@ export namespace fan {
 #define BLL_set_Link 1
 #define BLL_set_type_node uint32_t
 #define BLL_set_NodeDataType fan::network::tcp_t*
-#define BLL_set_CPP_CopyAtPointerChange 1
+#define BLL_set_CPP_CopyAtPointerChange 1 // maybe not necessary since holding *
 #include <BLL/BLL.h>
 
       using nr_t = client_list_t::nr_t;
@@ -682,7 +682,7 @@ export namespace fan {
         return uv_tcp_bind(socket.get(), reinterpret_cast<sockaddr*>(&bind_addr), 0);
       }
 
-      fan::event::task_t listen(const listen_address_t& address, listen_cb_t lambda);
+      fan::event::task_t listen(const listen_address_t& address, listen_cb_t lambda, bool bind = false);
       connector_t connect(const std::string& ip, int port) {
         return connector_t{ *this, ip, port };
       }
@@ -753,11 +753,16 @@ export namespace fan {
       }
     };
 
-    fan::event::task_t tcp_t::listen(const listen_address_t& address, listen_cb_t lambda) {
-      if (address.port == 0) {
-        fan::throw_error("invalid port");
+    fan::event::task_t tcp_t::listen(const listen_address_t& address, listen_cb_t lambda, bool bind_) {
+      if (bind_) {
+        if (address.port == 0) {
+          fan::throw_error("invalid port");
+        }
+        auto bind_result = bind(address.ip, address.port);
+        if (bind_result != 0) {
+          fan::throw_error("UDP bind failed:"_str + uv_strerror(bind_result));
+        }
       }
-      bind(address.ip, address.port);
       
       listener_t listener(*this, get_client_handler().amount_of_connections);
       while (true) {
@@ -957,8 +962,8 @@ export namespace fan {
         return uv_udp_recv_start(socket.get(),
           [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
             auto self = static_cast<udp_recv_t*>(handle->data);
-            self->datagram.data.resize(suggested_size);
-            *buf = uv_buf_init(self->datagram.data.data(), suggested_size);
+            self->datagram.data.resize(2000);
+            *buf = uv_buf_init(self->datagram.data.data(), 2000);
           },
           [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags) {
             auto self = static_cast<udp_recv_t*>(handle->data);
@@ -974,8 +979,8 @@ export namespace fan {
               self->datagram.data.clear();
             }
 
-            uv_udp_recv_stop(handle);
-            self->receiving = false;
+            //uv_udp_recv_stop(handle);
+            //self->receiving = false;
 
             if (self->co_handle) {
               self->co_handle();
@@ -1057,8 +1062,8 @@ export namespace fan {
         return uv_udp_recv_start(socket.get(),
           [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
             auto self = static_cast<udp_recvfrom_t*>(handle->data);
-            self->datagram.data.resize(suggested_size);
-            *buf = uv_buf_init(self->datagram.data.data(), suggested_size);
+            self->datagram.data.resize(2000);
+            *buf = uv_buf_init(self->datagram.data.data(), 2000);
           },
           [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
             const struct sockaddr* addr, unsigned flags) 
@@ -1082,8 +1087,8 @@ export namespace fan {
             }
 
             self->ready = true;
-            uv_udp_recv_stop(handle);
-            self->receiving = false;
+            //uv_udp_recv_stop(handle);
+            //self->receiving = false;
 
             if (self->co_handle) {
               self->co_handle();
@@ -1137,7 +1142,7 @@ export namespace fan {
       udp_t() : socket(new uv_udp_t, udp_deleter_t{}) {
         int result = uv_udp_init(fan::event::get_event_loop(), socket.get());
         if (result != 0) {
-          fan::throw_error("Failed to initialize UDP socket", result);
+          fan::throw_error("Failed to initialize UDP socket:"_str + uv_strerror(result));
         }
       }
 
@@ -1182,17 +1187,20 @@ export namespace fan {
         co_return co_await recvfrom;
       }
 
-      fan::event::task_t listen(const listen_address_t& address, recv_cb_t callback) {
+      fan::event::task_t listen(const listen_address_t& address, recv_cb_t callback, bool bind_ = false) {
         std::string ip = address.ip;
         int port = address.port;
         if (port == 0) {
           fan::throw_error("invalid port");
         }
 
-        auto bind_result = bind(ip, port);
-        if (bind_result != 0) {
-          fan::throw_error("UDP bind failed", bind_result);
+        if (bind_) {
+          auto bind_result = bind(ip, port);
+          if (bind_result != 0) {
+            fan::throw_error("UDP bind failed:"_str + uv_strerror(bind_result));
+          }
         }
+        
 
         while (true) {
           auto datagram = co_await recvfrom(ip, port);
@@ -1424,12 +1432,12 @@ export namespace fan {
       }
 
     public:
-      explicit tcp_keep_alive_t(tcp_t& tcp_conn, const buffer_t& payload)
+      explicit tcp_keep_alive_t(tcp_t& tcp_conn, auto send_keep_alive_cb)
         : tcp_connection(tcp_conn) {
         timer = std::make_unique<keep_alive_timer_t<tcp_t>>(
           tcp_connection,
-          [this, payload](tcp_t& tcp) -> fan::event::task_t {
-            co_await send_keep_alive(tcp, payload);
+          [this, send_keep_alive_cb](tcp_t& tcp) -> fan::event::task_t {
+            co_await send_keep_alive_cb(tcp);
           },
           [this]() { on_timeout(); }
         );
@@ -1471,23 +1479,23 @@ export namespace fan {
     public:
       udp_keep_alive_t(udp_t& udp_conn) : udp_connection(udp_conn) {}
 
-      void set_server(const buffer_t& payload, const socket_address_t& server_addr) {
+      void set_server(const socket_address_t& server_addr, auto send_keep_alive_cb) {
         this->server_address = server_addr;
         timer = std::make_unique<keep_alive_timer_t<udp_t>>(
           udp_connection,
-          [this, payload](udp_t& udp) -> fan::event::task_t {
-            co_await send_keep_alive(udp, payload);
+          [this, send_keep_alive_cb](udp_t& udp) -> fan::event::task_t {
+            co_await send_keep_alive_cb(udp);
           },
           [this]() { on_timeout(); }
         );
       }
 
-      udp_keep_alive_t(udp_t& udp_conn, const buffer_t& payload, const socket_address_t& server_addr)
+      udp_keep_alive_t(udp_t& udp_conn, const socket_address_t& server_addr, auto send_keep_alive_cb)
         : udp_connection(udp_conn) {
-        set_server(payload, server_addr);
+        set_server(server_addr, send_keep_alive_cb);
       }
-      udp_keep_alive_t(udp_t& udp_conn, const buffer_t& payload, const std::string& server_ip, int server_port)
-        : udp_keep_alive_t(udp_conn, payload, socket_address_t(server_ip, server_port)) {}
+      udp_keep_alive_t(udp_t& udp_conn, const std::string& server_ip, int server_port, auto send_keep_alive_cb)
+        : udp_keep_alive_t(udp_conn, socket_address_t(server_ip, server_port), send_keep_alive_cb) {}
       void start() {
         timer->start();
       }

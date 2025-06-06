@@ -13,7 +13,7 @@ struct ecps_backend_t {
       if (msg->ClientIdentify != identify_secret) {
         co_return;
       }
-      identify_secret = msg->ClientIdentify;
+      identify_secret = msg->ServerIdentify;
       fan::print("inform invalid identify came");
       co_return;
     };
@@ -89,13 +89,31 @@ ChannelID: {}
     }
   };
   fan::event::task_t tcp_read() {
+    uint8_t data[] = {
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00
+};
+
+
+
+
+
+
+
+
+    tcp::ProtocolBasePacket_t* bp = (tcp::ProtocolBasePacket_t*)data;
     while (1) {
       auto msg = co_await tcp_client.read<tcp::ProtocolBasePacket_t>();
-      fan::print_format(R"({{
+    /*  fan::print_format(R"({{
   ID: {}
   Command: {}
-}})", msg->ID, msg->Command);
-      co_await(*Protocol_S2C.NA(msg->Command))(*this, msg.data);
+}})", msg->ID, msg->Command));*/
+      if (msg->Command >= Protocol_S2C.size()) {
+        fan::print("invalid command, ignoring...");
+      }
+      else {
+        co_await(*Protocol_S2C.NA(msg->Command))(*this, msg.data);
+      }
     }
   }
   fan::event::task_value_resume_t<uint32_t> tcp_write(int command, void* data = 0, uint32_t len = 0) {
@@ -246,6 +264,21 @@ ChannelID: {}
   }view;
   struct share_t {
     uint64_t frame_index = 0;
+
+    struct m_NetworkFlow_t {
+      struct FrameListNodeData_t {
+#if set_VerboseProtocol_HoldStreamTimes == 1
+        ScreenShare_StreamHeader_Head_t::_VerboseTime_t _VerboseTime;
+#endif
+        std::vector<uint8_t> vec;
+        uintptr_t SentOffset;
+      };
+      uint64_t WantedInterval = 5000000;
+      uint64_t Bucket; /* in bit */
+      uint64_t BucketSize; /* in bit */
+      uint64_t TimerLastCallAt;
+      uint64_t TimerCallCount;
+    }m_NetworkFlow;
   }share;
   fan::event::task_t write_stream(
     uint16_t Current,
@@ -254,7 +287,6 @@ ChannelID: {}
     void* Data,
     uintptr_t DataSize
   ) {
-
     uint8_t buffer[sizeof(ScreenShare_StreamHeader_Head_t) + 0x400];
 
     auto Body = (ScreenShare_StreamHeader_Body_t*)buffer;
@@ -273,6 +305,10 @@ ChannelID: {}
     }
 
     uintptr_t BufferSize = (uintptr_t)DataWillBeAt - (uintptr_t)buffer + DataSize;
+    //if(share.m_NetworkFlow.Bucket < BufferSize * 8){
+    //  return 1;
+    //}
+    //share.m_NetworkFlow.Bucket -= BufferSize * 8;
 
     __builtin_memcpy(DataWillBeAt, Data, DataSize);
 
@@ -290,11 +326,10 @@ ChannelID: {}
     }
     catch (...) { co_return; }
     udp_keep_alive.set_server(
-      fan::network::buffer_t{
-        (char*)&keep_alive_payload,
-        (char*)&keep_alive_payload + sizeof(keep_alive_payload)
-      },
-      { ip, port }
+      fan::network::socket_address_t{ ip, port },
+      [this](fan::network::udp_t& udp) -> fan::event::task_t {
+        co_await udp_write(0, ProtocolUDP::C2S_t::KeepAlive, {}, 0, 0);
+      }
     );
     // udp read
     task_udp_listen = udp_client.listen(
@@ -309,6 +344,9 @@ ChannelID: {}
         }
         uintptr_t RelativeSize = size - sizeof(bp);
         if (bp.Command == ProtocolUDP::S2C_t::KeepAlive) {
+          if (sizeof(bp) != datagram.data.size()) {
+            fan::print("size is not same as sizeof expected arrival");
+          }
           fan::print("udp keep alive came");
           udp_keep_alive.reset();
         }
@@ -416,12 +454,10 @@ ChannelID: {}
   fan::network::udp_t udp_client;
   fan::event::task_t task_udp_listen;
 
-  tcp::ProtocolBasePacket_t keep_alive_payload{ .ID = 0, .Command = (Protocol_CI_t)Protocol_C2S_t::KeepAlive };
   fan::network::tcp_keep_alive_t tcp_keep_alive{
     tcp_client,
-    fan::network::buffer_t{
-      (char*)&keep_alive_payload,
-      (char*)&keep_alive_payload + sizeof(keep_alive_payload)
+    [this] (fan::network::tcp_t& tcp) -> fan::event::task_t{
+      co_await tcp_write(Protocol_C2S_t::KeepAlive);
     }
   };
   fan::network::udp_keep_alive_t udp_keep_alive{ udp_client };

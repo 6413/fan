@@ -2275,13 +2275,19 @@ static void reload_universal_image_renderer(loco_t::shape_t* shape, uint8_t form
 
     uint8_t image_count_old = fan::graphics::get_channel_amount(ri.format);
     if (image_count_new < image_count_old) {
-      // -1 ? 
-      for (uint32_t i = image_count_old - 1; i > image_count_new; --i) {
-        if (i == 0) {
+      uint8_t textures_to_remove = image_count_old - image_count_new;
+      if (vi_image.iic() || vi_image == gloco->default_texture) { // uninitialized
+        textures_to_remove = 0;
+      }
+      for (int i = 0; i < textures_to_remove; ++i) {
+        int index = image_count_old - i - 1; // not tested
+        if (index == 0) {
           gloco->image_erase(vi_image);
+          shape->set_image(gloco->default_texture);
         }
         else {
-          gloco->image_erase(ri.images_rest[i - 1]);
+          gloco->image_erase(ri.images_rest[index - 1]);
+          ri.images_rest[index - 1] = gloco->default_texture;
         }
       }
     }
