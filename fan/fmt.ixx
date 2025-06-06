@@ -11,7 +11,7 @@ module;
 
 #include <vector>
 #include <sstream>
-
+#include <string_view>
 // std::quoted
 #include <iomanip>
 
@@ -55,8 +55,7 @@ export namespace fan {
   }
 
   template <typename... T>
-  auto format(current_fmt::format_string<T...> fmt, T&&... args)
-    -> std::string {
+  constexpr std::string format(const std::string_view& fmt, T&&... args) {
     return current_fmt::vformat(fmt, current_fmt::make_format_args(args...));
   }
 

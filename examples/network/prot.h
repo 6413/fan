@@ -174,17 +174,14 @@ struct Protocol_C2S_t : __dme_inherit(Protocol_C2S_t){
   );
 }Protocol_C2S;
 
+static fan::event::task_t default_s2c_cb(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base);
+
 using S2C_callback_inherit_t = std::function<
   fan::event::task_t(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base)
 >;
 struct S2C_callback_t : S2C_callback_inherit_t {
   using S2C_callback_inherit_t::S2C_callback_inherit_t;
-  S2C_callback_t() : S2C_callback_inherit_t(
-    [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
-      fan::print("unhandled callback");
-      co_return;
-    }
-  ) { };
+  S2C_callback_t() : S2C_callback_inherit_t(default_s2c_cb) {};
 };
 
 struct Protocol_S2C_t : __dme_inherit(Protocol_S2C_t, S2C_callback_t) {
