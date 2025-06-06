@@ -4925,8 +4925,12 @@ public:
       uint8_t image_amount = fan::graphics::get_channel_amount(ri.format);
       for (uint32_t i = 0; i < image_amount; ++i) {
         wresources[i].close();
-        gloco->image_unload(ri.images_rest[i]);
+        if (ri.images_rest[i] != loco->default_texture) {
+          gloco->image_unload(ri.images_rest[i]);
+        }
+        ri.images_rest[i] = loco->default_texture;
       }
+      inited = false;
     }
 
     void resize(loco_t* loco, loco_t::shape_t& id, uint8_t format, fan::vec2ui size, uint32_t filter = fan::graphics::image_filter::linear) {
@@ -5001,10 +5005,8 @@ public:
       void map() {
         fan::cuda::check_error(cudaGraphicsMapResources(1, &resource, 0));
         fan::cuda::check_error(cudaGraphicsSubResourceGetMappedArray(&cuda_array, resource, 0, 0));
-        fan::print("+", resource);
       }
       void unmap() {
-        fan::print("-", resource);
         fan::cuda::check_error(cudaGraphicsUnmapResources(1, &resource));
         //fan::cuda::check_error(cudaGraphicsResourceSetMapFlags(resource, 0));
       }
