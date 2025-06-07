@@ -2,21 +2,27 @@ module;
 
 #include <fan/types/types.h>
 #include <fan/time/timer.h>
+
 #include <WITCH/WITCH.h>
 #define ETC_VEDC_Encode_DefineEncoder_OpenH264
 #define ETC_VEDC_Encode_DefineEncoder_x264
 //#if defined(__platform_windows)
-#define ETC_VEDC_Encode_DefineEncoder_nvenc
+#if __has_include("cuda.h")
+  #define ETC_VEDC_Encode_DefineEncoder_nvenc
+#endif
 //#endif
 
 #define ETC_VEDC_Decoder_DefineCodec_OpenH264
 //#if defined(__platform_windows)
-#define ETC_VEDC_Decoder_DefineCodec_cuvid
+#if __has_include("cuda.h")
+  #define ETC_VEDC_Decoder_DefineCodec_cuvid
+#endif
 //#endif#
 
 
 #include <mutex>
 #include <array>
+#include <cstring>
 
 #include <WITCH/PR/PR.h>
 #include <WITCH/STR/psh.h>
@@ -27,13 +33,7 @@ module;
 #include <WITCH/T/T.h>
 
 #include <WITCH/MEM/MEM.h>
-#include <WITCH/STR/common/common.h>
-#include <WITCH/IO/IO.h>
-#include <WITCH/IO/print.h>
 #include <WITCH/HASH/SHA.h>
-#include <WITCH/RAND/RAND.h>
-#include <WITCH/VEC/VEC.h>
-#include <WITCH/EV/EV.h>
 #include <WITCH/ETC/VEDC/Encode.h>
 #include <WITCH/ETC/VEDC/Decoder.h>
 
@@ -97,6 +97,9 @@ export namespace fan {
         settings.FrameSizeY = mdscr.Geometry.Resolution.y;
 
         open_encoder();
+      }
+      static auto get_encoders() {
+        return std::to_array(_ETC_VEDC_EncoderList);
       }
 
       std::string name = "x264";
@@ -188,13 +191,10 @@ export namespace fan {
         amount = ETC_VEDC_Encode_Read(this, &PacketInfo, &data);
         return amount;
       }
-      static auto get_encoders() {
-        return std::to_array(_ETC_VEDC_EncoderList);
-      }
 
       void sleep_thread() {
         uint64_t OneFrameTime = 1000000000 / settings.InputFrameRate;
-        uint64_t CTime = T_nowi();
+        uint64_t CTime = fan::time::clock::now();
         uint64_t TimeDiff = CTime - FrameProcessStartTime;
         if (TimeDiff > OneFrameTime) {
           FrameProcessStartTime = CTime;
@@ -202,7 +202,7 @@ export namespace fan {
         else {
           uint64_t SleepTime = OneFrameTime - TimeDiff;
           FrameProcessStartTime = CTime + SleepTime;
-          TH_sleepi(SleepTime);
+          fan::event::sleep(SleepTime / 1000000); // todo bad
         }
       }
 
@@ -255,6 +255,10 @@ export namespace fan {
         open_decoder();
       }
 
+      static auto get_decoders() {
+        return std::to_array(_ETC_VEDC_DecoderList);
+      }
+
       struct decode_data_t {
         std::array<std::vector<uint8_t>, 4> data;
         std::array<fan::vec2ui, 4> stride;
@@ -295,16 +299,16 @@ export namespace fan {
           return ret;
         }
         
+#if defined(ETC_VEDC_Decoder_DefineCodec_cuvid)
         if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame)) {
           ret.type = 0;
         }
-        else if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_Frame)) {
+        else 
+#endif
+        if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_Frame)) {
           ret.type = 1;
         }
 
-        if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame)) {
-        
-        }
         if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_Frame)) {
           NewReadMethod(universal_image_renderer, ETC_VEDC_Decoder_ReadType_Frame);
           ETC_VEDC_Decoder_Frame_t Frame;
@@ -344,6 +348,7 @@ export namespace fan {
         return ret;
       }
       bool decode_cuvid(loco_t::shape_t& universal_image_renderer) {
+#if defined(ETC_VEDC_Decoder_DefineCodec_cuvid)
         if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame) == false) {
           return false;
         }
@@ -375,9 +380,9 @@ export namespace fan {
         FrameSize = fan::vec2ui(props.SizeX, props.SizeY);
         ETC_VEDC_Decoder_ReadClear(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame, &Frame);
         return true;
-      }
-      static auto get_decoders() {
-        return std::to_array(_ETC_VEDC_DecoderList);
+#else
+        return false;
+#endif
       }
 
       std::string name = "OpenH264";

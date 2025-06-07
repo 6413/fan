@@ -1,10 +1,10 @@
 module;
 
+#include <cstring>
 #include <functional>
 #include <map>
 #include <unordered_map>
 #include <string>
-#include <cstring>
 #include <vector>
 
 #include <fan/types/types.h>

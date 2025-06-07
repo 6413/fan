@@ -2,12 +2,18 @@ module;
 
 #include <fan/types/types.h>
 
-//std::format doesnt exist for clang in linux
-//#define FMT_HEADER_ONLY
-//#include <fmt/format.h>
-//#include <fmt/xchar.h>
+//std::format doesnt exist for clang in linux without libc++
 
-#include <format>
+
+#if __has_include("format")
+  #include <format>
+  namespace current_fmt = std;
+#else
+#define FMT_HEADER_ONLY
+#include <fmt/format.h>
+#include <fmt/xchar.h>
+  namespace current_fmt = fmt;
+#endif
 
 #include <vector>
 #include <sstream>
@@ -21,7 +27,7 @@ export import fan.print;
 export import fan.types.fstring;
 import fan.types.vector;
 
-namespace current_fmt = std;
+
 
 export namespace fan {
 
