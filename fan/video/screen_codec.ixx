@@ -76,7 +76,8 @@ export namespace fan {
 
       screen_encode_t() {
 
-        if (MD_SCR_open(&mdscr) != 0) {
+        if (int ret; ret = MD_SCR_open(&mdscr) != 0) {
+          fan::print("failed to open screen:" + std::to_string(ret));
           __abort();
         }
 
