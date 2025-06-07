@@ -20,6 +20,7 @@ module;
 //#endif#
 
 
+#include <string>
 #include <mutex>
 #include <array>
 #include <cstring>
