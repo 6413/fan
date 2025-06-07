@@ -42,7 +42,6 @@ move_and_pull "https://github.com/7244/BLL.git" "BLL"
 move_and_pull "https://github.com/7244/BVEC.git" "BVEC"
 move_and_pull "https://github.com/7244/BDBT.git" "BDBT"
 move_and_pull "https://github.com/7244/bcontainer.git" "bcontainer"
-move_and_pull "https://github.com/7244/pixfconv.git" "pixfconv"
 
 REPO_DIR="$INSTALL_DIR/box2d"
 git clone https://github.com/erincatto/box2d.git "$REPO_DIR"
