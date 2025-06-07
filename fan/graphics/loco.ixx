@@ -2227,7 +2227,8 @@ public:
       uv_timer_again(&timer_handle);
     }
     else {
-      if (timer_enabled) {
+      if (timer_init) {
+        timer_init = false;
         uv_timer_stop(&timer_handle);
       }
       if (!idle_init) {
