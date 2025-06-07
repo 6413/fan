@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.31.1)
 
 set(FAN_PHYSICS OFF)
 set(FAN_GUI ON)
