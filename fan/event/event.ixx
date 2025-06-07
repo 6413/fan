@@ -527,8 +527,16 @@ export namespace fan {
 
     fan::event::task_t task_timer(uint64_t time, auto l) {
       while (true) {
-        if (l()) {
-          break;
+        if constexpr (fan::is_awaitable_v<decltype(l())>) {
+          bool ret = co_await l();
+          if (ret) {
+            break;
+          }
+        }
+        else {
+          if (l()) {
+            break;
+          }
         }
         co_await event::timer_t(time);
       }
@@ -539,14 +547,15 @@ export namespace fan {
 
     template <typename cb_t, typename ...args_t>
     struct thread_task_t {
+      fan::event::task_t task_await;
       cb_t cb;
       std::tuple<args_t...> args;
       thread_task_t(cb_t&& cb, args_t&&... args) :
         cb(std::forward<cb_t>(cb)),
         args(std::forward<args_t>(args)...) {
       }
-      void operator()() {
-        std::apply(cb, args);
+      auto operator()() {
+        return std::apply(cb, args);
       }
     };
 
@@ -559,9 +568,14 @@ export namespace fan {
       );
       int uv_error = uv_thread_create(&id, [](void* arg) {
         auto* task = static_cast<thread_task_t<cb_t, args_t...>*>(arg);
-        (*task)();
+        if constexpr (fan::is_awaitable_v<decltype((*task)())>) {
+          task->task_await = (*task)();
+        }
+        else {
+          (*task)();
+        }
         delete task;
-        }, cb_copy);
+      }, cb_copy);
       if (error && uv_error < 0) {
         *error = uv_error;
         delete cb_copy;
@@ -574,6 +588,9 @@ export namespace fan {
     }
     void loop(bool once = false) {
       uv_run(fan::event::get_event_loop(), once ? UV_RUN_ONCE : UV_RUN_DEFAULT);
+    }
+    uint64_t now() {
+      return uv_now(get_event_loop()) * 1000000;
     }
 
     std::string strerror(int err) {

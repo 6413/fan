@@ -2,7 +2,7 @@ inline static fan::graphics::image_t icon_settings;
 
 inline static fan::vec2 popup_size{ 300, 100 };
 
-inline static std::string directory_path = "examples/graphics/screen_share_gui/";
+inline static std::string directory_path = "./";
 
 struct ecps_gui_t {
 
@@ -12,9 +12,9 @@ struct ecps_gui_t {
 
 #define render_thread (*OFFSETLESS(This, render_thread_t, ecps_gui))
   void backend_queue(const std::function<fan::event::task_t()>& func) {
-    render_thread.frame_mutex.lock();
+    render_mutex.lock();
     task_queue.emplace_back(func);
-    render_thread.frame_mutex.unlock();
+    render_mutex.unlock();
   }
 #undef render_thread
 
@@ -272,8 +272,9 @@ struct ecps_gui_t {
         gui::push_style_color(gui::col_button, fan::vec4(0.2f, 0.8f, 0.2f, 1.0f));
         if (gui::button("Start Stream", fan::vec2(button_width, button_size.y))) {
           ecps_backend.share.m_NetworkFlow.Bucket = 0;
-          //ecps_backend.share.m_NetworkFlow.TimerLastCallAt = EV_nowi(&g_pile->listener);
+          ecps_backend.share.m_NetworkFlow.TimerLastCallAt = fan::event::now();
           ecps_backend.share.m_NetworkFlow.TimerCallCount = 0;
+          ecps_backend.share.CalculateNetworkFlowBucket();
           is_streaming = true;
         }
         gui::pop_style_color();
@@ -346,10 +347,10 @@ struct ecps_gui_t {
               if (ChannelCommon->GetState() != ChannelState_t::ScreenShare_Share) {
                 break;
               }*/
-              screen_encode.mutex.lock();
-              screen_encode.settings.InputFrameRate = framerate;
-              screen_encode.update_flags |= fan::graphics::codec_update_e::frame_rate;
-              screen_encode.mutex.unlock();
+              screen_encode->mutex.lock();
+              screen_encode->settings.InputFrameRate = framerate;
+              screen_encode->update_flags |= fan::graphics::codec_update_e::frame_rate;
+              screen_encode->mutex.unlock();
             }
           } while (0);
           gui::pop_item_width();
@@ -372,8 +373,8 @@ struct ecps_gui_t {
 
                 //auto sd = (Channel_ScreenShare_Share_t*)ChannelCommon->m_StateData;
                 //sd->ThreadCommon->EncoderSetting.Mutex.Lock(); // do i need to lock for reading
-                framerate = screen_encode.settings.InputFrameRate;
-                bitrate_mbps = screen_encode.settings.RateControl.TBR.bps / 1000000.0;
+                framerate = screen_encode->settings.InputFrameRate;
+                bitrate_mbps = screen_encode->settings.RateControl.TBR.bps / 1000000.0;
                 //sd->ThreadCommon->EncoderSetting.Mutex.Unlock();
                 initialize = false;
               }
@@ -394,10 +395,10 @@ struct ecps_gui_t {
               }*/
 
               //auto sd = (Channel_ScreenShare_Share_t*)ChannelCommon->m_StateData;
-              screen_encode.mutex.lock();
-              screen_encode.settings.RateControl.TBR.bps = bitrate_mbps * 1000000.0;
-              screen_encode.update_flags |= fan::graphics::codec_update_e::rate_control;
-              screen_encode.mutex.unlock();
+              screen_encode->mutex.lock();
+              screen_encode->settings.RateControl.TBR.bps = bitrate_mbps * 1000000.0;
+              screen_encode->update_flags |= fan::graphics::codec_update_e::rate_control;
+              screen_encode->mutex.unlock();
             }
             gui::pop_item_width();
           } while (0);
@@ -418,7 +419,7 @@ struct ecps_gui_t {
 
           do {//encoder
             static auto encoder_names = [] {
-              auto encoders = screen_encode.get_encoders();
+              auto encoders = screen_encode->get_encoders();
               std::array<std::string, encoders.size()> encoder_names;
               for (std::size_t i = 0; i < encoders.size(); ++i) {
                 encoder_names[i] = encoders[i].Name;
@@ -435,15 +436,21 @@ struct ecps_gui_t {
               return names;
             }();
 
+            if (!This->is_streaming) {
+              gui::columns(1, "codec_cols", false);
+              break;
+            }
+
             gui::push_item_width(-1);
             gui::text("Encoder:");
-            selected_encoder = screen_encode.EncoderID;
+            selected_encoder = screen_encode->EncoderID;
             if (gui::combo("##encoder", (int*)&selected_encoder, encoder_options.data(),
               encoder_options.size())) {
-              screen_encode.mutex.lock();
-              screen_encode.new_codec = selected_encoder;
-              screen_encode.update_flags |= fan::graphics::codec_update_e::codec;
-              screen_encode.mutex.unlock();
+              screen_encode->mutex.lock();
+              screen_encode->new_codec = selected_encoder;
+              screen_encode->update_flags |= fan::graphics::codec_update_e::codec;
+              screen_encode->encode_write_flags |= fan::graphics::codec_update_e::reset_IDR;
+              screen_encode->mutex.unlock();
             }
             gui::pop_item_width();
           } while (0);//encoder
@@ -452,7 +459,7 @@ struct ecps_gui_t {
 
           do {//decoder
             static auto decoder_names = [] {
-              auto decoders = render_thread->screen_decode.get_decoders();
+              auto decoders = screen_decode->get_decoders();
               std::array<std::string, decoders.size()> decoder_names;
               for (std::size_t i = 0; i < decoder_names.size(); ++i) {
                 decoder_names[i] = decoders[i].Name;
@@ -471,13 +478,25 @@ struct ecps_gui_t {
 
             gui::push_item_width(-1);
             gui::text("Decoder:");
-            selected_decoder = render_thread->screen_decode.DecoderID;
+            selected_decoder = screen_decode->DecoderID;
             if (gui::combo("##decoder", (int*)&selected_decoder, decoder_options.data(),
               decoder_options.size())) {
-              screen_encode.mutex.lock();
-              render_thread->screen_decode.new_codec = selected_decoder;
-              render_thread->screen_decode.update_flags |= fan::graphics::codec_update_e::codec;
-              screen_encode.mutex.unlock();
+              screen_decode->mutex.lock();
+              screen_decode->new_codec = selected_decoder;
+              screen_decode->update_flags |= fan::graphics::codec_update_e::codec;
+              screen_decode->mutex.unlock();
+              This->backend_queue([=]() -> fan::event::task_t {
+                try {
+                  ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_Share_InformationToViewSetFlag_t rest;
+                  rest.Flag = ecps_backend_t::ProtocolChannel::ScreenShare::ChannelFlag::ResetIDR;
+                  co_await ecps_backend.tcp_write(
+                    ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_Share_InformationToViewSetFlag,
+                    &rest,
+                    sizeof(rest)
+                  );
+                }
+                catch (...) {}
+                });
             }
             gui::pop_item_width();
           } while (0);//decoder
@@ -558,6 +577,15 @@ struct ecps_gui_t {
       gui::window_flags_no_title_bar |
       gui::window_flags_no_bring_to_front_on_focus |
       gui::window_flags_no_inputs);
+
+    if (render_thread->screen_frame.get_image() == gloco->default_texture) {
+      static fan::graphics::image_t image = engine.image_create(gui::get_color(gui::col_window_bg).set_alpha(1));
+      render_thread->screen_frame_hider.set_size(engine.window.get_size() / 2);
+      render_thread->screen_frame_hider.set_image(image);
+    }
+    else {
+      render_thread->screen_frame_hider.set_size(0);
+    }
 
     render_stream();
 

@@ -114,8 +114,11 @@ export namespace fan {
 
   template <typename ...Args>
   constexpr void throw_error(const Args&... args) {
-    fan::print(args...);
-    fan::throw_error_impl();
+    std::ostringstream out;
+    ((out << args << " "), ...);
+    std::string str = out.str();
+    str.pop_back();
+    fan::throw_error_impl(str.c_str());
   }
 
   template <typename T>

@@ -326,6 +326,10 @@ export namespace fan {
       }
     }
 
+    void make_context_current() {
+      glfwMakeContextCurrent(*this);
+    }
+
     void handle_key_states() {
       // can be 1 or 2 aka press or repeat
       if (key_state(fan::mouse_left) == 1 || key_state(fan::mouse_middle) == 1 || key_state(fan::mouse_right) == 1) {
@@ -654,6 +658,9 @@ export namespace fan {
     uint64_t flags = 0;
 
     operator GLFWwindow* () {
+      return glfw_window;
+    }
+    operator GLFWwindow* const () const {
       return glfw_window;
     }
 
