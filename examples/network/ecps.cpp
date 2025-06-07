@@ -2,11 +2,11 @@
 #include <fan/time/timer.h>
 #include <fan/event/types.h>
 #include <fan/types/dme.h>
+#include <cstring>
 #include <unordered_map>
 #include <exception>
 #include <coroutine>
 #include <string>
-#include <format>
 #include <array>
 #include <functional>
 #include <mutex>
@@ -14,8 +14,12 @@
 #include <condition_variable>
 #include <atomic>
 #include <chrono>
+#include <future>
+#include <queue>
 
-#include <cuda.h>
+#if __has_include("cuda.h")
+  #include <cuda.h>
+#endif
 
 import fan;
 import fan.fmt;
