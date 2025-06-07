@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.28)
 
-set(FAN_PHYSICS ON)
+set(FAN_PHYSICS OFF)
 set(FAN_GUI ON)
 set(FAN_JSON ON)
-set(FAN_3D ON)
+set(FAN_3D OFF)
 set(FAN_OPENGL ON)
 set(FAN_VULKAN OFF)
 set(FAN_FMT ON)
@@ -88,7 +88,7 @@ function(apply_fan_definitions target)
 		$<$<BOOL:${FAN_OPENGL}>:fan_opengl>
 		$<$<BOOL:${FAN_GUI}>:fan_gui>
 		$<$<BOOL:${FAN_JSON}>:fan_json>
-		$<$<BOOL:${FAN_3D}>:fan_3d>
+		$<$<BOOL:${FAN_3D}>:fan_3D>
 		$<$<BOOL:${FAN_PHYSICS}>:fan_physics>
 		$<$<BOOL:${FAN_VULKAN}>:fan_vulkan>
 		loco_line
@@ -166,6 +166,9 @@ set(MODULE_FILES
 	${ROOT_PATH}/network/network.ixx
 	
 	${ROOT_PATH}/fan.ixx
+	
+	#external
+	${ROOT_PATH}/video/screen_codec.ixx
 )
 
 if (FAN_JSON)
@@ -306,6 +309,7 @@ if(BUILD_MAIN)
 				uv
 				GL
 				GLEW
+				
 				#stdc++exp
 			)
 			if (FAN_FMT)

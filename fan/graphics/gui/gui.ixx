@@ -1053,6 +1053,10 @@ export namespace fan {
           ImGui::PopStyleVar(n);
         }
 
+        void dummy(const fan::vec2& size) {
+          ImGui::Dummy(size);
+        }
+
         using draw_list_t = ImDrawList;
         draw_list_t* get_window_draw_list() {
           return ImGui::GetWindowDrawList();
@@ -2074,6 +2078,7 @@ export namespace fan {
         const fan::vec2& popup_size,
         const fan::vec2& start_pos,
         const fan::vec2& target_pos,
+        bool trigger_popup,
         auto content_cb,
         const f32_t anim_duration = 0.25f,
         const f32_t hide_delay = 0.5f
@@ -2081,24 +2086,14 @@ export namespace fan {
         ImGuiStorage* storage = ImGui::GetStateStorage();
         ImGuiID anim_time_id = ImGui::GetID((popup_id + "_anim_time").c_str());
         ImGuiID hide_timer_id = ImGui::GetID((popup_id + "_hide_timer").c_str());
-        ImGuiID last_mouse_x_id = ImGui::GetID((popup_id + "_last_mouse_x").c_str());
-        ImGuiID last_mouse_y_id = ImGui::GetID((popup_id + "_last_mouse_y").c_str());
         ImGuiID hovering_popup_id = ImGui::GetID((popup_id + "_hovering").c_str());
         ImGuiID popup_visible_id = ImGui::GetID((popup_id + "_visible").c_str());
 
         f32_t delta_time = ImGui::GetIO().DeltaTime;
         f32_t popup_anim_time = storage->GetFloat(anim_time_id, 0.0f);
         f32_t hide_timer = storage->GetFloat(hide_timer_id, 0.0f);
-        f32_t last_mouse_x = storage->GetFloat(last_mouse_x_id, ImGui::GetIO().MousePos.x);
-        f32_t last_mouse_y = storage->GetFloat(last_mouse_y_id, ImGui::GetIO().MousePos.y);
         bool hovering_popup = storage->GetBool(hovering_popup_id, false);
         bool popup_visible = storage->GetBool(popup_visible_id, false);
-
-        fan::vec2 parent_min = ImGui::GetWindowPos();
-        fan::vec2 parent_max = ImVec2(parent_min.x + ImGui::GetWindowSize().x,
-          parent_min.y + ImGui::GetWindowSize().y);
-
-        fan::vec2 current_mouse_pos = ImGui::GetIO().MousePos;
 
         // Check if mouse is in parent window area
         //bool mouse_in_parent = (current_mouse_pos.x >= parent_min.x &&
@@ -2106,15 +2101,7 @@ export namespace fan {
         //  current_mouse_pos.y >= parent_min.y &&
         //  current_mouse_pos.y <= parent_max.y);
 
-        ImGui::Dummy(parent_max - parent_min);
-
-        bool inside_window = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenOverlappedByWindow) ;
-
-        bool mouse_moved = inside_window && (current_mouse_pos.x != last_mouse_x || current_mouse_pos.y != last_mouse_y);
-
-        last_mouse_x = current_mouse_pos.x;
-        last_mouse_y = current_mouse_pos.y;
-        if (mouse_moved || hovering_popup) {
+        if (trigger_popup || hovering_popup) {
           popup_visible = true;
           hide_timer = 0.0f;
         }
@@ -2164,8 +2151,6 @@ export namespace fan {
 
         storage->SetFloat(anim_time_id, popup_anim_time);
         storage->SetFloat(hide_timer_id, hide_timer);
-        storage->SetFloat(last_mouse_x_id, last_mouse_x);
-        storage->SetFloat(last_mouse_y_id, last_mouse_y);
         storage->SetBool(hovering_popup_id, hovering_popup);
         storage->SetBool(popup_visible_id, popup_visible);
       }

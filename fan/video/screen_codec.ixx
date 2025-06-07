@@ -25,15 +25,11 @@ module;
 #include <cstring>
 
 #include <WITCH/PR/PR.h>
-#include <WITCH/STR/psh.h>
-#include <WITCH/STR/psf.h>
 #include <WITCH/MD/SCR/SCR.h>
-#include <WITCH/MD/Mice.h>
-#include <WITCH/MD/Keyboard/Keyboard.h>
-#include <WITCH/T/T.h>
+//#include <WITCH/MD/Mice.h>
+//#include <WITCH/MD/Keyboard/Keyboard.h>
 
-#include <WITCH/MEM/MEM.h>
-#include <WITCH/HASH/SHA.h>
+//#include <WITCH/HASH/SHA.h>
 #include <WITCH/ETC/VEDC/Encode.h>
 #include <WITCH/ETC/VEDC/Decoder.h>
 

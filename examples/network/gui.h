@@ -237,7 +237,35 @@ struct ecps_gui_t {
     gui::push_style_var(gui::style_var_frame_rounding, 12.f);
     gui::push_style_var(gui::style_var_window_rounding, 12.f);
 
-    gui::animated_popup_window("##stream_settings_overlay", popup_size, start_pos, target_pos, [&] {
+
+
+    bool trigger_popup = false;
+    {
+      static fan::vec2 last_mouse = gui::get_io().MousePos;
+      fan::vec2 current_mouse_pos = gui::get_io().MousePos;
+
+      fan::vec2 gui_window_size = gui::get_window_size();
+      fan::vec2 parent_min = gui::get_window_pos();
+      fan::vec2 parent_max = fan::vec2(parent_min.x + gui_window_size.x,
+        parent_min.y + gui_window_size.y);
+
+      fan::vec2 hitbox_size = parent_max - parent_min;
+
+      // 35% of screen from center to bottom
+      f32_t cursor_y = gui::get_cursor_pos_y();
+      gui::set_cursor_pos_y(cursor_y + hitbox_size.y / 2 + (hitbox_size.y * 0.35) / 2);
+      hitbox_size.y *= 0.35;
+      gui::dummy(hitbox_size);
+
+      bool inside_window = gui::is_item_hovered(gui::hovered_flags_allow_when_overlapped_by_window);
+
+      bool mouse_moved = /* && (current_mouse_pos.x != last_mouse.x || current_mouse_pos.y != last_mouse.y)*/0;
+
+      last_mouse = current_mouse_pos;
+      trigger_popup = inside_window/* && mouse_moved*/;
+    }
+
+    gui::animated_popup_window("##stream_settings_overlay", popup_size, start_pos, target_pos, trigger_popup, [&] {
 
       fan::vec2 icon_size = 48.f;
 
