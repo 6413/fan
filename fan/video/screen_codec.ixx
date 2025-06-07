@@ -1,6 +1,7 @@
 module;
 
 #include <fan/types/types.h>
+#include <fan/time/timer.h>
 #include <WITCH/WITCH.h>
 #define ETC_VEDC_Encode_DefineEncoder_OpenH264
 #define ETC_VEDC_Encode_DefineEncoder_x264
@@ -15,6 +16,7 @@ module;
 
 
 #include <mutex>
+#include <array>
 
 #include <WITCH/PR/PR.h>
 #include <WITCH/STR/psh.h>
@@ -32,7 +34,7 @@ module;
 #include <WITCH/RAND/RAND.h>
 #include <WITCH/VEC/VEC.h>
 #include <WITCH/EV/EV.h>
-#include <WITCH/ETC/VEDC/encode.h>
+#include <WITCH/ETC/VEDC/Encode.h>
 #include <WITCH/ETC/VEDC/Decoder.h>
 
 export module fan.graphics.video.screen_codec;
@@ -46,7 +48,10 @@ export namespace fan {
       enum {
         codec = 1 << 0,
         rate_control = 1 << 1,
-        frame_rate = 1 << 2
+        frame_rate = 1 << 2,
+      };
+      enum {
+        reset_IDR = ETC_VEDC_EncoderFlag_ResetIDR
       };
     };
     struct screen_encode_t : ETC_VEDC_Encode_t{
@@ -83,7 +88,7 @@ export namespace fan {
          .UsageType = ETC_VEDC_EncoderSetting_UsageType_Realtime,
          .RateControl{
            .Type = ETC_VEDC_EncoderSetting_RateControlType_VBR,
-           .VBR = {.bps = 16000000 }
+           .VBR = {.bps = 2000000 }
          },
          .InputFrameRate = 30
         };
@@ -103,7 +108,7 @@ export namespace fan {
       uint8_t update_flags = 0;
 
       // returns if is readable
-      bool encode_write(f32_t FrameProcessStartTime) {
+      bool encode_write() {
         if (
           settings.FrameSizeX != mdscr.Geometry.Resolution.x ||
           settings.FrameSizeY != mdscr.Geometry.Resolution.y
@@ -166,10 +171,13 @@ export namespace fan {
           Frame.TimeStamp = FrameProcessStartTime - EncoderStartTime;
 
 
-          ETC_VEDC_Encode_Error err = ETC_VEDC_Encode_Write(this, ETC_VEDC_Encode_WriteType_Frame, &Frame);
+          ETC_VEDC_Encode_Error err = ETC_VEDC_Encode_Write(this, ETC_VEDC_Encode_WriteType_Frame, &Frame, encode_write_flags);
           if (err != ETC_VEDC_Encode_Error_Success) {
             /* TODO */
             __abort();
+          }
+          if (encode_write_flags & ETC_VEDC_EncoderFlag_ResetIDR) {
+            encode_write_flags &= ~ETC_VEDC_EncoderFlag_ResetIDR;
           }
         }
 
@@ -184,10 +192,23 @@ export namespace fan {
         return std::to_array(_ETC_VEDC_EncoderList);
       }
 
-      void init(f32_t encode_start) {
-        EncoderStartTime = encode_start;
+      void sleep_thread() {
+        uint64_t OneFrameTime = 1000000000 / settings.InputFrameRate;
+        uint64_t CTime = T_nowi();
+        uint64_t TimeDiff = CTime - FrameProcessStartTime;
+        if (TimeDiff > OneFrameTime) {
+          FrameProcessStartTime = CTime;
+        }
+        else {
+          uint64_t SleepTime = OneFrameTime - TimeDiff;
+          FrameProcessStartTime = CTime + SleepTime;
+          TH_sleepi(SleepTime);
+        }
       }
 
+      uint8_t encode_write_flags = 0;
+      uint64_t EncoderStartTime = fan::time::clock::now();
+      uint64_t FrameProcessStartTime = EncoderStartTime;
       MD_SCR_t mdscr;
       uint8_t* screen_buffer = 0;
       bool screen_read() {
@@ -195,7 +216,6 @@ export namespace fan {
         return screen_buffer != 0;
       }
 
-      uint64_t EncoderStartTime = T_nowi();
       std::mutex mutex;
     };
 
@@ -206,6 +226,7 @@ export namespace fan {
           ETC_VEDC_Decoder_OpenNothing(this);
           return;
         }
+
         auto r = ETC_VEDC_Decoder_Open(
           this,
           name.size(),
@@ -234,63 +255,61 @@ export namespace fan {
         open_decoder();
       }
 
-      void init(f32_t EncoderStartTime) {
-        FrameProcessStartTime = EncoderStartTime;
-      }
+      struct decode_data_t {
+        std::array<std::vector<uint8_t>, 4> data;
+        std::array<fan::vec2ui, 4> stride;
+        fan::vec2ui image_size=0;
+        uint8_t pixel_format = 0;
+        uint8_t type = 0;
+      };
 
-      uintptr_t decode(void* data, uintptr_t length, loco_t::shape_t& universal_image_renderer) {
-        if (update_flags & codec_update_e::codec) {
-          bool lock_success = mutex.try_lock();
-
+      decode_data_t decode(void* data, uintptr_t length, loco_t::shape_t& universal_image_renderer) {
+        decode_data_t ret;
+        
+        {
+          mutex.lock();
+          decoder_change_cb = [&] {
+            if (update_flags & codec_update_e::codec) {
 #if defined(ETC_VEDC_Decoder_DefineCodec_cuvid)
-          if (name == "cuvid") { // is there better way?
-            // close resources before closing cu context
-            ReadMethodData.CudaArrayFrame.cuda_textures.close(gloco, universal_image_renderer);
-          }
+              if (name == "cuvid") { // is there better way?
+                // close resources before closing cu context
+                ReadMethodData.CudaArrayFrame.cuda_textures.close(gloco, universal_image_renderer);
+              }
 #endif
-
-          close_decoder();
-          DecoderID = new_codec;
-          name = get_decoders()[DecoderID].Name;
-          open_decoder();
-          update_flags = 0;
-          if (lock_success) {
-            mutex.unlock();
+              close_decoder();
+              DecoderID = new_codec;
+              name = get_decoders()[DecoderID].Name;
+              open_decoder();
+              update_flags = 0;
+            }
+          };
+          if (update_flags & codec_update_e::codec && name != "cuvid") {
+            decoder_change_cb();
           }
+          mutex.unlock();
         }
 
         sintptr_t r = ETC_VEDC_Decoder_Write(this, (uint8_t*)data, length);
 
         if (!ETC_VEDC_Decoder_IsReadable(this)) {
-          return 0;
+          return ret;
         }
         
         if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame)) {
-          NewReadMethod(universal_image_renderer, ETC_VEDC_Decoder_ReadType_CudaArrayFrame);
-          if (cuCtxSetCurrent((CUcontext)ETC_VEDC_Decoder_GetUnique(this, ETC_VEDC_Decoder_UniqueType_CudaContext)) != CUDA_SUCCESS) {
-            __abort();
-          }
+          ret.type = 0;
+        }
+        else if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_Frame)) {
+          ret.type = 1;
+        }
 
-          ETC_VEDC_Decoder_ImageProperties_t props;
-          ETC_VEDC_Decoder_GetReadImageProperties(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame, &props);
-          ReadMethodData.CudaArrayFrame.cuda_textures.resize(gloco, universal_image_renderer, fan::graphics::image_format::nv12, fan::vec2ui(props.SizeX, props.SizeY));
-
-          ETC_VEDC_Decoder_CudaArrayFrame_t Frame;
-          for (uint32_t i = 0; i < 4; i++) {
-            Frame.Array[i] = ReadMethodData.CudaArrayFrame.cuda_textures.get_array(i);
-          }
-
-          if (ETC_VEDC_Decoder_Read(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame, &Frame) != ETC_VEDC_Decoder_Error_OK) {
-            return 0;
-          }
-          FrameSize = fan::vec2ui(props.SizeX, props.SizeY);
-          ETC_VEDC_Decoder_ReadClear(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame, &Frame);
+        if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame)) {
+        
         }
         if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_Frame)) {
           NewReadMethod(universal_image_renderer, ETC_VEDC_Decoder_ReadType_Frame);
           ETC_VEDC_Decoder_Frame_t Frame;
           if (ETC_VEDC_Decoder_Read(this, ETC_VEDC_Decoder_ReadType_Frame, &Frame) != ETC_VEDC_Decoder_Error_OK) {
-            return 0;
+            return ret;
           }
           if (Frame.Properties.Stride[0] != Frame.Properties.Stride[1] * 2) {
             fan::print_format("[CLIENT] [WARNING] {} {}:{} fan doesnt support strides {} {}", __FUNCTION__, __FILE__, __LINE__, Frame.Properties.Stride[0], Frame.Properties.Stride[1]);
@@ -298,52 +317,78 @@ export namespace fan {
           }
 
           uint32_t pixel_format;
+          ret.image_size = { Frame.Properties.SizeX, Frame.Properties.SizeY };
           if (Frame.Properties.PixelFormat == PIXF_YUV420p) {
             pixel_format = fan::graphics::image_format::yuv420p;
+            auto image_sizes = fan::graphics::get_image_sizes(pixel_format, fan::vec2ui(Frame.Properties.Stride[0], Frame.Properties.SizeY));
+            ret.data[0] = std::vector<uint8_t>((uint8_t*)Frame.Data[0], (uint8_t*)Frame.Data[0] + image_sizes[0].multiply());
+            ret.data[1] = std::vector<uint8_t>((uint8_t*)Frame.Data[1], (uint8_t*)Frame.Data[1] + image_sizes[1].multiply());
+            ret.data[2] = std::vector<uint8_t>((uint8_t*)Frame.Data[2], (uint8_t*)Frame.Data[2] + image_sizes[2].multiply());
+            std::memcpy(ret.stride.data(), Frame.Properties.Stride, sizeof(ret.stride[0]) * 3);
           }
           else if (Frame.Properties.PixelFormat == PIXF_YUVNV12) {
             pixel_format = fan::graphics::image_format::nv12;
+            auto image_sizes = fan::graphics::get_image_sizes(pixel_format, fan::vec2ui(Frame.Properties.Stride[0], Frame.Properties.SizeY));
+            ret.data[0] = std::vector<uint8_t>((uint8_t*)Frame.Data[0], (uint8_t*)Frame.Data[0] + image_sizes[0].multiply());
+            ret.data[1] = std::vector<uint8_t>((uint8_t*)Frame.Data[1], (uint8_t*)Frame.Data[1] + image_sizes[1].multiply());
+            std::memcpy(ret.stride.data(), Frame.Properties.Stride, sizeof(ret.stride[0]) * 2);
           }
           else {
             __abort();
           }
-
-          f32_t sx = (f32_t)Frame.Properties.SizeX / Frame.Properties.Stride[0];
-          universal_image_renderer.set_tc_size(fan::vec2(sx, 1));
-          universal_image_renderer.reload(pixel_format, (void**)Frame.Data, fan::vec2ui(Frame.Properties.Stride[0], Frame.Properties.SizeY));
+          ret.pixel_format = pixel_format;
           FrameSize = fan::vec2ui(Frame.Properties.SizeX, Frame.Properties.SizeY);
           ETC_VEDC_Decoder_ReadClear(this, ETC_VEDC_Decoder_ReadType_Frame, &Frame);
         }
 
-        return r;
+        return ret;
+      }
+      bool decode_cuvid(loco_t::shape_t& universal_image_renderer) {
+        if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame) == false) {
+          return false;
+        }
+
+        if (cuCtxSetCurrent((CUcontext)ETC_VEDC_Decoder_GetUnique(this, ETC_VEDC_Decoder_UniqueType_CudaContext)) != CUDA_SUCCESS) {
+          __abort();
+        }
+        NewReadMethod(universal_image_renderer, ETC_VEDC_Decoder_ReadType_CudaArrayFrame);
+
+        ETC_VEDC_Decoder_ImageProperties_t props;
+        ETC_VEDC_Decoder_GetReadImageProperties(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame, &props);
+        try {
+          ReadMethodData.CudaArrayFrame.cuda_textures.resize(gloco, universal_image_renderer, fan::graphics::image_format::nv12, fan::vec2ui(props.SizeX, props.SizeY));
+        }
+        catch (fan::exception_t e) {
+          fan::print("cuda_texture.resize() failed:"_str + e.reason);
+          ReadMethodData.CudaArrayFrame.cuda_textures.close(gloco, universal_image_renderer);
+          return false;
+        }
+
+        ETC_VEDC_Decoder_CudaArrayFrame_t Frame;
+        for (uint32_t i = 0; i < 4; i++) {
+          Frame.Array[i] = ReadMethodData.CudaArrayFrame.cuda_textures.get_array(i);
+        }
+
+        if (ETC_VEDC_Decoder_Read(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame, &Frame) != ETC_VEDC_Decoder_Error_OK) {
+          return false;
+        }
+        FrameSize = fan::vec2ui(props.SizeX, props.SizeY);
+        ETC_VEDC_Decoder_ReadClear(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame, &Frame);
+        return true;
       }
       static auto get_decoders() {
         return std::to_array(_ETC_VEDC_DecoderList);
       }
 
-      void sleep_thread(f32_t frame_rate) {
-        uint64_t OneFrameTime = 1000000000 / frame_rate;
-        uint64_t CTime = T_nowi();
-        uint64_t TimeDiff = CTime - FrameProcessStartTime;
-        if (TimeDiff > OneFrameTime) {
-          FrameProcessStartTime = CTime;
-        }
-        else {
-          uint64_t SleepTime = OneFrameTime - TimeDiff;
-          FrameProcessStartTime = CTime + SleepTime;
-          TH_sleepi(SleepTime);
-        }
-      }
-
-      std::string name = "cuvid";
+      std::string name = "OpenH264";
       uintptr_t new_codec = 0;
-
-      uint64_t FrameProcessStartTime = 0;
+      std::function<void()> decoder_change_cb = [] {};
 
       fan::vec2 FrameRenderSize;
       fan::vec2ui FrameSize = 1;
       uint8_t update_flags = 0;
       std::mutex mutex;
+      std::mutex context_mutex;
 
       union ReadMethodData_t {
         ReadMethodData_t() {};

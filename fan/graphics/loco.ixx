@@ -2197,7 +2197,10 @@ public:
         }, 0, delay);
     }
   }
-  void start_idle() {
+  void start_idle(bool start_idle = true) {
+    if (!start_idle) {
+      return;
+    }
     uv_idle_start(&idle_handle, [](uv_idle_t* handle) {
       loco_t* loco = static_cast<loco_t*>(handle->data);
       if (loco->process_loop(loco->main_loop)) {
@@ -2206,7 +2209,7 @@ public:
       }
       });
   }
-  void update_timer_interval() {
+  void update_timer_interval(bool idle = true) {
     double delay;
     if (target_fps <= 0) {
       delay = 0;
@@ -2224,18 +2227,20 @@ public:
       uv_timer_again(&timer_handle);
     }
     else {
-      uv_timer_stop(&timer_handle);
+      if (timer_enabled) {
+        uv_timer_stop(&timer_handle);
+      }
       if (!idle_init) {
         uv_idle_init(fan::event::get_event_loop(), &idle_handle);
         idle_handle.data = this;
         idle_init = true;
       }
-      start_idle();
+      start_idle(idle);
     }
   }
-  void set_target_fps(int32_t new_target_fps) {
+  void set_target_fps(int32_t new_target_fps, bool idle = true) {
     target_fps = new_target_fps;
-    update_timer_interval();
+    update_timer_interval(idle);
   }
 
   fan::graphics::context_t& get_context() {

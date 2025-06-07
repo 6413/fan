@@ -110,13 +110,15 @@ typedef double f_t;
 typedef f32_t cf_t;
 
 namespace fan {
-
-	inline void throw_error_impl() {
+  struct exception_t {
+    const char* reason;
+  };
+  inline void throw_error_impl(const char* reason = "") {
 #ifdef fan_compiler_msvc
-		system("pause");
+		//system("pause");
 #endif
 #if __cpp_exceptions
-		throw;
+    throw exception_t{ .reason = reason };
 #endif
 	}
 

@@ -59,6 +59,7 @@ struct ProtocolChannel {
     struct ChannelFlag {
       using _t = uint8_t;
       inline static constexpr _t InputControl = 0x01;
+      inline static constexpr _t ResetIDR = 0x01 << 1;
     };
     struct StreamHeadFlag {
       using _t = uint8_t;

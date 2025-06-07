@@ -2,66 +2,8 @@ struct ecps_backend_t {
 
 #include "prot.h"
 
-  ecps_backend_t() {
-    __dme_get(Protocol_S2C, KeepAlive) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
-      fan::print("tcp keep alive came");
-      backend.tcp_keep_alive.reset();
-      co_return;
-    };
-    __dme_get(Protocol_S2C, InformInvalidIdentify) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
-      auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::InformInvalidIdentify_t>();
-      if (msg->ClientIdentify != identify_secret) {
-        co_return;
-      }
-      identify_secret = msg->ServerIdentify;
-      fan::print("inform invalid identify came");
-      co_return;
-    };
-    
-    __dme_get(Protocol_S2C, Response_Login) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
-      auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Response_Login_t>();
-      fan::print_format(R"({{
-  [SERVER] Response_login
-  SessionID: {}
-  AccountID: {}
-}})", msg->SessionID.i, msg->AccountID.i);
-      backend.session_id = msg->SessionID;
-    };
-    __dme_get(Protocol_S2C, CreateChannel_OK) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
-      auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::CreateChannel_OK_t>();
-      fan::print_format(R"({{
-[SERVER] CreateChannel_OK
-ID: {}
-ChannelID: {}
-}})", base.ID, msg->ChannelID.i);
+  ecps_backend_t();
 
-      auto it = backend.pending_requests.find(base.ID);
-      if (it != backend.pending_requests.end()) {
-        it->second.channel_id = msg->ChannelID;
-        it->second.completed = true;
-        if (it->second.continuation) {
-          it->second.continuation.resume();
-        }
-      }
-    };
-    __dme_get(Protocol_S2C, JoinChannel_OK) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
-      auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::JoinChannel_OK_t>();
-      fan::print_format(R"({{
-  [SERVER] JoinChannel_OK
-  ID: {}
-  ChannelID: {}
-}})", base.ID, msg->ChannelID.i);
-      channel_info.front().session_id = msg->ChannelSessionID;
-    };
-    __dme_get(Protocol_S2C, JoinChannel_Error) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
-      auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::JoinChannel_Error_t>();
-      fan::print_format(R"({{
-  [SERVER] JoinChannel_Error
-  ID: {}
-  ChannelID: {}
-}})", base.ID, Protocol::JoinChannel_Error_Reason_String[(uint8_t)msg->Reason]);
-    };
-  }
   struct channel_create_awaiter {
     ecps_backend_t& backend;
     uint32_t request_id;
@@ -89,19 +31,6 @@ ChannelID: {}
     }
   };
   fan::event::task_t tcp_read() {
-    uint8_t data[] = {
-    0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00
-};
-
-
-
-
-
-
-
-
-    tcp::ProtocolBasePacket_t* bp = (tcp::ProtocolBasePacket_t*)data;
     while (1) {
       auto msg = co_await tcp_client.read<tcp::ProtocolBasePacket_t>();
     /*  fan::print_format(R"({{
@@ -116,19 +45,13 @@ ChannelID: {}
       }
     }
   }
-  fan::event::task_value_resume_t<uint32_t> tcp_write(int command, void* data = 0, uint32_t len = 0) {
+  fan::event::task_value_resume_t<uint32_t> tcp_write(int command, void* data, uint32_t len) {
     static int id = 0;
     tcp::ProtocolBasePacket_t bp;
     bp.ID = id++;
     bp.Command = command;
     co_await tcp_client.write_raw(&bp, sizeof(bp));
-    if (data == nullptr) {
-      uint8_t random = 0;
-      co_await tcp_client.write_raw(&random, sizeof(random));
-    }
-    else {
-      co_await tcp_client.write_raw(data, len);
-    }
+    co_await tcp_client.write_raw(data, len);
     co_return bp.ID;
   }
   template <typename T>
@@ -255,12 +178,6 @@ ChannelID: {}
     }
 
     void WriteFramePacket();
-
-    struct FramePacketNodeData_t {
-      std::vector<uint8_t> data;
-    };
-    std::deque<FramePacketNodeData_t> frame_packets;
-
   }view;
   struct share_t {
     uint64_t frame_index = 0;
@@ -273,14 +190,25 @@ ChannelID: {}
         std::vector<uint8_t> vec;
         uintptr_t SentOffset;
       };
+#include <fan/fan_bll_preset.h>
+#define BLL_set_prefix FrameList
+#define BLL_set_Language 1
+#define BLL_set_Usage 1
+#define BLL_set_AreWeInsideStruct 1
+#define BLL_set_NodeDataType FrameListNodeData_t
+#define BLL_set_CPP_CopyAtPointerChange 1
+#include <BLL/BLL.h>
+      FrameList_t FrameList;
       uint64_t WantedInterval = 5000000;
       uint64_t Bucket; /* in bit */
       uint64_t BucketSize; /* in bit */
       uint64_t TimerLastCallAt;
       uint64_t TimerCallCount;
     }m_NetworkFlow;
+    std::mutex frame_list_mutex;
+    void CalculateNetworkFlowBucket();
   }share;
-  fan::event::task_t write_stream(
+  fan::event::task_value_resume_t<bool> write_stream(
     uint16_t Current,
     uint16_t Possible,
     uint8_t Flag,
@@ -305,10 +233,10 @@ ChannelID: {}
     }
 
     uintptr_t BufferSize = (uintptr_t)DataWillBeAt - (uintptr_t)buffer + DataSize;
-    //if(share.m_NetworkFlow.Bucket < BufferSize * 8){
-    //  return 1;
-    //}
-    //share.m_NetworkFlow.Bucket -= BufferSize * 8;
+    if(share.m_NetworkFlow.Bucket < BufferSize * 8){
+      co_return 1;
+    }
+    share.m_NetworkFlow.Bucket -= BufferSize * 8;
 
     __builtin_memcpy(DataWillBeAt, Data, DataSize);
 
@@ -316,6 +244,7 @@ ChannelID: {}
     rest.ChannelID = channel_info.front().channel_id;
     rest.ChannelSessionID = channel_info.front().session_id;
     co_await udp_write(0, ProtocolUDP::C2S_t::Channel_ScreenShare_Host_StreamData, rest, buffer, BufferSize);
+    co_return 0;
   }
 
   fan::event::task_t connect(const std::string& ip, uint16_t port) {
@@ -426,10 +355,24 @@ ChannelID: {}
     task_tcp_read = tcp_read();
   }
   fan::event::task_t login() {
-    co_await tcp_write(Protocol_C2S_t::Request_Login);
+  g_retry_login:
+    try {
+      Protocol_C2S_t::Request_Login_t rest;
+      rest.Type = Protocol::LoginType_t::Anonymous;
+      co_await tcp_write(Protocol_C2S_t::Request_Login, &rest, sizeof(rest));
+      co_return;
+    }
+    catch (fan::exception_t e) {
+      fan::print("failed to connect to server:"_str + e.reason + ", retrying...");
+    }
+    co_await fan::co_sleep(1000);
+    co_await connect(ip, port);
+    goto g_retry_login;
   }
   fan::event::task_value_resume_t<Protocol_ChannelID_t> channel_create() {
-    uint32_t request_id = co_await tcp_write(Protocol_C2S_t::CreateChannel);
+    Protocol_C2S_t::CreateChannel_t rest;
+    rest.Type = Protocol::ChannelType_ScreenShare_e;
+    uint32_t request_id = co_await tcp_write(Protocol_C2S_t::CreateChannel, &rest, sizeof(rest));
     pending_requests[request_id] = pending_request_t{
       .request_id = request_id,
       .continuation = {},
@@ -457,7 +400,7 @@ ChannelID: {}
   fan::network::tcp_keep_alive_t tcp_keep_alive{
     tcp_client,
     [this] (fan::network::tcp_t& tcp) -> fan::event::task_t{
-      co_await tcp_write(Protocol_C2S_t::KeepAlive);
+      co_await tcp_write(Protocol_C2S_t::KeepAlive, 0, 0);
     }
   };
   fan::network::udp_keep_alive_t udp_keep_alive{ udp_client };
