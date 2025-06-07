@@ -301,7 +301,7 @@ export namespace fan {
       const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
       fan::vec2 screen_size = fan::vec2(mode->width, mode->height);
       fan::vec2 window_pos = (screen_size - window_size) / 2;
-      glfwSetWindowPos(glfw_window, window_pos.x, window_pos.y);
+      //glfwSetWindowPos(glfw_window, window_pos.x, window_pos.y);
 
       if (renderer == renderer_t::opengl) {
         glfwMakeContextCurrent(glfw_window);
