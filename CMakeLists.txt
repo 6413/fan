@@ -82,16 +82,29 @@ if(UNIX AND FAN_GUI)
     
   if(WAYLAND_CLIENT_FOUND AND FAN_WAYLAND_SCREEN)
     message("Wayland found")
+    
+    #-------------------PipeWire-------------------
+    pkg_check_modules(DBUS REQUIRED dbus-1)
+    include_directories(${DBUS_INCLUDE_DIRS})
+    link_directories(${DBUS_LIBRARY_DIRS})
+    set(DBUS_LIBS ${DBUS_LIBRARIES})
+    
+    pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
+    include_directories(${PIPEWIRE_INCLUDE_DIRS})
+    link_directories(${PIPEWIRE_LIBRARY_DIRS})
+    set(PIPEWIRE_LIBS ${PIPEWIRE_LIBRARIES})
+    #-------------------PipeWire-------------------
+	    
+    
     add_compile_definitions(__HAVE_WAYLAND=1)
     include_directories(${WAYLAND_CLIENT_INCLUDE_DIRS})
     link_directories(${WAYLAND_CLIENT_LIBRARY_DIRS})
-    set(WAYLAND_LIBS ${WAYLAND_CLIENT_LIBRARIES})
+    set(WAYLAND_CLIENT_LIBS ${WAYLAND_CLIENT_LIBRARIES})
   endif()
 endif()
 set(BUILD_SHARED_LIBS ON)
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-
 
 function(apply_fan_definitions target)
   target_compile_definitions(${target} PRIVATE
@@ -114,7 +127,7 @@ endfunction()
 
 function(apply_common_compile_options target)
   target_compile_options(${target} PRIVATE
-    -MD -MT -Wall -Wextra -ferror-limit=2 -stdlib=libstdc++ -fsized-deallocation
+    -MD -MT -Wall -Wextra -ferror-limit=20 -stdlib=libstdc++ -fsized-deallocation
     -Wno-shift-op-parentheses -Wno-unused-variable -Wno-int-to-void-pointer-cast
     -Wno-unused-parameter -Wno-unused-function -Wno-bitwise-op-parentheses
     -Wno-invalid-offsetof -Wno-missing-field-initializers -Wno-sign-compare
@@ -128,8 +141,6 @@ endfunction()
 
 add_library(fan_modules STATIC)
 apply_fan_definitions(fan_modules)
-
-
 
 set(MODULE_FILES
   ${ROOT_PATH}/print.ixx
@@ -332,7 +343,7 @@ if(BUILD_MAIN)
         #stdc++exp
       )
       if (WAYLAND_CLIENT_FOUND AND FAN_WAYLAND_SCREEN)
-        target_link_libraries(a.exe PRIVATE wayland-client)
+        target_link_libraries(a.exe PRIVATE ${WAYLAND_CLIENT_LIBS} ${PIPEWIRE_LIBS} ${DBUS_LIBRARIES})
       endif()
       if (FAN_FMT)
         target_link_libraries(a.exe PRIVATE fmt)
