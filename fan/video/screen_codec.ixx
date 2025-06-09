@@ -379,7 +379,7 @@ export namespace fan {
 #endif
       }
 
-      std::string name = "x264";
+      std::string name = "OpenH264";
       uintptr_t new_codec = 0;
       std::function<void()> decoder_change_cb = [] {};
 
