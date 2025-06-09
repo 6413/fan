@@ -7,7 +7,7 @@ set(FAN_3D OFF)
 set(FAN_OPENGL ON)
 set(FAN_VULKAN OFF)
 set(FAN_FMT ON)
-set(FAN_WAYLAND_SCREEN OFF)
+set(FAN_WAYLAND_SCREEN ON)
 
 set(BUILD_MAIN ON)
 
@@ -80,9 +80,8 @@ if(UNIX AND FAN_GUI)
   
   pkg_check_modules(WAYLAND_CLIENT_FOUND wayland-client)
     
-  if(WAYLAND_CLIENT_FOUND AND FAN_WAYLAND_SCREEN)
-    message("Wayland found")
-    
+  if(FAN_WAYLAND_SCREEN)
+	
     #-------------------PipeWire-------------------
     pkg_check_modules(DBUS REQUIRED dbus-1)
     include_directories(${DBUS_INCLUDE_DIRS})
