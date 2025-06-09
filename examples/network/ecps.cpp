@@ -1,3 +1,4 @@
+////
 #include <fan/types/types.h>
 #include <fan/time/timer.h>
 #include <fan/event/types.h>
@@ -258,12 +259,10 @@ int main() {
           std::this_thread::sleep_for(std::chrono::milliseconds(1));
           continue;
         }
-
         if (!screen_encode->encode_write()) {
           std::this_thread::sleep_for(std::chrono::milliseconds(1));
           continue;
         }
-
         uint64_t encoded_count = 0;
         std::vector<uint8_t> encoded_buffer;
 
@@ -280,7 +279,8 @@ int main() {
           if (encoded_count == 0) {
             continue;
           }
-
+        
+          
           // add to network queue
           {
             std::lock_guard<std::mutex> frame_list_lock(ecps_backend.share.frame_list_mutex);
@@ -303,7 +303,7 @@ int main() {
             frame_data.frame_id = frame_id++;
             frame_data.data = encoded_buffer;
             frame_data.source = frame_timing_t::LOCAL;
-
+            
             local_decode_queue.push(std::move(frame_data));
           }
 
@@ -355,6 +355,7 @@ int main() {
               frame_data.data.size(),
               render_thread->screen_frame
             );
+            
             // or if cuvid
             if (!decode_data.data[0].empty() || decode_data.type == 0) {
               std::lock_guard<std::mutex> frame_lock(render_mutex);
@@ -379,17 +380,17 @@ int main() {
 
           frame_data.decode_time = now;
 
-          // Local frames should be more recent (up to 100ms)
           auto processing_delay = std::chrono::duration_cast<std::chrono::milliseconds>(
             frame_data.decode_time - frame_data.encode_time).count();
-
-          if (processing_delay <= 100) {
+            
+          if (processing_delay <= 200) {
             fan::graphics::screen_decode_t::decode_data_t decode_data = screen_decode->decode(
               frame_data.data.data(),
               frame_data.data.size(),
               render_thread->screen_frame
             );
 
+            
             if (!decode_data.data[0].empty() || decode_data.type == 0) {
               std::lock_guard<std::mutex> frame_lock(render_mutex);
               auto flnr = render_thread->FrameList.NewNodeLast();
@@ -420,7 +421,7 @@ int main() {
     render_thread_promise.set_value(); // signal
     
     while (!render_thread->engine.should_close() && !render_thread->should_stop.load()) {
-
+      
       // process decoded data
       {
         std::lock_guard<std::mutex> render_lock(render_mutex);
@@ -430,7 +431,9 @@ int main() {
           goto g_feed_frames_skip;
         }
         auto& node = render_thread->FrameList[flnr];
+        
         if (node.type == 0) {// cuvid
+          
           screen_decode->decoder_change_cb(); // only required here because cuvid needs to call it in opengl thread
           screen_decode->decode_cuvid(render_thread->screen_frame);
         }
@@ -440,7 +443,7 @@ int main() {
           for (size_t i = 0; i < 4; ++i) {
             raw_ptrs[i] = static_cast<void*>(node.data[i].data());
           }
-
+          
           render_thread->screen_frame.set_tc_size(fan::vec2(sx, 1));
           render_thread->screen_frame.reload(node.pixel_format, raw_ptrs.data(), fan::vec2ui(node.stride[0].x, node.image_size.y));
         }

@@ -2057,7 +2057,17 @@ public:
 
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
+
     ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+
+    if (is_key_down(fan::key_left_control)) {
+      ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    } 
+    else {
+      ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_DockingEnable;
+    }
+
+
     ImGui::PopStyleColor(2);
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));

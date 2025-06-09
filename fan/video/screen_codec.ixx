@@ -75,7 +75,7 @@ export namespace fan {
       }
 
       screen_encode_t() {
-
+        std::memset(&mdscr, 0, sizeof(mdscr));
         if (int ret = MD_SCR_open(&mdscr); ret != 0) {
           fan::print("failed to open screen:" + std::to_string(ret));
           __abort();
@@ -208,6 +208,7 @@ export namespace fan {
       uint64_t EncoderStartTime = fan::time::clock::now();
       uint64_t FrameProcessStartTime = EncoderStartTime;
       MD_SCR_t mdscr;
+      
       uint8_t* screen_buffer = 0;
       bool screen_read() {
         screen_buffer = MD_SCR_read(&mdscr);
@@ -225,24 +226,18 @@ export namespace fan {
           return;
         }
 
-        auto r = ETC_VEDC_Decoder_Open(
+       auto r = ETC_VEDC_Decoder_Open(
           this,
           name.size(),
           name.c_str(),
-          0);
-        if (r != ETC_VEDC_Decoder_Error_OK) {
-
-
-          fan::printn8(
-            "[CLIENT] [WARNING] [DECODER] ", __FUNCTION__, " ", __FILE__, ":", __LINE__,
-            " (ETC_VEDC_Decoder_Open returned (", r, ") for encoder \"",
-            name, "\""
+          0
+        );
+        if (r != ETC_VEDC_Decoder_Error_OK) {        
+          fan::printn8("\n[CLIENT] [WARNING] [DECODER] ", __FUNCTION__, " ", __FILE__, ":", __LINE__,
+            " (ETC_VEDC_Decoder_Open returned (", r, ") for encoder \"", name, "\"", "\n"
           );
-
-          fan::printn8(
-            "[CLIENT] [WARNING] [DECODER] ", __FUNCTION__, " ", __FILE__, ":", __LINE__,
-            " falling back to OpenH264 decoder."
-          );
+        
+          fan::printn8("\n[WARNING] [DECODER] ", __FUNCTION__, " ", __FILE__, ":", __LINE__, "\n");
         }
       }
       void close_decoder() {
@@ -294,6 +289,7 @@ export namespace fan {
         sintptr_t r = ETC_VEDC_Decoder_Write(this, (uint8_t*)data, length);
 
         if (!ETC_VEDC_Decoder_IsReadable(this)) {
+          ret.type = -1;
           return ret;
         }
         
@@ -383,7 +379,7 @@ export namespace fan {
 #endif
       }
 
-      std::string name = "OpenH264";
+      std::string name = "x264";
       uintptr_t new_codec = 0;
       std::function<void()> decoder_change_cb = [] {};
 

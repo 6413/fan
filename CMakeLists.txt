@@ -78,7 +78,7 @@ if(UNIX AND FAN_GUI)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(GTK3 REQUIRED IMPORTED_TARGET gtk+-3.0)
   
-  pkg_check_modules(WAYLAND_CLIENT wayland-client)
+  pkg_check_modules(WAYLAND_CLIENT_FOUND wayland-client)
     
   if(WAYLAND_CLIENT_FOUND AND FAN_WAYLAND_SCREEN)
     message("Wayland found")
