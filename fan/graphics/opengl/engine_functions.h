@@ -457,6 +457,7 @@ void shapes_open() {
   }
 
   {
+#if defined(fan_3D)
     loco.shape_open(
       loco_t::rectangle3d_t::shape_type,
       sizeof(loco_t::rectangle3d_t::vi_t),
@@ -466,6 +467,9 @@ void shapes_open() {
       "shaders/opengl/3D/objects/rectangle.fs",
       (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) ? 36 : 1
     );
+#else
+     loco.shape_functions.resize(loco.shape_functions.size() + 1);
+#endif
   }
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {

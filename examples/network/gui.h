@@ -328,15 +328,15 @@ struct ecps_gui_t {
       gui::set_next_window_pos(window_pos, gui::cond_once);
       gui::set_next_window_size(window_size);
       if (gui::begin("##stream_settings_root", &p_open, gui::window_flags_no_collapse)) {
-        if (ecps_backend.channel_info.empty()) {
+        /*if (ecps_backend.channel_info.empty()) {
           gui::text("Joining channel opens more stream settings");
           gui::end();
           return;
-        }
+        }*/
 
         gui::spacing();
 
-        uint32_t channel_id = ecps_backend.channel_info.front().channel_id;
+        uint32_t channel_id = ecps_backend.channel_info.size() > 0 ? 0 : -1;
 
         gui::push_style_color(gui::col_child_bg, gui::get_color(gui::col_frame_bg));
         gui::begin_child("##video_settings", fan::vec2(0, 220), true);
