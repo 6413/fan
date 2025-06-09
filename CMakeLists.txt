@@ -78,7 +78,7 @@ if(UNIX AND FAN_GUI)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(GTK3 REQUIRED IMPORTED_TARGET gtk+-3.0)
   
-  pkg_check_modules(WAYLAND_CLIENT_FOUND wayland-client)
+  pkg_check_modules(WAYLAND_CLIENT wayland-client)
     
   if(FAN_WAYLAND_SCREEN)
 	
@@ -341,7 +341,7 @@ if(BUILD_MAIN)
         
         #stdc++exp
       )
-      if (WAYLAND_CLIENT_FOUND AND FAN_WAYLAND_SCREEN)
+      if (FAN_WAYLAND_SCREEN)
         target_link_libraries(a.exe PRIVATE ${WAYLAND_CLIENT_LIBS} ${PIPEWIRE_LIBS} ${DBUS_LIBRARIES})
       endif()
       if (FAN_FMT)
