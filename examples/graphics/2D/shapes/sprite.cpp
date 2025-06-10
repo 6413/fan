@@ -19,23 +19,23 @@ int main() {
     .image = image,
   } };
 
-  fan::graphics::sprite_t us2{ {
-    .position = fan::vec3(300, 300, 253),
-    .size = 100,
-    .image = image2,
-  } };
+  //fan::graphics::sprite_t us2{ {
+  //  .position = fan::vec3(300, 300, 253),
+  //  .size = 100,
+  //  .image = image2,
+  //} };
 
-  fan::graphics::sprite_t us3{ {
-    .position = fan::vec3(100, 100, 252),
-    .size = 100,
-    .image = image2,
-  } };
-  us3.erase();
-  fan::graphics::sprite_t us4{ {
-    .position = fan::vec3(500, 100, 252),
-    .size = 100,
-    .image = image,
-  } };
+  //fan::graphics::sprite_t us3{ {
+  //  .position = fan::vec3(100, 100, 252),
+  //  .size = 100,
+  //  .image = image2,
+  //} };
+  //us3.erase();
+  //fan::graphics::sprite_t us4{ {
+  //  .position = fan::vec3(500, 100, 252),
+  //  .size = 100,
+  //  .image = image,
+  //} };
 
   std::vector<engine_t::shape_t> shapes;
 
@@ -49,6 +49,7 @@ int main() {
   using namespace fan::window;
 
   engine.loop([&] {
+    us.set_position(fan::vec2(engine.window.get_size() / 2));
     if (is_mouse_clicked()) {
       shapes.push_back(fan::graphics::sprite_t{ {
         .position = fan::vec3(fan::graphics::get_mouse_position(), 252),

@@ -293,6 +293,10 @@ export namespace fan {
       struct image_filter {
         static constexpr auto nearest = GL_NEAREST;
         static constexpr auto linear = GL_LINEAR;
+        static constexpr auto nearest_mipmap_nearest = GL_NEAREST_MIPMAP_NEAREST;
+        static constexpr auto linear_mipmap_nearest = GL_LINEAR_MIPMAP_NEAREST;
+        static constexpr auto nearest_mipmap_linear = GL_NEAREST_MIPMAP_LINEAR;
+        static constexpr auto linear_mipmap_linear = GL_LINEAR_MIPMAP_LINEAR;
       };
 
       struct image_load_properties_defaults {
@@ -914,6 +918,8 @@ export namespace fan {
         auto& image_data = __fan_internal_image_list[nr];
         image_data.size = image_info.size;
         fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, image_data.size.x, image_data.size.y, 0, p.format, p.type, image_info.data));
+
+        fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
       }
 
       void image_reload(fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info) {
@@ -1245,13 +1251,23 @@ export namespace fan {
       }
 
       static uint32_t global_to_opengl_filter(uintptr_t filter) {
-        if (filter == fan::graphics::image_filter::nearest) return GL_NEAREST;
-        if (filter == fan::graphics::image_filter::linear) return GL_LINEAR;
-    #if fan_debug >= fan_debug_high
-        fan::throw_error("invalid format");
-    #endif
-        return GL_NEAREST;
+        using filter_t = fan::graphics::image_filter;
+
+        switch (filter) {
+        case filter_t::nearest: return GL_NEAREST;
+        case filter_t::linear: return GL_LINEAR;
+        case filter_t::nearest_mipmap_nearest: return GL_NEAREST_MIPMAP_NEAREST;
+        case filter_t::linear_mipmap_nearest: return GL_LINEAR_MIPMAP_NEAREST;
+        case filter_t::nearest_mipmap_linear: return GL_NEAREST_MIPMAP_LINEAR;
+        case filter_t::linear_mipmap_linear: return GL_LINEAR_MIPMAP_LINEAR;
+        default:
+#if fan_debug >= fan_debug_high
+          fan::throw_error("Invalid image filter value");
+#endif
+          return GL_NEAREST;
+        }
       }
+
 
       static uint32_t opengl_to_global_format(uintptr_t format) {
         if (format == GL_BGRA) return fan::graphics::image_format::b8g8r8a8_unorm;
@@ -1291,13 +1307,22 @@ export namespace fan {
       }
 
       static uint32_t opengl_to_global_filter(uintptr_t filter) {
+        using namespace fan::graphics;
+
         if (filter == GL_NEAREST) return fan::graphics::image_filter::nearest;
         if (filter == GL_LINEAR) return fan::graphics::image_filter::linear;
-    #if fan_debug >= fan_debug_high
-        fan::throw_error("invalid format");
-    #endif
+        if (filter == GL_NEAREST_MIPMAP_NEAREST) return fan::graphics::image_filter::nearest_mipmap_nearest;
+        if (filter == GL_LINEAR_MIPMAP_NEAREST) return fan::graphics::image_filter::linear_mipmap_nearest;
+        if (filter == GL_NEAREST_MIPMAP_LINEAR) return fan::graphics::image_filter::nearest_mipmap_linear;
+        if (filter == GL_LINEAR_MIPMAP_LINEAR) return fan::graphics::image_filter::linear_mipmap_linear;
+
+#if fan_debug >= fan_debug_high
+        fan::throw_error("Invalid OpenGL filter value.");
+#endif
+
         return fan::graphics::image_filter::nearest;
       }
+
 
       void close(fan::opengl::context_t& context) {
         {

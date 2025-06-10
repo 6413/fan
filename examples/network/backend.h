@@ -145,37 +145,48 @@ struct ecps_backend_t {
     }
 
     void FixFramePacket() {
-      this->m_stats.Frame_Total++;
+    this->m_stats.Frame_Total++;
 
-      uint16_t LastDataCheck;
-      if (this->m_Possible == (uint16_t)-1) {
+    uint16_t LastDataCheck;
+    if (this->m_Possible == (uint16_t)-1) {
         LastDataCheck = FindLastDataCheck(0x1000);
-      }
-      else {
+    }
+    else {
         LastDataCheck = FindLastDataCheck(this->m_Possible);
-      }
+    }
 
-      if (LastDataCheck == (uint16_t)-1) {
-        /* we cant fix anything in this packet */
+    if (LastDataCheck == (uint16_t)-1) {
         this->m_stats.Frame_Drop++;
         this->m_Possible = (uint16_t)-1;
         return;
-      }
+    }
 
-      this->m_stats.Packet_Total++;
-      if (this->m_Possible == (uint16_t)-1) {
+    // ADDED: Check if frame is too old before processing
+    static auto last_frame_time = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    auto frame_age = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_frame_time);
+    
+    // Skip if we're getting frames too fast (indicates backup)
+    if (frame_age.count() < 16) { // Less than 16ms since last frame (>60fps)
+        this->m_stats.Frame_Drop++;
+        return;
+    }
+    last_frame_time = now;
+
+    this->m_stats.Packet_Total++;
+    if (this->m_Possible == (uint16_t)-1) {
         this->m_stats.Packet_HeadDrop++;
         this->m_Possible = LastDataCheck + 1;
-      }
-
-      this->m_stats.Packet_Total += this->m_Possible;
-      for (uint16_t i = 0; i < this->m_Possible; i++) {
-        if (!GetDataCheck(i)) {
-          this->m_stats.Packet_BodyDrop++;
-          __builtin_memset(&this->m_data[i * 0x400], 0, 0x400);
-        }
-      }
     }
+
+    this->m_stats.Packet_Total += this->m_Possible;
+    for (uint16_t i = 0; i < this->m_Possible; i++) {
+        if (!GetDataCheck(i)) {
+            this->m_stats.Packet_BodyDrop++;
+            __builtin_memset(&this->m_data[i * 0x400], 0, 0x400);
+        }
+    }
+}
 
     void WriteFramePacket();
   }view;
@@ -205,7 +216,7 @@ struct ecps_backend_t {
       uint64_t TimerLastCallAt;
       uint64_t TimerCallCount;
     }m_NetworkFlow;
-    std::mutex frame_list_mutex;
+    std::timed_mutex frame_list_mutex;
     void CalculateNetworkFlowBucket();
   }share;
   fan::event::task_value_resume_t<bool> write_stream(
@@ -422,4 +433,81 @@ struct ecps_backend_t {
     Protocol_ChannelSessionID_t session_id = 0;
   };
   std::vector<channel_info_t> channel_info;
+
+
+  std::vector<channel_list_info_t> available_channels;
+  std::unordered_map<Protocol_ChannelID_t::Type, std::vector<session_info_t>> channel_sessions;
+
+  fan::event::task_t request_channel_list() {
+    uint8_t a;
+    co_await tcp_write(Protocol_C2S_t::RequestChannelList, &a, 1);
+  }
+
+fan::event::task_t request_channel_session_list(Protocol_ChannelID_t channel_id) {
+  Protocol_C2S_t::RequestChannelSessionList_t request;
+  request.ChannelID = channel_id;
+  co_await tcp_write(Protocol_C2S_t::RequestChannelSessionList, &request, sizeof(request));
+}
+
+// Add these callback handlers to your Protocol_S2C callback system:
+
+fan::event::task_t handle_channel_list(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) {
+  auto data = reinterpret_cast<const uint8_t*>(&base) + sizeof(base);
+  auto channel_list = reinterpret_cast<const Protocol_S2C_t::ChannelList_t*>(data);
+  
+  backend.available_channels.clear();
+  backend.available_channels.reserve(channel_list->ChannelCount);
+  
+  auto channel_info_ptr = reinterpret_cast<const Protocol_S2C_t::ChannelInfo_t*>(data + sizeof(Protocol_S2C_t::ChannelList_t));
+  
+  for (uint16_t i = 0; i < channel_list->ChannelCount; ++i) {
+    ecps_backend_t::channel_list_info_t info;
+    info.channel_id = channel_info_ptr[i].ChannelID;
+    info.type = channel_info_ptr[i].Type;
+    info.user_count = channel_info_ptr[i].UserCount;
+    info.name = std::string(channel_info_ptr[i].Name, strnlen(channel_info_ptr[i].Name, 63));
+    info.is_password_protected = channel_info_ptr[i].IsPasswordProtected != 0;
+    info.host_session_id = channel_info_ptr[i].HostSessionID;
+    backend.available_channels.push_back(info);
+  }
+  
+  backend.channel_list_received = true;
+  fan::print("Received channel list with {} channels", channel_list->ChannelCount);
+  
+  co_return;
+}
+
+fan::event::task_t handle_channel_session_list(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) {
+  auto data = reinterpret_cast<const uint8_t*>(&base) + sizeof(base);
+  auto session_list = reinterpret_cast<const Protocol_S2C_t::ChannelSessionList_t*>(data);
+  
+  Protocol_ChannelID_t channel_id = session_list->ChannelID;
+  
+  // Clear existing sessions for this channel
+  backend.channel_sessions[channel_id].clear();
+  backend.channel_sessions[channel_id].reserve(session_list->SessionCount);
+  
+  auto session_info_ptr = reinterpret_cast<const Protocol_S2C_t::SessionInfo_t*>(data + sizeof(Protocol_S2C_t::ChannelSessionList_t));
+  
+  for (uint16_t i = 0; i < session_list->SessionCount; ++i) {
+    ecps_backend_t::session_info_t info;
+    info.session_id = session_info_ptr[i].SessionID;
+    info.channel_session_id = session_info_ptr[i].ChannelSessionID;
+    info.account_id = session_info_ptr[i].AccountID;
+    info.username = std::string((const char*)session_info_ptr[i].Username, strnlen((const char*)session_info_ptr[i].Username, 31));
+    info.is_host = session_info_ptr[i].IsHost != 0;
+    info.joined_at = session_info_ptr[i].JoinedAt;
+    backend.channel_sessions[channel_id].push_back(info);
+  }
+  
+  fan::print("Received session list for channel {} with {} sessions", (int)channel_id, session_list->SessionCount);
+  
+  co_return;
+}
+
+  bool channel_list_received = false;
+
+  bool is_connected() {
+    return false;
+  }
 }ecps_backend;

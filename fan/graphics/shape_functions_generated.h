@@ -2323,7 +2323,13 @@ static void reload_universal_image_renderer(loco_t::shape_t* shape, uint8_t form
     image_info.size = fan::graphics::get_image_sizes(format, image_size)[i];
     auto lp = fan::graphics::get_image_properties<loco_t::image_load_properties_t>(format)[i];
     lp.min_filter = filter;
-    lp.mag_filter = filter;
+    if (filter == fan::graphics::image_filter::linear ||
+      filter == fan::graphics::image_filter::nearest) {
+      lp.mag_filter = filter;
+    }
+    else {
+      lp.mag_filter = fan::graphics::image_filter::linear;
+    }
     if (i == 0) {
       gloco->image_reload(
         vi_image,

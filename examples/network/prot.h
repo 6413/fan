@@ -38,6 +38,24 @@ struct Protocol_SessionChannelID_t {
 
 typedef uint16_t Protocol_CI_t;
 
+struct channel_list_info_t {
+  Protocol_ChannelID_t channel_id;
+  uint8_t type;
+  uint32_t user_count;
+  std::string name;
+  bool is_password_protected;
+  Protocol_SessionID_t host_session_id;
+};
+
+struct session_info_t {
+  Protocol_SessionID_t session_id;
+  Protocol_ChannelSessionID_t channel_session_id;
+  Protocol_AccountID_t account_id;
+  std::string username;
+  bool is_host;
+  uint64_t joined_at;
+};
+
 struct tcp {
   struct ProtocolBasePacket_t {
     uint32_t ID;
@@ -124,42 +142,62 @@ struct ProtocolUDP {
 
 struct Protocol_C2S_t : __dme_inherit(Protocol_C2S_t){
   __dme(KeepAlive);
+  
   __dme(Request_Login,
     Protocol::LoginType_t Type;
   );
+  
   __dme(CreateChannel,
     uint8_t Type;
   );
+  
   __dme(JoinChannel,
     Protocol_ChannelID_t ChannelID;
   );
+  
   __dme(QuitChannel,
     Protocol_ChannelID_t ChannelID;
     Protocol_ChannelSessionID_t ChannelSessionID;
   );
+  
   __dme(Response_UDPIdentifySecret,
     uint64_t UDPIdentifySecret;
   );
+  
+  // NEW: Channel and session list requests
+  __dme(RequestChannelList,
+    uint8_t pad; // for some reason command doesnt get processed without pad in server
+  );
+  
+  __dme(RequestChannelSessionList,
+    Protocol_ChannelID_t ChannelID;
+  );
+  
+  // Screen sharing control messages
   __dme(Channel_ScreenShare_Share_InformationToViewSetFlag,
     Protocol_ChannelID_t ChannelID;
     Protocol_ChannelSessionID_t ChannelSessionID;
     ProtocolChannel::ScreenShare::ChannelFlag::_t Flag;
   );
+  
   __dme(Channel_ScreenShare_Share_InformationToViewMouseCoordinate,
     Protocol_ChannelID_t ChannelID;
     Protocol_ChannelSessionID_t ChannelSessionID;
     fan::vec2ui pos;
   );
+  
   __dme(Channel_ScreenShare_View_ApplyToHostMouseCoordinate,
     Protocol_ChannelID_t ChannelID;
     Protocol_ChannelSessionID_t ChannelSessionID;
     fan::vec2si pos;
   );
+  
   __dme(Channel_ScreenShare_View_ApplyToHostMouseMotion,
     Protocol_ChannelID_t ChannelID;
     Protocol_ChannelSessionID_t ChannelSessionID;
     fan::vec2si Motion;
   );
+  
   __dme(Channel_ScreenShare_View_ApplyToHostMouseButton,
     Protocol_ChannelID_t ChannelID;
     Protocol_ChannelSessionID_t ChannelSessionID;
@@ -167,6 +205,7 @@ struct Protocol_C2S_t : __dme_inherit(Protocol_C2S_t){
     bool state;
     fan::vec2si pos;
   );
+  
   __dme(Channel_ScreenShare_View_ApplyToHostKeyboard,
     Protocol_ChannelID_t ChannelID;
     Protocol_ChannelSessionID_t ChannelSessionID;
@@ -186,61 +225,109 @@ struct S2C_callback_t : S2C_callback_inherit_t {
 };
 
 struct Protocol_S2C_t : __dme_inherit(Protocol_S2C_t, S2C_callback_t) {
-  __dme(KeepAlive);
+   __dme(KeepAlive);
+  
   __dme(InformInvalidIdentify,
     uint64_t ClientIdentify;
     uint64_t ServerIdentify;
   );
+  
   __dme(Response_Login,
     Protocol_AccountID_t AccountID;
     Protocol_SessionID_t SessionID;
   );
+  
   __dme(CreateChannel_OK,
     uint8_t Type;
     Protocol_ChannelID_t ChannelID;
     Protocol_ChannelSessionID_t ChannelSessionID;
   );
+  
   __dme(CreateChannel_Error,
     Protocol::JoinChannel_Error_Reason_t Reason;
   );
+  
   __dme(JoinChannel_OK,
     uint8_t Type;
     Protocol_ChannelID_t ChannelID;
     Protocol_ChannelSessionID_t ChannelSessionID;
   );
+  
   __dme(JoinChannel_Error,
     Protocol::JoinChannel_Error_Reason_t Reason;
   );
+  
   __dme(KickedFromChannel,
     Protocol_ChannelID_t ChannelID;
     Protocol::KickedFromChannel_Reason_t Reason;
   );
+  
   __dme(Request_UDPIdentifySecret);
+  
   __dme(UseThisUDPIdentifySecret,
     uint64_t UDPIdentifySecret;
   );
+  
+  // NEW: Channel and session list responses
+  // Helper structures for channel list
+  struct ChannelInfo_t {
+    Protocol_ChannelID_t ChannelID;        // Channel's unique ID
+    uint8_t Type;                          // Channel type (ScreenShare, etc.)
+    uint32_t UserCount;                    // Current number of users in channel
+    char Name[64];                         // Channel name (null-terminated)
+    uint8_t IsPasswordProtected;           // 1 if password required, 0 if not
+    Protocol_SessionID_t HostSessionID;    // Session ID of channel host/creator
+  };
+  
+  // Helper structures for session list
+  struct SessionInfo_t {
+    Protocol_SessionID_t SessionID;           // User's session ID
+    Protocol_ChannelSessionID_t ChannelSessionID; // User's channel session ID
+    Protocol_AccountID_t AccountID;           // User's account ID
+    char Username[32];                       // Username (null-terminated)
+    uint8_t IsHost;                         // 1 if user is channel host, 0 if not
+    uint64_t JoinedAt;                      // Timestamp when user joined channel
+  };
+  
+  __dme(ChannelList,
+    uint16_t ChannelCount;
+    // Followed by ChannelCount * ChannelInfo_t entries
+  );
+  
+  __dme(ChannelSessionList,
+    Protocol_ChannelID_t ChannelID;        // Which channel this list is for
+    uint16_t SessionCount;                 // Number of sessions/users in the channel
+    // Followed by SessionCount * SessionInfo_t entries
+  );
+  
+  // Screen sharing information messages
   __dme(Channel_ScreenShare_View_InformationToViewSetFlag,
     Protocol_ChannelID_t ChannelID;
     ProtocolChannel::ScreenShare::ChannelFlag::_t Flag;
   );
+  
   __dme(Channel_ScreenShare_View_InformationToViewMouseCoordinate,
     Protocol_ChannelID_t ChannelID;
     fan::vec2ui pos;
   );
+  
   __dme(Channel_ScreenShare_Share_ApplyToHostMouseCoordinate,
     Protocol_ChannelID_t ChannelID;
     fan::vec2si pos;
   );
+  
   __dme(Channel_ScreenShare_Share_ApplyToHostMouseMotion,
     Protocol_ChannelID_t ChannelID;
     fan::vec2si Motion;
   );
+  
   __dme(Channel_ScreenShare_Share_ApplyToHostMouseButton,
     Protocol_ChannelID_t ChannelID;
     uint8_t key;
     bool state;
     fan::vec2si pos;
   );
+  
   __dme(Channel_ScreenShare_Share_ApplyToHostKeyboard,
     Protocol_ChannelID_t ChannelID;
     uint16_t Scancode;

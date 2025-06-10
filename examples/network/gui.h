@@ -10,13 +10,13 @@ struct ecps_gui_t {
 
   std::vector<std::function<fan::event::task_t()>> task_queue;
 
-#define render_thread (*OFFSETLESS(This, render_thread_t, ecps_gui))
+//#define render_thread (*OFFSETLESS(This, render_thread_t, ecps_gui))
   void backend_queue(const std::function<fan::event::task_t()>& func) {
     render_mutex.lock();
     task_queue.emplace_back(func);
     render_mutex.unlock();
   }
-#undef render_thread
+//#undef render_thread
 
   ecps_gui_t() {
 
@@ -146,17 +146,12 @@ struct ecps_gui_t {
             if (port.size()) {
               server_json["port"] = port;
             }
-            if (channel.size()) {
-              server_json["channel"] = channel;
-            }
             if (ip.size() && port.size()) {
               This->backend_queue([=]() -> fan::event::task_t {
                 try {
                   co_await ecps_backend.connect(ip, string_to_number(port));
                   co_await ecps_backend.login();
-                  if (channel.size()) {
-                    co_await ecps_backend.channel_join(string_to_number(channel));
-                  }
+                  co_await ecps_backend.request_channel_list();
                 }
                 catch (...) { }
               });
@@ -251,10 +246,10 @@ struct ecps_gui_t {
 
       fan::vec2 hitbox_size = parent_max - parent_min;
 
-      // 35% of screen from center to bottom
+      // 15% of screen from center to bottom
       f32_t cursor_y = gui::get_cursor_pos_y();
-      gui::set_cursor_pos_y(cursor_y + hitbox_size.y / 2 + (hitbox_size.y * 0.35) / 2);
-      hitbox_size.y *= 0.35;
+      gui::set_cursor_pos_y(cursor_y + hitbox_size.y / 2 + (hitbox_size.y * 0.75) / 2);
+      hitbox_size.y *= 0.15;
       gui::dummy(hitbox_size);
 
       bool inside_window = gui::is_item_hovered(gui::hovered_flags_allow_when_overlapped_by_window);
@@ -310,7 +305,7 @@ struct ecps_gui_t {
 
       gui::set_cursor_pos(right);
       if (gui::image_button("#btn_stream_settings", icon_settings, icon_size)) {
-        stream_settings.p_open = true;
+        stream_settings.p_open = !stream_settings.p_open;
       }
       });
     gui::pop_style_var(2);
@@ -567,21 +562,326 @@ struct ecps_gui_t {
     bool p_open = false;
   }stream_settings;
 
+  struct channel_list_window_t {
+#undef This
+#define This OFFSETLESS(this, ecps_gui_t, channel_list_window)
+
+    void render() {
+      if (!p_open) return;
+
+      fan::vec2 window_size = engine.window.get_size() * 0.8f;
+      fan::vec2 window_pos = engine.window.get_size() / 2 - window_size / 2;
+
+      gui::set_next_window_pos(window_pos, gui::cond_first_use_ever);
+      gui::set_next_window_size(window_size, gui::cond_first_use_ever);
+
+      if (gui::begin("Channel Browser", &p_open)) {
+
+        static bool first_open = true;
+        if (first_open && p_open) {
+          first_open = false;
+          This->backend_queue([=]() -> fan::event::task_t {
+            try {
+              co_await ecps_backend.request_channel_list();
+
+              // Also refresh user list if a channel is already selected
+              if (selected_channel_id.i != (uint16_t)-1) {
+                co_await ecps_backend.request_channel_session_list(selected_channel_id);
+              }
+            }
+            catch (...) {
+              fan::print("Failed to auto-refresh channel list");
+            }
+            });
+        }
+
+        // Reset first_open flag when window is closed
+        if (!p_open) {
+          first_open = true;
+        }
+
+        gui::columns(2, "channel_browser_cols", true);
+
+        gui::text("Channels");
+        gui::separator();
+
+        if (gui::button("Refresh Channel List")) {
+          This->backend_queue([=]() -> fan::event::task_t {
+            try {
+              co_await ecps_backend.request_channel_list();
+            }
+            catch (...) {
+              fan::print("Failed to request channel list");
+            }
+            });
+        }
+
+        if (auto_refresh) {
+          static auto last_refresh = std::chrono::steady_clock::now();
+          auto now = std::chrono::steady_clock::now();
+          if (std::chrono::duration_cast<std::chrono::seconds>(now - last_refresh).count() >= refresh_interval) {
+            This->backend_queue([=]() -> fan::event::task_t {
+              try {
+                co_await ecps_backend.request_channel_list();
+              }
+              catch (...) {}
+            });
+            last_refresh = now;
+          }
+        }
+
+        gui::push_item_width(150);
+        gui::input_text("Search", &search_filter);
+        gui::pop_item_width();
+
+        gui::separator();
+
+        if (gui::begin_child("ChannelList", fan::vec2(0, -60), true)) {
+          if (gui::begin_table("ChannelTable", 1, gui::table_flags_row_bg)) {
+            int row_index = 0;
+            for (const auto& channel : ecps_backend.available_channels) {
+              if (!search_filter.empty()) {
+                std::string name_lower = channel.name;
+                std::string filter_lower = search_filter;
+                std::transform(name_lower.begin(), name_lower.end(), name_lower.begin(), ::tolower);
+                std::transform(filter_lower.begin(), filter_lower.end(), filter_lower.begin(), ::tolower);
+                if (name_lower.find(filter_lower) == std::string::npos) {
+                  continue;
+                }
+              }
+
+              bool is_selected = (selected_channel_id.i == channel.channel_id.i);
+              std::string display_name = channel.name;
+              if (channel.is_password_protected) {
+                display_name += " 🔒";
+              }
+              display_name += " (" + std::to_string(channel.user_count) + " users)";
+
+              // Check if already joined
+              bool already_joined = false;
+              for (const auto& joined_channel : ecps_backend.channel_info) {
+                if (joined_channel.channel_id.i == channel.channel_id.i) {
+                  already_joined = true;
+                  break;
+                }
+              }
+
+              if (already_joined) {
+                display_name += " ✓";
+              }
+
+              gui::table_next_row();
+              gui::table_set_column_index(0);
+
+              // Set active color to be the same as hover color
+              gui::push_style_color(gui::col_header_active, gui::get_style().Colors[gui::col_header_hovered]);
+
+              if (gui::selectable(display_name.c_str(), is_selected, gui::selectable_flags_span_all_columns)) {
+                selected_channel_id = channel.channel_id;
+
+                This->backend_queue([channel_id = channel.channel_id]() -> fan::event::task_t {
+                  try {
+                    co_await ecps_backend.request_channel_session_list(channel_id);
+                  }
+                  catch (...) {
+                    fan::print("Failed to request session list");
+                  }
+                  });
+              }
+
+              gui::pop_style_color();
+              row_index++;
+            }
+            gui::end_table();
+          }
+
+          // No channels
+          if (ecps_backend.available_channels.empty()) {
+            if (ecps_backend.channel_list_received) {
+              gui::text("No channels available.");
+              gui::text("Create a new channel to get started!");
+        } else {
+            gui::text("Click 'Refresh Channel List' to load channels");
+        }
+    }
+}
+gui::end_child();
+
+        gui::spacing();
+
+        bool has_selection = (selected_channel_id.i != (uint16_t)-1);
+        bool already_in_selected = false;
+
+        if (has_selection) {
+          // Check if already joined
+          for (const auto& joined_channel : ecps_backend.channel_info) {
+            if (joined_channel.channel_id.i == selected_channel_id.i) {
+              already_in_selected = true;
+              break;
+            }
+          }
+        }
+
+        
+        if (already_in_selected) {
+          // Leave button
+          gui::push_style_color(gui::col_button, fan::vec4(0.8f, 0.3f, 0.3f, 1.0f) / 1.1);
+          std::string leave_text = "Leave";
+          fan::vec2 text_size = gui::calc_text_size(leave_text.c_str());
+          float button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
+
+          if (gui::button(leave_text.c_str(), fan::vec2(button_width, 0))) {
+            This->backend_queue([channel_id = selected_channel_id]() -> fan::event::task_t {
+              try {
+                // co_await ecps_backend.channel_leave(channel_id);
+                fan::print("TODO channel_leave");
+                co_return;
+              }
+              catch (...) {
+                fan::print("Failed to leave channel");
+              }
+              });
+          }
+          gui::pop_style_color();
+        }
+        else {
+          // Join button
+          {
+            gui::push_style_color(gui::col_button, fan::vec4(0.3f, 0.8f, 0.3f, 1.0f) / 1.1);
+            std::string text = "Join";
+            fan::vec2 text_size = gui::calc_text_size(text);
+            float button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
+
+            if (gui::button(text, fan::vec2(button_width, 0))) {
+              This->backend_queue([channel_id = selected_channel_id]() -> fan::event::task_t {
+                try {
+                  co_await ecps_backend.channel_join(channel_id);
+
+                  co_await ecps_backend.request_channel_list();
+                  co_await ecps_backend.request_channel_session_list(channel_id);
+                }
+                catch (...) {
+                  fan::print("Failed to join channel");
+                }
+              });
+            }
+            gui::pop_style_color();
+          }
+        }
+        gui::same_line();
+        {
+          gui::push_style_color(gui::col_button, fan::vec4(0.3f, 0.3f, 0.3f, 1.0f));
+          {
+            std::string text = "Add new";
+            fan::vec2 text_size = gui::calc_text_size(text.c_str());
+            float button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
+            if (gui::button(text, fan::vec2(button_width, 0))) {
+              This->backend_queue([]() -> fan::event::task_t {
+                try {
+                  auto channel_id = co_await ecps_backend.channel_create();
+                  co_await ecps_backend.request_channel_list();
+                  co_await ecps_backend.request_channel_session_list(channel_id);
+                }
+                catch (...) {
+                  fan::print("Failed to create channel");
+                }
+                });
+            }
+          }
+          gui::same_line();
+          {
+            std::string text = "Connect";
+            fan::vec2 text_size = gui::calc_text_size(text.c_str());
+            float button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
+            if (gui::button(text, fan::vec2(button_width, 0))) {
+              This->drop_down_server.toggle_render_server_connect = true;
+            }
+          }
+          gui::pop_style_color();
+        }
+
+        gui::next_column();
+
+        gui::text("Users in Channel");
+        gui::separator();
+
+        if (selected_channel_id.i != (uint16_t)-1) {
+          std::string channel_name = "Channel " + std::to_string(selected_channel_id.i);
+          for (const auto& channel : ecps_backend.available_channels) {
+            if (channel.channel_id.i == selected_channel_id.i) {
+              channel_name = channel.name;
+              break;
+            }
+          }
+
+          gui::text(("Channel: " + channel_name).c_str());
+
+          if (gui::button("Refresh Users")) {
+            This->backend_queue([channel_id = selected_channel_id]() -> fan::event::task_t {
+              try {
+                co_await ecps_backend.request_channel_session_list(channel_id);
+              }
+              catch (...) {
+                fan::print("Failed to refresh session list");
+              }
+            });
+          }
+
+          gui::separator();
+
+          if (gui::begin_child("SessionList", fan::vec2(0, 0), true)) {
+            auto it = ecps_backend.channel_sessions.find(selected_channel_id.i);
+            if (it != ecps_backend.channel_sessions.end()) {
+              for (const auto& session : it->second) {
+                std::string user_display = session.username;
+                fan::color user_color = fan::colors::white;
+                if (session.is_host) {
+                  user_display += " (Host)";
+                  user_color = fan::vec4(1.0f, 0.8f, 0.2f, 1.0f); // Gold color for host
+                }
+
+                gui::text(user_display.c_str(), user_color);
+
+                gui::same_line();
+                gui::text(("ID: " + std::to_string(session.session_id.i)).c_str());
+              }
+            }
+            else {
+              gui::text("No user data loaded.");
+              gui::text("Select a channel to view users.");
+            }
+          }
+          gui::end_child();
+        }
+        else {
+          gui::text("Select a channel to view users");
+          gui::separator();
+          gui::text("Click on any channel in the left panel");
+          gui::text("to see who's currently connected.");
+        }
+
+        gui::columns(1);
+      }
+      gui::end();
+    }
+
+    bool p_open = true;
+    bool auto_refresh = true;
+    int refresh_interval = 5; // seconds
+    std::string search_filter;
+    ecps_backend_t::Protocol_ChannelID_t selected_channel_id{ (uint16_t)-1 };
+
+  }channel_list_window;
+
 
 #undef This
 #define This this
 
   void render_menu_bar() {
     if (gui::begin_main_menu_bar()) {
-      if (gui::begin_menu("Server")) {
-        if (gui::menu_item("Create Channel")) {
-          drop_down_server.toggle_render_server_create = true;
-        }
-        if (gui::menu_item("Connect")) {
-          drop_down_server.toggle_render_server_connect = true;
-        }
-        if (gui::menu_item("Join Channel")) {
-          drop_down_server.toggle_render_server_join = true;
+      if (gui::begin_menu("Channel")) {
+        if (gui::menu_item("Browse all")) {
+          channel_list_window.p_open = true;
         }
         gui::end_menu();
       }
@@ -606,12 +906,35 @@ struct ecps_gui_t {
       gui::window_flags_no_bring_to_front_on_focus |
       gui::window_flags_no_inputs);
 
+    fan::vec2 viewport_size = engine.viewport_get(engine.orthographic_camera.viewport).viewport_size;
+    engine.camera_set_ortho(
+      engine.orthographic_camera.camera,
+      fan::vec2(0, viewport_size.x),
+      fan::vec2(0, viewport_size.y)
+    );
+
+    f32_t top_bar = gui::get_frame_height();
+    fan::vec2 win = engine.window.get_size();
+    fan::vec2 avail = win / 2 - fan::vec2(0, top_bar / 2);
+
+    f32_t aspect = 16.0f / 9.0f;
+    fan::vec2 full_size = (avail.x / avail.y > aspect)
+      ? fan::vec2(avail.y * aspect, avail.y)
+      : fan::vec2(avail.x, avail.x / aspect);
+
+    render_thread->screen_frame.set_position(win / 2 + fan::vec2(0, top_bar / 2));
+    render_thread->screen_frame.set_size(full_size);
+
+
+
     if (render_thread->screen_frame.get_image() == gloco->default_texture) {
       static fan::graphics::image_t image = engine.image_create(gui::get_color(gui::col_window_bg).set_alpha(1));
-      render_thread->screen_frame_hider.set_size(engine.window.get_size() / 2);
+      
+      render_thread->screen_frame_hider.set_position(fan::vec2(engine.window.get_size() / 2));
+      render_thread->screen_frame_hider.set_size(engine.window.get_size() / 2 + fan::vec2(0, 1));
       render_thread->screen_frame_hider.set_image(image);
     }
-    else {
+    else {      
       render_thread->screen_frame_hider.set_size(0);
     }
 
@@ -619,6 +942,10 @@ struct ecps_gui_t {
 
     if (stream_settings.p_open) {
       stream_settings.render();
+    }
+
+    if (channel_list_window.p_open) {
+      channel_list_window.render();
     }
 
     gui::end();
