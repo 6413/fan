@@ -60,6 +60,10 @@ export namespace fan {
     enum image_filter {
       nearest,
       linear,
+      nearest_mipmap_nearest,
+      linear_mipmap_nearest,
+      nearest_mipmap_linear,
+      linear_mipmap_linear,
     };
     enum {
       fan_unsigned_byte,

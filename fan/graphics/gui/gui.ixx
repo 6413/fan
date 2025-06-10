@@ -165,6 +165,21 @@ export namespace fan {
         void end_menu() {
           ImGui::EndMenu();
         }
+
+        void begin_group() {
+          ImGui::BeginGroup();
+        }
+        void end_group() {
+          ImGui::EndGroup();
+        }
+
+        void table_setup_column(const std::string& label, ImGuiTableColumnFlags flags = 0, float init_width_or_weight = 0.0f, ImGuiID user_id = 0) {
+          ImGui::TableSetupColumn(label.c_str(), flags, init_width_or_weight, user_id);
+        }
+        bool table_set_column_index(int column_n) {
+          return ImGui::TableSetColumnIndex(column_n);
+        }
+
         bool menu_item(const std::string& label, const std::string& shortcut = "", bool selected = false, bool enabled = true) {
           return ImGui::MenuItem(label.c_str(), shortcut.empty() ? nullptr : shortcut.c_str(), selected, enabled);
         }
@@ -221,6 +236,18 @@ export namespace fan {
         void pop_id() {
           ImGui::PopID();
         }
+
+        void set_next_item_width(f32_t width) {
+          ImGui::SetNextItemWidth(width);
+        }
+
+        void push_text_wrap_pos(f32_t local_pos = 0) {
+          ImGui::PushTextWrapPos(local_pos);
+        }
+        void pop_text_wrap_pos() {
+          ImGui::PopTextWrapPos();
+        }
+          
 
         using hovered_flag_t = int;
         enum {
@@ -418,6 +445,10 @@ export namespace fan {
         f32_t get_font_size() {
           return ImGui::GetFontSize();
         }
+        f32_t get_text_line_height() {
+          return ImGui::GetTextLineHeight();
+        }
+
         void indent(f32_t indent_w = 0.0f) {
           ImGui::Indent(indent_w);
         }
