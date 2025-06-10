@@ -161,7 +161,7 @@ struct ecps_backend_t {
         return;
     }
 
-    // ADDED: Check if frame is too old before processing
+    //Check if frame is too old before processing
     static auto last_frame_time = std::chrono::steady_clock::now();
     auto now = std::chrono::steady_clock::now();
     auto frame_age = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_frame_time);
@@ -449,7 +449,6 @@ fan::event::task_t request_channel_session_list(Protocol_ChannelID_t channel_id)
   co_await tcp_write(Protocol_C2S_t::RequestChannelSessionList, &request, sizeof(request));
 }
 
-// Add these callback handlers to your Protocol_S2C callback system:
 
 fan::event::task_t handle_channel_list(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) {
   auto data = reinterpret_cast<const uint8_t*>(&base) + sizeof(base);
@@ -510,4 +509,21 @@ fan::event::task_t handle_channel_session_list(ecps_backend_t& backend, const tc
   bool is_connected() {
     return false;
   }
+
+  std::string get_current_username() const {
+    for (const auto& [channel_id, sessions] : channel_sessions) {
+      for (const auto& session : sessions) {
+        if (session.session_id.i == this->session_id.i) {
+          return session.username;
+        }
+      }
+    }
+
+    if (session_id.i != 0) {
+      return "Anonymous_" + std::to_string(session_id.i);
+    }
+
+    return "Not Connected";
+  }
+
 }ecps_backend;

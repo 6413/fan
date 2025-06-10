@@ -397,7 +397,7 @@ struct ecps_gui_t {
                 //auto sd = (Channel_ScreenShare_Share_t*)ChannelCommon->m_StateData;
                 //sd->ThreadCommon->EncoderSetting.Mutex.Lock(); // do i need to lock for reading
                 framerate = screen_encode->settings.InputFrameRate;
-                bitrate_mbps = screen_encode->settings.RateControl.TBR.bps / 1000000.0;
+                bitrate_mbps = screen_encode->settings.RateControl.VBR.bps / 1000000.0;
                 //sd->ThreadCommon->EncoderSetting.Mutex.Unlock();
                 initialize = false;
               }
@@ -510,13 +510,21 @@ struct ecps_gui_t {
               screen_decode->mutex.unlock();
               This->backend_queue([=]() -> fan::event::task_t {
                 try {
-                  ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_Share_InformationToViewSetFlag_t rest;
+                  ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare_t rest;
+                  rest.ChannelID = ecps_backend.channel_info.front().channel_id;
                   rest.Flag = ecps_backend_t::ProtocolChannel::ScreenShare::ChannelFlag::ResetIDR;
-                  co_await ecps_backend.tcp_write(
-                    ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_Share_InformationToViewSetFlag,
-                    &rest,
-                    sizeof(rest)
-                  );
+                  int idr_request_count = 1;
+                  if (decoder_names[selected_decoder] == "cuvid") {
+                    idr_request_count = 3;
+                  }
+                  for (int i = 0; i < idr_request_count; ++i) {
+                    co_await ecps_backend.tcp_write(
+                      ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare,
+                      &rest,
+                      sizeof(rest)
+                    );
+                    co_await fan::co_sleep(100); // cuvid requires multiple idr requests if having nvenc
+                  }
                 }
                 catch (...) {}
                 });
@@ -577,6 +585,12 @@ struct ecps_gui_t {
 
       if (gui::begin("Channel Browser", &p_open)) {
 
+        // Display current username in top right
+        std::string current_user = "User: " + ecps_backend.get_current_username(); // Assuming this method exists
+        fan::vec2 text_size = gui::calc_text_size(current_user.c_str());
+        gui::same_line(gui::get_window_size().x - text_size.x - 20);
+        gui::text(current_user.c_str(), fan::vec4(0.7f, 0.7f, 1.0f, 1.0f)); // Light blue color
+
         static bool first_open = true;
         if (first_open && p_open) {
           first_open = false;
@@ -625,7 +639,7 @@ struct ecps_gui_t {
                 co_await ecps_backend.request_channel_list();
               }
               catch (...) {}
-            });
+              });
             last_refresh = now;
           }
         }
@@ -700,53 +714,66 @@ struct ecps_gui_t {
             if (ecps_backend.channel_list_received) {
               gui::text("No channels available.");
               gui::text("Create a new channel to get started!");
-        } else {
-            gui::text("Click 'Refresh Channel List' to load channels");
+            }
+            else {
+              gui::text("Click 'Refresh Channel List' to load channels");
+            }
+          }
         }
-    }
-}
-gui::end_child();
+        gui::end_child();
 
         gui::spacing();
 
         bool has_selection = (selected_channel_id.i != (uint16_t)-1);
         bool already_in_selected = false;
+        bool is_host_of_selected = false;
 
         if (has_selection) {
-          // Check if already joined
+          // Check if already joined and if user is host
           for (const auto& joined_channel : ecps_backend.channel_info) {
             if (joined_channel.channel_id.i == selected_channel_id.i) {
               already_in_selected = true;
+
+              // Check if current user is host of this channel
+              auto session_it = ecps_backend.channel_sessions.find(selected_channel_id.i);
+              if (session_it != ecps_backend.channel_sessions.end()) {
+                std::string current_username = ecps_backend.get_current_username();
+                for (const auto& session : session_it->second) {
+                  if (session.username == current_username && session.is_host) {
+                    is_host_of_selected = true;
+                    break;
+                  }
+                }
+              }
               break;
             }
           }
         }
 
-        
-        if (already_in_selected) {
-          // Leave button
-          gui::push_style_color(gui::col_button, fan::vec4(0.8f, 0.3f, 0.3f, 1.0f) / 1.1);
-          std::string leave_text = "Leave";
-          fan::vec2 text_size = gui::calc_text_size(leave_text.c_str());
-          float button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
+        if (!is_host_of_selected) {
+          if (already_in_selected) {
+            // Leave button
+            gui::push_style_color(gui::col_button, fan::vec4(0.8f, 0.3f, 0.3f, 1.0f) / 1.1);
+            std::string leave_text = "Leave";
+            fan::vec2 text_size = gui::calc_text_size(leave_text.c_str());
+            float button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
 
-          if (gui::button(leave_text.c_str(), fan::vec2(button_width, 0))) {
-            This->backend_queue([channel_id = selected_channel_id]() -> fan::event::task_t {
-              try {
-                // co_await ecps_backend.channel_leave(channel_id);
-                fan::print("TODO channel_leave");
-                co_return;
-              }
-              catch (...) {
-                fan::print("Failed to leave channel");
-              }
-              });
+            if (gui::button(leave_text.c_str(), fan::vec2(button_width, 0))) {
+              This->backend_queue([channel_id = selected_channel_id]() -> fan::event::task_t {
+                try {
+                  // co_await ecps_backend.channel_leave(channel_id);
+                  fan::print("TODO channel_leave");
+                  co_return;
+                }
+                catch (...) {
+                  fan::print("Failed to leave channel");
+                }
+                });
+            }
+            gui::pop_style_color();
           }
-          gui::pop_style_color();
-        }
-        else {
-          // Join button
-          {
+          else {
+            // Join button
             gui::push_style_color(gui::col_button, fan::vec4(0.3f, 0.8f, 0.3f, 1.0f) / 1.1);
             std::string text = "Join";
             fan::vec2 text_size = gui::calc_text_size(text);
@@ -763,12 +790,17 @@ gui::end_child();
                 catch (...) {
                   fan::print("Failed to join channel");
                 }
-              });
+                });
             }
             gui::pop_style_color();
           }
+          gui::same_line();
         }
-        gui::same_line();
+        else if (has_selection) {
+          gui::text("You are the host of this channel", fan::vec4(1.0f, 0.8f, 0.2f, 1.0f)); // Gold color
+          gui::same_line();
+        }
+
         {
           gui::push_style_color(gui::col_button, fan::vec4(0.3f, 0.3f, 0.3f, 1.0f));
           {
@@ -824,7 +856,7 @@ gui::end_child();
               catch (...) {
                 fan::print("Failed to refresh session list");
               }
-            });
+              });
           }
 
           gui::separator();
@@ -934,7 +966,7 @@ gui::end_child();
       render_thread->screen_frame_hider.set_size(engine.window.get_size() / 2 + fan::vec2(0, 1));
       render_thread->screen_frame_hider.set_image(image);
     }
-    else {      
+    else {
       render_thread->screen_frame_hider.set_size(0);
     }
 

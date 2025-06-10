@@ -143,6 +143,25 @@ export namespace fan {
     return os;
   }
 
+  template <typename T>
+  constexpr void print_throttled(const T& value, int throttle_ms = 1000) {
+    static std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_print_time;
+    static std::unordered_map<std::string, int> count_map;
+
+    std::ostringstream oss;
+    oss << value;
+    std::string key = oss.str();
+
+    auto now = std::chrono::steady_clock::now();
+    count_map[key]++;
+
+    if (last_print_time.find(key) == last_print_time.end() ||
+      std::chrono::duration_cast<std::chrono::milliseconds>(now - last_print_time[key]).count() >= throttle_ms) {
+
+      std::cout << key << " (" << count_map[key] << " times)" << std::endl;
+      last_print_time[key] = now;
+    }
+  }
   namespace debug {
 
     void print_stacktrace() {

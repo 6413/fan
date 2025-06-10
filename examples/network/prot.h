@@ -212,6 +212,15 @@ struct Protocol_C2S_t : __dme_inherit(Protocol_C2S_t){
     uint16_t Scancode;
     bool State;
   );
+
+  __dme(Channel_ScreenShare_ViewToShare,
+    Protocol_ChannelID_t ChannelID;
+    uint16_t Flag;
+  );
+  __dme(Channel_ScreenShare_ShareToView,
+    Protocol_ChannelID_t ChannelID;
+    uint16_t Flag;
+  );
 }Protocol_C2S;
 
 static fan::event::task_t default_s2c_cb(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base);
@@ -332,6 +341,15 @@ struct Protocol_S2C_t : __dme_inherit(Protocol_S2C_t, S2C_callback_t) {
     Protocol_ChannelID_t ChannelID;
     uint16_t Scancode;
     uint8_t State;
+  );
+
+  __dme(Channel_ScreenShare_ViewToShare,
+    Protocol_ChannelID_t ChannelID;
+    uint16_t Flag;
+  );
+  __dme(Channel_ScreenShare_ShareToView,
+    Protocol_ChannelID_t ChannelID;
+    uint16_t Flag;
   );
 }Protocol_S2C;
 
