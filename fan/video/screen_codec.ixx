@@ -215,7 +215,7 @@ export namespace fan {
         return screen_buffer != 0;
       }
 
-      std::mutex mutex;
+      std::timed_mutex mutex;
     };
 
     struct screen_decode_t : ETC_VEDC_Decoder_t{

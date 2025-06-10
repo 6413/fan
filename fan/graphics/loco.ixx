@@ -515,6 +515,10 @@ export struct loco_t {
     context_functions.image_unload(&context, nr);
   }
 
+  bool is_image_valid(fan::graphics::image_nr_t nr) {
+    return nr != default_texture && nr.iic() == false;
+  }
+
   fan::graphics::image_nr_t create_missing_texture() {
     return context_functions.create_missing_texture(&context);
   }
@@ -3079,6 +3083,13 @@ public:
       }
       else if (shape_type == shape_type_t::unlit_sprite) {
         return ((unlit_sprite_t::ri_t*)ShapeID_t::GetData(gloco->shaper))->images;
+      }
+      else if (shape_type == shape_type_t::universal_image_renderer) {
+        std::array<loco_t::image_t, 30> ret;
+        auto uni_images = ((universal_image_renderer_t::ri_t*)ShapeID_t::GetData(gloco->shaper))->images_rest;
+        std::copy(uni_images.begin(), uni_images.end(), ret.begin());
+
+        return ret;
       }
 #if fan_debug >= fan_debug_medium
       fan::throw_error("only for sprite and unlit_sprite");
