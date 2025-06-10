@@ -80,6 +80,19 @@ export namespace fan {
     fan::print(current_fmt::format(fmt, std::forward<args_t>(args)...));
     throw_error_impl();
   }
+
+  template <typename... args_t>
+  constexpr auto print_throttled_format(std::format_string<args_t...> fmt, args_t&&... args) {
+    std::string formatted = std::format(fmt, std::forward<args_t>(args)...);
+    print_throttled(formatted, 1000);
+  }
+
+  template <typename... args_t>
+  constexpr auto print_throttled_format(int throttle_ms, std::format_string<args_t...> fmt, args_t&&... args) {
+    std::string formatted = std::format(fmt, std::forward<args_t>(args)...);
+    print_throttled(formatted, throttle_ms);
+  }
+
 }
 
 template<typename T>

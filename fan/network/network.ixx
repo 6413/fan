@@ -11,6 +11,14 @@ module;
 #include <unordered_map>
 #include <array>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/bio.h>
+#include <openssl/dtls1.h>
+#include <openssl/rand.h>
+#include <openssl/hmac.h>
+#include <openssl/evp.h>
+
 #include <fan/types/types.h>
 
 export module fan.network;
@@ -1515,6 +1523,214 @@ export namespace fan {
         server_address = server_addr;
       }
     };
+    class stream_cipher_t {
+    private:
+      unsigned char key[32];  // 256-bit key
+      bool key_set = false;
+      std::string key_hex_string;
+      
+    public:
+      std::string get_key_hex() const {
+        if (!key_set) return "";
+        return key_hex_string;
+      }
+
+      // Set encryption key (32 bytes for AES-256)
+      bool set_key(const unsigned char* new_key, size_t key_len) {
+        if (key_len != 32) return false;
+        memcpy(key, new_key, 32);
+        key_set = true;
+        return true;
+      }
+      
+      // Set key from hex string
+      bool set_key_hex(const std::string& hex_key) {
+    if (hex_key.length() != 64) return false; // 32 bytes = 64 hex chars
+    
+    unsigned char binary_key[32];
+    for (size_t i = 0; i < 32; ++i) {
+      std::string byte_str = hex_key.substr(i * 2, 2);
+      binary_key[i] = (unsigned char)std::stoul(byte_str, nullptr, 16);
+    }
+    
+    bool result = set_key(binary_key, 32);
+    if (result) {
+      key_hex_string = hex_key; // Store the hex string
+    }
+    return result;
+  }
+      
+      std::string generate_key() {
+    unsigned char new_key[32];
+    if (RAND_bytes(new_key, 32) != 1) {
+      return "";
+    }
+    
+    set_key(new_key, 32);
+    
+    // Return as hex string and store it
+    std::string hex_key;
+    for (size_t i = 0; i < 32; ++i) {
+      char buf[3];
+      snprintf(buf, sizeof(buf), "%02x", new_key[i]);
+      hex_key += buf;
+    }
+    
+    key_hex_string = hex_key; // Store the hex string
+    return hex_key;
+  }
+      
+      // Encrypt data using AES-256-GCM
+      std::vector<uint8_t> encrypt(const std::vector<uint8_t>& plaintext) {
+        if (!key_set || plaintext.empty()) return {};
+        
+        EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+        if (!ctx) return {};
+        
+        // Generate random IV (12 bytes for GCM)
+        unsigned char iv[12];
+        if (RAND_bytes(iv, 12) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        
+        // Initialize encryption
+        if (EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, nullptr, nullptr) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        
+        // Set IV length
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, nullptr) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        
+        // Initialize key and IV
+        if (EVP_EncryptInit_ex(ctx, nullptr, nullptr, key, iv) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        
+        // Prepare output buffer: IV(12) + ciphertext + tag(16)
+        std::vector<uint8_t> output;
+        output.resize(12 + plaintext.size() + 16);
+        
+        // Copy IV to output
+        memcpy(output.data(), iv, 12);
+        
+        // Encrypt
+        int len;
+        if (EVP_EncryptUpdate(ctx, output.data() + 12, &len, plaintext.data(), (int)plaintext.size()) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        int ciphertext_len = len;
+        
+        // Finalize
+        if (EVP_EncryptFinal_ex(ctx, output.data() + 12 + len, &len) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        ciphertext_len += len;
+        
+        // Get authentication tag
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, output.data() + 12 + ciphertext_len) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        
+        EVP_CIPHER_CTX_free(ctx);
+        
+        // Resize to actual length
+        output.resize(12 + ciphertext_len + 16);
+        return output;
+      }
+      
+      // Decrypt data using AES-256-GCM
+      std::vector<uint8_t> decrypt(const std::vector<uint8_t>& ciphertext) {
+        if (!key_set || ciphertext.size() < 28) return {}; // IV(12) + tag(16) = 28 minimum
+        
+        EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+        if (!ctx) return {};
+        
+        // Extract IV, ciphertext, and tag
+        const unsigned char* iv = ciphertext.data();
+        const unsigned char* encrypted_data = ciphertext.data() + 12;
+        int encrypted_len = (int)ciphertext.size() - 28;
+        const unsigned char* tag = ciphertext.data() + 12 + encrypted_len;
+        
+        // Initialize decryption
+        if (EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, nullptr, nullptr) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        
+        // Set IV length
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, nullptr) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        
+        // Initialize key and IV
+        if (EVP_DecryptInit_ex(ctx, nullptr, nullptr, key, iv) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        
+        // Prepare output buffer
+        std::vector<uint8_t> plaintext(encrypted_len);
+        
+        // Decrypt
+        int len;
+        if (EVP_DecryptUpdate(ctx, plaintext.data(), &len, encrypted_data, encrypted_len) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        int plaintext_len = len;
+        
+        // Set expected tag
+        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, const_cast<unsigned char*>(tag)) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {};
+        }
+        
+        // Finalize and verify tag
+        if (EVP_DecryptFinal_ex(ctx, plaintext.data() + len, &len) != 1) {
+          EVP_CIPHER_CTX_free(ctx);
+          return {}; // Authentication failed or corruption detected
+        }
+        plaintext_len += len;
+        
+        EVP_CIPHER_CTX_free(ctx);
+        
+        plaintext.resize(plaintext_len);
+        return plaintext;
+      }
+      
+      // Test the encryption/decryption
+      bool test() {
+        std::string test_key = generate_key();
+        if (test_key.empty()) return false;
+        
+        std::string test_data = "Hello, secure stream data!";
+        std::vector<uint8_t> original(test_data.begin(), test_data.end());
+        
+        auto encrypted = encrypt(original);
+        if (encrypted.empty()) return false;
+        
+        auto decrypted = decrypt(encrypted);
+        if (decrypted.size() != original.size()) return false;
+        
+        return memcmp(original.data(), decrypted.data(), original.size()) == 0;
+      }
+    };
+    
+    // Global cipher instance
+    stream_cipher_t& get_stream_cipher() {
+      static stream_cipher_t cipher;
+      return cipher;
+    }
   }
 }
 
