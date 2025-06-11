@@ -335,7 +335,6 @@ ChannelID: {}
     backend.channel_sessions[channel_id.i].clear();
     backend.channel_sessions[channel_id.i].reserve(msg->SessionCount);
 
-    // Read the session info array
     for (uint16_t i = 0; i < msg->SessionCount; ++i) {
       auto session_info = co_await backend.tcp_client.read<Protocol_S2C_t::SessionInfo_t>();
 
@@ -389,13 +388,11 @@ bool validate_video_packet(const std::vector<uint8_t>& data, size_t expected_siz
     return false;
   }
 
-  // More lenient size checking for variable bitrate content
   if (data.size() < expected_size / 20 || data.size() > expected_size * 5) {
     fan::print_throttled_format("Frame size out of bounds: {} (expected ~{})", data.size(), expected_size);
     return false;
   }
 
-  // Check for valid H.264 NAL unit headers
   bool has_valid_nal = false;
   for (size_t i = 0; i < std::min(data.size() - 4, size_t(32)); ++i) {
     if (data[i] == 0x00 && data[i + 1] == 0x00 &&
@@ -526,10 +523,8 @@ void ecps_backend_t::view_t::WriteFramePacket() {
 
 void configure_encoder_for_artifact_reduction() {
   if (screen_encode) {
-    // Ensure proper encoder settings
     screen_encode->settings.RateControl.VBR.bps = std::max(screen_encode->settings.RateControl.VBR.bps, 3000000u); // Minimum 3Mbps
 
-    // Force more frequent keyframes
     screen_encode->encode_write_flags |= fan::graphics::codec_update_e::reset_IDR;
 #if ecps_debug_prints >= 2
     fan::print_throttled_format("Encoder configured with bitrate: {} bps", screen_encode->settings.RateControl.VBR.bps);
@@ -537,16 +532,9 @@ void configure_encoder_for_artifact_reduction() {
   }
 }
 
-
-
-// Helper function to determine if we're viewing local or network stream
 bool is_local_stream() {
-  // You can determine this based on your application logic
-  // For example, check if we're the host/streamer vs viewer
-  return render_thread && render_thread->ecps_gui.is_streaming; // or however you determine this
+  return render_thread && render_thread->ecps_gui.is_streaming;
 }
-
-
 
 int main() {
   std::promise<void> render_thread_promise;
@@ -580,7 +568,7 @@ int main() {
         auto now = std::chrono::steady_clock::now();
         auto time_since_idr = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_idr_time);
 
-        // MUCH less aggressive: Force IDR only every 5 seconds
+        // Force IDR only every 5 seconds
         if (time_since_idr > std::chrono::milliseconds(5000)) {
           screen_encode->encode_write_flags |= fan::graphics::codec_update_e::reset_IDR;
           last_idr_time = now;
@@ -617,7 +605,7 @@ int main() {
             continue;
           }
 
-          // Network transmission (unchanged)
+          // Network transmission
           {
             std::unique_lock<std::timed_mutex> frame_list_lock(ecps_backend.share.frame_list_mutex, std::try_to_lock);
             if (frame_list_lock.owns_lock()) {
@@ -636,7 +624,7 @@ int main() {
             }
           }
 
-          // Local decode (unchanged)
+          // Local decode 
           {
             std::unique_lock<std::timed_mutex> decode_lock(local_decode_mutex, std::defer_lock);
             if (decode_lock.try_lock_for(std::chrono::milliseconds(3))) {
@@ -671,7 +659,6 @@ int main() {
     });
 
 
-  // Alternative: More explicit version with separate functions
   static auto request_local_idr = [](const std::string& reason = "") {
     if (screen_encode) {
       screen_encode->encode_write_flags |= fan::graphics::codec_update_e::reset_IDR;
@@ -679,7 +666,7 @@ int main() {
       fan::print_throttled_format("Local IDR requested: {}", reason);
 #endif
     }
-    };
+  };
 
   static auto request_network_idr = [](const std::string& reason = "") -> fan::event::task_t {
     try {
@@ -706,7 +693,6 @@ int main() {
 
   static auto request_idr_smart = [](const std::string& reason = "") {
     if (is_local_stream()) {
-      // LOCAL: Direct encoder flag manipulation (fast and direct)
       if (screen_encode) {
         screen_encode->encode_write_flags |= fan::graphics::codec_update_e::reset_IDR;
 #if ecps_debug_prints >= 2
@@ -715,7 +701,6 @@ int main() {
       }
     }
     else {
-      // NETWORK: Use protocol to request IDR from remote encoder
       try {
         render_thread->ecps_gui.backend_queue([=]() -> fan::event::task_t {
           try {
@@ -742,14 +727,11 @@ int main() {
     }
     };
 
-  // ENHANCED decode thread with proper decoder state management:
- // Updated decode thread with proper error code handling
 
   auto decode_thread_id = fan::event::thread_create([] {
     screen_decode = (::screen_decode_t*)malloc(sizeof(::screen_decode_t));
     std::construct_at(screen_decode);
 
-    // No special setup needed - decoder changes now execute immediately
 
     while (screen_encode == nullptr || render_thread == nullptr || render_thread->should_stop.load()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -793,7 +775,6 @@ int main() {
       // Enhanced reset conditions based on error patterns
       bool should_reset = false;
       if (decoder_recently_changed) {
-        // More lenient reset conditions after decoder change
         if (time_since_success > std::chrono::milliseconds(10000) && frames_since_decoder_change > 50) {
           should_reset = true;
         }
@@ -898,7 +879,7 @@ int main() {
 
                 last_decode_type = decode_data.type;
 
-                // HANDLE ALL ERROR CODES WITH SPECIFIC STRATEGIES
+                // Handle errors
                 if (decode_data.type == 253) { // Decoder changed
                   decoder_recently_changed = true;
                   frames_since_decoder_change = 0;
@@ -1131,7 +1112,7 @@ int main() {
         }
       }
 
-      // Enhanced IDR request logic based on error patterns
+      // IDR request logic based on error patterns
       static auto last_idr_request = std::chrono::steady_clock::now();
       auto time_since_last_idr = std::chrono::duration_cast<std::chrono::seconds>(now - last_idr_request);
 
@@ -1141,7 +1122,6 @@ int main() {
         needs_idr = (consecutive_decode_failures > 100 && time_since_decoder_change.count() > 5);
       }
       else {
-        // Normal IDR request logic based on specific error patterns
         needs_idr = (consecutive_decode_failures > 30 && !decoder_initialized && time_since_startup.count() > 5) ||
           (consecutive_read_failures > 20) ||
           (consecutive_format_errors > 5) ||
@@ -1179,7 +1159,7 @@ int main() {
     }
     });
 
-  auto frequent_idr_task = fan::event::task_timer(1000, []() -> fan::event::task_value_resume_t<bool> { // Changed from 250ms to 1000ms
+  auto frequent_idr_task = fan::event::task_timer(1000, []() -> fan::event::task_value_resume_t<bool> {
     static auto startup_time = std::chrono::steady_clock::now();
     static bool startup_phase = true;
 
@@ -1199,10 +1179,9 @@ int main() {
 #endif
         }
       }
-      // NORMAL PHASE: After 10 seconds - moderate IDR for artifact prevention
+      // After 10 seconds - moderate IDR for artifact prevention
       else {
         startup_phase = false;
-        // Only every 1 second instead of 250ms
         screen_encode->encode_write_flags |= fan::graphics::codec_update_e::reset_IDR;
 #if ecps_debug_prints >= 2
         fan::print_throttled("Normal IDR (1s interval)");
