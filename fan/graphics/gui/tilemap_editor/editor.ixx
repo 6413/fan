@@ -1030,8 +1030,7 @@ export struct fte_t {
       gloco->viewport_set(
         camera->viewport, 
         viewport_pos + fan::vec2(0, style.WindowPadding.y * 2),
-        real_viewport_size,
-        window_size
+        real_viewport_size
       );
       editor_size = real_viewport_size;
       viewport_settings.size = viewport_size;

@@ -248,6 +248,20 @@ export namespace fan {
           ImGui::PopTextWrapPos();
         }
           
+        using tab_item_flags_t = int;
+        enum {
+          tab_item_flags_none = ImGuiTabItemFlags_None,
+          tab_item_flags_unsaved_document = ImGuiTabItemFlags_UnsavedDocument,
+          tab_item_flags_set_selected = ImGuiTabItemFlags_SetSelected,
+          tab_item_flags_no_close_with_middle_button = ImGuiTabItemFlags_NoCloseWithMiddleMouseButton,
+          tab_item_flags_no_push_id = ImGuiTabItemFlags_NoPushId,
+          tab_item_flags_no_tooltip = ImGuiTabItemFlags_NoTooltip,
+          tab_item_flags_no_reorder = ImGuiTabItemFlags_NoReorder,
+          tab_item_flags_leading = ImGuiTabItemFlags_Leading,
+          tab_item_flags_trailing = ImGuiTabItemFlags_Trailing,
+          tab_item_flags_no_assumed_closure = ImGuiTabItemFlags_NoAssumedClosure
+        };
+
 
         using hovered_flag_t = int;
         enum {
@@ -1205,27 +1219,33 @@ export namespace fan {
         }
 
         void set_viewport(fan::graphics::viewport_t viewport) {
+          ImVec2 child_pos = ImGui::GetWindowPos();
+          ImVec2 child_size = ImGui::GetWindowSize();
           ImVec2 mainViewportPos = ImGui::GetMainViewport()->Pos;
 
-          ImVec2 windowPos = ImGui::GetWindowPos();
-
           fan::vec2 windowPosRelativeToMainViewport;
-          windowPosRelativeToMainViewport.x = windowPos.x - mainViewportPos.x;
-          windowPosRelativeToMainViewport.y = windowPos.y - mainViewportPos.y;
+          windowPosRelativeToMainViewport.x = child_pos.x - mainViewportPos.x;
+          windowPosRelativeToMainViewport.y = child_pos.y - mainViewportPos.y;
+
+          fan::vec2 viewport_size = fan::vec2(child_size.x, child_size.y);
+          fan::vec2 viewport_pos = windowPosRelativeToMainViewport;
 
           fan::vec2 window_size = gloco->window.get_size();
-          fan::vec2 viewport_size = ImGui::GetContentRegionAvail();
-
-          ImVec2 padding = ImGui::GetStyle().WindowPadding;
-          viewport_size.x += padding.x * 2;
-          viewport_size.y += padding.y * 2;
-
-          fan::vec2 viewport_pos = fan::vec2(windowPosRelativeToMainViewport);
           gloco->viewport_set(
             viewport,
             viewport_pos,
-            viewport_size,
-            window_size
+            viewport_size
+          );
+        }
+        void set_viewport(const fan::graphics::camera_t& camera) {
+          set_viewport(camera.viewport);
+
+          ImVec2 child_size = ImGui::GetWindowSize();
+          fan::vec2 viewport_size = fan::vec2(child_size.x, child_size.y);
+          gloco->camera_set_ortho(
+            camera.camera,
+            fan::vec2(0, viewport_size.x),
+            fan::vec2(0, viewport_size.y)
           );
         }
 

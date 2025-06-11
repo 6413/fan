@@ -15,6 +15,7 @@ struct settings_menu_t {
 
     ImGui::SetNextWindowPos(next_window_position);
     ImGui::SetNextWindowSize(next_window_size);
+    ImGui::SetNextWindowBgAlpha(0.99);
     ImGui::Begin("##Menu Graphics Left", 0, wnd_flags);
     {
       ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "DISPLAY");
@@ -131,6 +132,7 @@ struct settings_menu_t {
 
     ImGui::SetNextWindowPos(next_window_position);
     ImGui::SetNextWindowSize(next_window_size);
+    ImGui::SetNextWindowBgAlpha(0.99);
     ImGui::Begin("##Menu Graphics Right", 0, wnd_flags);
 
     ImGui::PushFont(gloco->fonts_bold[std::size(gloco->fonts_bold) - 3]);
@@ -289,6 +291,7 @@ struct settings_menu_t {
     fan::vec2 main_window_size = gloco->window.get_size();
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(fan::vec2(main_window_size.x, main_window_size.y / 5));
+    ImGui::SetNextWindowBgAlpha(0.99);
     ImGui::Begin("##Fan Settings Nav", 0,
       ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
       ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar

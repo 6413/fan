@@ -47,7 +47,7 @@ struct screen_encode_t : fan::graphics::screen_encode_t {
 struct render_thread_t;
 render_thread_t* render_thread = 0;
 
-#define ecps_debug_prints 2
+#define ecps_debug_prints 0
 
 #include "backend.h"
 
@@ -246,11 +246,11 @@ struct render_thread_t {
 
   fan::graphics::image_t screen_image = engine.image_create();
   fan::graphics::sprite_t local_frame{ {
-    .position = fan::vec3(gloco->window.get_size() / 2, 1),
+    .position = fan::vec3(fan::vec2(0), 1),
     .size = gloco->window.get_size() / 2,
   } };
-  fan::graphics::universal_image_renderer_t screen_frame{ {
-    .position = fan::vec3(gloco->window.get_size() / 2, 1),
+  fan::graphics::universal_image_renderer_t network_frame{ {
+    .position = fan::vec3(fan::vec2(0), 1),
     .size = gloco->window.get_size() / 2,
   } };
 
@@ -837,7 +837,7 @@ int main() {
                 fan::graphics::screen_decode_t::decode_data_t decode_data = screen_decode->decode(
                   frame_to_decode.data->data(),
                   frame_to_decode.data->size(),
-                  render_thread->screen_frame
+                  render_thread->network_frame
                 );
 
                 bool decode_successful = false;
@@ -983,11 +983,13 @@ int main() {
     while (!render_thread->engine.should_close() && !render_thread->should_stop.load()) {
       {
         std::lock_guard<std::timed_mutex> render_lock(render_mutex);      
-
-        for (auto& i : screen_decode->graphics_queue) {
-          i();
+        {
+          std::lock_guard<std::mutex> lock(screen_decode->mutex);
+          for (auto& i : screen_decode->graphics_queue) {
+            i();
+          }
+          screen_decode->graphics_queue.clear();
         }
-        screen_decode->graphics_queue.clear();
 
         if (render_thread->ecps_gui.show_own_stream == false) {
           render_thread->local_frame.set_image(render_thread->engine.default_texture);
@@ -1003,7 +1005,7 @@ int main() {
 
             if (node.type == 0) { // CUVID
               try {
-                screen_decode->decode_cuvid(render_thread->screen_frame);
+                screen_decode->decode_cuvid(render_thread->network_frame);
                 frame_valid = true;
 #if ecps_debug_prints >= 2
                 static uint64_t cuvid_render_count = 0;
@@ -1034,8 +1036,8 @@ int main() {
 
                   if (raw_ptrs[0] && raw_ptrs[1] && raw_ptrs[2]) {
                     try {
-                      render_thread->screen_frame.set_tc_size(fan::vec2(sx, 1));
-                      render_thread->screen_frame.reload(
+                      render_thread->network_frame.set_tc_size(fan::vec2(sx, 1));
+                      render_thread->network_frame.reload(
                         node.pixel_format,
                         raw_ptrs.data(),
                         fan::vec2ui(node.stride[0].x, node.image_size.y)
@@ -1112,12 +1114,12 @@ int main() {
           fan::graphics::image_filter::linear_mipmap_linear
         };
 
-        static int current_sampler = 0;
+        static int current_sampler = fan::graphics::image_filter::linear;
 
         std::vector<fan::graphics::image_t> img_list;
         img_list.emplace_back(render_thread->local_frame.get_image());
-        img_list.emplace_back(render_thread->screen_frame.get_image());
-        auto images = render_thread->screen_frame.get_images();
+        img_list.emplace_back(render_thread->network_frame.get_image());
+        auto images = render_thread->network_frame.get_images();
         img_list.insert(img_list.end(), images.begin(), images.end());
         
         static bool p_open_debug = false;
@@ -1153,10 +1155,6 @@ int main() {
               render_thread->engine.image_set_settings(i, image_data.image_settings);
             }
           }
-          
-          gui::drag_int("bucket size", (int*)&ecps_backend.share.m_NetworkFlow.BucketSize, 1000, 0, 
-            std::numeric_limits<int>::max() - 1, "%d", gui::slider_flags_always_clamp);
-          
           gui::end();
         }
       });

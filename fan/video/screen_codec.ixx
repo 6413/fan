@@ -413,6 +413,7 @@ export namespace fan {
         }
 
         void graphics_queue_callback(const std::function<void()> f) {
+          std::lock_guard<std::mutex> lock(mutex);
           graphics_queue.emplace_back(f);
         }
 
