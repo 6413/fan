@@ -141,7 +141,7 @@ void init_framebuffer() {
 
 #if defined(loco_framebuffer)
   //
-  static auto load_texture = [&](fan::image::image_info_t& image_info, loco_t::image_t& color_buffer, GLenum attachment, bool reload = false) {
+  static auto load_texture = [&](fan::image::info_t& image_info, loco_t::image_t& color_buffer, GLenum attachment, bool reload = false) {
     fan::graphics::image_load_properties_t load_properties;
     load_properties.visual_output = fan::graphics::image_sampler_address_mode::repeat;
     load_properties.internal_format = fan::graphics::image_format::r8b8g8a8_unorm;
@@ -160,7 +160,7 @@ void init_framebuffer() {
     fan::opengl::core::framebuffer_t::bind_to_texture(loco.context.gl, loco.image_get_handle(color_buffer), attachment);
     };
 
-  fan::image::image_info_t image_info;
+  fan::image::info_t image_info;
   image_info.data = nullptr;
   image_info.size = loco.window.get_size();
   image_info.channels = 4;
@@ -171,7 +171,7 @@ void init_framebuffer() {
   }
 
   loco.window.add_resize_callback([&](const auto& d) {
-    fan::image::image_info_t image_info;
+    fan::image::info_t image_info;
     image_info.data = nullptr;
     image_info.size = loco.window.get_size();
 

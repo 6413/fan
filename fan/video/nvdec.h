@@ -166,7 +166,7 @@ namespace fan {
           lp.min_filter = fan::graphics::image_filter::linear;
           lp.mag_filter = lp.min_filter;
           lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_edge;
-          fan::image::image_info_t image_info;
+          fan::image::info_t image_info;
           image_info.data = 0;
           image_info.size = decoder->frame_size;
           decoder->images[0] = gloco->image_load(image_info, lp);

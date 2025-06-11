@@ -30,7 +30,7 @@ int main() {
   fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE));
 
   for (GLuint i = 0; i < 6; ++i) {
-    fan::image::image_info_t image_info;
+    fan::image::info_t image_info;
     if (fan::image::load(("images/" + std::to_string(i) + ".webp"), &image_info)) {
       fan::throw_error("a");
     }

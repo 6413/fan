@@ -115,7 +115,7 @@ struct texture_packe0 {
       }
     }
 
-    fan::webp::image_info_t image_info;
+    fan::webp::info_t image_info;
     if (fan::webp::load(image_path, &image_info)) {
       fan::print_warning("failed to load");
       return 1;
@@ -398,8 +398,8 @@ struct texture_packe0 {
     return pack_list.size();
   }
 
-  fan::webp::image_info_t get_pixel_data(uint32_t pack_id) {
-    fan::webp::image_info_t image_info;
+  fan::webp::info_t get_pixel_data(uint32_t pack_id) {
+    fan::webp::info_t image_info;
     image_info.data = pack_list[pack_id].pixel_data.data();
     image_info.size = pack_list[pack_id].pack_size;
     return image_info;

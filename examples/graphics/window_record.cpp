@@ -336,7 +336,7 @@ void SimpleCapture::OnFrameArrived(
         uint8_t* data = reinterpret_cast<uint8_t*>(mappedResource.pData);
         uint32_t rowPitch = mappedResource.RowPitch;
 
-        fan::image::image_info_t ii;
+        fan::image::info_t ii;
         ii.size = fan::vec2(rowPitch / 4, desc.Height);
         ii.data = data;
 

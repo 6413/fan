@@ -704,7 +704,7 @@ export namespace fan {
         __fan_internal_image_list[nr].image_settings = image_opengl_to_global(p);
       }
 
-      fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::opengl::context_t::image_load_properties_t& lp) {
+      fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info, const fan::opengl::context_t::image_load_properties_t& lp) {
 
         auto p = lp;
 
@@ -833,7 +833,7 @@ export namespace fan {
 
     #endif
 
-        fan::image::image_info_t image_info;
+        fan::image::info_t image_info;
         if (fan::image::load(path, &image_info)) {
           return create_missing_texture();
         }
@@ -843,7 +843,7 @@ export namespace fan {
         return nr;
       }
 
-      fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info) {
+      fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info) {
         return image_load(image_info, fan::opengl::context_t::image_load_properties_t());
       }
 
@@ -875,7 +875,7 @@ export namespace fan {
         image_erase(nr);
       }
 
-      void image_reload(fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info, const fan::opengl::context_t::image_load_properties_t& lp) {
+      void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::opengl::context_t::image_load_properties_t& lp) {
 
         auto p = lp;
 
@@ -922,12 +922,12 @@ export namespace fan {
         fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
       }
 
-      void image_reload(fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info) {
+      void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
         image_reload(nr, image_info, fan::opengl::context_t::image_load_properties_t());
       }
 
       void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::opengl::context_t::image_load_properties_t& p) {
-        fan::image::image_info_t image_info;
+        fan::image::info_t image_info;
         if (fan::image::load(path, &image_info)) {
           image_info.data = (void*)fan::image::missing_texture_pixels;
           image_info.size = 2;
@@ -1682,10 +1682,10 @@ namespace fan {
       cf.image_set_settings = [](void* context, fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings) {
         ((fan::opengl::context_t*)context)->image_set_settings(nr, ((fan::opengl::context_t*)context)->image_global_to_opengl(settings));
         };
-      cf.image_load_info = [](void* context, const fan::image::image_info_t& image_info) {
+      cf.image_load_info = [](void* context, const fan::image::info_t& image_info) {
         return ((fan::opengl::context_t*)context)->image_load(image_info);
         };
-      cf.image_load_info_props = [](void* context, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+      cf.image_load_info_props = [](void* context, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
         return ((fan::opengl::context_t*)context)->image_load(image_info, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
         };
       cf.image_load_path = [](void* context, const std::string& path) {
@@ -1709,10 +1709,10 @@ namespace fan {
       cf.create_transparent_texture = [](void* context) {
         return ((fan::opengl::context_t*)context)->create_transparent_texture(*(fan::opengl::context_t*)context);
         };
-      cf.image_reload_image_info = [](void* context, fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info) {
+      cf.image_reload_image_info = [](void* context, fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
         return ((fan::opengl::context_t*)context)->image_reload(nr, image_info);
         };
-      cf.image_reload_image_info_props = [](void* context, fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+      cf.image_reload_image_info_props = [](void* context, fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
         return ((fan::opengl::context_t*)context)->image_reload(nr, image_info, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
         };
       cf.image_reload_path = [](void* context, fan::graphics::image_nr_t nr, const std::string& path) {

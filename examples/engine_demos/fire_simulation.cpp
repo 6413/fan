@@ -127,7 +127,7 @@ int main() {
       }
     }
 
-    fan::image::image_info_t ii;
+    fan::image::info_t ii;
     ii.data = noise_data_rgb.data();
     ii.size = image_size;
     ii.channels = 3;

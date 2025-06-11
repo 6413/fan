@@ -419,7 +419,7 @@ struct ecps_gui_t {
 
               //auto sd = (Channel_ScreenShare_Share_t*)ChannelCommon->m_StateData;
               screen_encode->mutex.lock();
-              screen_encode->settings.RateControl.TBR.bps = bitrate_mbps * 1000000.0;
+              screen_encode->settings.RateControl.VBR.bps = bitrate_mbps * 1000000.0;
               screen_encode->update_flags |= fan::graphics::codec_update_e::rate_control;
               screen_encode->mutex.unlock();
             }
@@ -514,17 +514,11 @@ struct ecps_gui_t {
                   rest.ChannelID = ecps_backend.channel_info.front().channel_id;
                   rest.Flag = ecps_backend_t::ProtocolChannel::ScreenShare::ChannelFlag::ResetIDR;
                   int idr_request_count = 1;
-                  if (decoder_names[selected_decoder] == "cuvid") {
-                    idr_request_count = 3;
-                  }
-                  for (int i = 0; i < idr_request_count; ++i) {
-                    co_await ecps_backend.tcp_write(
-                      ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare,
-                      &rest,
-                      sizeof(rest)
-                    );
-                    co_await fan::co_sleep(100); // cuvid requires multiple idr requests if having nvenc
-                  }
+                  co_await ecps_backend.tcp_write(
+                    ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare,
+                    &rest,
+                    sizeof(rest)
+                  );
                 }
                 catch (...) {}
                 });
@@ -945,6 +939,11 @@ struct ecps_gui_t {
       fan::vec2(0, viewport_size.y)
     );
 
+    { // Background
+      gui_background.set_position(fan::vec2(engine.window.get_size() / 2));
+      gui_background.set_size(engine.window.get_size() / 2 + fan::vec2(0, 1));
+    }
+
     f32_t top_bar = gui::get_frame_height();
     fan::vec2 win = engine.window.get_size();
     fan::vec2 avail = win / 2 - fan::vec2(0, top_bar / 2);
@@ -955,19 +954,17 @@ struct ecps_gui_t {
       : fan::vec2(avail.x, avail.x / aspect);
 
     render_thread->screen_frame.set_position(win / 2 + fan::vec2(0, top_bar / 2));
-    render_thread->screen_frame.set_size(full_size);
-
-
-
-    if (render_thread->screen_frame.get_image() == gloco->default_texture) {
-      static fan::graphics::image_t image = engine.image_create(gui::get_color(gui::col_window_bg).set_alpha(1));
-      
-      render_thread->screen_frame_hider.set_position(fan::vec2(engine.window.get_size() / 2));
-      render_thread->screen_frame_hider.set_size(engine.window.get_size() / 2 + fan::vec2(0, 1));
-      render_thread->screen_frame_hider.set_image(image);
+    if (render_thread->screen_frame.get_image() == gloco->default_texture) {      
+      render_thread->screen_frame.set_size(0);
     }
     else {
-      render_thread->screen_frame_hider.set_size(0);
+      render_thread->screen_frame.set_size(full_size);
+    }
+    if (show_own_stream && render_thread->local_frame.get_image() != gloco->default_texture) {
+      render_thread->local_frame.set_size(full_size);
+    }
+    else {
+      render_thread->local_frame.set_size(0);
     }
 
     render_stream();
@@ -992,7 +989,13 @@ struct ecps_gui_t {
   fan::json config;
   bool is_streaming = false;
 
-  bool show_own_stream = true; 
+  bool show_own_stream = false; 
+
+  fan::graphics::sprite_t gui_background{ {
+    .position = fan::vec3(gloco->window.get_size() / 2, 0),
+    .size = gloco->window.get_size() / 2,
+    .image = engine.image_create(gui::get_color(gui::col_window_bg).set_alpha(1))
+  } };
 
 #undef This
 #undef engine

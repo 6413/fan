@@ -2318,7 +2318,7 @@ static void reload_universal_image_renderer(loco_t::shape_t* shape, uint8_t form
   }
 
   for (uint32_t i = 0; i < image_count_new; i++) {
-    fan::image::image_info_t image_info;
+    fan::image::info_t image_info;
     image_info.data = image_data[i];
     image_info.size = fan::graphics::get_image_sizes(format, image_size)[i];
     auto lp = fan::graphics::get_image_properties<loco_t::image_load_properties_t>(format)[i];

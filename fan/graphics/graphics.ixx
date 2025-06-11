@@ -278,10 +278,10 @@ bool init_fan_track_opengl_print = []() {
 export namespace fan {
   namespace graphics {
     using engine_t = fan::graphics::engine_t;
-    fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info) {
+    fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info) {
       return gloco->image_load(image_info);
     }
-    fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+    fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
       return gloco->image_load(image_info, p);
     }
     fan::graphics::image_nr_t image_load(const std::string& path) {

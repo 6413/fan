@@ -35,7 +35,7 @@ int main() {
   if (ptr == nullptr) {
     return 1;
   }
-  fan::image::image_info_t ii;
+  fan::image::info_t ii;
   ii.size = fan::sys::get_screen_resolution();
   ii.data = ptr;
 

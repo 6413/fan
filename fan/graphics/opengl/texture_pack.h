@@ -68,7 +68,7 @@ struct texturepack_t {
       }
 
       std::vector<uint8_t> pixel_data = fan::string_read_data<std::vector<uint8_t>>(in, offset);
-      fan::webp::image_info_t image_info;
+      fan::webp::info_t image_info;
       if (fan::webp::decode(
         pixel_data.data(),
         pixel_data.size(),
@@ -78,7 +78,7 @@ struct texturepack_t {
       }
       image_info.type = fan::image::image_type_e::webp;
       image_info.channels = 4;
-      pixel_data_list[i].image = gloco->image_load(*(fan::image::image_info_t*)&image_info, lp);
+      pixel_data_list[i].image = gloco->image_load(*(fan::image::info_t*)&image_info, lp);
       fan::webp::free_image(image_info.data);
 
       //pixel_data_list[i].visual_output = 
