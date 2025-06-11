@@ -27,7 +27,7 @@
 //        context->fan_opengl_call(glBindTexture(GL_TEXTURE_CUBE_MAP, loaded_skybox.texture));
 //
 //        auto load_side = [] (fan::opengl::context_t* context, std::string_view path, uint8_t i) {
-//          fan::webp::image_info_t info;
+//          fan::webp::info_t info;
 //          fan::webp::load(path, &info);
 //          context->fan_opengl_call(TexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, info.size.x, info.size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, info.data));
 //          fan::webp::free_image(info.data);

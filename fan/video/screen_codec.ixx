@@ -90,7 +90,7 @@ export namespace fan {
          .UsageType = ETC_VEDC_EncoderSetting_UsageType_Realtime,
          .RateControl{
            .Type = ETC_VEDC_EncoderSetting_RateControlType_VBR,
-           .VBR = {.bps = 2000000 }
+           .VBR = {.bps = 10000000 }
          },
          .InputFrameRate = 30
         };

@@ -68,7 +68,7 @@ struct blur_t {
       lp.min_filter = fan::graphics::image_filter::linear;
       lp.mag_filter = fan::graphics::image_filter::linear;
       lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_edge;
-      fan::image::image_info_t ii;
+      fan::image::info_t ii;
       ii.data = nullptr;
       ii.size = mip_size;
       ii.channels = 3;

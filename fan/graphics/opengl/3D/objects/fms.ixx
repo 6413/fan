@@ -276,7 +276,7 @@ export namespace fan_3d {
             mesh.texture_names[texture_type] = file_path;
             auto found = cached_texture_data.find(file_path);
             if (found == cached_texture_data.end()) {
-              fan::image::image_info_t ii;
+              fan::image::info_t ii;
               if (fan::image::load(file_path, &ii)) {
                 continue;
               }

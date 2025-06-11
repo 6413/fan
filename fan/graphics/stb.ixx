@@ -25,7 +25,7 @@ import fan.io.file;
 export namespace fan {
     namespace stb {
 
-    struct image_info_t {
+    struct info_t {
       unsigned char* data;
       fan::vec2i size;
       int channels;
@@ -37,7 +37,7 @@ export namespace fan {
       return stbi_info(file.c_str(), &x, &y, &channels);
     }
 
-    fan_module_api bool load(const std::string& file, image_info_t* image_info) {
+    fan_module_api bool load(const std::string& file, info_t* image_info) {
     
       image_info->data = stbi_load(file.c_str(), &image_info->size.x, &image_info->size.y, &image_info->channels, 0);
       if (!image_info->data) {
@@ -48,11 +48,11 @@ export namespace fan {
       return false;
     }
 
-    // static bool encode_rgba(const fan::string& file, const image_info_t& image_info) {
+    // static bool encode_rgba(const fan::string& file, const info_t& image_info) {
     //   return stbi_write_png(file.c_str(), image_info.size.x, image_info.size.y, image_info.channels, image_info.data, image_info.size.x * image_info.channels);
     // }
 
-    // static bool encode_lossless_rgba(const fan::string& file, const image_info_t& image_info) {
+    // static bool encode_lossless_rgba(const fan::string& file, const info_t& image_info) {
     //   return stbi_write_png(file.c_str(), image_info.size.x, image_info.size.y, image_info.channels, image_info.data, image_info.size.x * image_info.channels);
     // }
 

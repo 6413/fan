@@ -42,7 +42,7 @@ export namespace fan {
             if (found != fan_3d::model::cached_images.end()) { // check if texture has already been loaded for this cahce
              continue;
             }
-            fan::image::image_info_t ii;
+            fan::image::info_t ii;
             auto& td = fan_3d::model::cached_texture_data[name];
             ii.data = td.data.data();
             ii.size = td.size;

@@ -403,7 +403,7 @@ if (gloco->window.renderer == loco_t::renderer_t::opengl) {
 
   uint8_t image_count_new = fan::pixel_format::get_texture_amount(format);
   for (uint32_t i = 0; i < image_count_new; i++) {
-    fan::image::image_info_t image_info;
+    fan::image::info_t image_info;
     image_info.data = image_data[i];
     image_info.size = fan::pixel_format::get_image_sizes(format, image_size)[i];
     auto lp = fan::pixel_format::get_image_properties<loco_t::image_load_properties_t>(format)[i];

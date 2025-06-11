@@ -446,7 +446,7 @@ void image_set_settings(fan::vulkan::context_t& context, const fan::vulkan::cont
 
 }
 
-fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const fan::image::image_info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p) {
+fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const fan::image::info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p) {
   image_nr_t nr = image_create(context);
 
   fan::vulkan::context_t::image_t& image = image_get(context, nr);
@@ -490,13 +490,13 @@ fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const fan:
   return nr;
 }
 
-fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const fan::image::image_info_t& image_info) {
+fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const fan::image::info_t& image_info) {
   return image_load(context, image_info, fan::vulkan::context_t::image_load_properties_t());
 }
 
 fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, fan::color* colors, const fan::vec2ui& size_, const fan::vulkan::context_t::image_load_properties_t& p) {
 
-  fan::image::image_info_t ii;
+  fan::image::info_t ii;
   ii.data = colors;
   ii.size = size_;
   ii.channels = 4;
@@ -551,7 +551,7 @@ fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const std:
 
 #endif
 
-  fan::image::image_info_t image_info;
+  fan::image::info_t image_info;
   if (fan::image::load(path, &image_info)) {
     return create_missing_texture(context);
   }
@@ -569,7 +569,7 @@ void image_unload(fan::vulkan::context_t& context, image_nr_t nr) {
   image_erase(context, nr);
 }
 
-void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const fan::image::image_info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p) {
+void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const fan::image::info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p) {
   auto image_multiplier = get_image_multiplier(p.format);
 
   VkDeviceSize image_size = image_info.size.multiply() * image_multiplier;
@@ -615,12 +615,12 @@ void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const fan::ima
   context.transition_image_layout(image.image_index, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const fan::image::image_info_t& image_info) {
+void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const fan::image::info_t& image_info) {
   image_reload(context, nr, image_info, fan::vulkan::context_t::image_load_properties_t());
 }
 
 void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const std::string& path, const fan::vulkan::context_t::image_load_properties_t& p) {
-  fan::image::image_info_t image_info;
+  fan::image::info_t image_info;
   if (fan::image::load(path, &image_info)) {
     image_info.data = (void*)fan::image::missing_texture_pixels;
     image_info.size = 2;
@@ -644,7 +644,7 @@ fan::graphics::image_nr_t image_create(fan::vulkan::context_t& context, const fa
     pixels[p] = color[p] * 255;
   }
 
-  fan::image::image_info_t ii;
+  fan::image::info_t ii;
 
   ii.data = (void*)&color.r;
   ii.size = 1;
@@ -2514,10 +2514,10 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
     ::image_bind(*(fan::vulkan::context_t*)context, nr);
     ::image_set_settings(*(fan::vulkan::context_t*)context, image_global_to_vulkan(settings));
   }; 
-  cf.image_load_info = [](void* context, const fan::image::image_info_t& image_info) { 
+  cf.image_load_info = [](void* context, const fan::image::info_t& image_info) { 
     return ::image_load(*(fan::vulkan::context_t*)context, image_info);
   }; 
-  cf.image_load_info_props = [](void* context, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) { 
+  cf.image_load_info_props = [](void* context, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) { 
     return ::image_load(*(fan::vulkan::context_t*)context, image_info, image_global_to_vulkan(p));
   }; 
   cf.image_load_path = [](void* context, const std::string& path) { 
@@ -2541,10 +2541,10 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
   cf.create_transparent_texture = [](void* context) { 
     return ::create_transparent_texture(*(fan::vulkan::context_t*)context);
   }; 
-  cf.image_reload_image_info = [](void* context, image_nr_t nr, const fan::image::image_info_t& image_info) { 
+  cf.image_reload_image_info = [](void* context, image_nr_t nr, const fan::image::info_t& image_info) { 
     return ::image_reload(*(fan::vulkan::context_t*)context, nr, image_info); 
   }; 
-  cf.image_reload_image_info_props = [](void* context, image_nr_t nr, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) { 
+  cf.image_reload_image_info_props = [](void* context, image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) { 
     return ::image_reload(*(fan::vulkan::context_t*)context, nr, image_info, image_global_to_vulkan(p)); 
   }; 
   cf.image_reload_path = [](void* context, image_nr_t nr, const std::string& path) { 

@@ -73,7 +73,7 @@ int main() {
   image_load_properties.format = fan::graphics::image_format::rgb_unorm;
   image_load_properties.internal_format = image_load_properties.format;
 
-  fan::image::image_info_t image_info;
+  fan::image::info_t image_info;
   image_info.data = initial_texture.data();
   image_info.size = texture_size;
   procedural_image = engine.image_load(image_info, image_load_properties);
@@ -97,7 +97,7 @@ int main() {
         temp_data = image_data.rgb_data; 
       }
 
-      fan::image::image_info_t update_info;
+      fan::image::info_t update_info;
       update_info.channels = 3;
       update_info.data = temp_data.data();
       update_info.size = image_data.image_size;

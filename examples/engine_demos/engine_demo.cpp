@@ -523,7 +523,7 @@ void main() {
     fan::vec2ui texture_size(1024, 1024);
     std::vector<uint8_t> initial_texture(texture_size.x * texture_size.y * 3, 0);
 
-    fan::image::image_info_t image_info;
+    fan::image::info_t image_info;
     image_info.data = initial_texture.data();
     image_info.size = texture_size;
     data.procedural_image = engine_demo->engine.image_load(image_info, data.image_load_properties);
@@ -545,7 +545,7 @@ void main() {
         temp_data = data.rgb_data;
       }
 
-      fan::image::image_info_t update_info;
+      fan::image::info_t update_info;
       update_info.data = temp_data.data();
       update_info.size = data.image_size;
 

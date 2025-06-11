@@ -487,11 +487,11 @@ export struct loco_t {
     context_functions.image_set_settings(&context, nr, settings);
   }
 
-  fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info) {
+  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info) {
     return context_functions.image_load_info(&context, image_info);
   }
 
-  fan::graphics::image_nr_t image_load(const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
     return context_functions.image_load_info_props(&context, image_info, p);
   }
 
@@ -527,10 +527,10 @@ export struct loco_t {
     return context_functions.create_transparent_texture(&context);
   }
 
-  void image_reload(fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info) {
+  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
     context_functions.image_reload_image_info(&context, nr, image_info);
   }
-  void image_reload(fan::graphics::image_nr_t nr, const fan::image::image_info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
     context_functions.image_reload_image_info_props(&context, nr, image_info, p);
   }
   void image_reload(fan::graphics::image_nr_t nr, const std::string& path) {
@@ -1681,7 +1681,7 @@ public:
               // handle blur?
               auto image_path = image_list[nr].image_path;
               if (image_path.empty()) {
-                fan::image::image_info_t info;
+                fan::image::info_t info;
                 info.data = (void*)fan::image::missing_texture_pixels;
                 info.size = 2;
                 info.channels = 4;
@@ -1714,7 +1714,7 @@ public:
             nrtra.Close(&__fan_internal_shader_list);
           }
         }
-        fan::image::image_info_t info;
+        fan::image::info_t info;
         info.data = (void*)fan::image::missing_texture_pixels;
         info.size = 2;
         info.channels = 4;
@@ -3156,17 +3156,19 @@ public:
       return gloco->shape_functions[get_shape_type()].set_outline_color(this, color);
     }
 
-    void reload(uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter = fan::graphics::image_filter::linear) {
-      gloco->shape_functions[get_shape_type()].reload(this, format, image_data, image_size, filter);
+    void reload(uint8_t format, void** image_data, const fan::vec2& image_size) {
+      auto& settings = gloco->image_get_settings(get_image());
+      gloco->shape_functions[get_shape_type()].reload(this, format, image_data, image_size, settings.min_filter);
     }
 
-    void reload(uint8_t format, const fan::vec2& image_size, uint32_t filter = fan::graphics::image_filter::linear) {
+    void reload(uint8_t format, const fan::vec2& image_size) {
+      auto& settings = gloco->image_get_settings(get_image());
       void* data[4]{};
-      gloco->shape_functions[get_shape_type()].reload(this, format, data, image_size, filter);
+      gloco->shape_functions[get_shape_type()].reload(this, format, data, image_size, settings.min_filter);
     }
 
     // universal image specific
-    void reload(uint8_t format, loco_t::image_t images[4], uint32_t filter = fan::graphics::image_filter::linear) {
+    void reload(uint8_t format, loco_t::image_t images[4]) {
       loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)GetData(gloco->shaper);
       uint8_t image_count_new = fan::graphics::get_channel_amount(format);
       if (format != ri.format) {
@@ -4825,7 +4827,7 @@ public:
 
     auto noise_data = create_noise_image_data(image_size);
 
-    fan::image::image_info_t ii;
+    fan::image::info_t ii;
     ii.data = noise_data.data();
     ii.size = image_size;
     ii.channels = 3;
@@ -4844,7 +4846,7 @@ public:
 
     loco_t::image_t image;
 
-    fan::image::image_info_t ii;
+    fan::image::info_t ii;
     ii.data = (void*)noise_data.data();
     ii.size = image_size;
     ii.channels = 3;
@@ -4960,16 +4962,16 @@ public:
       inited = false;
     }
 
-    void resize(loco_t* loco, loco_t::shape_t& id, uint8_t format, fan::vec2ui size, uint32_t filter = fan::graphics::image_filter::linear) {
+    void resize(loco_t* loco, loco_t::shape_t& id, uint8_t format, fan::vec2ui size) {
       auto vi_image = id.get_image();
       if (vi_image.iic() || vi_image == loco->default_texture) {
-        id.reload(format, size, filter);
+        id.reload(format, size);
       }
 
       auto& ri = *(universal_image_renderer_t::ri_t*)id.GetData(loco->shaper);
 
       if (inited == false) {
-        id.reload(format, size, filter);
+        id.reload(format, size);
         vi_image = id.get_image();
 
         uint8_t image_amount = fan::graphics::get_channel_amount(format);
@@ -4993,7 +4995,7 @@ public:
           wresources[i].close();
         }
 
-        id.reload(format, size, filter);
+        id.reload(format, size);
         vi_image = id.get_image();
 
         ri = *(universal_image_renderer_t::ri_t*)id.GetData(loco->shaper);
