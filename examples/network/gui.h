@@ -1003,6 +1003,12 @@ struct ecps_gui_t {
     gui::set_next_window_size(window_size);
     gui::set_next_window_bg_alpha(1.0f);
 
+    gui::push_style_var(gui::style_var_window_padding, fan::vec2(0, 0));
+    gui::push_style_var(gui::style_var_window_border_size, 0.0f);
+    gui::push_style_var(gui::style_var_window_rounding, 0.0f);
+    gui::push_style_var(gui::style_var_item_spacing, fan::vec2(0, 0));
+    gui::push_style_var(gui::style_var_frame_padding, fan::vec2(0, 0));
+
     if (gui::begin("##FullscreenStream", nullptr,
       gui::window_flags_no_docking |
       gui::window_flags_no_saved_settings |
@@ -1011,14 +1017,48 @@ struct ecps_gui_t {
       gui::window_flags_no_resize |
       gui::window_flags_no_title_bar |
       gui::window_flags_no_scrollbar |
-      gui::window_flags_no_scroll_with_mouse)) {
+      gui::window_flags_no_scroll_with_mouse |
+      gui::window_flags_no_background)) {
 
       fan::vec2 window_content_size = gui::get_content_region_avail();
 
-      std::string button_text = "Exit Fullscreen";
+      gui::set_viewport(engine.orthographic_camera);
+
+      fan::vec2 center = window_content_size / 2;
+
+      if (auto rt = get_render_thread(); rt) {
+        rt->local_frame.set_position(center);
+        rt->network_frame.set_position(center);
+      }
+
+      f32_t aspect = 16.0f / 9.0f;
+      fan::vec2 full_size;
+
+      if (window_content_size.x / window_content_size.y > aspect) {
+        full_size = fan::vec2(window_content_size.y * aspect, window_content_size.y);
+      }
+      else {
+        full_size = fan::vec2(window_content_size.x, window_content_size.x / aspect);
+      }
+
+      full_size /= 2;
+
+      if (auto rt = get_render_thread(); rt) {
+        if (rt->network_frame.get_image() != engine.default_texture) {
+          rt->network_frame.set_size(full_size);
+        }
+        if (show_own_stream && rt->local_frame.get_image() != engine.default_texture) {
+          rt->local_frame.set_size(full_size);
+        }
+      }
+
+      gui::pop_style_var(5);
+
+      gui::push_style_var(gui::style_var_frame_padding, fan::vec2(8, 4));
+
+      std::string button_text = "e";
       fan::vec2 text_size = gui::calc_text_size(button_text.c_str());
-      fan::vec2 button_padding = fan::vec2(gui::get_style().FramePadding) * 2; // Left + right padding
-      fan::vec2 button_size = fan::vec2(text_size.x + button_padding.x + 10, 40); // +10 for extra margin
+      fan::vec2 button_size = fan::vec2(text_size.x + 16, 30);
 
       gui::set_cursor_pos(fan::vec2(window_content_size.x - button_size.x - 10, 10));
 
@@ -1031,43 +1071,7 @@ struct ecps_gui_t {
       }
 
       gui::pop_style_color(3);
-
-      fan::vec2 stream_area_size = fan::vec2(window_content_size.x, window_content_size.y - 50);
-      gui::set_cursor_pos(fan::vec2(0, 50));
-
-      gui::set_next_window_bg_alpha(0);
-      gui::begin_child("##fullscreen_stream_display", stream_area_size,
-        gui::window_flags_no_scrollbar | gui::window_flags_no_scroll_with_mouse);
-
-      gui::set_viewport(engine.orthographic_camera);
-
-      fan::vec2 center = stream_area_size / 2;
-      if (auto rt = get_render_thread(); rt) {
-        rt->local_frame.set_position(center);
-        rt->network_frame.set_position(center);
-      }
-
-      f32_t aspect = 16.0f / 9.0f;
-      fan::vec2 full_size;
-
-      if (stream_area_size.x / stream_area_size.y > aspect) {
-        full_size = fan::vec2(stream_area_size.y * aspect, stream_area_size.y);
-      }
-      else {
-        full_size = fan::vec2(stream_area_size.x, stream_area_size.x / aspect);
-      }
-
-      full_size /= 2;
-
-      if (render_thread->network_frame.get_image() != engine.default_texture) {
-        render_thread->network_frame.set_size(full_size);
-      }
-
-      if (show_own_stream && render_thread->local_frame.get_image() != engine.default_texture) {
-        render_thread->local_frame.set_size(full_size);
-      }
-
-      gui::end_child();
+      gui::pop_style_var(1);
     }
     gui::end();
   }
@@ -1098,18 +1102,6 @@ struct ecps_gui_t {
         window_handler.render();
     }
 
-    fan::vec2 viewport_size = engine.window.get_size();
-    engine.viewport_set(
-        full_screen_camera.viewport,
-        0,
-        viewport_size
-    );
-    engine.camera_set_ortho(
-        full_screen_camera.camera,
-        fan::vec2(0, viewport_size.x),
-        fan::vec2(0, viewport_size.y)
-    );
-
     render_stream();
 
     gui::end();
@@ -1127,17 +1119,6 @@ struct ecps_gui_t {
   bool is_streaming = false;
 
   bool show_own_stream = false;
-
-  loco_t::camera_impl_t full_screen_camera{
-    .camera = engine.open_camera(
-      fan::vec2(0, engine.window.get_size().x),
-      fan::vec2(0, engine.window.get_size().y)
-    ),
-    .viewport = engine.open_viewport(
-      fan::vec2(0, 0),
-      engine.window.get_size()
-    ),
-  };
 
 #undef This
 #undef engine
