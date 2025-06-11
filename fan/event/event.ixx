@@ -8,6 +8,7 @@ module;
 #include <filesystem>
 #include <algorithm>
 #include <cstring>
+#include <thread>
 
 #include <uv.h>
 #undef min
@@ -544,45 +545,28 @@ export namespace fan {
     }
 
     //thread stuff
-    using thread_id_t = uv_thread_t;
+    using thread_id_t = std::jthread;
 
     template <typename cb_t, typename ...args_t>
     struct thread_task_t {
-      fan::event::task_t task_await;
       cb_t cb;
       std::tuple<args_t...> args;
+
       thread_task_t(cb_t&& cb, args_t&&... args) :
         cb(std::forward<cb_t>(cb)),
         args(std::forward<args_t>(args)...) {
       }
+
       auto operator()() {
         return std::apply(cb, args);
       }
     };
 
     template <typename cb_t, typename ...args_t>
-    thread_id_t thread_create(cb_t&& cb, args_t&&... args, int* error = 0) {
-      thread_id_t id;
-      thread_task_t<cb_t, args_t...>* cb_copy = new thread_task_t<cb_t, args_t...>(
-        std::forward<cb_t>(cb),
-        std::forward<args_t>(args)...
-      );
-      int uv_error = uv_thread_create(&id, [](void* arg) {
-        auto* task = static_cast<thread_task_t<cb_t, args_t...>*>(arg);
-        if constexpr (fan::is_awaitable_v<decltype((*task)())>) {
-          task->task_await = (*task)();
-        }
-        else {
-          (*task)();
-        }
-        delete task;
-      }, cb_copy);
-      if (error && uv_error < 0) {
-        *error = uv_error;
-        delete cb_copy;
-        fan::print_warning(std::string("thread create error:") + uv_strerror(*error));
-      }
-      return id;
+    thread_id_t thread_create(cb_t&& cb, args_t&&... args) {
+      return std::jthread([cb = std::forward<cb_t>(cb), args = std::make_tuple(std::forward<args_t>(args)...)]() mutable {
+        std::apply(cb, args);
+        });
     }
     void sleep(unsigned int msec) {
       uv_sleep(msec);

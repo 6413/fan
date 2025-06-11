@@ -20,10 +20,12 @@ struct ecps_gui_t {
 
   ecps_gui_t() {
 
+    engine.clear_color = gui::get_color(gui::col_window_bg);
+
     icon_settings = engine.image_load(directory_path + "icons/settings.png", {
      .min_filter = fan::graphics::image_filter::linear,
      .mag_filter = fan::graphics::image_filter::linear,
-      });
+    });
 
     if (fan::io::file::exists(config_path)) {
       std::string data;
@@ -274,7 +276,7 @@ struct ecps_gui_t {
 
   struct channel_list_window_t {
 #undef This
-#define This OFFSETLESS(this, ecps_gui_t, channel_list_window)
+#define This OFFSETLESS(this, ecps_gui_t, window_handler)
 
     void render() {
       if (!p_open) return;
@@ -357,10 +359,12 @@ struct ecps_gui_t {
     }
 
     void render_channels_content() {
+      if (auto rt = get_render_thread(); rt) {
+        rt->local_frame.set_size(0);
+        rt->network_frame.set_size(0);
+      }
       engine.viewport_set(engine.orthographic_camera.viewport, 0, engine.window.get_size());
 
-      render_thread->local_frame.set_size(0);
-      render_thread->network_frame.set_size(0);
 
       gui::columns(2, "channel_browser_cols", true);
 
@@ -708,10 +712,11 @@ struct ecps_gui_t {
         }
         gui::pop_style_color();
       }
-      else 
-      {
-        render_thread->local_frame.set_size(0);
-        render_thread->network_frame.set_size(0);
+      else {
+        if (auto rt = get_render_thread(); rt) {
+          rt->local_frame.set_size(0);
+          rt->network_frame.set_size(0);
+        }
         gui::push_style_color(gui::col_button, fan::vec4(0.2f, 0.8f, 0.2f, 1.0f));
         if (gui::button("Start Stream")) {
           ecps_backend.share.m_NetworkFlow.Bucket = 0;
@@ -722,18 +727,27 @@ struct ecps_gui_t {
         }
         gui::pop_style_color();
       }
+
       gui::same_line(0, 20);
       gui::checkbox("Show Own Stream", &This->show_own_stream);
 
       gui::same_line(0, 20);
       if (gui::button("Stream Settings")) {
-        main_tab = 0; // Go to Channels tab
-        detail_tab = 1; // And switch to Stream Settings
+        This->window_handler.main_tab = 0; // Go to Channels tab
+        This->window_handler.detail_tab = 1; // And switch to Stream Settings
       }
+
+      // ADD FULLSCREEN BUTTON HERE
+      gui::same_line(0, 20);
+      gui::push_style_color(gui::col_button, fan::vec4(0.2f, 0.6f, 0.8f, 1.0f));
+      if (gui::button("Fullscreen")) {
+        This->is_fullscreen_stream = true;
+      }
+      gui::pop_style_color();
 
       gui::separator();
 
-      // Stream display area
+      // Stream display area (only show if not in fullscreen)
       fan::vec2 avail_size = gui::get_content_region_avail();
       if (avail_size.x > 0 && avail_size.y > 0) {
         gui::set_next_window_bg_alpha(0);
@@ -741,25 +755,25 @@ struct ecps_gui_t {
 
         gui::set_viewport(engine.orthographic_camera);
 
-        
-        fan::vec2 center = (gui::get_content_region_avail() - gui::get_cursor_pos()) / 2;
-        render_thread->local_frame.set_position(center);
-        render_thread->network_frame.set_position(center);
+        if (auto rt = get_render_thread(); rt) {
+          fan::vec2 center = (gui::get_content_region_avail() - gui::get_cursor_pos()) / 2;
+          rt->local_frame.set_position(center);
+          rt->network_frame.set_position(center);
 
-        f32_t aspect = 16.0f / 9.0f;
-        fan::vec2 full_size = (avail_size.x / avail_size.y > aspect)
-          ? fan::vec2(avail_size.y * aspect, avail_size.y)
-          : fan::vec2(avail_size.x, avail_size.x / aspect);
+          f32_t aspect = 16.0f / 9.0f;
+          fan::vec2 full_size = (avail_size.x / avail_size.y > aspect)
+            ? fan::vec2(avail_size.y * aspect, avail_size.y)
+            : fan::vec2(avail_size.x, avail_size.x / aspect);
 
-        full_size /= 2;
+          full_size /= 2;
 
-        if (render_thread->network_frame.get_image() != gloco->default_texture && This->channel_list_window.current_tab != 0) {
-          render_thread->network_frame.set_size(full_size);
+          if (rt->network_frame.get_image() != engine.default_texture && This->window_handler.current_tab != 0) {
+            rt->network_frame.set_size(full_size);
+          }
+          if (This->show_own_stream && rt->local_frame.get_image() != engine.default_texture && This->window_handler.current_tab != 0) {
+            rt->local_frame.set_size(full_size);
+          }
         }
-        if (This->show_own_stream && render_thread->local_frame.get_image() != gloco->default_texture && This->channel_list_window.current_tab != 0) {
-          render_thread->local_frame.set_size(full_size);
-        }
-
 
         gui::end_child();
       }
@@ -962,7 +976,7 @@ struct ecps_gui_t {
     std::string search_filter;
     ecps_backend_t::Protocol_ChannelID_t selected_channel_id{ (uint16_t)-1 };
 
-  }channel_list_window;
+  }window_handler;
 
 
 #undef This
@@ -972,7 +986,7 @@ struct ecps_gui_t {
     if (gui::begin_main_menu_bar()) {
       if (gui::begin_menu("Channel")) {
         if (gui::menu_item("Browse all")) {
-          channel_list_window.p_open = true;
+          window_handler.p_open = true;
         }
         gui::end_menu();
       }
@@ -980,43 +994,121 @@ struct ecps_gui_t {
     }
   }
 
+  void render_fullscreen_stream() {
+    auto* viewport = gui::get_main_viewport();
+    fan::vec2 window_pos = fan::vec2(viewport->WorkPos.x, viewport->WorkPos.y);
+    fan::vec2 window_size = fan::vec2(viewport->WorkSize.x, viewport->WorkSize.y);
+
+    gui::set_next_window_pos(window_pos);
+    gui::set_next_window_size(window_size);
+    gui::set_next_window_bg_alpha(1.0f);
+
+    if (gui::begin("##FullscreenStream", nullptr,
+      gui::window_flags_no_docking |
+      gui::window_flags_no_saved_settings |
+      gui::window_flags_no_move |
+      gui::window_flags_no_collapse |
+      gui::window_flags_no_resize |
+      gui::window_flags_no_title_bar |
+      gui::window_flags_no_scrollbar |
+      gui::window_flags_no_scroll_with_mouse)) {
+
+      fan::vec2 window_content_size = gui::get_content_region_avail();
+
+      std::string button_text = "Exit Fullscreen";
+      fan::vec2 text_size = gui::calc_text_size(button_text.c_str());
+      fan::vec2 button_padding = fan::vec2(gui::get_style().FramePadding) * 2; // Left + right padding
+      fan::vec2 button_size = fan::vec2(text_size.x + button_padding.x + 10, 40); // +10 for extra margin
+
+      gui::set_cursor_pos(fan::vec2(window_content_size.x - button_size.x - 10, 10));
+
+      gui::push_style_color(gui::col_button, fan::vec4(0.3f, 0.3f, 0.3f, 0.8f));
+      gui::push_style_color(gui::col_button_hovered, fan::vec4(0.5f, 0.5f, 0.5f, 0.9f));
+      gui::push_style_color(gui::col_button_active, fan::vec4(0.6f, 0.6f, 0.6f, 1.0f));
+
+      if (gui::button(button_text.c_str(), button_size)) {
+        is_fullscreen_stream = false;
+      }
+
+      gui::pop_style_color(3);
+
+      fan::vec2 stream_area_size = fan::vec2(window_content_size.x, window_content_size.y - 50);
+      gui::set_cursor_pos(fan::vec2(0, 50));
+
+      gui::set_next_window_bg_alpha(0);
+      gui::begin_child("##fullscreen_stream_display", stream_area_size,
+        gui::window_flags_no_scrollbar | gui::window_flags_no_scroll_with_mouse);
+
+      gui::set_viewport(engine.orthographic_camera);
+
+      fan::vec2 center = stream_area_size / 2;
+      if (auto rt = get_render_thread(); rt) {
+        rt->local_frame.set_position(center);
+        rt->network_frame.set_position(center);
+      }
+
+      f32_t aspect = 16.0f / 9.0f;
+      fan::vec2 full_size;
+
+      if (stream_area_size.x / stream_area_size.y > aspect) {
+        full_size = fan::vec2(stream_area_size.y * aspect, stream_area_size.y);
+      }
+      else {
+        full_size = fan::vec2(stream_area_size.x, stream_area_size.x / aspect);
+      }
+
+      full_size /= 2;
+
+      if (render_thread->network_frame.get_image() != engine.default_texture) {
+        render_thread->network_frame.set_size(full_size);
+      }
+
+      if (show_own_stream && render_thread->local_frame.get_image() != engine.default_texture) {
+        render_thread->local_frame.set_size(full_size);
+      }
+
+      gui::end_child();
+    }
+    gui::end();
+  }
+
   void render() {
+    if (is_fullscreen_stream) {
+        render_fullscreen_stream();
+        return;
+    }
+      
     render_menu_bar();
     drop_down_server.render();
 
     gui::set_next_window_pos(0);
     gui::set_next_window_size(gui::get_io().DisplaySize);
     gui::begin("A", 0, gui::window_flags_no_docking |
-      gui::window_flags_no_saved_settings |
-      gui::window_flags_no_focus_on_appearing |
-      gui::window_flags_no_move |
-      gui::window_flags_no_collapse |
-      gui::window_flags_no_background |
-      gui::window_flags_no_resize |
-      gui::window_flags_no_title_bar |
-      gui::window_flags_no_bring_to_front_on_focus |
-      gui::window_flags_no_inputs);
+        gui::window_flags_no_saved_settings |
+        gui::window_flags_no_focus_on_appearing |
+        gui::window_flags_no_move |
+        gui::window_flags_no_collapse |
+        gui::window_flags_no_background |
+        gui::window_flags_no_resize |
+        gui::window_flags_no_title_bar |
+        gui::window_flags_no_bring_to_front_on_focus |
+        gui::window_flags_no_inputs);
 
-    if (channel_list_window.p_open) {
-      channel_list_window.render();
+    if (window_handler.p_open) {
+        window_handler.render();
     }
 
     fan::vec2 viewport_size = engine.window.get_size();
     engine.viewport_set(
-      full_screen_camera.viewport,
-      0,
-      viewport_size
+        full_screen_camera.viewport,
+        0,
+        viewport_size
     );
     engine.camera_set_ortho(
-      full_screen_camera.camera,
-      fan::vec2(0, viewport_size.x),
-      fan::vec2(0, viewport_size.y)
+        full_screen_camera.camera,
+        fan::vec2(0, viewport_size.x),
+        fan::vec2(0, viewport_size.y)
     );
-
-    { // Background
-      gui_background.set_position(fan::vec2(engine.window.get_size() / 2));
-      gui_background.set_size(engine.window.get_size() / 2 + fan::vec2(0, 1));
-    }
 
     render_stream();
 
@@ -1028,6 +1120,8 @@ struct ecps_gui_t {
     config[key] = value;
     fan::io::file::write(config_path, config.dump(2), std::ios_base::binary);
   }
+
+  bool is_fullscreen_stream = false;
 
   fan::json config;
   bool is_streaming = false;
@@ -1044,13 +1138,6 @@ struct ecps_gui_t {
       engine.window.get_size()
     ),
   };
-
-  fan::graphics::sprite_t gui_background{ {
-    .camera = &full_screen_camera,
-    .position = fan::vec3(gloco->window.get_size() / 2, 0),
-    .size = gloco->window.get_size() / 2,
-    .image = engine.image_create(gui::get_color(gui::col_window_bg).set_alpha(1))
-  } };
 
 #undef This
 #undef engine
