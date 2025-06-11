@@ -13,6 +13,8 @@ module;
 #include <sstream>
 #include <ostream>
 #include <iomanip>
+#include <unordered_map>
+#include <chrono>
 
 #endif
 

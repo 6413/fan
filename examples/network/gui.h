@@ -992,6 +992,8 @@ struct ecps_gui_t {
   fan::json config;
   bool is_streaming = false;
 
+  bool show_own_stream = true; 
+
 #undef This
 #undef engine
 };
