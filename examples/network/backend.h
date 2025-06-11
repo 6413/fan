@@ -366,19 +366,21 @@ struct ecps_backend_t {
     task_tcp_read = tcp_read();
   }
   fan::event::task_t login() {
-  g_retry_login:
-    try {
-      Protocol_C2S_t::Request_Login_t rest;
-      rest.Type = Protocol::LoginType_t::Anonymous;
-      co_await tcp_write(Protocol_C2S_t::Request_Login, &rest, sizeof(rest));
-      co_return;
+    while (1) {
+      try {
+        Protocol_C2S_t::Request_Login_t rest;
+        rest.Type = Protocol::LoginType_t::Anonymous;
+        co_await tcp_write(Protocol_C2S_t::Request_Login, &rest, sizeof(rest));
+        co_return;
+      }
+      catch (fan::exception_t e) {
+        screen_decode->graphics_queue_callback([e] {
+          fan::printcl("failed to connect to server:"_str + e.reason + ", retrying...");
+        });
+      }
+      co_await fan::co_sleep(1000);
+      co_await connect(ip, port);
     }
-    catch (fan::exception_t e) {
-      fan::print("failed to connect to server:"_str + e.reason + ", retrying...");
-    }
-    co_await fan::co_sleep(1000);
-    co_await connect(ip, port);
-    goto g_retry_login;
   }
   fan::event::task_value_resume_t<Protocol_ChannelID_t> channel_create() {
     Protocol_C2S_t::CreateChannel_t rest;

@@ -128,8 +128,8 @@ void init_framebuffer() {
     return;
   }
   loco.window.add_resize_callback([&](const auto& d) {
-    loco.viewport_set(loco.orthographic_camera.viewport, fan::vec2(0, 0), d.size, d.size);
-    loco.viewport_set(loco.perspective_camera.viewport, fan::vec2(0, 0), d.size, d.size);
+    loco.viewport_set(loco.orthographic_camera.viewport, fan::vec2(0, 0), d.size);
+    loco.viewport_set(loco.perspective_camera.viewport, fan::vec2(0, 0), d.size);
   });
 
 #if defined(loco_framebuffer)
@@ -188,8 +188,8 @@ void init_framebuffer() {
 
     fan::vec2 window_size = gloco->window.get_size();
 
-    loco.viewport_set(loco.orthographic_camera.viewport, fan::vec2(0, 0), d.size, d.size);
-    loco.viewport_set(loco.perspective_camera.viewport, fan::vec2(0, 0), d.size, d.size);
+    loco.viewport_set(loco.orthographic_camera.viewport, fan::vec2(0, 0), d.size);
+    loco.viewport_set(loco.perspective_camera.viewport, fan::vec2(0, 0), d.size);
   });
 
   fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
@@ -754,7 +754,7 @@ void draw_shapes() {
         }
         if (viewport.iic() == false) {
           auto v = loco.viewport_get(viewport);
-          loco.viewport_set(v.viewport_position, v.viewport_size, loco.window.get_size());
+          loco.viewport_set(v.viewport_position, v.viewport_size);
          // fan::print(v.viewport_position, v.viewport_size);
         }
         loco.shader_set_value(shader, "_t00", 0);
@@ -1018,7 +1018,7 @@ void draw_shapes() {
       fan_opengl_call(glClearColor(loco.clear_color.r, loco.clear_color.g, loco.clear_color.b, loco.clear_color.a));
       fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
       fan::vec2 window_size = loco.window.get_size();
-      loco.viewport_set(0, window_size, window_size);
+      loco.viewport_set(0, window_size);
 
       loco.shader_set_value(loco.gl.m_fbo_final_shader, "_t00", 0);
       loco.shader_set_value(loco.gl.m_fbo_final_shader, "_t01", 1);

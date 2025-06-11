@@ -611,12 +611,12 @@ export struct loco_t {
     return context_functions.viewport_get_size(&context, nr);
   }
 
-  void viewport_set(const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size) {
-    context_functions.viewport_set(&context, viewport_position, viewport_size, window_size);
+  void viewport_set(const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
+    context_functions.viewport_set(&context, viewport_position, viewport_size, window.get_size());
   }
 
-  void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size) {
-    context_functions.viewport_set_nr(&context, nr, viewport_position, viewport_size, window_size);
+  void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
+    context_functions.viewport_set_nr(&context, nr, viewport_position, viewport_size, window.get_size());
   }
 
   void viewport_zero(fan::graphics::viewport_nr_t nr) {
@@ -1651,8 +1651,7 @@ public:
             viewport_set(
               nr,
               viewport.viewport_position,
-              viewport.viewport_size,
-              window.get_size()
+              viewport.viewport_size
             );
           }
           nrtra.Close(&__fan_internal_viewport_list);
@@ -2001,7 +2000,7 @@ public:
     }
 #endif
 
-    viewport_set(0, window.get_size(), window.get_size());
+    viewport_set(0, window.get_size());
 
     if (render_shapes_top == false) {
       process_shapes();
@@ -2148,12 +2147,12 @@ public:
 
   loco_t::viewport_t open_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
     loco_t::viewport_t viewport = viewport_create();
-    viewport_set(viewport, viewport_position, viewport_size, window.get_size());
+    viewport_set(viewport, viewport_position, viewport_size);
     return viewport;
   }
 
   void set_viewport(loco_t::viewport_t viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
-    viewport_set(viewport, viewport_position, viewport_size, window.get_size());
+    viewport_set(viewport, viewport_position, viewport_size);
   }
 
   // for checking whether you set depth or no

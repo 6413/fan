@@ -137,7 +137,7 @@ export namespace fan {
       }
       void draw(const fan::mat4& model_transform = fan::mat4(1), const std::vector<fan::mat4>& bone_transforms = {}) {
         auto viewport = gloco->viewport_get(viewport_nr);
-        gloco->viewport_set(viewport.viewport_position, viewport.viewport_size, gloco->window.get_size());
+        gloco->viewport_set(viewport.viewport_position, viewport.viewport_size);
         gloco->shader_set_value(m_shader, "model", m_transform * user_transform);
         gloco->shader_set_value(m_shader, "use_cpu", p.use_cpu);
         gloco->shader_set_camera(m_shader, camera_nr);

@@ -42,13 +42,13 @@ export namespace fan {
     }
     void set_size(const fan::vec2& size) {
       gloco->window.set_size(size);
-      gloco->viewport_set(gloco->orthographic_camera.viewport, fan::vec2(0, 0), size, size);
+      gloco->viewport_set(gloco->orthographic_camera.viewport, fan::vec2(0, 0), size);
       gloco->camera_set_ortho(
         gloco->orthographic_camera.camera,
         fan::vec2(0, size.x),
         fan::vec2(0, size.y)
       );
-      gloco->viewport_set(gloco->perspective_camera.viewport, fan::vec2(0, 0), size, size);
+      gloco->viewport_set(gloco->perspective_camera.viewport, fan::vec2(0, 0), size);
       gloco->camera_set_ortho(
         gloco->perspective_camera.camera,
         fan::vec2(0, size.x),
