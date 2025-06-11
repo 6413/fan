@@ -25,7 +25,7 @@ import fan.io.file;
 export namespace fan {
 	namespace webp {
 
-    struct image_info_t {
+    struct info_t {
       void* data;
       fan::vec2i size;
       int channels;
@@ -39,13 +39,13 @@ export namespace fan {
     }
 
     // if fails, try encode with -pix_fmt yuv420p
-    fan_module_api bool decode(const uint8_t* webp_data, std::size_t size, image_info_t* image_info) {
+    fan_module_api bool decode(const uint8_t* webp_data, std::size_t size, info_t* image_info) {
       image_info->data = WebPDecodeRGBA(webp_data, size, &image_info->size.x, &image_info->size.y);
       image_info->channels = 4;
       return image_info->data == 0;
     }
 
-    fan_module_api bool load(const std::string& file, image_info_t* image_info) {
+    fan_module_api bool load(const std::string& file, info_t* image_info) {
     
       std::string data;
       fan::io::file::read(file, &data);

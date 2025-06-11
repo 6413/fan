@@ -23,7 +23,7 @@ export namespace fan {
       };
     };
 
-    struct image_info_t {
+    struct info_t {
       void* data;
       fan::vec2i size;
       int channels = -1;
@@ -40,15 +40,15 @@ export namespace fan {
       return false;
     }
 
-    bool load(const std::string& file, image_info_t* image_info) {
+    bool load(const std::string& file, info_t* image_info) {
       bool ret;
       if (fan::webp::validate(file)) {
-        ret = fan::webp::load(file, (fan::webp::image_info_t*)image_info);
+        ret = fan::webp::load(file, (fan::webp::info_t*)image_info);
         image_info->type = image_type_e::webp;
       }
       else {
         #if !defined(loco_no_stb)
-          ret = fan::stb::load(file, (fan::stb::image_info_t*)image_info);
+          ret = fan::stb::load(file, (fan::stb::info_t*)image_info);
           image_info->type = image_type_e::stb;
         #endif
       }
@@ -59,7 +59,7 @@ export namespace fan {
 #endif
       return ret;
     }
-    fan_module_api void free(image_info_t* image_info) {
+    fan_module_api void free(info_t* image_info) {
       if (image_info->type == image_type_e::webp) {
         fan::webp::free_image(image_info->data);
       }
