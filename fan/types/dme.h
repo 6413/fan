@@ -18,6 +18,9 @@
       *dynamic_cast<T*>(this) = v;
       return *this;
     }
+    operator const char* () const {
+      return sn;
+    }
     const char *sn = str;
     uint32_t m_DSS = dt_size;
   };
@@ -42,12 +45,16 @@
 
   template <typename main_t, uintptr_t index, typename T = __empty_struct>
   struct __dme_inherit_t{
+    constexpr static main_t& items() { static main_t m; return m; }
     using value_type = T;
     using dme_type_t = __dme_t<value_type, __dme_empty_string, 0>;
     constexpr auto* NA(uintptr_t I) const { return &((dme_type_t *)this)[I]; }
     static constexpr uintptr_t GetMemberAmount() { return sizeof(main_t) / sizeof(dme_type_t); }
     static constexpr uintptr_t size() { return GetMemberAmount(); }
     static constexpr auto DME_INTERNAL__BEG = index;
+    static constexpr const char* name(uintptr_t i) { return items().NA(i)->sn; }
+    static constexpr auto* begin() { return items().NA(0); }
+    static constexpr auto* end() { return items().NA(0) + size(); }
   };
 
   #define __dme_inherit(main_t, ...) __dme_inherit_t<main_t, __COUNTER__, ##__VA_ARGS__>
