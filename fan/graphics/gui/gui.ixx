@@ -215,12 +215,19 @@ export namespace fan {
         fan::vec2 get_content_region_max() {
           return ImGui::GetContentRegionMax();
         }
+        fan::vec2 get_item_rect_min() {
+          return ImGui::GetItemRectMin();
+        }
+        fan::vec2 get_item_rect_max() {
+          return ImGui::GetItemRectMax();
+        }
         void push_item_width(f32_t item_width) {
           ImGui::PushItemWidth(item_width);
         }
         void pop_item_width() {
           ImGui::PopItemWidth();
         }
+
 
         void set_cursor_screen_pos(const fan::vec2& pos) {
           ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y));
@@ -593,6 +600,9 @@ export namespace fan {
 
         bool button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0)){
           return ImGui::Button(label.c_str(), size);
+        }
+        bool invisible_button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0)){
+          return ImGui::InvisibleButton(label.c_str(), size);
         }
 
         /// <summary>
@@ -1018,12 +1028,35 @@ export namespace fan {
           col_count = ImGuiCol_COUNT,
         };
 
+        using cursor_t = int;
+        enum {
+          mouse_cursor_none = ImGuiMouseCursor_None,
+          mouse_cursor_arrow = ImGuiMouseCursor_Arrow,
+          mouse_cursor_text_input = ImGuiMouseCursor_TextInput,           // When hovering over InputText, etc.
+          mouse_cursor_resize_all = ImGuiMouseCursor_ResizeAll,           // (Unused by Dear ImGui functions)
+          mouse_cursor_resize_ns = ImGuiMouseCursor_ResizeNS,             // When hovering over a horizontal border
+          mouse_cursor_resize_ew = ImGuiMouseCursor_ResizeEW,             // When hovering over a vertical border or a column
+          mouse_cursor_resize_nesw = ImGuiMouseCursor_ResizeNESW,         // When hovering over the bottom-left corner of a window
+          mouse_cursor_resize_nwse = ImGuiMouseCursor_ResizeNWSE,         // When hovering over the bottom-right corner of a window
+          mouse_cursor_hand = ImGuiMouseCursor_Hand,                      // (Unused by Dear ImGui functions. Use for e.g. hyperlinks)
+          mouse_cursor_not_allowed = ImGuiMouseCursor_NotAllowed,         // When hovering something with disallowed interaction
+          mouse_cursor_count = ImGuiMouseCursor_COUNT,
+        };
+
+        void set_mouse_cursor(cursor_t type) {
+          ImGui::SetMouseCursor(type);
+        }
+
+
         using style_t = ImGuiStyle;
         style_t& get_style() {
           return ImGui::GetStyle();
         }
         fan::color get_color(col_t idx) {
           return get_style().Colors[idx];
+        }
+        uint32_t get_color_u32(col_t idx) {
+          return ImGui::GetColorU32(idx);
         }
 
         void separator() {

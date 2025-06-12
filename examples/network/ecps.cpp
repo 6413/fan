@@ -24,6 +24,7 @@
 
 import fan;
 import fan.fmt;
+
 import fan.graphics.video.screen_codec;
 using namespace fan::graphics;
 
