@@ -167,7 +167,7 @@ struct dynamic_config_t {
 };
 
 class FrameMemoryPool {
-private:
+private://
   static constexpr size_t INITIAL_POOL_SIZE = 64;
   static constexpr size_t FRAME_SIZE = 0x400400;
 
@@ -277,7 +277,9 @@ struct render_thread_t {
   } };
 
   void render(auto l) {
-    engine.process_loop([this, l] { ecps_gui.render(); l(); });
+    if (engine.process_loop([this, l] { ecps_gui.render(); l(); })) {
+      std::exit(0);
+    }
   }
 
 #include <fan/fan_bll_preset.h>
