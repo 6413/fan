@@ -545,28 +545,12 @@ export namespace fan {
     }
 
     //thread stuff
-    using thread_id_t = std::jthread;
 
     template <typename cb_t, typename ...args_t>
-    struct thread_task_t {
-      cb_t cb;
-      std::tuple<args_t...> args;
-
-      thread_task_t(cb_t&& cb, args_t&&... args) :
-        cb(std::forward<cb_t>(cb)),
-        args(std::forward<args_t>(args)...) {
-      }
-
-      auto operator()() {
-        return std::apply(cb, args);
-      }
-    };
-
-    template <typename cb_t, typename ...args_t>
-    thread_id_t thread_create(cb_t&& cb, args_t&&... args) {
-      return std::jthread([cb = std::forward<cb_t>(cb), args = std::make_tuple(std::forward<args_t>(args)...)]() mutable {
+    void thread_create(cb_t&& cb, args_t&&... args) {
+      std::jthread([cb = std::forward<cb_t>(cb), args = std::make_tuple(std::forward<args_t>(args)...)]() mutable {
         std::apply(cb, args);
-        });
+        }).detach();
     }
     void sleep(unsigned int msec) {
       uv_sleep(msec);

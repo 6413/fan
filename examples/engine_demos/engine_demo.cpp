@@ -530,7 +530,7 @@ void main() {
 
     data.image_sprite.set_image(data.procedural_image);
 
-    auto thread_id = fan::event::thread_create([engine_demo, &data] {
+    fan::event::thread_create([engine_demo, &data] {
       engine_demo->demo_generate_procedural_image(&data);
     });
   }
