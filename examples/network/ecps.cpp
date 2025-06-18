@@ -559,7 +559,7 @@ int main() {
   std::promise<void> render_thread_promise;
   std::future<void> render_thread_future = render_thread_promise.get_future();
 
-  auto render_thread_id = fan::event::thread_create([&render_thread_promise] {
+  fan::event::thread_create([&render_thread_promise] {
     render_thread_t render_thread_instance;
 
     render_thread_ptr.store(&render_thread_instance, std::memory_order_release);
@@ -783,7 +783,7 @@ int main() {
 
   render_thread_future.wait();
 
-  auto encode_thread_id = fan::event::thread_create([] {
+  fan::event::thread_create([] {
     auto* encoder = (::screen_encode_t*)malloc(sizeof(::screen_encode_t));
     std::construct_at(encoder);
     screen_encode_a.store(encoder, std::memory_order_release);
@@ -988,7 +988,7 @@ int main() {
     }
   });
 
-  auto decode_thread_id = fan::event::thread_create([] {
+  fan::event::thread_create([] {
     auto* decoder = (::screen_decode_t*)malloc(sizeof(::screen_decode_t));
     std::construct_at(decoder);
     screen_decode_a.store(decoder, std::memory_order_release);
