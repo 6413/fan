@@ -1270,13 +1270,13 @@ export namespace fan {
             viewport_size
           );
         }
-        void set_viewport(const fan::graphics::camera_t& camera) {
-          set_viewport(camera.viewport);
+        void set_viewport(const fan::graphics::render_view_t& render_view) {
+          set_viewport(render_view.viewport);
 
           ImVec2 child_size = ImGui::GetWindowSize();
           fan::vec2 viewport_size = fan::vec2(child_size.x, child_size.y);
           gloco->camera_set_ortho(
-            camera.camera,
+            render_view.camera,
             fan::vec2(0, viewport_size.x),
             fan::vec2(0, viewport_size.y)
           );

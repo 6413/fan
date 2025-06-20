@@ -18,7 +18,7 @@ int main() {
 
   fan::vec2 window_size = loco.window.get_size();
   loco.camera_set_ortho(
-    loco.orthographic_camera.camera,
+    loco.orthographic_render_view.camera,
     fan::vec2(0, window_size.x),
     fan::vec2(0, window_size.y)
   );
@@ -87,7 +87,7 @@ int main() {
 //        fan::print(position);
       }
     }
-    m.set_position(model_id, loco.get_mouse_position(loco.orthographic_camera.camera, loco.orthographic_camera.viewport));
+    m.set_position(model_id, loco.get_mouse_position(loco.orthographic_render_view.camera, loco.orthographic_render_view.viewport));
     //m.set_angle(model_id, angle);
     //m.set_angle(model_id, 1, angle * 1.5);
     //angle += loco.get_delta_time() * 2;

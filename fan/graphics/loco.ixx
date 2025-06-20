@@ -52,6 +52,7 @@ module;
 
 #if defined(fan_gui)
   #include <fan/imgui/imgui.h>
+  #include "misc/freetype/imgui_freetype.h"
   #include <fan/imgui/imgui_impl_opengl3.h>
   #if defined(fan_vulkan)
     #include <fan/imgui/imgui_impl_vulkan.h>
@@ -1257,14 +1258,18 @@ public:
   // -1 no reload, opengl = 0 etc
   uint8_t reload_renderer_to = -1;
 #if defined(fan_gui)
-  void load_fonts(auto& fonts, ImGuiIO& io, const std::string& name, f32_t font_size = 4) {
+  void load_fonts(auto& fonts, const std::string& name, f32_t font_size = 4, ImFontConfig* cfg = nullptr) {
+    ImGuiIO& io = ImGui::GetIO();
     for (std::size_t i = 0; i < std::size(fonts); ++i) {
-      fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), (int)(font_size * (1 << i)) * 1.5);
+      fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), (int)(font_size * (1 << i)) * 1.5, cfg);
 
       if (fonts[i] == nullptr) {
         fan::throw_error(std::string("failed to load font:") + name);
       }
     }
+  }
+  void build_fonts() {
+    ImGuiIO& io = ImGui::GetIO();
     io.Fonts->Build();
   }
 
@@ -1327,9 +1332,46 @@ public:
     }
 #endif
 
-    load_fonts(fonts, io, "fonts/SourceCodePro-Regular.ttf", 4.f);
-    load_fonts(fonts_bold, io, "fonts/SourceCodePro-Bold.ttf", 4.f);
+    load_fonts(fonts_bold, "fonts/SourceCodePro-Bold.ttf", 4.f);
 
+    ImFontConfig emoji_cfg;
+    emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_Bitmap;
+
+    // TODO
+    static const ImWchar emoji_ranges[] = {
+      0x2600, 0x26FF,    // Miscellaneous Symbols
+      0x2700, 0x27BF,    // Dingbats
+      0x2B00, 0x2BFF,   // Miscellaneous Symbols and Arrows
+      0x1F300, 0x1F5FF,  // Miscellaneous Symbols and Pictographs
+      0x1F600, 0x1F64F,  // Emoticons
+      0x1F680, 0x1F6FF,  // Transport and Map Symbols
+      0x1F900, 0x1F9FF,  // Supplemental Symbols and Pictographs
+      0x1FA70, 0x1FAFF,  // Symbols and Pictographs Extended-A
+      0
+    };
+
+    io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
+    io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+
+    for (std::size_t i = 0; i < std::size(fonts); ++i) {
+      f32_t font_size = (int)(4.f * (1 << i)) * 1.5f;
+
+      // Load main font first
+      ImFontConfig main_cfg;
+      main_cfg.MergeMode = false;
+      fonts[i] = io.Fonts->AddFontFromFileTTF("fonts/SourceCodePro-Regular.ttf", font_size, &main_cfg);
+
+      if (i == 2) {
+        // Merge emoji font
+        ImFontConfig emoji_cfg;
+        emoji_cfg.MergeMode = true;
+        emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+        emoji_cfg.SizePixels = font_size;
+        emoji_cfg.RasterizerDensity = 128.0f / font_size;
+        io.Fonts->AddFontFromFileTTF("fonts/seguiemj.ttf", font_size, &emoji_cfg, emoji_ranges);
+      }
+    }
+    build_fonts();
     io.FontDefault = fonts[2];
 
     input_action.add(fan::key_escape, "open_settings");
@@ -1458,18 +1500,18 @@ public:
     {
       fan::vec2 window_size = window.get_size();
       {
-        orthographic_camera.camera = open_camera(
+        orthographic_render_view.camera = open_camera(
           fan::vec2(0, window_size.x),
           fan::vec2(0, window_size.y)
         );
-        orthographic_camera.viewport = open_viewport(
+        orthographic_render_view.viewport = open_viewport(
           fan::vec2(0, 0),
           window_size
         );
       }
       {
-        perspective_camera.camera = open_camera_perspective();
-        perspective_camera.viewport = open_viewport(
+        perspective_render_view.camera = open_camera_perspective();
+        perspective_render_view.viewport = open_viewport(
           fan::vec2(0, 0),
           window_size
         );
@@ -2261,7 +2303,7 @@ public:
     return context;
   }
 
-  struct camera_impl_t {
+  struct render_view_t {
     loco_t::camera_t camera;
     loco_t::viewport_t viewport;
   };
@@ -2422,8 +2464,8 @@ public:
 
   image_t default_texture;
 
-  camera_impl_t orthographic_camera;
-  camera_impl_t perspective_camera;
+  render_view_t orthographic_render_view;
+  render_view_t perspective_render_view;
 
   fan::window_t window;
   bool idle_init = false;
@@ -2665,7 +2707,7 @@ public:
   }
 
   fan::vec2 translate_position(const fan::vec2& p) {
-    return translate_position(p, orthographic_camera.viewport, orthographic_camera.camera);
+    return translate_position(p, orthographic_render_view.viewport, orthographic_render_view.camera);
   }
 
   bool is_mouse_clicked(int button = fan::mouse_left) {
@@ -3281,8 +3323,8 @@ public:
       uint32_t flags = 0;
       fan::vec3 angle = 0;
 
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
@@ -3343,8 +3385,8 @@ public:
 
       bool blending = false;
 
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
       uint32_t vertex_count = 2;
@@ -3415,8 +3457,8 @@ public:
       fan::vec3 angle = 0;
       fan::vec2 rotation_point = 0;
 
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
     };
@@ -3516,8 +3558,8 @@ public:
       loco_t::image_t image = gloco->default_texture;
       std::array<loco_t::image_t, 30> images;
 
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
     };
@@ -3650,8 +3692,8 @@ public:
 
       loco_t::image_t image = gloco->default_texture;
       std::array<loco_t::image_t, 30> images;
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
@@ -3708,8 +3750,8 @@ public:
     struct properties_t {
       using type_t = text_t;
 
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       fan::vec3 position;
       f32_t outline_size = 1;
@@ -3773,8 +3815,8 @@ public:
 
       bool blending = false;
 
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
@@ -3854,8 +3896,8 @@ public:
 
       bool blending = true;
 
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
@@ -3919,8 +3961,8 @@ public:
       fan::vec2 rotation_point = 0;
       std::vector<vertex_t> vertices;
       bool blending = true;
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 0;
@@ -4051,8 +4093,8 @@ public:
 
       bool blending = false;
 
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
@@ -4154,8 +4196,8 @@ public:
       bool blending = true;
 
       loco_t::image_t image = gloco->default_texture;
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
@@ -4240,8 +4282,8 @@ public:
         gloco->default_texture,
         gloco->default_texture
       };
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
@@ -4321,8 +4363,8 @@ public:
       fan::vec3 angle = 0;
       fan::vec2 rotation_point = 0;
 
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
@@ -4416,8 +4458,8 @@ public:
       loco_t::image_t image = gloco->default_texture;
       std::array<loco_t::image_t, 30> images;
 
-      loco_t::camera_t camera = gloco->orthographic_camera.camera;
-      loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
@@ -4488,8 +4530,8 @@ public:
       bool blending = false;
       fan::vec3 angle = 0;
 
-      loco_t::camera_t camera = gloco->perspective_camera.camera;
-      loco_t::viewport_t viewport = gloco->perspective_camera.viewport;
+      loco_t::camera_t camera = gloco->perspective_render_view.camera;
+      loco_t::viewport_t viewport = gloco->perspective_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 36;
@@ -4578,8 +4620,8 @@ public:
 
       bool blending = false;
 
-      loco_t::camera_t camera = gloco->perspective_camera.camera;
-      loco_t::viewport_t viewport = gloco->perspective_camera.viewport;
+      loco_t::camera_t camera = gloco->perspective_render_view.camera;
+      loco_t::viewport_t viewport = gloco->perspective_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
       uint32_t vertex_count = 2;
@@ -4886,7 +4928,7 @@ public:
     return convert_mouse_to_ray(get_mouse_position(), window.get_size(), camera_position, projection, view);
   }
   fan::ray3_t convert_mouse_to_ray(const fan::mat4& projection, const fan::mat4& view) {
-    return convert_mouse_to_ray(get_mouse_position(), window.get_size(), camera_get_position(perspective_camera.camera), projection, view);
+    return convert_mouse_to_ray(get_mouse_position(), window.get_size(), camera_get_position(perspective_render_view.camera), projection, view);
   }
   static bool is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& position, const fan::vec3& size) {
     fan::vec3 min_bounds = position - size;

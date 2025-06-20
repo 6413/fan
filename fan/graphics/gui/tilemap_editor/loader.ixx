@@ -189,7 +189,7 @@ public:
     fan::vec2 size = 1;
     fan::vec3 offset = 0;
     fan::vec2 scale = 1;
-    fan::graphics::camera_t* camera = nullptr;
+    fan::graphics::render_view_t* render_view = nullptr;
   };
 
   loco_t::texturepack_t* texturepack;
