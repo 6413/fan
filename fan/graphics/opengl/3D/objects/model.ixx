@@ -19,8 +19,8 @@ export namespace fan {
     using namespace opengl;
     struct model_t : fan_3d::model::fms_t{
       struct properties_t : fan_3d::model::fms_t::properties_t {
-        loco_t::camera_t camera = gloco->perspective_camera.camera;
-        loco_t::viewport_t viewport = gloco->perspective_camera.viewport;
+        loco_t::camera_t camera = gloco->perspective_render_view.camera;
+        loco_t::viewport_t viewport = gloco->perspective_render_view.viewport;
       };
       model_t(const properties_t& p) : fms_t(p) {
         camera_nr = p.camera;

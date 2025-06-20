@@ -226,12 +226,12 @@ namespace fan {
         fan::vec2 offset = viewport_size - viewport_size;
         fan::vec2 s = viewport_size;
         gloco->camera_set_ortho(
-          gloco->orthographic_camera.camera,
+          gloco->orthographic_render_view.camera,
           fan::vec2(-s.x, s.x),
           fan::vec2(-s.y, s.y)
         );
         gloco->viewport_set(
-          gloco->orthographic_camera.viewport,
+          gloco->orthographic_render_view.viewport,
           viewport_pos, viewport_size, window_size
         );
         ImGui::End();

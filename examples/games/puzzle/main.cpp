@@ -27,7 +27,7 @@ struct pile_t {
   pile_t();
 
   void step() {
-    loco.set_imgui_viewport(loco.orthographic_camera.viewport);
+    loco.set_imgui_viewport(loco.orthographic_render_view.viewport);
   }
   loco_t loco;
   loco_t::texturepack_t tp;
@@ -89,8 +89,8 @@ int main() {
   pile.loco.clear_color = 0;
 
   fan::graphics::interactive_camera_t ic(
-    pile.loco.orthographic_camera.camera, 
-    pile.loco.orthographic_camera.viewport
+    pile.loco.orthographic_render_view.camera, 
+    pile.loco.orthographic_render_view.viewport
   );
 
   pile.loco.loop([&] {

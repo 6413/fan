@@ -3,179 +3,1077 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fixed Screen Share Client</title>
-    <link rel="stylesheet" href="client-styles.css">
+    <title>Screen Share Application</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">🎥 ScreenShare Fixed</div>
+    <div class="app-container">
+        <!-- Main Header -->
+        <header class="main-header">
             <div class="connection-status">
-                <div class="status-indicator" id="statusIndicator"></div>
-                <span id="statusText">Disconnected</span>
+                <span class="status-indicator" id="connectionStatus"></span>
+                <span class="status-text">User: <span id="username">Not Connected</span></span>
             </div>
-        </div>
-
-        <div class="main-content">
-            <div class="sidebar" id="sidebar">
-                <div class="sidebar-header">
-                    <h3>Connection</h3>
+            <div class="network-info">
+                <div class="protocol-status">
+                    <span class="protocol-label">WS:</span>
+                    <span class="protocol-indicator" id="tcpStatus" title="Channel Control (WebSocket)"></span>
                 </div>
-                <div class="sidebar-content">
-                    <div class="form-group">
-                        <label class="form-label">Server IP</label>
-                        <input type="text" class="form-input" id="serverIp" placeholder="localhost" value="localhost">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Port</label>
-                        <input type="number" class="form-input" id="serverPort" placeholder="43255" value="43255">
-                    </div>
-                    <div class="form-group">
-                        <button class="btn primary" id="connectBtn">Connect</button>
-                        <button class="btn danger" id="disconnectBtn" disabled>Disconnect</button>
-                    </div>
+                <div class="protocol-status">
+                    <span class="protocol-label">RTC:</span>
+                    <span class="protocol-indicator" id="udpStatus" title="Stream Data (WebRTC)"></span>
+                </div>
+                <div class="stats-info">
+                    <span id="streamStats"></span>
+                </div>
+            </div>
+        </header>
 
-                    <div id="channelsSection" style="display: none;">
-                        <h4>Channels</h4>
-                        <div style="margin-bottom: 10px;">
-                            <button class="btn" id="refreshChannels">Refresh</button>
-                            <button class="btn" id="createChannel">Create</button>
-                        </div>
-                        <div class="channels-list" id="channelsList">
-                            <div class="channel-item">Click Refresh to load channels...</div>
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <button class="tab-button active" data-tab="channels">Channels</button>
+            <button class="tab-button" data-tab="stream">Stream View</button>
+        </nav>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Channels Tab -->
+            <div class="tab-pane active" id="channels-tab">
+                <div class="split-view">
+                    <!-- Channel List Panel -->
+                    <div class="channel-list-panel">
+                        <div class="panel-header">
+                            <button class="btn btn-primary" onclick="app.refreshChannelList()">Refresh Channel List</button>
+                            <div class="search-container">
+                                <input type="text" class="search-input" placeholder="Search channels..." id="channelSearch" oninput="app.filterChannels()">
+                            </div>
                         </div>
                         
-                        <div class="stream-controls" id="streamControls" style="display: none;">
-                            <h4>🎬 Stream Controls</h4>
-                            <button class="btn streaming" id="startStreamBtn">📡 Start Stream</button>
-                            <button class="btn danger" id="stopStreamBtn" style="display: none;">⏹️ Stop Stream</button>
-                            <button class="btn" id="requestIDRBtn">🔄 Request IDR Frame</button>
-                            <div style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
-                                Stream from your C++ client to see video here
+                        <div class="channel-list" id="channelList">
+                            <div class="empty-state">
+                                <p>Click 'Refresh Channel List' to load channels</p>
+                            </div>
+                        </div>
+                        
+                        <div class="panel-footer">
+                            <button class="btn btn-success" onclick="app.showCreateChannel()">Add New</button>
+                            <button class="btn btn-secondary" onclick="app.showConnectDialog()">Connect</button>
+                        </div>
+                    </div>
+
+                    <!-- Splitter -->
+                    <div class="splitter" id="channelSplitter"></div>
+
+                    <!-- Channel Details Panel -->
+                    <div class="channel-details-panel">
+                        <div class="panel-content">
+                            <div id="channelDetails" class="channel-details">
+                                <div class="empty-state">
+                                    <p>Select a channel to view details</p>
+                                    <p>Click on any channel in the left panel to see users and access stream settings.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="protocol-status">
-                        <div>
-                            <strong>Session ID:</strong>
-                            <span id="sessionId">0</span>
-                        </div>
-                        <div>
-                            <strong>Command ID:</strong>
-                            <span id="commandId">0</span>
-                        </div>
-                        <div>
-                            <strong>Channels:</strong>
-                            <span id="channelCount">0</span>
-                        </div>
-                        <div>
-                            <strong>Selected:</strong>
-                            <span id="selectedChannel">None</span>
-                        </div>
-                    </div>
-
-                    <div class="logs" id="logs">
-                        <div class="log-entry info">Fixed client ready to connect...</div>
-                    </div>
                 </div>
             </div>
 
-            <div class="video-container">
-                <div class="video-wrapper">
-                    <div class="video-overlay" id="videoOverlay">
-                        <div class="placeholder-icon">📺</div>
-                        <h3>No Stream Active</h3>
-                        <p>Connect to a server and join a channel to view streams</p>
+            <!-- Stream View Tab -->
+            <div class="tab-pane" id="stream-tab">
+                <div class="stream-controls">
+                    <button class="btn btn-stream-toggle" id="streamToggle" onclick="app.toggleStream()">Start Stream</button>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="showOwnStream" onchange="app.toggleOwnStream()">
+                        <span>Show Own Stream</span>
+                    </label>
+                    <button class="btn btn-secondary" id="settingsToggle" onclick="app.toggleStreamSettings()">Show Settings</button>
+                    <button class="btn btn-secondary" onclick="app.toggleFullscreen()">Fullscreen</button>
+                    <button class="btn btn-idr" onclick="app.requestIDR()">Request IDR</button>
+                </div>
+
+                <div class="stream-view-container">
+                    <div class="stream-display" id="streamDisplay">
+                        <div class="stream-placeholder" id="streamPlaceholder">
+                            <p>No stream active</p>
+                            <p>Start streaming or join a channel to view streams</p>
+                        </div>
+                        <video id="localStream" class="stream-video" style="display: none;" muted autoplay playsinline></video>
+                        <video id="remoteStream" class="stream-video" style="display: none;" autoplay playsinline></video>
+                        <div class="stream-info" id="streamInfo"></div>
                     </div>
+
+                    <!-- Stream Settings Panel -->
+                    <div class="stream-settings-panel" id="streamSettingsPanel" style="display: none;">
+                        <div class="settings-content">
+                            <h3>Stream Settings</h3>
+                            
+                            <div class="settings-section">
+                                <h4>Video Settings</h4>
+                                <div class="form-group">
+                                    <label>Resolution:</label>
+                                    <select id="resolution" onchange="app.updateStreamSettings()">
+                                        <option value="1920x1080">1920x1080</option>
+                                        <option value="1280x720" selected>1280x720</option>
+                                        <option value="1024x768">1024x768</option>
+                                        <option value="800x600">800x600</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Framerate: <span id="framerateValue">30</span> fps</label>
+                                    <input type="range" id="framerate" min="15" max="120" value="30" step="5" oninput="app.updateFramerate()">
+                                </div>
+                                <div class="form-group">
+                                    <label>Bitrate: <span id="bitrateValue">5.0</span> Mbps</label>
+                                    <input type="range" id="bitrate" min="0.5" max="50" value="5" step="0.5" oninput="app.updateBitrate()">
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h4>Codec Settings</h4>
+                                <div class="form-group">
+                                    <label>Preferred Codec:</label>
+                                    <select id="codec" onchange="app.updateCodec()">
+                                        <option value="H264">H.264</option>
+                                        <option value="VP8">VP8</option>
+                                        <option value="VP9">VP9</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h4>Input Control</h4>
+                                <div class="form-group">
+                                    <select id="inputControl" onchange="app.updateInputControl()">
+                                        <option value="none">None</option>
+                                        <option value="keyboard">Keyboard Only</option>
+                                        <option value="full">Keyboard + Mouse</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-secondary" onclick="app.resetSettings()">Reset Settings</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <!-- Connect Dialog -->
+        <div class="modal" id="connectModal">
+            <div class="modal-content">
+                <h2>Server Connection</h2>
+                <div class="form-group">
+                    <label>Server Address:</label>
+                    <input type="text" id="serverAddress" placeholder="ws://localhost:8080" value="ws://localhost:8080">
+                </div>
+                <div class="form-group">
+                    <label>Username (optional):</label>
+                    <input type="text" id="connectUsername" placeholder="Anonymous">
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-primary" onclick="app.connect()">Connect</button>
+                    <button class="btn btn-secondary" onclick="app.closeModal('connectModal')">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Channel Dialog -->
+        <div class="modal" id="createChannelModal">
+            <div class="modal-content">
+                <h2>Create Channel</h2>
+                <div class="form-group">
+                    <label>Channel Name:</label>
+                    <input type="text" id="channelName" placeholder="My Channel">
+                </div>
+                <div class="form-group">
+                    <label>Password (optional):</label>
+                    <input type="password" id="channelPassword" placeholder="Leave empty for public">
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-primary" onclick="app.createChannel()">Create</button>
+                    <button class="btn btn-secondary" onclick="app.closeModal('createChannelModal')">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Join Channel Dialog -->
+        <div class="modal" id="joinChannelModal">
+            <div class="modal-content">
+                <h2>Join Channel</h2>
+                <p id="joinChannelName"></p>
+                <div class="form-group" id="channelPasswordGroup" style="display: none;">
+                    <label>Password:</label>
+                    <input type="password" id="joinChannelPassword">
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-primary" onclick="app.joinChannel()">Join</button>
+                    <button class="btn btn-secondary" onclick="app.closeModal('joinChannelModal')">Cancel</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        class FixedScreenShareClient {
+        // Main application logic
+        class ScreenShareApp {
+            constructor() {
+                this.ws = null;
+                this.rtcConnection = null;
+                this.localStream = null;
+                this.remoteStream = null;
+                this.dataChannel = null;
+                this.isStreaming = false;
+                this.currentChannel = null;
+                this.channels = [];
+                this.sessionId = null;
+                this.username = 'Anonymous';
+                this.selectedChannelId = null;
+                this.statsInterval = null;
+                this.keepAliveInterval = null;
+                this.streamSettings = {
+                    resolution: '1280x720',
+                    framerate: 30,
+                    bitrate: 5000000,
+                    codec: 'H264',
+                    inputControl: 'none'
+                };
+                
+                this.initializeEventListeners();
+                this.initializeSplitter();
+            }
 
             initializeEventListeners() {
-                document.getElementById('connectBtn').addEventListener('click', () => this.connect());
-                document.getElementById('disconnectBtn').addEventListener('click', () => this.disconnect());
-                document.getElementById('refreshChannels').addEventListener('click', () => this.requestChannelList());
-                document.getElementById('createChannel').addEventListener('click', () => this.createChannel());
+                // Tab switching
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        this.switchTab(e.target.dataset.tab);
+                    });
+                });
+
+                // Modal close on background click
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            modal.style.display = 'none';
+                        }
+                    });
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.isFullscreen) {
+                        this.exitFullscreen();
+                    }
+                });
             }
 
-            updateUI() {
-                document.getElementById('sessionId').textContent = this.sessionId;
-                document.getElementById('commandId').textContent = this.commandId;
-                document.getElementById('channelCount').textContent = this.channels.length;
-                document.getElementById('selectedChannel').textContent = 
-                    this.selectedChannelId !== null ? this.selectedChannelId : 'None';
+            initializeSplitter() {
+                const splitter = document.getElementById('channelSplitter');
+                const leftPanel = document.querySelector('.channel-list-panel');
+                const rightPanel = document.querySelector('.channel-details-panel');
+                let isResizing = false;
+
+                splitter.addEventListener('mousedown', (e) => {
+                    isResizing = true;
+                    document.body.style.cursor = 'ew-resize';
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isResizing) return;
+                    
+                    const containerWidth = splitter.parentElement.offsetWidth;
+                    const newLeftWidth = e.clientX - splitter.parentElement.offsetLeft;
+                    const percentage = (newLeftWidth / containerWidth) * 100;
+                    
+                    if (percentage > 20 && percentage < 80) {
+                        leftPanel.style.width = percentage + '%';
+                        rightPanel.style.width = (100 - percentage - 1) + '%';
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isResizing = false;
+                    document.body.style.cursor = 'default';
+                });
             }
 
+            // WebSocket connection
             async connect() {
-                const serverIp = document.getElementById('serverIp').value;
-                const serverPort = document.getElementById('serverPort').value;
+                const address = document.getElementById('serverAddress').value;
+                const username = document.getElementById('connectUsername').value || 'Anonymous_' + Math.floor(Math.random() * 10000);
+                
+                this.username = username;
+                document.getElementById('username').textContent = username;
                 
                 try {
-                    this.log('Connecting to ' + serverIp + ':' + serverPort + '...', 'info');
-                    
-                    this.ws = new WebSocket('ws://' + serverIp + ':' + serverPort);
-                    this.ws.binaryType = 'arraybuffer';
+                    this.ws = new WebSocket(address);
                     
                     this.ws.onopen = () => {
-                        this.log('Connected to proxy server', 'success');
-                        this.updateConnectionStatus(true);
+                        console.log('WebSocket connected');
+                        this.updateConnectionStatus('connected');
+                        this.closeModal('connectModal');
                         this.startKeepAlive();
-                        this.login();
+                        
+                        // Send login
+                        this.sendMessage({
+                            type: 'login',
+                            username: this.username
+                        });
                     };
                     
-                    this.ws.onmessage = async (event) => {
-                        let data;
-                        if (event.data instanceof ArrayBuffer) {
-                            data = event.data;
-                        } else if (event.data instanceof Blob) {
-                            data = await event.data.arrayBuffer();
-                        } else {
-                            this.log('Unexpected data type: ' + typeof event.data, 'error');
-                            return;
-                        }
-                        this.handleMessage(data);
+                    this.ws.onmessage = (event) => {
+                        this.handleMessage(JSON.parse(event.data));
                     };
                     
-                    this.ws.onclose = (event) => {
-                        this.log('Connection closed: Code ' + event.code, 'error');
-                        this.updateConnectionStatus(false);
+                    this.ws.onclose = () => {
+                        console.log('WebSocket disconnected');
+                        this.updateConnectionStatus('disconnected');
                         this.stopKeepAlive();
                     };
                     
                     this.ws.onerror = (error) => {
-                        this.log('Connection error. Is the proxy server running?', 'error');
-                        this.updateConnectionStatus(false);
-                        this.stopKeepAlive();
+                        console.error('WebSocket error:', error);
+                        alert('Connection failed. Make sure the server is running.');
+                    };
+                } catch (error) {
+                    console.error('Connection error:', error);
+                    alert('Failed to connect: ' + error.message);
+                }
+            }
+
+            sendMessage(message) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(message));
+                }
+            }
+
+            handleMessage(message) {
+                switch (message.type) {
+                    case 'login_response':
+                        this.sessionId = message.sessionId;
+                        this.refreshChannelList();
+                        break;
+                        
+                    case 'channel_list':
+                        this.updateChannelList(message.channels);
+                        break;
+                        
+                    case 'channel_created':
+                        this.selectedChannelId = message.channelId;
+                        this.joinChannelById(message.channelId);
+                        this.refreshChannelList();
+                        break;
+                        
+                    case 'joined_channel':
+                        this.currentChannel = message.channelId;
+                        this.updateChannelDetails(message);
+                        break;
+                        
+                    case 'channel_users':
+                        this.updateUserList(message.users);
+                        break;
+                        
+                    case 'offer':
+                        this.handleOffer(message);
+                        break;
+                        
+                    case 'answer':
+                        this.handleAnswer(message);
+                        break;
+                        
+                    case 'ice_candidate':
+                        this.handleIceCandidate(message);
+                        break;
+                        
+                    case 'stream_started':
+                        this.onRemoteStreamStarted(message);
+                        break;
+                        
+                    case 'stream_stopped':
+                        this.onRemoteStreamStopped(message);
+                        break;
+                        
+                    case 'request_idr':
+                        if (this.isStreaming) {
+                            this.forceKeyFrame();
+                        }
+                        break;
+                }
+            }
+
+            // Channel operations
+            refreshChannelList() {
+                this.sendMessage({ type: 'get_channels' });
+            }
+
+            updateChannelList(channels) {
+                this.channels = channels;
+                const channelList = document.getElementById('channelList');
+                
+                if (channels.length === 0) {
+                    channelList.innerHTML = `
+                        <div class="empty-state">
+                            <p>No channels available</p>
+                            <p>Create a new channel to get started!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                channelList.innerHTML = channels.map(channel => `
+                    <div class="channel-item ${this.selectedChannelId === channel.id ? 'selected' : ''}" 
+                         onclick="app.selectChannel('${channel.id}')">
+                        <div class="channel-name">
+                            ${channel.name} 
+                            ${channel.isPasswordProtected ? '🔒' : ''}
+                            ${this.currentChannel === channel.id ? '✓' : ''}
+                        </div>
+                        <div class="channel-info">
+                            ${channel.userCount} user${channel.userCount !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            selectChannel(channelId) {
+                this.selectedChannelId = channelId;
+                const channel = this.channels.find(ch => ch.id === channelId);
+                
+                // Update UI
+                document.querySelectorAll('.channel-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                event.target.closest('.channel-item').classList.add('selected');
+                
+                // Show channel details
+                this.showChannelDetails(channel);
+                
+                // Request user list
+                this.sendMessage({
+                    type: 'get_channel_users',
+                    channelId: channelId
+                });
+            }
+
+            showChannelDetails(channel) {
+                const detailsDiv = document.getElementById('channelDetails');
+                const isHost = channel.hostId === this.sessionId;
+                const isJoined = this.currentChannel === channel.id;
+                
+                detailsDiv.innerHTML = `
+                    <div class="channel-header">
+                        <h3>Channel: ${channel.name}</h3>
+                        ${isHost ? '<span class="host-badge">You are the host</span>' : ''}
+                    </div>
+                    
+                    <div class="tab-bar">
+                        <button class="detail-tab active" onclick="app.showDetailTab('users')">Users</button>
+                        <button class="detail-tab" onclick="app.showDetailTab('settings')">Stream Settings</button>
+                    </div>
+                    
+                    <div class="detail-content">
+                        <div id="users-tab" class="detail-pane active">
+                            <button class="btn btn-primary" onclick="app.sendMessage({type: 'get_channel_users', channelId: '${channel.id}'})">
+                                Refresh Users
+                            </button>
+                            <div id="userList" class="user-list">
+                                <p>Loading users...</p>
+                            </div>
+                            <div class="channel-actions">
+                                ${!isJoined ? 
+                                    `<button class="btn btn-success" onclick="app.showJoinDialog('${channel.id}', '${channel.name}', ${channel.isPasswordProtected})">Join</button>` :
+                                    !isHost ? 
+                                        `<button class="btn btn-danger" onclick="app.leaveChannel()">Leave</button>` : 
+                                        ''
+                                }
+                                ${this.isStreaming ? 
+                                    `<button class="btn btn-danger" onclick="app.toggleStream()">Stop Stream</button>` :
+                                    `<button class="btn btn-success" onclick="app.toggleStream()">Start Stream</button>`
+                                }
+                                <button class="btn btn-secondary" onclick="app.switchTab('stream')">View Stream</button>
+                            </div>
+                        </div>
+                        
+                        <div id="settings-tab" class="detail-pane">
+                            ${this.renderCompactSettings()}
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderCompactSettings() {
+                return `
+                    <div class="compact-settings">
+                        <h4>Video Settings</h4>
+                        <div class="form-group">
+                            <label>Resolution:</label>
+                            <select onchange="app.updateStreamSettings(event, 'resolution')">
+                                <option value="1920x1080">1920x1080</option>
+                                <option value="1280x720" selected>1280x720</option>
+                                <option value="1024x768">1024x768</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Framerate: <span>${this.streamSettings.framerate}</span> fps</label>
+                            <input type="range" min="15" max="120" value="${this.streamSettings.framerate}" 
+                                   oninput="app.updateStreamSettings(event, 'framerate')">
+                        </div>
+                        <div class="form-group">
+                            <label>Bitrate: <span>${this.streamSettings.bitrate / 1000000}</span> Mbps</label>
+                            <input type="range" min="0.5" max="50" value="${this.streamSettings.bitrate / 1000000}" step="0.5"
+                                   oninput="app.updateStreamSettings(event, 'bitrate')">
+                        </div>
+                    </div>
+                `;
+            }
+
+            showDetailTab(tab) {
+                document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.detail-pane').forEach(p => p.classList.remove('active'));
+                
+                event.target.classList.add('active');
+                document.getElementById(`${tab}-tab`).classList.add('active');
+            }
+
+            updateUserList(users) {
+                const userList = document.getElementById('userList');
+                if (!userList) return;
+                
+                userList.innerHTML = users.map(user => `
+                    <div class="user-item">
+                        <span class="user-name">${user.username}</span>
+                        ${user.isHost ? '<span class="host-indicator">(Host)</span>' : ''}
+                        ${user.isStreaming ? '<span class="streaming-indicator">📹</span>' : ''}
+                    </div>
+                `).join('');
+            }
+
+            // Streaming functionality
+            async toggleStream() {
+                if (this.isStreaming) {
+                    this.stopStream();
+                } else {
+                    this.startStream();
+                }
+            }
+
+            async startStream() {
+                if (!this.currentChannel) {
+                    alert('Please join a channel first');
+                    return;
+                }
+                
+                try {
+                    // Get display media
+                    this.localStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: {
+                            width: { ideal: parseInt(this.streamSettings.resolution.split('x')[0]) },
+                            height: { ideal: parseInt(this.streamSettings.resolution.split('x')[1]) },
+                            frameRate: { ideal: this.streamSettings.framerate }
+                        },
+                        audio: false
+                    });
+                    
+                    // Show local stream if enabled
+                    const localVideo = document.getElementById('localStream');
+                    localVideo.srcObject = this.localStream;
+                    
+                    if (document.getElementById('showOwnStream').checked) {
+                        localVideo.style.display = 'block';
+                    }
+                    
+                    // Update UI
+                    this.isStreaming = true;
+                    document.getElementById('streamToggle').textContent = 'Stop Stream';
+                    document.getElementById('streamToggle').classList.add('streaming');
+                    document.getElementById('streamPlaceholder').style.display = 'none';
+                    
+                    // Notify server
+                    this.sendMessage({
+                        type: 'start_stream',
+                        channelId: this.currentChannel
+                    });
+                    
+                    // Set up WebRTC
+                    this.setupWebRTC();
+                    
+                    // Start stats monitoring
+                    this.startStatsMonitoring();
+                    
+                    // Handle stream end
+                    this.localStream.getTracks()[0].onended = () => {
+                        this.stopStream();
                     };
                     
                 } catch (error) {
-                    this.log('Connection failed: ' + error, 'error');
+                    console.error('Error starting stream:', error);
+                    alert('Failed to start screen capture');
                 }
             }
 
-            disconnect() {
-                this.stopKeepAlive();
-                if (this.ws) {
-                    this.ws.close();
-                    this.ws = null;
+            stopStream() {
+                if (this.localStream) {
+                    this.localStream.getTracks().forEach(track => track.stop());
+                    this.localStream = null;
                 }
-                this.updateConnectionStatus(false);
-                this.log('Disconnected', 'info');
+                
+                if (this.rtcConnection) {
+                    this.rtcConnection.close();
+                    this.rtcConnection = null;
+                }
+                
+                // Update UI
+                this.isStreaming = false;
+                document.getElementById('streamToggle').textContent = 'Start Stream';
+                document.getElementById('streamToggle').classList.remove('streaming');
+                document.getElementById('localStream').style.display = 'none';
+                
+                if (!document.getElementById('remoteStream').srcObject) {
+                    document.getElementById('streamPlaceholder').style.display = 'flex';
+                }
+                
+                // Stop stats
+                this.stopStatsMonitoring();
+                
+                // Notify server
+                this.sendMessage({
+                    type: 'stop_stream',
+                    channelId: this.currentChannel
+                });
+            }
+
+            // WebRTC setup
+            async setupWebRTC() {
+                const configuration = {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' }
+                    ]
+                };
+                
+                this.rtcConnection = new RTCPeerConnection(configuration);
+                
+                // Add local stream
+                this.localStream.getTracks().forEach(track => {
+                    const sender = this.rtcConnection.addTrack(track, this.localStream);
+                    
+                    // Configure encoding parameters
+                    const params = sender.getParameters();
+                    if (params.encodings && params.encodings[0]) {
+                        params.encodings[0].maxBitrate = this.streamSettings.bitrate;
+                        params.encodings[0].maxFramerate = this.streamSettings.framerate;
+                        sender.setParameters(params);
+                    }
+                });
+                
+                // Set up data channel for low-latency control
+                this.dataChannel = this.rtcConnection.createDataChannel('control', {
+                    ordered: false,
+                    maxRetransmits: 0
+                });
+                
+                this.dataChannel.onopen = () => {
+                    console.log('Data channel opened');
+                    this.updateConnectionStatus('streaming');
+                };
+                
+                this.dataChannel.onmessage = (event) => {
+                    this.handleDataChannelMessage(event.data);
+                };
+                
+                // Handle ICE candidates
+                this.rtcConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        this.sendMessage({
+                            type: 'ice_candidate',
+                            candidate: event.candidate,
+                            channelId: this.currentChannel
+                        });
+                    }
+                };
+                
+                // Create and send offer
+                const offer = await this.rtcConnection.createOffer();
+                await this.rtcConnection.setLocalDescription(offer);
+                
+                this.sendMessage({
+                    type: 'offer',
+                    offer: offer,
+                    channelId: this.currentChannel
+                });
+            }
+
+            // Handle WebRTC signaling
+            async handleOffer(message) {
+                if (!this.rtcConnection) {
+                    const configuration = {
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' }
+                        ]
+                    };
+                    
+                    this.rtcConnection = new RTCPeerConnection(configuration);
+                    
+                    this.rtcConnection.ontrack = (event) => {
+                        const remoteVideo = document.getElementById('remoteStream');
+                        remoteVideo.srcObject = event.streams[0];
+                        remoteVideo.style.display = 'block';
+                        document.getElementById('streamPlaceholder').style.display = 'none';
+                    };
+                    
+                    this.rtcConnection.onicecandidate = (event) => {
+                        if (event.candidate) {
+                            this.sendMessage({
+                                type: 'ice_candidate',
+                                candidate: event.candidate,
+                                channelId: this.currentChannel
+                            });
+                        }
+                    };
+                    
+                    this.rtcConnection.ondatachannel = (event) => {
+                        const channel = event.channel;
+                        channel.onmessage = (event) => {
+                            this.handleDataChannelMessage(event.data);
+                        };
+                    };
+                }
+                
+                await this.rtcConnection.setRemoteDescription(message.offer);
+                const answer = await this.rtcConnection.createAnswer();
+                await this.rtcConnection.setLocalDescription(answer);
+                
+                this.sendMessage({
+                    type: 'answer',
+                    answer: answer,
+                    channelId: this.currentChannel,
+                    to: message.from
+                });
+            }
+
+            async handleAnswer(message) {
+                if (this.rtcConnection) {
+                    await this.rtcConnection.setRemoteDescription(message.answer);
+                }
+            }
+
+            async handleIceCandidate(message) {
+                if (this.rtcConnection) {
+                    await this.rtcConnection.addIceCandidate(message.candidate);
+                }
+            }
+
+            handleDataChannelMessage(data) {
+                const message = JSON.parse(data);
+                switch (message.type) {
+                    case 'input':
+                        if (this.streamSettings.inputControl !== 'none') {
+                            this.handleRemoteInput(message);
+                        }
+                        break;
+                    case 'stats':
+                        this.updateRemoteStats(message.stats);
+                        break;
+                }
+            }
+
+            // Stats monitoring
+            startStatsMonitoring() {
+                this.statsInterval = setInterval(async () => {
+                    if (!this.rtcConnection) return;
+                    
+                    const stats = await this.rtcConnection.getStats();
+                    let videoStats = null;
+                    
+                    stats.forEach(report => {
+                        if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                            videoStats = {
+                                bitrate: report.bytesSent,
+                                framerate: report.framesPerSecond,
+                                width: report.frameWidth,
+                                height: report.frameHeight,
+                                packets: report.packetsSent,
+                                packetsLost: report.packetsLost || 0
+                            };
+                        }
+                    });
+                    
+                    if (videoStats) {
+                        this.updateStreamStats(videoStats);
+                    }
+                }, 1000);
+            }
+
+            stopStatsMonitoring() {
+                if (this.statsInterval) {
+                    clearInterval(this.statsInterval);
+                    this.statsInterval = null;
+                }
+                document.getElementById('streamStats').textContent = '';
+            }
+
+            updateStreamStats(stats) {
+                const statsText = `${stats.width}x${stats.height} @ ${stats.framerate}fps | ${(stats.bitrate / 1000000).toFixed(2)} Mbps`;
+                document.getElementById('streamStats').textContent = statsText;
+                
+                if (this.dataChannel && this.dataChannel.readyState === 'open') {
+                    this.dataChannel.send(JSON.stringify({
+                        type: 'stats',
+                        stats: stats
+                    }));
+                }
+            }
+
+            // UI Functions
+            switchTab(tab) {
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-pane').forEach(pane => {
+                    pane.classList.remove('active');
+                });
+                
+                document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+                document.getElementById(`${tab}-tab`).classList.add('active');
+            }
+
+            showModal(modalId) {
+                document.getElementById(modalId).style.display = 'flex';
+            }
+
+            closeModal(modalId) {
+                document.getElementById(modalId).style.display = 'none';
+            }
+
+            showConnectDialog() {
+                this.showModal('connectModal');
+            }
+
+            showCreateChannel() {
+                this.showModal('createChannelModal');
+            }
+
+            showJoinDialog(channelId, channelName, isPasswordProtected) {
+                document.getElementById('joinChannelName').textContent = `Join channel: ${channelName}`;
+                document.getElementById('channelPasswordGroup').style.display = isPasswordProtected ? 'block' : 'none';
+                this.pendingJoinChannelId = channelId;
+                this.showModal('joinChannelModal');
+            }
+
+            async createChannel() {
+                const name = document.getElementById('channelName').value || 'Unnamed Channel';
+                const password = document.getElementById('channelPassword').value;
+                
+                this.sendMessage({
+                    type: 'create_channel',
+                    name: name,
+                    password: password
+                });
+                
+                this.closeModal('createChannelModal');
+            }
+
+            async joinChannel() {
+                const password = document.getElementById('joinChannelPassword').value;
+                
+                this.sendMessage({
+                    type: 'join_channel',
+                    channelId: this.pendingJoinChannelId,
+                    password: password
+                });
+                
+                this.closeModal('joinChannelModal');
+            }
+
+            joinChannelById(channelId) {
+                const channel = this.channels.find(ch => ch.id === channelId);
+                if (channel) {
+                    if (channel.isPasswordProtected) {
+                        this.showJoinDialog(channelId, channel.name, true);
+                    } else {
+                        this.sendMessage({
+                            type: 'join_channel',
+                            channelId: channelId
+                        });
+                    }
+                }
+            }
+
+            leaveChannel() {
+                if (this.currentChannel) {
+                    this.sendMessage({
+                        type: 'leave_channel',
+                        channelId: this.currentChannel
+                    });
+                    this.currentChannel = null;
+                    if (this.isStreaming) {
+                        this.stopStream();
+                    }
+                    this.refreshChannelList();
+                }
+            }
+
+            // Stream settings
+            updateFramerate() {
+                const value = document.getElementById('framerate').value;
+                this.streamSettings.framerate = parseInt(value);
+                document.getElementById('framerateValue').textContent = value;
+                
+                if (this.isStreaming) {
+                    this.updateEncoderSettings();
+                }
+            }
+
+            updateBitrate() {
+                const value = document.getElementById('bitrate').value;
+                this.streamSettings.bitrate = parseFloat(value) * 1000000;
+                document.getElementById('bitrateValue').textContent = value;
+                
+                if (this.isStreaming) {
+                    this.updateEncoderSettings();
+                }
+            }
+
+            updateStreamSettings(event, setting) {
+                const value = event.target.value;
+                switch (setting) {
+                    case 'resolution':
+                        this.streamSettings.resolution = value;
+                        break;
+                    case 'framerate':
+                        this.streamSettings.framerate = parseInt(value);
+                        event.target.nextElementSibling.textContent = value;
+                        break;
+                    case 'bitrate':
+                        this.streamSettings.bitrate = parseFloat(value) * 1000000;
+                        event.target.nextElementSibling.textContent = value;
+                        break;
+                }
+                
+                if (this.isStreaming) {
+                    this.updateEncoderSettings();
+                }
+            }
+
+            updateEncoderSettings() {
+                if (this.rtcConnection) {
+                    const senders = this.rtcConnection.getSenders();
+                    senders.forEach(sender => {
+                        if (sender.track && sender.track.kind === 'video') {
+                            const params = sender.getParameters();
+                            if (params.encodings && params.encodings[0]) {
+                                params.encodings[0].maxBitrate = this.streamSettings.bitrate;
+                                params.encodings[0].maxFramerate = this.streamSettings.framerate;
+                                sender.setParameters(params);
+                            }
+                        }
+                    });
+                }
+            }
+
+            resetSettings() {
+                this.streamSettings = {
+                    resolution: '1280x720',
+                    framerate: 30,
+                    bitrate: 5000000,
+                    codec: 'H264',
+                    inputControl: 'none'
+                };
+                
+                document.getElementById('resolution').value = '1280x720';
+                document.getElementById('framerate').value = 30;
+                document.getElementById('framerateValue').textContent = '30';
+                document.getElementById('bitrate').value = 5;
+                document.getElementById('bitrateValue').textContent = '5.0';
+                document.getElementById('codec').value = 'H264';
+                document.getElementById('inputControl').value = 'none';
+            }
+
+            toggleStreamSettings() {
+                const panel = document.getElementById('streamSettingsPanel');
+                const toggle = document.getElementById('settingsToggle');
+                
+                if (panel.style.display === 'none') {
+                    panel.style.display = 'block';
+                    toggle.textContent = 'Hide Settings';
+                } else {
+                    panel.style.display = 'none';
+                    toggle.textContent = 'Show Settings';
+                }
+            }
+
+            toggleOwnStream() {
+                const show = document.getElementById('showOwnStream').checked;
+                const localVideo = document.getElementById('localStream');
+                
+                if (show && this.isStreaming) {
+                    localVideo.style.display = 'block';
+                } else {
+                    localVideo.style.display = 'none';
+                }
+            }
+
+            toggleFullscreen() {
+                const streamDisplay = document.getElementById('streamDisplay');
+                if (!document.fullscreenElement) {
+                    streamDisplay.requestFullscreen();
+                    this.isFullscreen = true;
+                } else {
+                    document.exitFullscreen();
+                    this.isFullscreen = false;
+                }
+            }
+
+            exitFullscreen() {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                    this.isFullscreen = false;
+                }
+            }
+
+            requestIDR() {
+                this.sendMessage({
+                    type: 'request_idr',
+                    channelId: this.currentChannel
+                });
+            }
+
+            forceKeyFrame() {
+                // This would require access to the encoder, which browsers don't directly provide
+                // Instead, we can restart the stream or use other techniques
+                console.log('IDR frame requested');
+            }
+
+            // Connection management
+            updateConnectionStatus(status) {
+                const indicator = document.getElementById('connectionStatus');
+                const tcpStatus = document.getElementById('tcpStatus');
+                const udpStatus = document.getElementById('udpStatus');
+                
+                indicator.className = 'status-indicator';
+                tcpStatus.className = 'protocol-indicator';
+                udpStatus.className = 'protocol-indicator';
+                
+                switch (status) {
+                    case 'connected':
+                        indicator.classList.add('connected');
+                        tcpStatus.classList.add('active');
+                        break;
+                    case 'streaming':
+                        indicator.classList.add('connected', 'streaming');
+                        tcpStatus.classList.add('active');
+                        udpStatus.classList.add('active');
+                        break;
+                    case 'disconnected':
+                        // Default styles
+                        break;
+                }
             }
 
             startKeepAlive() {
-                // Send keepalive every 25 seconds to prevent timeout
                 this.keepAliveInterval = setInterval(() => {
-                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                        this.sendTCPMessage(this.Protocol.C2S.KeepAlive, null);
-                        this.log('💓 Sent keepalive', 'info');
-                    }
-                }, 25000);
+                    this.sendMessage({ type: 'keep_alive' });
+                }, 30000); // 30 seconds
             }
 
             stopKeepAlive() {
@@ -185,793 +1083,50 @@
                 }
             }
 
-            updateConnectionStatus(connected) {
-                this.isConnected = connected;
-                const indicator = document.getElementById('statusIndicator');
-                const statusText = document.getElementById('statusText');
-                const connectBtn = document.getElementById('connectBtn');
-                const disconnectBtn = document.getElementById('disconnectBtn');
-                const channelsSection = document.getElementById('channelsSection');
-                
-                if (connected) {
-                    indicator.classList.add('connected');
-                    statusText.textContent = 'Connected';
-                    connectBtn.disabled = true;
-                    disconnectBtn.disabled = false;
-                    channelsSection.style.display = 'block';
-                } else {
-                    indicator.classList.remove('connected');
-                    statusText.textContent = 'Disconnected';
-                    connectBtn.disabled = false;
-                    disconnectBtn.disabled = true;
-                    channelsSection.style.display = 'none';
-                    
-                    // Reset state
-                    this.sessionId = 0;
-                    this.selectedChannelId = null;
-                    this.channels = [];
-                    this.commandId = 0;
-                    this.streamStats = null;
-                }
-                this.updateUI();
+            filterChannels() {
+                const filter = document.getElementById('channelSearch').value.toLowerCase();
+                const filteredChannels = this.channels.filter(ch => 
+                    ch.name.toLowerCase().includes(filter)
+                );
+                this.updateChannelList(filteredChannels);
             }
 
-            sendTCPMessage(command, data) {
-                if (!data) {
-                    data = new ArrayBuffer(0);
-                }
-                
-                if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-                    this.log('Cannot send message: not connected', 'error');
-                    return false;
-                }
-
-                // Create proper header
-                const totalSize = 6 + data.byteLength;
-                const message = new ArrayBuffer(totalSize);
-                const messageView = new DataView(message);
-                
-                // Write header with correct byte order
-                messageView.setUint32(0, this.commandId++, true); // ID - little endian
-                messageView.setUint16(4, command, true); // Command - little endian
-                
-                // Copy payload if any
-                if (data.byteLength > 0) {
-                    const payloadView = new Uint8Array(message, 6);
-                    payloadView.set(new Uint8Array(data));
-                }
-
-                this.ws.send(message);
-                
-                if (command !== 0) { // Don't log keepalives
-                    const debugBytes = Array.from(new Uint8Array(message))
-                        .slice(0, Math.min(20, message.byteLength))
-                        .map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ');
-                    this.log('Sent command ' + command + ' (' + message.byteLength + ' bytes): ' + debugBytes + '...', 'info');
-                }
-                
-                this.updateUI();
-                return true;
+            // Remote events
+            onRemoteStreamStarted(message) {
+                console.log('Remote stream started from:', message.username);
+                // Update UI to show who is streaming
+                this.sendMessage({
+                    type: 'get_channel_users',
+                    channelId: this.currentChannel
+                });
             }
 
-            login() {
-                const data = new ArrayBuffer(1);
-                const view = new DataView(data);
-                view.setUint8(0, this.Protocol.LoginType.Anonymous);
-                
-                this.sendTCPMessage(this.Protocol.C2S.Request_Login, data);
-                this.log('Sent login request', 'info');
-            }
-
-            requestChannelList() {
-                const data = new ArrayBuffer(1); // Padding byte as required by server
-                this.sendTCPMessage(this.Protocol.C2S.RequestChannelList, data);
-                this.log('Requested channel list', 'info');
-            }
-
-            createChannel() {
-                const data = new ArrayBuffer(1);
-                const view = new DataView(data);
-                view.setUint8(0, this.Protocol.ChannelType.ScreenShare);
-                
-                this.sendTCPMessage(this.Protocol.C2S.CreateChannel, data);
-                this.log('Creating channel...', 'info');
-            }
-
-            joinChannel(channelId) {
-                this.log('Attempting to join channel ' + channelId + '...', 'info');
-                
-                const data = new ArrayBuffer(2);
-                const view = new DataView(data);
-                view.setUint16(0, channelId, true);
-                
-                this.sendTCPMessage(this.Protocol.C2S.JoinChannel, data);
-                this.selectedChannelId = channelId;
-                this.updateUI();
-                this.log('Sent join request for channel ' + channelId, 'info');
-            }
-
-            handleMessage(data) {
-                if (data.byteLength < 50) { // Only log smaller packets to avoid spam
-                    const bytes = Array.from(new Uint8Array(data, 0, Math.min(10, data.byteLength)))
-                        .map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ');
-                    this.log('Received ' + data.byteLength + ' bytes: ' + bytes + '...', 'info');
+            onRemoteStreamStopped(message) {
+                console.log('Remote stream stopped from:', message.username);
+                const remoteVideo = document.getElementById('remoteStream');
+                if (remoteVideo.srcObject) {
+                    remoteVideo.srcObject = null;
+                    remoteVideo.style.display = 'none';
                 }
                 
-                // Check if this is UDP stream data (starts with 0xFF marker from proxy)
-                if (data.byteLength > 16) { // UDP packets should be reasonably large
-                    const dataArray = new Uint8Array(data);
-                    if (dataArray[0] === 0xFF) {
-                        // This is UDP stream data - remove marker and process
-                        const udpData = data.slice(1);
-                        this.log('🎬 UDP stream data detected: ' + udpData.byteLength + ' bytes', 'success');
-                        this.handleUDPStreamData(udpData);
-                        return;
-                    }
+                if (!this.isStreaming) {
+                    document.getElementById('streamPlaceholder').style.display = 'flex';
                 }
                 
-                // Regular TCP protocol data - add to buffer and process
-                this.addToBuffer(data);
-                this.processBuffer();
-            }
-            
-            constructor() {
-                this.ws = null;
-                this.isConnected = false;
-                this.sessionId = 0;
-                this.selectedChannelId = null;
-                this.channels = [];
-                this.commandId = 0;
-                this.streamStats = null;
-                this.keepAliveInterval = null;
-                this.isStreamActive = false;
-                
-                // Add message buffer for handling TCP stream
-                this.messageBuffer = new Uint8Array(0);
-                
-                // Protocol constants - FIXED to match C++ backend exactly
-                this.Protocol = {
-                    C2S: {
-                        KeepAlive: 0,
-                        Request_Login: 1,
-                        CreateChannel: 2,
-                        JoinChannel: 3,
-                        QuitChannel: 4,
-                        Response_UDPIdentifySecret: 5,
-                        RequestChannelList: 6,
-                        RequestChannelSessionList: 7,
-                        Channel_ScreenShare_ViewToShare: 8
-                    },
-                    S2C: {
-                        KeepAlive: 0,
-                        InformInvalidIdentify: 1,
-                        Response_Login: 2,
-                        CreateChannel_OK: 3,
-                        CreateChannel_Error: 4,
-                        JoinChannel_OK: 5,
-                        JoinChannel_Error: 6,
-                        KickedFromChannel: 7,
-                        Request_UDPIdentifySecret: 8,
-                        UseThisUDPIdentifySecret: 9,
-                        ChannelList: 10,
-                        ChannelSessionList: 11,
-                        Channel_ScreenShare_ViewToShare: 12
-                    },
-                    ChannelType: {
-                        ScreenShare: 0
-                    },
-                    LoginType: {
-                        Anonymous: 0
-                    }
-                };
-
-                this.initializeEventListeners();
-                this.updateUI();
-                this.log('Fixed client initialized with buffer handling', 'success');
-            }
-            
-            
-            startStream() {
-                this.isStreamActive = true;
-                this.updateStreamControls();
-                this.log('Stream started - waiting for video data from C++ client', 'success');
-                
-                // Request IDR frame to start fresh
-                this.requestIDRFrame();
-                
-                // Also send a test message to see if we get any stream data
-                setTimeout(() => {
-                    if (this.streamStats === null) {
-                        this.log('⚠️ No stream data received yet. Make sure:', 'info');
-                        this.log('1. C++ client is streaming to this channel', 'info');
-                        this.log('2. Proxy server is running and handling UDP', 'info');
-                        this.log('3. Try requesting IDR frame again', 'info');
-                    }
-                }, 5000);
-            }
-            
-            stopStream() {
-                this.isStreamActive = false;
-                this.updateStreamControls();
-                this.streamStats = null;
-                
-                // Hide stream visualization
-                const streamViz = document.querySelector('.stream-visualization');
-                if (streamViz) {
-                    streamViz.remove();
-                }
-                
-                // Show overlay again
-                const videoOverlay = document.getElementById('videoOverlay');
-                if (videoOverlay) {
-                    videoOverlay.classList.remove('hidden');
-                }
-                
-                this.log('Stream stopped', 'info');
-            }
-            
-            requestIDRFrame() {
-                if (this.selectedChannelId !== null && this.ws && this.ws.readyState === WebSocket.OPEN) {
-                    const data = new ArrayBuffer(4);
-                    const view = new DataView(data);
-                    view.setUint16(0, this.selectedChannelId, true); // Channel ID
-                    view.setUint16(2, 0x02, true); // ResetIDR flag
-                    
-                    this.sendTCPMessage(this.Protocol.C2S.Channel_ScreenShare_ViewToShare, data);
-                    this.log('Requested IDR frame from server', 'info');
-                } else {
-                    this.log('Cannot request IDR frame: not connected to channel', 'error');
-                }
-            }
-            
-            updateStreamControls() {
-                const startBtn = document.getElementById('startStreamBtn');
-                const stopBtn = document.getElementById('stopStreamBtn');
-                
-                if (this.isStreamActive) {
-                    startBtn.style.display = 'none';
-                    stopBtn.style.display = 'inline-block';
-                } else {
-                    startBtn.style.display = 'inline-block';
-                    stopBtn.style.display = 'none';
-                }
-            }
-
-            addToBuffer(data) {
-                // Append new data to buffer
-                const newData = new Uint8Array(data);
-                const combinedBuffer = new Uint8Array(this.messageBuffer.length + newData.length);
-                combinedBuffer.set(this.messageBuffer);
-                combinedBuffer.set(newData, this.messageBuffer.length);
-                this.messageBuffer = combinedBuffer;
-            }
-            
-            processBuffer() {
-                while (this.messageBuffer.length >= 6) { // Minimum header size
-                    // Read message header
-                    const view = new DataView(this.messageBuffer.buffer, this.messageBuffer.byteOffset);
-                    const id = view.getUint32(0, true);
-                    const command = view.getUint16(4, true);
-                    
-                    // Validate command range first - be more permissive for unknown commands
-                    if (command > 50) {
-                        this.log('Potentially invalid command: ' + command + ', trying to resync...', 'error');
-                        // Try to find next valid message start instead of clearing entire buffer
-                        let found = false;
-                        for (let i = 1; i < this.messageBuffer.length - 6; i++) {
-                            const testView = new DataView(this.messageBuffer.buffer, this.messageBuffer.byteOffset + i);
-                            const testCommand = testView.getUint16(4, true);
-                            if (testCommand >= 0 && testCommand <= 20) {
-                                this.log('Found potential message at offset ' + i, 'info');
-                                this.messageBuffer = this.messageBuffer.slice(i);
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            this.log('No valid message found, clearing buffer', 'error');
-                            this.messageBuffer = new Uint8Array(0);
-                        }
-                        break;
-                    }
-                    
-                    // Determine expected payload size
-                    let payloadSize = this.getExpectedPayloadSize(command);
-                    
-                    if (payloadSize === -1) {
-                        // Variable size message
-                        payloadSize = this.getVariablePayloadSize(command);
-                        if (payloadSize === -1) {
-                            // Don't have enough data yet
-                            break;
-                        }
-                    }
-                    
-                    const totalSize = 6 + payloadSize;
-                    
-                    if (this.messageBuffer.length < totalSize) {
-                        // Don't have complete message yet
-                        break;
-                    }
-                    
-                    // Extract complete message
-                    const messageData = this.messageBuffer.slice(0, totalSize);
-                    const payload = this.messageBuffer.slice(6, totalSize);
-                    
-                    if (command !== 0 && totalSize < 100) { // Don't log keepalives and large messages
-                        this.log('Parsed message: ID=' + id + ', Command=' + command + ', Payload=' + payload.length + ' bytes', 'info');
-                    }
-                    
-                    // Process the message
-                    this.processCompleteMessage(id, command, payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength));
-                    
-                    // Remove processed message from buffer
-                    this.messageBuffer = this.messageBuffer.slice(totalSize);
-                }
-            }
-            
-            getExpectedPayloadSize(command) {
-                switch (command) {
-                    case 0: return 0;  // KeepAlive
-                    case 1: return 16; // InformInvalidIdentify
-                    case 2: return 8;  // Response_Login
-                    case 3: return 7;  // CreateChannel_OK
-                    case 4: return 1;  // CreateChannel_Error
-                    case 5: return 7;  // JoinChannel_OK
-                    case 6: return 1;  // JoinChannel_Error
-                    case 7: return 3;  // KickedFromChannel
-                    case 8: return 0;  // Request_UDPIdentifySecret
-                    case 9: return 8;  // UseThisUDPIdentifySecret
-                    case 12: return 4; // Channel_ScreenShare_ViewToShare
-                    case 10: // ChannelList - variable
-                    case 11: // ChannelSessionList - variable
-                        return -1;
-                    default:
-                        this.log('Unknown command: ' + command + ', assuming no payload', 'error');
-                        return 0;
-                }
-            }
-            
-            getVariablePayloadSize(command) {
-                if (command === 10) { // ChannelList
-                    if (this.messageBuffer.length < 8) return -1; // Need at least header + count
-                    
-                    const view = new DataView(this.messageBuffer.buffer, this.messageBuffer.byteOffset + 6);
-                    const channelCount = view.getUint16(0, true);
-                    const expectedSize = 2 + (channelCount * 76);
-                    
-                    if (this.messageBuffer.length < 6 + expectedSize) return -1;
-                    return expectedSize;
-                }
-                
-                if (command === 11) { // ChannelSessionList
-                    if (this.messageBuffer.length < 10) return -1; // Need at least header + channelId + count
-                    
-                    const view = new DataView(this.messageBuffer.buffer, this.messageBuffer.byteOffset + 6);
-                    const sessionCount = view.getUint16(2, true);
-                    const expectedSize = 4 + (sessionCount * 48);
-                    
-                    if (this.messageBuffer.length < 6 + expectedSize) return -1;
-                    return expectedSize;
-                }
-                
-                return -1;
-            }
-
-            handleUDPStreamData(data) {
-                // Handle incoming video stream data
-                this.log('Processing stream data: ' + data.byteLength + ' bytes', 'info');
-                
-                try {
-                    // Show live stream visualization
-                    const videoOverlay = document.getElementById('videoOverlay');
-                    if (videoOverlay) {
-                        videoOverlay.classList.add('hidden');
-                        
-                        // Create or update stream visualization
-                        let streamViz = document.querySelector('.stream-visualization');
-                        if (!streamViz) {
-                            streamViz = document.createElement('div');
-                            streamViz.className = 'stream-visualization';
-                            document.querySelector('.video-wrapper').appendChild(streamViz);
-                        }
-                        
-                        // Update stream stats
-                        if (!this.streamStats) {
-                            this.streamStats = { 
-                                totalBytes: 0, 
-                                packets: 0, 
-                                startTime: Date.now(),
-                                lastUpdate: Date.now(),
-                                largePackets: 0,
-                                maxPacketSize: 0
-                            };
-                        }
-                        
-                        this.streamStats.totalBytes += data.byteLength;
-                        this.streamStats.packets++;
-                        this.streamStats.lastUpdate = Date.now();
-                        
-                        // Track packet sizes
-                        if (data.byteLength > this.streamStats.maxPacketSize) {
-                            this.streamStats.maxPacketSize = data.byteLength;
-                        }
-                        if (data.byteLength > 500) {
-                            this.streamStats.largePackets++;
-                        }
-                        
-                        const elapsed = (this.streamStats.lastUpdate - this.streamStats.startTime) / 1000;
-                        const kbps = elapsed > 0 ? Math.round((this.streamStats.totalBytes * 8) / elapsed / 1000) : 0;
-                        const mbReceived = (this.streamStats.totalBytes / (1024 * 1024)).toFixed(2);
-                        
-                        // Determine stream type based on packet characteristics
-                        let statusText = 'Receiving Stream Data';
-                        let sizeText = 'Data: ' + mbReceived + ' MB';
-                        let streamColor = '#00ff00';
-                        
-                        if (this.streamStats.largePackets > 0) {
-                            statusText = '🎬 Video Stream Active';
-                            sizeText = 'Video Frames: ' + this.streamStats.largePackets + '/' + this.streamStats.packets;
-                            streamColor = '#00ff88';
-                        } else if (data.byteLength < 50) {
-                            statusText = '📡 Control Stream';
-                            sizeText = 'Small packets (control/keepalive)';
-                            streamColor = '#ffaa00';
-                        } else if (data.byteLength > 100) {
-                            statusText = '📹 Data Stream';
-                            sizeText = 'Medium packets (video headers)';
-                            streamColor = '#00aaff';
-                        }
-                        
-                        streamViz.innerHTML = '<div class="stream-data">' +
-                            '<div class="stream-indicator" style="background: ' + streamColor + ';"></div>' +
-                            '<div style="font-size: 24px; margin-bottom: 10px;">📡 LIVE STREAM</div>' +
-                            '<div style="font-size: 16px; color: ' + streamColor + ';">' + statusText + '</div>' +
-                            '<div style="margin-top: 15px;">' +
-                                '<div>Total Packets: ' + this.streamStats.packets + '</div>' +
-                                '<div>' + sizeText + '</div>' +
-                                '<div>Rate: ' + kbps + ' kbps</div>' +
-                                '<div>Latest: ' + data.byteLength + ' bytes</div>' +
-                                '<div>Max Packet: ' + this.streamStats.maxPacketSize + ' bytes</div>' +
-                            '</div>' +
-                            '<div style="margin-top: 15px; font-size: 12px; opacity: 0.7;">' +
-                                (this.streamStats.largePackets > 0 ? 
-                                    'Video frames detected! Stream is working.' : 
-                                    'Waiting for video frames (currently receiving control data).'
-                                ) +
-                            '</div>' +
-                        '</div>';
-                    }
-                    
-                } catch (error) {
-                    this.log('Error processing stream data: ' + error, 'error');
-                }
-            }
-
-            handleBinaryMessage(data) {
-                // This method is no longer used - replaced by buffer processing
-                this.log('handleBinaryMessage called - this should not happen', 'error');
-            }
-
-            processCompleteMessage(id, command, payload) {
-                switch (command) {
-                    case this.Protocol.S2C.KeepAlive:
-                        // Don't log keepalives to reduce spam
-                        break;
-                        
-                    case this.Protocol.S2C.InformInvalidIdentify:
-                        this.handleInvalidIdentify(payload);
-                        break;
-                        
-                    case this.Protocol.S2C.Response_Login:
-                        this.handleLoginResponse(payload);
-                        break;
-                        
-                    case this.Protocol.S2C.CreateChannel_OK:
-                        this.handleChannelCreated(payload);
-                        break;
-                        
-                    case this.Protocol.S2C.JoinChannel_OK:
-                        this.handleChannelJoined(payload);
-                        break;
-                        
-                    case this.Protocol.S2C.JoinChannel_Error:
-                        this.handleChannelJoinError(payload);
-                        break;
-                        
-                    case this.Protocol.S2C.Request_UDPIdentifySecret:
-                        this.handleUDPIdentifyRequest(payload);
-                        break;
-                        
-                    case this.Protocol.S2C.UseThisUDPIdentifySecret:
-                        this.handleUDPIdentifySecret(payload);
-                        break;
-                        
-                    case this.Protocol.S2C.ChannelList:
-                        this.handleChannelList(payload);
-                        break;
-                        
-                    case this.Protocol.S2C.Channel_ScreenShare_ViewToShare:
-                        this.handleStreamControl(payload);
-                        break;
-                        
-                    default:
-                        this.log('Unknown command: ' + command + ' (payload: ' + payload.byteLength + ' bytes)', 'error');
-                }
-            }
-
-            handleInvalidIdentify(data) {
-                if (data.byteLength >= 16) {
-                    const view = new DataView(data);
-                    const clientIdentify = view.getBigUint64(0, true);
-                    const serverIdentify = view.getBigUint64(8, true);
-                    this.log('Invalid identify - Client: ' + clientIdentify + ', Server: ' + serverIdentify, 'info');
-                }
-            }
-
-            handleUDPIdentifyRequest(data) {
-                this.log('Server requesting UDP identify secret', 'info');
-            }
-
-            handleUDPIdentifySecret(data) {
-                if (data.byteLength >= 8) {
-                    const view = new DataView(data);
-                    const udpSecret = view.getBigUint64(0, true);
-                    this.log('Received UDP identify secret: ' + udpSecret, 'info');
-                }
-            }
-
-            handleLoginResponse(data) {
-                if (data.byteLength < 8) {
-                    this.log('Login response too small: ' + data.byteLength + ' bytes', 'error');
-                    return;
-                }
-                
-                const view = new DataView(data);
-                const accountId = view.getUint32(0, true);
-                this.sessionId = view.getUint32(4, true);
-                
-                this.log('Login successful! Account ID: ' + accountId + ', Session ID: ' + this.sessionId, 'success');
-                this.updateUI();
-                
-                // Auto-request channel list after login
-                setTimeout(() => this.requestChannelList(), 100);
-            }
-
-            handleChannelCreated(data) {
-                if (data.byteLength < 7) {
-                    this.log('Channel creation response too small: ' + data.byteLength + ' bytes', 'error');
-                    return;
-                }
-                
-                const view = new DataView(data);
-                const type = view.getUint8(0);
-                const channelId = view.getUint16(1, true);
-                const channelSessionId = view.getUint32(3, true);
-                
-                this.log('Channel created: ID=' + channelId + ', Type=' + type + ', SessionID=' + channelSessionId, 'success');
-                
-                // Auto-join the created channel
-                setTimeout(() => this.joinChannel(channelId), 100);
-            }
-
-            handleChannelJoined(data) {
-                if (data.byteLength < 7) {
-                    this.log('Channel join response too small: ' + data.byteLength + ' bytes', 'error');
-                    return;
-                }
-                
-                const view = new DataView(data);
-                const type = view.getUint8(0);
-                const channelId = view.getUint16(1, true);
-                const channelSessionId = view.getUint32(3, true);
-                
-                this.log('Successfully joined channel ' + channelId + ' (Type: ' + type + ', SessionID: ' + channelSessionId + ')', 'success');
-                
-                // Show streaming interface
-                this.showStreamingInterface();
-                
-                // Request updated channel list
-                setTimeout(() => this.requestChannelList(), 100);
-                
-                this.log('Ready to receive stream data...', 'info');
-            }
-
-            handleChannelJoinError(data) {
-                if (data.byteLength < 1) {
-                    this.log('Channel join failed: unknown error', 'error');
-                    return;
-                }
-                
-                const view = new DataView(data);
-                const reason = view.getUint8(0);
-                
-                const reasonText = reason === 0 ? 'Invalid Channel Type' : 
-                                 reason === 1 ? 'Invalid Channel ID' : 
-                                 'Unknown error';
-                
-                this.log('Channel join failed: ' + reasonText + ' (' + reason + ')', 'error');
-            }
-
-            handleChannelList(data) {
-                if (data.byteLength < 2) {
-                    this.log('Channel list payload too small: ' + data.byteLength + ' bytes', 'error');
-                    return;
-                }
-                
-                const view = new DataView(data);
-                const channelCount = view.getUint16(0, true);
-                
-                this.log('Channel list: ' + channelCount + ' channels, payload size: ' + data.byteLength + ' bytes', 'info');
-                
-                if (channelCount === 0) {
-                    this.channels = [];
-                    this.updateChannelsList();
-                    this.updateUI();
-                    return;
-                }
-                
-                // Each channel info is 76 bytes according to the C++ struct
-                const expectedSize = 2 + (channelCount * 76);
-                if (data.byteLength < expectedSize) {
-                    this.log('Incomplete channel data: got ' + data.byteLength + ', expected ' + expectedSize + ' bytes', 'error');
-                    return;
-                }
-                
-                this.channels = [];
-                let offset = 2;
-                
-                for (let i = 0; i < channelCount; i++) {
-                    if (offset + 76 > data.byteLength) {
-                        this.log('Not enough data for channel ' + i, 'error');
-                        break;
-                    }
-                    
-                    const channelId = view.getUint16(offset, true);
-                    const type = view.getUint8(offset + 2);
-                    const userCount = view.getUint32(offset + 3, true);
-                    
-                    // Read channel name (64 bytes)
-                    const nameBytes = new Uint8Array(data, offset + 7, 64);
-                    let nameLength = 0;
-                    for (let j = 0; j < 64; j++) {
-                        if (nameBytes[j] === 0) break;
-                        nameLength++;
-                    }
-                    const name = new TextDecoder().decode(nameBytes.slice(0, nameLength));
-                    
-                    const isPasswordProtected = view.getUint8(offset + 71) !== 0;
-                    const hostSessionId = view.getUint32(offset + 72, true);
-                    
-                    const channel = {
-                        id: channelId,
-                        type: type,
-                        userCount: userCount,
-                        name: name || ('Channel ' + channelId),
-                        isPasswordProtected: isPasswordProtected,
-                        hostSessionId: hostSessionId
-                    };
-                    
-                    this.channels.push(channel);
-                    this.log('Parsed channel ' + i + ': ' + JSON.stringify(channel), 'info');
-                    
-                    offset += 76;
-                }
-                
-                this.log('Successfully parsed ' + this.channels.length + ' channels', 'success');
-                this.updateChannelsList();
-                this.updateUI();
-            }
-
-            handleStreamControl(data) {
-                if (data.byteLength < 4) {
-                    this.log('Stream control message too small', 'error');
-                    return;
-                }
-                
-                const view = new DataView(data);
-                const channelId = view.getUint16(0, true);
-                const flag = view.getUint16(2, true);
-                
-                this.log('Stream control: Channel=' + channelId + ', Flag=' + flag, 'info');
-                
-                if (flag & 0x02) { // ResetIDR flag
-                    this.log('IDR frame requested by server', 'info');
-                }
-            }
-            
-            showStreamingInterface() {
-                const videoOverlay = document.getElementById('videoOverlay');
-                if (videoOverlay) {
-                    videoOverlay.innerHTML = '<div class="placeholder-icon">🎬</div>' +
-                        '<h3>Connected to Channel ' + this.selectedChannelId + '</h3>' +
-                        '<div style="margin-top: 15px;">' +
-                            '<div style="color: #00ff00; font-size: 16px;">● Ready to receive stream</div>' +
-                            '<div style="color: #ffaa00; font-size: 14px; margin-top: 8px;">Start streaming from C++ client</div>' +
-                        '</div>' +
-                        '<p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">' +
-                            'Stream will automatically appear when video data arrives' +
-                        '</p>';
-                }
-            }
-
-            updateChannelsList() {
-                const channelsList = document.getElementById('channelsList');
-                
-                if (this.channels.length === 0) {
-                    channelsList.innerHTML = '<div class="channel-item">' +
-                            '<div class="channel-name">No channels available</div>' +
-                            '<div class="channel-users">Click "Create" to make a new channel</div>' +
-                        '</div>';
-                    return;
-                }
-                
-                channelsList.innerHTML = '';
-                
-                for (let i = 0; i < this.channels.length; i++) {
-                    const channel = this.channels[i];
-                    const channelDiv = document.createElement('div');
-                    channelDiv.className = 'channel-item';
-                    if (channel.id === this.selectedChannelId) {
-                        channelDiv.classList.add('selected');
-                    }
-                    
-                    channelDiv.innerHTML = '<div class="channel-name">' + channel.name + (channel.isPasswordProtected ? ' 🔒' : '') + '</div>' +
-                        '<div class="channel-users">' + channel.userCount + ' users - ID: ' + channel.id + '</div>';
-                    
-                    channelDiv.addEventListener('click', () => {
-                        this.log('Clicked channel: ' + channel.name + ' (' + channel.id + ')', 'info');
-                        this.joinChannel(channel.id);
-                    });
-                    
-                    channelsList.appendChild(channelDiv);
-                }
-                
-                this.log('Updated channels list with ' + this.channels.length + ' channels', 'info');
-            }
-
-            log(message, type) {
-                if (!type) {
-                    type = 'info';
-                }
-                
-                const logs = document.getElementById('logs');
-                const entry = document.createElement('div');
-                entry.className = 'log-entry ' + type;
-                entry.textContent = new Date().toLocaleTimeString() + ': ' + message;
-                
-                logs.appendChild(entry);
-                logs.scrollTop = logs.scrollHeight;
-                
-                // Keep only last 50 entries
-                while (logs.children.length > 50) {
-                    logs.removeChild(logs.firstChild);
-                }
-                
-                console.log('[' + type.toUpperCase() + '] ' + message);
+                // Update user list
+                this.sendMessage({
+                    type: 'get_channel_users',
+                    channelId: this.currentChannel
+                });
             }
         }
 
-        // Initialize the fixed application
-        const client = new FixedScreenShareClient();
+        // Initialize the application
+        const app = new ScreenShareApp();
         
-        // Handle page unload
-        window.addEventListener('beforeunload', () => {
-            client.disconnect();
-        });
-
-        // Debug keyboard shortcut (Shift+D for debug info)
-        document.addEventListener('keydown', (e) => {
-            if (e.shiftKey && e.key === 'D') {
-                client.log('=== DEBUG INFO ===', 'info');
-                client.log('Connected: ' + client.isConnected, 'info');
-                client.log('Session ID: ' + client.sessionId, 'info');
-                client.log('Selected Channel: ' + client.selectedChannelId, 'info');
-                client.log('Channels: ' + JSON.stringify(client.channels), 'info');
-                client.log('Command ID: ' + client.commandId, 'info');
-                client.log('WebSocket State: ' + (client.ws ? client.ws.readyState : 'null'), 'info');
-                client.log('================', 'info');
-            }
+        // Auto-connect if configured
+        window.addEventListener('load', () => {
+            // You can add auto-connect logic here if needed
         });
     </script>
 </body>

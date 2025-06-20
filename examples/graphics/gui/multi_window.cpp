@@ -7,9 +7,9 @@ int main() {
   viewport = loco.viewport_create();
   viewport2 = loco.viewport_create();
 
-  fan::graphics::camera_t camera;
+  fan::graphics::render_view_t render_view;
   fan::vec2 window_size = loco.window.get_size();
-  camera.camera = loco.orthographic_camera.camera;
+  camera.camera = loco.orthographic_render_view.camera;
   loco.viewport_set(
     viewport,
     0, window_size, window_size

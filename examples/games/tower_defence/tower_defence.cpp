@@ -11,7 +11,7 @@ void init_zoom() {
   auto update_ortho = [] {
     fan::vec2 s = gloco->window.get_size();
     gloco->camera_set_ortho(
-      gloco->orthographic_camera.camera,
+      gloco->orthographic_render_view.camera,
       fan::vec2(-s.x, s.x) / zoom,
       fan::vec2(-s.y, s.y) / zoom
     );
@@ -171,7 +171,7 @@ struct gui_t {
     ImGui::Begin("Shop");
     turret_t turret;
     loco_t::sprite_t::properties_t sp;
-    sp.position = fan::vec2(fan::graphics::get_mouse_position(gloco->orthographic_camera));
+    sp.position = fan::vec2(fan::graphics::get_mouse_position(gloco->orthographic_render_view));
     sp.position.z = 0xffa0;
     sp.size = tile_size;
     turret.damage_time.start(0.3e+9);
@@ -253,7 +253,7 @@ struct gui_t {
     }
 
     if (moving) {
-      fan::vec2 dst = fan::vec2(fan::graphics::get_mouse_position(gloco->orthographic_camera));
+      fan::vec2 dst = fan::vec2(fan::graphics::get_mouse_position(gloco->orthographic_render_view));
       visual_range.set_position(dst);
       visual_turret.set_position(dst);
       if (ImGui::IsMouseClicked(0)) {

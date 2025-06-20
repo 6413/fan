@@ -81,8 +81,8 @@ public:
 
   struct stage_open_properties_t {
 
-    loco_t::camera_t* camera = &gloco->orthographic_camera.camera;
-    loco_t::viewport_t* viewport = &gloco->orthographic_camera.viewport;
+    loco_t::camera_t* camera = &gloco->orthographic_render_view.camera;
+    loco_t::viewport_t* viewport = &gloco->orthographic_render_view.viewport;
 
     stage_loader_t::nr_t parent_id;
     uint32_t itToDepthMultiplier = 0x100;

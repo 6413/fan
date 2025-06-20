@@ -42,15 +42,15 @@ export namespace fan {
     }
     void set_size(const fan::vec2& size) {
       gloco->window.set_size(size);
-      gloco->viewport_set(gloco->orthographic_camera.viewport, fan::vec2(0, 0), size);
+      gloco->viewport_set(gloco->orthographic_render_view.viewport, fan::vec2(0, 0), size);
       gloco->camera_set_ortho(
-        gloco->orthographic_camera.camera,
+        gloco->orthographic_render_view.camera,
         fan::vec2(0, size.x),
         fan::vec2(0, size.y)
       );
-      gloco->viewport_set(gloco->perspective_camera.viewport, fan::vec2(0, 0), size);
+      gloco->viewport_set(gloco->perspective_render_view.viewport, fan::vec2(0, 0), size);
       gloco->camera_set_ortho(
-        gloco->perspective_camera.camera,
+        gloco->perspective_render_view.camera,
         fan::vec2(0, size.x),
         fan::vec2(0, size.y)
       );
@@ -95,8 +95,7 @@ export namespace fan {
 
     using engine_t = loco_t;
     using image_t = loco_t::image_t;
-    using camera_impl_t = loco_t::camera_impl_t;
-    using camera_t = camera_impl_t;
+    using render_view_t = loco_t::render_view_t;
     using viewport_t = loco_t::viewport_t;
 
     using shape_t = loco_t::shape_t;
@@ -122,8 +121,8 @@ export namespace fan {
     fan::vec2 get_mouse_position() {
       return gloco->get_mouse_position();
     }
-    fan::vec2 get_mouse_position(const fan::graphics::camera_t& camera) {
-      return loco_t::transform_position(gloco->get_mouse_position(), camera.viewport, camera.camera);
+    fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view) {
+      return loco_t::transform_position(gloco->get_mouse_position(), render_view.viewport, render_view.camera);
     }
     fan::vec2 get_mouse_position(
       const loco_t::camera_t& camera,
@@ -303,7 +302,7 @@ export namespace fan {
     using light_flags_e = loco_t::light_flags_e;
 
     struct light_properties_t {
-      camera_impl_t* camera = &gloco->orthographic_camera;
+      render_view_t* render_view = &gloco->orthographic_render_view;
       fan::vec3 position = fan::vec3(0, 0, 0);
       f32_t parallax_factor = 0;
       fan::vec2 size = fan::vec2(0.1, 0.1);
@@ -321,8 +320,8 @@ export namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::light_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .position = p.position,
             .parallax_factor = p.parallax_factor,
             .size = p.size,
@@ -337,7 +336,7 @@ export namespace fan {
     #if defined(loco_line)
 
       struct line_properties_t {
-        camera_impl_t* camera = &gloco->orthographic_camera;
+        render_view_t* render_view = &gloco->orthographic_render_view;
         fan::vec3 src = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
         fan::vec2 dst = fan::vec2(1, 1);
         fan::color color = fan::color(1, 1, 1, 1);
@@ -351,8 +350,8 @@ export namespace fan {
           *(loco_t::shape_t*)this = loco_t::shape_t(
             fan_init_struct(
               typename loco_t::line_t::properties_t,
-              .camera = p.camera->camera,
-              .viewport = p.camera->viewport,
+              .camera = p.render_view->camera,
+              .viewport = p.render_view->viewport,
               .src = p.src,
               .dst = p.dst,
               .color = p.color,
@@ -364,7 +363,7 @@ export namespace fan {
 
 //#if defined(loco_rectangle)
     struct rectangle_properties_t {
-      camera_impl_t* camera = &gloco->orthographic_camera;
+      render_view_t* render_view = &gloco->orthographic_render_view;
       fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       fan::vec2 size = fan::vec2(32, 32);
       fan::color color = fan::color(1, 1, 1, 1);
@@ -382,8 +381,8 @@ export namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::rectangle_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .position = p.position,
             .size = p.size,
             .color = p.color,
@@ -397,7 +396,7 @@ export namespace fan {
     };
 
     struct sprite_properties_t {
-      camera_impl_t* camera = &gloco->orthographic_camera;
+      render_view_t* render_view = &gloco->orthographic_render_view;
       fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       fan::vec2 size = fan::vec2(32, 32);
       fan::vec3 angle = 0;
@@ -418,8 +417,8 @@ export namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::sprite_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .parallax_factor = p.parallax_factor,
             .position = p.position,
             .size = p.size,
@@ -435,7 +434,7 @@ export namespace fan {
     };
 
     struct unlit_sprite_properties_t {
-      camera_impl_t* camera = &gloco->orthographic_camera;
+      render_view_t* render_view = &gloco->orthographic_render_view;
       fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
       fan::vec3 angle = 0;
@@ -455,8 +454,8 @@ export namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::unlit_sprite_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .position = p.position,
             .size = p.size,
             .angle = p.angle,
@@ -472,7 +471,7 @@ export namespace fan {
     };
 #if defined(loco_circle)
     struct circle_properties_t {
-      camera_impl_t* camera = &gloco->orthographic_camera;
+      render_view_t* render_view = &gloco->orthographic_render_view;
       fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       f32_t radius = 32.f;
       fan::vec3 angle = 0;
@@ -488,8 +487,8 @@ export namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::circle_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .position = p.position,
             .radius = p.radius,
             .angle = p.angle,
@@ -502,7 +501,7 @@ export namespace fan {
 #endif
 
     struct capsule_properties_t {
-      camera_impl_t* camera = &gloco->orthographic_camera;
+      render_view_t* render_view = &gloco->orthographic_render_view;
       fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       fan::vec2 center0 = 0;
       fan::vec2 center1{0, 128.f};
@@ -520,8 +519,8 @@ export namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::capsule_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .position = p.position,
             .center0 = p.center0,
             .center1 = p.center1,
@@ -536,7 +535,7 @@ export namespace fan {
 
     using vertex_t = loco_t::vertex_t;
     struct polygon_properties_t {
-      camera_impl_t* camera = &gloco->orthographic_camera;
+      render_view_t* render_view = &gloco->orthographic_render_view;
       fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       std::vector<vertex_t> vertices;
       fan::vec3 angle = 0;
@@ -553,8 +552,8 @@ export namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::polygon_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .position = p.position,
             .vertices = p.vertices,
             .angle = p.angle,
@@ -566,7 +565,7 @@ export namespace fan {
     };
 
     struct grid_properties_t {
-      camera_impl_t* camera = &gloco->orthographic_camera;
+      render_view_t* render_view = &gloco->orthographic_render_view;
       fan::vec3 position = fan::vec3(0, 0, 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
       fan::vec2 grid_size = fan::vec2(1, 1);
@@ -581,8 +580,8 @@ export namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::grid_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .position = p.position,
             .size = p.size,
             .grid_size = p.grid_size,
@@ -594,7 +593,7 @@ export namespace fan {
     };
 
     struct universal_image_renderer_properties_t {
-      camera_impl_t* camera = &gloco->orthographic_camera;
+      render_view_t* render_view = &gloco->orthographic_render_view;
       fan::vec3 position = 0;
       fan::vec2 size = 0;
       fan::vec2 tc_position = 0;
@@ -618,8 +617,8 @@ export namespace fan {
          *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::universal_image_renderer_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .position = p.position,
             .size = p.size,
             .tc_position = p.tc_position,
@@ -633,7 +632,7 @@ export namespace fan {
     };
 
     struct gradient_properties_t {
-      camera_impl_t* camera = &gloco->perspective_camera;
+      render_view_t* render_view = &gloco->perspective_render_view;
 
       fan::vec3 position = 0;
       fan::vec2 size = 0;
@@ -655,8 +654,8 @@ export namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::gradient_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .position = p.position,
             .size = p.size,
             .color = p.color,
@@ -669,7 +668,7 @@ export namespace fan {
     };
 
     struct shader_shape_properties_t {
-      camera_impl_t* camera = &gloco->perspective_camera;
+      render_view_t* render_view = &gloco->perspective_render_view;
 
       fan::vec3 position = 0;
       fan::vec2 size = 0;
@@ -693,8 +692,8 @@ export namespace fan {
        *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::shader_shape_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .position = p.position,
             .size = p.size,
             .rotation_point = p.rotation_point,
@@ -714,7 +713,7 @@ export namespace fan {
     };
 
     struct line3d_properties_t {
-      camera_impl_t* camera = &gloco->perspective_camera;
+      render_view_t* render_view = &gloco->perspective_render_view;
       fan::vec3 src = fan::vec3(0, 0, 0);
       fan::vec3 dst = fan::vec3(10, 10, 10);
       fan::color color = fan::color(1, 1, 1, 1);
@@ -726,8 +725,8 @@ export namespace fan {
         *(loco_t::shape_t*)this = loco_t::shape_t(
           fan_init_struct(
             typename loco_t::line3d_t::properties_t,
-            .camera = p.camera->camera,
-            .viewport = p.camera->viewport,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
             .src = p.src,
             .dst = p.dst,
             .color = p.color,
@@ -794,9 +793,9 @@ export namespace fan {
       using shape_t = loco_t::shape_t;
 
       void create_highlight() {
-        apply_highlight([](auto& h, const fan::line3& line, fan::graphics::camera_t& cam) {
+        apply_highlight([](auto& h, const fan::line3& line, fan::graphics::render_view_t& render_view) {
           h = fan::graphics::line_t{ {
-            .camera = &cam,
+            .camera = &render_view,
             .src = line[0],
             .dst = line[1],
             .color = fan::color(1, 0.5, 0, 1)
@@ -973,7 +972,7 @@ export namespace fan {
       }
 
       static void update_highlight_position(vfi_root_custom_t<T>* instance) {
-        instance->apply_highlight([](auto& h, const fan::line3& line, fan::graphics::camera_t&) {
+        instance->apply_highlight([](auto& h, const fan::line3& line, fan::graphics::render_view_t&) {
           if (!h.iic()) h.set_line(line[0], line[1]);
           });
       }
@@ -982,12 +981,12 @@ export namespace fan {
       void apply_highlight(F&& func) {
         fan::vec3 op = children[0].get_position();
         fan::vec2 os = children[0].get_size();
-        fan::graphics::camera_t cam{ children[0].get_camera(), children[0].get_viewport() };
+        fan::graphics::render_view_t render_view{ children[0].get_camera(), children[0].get_viewport() };
         for (size_t j = 0; j < highlight.size(); ++j) {
           for (size_t i = 0; i < highlight[0].size(); ++i) {
             auto& h = highlight[j][i];
             auto line = get_highlight_positions(op, os, i);
-            func(h, line, cam);
+            func(h, line, render_view);
           }
         }
       }
@@ -1033,8 +1032,8 @@ export namespace fan {
       fan::window_t::buttons_callback_t::nr_t button_cb_nr;
 
       interactive_camera_t(
-        loco_t::camera_t camera_nr = gloco->orthographic_camera.camera, 
-        loco_t::viewport_t viewport_nr = gloco->orthographic_camera.viewport
+        loco_t::camera_t camera_nr = gloco->orthographic_render_view.camera, 
+        loco_t::viewport_t viewport_nr = gloco->orthographic_render_view.viewport
       ) : reference_camera(camera_nr), reference_viewport(viewport_nr)
       {
         auto& window = gloco->window;

@@ -5,9 +5,9 @@ int main() {
 
   auto v = loco.open_viewport(fan::vec2(0), fan::vec2(600, 600));
 
-  fan::graphics::camera_t camera;
-  camera.camera = loco.orthographic_camera.camera;
-  camera.viewport = loco.orthographic_camera.viewport;
+  fan::graphics::render_view_t render_view;
+  camera.camera = loco.orthographic_render_view.camera;
+  camera.viewport = loco.orthographic_render_view.viewport;
 
   fan::string str = "T";
 

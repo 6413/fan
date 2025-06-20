@@ -128,8 +128,8 @@ void init_framebuffer() {
     return;
   }
   loco.window.add_resize_callback([&](const auto& d) {
-    loco.viewport_set(loco.orthographic_camera.viewport, fan::vec2(0, 0), d.size);
-    loco.viewport_set(loco.perspective_camera.viewport, fan::vec2(0, 0), d.size);
+    loco.viewport_set(loco.orthographic_render_view.viewport, fan::vec2(0, 0), d.size);
+    loco.viewport_set(loco.perspective_render_view.viewport, fan::vec2(0, 0), d.size);
   });
 
 #if defined(loco_framebuffer)
@@ -188,8 +188,8 @@ void init_framebuffer() {
 
     fan::vec2 window_size = gloco->window.get_size();
 
-    loco.viewport_set(loco.orthographic_camera.viewport, fan::vec2(0, 0), d.size);
-    loco.viewport_set(loco.perspective_camera.viewport, fan::vec2(0, 0), d.size);
+    loco.viewport_set(loco.orthographic_render_view.viewport, fan::vec2(0, 0), d.size);
+    loco.viewport_set(loco.perspective_render_view.viewport, fan::vec2(0, 0), d.size);
   });
 
   fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
@@ -602,7 +602,7 @@ void draw_shapes() {
   bool light_buffer_enabled = false;
 
   { // update 3d view every frame
-    auto& camera_perspective = loco.camera_get(loco.perspective_camera.camera);
+    auto& camera_perspective = loco.camera_get(loco.perspective_render_view.camera);
     camera_perspective.update_view();
 
     camera_perspective.m_view = camera_perspective.get_view_matrix();
@@ -750,7 +750,7 @@ void draw_shapes() {
           loco.shader_set_camera(shader, camera);
         }
         else {
-          loco.shader_set_camera(shader, loco.orthographic_camera.camera);
+          loco.shader_set_camera(shader, loco.orthographic_render_view.camera);
         }
         if (viewport.iic() == false) {
           auto v = loco.viewport_get(viewport);
