@@ -92,7 +92,7 @@ void update() {
 
   if (pile.loco.input_action.is_action_clicked("move_to_position") && !gui::is_any_item_hovered()) {
     rect_path.clear();
-    fan::vec2 dst = pile.loco.get_mouse_position(pile.loco.orthographic_camera.camera, pile.loco.orthographic_camera.viewport);
+    fan::vec2 dst = pile.loco.get_mouse_position(pile.loco.orthographic_render_view.camera, pile.loco.orthographic_render_view.viewport);
     pile.path_solver.set_dst(dst);
     rect_dst.set_position(fan::vec3(dst, 50000));
     pile.path_solver.init(pile.player.player.get_position());

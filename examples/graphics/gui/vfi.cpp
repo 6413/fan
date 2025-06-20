@@ -9,7 +9,7 @@ struct pile_t {
 
   pile_t() {
    /* loco.camera_set_ortho(
-      loco.orthographic_camera.camera,
+      loco.orthographic_render_view.camera,
       ortho_x,
       ortho_y
     );*/
@@ -44,8 +44,8 @@ int main() {
   vfip.shape.rectangle->position = fan::vec3(500, 500, 1);
   vfip.shape.rectangle->size = fan::vec2(100, 100);
   vfip.shape.rectangle->size.x /= 2; // hitbox takes half size
-  vfip.shape.rectangle->camera = gloco->orthographic_camera.camera;
-  vfip.shape.rectangle->viewport = gloco->orthographic_camera.viewport;
+  vfip.shape.rectangle->camera = gloco->orthographic_render_view.camera;
+  vfip.shape.rectangle->viewport = gloco->orthographic_render_view.viewport;
 
   vfip.mouse_button_cb = [](const loco_t::vfi_t::mouse_button_data_t& ii_d) -> int {
     fan::print("click rectangle");

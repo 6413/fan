@@ -10,7 +10,7 @@ void open(void* sod) {
   main_map_id = pile.renderer.add(&main_compiled_map, p);
   fan::vec2 dst = pile.player.player.get_position();
   pile.loco.camera_set_position(
-    pile.loco.orthographic_camera.camera,
+    pile.loco.orthographic_render_view.camera,
     dst
   );
 }

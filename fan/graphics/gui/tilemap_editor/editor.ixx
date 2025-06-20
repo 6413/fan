@@ -125,9 +125,9 @@ export struct fte_t {
   }
 
   bool window_relative_to_grid(const fan::vec2& window_relative_position, fan::vec2i* in) {
-    auto camera_position = gloco->camera_get_position(camera->camera);
-    fan::vec2 vs = gloco->viewport_get_size(camera->viewport);
-    fan::vec2 p = gloco->translate_position(window_relative_position, camera->viewport, camera->camera) + camera_position;
+    auto camera_position = gloco->camera_get_position(render_view->camera);
+    fan::vec2 vs = gloco->viewport_get_size(render_view->viewport);
+    fan::vec2 p = gloco->translate_position(window_relative_position, render_view->viewport, render_view->camera) + camera_position;
 
     //p -= tile_size / 2;
     //if (!(map_size.x % 2)) {
@@ -155,7 +155,7 @@ export struct fte_t {
   }
 
   struct properties_t {
-    loco_t::camera_impl_t* camera = nullptr;
+    loco_t::render_view_t* camera = nullptr;
   };
 
   void open(const properties_t& properties) {
@@ -164,16 +164,16 @@ export struct fte_t {
     lp.min_filter = fan::graphics::image_filter::nearest;
     lp.mag_filter = fan::graphics::image_filter::nearest;
     if (properties.camera == nullptr) {
-      camera = &gloco->orthographic_camera;
+      render_view = &gloco->orthographic_render_view;
     }
     else {
-      camera = properties.camera;
+      render_view = properties.camera;
     }
 
     gloco->window.add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom;
-        gloco->camera_set_position(camera->camera, viewport_settings.pos - move_off);
+        gloco->camera_set_position(render_view->camera, viewport_settings.pos - move_off);
       }
       fan::vec2i p;
       {
@@ -206,7 +206,7 @@ export struct fte_t {
           viewport_settings.move = (bool)d.state;
           fan::vec2 old_pos = viewport_settings.pos;
           viewport_settings.offset = gloco->get_mouse_position();
-          viewport_settings.pos = gloco->camera_get_position(camera->camera);
+          viewport_settings.pos = gloco->camera_get_position(render_view->camera);
           break;
         }
         case fan::mouse_scroll_up: {
@@ -234,7 +234,7 @@ export struct fte_t {
 
             //viewport_settings.pos += (mouse_position * viewport_settings.zoom) / 4;
 
-            //gloco->camera_set_position(camera->camera, viewport_settings.pos);
+            //gloco->camera_set_position(render_view->camera, viewport_settings.pos);
           }
           return;
         }
@@ -294,7 +294,7 @@ export struct fte_t {
     transparent_texture = gloco->create_transparent_texture();
 
     grid_visualize.background = fan::graphics::sprite_t{ {
-      .camera = camera,
+      .render_view = render_view,
       .position = fan::vec3(tile_size * 2 * map_size / 2 - tile_size, 0),
       .size = 0,
       .image = transparent_texture,
@@ -308,14 +308,14 @@ export struct fte_t {
     grid_visualize.light_color = gloco->image_load("images/lightbulb.webp", lp);
 
     grid_visualize.highlight_hover = fan::graphics::unlit_sprite_t{ {
-      .camera = camera,
+      .render_view = render_view,
       .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth),
       .size = tile_size,
       .image = grid_visualize.highlight_color,
       .blending = true
     } };
     grid_visualize.highlight_selected = fan::graphics::unlit_sprite_t{ {
-      .camera = camera,
+      .render_view = render_view,
       .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth - 1),
       .size = 0,
       .color = fan::color(2, 2, 2, 1),
@@ -332,11 +332,11 @@ export struct fte_t {
     //// update viewport sizes
     //gloco->process_frame();
 
-    gloco->camera_set_position(camera->camera, viewport_settings.pos);
+    gloco->camera_set_position(render_view->camera, viewport_settings.pos);
 
     loco_t::grid_t::properties_t p;
-    p.viewport = camera->viewport;
-    p.camera = camera->camera;
+    p.viewport = render_view->viewport;
+    p.camera = render_view->camera;
     p.position = fan::vec3(0, 0, shape_depths_t::cursor_highlight_depth + 1);
     p.size = 0;
     p.color = fan::color::rgb(0, 128, 255);
@@ -346,7 +346,7 @@ export struct fte_t {
     resize_map();
 
     visual_line = fan::graphics::line_t{{
-      .camera = camera,
+      .render_view = render_view,
       .src = fan::vec3(0, 0, shape_depths_t::cursor_highlight_depth + 1),
       .dst = fan::vec2(400),
       .color = fan::colors::white
@@ -404,7 +404,7 @@ export struct fte_t {
 
     convert_draw_to_grid(grid_position);
 
-    brush.line_src = gloco->get_mouse_position(camera->camera, camera->viewport);
+    brush.line_src = gloco->get_mouse_position(render_view->camera, render_view->viewport);
 
     grid_position /= (tile_size * 2);
     auto& layers = map_tiles[grid_position].layers;
@@ -421,15 +421,15 @@ export struct fte_t {
         loco_t::light_t::properties_t lp;
         auto& shape = layers.back().shape;
         layers.back().tile.id = brush.id;
-        lp.camera = camera->camera;
-        lp.viewport = camera->viewport;
+        lp.camera = render_view->camera;
+        lp.viewport = render_view->viewport;
         lp.position = fan::vec3(position, brush.depth);
         lp.size = tile_size * brush.tile_size;
         lp.color = brush.dynamics_color == brush_t::dynamics_e::randomize ? fan::random::color() : brush.color;
         layers.back().shape = lp;
         layers.back().tile.mesh_property = mesh_property_t::light;
         visual_shapes[lp.position].shape = fan::graphics::sprite_t{ {
-            .camera = camera,
+            .render_view = render_view,
             .position = fan::vec3(fan::vec2(lp.position), lp.position.z + 1),
             .size = tile_size,
             .image = grid_visualize.light_color,
@@ -459,12 +459,12 @@ export struct fte_t {
           lp.size = shape.get_size();
           lp.angle = shape.get_angle();
           lp.color = shape.get_color();
-          lp.camera = camera->camera;
-          lp.viewport = camera->viewport;
+          lp.camera = render_view->camera;
+          lp.viewport = render_view->viewport;
           layer.shape = lp;
           layer.tile.mesh_property = mesh_property_t::light;
           visual_shapes[lp.position].shape = fan::graphics::sprite_t{ {
-              .camera = camera,
+              .render_view = render_view,
               .position = fan::vec3(fan::vec2(lp.position), lp.position.z + 1),
               .size = tile_size,
               .image = grid_visualize.light_color,
@@ -499,7 +499,7 @@ export struct fte_t {
           layers.back().tile.mesh_property = mesh_property_t::none;
           if (brush.type != brush_t::type_e::light) {
             layers.back().shape = fan::graphics::sprite_t{ {
-                .camera = camera,
+                .render_view = render_view,
                 .position = fan::vec3(position, brush.depth),
                 .size = tile_size * brush.tile_size,
                 .angle = brush.dynamics_angle == brush_t::dynamics_e::randomize ?
@@ -551,7 +551,7 @@ export struct fte_t {
               switch (brush.type) {
                 case brush_t::type_e::texture: {
                   layer.shape = fan::graphics::sprite_t{ {
-                      .camera = camera,
+                      .render_view = render_view,
                       .position = layer.shape.get_position(),
                       .size = layer.shape.get_size(),
                       .angle = layer.shape.get_angle(),
@@ -682,7 +682,7 @@ export struct fte_t {
         for (int j = src.y; j != dst.y + stepy; j += stepy) {
           for (int i = src.x; i != dst.x + stepx; i += stepx) {
             select.push_back(fan::graphics::unlit_sprite_t{ {
-                .camera = camera,
+                .render_view = render_view,
                 .position = fan::vec3(fan::vec2(i, j) * tile_size * 2, shape_depths_t::cursor_highlight_depth),
                 .size = tile_size,
                 .image = grid_visualize.highlight_color,
@@ -716,7 +716,7 @@ export struct fte_t {
                 auto& layers = physics_shapes[brush.depth];
                 layers.push_back({
                   .visual = fan::graphics::sprite_t{ {
-                    .camera = camera, // since its one shape, cant have offsets with multidrag
+                    .render_view = render_view, // since its one shape, cant have offsets with multidrag
                     .position = fan::vec3(((fan::vec2(copy_src) + (fan::vec2(copy_dst) - fan::vec2(copy_src)) / 2) + brush.offset/2) * tile_size * 2, brush.depth),
                     .size = (((copy_dst - copy_src) + fan::vec2(1, 1)) * fan::vec2(tile_size)).abs() * brush.tile_size,
                     .image = grid_visualize.collider_color,
@@ -837,7 +837,7 @@ export struct fte_t {
                     switch (t.tile.mesh_property) {
                       case mesh_property_t::light: {
                         visual_shapes[fan::vec3(draw_pos, brush.depth)].shape = fan::graphics::sprite_t{{
-                            .camera = camera,
+                            .render_view = render_view,
                             .position = fan::vec3(draw_pos, brush.depth + 1),
                             .size = tile.layers[k].tile.size,
                             .image = grid_visualize.light_color,
@@ -1020,7 +1020,7 @@ export struct fte_t {
       real_viewport_size.y = fan::clamp(real_viewport_size.y, 1.f, real_viewport_size.y);
 
       gloco->camera_set_ortho(
-          camera->camera,
+          render_view->camera,
           (fan::vec2(-real_viewport_size.x / 2, real_viewport_size.x / 2) / viewport_settings.zoom) + viewport_settings.zoom_offset.x,
           (fan::vec2(-real_viewport_size.y / 2, real_viewport_size.y / 2) / viewport_settings.zoom) + viewport_settings.zoom_offset.y
       );
@@ -1028,7 +1028,7 @@ export struct fte_t {
 
 
       gloco->viewport_set(
-        camera->viewport, 
+        render_view->viewport, 
         viewport_pos + fan::vec2(0, style.WindowPadding.y * 2),
         real_viewport_size
       );
@@ -1037,7 +1037,7 @@ export struct fte_t {
       static int init = 0;
       if (init == 0) {
         //viewport_settings.pos = viewport_settings.size / 2 - tile_size * 2 * map_size / 2;
-        //gloco->camera_set_position(camera->camera, viewport_settings.pos);
+        //gloco->camera_set_position(render_view->camera, viewport_settings.pos);
         init = 1;
       }
 
@@ -1163,14 +1163,14 @@ export struct fte_t {
       fan::graphics::gui::end();
     }
     else {
-      gloco->viewport_zero(camera->viewport);
+      gloco->viewport_zero(render_view->viewport);
       return true;
     }
     editor_settings.hovered = fan::graphics::gui::is_window_hovered();
     fan::graphics::gui::end();
 
     if (gloco->window.key_state(fan::key_shift) != -1) {
-      fan::vec2 line_dst = gloco->get_mouse_position(camera->camera, camera->viewport);
+      fan::vec2 line_dst = gloco->get_mouse_position(render_view->camera, render_view->viewport);
       visual_line.set_line(brush.line_src, line_dst);
       if (gloco->window.key_state(fan::mouse_left) == 1) {
         //fan::print(brush.line_src, line_dst);
@@ -1938,8 +1938,8 @@ shape data{
         auto& physics_shape = physics_shapes[shape.get_position().z];
         physics_shape.resize(physics_shape.size() + 1);
         auto& physics_element = physics_shape.back();
-        shape.set_camera(camera->camera);
-        shape.set_viewport(camera->viewport);
+        shape.set_camera(render_view->camera);
+        shape.set_viewport(render_view->viewport);
         shape.set_image(grid_visualize.collider_color);
         if (shape_json.contains("physics_shape_data")) {
           physics_element.id  = shape_json["id"];
@@ -1988,20 +1988,20 @@ shape data{
           if (texturepack.qti(layer->tile.image_name, &ti)) {
             fan::throw_error("failed to read image from .fte - editor save file corrupted");
           }
-          layer->shape.set_camera(camera->camera);
-          layer->shape.set_viewport(camera->viewport);
+          layer->shape.set_camera(render_view->camera);
+          layer->shape.set_viewport(render_view->viewport);
           layer->shape.set_tp(&ti);
           break;
         }
         case fte_t::mesh_property_t::light: {
           layer->shape = fan::graphics::light_t{{
-            .camera = camera,
+            .render_view = render_view,
             .position = shape.get_position(),
             .size = layer->tile.size,
             .color = layer->tile.color
           }};
           visual_shapes[shape.get_position()].shape = fan::graphics::sprite_t{{
-            .camera = camera,
+            .render_view = render_view,
             .position = fan::vec3(fan::vec2(shape.get_position()), shape.get_position().z + 1),
             .size = tile_size,
             .image = grid_visualize.light_color,
@@ -2179,7 +2179,7 @@ shape data{
   loco_t::image_t transparent_texture;
   fan::vec2i copy_buffer_region = 0;
   std::vector<shapes_t::global_t> copy_buffer;
-  loco_t::camera_impl_t* camera = nullptr;
+  loco_t::render_view_t* render_view = nullptr;
   std::function<void(int)> modify_cb = [](int) {};
 
   std::string previous_file_name;

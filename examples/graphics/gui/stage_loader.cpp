@@ -49,7 +49,7 @@ int main() {
 
   fan::vec2 window_size = pile.loco.window.get_size();
   pile.loco.camera_set_ortho(
-    pile.loco.orthographic_camera.camera,
+    pile.loco.orthographic_render_view.camera,
     fan::vec2(0, window_size.x),
     fan::vec2(0, window_size.y)
   );

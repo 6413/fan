@@ -67,9 +67,9 @@ struct pile_t {
     // map renderer & camera update
     fan::vec2 s = ImGui::GetContentRegionAvail();
     fan::vec2 dst = player.player.get_position();
-    fan::vec2 src = loco.camera_get_position(loco.orthographic_camera.camera);
+    fan::vec2 src = loco.camera_get_position(loco.orthographic_render_view.camera);
     loco.camera_set_position(
-      loco.orthographic_camera.camera,
+      loco.orthographic_render_view.camera,
       src + (dst - src) * loco.delta_time * 10
     );
     fan::vec2 position = player.player.get_position();
@@ -80,7 +80,7 @@ struct pile_t {
     player.player.set_position(fan::vec3(position, floor((position.y) / 64) + (0xFAAA - 2) / 2) + z);
     player.player.process_movement(fan::graphics::physics::character2d_t::movement_e::top_view);
     
-    loco.set_imgui_viewport(loco.orthographic_camera.viewport);
+    loco.set_imgui_viewport(loco.orthographic_render_view.viewport);
 
     // physics step
     loco.physics_context.step(loco.delta_time);
@@ -118,7 +118,7 @@ pile_t::pile_t() {
   
   fan::vec2 dst = player.player.get_position();
   loco.camera_set_position(
-    loco.orthographic_camera.camera,
+    loco.orthographic_render_view.camera,
     dst
   );
 
@@ -145,8 +145,8 @@ int main() {
   gloco->lighting.ambient =1;
 
   fan::graphics::interactive_camera_t ic(
-    pile.loco.orthographic_camera.camera, 
-    pile.loco.orthographic_camera.viewport
+    pile.loco.orthographic_render_view.camera, 
+    pile.loco.orthographic_render_view.viewport
   );
 
   pile.loco.loop([&] {

@@ -29,7 +29,7 @@ export struct fte_renderer_t : fte_loader_t {
   std::unordered_map<std::string, std::function<void(map_list_data_t::physics_entities_t&, compiled_map_t::physics_data_t&)>> sensor_id_callbacks;
 
   fan::vec2i view_size = 1;
-  fan::graphics::camera_t* camera = nullptr;
+  fan::graphics::render_view_t* render_view = nullptr;
 
   id_t add(compiled_map_t* compiled_map) {
     return add(compiled_map, properties_t());
@@ -37,11 +37,11 @@ export struct fte_renderer_t : fte_loader_t {
 
   id_t add(compiled_map_t* compiled_map, const properties_t& p) {
 
-    if (p.camera == nullptr) {
-      camera = &gloco->orthographic_camera;
+    if (p.render_view == nullptr) {
+      render_view = &gloco->orthographic_render_view;
     }
     else {
-      camera = p.camera;
+      render_view = p.render_view;
     }
 
     auto it = map_list.NewNodeLast();
@@ -95,7 +95,7 @@ export struct fte_renderer_t : fte_loader_t {
       case fte_t::physics_shapes_t::type_e::box: {
         node.physics_entities.push_back({
           .visual = fan::graphics::physics::rectangle_t{{
-              .camera = camera,
+              .render_view = render_view,
               .position = node.position + pd.position * node.size,
               .size = pd.size * node.size,
               .color = pd.physics_shapes.draw ? fan::color::hex(0x6e8d6eff) : fan::colors::transparent,
@@ -112,7 +112,7 @@ export struct fte_renderer_t : fte_loader_t {
       case fte_t::physics_shapes_t::type_e::circle: {
         node.physics_entities.push_back({
           .visual = fan::graphics::physics::circle_t{{
-              .camera = camera,
+              .render_view = render_view,
               .position = node.position + pd.position * node.size,
               .radius = (pd.size.max() * node.size.x == node.compiled_map->tile_size.x ? pd.size.y * node.size.y : pd.size.x  *  node.size.x),
               .color = pd.physics_shapes.draw ? fan::color::hex(0x6e8d6eff) : fan::colors::transparent,
@@ -142,7 +142,7 @@ export struct fte_renderer_t : fte_loader_t {
     switch (j.mesh_property) {
       case fte_t::mesh_property_t::none: {
         node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::sprite_t{ {
-            .camera = camera,
+            .render_view = render_view,
             .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, additional_depth + j.position.z),
             .size = j.size * node.size,
             .angle = j.angle,
@@ -162,7 +162,7 @@ export struct fte_renderer_t : fte_loader_t {
       }
       case fte_t::mesh_property_t::light: {
         node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::light_t{ {
-          .camera = camera,
+          .render_view = render_view,
           .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, additional_depth + j.position.z),
           .size = j.size * node.size,
           .color = j.color

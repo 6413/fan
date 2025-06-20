@@ -367,7 +367,7 @@ struct ecps_gui_t {
         rt->local_frame.set_size(0);
         rt->network_frame.set_size(0);
       }
-      engine.viewport_set(engine.orthographic_camera.viewport, 0, engine.window.get_size());
+      engine.viewport_set(engine.orthographic_render_view.viewport, 0, engine.window.get_size());
 
       fan::vec2 avail_size = gui::get_content_region_avail();
       if (avail_size.x > 0 && avail_size.y > 0) {
@@ -1079,7 +1079,7 @@ struct ecps_gui_t {
           gui::set_next_window_bg_alpha(0);
           gui::begin_child("##stream_display_split", fan::vec2(stream_width, avail_size.y), false);
 
-          gui::set_viewport(engine.orthographic_camera);
+          gui::set_viewport(engine.orthographic_render_view);
 
           if (auto rt = get_render_thread(); rt) {
             fan::vec2 stream_area = gui::get_content_region_avail();
@@ -1176,7 +1176,7 @@ struct ecps_gui_t {
           gui::set_next_window_bg_alpha(0);
           gui::begin_child("##stream_display", fan::vec2(avail_size.x - (side_padding * 2), avail_size.y), false);
 
-          gui::set_viewport(engine.orthographic_camera);
+          gui::set_viewport(engine.orthographic_render_view);
 
           if (auto rt = get_render_thread(); rt) {
             fan::vec2 stream_area = gui::get_content_region_avail();
@@ -1252,7 +1252,7 @@ struct ecps_gui_t {
 
       fan::vec2 window_content_size = gui::get_content_region_avail();
 
-      gui::set_viewport(engine.orthographic_camera);
+      gui::set_viewport(engine.orthographic_render_view);
 
       fan::vec2 center = window_content_size / 2;
 

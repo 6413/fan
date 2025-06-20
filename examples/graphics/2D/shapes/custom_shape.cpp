@@ -33,8 +33,8 @@ struct hexagon_t {
 
     bool blending = false;
 
-    loco_t::camera_t camera = gloco->orthographic_camera.camera;
-    loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+    loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+    loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
   };
 
   inline static std::vector<shaper_t::ShapeType_t::init_t> locations = {

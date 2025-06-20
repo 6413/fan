@@ -16,7 +16,7 @@ struct global_t {
 
   f32_t zoom = 1;
   bool move = false;
-  fan::vec2 pos = gloco->camera_get_position(gloco->orthographic_camera.camera);
+  fan::vec2 pos = gloco->camera_get_position(gloco->orthographic_render_view.camera);
   fan::vec2 offset = gloco->get_mouse_position();
 }global;
 
@@ -34,7 +34,7 @@ void handle_zoom_and_move() {
 
     auto update_zoom = [] {
       auto window_size = gloco->window.get_size();
-      gloco->camera_set_ortho(gloco->orthographic_camera.camera,
+      gloco->camera_set_ortho(gloco->orthographic_render_view.camera,
         fan::vec2(-window_size.x, window_size.x) / (global.zoom),
         fan::vec2(-window_size.y, window_size.y) / (global.zoom)
       );
@@ -43,7 +43,7 @@ void handle_zoom_and_move() {
     switch (d.button) {
       case fan::mouse_middle: {
         global.move = (bool)d.state;
-        global.pos = gloco->camera_get_position(gloco->orthographic_camera.camera);
+        global.pos = gloco->camera_get_position(gloco->orthographic_render_view.camera);
         global.offset = gloco->get_mouse_position();
         break;
       }
@@ -63,7 +63,7 @@ void handle_zoom_and_move() {
 
 int main() {
   fan::vec2 window_size = global.loco.window.get_size();
-  gloco->camera_set_ortho(gloco->orthographic_camera.camera, 
+  gloco->camera_set_ortho(gloco->orthographic_render_view.camera, 
     fan::vec2(-window_size.x, window_size.x),
     fan::vec2(-window_size.y, window_size.y)
   );
@@ -72,7 +72,7 @@ int main() {
 
   global.loco.window.add_mouse_move_callback([&](const auto& d) {
     if (global.move) {
-      gloco->camera_set_position(gloco->orthographic_camera.camera, global.pos - (d.position - global.offset) / global.zoom * 2);
+      gloco->camera_set_position(gloco->orthographic_render_view.camera, global.pos - (d.position - global.offset) / global.zoom * 2);
     }
   });
 

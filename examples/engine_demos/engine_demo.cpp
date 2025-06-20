@@ -6,7 +6,7 @@
 #include <array>
 import fan;
 
-// include after import fan;
+// include macro extensions after import fan;
 #include <fan/graphics/types.h>
 
 
@@ -24,7 +24,7 @@ struct engine_demo_t {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
       engine_demo->shapes[i] = fan::graphics::capsule_t{ {
-        .camera = &engine_demo->right_column_view,
+        .render_view = &engine_demo->right_column_view,
         .position = fan::random::vec2(0, viewport_size),
         .center0 = 0,
         .center1 = fan::vec2(0, fan::random::value(10.f, 256.f)),
@@ -38,7 +38,7 @@ struct engine_demo_t {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
       engine_demo->shapes[i] = fan::graphics::circle_t{ {
-        .camera = &engine_demo->right_column_view,
+        .render_view = &engine_demo->right_column_view,
         .position = fan::random::vec2(0, viewport_size),
         .radius = fan::random::value(16.f, 64.f),
         .color = fan::random::color()
@@ -53,7 +53,7 @@ struct engine_demo_t {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
       engine_demo->shapes[i] = fan::graphics::gradient_t{ {
-        .camera = &engine_demo->right_column_view,
+        .render_view = &engine_demo->right_column_view,
         .position = fan::random::vec2(0, viewport_size),
         .size = fan::random::vec2(30, 200),
         .color = {
@@ -70,7 +70,7 @@ struct engine_demo_t {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     
     engine_demo->shapes.emplace_back(fan::graphics::grid_t{{
-    .camera = &engine_demo->right_column_view,
+    .render_view = &engine_demo->right_column_view,
     .position = fan::vec3(-8, -8, 0),
     .size = viewport_size.max(),
     .grid_size = 32,
@@ -81,7 +81,7 @@ struct engine_demo_t {
   static void demo_shapes_init_universal_image_renderer(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     engine_demo->shapes.emplace_back(fan::graphics::universal_image_renderer_t{{
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 0),    
       .size = viewport_size / 2,//
     }});////
@@ -107,7 +107,7 @@ struct engine_demo_t {
 
     // bg
     engine_demo->shapes.emplace_back(fan::graphics::sprite_t{{
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 0),
       .size = viewport_size/2,
       .image = image_background,
@@ -115,7 +115,7 @@ struct engine_demo_t {
     }});
 
     engine_demo->shapes.emplace_back(fan::graphics::sprite_t{{
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 1),
       .size = viewport_size.min()/6,
       .image = engine_demo->image_tire,
@@ -123,25 +123,25 @@ struct engine_demo_t {
     }});
 
     engine_demo->shapes.emplace_back(fan::graphics::light_t{ {
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .position =  fan::vec3(fan::vec2(viewport_size.x / 3, viewport_size.y / 3), 0),
       .size = viewport_size.min() / 4,
       .color = fan::colors::red
     }});
     engine_demo->shapes.emplace_back(fan::graphics::light_t{ {
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .position =  fan::vec3(fan::vec2(viewport_size.x / 1.5, viewport_size.y / 3), 0),
       .size = viewport_size.min() / 3,
       .color = fan::colors::green
     }});
     engine_demo->shapes.emplace_back(fan::graphics::light_t{ {
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .position =  fan::vec3(fan::vec2(viewport_size.x / 2, viewport_size.y / 1.5), 0),
       .size = viewport_size.min() / 3,
       .color = fan::colors::blue
     }});
     engine_demo->shapes.emplace_back(fan::graphics::light_t{ {
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .position =  fan::vec3(fan::vec2(viewport_size.x / 2, viewport_size.y / 1.5), 0),
       .size = viewport_size.min() / 3,
       .color = fan::colors::purple
@@ -239,7 +239,7 @@ struct engine_demo_t {
 
       engine_demo->shapes[i] = fan::graphics::polygon_t{
         {
-          .camera = &engine_demo->right_column_view,
+          .render_view = &engine_demo->right_column_view,
           .position = 0,
           .vertices = pp.vertices
         }
@@ -252,7 +252,7 @@ struct engine_demo_t {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
       engine_demo->shapes[i] = fan::graphics::rectangle_t{ {
-        .camera = &engine_demo->right_column_view,
+        .render_view = &engine_demo->right_column_view,
         .position = fan::random::vec2(0, viewport_size),
         .size = fan::random::vec2(30, 200),
         .color = fan::random::color()
@@ -312,7 +312,7 @@ void main() {
 
     fan::graphics::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
     engine_demo->shapes.emplace_back(fan::graphics::shader_shape_t{{
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 3),
       .size = viewport_size / 2,
       .shader = engine_demo->demo_shader_shape_shader,
@@ -332,7 +332,7 @@ void main() {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
       engine_demo->shapes[i] = fan::graphics::sprite_t{ {
-        .camera = &engine_demo->right_column_view,
+        .render_view = &engine_demo->right_column_view,
         .position = fan::random::vec2(0, viewport_size),
         .size = fan::random::value(30.f, 200.f),
         .color = fan::random::bright_color(), // add tint to the image
@@ -360,12 +360,12 @@ void main() {
 
   static void on_reflect_depth_resize(engine_demo_t* engine_demo) {
     engine_demo->demo_physics_mirrors_data->ray_hit_point.resize(engine_demo->demo_physics_mirrors_data->reflect_depth + 1, { {
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .size = 4,
       .color = fan::colors::red
     } });
     engine_demo->demo_physics_mirrors_data->rays.resize(engine_demo->demo_physics_mirrors_data->reflect_depth + 1, { {
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .src = {0, 0, 0xfff},
       .color = fan::colors::green
     } });
@@ -379,12 +379,12 @@ void main() {
      {fan::vec2(700, 600), fan::colors::orange},
     };
     engine_demo->demo_physics_mirrors_data->triangle = fan::graphics::physics::polygon_strip_t{ {
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .vertices = triangle_vertices
     } };
     for (std::size_t i = 0; i < 5; ++i) {
       engine_demo->demo_physics_mirrors_data->circles.push_back({ {
-        .camera = &engine_demo->right_column_view,
+        .render_view = &engine_demo->right_column_view,
         .position = fan::random::vec2(0, viewport_size),
         .radius = fan::random::f32(12, 84),
         .color = fan::colors::orange,
@@ -396,7 +396,7 @@ void main() {
       wall.set_viewport(engine_demo->right_column_view.viewport);
     }
     engine_demo->demo_physics_mirrors_data->user_ray = { {
-        .camera = &engine_demo->right_column_view,
+        .render_view = &engine_demo->right_column_view,
         .src = {0, 500, 0xfff}, 
         .color = fan::colors::white
       } };
@@ -513,7 +513,7 @@ void main() {
     int height = viewport_size.y / 2;
     height -= height % 4;
     data.image_sprite = {{
-      .camera = &engine_demo->right_column_view,
+      .render_view = &engine_demo->right_column_view,
       .position = viewport_size / 2,
       .size = viewport_size.y / 2
     } };
@@ -729,7 +729,7 @@ void main() {
     }
   }
 
-  fan::graphics::camera_t right_column_view;
+  fan::graphics::render_view_t right_column_view;
   uint8_t current_demo = 0;
   int shape_count = 10;
   std::vector<engine_t::shape_t> shapes;

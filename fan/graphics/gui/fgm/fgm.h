@@ -1144,7 +1144,7 @@ struct fgm_t {
     }
   }
 
-  fan::graphics::camera_t camera;
+  fan::graphics::render_view_t render_view;
 
   fan::graphics::gui::content_browser_t content_browser{false};
 

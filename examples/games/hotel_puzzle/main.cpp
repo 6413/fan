@@ -61,7 +61,7 @@ void init_zoom() {
   auto update_ortho = [] {
     fan::vec2 s = gloco->window.get_size();
     gloco->camera_set_ortho(
-      gloco->orthographic_camera.camera,
+      gloco->orthographic_render_view.camera,
       fan::vec2(-s.x, s.x) / zoom,
       fan::vec2(-s.y, s.y) / zoom
     );
@@ -164,11 +164,11 @@ int main() {
     // gloco->get_fps();
     player.update();
     fan::vec2 dst = player.visual.get_position();
-    fan::vec2 src = gloco->camera_get_position(gloco->orthographic_camera.camera);
+    fan::vec2 src = gloco->camera_get_position(gloco->orthographic_render_view.camera);
     // smooth camera
     //fan::vec2 offset = (dst - src) * 4 * gloco->delta_time;
     //gloco->default_camera->camera.set_position(src + offset);
-    gloco->camera_set_position(gloco->orthographic_camera.camera, dst);
+    gloco->camera_set_position(gloco->orthographic_render_view.camera, dst);
     renderer.update(map_id0_t, dst);
   });
 

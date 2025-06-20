@@ -1,8 +1,8 @@
 struct model_list_t {
 
   struct properties_t {
-    loco_t::camera_t camera = gloco->orthographic_camera.camera;
-    loco_t::viewport_t viewport = gloco->orthographic_camera.viewport;
+    loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+    loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
     fan::vec3 position = 0;
   };
 

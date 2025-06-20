@@ -5,7 +5,7 @@
 int main() {
   loco_t loco;
   loco.camera_set_ortho(
-    loco.orthographic_camera.camera,
+    loco.orthographic_render_view.camera,
     fan::vec2(-1, 1),
     fan::vec2(-1, 1)
   );

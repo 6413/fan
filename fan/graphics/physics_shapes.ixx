@@ -368,7 +368,7 @@ export namespace fan {
 
       struct rectangle_t : base_shape_t {
         struct properties_t {
-          camera_impl_t* camera = &gloco->orthographic_camera;
+          render_view_t* render_view = &gloco->orthographic_render_view;
           fan::vec3 position = fan::vec3(0, 0, 0);
           fan::vec2 size = fan::vec2(0.1, 0.1);
           fan::color color = fan::color(1, 1, 1, 1);
@@ -378,7 +378,7 @@ export namespace fan {
           bool blending = false;
           operator fan::graphics::rectangle_properties_t() const {
             return fan::graphics::rectangle_properties_t{
-              .camera = camera,
+              .render_view = render_view,
               .position = position,
               .size = size,
               .color = color,
@@ -413,7 +413,7 @@ export namespace fan {
 
       struct sprite_t : base_shape_t {
         struct properties_t {
-          camera_impl_t* camera = &gloco->orthographic_camera;
+          render_view_t* render_view = &gloco->orthographic_render_view;
           fan::vec3 position = fan::vec3(0, 0, 0);
           fan::vec2 size = fan::vec2(0.1, 0.1);
           fan::vec3 angle = 0;
@@ -426,7 +426,7 @@ export namespace fan {
           uint32_t flags = 0;
           operator fan::graphics::sprite_properties_t() const {
             return fan::graphics::sprite_properties_t{
-              .camera = camera,
+              .render_view = render_view,
               .position = position,
               .size = size,
               .angle = angle,
@@ -464,7 +464,7 @@ export namespace fan {
 
       struct circle_t : base_shape_t {
         struct properties_t {
-          camera_impl_t* camera = &gloco->orthographic_camera;
+          render_view_t* render_view = &gloco->orthographic_render_view;
           fan::vec3 position = fan::vec3(0, 0, 0);
           f32_t radius = 0.1f;
           fan::vec3 angle = 0;
@@ -473,7 +473,7 @@ export namespace fan {
           uint32_t flags = 0;
           operator fan::graphics::circle_properties_t() const {
             return fan::graphics::circle_properties_t{
-              .camera = camera,
+              .render_view = render_view,
               .position = position,
               .radius = radius,
               .angle = angle,
@@ -506,7 +506,7 @@ export namespace fan {
       };
       struct circle_sprite_t : base_shape_t {
         struct properties_t {
-          camera_impl_t* camera = &gloco->orthographic_camera;
+          render_view_t* render_view = &gloco->orthographic_render_view;
           fan::vec3 position = fan::vec3(0, 0, 0);
           f32_t radius = 0.1f;
           fan::vec2 size = radius;
@@ -517,7 +517,7 @@ export namespace fan {
           uint32_t flags = 0;
           operator fan::graphics::sprite_properties_t() const {
             return fan::graphics::sprite_properties_t{
-              .camera = camera,
+              .render_view = render_view,
               .position = position,
               .size = size,
               .angle = angle,
@@ -551,7 +551,7 @@ export namespace fan {
       };
       struct capsule_t : base_shape_t {
         struct properties_t {
-          camera_impl_t* camera = &gloco->orthographic_camera;
+          render_view_t* render_view = &gloco->orthographic_render_view;
           fan::vec3 position = fan::vec3(0, 0, 0);
           fan::vec2 center0{ 0, -32.f };
           fan::vec2 center1{ 0, 32.f };
@@ -562,7 +562,7 @@ export namespace fan {
           uint32_t flags = 0;
           operator fan::graphics::capsule_properties_t() const {
             return fan::graphics::capsule_properties_t{
-              .camera = camera,
+              .render_view = render_view,
               .position = position,
               .center0 = center0,
               .center1 = center1,
@@ -598,7 +598,7 @@ export namespace fan {
 
       struct capsule_sprite_t : base_shape_t {
         struct properties_t {
-          camera_impl_t* camera = &gloco->orthographic_camera;
+          render_view_t* render_view = &gloco->orthographic_render_view;
           fan::vec3 position = fan::vec3(0, 0, 0);
           fan::vec2 center0{ 0, -32.f };
           fan::vec2 center1{ 0, 32.f };
@@ -618,7 +618,7 @@ export namespace fan {
 
           operator fan::graphics::sprite_properties_t() const {
             return fan::graphics::sprite_properties_t{
-              .camera = camera,
+              .render_view = render_view,
               .position = position,
               .size = radius,
               .angle = angle,
@@ -652,7 +652,7 @@ export namespace fan {
       };
       struct polygon_t : base_shape_t {
         struct properties_t {
-          camera_impl_t* camera = &gloco->orthographic_camera;
+          render_view_t* render_view = &gloco->orthographic_render_view;
           fan::vec3 position = 0;
           f32_t radius = 0.005;
           fan::vec3 angle = 0;
@@ -662,7 +662,7 @@ export namespace fan {
           uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_fan;
           operator fan::graphics::polygon_properties_t() const {
             return fan::graphics::polygon_properties_t{
-              .camera = camera,
+              .render_view = render_view,
               .position = position,
               .vertices = vertices,
               .angle = angle,
@@ -707,7 +707,7 @@ export namespace fan {
 
       struct polygon_strip_t : base_shape_t {
         struct properties_t {
-          camera_impl_t* camera = &gloco->orthographic_camera;
+          render_view_t* render_view = &gloco->orthographic_render_view;
           fan::vec3 position = 0;
           fan::vec3 angle = 0;
           fan::vec2 rotation_point = 0;
@@ -716,7 +716,7 @@ export namespace fan {
           uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
           operator fan::graphics::polygon_properties_t() const {
             return fan::graphics::polygon_properties_t{
-              .camera = camera,
+              .render_view = render_view,
               .position = position,
               .vertices = vertices,
               .angle = angle,
