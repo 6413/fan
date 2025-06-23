@@ -78,8 +78,6 @@ Library plans to use modules in future.
       fan::graphics::gui::text("top left", fan::vec2(0, 0), fan::colors::red);
       fan::graphics::gui::text_bottom_right("bottom right", fan::colors::green);
     });
-  
-    return 0;
   }
   ```
 ## Examples
