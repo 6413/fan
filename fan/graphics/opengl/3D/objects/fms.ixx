@@ -2,6 +2,10 @@ module;
 
 #define fms_use_opengl
 
+#if defined(fms_use_opengl)
+  #include <GL/glew.h>
+#endif
+
 #include <fan/types/types.h>
 #include <fan/math/math.h>
 #include <fan/types/dme.h>

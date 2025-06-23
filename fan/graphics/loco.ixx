@@ -52,7 +52,7 @@ module;
 
 #if defined(fan_gui)
   #include <fan/imgui/imgui.h>
-  #include "misc/freetype/imgui_freetype.h"
+  #include <fan/imgui/misc/freetype/imgui_freetype.h>
   #include <fan/imgui/imgui_impl_opengl3.h>
   #if defined(fan_vulkan)
     #include <fan/imgui/imgui_impl_vulkan.h>
