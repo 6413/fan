@@ -1,7 +1,9 @@
 module;
 
 #include <fan/types/types.h>
-#if defined(fan_compiler_msvc)
+
+// With windows clang build there can be msvc and clang both defined
+#if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
   import <fan/types/json_impl.h>;
 #else
   #include <fan/types/json_impl.h>

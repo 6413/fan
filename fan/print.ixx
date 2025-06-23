@@ -2,7 +2,8 @@ module;
 
 #include <fan/types/types.h>
 
-#ifdef fan_compiler_msvc
+// With windows clang build there can be msvc and clang both defined
+#if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
 
 #else
 
@@ -20,7 +21,7 @@ module;
 
 export module fan.print;
 
-#ifdef fan_compiler_msvc
+#if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
 import std;
 #endif
 

@@ -1,7 +1,13 @@
+#include <string>
+#include <unordered_map>
+#include <type_traits>
+#include <memory>
+#include <filesystem>
 
 #include <fan/types/types.h>
 #include <fan/types/dme.h>
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <fan/imgui/imgui.h>
 #include <fan/imgui/ImGuizmo.h>
 

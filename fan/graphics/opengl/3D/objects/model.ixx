@@ -1,5 +1,7 @@
 module;
 
+#include <iomanip>
+
 #include <fan/graphics/opengl/init.h>
 #include <fan/imgui/imgui.h>
 

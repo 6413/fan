@@ -1,23 +1,20 @@
 import fan;
 
-#include <string>
-
-using namespace fan::graphics;
-
-void main_loop() {//
-  gui::begin("aa");//
-  static std::string buffer;
-  gui::input_text("input", &buffer);
-  static auto hover = fan::audio::open_piece("hover");
-  static auto click = fan::audio::open_piece("click");
-  if (gui::audio_button("button_name", hover, click)) {
-
-  }
-  fan::printcl(buffer);
-  gui::end();
-}
-
 int main() {
-  engine_t engine;
-  engine.loop(main_loop);
+  loco_t loco;
+
+  fan::vec2 window_size = loco.window.get_size();
+
+  // draw line from top left to bottom right
+  fan::graphics::rectangle_t rect{{
+    .position = fan::vec3(400, 400, 0),
+    .size = 50,
+    .color = fan::colors::red
+  }};
+
+  loco.loop([&] {
+
+  });
+
+  return 0;
 }
