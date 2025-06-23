@@ -53,7 +53,7 @@ Library plans to use modules in future.
 
 - Hello world rectangle:
     ```cpp
-    #include <fan/pch.h>
+    import fan;
 
     int main() {
       fan::graphics::engine_t engine;
@@ -64,22 +64,20 @@ Library plans to use modules in future.
           .color = fan::colors::red
       }};
       
-      fan_window_loop{
-    
-      };
+      engine.loop();
     }
     ```
 - Text rendering:
   ```cpp
-  #include <fan/pch.h>
+  import fan;
   
   int main() {
     fan::graphics::engine_t engine;
   
-    fan_window_loop{
+    engine.loop([]{
       fan::graphics::gui::text("top left", fan::vec2(0, 0), fan::colors::red);
       fan::graphics::gui::text_bottom_right("bottom right", fan::colors::green);
-    };
+    });
   
     return 0;
   }
