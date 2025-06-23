@@ -10,6 +10,7 @@ module;
 #include <functional>
 #include <unordered_map>
 #include <array>
+#include <string>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>

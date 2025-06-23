@@ -795,7 +795,7 @@ export namespace fan {
       void create_highlight() {
         apply_highlight([](auto& h, const fan::line3& line, fan::graphics::render_view_t& render_view) {
           h = fan::graphics::line_t{ {
-            .camera = &render_view,
+            .render_view = &render_view,
             .src = line[0],
             .dst = line[1],
             .color = fan::color(1, 0.5, 0, 1)
