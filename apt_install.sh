@@ -1,7 +1,7 @@
 #!/bin/bash
 packages=(
 	clang-20
-	cmake # >= 2.8 required
+	cmake # >= 3.31.1 required
 	libwebp-dev
 	llvm
 	libfmt-dev
@@ -24,10 +24,12 @@ for package in "${packages[@]}"; do
     apt install -y "$package" || echo "Failed to install $package, skipping..."
 done
 
+echo "\n\n"
+
 # Verify cmake version
 cmake_version=$(cmake --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+')
-if [[ "$cmake_version" < "2.8" ]]; then
-    echo "CMake version $cmake_version is too old (need >= 2.8)"
+if [[ "$cmake_version" < "3.31.1" ]]; then
+    echo "CMake version $cmake_version is too old (need >= 3.31.1)"
 fi
 
 # Verify ninja version
