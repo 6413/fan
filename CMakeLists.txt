@@ -70,21 +70,23 @@ endif()
 
 project(fan)
 
-set(ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/fan/)
-set(OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/fan)
-set(THIRDPARTY_PATH ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fan)
+set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
+set(ROOT_PATH ${SOURCE_DIR}/fan/)
+set(OUTPUT_PATH ${SOURCE_DIR}/lib/fan)
+set(THIRDPARTY_PATH ${SOURCE_DIR}/thirdparty/fan)
 
 file(MAKE_DIRECTORY ${OUTPUT_PATH})
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${SOURCE_DIR})
 
 if(WIN32)
 		include_directories(${THIRDPARTY_PATH}/include)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+    include_directories(${SOURCE_DIR}/include)
 		if(FAN_3D)
 			include_directories(a.exe PRIVATE C:/Program\ Files/Assimp/include)
 		endif()
-		link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)
+		link_directories(${SOURCE_DIR}/lib)
 else()
     include_directories(${THIRDPARTY_PATH}/include)
     link_directories(${THIRDPARTY_PATH}/lib)
@@ -94,7 +96,7 @@ if(FAN_GUI)
     if(WIN32)
 
         find_library(FREETYPE_LIBRARY freetype 
-            PATHS ${CMAKE_CURRENT_SOURCE_DIR}/lib/freetype
+            PATHS ${SOURCE_DIR}/lib/freetype
             NO_DEFAULT_PATH
         )
         if(NOT FREETYPE_LIBRARY)
@@ -102,7 +104,7 @@ if(FAN_GUI)
         endif()
 
         set(Freetype_VERSION "2.13.2")
-        set(FREETYPE_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include)
+        set(FREETYPE_INCLUDE_DIRS ${SOURCE_DIR}/include)
 
         add_library(Freetype::Freetype STATIC IMPORTED)
         set_target_properties(Freetype::Freetype PROPERTIES
@@ -113,7 +115,7 @@ if(FAN_GUI)
         message(STATUS "Using Windows FreeType ${Freetype_VERSION} from ${FREETYPE_LIBRARY}")
 
         find_library(LUNASVG_LIBRARY lunasvg 
-            PATHS ${CMAKE_CURRENT_SOURCE_DIR}/lib
+            PATHS ${SOURCE_DIR}/lib
             NO_DEFAULT_PATH
         )
         if(NOT LUNASVG_LIBRARY)
@@ -123,7 +125,7 @@ if(FAN_GUI)
             add_library(lunasvg STATIC IMPORTED)
             set_target_properties(lunasvg PROPERTIES
                 IMPORTED_LOCATION ${LUNASVG_LIBRARY}
-                INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/include
+                INTERFACE_INCLUDE_DIRECTORIES ${SOURCE_DIR}/include
             )
             set(LUNASVG_FOUND TRUE)
             message(STATUS "Using Windows LunaSVG from ${LUNASVG_LIBRARY}")
@@ -412,7 +414,7 @@ endif()
 
 if(BUILD_MAIN)
     if(NOT DEFINED MAIN)
-        set(MAIN examples/graphics/2D/shapes/rectangle.cpp)
+        set(MAIN ${SOURCE_DIR}/examples/graphics/2D/shapes/rectangle.cpp)
     endif()
 
     if(UNIX AND WAYLAND_CLIENT_FOUND AND FAN_WAYLAND_SCREEN)
@@ -482,26 +484,26 @@ if(BUILD_MAIN)
 
         target_link_libraries(a.exe PRIVATE
 					opengl32
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/GLFW/glfw3_mt.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/GLEW/glew32s.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/libuv/uv_a.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/libwebp/libwebp.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/opus/opus.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/openssl/libssl.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/openssl/libcrypto.lib
+					${SOURCE_DIR}/lib/GLFW/glfw3_mt.lib
+					${SOURCE_DIR}/lib/GLEW/glew32s.lib
+					${SOURCE_DIR}/lib/libuv/uv_a.lib
+					${SOURCE_DIR}/lib/libwebp/libwebp.lib
+					${SOURCE_DIR}/lib/opus/opus.lib
+					${SOURCE_DIR}/lib/openssl/libssl.lib
+					${SOURCE_DIR}/lib/openssl/libcrypto.lib
         )
 
         if (FAN_GUI)
 					target_link_libraries(a.exe PRIVATE
 						imgui
 						nfd
-						${CMAKE_CURRENT_SOURCE_DIR}/lib/freetype/freetype.lib
-						${CMAKE_CURRENT_SOURCE_DIR}/lib/lunasvg/lunasvg.lib
+						${SOURCE_DIR}/lib/freetype/freetype.lib
+						${SOURCE_DIR}/lib/lunasvg/lunasvg.lib
 					)
         endif()
 
         if(FAN_PHYSICS)
-            find_library(BOX2D_LIB box2d PATHS ${CMAKE_CURRENT_SOURCE_DIR}/lib/box2d NO_DEFAULT_PATH)
+            find_library(BOX2D_LIB box2d PATHS ${SOURCE_DIR}/lib/box2d NO_DEFAULT_PATH)
             if(BOX2D_LIB)
                 target_link_libraries(a.exe PRIVATE ${BOX2D_LIB})
             else()
@@ -515,7 +517,7 @@ if(BUILD_MAIN)
 
         if(FAN_VULKAN)
             find_package(Vulkan REQUIRED)
-            find_library(SHADERC_LIB shaderc_shared PATHS ${CMAKE_CURRENT_SOURCE_DIR}/lib NO_DEFAULT_PATH)
+            find_library(SHADERC_LIB shaderc_shared PATHS ${SOURCE_DIR}/lib NO_DEFAULT_PATH)
             if(SHADERC_LIB)
                 target_link_libraries(a.exe PRIVATE Vulkan::Vulkan ${SHADERC_LIB})
             else()
@@ -525,13 +527,13 @@ if(BUILD_MAIN)
 				
 				if(FAN_WAYLAND_SCREEN)
 					target_link_libraries(a.exe PRIVATE DXGI.lib D3D11.lib 
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/libx264/libx264.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/openh264/welsdcore.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/openh264/welsecore.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/openh264/WelsDecPlus.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/openh264/WelsEncPlus.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/openh264/WelsVP.lib
-					${CMAKE_CURRENT_SOURCE_DIR}/lib/openh264/encConsole.lib
+					${SOURCE_DIR}/lib/libx264/libx264.lib
+					${SOURCE_DIR}/lib/openh264/welsdcore.lib
+					${SOURCE_DIR}/lib/openh264/welsecore.lib
+					${SOURCE_DIR}/lib/openh264/WelsDecPlus.lib
+					${SOURCE_DIR}/lib/openh264/WelsEncPlus.lib
+					${SOURCE_DIR}/lib/openh264/WelsVP.lib
+					${SOURCE_DIR}/lib/openh264/encConsole.lib
 				)
 				endif()
 				
