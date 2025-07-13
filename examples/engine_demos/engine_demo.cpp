@@ -4,6 +4,9 @@
 #include <vector>
 #include <string>
 #include <array>
+#include <mutex>
+#include <atomic>
+
 import fan;
 
 // include macro extensions after import fan;
