@@ -794,7 +794,7 @@ namespace fan {
 
 #ifndef __fast_8log2
   #define __fast_8log2 __fast_8log2
-  __forceinline std::uint8_t __fast_8log2(std::uint8_t v){
+  inline std::uint8_t __fast_8log2(std::uint8_t v){
     return 31 - __clz32(v);
   }
 #endif
