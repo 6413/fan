@@ -1,7 +1,8 @@
 module;
 
 #include <fan/types/types.h>
-#include <fan/time/timer.h>
+#include <fan/math/math.h>
+#include <fan/time/time.h>
 #include <fan/event/types.h>
 
 #if defined(fan_gui)
@@ -614,6 +615,31 @@ export namespace fan {
           ImGui::PushStyleColor(ImGuiCol_Text, color);
           ImGui::Text("%s", text.c_str());
           ImGui::PopStyleColor();
+        }
+
+        /// <summary>
+        /// Draws text constructed from multiple arguments, with optional color.
+        /// </summary>
+        /// <param name="color">The color of the text.</param>
+        /// <param name="args">Arguments to be concatenated with spaces.</param>
+        template <typename ...Args>
+        void text(const fan::color& color, const Args&... args) {
+          std::ostringstream oss;
+          int idx = 0;
+          ((oss << args << (++idx == sizeof...(args) ? "" : " ")), ...);
+
+          ImGui::PushStyleColor(ImGuiCol_Text, color);
+          ImGui::Text("%s", oss.str().c_str());
+          ImGui::PopStyleColor();
+        }
+
+        /// <summary>
+        /// Draws text constructed from multiple arguments with default white color.
+        /// </summary>
+        /// <param name="args">Arguments to be concatenated with spaces.</param>
+        template <typename ...Args>
+        void text(const Args&... args) {
+          text(fan::colors::white, args...);
         }
 
         /// <summary>
@@ -1382,9 +1408,7 @@ export namespace fan {
         ) {
           bool ret = ImGui::ImageButton(text.c_str(), (ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
           ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
-          ImVec2 pos = ImGui::GetItemRectMin();
-          pos.x += (size.x - text_size.x) * 0.5f;
-          pos.y += (size.y - text_size.y) * 0.5f;
+          ImVec2 pos = ImGui::GetItemRectMin() + (ImGui::GetItemRectMax() - ImGui::GetItemRectMin()) / 2 - text_size / 2;
           ImGui::GetWindowDrawList()->AddText(pos, ImGui::GetColorU32(color), text.c_str());
           return ret;
         }
@@ -2005,7 +2029,138 @@ export namespace fan {
         }
       };
 
+      font_t* get_font(f32_t font_size) {
+        int best_index = 0;
+        f32_t best_diff = std::abs(gloco->font_sizes[0] - font_size);
+
+        for (std::size_t i = 1; i < std::size(gloco->font_sizes); ++i) {
+          f32_t diff = std::abs(gloco->font_sizes[i] - font_size);
+          if (diff < best_diff) {
+            best_diff = diff;
+            best_index = i;
+          }
+        }
+
+        return gloco->fonts[best_index];
+      }
+
       struct dialogue_box_t {
+
+        struct render_type_t;
+
+        #include <fan/fan_bll_preset.h>
+        #define BLL_set_prefix drawables
+        #define BLL_set_type_node uint16_t
+        #define BLL_set_NodeDataType render_type_t*
+        #define BLL_set_Link 1
+        #define BLL_set_AreWeInsideStruct 1
+        #define BLL_set_SafeNext 1
+        #include <BLL/BLL.h>
+        using drawable_nr_t = drawables_NodeReference_t;
+
+        drawables_t drawables;
+
+        struct render_type_t {
+          virtual void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) = 0;
+          virtual ~render_type_t() {}
+        };
+
+        struct text_delayed_t : render_type_t {
+          void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) override {
+            
+            // initialize advance task but dont restart it after dialog finished
+            if (finish_dialog == false && character_advance_task.handle == nullptr) {
+              character_advance_task = [This, nr]() -> fan::event::task_t {
+                text_delayed_t* text_delayed = dynamic_cast<text_delayed_t*>(This->drawables[nr]);
+                if (text_delayed == nullptr) {
+                  co_return;
+                }
+
+                // advance text rendering
+                while (text_delayed->render_pos < text_delayed->text.size() && !text_delayed->finish_dialog) {
+                  ++text_delayed->render_pos;
+                  co_await fan::co_sleep(1000 / text_delayed->character_per_s);
+                }
+              }();
+            }
+
+            //ImGui::BeginChild((fan::random::string(10) + "child").c_str(), fan::vec2(wrap_width, 0), 0, ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar |
+            //  ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
+            //if (This->wait_user == false) {
+            //  ImGui::SetScrollY(ImGui::GetScrollMaxY());
+            //}
+            fan::graphics::text_partial_render(text, render_pos, wrap_width, line_spacing);
+//            ImGui::EndChild();
+
+            if (render_pos == text.size()) {
+              finish_dialog = true;
+            }
+
+            if (finish_dialog && blink_timer.finished()) {
+              if (render_cursor) {
+                render_pos = text.size();
+              }
+              else {
+                render_pos = text.size() - 1;
+              }
+              render_cursor = !render_cursor;
+              blink_timer.restart();
+            }
+          }
+          bool finish_dialog = false; // for skipping
+          std::string text;
+          uint64_t character_per_s = 20;
+          std::size_t render_pos = 0;
+          fan::time::clock blink_timer{ (uint64_t)0.5e9, false };
+          uint8_t render_cursor = false;
+          fan::event::task_t character_advance_task;
+        };
+        struct text_t : render_type_t {
+          std::string text;
+          void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) override {
+            fan::graphics::gui::text(text);
+          }
+        };
+
+        struct button_t : render_type_t {
+          fan::vec2 position = -1;
+          fan::vec2 size = 0;
+          std::string text;
+          void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) override {
+            if (This->wait_user) {
+              // calculate biggest button
+              fan::vec2 button_size = 0;
+
+              fan::vec2 text_size = gui::calc_text_size(text);
+              f32_t padding_x = ImGui::GetStyle().FramePadding.x;
+              f32_t padding_y = ImGui::GetStyle().FramePadding.y;
+              button_size = fan::vec2(text_size.x + padding_x * 2.0f, text_size.y + padding_y * 2.0f);
+
+              ImGui::SetCursorPos((position * gui::get_window_size()) - (size == 0 ? button_size / 2 : size / 2));
+              ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetScrollY());
+
+              if (fan::graphics::gui::image_text_button(gloco->default_texture, text, fan::colors::white, size == 0 ? button_size : size)) {
+                This->button_choice = nr;
+                auto it = This->drawables.GetNodeFirst();
+                while (it != This->drawables.dst) {
+                  This->drawables.StartSafeNext(it);
+                  if (auto* button = dynamic_cast<button_t*>(This->drawables[it])) {
+                    delete This->drawables[it];
+                    This->drawables.unlrec(it);
+                  }
+                  it = This->drawables.EndSafeNext();
+                }
+                This->wait_user = false;
+              }
+            }
+          }
+        };
+
+        struct separator_t : render_type_t {
+          void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) override {
+            ImGui::Separator();
+          }
+        };
 
         dialogue_box_t() {
           gloco->input_action.add(fan::mouse_left, "skip or continue dialog");
@@ -2015,52 +2170,84 @@ export namespace fan {
         void set_cursor_position(const fan::vec2& pos) {
           this->cursor_position = pos;
         }
-        fan::event::task_t text(const std::string& text) {
-          active_dialogue = text;
-          render_pos = 0;
-          finish_dialog = false;
-          while (render_pos < active_dialogue.size() && !finish_dialog) {
-            ++render_pos;
-            co_await fan::co_sleep(1000 / character_per_s);
-          }
-          render_pos = active_dialogue.size();
+        void set_indent(f32_t indent) {
+          this->indent = indent;
         }
 
-        fan::event::task_t button(const std::string& text, const fan::vec2& position = -1, const fan::vec2& size = { 0, 0 }) {
-          button_choice = -1;
+        fan::event::task_value_resume_t<drawable_nr_t> text_delayed(const std::string& text) {
+          return text_delayed(text, 20); // 20 characters per second
+        }
+        fan::event::task_value_resume_t<drawable_nr_t> text_delayed(const std::string& text, int characters_per_second) {
+          text_delayed_t td;
+          td.character_per_s = characters_per_second;
+          td.text = text;
+          td.render_pos = 0;
+          td.finish_dialog = false;
+
+          auto it = drawables.NewNodeLast();
+          drawables[it] = new text_delayed_t(std::move(td));
+
+          co_return it;
+        }
+        fan::event::task_value_resume_t<drawable_nr_t> text(const std::string& text) {
+          text_t text_drawable;
+          text_drawable.text = text;
+
+          auto it = drawables.NewNodeLast();
+          drawables[it] = new text_t(text_drawable);
+
+          co_return it;
+        }
+
+        fan::event::task_value_resume_t<drawable_nr_t> button(const std::string& text, const fan::vec2& position, const fan::vec2& size = { 0, 0 }) {
+          button_choice.sic();
           button_t button;
           button.position = position;
           button.size = size;
           button.text = text;
-          buttons.push_back(button);
-          co_return;
+
+          auto it = drawables.NewNodeLast();
+          drawables[it] = new button_t(button);
+          co_return it;
         }
-        int get_button_choice() const {
-          return button_choice;
+
+        // default width 80% of the window
+        fan::event::task_value_resume_t<drawable_nr_t> separator(f32_t width = 0.8) {
+          auto it = drawables.NewNodeLast();
+          drawables[it] = new separator_t;
+
+          co_return it;
+        }
+
+
+        int get_button_choice() {
+          int btn_choice = -1;
+
+          uint64_t button_index = 0;
+          auto it = drawables.GetNodeFirst();
+          while (it != drawables.dst) {
+            drawables.StartSafeNext(it);
+            if (auto* button = dynamic_cast<button_t*>(drawables[it])) {
+              if (button_choice == it) {
+                break;
+              }
+              ++button_index;
+            }
+            it = drawables.EndSafeNext();
+          }
+          return btn_choice;
         }
 
         fan::event::task_t wait_user_input() {
           wait_user = true;
-          fan::time::clock c;
-          c.start(0.5e9);
-          int prev_render = render_pos;
           while (wait_user) {
-            if (c.finished()) {
-              if (prev_render == render_pos) {
-                render_pos = std::max(prev_render - 1, 0);
-              }
-              else {
-                render_pos = prev_render;
-              }
-              c.restart();
-            }
             co_await fan::co_sleep(10);
           }
-          render_pos = prev_render;
         }
 
         void render(const std::string& window_name, ImFont* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) {
           ImGui::PushFont(font);
+
           fan::vec2 root_window_size = ImGui::GetWindowSize();
           fan::vec2 next_window_pos;
           next_window_pos.x = (root_window_size.x - window_size.x) / 2.0f;
@@ -2072,72 +2259,63 @@ export namespace fan {
             ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar
           );
-          ImGui::SetCursorPos(ImVec2(100.0f, 100.f));
-          ImGui::BeginChild((window_name + "child").c_str(), fan::vec2(wrap_width, 0), 0, ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar |
-            ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
-          if (wait_user == false) {
-            ImGui::SetScrollY(ImGui::GetScrollMaxY());
+
+          f32_t current_font_size = ImGui::GetFont()->FontSize;
+          f32_t scale_factor = font_size / current_font_size;
+          ImGui::SetWindowFontScale(scale_factor);
+
+      //    ImGui::BeginChild((fan::random::string(10) + "child").c_str(), fan::vec2(wrap_width, 0), 0, ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar |
+  //        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
+
+          render_content_cb(cursor_position == -1 ? fan::vec2(0, 0) : cursor_position, indent);
+          // render objects here
+
+          auto it = drawables.GetNodeFirst();
+          while (it != drawables.dst) {
+            drawables.StartSafeNext(it);
+            // co_await or task vector
+            drawables[it]->render(this, it, window_size, wrap_width, line_spacing);
+            it = drawables.EndSafeNext();
           }
-          fan::graphics::text_partial_render(active_dialogue.c_str(), render_pos, wrap_width, line_spacing);
-          ImGui::EndChild();
-          if (wait_user) {
-            fan::vec2 first_pos = -1;
+     //     ImGui::EndChild();
+          ImGui::SetWindowFontScale(1.0f);
 
+          
+          bool finish_dialog = gloco->input_action.is_active("skip or continue dialog") && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
 
-            // calculate biggest button
-            fan::vec2 button_size = 0;
-            for (std::size_t i = 0; i < buttons.size(); ++i) {
-              fan::vec2 text_size = ImGui::CalcTextSize(buttons[i].text.c_str());
-              float padding_x = ImGui::GetStyle().FramePadding.x;
-              float padding_y = ImGui::GetStyle().FramePadding.y;
-              ImVec2 bs = ImVec2(text_size.x + padding_x * 2.0f, text_size.y + padding_y * 2.0f);
-              button_size = button_size.max(fan::vec2(bs));
-            }
-
-            for (std::size_t i = 0; i < buttons.size(); ++i) {
-              const auto& button = buttons[i];
-              if (button.position != -1) {
-                first_pos = button.position;
-                ImGui::SetCursorPos((button.position * window_size) - button_size / 2);
-                ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetScrollY());
-              }
-              else {
-                ImGui::SetCursorPosX(first_pos.x * window_size.x - button_size.x / 2);
-              }
-              ImGui::PushID(i);
-
-              if (fan::graphics::gui::image_text_button(gloco->default_texture, button.text.c_str(), fan::colors::white, button.size == 0 ? button_size : button.size)) {
-                button_choice = i;
-                buttons.clear();
-                wait_user = false;
-                ImGui::PopID();
-                break;
-              }
-              ImGui::PopID();
-            }
-          }
-          if (gloco->input_action.is_active("skip or continue dialog") && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)) {
-            finish_dialog = true;
+          if (finish_dialog) {
             wait_user = false;
+            clear();
           }
+
           ImGui::End();
           ImGui::PopFont();
         }
 
-        bool finish_dialog = false; // for skipping
-        bool wait_user = false;
-        std::string active_dialogue;
+        void clear() {
+          auto it = drawables.GetNodeFirst();
+          while (it != drawables.dst) {
+            drawables.StartSafeNext(it);
+            delete drawables[it];
+            drawables.unlrec(it);
+            it = drawables.EndSafeNext();
+          }
+        }
 
-        uint64_t character_per_s = 20;
-        std::size_t render_pos = 0;
         fan::vec2 cursor_position = -1;
-        struct button_t {
-          fan::vec2 position = -1;
-          fan::vec2 size = 0;
-          std::string text;
-        };
-        std::vector<button_t> buttons;
-        int button_choice = -1;
+        f32_t indent = -1;
+
+        bool wait_user = false;
+        drawable_nr_t button_choice;
+
+        static void default_render_content(const fan::vec2& cursor_pos, f32_t indent) {
+          ImGui::SetCursorPos(cursor_pos);
+          gui::indent(indent);
+        }
+
+        std::function<void(const fan::vec2&, f32_t)> render_content_cb = &default_render_content;
+
+        f32_t font_size = 24;
       };
 
       bool begin_popup(const std::string& id, window_flags_t flags = 0) {

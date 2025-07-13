@@ -1255,13 +1255,19 @@ public:
 #endif
   }
 
+  inline static constexpr f32_t font_sizes[] = {
+    4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 
+    16, 18, 20, 22, 24, 28, 
+    32, 36, 48, 60, 72
+  };
+
   // -1 no reload, opengl = 0 etc
   uint8_t reload_renderer_to = -1;
 #if defined(fan_gui)
-  void load_fonts(auto& fonts, const std::string& name, f32_t font_size = 4, ImFontConfig* cfg = nullptr) {
+  void load_fonts(ImFont* (&fonts)[std::size(loco_t::font_sizes)], const std::string& name, ImFontConfig* cfg = nullptr) {
     ImGuiIO& io = ImGui::GetIO();
     for (std::size_t i = 0; i < std::size(fonts); ++i) {
-      fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), (int)(font_size * (1 << i)) * 1.5, cfg);
+      fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), font_sizes[i], cfg);
 
       if (fonts[i] == nullptr) {
         fan::throw_error(std::string("failed to load font:") + name);
@@ -1332,47 +1338,48 @@ public:
     }
 #endif
 
-    load_fonts(fonts_bold, "fonts/SourceCodePro-Bold.ttf", 4.f);
+    load_fonts(fonts_bold, "fonts/SourceCodePro-Bold.ttf");
 
     ImFontConfig emoji_cfg;
     emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_Bitmap;
 
     // TODO
     static const ImWchar emoji_ranges[] = {
+      //0x2600, 0x26FF,    // Miscellaneous Symbols
+      //0x2700, 0x27BF,    // Dingbats
+      //0x2B00, 0x2BFF,   // Miscellaneous Symbols and Arrows
+      //0x1F300, 0x1F5FF,  // Miscellaneous Symbols and Pictographs
+      //0x1F600, 0x1F64F,  // Emoticons
+      //0x1F680, 0x1F6FF,  // Transport and Map Symbols
+      //0x1F900, 0x1F9FF,  // Supplemental Symbols and Pictographs
+      //0x1FA70, 0x1FAFF,  // Symbols and Pictographs Extended-A
+      //0
       0x2600, 0x26FF,    // Miscellaneous Symbols
-      0x2700, 0x27BF,    // Dingbats
-      0x2B00, 0x2BFF,   // Miscellaneous Symbols and Arrows
-      0x1F300, 0x1F5FF,  // Miscellaneous Symbols and Pictographs
       0x1F600, 0x1F64F,  // Emoticons
-      0x1F680, 0x1F6FF,  // Transport and Map Symbols
-      0x1F900, 0x1F9FF,  // Supplemental Symbols and Pictographs
-      0x1FA70, 0x1FAFF,  // Symbols and Pictographs Extended-A
       0
     };
 
     io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
     io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-
+    
     for (std::size_t i = 0; i < std::size(fonts); ++i) {
-      f32_t font_size = (int)(4.f * (1 << i)) * 1.5f;
+      f32_t font_size = font_sizes[i] * 2; // load 2x font size and possibly downscale for better quality
 
       // Load main font first
       ImFontConfig main_cfg;
-      main_cfg.MergeMode = false;
-      fonts[i] = io.Fonts->AddFontFromFileTTF("fonts/SourceCodePro-Regular.ttf", font_size, &main_cfg);
+      fonts[i] = io.Fonts->AddFontFromFileTTF("fonts/Roboto-Regular.ttf", font_size, &main_cfg);
 
-      if (i == 2) {
-        // Merge emoji font
-        ImFontConfig emoji_cfg;
-        emoji_cfg.MergeMode = true;
-        emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-        emoji_cfg.SizePixels = font_size;
-        emoji_cfg.RasterizerDensity = 128.0f / font_size;
-        io.Fonts->AddFontFromFileTTF("fonts/seguiemj.ttf", font_size, &emoji_cfg, emoji_ranges);
-      }
+      // Merge emoji font
+      ImFontConfig emoji_cfg;
+      emoji_cfg.MergeMode = true;
+      emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+      emoji_cfg.SizePixels = 0;
+      emoji_cfg.RasterizerDensity = 1.0f;
+      emoji_cfg.GlyphMinAdvanceX = font_size;
+      io.Fonts->AddFontFromFileTTF("fonts/seguiemj.ttf", font_size, &emoji_cfg, emoji_ranges);
     }
     build_fonts();
-    io.FontDefault = fonts[2];
+    io.FontDefault = fonts[11];
 
     input_action.add(fan::key_escape, "open_settings");
   }
@@ -4810,8 +4817,8 @@ public:
   bool show_fps = false;
   bool render_settings_menu = 0;
 
-  ImFont* fonts[6];
-  ImFont* fonts_bold[6];
+  ImFont* fonts[std::size(font_sizes)]{};
+  ImFont* fonts_bold[std::size(font_sizes)]{};
 
 #include <fan/graphics/gui/settings_menu.h>
   settings_menu_t settings_menu;
