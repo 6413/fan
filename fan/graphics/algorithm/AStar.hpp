@@ -10,6 +10,8 @@
 #include <functional>
 #include <set>
 
+import fan.types.vector;
+
 namespace AStar
 {
     struct Vec2i

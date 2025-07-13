@@ -165,7 +165,7 @@ struct settings_menu_t {
     page_t page;
     {
       page.toggle = 1,
-        page.name = "Graphics";
+      page.name = "Graphics";
       page.page_left_render = loco_t::settings_menu_t::menu_graphics_left;
       page.page_right_render = loco_t::settings_menu_t::menu_graphics_right;
       pages.emplace_back(page);

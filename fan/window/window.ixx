@@ -297,6 +297,10 @@ export namespace fan {
       }
       glfwSetWindowUserPointer(glfw_window, this);
 
+#if defined(fan_platform_windows)
+      apply_window_theme();
+#endif
+
       GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
       const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
       fan::vec2 screen_size = fan::vec2(mode->width, mode->height);
@@ -641,6 +645,113 @@ export namespace fan {
 
       return axis;
     }
+
+#if defined(fan_platform_windows)
+    //---------------------------Windows specific code---------------------------
+
+  private:
+    enum WINDOWCOMPOSITIONATTRIB { WCA_USEDARKMODECOLORS = 26 };
+    struct WINDOWCOMPOSITIONATTRIBDATA {
+      WINDOWCOMPOSITIONATTRIB Attrib;
+      PVOID pvData;
+      SIZE_T cbData;
+    };
+    typedef BOOL(WINAPI* fn_should_apps_use_dark_mode)();
+    typedef BOOL(WINAPI* fn_is_dark_mode_allowed_for_window)(HWND hWnd);
+    typedef BOOL(WINAPI* fn_set_window_composition_attribute)(HWND hWnd, WINDOWCOMPOSITIONATTRIBDATA* data);
+    
+    fn_should_apps_use_dark_mode _should_apps_use_dark_mode = nullptr;
+    fn_is_dark_mode_allowed_for_window _is_dark_mode_allowed_for_window = nullptr;
+    fn_set_window_composition_attribute _set_window_composition_attribute = nullptr;
+    DWORD g_build_number = 0;
+    bool dark_mode_initialized = false;
+
+    void initialize_dark_mode() {
+      if (dark_mode_initialized) {
+        return;
+      }
+
+      // Get Windows build number
+      typedef BOOL(WINAPI* fn_rtl_get_nt_version_numbers)(LPDWORD major, LPDWORD minor, LPDWORD build);
+      auto rtl_get_nt_version_numbers = reinterpret_cast<fn_rtl_get_nt_version_numbers>(
+        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetNtVersionNumbers"));
+
+      if (rtl_get_nt_version_numbers) {
+        DWORD major, minor;
+        rtl_get_nt_version_numbers(&major, &minor, &g_build_number);
+        g_build_number &= ~0xF0000000;
+      }
+
+      // Load dark mode functions from uxtheme.dll
+      if (g_build_number >= 17763) { // Windows 10 1809+
+        HMODULE uxtheme = LoadLibraryExW(L"uxtheme.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        if (uxtheme) {
+          _should_apps_use_dark_mode = reinterpret_cast<fn_should_apps_use_dark_mode>(
+            GetProcAddress(uxtheme, MAKEINTRESOURCEA(132)));
+          _is_dark_mode_allowed_for_window = reinterpret_cast<fn_is_dark_mode_allowed_for_window>(
+            GetProcAddress(uxtheme, MAKEINTRESOURCEA(137)));
+        }
+
+        // Load SetWindowCompositionAttribute from user32.dll
+        HMODULE user32 = GetModuleHandleW(L"user32.dll");
+        if (user32) {
+          _set_window_composition_attribute = reinterpret_cast<fn_set_window_composition_attribute>(
+            GetProcAddress(user32, "SetWindowCompositionAttribute"));
+        }
+      }
+
+      dark_mode_initialized = true;
+    }
+    bool is_high_contrast() const {
+      HIGHCONTRASTW high_contrast = { sizeof(high_contrast) };
+      if (SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(high_contrast), &high_contrast, FALSE)) {
+        return high_contrast.dwFlags & HCF_HIGHCONTRASTON;
+      }
+      return false;
+    }
+  public:
+
+    void apply_window_theme() {
+      if (!glfw_window) {
+        return;
+      }
+
+      initialize_dark_mode();
+
+      HWND hwnd = glfwGetWin32Window(glfw_window);
+      if (!hwnd) {
+        return;
+      }
+
+      BOOL is_dark = FALSE;
+
+      // Check if dark mode should be applied
+      if (_is_dark_mode_allowed_for_window &&
+        _should_apps_use_dark_mode &&
+        _is_dark_mode_allowed_for_window(hwnd) &&
+        _should_apps_use_dark_mode() &&
+        !is_high_contrast()) {
+        is_dark = TRUE;
+      }
+
+      // Apply dark mode based on Windows build number
+      if (g_build_number < 18362) {
+        // Windows 10 versions before 1903
+        SetPropW(hwnd, L"UseImmersiveDarkModeColors",
+          reinterpret_cast<HANDLE>(static_cast<INT_PTR>(is_dark)));
+      }
+      else if (_set_window_composition_attribute) {
+        // Windows 10 1903+ and Windows 11
+        WINDOWCOMPOSITIONATTRIBDATA composition_data = {
+            WCA_USEDARKMODECOLORS,
+            &is_dark,
+            sizeof(is_dark)
+        };
+        _set_window_composition_attribute(hwnd, &composition_data);
+      }
+    }
+    //---------------------------Windows specific code---------------------------
+#endif
 
     double last_frame_time = glfwGetTime();
     f64_t m_delta_time = 0;
