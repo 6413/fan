@@ -1,7 +1,7 @@
 module;
 
 #include <fan/types/types.h>
-#include <fan/time/timer.h>
+#include <fan/time/time.h>
 
 #include <WITCH/WITCH.h>
 #define ETC_VEDC_Encode_DefineEncoder_OpenH264

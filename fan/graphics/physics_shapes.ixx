@@ -7,7 +7,7 @@ module;
 #include <fan/types/types.h>
 #include <fan/math/math.h>
 
-#include <fan/time/timer.h>
+#include <fan/time/time.h>
 
 #include <box2d/box2d.h>
 

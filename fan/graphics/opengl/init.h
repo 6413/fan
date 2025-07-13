@@ -14,12 +14,13 @@
 
 #include <utility>
 #include <string>
+#include <functional>
 
 #ifndef debug_glcall_timings
   #define debug_glcall_timings
 #endif
 #if defined(debug_glcall_timings)
-  #include <fan/time/timer.h>
+  #include <fan/time/time.h>
 #endif
 
 inline int fan_track_opengl_calls = 0;
