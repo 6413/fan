@@ -163,7 +163,7 @@ if(FAN_GUI)
         endif()
 
         if(Freetype_VERSION VERSION_LESS "2.12")
-            message(FATAL_ERROR "FreeType version ${Freetype_VERSION} found, but version 2.12+ is required for SVG glyph support. Please run: ./build_thirdparty.sh")
+            message(FATAL_ERROR "FreeType version ${Freetype_VERSION} found, but version 2.12+ is required for SVG glyph support. Please run: ./install.sh")
         endif()
 
         message(STATUS "Using FreeType ${Freetype_VERSION}")
@@ -174,7 +174,7 @@ if(FAN_GUI)
         )
 
         if(NOT LUNASVG_LIBRARY)
-            message(FATAL_ERROR "LunaSVG not found. Please run: ./build_thirdparty.sh")
+            message(FATAL_ERROR "LunaSVG not found. Please run: ./install.sh")
         endif()
 
         add_library(lunasvg STATIC IMPORTED)
