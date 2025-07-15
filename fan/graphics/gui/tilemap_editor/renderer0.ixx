@@ -151,13 +151,6 @@ export struct fte_renderer_t : fte_loader_t {
             .blending = true,
             .flags = j.flags
         } };
-        loco_t::texturepack_t::ti_t ti;
-        if (texturepack->qti(j.image_name, &ti)) {
-          fan::throw_error("failed to load image from .fte - corrupted save file");
-        }
-        node.tiles[fan::vec3i(x, y, depth)].load_tp(
-          &ti
-        );
         break;
       }
       case fte_t::mesh_property_t::light: {
