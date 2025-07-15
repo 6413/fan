@@ -2,32 +2,41 @@ struct texturepack_t {
 
   using ti_t = loco_t::ti_t;
 
-  struct texture_t {
-
-    // The top-left coordinate of the rectangle.
-    uint32_t pack_id;
-    std::string image_name;
+  struct texture_minor_t {
+    std::string name;
     fan::vec2i position;
     fan::vec2i size;
-
-
-    friend std::ostream& operator<<(std::ostream& os, const texture_t& tex) {
-      os << '{' << "\n position:" << tex.position << "\n size:" << tex.size << "\n}";
-      return os;
-    }
-
   };
 
+  inline static constexpr uint16_t MAX_TEXTURE_MINOR = 1024;
+  struct single_texturepack_t {
+    texture_minor_t texture_minor_list[MAX_TEXTURE_MINOR];
+    std::vector<uint8_t> webpdata;
+  };
+
+  struct texture_minor_decoded_t {
+    texture_pack_unique_t unique_id;
+    std::string name;
+    fan::vec2i position;
+    fan::vec2i size;
+  };
   struct pixel_data_t {
     loco_t::image_t image;
   };
-  uint32_t pack_amount;
-  std::vector<std::vector<texture_t>> texture_list;
-  std::vector<pixel_data_t> pixel_data_list;
+  struct single_texturepack_decoded_t {
+    uint32_t minor_count;
+    texture_minor_decoded_t texture_minor_list[MAX_TEXTURE_MINOR];
+    uint32_t image_list_id;
+  };
+
+  std::vector<single_texturepack_decoded_t> texture_major_list;
+  std::vector<pixel_data_t> image_list;
+  texture_unique_map_t unique_map;
+
   std::string file_path;
 
-  pixel_data_t& get_pixel_data(uint32_t pack_id) {
-    return pixel_data_list[pack_id];
+  pixel_data_t& get_pixel_data(texture_pack_unique_t unique) {
+    return image_list[unique_map[unique].major];
   }
 
   void open_compiled(const std::string& filename) {
@@ -42,8 +51,9 @@ struct texturepack_t {
     open_compiled(filename, lp);
   }
   void open_compiled(const std::string& filename, fan::graphics::image_load_properties_t lp) {
-    texture_list.clear();
-    pixel_data_list.clear();
+    texture_major_list.clear();
+    image_list.clear();
+    unique_map.Clear();
 
     file_path = filename;
 
@@ -54,17 +64,23 @@ struct texturepack_t {
     std::size_t pack_list_size = fan::string_read_data<std::size_t>(in, offset);
 
 
-    pixel_data_list.resize(pack_list_size);
-    texture_list.resize(pack_list_size);
+    image_list.resize(pack_list_size);
+    texture_major_list.resize(pack_list_size);
+    uint32_t unique_id = 0;
     for (std::size_t i = 0; i < pack_list_size; i++) {
       std::size_t texture_list_size = fan::string_read_data<std::size_t>(in, offset);
-      texture_list[i].resize(texture_list_size);
+      texture_major_list[i].minor_count = texture_list_size;
+      texture_major_list[i].image_list_id = i;
       for (std::size_t k = 0; k < texture_list_size; k++) {
-        texturepack_t::texture_t texture;
-        texture.image_name = fan::string_read_data<std::string>(in, offset);
+        texturepack_t::texture_minor_decoded_t texture;
+        texture.name = fan::string_read_data<std::string>(in, offset);
         texture.position = fan::string_read_data<fan::vec2ui>(in, offset);
         texture.size = fan::string_read_data<fan::vec2ui>(in, offset);
-        texture_list[i][k] = texture;
+        auto it = unique_map.NewNodeLast();
+        unique_map[it].major = i;
+        unique_map[it].minor = k;
+        texture.unique_id = it;
+        texture_major_list[i].texture_minor_list[k] = texture;
       }
 
       std::vector<uint8_t> pixel_data = fan::string_read_data<std::vector<uint8_t>>(in, offset);
@@ -78,7 +94,7 @@ struct texturepack_t {
       }
       image_info.type = fan::image::image_type_e::webp;
       image_info.channels = 4;
-      pixel_data_list[i].image = gloco->image_load(*(fan::image::info_t*)&image_info, lp);
+      image_list[i].image = gloco->image_load(*(fan::image::info_t*)&image_info, lp);
       fan::webp::free_image(image_info.data);
 
       //pixel_data_list[i].visual_output = 
@@ -91,25 +107,46 @@ struct texturepack_t {
   }
 
   void iterate_loaded_images(auto lambda) {
-    for (uint32_t i = 0; i < texture_list.size(); i++) {
-      for (uint32_t j = 0; j < texture_list[i].size(); j++) {
-        lambda(texture_list[i][j], i);
+    for (uint32_t i = 0; i < texture_major_list.size(); i++) {
+      for (uint32_t j = 0; j < texture_major_list[i].minor_count; j++) {
+        lambda(texture_major_list[i].texture_minor_list[j]);
       }
     }
+  }
+
+  operator bool() {
+    return size();
+  }
+
+  std::size_t size() const {
+    return texture_major_list.size();
+  }
+
+  texture_minor_decoded_t operator[](texture_pack_unique_t unique_id) {
+    if (unique_id.iic()) {
+      return texture_minor_decoded_t{};
+    }
+    return texture_major_list[unique_map[unique_id].major].texture_minor_list[unique_map[unique_id].minor];
+  }
+
+  texture_pack_unique_t operator[](const std::string& name) {
+    texturepack_t::ti_t ti;
+    qti(name, &ti);
+    return ti.unique_id;
   }
 
   // query texturepack image
   bool qti(const std::string& name, ti_t* ti) {
     bool ret = 1;
-    iterate_loaded_images([&](auto& image, uint32_t pack_id) {
+    iterate_loaded_images([&](auto& image) {
       if (ret == 0) {
         return;
       }
-      if (image.image_name == name) {
-        ti->pack_id = pack_id;
+      if (image.name == name) {
+        ti->unique_id = image.unique_id;
         ti->position = image.position;
         ti->size = image.size;
-        ti->image = &get_pixel_data(ti->pack_id).image;
+        ti->image = get_pixel_data(ti->unique_id).image;
         ret = 0;
         return;
       }
@@ -118,15 +155,15 @@ struct texturepack_t {
   }
   bool qti(uint64_t hash, ti_t* ti) {
     bool ret = 1;
-    iterate_loaded_images([&](auto& image, uint32_t pack_id) {
+    iterate_loaded_images([&](auto& image) {
       if (ret == 0) {
         return;
       }
-      if (fan::get_hash(image.image_name.c_str()) == hash) {
-        ti->pack_id = pack_id;
+      if (fan::get_hash(image.name.c_str()) == hash) {
+        ti->unique_id = image.unique_id;
         ti->position = image.position;
         ti->size = image.size;
-        ti->image = &get_pixel_data(ti->pack_id).image;
+        ti->image = get_pixel_data(ti->unique_id).image;
         ret = 0;
         return;
       }

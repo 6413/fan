@@ -21,21 +21,21 @@ struct fgm_t {
   };
   std::vector<texturepack_image_t> texturepack_images;
   void open_texturepack(const std::string& path) {
-    texturepack.open_compiled(path);
+    gloco->texture_pack.open_compiled(path);
     texturepack_images.clear();
-    texturepack_images.reserve(texturepack.texture_list.size());
+    texturepack_images.reserve(gloco->texture_pack.size());
 
     // loaded texturepack
-    texturepack.iterate_loaded_images([this](auto& image, uint32_t pack_id) {
+    gloco->texture_pack.iterate_loaded_images([this](auto& image) {
       texturepack_image_t tp_image;
-      tp_image.image = texturepack.get_pixel_data(pack_id).image;
+      tp_image.image = gloco->texture_pack.get_pixel_data(image.unique_id).image;
 
-      auto& img_data = gloco->image_get_data(texturepack.get_pixel_data(pack_id).image);
+      auto& img_data = gloco->image_get_data(gloco->texture_pack.get_pixel_data(image.unique_id).image);
       fan::vec2 size = img_data.size;
 
       tp_image.uv0 = fan::vec2(image.position) / size;
       tp_image.uv1 = fan::vec2(tp_image.uv0) + fan::vec2(image.size) / size;
-      tp_image.image_name = { image.image_name.begin(), image.image_name.end() };
+      tp_image.image_name = { image.name.begin(), image.name.end() };
       tp_image.aspect_ratio = (f32_t)image.size.x / image.size.y;
 
       texturepack_images.push_back(tp_image);
@@ -49,12 +49,12 @@ struct fgm_t {
     content_browser.init(asset_path);
     content_browser.current_view_mode = fan::graphics::gui::content_browser_t::view_mode_large_thumbnails;
 
-    camera.camera = gloco->open_camera(
+    render_view.camera = gloco->open_camera(
       fan::vec2(0, 1),
       fan::vec2(0, 1)
     );
 
-    camera.viewport = gloco->open_viewport(
+    render_view.viewport = gloco->open_viewport(
       fan::vec2(0),
       fan::vec2(1)
     );
@@ -63,7 +63,7 @@ struct fgm_t {
     auto transparent_texture = gloco->create_transparent_texture();
 
     background = fan::graphics::sprite_t{ {
-      .camera = &camera,
+      .render_view = &render_view,
       .position = 0,
       .size = 0,
       .image = transparent_texture,
@@ -93,7 +93,7 @@ struct fgm_t {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom;
         auto camera_pos = viewport_settings.pos - move_off;
-        gloco->camera_set_position(camera.camera, camera_pos);
+        gloco->camera_set_position(render_view.camera, camera_pos);
       //  background.set_position(fan::vec2(editor_pos) + camera_pos);
         /*fan::vec2 half_ground_size = ground_size * 0.5f;
         fan::vec2 top_left_world = camera_pos - half_ground_size;
@@ -111,7 +111,7 @@ struct fgm_t {
         viewport_settings.move = (bool)d.state;
         fan::vec2 old_pos = viewport_settings.pos;
         viewport_settings.offset = gloco->get_mouse_position();
-        viewport_settings.pos = gloco->camera_get_position(camera.camera);
+        viewport_settings.pos = gloco->camera_get_position(render_view.camera);
         break;
       }
       case fan::mouse_scroll_up: {
@@ -129,21 +129,21 @@ struct fgm_t {
       }
       });
     xy_lines[0] = fan::graphics::line_t{ {
-      .camera = &camera,
+      .render_view = &render_view,
       .src = fan::vec3(-0xffffff, 0, 0x1fff),
       .dst = fan::vec2(0xffffff, 0),
       .color = fan::colors::red / 2
     } };
 
     xy_lines[1] = fan::graphics::line_t{ {
-        .camera = &camera,
+        .render_view = &render_view,
         .src = fan::vec3(0, -0xffffff, 0x1fff),
         .dst = fan::vec2(0, 0xffffff),
         .color = fan::colors::green / 2
     } };
 
     drag_select = fan::graphics::rectangle_t{ {
-        .camera = &camera,
+        .render_view = &render_view,
         .position = fan::vec3(0, 0, 0xffff - 0xff),
         .size = 0,
         .color = fan::color::hex(0x3eb9ff44),
@@ -192,8 +192,8 @@ struct fgm_t {
         vfip.shape.rectangle->size = temp.get_size();
         vfip.shape.rectangle->angle = 0;
         vfip.shape.rectangle->rotation_point = 0;
-        vfip.shape.rectangle->camera = fgm->camera.camera;
-        vfip.shape.rectangle->viewport = fgm->camera.viewport;
+        vfip.shape.rectangle->camera = fgm->render_view.camera;
+        vfip.shape.rectangle->viewport = fgm->render_view.viewport;
         vfip.mouse_button_cb = [fgm, this](const auto& d) -> int {
           fgm->event_type = event_type_e::move;
           fgm->current_shape = this;
@@ -449,12 +449,12 @@ struct fgm_t {
       if (ImGui::InputText("##hidden_label4", str.data(), str.size())) {
         if (ImGui::IsItemDeactivatedAfterEdit()) {
           loco_t::texturepack_t::ti_t ti;
-          if (texturepack.qti(str.c_str(), &ti)) {
+          if (gloco->texture_pack.qti(str.c_str(), &ti)) {
             fan::print_no_space("failed to load texture:", str);
           }
           else {
             current = str.substr(0, std::strlen(str.c_str()));
-            auto& data = texturepack.get_pixel_data(ti.pack_id);
+            auto& data = gloco->texture_pack.get_pixel_data(ti.unique_id);
             if (shape->children[0].get_shape_type() == loco_t::shape_type_t::sprite) {
               shape->children[0].load_tp(&ti);
             }
@@ -477,7 +477,7 @@ struct fgm_t {
       shape_list[nr] = new shapes_t::global_t{
         loco_t::shape_type_t::sprite,
         this, fan::graphics::sprite_t{{
-          .camera = &camera,
+          .render_view = &render_view,
           .position = pos,
           .size = size
         }} };
@@ -487,7 +487,7 @@ struct fgm_t {
       shape_list[nr] = new shapes_t::global_t{
         loco_t::shape_type_t::unlit_sprite,
         this, fan::graphics::unlit_sprite_t{{
-          .camera = &camera,
+          .render_view = &render_view,
           .position = pos,
           .size = size
         }} };
@@ -497,7 +497,7 @@ struct fgm_t {
       shape_list[nr] = new shapes_t::global_t{
         loco_t::shape_type_t::rectangle,
         this, fan::graphics::rectangle_t{{
-          .camera = &camera,
+          .render_view = &render_view,
           .position = pos,
           .size = size
         }} };
@@ -507,12 +507,12 @@ struct fgm_t {
       shape_list[nr] = new shapes_t::global_t{
         loco_t::shape_type_t::light,
         this, fan::graphics::light_t{{
-          .camera = &camera,
+          .render_view = &render_view,
           .position = pos,
           .size = size
         }} };
       shape_list[nr]->push_child(fan::graphics::circle_t{ {
-        .camera = &camera,
+        .render_view = &render_view,
         .position = fan::vec3(pos, current_z),
         .radius = size.x,
         .color = fan::color(1, 1, 1, 0.5),
@@ -673,7 +673,7 @@ struct fgm_t {
 
       f32_t zoom = viewport_settings.zoom;
       fan::vec2 ground_size = viewport_size * (1.0f / zoom);
-      fan::vec2 camera_pos = gloco->camera_get_position(camera.camera);
+      fan::vec2 camera_pos = gloco->camera_get_position(render_view.camera);
 
       auto world_size = viewport_size / zoom;
 
@@ -710,14 +710,13 @@ struct fgm_t {
       viewport_size = vMax - vMin + style.WindowPadding * 2;
 
       gloco->viewport_set(
-        camera.viewport,
+        render_view.viewport,
         vMin - style.WindowPadding,
-        viewport_size,
-        window_size
+        viewport_size
       );
 
       gloco->camera_set_ortho(
-        camera.camera,
+        render_view.camera,
         fan::vec2(-viewport_size.x / 2, viewport_size.x / 2) / viewport_settings.zoom,
         fan::vec2(-viewport_size.y / 2, viewport_size.y / 2) / viewport_settings.zoom
       );
@@ -761,11 +760,11 @@ struct fgm_t {
 
       gui::receive_drag_drop_target("FGM_TEXTUREPACK_DROP", [&](const std::string& path) {
         loco_t::texturepack_t::ti_t ti;
-        if (texturepack.qti(path, &ti)) {
+        if (gloco->texture_pack.qti(path, &ti)) {
           fan::print_no_space("non texturepack texture or failed to load texture:", path);
         }
         else {
-          auto image = *ti.image;
+          auto image = ti.image;
           fan::vec2 initial_size = 128.f;
           
           std::wstring wpath(path.begin(), path.end());
@@ -997,11 +996,11 @@ struct fgm_t {
 
   void load_tp(fgm_t::shape_list_NodeData_t& node) {
     loco_t::texturepack_t::ti_t ti;
-    if (texturepack.qti(node->children[0].get_image_data().image_path, &ti)) {
+    if (gloco->texture_pack.qti(node->children[0].get_image_data().image_path, &ti)) {
       fan::print_no_space("non texturepack texture or failed to load texture:", node->children[0].get_image_data().image_path);
     }
     else {
-      auto& data = texturepack.get_pixel_data(ti.pack_id);
+      auto& data = gloco->texture_pack.get_pixel_data(ti.unique_id);
       node->children[0].load_tp(&ti);
     }
   }
@@ -1036,9 +1035,13 @@ struct fgm_t {
     loco_t::shape_t shape;
     int i = 0;
     current_z = 0;
-    while (iterator.iterate(json_in["shapes"], &shape)) {
-      shape.set_camera(camera.camera);
-      shape.set_viewport(camera.viewport);
+    std::string shapes = "shapes";
+    if (json_in.contains("tiles")) {
+      shapes = "tiles";
+    }
+    while (iterator.iterate(json_in[shapes], &shape)) {
+      shape.set_camera(render_view.camera);
+      shape.set_viewport(render_view.viewport);
       current_z = std::max(current_z, shape.get_position().z);
       auto it = shape_list.NewNodeLast();
       auto& node = shape_list[it];
@@ -1095,7 +1098,7 @@ struct fgm_t {
           false
         );
         node->push_child(fan::graphics::circle_t{ {
-          .camera = &camera,
+          .render_view = &render_view,
           .position = shape.get_position(),
           .radius = shape.get_size().x,
           .color = shape.get_color(),
@@ -1156,7 +1159,6 @@ struct fgm_t {
   f32_t current_z = 1;
   uint32_t current_id = 0;
 
-  loco_t::texturepack_t texturepack;
   bool render_content_browser = true;
 
   std::function<void()> close_cb = [] {};

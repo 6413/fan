@@ -1,3 +1,19 @@
+struct texture_pack_unique_data_t {
+  uint32_t major;
+  uint32_t minor;
+};
+
+#include <fan/fan_bll_preset.h>
+#define BLL_set_prefix texture_unique_map
+#define BLL_set_Language 1
+#define BLL_set_Usage 1
+#define BLL_set_AreWeInsideStruct 1
+#define BLL_set_NodeDataType texture_pack_unique_data_t
+#define BLL_set_type_node uint32_t
+#include <BLL/BLL.h>
+
+using texture_pack_unique_t = texture_unique_map_NodeReference_t;
+
 struct ti_t {
 
   bool qti(auto* texture_pack, const std::string& name) {
@@ -8,13 +24,13 @@ struct ti_t {
   }
 
   bool valid() const {
-    return image != nullptr;
+    return image.iic() == false;
   }
 
-  uint32_t pack_id;
+  texture_pack_unique_t unique_id;
   fan::vec2 position;
   fan::vec2 size;
-  fan::graphics::image_nr_t* image = 0;
+  fan::graphics::image_nr_t image;
 };
 
 struct texture_packe0 {
@@ -403,25 +419,6 @@ struct texture_packe0 {
     image_info.data = pack_list[pack_id].pixel_data.data();
     image_info.size = pack_list[pack_id].pack_size;
     return image_info;
-  }
-
-  bool qti(const std::string& name, ti_t* ti) {
-    //std::find_if(texture_list[0].begin(), texture_list[texture_list.size()].end(),
-    //  [](const texture_t& a, const texture_t& b) {
-    //  return a.hash == b.hash;
-    //});
-
-    for (uint32_t i = 0; i < pack_list.size(); i++) {
-      for (uint32_t j = 0; j < pack_list[i].texture_list.size(); j++) {
-        if (pack_list[i].texture_list[j].image_name == name) {
-          ti->pack_id = i;
-          ti->position = pack_list[i].texture_list[j].position;
-          ti->size = pack_list[i].texture_list[j].size;
-          return 0;
-        }
-      }
-    }
-    return 1;
   }
 
 private:

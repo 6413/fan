@@ -3,9 +3,9 @@ import fan;
 #include <box2d/box2d.h>
 
 // editor
-fan::graphics::camera_t camera0;
+fan::graphics::render_view_t render_view0;
 // program
-fan::graphics::camera_t camera1;
+fan::graphics::render_view_t render_view1;
 
 struct player_t {
    player_t() {
@@ -20,7 +20,7 @@ struct player_t {
     return fan::physics::presolve_oneway_collision(shapeIdA, shapeIdB, manifold, player);
   }
   fan::graphics::physics::character2d_t player{ fan::graphics::physics::circle_t{{
-    .camera = &camera1,
+    .render_view = &render_view1,
     .position = fan::vec3(400, 400, 10),
     .radius = 16.f,
     .color = fan::color::hex(0x715a5eff),
@@ -36,7 +36,7 @@ struct player_t {
     },
   }}};
   loco_t::shape_t player_light = fan::graphics::light_t{ {
-    .camera = &camera1,
+    .render_view = &render_view1,
     .position = player.get_position(),
     .size = player.get_size()*8,
     .color = fan::color::hex(0xe8c170ff)
@@ -47,37 +47,37 @@ int main(int argc, char** argv) {
   
  // loco.window.set_windowed_fullscreen();
 
-  camera0.camera = loco.camera_create();
-  camera1.camera = loco.camera_create();
+  render_view0.camera = loco.camera_create();
+  render_view1.camera = loco.camera_create();
   fan::vec2 window_size = loco.window.get_size();
   loco.camera_set_ortho(
-    camera0.camera,
+    render_view0.camera,
     fan::vec2(-window_size.x, window_size.x),
     fan::vec2(-window_size.y, window_size.y)
   );
   loco.camera_set_ortho(
-    camera1.camera,
+    render_view1.camera,
     fan::vec2(-window_size.x, window_size.x),
     fan::vec2(-window_size.y, window_size.y)
   );
 
-  camera0.viewport = loco.open_viewport(
+  render_view0.viewport = loco.open_viewport(
     0,
     { 1, 1 }
   );
-  camera1.viewport = loco.open_viewport(
+  render_view1.viewport = loco.open_viewport(
     0,
     { 1, 1 }
   );
 
-  fan::graphics::interactive_camera_t ic(camera1.camera, camera1.viewport);
+  fan::graphics::interactive_camera_t ic(render_view1.camera, render_view1.viewport);
 
   fte_t fte;//
   fte.original_image_width = 2048;
   fte_t::properties_t p;
-  p.camera = &camera0;
+  p.camera = &render_view0;
   fte.open(p);
-  fte.open_texturepack("examples/games/forest game/forest_tileset.ftp");
+  fte.open_texturepack("bugtest2.ftp");
  // fte.fin("map_game0_1.json");
 
   std::unique_ptr<player_t> player;
@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
       lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
       lp.min_filter = fan::graphics::image_filter::nearest;
       lp.mag_filter = fan::graphics::image_filter::nearest;
-      renderer->open(&fte.texturepack);
+      renderer->open(&gloco->texture_pack);
 
       // STATIC POINTER
       static fte_loader_t::compiled_map_t compiled_map;
@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
 
       p.position = fan::vec3(0, 0, 0);
       p.size = (render_size);
-      p.camera = &camera1;
+      p.render_view = &render_view1;
       map_id0_t = std::make_unique<fte_renderer_t::id_t>(renderer->add(&compiled_map, p));
 
       loco.set_vsync(0);
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
 
   //fan::graphics::physics_shapes::physics_update_cb = [&](loco_t::shape_t& shape, const fan::vec3& p, const fan::vec2& size, f32_t radians) {
   //  fan::graphics::physics_shapes::hitbox_visualize[&shape] = fan::graphics::rectangle_t{ {
-  //    .camera = &camera1,
+  //    .camera = &render_view1,
   //    .position = fan::vec3(fan::vec2(p), 60000),
   //    .size=size,
   //    .color = fan::color(0, 1, 0, 0.2),
@@ -194,22 +194,24 @@ int main(int argc, char** argv) {
     }
   });*/
 
-  loco.loop([&] {
+  //fan::graphics::gui::get_io().ConfigFlags |= ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+  loco.loop([&] {
+    
     fte.render();
     
     if (render_scene) {/*
       for (auto& i : fan::graphics::physics_shapes::hitbox_visualize) {
-        i.second.set_camera(camera1.camera);
-        i.second.set_viewport(camera1.viewport);
+        i.second.set_camera(render_view1.camera);
+        i.second.set_viewport(render_view1.viewport);
       }*/
       if (fan::graphics::gui::begin("Program", 0, fan::graphics::gui::window_flags_no_background)) {
         fan::vec2 s = fan::graphics::gui::get_content_region_avail();
         fan::vec2 dst = player->player.get_position();
-        fan::vec2 src = loco.camera_get_position(camera1.camera);
+        fan::vec2 src = loco.camera_get_position(render_view1.camera);
 
         loco.camera_set_position(
-          camera1.camera,
+          render_view1.camera,
           dst
         );
         fan::vec2 position = player->player.get_position();
@@ -225,16 +227,16 @@ int main(int argc, char** argv) {
         player->player_light.set_position(player->player.get_position()-player->player.get_size());
         player->player.process_movement(fan::graphics::physics::character2d_t::movement_e::top_view);
         renderer->update(*map_id0_t, dst);
-        fan::graphics::gui::set_viewport(camera1.viewport);
+        fan::graphics::gui::set_viewport(render_view1.viewport);
         loco.physics_context.step(loco.delta_time);
 
         loco.viewport_zero(
-          camera0.viewport
+          render_view0.viewport
         );
       }
       else {
         loco.viewport_zero(
-          camera1.viewport
+          render_view1.viewport
         );
       }
       fan::graphics::gui::end();

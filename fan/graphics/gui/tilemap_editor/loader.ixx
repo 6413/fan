@@ -168,7 +168,6 @@ public:
       tile.size = shape.get_size();
       tile.angle = shape.get_angle();
       tile.color = shape.get_color();
-      tile.image_name = shape_json["image_name"];
       tile.mesh_property = (fte_t::mesh_property_t)shape_json["mesh_property"];
       tile.id = shape_json["id"];
       tile.action = shape_json.value("action", fte_t::actions_e::none);

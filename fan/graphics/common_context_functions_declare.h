@@ -44,7 +44,7 @@
   build_function(image_reload_image_info_props, void, fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const image_load_properties_t& p) \
   build_function(image_reload_path, void, fan::graphics::image_nr_t nr, const std::string& path) \
   build_function(image_reload_path_props, void, fan::graphics::image_nr_t nr, const std::string& path, const image_load_properties_t& p) \
-  build_function(image_get_pixel_data, std::unique_ptr<uint8_t[]>, fan::graphics::image_nr_t nr, uint32_t format, fan::vec2 uvp, fan::vec2 uvs) \
+  build_function(image_get_pixel_data, std::vector<uint8_t>, fan::graphics::image_nr_t nr, uint32_t format, fan::vec2 uvp, fan::vec2 uvs) \
   build_function(image_create_color, fan::graphics::image_nr_t, const fan::color& color) \
   build_function(image_create_color_props, fan::graphics::image_nr_t, const fan::color& color, const fan::graphics::image_load_properties_t& p)
 
