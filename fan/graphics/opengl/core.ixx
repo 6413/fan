@@ -1795,6 +1795,9 @@ namespace fan {
       cf.viewport_inside_wir = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
         return ((fan::opengl::context_t*)context)->viewport_inside_wir(nr, position);
         };
+      cf.image_get_pixel_data = [](void* context, fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
+        return ((fan::opengl::context_t*)context)->image_get_pixel_data(nr, format, uvp, uvs);
+      };
       return cf;
     }
   }

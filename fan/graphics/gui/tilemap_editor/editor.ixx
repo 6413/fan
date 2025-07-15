@@ -494,7 +494,6 @@ export struct fte_t {
           layers.back().tile.size = tile_size * brush.tile_size;
           layers.back().tile.position = fan::vec3(position, brush.depth);
           layers.back().tile.id = brush.id;
-          layers.back().tile.image_name = tile.image_name;
           // todo fix
           layers.back().tile.mesh_property = mesh_property_t::none;
           if (brush.type != brush_t::type_e::light) {
@@ -561,7 +560,6 @@ export struct fte_t {
                      fan::print("failed to load image");
                    }
                   layer.tile.mesh_property = mesh_property_t::none;
-                  layer.tile.image_name = tile.image_name;
                   break;
                 }
                 default: {
@@ -906,23 +904,21 @@ export struct fte_t {
   inline static fan::graphics::file_open_dialog_t models_open_file_dialog;
 
   void open_texturepack(const std::string& path) {
-    texturepack.open_compiled(path);
+    gloco->texture_pack.open_compiled(path);
     texturepack_images.clear();
-    texturepack_images.reserve(texturepack.texture_list.size());
+    texturepack_images.reserve(gloco->texture_pack.size());
 
     // loaded texturepack
-    texturepack.iterate_loaded_images([this](auto& image, uint32_t pack_id) {
+    gloco->texture_pack.iterate_loaded_images([this](auto& image) {
       tile_info_t ii;
       ii.ti = loco_t::texturepack_t::ti_t{
-        .pack_id = pack_id,
+        .unique_id = image.unique_id,
         .position = image.position,
         .size = image.size,
-        .image = &texturepack.get_pixel_data(pack_id).image
+        .image = gloco->texture_pack.get_pixel_data(image.unique_id).image
       };
 
-      ii.image_name = image.image_name;
-
-      auto& img_data = gloco->image_get_data(texturepack.get_pixel_data(pack_id).image);
+      auto& img_data = gloco->image_get_data(gloco->texture_pack.get_pixel_data(image.unique_id).image);
       fan::vec2 size = img_data.size;
 
       texturepack_images.push_back(ii);
@@ -992,12 +988,7 @@ export struct fte_t {
 
       fan::graphics::gui::begin(
         "Tilemap Editor2",
-        nullptr,
-        fan::graphics::gui::window_flags_no_background |
-        fan::graphics::gui::window_flags_no_title_bar |
-        fan::graphics::gui::window_flags_no_decoration |
-        fan::graphics::gui::window_flags_no_collapse |
-        fan::graphics::gui::window_flags_no_scroll_with_mouse
+        nullptr
       );
 
       fan::graphics::gui::pop_style_color();
@@ -1074,11 +1065,11 @@ export struct fte_t {
           }
           idx++;
           
-          auto& img_data = gloco->image_get_data(*j.ti.image);
+          auto& img_data = gloco->image_get_data(j.ti.image);
           fan::vec2 size = img_data.size;
 
           fan::graphics::gui::image_rotated(
-            *j.ti.image,
+            j.ti.image,
             (tile_viewer_sprite_size / std::max(1.f, current_tile_brush_count.x / 5.f))  * viewport_settings.zoom,
             360.f - fan::math::degrees(brush.angle.z),
             j.ti.position / size,
@@ -1341,13 +1332,13 @@ export struct fte_t {
         fan::vec2 cursor_pos_global = fan::graphics::gui::get_cursor_screen_pos();
         sprite_size = fan::vec2(final_image_size * zoom);
 
-        auto& img_data = gloco->image_get_data(*node.ti.image);
+        auto& img_data = gloco->image_get_data(node.ti.image);
 
         fan::vec2 size = img_data.size;
 
         fan::graphics::gui::image_button(
           (std::string("##ibutton") + std::to_string(i)).c_str(),
-          *node.ti.image,
+          node.ti.image,
           sprite_size,
           node.ti.position / size,
           node.ti.position / size + node.ti.size / size
@@ -1721,8 +1712,7 @@ export struct fte_t {
           if (st == (uint16_t)loco_t::shape_type_t::sprite ||
             st == (uint16_t)loco_t::shape_type_t::unlit_sprite) {
             current_tile_images[0].push_back({
-              .ti = layers[idx].shape.get_tp(),
-              .image_name = layers[idx].tile.image_name
+              .ti = layers[idx].shape.get_tp()
             });
           }
         }
@@ -1828,7 +1818,6 @@ export struct fte_t {
           fan::print("warning out size 0", j.tile.position);
         }
         fan::graphics::shape_serialize(j.shape, &tile);
-        tile["image_name"] = j.tile.image_name;
         tile["mesh_property"] = j.tile.mesh_property;
         tile["id"] = j.tile.id;
         tile["action"] = j.tile.action;
@@ -1845,7 +1834,6 @@ export struct fte_t {
           fan::print("warning out size 0", j.visual.get_position());
         }
         fan::graphics::shape_serialize(j.visual, &tile);
-        tile["image_name"] = tile_t().image_name;
         tile["mesh_property"] = fte_t::mesh_property_t::physics_shape;
         tile["id"] = j.id;
         tile["action"] = tile_t().action;
@@ -1905,7 +1893,7 @@ shape data{
 */
   void fin(const std::string& filename) {
 #if defined(fan_json)
-    if (texturepack.texture_list.size() == 0) {
+    if (gloco->texture_pack.size() == 0) {
       fan::print("open valid texturepack");
       return;
     }
@@ -1976,7 +1964,6 @@ shape data{
       layer->tile.size = shape.get_size();
       layer->tile.angle = shape.get_angle();
       layer->tile.color = shape.get_color();
-      layer->tile.image_name = shape_json.value("image_name", "");
       layer->tile.id = shape_json["id"];
       layer->tile.mesh_property = (mesh_property_t)shape_json["mesh_property"];
 
@@ -1984,13 +1971,8 @@ shape data{
 
       switch (layer->tile.mesh_property) {
         case fte_t::mesh_property_t::none: {
-          loco_t::texturepack_t::ti_t ti;
-          if (texturepack.qti(layer->tile.image_name, &ti)) {
-            fan::throw_error("failed to read image from .fte - editor save file corrupted");
-          }
           layer->shape.set_camera(render_view->camera);
           layer->shape.set_viewport(render_view->viewport);
-          layer->shape.set_tp(&ti);
           break;
         }
         case fte_t::mesh_property_t::light: {
@@ -2037,7 +2019,6 @@ shape data{
 
   struct tile_info_t {
     loco_t::texturepack_t::ti_t ti;
-    std::string image_name;
     mesh_property_t mesh_property = mesh_property_t::none;
   };
 
@@ -2097,8 +2078,6 @@ shape data{
 
   // depth key
   std::map<uint16_t, visual_layer_t> visual_layers;
-
-  loco_t::texturepack_t texturepack;
 
   fan::vec2 texturepack_size{};
   fan::vec2 texturepack_single_image_size{};

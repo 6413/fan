@@ -1725,11 +1725,12 @@ static void set_tc_size_shader_shape(loco_t::shape_t* shape, const fan::vec2& si
 }
 
 static bool load_tp_sprite(loco_t::shape_t* shape, loco_t::texturepack_t::ti_t* ti) {
-  auto* image = ti->image;
-  set_image(shape, *image);
-  set_tc_position_sprite(shape, ti->position / gloco->image_get_data(*image).size);
-  set_tc_size_sprite(shape,  ti->size / gloco->image_get_data(*image).size);
-
+  auto image = ti->image;
+  set_image(shape, image);
+  set_tc_position_sprite(shape, ti->position / gloco->image_get_data(image).size);
+  set_tc_size_sprite(shape,  ti->size / gloco->image_get_data(image).size);
+  loco_t::sprite_t::ri_t* ram_data = (loco_t::sprite_t::ri_t*)shape->GetData(gloco->shaper);
+  ram_data->texture_pack_unique_id = ti->unique_id;
 	return false;
 }
 
@@ -1747,10 +1748,12 @@ static bool load_tp_light(loco_t::shape_t* shape, loco_t::texturepack_t::ti_t* t
 
 //TODO add to generate
 static bool load_tp_unlit_sprite(loco_t::shape_t* shape, loco_t::texturepack_t::ti_t* ti) {
-  auto* image = ti->image;
-  set_image(shape, *image);
-  set_tc_position_sprite(shape, ti->position / gloco->image_get_data(*image).size);
-  set_tc_size_sprite(shape,  ti->size / gloco->image_get_data(*image).size);
+  auto image = ti->image;
+  set_image(shape, image);
+  set_tc_position_sprite(shape, ti->position / gloco->image_get_data(image).size);
+  set_tc_size_sprite(shape,  ti->size / gloco->image_get_data(image).size);
+  loco_t::unlit_sprite_t::ri_t* ram_data = (loco_t::unlit_sprite_t::ri_t*)shape->GetData(gloco->shaper);
+  ram_data->texture_pack_unique_id = ti->unique_id;
 	return false;
 }
 

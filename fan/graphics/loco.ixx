@@ -439,8 +439,13 @@ export struct loco_t {
   fan::graphics::viewport_list_t viewport_list;
 
   std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) {
-    fan::throw_error("");
-    return {};
+    if (window.renderer == renderer_t::opengl) {
+      return context_functions.image_get_pixel_data(&context, nr, format, uvp, uvs);
+    }
+    else {
+      fan::throw_error("");
+      return {};
+    }
   }
 
   fan::graphics::image_nr_t image_create() {
@@ -1379,7 +1384,7 @@ public:
       io.Fonts->AddFontFromFileTTF("fonts/seguiemj.ttf", font_size, &emoji_cfg, emoji_ranges);
     }
     build_fonts();
-    io.FontDefault = fonts[11];
+    io.FontDefault = fonts[9];
 
     input_action.add(fan::key_escape, "open_settings");
   }
@@ -2112,7 +2117,7 @@ public:
 
     ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
-    if (is_key_down(fan::key_left_control)) {
+    if (allow_docking || is_key_down(fan::key_left_control)) {
       ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     } 
     else {
@@ -3076,8 +3081,8 @@ public:
 
     loco_t::texturepack_t::ti_t get_tp() {
       loco_t::texturepack_t::ti_t ti;
-      ti.image = &gloco->default_texture;
-      auto& image_data = gloco->image_get_data(*ti.image);
+      ti.image = gloco->default_texture;
+      auto& image_data = gloco->image_get_data(ti.image);
       ti.position = get_tc_position() * image_data.size;
       ti.size = get_tc_size() * image_data.size;
       return ti;
@@ -3520,6 +3525,7 @@ public:
     struct ri_t {
       // main image + light buffer + 30
       std::array<loco_t::image_t, 30> images; // what about tc_pos and tc_size
+      texture_pack_unique_t texture_pack_unique_id;
     };
 
 #pragma pack(pop)
@@ -3550,13 +3556,15 @@ public:
       fan::vec2 tc_position = 0;
       fan::vec2 tc_size = 1;
       f32_t seed = 0;
+      texture_pack_unique_t texture_pack_unique_id;
 
       bool load_tp(loco_t::texturepack_t::ti_t* ti) {
-        auto& im = *ti->image;
+        auto& im = ti->image;
         image = im;
         auto& img = gloco->image_get_data(im);
         tc_position = ti->position / img.size;
         tc_size = ti->size / img.size;
+        texture_pack_unique_id = ti->unique_id;
         return 0;
       }
 
@@ -3587,6 +3595,7 @@ public:
 
       ri_t ri;
       ri.images = properties.images;
+      ri.texture_pack_unique_id = properties.texture_pack_unique_id;
 
       loco_t& loco = *OFFSETLESS(this, loco_t, sprite);
       if (loco.window.renderer == loco_t::renderer_t::opengl) {
@@ -3664,6 +3673,7 @@ public:
     struct ri_t {
       // main image + light buffer + 30
       std::array<loco_t::image_t, 30> images;
+      texture_pack_unique_t texture_pack_unique_id;
     };
 
 #pragma pack(pop)
@@ -3704,13 +3714,15 @@ public:
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       uint32_t vertex_count = 6;
+      texture_pack_unique_t texture_pack_unique_id;
 
       bool load_tp(loco_t::texturepack_t::ti_t* ti) {
-        auto& im = *ti->image;
+        auto& im = ti->image;
         image = im;
         auto& img = gloco->image_get_data(im);
         tc_position = ti->position / img.size;
         tc_size = ti->size / img.size;
+        texture_pack_unique_id = ti->unique_id;
         return 0;
       }
     };
@@ -3730,6 +3742,7 @@ public:
       vi.seed = properties.seed;
       ri_t ri;
       ri.images = properties.images;
+      ri.texture_pack_unique_id = properties.texture_pack_unique_id;
       return shape_add(shape_type, vi, ri,
         Key_e::depth, (uint16_t)properties.position.z,
         Key_e::blending, (uint8_t)properties.blending,
@@ -4817,12 +4830,17 @@ public:
   bool show_fps = false;
   bool render_settings_menu = 0;
 
+  bool allow_docking = true;
+
   ImFont* fonts[std::size(font_sizes)]{};
   ImFont* fonts_bold[std::size(font_sizes)]{};
 
 #include <fan/graphics/gui/settings_menu.h>
   settings_menu_t settings_menu;
 #endif
+
+  texturepack_t texture_pack;
+
   bool render_shapes_top = false;
   //gui
 
@@ -5174,6 +5192,9 @@ export namespace fan {
         out["flags"] = shape.get_flags();
         out["tc_position"] = shape.get_tc_position();
         out["tc_size"] = shape.get_tc_size();
+        if (gloco->texture_pack) {
+          out["texture_pack_name"] = gloco->texture_pack[((loco_t::sprite_t::ri_t*)shape.GetData(gloco->shaper))->texture_pack_unique_id].name;
+        }
         fan::json images_array = fan::json::array();
 
         auto main_image = shape.get_image();
@@ -5198,6 +5219,9 @@ export namespace fan {
         out["flags"] = shape.get_flags();
         out["tc_position"] = shape.get_tc_position();
         out["tc_size"] = shape.get_tc_size();
+        if (gloco->texture_pack) {
+          out["texture_pack_name"] = gloco->texture_pack[((loco_t::unlit_sprite_t::ri_t*)shape.GetData(gloco->shaper))->texture_pack_unique_id].name;
+        }
 
         fan::json images_array = fan::json::array();
 
@@ -5311,7 +5335,15 @@ export namespace fan {
         p.flags = in["flags"];
         p.tc_position = in["tc_position"];
         p.tc_size = in["tc_size"];
+        if (in.contains("texture_pack_name") && gloco->texture_pack) {
+          p.texture_pack_unique_id = gloco->texture_pack[in["texture_pack_name"]];
+        }
         *shape = p;
+        if (p.texture_pack_unique_id.iic() == false) {
+          loco_t::texturepack_t::ti_t ti;
+          gloco->texture_pack.qti(gloco->texture_pack[p.texture_pack_unique_id].name, &ti);
+          shape->load_tp(&ti);
+        }
         fan::graphics::image_load_properties_t lp;
         if (in.contains("image_visual_output")) {
           lp.visual_output = in["image_visual_output"];
@@ -5371,7 +5403,15 @@ export namespace fan {
         p.flags = in["flags"];
         p.tc_position = in["tc_position"];
         p.tc_size = in["tc_size"];
+        if (in.contains("texture_pack_name") && gloco->texture_pack) {
+          p.texture_pack_unique_id = gloco->texture_pack[in["texture_pack_name"]];
+        }
         *shape = p;
+        if (p.texture_pack_unique_id.iic() == false) {
+          loco_t::texturepack_t::ti_t ti;
+          gloco->texture_pack.qti(gloco->texture_pack[p.texture_pack_unique_id].name, &ti);
+          shape->load_tp(&ti);
+        }
         fan::graphics::image_load_properties_t lp;
         if (in.contains("image_visual_output")) {
           lp.visual_output = in["image_visual_output"];
