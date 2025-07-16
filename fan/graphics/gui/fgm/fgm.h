@@ -1,6 +1,6 @@
 struct fgm_t {
   fgm_t() {
-    
+
   }
 
   static constexpr f32_t scroll_speed = 1.2;
@@ -41,7 +41,7 @@ struct fgm_t {
       texturepack_images.push_back(tp_image);
       texturepack_size = texturepack_size.max(fan::vec2(size));
       texturepack_single_image_size = texturepack_single_image_size.max(fan::vec2(image.size));
-    });
+      });
   }
 
   void open(const std::string& texturepack_name, const std::wstring& asset_path) {
@@ -85,7 +85,7 @@ struct fgm_t {
         break;
       }
       }
-    });
+      });
     gloco->input_action.add_keycombo({ fan::input::key_left_control, fan::input::key_space }, "toggle_content_browser");
     gloco->input_action.add_keycombo({ fan::input::key_left_control, fan::input::key_f }, "set_windowed_fullscreen");
 
@@ -94,11 +94,11 @@ struct fgm_t {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom;
         auto camera_pos = viewport_settings.pos - move_off;
         gloco->camera_set_position(render_view.camera, camera_pos);
-      //  background.set_position(fan::vec2(editor_pos) + camera_pos);
-        /*fan::vec2 half_ground_size = ground_size * 0.5f;
-        fan::vec2 top_left_world = camera_pos - half_ground_size;
-        fan::vec2 tc_position = top_left_world / 64.f;*/
-    //    background.set_tc_position(tc_position);
+        //  background.set_position(fan::vec2(editor_pos) + camera_pos);
+          /*fan::vec2 half_ground_size = ground_size * 0.5f;
+          fan::vec2 top_left_world = camera_pos - half_ground_size;
+          fan::vec2 tc_position = top_left_world / 64.f;*/
+          //    background.set_tc_position(tc_position);
       }
       });
 
@@ -269,7 +269,7 @@ struct fgm_t {
 
       bool changed = false;
 
-      
+
       gui::push_item_width(gui::calc_item_width() / 3.f);
       changed |= gui::drag_float("##position_x", &v.x, 0.1f, 0.0f, FLT_MAX, "%.3f", gui::slider_flags_always_clamp);
       gui::same_line();
@@ -357,7 +357,7 @@ struct fgm_t {
           shape->children[0].set_image(gloco->image_load(std::filesystem::absolute(std::filesystem::path(content_browser.asset_path) / path).string()));
           shape->children[0].set_tc_position(0);
           shape->children[0].set_tc_size(1);
-        });
+          });
         ImGui::SameLine();
         ImGui::Text("Base texture");
       }
@@ -377,7 +377,7 @@ struct fgm_t {
           shape->children[0].set_images({ gloco->image_load(std::filesystem::absolute(std::filesystem::path(content_browser.asset_path) / path).string()) });
           shape->children[0].set_tc_position(0);
           shape->children[0].set_tc_size(1);
-        });
+          });
         ImGui::SameLine();
         ImGui::Text("Normal map");
       }
@@ -756,7 +756,7 @@ struct fgm_t {
           auto nr = push_shape(loco_t::shape_type_t::sprite, get_mouse_position(), initial_size);
           shape_list[nr]->children[0].set_image(image);
         }
-      });
+        });
 
       gui::receive_drag_drop_target("FGM_TEXTUREPACK_DROP", [&](const std::string& path) {
         loco_t::texturepack_t::ti_t ti;
@@ -766,24 +766,24 @@ struct fgm_t {
         else {
           auto image = ti.image;
           fan::vec2 initial_size = 128.f;
-          
+
           std::wstring wpath(path.begin(), path.end());
 
           auto found = std::find_if(texturepack_images.begin(), texturepack_images.end(), [&](const texturepack_image_t& img) {
             return wpath == img.image_name;
-          });
+            });
           if (found == texturepack_images.end()) {
             fan::print("some bug");
             return;
           }
           initial_size.x *= found->aspect_ratio;
-          
+
           auto nr = push_shape(loco_t::shape_type_t::sprite, get_mouse_position(), initial_size);
           auto& node = shape_list[nr];
           node->children[0].load_tp(&ti);
           node->children[0].get_image_data().image_path = path;
         }
-      }, false);
+        }, false);
     }
 
     // keybinds
@@ -939,6 +939,7 @@ struct fgm_t {
 
     ImGui::End();
 
+    animations_application.render("CONTENT_BROWSER_ITEM");
   }
 
   void fout(const std::string& filename) {
@@ -1149,7 +1150,7 @@ struct fgm_t {
 
   fan::graphics::render_view_t render_view;
 
-  fan::graphics::gui::content_browser_t content_browser{false};
+  fan::graphics::gui::content_browser_t content_browser{ false };
 
   event_type_e event_type = event_type_e::none;
   uint16_t selected_shape_type = loco_t::shape_type_t::invalid;
@@ -1179,18 +1180,7 @@ struct fgm_t {
 
   //
 
-  struct animation_t {
-    int fps = 30;
-    struct texture_coordinates_t {
-      fan::vec2 position;
-      fan::vec2 size;
-      loco_t::image_t image;
-    };
-    std::vector<texture_coordinates_t> tcs;
-  };
-
-  std::unordered_map<std::string, animation_t> animations;
-  std::vector<std::string> items{ "default" };
+  fan::graphics::gui::sprite_animations_t animations_application;
 
   fan::vec2 editor_pos = 0;
   fan::graphics::sprite_t background;

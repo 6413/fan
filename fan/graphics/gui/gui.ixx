@@ -125,8 +125,8 @@ export namespace fan {
         void end() {
           ImGui::End();
         }
-        bool begin_child(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0) {
-          return ImGui::BeginChild(window_name.c_str(), size, window_flags);
+        bool begin_child(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t child_window_flags = 0, window_flags_t window_flags = 0) {
+          return ImGui::BeginChild(window_name.c_str(), size, child_window_flags, window_flags);
         }
         void end_child() {
           ImGui::EndChild();
@@ -312,6 +312,16 @@ export namespace fan {
         bool is_any_item_active() {
           return ImGui::IsAnyItemActive();
         }
+        bool is_item_clicked() {
+          return ImGui::IsItemClicked();
+        }
+        bool is_item_held(int mouse_button = 0) {
+          return fan::window::is_mouse_down(mouse_button) && is_item_hovered(hovered_flags_rect_only);
+        }
+
+        void set_tooltip(const std::string& tooltip) {
+          ImGui::SetTooltip(tooltip.c_str());
+        }
 
         using selectable_flag_t = int;
         enum {
@@ -329,6 +339,10 @@ export namespace fan {
         }
         bool selectable(const std::string& label, bool* p_selected, selectable_flag_t flags = 0, const fan::vec2& size = fan::vec2(0, 0)) {
           return ImGui::Selectable(label.c_str(), p_selected, flags, size);
+        }
+
+        bool is_mouse_double_clicked(int button = 0) {
+          return ImGui::IsMouseDoubleClicked(button);
         }
 
         using table_flags_t = int;
@@ -519,11 +533,17 @@ export namespace fan {
         f32_t get_column_width(int index = -1) {
           return ImGui::GetColumnWidth(index);
         }
+        void set_column_width(int index, f32_t width) {
+          ImGui::SetColumnWidth(index, width);
+        }
 
         bool is_item_active() {
           return ImGui::IsItemActive();
         }
 
+        void set_keyboard_focus_here() {
+          ImGui::SetKeyboardFocusHere();
+        }
 
         fan::vec2 get_mouse_drag_delta(int button = 0, float lock_threshold = -1.0f) {
           ImVec2 delta = ImGui::GetMouseDragDelta(button, lock_threshold);
@@ -649,10 +669,8 @@ export namespace fan {
         /// <param name="position">The position of the text.</param>
         /// <param name="color">The color of the text (defaults to white).</param>
         void text_at(const std::string& text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white) {
-          ImGui::SetCursorPos(position);
-          ImGui::PushStyleColor(ImGuiCol_Text, color);
-          ImGui::Text("%s", text.c_str());
-          ImGui::PopStyleColor();
+          ImDrawList* draw_list = ImGui::GetWindowDrawList();
+          draw_list->AddText(position, color.get_hex(), text.c_str());
         }
 
         void text_wrapped(const std::string& text, const fan::color& color = fan::colors::white) {
@@ -681,6 +699,43 @@ export namespace fan {
           fan::graphics::gui::text_at(text, text_pos + offset, color);
         }
 
+        constexpr const float outline_thickness = 2.0f;
+        constexpr const fan::vec2 outline_offsets[] = {
+          {0, -outline_thickness},  // top
+          {-outline_thickness, 0},  // left
+          {outline_thickness, 0},   // right
+          {0, outline_thickness}    // bottom
+        };
+
+        void text_outlined_at(const std::string& text, const fan::vec2& screen_pos, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black) {
+          ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+          // Draw outline
+          for (const auto& offset : outline_offsets) {
+            draw_list->AddText(screen_pos + offset, outline_color.get_hex(), text.c_str());
+          }
+
+          // Draw main text on top
+          draw_list->AddText(screen_pos, color.get_hex(), text.c_str());
+        }
+
+        void text_outlined(const std::string& text, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black) {
+          fan::vec2 cursor_pos = ImGui::GetCursorPos();
+
+          // Draw outline
+          ImGui::PushStyleColor(ImGuiCol_Text, outline_color);
+          for (const auto& offset : outline_offsets) {
+            ImGui::SetCursorPos(cursor_pos + offset);
+            ImGui::Text("%s", text.c_str());
+          }
+          ImGui::PopStyleColor();
+
+          // Draw main text on top
+          ImGui::SetCursorPos(cursor_pos);
+          ImGui::PushStyleColor(ImGuiCol_Text, color);
+          ImGui::Text("%s", text.c_str());
+          ImGui::PopStyleColor();
+        }
 
         using slider_flags_t = int;
         enum {
@@ -2029,20 +2084,211 @@ export namespace fan {
         }
       };
 
-      font_t* get_font(f32_t font_size) {
-        int best_index = 0;
-        f32_t best_diff = std::abs(gloco->font_sizes[0] - font_size);
+      font_t* get_font(f32_t font_size, bool bold = false) {
+        return gloco->get_font(font_size, bold);
+      }
 
-        for (std::size_t i = 1; i < std::size(gloco->font_sizes); ++i) {
-          f32_t diff = std::abs(gloco->font_sizes[i] - font_size);
-          if (diff < best_diff) {
-            best_diff = diff;
-            best_index = i;
+      struct sprite_animations_t {
+        //fan::vec2i frame_coords; // starting from top left and increasing by one to get the next frame into that direction
+
+        std::string animation_list_current;
+        std::string animation_list_name_to_edit; // animation rename
+        std::string animation_list_name_edit_buffer;
+
+        std::vector<int> previous_hold_selected;
+
+        bool set_focus = false;
+        bool play_animation = false;
+        static inline constexpr f32_t animation_names_padding = 10.f;
+        int hframes = 1, vframes = 1;
+
+        void render_list_box() {
+          gui::begin_child("animations_tool_bar", fan::vec2(0, 64));
+          gui::set_cursor_pos_y(animation_names_padding);
+          gui::indent(animation_names_padding);
+          if (gui::button("+")) {
+            loco_t::sprite_sheet_animation_t animation;
+            static uint64_t counter = 0;
+            std::string animation_name = "Anim" + std::to_string(counter++);
+            gloco->get_sprite_sheet_animation(animation_name) = animation;
+          }
+          gui::unindent();
+          gui::end_child();
+
+          gui::begin_child("animation_names");
+          gui::push_item_width(gui::get_window_size().x * 0.8f);;
+          gui::set_cursor_pos_y(animation_names_padding);
+          gui::indent(animation_names_padding);
+          for (auto [i, animation_pair] : fan::enumerate(gloco->sprite_sheet_animations)) {
+            auto& animation = animation_pair.second;
+            if (animation_pair.first == animation_list_name_to_edit) {
+              std::snprintf(animation_list_name_edit_buffer.data(), animation_list_name_edit_buffer.size() + 1, "%s", animation_pair.first.c_str());
+              gui::push_id(i);
+              if (set_focus) {
+                gui::set_keyboard_focus_here();
+                set_focus = false;
+              }
+
+              if (gui::input_text("##edit", &animation_list_name_edit_buffer, gui::input_text_flags_enter_returns_true)) {
+                if (animation_list_name_edit_buffer != animation_pair.first) {
+                  gloco->add_sprite_sheet_animation(animation_list_name_edit_buffer, animation);
+                  gloco->sprite_sheet_animations.erase(animation_pair.first);
+                  animation_list_name_to_edit.clear();
+                  gui::pop_id();
+                  break;
+                }
+              }
+              gui::pop_id();
+            }
+            else {
+              gui::push_id(i);
+              if (gui::selectable(animation_pair.first, animation_list_current == animation_pair.first, gui::selectable_flags_allow_double_click, fan::vec2(gui::get_content_region_avail().x * 0.8f, 0))) {
+                if (gui::is_mouse_double_clicked()) {
+                  animation_list_name_to_edit = animation_pair.first;
+                  set_focus = true;
+                }
+                animation_list_current = animation_pair.first;
+              }
+              gui::pop_id();
+            }
+          }
+          gui::pop_item_width();
+          gui::unindent(animation_names_padding);
+          gui::end_child();
+        }
+
+        void render_selectable_frames(loco_t::sprite_sheet_animation_t& current_animation) {
+          if (fan::window::is_mouse_released()) {
+            previous_hold_selected.clear();
+          }
+
+          for (int y = 0; y < vframes; ++y) {
+            for (int x = 0; x < hframes; ++x) {
+              fan::vec2 tc_size = fan::vec2(1.0 / hframes, 1.0 / vframes);
+              fan::vec2 uv_src = fan::vec2(
+                fmod(tc_size.x * x, 1.0),
+                y / tc_size.y
+              );
+              fan::vec2 uv_dst = uv_src + fan::vec2(1.0 / hframes, 1.0 / vframes);
+              int grid_index = y * hframes + x;
+              gui::push_id(grid_index);
+              fan::vec2 cursor_screen_pos = gui::get_cursor_screen_pos() + fan::vec2(7.f, 0); // + pad
+              gui::image_button("", current_animation.sprite_sheet, 128, uv_src, uv_dst);
+              auto& sf = current_animation.selected_frames;
+              auto it_found = std::find_if(sf.begin(), sf.end(), [a = grid_index](const loco_t::frame_selectable_t& b) {
+                return a == b.frame_index;
+                });
+              bool is_found = it_found != sf.end();
+
+              auto previous_hold_it = std::find(previous_hold_selected.begin(), previous_hold_selected.end(), grid_index);
+              bool was_added_by_hold_before = previous_hold_it != previous_hold_selected.end();
+              if (gui::is_item_held() && !was_added_by_hold_before) {
+                if (is_found == false) {
+                  sf.push_back({ .frame_index = grid_index });
+                  previous_hold_selected.push_back(grid_index);
+                }
+                else {
+                  it_found = sf.erase(it_found);
+                  is_found = false;
+                  previous_hold_selected.push_back(grid_index);
+                }
+              }
+              if (is_found) {
+                // outline
+                gui::text_outlined_at(std::to_string(std::distance(sf.begin(), it_found)), cursor_screen_pos);
+                gui::text_at(std::to_string(std::distance(sf.begin(), it_found)), cursor_screen_pos);
+              }
+              gui::pop_id();
+              if (y != vframes || x != hframes) {
+                gui::same_line();
+              }
+            }
+            gui::new_line();
           }
         }
 
-        return gloco->fonts[best_index];
-      }
+        void render(const std::string& drag_drop_id = "") {
+          gui::push_style_var(gui::style_var_item_spacing, fan::vec2(12.f, 12.f));
+          gui::begin("Animations");
+
+          gui::columns(2, "animation_columns", false);
+          gui::set_column_width(0, gui::get_window_size().x * 0.2f);
+
+          render_list_box();
+
+          gui::next_column();
+
+          gui::begin_child("animation_window_right", 0, 0, gui::window_flags_horizontal_scrollbar);
+
+          // just drop image from directory
+
+          gui::push_item_width(72);
+          gui::indent(animation_names_padding);
+          gui::set_cursor_pos_y(animation_names_padding);
+
+          if (gui::button("Play")) {
+            play_animation = true;
+          }
+          auto current_animation = gloco->sprite_sheet_animations.find(animation_list_current);
+          if (current_animation == gloco->sprite_sheet_animations.end()) {
+            gui::columns(1);
+            gui::end_child();
+            gui::end();
+            gui::pop_style_var();
+            return;
+          }
+
+          gui::same_line(0, 20.f);
+
+          gui::slider_flags_t slider_flags = fan::graphics::gui::slider_flags_always_clamp | gui::slider_flags_no_speed_tweaks;
+          gui::drag_int("fps", &current_animation->second.fps, 0.03f, 0, 244, "%d", slider_flags);
+
+          gui::drag_int("Horizontal frames", &hframes, 0.03f, 0, 1024, "%d", slider_flags);
+          gui::drag_int("Vertical frames", &vframes, 0.03f, 0, 1024, "%d", slider_flags);
+
+          current_animation->second.hframes = hframes;
+          current_animation->second.vframes = vframes;
+
+          gui::pop_item_width();
+
+          gui::separator();
+
+          fan::vec2 cursor_pos = gui::get_cursor_pos();
+          if (drag_drop_id.size()) {
+            fan::vec2 avail = gui::get_content_region_avail();
+            ImGui::Dummy(avail - cursor_pos);
+            gui::receive_drag_drop_target(drag_drop_id, [this](const std::string& file_path) {
+              if (fan::image::valid(file_path)) {
+                if (auto it = gloco->sprite_sheet_animations.find(animation_list_current); it != gloco->sprite_sheet_animations.end()) {
+                  auto& anim = it->second;
+                  if (gloco->is_image_valid(anim.sprite_sheet)) {
+                    gloco->image_unload(anim.sprite_sheet);
+                  }
+                  anim.sprite_sheet = gloco->image_load(file_path);
+                }
+              }
+              else {
+                fan::print("Warning: drop target not valid (requires image file)");
+              }
+            });
+          }
+          gui::set_cursor_pos(cursor_pos);
+
+          //render_play_animation();
+
+          if (gloco->is_image_valid(current_animation->second.sprite_sheet)) {
+            render_selectable_frames(current_animation->second);
+          }
+
+          gui::unindent(animation_names_padding);
+          gui::end_child();
+          gui::columns(1);
+
+          gui::end();
+          gui::pop_style_var();
+        }
+      };
+
 
       struct dialogue_box_t {
 

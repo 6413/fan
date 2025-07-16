@@ -2,7 +2,7 @@ void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions, f
   for (auto& x : main_compiled_map.compiled_shapes) {
     for (auto& y : x) {
       for (auto& z : y) {
-        if (z.image_name == "tile0" || z.image_name == "tile1" || z.image_name == "tile2") {
+        if (gloco->texture_pack[z.texture_pack_unique_id].name == "tile0" || gloco->texture_pack[z.texture_pack_unique_id].name == "tile1" || gloco->texture_pack[z.texture_pack_unique_id].name == "tile2") {
           collisions.push_back(pile.loco.physics_context.create_circle(
             fan::vec2(z.position) + fan::vec2(0, -z.size.y / 6),
             z.size.y / 2.f,
@@ -24,7 +24,7 @@ void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions, f
 }
 
 void open(void* sod) {
-  main_compiled_map = pile.renderer.compile("examples/games/forest game/forest.json");
+  main_compiled_map = pile.renderer.compile("examples/games/forest game/forest2.json");
   fan::vec2i render_size(16, 9);
   render_size /= 1.5;
   fte_loader_t::properties_t p;

@@ -77,7 +77,6 @@ int main(int argc, char** argv) {
   fte_t::properties_t p;
   p.camera = &render_view0;
   fte.open(p);
-  fte.open_texturepack("bugtest2.ftp");
  // fte.fin("map_game0_1.json");
 
   std::unique_ptr<player_t> player;
@@ -93,7 +92,7 @@ int main(int argc, char** argv) {
       lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
       lp.min_filter = fan::graphics::image_filter::nearest;
       lp.mag_filter = fan::graphics::image_filter::nearest;
-      renderer->open(&gloco->texture_pack);
+      renderer->open();
 
       // STATIC POINTER
       static fte_loader_t::compiled_map_t compiled_map;

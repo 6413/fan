@@ -12,7 +12,7 @@ struct settings_menu_t {
     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
 
   static void menu_graphics_left(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
-
+    ImGui::PushFont(gloco->get_font(24));
     ImGui::SetNextWindowPos(next_window_position);
     ImGui::SetNextWindowSize(next_window_size);
     ImGui::SetNextWindowBgAlpha(0.99);
@@ -127,6 +127,7 @@ struct settings_menu_t {
       ImGui::EndTable();
     }
     ImGui::End();
+    ImGui::PopFont();
   }
   static void menu_graphics_right(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
 
@@ -135,7 +136,7 @@ struct settings_menu_t {
     ImGui::SetNextWindowBgAlpha(0.99);
     ImGui::Begin("##Menu Graphics Right", 0, wnd_flags);
 
-    ImGui::PushFont(gloco->fonts_bold[std::size(gloco->fonts_bold) - 3]);
+    ImGui::PushFont(gloco->get_font(32, true));
     ImGui::Indent(menu->min_x);
     ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "Setting Info");
     ImGui::Unindent(menu->min_x);
@@ -297,7 +298,7 @@ struct settings_menu_t {
       ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar
     );
 
-    ImGui::PushFont(gloco->fonts_bold[std::size(gloco->fonts_bold) - 2]);
+    ImGui::PushFont(gloco->get_font(48, true));
     ImGui::Indent(min_x);
     ImGui::Text("Settings");
     ImGui::PopFont();
@@ -305,7 +306,7 @@ struct settings_menu_t {
     render_separator_with_margin(ImGui::GetContentRegionAvail().x - min_x);
     f32_t options_x = 256.f;
     ImGui::Indent(options_x);
-    ImGui::PushFont(gloco->fonts_bold[2]);
+    ImGui::PushFont(gloco->get_font(32, true));
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(64, 5.f));
     ImGui::BeginTable("##settings_top_table", pages.size());
     ImGui::TableNextRow();
@@ -344,6 +345,8 @@ struct settings_menu_t {
     if (gloco->reload_renderer_to != (decltype(gloco->reload_renderer_to))-1) {
       set_settings_theme();
     }
+
+    set_settings_theme();
 
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 0.9f));
     ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.8, 0.8, 0.8, 1.0f));
