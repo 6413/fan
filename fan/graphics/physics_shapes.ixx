@@ -885,12 +885,18 @@ export namespace fan {
 
             bool can_jump = false;
 
-            can_jump = is_on_ground(*this, std::to_array(feet), jumping);
+            bool on_ground = is_on_ground(*this, std::to_array(feet), jumping);
+            can_jump = on_ground || (((fan::time::clock::now() - last_ground_time) / 1e+9 <= coyote_time) && !on_air_after_jump);
+            if (on_ground) {
+              last_ground_time = fan::time::clock::now();
+              on_air_after_jump = false;
+            }
 
             bool move_up = gloco->input_action.is_action_clicked("move_up");
             if (move_up) {
               if (can_jump) {
                 if (handle_jump) {
+                  on_air_after_jump = true;
                   set_linear_velocity(fan::vec2(get_linear_velocity().x, 0));
                   apply_linear_impulse_center({ 0, -impulse });
                 }
@@ -943,8 +949,11 @@ export namespace fan {
         f32_t jump_delay = 0.25f;
         bool jumping = false;
         fan::physics::body_id_t feet[2];
+        f32_t coyote_time = 0.1f;
+        f32_t last_ground_time = 0.f;
         f32_t walk_force = 0;
         bool handle_jump = true;
+        bool on_air_after_jump = false;
       };
 
       struct bone_e {

@@ -109,8 +109,8 @@ public:
     }
   }
 
-  void open(loco_t::texturepack_t* tp) {
-    texturepack = tp;
+  void open() {
+
   }
 
   compiled_map_t compile(const std::string& filename) {
@@ -140,23 +140,23 @@ public:
     loco_t::shape_t shape;
     while (it.iterate(json["tiles"], &shape)) {
       auto shape_json = *(it.data.it - 1);
-      if (shape_json["mesh_property"] == fte_t::mesh_property_t::physics_shape) {
+      if (shape_json.contains("mesh_property") && shape_json["mesh_property"] == fte_t::mesh_property_t::physics_shape) {
         compiled_map.physics_shapes.resize(compiled_map.physics_shapes.size() + 1);
         compiled_map_t::physics_data_t& physics_element = compiled_map.physics_shapes.back();
 
         physics_element.position = shape.get_position();
         physics_element.size = shape.get_size();
-        physics_element.physics_shapes.id = shape_json["id"];
-
+        fte_t::physics_shapes_t defaults;
+        physics_element.physics_shapes.id = shape_json.value("id", defaults.id);
         const fan::json& physics_shape_data = shape_json["physics_shape_data"];
-        physics_element.physics_shapes.type = physics_shape_data["type"];
-        physics_element.physics_shapes.body_type = physics_shape_data["body_type"];
-        physics_element.physics_shapes.draw = physics_shape_data["draw"];
-        physics_element.physics_shapes.shape_properties.friction = physics_shape_data["friction"] ;
-        physics_element.physics_shapes.shape_properties.density = physics_shape_data["density"] ;
-        physics_element.physics_shapes.shape_properties.fixed_rotation = physics_shape_data["fixed_rotation"] ;
-        physics_element.physics_shapes.shape_properties.presolve_events = physics_shape_data["presolve_events"];
-        physics_element.physics_shapes.shape_properties.is_sensor = physics_shape_data["is_sensor"];
+        physics_element.physics_shapes.type = physics_shape_data.value("type", defaults.type);
+        physics_element.physics_shapes.body_type = physics_shape_data.value("body_type", defaults.body_type);
+        physics_element.physics_shapes.draw = physics_shape_data.value("draw", defaults.draw);
+        physics_element.physics_shapes.shape_properties.friction = physics_shape_data.value("friction", defaults.shape_properties.friction);
+        physics_element.physics_shapes.shape_properties.density = physics_shape_data.value("density", defaults.shape_properties.density);
+        physics_element.physics_shapes.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", defaults.shape_properties.fixed_rotation);
+        physics_element.physics_shapes.shape_properties.presolve_events = physics_shape_data.value("presolve_events", defaults.shape_properties.presolve_events);
+        physics_element.physics_shapes.shape_properties.is_sensor = physics_shape_data.value("is_sensor", defaults.shape_properties.is_sensor);
        
         continue;
       }
@@ -168,8 +168,14 @@ public:
       tile.size = shape.get_size();
       tile.angle = shape.get_angle();
       tile.color = shape.get_color();
-      tile.mesh_property = (fte_t::mesh_property_t)shape_json["mesh_property"];
-      tile.id = shape_json["id"];
+      if (shape.get_shape_type() == loco_t::shape_type_t::sprite) {
+        tile.texture_pack_unique_id = ((loco_t::sprite_t::ri_t*)shape.GetData(gloco->shaper))->texture_pack_unique_id;
+      }
+      else if (shape.get_shape_type() == loco_t::shape_type_t::unlit_sprite) {
+        tile.texture_pack_unique_id = ((loco_t::unlit_sprite_t::ri_t*)shape.GetData(gloco->shaper))->texture_pack_unique_id;
+      }
+      tile.mesh_property = (fte_t::mesh_property_t)shape_json.value("mesh_property", fte_t::tile_t().mesh_property);
+      tile.id = shape_json.value("id", fte_t::tile_t().id);
       tile.action = shape_json.value("action", fte_t::actions_e::none);
       tile.key = shape_json.value("key", fan::key_invalid);
       tile.key_state = shape_json.value("key_state", (int)fan::keyboard_state::press);
@@ -190,8 +196,6 @@ public:
     fan::vec2 scale = 1;
     fan::graphics::render_view_t* render_view = nullptr;
   };
-
-  loco_t::texturepack_t* texturepack;
 
   using physics_entities_t = map_list_data_t::physics_entities_t;
   using physics_data_t = compiled_map_t::physics_data_t;

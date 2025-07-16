@@ -1,13 +1,13 @@
 #include <fan/types/types.h>
 #include <fan/math/math.h>
-#include <fan/time/timer.h>
+#include <fan/time/time.h>
 #include <fan/event/types.h>
 
 #include <string>
+#include <fan/graphics/algorithm/astar.h>
 
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
-#include <fan/graphics/algorithm/astar.h>
 
 
 //fan_track_allocations();
@@ -121,7 +121,6 @@ struct pile_t {
   }
   loco_t loco;
   player_t player;
-  loco_t::texturepack_t tp;
   fte_renderer_t renderer;
 
   fan::algorithm::path_solver_t path_solver;
@@ -153,9 +152,9 @@ pile_t::pile_t() {
   lp.min_filter = fan::graphics::image_filter::nearest;
   lp.mag_filter = fan::graphics::image_filter::nearest;
 
-  tp.open_compiled("examples/games/forest game/forest_tileset.ftp", lp);
+  gloco->texture_pack.open_compiled("examples/games/forest game/forest_tileset.ftp", lp);
 
-  renderer.open(&tp);
+  renderer.open();
   
   fan::vec2 dst = player.player.get_position();
   loco.camera_set_position(

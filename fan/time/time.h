@@ -196,6 +196,9 @@ namespace fan {
 				auto elapsed = this->elapsed(m_timer);
 				return elapsed >= m_time;
 			}
+      operator bool const() {
+        return finished();
+      }
 
 			bool started() const {
 				return m_time;
@@ -211,8 +214,8 @@ namespace fan {
 				return fan::time::clock::now() - time;
 			}
 
-			uint64_t m_timer;
-			uint64_t m_time;
+			uint64_t m_timer = 0;
+			uint64_t m_time = (uint64_t)-1;
 
 			time_unit time_unit_value;
 

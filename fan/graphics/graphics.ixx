@@ -407,6 +407,7 @@ export namespace fan {
       f32_t parallax_factor = 0;
       bool blending = true;
       uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
+      loco_t::texture_pack_unique_t texture_pack_unique_id;
     };
 
 
@@ -428,7 +429,8 @@ export namespace fan {
             .color = p.color,
             .rotation_point = p.rotation_point,
             .blending = p.blending,
-            .flags = p.flags
+            .flags = p.flags,
+            .texture_pack_unique_id = p.texture_pack_unique_id
           ));
       }
     };
@@ -1027,6 +1029,8 @@ export namespace fan {
       loco_t::update_callback_nr_t uc_nr;
       f32_t zoom = 2;
       bool hovered = false;
+      bool zoom_on_window_resize = true;
+      fan::vec2 old_window_size;
       loco_t::camera_t reference_camera;
       loco_t::viewport_t reference_viewport;
       fan::window_t::buttons_callback_t::nr_t button_cb_nr;
@@ -1037,6 +1041,7 @@ export namespace fan {
       ) : reference_camera(camera_nr), reference_viewport(viewport_nr)
       {
         auto& window = gloco->window;
+        old_window_size = window.get_size();
         static auto update_ortho = [&](loco_t* loco) {
           fan::vec2 s = loco->viewport_get_size(reference_viewport);
           loco->camera_set_ortho(
@@ -1044,10 +1049,20 @@ export namespace fan {
             fan::vec2(-s.x, s.x) / zoom,
             fan::vec2(-s.y, s.y) / zoom
           );
-          };
+        };
 
         auto it = gloco->m_update_callback.NewNodeLast();
         gloco->m_update_callback[it] = update_ortho;
+
+        window.add_resize_callback([&](const auto& d) {
+          if (old_window_size.x > 0 && old_window_size.y > 0) {
+            fan::vec2 ratio = fan::vec2(d.size) / old_window_size;
+            f32_t size_ratio = (ratio.y + ratio.x) / 2.0f;
+            f32_t zoom_change = zoom * (size_ratio - 1.0f);
+            zoom += zoom_change;
+          }
+          old_window_size = d.size;
+        });
 
         button_cb_nr = window.add_buttons_callback([&](const auto& d) {
           if (d.button == fan::mouse_scroll_up) {
@@ -1142,6 +1157,35 @@ export namespace fan {
             }
             });
         }
+      }
+    };
+
+    struct image_divider_t {
+      struct image_t {
+        fan::vec2 uv_pos;
+        fan::vec2 uv_size;
+        loco_t::image_t image;
+      };
+
+      loco_t::image_t root_image = gloco->default_texture;
+      //
+      std::vector<std::vector<image_t>> images;
+      //
+      struct image_click_t {
+        int highlight = 0;
+        int count_index;
+      };
+
+      loco_t::texture_packe0::open_properties_t open_properties;
+      loco_t::texture_packe0 e;
+      loco_t::texture_packe0::texture_properties_t texture_properties;
+
+      //
+      image_divider_t() {
+        e.open(open_properties);
+        texture_properties.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_edge;
+        texture_properties.min_filter = fan::graphics::image_filter::nearest;
+        texture_properties.mag_filter = fan::graphics::image_filter::nearest;
       }
     };
 

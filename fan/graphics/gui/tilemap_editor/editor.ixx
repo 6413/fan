@@ -1088,7 +1088,9 @@ export struct fte_t {
         fan::vec2 cursor_position = gloco->get_mouse_position();
         fan::vec2i grid_pos;
         if (window_relative_to_grid(cursor_position, &grid_pos)) {
-          auto str = grid_pos.to_string();
+          auto str = (grid_pos / (tile_size * 2.f)).to_string();
+          fan::graphics::gui::text_bottom_right(str.c_str(), 1);
+          str = grid_pos.to_string();
           fan::graphics::gui::text_bottom_right(str.c_str(), 0);
         }
       }
@@ -1818,12 +1820,25 @@ export struct fte_t {
           fan::print("warning out size 0", j.tile.position);
         }
         fan::graphics::shape_serialize(j.shape, &tile);
-        tile["mesh_property"] = j.tile.mesh_property;
-        tile["id"] = j.tile.id;
-        tile["action"] = j.tile.action;
-        tile["key"] = j.tile.key;
-        tile["key_state"] = j.tile.key_state;
-        tile["object_names"] = j.tile.object_names;
+        fte_t::tile_t defaults;
+        if (j.tile.mesh_property != defaults.mesh_property) {
+          tile["mesh_property"] = j.tile.mesh_property;
+        }
+        if (j.tile.id != defaults.id) {
+          tile["id"] = j.tile.id;
+        }
+        if (j.tile.action != defaults.action) {
+          tile["action"] = j.tile.action;
+        }
+        if (j.tile.key != defaults.key) {
+          tile["key"] = j.tile.key;
+        }
+        if (j.tile.key_state != defaults.key_state) {
+          tile["key_state"] = j.tile.key_state;
+        }
+        if (j.tile.object_names != defaults.object_names) {
+          tile["object_names"] = j.tile.object_names;
+        }
         tiles.push_back(tile);
       }
     }
@@ -1922,7 +1937,7 @@ shape data{
     loco_t::shape_t shape;
     while (it.iterate(json["tiles"], &shape)) {
       const auto& shape_json = *(it.data.it - 1);
-      if (shape_json["mesh_property"] == fte_t::mesh_property_t::physics_shape) {
+      if (shape_json.contains("mesh_property") && shape_json["mesh_property"] == fte_t::mesh_property_t::physics_shape) {
         auto& physics_shape = physics_shapes[shape.get_position().z];
         physics_shape.resize(physics_shape.size() + 1);
         auto& physics_element = physics_shape.back();
@@ -1930,16 +1945,17 @@ shape data{
         shape.set_viewport(render_view->viewport);
         shape.set_image(grid_visualize.collider_color);
         if (shape_json.contains("physics_shape_data")) {
-          physics_element.id  = shape_json["id"];
+          fte_t::physics_shapes_t defaults;
+          physics_element.id = shape_json.value("id", defaults.id);
           const fan::json& physics_shape_data = shape_json["physics_shape_data"];
-          physics_element.type = physics_shape_data["type"];
-          physics_element.body_type = physics_shape_data["body_type"];
-          physics_element.draw = physics_shape_data["draw"];
-          physics_element.shape_properties.friction = physics_shape_data["friction"] ;
-          physics_element.shape_properties.density = physics_shape_data["density"] ;
-          physics_element.shape_properties.fixed_rotation = physics_shape_data["fixed_rotation"] ;
-          physics_element.shape_properties.presolve_events = physics_shape_data["presolve_events"];
-          physics_element.shape_properties.is_sensor = physics_shape_data["is_sensor"];
+          physics_element.type = physics_shape_data.value("type", defaults.type);
+          physics_element.body_type = physics_shape_data.value("body_type", defaults.body_type);
+          physics_element.draw = physics_shape_data.value("draw", defaults.draw);
+          physics_element.shape_properties.friction = physics_shape_data.value("friction", defaults.shape_properties.friction);
+          physics_element.shape_properties.density = physics_shape_data.value("density", defaults.shape_properties.density);
+          physics_element.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", defaults.shape_properties.fixed_rotation);
+          physics_element.shape_properties.presolve_events = physics_shape_data.value("presolve_events", defaults.shape_properties.presolve_events);
+          physics_element.shape_properties.is_sensor = physics_shape_data.value("is_sensor", defaults.shape_properties.is_sensor);
         }
         physics_element.visual = std::move(shape);
         continue;
@@ -1964,8 +1980,8 @@ shape data{
       layer->tile.size = shape.get_size();
       layer->tile.angle = shape.get_angle();
       layer->tile.color = shape.get_color();
-      layer->tile.id = shape_json["id"];
-      layer->tile.mesh_property = (mesh_property_t)shape_json["mesh_property"];
+      layer->tile.id = shape_json.value("id", "");
+      layer->tile.mesh_property = (mesh_property_t)shape_json.value("mesh_property", fte_t::tile_t().mesh_property);
 
       layer->shape = shape;
 

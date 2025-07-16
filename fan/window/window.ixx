@@ -754,7 +754,7 @@ export namespace fan {
 #endif
 
     double last_frame_time = glfwGetTime();
-    f64_t m_delta_time = 0;
+    f64_t m_delta_time = 1.0 / 244.0;
     uint32_t m_frame_counter = 0;
 
     buttons_callback_t m_buttons_callback;

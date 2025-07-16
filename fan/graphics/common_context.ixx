@@ -8,6 +8,7 @@ module;
 #include <unordered_map>
 #include <memory>
 #include <string>
+#include <vector>
 
 export module fan.graphics.common_context;
 

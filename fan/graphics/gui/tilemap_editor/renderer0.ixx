@@ -149,7 +149,8 @@ export struct fte_renderer_t : fte_loader_t {
             .color = j.color,
             .parallax_factor = 0,
             .blending = true,
-            .flags = j.flags
+            .flags = j.flags,
+            .texture_pack_unique_id = j.texture_pack_unique_id
         } };
         break;
       }
@@ -178,9 +179,9 @@ export struct fte_renderer_t : fte_loader_t {
   }
   void clear(node_t& node) {
     node.tiles.clear();
-    for (auto& j : node.physics_entities) {
-      std::visit([](auto& obj){obj.destroy();}, j.visual);
-    }
+    //for (auto& j : node.physics_entities) {
+    //  std::visit([](auto& obj){obj.destroy();}, j.visual);
+    //}
     node.physics_entities.clear();
   }
 

@@ -72,6 +72,15 @@ static loco_t::shape_t push_back_line3d(void* properties) {
 	return gloco->line3d.push_back(*reinterpret_cast<loco_t::line3d_t::properties_t*>(properties));
 }
 
+static void vi_move(uint16_t shape_type, void* vi) {
+
+}
+
+static void ri_move(uint16_t sti, void* ri) {
+  if (sti == loco_t::shape_type_t::sprite) {
+    ((loco_t::sprite_t::ri_t*)ri)->sprite_sheet_data.frame_update_nr.sic();
+  }
+}
 
 inline static void set_position(loco_t::shape_t* shape, const fan::vec3& position) {
 	 // alloc can be avoided inside switch
@@ -107,16 +116,20 @@ inline static void set_position(loco_t::shape_t* shape, const fan::vec3& positio
 	}
 	}
 
-
 	auto _vi = shape->GetRenderData(gloco->shaper);
 	auto vlen = gloco->shaper.GetRenderDataSize(sti);
+
 	uint8_t* vi = new uint8_t[vlen];
 	std::memcpy(vi, _vi, vlen);
 
 	auto _ri = shape->GetData(gloco->shaper);
 	auto rlen = gloco->shaper.GetDataSize(sti);
+
 	uint8_t* ri = new uint8_t[rlen];
 	std::memcpy(ri, _ri, rlen);
+
+  vi_move(sti, _vi);
+  ri_move(sti, _ri);
 
 	shape->remove();
 	*shape = gloco->shaper.add(
@@ -129,6 +142,9 @@ inline static void set_position(loco_t::shape_t* shape, const fan::vec3& positio
 #if defined(debug_shape_t)
 	fan::print("+", shape->NRI);
 #endif
+  _ri = shape->GetData(gloco->shaper);
+  fan::print(((loco_t::sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr.NRI);
+  fan::print(((loco_t::sprite_t::ri_t*)ri)->sprite_sheet_data.frame_update_nr.NRI);
 	delete[] KeyPack;
 	delete[] vi;
 	delete[] ri;
@@ -206,14 +222,19 @@ inline static void set_camera(loco_t::shape_t* shape, loco_t::camera_t camera) {
 	
 	auto _vi = shape->GetRenderData(gloco->shaper);
 	auto vlen = gloco->shaper.GetRenderDataSize(sti);
+
 	uint8_t* vi = new uint8_t[vlen];
 	std::memcpy(vi, _vi, vlen);
 	
 	auto _ri = shape->GetData(gloco->shaper);
 	auto rlen = gloco->shaper.GetDataSize(sti);
+
 	uint8_t* ri = new uint8_t[rlen];
 	std::memcpy(ri, _ri, rlen);
 	
+  vi_move(sti, _vi);
+  ri_move(sti, _ri);
+
 	shape->remove();
 	*shape = gloco->shaper.add(
 	sti,
@@ -300,13 +321,18 @@ inline static void set_viewport(loco_t::shape_t* shape, loco_t::viewport_t viewp
 
 	auto _vi = shape->GetRenderData(gloco->shaper);
 	auto vlen = gloco->shaper.GetRenderDataSize(sti);
+
 	uint8_t* vi = new uint8_t[vlen];
 	std::memcpy(vi, _vi, vlen);
 
 	auto _ri = shape->GetData(gloco->shaper);
 	auto rlen = gloco->shaper.GetDataSize(sti);
+
 	uint8_t* ri = new uint8_t[rlen];
 	std::memcpy(ri, _ri, rlen);
+
+  vi_move(sti, _vi);
+  ri_move(sti, _ri);
 
 	shape->remove();
 	*shape = gloco->shaper.add(
@@ -367,13 +393,18 @@ inline static void set_image(loco_t::shape_t* shape, loco_t::image_t image) {
 						
 	auto _vi = shape->GetRenderData(gloco->shaper);
 	auto vlen = gloco->shaper.GetRenderDataSize(sti);
+
 	uint8_t* vi = new uint8_t[vlen];
 	std::memcpy(vi, _vi, vlen);
 
 	auto _ri = shape->GetData(gloco->shaper);
 	auto rlen = gloco->shaper.GetDataSize(sti);
+
 	uint8_t* ri = new uint8_t[rlen];
 	std::memcpy(ri, _ri, rlen);
+
+  vi_move(sti, _vi);
+  ri_move(sti, _ri);
 
 	shape->remove();
 	*shape = gloco->shaper.add(
@@ -2155,6 +2186,10 @@ static uint32_t get_flags_sprite(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->flags;
 }
 
+static uint32_t get_flags_light(loco_t::shape_t* shape) {
+	return reinterpret_cast<loco_t::light_t::vi_t*>(shape->GetRenderData(gloco->shaper))->flags;
+}
+
 static uint32_t get_flags_circle(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::circle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->flags;
 }
@@ -2173,6 +2208,20 @@ static void set_flags_sprite(loco_t::shape_t* shape, uint32_t flags) {
 			data.ElementIndex,
 			fan::member_offset(&loco_t::sprite_t::vi_t::flags),
 			sizeof(loco_t::sprite_t::vi_t::flags)
+		);
+	}
+}
+
+static void set_flags_light(loco_t::shape_t* shape, uint32_t flags) {
+	reinterpret_cast<loco_t::light_t::vi_t*>(shape->GetRenderData(gloco->shaper))->flags = flags;
+	if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+		auto& data = gloco->shaper.ShapeList[*shape];
+		gloco->shaper.ElementIsPartiallyEdited(
+			data.sti,
+			data.blid,
+			data.ElementIndex,
+			fan::member_offset(&loco_t::light_t::vi_t::flags),
+			sizeof(loco_t::light_t::vi_t::flags)
 		);
 	}
 }
@@ -3132,7 +3181,7 @@ inline static loco_t::get_flags_cb get_flags_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
-	nullptr,
+	&get_flags_light,
 	nullptr,
 	&get_flags_circle,
 	&get_flags_capsule,
@@ -3155,7 +3204,7 @@ inline static loco_t::set_flags_cb set_flags_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
-	nullptr,
+	&set_flags_light,
 	nullptr,
 	&set_flags_circle,
 	&set_flags_capsule,
