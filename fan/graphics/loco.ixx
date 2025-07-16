@@ -726,6 +726,10 @@ export struct loco_t {
     uint8_t* ri = new uint8_t[rlen];
     std::memcpy(ri, _ri, rlen);
 
+    if (sti == loco_t::shape_type_t::sprite) {
+      ((loco_t::sprite_t::ri_t*)ri)->sprite_sheet_data.frame_update_nr = gloco->m_update_callback.NewNodeLast(); // since hard copy, let it leak
+    }
+
     *dst = gloco->shaper.add(
       sti,
       KeyPack,
@@ -733,6 +737,7 @@ export struct loco_t {
       vi,
       ri
     );
+
 #if defined(debug_shape_t)
     fan::print("+", NRI);
 #endif
@@ -1272,7 +1277,7 @@ public:
   void load_fonts(ImFont* (&fonts)[std::size(loco_t::font_sizes)], const std::string& name, ImFontConfig* cfg = nullptr) {
     ImGuiIO& io = ImGui::GetIO();
     for (std::size_t i = 0; i < std::size(fonts); ++i) {
-      fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), font_sizes[i], cfg);
+      fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), font_sizes[i] * 2, cfg);
 
       if (fonts[i] == nullptr) {
         fan::throw_error(std::string("failed to load font:") + name);
@@ -1282,6 +1287,22 @@ public:
   void build_fonts() {
     ImGuiIO& io = ImGui::GetIO();
     io.Fonts->Build();
+  }
+
+  ImFont* get_font(f32_t font_size, bool bold = false) {
+    font_size /= 2;
+    int best_index = 0;
+    f32_t best_diff = std::abs(font_sizes[0] - font_size);
+
+    for (std::size_t i = 1; i < std::size(font_sizes); ++i) {
+      f32_t diff = std::abs(font_sizes[i] - font_size);
+      if (diff < best_diff) {
+        best_diff = diff;
+        best_index = i;
+      }
+    }
+
+    return !bold ? fonts[best_index] : fonts_bold[best_index];
   }
 
 #if defined(fan_vulkan)
@@ -2756,6 +2777,8 @@ public:
     return window.key_state(key) == (int)fan::mouse_state::release;
   }
 
+  // ShapeID_t must be at the beginning of shape_t's memory since there are reinterpret_casts 
+  // which assume that
   struct shape_t : shaper_t::ShapeID_t {
     using shaper_t::ShapeID_t::ShapeID_t;
     shape_t() {
@@ -2776,7 +2799,18 @@ public:
       //    *dst_data = *src_data;
       //  }
       //}
+
       NRI = s.NRI;
+
+      if (get_shape_type() == loco_t::shape_type_t::sprite) {
+        auto& ri = *(loco_t::sprite_t::ri_t*)s.GetData(gloco->shaper);
+        if (ri.sprite_sheet_data.frame_update_nr) {
+          gloco->m_update_callback[ri.sprite_sheet_data.frame_update_nr] = [nr = NRI] (loco_t* loco) {
+            loco_t::shape_t::sprite_sheet_frame_update_cb(loco, (loco_t::shape_t*)&nr);
+          };
+        }
+      }
+
       s.sic();
     }
 
@@ -2786,11 +2820,11 @@ public:
         return;
       }
 
+      auto sti = gloco->shaper.ShapeList[s].sti;
       {
-        auto sti = gloco->shaper.ShapeList[s].sti;
         shaper_deep_copy(this, (const loco_t::shape_t*)&s, sti);
       }
-      if (((shape_t*)&s)->get_shape_type() == shape_type_t::polygon) {
+      if (sti == shape_type_t::polygon) {
         loco_t::polygon_t::ri_t* src_data = (loco_t::polygon_t::ri_t*)s.GetData(gloco->shaper);
         loco_t::polygon_t::ri_t* dst_data = (loco_t::polygon_t::ri_t*)GetData(gloco->shaper);
         if (gloco->get_renderer() == renderer_t::opengl) {
@@ -2872,12 +2906,12 @@ public:
         return *this;
       }
       if (this != &s) {
+        auto sti = gloco->shaper.ShapeList[s].sti;
         {
-          auto sti = gloco->shaper.ShapeList[s].sti;
 
           shaper_deep_copy(this, (const loco_t::shape_t*)&s, sti);
         }
-        if (((shape_t*)&s)->get_shape_type() == shape_type_t::polygon) {
+        if (sti == shape_type_t::polygon) {
           loco_t::polygon_t::ri_t* src_data = (loco_t::polygon_t::ri_t*)s.GetData(gloco->shaper);
           loco_t::polygon_t::ri_t* dst_data = (loco_t::polygon_t::ri_t*)GetData(gloco->shaper);
           if (gloco->get_renderer() == renderer_t::opengl) {
@@ -2936,6 +2970,14 @@ public:
             fan::throw_error_impl();
           }
         }
+        else if (sti == loco_t::shape_type_t::sprite) {
+          // handle sprite sheet specific updates
+          loco_t::sprite_t::ri_t* ri = (loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
+          ri->sprite_sheet_data.frame_update_nr = gloco->m_update_callback.NewNodeLast(); // since hard copy, let it leak
+          gloco->m_update_callback[ri->sprite_sheet_data.frame_update_nr] = [nr = NRI](loco_t* loco) {
+            loco_t::shape_t::sprite_sheet_frame_update_cb(loco, (loco_t::shape_t*)&nr);
+          };
+        }
         //fan::print("i dont know what to do");
         //NRI = s.NRI;
       }
@@ -2955,6 +2997,16 @@ public:
 
         }
         NRI = s.NRI;
+
+        if (get_shape_type() == loco_t::shape_type_t::sprite) {
+          auto& ri = *(loco_t::sprite_t::ri_t*)s.GetData(gloco->shaper);
+          if (ri.sprite_sheet_data.frame_update_nr) {
+            gloco->m_update_callback[ri.sprite_sheet_data.frame_update_nr] = [nr = NRI](loco_t* loco) {
+              loco_t::shape_t::sprite_sheet_frame_update_cb(loco, (loco_t::shape_t*)&nr);
+            };
+          }
+        }
+
         s.sic();
       }
       return *this;
@@ -2992,6 +3044,13 @@ public:
         auto ri = (polygon_t::ri_t*)GetData(gloco->shaper);
         ri->vbo.close(gloco->context.gl);
         ri->vao.close(gloco->context.gl);
+      }
+      else if (shape_type == loco_t::shape_type_t::sprite) {
+        auto& ri = *(loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
+        if (ri.sprite_sheet_data.frame_update_nr) {
+          gloco->m_update_callback.unlrec(ri.sprite_sheet_data.frame_update_nr);
+          ri.sprite_sheet_data.frame_update_nr.sic();
+        }
       }
       gloco->shaper.remove(*this);
       sic();
@@ -3182,7 +3241,8 @@ public:
     }
 
     void set_flags(uint32_t flag) {
-      return gloco->shape_functions[get_shape_type()].set_flags(this, flag);
+      auto st = get_shape_type();
+      return gloco->shape_functions[st].set_flags(this, flag);
     }
 
     f32_t get_radius() {
@@ -3278,6 +3338,75 @@ public:
       }
     }
 
+    // sprite sheet - sprite specific
+    void set_sprite_sheet_next_frame(int advance = 1) {
+      if (get_shape_type() == loco_t::shape_type_t::sprite) {
+        auto& ri = *(loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
+        loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+        sheet_data.frame += advance;
+        sheet_data.frame %= (sheet_data.vframes * sheet_data.hframes);
+        sheet_data.update_timer.restart();
+        fan::vec2 tc_size = fan::vec2(1.0 / sheet_data.hframes, 1.0 / sheet_data.vframes);
+        set_tc_position(fan::vec2(
+          fmod(tc_size.x * sheet_data.frame, 1.0), 
+          (f32_t)((int)(tc_size.x * sheet_data.frame)) / tc_size.y
+          )
+        );
+        set_tc_size(tc_size);
+      }
+      else {
+        fan::throw_error("Unimplemented for this shape");
+      }
+    }
+    // Takes in seconds
+    void set_sprite_sheet_update_frequency(f32_t interval_s) {
+      if (get_shape_type() == loco_t::shape_type_t::sprite) {
+        auto& ri = *(loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
+        loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+        sheet_data.update_timer.start(interval_s * 1e+9);
+      }
+      else {
+        fan::throw_error("Unimplemented for this shape");
+      }
+    }
+    static void sprite_sheet_frame_update_cb(loco_t* loco, shape_t* shape) {
+      auto& ri = *(loco_t::sprite_t::ri_t*)shape->GetData(gloco->shaper);
+      loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+      if (sheet_data.update_timer) {
+        shape->set_sprite_sheet_next_frame();
+        sheet_data.update_timer.restart();
+      }
+    }
+    void set_sprite_sheet_frames(int vertical_frames, int horizontal_frames) {
+      if (get_shape_type() == loco_t::shape_type_t::sprite) {
+        auto& ri = *(loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
+        loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+        sheet_data.hframes = horizontal_frames;
+        sheet_data.vframes = vertical_frames;
+        sheet_data.frame = 0;
+        sheet_data.update_timer.restart();
+        set_tc_position(fan::vec2(0, 0));
+        set_tc_size(fan::vec2(1.0 / sheet_data.hframes, 1.0 / sheet_data.vframes));
+        // No frames to process, remove frame update function
+        if (sheet_data.vframes * sheet_data.hframes == 1) {
+          if (sheet_data.frame_update_nr) {
+            gloco->m_update_callback.unlrec(sheet_data.frame_update_nr);
+            sheet_data.frame_update_nr.sic();
+          }
+        }
+        else {
+          if (sheet_data.frame_update_nr == false) {
+            sheet_data.frame_update_nr = gloco->m_update_callback.NewNodeLast();
+          }
+          gloco->m_update_callback[sheet_data.frame_update_nr] = [nr = NRI](loco_t* loco) {
+            sprite_sheet_frame_update_cb(loco, (loco_t::shape_t*)&nr);
+          };
+        }
+      }
+      else {
+        fan::throw_error("Unimplemented for this shape");
+      }
+    }
   private:
   };
 
@@ -3501,6 +3630,16 @@ public:
 
   //----------------------------------------------------------
 
+#pragma pack(push, 1)
+  struct sprite_sheet_data_t {
+    // sprite sheet data
+    int hframes, vframes;
+    int frame;
+    fan::time::clock update_timer;
+    // sprite sheet update function nr
+    loco_t::update_callback_nr_t frame_update_nr;
+  };
+#pragma pack(pop)
 
   struct sprite_t {
 
@@ -3526,6 +3665,8 @@ public:
       // main image + light buffer + 30
       std::array<loco_t::image_t, 30> images; // what about tc_pos and tc_size
       texture_pack_unique_t texture_pack_unique_id;
+
+      sprite_sheet_data_t sprite_sheet_data;
     };
 
 #pragma pack(pop)
@@ -3581,6 +3722,17 @@ public:
 
     shape_t push_back(const properties_t& properties) {
 
+      bool uses_texture_pack = properties.texture_pack_unique_id.iic() == false && gloco->texture_pack;
+      loco_t::texturepack_t::ti_t ti;
+      if (uses_texture_pack) {
+        uses_texture_pack = !gloco->texture_pack.qti(gloco->texture_pack[properties.texture_pack_unique_id].name, &ti);
+        if (uses_texture_pack) {
+          auto& img = gloco->image_get_data(gloco->texture_pack.get_pixel_data(properties.texture_pack_unique_id).image);
+          ti.position /= img.size;
+          ti.size /= img.size;
+        }
+      }
+
       vi_t vi;
       vi.position = properties.position;
       vi.size = properties.size;
@@ -3588,14 +3740,20 @@ public:
       vi.color = properties.color;
       vi.angle = properties.angle;
       vi.flags = properties.flags;
-      vi.tc_position = properties.tc_position;
-      vi.tc_size = properties.tc_size;
+      vi.tc_position = uses_texture_pack ? ti.position : properties.tc_position;
+      vi.tc_size = uses_texture_pack ? ti.size : properties.tc_size;
       vi.parallax_factor = properties.parallax_factor;
       vi.seed = properties.seed;
 
       ri_t ri;
       ri.images = properties.images;
-      ri.texture_pack_unique_id = properties.texture_pack_unique_id;
+      ri.sprite_sheet_data.hframes = 1;
+      ri.sprite_sheet_data.vframes = 1;
+      ri.sprite_sheet_data.frame = 0;
+
+      if (uses_texture_pack) {
+        ri.texture_pack_unique_id = properties.texture_pack_unique_id;
+      }
 
       loco_t& loco = *OFFSETLESS(this, loco_t, sprite);
       if (loco.window.renderer == loco_t::renderer_t::opengl) {
@@ -3606,7 +3764,7 @@ public:
             Key_e::depth,
             static_cast<uint16_t>(properties.position.z),
             Key_e::blending, static_cast<uint8_t>(properties.blending),
-            Key_e::image, properties.image,
+            Key_e::image, uses_texture_pack ? ti.image : properties.image,
             Key_e::viewport, properties.viewport,
             Key_e::camera, properties.camera,
             Key_e::ShapeType, shape_type,
@@ -3625,7 +3783,7 @@ public:
             shape_type, vertices[0], ri, Key_e::depth,
             static_cast<uint16_t>(properties.position.z),
             Key_e::blending, static_cast<uint8_t>(properties.blending),
-            Key_e::image, properties.image, Key_e::viewport,
+            Key_e::image, uses_texture_pack ? ti.image : properties.image, Key_e::viewport,
             properties.viewport, Key_e::camera, properties.camera,
             Key_e::ShapeType, shape_type,
             Key_e::draw_mode, properties.draw_mode,
@@ -3638,7 +3796,7 @@ public:
           shape_type, vi, ri, Key_e::depth,
           static_cast<uint16_t>(properties.position.z),
           Key_e::blending, static_cast<uint8_t>(properties.blending),
-          Key_e::image, properties.image, Key_e::viewport,
+          Key_e::image, uses_texture_pack ? ti.image : properties.image, Key_e::viewport,
           properties.viewport, Key_e::camera, properties.camera,
           Key_e::ShapeType, shape_type,
           Key_e::draw_mode, properties.draw_mode,
@@ -3728,7 +3886,18 @@ public:
     };
 
     shape_t push_back(const properties_t& properties) {
-      //KeyPack.ShapeType = shape_type;
+      
+      bool uses_texture_pack = properties.texture_pack_unique_id.iic() == false && gloco->texture_pack;
+      loco_t::texturepack_t::ti_t ti;
+      if (uses_texture_pack) {
+        uses_texture_pack = !gloco->texture_pack.qti(gloco->texture_pack[properties.texture_pack_unique_id].name, &ti);
+        if (uses_texture_pack) {
+          auto& img = gloco->image_get_data(gloco->texture_pack.get_pixel_data(properties.texture_pack_unique_id).image);
+          ti.position /= img.size;
+          ti.size /= img.size;
+        }
+      }
+
       vi_t vi;
       vi.position = properties.position;
       vi.size = properties.size;
@@ -3736,17 +3905,20 @@ public:
       vi.color = properties.color;
       vi.angle = properties.angle;
       vi.flags = properties.flags;
-      vi.tc_position = properties.tc_position;
-      vi.tc_size = properties.tc_size;
+      vi.tc_position = uses_texture_pack ? ti.position : properties.tc_position;
+      vi.tc_size = uses_texture_pack ? ti.size : properties.tc_size;
       vi.parallax_factor = properties.parallax_factor;
       vi.seed = properties.seed;
       ri_t ri;
       ri.images = properties.images;
-      ri.texture_pack_unique_id = properties.texture_pack_unique_id;
+      if (uses_texture_pack) {
+        ri.texture_pack_unique_id = properties.texture_pack_unique_id;
+      }
+
       return shape_add(shape_type, vi, ri,
         Key_e::depth, (uint16_t)properties.position.z,
         Key_e::blending, (uint8_t)properties.blending,
-        Key_e::image, properties.image,
+        Key_e::image, uses_texture_pack ? ti.image : properties.image,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
         Key_e::ShapeType, shape_type,
@@ -4823,6 +4995,38 @@ public:
     fan::vec3 ambient = fan::vec3(1, 1, 1);
   }lighting;
 
+  //-----------------------sprite sheet animations-----------------------
+  struct frame_selectable_t {
+    int frame_index;
+  };
+  struct sprite_sheet_animation_t {
+    std::vector<frame_selectable_t> selected_frames;
+    image_t sprite_sheet;
+    int fps = 15;
+    int hframes, vframes;
+  };
+
+  void add_sprite_sheet_animation(const std::string& anim_name, const sprite_sheet_animation_t& anim) {
+    if (auto [it, added] = sprite_sheet_animations.insert_or_assign(anim_name, anim); added) {
+      fan::print("Warning: replacing existing animation:" + anim_name + "possibly unwanted behaviour");
+    }
+  }
+  sprite_sheet_animation_t& get_sprite_sheet_animation(const std::string& anim_name) {
+    auto found = sprite_sheet_animations.find(anim_name);
+    if (found == sprite_sheet_animations.end()) {
+      fan::throw_error("Failed to find sprite sheet animation:" + anim_name);
+    }
+    return found->second;
+  }
+
+  std::string serialize_sprite_sheet_animations() {
+    return "";
+  }
+
+  std::unordered_map<std::string, sprite_sheet_animation_t> sprite_sheet_animations;
+
+  //-----------------------sprite sheet animations-----------------------
+
   //gui
 #if defined(fan_gui)
   fan::console_t console;
@@ -5138,14 +5342,30 @@ export namespace fan {
       }
 
       auto shape_data = gloco->image_list[image];
-      image_json["image_path"] = shape_data.image_path;
+      if (shape_data.image_path.size()) {
+        image_json["image_path"] = shape_data.image_path;
+      }
+      else {
+        return image_json;
+      }
 
       auto lp = gloco->image_get_settings(image);
-      image_json["image_visual_output"] = lp.visual_output;
-      image_json["image_format"] = lp.format;
-      image_json["image_type"] = lp.type;
-      image_json["image_min_filter"] = lp.min_filter;
-      image_json["image_mag_filter"] = lp.mag_filter;
+      fan::graphics::image_load_properties_t defaults;
+      if (lp.visual_output != defaults.visual_output) {
+        image_json["image_visual_output"] = defaults.visual_output;
+      }
+      if (lp.format != defaults.format) {
+        image_json["image_format"] = defaults.format;
+      }
+      if (lp.type != defaults.type) {
+        image_json["image_type"] = defaults.type;
+      }
+      if (lp.min_filter != defaults.min_filter) {
+        image_json["image_min_filter"] = defaults.min_filter;
+      }
+      if (lp.mag_filter != defaults.mag_filter) {
+        image_json["image_mag_filter"] = defaults.mag_filter;
+      }
 
       return image_json;
     }
@@ -5154,71 +5374,152 @@ export namespace fan {
       fan::json& out = *json;
       switch (shape.get_shape_type()) {
       case loco_t::shape_type_t::light: {
+        loco_t::light_t::properties_t defaults;
         out["shape"] = "light";
-        out["position"] = shape.get_position();
-        out["parallax_factor"] = shape.get_parallax_factor();
-        out["size"] = shape.get_size();
-        out["rotation_point"] = shape.get_rotation_point();
-        out["color"] = shape.get_color();
-        out["flags"] = shape.get_flags();
-        out["angle"] = shape.get_angle();
+        if (shape.get_position() != defaults.position) {
+          out["position"] = shape.get_position();
+        }
+        if (shape.get_parallax_factor() != defaults.parallax_factor) {
+          out["parallax_factor"] = shape.get_parallax_factor();
+        }
+        if (shape.get_size() != defaults.size) {
+          out["size"] = shape.get_size();
+        }
+        if (shape.get_rotation_point() != defaults.rotation_point) {
+          out["rotation_point"] = shape.get_rotation_point();
+        }
+        if (shape.get_color() != defaults.color) {
+          out["color"] = shape.get_color();
+        }
+        if (shape.get_flags() != defaults.flags) {
+          out["flags"] = shape.get_flags();
+        }
+        if (shape.get_angle() != defaults.angle) {
+          out["angle"] = shape.get_angle();
+        }
         break;
       }
       case loco_t::shape_type_t::line: {
+        loco_t::line_t::properties_t defaults;
         out["shape"] = "line";
-        out["color"] = shape.get_color();
-        out["src"] = shape.get_src();
-        out["dst"] = shape.get_dst();
+        if (shape.get_color() != defaults.color) {
+          out["color"] = shape.get_color();
+        }
+        if (shape.get_src() != defaults.src) {
+          out["src"] = shape.get_src();
+        }
+        if (shape.get_dst() != defaults.dst) {
+          out["dst"] = shape.get_dst();
+        }
         break;
       }
       case loco_t::shape_type_t::rectangle: {
+        loco_t::rectangle_t::properties_t defaults;
         out["shape"] = "rectangle";
-        out["position"] = shape.get_position();
-        out["size"] = shape.get_size();
-        out["rotation_point"] = shape.get_rotation_point();
-        out["color"] = shape.get_color();
-        out["outline_color"] = shape.get_outline_color();
-        out["angle"] = shape.get_angle();
+        if (shape.get_position() != defaults.position) {
+          out["position"] = shape.get_position();
+        }
+        if (shape.get_size() != defaults.size) {
+          out["size"] = shape.get_size();
+        }
+        if (shape.get_rotation_point() != defaults.rotation_point) {
+          out["rotation_point"] = shape.get_rotation_point();
+        }
+        if (shape.get_color() != defaults.color) {
+          out["color"] = shape.get_color();
+        }
+        if (shape.get_outline_color() != defaults.outline_color) {
+          out["outline_color"] = shape.get_outline_color();
+        }
+        if (shape.get_angle() != defaults.angle) {
+          out["angle"] = shape.get_angle();
+        }
         break;
       }
       case loco_t::shape_type_t::sprite: {
+        loco_t::sprite_t::properties_t defaults;
         out["shape"] = "sprite";
-        out["position"] = shape.get_position();
-        out["parallax_factor"] = shape.get_parallax_factor();
-        out["size"] = shape.get_size();
-        out["rotation_point"] = shape.get_rotation_point();
-        out["color"] = shape.get_color();
-        out["angle"] = shape.get_angle();
-        out["flags"] = shape.get_flags();
-        out["tc_position"] = shape.get_tc_position();
-        out["tc_size"] = shape.get_tc_size();
+        if (shape.get_position() != defaults.position) {
+          out["position"] = shape.get_position();
+        }
+        if (shape.get_parallax_factor() != defaults.parallax_factor) {
+          out["parallax_factor"] = shape.get_parallax_factor();
+        }
+        if (shape.get_size() != defaults.size) {
+          out["size"] = shape.get_size();
+        }
+        if (shape.get_rotation_point() != defaults.rotation_point) {
+          out["rotation_point"] = shape.get_rotation_point();
+        }
+        if (shape.get_color() != defaults.color) {
+          out["color"] = shape.get_color();
+        }
+        if (shape.get_angle() != defaults.angle) {
+          out["angle"] = shape.get_angle();
+        }
+        if (shape.get_flags() != defaults.flags) {
+          out["flags"] = shape.get_flags();
+        }
+        if (shape.get_tc_position() != defaults.tc_position) {
+          out["tc_position"] = shape.get_tc_position();
+        }
+        if (shape.get_tc_size() != defaults.tc_size) {
+          out["tc_size"] = shape.get_tc_size();
+        }
         if (gloco->texture_pack) {
           out["texture_pack_name"] = gloco->texture_pack[((loco_t::sprite_t::ri_t*)shape.GetData(gloco->shaper))->texture_pack_unique_id].name;
         }
         fan::json images_array = fan::json::array();
 
         auto main_image = shape.get_image();
-        images_array.push_back(image_to_json(main_image));
+        auto img_json = image_to_json(main_image);
+        if (!img_json.empty()) {
+          images_array.push_back(img_json);
+        }
 
         auto images = shape.get_images();
         for (auto& image : images) {
-          images_array.push_back(image_to_json(image));
+          img_json = image_to_json(image);
+          if (!img_json.empty()) {
+            images_array.push_back(img_json);
+          }
         }
 
-        out["images"] = images_array;
+        if (!images_array.empty()) {
+          out["images"] = images_array;
+        }
         break;
       }
       case loco_t::shape_type_t::unlit_sprite: {
+        loco_t::unlit_sprite_t::properties_t defaults;
         out["shape"] = "unlit_sprite";
-        out["position"] = shape.get_position();
-        out["parallax_factor"] = shape.get_parallax_factor();
-        out["size"] = shape.get_size();
-        out["rotation_point"] = shape.get_rotation_point();
-        out["color"] = shape.get_color();
-        out["angle"] = shape.get_angle();
-        out["flags"] = shape.get_flags();
-        out["tc_position"] = shape.get_tc_position();
-        out["tc_size"] = shape.get_tc_size();
+        if (shape.get_position() != defaults.position) {
+          out["position"] = shape.get_position();
+        }
+        if (shape.get_parallax_factor() != defaults.parallax_factor) {
+          out["parallax_factor"] = shape.get_parallax_factor();
+        }
+        if (shape.get_size() != defaults.size) {
+          out["size"] = shape.get_size();
+        }
+        if (shape.get_rotation_point() != defaults.rotation_point) {
+          out["rotation_point"] = shape.get_rotation_point();
+        }
+        if (shape.get_color() != defaults.color) {
+          out["color"] = shape.get_color();
+        }
+        if (shape.get_angle() != defaults.angle) {
+          out["angle"] = shape.get_angle();
+        }
+        if (shape.get_flags() != defaults.flags) {
+          out["flags"] = shape.get_flags();
+        }
+        if (shape.get_tc_position() != defaults.tc_position) {
+          out["tc_position"] = shape.get_tc_position();
+        }
+        if (shape.get_tc_size() != defaults.tc_size) {
+          out["tc_size"] = shape.get_tc_size();
+        }
         if (gloco->texture_pack) {
           out["texture_pack_name"] = gloco->texture_pack[((loco_t::unlit_sprite_t::ri_t*)shape.GetData(gloco->shaper))->texture_pack_unique_id].name;
         }
@@ -5226,15 +5527,23 @@ export namespace fan {
         fan::json images_array = fan::json::array();
 
         auto main_image = shape.get_image();
-        images_array.push_back(image_to_json(main_image));
+        auto img_json = image_to_json(main_image);
+        if (!img_json.empty()) {
+          images_array.push_back(img_json);
+        }
 
         auto images = shape.get_images();
         for (auto& image : images) {
-          images_array.push_back(image_to_json(image));
+          img_json = image_to_json(image);
+          if (!img_json.empty()) {
+            images_array.push_back(img_json);
+          }
         }
 
-        out["images"] = images_array;
-        
+        if (!images_array.empty()) {
+          out["images"] = images_array;
+        }
+
         break;
       }
       case loco_t::shape_type_t::text: {
@@ -5242,44 +5551,103 @@ export namespace fan {
         break;
       }
       case loco_t::shape_type_t::circle: {
+        loco_t::circle_t::properties_t defaults;
         out["shape"] = "circle";
-        out["position"] = shape.get_position();
-        out["radius"] = shape.get_radius();
-        out["rotation_point"] = shape.get_rotation_point();
-        out["color"] = shape.get_color();
-        out["angle"] = shape.get_angle();
+        if (shape.get_position() != defaults.position) {
+          out["position"] = shape.get_position();
+        }
+        if (shape.get_radius() != defaults.radius) {
+          out["radius"] = shape.get_radius();
+        }
+        if (shape.get_rotation_point() != defaults.rotation_point) {
+          out["rotation_point"] = shape.get_rotation_point();
+        }
+        if (shape.get_color() != defaults.color) {
+          out["color"] = shape.get_color();
+        }
+        if (shape.get_angle() != defaults.angle) {
+          out["angle"] = shape.get_angle();
+        }
         break;
       }
       case loco_t::shape_type_t::grid: {
+        loco_t::grid_t::properties_t defaults;
         out["shape"] = "grid";
-        out["position"] = shape.get_position();
-        out["size"] = shape.get_size();
-        out["grid_size"] = shape.get_grid_size();
-        out["rotation_point"] = shape.get_rotation_point();
-        out["color"] = shape.get_color();
-        out["angle"] = shape.get_angle();
+        if (shape.get_position() != defaults.position) {
+          out["position"] = shape.get_position();
+        }
+        if (shape.get_size() != defaults.size) {
+          out["size"] = shape.get_size();
+        }
+        if (shape.get_grid_size() != defaults.grid_size) {
+          out["grid_size"] = shape.get_grid_size();
+        }
+        if (shape.get_rotation_point() != defaults.rotation_point) {
+          out["rotation_point"] = shape.get_rotation_point();
+        }
+        if (shape.get_color() != defaults.color) {
+          out["color"] = shape.get_color();
+        }
+        if (shape.get_angle() != defaults.angle) {
+          out["angle"] = shape.get_angle();
+        }
         break;
       }
       case loco_t::shape_type_t::particles: {
+        loco_t::particles_t::properties_t defaults;
         auto& ri = *(loco_t::particles_t::ri_t*)shape.GetData(gloco->shaper);
         out["shape"] = "particles";
-        out["position"] = ri.position;
-        out["size"] = ri.size;
-        out["color"] = ri.color;
-        out["begin_time"] = ri.begin_time;
-        out["alive_time"] = ri.alive_time;
-        out["respawn_time"] = ri.respawn_time;
-        out["count"] = ri.count;
-        out["position_velocity"] = ri.position_velocity;
-        out["angle_velocity"] = ri.angle_velocity;
-        out["begin_angle"] = ri.begin_angle;
-        out["end_angle"] = ri.end_angle;
-        out["angle"] = ri.angle;
-        out["gap_size"] = ri.gap_size;
-        out["max_spread_size"] = ri.max_spread_size;
-        out["size_velocity"] = ri.size_velocity;
-        out["particle_shape"] = ri.shape;
-        out["blending"] = ri.blending;
+        if (ri.position != defaults.position) {
+          out["position"] = ri.position;
+        }
+        if (ri.size != defaults.size) {
+          out["size"] = ri.size;
+        }
+        if (ri.color != defaults.color) {
+          out["color"] = ri.color;
+        }
+        if (ri.begin_time != defaults.begin_time) {
+          out["begin_time"] = ri.begin_time;
+        }
+        if (ri.alive_time != defaults.alive_time) {
+          out["alive_time"] = ri.alive_time;
+        }
+        if (ri.respawn_time != defaults.respawn_time) {
+          out["respawn_time"] = ri.respawn_time;
+        }
+        if (ri.count != defaults.count) {
+          out["count"] = ri.count;
+        }
+        if (ri.position_velocity != defaults.position_velocity) {
+          out["position_velocity"] = ri.position_velocity;
+        }
+        if (ri.angle_velocity != defaults.angle_velocity) {
+          out["angle_velocity"] = ri.angle_velocity;
+        }
+        if (ri.begin_angle != defaults.begin_angle) {
+          out["begin_angle"] = ri.begin_angle;
+        }
+        if (ri.end_angle != defaults.end_angle) {
+          out["end_angle"] = ri.end_angle;
+        }
+        if (ri.angle != defaults.angle) {
+          out["angle"] = ri.angle;
+        }
+        if (ri.gap_size != defaults.gap_size) {
+          out["gap_size"] = ri.gap_size;
+        }
+        if (ri.max_spread_size != defaults.max_spread_size) {
+          out["max_spread_size"] = ri.max_spread_size;
+        }
+        if (ri.size_velocity != defaults.size_velocity) {
+          out["size_velocity"] = ri.size_velocity;
+        }
+        if (ri.shape != defaults.shape) {
+          out["particle_shape"] = ri.shape;
+        }
+        if (ri.blending != defaults.blending) {
+          out["blending"] = ri.blending;
+        }
         break;
       }
       default: {
@@ -5294,56 +5662,101 @@ export namespace fan {
       switch (fan::get_hash(shape_type.c_str())) {
       case fan::get_hash("rectangle"): {
         loco_t::rectangle_t::properties_t p;
-        p.position = in["position"];
-        p.size = in["size"];
-        p.rotation_point = in["rotation_point"];
-        p.color = in["color"];
-        p.outline_color = in.contains("outline_color") ? in["outline_color"].template get<fan::color>() : p.color;
-        p.angle = in["angle"];
+        if (in.contains("position")) {
+          p.position = in["position"];
+        }
+        if (in.contains("size")) {
+          p.size = in["size"];
+        }
+        if (in.contains("rotation_point")) {
+          p.rotation_point = in["rotation_point"];
+        }
+        if (in.contains("color")) {
+          p.color = in["color"];
+        }
+        if (in.contains("outline_color")) {
+          p.outline_color = in["outline_color"];
+        }
+        if (in.contains("angle")) {
+          p.angle = in["angle"];
+        }
         *shape = p;
         break;
       }
       case fan::get_hash("light"): {
         loco_t::light_t::properties_t p;
-        p.position = in["position"];
-        p.parallax_factor = in["parallax_factor"];
-        p.size = in["size"];
-        p.rotation_point = in["rotation_point"];
-        p.color = in["color"];
-        p.flags = in["flags"];
-        p.angle = in["angle"];
+        if (in.contains("position")) {
+          p.position = in["position"];
+        }
+        if (in.contains("parallax_factor")) {
+          p.parallax_factor = in["parallax_factor"];
+        }
+        if (in.contains("size")) {
+          p.size = in["size"];
+        }
+        if (in.contains("rotation_point")) {
+          p.rotation_point = in["rotation_point"];
+        }
+        if (in.contains("color")) {
+          p.color = in["color"];
+        }
+        if (in.contains("flags")) {
+          p.flags = in["flags"];
+        }
+        if (in.contains("angle")) {
+          p.angle = in["angle"];
+        }
         *shape = p;
         break;
       }
       case fan::get_hash("line"): {
         loco_t::line_t::properties_t p;
-        p.color = in["color"];
-        p.src = in["src"];
-        p.dst = in["dst"];
+        if (in.contains("color")) {
+          p.color = in["color"];
+        }
+        if (in.contains("src")) {
+          p.src = in["src"];
+        }
+        if (in.contains("dst")) {
+          p.dst = in["dst"];
+        }
         *shape = p;
         break;
       }
       case fan::get_hash("sprite"): {
         loco_t::sprite_t::properties_t p;
         p.blending = true;
-        p.position = in["position"];
-        p.parallax_factor = in["parallax_factor"];
-        p.size = in["size"];
-        p.rotation_point = in["rotation_point"];
-        p.color = in["color"];
-        p.angle = in["angle"];
-        p.flags = in["flags"];
-        p.tc_position = in["tc_position"];
-        p.tc_size = in["tc_size"];
+        if (in.contains("position")) {
+          p.position = in["position"];
+        }
+        if (in.contains("parallax_factor")) {
+          p.parallax_factor = in["parallax_factor"];
+        }
+        if (in.contains("size")) {
+          p.size = in["size"];
+        }
+        if (in.contains("rotation_point")) {
+          p.rotation_point = in["rotation_point"];
+        }
+        if (in.contains("color")) {
+          p.color = in["color"];
+        }
+        if (in.contains("angle")) {
+          p.angle = in["angle"];
+        }
+        if (in.contains("flags")) {
+          p.flags = in["flags"];
+        }
+        if (in.contains("tc_position")) {
+          p.tc_position = in["tc_position"];
+        }
+        if (in.contains("tc_size")) {
+          p.tc_size = in["tc_size"];
+        }
         if (in.contains("texture_pack_name") && gloco->texture_pack) {
           p.texture_pack_unique_id = gloco->texture_pack[in["texture_pack_name"]];
         }
         *shape = p;
-        if (p.texture_pack_unique_id.iic() == false) {
-          loco_t::texturepack_t::ti_t ti;
-          gloco->texture_pack.qti(gloco->texture_pack[p.texture_pack_unique_id].name, &ti);
-          shape->load_tp(&ti);
-        }
         fan::graphics::image_load_properties_t lp;
         if (in.contains("image_visual_output")) {
           lp.visual_output = in["image_visual_output"];
@@ -5394,24 +5807,37 @@ export namespace fan {
       case fan::get_hash("unlit_sprite"): {
         loco_t::unlit_sprite_t::properties_t p;
         p.blending = true;
-        p.position = in["position"];
-        p.parallax_factor = in["parallax_factor"];
-        p.size = in["size"];
-        p.rotation_point = in["rotation_point"];
-        p.color = in["color"];
-        p.angle = in["angle"];
-        p.flags = in["flags"];
-        p.tc_position = in["tc_position"];
-        p.tc_size = in["tc_size"];
+        if (in.contains("position")) {
+          p.position = in["position"];
+        }
+        if (in.contains("parallax_factor")) {
+          p.parallax_factor = in["parallax_factor"];
+        }
+        if (in.contains("size")) {
+          p.size = in["size"];
+        }
+        if (in.contains("rotation_point")) {
+          p.rotation_point = in["rotation_point"];
+        }
+        if (in.contains("color")) {
+          p.color = in["color"];
+        }
+        if (in.contains("angle")) {
+          p.angle = in["angle"];
+        }
+        if (in.contains("flags")) {
+          p.flags = in["flags"];
+        }
+        if (in.contains("tc_position")) {
+          p.tc_position = in["tc_position"];
+        }
+        if (in.contains("tc_size")) {
+          p.tc_size = in["tc_size"];
+        }
         if (in.contains("texture_pack_name") && gloco->texture_pack) {
           p.texture_pack_unique_id = gloco->texture_pack[in["texture_pack_name"]];
         }
         *shape = p;
-        if (p.texture_pack_unique_id.iic() == false) {
-          loco_t::texturepack_t::ti_t ti;
-          gloco->texture_pack.qti(gloco->texture_pack[p.texture_pack_unique_id].name, &ti);
-          shape->load_tp(&ti);
-        }
         fan::graphics::image_load_properties_t lp;
         if (in.contains("image_visual_output")) {
           lp.visual_output = in["image_visual_output"];
@@ -5428,7 +5854,7 @@ export namespace fan {
         if (in.contains("image_mag_filter")) {
           lp.mag_filter = in["image_mag_filter"];
         }
-       
+
         if (in.contains("images") && in["images"].is_array()) {
           for (const auto [i, image_json] : fan::enumerate(in["images"])) {
             if (!image_json.contains("image_path")) continue;
@@ -5462,44 +5888,100 @@ export namespace fan {
       }
       case fan::get_hash("circle"): {
         loco_t::circle_t::properties_t p;
-        p.position = in["position"];
-        p.radius = in["radius"];
-        p.rotation_point = in["rotation_point"];
-        p.color = in["color"];
-        p.angle = in["angle"];
+        if (in.contains("position")) {
+          p.position = in["position"];
+        }
+        if (in.contains("radius")) {
+          p.radius = in["radius"];
+        }
+        if (in.contains("rotation_point")) {
+          p.rotation_point = in["rotation_point"];
+        }
+        if (in.contains("color")) {
+          p.color = in["color"];
+        }
+        if (in.contains("angle")) {
+          p.angle = in["angle"];
+        }
         *shape = p;
         break;
       }
       case fan::get_hash("grid"): {
         loco_t::grid_t::properties_t p;
-        p.position = in["position"];
-        p.size = in["size"];
-        p.grid_size = in["grid_size"];
-        p.rotation_point = in["rotation_point"];
-        p.color = in["color"];
-        p.angle = in["angle"];
+        if (in.contains("position")) {
+          p.position = in["position"];
+        }
+        if (in.contains("size")) {
+          p.size = in["size"];
+        }
+        if (in.contains("grid_size")) {
+          p.grid_size = in["grid_size"];
+        }
+        if (in.contains("rotation_point")) {
+          p.rotation_point = in["rotation_point"];
+        }
+        if (in.contains("color")) {
+          p.color = in["color"];
+        }
+        if (in.contains("angle")) {
+          p.angle = in["angle"];
+        }
         *shape = p;
         break;
       }
       case fan::get_hash("particles"): {
         loco_t::particles_t::properties_t p;
-        p.position = in["position"];
-        p.size = in["size"];
-        p.color = in["color"];
-        p.begin_time = in["begin_time"];
-        p.alive_time = in["alive_time"];
-        p.respawn_time = in["respawn_time"];
-        p.count = in["count"];
-        p.position_velocity = in["position_velocity"];
-        p.angle_velocity = in["angle_velocity"];
-        p.begin_angle = in["begin_angle"];
-        p.end_angle = in["end_angle"];
-        p.angle = in["angle"];
-        p.gap_size = in["gap_size"];
-        p.max_spread_size = in["max_spread_size"];
-        p.size_velocity = in["size_velocity"];
-        p.shape = in["particle_shape"];
-        p.blending = in["blending"];
+        if (in.contains("position")) {
+          p.position = in["position"];
+        }
+        if (in.contains("size")) {
+          p.size = in["size"];
+        }
+        if (in.contains("color")) {
+          p.color = in["color"];
+        }
+        if (in.contains("begin_time")) {
+          p.begin_time = in["begin_time"];
+        }
+        if (in.contains("alive_time")) {
+          p.alive_time = in["alive_time"];
+        }
+        if (in.contains("respawn_time")) {
+          p.respawn_time = in["respawn_time"];
+        }
+        if (in.contains("count")) {
+          p.count = in["count"];
+        }
+        if (in.contains("position_velocity")) {
+          p.position_velocity = in["position_velocity"];
+        }
+        if (in.contains("angle_velocity")) {
+          p.angle_velocity = in["angle_velocity"];
+        }
+        if (in.contains("begin_angle")) {
+          p.begin_angle = in["begin_angle"];
+        }
+        if (in.contains("end_angle")) {
+          p.end_angle = in["end_angle"];
+        }
+        if (in.contains("angle")) {
+          p.angle = in["angle"];
+        }
+        if (in.contains("gap_size")) {
+          p.gap_size = in["gap_size"];
+        }
+        if (in.contains("max_spread_size")) {
+          p.max_spread_size = in["max_spread_size"];
+        }
+        if (in.contains("size_velocity")) {
+          p.size_velocity = in["size_velocity"];
+        }
+        if (in.contains("particle_shape")) {
+          p.shape = in["particle_shape"];
+        }
+        if (in.contains("blending")) {
+          p.blending = in["blending"];
+        }
         *shape = p;
         break;
       }

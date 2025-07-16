@@ -22,6 +22,7 @@ struct tile_t {
   mesh_property_t mesh_property = mesh_property_t::none;
   std::string id;
   uint32_t flags = 0;
+  loco_t::texture_pack_unique_t texture_pack_unique_id;
 
   // actions
   actions_e action = actions_e::none;
