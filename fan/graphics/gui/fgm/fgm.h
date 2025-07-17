@@ -481,6 +481,9 @@ struct fgm_t {
           .position = pos,
           .size = size
         }} };
+      auto* ri = ((loco_t::sprite_t::ri_t*)shape_list[nr]->children[0].GetData(gloco->shaper));
+      animations_application.current_animation_nr = ri->current_animation;
+      animations_application.current_animation_shape_nr = ri->shape_animations;
       break;
     }
     case loco_t::shape_type_t::unlit_sprite: {
@@ -515,7 +518,7 @@ struct fgm_t {
         .render_view = &render_view,
         .position = fan::vec3(pos, current_z),
         .radius = size.x,
-        .color = fan::color(1, 1, 1, 0.5),
+        .color = fan::color(1, 1, 1, 0.0),
         .blending = true
       } });
       break;
@@ -634,6 +637,12 @@ struct fgm_t {
         ))
         {
           hit_any = true;
+          // change sprite image in animation viewer when clicking other element
+          if (shape->children[0].get_shape_type() == loco_t::shape_type_t::sprite) {
+            auto* ri = ((loco_t::sprite_t::ri_t*)shape->children[0].GetData(gloco->shaper));
+            animations_application.current_animation_nr = ri->current_animation;
+            animations_application.current_animation_shape_nr = ri->shape_animations;
+          }
         }
         it = it.Next(&shape_list);
       }
@@ -856,7 +865,7 @@ struct fgm_t {
 
     ImGui::End();
 
-    if (ImGui::Begin("settings")) {
+    if (ImGui::Begin("Settings")) {
       if (ImGui::ColorEdit3("background", gloco->clear_color.data())) {
 
       }
@@ -872,6 +881,62 @@ struct fgm_t {
     if (ImGui::Begin(properties_str, nullptr)) {
       if (current_shape != nullptr) {
         open_properties(current_shape, editor_size);
+
+        gui::new_line();
+        gui::begin_child("properties_animations", 0, 1);
+        gui::text("Animations");
+        auto& shape = current_shape->children[0];
+        loco_t::animation_shape_nr_t* shape_animation_nr = 0;
+        if (shape.get_shape_type() == loco_t::shape_type_t::sprite) {
+          auto* ri = ((loco_t::sprite_t::ri_t*)shape.GetData(gloco->shaper));
+          shape_animation_nr = &ri->shape_animations;
+          if (animations_application.current_animation_nr) {
+            auto& anim = gloco->get_sprite_sheet_animation(animations_application.current_animation_nr);
+          }
+        }
+        if (shape_animation_nr == nullptr) {
+          goto g_end_animations;
+        }
+        {
+          bool animation_changed = animations_application.render("CONTENT_BROWSER_ITEM", *shape_animation_nr);
+          if (shape.get_shape_type() == loco_t::shape_type_t::sprite && animations_application.current_animation_nr) {
+            auto* ri = ((loco_t::sprite_t::ri_t*)shape.GetData(gloco->shaper));
+            if (animations_application.current_animation_nr && animations_application.current_animation_shape_nr == *shape_animation_nr) {
+              ri->current_animation = animations_application.current_animation_nr;
+            }
+          }
+          if (*shape_animation_nr && animations_application.current_animation_shape_nr == *shape_animation_nr && (animations_application.toggle_play_animation || animations_application.play_animation || animation_changed)) {
+            if (shape.get_shape_type() == loco_t::shape_type_t::sprite) {
+
+              auto& anim = gloco->get_sprite_sheet_animation(animations_application.current_animation_nr);
+              if (animation_changed && animations_application.current_animation_nr && animations_application.play_animation) {
+                if (gloco->is_image_valid(shape.get_image()) == false) {
+                  shape.set_tc_position(0);
+                  shape.set_tc_size(1);
+                }
+              }
+              else if (anim.selected_frames.size()) {
+                shape.set_image(anim.sprite_sheet);
+              }
+
+              auto& current_shape_anim = shape.get_sprite_sheet_animation();
+              if (animations_application.play_animation && (animations_application.toggle_play_animation || animation_changed) &&
+                current_shape_anim.selected_frames.size()) {
+                shape.set_sprite_sheet_frames(anim.hframes, anim.vframes);
+              }
+
+              if (animations_application.play_animation && (animations_application.toggle_play_animation || animation_changed) &&
+                current_shape_anim.selected_frames.size()) {
+                shape.set_sprite_sheet_update_frequency(1.0 / anim.fps);
+              }
+              if (animations_application.play_animation && animations_application.toggle_play_animation && !animations_application.play_animation) {
+                shape.set_sprite_sheet_update_frequency(1e+9);
+              }
+            }
+          }
+        }
+      g_end_animations:
+        gui::end_child();
       }
     }
     ImGui::End();
@@ -938,8 +1003,6 @@ struct fgm_t {
     }
 
     ImGui::End();
-
-    animations_application.render("CONTENT_BROWSER_ITEM");
   }
 
   void fout(const std::string& filename) {
@@ -949,6 +1012,7 @@ struct fgm_t {
     ostr["version"] = current_version;
     ostr["lighting.ambient"] = gloco->lighting.ambient;
     ostr["clear_color"] = gloco->clear_color;
+    ostr["animations"] = gloco->sprite_sheet_serialize();
     fan::json shapes = fan::json::array();
     auto it = shape_list.GetNodeFirst();
     while (it != shape_list.dst) {
@@ -1031,6 +1095,21 @@ struct fgm_t {
     }
     if (json_in.contains("clear_color")) {
       gloco->clear_color = json_in["clear_color"];
+    }
+    if (json_in.contains("animations")) {
+      gloco->sprite_sheet_deserialize(json_in);
+      
+      for (auto& item : json_in["animations"]) {
+        loco_t::sprite_sheet_animation_t anim;
+        anim.name = item.value("name", std::string{});
+        anim.selected_frames = item.value("selected_frames", std::vector<int>{});
+        anim.fps = item.value("fps", 0.0f);
+        anim.hframes = item.value("hframes", 0);
+        anim.vframes = item.value("vframes", 0);
+
+        loco_t::animation_nr_t id = item.value("id", uint32_t());
+        gloco->all_animations[id] = anim;
+      }
     }
     fan::graphics::shape_deserialize_t iterator;
     loco_t::shape_t shape;
