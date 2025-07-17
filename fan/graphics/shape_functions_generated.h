@@ -143,8 +143,6 @@ inline static void set_position(loco_t::shape_t* shape, const fan::vec3& positio
 	fan::print("+", shape->NRI);
 #endif
   _ri = shape->GetData(gloco->shaper);
-  fan::print(((loco_t::sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr.NRI);
-  fan::print(((loco_t::sprite_t::ri_t*)ri)->sprite_sheet_data.frame_update_nr.NRI);
 	delete[] KeyPack;
 	delete[] vi;
 	delete[] ri;

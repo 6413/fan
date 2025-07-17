@@ -304,8 +304,8 @@ export namespace fan {
         static constexpr uint32_t internal_format = GL_RGBA;
         static constexpr uint32_t format = GL_RGBA;
         static constexpr uint32_t type = GL_UNSIGNED_BYTE;
-        static constexpr uint32_t min_filter = GL_NEAREST;
-        static constexpr uint32_t mag_filter = GL_NEAREST;
+        static constexpr uint32_t min_filter = GL_LINEAR;
+        static constexpr uint32_t mag_filter = GL_LINEAR;
       };
 
       struct image_load_properties_t {
@@ -802,6 +802,8 @@ export namespace fan {
         fan::opengl::context_t::image_load_properties_t p;
 
         p.visual_output = GL_REPEAT;
+        p.min_filter = GL_NEAREST;
+        p.mag_filter = GL_NEAREST;
 
         fan::graphics::image_nr_t nr = image_create();
         image_bind(nr);

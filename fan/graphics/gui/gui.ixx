@@ -2091,7 +2091,8 @@ export namespace fan {
       struct sprite_animations_t {
         //fan::vec2i frame_coords; // starting from top left and increasing by one to get the next frame into that direction
 
-        std::string animation_list_current;
+        loco_t::animation_nr_t current_animation_shape_nr;
+        loco_t::animation_nr_t current_animation_nr;
         std::string animation_list_name_to_edit; // animation rename
         std::string animation_list_name_edit_buffer;
 
@@ -2099,30 +2100,31 @@ export namespace fan {
 
         bool set_focus = false;
         bool play_animation = false;
+        bool toggle_play_animation = false;
         static inline constexpr f32_t animation_names_padding = 10.f;
-        int hframes = 1, vframes = 1;
 
-        void render_list_box() {
-          gui::begin_child("animations_tool_bar", fan::vec2(0, 64));
+        bool render_list_box(loco_t::animation_nr_t& shape_animation_id) {
+          bool list_item_changed = false;
+
+          gui::begin_child("animations_tool_bar", 0, 1);
           gui::set_cursor_pos_y(animation_names_padding);
           gui::indent(animation_names_padding);
+
           if (gui::button("+")) {
             loco_t::sprite_sheet_animation_t animation;
-            static uint64_t counter = 0;
-            std::string animation_name = "Anim" + std::to_string(counter++);
-            gloco->get_sprite_sheet_animation(animation_name) = animation;
+            animation.name = std::to_string((uint32_t)gloco->all_animations_counter); // think this over
+            shape_animation_id = gloco->add_sprite_sheet_shape_animation(shape_animation_id, animation);
           }
-          gui::unindent();
-          gui::end_child();
-
-          gui::begin_child("animation_names");
-          gui::push_item_width(gui::get_window_size().x * 0.8f);;
-          gui::set_cursor_pos_y(animation_names_padding);
-          gui::indent(animation_names_padding);
-          for (auto [i, animation_pair] : fan::enumerate(gloco->sprite_sheet_animations)) {
-            auto& animation = animation_pair.second;
-            if (animation_pair.first == animation_list_name_to_edit) {
-              std::snprintf(animation_list_name_edit_buffer.data(), animation_list_name_edit_buffer.size() + 1, "%s", animation_pair.first.c_str());
+          if (!shape_animation_id) {
+            gui::unindent(animation_names_padding);
+            gui::end_child();
+            return false;
+          }
+          gui::push_item_width(gui::get_window_size().x * 0.8f);
+          for (auto [i, animation_nr] : fan::enumerate(gloco->get_sprite_sheet_shape_animation(shape_animation_id))) {
+            auto& animation = gloco->get_sprite_sheet_animation(animation_nr);
+            if (animation.name == animation_list_name_to_edit) {
+              std::snprintf(animation_list_name_edit_buffer.data(), animation_list_name_edit_buffer.size() + 1, "%s", animation.name.c_str());
               gui::push_id(i);
               if (set_focus) {
                 gui::set_keyboard_focus_here();
@@ -2130,9 +2132,14 @@ export namespace fan {
               }
 
               if (gui::input_text("##edit", &animation_list_name_edit_buffer, gui::input_text_flags_enter_returns_true)) {
-                if (animation_list_name_edit_buffer != animation_pair.first) {
-                  gloco->add_sprite_sheet_animation(animation_list_name_edit_buffer, animation);
-                  gloco->sprite_sheet_animations.erase(animation_pair.first);
+                if (animation_list_name_edit_buffer != animation.name) {
+                  gloco->rename_sprite_sheet_shape_animation(shape_animation_id, animation.name, animation_list_name_edit_buffer);
+                  animation.name = animation_list_name_edit_buffer;
+                  animation_list_name_to_edit.clear();
+                  gui::pop_id();
+                  break;
+                }
+                else {
                   animation_list_name_to_edit.clear();
                   gui::pop_id();
                   break;
@@ -2142,12 +2149,14 @@ export namespace fan {
             }
             else {
               gui::push_id(i);
-              if (gui::selectable(animation_pair.first, animation_list_current == animation_pair.first, gui::selectable_flags_allow_double_click, fan::vec2(gui::get_content_region_avail().x * 0.8f, 0))) {
+              if (gui::selectable(animation.name, current_animation_nr && current_animation_nr == animation_nr, gui::selectable_flags_allow_double_click, fan::vec2(gui::get_content_region_avail().x * 0.8f, 0))) {
                 if (gui::is_mouse_double_clicked()) {
-                  animation_list_name_to_edit = animation_pair.first;
+                  animation_list_name_to_edit = animation.name;
                   set_focus = true;
                 }
-                animation_list_current = animation_pair.first;
+                current_animation_shape_nr = shape_animation_id;
+                current_animation_nr = animation_nr;
+                list_item_changed = true;
               }
               gui::pop_id();
             }
@@ -2155,9 +2164,11 @@ export namespace fan {
           gui::pop_item_width();
           gui::unindent(animation_names_padding);
           gui::end_child();
+          return list_item_changed;
         }
 
-        void render_selectable_frames(loco_t::sprite_sheet_animation_t& current_animation) {
+        bool render_selectable_frames(loco_t::sprite_sheet_animation_t& current_animation, int& hframes, int& vframes) {
+          bool changed = false;
           if (fan::window::is_mouse_released()) {
             previous_hold_selected.clear();
           }
@@ -2175,8 +2186,8 @@ export namespace fan {
               fan::vec2 cursor_screen_pos = gui::get_cursor_screen_pos() + fan::vec2(7.f, 0); // + pad
               gui::image_button("", current_animation.sprite_sheet, 128, uv_src, uv_dst);
               auto& sf = current_animation.selected_frames;
-              auto it_found = std::find_if(sf.begin(), sf.end(), [a = grid_index](const loco_t::frame_selectable_t& b) {
-                return a == b.frame_index;
+              auto it_found = std::find_if(sf.begin(), sf.end(), [a = grid_index](int b) {
+                return a == b;
                 });
               bool is_found = it_found != sf.end();
 
@@ -2184,10 +2195,12 @@ export namespace fan {
               bool was_added_by_hold_before = previous_hold_it != previous_hold_selected.end();
               if (gui::is_item_held() && !was_added_by_hold_before) {
                 if (is_found == false) {
-                  sf.push_back({ .frame_index = grid_index });
+                  sf.push_back(grid_index);
                   previous_hold_selected.push_back(grid_index);
+                  changed = true;
                 }
                 else {
+                  changed = true;
                   it_found = sf.erase(it_found);
                   is_found = false;
                   previous_hold_selected.push_back(grid_index);
@@ -2205,49 +2218,55 @@ export namespace fan {
             }
             gui::new_line();
           }
+          return changed;
         }
 
-        void render(const std::string& drag_drop_id = "") {
+        bool render(const std::string& drag_drop_id, loco_t::animation_nr_t& shape_animation_id) {
           gui::push_style_var(gui::style_var_item_spacing, fan::vec2(12.f, 12.f));
-          gui::begin("Animations");
-
           gui::columns(2, "animation_columns", false);
           gui::set_column_width(0, gui::get_window_size().x * 0.2f);
 
-          render_list_box();
+          bool list_changed = render_list_box(shape_animation_id);
 
           gui::next_column();
 
-          gui::begin_child("animation_window_right", 0, 0, gui::window_flags_horizontal_scrollbar);
+          gui::begin_child("animation_window_right", 0, 1, gui::window_flags_horizontal_scrollbar);
 
           // just drop image from directory
 
           gui::push_item_width(72);
           gui::indent(animation_names_padding);
           gui::set_cursor_pos_y(animation_names_padding);
-
-          if (gui::button("Play")) {
+          toggle_play_animation = false;
+          if (gui::image_button("play_button", gloco->icons.play, 32)) {
             play_animation = true;
+            toggle_play_animation = true;
           }
-          auto current_animation = gloco->sprite_sheet_animations.find(animation_list_current);
-          if (current_animation == gloco->sprite_sheet_animations.end()) {
+          gui::same_line();
+          if (gui::image_button("pause_button", gloco->icons.pause, 32)) {
+            play_animation = false;
+            toggle_play_animation = true;
+          }
+          decltype(gloco->all_animations)::iterator current_animation;
+          if (!current_animation_nr) {
+            goto g_end_frame;
+          }
+          current_animation = gloco->all_animations.find(current_animation_nr);
+          if (current_animation == gloco->all_animations.end()) {
+          g_end_frame:
             gui::columns(1);
             gui::end_child();
-            gui::end();
             gui::pop_style_var();
-            return;
+            return list_changed;
           }
 
           gui::same_line(0, 20.f);
 
           gui::slider_flags_t slider_flags = fan::graphics::gui::slider_flags_always_clamp | gui::slider_flags_no_speed_tweaks;
-          gui::drag_int("fps", &current_animation->second.fps, 0.03f, 0, 244, "%d", slider_flags);
+          list_changed |= gui::drag_int("fps", &current_animation->second.fps, 0.03f, 0, 244, "%d", slider_flags);
 
-          gui::drag_int("Horizontal frames", &hframes, 0.03f, 0, 1024, "%d", slider_flags);
-          gui::drag_int("Vertical frames", &vframes, 0.03f, 0, 1024, "%d", slider_flags);
-
-          current_animation->second.hframes = hframes;
-          current_animation->second.vframes = vframes;
+          list_changed |= gui::drag_int("Horizontal frames", &current_animation->second.hframes, 0.03f, 0, 1024, "%d", slider_flags);
+          list_changed |= gui::drag_int("Vertical frames", &current_animation->second.vframes, 0.03f, 0, 1024, "%d", slider_flags);
 
           gui::pop_item_width();
 
@@ -2257,9 +2276,9 @@ export namespace fan {
           if (drag_drop_id.size()) {
             fan::vec2 avail = gui::get_content_region_avail();
             ImGui::Dummy(avail - cursor_pos);
-            gui::receive_drag_drop_target(drag_drop_id, [this](const std::string& file_path) {
+            gui::receive_drag_drop_target(drag_drop_id, [this, shape_animation_id](const std::string& file_path) {
               if (fan::image::valid(file_path)) {
-                if (auto it = gloco->sprite_sheet_animations.find(animation_list_current); it != gloco->sprite_sheet_animations.end()) {
+                if (auto it = gloco->all_animations.find(current_animation_nr); it != gloco->all_animations.end()) {
                   auto& anim = it->second;
                   if (gloco->is_image_valid(anim.sprite_sheet)) {
                     gloco->image_unload(anim.sprite_sheet);
@@ -2277,15 +2296,14 @@ export namespace fan {
           //render_play_animation();
 
           if (gloco->is_image_valid(current_animation->second.sprite_sheet)) {
-            render_selectable_frames(current_animation->second);
+            list_changed |= render_selectable_frames(current_animation->second, current_animation->second.hframes, current_animation->second.vframes);
           }
 
           gui::unindent(animation_names_padding);
           gui::end_child();
           gui::columns(1);
-
-          gui::end();
           gui::pop_style_var();
+          return list_changed;
         }
       };
 
