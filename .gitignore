@@ -39,7 +39,7 @@ lib/dpp
 lib/cmake
 *.dll
 x64/Debug
-*.json
+fan/
 *.command
 *.ifc
 a.out

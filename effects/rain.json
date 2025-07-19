@@ -1,0 +1,52 @@
+{
+  "alive_time": 1300000000,
+  "angle": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "angle_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "begin_angle": 4.132999897003174,
+  "begin_time": 556808348647200,
+  "blending": true,
+  "color": [
+    1.5,
+    1.5,
+    1.5,
+    1.0
+  ],
+  "count": 1191,
+  "end_angle": 1.0,
+  "gap_size": [
+    354.5350036621094,
+    1.0
+  ],
+  "max_spread_size": [
+    2423.23095703125,
+    100.0
+  ],
+  "particle_shape": 1,
+  "position": [
+    270,
+    487,
+    50000.0
+  ],
+  "position_velocity": [
+    0.0,
+    534.0
+  ],
+  "respawn_time": 0,
+  "shape": "particles",
+  "size": [
+    2,
+    2
+  ],
+  "size_velocity": [
+    1.0,
+    1.0
+  ]
+}

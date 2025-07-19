@@ -1,0 +1,61 @@
+{
+  "clear_color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+  ],
+  "lighting.ambient": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "shapes": [
+    {
+      "angle": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "flags": 0,
+      "group_id": 0,
+      "id": "",
+      "image_format": 0,
+      "image_mag_filter": 0,
+      "image_min_filter": 0,
+      "image_path": "examples/games/puzzle/living_room/wallpaper.png",
+      "image_type": 0,
+      "image_visual_output": 0,
+      "parallax_factor": 0.0,
+      "position": [
+        53.0,
+        16.800003051757813,
+        0.0
+      ],
+      "rotation_point": [
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        512.0,
+        256.0
+      ],
+      "tc_position": [
+        0.0,
+        0.0
+      ],
+      "tc_size": [
+        1.0,
+        1.0
+      ]
+    }
+  ],
+  "version": 1
+}

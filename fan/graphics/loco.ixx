@@ -916,18 +916,25 @@ export struct loco_t {
       int hframes = 1, vframes = 1;
       operator fan::json() const {
         fan::json j;
-        j = fan::json{
-          {"image", gloco->image_to_json(image)},
-          {"hframes", hframes},
-          {"vframes", vframes}
-        };
+        image_t defaults;
+        if (hframes != defaults.hframes) {
+          j["hframes"] = hframes;
+        }
+        if (hframes != defaults.vframes) {
+          j["vframes"] = vframes;
+        }
+        j.update(gloco->image_to_json(image), true);
         return j;
       }
 
       sprite_sheet_animation_t::image_t& operator=(const fan::json& j) {
-        image = gloco->json_to_image(j.at("image"));
-        hframes = j.at("hframes");
-        vframes = j.at("vframes");
+        image = gloco->json_to_image(j);
+        if (j.contains("hframes")) {
+          hframes = j.at("hframes");
+        }
+        if (j.contains("vframes")) {
+          vframes = j.at("vframes");
+        }
         return *this;
       }
     };
@@ -1056,16 +1063,32 @@ export struct loco_t {
   }
 
   fan::json sprite_sheet_serialize() {
-    fan::json arr = fan::json::array();
+    fan::json result = fan::json::object();
+    fan::json animations_arr = fan::json::array();
+
     for (auto& anim : all_animations) {
       fan::json ss;
       ss["name"] = anim.second.name;
       ss["selected_frames"] = anim.second.selected_frames;
       ss["fps"] = anim.second.fps;
       ss["id"] = anim.first.id;
-      arr.push_back(ss);
+
+      if (!anim.second.images.empty()) {
+        fan::json images_arr = fan::json::array();
+        for (const auto& img : anim.second.images) {
+          images_arr.push_back(img);
+        }
+        ss["images"] = images_arr;
+      }
+
+      animations_arr.push_back(ss);
     }
-    return arr;
+
+    if (!animations_arr.empty()) {
+      result["animations"] = animations_arr;
+    }
+
+    return result;
   }
 
   
@@ -1102,6 +1125,7 @@ export struct loco_t {
       }
     }
 
+    // update animation id table
     if (json.contains("shapes")) {
       for (auto& shape : json["shapes"]) {
         // Update animation references in each shape
@@ -1120,6 +1144,25 @@ export struct loco_t {
   std::unordered_map<std::pair<animation_shape_nr_t, std::string>, animation_nr_t, animation_pair_hash_t> shape_animation_lookup_table;
   std::unordered_map<animation_shape_nr_t, std::vector<animation_nr_t>, animation_nr_hash_t> shape_animations;
   animation_nr_t shape_animation_counter = 0;
+
+  void parse_animations(fan::json& json_in) {
+    gloco->sprite_sheet_deserialize(json_in);
+
+    for (auto& item : json_in["animations"]) {
+      loco_t::sprite_sheet_animation_t anim;
+      anim.name = item.value("name", std::string{});
+      anim.selected_frames = item.value("selected_frames", std::vector<int>{});
+      for (const auto& frame_json : item["images"]) {
+        loco_t::sprite_sheet_animation_t::image_t img;
+        img = frame_json;
+        anim.images.push_back(img);
+      }
+      anim.fps = item.value("fps", 0.0f);
+
+      loco_t::animation_nr_t id = item.value("id", uint32_t());
+      gloco->all_animations[id] = anim;
+    }
+  }
 
 
   //-----------------------sprite sheet animations-----------------------
@@ -1521,7 +1564,7 @@ public:
       }
       if (nr.iic() && std::stoi(args[0])) {
         nr = loco->console.push_frame_process([] {
-          ImGui::SetNextWindowBgAlpha(0.9f);
+          ImGui::SetNextWindowBgAlpha(0.99f);
           static int init = 0;
           ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing;
           if (init == 0) {
@@ -2194,7 +2237,7 @@ public:
     }
 
     if (show_fps) {
-      ImGui::SetNextWindowBgAlpha(0.9f);
+      ImGui::SetNextWindowBgAlpha(0.99f);
       static int init = 0;
       ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing;
       if (init == 0) {
@@ -3696,11 +3739,19 @@ void set_sprite_sheet_next_frame(int advance = 1) {
   }
 }
     // Takes in seconds
-    void set_sprite_sheet_update_frequency(f32_t interval_s) {
+    void set_sprite_sheet_fps(f32_t fps) {
       if (get_shape_type() == loco_t::shape_type_t::sprite) {
         auto& ri = *(loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
         loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
-        sheet_data.update_timer.start(interval_s * 1e+9);
+        for (auto& animation_nrs : gloco->shape_animations[ri.shape_animations]) {
+          gloco->get_sprite_sheet_animation(animation_nrs).fps = fps;
+        }
+        if (sheet_data.update_timer.m_time == (uint64_t)-1) {
+          sheet_data.update_timer.start(1.0 / fps * 1e+9);
+        }
+        else {
+          sheet_data.update_timer.set_time(1.0 / fps * 1e+9);
+        }
       }
       else {
         fan::throw_error("Unimplemented for this shape");
@@ -3729,14 +3780,17 @@ void set_sprite_sheet_next_frame(int advance = 1) {
       return gloco->get_sprite_sheet_animation(shape_get_ri(sprite).current_animation);
     }
 
-    void set_sprite_sheet_playback(const sprite_sheet_animation_t& animation) {
+    void start_sprite_sheet_animation() {
       auto& ri = shape_get_ri(sprite);
       auto& current_anim = get_sprite_sheet_animation();
 
       loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
       sheet_data.current_frame = 0;
-      sheet_data.update_timer.start(animation.fps / 1e+9);
+      sheet_data.update_timer.start(1.0 / current_anim.fps * 1e+9);
       int actual_frame = current_anim.selected_frames[sheet_data.current_frame];
+      if (current_anim.images.empty()) {
+        return;
+      }
       auto& current_image = current_anim.images[actual_frame];
 
       set_tc_position(fan::vec2(0, 0));
@@ -3772,7 +3826,7 @@ void set_sprite_sheet_next_frame(int advance = 1) {
         previous_anim = animation;
         gloco->shape_animation_lookup_table[std::make_pair(ri.shape_animations, animation.name)] = ri.current_animation;
 
-        set_sprite_sheet_playback(animation);
+        start_sprite_sheet_animation();
       }
       else {
         fan::throw_error("Unimplemented for this shape");
@@ -3785,7 +3839,7 @@ void set_sprite_sheet_next_frame(int advance = 1) {
         // adds animation to 
         ri.shape_animations = gloco->add_sprite_sheet_shape_animation(ri.shape_animations, animation);
         ri.current_animation = gloco->shape_animations[ri.shape_animations].back();
-        set_sprite_sheet_playback(animation);
+        start_sprite_sheet_animation();
       }
       else {
         fan::throw_error("Unimplemented for this shape");
@@ -3797,7 +3851,7 @@ void set_sprite_sheet_next_frame(int advance = 1) {
         auto& current_anim = get_sprite_sheet_animation();
         current_anim.images[image_index].hframes = horizontal_frames;
         current_anim.images[image_index].vframes = vertical_frames;
-        set_sprite_sheet_playback(current_anim);
+        start_sprite_sheet_animation();
       }
       else {
         fan::throw_error("Unimplemented for this shape");

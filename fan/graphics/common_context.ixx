@@ -74,8 +74,8 @@ export namespace fan {
     };
     struct image_load_properties_defaults {
       static constexpr uint32_t visual_output = repeat;
-      static constexpr uint32_t internal_format = rgba_unorm;
-      static constexpr uint32_t format = rgba_unorm;
+      static constexpr uint32_t internal_format = r8b8g8a8_unorm;
+      static constexpr uint32_t format = r8b8g8a8_unorm;
       static constexpr uint32_t type = fan_unsigned_byte; // internal
       static constexpr uint32_t min_filter = linear;
       static constexpr uint32_t mag_filter = linear;

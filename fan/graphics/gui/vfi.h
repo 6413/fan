@@ -5,8 +5,10 @@ struct vfi_t {
   inline static constexpr shape_type_t shape_type = loco_t::shape_type_t::vfi;
 
   struct shape_t { // using these on msvc gives intenal compiler error
-    inline static constexpr shape_type_t always = 0;
-    inline static constexpr shape_type_t rectangle = 1;
+    enum shape {
+      always = 0,
+      rectangle = 1
+    };
   };
   struct shape_properties_always_t {
     f32_t z;
@@ -715,7 +717,5 @@ struct vfi_t {
     loco_t::set_size_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec2& size) {
       gloco->vfi.set_size(*shape, size);
     };
-  }
-  ~vfi_t() {
   }
 };
