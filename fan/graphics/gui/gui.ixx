@@ -17,6 +17,8 @@ module;
 #include <array>
 #include <filesystem>
 #include <coroutine>
+#include <algorithm>
+#include <functional>
 
 export module fan.graphics.gui;
 
@@ -2352,7 +2354,7 @@ export namespace fan {
             adding_sprite_sheet = true;
           }
           if (adding_sprite_sheet && gui::begin("add_animations_sprite_sheet")) {
-            gui::text_box("Drop sprite sheet here", fan::vec2(128, 64));
+            gui::text_box("Drop sprite sheet here", fan::vec2(256, 64));
             gui::receive_drag_drop_target(drag_drop_id, [this, shape_animation_id](const std::string& file_path) {
               if (fan::image::valid(file_path)) {
                 sprite_sheet_drag_drop_name = file_path;

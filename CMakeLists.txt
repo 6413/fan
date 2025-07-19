@@ -231,6 +231,9 @@ function(apply_fan_definitions target)
         loco_responsive_text
         loco_universal_image_renderer
         IMGUI_IMPL_OPENGL_LOADER_CUSTOM
+        IMGUI_DEFINE_MATH_OPERATORS
+        IMGUI_DISABLE_SSE
+        IMGUI_ENABLE_FREETYPE
     )
 endfunction()
 

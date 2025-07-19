@@ -1,4 +1,6 @@
-#include <fan/pch.h>
+#include <fan/types/types.h>
+
+import fan;
 
 constexpr uint32_t count = 1;
 
@@ -61,19 +63,19 @@ int main() {
 
   fan::graphics::vfi_root_t root;
 
-  /*typename loco_t::vfi_t::properties_t vfip;
+
+    /*typename loco_t::vfi_t::properties_t vfip;
   vfip.shape.rectangle->position = 0;
   vfip.shape.rectangle->position.z = 1;
   vfip.shape.rectangle->size = 200;
   vfip.shape.rectangle->angle = 0;
   vfip.shape.rectangle->rotation_point = 0;*/
   root.set_root(vfip);
-  root.push_child(r);
-  r.remove();
-
+  //root.push_child(r);
+  //r.remove();
 
   pile.loco.loop([&] {
-    pile.loco.get_fps();
+    
   });
 
   return 0;

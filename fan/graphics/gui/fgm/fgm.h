@@ -271,12 +271,12 @@ struct fgm_t {
 
 
       gui::push_item_width(gui::calc_item_width() / 3.f);
-      changed |= gui::drag_float("##position_x", &v.x, 0.1f, 0.0f, FLT_MAX, "%.3f", gui::slider_flags_always_clamp);
+      changed |= gui::drag_float("##position_x", &v.x, 0.1f, 0.0f, std::numeric_limits<float>::max(), "%.3f", gui::slider_flags_always_clamp);
       gui::same_line();
-      changed |= gui::drag_float("##position_y", &v.y, 0.1f, 0.0f, FLT_MAX, "%.3f", gui::slider_flags_always_clamp);
+      changed |= gui::drag_float("##position_y", &v.y, 0.1f, 0.0f, std::numeric_limits<float>::max(), "%.3f", gui::slider_flags_always_clamp);
       gui::same_line();
       int z = static_cast<int>(v.z);
-      if (gui::drag_int("##position_z", &z, 1.0f, 0, INT_MAX, "%d", gui::slider_flags_always_clamp)) {
+      if (gui::drag_int("##position_z", &z, 1.0f, 0, std::numeric_limits<int>::max(), "%d", gui::slider_flags_always_clamp)) {
         v.z = static_cast<float>(z);
         changed = true;
       }
@@ -922,16 +922,16 @@ struct fgm_t {
               auto& current_shape_anim = shape.get_sprite_sheet_animation();
               if (animations_application.play_animation && (animations_application.toggle_play_animation || animation_changed) &&
                 current_shape_anim.selected_frames.size()) {
-                shape.set_sprite_sheet_playback(anim);
+                shape.start_sprite_sheet_animation();
                 //shape.set_sprite_sheet_frames(anim.hframes, anim.vframes);
               }
 
               if (animations_application.play_animation && (animations_application.toggle_play_animation || animation_changed) &&
                 current_shape_anim.selected_frames.size()) {
-                shape.set_sprite_sheet_update_frequency(1.0 / anim.fps);
+                shape.set_sprite_sheet_fps(anim.fps);
               }
               if (animations_application.play_animation && animations_application.toggle_play_animation && !animations_application.play_animation) {
-                shape.set_sprite_sheet_update_frequency(1e+9);
+                shape.set_sprite_sheet_fps(0.0001);
               }
             }
           }
@@ -1020,7 +1020,7 @@ struct fgm_t {
     {
       auto animations_json = gloco->sprite_sheet_serialize();
       if (animations_json.empty() == false) {
-        ostr["animations"] = animations_json;
+        ostr.update(animations_json, true);
       }
     }
     fan::json shapes = fan::json::array();
@@ -1106,22 +1106,7 @@ struct fgm_t {
       gloco->clear_color = json_in["clear_color"];
     }
     if (json_in.contains("animations")) {
-      gloco->sprite_sheet_deserialize(json_in);
-      
-      for (auto& item : json_in["animations"]) {
-        loco_t::sprite_sheet_animation_t anim;
-        anim.name = item.value("name", std::string{});
-        anim.selected_frames = item.value("selected_frames", std::vector<int>{});
-        for (const auto& frame_json : item["images"]) {
-          loco_t::sprite_sheet_animation_t::image_t img;
-          img = frame_json;
-          anim.images.push_back(img);
-        }
-        anim.fps = item.value("fps", 0.0f);
-
-        loco_t::animation_nr_t id = item.value("id", uint32_t());
-        gloco->all_animations[id] = anim;
-      }
+      gloco->parse_animations(json_in);
     }
     fan::graphics::shape_deserialize_t iterator;
     loco_t::shape_t shape;

@@ -1,4 +1,6 @@
-#include <fan/pch.h>
+#include <box2d/box2d.h>
+
+import fan;
 
 struct pile_t {
   pile_t() {

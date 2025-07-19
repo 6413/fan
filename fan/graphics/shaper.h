@@ -688,6 +688,11 @@ struct shaper_t{
     BlockProperties_t() {
       std::construct_at(&renderer.gl, gl_t{});
     }
+    ~BlockProperties_t() {
+#if shaper_set_fan
+      std::destroy_at(&renderer.gl);
+#endif
+    }
     MaxElementPerBlock_t MaxElementPerBlock;
     decltype(ShapeType_t::RenderDataSize) RenderDataSize;
     decltype(ShapeType_t::DataSize) DataSize;
@@ -1191,7 +1196,6 @@ struct shaper_t{
     gt_newbm:
 
     bmid = BlockManager.NewNode();
-    
     bm = &BlockManager[bmid];
     bm->KeyPackSize = KeyPackSize;
     bm->KeyPack = (uint8_t *)A_resize(NULL, bm->KeyPackSize);
