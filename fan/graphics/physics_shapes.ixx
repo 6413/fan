@@ -253,6 +253,21 @@ export namespace fan {
 
       struct base_shape_t : loco_t::shape_t, fan::physics::entity_t {
         base_shape_t() = default;
+        
+        void set_shape(loco_t::shape_t&& shape) {
+          fan::vec3 prev_pos = get_position();
+          if (physics_update_nr.iic() == false) {
+            gloco->remove_physics_update(physics_update_nr);
+          }
+          *dynamic_cast<loco_t::shape_t*>(this) = std::move(shape);
+          uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
+            physics_update_nr = gloco->add_physics_update({
+            .shape_id = *this,
+            .body_id = body_id_data,
+            .cb = (void*)shape_physics_update
+          });
+          set_position(prev_pos);
+        }
         base_shape_t(loco_t::shape_t&& shape, fan::physics::entity_t&& entity, const mass_data_t& mass_data) :
           loco_t::shape_t(std::move(shape)),
           fan::physics::entity_t(std::move(entity)) {
@@ -354,6 +369,7 @@ export namespace fan {
           }
           return *this;
         }
+
         void erase() {
           loco_t::shape_t::erase();
           fan::physics::entity_t::destroy();
@@ -362,7 +378,6 @@ export namespace fan {
           }
           physics_update_nr.sic();
         }
-
         loco_t::physics_update_cbs_t::nr_t physics_update_nr;
       };
 
@@ -808,6 +823,8 @@ export namespace fan {
       }
 
       struct character2d_t : physics::base_shape_t {
+        using physics::base_shape_t::base_shape_t;
+
         struct movement_e {
           enum {
             side_view, // left, right, space to jump
@@ -818,9 +835,15 @@ export namespace fan {
         character2d_t() {
           add_inputs();
         }
-        inline character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {
+        character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {
           add_inputs();
         }
+
+        void set_shape(loco_t::shape_t&& shape) {
+          physics::base_shape_t::set_shape(std::move(shape));
+        }
+
+
         static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping) {
           for (int i = 0; i < 2; ++i) {
             fan::physics::body_id_t body_id = feet[i];
@@ -921,6 +944,7 @@ export namespace fan {
           }
         }
         void move_to_direction(const fan::vec2& direction) {
+          previous_movement_sign = direction.square_normalize();
           fan::vec2 velocity = get_linear_velocity();
           if (direction.x < 0) {
             if (velocity.x > -max_speed) {
@@ -943,6 +967,7 @@ export namespace fan {
             }
           }
         }
+        fan::vec2 previous_movement_sign;
         f32_t force = 25.f;
         f32_t impulse = 3.f;
         f32_t max_speed = 500.f;

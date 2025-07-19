@@ -820,7 +820,7 @@ export namespace fan {
 
       void set_root(const loco_t::vfi_t::properties_t& p) {
         fan::graphics::vfi_t::properties_t in = p;
-        in.shape_type = 1;
+        in.shape_type = loco_t::vfi_t::shape_t::rectangle;
         in.shape.rectangle->camera = p.shape.rectangle->camera;
         in.shape.rectangle->viewport = p.shape.rectangle->viewport;
 
