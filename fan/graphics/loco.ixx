@@ -727,7 +727,9 @@ export struct loco_t {
     std::memcpy(ri, _ri, rlen);
 
     if (sti == loco_t::shape_type_t::sprite) {
-      ((loco_t::sprite_t::ri_t*)ri)->sprite_sheet_data.frame_update_nr = gloco->m_update_callback.NewNodeLast(); // since hard copy, let it leak
+      if (((loco_t::sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr) {
+        ((loco_t::sprite_t::ri_t*)ri)->sprite_sheet_data.frame_update_nr = gloco->m_update_callback.NewNodeLast(); // since hard copy, let it leak
+      }
     }
 
     *dst = gloco->shaper.add(
@@ -837,15 +839,103 @@ export struct loco_t {
     "particles",
   };
 
+  fan::json image_to_json(const auto& image) {
+    fan::json image_json;
+    if (image.iic()) {
+      return image_json;
+    }
+
+    auto shape_data = image_list[image];
+    if (shape_data.image_path.size()) {
+      image_json["image_path"] = shape_data.image_path;
+    }
+    else {
+      return image_json;
+    }
+
+    auto lp = image_get_settings(image);
+    fan::graphics::image_load_properties_t defaults;
+    if (lp.visual_output != defaults.visual_output) {
+      image_json["image_visual_output"] = lp.visual_output;
+    }
+    if (lp.format != defaults.format) {
+      image_json["image_format"] = lp.format;
+    }
+    if (lp.type != defaults.type) {
+      image_json["image_type"] = lp.type;
+    }
+    if (lp.min_filter != defaults.min_filter) {
+      image_json["image_min_filter"] = lp.min_filter;
+    }
+    if (lp.mag_filter != defaults.mag_filter) {
+      image_json["image_mag_filter"] = lp.mag_filter;
+    }
+
+    return image_json;
+  }
+  loco_t::image_t json_to_image(const fan::json& image_json) {
+    if (!image_json.contains("image_path")) {
+      return default_texture;
+    }
+
+    auto path = image_json["image_path"];
+
+    if (!fan::io::file::exists(path)) {
+      return default_texture;
+    }
+
+    fan::graphics::image_load_properties_t lp;
+
+    if (image_json.contains("image_visual_output")) {
+      lp.visual_output = image_json["image_visual_output"];
+    }
+    if (image_json.contains("image_format")) {
+      lp.format = image_json["image_format"];
+    }
+    if (image_json.contains("image_type")) {
+      lp.type = image_json["image_type"];
+    }
+    if (image_json.contains("image_min_filter")) {
+      lp.min_filter = image_json["image_min_filter"];
+    }
+    if (image_json.contains("image_mag_filter")) {
+      lp.mag_filter = image_json["image_mag_filter"];
+    }
+
+    auto image = image_load(path, lp);
+    image_list[image].image_path = path;
+    return image;
+  }
+
   
   //-----------------------sprite sheet animations-----------------------
 
   struct sprite_sheet_animation_t {
+    struct image_t {
+      loco_t::image_t image = gloco->default_texture;
+      int hframes = 1, vframes = 1;
+      operator fan::json() const {
+        fan::json j;
+        j = fan::json{
+          {"image", gloco->image_to_json(image)},
+          {"hframes", hframes},
+          {"vframes", vframes}
+        };
+        return j;
+      }
+
+      sprite_sheet_animation_t::image_t& operator=(const fan::json& j) {
+        image = gloco->json_to_image(j.at("image"));
+        hframes = j.at("hframes");
+        vframes = j.at("vframes");
+        return *this;
+      }
+    };
+
     std::vector<int> selected_frames;
-    image_t sprite_sheet = gloco->default_texture;
+    std::vector<sprite_sheet_animation_t::image_t> images;
     std::string name;
     int fps = 15;
-    int hframes = 1, vframes = 1;
   };
   struct animation_nr_t {
     animation_nr_t() = default;
@@ -972,8 +1062,6 @@ export struct loco_t {
       ss["name"] = anim.second.name;
       ss["selected_frames"] = anim.second.selected_frames;
       ss["fps"] = anim.second.fps;
-      ss["hframes"] = anim.second.hframes;
-      ss["vframes"] = anim.second.vframes;
       ss["id"] = anim.first.id;
       arr.push_back(ss);
     }
@@ -988,10 +1076,23 @@ export struct loco_t {
       for (const auto& item : json["animations"]) {
         sprite_sheet_animation_t anim;
         anim.name = item.value("name", std::string{});
-        anim.selected_frames = item.value("selected_frames", std::vector<int>{});
+        if (item.contains("selected_frames") && item["selected_frames"].is_array()) {
+          anim.selected_frames.clear();
+          for (const auto& frame_json : item["selected_frames"]) {
+            anim.selected_frames.push_back(frame_json.get<int>());
+          }
+          if (item.contains("images")) {
+            for (const auto& frame_json : item["images"]) {
+              loco_t::sprite_sheet_animation_t::image_t img;
+              img = frame_json;
+              anim.images.push_back(img);
+            }
+          }
+        }
+        else {
+          anim.selected_frames.clear();
+        }
         anim.fps = item.value("fps", 0.0f);
-        anim.hframes = item.value("hframes", 0);
-        anim.vframes = item.value("vframes", 0);
 
         animation_nr_t original_id = item.value("id", uint32_t());
         animation_nr_t new_id = original_id.id + counter_offset.id;
@@ -3163,10 +3264,13 @@ public:
         else if (sti == loco_t::shape_type_t::sprite) {
           // handle sprite sheet specific updates
           loco_t::sprite_t::ri_t* ri = (loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
-          ri->sprite_sheet_data.frame_update_nr = gloco->m_update_callback.NewNodeLast(); // since hard copy, let it leak
-          gloco->m_update_callback[ri->sprite_sheet_data.frame_update_nr] = [nr = NRI](loco_t* loco) {
-            loco_t::shape_t::sprite_sheet_frame_update_cb(loco, (loco_t::shape_t*)&nr);
-          };
+          loco_t::sprite_t::ri_t* _ri = (loco_t::sprite_t::ri_t*)s.GetData(gloco->shaper);
+          //if (((loco_t::sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr) {
+            ri->sprite_sheet_data.frame_update_nr = gloco->m_update_callback.NewNodeLast(); // since hard copy, let it leak
+            gloco->m_update_callback[ri->sprite_sheet_data.frame_update_nr] = [nr = NRI](loco_t* loco) {
+              loco_t::shape_t::sprite_sheet_frame_update_cb(loco, (loco_t::shape_t*)&nr);
+            };
+         // }
         }
         //fan::print("i dont know what to do");
         //NRI = s.NRI;
@@ -3175,6 +3279,10 @@ public:
     }
 
     loco_t::shape_t& operator=(loco_t::shape_t&& s) {
+      if (NRI == s.NRI) {
+        s.sic();
+        return *this;
+      }
       if (iic() == false) {
         remove();
       }
@@ -3313,7 +3421,8 @@ public:
     }
 
     void set_tc_position(const fan::vec2& tc_position) {
-      gloco->shape_functions[get_shape_type()].set_tc_position(this, tc_position);
+      auto st = get_shape_type();
+      gloco->shape_functions[st].set_tc_position(this, tc_position);
     }
 
     fan::vec2 get_tc_size() {
@@ -3541,36 +3650,51 @@ public:
     }
 
     // sprite sheet - sprite specific
-    void set_sprite_sheet_next_frame(int advance = 1) {
-      if (get_shape_type() == loco_t::shape_type_t::sprite) {
-        auto& ri = *(loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
-        auto found = gloco->all_animations.find(ri.current_animation);
-        if (found == gloco->all_animations.end()) {
-          fan::throw_error("current_animation not found");
-        }
-        auto& animation = found->second;
-        loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
-        sheet_data.current_frame += advance;
-        sheet_data.current_frame %= animation.selected_frames.size();
-
-        int actual_frame = animation.selected_frames[sheet_data.current_frame];
-
-        sheet_data.update_timer.restart();
-        fan::vec2 tc_size = fan::vec2(1.0 / animation.hframes, 1.0 / animation.vframes);
-
-        int frame_x = actual_frame % animation.hframes;
-        int frame_y = actual_frame / animation.hframes;
-
-        set_tc_position(fan::vec2(
-          frame_x * tc_size.x,
-          frame_y * tc_size.y
-        ));
-        set_tc_size(tc_size);
-      }
-      else {
-        fan::throw_error("Unimplemented for this shape");
-      }
+void set_sprite_sheet_next_frame(int advance = 1) {
+  if (get_shape_type() == loco_t::shape_type_t::sprite) {
+    auto& ri = *(loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
+    auto found = gloco->all_animations.find(ri.current_animation);
+    if (found == gloco->all_animations.end()) {
+      fan::throw_error("current_animation not found");
     }
+    auto& animation = found->second;
+    loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+    int actual_frame = animation.selected_frames[sheet_data.current_frame];
+    
+    // Find which image this frame belongs to and the local frame within that image
+    int image_index = 0;
+    int local_frame = actual_frame;
+    int frame_count = 0;
+    
+    for (int i = 0; i < animation.images.size(); ++i) {
+      int frames_in_this_image = animation.images[i].hframes * animation.images[i].vframes;
+      if (actual_frame < frame_count + frames_in_this_image) {
+        image_index = i;
+        local_frame = actual_frame - frame_count;
+        break;
+      }
+      frame_count += frames_in_this_image;
+    }
+    
+    auto& current_image = animation.images[image_index];
+    set_image(current_image.image);
+    sheet_data.current_frame += advance;
+    sheet_data.current_frame %= animation.selected_frames.size();
+    sheet_data.update_timer.restart();
+    
+    fan::vec2 tc_size = fan::vec2(1.0 / current_image.hframes, 1.0 / current_image.vframes);
+    int frame_x = local_frame % current_image.hframes;
+    int frame_y = local_frame / current_image.hframes;
+    set_tc_position(fan::vec2(
+      frame_x * tc_size.x,
+      frame_y * tc_size.y
+    ));
+    set_tc_size(tc_size);
+  }
+  else {
+    fan::throw_error("Unimplemented for this shape");
+  }
+}
     // Takes in seconds
     void set_sprite_sheet_update_frequency(f32_t interval_s) {
       if (get_shape_type() == loco_t::shape_type_t::sprite) {
@@ -3585,14 +3709,12 @@ public:
     static void sprite_sheet_frame_update_cb(loco_t* loco, shape_t* shape) {
       auto& ri = *(loco_t::sprite_t::ri_t*)shape->GetData(gloco->shaper);
       loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
-      if (sheet_data.update_timer) {
+      if (sheet_data.update_timer) { // is it possible to just remove frame_udpate_cb if its not valid
         if (ri.current_animation) {
           auto& selected_frames = loco->all_animations[ri.current_animation].selected_frames;
           if (selected_frames.empty()) {
             return;
           }
-          int advance = selected_frames[sheet_data.current_frame % selected_frames.size()];
-          
           shape->set_sprite_sheet_next_frame();
         }
         else {
@@ -3614,24 +3736,26 @@ public:
       loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
       sheet_data.current_frame = 0;
       sheet_data.update_timer.start(animation.fps / 1e+9);
+      int actual_frame = current_anim.selected_frames[sheet_data.current_frame];
+      auto& current_image = current_anim.images[actual_frame];
 
       set_tc_position(fan::vec2(0, 0));
-      set_tc_size(fan::vec2(1.0 / current_anim.hframes, 1.0 / current_anim.vframes));
+      set_tc_size(fan::vec2(1.0 / current_image.hframes, 1.0 / current_image.vframes));
       // No frames to process, remove frame update function
-      if (current_anim.vframes * current_anim.hframes == 1) {
-        if (sheet_data.frame_update_nr) {
-          gloco->m_update_callback.unlrec(sheet_data.frame_update_nr);
-          sheet_data.frame_update_nr.sic();
-        }
-      }
-      else {
+      //if (current_image.vframes * current_image.hframes == 1) {
+      //  if (sheet_data.frame_update_nr) {
+      //    gloco->m_update_callback.unlrec(sheet_data.frame_update_nr);
+      //    sheet_data.frame_update_nr.sic();
+      //  }
+      //}
+      //else {
         if (sheet_data.frame_update_nr == false) {
           sheet_data.frame_update_nr = gloco->m_update_callback.NewNodeLast();
         }
         gloco->m_update_callback[sheet_data.frame_update_nr] = [nr = NRI](loco_t* loco) {
           sprite_sheet_frame_update_cb(loco, (loco_t::shape_t*)&nr);
         };
-      }
+      //}
     }
 
     // overwrites 'ri.current_animation' animation
@@ -3668,11 +3792,11 @@ public:
       }
     }
 
-    void set_sprite_sheet_frames(int horizontal_frames, int vertical_frames) {
+    void set_sprite_sheet_frames(uint32_t image_index, int horizontal_frames, int vertical_frames) {
       if (get_shape_type() == loco_t::shape_type_t::sprite) {
         auto& current_anim = get_sprite_sheet_animation();
-        current_anim.hframes = horizontal_frames;
-        current_anim.vframes = vertical_frames;
+        current_anim.images[image_index].hframes = horizontal_frames;
+        current_anim.images[image_index].vframes = vertical_frames;
         set_sprite_sheet_playback(current_anim);
       }
       else {
@@ -5582,41 +5706,6 @@ public:
 export namespace fan {
   namespace graphics {
 
-    fan::json image_to_json(const auto& image) {
-      fan::json image_json;
-      if (image.iic()) {
-        return image_json;
-      }
-
-      auto shape_data = gloco->image_list[image];
-      if (shape_data.image_path.size()) {
-        image_json["image_path"] = shape_data.image_path;
-      }
-      else {
-        return image_json;
-      }
-
-      auto lp = gloco->image_get_settings(image);
-      fan::graphics::image_load_properties_t defaults;
-      if (lp.visual_output != defaults.visual_output) {
-        image_json["image_visual_output"] = lp.visual_output;
-      }
-      if (lp.format != defaults.format) {
-        image_json["image_format"] = lp.format;
-      }
-      if (lp.type != defaults.type) {
-        image_json["image_type"] = lp.type;
-      }
-      if (lp.min_filter != defaults.min_filter) {
-        image_json["image_min_filter"] = lp.min_filter;
-      }
-      if (lp.mag_filter != defaults.mag_filter) {
-        image_json["image_mag_filter"] = lp.mag_filter;
-      }
-
-      return image_json;
-    }
-
     bool shape_to_json(loco_t::shape_t& shape, fan::json* json) {
       fan::json& out = *json;
       switch (shape.get_shape_type()) {
@@ -5729,14 +5818,14 @@ export namespace fan {
         fan::json images_array = fan::json::array();
 
         auto main_image = shape.get_image();
-        auto img_json = image_to_json(main_image);
+        auto img_json = gloco->image_to_json(main_image);
         if (!img_json.empty()) {
           images_array.push_back(img_json);
         }
 
         auto images = shape.get_images();
         for (auto& image : images) {
-          img_json = image_to_json(image);
+          img_json = gloco->image_to_json(image);
           if (!img_json.empty()) {
             images_array.push_back(img_json);
           }
@@ -5784,14 +5873,14 @@ export namespace fan {
         fan::json images_array = fan::json::array();
 
         auto main_image = shape.get_image();
-        auto img_json = image_to_json(main_image);
+        auto img_json = gloco->image_to_json(main_image);
         if (!img_json.empty()) {
           images_array.push_back(img_json);
         }
 
         auto images = shape.get_images();
         for (auto& image : images) {
-          img_json = image_to_json(image);
+          img_json = gloco->image_to_json(image);
           if (!img_json.empty()) {
             images_array.push_back(img_json);
           }
@@ -6036,29 +6125,14 @@ export namespace fan {
         }
         if (in.contains("images") && in["images"].is_array()) {
           for (const auto [i, image_json] : fan::enumerate(in["images"])) {
-            if (!image_json.contains("image_path")) continue;
-
-            auto path = image_json["image_path"];
-            if (fan::io::file::exists(path)) {
-              fan::graphics::image_load_properties_t lp;
-
-              if (image_json.contains("image_visual_output")) lp.visual_output = image_json["image_visual_output"];
-              if (image_json.contains("image_format")) lp.format = image_json["image_format"];
-              if (image_json.contains("image_type")) lp.type = image_json["image_type"];
-              if (image_json.contains("image_min_filter")) lp.min_filter = image_json["image_min_filter"];
-              if (image_json.contains("image_mag_filter")) lp.mag_filter = image_json["image_mag_filter"];
-
-              auto image = gloco->image_load(path, lp);
-
-              if (i == 0) {
-                shape->set_image(image);
-              }
-              else {
-                auto images = shape->get_images();
-                images[i - 1] = image;
-                shape->set_images(images);
-              }
-              gloco->image_list[image].image_path = path;
+            loco_t::image_t image = gloco->json_to_image(image_json);
+            if (i == 0) {
+              shape->set_image(image);
+            }
+            else {
+              auto images = shape->get_images();
+              images[i - 1] = image;
+              shape->set_images(images);
             }
           }
         }
@@ -6066,8 +6140,8 @@ export namespace fan {
         if (contains_animations) {
           for (auto& item : in["animations"]) {
             uint32_t anim_id = item.get<uint32_t>();
+            auto existing_animation = gloco->get_sprite_sheet_animation(anim_id);
             shape->add_existing_animation(anim_id);
-            gloco->get_sprite_sheet_animation(anim_id).sprite_sheet = shape->get_image();
           }
         }
 

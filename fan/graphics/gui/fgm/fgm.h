@@ -916,13 +916,14 @@ struct fgm_t {
                 }
               }
               else if (anim.selected_frames.size()) {
-                shape.set_image(anim.sprite_sheet);
+                //shape.set_image(anim.sprite_sheet);
               }
 
               auto& current_shape_anim = shape.get_sprite_sheet_animation();
               if (animations_application.play_animation && (animations_application.toggle_play_animation || animation_changed) &&
                 current_shape_anim.selected_frames.size()) {
-                shape.set_sprite_sheet_frames(anim.hframes, anim.vframes);
+                shape.set_sprite_sheet_playback(anim);
+                //shape.set_sprite_sheet_frames(anim.hframes, anim.vframes);
               }
 
               if (animations_application.play_animation && (animations_application.toggle_play_animation || animation_changed) &&
@@ -1010,9 +1011,18 @@ struct fgm_t {
 
     fan::json ostr;
     ostr["version"] = current_version;
-    ostr["lighting.ambient"] = gloco->lighting.ambient;
-    ostr["clear_color"] = gloco->clear_color;
-    ostr["animations"] = gloco->sprite_sheet_serialize();
+    if (gloco->lighting.ambient != loco_t::lighting_t().ambient) {
+      ostr["lighting.ambient"] = gloco->lighting.ambient;
+    }
+    if (gloco->clear_color != fan::colors::black) {
+      ostr["clear_color"] = gloco->clear_color;
+    }
+    {
+      auto animations_json = gloco->sprite_sheet_serialize();
+      if (animations_json.empty() == false) {
+        ostr["animations"] = animations_json;
+      }
+    }
     fan::json shapes = fan::json::array();
     auto it = shape_list.GetNodeFirst();
     while (it != shape_list.dst) {
@@ -1021,35 +1031,34 @@ struct fgm_t {
 
       fan::json shape_json;
 
+      shapes_t::global_t defaults;
       switch (shape_instance->shape_type) {
       case loco_t::shape_type_t::sprite: {
         fan::graphics::shape_serialize(shape, &shape_json);
-        shape_json["id"] = shape_instance->id;
-        shape_json["group_id"] = shape_instance->group_id;
         break;
       }
       case loco_t::shape_type_t::unlit_sprite: {
         fan::graphics::shape_serialize(shape, &shape_json);
-        shape_json["id"] = shape_instance->id;
-        shape_json["group_id"] = shape_instance->group_id;
         break;
       }
       case loco_t::shape_type_t::rectangle: {
         fan::graphics::shape_serialize(shape, &shape_json);
-        shape_json["id"] = shape_instance->id;
-        shape_json["group_id"] = shape_instance->group_id;
         break;
       }
       case loco_t::shape_type_t::light: {
         fan::graphics::shape_serialize(shape, &shape_json);
-        shape_json["id"] = shape_instance->id;
-        shape_json["group_id"] = shape_instance->group_id;
         break;
       }
       default: {
         fan::print("unimplemented shape type");
         break;
       }
+      }
+      if (shape_instance->id != defaults.id) {
+        shape_json["id"] = shape_instance->id;
+      }
+      if (shape_instance->group_id != defaults.group_id) {
+        shape_json["group_id"] = shape_instance->group_id;
       }
       shapes.push_back(shape_json);
       it = it.Next(&shape_list);
@@ -1103,9 +1112,12 @@ struct fgm_t {
         loco_t::sprite_sheet_animation_t anim;
         anim.name = item.value("name", std::string{});
         anim.selected_frames = item.value("selected_frames", std::vector<int>{});
+        for (const auto& frame_json : item["images"]) {
+          loco_t::sprite_sheet_animation_t::image_t img;
+          img = frame_json;
+          anim.images.push_back(img);
+        }
         anim.fps = item.value("fps", 0.0f);
-        anim.hframes = item.value("hframes", 0);
-        anim.vframes = item.value("vframes", 0);
 
         loco_t::animation_nr_t id = item.value("id", uint32_t());
         gloco->all_animations[id] = anim;
@@ -1120,6 +1132,8 @@ struct fgm_t {
       shapes = "tiles";
     }
     while (iterator.iterate(json_in[shapes], &shape)) {
+      const auto& shape_json = *(iterator.data.it - 1);
+
       shape.set_camera(render_view.camera);
       shape.set_viewport(render_view.viewport);
       current_z = std::max(current_z, shape.get_position().z);
@@ -1133,11 +1147,6 @@ struct fgm_t {
           shape,
           false
         );
-        const auto& shape_json = *(iterator.data.it - 1);
-        node->id = shape_json["id"].get<std::string>();
-        if (shape_json.contains("group_id")) {
-          node->group_id = shape_json["group_id"].get<uint32_t>();
-        }
         load_tp(node);
         node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
         break;
@@ -1149,11 +1158,6 @@ struct fgm_t {
           shape,
           false
         );
-        const auto& shape_json = *(iterator.data.it - 1);
-        node->id = shape_json["id"].get<std::string>();
-        if (shape_json.contains("group_id")) {
-          node->group_id = shape_json["group_id"].get<uint32_t>();
-        }
         load_tp(node);
         node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
         break;
@@ -1165,9 +1169,6 @@ struct fgm_t {
           shape,
           false
         );
-        const auto& shape_json = *(iterator.data.it - 1);
-        node->id = shape_json["id"].get<std::string>();
-        node->group_id = shape_json["group_id"].get<uint32_t>();
         break;
       }
       case loco_t::shape_type_t::light: {
@@ -1184,17 +1185,18 @@ struct fgm_t {
           .color = shape.get_color(),
           .blending = true
         } });
-        const auto& shape_json = *(iterator.data.it - 1);
-        node->id = shape_json["id"].get<std::string>();
-        if (shape_json.contains("group_id")) {
-          node->group_id = shape_json["group_id"].get<uint32_t>();
-        }
         break;
       }
       default: {
         fan::print("unimplemented shape type");
         break;
       }
+      }
+      if (shape_json.contains("id")) {
+        node->id = shape_json["id"].get<std::string>();
+      }
+      if (shape_json.contains("group_id")) {
+        node->group_id = shape_json["group_id"].get<uint32_t>();
       }
     }
     ++current_z;

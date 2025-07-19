@@ -366,7 +366,10 @@ inline static loco_t::image_t get_image(loco_t::shape_t* shape) {
 }
 
 inline static void set_image(loco_t::shape_t* shape, loco_t::image_t image) {
-				 
+  if (shape->get_image() == image) {
+    return;
+  }
+
 	auto sti = gloco->shaper.ShapeList[*shape].sti;
 
 	// alloc can be avoided inside switch
