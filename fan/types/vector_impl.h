@@ -37,41 +37,6 @@ constexpr vec_t operator CONCAT(arithmetic,=)(T v0) \
 	make_for_all((*this)[i] CONCAT(arithmetic,=) v0); \
 }
 
-//#define make_operator_comparison(comp) \
-//template <typename T> \
-//requires (!std::is_arithmetic_v<T>) \
-//constexpr bool operator comp(const T& rhs) const { \
-//    return (*this <=> rhs) comp 0; \
-//}\
-//template <typename T> \
-//requires (std::is_arithmetic_v<T>) \
-//constexpr bool operator comp(const T& rhs) const { \
-//    return (*this <=> rhs) comp 0;\
-//}
-
-//#define make_operator_comparison(comp) \
-//template <typename T> \
-//requires (!std::is_arithmetic_v<T>) \
-//constexpr bool operator comp(const T& rhs) const { \
-//    for (access_type_t i = 0; i < std::min(size(), rhs.size()); ++i) { \
-//        if ((*this)[i] != rhs[i]) { \
-//            return (*this)[i] comp rhs[i]; \
-//        } \
-//    } \
-//    return size() comp rhs.size(); \
-//} \
-//template <typename T> \
-//requires (std::is_arithmetic_v<T>) \
-//constexpr bool operator comp(const T& rhs) const { \
-//    for (access_type_t i = 0; i < size(); ++i) { \
-//        if ((*this)[i] != rhs) { \
-//            return (*this)[i] comp rhs; \
-//        } \
-//    } \
-//    return false; \
-//}
-
-
 using value_type = value_type_t;
 
 static constexpr access_type_t size() { return vec_n; }
@@ -104,25 +69,6 @@ constexpr vec_t(Args&&...args) {
   template <typename T>
   constexpr vec_t(const vec_t<vec_n, T>& test0) { for (int i = 0; i < size(); ++i) operator[](i) = test0[i]; } 
 #endif
-
-//constexpr std::partial_ordering operator<=>(const auto& rhs) const {
-//  for (access_type_t i = 0; i < std::min(size(), rhs.size()); ++i) {
-//      if (auto cmp = (*this)[i] <=> rhs[i]; cmp != 0) {
-//        return cmp;
-//      }
-//  }
-//  return size() <=> rhs.size();
-//}
-//template <typename T>
-//requires std::is_arithmetic_v<T>
-//constexpr std::partial_ordering operator<=>(const T& rhs) const {
-//  for (access_type_t i = 0; i < size(); ++i) {
-//      if (auto cmp = (*this)[i] <=> (value_type)rhs; cmp != 0) {
-//        return cmp;
-//      }
-//  }
-//  return size() <=> size();
-//}
 
 #define make_operators(arithmetic) \
   make_operator_const(arithmetic); \
@@ -286,16 +232,6 @@ std::string to_string(int precision = 4) const {
   return out;
 }
 
-//std::string to_string(int precision = 4) const {
-//  std::string out("{");
-//  for (access_type_t i = 0; i < size() - 1; ++i) { out += std::to_string((*this)[i]) + ", "; }
-//  if constexpr (size()) {
-//    out += std::to_string((*this)[size() - 1]);
-//  }
-//  out += '}';
-//  return out;
-//}
-
 bool is_near(const vec_t& test0, value_type_t epsilon) const { 
   make_for_all_test1_noret(if (!fan::math::is_near((*this)[i], test0[i], epsilon)) return false;);
   return true;
@@ -311,7 +247,6 @@ value_type_t fan_coordinate(vec_n);
 #elif defined(fan_vector_array)
   value_type_t fan_coordinate(vec_n){};
 #endif
-
 
 #undef make_operator_comparison
 #undef make_operator_const

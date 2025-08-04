@@ -10,9 +10,8 @@ struct pile_t {
 
   void step() {
     //player updates
-    player.step();
     engine.camera_set_target(engine.orthographic_render_view.camera, player.player.get_position());
-    player.player.process_movement(fan::graphics::physics::character2d_t::movement_e::side_view);
+    player.step();
     
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
 
