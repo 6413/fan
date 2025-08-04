@@ -1,4 +1,4 @@
-#include <fan/time/timer.h>
+#include <fan/time/time.h>
 import fan;
 
 int main() {

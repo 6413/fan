@@ -20,7 +20,7 @@
 #include <fan/math/math.h>
 
 #include <fan/imgui/implot.h>
-#include <fan/time/timer.h>
+#include <fan/time/time.h>
 
 import fan;
 

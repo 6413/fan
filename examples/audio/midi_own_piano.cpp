@@ -27,7 +27,7 @@
 
 #include <fan/types/types.h>
 #include <fan/math/math.h>
-#include <fan/time/timer.h>
+#include <fan/time/time.h>
 #include <fan/imgui/implot.h>
 
 import fan;

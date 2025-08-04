@@ -11,31 +11,15 @@ struct pile_t {
   void step() {
     //player updates
     player.step();
-    // map renderer & camera update
-    f32_t screen_height = loco.window.get_size().y;
-    f32_t pixels_from_bottom = 400.0f;
-
-    fan::vec2 player_pos = player.player.get_position();
-    fan::vec2 camera_target;
-    camera_target.x = player_pos.x;
-    camera_target.y = player_pos.y/* - (screen_height / 2 - pixels_from_bottom) / (ic.zoom * 1.5))*/;
-
-    fan::vec2 src = loco.camera_get_position(loco.orthographic_render_view.camera);
-    loco.camera_set_position(
-      loco.orthographic_render_view.camera,
-      src + (camera_target - src) * loco.delta_time * 10
-    );
-    fan::vec2 position = player.player.get_position();
-    static f32_t z = 18;
-    player.player.set_position(fan::vec3(position, floor((position.y) / 64) + (0xFAAA - 2) / 2) + z);
+    engine.camera_set_target(engine.orthographic_render_view.camera, player.player.get_position());
     player.player.process_movement(fan::graphics::physics::character2d_t::movement_e::side_view);
     
-    fan::graphics::gui::set_viewport(loco.orthographic_render_view.viewport);
+    fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
 
     // physics step
-    loco.physics_context.step(loco.delta_time);
+    engine.physics_context.step(engine.delta_time);
   }
-  loco_t loco;
+  fan::graphics::engine_t engine;
   player_t player;
   fte_renderer_t renderer;
 
@@ -43,8 +27,8 @@ struct pile_t {
   uint16_t current_stage = 0;
 
   fan::graphics::interactive_camera_t ic{
-    loco.orthographic_render_view.camera,
-    loco.orthographic_render_view.viewport
+    engine.orthographic_render_view.camera,
+    engine.orthographic_render_view.viewport
   };
 }pile;
 
@@ -55,21 +39,23 @@ lstd_defstruct(example_stage_t)
 };
 
 pile_t::pile_t() {
+  engine.clear_color = 0;
+  engine.lighting.ambient = 1;
   fan::graphics::image_load_properties_t lp;
   lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_border;
   lp.min_filter = fan::graphics::image_filter::nearest;
   lp.mag_filter = fan::graphics::image_filter::nearest;
 
-  loco.texture_pack.open_compiled(current_path + "sample_texture_pack.ftp", lp);
+  engine.texture_pack.open_compiled(current_path + "sample_texture_pack.ftp", lp);
 
   renderer.open();
   
   player.player.set_physics_position(player.player.get_position());
 
   fan::vec2 dst = player.player.get_position();
-  fan::vec2 camera_offset = fan::vec2(0, -loco.window.get_size().y / 4);
-  loco.camera_set_position(
-    loco.orthographic_render_view.camera, 
+  fan::vec2 camera_offset = fan::vec2(0, -engine.window.get_size().y / 4);
+  engine.camera_set_position(
+    engine.orthographic_render_view.camera, 
     dst + camera_offset // move camera higher to display more area upwards
   );
 

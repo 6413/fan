@@ -260,9 +260,7 @@ struct global_loco_t {
   }
 };
 
-// might crash if pch or lib is built with extern/inline so if its different, 
-// it will crash in random places
-export inline global_loco_t gloco;
+export thread_local global_loco_t gloco;
 
 export namespace fan {
   namespace graphics {
@@ -344,22 +342,24 @@ namespace fan {
 //#include <fan/graphics/vulkan/ssbo.h>
 export struct loco_t {
 
-  bool fan__init_list = [] {
+  bool initialize_lists() {
     fan::graphics::get_camera_list = [](uint8_t* context) -> uint8_t* {
       auto ptr = OFFSETLESS(context, loco_t, context);
       return (uint8_t*)&ptr->camera_list;
-      };
+    };
     fan::graphics::get_shader_list = [](uint8_t* context) -> uint8_t* {
       return (uint8_t*)&OFFSETLESS(context, loco_t, context)->shader_list;
-      };
+    };
     fan::graphics::get_image_list = [](uint8_t* context) -> uint8_t* {
       return (uint8_t*)&OFFSETLESS(context, loco_t, context)->image_list;
-      };
+    };
     fan::graphics::get_viewport_list = [](uint8_t* context) -> uint8_t* {
       return (uint8_t*)&OFFSETLESS(context, loco_t, context)->viewport_list;
-      };
+    };
     return 0;
-  }();
+  }
+
+  bool fan__init_list = initialize_lists();
 
   using renderer_t = fan::window_t::renderer_t;
   uint8_t get_renderer() {
@@ -594,11 +594,24 @@ export struct loco_t {
     context_functions.camera_rotate(&context, nr, offset);
   }
 
+  void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10) {
+    f32_t screen_height = window.get_size().y;
+    f32_t pixels_from_bottom = 400.0f;
+
+    /* target - (screen_height / 2 - pixels_from_bottom) / (ic.zoom * 1.5))*/;
+
+    fan::vec2 src = camera_get_position(orthographic_render_view.camera);
+    camera_set_position(
+      orthographic_render_view.camera,
+      src + (target - src) * delta_time * move_speed
+    );
+  }
+
   fan::graphics::viewport_nr_t viewport_create() {
     return context_functions.viewport_create(&context);
   }
-  fan::graphics::viewport_nr_t viewport_create(const fan::vec2& viewport_position, const fan::vec2& viewport_size, const fan::vec2& window_size) {
-    return context_functions.viewport_create_params(&context, viewport_position, viewport_size, window_size);
+  fan::graphics::viewport_nr_t viewport_create(const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
+    return context_functions.viewport_create_params(&context, viewport_position, viewport_size, window.get_size());
   }
 
   fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr) {
@@ -1177,6 +1190,8 @@ export struct loco_t {
 
   void use() {
     gloco = this;
+    fan__init_list = initialize_lists();
+    window.make_context_current();
   }
 
   void camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction = 12) {
@@ -1646,6 +1661,11 @@ public:
 #endif
 
   void init_imgui() {
+    if (global_imgui_initialized) {
+      imgui_initialized = true;
+      return;
+    }
+
     ImGui::CreateContext();
     ImPlot::CreateContext();
     auto& input_map = ImPlot::GetInputMap();
@@ -1739,8 +1759,32 @@ public:
     io.FontDefault = fonts[9];
 
     input_action.add(fan::key_escape, "open_settings");
+    input_action.add(fan::key_a, "move_left");
+    input_action.add(fan::key_d, "move_right");
+    input_action.add(fan::key_w, "move_forward");
+    input_action.add(fan::key_s, "move_back");
+    global_imgui_initialized = true;
+    imgui_initialized = true;
   }
   void destroy_imgui() {
+    if (!imgui_initialized || !global_imgui_initialized) {
+      return;
+    }
+
+    if (reload_renderer_to != (decltype(reload_renderer_to))-1) {
+      if (window.renderer == renderer_t::opengl) {
+        ImGui_ImplOpenGL3_Shutdown();
+      }
+#if defined(fan_vulkan)
+      else if (window.renderer == renderer_t::vulkan) {
+        vkDeviceWaitIdle(context.vk.device);
+        ImGui_ImplVulkan_Shutdown();
+      }
+#endif
+      imgui_initialized = false;
+      return;
+    }
+
     if (window.renderer == renderer_t::opengl) {
       ImGui_ImplOpenGL3_Shutdown();
     }
@@ -1759,6 +1803,8 @@ public:
     }
 #endif
 
+    global_imgui_initialized = false;
+    imgui_initialized = false;
   }
   bool enable_overlay = true;
 #endif
@@ -1810,7 +1856,7 @@ public:
     set_vsync(false); // using libuv
     //fan::print("less pain", this, (void*)&lighting, (void*)((uint8_t*)&lighting - (uint8_t*)this), sizeof(*this), lighting.ambient);
     if (window.renderer == renderer_t::opengl) {
-      glfwMakeContextCurrent(window);
+      window.make_context_current();
 
 #if fan_debug >= fan_debug_high
       get_context().gl.set_error_callback();
@@ -1979,6 +2025,10 @@ public:
     fan::vec2 window_position = window.get_position();
     uint64_t flags = window.flags;
 
+#if defined(fan_gui)
+    bool was_imgui_init = imgui_initialized;
+#endif
+
     {// close
 #if defined(fan_vulkan)
       if (window.renderer == loco_t::renderer_t::vulkan) {
@@ -2006,11 +2056,25 @@ public:
           glDeleteBuffers(1, &gl.fb_vbo);
           context.gl.internal_close();
         }
+
 #if defined(fan_gui)
-      destroy_imgui();
+      if (imgui_initialized) {
+        if (window.renderer == renderer_t::opengl) {
+          ImGui_ImplOpenGL3_Shutdown();
+        }
+#if defined(fan_vulkan)
+        else if (window.renderer == renderer_t::vulkan) {
+          vkDeviceWaitIdle(context.vk.device);
+          ImGui_ImplVulkan_Shutdown();
+        }
 #endif
+        imgui_initialized = false;
+      }
+#endif
+
       window.close();
     }
+
     {// reopen
       window.renderer = reload_renderer_to; // i dont like this {window.renderer = ...}
       if (window.renderer == renderer_t::opengl) {
@@ -2024,6 +2088,7 @@ public:
       window.set_position(window_position);
       glfwShowWindow(window);
       window.flags = flags;
+
 #if defined(fan_vulkan)
       if (window.renderer == renderer_t::vulkan) {
         new (&context.vk) fan::vulkan::context_t();
@@ -2032,6 +2097,7 @@ public:
       }
 #endif
     }
+
     {// reload
       {
         {
@@ -2129,6 +2195,7 @@ public:
         lp.visual_output = fan::graphics::image_sampler_address_mode::repeat;
         image_reload(default_texture, info, lp);
       }
+
       shape_functions.clear();
       if (window.renderer == renderer_t::opengl) {
         gl.shapes_open();
@@ -2139,9 +2206,37 @@ public:
         vk.shapes_open();
       }
 #endif
+
 #if defined(fan_gui)
-      init_imgui();
-      settings_menu.set_settings_theme();
+      if (was_imgui_init && global_imgui_initialized) {
+        if (window.renderer == renderer_t::opengl) {
+          glfwMakeContextCurrent(window);
+          ImGui_ImplGlfw_InitForOpenGL(window, true);
+          const char* glsl_version = "#version 120";
+          ImGui_ImplOpenGL3_Init(glsl_version);
+        }
+#if defined(fan_vulkan)
+        else if (window.renderer == renderer_t::vulkan) {
+          ImGui_ImplGlfw_InitForVulkan(window, true);
+          ImGui_ImplVulkan_InitInfo init_info = {};
+          init_info.Instance = context.vk.instance;
+          init_info.PhysicalDevice = context.vk.physical_device;
+          init_info.Device = context.vk.device;
+          init_info.QueueFamily = context.vk.queue_family;
+          init_info.Queue = context.vk.graphics_queue;
+          init_info.DescriptorPool = context.vk.descriptor_pool.m_descriptor_pool;
+          init_info.RenderPass = context.vk.MainWindowData.RenderPass;
+          init_info.Subpass = 0;
+          init_info.MinImageCount = context.vk.MinImageCount;
+          init_info.ImageCount = context.vk.MainWindowData.ImageCount;
+          init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+          init_info.CheckVkResultFn = check_vk_result;
+          ImGui_ImplVulkan_Init(&init_info);
+        }
+#endif
+        imgui_initialized = true;
+        settings_menu.set_settings_theme();
+      }
 #endif
 
       shaper._BlockListCapacityChange(shape_type_t::rectangle, 0, 1);
@@ -2440,10 +2535,9 @@ public:
     }
     return glfwWindowShouldClose(window);
   }
-  void should_close(int flag);
 
   bool process_loop(const std::function<void()>& lambda = [] {}) {
-
+    
 #if defined(fan_gui)
     if (reload_renderer_to != (decltype(reload_renderer_to))-1) {
       switch_renderer(reload_renderer_to);
@@ -2571,6 +2665,12 @@ public:
   //  }
   //};
 
+  fan::vec2 get_input_vector() {
+    return fan::vec2(
+      (input_action.is_action_down("move_right") - input_action.is_action_down("move_left")),
+      (input_action.is_action_down("move_back") - input_action.is_action_down("move_forward"))
+    );
+  }
 
   //
   fan::vec2 transform_matrix(const fan::vec2& position) {
@@ -2670,6 +2770,22 @@ public:
   struct render_view_t {
     loco_t::camera_t camera;
     loco_t::viewport_t viewport;
+
+    void create() {
+      camera = gloco->camera_create();
+      viewport = gloco->viewport_create();
+    }
+    void remove() {
+      gloco->camera_erase(camera);
+      gloco->viewport_erase(viewport);
+    }
+    void set(
+      const fan::vec2& ortho_x, const fan::vec2& ortho_y,
+      const fan::vec2& viewport_position, const fan::vec2& viewport_size
+    ) {
+      gloco->camera_set_ortho(camera, ortho_x, ortho_y);
+      gloco->viewport_set(viewport, viewport_position, viewport_size);
+    }
   };
 
   struct input_action_t {
@@ -3352,6 +3468,7 @@ public:
       }
       return *this;
     }
+
 #if defined(fan_json)
     operator fan::json();
     operator std::string();
@@ -3508,6 +3625,11 @@ public:
 
     void set_viewport(loco_t::viewport_t viewport) {
       gloco->shape_functions[get_shape_type()].set_viewport(this, viewport);
+    }
+
+    void set_render_view(const loco_t::render_view_t& render_view) {
+      set_camera(render_view.camera);
+      set_viewport(render_view.viewport);
     }
 
     fan::vec2 get_grid_size() {
@@ -3756,6 +3878,15 @@ void set_sprite_sheet_next_frame(int advance = 1) {
       else {
         fan::throw_error("Unimplemented for this shape");
       }
+    }
+    bool has_animation() {
+      if (get_shape_type() != loco_t::shape_type_t::sprite) {
+        return false;
+      }
+
+      auto& ri = *(loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
+      loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+      return sheet_data.update_timer.started();
     }
     static void sprite_sheet_frame_update_cb(loco_t* loco, shape_t* shape) {
       auto& ri = *(loco_t::sprite_t::ri_t*)shape->GetData(gloco->shaper);
@@ -5452,6 +5583,11 @@ void set_sprite_sheet_next_frame(int advance = 1) {
     fan::vec3 ambient = fan::vec3(1, 1, 1);
   }lighting;
 
+  void set_current_directory(const std::string& new_directory) {
+    current_directory = new_directory;
+  }
+  std::string current_directory = "./";
+
   //gui
 #if defined(fan_gui)
   fan::console_t console;
@@ -5463,6 +5599,9 @@ void set_sprite_sheet_next_frame(int advance = 1) {
 
   ImFont* fonts[std::size(font_sizes)]{};
   ImFont* fonts_bold[std::size(font_sizes)]{};
+
+  bool imgui_initialized = false;
+  static inline bool global_imgui_initialized = false;
 
 #include <fan/graphics/gui/settings_menu.h>
   settings_menu_t settings_menu;
@@ -6698,6 +6837,34 @@ export namespace fan {
         return 1;
       }
     };
+
+
+    loco_t::shape_t extract_single_shape(const fan::json& json_data) {
+      fan::graphics::shape_deserialize_t iterator;
+      loco_t::shape_t shape;
+      iterator.iterate(json_data["shapes"], &shape);
+      return shape;
+    }
+    fan::json read_json(const std::string& path) {
+      std::string json_bytes;
+      fan::io::file::read(path, &json_bytes);
+      return fan::json::parse(json_bytes);
+    }
+    struct animation_t {
+      loco_t::animation_nr_t nr;
+    };
+    // for dme type
+    void map_animations(auto& anims) {
+      for (auto [i, animation] : fan::enumerate(gloco->all_animations)) {
+        for (int j = 0; j < anims.size(); ++j) {
+          auto& anim = *anims.NA(j);
+          if (animation.second.name == (const char*)anim) {
+            anim = animation_t{ .nr = animation.first };
+            break;
+          }
+        }
+      }
+    }
   }
 }
 

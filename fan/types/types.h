@@ -474,6 +474,13 @@ static uint8_t __clz(uintptr_t p0) {
 	return var__; \
 }()
 
+// gets the current file's directory path
+#define fan_get_current_directory() [] { \
+  std::string dir_path = __FILE__; \
+  return dir_path.substr(0, dir_path.rfind((char)std::filesystem::path::preferred_separator)) +  \
+    (char)std::filesystem::path::preferred_separator; \
+  }()
+
 #ifndef ENDIAN
 	#if defined(__BYTE_ORDER)
 		#if __BYTE_ORDER == __BIG_ENDIAN
