@@ -3472,6 +3472,8 @@ public:
 #if defined(fan_json)
     operator fan::json();
     operator std::string();
+    shape_t(const fan::json& json);
+    shape_t(const std::string&); // assume json string
     shape_t& operator=(const fan::json& json);
     shape_t& operator=(const std::string&); // assume json string
 #endif
@@ -3854,7 +3856,8 @@ void set_sprite_sheet_next_frame(int advance = 1) {
       frame_x * tc_size.x,
       frame_y * tc_size.y
     ));
-    set_tc_size(tc_size);
+    fan::vec2 sign = get_tc_size().sign();
+    set_tc_size(tc_size * sign);
   }
   else {
     fan::throw_error("Unimplemented for this shape");
@@ -6880,6 +6883,12 @@ loco_t::shape_t::operator std::string() {
   fan::json out;
   fan::graphics::shape_to_json(*this, &out);
   return out.dump(2);
+}
+loco_t::shape_t::shape_t(const fan::json& json) {
+  fan::graphics::json_to_shape(json, this);
+}
+loco_t::shape_t::shape_t(const std::string& json_string) : shape_t() {
+  *this = fan::json::parse(json_string);
 }
 loco_t::shape_t& loco_t::shape_t::operator=(const fan::json& json) {
   fan::graphics::json_to_shape(json, this);

@@ -255,7 +255,11 @@ export namespace fan {
         base_shape_t() = default;
         
         void set_shape(loco_t::shape_t&& shape) {
-          fan::vec3 prev_pos = get_position();
+          bool is_valid = iic() == false;
+          fan::vec3 prev_pos;
+          if (is_valid) {
+            prev_pos = get_position();
+          }
           if (physics_update_nr.iic() == false) {
             gloco->remove_physics_update(physics_update_nr);
           }
@@ -266,7 +270,9 @@ export namespace fan {
             .body_id = body_id_data,
             .cb = (void*)shape_physics_update
           });
-          set_position(prev_pos);
+          if (is_valid) {
+            set_position(prev_pos);
+          }
         }
         base_shape_t(loco_t::shape_t&& shape, fan::physics::entity_t&& entity, const mass_data_t& mass_data) :
           loco_t::shape_t(std::move(shape)),

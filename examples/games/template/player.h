@@ -13,6 +13,7 @@ struct player_t {
   }
 
   void step() {
+    player.process_movement(fan::graphics::physics::character2d_t::movement_e::side_view);
     light.set_position(fan::vec2(player.get_position()));
   }
 
