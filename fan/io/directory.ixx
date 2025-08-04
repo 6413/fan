@@ -13,6 +13,11 @@ import fan.print;
 
 export namespace fan {
   namespace io {
+    std::string file_to_directory(const std::string& file) {
+      return file.substr(0, file.rfind((char)std::filesystem::path::preferred_separator)) +
+        (char)std::filesystem::path::preferred_separator;
+    }
+
     fan_module_api bool directory_exists(const std::string& directory) {
       return std::filesystem::exists(directory.c_str());
     }

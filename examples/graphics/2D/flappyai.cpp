@@ -1,4 +1,4 @@
-#include <fan/time/timer.h>
+#include <fan/time/time.h>
 
 #define _INCLUDE_TOKEN(p0, p1) <p0/p1>
 #include <WITCH/WITCH.h>

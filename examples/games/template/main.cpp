@@ -18,13 +18,7 @@ std::string current_path = [] {
 #include "pile.h"
 
 int main() {
-  pile.loco.clear_color = 0;
-  pile.loco.lighting.ambient = 1;
-  pile.player.player.impulse = 3;
-  pile.player.player.force = 15;
-  pile.player.player.max_speed = 270;
-
-  pile.loco.loop([&] {
+  pile.engine.loop([&] {
 
   });
 }

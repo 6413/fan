@@ -1,24 +1,19 @@
 struct player_t {
-  fan::vec2 velocity = 0;
-  std::array<loco_t::image_t, 4> img_idle;
-  std::array<loco_t::image_t, std::size(fan::movement_e::_strings)> img_movement;
 
   player_t() {
-    img_movement.fill(gloco->default_texture);
-
     light = fan::graphics::light_t{ {
       .position = player.get_position(),
       .size = 200,
       .color = fan::colors::white,
       .flags = 3
     } };
+    player.impulse = 3;
+    player.force = 15;
+    player.max_speed = 270;
   }
 
   void step() {
     light.set_position(fan::vec2(player.get_position()));
-    fan::vec2 dir = animator.prev_dir;
-    uint32_t flag = 0;
-    light.set_flags(flag);
   }
 
   fan::graphics::physics::character2d_t player{ fan::graphics::physics::capsule_t{{
@@ -34,8 +29,7 @@ struct player_t {
     .shape_properties{
       .friction = 0.6f, 
       .density = 0.1f, 
-      .fixed_rotation = true,
-      .collision_multiplier = fan::vec2(1, 1)
+      .fixed_rotation = true
     },
   }}};
   loco_t::shape_t light;

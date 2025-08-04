@@ -1,5 +1,5 @@
 module;
-// extension to loco.h
+// extension to loco.ixx
 
 
 #if defined(fan_gui)

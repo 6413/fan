@@ -1,6 +1,6 @@
 // old, newer lib makes code much smaller
 #include <fan/pch.h>
-#include <fan/time/timer.h>
+#include <fan/time/time.h>
 
 int main() {
   loco_t loco;

@@ -208,6 +208,7 @@ export namespace fan {
           ));
         }
       }
+#if defined(fan_gui)
       void draw_cached_images() {
         ImGui::Begin("test");
         float cursor_pos_x = 64 + ImGui::GetStyle().ItemSpacing.x;
@@ -227,6 +228,7 @@ export namespace fan {
         }
         ImGui::End();
       }
+#endif
 
       //temp
       // user transform

@@ -206,7 +206,7 @@ namespace fan {
       }
 
 			bool started() const {
-				return m_time;
+				return m_time != (uint64_t)-1;
 			}
 
 			// returns time in nanoseconds

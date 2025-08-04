@@ -10,7 +10,7 @@ void open(void* sod) {
   // Generate collisions for every tile in the map
   for (auto& tile : pile.renderer.map_list[main_map_id].tiles) {
     auto& shape = tile.second;
-    pile.loco.physics_context.create_box(shape.get_position(), shape.get_size(), 0, fan::physics::body_type_e::static_body, {});
+    pile.engine.physics_context.create_box(shape.get_position(), shape.get_size(), 0, fan::physics::body_type_e::static_body, {});
   }
 }
 
@@ -22,8 +22,6 @@ void update() {
   pile.renderer.update(main_map_id, pile.player.player.get_position());
   pile.step();
 }
-
-fan::physics::body_id_t player_sensor_door;
 
 fte_loader_t::id_t main_map_id;
 fte_loader_t::compiled_map_t main_compiled_map;

@@ -786,9 +786,13 @@ export namespace fan {
       }
       co_return;
     }
+    fan::event::task_t tcp_server_listen(listen_address_t address, tcp_t::listen_cb_t lambda) {
+      tcp_t tcp;
+      co_await tcp.listen(address, lambda, true);
+    }
     fan::event::task_t tcp_listen(listen_address_t address, tcp_t::listen_cb_t lambda) {
       tcp_t tcp;
-      co_await tcp.listen(address, lambda);
+      co_await tcp.listen(address, lambda, false);
     }
     // -------------------------------TCP-------------------------------
 
