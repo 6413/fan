@@ -843,6 +843,20 @@ export namespace fan {
           physics::base_shape_t::set_shape(std::move(shape));
         }
 
+        void update_animation() {
+          // update player animation based on velocity
+          f32_t animation_fps = (get_linear_velocity().x / max_speed) * 30.f;
+          if (has_animation()) {
+            set_sprite_sheet_fps(std::abs(animation_fps));
+          }
+
+          // set uv sign based on movement
+          if (previous_movement_sign.x) {
+            fan::vec2 uvp = get_tc_position();
+            fan::vec2 uvs = get_tc_size();
+            set_tc_size(fan::vec2(std::abs(uvs.x) * previous_movement_sign.x, uvs.y));
+          }
+        }
 
         static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping) {
           for (int i = 0; i < 2; ++i) {
