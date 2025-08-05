@@ -14,6 +14,7 @@ module;
 #include <array>
 #include <cassert>
 #include <string>
+#include <functional>
 
 #endif
 
