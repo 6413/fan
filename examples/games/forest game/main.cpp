@@ -166,8 +166,9 @@ pile_t::pile_t() {
 }
 
 player_t::player_t() {
+  fan::graphics::image_load_properties_t lp;
   for (std::size_t i = 0; i < std::size(img_idle); ++i) {
-    img_idle[i] = pile.loco.image_load(asset_path + "npc/static_" + fan::movement_e::_strings[i] + ".png");
+    img_idle[i] = pile.loco.image_load(asset_path + "npc/static_" + fan::movement_e::_strings[i] + ".png", lp);
   }
   static auto load_movement_images = [](std::array<loco_t::image_t, 4>& images, const std::string& direction) {
     const std::array<std::string, 4> pose_variants = {
@@ -177,8 +178,11 @@ player_t::player_t() {
         "static_" + direction + ".png"
     };
 
+    fan::graphics::image_load_properties_t lp;
+    lp.min_filter = fan::graphics::image_filter::nearest;
+    lp.mag_filter = fan::graphics::image_filter::nearest;
     for (const auto& [i, pose] : pose_variants | fan::enumerate) {
-      images[i] = (pile.loco.image_load(asset_path + "npc/" + pose));
+      images[i] = (pile.loco.image_load(asset_path + "npc/" + pose, lp));
     }
   };
 

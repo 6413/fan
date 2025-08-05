@@ -1,4 +1,4 @@
-#include <fan/pch.h>
+import fan;
 
 struct pile_t {
   loco_t loco;
@@ -40,14 +40,14 @@ int main() {
   lp.visual_output = loco_t::image_sampler_address_mode::repeat;
   auto character_images = fan::graphics::physics::human_t::load_character_images("characters/oldman", lp);
 
-  fan::graphics::physics::human_t human({ 800.f, 900.0f }, 0.5f);
+  fan::graphics::physics::human_t human({ 500.f, 500.0f }, 0.5f);
 
 
   fan::graphics::physics::character2d_t character;
   character.set_body(human.bones[fan::graphics::physics::bone_e::torso].visual);
-  character.force = 1000.f;
+  character.force = 100.f;
   character.impulse = 100.f;
-  character.max_speed = 10000.f;
+  character.max_speed = 1000.f;
   //character.max_speed = character.max_speed / (character.max_speed  / human.scale);
   character.feet[0] = human.bones[fan::graphics::physics::bone_e::lower_left_leg].visual;
   character.feet[1] = human.bones[fan::graphics::physics::bone_e::lower_right_leg].visual;

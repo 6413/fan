@@ -633,6 +633,9 @@ export namespace fan {
       client_list_t client_list;
 
       nr_t add_client();
+      void remove_client(nr_t nr) {
+        client_list.unlrec(nr);
+      }
 
       tcp_t& get_client(nr_t id) {
         return *client_list[id];
@@ -703,7 +706,9 @@ export namespace fan {
       reader_t& get_reader() const {
         if (!persistent_reader) {
           persistent_reader = std::make_unique<reader_t>(*this);
-          persistent_reader->start();
+          if (int err = persistent_reader->start(); err != 0) {
+            fan::throw_error("start failed with:" + fan::event::strerror(err));
+          }
         }
         return *persistent_reader;
       }
@@ -775,14 +780,21 @@ export namespace fan {
       
       listener_t listener(*this, get_client_handler().amount_of_connections);
       while (true) {
-        auto client_id = get_client_handler().add_client();
-        tcp_t& client = get_client_handler()[client_id];
         if (co_await listener != 0) {
           continue;
         }
+        auto client_id = get_client_handler().add_client();
+        tcp_t& client = get_client_handler()[client_id];
         if (accept(client) == 0) {
-          client.task = [client_id] (const auto& lambda) -> fan::event::task_t { co_await lambda(get_client_handler()[client_id]); }(lambda);
+          try {
+            client.task = [client_id] (const auto& lambda) -> fan::event::task_t { co_await lambda(get_client_handler()[client_id]); }(lambda);
+          }
+          catch (const fan::exception_t& e) {
+            fan::print("Client NRI:", client_id.NRI, "disconnected with error:", e.reason);
+          }
         }
+        fan::print("Removing client NRI:", client_id.NRI, "from client list");
+        get_client_handler().remove_client(client_id);
       }
       co_return;
     }
@@ -1123,7 +1135,9 @@ export namespace fan {
 
       void await_suspend(std::coroutine_handle<> h) {
         co_handle = h;
-        start();
+        if (int err = start(); err != 0) {
+          fan::throw_error("start failed with:" + fan::event::strerror(err));
+        }
       }
 
       udp_datagram_t await_resume() {
@@ -1528,6 +1542,7 @@ export namespace fan {
         server_address = server_addr;
       }
     };
+    /*
     class stream_cipher_t {
     private:
       unsigned char key[32];  // 256-bit key
@@ -1735,7 +1750,7 @@ export namespace fan {
     stream_cipher_t& get_stream_cipher() {
       static stream_cipher_t cipher;
       return cipher;
-    }
+    }*/
   }
 }
 

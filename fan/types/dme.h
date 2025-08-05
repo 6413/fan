@@ -3,6 +3,7 @@
 #if !defined(__dme)
 
 #include <cstdint>
+#include <type_traits>
 
 
 #pragma pack(push, 1)

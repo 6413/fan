@@ -47,6 +47,10 @@ int main() {
     .shape_properties{},
   } };
 
+  pile.player.impulse = 100;
+  pile.player.force = 15;
+  pile.player.max_speed = 270;
+
   pile.loco.loop([&] {
 
     pile.loco.physics_context.step(pile.loco.delta_time);

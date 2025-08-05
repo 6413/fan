@@ -3643,7 +3643,10 @@ public:
     }
 
     loco_t::image_t get_image() {
-      return gloco->shape_functions[get_shape_type()].get_image(this);
+      if (gloco->shape_functions[get_shape_type()].get_image) {
+        return gloco->shape_functions[get_shape_type()].get_image(this);
+      }
+      return gloco->default_texture;
     }
 
     void set_image(loco_t::image_t image) {
