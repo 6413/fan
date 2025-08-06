@@ -537,7 +537,7 @@ fan::graphics::image_nr_t create_transparent_texture(fan::vulkan::context_t& con
   return nr;
 }
 
-fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const std::string& path, const fan::vulkan::context_t::image_load_properties_t& p) {
+fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const std::string& path, const fan::vulkan::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
 
 #if fan_assert_if_same_path_loaded_multiple_times
 
@@ -552,7 +552,7 @@ fan::graphics::image_nr_t image_load(fan::vulkan::context_t& context, const std:
 #endif
 
   fan::image::info_t image_info;
-  if (fan::image::load(path, &image_info)) {
+  if (fan::image::load(path, &image_info, callers_path)) {
     return create_missing_texture(context);
   }
   image_nr_t nr = image_load(context, image_info, p);
@@ -619,9 +619,9 @@ void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const fan::ima
   image_reload(context, nr, image_info, fan::vulkan::context_t::image_load_properties_t());
 }
 
-void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const std::string& path, const fan::vulkan::context_t::image_load_properties_t& p) {
+void image_reload(fan::vulkan::context_t& context, image_nr_t nr, const std::string& path, const fan::vulkan::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
   fan::image::info_t image_info;
-  if (fan::image::load(path, &image_info)) {
+  if (fan::image::load(path, &image_info, callers_path)) {
     image_info.data = (void*)fan::image::missing_texture_pixels;
     image_info.size = 2;
     image_info.channels = 4;

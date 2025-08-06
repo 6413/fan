@@ -1,5 +1,5 @@
 void open(void* sod) {
-  main_compiled_map = pile.renderer.compile(current_path + "sample_level.fte");
+  main_compiled_map = pile.renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
   //render_size /= 0.01;
   fte_loader_t::properties_t p;

@@ -895,7 +895,7 @@ export namespace fan::io {
             uv_dirent_t ent;
             while (uv_fs_scandir_next(req, &ent) != UV_EOF) {
               std::filesystem::path full_path = std::filesystem::path(state->base_path) / ent.name;
-              state->entries.emplace_back(std::filesystem::absolute(full_path));
+              state->entries.emplace_back(full_path);
             }
 
             if (state->sort_alphabetically) {

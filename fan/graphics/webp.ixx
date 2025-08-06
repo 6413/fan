@@ -32,9 +32,9 @@ export namespace fan {
       uint8_t type = 0; // webp, stb
     };
 
-    fan_module_api bool get_image_size(const std::string& file, fan::vec2ui* size) {
+    fan_module_api bool get_image_size(const std::string& file, fan::vec2ui* size, const std::source_location& callers_path = std::source_location::current()) {
       std::string data;
-      fan::io::file::read(file, &data);
+      fan::io::file::read(fan::io::file::find_relative_path(file, callers_path), &data);
       return WebPGetInfo((uint8_t*)data.data(), data.size(), (int*)&size->x, (int*)&size->y) != 1;
     }
 
@@ -45,10 +45,10 @@ export namespace fan {
       return image_info->data == 0;
     }
 
-    fan_module_api bool load(const std::string& file, info_t* image_info) {
+    fan_module_api bool load(const std::string& file, info_t* image_info, const std::source_location& callers_path = std::source_location::current()) {
     
       std::string data;
-      fan::io::file::read(file, &data);
+      fan::io::file::read(fan::io::file::find_relative_path(file, callers_path), &data);
 
       bool failed = decode((const uint8_t*)data.data(), data.size(), image_info);
       if (failed) {
@@ -69,10 +69,10 @@ export namespace fan {
       WebPFree(ptr);
     }
 
-    fan_module_api bool validate(const std::string& file_path) {
+    fan_module_api bool validate(const std::string& file_path, const std::source_location& callers_path = std::source_location::current()) {
       std::string data;
       static constexpr uint32_t webp_header_size = 32;
-      if (fan::io::file::read(file_path, &data, webp_header_size)) {
+      if (fan::io::file::read(fan::io::file::find_relative_path(file_path, callers_path), &data, webp_header_size)) {
         return false;
       }
       int width, height;

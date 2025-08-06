@@ -39,7 +39,7 @@ struct texturepack_t {
     return image_list[unique_map[unique].major];
   }
 
-  void open_compiled(const std::string& filename) {
+  void open_compiled(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
     fan::graphics::image_load_properties_t lp;
     lp.visual_output =fan::graphics::image_sampler_address_mode::clamp_to_edge;
     lp.min_filter = fan::graphics::image_filter::nearest;
@@ -48,9 +48,9 @@ struct texturepack_t {
     lp.min_filter = (decltype(lp.min_filter))min_filter;
     lp.mag_filter = (decltype(lp.mag_filter))mag_filter;
     */
-    open_compiled(filename, lp);
+    open_compiled(filename, lp, callers_path);
   }
-  void open_compiled(const std::string& filename, fan::graphics::image_load_properties_t lp) {
+  void open_compiled(const std::string& filename, fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current()) {
     texture_major_list.clear();
     image_list.clear();
     unique_map.Clear();
@@ -58,7 +58,7 @@ struct texturepack_t {
     file_path = filename;
 
     std::string in;
-    fan::io::file::read(filename, &in);
+    fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &in);
 
     std::size_t offset = 0;
     std::size_t pack_list_size = fan::string_read_data<std::size_t>(in, offset);

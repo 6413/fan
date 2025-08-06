@@ -1715,12 +1715,12 @@ export namespace fan {
           }
         }
         // creates drag and drop target for previous item (size of it will be the size of the item)
-        void receive_drag_drop_target(const std::string& id, auto receive_func, bool use_absolute_path = true) {
+        void receive_drag_drop_target(const std::string& id, auto receive_func) {
           if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(id.c_str())) {
               const wchar_t* path = (const wchar_t*)payload->Data;
               std::wstring wstr = path;
-              receive_func(use_absolute_path ? std::filesystem::absolute(path).string() : std::string(wstr.begin(), wstr.end()));
+              receive_func(std::string(wstr.begin(), wstr.end()));
             }
             ImGui::EndDragDropTarget();
           }
@@ -1846,7 +1846,6 @@ export namespace fan {
 
         content_browser_t() {
           search_buffer.resize(32);
-          asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
           current_directory = std::filesystem::path(asset_path);
           update_directory_cache();
         }
@@ -1858,7 +1857,6 @@ export namespace fan {
         }
         void init(const std::wstring& path) {
           search_buffer.resize(32);
-          asset_path = std::filesystem::absolute(std::filesystem::path(asset_path)).wstring();
           current_directory = asset_path / std::filesystem::path(path);
           update_directory_cache();
         }
@@ -1889,7 +1887,7 @@ export namespace fan {
               file_info.some_path = entry.path().filename();//?
               //fan::print(get_file_extension(path.path().string()));
               if (fan::image::valid(entry.path().string())) {
-                file_info.preview_image = gloco->image_load(std::filesystem::absolute(entry.path()).string());
+                file_info.preview_image = gloco->image_load(entry.path().string());
               }
               directory_cache.push_back(file_info);
               co_return;
@@ -2126,7 +2124,7 @@ export namespace fan {
           if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
               const wchar_t* path = (const wchar_t*)payload->Data;
-              receive_func(std::filesystem::absolute(std::filesystem::path(asset_path) / path));
+              receive_func(std::filesystem::path(asset_path) / path);
             }
             ImGui::EndDragDropTarget();
           }

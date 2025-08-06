@@ -1906,7 +1906,7 @@ shape data{
   ...
 }
 */
-  void fin(const std::string& filename) {
+  void fin(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
 #if defined(fan_json)
     if (gloco->texture_pack.size() == 0) {
       fan::print("open valid texturepack");
@@ -1915,7 +1915,7 @@ shape data{
     invalidate_selection();
     previous_file_name = filename;
     std::string out;
-    fan::io::file::read(filename, &out);
+    fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &out);
     fan::json json = fan::json::parse(out);
     if (json["version"] != 1) {
       fan::throw_error("version mismatch");

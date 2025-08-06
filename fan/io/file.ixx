@@ -6,6 +6,14 @@ module;
 #include <string>
 #include <sstream>
 #include <vector>
+#include <source_location>
+
+#if defined(fan_platform_windows)
+  #include <Windows.h>
+#elif defined(fan_platform_unix)
+  #include <unistd.h>
+  #include <limits.h>
+#endif
 
 export module fan.io.file;
 
@@ -207,6 +215,82 @@ export namespace fan {
         return write(path, data, mode);
       }
 
+      std::string get_exe_path() {
+#if defined(fan_platform_windows)
+        char buffer[MAX_PATH];
+        GetModuleFileNameA(NULL, buffer, MAX_PATH);
+        return std::filesystem::path(buffer).parent_path().string() + "/";
+#elif defined(fan_platform_unix)
+        char buffer[PATH_MAX];
+        ssize_t count = readlink("/proc/self/exe", buffer, PATH_MAX);
+        return std::filesystem::path(std::string(buffer, count)).parent_path().string() + "/";
+        //#elif defined(__APPLE__)
+        //      char buffer[PATH_MAX];
+        //      uint32_t size = sizeof(buffer);
+        //      _NSGetExecutablePath(buffer, &size);
+        //      return std::filesystem::path(buffer).parent_path().string() + "/";
+#endif
+        fan::throw_error("not implemented");
+      }
+
+      // searches primarily from working directory and 
+      // returns relative path, 
+      // then checks exe's directory, 
+      // then all the way recursively from path x till exe's path
+      // else returns empty path
+      std::filesystem::path find_relative_path(const std::string& file_path, const std::source_location& location = std::source_location::current()) {
+        namespace fs = std::filesystem;
+        if (file_path.empty()) {
+          return {};
+        }
+
+        std::error_code ec;
+        fs::path current_dir = fs::current_path(ec);
+        if (ec) return {};
+
+        if (fs::is_regular_file(file_path, ec) && !ec) {
+          return file_path;
+        }
+        fs::path candidate = fs::path(location.file_name()).parent_path() / file_path;
+        if (fs::is_regular_file(candidate, ec) && !ec) {
+          fs::path relative = fs::relative(candidate, current_dir, ec);
+          return ec ? candidate : relative;
+        }
+
+        candidate = current_dir / file_path;
+        if (fs::is_regular_file(candidate, ec) && !ec) {
+          return file_path;
+        }
+
+        fs::path exe_dir = get_exe_path();
+        if (!exe_dir.empty() && exe_dir != current_dir) {
+          candidate = exe_dir / file_path;
+          if (fs::is_regular_file(candidate, ec) && !ec) {
+            fs::path relative = fs::relative(candidate, current_dir, ec);
+            return ec ? candidate : relative;
+          }
+        }
+
+        if (!exe_dir.empty()) {
+          fs::path search_path = current_dir;
+
+          while (search_path.has_parent_path() && search_path != search_path.parent_path()) {
+            search_path = search_path.parent_path();
+
+            candidate = search_path / file_path;
+            if (fs::is_regular_file(candidate, ec) && !ec) {
+              fs::path relative = fs::relative(candidate, current_dir, ec);
+              return ec ? candidate : relative;
+            }
+
+            if (fs::equivalent(search_path, exe_dir, ec) && !ec) {
+              break;
+            }
+          }
+        }
+
+        return {};
+      }
 			bool read(const std::string& path, std::string* str) {
 
 				std::ifstream file(path.c_str(), std::ifstream::ate | std::ifstream::binary);
@@ -222,6 +306,21 @@ export namespace fan {
 				file.close();
 				return 0;
 			}
+      
+      bool read(const std::filesystem::path& path, std::string* str) {
+        std::ifstream file(path, std::ifstream::ate | std::ifstream::binary);
+        if (file.fail()) {
+#if fan_debug >= fan_debug_insane
+          fan::print_warning_no_space("path does not exist:" + path.string());
+#endif
+          return 1;
+        }
+        str->resize(file.tellg());
+        file.seekg(0, std::ios::beg);
+        file.read(&(*str)[0], str->size());
+        file.close();
+        return 0;
+      }
 			bool read(const std::string& path, std::string* str, std::size_t length) {
 
 				std::ifstream file(path.c_str(), std::ifstream::binary);
@@ -237,6 +336,20 @@ export namespace fan {
 				file.close();
 				return 0;
 			}
+      bool read(const std::filesystem::path& path, std::string* str, std::size_t length) {
+        std::ifstream file(path, std::ifstream::binary);
+        if (file.fail()) {
+#if fan_debug >= fan_debug_insane
+          fan::print_warning_no_space("path does not exist:" + path.string());
+#endif
+          return 1;
+        }
+        str->resize(length);
+        file.seekg(0, std::ios::beg);
+        file.read(&(*str)[0], length);
+        file.close();
+        return 0;
+      }
 
 			template <typename T>
 			std::vector<T> read(const std::string& path) {

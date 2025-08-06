@@ -8,11 +8,11 @@ struct model_list_t {
 
   struct cm_t {
 
-    void import_from(const std::string& path, loco_t::texturepack_t* tp) {
+    void import_from(const std::string& path, loco_t::texturepack_t* tp, const std::source_location& callers_path = std::source_location::current()) {
       loco_t::texturepack_t::ti_t ti;
 
       std::string in;
-      fan::io::file::read(path, &in);
+      fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &in);
       if (in.empty()) {
         return;
       }
