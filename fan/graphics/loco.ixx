@@ -501,12 +501,12 @@ export struct loco_t {
     return context_functions.image_load_info_props(&context, image_info, p);
   }
 
-  fan::graphics::image_nr_t image_load(const std::string& path) {
-    return context_functions.image_load_path(&context, path);
+  fan::graphics::image_nr_t image_load(const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
+    return context_functions.image_load_path(&context, path, callers_path);
   }
 
-  fan::graphics::image_nr_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p) {
-    return context_functions.image_load_path_props(&context, path, p);
+  fan::graphics::image_nr_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
+    return context_functions.image_load_path_props(&context, path, p, callers_path);
   }
 
   fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size) {
@@ -539,11 +539,11 @@ export struct loco_t {
   void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
     context_functions.image_reload_image_info_props(&context, nr, image_info, p);
   }
-  void image_reload(fan::graphics::image_nr_t nr, const std::string& path) {
-    context_functions.image_reload_path(&context, nr, path);
+  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
+    context_functions.image_reload_path(&context, nr, path, callers_path);
   }
-  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p) {
-    context_functions.image_reload_path_props(&context, nr, path, p);
+  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
+    context_functions.image_reload_path_props(&context, nr, path, p, callers_path);
   }
 
   fan::graphics::image_nr_t image_create(const fan::color& color) {
@@ -656,9 +656,9 @@ export struct loco_t {
 
 #include <fan/tp/tp0.h>
 
-  static std::string read_shader(const std::string& path) {
+  static std::string read_shader(const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
     std::string code;
-    fan::io::file::read(path, &code);
+    fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &code);
     return code;
   }
 
@@ -6851,9 +6851,9 @@ export namespace fan {
       iterator.iterate(json_data["shapes"], &shape);
       return shape;
     }
-    fan::json read_json(const std::string& path) {
+    fan::json read_json(const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
       std::string json_bytes;
-      fan::io::file::read(path, &json_bytes);
+      fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &json_bytes);
       return fan::json::parse(json_bytes);
     }
     struct animation_t {

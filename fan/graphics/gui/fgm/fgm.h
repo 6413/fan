@@ -354,7 +354,7 @@ struct fgm_t {
           if (current_image != gloco->default_texture) {
             gloco->image_unload(current_image);
           }
-          shape->children[0].set_image(gloco->image_load(std::filesystem::absolute(std::filesystem::path(content_browser.asset_path) / path).string()));
+          shape->children[0].set_image(gloco->image_load((std::filesystem::path(content_browser.asset_path) / path).string()));
           shape->children[0].set_tc_position(0);
           shape->children[0].set_tc_size(1);
           });
@@ -374,7 +374,7 @@ struct fgm_t {
           if (current_image != gloco->default_texture) {
             gloco->image_unload(current_image);
           }
-          shape->children[0].set_images({ gloco->image_load(std::filesystem::absolute(std::filesystem::path(content_browser.asset_path) / path).string()) });
+          shape->children[0].set_images({ gloco->image_load((std::filesystem::path(content_browser.asset_path) / path).string()) });
           shape->children[0].set_tc_position(0);
           shape->children[0].set_tc_size(1);
           });
@@ -394,7 +394,7 @@ struct fgm_t {
             gloco->image_unload(current_image);
           }
           auto images = shape->children[0].get_images();
-          images[1] = gloco->image_load(std::filesystem::absolute(std::filesystem::path(content_browser.asset_path) / path).string());
+          images[1] = gloco->image_load((std::filesystem::path(content_browser.asset_path) / path).string());
           shape->children[0].set_images(images);
           shape->children[0].set_tc_position(0);
           shape->children[0].set_tc_size(1);
@@ -415,7 +415,7 @@ struct fgm_t {
             gloco->image_unload(current_image);
           }
           auto images = shape->children[0].get_images();
-          images[2] = gloco->image_load(std::filesystem::absolute(std::filesystem::path(content_browser.asset_path) / path).string());
+          images[2] = gloco->image_load((std::filesystem::path(content_browser.asset_path) / path).string());
           shape->children[0].set_images(images);
           shape->children[0].set_tc_position(0);
           shape->children[0].set_tc_size(1);
@@ -758,7 +758,7 @@ struct fgm_t {
           fin(file);
         }
         else {
-          auto image = gloco->image_load(std::filesystem::absolute(fs).string());
+          auto image = gloco->image_load((fs).string());
           fan::vec2 initial_size = 128.f;
           fan::vec2 original_size = gloco->image_get_data(image).size;
           initial_size.x *= (original_size.x / original_size.y);
@@ -792,7 +792,7 @@ struct fgm_t {
           node->children[0].load_tp(&ti);
           node->children[0].get_image_data().image_path = path;
         }
-        }, false);
+        });
     }
 
     // keybinds
@@ -1006,7 +1006,10 @@ struct fgm_t {
     ImGui::End();
   }
 
-  void fout(const std::string& filename) {
+  void fout(std::string filename) {
+    if (!filename.ends_with(".json")) {
+      filename += ".json";
+    }
     previous_file_name = filename;
 
     fan::json ostr;
@@ -1092,7 +1095,7 @@ struct fgm_t {
     previous_file_name = filename;
 
     std::string in;
-    fan::io::file::read(filename, &in);
+    fan::io::file::read(fan::io::find_relative_path(filename), &in);
     fan::json json_in = fan::json::parse(in);
     auto version = json_in["version"].get<decltype(current_version)>();
     if (version != current_version) {

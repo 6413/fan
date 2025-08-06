@@ -117,9 +117,9 @@ namespace fan {
         objects[i].sprite = std::move(temp);
       }
 
-      void file_load(const std::string& path) {
+      void file_load(const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
         std::string istr;
-        fan::io::file::read(path, &istr);
+        fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &istr);
         uint32_t off = 0;
         fan::read_from_string(istr, off, controls.loop);
         fan::read_from_string(istr, off, controls.max_time);

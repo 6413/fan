@@ -113,10 +113,10 @@ public:
 
   }
 
-  compiled_map_t compile(const std::string& filename) {
+  compiled_map_t compile(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
 #if defined (fan_json)
     std::string out;
-    fan::io::file::read(filename, &out);
+    fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &out);
     fan::json json = fan::json::parse(out);
     if (json["version"] != 1) {
       fan::throw_error("version mismatch");

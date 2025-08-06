@@ -821,7 +821,7 @@ export namespace fan {
         return nr;
       }
 
-      fan::graphics::image_nr_t image_load(const std::string& path, const fan::opengl::context_t::image_load_properties_t& p) {
+      fan::graphics::image_nr_t image_load(const std::string& path, const fan::opengl::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
 
     #if fan_assert_if_same_path_loaded_multiple_times
 
@@ -836,7 +836,7 @@ export namespace fan {
     #endif
 
         fan::image::info_t image_info;
-        if (fan::image::load(path, &image_info)) {
+        if (fan::image::load(path, &image_info, callers_path)) {
           return create_missing_texture();
         }
         fan::graphics::image_nr_t nr = image_load(image_info, p);
@@ -928,9 +928,9 @@ export namespace fan {
         image_reload(nr, image_info, fan::opengl::context_t::image_load_properties_t());
       }
 
-      void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::opengl::context_t::image_load_properties_t& p) {
+      void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::opengl::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
         fan::image::info_t image_info;
-        if (fan::image::load(path, &image_info)) {
+        if (fan::image::load(path, &image_info, callers_path)) {
           image_info.data = (void*)fan::image::missing_texture_pixels;
           image_info.size = 2;
           image_info.channels = 4;
@@ -1690,10 +1690,10 @@ namespace fan {
       cf.image_load_info_props = [](void* context, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
         return ((fan::opengl::context_t*)context)->image_load(image_info, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
         };
-      cf.image_load_path = [](void* context, const std::string& path) {
+      cf.image_load_path = [](void* context, const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
         return ((fan::opengl::context_t*)context)->image_load(path);
         };
-      cf.image_load_path_props = [](void* context, const std::string& path, const fan::graphics::image_load_properties_t& p) {
+      cf.image_load_path_props = [](void* context, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
         return ((fan::opengl::context_t*)context)->image_load(path, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
         };
       cf.image_load_colors = [](void* context, fan::color* colors, const fan::vec2ui& size_) {
@@ -1717,10 +1717,10 @@ namespace fan {
       cf.image_reload_image_info_props = [](void* context, fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
         return ((fan::opengl::context_t*)context)->image_reload(nr, image_info, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
         };
-      cf.image_reload_path = [](void* context, fan::graphics::image_nr_t nr, const std::string& path) {
+      cf.image_reload_path = [](void* context, fan::graphics::image_nr_t nr, const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
         return ((fan::opengl::context_t*)context)->image_reload(nr, path);
         };
-      cf.image_reload_path_props = [](void* context, fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p) {
+      cf.image_reload_path_props = [](void* context, fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
         return ((fan::opengl::context_t*)context)->image_reload(nr, path, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
         };
       cf.image_create_color = [](void* context, const fan::color& color) {

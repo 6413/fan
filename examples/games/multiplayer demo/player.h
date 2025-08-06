@@ -1,9 +1,8 @@
 struct player_t {
 
   player_t() {
-    std::string current_directory = "game/";
     // init client animations
-    fan::json json_data = fan::graphics::read_json(current_directory + "entities/player/player.json");
+    fan::json json_data = fan::graphics::read_json("entities/player/player.json");
     gloco->parse_animations(json_data);
     fan::graphics::map_animations(anims);
     player.set_shape(fan::graphics::extract_single_shape(json_data));

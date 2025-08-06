@@ -3,7 +3,7 @@
 #endif
 
 std::string in;
-if (fan::io::file::read(filename, &in)) {
+if (fan::io::file::read(fan::io::file::find_relative_path(filename), &in)) {
   #if defined(tilemap_editor_loader) 
     fan::throw_error_format(
   #else

@@ -14,11 +14,11 @@ struct compute_shader_t {
 		}descriptor;
 	};
 
-	compute_shader_t(loco_t* loco, const properties_t& p) : 
+	compute_shader_t(loco_t* loco, const properties_t& p, const std::source_location& callers_path = std::source_location::current()) : 
 		m_descriptor{p.descriptor.sets, p.descriptor.count, p.descriptor.layouts, p.descriptor.layout_count}
 	{
     fan::string shader_data;
-    fan::io::file::read(p.shader.path, &shader_data);
+    fan::io::file::read(fan::io::file::find_relative_path(p.shader.path, callers_path), &shader_data);
     auto spirv =
       loco_t::shader_t::compile_file(
         p.shader.path, 
