@@ -1861,6 +1861,19 @@ export namespace fan {
           update_directory_cache();
         }
         void update_directory_cache() {
+          search_iterator.stop();
+          search_state.is_searching = false;
+          search_state.found_files.clear();
+          search_state.search_cache_dirty = true;
+          search_state.cache_dirty = true;
+          while (!search_state.pending_directories.empty()) {
+            search_state.pending_directories.pop();
+          }
+
+          std::fill(search_buffer.begin(), search_buffer.end(), '\0');
+
+          invalidate_cache();
+
           for (auto& img : directory_cache) {
             if (img.preview_image.iic() == false) {
               gloco->image_unload(img.preview_image);
@@ -1880,7 +1893,7 @@ export namespace fan {
               catch (const std::exception& e) {
                 fan::print("exception came", e.what());
               }
-              
+
               file_info.filename = relative_path.filename().string();
               file_info.item_path = relative_path.wstring();
               file_info.is_directory = entry.is_directory();
@@ -1890,23 +1903,204 @@ export namespace fan {
                 file_info.preview_image = gloco->image_load(entry.path().string());
               }
               directory_cache.push_back(file_info);
+              invalidate_cache();
               co_return;
-            };
+              };
           }
-          
+
           fan::io::async_directory_iterate(
             &directory_iterator,
             current_directory.string()
           );
         }
+        struct SearchState {
+          std::string query;
+          bool is_recursive = false;
+          bool is_searching = false;
+          std::vector<file_info_t> found_files;
+          std::queue<std::string> pending_directories;
+          std::vector<std::pair<file_info_t, size_t>> sorted_cache;
+          std::vector<std::pair<file_info_t, size_t>> sorted_search_cache;
+          bool cache_dirty = true;
+          bool search_cache_dirty = true;
+        };
+
+        SearchState search_state;
+        fan::io::async_directory_iterator_t search_iterator;
+
+        void invalidate_cache() {
+          search_state.cache_dirty = true;
+          search_state.sorted_cache.clear();
+        }
+
+        int get_pressed_key() {
+          auto& style = ImGui::GetStyle();
+          if (style.DisabledAlpha != style.Alpha && ImGui::IsWindowFocused()) {
+            for (int i = ImGuiKey_A; i <= ImGuiKey_Z; ++i) {
+              if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
+                return (i - ImGuiKey_A) + 'A';
+              }
+            }
+          }
+          return -1;
+        }
+
+        void handle_keyboard_navigation(const std::string& filename, int pressed_key) {
+          if (pressed_key != -1 && !filename.empty()) {
+            if (std::tolower(filename[0]) == std::tolower(pressed_key)) {
+              ImGui::SetScrollHereY();
+            }
+          }
+        }
+
+        void handle_right_click(const std::string& filename) {
+          if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+            item_right_clicked = true;
+            item_right_clicked_name = filename;
+            item_right_clicked_name.erase(
+              std::remove_if(item_right_clicked_name.begin(), item_right_clicked_name.end(),
+                [](unsigned char c) { return std::isspace(c); }),
+              item_right_clicked_name.end()
+            );
+          }
+        }
+
+        void process_next_directory() {
+          if (!search_state.pending_directories.empty()) {
+            std::string next_dir = search_state.pending_directories.front();
+            search_state.pending_directories.pop();
+            fan::io::async_directory_iterate(&search_iterator, next_dir);
+          }
+          else {
+            search_state.is_searching = false;
+          }
+        }
+
+        void start_search(const std::string& query, bool recursive = false) {
+          search_iterator.stop();
+
+          search_state.query = query;
+          search_state.is_recursive = recursive;
+          search_state.found_files.clear();
+          search_state.search_cache_dirty = true;
+
+          while (!search_state.pending_directories.empty()) {
+            search_state.pending_directories.pop();
+          }
+
+          if (query.empty()) {
+            search_state.is_searching = false;
+            search_state.found_files.clear();
+            return;
+          }
+
+          search_state.is_searching = true;
+
+          search_iterator.sort_alphabetically = true;
+          search_iterator.callback = [this](const std::filesystem::directory_entry& entry) -> fan::event::task_t {
+            try {
+              std::string filename = entry.path().filename().string();
+
+              std::string query_lower = search_state.query;
+              std::string filename_lower = filename;
+              std::transform(query_lower.begin(), query_lower.end(), query_lower.begin(), ::tolower);
+              std::transform(filename_lower.begin(), filename_lower.end(), filename_lower.begin(), ::tolower);
+
+              bool matches = filename_lower.find(query_lower) != std::string::npos;
+
+              if (matches) {
+                file_info_t file_info;
+                std::filesystem::path relative_path;
+                try {
+                  relative_path = std::filesystem::relative(entry.path(), asset_path);
+                }
+                catch (const std::exception&) {
+                  relative_path = entry.path().filename();
+                }
+
+                file_info.filename = filename;
+                file_info.item_path = relative_path.wstring();
+                file_info.is_directory = entry.is_directory();
+                file_info.some_path = entry.path().filename();
+
+                if (fan::image::valid(entry.path().string())) {
+                  file_info.preview_image = gloco->image_load(entry.path().string());
+                }
+
+                search_state.found_files.push_back(file_info);
+                search_state.search_cache_dirty = true;
+              }
+
+              if (entry.is_directory() && search_state.is_recursive) {
+                search_state.pending_directories.push(entry.path().string());
+              }
+            }
+            catch (...) {
+
+            }
+
+            co_return;
+            };
+
+          std::string search_root = current_directory.string();
+          fan::io::async_directory_iterate(&search_iterator, search_root);
+        }
+        void update_sorted_cache() {
+          if (!search_state.cache_dirty) return;
+
+          search_state.sorted_cache.clear();
+          for (std::size_t i = 0; i < directory_cache.size(); ++i) {
+            auto& file_info = directory_cache[i];
+            if (search_buffer.empty() || file_info.filename.find(search_buffer.data()) != std::string::npos) {
+              search_state.sorted_cache.push_back({ file_info, i });
+            }
+          }
+
+          std::sort(search_state.sorted_cache.begin(), search_state.sorted_cache.end(),
+            [](const auto& a, const auto& b) {
+              return a.first.is_directory > b.first.is_directory;
+            });
+
+          search_state.cache_dirty = false;
+        }
+
+        void update_search_sorted_cache() {
+          if (!search_state.search_cache_dirty) return;
+
+          search_state.sorted_search_cache.clear();
+          for (std::size_t i = 0; i < search_state.found_files.size(); ++i) {
+            search_state.sorted_search_cache.push_back({ search_state.found_files[i], i });
+          }
+
+          std::sort(search_state.sorted_search_cache.begin(), search_state.sorted_search_cache.end(),
+            [](const auto& a, const auto& b) {
+              return a.first.is_directory > b.first.is_directory;
+            });
+
+          search_state.search_cache_dirty = false;
+        }
+
         void render() {
           item_right_clicked = false;
           item_right_clicked_name.clear();
+
+          if (search_state.is_searching && !search_iterator.operation_in_progress) {
+            if (search_iterator.current_index >= search_iterator.entries.size()) {
+              if (!search_state.pending_directories.empty()) {
+                process_next_directory();
+              }
+              else {
+                search_state.is_searching = false;
+              }
+            }
+          }
+
           ImGuiStyle& style = ImGui::GetStyle();
           ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 16.0f));
+
           ImGuiWindowClass window_class;
-          //window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar; TODO ?
           ImGui::SetNextWindowClass(&window_class);
+
           if (ImGui::Begin("Content Browser", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoTitleBar)) {
             if (ImGui::BeginMenuBar()) {
               ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
@@ -1914,10 +2108,10 @@ export namespace fan {
               ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.3f));
 
               if (fan::graphics::gui::image_button("##icon_arrow_left", icon_arrow_left, fan::vec2(32))) {
-                if (std::filesystem::equivalent(current_directory, asset_path) == false) {
+                if (!std::filesystem::equivalent(current_directory, asset_path)) {
                   current_directory = current_directory.parent_path();
+                  update_directory_cache();
                 }
-                update_directory_cache();
               }
               ImGui::SameLine();
               fan::graphics::gui::image_button("##icon_arrow_right", icon_arrow_right, fan::vec2(32));
@@ -1929,14 +2123,11 @@ export namespace fan {
               ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.3f));
 
               auto image_list = std::to_array({ icon_files_list, icon_files_big_thumbnail });
-
               fan::vec2 bc = fan::graphics::gui::get_position_bottom_corner();
-
               bc.x -= ImGui::GetWindowPos().x;
               ImGui::SetCursorPosX(bc.x / 2);
 
               fan::vec2 button_sizes = 32;
-
               ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - (button_sizes.x * 2 + style.ItemSpacing.x) * image_list.size());
 
               ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 20.0f);
@@ -1944,20 +2135,28 @@ export namespace fan {
               f32_t y_pos = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y;
               ImGui::SetCursorPosY(y_pos);
 
-
+              static char old_search[256] = { 0 };
+              bool search_changed = false;
               if (ImGui::InputText("##content_browser_search", search_buffer.data(), search_buffer.size())) {
-
+                search_changed = true;
               }
+
+              if (search_changed || strcmp(old_search, search_buffer.data()) != 0) {
+                strcpy(old_search, search_buffer.data());
+                start_search(search_buffer.data(), true);
+              }
+
+              if (search_state.is_searching) {
+                ImGui::SameLine();
+                ImGui::Text("Searching... (%zu found)", search_state.found_files.size());
+              }
+
               ImGui::PopStyleVar(2);
-
               fan::graphics::gui::toggle_image_button(image_list, button_sizes, (int*)&current_view_mode);
-
               ImGui::PopStyleColor(3);
-
-              ///ImGui::InputText("Search", search_buffer.data(), search_buffer.size());
-
               ImGui::EndMenuBar();
             }
+
             switch (current_view_mode) {
             case view_mode_large_thumbnails:
               render_large_thumbnails_view();
@@ -1973,127 +2172,163 @@ export namespace fan {
           ImGui::PopStyleVar(1);
           ImGui::End();
         }
+
         void render_large_thumbnails_view() {
           float thumbnail_size = 128.0f;
           float panel_width = ImGui::GetContentRegionAvail().x;
           int column_count = std::max((int)(panel_width / (thumbnail_size + padding)), 1);
 
           ImGui::Columns(column_count, 0, false);
+          int pressed_key = get_pressed_key();
 
-          int pressed_key = -1;
+          bool showing_search_results = !search_state.found_files.empty() && !search_buffer.empty();
 
-          auto& style = ImGui::GetStyle();
-          // basically bad way to check if gui is disabled. I couldn't find other way
-          if (style.DisabledAlpha != style.Alpha) {
-            if (ImGui::IsWindowFocused()) {
-              for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
-                if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
-                  pressed_key = (i - ImGuiKey_A) + 'A';
-                  break;
-                }
-              }
+          if (showing_search_results) {
+            update_search_sorted_cache();
+            auto& sorted_files = search_state.sorted_search_cache;
+
+            for (const auto& [file_info, original_index] : sorted_files) {
+              handle_keyboard_navigation(file_info.filename, pressed_key);
+
+              std::string unique_id = "search_" + std::to_string(original_index) + "_" + file_info.filename;
+
+              ImGui::PushID(unique_id.c_str());
+              ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+
+              fan::graphics::gui::image_button(
+                "##" + unique_id,
+                file_info.preview_image.iic() == false ? file_info.preview_image
+                : file_info.is_directory ? icon_directory : icon_file,
+                ImVec2(thumbnail_size, thumbnail_size)
+              );
+
+              handle_right_click(file_info.filename);
+              handle_item_interaction(file_info);
+
+              ImGui::PopStyleColor();
+              ImGui::TextWrapped("%s", file_info.filename.c_str());
+              ImGui::NextColumn();
+              ImGui::PopID();
             }
           }
+          else {
+            update_sorted_cache();
+            auto& sorted_files = search_state.sorted_cache;
 
-          for (std::size_t i = 0; i < directory_cache.size(); ++i) {
-            // reference somehow corrupts
-            auto file_info = directory_cache[i];
-            if (search_buffer.size() && strstr(file_info.filename.c_str(), search_buffer.c_str()) == nullptr) {
-              continue;
+            for (const auto& [file_info, original_index] : sorted_files) {
+              handle_keyboard_navigation(file_info.filename, pressed_key);
+
+              ImGui::PushID(file_info.filename.c_str());
+              ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+
+              fan::graphics::gui::image_button(
+                "##" + file_info.filename,
+                file_info.preview_image.iic() == false ? file_info.preview_image
+                : file_info.is_directory ? icon_directory : icon_file,
+                ImVec2(thumbnail_size, thumbnail_size)
+              );
+
+              handle_right_click(file_info.filename);
+              handle_item_interaction(file_info);
+
+              ImGui::PopStyleColor();
+              ImGui::TextWrapped("%s", file_info.filename.c_str());
+              ImGui::NextColumn();
+              ImGui::PopID();
             }
-
-            if (pressed_key != -1 && ImGui::IsWindowFocused()) {
-              if (!file_info.filename.empty() && std::tolower(file_info.filename[0]) == std::tolower(pressed_key)) {
-                ImGui::SetScrollHereY();
-              }
-            }
-
-            ImGui::PushID(file_info.filename.c_str());
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-            fan::graphics::gui::image_button("##" + file_info.filename, file_info.preview_image.iic() == false ? file_info.preview_image : file_info.is_directory ? icon_directory : icon_file, ImVec2(thumbnail_size, thumbnail_size));
-
-            bool item_hovered = ImGui::IsItemHovered();
-            if (item_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-              item_right_clicked = true;
-              item_right_clicked_name = file_info.filename;
-              item_right_clicked_name.erase(std::remove_if(item_right_clicked_name.begin(), item_right_clicked_name.end(), isspace), item_right_clicked_name.end());
-            }
-
-            // Handle drag and drop, double click, etc.
-            handle_item_interaction(file_info);
-
-            ImGui::PopStyleColor();
-            ImGui::TextWrapped("%s", file_info.filename.c_str());
-            ImGui::NextColumn();
-            ImGui::PopID();
           }
 
           ImGui::Columns(1);
         }
+
         void render_list_view() {
-          if (ImGui::BeginTable("##FileTable", 1, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY
-            | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
-            | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable)) {
+          if (ImGui::BeginTable("##FileTable", 1,
+            ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY |
+            ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
+            ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
+            ImGuiTableFlags_Sortable)) {
+
             ImGui::TableSetupColumn("##Filename", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableHeadersRow();
 
-            int pressed_key = -1;
-            ImGuiStyle& style = ImGui::GetStyle();
-            if (style.DisabledAlpha != style.Alpha) {
-              if (ImGui::IsWindowFocused()) {
-                for (int i = ImGuiKey_A; i != ImGuiKey_Z + 1; ++i) {
-                  if (ImGui::IsKeyPressed((ImGuiKey)i, false)) {
-                    pressed_key = (i - ImGuiKey_A) + 'A';
-                    break;
-                  }
+            int pressed_key = get_pressed_key();
+            bool showing_search_results = !search_state.found_files.empty() && !search_buffer.empty();
+
+            if (showing_search_results) {
+              update_search_sorted_cache();
+              auto& sorted_files = search_state.sorted_search_cache;
+
+              for (const auto& [file_info, original_index] : sorted_files) {
+                handle_keyboard_navigation(file_info.filename, pressed_key);
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+
+                fan::vec2 cursor_pos = fan::vec2(ImGui::GetWindowPos()) + fan::vec2(ImGui::GetCursorPos()) +
+                  fan::vec2(ImGui::GetScrollX(), -ImGui::GetScrollY());
+                fan::vec2 image_size = ImVec2(thumbnail_size / 4, thumbnail_size / 4);
+
+                std::string space;
+                while (ImGui::CalcTextSize(space.c_str()).x < image_size.x) {
+                  space += " ";
                 }
+                auto str = space + file_info.filename;
+
+                std::string unique_id = "search_" + std::to_string(original_index) + "_" + str;
+
+                ImGui::Selectable(unique_id.c_str());
+                handle_right_click(str);
+
+                ImTextureID texture_id;
+                if (file_info.preview_image.iic() == false) {
+                  texture_id = (ImTextureID)gloco->image_get_handle(file_info.preview_image);
+                }
+                else {
+                  texture_id = (ImTextureID)gloco->image_get_handle(
+                    file_info.is_directory ? icon_directory : icon_file
+                  );
+                }
+                ImGui::GetWindowDrawList()->AddImage(texture_id, cursor_pos, cursor_pos + image_size);
+
+                handle_item_interaction(file_info);
               }
             }
+            else {
+              update_sorted_cache();
+              auto& sorted_files = search_state.sorted_cache;
 
-            // Render table view
-            for (std::size_t i = 0; i < directory_cache.size(); ++i) {
+              for (const auto& [file_info, original_index] : sorted_files) {
+                handle_keyboard_navigation(file_info.filename, pressed_key);
 
-              // reference somehow corrupts
-              auto file_info = directory_cache[i];
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
 
-              if (pressed_key != -1 && ImGui::IsWindowFocused()) {
-                if (!file_info.filename.empty() && std::tolower(file_info.filename[0]) == std::tolower(pressed_key)) {
-                  ImGui::SetScrollHereY();
+                fan::vec2 cursor_pos = fan::vec2(ImGui::GetWindowPos()) + fan::vec2(ImGui::GetCursorPos()) +
+                  fan::vec2(ImGui::GetScrollX(), -ImGui::GetScrollY());
+                fan::vec2 image_size = ImVec2(thumbnail_size / 4, thumbnail_size / 4);
+
+                std::string space;
+                while (ImGui::CalcTextSize(space.c_str()).x < image_size.x) {
+                  space += " ";
                 }
-              }
+                auto str = space + file_info.filename;
 
-              if (search_buffer.size() && strstr(file_info.filename.c_str(), search_buffer.c_str()) == nullptr) {
-                continue;
-              }
-              ImGui::TableNextRow();
-              ImGui::TableSetColumnIndex(0); // Icon column
-              fan::vec2 cursor_pos = fan::vec2(ImGui::GetWindowPos()) + fan::vec2(ImGui::GetCursorPos()) + fan::vec2(ImGui::GetScrollX(), -ImGui::GetScrollY());
-              fan::vec2 image_size = ImVec2(thumbnail_size / 4, thumbnail_size / 4);
-              ImGuiStyle& style = ImGui::GetStyle();
-              std::string space = "";
-              while (ImGui::CalcTextSize(space.c_str()).x < image_size.x) {
-                space += " ";
-              }
-              auto str = space + file_info.filename;
+                ImGui::Selectable(str.c_str());
+                handle_right_click(str);
 
-              ImGui::Selectable(str.c_str());
-              bool item_hovered = ImGui::IsItemHovered();
-              if (item_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-                item_right_clicked_name = str;
-                item_right_clicked_name.erase(std::remove_if(item_right_clicked_name.begin(), item_right_clicked_name.end(), isspace), item_right_clicked_name.end());
-                item_right_clicked = true;
-              }
-              if (file_info.preview_image.iic() == false) {
-                ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get_handle(file_info.preview_image), cursor_pos, cursor_pos + image_size);
-              }
-              else if (file_info.is_directory) {
-                ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get_handle(icon_directory), cursor_pos, cursor_pos + image_size);
-              }
-              else {
-                ImGui::GetWindowDrawList()->AddImage((ImTextureID)gloco->image_get_handle(icon_file), cursor_pos, cursor_pos + image_size);
-              }
+                ImTextureID texture_id;
+                if (file_info.preview_image.iic() == false) {
+                  texture_id = (ImTextureID)gloco->image_get_handle(file_info.preview_image);
+                }
+                else {
+                  texture_id = (ImTextureID)gloco->image_get_handle(
+                    file_info.is_directory ? icon_directory : icon_file
+                  );
+                }
+                ImGui::GetWindowDrawList()->AddImage(texture_id, cursor_pos, cursor_pos + image_size);
 
-              handle_item_interaction(file_info);
+                handle_item_interaction(file_info);
+              }
             }
 
             ImGui::EndTable();
@@ -2111,7 +2346,7 @@ export namespace fan {
 
           if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
             if (file_info.is_directory) {
-              current_directory /= file_info.some_path;
+              current_directory = std::filesystem::path(asset_path) / file_info.item_path;
               update_directory_cache();
             }
           }
@@ -2438,7 +2673,7 @@ export namespace fan {
               else {
                 fan::print("Warning: drop target not valid (requires image file)");
               }
-            });
+              });
           }
           gui::set_cursor_pos(cursor_pos);
 
@@ -2459,14 +2694,14 @@ export namespace fan {
 
         struct render_type_t;
 
-        #include <fan/fan_bll_preset.h>
-        #define BLL_set_prefix drawables
-        #define BLL_set_type_node uint16_t
-        #define BLL_set_NodeDataType render_type_t*
-        #define BLL_set_Link 1
-        #define BLL_set_AreWeInsideStruct 1
-        #define BLL_set_SafeNext 1
-        #include <BLL/BLL.h>
+#include <fan/fan_bll_preset.h>
+#define BLL_set_prefix drawables
+#define BLL_set_type_node uint16_t
+#define BLL_set_NodeDataType render_type_t*
+#define BLL_set_Link 1
+#define BLL_set_AreWeInsideStruct 1
+#define BLL_set_SafeNext 1
+#include <BLL/BLL.h>
         using drawable_nr_t = drawables_NodeReference_t;
 
         drawables_t drawables;
@@ -2478,7 +2713,7 @@ export namespace fan {
 
         struct text_delayed_t : render_type_t {
           void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) override {
-            
+
             // initialize advance task but dont restart it after dialog finished
             if (finish_dialog == false && character_advance_task.handle == nullptr) {
               character_advance_task = [This, nr]() -> fan::event::task_t {
@@ -2492,7 +2727,7 @@ export namespace fan {
                   ++text_delayed->render_pos;
                   co_await fan::co_sleep(1000 / text_delayed->character_per_s);
                 }
-              }();
+                }();
             }
 
             //ImGui::BeginChild((fan::random::string(10) + "child").c_str(), fan::vec2(wrap_width, 0), 0, ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar |
@@ -2501,7 +2736,7 @@ export namespace fan {
             //  ImGui::SetScrollY(ImGui::GetScrollMaxY());
             //}
             fan::graphics::text_partial_render(text, render_pos, wrap_width, line_spacing);
-//            ImGui::EndChild();
+            //            ImGui::EndChild();
 
             if (render_pos == text.size()) {
               finish_dialog = true;

@@ -828,6 +828,7 @@ export namespace fan::io {
         uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t* h) {
           delete reinterpret_cast<uv_idle_t*>(h);
         });
+        // TODO crash can come here if changing target fps (restarting idle in loco)
         awaiter->coro.resume();
       });
     }

@@ -1090,12 +1090,12 @@ struct fgm_t {
     ...
   }
   */
-  void fin(const std::string& filename) {
+  void fin(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
 
     previous_file_name = filename;
 
     std::string in;
-    fan::io::file::read(fan::io::find_relative_path(filename), &in);
+    fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &in);
     fan::json json_in = fan::json::parse(in);
     auto version = json_in["version"].get<decltype(current_version)>();
     if (version != current_version) {
