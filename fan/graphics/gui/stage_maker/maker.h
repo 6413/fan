@@ -223,9 +223,9 @@ void update(){
     fan::print("file saved to:" + filename);
   }
 
-  void fin(const fan::string& filename) {
+  void fin(const fan::string& filename, const std::source_location& callers_path = std::source_location::current()) {
     fan::string in;
-    fan::io::file::read(filename, &in);
+    fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &in);
     uint64_t off = 0;
     uint32_t version = fan::string_read_data<uint32_t>(in, off);
     if (version != current_version) {
