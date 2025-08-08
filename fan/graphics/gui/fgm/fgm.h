@@ -350,7 +350,7 @@ struct fgm_t {
         fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
         uv1 += uv0;
         fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
-        gui::receive_drag_drop_target("CONTENT_BROWSER_ITEM", [&](const std::string& path) {
+        gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", [&](const std::string& path) {
           if (current_image != gloco->default_texture) {
             gloco->image_unload(current_image);
           }
@@ -370,7 +370,7 @@ struct fgm_t {
         fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
         uv1 += uv0;
         fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
-        gui::receive_drag_drop_target("CONTENT_BROWSER_ITEM", [&](const std::string& path) {
+        gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", [&](const std::string& path) {
           if (current_image != gloco->default_texture) {
             gloco->image_unload(current_image);
           }
@@ -389,7 +389,7 @@ struct fgm_t {
         fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
         uv1 += uv0;
         fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
-        gui::receive_drag_drop_target("CONTENT_BROWSER_ITEM", [&](const std::string& path) {
+        gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", [&](const std::string& path) {
           if (current_image != gloco->default_texture) {
             gloco->image_unload(current_image);
           }
@@ -410,7 +410,7 @@ struct fgm_t {
         fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
         uv1 += uv0;
         fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
-        gui::receive_drag_drop_target("CONTENT_BROWSER_ITEM", [&](const std::string& path) {
+        gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", [&](const std::string& path) {
           if (current_image != gloco->default_texture) {
             gloco->image_unload(current_image);
           }
@@ -898,7 +898,7 @@ struct fgm_t {
           goto g_end_animations;
         }
         {
-          bool animation_changed = animations_application.render("CONTENT_BROWSER_ITEM", *shape_animation_nr);
+          bool animation_changed = animations_application.render("CONTENT_BROWSER_ITEMS", *shape_animation_nr);
           if (shape.get_shape_type() == loco_t::shape_type_t::sprite && animations_application.current_animation_nr) {
             auto* ri = ((loco_t::sprite_t::ri_t*)shape.GetData(gloco->shaper));
             if (animations_application.current_animation_nr && animations_application.current_animation_shape_nr == *shape_animation_nr) {

@@ -1714,7 +1714,6 @@ export namespace fan {
             ImGui::EndDragDropSource();
           }
         }
-        // creates drag and drop target for previous item (size of it will be the size of the item)
         void receive_drag_drop_target(const std::string& id, auto receive_func) {
           if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(id.c_str())) {
@@ -1805,12 +1804,21 @@ export namespace fan {
       struct content_browser_t {
         struct file_info_t {
           std::string filename;
-          std::filesystem::path some_path; //?
           std::wstring item_path;
           bool is_directory;
           loco_t::image_t preview_image;
+          bool is_selected = false;
           //std::string 
         };
+
+        struct selection_state_t {
+          bool is_selecting = false;
+          ImVec2 selection_start;
+          ImVec2 selection_end;
+          std::vector<size_t> selected_indices;
+          bool ctrl_held = false;
+        } selection_state;
+
 
         std::vector<file_info_t> directory_cache;
 
@@ -1860,6 +1868,84 @@ export namespace fan {
           current_directory = asset_path / std::filesystem::path(path);
           update_directory_cache();
         }
+
+        void clear_selection() {
+          selection_state.selected_indices.clear();
+          for (auto& file : directory_cache) {
+            file.is_selected = false;
+          }
+          for (auto& file : search_state.found_files) {
+            file.is_selected = false;
+          }
+        }
+
+        bool is_point_in_rect(ImVec2 point, ImVec2 rect_min, ImVec2 rect_max) {
+          return point.x >= rect_min.x && point.x <= rect_max.x &&
+            point.y >= rect_min.y && point.y <= rect_max.y;
+        }
+
+        void handle_rectangular_selection() {
+          ImGuiIO& io = ImGui::GetIO();
+          selection_state.ctrl_held = io.KeyCtrl;
+
+          if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            bool can_start_selection = !ImGui::IsAnyItemActive() &&
+              ImGui::IsWindowHovered() &&
+              !ImGui::IsAnyItemHovered();
+
+            if (can_start_selection) {
+              selection_state.is_selecting = true;
+              selection_state.selection_start = ImGui::GetMousePos();
+              selection_state.selection_end = selection_state.selection_start;
+
+              clear_selection();
+            }
+          }
+
+          if (selection_state.is_selecting && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            selection_state.selection_end = ImGui::GetMousePos();
+
+            bool showing_search_results = !search_state.found_files.empty() && !search_buffer.empty();
+
+            ImVec2 rect_min = ImVec2(
+              std::min(selection_state.selection_start.x, selection_state.selection_end.x),
+              std::min(selection_state.selection_start.y, selection_state.selection_end.y)
+            );
+            ImVec2 rect_max = ImVec2(
+              std::max(selection_state.selection_start.x, selection_state.selection_end.x),
+              std::max(selection_state.selection_start.y, selection_state.selection_end.y)
+            );
+
+            if (showing_search_results) {
+              update_search_sorted_cache();
+            }
+            else {
+              update_sorted_cache();
+            }
+          }
+
+          if (selection_state.is_selecting && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+            selection_state.is_selecting = false;
+          }
+
+          if (selection_state.is_selecting) {
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            ImVec2 rect_min = ImVec2(
+              std::min(selection_state.selection_start.x, selection_state.selection_end.x),
+              std::min(selection_state.selection_start.y, selection_state.selection_end.y)
+            );
+            ImVec2 rect_max = ImVec2(
+              std::max(selection_state.selection_start.x, selection_state.selection_end.x),
+              std::max(selection_state.selection_start.y, selection_state.selection_end.y)
+            );
+
+            draw_list->AddRect(rect_min, rect_max, IM_COL32(100, 150, 255, 200), 0.0f, 0, 2.0f);
+            draw_list->AddRectFilled(rect_min, rect_max, IM_COL32(100, 150, 255, 50));
+          }
+        }
+
+
+
         void update_directory_cache() {
           search_iterator.stop();
           search_state.is_searching = false;
@@ -1871,6 +1957,8 @@ export namespace fan {
           }
 
           std::fill(search_buffer.begin(), search_buffer.end(), '\0');
+
+          clear_selection();
 
           invalidate_cache();
 
@@ -1897,7 +1985,7 @@ export namespace fan {
               file_info.filename = relative_path.filename().string();
               file_info.item_path = relative_path.wstring();
               file_info.is_directory = entry.is_directory();
-              file_info.some_path = entry.path().filename();//?
+              file_info.is_selected = false;
               //fan::print(get_file_extension(path.path().string()));
               if (fan::image::valid(entry.path().string())) {
                 file_info.preview_image = gloco->image_load(entry.path().string());
@@ -1913,7 +2001,7 @@ export namespace fan {
             current_directory.string()
           );
         }
-        struct SearchState {
+        struct search_state_t {
           std::string query;
           bool is_recursive = false;
           bool is_searching = false;
@@ -1925,7 +2013,7 @@ export namespace fan {
           bool search_cache_dirty = true;
         };
 
-        SearchState search_state;
+        search_state_t search_state;
         fan::io::async_directory_iterator_t search_iterator;
 
         void invalidate_cache() {
@@ -2021,7 +2109,7 @@ export namespace fan {
                 file_info.filename = filename;
                 file_info.item_path = relative_path.wstring();
                 file_info.is_directory = entry.is_directory();
-                file_info.some_path = entry.path().filename();
+                file_info.is_selected = false;
 
                 if (fan::image::valid(entry.path().string())) {
                   file_info.preview_image = gloco->image_load(entry.path().string());
@@ -2157,6 +2245,8 @@ export namespace fan {
               ImGui::EndMenuBar();
             }
 
+            handle_rectangular_selection();
+
             switch (current_view_mode) {
             case view_mode_large_thumbnails:
               render_large_thumbnails_view();
@@ -2193,19 +2283,68 @@ export namespace fan {
               std::string unique_id = "search_" + std::to_string(original_index) + "_" + file_info.filename;
 
               ImGui::PushID(unique_id.c_str());
-              ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 
-              fan::graphics::gui::image_button(
+              ImVec2 item_pos = ImGui::GetCursorScreenPos();
+
+              bool is_currently_selected = search_state.found_files[original_index].is_selected;
+
+              if (is_currently_selected) {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.6f, 1.0f, 0.3f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4f, 0.6f, 1.0f, 0.4f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.6f, 1.0f, 0.5f));
+              }
+              else {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.2f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.5f, 0.5f, 0.5f, 0.3f));
+              }
+
+              bool item_clicked = fan::graphics::gui::image_button(
                 "##" + unique_id,
                 file_info.preview_image.iic() == false ? file_info.preview_image
                 : file_info.is_directory ? icon_directory : icon_file,
                 ImVec2(thumbnail_size, thumbnail_size)
               );
 
-              handle_right_click(file_info.filename);
-              handle_item_interaction(file_info);
+              if (item_clicked) {
+                ImGuiIO& io = ImGui::GetIO();
+                if (io.KeyCtrl) {
+                  search_state.found_files[original_index].is_selected = !search_state.found_files[original_index].is_selected;
+                }
+                else {
+                  for (auto& f : search_state.found_files) f.is_selected = false;
+                  search_state.found_files[original_index].is_selected = true;
+                }
+              }
 
-              ImGui::PopStyleColor();
+              if (selection_state.is_selecting) {
+                ImVec2 rect_min = ImVec2(
+                  std::min(selection_state.selection_start.x, selection_state.selection_end.x),
+                  std::min(selection_state.selection_start.y, selection_state.selection_end.y)
+                );
+                ImVec2 rect_max = ImVec2(
+                  std::max(selection_state.selection_start.x, selection_state.selection_end.x),
+                  std::max(selection_state.selection_start.y, selection_state.selection_end.y)
+                );
+
+                ImVec2 item_min = item_pos;
+                ImVec2 item_max = ImVec2(item_pos.x + thumbnail_size, item_pos.y + thumbnail_size);
+
+                bool overlaps = !(rect_max.x < item_min.x || rect_min.x > item_max.x ||
+                  rect_max.y < item_min.y || rect_min.y > item_max.y);
+
+                if (overlaps) {
+                  search_state.found_files[original_index].is_selected = true;
+                }
+                else if (!selection_state.ctrl_held) {
+                  search_state.found_files[original_index].is_selected = false;
+                }
+              }
+
+              handle_right_click(file_info.filename);
+              handle_item_interaction(file_info, original_index);
+
+              ImGui::PopStyleColor(3);
               ImGui::TextWrapped("%s", file_info.filename.c_str());
               ImGui::NextColumn();
               ImGui::PopID();
@@ -2219,19 +2358,68 @@ export namespace fan {
               handle_keyboard_navigation(file_info.filename, pressed_key);
 
               ImGui::PushID(file_info.filename.c_str());
-              ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 
-              fan::graphics::gui::image_button(
+              ImVec2 item_pos = ImGui::GetCursorScreenPos();
+
+              bool is_currently_selected = directory_cache[original_index].is_selected;
+
+              if (is_currently_selected) {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.6f, 1.0f, 0.3f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4f, 0.6f, 1.0f, 0.4f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.6f, 1.0f, 0.5f));
+              }
+              else {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.2f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.5f, 0.5f, 0.5f, 0.3f));
+              }
+
+              bool item_clicked = fan::graphics::gui::image_button(
                 "##" + file_info.filename,
                 file_info.preview_image.iic() == false ? file_info.preview_image
                 : file_info.is_directory ? icon_directory : icon_file,
                 ImVec2(thumbnail_size, thumbnail_size)
               );
 
-              handle_right_click(file_info.filename);
-              handle_item_interaction(file_info);
+              if (item_clicked) {
+                ImGuiIO& io = ImGui::GetIO();
+                if (io.KeyCtrl) {
+                  directory_cache[original_index].is_selected = !directory_cache[original_index].is_selected;
+                }
+                else {
+                  for (auto& f : directory_cache) f.is_selected = false;
+                  directory_cache[original_index].is_selected = true;
+                }
+              }
 
-              ImGui::PopStyleColor();
+              if (selection_state.is_selecting) {
+                ImVec2 rect_min = ImVec2(
+                  std::min(selection_state.selection_start.x, selection_state.selection_end.x),
+                  std::min(selection_state.selection_start.y, selection_state.selection_end.y)
+                );
+                ImVec2 rect_max = ImVec2(
+                  std::max(selection_state.selection_start.x, selection_state.selection_end.x),
+                  std::max(selection_state.selection_start.y, selection_state.selection_end.y)
+                );
+
+                ImVec2 item_min = item_pos;
+                ImVec2 item_max = ImVec2(item_pos.x + thumbnail_size, item_pos.y + thumbnail_size);
+
+                bool overlaps = !(rect_max.x < item_min.x || rect_min.x > item_max.x ||
+                  rect_max.y < item_min.y || rect_min.y > item_max.y);
+
+                if (overlaps) {
+                  directory_cache[original_index].is_selected = true;
+                }
+                else if (!selection_state.ctrl_held) {
+                  directory_cache[original_index].is_selected = false;
+                }
+              }
+
+              handle_right_click(file_info.filename);
+              handle_item_interaction(file_info, original_index);
+
+              ImGui::PopStyleColor(3);
               ImGui::TextWrapped("%s", file_info.filename.c_str());
               ImGui::NextColumn();
               ImGui::PopID();
@@ -2240,6 +2428,7 @@ export namespace fan {
 
           ImGui::Columns(1);
         }
+
 
         void render_list_view() {
           if (ImGui::BeginTable("##FileTable", 1,
@@ -2264,6 +2453,9 @@ export namespace fan {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
 
+                ImVec2 row_pos = ImGui::GetCursorScreenPos();
+                float row_height = ImGui::GetTextLineHeightWithSpacing();
+
                 fan::vec2 cursor_pos = fan::vec2(ImGui::GetWindowPos()) + fan::vec2(ImGui::GetCursorPos()) +
                   fan::vec2(ImGui::GetScrollX(), -ImGui::GetScrollY());
                 fan::vec2 image_size = ImVec2(thumbnail_size / 4, thumbnail_size / 4);
@@ -2276,7 +2468,43 @@ export namespace fan {
 
                 std::string unique_id = "search_" + std::to_string(original_index) + "_" + str;
 
-                ImGui::Selectable(unique_id.c_str());
+                bool item_clicked = ImGui::Selectable(unique_id.c_str(), search_state.found_files[original_index].is_selected, ImGuiSelectableFlags_SpanAllColumns);
+
+                if (item_clicked) {
+                  ImGuiIO& io = ImGui::GetIO();
+                  if (io.KeyCtrl) {
+                    search_state.found_files[original_index].is_selected = !search_state.found_files[original_index].is_selected;
+                  }
+                  else {
+                    for (auto& f : search_state.found_files) f.is_selected = false;
+                    search_state.found_files[original_index].is_selected = true;
+                  }
+                }
+
+                if (selection_state.is_selecting) {
+                  ImVec2 rect_min = ImVec2(
+                    std::min(selection_state.selection_start.x, selection_state.selection_end.x),
+                    std::min(selection_state.selection_start.y, selection_state.selection_end.y)
+                  );
+                  ImVec2 rect_max = ImVec2(
+                    std::max(selection_state.selection_start.x, selection_state.selection_end.x),
+                    std::max(selection_state.selection_start.y, selection_state.selection_end.y)
+                  );
+
+                  ImVec2 row_min = row_pos;
+                  ImVec2 row_max = ImVec2(row_pos.x + ImGui::GetContentRegionAvail().x, row_pos.y + row_height);
+
+                  bool overlaps = !(rect_max.x < row_min.x || rect_min.x > row_max.x ||
+                    rect_max.y < row_min.y || rect_min.y > row_max.y);
+
+                  if (overlaps) {
+                    search_state.found_files[original_index].is_selected = true;
+                  }
+                  else if (!selection_state.ctrl_held) {
+                    search_state.found_files[original_index].is_selected = false;
+                  }
+                }
+
                 handle_right_click(str);
 
                 ImTextureID texture_id;
@@ -2290,7 +2518,7 @@ export namespace fan {
                 }
                 ImGui::GetWindowDrawList()->AddImage(texture_id, cursor_pos, cursor_pos + image_size);
 
-                handle_item_interaction(file_info);
+                handle_item_interaction(file_info, original_index);
               }
             }
             else {
@@ -2303,6 +2531,9 @@ export namespace fan {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
 
+                ImVec2 row_pos = ImGui::GetCursorScreenPos();
+                float row_height = ImGui::GetTextLineHeightWithSpacing();
+
                 fan::vec2 cursor_pos = fan::vec2(ImGui::GetWindowPos()) + fan::vec2(ImGui::GetCursorPos()) +
                   fan::vec2(ImGui::GetScrollX(), -ImGui::GetScrollY());
                 fan::vec2 image_size = ImVec2(thumbnail_size / 4, thumbnail_size / 4);
@@ -2313,7 +2544,43 @@ export namespace fan {
                 }
                 auto str = space + file_info.filename;
 
-                ImGui::Selectable(str.c_str());
+                bool item_clicked = ImGui::Selectable(str.c_str(), directory_cache[original_index].is_selected, ImGuiSelectableFlags_SpanAllColumns);
+
+                if (item_clicked) {
+                  ImGuiIO& io = ImGui::GetIO();
+                  if (io.KeyCtrl) {
+                    directory_cache[original_index].is_selected = !directory_cache[original_index].is_selected;
+                  }
+                  else {
+                    for (auto& f : directory_cache) f.is_selected = false;
+                    directory_cache[original_index].is_selected = true;
+                  }
+                }
+
+                if (selection_state.is_selecting) {
+                  ImVec2 rect_min = ImVec2(
+                    std::min(selection_state.selection_start.x, selection_state.selection_end.x),
+                    std::min(selection_state.selection_start.y, selection_state.selection_end.y)
+                  );
+                  ImVec2 rect_max = ImVec2(
+                    std::max(selection_state.selection_start.x, selection_state.selection_end.x),
+                    std::max(selection_state.selection_start.y, selection_state.selection_end.y)
+                  );
+
+                  ImVec2 row_min = row_pos;
+                  ImVec2 row_max = ImVec2(row_pos.x + ImGui::GetContentRegionAvail().x, row_pos.y + row_height);
+
+                  bool overlaps = !(rect_max.x < row_min.x || rect_min.x > row_max.x ||
+                    rect_max.y < row_min.y || rect_min.y > row_max.y);
+
+                  if (overlaps) {
+                    directory_cache[original_index].is_selected = true;
+                  }
+                  else if (!selection_state.ctrl_held) {
+                    directory_cache[original_index].is_selected = false;
+                  }
+                }
+
                 handle_right_click(str);
 
                 ImTextureID texture_id;
@@ -2327,19 +2594,66 @@ export namespace fan {
                 }
                 ImGui::GetWindowDrawList()->AddImage(texture_id, cursor_pos, cursor_pos + image_size);
 
-                handle_item_interaction(file_info);
+                handle_item_interaction(file_info, original_index);
               }
             }
 
             ImGui::EndTable();
           }
         }
-        void handle_item_interaction(const file_info_t& file_info) {
+        void handle_item_interaction(const file_info_t& file_info, size_t original_index) {
           if (file_info.is_directory == false) {
-
             if (ImGui::BeginDragDropSource()) {
-              ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEM", file_info.item_path.data(), (file_info.item_path.size() + 1) * sizeof(wchar_t));
-              ImGui::Text("%s", file_info.filename.c_str());
+              bool showing_search_results = !search_state.found_files.empty() && !search_buffer.empty();
+
+              if (showing_search_results) {
+                if (!search_state.found_files[original_index].is_selected) {
+                  for (auto& f : search_state.found_files) f.is_selected = false;
+                  search_state.found_files[original_index].is_selected = true;
+                }
+              }
+              else {
+                if (!directory_cache[original_index].is_selected) {
+                  for (auto& f : directory_cache) f.is_selected = false;
+                  directory_cache[original_index].is_selected = true;
+                }
+              }
+
+              std::vector<std::wstring> selected_paths;
+
+              if (showing_search_results) {
+                for (const auto& f : search_state.found_files) {
+                  if (f.is_selected && !f.is_directory) {
+                    selected_paths.push_back(f.item_path);
+                  }
+                }
+              }
+              else {
+                for (const auto& f : directory_cache) {
+                  if (f.is_selected && !f.is_directory) {
+                    selected_paths.push_back(f.item_path);
+                  }
+                }
+              }
+
+              if (selected_paths.empty()) {
+                selected_paths.push_back(file_info.item_path);
+              }
+
+              std::wstring combined_paths;
+              for (size_t i = 0; i < selected_paths.size(); ++i) {
+                if (i > 0) combined_paths += L";";
+                combined_paths += selected_paths[i];
+              }
+              ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEMS", combined_paths.data(), (combined_paths.size() + 1) * sizeof(wchar_t));
+
+              if (selected_paths.size() > 1) {
+                ImGui::Text("%zu files selected", selected_paths.size());
+              }
+              else {
+                ImGui::Text("%s", file_info.filename.c_str());
+              }
+
               ImGui::EndDragDropSource();
             }
           }
@@ -2357,7 +2671,34 @@ export namespace fan {
           ImGui::Dummy(ImGui::GetContentRegionAvail());
 
           if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEMS")) {
+              const wchar_t* paths_data = (const wchar_t*)payload->Data;
+              std::wstring combined_paths(paths_data);
+
+              std::vector<std::filesystem::path> file_paths;
+              std::wstring current_path;
+
+              for (wchar_t c : combined_paths) {
+                if (c == L';') {
+                  if (!current_path.empty()) {
+                    file_paths.push_back(std::filesystem::path(asset_path) / current_path);
+                    current_path.clear();
+                  }
+                }
+                else {
+                  current_path += c;
+                }
+              }
+
+              if (!current_path.empty()) {
+                file_paths.push_back(std::filesystem::path(asset_path) / current_path);
+              }
+
+              for (const auto& path : file_paths) {
+                receive_func(path);
+              }
+            }
+            else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEMS")) {
               const wchar_t* path = (const wchar_t*)payload->Data;
               receive_func(std::filesystem::path(asset_path) / path);
             }
@@ -2655,25 +2996,28 @@ export namespace fan {
 
           fan::vec2 cursor_pos = gui::get_cursor_pos();
           if (drag_drop_id.size()) {
-            fan::vec2 avail = gui::get_content_region_avail();
-            ImGui::Dummy(avail);
-            gui::receive_drag_drop_target(drag_drop_id, [this, shape_animation_id](const std::string& file_path) {
-              if (fan::image::valid(file_path)) {
-                if (auto it = gloco->all_animations.find(current_animation_nr); it != gloco->all_animations.end()) {
-                  auto& anim = it->second;
-                  //// unload previous image
-                  //if (gloco->is_image_valid(anim.sprite_sheet)) {
-                  //  gloco->image_unload(anim.sprite_sheet);
-                  //}
-                  loco_t::sprite_sheet_animation_t::image_t new_image;
-                  new_image.image = gloco->image_load(file_path);
-                  anim.images.push_back(new_image);
+            //fan::vec2 avail = gui::get_content_region_avail();
+            fan::vec2 child_size = gui::get_window_size();
+            ImGui::Dummy(child_size);
+            gui::receive_drag_drop_target(drag_drop_id, [this, shape_animation_id](const std::string& file_paths) {
+              for (const std::string& file_path : fan::split(file_paths, ";")) {
+                if (fan::image::valid(file_path)) {
+                  if (auto it = gloco->all_animations.find(current_animation_nr); it != gloco->all_animations.end()) {
+                    auto& anim = it->second;
+                    //// unload previous image
+                    //if (gloco->is_image_valid(anim.sprite_sheet)) {
+                    //  gloco->image_unload(anim.sprite_sheet);
+                    //}
+                    loco_t::sprite_sheet_animation_t::image_t new_image;
+                    new_image.image = gloco->image_load(file_path);
+                    anim.images.push_back(new_image);
+                  }
+                }
+                else {
+                  fan::print("Warning: drop target not valid (requires image file)");
                 }
               }
-              else {
-                fan::print("Warning: drop target not valid (requires image file)");
-              }
-              });
+            });
           }
           gui::set_cursor_pos(cursor_pos);
 
