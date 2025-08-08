@@ -31,35 +31,6 @@ import fan.types.vector;
 
 export namespace fan {
 
-  std::vector<std::string> split(std::string str, std::string token) {
-    std::vector<std::string>result;
-    while (str.size()) {
-      std::size_t index = str.find(token);
-      if (index != std::string::npos) {
-        result.push_back(str.substr(0, index));
-        str = str.substr(index + token.size());
-        if (str.size() == 0)result.push_back(str);
-      }
-      else {
-        result.push_back(str);
-        str = "";
-      }
-    }
-    return result;
-  }
-
-  std::vector<std::string> split_quoted(const std::string& input) {
-    std::vector<std::string> args;
-    std::istringstream stream(input);
-    std::string arg;
-
-    while (stream >> std::quoted(arg)) {
-      args.push_back(arg);
-    }
-
-    return args;
-  }
-
   template <typename... T>
   constexpr std::string format(const std::string_view& fmt, T&&... args) {
     return current_fmt::vformat(fmt, current_fmt::make_format_args(args...));

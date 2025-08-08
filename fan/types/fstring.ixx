@@ -247,6 +247,32 @@ export namespace fan {
     return tokens;
   }
 
+  std::vector<std::string> split(const std::string& str, std::string_view token) {
+    std::vector<std::string> result;
+    std::size_t start = 0;
+    std::size_t pos = 0;
+
+    while ((pos = str.find(token, start)) != std::string::npos) {
+      result.push_back(str.substr(start, pos - start));
+      start = pos + token.size();
+    }
+    result.push_back(str.substr(start));
+
+    return result;
+  }
+
+  std::vector<std::string> split_quoted(const std::string& input) {
+    std::vector<std::string> args;
+    std::istringstream stream(input);
+    std::string arg;
+
+    while (stream >> std::quoted(arg)) {
+      args.push_back(arg);
+    }
+
+    return args;
+  }
+
   #define fan_enum_string_runtime(m_name, ...) \
     enum m_name { __VA_ARGS__ }; \
     inline std::vector<std::string> m_name##_strings = fan::split(#__VA_ARGS__)
