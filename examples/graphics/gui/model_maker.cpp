@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     //////////
     fan::graphics::engine_t engine;////
 
-    model_maker_t mm;////
+    model_maker_t mm;//// 
 
     mm.open("examples/games/forest game/forest_tileset.ftp", L"");
     // mm.fin("normal_map_tests.json");

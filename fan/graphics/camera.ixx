@@ -74,9 +74,9 @@ export namespace fan {
     }
 
     void update_view() {
-      this->m_front = (fan::math::direction_vector<fan::vec3>(this->m_yaw, this->m_pitch)).normalize();
-      this->m_right = (fan::math::cross(this->world_up, this->m_front)).normalize();
-      this->m_up = (fan::math::cross(this->m_front, this->m_right)).normalize();
+      this->m_front = (fan::math::direction_vector<fan::vec3>(this->m_yaw, this->m_pitch)).normalized();
+      this->m_right = (fan::math::cross(this->world_up, this->m_front)).normalized();
+      this->m_up = (fan::math::cross(this->m_front, this->m_right)).normalized();
     }
 
     void rotate_camera(fan::vec2 offset) {

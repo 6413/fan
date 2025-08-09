@@ -55,7 +55,7 @@ fan_language{
       if (auto result = physics::raycast(current_src, current_dst)) {
         ray_hit_point[depth].set_position(result.point);
 
-        fan::vec2 direction = (current_dst - current_src).normalize();
+        fan::vec2 direction = (current_dst - current_src).normalized();
         fan::vec2 reflection = direction - result.normal * 2 * direction.dot(result.normal);
         rays[depth].set_line(current_src, result.point);
         rays[depth].set_color(color::hsv(360.f * (depth / (f32_t)reflect_depth), 100, 100));

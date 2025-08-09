@@ -27,7 +27,7 @@ export namespace fan {
         line_src /= GridBlockSize;
         line_dst /= GridBlockSize;
 
-        fan::vec2 direction = (line_dst - line_src).normalize();
+        fan::vec2 direction = (line_dst - line_src).normalized();
 
         for (uint32_t d = 0; d < fan::vec2::size(); d++) {
           if (direction[d] == 0) {

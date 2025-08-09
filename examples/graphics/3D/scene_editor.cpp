@@ -24,9 +24,9 @@ void draw_world_orientation_axes(const fan::vec2& origin, const fan::vec2& windo
   fan::vec3 y_axis(view[0][1], view[1][1], view[2][1]);
   fan::vec3 z_axis(view[0][2], view[1][2], view[2][2]);
 
-  x_axis = x_axis.normalize();
-  y_axis = y_axis.normalize();
-  z_axis = z_axis.normalize();
+  x_axis = x_axis.normalized();
+  y_axis = y_axis.normalized();
+  z_axis = z_axis.normalized();
 
   ImDrawList* draw_list = ImGui::GetWindowDrawList();
 

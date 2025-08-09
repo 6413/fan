@@ -385,6 +385,11 @@ export struct fte_t {
     }
   };
 
+  fan::vec2 snap_to_tile_center(const fan::vec2& world_pos) {
+    fan::vec2i grid_coord = ((world_pos + tile_size) / (tile_size * 2.f)).floor();
+    return fan::vec2(grid_coord * (tile_size * 2.f));
+  }
+
   bool handle_tile_push(fan::vec2i& position, int& pj, int& pi) {
     if (brush.jitter) {
       if ( brush.jitter_chance <= fan::random::value_f32(0, 1)) {
@@ -404,7 +409,7 @@ export struct fte_t {
 
     convert_draw_to_grid(grid_position);
 
-    brush.line_src = gloco->get_mouse_position(render_view->camera, render_view->viewport);
+    brush.line_src = snap_to_tile_center(gloco->get_mouse_position(render_view->camera, render_view->viewport));
 
     grid_position /= (tile_size * 2);
     auto& layers = map_tiles[grid_position].layers;
@@ -927,6 +932,24 @@ export struct fte_t {
     });
   }
 
+  fan::vec2 snap_line_to_angle(const fan::vec2& start, const fan::vec2& end, f32_t snap_increment = 45.0f) {
+    fan::vec2 direction = end - start;
+    f32_t length = direction.length();
+
+    if (length < 1.0f) {
+      return end;
+    }
+
+    f32_t current_angle = fan::math::degrees(std::atan2(direction.y, direction.x));
+
+    f32_t snapped_angle = std::round(current_angle / snap_increment) * snap_increment;
+
+    f32_t snapped_radians = fan::math::radians(snapped_angle);
+    fan::vec2 snapped_direction = fan::vec2(std::cos(snapped_radians), std::sin(snapped_radians));
+
+    return start + snapped_direction * length;
+  }
+
   bool handle_editor_window(fan::vec2& editor_size) {
     if (fan::graphics::gui::begin_main_menu_bar()) {
       {
@@ -934,7 +957,7 @@ export struct fte_t {
         if (fan::graphics::gui::begin_menu("File")) {
 
           if (fan::graphics::gui::menu_item("Open..")) {
-            open_file_dialog.load("json;fmm", &fn);
+            open_file_dialog.load("fte;json", &fn);
           }
 
           if (fan::graphics::gui::menu_item("Save")) {
@@ -942,7 +965,7 @@ export struct fte_t {
           }
 
           if (fan::graphics::gui::menu_item("Save as")) {
-            save_file_dialog.save("json;fmm", &fn);
+            save_file_dialog.save("fte;json", &fn);
           }
 
           if (fan::graphics::gui::menu_item("Quit")) {
@@ -976,6 +999,7 @@ export struct fte_t {
         if (open_tp_dialog.is_finished()) {
           if (fn.size() != 0) {
             open_texturepack(fn);
+            fn.clear();
           }
           open_tp_dialog.finished = false;
         }
@@ -1164,38 +1188,51 @@ export struct fte_t {
 
     if (gloco->window.key_state(fan::key_shift) != -1) {
       fan::vec2 line_dst = gloco->get_mouse_position(render_view->camera, render_view->viewport);
+
+      bool control_pressed = gloco->window.key_pressed(fan::key_left_control);
+
+      if (control_pressed) {
+        line_dst = snap_line_to_angle(brush.line_src, line_dst, 45.0f);
+      }
+
       visual_line.set_line(brush.line_src, line_dst);
+
       if (gloco->window.key_state(fan::mouse_left) == 1) {
-        //fan::print(brush.line_src, line_dst);
-         brush.line_src = ((brush.line_src + tile_size) / (tile_size * 2)).floor() * tile_size * 2;
-         line_dst = ((line_dst + tile_size) / (tile_size * 2)).floor() * tile_size * 2;
-         if (line_dst.x - brush.line_src.x > tile_size.x*2) {
-          line_dst.x += tile_size.x * 2;
-         }
-         if (line_dst.y - brush.line_src.y > tile_size.y*2) {
-          line_dst.y += tile_size.y * 2;
-         }
-        std::vector<fan::vec2i> raycast_positions = fan::graphics::algorithm::grid_raycast({ brush.line_src / 2, line_dst / 2 }, tile_size);
-        int i = 0;
-        for (fan::vec2i& i : raycast_positions) {
-          fan::vec2i p = i;
-         // p /= 2;
-          //p -= tile_size;
-          p *= (tile_size * 2);
-          //convert_grid_to_draw(p);
-        //  fan::print(p);
-          //fan::vec2 p2 = 
-          //int i = 0, j = 0;
+        brush.line_src = ((brush.line_src + tile_size) / (tile_size * 2)).floor() * tile_size * 2;
+        fan::vec2 final_dst = line_dst;
+        final_dst = ((final_dst + tile_size) / (tile_size * 2)).floor() * tile_size * 2;
+
+        if (final_dst.x - brush.line_src.x > tile_size.x * 2) {
+          final_dst.x += tile_size.x * 2;
+        }
+        if (final_dst.y - brush.line_src.y > tile_size.y * 2) {
+          final_dst.y += tile_size.y * 2;
+        }
+
+        fan::vec2 raycast_dst = control_pressed ? line_dst : final_dst;
+
+        f32_t divider = 2.0001;
+        f32_t aim_angle = fan::math::degrees(fan::math::aim_angle(brush.line_src, final_dst));
+        if (brush.line_src.y > final_dst.y && brush.line_src.x < final_dst.x) {
+          divider = 1.9999;
+        }
+        else if (brush.line_src.y < final_dst.y && brush.line_src.x > final_dst.x) {
+          divider = 1.9999;
+        }
+
+        std::vector<fan::vec2i> raycast_positions = fan::graphics::algorithm::grid_raycast(
+          { brush.line_src / 2 + tile_size / divider, raycast_dst / 2 + tile_size / divider }, tile_size
+        );
+
+        for (fan::vec2i& pos : raycast_positions) {
+          fan::vec2i p = pos * (tile_size * 2);
           for (int i = 0; i < brush.size.y; ++i) {
             for (int j = 0; j < brush.size.x; ++j) {
-              fan::vec2i abc = p + fan::vec2i(j * (tile_size.x), i * (tile_size.y));
-              handle_tile_push(abc, i, j);
+              fan::vec2i tile_pos = p + fan::vec2i(j * tile_size.x, i * tile_size.y);
+              handle_tile_push(tile_pos, i, j);
             }
           }
         }
-        //for (auto& pos : raycast_positions) {
-          //map[pos.y][pos.x].set_color(fan::colors::green);
-        //}
       }
     }
     else {
@@ -1765,10 +1802,10 @@ export struct fte_t {
     handle_physics_settings_window();
 
     if (editor_settings.hovered && fan::window::is_mouse_down()) {
-      if (gloco->window.key_pressed(fan::key_left_control)) {
+      if (gloco->window.key_pressed(fan::key_t)) {
         handle_pick_tile();
       }
-      else if (gloco->window.key_pressed(fan::key_left_shift)) {
+      else if (gloco->window.key_pressed(fan::key_left_alt)) {
         handle_select_tile();
       }
     }
@@ -1799,7 +1836,11 @@ export struct fte_t {
     uint16_t depth;
   };
 
-  void fout(const std::string& filename) {
+  void fout(std::string filename) {
+    if (!filename.ends_with(".fte") && !filename.ends_with(".json")) {
+      filename += ".fte";
+    }
+
 #if defined(fan_json)
     previous_file_name = filename;
 

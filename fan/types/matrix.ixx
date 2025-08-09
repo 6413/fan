@@ -118,7 +118,7 @@ export namespace fan {
           q.z = 0.25f * s;
         }
       }
-      return q.normalize();
+      return q.normalized();
     }
 
     constexpr _matrix4x4() = default;
@@ -428,7 +428,7 @@ export namespace fan {
 			const f32_t a = angle;
 			const f32_t c = cos(a);
 			const f32_t s = sin(a);
-			fan::vec3 axis(v.normalize());
+			fan::vec3 axis(v.normalized());
 			fan::vec3 temp(axis * (1.0f - c));
 
 			_matrix4x4 rotation{};
@@ -465,7 +465,7 @@ export namespace fan {
       const f32_t a = angle;
       const f32_t c = cos(a);
       const f32_t s = sin(a);
-      fan::vec3 axis(v.normalize());
+      fan::vec3 axis(v.normalized());
       fan::vec3 temp(axis * (1.0f - c));
 
       _matrix4x4 rotation{};

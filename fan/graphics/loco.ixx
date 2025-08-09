@@ -1763,6 +1763,7 @@ public:
     input_action.add(fan::key_d, "move_right");
     input_action.add(fan::key_w, "move_forward");
     input_action.add(fan::key_s, "move_back");
+    input_action.add(fan::key_space, "move_up");
     global_imgui_initialized = true;
     imgui_initialized = true;
   }
@@ -2537,7 +2538,18 @@ public:
   }
 
   bool process_loop(const std::function<void()>& lambda = [] {}) {
-    
+    window.handle_events();
+
+    if (should_close()) {
+      return 1;
+    }
+
+    delta_time = window.m_delta_time;
+
+#if defined(fan_physics)
+    physics_context.begin_frame(delta_time);
+#endif
+
 #if defined(fan_gui)
     if (reload_renderer_to != (decltype(reload_renderer_to))-1) {
       switch_renderer(reload_renderer_to);
@@ -2557,26 +2569,26 @@ public:
 
     auto& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
-
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
-
     ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
     if (allow_docking || is_key_down(fan::key_left_control)) {
       ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    } 
+    }
     else {
       ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_DockingEnable;
     }
 
-
     ImGui::PopStyleColor(2);
-
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(window.get_size());
 
-    int flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
+    int flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings |
+      ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMove |
+      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground |
+      ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit |
+      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
     if (!enable_overlay) {
       flags |= ImGuiWindowFlags_NoNav;
@@ -2590,17 +2602,9 @@ public:
     // user can terminate from main loop
     if (should_close()) {
       return 1;
-    }//
+    }
 
     process_frame();
-    window.handle_events();
-    
-    delta_time = window.m_delta_time;
-
-    // window can also be closed from window cb
-    if (should_close()) {
-      return 1;
-    }//
 
     return 0;
   }
@@ -5721,7 +5725,7 @@ void set_sprite_sheet_next_frame(int advance = 1) {
 
     fan::vec4 ray_world = inverted_view * ray_clip;
 
-    fan::vec3 ray_dir = fan::vec3(ray_world.x, ray_world.y, ray_world.z).normalize();
+    fan::vec3 ray_dir = fan::vec3(ray_world.x, ray_world.y, ray_world.z).normalized();
 
     fan::vec3 ray_origin = camera_position;
     return fan::ray3_t(ray_origin, ray_dir);

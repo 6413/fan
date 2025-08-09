@@ -54,7 +54,7 @@ void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, v
 }
 
 /// Draw a solid closed polygon provided in CCW order.
-void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexCount, float radius, b2HexColor color,
+void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexCount, f32_t radius, b2HexColor color,
   void* context) {
   std::vector<fan::graphics::vertex_t> vs(vertexCount);
   for (auto [i, v] : fan::enumerate(vs)) {
@@ -70,7 +70,7 @@ void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexC
 }
 
 /// Draw a circle.
-void DrawCircle(b2Vec2 center, float radius, b2HexColor color, void* context) {
+void DrawCircle(b2Vec2 center, f32_t radius, b2HexColor color, void* context) {
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
     .position = fan::vec3(fan::physics::physics_to_render(center), 0x1f00 + z_depth),
     .radius = fan::physics::physics_to_render(radius).x,
@@ -80,7 +80,7 @@ void DrawCircle(b2Vec2 center, float radius, b2HexColor color, void* context) {
 }
 
 /// Draw a solid circle.
-void DrawSolidCircle(b2Transform transform, float radius, b2HexColor color, void* context) {
+void DrawSolidCircle(b2Transform transform, f32_t radius, b2HexColor color, void* context) {
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
     .position = fan::vec3(fan::physics::physics_to_render(transform.p), 0x1f00 + z_depth),
     .radius = fan::physics::physics_to_render(radius).x,
@@ -90,12 +90,12 @@ void DrawSolidCircle(b2Transform transform, float radius, b2HexColor color, void
 }
 
 /// Draw a capsule.
-void DrawCapsule(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
+void DrawCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* context) {
   printf("DrawCapsule\n");
 }
 
 /// Draw a solid capsule.
-void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
+void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* context) {
   printf("DrawSolidCapsule\n");
 }
 
@@ -115,7 +115,7 @@ void DrawTransform(b2Transform transform, void* context) {
 }
 
 /// Draw a point.
-void DrawPoint(b2Vec2 p, float size, b2HexColor color, void* context) {
+void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
   //vs.back() = vs.front();
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
     .position = fan::vec3(fan::physics::physics_to_render(p), 0x1f00 + z_depth),
@@ -385,6 +385,16 @@ export namespace fan {
           }
           physics_update_nr.sic();
         }
+
+        mass_data_t get_mass_data() {
+          b2MassData md = b2Body_GetMassData(*dynamic_cast<fan::physics::body_id_t*>(dynamic_cast<fan::physics::entity_t*>(this)));
+          mass_data_t mass_data;
+          mass_data.mass = md.mass;
+          mass_data.center_of_mass = md.mass;
+          mass_data.rotational_inertia = md.mass;
+          return mass_data;
+        }
+
         loco_t::physics_update_cbs_t::nr_t physics_update_nr;
       };
 
@@ -840,10 +850,10 @@ export namespace fan {
         };
 
         character2d_t() {
-          add_inputs();
+        
         }
         character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {
-          add_inputs();
+        
         }
 
         void set_shape(loco_t::shape_t&& shape) {
@@ -879,7 +889,7 @@ export namespace fan {
               int count = b2Body_GetContactData(body_id, contactData, capacity);
               for (int i = 0; i < count; ++i) {
                 b2BodyId bodyIdA = b2Shape_GetBody(contactData[i].shapeIdA);
-                float sign = 0.0f;
+                f32_t sign = 0.0f;
                 if (B2_ID_EQUALS(bodyIdA, body_id)) {
                   // normal points from A to B
                   sign = -1.0f;
@@ -895,38 +905,15 @@ export namespace fan {
           }
           return false;
         }
-        void add_inputs() {
-          gloco->input_action.add(fan::key_a, "move_left");
-          gloco->input_action.add(fan::key_d, "move_right");
-          gloco->input_action.add(fan::key_space, "move_up");
-          gloco->input_action.add(fan::key_s, "move_down");
-        }
         void process_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12) {
           fan::vec2 velocity = get_linear_velocity();
+          
+          walk_force = 0;
 
-          auto movement_left_right = [&] {
-            walk_force = 0;
-            if (gloco->input_action.is_action_down("move_left")) {
-              move_to_direction(fan::vec2(-1, 0));
-            }
-            if (gloco->input_action.is_action_down("move_right")) {
-              move_to_direction(fan::vec2(1, 0));
-            }
-            };
-          auto movement_up_down = [&] {
-            walk_force = 0;
-            if (gloco->input_action.is_action_down("move_up")) {
-              move_to_direction(fan::vec2(0, -1));
-            }
-            if (gloco->input_action.is_action_down("move_down")) {
-              move_to_direction(fan::vec2(0, 1));
-            }
-            };
           switch (movement) {
           case movement_e::side_view: {
 
-            movement_left_right();
-
+            move_to_direction(fan::vec2(gloco->get_input_vector().x, 0));
             bool can_jump = false;
 
             bool on_ground = is_on_ground(*this, std::to_array(feet), jumping);
@@ -936,13 +923,24 @@ export namespace fan {
               on_air_after_jump = false;
             }
 
+            //static fan::time::clock c;
+            //static fan::vec2 prev;
+            //static bool reset = 0;
+            ////fan::print(get_position().y, prev.y, get_linear_velocity().y);
+            //if (get_position().y < prev.y && get_linear_velocity().y > 0 && !reset) {
+            //  fan::print("fps:", 1.0 / gloco->delta_time, "time to highest point (s): ", c.elapsed() / 1e+9);
+            //  reset = true;
+            //}
+            //prev.y = get_position().y;
             bool move_up = gloco->input_action.is_action_clicked("move_up");
             if (move_up) {
               if (can_jump) {
                 if (handle_jump) {
                   on_air_after_jump = true;
-                  set_linear_velocity(fan::vec2(get_linear_velocity().x, 0));
-                  apply_linear_impulse_center({ 0, -impulse });
+                  apply_linear_impulse_center({ 0, -jump_impulse });
+                 // prev = get_position().y;
+               //   c.start();
+               //   reset = false;
                 }
                 jump_delay = 0.f;
                 jumping = true;
@@ -958,40 +956,20 @@ export namespace fan {
             break;
           }
           case movement_e::top_view: {
-            movement_left_right();
-            movement_up_down();
+            move_to_direction(gloco->get_input_vector());
             break;
           }
           }
         }
         void move_to_direction(const fan::vec2& direction) {
-          previous_movement_sign = direction.square_normalize();
-          fan::vec2 velocity = get_linear_velocity();
-          if (direction.x < 0) {
-            if (velocity.x > -max_speed) {
-              apply_force_center({ -force, 0 });
-            }
-          }
-          else if (direction.x > 0) {
-            if (velocity.x <= max_speed) {
-              apply_force_center({ force, 0 });
-            }
-          }
-          if (direction.y < 0) {
-            if (velocity.y > -max_speed) {
-              apply_force_center({ 0, -force });
-            }
-          }
-          if (direction.y > 0) {
-            if (velocity.y <= max_speed) {
-              apply_force_center({ 0, force });
-            }
-          }
+          previous_movement_sign = direction.sign(); // square_normalize?
+          fan::vec2 vel = get_linear_velocity();
+          apply_force_center((fan::vec2(1.0) - (fan::vec2i(vel / max_speed).min(1)).abs()) * previous_movement_sign * force);
         }
         fan::vec2 previous_movement_sign;
-        f32_t force = 25.f;
-        f32_t impulse = 3.f;
-        f32_t max_speed = 500.f;
+        f32_t force = 15.f;
+        f32_t jump_impulse = 3.2f;
+        f32_t max_speed = 300.f;
         f32_t jump_delay = 0.25f;
         bool jumping = false;
         fan::physics::body_id_t feet[2];
@@ -1050,7 +1028,7 @@ export namespace fan {
         fan::vec2 center1 = 0;
       };
 
-      void update_reference_angle(b2WorldId world, fan::physics::joint_id_t& joint_id, float new_reference_angle) {
+      void update_reference_angle(b2WorldId world, fan::physics::joint_id_t& joint_id, f32_t new_reference_angle) {
 
         b2BodyId bodyIdA = b2Joint_GetBodyA(joint_id);
         b2BodyId bodyIdB = b2Joint_GetBodyB(joint_id);
@@ -1058,13 +1036,13 @@ export namespace fan {
         b2Vec2 localAnchorA = b2Joint_GetLocalAnchorA(joint_id);
         b2Vec2 localAnchorB = b2Joint_GetLocalAnchorB(joint_id);
         bool enableLimit = b2RevoluteJoint_IsLimitEnabled(joint_id);
-        float lowerAngle = b2RevoluteJoint_GetLowerLimit(joint_id);
-        float upperAngle = b2RevoluteJoint_GetUpperLimit(joint_id);
+        f32_t lowerAngle = b2RevoluteJoint_GetLowerLimit(joint_id);
+        f32_t upperAngle = b2RevoluteJoint_GetUpperLimit(joint_id);
         bool enableMotor = b2RevoluteJoint_IsMotorEnabled(joint_id);
-        float motorSpeed = b2RevoluteJoint_GetMotorSpeed(joint_id);
-        float maxMotorTorque = b2RevoluteJoint_GetMaxMotorTorque(joint_id);
-        float hertz = b2RevoluteJoint_GetSpringHertz(joint_id);
-        float damping_ratio = b2RevoluteJoint_GetSpringDampingRatio(joint_id);
+        f32_t motorSpeed = b2RevoluteJoint_GetMotorSpeed(joint_id);
+        f32_t maxMotorTorque = b2RevoluteJoint_GetMaxMotorTorque(joint_id);
+        f32_t hertz = b2RevoluteJoint_GetSpringHertz(joint_id);
+        f32_t damping_ratio = b2RevoluteJoint_GetSpringDampingRatio(joint_id);
 
         b2DestroyJoint(joint_id);
 
@@ -1451,7 +1429,7 @@ export namespace fan {
           load_preset(position, scale, images, bones, color);
         }
 
-        void animate_jump(f32_t impulse, f32_t dt, bool is_jumping) {
+        void animate_jump(f32_t jump_impulse, f32_t dt, bool is_jumping) {
           bone_t& bupper_left_leg = bones[bone_e::upper_left_leg];
           bone_t& bupper_right_leg = bones[bone_e::upper_right_leg];
           bone_t& blower_left_leg = bones[bone_e::lower_left_leg];
@@ -1460,10 +1438,10 @@ export namespace fan {
             go_up = 0;
           }
           if (go_up == 1 && !jump_animation_timer.finished()) {
-            bones[bone_e::torso].visual.apply_linear_impulse_center(fan::vec2(0, impulse / 4));
+            bones[bone_e::torso].visual.apply_linear_impulse_center(fan::vec2(0, jump_impulse / 4));
           }
           else if (go_up == 1 && jump_animation_timer.finished()) {
-            bones[bone_e::torso].visual.apply_linear_impulse_center(fan::vec2(0, -impulse));
+            bones[bone_e::torso].visual.apply_linear_impulse_center(fan::vec2(0, -jump_impulse));
             go_up = 0;
           }
           if (go_up == 0 && is_jumping) {
@@ -1599,10 +1577,6 @@ export namespace fan {
       };
     }
   }
-}
-
-void fan::graphics::physics::step(f32_t dt) {
-  gloco->physics_context.step(dt);
 }
 
 void fan::graphics::physics::debug_draw(bool enabled) {

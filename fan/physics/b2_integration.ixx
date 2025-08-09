@@ -16,6 +16,32 @@ export module fan.physics.b2_integration;
 #if defined(fan_physics)
 
 import fan.types.vector;
+import fan.print;
+
+namespace fan {
+  namespace physics {
+    struct context_t;
+  }
+}
+
+struct global_physics_t {
+
+  fan::physics::context_t* context = nullptr;
+
+  operator fan::physics::context_t* () {
+    return context;
+  }
+
+  global_physics_t& operator=(fan::physics::context_t* l) {
+    context = l;
+    return *this;
+  }
+  fan::physics::context_t* operator->() {
+    return context;
+  }
+};
+
+export thread_local global_physics_t gphysics;
 
 export namespace fan {
   namespace physics {
@@ -63,30 +89,45 @@ export namespace fan {
     //   chain_segment_t(const b2ChainSegment& segment) : b2ChainSegment(segment) {}
     // };
 
+
     struct body_update_data_t {
-      std::function<void()> cb;
-    };
-    struct test_t {
-      #define BLL_API inline static 
-      #define BLL_set_SafeNext 1
-      #define BLL_set_AreWeInsideStruct 1
-      #define BLL_set_prefix body_updates
-      #define BLL_set_CPP_CopyAtPointerChange 1
-      #include <fan/fan_bll_preset.h>
-      #define BLL_set_Link 1
-      #define BLL_set_type_node uint16_t
-      #define BLL_set_NodeDataType body_update_data_t
-      #include <BLL/BLL.h>
+      fan::vec2 linear_velocity{ 0 };
+      f32_t angular_velocity = 0;
+      fan::vec2 accumulated_force{ 0 };
+      fan::vec2 accumulated_impulse{ 0 };
+      f32_t accumulated_angular_impulse = 0;
+      fan::vec2 position{ 0 };
+
+      bool has_linear_velocity = false;
+      bool has_angular_velocity = false;
+      bool has_position = false;
+
+      bool is_idle() const {
+        return accumulated_force.x == 0.0f && accumulated_force.y == 0.0f &&
+          accumulated_impulse.x == 0.0f && accumulated_impulse.y == 0.0f &&
+          accumulated_angular_impulse == 0.0f &&
+          !has_linear_velocity && !has_angular_velocity && !has_position;
+      }
     };
 
 
-    inline test_t::body_updates_t body_updates;
-    test_t::body_updates_t::nr_t push_body_update(const auto& l) {
-      auto it = body_updates.NewNodeLast();
-      auto& node = body_updates[it];
-      node.cb = l;
-      return it;
-    }
+    struct b2_body_id_hash_t {
+      std::size_t operator()(const b2BodyId& id) const {
+        return std::hash<uint64_t>{}(
+          (uint64_t(id.index1) << 32) | (uint64_t(id.world0) << 16) | id.revision
+          );
+      }
+    };
+
+    struct b2_body_id_equal_t {
+      bool operator()(const b2BodyId& a, const b2BodyId& b) const {
+        return a.index1 == b.index1 && a.world0 == b.world0 && a.revision == b.revision;
+      }
+    };
+
+    inline std::unordered_map<b2BodyId, body_update_data_t, b2_body_id_hash_t, b2_body_id_equal_t> body_updates;
+
+    inline constexpr f32_t physics_timestep = 1.0 / 256.0;
 
     struct body_id_t : b2BodyId {
       using b2BodyId::b2BodyId;
@@ -114,6 +155,7 @@ export namespace fan {
         if (is_valid() == false) {
           return;
         }
+        body_updates.erase(*this);
         b2DestroyBody(*this);
         *this = b2_nullBodyId;
       }
@@ -121,42 +163,41 @@ export namespace fan {
       fan::vec2 get_linear_velocity() const {
         return fan::vec2(b2Body_GetLinearVelocity(*this)) * length_units_per_meter;
       }
+
       void set_linear_velocity(const fan::vec2& v) {
-        push_body_update([v, id = (b2BodyId)*this] {
-          b2Body_SetLinearVelocity(id, v / length_units_per_meter);
-          });
+        auto& data = body_updates[*this];
+        data.linear_velocity = v;
+        data.has_linear_velocity = true;
       }
+
       f32_t get_angular_velocity() const {
         return b2Body_GetAngularVelocity(*this) * length_units_per_meter;
       }
+
       void set_angular_velocity(f32_t v) {
-        push_body_update([v, id = (b2BodyId)*this] {
-          b2Body_SetAngularVelocity(id, v / length_units_per_meter);
-          });
+        auto& data = body_updates[*this];
+        data.angular_velocity = v;
+        data.has_angular_velocity = true;
       }
-      void apply_force_center(const fan::vec2& v) {
-        push_body_update([v, id = (b2BodyId)*this] {
-          b2Body_ApplyForceToCenter(id, v / length_units_per_meter, true);
-          });
-      }
-      void apply_linear_impulse_center(const fan::vec2& v) {
-        push_body_update([v, id = (b2BodyId)*this] {
-          b2Body_ApplyLinearImpulseToCenter(id, v / length_units_per_meter, true);
-          });
-      }
+
+      void apply_force_center(const fan::vec2& v);
+
+      void apply_linear_impulse_center(const fan::vec2& v);
+
       void apply_angular_impulse(f32_t v) {
-        push_body_update([v, id = (b2BodyId)*this] {
-          b2Body_ApplyAngularImpulse(id, v / length_units_per_meter, true);
-          });
+        auto& data = body_updates[*this];
+        data.accumulated_angular_impulse += v;
       }
+
       fan::vec2 get_physics_position() const {
         return b2Body_GetPosition(*this);
       }
-      void set_physics_position(const fan::vec2& p) {
-        b2Rot rotation = b2Body_GetRotation(*this);
-        b2Body_SetTransform(*this, p / length_units_per_meter, rotation);
-      }
 
+      void set_physics_position(const fan::vec2& p) {
+        auto& data = body_updates[*this];
+        data.position = p;
+        data.has_position = true;
+      }
       b2ShapeId get_shape_id() const {
         b2ShapeId shape_id = b2_nullShapeId;
 #if fan_debug >= fan_debug_medium
@@ -179,6 +220,26 @@ export namespace fan {
         return b2Shape_GetRestitution(get_shape_id());
       }
     };
+
+    struct joint_update_data_t {
+      f32_t motor_speed = 0;
+      bool has_motor_speed = false;
+    };
+
+    struct b2_joint_id_hash_t {
+      std::size_t operator()(const b2JointId& id) const {
+        return std::hash<uint64_t>{}(
+          (uint64_t(id.index1) << 32) | (uint64_t(id.world0) << 16) | id.revision
+          );
+      }
+    };
+    struct b2_joint_id_equal_t {
+      bool operator()(const b2JointId& a, const b2JointId& b) const {
+        return a.index1 == b.index1 && a.world0 == b.world0 && a.revision == b.revision;
+      }
+    };
+    inline std::unordered_map<b2JointId, joint_update_data_t, b2_joint_id_hash_t, b2_joint_id_equal_t> joint_updates;
+
 
     struct joint_id_t : b2JointId {
       using b2JointId::b2JointId;
@@ -209,17 +270,16 @@ export namespace fan {
         b2DestroyJoint(*this);
         invalidate();
       }
-
       void revolute_joint_set_motor_speed(f32_t v) {
-        push_body_update([v, id = *this] {
-          b2RevoluteJoint_SetMotorSpeed(id, v);
-          });
+        auto& data = joint_updates[*this];
+        data.motor_speed = v;
+        data.has_motor_speed = true;
       }
     };
 
     struct shape_properties_t {
       f32_t friction = 0.6f;
-      f32_t density = 1.0f;
+      f32_t density = 0.1f;
       f32_t restitution = 0.0f;
       bool fixed_rotation = false;
       bool presolve_events = false;
@@ -301,6 +361,7 @@ export namespace fan {
         fan::vec2 gravity{ 0, 9.8f / length_units_per_meter };
       };
       context_t(const properties_t& properties = properties_t()) {
+        gphysics = this;
         //b2SetLengthUnitsPerMeter(properties.length_units_per_meter);
         b2WorldDef world_def = b2DefaultWorldDef();
         world_def.gravity = properties.gravity * length_units_per_meter * 2;
@@ -312,6 +373,10 @@ export namespace fan {
       }
       fan::vec2 get_gravity() const {
         return b2World_GetGravity(world_id);
+      }
+
+      void begin_frame(f32_t dt) {
+        delta_time = dt;
       }
 
       entity_t create_box(const fan::vec2& position, const fan::vec2& size, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
@@ -478,32 +543,55 @@ export namespace fan {
         b2CreatePolygonShape(entity, &shape_def, &polygon);
         return entity;
       }
-
       void step(f32_t dt) {
-        static f32_t skip = 0;
-        static f32_t x = 0;
-        x += dt;
-        skip += dt;
-        if (skip == 0) {
-          b2World_Step(world_id, 1.0 / 30, 4);
-          return;
-        }
-        f32_t timestep = 1.0 / 256.0;
-        while (x > timestep) {
-          {
-            auto it = body_updates.GetNodeFirst();
-            while (it != body_updates.dst) {
-              body_updates.StartSafeNext(it);
-              auto& node = body_updates[it];
-              node.cb();
-              it = body_updates.EndSafeNext();
+        static f32_t accumulator = 0.0f;
+        accumulator += dt;
+
+        while (accumulator >= physics_timestep) {
+
+          auto it = body_updates.begin();
+          while (it != body_updates.end()) {
+            auto& [id, data] = *it;
+
+            if (data.accumulated_impulse.x != 0.0f || data.accumulated_impulse.y != 0.0f) {
+              b2Body_ApplyLinearImpulseToCenter(id, data.accumulated_impulse / length_units_per_meter, true);
+              data.accumulated_impulse = { 0,0 };
+            }
+            if (data.accumulated_angular_impulse != 0.0f) {
+              b2Body_ApplyAngularImpulse(id, data.accumulated_angular_impulse / length_units_per_meter, true);
+              data.accumulated_angular_impulse = 0.0f;
+            }
+            if (data.accumulated_force.x != 0.0f || data.accumulated_force.y != 0.0f) {
+              b2Body_ApplyLinearImpulseToCenter(id, data.accumulated_force / length_units_per_meter, true);
+              data.accumulated_force = { 0, 0 };
+            }
+
+            if (data.has_linear_velocity) {
+              b2Body_SetLinearVelocity(id, data.linear_velocity / length_units_per_meter);
+              data.has_linear_velocity = false;
+            }
+            if (data.has_angular_velocity) {
+              b2Body_SetAngularVelocity(id, data.angular_velocity / length_units_per_meter);
+              data.has_angular_velocity = false;
+            }
+            if (data.has_position) {
+              b2Rot rotation = b2Body_GetRotation(id);
+              b2Body_SetTransform(id, data.position / length_units_per_meter, rotation);
+              data.has_position = false;
+            }
+            if ((accumulator - physics_timestep) < physics_timestep && data.is_idle()) {
+              it = body_updates.erase(it);
+            }
+            else {
+              ++it;
             }
           }
-          b2World_Step(world_id, timestep, 4);
+
+          b2World_Step(world_id, physics_timestep, 4);
           sensor_events.update(world_id);
-          x -= timestep;
+
+          accumulator -= physics_timestep;
         }
-        body_updates.Clear();
       }
 
       bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const {
@@ -531,6 +619,7 @@ export namespace fan {
 
       b2WorldId world_id;
       sensor_events_t sensor_events;
+      f32_t delta_time = 0;
     };
 
     // This callback must be thread-safe. It may be called multiple times simultaneously.
@@ -668,5 +757,15 @@ export namespace fan {
     }
 
   }
+}
+
+void fan::physics::body_id_t::apply_linear_impulse_center(const fan::vec2& v) {
+  auto& data = body_updates[*this];
+  data.accumulated_impulse += v;
+}
+
+void fan::physics::body_id_t::apply_force_center(const fan::vec2& v) {
+  auto& data = body_updates[*this];
+  data.accumulated_force += v * gphysics->delta_time;
 }
 #endif

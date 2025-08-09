@@ -184,7 +184,7 @@ export namespace fan {
 				 this->z * quat.z;
 		}
 
-		constexpr auto normalize() const {
+		constexpr auto normalized() const {
 			value_type length = std::sqrt(this->dot(*this));
 
 			return quaternion(
@@ -255,7 +255,7 @@ export namespace fan {
     }
 
     void to_axis_angle(fan::vec3& axis, value_type& angle) const {
-      quaternion<T> qn = normalize();
+      quaternion<T> qn = normalized();
       angle = 2.0f * acos(qn.w);
 
       float s = sqrt(1.0f - qn.w * qn.w);
@@ -302,7 +302,7 @@ export namespace fan {
       q.y = cx * sy * cz + sx * cy * sz;
       q.z = cx * cy * sz - sx * sy * cz;
 
-      return q.normalize();
+      return q.normalized();
     }
 
     fan::vec3 to_euler() const {
