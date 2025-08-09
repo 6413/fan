@@ -175,8 +175,14 @@ constexpr auto ceil() const { make_for_all(ret[i] = std::ceil((*this)[i])); }
 constexpr auto round() const { make_for_all(ret[i] = std::round((*this)[i])); }
 constexpr auto abs() const { make_for_all(ret[i] = std::abs((*this)[i])); }
 constexpr auto min() const { return *std::min_element(begin(), end()); }
+template <typename T>
+requires(std::is_arithmetic_v<T>)
+constexpr auto min(const T& test0) const { make_for_all(ret[i] = std::min((*this)[i], test0)); }
 constexpr auto min(const auto& test0) const { make_for_all_test1(ret[i] = std::min((*this)[i], test0[i])); }
 constexpr auto max() const { return *std::max_element(begin(), end()); }
+template <typename T>
+requires(std::is_arithmetic_v<T>)
+constexpr auto max(const T& test0) const { make_for_all(ret[i] = std::max((*this)[i], test0)); }
 constexpr auto max(const auto& test0) const { make_for_all_test1(ret[i] = std::max((*this)[i], test0[i])); }
 constexpr auto clamp(value_type mi, value_type ma) const { make_for_all(ret[i] = std::clamp((*this)[i], mi, ma)); }
 constexpr auto clamp(const vec_t& test0, const vec_t& test1) const { make_for_all_test2(ret[i] = std::clamp((*this)[i], test0[i], test1[i])); }
@@ -194,8 +200,14 @@ constexpr auto dot(const auto& test0) const { return fan::math::dot(*this, test0
 template <typename... Ts>
 constexpr auto cross(Ts... args) const { return fan::math::cross(*this, args...); }
 constexpr auto length() const { return sqrt(dot(*this)); }
-constexpr auto normalize() const { auto l = length(); if (l == 0) return vec_t(0); make_for_all(ret[i] = (*this)[i] / l); }
-constexpr vec_t square_normalize() const { return *this / abs().max(); }
+constexpr auto normalized() const { auto l = length(); if (l == 0) return vec_t(0); make_for_all(ret[i] = (*this)[i] / l); }
+constexpr vec_t square_normalize() const { 
+  auto max_val = abs().max();
+  if (max_val == 0) {
+    return vec_t{};
+  }
+  return *this / max_val; 
+}
 void from_string(const std::string& str) { std::stringstream ss(str); char ch; for (access_type_t i = 0; i < size(); ++i) ss >> ch >> (*this)[i]; }
 
 constexpr vec_t rotate(value_type_t angle) const {
