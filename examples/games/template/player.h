@@ -7,7 +7,7 @@ struct player_t {
       .color = fan::colors::white,
       .flags = 3
     } };
-    player.impulse = 3;
+    player.jump_impulse = 3;
     player.force = 15;
     player.max_speed = 270;
   }

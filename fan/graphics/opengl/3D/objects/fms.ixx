@@ -692,7 +692,7 @@ export namespace fan_3d {
             }
             else {
               position += pose.position * anim.weight;
-              fan::quat normalized_rotation = pose.rotation.normalize();
+              fan::quat normalized_rotation = pose.rotation.normalized();
               rotation = fan::quat::slerp(rotation, normalized_rotation, anim.weight / (total_weight + anim.weight));
               scale += pose.scale * anim.weight;
               total_weight += anim.weight;
@@ -701,7 +701,7 @@ export namespace fan_3d {
         }
 
         if (total_weight > 0) {
-          rotation = rotation.normalize(); local_transform = fan::translation_matrix(position) * fan::rotation_quat_matrix(rotation) * fan::scaling_matrix(scale);
+          rotation = rotation.normalized(); local_transform = fan::translation_matrix(position) * fan::rotation_quat_matrix(rotation) * fan::scaling_matrix(scale);
         }
         else { local_transform = bone.transformation; }
 
@@ -1288,7 +1288,7 @@ export namespace fan_3d {
         }
 
         fan_3d::model::bone_t transform = source_bone;
-        transform.rotation = (animation_rotation * tpose_adjust).normalize();
+        transform.rotation = (animation_rotation * tpose_adjust).normalized();
 
         fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
         local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;

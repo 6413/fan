@@ -306,7 +306,7 @@ struct gui_t {
         ++it->current_path;
         dst = path[it->current_path];
       }
-      fan::vec2 offset = (dst - src).normalize() * it->speed * 100.f * gloco->delta_time;
+      fan::vec2 offset = (dst - src).normalized() * it->speed * 100.f * gloco->delta_time;
       src += offset;
       it->visual.set_position(fan::vec3(src, 0xffa0));
       ++it;
@@ -386,7 +386,7 @@ int main() {
   for (const auto& pair : pairs) {
       gui.path.push_back(pair.second);
   }
-  gui.path.back() += (gui.path.back() - gui.path[gui.path.size() - 2]).normalize() * 200;
+  gui.path.back() += (gui.path.back() - gui.path[gui.path.size() - 2]).normalized() * 200;
 
   init_zoom();
 

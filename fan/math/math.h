@@ -262,7 +262,7 @@ namespace fan {
 			f32_t d_a = root1 > root2 ? root1 : root2;
 			f32_t t = d_a / s_b;
 			T c = a + v_a * t;
-			result = (c - b).normalize();
+			result = (c - b).normalized();
 			return true;
 
 		}
@@ -571,8 +571,8 @@ namespace fan {
 		template <typename matrix_t, typename vector_t>
 		constexpr auto look_at_left(const vector_t& eye, const vector_t& center, const vector_t& up)
 		{
-			const vector_t f((eye - center).normalize());
-			const vector_t s((fan::math::cross(f, up)).normalize());
+			const vector_t f((eye - center).normalized());
+			const vector_t s((fan::math::cross(f, up)).normalized());
 			const vector_t u(fan::math::cross(s, f));
 
 			matrix_t matrix(1);

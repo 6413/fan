@@ -1,7 +1,6 @@
 void open(void* sod) {
   main_compiled_map = pile.renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
-  //render_size /= 0.01;
   fte_loader_t::properties_t p;
   p.size = render_size;
   p.position = pile.player.player.get_position();

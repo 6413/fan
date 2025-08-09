@@ -9,9 +9,9 @@ struct player_t {
     player.set_size(player.get_size() / 2.5);
     player.start_sprite_sheet_animation();
     
-    player.impulse = 3;
+    player.jump_impulse = 3.5;
     player.force = 15;
-    player.max_speed = 270;
+    player.max_speed = 300;
   }
 
   void step() {
