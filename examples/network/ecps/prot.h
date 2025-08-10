@@ -5,7 +5,14 @@ struct Protocol_SessionID_t {
   Type i;
   operator Type&() { return i; }
   Protocol_SessionID_t() = default;
+#ifndef __ecps_client
+  Protocol_SessionID_t(auto);
+  Protocol_SessionID_t(auto, auto);
+#endif
   Protocol_SessionID_t(Type v) : i(v) {}
+  bool operator==(Protocol_SessionID_t SessionID){
+    return (Type)*this == (Type)SessionID;
+  }
 };
 struct Protocol_AccountID_t {
   typedef uint32_t Type;
@@ -13,6 +20,11 @@ struct Protocol_AccountID_t {
   operator Type& () { return i; }
   Protocol_AccountID_t() = default;
   Protocol_AccountID_t(Type v) : i(v) {}
+  static Protocol_AccountID_t GetInvalid(){
+    Protocol_AccountID_t r;
+    r = (Type)-1;
+    return r;
+  }
 };
 struct Protocol_ChannelID_t {
   typedef uint16_t Type;
@@ -20,6 +32,9 @@ struct Protocol_ChannelID_t {
   operator Type& () { return i; }
   Protocol_ChannelID_t() = default;
   Protocol_ChannelID_t(Type v) : i(v) {}
+#ifndef __ecps_client
+  Protocol_ChannelID_t(auto p);
+#endif
   void invalidate() { i = (uint16_t)-1; }
 };
 struct Protocol_ChannelSessionID_t {
@@ -28,6 +43,9 @@ struct Protocol_ChannelSessionID_t {
   operator Type& () { return i; }
   Protocol_ChannelSessionID_t() = default;
   Protocol_ChannelSessionID_t(Type v) : i(v) {}
+#ifndef __ecps_client
+  Protocol_ChannelSessionID_t(auto p);
+#endif
 };
 struct Protocol_SessionChannelID_t {
   typedef Protocol_ChannelID_t::Type Type;
@@ -38,6 +56,11 @@ struct Protocol_SessionChannelID_t {
 };
 
 typedef uint16_t Protocol_CI_t;
+
+struct ProtocolBasePacket_t{
+  uint32_t ID;
+  Protocol_CI_t Command;
+};
 
 struct channel_list_info_t {
   Protocol_ChannelID_t channel_id;
@@ -223,6 +246,10 @@ struct Protocol_C2S_t : __dme_inherit(Protocol_C2S_t){
     uint16_t Flag;
   );
 }Protocol_C2S;
+
+#ifndef __ecps_client
+  struct ecps_backend_t;
+#endif
 
 static fan::event::task_t default_s2c_cb(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base);
 
