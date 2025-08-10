@@ -6,6 +6,7 @@ module;
 #include <cstring>
 #include <memory>
 #include <string>
+#include <iomanip> // std::quoted
 
 #include <ios>
 #include <sstream>

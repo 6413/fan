@@ -9,6 +9,7 @@ module;
 #include <vector>
 #include <string>
 #include <variant>
+#include <source_location>
 
 #endif
 

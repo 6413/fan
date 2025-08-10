@@ -19,6 +19,7 @@ module;
 #include <coroutine>
 #include <algorithm>
 #include <functional>
+#include <queue>
 
 export module fan.graphics.gui;
 

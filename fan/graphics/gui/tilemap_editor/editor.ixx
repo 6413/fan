@@ -6,6 +6,7 @@ module;
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <source_location>
 
 #include <fan/types/types.h>
 #include <fan/math/math.h>

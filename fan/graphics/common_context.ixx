@@ -9,6 +9,7 @@ module;
 #include <memory>
 #include <string>
 #include <vector>
+#include <source_location>
 
 export module fan.graphics.common_context;
 

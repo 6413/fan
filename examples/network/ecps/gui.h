@@ -29,7 +29,7 @@ struct ecps_gui_t {
 
     if (fan::io::file::exists(config_path)) {
       std::string data;
-      fan::io::file::read(config_path, &data);
+      fan::io::file::read(std::string(config_path), &data);
       config = fan::json::parse(data);
     }
 
@@ -921,7 +921,8 @@ struct ecps_gui_t {
         } while (0);
 
         gui::spacing();
-
+      }
+      else {
         // Decoder
         do {
           static auto decoder_names = [] {
@@ -967,6 +968,7 @@ struct ecps_gui_t {
           gui::pop_item_width();
         } while (0);
       }
+
 
       gui::spacing();
       gui::separator();

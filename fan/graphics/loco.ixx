@@ -20,6 +20,7 @@ module;
 #include <cstring>
 #include <memory> // shared_ptr tp0.h
 #include <array>
+#include <source_location>
 
 #define loco_opengl
 
@@ -260,7 +261,7 @@ struct global_loco_t {
   }
 };
 
-export thread_local global_loco_t gloco;
+export inline thread_local global_loco_t gloco;
 
 export namespace fan {
   namespace graphics {

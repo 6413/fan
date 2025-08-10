@@ -13,6 +13,7 @@ module;
 // if windows fails with duplicat resource, remove mux folder from libwebp
 #define STB_IMAGE_IMPLEMENTATION
 #include <fan/stb/stb_image.h>
+#include <source_location>
 
 //#include <fan/stb/stb_image_write.h>
 

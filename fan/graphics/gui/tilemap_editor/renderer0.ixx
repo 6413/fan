@@ -241,7 +241,7 @@ export struct fte_renderer_t : fte_loader_t {
             y,
             (offset.y < 0 ? view_size.y - off - 1 : off),
             depth);
-          node.tiles.erase(erase_at);
+         // node.tiles.erase(erase_at);
         }
         fan::vec2i grid_pos = src;
         if (offset.y > 0) {

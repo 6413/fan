@@ -7,10 +7,15 @@ void open(void* sod) {
   main_map_id = pile.renderer.add(&main_compiled_map, p);
 
   // Generate collisions for every tile in the map
-  for (auto& tile : pile.renderer.map_list[main_map_id].tiles) {
-    auto& shape = tile.second;
-    pile.engine.physics_context.create_box(shape.get_position(), shape.get_size(), 0, fan::physics::body_type_e::static_body, {});
+  for (auto& x : pile.renderer.map_list[main_map_id].compiled_map->compiled_shapes) {
+    for (auto& y : x) {
+      for (auto& tile : y) {
+        pile.engine.physics_context.create_box(tile.position, tile.size, 0, fan::physics::body_type_e::static_body, {});
+      }
+    }
   }
+
+  
 }
 
 void close() {

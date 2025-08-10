@@ -11,7 +11,7 @@ struct player_t {
     
     player.jump_impulse = 3.5;
     player.force = 15;
-    player.max_speed = 300;
+    player.max_speed = 3000;
   }
 
   void step() {

@@ -14,6 +14,7 @@ module;
 
 #include <unordered_map>
 #include <string>
+#include <source_location>
 
 export module fan.graphics.webp;
 

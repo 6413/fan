@@ -7,6 +7,7 @@ module;
 
 #include <vector>
 #include <string>
+#include <source_location>
 
 #ifndef camera_list
   #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)this))

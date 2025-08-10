@@ -23,8 +23,8 @@ export import fan.event;
 #endif
 #if defined(fan_gui)
   export import fan.file_dialog;
-  export import fan.graphics.gui.tilemap_editor.renderer;
-  export import fan.graphics.gui.tilemap_editor.editor;
+  //export import fan.graphics.gui.tilemap_editor.renderer;
+  //export import fan.graphics.gui.tilemap_editor.editor;
 //export import fan.graphics.gui;
 #endif
 #if defined(fan_physics)
