@@ -1,6 +1,7 @@
 struct ecps_backend_t {
 
-#include "prot.h"
+  #define __ecps_client
+  #include "prot.h"
 
   ecps_backend_t();
 
