@@ -3,6 +3,7 @@ module;
 #include <fan/types/types.h>
 
 #include <string>
+#include <source_location>
 
 export module fan.graphics.image_load;
 

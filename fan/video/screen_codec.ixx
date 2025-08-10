@@ -6,18 +6,22 @@ module;
 #include <WITCH/WITCH.h>
 #define ETC_VEDC_Encode_DefineEncoder_OpenH264
 #define ETC_VEDC_Encode_DefineEncoder_x264
+#define ETC_VEDC_Encode_DefineEncoder_amf // AMD
 //#if defined(__platform_windows)
 #if __has_include("cuda.h")
-  #define ETC_VEDC_Encode_DefineEncoder_nvenc
+//  #define ETC_VEDC_Encode_DefineEncoder_nvenc
 #endif
 //#endif
 
 #define ETC_VEDC_Decoder_DefineCodec_OpenH264
 //#if defined(__platform_windows)
+#define ETC_VEDC_Decoder_DefineCodec_amf // AMD
 #if __has_include("cuda.h")
-  #define ETC_VEDC_Decoder_DefineCodec_cuvid
+  //#define ETC_VEDC_Decoder_DefineCodec_cuvid
 #endif
 //#endif#
+
+//#define ETC_VEDC_Decoder_DefineCodec_va
 
 
 #include <string>
@@ -60,10 +64,10 @@ export namespace fan {
       void close_encoder() {
         ETC_VEDC_Encode_Close(this);
       }
-      void open_encoder() {
+      bool open_encoder() {
         if (name == "Nothing") {
           ETC_VEDC_Encode_OpenNothing(this);
-          return;
+          return true;
         }
         ETC_VEDC_Encode_Error err = ETC_VEDC_Encode_Open(
           this,
@@ -72,10 +76,14 @@ export namespace fan {
           &settings,
           NULL);
         if (err != ETC_VEDC_Encode_Error_Success) {
-          fan::print("failed to open encoder ", err);
+          fan::printn8("\n[CLIENT] [WARNING] [ENCODER] ", __FUNCTION__, " ", __FILE__, ":", __LINE__,
+            " (ETC_VEDC_Encoder_Open returned (", err, ") for encoder \"", name, "\"", "\n"
+          );
           /* TODO */
-          __abort();
+          //__abort();
+          return false;
         }
+        return true;
       }
 
       screen_encode_t() {
@@ -136,9 +144,18 @@ export namespace fan {
         if (update_flags & codec_update_e::codec) {
           mutex.lock();
           close_encoder();
+          auto prev_encoder = EncoderID;
+          auto prev_name = name;
           EncoderID = new_codec;
           name = get_encoders()[EncoderID].Name;
-          open_encoder();
+          if (!open_encoder()) {
+            close_encoder();
+            EncoderID = prev_encoder;
+            name = prev_name;
+            if (!open_encoder()) {
+              fan::throw_error("Invalid encoder to begin with");
+            }
+          }
           update_flags = 0;
           mutex.unlock();
         }
@@ -224,10 +241,10 @@ export namespace fan {
 
     struct screen_decode_t : ETC_VEDC_Decoder_t {
 
-      void open_decoder() {
+      bool open_decoder() {
         if (name == "Nothing") {
           ETC_VEDC_Decoder_OpenNothing(this);
-          return;
+          return true;
         }
 
         auto r = ETC_VEDC_Decoder_Open(
@@ -238,12 +255,12 @@ export namespace fan {
         );
         if (r != ETC_VEDC_Decoder_Error_OK) {
           fan::printn8("\n[CLIENT] [WARNING] [DECODER] ", __FUNCTION__, " ", __FILE__, ":", __LINE__,
-            " (ETC_VEDC_Decoder_Open returned (", r, ") for encoder \"", name, "\"", "\n"
+            " (ETC_VEDC_Decoder_Open returned (", r, ") for decoder \"", name, "\"", "\n"
           );
-
-          fan::printn8("\n[WARNING] [DECODER] ", __FUNCTION__, " ", __FILE__, ":", __LINE__, "\n");
+          return false;
         }
         closed = false;
+        return true;
       }
       void close_decoder() {
         ETC_VEDC_Decoder_Close(this);
@@ -295,17 +312,23 @@ export namespace fan {
               }
 #endif
 
-              // Execute decoder change immediately (no waiting for graphics cleanup)
               close_decoder();
+              auto prev_codec = DecoderID;
+              auto prev_name = name;
               DecoderID = new_codec;
               name = get_decoders()[DecoderID].Name;
-              open_decoder();
+              if (!open_decoder()) {
+                close_decoder();
+                DecoderID = prev_codec;
+                name = prev_name;
+                if (!open_decoder()) {
+                  fan::throw_error("Invalid decoder to begin with");
+                }
+              }
               update_flags = 0;
 
-              // Clear cached pointer and callback
               cached_universal_image_renderer = nullptr;
 
-              // Return immediately with decoder changed signal
               ret.type = 253; // Special "decoder changed" signal
               return ret;
             }
