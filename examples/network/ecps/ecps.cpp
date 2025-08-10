@@ -60,7 +60,7 @@ struct render_thread_t;
 std::atomic<render_thread_t*> render_thread_ptr{nullptr};
 
 render_thread_t* get_render_thread() {
-    return render_thread_ptr.load(std::memory_order_acquire);
+  return render_thread_ptr.load(std::memory_order_acquire);
 }
 
 #define render_thread get_render_thread()
@@ -437,12 +437,13 @@ void ecps_backend_t::view_t::WriteFramePacket() {
       std::chrono::steady_clock::now().time_since_epoch()).count());
 #endif
 
-  std::vector<uint8_t> frame_data(this->m_data.begin(), this->m_data.begin() + FramePacketSize);
-
   bool has_sps_pps = false;
-  for (size_t i = 0; i < std::min(frame_data.size() - 4, size_t(32)); ++i) {
-    if (frame_data[i] == 0x00 && frame_data[i + 1] == 0x00 && frame_data[i + 2] == 0x00 && frame_data[i + 3] == 0x01) {
-      uint8_t nal_type = frame_data[i + 4] & 0x1F;
+  for (size_t i = 0; i < std::min(static_cast<size_t>(FramePacketSize - 4), size_t(32)); ++i) {
+    if (this->m_data[i] == 0x00 &&
+      this->m_data[i + 1] == 0x00 &&
+      this->m_data[i + 2] == 0x00 &&
+      this->m_data[i + 3] == 0x01) {
+      uint8_t nal_type = this->m_data[i + 4] & 0x1F;
       if (nal_type == 7 || nal_type == 8) {
         has_sps_pps = true;
         break;
@@ -468,8 +469,8 @@ void ecps_backend_t::view_t::WriteFramePacket() {
 
   {
     std::unique_lock<std::timed_mutex> lock(network_decode_mutex, std::defer_lock);
-    auto lock_timeout = is_startup_phase ? std::chrono::milliseconds(100) : 
-                       std::chrono::milliseconds(is_important ? 50 : 10);
+    auto lock_timeout = is_startup_phase ? std::chrono::milliseconds(100) :
+      std::chrono::milliseconds(is_important ? 50 : 10);
 
     if (!lock.try_lock_for(lock_timeout)) {
       if (!is_startup_phase) {
@@ -482,23 +483,78 @@ void ecps_backend_t::view_t::WriteFramePacket() {
     while (network_decode_queue.size() >= max_queue_size) {
       if (is_important || is_startup_phase) {
         network_decode_queue.pop();
-      } else {
+      }
+      else {
         this->m_stats.Frame_Drop++;
         return;
       }
     }
 
     auto data_copy = frame_pool.acquire();
-    data_copy->resize(FramePacketSize);
-    std::memcpy(data_copy->data(), frame_data.data(), FramePacketSize);
+
+    if (FramePacketSize == this->m_data.size()) {
+      data_copy->swap(this->m_data);
+      this->m_data.clear();
+      this->m_data.resize(0x400400);
+
+#if ecps_debug_prints >= 2
+      printf("NETWORK: Used zero-copy swap for frame %llu\n", frame_index);
+#endif
+    }
+    else if (FramePacketSize > this->m_data.size() * 0.9) {
+      data_copy->swap(this->m_data);
+      data_copy->resize(FramePacketSize);
+      this->m_data.clear();
+      this->m_data.resize(0x400400);
+
+#if ecps_debug_prints >= 2
+      printf("NETWORK: Used swap+resize for frame %llu (%.1f%% of buffer)\n",
+        frame_index, (FramePacketSize * 100.0 / this->m_data.size()));
+#endif
+    }
+    else if (FramePacketSize < this->m_data.size() / 2) {
+      data_copy->resize(FramePacketSize);
+      std::memcpy(data_copy->data(), this->m_data.data(), FramePacketSize);
+
+#if ecps_debug_prints >= 2
+      printf("NETWORK: Used memcpy for small frame %llu (%u bytes)\n",
+        frame_index, FramePacketSize);
+#endif
+    }
+    else {
+      data_copy->resize(FramePacketSize);
+      std::memcpy(data_copy->data(), this->m_data.data(), FramePacketSize);
+
+#if ecps_debug_prints >= 2
+      printf("NETWORK: Used memcpy for frame %llu (%u bytes)\n",
+        frame_index, FramePacketSize);
+#endif
+    }
 
     frame_timing_t frame_data_timing;
     frame_data_timing.encode_time = std::chrono::steady_clock::now();
     frame_data_timing.frame_id = frame_index++;
-    frame_data_timing.data = data_copy;
+    frame_data_timing.data = std::move(data_copy);
     frame_data_timing.source = frame_timing_t::NETWORK;
 
-    network_decode_queue.push(std::move(frame_data_timing));
+    network_decode_queue.emplace(std::move(frame_data_timing));
+
+#if ecps_debug_prints >= 1
+    static uint64_t zero_copy_count = 0;
+    static uint64_t copy_count = 0;
+    if (FramePacketSize >= this->m_data.size() * 0.9) {
+      zero_copy_count++;
+    }
+    else {
+      copy_count++;
+    }
+
+    if ((zero_copy_count + copy_count) % 100 == 0) {
+      printf("NETWORK: Frame copy stats - Zero-copy: %llu (%.1f%%), Copy: %llu (%.1f%%)\n",
+        zero_copy_count, (zero_copy_count * 100.0 / (zero_copy_count + copy_count)),
+        copy_count, (copy_count * 100.0 / (zero_copy_count + copy_count)));
+    }
+#endif
   }
 
   if (rt) {
@@ -603,10 +659,9 @@ int main() {
                 std::chrono::steady_clock::now().time_since_epoch()).count());
 #endif
 
-            static int goto_screen_view = 0;// TODO happens only once on program start - bad
-            if (!goto_screen_view) {
+            if (ecps_backend.did_just_join) {
               render_thread->ecps_gui.window_handler.main_tab = 1;
-              goto_screen_view = 1;
+              ecps_backend.did_just_join = false;
             }
 
             if (node.type == 0) {
@@ -1316,8 +1371,40 @@ int main() {
   }
 
   auto enhanced_network_task = fan::event::task_timer(1, []() -> fan::event::task_value_resume_t<bool> {
+    if (ecps_backend.cleanup_disconnected_channels()) {
+      auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+      if (rt) {
+        rt->ecps_gui.window_handler.main_tab = 0;
+      }
+    }
+    auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+    if (rt) {
+      if (rt->ecps_gui.window_handler.auto_refresh) {
+        static fan::time::clock refresh_timer(rt->ecps_gui.window_handler.refresh_interval * 2e+9, true);
+        if (refresh_timer.finished()) {
+          rt->ecps_gui.backend_queue([]() -> fan::event::task_t {
+            try {
+              co_await ecps_backend.request_channel_list();
+            }
+            catch (...) {}
+            });
+          refresh_timer.restart();
+        }
+      }
+    }
+
     if (ecps_backend.channel_info.empty()) {
       co_return 0;
+    }
+
+    static uint64_t skip_counter = 0;
+    skip_counter++;
+
+    if (skip_counter % 5 != 0) {
+      auto flnr_check = ecps_backend.share.m_NetworkFlow.FrameList.GetNodeFirst();
+      if (flnr_check == ecps_backend.share.m_NetworkFlow.FrameList.dst) {
+        co_return 0;
+      }
     }
 
     std::unique_lock<std::timed_mutex> frame_list_lock(ecps_backend.share.frame_list_mutex, std::try_to_lock);
@@ -1327,6 +1414,12 @@ int main() {
 
     uint64_t ctime = fan::event::now();
     uint64_t DeltaTime = ctime - ecps_backend.share.m_NetworkFlow.TimerLastCallAt;
+
+    if (DeltaTime < 100000) {
+      frame_list_lock.unlock();
+      co_return 0;
+    }
+
     ecps_backend.share.m_NetworkFlow.TimerLastCallAt = ctime;
 
     float bucket_multiplier = dynamic_config_t::get_adaptive_bucket_multiplier();
@@ -1335,8 +1428,10 @@ int main() {
       co_return 0;
     }
 
-    ecps_backend.share.m_NetworkFlow.Bucket +=
-      (f32_t)DeltaTime / 1000000000 * encoder->settings.RateControl.VBR.bps * bucket_multiplier;
+    double seconds_elapsed = static_cast<double>(DeltaTime) / 1000000000.0;
+    double bits_to_add = seconds_elapsed * encoder->settings.RateControl.VBR.bps * bucket_multiplier;
+
+    ecps_backend.share.m_NetworkFlow.Bucket += static_cast<uint64_t>(bits_to_add);
 
     if (ecps_backend.share.m_NetworkFlow.Bucket > ecps_backend.share.m_NetworkFlow.BucketSize) {
       ecps_backend.share.m_NetworkFlow.Bucket = ecps_backend.share.m_NetworkFlow.BucketSize;
@@ -1348,13 +1443,32 @@ int main() {
     }
 
     auto f = &ecps_backend.share.m_NetworkFlow.FrameList[flnr];
+
     bool is_likely_keyframe = f->vec.size() > 30000;
+
     uint8_t Flag = 0;
     uint16_t Possible = (f->vec.size() / 0x400) + !!(f->vec.size() % 0x400);
     uint16_t sent_offset = f->SentOffset;
 
     size_t max_chunks = dynamic_config_t::get_adaptive_chunk_count();
-    size_t chunks_to_send = is_likely_keyframe ? max_chunks : (max_chunks * 2 / 3);
+
+    size_t affordable_chunks = ecps_backend.share.m_NetworkFlow.Bucket / (0x400 * 8);
+
+    if (is_likely_keyframe) {
+      max_chunks *= 2;
+      affordable_chunks = (ecps_backend.share.m_NetworkFlow.Bucket + ecps_backend.share.m_NetworkFlow.BucketSize * 0.1) / (0x400 * 8);
+    }
+
+    size_t chunks_to_send = std::min({
+        static_cast<size_t>(Possible - sent_offset),
+        max_chunks,
+        affordable_chunks
+      });
+
+    if (is_likely_keyframe && chunks_to_send == 0 && sent_offset < Possible) {
+      chunks_to_send = 1;
+    }
+
     size_t chunks_sent = 0;
 
     for (; sent_offset < Possible && chunks_sent < chunks_to_send; sent_offset++, chunks_sent++) {
@@ -1372,23 +1486,29 @@ int main() {
         break;
       }
 
-      if (ecps_backend.share.m_NetworkFlow.Bucket >= DataSize * 8) {
-        ecps_backend.share.m_NetworkFlow.Bucket -= DataSize * 8;
-      } else if (is_likely_keyframe) {
-        ecps_backend.share.m_NetworkFlow.Bucket -= DataSize * 8;
-      }
+      ecps_backend.share.m_NetworkFlow.Bucket -= DataSize * 8;
     }
 
     f->SentOffset = sent_offset;
 
     if (sent_offset >= Possible) {
       f->vec.clear();
+      f->vec.shrink_to_fit();
       ecps_backend.share.m_NetworkFlow.FrameList.unlrec(flnr);
       ++ecps_backend.share.frame_index;
+
+#if ecps_debug_prints >= 2
+      static uint64_t completed_frames = 0;
+      if (++completed_frames % 30 == 0) {
+        printf("NETWORK: Completed frame %llu (%s)\n",
+          ecps_backend.share.frame_index - 1,
+          is_likely_keyframe ? "I-frame" : "P-frame");
+      }
+#endif
     }
 
     co_return 0;
-  });
+    });
 
   fan::event::loop();
 

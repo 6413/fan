@@ -287,7 +287,9 @@ struct ecps_backend_t {
           if (sizeof(bp) != datagram.data.size()) {
             fan::print("size is not same as sizeof expected arrival");
           }
+#if ecps_debug_prints >= 2
           fan::print("udp keep alive came");
+#endif
           udp_keep_alive.reset();
         }
         else if (bp.Command == ProtocolUDP::S2C_t::Channel_ScreenShare_View_StreamData) {
@@ -400,6 +402,56 @@ struct ecps_backend_t {
     channel_info_t ci;
     ci.channel_id = channel_id;
     channel_info.emplace_back(ci);
+    udp_keep_alive.reset();
+    {
+      ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare_t rest;
+      rest.ChannelID = ecps_backend.channel_info.front().channel_id;
+      rest.Flag = ecps_backend_t::ProtocolChannel::ScreenShare::ChannelFlag::ResetIDR;
+      co_await ecps_backend.tcp_write(
+        ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare,
+        &rest,
+        sizeof(rest)
+      );
+    }
+    did_just_join = true;
+  }
+
+  bool is_channel_id_valid(Protocol_ChannelID_t channel_id) const {
+    return channel_id.i != (uint16_t)-1 && channel_id.i != 0;
+  }
+  bool is_channel_available(Protocol_ChannelID_t channel_id) const {
+    if (!is_channel_id_valid(channel_id)) {
+      return false;
+    }
+    return std::any_of(available_channels.begin(), available_channels.end(),
+      [channel_id](const channel_list_info_t& channel) {
+        return channel.channel_id.i == channel_id.i;
+    });
+  }
+  bool is_channel_joined(Protocol_ChannelID_t channel_id) const {
+    if (!is_channel_id_valid(channel_id)) {
+      return false;
+    }
+
+    return std::any_of(channel_info.begin(), channel_info.end(),
+      [channel_id](const channel_info_t& joined_channel) {
+        return joined_channel.channel_id.i == channel_id.i;
+      });
+  }
+
+  bool cleanup_disconnected_channels() {
+    size_t original_size = channel_info.size();
+    channel_info.erase(
+      std::remove_if(channel_info.begin(), channel_info.end(),
+        [this](const auto& joined) {
+          return std::none_of(available_channels.begin(), available_channels.end(),
+            [&](const auto& available) {
+              return available.channel_id.i == joined.channel_id.i;
+            });
+        }),
+      channel_info.end()
+    );
+    return channel_info.size() < original_size;
   }
 
   fan::event::task_t task_tcp_read;
@@ -416,7 +468,95 @@ struct ecps_backend_t {
       co_await tcp_write(Protocol_C2S_t::KeepAlive, 0, 0);
     }
   };
-  fan::network::udp_keep_alive_t udp_keep_alive{ udp_client };
+ 
+  fan::event::task_t request_channel_list() {
+    uint8_t a;
+    co_await tcp_write(Protocol_C2S_t::RequestChannelList, &a, 1);
+  }
+
+  fan::event::task_t request_channel_session_list(Protocol_ChannelID_t channel_id) {
+    Protocol_C2S_t::RequestChannelSessionList_t request;
+    request.ChannelID = channel_id;
+    co_await tcp_write(Protocol_C2S_t::RequestChannelSessionList, &request, sizeof(request));
+  }
+
+
+  fan::event::task_t handle_channel_list(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) {
+    auto data = reinterpret_cast<const uint8_t*>(&base) + sizeof(base);
+    auto channel_list = reinterpret_cast<const Protocol_S2C_t::ChannelList_t*>(data);
+
+    backend.available_channels.clear();
+    backend.available_channels.reserve(channel_list->ChannelCount);
+
+    auto channel_info_ptr = reinterpret_cast<const Protocol_S2C_t::ChannelInfo_t*>(data + sizeof(Protocol_S2C_t::ChannelList_t));
+
+    for (uint16_t i = 0; i < channel_list->ChannelCount; ++i) {
+      ecps_backend_t::channel_list_info_t info;
+      info.channel_id = channel_info_ptr[i].ChannelID;
+      info.type = channel_info_ptr[i].Type;
+      info.user_count = channel_info_ptr[i].UserCount;
+      info.name = std::string(channel_info_ptr[i].Name, strnlen(channel_info_ptr[i].Name, 63));
+      info.is_password_protected = channel_info_ptr[i].IsPasswordProtected != 0;
+      info.host_session_id = channel_info_ptr[i].HostSessionID;
+      backend.available_channels.push_back(info);
+    }
+
+    backend.channel_list_received = true;
+    fan::print("Received channel list with {} channels", channel_list->ChannelCount);
+
+    co_return;
+  }
+
+  fan::event::task_t handle_channel_session_list(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) {
+    auto data = reinterpret_cast<const uint8_t*>(&base) + sizeof(base);
+    auto session_list = reinterpret_cast<const Protocol_S2C_t::ChannelSessionList_t*>(data);
+
+    Protocol_ChannelID_t channel_id = session_list->ChannelID;
+
+    // Clear existing sessions for this channel
+    backend.channel_sessions[channel_id].clear();
+    backend.channel_sessions[channel_id].reserve(session_list->SessionCount);
+
+    auto session_info_ptr = reinterpret_cast<const Protocol_S2C_t::SessionInfo_t*>(data + sizeof(Protocol_S2C_t::ChannelSessionList_t));
+
+    for (uint16_t i = 0; i < session_list->SessionCount; ++i) {
+      ecps_backend_t::session_info_t info;
+      info.session_id = session_info_ptr[i].SessionID;
+      info.channel_session_id = session_info_ptr[i].ChannelSessionID;
+      info.account_id = session_info_ptr[i].AccountID;
+      info.username = std::string((const char*)session_info_ptr[i].Username, strnlen((const char*)session_info_ptr[i].Username, 31));
+      info.is_host = session_info_ptr[i].IsHost != 0;
+      info.joined_at = session_info_ptr[i].JoinedAt;
+      backend.channel_sessions[channel_id].push_back(info);
+    }
+
+    fan::print("Received session list for channel {} with {} sessions", (int)channel_id, session_list->SessionCount);
+
+    co_return;
+  }
+
+
+  bool is_connected() {
+    return false;
+  }
+
+  std::string get_current_username() const {
+    for (const auto& [channel_id, sessions] : channel_sessions) {
+      for (const auto& session : sessions) {
+        if (session.session_id.i == this->session_id.i) {
+          return session.username;
+        }
+      }
+    }
+
+    if (session_id.i != 0) {
+      return "Anonymous_" + std::to_string(session_id.i);
+    }
+
+    return "Not Connected";
+  }
+  bool channel_list_received = false;
+   fan::network::udp_keep_alive_t udp_keep_alive{ udp_client };
 
   struct pending_request_t {
     uint32_t request_id;
@@ -439,93 +579,6 @@ struct ecps_backend_t {
 
   std::vector<channel_list_info_t> available_channels;
   std::unordered_map<Protocol_ChannelID_t::Type, std::vector<session_info_t>> channel_sessions;
-
-  fan::event::task_t request_channel_list() {
-    uint8_t a;
-    co_await tcp_write(Protocol_C2S_t::RequestChannelList, &a, 1);
-  }
-
-fan::event::task_t request_channel_session_list(Protocol_ChannelID_t channel_id) {
-  Protocol_C2S_t::RequestChannelSessionList_t request;
-  request.ChannelID = channel_id;
-  co_await tcp_write(Protocol_C2S_t::RequestChannelSessionList, &request, sizeof(request));
-}
-
-
-fan::event::task_t handle_channel_list(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) {
-  auto data = reinterpret_cast<const uint8_t*>(&base) + sizeof(base);
-  auto channel_list = reinterpret_cast<const Protocol_S2C_t::ChannelList_t*>(data);
-  
-  backend.available_channels.clear();
-  backend.available_channels.reserve(channel_list->ChannelCount);
-  
-  auto channel_info_ptr = reinterpret_cast<const Protocol_S2C_t::ChannelInfo_t*>(data + sizeof(Protocol_S2C_t::ChannelList_t));
-  
-  for (uint16_t i = 0; i < channel_list->ChannelCount; ++i) {
-    ecps_backend_t::channel_list_info_t info;
-    info.channel_id = channel_info_ptr[i].ChannelID;
-    info.type = channel_info_ptr[i].Type;
-    info.user_count = channel_info_ptr[i].UserCount;
-    info.name = std::string(channel_info_ptr[i].Name, strnlen(channel_info_ptr[i].Name, 63));
-    info.is_password_protected = channel_info_ptr[i].IsPasswordProtected != 0;
-    info.host_session_id = channel_info_ptr[i].HostSessionID;
-    backend.available_channels.push_back(info);
-  }
-  
-  backend.channel_list_received = true;
-  fan::print("Received channel list with {} channels", channel_list->ChannelCount);
-  
-  co_return;
-}
-
-fan::event::task_t handle_channel_session_list(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) {
-  auto data = reinterpret_cast<const uint8_t*>(&base) + sizeof(base);
-  auto session_list = reinterpret_cast<const Protocol_S2C_t::ChannelSessionList_t*>(data);
-  
-  Protocol_ChannelID_t channel_id = session_list->ChannelID;
-  
-  // Clear existing sessions for this channel
-  backend.channel_sessions[channel_id].clear();
-  backend.channel_sessions[channel_id].reserve(session_list->SessionCount);
-  
-  auto session_info_ptr = reinterpret_cast<const Protocol_S2C_t::SessionInfo_t*>(data + sizeof(Protocol_S2C_t::ChannelSessionList_t));
-  
-  for (uint16_t i = 0; i < session_list->SessionCount; ++i) {
-    ecps_backend_t::session_info_t info;
-    info.session_id = session_info_ptr[i].SessionID;
-    info.channel_session_id = session_info_ptr[i].ChannelSessionID;
-    info.account_id = session_info_ptr[i].AccountID;
-    info.username = std::string((const char*)session_info_ptr[i].Username, strnlen((const char*)session_info_ptr[i].Username, 31));
-    info.is_host = session_info_ptr[i].IsHost != 0;
-    info.joined_at = session_info_ptr[i].JoinedAt;
-    backend.channel_sessions[channel_id].push_back(info);
-  }
-  
-  fan::print("Received session list for channel {} with {} sessions", (int)channel_id, session_list->SessionCount);
-  
-  co_return;
-}
-
-  bool channel_list_received = false;
-
-  bool is_connected() {
-    return false;
-  }
-
-  std::string get_current_username() const {
-    for (const auto& [channel_id, sessions] : channel_sessions) {
-      for (const auto& session : sessions) {
-        if (session.session_id.i == this->session_id.i) {
-          return session.username;
-        }
-      }
-    }
-
-    if (session_id.i != 0) {
-      return "Anonymous_" + std::to_string(session_id.i);
-    }
-
-    return "Not Connected";
-  }
+  bool did_just_join = false; // need manual reset from gui
 
 }ecps_backend;
