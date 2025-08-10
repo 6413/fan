@@ -7,6 +7,7 @@ module;
 #include <sstream>
 #include <vector>
 #include <source_location>
+#include <filesystem>
 
 #if defined(fan_platform_windows)
   #include <Windows.h>

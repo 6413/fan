@@ -18,7 +18,7 @@ export module fan.physics.b2_integration;
 import fan.types.vector;
 import fan.print;
 
-namespace fan {
+export namespace fan {
   namespace physics {
     struct context_t;
   }
@@ -41,7 +41,7 @@ struct global_physics_t {
   }
 };
 
-export thread_local global_physics_t gphysics;
+export inline thread_local global_physics_t gphysics;
 
 export namespace fan {
   namespace physics {
