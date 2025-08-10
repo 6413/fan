@@ -9,7 +9,7 @@ module;
 #define ETC_VEDC_Encode_DefineEncoder_amf // AMD
 //#if defined(__platform_windows)
 #if __has_include("cuda.h")
-//  #define ETC_VEDC_Encode_DefineEncoder_nvenc
+  #define ETC_VEDC_Encode_DefineEncoder_nvenc
 #endif
 //#endif
 
@@ -17,7 +17,7 @@ module;
 //#if defined(__platform_windows)
 #define ETC_VEDC_Decoder_DefineCodec_amf // AMD
 #if __has_include("cuda.h")
-  //#define ETC_VEDC_Decoder_DefineCodec_cuvid
+  #define ETC_VEDC_Decoder_DefineCodec_cuvid
 #endif
 //#endif#
 
@@ -284,118 +284,127 @@ export namespace fan {
       };
       loco_t::shape_t* cached_universal_image_renderer = 0;
 
-        decode_data_t decode(void* data, uintptr_t length, loco_t::shape_t & universal_image_renderer) {
-          decode_data_t ret;
+      decode_data_t decode(void* data, uintptr_t length, loco_t::shape_t& universal_image_renderer) {
+        decode_data_t ret;
+        cached_universal_image_renderer = &universal_image_renderer;
 
-          cached_universal_image_renderer = &universal_image_renderer;
+        bool need_cleanup = false;
+        std::function<void()> cleanup_lambda;
+        bool decoder_changed = false;
 
-          {
-            std::lock_guard<std::mutex> lock(mutex);
+        {
+          std::lock_guard<std::mutex> lock(mutex);
 
-            if (update_flags & codec_update_e::codec) {
+          if (update_flags & codec_update_e::codec) {
 #if defined(ETC_VEDC_Decoder_DefineCodec_cuvid)
-              if (name == "cuvid") {
-                auto cleanup_lambda = [this]() {
-                  try {
-                    if (cached_universal_image_renderer) {
-                      ReadMethodData.CudaArrayFrame.cuda_textures.close(
-                        gloco,
-                        *static_cast<loco_t::shape_t*>(cached_universal_image_renderer)
-                      );
-                    }
+            if (name == "cuvid") {
+              need_cleanup = true;
+              cleanup_lambda = [this]() {
+                try {
+                  if (cached_universal_image_renderer) {
+                    ReadMethodData.CudaArrayFrame.cuda_textures.close(
+                      gloco,
+                      *static_cast<loco_t::shape_t*>(cached_universal_image_renderer)
+                    );
                   }
-                  catch (...) {
-                  }
-                  };
-
-                graphics_queue_callback(cleanup_lambda);
-              }
-#endif
-
-              close_decoder();
-              auto prev_codec = DecoderID;
-              auto prev_name = name;
-              DecoderID = new_codec;
-              name = get_decoders()[DecoderID].Name;
-              if (!open_decoder()) {
-                close_decoder();
-                DecoderID = prev_codec;
-                name = prev_name;
-                if (!open_decoder()) {
-                  fan::throw_error("Invalid decoder to begin with");
                 }
-              }
-              update_flags = 0;
-
-              cached_universal_image_renderer = nullptr;
-
-              ret.type = 253; // Special "decoder changed" signal
-              return ret;
+                catch (...) {
+                }
+              };
             }
-          }
-          if (closed) {
-            ret.type = 254; // Special "decoder closed" signal
-            return ret;
-          }
-
-          sintptr_t r = ETC_VEDC_Decoder_Write(this, (uint8_t*)data, length);
-
-          if (!ETC_VEDC_Decoder_IsReadable(this)) {
-            ret.type = 252; // Special "not readable" signal
-            return ret;
-          }
-
-#if defined(ETC_VEDC_Decoder_DefineCodec_cuvid)
-          if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame)) {
-            ret.type = 0;
-          }
-          else
 #endif
-            if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_Frame)) {
-              ret.type = 1;
-            }
 
-          if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_Frame)) {
-            NewReadMethod(universal_image_renderer, ETC_VEDC_Decoder_ReadType_Frame);
-            ETC_VEDC_Decoder_Frame_t Frame;
-            if (ETC_VEDC_Decoder_Read(this, ETC_VEDC_Decoder_ReadType_Frame, &Frame) != ETC_VEDC_Decoder_Error_OK) {
-              ret.type = 251; // Special "read failed" signal
-              return ret;
+            close_decoder();
+            auto prev_codec = DecoderID;
+            auto prev_name = name;
+            DecoderID = new_codec;
+            name = get_decoders()[DecoderID].Name;
+            if (!open_decoder()) {
+              close_decoder();
+              DecoderID = prev_codec;
+              name = prev_name;
+              if (!open_decoder()) {
+                fan::throw_error("Invalid decoder to begin with");
+              }
             }
-            if (Frame.Properties.Stride[0] != Frame.Properties.Stride[1] * 2) {
-              fan::print_format("[CLIENT] [WARNING] {} {}:{} fan doesnt support strides {} {}", __FUNCTION__, __FILE__, __LINE__, Frame.Properties.Stride[0], Frame.Properties.Stride[1]);
-              ret.type = 250; // Special "unsupported stride" signal
-              return ret;
-            }
-
-            uint32_t pixel_format;
-            ret.image_size = { Frame.Properties.SizeX, Frame.Properties.SizeY };
-            if (Frame.Properties.PixelFormat == PIXF_YUV420p) {
-              pixel_format = fan::graphics::image_format::yuv420p;
-              auto image_sizes = fan::graphics::get_image_sizes(pixel_format, fan::vec2ui(Frame.Properties.Stride[0], Frame.Properties.SizeY));
-              ret.data[0] = std::vector<uint8_t>((uint8_t*)Frame.Data[0], (uint8_t*)Frame.Data[0] + image_sizes[0].multiply());
-              ret.data[1] = std::vector<uint8_t>((uint8_t*)Frame.Data[1], (uint8_t*)Frame.Data[1] + image_sizes[1].multiply());
-              ret.data[2] = std::vector<uint8_t>((uint8_t*)Frame.Data[2], (uint8_t*)Frame.Data[2] + image_sizes[2].multiply());
-              std::memcpy(ret.stride.data(), Frame.Properties.Stride, sizeof(ret.stride[0]) * 3);
-            }
-            else if (Frame.Properties.PixelFormat == PIXF_YUVNV12) {
-              pixel_format = fan::graphics::image_format::nv12;
-              auto image_sizes = fan::graphics::get_image_sizes(pixel_format, fan::vec2ui(Frame.Properties.Stride[0], Frame.Properties.SizeY));
-              ret.data[0] = std::vector<uint8_t>((uint8_t*)Frame.Data[0], (uint8_t*)Frame.Data[0] + image_sizes[0].multiply());
-              ret.data[1] = std::vector<uint8_t>((uint8_t*)Frame.Data[1], (uint8_t*)Frame.Data[1] + image_sizes[1].multiply());
-              std::memcpy(ret.stride.data(), Frame.Properties.Stride, sizeof(ret.stride[0]) * 2);
-            }
-            else {
-              ret.type = 249; // Special "unsupported pixel format" signal
-              return ret;
-            }
-            ret.pixel_format = pixel_format;
-            FrameSize = fan::vec2ui(Frame.Properties.SizeX, Frame.Properties.SizeY);
-            ETC_VEDC_Decoder_ReadClear(this, ETC_VEDC_Decoder_ReadType_Frame, &Frame);
+            update_flags = 0;
+            cached_universal_image_renderer = nullptr;
+            decoder_changed = true;
           }
+        }
 
+        if (need_cleanup) {
+          graphics_queue_callback(cleanup_lambda);
+        }
+
+        if (decoder_changed) {
+          ret.type = 253; // Special "decoder changed" signal
           return ret;
         }
+
+        if (closed) {
+          ret.type = 254; // Special "decoder closed" signal
+          return ret;
+        }
+
+        sintptr_t r = ETC_VEDC_Decoder_Write(this, (uint8_t*)data, length);
+
+        if (!ETC_VEDC_Decoder_IsReadable(this)) {
+          ret.type = 252; // Special "not readable" signal
+          return ret;
+        }
+
+#if defined(ETC_VEDC_Decoder_DefineCodec_cuvid)
+        if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame)) {
+          ret.type = 0;
+        }
+        else
+#endif
+          if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_Frame)) {
+            ret.type = 1;
+          }
+
+        if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_Frame)) {
+          NewReadMethod(universal_image_renderer, ETC_VEDC_Decoder_ReadType_Frame);
+          ETC_VEDC_Decoder_Frame_t Frame;
+          if (ETC_VEDC_Decoder_Read(this, ETC_VEDC_Decoder_ReadType_Frame, &Frame) != ETC_VEDC_Decoder_Error_OK) {
+            ret.type = 251; // Special "read failed" signal
+            return ret;
+          }
+          if (Frame.Properties.Stride[0] != Frame.Properties.Stride[1] * 2) {
+            fan::print_format("[CLIENT] [WARNING] {} {}:{} fan doesnt support strides {} {}", __FUNCTION__, __FILE__, __LINE__, Frame.Properties.Stride[0], Frame.Properties.Stride[1]);
+            ret.type = 250; // Special "unsupported stride" signal
+            return ret;
+          }
+
+          uint32_t pixel_format;
+          ret.image_size = { Frame.Properties.SizeX, Frame.Properties.SizeY };
+          if (Frame.Properties.PixelFormat == PIXF_YUV420p) {
+            pixel_format = fan::graphics::image_format::yuv420p;
+            auto image_sizes = fan::graphics::get_image_sizes(pixel_format, fan::vec2ui(Frame.Properties.Stride[0], Frame.Properties.SizeY));
+            ret.data[0] = std::vector<uint8_t>((uint8_t*)Frame.Data[0], (uint8_t*)Frame.Data[0] + image_sizes[0].multiply());
+            ret.data[1] = std::vector<uint8_t>((uint8_t*)Frame.Data[1], (uint8_t*)Frame.Data[1] + image_sizes[1].multiply());
+            ret.data[2] = std::vector<uint8_t>((uint8_t*)Frame.Data[2], (uint8_t*)Frame.Data[2] + image_sizes[2].multiply());
+            std::memcpy(ret.stride.data(), Frame.Properties.Stride, sizeof(ret.stride[0]) * 3);
+          }
+          else if (Frame.Properties.PixelFormat == PIXF_YUVNV12) {
+            pixel_format = fan::graphics::image_format::nv12;
+            auto image_sizes = fan::graphics::get_image_sizes(pixel_format, fan::vec2ui(Frame.Properties.Stride[0], Frame.Properties.SizeY));
+            ret.data[0] = std::vector<uint8_t>((uint8_t*)Frame.Data[0], (uint8_t*)Frame.Data[0] + image_sizes[0].multiply());
+            ret.data[1] = std::vector<uint8_t>((uint8_t*)Frame.Data[1], (uint8_t*)Frame.Data[1] + image_sizes[1].multiply());
+            std::memcpy(ret.stride.data(), Frame.Properties.Stride, sizeof(ret.stride[0]) * 2);
+          }
+          else {
+            ret.type = 249; // Special "unsupported pixel format" signal
+            return ret;
+          }
+          ret.pixel_format = pixel_format;
+          FrameSize = fan::vec2ui(Frame.Properties.SizeX, Frame.Properties.SizeY);
+          ETC_VEDC_Decoder_ReadClear(this, ETC_VEDC_Decoder_ReadType_Frame, &Frame);
+        }
+
+        return ret;
+      }
 
         bool decode_cuvid(loco_t::shape_t & universal_image_renderer) {
 #if defined(ETC_VEDC_Decoder_DefineCodec_cuvid)

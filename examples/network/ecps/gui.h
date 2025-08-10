@@ -304,7 +304,7 @@ struct ecps_gui_t {
         std::string current_user = "User: " + ecps_backend.get_current_username();
         fan::vec2 text_size = gui::calc_text_size(current_user.c_str());
         gui::same_line(gui::get_window_size().x - text_size.x - 20);
-        gui::text(current_user.c_str(), fan::vec4(0.7f, 0.7f, 1.0f, 1.0f));
+        gui::text(current_user.c_str(), fan::color(0.7f, 0.7f, 1.0f, 1.0f));
 
         static bool first_open = true;
         if (first_open && p_open) {
@@ -326,10 +326,9 @@ struct ecps_gui_t {
           first_open = true;
         }
 
-        // Auto-switch to Stream View when streaming starts
         static bool was_streaming = false;
         if (This->is_streaming && !was_streaming) {
-          main_tab = 1; // Switch to Stream View
+          main_tab = 1;
         }
         was_streaming = This->is_streaming;
 
@@ -372,47 +371,38 @@ struct ecps_gui_t {
       fan::vec2 avail_size = gui::get_content_region_avail();
       if (avail_size.x > 0 && avail_size.y > 0) {
 
-        // SPLIT VIEW LAYOUT CALCULATIONS (same as stream view)
-        f32_t left_window_padding = 8.0f;   // Left window padding
-        f32_t right_window_padding = 12.0f; // Right window padding
-        f32_t splitter_spacing = 12.0f;     // Spacing around splitter
-        f32_t splitter_width = 2.0f;        // Splitter thickness
+        f32_t left_window_padding = 8.0f;
+        f32_t right_window_padding = 12.0f;
+        f32_t splitter_spacing = 12.0f;
+        f32_t splitter_width = 2.0f;
 
-        // Calculate total spacing once for initial sizing
         f32_t total_spacing = left_window_padding + splitter_spacing + splitter_width + splitter_spacing + right_window_padding;
 
-        // Initialize to 50/50 split on first run, then let user control it
         static f32_t channel_details_width = 0.0f;
-        static f32_t unclamped_details_width = 0.0f; // Track unclamped position
+        static f32_t unclamped_details_width = 0.0f;
         static bool initialized = false;
         if (!initialized) {
           f32_t available_content_width = avail_size.x - total_spacing;
-          channel_details_width = available_content_width * 0.5f; // 50% initially
-          unclamped_details_width = channel_details_width; // Initialize unclamped value
+          channel_details_width = available_content_width * 0.5f;
+          unclamped_details_width = channel_details_width;
           initialized = true;
         }
 
-        // Clamp channel details panel width for display
         f32_t min_details_width = 300.0f;
         f32_t max_details_width = avail_size.x * 0.7f;
         channel_details_width = std::clamp(
-          unclamped_details_width, // Use unclamped value for clamping
+          unclamped_details_width,
           min_details_width,
           max_details_width
         );
 
-        // Calculate layout widths
         f32_t channel_list_width = avail_size.x - channel_details_width - total_spacing;
 
-        // CHANNEL LIST AREA (LEFT SIDE)
-        gui::dummy(fan::vec2(left_window_padding, 0)); // Left window padding
+        gui::dummy(fan::vec2(left_window_padding, 0));
         gui::same_line(0, 0);
 
         gui::set_next_window_bg_alpha(0);
         gui::begin_child("##channel_list_panel", fan::vec2(channel_list_width, avail_size.y), true);
-
-        // Channel list content
-        gui::separator();
 
         gui::spacing();
         gui::spacing();
@@ -428,20 +418,6 @@ struct ecps_gui_t {
             });
         }
 
-        if (auto_refresh) {
-          static auto last_refresh = std::chrono::steady_clock::now();
-          auto now = std::chrono::steady_clock::now();
-          if (std::chrono::duration_cast<std::chrono::seconds>(now - last_refresh).count() >= refresh_interval) {
-            This->backend_queue([=]() -> fan::event::task_t {
-              try {
-                co_await ecps_backend.request_channel_list();
-              }
-              catch (...) {}
-              });
-            last_refresh = now;
-          }
-        }
-
         gui::spacing();
         gui::spacing();
 
@@ -449,10 +425,14 @@ struct ecps_gui_t {
         gui::input_text("Search", &search_filter);
         gui::pop_item_width();
 
-        gui::separator();
+        gui::spacing();
 
         gui::spacing();
         gui::spacing();
+
+        if (!ecps_backend.is_channel_available(selected_channel_id)) {
+          selected_channel_id.invalidate();
+        }
 
         gui::set_next_window_bg_alpha(0.99);
         if (gui::begin_child("ChannelList", fan::vec2(0, -60), true)) {
@@ -470,9 +450,9 @@ struct ecps_gui_t {
               }
 
               bool is_selected = (selected_channel_id.i == channel.channel_id.i);
-              std::string display_name = channel.name;
+              std::string display_name = " " + channel.name;
               if (channel.is_password_protected) {
-                display_name += " 🔒";
+                //display_name += "";
               }
               display_name += " (" + std::to_string(channel.user_count) + " users)";
 
@@ -482,10 +462,6 @@ struct ecps_gui_t {
                   already_joined = true;
                   break;
                 }
-              }
-
-              if (already_joined) {
-                display_name += " ✓";
               }
 
               gui::table_next_row();
@@ -503,7 +479,7 @@ struct ecps_gui_t {
                   catch (...) {
                     fan::print("Failed to request session list");
                   }
-                  });
+                });
               }
 
               gui::pop_style_color();
@@ -514,8 +490,7 @@ struct ecps_gui_t {
 
           if (ecps_backend.available_channels.empty()) {
             if (ecps_backend.channel_list_received) {
-              gui::text("No channels available.");
-              gui::text("Create a new channel to get started!");
+              gui::text("No channels available, create a new channel.");
             }
             else {
               gui::text("Click 'Refresh Channel List' to load channels");
@@ -628,7 +603,6 @@ struct ecps_gui_t {
 
         gui::end_child();
 
-        // SPLITTER WITH LARGER HITBOX
         gui::same_line(0, splitter_spacing);
 
         gui::push_style_color(gui::col_button, fan::vec4(0.5f, 0.5f, 0.5f, 0.3f));
@@ -638,18 +612,17 @@ struct ecps_gui_t {
         static bool is_resizing_channels = false;
 
         // Create larger invisible hitbox
-        f32_t hitbox_width = 8.0f; // Larger hitbox (4x bigger than visual)
-        f32_t visual_offset = (hitbox_width - splitter_width) * 0.5f; // Center the visual part
+        f32_t hitbox_width = 8.0f;
+        f32_t visual_offset = (hitbox_width - splitter_width) * 0.5f;
 
         if (gui::invisible_button("##channel_splitter_hitbox", fan::vec2(hitbox_width, avail_size.y))) {
-          // Splitter clicked
         }
 
         // Handle splitter dragging
         if (gui::is_item_active() && gui::is_mouse_dragging(0)) {
           fan::vec2 mouse_delta = gui::get_io().MouseDelta;
           unclamped_details_width -= mouse_delta.x; // Update unclamped position
-          channel_details_width = std::clamp(unclamped_details_width, min_details_width, max_details_width); // Apply bounds
+          channel_details_width = std::clamp(unclamped_details_width, min_details_width, max_details_width);
           is_resizing_channels = true;
           gui::set_mouse_cursor(gui::mouse_cursor_resize_ew);
         }
@@ -661,9 +634,8 @@ struct ecps_gui_t {
           gui::set_mouse_cursor(gui::mouse_cursor_resize_ew);
         }
 
-        // Draw the visual splitter on top
         fan::vec2 splitter_pos = gui::get_item_rect_min();
-        splitter_pos.x += visual_offset; // Offset to center the visual part
+        splitter_pos.x += visual_offset;
         fan::vec2 splitter_max = fan::vec2(splitter_pos.x + splitter_width, splitter_pos.y + avail_size.y);
 
         gui::get_window_draw_list()->AddRectFilled(
@@ -695,7 +667,7 @@ struct ecps_gui_t {
           gui::text(("Channel: " + channel_name).c_str());
 
           if (has_selection && is_host_of_selected) {
-            gui::text("You are the host of this channel", fan::vec4(1.0f, 0.8f, 0.2f, 1.0f));
+            gui::text("You are the host of this channel", fan::color(1.0f, 0.8f, 0.2f, 1.0f));
           }
 
           gui::separator();
@@ -719,11 +691,10 @@ struct ecps_gui_t {
                   catch (...) {
                     fan::print("Failed to refresh session list");
                   }
-                  });
+                });
               }
 
-              gui::separator();
-
+              gui::spacing();
               gui::spacing();
               gui::spacing();
 
@@ -783,19 +754,18 @@ struct ecps_gui_t {
                 gui::same_line();
 
                 if (gui::image_button("#btn_stream_settings", icon_settings, icon_size)) {
-                  detail_tab = 1; // Switch to Stream Settings tab
+                  detail_tab = 1;
                 }
 
                 gui::same_line();
                 if (gui::button("View Stream")) {
-                  main_tab = 1; // Switch to Stream View main tab
+                  main_tab = 1;
                 }
               }
 
               gui::end_tab_item();
             }
 
-            // STREAM SETTINGS TAB
             if (gui::begin_tab_item("Stream Settings", nullptr, detail_tab == 1 ? gui::tab_item_flags_set_selected : 0)) {
               if (detail_tab == 1) detail_tab = -1;
 
@@ -807,31 +777,27 @@ struct ecps_gui_t {
           }
         }
         else {
-          gui::text("Select a channel to view details");
-          gui::separator();
-          gui::text("Click on any channel in the left panel");
-          gui::text("to see users and access stream settings.");
+          gui::spacing();
+          gui::text("Select a channel.");
         }
 
         gui::end_group();
         gui::end_child();
 
-        // The right window padding is automatic (remaining space)
       }
     }
 
     void render_stream_settings_content_compact() {
+      gui::push_style_var(gui::style_var_item_spacing, fan::vec2(0, 15.f));
       uint32_t channel_id = ecps_backend.channel_info.size() > 0 ? 0 : -1;
 
       // Get available width to adjust layout
       f32_t available_width = gui::get_content_region_avail().x;
       bool is_narrow = available_width < 300.0f;
 
-      // Video Settings Section (Compact)
-      gui::text("Video Settings");
-      gui::separator();
+      gui::spacing();
 
-      gui::text("Resolution:");
+      gui::text("Resolution");
       const char* resolution_options[] = {
           "1920x1080", "1680x1050", "1600x900", "1440x900",
           "1366x768", "1280x720", "1024x768", "800x600"
@@ -841,13 +807,12 @@ struct ecps_gui_t {
         sizeof(resolution_options) / sizeof(resolution_options[0]));
       gui::pop_item_width();
 
-      gui::spacing();
+      gui::separator();
 
-      gui::text(("Framerate: " + std::to_string((int)This->stream_settings.framerate)).c_str());
+      gui::text("Framerate");
       gui::push_item_width(-1);
       do {
         if (is_narrow) {
-          // Use slider for narrow panels
           gui::slider_float("##framerate_compact", &This->stream_settings.framerate, 15.0f, 120.0f, "%.0f");
         }
         else {
@@ -863,9 +828,9 @@ struct ecps_gui_t {
       } while (0);
       gui::pop_item_width();
 
-      gui::spacing();
+      gui::separator();
 
-      gui::text(("Bitrate: " + fan::to_string(This->stream_settings.bitrate_mbps, 1) + " Mbps").c_str());
+      gui::text("Bitrate (Mbps)");
       gui::push_item_width(-1);
       do {
         gui::slider_float("##bitrate_compact", &This->stream_settings.bitrate_mbps, 0.5f, 50.0f, "%.1f");
@@ -879,12 +844,9 @@ struct ecps_gui_t {
       } while (0);
       gui::pop_item_width();
 
-      gui::spacing();
       gui::separator();
 
       // Codec Settings Section (Compact)
-      gui::text("Codec Settings");
-      gui::separator();
 
       if (This->is_streaming) {
         // Encoder
@@ -906,7 +868,7 @@ struct ecps_gui_t {
             return names;
             }();
 
-          gui::text("Encoder:");
+          gui::text("Encoder");
           gui::push_item_width(-1);
           This->stream_settings.selected_encoder = screen_encode->EncoderID;
           if (gui::combo("##encoder_compact", (int*)&This->stream_settings.selected_encoder, encoder_options.data(),
@@ -942,7 +904,7 @@ struct ecps_gui_t {
             return names;
             }();
 
-          gui::text("Decoder:");
+          gui::text("Decoder");
           gui::push_item_width(-1);
           This->stream_settings.selected_decoder = screen_decode->DecoderID;
           if (gui::combo("##decoder_compact", (int*)&This->stream_settings.selected_decoder, decoder_options.data(),
@@ -969,13 +931,9 @@ struct ecps_gui_t {
         } while (0);
       }
 
-
-      gui::spacing();
       gui::separator();
 
-      // Input Control Section (Compact)
       gui::text("Input Control");
-      gui::separator();
 
       const char* input_control_options[] = {
           "None", "Keyboard Only", "Keyboard + Mouse"
@@ -985,11 +943,6 @@ struct ecps_gui_t {
         sizeof(input_control_options) / sizeof(input_control_options[0]));
       gui::pop_item_width();
 
-      gui::spacing();
-
-      // Quick actions
-      gui::separator();
-      gui::text("Quick Actions");
       gui::separator();
 
       if (gui::button("Reset Settings", fan::vec2(-1, 0))) {
@@ -998,6 +951,7 @@ struct ecps_gui_t {
         This->stream_settings.bitrate_mbps = 5;
         This->stream_settings.input_control = 0;
       }
+      gui::pop_style_var();
     }
 
     void render_stream_view_content() {
@@ -1051,17 +1005,15 @@ struct ecps_gui_t {
       if (avail_size.x > 0 && avail_size.y > 0) {
 
         if (This->stream_settings.show_in_stream_view) {
-          // SPLIT VIEW LAYOUT CALCULATIONS
-          f32_t left_window_padding = 8.0f;   // Reduced left window padding
-          f32_t right_window_padding = 12.0f; // Keep right window padding
-          f32_t splitter_spacing = 12.0f;     // Spacing around splitter
-          f32_t splitter_width = 2.0f;        // Splitter thickness
+          
+          f32_t left_window_padding = 8.0f;  
+          f32_t right_window_padding = 12.0f;
+          f32_t splitter_spacing = 12.0f;    
+          f32_t splitter_width = 2.0f;       
 
-          // Clamp settings panel width
           f32_t min_settings_width = 250.0f;
           f32_t max_settings_width = avail_size.x * 0.6f;
 
-          // Track unclamped position to prevent dead zones
           static f32_t unclamped_settings_width = This->stream_settings.settings_panel_width;
 
           This->stream_settings.settings_panel_width = std::clamp(
@@ -1070,12 +1022,10 @@ struct ecps_gui_t {
             max_settings_width
           );
 
-          // Calculate layout widths
           f32_t total_spacing = left_window_padding + splitter_spacing + splitter_width + splitter_spacing + right_window_padding;
           f32_t stream_width = avail_size.x - This->stream_settings.settings_panel_width - total_spacing;
 
-          // STREAM AREA (LEFT SIDE)
-          gui::dummy(fan::vec2(left_window_padding, 0)); // Reduced left window padding
+          gui::dummy(fan::vec2(left_window_padding, 0));
           gui::same_line(0, 0);
 
           gui::set_next_window_bg_alpha(0);
@@ -1106,26 +1056,23 @@ struct ecps_gui_t {
 
           gui::end_child();
 
-          // SPLITTER WITH LARGER HITBOX
           gui::same_line(0, splitter_spacing);
 
           gui::push_style_color(gui::col_button, fan::vec4(0.5f, 0.5f, 0.5f, 0.3f));
           gui::push_style_color(gui::col_button_hovered, fan::vec4(0.7f, 0.7f, 0.7f, 0.5f));
           gui::push_style_color(gui::col_button_active, fan::vec4(0.8f, 0.8f, 0.8f, 0.7f));
 
-          // Create larger invisible hitbox
-          f32_t hitbox_width = 8.0f; // Larger hitbox (4x bigger than visual)
-          f32_t visual_offset = (hitbox_width - splitter_width) * 0.5f; // Center the visual part
+          f32_t hitbox_width = 8.0f;
+          f32_t visual_offset = (hitbox_width - splitter_width) * 0.5f;
 
           if (gui::invisible_button("##stream_splitter_hitbox", fan::vec2(hitbox_width, avail_size.y))) {
-            // Splitter clicked
+            
           }
 
-          // Handle splitter dragging with unclamped tracking
           if (gui::is_item_active() && gui::is_mouse_dragging(0)) {
             fan::vec2 mouse_delta = gui::get_io().MouseDelta;
-            unclamped_settings_width -= mouse_delta.x; // Update unclamped position
-            This->stream_settings.settings_panel_width = std::clamp(unclamped_settings_width, min_settings_width, max_settings_width); // Apply bounds
+            unclamped_settings_width -= mouse_delta.x;
+            This->stream_settings.settings_panel_width = std::clamp(unclamped_settings_width, min_settings_width, max_settings_width);
             This->stream_settings.is_resizing = true;
             gui::set_mouse_cursor(gui::mouse_cursor_resize_ew);
           }
@@ -1169,7 +1116,6 @@ struct ecps_gui_t {
 
         }
         else {
-          // FULL VIEW: Stream takes entire space with equal side padding
           f32_t side_padding = 12.0f;
 
           gui::dummy(fan::vec2(side_padding, 0));
@@ -1179,6 +1125,12 @@ struct ecps_gui_t {
           gui::begin_child("##stream_display", fan::vec2(avail_size.x - (side_padding * 2), avail_size.y), false);
 
           gui::set_viewport(engine.orthographic_render_view);
+
+          if (ecps_backend.channel_info.empty()) {
+            if (auto rt = get_render_thread(); rt) {
+              rt->network_frame.set_image(engine.default_texture);
+            }
+          }
 
           if (auto rt = get_render_thread(); rt) {
             fan::vec2 stream_area = gui::get_content_region_avail();

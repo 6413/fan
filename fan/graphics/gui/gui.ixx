@@ -642,6 +642,16 @@ export namespace fan {
           ImGui::Text("%s", text.c_str());
           ImGui::PopStyleColor();
         }
+        /// <summary>
+        /// Draws the specified text, with its position influenced by other GUI elements.
+        /// </summary>
+        /// <param name="text">The text to draw.</param>
+        /// <param name="color">The color of the text (defaults to white).</param>
+        void text(const char* text, const fan::color& color = fan::colors::white) {
+          ImGui::PushStyleColor(ImGuiCol_Text, color);
+          ImGui::Text("%s", text);
+          ImGui::PopStyleColor();
+        }
 
         /// <summary>
         /// Draws text constructed from multiple arguments, with optional color.

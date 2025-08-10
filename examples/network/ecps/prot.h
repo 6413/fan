@@ -20,6 +20,7 @@ struct Protocol_ChannelID_t {
   operator Type& () { return i; }
   Protocol_ChannelID_t() = default;
   Protocol_ChannelID_t(Type v) : i(v) {}
+  void invalidate() { i = (uint16_t)-1; }
 };
 struct Protocol_ChannelSessionID_t {
   typedef uint32_t Type;
