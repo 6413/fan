@@ -170,8 +170,8 @@ export namespace fan {
     void print_stacktrace() {
       
       #if defined(fan_std23)
-      //std::stacktrace st;
-      //fan::print(st.current());
+      std::stacktrace st;
+      fan::print(st.current());
       #elif defined(fan_platform_unix)
       // waiting for stacktrace to be released for clang lib++
       #else

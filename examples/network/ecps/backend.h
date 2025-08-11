@@ -253,8 +253,25 @@ struct ecps_backend_t {
     __builtin_memcpy(DataWillBeAt, Data, DataSize);
 
     ProtocolUDP::C2S_t::Channel_ScreenShare_Host_StreamData_t rest;
-    rest.ChannelID = channel_info.front().channel_id;
-    rest.ChannelSessionID = channel_info.front().session_id;
+    Protocol_ChannelID_t streaming_channel_id;
+    Protocol_ChannelSessionID_t streaming_session_id;
+    bool found_streaming = false;
+
+    for (const auto& channel : channel_info) {
+      if (channel.is_streaming) {
+        streaming_channel_id = channel.channel_id;
+        streaming_session_id = channel.session_id;
+        found_streaming = true;
+        break;
+      }
+    }
+
+    if (!found_streaming) {
+      co_return 1;
+    }
+
+    rest.ChannelID = streaming_channel_id;
+    rest.ChannelSessionID = streaming_session_id;
     co_await udp_write(0, ProtocolUDP::C2S_t::Channel_ScreenShare_Host_StreamData, rest, buffer, BufferSize);
     co_return 0;
   }
@@ -295,6 +312,7 @@ struct ecps_backend_t {
         }
         else if (bp.Command == ProtocolUDP::S2C_t::Channel_ScreenShare_View_StreamData) {
           auto CommandData = (ProtocolUDP::S2C_t::Channel_ScreenShare_View_StreamData_t*)&(((udp::BasePacket_t*)datagram.data.data())[1]);
+          set_channel_viewing(CommandData->ChannelID, true);
           if (RelativeSize < sizeof(*CommandData)) {
             co_return;
           }
@@ -377,9 +395,7 @@ struct ecps_backend_t {
         co_return;
       }
       catch (fan::exception_t e) {
-        screen_decode->graphics_queue_callback([e] {
-          fan::printcl("failed to connect to server:"_str + e.reason + ", retrying...");
-        });
+        login_fail_cb(e);
       }
       co_await fan::co_sleep(1000);
       co_await connect(ip, port);
@@ -398,23 +414,24 @@ struct ecps_backend_t {
     co_return co_await channel_create_awaiter(*this, request_id);
   }
   // add check if channel join is ok
-  fan::event::task_t channel_join(Protocol_ChannelID_t channel_id) {
+  fan::event::task_t channel_join(Protocol_ChannelID_t channel_id, bool is_own_channel = false) {
     co_await tcp_write(Protocol_C2S_t::JoinChannel, &channel_id, sizeof(channel_id));
     channel_info_t ci;
     ci.channel_id = channel_id;
+    ci.joined_at.start();
     channel_info.emplace_back(ci);
     udp_keep_alive.reset();
     {
       ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare_t rest;
-      rest.ChannelID = ecps_backend.channel_info.front().channel_id;
+      rest.ChannelID = channel_info.back().channel_id;
       rest.Flag = ecps_backend_t::ProtocolChannel::ScreenShare::ChannelFlag::ResetIDR;
-      co_await ecps_backend.tcp_write(
+      co_await tcp_write(
         ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare,
         &rest,
         sizeof(rest)
       );
     }
-    did_just_join = true;
+    did_just_join = !is_own_channel;
   }
 
   bool is_channel_id_valid(Protocol_ChannelID_t channel_id) const {
@@ -445,6 +462,10 @@ struct ecps_backend_t {
     channel_info.erase(
       std::remove_if(channel_info.begin(), channel_info.end(),
         [this](const auto& joined) {
+          if (joined.joined_at.elapsed() < 5e+9) {
+            return false;
+          }
+
           return std::none_of(available_channels.begin(), available_channels.end(),
             [&](const auto& available) {
               return available.channel_id.i == joined.channel_id.i;
@@ -462,6 +483,8 @@ struct ecps_backend_t {
   fan::network::tcp_t tcp_client;
   fan::network::udp_t udp_client;
   fan::event::task_t task_udp_listen;
+
+  std::function<void(fan::exception_t)> login_fail_cb;
 
   fan::network::tcp_keep_alive_t tcp_keep_alive{
     tcp_client,
@@ -556,6 +579,57 @@ struct ecps_backend_t {
 
     return "Not Connected";
   }
+
+  void set_channel_streaming(Protocol_ChannelID_t channel_id, bool streaming) {
+    if (channel_id.i == (uint16_t)-1) {
+      return;
+    }
+    for (auto& channel : channel_info) {
+      if (channel.channel_id.i == channel_id.i) {
+        channel.is_streaming = streaming;
+        return;
+      }
+    }
+  }
+  void set_channel_viewing(Protocol_ChannelID_t channel_id, bool viewing) {
+    if (channel_id.i == (uint16_t)-1) {
+      return;
+    }
+    for (auto& channel : channel_info) {
+      if (channel.channel_id.i == channel_id.i) {
+        channel.is_viewing = viewing;
+        return;
+      }
+    }
+  }
+  bool is_channel_streaming(Protocol_ChannelID_t channel_id) const {
+    if (channel_id.i == (uint16_t)-1) {
+      return false;
+    }
+    for (const auto& channel : channel_info) {
+      if (channel.channel_id.i == channel_id.i) {
+        return channel.is_streaming;
+      }
+    }
+    return false;
+  }
+  bool is_channel_viewing(Protocol_ChannelID_t channel_id) const {
+    for (const auto& channel : channel_info) {
+      if (channel.channel_id.i == channel_id.i) {
+        return channel.is_viewing;
+      }
+    }
+    return false;
+  }
+  bool is_streaming_to_any_channel() const {
+    return std::any_of(channel_info.begin(), channel_info.end(),
+      [](const channel_info_t& ch) { return ch.is_streaming; });
+  }
+  bool is_viewing_any_channel() const {
+    return std::any_of(channel_info.begin(), channel_info.end(),
+      [](const channel_info_t& ch) { return ch.is_viewing; });
+  }
+
   bool channel_list_received = false;
    fan::network::udp_keep_alive_t udp_keep_alive{ udp_client };
 
@@ -574,6 +648,10 @@ struct ecps_backend_t {
   struct channel_info_t {
     Protocol_ChannelID_t channel_id = 0;
     Protocol_ChannelSessionID_t session_id = 0;
+
+    bool is_streaming = false;
+    bool is_viewing = false;
+    fan::time::clock joined_at;
   };
   std::vector<channel_info_t> channel_info;
 

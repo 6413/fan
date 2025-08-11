@@ -4,25 +4,15 @@ module;
 #include <fan/time/time.h>
 
 #include <WITCH/WITCH.h>
-#define ETC_VEDC_Encode_DefineEncoder_OpenH264
-#define ETC_VEDC_Encode_DefineEncoder_x264
-#define ETC_VEDC_Encode_DefineEncoder_amf // AMD
-//#if defined(__platform_windows)
-#if __has_include("cuda.h")
-  #define ETC_VEDC_Encode_DefineEncoder_nvenc
-#endif
-//#endif
 
-#define ETC_VEDC_Decoder_DefineCodec_OpenH264
-//#if defined(__platform_windows)
-#define ETC_VEDC_Decoder_DefineCodec_amf // AMD
-#if __has_include("cuda.h")
-  #define ETC_VEDC_Decoder_DefineCodec_cuvid
-#endif
-//#endif#
-
-//#define ETC_VEDC_Decoder_DefineCodec_va
-
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/opt.h>
+#include <libswscale/swscale.h>
+}
 
 #include <string>
 #include <mutex>
@@ -32,15 +22,12 @@ module;
 #include <functional>
 #include <thread>
 #include <chrono>
+#include <vector>
+#include <memory>
+#include <unordered_map>
 
 #include <WITCH/PR/PR.h>
 #include <WITCH/MD/SCR/SCR.h>
-//#include <WITCH/MD/Mice.h>
-//#include <WITCH/MD/Keyboard/Keyboard.h>
-
-//#include <WITCH/HASH/SHA.h>
-#include <WITCH/ETC/VEDC/Encode.h>
-#include <WITCH/ETC/VEDC/Decoder.h>
 
 export module fan.graphics.video.screen_codec;
 
@@ -49,445 +36,1008 @@ import fan.fmt;
 
 export namespace fan {
   namespace graphics {
+
+    struct codec_config_t {
+      enum codec_type_e {
+        H264 = 0,
+        H265,
+        AV1
+      };
+
+      enum rate_control_e {
+        CBR = 0,  // Constant bitrate
+        VBR,      // Variable bitrate
+        CRF       // Constant rate factor
+      };
+
+      codec_type_e codec = H264;
+      rate_control_e rate_control = VBR;
+      int bitrate = 10000000;  // 10 Mbps default
+      int crf_value = 23;      // For CRF mode
+      int frame_rate = 30;
+      int width = 1920;
+      int height = 1080;
+      int gop_size = 60;       // I-frame interval
+      bool use_hardware = true; // Try hardware acceleration
+    };
+
     struct codec_update_e {
       enum {
         codec = 1 << 0,
         rate_control = 1 << 1,
         frame_rate = 1 << 2,
-      };
-      enum {
-        reset_IDR = ETC_VEDC_EncoderFlag_ResetIDR
+        force_keyframe = 1 << 3
       };
     };
-    struct screen_encode_t : ETC_VEDC_Encode_t {
 
-      void close_encoder() {
-        ETC_VEDC_Encode_Close(this);
+    // LibAV wrapper for encoding
+    struct libav_encoder_t {
+      const AVCodec* codec_ = nullptr;
+      AVCodecContext* codec_ctx_ = nullptr;
+      AVFrame* frame_ = nullptr;
+      AVPacket* packet_ = nullptr;
+      SwsContext* sws_ctx_ = nullptr;
+
+      uint8_t* converted_data_[4] = { nullptr };
+      int converted_linesize_[4] = { 0 };
+
+      codec_config_t config_;
+      std::string codec_name_;
+      bool initialized_ = false;
+
+      // Hardware acceleration support
+      AVBufferRef* hw_device_ctx_ = nullptr;
+      AVHWDeviceType hw_type_ = AV_HWDEVICE_TYPE_NONE;
+
+      static std::unordered_map<codec_config_t::codec_type_e, std::vector<std::string>> get_codec_names() {
+        return {
+          {codec_config_t::H264, {"h264_nvenc", "h264_amf", "h264_vaapi", "libx264"}},
+          {codec_config_t::H265, {"hevc_nvenc", "hevc_amf", "hevc_vaapi", "libx265"}},
+          {codec_config_t::AV1, {"av1_nvenc", "av1_amf", "av1_vaapi", "libaom-av1", "libsvtav1"}}
+        };
       }
-      bool open_encoder() {
-        if (name == "Nothing") {
-          ETC_VEDC_Encode_OpenNothing(this);
-          return true;
+
+      bool init_hardware_acceleration() {
+        if (!config_.use_hardware) return false;
+
+        std::vector<AVHWDeviceType> hw_types = {
+          AV_HWDEVICE_TYPE_CUDA,
+          AV_HWDEVICE_TYPE_DXVA2,
+          AV_HWDEVICE_TYPE_D3D11VA,
+          AV_HWDEVICE_TYPE_VAAPI,
+          AV_HWDEVICE_TYPE_VIDEOTOOLBOX
+        };
+
+        for (auto type : hw_types) {
+          if (av_hwdevice_ctx_create(&hw_device_ctx_, type, nullptr, nullptr, 0) == 0) {
+            hw_type_ = type;
+            return true;
+          }
         }
-        ETC_VEDC_Encode_Error err = ETC_VEDC_Encode_Open(
-          this,
-          name.size(),
-          name.c_str(),
-          &settings,
-          NULL);
-        if (err != ETC_VEDC_Encode_Error_Success) {
-          fan::printn8("\n[CLIENT] [WARNING] [ENCODER] ", __FUNCTION__, " ", __FILE__, ":", __LINE__,
-            " (ETC_VEDC_Encoder_Open returned (", err, ") for encoder \"", name, "\"", "\n"
-          );
-          /* TODO */
-          //__abort();
+        return false;
+      }
+
+      bool find_and_init_codec() {
+        auto codec_names = get_codec_names();
+        auto& names = codec_names[config_.codec];
+
+        for (const auto& name : names) {
+          codec_ = avcodec_find_encoder_by_name(name.c_str());
+          if (codec_) {
+            codec_name_ = name;
+
+            codec_ctx_ = avcodec_alloc_context3(codec_);
+            if (!codec_ctx_) continue;
+
+            codec_ctx_->width = config_.width;
+            codec_ctx_->height = config_.height;
+            codec_ctx_->time_base = { 1, config_.frame_rate };
+            codec_ctx_->framerate = { config_.frame_rate, 1 };
+            codec_ctx_->gop_size = config_.gop_size;
+            codec_ctx_->max_b_frames = 1;
+            codec_ctx_->pix_fmt = AV_PIX_FMT_YUV420P;
+
+            switch (config_.rate_control) {
+            case codec_config_t::CBR:
+              codec_ctx_->bit_rate = config_.bitrate;
+              codec_ctx_->rc_buffer_size = config_.bitrate;
+              codec_ctx_->rc_max_rate = config_.bitrate;
+              codec_ctx_->rc_min_rate = config_.bitrate;
+              break;
+            case codec_config_t::VBR:
+              codec_ctx_->bit_rate = config_.bitrate;
+              break;
+            case codec_config_t::CRF:
+              av_opt_set_int(codec_ctx_->priv_data, "crf", config_.crf_value, 0);
+              break;
+            }
+
+            if (hw_device_ctx_ && name.find("nvenc") != std::string::npos) {
+              codec_ctx_->hw_device_ctx = av_buffer_ref(hw_device_ctx_);
+            }
+
+            if (name.find("nvenc") != std::string::npos) {
+              // NVIDIA NVENC options
+              av_opt_set(codec_ctx_->priv_data, "preset", "fast", 0);  // Use "fast" instead of "ultrafast"
+              av_opt_set(codec_ctx_->priv_data, "tune", "ll", 0);     // Use "ll" (low latency) instead of "zerolatency"
+              av_opt_set(codec_ctx_->priv_data, "rc", "vbr", 0);      // Rate control mode
+              av_opt_set_int(codec_ctx_->priv_data, "surfaces", 32, 0); // Number of surfaces
+              av_opt_set_int(codec_ctx_->priv_data, "delay", 0, 0);   // Zero delay for low latency
+            }
+            else if (name.find("amf") != std::string::npos) {
+              av_opt_set(codec_ctx_->priv_data, "quality", "speed", 0);
+              av_opt_set(codec_ctx_->priv_data, "rc", "vbr_latency", 0);
+              av_opt_set_int(codec_ctx_->priv_data, "preanalysis", 0, 0);
+            }
+            else if (name.find("vaapi") != std::string::npos) {
+              av_opt_set(codec_ctx_->priv_data, "low_power", "1", 0);
+            }
+            else if (name == "libx264") {
+              av_opt_set(codec_ctx_->priv_data, "preset", "ultrafast", 0);
+              av_opt_set(codec_ctx_->priv_data, "tune", "zerolatency", 0);
+            }
+            else if (name == "libx265") {
+              av_opt_set(codec_ctx_->priv_data, "preset", "ultrafast", 0);
+              av_opt_set(codec_ctx_->priv_data, "tune", "zerolatency", 0);
+            }
+
+            if (avcodec_open2(codec_ctx_, codec_, nullptr) == 0) {
+              return true;
+            }
+
+            avcodec_free_context(&codec_ctx_);
+            codec_ = nullptr;
+          }
+        }
+        return false;
+      }
+
+
+    public:
+      libav_encoder_t() {
+        packet_ = av_packet_alloc();
+      }
+
+      ~libav_encoder_t() {
+        close();
+        if (packet_) av_packet_free(&packet_);
+      }
+
+      bool open(const codec_config_t& config) {
+        close();
+        config_ = config;
+
+        init_hardware_acceleration();
+
+        if (!find_and_init_codec()) {
+          fan::print("Failed to find suitable encoder for codec type: " + std::to_string(config.codec));
           return false;
         }
+
+        frame_ = av_frame_alloc();
+        if (!frame_) {
+          close();
+          return false;
+        }
+
+        frame_->format = codec_ctx_->pix_fmt;
+        frame_->width = config_.width;
+        frame_->height = config_.height;
+
+        if (av_frame_get_buffer(frame_, 32) < 0) {
+          close();
+          return false;
+        }
+
+        sws_ctx_ = sws_getContext(
+          config_.width, config_.height, AV_PIX_FMT_BGRA,
+          config_.width, config_.height, codec_ctx_->pix_fmt,
+          SWS_FAST_BILINEAR, nullptr, nullptr, nullptr
+        );
+
+        if (!sws_ctx_) {
+          close();
+          return false;
+        }
+
+        initialized_ = true;
+        fan::print("Successfully initialized encoder: " + codec_name_);
         return true;
       }
 
-      screen_encode_t() {
+
+      void close() {
+        if (sws_ctx_) {
+          sws_freeContext(sws_ctx_);
+          sws_ctx_ = nullptr;
+        }
+
+        if (converted_data_[0]) {
+          av_freep(&converted_data_[0]);
+        }
+
+        if (frame_) {
+          av_frame_free(&frame_);
+        }
+
+        if (codec_ctx_) {
+          avcodec_free_context(&codec_ctx_);
+        }
+
+        if (hw_device_ctx_) {
+          av_buffer_unref(&hw_device_ctx_);
+        }
+
+        initialized_ = false;
+        codec_ = nullptr;
+      }
+
+      struct encode_result_t {
+        std::vector<uint8_t> data;
+        bool is_keyframe = false;
+        int64_t pts = 0;
+        int64_t dts = 0;
+      };
+
+      std::vector<encode_result_t> encode_frame(uint8_t* bgra_data, int stride, int64_t pts, bool force_keyframe = false) {
+        std::vector<encode_result_t> results;
+
+        if (!initialized_) return results;
+
+        // Validate input parameters
+        if (!bgra_data) {
+          fan::print("Error: bgra_data is null");
+          return results;
+        }
+
+        if (stride <= 0) {
+          fan::print("Error: invalid stride: " + std::to_string(stride));
+          return results;
+        }
+
+        if (config_.width <= 0 || config_.height <= 0) {
+          fan::print("Error: invalid dimensions: " + std::to_string(config_.width) + "x" + std::to_string(config_.height));
+          return results;
+        }
+
+        int expected_stride = config_.width * 4; // BGRA = 4 bytes per pixel
+        if (stride < expected_stride) {
+          fan::print("Error: stride too small. Expected: " + std::to_string(expected_stride) + ", got: " + std::to_string(stride));
+          return results;
+        }
+
+        const uint8_t* src_data[4] = { bgra_data, nullptr, nullptr, nullptr };
+        int src_linesize[4] = { stride, 0, 0, 0 };
+
+        size_t expected_data_size = stride * config_.height;
+
+        int result = sws_scale(sws_ctx_, src_data, src_linesize, 0, config_.height,
+          frame_->data, frame_->linesize);
+
+        if (result != config_.height) {
+          fan::print("Error: sws_scale failed. Expected: " + std::to_string(config_.height) + ", got: " + std::to_string(result));
+          return results;
+        }
+
+        frame_->pts = pts;
+
+        // Force keyframe if requested
+        if (force_keyframe) {
+          frame_->pict_type = AV_PICTURE_TYPE_I;
+        }
+        else {
+          frame_->pict_type = AV_PICTURE_TYPE_NONE;
+        }
+
+        // Send frame to encoder
+        int ret = avcodec_send_frame(codec_ctx_, frame_);
+        if (ret < 0) {
+          fan::print("Error sending frame to encoder: " + std::to_string(ret));
+          return results;
+        }
+
+        // Receive encoded packets
+        while (ret >= 0) {
+          ret = avcodec_receive_packet(codec_ctx_, packet_);
+          if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            break;
+          }
+          else if (ret < 0) {
+            fan::print("Error receiving packet from encoder: " + std::to_string(ret));
+            break;
+          }
+
+          encode_result_t result;
+          result.data.resize(packet_->size);
+          std::memcpy(result.data.data(), packet_->data, packet_->size);
+          result.is_keyframe = (packet_->flags & AV_PKT_FLAG_KEY) != 0;
+          result.pts = packet_->pts;
+          result.dts = packet_->dts;
+
+          results.push_back(std::move(result));
+          av_packet_unref(packet_);
+        }
+
+        return results;
+      }
+
+      bool update_config(const codec_config_t& new_config, uint8_t update_flags) {
+        if (update_flags & codec_update_e::codec) {
+          return open(new_config);
+        }
+
+        config_ = new_config;
+
+        if (update_flags & codec_update_e::rate_control) {
+          switch (config_.rate_control) {
+          case codec_config_t::CBR:
+            codec_ctx_->bit_rate = config_.bitrate;
+            codec_ctx_->rc_max_rate = config_.bitrate;
+            codec_ctx_->rc_min_rate = config_.bitrate;
+            break;
+          case codec_config_t::VBR:
+            codec_ctx_->bit_rate = config_.bitrate;
+            break;
+          case codec_config_t::CRF:
+            av_opt_set_int(codec_ctx_->priv_data, "crf", config_.crf_value, 0);
+            break;
+          }
+        }
+
+        if (update_flags & codec_update_e::frame_rate) {
+          codec_ctx_->time_base = { 1, config_.frame_rate };
+          codec_ctx_->framerate = { config_.frame_rate, 1 };
+        }
+
+        return true;
+      }
+
+      const std::string& get_codec_name() const { return codec_name_; }
+      bool is_initialized() const { return initialized_; }
+
+      static std::vector<std::string> get_available_encoders() {
+        std::vector<std::string> encoders;
+        auto codec_names = get_codec_names();
+
+        for (const auto& [type, names] : codec_names) {
+          for (const auto& name : names) {
+            if (avcodec_find_encoder_by_name(name.c_str())) {
+              encoders.push_back(name);
+            }
+          }
+        }
+        return encoders;
+      }
+    };
+
+    struct libav_decoder_t {
+      const AVCodec* codec_ = nullptr;
+      AVCodecContext* codec_ctx_ = nullptr;
+      AVFrame* frame_ = nullptr;
+      AVPacket* packet_ = nullptr;
+      SwsContext* sws_ctx_ = nullptr;
+
+      bool initialized_ = false;
+      std::string codec_name_;
+
+      // Hardware acceleration support
+      AVBufferRef* hw_device_ctx_ = nullptr;
+      AVHWDeviceType hw_type_ = AV_HWDEVICE_TYPE_NONE;
+
+      libav_decoder_t() {
+        packet_ = av_packet_alloc();
+      }
+
+      ~libav_decoder_t() {
+        close();
+        if (packet_) av_packet_free(&packet_);
+      }
+
+      bool open() {
+        close();
+
+        frame_ = av_frame_alloc();
+        if (!frame_) {
+          return false;
+        }
+
+        initialized_ = true;
+        return true;
+      }
+
+      void close() {
+        if (sws_ctx_) {
+          sws_freeContext(sws_ctx_);
+          sws_ctx_ = nullptr;
+        }
+
+        if (frame_) {
+          av_frame_free(&frame_);
+        }
+
+        if (codec_ctx_) {
+          avcodec_free_context(&codec_ctx_);
+        }
+
+        if (hw_device_ctx_) {
+          av_buffer_unref(&hw_device_ctx_);
+        }
+
+        initialized_ = false;
+        codec_ = nullptr;
+      }
+
+      struct decode_result_t {
+        std::vector<std::vector<uint8_t>> plane_data;
+        std::vector<int> linesize;
+        fan::vec2ui image_size{ 0, 0 };
+        AVPixelFormat pixel_format = AV_PIX_FMT_NONE;
+        bool success = false;
+        int64_t pts = 0;
+      };
+
+      std::vector<decode_result_t> decode_packet(const uint8_t* data, size_t size) {
+        std::vector<decode_result_t> results;
+
+        if (!initialized_) return results;
+
+        // Auto-detect codec if not yet initialized
+        if (!codec_ctx_) {
+          if (!init_decoder_from_data(data, size)) {
+            return results;
+          }
+        }
+
+        packet_->data = const_cast<uint8_t*>(data);
+        packet_->size = size;
+
+        int ret = avcodec_send_packet(codec_ctx_, packet_);
+        if (ret < 0) {
+          fan::print("Error sending packet to decoder: " + std::to_string(ret));
+          return results;
+        }
+
+        while (ret >= 0) {
+          ret = avcodec_receive_frame(codec_ctx_, frame_);
+          if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            break;
+          }
+          else if (ret < 0) {
+            fan::print("Error receiving frame from decoder: " + std::to_string(ret));
+            break;
+          }
+
+          decode_result_t result;
+          result.success = true;
+          result.image_size = { static_cast<uint32_t>(frame_->width),
+                              static_cast<uint32_t>(frame_->height) };
+          result.pixel_format = static_cast<AVPixelFormat>(frame_->format);
+          result.pts = frame_->pts;
+
+          // Copy plane data
+          int num_planes = av_pix_fmt_count_planes(static_cast<AVPixelFormat>(frame_->format));
+          result.plane_data.resize(num_planes);
+          result.linesize.resize(num_planes);
+
+          for (int i = 0; i < num_planes; i++) {
+            result.linesize[i] = frame_->linesize[i];
+            int plane_size = av_image_get_linesize(static_cast<AVPixelFormat>(frame_->format),
+              frame_->width, i) *
+              (i == 0 ? frame_->height : frame_->height / (i > 0 ? 2 : 1));
+
+            result.plane_data[i].resize(plane_size);
+            std::memcpy(result.plane_data[i].data(), frame_->data[i], plane_size);
+          }
+
+          results.push_back(std::move(result));
+        }
+
+        return results;
+      }
+
+    private:
+      bool init_decoder_from_data(const uint8_t* data, size_t size) {
+
+        codec_name_ = "h264";
+
+        if (size >= 4) {
+          if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
+            codec_name_ = "h264";
+          }
+          else if (size >= 5 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01 &&
+            ((data[4] & 0x7E) >> 1) >= 32) {
+            codec_name_ = "hevc";
+          }
+        }
+
+        codec_ = avcodec_find_decoder_by_name(codec_name_.c_str());
+        if (!codec_) {
+          fan::print("Could not find decoder for: " + codec_name_);
+          return false;
+        }
+
+        codec_ctx_ = avcodec_alloc_context3(codec_);
+        if (!codec_ctx_) {
+          return false;
+        }
+
+        if (avcodec_open2(codec_ctx_, codec_, nullptr) < 0) {
+          avcodec_free_context(&codec_ctx_);
+          return false;
+        }
+
+        fan::print("Successfully initialized decoder: " + codec_name_);
+        return true;
+      }
+    };
+
+    
+    struct resolution_system_t {
+      struct resolution_t {
+        uint32_t width, height;
+        std::string name;
+        std::string category;
+        float aspect_ratio() const { return static_cast<float>(width) / height; }
+      };
+
+      static const std::vector<resolution_t>& get_all_resolutions() {
+        static const std::vector<resolution_t> resolutions = {
+          // 16:9
+          {3840, 2160, "3840x2160", "4K UHD"},
+          {2560, 1440, "2560x1440", "QHD/1440p"},
+          {1920, 1080, "1920x1080", "Full HD/1080p"},
+          {1600, 900,  "1600x900",  "HD+"},
+          {1366, 768,  "1366x768",  "WXGA"},
+          {1280, 720,  "1280x720",  "HD/720p"},
+          {854,  480,  "854x480",   "FWVGA"},
+
+          // 16:10
+          {2560, 1600, "2560x1600", "WQXGA"},
+          {1920, 1200, "1920x1200", "WUXGA"},
+          {1680, 1050, "1680x1050", "WSXGA+"},
+          {1440, 900,  "1440x900",  "WXGA+"},
+          {1280, 800,  "1280x800",  "WXGA"},
+
+          // 4:3
+          {1600, 1200, "1600x1200", "UXGA"},
+          {1400, 1050, "1400x1050", "SXGA+"},
+          {1280, 1024, "1280x1024", "SXGA"},
+          {1024, 768,  "1024x768",  "XGA"},
+          {800,  600,  "800x600",   "SVGA"},
+          {640,  480,  "640x480",   "VGA"},
+
+          // Ultrawide
+          {3440, 1440, "3440x1440", "UWQHD"},
+          {2560, 1080, "2560x1080", "UW-FHD"},
+          {1920, 800,  "1920x800",  "UW-WXGA"},
+
+          // Gaming/High Refresh
+          {2048, 1152, "2048x1152", "QWXGA"},
+          {1856, 1392, "1856x1392", "Custom"},
+
+          // Mobile/Tablet Common
+          {1920, 1200, "1920x1200", "WUXGA (Tablet)"},
+          {1280, 720,  "1280x720",  "HD (Mobile)"},
+          {960,  640,  "960x640",   "DVGA"},
+
+          // Streaming Optimized
+          {1600, 1024, "1600x1024", "Custom 25:16"},
+          {1536, 864,  "1536x864",  "Custom 16:9"},
+          {1344, 756,  "1344x756",  "Custom 16:9"},
+        };
+        return resolutions;
+      }
+
+      static std::map<std::string, std::vector<resolution_t>> get_resolutions_by_category() {
+        std::map<std::string, std::vector<resolution_t>> categorized;
+
+        for (const auto& res : get_all_resolutions()) {
+          categorized[res.category].push_back(res);
+        }
+
+        return categorized;
+      }
+
+      static std::vector<resolution_t> get_resolutions_by_aspect(float target_aspect, float tolerance = 0.01f) {
+        std::vector<resolution_t> filtered;
+
+        for (const auto& res : get_all_resolutions()) {
+          if (std::abs(res.aspect_ratio() - target_aspect) <= tolerance) {
+            filtered.push_back(res);
+          }
+        }
+
+        std::sort(filtered.begin(), filtered.end(),
+          [](const resolution_t& a, const resolution_t& b) {
+            return (a.width * a.height) > (b.width * b.height);
+          });
+
+        return filtered;
+      }
+
+      static std::vector<std::string> get_display_strings(bool include_category = false) {
+        std::vector<std::string> display_strings;
+
+        if (include_category) {
+          auto categorized = get_resolutions_by_category();
+          for (const auto& [category, resolutions] : categorized) {
+            for (const auto& res : resolutions) {
+              display_strings.push_back(res.name + " (" + category + ")");
+            }
+          }
+        }
+        else {
+          for (const auto& res : get_all_resolutions()) {
+            display_strings.push_back(res.name);
+          }
+        }
+
+        return display_strings;
+      }
+
+      static std::vector<resolution_t> get_popular_resolutions() {
+        return {
+          {3840, 2160, "3840x2160", "4K UHD"},
+          {2560, 1440, "2560x1440", "QHD"},
+          {1920, 1080, "1920x1080", "Full HD"},
+          {1680, 1050, "1680x1050", "WSXGA+"},
+          {1600, 900,  "1600x900",  "HD+"},
+          {1440, 900,  "1440x900",  "WXGA+"},
+          {1366, 768,  "1366x768",  "WXGA"},
+          {1280, 720,  "1280x720",  "HD"},
+          {1024, 768,  "1024x768",  "XGA"},
+          {800,  600,  "800x600",   "SVGA"}
+        };
+      }
+
+      static resolution_t get_optimal_resolution(uint32_t screen_width, uint32_t screen_height) {
+        float screen_aspect = static_cast<float>(screen_width) / screen_height;
+
+        auto matching_aspect = get_resolutions_by_aspect(screen_aspect, 0.02f);
+
+        if (!matching_aspect.empty()) {
+          for (const auto& res : matching_aspect) {
+            if (res.width <= screen_width && res.height <= screen_height) {
+              return res;
+            }
+          }
+          return matching_aspect.back();
+        }
+
+        return { 1920, 1080, "1920x1080", "Full HD" };
+      }
+    };
+
+    struct screen_encode_t;
+
+    struct resolution_manager_t {
+      struct detected_info_t {
+        uint32_t screen_width, screen_height;
+        float screen_aspect;
+        resolution_system_t::resolution_t optimal_resolution;
+        std::vector<resolution_system_t::resolution_t> matching_aspect_resolutions;
+      };
+
+      detected_info_t detected_info;
+      bool auto_detected = false;
+
+      void detect_and_set_optimal(screen_encode_t& encoder);
+
+      std::vector<std::pair<std::string, float>> get_aspect_ratio_options() {
+        return {
+          {"16:9", 16.0f / 9.0f},
+          {"16:10", 16.0f / 10.0f},
+          {"4:3", 4.0f / 3.0f},
+          {"21:9", 21.0f / 9.0f},
+          {"Auto (Screen Native)", detected_info.screen_aspect}
+        };
+      }
+    };
+
+    struct screen_encode_t {
+      bool open(const codec_config_t& default_config = codec_config_t()) {
         std::memset(&mdscr, 0, sizeof(mdscr));
         if (int ret = MD_SCR_open(&mdscr); ret != 0) {
           fan::print("failed to open screen:" + std::to_string(ret));
-          __abort();
+          return false;
         }
 
-        settings = {
-         .CodecStandard = ETC_VCODECSTD_H264,
-         .UsageType = ETC_VEDC_EncoderSetting_UsageType_Realtime,
-         .RateControl{
-           .Type = ETC_VEDC_EncoderSetting_RateControlType_VBR,
-           .VBR = {.bps = 10000000 }
-         },
-         .InputFrameRate = 30
-        };
+        resolution_manager.detect_and_set_optimal(*this);
 
-        settings.FrameSizeX = mdscr.Geometry.Resolution.x;
-        settings.FrameSizeY = mdscr.Geometry.Resolution.y;
+        config_.frame_rate = 30;
+        config_.codec = codec_config_t::H264;
+        config_.rate_control = codec_config_t::VBR;
+        config_.bitrate = 10000000;
 
-        open_encoder();
-      }
-      static auto get_encoders() {
-        return std::to_array(_ETC_VEDC_EncoderList);
+        if (!encoder_.open(config_)) {
+          fan::print("Failed to open encoder");
+          return false;
+        }
+        return true;
       }
 
-      std::string name = "x264";
-      uintptr_t new_codec = 0;
+      ~screen_encode_t() {
+        encoder_.close();
+      }
 
-      ETC_VEDC_EncoderSetting_t settings;
-      void* data{};
-      uintptr_t amount = 0;
-      uint8_t update_flags = 0;
+      bool is_initialized() const {
+        return encoder_.initialized_;
+      }
 
-      // returns if is readable
+      static std::vector<std::string> get_encoders() {
+        return libav_encoder_t::get_available_encoders();
+      }
+
+      struct encode_data_t {
+        std::vector<uint8_t> data;
+        bool is_keyframe = false;
+        int64_t timestamp = 0;
+      };
+
       bool encode_write() {
-        if (
-          settings.FrameSizeX != mdscr.Geometry.Resolution.x ||
-          settings.FrameSizeY != mdscr.Geometry.Resolution.y
-          ) {
-          settings.FrameSizeX = mdscr.Geometry.Resolution.x;
-          settings.FrameSizeY = mdscr.Geometry.Resolution.y;
-          sint32_t err = ETC_VEDC_Encode_SetFrameSize(
-            this,
-            settings.FrameSizeX,
-            settings.FrameSizeY);
-          if (err != 0) {
-            /* TODO */
-            __abort();
+        if (config_.width != mdscr.Geometry.Resolution.x ||
+          config_.height != mdscr.Geometry.Resolution.y) {
+          config_.width = mdscr.Geometry.Resolution.x;
+          config_.height = mdscr.Geometry.Resolution.y;
+
+          // Reopen encoder with new resolution
+          if (!encoder_.open(config_)) {
+            return false;
           }
         }
 
-        settings.FrameSizeX = mdscr.Geometry.Resolution.x;
-        settings.FrameSizeY = mdscr.Geometry.Resolution.y;
+        if (update_flags != 0) {
+          std::lock_guard<std::mutex> lock(mutex);
 
-        if (update_flags & codec_update_e::codec) {
-          mutex.lock();
-          close_encoder();
-          auto prev_encoder = EncoderID;
-          auto prev_name = name;
-          EncoderID = new_codec;
-          name = get_encoders()[EncoderID].Name;
-          if (!open_encoder()) {
-            close_encoder();
-            EncoderID = prev_encoder;
-            name = prev_name;
-            if (!open_encoder()) {
-              fan::throw_error("Invalid encoder to begin with");
-            }
+          if (update_flags & codec_update_e::codec) {
+            config_.codec = static_cast<codec_config_t::codec_type_e>(new_codec);
           }
+
+          encoder_.update_config(config_, update_flags);
           update_flags = 0;
-          mutex.unlock();
-        }
-        else {
-          if (update_flags & codec_update_e::rate_control) {
-            update_flags &= ~codec_update_e::rate_control;
-            ETC_VEDC_Encode_Error err = ETC_VEDC_Encode_SetRateControl(
-              this,
-              &settings.RateControl);
-            if (err != ETC_VEDC_Encode_Error_Success) {
-              /* TODO */
-              __abort();
-            }
-          }
-          if (update_flags & codec_update_e::frame_rate) {
-            update_flags &= ~codec_update_e::frame_rate;
-            ETC_VEDC_Encode_Error err = ETC_VEDC_Encode_SetInputFrameRate(
-              this,
-              settings.InputFrameRate);
-            if (err != ETC_VEDC_Encode_Error_Success) {
-              /* TODO */
-              __abort();
-            }
-          }
         }
 
-        {
-          ETC_VEDC_Encode_Frame_t Frame;
-          /* TOOD hardcode to spectific pixel format */
-          Frame.Properties.PixelFormat = PIXF_BGRA;
-          Frame.Properties.Stride[0] = mdscr.Geometry.LineSize;
-          Frame.Properties.SizeX = mdscr.Geometry.Resolution.x;
-          Frame.Properties.SizeY = mdscr.Geometry.Resolution.y;
-          Frame.Data[0] = screen_buffer;
-          Frame.TimeStamp = FrameProcessStartTime - EncoderStartTime;
-
-
-          ETC_VEDC_Encode_Error err = ETC_VEDC_Encode_Write(this, ETC_VEDC_Encode_WriteType_Frame, &Frame, encode_write_flags);
-          if (err != ETC_VEDC_Encode_Error_Success) {
-            /* TODO */
-            __abort();
-          }
-          if (encode_write_flags & ETC_VEDC_EncoderFlag_ResetIDR) {
-            encode_write_flags &= ~ETC_VEDC_EncoderFlag_ResetIDR;
-          }
+        if (!screen_buffer) {
+          fan::print("Error: screen_buffer is null");
+          return false;
         }
 
-        return ETC_VEDC_Encode_IsReadable(this) != false;
+        if (mdscr.Geometry.Resolution.x <= 0 || mdscr.Geometry.Resolution.y <= 0) {
+          fan::print("Error: invalid screen resolution: " +
+            std::to_string(mdscr.Geometry.Resolution.x) + "x" +
+            std::to_string(mdscr.Geometry.Resolution.y));
+          return false;
+        }
+
+        if (mdscr.Geometry.LineSize <= 0) {
+          fan::print("Error: invalid line size: " + std::to_string(mdscr.Geometry.LineSize));
+          return false;
+        }
+
+        size_t expected_buffer_size = mdscr.Geometry.LineSize * mdscr.Geometry.Resolution.y;
+
+        int min_line_size = mdscr.Geometry.Resolution.x * 4; // BGRA minimum
+        if (mdscr.Geometry.LineSize < min_line_size) {
+          fan::print("Error: LineSize too small for BGRA. Expected at least: " +
+            std::to_string(min_line_size) + ", got: " +
+            std::to_string(mdscr.Geometry.LineSize));
+          return false;
+        }
+
+        bool force_keyframe = (encode_write_flags & codec_update_e::force_keyframe) != 0;
+
+        auto results = encoder_.encode_frame(
+          screen_buffer,
+          mdscr.Geometry.LineSize,
+          frame_timestamp_,
+          force_keyframe
+        );
+
+        if (encode_write_flags & codec_update_e::force_keyframe) {
+          encode_write_flags &= ~codec_update_e::force_keyframe;
+        }
+
+        std::lock_guard<std::mutex> lock(data_mutex);
+
+        for (const auto& result : results) {
+          encode_data_t packet;
+          packet.data = result.data;
+          packet.is_keyframe = result.is_keyframe;
+          packet.timestamp = result.pts;
+          encoded_packets_.push_back(std::move(packet));
+        }
+
+        frame_timestamp_++;
+        return !results.empty();
       }
-      uintptr_t encode_read() {
-        ETC_VEDC_Encode_PacketInfo PacketInfo;
-        amount = ETC_VEDC_Encode_Read(this, &PacketInfo, &data);
-        return amount;
+
+      size_t encode_read(uint8_t** data) {
+        std::lock_guard<std::mutex> lock(data_mutex);
+
+        if (encoded_packets_.empty()) {
+          return 0;
+        }
+
+        current_packet_ = std::move(encoded_packets_.front());
+        encoded_packets_.erase(encoded_packets_.begin());
+
+        *data = current_packet_.data.data();
+        return current_packet_.data.size();
       }
 
       void sleep_thread() {
-        uint64_t OneFrameTime = 1000000000 / settings.InputFrameRate;
-        uint64_t CTime = fan::time::clock::now();
-        uint64_t TimeDiff = CTime - FrameProcessStartTime;
-        if (TimeDiff > OneFrameTime) {
-          FrameProcessStartTime = CTime;
+        uint64_t one_frame_time = 1000000000 / config_.frame_rate;
+        uint64_t current_time = fan::time::clock::now();
+        uint64_t time_diff = current_time - frame_process_start_time_;
+
+        if (time_diff > one_frame_time) {
+          frame_process_start_time_ = current_time;
         }
         else {
-          uint64_t SleepTime = OneFrameTime - TimeDiff;
-          FrameProcessStartTime = CTime + SleepTime;
-          fan::event::sleep(SleepTime / 1000000); // todo bad
+          uint64_t sleep_time = one_frame_time - time_diff;
+          frame_process_start_time_ = current_time + sleep_time;
+          fan::event::sleep(sleep_time / 1000000);
         }
       }
 
-      uint8_t encode_write_flags = 0;
-      uint64_t EncoderStartTime = fan::time::clock::now();
-      uint64_t FrameProcessStartTime = EncoderStartTime;
-      MD_SCR_t mdscr;
-
-      uint8_t* screen_buffer = 0;
       bool screen_read() {
         screen_buffer = MD_SCR_read(&mdscr);
-        return screen_buffer != 0;
+        return screen_buffer != nullptr;
       }
 
-      std::timed_mutex mutex;
+      codec_config_t config_;
+      std::string name = "libx264";
+      uintptr_t new_codec = 0;
+      uint8_t update_flags = 0;
+      uint8_t encode_write_flags = 0;
+
+      resolution_manager_t resolution_manager;
+
+      libav_encoder_t encoder_;
+      MD_SCR_t mdscr;
+      uint8_t* screen_buffer = nullptr;
+
+      std::vector<encode_data_t> encoded_packets_;
+      encode_data_t current_packet_;
+      std::mutex data_mutex;
+      std::mutex mutex;
+
+      int64_t frame_timestamp_ = 0;
+      uint64_t encoder_start_time_ = fan::time::clock::now();
+      uint64_t frame_process_start_time_ = encoder_start_time_;
     };
 
-    struct screen_decode_t : ETC_VEDC_Decoder_t {
-
-      bool open_decoder() {
-        if (name == "Nothing") {
-          ETC_VEDC_Decoder_OpenNothing(this);
-          return true;
-        }
-
-        auto r = ETC_VEDC_Decoder_Open(
-          this,
-          name.size(),
-          name.c_str(),
-          0
-        );
-        if (r != ETC_VEDC_Decoder_Error_OK) {
-          fan::printn8("\n[CLIENT] [WARNING] [DECODER] ", __FUNCTION__, " ", __FILE__, ":", __LINE__,
-            " (ETC_VEDC_Decoder_Open returned (", r, ") for decoder \"", name, "\"", "\n"
-          );
+    struct screen_decode_t {
+      bool open() {
+        if (!decoder_.open()) {
+          fan::print("Failed to open decoder");
           return false;
         }
-        closed = false;
         return true;
       }
-      void close_decoder() {
-        ETC_VEDC_Decoder_Close(this);
-        closed = true;
+
+      ~screen_decode_t() {
+        decoder_.close();
       }
 
-      screen_decode_t() {
-        open_decoder();
+      bool is_initialized() const {
+        return decoder_.initialized_;
       }
 
-      static auto get_decoders() {
-        return std::to_array(_ETC_VEDC_DecoderList);
+      std::vector<std::function<void()>> graphics_queue;
+
+      void graphics_queue_callback(const std::function<void()>& f) {
+        std::lock_guard<std::mutex> lock(mutex);
+        graphics_queue.emplace_back(f);
+      }
+
+
+      static std::vector<std::string> get_decoders() {
+        return { "libx264", "libx265", "libaom-av1", "auto-detect" };
       }
 
       struct decode_data_t {
         std::array<std::vector<uint8_t>, 4> data;
         std::array<fan::vec2ui, 4> stride;
-        fan::vec2ui image_size = 0;
+        fan::vec2ui image_size = { 0, 0 };
         uint8_t pixel_format = 0;
-        uint8_t type = 0;
+        uint8_t type = 0;  // 0 = success, >250 = error codes
       };
-      loco_t::shape_t* cached_universal_image_renderer = 0;
 
       decode_data_t decode(void* data, uintptr_t length, loco_t::shape_t& universal_image_renderer) {
         decode_data_t ret;
-        cached_universal_image_renderer = &universal_image_renderer;
 
-        bool need_cleanup = false;
-        std::function<void()> cleanup_lambda;
-        bool decoder_changed = false;
-
-        {
+        // Handle codec updates
+        if (update_flags & codec_update_e::codec) {
           std::lock_guard<std::mutex> lock(mutex);
 
-          if (update_flags & codec_update_e::codec) {
-#if defined(ETC_VEDC_Decoder_DefineCodec_cuvid)
-            if (name == "cuvid") {
-              need_cleanup = true;
-              cleanup_lambda = [this]() {
-                try {
-                  if (cached_universal_image_renderer) {
-                    ReadMethodData.CudaArrayFrame.cuda_textures.close(
-                      gloco,
-                      *static_cast<loco_t::shape_t*>(cached_universal_image_renderer)
-                    );
-                  }
-                }
-                catch (...) {
-                }
-              };
-            }
-#endif
-
-            close_decoder();
-            auto prev_codec = DecoderID;
-            auto prev_name = name;
-            DecoderID = new_codec;
-            name = get_decoders()[DecoderID].Name;
-            if (!open_decoder()) {
-              close_decoder();
-              DecoderID = prev_codec;
-              name = prev_name;
-              if (!open_decoder()) {
-                fan::throw_error("Invalid decoder to begin with");
-              }
-            }
-            update_flags = 0;
-            cached_universal_image_renderer = nullptr;
-            decoder_changed = true;
+          decoder_.close();
+          if (!decoder_.open()) {
+            ret.type = 254; // Decoder failed to reopen
+            return ret;
           }
+          update_flags = 0;
         }
 
-        if (need_cleanup) {
-          graphics_queue_callback(cleanup_lambda);
-        }
+        auto results = decoder_.decode_packet(static_cast<const uint8_t*>(data), length);
 
-        if (decoder_changed) {
-          ret.type = 253; // Special "decoder changed" signal
+        if (results.empty()) {
+          ret.type = 252; // No frames decoded
           return ret;
         }
 
-        if (closed) {
-          ret.type = 254; // Special "decoder closed" signal
+        // Process the first decoded frame
+        auto& frame = results[0];
+        if (!frame.success) {
+          ret.type = 251; // Decode failed
           return ret;
         }
 
-        sintptr_t r = ETC_VEDC_Decoder_Write(this, (uint8_t*)data, length);
+        ret.image_size = frame.image_size;
+        ret.type = 1; // Success
 
-        if (!ETC_VEDC_Decoder_IsReadable(this)) {
-          ret.type = 252; // Special "not readable" signal
+        // Convert pixel format
+        switch (frame.pixel_format) {
+        case AV_PIX_FMT_YUV420P:
+          ret.pixel_format = fan::graphics::image_format::yuv420p;
+          break;
+        case AV_PIX_FMT_NV12:
+          ret.pixel_format = fan::graphics::image_format::nv12;
+          break;
+        default:
+          ret.type = 249; // Unsupported pixel format
           return ret;
         }
 
-#if defined(ETC_VEDC_Decoder_DefineCodec_cuvid)
-        if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame)) {
-          ret.type = 0;
-        }
-        else
-#endif
-          if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_Frame)) {
-            ret.type = 1;
-          }
-
-        if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_Frame)) {
-          NewReadMethod(universal_image_renderer, ETC_VEDC_Decoder_ReadType_Frame);
-          ETC_VEDC_Decoder_Frame_t Frame;
-          if (ETC_VEDC_Decoder_Read(this, ETC_VEDC_Decoder_ReadType_Frame, &Frame) != ETC_VEDC_Decoder_Error_OK) {
-            ret.type = 251; // Special "read failed" signal
-            return ret;
-          }
-          if (Frame.Properties.Stride[0] != Frame.Properties.Stride[1] * 2) {
-            fan::print_format("[CLIENT] [WARNING] {} {}:{} fan doesnt support strides {} {}", __FUNCTION__, __FILE__, __LINE__, Frame.Properties.Stride[0], Frame.Properties.Stride[1]);
-            ret.type = 250; // Special "unsupported stride" signal
-            return ret;
-          }
-
-          uint32_t pixel_format;
-          ret.image_size = { Frame.Properties.SizeX, Frame.Properties.SizeY };
-          if (Frame.Properties.PixelFormat == PIXF_YUV420p) {
-            pixel_format = fan::graphics::image_format::yuv420p;
-            auto image_sizes = fan::graphics::get_image_sizes(pixel_format, fan::vec2ui(Frame.Properties.Stride[0], Frame.Properties.SizeY));
-            ret.data[0] = std::vector<uint8_t>((uint8_t*)Frame.Data[0], (uint8_t*)Frame.Data[0] + image_sizes[0].multiply());
-            ret.data[1] = std::vector<uint8_t>((uint8_t*)Frame.Data[1], (uint8_t*)Frame.Data[1] + image_sizes[1].multiply());
-            ret.data[2] = std::vector<uint8_t>((uint8_t*)Frame.Data[2], (uint8_t*)Frame.Data[2] + image_sizes[2].multiply());
-            std::memcpy(ret.stride.data(), Frame.Properties.Stride, sizeof(ret.stride[0]) * 3);
-          }
-          else if (Frame.Properties.PixelFormat == PIXF_YUVNV12) {
-            pixel_format = fan::graphics::image_format::nv12;
-            auto image_sizes = fan::graphics::get_image_sizes(pixel_format, fan::vec2ui(Frame.Properties.Stride[0], Frame.Properties.SizeY));
-            ret.data[0] = std::vector<uint8_t>((uint8_t*)Frame.Data[0], (uint8_t*)Frame.Data[0] + image_sizes[0].multiply());
-            ret.data[1] = std::vector<uint8_t>((uint8_t*)Frame.Data[1], (uint8_t*)Frame.Data[1] + image_sizes[1].multiply());
-            std::memcpy(ret.stride.data(), Frame.Properties.Stride, sizeof(ret.stride[0]) * 2);
-          }
-          else {
-            ret.type = 249; // Special "unsupported pixel format" signal
-            return ret;
-          }
-          ret.pixel_format = pixel_format;
-          FrameSize = fan::vec2ui(Frame.Properties.SizeX, Frame.Properties.SizeY);
-          ETC_VEDC_Decoder_ReadClear(this, ETC_VEDC_Decoder_ReadType_Frame, &Frame);
+        // Copy plane data
+        for (size_t i = 0; i < frame.plane_data.size() && i < 4; i++) {
+          ret.data[i] = frame.plane_data[i];
+          ret.stride[i] = { static_cast<uint32_t>(frame.linesize[i]), 0 };
         }
 
+        frame_size_ = frame.image_size;
         return ret;
       }
 
-        bool decode_cuvid(loco_t::shape_t & universal_image_renderer) {
-#if defined(ETC_VEDC_Decoder_DefineCodec_cuvid)
-          if (ETC_VEDC_Decoder_IsReadType(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame) == false) {
-            return false;
-          }
+      std::string name = "auto-detect";
+      uintptr_t new_codec = 0;
+      uint8_t update_flags = 0;
+      fan::vec2ui frame_size_ = { 1, 1 };
 
-          if (cuCtxSetCurrent((CUcontext)ETC_VEDC_Decoder_GetUnique(this, ETC_VEDC_Decoder_UniqueType_CudaContext)) != CUDA_SUCCESS) {
-            __abort();
-          }
-          NewReadMethod(universal_image_renderer, ETC_VEDC_Decoder_ReadType_CudaArrayFrame);
-
-          ETC_VEDC_Decoder_ImageProperties_t props;
-          ETC_VEDC_Decoder_GetReadImageProperties(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame, &props);
-          try {
-            ReadMethodData.CudaArrayFrame.cuda_textures.resize(gloco, universal_image_renderer, fan::graphics::image_format::nv12, fan::vec2ui(props.SizeX, props.SizeY));
-          }
-          catch (fan::exception_t e) {
-            fan::print("cuda_texture.resize() failed:"_str + e.reason);
-            ReadMethodData.CudaArrayFrame.cuda_textures.close(gloco, universal_image_renderer);
-            return false;
-          }
-
-          ETC_VEDC_Decoder_CudaArrayFrame_t Frame;
-          for (uint32_t i = 0; i < 4; i++) {
-            Frame.Array[i] = ReadMethodData.CudaArrayFrame.cuda_textures.get_array(i);
-          }
-
-          if (ETC_VEDC_Decoder_Read(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame, &Frame) != ETC_VEDC_Decoder_Error_OK) {
-            return false;
-          }
-          FrameSize = fan::vec2ui(props.SizeX, props.SizeY);
-          ETC_VEDC_Decoder_ReadClear(this, ETC_VEDC_Decoder_ReadType_CudaArrayFrame, &Frame);
-          return true;
-#else
-          return false;
-#endif
-        }
-
-        void graphics_queue_callback(const std::function<void()> f) {
-          std::lock_guard<std::mutex> lock(mutex);
-          graphics_queue.emplace_back(f);
-        }
-
-        bool closed = true;
-
-        std::string name = "OpenH264";
-        uintptr_t new_codec = 0;
-        std::vector<std::function<void()>> graphics_queue;
-
-        fan::vec2 FrameRenderSize;
-        fan::vec2ui FrameSize = 1;
-        uint8_t update_flags = 0;
-        std::mutex mutex;
-        std::mutex context_mutex;
-
-        union ReadMethodData_t {
-          ReadMethodData_t() {};
-          ~ReadMethodData_t() {};
-#ifdef __GPU_CUDA
-          struct CudaArrayFrame_t {
-            loco_t::cuda_textures_t cuda_textures;
-          }CudaArrayFrame;
-#endif
-        }ReadMethodData;
-
-        ETC_VEDC_Decoder_ReadType LastReadMethod = ETC_VEDC_Decoder_ReadType_Unknown;
-        void NewReadMethod(loco_t::shape_t & universal_image_renderer, ETC_VEDC_Decoder_ReadType Type) {
-          if (LastReadMethod == Type) {
-            return;
-          }
-          switch (Type) {
-#ifdef __GPU_CUDA
-          case ETC_VEDC_Decoder_ReadType_CudaArrayFrame: {
-            new (&ReadMethodData.CudaArrayFrame) ReadMethodData_t::CudaArrayFrame_t;
-            universal_image_renderer.set_tc_size(fan::vec2(1, 1));
-            break;
-          }
-#endif
-          default: { break; }
-          }
-          LastReadMethod = Type;
-        }
-      };
+      libav_decoder_t decoder_;
+      std::mutex mutex;
     };
-  }
+
+    uint8_t convert_pixel_format(::AVPixelFormat fmt) {
+      switch (fmt) {
+      case AV_PIX_FMT_YUV420P: return fan::graphics::image_format::yuv420p;
+      case AV_PIX_FMT_NV12: return fan::graphics::image_format::nv12;
+      case AV_PIX_FMT_BGRA: return fan::graphics::image_format::b8g8r8a8_unorm;
+      default: return 0;
+      }
+    }
+
+  } // namespace graphics
+} // namespace fan
+
+
+void fan::graphics::resolution_manager_t::detect_and_set_optimal(screen_encode_t& encoder) {
+  if (auto_detected) return;
+
+  detected_info.screen_width = encoder.mdscr.Geometry.Resolution.x;
+  detected_info.screen_height = encoder.mdscr.Geometry.Resolution.y;
+  detected_info.screen_aspect = static_cast<float>(detected_info.screen_width) / detected_info.screen_height;
+
+  detected_info.optimal_resolution = resolution_system_t::get_optimal_resolution(
+    detected_info.screen_width, detected_info.screen_height
+  );
+
+  detected_info.matching_aspect_resolutions = resolution_system_t::get_resolutions_by_aspect(
+    detected_info.screen_aspect, 0.02f // 2% tolerance
+  );
+
+  encoder.config_.width = detected_info.optimal_resolution.width;
+  encoder.config_.height = detected_info.optimal_resolution.height;
+
+  auto_detected = true;
+}
