@@ -1,5 +1,9 @@
 module;
 
+#ifndef fan_3d
+export module fan.graphics.opengl3D.objects.fms;
+#else
+
 #define fms_use_opengl
 
 #if defined(fms_use_opengl)
@@ -23,7 +27,6 @@ module;
 
 //#define STB_IMAGE_IMPLEMENTATION
 #include <fan/stb/stb_image.h>
-
 export module fan.graphics.opengl3D.objects.fms;
 
 export import fan.types.matrix;
@@ -1612,3 +1615,5 @@ export namespace fan_3d {
 #ifdef fms_use_opengl
   #undef fms_use_opengl
 #endif
+
+#endif 

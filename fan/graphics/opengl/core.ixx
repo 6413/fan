@@ -143,6 +143,7 @@ export namespace fan {
           return;
         }
         fan::print_no_space(type == GL_DEBUG_TYPE_ERROR ? "opengl error:" : "", type, ", severity:", severity, ", message:", message);
+        fan::debug::print_stacktrace();
       }
 
       void set_error_callback(){
@@ -439,7 +440,7 @@ export namespace fan {
           fan_opengl_call(glGetShaderiv(vertex ? shader.vertex : shader.fragment, GL_COMPILE_STATUS, &success));
         }
         else {
-          fan_opengl_call(glGetProgramiv(vertex ? shader.vertex : shader.fragment, GL_LINK_STATUS, &success));
+          fan_opengl_call(glGetProgramiv(shader.id, GL_LINK_STATUS, &success));
         }
 
         if (success) {
@@ -447,8 +448,14 @@ export namespace fan {
         }
 
         int buffer_size = 0;
-        fan_opengl_call(glGetShaderiv(vertex ? shader.vertex : shader.fragment, GL_INFO_LOG_LENGTH, &buffer_size));
 
+        if (program == false) {
+          fan_opengl_call(glGetShaderiv(vertex ? shader.vertex : shader.fragment, GL_INFO_LOG_LENGTH, &buffer_size));
+        }
+        else {
+          // Use shader.id for program info log length as well
+          fan_opengl_call(glGetProgramiv(shader.id, GL_INFO_LOG_LENGTH, &buffer_size));
+        }
 
         if (buffer_size <= 0) {
           return false;
@@ -460,13 +467,13 @@ export namespace fan {
         if (!success)
         {
           int test;
-    #define get_info_log(is_program, program, str_buffer, size) \
-                    if (is_program) \
-                    fan_opengl_call(glGetProgramInfoLog(program, size, nullptr, buffer.data())); \
-                    else \
-                    fan_opengl_call(glGetShaderInfoLog(program, size, &test, buffer.data()));
+#define get_info_log(is_program, program, str_buffer, size) \
+              if (is_program) \
+              fan_opengl_call(glGetProgramInfoLog(program, size, nullptr, buffer.data())); \
+              else \
+              fan_opengl_call(glGetShaderInfoLog(program, size, &test, buffer.data()));
 
-          get_info_log(program, vertex ? shader.vertex : shader.fragment, buffer, buffer_size);
+          get_info_log(program, program ? shader.id : (vertex ? shader.vertex : shader.fragment), buffer, buffer_size);
 
           fan::print("failed to compile: " + type, buffer, "filenames", common_shader.svertex, common_shader.sfragment);
 
@@ -567,38 +574,120 @@ export namespace fan {
         auto& shader = shader_get(nr);
 
         auto temp_id = fan_opengl_call(glCreateProgram());
+
+        // Verify shaders are valid before attaching
         if (shader.vertex != (uint32_t)-1) {
+          GLint compiled = 0;
+          fan_opengl_call(glGetShaderiv(shader.vertex, GL_COMPILE_STATUS, &compiled));
+          if (!compiled) {
+            fan::print("Vertex shader not compiled successfully before linking");
+            fan_opengl_call(glDeleteProgram(temp_id));
+            return false;
+          }
           fan_opengl_call(glAttachShader(temp_id, shader.vertex));
         }
+        else {
+          fan::print("Warning: No vertex shader attached");
+        }
+
         if (shader.fragment != (uint32_t)-1) {
+          GLint compiled = 0;
+          fan_opengl_call(glGetShaderiv(shader.fragment, GL_COMPILE_STATUS, &compiled));
+          if (!compiled) {
+            fan::print("Fragment shader not compiled successfully before linking");
+            fan_opengl_call(glDeleteProgram(temp_id));
+            return false;
+          }
           fan_opengl_call(glAttachShader(temp_id, shader.fragment));
+        }
+        else {
+          fan::print("Warning: No fragment shader attached");
         }
 
         fan_opengl_call(glLinkProgram(temp_id));
-        bool ret = shader_check_compile_errors(temp_id, "PROGRAM");
+
+        // Check program linking status
+        GLint success;
+        fan_opengl_call(glGetProgramiv(temp_id, GL_LINK_STATUS, &success));
+
+        bool ret = true;
+        if (!success) {
+          fan::print("PROGRAM LINK FAILED - Dumping shader source:");
+          fan::print("=== VERTEX SHADER SOURCE ===");
+          fan::print(__fan_internal_shader_list[nr].svertex);
+          fan::print("=== END VERTEX SHADER ===");
+
+          fan::print("=== FRAGMENT SHADER SOURCE ===");
+          fan::print(__fan_internal_shader_list[nr].sfragment);
+          fan::print("=== END FRAGMENT SHADER ===");
+
+          int buffer_size = 0;
+          fan_opengl_call(glGetProgramiv(temp_id, GL_INFO_LOG_LENGTH, &buffer_size));
+
+          fan::print("Program link failed. Info log length:", buffer_size);
+
+          if (buffer_size > 1) { // OpenGL includes null terminator in length
+            std::string buffer;
+            buffer.resize(buffer_size);
+            fan_opengl_call(glGetProgramInfoLog(temp_id, buffer_size, nullptr, buffer.data()));
+            fan::print("Program link error:", buffer);
+          }
+          else {
+            fan::print("Program link failed but no error message available");
+
+            // Additional debugging - check validation
+            fan_opengl_call(glValidateProgram(temp_id));
+            GLint validate_status;
+            fan_opengl_call(glGetProgramiv(temp_id, GL_VALIDATE_STATUS, &validate_status));
+            fan::print("Program validation status:", validate_status);
+
+            // Get validation info log
+            GLint validate_log_length;
+            fan_opengl_call(glGetProgramiv(temp_id, GL_INFO_LOG_LENGTH, &validate_log_length));
+            if (validate_log_length > 1) {
+              std::string validate_buffer;
+              validate_buffer.resize(validate_log_length);
+              fan_opengl_call(glGetProgramInfoLog(temp_id, validate_log_length, nullptr, validate_buffer.data()));
+              fan::print("Program validation info:", validate_buffer);
+            }
+
+            // Check if shaders are still attached
+            GLint attached_shader_count;
+            fan_opengl_call(glGetProgramiv(temp_id, GL_ATTACHED_SHADERS, &attached_shader_count));
+            fan::print("Number of attached shaders:", attached_shader_count);
+          }
+          ret = false;
+        }
 
         if (ret == false) {
           fan_opengl_call(glDeleteProgram(temp_id));
           return false;
         }
 
+        // Clean up old shaders
         if (shader.vertex != (uint32_t)-1) {
+          fan_opengl_call(glDetachShader(temp_id, shader.vertex));
           fan_opengl_call(glDeleteShader(shader.vertex));
           shader.vertex = -1;
         }
         if (shader.fragment != (uint32_t)-1) {
+          fan_opengl_call(glDetachShader(temp_id, shader.fragment));
           fan_opengl_call(glDeleteShader(shader.fragment));
           shader.fragment = -1;
         }
 
+        // Clean up old program
         if (shader.id != (uint32_t)-1) {
           fan_opengl_call(glDeleteProgram(shader.id));
         }
         shader.id = temp_id;
 
+        // Get uniform locations
         shader.projection_view[0] = fan_opengl_call(glGetUniformLocation(shader.id, "projection"));
         shader.projection_view[1] = fan_opengl_call(glGetUniformLocation(shader.id, "view"));
 
+
+        // Parse uniforms
         std::string vertexData = __fan_internal_shader_list[nr].svertex;
         parse_uniforms(vertexData, __fan_internal_shader_list[nr].uniform_type_table);
 
