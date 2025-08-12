@@ -270,7 +270,7 @@ struct ecps_gui_t {
     int selected_encoder = 0;
     int selected_decoder = 0;
     int input_control = 0;
-    bool show_in_stream_view = false;
+    bool show_in_stream_view = true;
 
     f32_t settings_panel_width = 350.0f;
     bool is_resizing = false;
@@ -472,7 +472,7 @@ struct ecps_gui_t {
                   catch (...) {
                     fan::print("Failed to request session list");
                   }
-                });
+                  });
               }
 
               gui::pop_style_color();
@@ -524,7 +524,7 @@ struct ecps_gui_t {
             gui::push_style_color(gui::col_button, fan::vec4(0.8f, 0.3f, 0.3f, 1.0f) / 1.1);
             std::string leave_text = "Leave";
             fan::vec2 text_size = gui::calc_text_size(leave_text.c_str());
-            float button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
+            f32_t button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
 
             if (gui::button(leave_text.c_str(), fan::vec2(button_width, 0))) {
               This->backend_queue([channel_id = selected_channel_id]() -> fan::event::task_t {
@@ -544,7 +544,7 @@ struct ecps_gui_t {
             gui::push_style_color(gui::col_button, fan::vec4(0.3f, 0.8f, 0.3f, 1.0f) / 1.1);
             std::string text = "Join";
             fan::vec2 text_size = gui::calc_text_size(text);
-            float button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
+            f32_t button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
 
             if (gui::button(text, fan::vec2(button_width, 0))) {
               This->backend_queue([channel_id = selected_channel_id]() -> fan::event::task_t {
@@ -567,7 +567,7 @@ struct ecps_gui_t {
         {
           std::string text = "Add new";
           fan::vec2 text_size = gui::calc_text_size(text.c_str());
-          float button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
+          f32_t button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
           if (gui::button(text, fan::vec2(button_width, 0))) {
             This->backend_queue([this]() -> fan::event::task_t {
               try {
@@ -587,7 +587,7 @@ struct ecps_gui_t {
         {
           std::string text = "Connect";
           fan::vec2 text_size = gui::calc_text_size(text.c_str());
-          float button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
+          f32_t button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
           if (gui::button(text, fan::vec2(button_width, 0))) {
             This->drop_down_server.toggle_render_server_connect = true;
           }
@@ -680,7 +680,7 @@ struct ecps_gui_t {
                   catch (...) {
                     fan::print("Failed to refresh session list");
                   }
-                });
+                  });
               }
 
               gui::spacing();
@@ -789,8 +789,6 @@ struct ecps_gui_t {
 
       This->resolution_controls.render_resolution_controls();
 
-      gui::separator();
-
       gui::text("Framerate");
       gui::push_item_width(-1);
       do {
@@ -864,7 +862,6 @@ struct ecps_gui_t {
           gui::pop_item_width();
         } while (0);
 
-        gui::spacing();
       }
       if (ecps_backend.is_viewing_any_channel()) {
         // Decoder
@@ -878,7 +875,7 @@ struct ecps_gui_t {
             }
 
             auto decoders = rt->modern_decoder.get_decoders();
-            return decoders; // get_decoders() already returns std::vector<std::string>
+            return decoders;
             }();
           static auto decoder_options = [] {
             std::vector<const char*> names;
@@ -949,7 +946,6 @@ struct ecps_gui_t {
 
       bool is_streaming_current = ecps_backend.is_channel_streaming(selected_channel_id);
 
-      // Top controls row
       if (is_streaming_current) {
         gui::push_style_color(gui::col_button, fan::vec4(0.8f, 0.2f, 0.2f, 1.0f));
         if (gui::button("Stop Stream")) {
@@ -992,15 +988,16 @@ struct ecps_gui_t {
       gui::spacing();
       gui::spacing();
 
+
       fan::vec2 avail_size = gui::get_content_region_avail();
       if (avail_size.x > 0 && avail_size.y > 0) {
 
         if (This->stream_settings.show_in_stream_view) {
-          
-          f32_t left_window_padding = 8.0f;  
+
+          f32_t left_window_padding = 8.0f;
           f32_t right_window_padding = 12.0f;
-          f32_t splitter_spacing = 12.0f;    
-          f32_t splitter_width = 2.0f;       
+          f32_t splitter_spacing = 12.0f;
+          f32_t splitter_width = 2.0f;
 
           f32_t min_settings_width = 250.0f;
           f32_t max_settings_width = avail_size.x * 0.6f;
@@ -1028,11 +1025,16 @@ struct ecps_gui_t {
             fan::vec2 stream_area = gui::get_content_region_avail();
             fan::vec2 center = stream_area / 2;
             rt->network_frame.set_position(center);
+            f32_t frame_aspect = 16.0f / 9.0f;
 
-            f32_t aspect = 16.0f / 9.0f;
-            fan::vec2 full_size = (stream_area.x / stream_area.y > aspect)
-              ? fan::vec2(stream_area.y * aspect, stream_area.y)
-              : fan::vec2(stream_area.x, stream_area.x / aspect);
+            if (rt->modern_decoder.decoded_size.x > 0 && rt->modern_decoder.decoded_size.y > 0) {
+              frame_aspect = static_cast<f32_t>(rt->modern_decoder.decoded_size.x) /
+                rt->modern_decoder.decoded_size.y;
+            }
+
+            fan::vec2 full_size = (stream_area.x / stream_area.y > frame_aspect)
+              ? fan::vec2(stream_area.y * frame_aspect, stream_area.y)
+              : fan::vec2(stream_area.x, stream_area.x / frame_aspect);
 
             full_size /= 2;
 
@@ -1053,7 +1055,7 @@ struct ecps_gui_t {
           f32_t visual_offset = (hitbox_width - splitter_width) * 0.5f;
 
           if (gui::invisible_button("##stream_splitter_hitbox", fan::vec2(hitbox_width, avail_size.y))) {
-            
+
           }
 
           if (gui::is_item_active() && gui::is_mouse_dragging(0)) {
@@ -1083,13 +1085,11 @@ struct ecps_gui_t {
 
           gui::pop_style_color(3);
 
-          // SETTINGS PANEL (RIGHT SIDE)
           gui::same_line(0, splitter_spacing);
 
           gui::begin_child("##stream_settings_panel", fan::vec2(This->stream_settings.settings_panel_width, avail_size.y), true);
 
-          // Settings content with internal padding
-          gui::dummy(fan::vec2(12, 0)); // Internal left padding
+          gui::dummy(fan::vec2(12, 0));
           gui::same_line(0, 0);
           gui::begin_group();
 
@@ -1097,8 +1097,6 @@ struct ecps_gui_t {
 
           gui::end_group();
           gui::end_child();
-
-          // The right window padding is automatic (remaining space)
 
         }
         else {
@@ -1123,10 +1121,16 @@ struct ecps_gui_t {
             fan::vec2 center = stream_area / 2;
             rt->network_frame.set_position(center);
 
-            f32_t aspect = 16.0f / 9.0f;
-            fan::vec2 full_size = (stream_area.x / stream_area.y > aspect)
-              ? fan::vec2(stream_area.y * aspect, stream_area.y)
-              : fan::vec2(stream_area.x, stream_area.x / aspect);
+            f32_t frame_aspect = 16.0f / 9.0f;
+
+            if (rt->modern_decoder.decoded_size.x > 0 && rt->modern_decoder.decoded_size.y > 0) {
+              frame_aspect = static_cast<f32_t>(rt->modern_decoder.decoded_size.x) /
+                rt->modern_decoder.decoded_size.y;
+            }
+
+            fan::vec2 full_size = (stream_area.x / stream_area.y > frame_aspect)
+              ? fan::vec2(stream_area.y * frame_aspect, stream_area.y)
+              : fan::vec2(stream_area.x, stream_area.x / frame_aspect);
 
             full_size /= 2;
 
@@ -1156,211 +1160,193 @@ struct ecps_gui_t {
   }window_handler;
 
   struct resolution_gui_controls_t {
-  int selected_aspect_ratio = 4;
-  int selected_resolution = 0;
-  std::string custom_resolution = "";
-  
-  uint32_t last_applied_width = 0;
-  uint32_t last_applied_height = 0;
-  bool dropdown_needs_sync = false;
+    int selected_aspect_ratio = 4;
+    int selected_resolution = 0;
+    std::string custom_resolution = "";
 
-  void render_resolution_controls() {
+    uint32_t last_applied_width = 0;
+    uint32_t last_applied_height = 0;
+    bool dropdown_needs_sync = false;
 
-    // Get current encoder resolution
-    auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-    uint32_t current_width = 0, current_height = 0;
-    if (rt) {
-      current_width = rt->modern_encoder.config_.width;
-      current_height = rt->modern_encoder.config_.height;
-    }
-
-    if (current_width != last_applied_width || current_height != last_applied_height) {
-      sync_dropdown_to_current_resolution(current_width, current_height);
-      last_applied_width = current_width;
-      last_applied_height = current_height;
-    }
-
-    if (rt->modern_encoder.resolution_manager.auto_detected) {
-      gui::text( 
-        ("Detected Screen: " + std::to_string(rt->modern_encoder.resolution_manager.detected_info.screen_width) + 
-         "x" + std::to_string(rt->modern_encoder.resolution_manager.detected_info.screen_height)).c_str(), fan::color{0.7f, 0.7f, 1.0f, 1.0f});
-      gui::spacing();
-    }
-
-    gui::text("Aspect Ratio");
-    auto aspect_options = rt->modern_encoder.resolution_manager.get_aspect_ratio_options();
-    
-    std::vector<std::string> aspect_strings;
-    std::vector<const char*> aspect_cstrings;
-    for (const auto& [name, ratio] : aspect_options) {
-      aspect_strings.push_back(name);
-    }
-    for (const auto& str : aspect_strings) {
-      aspect_cstrings.push_back(str.c_str());
-    }
-
-    gui::push_item_width(-1);
-    if (gui::combo("##aspect_ratio", &selected_aspect_ratio, 
-                   aspect_cstrings.data(), aspect_cstrings.size())) {
-      update_available_resolutions();
-      sync_dropdown_to_current_resolution(current_width, current_height);
-    }
-    gui::pop_item_width();
-
-    gui::spacing();
-
-    // Resolution Selection (filtered by aspect ratio)
-    gui::text("Resolution");
-    
-    std::vector<resolution_system_t::resolution_t> available_resolutions = get_filtered_resolutions();
-
-    std::vector<std::string> res_strings;
-    std::vector<const char*> res_cstrings;
-    
-    // Build display strings and check if current resolution is in the list
-    bool found_current = false;
-    for (int i = 0; i < available_resolutions.size(); i++) {
-      const auto& res = available_resolutions[i];
-      res_strings.push_back(res.name + " (" + res.category + ")");
-      
-      // Check if this matches current resolution
-      if (res.width == current_width && res.height == current_height) {
-        selected_resolution = i;
-        found_current = true;
+    void render_resolution_controls() {
+      auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+      uint32_t current_width = 0, current_height = 0;
+      if (rt) {
+        current_width = rt->modern_encoder.config_.width;
+        current_height = rt->modern_encoder.config_.height;
       }
-    }
-    
-    // If current resolution not found in list, add it as "Current"
-    if (!found_current && current_width > 0 && current_height > 0) {
-      resolution_system_t::resolution_t current_res;
-      current_res.width = current_width;
-      current_res.height = current_height;
-      current_res.name = std::to_string(current_width) + "x" + std::to_string(current_height);
-      current_res.category = "Current";
-      
-      available_resolutions.insert(available_resolutions.begin(), current_res);
-      res_strings.insert(res_strings.begin(), current_res.name + " (" + current_res.category + ")");
-      selected_resolution = 0; // Select the current one
-    }
-    
-    for (const auto& str : res_strings) {
-      res_cstrings.push_back(str.c_str());
-    }
 
-    gui::push_item_width(-1);
-    if (gui::combo("##resolution", &selected_resolution, 
-                   res_cstrings.data(), res_cstrings.size())) {
-      if (selected_resolution >= 0 && selected_resolution < available_resolutions.size()) {
-        apply_resolution(available_resolutions[selected_resolution]);
+      if (current_width != last_applied_width || current_height != last_applied_height) {
+        sync_dropdown_to_current_resolution(current_width, current_height);
+        last_applied_width = current_width;
+        last_applied_height = current_height;
       }
-    }
-    gui::pop_item_width();
 
-    //gui::spacing();
-    //gui::separator();
-
-    //// Custom resolution input
-    //gui::text("Custom Resolution");
-    //gui::push_item_width(-1);
-    //if (gui::input_text("##custom_res", &custom_resolution, 
-    //                    gui::input_text_flags_enter_returns_true)) {
-    //  parse_and_apply_custom_resolution();
-    //}
-    //gui::pop_item_width();
-    ////gui::text_disabled("Format: WIDTHxHEIGHT (e.g., 1920x1080)");
-
-    gui::spacing();
-    gui::separator();
-
-    gui::spacing();
-  }
-
-private:
-  std::vector<resolution_system_t::resolution_t> get_filtered_resolutions() {
-     auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-     if (!rt) return {};
-    if (selected_aspect_ratio == 4) {
-      return rt->modern_encoder.resolution_manager.detected_info.matching_aspect_resolutions;
-    } else {
+      gui::text("Aspect Ratio");
       auto aspect_options = rt->modern_encoder.resolution_manager.get_aspect_ratio_options();
-      float selected_aspect = aspect_options[selected_aspect_ratio].second;
-      return resolution_system_t::get_resolutions_by_aspect(selected_aspect, 0.01f);
-    }
-  }
 
-  void sync_dropdown_to_current_resolution(uint32_t current_width, uint32_t current_height) {
-    if (current_width == 0 || current_height == 0) return;
-    
-    auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-     if (!rt) return;
-
-    float current_aspect = static_cast<float>(current_width) / current_height;
-    auto aspect_options = rt->modern_encoder.resolution_manager.get_aspect_ratio_options();
-    
-    for (int i = 0; i < aspect_options.size(); i++) {
-      if (std::abs(aspect_options[i].second - current_aspect) < 0.02f) {
-        selected_aspect_ratio = i;
-        break;
+      std::vector<std::string> aspect_strings;
+      std::vector<const char*> aspect_cstrings;
+      for (const auto& [name, ratio] : aspect_options) {
+        aspect_strings.push_back(name);
       }
-    }
-    
-    auto available_resolutions = get_filtered_resolutions();
-    selected_resolution = 0;
-    
-    for (int i = 0; i < available_resolutions.size(); i++) {
-      if (available_resolutions[i].width == current_width && 
-          available_resolutions[i].height == current_height) {
-        selected_resolution = i;
-        break;
+      for (const auto& str : aspect_strings) {
+        aspect_cstrings.push_back(str.c_str());
       }
-    }
-  }
 
-  void update_available_resolutions() {
-    selected_resolution = 0;
-  }
+      gui::push_item_width(-1);
+      if (gui::combo("##aspect_ratio", &selected_aspect_ratio,
+        aspect_cstrings.data(), aspect_cstrings.size())) {
+        update_available_resolutions();
+        sync_dropdown_to_current_resolution(current_width, current_height);
+      }
+      gui::pop_item_width();
 
-  void apply_resolution(const resolution_system_t::resolution_t& resolution) {
-    auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-    if (rt) {
-      rt->modern_encoder.config_.width = resolution.width;
-      rt->modern_encoder.config_.height = resolution.height;
-      rt->modern_encoder.update_flags |= codec_update_e::codec;
-      rt->modern_encoder.encode_write_flags |= codec_update_e::force_keyframe;
-      
-      last_applied_width = resolution.width;
-      last_applied_height = resolution.height;
-      
-      fan::print_format("Applied resolution: {}x{} ({})", 
-                        resolution.width, resolution.height, resolution.name);
-    }
-  }
+      gui::separator();
 
-  void parse_and_apply_custom_resolution() {
-    size_t x_pos = custom_resolution.find('x');
-    if (x_pos == std::string::npos) x_pos = custom_resolution.find('X');
-    
-    if (x_pos != std::string::npos && x_pos > 0 && x_pos < custom_resolution.length() - 1) {
-      try {
-        uint32_t width = std::stoul(custom_resolution.substr(0, x_pos));
-        uint32_t height = std::stoul(custom_resolution.substr(x_pos + 1));
-        
-        if (width >= 640 && width <= 7680 && height >= 480 && height <= 4320) {
-          resolution_system_t::resolution_t custom_res;
-          custom_res.width = width;
-          custom_res.height = height;
-          custom_res.name = std::to_string(width) + "x" + std::to_string(height);
-          custom_res.category = "Custom";
-          apply_resolution(custom_res);
-        } else {
-          fan::print("Resolution out of bounds: " + custom_resolution);
+      gui::text("Resolution");
+
+      std::vector<resolution_system_t::resolution_t> available_resolutions = get_filtered_resolutions();
+
+      std::vector<std::string> res_strings;
+      std::vector<const char*> res_cstrings;
+
+      bool found_current = false;
+      for (int i = 0; i < available_resolutions.size(); i++) {
+        const auto& res = available_resolutions[i];
+        res_strings.push_back(res.name + " (" + res.category + ")");
+
+        if (res.width == current_width && res.height == current_height) {
+          selected_resolution = i;
+          found_current = true;
         }
-      } catch (const std::exception& e) {
-        fan::print("Invalid resolution format: " + custom_resolution);
+      }
+
+      if (!found_current && current_width > 0 && current_height > 0) {
+        resolution_system_t::resolution_t current_res;
+        current_res.width = current_width;
+        current_res.height = current_height;
+        current_res.name = std::to_string(current_width) + "x" + std::to_string(current_height);
+        current_res.category = "Current";
+
+        available_resolutions.insert(available_resolutions.begin(), current_res);
+        res_strings.insert(res_strings.begin(), current_res.name + " (" + current_res.category + ")");
+        selected_resolution = 0; // Select the current one
+      }
+
+      for (const auto& str : res_strings) {
+        res_cstrings.push_back(str.c_str());
+      }
+
+      gui::push_item_width(-1);
+      if (gui::combo("##resolution", &selected_resolution,
+        res_cstrings.data(), res_cstrings.size())) {
+        if (selected_resolution >= 0 && selected_resolution < available_resolutions.size()) {
+          apply_resolution(available_resolutions[selected_resolution]);
+        }
+      }
+      gui::pop_item_width();
+
+      //gui::spacing();
+      //gui::separator();
+
+      //// Custom resolution input
+      //gui::text("Custom Resolution");
+      //gui::push_item_width(-1);
+      //if (gui::input_text("##custom_res", &custom_resolution, 
+      //                    gui::input_text_flags_enter_returns_true)) {
+      //  parse_and_apply_custom_resolution();
+      //}
+      //gui::pop_item_width();
+      ////gui::text_disabled("Format: WIDTHxHEIGHT (e.g., 1920x1080)");
+
+      gui::separator();
+    }
+
+  private:
+    std::vector<resolution_system_t::resolution_t> get_filtered_resolutions() {
+      auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+      if (!rt) return {};
+      if (selected_aspect_ratio == 4) {
+        return rt->modern_encoder.resolution_manager.detected_info.matching_aspect_resolutions;
+      }
+      else {
+        auto aspect_options = rt->modern_encoder.resolution_manager.get_aspect_ratio_options();
+        f32_t selected_aspect = aspect_options[selected_aspect_ratio].second;
+        return resolution_system_t::get_resolutions_by_aspect(selected_aspect, 0.01f);
       }
     }
-  }
-}resolution_controls;
+
+    void sync_dropdown_to_current_resolution(uint32_t current_width, uint32_t current_height) {
+      if (current_width == 0 || current_height == 0) return;
+
+      auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+      if (!rt) return;
+
+      f32_t current_aspect = static_cast<f32_t>(current_width) / current_height;
+      auto aspect_options = rt->modern_encoder.resolution_manager.get_aspect_ratio_options();
+
+      for (int i = 0; i < aspect_options.size(); i++) {
+        if (std::abs(aspect_options[i].second - current_aspect) < 0.02f) {
+          selected_aspect_ratio = i;
+          break;
+        }
+      }
+
+      auto available_resolutions = get_filtered_resolutions();
+      selected_resolution = 0;
+
+      for (int i = 0; i < available_resolutions.size(); i++) {
+        if (available_resolutions[i].width == current_width &&
+          available_resolutions[i].height == current_height) {
+          selected_resolution = i;
+          break;
+        }
+      }
+    }
+
+    void update_available_resolutions() {
+      selected_resolution = 0;
+    }
+
+    void apply_resolution(const resolution_system_t::resolution_t& resolution) {
+      auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+      if (rt) {
+        rt->modern_encoder.set_user_resolution(resolution.width, resolution.height);
+        rt->modern_encoder.encode_write_flags |= codec_update_e::force_keyframe;
+
+        last_applied_width = resolution.width;
+        last_applied_height = resolution.height;
+      }
+    }
+
+    void parse_and_apply_custom_resolution() {
+      size_t x_pos = custom_resolution.find('x');
+      if (x_pos == std::string::npos) x_pos = custom_resolution.find('X');
+
+      if (x_pos != std::string::npos && x_pos > 0 && x_pos < custom_resolution.length() - 1) {
+        try {
+          uint32_t width = std::stoul(custom_resolution.substr(0, x_pos));
+          uint32_t height = std::stoul(custom_resolution.substr(x_pos + 1));
+
+          if (width >= 640 && width <= 7680 && height >= 480 && height <= 4320) {
+            resolution_system_t::resolution_t custom_res;
+            custom_res.width = width;
+            custom_res.height = height;
+            custom_res.name = std::to_string(width) + "x" + std::to_string(height);
+            custom_res.category = "Custom";
+            apply_resolution(custom_res);
+          }
+          else {
+            fan::print("Resolution out of bounds: " + custom_resolution);
+          }
+        }
+        catch (const std::exception& e) {
+          fan::print("Invalid resolution format: " + custom_resolution);
+        }
+      }
+    }
+  }resolution_controls;
 
 
 
@@ -1399,11 +1385,19 @@ private:
 
       fan::vec2 center = window_content_size / 2;
 
-      if (auto rt = get_render_thread(); rt) {
-        rt->network_frame.set_position(center);
+      auto rt = get_render_thread();
+      if (!rt) {
+        return;
       }
+      rt->network_frame.set_position(center);
 
       f32_t aspect = 16.0f / 9.0f;
+
+      if (rt->modern_decoder.decoded_size.x > 0 && rt->modern_decoder.decoded_size.y > 0) {
+        aspect = static_cast<f32_t>(rt->modern_decoder.decoded_size.x) /
+          rt->modern_decoder.decoded_size.y;
+      }
+
       fan::vec2 full_size;
 
       if (window_content_size.x / window_content_size.y > aspect) {

@@ -203,9 +203,16 @@ export namespace fan {
         if (packet_) av_packet_free(&packet_);
       }
 
-      bool open(const codec_config_t& config) {
+      bool open(const codec_config_t& config, const fan::vec2& screencap_res = {0, 0}) {
         close();
         config_ = config;
+
+        if (screencap_res.x > 0 && screencap_res.y > 0) {
+          screencap_res_ = screencap_res;
+        }
+        if (screencap_res_.x == 0 || screencap_res_.y == 0) {
+          screencap_res_ = { config_.width, config_.height };
+        }
 
         init_hardware_acceleration();
 
@@ -230,7 +237,7 @@ export namespace fan {
         }
 
         sws_ctx_ = sws_getContext(
-          config_.width, config_.height, AV_PIX_FMT_BGRA,
+          screencap_res_.x, screencap_res_.y, AV_PIX_FMT_BGRA,
           config_.width, config_.height, codec_ctx_->pix_fmt,
           SWS_FAST_BILINEAR, nullptr, nullptr, nullptr
         );
@@ -284,7 +291,6 @@ export namespace fan {
 
         if (!initialized_) return results;
 
-        // Validate input parameters
         if (!bgra_data) {
           fan::print("Error: bgra_data is null");
           return results;
@@ -295,33 +301,44 @@ export namespace fan {
           return results;
         }
 
-        if (config_.width <= 0 || config_.height <= 0) {
-          fan::print("Error: invalid dimensions: " + std::to_string(config_.width) + "x" + std::to_string(config_.height));
+        if (screencap_res_.x <= 0 || screencap_res_.y <= 0) {
+          fan::print("Error: invalid screen capture dimensions: " +
+            std::to_string(screencap_res_.x) + "x" + std::to_string(screencap_res_.y));
           return results;
         }
 
-        int expected_stride = config_.width * 4; // BGRA = 4 bytes per pixel
+        if (config_.width <= 0 || config_.height <= 0) {
+          fan::print("Error: invalid target dimensions: " +
+            std::to_string(config_.width) + "x" + std::to_string(config_.height));
+          return results;
+        }
+
+        int expected_stride = screencap_res_.x * 4;
         if (stride < expected_stride) {
-          fan::print("Error: stride too small. Expected: " + std::to_string(expected_stride) + ", got: " + std::to_string(stride));
+          fan::print("Error: stride too small for source resolution. Expected: " +
+            std::to_string(expected_stride) + ", got: " + std::to_string(stride));
           return results;
         }
 
         const uint8_t* src_data[4] = { bgra_data, nullptr, nullptr, nullptr };
         int src_linesize[4] = { stride, 0, 0, 0 };
 
-        size_t expected_data_size = stride * config_.height;
-
-        int result = sws_scale(sws_ctx_, src_data, src_linesize, 0, config_.height,
+        int result = sws_scale(sws_ctx_,
+          src_data, src_linesize,
+          0, screencap_res_.y,
           frame_->data, frame_->linesize);
 
         if (result != config_.height) {
-          fan::print("Error: sws_scale failed. Expected: " + std::to_string(config_.height) + ", got: " + std::to_string(result));
+          fan::print("Error: sws_scale failed. Expected: " + std::to_string(config_.height) +
+            ", got: " + std::to_string(result));
+          fan::print("Source: " + std::to_string(screencap_res_.x) + "x" + std::to_string(screencap_res_.y) +
+            ", Target: " + std::to_string(config_.width) + "x" + std::to_string(config_.height));
+          fan::print("Stride: " + std::to_string(stride) + ", Expected minimum: " + std::to_string(expected_stride));
           return results;
         }
 
         frame_->pts = pts;
 
-        // Force keyframe if requested
         if (force_keyframe) {
           frame_->pict_type = AV_PICTURE_TYPE_I;
         }
@@ -329,14 +346,12 @@ export namespace fan {
           frame_->pict_type = AV_PICTURE_TYPE_NONE;
         }
 
-        // Send frame to encoder
         int ret = avcodec_send_frame(codec_ctx_, frame_);
         if (ret < 0) {
           fan::print("Error sending frame to encoder: " + std::to_string(ret));
           return results;
         }
 
-        // Receive encoded packets
         while (ret >= 0) {
           ret = avcodec_receive_packet(codec_ctx_, packet_);
           if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
@@ -363,7 +378,7 @@ export namespace fan {
 
       bool update_config(const codec_config_t& new_config, uint8_t update_flags) {
         if (update_flags & codec_update_e::codec) {
-          return open(new_config);
+          return open(new_config, screencap_res_);
         }
 
         config_ = new_config;
@@ -408,6 +423,7 @@ export namespace fan {
         }
         return encoders;
       }
+       fan::vec2 screencap_res_;
     };
 
     struct libav_decoder_t {
@@ -615,10 +631,6 @@ export namespace fan {
           {2048, 1152, "2048x1152", "QWXGA"},
           {1856, 1392, "1856x1392", "Custom"},
 
-          // Mobile/Tablet Common
-          {1920, 1200, "1920x1200", "WUXGA (Tablet)"},
-          {1280, 720,  "1280x720",  "HD (Mobile)"},
-          {960,  640,  "960x640",   "DVGA"},
 
           // Streaming Optimized
           {1600, 1024, "1600x1024", "Custom 25:16"},
@@ -749,10 +761,16 @@ export namespace fan {
         config_.rate_control = codec_config_t::VBR;
         config_.bitrate = 10000000;
 
-        if (!encoder_.open(config_)) {
+        if (!encoder_.open(config_, fan::vec2(mdscr.Geometry.Resolution.x, mdscr.Geometry.Resolution.y))) {
           fan::print("Failed to open encoder");
           return false;
         }
+
+        {
+          std::lock_guard<std::mutex> lock(mutex);
+          update_flags = 0;
+        }
+
         return true;
       }
 
@@ -775,13 +793,18 @@ export namespace fan {
       };
 
       bool encode_write() {
-        if (config_.width != mdscr.Geometry.Resolution.x ||
-          config_.height != mdscr.Geometry.Resolution.y) {
+        if (!user_set_resolution &&
+          (config_.width != mdscr.Geometry.Resolution.x || config_.height != mdscr.Geometry.Resolution.y)) {
           config_.width = mdscr.Geometry.Resolution.x;
           config_.height = mdscr.Geometry.Resolution.y;
 
+          {
+            std::lock_guard<std::mutex> lock(mutex);
+            update_flags &= ~codec_update_e::codec;
+          }
+
           // Reopen encoder with new resolution
-          if (!encoder_.open(config_)) {
+          if (!encoder_.open(config_, fan::vec2(mdscr.Geometry.Resolution.x, mdscr.Geometry.Resolution.y))) {
             return false;
           }
         }
@@ -885,11 +908,30 @@ export namespace fan {
         return screen_buffer != nullptr;
       }
 
+      void reset_to_auto_resolution() {
+        user_set_resolution = false;
+        user_width = 0;
+        user_height = 0;
+      }
+
+      void set_user_resolution(uint32_t width, uint32_t height) {
+        config_.width = width;
+        config_.height = height;
+        user_set_resolution = true;
+        user_width = width;
+        user_height = height;
+
+        std::lock_guard<std::mutex> lock(mutex);
+        update_flags |= codec_update_e::codec;
+      }
+
       codec_config_t config_;
       std::string name = "libx264";
       uintptr_t new_codec = 0;
       uint8_t update_flags = 0;
       uint8_t encode_write_flags = 0;
+      bool user_set_resolution = false;
+      uint32_t user_width = 0, user_height = 0;
 
       resolution_manager_t resolution_manager;
 
@@ -924,7 +966,6 @@ export namespace fan {
         return decoder_.initialized_;
       }
 
-      std::vector<std::function<void()>> graphics_queue;
 
       void graphics_queue_callback(const std::function<void()>& f) {
         std::lock_guard<std::mutex> lock(mutex);
@@ -1003,9 +1044,11 @@ export namespace fan {
       uintptr_t new_codec = 0;
       uint8_t update_flags = 0;
       fan::vec2ui frame_size_ = { 1, 1 };
+      fan::vec2ui decoded_size;
 
       libav_decoder_t decoder_;
       std::mutex mutex;
+      std::vector<std::function<void()>> graphics_queue;
     };
 
     uint8_t convert_pixel_format(::AVPixelFormat fmt) {
