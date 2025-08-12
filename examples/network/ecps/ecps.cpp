@@ -105,7 +105,7 @@ struct dynamic_config_t {
     else return 20;
   }
 
-  static float get_adaptive_bucket_multiplier() {
+  static f32_t get_adaptive_bucket_multiplier() {
     uint32_t fps = get_target_framerate();
     if (fps >= 120) return 8.0f;
     else if (fps >= 90) return 6.5f;
@@ -397,6 +397,8 @@ void ecps_backend_t::view_t::WriteFramePacket() {
           auto old = rt->FrameList.GetNodeFirst();
           rt->FrameList.unlrec(old);
         }
+
+        rt->modern_decoder.decoded_size = decode_result.image_size;
 
         auto flnr = rt->FrameList.NewNodeLast();
         auto f = &rt->FrameList[flnr];
@@ -948,7 +950,7 @@ int main() {
 
     ecps_backend.share.m_NetworkFlow.TimerLastCallAt = ctime;
 
-    float bucket_multiplier = dynamic_config_t::get_adaptive_bucket_multiplier();
+    f32_t bucket_multiplier = dynamic_config_t::get_adaptive_bucket_multiplier();
 
     if (!rt) {
       co_return 0;
