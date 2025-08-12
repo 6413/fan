@@ -137,13 +137,32 @@ struct render_thread_t {
     config.frame_rate = 30;
     config.bitrate = 10000000;
     
-    if (!modern_encoder.open(config)) {
+    if (!screen_encoder.open(config)) {
       fan::print("Failed to open modern encoder");
     }
     
-    if (!modern_decoder.open()) {
+    if (!screen_decoder.open()) {
       fan::print("Failed to open modern decoder");
     }
+    screen_decoder.reload_codec_cb = [this]() {
+      ecps_gui.backend_queue([=]() -> fan::event::task_t {
+        try {
+          for (const auto& channel : ecps_backend.channel_info) {
+            if (channel.is_viewing) {
+              ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare_t rest;
+              rest.ChannelID = channel.channel_id;
+              rest.Flag = ecps_backend_t::ProtocolChannel::ScreenShare::ChannelFlag::ResetIDR;
+              co_await ecps_backend.tcp_write(
+                ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare,
+                &rest,
+                sizeof(rest)
+              );
+            }
+          }
+        }
+        catch (...) {}
+        });
+    };
   }
 
   engine_t engine;
@@ -151,8 +170,8 @@ struct render_thread_t {
 #include "gui.h"
   ecps_gui_t ecps_gui;
 
-  fan::graphics::screen_encode_t modern_encoder;
-  fan::graphics::screen_decode_t modern_decoder;
+  fan::graphics::screen_encode_t screen_encoder;
+  fan::graphics::screen_decode_t screen_decoder;
 
   std::condition_variable frame_cv;
   std::condition_variable task_cv;
@@ -185,8 +204,8 @@ struct render_thread_t {
 
 uint32_t dynamic_config_t::get_target_framerate() {
   auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-  if (rt && rt->modern_encoder.config_.frame_rate > 0) {
-    return rt->modern_encoder.config_.frame_rate;
+  if (rt && rt->screen_encoder.config_.frame_rate > 0) {
+    return rt->screen_encoder.config_.frame_rate;
   }
   return 60;
 }
@@ -235,7 +254,7 @@ ecps_backend_t::ecps_backend_t() {
     }
     auto* rt = render_thread_ptr.load(std::memory_order_acquire);
     if (rt) {
-      rt->modern_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
+      rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
     }
     };
 
@@ -253,7 +272,7 @@ ecps_backend_t::ecps_backend_t() {
 
       auto* rt = render_thread_ptr.load(std::memory_order_acquire);
       if (rt) {
-        rt->modern_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
+        rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
       }
     }
   };
@@ -373,16 +392,28 @@ void ecps_backend_t::view_t::WriteFramePacket() {
   }
 
   try {
-    auto decode_result = rt->modern_decoder.decode(
+    auto decode_result = rt->screen_decoder.decode(
       frame_data.data(),
       frame_data.size(),
       rt->network_frame
     );
 
     if (decode_result.type == 1) { // success
-      bool has_valid_data = !decode_result.data[0].empty() && 
-                           !decode_result.data[1].empty() && 
-                           !decode_result.data[2].empty();
+      bool has_valid_data = false;
+
+      if (decode_result.pixel_format == fan::graphics::image_format::yuv420p) {
+        has_valid_data = !decode_result.data[0].empty() &&
+          !decode_result.data[1].empty() &&
+          !decode_result.data[2].empty();
+      }
+      else if (decode_result.pixel_format == fan::graphics::image_format::nv12) {
+        has_valid_data = !decode_result.data[0].empty() &&
+          !decode_result.data[1].empty();
+      }
+      else {
+        fan::print("weird format");
+        has_valid_data = !decode_result.data[0].empty();
+      }
       bool valid_dimensions = decode_result.image_size.x > 0 && 
                              decode_result.image_size.y > 0 &&
                              decode_result.image_size.x <= 7680 && 
@@ -398,7 +429,7 @@ void ecps_backend_t::view_t::WriteFramePacket() {
           rt->FrameList.unlrec(old);
         }
 
-        rt->modern_decoder.decoded_size = decode_result.image_size;
+        rt->screen_decoder.decoded_size = decode_result.image_size;
 
         auto flnr = rt->FrameList.NewNodeLast();
         auto f = &rt->FrameList[flnr];
@@ -437,7 +468,7 @@ int main() {
   ecps_backend.login_fail_cb = [] (fan::exception_t e) {
     auto* rt = render_thread_ptr.load(std::memory_order_acquire);
     if (rt) {// might be able to be removed
-      rt->modern_decoder.graphics_queue_callback([e] {
+      rt->screen_decoder.graphics_queue_callback([e] {
         fan::printcl("failed to connect to server:"_str + e.reason + ", retrying...");
       });
     }
@@ -457,8 +488,7 @@ int main() {
     render_thread_cv.notify_all();
     render_thread_promise.set_value();
 
-    while (!render_thread_instance.modern_encoder.is_initialized() ||
-      !render_thread_instance.modern_decoder.is_initialized() ||
+    while (!render_thread_instance.screen_decoder.is_initialized() ||
       render_thread_instance.should_stop.load()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       continue;
@@ -468,11 +498,11 @@ int main() {
       {
         std::lock_guard<std::timed_mutex> render_lock(render_mutex);
         {
-          std::lock_guard<std::mutex> lock(render_thread_instance.modern_decoder.mutex);
-          for (auto& i : render_thread_instance.modern_decoder.graphics_queue) {
+          std::lock_guard<std::mutex> lock(render_thread_instance.screen_decoder.mutex);
+          for (auto& i : render_thread_instance.screen_decoder.graphics_queue) {
             i();
           }
-          render_thread_instance.modern_decoder.graphics_queue.clear();
+          render_thread_instance.screen_decoder.graphics_queue.clear();
         }
 
         if (render_thread_instance.ecps_gui.show_own_stream == false) {
@@ -667,7 +697,7 @@ int main() {
 
     fan::event::thread_create([] {
       auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-      while (!rt || !rt->modern_encoder.encoder_.is_initialized()) {
+      while (!rt || !rt->screen_encoder.encoder_.is_initialized()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         rt = render_thread_ptr.load(std::memory_order_acquire);
       }
@@ -682,7 +712,7 @@ int main() {
 
         if (ecps_backend.is_streaming_to_any_channel()) {
           if (first_frame) {
-            rt->modern_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
+            rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
             first_frame = false;
             last_idr_time = std::chrono::steady_clock::now();
           }
@@ -691,19 +721,19 @@ int main() {
           auto now = std::chrono::steady_clock::now();
           auto time_since_idr = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_idr_time);
           if (time_since_idr > std::chrono::milliseconds(2000)) {
-            rt->modern_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
+            rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
             last_idr_time = now;
           }
 
           // Read screen data
-          if (!rt->modern_encoder.screen_read()) {
+          if (!rt->screen_encoder.screen_read()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
           }
 
-          if (rt->ecps_gui.show_own_stream && rt->modern_encoder.screen_buffer) {
-            uint32_t width = rt->modern_encoder.mdscr.Geometry.Resolution.x;
-            uint32_t height = rt->modern_encoder.mdscr.Geometry.Resolution.y;
+          if (rt->ecps_gui.show_own_stream && rt->screen_encoder.screen_buffer) {
+            uint32_t width = rt->screen_encoder.mdscr.Geometry.Resolution.x;
+            uint32_t height = rt->screen_encoder.mdscr.Geometry.Resolution.y;
 
             if (width > 0 && height > 0) {
               rt->ecps_gui.backend_queue([=]() -> fan::event::task_t {
@@ -716,7 +746,7 @@ int main() {
                   props.visual_output = fan::graphics::image_filter::linear;
 
                   fan::image::info_t image_info;
-                  image_info.data = current_rt->modern_encoder.screen_buffer;
+                  image_info.data = current_rt->screen_encoder.screen_buffer;
                   image_info.size = fan::vec2ui(width, height);
 
                   current_rt->engine.image_reload(current_rt->screen_image, image_info, props);
@@ -729,18 +759,18 @@ int main() {
             }
           }
 
-          if (!rt->modern_encoder.encode_write()) {
+          if (!rt->screen_encoder.encode_write()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
           }
 
           uint8_t* encoded_data = nullptr;
-          size_t encoded_size = rt->modern_encoder.encode_read(&encoded_data);
+          size_t encoded_size = rt->screen_encoder.encode_read(&encoded_data);
 
           if (encoded_size > 0 && encoded_data) {
             std::unique_lock<std::timed_mutex> frame_list_lock(ecps_backend.share.frame_list_mutex, std::try_to_lock);
             if (frame_list_lock.owns_lock()) {
-              bool is_idr = (rt->modern_encoder.encode_write_flags & fan::graphics::codec_update_e::force_keyframe) != 0;
+              bool is_idr = (rt->screen_encoder.encode_write_flags & fan::graphics::codec_update_e::force_keyframe) != 0;
 
               // Clear old frames for IDR
               if (is_idr) {
@@ -758,7 +788,7 @@ int main() {
             }
           }
 
-          rt->modern_encoder.sleep_thread();
+          rt->screen_encoder.sleep_thread();
         }
         else {
           first_frame = true;
@@ -769,7 +799,7 @@ int main() {
 
     fan::event::thread_create([] {
       auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-      while (!rt || !rt->modern_decoder.is_initialized()) {
+      while (!rt || !rt->screen_decoder.is_initialized()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         rt = render_thread_ptr.load(std::memory_order_acquire);
       }
@@ -820,7 +850,7 @@ int main() {
 
     auto* rt = render_thread_ptr.load(std::memory_order_acquire);
     if (rt && ecps_backend.is_streaming_to_any_channel()) {
-      uint64_t current_frame_count = rt->modern_encoder.frame_timestamp_;
+      uint64_t current_frame_count = rt->screen_encoder.frame_timestamp_;
       uint32_t poll_ms = dynamic_config_t::get_adaptive_motion_poll_ms();
       uint64_t frames_in_poll = current_frame_count - last_frame_count;
       if (time_since_startup.count() > startup_duration) {
@@ -829,7 +859,7 @@ int main() {
           motion_frames++;
           uint32_t motion_trigger = fps >= 120 ? 8 : (fps >= 60 ? 6 : 4);
           if (motion_frames >= motion_trigger) {
-            rt->modern_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
+            rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
             motion_frames = 0;
           }
         }
@@ -886,17 +916,17 @@ int main() {
     });
 
   auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-  while (!rt || !rt->modern_encoder.encoder_.is_initialized()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    rt = render_thread_ptr.load(std::memory_order_acquire);
-  }
+  while (!rt) {
+  std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  rt = render_thread_ptr.load(std::memory_order_acquire);
+}
 
   rt = render_thread_ptr.load(std::memory_order_acquire);
-  while (rt && rt->should_stop.load()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    rt = render_thread_ptr.load(std::memory_order_acquire);
-    continue;
-  }
+while (rt && rt->should_stop.load()) {
+  std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  rt = render_thread_ptr.load(std::memory_order_acquire);
+  continue;
+}
 
   auto network_task = fan::event::task_timer(1, []() -> fan::event::task_value_resume_t<bool> {
     /*if (ecps_backend.cleanup_disconnected_channels()) {
@@ -957,7 +987,7 @@ int main() {
     }
 
     double seconds_elapsed = static_cast<double>(DeltaTime) / 1000000000.0;
-    double bits_to_add = seconds_elapsed * rt->modern_encoder.config_.bitrate * bucket_multiplier;
+    double bits_to_add = seconds_elapsed * rt->screen_encoder.config_.bitrate * bucket_multiplier;
 
     ecps_backend.share.m_NetworkFlow.Bucket += static_cast<uint64_t>(bits_to_add);
 

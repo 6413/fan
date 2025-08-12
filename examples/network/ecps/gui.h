@@ -787,7 +787,9 @@ struct ecps_gui_t {
 
       gui::spacing();
 
-      This->resolution_controls.render_resolution_controls();
+      if (ecps_backend.is_channel_streaming(This->window_handler.selected_channel_id)) {
+        This->resolution_controls.render_resolution_controls();
+      }
 
       gui::text("Framerate");
       gui::push_item_width(-1);
@@ -801,8 +803,8 @@ struct ecps_gui_t {
         if (gui::is_item_deactivated_after_edit()) {
           auto* rt = render_thread_ptr.load(std::memory_order_acquire);
           if (rt) {
-            rt->modern_encoder.config_.frame_rate = This->stream_settings.framerate;
-            rt->modern_encoder.encoder_.update_config(rt->modern_encoder.config_, fan::graphics::codec_update_e::frame_rate);
+            rt->screen_encoder.config_.frame_rate = This->stream_settings.framerate;
+            rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, fan::graphics::codec_update_e::frame_rate);
           }
         }
       } while (0);
@@ -818,8 +820,8 @@ struct ecps_gui_t {
           if (channel_id == (uint32_t)-1) break;
           auto* rt = get_render_thread();
           if (rt) {
-            rt->modern_encoder.config_.bitrate = This->stream_settings.bitrate_mbps * 1000000;
-            rt->modern_encoder.encoder_.update_config(rt->modern_encoder.config_, codec_update_e::rate_control);
+            rt->screen_encoder.config_.bitrate = This->stream_settings.bitrate_mbps * 1000000;
+            rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, codec_update_e::rate_control);
           }
         }
       } while (0);
@@ -833,7 +835,7 @@ struct ecps_gui_t {
               return std::vector<std::string>{"libx264"}; // Fallback
             }
 
-            auto encoders = rt->modern_encoder.get_encoders();
+            auto encoders = rt->screen_encoder.get_encoders();
             return encoders;
             }();
 
@@ -854,9 +856,9 @@ struct ecps_gui_t {
             encoder_options.data(), encoder_options.size())) {
             auto* rt = render_thread_ptr.load(std::memory_order_acquire);
             if (rt) {
-              rt->modern_encoder.new_codec = This->stream_settings.selected_encoder;
-              rt->modern_encoder.update_flags |= codec_update_e::codec;
-              rt->modern_encoder.encode_write_flags |= codec_update_e::force_keyframe;
+              rt->screen_encoder.new_codec = This->stream_settings.selected_encoder;
+              rt->screen_encoder.update_flags |= codec_update_e::codec;
+              rt->screen_encoder.encode_write_flags |= codec_update_e::force_keyframe;
             }
           }
           gui::pop_item_width();
@@ -874,7 +876,7 @@ struct ecps_gui_t {
               }; // Fallback
             }
 
-            auto decoders = rt->modern_decoder.get_decoders();
+            auto decoders = rt->screen_decoder.get_decoders();
             return decoders;
             }();
           static auto decoder_options = [] {
@@ -888,31 +890,32 @@ struct ecps_gui_t {
 
           gui::text("Decoder");
           gui::push_item_width(-1);
-          //This->stream_settings.selected_decoder = screen_decode->DecoderID;
-         /* if (gui::combo("##decoder_compact", (int*)&This->stream_settings.selected_decoder, decoder_options.data(),
-            decoder_options.size())) {
-            screen_decode->mutex.lock();
-            screen_decode->new_codec = This->stream_settings.selected_decoder;
-            screen_decode->update_flags |= fan::graphics::codec_update_e::codec;
-            screen_decode->mutex.unlock();
-            This->backend_queue([=]() -> fan::event::task_t {
-              try {
-                for (const auto& channel : ecps_backend.channel_info) {
-                  if (channel.is_viewing) {
-                    ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare_t rest;
-                    rest.ChannelID = channel.channel_id;
-                    rest.Flag = ecps_backend_t::ProtocolChannel::ScreenShare::ChannelFlag::ResetIDR;
-                    co_await ecps_backend.tcp_write(
-                      ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare,
-                      &rest,
-                      sizeof(rest)
-                    );
+          if (gui::combo("##decoder_compact", &This->stream_settings.selected_decoder,
+            decoder_options.data(), decoder_options.size())) {
+            auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+            if (rt) {
+              rt->screen_decoder.new_codec = This->stream_settings.selected_decoder;
+              rt->screen_decoder.update_flags |= fan::graphics::codec_update_e::codec;
+
+              This->backend_queue([=]() -> fan::event::task_t {
+                try {
+                  for (const auto& channel : ecps_backend.channel_info) {
+                    if (channel.is_viewing) {
+                      ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare_t rest;
+                      rest.ChannelID = channel.channel_id;
+                      rest.Flag = ecps_backend_t::ProtocolChannel::ScreenShare::ChannelFlag::ResetIDR;
+                      co_await ecps_backend.tcp_write(
+                        ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare,
+                        &rest,
+                        sizeof(rest)
+                      );
+                    }
                   }
                 }
-              }
-              catch (...) {}
-              });
-          }*/
+                catch (...) {}
+                });
+            }
+          }
           gui::pop_item_width();
         } while (0);
       }
@@ -1027,9 +1030,9 @@ struct ecps_gui_t {
             rt->network_frame.set_position(center);
             f32_t frame_aspect = 16.0f / 9.0f;
 
-            if (rt->modern_decoder.decoded_size.x > 0 && rt->modern_decoder.decoded_size.y > 0) {
-              frame_aspect = static_cast<f32_t>(rt->modern_decoder.decoded_size.x) /
-                rt->modern_decoder.decoded_size.y;
+            if (rt->screen_decoder.decoded_size.x > 0 && rt->screen_decoder.decoded_size.y > 0) {
+              frame_aspect = static_cast<f32_t>(rt->screen_decoder.decoded_size.x) /
+                rt->screen_decoder.decoded_size.y;
             }
 
             fan::vec2 full_size = (stream_area.x / stream_area.y > frame_aspect)
@@ -1123,9 +1126,9 @@ struct ecps_gui_t {
 
             f32_t frame_aspect = 16.0f / 9.0f;
 
-            if (rt->modern_decoder.decoded_size.x > 0 && rt->modern_decoder.decoded_size.y > 0) {
-              frame_aspect = static_cast<f32_t>(rt->modern_decoder.decoded_size.x) /
-                rt->modern_decoder.decoded_size.y;
+            if (rt->screen_decoder.decoded_size.x > 0 && rt->screen_decoder.decoded_size.y > 0) {
+              frame_aspect = static_cast<f32_t>(rt->screen_decoder.decoded_size.x) /
+                rt->screen_decoder.decoded_size.y;
             }
 
             fan::vec2 full_size = (stream_area.x / stream_area.y > frame_aspect)
@@ -1172,8 +1175,8 @@ struct ecps_gui_t {
       auto* rt = render_thread_ptr.load(std::memory_order_acquire);
       uint32_t current_width = 0, current_height = 0;
       if (rt) {
-        current_width = rt->modern_encoder.config_.width;
-        current_height = rt->modern_encoder.config_.height;
+        current_width = rt->screen_encoder.config_.width;
+        current_height = rt->screen_encoder.config_.height;
       }
 
       if (current_width != last_applied_width || current_height != last_applied_height) {
@@ -1183,7 +1186,7 @@ struct ecps_gui_t {
       }
 
       gui::text("Aspect Ratio");
-      auto aspect_options = rt->modern_encoder.resolution_manager.get_aspect_ratio_options();
+      auto aspect_options = rt->screen_encoder.resolution_manager.get_aspect_ratio_options();
 
       std::vector<std::string> aspect_strings;
       std::vector<const char*> aspect_cstrings;
@@ -1247,19 +1250,6 @@ struct ecps_gui_t {
       }
       gui::pop_item_width();
 
-      //gui::spacing();
-      //gui::separator();
-
-      //// Custom resolution input
-      //gui::text("Custom Resolution");
-      //gui::push_item_width(-1);
-      //if (gui::input_text("##custom_res", &custom_resolution, 
-      //                    gui::input_text_flags_enter_returns_true)) {
-      //  parse_and_apply_custom_resolution();
-      //}
-      //gui::pop_item_width();
-      ////gui::text_disabled("Format: WIDTHxHEIGHT (e.g., 1920x1080)");
-
       gui::separator();
     }
 
@@ -1268,10 +1258,10 @@ struct ecps_gui_t {
       auto* rt = render_thread_ptr.load(std::memory_order_acquire);
       if (!rt) return {};
       if (selected_aspect_ratio == 4) {
-        return rt->modern_encoder.resolution_manager.detected_info.matching_aspect_resolutions;
+        return rt->screen_encoder.resolution_manager.detected_info.matching_aspect_resolutions;
       }
       else {
-        auto aspect_options = rt->modern_encoder.resolution_manager.get_aspect_ratio_options();
+        auto aspect_options = rt->screen_encoder.resolution_manager.get_aspect_ratio_options();
         f32_t selected_aspect = aspect_options[selected_aspect_ratio].second;
         return resolution_system_t::get_resolutions_by_aspect(selected_aspect, 0.01f);
       }
@@ -1284,7 +1274,7 @@ struct ecps_gui_t {
       if (!rt) return;
 
       f32_t current_aspect = static_cast<f32_t>(current_width) / current_height;
-      auto aspect_options = rt->modern_encoder.resolution_manager.get_aspect_ratio_options();
+      auto aspect_options = rt->screen_encoder.resolution_manager.get_aspect_ratio_options();
 
       for (int i = 0; i < aspect_options.size(); i++) {
         if (std::abs(aspect_options[i].second - current_aspect) < 0.02f) {
@@ -1312,8 +1302,8 @@ struct ecps_gui_t {
     void apply_resolution(const resolution_system_t::resolution_t& resolution) {
       auto* rt = render_thread_ptr.load(std::memory_order_acquire);
       if (rt) {
-        rt->modern_encoder.set_user_resolution(resolution.width, resolution.height);
-        rt->modern_encoder.encode_write_flags |= codec_update_e::force_keyframe;
+        rt->screen_encoder.set_user_resolution(resolution.width, resolution.height);
+        rt->screen_encoder.encode_write_flags |= codec_update_e::force_keyframe;
 
         last_applied_width = resolution.width;
         last_applied_height = resolution.height;
@@ -1393,9 +1383,9 @@ struct ecps_gui_t {
 
       f32_t aspect = 16.0f / 9.0f;
 
-      if (rt->modern_decoder.decoded_size.x > 0 && rt->modern_decoder.decoded_size.y > 0) {
-        aspect = static_cast<f32_t>(rt->modern_decoder.decoded_size.x) /
-          rt->modern_decoder.decoded_size.y;
+      if (rt->screen_decoder.decoded_size.x > 0 && rt->screen_decoder.decoded_size.y > 0) {
+        aspect = static_cast<f32_t>(rt->screen_decoder.decoded_size.x) /
+          rt->screen_decoder.decoded_size.y;
       }
 
       fan::vec2 full_size;

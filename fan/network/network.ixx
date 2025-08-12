@@ -668,7 +668,12 @@ export namespace fan {
       struct tcp_deleter_t {
         void operator()(void* p) const {
           uv_close(static_cast<uv_handle_t*>(p), [](uv_handle_t* req) {
-            delete reinterpret_cast<uv_tcp_t*>(req);
+            try {
+              delete reinterpret_cast<uv_tcp_t*>(req);
+            }
+            catch (std::exception e) {
+              fan::print("failed to delete tcp:", e.what());
+            }
           });
         }
       };

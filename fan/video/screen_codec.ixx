@@ -25,6 +25,7 @@ extern "C" {
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <map>
 
 #include <WITCH/PR/PR.h>
 #include <WITCH/MD/SCR/SCR.h>
@@ -203,7 +204,7 @@ export namespace fan {
         if (packet_) av_packet_free(&packet_);
       }
 
-      bool open(const codec_config_t& config, const fan::vec2& screencap_res = {0, 0}) {
+      bool open(const codec_config_t& config, const fan::vec2& screencap_res = { 0, 0 }) {
         close();
         config_ = config;
 
@@ -423,22 +424,253 @@ export namespace fan {
         }
         return encoders;
       }
-       fan::vec2 screencap_res_;
+      fan::vec2 screencap_res_;
     };
 
     struct libav_decoder_t {
       const AVCodec* codec_ = nullptr;
       AVCodecContext* codec_ctx_ = nullptr;
       AVFrame* frame_ = nullptr;
+      AVFrame* hw_frame_ = nullptr;
       AVPacket* packet_ = nullptr;
       SwsContext* sws_ctx_ = nullptr;
 
       bool initialized_ = false;
       std::string codec_name_;
+      bool using_hardware_ = false;
+      enum AVPixelFormat hw_pixel_format_ = AV_PIX_FMT_NONE;
 
-      // Hardware acceleration support
       AVBufferRef* hw_device_ctx_ = nullptr;
       AVHWDeviceType hw_type_ = AV_HWDEVICE_TYPE_NONE;
+
+      static std::unordered_map<std::string, std::vector<std::string>> get_hw_decoder_names() {
+        return {
+          {"h264", {"h264_cuvid", "h264_qsv", "h264_videotoolbox", "h264_vaapi", "h264_dxva2", "h264_d3d11va"}},
+          {"hevc", {"hevc_cuvid", "hevc_qsv", "hevc_videotoolbox", "hevc_vaapi", "hevc_dxva2", "hevc_d3d11va"}},
+          {"av1", {"av1_cuvid", "av1_qsv", "av1_videotoolbox", "av1_vaapi"}}
+        };
+      }
+
+      static enum AVPixelFormat get_hw_pixel_format(AVHWDeviceType type) {
+        switch (type) {
+        case AV_HWDEVICE_TYPE_CUDA: return AV_PIX_FMT_CUDA;
+        case AV_HWDEVICE_TYPE_QSV: return AV_PIX_FMT_QSV;
+        case AV_HWDEVICE_TYPE_VAAPI: return AV_PIX_FMT_VAAPI;
+        case AV_HWDEVICE_TYPE_DXVA2: return AV_PIX_FMT_DXVA2_VLD;
+        case AV_HWDEVICE_TYPE_D3D11VA: return AV_PIX_FMT_D3D11;
+        case AV_HWDEVICE_TYPE_VIDEOTOOLBOX: return AV_PIX_FMT_VIDEOTOOLBOX;
+        default: return AV_PIX_FMT_NONE;
+        }
+      }
+
+      static enum AVPixelFormat get_hw_format(AVCodecContext* ctx, const enum AVPixelFormat* pix_fmts) {
+        libav_decoder_t* decoder = static_cast<libav_decoder_t*>(ctx->opaque);
+
+        for (const enum AVPixelFormat* p = pix_fmts; *p != AV_PIX_FMT_NONE; p++) {
+          if (*p == decoder->hw_pixel_format_) {
+            return *p;
+          }
+        }
+
+        fan::print("Failed to get HW surface format");
+        return AV_PIX_FMT_NONE;
+      }
+
+      bool init_hardware_acceleration() {
+        std::vector<std::pair<AVHWDeviceType, const char*>> hw_types = {
+          {AV_HWDEVICE_TYPE_CUDA, "cuda"},
+          {AV_HWDEVICE_TYPE_QSV, "qsv"},
+          {AV_HWDEVICE_TYPE_VAAPI, "vaapi"},
+          {AV_HWDEVICE_TYPE_DXVA2, "dxva2"},
+          {AV_HWDEVICE_TYPE_D3D11VA, "d3d11va"},
+          {AV_HWDEVICE_TYPE_VIDEOTOOLBOX, "videotoolbox"}
+        };
+
+        for (const auto& [type, name] : hw_types) {
+          if (av_hwdevice_ctx_create(&hw_device_ctx_, type, nullptr, nullptr, 0) == 0) {
+            hw_type_ = type;
+            hw_pixel_format_ = get_hw_pixel_format(type);
+            fan::print("Initialized hardware device: " + std::string(name));
+            return true;
+          }
+        }
+
+        fan::print("No hardware acceleration available, using software decoding");
+        return false;
+      }
+
+      // Enhanced hardware decoder initialization with better buffering:
+
+      bool find_and_init_hw_decoder(const std::string& codec_type) {
+        if (!hw_device_ctx_) return false;
+
+        auto hw_decoders = get_hw_decoder_names();
+        auto it = hw_decoders.find(codec_type);
+        if (it == hw_decoders.end()) return false;
+
+        for (const auto& decoder_name : it->second) {
+          bool type_match = false;
+          switch (hw_type_) {
+          case AV_HWDEVICE_TYPE_CUDA:
+            type_match = decoder_name.find("cuvid") != std::string::npos;
+            break;
+          case AV_HWDEVICE_TYPE_QSV:
+            type_match = decoder_name.find("qsv") != std::string::npos;
+            break;
+          case AV_HWDEVICE_TYPE_VAAPI:
+            type_match = decoder_name.find("vaapi") != std::string::npos;
+            break;
+          case AV_HWDEVICE_TYPE_DXVA2:
+            type_match = decoder_name.find("dxva2") != std::string::npos;
+            break;
+          case AV_HWDEVICE_TYPE_D3D11VA:
+            type_match = decoder_name.find("d3d11va") != std::string::npos;
+            break;
+          case AV_HWDEVICE_TYPE_VIDEOTOOLBOX:
+            type_match = decoder_name.find("videotoolbox") != std::string::npos;
+            break;
+          default:
+            continue;
+          }
+
+          if (!type_match) continue;
+
+          codec_ = avcodec_find_decoder_by_name(decoder_name.c_str());
+          if (!codec_) continue;
+
+          codec_ctx_ = avcodec_alloc_context3(codec_);
+          if (!codec_ctx_) continue;
+
+          codec_ctx_->hw_device_ctx = av_buffer_ref(hw_device_ctx_);
+          codec_ctx_->get_format = get_hw_format;
+          codec_ctx_->opaque = this;
+
+          if (decoder_name.find("cuvid") != std::string::npos) {
+            av_opt_set_int(codec_ctx_->priv_data, "surfaces", 2, 0);
+            av_opt_set_int(codec_ctx_->priv_data, "drop_second_field", 0, 0);
+            av_opt_set(codec_ctx_->priv_data, "deint", "weave", 0);
+            av_opt_set_int(codec_ctx_->priv_data, "crop", 0, 0);
+            av_opt_set_int(codec_ctx_->priv_data, "resize", 0, 0);
+            codec_ctx_->has_b_frames = 0;
+            codec_ctx_->delay = 0;
+          }
+          else if (decoder_name.find("qsv") != std::string::npos) {
+            av_opt_set_int(codec_ctx_->priv_data, "async_depth", 1, 0);
+            codec_ctx_->delay = 0;
+          }
+          else if (decoder_name.find("vaapi") != std::string::npos) {
+            av_opt_set_int(codec_ctx_->priv_data, "low_power", 1, 0);
+            codec_ctx_->delay = 0;
+          }
+
+          std::atomic<bool> open_completed{ false };
+          std::atomic<int> open_result{ -1 };
+
+          std::thread open_thread([&]() {
+            int result = avcodec_open2(codec_ctx_, codec_, nullptr);
+            open_result.store(result);
+            open_completed.store(true);
+            });
+
+          auto start_time = std::chrono::steady_clock::now();
+          bool timed_out = false;
+
+          while (!open_completed.load()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            auto elapsed = std::chrono::steady_clock::now() - start_time;
+            if (elapsed > std::chrono::seconds(2)) {
+              timed_out = true;
+              break;
+            }
+          }
+
+          if (timed_out) {
+            if (open_thread.joinable()) {
+              open_thread.detach();
+            }
+            if (codec_ctx_->hw_device_ctx) {
+              av_buffer_unref(&codec_ctx_->hw_device_ctx);
+            }
+            avcodec_free_context(&codec_ctx_);
+            codec_ = nullptr;
+            continue;
+          }
+
+          if (open_thread.joinable()) {
+            open_thread.join();
+          }
+
+          if (open_result.load() == 0) {
+            codec_name_ = decoder_name;
+            using_hardware_ = true;
+            return true;
+          }
+
+          if (codec_ctx_->hw_device_ctx) {
+            av_buffer_unref(&codec_ctx_->hw_device_ctx);
+          }
+          avcodec_free_context(&codec_ctx_);
+          codec_ = nullptr;
+        }
+
+        return false;
+      }
+
+
+
+      bool find_and_init_sw_decoder(const std::string& codec_type) {
+        std::unordered_map<std::string, std::string> sw_decoders = {
+          {"h264", "h264"},
+          {"hevc", "hevc"},
+          {"av1", "av1"}
+        };
+
+        auto it = sw_decoders.find(codec_type);
+        if (it == sw_decoders.end()) return false;
+
+        codec_ = avcodec_find_decoder_by_name(it->second.c_str());
+        if (!codec_) return false;
+
+        codec_ctx_ = avcodec_alloc_context3(codec_);
+        if (!codec_ctx_) return false;
+
+        if (avcodec_open2(codec_ctx_, codec_, nullptr) == 0) {
+          codec_name_ = it->second;
+          using_hardware_ = false;
+          fan::print("Successfully initialized software decoder: " + it->second);
+          return true;
+        }
+
+        avcodec_free_context(&codec_ctx_);
+        codec_ = nullptr;
+        return false;
+      }
+
+      std::string detect_codec_from_data(const uint8_t* data, size_t size) {
+        if (size < 4) return "h264"; // Default fallback
+
+        if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
+          if (size >= 5) {
+            uint8_t nal_type = data[4] & 0x1F;
+            // H.264 NAL unit types
+            if (nal_type <= 23) return "h264";
+          }
+          return "h264";
+        }
+
+        if (size >= 5 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
+          uint8_t nal_type = (data[4] & 0x7E) >> 1;
+          // H.265 NAL unit types
+          if (nal_type >= 32 && nal_type <= 63) return "hevc";
+        }
+
+        if (size >= 2) {
+          uint8_t obu_type = (data[0] >> 3) & 0x0F;
+          if (obu_type >= 1 && obu_type <= 8) return "av1";
+        }
+
+        return "h264";
+      }
 
       libav_decoder_t() {
         packet_ = av_packet_alloc();
@@ -457,6 +689,14 @@ export namespace fan {
           return false;
         }
 
+        hw_frame_ = av_frame_alloc();
+        if (!hw_frame_) {
+          av_frame_free(&frame_);
+          return false;
+        }
+
+        init_hardware_acceleration();
+
         initialized_ = true;
         return true;
       }
@@ -471,7 +711,14 @@ export namespace fan {
           av_frame_free(&frame_);
         }
 
+        if (hw_frame_) {
+          av_frame_free(&hw_frame_);
+        }
+
         if (codec_ctx_) {
+          if (codec_ctx_->hw_device_ctx) {
+            av_buffer_unref(&codec_ctx_->hw_device_ctx);
+          }
           avcodec_free_context(&codec_ctx_);
         }
 
@@ -480,7 +727,10 @@ export namespace fan {
         }
 
         initialized_ = false;
+        using_hardware_ = false;
         codec_ = nullptr;
+        hw_type_ = AV_HWDEVICE_TYPE_NONE;
+        hw_pixel_format_ = AV_PIX_FMT_NONE;
       }
 
       struct decode_result_t {
@@ -489,6 +739,7 @@ export namespace fan {
         fan::vec2ui image_size{ 0, 0 };
         AVPixelFormat pixel_format = AV_PIX_FMT_NONE;
         bool success = false;
+        bool was_hardware_decoded = false;
         int64_t pts = 0;
       };
 
@@ -497,10 +748,40 @@ export namespace fan {
 
         if (!initialized_) return results;
 
-        // Auto-detect codec if not yet initialized
         if (!codec_ctx_) {
-          if (!init_decoder_from_data(data, size)) {
-            return results;
+          std::string detected_codec = detect_codec_from_data(data, size);
+
+          bool hw_success = false;
+          try {
+            hw_success = find_and_init_hw_decoder(detected_codec);
+          }
+          catch (...) {
+            hw_success = false;
+          }
+
+          if (!hw_success) {
+            if (!find_and_init_sw_decoder(detected_codec)) {
+              return results;
+            }
+          }
+        }
+
+        static int packet_count = 0;
+        static int eagain_count = 0;
+        static bool has_seen_sps = false;
+        static bool has_seen_pps = false;
+        static bool fallback_triggered = false;
+
+        packet_count++;
+
+        if (size >= 5 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
+          uint8_t nal_type = data[4] & 0x1F;
+
+          if (nal_type == 7) {
+            has_seen_sps = true;
+          }
+          else if (nal_type == 8) {
+            has_seen_pps = true;
           }
         }
 
@@ -508,41 +789,107 @@ export namespace fan {
         packet_->size = size;
 
         int ret = avcodec_send_packet(codec_ctx_, packet_);
-        if (ret < 0) {
-          fan::print("Error sending packet to decoder: " + std::to_string(ret));
+
+        if (ret == AVERROR(EAGAIN)) {
+          eagain_count++;
+
+          if (using_hardware_ && !fallback_triggered &&
+            has_seen_sps && !has_seen_pps && eagain_count > 30) {
+
+            fallback_triggered = true;
+
+            close();
+            if (open()) {
+              std::string detected_codec = detect_codec_from_data(data, size);
+              if (find_and_init_sw_decoder(detected_codec)) {
+                eagain_count = 0;
+                packet_->data = const_cast<uint8_t*>(data);
+                packet_->size = size;
+                ret = avcodec_send_packet(codec_ctx_, packet_);
+              }
+            }
+          }
+        }
+        else if (ret < 0 && ret != AVERROR(EAGAIN)) {
+          static int consecutive_errors = 0;
+          if (++consecutive_errors > 5 && using_hardware_ && !fallback_triggered) {
+            fallback_triggered = true;
+
+            close();
+            if (open()) {
+              std::string detected_codec = detect_codec_from_data(data, size);
+              find_and_init_sw_decoder(detected_codec);
+              consecutive_errors = 0;
+            }
+          }
           return results;
         }
 
-        while (ret >= 0) {
-          ret = avcodec_receive_frame(codec_ctx_, frame_);
-          if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+        while (true) {
+          AVFrame* target_frame = using_hardware_ ? hw_frame_ : frame_;
+
+          ret = avcodec_receive_frame(codec_ctx_, target_frame);
+          if (ret == AVERROR(EAGAIN)) {
+            break;
+          }
+          else if (ret == AVERROR_EOF) {
             break;
           }
           else if (ret < 0) {
-            fan::print("Error receiving frame from decoder: " + std::to_string(ret));
             break;
+          }
+
+          static bool first_success = true;
+          if (first_success) {
+            eagain_count = 0;
+            first_success = false;
           }
 
           decode_result_t result;
           result.success = true;
-          result.image_size = { static_cast<uint32_t>(frame_->width),
-                              static_cast<uint32_t>(frame_->height) };
-          result.pixel_format = static_cast<AVPixelFormat>(frame_->format);
-          result.pts = frame_->pts;
+          result.was_hardware_decoded = using_hardware_;
+          result.pts = target_frame->pts;
 
-          // Copy plane data
-          int num_planes = av_pix_fmt_count_planes(static_cast<AVPixelFormat>(frame_->format));
+          if (using_hardware_ && target_frame->format == hw_pixel_format_) {
+            ret = av_hwframe_transfer_data(frame_, target_frame, 0);
+            if (ret < 0) {
+              continue;
+            }
+            target_frame = frame_;
+          }
+
+          result.image_size = { static_cast<uint32_t>(target_frame->width),
+                               static_cast<uint32_t>(target_frame->height) };
+          result.pixel_format = static_cast<AVPixelFormat>(target_frame->format);
+
+          int num_planes = av_pix_fmt_count_planes(static_cast<AVPixelFormat>(target_frame->format));
+          if (num_planes <= 0) continue;
+
           result.plane_data.resize(num_planes);
           result.linesize.resize(num_planes);
 
           for (int i = 0; i < num_planes; i++) {
-            result.linesize[i] = frame_->linesize[i];
-            int plane_size = av_image_get_linesize(static_cast<AVPixelFormat>(frame_->format),
-              frame_->width, i) *
-              (i == 0 ? frame_->height : frame_->height / (i > 0 ? 2 : 1));
+            result.linesize[i] = target_frame->linesize[i];
+
+            int plane_height;
+            if (i == 0) {
+              plane_height = target_frame->height;
+            }
+            else {
+              const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(target_frame->format));
+              if (desc) {
+                plane_height = target_frame->height >> desc->log2_chroma_h;
+              }
+              else {
+                plane_height = target_frame->height / 2;
+              }
+            }
+
+            int plane_size = result.linesize[i] * plane_height;
+            if (plane_size <= 0 || !target_frame->data[i]) continue;
 
             result.plane_data[i].resize(plane_size);
-            std::memcpy(result.plane_data[i].data(), frame_->data[i], plane_size);
+            std::memcpy(result.plane_data[i].data(), target_frame->data[i], plane_size);
           }
 
           results.push_back(std::move(result));
@@ -551,43 +898,52 @@ export namespace fan {
         return results;
       }
 
-    private:
-      bool init_decoder_from_data(const uint8_t* data, size_t size) {
+      bool has_hardware_support() const {
+        return hw_device_ctx_ != nullptr;
+      }
 
-        codec_name_ = "h264";
+      std::string get_hardware_type_string() const {
+        if (!using_hardware_) return "Software";
 
-        if (size >= 4) {
-          if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
-            codec_name_ = "h264";
-          }
-          else if (size >= 5 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01 &&
-            ((data[4] & 0x7E) >> 1) >= 32) {
-            codec_name_ = "hevc";
-          }
+        switch (hw_type_) {
+        case AV_HWDEVICE_TYPE_CUDA: return "NVIDIA CUDA";
+        case AV_HWDEVICE_TYPE_QSV: return "Intel QuickSync";
+        case AV_HWDEVICE_TYPE_VAAPI: return "VAAPI";
+        case AV_HWDEVICE_TYPE_DXVA2: return "DirectX VA 2.0";
+        case AV_HWDEVICE_TYPE_D3D11VA: return "DirectX VA 11";
+        case AV_HWDEVICE_TYPE_VIDEOTOOLBOX: return "Apple VideoToolbox";
+        default: return "Unknown Hardware";
         }
+      }
 
-        codec_ = avcodec_find_decoder_by_name(codec_name_.c_str());
-        if (!codec_) {
-          fan::print("Could not find decoder for: " + codec_name_);
-          return false;
-        }
-
-        codec_ctx_ = avcodec_alloc_context3(codec_);
-        if (!codec_ctx_) {
-          return false;
-        }
-
-        if (avcodec_open2(codec_ctx_, codec_, nullptr) < 0) {
+      // Force fallback to software decoding
+      bool force_software_decoding(const std::string& codec_type = "h264") {
+        if (codec_ctx_) {
           avcodec_free_context(&codec_ctx_);
-          return false;
+          codec_ = nullptr;
         }
 
-        fan::print("Successfully initialized decoder: " + codec_name_);
-        return true;
+        using_hardware_ = false;
+        return find_and_init_sw_decoder(codec_type);
+      }
+
+      static std::vector<std::string> get_available_hw_decoders() {
+        std::vector<std::string> available;
+        auto hw_decoders = get_hw_decoder_names();
+
+        for (const auto& [codec, decoders] : hw_decoders) {
+          for (const auto& decoder : decoders) {
+            if (avcodec_find_decoder_by_name(decoder.c_str())) {
+              available.push_back(decoder);
+            }
+          }
+        }
+
+        return available;
       }
     };
 
-    
+
     struct resolution_system_t {
       struct resolution_t {
         uint32_t width, height;
@@ -974,7 +1330,17 @@ export namespace fan {
 
 
       static std::vector<std::string> get_decoders() {
-        return { "libx264", "libx265", "libaom-av1", "auto-detect" };
+        std::vector<std::string> decoders;
+
+        auto hw_decoders = libav_decoder_t::get_available_hw_decoders();
+        decoders.insert(decoders.end(), hw_decoders.begin(), hw_decoders.end());
+
+        decoders.push_back("h264");
+        decoders.push_back("hevc");
+        decoders.push_back("av1");
+        decoders.push_back("auto-detect");
+
+        return decoders;
       }
 
       struct decode_data_t {
@@ -988,36 +1354,34 @@ export namespace fan {
       decode_data_t decode(void* data, uintptr_t length, loco_t::shape_t& universal_image_renderer) {
         decode_data_t ret;
 
-        // Handle codec updates
         if (update_flags & codec_update_e::codec) {
           std::lock_guard<std::mutex> lock(mutex);
-
           decoder_.close();
           if (!decoder_.open()) {
-            ret.type = 254; // Decoder failed to reopen
+            ret.type = 254;
             return ret;
           }
           update_flags = 0;
+
+          reload_codec_cb();
         }
 
         auto results = decoder_.decode_packet(static_cast<const uint8_t*>(data), length);
 
         if (results.empty()) {
-          ret.type = 252; // No frames decoded
+          ret.type = 252;
           return ret;
         }
 
-        // Process the first decoded frame
         auto& frame = results[0];
         if (!frame.success) {
-          ret.type = 251; // Decode failed
+          ret.type = 251;
           return ret;
         }
 
         ret.image_size = frame.image_size;
-        ret.type = 1; // Success
+        ret.type = 1;
 
-        // Convert pixel format
         switch (frame.pixel_format) {
         case AV_PIX_FMT_YUV420P:
           ret.pixel_format = fan::graphics::image_format::yuv420p;
@@ -1026,19 +1390,21 @@ export namespace fan {
           ret.pixel_format = fan::graphics::image_format::nv12;
           break;
         default:
-          ret.type = 249; // Unsupported pixel format
+          ret.type = 249;
           return ret;
         }
 
-        // Copy plane data
         for (size_t i = 0; i < frame.plane_data.size() && i < 4; i++) {
           ret.data[i] = frame.plane_data[i];
           ret.stride[i] = { static_cast<uint32_t>(frame.linesize[i]), 0 };
         }
 
         frame_size_ = frame.image_size;
+        decoded_size = frame.image_size;
+
         return ret;
       }
+
 
       std::string name = "auto-detect";
       uintptr_t new_codec = 0;
@@ -1049,6 +1415,7 @@ export namespace fan {
       libav_decoder_t decoder_;
       std::mutex mutex;
       std::vector<std::function<void()>> graphics_queue;
+      std::function<void()> reload_codec_cb = [] {};
     };
 
     uint8_t convert_pixel_format(::AVPixelFormat fmt) {
