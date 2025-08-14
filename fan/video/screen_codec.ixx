@@ -51,6 +51,16 @@ export namespace fan {
         CRF       // Constant rate factor
       };
 
+      enum scaling_quality_e {
+        SCALING_FASTEST = 0,     // SWS_POINT
+        SCALING_FAST,            // SWS_FAST_BILINEAR  
+        SCALING_BALANCED,        // SWS_BILINEAR
+        SCALING_HIGH,            // SWS_BICUBIC
+        SCALING_HIGHEST          // SWS_LANCZOS
+      };
+
+      scaling_quality_e scaling_quality = SCALING_FAST;
+
       codec_type_e codec = H264;
       rate_control_e rate_control = VBR;
       int bitrate = 10000000;  // 10 Mbps default
@@ -67,9 +77,38 @@ export namespace fan {
         codec = 1 << 0,
         rate_control = 1 << 1,
         frame_rate = 1 << 2,
-        force_keyframe = 1 << 3
+        force_keyframe = 1 << 3,
+        scaling_quality = 1 << 4
       };
     };
+
+    int get_sws_flags(codec_config_t::scaling_quality_e quality) {
+      switch (quality) {
+      case codec_config_t::SCALING_FASTEST:
+        return SWS_POINT;
+      case codec_config_t::SCALING_FAST:
+        return SWS_FAST_BILINEAR;
+      case codec_config_t::SCALING_BALANCED:
+        return SWS_BILINEAR | SWS_ACCURATE_RND;
+      case codec_config_t::SCALING_HIGH:
+        return SWS_BICUBIC | SWS_ACCURATE_RND;
+      case codec_config_t::SCALING_HIGHEST:
+        return SWS_LANCZOS | SWS_FULL_CHR_H_INT | SWS_ACCURATE_RND;
+      default:
+        return SWS_FAST_BILINEAR;
+      }
+    }
+
+    const char* get_scaling_quality_name(codec_config_t::scaling_quality_e quality) {
+      switch (quality) {
+      case codec_config_t::SCALING_FASTEST: return "Fastest (Point)";
+      case codec_config_t::SCALING_FAST: return "Fast (Bilinear)";
+      case codec_config_t::SCALING_BALANCED: return "Balanced (Bilinear+)";
+      case codec_config_t::SCALING_HIGH: return "High (Bicubic)";
+      case codec_config_t::SCALING_HIGHEST: return "Highest (Lanczos)";
+      default: return "Unknown";
+      }
+    }
 
     // LibAV wrapper for encoding
     struct libav_encoder_t {
@@ -98,6 +137,36 @@ export namespace fan {
         };
       }
 
+      bool update_scaling_quality(codec_config_t::scaling_quality_e new_quality) {
+        if (sws_ctx_) {
+          sws_freeContext(sws_ctx_);
+          sws_ctx_ = nullptr;
+        }
+
+        int sws_flags = fan::graphics::get_sws_flags(new_quality);
+
+        sws_ctx_ = sws_getContext(
+          screencap_res_.x, screencap_res_.y, AV_PIX_FMT_BGRA,
+          config_.width, config_.height, codec_ctx_->pix_fmt,
+          sws_flags,
+          nullptr, nullptr, nullptr
+        );
+
+        if (!sws_ctx_) {
+          fan::print("Failed to recreate scaling context with quality: " +
+            std::string(fan::graphics::get_scaling_quality_name(new_quality)));
+          return false;
+        }
+
+        config_.scaling_quality = new_quality;
+
+#if ecps_debug_prints >= 1
+        fan::print("Updated scaling quality to: " +
+          std::string(fan::graphics::get_scaling_quality_name(new_quality)));
+#endif
+        return true;
+      }
+
       bool init_hardware_acceleration() {
         if (!config_.use_hardware) return false;
 
@@ -118,6 +187,33 @@ export namespace fan {
         return false;
       }
 
+      AVPixelFormat choose_encoder_pixel_format(const std::string& encoder_name) {
+        if (encoder_name.find("nvenc") != std::string::npos) {
+          return AV_PIX_FMT_NV12;
+        }
+        else if (encoder_name.find("amf") != std::string::npos) {
+          return AV_PIX_FMT_NV12;
+        }
+        else if (encoder_name.find("qsv") != std::string::npos) {
+          return AV_PIX_FMT_NV12;
+        }
+        else if (encoder_name.find("vaapi") != std::string::npos) {
+          return AV_PIX_FMT_NV12;
+        }
+        else if (encoder_name.find("videotoolbox") != std::string::npos) {
+          return AV_PIX_FMT_NV12;
+        }
+        else if (encoder_name == "libx264" || encoder_name == "libx265") {
+          return AV_PIX_FMT_YUV420P;
+        }
+        else if (encoder_name.find("av1") != std::string::npos) {
+          return AV_PIX_FMT_YUV420P;
+        }
+        else {
+          return AV_PIX_FMT_YUV420P;
+        }
+}
+
       bool find_and_init_codec() {
         auto codec_names = get_codec_names();
         auto& names = codec_names[config_.codec];
@@ -136,7 +232,8 @@ export namespace fan {
             codec_ctx_->framerate = { config_.frame_rate, 1 };
             codec_ctx_->gop_size = config_.gop_size;
             codec_ctx_->max_b_frames = 1;
-            codec_ctx_->pix_fmt = AV_PIX_FMT_YUV420P;
+            AVPixelFormat preferred_format = choose_encoder_pixel_format(name);
+            codec_ctx_->pix_fmt = preferred_format;
 
             switch (config_.rate_control) {
             case codec_config_t::CBR:
@@ -237,11 +334,15 @@ export namespace fan {
           return false;
         }
 
+        int sws_flags = fan::graphics::get_sws_flags(config.scaling_quality);
+        
         sws_ctx_ = sws_getContext(
           screencap_res_.x, screencap_res_.y, AV_PIX_FMT_BGRA,
           config_.width, config_.height, codec_ctx_->pix_fmt,
-          SWS_FAST_BILINEAR, nullptr, nullptr, nullptr
+          sws_flags,
+          nullptr, nullptr, nullptr
         );
+
 
         if (!sws_ctx_) {
           close();
@@ -546,13 +647,13 @@ export namespace fan {
           codec_ctx_->opaque = this;
 
           if (decoder_name.find("cuvid") != std::string::npos) {
-            av_opt_set_int(codec_ctx_->priv_data, "surfaces", 2, 0);
-            av_opt_set_int(codec_ctx_->priv_data, "drop_second_field", 0, 0);
+            av_opt_set_int(codec_ctx_->priv_data, "surfaces", 8, 0);
+            av_opt_set_int(codec_ctx_->priv_data, "drop_second_field", 1, 0);
             av_opt_set(codec_ctx_->priv_data, "deint", "weave", 0);
             av_opt_set_int(codec_ctx_->priv_data, "crop", 0, 0);
             av_opt_set_int(codec_ctx_->priv_data, "resize", 0, 0);
             codec_ctx_->has_b_frames = 0;
-            codec_ctx_->delay = 0;
+            codec_ctx_->delay = 1;
           }
           else if (decoder_name.find("qsv") != std::string::npos) {
             av_opt_set_int(codec_ctx_->priv_data, "async_depth", 1, 0);
@@ -850,16 +951,34 @@ export namespace fan {
           result.was_hardware_decoded = using_hardware_;
           result.pts = target_frame->pts;
 
+          uint32_t actual_width = target_frame->width;
+          uint32_t actual_height = target_frame->height;
+
           if (using_hardware_ && target_frame->format == hw_pixel_format_) {
+
+            if (frame_->width != actual_width || frame_->height != actual_height) {
+              av_frame_unref(frame_);
+
+              frame_->width = actual_width;
+              frame_->height = actual_height;
+
+              if (av_frame_get_buffer(frame_, 32) < 0) {
+                continue;
+              }
+            }
+
             ret = av_hwframe_transfer_data(frame_, target_frame, 0);
             if (ret < 0) {
               continue;
             }
+
+            frame_->width = actual_width;
+            frame_->height = actual_height;
+
             target_frame = frame_;
           }
 
-          result.image_size = { static_cast<uint32_t>(target_frame->width),
-                               static_cast<uint32_t>(target_frame->height) };
+          result.image_size = { actual_width, actual_height };
           result.pixel_format = static_cast<AVPixelFormat>(target_frame->format);
 
           int num_planes = av_pix_fmt_count_planes(static_cast<AVPixelFormat>(target_frame->format));
@@ -942,8 +1061,7 @@ export namespace fan {
         return available;
       }
     };
-
-
+    
     struct resolution_system_t {
       struct resolution_t {
         uint32_t width, height;
@@ -1103,6 +1221,17 @@ export namespace fan {
     };
 
     struct screen_encode_t {
+
+      bool update_scaling_quality(codec_config_t::scaling_quality_e new_quality) {
+        config_.scaling_quality = new_quality;
+
+        std::lock_guard<std::mutex> lock(mutex);
+        update_flags |= codec_update_e::scaling_quality;
+
+        return true;
+      }
+
+
       bool open(const codec_config_t& default_config = codec_config_t()) {
         std::memset(&mdscr, 0, sizeof(mdscr));
         if (int ret = MD_SCR_open(&mdscr); ret != 0) {
@@ -1159,7 +1288,6 @@ export namespace fan {
             update_flags &= ~codec_update_e::codec;
           }
 
-          // Reopen encoder with new resolution
           if (!encoder_.open(config_, fan::vec2(mdscr.Geometry.Resolution.x, mdscr.Geometry.Resolution.y))) {
             return false;
           }
@@ -1168,11 +1296,15 @@ export namespace fan {
         if (update_flags != 0) {
           std::lock_guard<std::mutex> lock(mutex);
 
-          if (update_flags & codec_update_e::codec) {
-            config_.codec = static_cast<codec_config_t::codec_type_e>(new_codec);
+          if (update_flags & codec_update_e::scaling_quality) {
+            if (!encoder_.update_scaling_quality(config_.scaling_quality)) {
+              fan::print("Failed to update scaling quality");
+            }
+          }
+          if (update_flags & ~codec_update_e::scaling_quality) {
+            encoder_.update_config(config_, update_flags & ~codec_update_e::scaling_quality);
           }
 
-          encoder_.update_config(config_, update_flags);
           update_flags = 0;
         }
 

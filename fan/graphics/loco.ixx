@@ -1725,7 +1725,7 @@ public:
     static const ImWchar emoji_ranges[] = {
       //0x2600, 0x26FF,    // Miscellaneous Symbols
       //0x2700, 0x27BF,    // Dingbats
-      //0x2B00, 0x2BFF,   // Miscellaneous Symbols and Arrows
+      //0x2B00, 0x2BFF,  
       //0x1F300, 0x1F5FF,  // Miscellaneous Symbols and Pictographs
       //0x1F600, 0x1F64F,  // Emoticons
       //0x1F680, 0x1F6FF,  // Transport and Map Symbols
@@ -1733,6 +1733,7 @@ public:
       //0x1FA70, 0x1FAFF,  // Symbols and Pictographs Extended-A
       //0
       0x2600, 0x26FF,    // Miscellaneous Symbols
+      0x2B00, 0x2BFF, // Miscellaneous Symbols and Arrows
       0x1F600, 0x1F64F,  // Emoticons
       0
     };
@@ -1743,11 +1744,9 @@ public:
     for (std::size_t i = 0; i < std::size(fonts); ++i) {
       f32_t font_size = font_sizes[i] * 2; // load 2x font size and possibly downscale for better quality
 
-      // Load main font first
       ImFontConfig main_cfg;
       fonts[i] = io.Fonts->AddFontFromFileTTF("fonts/Roboto-Regular.ttf", font_size, &main_cfg);
 
-      // Merge emoji font
       ImFontConfig emoji_cfg;
       emoji_cfg.MergeMode = true;
       emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;

@@ -1350,7 +1350,7 @@ export namespace fan {
 
     struct keep_alive_config_t {
       static constexpr size_t timer_step_limit = 7;
-      std::array<int, timer_step_limit> timer_steps{ 30, 1, 2, 2, 4, 4, 4 };
+      std::array<int, timer_step_limit> timer_steps{ 1, 1, 2, 2, 4, 4, 4 };
       size_t current_step = 0;
       bool is_running = false;
     };
@@ -1360,6 +1360,7 @@ export namespace fan {
     public:
       using timeout_callback_t = std::function<void()>;
       using send_keepalive_callback_t = std::function<fan::event::task_t(ConnectionType&)>;
+
     private:
       ConnectionType& connection;
       keep_alive_config_t config;
@@ -1367,17 +1368,10 @@ export namespace fan {
       send_keepalive_callback_t send_callback;
       timeout_callback_t timeout_callback;
       bool should_stop = false;
-      bool should_reset = false;
 
       fan::event::task_t timer_coroutine() {
         while (!should_stop && config.is_running) {
           co_await fan::co_sleep(config.timer_steps[config.current_step] * 1000);
-
-          if (should_reset) {
-            should_reset = false;
-            config.current_step = 0;
-            continue;
-          }
 
           if (send_callback) {
             try {
@@ -1419,7 +1413,6 @@ export namespace fan {
         config.current_step = 0;
         config.is_running = true;
         should_stop = false;
-        should_reset = false;
         timer_task = timer_coroutine();
       }
 
@@ -1430,15 +1423,18 @@ export namespace fan {
 
       void reset() {
         if (config.is_running) {
-          should_reset = true;
+          stop();
+          start();
         }
         else {
           start();
         }
       }
+
       bool is_running() const {
         return config.is_running;
       }
+
       size_t get_current_step() const {
         return config.current_step;
       }
@@ -1512,6 +1508,11 @@ export namespace fan {
       udp_keep_alive_t(udp_t& udp_conn) : udp_connection(udp_conn) {}
 
       void set_server(const socket_address_t& server_addr, auto send_keep_alive_cb) {
+        if (timer) {
+          timer->stop();
+          timer.reset();
+          timer = nullptr;
+        }
         this->server_address = server_addr;
         timer = std::make_unique<keep_alive_timer_t<udp_t>>(
           udp_connection,
@@ -1520,6 +1521,7 @@ export namespace fan {
           },
           [this]() { on_timeout(); }
         );
+        timer->start();
       }
 
       udp_keep_alive_t(udp_t& udp_conn, const socket_address_t& server_addr, auto send_keep_alive_cb)
@@ -1528,13 +1530,28 @@ export namespace fan {
       }
       udp_keep_alive_t(udp_t& udp_conn, const std::string& server_ip, int server_port, auto send_keep_alive_cb)
         : udp_keep_alive_t(udp_conn, socket_address_t(server_ip, server_port), send_keep_alive_cb) {}
+      ~udp_keep_alive_t() {
+        if (timer) {
+          timer->stop();
+          timer.reset();
+        }
+      }
       void start() {
+        if (timer == nullptr) {
+          return;
+        }
         timer->start();
       }
       void stop() {
+        if (timer == nullptr) {
+          return;
+        }
         timer->stop();
       }
       void reset() {
+        if (timer == nullptr) {
+          return;
+        }
         timer->reset();
       }
       bool is_running() const {
