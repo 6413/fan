@@ -325,11 +325,20 @@ void ecps_backend_t::view_t::WriteFramePacket() {
   if (m_Possible == 0) return;
 
   uint32_t FramePacketSize = (uint32_t)(this->m_Possible - 1) * 0x400 + this->m_ModuloSize;
-  if (FramePacketSize == 0 || FramePacketSize > 0x500000 || this->m_data.size() < FramePacketSize) {
+  if (FramePacketSize < 32 || FramePacketSize > 0x500000) {
     this->m_stats.Frame_Drop++;
 #if ecps_debug_prints >= 1
-    fan::print_format("NETWORK: Frame dropped - invalid size: {} (max: 0x500000, buffer: {})", 
-                     FramePacketSize, this->m_data.size());
+    fan::print_throttled_format("NETWORK: Frame dropped - invalid size: {} bytes (valid range: 32 - 5MB)",
+      FramePacketSize);
+#endif
+    return;
+  }
+
+  if (this->m_data.size() < FramePacketSize) {
+    this->m_stats.Frame_Drop++;
+#if ecps_debug_prints >= 1
+    fan::print_throttled_format("NETWORK: Frame dropped - buffer underrun: need {} bytes, have {}",
+      FramePacketSize, this->m_data.size());
 #endif
     return;
   }
@@ -344,10 +353,10 @@ void ecps_backend_t::view_t::WriteFramePacket() {
   bool is_keyframe = false;
   if (FramePacketSize >= 8) {
     for (size_t i = 0; i <= std::min(static_cast<size_t>(FramePacketSize - 4), size_t(64)); ++i) {
-      if (this->m_data[i] == 0x00 && this->m_data[i + 1] == 0x00 && 
-          this->m_data[i + 2] == 0x00 && this->m_data[i + 3] == 0x01) {
+      if (this->m_data[i] == 0x00 && this->m_data[i + 1] == 0x00 &&
+        this->m_data[i + 2] == 0x00 && this->m_data[i + 3] == 0x01) {
         uint8_t nal_type = this->m_data[i + 4] & 0x1F;
-        if (nal_type == 7 || nal_type == 8) { // SPS or PPS
+        if (nal_type == 7 || nal_type == 8) {
           is_keyframe = true;
 #if ecps_debug_prints >= 2
           printf("NETWORK: Keyframe detected (NAL type: %d)\n", nal_type);
@@ -375,7 +384,7 @@ void ecps_backend_t::view_t::WriteFramePacket() {
   }
 
   std::vector<uint8_t> frame_data;
-  
+
   if (FramePacketSize == this->m_data.size()) {
     frame_data.swap(this->m_data);
     this->m_data.clear();
@@ -383,7 +392,8 @@ void ecps_backend_t::view_t::WriteFramePacket() {
 #if ecps_debug_prints >= 3
     printf("NETWORK: Zero-copy swap for frame %llu\n", frame_index);
 #endif
-  } else {
+  }
+  else {
     frame_data.resize(FramePacketSize);
     std::memcpy(frame_data.data(), this->m_data.data(), FramePacketSize);
 #if ecps_debug_prints >= 3
@@ -414,46 +424,58 @@ void ecps_backend_t::view_t::WriteFramePacket() {
         fan::print("weird format");
         has_valid_data = !decode_result.data[0].empty();
       }
-      bool valid_dimensions = decode_result.image_size.x > 0 && 
-                             decode_result.image_size.y > 0 &&
-                             decode_result.image_size.x <= 7680 && 
-                             decode_result.image_size.y <= 4320;
-      bool valid_stride = decode_result.stride[0].x >= decode_result.image_size.x && 
-                         decode_result.stride[0].x > 0;
+      bool valid_dimensions = decode_result.image_size.x > 0 &&
+        decode_result.image_size.y > 0 &&
+        decode_result.image_size.x <= 7680 &&
+        decode_result.image_size.y <= 4320;
+      bool valid_stride = decode_result.stride[0].x >= decode_result.image_size.x &&
+        decode_result.stride[0].x > 0;
 
       if (has_valid_data && valid_dimensions && valid_stride) {
-        std::lock_guard<std::timed_mutex> frame_lock(render_mutex);
-        
-        while (rt->FrameList.Usage() > 0) {
-          auto old = rt->FrameList.GetNodeFirst();
-          rt->FrameList.unlrec(old);
-        }
+        std::unique_lock<std::timed_mutex> frame_lock(render_mutex, std::defer_lock);
 
-        rt->screen_decoder.decoded_size = decode_result.image_size;
+        if (frame_lock.try_lock_for(std::chrono::milliseconds(5))) {
 
-        auto flnr = rt->FrameList.NewNodeLast();
-        auto f = &rt->FrameList[flnr];
-        *f = std::move(decode_result);
+          while (rt->FrameList.Usage() > 0) {
+            auto old = rt->FrameList.GetNodeFirst();
+            rt->FrameList.unlrec(old);
+          }
+
+          rt->screen_decoder.decoded_size = decode_result.image_size;
+
+          auto flnr = rt->FrameList.NewNodeLast();
+          auto f = &rt->FrameList[flnr];
+          *f = std::move(decode_result);
 
 #if ecps_debug_prints >= 2
-        printf("NETWORK: Frame %llu decoded and queued successfully (%ux%u)\n",
-               frame_index, decode_result.image_size.x, decode_result.image_size.y);
+          printf("NETWORK: Frame %llu decoded and queued successfully (%ux%u)\n",
+            frame_index, decode_result.image_size.x, decode_result.image_size.y);
 #endif
-      } else {
+        }
+        else {
+          this->m_stats.Frame_Drop++;
+#if ecps_debug_prints >= 1
+          fan::print_throttled("NETWORK: Frame dropped due to render lock timeout (deadlock prevention)");
+#endif
+        }
+      }
+      else {
 #if ecps_debug_prints >= 1
         fan::print_throttled_format("NETWORK: Decoded frame validation failed - data:{} dims:{}x{} stride:{}",
-                                   has_valid_data, decode_result.image_size.x, 
-                                   decode_result.image_size.y, decode_result.stride[0].x);
+          has_valid_data, decode_result.image_size.x,
+          decode_result.image_size.y, decode_result.stride[0].x);
 #endif
         this->m_stats.Frame_Drop++;
       }
-    } else {
+    }
+    else {
 #if ecps_debug_prints >= 1
       fan::print_throttled_format("NETWORK: Decode failed with type: {}", decode_result.type);
 #endif
       this->m_stats.Frame_Drop++;
     }
-  } catch (const std::exception& e) {
+  }
+  catch (const std::exception& e) {
 #if ecps_debug_prints >= 1
     fan::print_throttled_format("NETWORK: Decode exception: {}", e.what());
 #endif
@@ -524,29 +546,79 @@ int main() {
               ecps_backend.did_just_join = false;
             }
 
-            // Handle different frame types from LibAV decoder
             if (node.type == 0) {
               // Hardware decoded frame (CUDA/NVENC) - if supported
-
             }
             else if (node.type == 1) {
-              // Software decoded frame (YUV data)
-              bool y_valid = !node.data[0].empty();
-              bool u_valid = !node.data[1].empty();
-              bool v_valid = !node.data[2].empty();
+              bool has_valid_data = false;
               bool dims_valid = node.image_size.x > 0 && node.image_size.y > 0 &&
                 node.image_size.x <= 7680 && node.image_size.y <= 4320;
               bool stride_valid = node.stride[0].x >= node.image_size.x && node.stride[0].x > 0;
 
-              if (y_valid && u_valid && v_valid && dims_valid && stride_valid) {
+              if (node.pixel_format == fan::graphics::image_format::yuv420p) {
+                has_valid_data = !node.data[0].empty() && !node.data[1].empty() && !node.data[2].empty();
+
+#if ecps_debug_prints >= 3
+                static uint64_t yuv420_count = 0;
+                if (++yuv420_count % 60 == 1) {
+                  fan::print_throttled_format("RENDER: YUV420P frame - Y:{} U:{} V:{}",
+                    node.data[0].size(), node.data[1].size(), node.data[2].size());
+                }
+#endif
+              }
+              else if (node.pixel_format == fan::graphics::image_format::nv12) {
+                has_valid_data = !node.data[0].empty() && !node.data[1].empty();
+
+#if ecps_debug_prints >= 3
+                static uint64_t nv12_count = 0;
+                if (++nv12_count % 60 == 1) {
+                  fan::print_throttled_format("RENDER: NV12 frame - Y:{} UV:{}",
+                    node.data[0].size(), node.data[1].size());
+                }
+#endif
+              }
+              else {
+                has_valid_data = !node.data[0].empty();
+
+#if ecps_debug_prints >= 1
+                fan::print_throttled_format("RENDER: Unknown pixel format {}, trying Y-plane only",
+                  node.pixel_format);
+#endif
+              }
+
+              if (has_valid_data && dims_valid && stride_valid) {
                 f32_t sx = (f32_t)node.image_size.x / node.stride[0].x;
                 if (sx > 0 && sx <= 1.0f) {
-                  std::array<void*, 4> raw_ptrs;
-                  for (size_t i = 0; i < 4; ++i) {
-                    raw_ptrs[i] = static_cast<void*>(node.data[i].data());
+                  std::array<void*, 4> raw_ptrs = { nullptr, nullptr, nullptr, nullptr };
+
+                  if (node.pixel_format == fan::graphics::image_format::yuv420p) {
+                    raw_ptrs[0] = static_cast<void*>(node.data[0].data());
+                    raw_ptrs[1] = static_cast<void*>(node.data[1].data());
+                    raw_ptrs[2] = static_cast<void*>(node.data[2].data());
+                    raw_ptrs[3] = nullptr;
+                  }
+                  else if (node.pixel_format == fan::graphics::image_format::nv12) {
+                    raw_ptrs[0] = static_cast<void*>(node.data[0].data());
+                    raw_ptrs[1] = static_cast<void*>(node.data[1].data());
+                    raw_ptrs[2] = nullptr;
+                    raw_ptrs[3] = nullptr;
+                  }
+                  else {
+                    raw_ptrs[0] = static_cast<void*>(node.data[0].data());
                   }
 
-                  if (raw_ptrs[0] && raw_ptrs[1] && raw_ptrs[2]) {
+                  bool pointers_valid = false;
+                  if (node.pixel_format == fan::graphics::image_format::yuv420p) {
+                    pointers_valid = (raw_ptrs[0] && raw_ptrs[1] && raw_ptrs[2]);
+                  }
+                  else if (node.pixel_format == fan::graphics::image_format::nv12) {
+                    pointers_valid = (raw_ptrs[0] && raw_ptrs[1]);
+                  }
+                  else {
+                    pointers_valid = (raw_ptrs[0] != nullptr);
+                  }
+
+                  if (pointers_valid) {
                     try {
                       render_thread_instance.network_frame.set_tc_size(fan::vec2(sx, 1));
                       render_thread_instance.network_frame.reload(
@@ -555,19 +627,30 @@ int main() {
                         fan::vec2ui(node.stride[0].x, node.image_size.y)
                       );
                       frame_valid = true;
+
 #if ecps_debug_prints >= 2
-                      static uint64_t yuv_render_count = 0;
-                      if (++yuv_render_count % 30 == 1) {
-                        fan::print_throttled_format("RENDER: LibAV YUV frame processed {}x{}, stride={}, sx={} ({})",
-                          node.image_size.x, node.image_size.y, node.stride[0].x, sx, yuv_render_count);
+                      static uint64_t render_count = 0;
+                      if (++render_count % 30 == 1) {
+                        const char* format_name = (node.pixel_format == fan::graphics::image_format::yuv420p) ? "YUV420P" :
+                          (node.pixel_format == fan::graphics::image_format::nv12) ? "NV12" : "Unknown";
+                        fan::print_throttled_format("RENDER: {} frame processed {}x{}, stride={}, sx={} ({})",
+                          format_name, node.image_size.x, node.image_size.y, node.stride[0].x, sx, render_count);
                       }
 #endif
                     }
                     catch (const std::exception& e) {
 #if ecps_debug_prints >= 1
-                      fan::print_throttled_format("RENDER: YUV reload failed for LibAV frame: {}", e.what());
+                      const char* format_name = (node.pixel_format == fan::graphics::image_format::yuv420p) ? "YUV420P" :
+                        (node.pixel_format == fan::graphics::image_format::nv12) ? "NV12" : "Unknown";
+                      fan::print_throttled_format("RENDER: {} reload failed for LibAV frame: {}", format_name, e.what());
 #endif
                     }
+                  }
+                  else {
+#if ecps_debug_prints >= 1
+                    fan::print_throttled_format("RENDER: Invalid pointers for format {} - Y:{} UV/U:{} V:{}",
+                      node.pixel_format, (void*)raw_ptrs[0], (void*)raw_ptrs[1], (void*)raw_ptrs[2]);
+#endif
                   }
                 }
                 else {
@@ -578,8 +661,10 @@ int main() {
               }
               else {
 #if ecps_debug_prints >= 1
-                fan::print_throttled_format("RENDER: YUV validation failed for LibAV frame: Y={}, U={}, V={}, dims={}x{}, stride={}",
-                  y_valid, u_valid, v_valid, node.image_size.x, node.image_size.y, node.stride[0].x);
+                const char* format_name = (node.pixel_format == fan::graphics::image_format::yuv420p) ? "YUV420P" :
+                  (node.pixel_format == fan::graphics::image_format::nv12) ? "NV12" : "Unknown";
+                fan::print_throttled_format("RENDER: {} validation failed - data:{} dims:{}x{} stride:{}",
+                  format_name, has_valid_data, node.image_size.x, node.image_size.y, node.stride[0].x);
 #endif
               }
             }
@@ -720,7 +805,7 @@ int main() {
           // Force IDR frame periodically (every 2 seconds)
           auto now = std::chrono::steady_clock::now();
           auto time_since_idr = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_idr_time);
-          if (time_since_idr > std::chrono::milliseconds(2000)) {
+          if (time_since_idr > std::chrono::milliseconds(1000)) {
             rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
             last_idr_time = now;
           }
@@ -826,7 +911,7 @@ int main() {
         }
 
         bool should_process_network = !rt->ecps_gui.show_own_stream ||
-          !ecps_backend.is_channel_streaming(rt->ecps_gui.window_handler.selected_channel_id);
+          !ecps_backend.is_channel_streaming(rt->ecps_gui.selected_channel_id);
 
         if (!processed_frame) {
           if (!has_processed_any_frame) {
@@ -1018,16 +1103,27 @@ while (rt && rt->should_stop.load()) {
     }
 
     size_t chunks_to_send = std::min({
-        static_cast<size_t>(Possible - sent_offset),
-        max_chunks,
-        affordable_chunks
+     static_cast<size_t>(Possible - sent_offset),
+     max_chunks,
+     affordable_chunks
       });
 
     if (is_likely_keyframe && chunks_to_send == 0 && sent_offset < Possible) {
-      chunks_to_send = 1;
+      size_t remaining_chunks = static_cast<size_t>(Possible - sent_offset);
+      chunks_to_send = std::min(remaining_chunks, static_cast<size_t>(8)); // Allow up to 8 chunks for keyframes
+
+      if (ecps_backend.share.m_NetworkFlow.Bucket < (0x400 * 8)) {
+        ecps_backend.share.m_NetworkFlow.Bucket += (0x400 * 8 * chunks_to_send); // Emergency keyframe budget
+      }
+    }
+
+    if (is_likely_keyframe && chunks_to_send < 3 && sent_offset < Possible) {
+      size_t remaining_chunks = static_cast<size_t>(Possible - sent_offset);
+      chunks_to_send = std::min(remaining_chunks, static_cast<size_t>(3)); // Minimum 3 chunks for keyframes
     }
 
     size_t chunks_sent = 0;
+    bool transmission_failed = false;
 
     for (; sent_offset < Possible && chunks_sent < chunks_to_send; sent_offset++, chunks_sent++) {
       uintptr_t DataSize = f->vec.size() - sent_offset * 0x400;
@@ -1035,16 +1131,60 @@ while (rt && rt->should_stop.load()) {
         DataSize = 0x400;
       }
 
-      if (!is_likely_keyframe && ecps_backend.share.m_NetworkFlow.Bucket < DataSize * 8) {
-        break;
+      bool can_afford = true;
+      if (!is_likely_keyframe) {
+        can_afford = (ecps_backend.share.m_NetworkFlow.Bucket >= DataSize * 8);
+      }
+      else {
+        int64_t deficit_threshold = static_cast<int64_t>(ecps_backend.share.m_NetworkFlow.BucketSize) * 0.1;
+        can_afford = (static_cast<int64_t>(ecps_backend.share.m_NetworkFlow.Bucket) >=
+          -deficit_threshold);
       }
 
-      bool ret = co_await ecps_backend.write_stream(sent_offset, Possible, Flag, &f->vec[sent_offset * 0x400], DataSize);
+      if (!can_afford) {
+        if (is_likely_keyframe && chunks_sent == 0 && sent_offset == 0) {
+        }
+        else {
+          break;
+        }
+      }
+
+      bool ret = co_await ecps_backend.write_stream(sent_offset, Possible, Flag,
+        &f->vec[sent_offset * 0x400], DataSize);
       if (ret != false) {
+        transmission_failed = true;
         break;
       }
 
-      ecps_backend.share.m_NetworkFlow.Bucket -= DataSize * 8;
+      if (is_likely_keyframe) {
+        ecps_backend.share.m_NetworkFlow.Bucket =
+          static_cast<int64_t>(ecps_backend.share.m_NetworkFlow.Bucket) - static_cast<int64_t>(DataSize * 8);
+      }
+      else {
+        ecps_backend.share.m_NetworkFlow.Bucket -= DataSize * 8;
+      }
+
+      int64_t max_deficit = static_cast<int64_t>(ecps_backend.share.m_NetworkFlow.BucketSize) / -2; // -50% max deficit
+      if (static_cast<int64_t>(ecps_backend.share.m_NetworkFlow.Bucket) < max_deficit) {
+        ecps_backend.share.m_NetworkFlow.Bucket = static_cast<uint64_t>(max_deficit);
+      }
+    }
+
+    if (is_likely_keyframe && !transmission_failed && chunks_sent > 0 && sent_offset < Possible) {
+      size_t keyframe_completion = (chunks_sent * 100) / static_cast<size_t>(Possible);
+      if (keyframe_completion < 30) {
+#if ecps_debug_prints >= 1
+        fan::print_throttled_format("NETWORK: Incomplete keyframe transmission: {}% ({}/{})",
+          keyframe_completion, chunks_sent, Possible);
+#endif
+
+        static uint64_t failed_keyframe_count = 0;
+        if (++failed_keyframe_count % 3 == 0) {
+          ecps_backend.share.m_NetworkFlow.Bucket += static_cast<uint64_t>(
+            static_cast<double>(ecps_backend.share.m_NetworkFlow.BucketSize) * 0.2
+            );
+        }
+      }
     }
 
     f->SentOffset = sent_offset;

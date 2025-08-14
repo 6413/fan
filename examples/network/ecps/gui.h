@@ -1,8 +1,7 @@
 inline static fan::graphics::image_t icon_settings;
+inline static fan::graphics::image_t icon_fullscreen;
 
 inline static fan::vec2 popup_size{ 300, 100 };
-
-inline static std::string directory_path = "./";
 
 struct ecps_gui_t {
 
@@ -11,21 +10,28 @@ struct ecps_gui_t {
   std::vector<std::function<fan::event::task_t()>> task_queue;
 
   //#define render_thread (*OFFSETLESS(This, render_thread_t, ecps_gui))
+
+  std::mutex task_queue_mutex;
   void backend_queue(const std::function<fan::event::task_t()>& func) {
-    render_mutex.lock();
+    std::lock_guard<std::mutex> lock(task_queue_mutex);
     task_queue.emplace_back(func);
-    render_mutex.unlock();
   }
+
   //#undef render_thread
 
   ecps_gui_t() {
 
     engine.clear_color = gui::get_color(gui::col_window_bg);
 
-    icon_settings = engine.image_load(directory_path + "icons/settings.png", {
+    icon_settings = engine.image_load("icons/settings.png", {
      .min_filter = fan::graphics::image_filter::linear,
      .mag_filter = fan::graphics::image_filter::linear,
-      });
+    });
+
+    icon_fullscreen = engine.image_load("icons/fullscreen.png", {
+     .min_filter = fan::graphics::image_filter::nearest,
+     .mag_filter = fan::graphics::image_filter::nearest,
+    });
 
     if (fan::io::file::exists(config_path)) {
       std::string data;
@@ -161,7 +167,6 @@ struct ecps_gui_t {
           }
 
           This->write_to_config("server", server_json);
-          // server creation logic
           gui::close_current_popup();
           toggle_render_server_connect = false;
         }//
@@ -203,7 +208,6 @@ struct ecps_gui_t {
           }
 
           This->write_to_config("server", server_json);
-          // server creation logic
           gui::close_current_popup();
           toggle_render_server_join = false;
         }//
@@ -264,6 +268,7 @@ struct ecps_gui_t {
   }
 
   struct stream_settings_t {
+    int selected_scaling_quality = 1;
     int selected_resolution = 0;
     f32_t framerate = 30;
     f32_t bitrate_mbps = 5;
@@ -312,8 +317,8 @@ struct ecps_gui_t {
           This->backend_queue([=]() -> fan::event::task_t {
             try {
               co_await ecps_backend.request_channel_list();
-              if (selected_channel_id.i != (uint16_t)-1) {
-                co_await ecps_backend.request_channel_session_list(selected_channel_id);
+              if (This->selected_channel_id.i != (uint16_t)-1) {
+                co_await ecps_backend.request_channel_session_list(This->selected_channel_id);
               }
             }
             catch (...) {
@@ -326,10 +331,8 @@ struct ecps_gui_t {
           first_open = true;
         }
 
-        // MAIN TAB BAR
         if (gui::begin_tab_bar("MainTabs")) {
 
-          // CHANNELS TAB
           if (gui::begin_tab_item("Channels", nullptr, main_tab == 0 ? gui::tab_item_flags_set_selected : 0)) {
             if (main_tab == 0) main_tab = -1;
 
@@ -339,7 +342,6 @@ struct ecps_gui_t {
             gui::end_tab_item();
           }
 
-          // STREAM VIEW TAB
           if (gui::begin_tab_item("Stream View", nullptr, main_tab == 1 ? gui::tab_item_flags_set_selected : 0)) {
             if (main_tab == 1) main_tab = -1;
 
@@ -400,16 +402,16 @@ struct ecps_gui_t {
         gui::spacing();
         gui::spacing();
 
-        if (gui::button("Refresh Channel List")) {
-          This->backend_queue([=]() -> fan::event::task_t {
-            try {
-              co_await ecps_backend.request_channel_list();
-            }
-            catch (...) {
-              fan::print("Failed to request channel list");
-            }
-            });
-        }
+        //if (gui::button("Refresh Channel List")) {
+        //  This->backend_queue([=]() -> fan::event::task_t {
+        //    try {
+        //      co_await ecps_backend.request_channel_list();
+        //    }
+        //    catch (...) {
+        //      fan::print("Failed to request channel list");
+        //    }
+        //    });
+        //}
 
         gui::spacing();
         gui::spacing();
@@ -423,8 +425,8 @@ struct ecps_gui_t {
         gui::spacing();
         gui::spacing();
 
-        //if (ecps_backend.available_channels.size() && !ecps_backend.is_channel_available(selected_channel_id)) {
-        //  selected_channel_id.invalidate();
+        //if (ecps_backend.available_channels.size() && !ecps_backend.is_channel_available(This->selected_channel_id)) {
+        //  This->selected_channel_id.invalidate();
         //}
 
         gui::set_next_window_bg_alpha(0.99);
@@ -442,8 +444,24 @@ struct ecps_gui_t {
                 }
               }
 
-              bool is_selected = (selected_channel_id.i == channel.channel_id.i);
+              bool is_selected = (This->selected_channel_id.i == channel.channel_id.i);
+
+              bool is_host_of_channel = false;
+              auto session_it = ecps_backend.channel_sessions.find(channel.channel_id.i);
+              if (session_it != ecps_backend.channel_sessions.end()) {
+                std::string current_username = ecps_backend.get_current_username();
+                for (const auto& session : session_it->second) {
+                  if (session.username == current_username && session.is_host) {
+                    is_host_of_channel = true;
+                    break;
+                  }
+                }
+              }
+
               std::string display_name = " " + channel.name;
+              if (is_host_of_channel) {
+                display_name = "⭐ " + channel.name;
+              }
               if (channel.is_password_protected) {
                 //display_name += "";
               }
@@ -463,7 +481,7 @@ struct ecps_gui_t {
               gui::push_style_color(gui::col_header_active, gui::get_style().Colors[gui::col_header_hovered]);
 
               if (gui::selectable(display_name.c_str(), is_selected, gui::selectable_flags_span_all_columns)) {
-                selected_channel_id = channel.channel_id;
+                This->selected_channel_id = channel.channel_id;
 
                 This->backend_queue([channel_id = channel.channel_id]() -> fan::event::task_t {
                   try {
@@ -494,17 +512,16 @@ struct ecps_gui_t {
 
         gui::spacing();
 
-        // Bottom buttons
-        bool has_selection = (selected_channel_id.i != (uint16_t)-1);
+        bool has_selection = (This->selected_channel_id.i != (uint16_t)-1);
         bool already_in_selected = false;
         bool is_host_of_selected = false;
 
         if (has_selection) {
           for (const auto& joined_channel : ecps_backend.channel_info) {
-            if (joined_channel.channel_id.i == selected_channel_id.i) {
+            if (joined_channel.channel_id.i == This->selected_channel_id.i) {
               already_in_selected = true;
 
-              auto session_it = ecps_backend.channel_sessions.find(selected_channel_id.i);
+              auto session_it = ecps_backend.channel_sessions.find(This->selected_channel_id.i);
               if (session_it != ecps_backend.channel_sessions.end()) {
                 std::string current_username = ecps_backend.get_current_username();
                 for (const auto& session : session_it->second) {
@@ -527,7 +544,7 @@ struct ecps_gui_t {
             f32_t button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
 
             if (gui::button(leave_text.c_str(), fan::vec2(button_width, 0))) {
-              This->backend_queue([channel_id = selected_channel_id]() -> fan::event::task_t {
+              This->backend_queue([channel_id = This->selected_channel_id]() -> fan::event::task_t {
                 try {
                   fan::print("TODO channel_leave");
                   co_return;
@@ -547,7 +564,7 @@ struct ecps_gui_t {
             f32_t button_width = text_size.x + gui::get_style().FramePadding.x * 2 + 20;
 
             if (gui::button(text, fan::vec2(button_width, 0))) {
-              This->backend_queue([channel_id = selected_channel_id]() -> fan::event::task_t {
+              This->backend_queue([channel_id = This->selected_channel_id]() -> fan::event::task_t {
                 try {
                   co_await ecps_backend.channel_join(channel_id);
                   co_await ecps_backend.request_channel_list();
@@ -575,7 +592,7 @@ struct ecps_gui_t {
                 co_await ecps_backend.channel_join(channel_id);
                 co_await ecps_backend.request_channel_list();
                 co_await ecps_backend.request_channel_session_list(channel_id);
-                selected_channel_id = channel_id;
+                This->selected_channel_id = channel_id;
               }
               catch (...) {
                 fan::print("Failed to create channel");
@@ -593,6 +610,7 @@ struct ecps_gui_t {
           }
         }
         gui::pop_style_color();
+
 
         gui::end_child();
 
@@ -645,19 +663,15 @@ struct ecps_gui_t {
         gui::same_line(0, 0);
         gui::begin_group();
 
-        if (selected_channel_id.i != (uint16_t)-1) {
-          std::string channel_name = "Channel " + std::to_string(selected_channel_id.i);
+        if (This->selected_channel_id.i != (uint16_t)-1) {
+          std::string channel_name = "Channel " + std::to_string(This->selected_channel_id.i);
           for (const auto& channel : ecps_backend.available_channels) {
-            if (channel.channel_id.i == selected_channel_id.i) {
+            if (channel.channel_id.i == This->selected_channel_id.i) {
               channel_name = channel.name;
               break;
             }
           }
           gui::text(("Channel: " + channel_name).c_str());
-
-          if (has_selection && is_host_of_selected) {
-            gui::text("You are the host of this channel", fan::color(1.0f, 0.8f, 0.2f, 1.0f));
-          }
 
           gui::separator();
 
@@ -666,21 +680,20 @@ struct ecps_gui_t {
           if (gui::begin_tab_bar("ChannelDetailTabs")) {
             gui::spacing();
             gui::spacing();
-            // USERS TAB
             if (gui::begin_tab_item("Users", nullptr, detail_tab == 0 ? gui::tab_item_flags_set_selected : 0)) {
               if (detail_tab == 0) detail_tab = -1;
 
               gui::spacing();
               gui::spacing();
               if (gui::button("Refresh Users")) {
-                This->backend_queue([channel_id = selected_channel_id]() -> fan::event::task_t {
+                This->backend_queue([channel_id = This->selected_channel_id]() -> fan::event::task_t {
                   try {
                     co_await ecps_backend.request_channel_session_list(channel_id);
                   }
                   catch (...) {
                     fan::print("Failed to refresh session list");
                   }
-                  });
+                });
               }
 
               gui::spacing();
@@ -689,7 +702,7 @@ struct ecps_gui_t {
 
               gui::set_next_window_bg_alpha(0.99);
               if (gui::begin_child("SessionList", fan::vec2(0, -120), true)) {
-                auto it = ecps_backend.channel_sessions.find(selected_channel_id.i);
+                auto it = ecps_backend.channel_sessions.find(This->selected_channel_id.i);
                 if (it != ecps_backend.channel_sessions.end()) {
                   for (const auto& session : it->second) {
                     std::string user_display = session.username;
@@ -713,55 +726,45 @@ struct ecps_gui_t {
 
               gui::spacing();
               {
-                fan::vec2 icon_size = 48.f;
+                fan::vec2 icon_size = gui::get_text_line_height();
                 fan::vec2 button_padding = gui::get_style().FramePadding;
                 fan::vec2 button_size = icon_size + button_padding * 2;
                 f32_t button_width = 200;
 
-                bool is_streaming_current = ecps_backend.is_channel_streaming(selected_channel_id);
+                bool is_streaming_current = ecps_backend.is_channel_streaming(This->selected_channel_id);
 
-                if (is_streaming_current) {
-                  gui::push_style_color(gui::col_button, fan::vec4(0.8f, 0.2f, 0.2f, 1.0f));
-                  if (gui::button("Stop Stream", fan::vec2(button_width, button_size.y))) {
-                    ecps_backend.set_channel_streaming(selected_channel_id, false);
+                if (is_host_of_selected) {
+                  if (is_streaming_current) {
+                    gui::push_style_color(gui::col_button, fan::vec4(0.8f, 0.2f, 0.2f, 1.0f));
+                    if (gui::button("Stop Stream", fan::vec2(button_width, button_size.y))) {
+                      ecps_backend.set_channel_streaming(This->selected_channel_id, false);
+                    }
+                    gui::pop_style_color();
                   }
-                  gui::pop_style_color();
-                }
-                else {
-                  gui::push_style_color(gui::col_button, fan::vec4(0.2f, 0.8f, 0.2f, 1.0f));
-                  if (gui::button("Start Stream", fan::vec2(button_width, button_size.y))) {
-                    ecps_backend.share.m_NetworkFlow.Bucket = 0;
-                    ecps_backend.share.m_NetworkFlow.TimerLastCallAt = fan::event::now();
-                    ecps_backend.share.m_NetworkFlow.TimerCallCount = 0;
-                    ecps_backend.share.CalculateNetworkFlowBucket();
-                    ecps_backend.set_channel_streaming(selected_channel_id, true);
+                  else {
+                    gui::push_style_color(gui::col_button, fan::vec4(0.2f, 0.8f, 0.2f, 1.0f));
+                    if (gui::button("Start Stream", fan::vec2(button_width, button_size.y))) {
+                      ecps_backend.share.m_NetworkFlow.Bucket = 0;
+                      ecps_backend.share.m_NetworkFlow.TimerLastCallAt = fan::event::now();
+                      ecps_backend.share.m_NetworkFlow.TimerCallCount = 0;
+                      ecps_backend.share.CalculateNetworkFlowBucket();
+                      ecps_backend.set_channel_streaming(This->selected_channel_id, true);
+                    }
+                    gui::pop_style_color();
                   }
-                  gui::pop_style_color();
-                }
-
-                gui::same_line();
-                fan::vec2 avail = gui::get_content_region_avail();
-                gui::dummy(fan::vec2(avail.x - button_size.x, 0));
-                gui::same_line();
-
-                if (gui::image_button("#btn_stream_settings", icon_settings, icon_size)) {
-                  detail_tab = 1;
-                }
-
-                gui::same_line();
-                if (gui::button("View Stream")) {
-                  main_tab = 1;
                 }
               }
 
               gui::end_tab_item();
             }
 
-            if (gui::begin_tab_item("Stream Settings", nullptr, detail_tab == 1 ? gui::tab_item_flags_set_selected : 0)) {
-              if (detail_tab == 1) detail_tab = -1;
+            if (is_host_of_selected) {
+              if (gui::begin_tab_item("Stream Settings", nullptr, detail_tab == 1 ? gui::tab_item_flags_set_selected : 0)) {
+                if (detail_tab == 1) detail_tab = -1;
 
-              render_stream_settings_content_compact();
-              gui::end_tab_item();
+                render_stream_settings_content_compact();
+                gui::end_tab_item();
+              }
             }
 
             gui::end_tab_bar();
@@ -787,7 +790,7 @@ struct ecps_gui_t {
 
       gui::spacing();
 
-      if (ecps_backend.is_channel_streaming(This->window_handler.selected_channel_id)) {
+      if (ecps_backend.is_channel_streaming(This->selected_channel_id)) {
         This->resolution_controls.render_resolution_controls();
       }
 
@@ -826,8 +829,9 @@ struct ecps_gui_t {
         }
       } while (0);
       gui::pop_item_width();
-      gui::separator();
+
       if (ecps_backend.is_streaming_to_any_channel()) {
+        gui::separator();
         do {
           static auto encoder_names = [] {
             auto* rt = render_thread_ptr.load(std::memory_order_acquire);
@@ -854,11 +858,33 @@ struct ecps_gui_t {
 
           if (gui::combo("##encoder_compact", &This->stream_settings.selected_encoder,
             encoder_options.data(), encoder_options.size())) {
-            auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-            if (rt) {
-              rt->screen_encoder.new_codec = This->stream_settings.selected_encoder;
-              rt->screen_encoder.update_flags |= codec_update_e::codec;
-              rt->screen_encoder.encode_write_flags |= codec_update_e::force_keyframe;
+            if (gui::combo("##encoder_compact", &This->stream_settings.selected_encoder,
+              encoder_options.data(), encoder_options.size())) {
+              auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+              if (rt) {
+                std::string encoder_name = encoder_names[This->stream_settings.selected_encoder];
+
+                codec_config_t::codec_type_e codec_type;
+
+                if (encoder_name.find("264") != std::string::npos) {
+                  codec_type = codec_config_t::H264;
+                }
+                else if (encoder_name.find("265") != std::string::npos ||
+                  encoder_name.find("hevc") != std::string::npos) {
+                  codec_type = codec_config_t::H265;
+                }
+                else if (encoder_name.find("av1") != std::string::npos) {
+                  codec_type = codec_config_t::AV1;
+                }
+                else {
+                  codec_type = codec_config_t::H264;
+                }
+
+                rt->screen_encoder.config_.codec = codec_type;
+                rt->screen_encoder.new_codec = This->stream_settings.selected_encoder;
+                rt->screen_encoder.update_flags |= codec_update_e::codec;
+                rt->screen_encoder.encode_write_flags |= codec_update_e::force_keyframe;
+              }
             }
           }
           gui::pop_item_width();
@@ -894,30 +920,70 @@ struct ecps_gui_t {
             decoder_options.data(), decoder_options.size())) {
             auto* rt = render_thread_ptr.load(std::memory_order_acquire);
             if (rt) {
-              rt->screen_decoder.new_codec = This->stream_settings.selected_decoder;
-              rt->screen_decoder.update_flags |= fan::graphics::codec_update_e::codec;
+              std::string decoder_name = decoder_names[This->stream_settings.selected_decoder];
+              std::string codec_type;
 
-              This->backend_queue([=]() -> fan::event::task_t {
-                try {
-                  for (const auto& channel : ecps_backend.channel_info) {
-                    if (channel.is_viewing) {
-                      ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare_t rest;
-                      rest.ChannelID = channel.channel_id;
-                      rest.Flag = ecps_backend_t::ProtocolChannel::ScreenShare::ChannelFlag::ResetIDR;
-                      co_await ecps_backend.tcp_write(
-                        ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare,
-                        &rest,
-                        sizeof(rest)
-                      );
-                    }
-                  }
-                }
-                catch (...) {}
-                });
+              if (decoder_name.find("h264") != std::string::npos || decoder_name == "h264") {
+                codec_type = "h264";
+              }
+              else if (decoder_name.find("hevc") != std::string::npos || decoder_name == "hevc") {
+                codec_type = "hevc";
+              }
+              else if (decoder_name.find("av1") != std::string::npos || decoder_name == "av1") {
+                codec_type = "av1";
+              }
+              else if (decoder_name == "auto-detect") {
+                codec_type = "h264";
+              }
+              else {
+                codec_type = "h264";
+              }
+
+              rt->screen_decoder.new_codec = This->stream_settings.selected_decoder;
+              rt->screen_decoder.update_flags |= codec_update_e::codec;
+
+              rt->screen_decoder.name = codec_type;
+
+              This->request_idr_reset();
             }
           }
           gui::pop_item_width();
         } while (0);
+      }
+
+
+      {
+        auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+        if (rt && ecps_backend.is_streaming_to_any_channel()) {
+          gui::separator();
+
+          gui::text("Scaling Quality");
+
+          static auto quality_options = []() {
+            std::vector<const char*> options;
+            for (int i = 0; i < 5; ++i) {
+              auto quality = static_cast<codec_config_t::scaling_quality_e>(i);
+              options.push_back(fan::graphics::get_scaling_quality_name(quality));
+            }
+            return options;
+            }();
+
+          gui::push_item_width(-1);
+          if (gui::combo("##scaling_quality", &This->stream_settings.selected_scaling_quality,
+            quality_options.data(), quality_options.size())) {
+
+            auto new_quality = static_cast<codec_config_t::scaling_quality_e>(
+              This->stream_settings.selected_scaling_quality);
+
+            rt->screen_encoder.update_scaling_quality(new_quality);
+
+#if ecps_debug_prints >= 1
+            fan::print("GUI: Changed scaling quality to: " +
+              std::string(fan::graphics::get_scaling_quality_name(new_quality)));
+#endif
+          }
+          gui::pop_item_width();
+        }
       }
 
       gui::separator();
@@ -943,16 +1009,225 @@ struct ecps_gui_t {
       gui::pop_style_var();
     }
 
+    void process_stream_settings() {
+
+      fan::vec2 avail_size = gui::get_content_region_avail();
+      f32_t button_height = gui::get_frame_height() + gui::get_style().ItemSpacing.y;
+      f32_t content_height = avail_size.y - button_height - gui::get_style().ItemSpacing.y;
+      f32_t left_window_padding = 8.0f;
+      f32_t right_window_padding = 12.0f;
+      f32_t splitter_spacing = 12.0f;
+      f32_t splitter_width = 2.0f;
+
+      f32_t min_settings_width = 250.0f;
+      f32_t max_settings_width = avail_size.x * 0.6f;
+
+      static f32_t unclamped_settings_width = This->stream_settings.settings_panel_width;
+
+      This->stream_settings.settings_panel_width = std::clamp(
+        unclamped_settings_width,
+        min_settings_width,
+        max_settings_width
+      );
+
+      f32_t total_spacing = left_window_padding + splitter_spacing + splitter_width + splitter_spacing + right_window_padding;
+      f32_t stream_width = avail_size.x - This->stream_settings.settings_panel_width - total_spacing;
+
+      gui::dummy(fan::vec2(left_window_padding, 0));
+      gui::same_line(0, 0);
+
+      gui::set_next_window_bg_alpha(0);
+      gui::begin_child("##stream_display_split", fan::vec2(stream_width, content_height), false);
+
+      gui::set_viewport(engine.orthographic_render_view);
+
+      if (auto rt = get_render_thread(); rt) {
+        fan::vec2 stream_area = gui::get_content_region_avail();
+        fan::vec2 center = stream_area / 2;
+        rt->network_frame.set_position(center);
+
+        f32_t frame_aspect = 16.0f / 9.0f;
+
+        if (rt->screen_decoder.decoded_size.x > 0 && rt->screen_decoder.decoded_size.y > 0) {
+          frame_aspect = static_cast<f32_t>(rt->screen_decoder.decoded_size.x) /
+            static_cast<f32_t>(rt->screen_decoder.decoded_size.y);
+        }
+
+        fan::vec2 full_size;
+        if (stream_area.x / stream_area.y > frame_aspect) {
+          full_size = fan::vec2(stream_area.y * frame_aspect, stream_area.y);
+        }
+        else {
+          full_size = fan::vec2(stream_area.x, stream_area.x / frame_aspect);
+        }
+
+        full_size /= 2;
+
+        if (rt->network_frame.get_image() != engine.default_texture) {
+          rt->network_frame.set_size(full_size);
+        }
+        else {
+          rt->network_frame.set_size(fan::vec2(0, 0));
+        }
+
+        rt->network_frame.set_position(center);
+
+#if ecps_debug_prints >= 3
+        static int debug_counter = 0;
+        if (++debug_counter % 300 == 1) {
+          fan::print_format("VIEWER: stream_area={}x{}, decoded={}x{}, aspect={:.3f}, display_size={}x{}",
+            stream_area.x, stream_area.y,
+            rt->screen_decoder.decoded_size.x, rt->screen_decoder.decoded_size.y,
+            frame_aspect, full_size.x * 2, full_size.y * 2);
+        }
+#endif
+      }
+
+      gui::end_child();
+
+      gui::same_line(0, splitter_spacing);
+
+      gui::push_style_color(gui::col_button, fan::vec4(0.5f, 0.5f, 0.5f, 0.3f));
+      gui::push_style_color(gui::col_button_hovered, fan::vec4(0.7f, 0.7f, 0.7f, 0.5f));
+      gui::push_style_color(gui::col_button_active, fan::vec4(0.8f, 0.8f, 0.8f, 0.7f));
+
+      f32_t hitbox_width = 8.0f;
+      f32_t visual_offset = (hitbox_width - splitter_width) * 0.5f;
+
+      if (gui::invisible_button("##stream_splitter_hitbox", fan::vec2(hitbox_width, content_height))) {
+
+      }
+
+      if (gui::is_item_active() && gui::is_mouse_dragging(0)) {
+        fan::vec2 mouse_delta = gui::get_io().MouseDelta;
+        unclamped_settings_width -= mouse_delta.x;
+        This->stream_settings.settings_panel_width = std::clamp(unclamped_settings_width, min_settings_width, max_settings_width);
+        This->stream_settings.is_resizing = true;
+        gui::set_mouse_cursor(gui::mouse_cursor_resize_ew);
+      }
+      else if (This->stream_settings.is_resizing && !gui::is_mouse_dragging(0)) {
+        This->stream_settings.is_resizing = false;
+      }
+
+      if (gui::is_item_hovered()) {
+        gui::set_mouse_cursor(gui::mouse_cursor_resize_ew);
+      }
+
+      fan::vec2 splitter_pos = gui::get_item_rect_min();
+      splitter_pos.x += visual_offset;
+      fan::vec2 splitter_max = fan::vec2(splitter_pos.x + splitter_width, splitter_pos.y + content_height);
+
+      gui::get_window_draw_list()->AddRectFilled(
+        splitter_pos,
+        splitter_max,
+        gui::is_item_hovered() ? gui::get_color_u32(gui::col_button_hovered) : gui::get_color_u32(gui::col_button)
+      );
+
+      gui::pop_style_color(3);
+
+      gui::same_line(0, splitter_spacing);
+
+      gui::begin_child("##stream_settings_panel", fan::vec2(This->stream_settings.settings_panel_width, content_height), true);
+
+      gui::dummy(fan::vec2(12, 0));
+      gui::same_line(0, 0);
+      gui::begin_group();
+
+      render_stream_settings_content_compact();
+
+      gui::end_group();
+      gui::end_child();
+    }
+
+    void process_no_stream_settings() {
+      fan::vec2 avail_size = gui::get_content_region_avail();
+      f32_t button_height = gui::get_frame_height() + gui::get_style().ItemSpacing.y;
+      f32_t content_height = avail_size.y - button_height - gui::get_style().ItemSpacing.y;
+      f32_t side_padding = 12.0f;
+
+      gui::dummy(fan::vec2(side_padding, 0));
+      gui::same_line(0, 0);
+
+      gui::set_next_window_bg_alpha(0);
+      gui::begin_child("##stream_display", fan::vec2(avail_size.x - (side_padding * 2), content_height), false);
+
+      gui::set_viewport(engine.orthographic_render_view);
+
+      if (ecps_backend.channel_info.empty()) {
+        if (auto rt = get_render_thread(); rt) {
+          rt->network_frame.set_image(engine.default_texture);
+        }
+      }
+
+      if (auto rt = get_render_thread(); rt) {
+        fan::vec2 stream_area = gui::get_content_region_avail();
+        fan::vec2 center = stream_area / 2;
+        rt->network_frame.set_position(center);
+
+        f32_t frame_aspect = 16.0f / 9.0f;
+
+        if (rt->screen_decoder.decoded_size.x > 0 && rt->screen_decoder.decoded_size.y > 0) {
+          frame_aspect = static_cast<f32_t>(rt->screen_decoder.decoded_size.x) /
+            rt->screen_decoder.decoded_size.y;
+        }
+
+        fan::vec2 full_size = (stream_area.x / stream_area.y > frame_aspect)
+          ? fan::vec2(stream_area.y * frame_aspect, stream_area.y)
+          : fan::vec2(stream_area.x, stream_area.x / frame_aspect);
+
+        full_size /= 2;
+
+        if (rt->network_frame.get_image() != engine.default_texture) {
+          rt->network_frame.set_size(full_size);
+        }
+
+        if (rt->network_frame.get_image() == engine.default_texture) {
+          gui::set_cursor_pos(center - fan::vec2(100, 20));
+        }
+      }
+
+      gui::end_child();
+    }
+
     void render_stream_view_content() {
       gui::spacing();
       gui::spacing();
 
-      bool is_streaming_current = ecps_backend.is_channel_streaming(selected_channel_id);
+      fan::vec2 avail_size = gui::get_content_region_avail();
+
+      f32_t button_height = gui::get_frame_height() + gui::get_style().ItemSpacing.y;
+      f32_t content_height = avail_size.y - button_height - gui::get_style().ItemSpacing.y;
+
+      if (avail_size.x > 0 && content_height > 0) {
+        if (This->stream_settings.show_in_stream_view) {
+          process_stream_settings();
+        }
+        else {
+          process_no_stream_settings();
+        }
+      }
+
+      gui::spacing();
+
+      bool is_streaming_current = ecps_backend.is_channel_streaming(This->selected_channel_id);
+
+      f32_t main_content_width = This->stream_settings.show_in_stream_view ?
+        (avail_size.x - This->stream_settings.settings_panel_width - 40.0f) :
+        avail_size.x;
+
+      const char* button_text = is_streaming_current ? "Stop Stream" : "Start Stream";
+      f32_t icon_size = gui::get_text_line_height();
+      fan::vec2 button_padding = gui::get_style().FramePadding;
+      fan::vec2 button_size = button_padding * 2 + icon_size;
+      f32_t button_width = 200;
+      f32_t center_pos = (main_content_width - button_width) / 2;
+
+      gui::set_cursor_pos_x(center_pos);
 
       if (is_streaming_current) {
         gui::push_style_color(gui::col_button, fan::vec4(0.8f, 0.2f, 0.2f, 1.0f));
         if (gui::button("Stop Stream")) {
-          ecps_backend.set_channel_streaming(selected_channel_id, false);
+          ecps_backend.set_channel_streaming(This->selected_channel_id, false);
         }
         gui::pop_style_color();
       }
@@ -963,192 +1238,53 @@ struct ecps_gui_t {
           ecps_backend.share.m_NetworkFlow.TimerLastCallAt = fan::event::now();
           ecps_backend.share.m_NetworkFlow.TimerCallCount = 0;
           ecps_backend.share.CalculateNetworkFlowBucket();
-          ecps_backend.set_channel_streaming(selected_channel_id, true);
+          ecps_backend.set_channel_streaming(This->selected_channel_id, true);
         }
         gui::pop_style_color();
       }
 
-      gui::same_line(0, 20);
-      gui::checkbox("Show Own Stream", &This->show_own_stream);
+      gui::same_line();
+      if (is_streaming_current) {
+        f32_t checkbox_width = gui::calc_text_size("Show Own Stream").x + gui::get_style().FramePadding.x * 2 + 20;
+        gui::set_cursor_pos_x(center_pos + button_width + 20);
+        gui::checkbox("Show Own Stream", &This->show_own_stream);
+      }
 
-      gui::same_line(0, 20);
-      gui::push_style_color(gui::col_button,
-        This->stream_settings.show_in_stream_view ?
-        fan::vec4(0.8f, 0.6f, 0.2f, 1.0f) : fan::vec4(0.2f, 0.6f, 0.8f, 1.0f));
+      f32_t frame_height = gui::get_frame_height();
 
-      if (gui::button(This->stream_settings.show_in_stream_view ? "Hide Settings" : "Show Settings")) {
+      gui::set_cursor_pos_x(main_content_width - (frame_height * 2) - 10);
+
+      gui::push_style_color(gui::col_button, fan::vec4(0.3f, 0.3f, 0.3f, 0.0f));
+      gui::push_style_color(gui::col_button_hovered, fan::vec4(0.5f, 0.5f, 0.5f, 0.9f));
+      gui::push_style_color(gui::col_button_active, fan::vec4(0.6f, 0.6f, 0.6f, 1.0f));
+
+      f32_t settings_icon_size = gui::get_text_line_height();
+      f32_t settings_equal_padding = gui::get_style().FramePadding.y;
+      gui::push_style_var(gui::style_var_frame_padding, fan::vec2(settings_equal_padding, settings_equal_padding));
+
+      if (gui::image_button("#btn_settings", icon_settings, fan::vec2(settings_icon_size, settings_icon_size))) {
         This->stream_settings.show_in_stream_view = !This->stream_settings.show_in_stream_view;
       }
-      gui::pop_style_color();
 
-      gui::same_line(0, 20);
-      gui::push_style_color(gui::col_button, fan::vec4(0.2f, 0.6f, 0.8f, 1.0f));
-      if (gui::button("Fullscreen")) {
+      gui::pop_style_var(1);
+      gui::pop_style_color(3);
+
+      gui::same_line(main_content_width - frame_height);
+
+      gui::push_style_color(gui::col_button, fan::vec4(0.3f, 0.3f, 0.3f, 0.0f));
+      gui::push_style_color(gui::col_button_hovered, fan::vec4(0.5f, 0.5f, 0.5f, 0.9f));
+      gui::push_style_color(gui::col_button_active, fan::vec4(0.6f, 0.6f, 0.6f, 1.0f));
+
+      f32_t equal_padding = gui::get_style().FramePadding.y;
+      gui::push_style_var(gui::style_var_frame_padding, fan::vec2(equal_padding, equal_padding));
+
+      if (gui::image_button("#btn_fullscreen", icon_fullscreen, fan::vec2(icon_size, icon_size))) {
         This->is_fullscreen_stream = true;
+        engine.window.set_borderless();
       }
-      gui::pop_style_color();
 
-      gui::spacing();
-      gui::spacing();
-
-
-      fan::vec2 avail_size = gui::get_content_region_avail();
-      if (avail_size.x > 0 && avail_size.y > 0) {
-
-        if (This->stream_settings.show_in_stream_view) {
-
-          f32_t left_window_padding = 8.0f;
-          f32_t right_window_padding = 12.0f;
-          f32_t splitter_spacing = 12.0f;
-          f32_t splitter_width = 2.0f;
-
-          f32_t min_settings_width = 250.0f;
-          f32_t max_settings_width = avail_size.x * 0.6f;
-
-          static f32_t unclamped_settings_width = This->stream_settings.settings_panel_width;
-
-          This->stream_settings.settings_panel_width = std::clamp(
-            unclamped_settings_width,
-            min_settings_width,
-            max_settings_width
-          );
-
-          f32_t total_spacing = left_window_padding + splitter_spacing + splitter_width + splitter_spacing + right_window_padding;
-          f32_t stream_width = avail_size.x - This->stream_settings.settings_panel_width - total_spacing;
-
-          gui::dummy(fan::vec2(left_window_padding, 0));
-          gui::same_line(0, 0);
-
-          gui::set_next_window_bg_alpha(0);
-          gui::begin_child("##stream_display_split", fan::vec2(stream_width, avail_size.y), false);
-
-          gui::set_viewport(engine.orthographic_render_view);
-
-          if (auto rt = get_render_thread(); rt) {
-            fan::vec2 stream_area = gui::get_content_region_avail();
-            fan::vec2 center = stream_area / 2;
-            rt->network_frame.set_position(center);
-            f32_t frame_aspect = 16.0f / 9.0f;
-
-            if (rt->screen_decoder.decoded_size.x > 0 && rt->screen_decoder.decoded_size.y > 0) {
-              frame_aspect = static_cast<f32_t>(rt->screen_decoder.decoded_size.x) /
-                rt->screen_decoder.decoded_size.y;
-            }
-
-            fan::vec2 full_size = (stream_area.x / stream_area.y > frame_aspect)
-              ? fan::vec2(stream_area.y * frame_aspect, stream_area.y)
-              : fan::vec2(stream_area.x, stream_area.x / frame_aspect);
-
-            full_size /= 2;
-
-            if (rt->network_frame.get_image() != engine.default_texture) {
-              rt->network_frame.set_size(full_size);
-            }
-          }
-
-          gui::end_child();
-
-          gui::same_line(0, splitter_spacing);
-
-          gui::push_style_color(gui::col_button, fan::vec4(0.5f, 0.5f, 0.5f, 0.3f));
-          gui::push_style_color(gui::col_button_hovered, fan::vec4(0.7f, 0.7f, 0.7f, 0.5f));
-          gui::push_style_color(gui::col_button_active, fan::vec4(0.8f, 0.8f, 0.8f, 0.7f));
-
-          f32_t hitbox_width = 8.0f;
-          f32_t visual_offset = (hitbox_width - splitter_width) * 0.5f;
-
-          if (gui::invisible_button("##stream_splitter_hitbox", fan::vec2(hitbox_width, avail_size.y))) {
-
-          }
-
-          if (gui::is_item_active() && gui::is_mouse_dragging(0)) {
-            fan::vec2 mouse_delta = gui::get_io().MouseDelta;
-            unclamped_settings_width -= mouse_delta.x;
-            This->stream_settings.settings_panel_width = std::clamp(unclamped_settings_width, min_settings_width, max_settings_width);
-            This->stream_settings.is_resizing = true;
-            gui::set_mouse_cursor(gui::mouse_cursor_resize_ew);
-          }
-          else if (This->stream_settings.is_resizing && !gui::is_mouse_dragging(0)) {
-            This->stream_settings.is_resizing = false;
-          }
-
-          if (gui::is_item_hovered()) {
-            gui::set_mouse_cursor(gui::mouse_cursor_resize_ew);
-          }
-
-          fan::vec2 splitter_pos = gui::get_item_rect_min();
-          splitter_pos.x += visual_offset;
-          fan::vec2 splitter_max = fan::vec2(splitter_pos.x + splitter_width, splitter_pos.y + avail_size.y);
-
-          gui::get_window_draw_list()->AddRectFilled(
-            splitter_pos,
-            splitter_max,
-            gui::is_item_hovered() ? gui::get_color_u32(gui::col_button_hovered) : gui::get_color_u32(gui::col_button)
-          );
-
-          gui::pop_style_color(3);
-
-          gui::same_line(0, splitter_spacing);
-
-          gui::begin_child("##stream_settings_panel", fan::vec2(This->stream_settings.settings_panel_width, avail_size.y), true);
-
-          gui::dummy(fan::vec2(12, 0));
-          gui::same_line(0, 0);
-          gui::begin_group();
-
-          render_stream_settings_content_compact();
-
-          gui::end_group();
-          gui::end_child();
-
-        }
-        else {
-          f32_t side_padding = 12.0f;
-
-          gui::dummy(fan::vec2(side_padding, 0));
-          gui::same_line(0, 0);
-
-          gui::set_next_window_bg_alpha(0);
-          gui::begin_child("##stream_display", fan::vec2(avail_size.x - (side_padding * 2), avail_size.y), false);
-
-          gui::set_viewport(engine.orthographic_render_view);
-
-          if (ecps_backend.channel_info.empty()) {
-            if (auto rt = get_render_thread(); rt) {
-              rt->network_frame.set_image(engine.default_texture);
-            }
-          }
-
-          if (auto rt = get_render_thread(); rt) {
-            fan::vec2 stream_area = gui::get_content_region_avail();
-            fan::vec2 center = stream_area / 2;
-            rt->network_frame.set_position(center);
-
-            f32_t frame_aspect = 16.0f / 9.0f;
-
-            if (rt->screen_decoder.decoded_size.x > 0 && rt->screen_decoder.decoded_size.y > 0) {
-              frame_aspect = static_cast<f32_t>(rt->screen_decoder.decoded_size.x) /
-                rt->screen_decoder.decoded_size.y;
-            }
-
-            fan::vec2 full_size = (stream_area.x / stream_area.y > frame_aspect)
-              ? fan::vec2(stream_area.y * frame_aspect, stream_area.y)
-              : fan::vec2(stream_area.x, stream_area.x / frame_aspect);
-
-            full_size /= 2;
-
-            if (rt->network_frame.get_image() != engine.default_texture) {
-              rt->network_frame.set_size(full_size);
-            }
-
-            if (rt->network_frame.get_image() == engine.default_texture) {
-              gui::set_cursor_pos(center - fan::vec2(100, 20));
-            }
-          }
-
-          gui::end_child();
-        }
-      }
+      gui::pop_style_var(1);
+      gui::pop_style_color(3);
     }
 
     int main_tab = 0;
@@ -1156,9 +1292,8 @@ struct ecps_gui_t {
     int current_tab = 0;
     bool p_open = true;
     bool auto_refresh = true;
-    int refresh_interval = 2; // seconds
+    int refresh_interval = 1; // seconds
     std::string search_filter;
-    ecps_backend_t::Protocol_ChannelID_t selected_channel_id{ (uint16_t)-1 };
 
   }window_handler;
 
@@ -1234,7 +1369,7 @@ struct ecps_gui_t {
 
         available_resolutions.insert(available_resolutions.begin(), current_res);
         res_strings.insert(res_strings.begin(), current_res.name + " (" + current_res.category + ")");
-        selected_resolution = 0; // Select the current one
+        selected_resolution = 0;
       }
 
       for (const auto& str : res_strings) {
@@ -1343,11 +1478,16 @@ struct ecps_gui_t {
 #undef This
 #define This this
 
+  void request_idr_reset() {
+    backend_queue([]() -> fan::event::task_t {
+      co_await ecps_backend.request_idr_reset();
+      });
+  }
+
   void render_fullscreen_stream() {
     auto* viewport = gui::get_main_viewport();
     fan::vec2 window_pos = fan::vec2(viewport->WorkPos.x, viewport->WorkPos.y);
     fan::vec2 window_size = fan::vec2(viewport->WorkSize.x, viewport->WorkSize.y);
-
     gui::set_next_window_pos(window_pos);
     gui::set_next_window_size(window_size);
     gui::set_next_window_bg_alpha(1.0f);
@@ -1373,59 +1513,141 @@ struct ecps_gui_t {
 
       gui::set_viewport(engine.orthographic_render_view);
 
-      fan::vec2 center = window_content_size / 2;
+      fan::vec2 stream_area = window_content_size;
+      if (This->stream_settings.show_in_stream_view) {
+        stream_area.x -= This->stream_settings.settings_panel_width;
+      }
 
+      fan::vec2 center = stream_area / 2;
       auto rt = get_render_thread();
       if (!rt) {
+        gui::pop_style_var(5);
+        gui::end();
         return;
       }
+
       rt->network_frame.set_position(center);
-
       f32_t aspect = 16.0f / 9.0f;
-
       if (rt->screen_decoder.decoded_size.x > 0 && rt->screen_decoder.decoded_size.y > 0) {
         aspect = static_cast<f32_t>(rt->screen_decoder.decoded_size.x) /
           rt->screen_decoder.decoded_size.y;
       }
 
       fan::vec2 full_size;
-
-      if (window_content_size.x / window_content_size.y > aspect) {
-        full_size = fan::vec2(window_content_size.y * aspect, window_content_size.y);
+      if (stream_area.x / stream_area.y > aspect) {
+        full_size = fan::vec2(stream_area.y * aspect, stream_area.y);
       }
       else {
-        full_size = fan::vec2(window_content_size.x, window_content_size.x / aspect);
+        full_size = fan::vec2(stream_area.x, stream_area.x / aspect);
       }
-
       full_size /= 2;
 
-      if (auto rt = get_render_thread(); rt) {
-        if (rt->network_frame.get_image() != engine.default_texture) {
-          rt->network_frame.set_size(full_size);
-        }
+      if (rt->network_frame.get_image() != engine.default_texture) {
+        rt->network_frame.set_size(full_size);
       }
 
       gui::pop_style_var(5);
 
-      gui::push_style_var(gui::style_var_frame_padding, fan::vec2(8, 4));
+      if (This->stream_settings.show_in_stream_view) {
+        gui::set_cursor_pos(fan::vec2(stream_area.x, 0));
+        gui::begin_child("##fullscreen_settings_panel",
+          fan::vec2(This->stream_settings.settings_panel_width, window_content_size.y),
+          true);
 
-      std::string button_text = "e";
-      fan::vec2 text_size = gui::calc_text_size(button_text.c_str());
-      fan::vec2 button_size = fan::vec2(text_size.x + 16, 30);
+        gui::dummy(fan::vec2(12, 0));
+        gui::same_line(0, 0);
+        gui::begin_group();
 
-      gui::set_cursor_pos(fan::vec2(window_content_size.x - button_size.x - 10, 10));
+        window_handler.render_stream_settings_content_compact();
 
-      gui::push_style_color(gui::col_button, fan::vec4(0.3f, 0.3f, 0.3f, 0.8f));
+        gui::end_group();
+        gui::end_child();
+      }
+
+      gui::push_style_var(gui::style_var_frame_padding, fan::vec2(12, 8));
+
+      bool is_streaming_current = ecps_backend.is_channel_streaming(selected_channel_id);
+
+      const char* button_text = is_streaming_current ? "Stop Stream" : "Start Stream";
+      fan::vec2 text_size = gui::calc_text_size(button_text);
+      f32_t button_width = text_size.x + gui::get_style().FramePadding.x * 2;
+      f32_t button_height = text_size.y + gui::get_style().FramePadding.y * 2;
+
+      f32_t center_x = (stream_area.x - button_width) / 2;
+      f32_t button_y = window_content_size.y - button_height - 50;
+
+      gui::set_cursor_pos(fan::vec2(center_x, button_y));
+
+      if (is_streaming_current) {
+        gui::push_style_color(gui::col_button, fan::vec4(0.8f, 0.2f, 0.2f, 0.9f));
+        if (gui::button("Stop Stream", fan::vec2(button_width, button_height))) {
+          ecps_backend.set_channel_streaming(selected_channel_id, false);
+        }
+        gui::pop_style_color();
+      }
+      else {
+        gui::push_style_color(gui::col_button, fan::vec4(0.2f, 0.8f, 0.2f, 0.9f));
+        if (gui::button("Start Stream", fan::vec2(button_width, button_height))) {
+          ecps_backend.share.m_NetworkFlow.Bucket = 0;
+          ecps_backend.share.m_NetworkFlow.TimerLastCallAt = fan::event::now();
+          ecps_backend.share.m_NetworkFlow.TimerCallCount = 0;
+          ecps_backend.share.CalculateNetworkFlowBucket();
+          ecps_backend.set_channel_streaming(selected_channel_id, true);
+        }
+        gui::pop_style_color();
+      }
+
+      if (is_streaming_current) {
+        f32_t checkbox_x = center_x + button_width + 20;
+        f32_t checkbox_y = button_y + (button_height - gui::get_text_line_height()) / 2;
+        gui::set_cursor_pos(fan::vec2(checkbox_x, checkbox_y));
+        gui::checkbox("Show Own Stream", &This->show_own_stream);
+      }
+
+      gui::pop_style_var(1);
+
+      f32_t icon_size = 24.0f;
+      f32_t icon_padding = 8.0f;
+      f32_t icon_button_size = icon_size + icon_padding * 2;
+      f32_t button_spacing = 10.0f;
+      f32_t margin = 20.0f;
+
+      gui::push_style_var(gui::style_var_frame_padding, fan::vec2(icon_padding, icon_padding));
+
+      f32_t settings_x = stream_area.x - (icon_button_size * 2) - button_spacing - margin;
+      f32_t settings_y = window_content_size.y - icon_button_size - margin;
+      gui::set_cursor_pos(fan::vec2(settings_x, settings_y));
+
+      gui::push_style_color(gui::col_button, fan::vec4(0.3f, 0.3f, 0.3f, 0.0f));
       gui::push_style_color(gui::col_button_hovered, fan::vec4(0.5f, 0.5f, 0.5f, 0.9f));
       gui::push_style_color(gui::col_button_active, fan::vec4(0.6f, 0.6f, 0.6f, 1.0f));
 
-      if (gui::button(button_text.c_str(), button_size)) {
+      if (gui::image_button("#btn_fullscreen_settings", icon_settings, fan::vec2(icon_size, icon_size))) {
+        This->stream_settings.show_in_stream_view = !This->stream_settings.show_in_stream_view;
+      }
+
+      gui::pop_style_color(3);
+
+      f32_t exit_x = stream_area.x - icon_button_size - margin;
+      f32_t exit_y = window_content_size.y - icon_button_size - margin;
+      gui::set_cursor_pos(fan::vec2(exit_x, exit_y));
+
+      gui::push_style_color(gui::col_button, fan::vec4(0.3f, 0.3f, 0.3f, 0.0f));
+      gui::push_style_color(gui::col_button_hovered, fan::vec4(0.5f, 0.5f, 0.5f, 0.9f));
+      gui::push_style_color(gui::col_button_active, fan::vec4(0.6f, 0.6f, 0.6f, 1.0f));
+
+      if (gui::image_button("#btn_exit_fullscreen", icon_fullscreen, fan::vec2(icon_size, icon_size))) {
         is_fullscreen_stream = false;
+        engine.window.set_windowed();
       }
 
       gui::pop_style_color(3);
       gui::pop_style_var(1);
     }
+    else {
+      gui::pop_style_var(5);
+    }
+
     gui::end();
   }
 
@@ -1470,6 +1692,7 @@ struct ecps_gui_t {
   fan::json config;
 
   bool show_own_stream = false;
+  ecps_backend_t::Protocol_ChannelID_t selected_channel_id{ (uint16_t)-1 };
 
 #undef This
 #undef engine

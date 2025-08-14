@@ -1,7 +1,7 @@
 struct ecps_backend_t {
 
-  #define __ecps_client
-  #include "prot.h"
+#define __ecps_client
+#include "prot.h"
 
   ecps_backend_t();
 
@@ -34,10 +34,10 @@ struct ecps_backend_t {
   fan::event::task_t tcp_read() {
     while (1) {
       auto msg = co_await tcp_client.read<tcp::ProtocolBasePacket_t>();
-    /*  fan::print_format(R"({{
-  ID: {}
-  Command: {}
-}})", msg->ID, msg->Command));*/
+      /*  fan::print_format(R"({{
+    ID: {}
+    Command: {}
+  }})", msg->ID, msg->Command));*/
       if (msg->Command >= Protocol_S2C.size()) {
         fan::print("invalid command, ignoring...");
       }
@@ -146,48 +146,46 @@ struct ecps_backend_t {
     }
 
     void FixFramePacket() {
-    this->m_stats.Frame_Total++;
+      this->m_stats.Frame_Total++;
 
-    uint16_t LastDataCheck;
-    if (this->m_Possible == (uint16_t)-1) {
+      uint16_t LastDataCheck;
+      if (this->m_Possible == (uint16_t)-1) {
         LastDataCheck = FindLastDataCheck(0x1000);
-    }
-    else {
+      }
+      else {
         LastDataCheck = FindLastDataCheck(this->m_Possible);
-    }
+      }
 
-    if (LastDataCheck == (uint16_t)-1) {
+      if (LastDataCheck == (uint16_t)-1) {
         this->m_stats.Frame_Drop++;
         this->m_Possible = (uint16_t)-1;
         return;
-    }
+      }
 
-    //Check if frame is too old before processing
-    static auto last_frame_time = std::chrono::steady_clock::now();
-    auto now = std::chrono::steady_clock::now();
-    auto frame_age = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_frame_time);
-    
-    // Skip if we're getting frames too fast (indicates backup)
-    if (frame_age.count() < 16) { // Less than 16ms since last frame (>60fps)
+      static auto last_frame_time = std::chrono::steady_clock::now();
+      auto now = std::chrono::steady_clock::now();
+      auto frame_age = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_frame_time);
+
+      if (frame_age.count() < 16) {
         this->m_stats.Frame_Drop++;
         return;
-    }
-    last_frame_time = now;
+      }
+      last_frame_time = now;
 
-    this->m_stats.Packet_Total++;
-    if (this->m_Possible == (uint16_t)-1) {
+      this->m_stats.Packet_Total++;
+      if (this->m_Possible == (uint16_t)-1) {
         this->m_stats.Packet_HeadDrop++;
         this->m_Possible = LastDataCheck + 1;
-    }
+      }
 
-    this->m_stats.Packet_Total += this->m_Possible;
-    for (uint16_t i = 0; i < this->m_Possible; i++) {
+      this->m_stats.Packet_Total += this->m_Possible;
+      for (uint16_t i = 0; i < this->m_Possible; i++) {
         if (!GetDataCheck(i)) {
-            this->m_stats.Packet_BodyDrop++;
-            __builtin_memset(&this->m_data[i * 0x400], 0, 0x400);
+          this->m_stats.Packet_BodyDrop++;
+          __builtin_memset(&this->m_data[i * 0x400], 0, 0x400);
         }
+      }
     }
-}
 
     void WriteFramePacket();
   }view;
@@ -245,7 +243,7 @@ struct ecps_backend_t {
     }
 
     uintptr_t BufferSize = (uintptr_t)DataWillBeAt - (uintptr_t)buffer + DataSize;
-    if(share.m_NetworkFlow.Bucket < BufferSize * 8){
+    if (share.m_NetworkFlow.Bucket < BufferSize * 8) {
       co_return 1;
     }
     share.m_NetworkFlow.Bucket -= BufferSize * 8;
@@ -279,6 +277,17 @@ struct ecps_backend_t {
   fan::event::task_t connect(const std::string& ip, uint16_t port) {
     this->ip = ip;
     this->port = port;
+
+    udp_keep_alive.stop();
+    tcp_keep_alive.stop();
+
+    if (task_udp_listen.handle) {
+      task_udp_listen = {};
+    }
+    if (task_tcp_read.handle) {
+      task_tcp_read = {};
+    }
+
     try {
       co_await tcp_client.connect(ip, port);
     }
@@ -286,6 +295,7 @@ struct ecps_backend_t {
     udp_keep_alive.set_server(
       fan::network::socket_address_t{ ip, port },
       [this](fan::network::udp_t& udp) -> fan::event::task_t {
+        keepalive_sent_time = fan::event::now();
         co_await udp_write(0, ProtocolUDP::C2S_t::KeepAlive, {}, 0, 0);
       }
     );
@@ -293,14 +303,13 @@ struct ecps_backend_t {
     task_udp_listen = udp_client.listen(
       fan::network::listen_address_t{ this->ip, this->port },
       [this, ip, port](const fan::network::udp_t& udp, const fan::network::udp_datagram_t& datagram) -> fan::event::task_t {
-        
+
         auto size = datagram.data.size();
 
         udp::BasePacket_t bp = *(udp::BasePacket_t*)datagram.data.data();
         if (bp.SessionID != session_id) {
           co_return;
         }
-        uintptr_t RelativeSize = size - sizeof(bp);
         if (bp.Command == ProtocolUDP::S2C_t::KeepAlive) {
           if (sizeof(bp) != datagram.data.size()) {
             fan::print("size is not same as sizeof expected arrival");
@@ -308,9 +317,16 @@ struct ecps_backend_t {
 #if ecps_debug_prints >= 2
           fan::print("udp keep alive came");
 #endif
+          if (keepalive_sent_time > 0) {
+            uint64_t now = fan::event::now();
+            double ping_ms = (now - keepalive_sent_time) / 1000000.0;
+            fan::print_format("Ping: {:.1f}ms", ping_ms);
+            keepalive_sent_time = 0;
+          }
           udp_keep_alive.reset();
         }
         else if (bp.Command == ProtocolUDP::S2C_t::Channel_ScreenShare_View_StreamData) {
+          uintptr_t RelativeSize = size - sizeof(bp);
           auto CommandData = (ProtocolUDP::S2C_t::Channel_ScreenShare_View_StreamData_t*)&(((udp::BasePacket_t*)datagram.data.data())[1]);
           set_channel_viewing(CommandData->ChannelID, true);
           if (RelativeSize < sizeof(*CommandData)) {
@@ -444,7 +460,7 @@ struct ecps_backend_t {
     return std::any_of(available_channels.begin(), available_channels.end(),
       [channel_id](const channel_list_info_t& channel) {
         return channel.channel_id.i == channel_id.i;
-    });
+      });
   }
   bool is_channel_joined(Protocol_ChannelID_t channel_id) const {
     if (!is_channel_id_valid(channel_id)) {
@@ -483,16 +499,17 @@ struct ecps_backend_t {
   fan::network::tcp_t tcp_client;
   fan::network::udp_t udp_client;
   fan::event::task_t task_udp_listen;
+  uint64_t keepalive_sent_time = 0;
 
   std::function<void(fan::exception_t)> login_fail_cb;
 
   fan::network::tcp_keep_alive_t tcp_keep_alive{
     tcp_client,
-    [this] (fan::network::tcp_t& tcp) -> fan::event::task_t{
+    [this](fan::network::tcp_t& tcp) -> fan::event::task_t {
       co_await tcp_write(Protocol_C2S_t::KeepAlive, 0, 0);
     }
   };
- 
+
   fan::event::task_t request_channel_list() {
     uint8_t a;
     co_await tcp_write(Protocol_C2S_t::RequestChannelList, &a, 1);
@@ -537,7 +554,6 @@ struct ecps_backend_t {
 
     Protocol_ChannelID_t channel_id = session_list->ChannelID;
 
-    // Clear existing sessions for this channel
     backend.channel_sessions[channel_id].clear();
     backend.channel_sessions[channel_id].reserve(session_list->SessionCount);
 
@@ -629,9 +645,35 @@ struct ecps_backend_t {
     return std::any_of(channel_info.begin(), channel_info.end(),
       [](const channel_info_t& ch) { return ch.is_viewing; });
   }
+  fan::event::task_t request_idr_reset() {
+    try {
+      for (const auto& channel : channel_info) {
+        if (channel.is_viewing) {
+          Protocol_C2S_t::Channel_ScreenShare_ViewToShare_t rest;
+          rest.ChannelID = channel.channel_id;
+          rest.Flag = ProtocolChannel::ScreenShare::ChannelFlag::ResetIDR;
+          co_await tcp_write(
+            Protocol_C2S_t::Channel_ScreenShare_ViewToShare,
+            &rest,
+            sizeof(rest)
+          );
+        }
+      }
+    }
+    catch (const std::exception& e) {
+      fan::print("Failed to send IDR reset: " + std::string(e.what()));
+    }
+    catch (fan::exception_t e) {
+      fan::print("Failed to send IDR reset: " + std::string(e.reason));
+    }
+    catch (...) {
+      fan::print("Failed to send IDR reset: unknown error");
+    }
+    co_return;
+  }
 
   bool channel_list_received = false;
-   fan::network::udp_keep_alive_t udp_keep_alive{ udp_client };
+  fan::network::udp_keep_alive_t udp_keep_alive{ udp_client };
 
   struct pending_request_t {
     uint32_t request_id;
