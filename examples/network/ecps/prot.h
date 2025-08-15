@@ -155,6 +155,10 @@ struct ProtocolUDP {
       Protocol_ChannelID_t ChannelID;
       Protocol_ChannelSessionID_t ChannelSessionID;
     );
+    __dme(Channel_ScreenShare_RecoveryRequest,
+      Protocol_ChannelID_t ChannelID;
+      Protocol_ChannelSessionID_t ChannelSessionID;
+    );
   }C2S;
   struct S2C_t : __dme_inherit(S2C_t) {
     __dme(KeepAlive);
@@ -305,8 +309,6 @@ struct Protocol_S2C_t : __dme_inherit(Protocol_S2C_t, S2C_callback_t) {
     uint64_t UDPIdentifySecret;
   );
   
-  // NEW: Channel and session list responses
-  // Helper structures for channel list
   struct ChannelInfo_t {
     Protocol_ChannelID_t ChannelID;        // Channel's unique ID
     uint8_t Type;                          // Channel type (ScreenShare, etc.)
@@ -316,7 +318,6 @@ struct Protocol_S2C_t : __dme_inherit(Protocol_S2C_t, S2C_callback_t) {
     Protocol_SessionID_t HostSessionID;    // Session ID of channel host/creator
   };
   
-  // Helper structures for session list
   struct SessionInfo_t {
     Protocol_SessionID_t SessionID;           // User's session ID
     Protocol_ChannelSessionID_t ChannelSessionID; // User's channel session ID
@@ -328,16 +329,13 @@ struct Protocol_S2C_t : __dme_inherit(Protocol_S2C_t, S2C_callback_t) {
   
   __dme(ChannelList,
     uint16_t ChannelCount;
-    // Followed by ChannelCount * ChannelInfo_t entries
   );
   
   __dme(ChannelSessionList,
     Protocol_ChannelID_t ChannelID;        // Which channel this list is for
     uint16_t SessionCount;                 // Number of sessions/users in the channel
-    // Followed by SessionCount * SessionInfo_t entries
   );
   
-  // Screen sharing information messages
   __dme(Channel_ScreenShare_View_InformationToViewSetFlag,
     Protocol_ChannelID_t ChannelID;
     ProtocolChannel::ScreenShare::ChannelFlag::_t Flag;

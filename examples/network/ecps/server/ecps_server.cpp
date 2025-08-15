@@ -264,6 +264,10 @@ void evio_stdin_cb(EV_t *listener, EV_event_t *evio_stdin, uint32_t flag){
   }
 }
 
+struct recovery_request_t {
+  uint16_t sequence;
+  uint16_t missing_count;
+};
 void evio_udp_cb(EV_t *listener, EV_event_t *evio_udp, uint32_t flag){
   uint8_t buffer[0x800];
   NET_addr_t dstaddr;
@@ -314,21 +318,97 @@ void evio_udp_cb(EV_t *listener, EV_event_t *evio_udp, uint32_t flag){
 
       break;
     }
-    case ProtocolUDP::C2S_t::Channel_ScreenShare_Host_StreamData:{
-      auto RestPacket = (ProtocolUDP::C2S_t::Channel_ScreenShare_Host_StreamData_t *)&BasePacket[1];
+    case ProtocolUDP::C2S_t::Channel_ScreenShare_Host_StreamData: {
+      auto RestPacket = (ProtocolUDP::C2S_t::Channel_ScreenShare_Host_StreamData_t*)&BasePacket[1];
       IO_size_t RestPacketSize = size - sizeof(ProtocolUDP::BasePacket_t);
-      if(RestPacketSize < sizeof(*RestPacket)){
+      if (RestPacketSize < sizeof(*RestPacket)) {
         break;
       }
-      if(IsAnythingInvalid(SessionID, RestPacket->ChannelID, RestPacket->ChannelSessionID) == true){
+      if (IsAnythingInvalid(SessionID, RestPacket->ChannelID, RestPacket->ChannelSessionID) == true) {
         return;
       }
-      if(ScreenShare_IsSessionHost(SessionID, RestPacket->ChannelID) == false){
+      if (ScreenShare_IsSessionHost(SessionID, RestPacket->ChannelID) == false) {
         return;
       }
-      auto StreamData = (uint8_t *)&RestPacket[1];
+
+      auto StreamData = (uint8_t*)&RestPacket[1];
       IO_size_t StreamSize = size - (StreamData - buffer);
+
+      // ADD THIS VALIDATION HERE:
+      auto Body = (ScreenShare_StreamHeader_Body_t*)StreamData;
+      uint16_t current = Body->GetCurrent();
+      uint16_t sequence = Body->GetSequence();
+
+      if (current == 0) {
+        // This is the first packet - should contain SPS/PPS/IDR
+        size_t header_size = sizeof(ScreenShare_StreamHeader_Head_t);
+        if (StreamSize > header_size) {
+          auto PacketData = &StreamData[header_size];
+          uint16_t PacketSize = StreamSize - header_size;
+
+          // Check if first packet has proper NAL headers
+          bool has_proper_nal = false;
+          uint8_t first_nal_type = 0;
+
+          for (size_t i = 0; i < std::min((size_t)PacketSize, (size_t)64) - 4; i++) {
+            if (PacketData[i] == 0x00 && PacketData[i + 1] == 0x00 &&
+              PacketData[i + 2] == 0x00 && PacketData[i + 3] == 0x01) {
+              uint8_t nal_type = PacketData[i + 4] & 0x1F;
+              if (first_nal_type == 0) first_nal_type = nal_type;
+              if (nal_type == 7 || nal_type == 8 || nal_type == 5) {
+                has_proper_nal = true;
+                break;
+              }
+            }
+          }
+
+#if set_Verbose >= 1
+          WriteInformation("PACKET_VALIDATION: seq=%u, pkt=0, size=%u, first_nal=%u, has_proper_nal=%d\r\n",
+            sequence, PacketSize, first_nal_type, has_proper_nal);
+#endif
+
+          // If it's a large packet but only SEI data, something's wrong
+          if (PacketSize > 1000 && first_nal_type == 6 && !has_proper_nal) {
+#if set_Verbose >= 1
+            WriteInformation("WARNING: Large packet with only SEI data (seq=%u, size=%u)\r\n",
+              sequence, PacketSize);
+#endif
+          }
+        }
+      }
+
+      // Continue with normal processing
       ScreenShare_StreamPacket(RestPacket->ChannelID, StreamData, StreamSize);
+      break;
+    }
+    case ProtocolUDP::C2S_t::Channel_ScreenShare_RecoveryRequest: {
+      auto RestPacket = (ProtocolUDP::C2S_t::Channel_ScreenShare_RecoveryRequest_t*)&BasePacket[1];
+      IO_size_t RestPacketSize = size - sizeof(ProtocolUDP::BasePacket_t);
+      if (RestPacketSize < sizeof(*RestPacket)) {
+        break;
+      }
+
+      if (IsAnythingInvalid(SessionID, RestPacket->ChannelID, RestPacket->ChannelSessionID) == true) {
+        break;
+      }
+
+      auto recovery_data = (uint8_t*)&RestPacket[1];
+      IO_size_t recovery_size = size - (recovery_data - buffer);
+
+      if (recovery_size < sizeof(recovery_request_t)) {
+        break;
+      }
+
+      auto req = (recovery_request_t*)recovery_data;
+
+      if (recovery_size < sizeof(recovery_request_t) + req->missing_count * sizeof(uint16_t)) {
+        break;
+      }
+
+      auto missing_indices = (uint16_t*)(req + 1);
+
+      ProcessRecoveryRequest(RestPacket->ChannelID, req->sequence, missing_indices, req->missing_count);
+
       break;
     }
   }

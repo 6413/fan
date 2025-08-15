@@ -256,11 +256,24 @@ export namespace fan {
 
             if (name.find("nvenc") != std::string::npos) {
               // NVIDIA NVENC options
-              av_opt_set(codec_ctx_->priv_data, "preset", "fast", 0);  // Use "fast" instead of "ultrafast"
-              av_opt_set(codec_ctx_->priv_data, "tune", "ll", 0);     // Use "ll" (low latency) instead of "zerolatency"
-              av_opt_set(codec_ctx_->priv_data, "rc", "vbr", 0);      // Rate control mode
-              av_opt_set_int(codec_ctx_->priv_data, "surfaces", 32, 0); // Number of surfaces
-              av_opt_set_int(codec_ctx_->priv_data, "delay", 0, 0);   // Zero delay for low latency
+              av_opt_set(codec_ctx_->priv_data, "preset", "fast", 0);
+              av_opt_set(codec_ctx_->priv_data, "tune", "ll", 0);      // Low latency
+              av_opt_set(codec_ctx_->priv_data, "rc", "vbr", 0);
+              av_opt_set_int(codec_ctx_->priv_data, "surfaces", 8, 0);  // Reduced from 32
+              av_opt_set_int(codec_ctx_->priv_data, "delay", 0, 0);
+
+              //av_opt_set_int(codec_ctx_->priv_data, "aud", 0, 0);      // Disable Access Unit Delimiters
+              //av_opt_set_int(codec_ctx_->priv_data, "no-scenecut", 1, 0); // Disable scene cut detection
+              //av_opt_set(codec_ctx_->priv_data, "profile", "baseline", 0); // Use baseline profile
+              //av_opt_set_int(codec_ctx_->priv_data, "forced-idr", 1, 0);   // Force IDR frames
+
+              //codec_ctx_->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;  // Put headers in extradata
+              //codec_ctx_->flags2 |= AV_CODEC_FLAG2_LOCAL_HEADER; // Don't repeat headers
+
+              //// Disable B-frames for low latency and fewer SEI packets
+              //codec_ctx_->max_b_frames = 0;
+              //codec_ctx_->has_b_frames = 0;
+
             }
             else if (name.find("amf") != std::string::npos) {
               av_opt_set(codec_ctx_->priv_data, "quality", "speed", 0);
@@ -847,7 +860,9 @@ export namespace fan {
       std::vector<decode_result_t> decode_packet(const uint8_t* data, size_t size) {
         std::vector<decode_result_t> results;
 
-        if (!initialized_) return results;
+        if (!initialized_) {
+          return results;
+        }
 
         if (!codec_ctx_) {
           std::string detected_codec = detect_codec_from_data(data, size);

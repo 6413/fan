@@ -230,7 +230,7 @@ ecps_backend_t::ecps_backend_t() {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Response_Login_t>();
     backend.session_id = msg->SessionID;
     co_await backend.udp_write(0, ProtocolUDP::C2S_t::KeepAlive, {}, 0, 0);
-    };
+  };
 
   __dme_get(Protocol_S2C, CreateChannel_OK) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::CreateChannel_OK_t>();
@@ -242,7 +242,7 @@ ecps_backend_t::ecps_backend_t() {
         it->second.continuation.resume();
       }
     }
-    };
+  };
 
   __dme_get(Protocol_S2C, JoinChannel_OK) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::JoinChannel_OK_t>();
@@ -492,6 +492,62 @@ int main() {
     if (rt) {// might be able to be removed
       rt->screen_decoder.graphics_queue_callback([e] {
         fan::printcl("failed to connect to server:"_str + e.reason + ", retrying...");
+      });
+    }
+  };
+  ecps_backend.view.recovery_callback = [](std::vector<uint8_t> request_data) {
+    auto* rt = get_render_thread();
+    if (rt) {
+      rt->ecps_gui.backend_queue([request_data = std::move(request_data)]() -> fan::event::task_t {
+        try {
+          ecps_backend_t::ProtocolUDP::C2S_t::Channel_ScreenShare_RecoveryRequest_t rest;
+          rest.ChannelID = ecps_backend_t::Protocol_ChannelID_t(0);
+          rest.ChannelSessionID = ecps_backend_t::Protocol_ChannelSessionID_t(0);
+          
+          for (const auto& channel : ecps_backend.channel_info) {
+            if (channel.is_viewing) {
+              rest.ChannelID = channel.channel_id;
+              rest.ChannelSessionID = channel.session_id;
+              break;
+            }
+          }
+          
+          co_await ecps_backend.udp_write(
+            0,
+            ecps_backend_t::ProtocolUDP::C2S_t::Channel_ScreenShare_RecoveryRequest,
+            rest,
+            request_data.data(),
+            request_data.size()
+          );
+        }
+        catch (...) {}
+      });
+    }
+  };
+
+  ecps_backend.share.resend_packet_callback = [](const std::vector<uint8_t>& packet_data) {
+    auto* rt = get_render_thread();
+    if (rt) {
+      rt->ecps_gui.backend_queue([packet_data]() -> fan::event::task_t {
+        try {
+          ecps_backend_t::ProtocolUDP::C2S_t::Channel_ScreenShare_Host_StreamData_t rest;
+          for (const auto& channel : ecps_backend.channel_info) {
+            if (channel.is_streaming) {
+              rest.ChannelID = channel.channel_id;
+              rest.ChannelSessionID = channel.session_id;
+              break;
+            }
+          }
+          
+          co_await ecps_backend.udp_write(
+            0,
+            ecps_backend_t::ProtocolUDP::C2S_t::Channel_ScreenShare_Host_StreamData,
+            rest,
+            packet_data.data(),
+            packet_data.size()
+          );
+        }
+        catch (...) {}
       });
     }
   };
@@ -802,7 +858,6 @@ int main() {
             last_idr_time = std::chrono::steady_clock::now();
           }
 
-          // Force IDR frame periodically (every 2 seconds)
           auto now = std::chrono::steady_clock::now();
           auto time_since_idr = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_idr_time);
           if (time_since_idr > std::chrono::milliseconds(1000)) {
@@ -810,7 +865,6 @@ int main() {
             last_idr_time = now;
           }
 
-          // Read screen data
           if (!rt->screen_encoder.screen_read()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
@@ -1087,14 +1141,12 @@ while (rt && rt->should_stop.load()) {
 
     auto f = &ecps_backend.share.m_NetworkFlow.FrameList[flnr];
 
-    bool is_likely_keyframe = f->vec.size() > 30000;
+    size_t max_chunks = dynamic_config_t::get_adaptive_chunk_count();
 
     uint8_t Flag = 0;
     uint16_t Possible = (f->vec.size() / 0x400) + !!(f->vec.size() % 0x400);
     uint16_t sent_offset = f->SentOffset;
-
-    size_t max_chunks = dynamic_config_t::get_adaptive_chunk_count();
-
+    bool is_likely_keyframe = f->vec.size() > 30000;
     size_t affordable_chunks = ecps_backend.share.m_NetworkFlow.Bucket / (0x400 * 8);
 
     if (is_likely_keyframe) {
@@ -1110,16 +1162,16 @@ while (rt && rt->should_stop.load()) {
 
     if (is_likely_keyframe && chunks_to_send == 0 && sent_offset < Possible) {
       size_t remaining_chunks = static_cast<size_t>(Possible - sent_offset);
-      chunks_to_send = std::min(remaining_chunks, static_cast<size_t>(8)); // Allow up to 8 chunks for keyframes
+      chunks_to_send = std::min(remaining_chunks, static_cast<size_t>(8));
 
       if (ecps_backend.share.m_NetworkFlow.Bucket < (0x400 * 8)) {
-        ecps_backend.share.m_NetworkFlow.Bucket += (0x400 * 8 * chunks_to_send); // Emergency keyframe budget
+        ecps_backend.share.m_NetworkFlow.Bucket += (0x400 * 8 * chunks_to_send);
       }
     }
 
     if (is_likely_keyframe && chunks_to_send < 3 && sent_offset < Possible) {
       size_t remaining_chunks = static_cast<size_t>(Possible - sent_offset);
-      chunks_to_send = std::min(remaining_chunks, static_cast<size_t>(3)); // Minimum 3 chunks for keyframes
+      chunks_to_send = std::min(remaining_chunks, static_cast<size_t>(3));
     }
 
     size_t chunks_sent = 0;

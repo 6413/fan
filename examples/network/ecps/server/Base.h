@@ -149,6 +149,7 @@ void TCP_WriteCommand(NET_TCP_peer_t *peer, uint32_t ID, Protocol_CI_t Command, 
 struct Channel_ScreenShare_Data_t{
   uint8_t Flag;
   Protocol_SessionID_t HostSessionID;
+  std::unordered_map<uint16_t, std::vector<std::vector<uint8_t>>> SentPackets;
 };
 
 struct pile_t{
