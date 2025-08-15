@@ -85,11 +85,6 @@ struct ecps_gui_t {
       bool contains_server = This->config.contains("server");
       static std::string ip = contains_server && This->config["server"].contains("ip") ? This->config["server"]["ip"] : "";
       static std::string port = contains_server && This->config["server"].contains("port") ? This->config["server"]["port"] : "";
-      static std::string channel = (contains_server && This->config["server"].contains("channel"))
-        ? (This->config["server"]["channel"].is_string()
-          ? This->config["server"]["channel"].get<std::string>()
-          : std::to_string(This->config["server"]["channel"].get<int>()))
-        : "";
 
       fan::json server_json = This->config.contains("server") ? This->config["server"] : fan::json();
 
@@ -144,7 +139,6 @@ struct ecps_gui_t {
 
         gui::input_text("ip", &ip);
         gui::input_text("port", &port);
-        gui::input_text("channel id", &channel);
 
         if (gui::button("Connect")) {
           {
@@ -155,14 +149,19 @@ struct ecps_gui_t {
               server_json["port"] = port;
             }
             if (ip.size() && port.size()) {
+              ecps_backend.ip = ip;
+              ecps_backend.port = std::stoul(port);
               This->backend_queue([=]() -> fan::event::task_t {
                 try {
-                  co_await ecps_backend.connect(ip, string_to_number(port));
-                  co_await ecps_backend.login();
-                  co_await ecps_backend.request_channel_list();
+                  bool did_connect = co_await ecps_backend.connect(ip, string_to_number(port));
+                  if (did_connect) {
+                    co_await ecps_backend.login();
+                    co_await ecps_backend.request_channel_list();
+                  }
                 }
-                catch (...) {}
-                });
+                catch (...) {
+                }
+              });
             }
           }
 
@@ -189,24 +188,7 @@ struct ecps_gui_t {
 
         popup_size = gui::get_window_size();
 
-        gui::input_text("channel id", &channel);
-
         if (gui::button("Connect")) {
-          if (channel.size()) {
-            server_json["channel"] = channel;
-          }
-
-          if (channel.size()) {
-            This->backend_queue([=]() -> fan::event::task_t {
-              try {
-                if (channel.size()) {
-                  co_await ecps_backend.channel_join(string_to_number(channel));
-                }
-              }
-              catch (...) {}
-              });
-          }
-
           This->write_to_config("server", server_json);
           gui::close_current_popup();
           toggle_render_server_join = false;
@@ -281,6 +263,7 @@ struct ecps_gui_t {
     bool is_resizing = false;
 
     bool p_open = false;
+    bool show_network_debug = false;
   }stream_settings;
 
   struct channel_list_window_t {
@@ -1000,6 +983,74 @@ struct ecps_gui_t {
 
       gui::separator();
 
+      if (gui::button(This->stream_settings.show_network_debug ? "Hide Network Debug" : "Show Network Debug", fan::vec2(-1, 0))) {
+        This->stream_settings.show_network_debug = !This->stream_settings.show_network_debug;
+      }
+      if (This->stream_settings.show_network_debug) {
+        gui::separator();
+        gui::text("Network Debug Info");
+
+        gui::push_style_color(gui::col_child_bg, fan::vec4(0.1f, 0.1f, 0.1f, 0.8f));
+        gui::begin_child("##network_debug", fan::vec2(-1, 500), true);
+
+        auto& stats = ecps_backend.view.m_stats;
+
+        gui::text("=== FRAME STATS ===");
+        gui::text(("Total Frames: " + std::to_string(stats.Frame_Total)).c_str());
+        gui::text(("Dropped Frames: " + std::to_string(stats.Frame_Drop)).c_str());
+
+        if (stats.Frame_Total > 0) {
+          double frame_drop_rate = (double)stats.Frame_Drop * 100.0 / stats.Frame_Total;
+          gui::text(("Frame Drop Rate: " + std::to_string(frame_drop_rate) + "%").c_str(),
+            frame_drop_rate > 5.0 ? fan::color(1, 0.5f, 0.5f, 1) : fan::color(0.5f, 1, 0.5f, 1));
+        }
+
+        gui::spacing();
+
+        gui::text("=== PACKET STATS ===");
+        gui::text(("Total Packets: " + std::to_string(stats.Packet_Total)).c_str());
+        gui::text(("Head Drops: " + std::to_string(stats.Packet_HeadDrop)).c_str());
+        gui::text(("Body Drops: " + std::to_string(stats.Packet_BodyDrop)).c_str());
+
+        uint64_t total_packet_drops = stats.Packet_HeadDrop + stats.Packet_BodyDrop;
+        gui::text(("Total Packet Drops: " + std::to_string(total_packet_drops)).c_str());
+
+        if (stats.Packet_Total > 0) {
+          double packet_drop_rate = (double)total_packet_drops * 100.0 / stats.Packet_Total;
+          gui::text(("Packet Drop Rate: " + std::to_string(packet_drop_rate) + "%").c_str(),
+            packet_drop_rate > 2.0 ? fan::color(1, 0.5f, 0.5f, 1) : fan::color(0.5f, 1, 0.5f, 1));
+        }
+
+        gui::spacing();
+
+        if (ecps_backend.is_streaming_to_any_channel()) {
+          gui::text("=== NETWORK FLOW ===");
+          auto& flow = ecps_backend.share.m_NetworkFlow;
+          gui::text(("Bucket: " + std::to_string(flow.Bucket) + " bits").c_str());
+          gui::text(("Bucket Size: " + std::to_string(flow.BucketSize) + " bits").c_str());
+
+          double bucket_percentage = (double)flow.Bucket * 100.0 / flow.BucketSize;
+          gui::text(("Bucket Fill: " + std::to_string(bucket_percentage) + "%").c_str(),
+            bucket_percentage < 20.0 ? fan::color(1, 0.5f, 0.5f, 1) : fan::color(0.5f, 1, 0.5f, 1));
+        }
+
+        gui::end_child();
+        gui::pop_style_color();
+
+        gui::spacing();
+
+        // Reset button
+        if (gui::button("Reset Statistics", fan::vec2(-1, 0))) {
+          stats.Frame_Drop = 0;
+          stats.Frame_Total = 0;
+          stats.Packet_Total = 0;
+          stats.Packet_HeadDrop = 0;
+          stats.Packet_BodyDrop = 0;
+        }
+      }
+
+      gui::separator();
+
       if (gui::button("Reset Settings", fan::vec2(-1, 0))) {
         This->stream_settings.selected_resolution = 0;
         This->stream_settings.framerate = 30;
@@ -1244,11 +1295,11 @@ struct ecps_gui_t {
       }
 
       gui::same_line();
-      if (is_streaming_current) {
-        f32_t checkbox_width = gui::calc_text_size("Show Own Stream").x + gui::get_style().FramePadding.x * 2 + 20;
-        gui::set_cursor_pos_x(center_pos + button_width + 20);
-        gui::checkbox("Show Own Stream", &This->show_own_stream);
-      }
+      //if (is_streaming_current) {
+      //  f32_t checkbox_width = gui::calc_text_size("Show Own Stream").x + gui::get_style().FramePadding.x * 2 + 20;
+      //  gui::set_cursor_pos_x(center_pos + button_width + 20);
+      //  gui::checkbox("Show Own Stream", &This->show_own_stream);
+      //}
 
       f32_t frame_height = gui::get_frame_height();
 

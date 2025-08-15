@@ -379,7 +379,7 @@ case Protocol_C2S_t::RequestChannelSessionList: {
     );
     
     #if set_Verbose
-      _print("[RequestChannelSessionList] Invalid channel %d requested by session %d\n", ChannelID.g(), SessionID.g());
+      //_print("[RequestChannelSessionList] Invalid channel %d requested by session %d\n", (int)ChannelID, (int)SessionID);
     #endif
     
     goto StateDone_gt;
@@ -473,7 +473,6 @@ case Protocol_C2S_t::Channel_ScreenShare_ViewToShare:{
 
   goto StateDone_gt;
 }
-
 case Protocol_C2S_t::Channel_ScreenShare_ShareToView:{
   auto Request = (Protocol_C2S_t::Channel_ScreenShare_ShareToView_t *)RestPacket;
 
@@ -484,12 +483,10 @@ case Protocol_C2S_t::Channel_ScreenShare_ShareToView:{
   auto Channel = &g_pile->ChannelList[ChannelID];
   auto ChannelData = (Channel_ScreenShare_Data_t *)Channel->Buffer;
   
-  // Verify that the sender is the host
   if(ChannelData->HostSessionID != SessionID){
     goto StateDone_gt;
   }
 
-  // Send the flag from host to all viewers
   auto nr = Channel->SessionList.GetNodeFirst();
   ChannelSessionList_Node_t *n;
   for(; nr != Channel->SessionList.dst; nr = n->NextNodeReference){

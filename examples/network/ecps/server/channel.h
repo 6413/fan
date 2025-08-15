@@ -52,9 +52,12 @@ ChannelList_NodeReference_t AddChannel_ScreenShare(Protocol_SessionID_t HostSess
   cn->data.SessionList.Open();
   cn->data.Buffer = A_resize(0, sizeof(Channel_ScreenShare_Data_t));
 
+
+
   auto data = (Channel_ScreenShare_Data_t *)cn->data.Buffer;
   data->Flag = 0;
   data->HostSessionID = HostSessionID;
+  new (&data->SentPackets) std::unordered_map<uint16_t, std::vector<std::vector<uint8_t>>>();
 
   return cnr;
 }
