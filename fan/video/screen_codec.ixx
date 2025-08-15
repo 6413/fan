@@ -63,11 +63,11 @@ export namespace fan {
 
       codec_type_e codec = H264;
       rate_control_e rate_control = VBR;
-      int bitrate = 10000000;  // 10 Mbps default
+      int bitrate = 2000000;
       int crf_value = 23;      // For CRF mode
       int frame_rate = 30;
-      int width = 1920;
-      int height = 1080;
+      int width = 1280;
+      int height = 720;
       int gop_size = 60;       // I-frame interval
       bool use_hardware = true; // Try hardware acceleration
     };
@@ -1460,9 +1460,11 @@ export namespace fan {
         }
         return true;
       }
-
-      ~screen_decode_t() {
+      void close() {
         decoder_.close();
+      }
+      ~screen_decode_t() {
+        close();
       }
 
       bool is_initialized() const {

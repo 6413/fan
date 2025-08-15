@@ -114,33 +114,15 @@ struct dynamic_config_t {
   }
 };
 
-void ecps_backend_t::share_t::CalculateNetworkFlowBucket() {
-  uintptr_t MaxBufferSize = (sizeof(ScreenShare_StreamHeader_Head_t) + 0x400) * 8;
-
-  m_NetworkFlow.BucketSize = dynamic_config_t::get_adaptive_bucket_size();
-  m_NetworkFlow.Bucket = m_NetworkFlow.BucketSize;
-
-#if ecps_debug_prints >= 1
-  uint32_t fps = dynamic_config_t::get_target_framerate();
-  fan::print_throttled_format("Adaptive bucket: {}fps -> {} bits ({} MB)",
-    fps, m_NetworkFlow.BucketSize, m_NetworkFlow.BucketSize / 8 / 1024 / 1024);
-#endif
-}
-
 struct render_thread_t {
-  render_thread_t() { 
+  render_thread_t() {
     engine.set_target_fps(0, false);
-    
-    fan::graphics::codec_config_t config;
-    config.width = 1920;
-    config.height = 1080; 
-    config.frame_rate = 30;
-    config.bitrate = 10000000;
-    
-    if (!screen_encoder.open(config)) {
+
+    if (!screen_encoder.open()) {
       fan::print("Failed to open modern encoder");
     }
-    
+    screen_encoder.set_user_resolution(1280, 720);
+
     if (!screen_decoder.open()) {
       fan::print("Failed to open modern decoder");
     }
@@ -162,7 +144,7 @@ struct render_thread_t {
         }
         catch (...) {}
         });
-    };
+      };
   }
 
   engine_t engine;
@@ -230,7 +212,7 @@ ecps_backend_t::ecps_backend_t() {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Response_Login_t>();
     backend.session_id = msg->SessionID;
     co_await backend.udp_write(0, ProtocolUDP::C2S_t::KeepAlive, {}, 0, 0);
-  };
+    };
 
   __dme_get(Protocol_S2C, CreateChannel_OK) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::CreateChannel_OK_t>();
@@ -242,7 +224,7 @@ ecps_backend_t::ecps_backend_t() {
         it->second.continuation.resume();
       }
     }
-  };
+    };
 
   __dme_get(Protocol_S2C, JoinChannel_OK) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::JoinChannel_OK_t>();
@@ -275,7 +257,7 @@ ecps_backend_t::ecps_backend_t() {
         rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
       }
     }
-  };
+    };
 
   __dme_get(Protocol_S2C, ChannelList) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::ChannelList_t>();
@@ -294,7 +276,7 @@ ecps_backend_t::ecps_backend_t() {
       backend.available_channels.push_back(info);
     }
     backend.channel_list_received = true;
-  };
+    };
 
   __dme_get(Protocol_S2C, ChannelSessionList) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::ChannelSessionList_t>();
@@ -313,12 +295,49 @@ ecps_backend_t::ecps_backend_t() {
       info.joined_at = session_info->JoinedAt;
       backend.channel_sessions[channel_id.i].push_back(info);
     }
-  };
+    };
 }
 
 fan::event::task_t ecps_backend_t::default_s2c_cb(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) {
   co_await backend.tcp_client.read(backend.Protocol_S2C.NA(base.Command)->m_DSS);
   co_return;
+}
+
+
+void ecps_backend_t::share_t::CalculateNetworkFlowBucket() {
+  uintptr_t MaxBufferSize = (sizeof(ScreenShare_StreamHeader_Head_t) + 0x400) * 8;
+
+  m_NetworkFlow.BucketSize = dynamic_config_t::get_adaptive_bucket_size();
+  m_NetworkFlow.Bucket = m_NetworkFlow.BucketSize;
+
+#if ecps_debug_prints >= 1
+  uint32_t fps = dynamic_config_t::get_target_framerate();
+  fan::print_throttled_format("Adaptive bucket: {}fps -> {} bits ({} MB)",
+    fps, m_NetworkFlow.BucketSize, m_NetworkFlow.BucketSize / 8 / 1024 / 1024);
+#endif
+}
+
+void ecps_backend_t::view_t::RequestKeyframe() {
+  auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+  if (rt) {
+    rt->ecps_gui.backend_queue([]() -> fan::event::task_t {
+      try {
+        for (const auto& channel : ecps_backend.channel_info) {
+          if (channel.is_viewing) {
+            ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare_t rest;
+            rest.ChannelID = channel.channel_id;
+            rest.Flag = ecps_backend_t::ProtocolChannel::ScreenShare::ChannelFlag::ResetIDR;
+            co_await ecps_backend.tcp_write(
+              ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_ViewToShare,
+              &rest,
+              sizeof(rest)
+            );
+          }
+        }
+      }
+      catch (...) {}
+      });
+  }
 }
 
 void ecps_backend_t::view_t::WriteFramePacket() {
@@ -485,16 +504,35 @@ void ecps_backend_t::view_t::WriteFramePacket() {
   frame_index++;
 }
 
+void ecps_backend_t::view_t::FixFrameOnComplete() {
+  UpdateMissingPackets();
+  if (m_MissingPackets.empty()) {
+    WriteFramePacket();
+    return;
+  }
+
+  std::fill(m_data.begin(), m_data.end(), 0);
+
+  m_stats.Frame_Drop++;
+  m_Possible = (uint16_t)-1;
+  RequestKeyframe();
+
+  auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+  if (rt && m_MissingPackets.size() > m_Possible / 4) { // >25% missing
+    rt->screen_decoder.reload_codec_cb();
+  }
+}
+
 int main() {
 
-  ecps_backend.login_fail_cb = [] (fan::exception_t e) {
+  ecps_backend.login_fail_cb = [](fan::exception_t e) {
     auto* rt = render_thread_ptr.load(std::memory_order_acquire);
     if (rt) {// might be able to be removed
       rt->screen_decoder.graphics_queue_callback([e] {
         fan::printcl("failed to connect to server:"_str + e.reason + ", retrying...");
-      });
+        });
     }
-  };
+    };
   ecps_backend.view.recovery_callback = [](std::vector<uint8_t> request_data) {
     auto* rt = get_render_thread();
     if (rt) {
@@ -503,7 +541,7 @@ int main() {
           ecps_backend_t::ProtocolUDP::C2S_t::Channel_ScreenShare_RecoveryRequest_t rest;
           rest.ChannelID = ecps_backend_t::Protocol_ChannelID_t(0);
           rest.ChannelSessionID = ecps_backend_t::Protocol_ChannelSessionID_t(0);
-          
+
           for (const auto& channel : ecps_backend.channel_info) {
             if (channel.is_viewing) {
               rest.ChannelID = channel.channel_id;
@@ -511,7 +549,7 @@ int main() {
               break;
             }
           }
-          
+
           co_await ecps_backend.udp_write(
             0,
             ecps_backend_t::ProtocolUDP::C2S_t::Channel_ScreenShare_RecoveryRequest,
@@ -521,11 +559,14 @@ int main() {
           );
         }
         catch (...) {}
-      });
+        });
     }
-  };
+    };
 
+  // 2. Server resends missing packets:
+  // Make sure this is properly connected to ProcessRecoveryRequest:
   ecps_backend.share.resend_packet_callback = [](const std::vector<uint8_t>& packet_data) {
+    fan::print("RESENDING packet of size {}", packet_data.size()); // Add this debug
     auto* rt = get_render_thread();
     if (rt) {
       rt->ecps_gui.backend_queue([packet_data]() -> fan::event::task_t {
@@ -538,7 +579,7 @@ int main() {
               break;
             }
           }
-          
+
           co_await ecps_backend.udp_write(
             0,
             ecps_backend_t::ProtocolUDP::C2S_t::Channel_ScreenShare_Host_StreamData,
@@ -548,9 +589,9 @@ int main() {
           );
         }
         catch (...) {}
-      });
+        });
     }
-  };
+    };
 
   std::promise<void> render_thread_promise;
   std::future<void> render_thread_future = render_thread_promise.get_future();
@@ -822,7 +863,7 @@ int main() {
         img_list.emplace_back(rt->network_frame.get_image());
         auto images = rt->network_frame.get_images();
         img_list.insert(img_list.end(), images.begin(), images.end());
-      });
+        });
 
       std::this_thread::yield();
     }
@@ -834,149 +875,149 @@ int main() {
     }
     });
 
-    render_thread_future.wait();
+  render_thread_future.wait();
 
-    fan::event::thread_create([] {
-      auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-      while (!rt || !rt->screen_encoder.encoder_.is_initialized()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        rt = render_thread_ptr.load(std::memory_order_acquire);
+  fan::event::thread_create([] {
+    auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+    while (!rt || !rt->screen_encoder.encoder_.is_initialized()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      rt = render_thread_ptr.load(std::memory_order_acquire);
+    }
+
+    uint64_t frame_id = 0;
+    bool first_frame = true;
+    auto last_idr_time = std::chrono::steady_clock::now();
+
+    while (!rt->should_stop.load()) {
+      rt = render_thread_ptr.load(std::memory_order_acquire);
+      if (!rt) break;
+
+      if (ecps_backend.is_streaming_to_any_channel()) {
+        if (first_frame) {
+          rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
+          first_frame = false;
+          last_idr_time = std::chrono::steady_clock::now();
+        }
+
+        auto now = std::chrono::steady_clock::now();
+        auto time_since_idr = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_idr_time);
+        if (time_since_idr > std::chrono::milliseconds(1000)) {
+          rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
+          last_idr_time = now;
+        }
+
+        if (!rt->screen_encoder.screen_read()) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          continue;
+        }
+
+        if (rt->ecps_gui.show_own_stream && rt->screen_encoder.screen_buffer) {
+          uint32_t width = rt->screen_encoder.mdscr.Geometry.Resolution.x;
+          uint32_t height = rt->screen_encoder.mdscr.Geometry.Resolution.y;
+
+          if (width > 0 && height > 0) {
+            rt->ecps_gui.backend_queue([=]() -> fan::event::task_t {
+              auto* current_rt = render_thread_ptr.load(std::memory_order_acquire);
+              if (!current_rt) co_return;
+
+              try {
+                fan::graphics::image_load_properties_t props;
+                props.format = fan::graphics::image_format::b8g8r8a8_unorm;
+                props.visual_output = fan::graphics::image_filter::linear;
+
+                fan::image::info_t image_info;
+                image_info.data = current_rt->screen_encoder.screen_buffer;
+                image_info.size = fan::vec2ui(width, height);
+
+                current_rt->engine.image_reload(current_rt->screen_image, image_info, props);
+              }
+              catch (const std::exception& e) {
+                fan::print("LOCAL: Direct sprite update failed: " + std::string(e.what()));
+              }
+              co_return;
+              });
+          }
+        }
+
+        if (!rt->screen_encoder.encode_write()) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          continue;
+        }
+
+        uint8_t* encoded_data = nullptr;
+        size_t encoded_size = rt->screen_encoder.encode_read(&encoded_data);
+
+        if (encoded_size > 0 && encoded_data) {
+          std::unique_lock<std::timed_mutex> frame_list_lock(ecps_backend.share.frame_list_mutex, std::try_to_lock);
+          if (frame_list_lock.owns_lock()) {
+            bool is_idr = (rt->screen_encoder.encode_write_flags & fan::graphics::codec_update_e::force_keyframe) != 0;
+
+            // Clear old frames for IDR
+            if (is_idr) {
+              while (ecps_backend.share.m_NetworkFlow.FrameList.Usage() > 0) {
+                auto old = ecps_backend.share.m_NetworkFlow.FrameList.GetNodeFirst();
+                ecps_backend.share.m_NetworkFlow.FrameList.unlrec(old);
+              }
+            }
+
+            auto flnr = ecps_backend.share.m_NetworkFlow.FrameList.NewNodeLast();
+            auto f = &ecps_backend.share.m_NetworkFlow.FrameList[flnr];
+            f->vec.resize(encoded_size);
+            std::memcpy(f->vec.data(), encoded_data, encoded_size);
+            f->SentOffset = 0;
+          }
+        }
+
+        rt->screen_encoder.sleep_thread();
+      }
+      else {
+        first_frame = true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
+    }
+    });
+
+  fan::event::thread_create([] {
+    auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+    while (!rt || !rt->screen_decoder.is_initialized()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      rt = render_thread_ptr.load(std::memory_order_acquire);
+    }
+
+    auto last_successful_decode = std::chrono::steady_clock::now();
+    uint64_t consecutive_decode_failures = 0;
+    uint64_t successful_decodes = 0;
+    bool decoder_needs_reset = false;
+    bool has_processed_any_frame = false;
+
+    while (!rt->should_stop.load()) {
+      rt = render_thread_ptr.load(std::memory_order_acquire);
+      if (!rt) break;
+
+      bool processed_frame = false;
+      auto now = std::chrono::steady_clock::now();
+      auto time_since_success = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_successful_decode);
+
+      // Check if decoder needs reset
+      if (has_processed_any_frame &&
+        (consecutive_decode_failures > 30 ||
+          (time_since_success > std::chrono::milliseconds(10000) && successful_decodes > 0))) {
+        decoder_needs_reset = true;
       }
 
-      uint64_t frame_id = 0;
-      bool first_frame = true;
-      auto last_idr_time = std::chrono::steady_clock::now();
+      bool should_process_network = !rt->ecps_gui.show_own_stream ||
+        !ecps_backend.is_channel_streaming(rt->ecps_gui.selected_channel_id);
 
-      while (!rt->should_stop.load()) {
-        rt = render_thread_ptr.load(std::memory_order_acquire);
-        if (!rt) break;
-
-        if (ecps_backend.is_streaming_to_any_channel()) {
-          if (first_frame) {
-            rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
-            first_frame = false;
-            last_idr_time = std::chrono::steady_clock::now();
-          }
-
-          auto now = std::chrono::steady_clock::now();
-          auto time_since_idr = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_idr_time);
-          if (time_since_idr > std::chrono::milliseconds(1000)) {
-            rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
-            last_idr_time = now;
-          }
-
-          if (!rt->screen_encoder.screen_read()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            continue;
-          }
-
-          if (rt->ecps_gui.show_own_stream && rt->screen_encoder.screen_buffer) {
-            uint32_t width = rt->screen_encoder.mdscr.Geometry.Resolution.x;
-            uint32_t height = rt->screen_encoder.mdscr.Geometry.Resolution.y;
-
-            if (width > 0 && height > 0) {
-              rt->ecps_gui.backend_queue([=]() -> fan::event::task_t {
-                auto* current_rt = render_thread_ptr.load(std::memory_order_acquire);
-                if (!current_rt) co_return;
-
-                try {
-                  fan::graphics::image_load_properties_t props;
-                  props.format = fan::graphics::image_format::b8g8r8a8_unorm;
-                  props.visual_output = fan::graphics::image_filter::linear;
-
-                  fan::image::info_t image_info;
-                  image_info.data = current_rt->screen_encoder.screen_buffer;
-                  image_info.size = fan::vec2ui(width, height);
-
-                  current_rt->engine.image_reload(current_rt->screen_image, image_info, props);
-                }
-                catch (const std::exception& e) {
-                  fan::print("LOCAL: Direct sprite update failed: " + std::string(e.what()));
-                }
-                co_return;
-                });
-            }
-          }
-
-          if (!rt->screen_encoder.encode_write()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            continue;
-          }
-
-          uint8_t* encoded_data = nullptr;
-          size_t encoded_size = rt->screen_encoder.encode_read(&encoded_data);
-
-          if (encoded_size > 0 && encoded_data) {
-            std::unique_lock<std::timed_mutex> frame_list_lock(ecps_backend.share.frame_list_mutex, std::try_to_lock);
-            if (frame_list_lock.owns_lock()) {
-              bool is_idr = (rt->screen_encoder.encode_write_flags & fan::graphics::codec_update_e::force_keyframe) != 0;
-
-              // Clear old frames for IDR
-              if (is_idr) {
-                while (ecps_backend.share.m_NetworkFlow.FrameList.Usage() > 0) {
-                  auto old = ecps_backend.share.m_NetworkFlow.FrameList.GetNodeFirst();
-                  ecps_backend.share.m_NetworkFlow.FrameList.unlrec(old);
-                }
-              }
-
-              auto flnr = ecps_backend.share.m_NetworkFlow.FrameList.NewNodeLast();
-              auto f = &ecps_backend.share.m_NetworkFlow.FrameList[flnr];
-              f->vec.resize(encoded_size);
-              std::memcpy(f->vec.data(), encoded_data, encoded_size);
-              f->SentOffset = 0;
-            }
-          }
-
-          rt->screen_encoder.sleep_thread();
-        }
-        else {
-          first_frame = true;
+      if (!processed_frame) {
+        if (!has_processed_any_frame) {
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-      }
-      });
-
-    fan::event::thread_create([] {
-      auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-      while (!rt || !rt->screen_decoder.is_initialized()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        rt = render_thread_ptr.load(std::memory_order_acquire);
-      }
-
-      auto last_successful_decode = std::chrono::steady_clock::now();
-      uint64_t consecutive_decode_failures = 0;
-      uint64_t successful_decodes = 0;
-      bool decoder_needs_reset = false;
-      bool has_processed_any_frame = false;
-
-      while (!rt->should_stop.load()) {
-        rt = render_thread_ptr.load(std::memory_order_acquire);
-        if (!rt) break;
-
-        bool processed_frame = false;
-        auto now = std::chrono::steady_clock::now();
-        auto time_since_success = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_successful_decode);
-
-        // Check if decoder needs reset
-        if (has_processed_any_frame &&
-          (consecutive_decode_failures > 30 ||
-            (time_since_success > std::chrono::milliseconds(10000) && successful_decodes > 0))) {
-          decoder_needs_reset = true;
-        }
-
-        bool should_process_network = !rt->ecps_gui.show_own_stream ||
-          !ecps_backend.is_channel_streaming(rt->ecps_gui.selected_channel_id);
-
-        if (!processed_frame) {
-          if (!has_processed_any_frame) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-          }
-          else {
-            std::this_thread::sleep_for(std::chrono::microseconds(100));
-          }
+        else {
+          std::this_thread::sleep_for(std::chrono::microseconds(100));
         }
       }
-      });
+    }
+    });
 
   auto motion_idr_task = fan::event::task_timer(dynamic_config_t::get_adaptive_motion_poll_ms(), []() -> fan::event::task_value_resume_t<bool> {
     static uint64_t last_frame_count = 0;
@@ -1056,16 +1097,16 @@ int main() {
 
   auto* rt = render_thread_ptr.load(std::memory_order_acquire);
   while (!rt) {
-  std::this_thread::sleep_for(std::chrono::milliseconds(1));
-  rt = render_thread_ptr.load(std::memory_order_acquire);
-}
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    rt = render_thread_ptr.load(std::memory_order_acquire);
+  }
 
   rt = render_thread_ptr.load(std::memory_order_acquire);
-while (rt && rt->should_stop.load()) {
-  std::this_thread::sleep_for(std::chrono::milliseconds(1));
-  rt = render_thread_ptr.load(std::memory_order_acquire);
-  continue;
-}
+  while (rt && rt->should_stop.load()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    rt = render_thread_ptr.load(std::memory_order_acquire);
+    continue;
+  }
 
   auto network_task = fan::event::task_timer(1, []() -> fan::event::task_value_resume_t<bool> {
     /*if (ecps_backend.cleanup_disconnected_channels()) {
