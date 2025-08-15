@@ -775,45 +775,43 @@ struct ecps_gui_t {
 
       if (ecps_backend.is_channel_streaming(This->selected_channel_id)) {
         This->resolution_controls.render_resolution_controls();
-      }
 
-      gui::text("Framerate");
-      gui::push_item_width(-1);
-      do {
-        if (is_narrow) {
-          gui::slider_float("##framerate_compact", &This->stream_settings.framerate, 15.0f, 120.0f, "%.0f");
-        }
-        else {
-          gui::input_float("##framerate_compact", &This->stream_settings.framerate, 5, 30);
-        }
-        if (gui::is_item_deactivated_after_edit()) {
-          auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-          if (rt) {
-            rt->screen_encoder.config_.frame_rate = This->stream_settings.framerate;
-            rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, fan::graphics::codec_update_e::frame_rate);
+        gui::text("Framerate");
+        gui::push_item_width(-1);
+        do {
+          if (is_narrow) {
+            gui::slider_float("##framerate_compact", &This->stream_settings.framerate, 15.0f, 120.0f, "%.0f");
           }
-        }
-      } while (0);
-      gui::pop_item_width();
-
-      gui::separator();
-
-      gui::text("Bitrate (Mbps)");
-      gui::push_item_width(-1);
-      do {
-        gui::slider_float("##bitrate_compact", &This->stream_settings.bitrate_mbps, 0.5f, 50.0f, "%.1f");
-        if (gui::is_item_deactivated_after_edit()) {
-          if (channel_id == (uint32_t)-1) break;
-          auto* rt = get_render_thread();
-          if (rt) {
-            rt->screen_encoder.config_.bitrate = This->stream_settings.bitrate_mbps * 1000000;
-            rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, codec_update_e::rate_control);
+          else {
+            gui::input_float("##framerate_compact", &This->stream_settings.framerate, 5, 30);
           }
-        }
-      } while (0);
-      gui::pop_item_width();
+          if (gui::is_item_deactivated_after_edit()) {
+            auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+            if (rt) {
+              rt->screen_encoder.config_.frame_rate = This->stream_settings.framerate;
+              rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, fan::graphics::codec_update_e::frame_rate);
+            }
+          }
+        } while (0);
+        gui::pop_item_width();
 
-      if (ecps_backend.is_streaming_to_any_channel()) {
+        gui::separator();
+
+        gui::text("Bitrate (Mbps)");
+        gui::push_item_width(-1);
+        do {
+          gui::slider_float("##bitrate_compact", &This->stream_settings.bitrate_mbps, 0.5f, 50.0f, "%.1f");
+          if (gui::is_item_deactivated_after_edit()) {
+            if (channel_id == (uint32_t)-1) break;
+            auto* rt = get_render_thread();
+            if (rt) {
+              rt->screen_encoder.config_.bitrate = This->stream_settings.bitrate_mbps * 1000000;
+              rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, codec_update_e::rate_control);
+            }
+          }
+        } while (0);
+        gui::pop_item_width();
+
         gui::separator();
         do {
           static auto encoder_names = [] {
@@ -882,7 +880,7 @@ struct ecps_gui_t {
             if (!rt) {
               return std::vector<std::string>{
                 "auto-detect", "libx264", "libx265", "libaom-av1"
-              }; // Fallback
+              };
             }
 
             auto decoders = rt->screen_decoder.get_decoders();
@@ -991,9 +989,13 @@ struct ecps_gui_t {
         gui::text("Network Debug Info");
 
         gui::push_style_color(gui::col_child_bg, fan::vec4(0.1f, 0.1f, 0.1f, 0.8f));
-        gui::begin_child("##network_debug", fan::vec2(-1, 500), true);
+        gui::begin_child("##network_debug", fan::vec2(0, 0), 1 | 
+          fan::graphics::gui::child_flags_auto_resize_x |
+          fan::graphics::gui::child_flags_auto_resize_y );
 
         auto& stats = ecps_backend.view.m_stats;
+
+        gui::text("Ping (ms): " + fan::to_string(ecps_backend.ping_ms, 4));
 
         gui::text("=== FRAME STATS ===");
         gui::text(("Total Frames: " + std::to_string(stats.Frame_Total)).c_str());
