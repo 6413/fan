@@ -192,7 +192,6 @@ struct Protocol_C2S_t : __dme_inherit(Protocol_C2S_t){
     uint64_t UDPIdentifySecret;
   );
   
-  // NEW: Channel and session list requests
   __dme(RequestChannelList,
     uint8_t pad; // for some reason command doesnt get processed without pad in server
   );

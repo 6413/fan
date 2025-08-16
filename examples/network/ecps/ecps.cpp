@@ -511,14 +511,12 @@ void ecps_backend_t::view_t::FixFrameOnComplete() {
     return;
   }
 
-  std::fill(m_data.begin(), m_data.end(), 0);
-
   m_stats.Frame_Drop++;
   m_Possible = (uint16_t)-1;
   RequestKeyframe();
 
   auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-  if (rt && m_MissingPackets.size() > m_Possible / 4) { // >25% missing
+  if (rt && m_MissingPackets.size() > m_Possible / 4) {
     rt->screen_decoder.reload_codec_cb();
   }
 }
@@ -563,10 +561,7 @@ int main() {
     }
     };
 
-  // 2. Server resends missing packets:
-  // Make sure this is properly connected to ProcessRecoveryRequest:
   ecps_backend.share.resend_packet_callback = [](const std::vector<uint8_t>& packet_data) {
-    fan::print("RESENDING packet of size {}", packet_data.size()); // Add this debug
     auto* rt = get_render_thread();
     if (rt) {
       rt->ecps_gui.backend_queue([packet_data]() -> fan::event::task_t {

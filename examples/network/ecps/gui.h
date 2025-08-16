@@ -839,33 +839,30 @@ struct ecps_gui_t {
 
           if (gui::combo("##encoder_compact", &This->stream_settings.selected_encoder,
             encoder_options.data(), encoder_options.size())) {
-            if (gui::combo("##encoder_compact", &This->stream_settings.selected_encoder,
-              encoder_options.data(), encoder_options.size())) {
-              auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-              if (rt) {
-                std::string encoder_name = encoder_names[This->stream_settings.selected_encoder];
+            auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+            if (rt) {
+              std::string encoder_name = encoder_names[This->stream_settings.selected_encoder];
 
-                codec_config_t::codec_type_e codec_type;
+              codec_config_t::codec_type_e codec_type;
 
-                if (encoder_name.find("264") != std::string::npos) {
-                  codec_type = codec_config_t::H264;
-                }
-                else if (encoder_name.find("265") != std::string::npos ||
-                  encoder_name.find("hevc") != std::string::npos) {
-                  codec_type = codec_config_t::H265;
-                }
-                else if (encoder_name.find("av1") != std::string::npos) {
-                  codec_type = codec_config_t::AV1;
-                }
-                else {
-                  codec_type = codec_config_t::H264;
-                }
-
-                rt->screen_encoder.config_.codec = codec_type;
-                rt->screen_encoder.new_codec = This->stream_settings.selected_encoder;
-                rt->screen_encoder.update_flags |= codec_update_e::codec;
-                rt->screen_encoder.encode_write_flags |= codec_update_e::force_keyframe;
+              if (encoder_name.find("264") != std::string::npos) {
+                codec_type = codec_config_t::H264;
               }
+              else if (encoder_name.find("265") != std::string::npos ||
+                encoder_name.find("hevc") != std::string::npos) {
+                codec_type = codec_config_t::H265;
+              }
+              else if (encoder_name.find("av1") != std::string::npos) {
+                codec_type = codec_config_t::AV1;
+              }
+              else {
+                codec_type = codec_config_t::H264;
+              }
+
+              rt->screen_encoder.config_.codec = codec_type;
+              rt->screen_encoder.new_codec = This->stream_settings.selected_encoder;
+              rt->screen_encoder.update_flags |= codec_update_e::codec;
+              rt->screen_encoder.encode_write_flags |= codec_update_e::force_keyframe;
             }
           }
           gui::pop_item_width();
