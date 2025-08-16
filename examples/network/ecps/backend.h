@@ -143,6 +143,7 @@ struct ecps_backend_t {
     uint16_t m_Sequence;
     uint16_t m_Possible;
     uint16_t m_ModuloSize;
+    uint64_t frame_start_time = 0;
 
     std::vector<uint8_t> m_DataCheck = std::vector<uint8_t>(0x201);
     std::vector<uint8_t> m_data = std::vector<uint8_t>(0x400400);
@@ -162,25 +163,55 @@ struct ecps_backend_t {
       uint64_t Frame_Corrected;
     } m_stats;
 
-    void CheckAndSendRecoveryRequest() {
-      m_PacketCounter++;
-
-      if (m_PacketCounter % 1 != 0) {
-        return;
+    uint64_t get_adaptive_timeout() {
+      f32_t ping_ms = 0;
+      auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+      if (rt) {
+        ping_ms = OFFSETLESS(this, ecps_backend_t, view)->ping_ms;
       }
 
-      UpdateMissingPackets();
-      if (m_MissingPackets.empty()) {
+      // Base timeout + (RTT * safety multiplier) + recovery time
+      uint64_t base_timeout = 50000000ULL; // 50ms base
+      uint64_t rtt_timeout = (uint64_t)(ping_ms * 2.0f * 1000000.0f); // 2x RTT in nanoseconds
+      uint64_t recovery_time = 30000000ULL; // 30ms for recovery processing
+
+      uint64_t total_timeout = base_timeout + rtt_timeout + recovery_time;
+
+      uint64_t min_timeout = 80000000ULL; 
+      uint64_t max_timeout = 300000000ULL;
+
+      return std::clamp(total_timeout, min_timeout, max_timeout);
+    }
+
+    void CheckAndSendRecoveryRequest() {
+      if (frame_start_time > 0) {
+        uint64_t current_time = fan::event::now();
+        uint64_t frame_age = current_time - frame_start_time;
+        uint64_t adaptive_timeout = get_adaptive_timeout();
+        
+        if (frame_age > adaptive_timeout) {
+            SetNewSequence((m_Sequence + 1) % 0x1000);
+            return;
+        }
+    }
+
+    m_PacketCounter++;
+    if (m_PacketCounter % 1 != 0) {
+        return;
+    }
+    
+    UpdateMissingPackets();
+    if (m_MissingPackets.empty()) {
         m_AckSent = false;
         return;
-      }
-
-      static int retry_count = 0;
-      if (!m_AckSent || retry_count < 3) {
+    }
+    
+    static int retry_count = 0;
+    if (!m_AckSent || retry_count < 3) {
         SendRecoveryRequest();
         retry_count++;
-      }
     }
+}
 
     void FixFrameOnComplete();
 
@@ -259,12 +290,13 @@ struct ecps_backend_t {
     }
 
     void SetNewSequence(uint16_t Sequence) {
-      m_Sequence = Sequence;
-      m_Possible = (uint16_t)-1;
-      m_AckSent = false;
-      m_MissingPackets.clear();
-      __builtin_memset(m_DataCheck.data(), 0, m_DataCheck.size());
-    }
+    m_Sequence = Sequence;
+    m_Possible = (uint16_t)-1;
+    m_AckSent = false;
+    m_MissingPackets.clear();
+    __builtin_memset(m_DataCheck.data(), 0, m_DataCheck.size());
+    frame_start_time = fan::event::now(); // ADD THIS LINE
+}
 
     bool IsSequencePast(uint16_t PacketSequence) {
       int16_t diff = (int16_t)(PacketSequence - this->m_Sequence);

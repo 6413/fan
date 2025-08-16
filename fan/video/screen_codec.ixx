@@ -68,7 +68,7 @@ export namespace fan {
       int frame_rate = 30;
       int width = 1280;
       int height = 720;
-      int gop_size = 60;       // I-frame interval
+      int gop_size = 30;       // I-frame interval
       bool use_hardware = true; // Try hardware acceleration
     };
 
@@ -212,7 +212,7 @@ export namespace fan {
         else {
           return AV_PIX_FMT_YUV420P;
         }
-}
+      }
 
       bool find_and_init_codec() {
         auto codec_names = get_codec_names();
@@ -348,7 +348,7 @@ export namespace fan {
         }
 
         int sws_flags = fan::graphics::get_sws_flags(config.scaling_quality);
-        
+
         sws_ctx_ = sws_getContext(
           screencap_res_.x, screencap_res_.y, AV_PIX_FMT_BGRA,
           config_.width, config_.height, codec_ctx_->pix_fmt,
@@ -857,7 +857,7 @@ export namespace fan {
         int64_t pts = 0;
       };
 
-      std::vector<decode_result_t> decode_packet(const uint8_t* data, size_t size) {
+      std::vector<decode_result_t> decode_packet(const uint8_t* data, size_t size, const std::string& forced_codec) {
         std::vector<decode_result_t> results;
 
         if (!initialized_) {
@@ -865,7 +865,10 @@ export namespace fan {
         }
 
         if (!codec_ctx_) {
-          std::string detected_codec = detect_codec_from_data(data, size);
+          std::string detected_codec = forced_codec;
+          if (detected_codec == "auto-detect") {
+            detected_codec = detect_codec_from_data(data, size);
+          }
 
           bool hw_success = false;
           try {
@@ -1076,7 +1079,7 @@ export namespace fan {
         return available;
       }
     };
-    
+
     struct resolution_system_t {
       struct resolution_t {
         uint32_t width, height;
@@ -1236,7 +1239,6 @@ export namespace fan {
     };
 
     struct screen_encode_t {
-
       bool update_scaling_quality(codec_config_t::scaling_quality_e new_quality) {
         config_.scaling_quality = new_quality;
 
@@ -1246,22 +1248,17 @@ export namespace fan {
         return true;
       }
 
-
       bool open(const codec_config_t& default_config = codec_config_t()) {
-        std::memset(&mdscr, 0, sizeof(mdscr));
-        if (int ret = MD_SCR_open(&mdscr); ret != 0) {
-          fan::print("failed to open screen:" + std::to_string(ret));
-          return false;
-        }
-
-        resolution_manager.detect_and_set_optimal(*this);
+        mdscr_initialized_ = false;
 
         config_.frame_rate = 30;
         config_.codec = codec_config_t::H264;
         config_.rate_control = codec_config_t::VBR;
         config_.bitrate = 10000000;
+        config_.width = 1280;
+        config_.height = 720;
 
-        if (!encoder_.open(config_, fan::vec2(mdscr.Geometry.Resolution.x, mdscr.Geometry.Resolution.y))) {
+        if (!encoder_.open(config_, fan::vec2(config_.width, config_.height))) {
           fan::print("Failed to open encoder");
           return false;
         }
@@ -1274,6 +1271,27 @@ export namespace fan {
         return true;
       }
 
+      bool ensure_mdscr_initialized() {
+        if (mdscr_initialized_) {
+          return true;
+        }
+
+        std::memset(&mdscr, 0, sizeof(mdscr));
+        if (int ret = MD_SCR_open(&mdscr); ret != 0) {
+          fan::print("failed to open screen:" + std::to_string(ret));
+          return false;
+        }
+
+        resolution_manager.detect_and_set_optimal(*this);
+
+        if (!encoder_.open(config_, fan::vec2(mdscr.Geometry.Resolution.x, mdscr.Geometry.Resolution.y))) {
+          fan::print("Failed to reopen encoder with screen resolution");
+          return false;
+        }
+
+        mdscr_initialized_ = true;
+        return true;
+      }
       ~screen_encode_t() {
         encoder_.close();
       }
@@ -1293,8 +1311,15 @@ export namespace fan {
       };
 
       bool encode_write() {
+        if (!ensure_mdscr_initialized()) {
+          return false;
+        }
+
         if (!user_set_resolution &&
           (config_.width != mdscr.Geometry.Resolution.x || config_.height != mdscr.Geometry.Resolution.y)) {
+
+          resolution_manager.detect_and_set_optimal(*this);
+
           config_.width = mdscr.Geometry.Resolution.x;
           config_.height = mdscr.Geometry.Resolution.y;
 
@@ -1342,7 +1367,7 @@ export namespace fan {
 
         size_t expected_buffer_size = mdscr.Geometry.LineSize * mdscr.Geometry.Resolution.y;
 
-        int min_line_size = mdscr.Geometry.Resolution.x * 4; // BGRA minimum
+        int min_line_size = mdscr.Geometry.Resolution.x * 4;
         if (mdscr.Geometry.LineSize < min_line_size) {
           fan::print("Error: LineSize too small for BGRA. Expected at least: " +
             std::to_string(min_line_size) + ", got: " +
@@ -1407,6 +1432,10 @@ export namespace fan {
       }
 
       bool screen_read() {
+        if (!ensure_mdscr_initialized()) {
+          return false;
+        }
+
         screen_buffer = MD_SCR_read(&mdscr);
         return screen_buffer != nullptr;
       }
@@ -1435,6 +1464,7 @@ export namespace fan {
       uint8_t encode_write_flags = 0;
       bool user_set_resolution = false;
       uint32_t user_width = 0, user_height = 0;
+      bool mdscr_initialized_ = false;
 
       resolution_manager_t resolution_manager;
 
@@ -1510,12 +1540,13 @@ export namespace fan {
             ret.type = 254;
             return ret;
           }
+
           update_flags = 0;
 
           reload_codec_cb();
         }
 
-        auto results = decoder_.decode_packet(static_cast<const uint8_t*>(data), length);
+        auto results = decoder_.decode_packet(static_cast<const uint8_t*>(data), length, name);
 
         if (results.empty()) {
           ret.type = 252;
@@ -1595,8 +1626,8 @@ void fan::graphics::resolution_manager_t::detect_and_set_optimal(screen_encode_t
     detected_info.screen_aspect, 0.02f // 2% tolerance
   );
 
-  encoder.config_.width = detected_info.optimal_resolution.width;
-  encoder.config_.height = detected_info.optimal_resolution.height;
+  //encoder.config_.width = detected_info.optimal_resolution.width;
+  //encoder.config_.height = detected_info.optimal_resolution.height;
 
   auto_detected = true;
 }
