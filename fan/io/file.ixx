@@ -24,6 +24,9 @@ export namespace fan {
 	namespace io {
 		namespace file {
 
+      template<typename T>
+      concept path_t = std::same_as<T, std::filesystem::path>;
+
 			std::string extension(const std::string& file_path) {
 				size_t dotPosition = file_path.find_last_of('.');
 				size_t sepPosition = file_path.find_last_of("/\\");
@@ -308,7 +311,7 @@ export namespace fan {
 				return 0;
 			}
       
-      bool read(const std::filesystem::path& path, std::string* str) {
+      bool read(const path_t auto & path, std::string* str) {
         std::ifstream file(path, std::ifstream::ate | std::ifstream::binary);
         if (file.fail()) {
 #if fan_debug >= fan_debug_insane
@@ -337,7 +340,7 @@ export namespace fan {
 				file.close();
 				return 0;
 			}
-      bool read(const std::filesystem::path& path, std::string* str, std::size_t length) {
+      bool read(const path_t auto& path, std::string* str, std::size_t length) {
         std::ifstream file(path, std::ifstream::binary);
         if (file.fail()) {
 #if fan_debug >= fan_debug_insane

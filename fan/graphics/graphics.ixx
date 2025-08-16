@@ -99,6 +99,7 @@ export namespace fan {
     using viewport_t = loco_t::viewport_t;
 
     using shape_t = loco_t::shape_t;
+    using shader_t = loco_t::shader_t;
 
     fan::graphics::image_t invalid_image = []{
       image_t image;

@@ -54,6 +54,9 @@ export namespace fan {
       obj = command;
       return obj;
     }
+    void remove(const std::string& cmd) {
+      func_table.erase(cmd);
+    }
 
     int call(const std::string& cmd) {
       std::size_t arg0_off = cmd.find(" ");
@@ -359,7 +362,6 @@ export namespace fan {
         frame_cbs.unlrec(nr);
         nr.sic();
     }
-
 
     inline frame_cb_t::nr_t push_frame_process(auto func) {
       auto it = frame_cbs.NewNodeLast();

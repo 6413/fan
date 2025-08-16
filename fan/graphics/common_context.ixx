@@ -156,19 +156,45 @@ export namespace fan {
 }
 
 namespace bll_builds {
-#include "camera_list_builder_settings.h"
+#include <fan/fan_bll_preset.h>
+#define BLL_set_prefix camera_list
+#define BLL_set_type_node uint8_t
+#define BLL_set_NodeDataType fan::graphics::context_camera_t
+#define BLL_set_Link 0
+#define BLL_set_IsNodeRecycled 0
+#define BLL_set_AreWeInsideStruct 0
 #include <BLL/BLL.h>
   using camera_nr_t = camera_list_NodeReference_t;
 
-#include "shader_list_builder_settings.h"
+#include <fan/fan_bll_preset.h>
+#define BLL_set_prefix shader_list
+#define BLL_set_type_node uint16_t
+#define BLL_set_NodeDataType fan::graphics::shader_data_t
+#define BLL_set_Link 0
+#define BLL_set_nrtra 1
+#define BLL_set_IsNodeRecycled 0
+#define BLL_set_AreWeInsideStruct 0
+#define bcontainer_set_StoreFormat 1
 #include <BLL/BLL.h>
   using shader_nr_t = shader_list_NodeReference_t;
 
-#include "image_list_builder_settings.h"
+#include <fan/fan_bll_preset.h>
+#define BLL_set_prefix image_list
+#define BLL_set_type_node uint16_t
+#define BLL_set_NodeDataType fan::graphics::image_data_t
+#define BLL_set_Link 0
+#define BLL_set_IsNodeRecycled 0
+#define BLL_set_AreWeInsideStruct 0
+#define BLL_set_Usage 1
 #include <BLL/BLL.h>
   using image_nr_t = image_list_NodeReference_t;
 
-#include "viewport_list_builder_settings.h"
+#include <fan/fan_bll_preset.h>
+#define BLL_set_prefix viewport_list
+#define BLL_set_type_node uint8_t
+#define BLL_set_NodeDataType fan::graphics::context_viewport_t
+#define BLL_set_Link 0
+#define BLL_set_AreWeInsideStruct 0
 #include <BLL/BLL.h>
   using viewport_nr_t = viewport_list_NodeReference_t;
 };

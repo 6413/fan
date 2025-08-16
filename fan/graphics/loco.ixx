@@ -59,7 +59,6 @@ module;
     #include <fan/imgui/imgui_impl_vulkan.h>
   #endif
   #include <fan/imgui/imgui_impl_glfw.h>
-  #include <fan/imgui/imgui_neo_sequencer.h>
   #include <fan/imgui/implot.h>
 #endif
 
@@ -655,7 +654,7 @@ export struct loco_t {
   fan::graphics::context_t context;
 
 
-#include <fan/tp/tp0.h>
+#include <fan/texture_pack/tp0.h>
 
   static std::string read_shader(const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
     std::string code;
@@ -2905,6 +2904,9 @@ public:
       action_data.count = (uint8_t)1;
       std::memcpy(action_data.keys, &key, sizeof(int) * 1);
       input_actions.insert_or_assign(action_name, action_data);
+    }
+    void remove(std::string_view action_name) {
+      input_actions.erase(action_name);
     }
 
     std::unordered_map<std::string_view, action_data_t> input_actions;
