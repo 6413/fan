@@ -7,6 +7,7 @@ module;
 #endif
 #if defined(fan_platform_windows)
   #define WIN32_LEAN_AND_MEAN
+  #define NOMINMAX
   #include <Windows.h>
   #define GLFW_EXPOSE_NATIVE_WIN32
   #define GLFW_EXPOSE_NATIVE_WGL
@@ -514,48 +515,85 @@ export namespace fan {
       glfwSetWindowPos(glfw_window, position.x, position.y);
     }
 
+    GLFWmonitor* get_current_monitor() {
+      int window_x, window_y, window_width, window_height;
+      glfwGetWindowPos(glfw_window, &window_x, &window_y);
+      glfwGetWindowSize(glfw_window, &window_width, &window_height);
+
+      int monitor_count;
+      GLFWmonitor** monitors = glfwGetMonitors(&monitor_count);
+
+      GLFWmonitor* best_monitor = nullptr;
+      int best_area = 0;
+
+      for (int i = 0; i < monitor_count; i++) {
+        const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
+        int monitor_x, monitor_y;
+        glfwGetMonitorPos(monitors[i], &monitor_x, &monitor_y);
+
+        int overlap_x = std::max(0, std::min(window_x + window_width, monitor_x + mode->width) - std::max(window_x, monitor_x));
+        int overlap_y = std::max(0, std::min(window_y + window_height, monitor_y + mode->height) - std::max(window_y, monitor_y));
+        int overlap_area = overlap_x * overlap_y;
+
+        if (overlap_area > best_area) {
+          best_area = overlap_area;
+          best_monitor = monitors[i];
+        }
+      }
+
+      return best_monitor ? best_monitor : glfwGetPrimaryMonitor();
+    }
+
+
     void set_windowed() {
       glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, true);
-      using namespace fan::window;
-      GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+
+      GLFWmonitor* monitor = get_current_monitor();
       const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-      //glfwSetWindowSize(glfw_window, windowWidth, windowHeight);
-      glfwSetWindowMonitor(glfw_window, NULL, mode->width / 8, mode->height / 8, mode->width / 2, mode->height / 2, mode->refreshRate);
-      fan::vec2 screen_size = fan::vec2(mode->width, mode->height);
-      fan::vec2 window_pos = (screen_size - get_size()) / 2;
-      glfwSetWindowPos(glfw_window, window_pos.x, window_pos.y);
+
+      int monitor_x, monitor_y;
+      glfwGetMonitorPos(monitor, &monitor_x, &monitor_y);
+
+      int window_width = mode->width / 2;
+      int window_height = mode->height / 2;
+      int window_x = monitor_x + mode->width / 8;
+      int window_y = monitor_y + mode->height / 8;
+
+      glfwSetWindowMonitor(glfw_window, NULL, window_x, window_y, window_width, window_height, mode->refreshRate);
       display_mode = (uint8_t)mode::windowed;
     }
 
     void set_fullscreen() {
-      using namespace fan::window;
-      GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+      GLFWmonitor* monitor = get_current_monitor();
       const GLFWvidmode* mode = glfwGetVideoMode(monitor);
       glfwSetWindowMonitor(glfw_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
       display_mode = (uint8_t)mode::full_screen;
     }
 
     void set_windowed_fullscreen() {
-      using namespace fan::window;
-      GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+      GLFWmonitor* monitor = get_current_monitor();
       const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
-#if defined(fan_platform_windows)
-      glfwSetWindowMonitor(glfw_window, NULL, 0, mode->height - mode->height / (1.04), mode->width, mode->height / (1.08), mode->refreshRate);
-#else
-      glfwSetWindowMonitor(glfw_window, NULL, 0, 0, mode->width, mode->height, mode->refreshRate);
-#endif
+      int monitor_x, monitor_y;
+      glfwGetMonitorPos(monitor, &monitor_x, &monitor_y);
+
+      int work_x, work_y, work_width, work_height;
+      glfwGetMonitorWorkarea(monitor, &work_x, &work_y, &work_width, &work_height);
+
+      glfwSetWindowMonitor(glfw_window, NULL, work_x, work_y, work_width, work_height, mode->refreshRate);
       display_mode = (uint8_t)mode::windowed_fullscreen;
     }
 
-    void set_borderless() {
-      using namespace fan::window;
 
-      GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    void set_borderless() {
+      GLFWmonitor* monitor = get_current_monitor();
       const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
-      set_position(0);
+      int monitor_x, monitor_y;
+      glfwGetMonitorPos(monitor, &monitor_x, &monitor_y);
+
       glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, false);
+      set_position(fan::vec2(monitor_x, monitor_y));
       set_size(fan::vec2(mode->width, mode->height));
       display_mode = (uint8_t)mode::borderless;
     }

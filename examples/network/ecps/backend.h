@@ -416,7 +416,10 @@ struct ecps_backend_t {
     uintptr_t BufferSize = (uintptr_t)DataWillBeAt - (uintptr_t)buffer + DataSize;
     share.StorePacketForRecovery(share.frame_index, Current, buffer, BufferSize);
     if (share.m_NetworkFlow.Bucket < BufferSize * 8) {
-      co_return 1;
+      int64_t deficit_threshold = static_cast<int64_t>(share.m_NetworkFlow.BucketSize) * 0.1;
+      if (static_cast<int64_t>(share.m_NetworkFlow.Bucket) < -deficit_threshold) {
+        co_return 1;
+      }
     }
     share.m_NetworkFlow.Bucket -= BufferSize * 8;
 

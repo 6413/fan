@@ -57,7 +57,7 @@ struct ecps_gui_t {
         catch (...) {
 
         }
-        });
+      });
     }
   }
   static uint32_t string_to_number(const std::string& str) {
@@ -253,11 +253,14 @@ struct ecps_gui_t {
     int selected_scaling_quality = 1;
     int selected_resolution = 0;
     f32_t framerate = 30;
-    f32_t bitrate_mbps = 5;
     int selected_encoder = 0;
     int selected_decoder = 0;
     int input_control = 0;
     bool show_in_stream_view = true;
+
+    f32_t bitrate_mbps = 10;
+    bool use_adaptive_bitrate = true;
+    int bitrate_mode = 0;
 
     f32_t settings_panel_width = 350.0f;
     bool is_resizing = false;
@@ -797,20 +800,31 @@ struct ecps_gui_t {
 
         gui::separator();
 
-        gui::text("Bitrate (Mbps)");
-        gui::push_item_width(-1);
-        do {
-          gui::slider_float("##bitrate_compact", &This->stream_settings.bitrate_mbps, 0.5f, 50.0f, "%.1f");
-          if (gui::is_item_deactivated_after_edit()) {
-            if (channel_id == (uint32_t)-1) break;
-            auto* rt = get_render_thread();
-            if (rt) {
-              rt->screen_encoder.config_.bitrate = This->stream_settings.bitrate_mbps * 1000000;
-              rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, codec_update_e::rate_control);
+        {
+          gui::text("Bitrate Mode");
+          const char* bitrate_modes[] = { "Automatic", "Manual" };
+          if (gui::combo("##bitrate_mode", &This->stream_settings.bitrate_mode, bitrate_modes, 2)) {
+            if (This->stream_settings.bitrate_mode == 0) {
+              This->stream_settings.use_adaptive_bitrate = true;
+            }
+            else {
+              This->stream_settings.use_adaptive_bitrate = false;
             }
           }
-        } while (0);
-        gui::pop_item_width();
+
+          if (This->stream_settings.bitrate_mode == 1) {
+            gui::text("Bitrate (Mbps)");
+            gui::push_item_width(-1);
+            if (gui::slider_float("##bitrate_compact", &This->stream_settings.bitrate_mbps, 0.5f, 50.0f, "%.1f", gui::slider_flags_always_clamp)) {
+              auto* rt = get_render_thread();
+              if (rt) {
+                rt->screen_encoder.config_.bitrate = This->stream_settings.bitrate_mbps * 1000000;
+                rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, codec_update_e::rate_control);
+              }
+            }
+            gui::pop_item_width();
+          }
+        }
 
         gui::separator();
         do {
@@ -872,17 +886,41 @@ struct ecps_gui_t {
       if (ecps_backend.is_viewing_any_channel()) {
         // Decoder
         do {
+
           static auto decoder_names = [] {
             auto* rt = render_thread_ptr.load(std::memory_order_acquire);
             if (!rt) {
               return std::vector<std::string>{
-                "auto-detect", "libx264", "libx265", "libaom-av1"
+                "h264_cuvid", "auto-detect", "libx264", "libx265", "libaom-av1"
               };
             }
 
             auto decoders = rt->screen_decoder.get_decoders();
             return decoders;
             }();
+          static bool decoder_inited = false;
+          if (decoder_inited == false) {
+            decoder_inited = true;
+            auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+            if (rt) {
+              for (int i = 0; i < decoder_names.size(); i++) {
+                if (decoder_names[i] == rt->screen_decoder.name) {
+                  This->stream_settings.selected_decoder = i;
+                  break;
+                }
+              }
+              // If not found, default to "auto-detect" if available
+              if (This->stream_settings.selected_decoder >= decoder_names.size()) {
+                for (int i = 0; i < decoder_names.size(); i++) {
+                  if (decoder_names[i] == "auto-detect") {
+                    This->stream_settings.selected_decoder = i;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+
           static auto decoder_options = [] {
             std::vector<const char*> names;
             names.reserve(decoder_names.size());
@@ -1121,6 +1159,28 @@ struct ecps_gui_t {
         }
 
         rt->network_frame.set_position(center);
+
+        if (rt->network_frame.get_image() != engine.default_texture) {
+          float decoder_fps = rt->displayed_fps;
+          std::string fps_text = fan::to_string(decoder_fps, 1) + " FPS";
+
+          fan::vec2 text_size = gui::calc_text_size(fps_text.c_str());
+          fan::vec2 bg_padding = fan::vec2(6, 3);
+          fan::vec2 fps_pos = fan::vec2(stream_width - text_size.x - 20, 10);
+
+          gui::set_cursor_pos(fps_pos);
+
+          fan::vec2 bg_min = gui::get_cursor_screen_pos() - bg_padding;
+          fan::vec2 bg_max = bg_min + text_size + bg_padding * 2;
+
+          gui::get_window_draw_list()->AddRectFilled(
+            bg_min, bg_max,
+            fan::color(0, 0, 0, 0.7f).to_u32(),
+            3.0f
+          );
+
+          gui::text(fps_text.c_str(), fan::color(0.5f, 1, 0.5f, 1));
+        }
 
 #if ecps_debug_prints >= 3
         static int debug_counter = 0;
@@ -1490,6 +1550,11 @@ struct ecps_gui_t {
         rt->screen_encoder.set_user_resolution(resolution.width, resolution.height);
         rt->screen_encoder.encode_write_flags |= codec_update_e::force_keyframe;
 
+        if (rt->ecps_gui.stream_settings.bitrate_mode == 0) { // auto
+          rt->screen_encoder.config_.bitrate = dynamic_config_t::get_adaptive_bitrate();
+          rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, codec_update_e::rate_control);
+        }
+
         last_applied_width = resolution.width;
         last_applied_height = resolution.height;
       }
@@ -1594,6 +1659,28 @@ struct ecps_gui_t {
 
       if (rt->network_frame.get_image() != engine.default_texture) {
         rt->network_frame.set_size(full_size);
+      }
+
+      if (rt->network_frame.get_image() != engine.default_texture) {
+        float decoder_fps = rt->displayed_fps;
+        std::string fps_text = fan::to_string(decoder_fps, 1) + " FPS";
+
+        fan::vec2 text_size = gui::calc_text_size(fps_text.c_str());
+        fan::vec2 bg_padding = fan::vec2(6, 3);
+        fan::vec2 fps_pos = fan::vec2(stream_area.x - text_size.x - 20, 10);
+
+        gui::set_cursor_pos(fps_pos);
+
+        fan::vec2 bg_min = gui::get_cursor_screen_pos() - bg_padding;
+        fan::vec2 bg_max = bg_min + text_size + bg_padding * 2;
+
+        gui::get_window_draw_list()->AddRectFilled(
+          bg_min, bg_max,
+          fan::color(0, 0, 0, 0.7f).to_u32(),
+          3.0f
+        );
+
+        gui::text(fps_text.c_str(), fan::color(0.5f, 1, 0.5f, 1));
       }
 
       gui::pop_style_var(5);

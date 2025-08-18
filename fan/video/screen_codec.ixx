@@ -230,23 +230,28 @@ export namespace fan {
             codec_ctx_->height = config_.height;
             codec_ctx_->time_base = { 1, config_.frame_rate };
             codec_ctx_->framerate = { config_.frame_rate, 1 };
-            codec_ctx_->gop_size = config_.gop_size;
-            codec_ctx_->max_b_frames = 1;
+            codec_ctx_->gop_size = config_.frame_rate >= 120 ? config_.frame_rate / 2 : config_.gop_size;
+            codec_ctx_->max_b_frames = config_.frame_rate >= 60 ? 0 : 1;
             AVPixelFormat preferred_format = choose_encoder_pixel_format(name);
             codec_ctx_->pix_fmt = preferred_format;
 
             switch (config_.rate_control) {
             case codec_config_t::CBR:
-              codec_ctx_->bit_rate = config_.bitrate;
-              codec_ctx_->rc_buffer_size = config_.bitrate;
-              codec_ctx_->rc_max_rate = config_.bitrate;
-              codec_ctx_->rc_min_rate = config_.bitrate;
+              if (name.find("nvenc") == std::string::npos) {
+                codec_ctx_->bit_rate = config_.bitrate;
+                codec_ctx_->rc_buffer_size = config_.bitrate;
+                codec_ctx_->rc_max_rate = config_.bitrate;
+                codec_ctx_->rc_min_rate = config_.bitrate;
+              }
               break;
             case codec_config_t::VBR:
-              codec_ctx_->bit_rate = config_.bitrate;
+              if (name.find("nvenc") == std::string::npos) {
+                codec_ctx_->bit_rate = config_.bitrate;
+              }
               break;
             case codec_config_t::CRF:
-              av_opt_set_int(codec_ctx_->priv_data, "crf", config_.crf_value, 0);
+              av_opt_set(codec_ctx_->priv_data, "rc", "constqp", 0);
+              av_opt_set_int(codec_ctx_->priv_data, "qp", config_.crf_value, 0);
               break;
             }
 
@@ -255,25 +260,34 @@ export namespace fan {
             }
 
             if (name.find("nvenc") != std::string::npos) {
-              // NVIDIA NVENC options
-              av_opt_set(codec_ctx_->priv_data, "preset", "fast", 0);
-              av_opt_set(codec_ctx_->priv_data, "tune", "ll", 0);      // Low latency
-              av_opt_set(codec_ctx_->priv_data, "rc", "vbr", 0);
-              av_opt_set_int(codec_ctx_->priv_data, "surfaces", 8, 0);  // Reduced from 32
-              av_opt_set_int(codec_ctx_->priv_data, "delay", 0, 0);
+              av_opt_set(codec_ctx_->priv_data, "preset", "p1", 0);
+              av_opt_set(codec_ctx_->priv_data, "tune", "ull", 0);
+              switch (config_.rate_control) {
+              case codec_config_t::CBR:
+                av_opt_set(codec_ctx_->priv_data, "rc", "cbr", 0);
+                break;
+              case codec_config_t::VBR:
+                av_opt_set(codec_ctx_->priv_data, "rc", "vbr", 0);
+                break;
+              case codec_config_t::CRF:
+                av_opt_set(codec_ctx_->priv_data, "rc", "constqp", 0);
+                av_opt_set_int(codec_ctx_->priv_data, "qp", config_.crf_value, 0);
+                break;
+              }
 
-              //av_opt_set_int(codec_ctx_->priv_data, "aud", 0, 0);      // Disable Access Unit Delimiters
-              //av_opt_set_int(codec_ctx_->priv_data, "no-scenecut", 1, 0); // Disable scene cut detection
-              //av_opt_set(codec_ctx_->priv_data, "profile", "baseline", 0); // Use baseline profile
-              //av_opt_set_int(codec_ctx_->priv_data, "forced-idr", 1, 0);   // Force IDR frames
+              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
+              av_opt_set_int(codec_ctx_->priv_data, "maxrate", config_.bitrate, 0);
+              av_opt_set_int(codec_ctx_->priv_data, "bufsize", config_.bitrate / 2, 0);
 
-              //codec_ctx_->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;  // Put headers in extradata
-              //codec_ctx_->flags2 |= AV_CODEC_FLAG2_LOCAL_HEADER; // Don't repeat headers
+              uint32_t surfaces = config_.frame_rate >= 144 ? 24 : (config_.frame_rate >= 120 ? 20 : (config_.frame_rate >= 60 ? 16 : 8));
+              av_opt_set_int(codec_ctx_->priv_data, "surfaces", surfaces, 0);
+              av_opt_set_int(codec_ctx_->priv_data, "async_depth", 4, 0);
 
-              //// Disable B-frames for low latency and fewer SEI packets
-              //codec_ctx_->max_b_frames = 0;
-              //codec_ctx_->has_b_frames = 0;
+              uint32_t delay = config_.frame_rate >= 120 ? 1 : 0;
+              av_opt_set_int(codec_ctx_->priv_data, "delay", delay, 0);
 
+              av_opt_set(codec_ctx_->priv_data, "profile", "high", 0);
+              av_opt_set(codec_ctx_->priv_data, "level", "auto", 0);
             }
             else if (name.find("amf") != std::string::npos) {
               av_opt_set(codec_ctx_->priv_data, "quality", "speed", 0);
@@ -383,6 +397,8 @@ export namespace fan {
         }
 
         if (codec_ctx_) {
+          //fan::print("leaking - corruption");
+          //codec_ctx_ = 0;
           avcodec_free_context(&codec_ctx_);
         }
 
@@ -499,24 +515,85 @@ export namespace fan {
         config_ = new_config;
 
         if (update_flags & codec_update_e::rate_control) {
-          switch (config_.rate_control) {
-          case codec_config_t::CBR:
+          if (codec_name_.find("nvenc") != std::string::npos) {
+            switch (config_.rate_control) {
+            case codec_config_t::CBR:
+              av_opt_set(codec_ctx_->priv_data, "rc", "cbr", 0);
+              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
+              av_opt_set_int(codec_ctx_->priv_data, "maxrate", config_.bitrate, 0);
+              av_opt_set_int(codec_ctx_->priv_data, "bufsize", config_.bitrate / 2, 0);
+              break;
+            case codec_config_t::VBR:
+              av_opt_set(codec_ctx_->priv_data, "rc", "vbr", 0);
+              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
+              av_opt_set_int(codec_ctx_->priv_data, "maxrate", config_.bitrate, 0);
+              av_opt_set_int(codec_ctx_->priv_data, "bufsize", config_.bitrate / 2, 0);
+              break;
+            case codec_config_t::CRF:
+              av_opt_set(codec_ctx_->priv_data, "rc", "constqp", 0);
+              av_opt_set_int(codec_ctx_->priv_data, "qp", config_.crf_value, 0);
+              break;
+            }
+          }
+          else if (codec_name_.find("amf") != std::string::npos) {
+            switch (config_.rate_control) {
+            case codec_config_t::CBR:
+              av_opt_set(codec_ctx_->priv_data, "rc", "cbr", 0);
+              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
+              break;
+            case codec_config_t::VBR:
+              av_opt_set(codec_ctx_->priv_data, "rc", "vbr_latency", 0);
+              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
+              break;
+            case codec_config_t::CRF:
+              av_opt_set(codec_ctx_->priv_data, "rc", "cqp", 0);
+              av_opt_set_int(codec_ctx_->priv_data, "qp_i", config_.crf_value, 0);
+              av_opt_set_int(codec_ctx_->priv_data, "qp_p", config_.crf_value, 0);
+              break;
+            }
+          }
+          else if (codec_name_.find("vaapi") != std::string::npos) {
+            av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
+            if (config_.rate_control == codec_config_t::CRF) {
+              av_opt_set_int(codec_ctx_->priv_data, "qp", config_.crf_value, 0);
+            }
+          }
+          else if (codec_name_ == "libx264" || codec_name_ == "libx265") {
+            switch (config_.rate_control) {
+            case codec_config_t::CBR:
+            case codec_config_t::VBR:
+              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
+              codec_ctx_->bit_rate = config_.bitrate;
+              break;
+            case codec_config_t::CRF:
+              av_opt_set_int(codec_ctx_->priv_data, "crf", config_.crf_value, 0);
+              break;
+            }
+          }
+          else {
             codec_ctx_->bit_rate = config_.bitrate;
-            codec_ctx_->rc_max_rate = config_.bitrate;
-            codec_ctx_->rc_min_rate = config_.bitrate;
-            break;
-          case codec_config_t::VBR:
-            codec_ctx_->bit_rate = config_.bitrate;
-            break;
-          case codec_config_t::CRF:
-            av_opt_set_int(codec_ctx_->priv_data, "crf", config_.crf_value, 0);
-            break;
+            if (config_.rate_control == codec_config_t::CRF) {
+              av_opt_set_int(codec_ctx_->priv_data, "crf", config_.crf_value, 0);
+            }
           }
         }
 
         if (update_flags & codec_update_e::frame_rate) {
           codec_ctx_->time_base = { 1, config_.frame_rate };
           codec_ctx_->framerate = { config_.frame_rate, 1 };
+
+          codec_ctx_->gop_size = config_.frame_rate >= 120 ? config_.frame_rate / 2 : config_.gop_size;
+          codec_ctx_->max_b_frames = config_.frame_rate >= 60 ? 0 : 1;
+
+          if (codec_name_.find("nvenc") != std::string::npos) {
+            uint32_t surfaces = config_.frame_rate >= 144 ? 32 : (config_.frame_rate >= 120 ? 24 : (config_.frame_rate >= 60 ? 16 : 8));
+            av_opt_set_int(codec_ctx_->priv_data, "surfaces", surfaces, 0);
+
+            uint32_t delay = config_.frame_rate >= 120 ? 1 : 0;
+            av_opt_set_int(codec_ctx_->priv_data, "delay", delay, 0);
+
+            av_opt_set_int(codec_ctx_->priv_data, "async_depth", 4, 0);
+          }
         }
 
         return true;
@@ -660,7 +737,8 @@ export namespace fan {
           codec_ctx_->opaque = this;
 
           if (decoder_name.find("cuvid") != std::string::npos) {
-            av_opt_set_int(codec_ctx_->priv_data, "surfaces", 8, 0);
+            av_opt_set_int(codec_ctx_->priv_data, "surfaces", 16, 0);
+            av_opt_set_int(codec_ctx_->priv_data, "async_depth", 4, 0);
             av_opt_set_int(codec_ctx_->priv_data, "drop_second_field", 1, 0);
             av_opt_set(codec_ctx_->priv_data, "deint", "weave", 0);
             av_opt_set_int(codec_ctx_->priv_data, "crop", 0, 0);
@@ -1085,7 +1163,7 @@ export namespace fan {
         uint32_t width, height;
         std::string name;
         std::string category;
-        float aspect_ratio() const { return static_cast<float>(width) / height; }
+        f32_t aspect_ratio() const { return static_cast<f32_t>(width) / height; }
       };
 
       static const std::vector<resolution_t>& get_all_resolutions() {
@@ -1142,7 +1220,7 @@ export namespace fan {
         return categorized;
       }
 
-      static std::vector<resolution_t> get_resolutions_by_aspect(float target_aspect, float tolerance = 0.01f) {
+      static std::vector<resolution_t> get_resolutions_by_aspect(f32_t target_aspect, f32_t tolerance = 0.01f) {
         std::vector<resolution_t> filtered;
 
         for (const auto& res : get_all_resolutions()) {
@@ -1195,7 +1273,7 @@ export namespace fan {
       }
 
       static resolution_t get_optimal_resolution(uint32_t screen_width, uint32_t screen_height) {
-        float screen_aspect = static_cast<float>(screen_width) / screen_height;
+        f32_t screen_aspect = static_cast<f32_t>(screen_width) / screen_height;
 
         auto matching_aspect = get_resolutions_by_aspect(screen_aspect, 0.02f);
 
@@ -1217,7 +1295,7 @@ export namespace fan {
     struct resolution_manager_t {
       struct detected_info_t {
         uint32_t screen_width, screen_height;
-        float screen_aspect;
+        f32_t screen_aspect;
         resolution_system_t::resolution_t optimal_resolution;
         std::vector<resolution_system_t::resolution_t> matching_aspect_resolutions;
       };
@@ -1227,7 +1305,7 @@ export namespace fan {
 
       void detect_and_set_optimal(screen_encode_t& encoder);
 
-      std::vector<std::pair<std::string, float>> get_aspect_ratio_options() {
+      std::vector<std::pair<std::string, f32_t>> get_aspect_ratio_options() {
         return {
           {"16:9", 16.0f / 9.0f},
           {"16:10", 16.0f / 10.0f},
@@ -1310,7 +1388,7 @@ export namespace fan {
         int64_t timestamp = 0;
       };
 
-      bool encode_write() {
+     bool encode_write() {
         if (!ensure_mdscr_initialized()) {
           return false;
         }
@@ -1616,7 +1694,7 @@ void fan::graphics::resolution_manager_t::detect_and_set_optimal(screen_encode_t
 
   detected_info.screen_width = encoder.mdscr.Geometry.Resolution.x;
   detected_info.screen_height = encoder.mdscr.Geometry.Resolution.y;
-  detected_info.screen_aspect = static_cast<float>(detected_info.screen_width) / detected_info.screen_height;
+  detected_info.screen_aspect = static_cast<f32_t>(detected_info.screen_width) / detected_info.screen_height;
 
   detected_info.optimal_resolution = resolution_system_t::get_optimal_resolution(
     detected_info.screen_width, detected_info.screen_height

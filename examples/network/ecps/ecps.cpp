@@ -57,25 +57,21 @@ std::atomic<bool> render_thread_ready{ false };
 struct dynamic_config_t {
   static uint32_t get_target_framerate();
 
-  static uint64_t get_adaptive_bitrate() {
-    uint64_t  fps = get_target_framerate();
-    if (fps >= 120) return 12000000;
-    else if (fps >= 90) return 9000000;
-    else if (fps >= 60) return 6000000;
-    else return 4000000;
-  }
-
   static uint32_t get_adaptive_bucket_size() {
     uint32_t fps = get_target_framerate();
     uint32_t base_bitrate = get_adaptive_bitrate();
-    if (fps >= 120) return base_bitrate * 3;
+    if (fps >= 144) return base_bitrate * 4;
+    else if (fps >= 120) return base_bitrate * 3;
     else if (fps >= 60) return base_bitrate * 2;
     else return base_bitrate;
   }
 
+  static uint64_t get_adaptive_bitrate();
+
   static size_t get_adaptive_pool_size() {
     uint32_t fps = get_target_framerate();
-    if (fps >= 120) return 256;
+    if (fps >= 144) return 320;
+    else if (fps >= 120) return 256;
     else if (fps >= 90) return 192;
     else if (fps >= 60) return 128;
     else return 64;
@@ -83,7 +79,8 @@ struct dynamic_config_t {
 
   static size_t get_adaptive_queue_size() {
     uint32_t fps = get_target_framerate();
-    if (fps >= 120) return 8;
+    if (fps >= 144) return 10;
+    else if (fps >= 120) return 8;
     else if (fps >= 90) return 6;
     else if (fps >= 60) return 4;
     else return 3;
@@ -91,15 +88,18 @@ struct dynamic_config_t {
 
   static uint32_t get_adaptive_motion_poll_ms() {
     uint32_t fps = get_target_framerate();
-    if (fps >= 120) return 30;
+    if (fps >= 144) return 25;
+    else if (fps >= 120) return 30;
     else if (fps >= 90) return 40;
     else if (fps >= 60) return 50;
     else return 80;
   }
 
+
   static size_t get_adaptive_chunk_count() {
     uint32_t fps = get_target_framerate();
-    if (fps >= 120) return 40;
+    if (fps >= 144) return 50;
+    else if (fps >= 120) return 40;
     else if (fps >= 90) return 30;
     else if (fps >= 60) return 25;
     else return 20;
@@ -107,7 +107,8 @@ struct dynamic_config_t {
 
   static f32_t get_adaptive_bucket_multiplier() {
     uint32_t fps = get_target_framerate();
-    if (fps >= 120) return 8.0f;
+    if (fps >= 144) return 10.0f;
+    else if (fps >= 120) return 8.0f;
     else if (fps >= 90) return 6.5f;
     else if (fps >= 60) return 5.0f;
     else return 3.5f;
@@ -166,6 +167,7 @@ struct render_thread_t {
     .position = fan::vec3(fan::vec2(0), 1),
     .size = gloco->window.get_size() / 2,
   } };
+  f32_t displayed_fps = 0.0f;
 
   void render(auto l) {
     if (engine.process_loop([this, l] { ecps_gui.render(); l(); })) {
@@ -521,6 +523,20 @@ void ecps_backend_t::view_t::FixFrameOnComplete() {
   }
 }
 
+uint64_t dynamic_config_t::get_adaptive_bitrate() {
+  auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+  if (rt && rt->ecps_gui.stream_settings.bitrate_mode == 1) {
+    return rt->ecps_gui.stream_settings.bitrate_mbps * 1000000;
+  }
+
+  uint64_t fps = get_target_framerate();
+  if (fps >= 144) return 25000000;
+  else if (fps >= 120) return 20000000;
+  else if (fps >= 90) return 15000000;
+  else if (fps >= 60) return 12000000;
+  else return 8000000;
+}
+
 int main() {
 
   ecps_backend.login_fail_cb = [](fan::exception_t e) {
@@ -622,6 +638,29 @@ int main() {
         if (render_thread_instance.ecps_gui.show_own_stream == false) {
           auto flnr = render_thread_instance.FrameList.GetNodeFirst();
           if (flnr != render_thread_instance.FrameList.dst) {
+
+            {
+              static fan::time::clock display_fps_timer;
+              static int display_frame_count = 0;
+              static float display_fps = 0.0f;
+              static bool timer_started = false;
+
+              if (!timer_started) {
+                display_fps_timer.start();
+                timer_started = true;
+              }
+
+              display_frame_count++;
+
+              if (display_fps_timer.elapsed() >= 1e+9) {
+                display_fps = static_cast<float>(display_frame_count) * 1e+9 / display_fps_timer.elapsed();
+                display_frame_count = 0;
+                display_fps_timer.restart();
+              }
+
+              render_thread_instance.displayed_fps = display_fps;
+            }
+
             auto& node = render_thread_instance.FrameList[flnr];
             bool frame_valid = false;
 #if ecps_debug_prints >= 2
@@ -1021,7 +1060,7 @@ int main() {
     auto now = std::chrono::steady_clock::now();
     auto time_since_startup = std::chrono::duration_cast<std::chrono::seconds>(now - startup_time);
     uint32_t fps = dynamic_config_t::get_target_framerate();
-    uint32_t startup_duration = fps >= 120 ? 4 : (fps >= 60 ? 6 : 8);
+    uint32_t startup_duration = fps >= 144 ? 3 : (fps >= 120 ? 4 : (fps >= 60 ? 6 : 8));
 
     auto* rt = render_thread_ptr.load(std::memory_order_acquire);
     if (rt && ecps_backend.is_streaming_to_any_channel()) {
@@ -1032,7 +1071,7 @@ int main() {
         uint32_t motion_threshold = (poll_ms * fps / 1000) * 3 / 2;
         if (frames_in_poll > motion_threshold) {
           motion_frames++;
-          uint32_t motion_trigger = fps >= 120 ? 8 : (fps >= 60 ? 6 : 4);
+          uint32_t motion_trigger = fps >= 144 ? 10 : (fps >= 120 ? 8 : (fps >= 60 ? 6 : 4));
           if (motion_frames >= motion_trigger) {
             rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
             motion_frames = 0;
