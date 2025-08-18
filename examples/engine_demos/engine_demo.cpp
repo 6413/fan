@@ -1,4 +1,4 @@
-// enumerate
+// This file is meant to stay up-to-date. More library usage will be implemented and showcased over time
 #include <fan/types/types.h>
 #include <fan/math/math.h>
 #include <vector>
@@ -384,7 +384,6 @@ void main() {
 
     fan::graphics::shader_t shader;
     fan::graphics::shape_t shader_shape;
-    fan::time::clock clock;
     bool shader_compiled = true;
   }*demo_shader_live_editor_data = 0;
 
@@ -404,13 +403,10 @@ void main() {
       .shader = data.shader,
       .image = image,
     } };
-
-    data.clock.start();
   }
 
   static void demo_shader_live_editor_update(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_shader_live_editor_data;
-    engine_demo->engine.shader_set_value(data.shader, "_time", data.clock.elapsed() / 1e+9f);
 
     if (!data.shader_compiled) {
       gui::text("Failed to compile shader", fan::colors::red);
@@ -424,6 +420,7 @@ void main() {
   }
   static void demo_shader_live_editor_cleanup(engine_demo_t* engine_demo) {
     engine_demo->right_window_split_ratio = 0.2f;
+    delete engine_demo->demo_shader_live_editor_data;
   }
   // ------------------------GUI------------------------
 
