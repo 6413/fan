@@ -681,6 +681,21 @@ struct ecps_backend_t {
     return channel_info.size() < original_size;
   }
 
+  bool is_current_user_host_of_channel(Protocol_ChannelID_t channel) const {
+    auto session_it = channel_sessions.find(channel);
+    if (session_it == channel_sessions.end()) {
+      return false;
+    }
+
+    const std::string current_username = get_current_username();
+    for (const auto& session : session_it->second) {
+      if (session.username == current_username && session.is_host) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   fan::event::task_t task_tcp_read;
 
   std::string ip;
@@ -796,6 +811,7 @@ struct ecps_backend_t {
     for (auto& channel : channel_info) {
       if (channel.channel_id.i == channel_id.i) {
         channel.is_streaming = streaming;
+        channel.stream_start_timer.start();
         return;
       }
     }
@@ -821,6 +837,17 @@ struct ecps_backend_t {
       }
     }
     return false;
+  }
+  uint64_t get_channel_stream_time(Protocol_ChannelID_t channel_id) {
+    if (channel_id.i == (uint16_t)-1) {
+      return 0;
+    }
+    for (const auto& channel : channel_info) {
+      if (channel.channel_id.i == channel_id.i) {
+        return channel.stream_start_timer.elapsed();
+      }
+    }
+    return 0;
   }
   bool is_channel_viewing(Protocol_ChannelID_t channel_id) const {
     for (const auto& channel : channel_info) {
@@ -885,6 +912,7 @@ struct ecps_backend_t {
     Protocol_ChannelSessionID_t session_id = 0;
 
     bool is_streaming = false;
+    fan::time::clock stream_start_timer;
     bool is_viewing = false;
     fan::time::clock joined_at;
   };

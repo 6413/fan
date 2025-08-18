@@ -63,7 +63,6 @@ export namespace fan {
     std::string formatted = current_fmt::format(fmt, std::forward<args_t>(args)...);
     print_throttled(formatted, throttle_ms);
   }
-
 }
 
 template<typename T>

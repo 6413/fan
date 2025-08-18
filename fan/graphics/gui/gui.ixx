@@ -179,6 +179,9 @@ export namespace fan {
         void table_setup_column(const std::string& label, ImGuiTableColumnFlags flags = 0, float init_width_or_weight = 0.0f, ImGuiID user_id = 0) {
           ImGui::TableSetupColumn(label.c_str(), flags, init_width_or_weight, user_id);
         }
+        void table_headers_row() {
+          ImGui::TableHeadersRow();
+        }
         bool table_set_column_index(int column_n) {
           return ImGui::TableSetColumnIndex(column_n);
         }

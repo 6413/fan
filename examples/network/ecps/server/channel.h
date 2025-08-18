@@ -108,10 +108,10 @@ const char* GetChannelName(Protocol_ChannelID_t ChannelID) {
   auto& Channel = g_pile->ChannelList[ChannelID];
   switch(Channel.Type) {
     case Protocol::ChannelType_ScreenShare_e:
-      snprintf(name_buffer, sizeof(name_buffer), "Screen Share #%d", (unsigned short)ChannelID);
+      snprintf(name_buffer, sizeof(name_buffer), "Screen Share");
       break;
     default:
-      snprintf(name_buffer, sizeof(name_buffer), "Channel #%d", (unsigned short)ChannelID);
+      snprintf(name_buffer, sizeof(name_buffer), "Channel #%d");
       break;
   }
   return name_buffer;

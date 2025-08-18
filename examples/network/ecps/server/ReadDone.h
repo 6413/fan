@@ -337,9 +337,9 @@ case Protocol_C2S_t::RequestChannelList: {
     info.UserCount = GetChannelUserCount(channel_id);
     info.HostSessionID = GetChannelHost(channel_id);
     info.IsPasswordProtected = 0;
-      
-    const char* name = GetChannelName(channel_id);
-    strncpy(info.Name, name, sizeof(info.Name) - 1);
+    //
+    const char* username = GetSessionUsername(GetChannelHost(channel_id));
+    strncpy(info.Name, username, sizeof(info.Name) - 1);
     info.Name[sizeof(info.Name) - 1] = '\0';
     
     nr = n->NextNodeReference;

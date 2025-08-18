@@ -416,10 +416,24 @@ struct ecps_gui_t {
         //}
 
         gui::set_next_window_bg_alpha(0.99);
+        gui::table_flags_t table_flags = gui::table_flags_row_bg
+          | gui::table_flags_borders_inner
+          | gui::table_flags_borders_outer
+          | gui::table_flags_resizable
+          | gui::table_flags_sizing_fixed_same;
         if (gui::begin_child("ChannelList", fan::vec2(0, -60), true)) {
-          if (gui::begin_table("ChannelTable", 1, gui::table_flags_row_bg)) {
+          if (gui::begin_table("ChannelTable", 4, table_flags)) {
+
+            gui::table_setup_column("ID", gui::table_column_flags_width_fixed, 50.f, 0);
+            gui::table_setup_column("Stream Name", gui::table_column_flags_width_stretch, 0.f, 0);
+            gui::table_setup_column("Viewers");
+            gui::table_setup_column("Live Time");
+
+            gui::table_headers_row();
+
             int row_index = 0;
             for (const auto& channel : ecps_backend.available_channels) {
+              gui::push_id(row_index);
               if (!search_filter.empty()) {
                 std::string name_lower = channel.name;
                 std::string filter_lower = search_filter;
@@ -432,26 +446,15 @@ struct ecps_gui_t {
 
               bool is_selected = (This->selected_channel_id.i == channel.channel_id.i);
 
-              bool is_host_of_channel = false;
-              auto session_it = ecps_backend.channel_sessions.find(channel.channel_id.i);
-              if (session_it != ecps_backend.channel_sessions.end()) {
-                std::string current_username = ecps_backend.get_current_username();
-                for (const auto& session : session_it->second) {
-                  if (session.username == current_username && session.is_host) {
-                    is_host_of_channel = true;
-                    break;
-                  }
-                }
-              }
+              bool is_host_of_channel = ecps_backend.is_current_user_host_of_channel(channel.channel_id);
 
-              std::string display_name = " " + channel.name;
+              std::string display_name = channel.name;
               if (is_host_of_channel) {
                 display_name = "⭐ " + channel.name;
               }
               if (channel.is_password_protected) {
                 //display_name += "";
               }
-              display_name += " (" + std::to_string(channel.user_count) + " users)";
 
               bool already_joined = false;
               for (const auto& joined_channel : ecps_backend.channel_info) {
@@ -460,27 +463,48 @@ struct ecps_gui_t {
                   break;
                 }
               }
-
               gui::table_next_row();
-              gui::table_set_column_index(0);
-
-              gui::push_style_color(gui::col_header_active, gui::get_style().Colors[gui::col_header_hovered]);
-
-              if (gui::selectable(display_name.c_str(), is_selected, gui::selectable_flags_span_all_columns)) {
-                This->selected_channel_id = channel.channel_id;
-
-                This->backend_queue([channel_id = channel.channel_id]() -> fan::event::task_t {
-                  try {
-                    co_await ecps_backend.request_channel_session_list(channel_id);
-                  }
-                  catch (...) {
-                    fan::print("Failed to request session list");
-                  }
-                  });
+              {
+                gui::table_set_column_index(0);
+                gui::text(std::to_string(channel.channel_id.i));
               }
 
-              gui::pop_style_color();
+              {
+                gui::table_set_column_index(1);
+                gui::push_style_color(gui::col_header_active, gui::get_style().Colors[gui::col_header_hovered]);
+
+                if (gui::selectable(display_name.c_str(), is_selected, gui::selectable_flags_span_all_columns)) {
+                  This->selected_channel_id = channel.channel_id;
+
+                  This->backend_queue([channel_id = channel.channel_id]() -> fan::event::task_t {
+                    try {
+                      co_await ecps_backend.request_channel_session_list(channel_id);
+                    }
+                    catch (...) {
+                      fan::print("Failed to request session list");
+                    }
+                    });
+                }
+                gui::pop_style_color();
+              }
+              {
+                gui::table_set_column_index(2);
+                gui::text(std::to_string(channel.user_count - 1));
+              }
+              {
+                gui::table_set_column_index(3);
+                uint64_t stream_time_ns = ecps_backend.get_channel_stream_time(channel.channel_id);
+                double stream_time_s = stream_time_ns / 1e+9;
+                uint64_t hours = stream_time_s / 3600;
+                uint64_t minutes = fmod(stream_time_s, 3600.0) / 60.0;
+                uint64_t seconds = fmod(stream_time_s, 60.0);
+                if (!stream_time_ns) {
+                  hours = minutes = seconds = 0;
+                }
+                gui::text(fan::format("{:02}:{:02}:{:02}", hours, minutes, seconds));
+              }
               row_index++;
+              gui::pop_id();
             }
             gui::end_table();
           }
@@ -583,7 +607,7 @@ struct ecps_gui_t {
               catch (...) {
                 fan::print("Failed to create channel");
               }
-              });
+            });
           }
         }
         gui::same_line();
@@ -763,7 +787,6 @@ struct ecps_gui_t {
 
         gui::end_group();
         gui::end_child();
-
       }
     }
 
@@ -792,7 +815,10 @@ struct ecps_gui_t {
             auto* rt = render_thread_ptr.load(std::memory_order_acquire);
             if (rt) {
               rt->screen_encoder.config_.frame_rate = This->stream_settings.framerate;
-              rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, fan::graphics::codec_update_e::frame_rate);
+              {
+                std::lock_guard<std::mutex> lock(rt->screen_encoder.mutex);
+                rt->screen_encoder.update_flags |= codec_update_e::frame_rate;
+              }
             }
           }
         } while (0);
@@ -819,7 +845,10 @@ struct ecps_gui_t {
               auto* rt = get_render_thread();
               if (rt) {
                 rt->screen_encoder.config_.bitrate = This->stream_settings.bitrate_mbps * 1000000;
-                rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, codec_update_e::rate_control);
+                {
+                  std::lock_guard<std::mutex> lock(rt->screen_encoder.mutex);
+                  rt->screen_encoder.update_flags |= codec_update_e::rate_control;
+                }
               }
             }
             gui::pop_item_width();
@@ -1162,9 +1191,9 @@ struct ecps_gui_t {
 
         if (rt->network_frame.get_image() != engine.default_texture) {
           float decoder_fps = rt->displayed_fps;
-          std::string fps_text = fan::to_string(decoder_fps, 1) + " FPS";
+          std::string fps_text = fan::to_string(decoder_fps, 1);
 
-          fan::vec2 text_size = gui::calc_text_size(fps_text.c_str());
+          fan::vec2 text_size = gui::calc_text_size(fps_text);
           fan::vec2 bg_padding = fan::vec2(6, 3);
           fan::vec2 fps_pos = fan::vec2(stream_width - text_size.x - 20, 10);
 
@@ -1179,7 +1208,9 @@ struct ecps_gui_t {
             3.0f
           );
 
-          gui::text(fps_text.c_str(), fan::color(0.5f, 1, 0.5f, 1));
+          gui::push_font(gui::get_font(10.f));
+          gui::text(fps_text, fan::color(0.5f, 1, 0.5f, 1));
+          gui::pop_font();
         }
 
 #if ecps_debug_prints >= 3
@@ -1404,7 +1435,6 @@ struct ecps_gui_t {
     bool auto_refresh = true;
     int refresh_interval = 1; // seconds
     std::string search_filter;
-
   }window_handler;
 
   struct resolution_gui_controls_t {
@@ -1552,7 +1582,10 @@ struct ecps_gui_t {
 
         if (rt->ecps_gui.stream_settings.bitrate_mode == 0) { // auto
           rt->screen_encoder.config_.bitrate = dynamic_config_t::get_adaptive_bitrate();
-          rt->screen_encoder.encoder_.update_config(rt->screen_encoder.config_, codec_update_e::rate_control);
+          {
+            std::lock_guard<std::mutex> lock(rt->screen_encoder.mutex);
+            rt->screen_encoder.update_flags |= codec_update_e::rate_control;
+          }
         }
 
         last_applied_width = resolution.width;
@@ -1663,9 +1696,9 @@ struct ecps_gui_t {
 
       if (rt->network_frame.get_image() != engine.default_texture) {
         float decoder_fps = rt->displayed_fps;
-        std::string fps_text = fan::to_string(decoder_fps, 1) + " FPS";
+        std::string fps_text = fan::to_string(decoder_fps, 1);
 
-        fan::vec2 text_size = gui::calc_text_size(fps_text.c_str());
+        fan::vec2 text_size = gui::calc_text_size(fps_text);
         fan::vec2 bg_padding = fan::vec2(6, 3);
         fan::vec2 fps_pos = fan::vec2(stream_area.x - text_size.x - 20, 10);
 
@@ -1679,8 +1712,9 @@ struct ecps_gui_t {
           fan::color(0, 0, 0, 0.7f).to_u32(),
           3.0f
         );
-
-        gui::text(fps_text.c_str(), fan::color(0.5f, 1, 0.5f, 1));
+        gui::push_font(gui::get_font(8.f));
+        gui::text(fps_text, fan::color(0.5f, 1, 0.5f, 1));
+        gui::pop_font();
       }
 
       gui::pop_style_var(5);
