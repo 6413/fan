@@ -209,6 +209,12 @@ struct ecps_gui_t {
         try {
           co_await ecps_backend.connect(ip, string_to_number(port));
           co_await ecps_backend.login();
+
+          auto channel_id = co_await ecps_backend.channel_create();
+          co_await ecps_backend.channel_join(channel_id, true);
+          co_await ecps_backend.request_channel_list();
+
+          This->selected_channel_id = channel_id;
         }
         catch (...) {
 
