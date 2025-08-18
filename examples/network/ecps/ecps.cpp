@@ -186,13 +186,6 @@ struct render_thread_t {
   FrameList_t FrameList;
 };
 
-uint32_t dynamic_config_t::get_target_framerate() {
-  auto* rt = render_thread_ptr.load(std::memory_order_acquire);
-  if (rt && rt->screen_encoder.config_.frame_rate > 0) {
-    return rt->screen_encoder.config_.frame_rate;
-  }
-  return 60;
-}
 
 ecps_backend_t::ecps_backend_t() {
   __dme_get(Protocol_S2C, KeepAlive) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
@@ -523,6 +516,14 @@ void ecps_backend_t::view_t::FixFrameOnComplete() {
   }
 }
 
+uint32_t dynamic_config_t::get_target_framerate() {
+  auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+  if (rt && rt->screen_encoder.config_.frame_rate > 0) {
+    return rt->screen_encoder.config_.frame_rate;
+  }
+  return 60;
+}
+
 uint64_t dynamic_config_t::get_adaptive_bitrate() {
   auto* rt = render_thread_ptr.load(std::memory_order_acquire);
   if (rt && rt->ecps_gui.stream_settings.bitrate_mode == 1) {
@@ -669,7 +670,7 @@ int main() {
                 std::chrono::steady_clock::now().time_since_epoch()).count());
 #endif
 
-            if (ecps_backend.did_just_join) {
+            if (ecps_backend.did_just_join && !ecps_backend.is_current_user_host_of_channel(ecps_backend.channel_info.back().channel_id)) {
               auto* rt = render_thread_ptr.load(std::memory_order_acquire);
               if (rt) {
                 rt->ecps_gui.window_handler.main_tab = 1;

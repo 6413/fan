@@ -62,7 +62,7 @@ export namespace fan {
       scaling_quality_e scaling_quality = SCALING_FAST;
 
       codec_type_e codec = H264;
-      rate_control_e rate_control = VBR;
+      rate_control_e rate_control = CBR;
       int bitrate = 2000000;
       int crf_value = 23;      // For CRF mode
       int frame_rate = 30;
@@ -110,24 +110,38 @@ export namespace fan {
       }
     }
 
-    // LibAV wrapper for encoding
-    struct libav_encoder_t {
-      const AVCodec* codec_ = nullptr;
-      AVCodecContext* codec_ctx_ = nullptr;
-      AVFrame* frame_ = nullptr;
-      AVPacket* packet_ = nullptr;
-      SwsContext* sws_ctx_ = nullptr;
+#define __debug_prints 0
 
-      uint8_t* converted_data_[4] = { nullptr };
-      int converted_linesize_[4] = { 0 };
+    struct libav_encoder_t {
+      struct encoder_state_t {
+        const AVCodec* codec = nullptr;
+        AVCodecContext* codec_ctx = nullptr;
+        AVFrame* frame = nullptr;
+        AVPacket* packet = nullptr;
+        SwsContext* sws_ctx = nullptr;
+        uint8_t* converted_data[4] = { nullptr };
+        int converted_linesize[4] = { 0 };
+        std::string codec_name;
+        bool initialized = false;
+        AVBufferRef* hw_device_ctx = nullptr;
+        AVHWDeviceType hw_type = AV_HWDEVICE_TYPE_NONE;
+        fan::vec2 screencap_res;
+        codec_config_t config;
+      };
+
+      std::atomic<encoder_state_t*> active_encoder_{ nullptr };
+      std::atomic<encoder_state_t*> pending_cleanup_{ nullptr };
+      encoder_state_t encoder_a_, encoder_b_;
 
       codec_config_t config_;
       std::string codec_name_;
       bool initialized_ = false;
+      fan::vec2 screencap_res_;
 
-      // Hardware acceleration support
-      AVBufferRef* hw_device_ctx_ = nullptr;
-      AVHWDeviceType hw_type_ = AV_HWDEVICE_TYPE_NONE;
+      std::atomic<bool> needs_codec_reinit_{ false };
+      codec_config_t pending_config_;
+
+      static thread_local std::chrono::steady_clock::time_point last_cleanup_time_;
 
       static std::unordered_map<codec_config_t::codec_type_e, std::vector<std::string>> get_codec_names() {
         return {
@@ -138,49 +152,58 @@ export namespace fan {
       }
 
       bool update_scaling_quality(codec_config_t::scaling_quality_e new_quality) {
-        if (sws_ctx_) {
-          sws_freeContext(sws_ctx_);
-          sws_ctx_ = nullptr;
-        }
+        encoder_state_t* encoder = active_encoder_.load();
+        if (!encoder || !encoder->sws_ctx) return false;
+
+        sws_freeContext(encoder->sws_ctx);
+        encoder->sws_ctx = nullptr;
 
         int sws_flags = fan::graphics::get_sws_flags(new_quality);
 
-        sws_ctx_ = sws_getContext(
-          screencap_res_.x, screencap_res_.y, AV_PIX_FMT_BGRA,
-          config_.width, config_.height, codec_ctx_->pix_fmt,
+        encoder->sws_ctx = sws_getContext(
+          encoder->screencap_res.x, encoder->screencap_res.y, AV_PIX_FMT_BGRA,
+          encoder->config.width, encoder->config.height, encoder->codec_ctx->pix_fmt,
           sws_flags,
           nullptr, nullptr, nullptr
         );
 
-        if (!sws_ctx_) {
-          fan::print("Failed to recreate scaling context with quality: " +
-            std::string(fan::graphics::get_scaling_quality_name(new_quality)));
+        if (!encoder->sws_ctx) {
+#if __debug_prints
+          fan::print_throttled("encoder_scaling_quality_update_failed", 2000);
+#endif
           return false;
         }
 
+        encoder->config.scaling_quality = new_quality;
         config_.scaling_quality = new_quality;
-
-#if ecps_debug_prints >= 1
-        fan::print("Updated scaling quality to: " +
-          std::string(fan::graphics::get_scaling_quality_name(new_quality)));
-#endif
         return true;
       }
 
-      bool init_hardware_acceleration() {
-        if (!config_.use_hardware) return false;
+      bool init_hardware_acceleration(encoder_state_t* encoder, const codec_config_t& config) {
+        if (!config.use_hardware) return false;
 
         std::vector<AVHWDeviceType> hw_types = {
           AV_HWDEVICE_TYPE_CUDA,
-          AV_HWDEVICE_TYPE_DXVA2,
           AV_HWDEVICE_TYPE_D3D11VA,
+          AV_HWDEVICE_TYPE_DXVA2,
           AV_HWDEVICE_TYPE_VAAPI,
           AV_HWDEVICE_TYPE_VIDEOTOOLBOX
         };
 
         for (auto type : hw_types) {
-          if (av_hwdevice_ctx_create(&hw_device_ctx_, type, nullptr, nullptr, 0) == 0) {
-            hw_type_ = type;
+          if (av_hwdevice_ctx_create(&encoder->hw_device_ctx, type, nullptr, nullptr, 0) == 0) {
+            encoder->hw_type = type;
+#if __debug_prints
+            const char* type_name = "unknown";
+            switch (type) {
+            case AV_HWDEVICE_TYPE_CUDA: type_name = "cuda"; break;
+            case AV_HWDEVICE_TYPE_D3D11VA: type_name = "d3d11va"; break;
+            case AV_HWDEVICE_TYPE_DXVA2: type_name = "dxva2"; break;
+            case AV_HWDEVICE_TYPE_VAAPI: type_name = "vaapi"; break;
+            case AV_HWDEVICE_TYPE_VIDEOTOOLBOX: type_name = "videotoolbox"; break;
+            }
+            fan::print_throttled("encoder_hw_accel_init: " + std::string(type_name), 5000);
+#endif
             return true;
           }
         }
@@ -188,226 +211,272 @@ export namespace fan {
       }
 
       AVPixelFormat choose_encoder_pixel_format(const std::string& encoder_name) {
-        if (encoder_name.find("nvenc") != std::string::npos) {
+        if (encoder_name.find("nvenc") != std::string::npos ||
+          encoder_name.find("amf") != std::string::npos ||
+          encoder_name.find("qsv") != std::string::npos ||
+          encoder_name.find("vaapi") != std::string::npos ||
+          encoder_name.find("videotoolbox") != std::string::npos) {
           return AV_PIX_FMT_NV12;
         }
-        else if (encoder_name.find("amf") != std::string::npos) {
-          return AV_PIX_FMT_NV12;
-        }
-        else if (encoder_name.find("qsv") != std::string::npos) {
-          return AV_PIX_FMT_NV12;
-        }
-        else if (encoder_name.find("vaapi") != std::string::npos) {
-          return AV_PIX_FMT_NV12;
-        }
-        else if (encoder_name.find("videotoolbox") != std::string::npos) {
-          return AV_PIX_FMT_NV12;
-        }
-        else if (encoder_name == "libx264" || encoder_name == "libx265") {
-          return AV_PIX_FMT_YUV420P;
-        }
-        else if (encoder_name.find("av1") != std::string::npos) {
-          return AV_PIX_FMT_YUV420P;
-        }
-        else {
-          return AV_PIX_FMT_YUV420P;
-        }
+        return AV_PIX_FMT_YUV420P;
       }
 
-      bool find_and_init_codec() {
+      bool find_and_init_codec(encoder_state_t* encoder, const codec_config_t& config) {
         auto codec_names = get_codec_names();
-        auto& names = codec_names[config_.codec];
+        auto& names = codec_names[config.codec];
 
         for (const auto& name : names) {
-          codec_ = avcodec_find_encoder_by_name(name.c_str());
-          if (codec_) {
-            codec_name_ = name;
+          encoder->codec = avcodec_find_encoder_by_name(name.c_str());
+          if (!encoder->codec) continue;
 
-            codec_ctx_ = avcodec_alloc_context3(codec_);
-            if (!codec_ctx_) continue;
+          encoder->codec_name = name;
+          encoder->codec_ctx = avcodec_alloc_context3(encoder->codec);
+          if (!encoder->codec_ctx) continue;
 
-            codec_ctx_->width = config_.width;
-            codec_ctx_->height = config_.height;
-            codec_ctx_->time_base = { 1, config_.frame_rate };
-            codec_ctx_->framerate = { config_.frame_rate, 1 };
-            codec_ctx_->gop_size = config_.frame_rate >= 120 ? config_.frame_rate / 2 : config_.gop_size;
-            codec_ctx_->max_b_frames = config_.frame_rate >= 60 ? 0 : 1;
-            AVPixelFormat preferred_format = choose_encoder_pixel_format(name);
-            codec_ctx_->pix_fmt = preferred_format;
+          encoder->codec_ctx->width = config.width;
+          encoder->codec_ctx->height = config.height;
+          encoder->codec_ctx->time_base = { 1, config.frame_rate };
+          encoder->codec_ctx->framerate = { config.frame_rate, 1 };
+          encoder->codec_ctx->gop_size = config.frame_rate >= 144 ? config.frame_rate / 3 :
+            config.frame_rate >= 120 ? config.frame_rate / 2 : config.gop_size;
+          encoder->codec_ctx->max_b_frames = config.frame_rate >= 60 ? 0 : 1;
+          encoder->codec_ctx->pix_fmt = choose_encoder_pixel_format(name);
 
-            switch (config_.rate_control) {
+          if (encoder->hw_device_ctx && name.find("nvenc") != std::string::npos) {
+            encoder->codec_ctx->hw_device_ctx = av_buffer_ref(encoder->hw_device_ctx);
+          }
+
+          if (name.find("nvenc") != std::string::npos) {
+            encoder->codec_ctx->bit_rate = config.bitrate;
+            encoder->codec_ctx->rc_buffer_size = config.bitrate / 4;
+            encoder->codec_ctx->rc_max_rate = config.bitrate;
+            encoder->codec_ctx->rc_min_rate = config.bitrate;
+
+            av_opt_set(encoder->codec_ctx->priv_data, "preset", "p1", 0);
+            av_opt_set(encoder->codec_ctx->priv_data, "tune", "ll", 0);
+            av_opt_set_int(encoder->codec_ctx->priv_data, "delay", 2, 0);
+            av_opt_set_int(encoder->codec_ctx->priv_data, "async_depth", 8, 0);
+            av_opt_set_int(encoder->codec_ctx->priv_data, "zerolatency", 0, 0);
+
+            uint32_t surfaces = config.frame_rate >= 144 ? 48 :
+              config.frame_rate >= 120 ? 40 : 32;
+            av_opt_set_int(encoder->codec_ctx->priv_data, "surfaces", surfaces, 0);
+            av_opt_set_int(encoder->codec_ctx->priv_data, "bf", 0, 0);
+
+            av_opt_set(encoder->codec_ctx->priv_data, "spatial_aq", "0", 0);
+            av_opt_set(encoder->codec_ctx->priv_data, "temporal_aq", "0", 0);
+            av_opt_set_int(encoder->codec_ctx->priv_data, "lookahead_depth", 0, 0);
+            av_opt_set_int(encoder->codec_ctx->priv_data, "rc_lookahead", 0, 0);
+            av_opt_set(encoder->codec_ctx->priv_data, "gpu", 0, 0);
+            av_opt_set_int(encoder->codec_ctx->priv_data, "strict_gop", 1, 0);
+            av_opt_set_int(encoder->codec_ctx->priv_data, "forced-idr", 0, 0);
+            av_opt_set_int(encoder->codec_ctx->priv_data, "no-scenecut", 1, 0);
+
+#if __debug_prints
+            fan::print("encoder_nvenc_init: " + name +
+              " | " + std::to_string(config.width) + "x" + std::to_string(config.height) +
+              " | " + std::to_string(config.frame_rate) + "fps" +
+              " | " + std::to_string(config.bitrate / 1000) + "kbps" +
+              " | " + std::to_string(surfaces) + " surfaces");
+#endif
+
+            switch (config.rate_control) {
             case codec_config_t::CBR:
-              if (name.find("nvenc") == std::string::npos) {
-                codec_ctx_->bit_rate = config_.bitrate;
-                codec_ctx_->rc_buffer_size = config_.bitrate;
-                codec_ctx_->rc_max_rate = config_.bitrate;
-                codec_ctx_->rc_min_rate = config_.bitrate;
-              }
+              av_opt_set(encoder->codec_ctx->priv_data, "rc", "cbr", 0);
+#if __debug_prints
+              fan::print_throttled("encoder_rate_control: cbr", 2000);
+#endif
               break;
             case codec_config_t::VBR:
-              if (name.find("nvenc") == std::string::npos) {
-                codec_ctx_->bit_rate = config_.bitrate;
-              }
+              av_opt_set(encoder->codec_ctx->priv_data, "rc", "vbr", 0);
+#if __debug_prints
+              fan::print_throttled("encoder_rate_control: vbr", 2000);
+#endif
               break;
             case codec_config_t::CRF:
-              av_opt_set(codec_ctx_->priv_data, "rc", "constqp", 0);
-              av_opt_set_int(codec_ctx_->priv_data, "qp", config_.crf_value, 0);
+              av_opt_set(encoder->codec_ctx->priv_data, "rc", "constqp", 0);
+              av_opt_set_int(encoder->codec_ctx->priv_data, "qp", config.crf_value, 0);
+#if __debug_prints
+              fan::print_throttled("encoder_rate_control: crf_" + std::to_string(config.crf_value), 2000);
+#endif
               break;
             }
-
-            if (hw_device_ctx_ && name.find("nvenc") != std::string::npos) {
-              codec_ctx_->hw_device_ctx = av_buffer_ref(hw_device_ctx_);
-            }
-
-            if (name.find("nvenc") != std::string::npos) {
-              av_opt_set(codec_ctx_->priv_data, "preset", "p1", 0);
-              av_opt_set(codec_ctx_->priv_data, "tune", "ull", 0);
-              switch (config_.rate_control) {
-              case codec_config_t::CBR:
-                av_opt_set(codec_ctx_->priv_data, "rc", "cbr", 0);
-                break;
-              case codec_config_t::VBR:
-                av_opt_set(codec_ctx_->priv_data, "rc", "vbr", 0);
-                break;
-              case codec_config_t::CRF:
-                av_opt_set(codec_ctx_->priv_data, "rc", "constqp", 0);
-                av_opt_set_int(codec_ctx_->priv_data, "qp", config_.crf_value, 0);
-                break;
-              }
-
-              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
-              av_opt_set_int(codec_ctx_->priv_data, "maxrate", config_.bitrate, 0);
-              av_opt_set_int(codec_ctx_->priv_data, "bufsize", config_.bitrate / 2, 0);
-
-              uint32_t surfaces = config_.frame_rate >= 144 ? 24 : (config_.frame_rate >= 120 ? 20 : (config_.frame_rate >= 60 ? 16 : 8));
-              av_opt_set_int(codec_ctx_->priv_data, "surfaces", surfaces, 0);
-              av_opt_set_int(codec_ctx_->priv_data, "async_depth", 4, 0);
-
-              uint32_t delay = config_.frame_rate >= 120 ? 1 : 0;
-              av_opt_set_int(codec_ctx_->priv_data, "delay", delay, 0);
-
-              av_opt_set(codec_ctx_->priv_data, "profile", "high", 0);
-              av_opt_set(codec_ctx_->priv_data, "level", "auto", 0);
-            }
-            else if (name.find("amf") != std::string::npos) {
-              av_opt_set(codec_ctx_->priv_data, "quality", "speed", 0);
-              av_opt_set(codec_ctx_->priv_data, "rc", "vbr_latency", 0);
-              av_opt_set_int(codec_ctx_->priv_data, "preanalysis", 0, 0);
-            }
-            else if (name.find("vaapi") != std::string::npos) {
-              av_opt_set(codec_ctx_->priv_data, "low_power", "1", 0);
-            }
-            else if (name == "libx264") {
-              av_opt_set(codec_ctx_->priv_data, "preset", "ultrafast", 0);
-              av_opt_set(codec_ctx_->priv_data, "tune", "zerolatency", 0);
-            }
-            else if (name == "libx265") {
-              av_opt_set(codec_ctx_->priv_data, "preset", "ultrafast", 0);
-              av_opt_set(codec_ctx_->priv_data, "tune", "zerolatency", 0);
-            }
-
-            if (avcodec_open2(codec_ctx_, codec_, nullptr) == 0) {
-              return true;
-            }
-
-            avcodec_free_context(&codec_ctx_);
-            codec_ = nullptr;
           }
+          else if (name.find("amf") != std::string::npos) {
+            encoder->codec_ctx->bit_rate = config.bitrate;
+            av_opt_set(encoder->codec_ctx->priv_data, "quality", "speed", 0);
+            av_opt_set(encoder->codec_ctx->priv_data, "rc", "vbr_latency", 0);
+            av_opt_set_int(encoder->codec_ctx->priv_data, "preanalysis", 0, 0);
+#if __debug_prints
+            fan::print("encoder_amf_init: " + name);
+#endif
+          }
+          else if (name.find("vaapi") != std::string::npos) {
+            encoder->codec_ctx->bit_rate = config.bitrate;
+            av_opt_set(encoder->codec_ctx->priv_data, "low_power", "1", 0);
+#if __debug_prints
+            fan::print("encoder_vaapi_init: " + name);
+#endif
+          }
+          else if (name == "libx264") {
+            encoder->codec_ctx->bit_rate = config.bitrate;
+            av_opt_set(encoder->codec_ctx->priv_data, "preset", "ultrafast", 0);
+            av_opt_set(encoder->codec_ctx->priv_data, "tune", "zerolatency", 0);
+#if __debug_prints
+            fan::print("encoder_x264_init: software_fallback");
+#endif
+          }
+          else if (name == "libx265") {
+            encoder->codec_ctx->bit_rate = config.bitrate;
+            av_opt_set(encoder->codec_ctx->priv_data, "preset", "ultrafast", 0);
+            av_opt_set(encoder->codec_ctx->priv_data, "tune", "zerolatency", 0);
+#if __debug_prints
+            fan::print("encoder_x265_init: software_fallback");
+#endif
+          }
+          else {
+            encoder->codec_ctx->bit_rate = config.bitrate;
+#if __debug_prints
+            fan::print("encoder_generic_init: " + name);
+#endif
+          }
+
+          if (avcodec_open2(encoder->codec_ctx, encoder->codec, nullptr) == 0) {
+#if __debug_prints
+            fan::print("encoder_success: " + name);
+#endif
+            return true;
+          }
+
+#if __debug_prints
+          fan::print_throttled("encoder_fail: " + name, 1000);
+#endif
+          avcodec_free_context(&encoder->codec_ctx);
+          encoder->codec = nullptr;
         }
+
+#if __debug_prints
+        fan::print("encoder_error: no_suitable_codec");
+#endif
         return false;
       }
 
-
-    public:
-      libav_encoder_t() {
-        packet_ = av_packet_alloc();
-      }
-
-      ~libav_encoder_t() {
-        close();
-        if (packet_) av_packet_free(&packet_);
-      }
-
-      bool open(const codec_config_t& config, const fan::vec2& screencap_res = { 0, 0 }) {
-        close();
-        config_ = config;
-
-        if (screencap_res.x > 0 && screencap_res.y > 0) {
-          screencap_res_ = screencap_res;
-        }
-        if (screencap_res_.x == 0 || screencap_res_.y == 0) {
-          screencap_res_ = { config_.width, config_.height };
+      void cleanup_encoder_state(encoder_state_t* encoder) {
+        if (encoder->sws_ctx) {
+          sws_freeContext(encoder->sws_ctx);
+          encoder->sws_ctx = nullptr;
         }
 
-        init_hardware_acceleration();
+        if (encoder->converted_data[0]) {
+          av_freep(&encoder->converted_data[0]);
+        }
 
-        if (!find_and_init_codec()) {
-          fan::print("Failed to find suitable encoder for codec type: " + std::to_string(config.codec));
+        if (encoder->frame) {
+          av_frame_free(&encoder->frame);
+        }
+
+        if (encoder->packet) {
+          av_packet_free(&encoder->packet);
+        }
+
+        if (encoder->codec_ctx) {
+          avcodec_free_context(&encoder->codec_ctx);
+        }
+
+        if (encoder->hw_device_ctx) {
+          av_buffer_unref(&encoder->hw_device_ctx);
+        }
+
+        encoder->initialized = false;
+        encoder->codec = nullptr;
+        encoder->codec_name.clear();
+        encoder->hw_type = AV_HWDEVICE_TYPE_NONE;
+      }
+
+      bool init_encoder_state(encoder_state_t* encoder, const codec_config_t& config, const fan::vec2& screencap_res) {
+        cleanup_encoder_state(encoder);
+
+        encoder->config = config;
+        encoder->screencap_res = screencap_res.x > 0 ? screencap_res : fan::vec2{ config.width, config.height };
+
+        init_hardware_acceleration(encoder, config);
+
+        if (!find_and_init_codec(encoder, config)) {
           return false;
         }
 
-        frame_ = av_frame_alloc();
-        if (!frame_) {
-          close();
+        encoder->frame = av_frame_alloc();
+        encoder->packet = av_packet_alloc();
+        if (!encoder->frame || !encoder->packet) {
+          cleanup_encoder_state(encoder);
           return false;
         }
 
-        frame_->format = codec_ctx_->pix_fmt;
-        frame_->width = config_.width;
-        frame_->height = config_.height;
+        encoder->frame->format = encoder->codec_ctx->pix_fmt;
+        encoder->frame->width = config.width;
+        encoder->frame->height = config.height;
 
-        if (av_frame_get_buffer(frame_, 32) < 0) {
-          close();
+        if (av_frame_get_buffer(encoder->frame, 32) < 0) {
+          cleanup_encoder_state(encoder);
           return false;
         }
 
         int sws_flags = fan::graphics::get_sws_flags(config.scaling_quality);
-
-        sws_ctx_ = sws_getContext(
-          screencap_res_.x, screencap_res_.y, AV_PIX_FMT_BGRA,
-          config_.width, config_.height, codec_ctx_->pix_fmt,
+        encoder->sws_ctx = sws_getContext(
+          encoder->screencap_res.x, encoder->screencap_res.y, AV_PIX_FMT_BGRA,
+          config.width, config.height, encoder->codec_ctx->pix_fmt,
           sws_flags,
           nullptr, nullptr, nullptr
         );
 
-
-        if (!sws_ctx_) {
-          close();
+        if (!encoder->sws_ctx) {
+          cleanup_encoder_state(encoder);
           return false;
         }
 
-        initialized_ = true;
-        fan::print("Successfully initialized encoder: " + codec_name_);
+        encoder->initialized = true;
         return true;
       }
 
+      void maybe_cleanup_old_encoder() {
+        auto now = std::chrono::steady_clock::now();
+        if (now - last_cleanup_time_ < std::chrono::milliseconds(100)) {
+          return;
+        }
+        last_cleanup_time_ = now;
+
+        encoder_state_t* old = pending_cleanup_.exchange(nullptr);
+        if (old) {
+          cleanup_encoder_state(old);
+        }
+      }
+
+    public:
+      libav_encoder_t() {
+        active_encoder_.store(&encoder_a_);
+      }
+
+      ~libav_encoder_t() {
+        close();
+      }
+
+      bool open(const codec_config_t& config, const fan::vec2& screencap_res = { 0, 0 }) {
+        config_ = config;
+        screencap_res_ = screencap_res;
+
+        encoder_state_t* encoder = active_encoder_.load();
+        if (init_encoder_state(encoder, config, screencap_res)) {
+          initialized_ = true;
+          codec_name_ = encoder->codec_name;
+          return true;
+        }
+        return false;
+      }
 
       void close() {
-        if (sws_ctx_) {
-          sws_freeContext(sws_ctx_);
-          sws_ctx_ = nullptr;
-        }
-
-        if (converted_data_[0]) {
-          av_freep(&converted_data_[0]);
-        }
-
-        if (frame_) {
-          av_frame_free(&frame_);
-        }
-
-        if (codec_ctx_) {
-          //fan::print("leaking - corruption");
-          //codec_ctx_ = 0;
-          avcodec_free_context(&codec_ctx_);
-        }
-
-        if (hw_device_ctx_) {
-          av_buffer_unref(&hw_device_ctx_);
-        }
-
+        cleanup_encoder_state(&encoder_a_);
+        cleanup_encoder_state(&encoder_b_);
         initialized_ = false;
-        codec_ = nullptr;
       }
 
       struct encode_result_t {
@@ -415,185 +484,170 @@ export namespace fan {
         bool is_keyframe = false;
         int64_t pts = 0;
         int64_t dts = 0;
+
+        encode_result_t() = default;
+        encode_result_t(const encode_result_t&) = delete;
+        encode_result_t& operator=(const encode_result_t&) = delete;
+        encode_result_t(encode_result_t&&) = default;
+        encode_result_t& operator=(encode_result_t&&) = default;
       };
 
       std::vector<encode_result_t> encode_frame(uint8_t* bgra_data, int stride, int64_t pts, bool force_keyframe = false) {
         std::vector<encode_result_t> results;
+        static uint64_t frame_count = 0;
+        static uint64_t total_encode_time = 0;
+        static uint64_t total_output_bytes = 0;
+        static auto last_stats_time = std::chrono::steady_clock::now();
 
-        if (!initialized_) return results;
+        auto encode_start = std::chrono::high_resolution_clock::now();
 
-        if (!bgra_data) {
-          fan::print("Error: bgra_data is null");
-          return results;
+        if (needs_codec_reinit_.load()) {
+          encoder_state_t* new_encoder = (active_encoder_.load() == &encoder_a_) ? &encoder_b_ : &encoder_a_;
+
+          if (init_encoder_state(new_encoder, pending_config_, screencap_res_)) {
+            encoder_state_t* old = active_encoder_.exchange(new_encoder);
+            pending_cleanup_.store(old);
+            needs_codec_reinit_.store(false);
+            codec_name_ = new_encoder->codec_name;
+#if __debug_prints
+            fan::print_throttled("encoder_switched: " + codec_name_, 1000);
+#endif
+          }
         }
 
-        if (stride <= 0) {
-          fan::print("Error: invalid stride: " + std::to_string(stride));
-          return results;
-        }
+        encoder_state_t* encoder = active_encoder_.load();
+        if (!encoder || !encoder->initialized) return results;
 
-        if (screencap_res_.x <= 0 || screencap_res_.y <= 0) {
-          fan::print("Error: invalid screen capture dimensions: " +
-            std::to_string(screencap_res_.x) + "x" + std::to_string(screencap_res_.y));
-          return results;
-        }
-
-        if (config_.width <= 0 || config_.height <= 0) {
-          fan::print("Error: invalid target dimensions: " +
-            std::to_string(config_.width) + "x" + std::to_string(config_.height));
-          return results;
-        }
-
-        int expected_stride = screencap_res_.x * 4;
-        if (stride < expected_stride) {
-          fan::print("Error: stride too small for source resolution. Expected: " +
-            std::to_string(expected_stride) + ", got: " + std::to_string(stride));
-          return results;
-        }
+        if (!bgra_data || stride <= 0) return results;
 
         const uint8_t* src_data[4] = { bgra_data, nullptr, nullptr, nullptr };
         int src_linesize[4] = { stride, 0, 0, 0 };
 
-        int result = sws_scale(sws_ctx_,
-          src_data, src_linesize,
-          0, screencap_res_.y,
-          frame_->data, frame_->linesize);
-
-        if (result != config_.height) {
-          fan::print("Error: sws_scale failed. Expected: " + std::to_string(config_.height) +
-            ", got: " + std::to_string(result));
-          fan::print("Source: " + std::to_string(screencap_res_.x) + "x" + std::to_string(screencap_res_.y) +
-            ", Target: " + std::to_string(config_.width) + "x" + std::to_string(config_.height));
-          fan::print("Stride: " + std::to_string(stride) + ", Expected minimum: " + std::to_string(expected_stride));
+        if (sws_scale(encoder->sws_ctx, src_data, src_linesize, 0, encoder->screencap_res.y,
+          encoder->frame->data, encoder->frame->linesize) != encoder->config.height) {
           return results;
         }
 
-        frame_->pts = pts;
+        encoder->frame->pts = pts;
+        encoder->frame->pict_type = force_keyframe ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_NONE;
+
+        static uint64_t last_forced_keyframe_pts = 0;
+        static uint64_t keyframe_request_count = 0;
 
         if (force_keyframe) {
-          frame_->pict_type = AV_PICTURE_TYPE_I;
-        }
-        else {
-          frame_->pict_type = AV_PICTURE_TYPE_NONE;
+          uint64_t frames_since_last = pts - last_forced_keyframe_pts;
+          keyframe_request_count++;
+#if __debug_prints
+          fan::print_throttled("encoder_forced_keyframe: #" + std::to_string(keyframe_request_count) +
+            " pts_" + std::to_string(pts) +
+            " gap_" + std::to_string(frames_since_last), 1000);
+#endif
+          last_forced_keyframe_pts = pts;
+
+          if (frames_since_last < 30 && frames_since_last > 0) {
+#if __debug_prints
+            fan::print_throttled("encoder_keyframe_warning: too_soon_" + std::to_string(frames_since_last), 2000);
+#endif
+          }
         }
 
-        int ret = avcodec_send_frame(codec_ctx_, frame_);
-        if (ret < 0) {
-          fan::print("Error sending frame to encoder: " + std::to_string(ret));
+        if (avcodec_send_frame(encoder->codec_ctx, encoder->frame) < 0) {
+#if __debug_prints
+          fan::print_throttled("encoder_send_frame_failed", 1000);
+#endif
           return results;
         }
 
-        while (ret >= 0) {
-          ret = avcodec_receive_packet(codec_ctx_, packet_);
-          if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            break;
-          }
-          else if (ret < 0) {
-            fan::print("Error receiving packet from encoder: " + std::to_string(ret));
-            break;
-          }
-
+        int ret;
+        while ((ret = avcodec_receive_packet(encoder->codec_ctx, encoder->packet)) >= 0) {
           encode_result_t result;
-          result.data.resize(packet_->size);
-          std::memcpy(result.data.data(), packet_->data, packet_->size);
-          result.is_keyframe = (packet_->flags & AV_PKT_FLAG_KEY) != 0;
-          result.pts = packet_->pts;
-          result.dts = packet_->dts;
+          result.data.resize(encoder->packet->size);
+          std::memcpy(result.data.data(), encoder->packet->data, encoder->packet->size);
+          result.is_keyframe = (encoder->packet->flags & AV_PKT_FLAG_KEY) != 0;
+          result.pts = encoder->packet->pts;
+          result.dts = encoder->packet->dts;
+
+          total_output_bytes += encoder->packet->size;
+
+#if __debug_prints
+          if (result.is_keyframe) {
+            fan::print_throttled("encoder_keyframe_out: " + std::to_string(encoder->packet->size) + "_bytes", 2000);
+          }
+#endif
 
           results.push_back(std::move(result));
-          av_packet_unref(packet_);
+          av_packet_unref(encoder->packet);
         }
 
+        auto encode_end = std::chrono::high_resolution_clock::now();
+        auto encode_time = std::chrono::duration_cast<std::chrono::microseconds>(encode_end - encode_start).count();
+        total_encode_time += encode_time;
+        frame_count++;
+
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last_stats_time).count() >= 2000) {
+          double avg_encode_time = (double)total_encode_time / frame_count;
+          double avg_fps = frame_count * 1000000.0 / total_encode_time;
+          double avg_bitrate = (double)total_output_bytes * 8 * config_.frame_rate / frame_count;
+          double target_bitrate = config_.bitrate;
+
+          static uint64_t total_keyframes = 0;
+          static uint64_t total_frames_counted = 0;
+          for (const auto& result : results) {
+            total_frames_counted++;
+            if (result.is_keyframe) total_keyframes++;
+          }
+
+          double keyframe_percentage = total_frames_counted > 0 ?
+            (double)total_keyframes * 100.0 / total_frames_counted : 0.0;
+
+#if __debug_prints
+          fan::print("encoder_stats: " + codec_name_ +
+            " fps_" + std::to_string((int)avg_fps) +
+            " time_" + std::to_string((int)avg_encode_time) + "us" +
+            " bitrate_" + std::to_string((int)(avg_bitrate / 1000)) + "k/" + std::to_string((int)(target_bitrate / 1000)) + "k" +
+            " frames_" + std::to_string(frame_count) +
+            " keyframes_" + std::to_string((int)keyframe_percentage) + "%");
+#endif
+
+          total_encode_time = 0;
+          total_output_bytes = 0;
+          frame_count = 0;
+          last_stats_time = now;
+        }
+
+        maybe_cleanup_old_encoder();
         return results;
       }
 
       bool update_config(const codec_config_t& new_config, uint8_t update_flags) {
         if (update_flags & codec_update_e::codec) {
-          return open(new_config, screencap_res_);
+          pending_config_ = new_config;
+          needs_codec_reinit_.store(true);
+          return true;
         }
 
         config_ = new_config;
+        encoder_state_t* encoder = active_encoder_.load();
+        if (!encoder) return false;
+
+        encoder->config = new_config;
 
         if (update_flags & codec_update_e::rate_control) {
-          if (codec_name_.find("nvenc") != std::string::npos) {
-            switch (config_.rate_control) {
-            case codec_config_t::CBR:
-              av_opt_set(codec_ctx_->priv_data, "rc", "cbr", 0);
-              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
-              av_opt_set_int(codec_ctx_->priv_data, "maxrate", config_.bitrate, 0);
-              av_opt_set_int(codec_ctx_->priv_data, "bufsize", config_.bitrate / 2, 0);
-              break;
-            case codec_config_t::VBR:
-              av_opt_set(codec_ctx_->priv_data, "rc", "vbr", 0);
-              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
-              av_opt_set_int(codec_ctx_->priv_data, "maxrate", config_.bitrate, 0);
-              av_opt_set_int(codec_ctx_->priv_data, "bufsize", config_.bitrate / 2, 0);
-              break;
-            case codec_config_t::CRF:
-              av_opt_set(codec_ctx_->priv_data, "rc", "constqp", 0);
-              av_opt_set_int(codec_ctx_->priv_data, "qp", config_.crf_value, 0);
-              break;
-            }
-          }
-          else if (codec_name_.find("amf") != std::string::npos) {
-            switch (config_.rate_control) {
-            case codec_config_t::CBR:
-              av_opt_set(codec_ctx_->priv_data, "rc", "cbr", 0);
-              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
-              break;
-            case codec_config_t::VBR:
-              av_opt_set(codec_ctx_->priv_data, "rc", "vbr_latency", 0);
-              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
-              break;
-            case codec_config_t::CRF:
-              av_opt_set(codec_ctx_->priv_data, "rc", "cqp", 0);
-              av_opt_set_int(codec_ctx_->priv_data, "qp_i", config_.crf_value, 0);
-              av_opt_set_int(codec_ctx_->priv_data, "qp_p", config_.crf_value, 0);
-              break;
-            }
-          }
-          else if (codec_name_.find("vaapi") != std::string::npos) {
-            av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
-            if (config_.rate_control == codec_config_t::CRF) {
-              av_opt_set_int(codec_ctx_->priv_data, "qp", config_.crf_value, 0);
-            }
-          }
-          else if (codec_name_ == "libx264" || codec_name_ == "libx265") {
-            switch (config_.rate_control) {
-            case codec_config_t::CBR:
-            case codec_config_t::VBR:
-              av_opt_set_int(codec_ctx_->priv_data, "b", config_.bitrate, 0);
-              codec_ctx_->bit_rate = config_.bitrate;
-              break;
-            case codec_config_t::CRF:
-              av_opt_set_int(codec_ctx_->priv_data, "crf", config_.crf_value, 0);
-              break;
-            }
-          }
-          else {
-            codec_ctx_->bit_rate = config_.bitrate;
-            if (config_.rate_control == codec_config_t::CRF) {
-              av_opt_set_int(codec_ctx_->priv_data, "crf", config_.crf_value, 0);
-            }
+          encoder->codec_ctx->bit_rate = encoder->config.bitrate;
+
+          if (encoder->codec_name.find("nvenc") != std::string::npos) {
+            encoder->codec_ctx->rc_buffer_size = encoder->config.bitrate / 4;
+            encoder->codec_ctx->rc_max_rate = encoder->config.bitrate;
+            encoder->codec_ctx->rc_min_rate = encoder->config.bitrate;
           }
         }
 
         if (update_flags & codec_update_e::frame_rate) {
-          codec_ctx_->time_base = { 1, config_.frame_rate };
-          codec_ctx_->framerate = { config_.frame_rate, 1 };
-
-          codec_ctx_->gop_size = config_.frame_rate >= 120 ? config_.frame_rate / 2 : config_.gop_size;
-          codec_ctx_->max_b_frames = config_.frame_rate >= 60 ? 0 : 1;
-
-          if (codec_name_.find("nvenc") != std::string::npos) {
-            uint32_t surfaces = config_.frame_rate >= 144 ? 32 : (config_.frame_rate >= 120 ? 24 : (config_.frame_rate >= 60 ? 16 : 8));
-            av_opt_set_int(codec_ctx_->priv_data, "surfaces", surfaces, 0);
-
-            uint32_t delay = config_.frame_rate >= 120 ? 1 : 0;
-            av_opt_set_int(codec_ctx_->priv_data, "delay", delay, 0);
-
-            av_opt_set_int(codec_ctx_->priv_data, "async_depth", 4, 0);
-          }
+          encoder->codec_ctx->time_base = { 1, encoder->config.frame_rate };
+          encoder->codec_ctx->framerate = { encoder->config.frame_rate, 1 };
+          encoder->codec_ctx->gop_size = encoder->config.frame_rate >= 120 ? encoder->config.frame_rate / 2 : encoder->config.gop_size;
+          encoder->codec_ctx->max_b_frames = encoder->config.frame_rate >= 60 ? 0 : 1;
         }
 
         return true;
@@ -615,8 +669,9 @@ export namespace fan {
         }
         return encoders;
       }
-      fan::vec2 screencap_res_;
     };
+
+    thread_local std::chrono::steady_clock::time_point libav_encoder_t::last_cleanup_time_ = std::chrono::steady_clock::now();
 
     struct libav_decoder_t {
       const AVCodec* codec_ = nullptr;
@@ -663,7 +718,9 @@ export namespace fan {
           }
         }
 
-        fan::print("Failed to get HW surface format");
+#if __debug_prints
+        fan::print("decoder_hw_surface_format_failed");
+#endif
         return AV_PIX_FMT_NONE;
       }
 
@@ -681,16 +738,18 @@ export namespace fan {
           if (av_hwdevice_ctx_create(&hw_device_ctx_, type, nullptr, nullptr, 0) == 0) {
             hw_type_ = type;
             hw_pixel_format_ = get_hw_pixel_format(type);
-            fan::print("Initialized hardware device: " + std::string(name));
+#if __debug_prints
+            fan::print("decoder_hw_device_init: " + std::string(name));
+#endif
             return true;
           }
         }
 
-        fan::print("No hardware acceleration available, using software decoding");
+#if __debug_prints
+        fan::print("decoder_hw_device_unavailable");
+#endif
         return false;
       }
-
-      // Enhanced hardware decoder initialization with better buffering:
 
       bool find_and_init_hw_decoder(const std::string& codec_type) {
         if (!hw_device_ctx_) return false;
@@ -785,6 +844,9 @@ export namespace fan {
             }
             avcodec_free_context(&codec_ctx_);
             codec_ = nullptr;
+#if __debug_prints
+            fan::print_throttled("decoder_hw_open_timeout: " + decoder_name, 2000);
+#endif
             continue;
           }
 
@@ -795,6 +857,9 @@ export namespace fan {
           if (open_result.load() == 0) {
             codec_name_ = decoder_name;
             using_hardware_ = true;
+#if __debug_prints
+            fan::print("decoder_hw_success: " + decoder_name);
+#endif
             return true;
           }
 
@@ -803,12 +868,16 @@ export namespace fan {
           }
           avcodec_free_context(&codec_ctx_);
           codec_ = nullptr;
+#if __debug_prints
+          fan::print_throttled("decoder_hw_fail: " + decoder_name, 1000);
+#endif
         }
 
+#if __debug_prints
+        fan::print("decoder_hw_error: no_suitable_decoder");
+#endif
         return false;
       }
-
-
 
       bool find_and_init_sw_decoder(const std::string& codec_type) {
         std::unordered_map<std::string, std::string> sw_decoders = {
@@ -829,22 +898,26 @@ export namespace fan {
         if (avcodec_open2(codec_ctx_, codec_, nullptr) == 0) {
           codec_name_ = it->second;
           using_hardware_ = false;
-          fan::print("Successfully initialized software decoder: " + it->second);
+#if __debug_prints
+          fan::print("decoder_sw_success: " + it->second);
+#endif
           return true;
         }
 
         avcodec_free_context(&codec_ctx_);
         codec_ = nullptr;
+#if __debug_prints
+        fan::print_throttled("decoder_sw_fail: " + it->second, 1000);
+#endif
         return false;
       }
 
       std::string detect_codec_from_data(const uint8_t* data, size_t size) {
-        if (size < 4) return "h264"; // Default fallback
+        if (size < 4) return "h264";
 
         if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
           if (size >= 5) {
             uint8_t nal_type = data[4] & 0x1F;
-            // H.264 NAL unit types
             if (nal_type <= 23) return "h264";
           }
           return "h264";
@@ -852,7 +925,6 @@ export namespace fan {
 
         if (size >= 5 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
           uint8_t nal_type = (data[4] & 0x7E) >> 1;
-          // H.265 NAL unit types
           if (nal_type >= 32 && nal_type <= 63) return "hevc";
         }
 
@@ -878,18 +950,27 @@ export namespace fan {
 
         frame_ = av_frame_alloc();
         if (!frame_) {
+#if __debug_prints
+          fan::print_throttled("decoder_open_fail: frame_alloc", 1000);
+#endif
           return false;
         }
 
         hw_frame_ = av_frame_alloc();
         if (!hw_frame_) {
           av_frame_free(&frame_);
+#if __debug_prints
+          fan::print_throttled("decoder_open_fail: hw_frame_alloc", 1000);
+#endif
           return false;
         }
 
         init_hardware_acceleration();
 
         initialized_ = true;
+#if __debug_prints
+        fan::print("decoder_open_success");
+#endif
         return true;
       }
 
@@ -923,6 +1004,9 @@ export namespace fan {
         codec_ = nullptr;
         hw_type_ = AV_HWDEVICE_TYPE_NONE;
         hw_pixel_format_ = AV_PIX_FMT_NONE;
+#if __debug_prints
+        fan::print("decoder_closed");
+#endif
       }
 
       struct decode_result_t {
@@ -946,6 +1030,14 @@ export namespace fan {
           std::string detected_codec = forced_codec;
           if (detected_codec == "auto-detect") {
             detected_codec = detect_codec_from_data(data, size);
+#if __debug_prints
+            fan::print_throttled("decoder_detected_codec: " + detected_codec, 2000);
+#endif
+          }
+          else {
+#if __debug_prints
+            fan::print_throttled("decoder_forced_codec: " + detected_codec, 2000);
+#endif
           }
 
           bool hw_success = false;
@@ -954,10 +1046,16 @@ export namespace fan {
           }
           catch (...) {
             hw_success = false;
+#if __debug_prints
+            fan::print_throttled("decoder_hw_init_exception", 2000);
+#endif
           }
 
           if (!hw_success) {
             if (!find_and_init_sw_decoder(detected_codec)) {
+#if __debug_prints
+              fan::print_throttled("decoder_init_fail: no_decoder", 1000);
+#endif
               return results;
             }
           }
@@ -994,7 +1092,9 @@ export namespace fan {
             has_seen_sps && !has_seen_pps && eagain_count > 30) {
 
             fallback_triggered = true;
-
+#if __debug_prints
+            fan::print_throttled("decoder_fallback_sw_due_to_eagain", 2000);
+#endif
             close();
             if (open()) {
               std::string detected_codec = detect_codec_from_data(data, size);
@@ -1008,10 +1108,15 @@ export namespace fan {
           }
         }
         else if (ret < 0 && ret != AVERROR(EAGAIN)) {
+#if __debug_prints
+          fan::print_throttled("decoder_send_packet_failed", 1000);
+#endif
           static int consecutive_errors = 0;
           if (++consecutive_errors > 5 && using_hardware_ && !fallback_triggered) {
             fallback_triggered = true;
-
+#if __debug_prints
+            fan::print_throttled("decoder_fallback_sw_due_to_errors", 2000);
+#endif
             close();
             if (open()) {
               std::string detected_codec = detect_codec_from_data(data, size);
@@ -1033,6 +1138,9 @@ export namespace fan {
             break;
           }
           else if (ret < 0) {
+#if __debug_prints
+            fan::print_throttled("decoder_receive_frame_failed", 1000);
+#endif
             break;
           }
 
@@ -1059,12 +1167,18 @@ export namespace fan {
               frame_->height = actual_height;
 
               if (av_frame_get_buffer(frame_, 32) < 0) {
+#if __debug_prints
+                fan::print_throttled("decoder_sw_frame_buffer_alloc_failed", 2000);
+#endif
                 continue;
               }
             }
 
             ret = av_hwframe_transfer_data(frame_, target_frame, 0);
             if (ret < 0) {
+#if __debug_prints
+              fan::print_throttled("decoder_hw_transfer_failed", 2000);
+#endif
               continue;
             }
 
@@ -1107,6 +1221,9 @@ export namespace fan {
             std::memcpy(result.plane_data[i].data(), target_frame->data[i], plane_size);
           }
 
+#if __debug_prints
+          fan::print_throttled("decoder_frame_out: " + std::to_string(actual_width) + "x" + std::to_string(actual_height), 1000);
+#endif
           results.push_back(std::move(result));
         }
 
@@ -1131,7 +1248,6 @@ export namespace fan {
         }
       }
 
-      // Force fallback to software decoding
       bool force_software_decoding(const std::string& codec_type = "h264") {
         if (codec_ctx_) {
           avcodec_free_context(&codec_ctx_);
@@ -1139,6 +1255,9 @@ export namespace fan {
         }
 
         using_hardware_ = false;
+#if __debug_prints
+        fan::print("decoder_force_software");
+#endif
         return find_and_init_sw_decoder(codec_type);
       }
 
@@ -1157,6 +1276,7 @@ export namespace fan {
         return available;
       }
     };
+
 
     struct resolution_system_t {
       struct resolution_t {
@@ -1388,7 +1508,7 @@ export namespace fan {
         int64_t timestamp = 0;
       };
 
-     bool encode_write() {
+      bool encode_write() {
         if (!ensure_mdscr_initialized()) {
           return false;
         }
@@ -1470,7 +1590,7 @@ export namespace fan {
 
         for (const auto& result : results) {
           encode_data_t packet;
-          packet.data = result.data;
+          packet.data = std::move(result.data);
           packet.is_keyframe = result.is_keyframe;
           packet.timestamp = result.pts;
           encoded_packets_.push_back(std::move(packet));
@@ -1495,17 +1615,36 @@ export namespace fan {
       }
 
       void sleep_thread() {
-        uint64_t one_frame_time = 1000000000 / config_.frame_rate;
+        uint64_t target_frame_time_ns = 1000000000ULL / config_.frame_rate;
         uint64_t current_time = fan::time::clock::now();
         uint64_t time_diff = current_time - frame_process_start_time_;
 
-        if (time_diff > one_frame_time) {
+        if (time_diff > target_frame_time_ns) {
           frame_process_start_time_ = current_time;
         }
         else {
-          uint64_t sleep_time = one_frame_time - time_diff;
+          uint64_t sleep_time = target_frame_time_ns - time_diff;
           frame_process_start_time_ = current_time + sleep_time;
-          fan::event::sleep(sleep_time / 1000000);
+
+          if (config_.frame_rate >= 120) {
+            if (sleep_time > 2000000) {
+              fan::event::sleep((sleep_time - 1000000) / 1000000);
+            }
+            while (fan::time::clock::now() < frame_process_start_time_) {
+              std::this_thread::yield();
+            }
+          }
+          else if (config_.frame_rate >= 60) {
+            if (sleep_time > 1000000) {
+              fan::event::sleep((sleep_time - 500000) / 1000000);
+            }
+            while (fan::time::clock::now() < frame_process_start_time_) {
+              std::this_thread::yield();
+            }
+          }
+          else {
+            fan::event::sleep(sleep_time / 1000000);
+          }
         }
       }
 

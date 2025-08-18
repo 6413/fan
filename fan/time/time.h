@@ -129,13 +129,6 @@ namespace fan {
         start(time);
       }
 
-			template <time_unit unit>
-			clock(const base_time_unit<unit>& time_unit_) {
-
-				m_time = time_unit_.m_time;
-
-				time_unit_value = time_unit_.time_unit_value;
-			}
 
 			constexpr uint64_t count() const {
 				return m_time;
@@ -172,24 +165,17 @@ namespace fan {
 			template <time_unit unit>
 			void start(const base_time_unit<unit>& time_unit_) {
 				m_time = time_unit_.m_time;
-
-				time_unit_value = time_unit_.time_unit_value;
-
 				this->start();
 			}
 
       void start(uint64_t time) {
         auto time_unit_ = fan::time::nanoseconds(time);
         m_time = time_unit_.m_time;
-
-        time_unit_value = time_unit_.time_unit_value;
-
         this->start();
       }
       void set_time(uint64_t time) {
         auto time_unit_ = fan::time::nanoseconds(time);
         m_time = time_unit_.m_time;
-        time_unit_value = time_unit_.time_unit_value;
       }
 
 
@@ -198,7 +184,7 @@ namespace fan {
 			}
 
 			bool finished() const {
-				auto elapsed = this->elapsed(m_timer);
+				auto elapsed = this->elapsed();
 				return elapsed >= m_time;
 			}
       operator bool const() {
@@ -211,19 +197,11 @@ namespace fan {
 
 			// returns time in nanoseconds
 			uint64_t elapsed() const {
-				return this->elapsed(m_timer);
-			}
-
-			// returns time in nanoseconds
-			static uint64_t elapsed(uint64_t time) {
-				return fan::time::clock::now() - time;
+				return m_timer == 0 ? 0 : fan::time::clock::now() - m_timer;
 			}
 
 			uint64_t m_timer = 0;
 			uint64_t m_time = (uint64_t)-1;
-
-			time_unit time_unit_value;
-
 		};
 
 		template <typename new_t, typename old_t>
