@@ -1,6 +1,6 @@
 module;
 
-#include <fan/types/types.h>
+#include <fan/utility.h>
 
 #if defined(fan_vulkan)
 #include <vulkan/vulkan.h>

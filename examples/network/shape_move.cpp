@@ -1,7 +1,6 @@
 // client sends rectangle info to server and server draws the rectangle it received
 #include <string>
 #include <ranges>
-#include <fan/time/time.h>
 #include <string_view>
 
 import fan;

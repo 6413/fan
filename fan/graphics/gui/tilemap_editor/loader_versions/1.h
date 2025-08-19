@@ -7,7 +7,7 @@ if (fan::io::file::read(fan::io::file::find_relative_path(filename), &in)) {
   #if defined(tilemap_editor_loader) 
     fan::throw_error_format(
   #else
-    fan::print_format(
+    fan::printf(
   #endif
   "failed to load file, file:{}", filename);
   #if !defined(tilemap_editor_loader) 
@@ -20,7 +20,7 @@ if (version != current_version) {
   #if defined(tilemap_editor_loader) 
     fan::throw_error_format(
   #else
-    fan::print_format(
+    fan::printf(
   #endif
   "invalid file version, file version:{}, current:{}", version, current_version);
   #if !defined(tilemap_editor_loader) 

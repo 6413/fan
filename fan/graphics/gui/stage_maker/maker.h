@@ -229,7 +229,7 @@ void update(){
     uint64_t off = 0;
     uint32_t version = fan::string_read_data<uint32_t>(in, off);
     if (version != current_version) {
-      fan::print_format("invalid file version, file:{}, current:{}", version, current_version);
+      fan::printf("invalid file version, file:{}, current:{}", version, current_version);
       return;
     }
 
@@ -270,7 +270,7 @@ void update(){
         if (fan::io::file::rename(get_file_fullpath(old_name), get_file_fullpath(new_name)) ||
             fan::io::file::rename(get_file_fullpath_runtime(old_name), get_file_fullpath_runtime(new_name))) {
 
-          fan::print_format("failed to rename file from:{} - to:{}", old_name, new_name);
+          fan::printf("failed to rename file from:{} - to:{}", old_name, new_name);
           break;
         }
         if (old_name == new_name) {

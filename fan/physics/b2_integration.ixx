@@ -2,8 +2,6 @@ module;
 
 #if defined(fan_physics)
 
-#include <fan/types/types.h>
-
 #include <box2d/box2d.h>
 
 #include <cassert> // box2d
@@ -202,7 +200,7 @@ export namespace fan {
         b2ShapeId shape_id = b2_nullShapeId;
 #if fan_debug >= fan_debug_medium
         if (!b2Body_GetShapes(*this, &shape_id, 1)) {
-          fan::throw_error_impl();
+          fan::throw_error();
         }
 #else
         b2Body_GetShapes(*this, &shape_id, 1);
@@ -392,7 +390,7 @@ export namespace fan {
         entity = b2CreateBody(world_id, &body_def);
 #if fan_debug >= fan_debug_medium
         if (entity.is_valid() == false) {
-          fan::throw_error_impl();
+          fan::throw_error();
         }
 #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
@@ -423,7 +421,7 @@ export namespace fan {
         entity = b2CreateBody(world_id, &body_def);
 #if fan_debug >= fan_debug_medium
         if (entity.is_valid() == false) {
-          fan::throw_error_impl();
+          fan::throw_error();
         }
 #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
@@ -456,7 +454,7 @@ export namespace fan {
         entity = b2CreateBody(world_id, &body_def);
 #if fan_debug >= fan_debug_medium
         if (entity.is_valid() == false) {
-          fan::throw_error_impl();
+          fan::throw_error();
         }
 #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
@@ -482,7 +480,7 @@ export namespace fan {
         entity = b2CreateBody(world_id, &body_def);
 #if fan_debug >= fan_debug_medium
         if (entity.is_valid() == false) {
-          fan::throw_error_impl();
+          fan::throw_error();
         }
 #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
@@ -521,7 +519,7 @@ export namespace fan {
 #if fan_debug >= fan_debug_medium
         // world probably locked
         if (entity.is_valid() == false) {
-          fan::throw_error_impl();
+          fan::throw_error();
         }
 #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();

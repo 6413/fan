@@ -1,7 +1,6 @@
 module;
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
+#include <fan/utility.h>
 
 #include <fan/graphics/common_context_functions_declare.h>
 
@@ -18,6 +17,7 @@ export import fan.graphics.image_load;
 export import fan.camera;
 
 import fan.print;
+import fan.utility;
 
 export namespace fan {
   namespace graphics {

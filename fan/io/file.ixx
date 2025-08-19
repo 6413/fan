@@ -1,6 +1,6 @@
 module;
 
-#include <fan/types/types.h>
+#include <fan/utility.h>
 
 #include <fstream>
 #include <string>
@@ -19,6 +19,7 @@ module;
 export module fan.io.file;
 
 import fan.print;
+import fan.utility;
 
 export namespace fan {
 	namespace io {

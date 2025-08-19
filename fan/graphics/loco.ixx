@@ -1,8 +1,5 @@
 module;
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
-
 #include <fan/graphics/opengl/init.h>
 
 #define loco_audio
@@ -41,8 +38,6 @@ module;
 #endif
 
 // shaper
-
-#include <fan/time/time.h>
 
 #if defined(fan_compiler_msvc)
   #ifndef fan_std23
@@ -96,7 +91,12 @@ module;
   #define loco_cuda
 #endif
 
+#undef min
+#undef max
+
 export module fan.graphics.loco;
+
+import fan.utility;
 
 export import fan.event;
 export import fan.file_dialog;
@@ -2346,7 +2346,7 @@ public:
       static float running_sum = 0.0f;
       static float running_min = std::numeric_limits<float>::max();
       static float running_max = std::numeric_limits<float>::min();
-      static fan::time::clock refresh_speed{ (uint64_t)0.05e9, true };
+      static fan::time::timer refresh_speed{ (uint64_t)0.05e9, true };
       static std::array<float, buffer_size> samples{};
 
       if (refresh_speed.finished()) {
@@ -4233,7 +4233,7 @@ void set_sprite_sheet_next_frame(int advance = 1) {
   struct sprite_sheet_data_t {
     // current_frame in 'selected_frames'
     int current_frame;
-    fan::time::clock update_timer;
+    fan::time::timer update_timer;
     // sprite sheet update function nr
     loco_t::update_callback_nr_t frame_update_nr;
   };

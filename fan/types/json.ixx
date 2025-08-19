@@ -1,6 +1,6 @@
 module;
 
-#include <fan/types/types.h>
+#include <fan/utility.h>
 
 // With windows clang build there can be msvc and clang both defined
 #if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)

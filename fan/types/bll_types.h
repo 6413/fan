@@ -18,7 +18,3 @@
 #ifndef __cta
 #define __cta(x) static_assert(x)
 #endif
-
-#ifndef __abort
-#define __abort() fan::throw_error_impl()
-#endif

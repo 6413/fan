@@ -220,7 +220,7 @@ int main() {
 
   scCamera cam = scCreateCamera(800, 800, 30);
 
-  fan::time::clock camera_fps;
+  fan::time::timer camera_fps;
   camera_fps.start(fan::time::nanoseconds(66.33e+6));
   cv::Mat flipped;
 

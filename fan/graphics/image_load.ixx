@@ -1,7 +1,5 @@
 module;
 
-#include <fan/types/types.h>
-
 #include <string>
 #include <source_location>
 
@@ -12,6 +10,7 @@ export module fan.graphics.image_load;
 #endif
 
 import fan.print;
+import fan.utility;
 import fan.types.vector;
 import fan.graphics.webp;
 
@@ -60,7 +59,7 @@ export namespace fan {
 #endif
       return ret;
     }
-    fan_module_api void free(info_t* image_info) {
+    void free(info_t* image_info) {
       if (image_info->type == image_type_e::webp) {
         fan::webp::free_image(image_info->data);
       }
