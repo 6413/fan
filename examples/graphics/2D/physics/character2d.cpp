@@ -33,16 +33,16 @@ int main() {
   platforms[0] = fan::graphics::physics::rectangle_t{ {
     .position = fan::vec2(window_size.x / 5, window_size.y / 1.5),
     .size = fan::vec2(wall_thickness * 4, wall_thickness / 4),
-    .color = fan::color::hex(0x30a6b6ff),
-    .outline_color = fan::color::hex(0x30a6b6ff) * 2,
+    .color = fan::color::from_rgba(0x30a6b6ff),
+    .outline_color = fan::color::from_rgba(0x30a6b6ff) * 2,
     .body_type = fan::physics::body_type_e::kinematic_body,
     .shape_properties{.presolve_events = true},
   } };
   platforms[1] = fan::graphics::physics::rectangle_t{ {
     .position = fan::vec2(500, 500),
     .size = wall_thickness / 4,
-    .color = fan::color::hex(0x30a6b6ff),
-    .outline_color = fan::color::hex(0x30a6b6ff) * 2,
+    .color = fan::color::from_rgba(0x30a6b6ff),
+    .outline_color = fan::color::from_rgba(0x30a6b6ff) * 2,
     .body_type = fan::physics::body_type_e::static_body,
     .shape_properties{},
   } };

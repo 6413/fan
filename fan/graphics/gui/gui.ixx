@@ -30,6 +30,7 @@ export module fan.graphics.gui;
   import fan.types.fstring;
   import fan.utility;
   import fan.event;
+  import fan.fmt;
 
   import fan.graphics.loco;
   import fan.graphics;
@@ -688,7 +689,7 @@ export namespace fan {
         /// <param name="color">The color of the text (defaults to white).</param>
         void text_at(const std::string& text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white) {
           ImDrawList* draw_list = ImGui::GetWindowDrawList();
-          draw_list->AddText(position, color.get_hex(), text.c_str());
+          draw_list->AddText(position, color.get_imgui_color(), text.c_str());
         }
 
         void text_wrapped(const std::string& text, const fan::color& color = fan::colors::white) {
@@ -730,11 +731,11 @@ export namespace fan {
 
           // Draw outline
           for (const auto& offset : outline_offsets) {
-            draw_list->AddText(screen_pos + offset, outline_color.get_hex(), text.c_str());
+            draw_list->AddText(screen_pos + offset, outline_color.get_imgui_color(), text.c_str());
           }
 
           // Draw main text on top
-          draw_list->AddText(screen_pos, color.get_hex(), text.c_str());
+          draw_list->AddText(screen_pos, color.get_imgui_color(), text.c_str());
         }
 
         void text_outlined(const std::string& text, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black) {
@@ -3402,6 +3403,67 @@ export namespace fan {
         storage->SetBool(hovering_popup_id, hovering_popup);
         storage->SetBool(popup_visible_id, popup_visible);
       }
+
+      // Text that is added (stacked) to bottom left and fades away after specified time
+//-------------------------------------Floating text-------------------------------------
+      template <typename ...Args>
+      void print(const Args&... args) {
+        gloco->text_logger.print(args...);
+      }
+      template <typename ...Args>
+      void print(const fan::color& color, const Args&... args) {
+        gloco->text_logger.print(color, args...);
+      }
+      template <typename... args_t>
+      void printf(std::string_view fmt, args_t&&... args) {
+        gloco->text_logger.printf(fmt, std::forward<args_t>(args)...);
+      }
+      template <typename... args_t>
+      void printf(const fan::color& color, std::string_view fmt, args_t&&... args) {
+        gloco->text_logger.printf(color, fmt, std::forward<args_t>(args)...);
+      }
+      template <typename... args_t>
+      void printft(std::streamsize tab_width, std::string_view fmt, args_t&&... args) {
+        gloco->text_logger.printft(tab_width, fmt, std::forward<args_t>(args)...);
+      }
+      template <typename... args_t>
+      void printft(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
+        gloco->text_logger.printft(tab_width, color, fmt, std::forward<args_t>(args)...);
+      }
+      void set_text_fade_time(f32_t seconds) {
+        gloco->text_logger.set_text_fade_time(seconds);
+      }
+      //-------------------------------------Floating text-------------------------------------
+      // Text that is added (stacked) to bottom left and it never disappears
+      //-------------------------------------Static text-------------------------------------
+      template <typename ...Args>
+      void print_static(const Args&... args) {
+        gloco->text_logger.print_static(args...);
+      }
+      template <typename ...Args>
+      void print_static(const fan::color& color, const Args&... args) {
+        gloco->text_logger.print_static(color, args...);
+      }
+      template <typename... args_t>
+      void printf_static(std::string_view fmt, args_t&&... args) {
+        gloco->text_logger.printf_static(fmt, std::forward<args_t>(args)...);
+      }
+      template <typename... args_t>
+      void printf_static(const fan::color& color, std::string_view fmt, args_t&&... args) {
+        gloco->text_logger.printf_static(color, fmt, std::forward<args_t>(args)...);
+      }
+      template <typename... args_t>
+      void printft_static(std::streamsize tab_width, std::string_view fmt, args_t&&... args) {
+        gloco->text_logger.printft_static(tab_width, fmt, std::forward<args_t>(args)...);
+      }
+      template <typename... args_t>
+      void printft_static(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
+        gloco->text_logger.printft_static(tab_width, color, fmt, std::forward<args_t>(args)...);
+      }
+      void clear_static_text() {
+        gloco->text_logger.clear_static_text();
+      }
+      //-------------------------------------Static text-------------------------------------
     }
   }
 }

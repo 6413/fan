@@ -21,49 +21,49 @@ module;
 
 export module fan.print;
 
+import fan.utility;
 
 #if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
 import std;
 #endif
 
 export namespace fan {
-
   template <typename ...Args>
-  constexpr void print(const Args&... args) {
+  constexpr std::string format_args(const Args&... args) {
+    std::ostringstream oss;
     int idx = 0;
-    ((std::cout << args << (++idx == sizeof...(args) ? "" : " ")), ...);
-    std::cout << '\n';
+    ((oss << args << (++idx == sizeof...(args) ? "" : " ")), ...);
+    return oss.str();
   }
-  // print raw
   template <typename ...Args>
-  constexpr void printr(const Args&... args) {
+  constexpr std::string format_args_raw(const Args&... args) {
+    std::ostringstream oss;
+    ((oss << args), ...);
+    return oss.str();
+  }
+  template <typename ...Args>
+  constexpr std::string format_args_comma(const Args&... args) {
+    std::ostringstream oss;
     int idx = 0;
-    ((std::cout << args), ...);
+    ((oss << args << (++idx == sizeof...(args) ? "" : ", ")), ...);
+    return oss.str();
   }
-  // print comma
   template <typename ...Args>
-  constexpr void printc(const Args&... args) {
+  constexpr std::string format_args_tabbed(std::streamsize tab_width, const Args&... args) {
+    std::ostringstream oss;
+    std::ios init(nullptr);
+    init.copyfmt(oss);
+
     int idx = 0;
-    ((std::cout << args << (++idx == sizeof...(args) ? "" : ", ")), ...);
-    std::cout << '\n';
-  }
+    ((oss << (idx == 0 ? "" : (fan::is_negative(args) ? "" : " "))
+      << std::setw(tab_width)
+      << std::left << args
+      << (++idx == sizeof...(args) ? "" : " ")
+      << (fan::is_negative(args) ? " " : "")), ...);
 
-  //print tab size
-  template <typename ...Args>
-  constexpr void prints(std::streamsize w, const Args&... args) {
-    std::ios init(0);
-    init.copyfmt(std::cout);
-    std::setw(w);
-    fan::print(args...);
-    std::cout.copyfmt(init);
+    oss.copyfmt(init);
+    return oss.str();
   }
-  //print tab
-  template <typename ...Args>
-  constexpr void printt(const Args&... args) {
-    fan::prints(2, args...);
-  }
-
-
   template<typename T>
   auto convert_uint8(T value) {
     if constexpr (std::is_same_v<T, uint8_t>) {
@@ -76,52 +76,112 @@ export namespace fan {
       return value;
     }
   }
+  template <typename ...Args>
+  constexpr std::string format_args_n8(const Args&... args) {
+    std::ostringstream oss;
+    int idx = 0;
+    ((oss << convert_uint8(args) << (++idx == sizeof...(args) ? "" : ", ")), ...);
+    return oss.str();
+  }
+  template <typename ...Args>
+  constexpr std::string format_args_no_space(const Args&... args) {
+    std::ostringstream oss;
+    ((oss << args), ...);
+    return oss.str();
+  }
+  std::string format_warning(const std::string& message) {
+  #ifndef fan_disable_warnings
+    return "fan warning: " + message;
+  #else
+    return "";
+  #endif
+  }
+  std::string format_warning_no_space(const std::string& message) {
+  #ifndef fan_disable_warnings
+    return "fan warning:" + message;
+  #else
+    return "";
+  #endif
+  }
+  template <typename ...Args>
+  constexpr std::string format_args_with_space(const Args&... args) {
+    std::ostringstream oss;
+    ((oss << args << ' '), ...);
+    return oss.str();
+  }
+  template <typename ...Args>
+  constexpr std::wstring format_wargs_with_space(const Args&... args) {
+    std::wostringstream oss;
+    ((oss << args << L' '), ...);
+    return oss.str();
+  }
+  template <typename ...Args>
+  constexpr std::wstring format_wargs(const Args&... args) {
+    std::wostringstream oss;
+    ((oss << args << L" "), ...);
+    return oss.str();
+  }
+  template <typename ...Args>
+  constexpr std::string format_error_args(const Args&... args) {
+    std::ostringstream oss;
+    ((oss << args << " "), ...);
+    std::string str = oss.str();
+    if (!str.empty()) {
+      str.pop_back();
+    }
+    return str;
+  }
 
+  template <typename ...Args>
+  constexpr void print(const Args&... args) {
+    std::cout << format_args(args...) << '\n';
+  }
+  template <typename ...Args>
+  constexpr void printr(const Args&... args) {
+    std::cout << format_args_raw(args...);
+  }
+  template <typename ...Args>
+  constexpr void printc(const Args&... args) {
+    std::cout << format_args_comma(args...) << '\n';
+  }
+  template <typename ...Args>
+  constexpr void printt(std::streamsize tab_width, const Args&... args) {
+    std::cout << format_args_tabbed(tab_width, args...) << '\n';
+  }
   template <typename ...Args>
   constexpr void printn8(const Args&... args) {
-    int idx = 0;
-    ((std::cout << convert_uint8(args) << (++idx == sizeof...(args) ? "" : ", ")), ...);
-    std::cout << '\n';
+    std::cout << format_args_n8(args...) << '\n';
   }
-
   template <typename ...Args>
   constexpr void print_no_space(const Args&... args) {
-    ((std::cout << args), ...) << '\n';
+    std::cout << format_args_no_space(args...) << '\n';
   }
-
   void print_warning(const std::string& message) {
-    #ifndef fan_disable_warnings
-    fan::print("fan warning: " + message);
-    #endif
+  #ifndef fan_disable_warnings
+    std::cout << format_warning(message) << '\n';
+  #endif
   }
   void print_warning_no_space(const std::string& message) {
-    #ifndef fan_disable_warnings
-    fan::print_no_space("fan warning:", message);
-    #endif
+  #ifndef fan_disable_warnings
+    std::cout << format_warning_no_space(message) << '\n';
+  #endif
   }
-
   template <typename ...Args>
   constexpr void print_no_endline(const Args&... args) {
-    ((std::cout << args << ' '), ...);
+    std::cout << format_args_with_space(args...);
   }
-
   template <typename ...Args>
   constexpr void wprint_no_endline(const Args&... args) {
-    ((std::wcout << args << ' '), ...);
+    std::wcout << format_wargs_with_space(args...);
   }
-
   template <typename ...Args>
   constexpr void wprint(const Args&... args) {
-    ((std::wcout << args << " "), ...) << '\n';
+    std::wcout << format_wargs(args...) << '\n';
   }
-
   template <typename ...Args>
   constexpr void throw_error(const Args&... args) {
-    std::ostringstream out;
-    ((out << args << " "), ...);
-    std::string str = out.str();
-    str.pop_back();
-    fan::throw_error_impl(str.c_str());
+    std::string error_msg = format_error_args(args...);
+    fan::throw_error_impl(error_msg.c_str());
   }
 
   template <typename T>
@@ -163,20 +223,6 @@ export namespace fan {
       std::cout << key << " (" << count_map[key] << " times)" << std::endl;
       last_print_time[key] = now;
     }
-  }
-
-  // print pretty
-  template <typename... Args>
-  constexpr void printp(std::streamsize width, const Args&... args) {
-    if (sizeof...(args) == 0) return;
-
-    std::ios init(nullptr);
-    init.copyfmt(std::cout);
-
-    ((std::cout << std::left << std::setw(width) << convert_uint8(args) << " "), ...);
-    std::cout << '\n';
-
-    std::cout.copyfmt(init);
   }
 
   namespace debug {

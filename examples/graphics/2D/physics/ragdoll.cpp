@@ -9,7 +9,7 @@ int main() {
   fan::vec2 window_size = pile.loco.window.get_size();
   f32_t wall_thickness = 50.f;
   auto walls = fan::graphics::physics::create_stroked_rectangle(
-    window_size / 2, window_size / 2, wall_thickness, fan::color::hex(0x6e8d6eff),
+    window_size / 2, window_size / 2, wall_thickness, fan::color::from_rgba(0x6e8d6eff),
     {
       fan::physics::shape_properties_t{.friction=1.0}, 
       fan::physics::shape_properties_t{.friction=1.0}, 
@@ -22,16 +22,16 @@ int main() {
   platforms[0] = fan::graphics::physics::rectangle_t{ {
     .position = fan::vec2(window_size.x / 5, window_size.y / 1.5),
     .size = fan::vec2(wall_thickness * 4, wall_thickness / 4),
-    .color = fan::color::hex(0x30a6b6ff),
-    .outline_color = fan::color::hex(0x30a6b6ff) * 2,
+    .color = fan::color::from_rgba(0x30a6b6ff),
+    .outline_color = fan::color::from_rgba(0x30a6b6ff) * 2,
     .body_type = fan::physics::body_type_e::kinematic_body,
     .shape_properties{.presolve_events = false},
   } };
   platforms[1] = fan::graphics::physics::rectangle_t{ {
     .position = fan::vec2(500, 500),
     .size = wall_thickness / 4,
-    .color = fan::color::hex(0x30a6b6ff),
-    .outline_color = fan::color::hex(0x30a6b6ff) * 2,
+    .color = fan::color::from_rgba(0x30a6b6ff),
+    .outline_color = fan::color::from_rgba(0x30a6b6ff) * 2,
     .body_type = fan::physics::body_type_e::static_body,
     .shape_properties{},
   } };

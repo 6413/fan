@@ -12,13 +12,13 @@ fan::color interpolate(const fan::color& c1, const fan::color& c2, f32_t factor)
 
 constexpr fan::color get_height_color(int value) {
   constexpr std::pair<int, fan::color> color_map[] = {
-    { 50,   fan::color::hex(0x003eb2ff)},     // Dark blue for deep water
-    { 80,  fan::color::hex(0x0952c6ff)}, // Light blue for shallow water
-    { 100,  fan::color::hex(0x726231ff)},   // Brown for coastal areas
-    { 150, fan::color::hex(0xa49463ff)}, // Tan for lowlands
-    { 200, fan::color::hex(0x3c6114ff)},     // Dark green for midlands
-    { 250, fan::color::hex(0x4f6b31ff)}, // Light green for lower highlands
-    { 300, fan::color::hex(0xffffffff)}, // Snow at the highest elevations
+    { 50,   fan::color::from_rgba(0x003eb2ff)},     // Dark blue for deep water
+    { 80,  fan::color::from_rgba(0x0952c6ff)}, // Light blue for shallow water
+    { 100,  fan::color::from_rgba(0x726231ff)},   // Brown for coastal areas
+    { 150, fan::color::from_rgba(0xa49463ff)}, // Tan for lowlands
+    { 200, fan::color::from_rgba(0x3c6114ff)},     // Dark green for midlands
+    { 250, fan::color::from_rgba(0x4f6b31ff)}, // Light green for lower highlands
+    { 300, fan::color::from_rgba(0xffffffff)}, // Snow at the highest elevations
   };
 
   int n = sizeof(color_map) / sizeof(color_map[0]);

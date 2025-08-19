@@ -43,7 +43,7 @@ void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, v
     debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
       .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), 0x1f00 + z_depth),
       .dst = fan::physics::physics_to_render(vertices[next_i]),
-      .color = fan::color::hexa(color)
+      .color = fan::color::from_rgba(color)
     } });
   }
 
@@ -56,7 +56,7 @@ void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexC
   std::vector<fan::graphics::vertex_t> vs(vertexCount);
   for (auto [i, v] : fan::enumerate(vs)) {
     v.position = fan::physics::physics_to_render(vertices[i]);
-    v.color = fan::color::hexa(color);
+    v.color = fan::color::from_rgba(color);
   }
   debug_draw_solid_polygon.emplace_back(fan::graphics::polygon_t{ {
     .position = fan::vec3(0, 0, 0x1f00 + z_depth),
@@ -71,7 +71,7 @@ void DrawCircle(b2Vec2 center, f32_t radius, b2HexColor color, void* context) {
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
     .position = fan::vec3(fan::physics::physics_to_render(center), 0x1f00 + z_depth),
     .radius = fan::physics::physics_to_render(radius).x,
-    .color = fan::color::hexa(color),
+    .color = fan::color::from_rgba(color),
   } });
   ++z_depth;
 }
@@ -81,7 +81,7 @@ void DrawSolidCircle(b2Transform transform, f32_t radius, b2HexColor color, void
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
     .position = fan::vec3(fan::physics::physics_to_render(transform.p), 0x1f00 + z_depth),
     .radius = fan::physics::physics_to_render(radius).x,
-    .color = fan::color::hexa(color),
+    .color = fan::color::from_rgba(color),
   } });
   ++z_depth;
 }
@@ -101,7 +101,7 @@ void DrawSegment(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context) {
   debug_draw_line.emplace_back(fan::graphics::line_t{ {
     .src = fan::vec3(fan::physics::physics_to_render(p1), 0x1f00 + z_depth),
     .dst = fan::vec3(fan::physics::physics_to_render(p2), 0x1f00 + z_depth),
-    .color = fan::color::hexa(color),
+    .color = fan::color::from_rgba(color),
   } });
   ++z_depth;
 }
@@ -117,7 +117,7 @@ void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
     .position = fan::vec3(fan::physics::physics_to_render(p), 0x1f00 + z_depth),
     .radius = size,
-    .color = fan::color::hexa(color)
+    .color = fan::color::from_rgba(color)
   } });
   ++z_depth;
 }
@@ -791,7 +791,7 @@ export namespace fan {
         const fan::vec2& center_position,
         const fan::vec2& half_size,
         f32_t thickness,
-        const fan::color& wall_color = fan::color::hex(0x6e8d6eff),
+        const fan::color& wall_color = fan::color::from_rgba(0x6e8d6eff),
         std::array<fan::physics::shape_properties_t, 4> shape_properties = { {
           {.friction = 0},
           {.friction = 0.6},

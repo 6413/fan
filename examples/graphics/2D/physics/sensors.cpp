@@ -18,8 +18,8 @@ struct pile_t {
     .center0 = {0.f, -128.f},
     .center1 = {0.f, 128.0f},
     .radius = 16.f,
-    .color = fan::color::hex(0x715a5eff),
-    .outline_color = fan::color::hex(0x715a5eff) * 2,
+    .color = fan::color::from_rgba(0x715a5eff),
+    .outline_color = fan::color::from_rgba(0x715a5eff) * 2,
     .blending = true,
     .body_type = fan::physics::body_type_e::dynamic_body,
     .mass_data{.mass = 0.01f},
@@ -37,24 +37,24 @@ int main() {
   platforms[0] = fan::graphics::physics_shapes::rectangle_t{ {
     .position = fan::vec2(window_size.x / 5, window_size.y / 1.5),
     .size = fan::vec2(wall_thickness * 4, wall_thickness / 4),
-    .color = fan::color::hex(0x30a6b6ff),
-    .outline_color = fan::color::hex(0x30a6b6ff) * 2,
+    .color = fan::color::from_rgba(0x30a6b6ff),
+    .outline_color = fan::color::from_rgba(0x30a6b6ff) * 2,
     .body_type = fan::physics::body_type_e::kinematic_body,
     .shape_properties{.enable_presolve_events = true},
   } };
   platforms[1] = fan::graphics::physics_shapes::rectangle_t{ {
     .position = fan::vec2(500, 500),
     .size = wall_thickness / 4,
-    .color = fan::color::hex(0x30a6b6ff),
-    .outline_color = fan::color::hex(0x30a6b6ff) * 2,
+    .color = fan::color::from_rgba(0x30a6b6ff),
+    .outline_color = fan::color::from_rgba(0x30a6b6ff) * 2,
     .body_type = fan::physics::body_type_e::static_body,
     .shape_properties{},
   } };
   platforms[2] = fan::graphics::physics_shapes::rectangle_t{ {
     .position = fan::vec2(700, 500),
     .size = wall_thickness / 4,
-    .color = fan::color::hex(0x30a6b6ff),
-    .outline_color = fan::color::hex(0x30a6b6ff) * 2,
+    .color = fan::color::from_rgba(0x30a6b6ff),
+    .outline_color = fan::color::from_rgba(0x30a6b6ff) * 2,
     .body_type = fan::physics::body_type_e::static_body,
     .shape_properties{.is_sensor = true},
   } };
