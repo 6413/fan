@@ -1,8 +1,5 @@
 module;
 
-#include <fan/types/types.h>
-
-#include <fan/math/math.h>
 #include <fan/graphics/opengl/init.h>
 
 #include <vector>
@@ -33,6 +30,7 @@ import fan.types.fstring;
 import fan.types.color;
 
 import fan.window;
+import fan.utility;
 export import fan.print;
 export import fan.graphics.image_load;
 export import fan.graphics.common_context;
@@ -42,6 +40,25 @@ concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&
 !std::is_same_v<T, fan::vec3> &&
 !std::is_same_v<T, fan::vec4> &&
 !std::is_same_v<T, fan::color>;
+
+namespace fan {
+  namespace opengl {
+    struct opengl_t {
+      int major = -1;
+      int minor = -1;
+      void open() {
+        static uint8_t init = 1;
+        if (init == 0) {
+          return;
+        }
+        init = 0;
+        if (GLenum err = glewInit() != GLEW_OK) {
+          fan::throw_error(std::string("glew init error:") + std::string((const char*)glewGetErrorString(err)));
+        }
+      }
+    };
+  }
+}
 
 export namespace fan {
   namespace opengl {

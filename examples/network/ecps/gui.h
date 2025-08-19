@@ -1230,7 +1230,7 @@ struct ecps_gui_t {
           if (rt->screen_decoder.decoded_size.x > 0 && rt->screen_decoder.decoded_size.y > 0) {
             frame_aspect = static_cast<f32_t>(rt->screen_decoder.decoded_size.x) / static_cast<f32_t>(rt->screen_decoder.decoded_size.y);
           }
-          fan::print_format("VIEWER: stream_area={}x{}, decoded={}x{}, aspect={:.3f}, display_size={}x{}",
+          fan::printf("VIEWER: stream_area={}x{}, decoded={}x{}, aspect={:.3f}, display_size={}x{}",
             stream_area.x, stream_area.y,
             rt->screen_decoder.decoded_size.x, rt->screen_decoder.decoded_size.y,
             frame_aspect, fitted_size.x * 2, fitted_size.y * 2);
@@ -1589,7 +1589,7 @@ struct ecps_gui_t {
       }
 
       This->network_frame_helper.setup_network_frame(stream_area);
-      This->render_fps_counter(stream_area.x, 8.f);
+      This->render_fps_counter(stream_area.x);
 
       gui::pop_style_var(5);
 

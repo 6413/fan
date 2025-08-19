@@ -1,7 +1,6 @@
 module;
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
+#include <fan/utility.h> // abort
 
 #ifndef fan_audio_set_backend
   #if defined(fan_platform_unix)
@@ -21,11 +20,6 @@ module;
 
 #include <WITCH/WITCH.h>
 
-#include <WITCH/TH/TH.h>
-
-#include <WITCH/FS/FS.h>
-#include <WITCH/T/T.h>
-
 // transform todo remove
 #include <algorithm>
 #include <string>
@@ -41,10 +35,16 @@ module;
   #include <pulse/simple.h>
 #endif
 
+#include <WITCH/FS/FS.h>
+#include <WITCH/T/T.h>
+#include <WITCH/TH/TH.h>
+
 export module fan.audio;
 
 import fan.print;
+import fan.utility;
 import fan.io.file;
+import fan.math;
 
 export namespace fan {
   struct system_audio_t {

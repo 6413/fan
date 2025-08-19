@@ -4,7 +4,6 @@
 #include <memory>
 #include <filesystem>
 
-#include <fan/types/types.h>
 #include <fan/types/dme.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS

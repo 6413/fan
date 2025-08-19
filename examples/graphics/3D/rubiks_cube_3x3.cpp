@@ -20,7 +20,7 @@ int main() {
   loco.camera_set_position(gloco->perspective_camera.camera, { 3.46, 1.94, -6.22 });
   //fan_3d::graphics::add_camera_rotation_callback(&camera);
 
-  fan::time::clock timer;
+  fan::time::timer timer;
   timer.start();
 
   fan::vec2 window_size = gloco->window.get_size();

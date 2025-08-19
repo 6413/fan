@@ -57,7 +57,7 @@ int main() {
   loco.set_vsync(0);
 
   int step = 0;
-  fan::time::clock c;
+  fan::time::timer c;
   //c.start(fan::time::nanoseconds(0.1e+9));
   loco.loop([&] {
     loco.get_fps();

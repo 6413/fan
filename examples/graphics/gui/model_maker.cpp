@@ -1,6 +1,5 @@
-#include <fan/types/types.h>
 #include <fan/memory/memory.hpp>
-#include <fan/math/math.h>
+
 
 #include <fan/imgui/imgui.h>
 

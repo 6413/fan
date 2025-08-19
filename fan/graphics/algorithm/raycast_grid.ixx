@@ -1,12 +1,13 @@
 module;
 
-#include <fan/types/types.h>
+#include <cstdint>
 #include <cmath>
 #include <vector>
 
 export module fan.graphics.algorithm.raycast_grid;
 
 export import fan.types.vector;
+import fan.utility;
 import fan.graphics.common_types;
 
 export namespace fan {

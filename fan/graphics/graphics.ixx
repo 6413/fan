@@ -7,11 +7,10 @@ module;
   #include <fan/graphics/gui/imgui_themes.h>
 #endif
 
-#include <fan/types/types.h>
 #include <fan/graphics/opengl/init.h>
 #include <fan/event/types.h>
 
-#include <fan/math/math.h>
+
 
 #include <filesystem>
 
@@ -31,6 +30,7 @@ export import fan.graphics.loco;
 import fan.graphics.common_types;
 import fan.io.directory;
 import fan.io.file;
+import fan.time;
 
 // user friendly functions
 /***************************************/

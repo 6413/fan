@@ -1,6 +1,7 @@
 export module fan;
 
 export import fan.print;
+export import fan.utility;
 export import fan.types.masterpiece;
 export import fan.types.matrix;
 export import fan.types.fstring;

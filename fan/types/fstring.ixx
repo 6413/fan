@@ -1,7 +1,5 @@
 module;
 
-#include <fan/types/types.h>
-
 #include <vector>
 #include <cstring>
 #include <memory>

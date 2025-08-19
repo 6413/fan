@@ -1,7 +1,5 @@
 #pragma once
 
-#include <fan/types/types.h>
-
 namespace fan {
   using access_type_t = uint8_t;
 

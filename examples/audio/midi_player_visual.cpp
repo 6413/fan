@@ -16,11 +16,7 @@
 #include <map>
 #include <mutex>
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
-
 #include <fan/imgui/implot.h>
-#include <fan/time/time.h>
 
 import fan;
 

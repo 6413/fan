@@ -3,7 +3,7 @@
 //uint64_t off = 0;
 //auto version = fan::read_data<decltype(current_version)>(in, off);
 //if (version != current_version) {
-// fan::print_format("invalid file version, file:{}, current:{}", version, current_version);
+// fan::printf("invalid file version, file:{}, current:{}", version, current_version);
 // return;
 //}
 //fan::mp_t<current_version_t::shapes_t> shapes;

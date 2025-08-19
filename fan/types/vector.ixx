@@ -1,7 +1,6 @@
 module;
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
+#include <fan/utility.h>
 
 #define fan_coordinate_letters0
 #define fan_coordinate_letters1 x
@@ -33,6 +32,8 @@ module;
 #include <sstream>
 
 export module fan.types.vector;
+
+export import fan.math;
 
 export namespace fan {
 

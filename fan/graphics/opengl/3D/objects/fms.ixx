@@ -10,8 +10,6 @@ export module fan.graphics.opengl3D.objects.fms;
   #include <GL/glew.h>
 #endif
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
 #include <fan/types/dme.h>
 
 #include <vector>

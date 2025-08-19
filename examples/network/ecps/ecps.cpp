@@ -1,5 +1,4 @@
-#include <fan/types/types.h>
-#include <fan/time/time.h>
+#include <fan/utility.h>
 #include <fan/event/types.h>
 #include <fan/types/dme.h>
 #include <cstring>
@@ -641,7 +640,7 @@ int main() {
           if (flnr != render_thread_instance.FrameList.dst) {
 
             {
-              static fan::time::clock display_fps_timer;
+              static fan::time::timer display_fps_timer;
               static int display_frame_count = 0;
               static float display_fps = 0.0f;
               static bool timer_started = false;
@@ -1153,7 +1152,7 @@ int main() {
     auto* rt = render_thread_ptr.load(std::memory_order_acquire);
     if (rt) {
       if (rt->ecps_gui.window_handler.auto_refresh) {
-        static fan::time::clock refresh_timer(rt->ecps_gui.window_handler.refresh_interval * 2e+9, true);
+        static fan::time::timer refresh_timer(rt->ecps_gui.window_handler.refresh_interval * 2e+9, true);
         if (refresh_timer.finished()) {
           rt->ecps_gui.backend_queue([]() -> fan::event::task_t {
             try {

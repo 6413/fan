@@ -1,6 +1,4 @@
-#include <fan/types/types.h>
-#include <fan/math/math.h>
-#include <fan/time/time.h>
+#include <fan/utility.h>
 #include <fan/event/types.h>
 
 #include <string>

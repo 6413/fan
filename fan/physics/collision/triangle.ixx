@@ -1,10 +1,9 @@
 module;
 
-#include <fan/math/math.h>
-
 export module fan.physics.collision.triangle;
 
 import fan.types.vector;
+import fan.math;
 
 export namespace fan_2d {
 	namespace collision {

@@ -2,9 +2,8 @@ module;
 
 #if defined(fan_physics) && defined(fan_gui)
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
 
+#include <fan/utility.h>
 #include <unordered_map>
 #include <vector>
 #include <string>
@@ -17,6 +16,7 @@ export module fan.graphics.gui.tilemap_editor.loader;
 
 #if defined(fan_physics) && defined(fan_gui)
 import fan.print;
+import fan.utility;
 import fan.graphics;
 import fan.physics.b2_integration;
 import fan.graphics.physics_shapes;

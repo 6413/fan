@@ -1,6 +1,6 @@
 // include before all, because it uses some macros which override default allocation functions
 #pragma once
-#include <fan/types/types.h>
+#include <fan/utility.h>
 
 #if defined(fan_std23)
 

@@ -1,7 +1,6 @@
 module;
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
+#include <fan/utility.h>
 
 #include <functional>
 

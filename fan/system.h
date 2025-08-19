@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fan/types/types.h>
+#include <fan/utility.h>
 
 #if defined(fan_platform_windows)
 #include <DXGI.h>

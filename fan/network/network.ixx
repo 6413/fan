@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #include <uv.h>
 #undef min
 #undef max
@@ -20,12 +22,11 @@ module;
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 
-#include <fan/types/types.h>
-
 export module fan.network;
 
+import fan.utility;
 export import fan.event;
-export import fan.print;
+import fan.print;
 
 export namespace fan {
   namespace network {

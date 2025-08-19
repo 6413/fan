@@ -1,8 +1,5 @@
 module;
 
-#include <fan/types/types.h>
-#include <fan/time/time.h>
-
 #include <WITCH/WITCH.h>
 
 extern "C" {
@@ -33,6 +30,7 @@ extern "C" {
 export module fan.graphics.video.screen_codec;
 
 export import fan.graphics.loco;
+import fan.time;
 import fan.fmt;
 
 export namespace fan {

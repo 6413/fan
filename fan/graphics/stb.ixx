@@ -1,6 +1,6 @@
 module;
 
-#include <fan/types/types.h>
+#include <fan/utility.h>
 
 #ifndef fan_platform_android
 
@@ -33,12 +33,12 @@ export namespace fan {
       std::uint8_t type = 1; // webp, stb
     };
 
-    fan_module_api bool validate(const std::string& file, const std::source_location& callers_path = std::source_location::current()) {
+    bool validate(const std::string& file, const std::source_location& callers_path = std::source_location::current()) {
       int x, y, channels;
       return stbi_info(fan::io::file::find_relative_path(file, callers_path).string().c_str(), &x, &y, &channels);
     }
 
-    fan_module_api bool load(const std::string& file, info_t* image_info, const std::source_location& callers_path = std::source_location::current()) {
+    bool load(const std::string& file, info_t* image_info, const std::source_location& callers_path = std::source_location::current()) {
     
       image_info->data = stbi_load(fan::io::file::find_relative_path(file, callers_path).string().c_str(), &image_info->size.x, &image_info->size.y, &image_info->channels, 0);
       if (!image_info->data) {
@@ -57,7 +57,7 @@ export namespace fan {
     //   return stbi_write_png(file.c_str(), image_info.size.x, image_info.size.y, image_info.channels, image_info.data, image_info.size.x * image_info.channels);
     // }
 
-    fan_module_api void free_image(void* data) {
+    void free_image(void* data) {
       stbi_image_free(data);
     }
   

@@ -1,8 +1,5 @@
 module;
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
-#include <fan/time/time.h>
 #include <fan/event/types.h>
 
 #if defined(fan_gui)
@@ -16,19 +13,22 @@ module;
 #include <array>
 #include <filesystem>
 #include <coroutine>
+#include <fan/utility.h>
 #include <algorithm>
 #include <functional>
 #include <queue>
 
 export module fan.graphics.gui;
 
-
 #if defined(fan_gui)
   import fan.print;
+  import fan.utility;
+  import fan.math;
   import fan.types.vector;
   import fan.types.color;
   import fan.types.quaternion;
   import fan.types.fstring;
+  import fan.utility;
   import fan.event;
 
   import fan.graphics.loco;
@@ -3114,7 +3114,7 @@ export namespace fan {
           std::string text;
           uint64_t character_per_s = 20;
           std::size_t render_pos = 0;
-          fan::time::clock blink_timer{ (uint64_t)0.5e9, false };
+          fan::time::timer blink_timer{ (uint64_t)0.5e9, false };
           uint8_t render_cursor = false;
           fan::event::task_t character_advance_task;
         };
