@@ -1,10 +1,10 @@
 module;
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
+#include <cstdint>
 
 export module fan.physics.collision.rectangle;
 
+import fan.types;
 import fan.physics.collision.triangle;
 import fan.types.matrix;
 
@@ -13,12 +13,12 @@ export namespace fan_2d {
 	namespace collision {
 
 		namespace rectangle {
-      fan_module_api constexpr bool point_inside(const fan::vec2& p1, const fan::vec2& p2, const fan::vec2& p3, const fan::vec2& p4, const fan::vec2& point) {
+      constexpr bool point_inside(const fan::vec2& p1, const fan::vec2& p2, const fan::vec2& p3, const fan::vec2& p4, const fan::vec2& point) {
 				return fan_2d::collision::triangle::point_inside(p1, p2, p4, point) || fan_2d::collision::triangle::point_inside(p1, p3, p4, point);
 			}
 
       // size is half
-      fan_module_api constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size) {
+      constexpr bool point_inside_no_rotation(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size) {
         return
           point.x >= position.x - size.x &&
           point.x <= position.x + size.x &&
@@ -27,7 +27,7 @@ export namespace fan_2d {
 			}
 
 
-      fan_module_api constexpr bool check_collision(const fan::vec2& center1, const fan::vec2& half_size1,
+      constexpr bool check_collision(const fan::vec2& center1, const fan::vec2& half_size1,
         const fan::vec2& center2, const fan::vec2& half_size2) {
         fan::vec2 abs_half_size1 = { fan::math::abs(half_size1.x), fan::math::abs(half_size1.y) };
         fan::vec2 abs_half_size2 = { fan::math::abs(half_size2.x), fan::math::abs(half_size2.y) };
@@ -39,7 +39,7 @@ export namespace fan_2d {
       }
 
 
-      fan_module_api constexpr bool point_inside_rotated(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size, const fan::vec3& angle, const fan::vec2& rotation_point) {
+      constexpr bool point_inside_rotated(const fan::vec2& point, const fan::vec2& position, const fan::vec2& size, const fan::vec3& angle, const fan::vec2& rotation_point) {
         // TODO BROKEN
         return 0;
         /*fan::mat4 m = fan::mat4(1);
@@ -69,7 +69,7 @@ export namespace fan_2d {
 					 | x | x |
 			     |---|---|
 			*/
-      fan_module_api uint8_t get_side_collision(const fan::vec2& point, const fan::vec2& p, const fan::vec2& s) {
+      uint8_t get_side_collision(const fan::vec2& point, const fan::vec2& p, const fan::vec2& s) {
 				if (point.x <= p.x && point.y <= p.y) {
 					return sides_e::top_left;
 				}

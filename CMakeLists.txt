@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.31.1)
 
-set(FAN_PHYSICS OFF)
+#TODO add fan_network
+set(FAN_PHYSICS ON)
 set(FAN_GUI ON)
 set(FAN_JSON ON)
 set(FAN_3D OFF)
 set(FAN_OPENGL ON)
 set(FAN_VULKAN OFF)
 set(FAN_FMT ON)
-set(FAN_WAYLAND_SCREEN OFF)  
+set(FAN_WAYLAND_SCREEN ON)  
 
 set(BUILD_MAIN ON)
 
@@ -40,6 +41,8 @@ if(WIN32)
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -flto -ffunction-sections -fdata-sections -MT -DNDEBUG")
 
 		set(CMAKE_EXE_LINKER_FLAGS "-Wl,/FORCE:MULTIPLE -Wl,--gc-sections ")
+		set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-Wl,/FORCE:MULTIPLE -Wl,--gc-sections -s")
+
 
     set(CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS "clang-scan-deps")
     set(CMAKE_CXX_SCAN_FOR_MODULES ON)
@@ -261,15 +264,18 @@ add_library(fan_modules STATIC)
 apply_fan_definitions(fan_modules)
 
 set(MODULE_FILES
-    ${ROOT_PATH}/print.ixx
+		${ROOT_PATH}/types/types.ixx
     ${ROOT_PATH}/types/color.ixx
     ${ROOT_PATH}/types/vector.ixx
     ${ROOT_PATH}/types/quaternion.ixx
     ${ROOT_PATH}/types/matrix.ixx
     ${ROOT_PATH}/types/magic.ixx
     ${ROOT_PATH}/types/masterpiece.ixx
-    ${ROOT_PATH}/types/traits.ixx
     ${ROOT_PATH}/types/fstring.ixx
+		${ROOT_PATH}/math/math.ixx
+		${ROOT_PATH}/time.ixx
+		${ROOT_PATH}/utility.ixx
+		${ROOT_PATH}/print.ixx
     ${ROOT_PATH}/random.ixx
     ${ROOT_PATH}/io/directory.ixx
     ${ROOT_PATH}/io/file.ixx
@@ -293,6 +299,10 @@ set(MODULE_FILES
     ${ROOT_PATH}/audio/audio.ixx
     ${ROOT_PATH}/event/event.ixx
     ${ROOT_PATH}/network/network.ixx
+		${ROOT_PATH}/graphics/graphics_network.ixx
+		
+		#${ROOT_PATH}/video/screen_codec.ixx #optional only for video encoding and decoding
+		
     ${ROOT_PATH}/fan.ixx
 )
 
@@ -310,9 +320,9 @@ endif()
 
 if(FAN_GUI)
     list(APPEND MODULE_FILES
-        ${ROOT_PATH}/graphics/gui/tilemap_editor/renderer0.ixx
-        ${ROOT_PATH}/graphics/gui/tilemap_editor/loader.ixx
-        ${ROOT_PATH}/graphics/gui/tilemap_editor/editor.ixx
+        #${ROOT_PATH}/graphics/gui/tilemap_editor/renderer0.ixx
+        #${ROOT_PATH}/graphics/gui/tilemap_editor/loader.ixx
+        #${ROOT_PATH}/graphics/gui/tilemap_editor/editor.ixx
         ${ROOT_PATH}/graphics/gui/gui.ixx
         ${ROOT_PATH}/graphics/gui/console.ixx
     )
@@ -417,7 +427,7 @@ endif()
 
 if(BUILD_MAIN)
     if(NOT DEFINED MAIN)
-        set(MAIN ${SOURCE_DIR}/examples/graphics/2D/shapes/rectangle.cpp)
+        set(MAIN ${SOURCE_DIR}/examples/engine_demos/engine_demo.cpp)
     endif()
 
     if(UNIX AND WAYLAND_CLIENT_FOUND AND FAN_WAYLAND_SCREEN)
@@ -428,8 +438,13 @@ if(BUILD_MAIN)
         )
     else()
         add_executable(a.exe ${MAIN})
+				target_compile_definitions(a.exe PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
     endif()
 
+		if (DEFINED CUSTOM_LIBS)
+			target_link_libraries(fan_modules PRIVATE ${CUSTOM_LIBS})
+			target_link_libraries(a.exe PRIVATE ${CUSTOM_LIBS})
+		endif()
     add_dependencies(a.exe fan_modules)
     set_target_properties(a.exe PROPERTIES CXX_SCAN_FOR_MODULES ON)
     apply_common_compile_options(a.exe)
@@ -444,6 +459,7 @@ if(BUILD_MAIN)
         )
         if (FAN_WAYLAND_SCREEN)
             target_link_libraries(a.exe PRIVATE ${WAYLAND_CLIENT_LIBS} ${PIPEWIRE_LIBS} ${DBUS_LIBRARIES})
+						
         endif()
         if (FAN_FMT)
             target_link_libraries(a.exe PRIVATE fmt)
@@ -484,7 +500,7 @@ if(BUILD_MAIN)
 				#	WIN32_EXECUTABLE TRUE
 				#	LINK_FLAGS "-Wl,/SUBSYSTEM:WINDOWS,/ENTRY:mainCRTStartup"
 				#)
-
+				
         target_link_libraries(a.exe PRIVATE
 					opengl32
 					${SOURCE_DIR}/lib/GLFW/glfw3_mt.lib
@@ -529,15 +545,25 @@ if(BUILD_MAIN)
         endif()
 				
 				if(FAN_WAYLAND_SCREEN)
+					target_link_libraries(fan_modules PRIVATE
+						DXGI
+						D3D11
+						${SOURCE_DIR}/lib/libx264/libx264.lib
+						${SOURCE_DIR}/lib/openh264/welsdcore.lib
+						${SOURCE_DIR}/lib/openh264/welsecore.lib
+						${SOURCE_DIR}/lib/openh264/WelsDecPlus.lib
+						${SOURCE_DIR}/lib/openh264/WelsEncPlus.lib
+						${SOURCE_DIR}/lib/openh264/WelsVP.lib
+					)
 					target_link_libraries(a.exe PRIVATE DXGI.lib D3D11.lib 
-					${SOURCE_DIR}/lib/libx264/libx264.lib
-					${SOURCE_DIR}/lib/openh264/welsdcore.lib
-					${SOURCE_DIR}/lib/openh264/welsecore.lib
-					${SOURCE_DIR}/lib/openh264/WelsDecPlus.lib
-					${SOURCE_DIR}/lib/openh264/WelsEncPlus.lib
-					${SOURCE_DIR}/lib/openh264/WelsVP.lib
-					${SOURCE_DIR}/lib/openh264/encConsole.lib
-				)
+						${SOURCE_DIR}/lib/libx264/libx264.lib
+						${SOURCE_DIR}/lib/openh264/welsdcore.lib
+						${SOURCE_DIR}/lib/openh264/welsecore.lib
+						${SOURCE_DIR}/lib/openh264/WelsDecPlus.lib
+						${SOURCE_DIR}/lib/openh264/WelsEncPlus.lib
+						${SOURCE_DIR}/lib/openh264/WelsVP.lib
+						${SOURCE_DIR}/lib/openh264/encConsole.lib
+					)
 				endif()
 				
     endif()

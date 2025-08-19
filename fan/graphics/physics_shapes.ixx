@@ -4,11 +4,6 @@ module;
 
 #if defined(fan_physics)
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
-
-#include <fan/time/time.h>
-
 #include <box2d/box2d.h>
 
 #include <array>
@@ -24,6 +19,8 @@ export module fan.graphics.physics_shapes;
 
 import fan.types.vector;
 import fan.types.color;
+import fan.time;
+import fan.utility;
 import fan.physics.b2_integration;
 
 #if (fan_gui)
@@ -923,7 +920,7 @@ export namespace fan {
               on_air_after_jump = false;
             }
 
-            //static fan::time::clock c;
+            //static fan::time::timer c;
             //static fan::vec2 prev;
             //static bool reset = 0;
             ////fan::print(get_position().y, prev.y, get_linear_velocity().y);
@@ -1482,7 +1479,7 @@ export namespace fan {
         int direction = 1;
         int look_direction = direction;
         int go_up = 0;
-        fan::time::clock jump_animation_timer;
+        fan::time::timer jump_animation_timer;
       };
 
       struct mouse_joint_t {

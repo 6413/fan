@@ -3,7 +3,6 @@
 #include <any>
 #include <functional>
 
-#include <fan/time/time.h>
 #include <type_traits>
 
 //#define test_pushback 0
@@ -15,7 +14,7 @@ void lambda(int x) {
 
 int main(int arg) {
 
-  fan::time::clock c;
+  fan::time::timer c;
 
   constexpr auto count = 1;
 

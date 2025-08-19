@@ -861,7 +861,6 @@ bool viewport_inside_wir(fan::vulkan::context_t& context, viewport_nr_t nr, cons
   fan::graphics::context_viewport_t& viewport = viewport_get(context, nr);
   return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.viewport_size / 2, viewport.viewport_size / 2);
 }
-#include <fan/time/time.h>
 void fan::vulkan::context_t::open_no_window() {
   create_instance();
   setup_debug_messenger();

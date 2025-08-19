@@ -1,6 +1,5 @@
 // old, newer lib makes code much smaller
 #include <fan/pch.h>
-#include <fan/time/time.h>
 
 int main() {
   loco_t loco;
@@ -114,7 +113,7 @@ int main() {
   auto joint2 = b2CreateRevoluteJoint(loco.physics_context.world_id, &revoluteJointDef);
   
   f32_t angle = 0;
-  fan::time::clock c;
+  fan::time::timer c;
   uint64_t physics_time = 0;
   loco.loop([&] {
     b2RevoluteJoint_SetMotorSpeed(joint, -2.f);

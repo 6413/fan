@@ -912,9 +912,9 @@ struct ecps_backend_t {
     Protocol_ChannelSessionID_t session_id = 0;
 
     bool is_streaming = false;
-    fan::time::clock stream_start_timer;
+    fan::time::timer stream_start_timer;
     bool is_viewing = false;
-    fan::time::clock joined_at;
+    fan::time::timer joined_at;
   };
   std::vector<channel_info_t> channel_info;
 

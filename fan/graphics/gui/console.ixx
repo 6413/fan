@@ -1,6 +1,6 @@
 module;
 
-#include <fan/types/types.h>
+#include <fan/utility.h>
 
 #if defined(fan_gui)
   #include <fan/imgui/text_editor.h>
@@ -15,6 +15,7 @@ export module fan.console;
 export import fan.types.color;
 
 import fan.fmt;
+import fan.utility;
 export import fan.graphics.common_types;
 
 #if defined(fan_gui)

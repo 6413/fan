@@ -1,8 +1,7 @@
 module;
 
 #if defined(fan_physics) && defined(fan_gui)
-#include <fan/types/types.h>
-#include <fan/math/math.h>
+
 
 #include <functional>
 #include <unordered_map>

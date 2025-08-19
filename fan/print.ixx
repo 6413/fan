@@ -1,6 +1,6 @@
 module;
 
-#include <fan/types/types.h>
+#include <fan/utility.h>
 
 // With windows clang build there can be msvc and clang both defined
 #if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
@@ -20,6 +20,7 @@ module;
 #endif
 
 export module fan.print;
+
 
 #if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
 import std;
@@ -75,7 +76,6 @@ export namespace fan {
       return value;
     }
   }
-
 
   template <typename ...Args>
   constexpr void printn8(const Args&... args) {
@@ -135,8 +135,7 @@ export namespace fan {
 
   template <typename T>
   requires requires(const T& t) { t.size.size(); }
-  std::ostream& operator<<(std::ostream& os, const T& container_within) noexcept
-  {
+  std::ostream& operator<<(std::ostream& os, const T& container_within) noexcept {
     for (uintptr_t i = 0; i < container_within.size(); i++) {
       for (uintptr_t j = 0; j < container_within[i].size(); j++) {
         os << container_within[i][j] << ' ';
@@ -165,6 +164,21 @@ export namespace fan {
       last_print_time[key] = now;
     }
   }
+
+  // print pretty
+  template <typename... Args>
+  constexpr void printp(std::streamsize width, const Args&... args) {
+    if (sizeof...(args) == 0) return;
+
+    std::ios init(nullptr);
+    init.copyfmt(std::cout);
+
+    ((std::cout << std::left << std::setw(width) << convert_uint8(args) << " "), ...);
+    std::cout << '\n';
+
+    std::cout.copyfmt(init);
+  }
+
   namespace debug {
 
     void print_stacktrace() {

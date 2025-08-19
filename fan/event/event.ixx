@@ -19,7 +19,7 @@ using namespace std::chrono_literals;
 export module fan.event;
 
 import fan.print;
-import fan.types.traits;
+import fan.utility;
 
 export namespace fan{
   inline constexpr int fs_o_append      = UV_FS_O_APPEND;

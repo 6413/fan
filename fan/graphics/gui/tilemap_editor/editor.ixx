@@ -1,5 +1,6 @@
 module;
 
+#include <fan/utility.h>
 #include <cstring>
 #include <functional>
 #include <map>
@@ -7,9 +8,6 @@ module;
 #include <string>
 #include <vector>
 #include <source_location>
-
-#include <fan/types/types.h>
-#include <fan/math/math.h>
 
 export module fan.graphics.gui.tilemap_editor.editor;
 

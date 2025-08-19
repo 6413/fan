@@ -16,9 +16,6 @@
 #include <map>
 #include <mutex>
 
-#include <fan/types/types.h>
-#include <fan/math/math.h>
-
 #include <fan/imgui/implot.h>
 
 import fan;

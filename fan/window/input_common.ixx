@@ -1,6 +1,6 @@
 module;
 
-#include <fan/types/types.h>
+#include <fan/utility.h>
 
 #include <cstdint>
 
