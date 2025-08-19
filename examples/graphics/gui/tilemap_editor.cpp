@@ -23,7 +23,7 @@ struct player_t {
     .render_view = &render_view1,
     .position = fan::vec3(400, 400, 10),
     .radius = 16.f,
-    .color = fan::color::hex(0x715a5eff),
+    .color = fan::color::from_rgba(0x715a5eff),
     .blending = true,
     .body_type = fan::physics::body_type_e::dynamic_body,
     .mass_data{.mass = 0.01f},
@@ -39,7 +39,7 @@ struct player_t {
     .render_view = &render_view1,
     .position = player.get_position(),
     .size = player.get_size()*8,
-    .color = fan::color::hex(0xe8c170ff)
+    .color = fan::color::from_rgba(0xe8c170ff)
   }};
 };
 int main(int argc, char** argv) {

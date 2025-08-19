@@ -14,7 +14,7 @@ export module fan.console;
 
 export import fan.types.color;
 
-import fan.fmt;
+import fan.types.fstring;
 import fan.utility;
 export import fan.graphics.common_types;
 
@@ -194,7 +194,7 @@ export namespace fan {
 
 
       auto palette = editor.GetPalette();
-      //fan::color bg = fan::color::hex(palette[(int)TextEditor::PaletteIndex::Background]);
+      //fan::color bg = fan::color::from_rgba(palette[(int)TextEditor::PaletteIndex::Background]);
       //bg = bg * 2;
       //palette[(int)TextEditor::PaletteIndex::Background] = bg.to_u32();
 
@@ -284,7 +284,7 @@ export namespace fan {
         output_buffer.push_back(current_command);
         if (input.IsFocused()) {
           editor.SetReadOnly(false);
-          editor.InsertTextColored("> " + current_command, fan::color::hex(0x999999FF));
+          editor.InsertTextColored("> " + current_command, fan::color::from_rgba(0x999999FF));
           editor.SetReadOnly(true);
           commands.call(current_command.substr(0, current_command.size() - 1));
         }

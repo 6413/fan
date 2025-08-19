@@ -146,7 +146,7 @@ struct fgm_t {
         .render_view = &render_view,
         .position = fan::vec3(0, 0, 0xffff - 0xff),
         .size = 0,
-        .color = fan::color::hex(0x3eb9ff44),
+        .color = fan::color::from_rgba(0x3eb9ff44),
         .blending = true
     } };
 

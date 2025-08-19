@@ -97,6 +97,7 @@ module;
 export module fan.graphics.loco;
 
 import fan.utility;
+import fan.graphics.gui.text_logger;
 
 export import fan.event;
 export import fan.file_dialog;
@@ -274,14 +275,13 @@ export namespace fan {
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeDataType std::function<void(loco_t*)>
 #define BLL_set_CPP_CopyAtPointerChange 1
-#undef BLL_set_CPP_ConstructDestruct
 #include <BLL/BLL.h>
 
       using init_callback_nr_t = init_callback_NodeReference_t;
     };
 
     // cbs called every time engine opens
-    inline engine_init_t::init_callback_t engine_init_cbs;
+   inline engine_init_t::init_callback_t engine_init_cbs;
 
     inline uint32_t get_draw_mode(uint8_t internal_draw_mode);
 
@@ -1821,7 +1821,6 @@ public:
     if (fan::init_manager_t::initialized() == false) {
       fan::init_manager_t::initialize();
     }
-    fan::graphics::engine_init_cbs.Open();
     render_shapes_top = p.render_shapes_top;
     window.renderer = p.renderer;
     shape_functions.resize(shape_type_t::last);
@@ -1984,7 +1983,6 @@ public:
   }
 
   void destroy() {
-    fan::graphics::engine_init_cbs.Close();
     if (window == nullptr) {
       return;
     }
@@ -2311,6 +2309,11 @@ public:
   void process_gui() {
 #if defined(fan_gui)
     fan::graphics::gui::process_loop();
+
+    // append
+    ImGui::Begin("##global_renderer");
+    text_logger.render();
+    ImGui::End();
 
     if (ImGui::IsKeyPressed(ImGuiKey_F3, false)) {
       render_console = !render_console;
@@ -5605,6 +5608,14 @@ void set_sprite_sheet_next_frame(int advance = 1) {
 
   //gui
 #if defined(fan_gui)
+
+  void toggle_console() {
+    render_console = !render_console;
+  }
+  void toggle_console(bool active) {
+    render_console = active;
+  }
+
   fan::console_t console;
   bool render_console = false;
   bool show_fps = false;
@@ -5617,6 +5628,8 @@ void set_sprite_sheet_next_frame(int advance = 1) {
 
   bool imgui_initialized = false;
   static inline bool global_imgui_initialized = false;
+
+  fan::graphics::gui::text_logger_t text_logger;
 
 #include <fan/graphics/gui/settings_menu.h>
   settings_menu_t settings_menu;

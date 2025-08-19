@@ -18,7 +18,7 @@ struct settings_menu_t {
     ImGui::SetNextWindowBgAlpha(0.99);
     ImGui::Begin("##Menu Graphics Left", 0, wnd_flags);
     {
-      ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "DISPLAY");
+      ImGui::TextColored(fan::color::from_rgba(0x948c80ff) * 1.5, "DISPLAY");
       ImGui::BeginTable("settings_left_table_display", 2,
         ImGuiTableFlags_BordersInnerH |
         ImGuiTableFlags_BordersOuterH
@@ -72,7 +72,7 @@ struct settings_menu_t {
     ImGui::NewLine();
     ImGui::NewLine();
     {
-      ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "POST PROCESSING");
+      ImGui::TextColored(fan::color::from_rgba(0x948c80ff) * 1.5, "POST PROCESSING");
       ImGui::BeginTable("settings_left_table_post_processing", 2,
         ImGuiTableFlags_BordersInnerH |
         ImGuiTableFlags_BordersOuterH
@@ -95,7 +95,7 @@ struct settings_menu_t {
     ImGui::NewLine();
     ImGui::NewLine();
     {
-      ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "PERFORMANCE STATS");
+      ImGui::TextColored(fan::color::from_rgba(0x948c80ff) * 1.5, "PERFORMANCE STATS");
       ImGui::BeginTable("settings_left_table_post_processing", 2,
         ImGuiTableFlags_BordersInnerH |
         ImGuiTableFlags_BordersOuterH
@@ -138,7 +138,7 @@ struct settings_menu_t {
 
     ImGui::PushFont(gloco->get_font(32, true));
     ImGui::Indent(menu->min_x);
-    ImGui::TextColored(fan::color::hex(0x948c80ff) * 1.5, "Setting Info");
+    ImGui::TextColored(fan::color::from_rgba(0x948c80ff) * 1.5, "Setting Info");
     ImGui::Unindent(menu->min_x);
     ImGui::PopFont();
 

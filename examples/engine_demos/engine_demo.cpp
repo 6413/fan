@@ -735,7 +735,7 @@ void main() {
   static void render_demos(menu_t* menu, const std::vector<std::string>& titles) {
     std::size_t title_index = 0;
     std::string title = titles[title_index];
-    gui::text(title, fan::color::hex(0x948c80ff) * 1.5);
+    gui::text(title, fan::color::from_rgba(0x948c80ff) * 1.5);
     gui::push_style_var(gui::style_var_cell_padding, fan::vec2(0));
     fan_graphics_gui_table(
       (title + "_settings_left_table_display").c_str(), 
@@ -751,7 +751,7 @@ void main() {
             gui::end_table();
             gui::new_line();
             gui::new_line();
-            gui::text(title, fan::color::hex(0x948c80ff) * 1.5);
+            gui::text(title, fan::color::from_rgba(0x948c80ff) * 1.5);
             gui::begin_table(title + "_settings_left_table_display", 1,
               gui::table_flags_borders_inner_h |
               gui::table_flags_borders_outer_h

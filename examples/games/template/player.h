@@ -23,7 +23,7 @@ struct player_t {
     .center0 = {0.f, -24.f},
     .center1 = {0.f, 24.f},
     .radius = 12,
-    /*.color = fan::color::hex(0x715a5eff),*/
+    /*.color = fan::color::from_rgba(0x715a5eff),*/
     .blending = true,
     .body_type = fan::physics::body_type_e::dynamic_body,
     //.mass_data{.mass = 0.01f},

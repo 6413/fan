@@ -10,8 +10,8 @@ int main() {
     fan::graphics::physics::rectangle_t{ {
       .position = fan::random::vec2(0, window_size),
       .size = 50,
-      .color = fan::color::hex(0x30a6b6ff),
-      .outline_color = fan::color::hex(0x30a6b6ff) * 2,
+      .color = fan::color::from_rgba(0x30a6b6ff),
+      .outline_color = fan::color::from_rgba(0x30a6b6ff) * 2,
       .body_type = fan::physics::body_type_e::static_body,
       .shape_properties{.presolve_events = true},
       } }
