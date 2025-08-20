@@ -118,9 +118,9 @@ mat4 rotate(mat4 m, vec3 angles) {
 }
 
 vec2 triangle_vertices[] = vec2[](
-	vec2(0, (2 * sqrt(3)) / 6),
-	vec2(-1.0 / 2, -sqrt(3) / 6),
-	vec2(1.0 / 2, -sqrt(3) / 6)
+	vec2(0.0, (2.0 * sqrt(3.0)) / 6.0),
+	vec2(-1.0 / 2.0, -sqrt(3.0) / 6.0),
+	vec2(1.0 / 2.0, -sqrt(3.0) / 6.0)
 );
 
 vec2 rectangle_vertices[] = vec2[](

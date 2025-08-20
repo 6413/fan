@@ -1030,8 +1030,8 @@ export struct fte_t {
 
       fan::vec2 real_viewport_size = viewport_size + frame_padding * 2 + fan::vec2(0, style.WindowPadding.y * 2);
 
-      real_viewport_size.x = fan::clamp(real_viewport_size.x, 1.f, real_viewport_size.x);
-      real_viewport_size.y = fan::clamp(real_viewport_size.y, 1.f, real_viewport_size.y);
+      real_viewport_size.x = std::clamp(real_viewport_size.x, 1.f, real_viewport_size.x);
+      real_viewport_size.y = std::clamp(real_viewport_size.y, 1.f, real_viewport_size.y);
 
       gloco->camera_set_ortho(
           render_view->camera,

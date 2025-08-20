@@ -341,7 +341,8 @@ export namespace fan {
         fan::vec3 src = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
         fan::vec2 dst = fan::vec2(1, 1);
         fan::color color = fan::color(1, 1, 1, 1);
-        bool blending = false;
+        f32_t thickness = 4.0f;
+        bool blending = true;
       };
 
       struct line_t : loco_t::shape_t {
@@ -356,6 +357,7 @@ export namespace fan {
               .src = p.src,
               .dst = p.dst,
               .color = p.color,
+              .thickness = p.thickness,
               .blending = p.blending
             ));
         }

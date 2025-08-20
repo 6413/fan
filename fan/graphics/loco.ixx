@@ -1425,6 +1425,7 @@ public:
     fan::vec2 window_size = -1;
     uint64_t window_flags = 0;
     uint8_t renderer = renderer_t::opengl;
+    uint8_t samples = 0;
   };
 
   uint64_t start_time = 0;
@@ -1830,6 +1831,7 @@ public:
       gl.open();
     }
 
+    window.set_antialiasing(p.samples);
     window.open(p.window_size, fan::window_t::default_window_name, p.window_flags);
     gloco = this;
 
@@ -1860,6 +1862,10 @@ public:
 #if fan_debug >= fan_debug_high
       get_context().gl.set_error_callback();
 #endif
+
+      if (window.get_antialiasing() > 0) {
+        glEnable(GL_MULTISAMPLE);
+      }
 
       gl.initialize_fb_vaos();
     }
@@ -2198,6 +2204,9 @@ public:
       if (window.renderer == renderer_t::opengl) {
         gl.shapes_open();
         gl.initialize_fb_vaos();
+        if (window.get_antialiasing() > 0) {
+          glEnable(GL_MULTISAMPLE);
+        }
       }
 #if defined(fan_vulkan)
       else if (window.renderer == renderer_t::vulkan) {
@@ -4106,6 +4115,7 @@ void set_sprite_sheet_next_frame(int advance = 1) {
       fan::color color;
       fan::vec3 src;
       fan::vec3 dst;
+      f32_t thickness;
     };
     struct ri_t {
 
@@ -4116,7 +4126,8 @@ void set_sprite_sheet_next_frame(int advance = 1) {
     std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_color"}, 4, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
       shape_gl_init_t{{1, "in_src"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
-      shape_gl_init_t{{2, "in_dst"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
+      shape_gl_init_t{{2, "in_dst"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)},
+      shape_gl_init_t{{3, "line_thickness"}, 1, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, thickness)}
     };
 
     struct properties_t {
@@ -4125,14 +4136,15 @@ void set_sprite_sheet_next_frame(int advance = 1) {
       fan::color color = fan::colors::white;
       fan::vec3 src;
       fan::vec3 dst;
+      f32_t thickness = 4.0f;
 
-      bool blending = false;
+      bool blending = true;
 
       loco_t::camera_t camera = gloco->orthographic_render_view.camera;
       loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
-      uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
-      uint32_t vertex_count = 2;
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
     };
 
 
@@ -4141,6 +4153,7 @@ void set_sprite_sheet_next_frame(int advance = 1) {
       vi.src = properties.src;
       vi.dst = properties.dst;
       vi.color = properties.color;
+      vi.thickness = properties.thickness;
       ri_t ri;
 
       return shape_add(shape_type, vi, ri,
@@ -5761,8 +5774,8 @@ void set_sprite_sheet_next_frame(int advance = 1) {
     fan::vec3 t1 = t_min.min(t_max);
     fan::vec3 t2 = t_min.max(t_max);
 
-    float t_near = fan::max(t1.x, fan::max(t1.y, t1.z));
-    float t_far = fan::min(t2.x, fan::min(t2.y, t2.z));
+    float t_near = std::max(t1.x, std::max(t1.y, t1.z));
+    float t_far = std::min(t2.x, std::min(t2.y, t2.z));
 
     return t_near <= t_far && t_far >= 0.0f;
   }
