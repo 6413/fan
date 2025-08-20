@@ -702,6 +702,26 @@ export namespace fan {
         }
 
         /// <summary>
+        /// Draws text centered horizontally.
+        /// </summary>
+        /// <param name="text">The text to draw.</param>
+        /// <param name="color">The color of the text (defaults to white).</param>
+        /// <param name="offset">Offset from center position.</param>
+        void text_centered(const std::string& text, const fan::color& color = fan::colors::white) {
+          fan::vec2 text_size = ImGui::CalcTextSize(text.c_str());
+          fan::vec2 window_size = ImGui::GetWindowSize();
+          fan::vec2 current_pos = ImGui::GetCursorPos();
+
+          current_pos.x -= text_size.x * 0.5f;
+          current_pos.y -= text_size.y * 0.5f;
+
+          ImGui::SetCursorPos(current_pos);
+          ImGui::PushStyleColor(ImGuiCol_Text, color);
+          ImGui::Text("%s", text.c_str());
+          ImGui::PopStyleColor();
+        }
+
+        /// <summary>
         /// Draws text to bottom right.
         /// </summary>
         /// <param name="text">The text to draw.</param>
@@ -3405,7 +3425,7 @@ export namespace fan {
       }
 
       // Text that is added (stacked) to bottom left and fades away after specified time
-//-------------------------------------Floating text-------------------------------------
+      //-------------------------------------Floating text-------------------------------------
       template <typename ...Args>
       void print(const Args&... args) {
         gloco->text_logger.print(args...);
@@ -3434,6 +3454,7 @@ export namespace fan {
         gloco->text_logger.set_text_fade_time(seconds);
       }
       //-------------------------------------Floating text-------------------------------------
+      
       // Text that is added (stacked) to bottom left and it never disappears
       //-------------------------------------Static text-------------------------------------
       template <typename ...Args>
