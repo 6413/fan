@@ -280,6 +280,7 @@ export namespace fan {
     inline constexpr fan::color cyan = fan::color::from_rgba(0x00FFFFFF);
     inline constexpr fan::color magenta = fan::color::from_rgba(0xFF00FFFF);
     inline constexpr fan::color transparent = fan::color::from_rgba(0x00000000);
+    inline constexpr fan::color lime = fan::color(0.2f, 0.8f, 0.2f, 1.0f);
 	}
 }
 

@@ -1665,7 +1665,7 @@ struct ecps_gui_t {
 
     gui::get_window_draw_list()->AddRectFilled(
       bg_min, bg_max,
-      fan::color(0, 0, 0, 0.7f).to_u32(),
+      fan::color(0, 0, 0, 0.7f).get_imgui_color(),
       gui::get_font_size() * 0.2f
     );
 

@@ -277,6 +277,10 @@ export namespace fan {
       glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 #endif
 
+      if (m_antialiasing_samples > 0) {
+        glfwWindowHint(GLFW_SAMPLES, m_antialiasing_samples);
+      }
+
       if (!(flags & flags::no_visible)) {
         glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
       }
@@ -684,6 +688,22 @@ export namespace fan {
       return axis;
     }
 
+    uint8_t get_antialiasing() const {
+      return m_antialiasing_samples;
+    }
+    void set_antialiasing(int samples) {
+      if (samples < 0) {
+        samples = 0;
+      }
+
+      m_antialiasing_samples = samples;
+
+      if (glfw_window != nullptr) {
+        fan::throw_error("Call before making window");
+      }
+    }
+
+
 #if defined(fan_platform_windows)
     //---------------------------Windows specific code---------------------------
 
@@ -805,6 +825,7 @@ export namespace fan {
     mouse_position_callback_t m_mouse_position_callback;
     mouse_motion_callback_t m_mouse_motion_callback;
     uint64_t flags = 0;
+    uint8_t m_antialiasing_samples = 0;
 
     operator GLFWwindow* () {
       return glfw_window;
@@ -815,7 +836,7 @@ export namespace fan {
 
     int prev_key_states[fan::last]{};
     int key_states[fan::last]{};
-    GLFWwindow* glfw_window;
+    GLFWwindow* glfw_window = nullptr;
 
     fan::vec2d previous_mouse_position = -0xfff;
 

@@ -93,8 +93,8 @@ struct memory_common_t {
 	}
 
 	void edit(fan::vulkan::context_t& context, uint32_t begin, uint32_t end) {
-		m_min_edit = fan::min(m_min_edit, begin);
-		m_max_edit = fan::max(m_max_edit, end);
+		m_min_edit = std::min(m_min_edit, begin);
+		m_max_edit = std::max(m_max_edit, end);
 
 		if (is_queued()) {
 			return;

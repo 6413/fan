@@ -16,9 +16,10 @@
 #include <future>
 #include <queue>
 #include <memory>
+#include <cmath>
 
 extern "C" {
-#include <libavutil/pixfmt.h>
+  #include <libavutil/pixfmt.h>
 }
 
 #if __has_include("cuda.h")
