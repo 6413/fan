@@ -27,6 +27,7 @@ export module fan.network;
 import fan.utility;
 export import fan.event;
 import fan.print;
+import fan.types.json;
 
 export namespace fan {
   namespace network {
@@ -42,7 +43,7 @@ export namespace fan {
       getaddrinfo_t(const char* node, const char* service, struct addrinfo* hints = nullptr) :
         data(std::make_unique<getaddrinfo_data_t>()) {
         data->getaddrinfo_handle.data = data.get();
-        uv_getaddrinfo(fan::event::get_event_loop(), &data->getaddrinfo_handle, [](uv_getaddrinfo_t* getaddrinfo_handle, int status, struct addrinfo* res) {
+        uv_getaddrinfo(fan::event::get_loop(), &data->getaddrinfo_handle, [](uv_getaddrinfo_t* getaddrinfo_handle, int status, struct addrinfo* res) {
           auto data = static_cast<getaddrinfo_data_t*>(getaddrinfo_handle->data);
           if (status == UV_ECANCELED) {
             delete data;
@@ -683,7 +684,7 @@ export namespace fan {
         client_handler_t::nr_t nr = get_client_handler().client_list.NewNodeLast();
         get_client_handler().client_list[nr] = this;
         get_client_handler().client_list[nr]->nr = nr;
-        uv_tcp_init(fan::event::get_event_loop(), socket.get());
+        uv_tcp_init(fan::event::get_loop(), socket.get());
       }
       tcp_t(const tcp_t&) = delete;
       tcp_t& operator=(const tcp_t&) = delete;
@@ -793,14 +794,16 @@ export namespace fan {
         tcp_t& client = get_client_handler()[client_id];
         if (accept(client) == 0) {
           try {
-            client.task = [client_id] (const auto& lambda) -> fan::event::task_t { co_await lambda(get_client_handler()[client_id]); }(lambda);
+            client.task = [client_id] (const auto& lambda) -> fan::event::task_t { 
+              co_await lambda(get_client_handler()[client_id]);
+              get_client_handler().remove_client(client_id);
+            }(lambda);
           }
           catch (const fan::exception_t& e) {
             fan::print("Client NRI:", client_id.NRI, "disconnected with error:", e.reason);
+            get_client_handler().remove_client(client_id);
           }
         }
-        fan::print("Removing client NRI:", client_id.NRI, "from client list");
-        get_client_handler().remove_client(client_id);
       }
       co_return;
     }
@@ -1173,7 +1176,7 @@ export namespace fan {
       };
 
       udp_t() : socket(new uv_udp_t, udp_deleter_t{}) {
-        int result = uv_udp_init(fan::event::get_event_loop(), socket.get());
+        int result = uv_udp_init(fan::event::get_loop(), socket.get());
         if (result != 0) {
           fan::throw_error("Failed to initialize UDP socket:"_str + uv_strerror(result));
         }
@@ -1565,6 +1568,711 @@ export namespace fan {
         server_address = server_addr;
       }
     };
+
+
+    // -------------------------------HTTP/REST-------------------------------
+    
+    struct http_method_t {
+      enum {
+        get = 0,
+        post,
+        put,
+        delete_,
+        patch,
+        head,
+        options
+      };
+    };
+
+    struct http_status_t {
+      enum {
+        ok = 200,
+        created = 201,
+        no_content = 204,
+        bad_request = 400,
+        unauthorized = 401,
+        forbidden = 403,
+        not_found = 404,
+        method_not_allowed = 405,
+        internal_server_error = 500,
+        not_implemented = 501,
+        service_unavailable = 503
+      };
+    };
+
+    struct http_error_t {
+      enum {
+        invalid_json = 1,
+        invalid_param,
+        connection_failed,
+        timeout,
+        parse_failed,
+        not_found_error,
+        database_error,
+        validation_error
+      };
+      
+      int code;
+      std::string message;
+      
+      http_error_t(int c, std::string msg) : code(c), message(std::move(msg)) {}
+    };
+
+    inline std::expected<fan::json, http_error_t> parse_json_simple(const std::string& json_str) {
+      if (json_str.empty()) {
+        return std::unexpected(http_error_t{http_error_t::invalid_json, "Empty JSON string"});
+      }
+      
+      try {
+        return fan::json::parse(json_str);
+      } catch (...) {
+        return std::unexpected(http_error_t{http_error_t::invalid_json, "Invalid JSON format"});
+      }
+    }
+
+    struct request_t {
+      int method;
+      std::string path;
+      std::string raw_path;
+      std::unordered_map<std::string, std::string> headers;
+      std::unordered_map<std::string, std::string> params;
+      std::unordered_map<std::string, std::string> query;
+      std::string body;
+
+      template<typename T>
+      std::expected<T, http_error_t> param(const std::string& name) const {
+        auto it = params.find(name);
+        if (it == params.end()) {
+          return std::unexpected(http_error_t{http_error_t::invalid_param, "Parameter '" + name + "' not found"});
+        }
+        
+        try {
+          if constexpr (std::is_same_v<T, int>) {
+            return std::stoi(it->second);
+          } else if constexpr (std::is_same_v<T, double>) {
+            return std::stod(it->second);
+          } else if constexpr (std::is_same_v<T, std::string>) {
+            return it->second;
+          }
+        } catch (...) {
+          return std::unexpected(http_error_t{http_error_t::invalid_param, "Invalid parameter format for '" + name + "'"});
+        }
+        
+        return std::unexpected(http_error_t{http_error_t::invalid_param, "Unsupported parameter type"});
+      }
+
+      std::expected<fan::json, http_error_t> json() const {
+        if (body.empty()) {
+          return std::unexpected(http_error_t{http_error_t::invalid_json, "Empty request body"});
+        }
+        return parse_json_simple(body);
+      }
+
+      std::string header(const std::string& name) const {
+        auto it = headers.find(name);
+        return it != headers.end() ? it->second : "";
+      }
+
+      template<typename T>
+      std::expected<T, http_error_t> query_param(const std::string& name) const {
+        auto it = query.find(name);
+        if (it == query.end()) {
+          return std::unexpected(http_error_t{http_error_t::invalid_param, "Query parameter '" + name + "' not found"});
+        }
+        
+        try {
+          if constexpr (std::is_same_v<T, int>) {
+            return std::stoi(it->second);
+          } else if constexpr (std::is_same_v<T, double>) {
+            return std::stod(it->second);
+          } else if constexpr (std::is_same_v<T, std::string>) {
+            return it->second;
+          }
+        } catch (...) {
+          return std::unexpected(http_error_t{http_error_t::invalid_param, "Invalid query parameter format for '" + name + "'"});
+        }
+        
+        return std::unexpected(http_error_t{http_error_t::invalid_param, "Unsupported query parameter type"});
+      }
+    };
+
+    struct response_t {
+      int status_code = http_status_t::ok;
+      std::unordered_map<std::string, std::string> headers;
+      std::string body;
+
+      response_t& status(int code) {
+        status_code = code;
+        return *this;
+      }
+
+      response_t& header(const std::string& key, const std::string& value) {
+        headers[key] = value;
+        return *this;
+      }
+
+      response_t& json(const fan::json& data) {
+        body = data.dump();
+        headers["Content-Type"] = "application/json";
+        return *this;
+      }
+
+      response_t& text(const std::string& data) {
+        body = data;
+        headers["Content-Type"] = "text/plain";
+        return *this;
+      }
+
+      response_t& html(const std::string& data) {
+        body = data;
+        headers["Content-Type"] = "text/html";
+        return *this;
+      }
+
+      response_t& ok(const fan::json& data = nullptr) {
+        status_code = http_status_t::ok;
+        if (!data.is_null()) {
+          json(data);
+        }
+        return *this;
+      }
+
+      response_t& created(const fan::json& data = nullptr) {
+        status_code = http_status_t::created;
+        if (!data.is_null()) {
+          json(data);
+        }
+        return *this;
+      }
+
+      response_t& not_found(const std::string& message = "Not Found") {
+        status_code = http_status_t::not_found;
+        return text(message);
+      }
+
+      response_t& bad_request(const std::string& message = "Bad Request") {
+        status_code = http_status_t::bad_request;
+        return text(message);
+      }
+
+      response_t& internal_error(const std::string& message = "Internal Server Error") {
+        status_code = http_status_t::internal_server_error;
+        return text(message);
+      }
+
+      response_t& error(const http_error_t& err) {
+        switch (err.code) {
+          case http_error_t::invalid_param:
+          case http_error_t::invalid_json:
+          case http_error_t::validation_error:
+            return bad_request(err.message);
+          case http_error_t::not_found_error:
+            return not_found(err.message);
+          case http_error_t::database_error:
+          case http_error_t::connection_failed:
+          case http_error_t::timeout:
+          default:
+            return internal_error(err.message);
+        }
+      }
+
+      std::string to_string() const {
+        std::string response = "HTTP/1.1 " + std::to_string(status_code) + " ";
+        
+        switch (status_code) {
+          case http_status_t::ok: response += "OK"; break;
+          case http_status_t::created: response += "Created"; break;
+          case http_status_t::bad_request: response += "Bad Request"; break;
+          case http_status_t::not_found: response += "Not Found"; break;
+          case http_status_t::internal_server_error: response += "Internal Server Error"; break;
+          default: response += "Unknown"; break;
+        }
+        response += "\r\n";
+
+        for (const auto& [key, value] : headers) {
+          response += key + ": " + value + "\r\n";
+        }
+
+        if (!body.empty()) {
+          response += "Content-Length: " + std::to_string(body.length()) + "\r\n";
+        }
+
+        response += "\r\n" + body;
+        return response;
+      }
+    };
+
+    using async_handler_t = std::function<fan::event::task_t(const request_t&, response_t&)>;
+
+    struct route_t {
+      int method;
+      std::string pattern;
+      async_handler_t handler;
+      
+      bool matches(int req_method, const std::string& path, std::unordered_map<std::string, std::string>& params) const {
+        if (req_method != method) return false;
+        
+        auto pattern_parts = split_path(pattern);
+        auto path_parts = split_path(path);
+        
+        if (pattern_parts.size() != path_parts.size()) return false;
+        
+        params.clear();
+        for (size_t i = 0; i < pattern_parts.size(); ++i) {
+          if (pattern_parts[i].starts_with('{') && pattern_parts[i].ends_with('}')) {
+            std::string param_name = pattern_parts[i].substr(1, pattern_parts[i].length() - 2);
+            params[param_name] = path_parts[i];
+          } else if (pattern_parts[i] != path_parts[i]) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+    private:
+      std::vector<std::string> split_path(const std::string& path) const {
+        std::vector<std::string> parts;
+        std::string current;
+        for (char c : path) {
+          if (c == '/') {
+            if (!current.empty()) {
+              parts.push_back(current);
+              current.clear();
+            }
+          } else {
+            current += c;
+          }
+        }
+        if (!current.empty()) {
+          parts.push_back(current);
+        }
+        return parts;
+      }
+    };
+
+    struct router_t {
+      std::vector<route_t> routes;
+
+      template<typename Handler>
+      void add_route(int method, const std::string& pattern, Handler&& handler) {
+        route_t route;
+        route.method = method;
+        route.pattern = pattern;
+        route.handler = [handler = std::forward<Handler>(handler)](const request_t& req, response_t& res) -> fan::event::task_t {
+          co_await handler(req, res);
+        };
+        
+        routes.push_back(std::move(route));
+      }
+
+      template<typename Handler>
+      void get(const std::string& pattern, Handler&& handler) {
+        add_route(http_method_t::get, pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void post(const std::string& pattern, Handler&& handler) {
+        add_route(http_method_t::post, pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void put(const std::string& pattern, Handler&& handler) {
+        add_route(http_method_t::put, pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void delete_(const std::string& pattern, Handler&& handler) {
+        add_route(http_method_t::delete_, pattern, std::forward<Handler>(handler));
+      }
+
+      fan::event::task_value_resume_t<response_t> handle(const request_t& req) {
+        for (const auto& route : routes) {
+          request_t modified_req = req;
+          if (route.matches(req.method, req.path, modified_req.params)) {
+            response_t res;
+            try {
+              co_await route.handler(modified_req, res);
+            } catch (const std::exception& e) {
+              res.internal_error("Handler exception: " + std::string(e.what()));
+            }
+            co_return res;
+          }
+        }
+        
+        response_t res;
+        co_return res.not_found();
+      }
+    };
+
+    inline std::unordered_map<std::string, std::string> parse_query_string(const std::string& query_string) {
+      std::unordered_map<std::string, std::string> params;
+      std::string current_param;
+      std::string current_value;
+      bool reading_value = false;
+      
+      for (char c : query_string) {
+        if (c == '=') {
+          reading_value = true;
+        } else if (c == '&') {
+          if (!current_param.empty()) {
+            params[current_param] = current_value;
+          }
+          current_param.clear();
+          current_value.clear();
+          reading_value = false;
+        } else {
+          if (reading_value) {
+            current_value += c;
+          } else {
+            current_param += c;
+          }
+        }
+      }
+      
+      if (!current_param.empty()) {
+        params[current_param] = current_value;
+      }
+      
+      return params;
+    }
+
+    inline request_t parse_http_request(const std::string& raw_request) {
+      request_t req;
+      std::istringstream stream(raw_request);
+      std::string line;
+      
+      if (!std::getline(stream, line)) {
+        return req;
+      }
+      
+      line.erase(line.find_last_not_of("\r\n") + 1);
+      
+      std::istringstream request_line(line);
+      std::string method_str, full_path, version;
+      request_line >> method_str >> full_path >> version;
+      
+      if (method_str == "GET") req.method = http_method_t::get;
+      else if (method_str == "POST") req.method = http_method_t::post;
+      else if (method_str == "PUT") req.method = http_method_t::put;
+      else if (method_str == "DELETE") req.method = http_method_t::delete_;
+      
+      req.raw_path = full_path;
+      size_t query_pos = full_path.find('?');
+      if (query_pos != std::string::npos) {
+        req.path = full_path.substr(0, query_pos);
+        std::string query_string = full_path.substr(query_pos + 1);
+        req.query = parse_query_string(query_string);
+      } else {
+        req.path = full_path;
+      }
+      
+      while (std::getline(stream, line) && !line.empty() && line != "\r") {
+        line.erase(line.find_last_not_of("\r\n") + 1);
+        size_t colon_pos = line.find(':');
+        if (colon_pos != std::string::npos) {
+          std::string key = line.substr(0, colon_pos);
+          std::string value = line.substr(colon_pos + 1);
+          value.erase(0, value.find_first_not_of(" \t"));
+          req.headers[key] = value;
+        }
+      }
+      
+      std::string body_line;
+      while (std::getline(stream, body_line)) {
+        req.body += body_line + "\n";
+      }
+      if (!req.body.empty()) {
+        req.body.pop_back();
+      }
+      
+      return req;
+    }
+
+    struct http_server_t {
+      router_t router;
+      
+      template<typename Handler>
+      void get(const std::string& pattern, Handler&& handler) {
+        router.get(pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void post(const std::string& pattern, Handler&& handler) {
+        router.post(pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void put(const std::string& pattern, Handler&& handler) {
+        router.put(pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void delete_(const std::string& pattern, Handler&& handler) {
+        router.delete_(pattern, std::forward<Handler>(handler));
+      }
+
+      fan::event::task_t listen(const listen_address_t& address) {
+        co_await tcp_server_listen(address, [this](tcp_t& client) -> fan::event::task_t {
+          bool keep_alive = true;
+          
+          while (keep_alive) {
+            std::string request_data;
+            bool headers_complete = false;
+            size_t content_length = 0;
+            response_t error_response;
+            bool has_error = false;
+            
+            try {
+              while (!headers_complete) {
+                auto msg = co_await client.read_raw();
+                if (msg.status < 0) {
+                  co_return;
+                }
+                
+                std::string chunk(msg.buffer.begin(), msg.buffer.end());
+                request_data += chunk;
+                
+                size_t header_end = request_data.find("\r\n\r\n");
+                if (header_end != std::string::npos) {
+                  headers_complete = true;
+                  
+                  size_t cl_pos = request_data.find("Content-Length:");
+                  if (cl_pos != std::string::npos) {
+                    size_t cl_start = cl_pos + 15;
+                    size_t cl_end = request_data.find("\r\n", cl_start);
+                    std::string cl_str = request_data.substr(cl_start, cl_end - cl_start);
+                    cl_str.erase(0, cl_str.find_first_not_of(" \t"));
+                    content_length = std::stoull(cl_str);
+                  }
+                  
+                  size_t current_body_length = request_data.length() - (header_end + 4);
+                  while (current_body_length < content_length) {
+                    auto body_msg = co_await client.read_raw();
+                    if (body_msg.status < 0) {
+                      co_return;
+                    }
+                    std::string body_chunk(body_msg.buffer.begin(), body_msg.buffer.end());
+                    request_data += body_chunk;
+                    current_body_length += body_chunk.length();
+                  }
+                }
+              }
+              
+              request_t request = parse_http_request(request_data);
+              
+              // Check if client wants to close connection
+              auto conn_header = request.header("Connection");
+              if (conn_header.find("close") != std::string::npos) {
+                keep_alive = false;
+              }
+              
+              response_t response = co_await router.handle(request);
+              
+              // Add Connection header to response
+              if (keep_alive) {
+                response.header("Connection", "keep-alive");
+              } else {
+                response.header("Connection", "close");
+              }
+              
+              std::string response_str = response.to_string();
+              co_await client.write_raw(response_str);
+              
+            } catch (const std::exception& e) {
+              error_response.internal_error();
+              error_response.header("Connection", "close");
+              has_error = true;
+              keep_alive = false;
+            }
+            
+            if (has_error) {
+              std::string response_str = error_response.to_string();
+              co_await client.write_raw(response_str);
+            }
+          }
+          
+          co_return;
+        });
+      }
+    };
+
+    struct http_client_t {
+      std::string host;
+      int port;
+      std::unique_ptr<tcp_t> tcp_conn;
+      bool connected = false;
+      
+      http_client_t(const std::string& server_host, int server_port) 
+        : host(server_host), port(server_port) {}
+      
+      fan::event::task_value_resume_t<std::expected<response_t, http_error_t>> ensure_connected() {
+        if (!connected || !tcp_conn) {
+          tcp_conn = std::make_unique<tcp_t>();
+          try {
+            co_await tcp_conn->connect(host, port);
+            connected = true;
+          } catch (...) {
+            connected = false;
+            co_return std::unexpected(http_error_t{http_error_t::connection_failed, "Failed to connect to " + host});
+          }
+        }
+        response_t dummy;
+        co_return dummy;
+      }
+      
+      fan::event::task_value_resume_t<std::expected<response_t, http_error_t>> send_request(const std::string& request_str) {
+        auto conn_result = co_await ensure_connected();
+        if (!conn_result) {
+          co_return std::unexpected(conn_result.error());
+        }
+        
+        try {
+          co_await tcp_conn->write_raw(request_str);
+        } catch (...) {
+          connected = false;
+          co_return std::unexpected(http_error_t{http_error_t::connection_failed, "Failed to send request"});
+        }
+        
+        std::string response_data;
+        bool headers_complete = false;
+        size_t content_length = 0;
+        bool has_content_length = false;
+        bool should_close = false;
+        
+        try {
+          while (!headers_complete) {
+            auto msg = co_await tcp_conn->read_raw();
+            if (msg.status < 0) {
+              connected = false;
+              break;
+            }
+            
+            std::string chunk(msg.buffer.begin(), msg.buffer.end());
+            response_data += chunk;
+            
+            size_t header_end = response_data.find("\r\n\r\n");
+            if (header_end != std::string::npos) {
+              headers_complete = true;
+              
+              // Check Connection header
+              size_t conn_pos = response_data.find("Connection:");
+              if (conn_pos != std::string::npos && conn_pos < header_end) {
+                size_t conn_start = conn_pos + 11;
+                size_t conn_end = response_data.find("\r\n", conn_start);
+                if (conn_end != std::string::npos) {
+                  std::string conn_value = response_data.substr(conn_start, conn_end - conn_start);
+                  conn_value.erase(0, conn_value.find_first_not_of(" \t"));
+                  if (conn_value.find("close") != std::string::npos) {
+                    should_close = true;
+                  }
+                }
+              }
+              
+              // Parse Content-Length
+              size_t cl_pos = response_data.find("Content-Length:");
+              if (cl_pos != std::string::npos && cl_pos < header_end) {
+                size_t cl_start = cl_pos + 15;
+                size_t cl_end = response_data.find("\r\n", cl_start);
+                if (cl_end != std::string::npos) {
+                  std::string cl_str = response_data.substr(cl_start, cl_end - cl_start);
+                  cl_str.erase(0, cl_str.find_first_not_of(" \t"));
+                  content_length = std::stoull(cl_str);
+                  has_content_length = true;
+                }
+              }
+              
+              size_t current_body_length = response_data.length() - (header_end + 4);
+              if (has_content_length && current_body_length >= content_length) {
+                break;
+              }
+            }
+          }
+          
+          if (headers_complete && has_content_length) {
+            size_t header_end = response_data.find("\r\n\r\n");
+            size_t current_body_length = response_data.length() - (header_end + 4);
+            
+            while (current_body_length < content_length) {
+              auto msg = co_await tcp_conn->read_raw();
+              if (msg.status < 0) {
+                connected = false;
+                break;
+              }
+              
+              std::string chunk(msg.buffer.begin(), msg.buffer.end());
+              response_data += chunk;
+              current_body_length += chunk.length();
+            }
+          }
+          
+        } catch (...) {
+          connected = false;
+          co_return std::unexpected(http_error_t{http_error_t::connection_failed, "Failed to read response"});
+        }
+        
+        if (should_close) {
+          connected = false;
+        }
+        
+        if (response_data.empty()) {
+          connected = false;
+          co_return std::unexpected(http_error_t{http_error_t::parse_failed, "Empty response"});
+        }
+        
+        response_t res;
+        
+        size_t first_space = response_data.find(' ');
+        if (first_space != std::string::npos) {
+          size_t second_space = response_data.find(' ', first_space + 1);
+          if (second_space != std::string::npos) {
+            std::string status_str = response_data.substr(first_space + 1, second_space - first_space - 1);
+            try {
+              res.status_code = std::stoi(status_str);
+            } catch (...) {
+              res.status_code = 200;
+            }
+          }
+        }
+        
+        size_t body_start = response_data.find("\r\n\r\n");
+        if (body_start != std::string::npos) {
+          res.body = response_data.substr(body_start + 4);
+          if (has_content_length && res.body.length() > content_length) {
+            res.body = res.body.substr(0, content_length);
+          }
+        }
+        
+        co_return res;
+      }
+      
+      fan::event::task_value_resume_t<std::expected<response_t, http_error_t>> get(const std::string& path) {
+        std::string request = "GET " + path + " HTTP/1.1\r\n";
+        request += "Host: " + host + ":" + std::to_string(port) + "\r\n";
+        request += "Connection: keep-alive\r\n\r\n";
+        
+        co_return co_await send_request(request);
+      }
+      
+      fan::event::task_value_resume_t<std::expected<response_t, http_error_t>> post(const std::string& path, const fan::json& data) {
+        std::string body = data.dump();
+        std::string request = "POST " + path + " HTTP/1.1\r\n";
+        request += "Host: " + host + ":" + std::to_string(port) + "\r\n";
+        request += "Content-Type: application/json\r\n";
+        request += "Content-Length: " + std::to_string(body.length()) + "\r\n";
+        request += "Connection: keep-alive\r\n\r\n";
+        request += body;
+        
+        co_return co_await send_request(request);
+      }
+      
+      void close() {
+        connected = false;
+        tcp_conn.reset();
+      }
+    };
+
+    // -------------------------------HTTP/REST-------------------------------
+
     /*
     class stream_cipher_t {
     private:
