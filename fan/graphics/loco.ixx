@@ -2625,11 +2625,11 @@ public:
     double delay = std::round(1.0 / target_fps * 1000.0);
 
     if (!timer_init) {
-      uv_timer_init(fan::event::get_event_loop(), &timer_handle);
+      uv_timer_init(fan::event::get_loop(), &timer_handle);
       timer_init = true;
     }
     if (!idle_init) {
-      uv_idle_init(fan::event::get_event_loop(), &idle_handle);
+      uv_idle_init(fan::event::get_loop(), &idle_handle);
       idle_init = true;
     }
 
@@ -2643,7 +2643,7 @@ public:
       start_idle();
     }
 
-    uv_run(fan::event::get_event_loop(), UV_RUN_DEFAULT);
+    uv_run(fan::event::get_loop(), UV_RUN_DEFAULT);
     if (should_close() == false) {
       goto g_loop;
     }
@@ -2726,7 +2726,7 @@ public:
         loco_t* loco = static_cast<loco_t*>(handle->data);
         if (loco->process_loop(loco->main_loop)) {
           uv_timer_stop(handle);
-          uv_stop(fan::event::get_event_loop());
+          uv_stop(fan::event::get_loop());
         }
         }, 0, delay);
     }
@@ -2735,7 +2735,7 @@ public:
     loco_t* loco = static_cast<loco_t*>(handle->data);
     if (loco->process_loop(loco->main_loop)) {
       uv_idle_stop(handle);
-      uv_stop(fan::event::get_event_loop());
+      uv_stop(fan::event::get_loop());
     }
   }
   void start_idle(bool start_idle = true) {
