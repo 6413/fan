@@ -151,7 +151,6 @@ struct neural_network_visualizer_t {
   }
 
   void create_visual_elements() {
-    // Clear existing elements
     input_nodes.clear();
     hidden_nodes.clear();
     output_nodes.clear();

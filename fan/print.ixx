@@ -22,6 +22,8 @@ module;
 export module fan.print;
 
 import fan.utility;
+// for colored prints
+import fan.types.color;
 
 #if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
 import std;
@@ -137,6 +139,14 @@ export namespace fan {
     std::cout << format_args(args...) << '\n';
   }
   template <typename ...Args>
+  constexpr void print_color(const fan::color& c, const Args&... args) {
+    uint32_t rgba = c.get_rgba();
+    uint8_t r = (rgba >> 24) & 0xFF;
+    uint8_t g = (rgba >> 16) & 0xFF;
+    uint8_t b = (rgba >> 8) & 0xFF;
+    std::cout << "\033[38;2;" << static_cast<int>(r) << ";" << static_cast<int>(g) << ";" << static_cast<int>(b) << "m" << format_args(args...) << "\033[0m\n";
+  }
+  template <typename ...Args>
   constexpr void printr(const Args&... args) {
     std::cout << format_args_raw(args...);
   }
@@ -158,7 +168,7 @@ export namespace fan {
   }
   void print_warning(const std::string& message) {
   #ifndef fan_disable_warnings
-    std::cout << format_warning(message) << '\n';
+    print_color(fan::colors::yellow, format_warning(message));
   #endif
   }
   void print_warning_no_space(const std::string& message) {
