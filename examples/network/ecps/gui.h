@@ -1096,13 +1096,222 @@ struct ecps_gui_t {
       gui::text("Input Control");
 
       const char* input_control_options[] = {
-          "None", "Keyboard Only", "Keyboard + Mouse"
+        "None", "Mouse + Keyboard", "Mouse + Keyboard (Hidden)"
       };
       gui::push_item_width(-1);
-      gui::combo("##input_control_compact", &This->stream_settings.input_control, input_control_options,
-        sizeof(input_control_options) / sizeof(input_control_options[0]));
-      gui::pop_item_width();
+      if (gui::combo("##input_control_compact", &This->stream_settings.input_control, input_control_options, 3)) {
+        This->backend_queue([control_mode = This->stream_settings.input_control]() -> fan::event::task_t {
+          try {
+            for (const auto& channel : ecps_backend.channel_info) {
+              if (channel.is_streaming) {
+                ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_Share_InformationToViewSetFlag_t rest;
+                rest.ChannelID = channel.channel_id;
+                rest.ChannelSessionID = channel.session_id;
 
+                rest.Flag = 0;
+                if (control_mode >= 1) {
+                  rest.Flag |= ecps_backend_t::ProtocolChannel::ScreenShare::ChannelFlag::InputControl;
+                }
+
+                co_await ecps_backend.tcp_write(
+                  ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_Share_InformationToViewSetFlag,
+                  &rest,
+                  sizeof(rest)
+                );
+                break;
+              }
+            }
+          }
+          catch (...) {}
+          });
+
+        if (This->stream_settings.input_control == 2) {
+          gui::set_mouse_cursor(gui::mouse_cursor_none);
+        }
+        else {
+          gui::set_mouse_cursor(gui::mouse_cursor_arrow);
+        }
+      }
+      gui::pop_item_width();
+      {
+        if (This->window_handler.current_tab == 1 && ecps_backend.is_viewing_any_channel()) {
+          auto rt = get_render_thread();
+          if (rt && rt->network_frame.get_image() != engine.default_texture) {
+
+            fan::vec2 mouse_pos = engine.get_mouse_position();
+            fan::vec2 frame_min = rt->network_frame.get_position() - rt->network_frame.get_size() / 2;
+            fan::vec2 frame_max = rt->network_frame.get_position() + rt->network_frame.get_size() / 2;
+
+            bool mouse_over_frame = mouse_pos.x >= frame_min.x && mouse_pos.x <= frame_max.x &&
+              mouse_pos.y >= frame_min.y && mouse_pos.y <= frame_max.y;
+
+            if (mouse_over_frame && gui::is_window_focused()) {
+              fan::vec2 relative_pos = mouse_pos - frame_min;
+              fan::vec2 normalized_pos = relative_pos / (frame_max - frame_min);
+
+              if (normalized_pos.x >= 0 && normalized_pos.x <= 1 && normalized_pos.y >= 0 && normalized_pos.y <= 1) {
+                fan::vec2si screen_pos = fan::vec2si(
+                  normalized_pos.x * rt->screen_decoder.decoded_size.x,
+                  normalized_pos.y * rt->screen_decoder.decoded_size.y
+                );
+
+                static fan::vec2si last_mouse_pos(-1, -1);
+                if (screen_pos != last_mouse_pos) {
+                  last_mouse_pos = screen_pos;
+
+                  This->backend_queue([screen_pos]() -> fan::event::task_t {
+                    try {
+                      for (const auto& channel : ecps_backend.channel_info) {
+                        if (channel.is_viewing) {
+                          ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostMouseCoordinate_t rest;
+                          rest.ChannelID = channel.channel_id;
+                          rest.ChannelSessionID = channel.session_id;
+                          rest.pos = screen_pos;
+
+                          co_await ecps_backend.tcp_write(
+                            ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostMouseCoordinate,
+                            &rest,
+                            sizeof(rest)
+                          );
+                          break;
+                        }
+                      }
+                    }
+                    catch (...) {}
+                    });
+                }
+
+                for (int button = 0; button < 3; button++) {
+                  if (engine.is_mouse_clicked(button)) {
+                    This->backend_queue([button, screen_pos]() -> fan::event::task_t {
+                      try {
+                        for (const auto& channel : ecps_backend.channel_info) {
+                          if (channel.is_viewing) {
+                            ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostMouseButton_t rest;
+                            rest.ChannelID = channel.channel_id;
+                            rest.ChannelSessionID = channel.session_id;
+                            rest.key = button;
+                            rest.state = true;
+                            rest.pos = screen_pos;
+
+                            co_await ecps_backend.tcp_write(
+                              ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostMouseButton,
+                              &rest,
+                              sizeof(rest)
+                            );
+                            break;
+                          }
+                        }
+                      }
+                      catch (...) {}
+                      });
+                  }
+
+                  if (engine.is_mouse_released(button)) {
+                    This->backend_queue([button, screen_pos]() -> fan::event::task_t {
+                      try {
+                        for (const auto& channel : ecps_backend.channel_info) {
+                          if (channel.is_viewing) {
+                            ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostMouseButton_t rest;
+                            rest.ChannelID = channel.channel_id;
+                            rest.ChannelSessionID = channel.session_id;
+                            rest.key = button;
+                            rest.state = false;
+                            rest.pos = screen_pos;
+
+                            co_await ecps_backend.tcp_write(
+                              ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostMouseButton,
+                              &rest,
+                              sizeof(rest)
+                            );
+                            break;
+                          }
+                        }
+                      }
+                      catch (...) {}
+                      });
+                  }
+                }
+
+                fan::vec2 mouse_drag = engine.get_mouse_drag();
+                if (mouse_drag.x != 0 || mouse_drag.y != 0) {
+                  fan::vec2si motion = fan::vec2si(mouse_drag.x, mouse_drag.y);
+
+                  This->backend_queue([motion]() -> fan::event::task_t {
+                    try {
+                      for (const auto& channel : ecps_backend.channel_info) {
+                        if (channel.is_viewing) {
+                          ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostMouseMotion_t rest;
+                          rest.ChannelID = channel.channel_id;
+                          rest.ChannelSessionID = channel.session_id;
+                          rest.Motion = motion;
+
+                          co_await ecps_backend.tcp_write(
+                            ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostMouseMotion,
+                            &rest,
+                            sizeof(rest)
+                          );
+                          break;
+                        }
+                      }
+                    }
+                    catch (...) {}
+                    });
+                }
+              }
+            }
+          }
+        }
+        for (int key = fan::input::first; key < fan::input::last; key++) {
+          if (engine.is_key_pressed(key)) {
+            This->backend_queue([key]() -> fan::event::task_t {
+              try {
+                for (const auto& channel : ecps_backend.channel_info) {
+                  if (channel.is_viewing) {
+                    ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostKeyboard_t rest;
+                    rest.ChannelID = channel.channel_id;
+                    rest.ChannelSessionID = channel.session_id;
+                    rest.Scancode = key;
+                    rest.State = true;
+
+                    co_await ecps_backend.tcp_write(
+                      ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostKeyboard,
+                      &rest,
+                      sizeof(rest)
+                    );
+                    break;
+                  }
+                }
+              }
+              catch (...) {}
+              });
+          }
+
+          if (engine.is_key_released(key)) {
+            This->backend_queue([key]() -> fan::event::task_t {
+              try {
+                for (const auto& channel : ecps_backend.channel_info) {
+                  if (channel.is_viewing) {
+                    ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostKeyboard_t rest;
+                    rest.ChannelID = channel.channel_id;
+                    rest.ChannelSessionID = channel.session_id;
+                    rest.Scancode = key;
+                    rest.State = false;
+
+                    co_await ecps_backend.tcp_write(
+                      ecps_backend_t::Protocol_C2S_t::Channel_ScreenShare_View_ApplyToHostKeyboard,
+                      &rest,
+                      sizeof(rest)
+                    );
+                    break;
+                  }
+                }
+              }
+              catch (...) {}
+              });
+          }
+        }
+      }
       gui::separator();
 
       if (gui::button(This->stream_settings.show_network_debug ? "Hide Network Debug" : "Show Network Debug", fan::vec2(-1, 0))) {

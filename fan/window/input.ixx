@@ -44,6 +44,7 @@ export namespace fan {
   };
 
   enum input {
+    first = GLFW_KEY_SPACE - 1,
     key_space = GLFW_KEY_SPACE,
     key_0 = GLFW_KEY_0,
     key_1 = GLFW_KEY_1,

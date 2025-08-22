@@ -55,13 +55,9 @@ struct user_db_t {
 user_db_t db;
 
 fan::event::task_t run_server() {
-  db.users[1] = {{"id", 1}, {"name", "Alice Smith"}, {"email", "alice@example.com"}};
-  db.users[2] = {{"id", 2}, {"name", "Bob Johnson"}, {"email", "bob@example.com"}};
-  db.next_id = 3;
-  
   fan::network::http_server_t server;
   
-  server.get("/users", [](const fan::network::request_t& req, fan::network::response_t& res) -> fan::event::task_t {
+  server.get("/users", [](const fan::network::http_request_t& req, fan::network::http_response_t& res) -> fan::event::task_t {
     auto users_result = co_await db.get_all_users();
     if (!users_result) {
       res.error(users_result.error());
@@ -70,7 +66,7 @@ fan::event::task_t run_server() {
     res.json({{"users", *users_result}, {"count", users_result->size()}});
   });
   
-  server.get("/users/{id}", [](const fan::network::request_t& req, fan::network::response_t& res) -> fan::event::task_t {
+  server.get("/users/{id}", [](const fan::network::http_request_t& req, fan::network::http_response_t& res) -> fan::event::task_t {
     auto id_result = req.param<int>("id");
     if (!id_result) {
       res.error(id_result.error());
@@ -85,7 +81,7 @@ fan::event::task_t run_server() {
     res.json(*user_result);
   });
   
-  server.post("/users", [](const fan::network::request_t& req, fan::network::response_t& res) -> fan::event::task_t {
+  server.post("/users", [](const fan::network::http_request_t& req, fan::network::http_response_t& res) -> fan::event::task_t {
     auto user_data_result = req.json();
     if (!user_data_result) {
       res.error(user_data_result.error());
@@ -100,7 +96,7 @@ fan::event::task_t run_server() {
     res.created(*created_user_result);
   });
   
-  server.get("/health", [](const fan::network::request_t& req, fan::network::response_t& res) -> fan::event::task_t {
+  server.get("/health", [](const fan::network::http_request_t& req, fan::network::http_response_t& res) -> fan::event::task_t {
     res.json({
       {"status", "healthy"},
       {"timestamp", "2024-01-01T00:00:00Z"},
@@ -109,7 +105,7 @@ fan::event::task_t run_server() {
     co_return;
   });
   
-  server.get("/search", [](const fan::network::request_t& req, fan::network::response_t& res) -> fan::event::task_t {
+  server.get("/search", [](const fan::network::http_request_t& req, fan::network::http_response_t& res) -> fan::event::task_t {
     auto name_result = req.query_param<std::string>("name");
     if (!name_result) {
       res.error(name_result.error());
@@ -136,5 +132,4 @@ fan::event::task_t run_server() {
 int main() {
   auto server_task = run_server();
   fan::event::loop();
-  return 0;
 }

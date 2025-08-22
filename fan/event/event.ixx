@@ -94,6 +94,7 @@ export namespace fan{
 
   constexpr int fs_change = UV_CHANGE;
   constexpr int fs_rename = UV_RENAME;
+  constexpr int eof = UV_EOF;
 }
 
 template<typename promise_type_t>
@@ -258,12 +259,15 @@ export namespace fan {
     loop_t loop_new() {
       return uv_loop_new();
     }
-    int loop_close(loop_t loop) {
-      return uv_loop_close(loop);
-    }
     loop_t& get_loop() {
       static loop_t event_loop = uv_default_loop();
       return event_loop;
+    }
+    void loop_stop(loop_t loop = fan::event::get_loop()) {
+      uv_stop(loop);
+    }
+    int loop_close(loop_t loop = fan::event::get_loop()) {
+      return uv_loop_close(loop);
     }
 
     struct error_code_t {
@@ -585,6 +589,49 @@ export namespace fan {
         }
         co_await event::timer_t(time);
       }
+    }
+
+    struct fd_waiter_t {
+      uv_poll_t poll_handle;
+      std::coroutine_handle<> co_handle;
+      bool ready = false;
+      int events_received = 0;
+    };
+
+    fan::event::task_value_resume_t<void> wait_fd(uv_loop_t* loop, int fd, int events) {
+      fd_waiter_t waiter;
+      waiter.poll_handle.data = &waiter;
+
+      int result = uv_poll_init(loop, &waiter.poll_handle, fd);
+      if (result != 0) {
+        throw std::runtime_error("Failed to init poll handle");
+      }
+
+      result = uv_poll_start(&waiter.poll_handle, events, [](uv_poll_t* handle, int status, int events) {
+        auto* waiter = static_cast<fd_waiter_t*>(handle->data);
+        waiter->ready = true;
+        waiter->events_received = events;
+        uv_poll_stop(handle);
+        if (waiter->co_handle) {
+          waiter->co_handle();
+        }
+        });
+
+      if (result != 0) {
+        throw std::runtime_error("Failed to start poll");
+      }
+
+      if (!waiter.ready) {
+        struct awaiter {
+          fd_waiter_t* w;
+          bool await_ready() const { return w->ready; }
+          void await_suspend(std::coroutine_handle<> h) { w->co_handle = h; }
+          void await_resume() const {}
+        };
+        co_await awaiter{ &waiter };
+      }
+
+      uv_close(reinterpret_cast<uv_handle_t*>(&waiter.poll_handle), nullptr);
     }
 
     //thread stuff
@@ -937,7 +984,7 @@ export namespace fan::io {
 
           if (!state->stopped) {
             uv_dirent_t ent;
-            while (uv_fs_scandir_next(req, &ent) != UV_EOF) {
+            while (uv_fs_scandir_next(req, &ent) != fan::eof) {
               std::filesystem::path full_path = std::filesystem::path(state->base_path) / ent.name;
               state->entries.emplace_back(full_path);
             }

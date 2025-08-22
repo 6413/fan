@@ -1,5 +1,6 @@
 #include <coroutine>
 #include <expected>
+
 import fan;
 
 struct user_db_t {
@@ -56,7 +57,7 @@ user_db_t db;
 fan::event::awaitable_signal_t<> server_ready;
 
 template<typename T>
-void handle_response_error(const std::expected<T, fan::network::http_error_t>& result, fan::network::response_t& res) {
+void handle_response_error(const std::expected<T, fan::network::http_error_t>& result, fan::network::http_response_t& res) {
   if (!result) {
     res.error(result.error());
   }
@@ -65,7 +66,7 @@ void handle_response_error(const std::expected<T, fan::network::http_error_t>& r
 fan::event::task_t run_server() {
   fan::network::http_server_t server;
   
-  server.get("/users", [](const fan::network::request_t& req, fan::network::response_t& res) -> fan::event::task_t {
+  server.get("/users", [](const fan::network::http_request_t& req, fan::network::http_response_t& res) -> fan::event::task_t {
     auto users_result = co_await db.get_all_users();
     if (!users_result) {
       res.error(users_result.error());
@@ -74,7 +75,7 @@ fan::event::task_t run_server() {
     res.json({{"users", *users_result}, {"count", users_result->size()}});
   });
   
-  server.get("/users/{id}", [](const fan::network::request_t& req, fan::network::response_t& res) -> fan::event::task_t {
+  server.get("/users/{id}", [](const fan::network::http_request_t& req, fan::network::http_response_t& res) -> fan::event::task_t {
     auto id_result = req.param<int>("id");
     if (!id_result) {
       res.error(id_result.error());
@@ -89,7 +90,7 @@ fan::event::task_t run_server() {
     res.json(*user_result);
   });
   
-  server.post("/users", [](const fan::network::request_t& req, fan::network::response_t& res) -> fan::event::task_t {
+  server.post("/users", [](const fan::network::http_request_t& req, fan::network::http_response_t& res) -> fan::event::task_t {
     auto user_data_result = req.json();
     if (!user_data_result) {
       res.error(user_data_result.error());
@@ -104,7 +105,7 @@ fan::event::task_t run_server() {
     res.created(*created_user_result);
   });
   
-  server.get("/health", [](const fan::network::request_t& req, fan::network::response_t& res) -> fan::event::task_t {
+  server.get("/health", [](const fan::network::http_request_t& req, fan::network::http_response_t& res) -> fan::event::task_t {
     res.json({
       {"status", "healthy"},
       {"timestamp", "2024-01-01T00:00:00Z"},
@@ -113,7 +114,7 @@ fan::event::task_t run_server() {
     co_return;
   });
   
-  server.get("/search", [](const fan::network::request_t& req, fan::network::response_t& res) -> fan::event::task_t {
+  server.get("/search", [](const fan::network::http_request_t& req, fan::network::http_response_t& res) -> fan::event::task_t {
     auto name_result = req.query_param<std::string>("name");
     if (!name_result) {
       res.error(name_result.error());
@@ -148,21 +149,22 @@ void print_test_result(const std::string& test_name, bool success, const std::st
 }
 
 bool is_error_status(int status_code) {
-  // check client and server errors
   return status_code >= fan::network::http_status_t::bad_request;
 }
 
 fan::event::task_t run_client_tests() {
-  fan::network::http_client_t client("127.0.0.1", 8080);
+  fan::network::http_config_t config;
+  config.verify_ssl = false;
+  fan::network::async_http_client_t client("http://127.0.0.1:8080", config);
   fan::print_color(fan::colors::cyan, "\n--- HTTP Client Tests ---");
 
   auto health_result = co_await client.get("/health");
   print_test_result("1. Testing health endpoint...", health_result.has_value(), 
-                   health_result ? "Health check passed" : health_result.error().message);
+                   health_result ? "Health check passed" : health_result.error());
 
   auto users_result = co_await client.get("/users");
   print_test_result("2. Getting all users...", users_result.has_value(),
-                   users_result ? "Retrieved users" : users_result.error().message);
+                   users_result ? "Retrieved users" : users_result.error());
 
   fan::json new_user = {{"name", "John Doe"}, {"email", "john@example.com"}, {"age", 30}};
   auto create_result = co_await client.post("/users", new_user);
@@ -170,7 +172,7 @@ fan::event::task_t run_client_tests() {
     print_test_result("3. Creating valid user...", true, "User created");
     fan::print_color(fan::colors::white, "   Response:", create_result->body);
   } else {
-    print_test_result("3. Creating valid user...", false, create_result.error().message);
+    print_test_result("3. Creating valid user...", false, create_result.error());
   }
 
   fan::json invalid_user = {{"name", "Jane Doe"}, {"age", 25}};
@@ -182,7 +184,7 @@ fan::event::task_t run_client_tests() {
 
   auto user_result = co_await client.get("/users/1");
   print_test_result("5. Getting user by ID...", user_result.has_value(),
-                   user_result ? "Retrieved user by ID" : user_result.error().message);
+                   user_result ? "Retrieved user by ID" : user_result.error());
 
   auto missing_user_result = co_await client.get("/users/999");
   bool not_found_handled = !missing_user_result || missing_user_result->status_code == 404;
@@ -192,7 +194,7 @@ fan::event::task_t run_client_tests() {
 
   auto search_result = co_await client.get("/search?name=Alice");
   print_test_result("7. Searching users...", search_result.has_value(),
-                   search_result ? "Search completed" : search_result.error().message);
+                   search_result ? "Search completed" : search_result.error());
 
   auto invalid_search_result = co_await client.get("/search");
   bool param_validation_worked = !invalid_search_result || is_error_status(invalid_search_result->status_code);
@@ -206,7 +208,6 @@ fan::event::task_t run_client_tests() {
                    route_not_found ? "404 handling works" : "404 handling failed");
 
   fan::print_color(fan::colors::cyan, "\n--- All Tests Completed ---");
-  client.close();
 }
 
 fan::event::task_t run_demo() {
@@ -222,10 +223,10 @@ fan::event::task_t run_demo() {
   co_await run_client_tests();
   
   fan::print_color(fan::colors::green, "\nDemo completed - all error handling tested!");
+  fan::event::loop_stop();
 }
 
 int main() {
   auto demo_task = run_demo();
   fan::event::loop();
-  return 0;
 }
