@@ -5,6 +5,10 @@ module;
 #include <uv.h>
 #undef min
 #undef max
+#undef NO_ERROR
+
+#include <curl/curl.h>
+#include <curl/multi.h>
 #include <cstring>
 #include <stdexcept>
 #include <memory>
@@ -14,13 +18,9 @@ module;
 #include <array>
 #include <string>
 
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/bio.h>
-#include <openssl/dtls1.h>
-#include <openssl/rand.h>
-#include <openssl/hmac.h>
-#include <openssl/evp.h>
+#include <mutex>
+#include <cstdint>
+
 
 export module fan.network;
 
@@ -665,7 +665,6 @@ export namespace fan {
       using listen_cb_t = std::function<fan::event::task_t(tcp_t&)>;
 
       std::shared_ptr<uv_tcp_t> socket;
-      reader_t reader;
 
       struct tcp_deleter_t {
         void operator()(void* p) const {
@@ -680,7 +679,7 @@ export namespace fan {
         }
       };
 
-      tcp_t() : socket(new uv_tcp_t, tcp_deleter_t{}), reader(*this) {
+      tcp_t() : socket(new uv_tcp_t, tcp_deleter_t{}) {
         client_handler_t::nr_t nr = get_client_handler().client_list.NewNodeLast();
         get_client_handler().client_list[nr] = this;
         get_client_handler().client_list[nr]->nr = nr;
@@ -709,15 +708,15 @@ export namespace fan {
         return connector_t{ *this, info };
       }
       
-      mutable std::unique_ptr<reader_t> persistent_reader;
+      mutable std::unique_ptr<reader_t> reader;
       reader_t& get_reader() const {
-        if (!persistent_reader) {
-          persistent_reader = std::make_unique<reader_t>(*this);
-          if (int err = persistent_reader->start(); err != 0) {
+        if (!reader) {
+          reader = std::make_unique<reader_t>(*this);
+          if (int err = reader->start(); err != 0) {
             fan::throw_error("start failed with:" + fan::event::strerror(err));
           }
         }
-        return *persistent_reader;
+        return *reader;
       }
       reader_t& read(ssize_t len) const {
         auto& r = get_reader();
@@ -1611,26 +1610,60 @@ export namespace fan {
         database_error,
         validation_error
       };
-      
+
       int code;
       std::string message;
-      
+
       http_error_t(int c, std::string msg) : code(c), message(std::move(msg)) {}
     };
 
+    constexpr const char* HTTP_CRLF = "\r\n";
+    constexpr const char* HTTP_HEADER_END = "\r\n\r\n";
+    constexpr const char* HTTP_VERSION = "HTTP/1.1";
+
+    std::string build_get_request(const std::string& path, const std::string& host, bool keep_alive = false) {
+      return "GET " + path + " " + HTTP_VERSION + HTTP_CRLF +
+        "Host: " + host + HTTP_CRLF +
+        "Connection: " + (keep_alive ? "keep-alive" : "close") + HTTP_CRLF + HTTP_CRLF;
+    }
+
+    std::string build_post_request(const std::string& path, const std::string& host, const std::string& body, bool keep_alive = false) {
+      return "POST " + path + " " + HTTP_VERSION + HTTP_CRLF +
+        "Host: " + host + HTTP_CRLF +
+        "Content-Type: application/json" + HTTP_CRLF +
+        "Content-Length: " + std::to_string(body.length()) + HTTP_CRLF +
+        "Connection: " + (keep_alive ? "keep-alive" : "close") + HTTP_CRLF + HTTP_CRLF + body;
+    }
+
+    std::string build_get_request_with_headers(const std::string& path, const std::string& host,
+      const std::unordered_map<std::string, std::string>& headers,
+      bool keep_alive = false) {
+      std::string request = "GET " + path + " " + HTTP_VERSION + HTTP_CRLF +
+        "Host: " + host + HTTP_CRLF;
+
+      // custom headers
+      for (const auto& [key, value] : headers) {
+        request += key + ": " + value + HTTP_CRLF;
+      }
+
+      request += "Connection: " + (keep_alive ? std::string("keep-alive") : std::string("close")) + HTTP_CRLF + HTTP_CRLF;
+      return request;
+    }
+
     inline std::expected<fan::json, http_error_t> parse_json_simple(const std::string& json_str) {
       if (json_str.empty()) {
-        return std::unexpected(http_error_t{http_error_t::invalid_json, "Empty JSON string"});
+        return std::unexpected(http_error_t{ http_error_t::invalid_json, "Empty JSON string" });
       }
-      
+
       try {
         return fan::json::parse(json_str);
-      } catch (...) {
-        return std::unexpected(http_error_t{http_error_t::invalid_json, "Invalid JSON format"});
+      }
+      catch (...) {
+        return std::unexpected(http_error_t{ http_error_t::invalid_json, "Invalid JSON format" });
       }
     }
 
-    struct request_t {
+    struct http_request_t {
       int method;
       std::string path;
       std::string raw_path;
@@ -1643,27 +1676,30 @@ export namespace fan {
       std::expected<T, http_error_t> param(const std::string& name) const {
         auto it = params.find(name);
         if (it == params.end()) {
-          return std::unexpected(http_error_t{http_error_t::invalid_param, "Parameter '" + name + "' not found"});
+          return std::unexpected(http_error_t{ http_error_t::invalid_param, "Parameter '" + name + "' not found" });
         }
-        
+
         try {
           if constexpr (std::is_same_v<T, int>) {
             return std::stoi(it->second);
-          } else if constexpr (std::is_same_v<T, double>) {
+          }
+          else if constexpr (std::is_same_v<T, double>) {
             return std::stod(it->second);
-          } else if constexpr (std::is_same_v<T, std::string>) {
+          }
+          else if constexpr (std::is_same_v<T, std::string>) {
             return it->second;
           }
-        } catch (...) {
-          return std::unexpected(http_error_t{http_error_t::invalid_param, "Invalid parameter format for '" + name + "'"});
         }
-        
-        return std::unexpected(http_error_t{http_error_t::invalid_param, "Unsupported parameter type"});
+        catch (...) {
+          return std::unexpected(http_error_t{ http_error_t::invalid_param, "Invalid parameter format for '" + name + "'" });
+        }
+
+        return std::unexpected(http_error_t{ http_error_t::invalid_param, "Unsupported parameter type" });
       }
 
       std::expected<fan::json, http_error_t> json() const {
         if (body.empty()) {
-          return std::unexpected(http_error_t{http_error_t::invalid_json, "Empty request body"});
+          return std::unexpected(http_error_t{ http_error_t::invalid_json, "Empty request body" });
         }
         return parse_json_simple(body);
       }
@@ -1677,27 +1713,437 @@ export namespace fan {
       std::expected<T, http_error_t> query_param(const std::string& name) const {
         auto it = query.find(name);
         if (it == query.end()) {
-          return std::unexpected(http_error_t{http_error_t::invalid_param, "Query parameter '" + name + "' not found"});
+          return std::unexpected(http_error_t{ http_error_t::invalid_param, "Query parameter '" + name + "' not found" });
         }
-        
+
         try {
           if constexpr (std::is_same_v<T, int>) {
             return std::stoi(it->second);
-          } else if constexpr (std::is_same_v<T, double>) {
+          }
+          else if constexpr (std::is_same_v<T, double>) {
             return std::stod(it->second);
-          } else if constexpr (std::is_same_v<T, std::string>) {
+          }
+          else if constexpr (std::is_same_v<T, std::string>) {
             return it->second;
           }
-        } catch (...) {
-          return std::unexpected(http_error_t{http_error_t::invalid_param, "Invalid query parameter format for '" + name + "'"});
         }
-        
-        return std::unexpected(http_error_t{http_error_t::invalid_param, "Unsupported query parameter type"});
+        catch (...) {
+          return std::unexpected(http_error_t{ http_error_t::invalid_param, "Invalid query parameter format for '" + name + "'" });
+        }
+
+        return std::unexpected(http_error_t{ http_error_t::invalid_param, "Unsupported query parameter type" });
+      }
+    };
+
+    struct http_response_t {
+      int status_code = http_status_t::ok;
+      std::unordered_map<std::string, std::string> headers;
+      std::string body;
+
+      http_response_t& status(int code) {
+        status_code = code;
+        return *this;
+      }
+
+      http_response_t& header(const std::string& key, const std::string& value) {
+        headers[key] = value;
+        return *this;
+      }
+
+      http_response_t& json(const fan::json& data) {
+        body = data.dump();
+        headers["Content-Type"] = "application/json";
+        return *this;
+      }
+
+      http_response_t& text(const std::string& data) {
+        body = data;
+        headers["Content-Type"] = "text/plain";
+        return *this;
+      }
+
+      http_response_t& html(const std::string& data) {
+        body = data;
+        headers["Content-Type"] = "text/html";
+        return *this;
+      }
+
+      http_response_t& ok(const fan::json& data = nullptr) {
+        status_code = http_status_t::ok;
+        if (!data.is_null()) {
+          json(data);
+        }
+        return *this;
+      }
+
+      http_response_t& created(const fan::json& data = nullptr) {
+        status_code = http_status_t::created;
+        if (!data.is_null()) {
+          json(data);
+        }
+        return *this;
+      }
+
+      http_response_t& not_found(const std::string& message = "Not Found") {
+        status_code = http_status_t::not_found;
+        return text(message);
+      }
+
+      http_response_t& bad_request(const std::string& message = "Bad Request") {
+        status_code = http_status_t::bad_request;
+        return text(message);
+      }
+
+      http_response_t& internal_error(const std::string& message = "Internal Server Error") {
+        status_code = http_status_t::internal_server_error;
+        return text(message);
+      }
+
+      http_response_t& error(const http_error_t& err) {
+        switch (err.code) {
+        case http_error_t::invalid_param:
+        case http_error_t::invalid_json:
+        case http_error_t::validation_error:
+          return bad_request(err.message);
+        case http_error_t::not_found_error:
+          return not_found(err.message);
+        case http_error_t::database_error:
+        case http_error_t::connection_failed:
+        case http_error_t::timeout:
+        default:
+          return internal_error(err.message);
+        }
+      }
+
+      std::string to_string() const {
+        std::string response = "HTTP/1.1 " + std::to_string(status_code) + " ";
+
+        switch (status_code) {
+        case http_status_t::ok: response += "OK"; break;
+        case http_status_t::created: response += "Created"; break;
+        case http_status_t::bad_request: response += "Bad Request"; break;
+        case http_status_t::not_found: response += "Not Found"; break;
+        case http_status_t::internal_server_error: response += "Internal Server Error"; break;
+        default: response += "Unknown"; break;
+        }
+        response += "\r\n";
+
+        for (const auto& [key, value] : headers) {
+          response += key + ": " + value + "\r\n";
+        }
+
+        if (!body.empty()) {
+          response += "Content-Length: " + std::to_string(body.length()) + "\r\n";
+        }
+
+        response += "\r\n" + body;
+        return response;
+      }
+    };
+
+    using async_handler_t = std::function<fan::event::task_t(const http_request_t&, http_response_t&)>;
+
+    struct route_t {
+      int method;
+      std::string pattern;
+      async_handler_t handler;
+
+      bool matches(int req_method, const std::string& path, std::unordered_map<std::string, std::string>& params) const {
+        if (req_method != method) return false;
+
+        auto pattern_parts = split_path(pattern);
+        auto path_parts = split_path(path);
+
+        if (pattern_parts.size() != path_parts.size()) return false;
+
+        params.clear();
+        for (size_t i = 0; i < pattern_parts.size(); ++i) {
+          if (pattern_parts[i].starts_with('{') && pattern_parts[i].ends_with('}')) {
+            std::string param_name = pattern_parts[i].substr(1, pattern_parts[i].length() - 2);
+            params[param_name] = path_parts[i];
+          }
+          else if (pattern_parts[i] != path_parts[i]) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+    private:
+      std::vector<std::string> split_path(const std::string& path) const {
+        std::vector<std::string> parts;
+        std::string current;
+        for (char c : path) {
+          if (c == '/') {
+            if (!current.empty()) {
+              parts.push_back(current);
+              current.clear();
+            }
+          }
+          else {
+            current += c;
+          }
+        }
+        if (!current.empty()) {
+          parts.push_back(current);
+        }
+        return parts;
+      }
+    };
+
+    struct router_t {
+      std::vector<route_t> routes;
+
+      template<typename Handler>
+      void add_route(int method, const std::string& pattern, Handler&& handler) {
+        route_t route;
+        route.method = method;
+        route.pattern = pattern;
+        route.handler = [handler = std::forward<Handler>(handler)](const http_request_t& req, http_response_t& res) -> fan::event::task_t {
+          co_await handler(req, res);
+          };
+
+        routes.push_back(std::move(route));
+      }
+
+      template<typename Handler>
+      void get(const std::string& pattern, Handler&& handler) {
+        add_route(http_method_t::get, pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void post(const std::string& pattern, Handler&& handler) {
+        add_route(http_method_t::post, pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void put(const std::string& pattern, Handler&& handler) {
+        add_route(http_method_t::put, pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void delete_(const std::string& pattern, Handler&& handler) {
+        add_route(http_method_t::delete_, pattern, std::forward<Handler>(handler));
+      }
+
+      fan::event::task_value_resume_t<http_response_t> handle(const http_request_t& req) {
+        for (const auto& route : routes) {
+          http_request_t modified_req = req;
+          if (route.matches(req.method, req.path, modified_req.params)) {
+            http_response_t res;
+            try {
+              co_await route.handler(modified_req, res);
+            }
+            catch (const std::exception& e) {
+              res.internal_error("Handler exception: " + std::string(e.what()));
+            }
+            co_return res;
+          }
+        }
+
+        http_response_t res;
+        co_return res.not_found();
+      }
+    };
+
+    inline std::unordered_map<std::string, std::string> parse_query_string(const std::string& query_string) {
+      std::unordered_map<std::string, std::string> params;
+      std::string current_param;
+      std::string current_value;
+      bool reading_value = false;
+
+      for (char c : query_string) {
+        if (c == '=') {
+          reading_value = true;
+        }
+        else if (c == '&') {
+          if (!current_param.empty()) {
+            params[current_param] = current_value;
+          }
+          current_param.clear();
+          current_value.clear();
+          reading_value = false;
+        }
+        else {
+          if (reading_value) {
+            current_value += c;
+          }
+          else {
+            current_param += c;
+          }
+        }
+      }
+
+      if (!current_param.empty()) {
+        params[current_param] = current_value;
+      }
+
+      return params;
+    }
+
+    http_request_t parse_http_request(const std::string& raw_request) {
+      http_request_t req;
+      std::istringstream stream(raw_request);
+      std::string line;
+
+      if (!std::getline(stream, line)) {
+        return req;
+      }
+
+      line.erase(line.find_last_not_of("\r\n") + 1);
+
+      std::istringstream request_line(line);
+      std::string method_str, full_path, version;
+      request_line >> method_str >> full_path >> version;
+
+      if (method_str == "GET") req.method = http_method_t::get;
+      else if (method_str == "POST") req.method = http_method_t::post;
+      else if (method_str == "PUT") req.method = http_method_t::put;
+      else if (method_str == "DELETE") req.method = http_method_t::delete_;
+
+      req.raw_path = full_path;
+      size_t query_pos = full_path.find('?');
+      if (query_pos != std::string::npos) {
+        req.path = full_path.substr(0, query_pos);
+        std::string query_string = full_path.substr(query_pos + 1);
+        req.query = parse_query_string(query_string);
+      }
+      else {
+        req.path = full_path;
+      }
+
+      while (std::getline(stream, line) && !line.empty() && line != "\r") {
+        line.erase(line.find_last_not_of("\r\n") + 1);
+        size_t colon_pos = line.find(':');
+        if (colon_pos != std::string::npos) {
+          std::string key = line.substr(0, colon_pos);
+          std::string value = line.substr(colon_pos + 1);
+          value.erase(0, value.find_first_not_of(" \t"));
+          req.headers[key] = value;
+        }
+      }
+
+      std::string body_line;
+      while (std::getline(stream, body_line)) {
+        req.body += body_line + "\n";
+      }
+      if (!req.body.empty()) {
+        req.body.pop_back();
+      }
+
+      return req;
+    }
+
+    struct http_server_t {
+      router_t router;
+
+      template<typename Handler>
+      void get(const std::string& pattern, Handler&& handler) {
+        router.get(pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void post(const std::string& pattern, Handler&& handler) {
+        router.post(pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void put(const std::string& pattern, Handler&& handler) {
+        router.put(pattern, std::forward<Handler>(handler));
+      }
+
+      template<typename Handler>
+      void delete_(const std::string& pattern, Handler&& handler) {
+        router.delete_(pattern, std::forward<Handler>(handler));
+      }
+
+      fan::event::task_t listen(const listen_address_t& address) {
+        co_await tcp_server_listen(address, [this](tcp_t& client) -> fan::event::task_t {
+          bool keep_alive = true;
+
+          while (keep_alive) {
+            std::string request_data;
+            bool headers_complete = false;
+            size_t content_length = 0;
+            http_response_t error_response;
+            bool has_error = false;
+
+            try {
+              while (!headers_complete) {
+                auto msg = co_await client.read_raw();
+                if (msg.status < 0) {
+                  co_return;
+                }
+
+                std::string chunk(msg.buffer.begin(), msg.buffer.end());
+                request_data += chunk;
+
+                size_t header_end = request_data.find("\r\n\r\n");
+                if (header_end != std::string::npos) {
+                  headers_complete = true;
+
+                  size_t cl_pos = request_data.find("Content-Length:");
+                  if (cl_pos != std::string::npos) {
+                    size_t cl_start = cl_pos + 15;
+                    size_t cl_end = request_data.find("\r\n", cl_start);
+                    std::string cl_str = request_data.substr(cl_start, cl_end - cl_start);
+                    cl_str.erase(0, cl_str.find_first_not_of(" \t"));
+                    content_length = std::stoull(cl_str);
+                  }
+
+                  size_t current_body_length = request_data.length() - (header_end + 4);
+                  while (current_body_length < content_length) {
+                    auto body_msg = co_await client.read_raw();
+                    if (body_msg.status < 0) {
+                      co_return;
+                    }
+                    std::string body_chunk(body_msg.buffer.begin(), body_msg.buffer.end());
+                    request_data += body_chunk;
+                    current_body_length += body_chunk.length();
+                  }
+                }
+              }
+
+              http_request_t request = parse_http_request(request_data);
+
+              auto conn_header = request.header("Connection");
+              if (conn_header.find("close") != std::string::npos) {
+                keep_alive = false;
+              }
+
+              http_response_t response = co_await router.handle(request);
+
+              if (keep_alive) {
+                response.header("Connection", "keep-alive");
+              }
+              else {
+                response.header("Connection", "close");
+              }
+
+              std::string response_str = response.to_string();
+              co_await client.write_raw(response_str);
+
+            }
+            catch (const std::exception& e) {
+              error_response.internal_error();
+              error_response.header("Connection", "close");
+              has_error = true;
+              keep_alive = false;
+            }
+
+            if (has_error) {
+              std::string response_str = error_response.to_string();
+              co_await client.write_raw(response_str);
+            }
+          }
+
+          co_return;
+          });
       }
     };
 
     struct response_t {
-      int status_code = http_status_t::ok;
+      int status_code = 200;
       std::unordered_map<std::string, std::string> headers;
       std::string body;
 
@@ -1722,766 +2168,432 @@ export namespace fan {
         headers["Content-Type"] = "text/plain";
         return *this;
       }
+    };
 
-      response_t& html(const std::string& data) {
-        body = data;
-        headers["Content-Type"] = "text/html";
-        return *this;
+    struct request_t {
+      int method;
+      std::string path;
+      std::unordered_map<std::string, std::string> headers;
+      std::unordered_map<std::string, std::string> params;
+      std::unordered_map<std::string, std::string> query;
+      std::string body;
+
+      std::string header(const std::string& name) const {
+        auto it = headers.find(name);
+        return it != headers.end() ? it->second : "";
       }
 
-      response_t& ok(const fan::json& data = nullptr) {
-        status_code = http_status_t::ok;
-        if (!data.is_null()) {
-          json(data);
+      std::expected<fan::json, CURLcode> json() const {
+        if (body.empty()) {
+          return std::unexpected(CURLE_BAD_CONTENT_ENCODING);
         }
-        return *this;
-      }
-
-      response_t& created(const fan::json& data = nullptr) {
-        status_code = http_status_t::created;
-        if (!data.is_null()) {
-          json(data);
+        try {
+          return fan::json::parse(body);
         }
-        return *this;
-      }
-
-      response_t& not_found(const std::string& message = "Not Found") {
-        status_code = http_status_t::not_found;
-        return text(message);
-      }
-
-      response_t& bad_request(const std::string& message = "Bad Request") {
-        status_code = http_status_t::bad_request;
-        return text(message);
-      }
-
-      response_t& internal_error(const std::string& message = "Internal Server Error") {
-        status_code = http_status_t::internal_server_error;
-        return text(message);
-      }
-
-      response_t& error(const http_error_t& err) {
-        switch (err.code) {
-          case http_error_t::invalid_param:
-          case http_error_t::invalid_json:
-          case http_error_t::validation_error:
-            return bad_request(err.message);
-          case http_error_t::not_found_error:
-            return not_found(err.message);
-          case http_error_t::database_error:
-          case http_error_t::connection_failed:
-          case http_error_t::timeout:
-          default:
-            return internal_error(err.message);
+        catch (...) {
+          return std::unexpected(CURLE_BAD_CONTENT_ENCODING);
         }
-      }
-
-      std::string to_string() const {
-        std::string response = "HTTP/1.1 " + std::to_string(status_code) + " ";
-        
-        switch (status_code) {
-          case http_status_t::ok: response += "OK"; break;
-          case http_status_t::created: response += "Created"; break;
-          case http_status_t::bad_request: response += "Bad Request"; break;
-          case http_status_t::not_found: response += "Not Found"; break;
-          case http_status_t::internal_server_error: response += "Internal Server Error"; break;
-          default: response += "Unknown"; break;
-        }
-        response += "\r\n";
-
-        for (const auto& [key, value] : headers) {
-          response += key + ": " + value + "\r\n";
-        }
-
-        if (!body.empty()) {
-          response += "Content-Length: " + std::to_string(body.length()) + "\r\n";
-        }
-
-        response += "\r\n" + body;
-        return response;
       }
     };
 
-    using async_handler_t = std::function<fan::event::task_t(const request_t&, response_t&)>;
+    struct http_config_t {
+      bool verify_ssl = true;
+      bool follow_redirects = true;
+      long timeout_seconds = 30;
+      bool enable_http2 = true;
+      bool keep_alive = false;
+      std::string user_agent = "libcurl-client/1.0";
+      std::string ca_cert_path = "curl-ca-bundle.crt";
+    };
 
-    struct route_t {
-      int method;
-      std::string pattern;
-      async_handler_t handler;
-      
-      bool matches(int req_method, const std::string& path, std::unordered_map<std::string, std::string>& params) const {
-        if (req_method != method) return false;
-        
-        auto pattern_parts = split_path(pattern);
-        auto path_parts = split_path(path);
-        
-        if (pattern_parts.size() != path_parts.size()) return false;
-        
-        params.clear();
-        for (size_t i = 0; i < pattern_parts.size(); ++i) {
-          if (pattern_parts[i].starts_with('{') && pattern_parts[i].ends_with('}')) {
-            std::string param_name = pattern_parts[i].substr(1, pattern_parts[i].length() - 2);
-            params[param_name] = path_parts[i];
-          } else if (pattern_parts[i] != path_parts[i]) {
-            return false;
-          }
+    struct curl_data_t {
+      std::string body;
+      std::string headers;
+      long status_code = 0;
+    };
+
+    struct async_http_context_t {
+      CURLM* multi_handle;
+      uv_timer_t timeout_timer;
+      int active_handles;
+      bool timer_started;
+      bool callbacks_set;
+
+      static async_http_context_t& instance() {
+        static async_http_context_t ctx;
+        return ctx;
+      }
+
+      async_http_context_t() : multi_handle(nullptr), active_handles(0),
+        timer_started(false), callbacks_set(false) {
+        multi_handle = curl_multi_init();
+        uv_timer_init(fan::event::get_loop(), &timeout_timer);
+        timeout_timer.data = this;
+      }
+
+      ~async_http_context_t() {
+        if (multi_handle) {
+          curl_multi_cleanup(multi_handle);
         }
-        return true;
+      }
+    };
+
+    struct async_http_request_t {
+      CURL* easy_handle;
+      struct curl_slist* headers_list;
+      std::coroutine_handle<> co_handle;
+      curl_data_t response_data;
+      CURLcode result;
+      bool completed;
+      std::string post_data; // Keep post data alive
+
+      async_http_request_t() : easy_handle(nullptr), headers_list(nullptr),
+        completed(false), result(CURLE_OK) {
+        easy_handle = curl_easy_init();
+        if (easy_handle) {
+          curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, write_body);
+          curl_easy_setopt(easy_handle, CURLOPT_WRITEDATA, &response_data);
+          curl_easy_setopt(easy_handle, CURLOPT_HEADERFUNCTION, write_headers);
+          curl_easy_setopt(easy_handle, CURLOPT_HEADERDATA, &response_data);
+          curl_easy_setopt(easy_handle, CURLOPT_PRIVATE, this);
+        }
+      }
+
+      ~async_http_request_t() {
+        if (headers_list) {
+          curl_slist_free_all(headers_list);
+        }
+        if (easy_handle) {
+          curl_easy_cleanup(easy_handle);
+        }
+      }
+
+      async_http_request_t(const async_http_request_t&) = delete;
+      async_http_request_t& operator=(const async_http_request_t&) = delete;
+      async_http_request_t(async_http_request_t&& other) noexcept
+        : easy_handle(other.easy_handle), headers_list(other.headers_list),
+        co_handle(other.co_handle), response_data(std::move(other.response_data)),
+        result(other.result), completed(other.completed),
+        post_data(std::move(other.post_data)) {
+        other.easy_handle = nullptr;
+        other.headers_list = nullptr;
+        if (easy_handle) {
+          curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, write_body);
+          curl_easy_setopt(easy_handle, CURLOPT_WRITEDATA, &response_data);
+          curl_easy_setopt(easy_handle, CURLOPT_HEADERFUNCTION, write_headers);
+          curl_easy_setopt(easy_handle, CURLOPT_HEADERDATA, &response_data);
+          curl_easy_setopt(easy_handle, CURLOPT_PRIVATE, this);
+        }
+      }
+
+      static size_t write_body(void* data, size_t size, size_t nmemb, curl_data_t* response) {
+        size_t total = size * nmemb;
+        response->body.append(static_cast<char*>(data), total);
+        return total;
+      }
+
+      static size_t write_headers(void* data, size_t size, size_t nmemb, curl_data_t* response) {
+        size_t total = size * nmemb;
+        response->headers.append(static_cast<char*>(data), total);
+        return total;
+      }
+
+      bool await_ready() const { return completed; }
+
+      void await_suspend(std::coroutine_handle<> h) {
+        co_handle = h;
+        auto& ctx = async_http_context_t::instance();
+
+        // Set up the multi interface callbacks if not already done
+        if (!ctx.callbacks_set) {
+          curl_multi_setopt(ctx.multi_handle, CURLMOPT_SOCKETFUNCTION, socket_callback);
+          curl_multi_setopt(ctx.multi_handle, CURLMOPT_SOCKETDATA, &ctx);
+          curl_multi_setopt(ctx.multi_handle, CURLMOPT_TIMERFUNCTION, timer_function);
+          curl_multi_setopt(ctx.multi_handle, CURLMOPT_TIMERDATA, &ctx);
+          ctx.callbacks_set = true;
+        }
+
+        curl_multi_add_handle(ctx.multi_handle, easy_handle);
+
+        // Kick off the multi interface
+        int running_handles;
+        curl_multi_socket_action(ctx.multi_handle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
+        check_multi_info(&ctx);
+      }
+
+      std::expected<response_t, CURLcode> await_resume() {
+        if (result != CURLE_OK) {
+          return std::unexpected(result);
+        }
+
+        response_t response;
+        curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &response_data.status_code);
+        response.status_code = static_cast<int>(response_data.status_code);
+        response.body = std::move(response_data.body);
+        parse_response_headers(response_data.headers, response);
+
+        return response;
       }
 
     private:
-      std::vector<std::string> split_path(const std::string& path) const {
-        std::vector<std::string> parts;
-        std::string current;
-        for (char c : path) {
-          if (c == '/') {
-            if (!current.empty()) {
-              parts.push_back(current);
-              current.clear();
-            }
-          } else {
-            current += c;
+      static void timer_callback(uv_timer_t* handle) {
+        auto* ctx = static_cast<async_http_context_t*>(handle->data);
+        ctx->timer_started = false;
+
+        int running_handles;
+        curl_multi_socket_action(ctx->multi_handle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
+        check_multi_info(ctx);
+      }
+
+      static void poll_callback(uv_poll_t* handle, int status, int events) {
+        auto* ctx = &async_http_context_t::instance();
+        int flags = 0;
+        if (events & UV_READABLE) flags |= CURL_CSELECT_IN;
+        if (events & UV_WRITABLE) flags |= CURL_CSELECT_OUT;
+
+        curl_socket_t sockfd = static_cast<curl_socket_t>(reinterpret_cast<intptr_t>(handle->data));
+
+        int running_handles;
+        curl_multi_socket_action(ctx->multi_handle, sockfd, flags, &running_handles);
+        check_multi_info(ctx);
+      }
+
+      static int socket_callback(CURL* easy, curl_socket_t sockfd, int what, void* userp, void* socketp) {
+        auto* ctx = static_cast<async_http_context_t*>(userp);
+
+        if (what == CURL_POLL_REMOVE) {
+          if (socketp) {
+            uv_poll_t* poll_handle = static_cast<uv_poll_t*>(socketp);
+            uv_poll_stop(poll_handle);
+            uv_close(reinterpret_cast<uv_handle_t*>(poll_handle), [](uv_handle_t* handle) {
+              delete reinterpret_cast<uv_poll_t*>(handle);
+              });
+          }
+          return 0;
+        }
+
+        uv_poll_t* poll_handle = static_cast<uv_poll_t*>(socketp);
+        if (!poll_handle) {
+          poll_handle = new uv_poll_t;
+          uv_poll_init_socket(fan::event::get_loop(), poll_handle, sockfd);
+          poll_handle->data = reinterpret_cast<void*>(static_cast<intptr_t>(sockfd));
+          curl_multi_assign(ctx->multi_handle, sockfd, poll_handle);
+        }
+
+        int events = 0;
+        if (what & CURL_POLL_IN) events |= UV_READABLE;
+        if (what & CURL_POLL_OUT) events |= UV_WRITABLE;
+
+        uv_poll_start(poll_handle, events, poll_callback);
+        return 0;
+      }
+
+      static int timer_function(CURLM* multi, long timeout_ms, void* userp) {
+        auto* ctx = static_cast<async_http_context_t*>(userp);
+
+        if (timeout_ms < 0) {
+          if (ctx->timer_started) {
+            uv_timer_stop(&ctx->timeout_timer);
+            ctx->timer_started = false;
           }
         }
-        if (!current.empty()) {
-          parts.push_back(current);
+        else {
+          if (timeout_ms == 0) timeout_ms = 1;  // minimum 1ms
+          uv_timer_start(&ctx->timeout_timer, timer_callback, timeout_ms, 0);
+          ctx->timer_started = true;
         }
-        return parts;
+        return 0;
+      }
+
+      static void check_multi_info(async_http_context_t* ctx) {
+        CURLMsg* msg;
+        int msgs_left;
+
+        while ((msg = curl_multi_info_read(ctx->multi_handle, &msgs_left))) {
+          if (msg->msg == CURLMSG_DONE) {
+            CURL* easy_handle = msg->easy_handle;
+            async_http_request_t* request;
+            curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &request);
+
+            request->result = msg->data.result;
+            request->completed = true;
+
+            curl_multi_remove_handle(ctx->multi_handle, easy_handle);
+
+            if (request->co_handle) {
+              request->co_handle.resume();
+            }
+          }
+        }
+      }
+
+      void parse_response_headers(const std::string& header_str, response_t& response) {
+        size_t pos = 0;
+        while (pos < header_str.length()) {
+          size_t end = header_str.find('\n', pos);
+          if (end == std::string::npos) {
+            end = header_str.length();
+          }
+
+          std::string line = header_str.substr(pos, end - pos);
+          if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+          }
+
+          size_t colon = line.find(':');
+          if (colon != std::string::npos && colon > 0) {
+            std::string key = line.substr(0, colon);
+            std::string value = line.substr(colon + 1);
+
+            if (!value.empty() && value.front() == ' ') {
+              value = value.substr(1);
+            }
+
+            response.headers[key] = value;
+          }
+
+          pos = end + 1;
+        }
       }
     };
 
-    struct router_t {
-      std::vector<route_t> routes;
+    struct curl_global_manager_t {
+      curl_global_manager_t() {
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+      }
+      ~curl_global_manager_t() {
+        curl_global_cleanup();
+      }
+      static void init() {
+        static curl_global_manager_t curl_manager;
+      }
+    };
+    std::string strerror(CURLcode code) {
+      return curl_easy_strerror(code);
+    }
 
-      template<typename Handler>
-      void add_route(int method, const std::string& pattern, Handler&& handler) {
-        route_t route;
-        route.method = method;
-        route.pattern = pattern;
-        route.handler = [handler = std::forward<Handler>(handler)](const request_t& req, response_t& res) -> fan::event::task_t {
-          co_await handler(req, res);
+    struct async_http_client_t {
+      std::string base_url;
+      http_config_t config;
+
+      async_http_client_t(const std::string& url, const http_config_t& cfg = {})
+        : base_url(url), config(cfg) {
+        static std::once_flag curl_init_flag;
+        std::call_once(curl_init_flag, []() {
+          curl_global_manager_t::init();
+          });
+      }
+
+      fan::event::task_value_resume_t<std::expected<response_t, std::string>> request(
+        const std::string& method,
+        const std::string& path,
+        const std::unordered_map<std::string, std::string>& headers = {},
+        const std::string& body = ""
+      ) {
+        async_http_request_t request;
+        std::string url = base_url + path;
+
+        if (curl_easy_setopt(request.easy_handle, CURLOPT_URL, url.c_str()) != CURLE_OK) {
+          co_return std::unexpected("Failed to set URL");
+        }
+
+        curl_easy_setopt(request.easy_handle, CURLOPT_FOLLOWLOCATION, config.follow_redirects ? 1L : 0L);
+        curl_easy_setopt(request.easy_handle, CURLOPT_TIMEOUT, config.timeout_seconds);
+        curl_easy_setopt(request.easy_handle, CURLOPT_USERAGENT, config.user_agent.c_str());
+        curl_easy_setopt(request.easy_handle, CURLOPT_SSL_VERIFYPEER, config.verify_ssl ? 1L : 0L);
+        curl_easy_setopt(request.easy_handle, CURLOPT_SSL_VERIFYHOST, config.verify_ssl ? 2L : 0L);
+
+        if (config.enable_http2) {
+          curl_easy_setopt(request.easy_handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
+        }
+        if (config.keep_alive) {
+          curl_easy_setopt(request.easy_handle, CURLOPT_TCP_KEEPALIVE, 1L);
+        }
+
+        curl_easy_setopt(request.easy_handle, CURLOPT_CAINFO, config.ca_cert_path.c_str());
+        curl_easy_setopt(request.easy_handle, CURLOPT_ACCEPT_ENCODING, "");
+
+        for (const auto& [key, value] : headers) {
+          std::string header_str = key + ": " + value;
+          request.headers_list = curl_slist_append(request.headers_list, header_str.c_str());
+        }
+        if (request.headers_list) {
+          curl_easy_setopt(request.easy_handle, CURLOPT_HTTPHEADER, request.headers_list);
+        }
+
+        if (method == "POST") {
+          curl_easy_setopt(request.easy_handle, CURLOPT_POST, 1L);
+          if (!body.empty()) {
+            request.post_data = body;
+            curl_easy_setopt(request.easy_handle, CURLOPT_POSTFIELDS, request.post_data.c_str());
+            curl_easy_setopt(request.easy_handle, CURLOPT_POSTFIELDSIZE, request.post_data.length());
+          }
+        }
+        else if (method == "PUT") {
+          curl_easy_setopt(request.easy_handle, CURLOPT_CUSTOMREQUEST, "PUT");
+          if (!body.empty()) {
+            request.post_data = body;
+            curl_easy_setopt(request.easy_handle, CURLOPT_POSTFIELDS, request.post_data.c_str());
+            curl_easy_setopt(request.easy_handle, CURLOPT_POSTFIELDSIZE, request.post_data.length());
+          }
+        }
+        else if (method == "DELETE") {
+          curl_easy_setopt(request.easy_handle, CURLOPT_CUSTOMREQUEST, "DELETE");
+        }
+        else {
+          curl_easy_setopt(request.easy_handle, CURLOPT_HTTPGET, 1L);
+        }
+
+        auto result = co_await request;
+        if (!result) {
+          co_return std::unexpected(fan::network::strerror(result.error()));
+        }
+
+        co_return result.value();
+      }
+
+      fan::event::task_value_resume_t<std::expected<response_t, std::string>> get(const std::string& path) {
+        co_return co_await request("GET", path);
+      }
+
+      fan::event::task_value_resume_t<std::expected<response_t, std::string>> get(
+        const std::string& path,
+        const std::unordered_map<std::string, std::string>& headers
+      ) {
+        co_return co_await request("GET", path, headers);
+      }
+
+      fan::event::task_value_resume_t<std::expected<response_t, std::string>> post(
+        const std::string& path,
+        const fan::json& data
+      ) {
+        std::unordered_map<std::string, std::string> headers = {
+            {"Content-Type", "application/json"}
         };
-        
-        routes.push_back(std::move(route));
+        co_return co_await request("POST", path, headers, data.dump());
       }
 
-      template<typename Handler>
-      void get(const std::string& pattern, Handler&& handler) {
-        add_route(http_method_t::get, pattern, std::forward<Handler>(handler));
+      fan::event::task_value_resume_t<std::expected<response_t, std::string>> put(
+        const std::string& path,
+        const fan::json& data
+      ) {
+        std::unordered_map<std::string, std::string> headers = {
+            {"Content-Type", "application/json"}
+        };
+        co_return co_await request("PUT", path, headers, data.dump());
       }
 
-      template<typename Handler>
-      void post(const std::string& pattern, Handler&& handler) {
-        add_route(http_method_t::post, pattern, std::forward<Handler>(handler));
-      }
-
-      template<typename Handler>
-      void put(const std::string& pattern, Handler&& handler) {
-        add_route(http_method_t::put, pattern, std::forward<Handler>(handler));
-      }
-
-      template<typename Handler>
-      void delete_(const std::string& pattern, Handler&& handler) {
-        add_route(http_method_t::delete_, pattern, std::forward<Handler>(handler));
-      }
-
-      fan::event::task_value_resume_t<response_t> handle(const request_t& req) {
-        for (const auto& route : routes) {
-          request_t modified_req = req;
-          if (route.matches(req.method, req.path, modified_req.params)) {
-            response_t res;
-            try {
-              co_await route.handler(modified_req, res);
-            } catch (const std::exception& e) {
-              res.internal_error("Handler exception: " + std::string(e.what()));
-            }
-            co_return res;
-          }
-        }
-        
-        response_t res;
-        co_return res.not_found();
+      fan::event::task_value_resume_t<std::expected<response_t, std::string>> delete_(const std::string& path) {
+        co_return co_await request("DELETE", path);
       }
     };
 
-    inline std::unordered_map<std::string, std::string> parse_query_string(const std::string& query_string) {
-      std::unordered_map<std::string, std::string> params;
-      std::string current_param;
-      std::string current_value;
-      bool reading_value = false;
-      
-      for (char c : query_string) {
-        if (c == '=') {
-          reading_value = true;
-        } else if (c == '&') {
-          if (!current_param.empty()) {
-            params[current_param] = current_value;
-          }
-          current_param.clear();
-          current_value.clear();
-          reading_value = false;
-        } else {
-          if (reading_value) {
-            current_value += c;
-          } else {
-            current_param += c;
-          }
-        }
-      }
-      
-      if (!current_param.empty()) {
-        params[current_param] = current_value;
-      }
-      
-      return params;
-    }
-
-    inline request_t parse_http_request(const std::string& raw_request) {
-      request_t req;
-      std::istringstream stream(raw_request);
-      std::string line;
-      
-      if (!std::getline(stream, line)) {
-        return req;
-      }
-      
-      line.erase(line.find_last_not_of("\r\n") + 1);
-      
-      std::istringstream request_line(line);
-      std::string method_str, full_path, version;
-      request_line >> method_str >> full_path >> version;
-      
-      if (method_str == "GET") req.method = http_method_t::get;
-      else if (method_str == "POST") req.method = http_method_t::post;
-      else if (method_str == "PUT") req.method = http_method_t::put;
-      else if (method_str == "DELETE") req.method = http_method_t::delete_;
-      
-      req.raw_path = full_path;
-      size_t query_pos = full_path.find('?');
-      if (query_pos != std::string::npos) {
-        req.path = full_path.substr(0, query_pos);
-        std::string query_string = full_path.substr(query_pos + 1);
-        req.query = parse_query_string(query_string);
-      } else {
-        req.path = full_path;
-      }
-      
-      while (std::getline(stream, line) && !line.empty() && line != "\r") {
-        line.erase(line.find_last_not_of("\r\n") + 1);
-        size_t colon_pos = line.find(':');
-        if (colon_pos != std::string::npos) {
-          std::string key = line.substr(0, colon_pos);
-          std::string value = line.substr(colon_pos + 1);
-          value.erase(0, value.find_first_not_of(" \t"));
-          req.headers[key] = value;
-        }
-      }
-      
-      std::string body_line;
-      while (std::getline(stream, body_line)) {
-        req.body += body_line + "\n";
-      }
-      if (!req.body.empty()) {
-        req.body.pop_back();
-      }
-      
-      return req;
-    }
-
-    struct http_server_t {
-      router_t router;
-      
-      template<typename Handler>
-      void get(const std::string& pattern, Handler&& handler) {
-        router.get(pattern, std::forward<Handler>(handler));
-      }
-
-      template<typename Handler>
-      void post(const std::string& pattern, Handler&& handler) {
-        router.post(pattern, std::forward<Handler>(handler));
-      }
-
-      template<typename Handler>
-      void put(const std::string& pattern, Handler&& handler) {
-        router.put(pattern, std::forward<Handler>(handler));
-      }
-
-      template<typename Handler>
-      void delete_(const std::string& pattern, Handler&& handler) {
-        router.delete_(pattern, std::forward<Handler>(handler));
-      }
-
-      fan::event::task_t listen(const listen_address_t& address) {
-        co_await tcp_server_listen(address, [this](tcp_t& client) -> fan::event::task_t {
-          bool keep_alive = true;
-          
-          while (keep_alive) {
-            std::string request_data;
-            bool headers_complete = false;
-            size_t content_length = 0;
-            response_t error_response;
-            bool has_error = false;
-            
-            try {
-              while (!headers_complete) {
-                auto msg = co_await client.read_raw();
-                if (msg.status < 0) {
-                  co_return;
-                }
-                
-                std::string chunk(msg.buffer.begin(), msg.buffer.end());
-                request_data += chunk;
-                
-                size_t header_end = request_data.find("\r\n\r\n");
-                if (header_end != std::string::npos) {
-                  headers_complete = true;
-                  
-                  size_t cl_pos = request_data.find("Content-Length:");
-                  if (cl_pos != std::string::npos) {
-                    size_t cl_start = cl_pos + 15;
-                    size_t cl_end = request_data.find("\r\n", cl_start);
-                    std::string cl_str = request_data.substr(cl_start, cl_end - cl_start);
-                    cl_str.erase(0, cl_str.find_first_not_of(" \t"));
-                    content_length = std::stoull(cl_str);
-                  }
-                  
-                  size_t current_body_length = request_data.length() - (header_end + 4);
-                  while (current_body_length < content_length) {
-                    auto body_msg = co_await client.read_raw();
-                    if (body_msg.status < 0) {
-                      co_return;
-                    }
-                    std::string body_chunk(body_msg.buffer.begin(), body_msg.buffer.end());
-                    request_data += body_chunk;
-                    current_body_length += body_chunk.length();
-                  }
-                }
-              }
-              
-              request_t request = parse_http_request(request_data);
-              
-              // Check if client wants to close connection
-              auto conn_header = request.header("Connection");
-              if (conn_header.find("close") != std::string::npos) {
-                keep_alive = false;
-              }
-              
-              response_t response = co_await router.handle(request);
-              
-              // Add Connection header to response
-              if (keep_alive) {
-                response.header("Connection", "keep-alive");
-              } else {
-                response.header("Connection", "close");
-              }
-              
-              std::string response_str = response.to_string();
-              co_await client.write_raw(response_str);
-              
-            } catch (const std::exception& e) {
-              error_response.internal_error();
-              error_response.header("Connection", "close");
-              has_error = true;
-              keep_alive = false;
-            }
-            
-            if (has_error) {
-              std::string response_str = error_response.to_string();
-              co_await client.write_raw(response_str);
-            }
-          }
-          
-          co_return;
-        });
-      }
-    };
-
-    struct http_client_t {
-      std::string host;
-      int port;
-      std::unique_ptr<tcp_t> tcp_conn;
-      bool connected = false;
-      
-      http_client_t(const std::string& server_host, int server_port) 
-        : host(server_host), port(server_port) {}
-      
-      fan::event::task_value_resume_t<std::expected<response_t, http_error_t>> ensure_connected() {
-        if (!connected || !tcp_conn) {
-          tcp_conn = std::make_unique<tcp_t>();
-          try {
-            co_await tcp_conn->connect(host, port);
-            connected = true;
-          } catch (...) {
-            connected = false;
-            co_return std::unexpected(http_error_t{http_error_t::connection_failed, "Failed to connect to " + host});
-          }
-        }
-        response_t dummy;
-        co_return dummy;
-      }
-      
-      fan::event::task_value_resume_t<std::expected<response_t, http_error_t>> send_request(const std::string& request_str) {
-        auto conn_result = co_await ensure_connected();
-        if (!conn_result) {
-          co_return std::unexpected(conn_result.error());
-        }
-        
-        try {
-          co_await tcp_conn->write_raw(request_str);
-        } catch (...) {
-          connected = false;
-          co_return std::unexpected(http_error_t{http_error_t::connection_failed, "Failed to send request"});
-        }
-        
-        std::string response_data;
-        bool headers_complete = false;
-        size_t content_length = 0;
-        bool has_content_length = false;
-        bool should_close = false;
-        
-        try {
-          while (!headers_complete) {
-            auto msg = co_await tcp_conn->read_raw();
-            if (msg.status < 0) {
-              connected = false;
-              break;
-            }
-            
-            std::string chunk(msg.buffer.begin(), msg.buffer.end());
-            response_data += chunk;
-            
-            size_t header_end = response_data.find("\r\n\r\n");
-            if (header_end != std::string::npos) {
-              headers_complete = true;
-              
-              // Check Connection header
-              size_t conn_pos = response_data.find("Connection:");
-              if (conn_pos != std::string::npos && conn_pos < header_end) {
-                size_t conn_start = conn_pos + 11;
-                size_t conn_end = response_data.find("\r\n", conn_start);
-                if (conn_end != std::string::npos) {
-                  std::string conn_value = response_data.substr(conn_start, conn_end - conn_start);
-                  conn_value.erase(0, conn_value.find_first_not_of(" \t"));
-                  if (conn_value.find("close") != std::string::npos) {
-                    should_close = true;
-                  }
-                }
-              }
-              
-              // Parse Content-Length
-              size_t cl_pos = response_data.find("Content-Length:");
-              if (cl_pos != std::string::npos && cl_pos < header_end) {
-                size_t cl_start = cl_pos + 15;
-                size_t cl_end = response_data.find("\r\n", cl_start);
-                if (cl_end != std::string::npos) {
-                  std::string cl_str = response_data.substr(cl_start, cl_end - cl_start);
-                  cl_str.erase(0, cl_str.find_first_not_of(" \t"));
-                  content_length = std::stoull(cl_str);
-                  has_content_length = true;
-                }
-              }
-              
-              size_t current_body_length = response_data.length() - (header_end + 4);
-              if (has_content_length && current_body_length >= content_length) {
-                break;
-              }
-            }
-          }
-          
-          if (headers_complete && has_content_length) {
-            size_t header_end = response_data.find("\r\n\r\n");
-            size_t current_body_length = response_data.length() - (header_end + 4);
-            
-            while (current_body_length < content_length) {
-              auto msg = co_await tcp_conn->read_raw();
-              if (msg.status < 0) {
-                connected = false;
-                break;
-              }
-              
-              std::string chunk(msg.buffer.begin(), msg.buffer.end());
-              response_data += chunk;
-              current_body_length += chunk.length();
-            }
-          }
-          
-        } catch (...) {
-          connected = false;
-          co_return std::unexpected(http_error_t{http_error_t::connection_failed, "Failed to read response"});
-        }
-        
-        if (should_close) {
-          connected = false;
-        }
-        
-        if (response_data.empty()) {
-          connected = false;
-          co_return std::unexpected(http_error_t{http_error_t::parse_failed, "Empty response"});
-        }
-        
-        response_t res;
-        
-        size_t first_space = response_data.find(' ');
-        if (first_space != std::string::npos) {
-          size_t second_space = response_data.find(' ', first_space + 1);
-          if (second_space != std::string::npos) {
-            std::string status_str = response_data.substr(first_space + 1, second_space - first_space - 1);
-            try {
-              res.status_code = std::stoi(status_str);
-            } catch (...) {
-              res.status_code = 200;
-            }
-          }
-        }
-        
-        size_t body_start = response_data.find("\r\n\r\n");
-        if (body_start != std::string::npos) {
-          res.body = response_data.substr(body_start + 4);
-          if (has_content_length && res.body.length() > content_length) {
-            res.body = res.body.substr(0, content_length);
-          }
-        }
-        
-        co_return res;
-      }
-      
-      fan::event::task_value_resume_t<std::expected<response_t, http_error_t>> get(const std::string& path) {
-        std::string request = "GET " + path + " HTTP/1.1\r\n";
-        request += "Host: " + host + ":" + std::to_string(port) + "\r\n";
-        request += "Connection: keep-alive\r\n\r\n";
-        
-        co_return co_await send_request(request);
-      }
-      
-      fan::event::task_value_resume_t<std::expected<response_t, http_error_t>> post(const std::string& path, const fan::json& data) {
-        std::string body = data.dump();
-        std::string request = "POST " + path + " HTTP/1.1\r\n";
-        request += "Host: " + host + ":" + std::to_string(port) + "\r\n";
-        request += "Content-Type: application/json\r\n";
-        request += "Content-Length: " + std::to_string(body.length()) + "\r\n";
-        request += "Connection: keep-alive\r\n\r\n";
-        request += body;
-        
-        co_return co_await send_request(request);
-      }
-      
-      void close() {
-        connected = false;
-        tcp_conn.reset();
-      }
-    };
+    using http_client_t = async_http_client_t;
+    using https_client_t = async_http_client_t;
+    using http2_client_t = async_http_client_t;
 
     // -------------------------------HTTP/REST-------------------------------
 
-    /*
-    class stream_cipher_t {
-    private:
-      unsigned char key[32];  // 256-bit key
-      bool key_set = false;
-      std::string key_hex_string;
-
-    public:
-      std::string get_key_hex() const {
-        if (!key_set) return "";
-        return key_hex_string;
-      }
-
-      // Set encryption key (32 bytes for AES-256)
-      bool set_key(const unsigned char* new_key, size_t key_len) {
-        if (key_len != 32) return false;
-        memcpy(key, new_key, 32);
-        key_set = true;
-        return true;
-      }
-
-      // Set key from hex string
-      bool set_key_hex(const std::string& hex_key) {
-        if (hex_key.length() != 64) return false; // 32 bytes = 64 hex chars
-
-        unsigned char binary_key[32];
-        for (size_t i = 0; i < 32; ++i) {
-          std::string byte_str = hex_key.substr(i * 2, 2);
-          binary_key[i] = (unsigned char)std::stoul(byte_str, nullptr, 16);
-        }
-
-        bool result = set_key(binary_key, 32);
-        if (result) {
-          key_hex_string = hex_key; // Store the hex string
-        }
-        return result;
-      }
-
-      std::string generate_key() {
-        unsigned char new_key[32];
-        if (RAND_bytes(new_key, 32) != 1) {
-          return "";
-        }
-
-        set_key(new_key, 32);
-
-        // Return as hex string and store it
-        std::string hex_key;
-        for (size_t i = 0; i < 32; ++i) {
-          char buf[3];
-          snprintf(buf, sizeof(buf), "%02x", new_key[i]);
-          hex_key += buf;
-        }
-
-        key_hex_string = hex_key; // Store the hex string
-        return hex_key;
-      }
-
-      // Encrypt data using AES-256-GCM
-      std::vector<uint8_t> encrypt(const std::vector<uint8_t>& plaintext) {
-        if (!key_set || plaintext.empty()) return {};
-
-        EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-        if (!ctx) return {};
-
-        // Generate random IV (12 bytes for GCM)
-        unsigned char iv[12];
-        if (RAND_bytes(iv, 12) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-
-        // Initialize encryption
-        if (EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, nullptr, nullptr) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-
-        // Set IV length
-        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, nullptr) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-
-        // Initialize key and IV
-        if (EVP_EncryptInit_ex(ctx, nullptr, nullptr, key, iv) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-
-        // Prepare output buffer: IV(12) + ciphertext + tag(16)
-        std::vector<uint8_t> output;
-        output.resize(12 + plaintext.size() + 16);
-
-        // Copy IV to output
-        memcpy(output.data(), iv, 12);
-
-        // Encrypt
-        int len;
-        if (EVP_EncryptUpdate(ctx, output.data() + 12, &len, plaintext.data(), (int)plaintext.size()) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-        int ciphertext_len = len;
-
-        // Finalize
-        if (EVP_EncryptFinal_ex(ctx, output.data() + 12 + len, &len) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-        ciphertext_len += len;
-
-        // Get authentication tag
-        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, output.data() + 12 + ciphertext_len) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-
-        EVP_CIPHER_CTX_free(ctx);
-
-        // Resize to actual length
-        output.resize(12 + ciphertext_len + 16);
-        return output;
-      }
-
-      // Decrypt data using AES-256-GCM
-      std::vector<uint8_t> decrypt(const std::vector<uint8_t>& ciphertext) {
-        if (!key_set || ciphertext.size() < 28) return {}; // IV(12) + tag(16) = 28 minimum
-
-        EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-        if (!ctx) return {};
-
-        // Extract IV, ciphertext, and tag
-        const unsigned char* iv = ciphertext.data();
-        const unsigned char* encrypted_data = ciphertext.data() + 12;
-        int encrypted_len = (int)ciphertext.size() - 28;
-        const unsigned char* tag = ciphertext.data() + 12 + encrypted_len;
-
-        // Initialize decryption
-        if (EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, nullptr, nullptr) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-
-        // Set IV length
-        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, nullptr) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-
-        // Initialize key and IV
-        if (EVP_DecryptInit_ex(ctx, nullptr, nullptr, key, iv) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-
-        // Prepare output buffer
-        std::vector<uint8_t> plaintext(encrypted_len);
-
-        // Decrypt
-        int len;
-        if (EVP_DecryptUpdate(ctx, plaintext.data(), &len, encrypted_data, encrypted_len) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-        int plaintext_len = len;
-
-        // Set expected tag
-        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, const_cast<unsigned char*>(tag)) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {};
-        }
-
-        // Finalize and verify tag
-        if (EVP_DecryptFinal_ex(ctx, plaintext.data() + len, &len) != 1) {
-          EVP_CIPHER_CTX_free(ctx);
-          return {}; // Authentication failed or corruption detected
-        }
-        plaintext_len += len;
-
-        EVP_CIPHER_CTX_free(ctx);
-
-        plaintext.resize(plaintext_len);
-        return plaintext;
-      }
-
-      // Test the encryption/decryption
-      bool test() {
-        std::string test_key = generate_key();
-        if (test_key.empty()) return false;
-
-        std::string test_data = "Hello, secure stream data!";
-        std::vector<uint8_t> original(test_data.begin(), test_data.end());
-
-        auto encrypted = encrypt(original);
-        if (encrypted.empty()) return false;
-
-        auto decrypted = decrypt(encrypted);
-        if (decrypted.size() != original.size()) return false;
-
-        return memcmp(original.data(), decrypted.data(), original.size()) == 0;
-      }
-    };
-
-    // Global cipher instance
-    stream_cipher_t& get_stream_cipher() {
-      static stream_cipher_t cipher;
-      return cipher;
-    }*/
   }
 }
 

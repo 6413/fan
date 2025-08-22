@@ -21,6 +21,8 @@ struct ecps_backend_t {
     if (task_udp_listen.handle) {
       task_udp_listen = {};
     }
+    MD_Mice_Close(&mice);
+    MD_Keyboard_close(&keyboard);
   }
 
   struct channel_create_awaiter {
@@ -892,6 +894,8 @@ struct ecps_backend_t {
     co_return;
   }
 
+  void update_host_mouse_coordinate(Protocol_ChannelID_t channel_id, const fan::vec2ui& pos);
+
   bool channel_list_received = false;
   fan::network::udp_keep_alive_t udp_keep_alive{ udp_client };
 
@@ -915,6 +919,7 @@ struct ecps_backend_t {
     fan::time::timer stream_start_timer;
     bool is_viewing = false;
     fan::time::timer joined_at;
+    int flag = 0;
   };
   std::vector<channel_info_t> channel_info;
 
@@ -922,5 +927,8 @@ struct ecps_backend_t {
   std::vector<channel_list_info_t> available_channels;
   std::unordered_map<Protocol_ChannelID_t::Type, std::vector<session_info_t>> channel_sessions;
   bool did_just_join = false; // need manual reset from gui
+
+  MD_Mice_t mice;
+  MD_Keyboard_t keyboard;
 
 }ecps_backend;

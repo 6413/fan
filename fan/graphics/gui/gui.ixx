@@ -531,6 +531,9 @@ export namespace fan {
         bool is_window_hovered() {
           return ImGui::IsWindowHovered();
         }
+        bool is_window_focused() {
+          return ImGui::IsWindowFocused();
+        }
 
 
         fan::vec2 get_window_content_region_min() {

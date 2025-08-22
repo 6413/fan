@@ -18,6 +18,10 @@
 #include <memory>
 #include <cmath>
 
+#include <WITCH/WITCH.h>
+#include <WITCH/MD/Mice.h>
+#include <WITCH/MD/Keyboard/Keyboard.h>
+
 extern "C" {
   #include <libavutil/pixfmt.h>
 }
@@ -169,6 +173,8 @@ struct render_thread_t {
   } };
   f32_t displayed_fps = 0.0f;
 
+  fan::vec2ui host_mouse_pos;
+
   void render(auto l) {
     if (engine.process_loop([this, l] { ecps_gui.render(); l(); })) {
       std::exit(0);
@@ -291,6 +297,129 @@ ecps_backend_t::ecps_backend_t() {
       backend.channel_sessions[channel_id.i].push_back(info);
     }
     };
+
+  // input
+  __dme_get(Protocol_S2C, Channel_ScreenShare_View_InformationToViewSetFlag) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
+    auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Channel_ScreenShare_View_InformationToViewSetFlag_t>();
+
+    for (auto& channel : backend.channel_info) {
+      if (channel.channel_id.i == msg->ChannelID.i) {
+        channel.flag = msg->Flag;
+        break;
+      }
+    }
+    co_return;
+    };
+
+  __dme_get(Protocol_S2C, Channel_ScreenShare_View_InformationToViewMouseCoordinate) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
+    auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Channel_ScreenShare_View_InformationToViewMouseCoordinate_t>();
+
+    auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+    if (rt) {
+      backend.update_host_mouse_coordinate(msg->ChannelID, msg->pos);
+    }
+    co_return;
+    };
+
+  __dme_get(Protocol_S2C, Channel_ScreenShare_Share_ApplyToHostMouseCoordinate) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
+    auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Channel_ScreenShare_Share_ApplyToHostMouseCoordinate_t>();
+
+    bool input_control_enabled = false;
+    for (const auto& channel : backend.channel_info) {
+      if (channel.channel_id.i == msg->ChannelID.i) {
+        input_control_enabled = (channel.flag & ProtocolChannel::ScreenShare::ChannelFlag::InputControl) != 0;
+        break;
+      }
+    }
+
+    if (input_control_enabled) {
+      MD_Mice_Error err = MD_Mice_Coordinate_Write(&mice, msg->pos.x, msg->pos.y);
+      if (err != MD_Mice_Error_Success && err != MD_Mice_Error_Temporary) {
+        fan::print("mouse coordinate write failed");
+      }
+    }
+    co_return;
+    };
+
+  __dme_get(Protocol_S2C, Channel_ScreenShare_Share_ApplyToHostMouseMotion) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
+    auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Channel_ScreenShare_Share_ApplyToHostMouseMotion_t>();
+
+    bool input_control_enabled = false;
+    for (const auto& channel : backend.channel_info) {
+      if (channel.channel_id.i == msg->ChannelID.i) {
+        input_control_enabled = (channel.flag & ProtocolChannel::ScreenShare::ChannelFlag::InputControl) != 0;
+        break;
+      }
+    }
+
+    if (input_control_enabled) {
+      MD_Mice_Error err = MD_Mice_Motion_Write(&mice, msg->Motion.x, msg->Motion.y);
+      if (err != MD_Mice_Error_Success && err != MD_Mice_Error_Temporary) {
+        fan::print("mouse motion write failed");
+      }
+    }
+    co_return;
+    };
+
+  __dme_get(Protocol_S2C, Channel_ScreenShare_Share_ApplyToHostMouseButton) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
+    auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Channel_ScreenShare_Share_ApplyToHostMouseButton_t>();
+
+    bool input_control_enabled = false;
+    for (const auto& channel : backend.channel_info) {
+      if (channel.channel_id.i == msg->ChannelID.i) {
+        input_control_enabled = (channel.flag & ProtocolChannel::ScreenShare::ChannelFlag::InputControl) != 0;
+        break;
+      }
+    }
+
+    if (input_control_enabled) {
+      if (msg->pos != fan::vec2i(-1)) {
+        MD_Mice_Error err = MD_Mice_Coordinate_Write(&mice, msg->pos.x, msg->pos.y);
+        if (err != MD_Mice_Error_Success && err != MD_Mice_Error_Temporary) {
+          fan::print("mouse coordinate write failed");
+        }
+      }
+
+      MD_Mice_Error err = MD_Mice_Button_Write(&mice, msg->key, msg->state);
+      if (err != MD_Mice_Error_Success && err != MD_Mice_Error_Temporary) {
+        fan::print("mouse button write failed");
+      }
+    }
+    co_return;
+    };
+
+  __dme_get(Protocol_S2C, Channel_ScreenShare_Share_ApplyToHostKeyboard) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
+    auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Channel_ScreenShare_Share_ApplyToHostKeyboard_t>();
+
+    bool input_control_enabled = false;
+    for (const auto& channel : backend.channel_info) {
+      if (channel.channel_id.i == msg->ChannelID.i) {
+        input_control_enabled = (channel.flag & ProtocolChannel::ScreenShare::ChannelFlag::InputControl) != 0;
+        break;
+      }
+    }
+
+    if (input_control_enabled) {
+      MD_Keyboard_Error err = MD_Keyboard_WriteKey(&keyboard, msg->Scancode, msg->State);
+      if (err == MD_Keyboard_Error_UnknownArgument) {
+        fan::print("unknown keyboard scancode:", msg->Scancode);
+      }
+      else if (err != MD_Keyboard_Error_Success && err != MD_Keyboard_Error_Temporary) {
+        fan::print("keyboard write failed");
+      }
+    }
+    co_return;
+    };
+
+  MD_Mice_Error mice_err = MD_Mice_Open(&mice);
+  if (mice_err != MD_Mice_Error_Success) {
+    fan::print("Failed to initialize mouse device");
+  }
+
+  MD_Keyboard_Error keyboard_err = MD_Keyboard_open(&keyboard);
+  if (keyboard_err != MD_Keyboard_Error_Success) {
+    fan::print("Failed to initialize keyboard device");
+  }
 }
 
 fan::event::task_t ecps_backend_t::default_s2c_cb(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) {
@@ -298,6 +427,17 @@ fan::event::task_t ecps_backend_t::default_s2c_cb(ecps_backend_t& backend, const
   co_return;
 }
 
+void ecps_backend_t::update_host_mouse_coordinate(Protocol_ChannelID_t channel_id, const fan::vec2ui& pos) {
+  auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+  if (!rt) return;
+
+  for (auto& channel : channel_info) {
+    if (channel.channel_id.i == channel_id.i && channel.is_viewing) {
+      rt->host_mouse_pos = pos;
+      break;
+    }
+  }
+}
 
 void ecps_backend_t::share_t::CalculateNetworkFlowBucket() {
   uintptr_t MaxBufferSize = (sizeof(ScreenShare_StreamHeader_Head_t) + 0x400) * 8;
