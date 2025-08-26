@@ -7,8 +7,12 @@ module;
 #undef max
 #undef NO_ERROR
 
-#include <curl/curl.h>
-#include <curl/multi.h>
+//#define __use_curl
+
+#ifdef __use_curl
+  #include <curl/curl.h>
+  #include <curl/multi.h>
+#endif
 #include <cstring>
 #include <stdexcept>
 #include <memory>
@@ -21,6 +25,7 @@ module;
 #include <mutex>
 #include <cstdint>
 
+#include <openssl/sha.h>
 
 export module fan.network;
 
@@ -28,6 +33,7 @@ import fan.utility;
 export import fan.event;
 import fan.print;
 import fan.types.json;
+import fan.types.fstring;
 
 export namespace fan {
   namespace network {
@@ -659,12 +665,18 @@ export namespace fan {
       return client_handler;
     }
 
+    using tcp_id_t = client_handler_t::nr_t;
     struct tcp_t {
-      client_handler_t::nr_t nr;
+      tcp_id_t nr;
+      std::string tag;
       fan::event::task_t task;
       using listen_cb_t = std::function<fan::event::task_t(tcp_t&)>;
 
       std::shared_ptr<uv_tcp_t> socket;
+
+      operator tcp_id_t () const {
+        return nr;
+      }
 
       struct tcp_deleter_t {
         void operator()(void* p) const {
@@ -684,6 +696,13 @@ export namespace fan {
         get_client_handler().client_list[nr] = this;
         get_client_handler().client_list[nr]->nr = nr;
         uv_tcp_init(fan::event::get_loop(), socket.get());
+      }
+      ~tcp_t() {
+        if (nr.iic()) {
+          return;
+        }
+        get_client_handler().remove_client(nr);
+        nr.sic();
       }
       tcp_t(const tcp_t&) = delete;
       tcp_t& operator=(const tcp_t&) = delete;
@@ -707,7 +726,15 @@ export namespace fan {
       connector_t connect(const getaddrinfo_t& info) {
         return connector_t{ *this, info };
       }
-      
+
+      void set_tag(const std::string& t) {
+        tag = t;
+      }
+
+      const std::string& get_tag() const {
+        return tag;
+      }
+
       mutable std::unique_ptr<reader_t> reader;
       reader_t& get_reader() const {
         if (!reader) {
@@ -783,7 +810,7 @@ export namespace fan {
           fan::throw_error("UDP bind failed:"_str + uv_strerror(bind_result));
         }
       }
-      
+
       listener_t listener(*this, get_client_handler().amount_of_connections);
       while (true) {
         if (co_await listener != 0) {
@@ -792,16 +819,9 @@ export namespace fan {
         auto client_id = get_client_handler().add_client();
         tcp_t& client = get_client_handler()[client_id];
         if (accept(client) == 0) {
-          try {
-            client.task = [client_id] (const auto& lambda) -> fan::event::task_t { 
-              co_await lambda(get_client_handler()[client_id]);
-              get_client_handler().remove_client(client_id);
-            }(lambda);
-          }
-          catch (const fan::exception_t& e) {
-            fan::print("Client NRI:", client_id.NRI, "disconnected with error:", e.reason);
-            get_client_handler().remove_client(client_id);
-          }
+          fan::event::task_idle([client_id, lambda]() -> fan::event::task_t {
+            co_await lambda(get_client_handler()[client_id]);
+          });
         }
       }
       co_return;
@@ -1862,6 +1882,17 @@ export namespace fan {
             std::string param_name = pattern_parts[i].substr(1, pattern_parts[i].length() - 2);
             params[param_name] = path_parts[i];
           }
+          else if (pattern_parts[i].starts_with('{') && pattern_parts[i].find('}') != std::string::npos) {
+            auto end_brace = pattern_parts[i].find('}');
+            std::string param_name = pattern_parts[i].substr(1, end_brace - 1);
+            std::string suffix = pattern_parts[i].substr(end_brace + 1);
+            std::string value = path_parts[i];
+            if (!suffix.empty()) {
+              if (!value.ends_with(suffix)) return false;
+              value.erase(value.size() - suffix.size());
+            }
+            params[param_name] = value;
+          }
           else if (pattern_parts[i] != path_parts[i]) {
             return false;
           }
@@ -2141,7 +2172,7 @@ export namespace fan {
           });
       }
     };
-
+  #ifdef __use_curl
     struct response_t {
       int status_code = 200;
       std::unordered_map<std::string, std::string> headers;
@@ -2592,9 +2623,58 @@ export namespace fan {
     using https_client_t = async_http_client_t;
     using http2_client_t = async_http_client_t;
 
-    // -------------------------------HTTP/REST-------------------------------
+    std::string extract_header(const std::string& request, const std::string& header_name) {
+      std::string needle = header_name;
+      std::transform(needle.begin(), needle.end(), needle.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+      needle += ":";
 
-  }
+      size_t pos = 0;
+      while (pos < request.size()) {
+        size_t end = request.find("\r\n", pos);
+        if (end == std::string::npos) end = request.size();
+
+        std::string line = request.substr(pos, end - pos);
+        std::string lower_line = line;
+        std::transform(lower_line.begin(), lower_line.end(), lower_line.begin(),
+          [](unsigned char c) { return std::tolower(c); });
+
+        if (lower_line.rfind(needle, 0) == 0) {
+          size_t colon = line.find(':');
+          if (colon != std::string::npos) {
+            std::string value = line.substr(colon + 1);
+            size_t start = value.find_first_not_of(" \t");
+            size_t stop = value.find_last_not_of(" \t");
+            if (start != std::string::npos)
+              return value.substr(start, stop - start + 1);
+          }
+        }
+
+        pos = end + 2;
+      }
+      return {};
+    }
+
+    std::string websocket_accept_key(const std::string& sec_websocket_key) {
+      static const std::string magic_guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+
+      // Step 1 & 2: concatenate key + magic GUID
+      std::string combined = sec_websocket_key + magic_guid;
+
+      // Step 3: SHA-1 hash
+      unsigned char sha1_digest[SHA_DIGEST_LENGTH]; // 20 bytes
+      SHA1(reinterpret_cast<const unsigned char*>(combined.data()),
+        combined.size(),
+        sha1_digest);
+
+      // Step 4: Base64 encode
+      std::vector<uint8_t> digest_vec(sha1_digest, sha1_digest + SHA_DIGEST_LENGTH);
+      return fan::base64_encode(digest_vec);
+    }
+
+    // -------------------------------HTTP/REST-------------------------------
+  #endif
+  } // network
 }
 
 fan::network::client_handler_t::nr_t fan::network::client_handler_t::add_client() {

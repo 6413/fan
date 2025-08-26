@@ -1539,7 +1539,14 @@ public:
         return;
       }
       gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "gamma", std::stof(args[0]));
-      }).description = "sets gamma for postprocessing shader";
+    }).description = "sets gamma for postprocessing shader";
+    loco->console.commands.add("set_contrast", [](const fan::commands_t::arg_t& args) {
+      if (args.size() != 1) {
+        gloco->console.commands.print_invalid_arg_count();
+        return;
+      }
+      gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "contrast", std::stof(args[0]));
+    }).description = "sets contrast for postprocessing shader";
 
     loco->console.commands.add("set_exposure", [](const fan::commands_t::arg_t& args) {
       if (args.size() != 1) {
@@ -1547,7 +1554,7 @@ public:
         return;
       }
       gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "exposure", std::stof(args[0]));
-      }).description = "sets exposure for postprocessing shader";
+    }).description = "sets exposure for postprocessing shader";
 
     loco->console.commands.add("set_bloom_strength", [](const fan::commands_t::arg_t& args) {
       if (args.size() != 1) {
@@ -2969,6 +2976,21 @@ public:
   render_view_t perspective_render_view;
 
   fan::window_t window;
+  void set_window_name(const std::string& name) {
+    window.set_name(name);
+  }
+  void set_window_icon(const fan::image::info_t& info) {
+    window.set_icon(info);
+  }
+  void set_window_icon(const loco_t::image_t& image) {
+    auto& image_data = image_list[image];
+    auto image_pixels = image_get_pixel_data(image, fan::opengl::context_t::global_to_opengl_format(image_data.image_settings.format));
+    fan::image::info_t info;
+    info.size = image_data.size;
+    info.data = image_pixels.data();
+    window.set_icon(info);
+  }
+
   bool idle_init = false;
   uv_idle_t idle_handle;
   bool timer_init = false;
