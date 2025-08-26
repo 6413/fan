@@ -25,6 +25,7 @@ module;
 export module fan.window;
 
 import fan.print;
+export import fan.graphics.image_load;
 export import fan.window.input_common;
 
 export import fan.types.vector;
@@ -702,7 +703,16 @@ export namespace fan {
         fan::throw_error("Call before making window");
       }
     }
-
+    void set_name(const std::string& name) {
+      glfwSetWindowTitle(glfw_window, name.c_str());
+    }
+    void set_icon(const fan::image::info_t& icon_info) {
+      GLFWimage icon;
+      icon.width = icon_info.size.x;
+      icon.height = icon_info.size.y;
+      icon.pixels = (decltype(icon.pixels))icon_info.data;
+      glfwSetWindowIcon(glfw_window, 1, &icon);
+    }
 
 #if defined(fan_platform_windows)
     //---------------------------Windows specific code---------------------------
