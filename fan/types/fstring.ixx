@@ -272,6 +272,26 @@ export namespace fan {
     return args;
   }
 
+  std::string base64_encode(const std::vector<uint8_t>& data) {
+    static constexpr char chars[] =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    std::string result;
+    result.reserve(((data.size() + 2) / 3) * 4);
+
+    for (size_t i = 0; i < data.size(); i += 3) {
+      uint32_t val = static_cast<uint32_t>(data[i]) << 16;
+      if (i + 1 < data.size()) val |= static_cast<uint32_t>(data[i + 1]) << 8;
+      if (i + 2 < data.size()) val |= static_cast<uint32_t>(data[i + 2]);
+
+      result.push_back(chars[(val >> 18) & 0x3F]);
+      result.push_back(chars[(val >> 12) & 0x3F]);
+      result.push_back((i + 1 < data.size()) ? chars[(val >> 6) & 0x3F] : '=');
+      result.push_back((i + 2 < data.size()) ? chars[val & 0x3F] : '=');
+    }
+
+    return result;
+  }
+
   #define fan_enum_string_runtime(m_name, ...) \
     enum m_name { __VA_ARGS__ }; \
     inline std::vector<std::string> m_name##_strings = fan::split(#__VA_ARGS__)

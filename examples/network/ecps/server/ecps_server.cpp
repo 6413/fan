@@ -31,7 +31,12 @@ UDP_send(
   uint16_t TotalSize = sizeof(ProtocolUDP::BasePacket_t) + T::dss + size;
   IO_ssize_t r = NET_sendto(&g_pile->udp, buffer, TotalSize, &Session->UDP.Address);
   if (r != TotalSize) {
-    WriteInformation("[INTERNAL ERROR] NET_sendto failed. wanted %x got %x\r\n", TotalSize, r);
+    if (r == 0) {
+      fan::print_throttled("UDP send buffer full, backing off\r\n");
+    }
+    else {
+      fan::print_throttled("[INTERNAL ERROR] NET_sendto failed. wanted " + std::to_string(TotalSize) + " got " + std::to_string(r));
+    }
   }
 }
 
@@ -521,6 +526,14 @@ int main(int argc, char** argv) {
   if (NET_socket2(NET_AF_INET, NET_SOCK_DGRAM | NET_SOCK_NONBLOCK, NET_IPPROTO_UDP, &g_pile->udp) < 0) {
     WriteInformation("%lx\r\n", g_pile->udp);
     __abort();
+  }
+
+  if (NET_setsockopt(&g_pile->udp, SOL_SOCKET, SO_SNDBUF, 8388608) < 0) {
+    WriteInformation("Failed to set SO_SNDBUF\r\n");
+  }
+
+  if (NET_setsockopt(&g_pile->udp, SOL_SOCKET, SO_RCVBUF, 8388608) < 0) {
+    WriteInformation("Failed to set SO_RCVBUF\r\n");
   }
 
   NET_addr_t udpaddr;

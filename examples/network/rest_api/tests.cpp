@@ -54,7 +54,7 @@ struct user_db_t {
 
 user_db_t db;
 
-fan::event::awaitable_signal_t<> server_ready;
+fan::event::signal_awaitable_t<> server_ready;
 
 template<typename T>
 void handle_response_error(const std::expected<T, fan::network::http_error_t>& result, fan::network::http_response_t& res) {

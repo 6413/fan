@@ -1661,6 +1661,7 @@ export namespace fan {
       }
 
       void set_user_resolution(uint32_t width, uint32_t height) {
+
         config_.width = width;
         config_.height = height;
         user_set_resolution = true;
@@ -1820,7 +1821,6 @@ export namespace fan {
       default: return 0;
       }
     }
-
   } // namespace graphics
 } // namespace fan
 

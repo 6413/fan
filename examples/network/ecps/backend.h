@@ -146,6 +146,7 @@ struct ecps_backend_t {
     uint16_t m_Possible;
     uint16_t m_ModuloSize;
     uint64_t frame_start_time = 0;
+    uint64_t last_valid_packet_time = 0;
 
     std::vector<uint8_t> m_DataCheck = std::vector<uint8_t>(0x201);
     std::vector<uint8_t> m_data = std::vector<uint8_t>(0x400400);
@@ -186,34 +187,46 @@ struct ecps_backend_t {
     }
 
     void CheckAndSendRecoveryRequest() {
+      uint64_t current_time = fan::event::now();
+
+      if (last_valid_packet_time > 0 &&
+        current_time - last_valid_packet_time > 5000000000ULL) {
+      #if ecps_debug_prints >= 1
+        fan::print("UDP: forcing sequence reset due to timeout");
+      #endif
+        m_Sequence = 0;
+        last_valid_packet_time = current_time;
+        RequestKeyframe();
+        return;
+      }
+
       if (frame_start_time > 0) {
-        uint64_t current_time = fan::event::now();
         uint64_t frame_age = current_time - frame_start_time;
         uint64_t adaptive_timeout = get_adaptive_timeout();
-        
-        if (frame_age > adaptive_timeout) {
-            SetNewSequence((m_Sequence + 1) % 0x1000);
-            return;
-        }
-    }
 
-    m_PacketCounter++;
-    if (m_PacketCounter % 1 != 0) {
+        if (frame_age > adaptive_timeout) {
+          SetNewSequence((m_Sequence + 1) % 0x1000);
+          return;
+        }
+      }
+
+      m_PacketCounter++;
+      if (m_PacketCounter % 1 != 0) {
         return;
-    }
-    
-    UpdateMissingPackets();
-    if (m_MissingPackets.empty()) {
+      }
+
+      UpdateMissingPackets();
+      if (m_MissingPackets.empty()) {
         m_AckSent = false;
         return;
-    }
-    
-    static int retry_count = 0;
-    if (!m_AckSent || retry_count < 3) {
+      }
+
+      static int retry_count = 0;
+      if (!m_AckSent || retry_count < 3) {
         SendRecoveryRequest();
         retry_count++;
+      }
     }
-}
 
     void FixFrameOnComplete();
 
@@ -291,18 +304,22 @@ struct ecps_backend_t {
       m_AckSent = true;
     }
 
-    void SetNewSequence(uint16_t Sequence) {
-    m_Sequence = Sequence;
-    m_Possible = (uint16_t)-1;
-    m_AckSent = false;
-    m_MissingPackets.clear();
-    __builtin_memset(m_DataCheck.data(), 0, m_DataCheck.size());
-    frame_start_time = fan::event::now(); // ADD THIS LINE
-}
+    void SetNewSequence(uint16_t sequence) {
+      m_Sequence = sequence;
+      m_Possible = (uint16_t)-1;
+      m_AckSent = false;
+      m_MissingPackets.clear();
+      __builtin_memset(m_DataCheck.data(), 0, m_DataCheck.size());
+      frame_start_time = fan::event::now();
+      m_PacketCounter = 0;
+    }
 
     bool IsSequencePast(uint16_t PacketSequence) {
+      const int16_t SEQUENCE_WINDOW = 0x1000; // half of sequence space
       int16_t diff = (int16_t)(PacketSequence - this->m_Sequence);
-      return diff < 0;
+
+      // consider past if difference is negative and within reasonable range
+      return diff < -SEQUENCE_WINDOW || (diff < 0 && diff > -SEQUENCE_WINDOW);
     }
 
     void SetDataCheck(uint16_t Index) {
@@ -513,13 +530,14 @@ struct ecps_backend_t {
         if (bp.SessionID != session_id) {
           co_return;
         }
+
         if (bp.Command == ProtocolUDP::S2C_t::KeepAlive) {
           if (sizeof(bp) != datagram.data.size()) {
             fan::print("size is not same as sizeof expected arrival");
           }
-#if ecps_debug_prints >= 2
+        #if ecps_debug_prints >= 2
           fan::print("udp keep alive came");
-#endif
+        #endif
           if (keepalive_sent_time > 0) {
             uint64_t now = fan::event::now();
             ping_ms = (now - keepalive_sent_time) / 1000000.0;
@@ -528,66 +546,114 @@ struct ecps_backend_t {
           udp_keep_alive.reset();
         }
         else if (bp.Command == ProtocolUDP::S2C_t::Channel_ScreenShare_View_StreamData) {
-          uintptr_t RelativeSize = size - sizeof(bp);
-          auto CommandData = (ProtocolUDP::S2C_t::Channel_ScreenShare_View_StreamData_t*)&(((udp::BasePacket_t*)datagram.data.data())[1]);
-          set_channel_viewing(CommandData->ChannelID, true);
-          if (RelativeSize < sizeof(*CommandData)) {
+          uintptr_t relative_size = size - sizeof(bp);
+          auto command_data = (ProtocolUDP::S2C_t::Channel_ScreenShare_View_StreamData_t*)&(((udp::BasePacket_t*)datagram.data.data())[1]);
+          set_channel_viewing(command_data->ChannelID, true);
+
+          if (relative_size < sizeof(*command_data)) {
             co_return;
           }
-          RelativeSize -= sizeof(*CommandData);
-          if (RelativeSize < sizeof(ScreenShare_StreamHeader_Body_t)) {
+          relative_size -= sizeof(*command_data);
+
+          if (relative_size < sizeof(ScreenShare_StreamHeader_Body_t)) {
             co_return;
           }
-          auto StreamData = (uint8_t*)&CommandData[1];
-          auto Body = (ScreenShare_StreamHeader_Body_t*)StreamData;
-          uint16_t Sequence = Body->GetSequence();
-          if (Sequence != view.m_Sequence) {
-            if (view.IsSequencePast(Sequence)) {
-              co_return;
+
+          auto stream_data = (uint8_t*)&command_data[1];
+          auto body = (ScreenShare_StreamHeader_Body_t*)stream_data;
+          uint16_t sequence = body->GetSequence();
+
+        #if ecps_debug_prints >= 3
+          printf("UDP: received seq=%u, current_seq=%u, diff=%d\n",
+            sequence, view.m_Sequence, (int16_t)(sequence - view.m_Sequence));
+        #endif
+
+          bool is_sequence_valid = true;
+          if (sequence != view.m_Sequence) {
+            int16_t diff = (int16_t)(sequence - view.m_Sequence);
+
+            if (abs(diff) > 0x800) {
+            #if ecps_debug_prints >= 1
+              printf("UDP: large sequence jump detected %u->%u, accepting\n", view.m_Sequence, sequence);
+            #endif
+              if (view.m_Possible != (uint16_t)-1) {
+                view.FixFrameOnComplete();
+              }
+              view.SetNewSequence(sequence);
             }
-            if (view.m_Possible != (uint16_t)-1) {
-              view.FixFrameOnComplete();
+            else {
+              const int16_t sequence_window = 0x1000;
+              bool is_past = diff < -sequence_window || (diff < 0 && diff > -sequence_window);
+
+              if (is_past) {
+              #if ecps_debug_prints >= 2
+                printf("UDP: dropping past sequence %u (current %u)\n", sequence, view.m_Sequence);
+              #endif
+                co_return;
+              }
+
+              if (view.m_Possible != (uint16_t)-1) {
+                view.FixFrameOnComplete();
+              }
+              view.SetNewSequence(sequence);
             }
-            view.SetNewSequence(Sequence);
           }
-          uint8_t* PacketData;
-          uint16_t Current = Body->GetCurrent();
-          if (Current == 0) {
+
+          uint8_t* packet_data;
+          uint16_t current = body->GetCurrent();
+
+          if (current == 0) {
             if ((uintptr_t)size < sizeof(ScreenShare_StreamHeader_Head_t)) {
               co_return;
             }
             if (view.m_Possible != (uint16_t)-1) {
               co_return;
             }
-            auto Head = (ScreenShare_StreamHeader_Head_t*)StreamData;
-            view.m_Possible = Head->GetPossible();
-            PacketData = &StreamData[sizeof(ScreenShare_StreamHeader_Head_t)];
+            auto head = (ScreenShare_StreamHeader_Head_t*)stream_data;
+            view.m_Possible = head->GetPossible();
+            packet_data = &stream_data[sizeof(ScreenShare_StreamHeader_Head_t)];
           }
           else {
-            PacketData = &StreamData[sizeof(ScreenShare_StreamHeader_Body_t)];
+            packet_data = &stream_data[sizeof(ScreenShare_StreamHeader_Body_t)];
           }
-          uint16_t PacketSize = RelativeSize - ((uintptr_t)PacketData - (uintptr_t)StreamData);
-          if (PacketSize != 0x400) {
-            view.m_ModuloSize = PacketSize;
+
+          uint16_t packet_size = relative_size - ((uintptr_t)packet_data - (uintptr_t)stream_data);
+          if (packet_size != 0x400) {
+            view.m_ModuloSize = packet_size;
           }
-          __builtin_memcpy(&view.m_data[Current * 0x400], PacketData, PacketSize);
-          view.SetDataCheck(Current);
-          view.CheckAndSendRecoveryRequest();
-          if (
-            (view.m_Possible != (uint16_t)-1 && Current == view.m_Possible) ||
-            PacketSize != 0x400
-            ) {
-            view.FixFrameOnComplete();
-            view.SetNewSequence((view.m_Sequence + 1) % 0x1000);
+
+          if (current < view.m_data.size() / 0x400) {
+            __builtin_memcpy(&view.m_data[current * 0x400], packet_data, packet_size);
+            view.SetDataCheck(current);
+
+            view.last_valid_packet_time = fan::event::now();
+
+          #if ecps_debug_prints >= 3
+            printf("UDP: accepted packet seq=%u, current=%u, size=%u\n", sequence, current, packet_size);
+          #endif
+
+            view.CheckAndSendRecoveryRequest();
+
+            if ((view.m_Possible != (uint16_t)-1 && current == view.m_Possible) || packet_size != 0x400) {
+              view.FixFrameOnComplete();
+              view.SetNewSequence((view.m_Sequence + 1) % 0x1000);
+            }
           }
+          else {
+          #if ecps_debug_prints >= 1
+            printf("UDP: packet index %u exceeds buffer capacity\n", current);
+          #endif
+          }
+
           udp_keep_alive.reset();
         }
         else {
-          fan::print("unprocessed data came");
+          fan::print("unprocessed udp data came");
         }
         co_return;
       }
     );
+
     tcp_keep_alive.reset();
     udp_keep_alive.reset();
     task_tcp_read = tcp_read();

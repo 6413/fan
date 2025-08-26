@@ -349,8 +349,103 @@ export namespace fan {
 
     using task_t = task_resume_t;
 
+    using idle_id_t = uv_idle_t*;
+
+    struct idle_task {
+    private:
+      struct idle_data {
+        std::function<task_t()> callback;
+        task_t task;
+        bool has_task = false;
+
+        idle_data(std::function<task_t()> cb) : callback(std::move(cb)) {}
+      };
+
+      static void idle_callback(uv_idle_t* handle) {
+        auto* data = static_cast<idle_data*>(handle->data);
+
+        if (!data->has_task) {
+          data->task = data->callback();
+          data->has_task = true;
+        }
+
+        if (data->task.await_ready()) {
+          data->task.await_resume();
+          data->has_task = false;
+        }
+      }
+
+      static void close_callback(uv_handle_t* handle) {
+        auto* idle_handle = reinterpret_cast<uv_idle_t*>(handle);
+        delete static_cast<idle_data*>(idle_handle->data);
+        delete idle_handle;
+      }
+
+    public:
+      static idle_id_t task_idle(std::function<task_t()> callback) {
+        auto* idle_handle = new uv_idle_t;
+        idle_handle->data = new idle_data(std::move(callback));
+
+        if (uv_idle_init(get_loop(), idle_handle) != 0 ||
+          uv_idle_start(idle_handle, idle_callback) != 0) {
+          delete static_cast<idle_data*>(idle_handle->data);
+          delete idle_handle;
+          return nullptr;
+        }
+
+        return idle_handle;
+      }
+
+      static void idle_stop(idle_id_t idle_handle) {
+        if (idle_handle) {
+          uv_idle_stop(idle_handle);
+          uv_close(reinterpret_cast<uv_handle_t*>(idle_handle), close_callback);
+        }
+      }
+    };
+
+
+    idle_id_t task_idle(std::function<task_t()> callback) {
+      return idle_task::task_idle(std::move(callback));
+    }
+
+    void idle_stop(idle_id_t idle_handle) {
+      idle_task::idle_stop(idle_handle);
+    }
+
+    // waits until counter goes 0
+    struct counter_awaitable_t {
+      struct state_t {
+        size_t remaining;
+        std::coroutine_handle<> continuation;
+      };
+      state_t* st;
+      bool await_ready() const noexcept { return st->remaining == 0; }
+      void await_suspend(std::coroutine_handle<> h) noexcept {
+        st->continuation = h;
+      }
+      void await_resume() const noexcept {}
+    };
+
+    template <typename... tasks_t>
+    fan::event::task_t when_all(tasks_t&&... tasks) {
+      counter_awaitable_t::state_t state{ sizeof...(tasks_t), {} };
+
+      auto run_task = [&](auto&& t) -> fan::event::task_t {
+        co_await std::forward<decltype(t)>(t);
+        if (--state.remaining == 0 && state.continuation) {
+          state.continuation.resume();
+        }
+      };
+
+      (fan::event::task_idle([&]() -> fan::event::task_t {
+        co_await run_task(std::forward<tasks_t>(tasks));
+        }), ...);
+
+      co_await counter_awaitable_t{ &state };
+    }
     template<typename T = void>
-    struct awaitable_signal_t {
+    struct signal_awaitable_t {
       bool ready = false;
       std::coroutine_handle<> waiting_coroutine = nullptr;
       T value{};
@@ -369,7 +464,7 @@ export namespace fan {
     };
 
     template<>
-    struct awaitable_signal_t<void> {
+    struct signal_awaitable_t<void> {
       bool ready = false;
       std::coroutine_handle<> waiting_coroutine = nullptr;
 
@@ -654,72 +749,6 @@ export namespace fan {
 
     std::string strerror(int err) {
       return uv_strerror(err);
-    }
-
-    using idle_id_t = uv_idle_t*;
-
-    struct idle_task {
-    private:
-      struct idle_data {
-        std::function<task_t()> callback;
-        task_t task;
-        bool has_task = false;
-
-        idle_data(std::function<task_t()> cb) : callback(std::move(cb)) {}
-      };
-
-      static void idle_callback(uv_idle_t* handle) {
-        auto* data = static_cast<idle_data*>(handle->data);
-
-        // Start new task if none active
-        if (!data->has_task) {
-          data->task = data->callback();
-          data->has_task = true;
-        }
-
-        // Check if task is done
-        if (data->task.await_ready()) {
-          data->task.await_resume();
-          data->has_task = false;
-        }
-      }
-
-      static void close_callback(uv_handle_t* handle) {
-        auto* idle_handle = reinterpret_cast<uv_idle_t*>(handle);
-        delete static_cast<idle_data*>(idle_handle->data);
-        delete idle_handle;
-      }
-
-    public:
-      static idle_id_t task_idle(std::function<task_t()> callback) {
-        auto* idle_handle = new uv_idle_t;
-        idle_handle->data = new idle_data(std::move(callback));
-
-        if (uv_idle_init(get_loop(), idle_handle) != 0 ||
-          uv_idle_start(idle_handle, idle_callback) != 0) {
-          delete static_cast<idle_data*>(idle_handle->data);
-          delete idle_handle;
-          return nullptr;
-        }
-
-        return idle_handle;
-      }
-
-      static void idle_stop(idle_id_t idle_handle) {
-        if (idle_handle) {
-          uv_idle_stop(idle_handle);
-          uv_close(reinterpret_cast<uv_handle_t*>(idle_handle), close_callback);
-        }
-      }
-    };
-
-
-    idle_id_t task_idle(std::function<task_t()> callback) {
-      return idle_task::task_idle(std::move(callback));
-    }
-
-    void idle_stop(idle_id_t idle_handle) {
-      idle_task::idle_stop(idle_handle);
     }
   }
   using co_sleep = event::timer_t;

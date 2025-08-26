@@ -23,11 +23,19 @@
 #include <WITCH/MD/Keyboard/Keyboard.h>
 
 extern "C" {
-  #include <libavutil/pixfmt.h>
+#include <libavutil/pixfmt.h>
 }
 
+extern "C" {
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+}
+
+#include <vector>
+#include <stdexcept>
+
 #if __has_include("cuda.h")
-  #include <cuda.h>
+#include <cuda.h>
 #endif
 
 import fan;
@@ -119,9 +127,242 @@ struct dynamic_config_t {
   }
 };
 
+struct webrtc_stream_t {
+  std::vector<fan::network::tcp_id_t> peer_connections;
+  std::atomic<bool> enabled{ true };
+  std::mutex peers_mutex;
+
+  void push_frame(const std::vector<uint8_t>& h264_data,
+    bool is_keyframe,
+    bool has_sps_pps,
+    int width,
+    int height,
+    int64_t pts90k,
+    int64_t dts90k) {
+
+    if (!enabled.load()) return;
+
+    std::lock_guard<std::mutex> lock(peers_mutex);
+
+    send_frame_to_peer(h264_data, is_keyframe, has_sps_pps, pts90k);
+  }
+
+  void add_peer(fan::network::tcp_id_t peer_id) {
+    std::lock_guard<std::mutex> lock(peers_mutex);
+    peer_connections.push_back(peer_id);
+  }
+
+  void remove_peer(fan::network::tcp_id_t peer_id) {
+    std::lock_guard<std::mutex> lock(peers_mutex);
+    peer_connections.erase(
+      std::remove(peer_connections.begin(), peer_connections.end(), peer_id),
+      peer_connections.end()
+    );
+  }
+
+  // Send raw H.264 data instead of JSON
+  void send_frame_to_peer(const std::vector<uint8_t>& data, bool keyframe, bool has_sps_pps, int64_t pts);
+
+  void broadcast_to_websocket_clients(const std::string& message);
+};
+
+struct websocket_connection_t {
+  fan::network::tcp_id_t socket_id;
+  bool is_webrtc_peer = false;
+};
+
+struct websocket_server_t {
+  std::vector<websocket_connection_t> connections;
+  std::mutex connections_mutex;
+  std::atomic<uint32_t> next_connection_id{ 0 };
+
+  fan::event::task_t broadcast_async(const std::string& message) {
+    std::vector<fan::event::task_t> send_tasks;
+    {
+      std::lock_guard<std::mutex> lock(connections_mutex);
+      for (auto& conn : connections) {
+        if (conn.is_webrtc_peer) {
+          send_tasks.push_back(send_websocket_frame(conn.socket_id, message));
+        }
+      }
+    }
+    
+    for (auto& task : send_tasks) {
+      co_await task;
+    }
+    co_return;
+  }
+
+  void broadcast(const std::string& message) {
+    static fan::event::idle_id_t id;
+    id = fan::event::task_idle([this, message]() -> fan::event::task_t {
+      try {
+        co_await broadcast_async(message);
+      }
+      catch (const std::exception& e) {
+        fan::print("error:", e.what());
+      }
+      catch (const fan::exception_t& e) {
+        fan::print("error:", e.reason);
+      }
+      catch (...) {
+      fan::print("error");
+    }
+      fan::event::idle_stop(id);
+      co_return;
+    });
+  }
+
+  void add_connection(fan::network::tcp_id_t socket_id) {
+    std::string conn_id = "peer_" + std::to_string(next_connection_id.fetch_add(1));
+    std::lock_guard<std::mutex> lock(connections_mutex);
+    
+    connections.push_back(websocket_connection_t{
+      .socket_id = socket_id,
+      .is_webrtc_peer = true
+    });
+  }
+
+
+  void remove_connection(fan::network::tcp_id_t conn_id) {
+    std::lock_guard<std::mutex> lock(connections_mutex);
+    connections.erase(
+      std::remove_if(connections.begin(), connections.end(),
+        [conn_id](const auto& conn) { return conn.socket_id == conn_id; }),
+      connections.end()
+    );
+  }
+
+void broadcast_binary_to_websocket_clients(const std::vector<uint8_t>& binary_data) {
+    static fan::event::idle_id_t id;
+    id = fan::event::task_idle([this, binary_data]() -> fan::event::task_t {
+        try {
+            std::vector<fan::event::task_t> send_tasks;
+            {
+                std::lock_guard<std::mutex> lock(connections_mutex);
+                for (auto& conn : connections) {
+                    if (conn.is_webrtc_peer) {
+                        send_tasks.push_back(send_binary_websocket_frame(conn.socket_id, binary_data));
+                    }
+                }
+            }
+            
+            for (auto& task : send_tasks) {
+                co_await task;
+            }
+        } catch (const std::exception& e) {
+            fan::print("binary broadcast error:", e.what());
+        } catch (const fan::exception_t& e) {
+            fan::print("binary broadcast error:", e.reason);
+        } catch (...) {
+            fan::print("binary broadcast unknown error");
+        }
+        fan::event::idle_stop(id);
+        co_return;
+    });
+}
+
+private:
+fan::event::task_t send_binary_websocket_frame(fan::network::tcp_id_t socket_id, const std::vector<uint8_t>& data) {
+     // fan::print("Sending binary frame:", data.size(), "bytes to socket:", socket_id.NRI);
+
+   std::vector<uint8_t> frame;
+   frame.push_back(0x82); // Binary frame, FIN bit set
+
+   if (data.size() < 126) {
+       frame.push_back(static_cast<uint8_t>(data.size()));
+   }
+   else if (data.size() < 65536) {
+       frame.push_back(126);
+       frame.push_back((data.size() >> 8) & 0xFF);
+       frame.push_back(data.size() & 0xFF);
+   }
+   else {
+       frame.push_back(127);
+       for (int i = 7; i >= 0; i--) {
+           frame.push_back((data.size() >> (i * 8)) & 0xFF);
+       }
+   }
+
+   frame.insert(frame.end(), data.begin(), data.end());
+   
+   co_await fan::network::get_client_handler()[socket_id].write_raw(
+       fan::network::buffer_t(frame.begin(), frame.end()));
+   co_return;
+}
+  fan::event::task_t send_websocket_frame(fan::network::tcp_id_t socket_id, const std::string& data) {
+    std::vector<uint8_t> frame;
+    frame.push_back(0x81); // Text frame, FIN bit set
+
+    if (data.size() < 126) {
+      frame.push_back(static_cast<uint8_t>(data.size()));
+    }
+    else if (data.size() < 65536) {
+      frame.push_back(126);
+      frame.push_back((data.size() >> 8) & 0xFF);
+      frame.push_back(data.size() & 0xFF);
+    }
+    else {
+      frame.push_back(127);
+      for (int i = 7; i >= 0; i--) {
+        frame.push_back((data.size() >> (i * 8)) & 0xFF);
+      }
+    }
+
+    frame.insert(frame.end(), data.begin(), data.end());
+    
+    // This is the fix - await the write_raw call
+    co_await fan::network::get_client_handler()[socket_id].write_raw(fan::network::buffer_t(frame.begin(), frame.end()));
+    co_return;
+  }
+};
+
+static websocket_server_t websocket_server;
+
+
+void webrtc_stream_t::send_frame_to_peer(const std::vector<uint8_t>& data, bool keyframe, bool has_sps_pps, int64_t pts) {
+    // Enhanced header: [1 byte flags][8 bytes pts][4 bytes frame size][data...]
+    std::vector<uint8_t> frame;
+    frame.reserve(data.size() + 13);
+    
+    uint8_t flags = (keyframe ? 0x01 : 0x00) | (has_sps_pps ? 0x02 : 0x00);
+    if (keyframe) flags |= 0x04; // IDR frame marker
+    
+    frame.push_back(flags);
+    
+    // PTS as 8 bytes
+    for (int i = 7; i >= 0; i--) {
+        frame.push_back((pts >> (i * 8)) & 0xFF);
+    }
+    
+    // Frame size as 4 bytes
+    uint32_t frame_size = static_cast<uint32_t>(data.size());
+    for (int i = 3; i >= 0; i--) {
+        frame.push_back((frame_size >> (i * 8)) & 0xFF);
+    }
+    
+    frame.insert(frame.end(), data.begin(), data.end());
+    
+    websocket_server.broadcast_binary_to_websocket_clients(frame);
+}
+
+void webrtc_stream_t::broadcast_to_websocket_clients(const std::string& message) {
+  websocket_server.broadcast(message);
+}
+
+std::string WEBRTC_HTML;
+
 struct render_thread_t {
   render_thread_t() {
+    if (fan::io::file::read(fan::io::file::find_relative_path("webrtc.html"), &WEBRTC_HTML)) {
+      fan::print_color(fan::colors::red, "failed to open html file");
+    }
+    
+    window_icon = engine.image_load("icons/ecps_logo.png");
+
     engine.set_target_fps(0, false);
+    engine.set_window_name("ECPS - Every Communication Program Sucks");
+    engine.set_window_icon(window_icon);
 
     if (!screen_encoder.open()) {
       fan::print("Failed to open modern encoder");
@@ -157,6 +398,8 @@ struct render_thread_t {
 #include "gui.h"
   ecps_gui_t ecps_gui;
 
+  fan::graphics::image_t window_icon;
+
   fan::graphics::screen_encode_t screen_encoder;
   fan::graphics::screen_decode_t screen_decoder;
 
@@ -168,8 +411,8 @@ struct render_thread_t {
   fan::graphics::image_t screen_image = engine.image_create();
 
   fan::graphics::universal_image_renderer_t network_frame{ {
-    .position = fan::vec3(fan::vec2(0), 1),
-    .size = gloco->window.get_size() / 2,
+      .position = fan::vec3(fan::vec2(0), 1),
+      .size = gloco->window.get_size() / 2,
   } };
   f32_t displayed_fps = 0.0f;
 
@@ -190,8 +433,216 @@ struct render_thread_t {
 #define BLL_set_CPP_CopyAtPointerChange 1
 #include <BLL/BLL.h>
   FrameList_t FrameList;
+
+  webrtc_stream_t webrtc_stream;
+  fan::network::http_server_t http_server;
+
+  void setup_webrtc_routes() {
+    http_server.get("/", [](const auto& req, auto& res) -> fan::event::task_t {
+      res.html(WEBRTC_HTML);
+      co_return;
+      });
+
+  
+  }
+  fan::event::task_t handle_websocket_frames(fan::network::tcp_id_t conn_id) {
+    try {
+      auto& client = fan::network::get_client_handler()[conn_id];
+        while (true) {
+          auto hdr = co_await client.read(2);
+            if (hdr.status < 0) break;
+
+            const uint8_t fin_opcode = hdr.buffer[0];
+            const uint8_t mask_len   = hdr.buffer[1];
+
+            bool fin    = (fin_opcode & 0x80) != 0;
+            uint8_t opcode = fin_opcode & 0x0F;
+            bool masked = (mask_len & 0x80) != 0;
+            uint64_t payload_len = mask_len & 0x7F;
+
+            // Extended payload length
+            if (payload_len == 126) {
+                auto ext = co_await client.read(2);
+                if (ext.status < 0) break;
+                payload_len = (ext.buffer[0] << 8) | ext.buffer[1];
+            } else if (payload_len == 127) {
+                auto ext = co_await client.read(8);
+                if (ext.status < 0) break;
+                payload_len = 0;
+                for (int i = 0; i < 8; i++)
+                    payload_len = (payload_len << 8) | ext.buffer[i];
+            }
+
+            // Masking key
+            uint8_t mask_key[4] = {0};
+            if (masked) {
+                auto mask = co_await client.read(4);
+                if (mask.status < 0) break;
+                std::copy(mask.buffer.begin(), mask.buffer.end(), mask_key);
+            }
+
+            // Payload data
+            auto payload = co_await client.read(payload_len);
+            if (payload.status < 0) break;
+
+            if (masked) {
+                for (size_t i = 0; i < payload.buffer.size(); i++) {
+                    payload.buffer[i] ^= mask_key[i % 4];
+                }
+            }
+
+            // Handle opcodes
+            if (opcode == 0x1) { // text frame
+              std::string msg(payload.buffer.begin(), payload.buffer.end());
+              try {
+                auto json_msg = fan::json::parse(msg);
+                if (json_msg["type"] == "request_keyframe") {
+                  auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+                  if (rt) {
+                    rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
+                  }
+                }
+              }
+              catch (...) {
+                fan::print("Text message from client:", msg);
+              }
+            }
+            else if (opcode == 0x2) { // binary frame
+              fan::print("Binary frame of size", payload.buffer.size());
+              // TODO: handle binary data (e.g., video chunks)
+            }
+            else if (opcode == 0x8) { // close
+                fan::print("Close frame received");
+                break;
+            }
+            else if (opcode == 0x9) { // ping
+                fan::print("Ping received, sending pong");
+                // Send pong frame
+                fan::network::buffer_t pong = {(char)0x8A, (char)0x00};
+                co_await client.write_raw(pong);
+            }
+            else if (opcode == 0xA) { // pong
+                fan::print("Pong received");
+            }
+        }
+    }
+    catch (...) { fan::print("Frame loop unknown error");}
+    
+    // Cleanup
+    websocket_server.remove_connection(conn_id);
+    webrtc_stream.remove_peer(conn_id);
+    co_return;
+}
+
+#if 0
+  fan::event::task_t start_websocket_server() {
+    fan::network::tcp_t websocket_tcp;
+    fan::print("Starting WebSocket server on port 9091...");
+    
+    co_await websocket_tcp.listen({"0.0.0.0", 9091}, [this](fan::network::tcp_t& client) -> fan::event::task_t {
+        fan::print("WebSocket client connected!");
+        try {
+            // Read HTTP upgrade request
+            std::string request_buffer;
+            bool headers_done = false;
+            
+            while (!headers_done) {
+                auto data = co_await client.read_raw();
+                if (data.status < 0) {
+                    fan::print("Failed to read from client");
+                    co_return;
+                }
+                
+                std::string chunk(data.buffer.begin(), data.buffer.end());
+                request_buffer += chunk;
+                
+                if (request_buffer.find("\r\n\r\n") != std::string::npos) {
+                    headers_done = true;
+                }
+            }
+            
+            fan::print("Request received:", request_buffer.substr(0, 200), "...");
+            
+            // Check for WebSocket upgrade
+            if (request_buffer.find("Upgrade: websocket") != std::string::npos) {
+                fan::print("WebSocket upgrade detected");
+                
+                std::string key = fan::network::extract_header(request_buffer, "Sec-WebSocket-Key");
+                std::string accept_val = fan::network::websocket_accept_key(key);
+
+                std::string response =
+                  "HTTP/1.1 101 Switching Protocols\r\n"
+                  "Upgrade: websocket\r\n"
+                  "Connection: Upgrade\r\n"
+                  "Sec-WebSocket-Accept: " + accept_val + "\r\n\r\n";
+
+                co_await client.write_raw(response);
+                fan::print("WebSocket handshake sent");
+                
+                websocket_server.add_connection(client);
+                webrtc_stream.add_peer(client);
+                
+                fan::print("WebSocket connection established with ID:", client.nr.NRI);
+                
+                // Handle WebSocket frames
+                co_await handle_websocket_frames(client);
+            } else {
+                fan::print("Not a WebSocket upgrade request");
+                std::string error_response = 
+                    "HTTP/1.1 400 Bad Request\r\n"
+                    "Content-Length: 11\r\n"
+                    "Connection: close\r\n\r\n"
+                    "Bad Request";
+                co_await client.write_raw(error_response);
+            }
+        }
+        catch (const std::exception& e) {
+            fan::print("WebSocket error:", e.what());
+        }
+        catch (const fan::exception_t& e) {
+          fan::print("WebSocket error:", e.reason);
+        }
+        catch (...) {
+          fan::print("WebSocket unknown error");
+        }
+        co_return;
+    }, true);
+}
+#endif
+
+  fan::event::task_t handle_websocket_connection(fan::network::tcp_id_t conn_id) {
+    try {
+      while (true) {
+        auto data = co_await fan::network::get_client_handler()[conn_id].read_raw();
+        if (data.status < 0) break;
+      }
+    }
+    catch (...) {}
+
+    websocket_server.remove_connection(conn_id);
+    webrtc_stream.remove_peer(conn_id);
+    co_return;
+  }
 };
 
+  struct webrtc_rate_limiter_t {
+    std::atomic<std::chrono::steady_clock::time_point> last_webrtc_send_;
+    std::atomic<int> webrtc_frame_counter_;
+    static constexpr int webrtc_max_fps_ = 50;
+    static constexpr auto webrtc_frame_interval_ = std::chrono::microseconds(1000000 / webrtc_max_fps_);
+    
+    bool should_send_webrtc(bool is_keyframe) {
+        auto now = std::chrono::steady_clock::now();
+        auto last_time = last_webrtc_send_.load();
+        auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time);
+        
+        if (is_keyframe || elapsed >= webrtc_frame_interval_) {
+            last_webrtc_send_.store(now);
+            return true;
+        }
+        return false;
+    }
+};
 
 ecps_backend_t::ecps_backend_t() {
   __dme_get(Protocol_S2C, KeepAlive) = [](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
@@ -481,19 +932,19 @@ void ecps_backend_t::view_t::WriteFramePacket() {
   uint32_t FramePacketSize = (uint32_t)(this->m_Possible - 1) * 0x400 + this->m_ModuloSize;
   if (FramePacketSize < 32 || FramePacketSize > 0x500000) {
     this->m_stats.Frame_Drop++;
-#if ecps_debug_prints >= 1
+  #if ecps_debug_prints >= 1
     fan::print_throttled_format("NETWORK: Frame dropped - invalid size: {} bytes (valid range: 32 - 5MB)",
       FramePacketSize);
-#endif
+  #endif
     return;
   }
 
   if (this->m_data.size() < FramePacketSize) {
     this->m_stats.Frame_Drop++;
-#if ecps_debug_prints >= 1
+  #if ecps_debug_prints >= 1
     fan::print_throttled_format("NETWORK: Frame dropped - buffer underrun: need {} bytes, have {}",
       FramePacketSize, this->m_data.size());
-#endif
+  #endif
     return;
   }
 
@@ -512,9 +963,9 @@ void ecps_backend_t::view_t::WriteFramePacket() {
         uint8_t nal_type = this->m_data[i + 4] & 0x1F;
         if (nal_type == 7 || nal_type == 8) {
           is_keyframe = true;
-#if ecps_debug_prints >= 2
+        #if ecps_debug_prints >= 2
           printf("NETWORK: Keyframe detected (NAL type: %d)\n", nal_type);
-#endif
+        #endif
           break;
         }
       }
@@ -523,16 +974,16 @@ void ecps_backend_t::view_t::WriteFramePacket() {
 
   if (!is_keyframe && FramePacketSize > 50000) {
     is_keyframe = true;
-#if ecps_debug_prints >= 2
+  #if ecps_debug_prints >= 2
     printf("NETWORK: Large frame treated as keyframe (%u bytes)\n", FramePacketSize);
-#endif
+  #endif
   }
 
   auto* rt = render_thread_ptr.load(std::memory_order_acquire);
   if (!rt) {
-#if ecps_debug_prints >= 1
+  #if ecps_debug_prints >= 1
     fan::print_throttled("NETWORK: No render thread available");
-#endif
+  #endif
     this->m_stats.Frame_Drop++;
     return;
   }
@@ -543,16 +994,16 @@ void ecps_backend_t::view_t::WriteFramePacket() {
     frame_data.swap(this->m_data);
     this->m_data.clear();
     this->m_data.resize(0x400400);
-#if ecps_debug_prints >= 3
+  #if ecps_debug_prints >= 3
     printf("NETWORK: Zero-copy swap for frame %llu\n", frame_index);
-#endif
+  #endif
   }
   else {
     frame_data.resize(FramePacketSize);
     std::memcpy(frame_data.data(), this->m_data.data(), FramePacketSize);
-#if ecps_debug_prints >= 3
+  #if ecps_debug_prints >= 3
     printf("NETWORK: Memcpy for frame %llu (%u bytes)\n", frame_index, FramePacketSize);
-#endif
+  #endif
   }
 
   try {
@@ -601,38 +1052,38 @@ void ecps_backend_t::view_t::WriteFramePacket() {
           auto f = &rt->FrameList[flnr];
           *f = std::move(decode_result);
 
-#if ecps_debug_prints >= 2
+        #if ecps_debug_prints >= 2
           printf("NETWORK: Frame %llu decoded and queued successfully (%ux%u)\n",
             frame_index, decode_result.image_size.x, decode_result.image_size.y);
-#endif
+        #endif
         }
         else {
           this->m_stats.Frame_Drop++;
-#if ecps_debug_prints >= 1
+        #if ecps_debug_prints >= 1
           fan::print_throttled("NETWORK: Frame dropped due to render lock timeout (deadlock prevention)");
-#endif
+        #endif
         }
       }
       else {
-#if ecps_debug_prints >= 1
+      #if ecps_debug_prints >= 1
         fan::print_throttled_format("NETWORK: Decoded frame validation failed - data:{} dims:{}x{} stride:{}",
           has_valid_data, decode_result.image_size.x,
           decode_result.image_size.y, decode_result.stride[0].x);
-#endif
+      #endif
         this->m_stats.Frame_Drop++;
       }
     }
     else {
-#if ecps_debug_prints >= 1
+    #if ecps_debug_prints >= 1
       fan::print_throttled_format("NETWORK: Decode failed with type: {}", decode_result.type);
-#endif
+    #endif
       this->m_stats.Frame_Drop++;
     }
   }
   catch (const std::exception& e) {
-#if ecps_debug_prints >= 1
+  #if ecps_debug_prints >= 1
     fan::print_throttled_format("NETWORK: Decode exception: {}", e.what());
-#endif
+  #endif
     this->m_stats.Frame_Drop++;
   }
 
@@ -678,6 +1129,20 @@ uint64_t dynamic_config_t::get_adaptive_bitrate() {
   else return 8000000;
 }
 
+#if 0
+fan::event::task_t start_both_servers() {
+    auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+    if (!rt) co_return;
+
+    rt->setup_webrtc_routes();
+
+    co_await fan::event::when_all(
+        rt->http_server.listen({"0.0.0.0", 9090}),
+        rt->start_websocket_server()
+    );
+}
+
+#endif
 int main() {
 
   ecps_backend.login_fail_cb = [](fan::exception_t e) {
@@ -804,11 +1269,11 @@ int main() {
 
             auto& node = render_thread_instance.FrameList[flnr];
             bool frame_valid = false;
-#if ecps_debug_prints >= 2
+          #if ecps_debug_prints >= 2
             printf("RENDER: Frame displayed at %lld ms\n",
               std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());
-#endif
+          #endif
 
             if (ecps_backend.did_just_join && !ecps_backend.is_current_user_host_of_channel(ecps_backend.channel_info.back().channel_id)) {
               auto* rt = render_thread_ptr.load(std::memory_order_acquire);
@@ -830,32 +1295,32 @@ int main() {
               if (node.pixel_format == fan::graphics::image_format::yuv420p) {
                 has_valid_data = !node.data[0].empty() && !node.data[1].empty() && !node.data[2].empty();
 
-#if ecps_debug_prints >= 3
+              #if ecps_debug_prints >= 3
                 static uint64_t yuv420_count = 0;
                 if (++yuv420_count % 60 == 1) {
                   fan::print_throttled_format("RENDER: YUV420P frame - Y:{} U:{} V:{}",
                     node.data[0].size(), node.data[1].size(), node.data[2].size());
                 }
-#endif
+              #endif
               }
               else if (node.pixel_format == fan::graphics::image_format::nv12) {
                 has_valid_data = !node.data[0].empty() && !node.data[1].empty();
 
-#if ecps_debug_prints >= 3
+              #if ecps_debug_prints >= 3
                 static uint64_t nv12_count = 0;
                 if (++nv12_count % 60 == 1) {
                   fan::print_throttled_format("RENDER: NV12 frame - Y:{} UV:{}",
                     node.data[0].size(), node.data[1].size());
                 }
-#endif
+              #endif
               }
               else {
                 has_valid_data = !node.data[0].empty();
 
-#if ecps_debug_prints >= 1
+              #if ecps_debug_prints >= 1
                 fan::print_throttled_format("RENDER: Unknown pixel format {}, trying Y-plane only",
                   node.pixel_format);
-#endif
+              #endif
               }
 
               if (has_valid_data && dims_valid && stride_valid) {
@@ -900,7 +1365,7 @@ int main() {
                       );
                       frame_valid = true;
 
-#if ecps_debug_prints >= 2
+                    #if ecps_debug_prints >= 2
                       static uint64_t render_count = 0;
                       if (++render_count % 30 == 1) {
                         const char* format_name = (node.pixel_format == fan::graphics::image_format::yuv420p) ? "YUV420P" :
@@ -908,75 +1373,75 @@ int main() {
                         fan::print_throttled_format("RENDER: {} frame processed {}x{}, stride={}, sx={} ({})",
                           format_name, node.image_size.x, node.image_size.y, node.stride[0].x, sx, render_count);
                       }
-#endif
+                    #endif
                     }
                     catch (const std::exception& e) {
-#if ecps_debug_prints >= 1
+                    #if ecps_debug_prints >= 1
                       const char* format_name = (node.pixel_format == fan::graphics::image_format::yuv420p) ? "YUV420P" :
                         (node.pixel_format == fan::graphics::image_format::nv12) ? "NV12" : "Unknown";
                       fan::print_throttled_format("RENDER: {} reload failed for LibAV frame: {}", format_name, e.what());
-#endif
+                    #endif
                     }
                   }
                   else {
-#if ecps_debug_prints >= 1
+                  #if ecps_debug_prints >= 1
                     fan::print_throttled_format("RENDER: Invalid pointers for format {} - Y:{} UV/U:{} V:{}",
                       node.pixel_format, (void*)raw_ptrs[0], (void*)raw_ptrs[1], (void*)raw_ptrs[2]);
-#endif
+                  #endif
                   }
                 }
                 else {
-#if ecps_debug_prints >= 1
+                #if ecps_debug_prints >= 1
                   fan::print_throttled_format("RENDER: Invalid sx ratio for LibAV frame: {}", sx);
-#endif
+                #endif
                 }
               }
               else {
-#if ecps_debug_prints >= 1
+              #if ecps_debug_prints >= 1
                 const char* format_name = (node.pixel_format == fan::graphics::image_format::yuv420p) ? "YUV420P" :
                   (node.pixel_format == fan::graphics::image_format::nv12) ? "NV12" : "Unknown";
                 fan::print_throttled_format("RENDER: {} validation failed - data:{} dims:{}x{} stride:{}",
                   format_name, has_valid_data, node.image_size.x, node.image_size.y, node.stride[0].x);
-#endif
+              #endif
               }
             }
             else if (node.type >= 250) {
               // Error codes from LibAV decoder
               switch (node.type) {
               case 254:
-#if ecps_debug_prints >= 1
+              #if ecps_debug_prints >= 1
                 fan::print_throttled("RENDER: LibAV decoder failed to reopen");
-#endif
+              #endif
                 break;
               case 253:
-#if ecps_debug_prints >= 1
+              #if ecps_debug_prints >= 1
                 fan::print_throttled("RENDER: LibAV decoder changed");
-#endif
+              #endif
                 break;
               case 252:
-#if ecps_debug_prints >= 1
+              #if ecps_debug_prints >= 1
                 fan::print_throttled("RENDER: LibAV decoder not readable");
-#endif
+              #endif
                 break;
               case 251:
-#if ecps_debug_prints >= 1
+              #if ecps_debug_prints >= 1
                 fan::print_throttled("RENDER: LibAV decode failed");
-#endif
+              #endif
                 break;
               case 250:
-#if ecps_debug_prints >= 1
+              #if ecps_debug_prints >= 1
                 fan::print_throttled("RENDER: LibAV unsupported stride");
-#endif
+              #endif
                 break;
               case 249:
-#if ecps_debug_prints >= 1
+              #if ecps_debug_prints >= 1
                 fan::print_throttled("RENDER: LibAV unsupported pixel format");
-#endif
+              #endif
                 break;
               default:
-#if ecps_debug_prints >= 1
+              #if ecps_debug_prints >= 1
                 fan::print_throttled_format("RENDER: LibAV unknown error type: {}", node.type);
-#endif
+              #endif
                 break;
               }
             }
@@ -999,9 +1464,9 @@ int main() {
                           &rest,
                           sizeof(rest)
                         );
-#if ecps_debug_prints >= 1
+                      #if ecps_debug_prints >= 1
                         fan::print_throttled_format("RENDER: Requesting LibAV IDR for channel {} due to invalid frame", channel.channel_id.i);
-#endif
+                      #endif
                       }
                     }
                   }
@@ -1052,105 +1517,167 @@ int main() {
 
   render_thread_future.wait();
 
-  fan::event::thread_create([] {
+
+
+fan::event::thread_create([] {
     auto* rt = render_thread_ptr.load(std::memory_order_acquire);
     while (!rt || !rt->screen_encoder.encoder_.is_initialized()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      rt = render_thread_ptr.load(std::memory_order_acquire);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        rt = render_thread_ptr.load(std::memory_order_acquire);
     }
 
     uint64_t frame_id = 0;
     bool first_frame = true;
     auto last_idr_time = std::chrono::steady_clock::now();
+    webrtc_rate_limiter_t webrtc_limiter{};
 
     while (!rt->should_stop.load()) {
-      rt = render_thread_ptr.load(std::memory_order_acquire);
-      if (!rt) break;
+        rt = render_thread_ptr.load(std::memory_order_acquire);
+        if (!rt) break;
 
-      if (ecps_backend.is_streaming_to_any_channel()) {
-        if (first_frame) {
-          rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
-          first_frame = false;
-          last_idr_time = std::chrono::steady_clock::now();
-        }
-
-        auto now = std::chrono::steady_clock::now();
-        auto time_since_idr = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_idr_time);
-        if (time_since_idr > std::chrono::milliseconds(1000)) {
-          rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
-          last_idr_time = now;
-        }
-
-        if (!rt->screen_encoder.screen_read()) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
-          continue;
-        }
-
-        if (rt->ecps_gui.show_own_stream && rt->screen_encoder.screen_buffer) {
-          uint32_t width = rt->screen_encoder.mdscr.Geometry.Resolution.x;
-          uint32_t height = rt->screen_encoder.mdscr.Geometry.Resolution.y;
-
-          if (width > 0 && height > 0) {
-            rt->ecps_gui.backend_queue([=]() -> fan::event::task_t {
-              auto* current_rt = render_thread_ptr.load(std::memory_order_acquire);
-              if (!current_rt) co_return;
-
-              try {
-                fan::graphics::image_load_properties_t props;
-                props.format = fan::graphics::image_format::b8g8r8a8_unorm;
-                props.visual_output = fan::graphics::image_filter::linear;
-
-                fan::image::info_t image_info;
-                image_info.data = current_rt->screen_encoder.screen_buffer;
-                image_info.size = fan::vec2ui(width, height);
-
-                current_rt->engine.image_reload(current_rt->screen_image, image_info, props);
-              }
-              catch (const std::exception& e) {
-                fan::print("LOCAL: Direct sprite update failed: " + std::string(e.what()));
-              }
-              co_return;
-              });
-          }
-        }
-
-        if (!rt->screen_encoder.encode_write()) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
-          continue;
-        }
-
-        uint8_t* encoded_data = nullptr;
-        size_t encoded_size = rt->screen_encoder.encode_read(&encoded_data);
-
-        if (encoded_size > 0 && encoded_data) {
-          std::unique_lock<std::timed_mutex> frame_list_lock(ecps_backend.share.frame_list_mutex, std::try_to_lock);
-          if (frame_list_lock.owns_lock()) {
-            bool is_idr = (rt->screen_encoder.encode_write_flags & fan::graphics::codec_update_e::force_keyframe) != 0;
-
-            // Clear old frames for IDR
-            if (is_idr) {
-              while (ecps_backend.share.m_NetworkFlow.FrameList.Usage() > 0) {
-                auto old = ecps_backend.share.m_NetworkFlow.FrameList.GetNodeFirst();
-                ecps_backend.share.m_NetworkFlow.FrameList.unlrec(old);
-              }
+        if (ecps_backend.is_streaming_to_any_channel()) {
+            if (first_frame) {
+                rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
+                first_frame = false;
+                last_idr_time = std::chrono::steady_clock::now();
             }
 
-            auto flnr = ecps_backend.share.m_NetworkFlow.FrameList.NewNodeLast();
-            auto f = &ecps_backend.share.m_NetworkFlow.FrameList[flnr];
-            f->vec.resize(encoded_size);
-            std::memcpy(f->vec.data(), encoded_data, encoded_size);
-            f->SentOffset = 0;
-          }
-        }
+            auto now = std::chrono::steady_clock::now();
+            auto time_since_idr = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_idr_time);
+            if (time_since_idr > std::chrono::milliseconds(5000)) {
+                rt->screen_encoder.encode_write_flags |= fan::graphics::codec_update_e::force_keyframe;
+                last_idr_time = now;
+            }
 
-        rt->screen_encoder.sleep_thread();
-      }
-      else {
-        first_frame = true;
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      }
+            if (!rt->screen_encoder.screen_read()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;
+            }
+
+            if (rt->ecps_gui.show_own_stream && rt->screen_encoder.screen_buffer) {
+                uint32_t width = rt->screen_encoder.mdscr.Geometry.Resolution.x;
+                uint32_t height = rt->screen_encoder.mdscr.Geometry.Resolution.y;
+
+                if (width > 0 && height > 0) {
+                    rt->ecps_gui.backend_queue([=]() -> fan::event::task_t {
+                        auto* current_rt = render_thread_ptr.load(std::memory_order_acquire);
+                        if (!current_rt) co_return;
+
+                        try {
+                            fan::graphics::image_load_properties_t props;
+                            props.format = fan::graphics::image_format::b8g8r8a8_unorm;
+                            props.visual_output = fan::graphics::image_filter::linear;
+
+                            fan::image::info_t image_info;
+                            image_info.data = current_rt->screen_encoder.screen_buffer;
+                            image_info.size = fan::vec2ui(width, height);
+
+                            current_rt->engine.image_reload(current_rt->screen_image, image_info, props);
+                        } catch (...) {}
+                        co_return;
+                    });
+                }
+            }
+
+            if (!rt->screen_encoder.encode_write()) {
+                rt->screen_encoder.sleep_thread();
+                continue;
+            }
+
+            uint8_t* encoded_data = nullptr;
+            size_t encoded_size = rt->screen_encoder.encode_read(&encoded_data);
+
+            if (encoded_size > 0 && encoded_data) {
+                static std::vector<uint8_t> last_sps;
+                static std::vector<uint8_t> last_pps;
+                static int64_t pts90k = 0;
+                static int64_t dts90k = 0;
+                
+                const int fps = rt->screen_encoder.config_.frame_rate > 0 ? rt->screen_encoder.config_.frame_rate : 30;
+                const int64_t frame_duration = 90000 / fps;
+
+                auto find_nal_units = [&](const uint8_t* data, size_t size) {
+                    std::vector<size_t> pos;
+                    for (size_t i = 0; i + 4 <= size; ++i) {
+                        if (data[i] == 0x00 && data[i+1] == 0x00 && data[i+2] == 0x00 && data[i+3] == 0x01) {
+                            pos.push_back(i);
+                            i += 3;
+                        }
+                    }
+                    pos.push_back(size);
+                    return pos;
+                };
+
+                auto nal_pos = find_nal_units(encoded_data, encoded_size);
+                bool is_keyframe = false;
+                
+                for (size_t k = 0; k + 1 < nal_pos.size(); ++k) {
+                    const size_t start = nal_pos[k];
+                    const uint8_t nal_type = encoded_data[start + 4] & 0x1F;
+                    if (nal_type == 7) {
+                        last_sps.assign(encoded_data + start, encoded_data + nal_pos[k+1]);
+                    } else if (nal_type == 8) {
+                        last_pps.assign(encoded_data + start, encoded_data + nal_pos[k+1]);
+                    } else if (nal_type == 5) {
+                        is_keyframe = true;
+                    }
+                }
+
+                bool has_webrtc_connections = false;
+                {
+                    std::lock_guard<std::mutex> lock(websocket_server.connections_mutex);
+                    has_webrtc_connections = !websocket_server.connections.empty();
+                }
+
+                if (has_webrtc_connections && webrtc_limiter.should_send_webrtc(is_keyframe)) {
+                    std::vector<uint8_t> out_frame;
+                    bool has_sps_pps = false;
+
+                    if (is_keyframe && !last_sps.empty() && !last_pps.empty()) {
+                        out_frame.insert(out_frame.end(), last_sps.begin(), last_sps.end());
+                        out_frame.insert(out_frame.end(), last_pps.begin(), last_pps.end());
+                        out_frame.insert(out_frame.end(), encoded_data, encoded_data + encoded_size);
+                        has_sps_pps = true;
+                    } else {
+                        out_frame.assign(encoded_data, encoded_data + encoded_size);
+                    }
+                        //fan::print("Sending WebRTC frame:", out_frame.size(), "bytes, keyframe:", is_keyframe);
+
+                    rt->webrtc_stream.push_frame(out_frame, is_keyframe, has_sps_pps, 
+                        rt->screen_encoder.config_.width, rt->screen_encoder.config_.height, pts90k, dts90k);
+                }
+
+                pts90k += frame_duration;
+                dts90k += frame_duration;
+
+                std::unique_lock<std::timed_mutex> frame_list_lock(ecps_backend.share.frame_list_mutex, std::try_to_lock);
+                if (frame_list_lock.owns_lock()) {
+                    bool is_idr = (rt->screen_encoder.encode_write_flags & fan::graphics::codec_update_e::force_keyframe) != 0;
+
+                    if (is_idr) {
+                        while (ecps_backend.share.m_NetworkFlow.FrameList.Usage() > 0) {
+                            auto old = ecps_backend.share.m_NetworkFlow.FrameList.GetNodeFirst();
+                            ecps_backend.share.m_NetworkFlow.FrameList.unlrec(old);
+                        }
+                    }
+
+                    auto flnr = ecps_backend.share.m_NetworkFlow.FrameList.NewNodeLast();
+                    auto f = &ecps_backend.share.m_NetworkFlow.FrameList[flnr];
+                    f->vec.resize(encoded_size);
+                    std::memcpy(f->vec.data(), encoded_data, encoded_size);
+                    f->SentOffset = 0;
+                }
+            }
+
+            rt->screen_encoder.sleep_thread();
+        } else {
+            first_frame = true;
+            const int fps = rt ? rt->screen_encoder.config_.frame_rate : 30;
+            const auto sleep_time = std::chrono::microseconds(1000000 / fps);
+            std::this_thread::sleep_for(sleep_time);
+        }
     }
-    });
+});
 
   fan::event::thread_create([] {
     auto* rt = render_thread_ptr.load(std::memory_order_acquire);
@@ -1232,6 +1759,7 @@ int main() {
     });
 
   fan::event::task_idle([]() -> fan::event::task_t {
+    try {
     auto* rt = render_thread_ptr.load(std::memory_order_acquire);
     if (!rt || rt->should_stop.load()) {
       co_return;
@@ -1267,6 +1795,10 @@ int main() {
 
     if (local_tasks.empty()) {
       co_await fan::co_sleep(1);
+    }
+    }
+    catch (...) {
+      fan::print("error");
     }
     });
 
@@ -1441,10 +1973,10 @@ int main() {
     if (is_likely_keyframe && !transmission_failed && chunks_sent > 0 && sent_offset < Possible) {
       size_t keyframe_completion = (chunks_sent * 100) / static_cast<size_t>(Possible);
       if (keyframe_completion < 30) {
-#if ecps_debug_prints >= 1
+      #if ecps_debug_prints >= 1
         fan::print_throttled_format("NETWORK: Incomplete keyframe transmission: {}% ({}/{})",
           keyframe_completion, chunks_sent, Possible);
-#endif
+      #endif
 
         static uint64_t failed_keyframe_count = 0;
         if (++failed_keyframe_count % 3 == 0) {
@@ -1463,18 +1995,36 @@ int main() {
       ecps_backend.share.m_NetworkFlow.FrameList.unlrec(flnr);
       ++ecps_backend.share.frame_index;
 
-#if ecps_debug_prints >= 2
+    #if ecps_debug_prints >= 2
       static uint64_t completed_frames = 0;
       if (++completed_frames % 30 == 0) {
         printf("NETWORK: Completed frame %llu (%s)\n",
           ecps_backend.share.frame_index - 1,
           is_likely_keyframe ? "I-frame" : "P-frame");
       }
-#endif
+    #endif
     }
 
     co_return 0;
     });
+    #if 0
+  fan::event::task_t http_server_task;
+  fan::event::task_idle([&http_server_task]() -> fan::event::task_t {
+    static bool servers_started = false;
+    if (servers_started) co_return;
+
+    auto* rt = render_thread_ptr.load(std::memory_order_acquire);
+    if (!rt) co_return;
+
+    servers_started = true;
+
+  
+    // Start both servers
+    http_server_task = start_both_servers();
+    fan::print("HTTP server started on port 9090");
+    fan::print("WebSocket server started on port 9091");
+});
+#endif
 
   fan::event::loop();
 
