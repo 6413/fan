@@ -30,12 +30,15 @@
 - **Audio**: Currently only [SAC](https://github.com/7244/SAC-container) is supported.
 ## Installation
 
-Requires C++23, Clang-20 >=, CMake 2.8.* >=, Ninja 1.11.1 >=.
-Library plans to use modules in future.
+- **Requirements:**
+  - C++23 (modules)
+  - Clang >= 20
+  - CMake >= 2.8.*
+  - Ninja >= 1.11.1
 
 ### Linux
 1. Clone the repository: `git clone https://github.com/6413/fan.git`
-2. Install required dependencies
+2. Install required dependencies:
    
     ```sudo ./apt_install.sh``` (optional)
    
