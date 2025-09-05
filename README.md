@@ -17,16 +17,16 @@
   - Collision filtering
   - Ray casts, shape casts, and overlap queries
 - **Image formats:**
-  JPEG (baseline & progressive),
-  PNG (1/2/4/8/16-bit-per-channel),
-  TGA (a subset),
-  BMP (non-1bpp, non-RLE),
-  PSD (composited view only, no extra channels, 8/16 bit-per-channel),
-  GIF (always reports as 4-channel),
-  HDR (radiance rgbE format),
-  PIC (Softimage PIC),
-  PNM (PPM and PGM binary only),
-  WebP
+  - JPEG (baseline & progressive)
+  - PNG (1/2/4/8/16-bit-per-channel)
+  - TGA (a subset)
+  - BMP (non-1bpp, non-RLE)
+  - PSD (composited view only, no extra channels, 8/16 bit-per-channel)
+  - GIF (always reports as 4-channel)
+  - HDR (radiance rgbE format)
+  - PIC (Softimage PIC)
+  - PNM (PPM and PGM binary only)
+  - WebP
 - **Audio**: Currently only [SAC](https://github.com/7244/SAC-container) is supported.
 ## Installation
 
