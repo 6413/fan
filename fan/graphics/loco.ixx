@@ -1826,6 +1826,11 @@ public:
 
   }
   loco_t(const properties_t& p) {
+  #if defined(fan_platform_windows)
+    // use utf8 for console output
+    SetConsoleOutputCP(CP_UTF8);
+  #endif
+
     if (fan::init_manager_t::initialized() == false) {
       fan::init_manager_t::initialize();
     }

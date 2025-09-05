@@ -16,6 +16,7 @@ module;
 
 #if defined(fan_gui)
   #include <fan/imgui/imgui.h>
+  #include <fan/imgui/implot.h>
 #endif
 
 #if defined(fan_3D)
@@ -71,6 +72,8 @@ export namespace fan {
     : vec2_wrap_t(test0.x, test0.y) { } 
     constexpr auto copysign(const auto& test0) const { return vec2_wrap_t(fan::math::copysign(x, test0.x), fan::math::copysign(y, test0.y)); }
 #if defined(fan_gui)
+    constexpr operator ImPlotPoint() const { return ImPlotPoint((f32_t)x, (f32_t)y); }
+    constexpr vec2_wrap_t(const ImPlotPoint& v) { x = v.x; y = v.y; }
     constexpr operator ImVec2() const { return ImVec2{(f32_t)x, (f32_t)y}; }
     constexpr vec2_wrap_t(const ImVec2& v) { x = v.x; y = v.y; }
 #endif
