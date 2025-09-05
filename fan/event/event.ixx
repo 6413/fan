@@ -97,14 +97,33 @@ export namespace fan{
   constexpr int eof = UV_EOF;
 }
 
+template <typename Promise>
+struct coroutine_handle_owner {
+  std::coroutine_handle<Promise> h;
+
+  explicit coroutine_handle_owner(std::coroutine_handle<Promise> hh) : h(hh) {}
+  coroutine_handle_owner(const coroutine_handle_owner&) = delete;
+  coroutine_handle_owner& operator=(const coroutine_handle_owner&) = delete;
+
+  ~coroutine_handle_owner() {
+    if (h) {
+      h.destroy();
+      h = 0;
+    }
+  }
+};
+
 template<typename promise_type_t>
 struct final_awaiter {
-  bool await_ready() noexcept { return false; }
+  bool await_ready() noexcept {
+    return false;
+  }
 
-  void await_suspend(std::coroutine_handle<promise_type_t> h) noexcept {
-    if (h.promise().continuation) {
-      h.promise().continuation.resume();
-    }
+  std::coroutine_handle<> await_suspend(std::coroutine_handle<promise_type_t> h) noexcept {
+    auto& p = h.promise();
+    auto next = p.continuation;
+    auto keep = std::move(p.self_keepalive);
+    return next ? next : std::noop_coroutine();
   }
 
   void await_resume() noexcept {}
@@ -119,20 +138,16 @@ struct task_value_promise_t {
   std::exception_ptr exception = nullptr;
   std::coroutine_handle<> continuation = nullptr;
 
+  std::shared_ptr<coroutine_handle_owner<task_value_promise_t>> self_keepalive;
+
   task_value_wrap_t<T, suspend_type_t> get_return_object();
   suspend_type_t initial_suspend() noexcept { return {}; }
   auto final_suspend() noexcept {
     return final_awaiter<task_value_promise_t<T, suspend_type_t>>{};
   }
-  void return_value(T&& val) {
-    value = std::move(val);
-  }
-  void return_value(const T& val) {
-    value = val;
-  }
-  void unhandled_exception() {
-    exception = std::current_exception();
-  }
+  void return_value(T&& val) { value = std::move(val); }
+  void return_value(const T& val) { value = val; }
+  void unhandled_exception() { exception = std::current_exception(); }
 };
 
 template<typename suspend_type_t>
@@ -140,116 +155,92 @@ struct task_value_promise_t<void, suspend_type_t> {
   std::exception_ptr exception = nullptr;
   std::coroutine_handle<> continuation = nullptr;
 
+  std::shared_ptr<coroutine_handle_owner<task_value_promise_t>> self_keepalive;
+
   task_value_wrap_t<void, suspend_type_t> get_return_object();
   suspend_type_t initial_suspend() noexcept { return {}; }
   auto final_suspend() noexcept {
     return final_awaiter<task_value_promise_t<void, suspend_type_t>>{};
   }
   void return_void() {}
-  void unhandled_exception() {
-    exception = std::current_exception();
-  }
+  void unhandled_exception() { exception = std::current_exception(); }
 };
+
 
 template<typename T, typename suspend_type_t>
 struct task_value_wrap_t {
   using promise_type = task_value_promise_t<T, suspend_type_t>;
+  using owner_t = coroutine_handle_owner<promise_type>;
+  std::shared_ptr<owner_t> owner;
 
-  task_value_wrap_t() {}
-  task_value_wrap_t(std::coroutine_handle<promise_type> ch) : handle(ch) {}
-  task_value_wrap_t(const task_value_wrap_t&) = delete;
-  task_value_wrap_t(task_value_wrap_t&& other) : handle(other.handle) {
-    other.handle = nullptr;
-  }
-  task_value_wrap_t& operator=(task_value_wrap_t&& other) {
-    destroy();
-    std::swap(handle, other.handle);
-    return *this;
-  }
-  void destroy() {
-    if (handle) {
-      handle.destroy();
-      handle = nullptr;
-    }
-  }
-  ~task_value_wrap_t() {
-    if (handle) {
-      handle.destroy();
-    }
-  }
-  bool valid() const {
-    return static_cast<bool>(handle);
-  }
   bool await_ready() const noexcept {
-    return handle.done();
+    return owner && owner->h.done();
   }
-  void await_suspend(std::coroutine_handle<> continuation_handle) noexcept {
-    handle.promise().continuation = continuation_handle;
-  }
-  T await_resume() {
-    if (handle.promise().exception) {
-      std::rethrow_exception(handle.promise().exception);
+
+  void await_suspend(std::coroutine_handle<> cont) noexcept {
+    auto& p = owner->h.promise();
+    p.continuation = cont;
+    if (!p.self_keepalive) {
+      p.self_keepalive = owner;
     }
-    return std::move(handle.promise().value);
   }
 
-  std::coroutine_handle<promise_type> handle = nullptr;
+  T await_resume() {
+    auto& p = owner->h.promise();
+    if (p.exception) {
+      std::rethrow_exception(p.exception);
+    }
+    return std::move(p.value);
+  }
 };
-
-template <typename T, typename suspend_type_t>
-task_value_wrap_t<T, suspend_type_t> task_value_promise_t<T, suspend_type_t>::get_return_object() {
-  return task_value_wrap_t<T, suspend_type_t>{std::coroutine_handle<task_value_promise_t<T, suspend_type_t>>::from_promise(*this)};
-}
 
 template<typename suspend_type_t>
 struct task_value_wrap_t<void, suspend_type_t> {
   using promise_type = task_value_promise_t<void, suspend_type_t>;
+  using owner_t = coroutine_handle_owner<promise_type>;
+  std::shared_ptr<owner_t> owner;
 
-  task_value_wrap_t() {}
-  task_value_wrap_t(std::coroutine_handle<promise_type> ch) : handle(ch) {}
-  task_value_wrap_t(const task_value_wrap_t&) = delete;
-  task_value_wrap_t(task_value_wrap_t&& other) : handle(other.handle) {
-    other.handle = nullptr;
-  }
-  task_value_wrap_t& operator=(task_value_wrap_t&& other) {
-    destroy();
-    std::swap(handle, other.handle);
-    return *this;
-  }
-  void destroy() {
-    if (handle) {
-      handle.destroy();
-      handle = nullptr;
-    }
-  }
-  ~task_value_wrap_t() {
-    if (handle) {
-      handle.destroy();
-      handle = nullptr;
-    }
-  }
-  bool valid() const {
-    return static_cast<bool>(handle);
-  }
   bool await_ready() const noexcept {
-    return handle.done();
+    return owner && owner->h.done();
   }
-  void await_suspend(std::coroutine_handle<> continuation_handle) noexcept {
-    handle.promise().continuation = continuation_handle;
+
+  void await_suspend(std::coroutine_handle<> cont) noexcept {
+    auto& p = owner->h.promise();
+    p.continuation = cont;
+    if (!p.self_keepalive) {
+      p.self_keepalive = owner;
+    }
   }
   void await_resume() {
-    if (handle.promise().exception) {
-      std::rethrow_exception(handle.promise().exception);
+    auto& p = owner->h.promise();
+    if (p.exception) {
+      std::rethrow_exception(p.exception);
     }
   }
-
-  std::coroutine_handle<promise_type> handle = nullptr;
 };
 
-template <typename suspend_type_t>
-task_value_wrap_t<void, suspend_type_t> task_value_promise_t<void, suspend_type_t>::get_return_object() {
-  return task_value_wrap_t<void, suspend_type_t>{std::coroutine_handle<task_value_promise_t<void, suspend_type_t>>::from_promise(*this)};
+template<typename T, typename suspend_t>
+task_value_wrap_t<T, suspend_t>
+task_value_promise_t<T, suspend_t>::get_return_object() {
+    using promise_type = task_value_promise_t<T, suspend_t>;
+    auto h = std::coroutine_handle<promise_type>::from_promise(*this);
+    auto own = std::make_shared<coroutine_handle_owner<promise_type>>(h);
+    // Critical: self-own at construction
+    self_keepalive = own;
+    return task_value_wrap_t<T, suspend_t>{ std::move(own) };
 }
+
+template<typename suspend_t>
+task_value_wrap_t<void, suspend_t>
+task_value_promise_t<void, suspend_t>::get_return_object() {
+    using promise_type = task_value_promise_t<void, suspend_t>;
+    auto h = std::coroutine_handle<promise_type>::from_promise(*this);
+    auto own = std::make_shared<coroutine_handle_owner<promise_type>>(h);
+    self_keepalive = own;
+    return task_value_wrap_t<void, suspend_t>{ std::move(own) };
+}
+
+
 
 export namespace fan {
   namespace event {

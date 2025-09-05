@@ -1761,12 +1761,321 @@ export namespace fan {
             ImGui::EndDragDropTarget();
           }
         }
+        namespace plot {
+          using flags_t = int;
+          enum {
+            flags_none = ImPlotFlags_None,
+            flags_no_title = ImPlotFlags_NoTitle,
+            flags_no_legend = ImPlotFlags_NoLegend,
+            flags_no_mouse_text = ImPlotFlags_NoMouseText,
+            flags_no_inputs = ImPlotFlags_NoInputs,
+            flags_no_menus = ImPlotFlags_NoMenus,
+            flags_no_box_select = ImPlotFlags_NoBoxSelect,
+            flags_no_frame = ImPlotFlags_NoFrame,
+            flags_equal = ImPlotFlags_Equal,
+            flags_crosshairs = ImPlotFlags_Crosshairs,
+            flags_canvas_only = ImPlotFlags_CanvasOnly
+          };
 
-      }// loco gui
+          using axis_flags_t = int;
+          enum {
+            axis_flags_none = ImPlotAxisFlags_None,
+            axis_flags_no_label = ImPlotAxisFlags_NoLabel,
+            axis_flags_no_grid_lines = ImPlotAxisFlags_NoGridLines,
+            axis_flags_no_tick_marks = ImPlotAxisFlags_NoTickMarks,
+            axis_flags_no_tick_labels = ImPlotAxisFlags_NoTickLabels,
+            axis_flags_no_initial_fit = ImPlotAxisFlags_NoInitialFit,
+            axis_flags_no_menus = ImPlotAxisFlags_NoMenus,
+            axis_flags_no_side_switch = ImPlotAxisFlags_NoSideSwitch,
+            axis_flags_no_highlight = ImPlotAxisFlags_NoHighlight,
+            axis_flags_opposite = ImPlotAxisFlags_Opposite,
+            axis_flags_foreground = ImPlotAxisFlags_Foreground,
+            axis_flags_invert = ImPlotAxisFlags_Invert,
+            axis_flags_auto_fit = ImPlotAxisFlags_AutoFit,
+            axis_flags_range_fit = ImPlotAxisFlags_RangeFit,
+            axis_flags_pan_stretch = ImPlotAxisFlags_PanStretch,
+            axis_flags_lock_min = ImPlotAxisFlags_LockMin,
+            axis_flags_lock_max = ImPlotAxisFlags_LockMax,
+            axis_flags_lock = ImPlotAxisFlags_Lock,
+            axis_flags_no_decorations = ImPlotAxisFlags_NoDecorations,
+            axis_flags_aux_default = ImPlotAxisFlags_AuxDefault
+          };
 
-  #endif//loco_gui
-  }
-}
+          using line_flags_t = int;
+          enum {
+            line_flags_none = ImPlotLineFlags_None,
+            line_flags_segments = ImPlotLineFlags_Segments,
+            line_flags_loop = ImPlotLineFlags_Loop,
+            line_flags_skip_nan = ImPlotLineFlags_SkipNaN,
+            line_flags_no_clip = ImPlotLineFlags_NoClip,
+            line_flags_shaded = ImPlotLineFlags_Shaded
+          };
+
+          using scatter_flags_t = int;
+          enum {
+            scatter_flags_none = ImPlotScatterFlags_None,
+            scatter_flags_no_clip = ImPlotScatterFlags_NoClip
+          };
+
+          using bars_flags_t = int;
+          enum {
+            bars_flags_none = ImPlotBarsFlags_None,
+            bars_flags_horizontal = ImPlotBarsFlags_Horizontal
+          };
+
+          using item_flags_t = int;
+          enum {
+            item_flags_none = ImPlotItemFlags_None,
+            item_flags_no_legend = ImPlotItemFlags_NoLegend,
+            item_flags_no_fit = ImPlotItemFlags_NoFit
+          };
+
+          using cond_t = int;
+          enum {
+            cond_none = ImPlotCond_None,
+            cond_always = ImPlotCond_Always,
+            cond_once = ImPlotCond_Once
+          };
+
+          using col_t = int;
+          enum {
+            col_line = ImPlotCol_Line,
+            col_fill = ImPlotCol_Fill,
+            col_marker_outline = ImPlotCol_MarkerOutline,
+            col_marker_fill = ImPlotCol_MarkerFill,
+            col_error_bar = ImPlotCol_ErrorBar,
+            col_frame_bg = ImPlotCol_FrameBg,
+            col_plot_bg = ImPlotCol_PlotBg,
+            col_plot_border = ImPlotCol_PlotBorder,
+            col_legend_bg = ImPlotCol_LegendBg,
+            col_legend_border = ImPlotCol_LegendBorder,
+            col_legend_text = ImPlotCol_LegendText,
+            col_title_text = ImPlotCol_TitleText,
+            col_inlay_text = ImPlotCol_InlayText,
+            col_axis_text = ImPlotCol_AxisText,
+            col_axis_grid = ImPlotCol_AxisGrid,
+            col_axis_tick = ImPlotCol_AxisTick,
+            col_axis_bg = ImPlotCol_AxisBg,
+            col_axis_bg_hovered = ImPlotCol_AxisBgHovered,
+            col_axis_bg_active = ImPlotCol_AxisBgActive,
+            col_selection = ImPlotCol_Selection,
+            col_crosshairs = ImPlotCol_Crosshairs
+          };
+
+          using marker_t = int;
+          enum {
+            marker_none = ImPlotMarker_None,
+            marker_circle = ImPlotMarker_Circle,
+            marker_square = ImPlotMarker_Square,
+            marker_diamond = ImPlotMarker_Diamond,
+            marker_up = ImPlotMarker_Up,
+            marker_down = ImPlotMarker_Down,
+            marker_left = ImPlotMarker_Left,
+            marker_right = ImPlotMarker_Right,
+            marker_cross = ImPlotMarker_Cross,
+            marker_plus = ImPlotMarker_Plus,
+            marker_asterisk = ImPlotMarker_Asterisk
+          };
+
+          using location_t = int;
+          enum {
+            location_center = ImPlotLocation_Center,
+            location_north = ImPlotLocation_North,
+            location_south = ImPlotLocation_South,
+            location_west = ImPlotLocation_West,
+            location_east = ImPlotLocation_East,
+            location_north_west = ImPlotLocation_NorthWest,
+            location_north_east = ImPlotLocation_NorthEast,
+            location_south_west = ImPlotLocation_SouthWest,
+            location_south_east = ImPlotLocation_SouthEast
+          };
+
+          using axis_t = int;
+          enum {
+            axis_x1 = ImAxis_X1,
+            axis_x2 = ImAxis_X2,
+            axis_x3 = ImAxis_X3,
+            axis_y1 = ImAxis_Y1,
+            axis_y2 = ImAxis_Y2,
+            axis_y3 = ImAxis_Y3
+          };
+
+          bool begin_plot(const std::string& title, const fan::vec2& size = fan::vec2(-1, 0), flags_t flags = flags_none) {
+            return ImPlot::BeginPlot(title.c_str(), size, flags);
+          }
+
+          void end_plot() {
+            ImPlot::EndPlot();
+          }
+          void setup_axes(const std::string& x_label, const std::string& y_label,
+            axis_flags_t x_flags = axis_flags_none, axis_flags_t y_flags = axis_flags_none) {
+            ImPlot::SetupAxes(x_label.c_str(), y_label.c_str(), x_flags, y_flags);
+          }
+          void setup_axis(axis_t axis, const std::string& label = "", axis_flags_t flags = axis_flags_none) {
+            ImPlot::SetupAxis(axis, label.empty() ? nullptr : label.c_str(), flags);
+          }
+          void setup_axis_limits(axis_t axis, double v_min, double v_max, cond_t cond = cond_once) {
+            ImPlot::SetupAxisLimits(axis, v_min, v_max, cond);
+          }
+          void setup_axes_limits(double x_min, double x_max, double y_min, double y_max, cond_t cond = cond_once) {
+            ImPlot::SetupAxesLimits(x_min, x_max, y_min, y_max, cond);
+          }
+          void setup_axis_format(axis_t idx, const std::string& format) {
+            ImPlot::SetupAxisFormat(idx, format.c_str());
+          }
+          void setup_axis_links(ImAxis idx, double* min_lnk, double* max_lnk) {
+            ImPlot::SetupAxisLinks(idx, min_lnk, max_lnk);
+          }
+          void setup_axis_format(ImAxis idx, ImPlotFormatter formatter, void* data) {
+            ImPlot::SetupAxisFormat(idx, formatter, data);
+          }
+          void setup_legend(location_t location, int flags = 0) {
+            ImPlot::SetupLegend(location, flags);
+          }
+          void setup_finish() {
+            ImPlot::SetupFinish();
+          }
+
+          void plot_line(const std::string& label, const std::vector<float>& values,
+            double x_scale = 1.0, double x_start = 0.0, line_flags_t flags = line_flags_none) {
+            ImPlot::PlotLine(label.c_str(), values.data(), (int)values.size(), x_scale, x_start, flags);
+          }
+          void plot_line(const std::string& label, const std::vector<float>& xs, const std::vector<float>& ys,
+            line_flags_t flags = line_flags_none) {
+            if (xs.size() != ys.size() || xs.empty()) return;
+            ImPlot::PlotLine(label.c_str(), xs.data(), ys.data(), (int)xs.size(), flags);
+          }
+          void plot_line(const std::string& label, const float* xs, const float* ys, int count,
+            line_flags_t flags = line_flags_none) {
+            ImPlot::PlotLine(label.c_str(), xs, ys, count, flags);
+          }
+          void plot_scatter(const std::string& label, const std::vector<float>& values,
+            double x_scale = 1.0, double x_start = 0.0, scatter_flags_t flags = scatter_flags_none) {
+            ImPlot::PlotScatter(label.c_str(), values.data(), (int)values.size(), x_scale, x_start, flags);
+          }
+          void plot_scatter(const std::string& label, const std::vector<float>& xs, const std::vector<float>& ys,
+            scatter_flags_t flags = scatter_flags_none) {
+            if (xs.size() != ys.size() || xs.empty()) return;
+            ImPlot::PlotScatter(label.c_str(), xs.data(), ys.data(), (int)xs.size(), flags);
+          }
+          void plot_scatter(const std::string& label, const float* xs, const float* ys, int count,
+            scatter_flags_t flags = scatter_flags_none) {
+            ImPlot::PlotScatter(label.c_str(), xs, ys, count, flags);
+          }
+          void plot_bars(const std::string& label, const std::vector<float>& values,
+            double bar_size = 0.67, double shift = 0, bars_flags_t flags = bars_flags_none) {
+            ImPlot::PlotBars(label.c_str(), values.data(), (int)values.size(), bar_size, shift, flags);
+          }
+          void plot_bars(const std::string& label, const std::vector<float>& xs, const std::vector<float>& ys,
+            double bar_size, bars_flags_t flags = bars_flags_none) {
+            if (xs.size() != ys.size() || xs.empty()) return;
+            ImPlot::PlotBars(label.c_str(), xs.data(), ys.data(), (int)xs.size(), bar_size, flags);
+          }
+          void plot_shaded(const std::string& label, const std::vector<float>& xs, const std::vector<float>& ys,
+            double y_ref = 0.0, int flags = 0) {
+            if (xs.size() != ys.size() || xs.empty()) return;
+            ImPlot::PlotShaded(label.c_str(), xs.data(), ys.data(), (int)xs.size(), y_ref, flags);
+          }
+
+          void push_style_color(col_t idx, const fan::color& color) {
+            ImPlot::PushStyleColor(idx, color);
+          }
+          void pop_style_color(int count = 1) {
+            ImPlot::PopStyleColor(count);
+          }
+          void push_style_var(int idx, float val) {
+            ImPlot::PushStyleVar(idx, val);
+          }
+          void push_style_var(int idx, const fan::vec2& val) {
+            ImPlot::PushStyleVar(idx, val);
+          }
+          void pop_style_var(int count = 1) {
+            ImPlot::PopStyleVar(count);
+          }
+
+          void set_next_line_style(const fan::color& col = fan::color(0, 0, 0, -1), float weight = -1.0f) {
+            ImPlot::SetNextLineStyle(col, weight);
+          }
+          void set_next_fill_style(const fan::color& col = fan::color(0, 0, 0, -1), float alpha_mod = -1.0f) {
+            ImPlot::SetNextFillStyle(col, alpha_mod);
+          }
+          void set_next_marker_style(marker_t marker = -1, float size = -1.0f,
+            const fan::color& fill = fan::color(0, 0, 0, -1), float weight = -1.0f,
+            const fan::color& outline = fan::color(0, 0, 0, -1)) {
+            ImPlot::SetNextMarkerStyle(marker, size, fill, weight, outline);
+          }
+
+          fan::vec2 get_plot_pos() {
+            auto pos = ImPlot::GetPlotPos();
+            return fan::vec2(pos.x, pos.y);
+          }
+
+          fan::vec2 get_plot_size() {
+            auto size = ImPlot::GetPlotSize();
+            return fan::vec2(size.x, size.y);
+          }
+
+          bool is_plot_hovered() {
+            return ImPlot::IsPlotHovered();
+          }
+
+          bool is_axis_hovered(axis_t axis) {
+            return ImPlot::IsAxisHovered(axis);
+          }
+
+          fan::vec2 pixels_to_plot(const fan::vec2& pix, axis_t x_axis = IMPLOT_AUTO, axis_t y_axis = IMPLOT_AUTO) {
+            return ImPlot::PixelsToPlot(ImVec2(pix.x, pix.y), x_axis, y_axis);
+          }
+          fan::vec2 plot_to_pixels(double x, double y, axis_t x_axis = IMPLOT_AUTO, axis_t y_axis = IMPLOT_AUTO) {
+            auto result = ImPlot::PlotToPixels(x, y, x_axis, y_axis);
+            return fan::vec2(result.x, result.y);
+          }
+
+          fan::vec2 get_plot_mouse_pos(axis_t x_axis = IMPLOT_AUTO, axis_t y_axis = IMPLOT_AUTO) {
+            return ImPlot::GetPlotMousePos(x_axis, y_axis);
+          }
+
+          void annotation(double x, double y, const fan::color& col, const fan::vec2& pix_offset, bool clamp, const std::string& text) {
+            ImPlot::Annotation(x, y, col, ImVec2(pix_offset.x, pix_offset.y), clamp, "%s", text.c_str());
+          }
+
+          void tag_x(double x, const fan::color& col, const std::string& text = "") {
+            if (text.empty()) {
+              ImPlot::TagX(x, col, true);
+            }
+            else {
+              ImPlot::TagX(x, col, "%s", text.c_str());
+            }
+          }
+          void tag_y(double y, const fan::color& col, const std::string& text = "") {
+            if (text.empty()) {
+              ImPlot::TagY(y, col, true);
+            }
+            else {
+              ImPlot::TagY(y, col, "%s", text.c_str());
+            }
+          }
+
+          void plot_text(const std::string& text, double x, double y, const fan::vec2& pix_offset = fan::vec2(0, 0), int flags = 0) {
+            ImPlot::PlotText(text.c_str(), x, y, ImVec2(pix_offset.x, pix_offset.y), flags);
+          }
+          void plot_dummy(const std::string& label_id, int flags = 0) {
+            ImPlot::PlotDummy(label_id.c_str(), flags);
+          }
+
+          fan::color next_colormap_color() {
+            auto color = ImPlot::NextColormapColor();
+            return fan::color(color.x, color.y, color.z, color.w);
+          }
+          fan::color get_last_item_color() {
+            auto color = ImPlot::GetLastItemColor();
+            return fan::color(color.x, color.y, color.z, color.w);
+          }
+        } // namespace plot
+      } // namespace gui
+  #endif//graphics gui
+  } // namespace graphics
+} // namespace fan
 
 export namespace fan {
   namespace graphics {
@@ -3096,7 +3405,7 @@ export namespace fan {
           void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) override {
 
             // initialize advance task but dont restart it after dialog finished
-            if (finish_dialog == false && character_advance_task.handle == nullptr) {
+            if (finish_dialog == false && !character_advance_task.owner) {
               character_advance_task = [This, nr]() -> fan::event::task_t {
                 text_delayed_t* text_delayed = dynamic_cast<text_delayed_t*>(This->drawables[nr]);
                 if (text_delayed == nullptr) {
