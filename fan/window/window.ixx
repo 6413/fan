@@ -779,6 +779,10 @@ export namespace fan {
     }
   public:
 
+    HWND get_win32_handle() {
+      return glfwGetWin32Window(glfw_window);
+    }
+
     void apply_window_theme() {
       if (!glfw_window) {
         return;
@@ -786,7 +790,7 @@ export namespace fan {
 
       initialize_dark_mode();
 
-      HWND hwnd = glfwGetWin32Window(glfw_window);
+      HWND hwnd = get_win32_handle();
       if (!hwnd) {
         return;
       }

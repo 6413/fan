@@ -7,7 +7,7 @@ module;
 #undef max
 #undef NO_ERROR
 
-//#define __use_curl
+#define __use_curl
 
 #ifdef __use_curl
   #include <curl/curl.h>
@@ -2173,509 +2173,333 @@ export namespace fan {
       }
     };
   #ifdef __use_curl
-    struct response_t {
-      int status_code = 200;
-      std::unordered_map<std::string, std::string> headers;
-      std::string body;
-
-      response_t& status(int code) {
-        status_code = code;
-        return *this;
-      }
-
-      response_t& header(const std::string& key, const std::string& value) {
-        headers[key] = value;
-        return *this;
-      }
-
-      response_t& json(const fan::json& data) {
-        body = data.dump();
-        headers["Content-Type"] = "application/json";
-        return *this;
-      }
-
-      response_t& text(const std::string& data) {
-        body = data;
-        headers["Content-Type"] = "text/plain";
-        return *this;
-      }
-    };
-
-    struct request_t {
-      int method;
-      std::string path;
-      std::unordered_map<std::string, std::string> headers;
-      std::unordered_map<std::string, std::string> params;
-      std::unordered_map<std::string, std::string> query;
-      std::string body;
-
-      std::string header(const std::string& name) const {
-        auto it = headers.find(name);
-        return it != headers.end() ? it->second : "";
-      }
-
-      std::expected<fan::json, CURLcode> json() const {
-        if (body.empty()) {
-          return std::unexpected(CURLE_BAD_CONTENT_ENCODING);
-        }
-        try {
-          return fan::json::parse(body);
-        }
-        catch (...) {
-          return std::unexpected(CURLE_BAD_CONTENT_ENCODING);
-        }
-      }
-    };
 
     struct http_config_t {
       bool verify_ssl = true;
       bool follow_redirects = true;
       long timeout_seconds = 30;
-      bool enable_http2 = true;
-      bool keep_alive = false;
       std::string user_agent = "libcurl-client/1.0";
-      std::string ca_cert_path = "curl-ca-bundle.crt";
     };
 
-    struct curl_data_t {
-      std::string body;
-      std::string headers;
-      long status_code = 0;
+
+    struct async_http_request_t : std::enable_shared_from_this<async_http_request_t> {
+      CURL* easy_handle = nullptr;
+      curl_slist* curl_headers = nullptr;
+      std::string url;
+      http_config_t config;
+      std::unordered_map<std::string, std::string> headers_map;
+      http_response_t response;
+      std::string error_message;
+      std::coroutine_handle<> awaiting{};
+      std::atomic<bool> completed{ false };
+
+      explicit async_http_request_t(const std::string& u, const http_config_t& cfg)
+        : url(u), config(cfg) {
+        easy_handle = curl_easy_init();
+        if (!easy_handle) {
+          error_message = "curl_easy_init failed";
+          return;
+        }
+        curl_easy_setopt(easy_handle, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, &async_http_request_t::write_cb);
+        curl_easy_setopt(easy_handle, CURLOPT_WRITEDATA, this);
+        curl_easy_setopt(easy_handle, CURLOPT_FOLLOWLOCATION, config.follow_redirects ? 1L : 0L);
+        curl_easy_setopt(easy_handle, CURLOPT_SSL_VERIFYPEER, config.verify_ssl ? 1L : 0L);
+        curl_easy_setopt(easy_handle, CURLOPT_SSL_VERIFYHOST, config.verify_ssl ? 2L : 0L);
+        curl_easy_setopt(easy_handle, CURLOPT_TIMEOUT, config.timeout_seconds);
+        curl_easy_setopt(easy_handle, CURLOPT_USERAGENT, config.user_agent.c_str());
+        curl_easy_setopt(easy_handle, CURLOPT_NOSIGNAL, 1L);
+        curl_easy_setopt(easy_handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+      }
+
+      ~async_http_request_t() {
+        if (curl_headers) {
+          curl_slist_free_all(curl_headers);
+          curl_headers = nullptr;
+        }
+        if (easy_handle) {
+          curl_easy_cleanup(easy_handle);
+          easy_handle = nullptr;
+        }
+      }
+
+      bool await_ready() const noexcept {
+        return false;
+      }
+
+      void await_suspend(std::coroutine_handle<> h);
+
+      std::expected<http_response_t, std::string> await_resume() {
+        if (!error_message.empty()) {
+          return std::unexpected(error_message);
+        }
+        return std::move(response);
+      }
+
+      static size_t write_cb(char* ptr, size_t size, size_t nmemb, void* userdata) {
+        auto* self = static_cast<async_http_request_t*>(userdata);
+        size_t total = size * nmemb;
+        if (total) {
+          self->response.body.append(ptr, total);
+        }
+        return total;
+      }
     };
 
     struct async_http_context_t {
-      CURLM* multi_handle;
-      uv_timer_t timeout_timer;
-      int active_handles;
-      bool timer_started;
-      bool callbacks_set;
+      struct sock_ctx {
+        uv_poll_t poll;
+        curl_socket_t sock;
+        async_http_context_t* ctx;
+      };
+
+      CURLM* multi_handle = nullptr;
+      std::unordered_map<curl_socket_t, sock_ctx*> polls;
+      uv_timer_t timeout_timer{};
+      bool timeout_timer_active = false;
+      std::vector<std::shared_ptr<async_http_request_t>> active_requests;
+
+      async_http_context_t() {
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+        multi_handle = curl_multi_init();
+        if (multi_handle) {
+          curl_multi_setopt(multi_handle, CURLMOPT_MAXCONNECTS, 10L);
+          curl_multi_setopt(multi_handle, CURLMOPT_SOCKETFUNCTION, &async_http_context_t::socket_cb);
+          curl_multi_setopt(multi_handle, CURLMOPT_SOCKETDATA, this);
+          curl_multi_setopt(multi_handle, CURLMOPT_TIMERFUNCTION, &async_http_context_t::timer_cb);
+          curl_multi_setopt(multi_handle, CURLMOPT_TIMERDATA, this);
+        }
+        uv_loop_t* loop = fan::event::get_loop();
+        uv_timer_init(loop, &timeout_timer);
+        timeout_timer.data = this;
+      }
+
+      ~async_http_context_t() {
+        for (auto& kv : polls) {
+          auto* c = kv.second;
+          if (c) {
+            uv_poll_stop(&c->poll);
+            uv_close(reinterpret_cast<uv_handle_t*>(&c->poll), [](uv_handle_t* h) {
+              auto* cctx = reinterpret_cast<sock_ctx*>(h->data);
+              delete cctx;
+              });
+          }
+        }
+        polls.clear();
+        if (timeout_timer_active) {
+          uv_timer_stop(&timeout_timer);
+          timeout_timer_active = false;
+        }
+        uv_close(reinterpret_cast<uv_handle_t*>(&timeout_timer), nullptr);
+        if (multi_handle) {
+          curl_multi_cleanup(multi_handle);
+          multi_handle = nullptr;
+        }
+        curl_global_cleanup();
+      }
 
       static async_http_context_t& instance() {
         static async_http_context_t ctx;
         return ctx;
       }
 
-      async_http_context_t() : multi_handle(nullptr), active_handles(0),
-        timer_started(false), callbacks_set(false) {
-        multi_handle = curl_multi_init();
-        uv_timer_init(fan::event::get_loop(), &timeout_timer);
-        timeout_timer.data = this;
-      }
-
-      ~async_http_context_t() {
-        if (multi_handle) {
-          curl_multi_cleanup(multi_handle);
-        }
-      }
-    };
-
-    struct async_http_request_t {
-      CURL* easy_handle;
-      struct curl_slist* headers_list;
-      std::coroutine_handle<> co_handle;
-      curl_data_t response_data;
-      CURLcode result;
-      bool completed;
-      std::string post_data; // Keep post data alive
-
-      async_http_request_t() : easy_handle(nullptr), headers_list(nullptr),
-        completed(false), result(CURLE_OK) {
-        easy_handle = curl_easy_init();
-        if (easy_handle) {
-          curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, write_body);
-          curl_easy_setopt(easy_handle, CURLOPT_WRITEDATA, &response_data);
-          curl_easy_setopt(easy_handle, CURLOPT_HEADERFUNCTION, write_headers);
-          curl_easy_setopt(easy_handle, CURLOPT_HEADERDATA, &response_data);
-          curl_easy_setopt(easy_handle, CURLOPT_PRIVATE, this);
-        }
-      }
-
-      ~async_http_request_t() {
-        if (headers_list) {
-          curl_slist_free_all(headers_list);
-        }
-        if (easy_handle) {
-          curl_easy_cleanup(easy_handle);
-        }
-      }
-
-      async_http_request_t(const async_http_request_t&) = delete;
-      async_http_request_t& operator=(const async_http_request_t&) = delete;
-      async_http_request_t(async_http_request_t&& other) noexcept
-        : easy_handle(other.easy_handle), headers_list(other.headers_list),
-        co_handle(other.co_handle), response_data(std::move(other.response_data)),
-        result(other.result), completed(other.completed),
-        post_data(std::move(other.post_data)) {
-        other.easy_handle = nullptr;
-        other.headers_list = nullptr;
-        if (easy_handle) {
-          curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, write_body);
-          curl_easy_setopt(easy_handle, CURLOPT_WRITEDATA, &response_data);
-          curl_easy_setopt(easy_handle, CURLOPT_HEADERFUNCTION, write_headers);
-          curl_easy_setopt(easy_handle, CURLOPT_HEADERDATA, &response_data);
-          curl_easy_setopt(easy_handle, CURLOPT_PRIVATE, this);
-        }
-      }
-
-      static size_t write_body(void* data, size_t size, size_t nmemb, curl_data_t* response) {
-        size_t total = size * nmemb;
-        response->body.append(static_cast<char*>(data), total);
-        return total;
-      }
-
-      static size_t write_headers(void* data, size_t size, size_t nmemb, curl_data_t* response) {
-        size_t total = size * nmemb;
-        response->headers.append(static_cast<char*>(data), total);
-        return total;
-      }
-
-      bool await_ready() const { return completed; }
-
-      void await_suspend(std::coroutine_handle<> h) {
-        co_handle = h;
-        auto& ctx = async_http_context_t::instance();
-
-        // Set up the multi interface callbacks if not already done
-        if (!ctx.callbacks_set) {
-          curl_multi_setopt(ctx.multi_handle, CURLMOPT_SOCKETFUNCTION, socket_callback);
-          curl_multi_setopt(ctx.multi_handle, CURLMOPT_SOCKETDATA, &ctx);
-          curl_multi_setopt(ctx.multi_handle, CURLMOPT_TIMERFUNCTION, timer_function);
-          curl_multi_setopt(ctx.multi_handle, CURLMOPT_TIMERDATA, &ctx);
-          ctx.callbacks_set = true;
-        }
-
-        curl_multi_add_handle(ctx.multi_handle, easy_handle);
-
-        // Kick off the multi interface
-        int running_handles;
-        curl_multi_socket_action(ctx.multi_handle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
-        check_multi_info(&ctx);
-      }
-
-      std::expected<response_t, CURLcode> await_resume() {
-        if (result != CURLE_OK) {
-          return std::unexpected(result);
-        }
-
-        response_t response;
-        curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &response_data.status_code);
-        response.status_code = static_cast<int>(response_data.status_code);
-        response.body = std::move(response_data.body);
-        parse_response_headers(response_data.headers, response);
-
-        return response;
-      }
-
-    private:
-      static void timer_callback(uv_timer_t* handle) {
-        auto* ctx = static_cast<async_http_context_t*>(handle->data);
-        ctx->timer_started = false;
-
-        int running_handles;
-        curl_multi_socket_action(ctx->multi_handle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
-        check_multi_info(ctx);
-      }
-
-      static void poll_callback(uv_poll_t* handle, int status, int events) {
-        auto* ctx = &async_http_context_t::instance();
-        int flags = 0;
-        if (events & UV_READABLE) flags |= CURL_CSELECT_IN;
-        if (events & UV_WRITABLE) flags |= CURL_CSELECT_OUT;
-
-        curl_socket_t sockfd = static_cast<curl_socket_t>(reinterpret_cast<intptr_t>(handle->data));
-
-        int running_handles;
-        curl_multi_socket_action(ctx->multi_handle, sockfd, flags, &running_handles);
-        check_multi_info(ctx);
-      }
-
-      static int socket_callback(CURL* easy, curl_socket_t sockfd, int what, void* userp, void* socketp) {
+      static int socket_cb(CURL*, curl_socket_t s, int what, void* userp, void* socketp) {
         auto* ctx = static_cast<async_http_context_t*>(userp);
+        auto* cctx = static_cast<sock_ctx*>(socketp);
+        switch (what) {
+        case CURL_POLL_IN:
+        case CURL_POLL_OUT:
+        case CURL_POLL_INOUT: {
+          if (!cctx) {
+            cctx = ctx->create_sock_ctx(s);
+            if (!cctx) {
+              curl_multi_assign(ctx->multi_handle, s, nullptr);
+              return 0;
+            }
+            curl_multi_assign(ctx->multi_handle, s, cctx);
+          }
+          int uv_events = 0;
+          if (what != CURL_POLL_OUT) {
+            uv_events |= UV_READABLE;
+          }
+          if (what != CURL_POLL_IN) {
+            uv_events |= UV_WRITABLE;
+          }
+          uv_poll_start(&cctx->poll, uv_events, &async_http_context_t::poll_cb);
+          break;
+        }
+        case CURL_POLL_REMOVE: {
+          if (cctx) {
+            ctx->destroy_sock_ctx(cctx);
+            curl_multi_assign(ctx->multi_handle, s, nullptr);
+          }
+          break;
+        }
+        default: break;
+        }
+        return 0;
+      }
 
-        if (what == CURL_POLL_REMOVE) {
-          if (socketp) {
-            uv_poll_t* poll_handle = static_cast<uv_poll_t*>(socketp);
-            uv_poll_stop(poll_handle);
-            uv_close(reinterpret_cast<uv_handle_t*>(poll_handle), [](uv_handle_t* handle) {
-              delete reinterpret_cast<uv_poll_t*>(handle);
-              });
+      static int timer_cb(CURLM*, long timeout_ms, void* userp) {
+        auto* ctx = static_cast<async_http_context_t*>(userp);
+        if (timeout_ms < 0) {
+          if (ctx->timeout_timer_active) {
+            uv_timer_stop(&ctx->timeout_timer);
+            ctx->timeout_timer_active = false;
           }
           return 0;
         }
-
-        uv_poll_t* poll_handle = static_cast<uv_poll_t*>(socketp);
-        if (!poll_handle) {
-          poll_handle = new uv_poll_t;
-          uv_poll_init_socket(fan::event::get_loop(), poll_handle, sockfd);
-          poll_handle->data = reinterpret_cast<void*>(static_cast<intptr_t>(sockfd));
-          curl_multi_assign(ctx->multi_handle, sockfd, poll_handle);
+        if (!ctx->timeout_timer_active) {
+          ctx->timeout_timer.data = ctx;
+          ctx->timeout_timer_active = true;
         }
-
-        int events = 0;
-        if (what & CURL_POLL_IN) events |= UV_READABLE;
-        if (what & CURL_POLL_OUT) events |= UV_WRITABLE;
-
-        uv_poll_start(poll_handle, events, poll_callback);
+        if (timeout_ms == 0) {
+          timeout_ms = 1;
+        }
+        uv_timer_start(&ctx->timeout_timer, &async_http_context_t::timeout_cb, static_cast<uint64_t>(timeout_ms), 0);
         return 0;
       }
 
-      static int timer_function(CURLM* multi, long timeout_ms, void* userp) {
-        auto* ctx = static_cast<async_http_context_t*>(userp);
+      static void timeout_cb(uv_timer_t* handle) {
+        auto* ctx = static_cast<async_http_context_t*>(handle->data);
+        ctx->timeout_timer_active = false;
+        int still_running = 0;
+        curl_multi_socket_action(ctx->multi_handle, CURL_SOCKET_TIMEOUT, 0, &still_running);
+        ctx->drain_multi();
+      }
 
-        if (timeout_ms < 0) {
-          if (ctx->timer_started) {
-            uv_timer_stop(&ctx->timeout_timer);
-            ctx->timer_started = false;
-          }
+      static void poll_cb(uv_poll_t* req, int status, int events) {
+        auto* cctx = static_cast<sock_ctx*>(req->data);
+        auto* ctx = cctx->ctx;
+        int flags = 0;
+        if (events & UV_READABLE) {
+          flags |= CURL_CSELECT_IN;
         }
-        else {
-          if (timeout_ms == 0) timeout_ms = 1;  // minimum 1ms
-          uv_timer_start(&ctx->timeout_timer, timer_callback, timeout_ms, 0);
-          ctx->timer_started = true;
+        if (events & UV_WRITABLE) {
+          flags |= CURL_CSELECT_OUT;
         }
-        return 0;
-      }
-
-      static void check_multi_info(async_http_context_t* ctx) {
-        CURLMsg* msg;
-        int msgs_left;
-
-        while ((msg = curl_multi_info_read(ctx->multi_handle, &msgs_left))) {
-          if (msg->msg == CURLMSG_DONE) {
-            CURL* easy_handle = msg->easy_handle;
-            async_http_request_t* request;
-            curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &request);
-
-            request->result = msg->data.result;
-            request->completed = true;
-
-            curl_multi_remove_handle(ctx->multi_handle, easy_handle);
-
-            if (request->co_handle) {
-              request->co_handle.resume();
-            }
-          }
+        if (status < 0) {
+          flags |= CURL_CSELECT_ERR;
         }
+        int still_running = 0;
+        curl_multi_socket_action(ctx->multi_handle, cctx->sock, flags, &still_running);
+        ctx->drain_multi();
       }
 
-      void parse_response_headers(const std::string& header_str, response_t& response) {
-        size_t pos = 0;
-        while (pos < header_str.length()) {
-          size_t end = header_str.find('\n', pos);
-          if (end == std::string::npos) {
-            end = header_str.length();
-          }
-
-          std::string line = header_str.substr(pos, end - pos);
-          if (!line.empty() && line.back() == '\r') {
-            line.pop_back();
-          }
-
-          size_t colon = line.find(':');
-          if (colon != std::string::npos && colon > 0) {
-            std::string key = line.substr(0, colon);
-            std::string value = line.substr(colon + 1);
-
-            if (!value.empty() && value.front() == ' ') {
-              value = value.substr(1);
-            }
-
-            response.headers[key] = value;
-          }
-
-          pos = end + 1;
+      sock_ctx* create_sock_ctx(curl_socket_t s) {
+        auto* c = new sock_ctx{};
+        c->sock = s;
+        c->ctx = this;
+        int rc = uv_poll_init_socket(fan::event::get_loop(), &c->poll, s);
+        if (rc != 0) {
+          delete c;
+          return nullptr;
         }
+        c->poll.data = c;
+        polls[s] = c;
+        return c;
       }
-    };
 
-    struct curl_global_manager_t {
-      curl_global_manager_t() {
-        curl_global_init(CURL_GLOBAL_DEFAULT);
-      }
-      ~curl_global_manager_t() {
-        curl_global_cleanup();
-      }
-      static void init() {
-        static curl_global_manager_t curl_manager;
-      }
-    };
-    std::string strerror(CURLcode code) {
-      return curl_easy_strerror(code);
-    }
-
-    struct async_http_client_t {
-      std::string base_url;
-      http_config_t config;
-
-      async_http_client_t(const std::string& url, const http_config_t& cfg = {})
-        : base_url(url), config(cfg) {
-        static std::once_flag curl_init_flag;
-        std::call_once(curl_init_flag, []() {
-          curl_global_manager_t::init();
+      void destroy_sock_ctx(sock_ctx* c) {
+        if (!c) {
+          return;
+        }
+        polls.erase(c->sock);
+        uv_poll_stop(&c->poll);
+        uv_close(reinterpret_cast<uv_handle_t*>(&c->poll), [](uv_handle_t* h) {
+          auto* cctx = reinterpret_cast<sock_ctx*>(h->data);
+          delete cctx;
           });
       }
 
-      fan::event::task_value_resume_t<std::expected<response_t, std::string>> request(
-        const std::string& method,
-        const std::string& path,
-        const std::unordered_map<std::string, std::string>& headers = {},
-        const std::string& body = ""
-      ) {
-        async_http_request_t request;
-        std::string url = base_url + path;
-
-        if (curl_easy_setopt(request.easy_handle, CURLOPT_URL, url.c_str()) != CURLE_OK) {
-          co_return std::unexpected("Failed to set URL");
+      void add_request(const std::shared_ptr<async_http_request_t>& req) {
+        if (!req || !req->easy_handle) {
+          return;
         }
-
-        curl_easy_setopt(request.easy_handle, CURLOPT_FOLLOWLOCATION, config.follow_redirects ? 1L : 0L);
-        curl_easy_setopt(request.easy_handle, CURLOPT_TIMEOUT, config.timeout_seconds);
-        curl_easy_setopt(request.easy_handle, CURLOPT_USERAGENT, config.user_agent.c_str());
-        curl_easy_setopt(request.easy_handle, CURLOPT_SSL_VERIFYPEER, config.verify_ssl ? 1L : 0L);
-        curl_easy_setopt(request.easy_handle, CURLOPT_SSL_VERIFYHOST, config.verify_ssl ? 2L : 0L);
-
-        if (config.enable_http2) {
-          curl_easy_setopt(request.easy_handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
+        for (const auto& kv : req->headers_map) {
+          std::string h = kv.first + ": " + kv.second;
+          req->curl_headers = curl_slist_append(req->curl_headers, h.c_str());
         }
-        if (config.keep_alive) {
-          curl_easy_setopt(request.easy_handle, CURLOPT_TCP_KEEPALIVE, 1L);
+        if (req->curl_headers) {
+          curl_easy_setopt(req->easy_handle, CURLOPT_HTTPHEADER, req->curl_headers);
         }
-
-        curl_easy_setopt(request.easy_handle, CURLOPT_CAINFO, config.ca_cert_path.c_str());
-        curl_easy_setopt(request.easy_handle, CURLOPT_ACCEPT_ENCODING, "");
-
-        for (const auto& [key, value] : headers) {
-          std::string header_str = key + ": " + value;
-          request.headers_list = curl_slist_append(request.headers_list, header_str.c_str());
+        curl_easy_setopt(req->easy_handle, CURLOPT_PRIVATE, req.get());
+        CURLMcode rc = curl_multi_add_handle(multi_handle, req->easy_handle);
+        if (rc != CURLM_OK) {
+          req->error_message = curl_multi_strerror(rc);
+          if (req->awaiting) {
+            auto h = req->awaiting;
+            req->awaiting = {};
+            h.resume();
+          }
+          return;
         }
-        if (request.headers_list) {
-          curl_easy_setopt(request.easy_handle, CURLOPT_HTTPHEADER, request.headers_list);
-        }
+        active_requests.push_back(req);
+        int still_running = 0;
+        curl_multi_socket_action(multi_handle, CURL_SOCKET_TIMEOUT, 0, &still_running);
+        drain_multi();
+      }
 
-        if (method == "POST") {
-          curl_easy_setopt(request.easy_handle, CURLOPT_POST, 1L);
-          if (!body.empty()) {
-            request.post_data = body;
-            curl_easy_setopt(request.easy_handle, CURLOPT_POSTFIELDS, request.post_data.c_str());
-            curl_easy_setopt(request.easy_handle, CURLOPT_POSTFIELDSIZE, request.post_data.length());
+      void drain_multi() {
+        CURLMsg* msg = nullptr;
+        int msgs_left = 0;
+        while ((msg = curl_multi_info_read(multi_handle, &msgs_left))) {
+          if (msg->msg != CURLMSG_DONE) {
+            continue;
+          }
+          CURL* easy = msg->easy_handle;
+          async_http_request_t* raw_req = nullptr;
+          curl_easy_getinfo(easy, CURLINFO_PRIVATE, &raw_req);
+
+          auto it = std::find_if(active_requests.begin(), active_requests.end(), [raw_req](const std::shared_ptr<async_http_request_t>& p) {
+            return p.get() == raw_req;
+            });
+          if (it == active_requests.end()) {
+            curl_multi_remove_handle(multi_handle, easy);
+            continue;
+          }
+
+          auto sp = *it;
+          active_requests.erase(it);
+
+          long code = 0;
+          curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &code);
+          sp->response.status_code = static_cast<int>(code);
+          sp->completed.store(true);
+          curl_multi_remove_handle(multi_handle, easy);
+
+          if (msg->data.result != CURLE_OK && sp->error_message.empty()) {
+            sp->error_message = curl_easy_strerror(msg->data.result);
+          }
+
+          if (sp->awaiting) {
+            auto h = sp->awaiting;
+            sp->awaiting = {};
+            h.resume();
           }
         }
-        else if (method == "PUT") {
-          curl_easy_setopt(request.easy_handle, CURLOPT_CUSTOMREQUEST, "PUT");
-          if (!body.empty()) {
-            request.post_data = body;
-            curl_easy_setopt(request.easy_handle, CURLOPT_POSTFIELDS, request.post_data.c_str());
-            curl_easy_setopt(request.easy_handle, CURLOPT_POSTFIELDSIZE, request.post_data.length());
-          }
-        }
-        else if (method == "DELETE") {
-          curl_easy_setopt(request.easy_handle, CURLOPT_CUSTOMREQUEST, "DELETE");
-        }
-        else {
-          curl_easy_setopt(request.easy_handle, CURLOPT_HTTPGET, 1L);
-        }
-
-        auto result = co_await request;
-        if (!result) {
-          co_return std::unexpected(fan::network::strerror(result.error()));
-        }
-
-        co_return result.value();
-      }
-
-      fan::event::task_value_resume_t<std::expected<response_t, std::string>> get(const std::string& path) {
-        co_return co_await request("GET", path);
-      }
-
-      fan::event::task_value_resume_t<std::expected<response_t, std::string>> get(
-        const std::string& path,
-        const std::unordered_map<std::string, std::string>& headers
-      ) {
-        co_return co_await request("GET", path, headers);
-      }
-
-      fan::event::task_value_resume_t<std::expected<response_t, std::string>> post(
-        const std::string& path,
-        const fan::json& data
-      ) {
-        std::unordered_map<std::string, std::string> headers = {
-            {"Content-Type", "application/json"}
-        };
-        co_return co_await request("POST", path, headers, data.dump());
-      }
-
-      fan::event::task_value_resume_t<std::expected<response_t, std::string>> put(
-        const std::string& path,
-        const fan::json& data
-      ) {
-        std::unordered_map<std::string, std::string> headers = {
-            {"Content-Type", "application/json"}
-        };
-        co_return co_await request("PUT", path, headers, data.dump());
-      }
-
-      fan::event::task_value_resume_t<std::expected<response_t, std::string>> delete_(const std::string& path) {
-        co_return co_await request("DELETE", path);
       }
     };
 
-    using http_client_t = async_http_client_t;
-    using https_client_t = async_http_client_t;
-    using http2_client_t = async_http_client_t;
+    inline void async_http_request_t::await_suspend(std::coroutine_handle<> h) {
+      awaiting = h;
+      async_http_context_t::instance().add_request(shared_from_this());
+    }
 
-    std::string extract_header(const std::string& request, const std::string& header_name) {
-      std::string needle = header_name;
-      std::transform(needle.begin(), needle.end(), needle.begin(),
-        [](unsigned char c) { return std::tolower(c); });
-      needle += ":";
+    namespace http {
 
-      size_t pos = 0;
-      while (pos < request.size()) {
-        size_t end = request.find("\r\n", pos);
-        if (end == std::string::npos) end = request.size();
-
-        std::string line = request.substr(pos, end - pos);
-        std::string lower_line = line;
-        std::transform(lower_line.begin(), lower_line.end(), lower_line.begin(),
-          [](unsigned char c) { return std::tolower(c); });
-
-        if (lower_line.rfind(needle, 0) == 0) {
-          size_t colon = line.find(':');
-          if (colon != std::string::npos) {
-            std::string value = line.substr(colon + 1);
-            size_t start = value.find_first_not_of(" \t");
-            size_t stop = value.find_last_not_of(" \t");
-            if (start != std::string::npos)
-              return value.substr(start, stop - start + 1);
-          }
-        }
-
-        pos = end + 2;
+      inline fan::event::task_value_resume_t<std::expected<http_response_t, std::string>>
+        get(const std::string& url, const http_config_t& cfg) {
+        auto req = std::make_shared<async_http_request_t>(url, cfg);
+        co_return co_await *req;
       }
-      return {};
-    }
 
-    std::string websocket_accept_key(const std::string& sec_websocket_key) {
-      static const std::string magic_guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-
-      // Step 1 & 2: concatenate key + magic GUID
-      std::string combined = sec_websocket_key + magic_guid;
-
-      // Step 3: SHA-1 hash
-      unsigned char sha1_digest[SHA_DIGEST_LENGTH]; // 20 bytes
-      SHA1(reinterpret_cast<const unsigned char*>(combined.data()),
-        combined.size(),
-        sha1_digest);
-
-      // Step 4: Base64 encode
-      std::vector<uint8_t> digest_vec(sha1_digest, sha1_digest + SHA_DIGEST_LENGTH);
-      return fan::base64_encode(digest_vec);
-    }
-
-    // -------------------------------HTTP/REST-------------------------------
-  #endif
-  } // network
+    } // namespace http
+  } // namespace network
+// -------------------------------HTTP/REST-------------------------------
+#endif
 }
+
 
 fan::network::client_handler_t::nr_t fan::network::client_handler_t::add_client() {
   nr_t nr = client_list.NewNodeLast();
@@ -2683,3 +2507,5 @@ fan::network::client_handler_t::nr_t fan::network::client_handler_t::add_client(
   client_list[nr]->nr = nr;
   return nr;
 }
+
+//bool fan::network::async_http_request_awaitable::await_ready() noexcept { return req->completed; }
