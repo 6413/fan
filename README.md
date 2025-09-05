@@ -53,6 +53,8 @@ Library plans to use modules in future.
 
 - Hello world rectangle:
     ```cpp
+    // Creates graphics engine that opens a window and draws:
+    // red rectangle at the position (400, 400), size 200x200 in pixels.
     import fan;
 
     int main() {
@@ -69,6 +71,9 @@ Library plans to use modules in future.
     ```
 - Text rendering:
   ```cpp
+  // Creates graphics engine that opens a window and draws:
+  // red text at the top-left of window (0, 0) and
+  // green text at the bottom-right using immediate-mode GUI.
   import fan;
   
   int main() {
