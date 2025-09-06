@@ -73,6 +73,81 @@ export namespace fan {
     std::array<fan::vec2, 2> m_array;
   };
 
+  template <typename type_t>
+  struct _matrix4x4;
+
+  template <typename type_t>
+  struct _matrix3x3 {
+
+    using value_type = fan::vec3_wrap_t<type_t>;
+
+    _matrix3x3() = default;
+    template <typename T>
+    constexpr _matrix3x3(T x1, T y1, T z1,
+      T x2, T y2, T z2,
+      T x3, T y3, T z3)
+      : m_array{ fan::vec3{x1, y1, z1}, fan::vec3{x2, y2, z2}, fan::vec3{x3, y3, z3} } {
+    }
+    template <typename T, typename T2, typename T3>
+    constexpr _matrix3x3(const fan::vec3_wrap_t<T>& v1,
+      const fan::vec3_wrap_t<T2>& v2,
+      const fan::vec3_wrap_t<T3>& v3)
+      : m_array{ v1.x, v1.y, v1.z, v2.x, v2.y, v2.z, v3.x, v3.y, v3.z } {
+    }
+
+    template <typename T>
+    explicit _matrix3x3(const _matrix4x4<T>& mat4);
+    operator _matrix4x4<type_t>() const;
+
+    constexpr _matrix3x3 operator+(const fan::vec3_wrap_t<type_t>& v) const {
+      return _matrix3x3(
+        m_array[0][0] + v[0], m_array[0][1] + v[1], m_array[0][2] + v[2],
+        m_array[1][0] + v[0], m_array[1][1] + v[1], m_array[1][2] + v[2],
+        m_array[2][0] + v[0], m_array[2][1] + v[1], m_array[2][2] + v[2]
+      );
+    }
+    template <typename T>
+    constexpr fan::vec3_wrap_t<T> operator*(const fan::vec3_wrap_t<T>& v) const {
+      return fan::vec3_wrap_t<T>(
+        m_array[0][0] * v.x + m_array[0][1] * v.y + m_array[0][2] * v.z,
+        m_array[1][0] * v.x + m_array[1][1] * v.y + m_array[1][2] * v.z,
+        m_array[2][0] * v.x + m_array[2][1] * v.y + m_array[2][2] * v.z
+      );
+    }
+    static fan::vec3 rotate_z(const fan::vec3& v, f32_t angle) {
+      f32_t c = cos(angle);
+      f32_t s = sin(angle);
+      return fan::vec3(
+        v.x * c - v.y * s,
+        v.x * s + v.y * c,
+        v.z
+      );
+    }
+    constexpr fan::vec3 operator[](const uintptr_t i) const {
+      return m_array[i];
+    }
+
+    constexpr fan::vec3& operator[](const uintptr_t i) {
+      return m_array[i];
+    }
+    
+    template <typename T>
+    friend std::ostream& operator<<(std::ostream& os, const _matrix3x3<T>& matrix)
+    {
+      for (uintptr_t i = 0; i < 3; i++) {
+        for (uintptr_t j = 0; j < 3; j++) {
+          os << matrix[j][i] << ' ';
+        }
+        os << '\n';
+      }
+      return os;
+    }
+
+  protected:
+    std::array<fan::vec3, 3> m_array;
+  };
+
+
   template <typename T>
   inline constexpr fan::quaternion<T> inverse(const fan::quaternion<T>& q) {
     return q.inverse();
@@ -400,28 +475,15 @@ export namespace fan {
       );
 		}
 
-		constexpr _matrix4x4 scale(const fan::vec3& v) const {
-			_matrix4x4 matrix{};
+    constexpr _matrix4x4 scale(const fan::vec3& v) const {
+      _matrix4x4 matrix(*this);
 
-			matrix[0][0] = (*this)[0][0] * v[0];
-			matrix[0][1] = (*this)[0][1] * v[0];
-			matrix[0][2] = (*this)[0][2] * v[0];
+      matrix[0][0] *= v[0]; matrix[0][1] *= v[0]; matrix[0][2] *= v[0];
+      matrix[1][0] *= v[1]; matrix[1][1] *= v[1]; matrix[1][2] *= v[1];
+      matrix[2][0] *= v[2]; matrix[2][1] *= v[2]; matrix[2][2] *= v[2];
 
-			matrix[1][0] = (*this)[1][0] * v[1];
-			matrix[1][1] = (*this)[1][1] * v[1];
-			matrix[1][2] = (*this)[1][2] * v[1];
-
-			matrix[2][0] = (v.size() < 3 ? 0 : (*this)[2][0] * v[2]);
-			matrix[2][1] = (v.size() < 3 ? 0 : (*this)[2][1] * v[2]);
-			matrix[2][2] = (v.size() < 3 ? 0 : (*this)[2][2] * v[2]);
-
-			matrix[3][0] = (*this)[3][0];
-			matrix[3][1] = (*this)[3][1];
-			matrix[3][2] = (*this)[3][2];
-
-			matrix[3] = (*this)[3];
-			return matrix;
-		}
+      return matrix;
+    }
 
     // sets rotation to specific angle
 		constexpr _matrix4x4 rotation_set(f32_t angle, const fan::vec3& v) const {
@@ -974,14 +1036,62 @@ export namespace fan {
     return m.inverse();
   }
 
-  using matrix4x4 = _matrix4x4<cf_t>;
-  using matrix4x4ui = _matrix4x4<uintptr_t>;
-  using mat4x4 = matrix4x4;
-  using mat4x4ui = matrix4x4ui;
-  using mat4 = mat4x4;
   using mat2x2 = _matrix2x2<cf_t>;
   using mat2x2ui = _matrix2x2<uintptr_t>;
   using mat2 = mat2x2;
   using mat2ui = mat2x2ui;
 
+  using matrix3x3 = _matrix3x3<cf_t>;
+  using matrix3x3ui = _matrix3x3<uintptr_t>;
+  using mat3x3 = matrix3x3;
+  using mat3x3ui = matrix3x3ui;
+  using mat3 = mat3x3;
+
+
+  using matrix4x4 = _matrix4x4<cf_t>;
+  using matrix4x4ui = _matrix4x4<uintptr_t>;
+  using mat4x4 = matrix4x4;
+  using mat4x4ui = matrix4x4ui;
+  using mat4 = mat4x4;
+
+  struct basis {
+    fan::vec3 right;
+    fan::vec3 forward;
+    fan::vec3 up;
+
+    operator fan::mat3() const {
+      return fan::mat3(
+        right.x, right.y, right.z,
+        forward.x, forward.y, forward.z,
+        up.x, up.y, up.z
+      );
+    }
+
+    fan::vec3 operator*(const fan::vec3& v) const {
+      return ((fan::mat3)*this) * v;  // multiply using your mat3 operator
+    }
+  };
+}
+
+template <typename type_t>
+template <typename T>
+fan::_matrix3x3<type_t>::_matrix3x3(const fan::_matrix4x4<T>& mat4) {
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      m_array[i][j] = mat4[i][j];
+    }
+  }
+}
+
+template <typename type_t>
+fan::_matrix3x3<type_t>::operator fan::_matrix4x4<type_t>() const {
+  fan::_matrix4x4<type_t> mat4 = fan::_matrix4x4<type_t>::identity();
+
+  for (int i = 0; i < 3; ++i) {
+    mat4[i][0] = m_array[i][0];
+    mat4[i][1] = m_array[i][1];
+    mat4[i][2] = m_array[i][2];
+  }
+
+  return mat4;
 }

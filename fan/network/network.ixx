@@ -2263,7 +2263,6 @@ export namespace fan {
         curl_global_init(CURL_GLOBAL_DEFAULT);
         multi_handle = curl_multi_init();
         if (multi_handle) {
-          curl_multi_setopt(multi_handle, CURLMOPT_MAXCONNECTS, 10L);
           curl_multi_setopt(multi_handle, CURLMOPT_SOCKETFUNCTION, &async_http_context_t::socket_cb);
           curl_multi_setopt(multi_handle, CURLMOPT_SOCKETDATA, this);
           curl_multi_setopt(multi_handle, CURLMOPT_TIMERFUNCTION, &async_http_context_t::timer_cb);
@@ -2409,7 +2408,7 @@ export namespace fan {
         uv_close(reinterpret_cast<uv_handle_t*>(&c->poll), [](uv_handle_t* h) {
           auto* cctx = reinterpret_cast<sock_ctx*>(h->data);
           delete cctx;
-          });
+        });
       }
 
       void add_request(const std::shared_ptr<async_http_request_t>& req) {
@@ -2481,19 +2480,34 @@ export namespace fan {
       }
     };
 
-    inline void async_http_request_t::await_suspend(std::coroutine_handle<> h) {
+    void async_http_request_t::await_suspend(std::coroutine_handle<> h) {
       awaiting = h;
       async_http_context_t::instance().add_request(shared_from_this());
     }
 
     namespace http {
 
-      inline fan::event::task_value_resume_t<std::expected<http_response_t, std::string>>
+      fan::event::task_value_resume_t<std::expected<http_response_t, std::string>>
         get(const std::string& url, const http_config_t& cfg) {
+        co_return co_await *std::make_shared<async_http_request_t>(url, cfg);
+      }
+      fan::event::task_value_resume_t<std::expected<http_response_t, std::string>>
+        post(const std::string& url,
+          const std::string& body,
+          const std::unordered_map<std::string, std::string>& headers = {},
+          const http_config_t& cfg = {}
+        )
+      {
         auto req = std::make_shared<async_http_request_t>(url, cfg);
+
+        req->headers_map = headers;
+
+        curl_easy_setopt(req->easy_handle, CURLOPT_POST, 1L);
+        curl_easy_setopt(req->easy_handle, CURLOPT_POSTFIELDS, body.c_str());
+        curl_easy_setopt(req->easy_handle, CURLOPT_POSTFIELDSIZE, body.size());
+
         co_return co_await *req;
       }
-
     } // namespace http
   } // namespace network
 // -------------------------------HTTP/REST-------------------------------

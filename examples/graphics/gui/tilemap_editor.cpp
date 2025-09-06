@@ -1,5 +1,8 @@
 import fan;
 
+import fan.graphics.gui.tilemap_editor.renderer;
+import fan.graphics.gui.tilemap_editor.editor;
+
 #include <box2d/box2d.h>
 
 // editor
