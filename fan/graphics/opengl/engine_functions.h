@@ -188,6 +188,12 @@ void init_framebuffer() {
 
     fan::vec2 window_size = gloco->window.get_size();
 
+    loco.camera_set_ortho(
+      loco.orthographic_render_view.camera,
+      fan::vec2(0, window_size.x),
+      fan::vec2(0, window_size.y)
+    );
+
     loco.viewport_set(loco.orthographic_render_view.viewport, fan::vec2(0, 0), d.size);
     loco.viewport_set(loco.perspective_render_view.viewport, fan::vec2(0, 0), d.size);
   });

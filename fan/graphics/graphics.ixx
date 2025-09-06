@@ -13,6 +13,7 @@ module;
 
 
 #include <filesystem>
+#include <source_location>
 
 #define loco_vfi
 #define loco_line
@@ -94,7 +95,25 @@ export namespace fan {
     using vfi_t = loco_t::vfi_t;
 
     using engine_t = loco_t;
-    using image_t = loco_t::image_t;
+
+    // creates opengl texture
+    struct image_t : loco_t::image_t {
+      using loco_t::image_t::image_t;
+      // for no gloco access
+      explicit image_t(bool) : loco_t::image_t() {}
+      image_t() : loco_t::image_t(gloco->default_texture) {}
+      image_t(loco_t::image_t image) : loco_t::image_t(image) {
+
+      }
+      image_t(const char* path, const std::source_location& callers_path = std::source_location::current())
+        : image_t(std::string(path), callers_path) { }
+      image_t(const std::string& path, const std::source_location& callers_path = std::source_location::current())
+        : loco_t::image_t(gloco->image_load(path, callers_path)) {}
+
+      fan::vec2 get_size() const {
+        return gloco->image_get_data(*this).size;
+      }
+    };
     using render_view_t = loco_t::render_view_t;
     using viewport_t = loco_t::viewport_t;
 
@@ -102,7 +121,7 @@ export namespace fan {
     using shader_t = loco_t::shader_t;
 
     fan::graphics::image_t invalid_image = []{
-      image_t image;
+      image_t image{ false };
       image.sic();
       return image;
     }();
@@ -130,6 +149,10 @@ export namespace fan {
       const loco_t::viewport_t& viewport
     ) {
       return gloco->get_mouse_position(camera, viewport);
+    }
+
+    fan::graphics::render_view_t add_render_view() {
+      return gloco->add_render_view();
     }
 
 #if defined(fan_gui)
@@ -343,6 +366,7 @@ export namespace fan {
         fan::color color = fan::color(1, 1, 1, 1);
         f32_t thickness = 4.0f;
         bool blending = true;
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
       };
 
       struct line_t : loco_t::shape_t {
@@ -358,7 +382,8 @@ export namespace fan {
               .dst = p.dst,
               .color = p.color,
               .thickness = p.thickness,
-              .blending = p.blending
+              .blending = p.blending,
+              .draw_mode = p.draw_mode
             ));
         }
       };
@@ -511,6 +536,7 @@ export namespace fan {
       fan::vec2 center0 = 0;
       fan::vec2 center1{0, 128.f};
       f32_t radius = 64.0f;
+      fan::vec3 angle = 0.f;
       fan::color color = fan::color(1, 1, 1, 1);
       fan::color outline_color = color;
       bool blending = true;
@@ -530,6 +556,7 @@ export namespace fan {
             .center0 = p.center0,
             .center1 = p.center1,
             .radius = p.radius,
+            .angle = p.angle,
             .color = p.color,
             .outline_color = p.outline_color,
             .blending = p.blending,
@@ -541,12 +568,13 @@ export namespace fan {
     using vertex_t = loco_t::vertex_t;
     struct polygon_properties_t {
       render_view_t* render_view = &gloco->orthographic_render_view;
-      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
+      fan::vec3 position = fan::vec3(0, 0, 0);
       std::vector<vertex_t> vertices;
       fan::vec3 angle = 0;
       fan::vec2 rotation_point = 0;
       bool blending = true;
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
+      uint32_t vertex_count = 3;
     };
 
     struct polygon_t : loco_t::shape_t {
@@ -564,7 +592,8 @@ export namespace fan {
             .angle = p.angle,
             .rotation_point = p.rotation_point,
             .blending = p.blending,
-            .draw_mode = p.draw_mode
+            .draw_mode = p.draw_mode,
+            .vertex_count = p.vertex_count
           ));
       }
     };
@@ -1221,7 +1250,132 @@ export namespace fan {
       outline_points.push_back(fan::vec2(position.x, position.y));
       return outline_points;
     }
-  }
+
+    struct trail_segment_t {
+      fan::graphics::polygon_t polygon;
+      std::vector<fan::graphics::vertex_t> vertices;
+      uint64_t creation_time;
+      f32_t base_alpha;
+    };
+
+    struct trail_t {
+      std::vector<trail_segment_t> trails;
+      fan::color color = fan::colors::black.set_alpha(0.5);
+      f32_t thickness = 2.f;
+      uint64_t fade_duration = 2e9;
+      uint64_t max_trail_lifetime = 5e9;
+      loco_t::update_callback_nr_t update_callback_nr;
+
+      trail_t() {
+        update_callback_nr = gloco->m_update_callback.NewNodeLast();
+        gloco->m_update_callback[update_callback_nr] = [this] (loco_t*) {
+          update();
+        };
+      }
+      ~trail_t() {
+        if (!update_callback_nr) {
+          return;
+        }
+        gloco->m_update_callback.unlrec(update_callback_nr);
+        update_callback_nr.sic();
+      }
+
+      void set_point(const fan::vec3& point, f32_t drift_intensity) {
+        static fan::time::timer timer{ 300000000ULL, true };
+        bool should_reset = trails.empty() || timer;
+
+        if (should_reset) {
+          trails.resize(trails.size() + 1);
+          trails.back().vertices.clear();
+          trails.back().creation_time = fan::time::clock::now();
+          trails.back().base_alpha = 0.2f + (drift_intensity * 0.6f);
+        }
+
+        bool start_new_trail = false;
+        if (!trails.empty() && !trails.back().vertices.empty()) {
+          fan::vec3 last_point = trails.back().vertices.back().position;
+          f32_t distance = sqrt(pow(point.x - last_point.x, 2) + pow(point.y - last_point.y, 2));
+          if (distance > 50.0f) {
+            start_new_trail = true;
+          }
+        }
+
+        if (start_new_trail) {
+          trails.resize(trails.size() + 1);
+          trails.back().vertices.clear();
+          trails.back().creation_time = fan::time::clock::now();
+          trails.back().base_alpha = 0.2f + (drift_intensity * 0.6f);
+        }
+
+        fan::vec2 direction = fan::vec2(1, 0);
+        if (trails.back().vertices.size() >= 2) {
+          fan::vec3 last_point = trails.back().vertices[trails.back().vertices.size() - 2].position;
+          fan::vec3 diff = point - last_point;
+          direction = fan::vec2(diff.x, diff.y);
+          f32_t len = sqrt(direction.x * direction.x + direction.y * direction.y);
+          if (len > 0) {
+            direction.x /= len;
+            direction.y /= len;
+          }
+        }
+
+        fan::vec2 perp = fan::vec2(-direction.y, direction.x);
+        fan::graphics::vertex_t vertex;
+        vertex.color = fan::color(color.r, color.g, color.b, trails.back().base_alpha);
+
+        vertex.position = point + fan::vec3(perp.x * thickness * 0.5f, perp.y * thickness * 0.5f, 0);
+        trails.back().vertices.emplace_back(vertex);
+
+        vertex.position = point - fan::vec3(perp.x * thickness * 0.5f, perp.y * thickness * 0.5f, 0);
+        trails.back().vertices.emplace_back(vertex);
+
+        trails.back().polygon = fan::graphics::polygon_t{ {
+          .position = fan::vec3(0, 0, point.z),
+          .vertices = trails.back().vertices,
+          .draw_mode = fan::graphics::primitive_topology_t::triangle_strip,
+        } };
+
+        timer.restart();
+      }
+
+      void update() {
+        uint64_t current_time = fan::time::clock::now();
+
+        for (auto& trail : trails) {
+          uint64_t age = current_time - trail.creation_time;
+          f32_t fade_factor = 1.0f;
+
+          if (age > fade_duration) {
+            fade_factor = std::max(0.0f, 1.0f - static_cast<f32_t>(age - fade_duration) / static_cast<f32_t>(max_trail_lifetime - fade_duration));
+          }
+          f32_t current_alpha = trail.base_alpha * fade_factor;
+
+          for (size_t i = 0; i < trail.vertices.size(); i += 2) {
+            f32_t position_factor = static_cast<f32_t>(i) / static_cast<f32_t>(trail.vertices.size() - 2);
+            f32_t vertex_alpha = current_alpha * (0.2f + 0.8f * position_factor);
+
+            trail.vertices[i].color.a = vertex_alpha;     // left vertex
+            trail.vertices[i + 1].color.a = vertex_alpha;   // right vertex
+          }
+          fan::vec3 pos = trail.polygon.get_position();
+          trail.polygon = {{
+            .position = pos,
+            .vertices = trail.vertices,
+            .draw_mode = fan::graphics::primitive_topology_t::triangle_strip,
+          }};
+        }
+
+        trails.erase(
+          std::remove_if(trails.begin(), trails.end(), [&](const trail_segment_t& trail) {
+            uint64_t age = current_time - trail.creation_time;
+            return age > max_trail_lifetime;
+          }),
+          trails.end()
+        );
+      }
+    };
+
+  } // namespace graphics
 
   struct movement_e {
     fan_enum_string(

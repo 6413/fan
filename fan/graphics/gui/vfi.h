@@ -611,7 +611,7 @@ struct vfi_t {
     ((ri_t*)focus.text.GetData(gloco->shaper))->shape_data->text_cb(text_data);
   }
 
-  fan::vec3 get_position(loco_t::shape_t& in) {
+  fan::vec3 get_position(const loco_t::shape_t& in) {
     auto& shape = *(ri_t*)in.GetData(gloco->shaper);
     switch (shape.shape_type) {
     case vfi_t::shape_t::rectangle: {
@@ -637,7 +637,7 @@ struct vfi_t {
     fan::throw_error("invalid set_position for id");
   }
 
-  fan::vec2 get_size(loco_t::shape_t& in) {
+  fan::vec2 get_size(const loco_t::shape_t& in) {
     auto& shape = *(ri_t*)in.GetData(gloco->shaper);
     switch (shape.shape_type) {
     case vfi_t::shape_t::rectangle: {
@@ -702,7 +702,7 @@ struct vfi_t {
 
     gloco->shaper.SetShapeType(loco_t::shape_type_t::vfi, bp);
 
-    loco_t::get_position_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape) {
+    loco_t::get_position_functions[loco_t::shape_type_t::vfi] = [](const loco_t::shape_t* shape) {
       return gloco->vfi.get_position(*shape);
     };
     loco_t::set_position2_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec2& position) {
@@ -711,7 +711,7 @@ struct vfi_t {
     loco_t::set_position3_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec3& position) {
       gloco->vfi.set_position(*shape, position);
     };
-    loco_t::get_size_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape) {
+    loco_t::get_size_functions[loco_t::shape_type_t::vfi] = [](const loco_t::shape_t* shape) {
       return gloco->vfi.get_size(*shape);
     };
     loco_t::set_size_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec2& size) {

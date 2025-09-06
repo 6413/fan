@@ -1,3 +1,5 @@
+#include <fan/utility.h>
+
 #include <string>
 #include <unordered_map>
 #include <type_traits>

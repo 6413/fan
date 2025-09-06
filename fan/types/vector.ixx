@@ -92,6 +92,11 @@ export namespace fan {
     vec2_wrap_t<T> lerp(const vec2_wrap_t<T>& dst, T t) {
       return { x + t * (dst.x - x), y + t * (dst.y - y) };
     }
+
+    constexpr vec2_wrap_t<value_type_t> perpendicular() const {
+      return { -(*this)[1], (*this)[0] };
+    }
+
   };
 
   template <typename value_type_t>
@@ -260,3 +265,13 @@ export namespace fan {
 #undef fan_coordinate
 
 }
+
+
+export namespace fan {
+  namespace math {
+    template <typename T>
+    constexpr fan::vec2_wrap_t<T> angle_to_vector(const T& angle_radians) {
+      return fan::vec2_wrap_t<T>(std::cos(angle_radians), std::sin(angle_radians));
+    }
+  } // namespace math
+} // namespace fan

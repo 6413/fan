@@ -147,32 +147,35 @@ b2DebugDraw initialize_debug(bool enabled) {
   };
 }
 
-//b2DebugDraw fan::graphics::physics::box2d_debug_draw;
 
 export namespace fan {
   namespace graphics {
     namespace physics {
 
-      //void init() {
-      //box2d_debug_draw = [] {
-      //  auto init_it = fan::graphics::engine_init_cbs.NewNodeLast();
-      //  fan::graphics::engine_init_cbs[init_it] = [](loco_t* loco) {
-      //    auto it = loco->m_update_callback.NewNodeLast();
-      //    loco->m_update_callback[it] = [](loco_t* loco) {
-      //      z_depth = 0;
-      //      debug_draw_polygon.clear();
-      //      debug_draw_solid_polygon.clear();
-      //      debug_draw_circle.clear();
-      //      debug_draw_line.clear();
-      //      //b2World_Draw(loco->physics_context.world_id, &fan::graphics::physics::box2d_debug_draw);
-      //      };
-      //    };
-      //  return initialize_debug(false);
-      //  }(),
-      //}
+      b2DebugDraw box2d_debug_draw{};
+
+      void init() {
+        static bool init_ = true;
+        if (!init_) {
+          return;
+        }
+        init_ = false;
+        box2d_debug_draw = [] {
+        auto it = gloco->m_update_callback.NewNodeLast();
+        gloco->m_update_callback[it] = [](loco_t* loco) {
+          z_depth = 0;
+          debug_draw_polygon.clear();
+          debug_draw_solid_polygon.clear();
+          debug_draw_circle.clear();
+          debug_draw_line.clear();
+          b2World_Draw(loco->physics_context.world_id, &fan::graphics::physics::box2d_debug_draw);
+          };
+        return initialize_debug(false);
+        }();
+      }
 
       void step(f32_t dt);
-      //extern b2DebugDraw box2d_debug_draw;
+      
       void debug_draw(bool enabled);
       // position & aabb & angle
       std::function<void(loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t)> physics_update_cb =
@@ -585,6 +588,7 @@ export namespace fan {
           fan::vec2 center0{ 0, -32.f };
           fan::vec2 center1{ 0, 32.f };
           f32_t radius = 32.f;
+          fan::vec3 angle = 0.f;
           fan::color color = fan::color(1, 1, 1, 1);
           fan::color outline_color = color;
           bool blending = true;
@@ -596,6 +600,7 @@ export namespace fan {
               .center0 = center0,
               .center1 = center1,
               .radius = radius,
+              .angle = angle,
               .color = color,
               .outline_color = outline_color,
               .blending = blending,
@@ -609,7 +614,7 @@ export namespace fan {
         capsule_t() = default;
         capsule_t(const properties_t& p) : base_shape_t(
           loco_t::shape_t(fan::graphics::capsule_t{ p }),
-          fan::physics::entity_t(gloco->physics_context.create_capsule(p.position, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.radius }, p.body_type, p.shape_properties)),
+          fan::physics::entity_t(gloco->physics_context.create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.radius }, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -631,7 +636,7 @@ export namespace fan {
           fan::vec3 position = fan::vec3(0, 0, 0);
           fan::vec2 center0{ 0, -32.f };
           fan::vec2 center1{ 0, 32.f };
-          f32_t radius = 64.0f;
+          fan::vec2 size = 64.0f;
           fan::vec3 angle = 0;
           fan::color color = fan::color(1, 1, 1, 1);
           fan::vec2 rotation_point = 0;
@@ -649,7 +654,7 @@ export namespace fan {
             return fan::graphics::sprite_properties_t{
               .render_view = render_view,
               .position = position,
-              .size = radius,
+              .size = size,
               .angle = angle,
               .color = color,
               .rotation_point = rotation_point,
@@ -664,7 +669,7 @@ export namespace fan {
         capsule_sprite_t() = default;
         capsule_sprite_t(const properties_t& p) : base_shape_t(
           loco_t::shape_t(fan::graphics::sprite_t{ p }),
-          fan::physics::entity_t(gloco->physics_context.create_capsule(p.position, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.radius }, p.body_type, p.shape_properties)),
+          fan::physics::entity_t(gloco->physics_context.create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.size.max()}, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -1378,7 +1383,7 @@ export namespace fan {
               */
               .center0 = fan::vec2(0),
               .center1 = fan::vec2(0),
-              .radius = fan::physics::length_units_per_meter * bone.size.y * bone.scale * scale,
+              .size = fan::physics::length_units_per_meter * bone.size.y * bone.scale * scale,
               .color = color,
               .image = images[i],
               .body_type = fan::physics::body_type_e::dynamic_body,
@@ -1577,7 +1582,8 @@ export namespace fan {
 }
 
 void fan::graphics::physics::debug_draw(bool enabled) {
- // fan::graphics::physics::box2d_debug_draw = initialize_debug(enabled);
+  init();
+  fan::graphics::physics::box2d_debug_draw = initialize_debug(enabled);
 }
 
 export namespace fan::physics {

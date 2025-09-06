@@ -85,10 +85,10 @@ module;
 
 // +cuda
 #if __has_include("cuda.h")
-  #include "cuda_runtime.h"
-  #include <cuda.h>
+  //#include "cuda_runtime.h"
+  //#include <cuda.h>
   #include <nvcuvid.h>
-  #define loco_cuda
+  //#define loco_cuda
 #endif
 
 #undef min
@@ -2818,6 +2818,12 @@ public:
     }
   };
 
+  loco_t::render_view_t add_render_view() {
+    loco_t::render_view_t render_view;
+    render_view.create();
+    return render_view;
+  }
+
   struct input_action_t {
     enum {
       none = -1,
@@ -3029,18 +3035,18 @@ public:
   using set_size_cb = void (*)(loco_t::shape_t*, const fan::vec2&);
   using set_size3_cb = void (*)(loco_t::shape_t*, const fan::vec3&);
 
-  using get_position_cb = fan::vec3(*)(loco_t::shape_t*);
-  using get_size_cb = fan::vec2(*)(loco_t::shape_t*);
-  using get_size3_cb = fan::vec3(*)(loco_t::shape_t*);
+  using get_position_cb = fan::vec3(*)(const loco_t::shape_t*);
+  using get_size_cb = fan::vec2(*)(const loco_t::shape_t*);
+  using get_size3_cb = fan::vec3(*)(const loco_t::shape_t*);
 
   using set_rotation_point_cb = void (*)(loco_t::shape_t*, const fan::vec2&);
   using get_rotation_point_cb = fan::vec2(*)(loco_t::shape_t*);
 
   using set_color_cb = void (*)(loco_t::shape_t*, const fan::color&);
-  using get_color_cb = fan::color(*)(loco_t::shape_t*);
+  using get_color_cb = fan::color(*)(const loco_t::shape_t*);
 
   using set_angle_cb = void (*)(loco_t::shape_t*, const fan::vec3&);
-  using get_angle_cb = fan::vec3(*)(loco_t::shape_t*);
+  using get_angle_cb = fan::vec3(*)(const loco_t::shape_t*);
 
   using get_tc_position_cb = fan::vec2(*)(loco_t::shape_t*);
   using set_tc_position_cb = void (*)(loco_t::shape_t*, const fan::vec2&);
@@ -3074,7 +3080,7 @@ public:
   using get_src_cb = fan::vec3(*)(loco_t::shape_t*);
   using get_dst_cb = fan::vec3(*)(loco_t::shape_t*);
   using get_outline_size_cb = f32_t(*)(loco_t::shape_t*);
-  using get_outline_color_cb = fan::color(*)(loco_t::shape_t*);
+  using get_outline_color_cb = fan::color(*)(const loco_t::shape_t*);
   using set_outline_color_cb = void(*)(loco_t::shape_t*, const fan::color&);
 
   using reload_cb = void (*)(loco_t::shape_t*, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter);
@@ -3581,7 +3587,7 @@ public:
       gloco->shape_functions[get_shape_type()].set_position3(this, position);
     }
 
-    fan::vec3 get_position() {
+    fan::vec3 get_position() const {
       auto shape_type = get_shape_type();
       return gloco->shape_functions[shape_type].get_position(this);
     }
@@ -3594,7 +3600,7 @@ public:
       gloco->shape_functions[get_shape_type()].set_size3(this, size);
     }
 
-    fan::vec2 get_size() {
+    fan::vec2 get_size() const {
       return gloco->shape_functions[get_shape_type()].get_size(this);
     }
 
@@ -3622,8 +3628,44 @@ public:
       gloco->shape_functions[get_shape_type()].set_angle(this, angle);
     }
 
-    fan::vec3 get_angle() {
+    fan::vec3 get_angle() const {
       return gloco->shape_functions[get_shape_type()].get_angle(this);
+    }
+
+    fan::basis get_basis() const {
+      auto zangle = get_angle().z;
+      auto c = std::cos(zangle);
+      auto s = std::sin(zangle);
+
+      return fan::basis{
+        .right = { c, s, 0 },
+        .forward = { s, -c, 0 },
+        .up = { 0, 0, 1 }
+      };
+    }
+
+    fan::vec3 get_forward() const { return get_basis().forward; }
+    fan::vec3 get_right() const { return get_basis().right; }
+    fan::vec3 get_up() const { return get_basis().up; }
+
+    fan::mat3 get_rotation_matrix() const {
+      return get_basis();
+    }
+
+    fan::vec3 transform(const fan::vec3& local) const {
+      // sign conflict, when forward y is -1, then moving y by -1 would move it down when we want it up
+      // so flip the y sign since coordinate system is +y down
+      fan::vec3 flipped_y{ local.x, -local.y, local.z };
+      return get_position() + get_basis() * flipped_y;
+    }
+
+    fan::mat4 get_transform() const {
+      fan::mat4 m = get_rotation_matrix();
+
+      m = m.scale(get_size());
+      m = m.translate(get_position());
+
+      return m;
     }
 
     fan::vec2 get_tc_position() {
@@ -4772,7 +4814,6 @@ void set_sprite_sheet_next_frame(int advance = 1) {
     static constexpr int kpi = kp::common;
 
 
-    // vertex
     struct vi_t {
 
     };
@@ -4803,7 +4844,7 @@ void set_sprite_sheet_next_frame(int advance = 1) {
       loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-      uint32_t vertex_count = 0;
+      uint32_t vertex_count = 3;
     };
     loco_t::shape_t push_back(const properties_t& properties) {
       if (properties.vertices.empty()) {
@@ -5961,6 +6002,16 @@ void set_sprite_sheet_next_frame(int advance = 1) {
 
   fan::audio_t::piece_t piece_hover, piece_click;
 #endif
+  void camera_move_to(const loco_t::shape_t& shape, const loco_t::render_view_t& render_view) {
+    camera_set_position(
+      orthographic_render_view.camera,
+      shape.get_position()
+    );
+  }
+  void camera_move_to(const loco_t::shape_t& shape) {
+    camera_move_to(shape, orthographic_render_view);
+  }
+
 };
 
 #if defined(fan_json)

@@ -363,6 +363,7 @@ export namespace fan {
         static constexpr uint32_t points = GL_POINTS;
         static constexpr uint32_t lines = GL_LINES;
         static constexpr uint32_t line_strip = GL_LINE_STRIP;
+        static constexpr uint32_t line_loop = GL_LINE_LOOP;
         static constexpr uint32_t triangles = GL_TRIANGLES;
         static constexpr uint32_t triangle_strip = GL_TRIANGLE_STRIP;
         static constexpr uint32_t triangle_fan = GL_TRIANGLE_FAN;
@@ -976,8 +977,8 @@ export namespace fan {
         return image_load(colors, size_, fan::opengl::context_t::image_load_properties_t());
       }
 
-      fan::graphics::image_nr_t image_load(const std::string& path) {
-        return image_load(path, fan::opengl::context_t::image_load_properties_t());
+      fan::graphics::image_nr_t image_load(const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
+        return image_load(path, fan::opengl::context_t::image_load_properties_t(), callers_path);
       }
 
       void image_unload(fan::graphics::image_nr_t nr) {
@@ -1718,6 +1719,8 @@ export namespace fan {
           return fan::opengl::context_t::primitive_topology_t::lines;
         case fan::graphics::primitive_topology_t::line_strip:
           return fan::opengl::context_t::primitive_topology_t::line_strip;
+        case fan::graphics::primitive_topology_t::line_loop:
+          return fan::opengl::context_t::primitive_topology_t::line_loop;
         case fan::graphics::primitive_topology_t::triangles:
           return fan::opengl::context_t::primitive_topology_t::triangles;
         case fan::graphics::primitive_topology_t::triangle_strip:
@@ -1798,7 +1801,7 @@ namespace fan {
         return ((fan::opengl::context_t*)context)->image_load(image_info, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
         };
       cf.image_load_path = [](void* context, const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
-        return ((fan::opengl::context_t*)context)->image_load(path);
+        return ((fan::opengl::context_t*)context)->image_load(path, callers_path);
         };
       cf.image_load_path_props = [](void* context, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
         return ((fan::opengl::context_t*)context)->image_load(path, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));

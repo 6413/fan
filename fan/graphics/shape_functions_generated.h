@@ -423,35 +423,35 @@ inline static void set_image(loco_t::shape_t* shape, loco_t::image_t image) {
 	delete[] ri;
 }
 // function implementations
-static fan::vec3 get_position_sprite(loco_t::shape_t* shape) {
+static fan::vec3 get_position_sprite(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
-static fan::vec3 get_position_line(loco_t::shape_t* shape) {
+static fan::vec3 get_position_line(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line_t::vi_t*>(shape->GetRenderData(gloco->shaper))->src;
 }
 
-static fan::vec3 get_position_rectangle(loco_t::shape_t* shape) {
+static fan::vec3 get_position_rectangle(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
-static fan::vec3 get_position_light(loco_t::shape_t* shape) {
+static fan::vec3 get_position_light(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::light_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
-static fan::vec3 get_position_unlit_sprite(loco_t::shape_t* shape) {
+static fan::vec3 get_position_unlit_sprite(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::unlit_sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
-static fan::vec3 get_position_circle(loco_t::shape_t* shape) {
+static fan::vec3 get_position_circle(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::circle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
-static fan::vec3 get_position_capsule(loco_t::shape_t* shape) {
+static fan::vec3 get_position_capsule(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::capsule_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
-static fan::vec3 get_position_polygon(loco_t::shape_t* shape) {
+static fan::vec3 get_position_polygon(const loco_t::shape_t* shape) {
 	auto ri = (loco_t::polygon_t::ri_t*)shape->GetData(gloco->shaper);
 	fan::vec3 position = 0;
 	fan::opengl::core::get_glbuffer(
@@ -465,27 +465,27 @@ static fan::vec3 get_position_polygon(loco_t::shape_t* shape) {
 	return position;
 }
 
-static fan::vec3 get_position_grid(loco_t::shape_t* shape) {
+static fan::vec3 get_position_grid(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::grid_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
-static fan::vec3 get_position_universal_image_renderer(loco_t::shape_t* shape) {
+static fan::vec3 get_position_universal_image_renderer(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::universal_image_renderer_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
-static fan::vec3 get_position_gradient(loco_t::shape_t* shape) {
+static fan::vec3 get_position_gradient(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::gradient_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
-static fan::vec3 get_position_shader_shape(loco_t::shape_t* shape) {
+static fan::vec3 get_position_shader_shape(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::shader_shape_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
-static fan::vec3 get_position_rectangle3d(loco_t::shape_t* shape) {
+static fan::vec3 get_position_rectangle3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
-static fan::vec3 get_position_line3d(loco_t::shape_t* shape) {
+static fan::vec3 get_position_line3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->src;
 }
 
@@ -813,51 +813,51 @@ static void set_position3_line3d(loco_t::shape_t* shape, const fan::vec3& positi
 	}
 }
 
-static fan::vec2 get_size_sprite(loco_t::shape_t* shape) {
+static fan::vec2 get_size_sprite(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
 
-static fan::vec2 get_size_rectangle(loco_t::shape_t* shape) {
+static fan::vec2 get_size_rectangle(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
 
-static fan::vec2 get_size_light(loco_t::shape_t* shape) {
+static fan::vec2 get_size_light(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::light_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
 
-static fan::vec2 get_size_unlit_sprite(loco_t::shape_t* shape) {
+static fan::vec2 get_size_unlit_sprite(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::unlit_sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
 
-static fan::vec2 get_size_circle(loco_t::shape_t* shape) {
+static fan::vec2 get_size_circle(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::circle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->radius;
 }
 
-static fan::vec2 get_size_capsule(loco_t::shape_t* shape) {
+static fan::vec2 get_size_capsule(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::capsule_t::vi_t*>(shape->GetRenderData(gloco->shaper))->radius;
 }
 
-static fan::vec2 get_size_grid(loco_t::shape_t* shape) {
+static fan::vec2 get_size_grid(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::grid_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
 
-static fan::vec2 get_size_universal_image_renderer(loco_t::shape_t* shape) {
+static fan::vec2 get_size_universal_image_renderer(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::universal_image_renderer_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
 
-static fan::vec2 get_size_gradient(loco_t::shape_t* shape) {
+static fan::vec2 get_size_gradient(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::gradient_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
 
-static fan::vec2 get_size_shader_shape(loco_t::shape_t* shape) {
+static fan::vec2 get_size_shader_shape(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::shader_shape_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
 
-static fan::vec2 get_size_rectangle3d(loco_t::shape_t* shape) {
+static fan::vec2 get_size_rectangle3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
 
-static fan::vec3 get_size3_rectangle3d(loco_t::shape_t* shape) {
+static fan::vec3 get_size3_rectangle3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
 
@@ -1191,55 +1191,55 @@ static void set_rotation_point_shader_shape(loco_t::shape_t* shape, const fan::v
 	}
 }
 
-static fan::color get_outline_color_rectangle(loco_t::shape_t* shape) {
+static fan::color get_outline_color_rectangle(const loco_t::shape_t* shape) {
   return reinterpret_cast<loco_t::rectangle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->outline_color;
 }
 
-static fan::color get_color_sprite(loco_t::shape_t* shape) {
+static fan::color get_color_sprite(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
-static fan::color get_color_line(loco_t::shape_t* shape) {
+static fan::color get_color_line(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
-static fan::color get_color_rectangle(loco_t::shape_t* shape) {
+static fan::color get_color_rectangle(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
-static fan::color get_color_light(loco_t::shape_t* shape) {
+static fan::color get_color_light(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::light_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
-static fan::color get_color_unlit_sprite(loco_t::shape_t* shape) {
+static fan::color get_color_unlit_sprite(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::unlit_sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
-static fan::color get_color_circle(loco_t::shape_t* shape) {
+static fan::color get_color_circle(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::circle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
-static fan::color get_color_capsule(loco_t::shape_t* shape) {
+static fan::color get_color_capsule(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::capsule_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
-static fan::color get_color_grid(loco_t::shape_t* shape) {
+static fan::color get_color_grid(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::grid_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
-static fan::color get_color_gradient(loco_t::shape_t* shape) {
+static fan::color get_color_gradient(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::gradient_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color[0];
 }
 
-static fan::color get_color_shader_shape(loco_t::shape_t* shape) {
+static fan::color get_color_shader_shape(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::shader_shape_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
-static fan::color get_color_rectangle3d(loco_t::shape_t* shape) {
+static fan::color get_color_rectangle3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
-static fan::color get_color_line3d(loco_t::shape_t* shape) {
+static fan::color get_color_line3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
@@ -1415,43 +1415,43 @@ static void set_color_line3d(loco_t::shape_t* shape, const fan::color& color) {
 	}
 }
 
-static fan::vec3 get_angle_sprite(loco_t::shape_t* shape) {
+static fan::vec3 get_angle_sprite(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
-static fan::vec3 get_angle_rectangle(loco_t::shape_t* shape) {
+static fan::vec3 get_angle_rectangle(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
-static fan::vec3 get_angle_light(loco_t::shape_t* shape) {
+static fan::vec3 get_angle_light(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::light_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
-static fan::vec3 get_angle_unlit_sprite(loco_t::shape_t* shape) {
+static fan::vec3 get_angle_unlit_sprite(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::unlit_sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
-static fan::vec3 get_angle_circle(loco_t::shape_t* shape) {
+static fan::vec3 get_angle_circle(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::circle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
-static fan::vec3 get_angle_capsule(loco_t::shape_t* shape) {
+static fan::vec3 get_angle_capsule(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::capsule_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
-static fan::vec3 get_angle_grid(loco_t::shape_t* shape) {
+static fan::vec3 get_angle_grid(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::grid_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
-static fan::vec3 get_angle_gradient(loco_t::shape_t* shape) {
+static fan::vec3 get_angle_gradient(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::gradient_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
-static fan::vec3 get_angle_shader_shape(loco_t::shape_t* shape) {
+static fan::vec3 get_angle_shader_shape(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::shader_shape_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
-static fan::vec3 get_angle_rectangle3d(loco_t::shape_t* shape) {
+static fan::vec3 get_angle_rectangle3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
