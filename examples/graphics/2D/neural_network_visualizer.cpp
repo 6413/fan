@@ -11,9 +11,9 @@ import fan;
 using namespace fan::graphics;
 
 struct neural_network_t {
-  static constexpr int input_size = 5;
-  static constexpr int hidden_size = 20;
-  static constexpr int output_size = 4;
+  static constexpr int input_size = 2;
+  static constexpr int hidden_size = 2;
+  static constexpr int output_size = 1;
 
   neural_network_t() {
     for (int i = 0; i < input_size; ++i) {
@@ -107,10 +107,10 @@ struct neural_network_t {
   f32_t hidden_biases[hidden_size];
   f32_t output_biases[output_size];
 
-  f32_t inputs[input_size] = { 0.5f, -0.3f, 0.8f };
+  f32_t inputs[input_size] = { 0.5f };
   f32_t hidden_outputs[hidden_size];
   f32_t outputs[output_size];
-  f32_t targets[output_size] = { 0.3f, -0.7f };
+  f32_t targets[output_size] = { 0.3f };
 
   f32_t learning_rate = 0.1f;
   int epoch = 0;
@@ -353,6 +353,24 @@ struct neural_network_visualizer_t {
 
     gui::set_cursor_pos(hidden_positions[0] + fan::vec2(0, -(hidden_radius * scale + label_offset * scale + dynamic_label_offset)));
     gui::text_centered("Hidden", fan::colors::aqua);
+
+    for (int i = 0; i < neural_network_t::hidden_size; ++i) {
+    f32_t hidden_input = network.hidden_biases[i];
+    for (int j = 0; j < neural_network_t::input_size; ++j) {
+        hidden_input += network.inputs[j] * network.weights_input_hidden[j][i];
+    }
+
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(2) << hidden_input;
+
+    fan::vec2 text_size = gui::calc_text_size(ss.str());
+    fan::vec2 text_pos = hidden_positions[i] - text_size / 2.0f;
+    text_pos.x -= text_size.x * 2; // adjust above the hidden node
+
+    gui::set_cursor_pos(text_pos);
+    gui::text(ss.str(), fan::colors::yellow); // different color to distinguish
+}
+
 
     for (int i = 0; i < neural_network_t::hidden_size; ++i) {
       std::stringstream ss;

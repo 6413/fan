@@ -140,16 +140,19 @@ export namespace fan {
     constexpr f32_t znearfar = 0xffff;
 
     struct primitive_topology_t {
-      static constexpr uint32_t points = 0;
-      static constexpr uint32_t lines = 1;
-      static constexpr uint32_t line_strip = 2;
-      static constexpr uint32_t triangles = 3;
-      static constexpr uint32_t triangle_strip = 4;
-      static constexpr uint32_t triangle_fan = 5;
-      static constexpr uint32_t lines_with_adjacency = 6;
-      static constexpr uint32_t line_strip_with_adjacency = 7;
-      static constexpr uint32_t triangles_with_adjacency = 8;
-      static constexpr uint32_t triangle_strip_with_adjacency = 9;
+      enum {
+        points,
+        lines,
+        line_strip,
+        line_loop,
+        triangles,
+        triangle_strip,
+        triangle_fan,
+        lines_with_adjacency,
+        line_strip_with_adjacency,
+        triangles_with_adjacency,
+        triangle_strip_with_adjacency,
+      };
     };
 
   };

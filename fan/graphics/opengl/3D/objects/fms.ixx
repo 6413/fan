@@ -1,6 +1,8 @@
 module;
 
-#ifndef fan_3d
+#include <fan/utility.h>
+
+#ifndef fan_3D
 export module fan.graphics.opengl3D.objects.fms;
 #else
 
@@ -592,7 +594,7 @@ export namespace fan_3d {
           segment++;
         }
 
-        segment = fan::clamp(segment, uint32_t(0), uint32_t(times.size() - 1));
+        segment = std::clamp(segment, uint32_t(0), uint32_t(times.size() - 1));
 
         f32_t start = times[segment - 1];
         f32_t end = times[segment];

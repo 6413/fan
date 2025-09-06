@@ -283,6 +283,7 @@ export namespace fan {
       bool presolve_events = false;
       bool is_sensor = false;
       f32_t linear_damping = 0.0f;
+      f32_t angular_damping = 0.0f;
       fan::vec2 collision_multiplier = 1; // possibility to change multiplier of collision size
       b2Filter filter = b2DefaultFilter();
       bool fast_rotation = false;
@@ -386,6 +387,7 @@ export namespace fan {
         body_def.type = (b2BodyType)body_type;
         body_def.fixedRotation = shape_properties.fixed_rotation;
         body_def.linearDamping = shape_properties.linear_damping;
+        body_def.angularDamping = shape_properties.angular_damping;
         body_def.allowFastRotation = shape_properties.fast_rotation;
         entity = b2CreateBody(world_id, &body_def);
 #if fan_debug >= fan_debug_medium
@@ -416,6 +418,7 @@ export namespace fan {
         body_def.type = (b2BodyType)body_type;
         body_def.fixedRotation = shape_properties.fixed_rotation;
         body_def.linearDamping = shape_properties.linear_damping;
+        body_def.angularDamping = shape_properties.angular_damping;
         body_def.allowFastRotation = shape_properties.fast_rotation;
 
         entity = b2CreateBody(world_id, &body_def);
@@ -436,7 +439,7 @@ export namespace fan {
         b2CreateCircleShape(entity, &shape_def, &shape);
         return entity;
       }
-      fan::physics::entity_t create_capsule(const fan::vec2& position, const b2Capsule& info, uint8_t body_type, const shape_properties_t& shape_properties) {
+      fan::physics::entity_t create_capsule(const fan::vec2& position, f32_t angle, const b2Capsule& info, uint8_t body_type, const shape_properties_t& shape_properties) {
         capsule_t shape = info;
         shape.center1.x /= length_units_per_meter / shape_properties.collision_multiplier.x;
         shape.center1.y /= length_units_per_meter / shape_properties.collision_multiplier.y;
@@ -447,9 +450,12 @@ export namespace fan {
         entity_t entity;
         b2BodyDef body_def = b2DefaultBodyDef();
         body_def.position = position / length_units_per_meter;
+        body_def.rotation.c = std::cos(-angle);
+        body_def.rotation.s = std::sin(-angle);
         body_def.type = (b2BodyType)body_type;
         body_def.fixedRotation = shape_properties.fixed_rotation;
         body_def.linearDamping = shape_properties.linear_damping;
+        body_def.angularDamping = shape_properties.angular_damping;
         body_def.allowFastRotation = shape_properties.fast_rotation;
         entity = b2CreateBody(world_id, &body_def);
 #if fan_debug >= fan_debug_medium
@@ -476,6 +482,7 @@ export namespace fan {
         body_def.type = (b2BodyType)body_type;
         body_def.fixedRotation = shape_properties.fixed_rotation;
         body_def.linearDamping = shape_properties.linear_damping;
+        body_def.angularDamping = shape_properties.angular_damping;
         body_def.allowFastRotation = shape_properties.fast_rotation;
         entity = b2CreateBody(world_id, &body_def);
 #if fan_debug >= fan_debug_medium
@@ -513,6 +520,7 @@ export namespace fan {
         body_def.type = (b2BodyType)body_type;
         body_def.fixedRotation = shape_properties.fixed_rotation;
         body_def.linearDamping = shape_properties.linear_damping;
+        body_def.angularDamping = shape_properties.angular_damping;
         body_def.allowFastRotation = shape_properties.fast_rotation;
         entity = b2CreateBody(world_id, &body_def);
 

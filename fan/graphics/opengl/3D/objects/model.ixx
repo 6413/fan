@@ -1,6 +1,6 @@
 module;
 
-#ifndef fan_3d
+#ifndef fan_3D
 export module fan.graphics.opengl3D.objects.model;
 #else
 
@@ -11,11 +11,10 @@ export module fan.graphics.opengl3D.objects.model;
 
 
 export module fan.graphics.opengl3D.objects.model;
-
+export import fan.graphics;
 export import fan.graphics.opengl3D.objects.fms;
 export import fan.graphics.gui;
 
-#undef fan_3d
 namespace fan_3d {
   namespace model {
     inline static std::unordered_map<std::string, fan::graphics::image_t> cached_images;
