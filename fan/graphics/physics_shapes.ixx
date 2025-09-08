@@ -30,20 +30,28 @@ import fan.physics.b2_integration;
   import fan.graphics;
 #endif
 
+// higher the draw depth, less debug draws will be if maximum depth is 2^16
+// so make sure your game objects do not pass this depth
+static constexpr uint16_t draw_depth = 0xF000;
+
 int z_depth = 0;
 std::vector<fan::graphics::line_t> debug_draw_polygon;
 std::vector<fan::graphics::polygon_t> debug_draw_solid_polygon;
 std::vector<fan::graphics::circle_t> debug_draw_circle;
 std::vector<fan::graphics::line_t> debug_draw_line;
+std::vector<fan::graphics::capsule_t> debug_draw_capsule;
 /// Draw a closed polygon provided in CCW order.
 void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, void* context) {
+  if (z_depth == 2) {
+    z_depth = 0;
+  }
   for (int i = 0; i < vertexCount; i++) {
     int next_i = (i + 1) % vertexCount;
 
     debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
-      .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), 0x1f00 + z_depth),
+      .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), draw_depth + z_depth),
       .dst = fan::physics::physics_to_render(vertices[next_i]),
-      .color = fan::color::from_rgba(color)
+      .color = fan::color::from_rgb(color)
     } });
   }
 
@@ -56,12 +64,13 @@ void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexC
   std::vector<fan::graphics::vertex_t> vs(vertexCount);
   for (auto [i, v] : fan::enumerate(vs)) {
     v.position = fan::physics::physics_to_render(vertices[i]);
-    v.color = fan::color::from_rgba(color);
+    v.color = fan::color::from_rgb(color);
   }
   debug_draw_solid_polygon.emplace_back(fan::graphics::polygon_t{ {
-    .position = fan::vec3(0, 0, 0x1f00 + z_depth),
+    .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
     .vertices = vs,
     .draw_mode = fan::graphics::primitive_topology_t::triangle_fan,
+    //.angle = std::acos(transform.q.c)
   } });
   ++z_depth;
 }
@@ -69,9 +78,9 @@ void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexC
 /// Draw a circle.
 void DrawCircle(b2Vec2 center, f32_t radius, b2HexColor color, void* context) {
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
-    .position = fan::vec3(fan::physics::physics_to_render(center), 0x1f00 + z_depth),
-    .radius = fan::physics::physics_to_render(radius).x,
-    .color = fan::color::from_rgba(color),
+    .position = fan::vec3(fan::physics::physics_to_render(center), draw_depth + z_depth),
+    .radius = (f32_t)fan::physics::physics_to_render(radius).x,
+    .color = fan::color::from_rgb(color),
   } });
   ++z_depth;
 }
@@ -79,9 +88,9 @@ void DrawCircle(b2Vec2 center, f32_t radius, b2HexColor color, void* context) {
 /// Draw a solid circle.
 void DrawSolidCircle(b2Transform transform, f32_t radius, b2HexColor color, void* context) {
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
-    .position = fan::vec3(fan::physics::physics_to_render(transform.p), 0x1f00 + z_depth),
-    .radius = fan::physics::physics_to_render(radius).x,
-    .color = fan::color::from_rgba(color),
+    .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
+    .radius = (f32_t)fan::physics::physics_to_render(radius).x,
+    .color = fan::color::from_rgb(color),
   } });
   ++z_depth;
 }
@@ -93,31 +102,38 @@ void DrawCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* con
 
 /// Draw a solid capsule.
 void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* context) {
-  printf("DrawSolidCapsule\n");
+  debug_draw_capsule.emplace_back(fan::graphics::capsule_t{ {
+      .position = fan::vec3(0, 0, draw_depth + z_depth),
+      .center0 = fan::physics::physics_to_render(p1),
+      .center1 = fan::physics::physics_to_render(p2),
+      .radius = (f32_t)fan::physics::physics_to_render(radius).x,
+      .color = fan::color::from_rgb(color).set_alpha(0.8),
+  } });
+  ++z_depth;
 }
 
 /// Draw a line segment.
 void DrawSegment(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context) {
   debug_draw_line.emplace_back(fan::graphics::line_t{ {
-    .src = fan::vec3(fan::physics::physics_to_render(p1), 0x1f00 + z_depth),
-    .dst = fan::vec3(fan::physics::physics_to_render(p2), 0x1f00 + z_depth),
-    .color = fan::color::from_rgba(color),
+    .src = fan::vec3(fan::physics::physics_to_render(p1), draw_depth + z_depth),
+    .dst = fan::vec3(fan::physics::physics_to_render(p2), draw_depth + z_depth),
+    .color = fan::color::from_rgb(color)
   } });
   ++z_depth;
 }
 
 /// Draw a transform. Choose your own length scale.
 void DrawTransform(b2Transform transform, void* context) {
-  printf("DrawTransform\n");
+  
 }
 
 /// Draw a point.
 void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
   //vs.back() = vs.front();
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
-    .position = fan::vec3(fan::physics::physics_to_render(p), 0x1f00 + z_depth),
-    .radius = size,
-    .color = fan::color::from_rgba(color)
+    .position = fan::vec3(fan::physics::physics_to_render(p), draw_depth + z_depth),
+    .radius = size / 2.f,
+    .color = fan::color::from_rgb(color)
   } });
   ++z_depth;
 }
@@ -125,7 +141,11 @@ void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
 /// Draw a string.
 void DrawString(b2Vec2 p, const char* s, void* context) {
 #if defined(fan_gui)
-  fan::graphics::gui::text_at(s, fan::physics::physics_to_render(p));
+  fan::vec2 pos = fan::physics::physics_to_render(p) - gloco->camera_get_position(gloco->orthographic_render_view.camera);
+  pos *= gloco->camera_get_zoom(gloco->orthographic_render_view.camera, gloco->orthographic_render_view.viewport)*0.5f;
+  pos += gloco->window.get_size() / 2.f;
+  
+  fan::graphics::gui::text_outlined_at(s, pos);
 #endif
 }
 
@@ -142,8 +162,21 @@ b2DebugDraw initialize_debug(bool enabled) {
   .DrawTransform = DrawTransform,
   .DrawPoint = DrawPoint,
   .DrawString = DrawString,
+	.drawShapes = enabled,
+	.drawJoints = enabled,
+	.drawJointExtras = enabled,
+	.drawAABBs = enabled,
+	.drawMass = enabled,
+	.drawContacts = enabled,
+	.drawGraphColors = enabled,
+	.drawContactNormals = enabled,
+	.drawContactImpulses = enabled,
+	.drawFrictionImpulses = enabled,
+
+  /*.drawShapes = enabled,
   .drawJoints = enabled,
   .drawAABBs = enabled,
+  .drawContacts=enabled*/
   };
 }
 
@@ -168,8 +201,9 @@ export namespace fan {
           debug_draw_solid_polygon.clear();
           debug_draw_circle.clear();
           debug_draw_line.clear();
+          debug_draw_capsule.clear();
           b2World_Draw(loco->physics_context.world_id, &fan::graphics::physics::box2d_debug_draw);
-          };
+        };
         return initialize_debug(false);
         }();
       }
@@ -386,13 +420,17 @@ export namespace fan {
           physics_update_nr.sic();
         }
 
-        mass_data_t get_mass_data() {
-          b2MassData md = b2Body_GetMassData(*dynamic_cast<fan::physics::body_id_t*>(dynamic_cast<fan::physics::entity_t*>(this)));
+        mass_data_t get_mass_data() const {
+          b2MassData md = b2Body_GetMassData(*dynamic_cast<const fan::physics::body_id_t*>(dynamic_cast<const fan::physics::entity_t*>(this)));
           mass_data_t mass_data;
           mass_data.mass = md.mass;
           mass_data.center_of_mass = md.mass;
           mass_data.rotational_inertia = md.mass;
           return mass_data;
+        }
+
+        f32_t get_mass() const {
+          return get_mass_data().mass;
         }
 
         loco_t::physics_update_cbs_t::nr_t physics_update_nr;
@@ -401,8 +439,8 @@ export namespace fan {
       struct rectangle_t : base_shape_t {
         struct properties_t {
           render_view_t* render_view = &gloco->orthographic_render_view;
-          fan::vec3 position = fan::vec3(0, 0, 0);
-          fan::vec2 size = fan::vec2(0.1, 0.1);
+          fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
+          fan::vec2 size = fan::vec2(32, 32);
           fan::color color = fan::color(1, 1, 1, 1);
           fan::color outline_color = color;
           fan::vec3 angle = 0;
@@ -584,7 +622,7 @@ export namespace fan {
       struct capsule_t : base_shape_t {
         struct properties_t {
           render_view_t* render_view = &gloco->orthographic_render_view;
-          fan::vec3 position = fan::vec3(0, 0, 0);
+          fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
           fan::vec2 center0{ 0, -32.f };
           fan::vec2 center1{ 0, 32.f };
           f32_t radius = 32.f;
@@ -669,7 +707,7 @@ export namespace fan {
         capsule_sprite_t() = default;
         capsule_sprite_t(const properties_t& p) : base_shape_t(
           loco_t::shape_t(fan::graphics::sprite_t{ p }),
-          fan::physics::entity_t(gloco->physics_context.create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.size.max()}, p.body_type, p.shape_properties)),
+          fan::physics::entity_t(gloco->physics_context.create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.size.max() / 2.f}, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }

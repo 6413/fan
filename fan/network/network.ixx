@@ -21,6 +21,7 @@ module;
 #include <unordered_map>
 #include <array>
 #include <string>
+#include <list>
 
 #include <mutex>
 #include <cstdint>
@@ -360,12 +361,81 @@ export namespace fan {
       }
     };
 
+    class ring_buffer_t {
+    private:
+      std::vector<char> buffer_;
+      size_t head_ = 0;
+      size_t tail_ = 0;
+      size_t size_ = 0;
+      size_t capacity_;
+
+    public:
+      explicit ring_buffer_t(size_t capacity = 64 * 1024)
+        : buffer_(capacity), capacity_(capacity) {
+      }
+
+      void push_back(const char* data, size_t len) {
+        if (size_ + len > capacity_) {
+          grow(size_ + len);
+        }
+
+        for (size_t i = 0; i < len; ++i) {
+          buffer_[tail_] = data[i];
+          tail_ = (tail_ + 1) % capacity_;
+        }
+        size_ += len;
+      }
+
+      void consume(size_t len) {
+        if (len > size_) len = size_;
+        head_ = (head_ + len) % capacity_;
+        size_ -= len;
+      }
+
+      size_t size() const { return size_; }
+      bool empty() const { return size_ == 0; }
+
+      void peek(char* dest, size_t len) const {
+        size_t actual_len = std::min(len, size_);
+        size_t h = head_;
+        for (size_t i = 0; i < actual_len; ++i) {
+          dest[i] = buffer_[h];
+          h = (h + 1) % capacity_;
+        }
+      }
+
+      std::pair<const char*, size_t> get_contiguous() const {
+        if (size_ == 0) return { nullptr, 0 };
+
+        size_t available = std::min(size_, capacity_ - head_);
+        return { &buffer_[head_], available };
+      }
+
+    private:
+      void grow(size_t new_capacity) {
+        std::vector<char> new_buffer(new_capacity * 2);
+
+        size_t h = head_;
+        for (size_t i = 0; i < size_; ++i) {
+          new_buffer[i] = buffer_[h];
+          h = (h + 1) % capacity_;
+        }
+
+        buffer_ = std::move(new_buffer);
+        head_ = 0;
+        tail_ = size_;
+        capacity_ = new_capacity * 2;
+      }
+    };
+
     struct reader_t {
       std::shared_ptr<uv_stream_t> stream;
-      buffer_t accumulated_buf;
-      buffer_t temp_buf;
+      ring_buffer_t accumulated_buf;
+      std::vector<char> temp_buf;
       ssize_t nread{ 0 };
       std::coroutine_handle<> co_handle;
+
+      bool is_reading = false;
 
       uint64_t expected_size{ 0 };
       uint64_t bytes_read{ 0 };
@@ -374,9 +444,13 @@ export namespace fan {
       bool is_fixed_size_read{ false };
       static constexpr size_t header_size = sizeof(uint64_t);
 
+      static constexpr size_t default_buffer_size = 64 * 1024;
+
       template <typename T>
         requires (std::is_same_v<T, tcp_t>)
-      reader_t(const T& tcp) : stream{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) } {
+      reader_t(const T& tcp)
+        : stream{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) },
+        temp_buf(default_buffer_size) {
         stream->data = this;
       }
 
@@ -401,33 +475,39 @@ export namespace fan {
         is_raw_read = false;
         is_fixed_size_read = true;
       }
+
       void setup_raw_read() {
         reading_header = false;
         expected_size = 0;
         is_raw_read = true;
         is_fixed_size_read = false;
       }
+
       void setup_header_read() {
         reading_header = true;
         expected_size = 0;
         is_raw_read = false;
         is_fixed_size_read = false;
       }
+
       void stop() {
+        is_reading = false;
         uv_read_stop(stream.get());
       }
+
       int start() noexcept {
+        is_reading = true;
         return uv_read_start(stream.get(),
           [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
             auto self = static_cast<reader_t*>(handle->data);
-            self->temp_buf.resize(suggested_size);
-            *buf = uv_buf_init(self->temp_buf.data(), suggested_size);
+            size_t buf_size = std::min(suggested_size, self->temp_buf.size());
+            *buf = uv_buf_init(self->temp_buf.data(), buf_size);
           },
           [](uv_stream_t* req, ssize_t nread, const uv_buf_t* buf) {
             auto self = static_cast<reader_t*>(req->data);
             self->nread = nread;
             if (nread > 0) {
-              self->accumulated_buf.insert(self->accumulated_buf.end(), self->temp_buf.begin(), self->temp_buf.begin() + nread);
+              self->accumulated_buf.push_back(self->temp_buf.data(), nread);
             }
             [[likely]] if (self->co_handle && nread != 0) {
               self->co_handle();
@@ -435,9 +515,9 @@ export namespace fan {
           }
         );
       }
+
       bool await_ready() const {
         if (nread < 0) return true;
-      //  if (nread == 0) return false;
 
         if (is_raw_read) {
           return nread > 0 || !accumulated_buf.empty();
@@ -454,9 +534,11 @@ export namespace fan {
           }
         }
       }
+
       void await_suspend(std::coroutine_handle<> h) {
         co_handle = h;
       }
+
       message_t await_resume() {
         if (nread < 0) {
           co_handle = nullptr;
@@ -468,39 +550,57 @@ export namespace fan {
         co_handle = nullptr;
 
         if (is_raw_read) {
-          buffer_t buffer;
           if (!accumulated_buf.empty()) {
-            buffer = std::move(accumulated_buf);
-            accumulated_buf.clear();
+            auto [data_ptr, size] = accumulated_buf.get_contiguous();
+            buffer_t buffer;
+
+            if (size == accumulated_buf.size()) {
+              buffer.assign(data_ptr, data_ptr + size);
+              accumulated_buf.consume(size);
+            }
+            else {
+              buffer.reserve(accumulated_buf.size());
+              size_t total_size = accumulated_buf.size();
+              buffer.resize(total_size);
+              accumulated_buf.peek(buffer.data(), total_size);
+              accumulated_buf.consume(total_size);
+            }
+
+            nread = 0;
+            return { .buffer = std::move(buffer), .status = error_code::ok, .done = false };
           }
           nread = 0;
-          return { .buffer = std::move(buffer), .status = error_code::ok, .done = false };
+          return { .status = error_code::ok, .done = false };
         }
         else if (is_fixed_size_read) {
           if (accumulated_buf.size() >= expected_size) {
-            buffer_t buffer(accumulated_buf.begin(), accumulated_buf.begin() + expected_size);
-            accumulated_buf.erase(accumulated_buf.begin(), accumulated_buf.begin() + expected_size);
+            buffer_t buffer(expected_size);
+            accumulated_buf.peek(buffer.data(), expected_size);
+            accumulated_buf.consume(expected_size);
+
             nread = 0;
-            return { .buffer = buffer, .status = error_code::ok, .done = true };
+            return { .buffer = std::move(buffer), .status = error_code::ok, .done = true };
           }
           nread = 0;
           return { .status = error_code::ok, .done = false };
         }
         else {
           if (reading_header && accumulated_buf.size() >= header_size) {
-            std::memcpy(&expected_size, accumulated_buf.data(), header_size);
-            accumulated_buf.erase(accumulated_buf.begin(), accumulated_buf.begin() + header_size);
+            accumulated_buf.peek(reinterpret_cast<char*>(&expected_size), header_size);
+            accumulated_buf.consume(header_size);
             reading_header = false;
             bytes_read = 0;
           }
 
           if (!reading_header && accumulated_buf.size() >= expected_size) {
-            buffer_t buffer(accumulated_buf.begin(), accumulated_buf.begin() + expected_size);
-            accumulated_buf.erase(accumulated_buf.begin(), accumulated_buf.begin() + expected_size);
+            buffer_t buffer(expected_size);
+            accumulated_buf.peek(buffer.data(), expected_size);
+            accumulated_buf.consume(expected_size);
+
             reading_header = true;
             expected_size = bytes_read = 0;
             nread = 0;
-            return { .buffer = buffer, .status = error_code::ok, .done = true };
+            return { .buffer = std::move(buffer), .status = error_code::ok, .done = true };
           }
 
           nread = 0;
@@ -512,8 +612,6 @@ export namespace fan {
         if (stream) {
           uv_read_stop(stream.get());
         }
-        accumulated_buf.clear();
-        temp_buf.clear();
       }
     };
 
@@ -812,16 +910,27 @@ export namespace fan {
       }
 
       listener_t listener(*this, get_client_handler().amount_of_connections);
+      std::list<fan::event::task_t> tasks;
       while (true) {
         if (co_await listener != 0) {
           continue;
         }
         auto client_id = get_client_handler().add_client();
         tcp_t& client = get_client_handler()[client_id];
+
+        // simple cleanup
+        for (auto it = tasks.begin(); it != tasks.end();) {
+          if (it->owner->h.done()) {
+            it = tasks.erase(it);
+          }
+          else {
+            ++it;
+          }
+        }
         if (accept(client) == 0) {
-          fan::event::task_idle([client_id, lambda]() -> fan::event::task_t {
+          tasks.emplace_back([client_id, lambda]() -> fan::event::task_t {
             co_await lambda(get_client_handler()[client_id]);
-          });
+          }());
         }
       }
       co_return;

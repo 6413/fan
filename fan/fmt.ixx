@@ -32,29 +32,53 @@ import fan.utility;
 export namespace fan {
   std::string format_tabbed_from_string(std::streamsize tab_width, const std::string& formatted) {
     std::istringstream iss(formatted);
-    std::vector<std::string> columns;
-    std::string token;
-    while (iss >> token) {
-      columns.push_back(token);
-    }
-    
-    std::ostringstream oss;
-    std::ios init(nullptr);
-    init.copyfmt(oss);
-    
-    for (size_t i = 0; i < columns.size(); ++i) {
-      bool is_neg = !columns[i].empty() && columns[i][0] == '-';
-      if (i > 0) {
-        oss << (is_neg ? "" : " ");
+    std::vector<std::vector<std::string>> all_rows;
+    std::vector<size_t> max_widths;
+    std::string line;
+
+    while (std::getline(iss, line)) {
+      if (line.empty()) continue;
+
+      std::istringstream line_stream(line);
+      std::vector<std::string> row;
+      std::string token;
+
+      while (line_stream >> token) {
+        row.push_back(token);
       }
-      oss << std::setw(tab_width) << std::left << columns[i];
-      if (i < columns.size() - 1) {
-        oss << " ";
+
+      if (!row.empty()) {
+        all_rows.push_back(row);
+
+        for (size_t i = 0; i < row.size(); ++i) {
+          if (max_widths.size() <= i) {
+            max_widths.resize(i + 1, 0);
+          }
+          max_widths[i] = std::max(max_widths[i], row[i].length());
+        }
       }
     }
-    
-    oss.copyfmt(init);
-    return oss.str();
+
+    for (auto& width : max_widths) {
+      width = std::max(width, static_cast<size_t>(tab_width));
+    }
+
+    std::ostringstream result;
+    for (const auto& row : all_rows) {
+      for (size_t i = 0; i < row.size(); ++i) {
+        if (i > 0) result << " ";
+
+        if (i < row.size() - 1) {
+          result << std::setw(max_widths[i]) << std::left << row[i];
+        }
+        else {
+          result << row[i];
+        }
+      }
+      result << "\n";
+    }
+
+    return result.str();
   }
 
   template <typename... T>

@@ -270,6 +270,19 @@ export namespace fan {
       constexpr void await_suspend(std::coroutine_handle<>) const noexcept {}
       void await_resume() const { throw_if(); }
     };
+
+    void print_event_handles(loop_t loop = get_loop()) {
+      fan::print("========================");
+      fan::print("Active handles:", loop->active_handles);
+      fan::print("Active requests:", loop->active_reqs.count);
+
+      uv_walk(loop, [](uv_handle_t* handle, void* arg) {
+        const char* type_name = uv_handle_type_name(handle->type);
+        fan::print("Handle:", type_name , "active:", uv_is_active(handle), "closing:", uv_is_closing(handle));
+      }, nullptr);
+      fan::print("========================");
+    }
+
     struct timer_t {
       struct timer_data {
         uv_timer_t timer_handle;

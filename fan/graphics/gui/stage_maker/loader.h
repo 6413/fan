@@ -138,6 +138,11 @@ public:
 
   stage_list_t stage_list;
 
+  template <typename T>
+  T& get_stage_data(nr_t nr) {
+    return *static_cast<T*>(stage_list[nr].stage);
+  }
+
   using key_t = std::pair<void*, std::string>;
 
   struct pair_hasher_t {

@@ -2,8 +2,6 @@ module;
 
 #include <fan/graphics/opengl/init.h>
 
-#define loco_audio
-
 #define loco_framebuffer
 #define loco_post_process
 #define loco_vfi
@@ -13,6 +11,7 @@ module;
 #if defined(fan_gui)
   #include <deque>
 #endif
+
 
 #include <cstring>
 #include <memory> // shared_ptr tp0.h
@@ -112,7 +111,7 @@ export import fan.types.fstring;
   import fan.physics.b2_integration;
 #endif
 
-#if defined(loco_audio)
+#if defined(fan_audio)
   export import fan.audio;
 #endif
 
@@ -338,6 +337,59 @@ namespace fan {
     using d = std::conditional_t<cond, T, uint8_t>;
   };
 }
+
+#if defined(fan_audio)
+export namespace fan {
+  namespace audio {
+    using sound_play_id_t = fan::audio_t::SoundPlayID_t;
+
+    struct piece_t : fan::audio_t::piece_t {
+      using fan::audio_t::piece_t::piece_t;
+
+      piece_t();
+      piece_t(const fan::audio_t::piece_t& piece);
+      piece_t(
+        const std::string& path,
+        fan::audio_t::PieceFlag::t flags = 0,
+        const std::source_location& callers_path = std::source_location::current()
+      );
+
+      operator fan::audio_t::piece_t& ();
+
+      piece_t open_piece(
+        const std::string& path,
+        fan::audio_t::PieceFlag::t flags = 0,
+        const std::source_location& callers_path = std::source_location::current()
+      );
+
+      bool is_valid();
+
+      sound_play_id_t play(uint32_t group_id = 0, bool loop = false);
+      void stop(sound_play_id_t id);
+      void resume(uint32_t group_id = 0);
+      void pause(uint32_t group_id = 0);
+
+      f32_t get_volume();
+      void set_volume(f32_t volume);
+    };
+
+    piece_t piece_invalid;
+
+    piece_t open_piece(
+      const std::string& path,
+      fan::audio_t::PieceFlag::t flags = 0,
+      const std::source_location& callers_path = std::source_location::current()
+    );
+    bool is_piece_valid(piece_t piece);
+    sound_play_id_t play(piece_t piece, uint32_t group_id = 0, bool loop = false);
+    void stop(sound_play_id_t id);
+    void resume(uint32_t group_id = 0);
+    void pause(uint32_t group_id = 0);
+    f32_t get_volume();
+    void set_volume(f32_t volume);
+  }
+}
+#endif
 
 //#include <fan/graphics/vulkan/ssbo.h>
 export struct loco_t {
@@ -582,6 +634,15 @@ export struct loco_t {
     return context_functions.camera_get_size(&context, nr);
   }
 
+  // estimate for -s to s coordinate system
+  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr, fan::graphics::viewport_nr_t viewport) {
+    fan::vec2 s = viewport_get_size(viewport);
+
+    auto& camera = camera_get(nr);
+
+    return (s.x * 2) / (camera.coordinates.right - camera.coordinates.left);
+  }
+
   void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
     context_functions.camera_set_ortho(&context, nr, x, y);
   }
@@ -595,7 +656,7 @@ export struct loco_t {
   }
 
   void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10) {
-    f32_t screen_height = window.get_size().y;
+    f32_t screen_height = window.get_size()[1];
     f32_t pixels_from_bottom = 400.0f;
 
     /* target - (screen_height / 2 - pixels_from_bottom) / (ic.zoom * 1.5))*/;
@@ -852,6 +913,7 @@ export struct loco_t {
     "particles",
   };
 
+#if defined(fan_json)
   fan::json image_to_json(const auto& image) {
     fan::json image_json;
     if (image.iic()) {
@@ -891,7 +953,7 @@ export struct loco_t {
       return default_texture;
     }
 
-    auto path = image_json["image_path"];
+    std::string path = image_json["image_path"];
 
     if (!fan::io::file::exists(path)) {
       return default_texture;
@@ -915,11 +977,11 @@ export struct loco_t {
       lp.mag_filter = image_json["image_mag_filter"];
     }
 
-    auto image = image_load(path, lp);
+    fan::graphics::image_nr_t image = image_load(path, lp);
     image_list[image].image_path = path;
     return image;
   }
-
+#endif
   
   //-----------------------sprite sheet animations-----------------------
 
@@ -927,6 +989,7 @@ export struct loco_t {
     struct image_t {
       loco_t::image_t image = gloco->default_texture;
       int hframes = 1, vframes = 1;
+    #if defined(fan_json)
       operator fan::json() const {
         fan::json j;
         image_t defaults;
@@ -950,6 +1013,7 @@ export struct loco_t {
         }
         return *this;
       }
+    #endif
     };
 
     std::vector<int> selected_frames;
@@ -1075,6 +1139,7 @@ export struct loco_t {
     return add_existing_sprite_sheet_shape_animation(new_anim_nr, shape_animation_id, new_anim);
   }
 
+#if defined(fan_json)
   fan::json sprite_sheet_serialize() {
     fan::json result = fan::json::object();
     fan::json animations_arr = fan::json::array();
@@ -1104,7 +1169,6 @@ export struct loco_t {
     return result;
   }
 
-  
   void sprite_sheet_deserialize(fan::json& json) {
     animation_nr_t counter_offset = all_animations_counter;
 
@@ -1151,13 +1215,14 @@ export struct loco_t {
       }
     }
   }
-
+#endif
   std::unordered_map<animation_nr_t, sprite_sheet_animation_t, animation_nr_hash_t> all_animations;
   animation_nr_t all_animations_counter = 0;
   std::unordered_map<std::pair<animation_shape_nr_t, std::string>, animation_nr_t, animation_pair_hash_t> shape_animation_lookup_table;
   std::unordered_map<animation_shape_nr_t, std::vector<animation_nr_t>, animation_nr_hash_t> shape_animations;
   animation_nr_t shape_animation_counter = 0;
 
+  #if defined(fan_json)
   void parse_animations(fan::json& json_in) {
     gloco->sprite_sheet_deserialize(json_in);
 
@@ -1176,7 +1241,7 @@ export struct loco_t {
       gloco->all_animations[id] = anim;
     }
   }
-
+#endif
 
   //-----------------------sprite sheet animations-----------------------
 
@@ -1985,14 +2050,14 @@ public:
       it = fan::graphics::engine_init_cbs.EndSafeNext();
     }
 
-#if defined(loco_audio)
+#if defined(fan_audio)
 
     if (system_audio.Open() != 0) {
       fan::throw_error("failed to open fan audio");
     }
     audio.bind(&system_audio);
-    audio.Open(&piece_hover, "audio/hover.sac", 0);
-    audio.Open(&piece_click, "audio/click.sac", 0);
+    piece_hover.open_piece("audio/hover.sac", 0);
+    piece_click.open_piece("audio/click.sac", 0);
 
 #endif
   }
@@ -2024,7 +2089,7 @@ public:
     destroy_imgui();
 #endif
     window.close();
-#if defined(loco_audio)
+#if defined(fan_audio)
     audio.unbind();
     system_audio.Close();
 #endif
@@ -2261,7 +2326,7 @@ public:
       shaper._BlockListCapacityChange(shape_type_t::rectangle, 0, 1);
       shaper._BlockListCapacityChange(shape_type_t::sprite, 0, 1);
 
-#if defined(loco_audio)
+#if defined(fan_audio)
       if (system_audio.Open() != 0) {
         fan::throw_error("failed to open fan audio");
       }
@@ -2605,7 +2670,7 @@ public:
 
     ImGui::PopStyleColor(2);
     ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::SetNextWindowSize(window.get_size());
+    ImGui::SetNextWindowSize(fan::vec2(window.get_size()));
 
     int flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings |
       ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMove |
@@ -2692,10 +2757,15 @@ public:
   //  }
   //};
 
-  fan::vec2 get_input_vector() {
+  fan::vec2 get_input_vector(
+    const std::string& forward = "move_forward",
+    const std::string& back = "move_back",
+    const std::string& left = "move_left",
+    const std::string& right = "move_right"
+  ) {
     return fan::vec2(
-      (input_action.is_action_down("move_right") - input_action.is_action_down("move_left")),
-      (input_action.is_action_down("move_back") - input_action.is_action_down("move_forward"))
+      (input_action.is_action_down(right) - input_action.is_action_down(left)),
+      (input_action.is_action_down(back) - input_action.is_action_down(forward))
     );
   }
 
@@ -2842,20 +2912,20 @@ public:
       uint8_t combo_count = 0;
     };
 
-    void add(const int* keys, std::size_t count, std::string_view action_name) {
+    void add(const int* keys, std::size_t count, const std::string& action_name) {
       action_data_t action_data;
       action_data.count = (uint8_t)count;
       std::memcpy(action_data.keys, keys, sizeof(int) * count);
       input_actions[action_name] = action_data;
     }
-    void add(int key, std::string_view action_name) {
+    void add(int key, const std::string& action_name) {
       add(&key, 1, action_name);
     }
-    void add(std::initializer_list<int> keys, std::string_view action_name) {
+    void add(std::initializer_list<int> keys, const std::string& action_name) {
       add(keys.begin(), keys.size(), action_name);
     }
 
-    void edit(int key, std::string_view action_name) {
+    void edit(int key, const std::string& action_name) {
       auto found = input_actions.find(action_name);
       if (found == input_actions.end()) {
         fan::throw_error("trying to modify non existing action");
@@ -2866,14 +2936,14 @@ public:
       found->second.combo_count = 0;
     }
 
-    void add_keycombo(std::initializer_list<int> keys, std::string_view action_name) {
+    void add_keycombo(std::initializer_list<int> keys, const std::string& action_name) {
       action_data_t action_data;
       action_data.combo_count = (uint8_t)keys.size();
       std::memcpy(action_data.key_combos, keys.begin(), sizeof(int) * action_data.combo_count);
       input_actions[action_name] = action_data;
     }
 
-    bool is_active(std::string_view action_name, int pstate = loco_t::input_action_t::press) {
+    bool is_active(const std::string& action_name, int pstate = loco_t::input_action_t::press) {
       auto found = input_actions.find(action_name);
       if (found != input_actions.end()) {
         action_data_t& action_data = found->second;
@@ -2920,26 +2990,26 @@ public:
       }
       return none == pstate;
     }
-    bool is_action_clicked(std::string_view action_name) {
+    bool is_action_clicked(const std::string& action_name) {
       return is_active(action_name);
     }
-    bool is_action_down(std::string_view action_name) {
+    bool is_action_down(const std::string& action_name) {
       return is_active(action_name, press_or_repeat);
     }
-    bool exists(std::string_view action_name) {
+    bool exists(const std::string& action_name) {
       return input_actions.find(action_name) != input_actions.end();
     }
-    void insert_or_assign(int key, std::string_view action_name) {
+    void insert_or_assign(int key, const std::string& action_name) {
       action_data_t action_data;
       action_data.count = (uint8_t)1;
       std::memcpy(action_data.keys, &key, sizeof(int) * 1);
       input_actions.insert_or_assign(action_name, action_data);
     }
-    void remove(std::string_view action_name) {
+    void remove(const std::string& action_name) {
       input_actions.erase(action_name);
     }
 
-    std::unordered_map<std::string_view, action_data_t> input_actions;
+    std::unordered_map<std::string, action_data_t> input_actions;
   }input_action;
 
   static fan::vec2 transform_position(const fan::vec2& p, loco_t::viewport_t viewport, loco_t::camera_t camera) {
@@ -5798,7 +5868,7 @@ void set_sprite_sheet_next_frame(int advance = 1) {
     return image;
   }
   static fan::vec2 convert_mouse_to_ndc(const fan::vec2& mouse_position, const fan::vec2i& window_size) {
-    return fan::vec2((2.0f * mouse_position.x) / window_size.x - 1.0f, 1.0f - (2.0f * mouse_position.y) / window_size.y);
+    return fan::vec2((2.0f * mouse_position.x) / window_size[0] - 1.0f, 1.0f - (2.0f * mouse_position.y) / window_size[1]);
   }
   fan::vec2 convert_mouse_to_ndc(const fan::vec2& mouse_position) const {
     return convert_mouse_to_ndc(mouse_position, gloco->window.get_size());
@@ -5808,7 +5878,7 @@ void set_sprite_sheet_next_frame(int advance = 1) {
   }
   static fan::ray3_t convert_mouse_to_ray(const fan::vec2i& mouse_position, const fan::vec2& screen_size, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
 
-    fan::vec4 ray_ndc((2.0f * mouse_position.x) / screen_size.x - 1.0f, 1.0f - (2.0f * mouse_position.y) / screen_size.y, 1.0f, 1.0f);
+    fan::vec4 ray_ndc((2.0f * mouse_position[0]) / screen_size.x - 1.0f, 1.0f - (2.0f * mouse_position[1]) / screen_size.y, 1.0f, 1.0f);
 
     fan::mat4 inverted_projection = projection.inverse();
 
@@ -5996,11 +6066,11 @@ void set_sprite_sheet_next_frame(int advance = 1) {
 
 #endif
 
-#if defined(loco_audio)
+#if defined(fan_audio)
   fan::system_audio_t system_audio;
   fan::audio_t audio;
 
-  fan::audio_t::piece_t piece_hover, piece_click;
+  fan::audio::piece_t piece_hover, piece_click;
 #endif
   void camera_move_to(const loco_t::shape_t& shape, const loco_t::render_view_t& render_view) {
     camera_set_position(
@@ -6010,6 +6080,20 @@ void set_sprite_sheet_next_frame(int advance = 1) {
   }
   void camera_move_to(const loco_t::shape_t& shape) {
     camera_move_to(shape, orthographic_render_view);
+  }
+
+  void camera_move_to_smooth(const loco_t::shape_t& shape, const loco_t::render_view_t& render_view) {
+    fan::vec2 current = camera_get_position(render_view.camera);
+    fan::vec2 target = shape.get_position();
+    f32_t t = 0.1f;
+    camera_set_position(
+      orthographic_render_view.camera,
+      current.lerp(target, t)
+    );
+  }
+
+  void camera_move_to_smooth(const loco_t::shape_t& shape) {
+    camera_move_to_smooth(shape, orthographic_render_view);
   }
 
 };
@@ -7024,67 +7108,12 @@ loco_t::shape_t& loco_t::shape_t::operator=(const std::string& json_string) {
 #include <fan/graphics/vulkan/memory.h>
 #endif
 
-#if defined(loco_audio)
-export namespace fan {
-  namespace audio {
-    using piece_t = fan::audio_t::piece_t;
-
-    fan::audio_t::piece_t open_piece(const std::string& path, fan::audio_t::PieceFlag::t flags = 0) {
-      fan::audio_t::piece_t piece;
-      sint32_t err = gloco->audio.Open(&piece, path, flags);
-      if (err != 0) {
-        fan::throw_error("failed to open piece:", err);
-      }
-      return piece;
-    }
-    /// <summary>
-    /// Function checks if the stored pointer equals to nullptr. Does NOT check for actual validity.
-    /// </summary>
-    /// <param name="piece">Given piece to validate.</param>
-    /// <returns></returns>
-    bool is_piece_valid(fan::audio_t::piece_t piece) {
-      char test_block[sizeof(piece)];
-      memset(test_block, 0, sizeof(piece));
-      return memcmp(&piece, test_block, sizeof(piece));
-    }
-
-    fan::audio_t::SoundPlayID_t play(fan::audio_t::piece_t piece, uint32_t group_id = 0, bool loop = false) {
-      fan::audio_t::PropertiesSoundPlay_t p{};
-      p.Flags.Loop = loop;
-      p.GroupID = 0;
-      return gloco->audio.SoundPlay(&piece, &p);
-    }
-    void stop(fan::audio_t::SoundPlayID_t id) {
-      fan::audio_t::PropertiesSoundStop_t p{};
-      p.FadeOutTo = 0;
-      gloco->audio.SoundStop(id, &p);
-    }
-    void resume(uint32_t group_id = 0) {
-      gloco->audio.Resume();
-    }
-    void pause(uint32_t group_id = 0) {
-      gloco->audio.Pause();
-    }
-    f32_t get_volume() {
-      return gloco->audio.GetVolume();
-    }
-
-    void set_volume(f32_t volume) {
-      gloco->audio.SetVolume(volume);
-    }
-  }
-#if defined(fan_gui)
-  namespace graphics {
-    using texture_packe0 = loco_t::texture_packe0;
-    using ti_t = loco_t::ti_t;
-  }
-#endif
-}
-#endif
-
 #if defined(fan_gui)
 namespace fan {
   namespace graphics {
+    using texture_packe0 = loco_t::texture_packe0;
+    using ti_t = loco_t::ti_t;
+
     namespace gui {
       void process_loop() {
         auto it = gloco->gui_draw_cb.GetNodeFirst();
@@ -7215,3 +7244,106 @@ inline uint32_t fan::graphics::get_draw_mode(uint8_t internal_draw_mode) {
 #endif
   return -1;
 }
+
+#if defined(fan_audio)
+namespace fan::audio {
+
+  piece_t::piece_t() : fan::audio_t::piece_t{ nullptr } {}
+
+  piece_t::piece_t(const fan::audio_t::piece_t& piece)
+    : fan::audio_t::piece_t(piece) {}
+
+  piece_t::piece_t(const std::string& path,
+    fan::audio_t::PieceFlag::t flags,
+    const std::source_location& callers_path)
+    : fan::audio_t::piece_t(open_piece(path, flags, callers_path)) {}
+
+  piece_t::operator fan::audio_t::piece_t& () {
+    return *dynamic_cast<fan::audio_t::piece_t*>(this);
+  }
+
+  piece_t piece_t::open_piece(const std::string& path,
+    fan::audio_t::PieceFlag::t flags,
+    const std::source_location& callers_path) {
+    fan::audio_t::piece_t* piece = &(fan::audio_t::piece_t&)*this;
+    sint32_t err = gloco->audio.Open(piece, fan::io::file::find_relative_path(path, callers_path).string(), flags);
+    if (err != 0) {
+      fan::throw_error("failed to open piece:", err);
+    }
+    return *this;
+  }
+
+  bool piece_t::is_valid() {
+    char test_block[sizeof(fan::audio_t::piece_t)];
+    memset(test_block, 0, sizeof(fan::audio_t::piece_t));
+    return memcmp(&(fan::audio_t::piece_t&)*this, test_block, sizeof(fan::audio_t::piece_t));
+  }
+
+  sound_play_id_t piece_t::play(uint32_t group_id, bool loop) {
+    fan::audio_t::PropertiesSoundPlay_t p{};
+    p.Flags.Loop = loop;
+    p.GroupID = 0;
+    return gloco->audio.SoundPlay(&*this, &p);
+  }
+
+  void piece_t::stop(sound_play_id_t id) {
+    fan::audio_t::PropertiesSoundStop_t p{};
+    p.FadeOutTo = 0;
+    gloco->audio.SoundStop(id, &p);
+  }
+
+  void piece_t::resume(uint32_t group_id) {
+    gloco->audio.Resume();
+  }
+
+  void piece_t::pause(uint32_t group_id) {
+    gloco->audio.Pause();
+  }
+
+  f32_t piece_t::get_volume() {
+    return gloco->audio.GetVolume();
+  }
+
+  void piece_t::set_volume(f32_t volume) {
+    gloco->audio.SetVolume(volume);
+  }
+
+  piece_t open_piece(const std::string& path,
+    fan::audio_t::PieceFlag::t flags,
+    const std::source_location& callers_path) {
+    return piece_t(path, flags, callers_path);
+  }
+
+  bool is_piece_valid(piece_t piece) {
+    return piece.is_valid();
+  }
+
+  sound_play_id_t play(piece_t piece, uint32_t group_id, bool loop) {
+    return piece.play(group_id, loop);
+  }
+
+  void stop(sound_play_id_t id) {
+    fan::audio_t::PropertiesSoundStop_t p{};
+    p.FadeOutTo = 0;
+    gloco->audio.SoundStop(id, &p);
+  }
+
+  void resume(uint32_t group_id) {
+    gloco->audio.Resume();
+  }
+
+  void pause(uint32_t group_id) {
+    gloco->audio.Pause();
+  }
+
+  f32_t get_volume() {
+    return gloco->audio.GetVolume();
+  }
+
+  void set_volume(f32_t volume) {
+    gloco->audio.SetVolume(volume);
+  }
+
+} // namespace fan::audio
+
+#endif

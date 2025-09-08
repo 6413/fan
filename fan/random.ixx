@@ -6,7 +6,6 @@ module;
 export module fan.random;
 
 export import fan.types.vector;
-export import fan.types.color;
 
 export namespace fan {
 
@@ -87,21 +86,6 @@ export namespace fan {
 
     inline fan::vec3 vec3(f32_t min, f32_t max) {
       return fan::vec3(fan::random::value_f32(min, max), fan::random::value_f32(min, max), fan::random::value_f32(min, max));
-    }
-
-    inline fan::color color() {
-      return fan::color(
-        fan::random::value_f32(0, 1),
-        fan::random::value_f32(0, 1),
-        fan::random::value_f32(0, 1),
-        1
-      );
-    }
-    // always makes one channel brightest and scales other channels accordingly
-    inline fan::color bright_color() {
-      fan::color rand_color = fan::random::color();
-      f32_t max_channel = std::max({rand_color.r, rand_color.g, rand_color.b});
-      return rand_color / max_channel;
     }
 
     struct percent_output_t {

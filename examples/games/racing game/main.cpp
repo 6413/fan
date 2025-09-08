@@ -4,6 +4,7 @@
 #include <filesystem>
 
 import fan;
+import fan.graphics.network;
 import fan.graphics.gui.tilemap_editor.renderer;
 
 //fan_track_allocations();
@@ -11,8 +12,6 @@ import fan.graphics.gui.tilemap_editor.renderer;
 #include "pile.h"
 
 int main() {
-  
-  
   pile.engine.loop([&] {
 
   });

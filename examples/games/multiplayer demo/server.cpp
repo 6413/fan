@@ -1,15 +1,22 @@
+#include <fan/utility.h>
 #include <coroutine>
+#include <thread>
+#include <uv.h>
 
 import fan;
 
 #define debug_server 1
+
 
 fan::event::task_t task_server(uint16_t port) {
   co_await fan::network::tcp_server_listen({ .port = port }, [](const fan::network::tcp_t& client) -> fan::event::task_t {
     while (1) {
       std::string json_data;
       fan::network::message_t data;
-
+      auto& reader = client.get_reader();
+      if (!reader.is_reading) {
+        reader.start();
+      }
       while (data = co_await client.read()) {
         std::vector<fan::network::tcp_t*> clients;
         client.broadcast([&clients, &client](fan::network::tcp_t& clientx) {
@@ -26,10 +33,16 @@ fan::event::task_t task_server(uint16_t port) {
             fan::network::get_client_handler().remove_client(client_ptr->nr);
           }
         }
+        if (data.done) {
+          reader.stop();
+          break;
+        }
       }
     }
-    });
+  });
 }
+
+
 
 int main(int argc, char** argv) {
   uint16_t port = 7777;
