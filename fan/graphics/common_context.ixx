@@ -215,10 +215,10 @@ export namespace fan {
     using viewport_nr_t = bll_builds::viewport_nr_t;
 
     struct context_functions_t {
-      context_build_shader_functions(context_typedef_func_ptr);
-      context_build_image_functions(context_typedef_func_ptr);
-      context_build_camera_functions(context_typedef_func_ptr);
-      context_build_viewport_functions(context_typedef_func_ptr);
+      context_build_shader_functions(context_typedef_func_ptr)
+      context_build_image_functions(context_typedef_func_ptr)
+      context_build_camera_functions(context_typedef_func_ptr)
+      context_build_viewport_functions(context_typedef_func_ptr)
     };
     context_functions_t get_vk_context_functions();
 
@@ -297,3 +297,7 @@ export namespace fan {
 #undef context_typedef_func_ptr2
 #undef context_declare_func
 #undef context_declare_func2
+#undef context_build_shader_functions
+#undef context_build_image_functions
+#undef context_build_camera_functions
+#undef context_build_viewport_functions

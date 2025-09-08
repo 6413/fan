@@ -52,7 +52,7 @@ export namespace fan {
       };
     };
 
-    inline f32_t length_units_per_meter = 256.f;
+    inline double length_units_per_meter = 256.0;
 
     struct capsule_t : b2Capsule {
       using b2Capsule::b2Capsule;
@@ -123,7 +123,7 @@ export namespace fan {
       }
     };
 
-    inline std::unordered_map<b2BodyId, body_update_data_t, b2_body_id_hash_t, b2_body_id_equal_t> body_updates;
+    std::unordered_map<b2BodyId, body_update_data_t, b2_body_id_hash_t, b2_body_id_equal_t> body_updates;
 
     inline constexpr f32_t physics_timestep = 1.0 / 256.0;
 
@@ -193,7 +193,7 @@ export namespace fan {
 
       void set_physics_position(const fan::vec2& p) {
         auto& data = body_updates[*this];
-        data.position = p;
+        data.position = p / length_units_per_meter;
         data.has_position = true;
       }
       b2ShapeId get_shape_id() const {
@@ -310,14 +310,19 @@ export namespace fan {
         fan::physics::body_id_t object_id;
         bool is_in_contact = 0;
       };
+      std::function<void(b2SensorBeginTouchEvent&)> begin_touch_event_cb = [] (b2SensorBeginTouchEvent&) {};
+      std::function<void(b2SensorEndTouchEvent&)> end_touch_event_cb = [] (b2SensorEndTouchEvent&) {};
       void update(b2WorldId world_id) {
-        sensor_events = b2World_GetSensorEvents(world_id);
+        b2SensorEvents sensor_events = b2World_GetSensorEvents(world_id);
+
         for (int i = 0; i < sensor_events.beginCount; ++i) {
           b2SensorBeginTouchEvent ev = sensor_events.beginEvents[i];
+          begin_touch_event_cb(ev);
           update_contact(b2Shape_GetBody(ev.sensorShapeId), b2Shape_GetBody(ev.visitorShapeId), true);
         }
         for (int i = 0; i < sensor_events.endCount; ++i) {
-          b2SensorBeginTouchEvent ev = sensor_events.beginEvents[i];
+          b2SensorEndTouchEvent ev = sensor_events.endEvents[i];
+          end_touch_event_cb(ev);
           update_contact(b2Shape_GetBody(ev.sensorShapeId), b2Shape_GetBody(ev.visitorShapeId), false);
         }
       }
@@ -333,7 +338,7 @@ export namespace fan {
           .sensor_id = sensor_id,
           .object_id = object_id,
           .is_in_contact = is_in_contact
-          });
+        });
       }
 
       bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const {
@@ -344,7 +349,6 @@ export namespace fan {
         }
         return false;
       }
-      b2SensorEvents sensor_events;
       std::vector<sensor_contact_t> contacts;
     };
 
@@ -401,6 +405,8 @@ export namespace fan {
         shape_def.friction = shape_properties.friction;
         shape_def.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
+        shape_def.enableSensorEvents = true;
+
         shape_def.filter = shape_properties.filter;
         //shape_def.rollingResistance = shape_properties.rolling_resistance;
         b2CreatePolygonShape(entity, &shape_def, &shape);
@@ -433,6 +439,7 @@ export namespace fan {
         shape_def.friction = shape_properties.friction;
         shape_def.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
+        shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
 
         //shape_def.rollingResistance = shape_properties.rolling_resistance;
@@ -469,6 +476,7 @@ export namespace fan {
         shape_def.friction = shape_properties.friction;
         shape_def.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
+        shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
         //shape_def.rollingResistance = shape_properties.rolling_resistance;
         b2CreateCapsuleShape(entity, &shape_def, &shape);
@@ -496,6 +504,7 @@ export namespace fan {
         shape_def.friction = shape_properties.friction;
         shape_def.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
+        shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
 
         for (std::size_t i = 0; i < points.size() - 1; ++i) {
@@ -536,6 +545,7 @@ export namespace fan {
         shape_def.friction = shape_properties.friction;
         shape_def.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
+        shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
 
         std::vector<b2Vec2> b2_points(points.size());
@@ -582,7 +592,7 @@ export namespace fan {
             }
             if (data.has_position) {
               b2Rot rotation = b2Body_GetRotation(id);
-              b2Body_SetTransform(id, data.position / length_units_per_meter, rotation);
+              b2Body_SetTransform(id, data.position, rotation);
               data.has_position = false;
             }
             if ((accumulator - physics_timestep) < physics_timestep && data.is_idle()) {
@@ -710,6 +720,7 @@ export namespace fan {
           shapeDef.restitution = b2Shape_GetRestitution(sourceShapeId);
           shapeDef.filter = b2Shape_GetFilter(sourceShapeId);
           shapeDef.isSensor = b2Shape_IsSensor(sourceShapeId);
+          shapeDef.enableSensorEvents = true;
           shapeDef.userData = b2Shape_GetUserData(sourceShapeId);
 
           b2ShapeId newShapeId;
@@ -750,11 +761,11 @@ export namespace fan {
       }
       return newBodyId;
     }
-    fan::vec2 physics_to_render(const fan::vec2& p) {
+    fan::vec2d physics_to_render(const fan::vec2d& p) {
       return p * fan::physics::length_units_per_meter;
     }
 
-    fan::vec2 render_to_physics(const fan::vec2& p) {
+    fan::vec2d render_to_physics(const fan::vec2d& p) {
       return p / fan::physics::length_units_per_meter;
     }
 

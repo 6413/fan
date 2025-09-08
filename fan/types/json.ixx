@@ -55,11 +55,12 @@ export {
     }
   };
 
-  template <> struct fan::adl_serializer<fan::color> {
-    static void to_json(json& j, const fan::color& c) {
-      j = json{ c.r, c.g, c.b, c.a };
+  template <typename T> 
+  struct fan::adl_serializer<fan::color_<T>> {
+    static void to_json(json& j, const fan::color_<T>& c) {
+      j = fan::json{ c[0], c[1], c[2], c[3]};
     }
-    static void from_json(const json& j, fan::color& c) {
+    static void from_json(const json& j, fan::color_<T>& c) {
       c.r = j[0];
       c.g = j[1];
       c.b = j[2];

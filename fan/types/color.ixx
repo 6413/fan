@@ -1,248 +1,244 @@
 module;
 
+//#undef fan_gui
+
 #if defined(fan_gui)
-#include <fan/imgui/imgui.h>
+	#include <fan/imgui/imgui.h>
 #endif
 
-#include <random>
 #include <string>
 #include <sstream>
-#include <algorithm>
 
 export module fan.types.color;
 
+import fan.types;
 import fan.types.vector;
+import fan.random;
 
 #pragma pack(push, 1)
 
 export namespace fan {
 	// internal format 0-1
-	struct color {
-    template <typename T>
-    constexpr color(const fan::vec3_wrap_t<T>& v) {
-      r = v.x;
-      g = v.y;
-      b = v.z;
-    }
-    template <typename T>
-    constexpr color(const fan::vec4_wrap_t<T>& v) {
-      *(fan::vec4*)this = v;
-    }
-    constexpr color() = default;
-		constexpr color(cf_t r, cf_t g, cf_t b, cf_t a = 1) : r(r), g(g), b(b), a(a) {
+  template <typename type_t>
+	struct color_ {
+		constexpr color_() = default;
+		template <typename T>
+		constexpr color_(const fan::vec3_wrap_t<T>& v) {
+			r = v.x;
+			g = v.y;
+			b = v.z;
+		}
+		template <typename T>
+		constexpr color_(const fan::vec4_wrap_t<T>& v) {
+			*(fan::vec4*)this = v;
+		}
+		constexpr color_(cf_t r, cf_t g, cf_t b, cf_t a = 1) : r(r), g(g), b(b), a(a) {
 			this->r = r;
 			this->g = g;
 			this->b = b;
 			this->a = a;
 		}
-		constexpr color(cf_t value) : r(0), g(0), b(0), a(0) {
+		constexpr color_(cf_t value) : r(0), g(0), b(0), a(0) {
 			this->r = value;
 			this->g = value;
 			this->b = value;
 			this->a = value;
 		}
-		constexpr color& operator&=(const color& color_) {
-			color ret;
-			ret.r = (unsigned int)r & (unsigned int)color_.r;
-			ret.g = (unsigned int)g & (unsigned int)color_.g;
-			ret.b = (unsigned int)b & (unsigned int)color_.b;
-			ret.a = (unsigned int)a & (unsigned int)color_.a;
+		constexpr color_& operator&=(const color_& color_) {
+			r = (unsigned int)r & (unsigned int)color_.r;
+			g = (unsigned int)g & (unsigned int)color_.g;
+			b = (unsigned int)b & (unsigned int)color_.b;
+			a = (unsigned int)a & (unsigned int)color_.a;
 			return *this;
 		}
-		constexpr color operator^=(const color& color_) {
+		constexpr color_& operator^=(const color_& color_) {
 			r = (int)r ^ (int)color_.r;
 			g = (int)g ^ (int)color_.g;
 			b = (int)b ^ (int)color_.b;
 			return *this;
 		}
-		constexpr bool operator!=(const color& color_) const {
+		constexpr bool operator!=(const color_& color_) const {
 			return r != color_.r || g != color_.g || b != color_.b;
 		}
-		constexpr bool operator==(const color& color_) const {
+		constexpr bool operator==(const color_& color_) const {
 			return r == color_.r && g == color_.g && b == color_.b && a == color_.a;
 		}
 		constexpr cf_t& operator[](size_t x) {
 			return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
 		}
-    constexpr cf_t operator[](size_t x) const {
+		constexpr cf_t operator[](size_t x) const {
 			return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
 		}
-		constexpr color operator-=(const color& color_) {
-			return color(r -= color_.r, g -= color_.g, b -= color_.b, a -= color_.a);
+		constexpr color_ operator-=(const color_& color_) {
+			return color_(r -= color_.r, g -= color_.g, b -= color_.b, a -= color_.a);
 		}
-		constexpr color operator-() const {
-			return color(-r, -g, -b, a);
+		constexpr color_ operator-() const {
+			return color_(-r, -g, -b, a);
 		}
-		constexpr color operator-(const color& color_) const {
-			return color(r - color_.r, g - color_.g, b - color_.b, color_.a != 1 ? a - color_.a : a);
+		constexpr color_ operator-(const color_& color_) const {
+			return color_(r - color_.r, g - color_.g, b - color_.b, color_.a != 1 ? a - color_.a : a);
 		}
-		constexpr color operator+(const color& color_) const {
-			return color(r + color_.r, g + color_.g, b + color_.b, a + color_.a);
-		}
-		template <typename T>
-		constexpr color operator*(T value) const {
-			return color(r * value, g * value, b * value, a * value);
+		constexpr color_ operator+(const color_& color_) const {
+			return color_(r + color_.r, g + color_.g, b + color_.b, a + color_.a);
 		}
 		template <typename T>
-		constexpr color operator/(T value) const {
-			return color(r / value, g / value, b / value);
+		constexpr color_ operator*(T value) const {
+			return color_(r * value, g * value, b * value, a * value);
+		}
+		template <typename T>
+		constexpr color_ operator/(T value) const {
+			return color_(r / value, g / value, b / value);
 		}
 
 		template <typename T>
-		constexpr color mult_no_alpha(T value) const {
-			return color(r * value, g * value, b * value);
+		constexpr color_ mult_no_alpha(T value) const {
+			return color_(r * value, g * value, b * value);
 		}
-    cf_t* data() {
-      return &r;
+		cf_t* data() {
+			return &r;
+		}
+
+    static constexpr f32_t clamp(f32_t value, f32_t min, f32_t max) {
+      return value < min ? min : (value > max ? max : value);
     }
 
-    static constexpr uint32_t to_byte(f32_t value) {
-      return static_cast<uint32_t>(std::clamp(value, 0.0f, 1.0f) * 255);
-    }
+		static constexpr uint32_t to_byte(f32_t value) {
+			return static_cast<uint32_t>(color_::clamp(value, 0.0f, 1.0f) * 255);
+		}
 
-    static constexpr uint32_t pack_color(f32_t c1, f32_t c2, f32_t c3, f32_t c4) {
-      return (to_byte(c1) << 24) | (to_byte(c2) << 16) | (to_byte(c3) << 8) | to_byte(c4);
-    }
-    static constexpr void unpack_color(uint32_t color, f32_t& c1, f32_t& c2, f32_t& c3, f32_t& c4) {
-      c1 = ((color >> 24) & 0xFF) / 255.0f;
-      c2 = ((color >> 16) & 0xFF) / 255.0f;
-      c3 = ((color >> 8) & 0xFF) / 255.0f;
-      c4 = (color & 0xFF) / 255.0f;
-    }
+		static constexpr uint32_t pack_color(f32_t c1, f32_t c2, f32_t c3, f32_t c4) {
+			return (to_byte(c1) << 24) | (to_byte(c2) << 16) | (to_byte(c3) << 8) | to_byte(c4);
+		}
+		static constexpr void unpack_color(uint32_t color_, f32_t& c1, f32_t& c2, f32_t& c3, f32_t& c4) {
+			c1 = ((color_ >> 24) & 0xFF) / 255.0f;
+			c2 = ((color_ >> 16) & 0xFF) / 255.0f;
+			c3 = ((color_ >> 8) & 0xFF) / 255.0f;
+			c4 = (color_ & 0xFF) / 255.0f;
+		}
 
-    constexpr uint32_t get_rgba() const { return pack_color(r, g, b, a); }
-    constexpr uint32_t get_abgr() const { return pack_color(a, b, g, r); }
-    constexpr uint32_t get_argb() const { return pack_color(a, r, g, b); }
-    constexpr uint32_t get_bgra() const { return pack_color(b, g, r, a); }
+		constexpr uint32_t get_rgba() const { return pack_color(r, g, b, a); }
+		constexpr uint32_t get_abgr() const { return pack_color(a, b, g, r); }
+		constexpr uint32_t get_argb() const { return pack_color(a, r, g, b); }
+		constexpr uint32_t get_bgra() const { return pack_color(b, g, r, a); }
 
-    constexpr void set_rgba(uint32_t color) { unpack_color(color, r, g, b, a); }
-    constexpr void set_abgr(uint32_t color) { unpack_color(color, a, b, g, r); }
-    constexpr void set_argb(uint32_t color) { unpack_color(color, a, r, g, b); }
-    constexpr void set_bgra(uint32_t color) { unpack_color(color, b, g, r, a); }
+		constexpr void set_rgba(uint32_t color_) { unpack_color(color_, r, g, b, a); }
+		constexpr void set_abgr(uint32_t color_) { unpack_color(color_, a, b, g, r); }
+		constexpr void set_argb(uint32_t color_) { unpack_color(color_, a, r, g, b); }
+		constexpr void set_bgra(uint32_t color_) { unpack_color(color_, b, g, r, a); }
 
-    static constexpr fan::color from_rgba(uint32_t color) {
-      fan::color c;
-      c.set_rgba(color);
-      return c;
-    }
-    static constexpr fan::color from_abgr(uint32_t color) {
-      fan::color c;
-      c.set_abgr(color);
-      return c;
-    }
-    static constexpr fan::color from_argb(uint32_t color) {
-      fan::color c;
-      c.set_argb(color);
-      return c;
-    }
-    static constexpr fan::color from_bgra(uint32_t color) {
-      fan::color c;
-      c.set_bgra(color);
-      return c;
-    }
+		static constexpr fan::color_<type_t> from_rgba(uint32_t color_) {
+			fan::color_<type_t> c;
+			c.set_rgba(color_);
+			return c;
+		}
+		static constexpr fan::color_<type_t> from_abgr(uint32_t color_) {
+			fan::color_<type_t> c;
+			c.set_abgr(color_);
+			return c;
+		}
+		static constexpr fan::color_<type_t> from_argb(uint32_t color_) {
+			fan::color_<type_t> c;
+			c.set_argb(color_);
+			return c;
+		}
+		static constexpr fan::color_<type_t> from_bgra(uint32_t color_) {
+			fan::color_<type_t> c;
+			c.set_bgra(color_);
+			return c;
+		}
 
-  #if defined(fan_gui)
-    constexpr color(const ImVec4& v) {
-      r = v.x;
-      g = v.y;
-      b = v.z;
-      a = v.w;
-    }
-    constexpr operator ImVec4() const {
-      return *(ImVec4*)this;
-    }
-    constexpr operator fan::vec3() const {
-      return fan::vec3{ r, g, b };
-    }
-    ImU32 get_imgui_color() const {
-      return get_abgr();
-    }
-  #endif
+		static constexpr fan::color_<type_t> from_rgb(uint32_t color_) {
+			fan::color_<type_t> c;
+			uint32_t rgba_color = (color_ << 8) | 0xFF;
+			c.set_rgba(rgba_color);
+			return c;
+		}
 
-    template <typename T>
-    constexpr operator fan::vec4_wrap_t<T>() {
-      return *(fan::vec4_wrap_t<T>*)this;
-    }
+	#if defined(fan_gui)
+		constexpr color_(const ImVec4& v) {
+			r = v.x;
+			g = v.y;
+			b = v.z;
+			a = v.w;
+		}
+		constexpr operator ImVec4() const {
+			return *(ImVec4*)this;
+		}
+		constexpr operator fan::vec3() const {
+			return fan::vec3{ r, g, b };
+		}
+		ImU32 get_imgui_color() const {
+			return get_abgr();
+		}
+	#endif
 
-    using value_type = cf_t;
+		using value_type = type_t;
 
-    // returns rgb from hsv
-    static fan::color hsv(f32_t H, f32_t S, f32_t V) {
-      f32_t s = S / 100, v = V / 100;
-      f32_t C = s * v;
-      f32_t X = C * (1 - std::abs(fmod(H / 60.0, 2) - 1));
-      f32_t m = v - C;
+		constexpr operator fan::vec4_wrap_t<value_type>() {
+			return *(fan::vec4_wrap_t<value_type>*)this;
+		}
 
-      int i = static_cast<int>(H / 60) % 6;
-      f32_t rgb[6][3] = { {C,X,0},{X,C,0},{0,C,X},{0,X,C},{X,0,C},{C,0,X} };
 
-      return fan::color(rgb[i][0] + m, rgb[i][1] + m, rgb[i][2] + m, 1.0f);
-    }
+		// returns rgb from hsv
+		static fan::color_<type_t> hsv(f32_t H, f32_t S, f32_t V) {
+			f32_t s = S / 100, v = V / 100;
+			f32_t C = s * v;
+			f32_t X = C * (1 - std::abs(fmod(H / 60.0, 2) - 1));
+			f32_t m = v - C;
 
-    static constexpr color rgb(cf_t r, cf_t g, cf_t b, cf_t a = 255) {
-      return color(r / 255.f, g / 255.f, b / 255.f, a / 255.f);
-    }
+			int i = static_cast<int>(H / 60) % 6;
+			f32_t rgb[6][3] = { {C,X,0},{X,C,0},{0,C,X},{0,X,C},{X,0,C},{C,0,X} };
 
-    static constexpr color readable_text(const color& background) {
-      f32_t luminance = 0.2126f * background.r + 0.7152f * background.g + 0.0722f * background.b;
-      if (luminance > 0.5f) {
-        return color(0, 0, 0, 1);
-      }
-      else {
-        return color(1, 1, 1, 1);
-      }
-    }
+			return fan::color_(rgb[i][0] + m, rgb[i][1] + m, rgb[i][2] + m, 1.0f);
+		}
+
+		static constexpr color_<type_t> rgb(cf_t r, cf_t g, cf_t b, cf_t a = 255) {
+			return color_<type_t>(r / 255.f, g / 255.f, b / 255.f, a / 255.f);
+		}
+
+		static constexpr color_<type_t> readable_text(const color_<type_t>& background) {
+			f32_t luminance = 0.2126f * background.r + 0.7152f * background.g + 0.0722f * background.b;
+			if (luminance > 0.5f) {
+				return color_(0, 0, 0, 1);
+			}
+			else {
+				return color_<type_t>(1, 1, 1, 1);
+			}
+		}
 
 
 		static constexpr uint32_t size() {
 			return 4;
 		}
 
-    private:
-      static constexpr auto float_accuracy = 1000000;
 
-    int64_t value_i64(int64_t min, int64_t max) {
-      static std::random_device device;
-      static std::mt19937_64 random(device());
-
-      std::uniform_int_distribution<int64_t> distance(min, max);
-
-      return distance(random);
-    }
-
-
-    f32_t value_f32(f32_t min, f32_t max) {
-      return (f32_t)value_i64(min * float_accuracy, max * float_accuracy) / float_accuracy;
-    }
-    public:
-
-    void randomize() {
-      *this = fan::color(
-        value_f32(0, 1),
-        value_f32(0, 1),
-        value_f32(0, 1),
-        1
-      );
-    }
+		void randomize() {
+			*this = fan::color_<type_t>(
+				fan::random::value(0.f, 1.f),
+				fan::random::value(0.f, 1.f),
+				fan::random::value(0.f, 1.f),
+				1
+			);
+		}
 
 		std::string to_string() const noexcept {
-      return "{ " + 
-            std::to_string(r) + ", " + 
-            std::to_string(g) + ", " + 
-            std::to_string(b) + ", " + 
-            std::to_string(a) + " }";
-    }
+			return "{ " + 
+						std::to_string(r) + ", " + 
+						std::to_string(g) + ", " + 
+						std::to_string(b) + ", " + 
+						std::to_string(a) + " }";
+		}
 		void from_string(const std::string& str) {
-      std::stringstream ss(str);
-      char ch;
-      for (size_t i = 0; i < 4; ++i) {
-        ss >> ch >> (*this)[i];
-      }
-    }
-		friend std::ostream& operator<<(std::ostream& os, const color& color_) noexcept {
-  		os << color_.to_string();
+			std::stringstream ss(str);
+			char ch;
+			for (size_t i = 0; i < 4; ++i) {
+				ss >> ch >> (*this)[i];
+			}
+		}
+		friend std::ostream& operator<<(std::ostream& os, const color_& color_) noexcept {
+			os << color_.to_string();
 
-  		return os;
+			return os;
 		}
 
 		auto begin() const {
@@ -257,30 +253,48 @@ export namespace fan {
 		auto end() {
 			return begin() + size();
 		}
-    color set_alpha(f32_t alpha) const {
-      return color(r, g, b, alpha);
-    }
+		color_ set_alpha(f32_t alpha) const {
+			return color_(r, g, b, alpha);
+		}
 
-    cf_t r = 0, g = 0, b = 0, a = 1;
+		value_type r = 0, g = 0, b = 0, a = 1;
 	};
+
+  using color = color_<cf_t>;
 
 	namespace colors {
 		inline constexpr fan::color black = fan::color::from_rgba(0x000000FF);
-    inline constexpr fan::color gray = fan::color::from_rgba(0x808080FF);
-    inline constexpr fan::color red = fan::color::from_rgba(0xFF0000FF);
-    inline constexpr fan::color green = fan::color::from_rgba(0x00FF00FF);
-    inline constexpr fan::color blue = fan::color::from_rgba(0x0000FFFF);
-    inline constexpr fan::color white = fan::color::from_rgba(0xFFFFFFFF);
-    inline constexpr fan::color aqua = fan::color::from_rgba(0x00FFFFFF);
-    inline constexpr fan::color purple = fan::color::from_rgba(0x800080FF);
-    inline constexpr fan::color orange = fan::color::from_rgba(0xFFA500FF);
-    inline constexpr fan::color pink = fan::color::from_rgba(0xFF35B8FF);
-    inline constexpr fan::color yellow = fan::color::from_rgba(0xFFFF00FF);
-    inline constexpr fan::color gold = fan::color::from_rgba(0xFFD700FF);
-    inline constexpr fan::color cyan = fan::color::from_rgba(0x00FFFFFF);
-    inline constexpr fan::color magenta = fan::color::from_rgba(0xFF00FFFF);
-    inline constexpr fan::color transparent = fan::color::from_rgba(0x00000000);
-    inline constexpr fan::color lime = fan::color(0.2f, 0.8f, 0.2f, 1.0f);
+		inline constexpr fan::color gray = fan::color::from_rgba(0x808080FF);
+		inline constexpr fan::color red = fan::color::from_rgba(0xFF0000FF);
+		inline constexpr fan::color green = fan::color::from_rgba(0x00FF00FF);
+		inline constexpr fan::color blue = fan::color::from_rgba(0x0000FFFF);
+		inline constexpr fan::color white = fan::color::from_rgba(0xFFFFFFFF);
+		inline constexpr fan::color aqua = fan::color::from_rgba(0x00FFFFFF);
+		inline constexpr fan::color purple = fan::color::from_rgba(0x800080FF);
+		inline constexpr fan::color orange = fan::color::from_rgba(0xFFA500FF);
+		inline constexpr fan::color pink = fan::color::from_rgba(0xFF35B8FF);
+		inline constexpr fan::color yellow = fan::color::from_rgba(0xFFFF00FF);
+		inline constexpr fan::color gold = fan::color::from_rgba(0xFFD700FF);
+		inline constexpr fan::color cyan = fan::color::from_rgba(0x00FFFFFF);
+		inline constexpr fan::color magenta = fan::color::from_rgba(0xFF00FFFF);
+		inline constexpr fan::color transparent = fan::color::from_rgba(0x00000000);
+		inline constexpr fan::color lime = fan::color(0.2f, 0.8f, 0.2f, 1.0f);
+	}
+	namespace random {
+		fan::color color() {
+			return fan::color(
+				fan::random::value(0.f, 1.f),
+				fan::random::value(0.f, 1.f),
+				fan::random::value(0.f, 1.f),
+				1
+			);
+		}
+		// always makes one channel brightest and scales other channels accordingly
+		fan::color bright_color() {
+			fan::color rand_color = fan::random::color();
+			f32_t max_channel = std::max({ rand_color.r, rand_color.g, rand_color.b });
+			return rand_color / max_channel;
+		}
 	}
 }
 
