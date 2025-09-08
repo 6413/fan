@@ -139,44 +139,60 @@ void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
 }
 
 /// Draw a string.
-void DrawString(b2Vec2 p, const char* s, void* context) {
+void DrawString(b2Vec2 p, const char* s, b2HexColor color, void* context) {
 #if defined(fan_gui)
   fan::vec2 pos = fan::physics::physics_to_render(p) - gloco->camera_get_position(gloco->orthographic_render_view.camera);
   pos *= gloco->camera_get_zoom(gloco->orthographic_render_view.camera, gloco->orthographic_render_view.viewport)*0.5f;
   pos += gloco->window.get_size() / 2.f;
   
-  fan::graphics::gui::text_outlined_at(s, pos);
+  fan::graphics::gui::text_outlined_at(s, pos, fan::color::from_rgb(color));
 #endif
 }
 
 
 b2DebugDraw initialize_debug(bool enabled) {
   return b2DebugDraw{
-  .DrawPolygon = (decltype(b2DebugDraw::DrawPolygon))DrawPolygon,
-  .DrawSolidPolygon = DrawSolidPolygon,
-  .DrawCircle = DrawCircle,
-  .DrawSolidCircle = DrawSolidCircle,
-  .DrawCapsule = DrawCapsule,
-  .DrawSolidCapsule = DrawSolidCapsule,
-  .DrawSegment = DrawSegment,
-  .DrawTransform = DrawTransform,
-  .DrawPoint = DrawPoint,
-  .DrawString = DrawString,
-	.drawShapes = enabled,
-	.drawJoints = enabled,
-	.drawJointExtras = enabled,
-	.drawAABBs = enabled,
-	.drawMass = enabled,
-	.drawContacts = enabled,
-	.drawGraphColors = enabled,
-	.drawContactNormals = enabled,
-	.drawContactImpulses = enabled,
-	.drawFrictionImpulses = enabled,
+  .DrawPolygonFcn = (decltype(b2DebugDraw::DrawPolygonFcn))DrawPolygon,
+  .DrawSolidPolygonFcn = DrawSolidPolygon,
+  .DrawCircleFcn = DrawCircle,
+  .DrawSolidCircleFcn = DrawSolidCircle,
+ // .DrawCapsuleFcn = DrawCapsule,
+ // .DrawSolidCapsuleFcn = DrawSolidCapsule,
+  .DrawSegmentFcn = DrawSegment,
+  .DrawTransformFcn = DrawTransform,
+  .DrawPointFcn = DrawPoint,
+  .DrawStringFcn = DrawString,
+//	.drawShapes = enabled,
+//	.drawJoints = enabled,
+//	.drawJointExtras = enabled,
+////	.drawAABBs = enabled,
+//	.drawMass = enabled,
+//	.drawContacts = enabled,
+//	.drawGraphColors = enabled,
+//	.drawContactNormals = enabled,
+//	.drawContactImpulses = enabled,
+//	.drawFrictionImpulses = enabled,
 
   /*.drawShapes = enabled,
   .drawJoints = enabled,
   .drawAABBs = enabled,
   .drawContacts=enabled*/
+
+
+	.drawShapes = enabled,
+	.drawJoints = enabled,
+	.drawJointExtras = enabled,
+	.drawBounds = enabled,
+	.drawMass = enabled,
+	.drawBodyNames = enabled,
+	.drawContacts = enabled,
+	.drawGraphColors = enabled,
+	.drawContactNormals = enabled,
+	.drawContactImpulses = enabled,
+	.drawContactFeatures = enabled,
+	.drawFrictionImpulses = enabled,
+	.drawIslands = enabled,
+
   };
 }
 

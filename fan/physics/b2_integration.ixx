@@ -112,14 +112,14 @@ export namespace fan {
     struct b2_body_id_hash_t {
       std::size_t operator()(const b2BodyId& id) const {
         return std::hash<uint64_t>{}(
-          (uint64_t(id.index1) << 32) | (uint64_t(id.world0) << 16) | id.revision
+          (uint64_t(id.index1) << 32) | (uint64_t(id.world0) << 16) | id.generation
           );
       }
     };
 
     struct b2_body_id_equal_t {
       bool operator()(const b2BodyId& a, const b2BodyId& b) const {
-        return a.index1 == b.index1 && a.world0 == b.world0 && a.revision == b.revision;
+        return a.index1 == b.index1 && a.world0 == b.world0 && a.generation == b.generation;
       }
     };
 
@@ -227,13 +227,13 @@ export namespace fan {
     struct b2_joint_id_hash_t {
       std::size_t operator()(const b2JointId& id) const {
         return std::hash<uint64_t>{}(
-          (uint64_t(id.index1) << 32) | (uint64_t(id.world0) << 16) | id.revision
+          (uint64_t(id.index1) << 32) | (uint64_t(id.world0) << 16) | id.generation
           );
       }
     };
     struct b2_joint_id_equal_t {
       bool operator()(const b2JointId& a, const b2JointId& b) const {
-        return a.index1 == b.index1 && a.world0 == b.world0 && a.revision == b.revision;
+        return a.index1 == b.index1 && a.world0 == b.world0 && a.generation == b.generation;
       }
     };
     inline std::unordered_map<b2JointId, joint_update_data_t, b2_joint_id_hash_t, b2_joint_id_equal_t> joint_updates;
@@ -402,8 +402,8 @@ export namespace fan {
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
         shape_def.density = shape_properties.density;
-        shape_def.friction = shape_properties.friction;
-        shape_def.restitution = shape_properties.restitution;
+  //      shape_def.friction = shape_properties.friction;
+    //    shape_def.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
 
@@ -436,8 +436,8 @@ export namespace fan {
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
         shape_def.density = shape_properties.density;
-        shape_def.friction = shape_properties.friction;
-        shape_def.restitution = shape_properties.restitution;
+  //      shape_def.friction = shape_properties.friction;
+  //      shape_def.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
@@ -473,8 +473,8 @@ export namespace fan {
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
         shape_def.density = shape_properties.density;
-        shape_def.friction = shape_properties.friction;
-        shape_def.restitution = shape_properties.restitution;
+    //    shape_def.friction = shape_properties.friction;
+ //       shape_def.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
@@ -501,8 +501,8 @@ export namespace fan {
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
         shape_def.density = shape_properties.density;
-        shape_def.friction = shape_properties.friction;
-        shape_def.restitution = shape_properties.restitution;
+ //       shape_def.friction = shape_properties.friction;
+ //       shape_def.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
@@ -542,8 +542,8 @@ export namespace fan {
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
         shape_def.density = shape_properties.density;
-        shape_def.friction = shape_properties.friction;
-        shape_def.restitution = shape_properties.restitution;
+       // shape_def.friction = shape_properties.friction;
+       // shape_def.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
@@ -716,8 +716,8 @@ export namespace fan {
           b2ShapeDef shapeDef = b2DefaultShapeDef();
 
           shapeDef.density = b2Shape_GetDensity(sourceShapeId);
-          shapeDef.friction = b2Shape_GetFriction(sourceShapeId);
-          shapeDef.restitution = b2Shape_GetRestitution(sourceShapeId);
+   //       shapeDef.friction = b2Shape_GetFriction(sourceShapeId);
+     //     shapeDef.restitution = b2Shape_GetRestitution(sourceShapeId);
           shapeDef.filter = b2Shape_GetFilter(sourceShapeId);
           shapeDef.isSensor = b2Shape_IsSensor(sourceShapeId);
           shapeDef.enableSensorEvents = true;
