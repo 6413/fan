@@ -741,7 +741,7 @@ export namespace fan {
           fan::graphics::gui::text_at(text, text_pos + offset, color);
         }
 
-        constexpr const float outline_thickness = 2.0f;
+        constexpr const float outline_thickness = 1.5f;
         constexpr const fan::vec2 outline_offsets[] = {
           {0, -outline_thickness},  // top
           {-outline_thickness, 0},  // left
@@ -1480,8 +1480,8 @@ export namespace fan {
         /// <returns></returns>
         bool audio_button(
           const std::string& label, 
-          fan::audio::piece_t piece_hover = {0}, 
-          fan::audio::piece_t piece_click = {0}, 
+          fan::audio::piece_t piece_hover = fan::audio::piece_invalid, 
+          fan::audio::piece_t piece_click = fan::audio::piece_invalid, 
           const fan::vec2& size = fan::vec2(0, 0)
         ) {
           ImGui::PushID(label.c_str());

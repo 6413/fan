@@ -1,5 +1,6 @@
 export module fan;
 
+export import fan.types;
 export import fan.print;
 export import fan.utility;
 export import fan.types.masterpiece;

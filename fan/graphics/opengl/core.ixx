@@ -5,6 +5,7 @@ module;
 #include <vector>
 #include <string>
 #include <source_location>
+#include <unordered_map>
 
 #ifndef camera_list
   #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)this))
@@ -190,13 +191,13 @@ export namespace fan {
         uint32_t vertex = -1, fragment = -1;
       };
 
-      static constexpr auto shader_validate_error_message = [](const auto str) {
-        return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
-      };
+      //static constexpr auto shader_validate_error_message = [](const std::string& str) {
+      //  return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
+      //};
 
-      static constexpr auto validate_error_message = [](const auto str) {
-        return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
-        };
+      //static constexpr auto validate_error_message = [](const std::string& str) {
+      //  return "failed to set value for:" + str + " check if variable is used in file so that its not optimized away";
+      //  };
 
       template <typename T>
       void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {

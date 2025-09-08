@@ -45,8 +45,14 @@ export namespace fan {
       std::string text;
     };
 
-    std::function<void(const output_t&)> output_cb = [](const auto&) {};
-    std::function<void(const std::string&, const fan::color& color)> output_colored_cb = [](const std::string&, const fan::color& color) {};
+    // intellisense bugs
+    static void empty_output(const output_t&) {}
+
+    std::function<void(const output_t&)> output_cb = empty_output;
+
+    static void empty_output_colored(const std::string&, const fan::color& color) {}
+
+    std::function<void(const std::string&, const fan::color& color)> output_colored_cb = empty_output_colored;
 
     inline fan::commands_t::command_t& add(const std::string& cmd, auto func) {
       command_t command;

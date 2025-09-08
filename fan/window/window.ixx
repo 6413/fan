@@ -343,7 +343,7 @@ export namespace fan {
     void handle_key_states() {
       // can be 1 or 2 aka press or repeat
       if (key_state(fan::mouse_left) == 1 || key_state(fan::mouse_middle) == 1 || key_state(fan::mouse_right) == 1) {
-        drag_delta_start = get_mouse_position();
+        drag_delta_start = get_mouse_position(); // requires manual reset = -1 because button callbacks are processed before this
       }
       else if (key_state(fan::mouse_left) == 0 || key_state(fan::mouse_middle) == 0 || key_state(fan::mouse_right) == 0) {
         drag_delta_start = -1;
@@ -468,13 +468,13 @@ export namespace fan {
       m_mouse_position_callback.Recycle(id);
     }
 
-    mouse_motion_callback_NodeReference_t add_mouse_motion(mouse_motion_cb_t function) {
+    mouse_motion_callback_NodeReference_t add_mouse_motion_callback(mouse_motion_cb_t function) {
       auto nr = m_mouse_motion_callback.NewNodeLast();
       m_mouse_motion_callback[nr].data = function;
       return nr;
     }
 
-    void erase_mouse_motion_callback(mouse_motion_callback_NodeReference_t id) {
+    void remove_mouse_motion_callback(mouse_motion_callback_NodeReference_t id) {
       m_mouse_motion_callback.Unlink(id);
       m_mouse_motion_callback.Recycle(id);
     }
@@ -838,6 +838,7 @@ export namespace fan {
     close_callback_t m_close_callback;
     mouse_position_callback_t m_mouse_position_callback;
     mouse_motion_callback_t m_mouse_motion_callback;
+
     uint64_t flags = 0;
     uint8_t m_antialiasing_samples = 0;
 

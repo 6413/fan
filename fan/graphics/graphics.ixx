@@ -125,16 +125,16 @@ export namespace fan {
       image.sic();
       return image;
     }();
-    void add_input_action(const int* keys, std::size_t count, std::string_view action_name) {
+    void add_input_action(const int* keys, std::size_t count, const std::string& action_name) {
       gloco->input_action.add(keys, count, action_name);
     }
-    void add_input_action(std::initializer_list<int> keys, std::string_view action_name) {
+    void add_input_action(std::initializer_list<int> keys, const std::string& action_name) {
       gloco->input_action.add(keys, action_name);
     }
-    void add_input_action(int key, std::string_view action_name) {
+    void add_input_action(int key, const std::string& action_name) {
       gloco->input_action.add(key, action_name);
     }
-    bool is_input_action_active(std::string_view action_name, int pstate = loco_t::input_action_t::press) {
+    bool is_input_action_active(const std::string& action_name, int pstate = loco_t::input_action_t::press) {
       return gloco->input_action.is_active(action_name);
     }
 
@@ -364,9 +364,9 @@ export namespace fan {
         fan::vec3 src = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
         fan::vec2 dst = fan::vec2(1, 1);
         fan::color color = fan::color(1, 1, 1, 1);
-        f32_t thickness = 4.0f;
+        f32_t thickness = 2.0f;
         bool blending = true;
-        uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       };
 
       struct line_t : loco_t::shape_t {
@@ -1058,35 +1058,41 @@ void init_imgui();
 export namespace fan {
   namespace graphics {
     struct interactive_camera_t {
-      loco_t::update_callback_nr_t uc_nr;
       f32_t zoom = 2;
       bool hovered = false;
       bool zoom_on_window_resize = true;
-      fan::vec2 old_window_size;
+      bool pan_with_middle_mouse = false;
+      fan::vec2 old_window_size{};
+      fan::vec2 camera_offset{};
       loco_t::camera_t reference_camera;
       loco_t::viewport_t reference_viewport;
+      fan::window_t::resize_callback_NodeReference_t resize_callback_nr;
       fan::window_t::buttons_callback_t::nr_t button_cb_nr;
+      fan::window_t::mouse_motion_callback_t::nr_t mouse_motion_nr;
+      loco_t::update_callback_nr_t uc_nr;
 
       interactive_camera_t(
-        loco_t::camera_t camera_nr = gloco->orthographic_render_view.camera, 
+        loco_t::camera_t camera_nr = gloco->orthographic_render_view.camera,
         loco_t::viewport_t viewport_nr = gloco->orthographic_render_view.viewport
       ) : reference_camera(camera_nr), reference_viewport(viewport_nr)
       {
         auto& window = gloco->window;
         old_window_size = window.get_size();
+
         static auto update_ortho = [&](loco_t* loco) {
           fan::vec2 s = loco->viewport_get_size(reference_viewport);
+          fan::vec2 ortho_size = s / zoom;
           loco->camera_set_ortho(
             reference_camera,
-            fan::vec2(-s.x, s.x) / zoom,
-            fan::vec2(-s.y, s.y) / zoom
+            fan::vec2(-ortho_size.x, ortho_size.x),
+            fan::vec2(-ortho_size.y, ortho_size.y)
           );
         };
 
         auto it = gloco->m_update_callback.NewNodeLast();
         gloco->m_update_callback[it] = update_ortho;
 
-        window.add_resize_callback([&](const auto& d) {
+        resize_callback_nr = window.add_resize_callback([&](const auto& d) {
           if (old_window_size.x > 0 && old_window_size.y > 0) {
             fan::vec2 ratio = fan::vec2(d.size) / old_window_size;
             f32_t size_ratio = (ratio.y + ratio.x) / 2.0f;
@@ -1103,12 +1109,34 @@ export namespace fan {
           else if (d.button == fan::mouse_scroll_down) {
             zoom /= 1.2;
           }
-          });
+        });
+
+        mouse_motion_nr = window.add_mouse_motion_callback([&](const auto& d) {
+          auto state = d.window->key_state(fan::mouse_middle);
+          if (state == (int)fan::mouse_state::press ||
+             state == (int)fan::mouse_state::repeat
+            ) {
+            if (pan_with_middle_mouse) {
+              fan::vec2 viewport_size = gloco->viewport_get_size(reference_viewport);
+              camera_offset -= (d.motion * viewport_size / (viewport_size * zoom)) * 2.f;
+              gloco->camera_set_position(reference_camera, camera_offset);
+            }
+          }
+        });
       }
+
       ~interactive_camera_t() {
+        if (resize_callback_nr.iic() == false) {
+          gloco->window.remove_resize_callback(resize_callback_nr);
+          resize_callback_nr.sic();
+        }
         if (button_cb_nr.iic() == false) {
           gloco->window.remove_buttons_callback(button_cb_nr);
           button_cb_nr.sic();
+        }
+        if (mouse_motion_nr.iic() == false) {
+          gloco->window.remove_mouse_motion_callback(mouse_motion_nr);
+          mouse_motion_nr.sic();
         }
         if (uc_nr.iic() == false) {
           gloco->m_update_callback.unlrec(uc_nr);

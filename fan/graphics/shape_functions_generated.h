@@ -1271,6 +1271,20 @@ static void set_color_line(loco_t::shape_t* shape, const fan::color& color) {
 	}
 }
 
+static void set_outline_color_rectangle(loco_t::shape_t* shape, const fan::color& color) {
+  reinterpret_cast<loco_t::rectangle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->outline_color = color;
+  if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+    auto& data = gloco->shaper.ShapeList[*shape];
+    gloco->shaper.ElementIsPartiallyEdited(
+      data.sti,
+      data.blid,
+      data.ElementIndex,
+      fan::member_offset(&loco_t::rectangle_t::vi_t::outline_color),
+      sizeof(loco_t::rectangle_t::vi_t::outline_color)
+    );
+  }
+}
+
 static void set_color_rectangle(loco_t::shape_t* shape, const fan::color& color) {
   auto& old_color = reinterpret_cast<loco_t::rectangle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
   if (old_color == reinterpret_cast<loco_t::rectangle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->outline_color) {
@@ -2277,20 +2291,6 @@ static fan::vec3 get_dst_line(loco_t::shape_t* shape) {
 
 static fan::vec3 get_dst_line3d(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->dst;
-}
-
-static void set_outline_color_rectangle(loco_t::shape_t* shape, const fan::color& color) {
-  reinterpret_cast<loco_t::rectangle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->outline_color = color;
-  if (gloco->window.renderer == loco_t::renderer_t::opengl) {
-    auto& data = gloco->shaper.ShapeList[*shape];
-    gloco->shaper.ElementIsPartiallyEdited(
-      data.sti,
-      data.blid,
-      data.ElementIndex,
-      fan::member_offset(&loco_t::rectangle_t::vi_t::outline_color),
-      sizeof(loco_t::rectangle_t::vi_t::outline_color)
-    );
-  }
 }
 
 static void reload_universal_image_renderer(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter) {
@@ -3477,7 +3477,7 @@ inline static loco_t::push_back_cb push_back_functions[] = {
 };
 
 // function table generator
-loco_t::functions_t get_shape_functions(uint16_t type) {
+static loco_t::functions_t get_shape_functions(uint16_t type) {
 	uint16_t index = type;
 	loco_t::functions_t funcs{};
 

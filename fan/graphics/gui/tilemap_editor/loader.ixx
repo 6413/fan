@@ -140,7 +140,7 @@ public:
     fan::graphics::shape_deserialize_t it;
     loco_t::shape_t shape;
     while (it.iterate(json["tiles"], &shape)) {
-      auto shape_json = *(it.data.it - 1);
+      auto& shape_json = *(it.data.it - 1);
       if (shape_json.contains("mesh_property") && shape_json["mesh_property"] == fte_t::mesh_property_t::physics_shape) {
         compiled_map.physics_shapes.resize(compiled_map.physics_shapes.size() + 1);
         compiled_map_t::physics_data_t& physics_element = compiled_map.physics_shapes.back();

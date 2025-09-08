@@ -4,7 +4,7 @@ void open(void* sod) {
   //render_size /= 0.01;
   fte_loader_t::properties_t p;
   p.size = render_size;
-  p.position = pile.car.car.get_position();
+  p.position = pile.car.body.get_position();
   main_map_id = pile.renderer.add(&main_compiled_map, p);
   pile.engine.physics_context.set_gravity(0);
 }
@@ -14,7 +14,7 @@ void close() {
 }
 
 void update() {
-  pile.renderer.update(main_map_id, pile.car.car.get_position());
+  pile.renderer.update(main_map_id, pile.car.body.get_position());
   pile.step();
 }
 
