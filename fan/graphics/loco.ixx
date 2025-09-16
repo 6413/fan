@@ -485,14 +485,21 @@ export struct loco_t {
 #endif
   }
 
+  fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type) {
+    return gloco->shaper.GetShader(shape_type);
+  }
+  auto& shader_get_data(uint16_t shape_type) {
+    return shader_list[shader_get_nr(shape_type)];
+  }
+
   fan::graphics::camera_list_t camera_list;
   fan::graphics::shader_list_t shader_list;
   fan::graphics::image_list_t image_list;
   fan::graphics::viewport_list_t viewport_list;
 
-  std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) {
+  std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) {
     if (window.renderer == renderer_t::opengl) {
-      return context_functions.image_get_pixel_data(&context, nr, format, uvp, uvs);
+      return context_functions.image_get_pixel_data(&context, nr, fan::opengl::context_t::global_to_opengl_format(image_format), uvp, uvs);
     }
     else {
       fan::throw_error("");
@@ -859,6 +866,7 @@ export struct loco_t {
   //loco_t(loco_t&&) = delete;
   //loco_t& operator=(loco_t&&) = delete;
 
+  // always add new shapes to the bottom, order of shape_functions[i] matter defined in shape_functions_generated.h
   struct shape_type_t {
     enum {
       invalid = -1,
@@ -882,8 +890,11 @@ export struct loco_t {
       gradient,
       light_end,
       shader_shape,
+    #if defined(fan_3D)
       rectangle3d,
       line3d,
+    #endif
+      shadow,
       last
     };
   };
@@ -1436,34 +1447,34 @@ export struct loco_t {
   struct kps_t {
     st(light_t,
       d<uint8_t> genre;
-    d<loco_t::viewport_t> viewport;
-    d<loco_t::camera_t> camera;
-    d<shaper_t::ShapeTypeIndex_t> ShapeType;
-    d<uint8_t> draw_mode;
-    d<uint32_t> vertex_count;
-      );
+      d<loco_t::viewport_t> viewport;
+      d<loco_t::camera_t> camera;
+      d<shaper_t::ShapeTypeIndex_t> ShapeType;
+      d<uint8_t> draw_mode;
+      d<uint32_t> vertex_count;
+    );
     st(common_t,
       d<depth_t> depth;
-    d<blending_t> blending;
-    d<loco_t::viewport_t> viewport;
-    d<loco_t::camera_t> camera;
-    d<shaper_t::ShapeTypeIndex_t> ShapeType;
-    d<uint8_t> draw_mode;
-    d<uint32_t> vertex_count;
-      );
+      d<blending_t> blending;
+      d<loco_t::viewport_t> viewport;
+      d<loco_t::camera_t> camera;
+      d<shaper_t::ShapeTypeIndex_t> ShapeType;
+      d<uint8_t> draw_mode;
+      d<uint32_t> vertex_count;
+    );
     st(vfi_t,
       d<uint8_t> filler = 0;
     );
     st(texture_t,
       d<depth_t> depth;
-    d<blending_t> blending;
-    d<loco_t::image_t> image;
-    d<loco_t::viewport_t> viewport;
-    d<loco_t::camera_t> camera;
-    d<shaper_t::ShapeTypeIndex_t> ShapeType;
-    d<uint8_t> draw_mode;
-    d<uint32_t> vertex_count;
-      );
+      d<blending_t> blending;
+      d<loco_t::image_t> image;
+      d<loco_t::viewport_t> viewport;
+      d<loco_t::camera_t> camera;
+      d<shaper_t::ShapeTypeIndex_t> ShapeType;
+      d<uint8_t> draw_mode;
+      d<uint32_t> vertex_count;
+    );
     // for universal_image_renderer
     // struct texture4_t {
     //   blending_t blending;
@@ -1984,6 +1995,7 @@ public:
       shaper.AddKey(Key_e::filler, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
       shaper.AddKey(Key_e::draw_mode, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
       shaper.AddKey(Key_e::vertex_count, sizeof(uint32_t), shaper_t::KeyBitOrderAny);
+      shaper.AddKey(Key_e::shadow, sizeof(uint8_t), shaper_t::KeyBitOrderAny);
 
       //gloco->shaper.AddKey(Key_e::image4, sizeof(loco_t::image_t) * 4, shaper_t::KeyBitOrderLow);
     }
@@ -2546,6 +2558,8 @@ public:
 #endif
 #endif
   }
+
+  std::vector<std::function<void()>> draw_end_cb;
   void process_frame() {
 
     if (window.renderer == renderer_t::opengl) {
@@ -2600,7 +2614,9 @@ public:
       process_gui();
       process_shapes();
     }
-
+    for (auto& i : draw_end_cb) {
+      i();
+    }
     if (window.renderer == renderer_t::opengl) {
       glfwSwapBuffers(window);
     }
@@ -2888,9 +2904,18 @@ public:
     }
   };
 
-  loco_t::render_view_t add_render_view() {
+  loco_t::render_view_t render_view_create() {
     loco_t::render_view_t render_view;
     render_view.create();
+    return render_view;
+  }
+  loco_t::render_view_t render_view_create(
+    const fan::vec2& ortho_x, const fan::vec2& ortho_y,
+    const fan::vec2& viewport_position, const fan::vec2& viewport_size
+  ) {
+    loco_t::render_view_t render_view;
+    render_view.create();
+    render_view.set(ortho_x, ortho_y, viewport_position, viewport_size);
     return render_view;
   }
 
@@ -3275,7 +3300,8 @@ public:
       ShapeType,
       filler,
       draw_mode,
-      vertex_count
+      vertex_count,
+      shadow
     };
   };
 
@@ -3967,6 +3993,24 @@ public:
       }
     }
 
+    bool intersects(const loco_t::shape_t& shape) {
+      switch (get_shape_type()) {
+      case shape_type_t::shader_shape:
+      case shape_type_t::unlit_sprite:
+      case shape_type_t::sprite:
+      case shape_type_t::rectangle: {
+        return fan_2d::collision::rectangle::check_collision(
+          get_position(),
+          get_size(),
+          shape.get_position(),
+          shape.get_size()
+        );
+      }
+      }
+      fan::throw_error("todo");
+      return true;
+    }
+
     void add_existing_animation(animation_nr_t nr) {
       if (get_shape_type() == loco_t::shape_type_t::sprite) {
         auto& ri = shape_get_ri(sprite);
@@ -3980,52 +4024,52 @@ public:
     }
 
     // sprite sheet - sprite specific
-void set_sprite_sheet_next_frame(int advance = 1) {
-  if (get_shape_type() == loco_t::shape_type_t::sprite) {
-    auto& ri = *(loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
-    auto found = gloco->all_animations.find(ri.current_animation);
-    if (found == gloco->all_animations.end()) {
-      fan::throw_error("current_animation not found");
-    }
-    auto& animation = found->second;
-    loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
-    int actual_frame = animation.selected_frames[sheet_data.current_frame];
-    
-    // Find which image this frame belongs to and the local frame within that image
-    int image_index = 0;
-    int local_frame = actual_frame;
-    int frame_count = 0;
-    
-    for (int i = 0; i < animation.images.size(); ++i) {
-      int frames_in_this_image = animation.images[i].hframes * animation.images[i].vframes;
-      if (actual_frame < frame_count + frames_in_this_image) {
-        image_index = i;
-        local_frame = actual_frame - frame_count;
-        break;
+    void set_sprite_sheet_next_frame(int advance = 1) {
+      if (get_shape_type() == loco_t::shape_type_t::sprite) {
+        auto& ri = *(loco_t::sprite_t::ri_t*)GetData(gloco->shaper);
+        auto found = gloco->all_animations.find(ri.current_animation);
+        if (found == gloco->all_animations.end()) {
+          fan::throw_error("current_animation not found");
+        }
+        auto& animation = found->second;
+        loco_t::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+        int actual_frame = animation.selected_frames[sheet_data.current_frame];
+
+        // Find which image this frame belongs to and the local frame within that image
+        int image_index = 0;
+        int local_frame = actual_frame;
+        int frame_count = 0;
+
+        for (int i = 0; i < animation.images.size(); ++i) {
+          int frames_in_this_image = animation.images[i].hframes * animation.images[i].vframes;
+          if (actual_frame < frame_count + frames_in_this_image) {
+            image_index = i;
+            local_frame = actual_frame - frame_count;
+            break;
+          }
+          frame_count += frames_in_this_image;
+        }
+
+        auto& current_image = animation.images[image_index];
+        set_image(current_image.image);
+        sheet_data.current_frame += advance;
+        sheet_data.current_frame %= animation.selected_frames.size();
+        sheet_data.update_timer.restart();
+
+        fan::vec2 tc_size = fan::vec2(1.0 / current_image.hframes, 1.0 / current_image.vframes);
+        int frame_x = local_frame % current_image.hframes;
+        int frame_y = local_frame / current_image.hframes;
+        set_tc_position(fan::vec2(
+          frame_x * tc_size.x,
+          frame_y * tc_size.y
+        ));
+        fan::vec2 sign = get_tc_size().sign();
+        set_tc_size(tc_size * sign);
       }
-      frame_count += frames_in_this_image;
+      else {
+        fan::throw_error("Unimplemented for this shape");
+      }
     }
-    
-    auto& current_image = animation.images[image_index];
-    set_image(current_image.image);
-    sheet_data.current_frame += advance;
-    sheet_data.current_frame %= animation.selected_frames.size();
-    sheet_data.update_timer.restart();
-    
-    fan::vec2 tc_size = fan::vec2(1.0 / current_image.hframes, 1.0 / current_image.vframes);
-    int frame_x = local_frame % current_image.hframes;
-    int frame_y = local_frame / current_image.hframes;
-    set_tc_position(fan::vec2(
-      frame_x * tc_size.x,
-      frame_y * tc_size.y
-    ));
-    fan::vec2 sign = get_tc_size().sign();
-    set_tc_size(tc_size * sign);
-  }
-  else {
-    fan::throw_error("Unimplemented for this shape");
-  }
-}
     // Takes in seconds
     void set_sprite_sheet_fps(f32_t fps) {
       if (get_shape_type() == loco_t::shape_type_t::sprite) {
@@ -4154,6 +4198,41 @@ void set_sprite_sheet_next_frame(int advance = 1) {
         fan::throw_error("Unimplemented for this shape");
       }
     }
+
+    void set_light_position(const fan::vec3& new_pos) {
+      if (get_shape_type() != loco_t::shape_type_t::shadow) {
+        fan::throw_error("invalid function call for current shape");
+      }
+      reinterpret_cast<loco_t::shadow_t::vi_t*>(GetRenderData(gloco->shaper))->light_position = new_pos;
+      if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+        auto& data = gloco->shaper.ShapeList[*this];
+        gloco->shaper.ElementIsPartiallyEdited(
+          data.sti,
+          data.blid,
+          data.ElementIndex,
+          fan::member_offset(&loco_t::shadow_t::vi_t::light_position),
+          sizeof(loco_t::shadow_t::vi_t::light_position)
+        );
+      }
+    }
+    void set_light_radius(f32_t radius) {
+      if (get_shape_type() != loco_t::shape_type_t::shadow) {
+        fan::throw_error("invalid function call for current shape");
+      }
+
+      reinterpret_cast<loco_t::shadow_t::vi_t*>(GetRenderData(gloco->shaper))->light_radius = radius;
+      if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+        auto& data = gloco->shaper.ShapeList[*this];
+        gloco->shaper.ElementIsPartiallyEdited(
+          data.sti,
+          data.blid,
+          data.ElementIndex,
+          fan::member_offset(&loco_t::shadow_t::vi_t::light_radius),
+          sizeof(loco_t::shadow_t::vi_t::light_radius)
+        );
+      }
+    }
+
   private:
   };
 
@@ -5319,7 +5398,6 @@ void set_sprite_sheet_next_frame(int advance = 1) {
       uint32_t vertex_count = 6;
     };
 
-
     shape_t push_back(const properties_t& properties) {
       kps_t::common_t KeyPack;
       KeyPack.ShapeType = shape_type;
@@ -5348,6 +5426,94 @@ void set_sprite_sheet_next_frame(int advance = 1) {
 
 
   }gradient;
+
+  struct shadow_t {
+
+    static inline shaper_t::KeyTypeIndex_t shape_type = shape_type_t::shadow;
+    static constexpr int kpi = kp::light;
+
+#pragma pack(push, 1)
+
+    enum shape_e{
+      rectangle,
+      circle
+    };
+
+    struct vi_t {
+      fan::vec3 position;
+      int shape;
+      fan::vec2 size;
+      fan::vec2 rotation_point;
+      fan::color color;
+      uint32_t flags = 0;
+      fan::vec3 angle;
+      fan::vec2 light_position;
+      f32_t light_radius;
+      f32_t pad;
+    };
+    struct ri_t {
+
+    };
+
+#pragma pack(pop)
+
+    std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
+      shape_gl_init_t{{1, "in_shape"}, 1, GL_INT, sizeof(vi_t), (void*)(offsetof(vi_t, shape))},
+      shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
+      shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
+      shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
+      shape_gl_init_t{{5, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
+      shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
+      shape_gl_init_t{{7, "in_light_position"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, light_position))},
+      shape_gl_init_t{{8, "in_light_radius"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, light_radius))},
+      shape_gl_init_t{{9, "in_pad"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, pad))},
+    };
+
+    struct properties_t {
+      using type_t = shadow_t;
+
+
+      fan::vec3 position = 0;
+      int shape = shadow_t::rectangle;
+      fan::vec2 size = 0;
+      fan::vec2 rotation_point = 0;
+      fan::color color = fan::colors::white;
+      uint32_t flags = 0;
+      fan::vec3 angle = 0;
+      fan::vec2 light_position = 0;
+      f32_t light_radius = 100.f;
+
+      loco_t::camera_t camera = gloco->orthographic_render_view.camera;
+      loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
+
+      uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+      uint32_t vertex_count = 6;
+    };
+
+    shape_t push_back(const properties_t& properties) {
+      vi_t vi;
+      vi.position = properties.position;
+      vi.shape = properties.shape;
+      vi.size = properties.size;
+      vi.rotation_point = properties.rotation_point;
+      vi.color = properties.color;
+      vi.flags = properties.flags;
+      vi.angle = properties.angle;
+      vi.light_position = properties.light_position;
+      vi.light_radius = properties.light_radius;
+      ri_t ri;
+
+      return shape_add(shape_type, vi, ri,
+        Key_e::shadow, (uint8_t)0,
+        Key_e::viewport, properties.viewport,
+        Key_e::camera, properties.camera,
+        Key_e::ShapeType, shape_type,
+        Key_e::draw_mode, properties.draw_mode,
+        Key_e::vertex_count, properties.vertex_count
+      );
+    }
+  }shadow;
 
   struct shader_shape_t {
 
@@ -5445,6 +5611,7 @@ void set_sprite_sheet_next_frame(int advance = 1) {
 
   }shader_shape;
 
+  #if defined(fan_3D)
   struct rectangle3d_t {
 
     static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::rectangle3d;
@@ -5595,6 +5762,8 @@ void set_sprite_sheet_next_frame(int advance = 1) {
     }
 
   }line3d;
+
+  #endif
 
   //-------------------------------------shapes-------------------------------------
 
@@ -6094,6 +6263,14 @@ void set_sprite_sheet_next_frame(int advance = 1) {
 
   void camera_move_to_smooth(const loco_t::shape_t& shape) {
     camera_move_to_smooth(shape, orthographic_render_view);
+  }
+
+  bool shader_update_fragment(uint16_t shape_type, const std::string& fragment) {
+    auto shader_nr = shader_get_nr(shape_type);
+    auto shader_data = shader_get_data(shape_type);
+    gloco->shader_set_vertex(shader_nr, shader_data.svertex);
+    gloco->shader_set_fragment(shader_nr, fragment);
+    return gloco->shader_compile(shader_nr);
   }
 
 };
@@ -7268,7 +7445,7 @@ namespace fan::audio {
     fan::audio_t::piece_t* piece = &(fan::audio_t::piece_t&)*this;
     sint32_t err = gloco->audio.Open(piece, fan::io::file::find_relative_path(path, callers_path).string(), flags);
     if (err != 0) {
-      fan::throw_error("failed to open piece:", err);
+      fan::throw_error("failed to open piece:" + path, "with error:", err);
     }
     return *this;
   }

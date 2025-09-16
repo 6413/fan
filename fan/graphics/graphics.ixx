@@ -57,6 +57,10 @@ export namespace fan {
       );
     }
 
+    fan::vec2 get_mouse_position() {
+      return gloco->get_mouse_position();
+    }
+
     bool is_mouse_clicked(int button = fan::mouse_left) {
       return gloco->is_mouse_clicked(button);
     }
@@ -78,14 +82,6 @@ export namespace fan {
     }
     bool is_key_released(int key) {
       return gloco->is_key_released(key);
-    }
-  }
-}
-
-export namespace fan {
-  namespace window {
-    fan::vec2 get_mouse_position() {
-      return gloco->get_mouse_position();
     }
   }
 }
@@ -120,6 +116,8 @@ export namespace fan {
     using shape_t = loco_t::shape_t;
     using shader_t = loco_t::shader_t;
 
+    using shape_type_e = loco_t::shape_type_t;
+
     fan::graphics::image_t invalid_image = []{
       image_t image{ false };
       image.sic();
@@ -152,8 +150,16 @@ export namespace fan {
     }
 
     fan::graphics::render_view_t add_render_view() {
-      return gloco->add_render_view();
+      return gloco->render_view_create();
     }
+
+    loco_t::render_view_t add_render_view(
+      const fan::vec2& ortho_x, const fan::vec2& ortho_y,
+      const fan::vec2& viewport_position, const fan::vec2& viewport_size
+    ) {
+      return gloco->render_view_create(ortho_x, ortho_y, viewport_position, viewport_size);
+    }
+
 
 #if defined(fan_gui)
 
@@ -721,6 +727,45 @@ export namespace fan {
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     };
 
+    struct shadow_properties_t {
+      render_view_t* render_view = &gloco->orthographic_render_view;
+      fan::vec3 position = fan::vec3(0, 0, 0);
+      int shape = loco_t::shadow_t::rectangle;
+      fan::vec2 size = fan::vec2(0.1, 0.1);
+      fan::vec2 rotation_point = fan::vec2(0, 0);
+      fan::color color = fan::color(1, 1, 1, 1);
+      uint32_t flags = 0;
+      fan::vec3 angle = fan::vec3(0, 0, 0);
+      fan::vec2 light_position = fan::vec2(0, 0);
+      f32_t light_radius = 100.f;
+    };
+
+    struct shadow_t : loco_t::shape_t {
+      using loco_t::shape_t::shape_t;
+      using loco_t::shape_t::operator=;
+
+      using shape_e = loco_t::shadow_t::shape_e;
+
+      shadow_t(shadow_properties_t p = shadow_properties_t()) {
+        *(loco_t::shape_t*)this = loco_t::shape_t(
+          fan_init_struct(
+            typename loco_t::shadow_t::properties_t,
+            .camera = p.render_view->camera,
+            .viewport = p.render_view->viewport,
+            .position = p.position,
+            .shape = p.shape,
+            .size = p.size,
+            .rotation_point = p.rotation_point,
+            .color = p.color,
+            .flags = p.flags,
+            .angle = p.angle,
+            .light_position = p.light_position,
+            .light_radius = p.light_radius
+          ));
+      }
+    };
+
+
     struct shader_shape_t : loco_t::shape_t {
       shader_shape_t(const shader_shape_properties_t& p = shader_shape_properties_t()) {
        *(loco_t::shape_t*)this = loco_t::shape_t(
@@ -746,6 +791,7 @@ export namespace fan {
       }
     };
 
+  #if defined(fan_3D)
     struct line3d_properties_t {
       render_view_t* render_view = &gloco->perspective_render_view;
       fan::vec3 src = fan::vec3(0, 0, 0);
@@ -768,6 +814,7 @@ export namespace fan {
           ));
       }
     };
+  #endif
 
     loco_t::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color) {
   loco_t::polygon_t::properties_t pp;

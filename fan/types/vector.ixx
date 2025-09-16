@@ -92,11 +92,12 @@ export namespace fan {
     vec2_wrap_t<T> lerp(const vec2_wrap_t<T>& dst, T t) {
       return { x + t * (dst.x - x), y + t * (dst.y - y) };
     }
-
     constexpr vec2_wrap_t<value_type_t> perpendicular() const {
       return { -(*this)[1], (*this)[0] };
     }
-
+    constexpr value_type_t cross(const vec2_wrap_t<value_type_t>& b) {
+      return x * b.y - y * b.x;
+    }
   };
 
   template <typename value_type_t>
