@@ -44,6 +44,11 @@ export inline thread_local global_physics_t gphysics;
 export namespace fan {
   namespace physics {
 
+    struct aabb_t {
+      fan::vec2 min;
+      fan::vec2 max;
+    };
+
     inline double length_units_per_meter = 256.0;
 
     fan::vec2d physics_to_render(const fan::vec2d& p) {
@@ -684,7 +689,7 @@ export namespace fan {
       }
       void process_collision_events() {
         b2ContactEvents contact_events = b2World_GetContactEvents(world_id);
-
+        
         for (int i = 0; i < contact_events.beginCount; ++i) {
           const b2ContactBeginTouchEvent& event = contact_events.beginEvents[i];
           on_begin_touch(event.shapeIdA, event.shapeIdB);

@@ -2358,6 +2358,8 @@ public:
         vk.draw_shapes();
       }
 #endif
+
+    immediate_render_list.clear();
   }
   void process_shapes() {
 
@@ -3135,7 +3137,7 @@ public:
   using get_size3_cb = fan::vec3(*)(const loco_t::shape_t*);
 
   using set_rotation_point_cb = void (*)(loco_t::shape_t*, const fan::vec2&);
-  using get_rotation_point_cb = fan::vec2(*)(loco_t::shape_t*);
+  using get_rotation_point_cb = fan::vec2(*)(const loco_t::shape_t*);
 
   using set_color_cb = void (*)(loco_t::shape_t*, const fan::color&);
   using get_color_cb = fan::color(*)(const loco_t::shape_t*);
@@ -3154,10 +3156,10 @@ public:
   using get_grid_size_cb = fan::vec2(*)(loco_t::shape_t*);
   using set_grid_size_cb = void (*)(loco_t::shape_t*, const fan::vec2&);
 
-  using get_camera_cb = loco_t::camera_t(*)(loco_t::shape_t*);
+  using get_camera_cb = loco_t::camera_t(*)(const loco_t::shape_t*);
   using set_camera_cb = void (*)(loco_t::shape_t*, loco_t::camera_t);
 
-  using get_viewport_cb = loco_t::viewport_t(*)(loco_t::shape_t*);
+  using get_viewport_cb = loco_t::viewport_t(*)(const loco_t::shape_t*);
   using set_viewport_cb = void (*)(loco_t::shape_t*, loco_t::viewport_t);
 
 
@@ -3285,6 +3287,13 @@ public:
   }
   physics_update_cbs_t shape_physics_update_cbs;
 #endif
+
+  void add_shape_to_immediate_draw(loco_t::shape_t&& s) {
+    immediate_render_list.emplace_back(std::move(s));
+  }
+
+  // clears shapes after drawing, good for debug draw, not best for performance
+  std::vector<loco_t::shape_t> immediate_render_list;
 
 #pragma pack(push, 1)
 
@@ -3696,6 +3705,7 @@ public:
       gloco->shape_functions[get_shape_type()].set_size3(this, size);
     }
 
+    // returns half extents of draw
     fan::vec2 get_size() const {
       return gloco->shape_functions[get_shape_type()].get_size(this);
     }
@@ -3708,7 +3718,7 @@ public:
       gloco->shape_functions[get_shape_type()].set_rotation_point(this, rotation_point);
     }
 
-    fan::vec2 get_rotation_point() {
+    fan::vec2 get_rotation_point() const {
       return gloco->shape_functions[get_shape_type()].get_rotation_point(this);
     }
 
@@ -3756,12 +3766,35 @@ public:
     }
 
     fan::mat4 get_transform() const {
-      fan::mat4 m = get_rotation_matrix();
-
-      m = m.scale(get_size());
+      fan::mat4 m = fan::mat4::identity();
       m = m.translate(get_position());
-
+      m = m * get_rotation_matrix();  
+      m = m.scale(get_size());        
       return m;
+    }
+
+    fan::physics::aabb_t get_aabb() const {
+      fan::vec2 pos = get_position();
+      fan::vec2 he = get_size(); // half extents
+      f32_t cs = std::cos(get_angle().z);
+      f32_t sn = std::sin(get_angle().z);
+      fan::vec2 pivot = get_rotation_point();
+
+      fan::vec2 minp(FLT_MAX, FLT_MAX), maxp(-FLT_MAX, -FLT_MAX);
+
+      for (int i = -1; i <= 1; i += 2) {
+        for (int j = -1; j <= 1; j += 2) {
+          fan::vec2 r = { i * he.x - pivot.x, j * he.y - pivot.y };
+          r = { r.x * cs - r.y * sn, r.x * sn + r.y * cs };
+          r += pos + pivot;
+          minp.x = std::min(minp.x, r.x);
+          minp.y = std::min(minp.y, r.y);
+          maxp.x = std::max(maxp.x, r.x);
+          maxp.y = std::max(maxp.y, r.y);
+        }
+      }
+
+      return { minp, maxp };
     }
 
     fan::vec2 get_tc_position() {
@@ -3799,7 +3832,7 @@ public:
       return load_tp(ti);
     }
 
-    loco_t::camera_t get_camera() {
+    loco_t::camera_t get_camera() const {
       return gloco->shape_functions[get_shape_type()].get_camera(this);
     }
 
@@ -3807,7 +3840,7 @@ public:
       gloco->shape_functions[get_shape_type()].set_camera(this, camera);
     }
 
-    loco_t::viewport_t get_viewport() {
+    loco_t::viewport_t get_viewport() const {
       return gloco->shape_functions[get_shape_type()].get_viewport(this);
     }
 
@@ -3995,20 +4028,26 @@ public:
 
     bool intersects(const loco_t::shape_t& shape) {
       switch (get_shape_type()) {
+      case shape_type_t::capsule: // inaccurate
       case shape_type_t::shader_shape:
       case shape_type_t::unlit_sprite:
       case shape_type_t::sprite:
       case shape_type_t::rectangle: {
+        fan::physics::aabb_t aabb = get_aabb();
+        fan::physics::aabb_t aabb2 = shape.get_aabb();
         return fan_2d::collision::rectangle::check_collision(
-          get_position(),
-          get_size(),
-          shape.get_position(),
-          shape.get_size()
+           aabb.min + (aabb.max - aabb.min) / 2.f,
+          (aabb.max - aabb.min) / 2.f,
+           aabb2.min + (aabb2.max - aabb2.min) / 2.f,
+          (aabb2.max - aabb2.min) / 2.f
         );
       }
       }
       fan::throw_error("todo");
       return true;
+    }
+    bool collides(const loco_t::shape_t& shape) {
+      return intersects(shape);
     }
 
     void add_existing_animation(animation_nr_t nr) {
