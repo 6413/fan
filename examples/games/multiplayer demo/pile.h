@@ -18,7 +18,7 @@ struct pile_t {
 
   void step() {
     //player updates
-    engine.camera_set_target(engine.orthographic_render_view.camera, player.player.get_position());
+    engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position());
     player.step();
     peers.step();
     
@@ -59,7 +59,7 @@ pile_t::pile_t() {
 
   renderer.open();
   
-  player.player.set_physics_position(player.player.get_position());
+  player.body.set_physics_position(player.body.get_position());
 
   fan::vec2 dst = player.player.get_position();
   fan::vec2 camera_offset = fan::vec2(0, -engine.window.get_size().y / 4);

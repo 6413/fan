@@ -2,6 +2,7 @@ void open(void* sod) {
   main_compiled_map = pile.renderer.compile("race_track.fte");
   fan::vec2i render_size(16, 9);
   //render_size /= 0.01;
+  render_size *= 4;
   fte_loader_t::properties_t p;
   p.size = render_size;
   p.position = pile.car.body.get_position();

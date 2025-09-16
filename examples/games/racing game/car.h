@@ -14,6 +14,7 @@ struct car_t {
     this->movement_keybinds_prefix = movement_keybinds_prefix;
     if (initial_position != -0xffff) {
       body.set_position(initial_position);
+      body.set_physics_position(initial_position);
     }
     if (!movement_keybinds_prefix.empty()) {
       fan::graphics::add_input_action(forward, movement_keybinds_prefix + "move_forward");
@@ -26,7 +27,7 @@ struct car_t {
     initialize_sensors();
 
     if (is_local) {
-      engine_sound.play(0, true);
+      piece_id = engine_sound.play(0, true);
     }
   }
 
@@ -48,7 +49,7 @@ struct car_t {
         fan::throw_error("sensor not found");
       }
     }
-    /*{
+    {
       pile.renderer.iterate_physics_entities(racing_track_stage_data.main_map_id,
         [&]<typename T>(auto& entity, T & entity_visual) {
         if (entity.id == "checkpoint_middle" &&
@@ -60,7 +61,7 @@ struct car_t {
       if (middle_checkpoint_sensor.is_valid() == false) {
         fan::throw_error("sensor not found");
       }
-    }*/
+    }
   }
 
   //
@@ -98,7 +99,12 @@ struct car_t {
 
     // calculate using forward velocity
     f32_t velocity_volume = body.get_linear_velocity().abs().length() / 200.f;
-    engine_sound.set_volume(std::min(0.2f, velocity_volume));
+    if (use_audio) {
+      engine_sound.set_volume(std::min(0.2f, velocity_volume));
+    }
+    else {
+      engine_sound.stop(piece_id);
+    }
 
     // tire grip
     fan::vec2 side = forward.perpendicular();
@@ -121,7 +127,9 @@ struct car_t {
     }
     
     f32_t steering = 30.f * body.get_mass();
-    body.apply_angular_impulse(input.x * steering * dt);
+    if (input.y) {
+      body.apply_angular_impulse(input.x * steering * dt * -input.y);
+    }
   }
 
   void handle_laps() {
@@ -182,7 +190,9 @@ struct car_t {
     }}
   };
 
-  // audio
 
+  // audio
+  bool use_audio = true;
   fan::audio::piece_t engine_sound{ "audio/engine_running.sac" };
+  fan::audio::sound_play_id_t piece_id;
 };

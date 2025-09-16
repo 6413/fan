@@ -5,21 +5,21 @@ struct player_t {
     fan::json json_data = fan::graphics::read_json("entities/player/player.json");
     gloco->parse_animations(json_data);
     fan::graphics::map_animations(anims);
-    player.set_shape(fan::graphics::extract_single_shape(json_data));
-    player.set_size(player.get_size() / 2.5);
-    player.start_sprite_sheet_animation();
+    body.set_shape(fan::graphics::extract_single_shape(json_data));
+    body.set_size(body.get_size() / 2.5);
+    body.start_sprite_sheet_animation();
     
-    player.jump_impulse = 3.5;
-    player.force = 15;
-    player.max_speed = 3000;
+    body.jump_impulse = 3.5;
+    body.force = 15;
+    body.max_speed = 3000;
   }
 
   void step() {
-    player.process_movement(fan::graphics::physics::character2d_t::movement_e::side_view);
-    player.update_animation();
+    body.process_movement(fan::graphics::physics::character2d_t::movement_e::side_view);
+    body.update_animation();
   }
 
-  fan::graphics::physics::character2d_t player{ 
+  fan::graphics::physics::character2d_t body{ 
     fan::graphics::physics::capsule_sprite_t{{
       .position =  fan::vec3(fan::vec2(109, 123) * 64, 0xffff - 10),
       .center0 = {0.f, -24.f},

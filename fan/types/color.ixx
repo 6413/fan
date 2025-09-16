@@ -189,7 +189,7 @@ export namespace fan {
 			int i = static_cast<int>(H / 60) % 6;
 			f32_t rgb[6][3] = { {C,X,0},{X,C,0},{0,C,X},{0,X,C},{X,0,C},{C,0,X} };
 
-			return fan::color_(rgb[i][0] + m, rgb[i][1] + m, rgb[i][2] + m, 1.0f);
+			return fan::color_<type_t>(rgb[i][0] + m, rgb[i][1] + m, rgb[i][2] + m, 1.0f);
 		}
 
 		static constexpr color_<type_t> rgb(cf_t r, cf_t g, cf_t b, cf_t a = 255) {
@@ -255,6 +255,11 @@ export namespace fan {
 		}
 		color_ set_alpha(f32_t alpha) const {
 			return color_(r, g, b, alpha);
+		}
+
+    f32_t get_brightest_channel() const {
+			f32_t max_channel = std::max({ r, g, b });
+			return max_channel;
 		}
 
 		value_type r = 0, g = 0, b = 0, a = 1;

@@ -473,10 +473,9 @@ void shapes_open() {
       "shaders/opengl/3D/objects/rectangle.fs",
       (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) ? 36 : 1
     );
-#else
-     loco.shape_functions.resize(loco.shape_functions.size() + 1);
 #endif
   }
+  #if defined(fan_3D)
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
       // todo implement line
@@ -493,6 +492,25 @@ void shapes_open() {
       );
     }
   }
+  #endif
+
+  { // shadow
+    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
+      // todo
+      loco.shape_functions.resize(loco.shape_functions.size() + 1);
+    }
+    else {
+      loco.shape_open(
+        loco_t::shadow_t::shape_type,
+        sizeof(loco_t::shadow_t::vi_t),
+        sizeof(loco_t::shadow_t::ri_t),
+        { gloco->shadow.locations.begin(), gloco->shadow.locations.end() },
+        "shaders/opengl/2D/objects/shadow.vs",
+        "shaders/opengl/2D/objects/shadow.fs"
+      );
+    }
+  }
+
   init_framebuffer();
 
   loco.gl.m_fbo_final_shader = loco.shader_create();
@@ -579,19 +597,25 @@ void add_shape_type(loco_t::shaper_t::ShapeTypes_NodeData_t& st, const loco_t::s
         fan_opengl_call(glVertexAttribDivisor(location.index.first, 1));
       }
     }
+    uint64_t sizeof_type = 0;
     switch (location.type) {
     case GL_FLOAT: {
-      ptr_offset += location.size * sizeof(GLfloat);
+      sizeof_type = sizeof(GLfloat);
       break;
     }
     case GL_UNSIGNED_INT: {
-      ptr_offset += location.size * sizeof(GLuint);
+      sizeof_type = sizeof(GLuint);
+      break;
+    }
+    case GL_INT: {
+      sizeof_type = sizeof(GLint);
       break;
     }
     default: {
       fan::throw_error_impl();
     }
     }
+    ptr_offset += location.size * sizeof_type;
   }
 }
 
@@ -604,6 +628,8 @@ void draw_shapes() {
   viewport.sic();
   camera_t camera;
   camera.sic();
+
+  loco_t::shaper_t::ShapeTypeIndex_t prev_st = -1;
 
   bool light_buffer_enabled = false;
 
@@ -665,7 +691,8 @@ void draw_shapes() {
     }
     case Key_e::ShapeType: {
       // if i remove this why it breaks/corrupts?
-      if (*(loco_t::shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd() == loco_t::shape_type_t::light_end) {
+      prev_st = *(loco_t::shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd();
+      if (prev_st == loco_t::shape_type_t::light_end) {
         continue;
       }
       break;
@@ -718,6 +745,14 @@ void draw_shapes() {
     }
     case Key_e::vertex_count: {
       vertex_count = *(uint32_t*)KeyTraverse.kd();
+      break;
+    }
+    case Key_e::shadow: {
+      
+      GLenum blend_src_factor = GL_DST_COLOR;
+      GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
+      fan_opengl_call(glEnable(GL_BLEND));
+      fan_opengl_call(glBlendFunc(blend_src_factor, blend_dst_factor));
       break;
     }
     }
@@ -911,6 +946,7 @@ void draw_shapes() {
         }
 
         switch (shape_type) {
+      #if defined(fan_3D)
         case shape_type_t::rectangle3d: {
           // illegal xd
           loco.context.gl.set_depth_test(false);
@@ -920,6 +956,7 @@ void draw_shapes() {
           // illegal xd
           loco.context.gl.set_depth_test(false);
         }//fallthrough
+      #endif
         case shape_type_t::particles: {
           //fan::print("shaper design is changed");
           particles_t::ri_t* pri = (particles_t::ri_t*)BlockTraverse.GetData(loco.shaper);

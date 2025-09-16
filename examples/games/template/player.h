@@ -7,17 +7,17 @@ struct player_t {
       .color = fan::colors::white,
       .flags = 3
     } };
-    player.jump_impulse = 3;
-    player.force = 15;
-    player.max_speed = 270;
+    body.jump_impulse = 3;
+    body.force = 15;
+    body.max_speed = 270;
   }
 
   void step() {
-    player.process_movement(fan::graphics::physics::character2d_t::movement_e::side_view);
-    light.set_position(fan::vec2(player.get_position()));
+    body.process_movement(fan::graphics::physics::character2d_t::movement_e::side_view);
+    light.set_position(fan::vec2(body.get_position()));
   }
 
-  fan::graphics::physics::character2d_t player{ fan::graphics::physics::capsule_t{{
+  fan::graphics::physics::character2d_t body{ fan::graphics::physics::capsule_t{{
     .position = fan::vec3(fan::vec2(109, 123) * 64, 10),
     // collision radius,
     .center0 = {0.f, -24.f},

@@ -179,7 +179,7 @@ player_t::player_t() {
     fan::graphics::image_load_properties_t lp;
     lp.min_filter = fan::graphics::image_filter::nearest;
     lp.mag_filter = fan::graphics::image_filter::nearest;
-    for (const auto& [i, pose] : pose_variants | fan::enumerate) {
+    for (const auto& [i, pose] : fan::enumerate(pose_variants)) {
       images[i] = (pile.loco.image_load(asset_path + "npc/" + pose, lp));
     }
   };

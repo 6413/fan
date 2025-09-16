@@ -29,6 +29,7 @@ export namespace fan {
       rg8_unorm,
       rgb_unorm,
       rgba_unorm,
+      bgr_unorm,
       r8_uint,
       r8g8b8a8_srgb,
       r11f_g11f_b10f,
@@ -232,6 +233,7 @@ export namespace fan {
       case image_format::rg8_unorm: return 2;
 
       case image_format::rgb_unorm: return 3;
+      case image_format::bgr_unorm: return 3;
 
       case image_format::r8b8g8a8_unorm:
       case image_format::b8g8r8a8_unorm:

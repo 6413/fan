@@ -1,7 +1,5 @@
-#include <fan/pch.h>
 
-// defined witch
-#undef EMPTY
+
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -15,6 +13,10 @@
 #include <softcamcore/DShowSoftcam.h>
 #include <softcamcore/SenderAPI.h>
 
+#undef min
+#undef max
+
+import fan;
 
 // {AEF3B972-5FA5-4647-9571-358EB472BC9E}
 DEFINE_GUID(CLSID_DShowSoftcam,
@@ -183,29 +185,34 @@ extern "C" bool     scWaitForConnection(scCamera camera, float timeout)
 }
 
 int main() {
-  loco_t loco;
+  loco_t loco{ {.window_size = 800} };
 
 
   fan::image::info_t ii;
-  ii.size = fan::sys::get_screen_resolution();
+  ii.size = loco.window.get_current_monitor_resolution();
   ii.data = 0;
 
-  loco_t::image_t image;
-  loco_t::image_t::load_properties_t lp;
-  lp.internal_format = GL_RGB;
-  lp.format = GL_BGR;
-  lp.type = GL_UNSIGNED_BYTE;
-  image.load(ii, lp);
+  fan::graphics::image_t image;
+  fan::graphics::image_load_properties_t lp;
+  lp.internal_format = fan::graphics::image_format::rgb_unorm;
+  lp.format = fan::graphics::image_format::bgr_unorm;
+  image = loco.image_load(ii, lp);
+
+  fan::vec2 window_size = loco.window.get_size();
 
   fan::graphics::sprite_t s{{
-      .position = fan::vec3(0, 0, 100),
-      .size = 1,
-      .image = &image,
-      .blending = true
-    }};
+    .position = fan::vec3(window_size / 2.f, 100),
+    .size = window_size / 2,
+    .image = image,
+    .blending = true
+  }};
 
   loco.window.add_resize_callback([&](const auto& d) {
-    gloco->default_camera->viewport.set(fan::vec2(0, 0), d.size, d.size);
+    loco.viewport_set(
+      gloco->orthographic_render_view.viewport,
+      fan::vec2(0, 0),
+      d.size
+      );
   });
 
   cv::VideoCapture capture(0);
@@ -221,21 +228,18 @@ int main() {
   scCamera cam = scCreateCamera(800, 800, 30);
 
   fan::time::timer camera_fps;
-  camera_fps.start(fan::time::nanoseconds(66.33e+6));
+  camera_fps.start(66.33e+6);
   cv::Mat flipped;
 
-  uint8_t* pixels = new uint8_t[800 * 800 * 4];
+  uint8_t* pixels = new uint8_t[loco.window.get_size().multiply() * 4];
 
-  fan::graphics::text_t t{{
-      .text = "hello from fan"
-    }};
-
-  fan::vec3 p = t.get_position();
-  p.z = 10;
-  t.set_position(p);
+  //fan::graphics::text_t t{{
+  //    .text = "hello from fan"
+  //  }};
 
 
-  static constexpr int wall_count = 4;
+
+ /* static constexpr int wall_count = 4;
   fan::graphics::collider_static_t walls[wall_count];
   for (int i = 0; i < wall_count; ++i) {
     f32_t angle = 2 * fan::math::pi * i / wall_count;
@@ -288,17 +292,45 @@ int main() {
       gloco->m_write_queue.write_queue[nr].cb = [oid = sip0->ObjectID, reflection] {
         fan::graphics::bcol.SetObject_Velocity(oid, reflection);
         };
-    };
+    };*/
 
-  f32_t angle = 0;
+ // f32_t angle = 0;
+
+  auto walls = fan::graphics::physics::create_stroked_rectangle(window_size / 2, window_size / 4, 10.f);
+
+  fan::graphics::image_t duck_image{ "images/duck.webp" };
+  fan::graphics::physics::circle_sprite_t duck{ {
+    .position = fan::vec3(window_size / 2, 200),
+    .size = 128,
+    .image = duck_image,
+    .body_type = fan::physics::body_type_e::dynamic_body,
+    .shape_properties{.restitution=1.0}
+  } };
+
+  loco.physics_context.set_gravity(0);
+  
+
+  f32_t z = 0;
+
+  loco.draw_end_cb.emplace_back([&] {
+    auto pixel_data = loco.image_get_pixel_data(loco.gl.color_buffers[0], fan::graphics::image_format::rgba_unorm);
+    std::memcpy(pixels, pixel_data.data(), pixel_data.size());
+  });
+
   loco.loop([&] {
-    loco.get_fps();
-    int idx = 0;
-    for (auto& i : balls) {
-      i.set_position(i.get_collider_position());
-      i.set_angle(angle + idx);
+    loco.physics_context.step(std::min(loco.delta_time, 1000.0 / 60));
+    if (fan::window::is_mouse_clicked()) {
+      duck.set_linear_velocity(fan::random::vec2(-200, 200));
+      duck.set_angular_velocity(0.01);
     }
-    angle += loco.get_delta_time();
+    //duck.set_angle(fan::vec3(0, 0, z));
+    //z += loco.delta_time;
+    //int idx = 0;
+    //for (auto& i : balls) {
+    //  i.set_position(i.get_collider_position());
+    //  i.set_angle(angle + idx);
+    //}
+    //angle += loco.get_delta_time();
     if (camera_fps.finished()) {
       do {
         capture >> frame;
@@ -308,28 +340,29 @@ int main() {
         ii.data = frame.data;
         ii.size = fan::vec2(frame.cols, frame.rows);
 
-
-        //image.bind_texture();
-        loco.color_buffers[0].bind_texture();
-        //loco.color_buffers[0].get_texture()
-        loco.get_context()->fan_opengl_call(GetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
+        
 
         cv::Mat image_rgb;
+        cv::Mat resized_bgr;
 
         cv::Mat image_rgba(800, 800, CV_8UC4, pixels);
         // Convert RGBA to RGB
         cv::cvtColor(image_rgba, image_rgb, cv::COLOR_RGBA2BGR);
+        cv::resize(image_rgb, resized_bgr, cv::Size(800, 800));
         cv::Mat flipped_image;
         cv::flip(image_rgb, flipped_image, 0);
 
         scSendFrame(cam, flipped_image.data);
 
-        image.unload();
-        image.load(ii, lp);
+
+
+        loco.image_unload(image);
+        image = loco.image_load(ii, lp);
 
       } while (0);
       camera_fps.restart();
     }
+    
   });
   delete pixels;
 

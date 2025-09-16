@@ -64,12 +64,18 @@ static loco_t::shape_t push_back_shader_shape(void* properties) {
 	return gloco->shader_shape.push_back(*reinterpret_cast<loco_t::shader_shape_t::properties_t*>(properties));
 }
 
+#if defined(fan_3D)
 static loco_t::shape_t push_back_rectangle3d(void* properties) {
 	return gloco->rectangle3d.push_back(*reinterpret_cast<loco_t::rectangle3d_t::properties_t*>(properties));
 }
 
 static loco_t::shape_t push_back_line3d(void* properties) {
 	return gloco->line3d.push_back(*reinterpret_cast<loco_t::line3d_t::properties_t*>(properties));
+}
+#endif
+
+static loco_t::shape_t push_back_shadow(void* properties) {
+	return gloco->shadow.push_back(*reinterpret_cast<loco_t::shadow_t::properties_t*>(properties));
 }
 
 static void vi_move(uint16_t shape_type, void* vi) {
@@ -89,6 +95,7 @@ inline static void set_position(loco_t::shape_t* shape, const fan::vec3& positio
 	gloco->shaper.WriteKeys(*shape, KeyPack);
 	auto sti = shape->get_shape_type();
 	switch (sti) {       
+  case loco_t::shape_type_t::shadow:
 	case loco_t::shape_type_t::light: {
 		break;
 	}
@@ -98,7 +105,9 @@ inline static void set_position(loco_t::shape_t* shape, const fan::vec3& positio
 	case loco_t::shape_type_t::grid:
 	case loco_t::shape_type_t::circle:
 	case loco_t::shape_type_t::rectangle:
+#if defined(fan_3D)
 	case loco_t::shape_type_t::rectangle3d:
+#endif
 	case loco_t::shape_type_t::line: {
 		shaper_get_key_safe(depth_t, common_t, depth) = position.z;
 		break;
@@ -200,7 +209,9 @@ inline static void set_camera(loco_t::shape_t* shape, loco_t::camera_t camera) {
 	case loco_t::shape_type_t::grid:
 	case loco_t::shape_type_t::circle:
 	case loco_t::shape_type_t::rectangle:
+#if defined(fan_3D)
 	case loco_t::shape_type_t::rectangle3d:
+#endif
 	case loco_t::shape_type_t::line: {
 		shaper_get_key_safe(camera_t, common_t, camera) = camera;
 		break;
@@ -481,6 +492,7 @@ static fan::vec3 get_position_shader_shape(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::shader_shape_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
+#if defined(fan_3D)
 static fan::vec3 get_position_rectangle3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
@@ -488,6 +500,7 @@ static fan::vec3 get_position_rectangle3d(const loco_t::shape_t* shape) {
 static fan::vec3 get_position_line3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->src;
 }
+#endif
 
 static void set_position2_sprite(loco_t::shape_t* shape, const fan::vec2& position) {
 	reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position = position;
@@ -650,6 +663,20 @@ static void set_position2_shader_shape(loco_t::shape_t* shape, const fan::vec2& 
 	}
 }
 
+static void set_position2_shadow(loco_t::shape_t* shape, const fan::vec2& position) {
+	reinterpret_cast<loco_t::shadow_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position = position;
+	if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+		auto& data = gloco->shaper.ShapeList[*shape];
+		gloco->shaper.ElementIsPartiallyEdited(
+			data.sti,
+			data.blid,
+			data.ElementIndex,
+			fan::member_offset(&loco_t::shadow_t::vi_t::position),
+			sizeof(loco_t::shadow_t::vi_t::position)
+		);
+	}
+}
+
 static void set_position3_sprite(loco_t::shape_t* shape, const fan::vec3& position) {
 	loco_t::set_position(shape, position);
 	reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position = position;
@@ -784,6 +811,7 @@ static void set_position3_shader_shape(loco_t::shape_t* shape, const fan::vec3& 
 	}
 }
 
+#if defined(fan_3D)
 static void set_position3_rectangle3d(loco_t::shape_t* shape, const fan::vec3& position) {
 	loco_t::set_position(shape, position);
 	reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position = position;
@@ -809,6 +837,21 @@ static void set_position3_line3d(loco_t::shape_t* shape, const fan::vec3& positi
 			data.ElementIndex,
 			fan::member_offset(&loco_t::line3d_t::vi_t::src),
 			sizeof(loco_t::line3d_t::vi_t::src)
+		);
+	}
+}
+#endif
+static void set_position3_shadow(loco_t::shape_t* shape, const fan::vec3& position) {
+	loco_t::set_position(shape, position);
+	reinterpret_cast<loco_t::shadow_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position = position;
+	if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+		auto& data = gloco->shaper.ShapeList[*shape];
+		gloco->shaper.ElementIsPartiallyEdited(
+			data.sti,
+			data.blid,
+			data.ElementIndex,
+			fan::member_offset(&loco_t::shadow_t::vi_t::position),
+			sizeof(loco_t::shadow_t::vi_t::position)
 		);
 	}
 }
@@ -853,6 +896,7 @@ static fan::vec2 get_size_shader_shape(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::shader_shape_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
 
+#if defined(fan_3D)
 static fan::vec2 get_size_rectangle3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
@@ -860,6 +904,7 @@ static fan::vec2 get_size_rectangle3d(const loco_t::shape_t* shape) {
 static fan::vec3 get_size3_rectangle3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
 }
+#endif
 
 static void set_size_sprite(loco_t::shape_t* shape, const fan::vec2& size) {
 	reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size = size;
@@ -1001,6 +1046,7 @@ static void set_size_shader_shape(loco_t::shape_t* shape, const fan::vec2& size)
 	}
 }
 
+#if defined(fan_3D)
 static void set_size_rectangle3d(loco_t::shape_t* shape, const fan::vec2& size) {
 	reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size = size;
 	if (gloco->window.renderer == loco_t::renderer_t::opengl) {
@@ -1025,6 +1071,20 @@ static void set_size3_rectangle3d(loco_t::shape_t* shape, const fan::vec3& size)
 			data.ElementIndex,
 			fan::member_offset(&loco_t::rectangle3d_t::vi_t::size),
 			sizeof(loco_t::rectangle3d_t::vi_t::size)
+		);
+	}
+}
+#endif
+static void set_size_shadow(loco_t::shape_t* shape, const fan::vec2& size) {
+	reinterpret_cast<loco_t::shadow_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size = size;
+	if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+		auto& data = gloco->shaper.ShapeList[*shape];
+		gloco->shaper.ElementIsPartiallyEdited(
+			data.sti,
+			data.blid,
+			data.ElementIndex,
+			fan::member_offset(&loco_t::shadow_t::vi_t::size),
+			sizeof(loco_t::shadow_t::vi_t::size)
 		);
 	}
 }
@@ -1235,6 +1295,7 @@ static fan::color get_color_shader_shape(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::shader_shape_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
 
+#if defined(fan_3D)
 static fan::color get_color_rectangle3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
@@ -1242,6 +1303,7 @@ static fan::color get_color_rectangle3d(const loco_t::shape_t* shape) {
 static fan::color get_color_line3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color;
 }
+#endif
 
 static void set_color_sprite(loco_t::shape_t* shape, const fan::color& color) {
 	reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color = color;
@@ -1401,6 +1463,7 @@ static void set_color_shader_shape(loco_t::shape_t* shape, const fan::color& col
 	}
 }
 
+#if defined(fan_3D)
 static void set_color_rectangle3d(loco_t::shape_t* shape, const fan::color& color) {
 	reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color = color;
 	if (gloco->window.renderer == loco_t::renderer_t::opengl) {
@@ -1425,6 +1488,21 @@ static void set_color_line3d(loco_t::shape_t* shape, const fan::color& color) {
 			data.ElementIndex,
 			fan::member_offset(&loco_t::line3d_t::vi_t::color),
 			sizeof(loco_t::line3d_t::vi_t::color)
+		);
+	}
+}
+#endif
+
+static void set_color_shadow(loco_t::shape_t* shape, const fan::color& color) {
+	reinterpret_cast<loco_t::shadow_t::vi_t*>(shape->GetRenderData(gloco->shaper))->color = color;
+	if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+		auto& data = gloco->shaper.ShapeList[*shape];
+		gloco->shaper.ElementIsPartiallyEdited(
+			data.sti,
+			data.blid,
+			data.ElementIndex,
+			fan::member_offset(&loco_t::shadow_t::vi_t::color),
+			sizeof(loco_t::shadow_t::vi_t::color)
 		);
 	}
 }
@@ -1465,9 +1543,11 @@ static fan::vec3 get_angle_shader_shape(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::shader_shape_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
+#if defined(fan_3D)
 static fan::vec3 get_angle_rectangle3d(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
+#endif
 
 static void set_angle_sprite(loco_t::shape_t* shape, const fan::vec3& angle) {
 	reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle = angle;
@@ -1612,6 +1692,7 @@ static void set_angle_shader_shape(loco_t::shape_t* shape, const fan::vec3& angl
 	}
 }
 
+#if defined(fan_3D)
 static void set_angle_rectangle3d(loco_t::shape_t* shape, const fan::vec3& angle) {
 	reinterpret_cast<loco_t::rectangle3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle = angle;
 	if (gloco->window.renderer == loco_t::renderer_t::opengl) {
@@ -1625,6 +1706,7 @@ static void set_angle_rectangle3d(loco_t::shape_t* shape, const fan::vec3& angle
 		);
 	}
 }
+#endif
 
 static fan::vec2 get_tc_position_sprite(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->tc_position;
@@ -2269,6 +2351,10 @@ static void set_flags_capsule(loco_t::shape_t* shape, uint32_t flags) {
 	}
 }
 
+static f32_t get_radius_light(loco_t::shape_t* shape) {
+	return reinterpret_cast<loco_t::light_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size.x;
+}
+
 static f32_t get_radius_circle(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::circle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->radius;
 }
@@ -2281,17 +2367,21 @@ static fan::vec3 get_src_line(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line_t::vi_t*>(shape->GetRenderData(gloco->shaper))->src;
 }
 
+#if defined(fan_3D)
 static fan::vec3 get_src_line3d(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->src;
 }
+#endif
 
 static fan::vec3 get_dst_line(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line_t::vi_t*>(shape->GetRenderData(gloco->shaper))->dst;
 }
 
+#if defined(fan_3D)
 static fan::vec3 get_dst_line3d(loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper))->dst;
 }
+#endif
 
 static void reload_universal_image_renderer(loco_t::shape_t* shape, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter) {
   loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)shape->GetData(gloco->shaper);
@@ -2465,19 +2555,20 @@ static void set_line_line(loco_t::shape_t* shape, const fan::vec3& src, const fa
 			data.sti,
 			data.blid,
 			data.ElementIndex,
-			fan::member_offset(&loco_t::line3d_t::vi_t::src),
-			sizeof(loco_t::line3d_t::vi_t::src)
+			fan::member_offset(&loco_t::line_t::vi_t::src),
+			sizeof(loco_t::line_t::vi_t::src)
 		);
 		gloco->shaper.ElementIsPartiallyEdited(
 			data.sti,
 			data.blid,
 			data.ElementIndex,
-			fan::member_offset(&loco_t::line3d_t::vi_t::dst),
-			sizeof(loco_t::line3d_t::vi_t::dst)
+			fan::member_offset(&loco_t::line_t::vi_t::dst),
+			sizeof(loco_t::line_t::vi_t::dst)
 		);
 	}
 }
 
+#if defined(fan_3D)
 static void set_line_line3d(loco_t::shape_t* shape, const fan::vec3& src, const fan::vec3& dst) {
 	auto data = reinterpret_cast<loco_t::line3d_t::vi_t*>(shape->GetRenderData(gloco->shaper));
 	data->src = fan::vec3(src.x, src.y, 0);
@@ -2500,6 +2591,7 @@ static void set_line_line3d(loco_t::shape_t* shape, const fan::vec3& src, const 
 		);
 	}
 }
+#endif
 
 static void set_line3_rectangle3d(loco_t::shape_t* shape, const fan::vec3& src, const fan::vec3& dst) {
 }
@@ -2527,8 +2619,10 @@ inline static loco_t::get_position_cb get_position_functions[] = {
 	&get_position_gradient,
 	nullptr,
 	&get_position_shader_shape,
+#if defined(fan_3D)
 	&get_position_rectangle3d,
 	&get_position_line3d,
+#endif
 };
 
 inline static loco_t::set_position2_cb set_position2_functions[] = {
@@ -2550,8 +2644,11 @@ inline static loco_t::set_position2_cb set_position2_functions[] = {
 	&set_position2_gradient,
 	nullptr,
 	&set_position2_shader_shape,
+#if defined (fan_3D)
 	nullptr,
 	nullptr,
+#endif
+  &set_position2_shadow,
 };
 
 inline static loco_t::set_position3_cb set_position3_functions[] = {
@@ -2573,8 +2670,11 @@ inline static loco_t::set_position3_cb set_position3_functions[] = {
 	&set_position3_gradient,
 	nullptr,
 	&set_position3_shader_shape,
+#if defined(fan_3D)
 	&set_position3_rectangle3d,
 	&set_position3_line3d,
+#endif
+  &set_position3_shadow,
 };
 
 inline static loco_t::get_size_cb get_size_functions[] = {
@@ -2596,8 +2696,10 @@ inline static loco_t::get_size_cb get_size_functions[] = {
 	&get_size_gradient,
 	nullptr,
 	&get_size_shader_shape,
+#if defined(fan_3D)
 	&get_size_rectangle3d,
 	nullptr,
+#endif
 };
 
 inline static loco_t::get_size3_cb get_size3_functions[] = {
@@ -2619,8 +2721,10 @@ inline static loco_t::get_size3_cb get_size3_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
+#if defined(fan_3D)
 	&get_size3_rectangle3d,
 	nullptr,
+#endif
 };
 
 inline static loco_t::set_size_cb set_size_functions[] = {
@@ -2642,8 +2746,11 @@ inline static loco_t::set_size_cb set_size_functions[] = {
 	&set_size_gradient,
 	nullptr,
 	&set_size_shader_shape,
+#if defined(fan_3D)
 	&set_size_rectangle3d,
 	nullptr,
+#endif
+  &set_size_shadow,
 };
 
 inline static loco_t::set_size3_cb set_size3_functions[] = {
@@ -2665,8 +2772,10 @@ inline static loco_t::set_size3_cb set_size3_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
+#if defined(fan_3D)
 	&set_size3_rectangle3d,
 	nullptr,
+#endif
 };
 
 inline static loco_t::get_rotation_point_cb get_rotation_point_functions[] = {
@@ -2734,8 +2843,10 @@ inline static loco_t::get_color_cb get_color_functions[] = {
 	&get_color_gradient,
 	nullptr,
 	&get_color_shader_shape,
+#if defined(fan_3D)
 	&get_color_rectangle3d,
 	&get_color_line3d,
+#endif
 };
 
 inline static loco_t::set_color_cb set_color_functions[] = {
@@ -2757,8 +2868,11 @@ inline static loco_t::set_color_cb set_color_functions[] = {
 	&set_color_gradient,
 	nullptr,
 	&set_color_shader_shape,
+#if defined(fan_3D)
 	&set_color_rectangle3d,
 	&set_color_line3d,
+#endif
+  &set_color_shadow,
 };
 
 inline static loco_t::get_angle_cb get_angle_functions[] = {
@@ -2780,8 +2894,10 @@ inline static loco_t::get_angle_cb get_angle_functions[] = {
 	&get_angle_gradient,
 	nullptr,
 	&get_angle_shader_shape,
+#if defined(fan_3D)
 	&get_angle_rectangle3d,
 	nullptr,
+#endif
 };
 
 inline static loco_t::set_angle_cb set_angle_functions[] = {
@@ -2803,8 +2919,10 @@ inline static loco_t::set_angle_cb set_angle_functions[] = {
 	&set_angle_gradient,
 	nullptr,
 	&set_angle_shader_shape,
+#if defined(fan_3D)
 	&set_angle_rectangle3d,
 	nullptr,
+#endif
 };
 
 inline static loco_t::get_tc_position_cb get_tc_position_functions[] = {
@@ -3228,7 +3346,7 @@ inline static loco_t::get_radius_cb get_radius_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
-	nullptr,
+	&get_radius_light,
 	nullptr,
 	&get_radius_circle,
 	&get_radius_capsule,
@@ -3264,7 +3382,9 @@ inline static loco_t::get_src_cb get_src_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
+#if defined(fan_3D)
 	&get_src_line3d,
+#endif
 };
 
 inline static loco_t::get_dst_cb get_dst_functions[] = {
@@ -3287,7 +3407,9 @@ inline static loco_t::get_dst_cb get_dst_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
+#if defined(fan_3D)
 	&get_dst_line3d,
+#endif
 };
 
 inline static loco_t::get_outline_size_cb get_outline_size_functions[] = {
@@ -3425,7 +3547,9 @@ inline static loco_t::set_line_cb set_line_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
+#if defined(fan_3D)
 	&set_line_line3d,
+#endif
 };
 
 inline static loco_t::set_line3_cb set_line3_functions[] = {
@@ -3472,8 +3596,11 @@ inline static loco_t::push_back_cb push_back_functions[] = {
 	&push_back_gradient,
 	nullptr,
 	&push_back_shader_shape,
+#if defined(fan_3D)
 	&push_back_rectangle3d,
 	&push_back_line3d,
+#endif
+  &push_back_shadow,
 };
 
 // function table generator

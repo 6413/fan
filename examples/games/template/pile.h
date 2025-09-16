@@ -10,7 +10,7 @@ struct pile_t {
 
   void step() {
     //player updates
-    engine.camera_set_target(engine.orthographic_render_view.camera, player.player.get_position());
+    engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position());
     player.step();
     
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
@@ -23,7 +23,7 @@ struct pile_t {
   fte_renderer_t renderer;
 
   stage_loader_t stage_loader;
-  uint16_t current_stage = 0;
+    stage_loader_t::nr_t  current_stage;
 
   fan::graphics::interactive_camera_t ic{
     engine.orthographic_render_view.camera,
@@ -49,7 +49,7 @@ pile_t::pile_t() {
 
   renderer.open();
   
-  player.player.set_physics_position(player.player.get_position());
+  player.body.set_physics_position(player.body.get_position());
 
   fan::vec2 dst = player.player.get_position();
   fan::vec2 camera_offset = fan::vec2(0, -engine.window.get_size().y / 4);
@@ -58,5 +58,5 @@ pile_t::pile_t() {
     dst + camera_offset // move camera higher to display more area upwards
   );
 
-  current_stage = stage_loader_t::open_stage<example_stage_t>().NRI;
+  current_stage = stage_loader_t::open_stage<example_stage_t>();
 }
