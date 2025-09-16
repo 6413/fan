@@ -1,26 +1,23 @@
 // All stages are included here
 
-
-struct animations_t : __dme_inherit(animations_t, fan::graphics::animation_t) {
-  __dme(idle, );
-  __dme(walk, );
-};
-animations_t anims;
-
 #include "player.h"
 
 #define stage_loader_path .
 #include <fan/graphics/gui/stage_maker/loader.h>
 
 struct pile_t {
-  #include "peers.h"
   pile_t();
 
   void step() {
+    for (auto& entity : entities) {
+      if (entity.update_cb) {
+        entity.update_cb();
+      }
+    }
+
     //player updates
     engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position());
     player.step();
-    peers.step();
     
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
 
@@ -29,23 +26,29 @@ struct pile_t {
   }
   fan::graphics::engine_t engine;
   player_t player;
-  peers_t peers;
   fte_renderer_t renderer;
 
   stage_loader_t stage_loader;
-  uint16_t current_stage = 0;
+    stage_loader_t::nr_t  current_stage;
 
   fan::graphics::interactive_camera_t ic{
     engine.orthographic_render_view.camera,
     engine.orthographic_render_view.viewport
   };
+
+  lstd_defstruct(example_stage_t)
+    #include <fan/graphics/gui/stage_maker/preset.h>
+    static constexpr auto stage_name = "";
+    #include "example_stage.h"
+  };
+
+  example_stage_t& get_current_stage() {
+    return stage_loader.get_stage_data<example_stage_t>(current_stage);
+  }
+
+#include "entity.h"
 }pile;
 
-lstd_defstruct(example_stage_t)
-  #include <fan/graphics/gui/stage_maker/preset.h>
-  static constexpr auto stage_name = "";
-  #include "example_stage.h"
-};
 
 pile_t::pile_t() {
   engine.clear_color = 0;
@@ -61,12 +64,12 @@ pile_t::pile_t() {
   
   player.body.set_physics_position(player.body.get_position());
 
-  fan::vec2 dst = player.player.get_position();
+  fan::vec2 dst = player.body.get_position();
   fan::vec2 camera_offset = fan::vec2(0, -engine.window.get_size().y / 4);
   engine.camera_set_position(
     engine.orthographic_render_view.camera, 
     dst + camera_offset // move camera higher to display more area upwards
   );
 
-  current_stage = stage_loader_t::open_stage<example_stage_t>().NRI;
+  current_stage = stage_loader_t::open_stage<example_stage_t>();
 }

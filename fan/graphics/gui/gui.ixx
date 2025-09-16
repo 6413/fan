@@ -1478,6 +1478,7 @@ export namespace fan {
         /// <param name="piece_click">Audio piece that is played when clicking and releasing the button.</param>
         /// <param name="size">Size of the button (defaults to automatic).</param>
         /// <returns></returns>
+      #if defined (fan_audio)
         bool audio_button(
           const std::string& label, 
           fan::audio::piece_t piece_hover = fan::audio::piece_invalid, 
@@ -1505,6 +1506,7 @@ export namespace fan {
           ImGui::PopID();
           return pressed;
         }
+      #endif
 
         bool combo(const std::string& label, int* current_item, const char* const items[], int items_count, int popup_max_height_in_items = -1) {
           return ImGui::Combo(label.c_str(), current_item, items, items_count, popup_max_height_in_items);
@@ -3379,6 +3381,22 @@ export namespace fan {
         }
       };
 
+      void fragment_shader_editor(uint16_t shape_type, std::string* fragment, bool* shader_compiled) {
+        if (fragment->empty()) {
+          *fragment = gloco->shader_get_data(shape_type).sfragment;
+        }
+        if (fan::graphics::gui::begin("shader editor")) {
+          if (!*shader_compiled) {
+            gui::text("Failed to compile shader", fan::colors::red);
+          }
+
+          if (gui::input_text_multiline("##Shader Code", fragment, gui::get_content_region_avail(), gui::input_text_flags_allow_tab_input)) {
+            *shader_compiled = gloco->shader_update_fragment(shape_type, *fragment);
+          }
+          fan::graphics::gui::end();
+        }
+
+      }
 
       struct dialogue_box_t {
 

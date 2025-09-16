@@ -509,7 +509,7 @@ export namespace fan {
           std::array<loco_t::image_t, 30> images;
           f32_t parallax_factor = 0;
           bool blending = true;
-          uint32_t flags = 0;
+          uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
           operator fan::graphics::sprite_properties_t() const {
             return fan::graphics::sprite_properties_t{
               .render_view = render_view,
@@ -698,7 +698,7 @@ export namespace fan {
           std::array<loco_t::image_t, 30> images;
           f32_t parallax_factor = 0;
           bool blending = true;
-          uint32_t flags = 0;
+          uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
 
           uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
@@ -852,10 +852,10 @@ export namespace fan {
         f32_t thickness,
         const fan::color& wall_color = fan::color::from_rgba(0x6e8d6eff),
         std::array<fan::physics::shape_properties_t, 4> shape_properties = { {
-          {.friction = 0},
+          {.friction = 0  },
           {.friction = 0.6},
-          {.friction = 0},
-          {.friction = 0}
+          {.friction = 0  },
+          {.friction = 0  }
         } }
       ) {
         std::array<fan::graphics::physics::rectangle_t, 4> walls;

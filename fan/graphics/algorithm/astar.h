@@ -11,7 +11,7 @@ namespace fan {
         this->map_size = map_size_;
         generator.setWorldSize(map_size);
         generator.setHeuristic(AStar::Heuristic::euclidean);
-        generator.setDiagonalMovement(true);
+        generator.setDiagonalMovement(false);
         tile_size = tile_size_;
       }
       path_t get_path(const fan::vec2& src_ = -1) {
@@ -49,9 +49,15 @@ namespace fan {
         init_solve = true;
       }
 
-      // returns direction to go from current position in normalized grid format
+      // returns direction to go from current position
       // when function returns {0, 0}, its finished
-      fan::vec2 step(const fan::vec2& src_) {
+      fan::vec2 step(const fan::vec2& src_, f32_t distance_to_allow_next = 5.f) {
+
+        if (path.empty()) {
+          move = false;
+          return 0;
+        }
+
         if (move) {
           fan::vec2 srcp = src_ - tile_size/2;
           //srcp.y += tile_size.y/2;
@@ -61,10 +67,10 @@ namespace fan {
             init_solve = false;
           }
           
-          if (srcp.is_near(fan::vec2i(path[current_position]) * tile_size - tile_size / 2, 5)) {
+          if (srcp.is_near(fan::vec2i(path[current_position]) * tile_size - tile_size / 2, distance_to_allow_next)) {
             ++current_position;
           }
-          if (srcp.is_near(fan::vec2i(dst) * tile_size - tile_size / 2, 5)) {
+          if (srcp.is_near(fan::vec2i(dst) * tile_size - tile_size / 2, distance_to_allow_next)) {
             move = false;
           }
           else {

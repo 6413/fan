@@ -39,3 +39,12 @@ struct fan_window_loop_t{
       }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__table}}; \
       __struct_var.once--;  \
     )
+
+// GUI
+#define fan_graphics_gui_slider_property(shape, kind) \
+  [&]{ \
+    static auto val = shape.get_##kind(); \
+    bool ret = fan::graphics::gui::drag_float(#shape "_" #kind "_slider", &val); \
+    if (ret) shape.set_##kind(val);  \
+    return ret; \
+  }()

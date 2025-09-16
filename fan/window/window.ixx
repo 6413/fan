@@ -395,6 +395,12 @@ export namespace fan {
     uint32_t handle_events() {
       f64_t current_frame_time = glfwGetTime();
       m_delta_time = current_frame_time - last_frame_time;
+      if (m_delta_time >= 0.3) {
+      #if fan_debug >= 4
+        fan::print("framerate too low, overriding delta time");
+      #endif
+        m_delta_time = 1.0 / 256.0;
+      }
       last_frame_time = current_frame_time;
 
       handle_key_states();
@@ -549,6 +555,11 @@ export namespace fan {
       return best_monitor ? best_monitor : glfwGetPrimaryMonitor();
     }
 
+    fan::vec2 get_current_monitor_resolution() {
+      GLFWmonitor* monitor = get_current_monitor();
+      const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+      return {mode->width, mode->height};
+    }
 
     void set_windowed() {
       glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, true);
@@ -826,7 +837,7 @@ export namespace fan {
 #endif
 
     double last_frame_time = glfwGetTime();
-    f64_t m_delta_time = 1.0 / 244.0;
+    f64_t m_delta_time = 1.0 / 256.0;
     uint32_t m_frame_counter = 0;
 
     buttons_callback_t m_buttons_callback;

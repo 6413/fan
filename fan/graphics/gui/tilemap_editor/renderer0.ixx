@@ -131,6 +131,7 @@ export struct fte_renderer_t : fte_loader_t {
     }
   }
 
+
   struct userdata_t {
     int key;
     int key_state;
@@ -140,7 +141,7 @@ export struct fte_renderer_t : fte_loader_t {
     int additional_depth = y + node.compiled_map->tile_size.y / 2;
     switch (j.mesh_property) {
       case fte_t::mesh_property_t::none: {
-        node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::sprite_t{ {
+        node.rendered_tiles[fan::vec3i(x, y, depth)] = fan::graphics::sprite_t{ {
             .render_view = render_view,
             .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, additional_depth + j.position.z),
             .size = j.size * node.size,
@@ -154,7 +155,7 @@ export struct fte_renderer_t : fte_loader_t {
         break;
       }
       case fte_t::mesh_property_t::light: {
-        node.tiles[fan::vec3i(x, y, depth)] = fan::graphics::light_t{ {
+        node.rendered_tiles[fan::vec3i(x, y, depth)] = fan::graphics::light_t{ {
           .render_view = render_view,
           .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, additional_depth + j.position.z),
           .size = j.size * node.size,
@@ -169,7 +170,7 @@ export struct fte_renderer_t : fte_loader_t {
 
     auto found = id_callbacks.find(j.id);
     if (found != id_callbacks.end()) {
-      found->second(node.tiles[fan::vec3i(x, y, depth)], j);
+      found->second(node.rendered_tiles[fan::vec3i(x, y, depth)], j);
     }
   }
 
@@ -177,7 +178,7 @@ export struct fte_renderer_t : fte_loader_t {
     clear(map_list[id]);
   }
   void clear(node_t& node) {
-    node.tiles.clear();
+    node.rendered_tiles.clear();
     //for (auto& j : node.physics_entities) {
     //  std::visit([](auto& obj){obj.destroy();}, j.visual);
     //}
@@ -211,81 +212,66 @@ export struct fte_renderer_t : fte_loader_t {
       return;
     }
     auto& node = map_list[id];
-    if (node.prev_render == convert_to_grid(position_, node)) {
+    fan::vec2i new_grid_pos = convert_to_grid(position_, node);
+
+    if (node.prev_render == new_grid_pos) {
       return;
     }
-    fan::vec2i old_render = node.prev_render;
+
+    fan::vec2i offset = new_grid_pos - node.prev_render;
     auto& map_tiles = node.compiled_map->compiled_shapes;
 
-    node.prev_render = convert_to_grid(position_, node);
-    fan::vec2i offset = node.prev_render - old_render;
-
-    if (offset.x > view_size.x || offset.y > view_size.y) {
+    // reinitialize big movement like teleport or big delta
+    if (std::abs(offset.x) >= view_size.x / 2 || std::abs(offset.y) >= view_size.y / 2) {
       initialize(node, position_);
       return;
     }
 
-    fan::vec2i prev_src = old_render;
-    adjust_view(prev_src);
-    fan::vec2i src = convert_to_grid(position_, node);
-    adjust_view(src);
+    fan::vec2i old_src = node.prev_render;
+    adjust_view(old_src);
+    fan::vec2i new_src = new_grid_pos;
+    adjust_view(new_src);
 
-    fan::vec3i src_vec3 = prev_src;
+    node.prev_render = new_grid_pos;
 
-    for (int off = 0; off < std::abs(offset.y); ++off) {
-      for (int y = 0; y < view_size.x; ++y) {
-        // HARDCODED
-        for (int depth = 0; depth < 10; ++depth) {
-          fan::vec3 erase_at = src_vec3 + fan::vec3i(
-            y,
-            (offset.y < 0 ? view_size.y - off - 1 : off),
-            depth);
-         // node.tiles.erase(erase_at);
-        }
-        fan::vec2i grid_pos = src;
-        if (offset.y > 0) {
-          grid_pos += fan::vec2i(y, view_size.y - 1 - off);
-        }
-        else {
-          grid_pos += fan::vec2i(y, off);
-        }
-        if (grid_pos.x < 0 || grid_pos.y < 0) {
-          continue;
-        }
-        if (grid_pos.y >= (int64_t)map_tiles.size() || grid_pos.x >= (int64_t)map_tiles[grid_pos.y].size()) {
-          continue;
-        }
-        int depth = 0;
-        for (auto& j : map_tiles[grid_pos.y][grid_pos.x]) {
-          add_tile(node, j, grid_pos.x, grid_pos.y, depth++);
-        }
+    fan::vec2i old_min = old_src;
+    fan::vec2i old_max = old_src + view_size;
+    fan::vec2i new_min = new_src;
+    fan::vec2i new_max = new_src + view_size;
+
+    auto it = node.rendered_tiles.begin();
+    while (it != node.rendered_tiles.end()) {
+      fan::vec3i tile_pos = it->first;
+
+      if (tile_pos.x < new_min.x || tile_pos.x >= new_max.x ||
+        tile_pos.y < new_min.y || tile_pos.y >= new_max.y) {
+        it = node.rendered_tiles.erase(it);
+      }
+      else {
+        ++it;
       }
     }
-    for (int off = 0; off < std::abs(offset.x); ++off) {
-      for (int x = 0; x < view_size.y; ++x) {
-        for (int depth = 0; depth < 10; ++depth) {
-          fan::vec3 erase_at = src_vec3 + fan::vec3i(
-            (offset.x < 0 ? view_size.x - off - 1 : off),
-            x,
-            depth);
-          node.tiles.erase(erase_at);
-        }
-        fan::vec2i grid_pos = src;
-        if (offset.x > 0) {
-          grid_pos += fan::vec2i(view_size.x - 1 - off, x);
-        }
-        else {
-          grid_pos += fan::vec2i(off, x);
-        }
-        if (grid_pos.x < 0 || grid_pos.y < 0) {
+
+    for (int y = new_min.y; y < new_max.y; ++y) {
+      for (int x = new_min.x; x < new_max.x; ++x) {
+        if (x >= old_min.x && x < old_max.x && y >= old_min.y && y < old_max.y) {
           continue;
         }
-        if (grid_pos.y >= (int64_t)map_tiles.size() || grid_pos.x >= (int64_t)map_tiles[grid_pos.y].size()) {
+
+        // Check bounds
+        if (x < 0 || y < 0) {
           continue;
         }
+        if (y >= (int64_t)map_tiles.size() || x >= (int64_t)map_tiles[y].size()) {
+          continue;
+        }
+        if (map_tiles[y][x].empty()) {
+          continue;
+        }
+
         int depth = 0;
-        for (auto& j : map_tiles[grid_pos.y][grid_pos.x]) {
-          add_tile(node, j, grid_pos.x, grid_pos.y, depth++);
+        for (auto& tile_data : map_tiles[y][x]) {
+          add_tile(node, tile_data, x, y, depth++);
         }
       }
     }

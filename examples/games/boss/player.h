@@ -2,10 +2,9 @@ struct player_t {
 
   player_t() {
     light = fan::graphics::light_t{ {
-      .position = player.get_position(),
+      .position = body.get_position(),
       .size = 200,
       .color = fan::colors::white,
-      .flags = 3
     } };
     body.jump_impulse = 3;
     body.force = 15;
@@ -17,8 +16,10 @@ struct player_t {
     light.set_position(fan::vec2(body.get_position()));
   }
 
+  static constexpr fan::vec2 player_spawn = fan::vec2(109, 123) * 64;
+
   fan::graphics::physics::character2d_t body{ fan::graphics::physics::capsule_t{{
-    .position = fan::vec3(fan::vec2(109, 123) * 64, 10),
+    .position = fan::vec3(player_spawn, 10),
     // collision radius,
     .center0 = {0.f, -24.f},
     .center1 = {0.f, 24.f},
@@ -30,7 +31,8 @@ struct player_t {
     .shape_properties{
       .friction = 0.6f, 
       .density = 0.1f, 
-      .fixed_rotation = true
+      .fixed_rotation = true,
+      .contact_events = true,
     },
   }}};
   loco_t::shape_t light;

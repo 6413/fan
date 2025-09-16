@@ -6,6 +6,7 @@ module;
 #include <string>
 #include <source_location>
 #include <unordered_map>
+#include <regex>
 
 #ifndef camera_list
   #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)this))
@@ -233,7 +234,7 @@ export namespace fan {
 
 
 #if fan_debug >= fan_debug_insane
-        fan_validate_value(location, validate_error_message(name));
+        //fan_validate_value(location, validate_error_message(name));
 #endif
 
         switch (fan::get_hash(found->second)) {
@@ -298,6 +299,7 @@ export namespace fan {
 
       struct image_format {
         static constexpr auto b8g8r8a8_unorm = GL_BGRA;
+        static constexpr auto bgr_unorm = GL_BGR;
         static constexpr auto r8_unorm = GL_RED;
         static constexpr auto rg8_unorm = GL_RG;
       };
@@ -548,45 +550,41 @@ export namespace fan {
         shader_check_compile_errors(__fan_internal_shader_list[nr], "FRAGMENT");
       }
 
-      static void parse_uniforms(std::string& shaderData, std::unordered_map<std::string, std::string>& uniform_type_table) {
-        size_t pos = 0;
+      static void parse_uniforms(
+        const std::string& shaderData,
+        std::unordered_map<std::string, std::string>& uniform_type_table)
+      {
+        std::string clean = std::regex_replace(
+          shaderData,
+          std::regex(R"(//[^\n]*\n)"),
+          "\n"
+        );
 
-        while ((pos = shaderData.find("uniform", pos)) != std::string::npos) {
-          size_t endLine = shaderData.find(';', pos);
-          if (endLine == std::string::npos) break;
+        clean = std::regex_replace(
+          clean,
+          std::regex(R"(/\*[\s\S]*?\*/)"),
+          ""
+        );
 
-          std::string line = shaderData.substr(pos, endLine - pos + 1);
+        static const std::regex uniformRx(
+          R"(\buniform\b(?:\s+\w+)?\s+(\w+)\s+(\w+)(?:\s*
 
-          line = line.substr(7);
+\[[^\]
 
-          size_t start = line.find_first_not_of(" \t");
-          if (start == std::string::npos) {
-            pos = endLine + 1;
-            continue;
-          }
-          line = line.substr(start);
+]+\]
 
-          size_t space1 = line.find_first_of(" \t");
-          if (space1 == std::string::npos) {
-            pos = endLine + 1;
-            continue;
-          }
+)?(?:\s*=\s*[^;]+)?\s*;)",
+std::regex::optimize
+);
 
-          std::string type = line.substr(0, space1);
-          line = line.substr(space1);
-          line = line.substr(line.find_first_not_of(" \t"));
-
-          size_t varEnd = line.find_first_of("=;");
-          std::string name = line.substr(0, varEnd);
-
-          name.erase(0, name.find_first_not_of(" \t"));
-          name.erase(name.find_last_not_of(" \t") + 1);
-
-          uniform_type_table[name] = type;
-
-          pos = endLine + 1;
+        for (auto it = std::sregex_iterator(clean.begin(), clean.end(), uniformRx);
+          it != std::sregex_iterator(); ++it)
+        {
+          const std::smatch& m = *it;
+          uniform_type_table[m[2].str()] = m[1].str();
         }
       }
+
 
 
       bool shader_compile(fan::graphics::shader_nr_t nr) {
@@ -1330,6 +1328,7 @@ export namespace fan {
         if (format == fan::graphics::image_format::rg8_unorm) return GL_RG;
         if (format == fan::graphics::image_format::rgb_unorm) return GL_RGB;
         if (format == fan::graphics::image_format::rgba_unorm) return GL_RGBA;
+        if (format == fan::graphics::image_format::bgr_unorm) return GL_BGR;
         if (format == fan::graphics::image_format::r8_uint) return GL_RED_INTEGER;
         if (format == fan::graphics::image_format::r8g8b8a8_srgb) return GL_SRGB8_ALPHA8;
         if (format == fan::graphics::image_format::r11f_g11f_b10f) return GL_R11F_G11F_B10F;
@@ -1386,6 +1385,7 @@ export namespace fan {
         if (format == GL_RED) return fan::graphics::image_format::r8_unorm;
         if (format == GL_RG) return fan::graphics::image_format::rg8_unorm;
         if (format == GL_RGB) return fan::graphics::image_format::rgb_unorm;
+        if (format == GL_BGR) return fan::graphics::image_format::bgr_unorm;
         if (format == GL_RED_INTEGER) return fan::graphics::image_format::r8_uint;
         if (format == GL_SRGB8_ALPHA8) return fan::graphics::image_format::r8g8b8a8_srgb;
         if (format == GL_R11F_G11F_B10F) return fan::graphics::image_format::r11f_g11f_b10f;

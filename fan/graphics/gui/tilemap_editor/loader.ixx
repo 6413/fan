@@ -71,7 +71,7 @@ export struct fte_loader_t {
 
   struct map_list_data_t{
     compiled_map_t* compiled_map;
-    std::unordered_map<fan::vec3i, tile_draw_data_t, vec3i_hasher> tiles;
+    std::unordered_map<fan::vec3i, tile_draw_data_t, vec3i_hasher> rendered_tiles;
     struct physics_entities_t {
       std::variant<
         fan::graphics::physics::rectangle_t,
@@ -108,6 +108,17 @@ public:
         l(i, entity);
       }, i.visual);
     }
+  }
+
+  fan::physics::body_id_t get_physics_body(id_t map_id, const std::string& id) {
+    fan::physics::body_id_t body;
+    iterate_physics_entities(map_id,
+      [&]<typename T>(auto& entity, T & entity_visual) {
+      if (entity.id == id) {
+        body = entity_visual;
+      }
+    });
+    return body;
   }
 
   void open() {
@@ -175,6 +186,7 @@ public:
       else if (shape.get_shape_type() == loco_t::shape_type_t::unlit_sprite) {
         tile.texture_pack_unique_id = ((loco_t::unlit_sprite_t::ri_t*)shape.GetData(gloco->shaper))->texture_pack_unique_id;
       }
+      // NOTE physics shapes are skipped, they are stored in compiled_map.physics_shapes
       tile.mesh_property = (fte_t::mesh_property_t)shape_json.value("mesh_property", fte_t::tile_t().mesh_property);
       tile.id = shape_json.value("id", fte_t::tile_t().id);
       tile.action = shape_json.value("action", fte_t::actions_e::none);

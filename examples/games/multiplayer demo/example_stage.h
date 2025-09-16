@@ -3,7 +3,7 @@ void open(void* sod) {
   fan::vec2i render_size(16, 9);
   fte_loader_t::properties_t p;
   p.size = render_size;
-  p.position = pile.player.player.get_position();
+  p.position = pile.player.body.get_position();
   main_map_id = pile.renderer.add(&main_compiled_map, p);
 
   // Generate collisions for every tile in the map
@@ -23,7 +23,7 @@ void close() {
 }
 
 void update() {
-  pile.renderer.update(main_map_id, pile.player.player.get_position());
+  pile.renderer.update(main_map_id, pile.player.body.get_position());
   pile.step();
 }
 

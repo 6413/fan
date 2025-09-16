@@ -43,6 +43,18 @@ export inline thread_local global_physics_t gphysics;
 
 export namespace fan {
   namespace physics {
+
+    inline double length_units_per_meter = 256.0;
+
+    fan::vec2d physics_to_render(const fan::vec2d& p) {
+      return p * fan::physics::length_units_per_meter;
+    }
+
+    fan::vec2d render_to_physics(const fan::vec2d& p) {
+      return p / fan::physics::length_units_per_meter;
+    }
+
+
     struct shapes_e {
       enum {
         capsule,
@@ -51,8 +63,6 @@ export namespace fan {
         box,
       };
     };
-
-    inline double length_units_per_meter = 256.0;
 
     struct capsule_t : b2Capsule {
       using b2Capsule::b2Capsule;
@@ -143,7 +153,13 @@ export namespace fan {
       bool operator!=(const body_id_t& b) const {
         return !this->operator==(b);
       }
-      bool is_valid() {
+      operator bool() const {
+        return is_valid();
+      }
+      operator b2ShapeId() const {
+        return get_shape_id();
+      }
+      bool is_valid() const {
         return *this != b2_nullBodyId;
       }
       void invalidate() {
@@ -188,7 +204,7 @@ export namespace fan {
       }
 
       fan::vec2 get_physics_position() const {
-        return b2Body_GetPosition(*this);
+        return fan::physics::physics_to_render(b2Body_GetPosition(*this));
       }
 
       void set_physics_position(const fan::vec2& p) {
@@ -281,6 +297,7 @@ export namespace fan {
       f32_t restitution = 0.0f;
       bool fixed_rotation = false;
       bool presolve_events = false;
+      bool contact_events = false;
       bool is_sensor = false;
       f32_t linear_damping = 0.0f;
       f32_t angular_damping = 0.0f;
@@ -368,6 +385,7 @@ export namespace fan {
         //b2SetLengthUnitsPerMeter(properties.length_units_per_meter);
         b2WorldDef world_def = b2DefaultWorldDef();
         world_def.gravity = properties.gravity * length_units_per_meter * 2;
+
         b2SetLengthUnitsPerMeter(1.f / 512.f);
         world_id = b2CreateWorld(&world_def);
       }
@@ -401,9 +419,10 @@ export namespace fan {
 #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
+        shape_def.enableContactEvents = shape_properties.contact_events;
         shape_def.density = shape_properties.density;
-  //      shape_def.friction = shape_properties.friction;
-    //    shape_def.restitution = shape_properties.restitution;
+        shape_def.material.friction = shape_properties.friction;
+        shape_def.material.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
 
@@ -433,11 +452,13 @@ export namespace fan {
           fan::throw_error();
         }
 #endif
+        
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
+        shape_def.enableContactEvents = shape_properties.contact_events;
         shape_def.density = shape_properties.density;
-  //      shape_def.friction = shape_properties.friction;
-  //      shape_def.restitution = shape_properties.restitution;
+        shape_def.material.friction = shape_properties.friction;
+        shape_def.material.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
@@ -472,9 +493,10 @@ export namespace fan {
 #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
+        shape_def.enableContactEvents = shape_properties.contact_events;
         shape_def.density = shape_properties.density;
-    //    shape_def.friction = shape_properties.friction;
- //       shape_def.restitution = shape_properties.restitution;
+        shape_def.material.friction = shape_properties.friction;
+        shape_def.material.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
@@ -500,9 +522,10 @@ export namespace fan {
 #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
+        shape_def.enableContactEvents = shape_properties.contact_events;
         shape_def.density = shape_properties.density;
- //       shape_def.friction = shape_properties.friction;
- //       shape_def.restitution = shape_properties.restitution;
+        shape_def.material.friction = shape_properties.friction;
+        shape_def.material.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
@@ -541,9 +564,10 @@ export namespace fan {
 #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
+        shape_def.enableContactEvents = shape_properties.contact_events;
         shape_def.density = shape_properties.density;
-       // shape_def.friction = shape_properties.friction;
-       // shape_def.restitution = shape_properties.restitution;
+        shape_def.material.friction = shape_properties.friction;
+        shape_def.material.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
@@ -562,8 +586,9 @@ export namespace fan {
       void step(f32_t dt) {
         static f32_t accumulator = 0.0f;
         accumulator += dt;
-
         while (accumulator >= physics_timestep) {
+
+          process_collision_events();
 
           auto it = body_updates.begin();
           while (it != body_updates.end()) {
@@ -633,9 +658,65 @@ export namespace fan {
         return result;
       }
 
+      void on_begin_touch(b2ShapeId shape_a, b2ShapeId shape_b) {
+        add_collision(shape_a, shape_b);
+      }
+
+      void on_end_touch(b2ShapeId shape_a, b2ShapeId shape_b) {
+        remove_collision(shape_a, shape_b);
+      }
+
+      void on_hit(b2ShapeId shape_a, b2ShapeId shape_b, float approach_speed) {
+      }
+
+      uint64_t get_shape_key(b2ShapeId shape) const {
+        return (uint64_t(shape.index1) << 32) | (uint64_t(shape.world0) << 16) | uint64_t(shape.generation);
+      }
+
+      void add_collision(b2ShapeId a, b2ShapeId b) {
+        auto pair = std::minmax(get_shape_key(a), get_shape_key(b));
+        active_collisions.insert(pair);
+      }
+
+      void remove_collision(b2ShapeId a, b2ShapeId b) {
+        auto pair = std::minmax(get_shape_key(a), get_shape_key(b));
+        active_collisions.erase(pair);
+      }
+      void process_collision_events() {
+        b2ContactEvents contact_events = b2World_GetContactEvents(world_id);
+
+        for (int i = 0; i < contact_events.beginCount; ++i) {
+          const b2ContactBeginTouchEvent& event = contact_events.beginEvents[i];
+          on_begin_touch(event.shapeIdA, event.shapeIdB);
+        }
+
+        for (int i = 0; i < contact_events.endCount; ++i) {
+          const b2ContactEndTouchEvent& event = contact_events.endEvents[i];
+          on_end_touch(event.shapeIdA, event.shapeIdB);
+        }
+
+        for (int i = 0; i < contact_events.hitCount; ++i) {
+          const b2ContactHitEvent& event = contact_events.hitEvents[i];
+          on_hit(event.shapeIdA, event.shapeIdB, event.approachSpeed);
+        }
+      }
+
+      bool is_colliding(b2ShapeId a, b2ShapeId b) const {
+        auto pair = std::minmax(get_shape_key(a), get_shape_key(b));
+        return active_collisions.count(pair) > 0;
+      }
+
       b2WorldId world_id;
       sensor_events_t sensor_events;
       f32_t delta_time = 0;
+
+
+      struct pair_hash_t {
+        size_t operator()(const std::pair<uint64_t, uint64_t>& p) const {
+          return std::hash<uint64_t>{}(p.first) ^ (std::hash<uint64_t>{}(p.second) << 1);
+        }
+      };
+      std::unordered_set<std::pair<uint64_t, uint64_t>, pair_hash_t> active_collisions;
     };
 
     // This callback must be thread-safe. It may be called multiple times simultaneously.
@@ -713,15 +794,15 @@ export namespace fan {
         b2Body_GetShapes(sourceBodyId, shapes.data(), shapeCount);
 
         for (b2ShapeId sourceShapeId : shapes) {
-          b2ShapeDef shapeDef = b2DefaultShapeDef();
+          b2ShapeDef shape_def = b2DefaultShapeDef();
 
-          shapeDef.density = b2Shape_GetDensity(sourceShapeId);
-   //       shapeDef.friction = b2Shape_GetFriction(sourceShapeId);
-     //     shapeDef.restitution = b2Shape_GetRestitution(sourceShapeId);
-          shapeDef.filter = b2Shape_GetFilter(sourceShapeId);
-          shapeDef.isSensor = b2Shape_IsSensor(sourceShapeId);
-          shapeDef.enableSensorEvents = true;
-          shapeDef.userData = b2Shape_GetUserData(sourceShapeId);
+          shape_def.density = b2Shape_GetDensity(sourceShapeId);
+          shape_def.material.friction = b2Shape_GetFriction(sourceShapeId);
+          shape_def.material.restitution = b2Shape_GetRestitution(sourceShapeId);
+          shape_def.filter = b2Shape_GetFilter(sourceShapeId);
+          shape_def.isSensor = b2Shape_IsSensor(sourceShapeId);
+          shape_def.enableSensorEvents = true;
+          shape_def.userData = b2Shape_GetUserData(sourceShapeId);
 
           b2ShapeId newShapeId;
           b2ShapeType shapeType = b2Shape_GetType(sourceShapeId);
@@ -729,22 +810,22 @@ export namespace fan {
           switch (shapeType) {
           case b2_circleShape: {
             b2Circle circle = b2Shape_GetCircle(sourceShapeId);
-            newShapeId = b2CreateCircleShape(newBodyId, &shapeDef, &circle);
+            newShapeId = b2CreateCircleShape(newBodyId, &shape_def, &circle);
             break;
           }
           case b2_capsuleShape: {
             b2Capsule capsule = b2Shape_GetCapsule(sourceShapeId);
-            newShapeId = b2CreateCapsuleShape(newBodyId, &shapeDef, &capsule);
+            newShapeId = b2CreateCapsuleShape(newBodyId, &shape_def, &capsule);
             break;
           }
           case b2_segmentShape: {
             b2Segment segment = b2Shape_GetSegment(sourceShapeId);
-            newShapeId = b2CreateSegmentShape(newBodyId, &shapeDef, &segment);
+            newShapeId = b2CreateSegmentShape(newBodyId, &shape_def, &segment);
             break;
           }
           case b2_polygonShape: {
             b2Polygon polygon = b2Shape_GetPolygon(sourceShapeId);
-            newShapeId = b2CreatePolygonShape(newBodyId, &shapeDef, &polygon);
+            newShapeId = b2CreatePolygonShape(newBodyId, &shape_def, &polygon);
             break;
           }
           default:
@@ -761,18 +842,15 @@ export namespace fan {
       }
       return newBodyId;
     }
-    fan::vec2d physics_to_render(const fan::vec2d& p) {
-      return p * fan::physics::length_units_per_meter;
-    }
-
-    fan::vec2d render_to_physics(const fan::vec2d& p) {
-      return p / fan::physics::length_units_per_meter;
-    }
 
     void set_pre_solve_callback(b2WorldId world_id, b2PreSolveFcn* fcn, void* context) {
       b2World_SetPreSolveCallback(world_id, fcn, context);
     }
 
+    // .contact_events = true must be set
+    bool is_colliding(const b2ShapeId& a, const b2ShapeId& b) {
+      return gphysics->is_colliding(a, b);
+    }
   }
 }
 
