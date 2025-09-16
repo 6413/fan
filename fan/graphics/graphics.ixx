@@ -33,6 +33,10 @@ import fan.io.directory;
 import fan.io.file;
 import fan.time;
 
+#if defined(fan_physics)
+  import fan.physics.b2_integration;
+#endif
+
 // user friendly functions
 /***************************************/
 
@@ -816,7 +820,46 @@ export namespace fan {
     };
   #endif
 
-    loco_t::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color) {
+
+  // immediate mode draw functions
+  void rectangle(const rectangle_properties_t& props) {
+    gloco->add_shape_to_immediate_draw(rectangle_t(props));
+  }
+  void sprite(const sprite_properties_t& props) {
+    gloco->add_shape_to_immediate_draw(sprite_t(props));
+  }
+  void unlit_sprite(const unlit_sprite_properties_t& props) {
+    gloco->add_shape_to_immediate_draw(unlit_sprite_t(props));
+  }
+  void line(const line_properties_t& props) {
+    gloco->add_shape_to_immediate_draw(line_t(props));
+  }
+  void light(const light_properties_t& props) {
+    gloco->add_shape_to_immediate_draw(light_t(props));
+  }
+  void circle(const circle_properties_t& props) {
+    gloco->add_shape_to_immediate_draw(circle_t(props));
+  }
+  void capsule(const capsule_properties_t& props) {
+    gloco->add_shape_to_immediate_draw(capsule_t(props));
+  }
+  void polygon(const polygon_properties_t& props) {
+    gloco->add_shape_to_immediate_draw(polygon_t(props));
+  }
+  void grid(const grid_properties_t& props) {
+    gloco->add_shape_to_immediate_draw(grid_t(props));
+  }
+  void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1)) {
+    fan::graphics::line({ .src = {b.min, depth}, .dst = {b.max.x, b.min.y}, .color = c });
+    fan::graphics::line({ .src = {b.max.x, b.min.y, depth}, .dst = {b.max}, .color = c });
+    fan::graphics::line({ .src = {b.max, depth}, .dst = {b.min.x, b.max.y}, .color = c });
+    fan::graphics::line({ .src = {b.min.x, b.max.y, depth}, .dst = {b.min}, .color = c });
+  }
+  void aabb(const loco_t::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1)) {
+    fan::graphics::aabb(s.get_aabb(), depth, c);
+  }
+
+  loco_t::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color) {
   loco_t::polygon_t::properties_t pp;
   // for triangle strip
   for (int i = 0; i < 6; ++i) {

@@ -162,6 +162,9 @@ export namespace fan {
     //  *(fan::color*)this = test0;
     //}
     template <typename T>
+    constexpr vec4_wrap_t(const vec2_wrap_t<T>& test0, auto third, auto fourth)
+      : vec4_wrap_t(test0.x, test0.y, third, fourth) { }
+    template <typename T>
     constexpr vec4_wrap_t(const vec2_wrap_t<T>& test0, const vec2_wrap_t<T>& test1)
       : vec4_wrap_t(test0.x, test0.y, test1.x, test1.y) { }
     template <typename T> constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0)
@@ -174,6 +177,10 @@ export namespace fan {
     constexpr operator ImVec4() const { return ImVec4(x, y, z, w); }
     constexpr vec4_wrap_t(const ImVec4& v) { x = v.x; y = v.y; z = v.z; w = v.w; }
 #endif
+    template <typename T>
+    constexpr operator vec2_wrap_t<T>() const {
+      return vec2_wrap_t<T>(x, y);
+    }
   };
 	 using vec1b = vec1_wrap_t<bool>;
    using vec2b = vec2_wrap_t<bool>;

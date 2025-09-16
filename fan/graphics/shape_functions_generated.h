@@ -157,7 +157,7 @@ inline static void set_position(loco_t::shape_t* shape, const fan::vec3& positio
 	delete[] ri;
 }
 
-inline static loco_t::camera_t get_camera(loco_t::shape_t* shape) {
+inline static loco_t::camera_t get_camera(const loco_t::shape_t* shape) {
 	auto sti = shape->get_shape_type();
 
 	// alloc can be avoided inside switch
@@ -259,7 +259,7 @@ inline static void set_camera(loco_t::shape_t* shape, loco_t::camera_t camera) {
 	delete[] vi;
 	delete[] ri;
 }
-inline static loco_t::viewport_t get_viewport(loco_t::shape_t* shape) {
+inline static loco_t::viewport_t get_viewport(const loco_t::shape_t* shape) {
 	uint8_t* KeyPack = gloco->shaper.GetKeys(*shape);
 
 	auto sti = shape->get_shape_type();
@@ -1089,39 +1089,39 @@ static void set_size_shadow(loco_t::shape_t* shape, const fan::vec2& size) {
 	}
 }
 
-static fan::vec2 get_rotation_point_sprite(loco_t::shape_t* shape) {
+static fan::vec2 get_rotation_point_sprite(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->rotation_point;
 }
 
-static fan::vec2 get_rotation_point_rectangle(loco_t::shape_t* shape) {
+static fan::vec2 get_rotation_point_rectangle(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::rectangle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->rotation_point;
 }
 
-static fan::vec2 get_rotation_point_light(loco_t::shape_t* shape) {
+static fan::vec2 get_rotation_point_light(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::light_t::vi_t*>(shape->GetRenderData(gloco->shaper))->rotation_point;
 }
 
-static fan::vec2 get_rotation_point_unlit_sprite(loco_t::shape_t* shape) {
+static fan::vec2 get_rotation_point_unlit_sprite(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::unlit_sprite_t::vi_t*>(shape->GetRenderData(gloco->shaper))->rotation_point;
 }
 
-static fan::vec2 get_rotation_point_circle(loco_t::shape_t* shape) {
+static fan::vec2 get_rotation_point_circle(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::circle_t::vi_t*>(shape->GetRenderData(gloco->shaper))->rotation_point;
 }
 
-static fan::vec2 get_rotation_point_capsule(loco_t::shape_t* shape) {
+static fan::vec2 get_rotation_point_capsule(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::capsule_t::vi_t*>(shape->GetRenderData(gloco->shaper))->rotation_point;
 }
 
-static fan::vec2 get_rotation_point_grid(loco_t::shape_t* shape) {
+static fan::vec2 get_rotation_point_grid(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::grid_t::vi_t*>(shape->GetRenderData(gloco->shaper))->rotation_point;
 }
 
-static fan::vec2 get_rotation_point_gradient(loco_t::shape_t* shape) {
+static fan::vec2 get_rotation_point_gradient(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::gradient_t::vi_t*>(shape->GetRenderData(gloco->shaper))->rotation_point;
 }
 
-static fan::vec2 get_rotation_point_shader_shape(loco_t::shape_t* shape) {
+static fan::vec2 get_rotation_point_shader_shape(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::shader_shape_t::vi_t*>(shape->GetRenderData(gloco->shaper))->rotation_point;
 }
 
@@ -1939,59 +1939,59 @@ static void set_grid_size_grid(loco_t::shape_t* shape, const fan::vec2& size) {
 	}
 }
 
-static loco_t::camera_t get_camera_sprite(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_sprite(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_line(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_line(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_rectangle(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_rectangle(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_light(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_light(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_unlit_sprite(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_unlit_sprite(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_circle(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_circle(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_capsule(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_capsule(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_polygon(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_polygon(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_grid(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_grid(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_universal_image_renderer(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_universal_image_renderer(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_gradient(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_gradient(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_shader_shape(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_shader_shape(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_rectangle3d(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_rectangle3d(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
-static loco_t::camera_t get_camera_line3d(loco_t::shape_t* shape) {
+static loco_t::camera_t get_camera_line3d(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
@@ -2055,59 +2055,59 @@ static void set_camera_line3d(loco_t::shape_t* shape, loco_t::camera_t camera) {
 	loco_t::set_camera(shape, camera);
 }
 
-static loco_t::viewport_t get_viewport_sprite(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_sprite(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_line(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_line(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_rectangle(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_rectangle(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_light(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_light(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_unlit_sprite(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_unlit_sprite(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_circle(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_circle(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_capsule(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_capsule(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_polygon(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_polygon(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_grid(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_grid(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_universal_image_renderer(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_universal_image_renderer(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_gradient(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_gradient(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_shader_shape(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_shader_shape(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_rectangle3d(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_rectangle3d(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
-static loco_t::viewport_t get_viewport_line3d(loco_t::shape_t* shape) {
+static loco_t::viewport_t get_viewport_line3d(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
