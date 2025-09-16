@@ -9,11 +9,6 @@ struct pile_t {
   pile_t();
 
   void step() {
-    for (auto& entity : entities) {
-      if (entity.update_cb) {
-        entity.update_cb();
-      }
-    }
 
     //player updates
     engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position());
@@ -39,14 +34,13 @@ struct pile_t {
   lstd_defstruct(example_stage_t)
     #include <fan/graphics/gui/stage_maker/preset.h>
     static constexpr auto stage_name = "";
-    #include "example_stage.h"
+    #include "main_map.h"
   };
 
   example_stage_t& get_current_stage() {
     return stage_loader.get_stage_data<example_stage_t>(current_stage);
   }
 
-#include "entity.h"
 }pile;
 
 
