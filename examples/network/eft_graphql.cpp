@@ -2,65 +2,57 @@
 #include <string>
 #include <vector>
 #include <expected>
-#include <curl/curl.h>
 #undef min
 #undef max
 import fan;
 
 fan::event::task_value_resume_t<std::expected<void, std::string>> get_all_weapons() {
-  fan::network::http_config_t config;
-  config.enable_http2 = true;
-  config.verify_ssl = true;
-  config.timeout_seconds = 30;
-  config.follow_redirects = true;
-  config.keep_alive = false;
-  config.user_agent = "TarkovWeaponsClient/1.0";
-
-  fan::network::async_http_client_t client("https://api.tarkov.dev", config);
-
   fan::json weapons_query = {
-      {"query", R"(
-       query GetWeapons {
-         items(lang: en, gameMode: regular) {
-           id
-           name
-           shortName
-           basePrice
-           avg24hPrice
-           weight
-           iconLink
-           types
-           properties {
-             __typename
-             ...on ItemPropertiesWeapon {
-               caliber
-               effectiveDistance
-               ergonomics
-               fireModes
-               fireRate
-               recoilVertical
-               recoilHorizontal
-               sightingRange
-             }
-           }
-         }
-       }
-     )"}
+      { "query", R"(
+            query GetWeapons {
+                items(lang: en, gameMode: regular) {
+                    id
+                    name
+                    shortName
+                    basePrice
+                    avg24hPrice
+                    weight
+                    iconLink
+                    types
+                    properties {
+                        __typename
+                        ...on ItemPropertiesWeapon {
+                            caliber
+                            effectiveDistance
+                            ergonomics
+                            fireModes
+                            fireRate
+                            recoilVertical
+                            recoilHorizontal
+                            sightingRange
+                        }
+                    }
+                }
+            }
+        )" }
   };
 
-  auto result = co_await client.post("/graphql", weapons_query);
+  auto result = co_await fan::network::http::post(
+    "https://api.tarkov.dev/graphql",
+    weapons_query.dump(),
+    { { "Content-Type", "application/json" } },
+    { .verify_ssl = 1, .timeout_seconds = 30 }
+  );
 
   if (!result) {
     co_return std::unexpected(result.error());
   }
 
-  auto response = result.value();
-
-  if (response.status_code != 200) {
-    co_return std::unexpected("HTTP error: " + std::to_string(response.status_code));
+  if (result->status_code != 200) {
+    co_return std::unexpected("HTTP error: " + std::to_string(result->status_code));
   }
 
-  auto json_response = fan::json::parse(response.body);
+  auto json_response = fan::json::parse(result->body);
 
   if (!json_response.contains("data") || !json_response["data"].contains("items")) {
     co_return std::unexpected("Invalid response structure");
@@ -77,7 +69,7 @@ fan::event::task_value_resume_t<std::expected<void, std::string>> get_all_weapon
     }
   }
 
-  for (size_t i = 0; i < std::min(size_t(10), weapons.size()); ++i) {
+  for (size_t i = 0; i < std::min<size_t>(10, weapons.size()); ++i) {
     const auto& weapon = weapons[i];
     fan::print_color(fan::colors::white, std::to_string(i + 1) + ".", weapon["name"].get<std::string>());
     fan::print_color(fan::colors::white, "   Short:", weapon.value("shortName", "unknown"));
@@ -114,7 +106,7 @@ fan::event::task_t main_task() {
 }
 
 int main() {
-  auto weapons_task = main_task();
-  fan::event::loop();
+  main_task(); // launch coroutine
+  fan::event::loop(); // run event loop
   return 0;
 }

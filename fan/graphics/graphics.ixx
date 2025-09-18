@@ -476,7 +476,7 @@ export namespace fan {
     struct unlit_sprite_properties_t {
       render_view_t* render_view = &gloco->orthographic_render_view;
       fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
-      fan::vec2 size = fan::vec2(0.1, 0.1);
+      fan::vec2 size = fan::vec2(32, 32);
       fan::vec3 angle = 0;
       fan::color color = fan::color(1, 1, 1, 1);
       fan::vec2 rotation_point = 0;
@@ -821,32 +821,56 @@ export namespace fan {
   #endif
 
 
+  struct aabb_t {
+    fan::vec3 center;
+    fan::vec2 half_size;
+    fan::color color = fan::color(1, 0, 0, 1);
+    f32_t depth = 55000;
+    std::array<loco_t::shape_t, 4> edges;
+
+    aabb_t() = default;
+
+    aabb_t(const fan::vec3& c, const fan::vec2& hsize, f32_t d = 55000, const fan::color& col = fan::color(1, 0, 0, 1))
+      : center(c), half_size(hsize), depth(d), color(col)
+    {
+      fan::vec3 bl(center.x - half_size.x, center.y - half_size.y, depth);
+      fan::vec3 br(center.x + half_size.x, center.y - half_size.y, depth);
+      fan::vec3 tr(center.x + half_size.x, center.y + half_size.y, depth);
+      fan::vec3 tl(center.x - half_size.x, center.y + half_size.y, depth);
+
+      edges[0] = line_t(line_properties_t{ .src = bl, .dst = br, .color = color });
+      edges[1] = line_t(line_properties_t{ .src = br, .dst = tr, .color = color });
+      edges[2] = line_t(line_properties_t{ .src = tr, .dst = tl, .color = color });
+      edges[3] = line_t(line_properties_t{ .src = tl, .dst = bl, .color = color });
+    }
+  };
+
   // immediate mode draw functions
-  void rectangle(const rectangle_properties_t& props) {
+  void rectangle(const rectangle_properties_t& props = {}) {
     gloco->add_shape_to_immediate_draw(rectangle_t(props));
   }
-  void sprite(const sprite_properties_t& props) {
+  void sprite(const sprite_properties_t& props = {}) {
     gloco->add_shape_to_immediate_draw(sprite_t(props));
   }
-  void unlit_sprite(const unlit_sprite_properties_t& props) {
+  void unlit_sprite(const unlit_sprite_properties_t& props = {}) {
     gloco->add_shape_to_immediate_draw(unlit_sprite_t(props));
   }
-  void line(const line_properties_t& props) {
+  void line(const line_properties_t& props = {}) {
     gloco->add_shape_to_immediate_draw(line_t(props));
   }
-  void light(const light_properties_t& props) {
+  void light(const light_properties_t& props = {}) {
     gloco->add_shape_to_immediate_draw(light_t(props));
   }
-  void circle(const circle_properties_t& props) {
+  void circle(const circle_properties_t& props = {}) {
     gloco->add_shape_to_immediate_draw(circle_t(props));
   }
-  void capsule(const capsule_properties_t& props) {
+  void capsule(const capsule_properties_t& props = {}) {
     gloco->add_shape_to_immediate_draw(capsule_t(props));
   }
-  void polygon(const polygon_properties_t& props) {
+  void polygon(const polygon_properties_t& props = {}) {
     gloco->add_shape_to_immediate_draw(polygon_t(props));
   }
-  void grid(const grid_properties_t& props) {
+  void grid(const grid_properties_t& props = {}) {
     gloco->add_shape_to_immediate_draw(grid_t(props));
   }
   void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1)) {
@@ -881,36 +905,36 @@ export namespace fan {
 
 #if defined(loco_vfi)
 
-    // for line
-    fan::line3 get_highlight_positions(const fan::vec3& op_, const fan::vec2& os, int index) {
-  fan::line3 positions;
-  fan::vec2 op = op_;
-  switch (index) {
-  case 0:
-    positions[0] = fan::vec3(op - os, op_.z + 1);
-    positions[1] = fan::vec3(op + fan::vec2(os.x, -os.y), op_.z + 1);
-    break;
-  case 1:
-    positions[0] = fan::vec3(op + fan::vec2(os.x, -os.y), op_.z + 1);
-    positions[1] = fan::vec3(op + os, op_.z + 1);
-    break;
-  case 2:
-    positions[0] = fan::vec3(op + os, op_.z + 1);
-    positions[1] = fan::vec3(op + fan::vec2(-os.x, os.y), op_.z + 1);
-    break;
-  case 3:
-    positions[0] = fan::vec3(op + fan::vec2(-os.x, os.y), op_.z + 1);
-    positions[1] = fan::vec3(op - os, op_.z + 1);
-    break;
-  default:
-    // Handle invalid index if necessary
-    break;
+  // for line
+  fan::line3 get_highlight_positions(const fan::vec3& op_, const fan::vec2& os, int index) {
+    fan::line3 positions;
+    fan::vec2 op = op_;
+    switch (index) {
+    case 0:
+      positions[0] = fan::vec3(op - os, op_.z + 1);
+      positions[1] = fan::vec3(op + fan::vec2(os.x, -os.y), op_.z + 1);
+      break;
+    case 1:
+      positions[0] = fan::vec3(op + fan::vec2(os.x, -os.y), op_.z + 1);
+      positions[1] = fan::vec3(op + os, op_.z + 1);
+      break;
+    case 2:
+      positions[0] = fan::vec3(op + os, op_.z + 1);
+      positions[1] = fan::vec3(op + fan::vec2(-os.x, os.y), op_.z + 1);
+      break;
+    case 3:
+      positions[0] = fan::vec3(op + fan::vec2(-os.x, os.y), op_.z + 1);
+      positions[1] = fan::vec3(op - os, op_.z + 1);
+      break;
+    default:
+      // Handle invalid index if necessary
+      break;
+    }
+
+    return positions;
   }
 
-  return positions;
-}
-
-    // REQUIRES to be allocated by new since lambda captures this
+  // REQUIRES to be allocated by new since lambda captures this
     // also container that it's stored in, must not change pointers
     template <typename T>
     struct vfi_root_custom_t {

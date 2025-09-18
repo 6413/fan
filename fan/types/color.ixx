@@ -228,13 +228,37 @@ export namespace fan {
 						std::to_string(b) + ", " + 
 						std::to_string(a) + " }";
 		}
-		void from_string(const std::string& str) {
-			std::stringstream ss(str);
-			char ch;
-			for (size_t i = 0; i < 4; ++i) {
-				ss >> ch >> (*this)[i];
-			}
-		}
+    void from_string(const std::string& str) {
+      std::string s = str;
+      // remove braces and spaces
+      s.erase(std::remove_if(s.begin(), s.end(),
+        [](char c) { return c == '{' || c == '}' || c == ' '; }), s.end());
+
+      std::stringstream ss(s);
+      std::string item;
+      value_type values[4] = { 0,0,0,1 };
+      size_t i = 0;
+
+      while (std::getline(ss, item, ',') && i < 4) {
+        try {
+          values[i++] = std::stof(item);
+        }
+        catch (...) {
+          values[i++] = value_type(); // fallback
+        }
+      }
+
+      r = values[0];
+      g = values[1];
+      b = values[2];
+      a = values[3];
+    }
+    static color_ parse(const std::string& str) {
+      color_ out;
+      out.from_string(str);
+      return out;
+    }
+
 		friend std::ostream& operator<<(std::ostream& os, const color_& color_) noexcept {
 			os << color_.to_string();
 

@@ -212,7 +212,6 @@ constexpr vec_t square_normalize() const {
   }
   return *this / max_val; 
 }
-void from_string(const std::string& str) { std::stringstream ss(str); char ch; for (access_type_t i = 0; i < size(); ++i) ss >> ch >> (*this)[i]; }
 
 constexpr vec_t rotate(value_type_t angle) const {
   if constexpr (size() >= 2) {
@@ -245,6 +244,44 @@ std::string to_string(int precision = 4) const {
     out += val_to_string((*this)[size() - 1], precision);
   }
   out += '}';
+  return out;
+}
+
+void from_string(const std::string& str) {
+  std::string s = str;
+  // remove braces and spaces
+  s.erase(std::remove_if(s.begin(), s.end(),
+    [](char c) { return c == '{' || c == '}' || c == ' '; }), s.end());
+
+  std::stringstream ss(s);
+  std::string item;
+  for (access_type_t i = 0; i < size(); ++i) {
+    if (!std::getline(ss, item, ',')) {
+      (*this)[i] = value_type_t{};
+    }
+    else {
+      (*this)[i] = static_cast<value_type_t>(std::stof(item));
+    }
+  }
+}
+
+static vec_t parse(const std::string& str) {
+  vec_t out{};
+  std::string s = str;
+  s.erase(std::remove_if(s.begin(), s.end(),
+    [](char c) { return c == '{' || c == '}' || c == ' '; }), s.end());
+
+  std::stringstream ss(s);
+  std::string item;
+  for (access_type_t i = 0; i < out.size(); ++i) {
+    if (!std::getline(ss, item, ',')) {
+      out[i] = value_type_t{}; // default
+    }
+    else {
+      out[i] = static_cast<value_type_t>(std::stof(item));
+    }
+  }
+
   return out;
 }
 

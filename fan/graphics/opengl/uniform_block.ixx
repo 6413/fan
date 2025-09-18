@@ -19,7 +19,6 @@ export namespace fan {
   namespace opengl {
     namespace core {
 
-
       struct memory_write_queue_t {
 
         using memory_edit_cb_t = detail::memory_edit_cb_t;

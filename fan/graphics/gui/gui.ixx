@@ -328,6 +328,13 @@ export namespace fan {
           return fan::window::is_mouse_down(mouse_button) && is_item_hovered(hovered_flags_rect_only);
         }
 
+        void begin_tooltip() {
+          ImGui::BeginTooltip();
+        }
+        void end_tooltip() {
+          ImGui::EndTooltip();
+        }
+
         void set_tooltip(const std::string& tooltip) {
           ImGui::SetTooltip(tooltip.c_str());
         }
@@ -501,9 +508,11 @@ export namespace fan {
           ImGui::Indent(indent_w);
         }
 
-
         fan::vec2 calc_text_size(const std::string& text, const char* text_end = NULL, bool hide_text_after_double_hash = false, float wrap_width = -1.0f){
           return ImGui::CalcTextSize(text.c_str(), text_end, hide_text_after_double_hash, wrap_width);
+        }
+        fan::vec2 text_size(const std::string& text, const char* text_end = NULL, bool hide_text_after_double_hash = false, float wrap_width = -1.0f){
+          return calc_text_size(text, text_end, hide_text_after_double_hash, wrap_width);
         }
         void set_cursor_pos_x(f32_t pos) {
           ImGui::SetCursorPosX(pos);
@@ -725,6 +734,22 @@ export namespace fan {
         }
 
         /// <summary>
+        /// Draws text centered at a specific position.
+        /// </summary>
+        /// <param name="text">The text to draw.</param>
+        /// <param name="center_position">The position where the text should be centered.</param>
+        /// <param name="color">The color of the text (defaults to white).</param>
+        void text_centered_at(const std::string& text, const fan::vec2& center_position, const fan::color& color = fan::colors::white) {
+          fan::vec2 text_size = ImGui::CalcTextSize(text.c_str());
+          fan::vec2 draw_position = center_position;
+          draw_position.x -= text_size.x * 0.5f;
+          draw_position.y -= text_size.y * 0.5f;
+
+          ImDrawList* draw_list = ImGui::GetWindowDrawList();
+          draw_list->AddText(draw_position, color.get_imgui_color(), text.c_str());
+        }
+
+        /// <summary>
         /// Draws text to bottom right.
         /// </summary>
         /// <param name="text">The text to draw.</param>
@@ -757,7 +782,6 @@ export namespace fan {
             draw_list->AddText(screen_pos + offset, outline_color.get_imgui_color(), text.c_str());
           }
 
-          // Draw main text on top
           draw_list->AddText(screen_pos, color.get_imgui_color(), text.c_str());
         }
 
@@ -772,8 +796,49 @@ export namespace fan {
           }
           ImGui::PopStyleColor();
 
-          // Draw main text on top
           ImGui::SetCursorPos(cursor_pos);
+          ImGui::PushStyleColor(ImGuiCol_Text, color);
+          ImGui::Text("%s", text.c_str());
+          ImGui::PopStyleColor();
+        }
+
+        /// <summary>
+        /// Draws outlined text centered at a specific position.
+        /// </summary>
+        /// <param name="text">The text to draw.</param>
+        /// <param name="center_position">The position where the text should be centered.</param>
+        /// <param name="color">The color of the text (defaults to white).</param>
+        /// <param name="outline_color">The color of the outline (defaults to black).</param>
+        void text_centered_outlined_at(const std::string& text, const fan::vec2& center_position, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black) {
+          fan::vec2 text_size = ImGui::CalcTextSize(text.c_str());
+          fan::vec2 draw_position = center_position;
+          draw_position.x -= text_size.x * 0.5f;
+          draw_position.y -= text_size.y * 0.5f;
+
+          text_outlined_at(text, draw_position, color, outline_color);
+        }
+
+        /// <summary>
+        /// Draws outlined text centered horizontally within the current window.
+        /// </summary>
+        /// <param name="text">The text to draw.</param>
+        /// <param name="color">The color of the text (defaults to white).</param>
+        /// <param name="outline_color">The color of the outline (defaults to black).</param>
+        void text_centered_outlined(const std::string& text, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black) {
+          fan::vec2 text_size = ImGui::CalcTextSize(text.c_str());
+          fan::vec2 window_size = ImGui::GetWindowSize();
+          fan::vec2 current_pos = ImGui::GetCursorPos();
+          current_pos.x = (window_size.x - text_size.x) * 0.5f;
+          current_pos.y -= text_size.y * 0.5f;
+
+          for (const auto& offset : outline_offsets) {
+            ImGui::SetCursorPos(current_pos + offset);
+            ImGui::PushStyleColor(ImGuiCol_Text, outline_color);
+            ImGui::Text("%s", text.c_str());
+            ImGui::PopStyleColor();
+          }
+
+          ImGui::SetCursorPos(current_pos);
           ImGui::PushStyleColor(ImGuiCol_Text, color);
           ImGui::Text("%s", text.c_str());
           ImGui::PopStyleColor();

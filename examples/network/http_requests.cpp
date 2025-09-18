@@ -39,7 +39,5 @@ int main() {
     }
   }();
 
-  fan::print("moi");
-
   fan::event::loop();
 }

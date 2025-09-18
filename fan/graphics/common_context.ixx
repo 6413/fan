@@ -165,6 +165,7 @@ namespace bll_builds {
 #define BLL_set_type_node uint8_t
 #define BLL_set_NodeDataType fan::graphics::context_camera_t
 #define BLL_set_Link 0
+#define BLL_set_nrtra 1
 #define BLL_set_IsNodeRecycled 0
 #define BLL_set_AreWeInsideStruct 0
 #include <BLL/BLL.h>
@@ -187,6 +188,7 @@ namespace bll_builds {
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeDataType fan::graphics::image_data_t
 #define BLL_set_Link 0
+#define BLL_set_nrtra 1
 #define BLL_set_IsNodeRecycled 0
 #define BLL_set_AreWeInsideStruct 0
 #define BLL_set_Usage 1
@@ -198,6 +200,7 @@ namespace bll_builds {
 #define BLL_set_type_node uint8_t
 #define BLL_set_NodeDataType fan::graphics::context_viewport_t
 #define BLL_set_Link 0
+#define BLL_set_nrtra 1
 #define BLL_set_AreWeInsideStruct 0
 #include <BLL/BLL.h>
   using viewport_nr_t = viewport_list_NodeReference_t;

@@ -248,9 +248,11 @@ export namespace fan {
       static constexpr uint64_t mode = 1 << 2;
       static constexpr uint64_t borderless = 1 << 3;
       static constexpr uint64_t full_screen = 1 << 4;
-      static constexpr uint64_t no_decorate = 1 << 5;
+      static constexpr uint64_t undecorated = 1 << 5;
       static constexpr uint64_t transparent = 1 << 6;
-      static constexpr uint64_t no_visible = 1 << 7;
+      static constexpr uint64_t hidden = 1 << 7;
+      static constexpr uint64_t topmost = 1 << 8;
+      static constexpr uint64_t click_through = 1 << 9;
     };
 
     struct renderer_t {
@@ -282,12 +284,18 @@ export namespace fan {
         glfwWindowHint(GLFW_SAMPLES, m_antialiasing_samples);
       }
 
-      if (!(flags & flags::no_visible)) {
+      if (!(flags & flags::hidden)) {
         glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
       }
       else {
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
       }
+
+      if (flags & flags::transparent) {
+        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+        glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+      }
+
       using namespace fan::window;
 
       if (renderer == renderer_t::vulkan) {
@@ -305,6 +313,13 @@ export namespace fan {
 
 #if defined(fan_platform_windows)
       apply_window_theme();
+
+      if (flags & flags::topmost) {
+        set_topmost();
+      }
+      if (flags & flags::click_through) {
+        make_click_through();
+      }
 #endif
 
       GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
@@ -555,6 +570,12 @@ export namespace fan {
       return best_monitor ? best_monitor : glfwGetPrimaryMonitor();
     }
 
+    fan::vec2 get_primary_monitor_resolution() {
+      GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+      const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+      return {mode->width, mode->height};
+    }
+
     fan::vec2 get_current_monitor_resolution() {
       GLFWmonitor* monitor = get_current_monitor();
       const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -792,6 +813,15 @@ export namespace fan {
 
     HWND get_win32_handle() {
       return glfwGetWin32Window(glfw_window);
+    }
+
+    void set_topmost() {
+      SetWindowPos(get_win32_handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    }
+    void make_click_through() {
+      auto handle = get_win32_handle();
+      LONG exStyle = GetWindowLong(handle, GWL_EXSTYLE);
+      SetWindowLong(handle, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW);
     }
 
     void apply_window_theme() {
