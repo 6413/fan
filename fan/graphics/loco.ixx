@@ -43,7 +43,7 @@ module;
     #define fan_std23
   #endif
 #endif
-#include <fan/memory/memory.hpp>
+
 
 #if defined(fan_gui)
   #include <fan/imgui/imgui.h>
@@ -57,22 +57,6 @@ module;
 #endif
 
 //#include <fan/graphics/algorithm/FastNoiseLite.h>
-
-#if defined(fan_vulkan)
-#include <fan/graphics/vulkan/core.h>
-#endif
-
-#ifndef __generic_malloc
-#define __generic_malloc(n) malloc(n)
-#endif
-
-#ifndef __generic_realloc
-#define __generic_realloc(ptr, n) realloc(ptr, n)
-#endif
-
-#ifndef __generic_free
-#define __generic_free(ptr) free(ptr)
-#endif
 
 #if defined(fan_gui)
 #include <fan/imgui/imgui_internal.h>
@@ -95,8 +79,22 @@ module;
 
 export module fan.graphics.loco;
 
+#include <fan/memory/memory.h>
+#ifndef __generic_malloc
+#define __generic_malloc(n) malloc(n)
+#endif
+
+#ifndef __generic_realloc
+#define __generic_realloc(ptr, n) realloc(ptr, n)
+#endif
+
+#ifndef __generic_free
+#define __generic_free(ptr) free(ptr)
+#endif
+
 import fan.utility;
 import fan.graphics.gui.text_logger;
+export import fan.fmt;
 
 export import fan.event;
 export import fan.file_dialog;
@@ -120,7 +118,15 @@ export import fan.types.fstring;
 #endif
 
 import fan.graphics.webp;
+
 export import fan.graphics.opengl.core;
+
+
+#if defined(fan_vulkan)
+  export import fan.graphics.vulkan.core;
+#endif
+
+
 
 export import fan.physics.collision.rectangle;
 
@@ -1654,7 +1660,7 @@ public:
         return;
       }
       gloco->set_target_fps(std::stoi(args[0]));
-      }).description = "sets target fps";
+    }).description = "sets target fps";
 
     loco->console.commands.add("debug_memory", [loco, nr = fan::console_t::frame_cb_t::nr_t()](const fan::commands_t::arg_t& args) mutable {
       if (args.size() != 1) {
@@ -1679,18 +1685,75 @@ public:
       else if (!nr.iic() && !std::stoi(args[0])) {
         loco->console.erase_frame_process(nr);
       }
-      }).description = "opens memory debug window";
-
-    /*loco->console.commands.add("console_transparency", [](const fan::commands_t::arg_t& args) {
+    }).description = "opens memory debug window";
+    loco->console.commands.add("set_clear_color", [](const fan::commands_t::arg_t& args) {
       if (args.size() != 1) {
         gloco->console.commands.print_invalid_arg_count();
         return;
       }
-      gloco->console.transparency = std::stoull(args[0]);
-      for (int i = 0; i < 21; ++i) {
-        (gloco->console.editor.GetPalette().data() + i = gloco->console.transparency;
+      gloco->clear_color = fan::color::parse(args[0]);
+      }).description = "sets clear color of window - input example {1,0,0,1} red";
+
+    // shapes
+    loco->console.commands.add("rectangle", [](const fan::commands_t::arg_t& args) {
+      if (args.size() < 1 || args.size() > 3) {
+        gloco->console.commands.print_invalid_arg_count();
+        return;
       }
-      }).description = "";*/
+
+      try {
+        loco_t::rectangle_t::properties_t props;
+        props.position = fan::vec3::parse(args[0]);
+        // optional
+        if (args.size() >= 2) props.size = fan::vec2::parse(args[1]);
+        // optional
+        props.color = args.size() == 3 ? fan::color::parse(args[2]) : fan::colors::white;
+
+        auto NRI = gloco->add_shape_to_static_draw(props);
+        gloco->console.println_colored(
+          "Added rectangle",
+          fan::colors::green
+        );
+        gloco->console.println(
+          fan::format(
+            "  id: {}\n  position {}\n  size {}\n  color {}",
+            NRI,
+            props.position,
+            props.size,
+            props.color
+          ),
+          fan::graphics::highlight_e::info
+        );
+      }
+      catch (const std::exception& e) {
+        gloco->console.println_colored("Invalid arguments: " + std::string(e.what()), fan::colors::red);
+      }
+    }).description = "Adds static rectangle {x,y[,z]} {w,h} [{r,g,b,a}]";
+
+    loco->console.commands.add("remove_shape", [](const fan::commands_t::arg_t& args) {
+      if (args.size() != 1) {
+        gloco->console.commands.print_invalid_arg_count();
+        return;
+      }
+
+      try {
+        uint32_t shape_id = std::stoull(args[0]);
+        //shape_id
+        loco_t::shape_t* s = reinterpret_cast<loco_t::shape_t*>(&shape_id);
+        gloco->remove_static_shape_draw(*s);
+        gloco->console.println_colored(
+            fan::format("Removed shape with id {}", shape_id),
+            fan::colors::green
+        );
+      }
+      catch (const std::exception& e) {
+        gloco->console.println_colored(
+          "Invalid argument: " + std::string(e.what()),
+          fan::colors::red
+        );
+      }
+      }).description = "Removes a shape by its id";
+
 
 #endif
   }
@@ -1902,6 +1965,11 @@ public:
 
   }
   loco_t(const properties_t& p) {
+
+  #if defined(fan_gui)
+    fan::setup_imgui_with_heap_profiler();
+  #endif
+
   #if defined(fan_platform_windows)
     // use utf8 for console output
     SetConsoleOutputCP(CP_UTF8);
@@ -2130,21 +2198,22 @@ public:
         vkDestroySampler(context.vk.device, vk.post_process_sampler, nullptr);
         vk.d_attachments.close(context.vk);
         vk.post_process.close(context.vk);
+        for (auto& st : shaper.ShapeTypes) {
+          if (st.sti == (decltype(st.sti))-1) {
+            continue;
+          }
+        #if defined(fan_vulkan)
+          auto& str = st.renderer.vk;
+          str.shape_data.close(context.vk);
+          str.pipeline.close(context.vk);
+        #endif
+          //st.BlockList.Close();
+        }
         //CLOOOOSEEE POSTPROCESSS IMAGEEES
       }
       else
 #endif
         if (window.renderer == loco_t::renderer_t::opengl) {
-          for (auto& st : shaper.ShapeTypes) {
-#if defined(fan_vulkan)
-            if (std::holds_alternative<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer)) {
-              auto& str = std::get<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer);
-              str.shape_data.close(context.vk);
-              str.pipeline.close(context.vk);
-            }
-#endif
-            //st.BlockList.Close();
-          }
           glDeleteVertexArrays(1, &gl.fb_vao);
           glDeleteBuffers(1, &gl.fb_vbo);
           context.gl.internal_close();
@@ -2176,7 +2245,7 @@ public:
         gl.open();
       }
 
-      window.open(window_size, fan::window_t::default_window_name, flags | fan::window_t::flags::no_visible);
+      window.open(window_size, fan::window_t::default_window_name, flags | fan::window_t::flags::hidden);
       window.set_position(window_position);
       window.set_position(window_position);
       glfwShowWindow(window);
@@ -2272,6 +2341,7 @@ public:
 #if defined(fan_vulkan)
               else if (window.renderer == renderer_t::vulkan) {
                 __fan_internal_shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
+                ((fan::vulkan::context_t::shader_t*)__fan_internal_shader_list[nr].internal)->projection_view_block = new std::remove_pointer_t<decltype(fan::vulkan::context_t::shader_t::projection_view_block)>;
               }
 #endif
             }
@@ -3291,9 +3361,19 @@ public:
   void add_shape_to_immediate_draw(loco_t::shape_t&& s) {
     immediate_render_list.emplace_back(std::move(s));
   }
+  auto add_shape_to_static_draw(loco_t::shape_t&& s) {
+    auto ret = s.NRI;
+    static_render_list[ret] = std::move(s);
+    return ret;
+  }
+  void remove_static_shape_draw(const loco_t::shape_t& s) {
+    static_render_list.erase(s.NRI);
+  }
 
   // clears shapes after drawing, good for debug draw, not best for performance
   std::vector<loco_t::shape_t> immediate_render_list;
+
+  std::unordered_map<uint32_t, loco_t::shape_t> static_render_list;
 
 #pragma pack(push, 1)
 
@@ -4310,7 +4390,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
       shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
       shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
@@ -4371,8 +4451,9 @@ public:
     struct vi_t {
       fan::color color;
       fan::vec3 src;
-      fan::vec3 dst;
+      fan::vec2 dst;
       f32_t thickness;
+      f32_t pad;
     };
     struct ri_t {
 
@@ -4380,10 +4461,10 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
-      shape_gl_init_t{{0, "in_color"}, 4, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
-      shape_gl_init_t{{1, "in_src"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
-      shape_gl_init_t{{2, "in_dst"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)},
+    inline static std::vector<shape_gl_init_t> locations = {
+      shape_gl_init_t{{0, "in_color"}, decltype(vi_t::color)::size(), GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
+      shape_gl_init_t{{1, "in_src"}, decltype(vi_t::src)::size(), GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
+      shape_gl_init_t{{2, "in_dst"}, decltype(vi_t::dst)::size(), GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)},
       shape_gl_init_t{{3, "line_thickness"}, 1, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, thickness)}
     };
 
@@ -4450,7 +4531,7 @@ public:
 #pragma pack(pop)
 
     // accounts padding
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 4, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
       shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
       shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
@@ -4462,8 +4543,8 @@ public:
     struct properties_t {
       using type_t = rectangle_t;
 
-      fan::vec3 position = 0;
-      fan::vec2 size = 0;
+      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
+      fan::vec2 size = fan::vec2(32, 32);
       fan::color color = fan::colors::white;
       fan::color outline_color = color;
       bool blending = false;
@@ -4545,7 +4626,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
       shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
       shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
@@ -4561,9 +4642,9 @@ public:
     struct properties_t {
       using type_t = sprite_t;
 
-      fan::vec3 position = 0;
+      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       f32_t parallax_factor = 0;
-      fan::vec2 size = 0;
+      fan::vec2 size = fan::vec2(32, 32);
       fan::vec2 rotation_point = 0;
       fan::color color = fan::colors::white;
       fan::vec3 angle = fan::vec3(0);
@@ -4712,7 +4793,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
       shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
       shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
@@ -4728,9 +4809,9 @@ public:
     struct properties_t {
       using type_t = unlit_sprite_t;
 
-      fan::vec3 position = 0;
+      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
       f32_t parallax_factor = 0;
-      fan::vec2 size = 0;
+      fan::vec2 size = 32;
       fan::vec2 rotation_point = 0;
       fan::color color = fan::colors::white;
       fan::vec3 angle = fan::vec3(0);
@@ -4862,7 +4943,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position) },
       shape_gl_init_t{{1, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
       shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
@@ -4937,7 +5018,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position) },
       shape_gl_init_t{{1, "in_center0"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, center0)) },
       shape_gl_init_t{{2, "in_center1"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, center1)) },
@@ -5013,7 +5094,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, position)) },
       shape_gl_init_t{{1, "in_color"}, 4, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, color)) },
       shape_gl_init_t{{2, "in_offset"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, offset)) },
@@ -5139,7 +5220,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
       shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, size)},
       shape_gl_init_t{{2, "in_grid_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, grid_size)},
@@ -5194,7 +5275,7 @@ public:
     static constexpr shaper_t::KeyTypeIndex_t shape_type = shape_type_t::particles;
     static constexpr int kpi = kp::texture;
 
-    std::vector<shape_gl_init_t> locations = {};
+    inline static std::vector<shape_gl_init_t> locations = {};
 
 #pragma pack(push, 1)
 
@@ -5326,7 +5407,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
       shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
       shape_gl_init_t{{2, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
@@ -5404,7 +5485,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
       shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
       shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
@@ -5496,7 +5577,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
       shape_gl_init_t{{1, "in_shape"}, 1, GL_INT, sizeof(vi_t), (void*)(offsetof(vi_t, shape))},
       shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
@@ -5580,7 +5661,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
       shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
       shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
@@ -5670,7 +5751,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t,  position)},
       shape_gl_init_t{{1, "in_size"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
       shape_gl_init_t{{2, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))}
@@ -5760,7 +5841,7 @@ public:
 
 #pragma pack(pop)
 
-    std::vector<shape_gl_init_t> locations = {
+    inline static std::vector<shape_gl_init_t> locations = {
       shape_gl_init_t{{0, "in_color"}, 4, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
       shape_gl_init_t{{1, "in_src"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
       shape_gl_init_t{{2, "in_dst"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
@@ -5806,13 +5887,14 @@ public:
 
   //-------------------------------------shapes-------------------------------------
 
+  // pointer
   using shape_shader_locations_t = decltype(loco_t::shaper_t::BlockProperties_t::gl_t::locations);
 
   inline void shape_open(
     uint16_t shape_type,
     std::size_t sizeof_vi,
     std::size_t sizeof_ri,
-    const shape_shader_locations_t& shape_shader_locations,
+    shape_shader_locations_t shape_shader_locations,
     const std::string& vertex,
     const std::string& fragment,
     loco_t::shaper_t::ShapeRenderDataSize_t instance_count = 1,
@@ -5836,6 +5918,7 @@ public:
     bp.DataSize = sizeof_ri;
 
     if (window.renderer == renderer_t::opengl) {
+      std::construct_at(&bp.renderer.gl);
       loco_t::shaper_t::BlockProperties_t::gl_t d;
       d.locations = shape_shader_locations;
       d.shader = shader;
@@ -5844,6 +5927,7 @@ public:
     }
 #if defined(fan_vulkan)
     else if (window.renderer == renderer_t::vulkan) {
+      std::construct_at(&bp.renderer.vk);
       loco_t::shaper_t::BlockProperties_t::vk_t vk;
 
       // 2 for rect instance, upv
@@ -5868,12 +5952,12 @@ public:
         ds_properties[1].binding = 1;
         ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        ds_properties[1].buffer = shaderd.projection_view_block.common.memory[gloco->get_context().vk.current_frame].buffer;
-        ds_properties[1].range = shaderd.projection_view_block.m_size;
+        ds_properties[1].buffer = shaderd.projection_view_block->common.memory[gloco->get_context().vk.current_frame].buffer;
+        ds_properties[1].range = shaderd.projection_view_block->m_size;
         ds_properties[1].dst_binding = 1;
 
         VkDescriptorImageInfo imageInfo{};
-        auto img = std::get<fan::vulkan::context_t::image_t>(gloco->image_get(gloco->default_texture));
+        auto img = gloco->image_get(gloco->default_texture).vk;
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = img.image_view;
         imageInfo.sampler = img.sampler;
@@ -5915,7 +5999,7 @@ public:
       pipe_p.push_constants_size = sizeof(fan::vulkan::context_t::push_constants_t);
       p.open(context.vk, pipe_p);
       vk.pipeline = p;
-      bp.renderer.vk = d;
+      bp.renderer.vk = vk;
     }
 #endif
 
@@ -5927,17 +6011,23 @@ public:
 
 #if defined(loco_sprite)
   loco_t::shader_t get_sprite_vertex_shader(const std::string& fragment) {
-    loco_t::shader_t shader = shader_create();
-    shader_set_vertex(
-      shader,
-      loco_t::read_shader("shaders/opengl/2D/objects/sprite.vs")
-    );
-    shader_set_fragment(shader, fragment);
-    if (!shader_compile(shader)) {
-      shader_erase(shader);
-      shader.sic();
+    if (get_renderer() == renderer_t::opengl) {
+      loco_t::shader_t shader = shader_create();
+      shader_set_vertex(
+        shader,
+        loco_t::read_shader("shaders/opengl/2D/objects/sprite.vs")
+      );
+      shader_set_fragment(shader, fragment);
+      if (!shader_compile(shader)) {
+        shader_erase(shader);
+        shader.sic();
+      }
+      return shader;
     }
-    return shader;
+    else {
+      fan::print("todo");
+    }
+    return {};
   }
 #endif
 
@@ -7352,15 +7442,15 @@ namespace fan {
         f32_t max_y = 0;
         for (const auto& entry : fan::heap_profiler_t::instance().memory_map) {
           f32_t v = (f32_t)entry.second.n / (1024 * 1024);
-          if (v < 0.001) {
+          /*if (v < 0.001) {
             continue;
-          }
+          }*/
           allocation_sizes.push_back(v);
           max_y = std::max(max_y, v);
           allocations.push_back(entry.second);
         }
         static std::stacktrace stack;
-        if (ImPlot::BeginPlot("Memory Allocations", ImGui::GetWindowSize(), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend)) {
+        if (allocation_sizes.size() && ImPlot::BeginPlot("Memory Allocations", ImGui::GetWindowSize(), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend)) {
           float max_allocation = *std::max_element(allocation_sizes.begin(), allocation_sizes.end());
           ImPlot::SetupAxis(ImAxis_Y1, "Memory (MB)");
           ImPlot::SetupAxisLimits(ImAxis_Y1, 0, max_y);

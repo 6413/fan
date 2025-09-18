@@ -10,7 +10,7 @@ void shapes_open() {
     loco_t::sprite_t::shape_type,
     sizeof(loco_t::sprite_t::vi_t),
     sizeof(loco_t::sprite_t::ri_t),
-    {loco_t::sprite_t::locations.begin(), loco_t::sprite_t::locations.end()},
+    &loco_t::sprite_t::locations,
     "shaders/vulkan/2D/objects/sprite.vert",
     "shaders/vulkan/2D/objects/sprite.frag"
   );
@@ -23,10 +23,12 @@ void shapes_open() {
     loco_t::rectangle_t::shape_type,
     sizeof(loco_t::rectangle_t::vi_t),
     sizeof(loco_t::rectangle_t::ri_t),
-    {loco_t::rectangle_t::locations.begin(), loco_t::rectangle_t::locations.end()},
+    &loco_t::rectangle_t::locations,
     "shaders/vulkan/2D/objects/rectangle.vert",
     "shaders/vulkan/2D/objects/rectangle.frag"
   );
+
+  loco.shape_functions.resize(loco_t::shape_type_t::last);
 
   {
     auto nr = loco.shader_create();
@@ -138,7 +140,7 @@ void begin_draw() {
     context.image_pool.resize(loco.image_list.Usage());
     uintptr_t idx = 0;
     while (nrtra.Loop(&loco.image_list, &nr)) {
-      fan::vulkan::context_t::image_t img = std::get<fan::vulkan::context_t::image_t>(loco.image_get(nr));
+      fan::vulkan::context_t::image_t img = loco.image_get(nr).vk;
       imageInfo.imageView = img.image_view;
       imageInfo.sampler = img.sampler;
       context.image_pool[idx++] = imageInfo;
@@ -155,7 +157,7 @@ void begin_draw() {
       if (st.sti != loco_t::shape_type_t::sprite) {
         continue;
       }
-      auto& vk_data = std::get<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer);
+      auto& vk_data = st.renderer.vk;
       // todo slow, use only pointer
       vk_data.shape_data.m_descriptor.m_properties[2].image_infos = loco.context.vk.image_pool;
       // doesnt like multiple frames in flight
@@ -248,13 +250,13 @@ void draw_shapes() {
         auto camera_data = loco.camera_get(camera);
 
         auto& shader = *(fan::vulkan::context_t::shader_t*)loco.context_functions.shader_get(&loco.context.vk, shader_nr);
-        shader.projection_view_block.edit_instance(
+        shader.projection_view_block->edit_instance(
           loco.context.vk, 
           0, 
           &fan::vulkan::context_t::view_projection_t::view, 
           camera_data.m_view
         );
-        shader.projection_view_block.edit_instance(
+        shader.projection_view_block->edit_instance(
           loco.context.vk,
           0, 
           &fan::vulkan::context_t::view_projection_t::projection,
@@ -262,7 +264,7 @@ void draw_shapes() {
         );
 
         auto& st = loco.shaper.GetShapeTypes(shape_type);
-        auto& vk_data = std::get<loco_t::shaper_t::ShapeType_t::vk_t>(st.renderer);
+        auto& vk_data = st.renderer.vk;
         {
            vkCmdBindDescriptorSets(
             cmd_buffer,
@@ -318,7 +320,7 @@ void draw_shapes() {
           sizeof(fan::vulkan::context_t::push_constants_t),
           &vp
         );
-        auto& shape_data = std::get<loco_t::shaper_t::ShapeType_t::vk_t>(loco.shaper.GetShapeTypes(shape_type).renderer);
+        auto& shape_data = loco.shaper.GetShapeTypes(shape_type).renderer.vk;
         auto off = BlockTraverse.GetRenderDataOffset(loco.shaper) / loco.shaper.GetRenderDataSize(shape_type);
         //vk_data.shape_data.m_descriptor.update(loco.context.vk, 3, 0, 1, 0);
 

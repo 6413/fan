@@ -24,6 +24,7 @@ export module fan.fmt;
 
 export import fan.print;
 export import fan.types.fstring;
+import fan.types.color;
 import fan.types.vector;
 import fan.utility;
 
@@ -131,15 +132,20 @@ export namespace fan {
 template<typename T>
 struct current_fmt::formatter<fan::vec2_wrap_t<T>> {
   auto parse(current_fmt::format_parse_context& ctx) { return ctx.end(); }
-  auto format(const fan::vec2_wrap_t<T>& obj, current_fmt::format_context& ctx) { return current_fmt::format_to(ctx.out(), "{}", obj.to_string()); }
+  auto format(const fan::vec2_wrap_t<T>& obj, current_fmt::format_context& ctx) const { return current_fmt::format_to(ctx.out(), "{}", obj.to_string()); }
 };
 template<typename T>
 struct current_fmt::formatter<fan::vec3_wrap_t<T>> {
   auto parse(current_fmt::format_parse_context& ctx) { return ctx.end(); }
-  auto format(const fan::vec3_wrap_t<T>& obj, current_fmt::format_context& ctx) { return current_fmt::format_to(ctx.out(), "{}", obj.to_string()); }
+  auto format(const fan::vec3_wrap_t<T>& obj, current_fmt::format_context& ctx) const { return current_fmt::format_to(ctx.out(), "{}", obj.to_string()); }
 };
 template<typename T>
 struct current_fmt::formatter<fan::vec4_wrap_t<T>> {
   auto parse(current_fmt::format_parse_context& ctx) { return ctx.end(); }
-  auto format(const fan::vec4_wrap_t<T>& obj, current_fmt::format_context& ctx) { return current_fmt::format_to(ctx.out(), "{}", obj.to_string()); }
+  auto format(const fan::vec4_wrap_t<T>& obj, current_fmt::format_context& ctx) const { return current_fmt::format_to(ctx.out(), "{}", obj.to_string()); }
+};
+template<typename T>
+struct current_fmt::formatter<fan::color_<T>> {
+  auto parse(current_fmt::format_parse_context& ctx) { return ctx.end(); }
+  auto format(const fan::color_<T>& obj, current_fmt::format_context& ctx) const { return current_fmt::format_to(ctx.out(), "{}", obj.to_string()); }
 };

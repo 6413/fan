@@ -19,6 +19,9 @@ struct pile_t {
     // physics step
     engine.physics_context.step(engine.delta_time);
   }
+
+  bool init = [] {fan::heap_profiler_t::instance().enabled = true; return 1; }();
+
   fan::graphics::engine_t engine;
   player_t player;
   fte_renderer_t renderer;

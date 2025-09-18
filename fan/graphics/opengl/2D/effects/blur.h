@@ -183,7 +183,7 @@ struct blur_t {
 
     brightness_fbo.bind(context);
 
-    fan_opengl_call(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+    fan_opengl_call(glClearColor(0.0f, 0.0f, 0.0f, loco.clear_color.a));
 
     fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 

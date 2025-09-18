@@ -254,7 +254,7 @@ struct shaper_t{
       fan::opengl::core::vao_t m_vao;
       fan::opengl::core::vbo_t m_vbo;
 
-      std::vector<shape_gl_init_t> locations;
+      std::vector<shape_gl_init_t>* locations;
       fan::graphics::shader_nr_t shader;
       bool instanced = true;
       GLsizei vertex_count = 6;
@@ -604,7 +604,7 @@ struct shaper_t{
     std::vector<shape_gl_init_t>& GetLocations(ShapeTypeIndex_t sti) {
       auto& st = ShapeTypes[sti];
       if (get_loco()->get_renderer() == loco_t::renderer_t::opengl) {
-        return st.renderer.gl.locations;
+        return *st.renderer.gl.locations;
       }
       fan::throw_error("Unsupported renderer type");
       static std::vector<shape_gl_init_t> doesnt_happen;
@@ -690,7 +690,13 @@ struct shaper_t{
     }
     ~BlockProperties_t() {
 #if shaper_set_fan
-      std::destroy_at(&renderer.gl);
+      // TODO gloco bad but how else
+      if (gloco->get_renderer() == loco_t::renderer_t::opengl) {
+        std::destroy_at(&renderer.gl);
+      }
+      else if (gloco->get_renderer() == loco_t::renderer_t::vulkan)  {
+        std::destroy_at(&renderer.vk);
+      }
 #endif
     }
     MaxElementPerBlock_t MaxElementPerBlock;
@@ -700,7 +706,7 @@ struct shaper_t{
     #if shaper_set_fan
     struct gl_t {
       gl_t() = default;
-      std::vector<shape_gl_init_t> locations;
+      std::vector<shape_gl_init_t>* locations;
       fan::graphics::shader_nr_t shader;
       bool instanced = true;
       GLuint draw_mode = GL_TRIANGLES;
@@ -907,17 +913,19 @@ struct shaper_t{
 
   #if shaper_set_fan
     if (get_loco()->get_renderer() == loco_t::renderer_t::opengl) {
-      st.renderer.gl = ShapeType_t::gl_t{};
+      ShapeType_t::gl_t d;
+      st.renderer.gl = d;
       get_loco()->gl.add_shape_type(st, bp);
     }
     #if defined(fan_vulkan)
     else if (get_loco()->get_renderer() == loco_t::renderer_t::vulkan) {
       ShapeType_t::vk_t d;
+      std::construct_at(&st.renderer.vk);
       auto& bpr = bp.renderer.vk;
       d.pipeline = bpr.pipeline;
       d.shape_data = bpr.shape_data;
       d.vertex_count = bpr.vertex_count;
-      st.renderer = d;
+      st.renderer.vk = d;
       //st.renderer.emplace<ShapeType_t::vk_t>();
     }
 #endif

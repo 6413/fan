@@ -65,6 +65,48 @@ export namespace fan {
       func_table.erase(cmd);
     }
 
+    std::vector<std::string> split_args(const std::string& input) {
+      std::vector<std::string> args;
+      std::string current;
+      bool in_braces = false;
+      bool in_quotes = false;
+
+      for (char c : input) {
+        if (c == '"' && !in_braces) {
+          in_quotes = !in_quotes;
+          // remove quotes
+          continue;
+        }
+
+        if (!in_quotes) {
+          if (c == '{') {
+            in_braces = true;
+             // remove opening brace
+            continue;
+          }
+          else if (c == '}') {
+            in_braces = false;
+             // remove closing brace
+            continue;
+          }
+          else if ((c == ',' || std::isspace(c)) && !in_braces) {
+            if (!current.empty()) {
+              args.push_back(current);
+              current.clear();
+            }
+            continue;
+          }
+        }
+
+        current += c;
+      }
+
+      if (!current.empty())
+        args.push_back(current);
+
+      return args;
+    }
+
     int call(const std::string& cmd) {
       std::size_t arg0_off = cmd.find(" ");
       if (arg0_off == std::string::npos) {
@@ -84,7 +126,7 @@ export namespace fan {
         rest = cmd.substr(arg0_off + 1);
       }
       if (found->second.command_chain.empty()) {
-        found->second.func(fan::split_quoted(rest));
+        found->second.func(split_args(rest));
       }
       else {
         for (const auto& i : found->second.command_chain) {

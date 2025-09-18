@@ -1896,28 +1896,41 @@ export struct fte_t {
         tile["key_state"] = tile_t().key_state;
         tile["object_names"] = tile_t().object_names;
 
-        /*
-        uint8_t type = type_e::box;
-    uint8_t body_type = fan::physics::body_type_e::static_body;
-    bool draw = false;
-    fan::physics::shape_properties_t shape_properties;
-        */
-
         fan::json physics_shape_data;
-        physics_shape_data["type"] = j.type;
-        physics_shape_data["body_type"] = j.body_type;
-        physics_shape_data["draw"] = j.draw;
-        physics_shape_data["friction"] = j.shape_properties.friction;
-        physics_shape_data["density"] = j.shape_properties.density;
-        physics_shape_data["fixed_rotation"] = j.shape_properties.fixed_rotation;
-        physics_shape_data["presolve_events"] = j.shape_properties.presolve_events;
-        physics_shape_data["is_sensor"] = j.shape_properties.is_sensor;
-        tile["physics_shape_data"] = physics_shape_data;
+
+        if (j.type != decltype(j.type){}) {
+          physics_shape_data["type"] = j.type;
+        }
+        if (j.body_type != decltype(j.body_type){}) {
+          physics_shape_data["body_type"] = j.body_type;
+        }
+        if (j.draw != decltype(j.draw){}) {
+          physics_shape_data["draw"] = j.draw;
+        }
+        if (j.shape_properties.friction != decltype(j.shape_properties.friction){}) {
+          physics_shape_data["friction"] = j.shape_properties.friction;
+        }
+        if (j.shape_properties.density != decltype(j.shape_properties.density){}) {
+          physics_shape_data["density"] = j.shape_properties.density;
+        }
+        if (j.shape_properties.fixed_rotation != decltype(j.shape_properties.fixed_rotation){}) {
+          physics_shape_data["fixed_rotation"] = j.shape_properties.fixed_rotation;
+        }
+        if (j.shape_properties.presolve_events != decltype(j.shape_properties.presolve_events){}) {
+          physics_shape_data["presolve_events"] = j.shape_properties.presolve_events;
+        }
+        if (j.shape_properties.is_sensor != decltype(j.shape_properties.is_sensor){}) {
+          physics_shape_data["is_sensor"] = j.shape_properties.is_sensor;
+        }
+
+        if (!physics_shape_data.empty()) {
+          tile["physics_shape_data"] = physics_shape_data;
+        }
+
         tiles.push_back(tile);
       }
     }
 
-    
     fan::json j;
     for (auto& layer : visual_layers) {
       fan::json layer_json;

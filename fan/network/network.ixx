@@ -2319,6 +2319,7 @@ export namespace fan {
         curl_easy_setopt(easy_handle, CURLOPT_USERAGENT, config.user_agent.c_str());
         curl_easy_setopt(easy_handle, CURLOPT_NOSIGNAL, 1L);
         curl_easy_setopt(easy_handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+        curl_easy_setopt(easy_handle, CURLOPT_CAINFO, "curl-ca-bundle.crt");
       }
 
       ~async_http_request_t() {

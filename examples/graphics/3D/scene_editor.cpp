@@ -114,7 +114,7 @@ struct pile_t {
       content_browser.current_directory /= "models";
       content_browser.update_directory_cache();
 
-      get_loco().window.add_mouse_motion([&](const auto& d) {
+      get_loco().window.add_mouse_motion_callback([&](const auto& d) {
         if (d.motion != 0 && cursor_mode == 0) {
           //fan::print(d.motion);
           camera.rotate_camera(d.motion);
