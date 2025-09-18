@@ -272,6 +272,36 @@ export namespace fan {
     return args;
   }
 
+  /// <summary>
+  /// Formats a number with thousands separators for improved readability.
+  /// </summary>
+  /// <param name="number">The numeric value to format (any numeric type).</param>
+  /// <param name="separator">The string to use as separator (defaults to comma).</param>
+  /// <param name="group_size">Number of digits between separators (defaults to 3).</param>
+  /// <returns>Formatted string with separators inserted at specified intervals.</returns>
+  std::string number_separator(auto number, const std::string& separator = ",", uint32_t group_size = 3) {
+    std::string result = std::to_string(number);
+
+    if (result.length() <= group_size || group_size == 0) {
+      return result;
+    }
+
+    size_t digit_start = (result[0] == '-') ? 1 : 0;
+    size_t digit_count = result.length() - digit_start;
+
+    size_t separator_count = (digit_count - 1) / group_size;
+    result.reserve(result.length() + separator_count * separator.length());
+
+    for (int64_t insert_pos = static_cast<int64_t>(result.length() - group_size);
+      insert_pos > static_cast<int64_t>(digit_start);
+      insert_pos -= group_size) {
+      result.insert(static_cast<size_t>(insert_pos), separator);
+    }
+
+    return result;
+  }
+
+
   std::string base64_encode(const std::vector<uint8_t>& data) {
     static constexpr char chars[] =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
