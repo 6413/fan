@@ -869,10 +869,10 @@ struct ecps_gui_t {
         gui::push_item_width(-1);
         do {
           if (is_narrow) {
-            gui::slider_int("##framerate_compact", &This->stream_settings.framerate, 15.0f, 120.0f, "%.0f");
+            gui::slider("##framerate_compact", &This->stream_settings.framerate, 15.0f, 120.0f);
           }
           else {
-            gui::input_int("##framerate_compact", &This->stream_settings.framerate, 5, 30);
+            gui::slider("##framerate_compact", &This->stream_settings.framerate, 5, 30);
           }
           if (gui::is_item_deactivated_after_edit()) {
             auto* rt = render_thread_ptr.load(std::memory_order_acquire);
@@ -904,7 +904,7 @@ struct ecps_gui_t {
           if (This->stream_settings.bitrate_mode == 1) {
             gui::text("Bitrate (Mbps)");
             gui::push_item_width(-1);
-            if (gui::slider_float("##bitrate_compact", &This->stream_settings.bitrate_mbps, 0.5f, 50.0f, "%.1f", gui::slider_flags_always_clamp)) {
+            if (gui::slider("##bitrate_compact", &This->stream_settings.bitrate_mbps, 0.5f, 50.0f, gui::slider_flags_always_clamp)) {
               auto* rt = get_render_thread();
               if (rt) {
                 rt->screen_encoder.config_.bitrate = This->stream_settings.bitrate_mbps * 1000000;

@@ -285,7 +285,7 @@ set(MODULE_FILES
     ${ROOT_PATH}/graphics/webp.ixx
     ${ROOT_PATH}/graphics/stb.ixx
     ${ROOT_PATH}/graphics/common_context.ixx
-    ${ROOT_PATH}/graphics/opengl/core.ixx
+    ${ROOT_PATH}/graphics/opengl/gl_core.ixx
     ${ROOT_PATH}/graphics/opengl/uniform_block.ixx
     ${ROOT_PATH}/graphics/loco.ixx
     ${ROOT_PATH}/graphics/graphics.ixx
@@ -323,6 +323,7 @@ if(FAN_GUI)
         #${ROOT_PATH}/graphics/gui/tilemap_editor/renderer0.ixx
         #${ROOT_PATH}/graphics/gui/tilemap_editor/loader.ixx
         #${ROOT_PATH}/graphics/gui/tilemap_editor/editor.ixx
+				${ROOT_PATH}/graphics/gui/text_logger.ixx
         ${ROOT_PATH}/graphics/gui/gui.ixx
         ${ROOT_PATH}/graphics/gui/console.ixx
     )

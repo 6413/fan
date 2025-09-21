@@ -19,8 +19,13 @@
 #include <cmath>
 
 #include <WITCH/WITCH.h>
+
+#define use_input_control 0
+
+#if use_input_control == 1
 #include <WITCH/MD/Mice.h>
 #include <WITCH/MD/Keyboard/Keyboard.h>
+#endif
 
 extern "C" {
 #include <libavutil/pixfmt.h>
@@ -774,7 +779,7 @@ ecps_backend_t::ecps_backend_t() {
 
   __dme_get(Protocol_S2C, Channel_ScreenShare_Share_ApplyToHostMouseCoordinate) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Channel_ScreenShare_Share_ApplyToHostMouseCoordinate_t>();
-
+  #if use_input_control == 1
     bool input_control_enabled = false;
     for (const auto& channel : backend.channel_info) {
       if (channel.channel_id.i == msg->ChannelID.i) {
@@ -789,12 +794,13 @@ ecps_backend_t::ecps_backend_t() {
         fan::print("mouse coordinate write failed");
       }
     }
+  #endif
     co_return;
     };
 
   __dme_get(Protocol_S2C, Channel_ScreenShare_Share_ApplyToHostMouseMotion) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Channel_ScreenShare_Share_ApplyToHostMouseMotion_t>();
-
+  #if use_input_control == 1
     bool input_control_enabled = false;
     for (const auto& channel : backend.channel_info) {
       if (channel.channel_id.i == msg->ChannelID.i) {
@@ -809,12 +815,13 @@ ecps_backend_t::ecps_backend_t() {
         fan::print("mouse motion write failed");
       }
     }
+  #endif
     co_return;
     };
 
   __dme_get(Protocol_S2C, Channel_ScreenShare_Share_ApplyToHostMouseButton) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Channel_ScreenShare_Share_ApplyToHostMouseButton_t>();
-
+  #if use_input_control == 1
     bool input_control_enabled = false;
     for (const auto& channel : backend.channel_info) {
       if (channel.channel_id.i == msg->ChannelID.i) {
@@ -836,12 +843,13 @@ ecps_backend_t::ecps_backend_t() {
         fan::print("mouse button write failed");
       }
     }
+  #endif
     co_return;
     };
 
   __dme_get(Protocol_S2C, Channel_ScreenShare_Share_ApplyToHostKeyboard) = [this](ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) -> fan::event::task_t {
     auto msg = co_await backend.tcp_client.read<Protocol_S2C_t::Channel_ScreenShare_Share_ApplyToHostKeyboard_t>();
-
+  #if use_input_control == 1
     bool input_control_enabled = false;
     for (const auto& channel : backend.channel_info) {
       if (channel.channel_id.i == msg->ChannelID.i) {
@@ -859,9 +867,11 @@ ecps_backend_t::ecps_backend_t() {
         fan::print("keyboard write failed");
       }
     }
+  #endif
     co_return;
     };
 
+#if use_input_control == 1
   MD_Mice_Error mice_err = MD_Mice_Open(&mice);
   if (mice_err != MD_Mice_Error_Success) {
     fan::print("Failed to initialize mouse device");
@@ -871,6 +881,7 @@ ecps_backend_t::ecps_backend_t() {
   if (keyboard_err != MD_Keyboard_Error_Success) {
     fan::print("Failed to initialize keyboard device");
   }
+#endif
 }
 
 fan::event::task_t ecps_backend_t::default_s2c_cb(ecps_backend_t& backend, const tcp::ProtocolBasePacket_t& base) {

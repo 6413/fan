@@ -1523,7 +1523,17 @@ public:
 
   uint64_t start_time = 0;
 
-
+  void add_shape_to_immediate_draw(loco_t::shape_t&& s) {
+    immediate_render_list.emplace_back(std::move(s));
+  }
+  auto add_shape_to_static_draw(loco_t::shape_t&& s) {
+    auto ret = s.NRI;
+    static_render_list[ret] = std::move(s);
+    return ret;
+  }
+  void remove_static_shape_draw(const loco_t::shape_t& s) {
+    static_render_list.erase(s.NRI);
+  }
 
 #define shaper_get_key_safe(return_type, kps_type, variable) \
   [KeyPack] ()-> auto& { \
@@ -1977,7 +1987,7 @@ public:
   }
   loco_t(const properties_t& p) {
 
-  #if defined(fan_gui)
+  #if defined(fan_gui) && defined(fan_std23)
     fan::setup_imgui_with_heap_profiler();
   #endif
 
@@ -3283,7 +3293,7 @@ public:
 
       static constexpr function_type default_cb() {
         return [](Args... args) -> R {
-          std::cout << "default cb called, function did not exist" << std::endl;
+          fan::print("default cb called, function did not exist");
           if constexpr (!std::is_void_v<R>) {
             if constexpr (std::is_reference_v<R>) {
               static std::remove_reference_t<R> dummy_object{};
@@ -3416,31 +3426,6 @@ public:
     set_line3_cb set_line3;
   };
 
-  #include <fan/graphics/shape_functions_generated.h>
-
-  struct shape_functions_t : public std::vector<functions_t>{
-    inline static functions_t dummy;
-    functions_t& operator[](size_t index) {
-      if (index >= this->size()) {
-      #if fan_debug >= fan_debug_high
-
-      #endif
-        return dummy;
-      }
-      return std::vector<functions_t>::operator[](index);
-    }
-
-    const functions_t& operator[](size_t index) const {
-      if (index >= this->size()) {
-      #if fan_debug >= fan_debug_high
-
-      #endif
-        return dummy;
-      }
-      return std::vector<functions_t>::operator[](index);
-    }
-  }shape_functions;
-
   // needs continous buffer
   std::vector<shaper_t::BlockProperties_t> BlockProperties;
 
@@ -3472,18 +3457,6 @@ public:
   }
   physics_update_cbs_t shape_physics_update_cbs;
 #endif
-
-  void add_shape_to_immediate_draw(loco_t::shape_t&& s) {
-    immediate_render_list.emplace_back(std::move(s));
-  }
-  auto add_shape_to_static_draw(loco_t::shape_t&& s) {
-    auto ret = s.NRI;
-    static_render_list[ret] = std::move(s);
-    return ret;
-  }
-  void remove_static_shape_draw(const loco_t::shape_t& s) {
-    static_render_list.erase(s.NRI);
-  }
 
   // clears shapes after drawing, good for debug draw, not best for performance
   std::vector<loco_t::shape_t> immediate_render_list;
@@ -6022,6 +5995,31 @@ public:
   #endif
 
   //-------------------------------------shapes-------------------------------------
+
+  #include <fan/graphics/shape_functions_generated.h>
+
+  struct shape_functions_t : public std::vector<functions_t>{
+    inline static functions_t dummy;
+    functions_t& operator[](size_t index) {
+      if (index >= this->size()) {
+      #if fan_debug >= fan_debug_high
+
+      #endif
+        return dummy;
+      }
+      return std::vector<functions_t>::operator[](index);
+    }
+
+    const functions_t& operator[](size_t index) const {
+      if (index >= this->size()) {
+      #if fan_debug >= fan_debug_high
+
+      #endif
+        return dummy;
+      }
+      return std::vector<functions_t>::operator[](index);
+    }
+  }shape_functions;
 
   // pointer
   using shape_shader_locations_t = decltype(loco_t::shaper_t::BlockProperties_t::gl_t::locations);
