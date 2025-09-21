@@ -694,9 +694,11 @@ struct shaper_t{
       if (gloco->get_renderer() == loco_t::renderer_t::opengl) {
         std::destroy_at(&renderer.gl);
       }
+    #if defined(fan_vulkan)
       else if (gloco->get_renderer() == loco_t::renderer_t::vulkan)  {
         std::destroy_at(&renderer.vk);
       }
+    #endif
 #endif
     }
     MaxElementPerBlock_t MaxElementPerBlock;

@@ -8,6 +8,8 @@ module;
 
 #include <string>
 #include <sstream>
+#include <cmath>
+#include <algorithm>
 
 export module fan.types.color;
 
@@ -222,21 +224,24 @@ export namespace fan {
 		}
 
 		std::string to_string() const noexcept {
-			return "{ " + 
-						std::to_string(r) + ", " + 
-						std::to_string(g) + ", " + 
-						std::to_string(b) + ", " + 
-						std::to_string(a) + " }";
-		}
+      return "{ " +
+        std::to_string(r) + ", " +
+        std::to_string(g) + ", " +
+        std::to_string(b) + ", " +
+        std::to_string(a) + " }";
+    }
     void from_string(const std::string& str) {
-      std::string s = str;
-      // remove braces and spaces
-      s.erase(std::remove_if(s.begin(), s.end(),
-        [](char c) { return c == '{' || c == '}' || c == ' '; }), s.end());
+      std::string s;
+      // remove braces and spaces manually
+      for (char c : str) {
+        if (c != '{' && c != '}' && c != ' ') {
+          s += c;
+        }
+      }
 
       std::stringstream ss(s);
       std::string item;
-      value_type values[4] = { 0,0,0,1 };
+      value_type values[4] = { 0, 0, 0, 1 };
       size_t i = 0;
 
       while (std::getline(ss, item, ',') && i < 4) {

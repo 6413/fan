@@ -6,6 +6,7 @@ module;
 
 #include <cassert> // box2d
 #include <functional>
+#include <unordered_set>
 
 #endif
 

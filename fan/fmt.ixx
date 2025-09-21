@@ -1,8 +1,5 @@
 module;
 
-//std::format doesnt exist for clang in linux without libc++
-
-
 #if __has_include("format")
   #include <format>
   namespace current_fmt = std;
@@ -27,8 +24,6 @@ export import fan.types.fstring;
 import fan.types.color;
 import fan.types.vector;
 import fan.utility;
-
-
 
 export namespace fan {
   std::string format_tabbed_from_string(std::streamsize tab_width, const std::string& formatted) {
@@ -82,10 +77,24 @@ export namespace fan {
     return result.str();
   }
 
+  // Custom format implementation for fan types
   template <typename... T>
-  constexpr std::string format(std::string_view fmt, T&&... args) {
-    return current_fmt::vformat(fmt, current_fmt::make_format_args(args...));
+  constexpr std::string format(std::string_view fmt_str, T&&... args) {
+    auto convert_arg = [](auto&& arg) -> auto {
+      if constexpr (requires { arg.to_string(); }) {
+        return arg.to_string();
+      } else {
+        return arg;
+      }
+    };
+    
+    auto converted_args = std::make_tuple(convert_arg(args)...);
+    
+    return std::apply([fmt_str](auto&&... converted) {
+      return current_fmt::vformat(fmt_str, current_fmt::make_format_args(converted...));
+    }, converted_args);
   }
+
   template <typename ...Args>
   std::string format_args_with_newline(const Args&... args) {
     return fan::format_args(args...) + "\n";
@@ -128,24 +137,3 @@ export namespace fan {
   template <typename... T> 
   using format_string = current_fmt::format_string<T...>;
 }
-
-template<typename T>
-struct current_fmt::formatter<fan::vec2_wrap_t<T>> {
-  auto parse(current_fmt::format_parse_context& ctx) { return ctx.end(); }
-  auto format(const fan::vec2_wrap_t<T>& obj, current_fmt::format_context& ctx) const { return current_fmt::format_to(ctx.out(), "{}", obj.to_string()); }
-};
-template<typename T>
-struct current_fmt::formatter<fan::vec3_wrap_t<T>> {
-  auto parse(current_fmt::format_parse_context& ctx) { return ctx.end(); }
-  auto format(const fan::vec3_wrap_t<T>& obj, current_fmt::format_context& ctx) const { return current_fmt::format_to(ctx.out(), "{}", obj.to_string()); }
-};
-template<typename T>
-struct current_fmt::formatter<fan::vec4_wrap_t<T>> {
-  auto parse(current_fmt::format_parse_context& ctx) { return ctx.end(); }
-  auto format(const fan::vec4_wrap_t<T>& obj, current_fmt::format_context& ctx) const { return current_fmt::format_to(ctx.out(), "{}", obj.to_string()); }
-};
-template<typename T>
-struct current_fmt::formatter<fan::color_<T>> {
-  auto parse(current_fmt::format_parse_context& ctx) { return ctx.end(); }
-  auto format(const fan::color_<T>& obj, current_fmt::format_context& ctx) const { return current_fmt::format_to(ctx.out(), "{}", obj.to_string()); }
-};

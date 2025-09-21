@@ -10,19 +10,21 @@ struct ecps_backend_t {
     tcp_keep_alive.stop();
 
     auto start_time = std::chrono::steady_clock::now();
-    while ((task_tcp_read.handle || task_udp_listen.handle) &&
+    while ((task_tcp_read.owner || task_udp_listen.owner) &&
       std::chrono::steady_clock::now() - start_time < std::chrono::milliseconds(100)) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    if (task_tcp_read.handle) {
+    if (task_tcp_read.owner) {
       task_tcp_read = {};
     }
-    if (task_udp_listen.handle) {
+    if (task_udp_listen.owner) {
       task_udp_listen = {};
     }
+  #if use_input_control == 1
     MD_Mice_Close(&mice);
     MD_Keyboard_close(&keyboard);
+  #endif
   }
 
   struct channel_create_awaiter {
@@ -483,17 +485,17 @@ struct ecps_backend_t {
     udp_keep_alive.stop();
     tcp_keep_alive.stop();
 
-    if (task_tcp_read.handle) {
-      for (int i = 0; i < 50 && task_tcp_read.handle; ++i) {
+    if (task_tcp_read.owner) {
+      for (int i = 0; i < 50 && task_tcp_read.owner; ++i) {
         co_await fan::co_sleep(10);
       }
 
-      if (task_tcp_read.handle) {
+      if (task_tcp_read.owner) {
         task_tcp_read = {};
       }
     }
 
-    if (task_udp_listen.handle) {
+    if (task_udp_listen.owner) {
       task_udp_listen = {};
     }
 
@@ -994,7 +996,9 @@ struct ecps_backend_t {
   std::unordered_map<Protocol_ChannelID_t::Type, std::vector<session_info_t>> channel_sessions;
   bool did_just_join = false; // need manual reset from gui
 
+#if use_input_control == 1
   MD_Mice_t mice;
   MD_Keyboard_t keyboard;
+#endif
 
 }ecps_backend;

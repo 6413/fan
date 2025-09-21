@@ -22,6 +22,7 @@ module;
 #include <array>
 #include <string>
 #include <list>
+#include <expected>
 
 #include <mutex>
 #include <cstdint>
