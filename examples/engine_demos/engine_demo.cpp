@@ -779,7 +779,7 @@ void main() {
   }
 
   static void menus_engine_demo_render_element_count(menu_t* menu) {
-    if (gui::drag_int("Shape count", &engine_demo.shape_count, 1, 0, std::numeric_limits<int>::max())) {
+    if (gui::drag("Shape count", &engine_demo.shape_count, 1, 0, std::numeric_limits<int>::max())) {
       auto& shape_info = demos[engine_demo.current_demo];
       if (shape_info.init_function) {
         shape_info.init_function(&engine_demo);
