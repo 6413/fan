@@ -536,21 +536,23 @@ export namespace fan {
           ImVec2 pos = ImGui::GetCursorScreenPos();
           return fan::vec2(pos.x, pos.y);
         }
+        fan::vec2 get_cursor_start_pos() {
+          return ImGui::GetCursorStartPos();
+        }
 
-        bool is_window_hovered() {
-          return ImGui::IsWindowHovered();
+        bool is_window_hovered(hovered_flag_t hovered_flags = 0) {
+          return ImGui::IsWindowHovered(hovered_flags);
         }
         bool is_window_focused() {
           return ImGui::IsWindowFocused();
         }
 
-
         fan::vec2 get_window_content_region_min() {
-          ImVec2 min = ImGui::GetWindowContentRegionMin();
-          return fan::vec2(min.x, min.y);
+          return ImGui::GetWindowContentRegionMin();
         }
-
-
+        fan::vec2 get_window_content_region_max() {
+          return ImGui::GetWindowContentRegionMax();
+        }
         f32_t get_column_width(int index = -1) {
           return ImGui::GetColumnWidth(index);
         }
@@ -900,70 +902,74 @@ export namespace fan {
           slider_flags_always_clamp = ImGuiSliderFlags_AlwaysClamp,        // ClampOnInput | ClampZeroRange combination.
         };
 
-        // todo make drag(), slider()
-
-        bool drag_float(const std::string& label, f32_t* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
-          return ImGui::DragFloat(label.c_str(), v, v_speed, v_min, v_max, format.c_str(), flags);
-        }
-        bool drag_float(const std::string& label, fan::vec2* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
-          return ImGui::DragFloat2(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
-        }
-        bool drag_float(const std::string& label, fan::vec3* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
-          return ImGui::DragFloat3(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
-        }
-        bool drag_float(const std::string& label, fan::vec4* v, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
-          return ImGui::DragFloat4(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
-        }
-        bool drag_float(const std::string& label, fan::quat* q, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
-          return ImGui::DragFloat4(label.c_str(), q->data(), v_speed, v_min, v_max, format.c_str(), flags);
-        }
-        bool drag_float(const std::string& label, fan::color* c, f32_t v_speed = 1.0f, f32_t v_min = 0.0f, f32_t v_max = 0.0f, const std::string& format = "%.3f", slider_flags_t flags = 0) {
-          return ImGui::DragFloat4(label.c_str(), c->data(), v_speed, v_min, v_max, format.c_str(), flags);
+        template<typename T>
+        constexpr ImGuiDataType get_imgui_data_type() {
+          if constexpr (std::is_same_v<T, int8_t>) return ImGuiDataType_S8;
+          else if constexpr (std::is_same_v<T, uint8_t>) return ImGuiDataType_U8;
+          else if constexpr (std::is_same_v<T, int16_t>) return ImGuiDataType_S16;
+          else if constexpr (std::is_same_v<T, uint16_t>) return ImGuiDataType_U16;
+          else if constexpr (std::is_same_v<T, int32_t> || std::is_same_v<T, int>) return ImGuiDataType_S32;
+          else if constexpr (std::is_same_v<T, uint32_t>) return ImGuiDataType_U32;
+          else if constexpr (std::is_same_v<T, int64_t>) return ImGuiDataType_S64;
+          else if constexpr (std::is_same_v<T, uint64_t>) return ImGuiDataType_U64;
+          else if constexpr (std::is_same_v<T, float>) return ImGuiDataType_Float;
+          else if constexpr (std::is_same_v<T, double>) return ImGuiDataType_Double;
+          else static_assert(false, "Unsupported type for ImGui");
         }
 
-        bool drag_int(const std::string& label, int* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%d", slider_flags_t flags = 0) {
-          return ImGui::DragInt(label.c_str(), v, v_speed, v_min, v_max, format.c_str(), flags);
-        }
-        bool drag_int(const std::string& label, fan::vec2i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%d", slider_flags_t flags = 0) {
-          return ImGui::DragInt2(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
-        }
-        bool drag_int(const std::string& label, fan::vec3i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%d", slider_flags_t flags = 0) {
-          return ImGui::DragInt3(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
-        }
-        bool drag_int(const std::string& label, fan::vec4i* v, f32_t v_speed = 1.0f, int v_min = 0, int v_max = 0, const std::string& format = "%d", slider_flags_t flags = 0) {
-          return ImGui::DragInt4(label.c_str(), v->data(), v_speed, v_min, v_max, format.c_str(), flags);
+        template<typename T>
+        constexpr const char* get_default_format() {
+          if constexpr (std::is_integral_v<T>) {
+            if constexpr (std::is_signed_v<T>) return "%d";
+            else return "%u";
+          }
+          else return "%.3f";
         }
 
-        bool slider_int(const std::string& label, int* v, int v_min, int v_max, const std::string& format = "%d", slider_flags_t flags = 0) {
-          return ImGui::SliderInt(label.c_str(), v, v_min, v_max, format.c_str(), flags);
+        template<typename T>
+        bool slider(const std::string& label, T* v, auto v_min, auto v_max, ImGuiSliderFlags flags = 0) {
+          if constexpr (get_component_count<T>() == 1) {
+            T min_val = static_cast<T>(v_min);
+            T max_val = static_cast<T>(v_max);
+            return ImGui::SliderScalar(label.c_str(), get_imgui_data_type<T>(), v, &min_val, &max_val, get_default_format<T>(), flags);
+          }
+          else {
+            using component_type = component_type_t<T>;
+            component_type min_val = static_cast<component_type>(v_min);
+            component_type max_val = static_cast<component_type>(v_max);
+            return ImGui::SliderScalarN(label.c_str(), get_imgui_data_type<component_type>(), v->data(), get_component_count<T>(), &min_val, &max_val, get_default_format<component_type>(), flags);
+          }
+        }
+        template<typename T>
+        bool slider(const std::string& label, T* v, ImGuiSliderFlags flags = 0) {
+          if constexpr (std::is_integral_v<T> || std::is_integral_v<component_type_t<T>>) {
+            return slider(label, v, 0, 100, flags);
+          }
+          else {
+            return slider(label, v, 0.0, 1.0, flags);
+          }
         }
 
-        bool slider_int(const std::string& label, fan::vec2i* v, int v_min, int v_max, const std::string& format = "%d", slider_flags_t flags = 0) {
-          return ImGui::SliderInt2(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
-        }
 
-        bool slider_int(const std::string& label, fan::vec3i* v, int v_min, int v_max, const std::string& format = "%d", slider_flags_t flags = 0) {
-          return ImGui::SliderInt3(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
+        template<typename T>
+        bool drag(const std::string& label, T* v, auto v_speed = 1, auto v_min = 0, auto v_max = 0, ImGuiSliderFlags flags = 0) {
+          if constexpr (get_component_count<T>() == 1) {
+            T speed_val = static_cast<T>(v_speed);
+            T min_val = static_cast<T>(v_min);
+            T max_val = static_cast<T>(v_max);
+            return ImGui::DragScalar(label.c_str(), get_imgui_data_type<T>(), v, speed_val, &min_val, &max_val, get_default_format<T>(), flags);
+          }
+          else {
+            using component_type = component_type_t<T>;
+            component_type speed_val = static_cast<component_type>(v_speed);
+            component_type min_val = static_cast<component_type>(v_min);
+            component_type max_val = static_cast<component_type>(v_max);
+            return ImGui::DragScalarN(label.c_str(), get_imgui_data_type<component_type>(), v->data(), get_component_count<T>(), speed_val, &min_val, &max_val, get_default_format<component_type>(), flags);
+          }
         }
-
-        bool slider_int(const std::string& label, fan::vec4i* v, int v_min, int v_max, const std::string& format = "%d", slider_flags_t flags = 0) {
-          return ImGui::SliderInt4(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
-        }
-
-        bool slider_float(const std::string& label, float* v, float v_min, float v_max, const std::string& format = "%.3f", slider_flags_t flags = 0) {
-          return ImGui::SliderFloat(label.c_str(), v, v_min, v_max, format.c_str(), flags);
-        }
-
-        bool slider_float(const std::string& label, fan::vec2f* v, float v_min, float v_max, const std::string& format = "%.3f", slider_flags_t flags = 0) {
-          return ImGui::SliderFloat2(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
-        }
-
-        bool slider_float(const std::string& label, fan::vec3f* v, float v_min, float v_max, const std::string& format = "%.3f", slider_flags_t flags = 0) {
-          return ImGui::SliderFloat3(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
-        }
-
-        bool slider_float(const std::string& label, fan::vec4f* v, float v_min, float v_max, const std::string& format = "%.3f", slider_flags_t flags = 0) {
-          return ImGui::SliderFloat4(label.c_str(), v->data(), v_min, v_max, format.c_str(), flags);
+        template<typename T>
+        bool drag(const std::string& label, T* v, ImGuiSliderFlags flags = 0) {
+          return drag(label, v, 1, 0, 0, flags);
         }
 
         f32_t calc_item_width() {
@@ -1341,6 +1347,47 @@ export namespace fan {
           style_var_docking_separator_size = ImGuiStyleVar_DockingSeparatorSize,     // float     DockingSeparatorSize
           style_var_count = ImGuiStyleVar_COUNT
         };
+
+        using tree_node_flags_t = int;
+
+        enum {
+          tree_node_flags_none = 0,
+          tree_node_flags_selected = 1 << 0,   // Draw as selected
+          tree_node_flags_framed = 1 << 1,   // Draw frame with background (e.g. for CollapsingHeader)
+          tree_node_flags_allow_overlap = 1 << 2,   // Hit testing to allow subsequent widgets to overlap this one
+          tree_node_flags_no_tree_push_on_open = 1 << 3,   // Don't do a TreePush() when open (e.g. for CollapsingHeader) = no extra indent nor pushing on ID stack
+          tree_node_flags_no_auto_open_on_log = 1 << 4,   // Don't automatically and temporarily open node when Logging is active (by default logging will automatically open tree nodes)
+          tree_node_flags_default_open = 1 << 5,   // Default node to be open
+          tree_node_flags_open_on_double_click = 1 << 6,   // Open on double-click instead of simple click (default for multi-select unless any _OpenOnXXX behavior is set explicitly). Both behaviors may be combined.
+          tree_node_flags_open_on_arrow = 1 << 7,   // Open when clicking on the arrow part (default for multi-select unless any _OpenOnXXX behavior is set explicitly). Both behaviors may be combined.
+          tree_node_flags_leaf = 1 << 8,   // No collapsing, no arrow (use as a convenience for leaf nodes).
+          tree_node_flags_bullet = 1 << 9,   // Display a bullet instead of arrow. IMPORTANT: node can still be marked open/close if you don't set the _Leaf flag!
+          tree_node_flags_frame_padding = 1 << 10,  // Use FramePadding (even for an unframed text node) to vertically align text baseline to regular widget height. Equivalent to calling AlignTextToFramePadding() before the node.
+          tree_node_flags_span_avail_width = 1 << 11,  // Extend hit box to the right-most edge, even if not framed. This is not the default in order to allow adding other items on the same line without using AllowOverlap mode.
+          tree_node_flags_span_full_width = 1 << 12,  // Extend hit box to the left-most and right-most edges (cover the indent area).
+          tree_node_flags_span_label_width = 1 << 13,  // Narrow hit box + narrow hovering highlight, will only cover the label text.
+          tree_node_flags_span_all_columns = 1 << 14,  // Frame will span all columns of its container table (label will still fit in current column)
+          tree_node_flags_label_span_all_columns = 1 << 15,  // Label will span all columns of its container table
+          // tree_node_flags_no_scroll_on_open  = 1 << 16,  // FIXME: TODO: Disable automatic scroll on TreePop() if node got just open and contents is not visible
+          tree_node_flags_nav_left_jumps_back_here = 1 << 17,  // (WIP) Nav: left direction may move to this TreeNode() from any of its child (items submitted between TreeNode and TreePop)
+          tree_node_flags_collapsing_header = tree_node_flags_framed | tree_node_flags_no_tree_push_on_open | tree_node_flags_no_auto_open_on_log,
+
+        #ifndef IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+          tree_node_flags_allow_item_overlap = tree_node_flags_allow_overlap,   // Renamed in 1.89.7
+          tree_node_flags_span_text_width = tree_node_flags_span_label_width,// Renamed in 1.90.7
+        #endif
+        };
+        template <typename... Args>
+        bool tree_node_ex(void* id, tree_node_flags_t flags, const char* fmt, Args&&... args) {
+          return ImGui::TreeNodeEx(id, flags, fmt, std::forward<Args>(args)...);
+        }
+        void tree_pop() {
+          ImGui::TreePop();
+        }
+
+        bool is_item_toggled_open() {
+          return ImGui::IsItemToggledOpen();
+        }
 
         void push_style_color(col_t index, const fan::color& col) {
           ImGui::PushStyleColor(index, col);
@@ -2207,9 +2254,56 @@ export namespace fan {
           gloco->shader_set_value(shader_nr, var_name, initial);
         }
       };
-    }
-  }
-}
+
+      void shape_properties(const loco_t::shape_t& shape) {
+        switch (shape.get_shape_type()) {
+        case loco_t::shape_type_t::particles: {
+          auto& ri = *(loco_t::particles_t::ri_t*)shape.GetData(gloco->shaper);
+
+          const char* items[] = { "circle", "rectangle" };
+          int current_shape = ri.shape;
+          if (fan::graphics::gui::combo("shape", &current_shape, items, std::size(items))) {
+            ri.shape = current_shape;
+          }
+          if (fan::graphics::gui::color_edit4("particle color", &ri.color)) {
+
+          }
+          if (fan::graphics::gui::slider("position", &ri.position, -2000.0f, 2000.0f)) {
+          }
+          if (fan::graphics::gui::slider("size", &ri.size, 0.0f, 1000.0f)) {
+          }
+          if (fan::graphics::gui::slider("alive_time", &ri.alive_time, 0.0f, 10e+9f)) {
+          }
+          if (ri.shape == fan::graphics::engine_t::particles_t::shapes_e::rectangle) {
+            if (fan::graphics::gui::slider("gap_size", &ri.gap_size, -1000.0f, 1000.0f)) {
+            }
+          }
+          if (ri.shape == fan::graphics::engine_t::particles_t::shapes_e::rectangle) {
+            if (fan::graphics::gui::slider("max_spread_size", &ri.max_spread_size, -10000.0f, 10000.0f)) {
+            }
+          }
+          if (fan::graphics::gui::slider("position_velocity", &ri.position_velocity, -10000.0f, 10000.0f)) {
+          }
+          if (fan::graphics::gui::slider("size_velocity", &ri.size_velocity, -100.0f, 100.0f)) {
+          }
+          if (fan::graphics::gui::slider("angle_velocity", &ri.angle_velocity, -fan::math::pi / 2, fan::math::pi / 2)) {
+          }
+          if (fan::graphics::gui::slider("count", &ri.count, 1.0f, 5000.0f)) {
+          }
+          if (fan::graphics::gui::slider("begin_angle", &ri.begin_angle, -fan::math::pi / 2, fan::math::pi / 2)) {
+          }
+          if (fan::graphics::gui::slider("end_angle", &ri.end_angle, -fan::math::pi / 2, fan::math::pi / 2)) {
+          }
+          if (fan::graphics::gui::slider("angle", &ri.angle, -fan::math::pi / 2, fan::math::pi / 2)) {
+          }
+          break;
+        }
+        }
+      }
+
+    } // namespace gui
+  } // namespace graphics
+} // namespace fan
 
 export namespace fan {
   namespace graphics {
@@ -2239,6 +2333,7 @@ export namespace fan {
         loco_t::image_t icon_arrow_right = gloco->image_load("images_content_browser/arrow_right.webp");
 
         loco_t::image_t icon_file = gloco->image_load("images_content_browser/file.webp");
+        loco_t::image_t icon_object = gloco->image_load("images_content_browser/object.webp");
         loco_t::image_t icon_directory = gloco->image_load("images_content_browser/folder.webp");
 
         loco_t::image_t icon_files_list = gloco->image_load("images_content_browser/files_list.webp");
@@ -2715,7 +2810,7 @@ export namespace fan {
               bool item_clicked = fan::graphics::gui::image_button(
                 "##" + unique_id,
                 file_info.preview_image.iic() == false ? file_info.preview_image
-                : file_info.is_directory ? icon_directory : icon_file,
+                : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
                 ImVec2(thumbnail_size, thumbnail_size)
               );
 
@@ -2790,7 +2885,7 @@ export namespace fan {
               bool item_clicked = fan::graphics::gui::image_button(
                 "##" + file_info.filename,
                 file_info.preview_image.iic() == false ? file_info.preview_image
-                : file_info.is_directory ? icon_directory : icon_file,
+                : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
                 ImVec2(thumbnail_size, thumbnail_size)
               );
 
@@ -3336,7 +3431,7 @@ export namespace fan {
           gui::same_line(0, 20.f);
 
           gui::slider_flags_t slider_flags = fan::graphics::gui::slider_flags_always_clamp | gui::slider_flags_no_speed_tweaks;
-          list_changed |= gui::drag_int("fps", &current_animation->second.fps, 0.03f, 0, 244, "%d", slider_flags);
+          list_changed |= gui::drag("fps", &current_animation->second.fps, 0.03f, 0, 244, slider_flags);
           if (gui::button("add sprite sheet")) {
             adding_sprite_sheet = true;
           }
@@ -3351,8 +3446,8 @@ export namespace fan {
               }
               });
 
-            gui::drag_int("Horizontal frames", &hframes, 0.03f, 0, 1024, "%d", slider_flags);
-            gui::drag_int("Vertical frames", &vframes, 0.03f, 0, 1024, "%d", slider_flags);
+            gui::drag("Horizontal frames", &hframes, 0.03f, 0, 1024, slider_flags);
+            gui::drag("Vertical frames", &vframes, 0.03f, 0, 1024, slider_flags);
 
             if (!sprite_sheet_drag_drop_name.empty()) {
               gui::separator();
@@ -3844,6 +3939,18 @@ export namespace fan {
       template <typename... args_t>
       void printft(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
         gloco->text_logger.printft(tab_width, color, fmt, std::forward<args_t>(args)...);
+      }
+      template <typename ...args_t>
+      void print_error(args_t&&... args) {
+        gloco->text_logger.print(fan::colors::red, std::forward<args_t>(args)...);
+      }
+      template <typename ...args_t>
+      void print_warning(args_t&&... args) {
+        gloco->text_logger.print(fan::colors::yellow, std::forward<args_t>(args)...);
+      }
+      template <typename ...args_t>
+      void print_success(args_t&&... args) {
+        gloco->text_logger.print(fan::colors::green, std::forward<args_t>(args)...);
       }
       void set_text_fade_time(f32_t seconds) {
         gloco->text_logger.set_text_fade_time(seconds);

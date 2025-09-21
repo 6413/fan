@@ -940,7 +940,7 @@ export namespace fan {
     struct vfi_root_custom_t {
       using shape_t = loco_t::shape_t;
 
-      void create_highlight() {
+      void enable_highlight() {
         apply_highlight([](auto& h, const fan::line3& line, fan::graphics::render_view_t& render_view) {
           h = fan::graphics::line_t{ {
             .render_view = &render_view,
@@ -985,7 +985,7 @@ export namespace fan {
             if (previous_click_position == d.position) {
               for (auto& i : selected_objects) i->disable_highlight();
               selected_objects = { this };
-              create_highlight();
+              enable_highlight();
             }
             return 0;
           }
@@ -1012,7 +1012,7 @@ export namespace fan {
             selected_objects.push_back(this);
           }
 
-          create_highlight();
+          enable_highlight();
           previous_focus = this;
 
           if (move_and_resize_auto) {
