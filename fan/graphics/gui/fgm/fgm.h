@@ -46,8 +46,10 @@ struct fgm_t {
 
   void open(const std::string& texturepack_name, const std::wstring& asset_path) {
 
+    using namespace fan::graphics;
+
     content_browser.init(asset_path);
-    content_browser.current_view_mode = fan::graphics::gui::content_browser_t::view_mode_large_thumbnails;
+    content_browser.current_view_mode = gui::content_browser_t::view_mode_large_thumbnails;
 
     render_view.camera = gloco->open_camera(
       fan::vec2(0, 1),
@@ -75,7 +77,7 @@ struct fgm_t {
       if (d.state != fan::keyboard_state::press) {
         return;
       }
-      if (ImGui::IsAnyItemActive()) {
+      if (gui::is_any_item_active()) {
         return;
       }
 
@@ -117,12 +119,36 @@ struct fgm_t {
       case fan::mouse_scroll_up: {
         if (viewport_settings.editor_hovered) {
           viewport_settings.zoom *= scroll_speed;
+          f32_t line_thickness = std::max(2.0 / viewport_settings.zoom, 2.0);
+          xy_lines[0].set_thickness(line_thickness);
+          xy_lines[1].set_thickness(line_thickness);
+          if (current_shape) {
+            for (auto& i : current_shape->highlight) {
+              for (auto& line : i) {
+                if (line) {
+                  line.set_thickness(line_thickness);
+                }
+              }
+            }
+          }
         }
         return;
       }
       case fan::mouse_scroll_down: {
         if (viewport_settings.editor_hovered) {
           viewport_settings.zoom /= scroll_speed;
+          f32_t line_thickness = std::max(2.0 / viewport_settings.zoom, 2.0);
+          xy_lines[0].set_thickness(line_thickness);
+          xy_lines[1].set_thickness(line_thickness);
+          if (current_shape) {
+            for (auto& i : current_shape->highlight) {
+              for (auto& line : i) {
+                if (line) {
+                  line.set_thickness(line_thickness);
+                }
+              }
+            }
+          }
         }
         return;
       }
@@ -130,15 +156,15 @@ struct fgm_t {
       });
     xy_lines[0] = fan::graphics::line_t{ {
       .render_view = &render_view,
-      .src = fan::vec3(-0xffffff, 0, 0x1fff),
-      .dst = fan::vec2(0xffffff, 0),
+      .src = fan::vec3(-0xfffff, 0, 0x1fff),
+      .dst = fan::vec2(0xfffff, 0),
       .color = fan::colors::red / 2
     } };
 
     xy_lines[1] = fan::graphics::line_t{ {
         .render_view = &render_view,
-        .src = fan::vec3(0, -0xffffff, 0x1fff),
-        .dst = fan::vec2(0, 0xffffff),
+        .src = fan::vec3(0, -0xfffff, 0x1fff),
+        .dst = fan::vec2(0, 0xfffff),
         .color = fan::colors::green / 2
     } };
 
@@ -162,10 +188,6 @@ struct fgm_t {
     close_cb();
     background.erase();
   }
-
-  static constexpr auto editor_str = "Editor";
-  static constexpr auto create_str = "Create";
-  static constexpr auto properties_str = "Properties";
 
   static constexpr auto max_depth = 0xff;
   static constexpr int max_path_input = 40;
@@ -195,7 +217,6 @@ struct fgm_t {
         vfip.shape.rectangle->camera = fgm->render_view.camera;
         vfip.shape.rectangle->viewport = fgm->render_view.viewport;
         vfip.mouse_button_cb = [fgm, this](const auto& d) -> int {
-          fgm->event_type = event_type_e::move;
           fgm->current_shape = this;
           return 0;
           };
@@ -226,26 +247,6 @@ struct fgm_t {
 #define BLL_set_Link 1
 #include <BLL/BLL.h>
 
-
-  enum class event_type_e {
-    none,
-    add,
-    remove,
-    move,
-    resize
-  };
-
-
-#define make_line(T, prop) \
-  { \
-    T v = shape->CONCAT(get_, prop)(); \
-    ImGui::Indent();\
-    if (gui::drag_float(STRINGIFY_DEFINE(prop), &v, 0.1, 0, FLT_MAX, "%.3f", gui::slider_flags_always_clamp)) { \
-          shape->CONCAT(set_, prop)(v); \
-    }\
-    ImGui::Unindent(); \
-  }
-
   bool id_exists(const std::string& id) {
     auto it = shape_list.GetNodeFirst();
     while (it != shape_list.dst) {
@@ -260,71 +261,50 @@ struct fgm_t {
   void open_properties(fgm_t::shapes_t::global_t* shape, const fan::vec2& editor_size) {
     using namespace fan::graphics;
 
+
     std::string shape_str = std::string("Shape name:") + gloco->shape_names[shape->children[0].get_shape_type()];
-    ImGui::Text("%s", shape_str.c_str());
-
-    {
-      fan::vec3 v = shape->get_position();
-      gui::indent();
-
-      bool changed = false;
-
-
-      gui::push_item_width(gui::calc_item_width() / 3.f);
-      changed |= gui::drag_float("##position_x", &v.x, 0.1f, 0.0f, std::numeric_limits<float>::max(), "%.3f", gui::slider_flags_always_clamp);
-      gui::same_line();
-      changed |= gui::drag_float("##position_y", &v.y, 0.1f, 0.0f, std::numeric_limits<float>::max(), "%.3f", gui::slider_flags_always_clamp);
-      gui::same_line();
-      int z = static_cast<int>(v.z);
-      if (gui::drag_int("##position_z", &z, 1.0f, 0, std::numeric_limits<int>::max(), "%d", gui::slider_flags_always_clamp)) {
-        v.z = static_cast<float>(z);
-        changed = true;
-      }
-      gui::same_line();
-      gui::text("Position");
-
-      gui::pop_item_width();
-
-      if (changed) {
-        v.z = (int)v.z; // if user types manually
-        shape->set_position(v);
+    gui::text(shape_str);
+    {// common
+      fan::vec3 pos = shape->get_position();
+      if (gui::drag("shape position", &pos, 0.1f)) {
+        pos.z = (int)pos.z; // if user types manually
+        shape->set_position(pos);
       }
 
-      gui::unindent();
+      fan::vec2 size = shape->get_size();
+      if (gui::drag("shape size", &size, 0.1f)) {
+        shape->set_size(size);
+      }
     }
-
-    make_line(fan::vec2, size);
-    fan::color c = shape->get_color();
-
-    if (ImGui::ColorEdit4("color", c.data())) {
-      shape->set_color(c);
+    auto sti = shape->children[0].get_shape_type();
+    if (sti == loco_t::shape_type_t::particles) {
+      gui::shape_properties(shape->children[0]);
     }
+    else {
+      fan::color c = shape->get_color();
 
-    {
-      ImGui::Text("angle");
-      ImGui::SameLine();
+      if (gui::color_edit4("color", &c)) {
+        shape->set_color(c);
+      }
+
       fan::vec3 angle = shape->children[0].get_angle();
       angle.x = fan::math::degrees(angle.x);
       angle.y = fan::math::degrees(angle.y);
       angle.z = fan::math::degrees(angle.z);
-      ImGui::SliderFloat3("##hidden_label1" "angle", angle.data(), 0, 360);
-      angle = fan::math::radians(angle);
-      shape->children[0].set_angle(angle);
-
+      if (gui::slider("shape angle", &angle, 0, 360)){
+        angle = fan::math::radians(angle);
+        shape->children[0].set_angle(angle);
+      }
     }
 
     {
       std::string& id = current_shape->id;
       std::string str = id;
-      str.resize(max_id_input);
-      ImGui::Text("id");
-      ImGui::SameLine();
-      if (ImGui::InputText("##hidden_label0" "id", str.data(), str.size())) {
-        \
-          if (ImGui::IsItemDeactivatedAfterEdit()) {
-            std::string new_id = str.substr(0, std::strlen(str.c_str()));
-            if (!id_exists(new_id)) {
-              id = new_id;
+      if (gui::input_text("id", &str)) {
+          if (gui::is_item_deactivated_after_edit()) {
+            //std::string new_id = str.substr(0, std::strlen(str.c_str()));
+            if (!id_exists(str)) {
+              id = str;
             }
           }
       }
@@ -332,14 +312,10 @@ struct fgm_t {
     {
       std::string id = std::to_string(current_shape->group_id);
       std::string str = id;
-      str.resize(max_id_input);
-      ImGui::Text("group id");
-      ImGui::SameLine();
-      if (ImGui::InputText("##hidden_label0" "group id", str.data(), str.size())) {
-        \
-          if (ImGui::IsItemDeactivatedAfterEdit()) {
-            current_shape->group_id = std::stoul(str);
-          }
+      if (gui::input_text("group id", &str)) {
+        if (gui::is_item_deactivated_after_edit()) {
+          current_shape->group_id = std::stoul(str);
+        }
       }
     }
     switch (shape->children[0].get_shape_type()) {
@@ -349,7 +325,7 @@ struct fgm_t {
         auto current_image = shape->children[0].get_image();
         fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
         uv1 += uv0;
-        fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
+        gui::image(current_image, fan::vec2(64), uv0, uv1);
         gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", [&](const std::string& path) {
           if (current_image != gloco->default_texture) {
             gloco->image_unload(current_image);
@@ -358,8 +334,8 @@ struct fgm_t {
           shape->children[0].set_tc_position(0);
           shape->children[0].set_tc_size(1);
           });
-        ImGui::SameLine();
-        ImGui::Text("Base texture");
+        gui::same_line();
+        gui::text("Base texture");
       }
 
       {
@@ -369,7 +345,7 @@ struct fgm_t {
         }
         fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
         uv1 += uv0;
-        fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
+        gui::image(current_image, fan::vec2(64), uv0, uv1);
         gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", [&](const std::string& path) {
           if (current_image != gloco->default_texture) {
             gloco->image_unload(current_image);
@@ -378,8 +354,8 @@ struct fgm_t {
           shape->children[0].set_tc_position(0);
           shape->children[0].set_tc_size(1);
           });
-        ImGui::SameLine();
-        ImGui::Text("Normal map");
+        gui::same_line();
+        gui::text("Normal map");
       }
       {
         auto current_image = shape->children[0].get_images()[1];
@@ -388,7 +364,7 @@ struct fgm_t {
         }
         fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
         uv1 += uv0;
-        fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
+        gui::image(current_image, fan::vec2(64), uv0, uv1);
         gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", [&](const std::string& path) {
           if (current_image != gloco->default_texture) {
             gloco->image_unload(current_image);
@@ -399,8 +375,8 @@ struct fgm_t {
           shape->children[0].set_tc_position(0);
           shape->children[0].set_tc_size(1);
           });
-        ImGui::SameLine();
-        ImGui::Text("Specular map");
+        gui::same_line();
+        gui::text("Specular map");
       }
       {
         auto current_image = shape->children[0].get_images()[2];
@@ -409,7 +385,7 @@ struct fgm_t {
         }
         fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
         uv1 += uv0;
-        fan::graphics::gui::image(current_image, fan::vec2(64), uv0, uv1);
+        gui::image(current_image, fan::vec2(64), uv0, uv1);
         gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", [&](const std::string& path) {
           if (current_image != gloco->default_texture) {
             gloco->image_unload(current_image);
@@ -420,8 +396,8 @@ struct fgm_t {
           shape->children[0].set_tc_position(0);
           shape->children[0].set_tc_size(1);
           });
-        ImGui::SameLine();
-        ImGui::Text("Occlusion map");
+        gui::same_line();
+        gui::text("Occlusion map");
       }
 
       {
@@ -430,7 +406,7 @@ struct fgm_t {
         static const char* image_filters[] = {
           "nearest", "linear"
         };
-        if (ImGui::Combo("image filter", &current_image_filter, image_filters, std::size(image_filters))) {
+        if (gui::combo("image filter", &current_image_filter, image_filters, std::size(image_filters))) {
           fan::graphics::image_load_properties_t ilp;
           ilp.min_filter = current_image_filter;
           ilp.mag_filter = current_image_filter;
@@ -443,11 +419,8 @@ struct fgm_t {
 
       std::string& current = shape->children[0].get_image_data().image_path;
       std::string str = current;
-      str.resize(max_path_input);
-      ImGui::Text("image name");
-      ImGui::SameLine();
-      if (ImGui::InputText("##hidden_label4", str.data(), str.size())) {
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
+      if (gui::input_text("image name", &str)) {
+        if (gui::is_item_deactivated_after_edit()) {
           loco_t::texturepack_t::ti_t ti;
           if (gloco->texture_pack.qti(str.c_str(), &ti)) {
             fan::print_no_space("failed to load texture:", str);
@@ -527,74 +500,104 @@ struct fgm_t {
     return nr;
   }
 
-  void RenderTreeWithUnifiedSelection() {
+  void render_tree_with_unified_selection() {
     auto it = shape_list.GetNodeFirst();
-    int nodeIndex = 0; // Unique identifier for all nodes
+    int node_index = 0;
 
-    static int selection_mask = 0; // Mask to track selected nodes
+    static int selection_mask = 0;
     int node_clicked = -1;
-    static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+    static fan::graphics::gui::tree_node_flags_t base_flags =
+      fan::graphics::gui::tree_node_flags_open_on_arrow |
+      fan::graphics::gui::tree_node_flags_open_on_double_click |
+      fan::graphics::gui::tree_node_flags_span_avail_width;
 
     while (it != shape_list.dst) {
       auto& shape_instance = shape_list[it];
-      std::string nodeStr = "Node " + std::to_string(nodeIndex);
-
-      ImGuiTreeNodeFlags node_flags = base_flags;
+      fan::graphics::gui::tree_node_flags_t node_flags = base_flags;
       const bool is_selected = (selection_mask & (1 << (intptr_t)it.NRI)) != 0;
       if (is_selected)
-        node_flags |= ImGuiTreeNodeFlags_Selected;
+        node_flags |= fan::graphics::gui::tree_node_flags_selected;
 
-      // Determine if this node is selected
-      bool node_open = ImGui::TreeNodeEx((void*)(intptr_t)it.NRI, node_flags, "Node %ld", (intptr_t)it.NRI);
+      bool node_open = fan::graphics::gui::tree_node_ex(
+        (void*)(intptr_t)it.NRI, node_flags, "Node %ld", (intptr_t)it.NRI);
 
-      if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+      if (fan::graphics::gui::is_item_clicked() &&
+        !fan::graphics::gui::is_item_toggled_open())
         node_clicked = (intptr_t)it.NRI;
-      if (node_open) {
-        // Recursively handle child nodes
-        RenderChildNodes(node_clicked, shape_instance->children, selection_mask, base_flags);
 
-        ImGui::TreePop();
+      if (node_open) {
+        render_child_nodes(node_clicked, shape_instance->children,
+          selection_mask, base_flags);
+        fan::graphics::gui::tree_pop();
       }
       it = it.Next(&shape_list);
-      nodeIndex++;
+      node_index++;
     }
 
-    // Update selection state
-    // (process outside of tree loop to avoid visual inconsistencies during the clicking frame)
     if (node_clicked != -1) {
-      if (ImGui::GetIO().KeyCtrl)
-        selection_mask ^= (1 << node_clicked); // CTRL+click to toggle
+      if (fan::graphics::gui::get_io().KeyCtrl)
+        selection_mask ^= (1 << node_clicked);
       else
-        selection_mask = (1 << node_clicked);  // Click to single-select
+        selection_mask = (1 << node_clicked);
     }
   }
 
-  void RenderChildNodes(int& node_clicked, std::vector<fan::graphics::vfi_root_t::child_data_t>& children, int& selection_mask, ImGuiTreeNodeFlags base_flags) {
+
+  void render_child_nodes(
+    int& node_clicked,
+    std::vector<fan::graphics::vfi_root_t::child_data_t>& children,
+    int& selection_mask,
+    fan::graphics::gui::tree_node_flags_t base_flags
+  ) {
     int child_index = 0;
     for (auto& child : children) {
-      ImGuiTreeNodeFlags node_flags = base_flags;
+      fan::graphics::gui::tree_node_flags_t node_flags = base_flags;
       const bool is_selected = (selection_mask & (1 << (intptr_t)child.NRI)) != 0;
       if (is_selected)
-        node_flags |= ImGuiTreeNodeFlags_Selected;
+        node_flags |= fan::graphics::gui::tree_node_flags_selected;
 
       if (child_index + 1 >= children.size())
-        node_flags |= ImGuiTreeNodeFlags_Leaf;
+        node_flags |= fan::graphics::gui::tree_node_flags_leaf;
 
-      bool node_open = ImGui::TreeNodeEx((void*)(intptr_t)child.NRI, node_flags, "%s %u", gloco->shape_names[child.get_shape_type()], child.NRI);
+      bool node_open = fan::graphics::gui::tree_node_ex(
+        (void*)(intptr_t)child.NRI,
+        node_flags,
+        "%s %u",
+        gloco->shape_names[child.get_shape_type()],
+        child.NRI
+      );
 
-      if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+      if (fan::graphics::gui::is_item_clicked() &&
+        !fan::graphics::gui::is_item_toggled_open())
+      {
         node_clicked = (intptr_t)child.NRI;
+         auto it = shape_list.GetNodeFirst();
+         while (it != shape_list.dst) {
+           auto& shape = shape_list[it];
+           if (shape->children[0] == child) {
+             if (current_shape) {
+               current_shape->disable_highlight();
+             }
+             current_shape = shape;
+             current_shape->enable_highlight();
+             break;
+           }
+           it = it.Next(&shape_list);
+         }
+      }
 
       if (node_open) {
-        ImGui::TreePop();
+        fan::graphics::gui::tree_pop();
       }
       child_index++;
     }
   }
 
+
   fan::vec2 get_mouse_position() {
-    auto& style = ImGui::GetStyle();
-    fan::vec2 pos = fan::vec2((ImGui::GetMousePos() - viewport_settings.start_pos + style.WindowPadding) - viewport_settings.size / 2);
+    using namespace fan::graphics;
+    auto& style = gui::get_style();
+    fan::vec2 pos = fan::vec2((gui::get_mouse_pos() - viewport_settings.start_pos + fan::vec2(style.WindowPadding)) - viewport_settings.size / 2);
     pos = fan::vec2(viewport_settings.pos) + pos / viewport_settings.zoom;
     return pos;
   }
@@ -602,10 +605,10 @@ struct fgm_t {
   void render() {
     using namespace fan::graphics;
 
-    if (viewport_settings.editor_hovered && ImGui::IsMouseClicked(0) && !fan::graphics::vfi_root_t::moving_object) {
+    if (viewport_settings.editor_hovered && fan::window::is_mouse_clicked() && !fan::graphics::vfi_root_t::moving_object) {
       drag_start = get_mouse_position();
     }
-    else if (viewport_settings.editor_hovered && ImGui::IsMouseDown(0) && !fan::graphics::vfi_root_t::moving_object) {
+    else if (viewport_settings.editor_hovered && fan::window::is_mouse_down() && !fan::graphics::vfi_root_t::moving_object) {
       fan::vec2 size = get_mouse_position() - drag_start;
       for (auto& i : fan::graphics::vfi_root_t::selected_objects) {
         i->disable_highlight();
@@ -614,20 +617,15 @@ struct fgm_t {
       drag_select.set_position(drag_start + size / 2);
       drag_select.set_size(size / 2);
     }
-    else if (ImGui::IsMouseReleased(0)) {
+    else if (fan::window::is_mouse_released() && !shapes_window_hovered && !gui::is_any_item_active()) {
       bool hit_any = false;
       auto it = shape_list.GetNodeFirst();
       while (it != shape_list.dst) {
         auto& shape = shape_list[it];
-        if (fan_2d::collision::rectangle::check_collision(
-          drag_select.get_position(),
-          drag_select.get_size(),
-          shape->children[0].get_position(),
-          shape->children[0].get_size()
-        )) {
+        if (drag_select.intersects(shape->children[0])) {
           if (!fan::graphics::vfi_root_t::moving_object &&
             (drag_select.get_size().x >= 1 && drag_select.get_size().y >= 1)) {
-            shape->create_highlight();
+            shape->enable_highlight();
             fan::graphics::vfi_root_t::selected_objects.push_back(shape);
           }
         }
@@ -672,13 +670,13 @@ struct fgm_t {
       content_browser.render();
     }
 
-    if (ImGui::Begin(editor_str, nullptr, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBackground)) {
+    if (gui::begin("Editor", nullptr, gui::window_flags_menu_bar | gui::window_flags_no_background)) {
       fan::vec2 window_size = gloco->window.get_size();
-      fan::vec2 viewport_size = ImGui::GetWindowSize();
+      fan::vec2 viewport_size = gui::get_window_size();
       fan::vec2 ratio = viewport_size / viewport_size.max();
       fan::vec2 s = viewport_size;
 
-      editor_pos = ImGui::GetWindowPos();
+      editor_pos = gui::get_window_pos();
 
       f32_t zoom = viewport_settings.zoom;
       fan::vec2 ground_size = viewport_size * (1.0f / zoom);
@@ -700,27 +698,27 @@ struct fgm_t {
 
       background.set_tc_position(tc_offset - tc_size / 2);
 
-      viewport_settings.editor_hovered = ImGui::IsWindowHovered();
+      viewport_settings.editor_hovered = gui::is_window_hovered();
       fan::graphics::vfi_root_t::g_ignore_mouse = !viewport_settings.editor_hovered;
       //fan::print(viewport_settings.editor_hovered);
 
-      auto& style = ImGui::GetStyle();
+      auto& style = gui::get_style();
       fan::vec2 frame_padding = style.FramePadding;
       fan::vec2 viewport_pos = fan::vec2(0, frame_padding.y * 2);
 
-      ImVec2 vMin = ImGui::GetWindowContentRegionMin();
-      ImVec2 vMax = ImGui::GetWindowContentRegionMax();
+      fan::vec2 vMin = gui::get_window_content_region_min();
+      fan::vec2 vMax = gui::get_window_content_region_max();
 
-      vMin.x += ImGui::GetWindowPos().x;
-      vMin.y += ImGui::GetWindowPos().y;
-      vMax.x += ImGui::GetWindowPos().x;
-      vMax.y += ImGui::GetWindowPos().y;
+      vMin.x += gui::get_window_pos().x;
+      vMin.y += gui::get_window_pos().y;
+      vMax.x += gui::get_window_pos().x;
+      vMax.y += gui::get_window_pos().y;
 
-      viewport_size = vMax - vMin + style.WindowPadding * 2;
+      viewport_size = vMax - vMin + fan::vec2(style.WindowPadding) * 2;
 
       gloco->viewport_set(
         render_view.viewport,
-        vMin - style.WindowPadding,
+        vMin - fan::vec2(style.WindowPadding),
         viewport_size
       );
 
@@ -737,18 +735,17 @@ struct fgm_t {
       {
         std::string str = fan::to_string(viewport_settings.zoom * 100);
         str += " %";
-        fan::graphics::gui::text_bottom_right(str, 1);
+        gui::text_bottom_right(str, 1);
       }
 
       {
-        fan::vec2 cursor_pos = ((ImGui::GetMousePos() - viewport_settings.start_pos + style.WindowPadding) - viewport_settings.size / 2);
+        fan::vec2 cursor_pos = ((gui::get_mouse_pos() - viewport_settings.start_pos + fan::vec2(style.WindowPadding)) - viewport_settings.size / 2);
         std::string cursor_pos_str = cursor_pos.to_string();
         std::string  str = cursor_pos_str.substr(1, cursor_pos_str.size() - 2);
-        fan::graphics::gui::text_bottom_right(str.c_str(), 0);
+        gui::text_bottom_right(str.c_str(), 0);
       }
 
-      ImGui::SetCursorPos(ImGui::GetCursorStartPos());
-
+      gui::set_cursor_pos(gui::get_cursor_start_pos());
 
       content_browser.receive_drag_drop_target([&](const std::filesystem::path& fs) {
 
@@ -815,19 +812,21 @@ struct fgm_t {
     static fan::graphics::file_open_dialog_t open_file_dialog;
     static std::string fn;
 
-    if (ImGui::BeginMenuBar()) {
-      if (ImGui::BeginMenu("File")) {
-        if (ImGui::MenuItem("Open..", "Ctrl+O")) {
-
+    if (fan::graphics::gui::begin_menu_bar()) {
+      if (fan::graphics::gui::begin_menu("File")) {
+        if (current_shape) {
+          current_shape->move = false;
+        }
+        if (fan::graphics::gui::menu_item("Open..", "Ctrl+O")) {
           open_file_dialog.load("json;fmm", &fn);
         }
-        if (ImGui::MenuItem("Save", "Ctrl+S")) {
+        if (fan::graphics::gui::menu_item("Save", "Ctrl+S")) {
           fout(previous_file_name);
         }
-        if (ImGui::MenuItem("Save as", "Ctrl+Shift+S")) {
+        if (fan::graphics::gui::menu_item("Save as", "Ctrl+Shift+S")) {
           save_file_dialog.save("json;fmm", &fn);
         }
-        if (ImGui::MenuItem("Quit")) {
+        if (fan::graphics::gui::menu_item("Quit")) {
           auto it = shape_list.GetNodeFirst();
           while (it != shape_list.dst) {
             delete shape_list[it];
@@ -836,12 +835,13 @@ struct fgm_t {
           shape_list.Clear();
 
           close_cb();
-          ImGui::End();
+          fan::graphics::gui::end();
         }
-        ImGui::EndMenu();
+        fan::graphics::gui::end_menu();
       }
-      ImGui::EndMenuBar();
+      fan::graphics::gui::end_menu_bar();
     }
+
     if (open_file_dialog.is_finished()) {
       if (fn.size() != 0) {
         auto it = shape_list.GetNodeFirst();
@@ -853,7 +853,7 @@ struct fgm_t {
         fin(fn);
       }
       open_file_dialog.finished = false;
-      ImGui::End();
+      gui::end();
       return;
     }
     if (save_file_dialog.is_finished()) {
@@ -863,22 +863,22 @@ struct fgm_t {
       save_file_dialog.finished = false;
     }
 
-    ImGui::End();
+    gui::end();
 
-    if (ImGui::Begin("Settings")) {
-      if (ImGui::ColorEdit3("background", gloco->clear_color.data())) {
-
-      }
-      if (ImGui::ColorEdit3("ambient", gloco->lighting.ambient.data())) {
+    if (gui::begin("Settings")) {
+      if (gui::color_edit3("background", &gloco->clear_color)) {
 
       }
-      if (gui::drag_float("grid snap", &fan::graphics::vfi_root_t::snap, 1, 0, FLT_MAX, "%.3f", gui::slider_flags_always_clamp)) {
+      if (gui::color_edit3("ambient", &gloco->lighting.ambient)) {
+
+      }
+      if (gui::drag("grid snap", &fan::graphics::vfi_root_t::snap, 1, 0, FLT_MAX, gui::slider_flags_always_clamp)) {
 
       }
     }
-    ImGui::End();
+    gui::end();
 
-    if (ImGui::Begin(properties_str, nullptr)) {
+    if (gui::begin("Properties")) {
       if (current_shape != nullptr) {
         open_properties(current_shape, editor_size);
 
@@ -940,35 +940,38 @@ struct fgm_t {
         gui::end_child();
       }
     }
-    ImGui::End();
+    gui::end();
 
 
-    if (ImGui::Begin(create_str, nullptr)) {
-      if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-        ImGui::OpenPopup("ContextMenu");
+    if (fan::graphics::gui::begin("Shapes", nullptr)) {
+      shapes_window_hovered = gui::is_window_hovered(gui::hovered_flags_allow_when_blocked_by_active_item);
+      if (shapes_window_hovered &&
+        fan::window::is_mouse_clicked(fan::mouse_right)) {
+        fan::graphics::gui::open_popup("ContextMenu");
       }
-      if (ImGui::BeginPopup("ContextMenu")) {
-        if (ImGui::BeginMenu("Create")) {
-          if (ImGui::BeginMenu("Shapes")) {
-            if (ImGui::MenuItem("Sprite")) {
+      if (fan::graphics::gui::begin_popup("ContextMenu")) {
+        if (fan::graphics::gui::begin_menu("Create")) {
+          if (fan::graphics::gui::begin_menu("Shapes")) {
+            if (fan::graphics::gui::menu_item("Sprite")) {
               push_shape(loco_t::shape_type_t::sprite, 0);
             }
-            ImGui::EndMenu();
+            fan::graphics::gui::end_menu();
           }
-          if (ImGui::BeginMenu("Lights")) {
-            if (ImGui::MenuItem("Circle")) {
+          if (fan::graphics::gui::begin_menu("Lights")) {
+            if (fan::graphics::gui::menu_item("Circle")) {
               push_shape(loco_t::shape_type_t::light, 0);
             }
-            ImGui::EndMenu();
+            fan::graphics::gui::end_menu();
           }
 
-          ImGui::EndMenu();
+          fan::graphics::gui::end_menu();
         }
 
-        ImGui::EndPopup();
+        fan::graphics::gui::end_popup();
       }
-      RenderTreeWithUnifiedSelection();
+      render_tree_with_unified_selection ();
     }
+
     static std::string filename;
     if (gui::begin("Texture Pack")) {
       if (gui::button("open")) {
@@ -1002,8 +1005,7 @@ struct fgm_t {
       }
       open_tp_dialog.finished = false;
     }
-
-    ImGui::End();
+    gui::end();
   }
 
   void fout(std::string filename) {
@@ -1032,31 +1034,10 @@ struct fgm_t {
       auto& shape_instance = shape_list[it];
       auto& shape = shape_instance->children[0];
 
-      fan::json shape_json;
-
       shapes_t::global_t defaults;
-      switch (shape_instance->shape_type) {
-      case loco_t::shape_type_t::sprite: {
-        fan::graphics::shape_serialize(shape, &shape_json);
-        break;
-      }
-      case loco_t::shape_type_t::unlit_sprite: {
-        fan::graphics::shape_serialize(shape, &shape_json);
-        break;
-      }
-      case loco_t::shape_type_t::rectangle: {
-        fan::graphics::shape_serialize(shape, &shape_json);
-        break;
-      }
-      case loco_t::shape_type_t::light: {
-        fan::graphics::shape_serialize(shape, &shape_json);
-        break;
-      }
-      default: {
-        fan::print("unimplemented shape type");
-        break;
-      }
-      }
+
+      fan::json shape_json = shape;
+
       if (shape_instance->id != defaults.id) {
         shape_json["id"] = shape_instance->id;
       }
@@ -1068,7 +1049,7 @@ struct fgm_t {
     }
     ostr["shapes"] = shapes;
     fan::io::file::write(filename, ostr.dump(2), std::ios_base::binary);
-    fan::print("file saved to:" + filename);
+    fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).string());
   }
 
   void load_tp(fgm_t::shape_list_NodeData_t& node) {
@@ -1091,17 +1072,21 @@ struct fgm_t {
   }
   */
   void fin(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
-
+    using namespace fan::graphics;
     previous_file_name = filename;
 
     std::string in;
     fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &in);
     fan::json json_in = fan::json::parse(in);
-    auto version = json_in["version"].get<decltype(current_version)>();
-    if (version != current_version) {
-      fan::print("invalid file version, file:", version, "current:", current_version);
+    /*if (!json_in.contains("version")) {
+      gui::print_error("file name missing 'version'");
       return;
     }
+    auto version = json_in["version"].get<decltype(current_version)>();
+    if (version != current_version) {
+      gui::print_error("invalid file version, file:", version, "current:", current_version);
+      return;
+    }*/
     if (json_in.contains("lighting.ambient")) {
       gloco->lighting.ambient = json_in["lighting.ambient"];
     }
@@ -1119,9 +1104,17 @@ struct fgm_t {
     if (json_in.contains("tiles")) {
       shapes = "tiles";
     }
-    while (iterator.iterate(json_in[shapes], &shape)) {
-      const auto& shape_json = *(iterator.data.it - 1);
-
+    auto& shape_object = json_in;
+    bool is_object = true;
+    if (json_in.contains(shapes)) {
+      shape_object = json_in[shapes];
+      is_object = false;
+    }
+    else if (!json_in.contains("shape")) {
+      gui::print_error("failed to parse .json file");
+      return;
+    } 
+    while (iterator.iterate(shape_object, &shape)) {
       shape.set_camera(render_view.camera);
       shape.set_viewport(render_view.viewport);
       current_z = std::max(current_z, shape.get_position().z);
@@ -1175,16 +1168,28 @@ struct fgm_t {
         } });
         break;
       }
+      case loco_t::shape_type_t::particles: {
+        node = new fgm_t::shapes_t::global_t(
+          loco_t::shape_type_t::particles,
+          this,
+          shape,
+          false
+        );
+        break;
+      }
       default: {
-        fan::print("unimplemented shape type");
+        gui::print("unimplemented shape type");
         break;
       }
       }
-      if (shape_json.contains("id")) {
-        node->id = shape_json["id"].get<std::string>();
-      }
-      if (shape_json.contains("group_id")) {
-        node->group_id = shape_json["group_id"].get<uint32_t>();
+      if (!is_object) {
+        const auto& shape_json = *(iterator.data.it - 1);
+        if (shape_json.contains("id")) {
+          node->id = shape_json["id"].get<std::string>();
+        }
+        if (shape_json.contains("group_id")) {
+          node->group_id = shape_json["group_id"].get<uint32_t>();
+        }
       }
     }
     ++current_z;
@@ -1192,7 +1197,6 @@ struct fgm_t {
 
   void invalidate_current() {
     current_shape = nullptr;
-    selected_shape_type = loco_t::shape_type_t::invalid;
   }
 
   void erase_current() {
@@ -1221,8 +1225,6 @@ struct fgm_t {
 
   fan::graphics::gui::content_browser_t content_browser{ false };
 
-  event_type_e event_type = event_type_e::none;
-  uint16_t selected_shape_type = loco_t::shape_type_t::invalid;
   shapes_t::global_t* current_shape = nullptr;
   shape_list_t shape_list;
 
@@ -1245,6 +1247,8 @@ struct fgm_t {
     fan::vec2 offset = 0;
     bool editor_hovered = false;
   }viewport_settings;
+
+  bool shapes_window_hovered = false;
 
 
   //

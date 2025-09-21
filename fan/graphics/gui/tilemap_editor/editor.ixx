@@ -1316,7 +1316,7 @@ export struct fte_t {
       f32_t x_size = fan::graphics::gui::get_content_region_avail().x;
       f32_t y_size = fan::graphics::gui::get_content_region_avail().y;
 
-      fan::graphics::gui::drag_int("original image width", &original_image_width, 1, 0, 1000);
+      fan::graphics::gui::drag("original image width", &original_image_width, 1, 0, 1000);
 
       auto& style = fan::graphics::gui::get_style();
       fan::vec2 prev_item_spacing = style.ItemSpacing;
@@ -1491,13 +1491,13 @@ export struct fte_t {
         {
           fan::vec2 offset = fan::vec2(layer.shape.get_position()) - current_tile.position;
 
-          if (fan::graphics::gui::drag_float("offset", &offset, 0.1, 0, 0)) {
+          if (fan::graphics::gui::drag("offset", &offset, 0.1, 0, 0)) {
             layer.shape.set_position(fan::vec2(current_tile.position) + offset);
           }
         }
         {
           fan::vec2 tile_size = layer.shape.get_size();
-          if (fan::graphics::gui::drag_float("tile size", &tile_size)) {
+          if (fan::graphics::gui::drag("tile size", &tile_size)) {
             layer.shape.set_size(tile_size);
           }
         }
@@ -1510,14 +1510,14 @@ export struct fte_t {
         }
         {
           fan::vec3 angle = layer.shape.get_angle();
-          if (fan::graphics::gui::drag_float("angle", &angle, fan::math::radians(1))) {
+          if (fan::graphics::gui::drag("angle", &angle, fan::math::radians(1))) {
             layer.shape.set_angle(angle);
           }
         }
         {
           fan::vec2 rotation_point = layer.shape.get_rotation_point();
           
-          if (fan::graphics::gui::drag_float("rotation_point", &rotation_point, 0.1, -tile_size.max() * 2, tile_size.max() * 2)) {
+          if (fan::graphics::gui::drag("rotation_point", &rotation_point, 0.1, -tile_size.max() * 2, tile_size.max() * 2)) {
             layer.shape.set_rotation_point(rotation_point);
           }
         }/*
@@ -1541,7 +1541,7 @@ export struct fte_t {
         }
         {
           int mesh_property = (int)layer.tile.mesh_property;
-          if (fan::graphics::gui::slider_int("mesh flags", &mesh_property, 0, (int)mesh_property_t::size - 1)) {
+          if (fan::graphics::gui::slider("mesh flags", &mesh_property, 0, (int)mesh_property_t::size - 1)) {
             layer.tile.mesh_property = (mesh_property_t)mesh_property;
           } 
         }
@@ -1594,7 +1594,7 @@ export struct fte_t {
     if (fan::graphics::gui::begin("Brush settings")) {
       {
         int idx = (int)brush.depth - shape_depths_t::max_layer_depth / 2;
-        if (fan::graphics::gui::drag_int("depth", (int*)&idx, 1, 0, shape_depths_t::max_layer_depth)) {
+        if (fan::graphics::gui::drag("depth", (int*)&idx, 1, 0, shape_depths_t::max_layer_depth)) {
           brush.depth = idx + shape_depths_t::max_layer_depth / 2;
         }
       }
@@ -1612,13 +1612,13 @@ export struct fte_t {
       }
 
       {
-        if (fan::graphics::gui::slider_int("jitter", &brush.jitter, 0, brush.size.min())) {
+        if (fan::graphics::gui::slider("jitter", &brush.jitter, 0, brush.size.min())) {
           grid_visualize.highlight_hover.set_size(tile_size * brush.size);
         }
       }
       {
         
-        if (fan::graphics::gui::drag_float("jitter_chance", &brush.jitter_chance, 1, 0, 0.01)) {
+        if (fan::graphics::gui::drag("jitter_chance", &brush.jitter_chance, 1, 0, 0.01)) {
 
         }
       }
@@ -1638,17 +1638,17 @@ export struct fte_t {
 
 
       {
-        if (fan::graphics::gui::slider_int("size", &brush.size, 1, 4096)) {
+        if (fan::graphics::gui::slider("size", &brush.size, 1, 4096)) {
           grid_visualize.highlight_hover.set_size(tile_size * brush.size);
         }
       }
       {
-        if (fan::graphics::gui::slider_float("tile size", &brush.tile_size, 0.1, 1)) {
+        if (fan::graphics::gui::slider("tile size", &brush.tile_size, 0.1, 1)) {
           //brush.tile_size = brush.tile_size;
         }
       }
 
-      fan::graphics::gui::drag_float("angle", &brush.angle);
+      fan::graphics::gui::drag("angle", &brush.angle);
       {
         std::string temp = brush.id;
         temp.resize(max_id_len);
@@ -1662,7 +1662,7 @@ export struct fte_t {
       switch (brush.type) {
       case brush_t::type_e::physics_shape: {
         {
-          if (fan::graphics::gui::slider_float("offset", &brush.offset, -1, 1)) {
+          if (fan::graphics::gui::slider("offset", &brush.offset, -1, 1)) {
             
           }
         }
@@ -1686,10 +1686,10 @@ export struct fte_t {
         }
         {
           static fan::physics::shape_properties_t shape_properties;
-          if (fan::graphics::gui::drag_float("Physics shape friction", &shape_properties.friction, 0.01, 0, 1)) {
+          if (fan::graphics::gui::drag("Physics shape friction", &shape_properties.friction, 0.01, 0, 1)) {
             brush.physics_shape_properties.friction = shape_properties.friction;
           }
-          if (fan::graphics::gui::drag_float("Physics shape density", &shape_properties.density, 0.01, 0, 1)) {
+          if (fan::graphics::gui::drag("Physics shape density", &shape_properties.density, 0.01, 0, 1)) {
             brush.physics_shape_properties.density = shape_properties.density;
           }
           if (fan::graphics::gui::toggle_button("Physics shape fixed rotation", &shape_properties.fixed_rotation)) {
@@ -1722,7 +1722,7 @@ export struct fte_t {
   void handle_physics_settings_window() {
     if (fan::graphics::gui::begin("physics settings")) {
       fan::vec2 gravity = gloco->physics_context.get_gravity();
-      if (fan::graphics::gui::drag_float("gravity", &gravity, 0.01)) {
+      if (fan::graphics::gui::drag("gravity", &gravity, 0.01)) {
         gloco->physics_context.set_gravity(gravity);
       }
     }
