@@ -6,6 +6,7 @@ loco_t& get_loco() {
 #define loco get_loco()
 
 void shapes_open() {
+  auto& l = loco;
   loco.shape_open(
     loco_t::sprite_t::shape_type,
     sizeof(loco_t::sprite_t::vi_t),
@@ -14,10 +15,6 @@ void shapes_open() {
     "shaders/vulkan/2D/objects/sprite.vert",
     "shaders/vulkan/2D/objects/sprite.frag"
   );
-  loco.shape_functions.resize(loco.shape_functions.size() + 1); // text
-  loco.shape_functions.resize(loco.shape_functions.size() + 1); // hitbox
-  loco.shape_functions.resize(loco.shape_functions.size() + 1); // line
-  loco.shape_functions.resize(loco.shape_functions.size() + 1); // mark
 
   loco.shape_open(
     loco_t::rectangle_t::shape_type,
@@ -27,8 +24,6 @@ void shapes_open() {
     "shaders/vulkan/2D/objects/rectangle.vert",
     "shaders/vulkan/2D/objects/rectangle.frag"
   );
-
-  loco.shape_functions.resize(loco_t::shape_type_t::last);
 
   {
     auto nr = loco.shader_create();

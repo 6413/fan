@@ -313,6 +313,7 @@ void main() {
   static void demo_shapes_init_shader_shape(engine_demo_t* engine_demo) {
     if (engine_demo->demo_shader_shape_shader.iic()) {
       fan::throw_error("failed to compile custom shader");
+      return;
     }
     
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
@@ -814,7 +815,7 @@ void main() {
 
   fan::graphics::render_view_t right_column_view;
   uint8_t current_demo = 0;
-  int shape_count = 10;
+  int shape_count = 1;
   std::vector<engine_t::shape_t> shapes;
   f32_t right_window_split_ratio = 0.2f;
 };

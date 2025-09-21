@@ -480,6 +480,10 @@ static fan::vec3 get_position_grid(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::grid_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
 
+static fan::vec3 get_position_particles(const loco_t::shape_t* shape) {
+	return reinterpret_cast<loco_t::particles_t::ri_t*>(shape->GetData(gloco->shaper))->position;
+}
+
 static fan::vec3 get_position_universal_image_renderer(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::universal_image_renderer_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position;
 }
@@ -619,6 +623,10 @@ static void set_position2_grid(loco_t::shape_t* shape, const fan::vec2& position
 			sizeof(loco_t::grid_t::vi_t::position)
 		);
 	}
+}
+
+static void set_position2_particles(loco_t::shape_t* shape, const fan::vec2& position) {
+	reinterpret_cast<loco_t::particles_t::ri_t*>(shape->GetData(gloco->shaper))->position = position;
 }
 
 static void set_position2_universal_image_renderer(loco_t::shape_t* shape, const fan::vec2& position) {
@@ -781,6 +789,11 @@ static void set_position3_capsule(loco_t::shape_t* shape, const fan::vec3& posit
 	}
 }
 
+static void set_position3_particles(loco_t::shape_t* shape, const fan::vec3& position) {
+	loco_t::set_position(shape, position);
+	reinterpret_cast<loco_t::particles_t::ri_t*>(shape->GetData(gloco->shaper))->position = position;
+}
+
 static void set_position3_gradient(loco_t::shape_t* shape, const fan::vec3& position) {
 	loco_t::set_position(shape, position);
 	reinterpret_cast<loco_t::gradient_t::vi_t*>(shape->GetRenderData(gloco->shaper))->position = position;
@@ -882,6 +895,10 @@ static fan::vec2 get_size_capsule(const loco_t::shape_t* shape) {
 
 static fan::vec2 get_size_grid(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::grid_t::vi_t*>(shape->GetRenderData(gloco->shaper))->size;
+}
+
+static fan::vec2 get_size_particles(const loco_t::shape_t* shape) {
+  return reinterpret_cast<loco_t::particles_t::ri_t*>(shape->GetData(gloco->shaper))->size;
 }
 
 static fan::vec2 get_size_universal_image_renderer(const loco_t::shape_t* shape) {
@@ -1531,6 +1548,10 @@ static fan::vec3 get_angle_capsule(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::capsule_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
 
+static fan::vec3 get_angle_particles(const loco_t::shape_t* shape) {
+	return 0;
+}
+
 static fan::vec3 get_angle_grid(const loco_t::shape_t* shape) {
 	return reinterpret_cast<loco_t::grid_t::vi_t*>(shape->GetRenderData(gloco->shaper))->angle;
 }
@@ -1975,6 +1996,10 @@ static loco_t::camera_t get_camera_grid(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
 
+static loco_t::camera_t get_camera_particles(const loco_t::shape_t* shape) {
+	return loco_t::get_camera(shape);
+}
+
 static loco_t::camera_t get_camera_universal_image_renderer(const loco_t::shape_t* shape) {
 	return loco_t::get_camera(shape);
 }
@@ -2091,6 +2116,10 @@ static loco_t::viewport_t get_viewport_grid(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
 
+static loco_t::viewport_t get_viewport_particles(const loco_t::shape_t* shape) {
+	return loco_t::get_viewport(shape);
+}
+
 static loco_t::viewport_t get_viewport_universal_image_renderer(const loco_t::shape_t* shape) {
 	return loco_t::get_viewport(shape);
 }
@@ -2180,6 +2209,10 @@ static loco_t::image_t get_image_circle(loco_t::shape_t* shape) {
 }
 
 static loco_t::image_t get_image_capsule(loco_t::shape_t* shape) {
+	return loco_t::get_image(shape);
+}
+
+static loco_t::image_t get_image_particles(loco_t::shape_t* shape) {
 	return loco_t::get_image(shape);
 }
 
@@ -2614,7 +2647,7 @@ inline static loco_t::get_position_cb get_position_functions[] = {
 	&get_position_polygon,
 	&get_position_grid,
 	nullptr,
-	nullptr,
+	&get_position_particles,
 	&get_position_universal_image_renderer,
 	&get_position_gradient,
 	nullptr,
@@ -2640,7 +2673,7 @@ inline static loco_t::set_position2_cb set_position2_functions[] = {
 	&set_position2_polygon,
 	&set_position2_grid,
 	nullptr,
-	nullptr,
+	&set_position2_particles,
 	&set_position2_universal_image_renderer,
 	&set_position2_gradient,
 	nullptr,
@@ -2666,7 +2699,7 @@ inline static loco_t::set_position3_cb set_position3_functions[] = {
 	nullptr,
 	nullptr,
 	nullptr,
-	nullptr,
+	&set_position3_particles,
 	nullptr,
 	&set_position3_gradient,
 	nullptr,
@@ -2692,7 +2725,7 @@ inline static loco_t::get_size_cb get_size_functions[] = {
 	nullptr,
 	&get_size_grid,
 	nullptr,
-	nullptr,
+	&get_size_particles,
 	&get_size_universal_image_renderer,
 	&get_size_gradient,
 	nullptr,
@@ -2900,7 +2933,7 @@ inline static loco_t::get_angle_cb get_angle_functions[] = {
 	nullptr,
 	&get_angle_grid,
 	nullptr,
-	nullptr,
+	&get_angle_particles,
 	nullptr,
 	&get_angle_gradient,
 	nullptr,
@@ -3134,7 +3167,7 @@ inline static loco_t::get_camera_cb get_camera_functions[] = {
   &get_camera_polygon,
   &get_camera_grid,
   nullptr,
-  nullptr,
+  &get_camera_particles,
   &get_camera_universal_image_renderer,
   &get_camera_gradient,
   nullptr,
@@ -3186,7 +3219,7 @@ inline static loco_t::get_viewport_cb get_viewport_functions[] = {
   &get_viewport_polygon,
   &get_viewport_grid,
   nullptr,
-  nullptr,
+  &get_viewport_particles,
   &get_viewport_universal_image_renderer,
   &get_viewport_gradient,
   nullptr,
@@ -3238,7 +3271,7 @@ inline static loco_t::get_image_cb get_image_functions[] = {
   nullptr,
   nullptr,
   nullptr,
-  nullptr,
+  &get_image_particles,
   &get_image_universal_image_renderer,
   nullptr,
   nullptr,
@@ -3697,53 +3730,60 @@ inline static loco_t::push_back_cb push_back_functions[] = {
   &push_back_shadow,
 };
 
+#define ASSIGN_IF_NOT_NULL(member, array) \
+    if (array[index] != nullptr) { \
+        funcs.member = array[index]; \
+    }
+
 // function table generator
 static loco_t::functions_t get_shape_functions(uint16_t type) {
   uint16_t index = type;
-  loco_t::functions_t funcs{};
+  loco_t::functions_t funcs;
 
-  funcs.get_position = get_position_functions[index];
-  funcs.set_position2 = set_position2_functions[index];
-  funcs.set_position3 = set_position3_functions[index];
-  funcs.get_size = get_size_functions[index];
-  funcs.get_size3 = get_size3_functions[index];
-  funcs.set_size = set_size_functions[index];
-  funcs.set_size3 = set_size3_functions[index];
-  funcs.get_rotation_point = get_rotation_point_functions[index];
-  funcs.set_rotation_point = set_rotation_point_functions[index];
-  funcs.get_color = get_color_functions[index];
-  funcs.set_color = set_color_functions[index];
-  funcs.get_angle = get_angle_functions[index];
-  funcs.set_angle = set_angle_functions[index];
-  funcs.get_tc_position = get_tc_position_functions[index];
-  funcs.set_tc_position = set_tc_position_functions[index];
-  funcs.get_tc_size = get_tc_size_functions[index];
-  funcs.set_tc_size = set_tc_size_functions[index];
-  funcs.load_tp = load_tp_functions[index];
-  funcs.get_grid_size = get_grid_size_functions[index];
-  funcs.set_grid_size = set_grid_size_functions[index];
-  funcs.get_camera = get_camera_functions[index];
-  funcs.set_camera = set_camera_functions[index];
-  funcs.get_viewport = get_viewport_functions[index];
-  funcs.set_viewport = set_viewport_functions[index];
-  funcs.get_image = get_image_functions[index];
-  funcs.set_image = set_image_functions[index];
-  funcs.get_image_data = get_image_data_functions[index];
-  funcs.get_parallax_factor = get_parallax_factor_functions[index];
-  funcs.set_parallax_factor = set_parallax_factor_functions[index];
-  funcs.get_flags = get_flags_functions[index];
-  funcs.set_flags = set_flags_functions[index];
-  funcs.get_radius = get_radius_functions[index];
-  funcs.get_src = get_src_functions[index];
-  funcs.get_dst = get_dst_functions[index];
-  funcs.get_outline_size = get_outline_size_functions[index];
-  funcs.get_outline_color = get_outline_color_functions[index];
-  funcs.set_outline_color = set_outline_color_functions[index];
-  funcs.reload = reload_functions[index];
-  funcs.draw = draw_functions[index];
-  funcs.set_line = set_line_functions[index];
-  funcs.set_line3 = set_line3_functions[index];
-  funcs.push_back = push_back_functions[index];
+  ASSIGN_IF_NOT_NULL(push_back, push_back_functions);
+  ASSIGN_IF_NOT_NULL(get_position, get_position_functions);
+  ASSIGN_IF_NOT_NULL(set_position2, set_position2_functions);
+  ASSIGN_IF_NOT_NULL(set_position3, set_position3_functions);
+  ASSIGN_IF_NOT_NULL(get_size, get_size_functions);
+  ASSIGN_IF_NOT_NULL(get_size3, get_size3_functions);
+  ASSIGN_IF_NOT_NULL(set_size, set_size_functions);
+  ASSIGN_IF_NOT_NULL(set_size3, set_size3_functions);
+  ASSIGN_IF_NOT_NULL(get_rotation_point, get_rotation_point_functions);
+  ASSIGN_IF_NOT_NULL(set_rotation_point, set_rotation_point_functions);
+  ASSIGN_IF_NOT_NULL(get_color, get_color_functions);
+  ASSIGN_IF_NOT_NULL(set_color, set_color_functions);
+  ASSIGN_IF_NOT_NULL(get_angle, get_angle_functions);
+  ASSIGN_IF_NOT_NULL(set_angle, set_angle_functions);
+  ASSIGN_IF_NOT_NULL(get_tc_position, get_tc_position_functions);
+  ASSIGN_IF_NOT_NULL(set_tc_position, set_tc_position_functions);
+  ASSIGN_IF_NOT_NULL(get_tc_size, get_tc_size_functions);
+  ASSIGN_IF_NOT_NULL(set_tc_size, set_tc_size_functions);
+  ASSIGN_IF_NOT_NULL(load_tp, load_tp_functions);
+  ASSIGN_IF_NOT_NULL(get_grid_size, get_grid_size_functions);
+  ASSIGN_IF_NOT_NULL(set_grid_size, set_grid_size_functions);
+  ASSIGN_IF_NOT_NULL(get_camera, get_camera_functions);
+  ASSIGN_IF_NOT_NULL(set_camera, set_camera_functions);
+  ASSIGN_IF_NOT_NULL(get_viewport, get_viewport_functions);
+  ASSIGN_IF_NOT_NULL(set_viewport, set_viewport_functions);
+  ASSIGN_IF_NOT_NULL(get_image, get_image_functions);
+  ASSIGN_IF_NOT_NULL(set_image, set_image_functions);
+  ASSIGN_IF_NOT_NULL(get_image_data, get_image_data_functions);
+  ASSIGN_IF_NOT_NULL(get_parallax_factor, get_parallax_factor_functions);
+  ASSIGN_IF_NOT_NULL(set_parallax_factor, set_parallax_factor_functions);
+  ASSIGN_IF_NOT_NULL(get_flags, get_flags_functions);
+  ASSIGN_IF_NOT_NULL(set_flags, set_flags_functions);
+  ASSIGN_IF_NOT_NULL(get_radius, get_radius_functions);
+  ASSIGN_IF_NOT_NULL(get_src, get_src_functions);
+  ASSIGN_IF_NOT_NULL(get_dst, get_dst_functions);
+  ASSIGN_IF_NOT_NULL(get_outline_size, get_outline_size_functions);
+  ASSIGN_IF_NOT_NULL(get_outline_color, get_outline_color_functions);
+  ASSIGN_IF_NOT_NULL(set_outline_color, set_outline_color_functions);
+  ASSIGN_IF_NOT_NULL(reload, reload_functions);
+  ASSIGN_IF_NOT_NULL(draw, draw_functions);
+  ASSIGN_IF_NOT_NULL(set_line, set_line_functions);
+  ASSIGN_IF_NOT_NULL(set_line3, set_line3_functions);
 
   return funcs;
 }
+
+#undef ASSIGN_IF_NOT_NULL

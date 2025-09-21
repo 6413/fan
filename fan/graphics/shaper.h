@@ -1105,18 +1105,6 @@ struct shaper_t{
     BlockList_t::nr_t blid
   ){
     auto &st = ShapeTypes[sti];
-    //
-    //if (std::holds_alternative<ShapeType_t::gl_t>(st.renderer)) {
-    //  //auto& gl = std::get<ShapeType_t::gl_t>(st.renderer);
-    //  //get_loco()->shader_erase(gl.shader);
-    //}
-    //else {
-    //  //
-    //  //auto& vk = std::get<ShapeType_t::vk_t>(st.renderer);
-    //  //get_loco()->context.vk.shader_erase(vk.pipeline.shader_nr);
-    //  //vk.pipeline.close(get_loco()->context.vk);
-    //  //vk.shape_data.close(get_loco()->context.vk);
-    //}
 
     GetBlockUnique(sti, blid).destructor(*this);
 

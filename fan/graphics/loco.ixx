@@ -21,19 +21,19 @@ module;
 #define loco_opengl
 
 #ifndef camera_list
-  #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)this))
+  #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)&gloco->context))
 #endif
 
 #ifndef shader_list
-  #define __fan_internal_shader_list (*(fan::graphics::shader_list_t*)fan::graphics::get_shader_list((uint8_t*)this))
+  #define __fan_internal_shader_list (*(fan::graphics::shader_list_t*)fan::graphics::get_shader_list((uint8_t*)&gloco->context))
 #endif
 
 #ifndef image_list
-  #define __fan_internal_image_list (*(fan::graphics::image_list_t*)fan::graphics::get_image_list((uint8_t*)this))
+  #define __fan_internal_image_list (*(fan::graphics::image_list_t*)fan::graphics::get_image_list((uint8_t*)&gloco->context))
 #endif
 
 #ifndef viewport_list
-  #define __fan_internal_viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)this))
+  #define __fan_internal_viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)&gloco->context))
 #endif
 
 // shaper
@@ -915,7 +915,6 @@ export struct loco_t {
   };
 
   static constexpr const char* shape_names[] = {
-    "button",
     "sprite",
     "text",
     "hitbox",
@@ -925,10 +924,22 @@ export struct loco_t {
     "light",
     "unlit_sprite",
     "circle",
+    "capsule",
+    "polygon",
     "grid",
     "vfi",
     "particles",
+    "universal_image_renderer",
+    "gradient",
+    "light_end",
+    "shader_shape",
+  #if defined(fan_3D)
+    "rectangle3d",
+    "line3d",
+  #endif
+    "shadow"
   };
+
 
 #if defined(fan_json)
   fan::json image_to_json(const auto& image) {
@@ -2002,7 +2013,7 @@ public:
     if (window.renderer == renderer_t::vulkan) {
       context_functions = fan::graphics::get_vk_context_functions();
       new (&context.vk) fan::vulkan::context_t();
-      //context.vk.enable_clear = !render_shapes_top;
+      context.vk.enable_clear = !render_shapes_top;
       context.vk.shapes_top = render_shapes_top;
       context.vk.open(window);
     }
@@ -2230,6 +2241,7 @@ public:
           ImGui_ImplVulkan_Shutdown();
         }
 #endif
+        ImGui_ImplGlfw_Shutdown();
         imgui_initialized = false;
       }
 #endif
@@ -2360,6 +2372,7 @@ public:
       }
 
       shape_functions.clear();
+      shape_functions.resize(loco_t::shape_type_t::last);
       if (window.renderer == renderer_t::opengl) {
         gl.shapes_open();
         gl.initialize_fb_vaos();
@@ -3258,6 +3271,87 @@ public:
   using set_line3_cb = void (*)(loco_t::shape_t*, const fan::vec3&, const fan::vec3&);
 
   struct functions_t {
+
+    template<typename T>
+    struct function_traits;
+
+    template<typename R, typename... Args>
+    struct function_traits<R(*)(Args...)> {
+      using return_type = R;
+      using args_tuple = std::tuple<Args...>;
+      using function_type = R(*)(Args...);
+
+      static constexpr function_type default_cb() {
+        return [](Args... args) -> R {
+          std::cout << "default cb called, function did not exist" << std::endl;
+          if constexpr (!std::is_void_v<R>) {
+            if constexpr (std::is_reference_v<R>) {
+              static std::remove_reference_t<R> dummy_object{};
+              return dummy_object;
+            }
+            else {
+              return R{};
+            }
+          }
+          };
+      }
+    };
+
+    template<typename CallbackType>
+    static CallbackType make_dummy() {
+      return function_traits<CallbackType>::default_cb();
+    }
+
+    template<typename CallbackType>
+    void init_callback(CallbackType& callback) {
+      callback = make_dummy<CallbackType>();
+    }
+
+    functions_t() {
+      init_callback(push_back);
+      init_callback(get_position);
+      init_callback(set_position2);
+      init_callback(set_position3);
+      init_callback(get_size);
+      init_callback(get_size3);
+      init_callback(set_size);
+      init_callback(set_size3);
+      init_callback(get_rotation_point);
+      init_callback(set_rotation_point);
+      init_callback(get_color);
+      init_callback(set_color);
+      init_callback(get_angle);
+      init_callback(set_angle);
+      init_callback(get_tc_position);
+      init_callback(set_tc_position);
+      init_callback(get_tc_size);
+      init_callback(set_tc_size);
+      init_callback(load_tp);
+      init_callback(get_grid_size);
+      init_callback(set_grid_size);
+      init_callback(get_camera);
+      init_callback(set_camera);
+      init_callback(get_viewport);
+      init_callback(set_viewport);
+      init_callback(get_image);
+      init_callback(set_image);
+      init_callback(get_image_data);
+      init_callback(get_parallax_factor);
+      init_callback(set_parallax_factor);
+      init_callback(get_flags);
+      init_callback(set_flags);
+      init_callback(get_radius);
+      init_callback(get_src);
+      init_callback(get_dst);
+      init_callback(get_outline_size);
+      init_callback(get_outline_color);
+      init_callback(set_outline_color);
+      init_callback(reload);
+      init_callback(draw);
+      init_callback(set_line);
+      init_callback(set_line3);
+    }
+
     push_back_cb push_back;
 
     get_position_cb get_position;
@@ -3324,7 +3418,28 @@ public:
 
   #include <fan/graphics/shape_functions_generated.h>
 
-  std::vector<functions_t> shape_functions;
+  struct shape_functions_t : public std::vector<functions_t>{
+    inline static functions_t dummy;
+    functions_t& operator[](size_t index) {
+      if (index >= this->size()) {
+      #if fan_debug >= fan_debug_high
+
+      #endif
+        return dummy;
+      }
+      return std::vector<functions_t>::operator[](index);
+    }
+
+    const functions_t& operator[](size_t index) const {
+      if (index >= this->size()) {
+      #if fan_debug >= fan_debug_high
+
+      #endif
+        return dummy;
+      }
+      return std::vector<functions_t>::operator[](index);
+    }
+  }shape_functions;
 
   // needs continous buffer
   std::vector<shaper_t::BlockProperties_t> BlockProperties;
@@ -3582,11 +3697,9 @@ public:
     shape_t(shape_t&& s) : shape_t(std::move(*dynamic_cast<shaper_t::ShapeID_t*>(&s))) {
 
     }
-
     shape_t(const loco_t::shape_t& s) : shape_t(*dynamic_cast<const shaper_t::ShapeID_t*>(&s)) {
       //NRI = s.NRI;
     }
-
     loco_t::shape_t& operator=(const loco_t::shape_t& s) {
       if (iic() == false) {
         remove();
@@ -3675,7 +3788,6 @@ public:
       }
       return *this;
     }
-
     loco_t::shape_t& operator=(loco_t::shape_t&& s) {
       if (NRI == s.NRI) {
         s.sic();
@@ -3716,9 +3828,15 @@ public:
     shape_t& operator=(const fan::json& json);
     shape_t& operator=(const std::string&); // assume json string
 #endif
-
     ~shape_t() {
       remove();
+    }
+
+    operator bool() const {
+      return !iic();
+    }
+    bool operator==(const shape_t& shape) const {
+      return NRI == shape.NRI;
     }
 
     void remove() {
@@ -4350,6 +4468,24 @@ public:
           sizeof(loco_t::shadow_t::vi_t::light_radius)
         );
       }
+    }
+
+    // for line
+    void set_thickness(f32_t new_thickness) {
+    #if fan_debug >= 3
+      if (get_shape_type() != loco_t::shape_type_t::line) {
+        fan::throw_error("Invalid function call 'set_thickness', shape was not line");
+      }
+    #endif
+      ((loco_t::line_t::vi_t*)GetRenderData(gloco->shaper))->thickness = new_thickness;
+      auto& data = gloco->shaper.ShapeList[*this];
+      gloco->shaper.ElementIsPartiallyEdited(
+        data.sti,
+        data.blid,
+        data.ElementIndex,
+        fan::member_offset(&loco_t::line_t::vi_t::thickness),
+        sizeof(loco_t::line_t::vi_t::thickness)
+      );
     }
 
   private:
@@ -6696,6 +6832,10 @@ export namespace fan {
         if (ri.blending != defaults.blending) {
           out["blending"] = ri.blending;
         }
+        loco_t::image_t image = shape.get_image();
+        if (image) {
+          out.update(gloco->image_to_json(image), true);
+        }
         break;
       }
       default: {
@@ -7026,6 +7166,7 @@ export namespace fan {
         if (in.contains("blending")) {
           p.blending = in["blending"];
         }
+        p.image = gloco->json_to_image(in);
         *shape = p;
         break;
       }
@@ -7316,18 +7457,20 @@ export namespace fan {
         uint64_t offset = 0;
       }data;
       bool init = false;
+      bool was_object = false;
 
       bool iterate(const fan::json& json, loco_t::shape_t* shape) {
         if (init == false) {
           data.it = json.cbegin();
           init = true;
         }
-        if (data.it == json.cend()) {
+        if (data.it == json.cend() || was_object) {
           return 0;
         }
         if (json.type() == fan::json::value_t::object) {
           json_to_shape(json, shape);
-          return 0;
+          was_object = true;
+          return 1;
         }
         else {
           json_to_shape(*data.it, shape);

@@ -255,13 +255,9 @@ void shapes_open() {
       );
     }
   }
-
-  loco.shape_functions.resize(loco.shape_functions.size() + 1); // text
-  loco.shape_functions.resize(loco.shape_functions.size() + 1); // hitbox
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
       // todo implement line
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
     }
     else {
       loco.shape_open(
@@ -279,7 +275,6 @@ void shapes_open() {
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
       // todo
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
     }
     else {
       loco.shape_open(
@@ -296,7 +291,6 @@ void shapes_open() {
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
       // todo
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
     }
     else {
       loco.shape_open(
@@ -312,7 +306,6 @@ void shapes_open() {
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
       // todo
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
     }
     else {
       loco.shape_open(
@@ -328,7 +321,7 @@ void shapes_open() {
 
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
+
     }
     else {
       loco.shape_open(
@@ -343,7 +336,7 @@ void shapes_open() {
   }
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
+
     }
     else {
       loco.shape_open(
@@ -358,7 +351,7 @@ void shapes_open() {
   }
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
+
     }
     else {
       loco.shape_open(
@@ -376,7 +369,7 @@ void shapes_open() {
 
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
+
     }
     else {
       loco.shape_open(
@@ -398,7 +391,7 @@ void shapes_open() {
 
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
+
     }
     else {
       loco.shape_open(
@@ -414,7 +407,7 @@ void shapes_open() {
 
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
+
     }
     else {
       loco.shape_open(
@@ -430,7 +423,7 @@ void shapes_open() {
 
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
+
     }
     else {
       loco.shape_open(
@@ -448,7 +441,7 @@ void shapes_open() {
 
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
+
     }
     else {
       loco.shape_open(
@@ -479,7 +472,6 @@ void shapes_open() {
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
       // todo implement line
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
     }
     else {
       loco.shape_open(
@@ -497,7 +489,6 @@ void shapes_open() {
   { // shadow
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
       // todo
-      loco.shape_functions.resize(loco.shape_functions.size() + 1);
     }
     else {
       loco.shape_open(
