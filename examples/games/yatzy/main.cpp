@@ -1,4 +1,4 @@
-#include <fan/pch.h>
+import fan;
 
 using namespace fan::graphics;
 

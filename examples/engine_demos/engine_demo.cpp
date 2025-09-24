@@ -815,7 +815,7 @@ void main() {
 
   fan::graphics::render_view_t right_column_view;
   uint8_t current_demo = 0;
-  int shape_count = 1;
+  int shape_count = 10;
   std::vector<engine_t::shape_t> shapes;
   f32_t right_window_split_ratio = 0.2f;
 };

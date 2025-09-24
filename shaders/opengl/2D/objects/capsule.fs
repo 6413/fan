@@ -30,5 +30,6 @@ void main() {
   float intensity = 1.0 - smoothstep(-1, 1, distance);
   float border = 1.0 - smoothstep(-cbrt(instance_radius*10) / 3 - smoothing, -cbrt(instance_radius*10) / 3 + smoothing, distance);
   vec4 color = vec4(mix(instance_outline_color.rgb, instance_color.rgb, border), intensity);
+  color.a *= instance_color.a;
   o_attachment0 = color;
 }
