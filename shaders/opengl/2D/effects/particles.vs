@@ -167,8 +167,14 @@ void main() {
   pos.x = position.x;
 	pos.y = position.y;
   if (shape == 1) {
-    pos.x += mod(float(id) * gap_size.x, max_spread_size.x);
-    pos.y += mod(float(id) * gap_size.y, max_spread_size.y);
+    pos.x += floatConstruct(RAND(id * 7919u)) * max_spread_size.x;
+    pos.y += floatConstruct(RAND(id * 7919u + 1u)) * max_spread_size.y;
+  }
+  else {
+    float angle = floatConstruct(RAND(id * 7919u)) * 2.0 * 3.14159;
+    float radius = floatConstruct(RAND(id * 7919u + 1u)) * max_spread_size.x;
+    pos.x += cos(angle) * radius;
+    pos.y += sin(angle) * radius;
   }
 	vec2 velocity = vec2_direction(RAND(seed + 2u), RAND(seed + 3u), begin_angle, end_angle);
 
@@ -201,7 +207,7 @@ void main() {
     color.b,//float(RAND(seed + 4u)) / 5000000000.f, 
     color.a);
   float alpha = 1.0 - time_mod / alive_time;
-  i_color.a = alpha;
+  i_color.a = color.a * alpha;
 	texture_coordinate = tc[gl_VertexID % 6];
 }
 

@@ -276,6 +276,23 @@ export namespace fan {
 
 
 export namespace fan {
+  template <typename>
+  inline constexpr bool is_vector_type_v = false;
+
+  template <template <typename> typename V, typename T>
+  inline constexpr bool is_vector_type_v<V<T>> =
+    std::is_same_v<V<T>, vec0_wrap_t<T>> ||
+    std::is_same_v<V<T>, vec1_wrap_t<T>> ||
+    std::is_same_v<V<T>, vec2_wrap_t<T>> ||
+    std::is_same_v<V<T>, vec3_wrap_t<T>> ||
+    std::is_same_v<V<T>, vec4_wrap_t<T>>;
+
+  template <int N, typename T>
+  inline constexpr bool is_vector_type_v<vec_wrap_t<N, T>> = true;
+
+  template <typename T>
+  concept is_vector = is_vector_type_v<std::remove_cvref_t<T>>;
+
   namespace math {
     template <typename T>
     constexpr fan::vec2_wrap_t<T> angle_to_vector(const T& angle_radians) {

@@ -330,6 +330,15 @@ export namespace fan {
 			return rand_color / max_channel;
 		}
 	}
+
+  template <typename>
+  inline constexpr bool is_color_type_v = false;
+
+  template <typename T>
+  inline constexpr bool is_color_type_v<color_<T>> = true;
+
+  template <typename T>
+  concept is_color = is_color_type_v<std::remove_cvref_t<T>>;
 }
 
 #pragma pack(pop)

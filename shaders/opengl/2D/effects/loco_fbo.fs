@@ -14,6 +14,8 @@ uniform float bloom_gamma = 1.03;
 uniform float exposure = 1.0;
 uniform float contrast = 1.0;
 
+uniform float framebuffer_alpha = 1.0;
+
 uniform float bloom_intensity = 1.0;
 uniform vec2 window_size;
 
@@ -32,11 +34,13 @@ vec3 uncharted2_tone_mapping(vec3 color) {
 }
 
 vec3 apply_bloom(vec3 hdrColor, vec3 bloomColor) {
-    float brightness = dot(bloomColor, vec3(0.2126, 0.7152, 0.0722));
+  float brightness = dot(bloomColor, vec3(0.2126, 0.7152, 0.0722));
+  
+  // Wide smoothstep and power for natural falloff
+  float bloomFactor = pow(smoothstep(0.6, 1.5, brightness), 1.2);
 
-    vec3 result = mix(hdrColor, bloomColor, bloom_strength);
-
-    return result;
+  vec3 result = hdrColor + bloomColor * bloomFactor * bloom_strength;
+  return result;
 }
 
 float vignette(vec2 uv) {
@@ -148,5 +152,5 @@ vec2 uv = gl_FragCoord.xy / window_size;
     color = apply_gamma(color, gamma);
 
 
-    o_attachment0 = vec4(color, 1.0);
+    o_attachment0 = vec4(color, framebuffer_alpha);
 }

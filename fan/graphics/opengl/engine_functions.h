@@ -271,7 +271,6 @@ void shapes_open() {
     }
   }
 
-  loco.shape_functions.resize(loco.shape_functions.size() + 1); // mark
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
       // todo
@@ -386,7 +385,6 @@ void shapes_open() {
   // vfi must be in this order
 #if defined(loco_vfi)
   loco.vfi.open();
-  gloco->shape_functions[loco_t::vfi_t::shape_type] = loco.get_shape_functions(loco_t::vfi_t::shape_type);
 #endif
 
   {
@@ -436,8 +434,6 @@ void shapes_open() {
       );
     }
   }
-
-  loco.shape_functions.resize(loco.shape_functions.size() + 1); // light_end
 
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {

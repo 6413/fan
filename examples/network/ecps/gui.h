@@ -1,10 +1,10 @@
-inline static fan::graphics::image_t icon_settings;
-inline static fan::graphics::image_t icon_fullscreen;
 
 inline static fan::vec2 popup_size{ 300, 100 };
 
 struct ecps_gui_t {
 
+  fan::graphics::image_t icon_settings;
+  fan::graphics::image_t icon_fullscreen;
 #define This this
 
   std::vector<std::function<fan::event::task_t()>> task_queue;
@@ -1539,7 +1539,7 @@ struct ecps_gui_t {
       // Use helper for icon buttons
       f32_t settings_icon_size = gui::get_text_line_height();
       f32_t settings_equal_padding = gui::get_style().FramePadding.y;
-      if (icon_button_helper_t::render_transparent_icon_button("#btn_settings", icon_settings, 
+      if (icon_button_helper_t::render_transparent_icon_button("#btn_settings", This->icon_settings, 
           fan::vec2(settings_icon_size, settings_icon_size), fan::vec2(settings_equal_padding, settings_equal_padding))) {
         This->stream_settings.show_in_stream_view = !This->stream_settings.show_in_stream_view;
       }
@@ -1547,7 +1547,7 @@ struct ecps_gui_t {
       gui::same_line(main_content_width - frame_height);
 
       f32_t equal_padding = gui::get_style().FramePadding.y;
-      if (icon_button_helper_t::render_transparent_icon_button("#btn_fullscreen", icon_fullscreen, 
+      if (icon_button_helper_t::render_transparent_icon_button("#btn_fullscreen", This->icon_fullscreen, 
           fan::vec2(settings_icon_size, settings_icon_size), fan::vec2(equal_padding, equal_padding))) {
         This->is_fullscreen_stream = true;
         engine.window.set_borderless();
@@ -1834,13 +1834,13 @@ struct ecps_gui_t {
       f32_t settings_x = stream_area.x - (icon_size * 2) - button_spacing - margin;
       gui::set_cursor_pos(fan::vec2(settings_x, current_y));
 
-      if (icon_button_helper_t::render_transparent_icon_button("#btn_fullscreen_settings", icon_settings, fan::vec2(icon_size, icon_size))) {
+      if (icon_button_helper_t::render_transparent_icon_button("#btn_fullscreen_settings", This->icon_settings, fan::vec2(icon_size, icon_size))) {
         This->stream_settings.show_in_stream_view = !This->stream_settings.show_in_stream_view;
       }
 
       gui::same_line();
 
-      if (icon_button_helper_t::render_transparent_icon_button("#btn_exit_fullscreen", icon_fullscreen, fan::vec2(icon_size, icon_size))) {
+      if (icon_button_helper_t::render_transparent_icon_button("#btn_exit_fullscreen", This->icon_fullscreen, fan::vec2(icon_size, icon_size))) {
         is_fullscreen_stream = false;
         engine.window.set_windowed();
       }
