@@ -44,7 +44,7 @@ struct fan_window_loop_t{
 #define fan_graphics_gui_slider_property(shape, kind) \
   [&]{ \
     static auto val = shape.get_##kind(); \
-    bool ret = fan::graphics::gui::drag_float(#shape "_" #kind "_slider", &val); \
+    bool ret = fan::graphics::gui::drag(#shape "_" #kind "_slider", &val); \
     if (ret) shape.set_##kind(val);  \
     return ret; \
   }()

@@ -46,7 +46,13 @@ struct vfi_t {
     iflags_t() : ignore_button(0) {
 
     }
+    iflags_t(uint32_t v) : ignore_button(v) {
+
+    }
     uint32_t ignore_button : 1;
+    operator uint32_t() const {
+      return ignore_button;
+    }
     //static constexpr shape_type_t always_check_top_focus = 1 << 0;
   };
 
@@ -702,20 +708,24 @@ struct vfi_t {
 
     gloco->shaper.SetShapeType(loco_t::shape_type_t::vfi, bp);
 
-    loco_t::get_position_functions[loco_t::shape_type_t::vfi] = [](const loco_t::shape_t* shape) {
-      return gloco->vfi.get_position(*shape);
-    };
-    loco_t::set_position2_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec2& position) {
-      gloco->vfi.set_position(*shape, fan::vec3(position, gloco->vfi.get_position(*shape).z));
-    };
-    loco_t::set_position3_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec3& position) {
-      gloco->vfi.set_position(*shape, position);
-    };
-    loco_t::get_size_functions[loco_t::shape_type_t::vfi] = [](const loco_t::shape_t* shape) {
-      return gloco->vfi.get_size(*shape);
-    };
-    loco_t::set_size_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec2& size) {
-      gloco->vfi.set_size(*shape, size);
-    };
+    SHAPE_FUNCTION_OVERRIDE(loco_t::shape_type_t::vfi, get_position,
+      +[](const loco_t::shape_t* shape) {
+        return gloco->vfi.get_position(*shape);
+      }
+    );
+
+    //loco_t::get_position_functions[loco_t::shape_type_t::vfi] =
+    //loco_t::set_position2_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec2& position) {
+    //  gloco->vfi.set_position(*shape, fan::vec3(position, gloco->vfi.get_position(*shape).z));
+    //};
+    //loco_t::set_position3_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec3& position) {
+    //  gloco->vfi.set_position(*shape, position);
+    //};
+    //loco_t::get_size_functions[loco_t::shape_type_t::vfi] = [](const loco_t::shape_t* shape) {
+    //  return gloco->vfi.get_size(*shape);
+    //};
+    //loco_t::set_size_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec2& size) {
+    //  gloco->vfi.set_size(*shape, size);
+    //};
   }
 };
