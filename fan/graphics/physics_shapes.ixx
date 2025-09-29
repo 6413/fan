@@ -48,11 +48,11 @@ void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, v
   for (int i = 0; i < vertexCount; i++) {
     int next_i = (i + 1) % vertexCount;
 
-    debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
-      .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), draw_depth + z_depth),
-      .dst = fan::physics::physics_to_render(vertices[next_i]),
-      .color = fan::color::from_rgb(color)
-    } });
+    //debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
+    //  .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), draw_depth + z_depth),
+    //  .dst = fan::physics::physics_to_render(vertices[next_i]),
+    //  .color = fan::color::from_rgb(color)
+    //} });
   }
 
   ++z_depth;
@@ -245,7 +245,7 @@ export namespace fan {
         f32_t radians = b2Rot_GetAngle(rotation);
 
         loco_t::shape_t& shape = *(loco_t::shape_t*)&data.shape_id;
-        shape.set_position(fan::vec2(p * fan::physics::length_units_per_meter));
+        shape.set_position(fan::vec2((p) * fan::physics::length_units_per_meter + fan::vec2(data.draw_offset.x, -data.draw_offset.y)));
         shape.set_angle(fan::vec3(0, 0, radians));
         b2ShapeId id[1];
         if (b2Body_GetShapes(*(b2BodyId*)&data.body_id, id, 1)) {
@@ -309,7 +309,7 @@ export namespace fan {
           bool is_valid = iic() == false;
           fan::vec3 prev_pos;
           if (is_valid) {
-            prev_pos = get_position();
+            prev_pos = loco_t::shape_t::get_position();
           }
           if (physics_update_nr.iic() == false) {
             gloco->remove_physics_update(physics_update_nr);
@@ -318,6 +318,7 @@ export namespace fan {
           uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
             physics_update_nr = gloco->add_physics_update({
             .shape_id = *this,
+            .draw_offset = draw_offset,
             .body_id = body_id_data,
             .cb = (void*)shape_physics_update
           });
@@ -334,6 +335,7 @@ export namespace fan {
           uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
           physics_update_nr = gloco->add_physics_update({
             .shape_id = *this,
+            .draw_offset = draw_offset,
             .body_id = body_id_data,
             .cb = (void*)shape_physics_update
             });
@@ -368,6 +370,7 @@ export namespace fan {
           uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
           physics_update_nr = gloco->add_physics_update({
             .shape_id = *this,
+            .draw_offset = draw_offset,
             .body_id = body_id_data,
             .cb = (void*)shape_physics_update
           });
@@ -403,6 +406,7 @@ export namespace fan {
             uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
             physics_update_nr = gloco->add_physics_update({
               .shape_id = *this,
+              .draw_offset = draw_offset,
               .body_id = body_id_data,
               .cb = (void*)shape_physics_update
               });
@@ -448,7 +452,12 @@ export namespace fan {
         f32_t get_mass() const {
           return get_mass_data().mass;
         }
-
+        
+        void set_draw_offset(fan::vec2 new_draw_offset) {
+          draw_offset = new_draw_offset;
+          gloco->shape_physics_update_cbs[physics_update_nr].draw_offset = new_draw_offset;
+        }
+        fan::vec2 draw_offset = 0;
         loco_t::physics_update_cbs_t::nr_t physics_update_nr;
       };
 
@@ -600,7 +609,7 @@ export namespace fan {
           loco_t::image_t image = gloco->default_texture;
           fan::color color = fan::color(1, 1, 1, 1);
           bool blending = true;
-          uint32_t flags = 0;
+          uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
           operator fan::graphics::sprite_properties_t() const {
             return fan::graphics::sprite_properties_t{
               .render_view = render_view,
@@ -1021,6 +1030,14 @@ export namespace fan {
           previous_movement_sign = direction.sign(); // square_normalize?
           fan::vec2 vel = get_linear_velocity();
           apply_force_center((fan::vec2(1.0) - (fan::vec2i(vel / max_speed).min(1)).abs()) * previous_movement_sign * force);
+        }
+
+        void set_physics_position(const fan::vec2& p) {
+          fan::physics::entity_t::set_physics_position(p);
+          loco_t::shape_t::set_position(p);
+        }
+        fan::vec3 get_position() const {
+          return loco_t::shape_t::get_position();
         }
         fan::vec2 previous_movement_sign;
         f32_t force = 15.f;

@@ -1128,7 +1128,7 @@ struct library_usage_t {
       custom_stage() {
         stage_loader = new stage_loader_t;
         stage_loader_t::stage_open_properties_t op;
-        stage_handle = stage_loader_t::open_stage<custom_t>(op);
+        stage_handle = stage_loader->open_stage<custom_t>(op);
       }
       void close() {
         stage_loader->erase_stage(stage_handle);

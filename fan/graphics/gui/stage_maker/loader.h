@@ -109,13 +109,15 @@ public:
   };
 
   template <typename T>
-  static stage_list_NodeReference_t open_stage(const stage_open_properties_t& op) {
+  stage_list_NodeReference_t open_stage(const stage_open_properties_t& op) {
+    previous_stage_name = current_stage_name;
+    current_stage_name = T::stage_name;
     T* stage = new T{ .structor{op} };
     T::_stage_open(stage, op.sod);
     return stage->stage_common.stage_id;
   }
   template <typename T>
-  static stage_list_NodeReference_t open_stage() {
+  stage_list_NodeReference_t open_stage() {
     return open_stage<T>(stage_open_properties_t());
   }
 
@@ -165,6 +167,8 @@ public:
   // return reference to list[map[name]]
   using cid_map_t = std::unordered_map<key_t, cid_nr_t, pair_hasher_t, pair_equal_t>;
   cid_map_t cid_map;
+  std::string current_stage_name;
+  std::string previous_stage_name;
 
   loco_t::shape_t& get_id(auto* stage_ptr, const std::string id) {
     auto found = cid_map.find(std::make_pair(stage_ptr, id));

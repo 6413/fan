@@ -153,11 +153,12 @@ export namespace fan {
         *this = b;
       }
       bool operator==(const body_id_t& b) const {
-        b2BodyId a = *this;
-        return B2_ID_EQUALS(a, b);
+        return B2_ID_EQUALS(static_cast<const b2BodyId&>(*this),
+          static_cast<const b2BodyId&>(b));
       }
+
       bool operator!=(const body_id_t& b) const {
-        return !this->operator==(b);
+        return !(*this == b);
       }
       operator bool() const {
         return is_valid();
@@ -166,18 +167,16 @@ export namespace fan {
         return get_shape_id();
       }
       bool is_valid() const {
-        return *this != b2_nullBodyId;
+        return b2Body_IsValid(static_cast<const b2BodyId&>(*this));
       }
       void invalidate() {
         *this = b2_nullBodyId;
       }
       void destroy() {
-        if (is_valid() == false) {
-          return;
-        }
+        if (!is_valid()) return;
         body_updates.erase(*this);
-        b2DestroyBody(*this);
-        *this = b2_nullBodyId;
+        b2DestroyBody(static_cast<b2BodyId>(*this));
+        invalidate();
       }
 
       fan::vec2 get_linear_velocity() const {
@@ -212,6 +211,9 @@ export namespace fan {
       fan::vec2 get_physics_position() const {
         return fan::physics::physics_to_render(b2Body_GetPosition(*this));
       }
+      fan::vec2 get_position() const {
+        return get_physics_position();
+      }
 
       void set_physics_position(const fan::vec2& p) {
         auto& data = body_updates[*this];
@@ -220,13 +222,13 @@ export namespace fan {
       }
       b2ShapeId get_shape_id() const {
         b2ShapeId shape_id = b2_nullShapeId;
-#if fan_debug >= fan_debug_medium
+      #if fan_debug >= fan_debug_medium
         if (!b2Body_GetShapes(*this, &shape_id, 1)) {
           fan::throw_error();
         }
-#else
+      #else
         b2Body_GetShapes(*this, &shape_id, 1);
-#endif
+      #endif
         return shape_id;
       }
 
@@ -238,6 +240,19 @@ export namespace fan {
       }
       f32_t get_restitution() const {
         return b2Shape_GetRestitution(get_shape_id());
+      }
+      fan::physics::aabb_t get_aabb() const {
+        b2AABB aabb = b2Shape_GetAABB(get_shape_id());
+        return {
+          fan::physics::physics_to_render(fan::vec2(aabb.lowerBound.x, aabb.lowerBound.y)),
+          fan::physics::physics_to_render(fan::vec2(aabb.upperBound.x, aabb.upperBound.y))
+        };
+      }
+      // half extents from center
+      fan::vec2 get_aabb_size() const {
+        fan::physics::aabb_t aabb = get_aabb();
+        fan::vec2 size = aabb.max - aabb.min;
+        return size * 0.5f;
       }
     };
 
@@ -333,8 +348,8 @@ export namespace fan {
         fan::physics::body_id_t object_id;
         bool is_in_contact = 0;
       };
-      std::function<void(b2SensorBeginTouchEvent&)> begin_touch_event_cb = [] (b2SensorBeginTouchEvent&) {};
-      std::function<void(b2SensorEndTouchEvent&)> end_touch_event_cb = [] (b2SensorEndTouchEvent&) {};
+      std::function<void(b2SensorBeginTouchEvent&)> begin_touch_event_cb = [](b2SensorBeginTouchEvent&) {};
+      std::function<void(b2SensorEndTouchEvent&)> end_touch_event_cb = [](b2SensorEndTouchEvent&) {};
       void update(b2WorldId world_id) {
         b2SensorEvents sensor_events = b2World_GetSensorEvents(world_id);
 
@@ -361,7 +376,7 @@ export namespace fan {
           .sensor_id = sensor_id,
           .object_id = object_id,
           .is_in_contact = is_in_contact
-        });
+          });
       }
 
       bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const {
@@ -418,11 +433,11 @@ export namespace fan {
         body_def.angularDamping = shape_properties.angular_damping;
         body_def.allowFastRotation = shape_properties.fast_rotation;
         entity = b2CreateBody(world_id, &body_def);
-#if fan_debug >= fan_debug_medium
+      #if fan_debug >= fan_debug_medium
         if (entity.is_valid() == false) {
           fan::throw_error();
         }
-#endif
+      #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
         shape_def.enableContactEvents = shape_properties.contact_events;
@@ -436,6 +451,9 @@ export namespace fan {
         //shape_def.rollingResistance = shape_properties.rolling_resistance;
         b2CreatePolygonShape(entity, &shape_def, &shape);
         return entity;
+      }
+      entity_t create_rectangle(const fan::vec2& position, const fan::vec2& size, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
+        return create_box(position, size, angle, body_type, shape_properties);
       }
       entity_t create_circle(const fan::vec2& position, f32_t radius, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
         circle_t shape;
@@ -453,12 +471,12 @@ export namespace fan {
         body_def.allowFastRotation = shape_properties.fast_rotation;
 
         entity = b2CreateBody(world_id, &body_def);
-#if fan_debug >= fan_debug_medium
+      #if fan_debug >= fan_debug_medium
         if (entity.is_valid() == false) {
           fan::throw_error();
         }
-#endif
-        
+      #endif
+
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
         shape_def.enableContactEvents = shape_properties.contact_events;
@@ -492,11 +510,11 @@ export namespace fan {
         body_def.angularDamping = shape_properties.angular_damping;
         body_def.allowFastRotation = shape_properties.fast_rotation;
         entity = b2CreateBody(world_id, &body_def);
-#if fan_debug >= fan_debug_medium
+      #if fan_debug >= fan_debug_medium
         if (entity.is_valid() == false) {
           fan::throw_error();
         }
-#endif
+      #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
         shape_def.enableContactEvents = shape_properties.contact_events;
@@ -521,11 +539,11 @@ export namespace fan {
         body_def.angularDamping = shape_properties.angular_damping;
         body_def.allowFastRotation = shape_properties.fast_rotation;
         entity = b2CreateBody(world_id, &body_def);
-#if fan_debug >= fan_debug_medium
+      #if fan_debug >= fan_debug_medium
         if (entity.is_valid() == false) {
           fan::throw_error();
         }
-#endif
+      #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
         shape_def.enableContactEvents = shape_properties.contact_events;
@@ -562,12 +580,12 @@ export namespace fan {
         body_def.allowFastRotation = shape_properties.fast_rotation;
         entity = b2CreateBody(world_id, &body_def);
 
-#if fan_debug >= fan_debug_medium
+      #if fan_debug >= fan_debug_medium
         // world probably locked
         if (entity.is_valid() == false) {
           fan::throw_error();
         }
-#endif
+      #endif
         b2ShapeDef shape_def = b2DefaultShapeDef();
         shape_def.enablePreSolveEvents = shape_properties.presolve_events;
         shape_def.enableContactEvents = shape_properties.contact_events;
@@ -690,7 +708,7 @@ export namespace fan {
       }
       void process_collision_events() {
         b2ContactEvents contact_events = b2World_GetContactEvents(world_id);
-        
+
         for (int i = 0; i < contact_events.beginCount; ++i) {
           const b2ContactBeginTouchEvent& event = contact_events.beginEvents[i];
           on_begin_touch(event.shapeIdA, event.shapeIdB);
@@ -710,6 +728,25 @@ export namespace fan {
       bool is_colliding(b2ShapeId a, b2ShapeId b) const {
         auto pair = std::minmax(get_shape_key(a), get_shape_key(b));
         return active_collisions.count(pair) > 0;
+      }
+
+      fan::physics::entity_t create_sensor_circle(const fan::vec2& position, f32_t radius) {
+        return create_circle(
+          position,
+          radius,
+          0,
+          fan::physics::body_type_e::static_body,
+          fan::physics::shape_properties_t{ .is_sensor = true }
+        );
+      }
+      fan::physics::entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size) {
+        return create_box(
+          position,
+          size,
+          0,
+          fan::physics::body_type_e::static_body,
+          fan::physics::shape_properties_t{ .is_sensor = true }
+        );
       }
 
       b2WorldId world_id;
@@ -856,6 +893,13 @@ export namespace fan {
     // .contact_events = true must be set
     bool is_colliding(const b2ShapeId& a, const b2ShapeId& b) {
       return gphysics->is_colliding(a, b);
+    }
+
+    fan::physics::entity_t create_sensor_circle(const fan::vec2& position, f32_t radius) {
+      return gphysics->create_sensor_circle(position, radius);
+    }
+    fan::physics::entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size) {
+      return gphysics->create_sensor_rectangle(position, size);
     }
   }
 }

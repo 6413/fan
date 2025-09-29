@@ -1057,9 +1057,11 @@ export namespace fan {
             }
             set_position(new_pos, false);
           }
-
-          return user_cb(d);
-          };
+          if (user_cb) {
+            return user_cb(d);
+          }
+          return 0;
+        };
 
         vfi_root = in;
       }
@@ -1187,8 +1189,9 @@ export namespace fan {
 
       interactive_camera_t(
         loco_t::camera_t camera_nr = gloco->orthographic_render_view.camera,
-        loco_t::viewport_t viewport_nr = gloco->orthographic_render_view.viewport
-      ) : reference_camera(camera_nr), reference_viewport(viewport_nr)
+        loco_t::viewport_t viewport_nr = gloco->orthographic_render_view.viewport,
+        f32_t new_zoom = 2
+      ) : reference_camera(camera_nr), reference_viewport(viewport_nr), zoom(new_zoom)
       {
         auto& window = gloco->window;
         old_window_size = window.get_size();
@@ -1517,6 +1520,9 @@ export namespace fan {
       }
     };
 
+    f32_t get_depth_from_y(const fan::vec2& position, f32_t tile_size_y) {
+      return std::floor((position.y) / tile_size_y) + (0xFAAA - 2) / 2 + 18.f;
+    }
   } // namespace graphics
 
   struct movement_e {
