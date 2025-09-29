@@ -707,25 +707,35 @@ struct vfi_t {
     bp.DataSize = sizeof(ri_t);
 
     gloco->shaper.SetShapeType(loco_t::shape_type_t::vfi, bp);
-
     SHAPE_FUNCTION_OVERRIDE(loco_t::shape_type_t::vfi, get_position,
       +[](const loco_t::shape_t* shape) {
         return gloco->vfi.get_position(*shape);
       }
     );
 
-    //loco_t::get_position_functions[loco_t::shape_type_t::vfi] =
-    //loco_t::set_position2_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec2& position) {
-    //  gloco->vfi.set_position(*shape, fan::vec3(position, gloco->vfi.get_position(*shape).z));
-    //};
-    //loco_t::set_position3_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec3& position) {
-    //  gloco->vfi.set_position(*shape, position);
-    //};
-    //loco_t::get_size_functions[loco_t::shape_type_t::vfi] = [](const loco_t::shape_t* shape) {
-    //  return gloco->vfi.get_size(*shape);
-    //};
-    //loco_t::set_size_functions[loco_t::shape_type_t::vfi] = [](loco_t::shape_t* shape, const fan::vec2& size) {
-    //  gloco->vfi.set_size(*shape, size);
-    //};
+    SHAPE_FUNCTION_OVERRIDE(loco_t::shape_type_t::vfi, set_position2,
+      +[](loco_t::shape_t* shape, const fan::vec2& position) {
+        gloco->vfi.set_position(*shape, fan::vec3(position, gloco->vfi.get_position(*shape).z));
+      }
+    );
+
+    SHAPE_FUNCTION_OVERRIDE(loco_t::shape_type_t::vfi, set_position3,
+      +[](loco_t::shape_t* shape, const fan::vec3& position) {
+        gloco->vfi.set_position(*shape, position);
+      }
+    );
+
+    SHAPE_FUNCTION_OVERRIDE(loco_t::shape_type_t::vfi, get_size,
+      +[](const loco_t::shape_t* shape) {
+        return gloco->vfi.get_size(*shape);
+      }
+    );
+
+    SHAPE_FUNCTION_OVERRIDE(loco_t::shape_type_t::vfi, set_size,
+      +[](loco_t::shape_t* shape, const fan::vec2& size) {
+        gloco->vfi.set_size(*shape, size);
+      }
+    );
+
   }
 };

@@ -956,7 +956,7 @@ export struct fte_t {
         if (fan::graphics::gui::begin_menu("File")) {
 
           if (fan::graphics::gui::menu_item("Open..")) {
-            open_file_dialog.load("fte;json", &fn);
+            open_file_dialog.load("fte,json", &fn);
           }
 
           if (fan::graphics::gui::menu_item("Save")) {
@@ -964,7 +964,7 @@ export struct fte_t {
           }
 
           if (fan::graphics::gui::menu_item("Save as")) {
-            save_file_dialog.save("fte;json", &fn);
+            save_file_dialog.save("fte,json", &fn);
           }
 
           if (fan::graphics::gui::menu_item("Quit")) {
@@ -986,12 +986,14 @@ export struct fte_t {
         if (open_file_dialog.is_finished()) {
           if (fn.size() != 0) {
             fin(fn);
+            fn.clear();
           }
           open_file_dialog.finished = false;
         }
         if (save_file_dialog.is_finished()) {
           if (fn.size() != 0) {
             fout(fn);
+            fn.clear();
           }
           save_file_dialog.finished = false;
         }
@@ -1235,7 +1237,7 @@ export struct fte_t {
       }
     }
     else {
-      visual_line.set_line(0, 0);
+      visual_line.set_line(-999999999, -999999999);
     }
     return false;
   }
@@ -1712,8 +1714,9 @@ export struct fte_t {
 
   void handle_lighting_settings_window() {
     if (fan::graphics::gui::begin("lighting settings")) {
-      if (fan::graphics::gui::color_edit3("ambient", &gloco->lighting.ambient)) {
-
+      static fan::vec3 ambient = gloco->lighting.ambient;
+      if (fan::graphics::gui::color_edit3("ambient", &ambient)) {
+        gloco->lighting.set_target(ambient);
       }
     }
     fan::graphics::gui::end();
@@ -1979,7 +1982,7 @@ shape data{
     if (json.contains("gravity")) {
       gloco->physics_context.set_gravity(json["gravity"]);
     }
-    gloco->lighting.ambient = json["lighting.ambient"];
+    gloco->lighting.set_target(json["lighting.ambient"]);
     map_tiles.clear();
     visual_layers.clear();
     visual_shapes.clear();

@@ -98,7 +98,7 @@ pile_t::pile_t() {
   engine.lighting.ambient = 1;
 
 
-  current_stage = stage_loader_t::open_stage<racing_track_t>();
+current_stage = stage_loader.open_stage<racing_track_t>();
 
   car.open();
   car_ai.open();

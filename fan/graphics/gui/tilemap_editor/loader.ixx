@@ -48,6 +48,8 @@ export struct fte_loader_t {
     }
   };
 
+  using tile_t = fte_t::tile_t;
+
   struct compiled_map_t {
     fan::vec2i map_size = 0;
     fan::vec2i tile_size = 0;
@@ -65,13 +67,17 @@ export struct fte_loader_t {
     #endif
   };
 
-  using tile_draw_data_t = loco_t::shape_t;
+  struct tile_draw_data_t : loco_t::shape_t {
+    using loco_t::shape_t::shape_t;
+    std::string id;
+  };
 
   #include <fan/fan_bll_preset.h>
 
   struct map_list_data_t{
     compiled_map_t* compiled_map;
     std::unordered_map<fan::vec3i, tile_draw_data_t, vec3i_hasher> rendered_tiles;
+    std::unordered_map<std::string, tile_draw_data_t*> id_to_shape;
     struct physics_entities_t {
       std::variant<
         fan::graphics::physics::rectangle_t,
@@ -82,7 +88,7 @@ export struct fte_loader_t {
     std::vector<physics_entities_t> physics_entities;
     fan::vec3 position = 0;
     fan::vec2 size = 1;
-    fan::vec2i prev_render = 0;
+    fan::vec2i prev_render = 10000000;
   };
 
   #define BLL_set_prefix map_list
@@ -119,6 +125,34 @@ public:
       }
     });
     return body;
+  }
+
+  bool get_body(id_t map_id, const std::string& id, fte_t::tile_t& tile) {
+    auto& node = map_list[map_id];
+    {
+      auto& shapes = node.compiled_map->physics_shapes;
+      for (auto& shape : shapes) {
+        if (shape.physics_shapes.id == id) {
+          tile.position = shape.position;
+          tile.size = shape.size;
+          return true;
+        }
+      }
+    }
+    {
+      auto& shapes = node.compiled_map->compiled_shapes;
+      for (auto& i : shapes) {
+        for (auto& j : i) {
+          for (auto& k : j) {
+            if (id == k.id) {
+              tile = k;
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   void open() {
@@ -200,6 +234,10 @@ public:
     fan::throw_error("fan_json not enabled");
     __unreachable();
 #endif
+  }
+
+  fan::vec2 convert_to_grid(const fan::vec2& p, const node_t& node) {
+    return ((p / node.size) / (node.compiled_map->tile_size)).floor();
   }
 
   struct properties_t {
