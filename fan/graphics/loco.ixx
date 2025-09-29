@@ -764,7 +764,7 @@ export struct loco_t {
 		}
 	}
 
-	static constexpr uint32_t MaxElementPerBlock = 0x1000;
+	static constexpr uint32_t MaxElementPerBlock = 0x100;
 
 	struct shape_gl_init_t {
 		std::pair<int, const char*> index;
@@ -774,7 +774,7 @@ export struct loco_t {
 		void* pointer;
 	};
 
-#define shaper_set_MaxMaxElementPerBlock 0x1000
+#define shaper_set_MaxMaxElementPerBlock 0x100
 #define shaper_set_fan 1
 	// sizeof(image_t) == 2
 	static_assert(sizeof(loco_t::image_t) == 2, "update shaper_set_MaxKeySize");
@@ -1496,7 +1496,7 @@ public:
 		uint8_t samples = 0;
 	};
 
-	uint64_t start_time = 0;
+	fan::time::timer start_time;
 
 	void add_shape_to_immediate_draw(loco_t::shape_t&& s) {
 		immediate_render_list.emplace_back(std::move(s));
@@ -2003,7 +2003,7 @@ public:
 		}
 #endif
 
-		start_time = fan::time::clock::now();
+		start_time.start();
 
 		set_vsync(false); // using libuv
 		//fan::print("less pain", this, (void*)&lighting, (void*)((uint8_t*)&lighting - (uint8_t*)this), sizeof(*this), lighting.ambient);
@@ -2735,6 +2735,8 @@ public:
 		}
 #endif
 
+    lighting.update(delta_time);
+
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
@@ -2840,17 +2842,19 @@ public:
 	//  }
 	//};
 
-	fan::vec2 get_input_vector(
-		const std::string& forward = "move_forward",
-		const std::string& back = "move_back",
-		const std::string& left = "move_left",
-		const std::string& right = "move_right"
-	) {
-		return fan::vec2(
-			(input_action.is_action_down(right) - input_action.is_action_down(left)),
-			(input_action.is_action_down(back) - input_action.is_action_down(forward))
-		);
-	}
+  fan::vec2 get_input_vector(
+    const std::string& forward = "move_forward",
+    const std::string& back = "move_back",
+    const std::string& left = "move_left",
+    const std::string& right = "move_right"
+  ) {
+    fan::vec2 v(
+      input_action.is_action_down(right) - input_action.is_action_down(left),
+      input_action.is_action_down(back) - input_action.is_action_down(forward)
+    );
+    return v.length() > 0 ? v.normalized() : v;
+  }
+
 
 	//
 	fan::vec2 transform_matrix(const fan::vec2& position) {
@@ -3407,6 +3411,7 @@ public:
 	fan::physics::context_t physics_context{ {} };
 	struct physics_update_data_t {
 		shaper_t::ShapeID_t shape_id;
+    fan::vec2 draw_offset = 0;
 		uint64_t body_id;
 		void* cb;
 	};
@@ -3840,13 +3845,19 @@ public:
 		void set_position(const fan::vec3& position) {
 			gloco->shape_functions[get_shape_type()].set_position3(this, position);
 		}
+    void set_x(f32_t x) { set_position(fan::vec2(x, get_position().y)); }
+    void set_y(f32_t y) { set_position(fan::vec2(get_position().x, y)); }
+    void set_z(f32_t z) { set_position(fan::vec3(get_position().x, get_position().y, z)); }
 
 		fan::vec3 get_position() const {
 			auto shape_type = get_shape_type();
-			return gloco->shape_functions[shape_type].get_position(this);
-		}
+      return gloco->shape_functions[shape_type].get_position(this);
+    }
+    f32_t get_x() const { return get_position().x; }
+    f32_t get_y() const { return get_position().y; }
+    f32_t get_z() const { return get_position().z; }
 
-		void set_size(const fan::vec2& size) {
+    void set_size(const fan::vec2& size) {
 			gloco->shape_functions[get_shape_type()].set_size(this, size);
 		}
 
@@ -4607,6 +4618,16 @@ public:
 				sizeof(loco_t::line_t::vi_t::thickness)
 			);
 		}
+
+    void apply_floating_motion(
+      f32_t time = gloco->start_time.seconds(),
+      f32_t amplitude = 5.f,
+      f32_t speed = 2.f,
+      f32_t phase = 0.f
+    ) {
+      f32_t y = std::sin(time * speed + phase) * amplitude;
+      set_y(y);
+    }
 
 	private:
 	};
@@ -6299,10 +6320,38 @@ public:
 		0.f, 0.f, 0.f, 1.f
 	};
 
-	struct lighting_t {
-		static constexpr const char* ambient_name = "lighting_ambient";
-		fan::vec3 ambient = fan::vec3(1, 1, 1);
-	}lighting;
+  struct lighting_t {
+    static constexpr const char* ambient_name = "lighting_ambient";
+    fan::vec3 ambient = fan::vec3(1, 1, 1);
+
+    fan::vec3 start = ambient;
+    fan::vec3 target = fan::vec3(1, 1, 1);
+    f32_t duration = 0.5f; // seconds to reach target
+    f32_t elapsed = 0.f;
+
+    void set_target(const fan::vec3& t, f32_t d = 0.5f) {
+      start = ambient;
+      target = t;
+      duration = d;
+      elapsed = 0.0f;
+    }
+
+    void update(f32_t delta_time) {
+      if (elapsed < duration) {
+        elapsed += delta_time;
+        f32_t t = std::min(elapsed / duration, 1.0f);
+        ambient = fan::math::lerp(start, target, t);
+      }
+    }
+
+    bool is_near(const fan::vec3& t, f32_t eps = 0.01f) const {
+      return ambient.distance(t) < eps;
+    }
+    bool is_near_target(f32_t eps = 0.01f) const {
+      return is_near(target, eps);
+    }
+
+  }lighting;
 
 	void set_current_directory(const std::string& new_directory) {
 		current_directory = new_directory;

@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
   //  }};
   //};
 
- /* fan::event::fs_watcher_t fs_watcher("examples/games/boss/");
+  fan::event::fs_watcher_t fs_watcher("examples/games/forest game/");
 
   fs_watcher.start([&](const std::string& filename, int events) {
     if (!(events & fan::fs_change)) {
@@ -181,20 +181,20 @@ int main(int argc, char** argv) {
       auto& img_data = loco.image_get_data(img);
       fan::vec2 size = img_data.size;
       fan::vec2 img_size = size;
-      size = img_size / 128;
+      size = img_size / 32;
       loco.image_unload(img);
       std::string str = (std::string("image2texturepack.exe ") + 
         std::to_string(size.x) + " " + std::to_string(size.y) + 
          " \"" + image_path + "\"" +
-         " \"" + fte.texturepack.file_path + "\""
+         " \"" + gloco->texture_pack.file_path + "\""
       );
       system(str.c_str());
-      fte.open_texturepack(fte.texturepack.file_path);
+      fte.open_texturepack(gloco->texture_pack.file_path);
       if (fte.previous_file_name.size()) {
         fte.fin(fte.previous_file_name);
       }
     }
-  });*/
+  });
 
   //fan::graphics::gui::get_io().ConfigFlags |= ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
@@ -223,7 +223,7 @@ int main(int argc, char** argv) {
           player->player_light.set_color(c);
         }
         fan::vec2 size = player->player_light.get_size();
-        if (fan::graphics::gui::drag_float("size", & size, 0.1)) {
+        if (fan::graphics::gui::drag("size", & size, 0.1)) {
           player->player_light.set_size(size);
         }
         player->player_light.set_position(player->player.get_position()-player->player.get_size());

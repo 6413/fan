@@ -3580,6 +3580,10 @@ export namespace fan {
         };
 
         struct text_delayed_t : render_type_t {
+          ~text_delayed_t() override {
+            finish_dialog = true;
+            character_advance_task = {};
+          }
           void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) override {
 
             // initialize advance task but dont restart it after dialog finished
@@ -3642,18 +3646,18 @@ export namespace fan {
           std::string text;
           void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) override {
             if (This->wait_user) {
-              // calculate biggest button
               fan::vec2 button_size = 0;
-
               fan::vec2 text_size = gui::calc_text_size(text);
               f32_t padding_x = ImGui::GetStyle().FramePadding.x;
               f32_t padding_y = ImGui::GetStyle().FramePadding.y;
               button_size = fan::vec2(text_size.x + padding_x * 2.0f, text_size.y + padding_y * 2.0f);
 
-              ImGui::SetCursorPos((position * gui::get_window_size()) - (size == 0 ? button_size / 2 : size / 2));
-              ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetScrollY());
+              ImVec2 cursor = (position * gui::get_window_size()) - (size == 0 ? button_size / 2 : size / 2);
+              cursor.x += ImGui::GetStyle().WindowPadding.x;
+              cursor.y += ImGui::GetStyle().WindowPadding.y;
+              ImGui::SetCursorPos(cursor);
 
-              if (fan::graphics::gui::image_text_button(gloco->default_texture, text, fan::colors::white, size == 0 ? button_size : size)) {
+              if (fan::graphics::gui::button(text, size == 0 ? button_size : size)) {
                 This->button_choice = nr;
                 auto it = This->drawables.GetNodeFirst();
                 while (it != This->drawables.dst) {
@@ -3781,7 +3785,7 @@ export namespace fan {
       //    ImGui::BeginChild((fan::random::string(10) + "child").c_str(), fan::vec2(wrap_width, 0), 0, ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar |
   //        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
 
-          render_content_cb(cursor_position == -1 ? fan::vec2(0, 0) : cursor_position, indent);
+          render_content_cb(cursor_position == -1 ? fan::vec2(ImGui::GetStyle().WindowPadding) : cursor_position, indent);
           // render objects here
 
           auto it = drawables.GetNodeFirst();
