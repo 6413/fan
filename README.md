@@ -45,8 +45,11 @@
     ```./install.sh```
     
     (```./uninstall.sh```) to remove repos from /usr/local/include/*
-4. Main usage:
--  To compile main use `./compile_main.sh -DMAIN="examples/graphics/2D/shapes/rectangle.cpp"`, which also compiles fan
+3. Main usage:
+  -  To compile main use `./compile_main.sh -DMAIN="examples/engine_demos/engine_demo.cpp"`, which also compiles fan
+
+### Compiling fan as a library:
+-  Using `-DBUILD_FAN_LIBRARY=` can be set to either `STATIC` or `SHARED`
 
 ### Windows
 1. Clone the repository: `git clone https://github.com/6413/fan.git`
