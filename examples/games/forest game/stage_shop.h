@@ -38,6 +38,7 @@ void open(void* sod) {
   } };
   fan::vec2 sensor_size = vendor.get_size().max() * 1.2f;
   vendor_buy_sensor = fan::physics::create_sensor_rectangle(vendor.get_position() + fan::vec2(0, sensor_size.y * 2.f), sensor_size);
+
 }
 
 void close() {
@@ -46,7 +47,7 @@ void close() {
 
 fan::event::task_t dialogue() {
   for (int i = 0; i < std::size(vendor_dialogue); ++i) {
-    co_await dialogue_box.text_delayed(vendor_dialogue[i]);
+    co_await dialogue_box.text_delayed("Vendor", vendor_dialogue[i]);
 
     co_await dialogue_box.wait_user_input();
   }
@@ -73,29 +74,38 @@ void render_dialogue() {
   window_size.x /= 1.2;
   window_size.y /= 5;
 
-  gui::push_style_color(gui::col_window_bg, fan::colors::black.set_alpha(0.60f));
+  gui::push_style_color(gui::col_window_bg, fan::color::from_rgb(0x3B2A1A).set_alpha(0.90f));
+  gui::push_style_color(gui::col_border, fan::color::from_rgb(0xA68B5B).set_alpha(0.95f));
 
   gui::push_style_var(gui::style_var_window_border_size, 1.f);
   gui::push_style_var(gui::style_var_window_rounding, 8.f);
   gui::push_style_var(gui::style_var_window_padding, fan::vec2(20, 20.f));
+  gui::push_style_var(gui::style_var_window_border_size, 5.0f);
 
-  dialogue_box.font_size = font_size * 2.5;
+  dialogue_box.font_size = font_size * 1.8f;
   dialogue_box.render(
     "Dialogue box",
     gui::get_font(dialogue_box.font_size),
     window_size,
     gui::get_window_size().x / 2,
-    32
+    32,
+    [&] {
+      gui::image(vendor_image, gui::get_window_size().y / 1.2f, fan::vec2(0, 0), fan::vec2(1, 0.46875f));
+      gui::same_line();
+      dialogue_box.cursor_position.y = 0;
+      dialogue_box.indent = gui::get_window_size().y - 20.f;
+      fan::vec2 src = gui::get_cursor_screen_pos();
+    }
   );
 
-  gui::pop_style_var(3);
-  gui::pop_style_color();
+  gui::pop_style_var(4);
+  gui::pop_style_color(2);
 }
 
 
 void update() {
 
-  if (fan::physics::is_on_sensor(pile.player.body, vendor_buy_sensor) && fan::window::is_key_pressed(fan::key_e)) {
+  if (!is_in_dialogue && fan::physics::is_on_sensor(pile.player.body, vendor_buy_sensor) && fan::window::is_key_pressed(fan::key_e)) {
     dialogue_task = dialogue();
     is_in_dialogue = true;
   }
@@ -137,9 +147,9 @@ fan::graphics::image_t vendor_image;
 fan::physics::body_id_t vendor_buy_sensor;
 
 static inline std::string vendor_dialogue[] = {
-  "Hello there!|",
-  "Feel free to browse the shop.|",
-  "I also buy junk.|",
+  "Hello there!",
+  "Feel free to browse the shop.",
+  "I also buy junk.",
 };
 int current_answer = 0;
 
