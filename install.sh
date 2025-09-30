@@ -61,7 +61,7 @@ if [[ "$FORCE_REBUILD" == "true" ]] || [[ ! -f "$LIB_DIR/libbox2d.a" ]]; then
     
     git clone https://github.com/erincatto/box2d.git "$REPO_DIR"
     cd "$REPO_DIR"
-    git checkout v3.0.0
+    git checkout v3.1.1
     mkdir build
     cd build
     cmake -DBOX2D_SAMPLES=OFF \
