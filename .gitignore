@@ -39,7 +39,6 @@ lib/dpp
 lib/cmake
 *.dll
 x64/Debug
-fan/
 *.command
 *.ifc
 a.out
