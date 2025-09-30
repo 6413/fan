@@ -3581,13 +3581,14 @@ export namespace fan {
 
         struct text_delayed_t : render_type_t {
           ~text_delayed_t() override {
-            finish_dialog = true;
+            dialogue_line_finished = true;
             character_advance_task = {};
           }
+
           void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) override {
 
             // initialize advance task but dont restart it after dialog finished
-            if (finish_dialog == false && !character_advance_task.owner) {
+            if (dialogue_line_finished == false && !character_advance_task.owner) {
               character_advance_task = [This, nr]() -> fan::event::task_t {
                 text_delayed_t* text_delayed = dynamic_cast<text_delayed_t*>(This->drawables[nr]);
                 if (text_delayed == nullptr) {
@@ -3595,7 +3596,7 @@ export namespace fan {
                 }
 
                 // advance text rendering
-                while (text_delayed->render_pos < text_delayed->text.size() && !text_delayed->finish_dialog) {
+                while (text_delayed->render_pos < text_delayed->text.size() && !text_delayed->dialogue_line_finished && text_delayed->character_per_s) {
                   ++text_delayed->render_pos;
                   co_await fan::co_sleep(1000 / text_delayed->character_per_s);
                 }
@@ -3611,25 +3612,29 @@ export namespace fan {
             //            ImGui::EndChild();
 
             if (render_pos == text.size()) {
-              finish_dialog = true;
+              dialogue_line_finished = true;
             }
 
-            if (finish_dialog && blink_timer.finished()) {
+            if (dialogue_line_finished && blink_timer.finished()) {
               if (render_cursor) {
+                text.push_back('|');
                 render_pos = text.size();
               }
               else {
-                render_pos = text.size() - 1;
+                if (text.back() == '|') {
+                  text.pop_back();
+                  render_pos = text.size();
+                }
               }
               render_cursor = !render_cursor;
               blink_timer.restart();
             }
           }
-          bool finish_dialog = false; // for skipping
+          bool dialogue_line_finished = false; // for skipping
           std::string text;
           uint64_t character_per_s = 20;
           std::size_t render_pos = 0;
-          fan::time::timer blink_timer{ (uint64_t)0.5e9, false };
+          fan::time::timer blink_timer{ (uint64_t)0.5e9, true };
           uint8_t render_cursor = false;
           fan::event::task_t character_advance_task;
         };
@@ -3692,15 +3697,15 @@ export namespace fan {
           this->indent = indent;
         }
 
-        fan::event::task_value_resume_t<drawable_nr_t> text_delayed(const std::string& text) {
-          return text_delayed(text, 20); // 20 characters per second
+        fan::event::task_value_resume_t<drawable_nr_t> text_delayed(const std::string& character_name, const std::string& text) {
+          return text_delayed(character_name, text, 20); // 20 characters per second
         }
-        fan::event::task_value_resume_t<drawable_nr_t> text_delayed(const std::string& text, int characters_per_second) {
+        fan::event::task_value_resume_t<drawable_nr_t> text_delayed(const std::string& character_name, const std::string& text, int characters_per_second) {
           text_delayed_t td;
           td.character_per_s = characters_per_second;
           td.text = text;
           td.render_pos = 0;
-          td.finish_dialog = false;
+          td.dialogue_line_finished = false;
 
           auto it = drawables.NewNodeLast();
           drawables[it] = new text_delayed_t(std::move(td));
@@ -3762,8 +3767,7 @@ export namespace fan {
             co_await fan::co_sleep(10);
           }
         }
-
-        void render(const std::string& window_name, ImFont* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) {
+        void render(const std::string& window_name, ImFont* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const auto& inside_window_cb) {
           ImGui::PushFont(font);
 
           fan::vec2 root_window_size = ImGui::GetWindowSize();
@@ -3785,6 +3789,8 @@ export namespace fan {
       //    ImGui::BeginChild((fan::random::string(10) + "child").c_str(), fan::vec2(wrap_width, 0), 0, ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoTitleBar |
   //        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
 
+          inside_window_cb();
+
           render_content_cb(cursor_position == -1 ? fan::vec2(ImGui::GetStyle().WindowPadding) : cursor_position, indent);
           // render objects here
 
@@ -3799,15 +3805,19 @@ export namespace fan {
           ImGui::SetWindowFontScale(1.0f);
 
           
-          bool finish_dialog = gloco->input_action.is_active("skip or continue dialog") && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+          bool dialogue_line_finished = gloco->input_action.is_active("skip or continue dialog") && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
 
-          if (finish_dialog) {
+          if (dialogue_line_finished) {
             wait_user = false;
             clear();
           }
 
           ImGui::End();
           ImGui::PopFont();
+        }
+
+        void render(const std::string& window_name, ImFont* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) {
+          render(window_name, font, window_size, wrap_width, line_spacing, [] {});
         }
 
         void clear() {
