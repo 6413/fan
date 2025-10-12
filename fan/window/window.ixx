@@ -21,6 +21,7 @@ module;
 #include <cstring>
 #include <functional>
 #include <string>
+#include <cstdlib>
 
 export module fan.window;
 

@@ -7,6 +7,8 @@ module;
 #include <cassert> // box2d
 #include <functional>
 #include <unordered_set>
+#include <cmath>
+#include <algorithm>
 
 #endif
 
