@@ -223,9 +223,15 @@ endfunction()
 
 if(BUILD_FAN_LIBRARY STREQUAL "STATIC")
   add_library(fan_modules STATIC)
+	set_target_properties(fan_modules PROPERTIES
+		CXX_MODULE_DIRECTORY ${OUTPUT_PATH}
+	)
   message(STATUS "Building fan as STATIC library")
 elseif(BUILD_FAN_LIBRARY STREQUAL "SHARED")
   add_library(fan_modules SHARED)
+	set_target_properties(fan_modules PROPERTIES
+		CXX_MODULE_DIRECTORY ${OUTPUT_PATH}
+	)
   message(STATUS "Building fan as SHARED library")
 else()
   add_library(fan_modules STATIC)

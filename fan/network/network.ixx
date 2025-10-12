@@ -23,6 +23,8 @@ module;
 #include <string>
 #include <list>
 #include <expected>
+#include <cstdlib>
+#include <atomic>
 
 #include <mutex>
 #include <cstdint>
