@@ -17,6 +17,7 @@ module;
 #include <memory> // shared_ptr tp0.h
 #include <array>
 #include <source_location>
+#include <cmath>
 
 #define loco_opengl
 

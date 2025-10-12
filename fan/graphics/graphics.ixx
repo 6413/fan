@@ -10,10 +10,9 @@ module;
 #include <fan/graphics/opengl/init.h>
 #include <fan/event/types.h>
 
-
-
 #include <filesystem>
 #include <source_location>
+#include <cmath>
 
 #define loco_vfi
 #define loco_line

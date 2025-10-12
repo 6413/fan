@@ -10,6 +10,7 @@ module;
 #include <cassert>
 #include <string>
 #include <functional>
+#include <cstdlib>
 
 #endif
 

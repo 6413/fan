@@ -3,6 +3,7 @@ module;
 #include <fan/utility.h>
 
 #include <functional>
+#include <cstdlib>
 
 namespace detail{
   using memory_edit_cb_t = std::function<void()>;

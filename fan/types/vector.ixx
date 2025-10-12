@@ -31,6 +31,7 @@ module;
 #include <algorithm>
 #include <numeric>
 #include <sstream>
+#include <cmath>
 
 export module fan.types.vector;
 
