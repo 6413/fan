@@ -94,7 +94,7 @@ export namespace fan {
       b2ShapeId shapeId;
       fan::vec2 point;
       fan::vec2 normal;
-      float fraction;
+      f32_t fraction;
       bool hit;
       operator bool() {
         return hit;
@@ -143,14 +143,31 @@ export namespace fan {
 
     std::unordered_map<b2BodyId, body_update_data_t, b2_body_id_hash_t, b2_body_id_equal_t> body_updates;
 
-    inline constexpr f32_t physics_timestep = 1.0 / 256.0;
+    inline constexpr f32_t default_physics_timestep = 1.0 / 256.f;
+
+    // opaque handle for now
+    struct shape_id_t : b2ShapeId {
+      using b2ShapeId::b2ShapeId;
+      shape_id_t() : b2ShapeId(b2_nullShapeId) {}
+      shape_id_t(const b2ShapeId& shape_id) : b2ShapeId(shape_id) {}
+
+      void set_friction(f32_t friction) {
+        b2Shape_SetFriction(*this, friction);
+      }
+
+      bool is_valid() const {
+        return b2Shape_IsValid(static_cast<const b2ShapeId&>(*this));
+      }
+      operator bool() const {
+        return is_valid();
+      }
+    };
 
     struct body_id_t : b2BodyId {
       using b2BodyId::b2BodyId;
       body_id_t() : b2BodyId(b2_nullBodyId) {}
-      body_id_t(const b2BodyId& body_id) : b2BodyId(body_id) {
+      body_id_t(const b2BodyId& body_id) : b2BodyId(body_id) {}
 
-      }
       void set_body(const body_id_t& b) {
         *this = b;
       }
@@ -204,6 +221,7 @@ export namespace fan {
       void apply_force_center(const fan::vec2& v);
 
       void apply_linear_impulse_center(const fan::vec2& v);
+      void zero_linear_impulse_center();
 
       void apply_angular_impulse(f32_t v) {
         auto& data = body_updates[*this];
@@ -239,6 +257,9 @@ export namespace fan {
       }
       f32_t get_friction() const {
         return b2Shape_GetFriction(get_shape_id());
+      }
+      f32_t get_mass() const {
+        return b2Shape_GetMassData(get_shape_id()).mass;
       }
       f32_t get_restitution() const {
         return b2Shape_GetRestitution(get_shape_id());
@@ -343,6 +364,71 @@ export namespace fan {
     };
 
     using body_type = b2BodyType;
+
+    fan::vec2 check_wall_contact(body_id_t body_id, shape_id_t* colliding_wall = nullptr) {
+      if (!body_id.is_valid()) {
+        return { 0, 0 };
+      }
+
+      b2ContactData contacts[16];
+      int contact_count = b2Body_GetContactData(body_id, contacts, 16);
+
+      for (int i = 0; i < contact_count; ++i) {
+        const b2ContactData& contact = contacts[i];
+        fan::vec2 normal = contact.manifold.normal;
+
+        b2BodyId body_a = b2Shape_GetBody(contact.shapeIdA);
+        f32_t sign = B2_ID_EQUALS(body_a, body_id) ? 1.0f : -1.0f;
+        normal = normal * sign;
+
+        if (colliding_wall) {
+          *colliding_wall = contact.shapeIdA;
+        }
+        if (std::abs(normal.x) > 0.7f && contact.manifold.pointCount > 0) {
+          return normal;
+        }
+      }
+
+      return { 0, 0 };
+    }
+
+
+    void apply_wall_slide(body_id_t body_id, const fan::vec2& wall_normal, f32_t slide_speed = 20.0f) {
+      if (!wall_normal) {
+        return;
+      }
+
+      fan::vec2 velocity = body_id.get_linear_velocity();
+      f32_t mass = body_id.get_mass();
+
+      // Only slow the fall if we're falling too fast
+      if (velocity.y > slide_speed) {
+
+        // Compute required impulse to reach target slide speed
+        f32_t delta_v = slide_speed - velocity.y;   // negative value (downwards to slower)
+        fan::vec2 impulse = fan::vec2(0, delta_v * mass);
+
+        body_id.apply_linear_impulse_center(impulse);
+      }
+    }
+
+
+    void wall_jump(body_id_t body_id, const fan::vec2& wall_normal, f32_t jump_force_x = 2, f32_t jump_force_y = -.5f, f32_t max_jump_speed = 60.f) {
+      if (!wall_normal) {
+        return;
+      }
+
+      fan::vec2 jump_velocity;
+      if (wall_normal.x > 0) {
+        jump_velocity = fan::vec2(-jump_force_x, jump_force_y);
+      }
+      else {
+        jump_velocity = fan::vec2(jump_force_x, jump_force_y);
+      }
+      if (body_id.get_linear_velocity().y > -max_jump_speed) {
+        body_id.apply_linear_impulse_center(jump_velocity);
+      }
+    }
 
     struct sensor_events_t {
       struct sensor_contact_t {
@@ -612,6 +698,9 @@ export namespace fan {
       void step(f32_t dt) {
         static f32_t accumulator = 0.0f;
         accumulator += dt;
+
+        f32_t physics_timestep = default_physics_timestep;
+
         while (accumulator >= physics_timestep) {
 
           process_collision_events();
@@ -622,7 +711,7 @@ export namespace fan {
 
             if (data.accumulated_impulse.x != 0.0f || data.accumulated_impulse.y != 0.0f) {
               b2Body_ApplyLinearImpulseToCenter(id, data.accumulated_impulse / length_units_per_meter, true);
-              data.accumulated_impulse = { 0,0 };
+              data.accumulated_impulse = { 0, 0 };
             }
             if (data.accumulated_angular_impulse != 0.0f) {
               b2Body_ApplyAngularImpulse(id, data.accumulated_angular_impulse / length_units_per_meter, true);
@@ -692,7 +781,7 @@ export namespace fan {
         remove_collision(shape_a, shape_b);
       }
 
-      void on_hit(b2ShapeId shape_a, b2ShapeId shape_b, float approach_speed) {
+      void on_hit(b2ShapeId shape_a, b2ShapeId shape_b, f32_t approach_speed) {
       }
 
       uint64_t get_shape_key(b2ShapeId shape) const {
@@ -771,7 +860,7 @@ export namespace fan {
       assert(b2Shape_IsValid(shapeIdA));
       assert(b2Shape_IsValid(shapeIdB));
 
-      float sign = 0.0f;
+      f32_t sign = 0.0f;
       if (B2_ID_EQUALS(shapeIdA, character_body)) {
         sign = 1.0f;
       }
@@ -788,9 +877,9 @@ export namespace fan {
         return true;
       }
 
-      float separation = 0.0f;
+      f32_t separation = 0.0f;
       for (int i = 0; i < manifold->pointCount; ++i) {
-        float s = manifold->points[i].separation;
+        f32_t s = manifold->points[i].separation;
         separation = separation < s ? separation : s;
       }
 
@@ -909,6 +998,10 @@ export namespace fan {
 void fan::physics::body_id_t::apply_linear_impulse_center(const fan::vec2& v) {
   auto& data = body_updates[*this];
   data.accumulated_impulse += v;
+}
+void fan::physics::body_id_t::zero_linear_impulse_center() {
+  auto& data = body_updates[*this];
+  data.accumulated_impulse = 0;
 }
 
 void fan::physics::body_id_t::apply_force_center(const fan::vec2& v) {

@@ -323,11 +323,11 @@ export namespace fan::graphics::gui {
         fan::color color = it->color;
         f32_t alpha = 1.0f;
         // fade-in
-        if (progress < 0.05f) {
+        /*if (progress < 0.05f) {
           alpha = progress / 0.05f;
-        }
+        }*/
         //fade-out
-        else if (progress > 0.8f) {
+        if (progress > 0.8f) {
           alpha = (1.0f - progress) / 0.2f;
         }
         color.a *= fan::math::clamp(alpha, 0.0f, 1.0f);

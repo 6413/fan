@@ -3545,7 +3545,7 @@ export namespace fan {
         if (fragment->empty()) {
           *fragment = gloco->shader_get_data(shape_type).sfragment;
         }
-        if (fan::graphics::gui::begin("shader editor")) {
+        if (fan::graphics::gui::begin("shader editor", 0, fan::graphics::gui::window_flags_no_saved_settings)) {
           if (!*shader_compiled) {
             gui::text("Failed to compile shader", fan::colors::red);
           }

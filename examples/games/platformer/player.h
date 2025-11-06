@@ -2,7 +2,7 @@ struct player_t {
 
   player_t() {
     body.jump_impulse = 3;
-    body.force = 15;
+    body.force = 50;
     body.max_speed = 270;
   }
 

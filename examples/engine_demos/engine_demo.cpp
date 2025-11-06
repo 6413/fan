@@ -489,11 +489,11 @@ void main() {
     fan::vec2 src = engine_demo->demo_physics_mirrors_data->user_ray.get_src();
     fan::vec2 dst = engine_demo->demo_physics_mirrors_data->user_ray.get_dst();
     engine_demo->demo_physics_mirrors_data->user_ray.set_line(src, dst);
-    bool mouse_inside_viewport = engine_demo->engine.inside_wir(engine_demo->right_column_view.viewport, get_mouse_position(engine_demo->right_column_view));
-    if (fan::window::is_mouse_down(fan::mouse_right) && mouse_inside_viewport) {
+    
+    if (fan::window::is_mouse_down(fan::mouse_right) && engine_demo->mouse_inside_demo_view) {
       engine_demo->demo_physics_mirrors_data->user_ray.set_line(get_mouse_position(engine_demo->right_column_view), dst);
     }
-    if (fan::window::is_mouse_down() && mouse_inside_viewport) {
+    if (fan::window::is_mouse_down() && engine_demo->mouse_inside_demo_view) {
       engine_demo->demo_physics_mirrors_data->user_ray.set_line(src, get_mouse_position(engine_demo->right_column_view));
     }
     for (auto [i, d] : fan::enumerate(engine_demo->demo_physics_mirrors_data->ray_hit_point)) {
@@ -690,6 +690,10 @@ void main() {
   });
 
   static void menus_engine_demo_left(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+    //static std::string code;
+    //static bool compiled = false;
+    //gui::fragment_shader_editor(engine_t::shape_type_t::line, &code, &compiled);
+
     gui::set_next_window_pos(next_window_position);
     gui::set_next_window_size(next_window_size);
     fan_graphics_gui_window("##Menu Engine Demo Left", 0, wnd_flags){
@@ -717,6 +721,10 @@ void main() {
     gui::set_next_window_pos(next_window_position + fan::vec2(0, window_size.y));
     gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y - window_size.y));
     gui::push_style_color(gui::col_window_bg, fan::colors::transparent);
+
+    engine_demo.mouse_inside_demo_view = engine_demo.engine.is_mouse_inside(engine_demo.right_column_view);
+    engine_demo.interactive_camera.ignore = !engine_demo.mouse_inside_demo_view;
+
     fan_graphics_gui_window("##Menu Engine Demo Right Content Bottom", 0, wnd_flags | gui::window_flags_no_inputs) {
       gui::set_viewport(engine_demo.right_column_view.viewport);
       fan::vec2 viewport_size = engine_demo.engine.viewport_get(engine_demo.right_column_view.viewport).viewport_size;
@@ -725,6 +733,9 @@ void main() {
         fan::vec2(0, viewport_size.x),
         fan::vec2(0, viewport_size.y)
       );
+      if (engine_demo.interactive_camera.get_position() == fan::vec2(0.f)) {
+        engine_demo.interactive_camera.set_position(engine_demo.engine.viewport_get_size(engine_demo.right_column_view.viewport) / 2.f);
+      }
     }
     gui::pop_style_color();
   }
@@ -791,7 +802,7 @@ void main() {
 #undef engine_demo
 
   void create_gui() {
-    engine.clear_color = 0;
+    engine.clear_color = 1;
     // disable actively rendering page and assign "Engine Demos" option as first
     engine.settings_menu.reset_page_selection();
     {
@@ -802,8 +813,11 @@ void main() {
       page.page_right_render = menus_engine_demo_right;
       engine.settings_menu.pages.emplace_front(page);
     }
-    right_column_view.camera = engine.camera_create();
-    right_column_view.viewport = engine.viewport_create();
+    right_column_view.create();
+    interactive_camera = {
+      right_column_view.camera,
+      right_column_view.viewport
+    };
   }
 
   void update() {
@@ -814,6 +828,9 @@ void main() {
   }
 
   fan::graphics::render_view_t right_column_view;
+  bool mouse_inside_demo_view = false;;
+  // allows to move and zoom camera with mouse
+  fan::graphics::interactive_camera_t interactive_camera;
   uint8_t current_demo = 0;
   int shape_count = 10;
   std::vector<engine_t::shape_t> shapes;

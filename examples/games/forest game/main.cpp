@@ -134,7 +134,7 @@ int main() {
   pile.player.body.force = 50;
   pile.player.body.max_speed = 1000;
 
-  //fan::graphics::physics::debug_draw(true);
+  fan::graphics::physics::debug_draw(true);
 
   fan::graphics::interactive_camera_t ic(
     pile.loco.orthographic_render_view.camera, 

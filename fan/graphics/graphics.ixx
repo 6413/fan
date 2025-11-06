@@ -1174,7 +1174,7 @@ export namespace fan {
   namespace graphics {
     struct interactive_camera_t {
       f32_t zoom = 2;
-      bool hovered = false;
+      bool ignore = false;
       bool zoom_on_window_resize = true;
       bool pan_with_middle_mouse = false;
       fan::vec2 old_window_size{};
@@ -1219,6 +1219,9 @@ export namespace fan {
         });
 
         button_cb_nr = window.add_buttons_callback([&](const auto& d) {
+          if (ignore) {
+            return;
+          }
           if (d.button == fan::mouse_scroll_up) {
             zoom *= 1.2;
           }
@@ -1241,6 +1244,12 @@ export namespace fan {
         });
       }
 
+      interactive_camera_t(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 2.f) :
+        interactive_camera_t(render_view.camera, render_view.viewport, new_zoom)
+      {
+
+      }
+
       ~interactive_camera_t() {
         if (resize_callback_nr.iic() == false) {
           gloco->window.remove_resize_callback(resize_callback_nr);
@@ -1258,6 +1267,14 @@ export namespace fan {
           gloco->m_update_callback.unlrec(uc_nr);
           uc_nr.sic();
         }
+      }
+
+      fan::vec2 get_position() const {
+        return camera_offset;
+      }
+      void set_position(const fan::vec2& position) {
+        camera_offset = position;
+        gloco->camera_set_position(reference_camera, camera_offset);
       }
     };
 

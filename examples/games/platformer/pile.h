@@ -10,7 +10,7 @@ struct pile_t {
 
   void step() {
     //player updates
-    engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position());
+    engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
     player.step();
     
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
@@ -23,7 +23,7 @@ struct pile_t {
   fte_renderer_t renderer;
 
   stage_loader_t stage_loader;
-    stage_loader_t::nr_t  current_stage;
+  stage_loader_t::nr_t  current_stage;
 
   fan::graphics::interactive_camera_t ic{
     engine.orthographic_render_view.camera,
@@ -31,26 +31,26 @@ struct pile_t {
   };
 }pile;
 
-lstd_defstruct(example_stage_t)
+lstd_defstruct(level_t)
   #include <fan/graphics/gui/stage_maker/preset.h>
   static constexpr auto stage_name = "";
-  #include "example_stage.h"
+  #include "level.h"
 };
 
 pile_t::pile_t() {
-  engine.clear_color = 0;
+  engine.clear_color = fan::color::from_rgb(0x1A2A2E);
   engine.lighting.ambient = 1;
   fan::graphics::image_load_properties_t lp;
   lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_border;
   lp.min_filter = fan::graphics::image_filter::nearest;
-  lp.mag_filter = fan::graphics::image_filter::nearest;
+  lp.mag_filter = lp.min_filter;
 
   engine.texture_pack.open_compiled("sample_texture_pack.ftp", lp);
 
   renderer.open();
   
   player.body.set_physics_position(player.body.get_position());
-  engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position());
+  engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
 
-  current_stage = pile.stage_loader.open_stage<example_stage_t>();
+  current_stage = pile.stage_loader.open_stage<level_t>();
 }

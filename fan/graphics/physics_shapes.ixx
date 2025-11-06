@@ -65,7 +65,7 @@ void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexC
   std::vector<fan::graphics::vertex_t> vs(vertexCount);
   for (auto [i, v] : fan::enumerate(vs)) {
     v.position = fan::physics::physics_to_render(vertices[i]);
-    v.color = fan::color::from_rgb(color);
+    v.color = fan::color::from_rgb(color).set_alpha(0.5);
   }
   debug_draw_solid_polygon.emplace_back(fan::graphics::polygon_t{ {
     .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
@@ -81,7 +81,7 @@ void DrawCircle(b2Vec2 center, f32_t radius, b2HexColor color, void* context) {
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
     .position = fan::vec3(fan::physics::physics_to_render(center), draw_depth + z_depth),
     .radius = (f32_t)fan::physics::physics_to_render(radius).x,
-    .color = fan::color::from_rgb(color),
+    .color = fan::color::from_rgb(color).set_alpha(0.5),
   } });
   ++z_depth;
 }
@@ -91,7 +91,7 @@ void DrawSolidCircle(b2Transform transform, f32_t radius, b2HexColor color, void
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
     .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
     .radius = (f32_t)fan::physics::physics_to_render(radius).x,
-    .color = fan::color::from_rgb(color),
+    .color = fan::color::from_rgb(color).set_alpha(0.5),
   } });
   ++z_depth;
 }
@@ -108,7 +108,7 @@ void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void
       .center0 = fan::physics::physics_to_render(p1),
       .center1 = fan::physics::physics_to_render(p2),
       .radius = (f32_t)fan::physics::physics_to_render(radius).x,
-      .color = fan::color::from_rgb(color).set_alpha(0.8),
+      .color = fan::color::from_rgb(color).set_alpha(0.5),
   } });
   ++z_depth;
 }
@@ -134,7 +134,7 @@ void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
   debug_draw_circle.emplace_back(fan::graphics::circle_t{ {
     .position = fan::vec3(fan::physics::physics_to_render(p), draw_depth + z_depth),
     .radius = size / 2.f,
-    .color = fan::color::from_rgb(color)
+    .color = fan::color::from_rgb(color).set_alpha(0.5)
   } });
   ++z_depth;
 }
@@ -157,8 +157,8 @@ b2DebugDraw initialize_debug(bool enabled) {
   .DrawSolidPolygonFcn = DrawSolidPolygon,
   .DrawCircleFcn = DrawCircle,
   .DrawSolidCircleFcn = DrawSolidCircle,
- // .DrawCapsuleFcn = DrawCapsule,
- // .DrawSolidCapsuleFcn = DrawSolidCapsule,
+  //.DrawCapsuleFcn = DrawCapsule,
+  .DrawSolidCapsuleFcn = DrawSolidCapsule,
   .DrawSegmentFcn = DrawSegment,
   .DrawTransformFcn = DrawTransform,
   .DrawPointFcn = DrawPoint,
@@ -445,8 +445,8 @@ export namespace fan {
           b2MassData md = b2Body_GetMassData(*dynamic_cast<const fan::physics::body_id_t*>(dynamic_cast<const fan::physics::entity_t*>(this)));
           mass_data_t mass_data;
           mass_data.mass = md.mass;
-          mass_data.center_of_mass = md.mass;
-          mass_data.rotational_inertia = md.mass;
+          mass_data.center_of_mass = md.center;
+          mass_data.rotational_inertia = md.rotationalInertia;
           return mass_data;
         }
 
@@ -651,7 +651,7 @@ export namespace fan {
           fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
           fan::vec2 center0{ 0, -32.f };
           fan::vec2 center1{ 0, 32.f };
-          f32_t radius = 32.f;
+          f32_t radius = 16.f;
           fan::vec3 angle = 0.f;
           fan::color color = fan::color(1, 1, 1, 1);
           fan::color outline_color = color;
@@ -911,16 +911,18 @@ export namespace fan {
         struct movement_e {
           enum {
             side_view, // left, right, space to jump
-            top_view // left, right, up, down wasd
+            top_view // left, right, down, up wasd
           };
         };
 
-        character2d_t() {
-        
-        }
-        character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {
-        
-        }
+        struct wall_jump_t {
+          fan::vec2 normal;
+          f32_t slide_speed = 100.f;
+          f32_t push_away_force = 1.f;
+        }wall_jump;
+
+        character2d_t() = default;
+        character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {}
 
         void set_shape(loco_t::shape_t&& shape) {
           physics::base_shape_t::set_shape(std::move(shape));
@@ -973,64 +975,72 @@ export namespace fan {
         }
         void process_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12) {
           fan::vec2 velocity = get_linear_velocity();
-          
+
+          fan::physics::shape_id_t colliding_wall_id;
+          wall_jump.normal = fan::physics::check_wall_contact(*this, &colliding_wall_id);
+
           walk_force = 0;
+
+          fan::vec2 input_vector = gloco->get_input_vector();
 
           switch (movement) {
           case movement_e::side_view: {
-
-            move_to_direction(fan::vec2(gloco->get_input_vector().x, 0));
-            bool can_jump = false;
+            move_to_direction(fan::vec2(input_vector.x, 0));
 
             bool on_ground = is_on_ground(*this, std::to_array(feet), jumping);
-            can_jump = on_ground || (((fan::time::clock::now() - last_ground_time) / 1e+9 <= coyote_time) && !on_air_after_jump);
+            bool can_jump = on_ground || (((fan::time::clock::now() - last_ground_time) / 1e+9 <= coyote_time) && !on_air_after_jump);
+
             if (on_ground) {
               last_ground_time = fan::time::clock::now();
               on_air_after_jump = false;
             }
 
-            //static fan::time::timer c;
-            //static fan::vec2 prev;
-            //static bool reset = 0;
-            ////fan::print(get_position().y, prev.y, get_linear_velocity().y);
-            //if (get_position().y < prev.y && get_linear_velocity().y > 0 && !reset) {
-            //  fan::print("fps:", 1.0 / gloco->delta_time, "time to highest point (s): ", c.elapsed() / 1e+9);
-            //  reset = true;
-            //}
-            //prev.y = get_position().y;
+            if (wall_jump.normal && !on_ground && input_vector.x) {
+              colliding_wall_id.set_friction(0.f); // no friction when hugging wall
+              if (!jumping) {
+                fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
+              }
+            }
+            else if (colliding_wall_id) {
+              colliding_wall_id.set_friction(fan::physics::shape_properties_t().friction);
+            }
+
             bool move_up = gloco->input_action.is_action_clicked("move_up");
             if (move_up) {
-              if (can_jump) {
-                if (handle_jump) {
-                  on_air_after_jump = true;
-                  apply_linear_impulse_center({ 0, -jump_impulse });
-                 // prev = get_position().y;
-               //   c.start();
-               //   reset = false;
-                }
-                jump_delay = 0.f;
+              if (wall_jump.normal && !on_ground) {
+                fan::physics::wall_jump(*this, wall_jump.normal, wall_jump.push_away_force, -jump_impulse);
+                on_air_after_jump = true;
                 jumping = true;
               }
-              else {
-                jumping = false;
+              else if (can_jump && handle_jump) {
+                on_air_after_jump = true;
+                apply_linear_impulse_center({ 0, -jump_impulse });
+                jumping = true;
               }
             }
             else {
               jumping = false;
             }
+
             jump_delay = 0;
             break;
           }
           case movement_e::top_view: {
-            move_to_direction(gloco->get_input_vector());
+            move_to_direction(input_vector);
             break;
           }
           }
         }
         void move_to_direction(const fan::vec2& direction) {
-          previous_movement_sign = direction.sign(); // square_normalize?
           fan::vec2 vel = get_linear_velocity();
-          apply_force_center((fan::vec2(1.0) - (fan::vec2i(vel / max_speed).min(1)).abs()) * previous_movement_sign * force);
+          //apply_force_center((fan::vec2(1.0) - (fan::vec2i(vel / max_speed).min(1)).abs()) * direction.sign() * force);
+          
+          fan::vec2 input_dir = direction.sign();
+          if (vel.dot(direction) < max_speed) {
+            apply_force_center(direction.sign() * force);
+          }
+
+          previous_movement_sign = direction.sign(); // square_normalize?
         }
 
         void set_physics_position(const fan::vec2& p) {
