@@ -50,13 +50,7 @@ pile_t::pile_t() {
   renderer.open();
   
   player.body.set_physics_position(player.body.get_position());
+  engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position());
 
-  fan::vec2 dst = player.player.get_position();
-  fan::vec2 camera_offset = fan::vec2(0, -engine.window.get_size().y / 4);
-  engine.camera_set_position(
-    engine.orthographic_render_view.camera, 
-    dst + camera_offset // move camera higher to display more area upwards
-  );
-
-  current_stage = stage_loader_t::open_stage<example_stage_t>();
+  current_stage = pile.stage_loader.open_stage<example_stage_t>();
 }

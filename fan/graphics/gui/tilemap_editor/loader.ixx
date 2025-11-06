@@ -110,19 +110,24 @@ public:
   void iterate_physics_entities(id_t map_id, auto l) {
     auto& node = map_list[map_id];
     for (auto& i : node.physics_entities) {
-      std::visit([&]<typename T>(T & entity) {
-        l(i, entity);
+      bool stop = std::visit([&]<typename T>(T & entity) -> bool {
+        return l(i, entity);
       }, i.visual);
+      if (stop) {
+        break;
+      }
     }
   }
 
   fan::physics::body_id_t get_physics_body(id_t map_id, const std::string& id) {
     fan::physics::body_id_t body;
     iterate_physics_entities(map_id,
-      [&]<typename T>(auto& entity, T & entity_visual) {
+      [&]<typename T>(auto& entity, T & entity_visual) -> bool {
       if (entity.id == id) {
         body = entity_visual;
+        return true; // quit iterating
       }
+      return false;
     });
     return body;
   }
@@ -153,6 +158,15 @@ public:
       }
     }
     return false;
+  }
+
+  fan::vec3 get_position(id_t map_id, const std::string& id) {
+    fte_t::tile_t tile;
+    if (get_body(map_id, id, tile)) {
+      return tile.position;
+    }
+    fan::throw_error("failed to find id");
+    return {};
   }
 
   void open() {

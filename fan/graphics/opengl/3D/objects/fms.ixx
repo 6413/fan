@@ -475,8 +475,8 @@ export namespace fan_3d {
           global_max.y = std::max(global_max.y, max.y);
           global_max.z = std::max(global_max.z, max.z);
         }
-        aabbmin = global_min == std::numeric_limits<float>::max() ? 1 : global_min;
-        aabbmax = global_max == std::numeric_limits<float>::min() ? 1 : global_max;
+        aabbmin = global_min == std::numeric_limits<float>::max() ? fan::vec3(1) : global_min;
+        aabbmax = global_max == std::numeric_limits<float>::min() ? fan::vec3(1) : global_max;
         //scale_divider = std::max(scale_divider, largest_bone.length());
         update_bone_transforms();
         //m_transform = m_transform.scale(1.0 / (scale_divider / 10));

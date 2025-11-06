@@ -28,3 +28,4 @@ void update() {
 
 fte_loader_t::id_t main_map_id;
 fte_loader_t::compiled_map_t main_compiled_map;
+std::vector<fan::physics::entity_t> collisions;

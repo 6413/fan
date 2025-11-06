@@ -1,12 +1,6 @@
 struct player_t {
 
   player_t() {
-    light = fan::graphics::light_t{ {
-      .position = player.get_position(),
-      .size = 200,
-      .color = fan::colors::white,
-      .flags = 3
-    } };
     body.jump_impulse = 3;
     body.force = 15;
     body.max_speed = 270;
@@ -33,6 +27,10 @@ struct player_t {
       .fixed_rotation = true
     },
   }}};
-  loco_t::shape_t light;
-  fan::graphics::animator_t animator;
+  fan::graphics::light_t light{ {
+    .position = body.get_position(),
+    .size = 200,
+    .color = fan::colors::white/*,
+    .flags = 3*/
+  } };
 };

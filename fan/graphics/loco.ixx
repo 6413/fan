@@ -678,7 +678,7 @@ export struct loco_t {
 		fan::vec2 src = camera_get_position(orthographic_render_view.camera);
 		camera_set_position(
 			orthographic_render_view.camera,
-			src + (target - src) * delta_time * move_speed
+			move_speed == 0 ? target : src + (target - src) * delta_time * move_speed
 		);
 	}
 
@@ -724,6 +724,25 @@ export struct loco_t {
 	bool inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
 		return context_functions.viewport_inside_wir(&context, nr, position);
 	}
+
+  struct render_view_t;
+
+  bool inside(const loco_t::render_view_t& render_view, const fan::vec2& position) const {
+    fan::vec2 tp = translate_position(position, render_view.viewport, render_view.camera);
+
+    auto c = gloco->camera_get(render_view.camera);
+    f32_t l = c.coordinates.left;
+    f32_t r = c.coordinates.right;
+    f32_t t = c.coordinates.up;
+    f32_t b = c.coordinates.down;
+
+    return tp.x >= l && tp.x <= r &&
+           tp.y >= t && tp.y <= b;
+  }
+
+  bool is_mouse_inside(const loco_t::render_view_t& render_view) const {
+    return inside(render_view, get_mouse_position());
+  }
 
 	fan::graphics::context_functions_t context_functions;
 	fan::graphics::context_t context;
@@ -3462,16 +3481,19 @@ public:
 
 #pragma pack(pop)
 
-	fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport) {
+	fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport) const {
 		return transform_position(get_mouse_position(), viewport, camera);
 	}
+  fan::vec2 get_mouse_position(const loco_t::render_view_t& render_view) const {
+		return get_mouse_position(render_view.camera, render_view.viewport);
+	}
 
-	fan::vec2 get_mouse_position() {
+	fan::vec2 get_mouse_position() const {
 		return window.get_mouse_position();
 		//return get_mouse_position(gloco->default_camera->camera, gloco->default_camera->viewport); behaving oddly
 	}
 
-	fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) {
+	fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) const {
 
 		auto v = gloco->viewport_get(viewport);
 		fan::vec2 viewport_position = v.viewport_position;
@@ -3491,7 +3513,7 @@ public:
 		return tp;
 	}
 
-	fan::vec2 translate_position(const fan::vec2& p) {
+	fan::vec2 translate_position(const fan::vec2& p) const {
 		return translate_position(p, orthographic_render_view.viewport, orthographic_render_view.camera);
 	}
 

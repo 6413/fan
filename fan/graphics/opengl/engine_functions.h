@@ -896,6 +896,11 @@ void draw_shapes() {
             "mouse_position",
             loco.get_mouse_position()
           );
+          loco.shader_set_value(
+            shader,
+            "camera_zoom",
+            loco.camera_get_zoom(camera, viewport)
+          );
           //fan::print(fan::time::clock::now() / 1e+9);
         }
         loco.shader_set_value(shader, loco_t::lighting_t::ambient_name, gloco->lighting.ambient);
