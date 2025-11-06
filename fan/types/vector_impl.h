@@ -111,6 +111,10 @@ template <typename T>
 constexpr bool operator !=(const T& rhs) const {
   return !(*this == rhs);
 }
+
+explicit constexpr operator bool() const {
+  return (*this != value_type_t(0));
+}
                     
 #define __FAN_SWITCH_IDX(x, idx) case size() - (idx + 1): return x
 
