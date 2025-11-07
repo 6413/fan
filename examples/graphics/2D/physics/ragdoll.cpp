@@ -36,7 +36,7 @@ int main() {
     .shape_properties{},
   } };
 
-  loco_t::image_load_properties_t lp;
+  fan::graphics::image_load_properties_t lp;
   lp.visual_output = loco_t::image_sampler_address_mode::repeat;
   auto character_images = fan::graphics::physics::human_t::load_character_images("characters/oldman", lp);
 

@@ -15,22 +15,22 @@ int main() {
   gp.color[1] = fan::color(1, 0, 0, 1);
   gp.color[2] = fan::color(0, 0, 1, 1);
   gp.color[3] = fan::color(0, 0, 1, 1);
-  loco_t::shape_t rect = gp;
+  fan::graphics::shape_t rect = gp;
 
-  loco_t::image_t image;
+  fan::graphics::image_t image;
   
   p.image = loco.image_load("images/tire.webp");
   p.position = fan::vec3(loco.window.get_size() / 2, 1);
   p.size = 300;
   p.color.a = 1;
-  loco_t::shape_t s0 = p;
+  fan::graphics::shape_t s0 = p;
 
   loco_t::light_t::properties_t lp;
   lp.position = fan::vec3(400, 400, 0);
   lp.size = 100;
   lp.color = fan::colors::yellow * 10;
 
-    loco_t::shape_t l0 = lp;
+    fan::graphics::shape_t l0 = lp;
 
     //auto g0 = loco_t::imgui_fs_var_t<f32_t>(&gloco->m_fbo_final_shader, "edge0", 0.2, 0.1);
     //auto g1 = loco_t::imgui_fs_var_t<f32_t>(&gloco->m_fbo_final_shader, "edge1", 0.4, 0.1);

@@ -12,6 +12,9 @@ export import fan.utility;
 export import fan.graphics;
 export import fan.network;
 export import fan.event;
+import fan.types;
+import fan.types.json;
+import fan.graphics.shapes;
 
 export namespace fan::graphics::network {
   template<typename send_type_t, typename receive_type_t>

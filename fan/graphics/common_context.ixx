@@ -9,6 +9,11 @@ module;
 #include <string>
 #include <vector>
 #include <source_location>
+#include <functional>
+
+#if defined(fan_gui)
+  #include <fan/imgui/imgui.h>
+#endif
 
 export module fan.graphics.common_context;
 
@@ -16,8 +21,15 @@ export import fan.types.color;
 export import fan.graphics.image_load;
 export import fan.camera;
 
+import fan.window;
+import fan.window.input_action;
 import fan.print;
 import fan.utility;
+
+#if defined(fan_gui)
+  import fan.console;
+  import fan.graphics.gui.text_logger;
+#endif
 
 export namespace fan {
   namespace graphics {
@@ -297,6 +309,364 @@ export namespace fan {
     }
   };
 }
+
+
+namespace bll_builds {
+  #define BLL_set_SafeNext 1
+  #define BLL_set_prefix update_callback
+  #include <fan/fan_bll_preset.h>
+  #define BLL_set_Link 1
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType std::function<void(void*)>
+  #define BLL_set_CPP_CopyAtPointerChange 1
+  #include <BLL/BLL.h>
+
+  
+#if defined(fan_gui)
+  #define BLL_set_SafeNext 1
+  #define BLL_set_prefix gui_draw_cb
+  #include <fan/fan_bll_preset.h>
+  #define BLL_set_Link 1
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType std::function<void()>
+  #include <BLL/BLL.h>
+  #endif
+}
+
+export namespace fan::graphics{
+  using update_callback_t = bll_builds::update_callback_t;
+  using update_callback_nr_t = bll_builds::update_callback_NodeReference_t;
+
+  using gui_draw_cb_t = bll_builds::gui_draw_cb_t;
+  using gui_draw_cb_nr_t = bll_builds::gui_draw_cb_NodeReference_t;
+  
+  bool gui_draw_cb_inric(gui_draw_cb_nr_t nr) {
+    return bll_builds::gui_draw_cb_inric(nr);
+  }
+}
+
+export namespace fan::graphics {
+  using camera_t = fan::graphics::camera_nr_t;
+  using shader_t = fan::graphics::shader_nr_t;
+  using viewport_t = fan::graphics::viewport_nr_t;
+  // image_t defined after render_context_handle_t
+
+  struct render_view_t;
+
+  
+  struct lighting_t {
+    static constexpr const char* ambient_name = "lighting_ambient";
+    fan::vec3 ambient = fan::vec3(1, 1, 1);
+
+    fan::vec3 start = ambient;
+    fan::vec3 target = fan::vec3(1, 1, 1);
+    f32_t duration = 0.5f; // seconds to reach target
+    f32_t elapsed = 0.f;
+
+    void set_target(const fan::vec3& t, f32_t d = 0.5f) {
+      start = ambient;
+      target = t;
+      duration = d;
+      elapsed = 0.0f;
+    }
+
+    void update(f32_t delta_time) {
+      if (elapsed < duration) {
+        elapsed += delta_time;
+        f32_t t = std::min(elapsed / duration, 1.0f);
+        ambient = fan::math::lerp(start, target, t);
+      }
+    }
+
+    bool is_near(const fan::vec3& t, f32_t eps = 0.01f) const {
+      return ambient.distance(t) < eps;
+    }
+    bool is_near_target(f32_t eps = 0.01f) const {
+      return is_near(target, eps);
+    }
+  };
+
+  struct render_context_handle_t {
+    void set_context(context_functions_t& ctx, void* context) {
+      render_functions = &ctx;
+      render_context = context;
+    }
+
+    context_functions_t* operator->() { return render_functions; }
+    operator void* () { return render_context; }
+
+    uint8_t get_renderer() {
+      return window->renderer;
+    }
+
+    context_functions_t* render_functions = nullptr;
+    void* render_context = nullptr;
+
+    // common data
+    fan::graphics::image_nr_t default_texture;
+    image_list_t* image_list = nullptr;
+    shader_list_t* shader_list = nullptr;
+    fan::window_t* window = nullptr;
+
+    fan::graphics::render_view_t* orthographic_render_view = nullptr;
+    fan::graphics::render_view_t* perspective_render_view = nullptr;
+
+    update_callback_t* update_callback = nullptr;
+
+    fan::window::input_action_t* input_action = nullptr;
+    fan::console_t* console = nullptr;
+
+    lighting_t* lighting = nullptr;
+
+  #if defined(fan_gui)
+
+    gui_draw_cb_t* gui_draw_cbs = nullptr;
+    fan::graphics::gui::text_logger_t* text_logger = nullptr;
+  #endif
+  };
+
+  thread_local inline render_context_handle_t g_render_context_handle;
+
+  fan::window_t& get_window() {
+    return *fan::graphics::g_render_context_handle.window;
+  }
+
+  render_context_handle_t& ctx() {
+    return g_render_context_handle;
+  }
+
+  fan::graphics::render_view_t& get_orthographic_render_view() {
+    return *ctx().orthographic_render_view;
+  }
+  fan::graphics::render_view_t& get_perspective_render_view() {
+    return *ctx().perspective_render_view;
+  }
+
+  fan::graphics::image_data_t& image_get_data(fan::graphics::image_nr_t nr) {
+		return (*ctx().image_list)[nr];
+	}
+
+  lighting_t& get_lighting() {
+    return *ctx().lighting;
+  }
+
+  gui_draw_cb_t& get_gui_draw_cbs() {
+    return *ctx().gui_draw_cbs;
+  }
+  
+  struct image_t : fan::graphics::image_nr_t {
+    using fan::graphics::image_nr_t::image_nr_t;
+    // for no gloco access
+    explicit image_t(bool) : fan::graphics::image_nr_t() {}
+    image_t() : fan::graphics::image_nr_t(g_render_context_handle.default_texture) {}
+    image_t(fan::graphics::image_nr_t image) : fan::graphics::image_nr_t(image) {
+
+    }
+    image_t(const char* path, const std::source_location& callers_path = std::source_location::current())
+      : image_t(std::string(path), callers_path) {
+    }
+    image_t(const std::string& path, const std::source_location& callers_path = std::source_location::current())
+      : fan::graphics::image_nr_t(g_render_context_handle->image_load_path(g_render_context_handle, path, callers_path)) {}
+
+    fan::vec2 get_size() const {
+      return fan::graphics::image_get_data(*this).size;
+    }
+    operator fan::graphics::image_nr_t& () {
+      return static_cast<fan::graphics::image_nr_t&>(*this);
+    }
+    operator const fan::graphics::image_nr_t& () const {
+      return static_cast<const fan::graphics::image_nr_t&>(*this);
+    }
+  };
+
+  fan::graphics::image_t get_default_texture() {
+    return ctx().default_texture;
+  }
+
+  struct render_view_t {
+    fan::graphics::camera_t camera;
+    fan::graphics::viewport_t viewport;
+
+    void create() {
+      camera = g_render_context_handle->camera_create(g_render_context_handle);
+      viewport = g_render_context_handle->viewport_create(g_render_context_handle);
+    }
+
+    void remove() {
+      g_render_context_handle->camera_erase(g_render_context_handle, camera);
+      g_render_context_handle->viewport_erase(g_render_context_handle, viewport);
+    }
+
+    void set(
+      const fan::vec2& ortho_x, const fan::vec2& ortho_y,
+      const fan::vec2& viewport_position, const fan::vec2& viewport_size,
+      const fan::vec2& window_size
+    ) {
+      g_render_context_handle->camera_set_ortho(g_render_context_handle, camera, ortho_x, ortho_y);
+      g_render_context_handle->viewport_set(
+        g_render_context_handle, viewport_position, viewport_size, window_size
+      );
+    }
+  };
+
+  fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) {
+		auto v = g_render_context_handle->viewport_get(g_render_context_handle, viewport);
+    auto c = g_render_context_handle->camera_get(g_render_context_handle, camera);
+
+		fan::vec2 viewport_position = v.viewport_position;
+		fan::vec2 viewport_size = v.viewport_size;
+
+		f32_t l = c.coordinates.left;
+		f32_t r = c.coordinates.right;
+		f32_t t = c.coordinates.up;
+		f32_t b = c.coordinates.down;
+
+		fan::vec2 tp = p - viewport_position;
+		fan::vec2 d = viewport_size;
+		tp /= d;
+		tp = fan::vec2(r * tp.x - l * tp.x + l, b * tp.y - t * tp.y + t);
+		return tp;
+	}
+
+  fan::vec2 transform_position(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera) {
+    auto v = g_render_context_handle->viewport_get(g_render_context_handle, viewport);
+    auto c = g_render_context_handle->camera_get(g_render_context_handle, camera);
+
+    fan::vec2 viewport_position = v.viewport_position;
+    fan::vec2 viewport_size = v.viewport_size;
+
+    f32_t l = c.coordinates.left;
+    f32_t r = c.coordinates.right;
+    f32_t t = c.coordinates.up;
+    f32_t b = c.coordinates.down;
+
+    fan::vec2 tp = p - viewport_position;
+    fan::vec2 d = viewport_size;
+    tp /= d;
+    tp = fan::vec2(r * tp.x - l * tp.x + l, b * tp.y - t * tp.y + t);
+    tp += c.position;
+    return tp;
+  }
+
+  fan::vec2 get_mouse_position() {
+    return fan::graphics::g_render_context_handle.window->get_mouse_position();
+    //return get_mouse_position(default_camera->camera, default_camera->viewport); behaving oddly
+  }
+  fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport) {
+    return fan::graphics::transform_position(get_mouse_position(), viewport, camera);
+  }
+  fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view) {
+    return get_mouse_position(render_view.camera, render_view.viewport);
+  }
+  struct icons_t {
+    image_t play;
+    image_t pause;
+    image_t settings;
+  }icons;
+}
+
+#if defined(fan_gui)
+export namespace fan::graphics::gui {
+  inline constexpr f32_t font_sizes[] = {
+  4, 5, 6, 7, 8, 9, 10, 11, 12, 14,
+  16, 18, 20, 22, 24, 28,
+  32, 36, 48, 60, 72
+  };
+  ImFont* fonts[std::size(font_sizes)]{};
+	ImFont* fonts_bold[std::size(font_sizes)]{};
+}
+#endif
+
+export namespace fan {
+  namespace window {
+
+    fan::vec2 get_input_vector(
+      const std::string& forward = "move_forward",
+      const std::string& back = "move_back",
+      const std::string& left = "move_left",
+      const std::string& right = "move_right"
+    ) {
+      auto& ia = *fan::graphics::g_render_context_handle.input_action;
+      fan::vec2 v(
+        ia.is_action_down(right) - ia.is_action_down(left),
+        ia.is_action_down(back) - ia.is_action_down(forward)
+      );
+      return v.length() > 0 ? v.normalized() : v;
+    }
+    fan::vec2 get_size() {
+      return fan::graphics::g_render_context_handle.window->get_size();
+    }
+    void set_size(const fan::vec2& size) {
+      fan::graphics::g_render_context_handle.window->set_size(size);
+      fan::graphics::g_render_context_handle->viewport_set_nr(
+        fan::graphics::g_render_context_handle,
+        fan::graphics::g_render_context_handle.orthographic_render_view->viewport,
+        fan::vec2(0, 0),
+        size, 
+        fan::window::get_size()
+      );
+      fan::graphics::g_render_context_handle->camera_set_ortho(
+        fan::graphics::g_render_context_handle,
+        fan::graphics::g_render_context_handle.orthographic_render_view->camera,
+        fan::vec2(0, size.x),
+        fan::vec2(0, size.y)
+      );
+
+      fan::graphics::g_render_context_handle->viewport_set_nr(
+        fan::graphics::g_render_context_handle,
+        fan::graphics::g_render_context_handle.perspective_render_view->viewport, 
+        fan::vec2(0, 0), 
+        size,
+        fan::window::get_size()
+      );
+      fan::graphics::g_render_context_handle->camera_set_ortho(
+        fan::graphics::g_render_context_handle,
+        fan::graphics::g_render_context_handle.perspective_render_view->camera,
+        fan::vec2(0, size.x),
+        fan::vec2(0, size.y)
+      );
+    }
+
+    fan::vec2 get_mouse_position() {
+      return fan::graphics::get_mouse_position();
+    }
+    bool is_mouse_clicked(int button = fan::mouse_left) {
+      return fan::graphics::g_render_context_handle.window->key_state(button) == (int)fan::mouse_state::press;
+    }
+    bool is_mouse_down(int button = fan::mouse_left) {
+      int state = fan::graphics::g_render_context_handle.window->key_state(button);
+      return
+        state == (int)fan::mouse_state::press ||
+        state == (int)fan::mouse_state::repeat;
+    }
+    bool is_mouse_released(int button = fan::mouse_left) {
+      return fan::graphics::g_render_context_handle.window->key_state(button) == (int)fan::mouse_state::release;
+    }
+    fan::vec2 get_mouse_drag(int button = fan::mouse_left) {
+      auto* win = fan::graphics::g_render_context_handle.window;
+      if (is_mouse_down(button)) {
+        if (win->drag_delta_start != fan::vec2(-1)) {
+          return win->get_mouse_position() - win->drag_delta_start;
+        }
+      }
+      return fan::vec2();
+    }
+
+    bool is_key_pressed(int key) {
+      return fan::graphics::g_render_context_handle.window->key_state(key) == (int)fan::mouse_state::press;
+    }
+    bool is_key_down(int key) {
+      int state = fan::graphics::g_render_context_handle.window->key_state(key);
+      return
+        state == (int)fan::mouse_state::press ||
+        state == (int)fan::mouse_state::repeat;
+    }
+    bool is_key_released(int key) {
+      return fan::graphics::g_render_context_handle.window->key_state(key) == (int)fan::mouse_state::release;
+    }
+  }
+}
+
 
 #undef context_typedef_func_ptr
 #undef context_typedef_func_ptr2

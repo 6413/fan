@@ -33,6 +33,10 @@ export import fan.types.matrix;
 export import fan.print;
 export import fan.graphics;
 
+#if defined(fan_opengl)
+  import fan.graphics.opengl.core;
+#endif
+
 
 #undef fan_3d
 export namespace fan_3d {

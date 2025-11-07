@@ -24,7 +24,7 @@ int main() {
   p.size = 1;
   p.position = 0;
   p.blending = true;
-  loco_t::shape_t sprite = p;
+  fan::graphics::shape_t sprite = p;
   
   loco.loop([&] {
 

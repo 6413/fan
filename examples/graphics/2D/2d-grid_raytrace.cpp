@@ -11,7 +11,7 @@ int main() {
   fan::vec2 map_size(16, 16);
   fan::vec2 tile_size(32, 32);
 
-  std::vector<std::vector<loco_t::shape_t>> map;
+  std::vector<std::vector<fan::graphics::shape_t>> map;
 
   fan::vec2 window_size = loco.window.get_size();
 

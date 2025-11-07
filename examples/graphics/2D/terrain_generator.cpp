@@ -47,7 +47,7 @@ constexpr fan::color get_height_color(int value) {
   return fan::color::rgb(0, 0, 0);
 }
 
-void generate_mesh(loco_t& loco, fan::vec2& noise_size, std::vector<uint8_t>& noise_image_data, const fan::opengl::context_t::image_nr_t& dirt, std::vector<loco_t::shape_t>& built_mesh)
+void generate_mesh(loco_t& loco, fan::vec2& noise_size, std::vector<uint8_t>& noise_image_data, const fan::opengl::context_t::image_nr_t& dirt, std::vector<fan::graphics::shape_t>& built_mesh)
 {
   loco_t::sprite_t::properties_t sp;
   sp.size = loco.window.get_size() / noise_size / 2;
@@ -100,7 +100,7 @@ int main() {
   fan::vec2 noise_size = 512;
   auto noise_image_data = loco.create_noise_image_data(noise_size);
 
-  std::vector<loco_t::shape_t> built_mesh;
+  std::vector<fan::graphics::shape_t> built_mesh;
 
   generate_mesh(loco, noise_size, noise_image_data, dirt, built_mesh);
 

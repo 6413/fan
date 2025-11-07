@@ -13,6 +13,8 @@ out vec2 line_end;
 out float line_radius;
 out vec3 frag_position;
 out vec2 texture_coordinate;
+out vec2 ba;
+out float ba_len2;
 
 vec2 rectangle_vertices[] = vec2[](
     vec2(-1.0, -1.0),
@@ -67,6 +69,10 @@ void main() {
   line_start = start;
   line_end = end;
   line_radius = radius;
+
+  ba = line_end - line_start;
+  ba_len2 = dot(ba, ba);
+
     
   gl_Position = projection * view * vec4(frag_position, 1.0);
 }

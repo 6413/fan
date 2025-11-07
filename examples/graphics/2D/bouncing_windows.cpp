@@ -38,14 +38,14 @@ int main() {
   std::vector<fan::graphics::collider_dynamic_hidden_t> balls;
   balls.reserve(locos.size());
 
-  std::vector<loco_t::image_t*> images;
-  std::vector<loco_t::shape_t> sprites;
+  std::vector<fan::graphics::image_t*> images;
+  std::vector<fan::graphics::shape_t> sprites;
 
   for (int i = 0; i < 2; ++i) {
     balls.push_back(fan::graphics::collider_dynamic_hidden_t(0, fan::vec2(locos[i]->window.get_size().y / screen_size.x, locos[i]->window.get_size().x / screen_size.y)));
     balls.back().set_velocity(fan::random::vec2_direction(-1, 1) / 2);
     locos[i]->use();
-    images.push_back(new loco_t::image_t(locos[i]->image_load("images/folder.webp")));
+    images.push_back(new fan::graphics::image_t(locos[i]->image_load("images/folder.webp")));
     sprites.push_back(fan::graphics::sprite_t{ {
   .position = fan::vec3(200, 200, 0),
   .size = 50,

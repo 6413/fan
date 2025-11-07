@@ -1,8 +1,8 @@
 #include <fan/pch.h>
 static f32_t bone_render_size = 0.05;
 static f32_t counter = 0;
-std::vector<loco_t::shape_t> debug_rects;
-std::vector<loco_t::shape_t> skeleton_lines;
+std::vector<fan::graphics::shape_t> debug_rects;
+std::vector<fan::graphics::shape_t> skeleton_lines;
 fan::vec3 position = 0;
 fan::vec3 rotation = fan::vec3(fan::math::pi, 0, 0);
 f32_t all_scale = -0.05;

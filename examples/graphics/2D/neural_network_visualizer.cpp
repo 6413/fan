@@ -420,7 +420,7 @@ struct neural_network_visualizer_t {
     fan_window_loop{ update(); };
   }
 
-  engine_t engine{ {.renderer = engine_t::renderer_t::opengl} };
+  engine_t engine{ {.renderer = fan::graphics::renderer_t::opengl} };
   neural_network_t network;
 
   std::vector<circle_t> input_nodes;

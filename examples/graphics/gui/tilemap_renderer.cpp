@@ -31,7 +31,7 @@ struct player_t {
 int main() {
   loco_t loco;
   fan::graphics::interactive_camera_t ic;
-  loco_t::image_load_properties_t lp;
+  fan::graphics::image_load_properties_t lp;
   lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
   lp.min_filter = GL_NEAREST;
   lp.mag_filter = GL_NEAREST;

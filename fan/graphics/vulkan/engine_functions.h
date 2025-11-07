@@ -8,19 +8,19 @@ loco_t& get_loco() {
 void shapes_open() {
   auto& l = loco;
   loco.shape_open(
-    loco_t::sprite_t::shape_type,
-    sizeof(loco_t::sprite_t::vi_t),
-    sizeof(loco_t::sprite_t::ri_t),
-    &loco_t::sprite_t::locations,
+    fan::graphics::shapes::sprite_t::shape_type,
+    sizeof(fan::graphics::shapes::sprite_t::vi_t),
+    sizeof(fan::graphics::shapes::sprite_t::ri_t),
+    &fan::graphics::shapes::sprite_t::locations,
     "shaders/vulkan/2D/objects/sprite.vert",
     "shaders/vulkan/2D/objects/sprite.frag"
   );
 
   loco.shape_open(
-    loco_t::rectangle_t::shape_type,
-    sizeof(loco_t::rectangle_t::vi_t),
-    sizeof(loco_t::rectangle_t::ri_t),
-    &loco_t::rectangle_t::locations,
+    fan::graphics::shapes::rectangle_t::shape_type,
+    sizeof(fan::graphics::shapes::rectangle_t::vi_t),
+    sizeof(fan::graphics::shapes::rectangle_t::ri_t),
+    &fan::graphics::shapes::rectangle_t::locations,
     "shaders/vulkan/2D/objects/rectangle.vert",
     "shaders/vulkan/2D/objects/rectangle.frag"
   );
@@ -144,12 +144,12 @@ void begin_draw() {
   }
 
   {
-    for (auto& st : loco.shaper.ShapeTypes) {
+    for (auto& st : fan::graphics::g_shapes->shaper.ShapeTypes) {
       if (st.sti == (decltype(st.sti))-1) {
         continue;
       }
       // TODO add more shapes here to enable textures
-      if (st.sti != loco_t::shape_type_t::sprite) {
+      if (st.sti != fan::graphics::shapes::shape_type_t::sprite) {
         continue;
       }
       auto& vk_data = st.renderer.vk;
@@ -178,15 +178,15 @@ void draw_shapes() {
 
   loco.context.vk.memory_queue.process(loco.context.vk);
 
-  loco_t::shaper_t::KeyTraverse_t KeyTraverse;
-  KeyTraverse.Init(loco.shaper);
+  fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
+  KeyTraverse.Init(fan::graphics::g_shapes->shaper);
 
   uint32_t texture_count = 0;
-  loco_t::viewport_t viewport;
+  fan::graphics::viewport_t viewport;
   viewport.sic();
   loco_t::camera_t camera;
   camera.sic();
-  loco_t::image_t texture;
+  fan::graphics::image_t texture;
   texture.sic();
 
   bool did_draw = false;
@@ -195,26 +195,26 @@ void draw_shapes() {
 
   auto& cmd_buffer = loco.context.vk.command_buffers[loco.context.vk.current_frame];
     
-  while (KeyTraverse.Loop(loco.shaper)) {
+  while (KeyTraverse.Loop(fan::graphics::g_shapes->shaper)) {
     did_draw = true;
     
-    loco_t::shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(loco.shaper);
+    fan::graphics::shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(fan::graphics::g_shapes->shaper);
 
 
     switch (kti) {
-    case loco_t::Key_e::ShapeType: {
+    case fan::graphics::Key_e::ShapeType: {
       // if i remove this why it breaks/corrupts?
-      if (*(loco_t::shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd() == loco_t::shape_type_t::light_end) {
+      if (*(fan::graphics::shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd() == fan::graphics::shapes::shape_type_t::light_end) {
         continue;
       }
       break;
       }
-      case loco_t::Key_e::blending: {
+      case fan::graphics::Key_e::blending: {
         
         break;
       }
-      case loco_t::Key_e::image: {
-        texture = *(loco_t::image_t*)KeyTraverse.kd();
+      case fan::graphics::Key_e::image: {
+        texture = *(fan::graphics::image_t*)KeyTraverse.kd();
         if (texture.iic() == false) {
           // TODO FIX + 0
           
@@ -222,26 +222,26 @@ void draw_shapes() {
         }
         break;
       }
-      case loco_t::Key_e::viewport: {
-        viewport = *(loco_t::viewport_t*)KeyTraverse.kd();
+      case fan::graphics::Key_e::viewport: {
+        viewport = *(fan::graphics::viewport_t*)KeyTraverse.kd();
         break;
       }
-      case loco_t::Key_e::camera: {
+      case fan::graphics::Key_e::camera: {
         camera = *(loco_t::camera_t*)KeyTraverse.kd();
         break;
       }
     }
 
     if (KeyTraverse.isbm) {
-      loco_t::shaper_t::BlockTraverse_t BlockTraverse;
-      loco_t::shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(loco.shaper, KeyTraverse.bmid());
+      fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
+      fan::graphics::shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(fan::graphics::g_shapes->shaper, KeyTraverse.bmid());
 
-      if (shape_type == loco_t::shape_type_t::light_end) {
+      if (shape_type == fan::graphics::shapes::shape_type_t::light_end) {
         break;
       }
 
       do {
-        auto shader_nr = loco.shaper.GetShader(shape_type);
+        auto shader_nr = fan::graphics::g_shapes->shaper.GetShader(shape_type);
         auto camera_data = loco.camera_get(camera);
 
         auto& shader = *(fan::vulkan::context_t::shader_t*)loco.context_functions.shader_get(&loco.context.vk, shader_nr);
@@ -258,7 +258,7 @@ void draw_shapes() {
           camera_data.m_projection
         );
 
-        auto& st = loco.shaper.GetShapeTypes(shape_type);
+        auto& st = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type);
         auto& vk_data = st.renderer.vk;
         {
            vkCmdBindDescriptorSets(
@@ -315,18 +315,18 @@ void draw_shapes() {
           sizeof(fan::vulkan::context_t::push_constants_t),
           &vp
         );
-        auto& shape_data = loco.shaper.GetShapeTypes(shape_type).renderer.vk;
-        auto off = BlockTraverse.GetRenderDataOffset(loco.shaper) / loco.shaper.GetRenderDataSize(shape_type);
+        auto& shape_data = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type).renderer.vk;
+        auto off = BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper) / fan::graphics::g_shapes->shaper.GetRenderDataSize(shape_type);
         //vk_data.shape_data.m_descriptor.update(loco.context.vk, 3, 0, 1, 0);
 
         vkCmdDraw(
           cmd_buffer, 
           shape_data.vertex_count, 
-          BlockTraverse.GetAmount(loco.shaper), 
+          BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper), 
           0,
           off
         );
-      } while (BlockTraverse.Loop(loco.shaper));
+      } while (BlockTraverse.Loop(fan::graphics::g_shapes->shaper));
     }
   }
   if (did_draw == false) {

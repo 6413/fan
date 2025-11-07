@@ -29,7 +29,7 @@ struct rectangle_3d_t {
   struct properties_t : vi_t, ri_t, context_key_t {
     using type_t = rectangle_3d_t;
     loco_t::camera_t* camera = &gloco->default_camera_3d->camera;
-    loco_t::viewport_t* viewport = &gloco->default_camera_3d->viewport;
+    fan::graphics::viewport_t* viewport = &gloco->default_camera_3d->viewport;
   };
 
   void push_back(loco_t::cid_nt_t& id, properties_t p) {

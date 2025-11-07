@@ -132,7 +132,7 @@ int main() {
     ii.size = image_size;
     ii.channels = 3;
 
-    loco_t::image_load_properties_t lp;
+    fan::graphics::image_load_properties_t lp;
     lp.format = fan::graphics::image_format::rgb_unorm;
     lp.internal_format = fan::graphics::image_format::rgb_unorm;
     lp.min_filter = fan::graphics::image_filter::nearest;

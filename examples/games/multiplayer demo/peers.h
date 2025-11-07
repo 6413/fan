@@ -3,9 +3,9 @@
 struct peers_t {
   peers_t() : client("127.0.0.1", 7777,
     // send callback
-    [this]() { return *dynamic_cast<loco_t::shape_t*>(&player_.player); },
+    [this]() { return *dynamic_cast<fan::graphics::shape_t*>(&player_.player); },
     // receive callback
-    [this](const std::vector<loco_t::shape_t>& data) { peers = data; }
+    [this](const std::vector<fan::graphics::shape_t>& data) { peers = data; }
   ) 
   {
 
@@ -20,7 +20,7 @@ struct peers_t {
   fan::event::task_t listen_task;
 
   bool connected_to_server = false;
-  fan::graphics::network::game_client_t<loco_t::shape_t> client;
-  std::vector<loco_t::shape_t> peers;
+  fan::graphics::network::game_client_t<fan::graphics::shape_t> client;
+  std::vector<fan::graphics::shape_t> peers;
 };
 #undef player_

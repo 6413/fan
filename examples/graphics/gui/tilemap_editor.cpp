@@ -38,7 +38,7 @@ struct player_t {
       .collision_multiplier = fan::vec2(1, 1)
     },
   }}};
-  loco_t::shape_t player_light = fan::graphics::light_t{ {
+  fan::graphics::shape_t player_light = fan::graphics::light_t{ {
     .render_view = &render_view1,
     .position = player.get_position(),
     .size = player.get_size()*8,
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
     {
       renderer = std::make_unique<fte_renderer_t>();
 
-      loco_t::image_load_properties_t lp;
+      fan::graphics::image_load_properties_t lp;
       lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
       lp.min_filter = fan::graphics::image_filter::nearest;
       lp.mag_filter = fan::graphics::image_filter::nearest;
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
   //fte.fin("examples/games/forest game/forest.json");
   f32_t z = 17;
 
-  //fan::graphics::physics_shapes::physics_update_cb = [&](loco_t::shape_t& shape, const fan::vec3& p, const fan::vec2& size, f32_t radians) {
+  //fan::graphics::physics_shapes::physics_update_cb = [&](fan::graphics::shape_t& shape, const fan::vec3& p, const fan::vec2& size, f32_t radians) {
   //  fan::graphics::physics_shapes::hitbox_visualize[&shape] = fan::graphics::rectangle_t{ {
   //    .camera = &render_view1,
   //    .position = fan::vec3(fan::vec2(p), 60000),
@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
     }
     if (filename.contains("tileset.png")) {
       std::string image_path = fs_watcher.watch_path + "tileset.png";
-      loco_t::image_t img = loco.image_load(image_path);
+      fan::graphics::image_t img = loco.image_load(image_path);
       auto& img_data = loco.image_get_data(img);
       fan::vec2 size = img_data.size;
       fan::vec2 img_size = size;

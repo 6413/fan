@@ -1,7 +1,7 @@
 struct player_t {
   fan::vec2 velocity = 0;
-  std::array<loco_t::image_t, 4> img_idle;
-  std::array<std::array<loco_t::image_t, 4>, std::size(fan::movement_e::_strings)> img_movement;
+  std::array<fan::graphics::image_t, 4> img_idle;
+  std::array<std::array<fan::graphics::image_t, 4>, std::size(fan::movement_e::_strings)> img_movement;
 
   player_t() {
     pile.player.body.set_draw_offset(fan::vec2(0, pile.player.body.get_size().y / 1.5f));
@@ -11,7 +11,7 @@ struct player_t {
     for (std::size_t i = 0; i < std::size(img_idle); ++i) {
       img_idle[i] = pile.loco.image_load("npc/player/static_"_str + fan::movement_e::_strings[i] + ".png", lp);
     }
-    static auto load_movement_images = [](std::array<loco_t::image_t, 4>& images, const std::string& direction) {
+    static auto load_movement_images = [](std::array<fan::graphics::image_t, 4>& images, const std::string& direction) {
       const std::array<std::string, 4> pose_variants = {
           direction + "_left_hand_forward.png",
           "static_" + direction + ".png",
@@ -88,6 +88,6 @@ struct player_t {
       .collision_multiplier = fan::vec2(1, 1)
     },
   }} };
-  loco_t::shape_t light;
+  fan::graphics::shape_t light;
   fan::graphics::animator_t animator;
 };

@@ -26,141 +26,78 @@ module;
 export module fan.graphics;
 
 //import :graphics.opengl.core; // TODO this should not be here
-export import fan.graphics.loco;
-import fan.graphics.common_types;
-import fan.io.directory;
-import fan.io.file;
-import fan.time;
+export import fan.graphics.common_context;
+export import fan.graphics.common_types;
+export import fan.graphics.shapes;
+export import fan.io.directory;
+export import fan.io.file;
+export import fan.time;
+export import fan.window;
+export import fan.window.input_action;
+export import fan.texture_pack.tp0;
 
+
+import fan.graphics.opengl.core;
 #if defined(fan_physics)
   import fan.physics.b2_integration;
 #endif
 
 // user friendly functions
 /***************************************/
-
-export namespace fan {
-  namespace window {
-    fan::vec2 get_size() {
-      return gloco->window.get_size();
-    }
-    void set_size(const fan::vec2& size) {
-      gloco->window.set_size(size);
-      gloco->viewport_set(gloco->orthographic_render_view.viewport, fan::vec2(0, 0), size);
-      gloco->camera_set_ortho(
-        gloco->orthographic_render_view.camera,
-        fan::vec2(0, size.x),
-        fan::vec2(0, size.y)
-      );
-      gloco->viewport_set(gloco->perspective_render_view.viewport, fan::vec2(0, 0), size);
-      gloco->camera_set_ortho(
-        gloco->perspective_render_view.camera,
-        fan::vec2(0, size.x),
-        fan::vec2(0, size.y)
-      );
-    }
-
-    fan::vec2 get_mouse_position() {
-      return gloco->get_mouse_position();
-    }
-
-    bool is_mouse_clicked(int button = fan::mouse_left) {
-      return gloco->is_mouse_clicked(button);
-    }
-    bool is_mouse_down(int button = fan::mouse_left) {
-      return gloco->is_mouse_down(button);
-    }
-    bool is_mouse_released(int button = fan::mouse_left) {
-      return gloco->is_mouse_released(button);
-    }
-    fan::vec2 get_mouse_drag(int button = fan::mouse_left) {
-      return gloco->get_mouse_drag(button);
-    }
-
-    bool is_key_pressed(int key) {
-      return gloco->is_key_pressed(key);
-    }
-    bool is_key_down(int key) {
-      return gloco->is_key_down(key);
-    }
-    bool is_key_released(int key) {
-      return gloco->is_key_released(key);
-    }
+//
+export namespace fan::window {
+  void add_input_action(const int* keys, std::size_t count, const std::string& action_name) {
+    fan::graphics::g_render_context_handle.input_action->add(keys, count, action_name);
+  }
+  void add_input_action(std::initializer_list<int> keys, const std::string& action_name) {
+    fan::graphics::g_render_context_handle.input_action->add(keys, action_name);
+  }
+  void add_input_action(int key, const std::string& action_name) {
+    fan::graphics::g_render_context_handle.input_action->add(key, action_name);
+  }
+  bool is_input_action_active(const std::string& action_name, int pstate = fan::window::input_action_t::press) {
+    return fan::graphics::g_render_context_handle.input_action->is_active(action_name);
+  }
+  bool is_action_clicked(const std::string& action_name) {
+    return fan::graphics::g_render_context_handle.input_action->is_active(action_name);
+  }
+  bool is_action_down(const std::string& action_name) {
+    return fan::graphics::g_render_context_handle.input_action->is_active(action_name, fan::window::input_action_t::press_or_repeat);
+  }
+  bool exists(const std::string& action_name) {
+    return fan::graphics::g_render_context_handle.input_action->input_actions.find(action_name) != fan::graphics::g_render_context_handle.input_action->input_actions.end();
   }
 }
 
 export namespace fan {
   namespace graphics {
-    using vfi_t = loco_t::vfi_t;
+    using vfi_t = fan::graphics::shapes::vfi_t;
 
-    using engine_t = loco_t;
+    using shape_t = fan::graphics::shapes::shape_t;
+    using shape_type_t = fan::graphics::shapes::shape_type_t;
 
-    // creates opengl texture
-    struct image_t : loco_t::image_t {
-      using loco_t::image_t::image_t;
-      // for no gloco access
-      explicit image_t(bool) : loco_t::image_t() {}
-      image_t() : loco_t::image_t(gloco->default_texture) {}
-      image_t(loco_t::image_t image) : loco_t::image_t(image) {
-
-      }
-      image_t(const char* path, const std::source_location& callers_path = std::source_location::current())
-        : image_t(std::string(path), callers_path) { }
-      image_t(const std::string& path, const std::source_location& callers_path = std::source_location::current())
-        : loco_t::image_t(gloco->image_load(path, callers_path)) {}
-
-      fan::vec2 get_size() const {
-        return gloco->image_get_data(*this).size;
-      }
-    };
-    using render_view_t = loco_t::render_view_t;
-    using viewport_t = loco_t::viewport_t;
-
-    using shape_t = loco_t::shape_t;
-    using shader_t = loco_t::shader_t;
-
-    using shape_type_e = loco_t::shape_type_t;
+    using renderer_t = fan::window_t::renderer_t;
 
     fan::graphics::image_t invalid_image = []{
       image_t image{ false };
       image.sic();
       return image;
     }();
-    void add_input_action(const int* keys, std::size_t count, const std::string& action_name) {
-      gloco->input_action.add(keys, count, action_name);
-    }
-    void add_input_action(std::initializer_list<int> keys, const std::string& action_name) {
-      gloco->input_action.add(keys, action_name);
-    }
-    void add_input_action(int key, const std::string& action_name) {
-      gloco->input_action.add(key, action_name);
-    }
-    bool is_input_action_active(const std::string& action_name, int pstate = loco_t::input_action_t::press) {
-      return gloco->input_action.is_active(action_name);
-    }
-
-    fan::vec2 get_mouse_position() {
-      return gloco->get_mouse_position();
-    }
-    fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view) {
-      return loco_t::transform_position(gloco->get_mouse_position(), render_view.viewport, render_view.camera);
-    }
-    fan::vec2 get_mouse_position(
-      const loco_t::camera_t& camera,
-      const loco_t::viewport_t& viewport
-    ) {
-      return gloco->get_mouse_position(camera, viewport);
-    }
 
     fan::graphics::render_view_t add_render_view() {
-      return gloco->render_view_create();
+      fan::graphics::render_view_t render_view;
+      render_view.create();
+      return render_view;
     }
 
-    loco_t::render_view_t add_render_view(
+    fan::graphics::render_view_t add_render_view(
       const fan::vec2& ortho_x, const fan::vec2& ortho_y,
       const fan::vec2& viewport_position, const fan::vec2& viewport_size
     ) {
-      return gloco->render_view_create(ortho_x, ortho_y, viewport_position, viewport_size);
+      fan::graphics::render_view_t render_view;
+      render_view.create();
+      render_view.set(ortho_x, ortho_y, viewport_position, viewport_size, fan::graphics::get_window().get_size());
+      return render_view;
     }
 
 
@@ -265,28 +202,38 @@ export namespace fan {
 
 
 export namespace fan {
-  inline void printclnn(auto&&... values) {
-#if defined (fan_gui)
-    gloco->printclnn(values...);
-#endif
+  void printclnn(auto&&... values) {
+  #if defined (fan_gui)
+    ([&](const auto& value) {
+      std::ostringstream oss;
+      oss << value;
+      fan::graphics::ctx().console->print(oss.str() + " ", 0);
+      }(values), ...);
+  #endif
   }
-  inline void printcl(auto&&... values) {
-#if defined(fan_gui)
-    gloco->printcl(values...);
-#endif
+  void printcl(auto&&... values) {
+  #if defined(fan_gui)
+    printclnn(values...);
+    fan::graphics::ctx().console->print("\n", 0);
+  #endif
   }
 
-  inline void printclnnh(int highlight, auto&&... values) {
-#if defined(fan_gui)
-    gloco->printclnnh(highlight, values...);
-#endif
+  void printclnnh(int highlight, auto&&... values) {
+  #if defined(fan_gui)
+    ([&](const auto& value) {
+      std::ostringstream oss;
+      oss << value;
+      fan::graphics::ctx().console->print(oss.str() + " ", highlight);
+      }(values), ...);
+  #endif
   }
 
-  inline void printclh(int highlight, auto&&... values) {
+	void printclh(int highlight, auto&&... values) {
 #if defined(fan_gui)
-    gloco->printclh(highlight, values...);
+		printclnnh(highlight, values...);
+		fan::graphics::ctx().console->print("\n", highlight);
 #endif
-  }
+	}
   inline void printcl_err(auto&&... values) {
 #if defined(fan_gui)
     printclh(fan::graphics::highlight_e::error, values...);
@@ -309,33 +256,259 @@ bool init_fan_track_opengl_print = []() {
 
 export namespace fan {
   namespace graphics {
-    using engine_t = fan::graphics::engine_t;
+
+  #if defined(fan_opengl)
+    fan::opengl::context_t& get_gl_context() {
+      return (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)));
+    }
+  #endif
+
+    std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) {
+      if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
+        return fan::graphics::ctx()->image_get_pixel_data(fan::graphics::ctx(), nr, fan::opengl::context_t::global_to_opengl_format(image_format), uvp, uvs);
+      }
+      else {
+        fan::throw_error("");
+        return {};
+      }
+    }
+    fan::graphics::image_nr_t image_create() {
+      return fan::graphics::ctx()->image_create(fan::graphics::ctx());
+    }
+    fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr) {
+      fan::graphics::context_image_t img;
+
+      if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
+        img.gl = *(fan::opengl::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr);
+      }
+    #if defined(fan_vulkan)
+      else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) {
+        img.vk = *(fan::vulkan::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr);
+      }
+    #endif
+      return img;
+    }
+    uint64_t image_get_handle(fan::graphics::image_nr_t nr) {
+      return fan::graphics::ctx()->image_get_handle(fan::graphics::ctx(), nr);
+    }
+    void image_erase(fan::graphics::image_nr_t nr) {
+      fan::graphics::ctx()->image_erase(fan::graphics::ctx(), nr);
+    }
+    void image_bind(fan::graphics::image_nr_t nr) {
+      fan::graphics::ctx()->image_bind(fan::graphics::ctx(), nr);
+    }
+    void image_unbind(fan::graphics::image_nr_t nr) {
+      fan::graphics::ctx()->image_unbind(fan::graphics::ctx(), nr);
+    }
+    fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_nr_t nr) {
+      return fan::graphics::ctx()->image_get_settings(fan::graphics::ctx(), nr);
+    }
+    void image_set_settings(fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings) {
+      fan::graphics::ctx()->image_set_settings(fan::graphics::ctx(), nr, settings);
+    }
     fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info) {
-      return gloco->image_load(image_info);
+      return fan::graphics::ctx()->image_load_info(fan::graphics::ctx(), image_info);
     }
     fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
-      return gloco->image_load(image_info, p);
+      return fan::graphics::ctx()->image_load_info_props(fan::graphics::ctx(), image_info, p);
     }
-    fan::graphics::image_nr_t image_load(const std::string& path) {
-      return gloco->image_load(path);
+    fan::graphics::image_nr_t image_load(const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
+      return fan::graphics::ctx()->image_load_path(fan::graphics::ctx(), path, callers_path);
     }
-    fan::graphics::image_nr_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p) {
-      return gloco->image_load(path, p);
+    fan::graphics::image_nr_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
+      return fan::graphics::ctx()->image_load_path_props(fan::graphics::ctx(), path, p, callers_path);
     }
     fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size) {
-      return gloco->image_load(colors, size);
+      return fan::graphics::ctx()->image_load_colors(fan::graphics::ctx(), colors, size);
     }
     fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
-      return gloco->image_load(colors, size, p);
+      return fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), colors, size, p);
     }
     void image_unload(fan::graphics::image_nr_t nr) {
-      return gloco->image_unload(nr);
+      fan::graphics::ctx()->image_unload(fan::graphics::ctx(), nr);
+    }
+    bool is_image_valid(fan::graphics::image_nr_t nr) {
+      return is_image_valid(nr);
     }
 
-    using light_flags_e = loco_t::light_flags_e;
+    fan::graphics::image_nr_t create_missing_texture() {
+      return fan::graphics::ctx()->create_missing_texture(fan::graphics::ctx());
+    }
+    fan::graphics::image_nr_t create_transparent_texture() {
+      return fan::graphics::ctx()->create_transparent_texture(fan::graphics::ctx());
+    }
+    void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
+      fan::graphics::ctx()->image_reload_image_info(fan::graphics::ctx(), nr, image_info);
+    }
+    void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+      fan::graphics::ctx()->image_reload_image_info_props(fan::graphics::ctx(), nr, image_info, p);
+    }
+    void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
+      fan::graphics::ctx()->image_reload_path(fan::graphics::ctx(), nr, path, callers_path);
+    }
+    void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
+      fan::graphics::ctx()->image_reload_path_props(fan::graphics::ctx(), nr, path, p, callers_path);
+    }
+    fan::graphics::image_nr_t image_create(const fan::color& color) {
+      return fan::graphics::ctx()->image_create_color(fan::graphics::ctx(), color);
+    }
+    fan::graphics::image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p) {
+      return fan::graphics::ctx()->image_create_color_props(fan::graphics::ctx(), color, p);
+    }
+
+    fan::graphics::shader_nr_t shader_create() {
+      return fan::graphics::ctx()->shader_create(fan::graphics::ctx());
+    }
+    void shader_erase(fan::graphics::shader_nr_t nr) {
+      fan::graphics::ctx()->shader_erase(fan::graphics::ctx(), nr);
+    }
+    void shader_use(fan::graphics::shader_nr_t nr) {
+      fan::graphics::ctx()->shader_use(fan::graphics::ctx(), nr);
+    }
+    void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
+      fan::graphics::ctx()->shader_set_vertex(fan::graphics::ctx(), nr, vertex_code);
+    }
+    void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
+      fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), nr, fragment_code);
+    }
+    bool shader_compile(fan::graphics::shader_nr_t nr) {
+      return fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), nr);
+    }
+    template <typename T>
+    void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
+      if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
+        get_gl_context().shader_set_value(nr, name, val);
+      }
+      else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) {
+        fan::throw_error("todo");
+      }
+    }
+    void shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr) {
+      if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
+        get_gl_context().shader_set_camera(nr, camera_nr);
+      }
+    #if defined(fan_vulkan)
+      else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) {
+        fan::throw_error("todo");
+      }
+    #endif
+    }
+    fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type) {
+      return fan::graphics::get_shapes().shaper.GetShader(shape_type);
+    }
+    auto& shader_get_data(uint16_t shape_type) {
+      return (*fan::graphics::ctx().shader_list)[shader_get_nr(shape_type)];
+    }
+    bool shader_update_fragment(uint16_t shape_type, const std::string& fragment) {
+      auto shader_nr = shader_get_nr(shape_type);
+      auto shader_data = shader_get_data(shape_type);
+      shader_set_vertex(shader_nr, shader_data.svertex);
+      shader_set_fragment(shader_nr, fragment);
+      return shader_compile(shader_nr);
+    }
+
+    fan::graphics::camera_nr_t camera_create() {
+      return fan::graphics::ctx()->camera_create(fan::graphics::ctx());
+    }
+    fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr) {
+      return fan::graphics::ctx()->camera_get(fan::graphics::ctx(), nr);
+    }
+    void camera_erase(fan::graphics::camera_nr_t nr) {
+      fan::graphics::ctx()->camera_erase(fan::graphics::ctx(), nr);
+    }
+    fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y) {
+      return fan::graphics::ctx()->camera_create_params(fan::graphics::ctx(), x, y);
+    }
+    fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr) {
+      return fan::graphics::ctx()->camera_get_position(fan::graphics::ctx(), nr);
+    }
+    void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
+      fan::graphics::ctx()->camera_set_position(fan::graphics::ctx(), nr, cp);
+    }
+    fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr) {
+      return fan::graphics::ctx()->camera_get_size(fan::graphics::ctx(), nr);
+    }
+    fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr) {
+      return fan::graphics::ctx()->viewport_get_size(fan::graphics::ctx(), nr);
+    }
+    f32_t camera_get_zoom(fan::graphics::camera_nr_t nr, fan::graphics::viewport_nr_t viewport) {
+      fan::vec2 s = viewport_get_size(viewport);
+      auto& camera = camera_get(nr);
+      return (s.x * 2) / (camera.coordinates.right - camera.coordinates.left);
+    }
+    void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
+      fan::graphics::ctx()->camera_set_ortho(fan::graphics::ctx(), nr, x, y);
+    }
+    void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
+      fan::graphics::ctx()->camera_set_perspective(fan::graphics::ctx(), nr, fov, window_size);
+    }
+    void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset) {
+      fan::graphics::ctx()->camera_rotate(fan::graphics::ctx(), nr, offset);
+    }
+    void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10) {
+      f32_t screen_height = fan::graphics::get_window().get_size()[1];
+      f32_t pixels_from_bottom = 400.0f;
+
+      /* target - (screen_height / 2 - pixels_from_bottom) / (ic.zoom * 1.5))*/;
+
+      fan::vec2 src = camera_get_position(fan::graphics::get_orthographic_render_view().camera);
+      camera_set_position(
+        fan::graphics::get_orthographic_render_view().camera,
+        move_speed == 0 ? target : src + (target - src) * fan::graphics::get_window().m_delta_time * move_speed
+      );
+    }
+
+    fan::graphics::viewport_nr_t viewport_create() {
+      return fan::graphics::ctx()->viewport_create(fan::graphics::ctx());
+    }
+    fan::graphics::viewport_nr_t viewport_create(const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
+      return fan::graphics::ctx()->viewport_create_params(fan::graphics::ctx(), viewport_position, viewport_size, fan::graphics::get_window().get_size());
+    }
+    fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr) {
+      return fan::graphics::ctx()->viewport_get(fan::graphics::ctx(), nr);
+    }
+    void viewport_erase(fan::graphics::viewport_nr_t nr) {
+      fan::graphics::ctx()->viewport_erase(fan::graphics::ctx(), nr);
+    }
+    fan::vec2 viewport_get_position(fan::graphics::viewport_nr_t nr) {
+      return fan::graphics::ctx()->viewport_get_position(fan::graphics::ctx(), nr);
+    }
+    void viewport_set(const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
+      fan::graphics::ctx()->viewport_set(fan::graphics::ctx(), viewport_position, viewport_size, fan::graphics::get_window().get_size());
+    }
+    void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
+      fan::graphics::ctx()->viewport_set_nr(fan::graphics::ctx(), nr, viewport_position, viewport_size, fan::graphics::get_window().get_size());
+    }
+    void viewport_zero(fan::graphics::viewport_nr_t nr) {
+      fan::graphics::ctx()->viewport_zero(fan::graphics::ctx(), nr);
+    }
+    bool inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
+      return fan::graphics::ctx()->viewport_inside(fan::graphics::ctx(), nr, position);
+    }
+    bool inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
+      return fan::graphics::ctx()->viewport_inside_wir(fan::graphics::ctx(), nr, position);
+    }
+    bool inside(const fan::graphics::render_view_t& render_view, const fan::vec2& position) {
+      fan::vec2 tp = fan::graphics::transform_position(position, render_view.viewport, render_view.camera);
+
+      auto c = fan::graphics::camera_get(render_view.camera);
+      f32_t l = c.coordinates.left;
+      f32_t r = c.coordinates.right;
+      f32_t t = c.coordinates.up;
+      f32_t b = c.coordinates.down;
+
+      return tp.x >= l && tp.x <= r &&
+        tp.y >= t && tp.y <= b;
+    }
+    bool is_mouse_inside(const fan::graphics::render_view_t& render_view) {
+      return inside(render_view, get_mouse_position());;
+    }
+
+
+    using light_flags_e = fan::graphics::light_flags_e;
 
     struct light_properties_t {
-      render_view_t* render_view = &gloco->orthographic_render_view;
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
       fan::vec3 position = fan::vec3(0, 0, 0);
       f32_t parallax_factor = 0;
       fan::vec2 size = fan::vec2(0.1, 0.1);
@@ -346,13 +519,13 @@ export namespace fan {
       fan::vec3 angle = fan::vec3(0, 0, 0);
     };
 
-    struct light_t : loco_t::shape_t {
-      using loco_t::shape_t::shape_t;
-      using loco_t::shape_t::operator=;
+    struct light_t : fan::graphics::shapes::shape_t {
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
       light_t(light_properties_t p = light_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
+        *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::light_t::properties_t,
+            typename fan::graphics::shapes::light_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .position = p.position,
@@ -369,8 +542,8 @@ export namespace fan {
     #if defined(loco_line)
 
       struct line_properties_t {
-        render_view_t* render_view = &gloco->orthographic_render_view;
-        fan::vec3 src = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
+        render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+        fan::vec3 src = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
         fan::vec2 dst = fan::vec2(1, 1);
         fan::color color = fan::color(1, 1, 1, 1);
         f32_t thickness = 2.0f;
@@ -378,13 +551,13 @@ export namespace fan {
         uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       };
 
-      struct line_t : loco_t::shape_t {
-        using loco_t::shape_t::shape_t;
-        using loco_t::shape_t::operator=;
+      struct line_t : fan::graphics::shapes::shape_t {
+        using fan::graphics::shapes::shape_t::shape_t;
+        using fan::graphics::shapes::shape_t::operator=;
         line_t(line_properties_t p = line_properties_t()) {
-          *(loco_t::shape_t*)this = loco_t::shape_t(
+          *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
             fan_init_struct(
-              typename loco_t::line_t::properties_t,
+              typename fan::graphics::shapes::line_t::properties_t,
               .camera = p.render_view->camera,
               .viewport = p.render_view->viewport,
               .src = p.src,
@@ -400,8 +573,8 @@ export namespace fan {
 
 //#if defined(loco_rectangle)
     struct rectangle_properties_t {
-      render_view_t* render_view = &gloco->orthographic_render_view;
-      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+      fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
       fan::vec2 size = fan::vec2(32, 32);
       fan::color color = fan::color(1, 1, 1, 1);
       fan::color outline_color = color;
@@ -411,13 +584,13 @@ export namespace fan {
     };
 
     // make sure you dont do position = vec2
-    struct rectangle_t : loco_t::shape_t {
-      using loco_t::shape_t::shape_t;
-      using loco_t::shape_t::operator=;
+    struct rectangle_t : fan::graphics::shapes::shape_t {
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
       rectangle_t(rectangle_properties_t p = rectangle_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
+        *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::rectangle_t::properties_t,
+            typename fan::graphics::shapes::rectangle_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .position = p.position,
@@ -433,28 +606,28 @@ export namespace fan {
     };
 
     struct sprite_properties_t {
-      render_view_t* render_view = &gloco->orthographic_render_view;
-      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+      fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
       fan::vec2 size = fan::vec2(32, 32);
       fan::vec3 angle = 0;
       fan::color color = fan::color(1, 1, 1, 1);
       fan::vec2 rotation_point = 0;
-      loco_t::image_t image = gloco->default_texture;
-      std::array<loco_t::image_t, 30> images;
+      fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+      std::array<fan::graphics::image_t, 30> images;
       f32_t parallax_factor = 0;
       bool blending = true;
       uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
-      loco_t::texture_pack_unique_t texture_pack_unique_id;
+      fan::texture_pack::unique_t texture_pack_unique_id;
     };
 
 
-    struct sprite_t : loco_t::shape_t {
-      using loco_t::shape_t::shape_t;
-      using loco_t::shape_t::operator=;
+    struct sprite_t : fan::graphics::shapes::shape_t {
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
       sprite_t(sprite_properties_t p = sprite_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
+        *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::sprite_t::properties_t,
+            typename fan::graphics::shapes::sprite_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .parallax_factor = p.parallax_factor,
@@ -473,26 +646,26 @@ export namespace fan {
     };
 
     struct unlit_sprite_properties_t {
-      render_view_t* render_view = &gloco->orthographic_render_view;
-      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+      fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
       fan::vec2 size = fan::vec2(32, 32);
       fan::vec3 angle = 0;
       fan::color color = fan::color(1, 1, 1, 1);
       fan::vec2 rotation_point = 0;
-      loco_t::image_t image = gloco->default_texture;
-      std::array<loco_t::image_t, 30> images;
+      fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+      std::array<fan::graphics::image_t, 30> images;
       fan::vec2 tc_position = 0;
       fan::vec2 tc_size = 1;
       bool blending = false;
     };
 
-    struct unlit_sprite_t : loco_t::shape_t {
-      using loco_t::shape_t::shape_t;
-      using loco_t::shape_t::operator=;
+    struct unlit_sprite_t : fan::graphics::shapes::shape_t {
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
       unlit_sprite_t(unlit_sprite_properties_t p = unlit_sprite_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
+        *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::unlit_sprite_t::properties_t,
+            typename fan::graphics::shapes::unlit_sprite_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .position = p.position,
@@ -510,8 +683,8 @@ export namespace fan {
     };
 #if defined(loco_circle)
     struct circle_properties_t {
-      render_view_t* render_view = &gloco->orthographic_render_view;
-      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+      fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
       f32_t radius = 32.f;
       fan::vec3 angle = 0;
       fan::color color = fan::color(1, 1, 1, 1);
@@ -519,13 +692,13 @@ export namespace fan {
       uint32_t flags = 0;
     };
 
-    struct circle_t : loco_t::shape_t {
-      using loco_t::shape_t::shape_t;
-      using loco_t::shape_t::operator=;
+    struct circle_t : fan::graphics::shapes::shape_t {
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
       circle_t(circle_properties_t p = circle_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
+        *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::circle_t::properties_t,
+            typename fan::graphics::shapes::circle_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .position = p.position,
@@ -540,8 +713,8 @@ export namespace fan {
 #endif
 
     struct capsule_properties_t {
-      render_view_t* render_view = &gloco->orthographic_render_view;
-      fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+      fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
       fan::vec2 center0 = 0;
       fan::vec2 center1{0, 128.f};
       f32_t radius = 64.0f;
@@ -552,13 +725,13 @@ export namespace fan {
       uint32_t flags = 0;
     };
 
-    struct capsule_t : loco_t::shape_t {
-      using loco_t::shape_t::shape_t;
-      using loco_t::shape_t::operator=;
+    struct capsule_t : fan::graphics::shapes::shape_t {
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
       capsule_t(capsule_properties_t p = capsule_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
+        *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::capsule_t::properties_t,
+            typename fan::graphics::shapes::capsule_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .position = p.position,
@@ -574,9 +747,8 @@ export namespace fan {
       }
     };
 
-    using vertex_t = loco_t::vertex_t;
     struct polygon_properties_t {
-      render_view_t* render_view = &gloco->orthographic_render_view;
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
       fan::vec3 position = fan::vec3(0, 0, 0);
       std::vector<vertex_t> vertices;
       fan::vec3 angle = 0;
@@ -586,14 +758,14 @@ export namespace fan {
       uint32_t vertex_count = 3;
     };
 
-    struct polygon_t : loco_t::shape_t {
-      using loco_t::shape_t::shape_t;
-      using loco_t::shape_t::operator=;
+    struct polygon_t : fan::graphics::shapes::shape_t {
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
       polygon_t() = default;
       polygon_t(polygon_properties_t p) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
+        *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::polygon_t::properties_t,
+            typename fan::graphics::shapes::polygon_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .position = p.position,
@@ -608,7 +780,7 @@ export namespace fan {
     };
 
     struct grid_properties_t {
-      render_view_t* render_view = &gloco->orthographic_render_view;
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
       fan::vec3 position = fan::vec3(0, 0, 0);
       fan::vec2 size = fan::vec2(0.1, 0.1);
       fan::vec2 grid_size = fan::vec2(1, 1);
@@ -616,13 +788,13 @@ export namespace fan {
       fan::color color = fan::color(1, 1, 1, 1);
       fan::vec3 angle = fan::vec3(0, 0, 0);
     };
-    struct grid_t : loco_t::shape_t {
-      using loco_t::shape_t::shape_t;
-      using loco_t::shape_t::operator=;
+    struct grid_t : fan::graphics::shapes::shape_t {
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
       grid_t(grid_properties_t p = grid_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
+        *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::grid_t::properties_t,
+            typename fan::graphics::shapes::grid_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .position = p.position,
@@ -636,7 +808,7 @@ export namespace fan {
     };
 
     struct universal_image_renderer_properties_t {
-      render_view_t* render_view = &gloco->orthographic_render_view;
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
       fan::vec3 position = 0;
       fan::vec2 size = 0;
       fan::vec2 tc_position = 0;
@@ -644,22 +816,22 @@ export namespace fan {
 
       bool blending = false;
 
-      std::array<loco_t::image_t, 4> images = {
-        gloco->default_texture,
-        gloco->default_texture,
-        gloco->default_texture,
-        gloco->default_texture
+      std::array<fan::graphics::image_t, 4> images = {
+        fan::graphics::ctx().default_texture,
+        fan::graphics::ctx().default_texture,
+        fan::graphics::ctx().default_texture,
+        fan::graphics::ctx().default_texture
       };
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     };
 
-    struct universal_image_renderer_t : loco_t::shape_t {
-      using loco_t::shape_t::shape_t;
-      using loco_t::shape_t::operator=;
+    struct universal_image_renderer_t : fan::graphics::shapes::shape_t {
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
       universal_image_renderer_t(const universal_image_renderer_properties_t& p = universal_image_renderer_properties_t()) {
-         *(loco_t::shape_t*)this = loco_t::shape_t(
+         *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::universal_image_renderer_t::properties_t,
+            typename fan::graphics::shapes::universal_image_renderer_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .position = p.position,
@@ -675,7 +847,7 @@ export namespace fan {
     };
 
     struct gradient_properties_t {
-      render_view_t* render_view = &gloco->perspective_render_view;
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
 
       fan::vec3 position = 0;
       fan::vec2 size = 0;
@@ -692,11 +864,11 @@ export namespace fan {
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     };
 
-    struct gradient_t : loco_t::shape_t{
+    struct gradient_t : fan::graphics::shapes::shape_t{
       gradient_t(const gradient_properties_t& p = gradient_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
+        *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::gradient_t::properties_t,
+            typename fan::graphics::shapes::gradient_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .position = p.position,
@@ -711,7 +883,7 @@ export namespace fan {
     };
 
     struct shader_shape_properties_t {
-      render_view_t* render_view = &gloco->perspective_render_view;
+      render_view_t* render_view = fan::graphics::ctx().perspective_render_view;
 
       fan::vec3 position = 0;
       fan::vec2 size = 0;
@@ -721,19 +893,19 @@ export namespace fan {
       uint32_t flags = 0;
       fan::vec2 tc_position = 0;
       fan::vec2 tc_size = 1;
-      loco_t::shader_t shader;
+      fan::graphics::shader_t shader;
       bool blending = true;
 
-      loco_t::image_t image = gloco->default_texture;
-      std::array<loco_t::image_t, 30> images;
+      fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+      std::array<fan::graphics::image_t, 30> images;
 
       uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     };
 
     struct shadow_properties_t {
-      render_view_t* render_view = &gloco->orthographic_render_view;
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
       fan::vec3 position = fan::vec3(0, 0, 0);
-      int shape = loco_t::shadow_t::rectangle;
+      int shape = fan::graphics::shapes::shadow_t::rectangle;
       fan::vec2 size = fan::vec2(0.1, 0.1);
       fan::vec2 rotation_point = fan::vec2(0, 0);
       fan::color color = fan::color(1, 1, 1, 1);
@@ -743,16 +915,16 @@ export namespace fan {
       f32_t light_radius = 100.f;
     };
 
-    struct shadow_t : loco_t::shape_t {
-      using loco_t::shape_t::shape_t;
-      using loco_t::shape_t::operator=;
+    struct shadow_t : fan::graphics::shapes::shape_t {
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
 
-      using shape_e = loco_t::shadow_t::shape_e;
+      using shape_e = fan::graphics::shapes::shadow_t::shape_e;
 
       shadow_t(shadow_properties_t p = shadow_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
+        *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::shadow_t::properties_t,
+            typename fan::graphics::shapes::shadow_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .position = p.position,
@@ -769,11 +941,11 @@ export namespace fan {
     };
 
 
-    struct shader_shape_t : loco_t::shape_t {
+    struct shader_shape_t : fan::graphics::shapes::shape_t {
       shader_shape_t(const shader_shape_properties_t& p = shader_shape_properties_t()) {
-       *(loco_t::shape_t*)this = loco_t::shape_t(
+       *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::shader_shape_t::properties_t,
+            typename fan::graphics::shapes::shader_shape_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .position = p.position,
@@ -796,18 +968,18 @@ export namespace fan {
 
   #if defined(fan_3D)
     struct line3d_properties_t {
-      render_view_t* render_view = &gloco->perspective_render_view;
+      render_view_t* render_view = fan::graphics::ctx().perspective_render_view;
       fan::vec3 src = fan::vec3(0, 0, 0);
       fan::vec3 dst = fan::vec3(10, 10, 10);
       fan::color color = fan::color(1, 1, 1, 1);
       bool blending = false;
     };
 
-    struct line3d_t : loco_t::shape_t {
+    struct line3d_t : fan::graphics::shapes::shape_t {
       line3d_t(line3d_properties_t p = line3d_properties_t()) {
-        *(loco_t::shape_t*)this = loco_t::shape_t(
+        *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
-            typename loco_t::line3d_t::properties_t,
+            typename fan::graphics::shapes::line3d_t::properties_t,
             .camera = p.render_view->camera,
             .viewport = p.render_view->viewport,
             .src = p.src,
@@ -825,7 +997,7 @@ export namespace fan {
     fan::vec2 half_size;
     fan::color color = fan::color(1, 0, 0, 1);
     f32_t depth = 55000;
-    std::array<loco_t::shape_t, 4> edges;
+    std::array<fan::graphics::shapes::shape_t, 4> edges;
 
     aabb_t() = default;
 
@@ -844,33 +1016,45 @@ export namespace fan {
     }
   };
 
+  void add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s) {
+    fan::graphics::get_shapes().immediate_render_list->emplace_back(std::move(s));
+  }
+  auto add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s) {
+    auto ret = s.NRI;
+    (*fan::graphics::get_shapes().static_render_list)[ret] = std::move(s);
+    return ret;
+  }
+  void remove_static_shape_draw(const fan::graphics::shapes::shape_t& s) {
+    fan::graphics::get_shapes().static_render_list->erase(s.NRI);
+  }
+
   // immediate mode draw functions
   void rectangle(const rectangle_properties_t& props = {}) {
-    gloco->add_shape_to_immediate_draw(rectangle_t(props));
+    add_shape_to_immediate_draw(rectangle_t(props));
   }
   void sprite(const sprite_properties_t& props = {}) {
-    gloco->add_shape_to_immediate_draw(sprite_t(props));
+    add_shape_to_immediate_draw(sprite_t(props));
   }
   void unlit_sprite(const unlit_sprite_properties_t& props = {}) {
-    gloco->add_shape_to_immediate_draw(unlit_sprite_t(props));
+    add_shape_to_immediate_draw(unlit_sprite_t(props));
   }
   void line(const line_properties_t& props = {}) {
-    gloco->add_shape_to_immediate_draw(line_t(props));
+    add_shape_to_immediate_draw(line_t(props));
   }
   void light(const light_properties_t& props = {}) {
-    gloco->add_shape_to_immediate_draw(light_t(props));
+    add_shape_to_immediate_draw(light_t(props));
   }
   void circle(const circle_properties_t& props = {}) {
-    gloco->add_shape_to_immediate_draw(circle_t(props));
+    add_shape_to_immediate_draw(circle_t(props));
   }
   void capsule(const capsule_properties_t& props = {}) {
-    gloco->add_shape_to_immediate_draw(capsule_t(props));
+    add_shape_to_immediate_draw(capsule_t(props));
   }
   void polygon(const polygon_properties_t& props = {}) {
-    gloco->add_shape_to_immediate_draw(polygon_t(props));
+    add_shape_to_immediate_draw(polygon_t(props));
   }
   void grid(const grid_properties_t& props = {}) {
-    gloco->add_shape_to_immediate_draw(grid_t(props));
+    add_shape_to_immediate_draw(grid_t(props));
   }
   void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1)) {
     fan::graphics::line({ .src = {b.min, depth}, .dst = {b.max.x, b.min.y}, .color = c });
@@ -878,12 +1062,12 @@ export namespace fan {
     fan::graphics::line({ .src = {b.max, depth}, .dst = {b.min.x, b.max.y}, .color = c });
     fan::graphics::line({ .src = {b.min.x, b.max.y, depth}, .dst = {b.min}, .color = c });
   }
-  void aabb(const loco_t::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1)) {
+  void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1)) {
     fan::graphics::aabb(s.get_aabb(), depth, c);
   }
 
-  loco_t::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color) {
-  loco_t::polygon_t::properties_t pp;
+  fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color) {
+  fan::graphics::shapes::polygon_t::properties_t pp;
   // for triangle strip
   for (int i = 0; i < 6; ++i) {
     pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(0, 0, 0), color });
@@ -937,7 +1121,7 @@ export namespace fan {
     // also container that it's stored in, must not change pointers
     template <typename T>
     struct vfi_root_custom_t {
-      using shape_t = loco_t::shape_t;
+      using shape_t = fan::graphics::shapes::shape_t;
 
       void enable_highlight() {
         apply_highlight([](auto& h, const fan::line3& line, fan::graphics::render_view_t& render_view) {
@@ -963,9 +1147,9 @@ export namespace fan {
         }
       }
 
-      void set_root(const loco_t::vfi_t::properties_t& p) {
+      void set_root(const fan::graphics::shapes::vfi_t::properties_t& p) {
         fan::graphics::vfi_t::properties_t in = p;
-        in.shape_type = loco_t::vfi_t::shape_t::rectangle;
+        in.shape_type = fan::graphics::shapes::vfi_t::shape_t::rectangle;
         in.shape.rectangle->camera = p.shape.rectangle->camera;
         in.shape.rectangle->viewport = p.shape.rectangle->viewport;
 
@@ -989,7 +1173,7 @@ export namespace fan {
             return 0;
           }
 
-          if (d.mouse_stage != loco_t::vfi_t::mouse_stage_e::viewport_inside) return 0;
+          if (d.mouse_stage != fan::graphics::shapes::vfi_t::mouse_stage_e::viewport_inside) return 0;
 
           if (previous_focus && previous_focus != this) {
             for (std::size_t i = 0; i < previous_focus->highlight[0].size(); ++i) {
@@ -1019,7 +1203,7 @@ export namespace fan {
             click_offset = get_position() - d.position;
             move = moving_object = true;
             d.flag->ignore_move_focus_check = true;
-            gloco->vfi.set_focus_keyboard(d.vfi->focus.mouse);
+            fan::graphics::g_shapes->vfi.set_focus_keyboard(d.vfi->focus.mouse);
           }
 
           return user_cb(d);
@@ -1179,34 +1363,38 @@ export namespace fan {
       bool pan_with_middle_mouse = false;
       fan::vec2 old_window_size{};
       fan::vec2 camera_offset{};
-      loco_t::camera_t reference_camera;
-      loco_t::viewport_t reference_viewport;
+      fan::graphics::camera_t reference_camera;
+      fan::graphics::viewport_t reference_viewport;
       fan::window_t::resize_callback_NodeReference_t resize_callback_nr;
       fan::window_t::buttons_callback_t::nr_t button_cb_nr;
       fan::window_t::mouse_motion_callback_t::nr_t mouse_motion_nr;
-      loco_t::update_callback_nr_t uc_nr;
+      fan::graphics::update_callback_nr_t uc_nr;
 
       interactive_camera_t(
-        loco_t::camera_t camera_nr = gloco->orthographic_render_view.camera,
-        loco_t::viewport_t viewport_nr = gloco->orthographic_render_view.viewport,
+        fan::graphics::camera_t camera_nr = fan::graphics::get_orthographic_render_view().camera,
+        fan::graphics::viewport_t viewport_nr = fan::graphics::get_orthographic_render_view().viewport,
         f32_t new_zoom = 2
       ) : reference_camera(camera_nr), reference_viewport(viewport_nr), zoom(new_zoom)
       {
-        auto& window = gloco->window;
+        auto& window = fan::graphics::get_window();
         old_window_size = window.get_size();
 
-        static auto update_ortho = [&](loco_t* loco) {
-          fan::vec2 s = loco->viewport_get_size(reference_viewport);
+        static auto update_ortho = [&](void* ptr) {
+          fan::vec2 s = fan::graphics::g_render_context_handle->viewport_get_size(
+            fan::graphics::g_render_context_handle, 
+            reference_viewport
+          );
           fan::vec2 ortho_size = s / zoom;
-          loco->camera_set_ortho(
+          fan::graphics::g_render_context_handle->camera_set_ortho(
+            fan::graphics::g_render_context_handle,
             reference_camera,
             fan::vec2(-ortho_size.x, ortho_size.x),
             fan::vec2(-ortho_size.y, ortho_size.y)
           );
         };
 
-        auto it = gloco->m_update_callback.NewNodeLast();
-        gloco->m_update_callback[it] = update_ortho;
+        auto it = fan::graphics::ctx().update_callback->NewNodeLast();
+        (*fan::graphics::ctx().update_callback)[it] = update_ortho;
 
         resize_callback_nr = window.add_resize_callback([&](const auto& d) {
           if (old_window_size.x > 0 && old_window_size.y > 0) {
@@ -1236,9 +1424,9 @@ export namespace fan {
              state == (int)fan::mouse_state::repeat
             ) {
             if (pan_with_middle_mouse) {
-              fan::vec2 viewport_size = gloco->viewport_get_size(reference_viewport);
+              fan::vec2 viewport_size = fan::graphics::viewport_get_size(reference_viewport);
               camera_offset -= (d.motion * viewport_size / (viewport_size * zoom)) * 2.f;
-              gloco->camera_set_position(reference_camera, camera_offset);
+              fan::graphics::camera_set_position(reference_camera, camera_offset);
             }
           }
         });
@@ -1252,19 +1440,19 @@ export namespace fan {
 
       ~interactive_camera_t() {
         if (resize_callback_nr.iic() == false) {
-          gloco->window.remove_resize_callback(resize_callback_nr);
+          fan::graphics::g_render_context_handle.window->remove_resize_callback(resize_callback_nr);
           resize_callback_nr.sic();
         }
         if (button_cb_nr.iic() == false) {
-          gloco->window.remove_buttons_callback(button_cb_nr);
+          fan::graphics::g_render_context_handle.window->remove_buttons_callback(button_cb_nr);
           button_cb_nr.sic();
         }
         if (mouse_motion_nr.iic() == false) {
-          gloco->window.remove_mouse_motion_callback(mouse_motion_nr);
+          fan::graphics::g_render_context_handle.window->remove_mouse_motion_callback(mouse_motion_nr);
           mouse_motion_nr.sic();
         }
         if (uc_nr.iic() == false) {
-          gloco->m_update_callback.unlrec(uc_nr);
+          fan::graphics::ctx().update_callback->unlrec(uc_nr);
           uc_nr.sic();
         }
       }
@@ -1274,7 +1462,7 @@ export namespace fan {
       }
       void set_position(const fan::vec2& position) {
         camera_offset = position;
-        gloco->camera_set_position(reference_camera, camera_offset);
+        fan::graphics::camera_set_position(reference_camera, camera_offset);
       }
     };
 
@@ -1285,13 +1473,13 @@ export namespace fan {
       uint16_t i_down = 0, i_up = 0, i_left = 0, i_right = 0;
 
       template <std::size_t images_per_action>
-      void process_walk(loco_t::shape_t& shape,
+      void process_walk(fan::graphics::shapes::shape_t& shape,
         const fan::vec2& vel,
-        const std::array<loco_t::image_t, 4>& img_idle,
-        const std::array<loco_t::image_t, images_per_action>& img_movement_left,
-        const std::array<loco_t::image_t, images_per_action>& img_movement_right,
-        const std::array<loco_t::image_t, images_per_action>& img_movement_up,
-        const std::array<loco_t::image_t, images_per_action>& img_movement_down
+        const std::array<fan::graphics::image_t, 4>& img_idle,
+        const std::array<fan::graphics::image_t, images_per_action>& img_movement_left,
+        const std::array<fan::graphics::image_t, images_per_action>& img_movement_right,
+        const std::array<fan::graphics::image_t, images_per_action>& img_movement_up,
+        const std::array<fan::graphics::image_t, images_per_action>& img_movement_down
       ) {
         f32_t animation_velocity_threshold = 10.f;
         fan_ev_timer_loop_init(animation_update_time,
@@ -1357,10 +1545,10 @@ export namespace fan {
       struct image_t {
         fan::vec2 uv_pos;
         fan::vec2 uv_size;
-        loco_t::image_t image;
+        fan::graphics::image_t image;
       };
 
-      loco_t::image_t root_image = gloco->default_texture;
+      fan::graphics::image_t root_image = fan::graphics::ctx().default_texture;
       //
       std::vector<std::vector<image_t>> images;
       //
@@ -1369,9 +1557,9 @@ export namespace fan {
         int count_index;
       };
 
-      loco_t::texture_packe0::open_properties_t open_properties;
-      loco_t::texture_packe0 e;
-      loco_t::texture_packe0::texture_properties_t texture_properties;
+      fan::texture_pack::internal_t::open_properties_t open_properties;
+      fan::texture_pack::internal_t e;
+      fan::texture_pack::internal_t::texture_properties_t texture_properties;
 
       //
       image_divider_t() {
@@ -1382,8 +1570,8 @@ export namespace fan {
       }
     };
 
-    loco_t::polygon_t::properties_t create_sine_ground(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth) {
-      loco_t::polygon_t::properties_t pp;
+    fan::graphics::shapes::polygon_t::properties_t create_sine_ground(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth) {
+      fan::graphics::shapes::polygon_t::properties_t pp;
       // for triangle strip
       for (f32_t x = 0; x < groundWidth - width; x += width) {
         f32_t y1 = position.y / 2 + amplitude * std::sin(frequency * x);
@@ -1425,11 +1613,11 @@ export namespace fan {
       f32_t thickness = 2.f;
       uint64_t fade_duration = 2e9;
       uint64_t max_trail_lifetime = 5e9;
-      loco_t::update_callback_nr_t update_callback_nr;
+      fan::graphics::update_callback_nr_t update_callback_nr;
 
       trail_t() {
-        update_callback_nr = gloco->m_update_callback.NewNodeLast();
-        gloco->m_update_callback[update_callback_nr] = [this] (loco_t*) {
+        update_callback_nr = fan::graphics::ctx().update_callback->NewNodeLast();
+        (*fan::graphics::ctx().update_callback)[update_callback_nr] = [this] (void* ptr) {
           update();
         };
       }
@@ -1437,7 +1625,7 @@ export namespace fan {
         if (!update_callback_nr) {
           return;
         }
-        gloco->m_update_callback.unlrec(update_callback_nr);
+        fan::graphics::ctx().update_callback->unlrec(update_callback_nr);
         update_callback_nr.sic();
       }
 

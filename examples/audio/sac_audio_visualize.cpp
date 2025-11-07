@@ -59,7 +59,7 @@ int main() {
   audio.SetVolume(0.01);
   f32_t volume = audio.GetVolume();
 
-  std::vector<loco_t::shape_t> shapes;
+  std::vector<fan::graphics::shape_t> shapes;
   loco.loop([&] {
     std::lock_guard<std::mutex> lock(audio_data.mut);
     int windowSize = audio_data.audio_data.size();
