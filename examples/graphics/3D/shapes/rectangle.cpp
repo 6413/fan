@@ -35,8 +35,8 @@ int main() {
 //    model.draw();
   });
 
-  std::vector<loco_t::shape_t> stars;
-  std::vector<loco_t::shape_t> planets;
+  std::vector<fan::graphics::shape_t> stars;
+  std::vector<fan::graphics::shape_t> planets;
   int star_count = 100;
   int planet_count = 10;
   float galaxy_radius = 50.0;

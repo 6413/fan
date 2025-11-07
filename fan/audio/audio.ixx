@@ -28,6 +28,7 @@ module;
 #include <functional>
 #include <opus/opus.h>
 #include <cstring>
+#include <source_location>
 
 #if fan_audio_set_backend == 0
   #include <xaudio2.h>
@@ -97,6 +98,102 @@ extern "C" {
       }
     }
     return result;
+  }
+}
+#endif
+
+#if defined(fan_audio)
+export namespace fan {
+  namespace audio {
+
+    thread_local inline fan::audio_t* g_audio = nullptr;
+    using sound_play_id_t = fan::audio_t::SoundPlayID_t;
+    struct piece_t : fan::audio_t::piece_t {
+      using fan::audio_t::piece_t::piece_t;
+      piece_t() : fan::audio_t::piece_t{ nullptr } {}
+      piece_t(const fan::audio_t::piece_t& piece)
+        : fan::audio_t::piece_t(piece) {}
+      piece_t(
+        const std::string& path,
+        fan::audio_t::PieceFlag::t flags = 0,
+        const std::source_location& callers_path = std::source_location::current()
+      ) : fan::audio_t::piece_t(open_piece(path, flags, callers_path)) {}
+      operator fan::audio_t::piece_t& () {
+        return *dynamic_cast<fan::audio_t::piece_t*>(this);
+      }
+      piece_t open_piece(
+        const std::string& path,
+        fan::audio_t::PieceFlag::t flags = 0,
+        const std::source_location& callers_path = std::source_location::current()
+      ) {
+        fan::audio_t::piece_t* piece = &(fan::audio_t::piece_t&)*this;
+        sint32_t err = g_audio->Open(piece, fan::io::file::find_relative_path(path, callers_path).string(), flags);
+        if (err != 0) {
+          fan::throw_error("failed to open piece:" + path, "with error:", err);
+        }
+        return *this;
+      }
+      bool is_valid() {
+        char test_block[sizeof(fan::audio_t::piece_t)];
+        memset(test_block, 0, sizeof(fan::audio_t::piece_t));
+        return memcmp(&(fan::audio_t::piece_t&)*this, test_block, sizeof(fan::audio_t::piece_t));
+      }
+      sound_play_id_t play(uint32_t group_id = 0, bool loop = false) {
+        fan::audio_t::PropertiesSoundPlay_t p{};
+        p.Flags.Loop = loop;
+        p.GroupID = 0;
+        return g_audio->SoundPlay(&*this, &p);
+      }
+      void stop(sound_play_id_t id) {
+        fan::audio_t::PropertiesSoundStop_t p{};
+        p.FadeOutTo = 0;
+        g_audio->SoundStop(id, &p);
+      }
+      void resume(uint32_t group_id = 0) {
+        g_audio->Resume();
+      }
+      void pause(uint32_t group_id = 0) {
+        g_audio->Pause();
+      }
+      f32_t get_volume() {
+        return g_audio->GetVolume();
+      }
+      void set_volume(f32_t volume) {
+        g_audio->SetVolume(volume);
+      }
+    };
+    piece_t piece_invalid;
+    inline piece_t open_piece(
+      const std::string& path,
+      fan::audio_t::PieceFlag::t flags = 0,
+      const std::source_location& callers_path = std::source_location::current()
+    ) {
+      return piece_t(path, flags, callers_path);
+    }
+    inline bool is_piece_valid(piece_t piece) {
+      return piece.is_valid();
+    }
+    inline sound_play_id_t play(piece_t piece, uint32_t group_id = 0, bool loop = false) {
+      return piece.play(group_id, loop);
+    }
+    inline void stop(sound_play_id_t id) {
+      fan::audio_t::PropertiesSoundStop_t p{};
+      p.FadeOutTo = 0;
+      g_audio->SoundStop(id, &p);
+    }
+    inline void resume(uint32_t group_id = 0) {
+      g_audio->Resume();
+    }
+    inline void pause(uint32_t group_id = 0) {
+      g_audio->Pause();
+    }
+    inline f32_t get_volume() {
+      return g_audio->GetVolume();
+    }
+    inline void set_volume(f32_t volume) {
+      g_audio->SetVolume(volume);
+    }
+    fan::audio::piece_t piece_hover, piece_click;
   }
 }
 #endif

@@ -2,7 +2,7 @@ struct model_list_t {
 
   struct properties_t {
     loco_t::camera_t camera = gloco->orthographic_render_view.camera;
-    loco_t::viewport_t viewport = gloco->orthographic_render_view.viewport;
+    fan::graphics::viewport_t viewport = gloco->orthographic_render_view.viewport;
     fan::vec3 position = 0;
   };
 
@@ -20,9 +20,9 @@ struct model_list_t {
       shapes = json_in;
     }
 
-    struct shape_t : loco_t::shape_t {
-      shape_t(const loco_t::shape_t&s) : loco_t::shape_t(s){}
-      shape_t(loco_t::shape_t&& s) : loco_t::shape_t(std::move(s)) {}
+    struct shape_t : fan::graphics::shape_t {
+      shape_t(const fan::graphics::shape_t&s) : fan::graphics::shape_t(s){}
+      shape_t(fan::graphics::shape_t&& s) : fan::graphics::shape_t(std::move(s)) {}
       std::string id;
       uint32_t group_id = 0;
       std::string image_name;
@@ -42,7 +42,7 @@ struct model_list_t {
 
   struct model_data_t {
     cm_t cm;
-    //loco_t::shape_t shape;
+    //fan::graphics::shape_t shape;
 
     fan::vec3 position = 0;
     fan::vec2 size = 1;
@@ -81,7 +81,7 @@ struct model_list_t {
       fan::throw_error("invalid file version");
     }
     fan::graphics::shape_deserialize_t iterator;
-    loco_t::shape_t shape;
+    fan::graphics::shape_t shape;
     int i = 0;
     while (iterator.iterate(cms->shapes["shapes"], &shape)) {
       const auto& shape_json = *(iterator.data.it - 1);

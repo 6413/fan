@@ -23,10 +23,14 @@ import fan.types.color;
 import fan.time;
 import fan.utility;
 import fan.physics.b2_integration;
+import fan.physics.common_context;
+import fan.window.input_action;
 
 #if (fan_gui)
   import fan.graphics;
   import fan.graphics.gui;
+  import fan.graphics.common_context;
+  import fan.graphics.shapes;
 #else
   import fan.graphics;
 #endif
@@ -142,9 +146,9 @@ void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
 /// Draw a string.
 void DrawString(b2Vec2 p, const char* s, b2HexColor color, void* context) {
 #if defined(fan_gui)
-  fan::vec2 pos = fan::physics::physics_to_render(p) - gloco->camera_get_position(gloco->orthographic_render_view.camera);
-  pos *= gloco->camera_get_zoom(gloco->orthographic_render_view.camera, gloco->orthographic_render_view.viewport)*0.5f;
-  pos += gloco->window.get_size() / 2.f;
+  fan::vec2 pos = fan::physics::physics_to_render(p) - fan::graphics::camera_get_position(fan::graphics::get_orthographic_render_view().camera);
+  pos *= fan::graphics::camera_get_zoom(fan::graphics::get_orthographic_render_view().camera, fan::graphics::get_orthographic_render_view().viewport)*0.5f;
+  pos += fan::graphics::get_window().get_size() / 2.f;
   
   fan::graphics::gui::text_outlined_at(s, pos, fan::color::from_rgb(color));
 #endif
@@ -211,15 +215,15 @@ export namespace fan {
         }
         init_ = false;
         box2d_debug_draw = [] {
-        auto it = gloco->m_update_callback.NewNodeLast();
-        gloco->m_update_callback[it] = [](loco_t* loco) {
+        auto it = fan::graphics::ctx().update_callback->NewNodeLast();
+        (*fan::graphics::ctx().update_callback)[it] = [](void* ptr) {
           z_depth = 0;
           debug_draw_polygon.clear();
           debug_draw_solid_polygon.clear();
           debug_draw_circle.clear();
           debug_draw_line.clear();
           debug_draw_capsule.clear();
-          b2World_Draw(loco->physics_context.world_id, &fan::graphics::physics::box2d_debug_draw);
+          b2World_Draw(gphysics->world_id, &fan::graphics::physics::box2d_debug_draw);
         };
         return initialize_debug(false);
         }();
@@ -229,10 +233,10 @@ export namespace fan {
       
       void debug_draw(bool enabled);
       // position & aabb & angle
-      std::function<void(loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t)> physics_update_cb =
-        [](loco_t::shape_t&, const fan::vec3&, const fan::vec2&, f32_t) {};
+      std::function<void(fan::graphics::shape_t&, const fan::vec3&, const fan::vec2&, f32_t)> physics_update_cb =
+        [](fan::graphics::shape_t&, const fan::vec3&, const fan::vec2&, f32_t) {};
 
-      void shape_physics_update(const loco_t::physics_update_data_t& data) {
+      void shape_physics_update(const fan::physics::physics_update_data_t& data) {
         if (!b2Body_IsValid(*(b2BodyId*)&data.body_id)) {
           //   fan::print("invalid body data (corruption)");
           return;
@@ -245,7 +249,7 @@ export namespace fan {
         b2Rot rotation = b2Body_GetRotation(*(b2BodyId*)&data.body_id);
         f32_t radians = b2Rot_GetAngle(rotation);
 
-        loco_t::shape_t& shape = *(loco_t::shape_t*)&data.shape_id;
+        fan::graphics::shape_t& shape = *(fan::graphics::shape_t*)&data.shape_id;
         shape.set_position(fan::vec2((p) * fan::physics::length_units_per_meter + fan::vec2(data.draw_offset.x, -data.draw_offset.y)));
         shape.set_angle(fan::vec3(0, 0, radians));
         b2ShapeId id[1];
@@ -303,22 +307,23 @@ export namespace fan {
         }
       };
 
-      struct base_shape_t : loco_t::shape_t, fan::physics::entity_t {
+      struct base_shape_t : fan::graphics::shape_t, fan::physics::entity_t {
         base_shape_t() = default;
         
-        void set_shape(loco_t::shape_t&& shape) {
+        void set_shape(fan::graphics::shape_t&& shape) {
           bool is_valid = iic() == false;
           fan::vec3 prev_pos;
           if (is_valid) {
-            prev_pos = loco_t::shape_t::get_position();
+            prev_pos = fan::graphics::shape_t::get_position();
           }
           if (physics_update_nr.iic() == false) {
-            gloco->remove_physics_update(physics_update_nr);
+            fan::physics::remove_physics_update(physics_update_nr);
           }
-          *dynamic_cast<loco_t::shape_t*>(this) = std::move(shape);
+          *dynamic_cast<fan::graphics::shape_t*>(this) = std::move(shape);
+          static_assert(sizeof(fan::graphics::shaper_t::ShapeID_t) < sizeof(uint64_t), "physics update shape_id too small");
           uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
-            physics_update_nr = gloco->add_physics_update({
-            .shape_id = *this,
+            physics_update_nr = fan::physics::add_physics_update({
+            .shape_id = *(uint64_t*)this,
             .draw_offset = draw_offset,
             .body_id = body_id_data,
             .cb = (void*)shape_physics_update
@@ -327,15 +332,15 @@ export namespace fan {
             set_position(prev_pos);
           }
         }
-        base_shape_t(loco_t::shape_t&& shape, fan::physics::entity_t&& entity, const mass_data_t& mass_data) :
-          loco_t::shape_t(std::move(shape)),
+        base_shape_t(fan::graphics::shape_t&& shape, fan::physics::entity_t&& entity, const mass_data_t& mass_data) :
+          fan::graphics::shape_t(std::move(shape)),
           fan::physics::entity_t(std::move(entity)) {
           if (physics_update_nr.iic() == false) {
-            gloco->remove_physics_update(physics_update_nr);
+            fan::physics::remove_physics_update(physics_update_nr);
           }
           uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
-          physics_update_nr = gloco->add_physics_update({
-            .shape_id = *this,
+          physics_update_nr = fan::physics::add_physics_update({
+            .shape_id = *(uint64_t*)this,
             .draw_offset = draw_offset,
             .body_id = body_id_data,
             .cb = (void*)shape_physics_update
@@ -353,30 +358,30 @@ export namespace fan {
           }
           b2Body_SetMassData(*dynamic_cast<b2BodyId*>(this), md_copy);
         }
-        base_shape_t(const base_shape_t& r) : loco_t::shape_t(r), fan::physics::entity_t(r) {
+        base_shape_t(const base_shape_t& r) : fan::graphics::shape_t(r), fan::physics::entity_t(r) {
           //if (this != )
-          fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gloco->physics_context.world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
+          fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gphysics->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
           if (!B2_ID_EQUALS(r, (*this))) {
             destroy();
           }
           set_body(new_body_id);
           b2Body_GetWorldPoint(*dynamic_cast<b2BodyId*>(this), fan::vec2(0));
           if (physics_update_nr.iic() == false) {
-            gloco->remove_physics_update(physics_update_nr);
+            fan::physics::remove_physics_update(physics_update_nr);
             physics_update_nr.sic();
           }
           if (!fan::physics::entity_t::is_valid()) {
             return;
           }
           uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
-          physics_update_nr = gloco->add_physics_update({
-            .shape_id = *this,
+          physics_update_nr = fan::physics::add_physics_update({
+            .shape_id = *(uint64_t*)this,
             .draw_offset = draw_offset,
             .body_id = body_id_data,
             .cb = (void*)shape_physics_update
           });
         }
-        base_shape_t(base_shape_t&& r) : loco_t::shape_t(std::move(r)), fan::physics::entity_t(std::move(r)) {
+        base_shape_t(base_shape_t&& r) : fan::graphics::shape_t(std::move(r)), fan::physics::entity_t(std::move(r)) {
           if (!B2_ID_EQUALS(r, (*this))) {
             destroy();
           }
@@ -390,13 +395,13 @@ export namespace fan {
         }
         base_shape_t& operator=(const base_shape_t& r) {
           if (physics_update_nr.iic() == false) {
-            gloco->remove_physics_update(physics_update_nr);
+            fan::physics::remove_physics_update(physics_update_nr);
             physics_update_nr.sic();
           }
           if (this != &r) {
-            loco_t::shape_t::operator=(r);
+            fan::graphics::shape_t::operator=(r);
 
-            fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gloco->physics_context.world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
+            fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gphysics->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
             if (!B2_ID_EQUALS(r, (*this))) {
               destroy();
             }
@@ -405,8 +410,8 @@ export namespace fan {
               return *this;
             }
             uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
-            physics_update_nr = gloco->add_physics_update({
-              .shape_id = *this,
+            physics_update_nr = fan::physics::add_physics_update({
+              .shape_id = *(uint64_t*)this,
               .draw_offset = draw_offset,
               .body_id = body_id_data,
               .cb = (void*)shape_physics_update
@@ -419,11 +424,11 @@ export namespace fan {
             destroy();
           }
           if (physics_update_nr.iic() == false) {
-            gloco->remove_physics_update(physics_update_nr);
+            fan::physics::remove_physics_update(physics_update_nr);
             physics_update_nr.sic();
           }
           if (this != &r) {
-            loco_t::shape_t::operator=(std::move(r));
+            fan::graphics::shape_t::operator=(std::move(r));
             fan::physics::entity_t::operator=(std::move(*dynamic_cast<fan::physics::entity_t*>(&r)));
             r.set_body(b2_nullBodyId);
             physics_update_nr = r.physics_update_nr;
@@ -433,10 +438,10 @@ export namespace fan {
         }
 
         void erase() {
-          loco_t::shape_t::erase();
+          fan::graphics::shape_t::erase();
           fan::physics::entity_t::destroy();
           if (physics_update_nr.iic() == false) {
-            gloco->remove_physics_update(physics_update_nr);
+            fan::physics::remove_physics_update(physics_update_nr);
           }
           physics_update_nr.sic();
         }
@@ -456,16 +461,16 @@ export namespace fan {
         
         void set_draw_offset(fan::vec2 new_draw_offset) {
           draw_offset = new_draw_offset;
-          gloco->shape_physics_update_cbs[physics_update_nr].draw_offset = new_draw_offset;
+          (*gphysics->physics_updates)[physics_update_nr].draw_offset = new_draw_offset;
         }
         fan::vec2 draw_offset = 0;
-        loco_t::physics_update_cbs_t::nr_t physics_update_nr;
+        fan::physics::physics_update_cbs_t::nr_t physics_update_nr;
       };
 
       struct rectangle_t : base_shape_t {
         struct properties_t {
-          render_view_t* render_view = &gloco->orthographic_render_view;
-          fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
+          render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
+          fan::vec3 position = fan::vec3(fan::vec2(fan::window::get_size() / 2), 0);
           fan::vec2 size = fan::vec2(32, 32);
           fan::color color = fan::color(1, 1, 1, 1);
           fan::color outline_color = color;
@@ -490,8 +495,8 @@ export namespace fan {
         };
         rectangle_t() = default;
         rectangle_t(const properties_t& p) : base_shape_t(
-          loco_t::shape_t(fan::graphics::rectangle_t{ p }),
-          fan::physics::entity_t(gloco->physics_context.create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
+          fan::graphics::shape_t(fan::graphics::rectangle_t{ p }),
+          fan::physics::entity_t(gphysics->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -509,14 +514,14 @@ export namespace fan {
 
       struct sprite_t : base_shape_t {
         struct properties_t {
-          render_view_t* render_view = &gloco->orthographic_render_view;
+          render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
           fan::vec3 position = fan::vec3(0, 0, 0);
           fan::vec2 size = fan::vec2(0.1, 0.1);
           fan::vec3 angle = 0;
           fan::color color = fan::color(1, 1, 1, 1);
           fan::vec2 rotation_point = 0;
-          loco_t::image_t image = gloco->default_texture;
-          std::array<loco_t::image_t, 30> images;
+          fan::graphics::image_t image = fan::graphics::get_default_texture();
+          std::array<fan::graphics::image_t, 30> images;
           f32_t parallax_factor = 0;
           bool blending = true;
           uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
@@ -541,8 +546,8 @@ export namespace fan {
         };
         sprite_t() = default;
         sprite_t(const properties_t& p) : base_shape_t(
-          loco_t::shape_t(fan::graphics::sprite_t{ p }),
-          fan::physics::entity_t(gloco->physics_context.create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
+          fan::graphics::shape_t(fan::graphics::sprite_t{ p }),
+          fan::physics::entity_t(gphysics->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -560,7 +565,7 @@ export namespace fan {
 
       struct circle_t : base_shape_t {
         struct properties_t {
-          render_view_t* render_view = &gloco->orthographic_render_view;
+          render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
           fan::vec3 position = fan::vec3(0, 0, 0);
           f32_t radius = 0.1f;
           fan::vec3 angle = 0;
@@ -584,8 +589,8 @@ export namespace fan {
         };
         circle_t() = default;
         circle_t(const properties_t& p) : base_shape_t(
-          loco_t::shape_t(fan::graphics::circle_t{ p }),
-          fan::physics::entity_t(gloco->physics_context.create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
+          fan::graphics::shape_t(fan::graphics::circle_t{ p }),
+          fan::physics::entity_t(gphysics->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -602,12 +607,12 @@ export namespace fan {
       };
       struct circle_sprite_t : base_shape_t {
         struct properties_t {
-          render_view_t* render_view = &gloco->orthographic_render_view;
+          render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
           fan::vec3 position = fan::vec3(0, 0, 0);
           f32_t radius = 0.1f;
           fan::vec2 size = radius;
           fan::vec3 angle = 0;
-          loco_t::image_t image = gloco->default_texture;
+          fan::graphics::image_t image = fan::graphics::get_default_texture();
           fan::color color = fan::color(1, 1, 1, 1);
           bool blending = true;
           uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
@@ -629,8 +634,8 @@ export namespace fan {
         };
         circle_sprite_t() = default;
         circle_sprite_t(const properties_t& p) : base_shape_t(
-          loco_t::shape_t(fan::graphics::sprite_t{ p }),
-          fan::physics::entity_t(gloco->physics_context.create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
+          fan::graphics::shape_t(fan::graphics::sprite_t{ p }),
+          fan::physics::entity_t(gphysics->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -647,8 +652,8 @@ export namespace fan {
       };
       struct capsule_t : base_shape_t {
         struct properties_t {
-          render_view_t* render_view = &gloco->orthographic_render_view;
-          fan::vec3 position = fan::vec3(fan::vec2(gloco->window.get_size() / 2), 0);
+          render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
+          fan::vec3 position = fan::vec3(fan::vec2(fan::window::get_size() / 2), 0);
           fan::vec2 center0{ 0, -32.f };
           fan::vec2 center1{ 0, 32.f };
           f32_t radius = 16.f;
@@ -677,8 +682,8 @@ export namespace fan {
         };
         capsule_t() = default;
         capsule_t(const properties_t& p) : base_shape_t(
-          loco_t::shape_t(fan::graphics::capsule_t{ p }),
-          fan::physics::entity_t(gloco->physics_context.create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.radius }, p.body_type, p.shape_properties)),
+          fan::graphics::shape_t(fan::graphics::capsule_t{ p }),
+          fan::physics::entity_t(gphysics->create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.radius }, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -696,7 +701,7 @@ export namespace fan {
 
       struct capsule_sprite_t : base_shape_t {
         struct properties_t {
-          render_view_t* render_view = &gloco->orthographic_render_view;
+          render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
           fan::vec3 position = fan::vec3(0, 0, 0);
           fan::vec2 center0{ 0, -32.f };
           fan::vec2 center1{ 0, 32.f };
@@ -704,8 +709,8 @@ export namespace fan {
           fan::vec3 angle = 0;
           fan::color color = fan::color(1, 1, 1, 1);
           fan::vec2 rotation_point = 0;
-          loco_t::image_t image = gloco->default_texture;
-          std::array<loco_t::image_t, 30> images;
+          fan::graphics::image_t image = fan::graphics::get_default_texture();
+          std::array<fan::graphics::image_t, 30> images;
           f32_t parallax_factor = 0;
           bool blending = true;
           uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
@@ -732,8 +737,8 @@ export namespace fan {
         };
         capsule_sprite_t() = default;
         capsule_sprite_t(const properties_t& p) : base_shape_t(
-          loco_t::shape_t(fan::graphics::sprite_t{ p }),
-          fan::physics::entity_t(gloco->physics_context.create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.size.max() / 2.f}, p.body_type, p.shape_properties)),
+          fan::graphics::shape_t(fan::graphics::sprite_t{ p }),
+          fan::physics::entity_t(gphysics->create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.size.max() / 2.f}, p.body_type, p.shape_properties)),
           p.mass_data
         ) {
         }
@@ -750,7 +755,7 @@ export namespace fan {
       };
       struct polygon_t : base_shape_t {
         struct properties_t {
-          render_view_t* render_view = &gloco->orthographic_render_view;
+          render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
           fan::vec3 position = 0;
           f32_t radius = 0.005;
           fan::vec3 angle = 0;
@@ -775,14 +780,14 @@ export namespace fan {
         };
         polygon_t() = default;
         polygon_t(const properties_t& p) : base_shape_t(
-          loco_t::shape_t(fan::graphics::polygon_t{ p }),
+          fan::graphics::shape_t(fan::graphics::polygon_t{ p }),
           fan::physics::entity_t(
             [&] {
               std::vector<fan::vec2> points(p.vertices.size());
               for (std::size_t i = 0; i < points.size(); ++i) {
                 points[i] = p.vertices[i].position;
               }
-              return gloco->physics_context.create_polygon(
+              return gphysics->create_polygon(
                 p.position,
                 p.radius,
                 points, p.body_type, p.shape_properties
@@ -805,7 +810,7 @@ export namespace fan {
 
       struct polygon_strip_t : base_shape_t {
         struct properties_t {
-          render_view_t* render_view = &gloco->orthographic_render_view;
+          render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
           fan::vec3 position = 0;
           fan::vec3 angle = 0;
           fan::vec2 rotation_point = 0;
@@ -829,14 +834,14 @@ export namespace fan {
         };
         polygon_strip_t() = default;
         polygon_strip_t(const properties_t& p) : base_shape_t(
-          loco_t::shape_t(fan::graphics::polygon_t{ p }),
+          fan::graphics::shape_t(fan::graphics::polygon_t{ p }),
           fan::physics::entity_t(
             [&] {
               std::vector<fan::vec2> points(p.vertices.size());
               for (std::size_t i = 0; i < points.size(); ++i) {
                 points[i] = p.vertices[i].position;
               }
-              return gloco->physics_context.create_segment(
+              return gphysics->create_segment(
                 p.position,
                 points, p.body_type, p.shape_properties
               );
@@ -924,7 +929,7 @@ export namespace fan {
         character2d_t() = default;
         character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {}
 
-        void set_shape(loco_t::shape_t&& shape) {
+        void set_shape(fan::graphics::shape_t&& shape) {
           physics::base_shape_t::set_shape(std::move(shape));
         }
 
@@ -981,7 +986,7 @@ export namespace fan {
 
           walk_force = 0;
 
-          fan::vec2 input_vector = gloco->get_input_vector();
+          fan::vec2 input_vector = fan::window::get_input_vector();
 
           switch (movement) {
           case movement_e::side_view: {
@@ -1005,7 +1010,7 @@ export namespace fan {
               colliding_wall_id.set_friction(fan::physics::shape_properties_t().friction);
             }
 
-            bool move_up = gloco->input_action.is_action_clicked("move_up");
+            bool move_up = fan::window::is_action_clicked("move_up");
             if (move_up) {
               if (wall_jump.normal && !on_ground) {
                 fan::physics::wall_jump(*this, wall_jump.normal, wall_jump.push_away_force, -jump_impulse);
@@ -1045,10 +1050,10 @@ export namespace fan {
 
         void set_physics_position(const fan::vec2& p) {
           fan::physics::entity_t::set_physics_position(p);
-          loco_t::shape_t::set_position(p);
+          fan::graphics::shape_t::set_position(p);
         }
         fan::vec3 get_position() const {
-          return loco_t::shape_t::get_position();
+          return fan::graphics::shape_t::get_position();
         }
         fan::vec2 previous_movement_sign;
         f32_t force = 15.f;
@@ -1150,7 +1155,7 @@ export namespace fan {
       }
 
       struct human_t {
-        using bone_images_t = std::array<loco_t::image_t, bone_e::bone_count>;
+        using bone_images_t = std::array<fan::graphics::image_t, bone_e::bone_count>;
         using bones_t = std::array<bone_t, bone_e::bone_count>;
 
         human_t() = default;
@@ -1327,17 +1332,17 @@ export namespace fan {
             bones[i].center1 = bone_data[i].center1 * scale;
           }
         }
-        static bone_images_t load_character_images(const std::string& character_folder_path, const loco_t::image_load_properties_t& lp) {
+        static bone_images_t load_character_images(const std::string& character_folder_path, const fan::graphics::image_load_properties_t& lp) {
           fan::graphics::physics::human_t::bone_images_t character_images;
-          character_images[fan::graphics::physics::bone_e::head] = gloco->image_load(character_folder_path + "/head.webp", lp);
-          character_images[fan::graphics::physics::bone_e::torso] = gloco->image_load(character_folder_path + "/torso.webp", lp);
-          character_images[fan::graphics::physics::bone_e::hip] = gloco->image_load(character_folder_path + "/hip.webp", lp);
-          character_images[fan::graphics::physics::bone_e::upper_left_leg] = gloco->image_load(character_folder_path + "/upper_leg.webp", lp);
-          character_images[fan::graphics::physics::bone_e::lower_left_leg] = gloco->image_load(character_folder_path + "/lower_leg.webp", lp);
+          character_images[fan::graphics::physics::bone_e::head] = fan::graphics::image_load(character_folder_path + "/head.webp", lp);
+          character_images[fan::graphics::physics::bone_e::torso] = fan::graphics::image_load(character_folder_path + "/torso.webp", lp);
+          character_images[fan::graphics::physics::bone_e::hip] = fan::graphics::image_load(character_folder_path + "/hip.webp", lp);
+          character_images[fan::graphics::physics::bone_e::upper_left_leg] = fan::graphics::image_load(character_folder_path + "/upper_leg.webp", lp);
+          character_images[fan::graphics::physics::bone_e::lower_left_leg] = fan::graphics::image_load(character_folder_path + "/lower_leg.webp", lp);
           character_images[fan::graphics::physics::bone_e::upper_right_leg] = character_images[fan::graphics::physics::bone_e::upper_left_leg];
           character_images[fan::graphics::physics::bone_e::lower_right_leg] = character_images[fan::graphics::physics::bone_e::lower_left_leg];
-          character_images[fan::graphics::physics::bone_e::upper_left_arm] = gloco->image_load(character_folder_path + "/upper_arm.webp", lp);
-          character_images[fan::graphics::physics::bone_e::lower_left_arm] = gloco->image_load(character_folder_path + "/lower_arm.webp", lp);
+          character_images[fan::graphics::physics::bone_e::upper_left_arm] = fan::graphics::image_load(character_folder_path + "/upper_arm.webp", lp);
+          character_images[fan::graphics::physics::bone_e::lower_left_arm] = fan::graphics::image_load(character_folder_path + "/lower_arm.webp", lp);
           character_images[fan::graphics::physics::bone_e::upper_right_arm] = character_images[fan::graphics::physics::bone_e::upper_left_arm];
           character_images[fan::graphics::physics::bone_e::lower_right_arm] = character_images[fan::graphics::physics::bone_e::lower_left_arm];
           return character_images;
@@ -1379,7 +1384,7 @@ export namespace fan {
                 static int x = 0;
                 if (!x) {
                   fan::vec2 pivot = fan::vec2(500, 300.f) / fan::physics::length_units_per_meter + bones[i].pivot * scale;
-                  //     update_position(gloco->physics_context.world_id, bones[i].joint_id, pivot);
+                  //     update_position(gphysics->world_id, bones[i].joint_id, pivot);
                   x++;
                 }
 
@@ -1396,8 +1401,8 @@ export namespace fan {
             //quarter_pi *= 3; // why this is required?
             //quarter_pi += fan::math::pi;
             if (std::abs(torso_vel_x) / 130.f > 1.f && torso_vel_x) {
-              //   update_reference_angle(gloco->physics_context.world_id, blower_left_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
-             //    update_reference_angle(gloco->physics_context.world_id, blower_right_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
+              //   update_reference_angle(gphysics->world_id, blower_left_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
+             //    update_reference_angle(gphysics->world_id, blower_right_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
               look_direction = vel_sgn;
             }
 
@@ -1443,7 +1448,7 @@ export namespace fan {
           f32_t frictionTorque = 0.03f;
           f32_t hertz = 5.0f;
           f32_t dampingRatio = 0.5f;
-          b2WorldId worldId = gloco->physics_context.world_id;
+          b2WorldId worldId = gphysics->world_id;
 
           b2Filter filter = b2DefaultFilter();
 
@@ -1571,7 +1576,7 @@ export namespace fan {
 
       struct mouse_joint_t {
         fan::physics::body_id_t dummy_body;
-        fan::graphics::engine_t::update_callback_nr_t nr;
+        fan::graphics::update_callback_nr_t nr;
 
         struct QueryContext {
           b2Vec2 point;
@@ -1603,13 +1608,13 @@ export namespace fan {
         mouse_joint_t() {
 
           auto default_body = b2DefaultBodyDef();
-          dummy_body.set_body(b2CreateBody(gloco->physics_context, &default_body));
-          nr = gloco->m_update_callback.NewNodeLast();
+          dummy_body.set_body(b2CreateBody(gphysics->world_id, &default_body));
+          nr = fan::graphics::ctx().update_callback->NewNodeLast();
           // not copy safe
-          gloco->m_update_callback[nr] = [this](loco_t* loco) {
+          (*fan::graphics::ctx().update_callback)[nr] = [this](void* ptr) {
 #if defined(fan_gui)
             if (fan::window::is_mouse_down()) {
-              fan::vec2 p = gloco->get_mouse_position() / fan::physics::length_units_per_meter;
+              fan::vec2 p = fan::window::get_mouse_position() / fan::physics::length_units_per_meter;
               if (!B2_IS_NON_NULL(mouse_joint)) {
                 b2AABB box;
                 b2Vec2 d = { 0.001f, 0.001f };
@@ -1617,7 +1622,7 @@ export namespace fan {
                 box.upperBound = b2Add(p, d);
 
                 QueryContext queryContext = { p, b2_nullBodyId };
-                b2World_OverlapAABB(loco->physics_context, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
+                b2World_OverlapAABB(gphysics->world_id, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
                 if (B2_IS_NON_NULL(queryContext.bodyId)) {
 
                   b2MouseJointDef mouseDef = b2DefaultMouseJointDef();
@@ -1627,7 +1632,7 @@ export namespace fan {
                   mouseDef.hertz = 5.0f;
                   mouseDef.dampingRatio = 0.7f;
                   mouseDef.maxForce = 1000.0f * b2Body_GetMass(queryContext.bodyId);
-                  mouse_joint = b2CreateMouseJoint(loco->physics_context, &mouseDef);
+                  mouse_joint = b2CreateMouseJoint(gphysics->world_id, &mouseDef);
                   b2Body_SetAwake(queryContext.bodyId, true);
                 }
               }
@@ -1651,7 +1656,7 @@ export namespace fan {
             dummy_body.destroy();
           }
           if (nr.iic() == false) {
-            gloco->m_update_callback.unlrec(nr);
+            fan::graphics::ctx().update_callback->unlrec(nr);
             nr.sic();
           }
         }
@@ -1670,10 +1675,10 @@ void fan::graphics::physics::debug_draw(bool enabled) {
 
 export namespace fan::physics {
   bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) {
-    return gloco->physics_context.is_on_sensor(test_id, sensor_id);
+    return gphysics->is_on_sensor(test_id, sensor_id);
   }
   fan::physics::ray_result_t raycast(const fan::vec2& src, const fan::vec2& dst) {
-    return gloco->physics_context.raycast(src, dst);
+    return gphysics->raycast(src, dst);
   }
 }
 
