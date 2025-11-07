@@ -82,5 +82,5 @@ struct player_t {
       .contact_events = true,
     },
   }}};
-  loco_t::shape_t light;
+  fan::graphics::shape_t light;
 };

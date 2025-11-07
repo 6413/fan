@@ -2,7 +2,7 @@ import fan;
 
 struct particle_editor_t {
   fan::graphics::engine_t& engine;
-  fan::graphics::engine_t::shape_t particle_shape;
+  fan::graphics::fan::graphics::shape_t particle_shape;
   fan::color bg_color;
   fan::color base_color;
   f32_t color_intensity;

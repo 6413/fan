@@ -110,7 +110,7 @@ struct blur_t {
     fan_opengl_call(glBindVertexArray(0));
   }
 
-  void draw_downsamples(loco_t::image_t* image) {
+  void draw_downsamples(fan::graphics::image_t* image) {
     loco.context.gl.set_depth_test(false);
     fan_opengl_call(glDisable(GL_BLEND));
     fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
@@ -178,7 +178,7 @@ struct blur_t {
     fan_opengl_call(glDisable(GL_BLEND));
   }
 
-  void draw(loco_t::image_t* color_texture, f32_t filter_radius) {
+  void draw(fan::graphics::image_t* color_texture, f32_t filter_radius) {
     auto& context = loco.context.gl;
 
     brightness_fbo.bind(context);
@@ -196,7 +196,7 @@ struct blur_t {
     fan_opengl_call(glViewport(0, 0, window_size.x, window_size.y));
   }
 
-  void draw(loco_t::image_t* color_texture) {
+  void draw(fan::graphics::image_t* color_texture) {
     draw(color_texture, bloom_filter_radius);
   }
 
@@ -207,13 +207,13 @@ struct blur_t {
   struct mip_t {
     fan::vec2 size;
     fan::vec2i int_size;
-    loco_t::image_t image;
+    fan::graphics::image_t image;
   };
 
   std::vector<mip_t> mips;
 
   f32_t bloom_filter_radius = 0.005f;
-  loco_t::shader_t shader_downsample;
-  loco_t::shader_t shader_upsample;
+  fan::graphics::shader_t shader_downsample;
+  fan::graphics::shader_t shader_upsample;
 };
 #undef loco

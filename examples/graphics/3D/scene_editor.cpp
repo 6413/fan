@@ -684,7 +684,7 @@ struct pile_t {
       f32_t bone_scale = 0.5;
       uint16_t flags = 0;
       bool render_this = false;
-      std::vector<loco_t::shape_t> visual_bones;
+      std::vector<fan::graphics::shape_t> visual_bones;
     }skeleton_properties;
 
     void begin_render() {
@@ -731,14 +731,14 @@ struct pile_t {
     int cursor_mode = 1;
 
     loco_t::camera_t camera_nr;
-    loco_t::viewport_t viewport_nr;
+    fan::graphics::viewport_t viewport_nr;
     fan::graphics::context_camera_t& camera;
     fan::graphics::context_viewport_t& viewport;
     fan::graphics::gui::content_browser_t content_browser;
 
-    loco_t::image_t icon_video_camera = gloco->image_load("images_editor/video-camera.webp");
-    loco_t::image_t icon_lightbulb = gloco->image_load("images_editor/lightbulb.webp");
-    loco_t::image_t icon_skeleton = gloco->image_load("images_editor/skeleton.webp");
+    fan::graphics::image_t icon_video_camera = gloco->image_load("images_editor/video-camera.webp");
+    fan::graphics::image_t icon_lightbulb = gloco->image_load("images_editor/lightbulb.webp");
+    fan::graphics::image_t icon_skeleton = gloco->image_load("images_editor/skeleton.webp");
 
     void init_editor_theme() {
       ImGuiStyle& style = ImGui::GetStyle();

@@ -12,13 +12,13 @@ struct weather_t {
     load_rain(rain_particles);
   }
   void lightning();
-  void load_rain(loco_t::shape_t& rain_particles);
+  void load_rain(fan::graphics::shape_t& rain_particles);
 
 
   bool on = false;
   f32_t sin_var = 0;
   uint16_t repeat_count = 0;
-  loco_t::shape_t rain_particles;
+  fan::graphics::shape_t rain_particles;
 
   f32_t lightning_duration = 0;
 };
@@ -118,7 +118,7 @@ void weather_t::lightning() {
   }
 }
 
-void weather_t::load_rain(loco_t::shape_t& rain_particles) {
+void weather_t::load_rain(fan::graphics::shape_t& rain_particles) {
   std::string data;
   fan::io::file::read("raindrops.json", &data);
   fan::json in = fan::json::parse(data);

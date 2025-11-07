@@ -62,10 +62,10 @@ int main() {
 
   static constexpr auto gap_size = 1;
 
-  //loco_t::shape_t pipes[1000];
+  //fan::graphics::shape_t pipes[1000];
   struct pipe_t {
     BCOL_t::ObjectID_t oid[2];
-    loco_t::shape_t shape[2];
+    fan::graphics::shape_t shape[2];
     void push_back(f32_t xpos) {
 
       f32_t r = fan::random::value_f32(0.5, 1);
@@ -104,7 +104,7 @@ int main() {
 
   struct {
     BCOL_t::ObjectID_t oid;
-    loco_t::shape_t shape;
+    fan::graphics::shape_t shape;
   }player;
 
   {

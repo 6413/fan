@@ -20,13 +20,13 @@ struct compute_shader_t {
     fan::string shader_data;
     fan::io::file::read(fan::io::file::find_relative_path(p.shader.path, callers_path), &shader_data);
     auto spirv =
-      loco_t::shader_t::compile_file(
+      fan::graphics::shader_t::compile_file(
         p.shader.path, 
         shaderc_compute_shader,
         shader_data
       );
 
-		m_shader_module = loco_t::shader_t::createShaderModule(loco->get_context(),
+		m_shader_module = fan::graphics::shader_t::createShaderModule(loco->get_context(),
       spirv
 		);
 

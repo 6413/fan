@@ -34,6 +34,6 @@ struct player_t {
       },
     }
   }};
-  loco_t::shape_t light;
+  fan::graphics::shape_t light;
   fan::graphics::animator_t animator;
 };

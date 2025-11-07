@@ -32,10 +32,11 @@ export module fan.graphics.gui;
   import fan.event;
   import fan.fmt;
 
-  import fan.graphics.loco;
+  import fan.graphics.common_context;
   import fan.graphics;
   import fan.io.file;
   import fan.io.directory;
+  import fan.audio;
 
 #endif
 
@@ -1433,7 +1434,7 @@ export namespace fan {
         #define fan_imgui_dragfloat1(variable, speed) \
             fan_imgui_dragfloat_named(STRINGIFY(variable), variable, speed, 0, 0)
 
-        using gui_draw_cb_nr_t = loco_t::gui_draw_cb_NodeReference_t;
+        using gui_draw_cb_nr_t = fan::graphics::gui_draw_cb_nr_t;
 
         struct imgui_element_nr_t : gui_draw_cb_nr_t {
           using base_t = gui_draw_cb_nr_t;
@@ -1489,27 +1490,27 @@ export namespace fan {
             return *this;
           }
           void init() {
-            *(base_t*)this = gloco->gui_draw_cb.NewNodeLast();
+            *(base_t*)this = fan::graphics::get_gui_draw_cbs().NewNodeLast();
           }
 
           bool is_invalid() const {
-            return loco_t::gui_draw_cb_inric(*this);
+            return fan::graphics::gui_draw_cb_inric(*this);
           }
 
           void invalidate_soft() {
-            *(base_t*)this = gloco->gui_draw_cb.gnric();
+            *(base_t*)this = fan::graphics::get_gui_draw_cbs().gnric();
           }
 
           void invalidate() {
             if (is_invalid()) {
               return;
             }
-            gloco->gui_draw_cb.unlrec(*this);
-            *(base_t*)this = gloco->gui_draw_cb.gnric();
+            fan::graphics::get_gui_draw_cbs().unlrec(*this);
+            *(base_t*)this = fan::graphics::get_gui_draw_cbs().gnric();
           }
 
           void set(const auto& lambda) {
-            gloco->gui_draw_cb[*this] = lambda;
+            fan::graphics::get_gui_draw_cbs()[*this] = lambda;
           }
         };
 
@@ -1541,8 +1542,8 @@ export namespace fan {
           fan::vec2 viewport_size = fan::vec2(child_size.x, child_size.y);
           fan::vec2 viewport_pos = windowPosRelativeToMainViewport;
 
-          fan::vec2 window_size = gloco->window.get_size();
-          gloco->viewport_set(
+          fan::vec2 window_size = fan::graphics::get_window().get_size();
+          fan::graphics::viewport_set(
             viewport,
             viewport_pos,
             viewport_size
@@ -1553,7 +1554,7 @@ export namespace fan {
 
           ImVec2 child_size = ImGui::GetWindowSize();
           fan::vec2 viewport_size = fan::vec2(child_size.x, child_size.y);
-          gloco->camera_set_ortho(
+          fan::graphics::camera_set_ortho(
             render_view.camera,
             fan::vec2(0, viewport_size.x),
             fan::vec2(0, viewport_size.y)
@@ -1606,11 +1607,11 @@ export namespace fan {
           bool currently_hovered = ImGui::IsItemHovered();
 
           if (currently_hovered && !previously_hovered) {
-            fan::audio::piece_t& piece = fan::audio::is_piece_valid(piece_hover) ? piece_hover : gloco->piece_hover;
+            fan::audio::piece_t& piece = fan::audio::is_piece_valid(piece_hover) ? piece_hover : fan::audio::piece_hover;
             fan::audio::play(piece);
           }
           if (pressed) {
-            fan::audio::piece_t& piece = fan::audio::is_piece_valid(piece_click) ? piece_click : gloco->piece_click;
+            fan::audio::piece_t& piece = fan::audio::is_piece_valid(piece_click) ? piece_click : fan::audio::piece_click;
             fan::audio::play(piece);
           }
           storage->SetBool(id, currently_hovered);
@@ -1643,14 +1644,14 @@ export namespace fan {
           return ImGui::ListBox(label.c_str(), current_item, getter, user_data, items_count, height_in_items);
         }
 
-        void image(loco_t::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::color(1, 1, 1, 1), const fan::color& border_col = fan::color(0, 0, 0, 0)) {
-          ImGui::Image((ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, tint_col, border_col);
+        void image(fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::color(1, 1, 1, 1), const fan::color& border_col = fan::color(0, 0, 0, 0)) {
+          ImGui::Image((ImTextureID)fan::graphics::image_get_handle(img), size, uv0, uv1, tint_col, border_col);
         }
-        bool image_button(const std::string& str_id, loco_t::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), int frame_padding = -1, const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::color(1, 1, 1, 1)) {
-          return ImGui::ImageButton(str_id.c_str(), (ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
+        bool image_button(const std::string& str_id, fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), int frame_padding = -1, const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::color(1, 1, 1, 1)) {
+          return ImGui::ImageButton(str_id.c_str(), (ImTextureID)fan::graphics::image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
         }
         bool image_text_button(
-          loco_t::image_t img,
+          fan::graphics::image_t img,
           const std::string& text,
           const fan::color& color,
           const fan::vec2& size,
@@ -1660,7 +1661,7 @@ export namespace fan {
           const fan::color& bg_col = fan::color(0, 0, 0, 0),
           const fan::color& tint_col = fan::color(1, 1, 1, 1)
         ) {
-          bool ret = ImGui::ImageButton(text.c_str(), (ImTextureID)gloco->image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
+          bool ret = ImGui::ImageButton(text.c_str(), (ImTextureID)fan::graphics::image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
           ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
           ImVec2 pos = ImGui::GetItemRectMin() + (ImGui::GetItemRectMax() - ImGui::GetItemRectMin()) / 2 - text_size / 2;
           ImGui::GetWindowDrawList()->AddText(pos, ImGui::GetColorU32(color), text.c_str());
@@ -1692,7 +1693,7 @@ export namespace fan {
 
           return changed;
         }
-        bool toggle_image_button(const std::string& char_id, loco_t::image_t image, const fan::vec2& size, bool* toggle) {
+        bool toggle_image_button(const std::string& char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle) {
           bool clicked = false;
 
           ImVec4 tintColor = ImVec4(1, 1, 1, 1);
@@ -1727,7 +1728,7 @@ export namespace fan {
 
 
         template <std::size_t N>
-        bool toggle_image_button(const std::array<loco_t::image_t, N>& images, const fan::vec2& size, int* selectedIndex)
+        bool toggle_image_button(const std::array<fan::graphics::image_t, N>& images, const fan::vec2& size, int* selectedIndex)
         {
           f32_t y_pos = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y - ImGui::GetStyle().FramePadding.y / 2;
 
@@ -1778,7 +1779,7 @@ export namespace fan {
 
         // untested
         void image_rotated(
-          loco_t::image_t image,
+          fan::graphics::image_t image,
           const fan::vec2& size,
           int angle,
           const fan::vec2& uv0 = fan::vec2(0, 0),
@@ -1834,7 +1835,7 @@ export namespace fan {
             fan::vec2 x3 = fan::vec2(x0.x, x2.y);
 
             window->DrawList->AddImageQuad(
-              (ImTextureID)gloco->image_get_handle(image),
+              (ImTextureID)fan::graphics::image_get_handle(image),
               *(ImVec2*)&x0, *(ImVec2*)&x1, *(ImVec2*)&x2, *(ImVec2*)&x3,
               *(ImVec2*)&_uv0, *(ImVec2*)&_uv1, *(ImVec2*)&_uv2, *(ImVec2*)&_uv3,
               ImGui::GetColorU32(tint_col)
@@ -1847,7 +1848,7 @@ export namespace fan {
             fan::vec2 x3 = fan::vec2(cursor_pos.x, bb_max.y);
 
             window->DrawList->AddImageQuad(
-              (ImTextureID)gloco->image_get_handle(image),
+              (ImTextureID)fan::graphics::image_get_handle(image),
               *(ImVec2*)&x0, *(ImVec2*)&x1, *(ImVec2*)&x2, *(ImVec2*)&x3,
               *(ImVec2*)&_uv0, *(ImVec2*)&_uv1, *(ImVec2*)&_uv2, *(ImVec2*)&_uv3,
               ImGui::GetColorU32(tint_col)
@@ -2201,7 +2202,7 @@ export namespace fan {
 
         template <typename T>
         imgui_fs_var_t(
-          loco_t::shader_t shader_nr,
+          fan::graphics::shader_t shader_nr,
           const std::string& var_name,
           T initial_ = 0,
           f32_t speed = 1,
@@ -2217,12 +2218,11 @@ export namespace fan {
           else {
             initial = initial_;
           }
-          fan::opengl::context_t::shader_t shader = gloco->shader_get(shader_nr).gl;
-          if (gloco->window.renderer == loco_t::renderer_t::vulkan) {
+          if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) {
             fan::throw_error("");
           }
-          auto found = gloco->shader_list[shader_nr].uniform_type_table.find(var_name);
-          if (found == gloco->shader_list[shader_nr].uniform_type_table.end()) {
+          auto found = (*fan::graphics::ctx().shader_list)[shader_nr].uniform_type_table.find(var_name);
+          if (found == (*fan::graphics::ctx().shader_list)[shader_nr].uniform_type_table.end()) {
             //fan::print("failed to set uniform value");
             return;
             //fan::throw_error("failed to set uniform value");
@@ -2248,17 +2248,17 @@ export namespace fan {
             }
             }
             if (modify) {
-              gloco->shader_set_value(shader_nr, var_name, data);
+              fan::graphics::shader_set_value(shader_nr, var_name, data);
             }
             };
-          gloco->shader_set_value(shader_nr, var_name, initial);
+          fan::graphics::shader_set_value(shader_nr, var_name, initial);
         }
       };
 
-      void shape_properties(const loco_t::shape_t& shape) {
+      void shape_properties(const fan::graphics::shape_t& shape) {
         switch (shape.get_shape_type()) {
-        case loco_t::shape_type_t::particles: {
-          auto& ri = *(loco_t::particles_t::ri_t*)shape.GetData(gloco->shaper);
+        case fan::graphics::shape_type_t::particles: {
+          auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper);
 
           const char* items[] = { "circle", "rectangle" };
           int current_shape = ri.shape;
@@ -2274,11 +2274,11 @@ export namespace fan {
           }
           if (fan::graphics::gui::slider("alive_time", &ri.alive_time, 0.0f, 10e+9f)) {
           }
-          if (ri.shape == fan::graphics::engine_t::particles_t::shapes_e::rectangle) {
+          if (ri.shape == fan::graphics::shapes::particles_t::shapes_e::rectangle) {
             if (fan::graphics::gui::slider("gap_size", &ri.gap_size, -1000.0f, 1000.0f)) {
             }
           }
-          if (ri.shape == fan::graphics::engine_t::particles_t::shapes_e::rectangle) {
+          if (ri.shape == fan::graphics::shapes::particles_t::shapes_e::rectangle) {
             if (fan::graphics::gui::slider("max_spread_size", &ri.max_spread_size, -10000.0f, 10000.0f)) {
             }
           }
@@ -2313,7 +2313,7 @@ export namespace fan {
           std::string filename;
           std::wstring item_path;
           bool is_directory;
-          loco_t::image_t preview_image;
+          fan::graphics::image_t preview_image;
           bool is_selected = false;
           //std::string 
         };
@@ -2329,15 +2329,15 @@ export namespace fan {
 
         std::vector<file_info_t> directory_cache;
 
-        loco_t::image_t icon_arrow_left = gloco->image_load("images_content_browser/arrow_left.webp");
-        loco_t::image_t icon_arrow_right = gloco->image_load("images_content_browser/arrow_right.webp");
+        fan::graphics::image_t icon_arrow_left = fan::graphics::image_load("images_content_browser/arrow_left.webp");
+        fan::graphics::image_t icon_arrow_right = fan::graphics::image_load("images_content_browser/arrow_right.webp");
 
-        loco_t::image_t icon_file = gloco->image_load("images_content_browser/file.webp");
-        loco_t::image_t icon_object = gloco->image_load("images_content_browser/object.webp");
-        loco_t::image_t icon_directory = gloco->image_load("images_content_browser/folder.webp");
+        fan::graphics::image_t icon_file = fan::graphics::image_load("images_content_browser/file.webp");
+        fan::graphics::image_t icon_object = fan::graphics::image_load("images_content_browser/object.webp");
+        fan::graphics::image_t icon_directory = fan::graphics::image_load("images_content_browser/folder.webp");
 
-        loco_t::image_t icon_files_list = gloco->image_load("images_content_browser/files_list.webp");
-        loco_t::image_t icon_files_big_thumbnail = gloco->image_load("images_content_browser/files_big_thumbnail.webp");
+        fan::graphics::image_t icon_files_list = fan::graphics::image_load("images_content_browser/files_list.webp");
+        fan::graphics::image_t icon_files_big_thumbnail = fan::graphics::image_load("images_content_browser/files_big_thumbnail.webp");
 
         bool item_right_clicked = false;
         std::string item_right_clicked_name;
@@ -2472,7 +2472,7 @@ export namespace fan {
 
           for (auto& img : directory_cache) {
             if (img.preview_image.iic() == false) {
-              gloco->image_unload(img.preview_image);
+              fan::graphics::image_unload(img.preview_image);
             }
           }
           directory_cache.clear();
@@ -2496,7 +2496,7 @@ export namespace fan {
               file_info.is_selected = false;
               //fan::print(get_file_extension(path.path().string()));
               if (fan::image::valid(entry.path().string())) {
-                file_info.preview_image = gloco->image_load(entry.path().string());
+                file_info.preview_image = fan::graphics::image_load(entry.path().string());
               }
               directory_cache.push_back(file_info);
               invalidate_cache();
@@ -2620,7 +2620,7 @@ export namespace fan {
                 file_info.is_selected = false;
 
                 if (fan::image::valid(entry.path().string())) {
-                  file_info.preview_image = gloco->image_load(entry.path().string());
+                  file_info.preview_image = fan::graphics::image_load(entry.path().string());
                 }
 
                 search_state.found_files.push_back(file_info);
@@ -3017,10 +3017,10 @@ export namespace fan {
 
                 ImTextureID texture_id;
                 if (file_info.preview_image.iic() == false) {
-                  texture_id = (ImTextureID)gloco->image_get_handle(file_info.preview_image);
+                  texture_id = (ImTextureID)fan::graphics::image_get_handle(file_info.preview_image);
                 }
                 else {
-                  texture_id = (ImTextureID)gloco->image_get_handle(
+                  texture_id = (ImTextureID)fan::graphics::image_get_handle(
                     file_info.is_directory ? icon_directory : icon_file
                   );
                 }
@@ -3093,10 +3093,10 @@ export namespace fan {
 
                 ImTextureID texture_id;
                 if (file_info.preview_image.iic() == false) {
-                  texture_id = (ImTextureID)gloco->image_get_handle(file_info.preview_image);
+                  texture_id = (ImTextureID)fan::graphics::image_get_handle(file_info.preview_image);
                 }
                 else {
-                  texture_id = (ImTextureID)gloco->image_get_handle(
+                  texture_id = (ImTextureID)fan::graphics::image_get_handle(
                     file_info.is_directory ? icon_directory : icon_file
                   );
                 }
@@ -3215,8 +3215,24 @@ export namespace fan {
         }
       };
 
+      ImFont* get_font_impl(f32_t font_size, bool bold = false) {
+        font_size /= 2;
+        int best_index = 0;
+        f32_t best_diff = std::abs(font_sizes[0] - font_size);
+
+        for (std::size_t i = 1; i < std::size(font_sizes); ++i) {
+          f32_t diff = std::abs(font_sizes[i] - font_size);
+          if (diff < best_diff) {
+            best_diff = diff;
+            best_index = i;
+          }
+        }
+
+        return !bold ? fonts[best_index] : fonts_bold[best_index];
+      }
+
       font_t* get_font(f32_t font_size, bool bold = false) {
-        return gloco->get_font(font_size, bold);
+        return get_font_impl(font_size, bold);
       }
 
       bool begin_popup(const std::string& id, window_flags_t flags = 0) {
@@ -3239,8 +3255,8 @@ export namespace fan {
       struct sprite_animations_t {
         //fan::vec2i frame_coords; // starting from top left and increasing by one to get the next frame into that direction
 
-        loco_t::animation_nr_t current_animation_shape_nr;
-        loco_t::animation_nr_t current_animation_nr;
+        fan::graphics::animation_nr_t current_animation_shape_nr;
+        fan::graphics::animation_nr_t current_animation_nr;
         std::string animation_list_name_to_edit; // animation rename
         std::string animation_list_name_edit_buffer;
 
@@ -3256,7 +3272,7 @@ export namespace fan {
         bool toggle_play_animation = false;
         static inline constexpr f32_t animation_names_padding = 10.f;
 
-        bool render_list_box(loco_t::animation_nr_t& shape_animation_id) {
+        bool render_list_box(fan::graphics::animation_nr_t& shape_animation_id) {
           bool list_item_changed = false;
 
           gui::begin_child("animations_tool_bar", 0, 1);
@@ -3264,9 +3280,9 @@ export namespace fan {
           gui::indent(animation_names_padding);
 
           if (gui::button("+")) {
-            loco_t::sprite_sheet_animation_t animation;
-            animation.name = std::to_string((uint32_t)gloco->all_animations_counter); // think this over
-            shape_animation_id = gloco->add_sprite_sheet_shape_animation(shape_animation_id, animation);
+            fan::graphics::sprite_sheet_animation_t animation;
+            animation.name = std::to_string((uint32_t)fan::graphics::all_animations_counter); // think this over
+            shape_animation_id = fan::graphics::add_sprite_sheet_shape_animation(shape_animation_id, animation);
           }
           if (!shape_animation_id) {
             gui::unindent(animation_names_padding);
@@ -3274,8 +3290,8 @@ export namespace fan {
             return false;
           }
           gui::push_item_width(gui::get_window_size().x * 0.8f);
-          for (auto [i, animation_nr] : fan::enumerate(gloco->get_sprite_sheet_shape_animation(shape_animation_id))) {
-            auto& animation = gloco->get_sprite_sheet_animation(animation_nr);
+          for (auto [i, animation_nr] : fan::enumerate(fan::graphics::get_sprite_sheet_shape_animation(shape_animation_id))) {
+            auto& animation = fan::graphics::get_sprite_sheet_animation(animation_nr);
             if (animation.name == animation_list_name_to_edit) {
               std::snprintf(animation_list_name_edit_buffer.data(), animation_list_name_edit_buffer.size() + 1, "%s", animation.name.c_str());
               gui::push_id(i);
@@ -3286,7 +3302,7 @@ export namespace fan {
 
               if (gui::input_text("##edit", &animation_list_name_edit_buffer, gui::input_text_flags_enter_returns_true)) {
                 if (animation_list_name_edit_buffer != animation.name) {
-                  gloco->rename_sprite_sheet_shape_animation(shape_animation_id, animation.name, animation_list_name_edit_buffer);
+                  fan::graphics::rename_sprite_sheet_shape_animation(shape_animation_id, animation.name, animation_list_name_edit_buffer);
                   animation.name = animation_list_name_edit_buffer;
                   animation_list_name_to_edit.clear();
                   gui::pop_id();
@@ -3320,7 +3336,7 @@ export namespace fan {
           return list_item_changed;
         }
 
-        bool render_selectable_frames(loco_t::sprite_sheet_animation_t& current_animation) {
+        bool render_selectable_frames(fan::graphics::sprite_sheet_animation_t& current_animation) {
           bool changed = false;
           if (fan::window::is_mouse_released()) {
             previous_hold_selected.clear();
@@ -3389,7 +3405,7 @@ export namespace fan {
           }
           return changed;
         }
-        bool render(const std::string& drag_drop_id, loco_t::animation_nr_t& shape_animation_id) {
+        bool render(const std::string& drag_drop_id, fan::graphics::animation_nr_t& shape_animation_id) {
           gui::push_style_var(gui::style_var_item_spacing, fan::vec2(12.f, 12.f));
           gui::columns(2, "animation_columns", false);
           gui::set_column_width(0, gui::get_window_size().x * 0.2f);
@@ -3406,21 +3422,21 @@ export namespace fan {
           gui::indent(animation_names_padding);
           gui::set_cursor_pos_y(animation_names_padding);
           toggle_play_animation = false;
-          if (gui::image_button("play_button", gloco->icons.play, 32)) {
+          if (gui::image_button("play_button", fan::graphics::icons.play, 32)) {
             play_animation = true;
             toggle_play_animation = true;
           }
           gui::same_line();
-          if (gui::image_button("pause_button", gloco->icons.pause, 32)) {
+          if (gui::image_button("pause_button", fan::graphics::icons.pause, 32)) {
             play_animation = false;
             toggle_play_animation = true;
           }
-          decltype(gloco->all_animations)::iterator current_animation;
+          decltype(fan::graphics::all_animations)::iterator current_animation;
           if (!current_animation_nr) {
             goto g_end_frame;
           }
-          current_animation = gloco->all_animations.find(current_animation_nr);
-          if (current_animation == gloco->all_animations.end()) {
+          current_animation = fan::graphics::all_animations.find(current_animation_nr);
+          if (current_animation == fan::graphics::all_animations.end()) {
           g_end_frame:
             gui::columns(1);
             gui::end_child();
@@ -3453,9 +3469,9 @@ export namespace fan {
               gui::separator();
               gui::text("Preview:");
 
-              auto preview_image = gloco->image_load(sprite_sheet_drag_drop_name);
+              auto preview_image = fan::graphics::image_load(sprite_sheet_drag_drop_name);
 
-              if (gloco->is_image_valid(preview_image)) {
+              if (fan::graphics::is_image_valid(preview_image)) {
                 float content_width = hframes * (64 + gui::get_style().ItemSpacing.x);
                 float content_height = vframes * (64 + gui::get_style().ItemSpacing.y);
 
@@ -3484,10 +3500,10 @@ export namespace fan {
             }
 
             if (gui::button("Add")) {
-              if (auto it = gloco->all_animations.find(current_animation_nr); it != gloco->all_animations.end()) {
+              if (auto it = fan::graphics::all_animations.find(current_animation_nr); it != fan::graphics::all_animations.end()) {
                 auto& anim = it->second;
-                loco_t::sprite_sheet_animation_t::image_t new_image;
-                new_image.image = gloco->image_load(sprite_sheet_drag_drop_name);
+                fan::graphics::sprite_sheet_animation_t::image_t new_image;
+                new_image.image = fan::graphics::image_load(sprite_sheet_drag_drop_name);
                 new_image.hframes = hframes;
                 new_image.vframes = vframes;
                 anim.images.push_back(new_image);
@@ -3510,14 +3526,14 @@ export namespace fan {
             gui::receive_drag_drop_target(drag_drop_id, [this, shape_animation_id](const std::string& file_paths) {
               for (const std::string& file_path : fan::split(file_paths, ";")) {
                 if (fan::image::valid(file_path)) {
-                  if (auto it = gloco->all_animations.find(current_animation_nr); it != gloco->all_animations.end()) {
+                  if (auto it = fan::graphics::all_animations.find(current_animation_nr); it != fan::graphics::all_animations.end()) {
                     auto& anim = it->second;
                     //// unload previous image
-                    //if (gloco->is_image_valid(anim.sprite_sheet)) {
-                    //  gloco->image_unload(anim.sprite_sheet);
+                    //if (fan::graphics::is_image_valid(anim.sprite_sheet)) {
+                    //  fan::graphics::image_unload(anim.sprite_sheet);
                     //}
-                    loco_t::sprite_sheet_animation_t::image_t new_image;
-                    new_image.image = gloco->image_load(file_path);
+                    fan::graphics::sprite_sheet_animation_t::image_t new_image;
+                    new_image.image = fan::graphics::image_load(file_path);
                     anim.images.push_back(new_image);
                   }
                 }
@@ -3543,7 +3559,7 @@ export namespace fan {
 
       void fragment_shader_editor(uint16_t shape_type, std::string* fragment, bool* shader_compiled) {
         if (fragment->empty()) {
-          *fragment = gloco->shader_get_data(shape_type).sfragment;
+          *fragment = fan::graphics::shader_get_data(shape_type).sfragment;
         }
         if (fan::graphics::gui::begin("shader editor", 0, fan::graphics::gui::window_flags_no_saved_settings)) {
           if (!*shader_compiled) {
@@ -3551,7 +3567,7 @@ export namespace fan {
           }
 
           if (gui::input_text_multiline("##Shader Code", fragment, gui::get_content_region_avail(), gui::input_text_flags_allow_tab_input)) {
-            *shader_compiled = gloco->shader_update_fragment(shape_type, *fragment);
+            *shader_compiled = fan::graphics::shader_update_fragment(shape_type, *fragment);
           }
           fan::graphics::gui::end();
         }
@@ -3686,7 +3702,7 @@ export namespace fan {
         };
 
         dialogue_box_t() {
-          gloco->input_action.add(fan::mouse_left, "skip or continue dialog");
+          fan::window::add_input_action(fan::mouse_left, "skip or continue dialog");
         }
 
         // 0-1
@@ -3805,7 +3821,7 @@ export namespace fan {
           ImGui::SetWindowFontScale(1.0f);
 
           
-          bool dialogue_line_finished = gloco->input_action.is_active("skip or continue dialog") && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+          bool dialogue_line_finished = fan::window::is_input_action_active("skip or continue dialog") && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
 
           if (dialogue_line_finished) {
             wait_user = false;
@@ -3932,42 +3948,42 @@ export namespace fan {
       //-------------------------------------Floating text-------------------------------------
       template <typename ...Args>
       void print(const Args&... args) {
-        gloco->text_logger.print(args...);
+        fan::graphics::g_render_context_handle.text_logger->print(args...);
       }
       template <typename ...Args>
       void print(const fan::color& color, const Args&... args) {
-        gloco->text_logger.print(color, args...);
+        fan::graphics::g_render_context_handle.text_logger->print(color, args...);
       }
       template <typename... args_t>
       void printf(std::string_view fmt, args_t&&... args) {
-        gloco->text_logger.printf(fmt, std::forward<args_t>(args)...);
+        fan::graphics::g_render_context_handle.text_logger->printf(fmt, std::forward<args_t>(args)...);
       }
       template <typename... args_t>
       void printf(const fan::color& color, std::string_view fmt, args_t&&... args) {
-        gloco->text_logger.printf(color, fmt, std::forward<args_t>(args)...);
+        fan::graphics::g_render_context_handle.text_logger->printf(color, fmt, std::forward<args_t>(args)...);
       }
       template <typename... args_t>
       void printft(std::streamsize tab_width, std::string_view fmt, args_t&&... args) {
-        gloco->text_logger.printft(tab_width, fmt, std::forward<args_t>(args)...);
+        fan::graphics::g_render_context_handle.text_logger->printft(tab_width, fmt, std::forward<args_t>(args)...);
       }
       template <typename... args_t>
       void printft(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
-        gloco->text_logger.printft(tab_width, color, fmt, std::forward<args_t>(args)...);
+        fan::graphics::g_render_context_handle.text_logger->printft(tab_width, color, fmt, std::forward<args_t>(args)...);
       }
       template <typename ...args_t>
       void print_error(args_t&&... args) {
-        gloco->text_logger.print(fan::colors::red, std::forward<args_t>(args)...);
+        fan::graphics::g_render_context_handle.text_logger->print(fan::colors::red, std::forward<args_t>(args)...);
       }
       template <typename ...args_t>
       void print_warning(args_t&&... args) {
-        gloco->text_logger.print(fan::colors::yellow, std::forward<args_t>(args)...);
+        fan::graphics::g_render_context_handle.text_logger->print(fan::colors::yellow, std::forward<args_t>(args)...);
       }
       template <typename ...args_t>
       void print_success(args_t&&... args) {
-        gloco->text_logger.print(fan::colors::green, std::forward<args_t>(args)...);
+        fan::graphics::g_render_context_handle.text_logger->print(fan::colors::green, std::forward<args_t>(args)...);
       }
       void set_text_fade_time(f32_t seconds) {
-        gloco->text_logger.set_text_fade_time(seconds);
+        fan::graphics::g_render_context_handle.text_logger->set_text_fade_time(seconds);
       }
       //-------------------------------------Floating text-------------------------------------
       
@@ -3975,30 +3991,30 @@ export namespace fan {
       //-------------------------------------Static text-------------------------------------
       template <typename ...Args>
       void print_static(const Args&... args) {
-        gloco->text_logger.print_static(args...);
+        fan::graphics::g_render_context_handle.text_logger->print_static(args...);
       }
       template <typename ...Args>
       void print_static(const fan::color& color, const Args&... args) {
-        gloco->text_logger.print_static(color, args...);
+        fan::graphics::g_render_context_handle.text_logger->print_static(color, args...);
       }
       template <typename... args_t>
       void printf_static(std::string_view fmt, args_t&&... args) {
-        gloco->text_logger.printf_static(fmt, std::forward<args_t>(args)...);
+        fan::graphics::g_render_context_handle.text_logger->printf_static(fmt, std::forward<args_t>(args)...);
       }
       template <typename... args_t>
       void printf_static(const fan::color& color, std::string_view fmt, args_t&&... args) {
-        gloco->text_logger.printf_static(color, fmt, std::forward<args_t>(args)...);
+        fan::graphics::g_render_context_handle.text_logger->printf_static(color, fmt, std::forward<args_t>(args)...);
       }
       template <typename... args_t>
       void printft_static(std::streamsize tab_width, std::string_view fmt, args_t&&... args) {
-        gloco->text_logger.printft_static(tab_width, fmt, std::forward<args_t>(args)...);
+        fan::graphics::g_render_context_handle.text_logger->printft_static(tab_width, fmt, std::forward<args_t>(args)...);
       }
       template <typename... args_t>
       void printft_static(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
-        gloco->text_logger.printft_static(tab_width, color, fmt, std::forward<args_t>(args)...);
+        fan::graphics::g_render_context_handle.text_logger->printft_static(tab_width, color, fmt, std::forward<args_t>(args)...);
       }
       void clear_static_text() {
-        gloco->text_logger.clear_static_text();
+        fan::graphics::g_render_context_handle.text_logger->clear_static_text();
       }
       //-------------------------------------Static text-------------------------------------
     }
@@ -4006,7 +4022,7 @@ export namespace fan {
 }
 
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
-  loco_t::shader_t shader_nr,
+  fan::graphics::shader_t shader_nr,
   const std::string& var_name,
   fan::vec2 initial_,
   f32_t speed,
@@ -4014,7 +4030,7 @@ template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
   f32_t max
 );
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
-  loco_t::shader_t shader_nr,
+  fan::graphics::shader_t shader_nr,
   const std::string& var_name,
   double initial_,
   f32_t speed,

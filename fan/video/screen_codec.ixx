@@ -23,14 +23,17 @@ extern "C" {
 #include <memory>
 #include <unordered_map>
 #include <map>
+#include <algorithm>
 
 #include <WITCH/PR/PR.h>
 #include <WITCH/MD/SCR/SCR.h>
 
 export module fan.graphics.video.screen_codec;
 
-export import fan.graphics.loco;
+export import fan.graphics;
 import fan.time;
+import fan.print;
+import fan.event;
 
 export namespace fan {
   namespace graphics {
@@ -1745,7 +1748,7 @@ export namespace fan {
         uint8_t type = 0;  // 0 = success, >250 = error codes
       };
 
-      decode_data_t decode(void* data, uintptr_t length, loco_t::shape_t& universal_image_renderer) {
+      decode_data_t decode(void* data, uintptr_t length, fan::graphics::shape_t& universal_image_renderer) {
         decode_data_t ret;
 
         if (update_flags & codec_update_e::codec) {

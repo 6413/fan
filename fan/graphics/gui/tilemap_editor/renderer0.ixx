@@ -36,7 +36,7 @@ export struct fte_renderer_t : fte_loader_t {
 
   id_t add(compiled_map_t* compiled_map, const properties_t& p) {
     if (p.render_view == nullptr) {
-      render_view = &gloco->orthographic_render_view;
+      render_view = &fan::graphics::get_orthographic_render_view();
     }
     else {
       render_view = p.render_view;

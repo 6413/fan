@@ -22,7 +22,7 @@ struct tile_t {
   mesh_property_t mesh_property = mesh_property_t::none;
   std::string id;
   uint32_t flags = 0;
-  loco_t::texture_pack_unique_t texture_pack_unique_id;
+  fan::texture_pack::unique_t texture_pack_unique_id;
 
   // actions
   actions_e action = actions_e::none;
@@ -38,7 +38,7 @@ struct physics_shapes_t {
       circle
     };
   };
-  loco_t::shape_t visual;
+  fan::graphics::shape_t visual;
   uint8_t type = type_e::box;
   uint8_t body_type = fan::physics::body_type_e::static_body;
   bool draw = false;

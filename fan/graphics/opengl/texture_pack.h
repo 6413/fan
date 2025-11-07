@@ -1,6 +1,6 @@
-struct texturepack_t {
+struct texture_pack_t {
 
-  using ti_t = loco_t::ti_t;
+  using ti_t = fan::texture_pack::ti_t;
 
   struct texture_minor_t {
     std::string name;
@@ -15,13 +15,13 @@ struct texturepack_t {
   };
 
   struct texture_minor_decoded_t {
-    texture_pack_unique_t unique_id;
+    fan::texture_pack::unique_t unique_id;
     std::string name;
     fan::vec2i position;
     fan::vec2i size;
   };
   struct pixel_data_t {
-    loco_t::image_t image;
+    fan::graphics::image_t image;
   };
   struct single_texturepack_decoded_t {
     uint32_t minor_count;
@@ -31,11 +31,11 @@ struct texturepack_t {
 
   std::vector<single_texturepack_decoded_t> texture_major_list;
   std::vector<pixel_data_t> image_list;
-  texture_unique_map_t unique_map;
+  fan::texture_pack::texture_unique_map_t unique_map;
 
   std::string file_path;
 
-  pixel_data_t& get_pixel_data(texture_pack_unique_t unique) {
+  pixel_data_t& get_pixel_data(fan::texture_pack::unique_t unique) {
     return image_list[unique_map[unique].major];
   }
 
@@ -72,7 +72,7 @@ struct texturepack_t {
       texture_major_list[i].minor_count = texture_list_size;
       texture_major_list[i].image_list_id = i;
       for (std::size_t k = 0; k < texture_list_size; k++) {
-        texturepack_t::texture_minor_decoded_t texture;
+        texture_pack_t::texture_minor_decoded_t texture;
         texture.name = fan::string_read_data<std::string>(in, offset);
         texture.position = fan::string_read_data<fan::vec2ui>(in, offset);
         texture.size = fan::string_read_data<fan::vec2ui>(in, offset);
@@ -94,7 +94,11 @@ struct texturepack_t {
       }
       image_info.type = fan::image::image_type_e::webp;
       image_info.channels = 4;
-      image_list[i].image = gloco->image_load(*(fan::image::info_t*)&image_info, lp);
+      image_list[i].image = fan::graphics::g_render_context_handle->image_load_info_props(
+        fan::graphics::g_render_context_handle, 
+        *(fan::image::info_t*)&image_info, 
+        lp
+      );
       fan::webp::free_image(image_info.data);
 
       //pixel_data_list[i].visual_output = 
@@ -122,15 +126,15 @@ struct texturepack_t {
     return texture_major_list.size();
   }
 
-  texture_minor_decoded_t operator[](texture_pack_unique_t unique_id) {
+  texture_minor_decoded_t operator[](fan::texture_pack::unique_t unique_id) {
     if (unique_id.iic()) {
       return texture_minor_decoded_t{};
     }
     return texture_major_list[unique_map[unique_id].major].texture_minor_list[unique_map[unique_id].minor];
   }
 
-  texture_pack_unique_t operator[](const std::string& name) {
-    texturepack_t::ti_t ti;
+  fan::texture_pack::unique_t operator[](const std::string& name) {
+    texture_pack_t::ti_t ti;
     qti(name, &ti);
     return ti.unique_id;
   }

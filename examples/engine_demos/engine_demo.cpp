@@ -22,7 +22,7 @@ using menu_t = engine_t::settings_menu_t;
 
 struct engine_demo_t {
   engine_t engine{{ // initialize before everything
-    .renderer=engine_t::renderer_t::opengl,
+    .renderer= fan::graphics::renderer_t::opengl,
   }};
 
   // ------------------------STATIC------------------------
@@ -110,7 +110,7 @@ struct engine_demo_t {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     
     static auto image_background = engine_demo->engine.image_create(fan::color(0.5, 0.5, 0.5, 1));
-    uint32_t lighting_flags = engine_t::light_flags_e::additive | engine_t::light_flags_e::circle;
+    uint32_t lighting_flags = fan::graphics::light_flags_e::additive | fan::graphics::light_flags_e::circle;
 
     // bg
     engine_demo->shapes.emplace_back(fan::graphics::sprite_t{{
@@ -178,7 +178,7 @@ struct engine_demo_t {
     
     static auto particle_texture = engine_demo->engine.image_load("images/waterdrop.webp");
 
-    loco_t::particles_t::properties_t p;
+    fan::graphics::shapes::particles_t::properties_t p;
     p.camera = engine_demo->right_column_view.camera;
     p.viewport = engine_demo->right_column_view.viewport;
     p.position = fan::vec3(0, 0, 10);
@@ -189,7 +189,7 @@ struct engine_demo_t {
     p.alive_time = 1e+9;
     p.gap_size = fan::vec2(354.535, 1.0);
     p.max_spread_size = fan::vec2(2423.231, 100.0);
-    p.shape = loco_t::particles_t::shapes_e::rectangle;
+    p.shape = fan::graphics::shapes::particles_t::shapes_e::rectangle;
     p.position_velocity = fan::vec2(0,  334);
     p.image = particle_texture;
     p.color = fan::color(0.4, 0.4, 1.4);
@@ -208,7 +208,7 @@ struct engine_demo_t {
       f32_t radius = fan::random::value(50.f, 200.f);
       fan::color color = fan::random::color();
 
-      loco_t::polygon_t::properties_t pp;
+      fan::graphics::shapes::polygon_t::properties_t pp;
       pp.vertices.clear();
 
       std::vector<fan::vec2> polygon_points;
@@ -308,7 +308,7 @@ void main() {
   o_attachment0 = tex_color;
 })";
 
-  loco_t::shader_t demo_shader_shape_shader{engine.get_sprite_vertex_shader(demo_shader_shape_fragment_shader)};
+  fan::graphics::shader_t demo_shader_shape_shader{engine.get_sprite_vertex_shader(demo_shader_shape_fragment_shader)};
   fan::color custom_color = fan::colors::red;
   static void demo_shapes_init_shader_shape(engine_demo_t* engine_demo) {
     if (engine_demo->demo_shader_shape_shader.iic()) {
@@ -418,7 +418,7 @@ void main() {
     }
 
     if (gui::input_text_multiline("##Shader Code", &data.shader_code, gui::get_content_region_avail(), gui::input_text_flags_allow_tab_input)) {
-      engine_demo->engine.shader_set_vertex(data.shader, engine_demo->engine.shader_list[engine_demo->engine.shaper.GetShader(engine_t::shape_type_t::shader_shape)].svertex);
+      engine_demo->engine.shader_set_vertex(data.shader, engine_demo->engine.shader_list[engine_demo->engine.shapes.shaper.GetShader(fan::graphics::shape_type_t::shader_shape)].svertex);
       engine_demo->engine.shader_set_fragment(data.shader, data.shader_code);
       data.shader_compiled = engine_demo->engine.shader_compile(data.shader);
     }
@@ -833,7 +833,7 @@ void main() {
   fan::graphics::interactive_camera_t interactive_camera;
   uint8_t current_demo = 0;
   int shape_count = 10;
-  std::vector<engine_t::shape_t> shapes;
+  std::vector<fan::graphics::shape_t> shapes;
   f32_t right_window_split_ratio = 0.2f;
 };
 

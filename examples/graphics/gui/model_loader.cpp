@@ -6,7 +6,7 @@ int main() {
 
   loco_t loco;
 
-  loco_t::image_t background = loco.create_image(fan::colors::white);
+  fan::graphics::image_t background = loco.create_image(fan::colors::white);
 
   auto shape = fan::graphics::sprite_t{ {
       .position = fan::vec3(loco.window.get_size() / 2, 0),

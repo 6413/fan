@@ -48,7 +48,7 @@ namespace fan {
 #define BCOL_set_ExtraDataInsideObject \
   bcol_t::ShapeID_t shape_id;\
   fan::collider::types_e collider_type; \
-  loco_t::shape_t* shape = nullptr; \
+  fan::graphics::shapes::shape_t* shape = nullptr; \
   uint8_t userdata[256];
 #include <BCOL/BCOL.h>
 
@@ -100,12 +100,12 @@ namespace fan {
       bcol.Close();
     }
 
-    struct collider_static_t : loco_t::shape_t {
+    struct collider_static_t : fan::graphics::shapes::shape_t {
       collider_static_t() = default;
-      collider_static_t(const loco_t::shape_t& shape)
-        : loco_t::shape_t(shape){
+      collider_static_t(const fan::graphics::shapes::shape_t& shape)
+        : fan::graphics::shapes::shape_t(shape){
         bcol_t::ObjectProperties_t p;
-        loco_t::shape_t s = shape;
+        fan::graphics::shapes::shape_t s = shape;
         p.Position = s.get_position();
         bcol_t::ShapeProperties_Rectangle_t sp;
         sp.Position = 0;
@@ -113,7 +113,7 @@ namespace fan {
         oid = bcol.NewObject(&p, bcol_t::ObjectFlag::Constant);
         auto shape_id = bcol.NewShape_Rectangle(oid, &sp);
         auto* data = bcol.GetObjectExtraData(oid);
-        data->shape = dynamic_cast<loco_t::shape_t*>(this);
+        data->shape = dynamic_cast<fan::graphics::shapes::shape_t*>(this);
         data->shape_id = shape_id;
         data->collider_type = fan::collider::types_e::collider_static;
       }
@@ -129,14 +129,14 @@ namespace fan {
       }
       bcol_t::ObjectID_t oid;
     };
-    struct collider_dynamic_t : loco_t::shape_t {
+    struct collider_dynamic_t : fan::graphics::shapes::shape_t {
       collider_dynamic_t() = default;
-      collider_dynamic_t(loco_t::shape_t&& shape)
-        : loco_t::shape_t(std::move(shape)) {
+      collider_dynamic_t(fan::graphics::shapes::shape_t&& shape)
+        : fan::graphics::shapes::shape_t(std::move(shape)) {
         init();
       }
-      collider_dynamic_t(const loco_t::shape_t& shape)
-        : loco_t::shape_t(shape) {
+      collider_dynamic_t(const fan::graphics::shapes::shape_t& shape)
+        : fan::graphics::shapes::shape_t(shape) {
        init();
       }
       void init() {
@@ -148,7 +148,7 @@ namespace fan {
         oid = bcol.NewObject(&p, 0);
         auto shape_id = bcol.NewShape_Circle(oid, &sp);
         auto* data = bcol.GetObjectExtraData(oid);
-        data->shape = dynamic_cast<loco_t::shape_t*>(this);
+        data->shape = dynamic_cast<fan::graphics::shapes::shape_t*>(this);
         data->shape_id = shape_id;
         data->collider_type = fan::collider::types_e::collider_dynamic;
         set_velocity(0);

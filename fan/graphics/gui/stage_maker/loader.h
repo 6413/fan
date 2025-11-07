@@ -40,7 +40,7 @@ protected:
   #define BLL_set_type_node uint16_t
   #define bcontainer_set_StoreFormat 1
   #define BLL_set_NodeData \
-  loco_t::update_callback_nr_t update_nr; \
+  fan::graphics::update_callback_nr_t update_nr; \
   fan::window_t::resize_callback_NodeReference_t resize_id; \
   void *stage;
   #include <BLL/BLL.h>
@@ -53,7 +53,7 @@ protected:
   #include <fan/fan_bll_preset.h>
   #define BLL_set_prefix cid_list
   #define BLL_set_type_node uint32_t
-  #define BLL_set_NodeDataType loco_t::shape_t
+  #define BLL_set_NodeDataType fan::graphics::shape_t
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
   #include <BLL/BLL.h>
@@ -81,8 +81,8 @@ public:
 
   struct stage_open_properties_t {
 
-    loco_t::camera_t* camera = &gloco->orthographic_render_view.camera;
-    loco_t::viewport_t* viewport = &gloco->orthographic_render_view.viewport;
+    fan::graphics::camera_t* camera = &gloco->orthographic_render_view.camera;
+    fan::graphics::viewport_t* viewport = &gloco->orthographic_render_view.viewport;
 
     stage_loader_t::nr_t parent_id;
     uint32_t itToDepthMultiplier = 0x100;
@@ -130,7 +130,7 @@ protected:
   #define BLL_set_prefix stage_list
   #define BLL_set_type_node uint16_t
   #define BLL_set_NodeData \
-  loco_t::update_callback_nr_t update_nr; \
+  fan::graphics::update_callback_nr_t update_nr; \
   fan::window_t::resize_callback_NodeReference_t resize_id; \
   void *stage;
   #define BLL_set_Link 1
@@ -170,7 +170,7 @@ public:
   std::string current_stage_name;
   std::string previous_stage_name;
 
-  loco_t::shape_t& get_id(auto* stage_ptr, const std::string id) {
+  fan::graphics::shape_t& get_id(auto* stage_ptr, const std::string id) {
     auto found = cid_map.find(std::make_pair(stage_ptr, id));
     if (found == cid_map.end()) {
       fan::throw_error("invalid fetch for id - usage shape_{id}", id);

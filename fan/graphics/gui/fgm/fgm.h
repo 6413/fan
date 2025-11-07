@@ -5,7 +5,7 @@ struct fgm_t {
 
   static constexpr f32_t scroll_speed = 1.2;
 
-  loco_t::shape_t xy_lines[2];
+  fan::graphics::shape_t xy_lines[2];
 
   inline static fan::graphics::file_open_dialog_t open_tp_dialog;
 
@@ -13,7 +13,7 @@ struct fgm_t {
   fan::vec2 texturepack_size{};
   fan::vec2 texturepack_single_image_size{};
   struct texturepack_image_t {
-    loco_t::image_t image;
+    fan::graphics::image_t image;
     fan::vec2 uv0;// top left
     fan::vec2 uv1;// bottom right
     std::wstring image_name;
@@ -1097,7 +1097,7 @@ struct fgm_t {
       gloco->parse_animations(json_in);
     }
     fan::graphics::shape_deserialize_t iterator;
-    loco_t::shape_t shape;
+    fan::graphics::shape_t shape;
     int i = 0;
     current_z = 0;
     std::string shapes = "shapes";
@@ -1236,7 +1236,7 @@ struct fgm_t {
   std::function<void()> close_cb = [] {};
 
   fan::vec2 drag_start;
-  loco_t::shape_t drag_select;
+  fan::graphics::shape_t drag_select;
 
   struct {
     f32_t zoom = 1;
@@ -1257,5 +1257,5 @@ struct fgm_t {
 
   fan::vec2 editor_pos = 0;
   fan::graphics::sprite_t background;
-  std::vector<loco_t::shape_t> copy_buffer;
+  std::vector<fan::graphics::shape_t> copy_buffer;
 };

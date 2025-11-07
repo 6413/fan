@@ -21,6 +21,7 @@ import fan.graphics;
 import fan.physics.b2_integration;
 import fan.graphics.physics_shapes;
 import fan.io.file;
+import fan.types.json;
 
 export struct fte_loader_t {
 
@@ -61,14 +62,14 @@ export struct fte_loader_t {
       fte_t::physics_shapes_t physics_shapes;
     };
     std::vector<physics_data_t> physics_shapes;
-    loco_t::lighting_t lighting = gloco->lighting;
+    fan::graphics::lighting_t lighting = fan::graphics::get_lighting();
     #elif tilemap_renderer == 1
     std::unordered_map<fan::vec2i, fan::mp_t<current_version_t::shapes_t>, vec2i_hasher> compiled_shapes;
     #endif
   };
 
-  struct tile_draw_data_t : loco_t::shape_t {
-    using loco_t::shape_t::shape_t;
+  struct tile_draw_data_t : fan::graphics::shape_t {
+    using fan::graphics::shape_t::shape_t;
     std::string id;
   };
 
@@ -188,7 +189,7 @@ public:
     compiled_map.map_size = json["map_size"];
     compiled_map.tile_size = json["tile_size"];
     if (json.contains("gravity")) {
-      gloco->physics_context.set_gravity(json["gravity"]);
+      gphysics->set_gravity(json["gravity"]);
     }
 
     compiled_map.compiled_shapes.resize(compiled_map.map_size.y);
@@ -197,7 +198,7 @@ public:
     }
 
     fan::graphics::shape_deserialize_t it;
-    loco_t::shape_t shape;
+    fan::graphics::shape_t shape;
     while (it.iterate(json["tiles"], &shape)) {
       auto& shape_json = *(it.data.it - 1);
       if (shape_json.contains("mesh_property") && shape_json["mesh_property"] == fte_t::mesh_property_t::physics_shape) {
@@ -228,11 +229,11 @@ public:
       tile.size = shape.get_size();
       tile.angle = shape.get_angle();
       tile.color = shape.get_color();
-      if (shape.get_shape_type() == loco_t::shape_type_t::sprite) {
-        tile.texture_pack_unique_id = ((loco_t::sprite_t::ri_t*)shape.GetData(gloco->shaper))->texture_pack_unique_id;
+      if (shape.get_shape_type() == fan::graphics::shape_type_t::sprite) {
+        tile.texture_pack_unique_id = ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id;
       }
-      else if (shape.get_shape_type() == loco_t::shape_type_t::unlit_sprite) {
-        tile.texture_pack_unique_id = ((loco_t::unlit_sprite_t::ri_t*)shape.GetData(gloco->shaper))->texture_pack_unique_id;
+      else if (shape.get_shape_type() == fan::graphics::shape_type_t::unlit_sprite) {
+        tile.texture_pack_unique_id = ((fan::graphics::shapes::unlit_sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id;
       }
       // NOTE physics shapes are skipped, they are stored in compiled_map.physics_shapes
       tile.mesh_property = (fte_t::mesh_property_t)shape_json.value("mesh_property", fte_t::tile_t().mesh_property);

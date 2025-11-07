@@ -7,13 +7,13 @@ struct network_client_t {
       "127.0.0.1", 7777,
       // send callback
       [this]() {
-        fan::json shape_data = *dynamic_cast<loco_t::shape_t*>(&car_.body);
+        fan::json shape_data = *dynamic_cast<fan::graphics::shape_t*>(&car_.body);
         shape_data["linear_velocity"] = car_.body.get_linear_velocity();
         shape_data["angular_velocity"] = car_.body.get_angular_velocity();
         return shape_data.dump();
       },
       // receive callback
-      [this](const std::vector<loco_t::shape_t>& shapes, const std::string& payload) {
+      [this](const std::vector<fan::graphics::shape_t>& shapes, const std::string& payload) {
         try {
           if (!car) {
             car = new car_t;
@@ -68,8 +68,8 @@ struct network_client_t {
 
   bool connected_to_server = false;
   //                                    buffer type
-  fan::graphics::network::game_client_t<std::string, loco_t::shape_t> client;
-  std::vector<loco_t::shape_t> peers;
+  fan::graphics::network::game_client_t<std::string, fan::graphics::shape_t> client;
+  std::vector<fan::graphics::shape_t> peers;
   car_t* car = 0;
 }network_client;
 #undef player_

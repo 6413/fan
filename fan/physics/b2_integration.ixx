@@ -18,6 +18,7 @@ export module fan.physics.b2_integration;
 
 import fan.types.vector;
 import fan.print;
+import fan.physics.common_context;
 
 export namespace fan {
   namespace physics {
@@ -851,6 +852,7 @@ export namespace fan {
         }
       };
       std::unordered_set<std::pair<uint64_t, uint64_t>, pair_hash_t> active_collisions;
+      fan::physics::physics_update_cbs_t* physics_updates = nullptr;
     };
 
     // This callback must be thread-safe. It may be called multiple times simultaneously.
@@ -991,6 +993,15 @@ export namespace fan {
     }
     fan::physics::entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size) {
       return gphysics->create_sensor_rectangle(position, size);
+    }
+
+    fan::physics::physics_update_cbs_t::nr_t add_physics_update(const fan::physics::physics_update_data_t& cb_data) {
+      auto it = gphysics->physics_updates->NewNodeLast();
+      (*gphysics->physics_updates)[it] = (fan::physics::physics_update_data_t)cb_data;
+      return it;
+    }
+    void remove_physics_update(fan::physics::physics_update_cbs_t::nr_t nr) {
+      gphysics->physics_updates->unlrec(nr);
     }
   }
 }
