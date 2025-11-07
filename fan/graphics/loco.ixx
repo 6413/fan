@@ -14,7 +14,6 @@ module;
 
 
 #include <cstring>
-#include <memory> // shared_ptr tp0.h
 #include <array>
 #include <source_location>
 #include <cmath>
@@ -725,24 +724,24 @@ export struct loco_t {
 		return context_functions.viewport_inside_wir(&context, nr, position);
 	}
 
-  struct render_view_t;
+	struct render_view_t;
 
-  bool inside(const loco_t::render_view_t& render_view, const fan::vec2& position) const {
-    fan::vec2 tp = translate_position(position, render_view.viewport, render_view.camera);
+	bool inside(const loco_t::render_view_t& render_view, const fan::vec2& position) const {
+		fan::vec2 tp = translate_position(position, render_view.viewport, render_view.camera);
 
-    auto c = gloco->camera_get(render_view.camera);
-    f32_t l = c.coordinates.left;
-    f32_t r = c.coordinates.right;
-    f32_t t = c.coordinates.up;
-    f32_t b = c.coordinates.down;
+		auto c = gloco->camera_get(render_view.camera);
+		f32_t l = c.coordinates.left;
+		f32_t r = c.coordinates.right;
+		f32_t t = c.coordinates.up;
+		f32_t b = c.coordinates.down;
 
-    return tp.x >= l && tp.x <= r &&
-           tp.y >= t && tp.y <= b;
-  }
+		return tp.x >= l && tp.x <= r &&
+					 tp.y >= t && tp.y <= b;
+	}
 
-  bool is_mouse_inside(const loco_t::render_view_t& render_view) const {
-    return inside(render_view, get_mouse_position());
-  }
+	bool is_mouse_inside(const loco_t::render_view_t& render_view) const {
+		return inside(render_view, get_mouse_position());
+	}
 
 	fan::graphics::context_functions_t context_functions;
 	fan::graphics::context_t context;
@@ -2434,6 +2433,7 @@ public:
 	}
 
 	void draw_shapes() {
+    shape_draw_timer.start();
 		if (window.renderer == renderer_t::opengl) {
 			gl.draw_shapes();
 		}
@@ -2443,6 +2443,7 @@ public:
 				vk.draw_shapes();
 			}
 #endif
+    shape_draw_time_s = shape_draw_timer.seconds();
 
 		immediate_render_list.clear();
 	}
@@ -2492,6 +2493,7 @@ public:
 #endif
 	}
 	void process_gui() {
+    gui_draw_timer.start();
 #if defined(fan_gui)
 		fan::graphics::gui::process_loop();
 
@@ -2519,97 +2521,64 @@ public:
 			settings_menu.render();
 		}
 
-		if (show_fps) {
-			ImGui::SetNextWindowBgAlpha(0.99f);
-			static int init = 0;
-			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing;
-			if (init == 0) {
-				window_flags |= ImGuiWindowFlags_AlwaysAutoResize;
-				init = 1;
-			}
-			ImGui::Begin("Performance window", 0, window_flags);
-			static constexpr int buffer_size = 128;
-			static int insert_index = 0;
-			static int valid_samples = 0;
-			static float running_sum = 0.0f;
-			static float running_min = std::numeric_limits<float>::max();
-			static float running_max = std::numeric_limits<float>::min();
-			static fan::time::timer refresh_speed{ (uint64_t)0.05e9, true };
-			static std::array<float, buffer_size> samples{};
+    if (show_fps) {
+      ImGui::SetNextWindowBgAlpha(0.99f);
 
-			if (refresh_speed.finished()) {
-				float old_value = (valid_samples >= buffer_size) ? samples[insert_index] : 0.0f;
-				samples[insert_index] = delta_time;
-				if (valid_samples < buffer_size) {
-					running_sum += delta_time;
-					valid_samples++;
-				}
-				else {
-					running_sum += delta_time - old_value;
-				}
-				if (delta_time < running_min) {
-					running_min = delta_time;
-				}
-				if (delta_time > running_max) {
-					running_max = delta_time;
-				}
-				insert_index = (insert_index + 1) % buffer_size;
-				refresh_speed.restart();
-			}
+      ImGuiWindowFlags window_flags =
+        ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoFocusOnAppearing;
 
-			// Calculate averages based on actual collected samples
-			int sample_count = std::min(valid_samples, buffer_size);
-			float average_frame_time_ms = (sample_count > 0) ? running_sum / sample_count : delta_time;
-			float average_fps = 1.0f / average_frame_time_ms;
-			float lowest_fps = (running_max > 0) ? 1.0f / running_max : 0.0f;
-			float highest_fps = (running_min < std::numeric_limits<float>::max()) ? 1.0f / running_min : 0.0f;
+      ImGui::SetNextWindowSize(fan::vec2(831.0000, 693.0000), ImGuiCond_Once);
+      ImGui::Begin("Performance window", nullptr, window_flags);
+      fan::print(fan::vec2(ImGui::GetWindowSize()));
 
-			ImGui::Text("fps: %d", (int)(1.f / delta_time));
-			ImGui::Text("Average Frame Time: %.4f ms (samples: %d)", average_frame_time_ms, sample_count);
-			ImGui::Text("Lowest Frame Time: %.4f ms", running_min);
-			ImGui::Text("Highest Frame Time: %.4f ms", running_max);
-			ImGui::Text("Average fps: %.4f", average_fps);
-			ImGui::Text("Lowest fps: %.4f", lowest_fps);
-			ImGui::Text("Highest fps: %.4f", highest_fps);
+      frame_monitor.update(delta_time);
+      shape_monitor.update(shape_draw_time_s);
+      gui_monitor.update(gui_draw_time_s);
 
-			if (ImGui::Button("Reset data")) {
-				running_min = std::numeric_limits<float>::max();
-				running_max = std::numeric_limits<float>::min();
-				running_sum = 0.0f;
-				insert_index = 0;
-				valid_samples = 0;
-				samples.fill(0.0f);
-			}
+      auto frame_stats = frame_monitor.calculate_stats(delta_time);
+      auto shape_stats = shape_monitor.calculate_stats(shape_draw_time_s);
+      auto gui_stats = gui_monitor.calculate_stats(gui_draw_time_s);
 
-			if (ImPlot::BeginPlot("frame time", ImVec2(-1, 0), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend)) {
-				ImPlot::SetupAxes("Frame Index", "Frame Time",
-					/*ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit*/
-					 ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit
-				);
+      ImGui::Text("FPS: %d", (int)(1.f / delta_time));
+      ImGui::Text("Frame Time Avg: %.4f ms", frame_stats.average * 1e3);
+      ImGui::Text("Shape Draw Avg: %.4f ms", shape_stats.average * 1e3);
+      ImGui::Text("GUI Draw Avg: %.4f ms", gui_stats.average * 1e3);
 
-				if (valid_samples > 0) {
-					static std::array<float, buffer_size> plot_data{};
-					int plot_count = std::min(valid_samples, buffer_size);
-					if (valid_samples >= buffer_size) {
-						for (int i = 0; i < buffer_size; ++i) {
-							int src_index = (insert_index + i) % buffer_size;
-							plot_data[i] = samples[src_index];
-						}
-						ImPlot::PlotLine("Frame Time", plot_data.data(), buffer_size, 1.0, 0.0);
-					}
-					else {
-						for (int i = 0; i < valid_samples; ++i) {
-							plot_data[i] = samples[i];
-						}
-						ImPlot::PlotLine("Frame Time", plot_data.data(), valid_samples, 1.0, 0.0);
-					}
-				}
-				ImPlot::EndPlot();
-			}
+      ImGui::Text("Lowest FPS: %.4f", frame_stats.lowest);
+      ImGui::Text("Highest FPS: %.4f", frame_stats.highest);
 
-			ImGui::Text("Current Frame Time: %.4f ms", delta_time);
-			ImGui::End();
-		}
+      if (ImGui::Button(frame_monitor.paused ? "Continue" : "Pause")) {
+        frame_monitor.paused = !frame_monitor.paused;
+        shape_monitor.paused = frame_monitor.paused;
+        gui_monitor.paused = frame_monitor.paused;
+      }
+
+      if (ImGui::Button("Reset data")) {
+        frame_monitor.reset();
+        shape_monitor.reset();
+        gui_monitor.reset();
+      }
+
+      if (ImPlot::BeginPlot("Times", ImVec2(-1, 0),
+        ImPlotFlags_NoFrame)) {
+        ImPlot::SetupAxes("Frame Index", "Frame Time (ms)",
+          ImPlotAxisFlags_AutoFit,
+          ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit
+        );
+        ImPlot::SetupAxisTicks(ImAxis_Y1, 0.0, 10.0, 11);
+        frame_monitor.plot("Frame Draw Time");
+        shape_monitor.plot("Shape Draw Time");
+        gui_monitor.plot("GUI Draw Time");
+        ImPlot::EndPlot();
+      }
+
+      ImGui::Text("Frame Draw Time: %.4f ms", delta_time * 1e3);
+      ImGui::Text("Shape Draw Time: %.4f ms", shape_draw_time_s * 1e3);
+      ImGui::Text("GUI Draw Time: %.4f ms", gui_draw_time_s * 1e3);
+
+      ImGui::End();
+    }
 
 #if defined(loco_framebuffer)
 
@@ -2617,9 +2586,7 @@ public:
 
 		ImGui::Render();
 
-
 		if (window.renderer == renderer_t::opengl) {
-
 			//glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 			//glClear(GL_COLOR_BUFFER_BIT);
 
@@ -2644,7 +2611,88 @@ public:
 		}
 #endif
 #endif
+    gui_draw_time_s = gui_draw_timer.seconds();
 	}
+
+  struct time_monitor_t {
+    static constexpr int buffer_size = 128;
+    int insert_index = 0;
+    int valid_samples = 0;
+    f32_t running_sum = 0.0f;
+    f32_t running_min = std::numeric_limits<f32_t>::max();
+    f32_t running_max = std::numeric_limits<f32_t>::min();
+    fan::time::timer refresh_speed{ (uint64_t)0.05e9, true };
+    std::array<f32_t, buffer_size> samples{};
+    bool paused = false;
+
+    void update(f32_t value) {
+      if (paused) return;
+      if (!refresh_speed.finished()) return;
+
+      f32_t old_value = (valid_samples >= buffer_size) ? samples[insert_index] : 0.0f;
+      samples[insert_index] = value;
+
+      if (valid_samples < buffer_size) {
+        running_sum += value;
+        valid_samples++;
+      }
+      else {
+        running_sum += value - old_value;
+      }
+
+      running_min = std::min(running_min, value);
+      running_max = std::max(running_max, value);
+
+      insert_index = (insert_index + 1) % buffer_size;
+      refresh_speed.restart();
+    }
+
+    void reset() {
+      running_min = std::numeric_limits<f32_t>::max();
+      running_max = std::numeric_limits<f32_t>::min();
+      running_sum = 0.0f;
+      insert_index = 0;
+      valid_samples = 0;
+      samples.fill(0.0f);
+    }
+
+    struct stats_t {
+      f32_t average;
+      f32_t lowest;
+      f32_t highest;
+    };
+
+    stats_t calculate_stats(f32_t last_value) const {
+      int sample_count = std::min(valid_samples, buffer_size);
+      f32_t avg = (sample_count > 0) ? running_sum / sample_count : last_value;
+      f32_t low = (running_max > 0) ? 1.0f / running_max : 0.0f;
+      f32_t high = (running_min < std::numeric_limits<f32_t>::max()) ? 1.0f / running_min : 0.0f;
+      return { avg, low, high };
+    }
+
+    void plot(const char* label) {
+      if (valid_samples == 0) return;
+      static std::array<f32_t, buffer_size> plot_data{};
+      int plot_count = std::min(valid_samples, buffer_size);
+
+      if (valid_samples >= buffer_size) {
+        for (int i = 0; i < buffer_size; ++i) {
+          int src_index = (insert_index + i) % buffer_size;
+          plot_data[i] = samples[src_index] * 1e3f;
+        }
+        ImPlot::PlotLine(label, plot_data.data(), buffer_size);
+      }
+      else {
+        for (int i = 0; i < valid_samples; ++i) {
+          plot_data[i] = samples[i] * 1e3f;
+        }
+        ImPlot::PlotLine(label, plot_data.data(), valid_samples);
+      }
+    }
+  };
+  time_monitor_t frame_monitor;
+  time_monitor_t shape_monitor;
+  time_monitor_t gui_monitor;
 
 	std::vector<std::function<void()>> draw_end_cb;
 	void process_frame() {
@@ -2755,7 +2803,7 @@ public:
 		}
 #endif
 
-    lighting.update(delta_time);
+		lighting.update(delta_time);
 
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -2862,18 +2910,18 @@ public:
 	//  }
 	//};
 
-  fan::vec2 get_input_vector(
-    const std::string& forward = "move_forward",
-    const std::string& back = "move_back",
-    const std::string& left = "move_left",
-    const std::string& right = "move_right"
-  ) {
-    fan::vec2 v(
-      input_action.is_action_down(right) - input_action.is_action_down(left),
-      input_action.is_action_down(back) - input_action.is_action_down(forward)
-    );
-    return v.length() > 0 ? v.normalized() : v;
-  }
+	fan::vec2 get_input_vector(
+		const std::string& forward = "move_forward",
+		const std::string& back = "move_back",
+		const std::string& left = "move_left",
+		const std::string& right = "move_right"
+	) {
+		fan::vec2 v(
+			input_action.is_action_down(right) - input_action.is_action_down(left),
+			input_action.is_action_down(back) - input_action.is_action_down(forward)
+		);
+		return v.length() > 0 ? v.normalized() : v;
+	}
 
 
 	//
@@ -3200,6 +3248,10 @@ public:
 	std::function<void()> main_loop; // bad, but forced
 
 	f64_t delta_time = window.m_delta_time;
+  fan::time::timer shape_draw_timer;
+  fan::time::timer gui_draw_timer;
+  f64_t shape_draw_time_s = 0;
+  f64_t gui_draw_time_s = 0;
 
 #if defined(fan_gui)
 #define BLL_set_SafeNext 1
@@ -3431,7 +3483,7 @@ public:
 	fan::physics::context_t physics_context{ {} };
 	struct physics_update_data_t {
 		shaper_t::ShapeID_t shape_id;
-    fan::vec2 draw_offset = 0;
+		fan::vec2 draw_offset = 0;
 		uint64_t body_id;
 		void* cb;
 	};
@@ -3484,7 +3536,7 @@ public:
 	fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport) const {
 		return transform_position(get_mouse_position(), viewport, camera);
 	}
-  fan::vec2 get_mouse_position(const loco_t::render_view_t& render_view) const {
+	fan::vec2 get_mouse_position(const loco_t::render_view_t& render_view) const {
 		return get_mouse_position(render_view.camera, render_view.viewport);
 	}
 
@@ -3554,7 +3606,7 @@ public:
 	#define shape_get_vi(shape) (*(loco_t::shape##_t::vi_t*)GetRenderData(gloco->shaper))
 	#define shape_get_ri(shape) (*(loco_t::shape##_t::ri_t*)GetData(gloco->shaper))
 
-  
+	
 	#include <fan/graphics/shape_functions.h>
 
 	shape_functions_t shape_functions;
@@ -3868,19 +3920,19 @@ public:
 		void set_position(const fan::vec3& position) {
 			gloco->shape_functions[get_shape_type()].set_position3(this, position);
 		}
-    void set_x(f32_t x) { set_position(fan::vec2(x, get_position().y)); }
-    void set_y(f32_t y) { set_position(fan::vec2(get_position().x, y)); }
-    void set_z(f32_t z) { set_position(fan::vec3(get_position().x, get_position().y, z)); }
+		void set_x(f32_t x) { set_position(fan::vec2(x, get_position().y)); }
+		void set_y(f32_t y) { set_position(fan::vec2(get_position().x, y)); }
+		void set_z(f32_t z) { set_position(fan::vec3(get_position().x, get_position().y, z)); }
 
 		fan::vec3 get_position() const {
 			auto shape_type = get_shape_type();
-      return gloco->shape_functions[shape_type].get_position(this);
-    }
-    f32_t get_x() const { return get_position().x; }
-    f32_t get_y() const { return get_position().y; }
-    f32_t get_z() const { return get_position().z; }
+			return gloco->shape_functions[shape_type].get_position(this);
+		}
+		f32_t get_x() const { return get_position().x; }
+		f32_t get_y() const { return get_position().y; }
+		f32_t get_z() const { return get_position().z; }
 
-    void set_size(const fan::vec2& size) {
+		void set_size(const fan::vec2& size) {
 			gloco->shape_functions[get_shape_type()].set_size(this, size);
 		}
 
@@ -4339,27 +4391,27 @@ public:
 			}
 		#if defined(fan_3D)
 			if (st == loco_t::shape_type_t::line3d) {
-        auto data = reinterpret_cast<loco_t::line3d_t::vi_t*>(GetRenderData(gloco->shaper));
-        data->src = fan::vec3(src.x, src.y, 0);
-        data->dst = fan::vec3(dst.x, dst.y, 0);
-        if (gloco->window.renderer == loco_t::renderer_t::opengl) {
-          auto& data = gloco->shaper.ShapeList[*this];
-          gloco->shaper.ElementIsPartiallyEdited(
-            data.sti,
-            data.blid,
-            data.ElementIndex,
-            fan::member_offset(&loco_t::line3d_t::vi_t::src),
-            sizeof(loco_t::line3d_t::vi_t::src)
-          );
-          gloco->shaper.ElementIsPartiallyEdited(
-            data.sti,
-            data.blid,
-            data.ElementIndex,
-            fan::member_offset(&loco_t::line3d_t::vi_t::dst),
-            sizeof(loco_t::line3d_t::vi_t::dst)
-          );
-        }
-      }
+				auto data = reinterpret_cast<loco_t::line3d_t::vi_t*>(GetRenderData(gloco->shaper));
+				data->src = fan::vec3(src.x, src.y, 0);
+				data->dst = fan::vec3(dst.x, dst.y, 0);
+				if (gloco->window.renderer == loco_t::renderer_t::opengl) {
+					auto& data = gloco->shaper.ShapeList[*this];
+					gloco->shaper.ElementIsPartiallyEdited(
+						data.sti,
+						data.blid,
+						data.ElementIndex,
+						fan::member_offset(&loco_t::line3d_t::vi_t::src),
+						sizeof(loco_t::line3d_t::vi_t::src)
+					);
+					gloco->shaper.ElementIsPartiallyEdited(
+						data.sti,
+						data.blid,
+						data.ElementIndex,
+						fan::member_offset(&loco_t::line3d_t::vi_t::dst),
+						sizeof(loco_t::line3d_t::vi_t::dst)
+					);
+				}
+			}
 			#endif
 		}
 
@@ -4642,15 +4694,15 @@ public:
 			);
 		}
 
-    void apply_floating_motion(
-      f32_t time = gloco->start_time.seconds(),
-      f32_t amplitude = 5.f,
-      f32_t speed = 2.f,
-      f32_t phase = 0.f
-    ) {
-      f32_t y = std::sin(time * speed + phase) * amplitude;
-      set_y(y);
-    }
+		void apply_floating_motion(
+			f32_t time = gloco->start_time.seconds(),
+			f32_t amplitude = 5.f,
+			f32_t speed = 2.f,
+			f32_t phase = 0.f
+		) {
+			f32_t y = std::sin(time * speed + phase) * amplitude;
+			set_y(y);
+		}
 
 	private:
 	};
@@ -6186,7 +6238,7 @@ public:
 	#endif
 
 	//-------------------------------------shapes-------------------------------------
-  
+	
 	// pointer
 	using shape_shader_locations_t = decltype(loco_t::shaper_t::BlockProperties_t::gl_t::locations);
 
@@ -6343,38 +6395,38 @@ public:
 		0.f, 0.f, 0.f, 1.f
 	};
 
-  struct lighting_t {
-    static constexpr const char* ambient_name = "lighting_ambient";
-    fan::vec3 ambient = fan::vec3(1, 1, 1);
+	struct lighting_t {
+		static constexpr const char* ambient_name = "lighting_ambient";
+		fan::vec3 ambient = fan::vec3(1, 1, 1);
 
-    fan::vec3 start = ambient;
-    fan::vec3 target = fan::vec3(1, 1, 1);
-    f32_t duration = 0.5f; // seconds to reach target
-    f32_t elapsed = 0.f;
+		fan::vec3 start = ambient;
+		fan::vec3 target = fan::vec3(1, 1, 1);
+		f32_t duration = 0.5f; // seconds to reach target
+		f32_t elapsed = 0.f;
 
-    void set_target(const fan::vec3& t, f32_t d = 0.5f) {
-      start = ambient;
-      target = t;
-      duration = d;
-      elapsed = 0.0f;
-    }
+		void set_target(const fan::vec3& t, f32_t d = 0.5f) {
+			start = ambient;
+			target = t;
+			duration = d;
+			elapsed = 0.0f;
+		}
 
-    void update(f32_t delta_time) {
-      if (elapsed < duration) {
-        elapsed += delta_time;
-        f32_t t = std::min(elapsed / duration, 1.0f);
-        ambient = fan::math::lerp(start, target, t);
-      }
-    }
+		void update(f32_t delta_time) {
+			if (elapsed < duration) {
+				elapsed += delta_time;
+				f32_t t = std::min(elapsed / duration, 1.0f);
+				ambient = fan::math::lerp(start, target, t);
+			}
+		}
 
-    bool is_near(const fan::vec3& t, f32_t eps = 0.01f) const {
-      return ambient.distance(t) < eps;
-    }
-    bool is_near_target(f32_t eps = 0.01f) const {
-      return is_near(target, eps);
-    }
+		bool is_near(const fan::vec3& t, f32_t eps = 0.01f) const {
+			return ambient.distance(t) < eps;
+		}
+		bool is_near_target(f32_t eps = 0.01f) const {
+			return is_near(target, eps);
+		}
 
-  }lighting;
+	}lighting;
 
 	void set_current_directory(const std::string& new_directory) {
 		current_directory = new_directory;
@@ -6433,13 +6485,13 @@ public:
 
 		//int index = 0;
 
-		//float scale = 255.f / (noise_tex_max - noise_tex_min);
+		//f32_t scale = 255.f / (noise_tex_max - noise_tex_min);
 
 		//for (int y = 0; y < image_size.y; y++)
 		//{
 		//  for (int x = 0; x < image_size.x; x++)
 		//  {
-		//    float noiseValue = noise.GetNoise((float)x, (float)y);
+		//    f32_t noiseValue = noise.GetNoise((f32_t)x, (f32_t)y);
 		//    unsigned char cNoise = (unsigned char)std::max(0.0f, std::min(255.0f, (noiseValue - noise_tex_min) * scale));
 		//    noise_data_rgb[index * 3 + 0] = cNoise;
 		//    noise_data_rgb[index * 3 + 1] = cNoise;
@@ -6536,8 +6588,8 @@ public:
 		fan::vec3 t1 = t_min.min(t_max);
 		fan::vec3 t2 = t_min.max(t_max);
 
-		float t_near = std::max(t1.x, std::max(t1.y, t1.z));
-		float t_far = std::min(t2.x, std::min(t2.y, t2.z));
+		f32_t t_near = std::max(t1.x, std::max(t1.y, t1.z));
+		f32_t t_far = std::min(t2.x, std::min(t2.y, t2.z));
 
 		return t_near <= t_far && t_far >= 0.0f;
 	}
@@ -7784,7 +7836,7 @@ namespace fan {
 				}
 				static std::stacktrace stack;
 				if (allocation_sizes.size() && ImPlot::BeginPlot("Memory Allocations", ImGui::GetWindowSize(), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend)) {
-					float max_allocation = *std::max_element(allocation_sizes.begin(), allocation_sizes.end());
+					f32_t max_allocation = *std::max_element(allocation_sizes.begin(), allocation_sizes.end());
 					ImPlot::SetupAxis(ImAxis_Y1, "Memory (MB)");
 					ImPlot::SetupAxisLimits(ImAxis_Y1, 0, max_y);
 					ImPlot::SetupAxis(ImAxis_X1, "Allocations");
@@ -7803,10 +7855,10 @@ namespace fan {
 						f32_t half_width = 0.25;
 						//mouse.x             = ImPlot::RoundTime(ImPlotTime::FromDouble(mouse.x), ImPlotTimeUnit_Day).ToDouble();
 						mouse.x = (int)mouse.x;
-						float  tool_l = ImPlot::PlotToPixels(mouse.x - half_width * 1.5, mouse.y).x;
-						float  tool_r = ImPlot::PlotToPixels(mouse.x + half_width * 1.5, mouse.y).x;
-						float  tool_t = ImPlot::GetPlotPos().y;
-						float  tool_b = tool_t + ImPlot::GetPlotSize().y;
+						f32_t  tool_l = ImPlot::PlotToPixels(mouse.x - half_width * 1.5, mouse.y).x;
+						f32_t  tool_r = ImPlot::PlotToPixels(mouse.x + half_width * 1.5, mouse.y).x;
+						f32_t  tool_t = ImPlot::GetPlotPos().y;
+						f32_t  tool_b = tool_t + ImPlot::GetPlotSize().y;
 						ImPlot::PushPlotClipRect();
 						auto draw_list = ImGui::GetWindowDrawList();
 						draw_list->AddRectFilled(ImVec2(tool_l, tool_t), ImVec2(tool_r, tool_b), IM_COL32(128, 128, 128, 64));

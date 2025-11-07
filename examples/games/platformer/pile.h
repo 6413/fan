@@ -19,16 +19,17 @@ struct pile_t {
     engine.physics_context.step(engine.delta_time);
   }
   fan::graphics::engine_t engine;
-  player_t player;
   fte_renderer_t renderer;
 
   stage_loader_t stage_loader;
-  stage_loader_t::nr_t  current_stage;
+  stage_loader_t::nr_t current_stage;
 
   fan::graphics::interactive_camera_t ic{
     engine.orthographic_render_view.camera,
     engine.orthographic_render_view.viewport
   };
+
+  player_t player;
 }pile;
 
 lstd_defstruct(level_t)
