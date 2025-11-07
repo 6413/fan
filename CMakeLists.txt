@@ -264,6 +264,8 @@ set(MODULE_FILES
   ${ROOT_PATH}/graphics/common_context.ixx
   ${ROOT_PATH}/graphics/opengl/gl_core.ixx
   ${ROOT_PATH}/graphics/opengl/uniform_block.ixx
+	${ROOT_PATH}/texture_pack/tp0.ixx
+	${ROOT_PATH}/graphics/shapes.ixx
   ${ROOT_PATH}/graphics/loco.ixx
   ${ROOT_PATH}/graphics/graphics.ixx
   ${ROOT_PATH}/graphics/file_dialog.ixx
@@ -273,6 +275,7 @@ set(MODULE_FILES
   ${ROOT_PATH}/window/window.ixx
   ${ROOT_PATH}/window/input_common.ixx
   ${ROOT_PATH}/window/input.ixx
+	${ROOT_PATH}/window/input_action.ixx
   ${ROOT_PATH}/audio/audio.ixx
   ${ROOT_PATH}/event/event.ixx
   ${ROOT_PATH}/network/network.ixx
@@ -303,7 +306,8 @@ endif()
 if(FAN_PHYSICS)
   list(APPEND MODULE_FILES
     ${ROOT_PATH}/physics/b2_integration.ixx
-    ${ROOT_PATH}/graphics/physics_shapes.ixx
+    ${ROOT_PATH}/physics/physics_common_context.ixx
+		${ROOT_PATH}/graphics/physics_shapes.ixx
   )
 endif()
 
