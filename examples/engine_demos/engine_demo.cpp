@@ -29,6 +29,7 @@ struct engine_demo_t {
     create_gui();
   }
   ~engine_demo_t() {
+    engine.shader_erase(demo_shader_shape_shader);
     engine.image_unload(image_tire);
   }
 
@@ -437,6 +438,7 @@ void main() {
       engine_demo->panel_right_window_size.y * (1.0 - engine_demo->right_window_split_ratio)
     );
     engine_demo->engine.viewport_set_size(engine_demo->right_column_view.viewport, new_viewport_size);
+    engine_demo->engine.shader_erase(engine_demo->demo_shader_live_editor_data->shader);
     delete engine_demo->demo_shader_live_editor_data;
   }
   // ------------------------GUI------------------------

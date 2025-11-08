@@ -85,6 +85,7 @@ struct blur_t {
 
   void close() {
 
+    loco.shader_erase(shader_upsample);
     loco.shader_erase(shader_downsample);
 
     brightness_fbo.close(loco.context.gl);

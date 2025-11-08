@@ -125,6 +125,7 @@ void open() {
 
 void close() {
   blur.close();
+  loco.shader_erase(loco.gl.m_fbo_final_shader);
 }
 
 void init_framebuffer() {
