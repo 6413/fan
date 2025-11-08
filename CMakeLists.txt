@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.31.1)
 
-# Todo add fan_network
-
 set(FAN_PHYSICS ON)
 set(FAN_GUI ON)
 set(FAN_JSON ON)
@@ -10,6 +8,7 @@ set(FAN_OPENGL ON)
 set(FAN_VULKAN OFF)
 set(FAN_FMT ON)
 set(FAN_WAYLAND_SCREEN ON)
+set(FAN_NETWORK OFF)
 
 set(BUILD_MAIN ON)
 set(BUILD_FAN_LIBRARY OFF CACHE STRING "Build fan as library: OFF, STATIC, or SHARED")
@@ -197,6 +196,7 @@ function(apply_fan_definitions target)
     $<$<BOOL:${FAN_3D}>:fan_3D>
     $<$<BOOL:${FAN_PHYSICS}>:fan_physics>
     $<$<BOOL:${FAN_VULKAN}>:fan_vulkan>
+		$<$<BOOL:${FAN_NETWORK}>:fan_network>
     loco_line loco_rectangle loco_sprite loco_light loco_circle
     loco_responsive_text loco_universal_image_renderer
     IMGUI_IMPL_OPENGL_LOADER_CUSTOM IMGUI_DEFINE_MATH_OPERATORS

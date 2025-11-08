@@ -1,12 +1,18 @@
 module;
 
+#if defined(fan_network)
+
 #include <fan/utility.h>
 
 #include <functional>
 #include <string>
 #include <string_view>
 
+#endif
+
 export module fan.graphics.network;
+
+#if defined(fan_network)
 
 export import fan.utility;
 export import fan.graphics;
@@ -108,3 +114,5 @@ export namespace fan::graphics::network {
     }
   };
 }
+
+#endif
