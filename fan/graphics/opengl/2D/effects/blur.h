@@ -83,6 +83,19 @@ struct blur_t {
     brightness_fbo.unbind(loco.context.gl);
   }
 
+  void close() {
+
+    loco.shader_erase(shader_downsample);
+
+    brightness_fbo.close(loco.context.gl);
+    rbo.close(loco.context.gl);
+
+    // todo
+    for (auto& i : mips) {
+      loco.image_unload(i.image);
+    }
+  }
+
   inline static unsigned int quadVAO = 0;
   inline static unsigned int quadVBO;
   static void renderQuad()

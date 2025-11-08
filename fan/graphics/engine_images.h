@@ -7,3 +7,17 @@ void load_engine_images() {
   fan::graphics::icons.pause = image_load("icons/pause.png");
   fan::graphics::icons.settings = image_load("icons/settings.png");
 }
+
+void unload_engine_images() {
+  image_unload(default_texture);
+
+  image_unload(fan::graphics::icons.play);
+  image_unload(fan::graphics::icons.pause);
+  image_unload(fan::graphics::icons.settings);
+
+#if defined(fan_opengl)
+  for (auto& i : gl.color_buffers) {
+    image_unload(i);
+  }
+#endif
+}
