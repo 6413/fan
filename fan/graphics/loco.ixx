@@ -1531,7 +1531,7 @@ public:
   std::vector<key_release_callback_t> key_release_callbacks;
   std::vector<key_repeat_callback_t> key_repeat_callbacks;
 
-  std::array<fan::vec2, 3> mouse_drag_start;
+  std::array<fan::vec2, 3> mouse_drag_start{};
 
   void setup_input_callbacks() {
 
