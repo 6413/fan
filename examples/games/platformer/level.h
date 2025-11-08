@@ -1,4 +1,4 @@
-void open(void* sod) {
+void load_map() {
   main_compiled_map = pile.renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
   //render_size /= 0.01;
@@ -20,8 +20,23 @@ void open(void* sod) {
   pile.player.body.set_physics_position(pile.renderer.get_position(main_map_id, "player_spawn"));
 }
 
-void close() {
+void open(void* sod) {
+  load_map();
+}
 
+void close() {
+  for (auto& i : collisions) {
+    i.erase();
+  }
+}
+
+void reload_map() {
+  for (auto& i : collisions) {
+    i.erase();
+  }
+  collisions.clear();
+  pile.renderer.erase(main_map_id);
+  load_map();
 }
 
 void update() {
@@ -29,11 +44,16 @@ void update() {
   if (fan::window::is_key_pressed(fan::key_e)) {
     pause = !pause;
   }
+  if (fan::window::is_key_pressed(fan::key_r)) {
+    reload_map();
+  }
   pile.renderer.update(main_map_id, pile.player.body.get_position());
   if (pause) {
     return;
   }
   pile.step();
+
+
 }
 
 fte_loader_t::id_t main_map_id;

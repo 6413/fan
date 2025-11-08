@@ -164,6 +164,7 @@ export namespace fan {
       }
     };
 
+    // opaque handle
     struct body_id_t : b2BodyId {
       using b2BodyId::b2BodyId;
       body_id_t() : b2BodyId(b2_nullBodyId) {}
@@ -197,6 +198,9 @@ export namespace fan {
         body_updates.erase(*this);
         b2DestroyBody(static_cast<b2BodyId>(*this));
         invalidate();
+      }
+      void erase() {
+        destroy();
       }
 
       fan::vec2 get_linear_velocity() const {
