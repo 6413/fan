@@ -90,11 +90,6 @@ struct blur_t {
 
     brightness_fbo.close(loco.context.gl);
     rbo.close(loco.context.gl);
-
-    // todo
-    for (auto& i : mips) {
-      loco.image_unload(i.image);
-    }
   }
 
   inline static unsigned int quadVAO = 0;
