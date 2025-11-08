@@ -228,12 +228,12 @@ export namespace fan {
   #endif
   }
 
-	void printclh(int highlight, auto&&... values) {
+  void printclh(int highlight, auto&&... values) {
 #if defined(fan_gui)
-		printclnnh(highlight, values...);
-		fan::graphics::ctx().console->print("\n", highlight);
+    printclnnh(highlight, values...);
+    fan::graphics::ctx().console->print("\n", highlight);
 #endif
-	}
+  }
   inline void printcl_err(auto&&... values) {
 #if defined(fan_gui)
     printclh(fan::graphics::highlight_e::error, values...);
@@ -262,6 +262,29 @@ export namespace fan {
       return (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)));
     }
   #endif
+
+    namespace image_presets {
+      image_load_properties_t pixel_art() {
+        image_load_properties_t props;
+        props.min_filter = image_filter::nearest;
+        props.mag_filter = image_filter::nearest;
+        return props;
+      }
+
+      image_load_properties_t smooth() {
+        image_load_properties_t props;
+        props.min_filter = image_filter::linear;
+        props.mag_filter = image_filter::linear;
+        return props;
+      }
+
+      image_load_properties_t mipmapped() {
+        image_load_properties_t props;
+        props.min_filter = image_filter::linear_mipmap_linear;
+        props.mag_filter = image_filter::linear;
+        return props;
+      }
+    }
 
     std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) {
       if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
@@ -329,6 +352,12 @@ export namespace fan {
     }
     bool is_image_valid(fan::graphics::image_nr_t nr) {
       return is_image_valid(nr);
+    }
+    fan::graphics::image_t image_load_pixel_art(const std::string& path) {
+      return image_load(path, image_presets::pixel_art());
+    }
+    fan::graphics::image_t image_load_smooth(const std::string& path) {
+      return image_load(path, image_presets::smooth());
     }
 
     fan::graphics::image_nr_t create_missing_texture() {
@@ -1370,6 +1399,32 @@ export namespace fan {
       fan::window_t::mouse_motion_callback_t::nr_t mouse_motion_nr;
       fan::graphics::update_callback_nr_t uc_nr;
 
+      void reset() {
+        ignore = false;
+        zoom_on_window_resize = true;
+        pan_with_middle_mouse = false;
+        reset_view();
+      }
+      void reset_view() {
+        zoom = 2;
+        camera_offset = {};
+        update();
+      }
+
+      void update() {
+        fan::vec2 s = fan::graphics::g_render_context_handle->viewport_get_size(
+          fan::graphics::g_render_context_handle,
+          reference_viewport
+        );
+        fan::vec2 ortho_size = s / zoom;
+        fan::graphics::g_render_context_handle->camera_set_ortho(
+          fan::graphics::g_render_context_handle,
+          reference_camera,
+          fan::vec2(-ortho_size.x, ortho_size.x),
+          fan::vec2(-ortho_size.y, ortho_size.y)
+        );
+      }
+
       interactive_camera_t(
         fan::graphics::camera_t camera_nr = fan::graphics::get_orthographic_render_view().camera,
         fan::graphics::viewport_t viewport_nr = fan::graphics::get_orthographic_render_view().viewport,
@@ -1379,18 +1434,8 @@ export namespace fan {
         auto& window = fan::graphics::get_window();
         old_window_size = window.get_size();
 
-        static auto update_ortho = [&](void* ptr) {
-          fan::vec2 s = fan::graphics::g_render_context_handle->viewport_get_size(
-            fan::graphics::g_render_context_handle, 
-            reference_viewport
-          );
-          fan::vec2 ortho_size = s / zoom;
-          fan::graphics::g_render_context_handle->camera_set_ortho(
-            fan::graphics::g_render_context_handle,
-            reference_camera,
-            fan::vec2(-ortho_size.x, ortho_size.x),
-            fan::vec2(-ortho_size.y, ortho_size.y)
-          );
+        static auto update_ortho = [this](void* ptr) {
+          update();
         };
 
         auto it = fan::graphics::ctx().update_callback->NewNodeLast();
@@ -1463,6 +1508,16 @@ export namespace fan {
       void set_position(const fan::vec2& position) {
         camera_offset = position;
         fan::graphics::camera_set_position(reference_camera, camera_offset);
+        update();
+      }
+      void set_zoom(f32_t new_zoom) {
+        zoom = new_zoom;
+        update();
+      }
+      fan::vec2 get_size() const {
+        return fan::graphics::g_render_context_handle->camera_get_size(
+          fan::graphics::g_render_context_handle,
+          reference_camera);
       }
     };
 
@@ -1751,3 +1806,29 @@ export namespace fan {
     return 0; \
   } \
   void main_entry()
+
+export namespace fan::image {
+  struct plane_split_t {
+    void* planes[3]{};
+    operator void** () {
+      return planes;
+    }
+    operator const void* const* () const {
+      return planes;
+    }
+  };
+
+  plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, const fan::graphics::image_format& format) {
+    plane_split_t result;
+    uint64_t offset = 0;
+    if (format == fan::graphics::image_format::yuv420p) {
+      result.planes[0] = pixel_data;
+      result.planes[1] = (uint8_t*)pixel_data + (offset += size.multiply());
+      result.planes[2] = (uint8_t*)pixel_data + (offset += size.multiply() / 4);
+    }
+    else {
+      fan::throw_error_impl("undefined");
+    }
+    return result;
+  }
+}

@@ -53,9 +53,6 @@ struct engine_demo_t {
     }
   }
   static void demo_shapes_init_gradient(engine_demo_t* engine_demo) {
-    for (auto& i : engine_demo->shapes) {
-      i.erase();
-    }
     engine_demo->shapes.resize(engine_demo->shape_count);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
@@ -95,13 +92,9 @@ struct engine_demo_t {
     std::string pixel_data_str;
     constexpr fan::vec2ui image_size = fan::vec2ui(1920, 1080);
     fan::io::file::read("images/output1920.yuv", &pixel_data_str);
-    void* pixel_data = pixel_data_str.data();//
-    void* datas[3];
-    uint64_t offset = 0;
-    datas[0] = pixel_data;
-    datas[1] = (uint8_t*)pixel_data + (offset += image_size.multiply());
-    datas[2] = (uint8_t*)pixel_data + (offset += image_size.multiply() / 4);
-    engine_demo->shapes.back().reload(fan::graphics::image_format::yuv420p, datas, image_size);
+    void* pixel_data = pixel_data_str.data();
+    auto split = fan::image::plane_split(pixel_data, image_size, fan::graphics::image_format::yuv420p);
+    engine_demo->shapes.back().reload(fan::graphics::image_format::yuv420p, split, image_size);
   }
 
   fan::graphics::image_t image_tire = engine.image_load("images/tire.webp");
@@ -408,6 +401,13 @@ void main() {
       .shader = data.shader,
       .image = image,
     } };
+    engine_demo->interactive_camera.set_zoom(engine_demo->right_window_split_ratio * 2.f * 1.2f);
+    engine_demo->interactive_camera.set_position(viewport_size / 2.f + 
+      fan::vec2(
+       0,
+       ((viewport_size.y) * (engine_demo->right_window_split_ratio)) - data.shader_shape.get_size().y
+      )
+    );
   }
 
   static void demo_shader_live_editor_update(engine_demo_t* engine_demo) {
@@ -424,12 +424,19 @@ void main() {
     }
   }
   static void demo_shader_live_editor_cleanup(engine_demo_t* engine_demo) {
-    engine_demo->right_window_split_ratio = 0.2f;
+    engine_demo->right_window_split_ratio = default_right_window_split_ratio;
+    fan::vec2 new_viewport_size(
+      engine_demo->panel_right_window_size.x,
+      engine_demo->panel_right_window_size.y * (1.0 - engine_demo->right_window_split_ratio)
+    );
+    engine_demo->engine.viewport_set_size(engine_demo->right_column_view.viewport, new_viewport_size);
     delete engine_demo->demo_shader_live_editor_data;
   }
   // ------------------------GUI------------------------
 
   // ------------------------PHYSICS------------------------
+
+    // ------------------------MIRRORS------------------------
 
   struct demo_physics_mirrors_t {
     int reflect_depth = 2;
@@ -439,6 +446,7 @@ void main() {
     fan::graphics::physics::polygon_strip_t triangle;
     std::array<physics::rectangle_t, 4> walls;
     line_t user_ray;
+    fan::graphics::circle_t user_ray_tips[2];
   }*demo_physics_mirrors_data=0;
 
   static void on_reflect_depth_resize(engine_demo_t* engine_demo) {
@@ -450,69 +458,85 @@ void main() {
     engine_demo->demo_physics_mirrors_data->rays.resize(engine_demo->demo_physics_mirrors_data->reflect_depth + 1, { {
       .render_view = &engine_demo->right_column_view,
       .src = {0, 0, 0xfff},
-      .color = fan::colors::green
+      .color = fan::colors::green,
+      .thickness = 3.f
     } });
   }
   static void demo_physics_init_mirrors(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
     engine_demo->demo_physics_mirrors_data = new demo_physics_mirrors_t();
+    auto& mirror_data = *engine_demo->demo_physics_mirrors_data;
     static std::vector<vertex_t> triangle_vertices{
      {fan::vec2(400, 400), fan::colors::orange},
      {fan::vec2(400, 600), fan::colors::orange},
      {fan::vec2(700, 600), fan::colors::orange},
     };
-    engine_demo->demo_physics_mirrors_data->triangle = fan::graphics::physics::polygon_strip_t{ {
+    mirror_data.triangle = fan::graphics::physics::polygon_strip_t{ {
       .render_view = &engine_demo->right_column_view,
       .vertices = triangle_vertices
     } };
     for (std::size_t i = 0; i < 5; ++i) {
-      engine_demo->demo_physics_mirrors_data->circles.push_back({ {
+      mirror_data.circles.push_back({ {
         .render_view = &engine_demo->right_column_view,
         .position = fan::random::vec2(0, viewport_size),
         .radius = fan::random::f32(12, 84),
         .color = fan::colors::orange,
       } });
     }
-    engine_demo->demo_physics_mirrors_data->walls = physics::create_stroked_rectangle(viewport_size / 2, viewport_size / 2, 3);
-    for (auto& wall : engine_demo->demo_physics_mirrors_data->walls) {
+    mirror_data.walls = physics::create_walls(viewport_size / 2, 3);
+    for (auto& wall : mirror_data.walls) {
       wall.set_camera(engine_demo->right_column_view.camera);
       wall.set_viewport(engine_demo->right_column_view.viewport);
     }
-    engine_demo->demo_physics_mirrors_data->user_ray = { {
+    mirror_data.user_ray = { {
         .render_view = &engine_demo->right_column_view,
-        .src = {0, 500, 0xfff}, 
-        .color = fan::colors::white
+        .src = {viewport_size.x * 0.1, viewport_size.y * 0.9, 0xfff}, /* Multiply by magic values to avoid reflection from walls*/
+        .dst = {viewport_size.x * 0.9, viewport_size.y * 0.1 } ,
+        .color = fan::colors::white,
+        .thickness = 3.f
       } };
+    mirror_data.user_ray_tips[0] = { {
+      .render_view = &engine_demo->right_column_view,
+      .radius = 5.f,
+      .color = fan::colors::green,
+    } };
+    mirror_data.user_ray_tips[1] = mirror_data.user_ray_tips[0];
+    mirror_data.user_ray_tips[0].set_position(mirror_data.user_ray.get_src());
+    mirror_data.user_ray_tips[1].set_position(mirror_data.user_ray.get_dst());
+
     on_reflect_depth_resize(engine_demo);
   }
   static void demo_physics_update_mirrors(engine_demo_t* engine_demo) {
-    fan::vec2 src = engine_demo->demo_physics_mirrors_data->user_ray.get_src();
-    fan::vec2 dst = engine_demo->demo_physics_mirrors_data->user_ray.get_dst();
-    engine_demo->demo_physics_mirrors_data->user_ray.set_line(src, dst);
+    auto& mirror_data = *engine_demo->demo_physics_mirrors_data;
+    fan::vec2 src = mirror_data.user_ray.get_src();
+    fan::vec2 dst = mirror_data.user_ray.get_dst();
+    mirror_data.user_ray.set_line(src, dst);
     
     if (fan::window::is_mouse_down(fan::mouse_right) && engine_demo->mouse_inside_demo_view) {
-      engine_demo->demo_physics_mirrors_data->user_ray.set_line(get_mouse_position(engine_demo->right_column_view), dst);
+      mirror_data.user_ray.set_line(get_mouse_position(engine_demo->right_column_view), dst);
+      mirror_data.user_ray_tips[0].set_position(mirror_data.user_ray.get_src());
     }
     if (fan::window::is_mouse_down() && engine_demo->mouse_inside_demo_view) {
-      engine_demo->demo_physics_mirrors_data->user_ray.set_line(src, get_mouse_position(engine_demo->right_column_view));
+      mirror_data.user_ray.set_line(src, get_mouse_position(engine_demo->right_column_view));
+      mirror_data.user_ray_tips[1].set_position(mirror_data.user_ray.get_dst());
     }
-    for (auto [i, d] : fan::enumerate(engine_demo->demo_physics_mirrors_data->ray_hit_point)) {
+    for (auto [i, d] : fan::enumerate(mirror_data.ray_hit_point)) {
       d.set_position(fan::vec3(-1000));
-      engine_demo->demo_physics_mirrors_data->rays[i].set_line(0, 0);
+      mirror_data.rays[i].set_line(0, 0);
     }
 
     int depth = 0;
     fan::vec2 current_src = src;
     fan::vec2 current_dst = dst;
 
-    while (depth < engine_demo->demo_physics_mirrors_data->reflect_depth + 1) {
+    while (depth < mirror_data.reflect_depth + 1) {
       if (auto result = fan::physics::raycast(current_src, current_dst)) {
-        engine_demo->demo_physics_mirrors_data->ray_hit_point[depth].set_position(result.point);
+        mirror_data.ray_hit_point[depth].set_position(result.point);
 
         fan::vec2 direction = (current_dst - current_src).normalized();
         fan::vec2 reflection = direction - result.normal * 2 * direction.dot(result.normal);
-        engine_demo->demo_physics_mirrors_data->rays[depth].set_line(current_src, result.point);
-        engine_demo->demo_physics_mirrors_data->rays[depth].set_color(fan::color::hsv(360.f * (depth / (f32_t)(engine_demo->demo_physics_mirrors_data->reflect_depth + 1)), 100, 100));
+        mirror_data.rays[depth].set_line(current_src, result.point);
+        mirror_data.rays[depth].set_color(fan::color::hsv(360.f * (depth / (f32_t)(mirror_data.reflect_depth + 1)), 100, 100));
 
         current_src = result.point + reflection * 0.5f;
         current_dst = result.point + reflection * 10000.f;
@@ -533,6 +557,122 @@ void main() {
   static void demo_physics_cleanup_mirrors(engine_demo_t* engine_demo) {
     delete engine_demo->demo_physics_mirrors_data;
   }
+    // ------------------------MIRRORS------------------------
+
+    // ------------------------PLATFORMER------------------------
+
+  struct demo_physics_platformer_t {
+    f32_t grid_size = 64;
+    fan::graphics::image_t highlight_image;
+    std::array<physics::rectangle_t, 4> walls;
+    fan::graphics::physics::character2d_t player;
+    std::vector<physics::rectangle_t> placed_blocks;
+  }*demo_physics_platformer_data = 0;
+
+  static void demo_physics_init_platformer(engine_demo_t* engine_demo) {
+    engine_demo->demo_physics_platformer_data = new demo_physics_platformer_t();
+    auto& data = *engine_demo->demo_physics_platformer_data;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+
+    // Load highlight image
+    data.highlight_image = engine_demo->engine.image_load("images/highlight_hover.webp");
+
+    // Create walls around the viewport
+    // Bounds, Thickness
+    data.walls = physics::create_walls(viewport_size / 2.f, data.grid_size);
+    for (auto& wall : data.walls) {
+      wall.set_camera(engine_demo->right_column_view.camera);
+      wall.set_viewport(engine_demo->right_column_view.viewport);
+    }
+
+    // Create player character
+    data.player = fan::graphics::physics::character_capsule(
+      { // Visual properties
+        .render_view = &engine_demo->right_column_view,
+        .position = fan::vec3(viewport_size.x / 2, viewport_size.y / 2, 10),
+        .radius = 16.f,
+        .color = fan::colors::green
+      },
+    { // Physics properties
+      .fixed_rotation = true
+    }
+    );
+    data.player.jump_impulse = 5.f;
+  }
+
+  static void demo_physics_update_platformer(engine_demo_t* engine_demo) {
+    // GUI
+    fan::graphics::gui::text("Controls:", fan::colors::yellow);
+    fan::graphics::gui::text("A or D - Move side ways");
+    fan::graphics::gui::text("Space - Jump");
+    fan::graphics::gui::text("Left Click - Place Block");
+    fan::graphics::gui::text("Right Click - Delete Block");
+
+    auto& data = *engine_demo->demo_physics_platformer_data;
+
+    // Get mouse position and snap to grid
+    fan::vec2 mouse_pos = get_mouse_position(engine_demo->right_column_view) - data.grid_size / 2.f;
+    fan::vec2 place_pos = mouse_pos.snap_to_grid(data.grid_size) + data.grid_size / 2.f;
+
+    // Draw highlight sprite. For better performance you would use fan::graphics::sprite_t object and update the position.
+    // This uses fan::graphics::sprite() function to draw the sprite for simplicity and demonstration purposes
+    sprite({
+      .render_view = &engine_demo->right_column_view,
+      .position = fan::vec3(place_pos, 0xfff),
+      .size = data.grid_size / 2.f,
+      .image = data.highlight_image
+      });
+
+    // Place block on mouse click
+    if (fan::window::is_mouse_clicked() && engine_demo->mouse_inside_demo_view) {
+      bool block_exists = false;
+      // Iterate all blocks to find if block exists. 
+      // In real implementation you would use constant time lookup and not iterate through all, but this is fine for demo
+      for (auto& block : data.placed_blocks) {
+        if (block.get_position() == place_pos) {
+          block_exists = true;
+          break;
+        }
+      }
+      if (!block_exists) {
+        data.placed_blocks.emplace_back(physics::rectangle_t{
+          {
+            .render_view = &engine_demo->right_column_view,
+            .position = place_pos,
+            .size = data.grid_size / 2.f,
+            .color = fan::random::bright_color()
+          }
+        });
+      }
+    }
+
+    // 
+    // Iterate all blocks to delete block using right mouse click
+    // In real implementation you would use constant time lookup and not iterate through all, but this is fine for demo
+    if (fan::window::is_mouse_clicked(fan::mouse_right) && engine_demo->mouse_inside_demo_view) {
+      for (auto it = data.placed_blocks.begin(); it != data.placed_blocks.end(); ++it) {
+        if (it->get_position() == place_pos) {
+          data.placed_blocks.erase(it);
+          break;
+        }
+      }
+    }
+
+    // Process player movement
+    data.player.process_movement();
+
+    // Update physics
+    engine_demo->engine.update_physics();
+  }
+
+  static void demo_physics_cleanup_platformer(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_physics_platformer_data;
+    // Unload highlight image
+    engine_demo->engine.image_unload(data.highlight_image);
+    delete engine_demo->demo_physics_platformer_data;
+  }
+
+    // ------------------------PLATFORMER------------------------
 
   // ------------------------PHYSICS------------------------
 
@@ -685,6 +825,7 @@ void main() {
     demo_t{.name = "Live Shader Editor", .init_function = demo_shapes_init_shader_live_editor, .update_function = demo_shader_live_editor_update, .cleanup_function = demo_shader_live_editor_cleanup},
     demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     demo_t{.name = "Reflective Mirrors", .init_function = demo_physics_init_mirrors, .update_function = demo_physics_update_mirrors, .cleanup_function = demo_physics_cleanup_mirrors},
+    demo_t{.name = "Platformer Builder", .init_function = demo_physics_init_platformer, .update_function = demo_physics_update_platformer, .cleanup_function = demo_physics_cleanup_platformer},
     demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     demo_t{.name = "Multithreaded image loading", .init_function = demo_init_multithreaded_image_loading, .update_function = demo_update_multithreaded_image_loading, .cleanup_function = demo_cleanup_multithreaded_image_loading},
   });
@@ -706,6 +847,7 @@ void main() {
     }
   }
   static void menus_engine_demo_right(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+    engine_demo.panel_right_window_size = next_window_size;
     gui::set_next_window_pos(next_window_position);
     gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y * engine_demo.right_window_split_ratio));
     fan::vec2 window_size;
@@ -778,6 +920,7 @@ void main() {
               demos[engine_demo.current_demo].cleanup_function(&engine_demo);
             }
             engine_demo.shapes.clear();
+            engine_demo.interactive_camera.reset_view();
             shape_info.init_function(&engine_demo);
             engine_demo.current_demo = i;
           }
@@ -792,6 +935,10 @@ void main() {
   static void menus_engine_demo_render_element_count(menu_t* menu) {
     if (gui::drag("Shape count", &engine_demo.shape_count, 1, 0, std::numeric_limits<int>::max())) {
       auto& shape_info = demos[engine_demo.current_demo];
+      if (shape_info.cleanup_function) {
+        shape_info.cleanup_function(&engine_demo);
+      }
+      engine_demo.shapes.clear();
       if (shape_info.init_function) {
         shape_info.init_function(&engine_demo);
       }
@@ -802,7 +949,7 @@ void main() {
 #undef engine_demo
 
   void create_gui() {
-    engine.clear_color = 1;
+    engine.clear_color = 0;
     // disable actively rendering page and assign "Engine Demos" option as first
     engine.settings_menu.reset_page_selection();
     {
@@ -818,6 +965,7 @@ void main() {
       right_column_view.camera,
       right_column_view.viewport
     };
+    interactive_camera.pan_with_middle_mouse = true;
   }
 
   void update() {
@@ -834,7 +982,9 @@ void main() {
   uint8_t current_demo = 0;
   int shape_count = 10;
   std::vector<fan::graphics::shape_t> shapes;
-  f32_t right_window_split_ratio = 0.2f;
+  static inline constexpr f32_t default_right_window_split_ratio = 0.2f;
+  f32_t right_window_split_ratio = default_right_window_split_ratio;
+  fan::vec2 panel_right_window_size = 0.f;
 };
 
 // Library usage includes
