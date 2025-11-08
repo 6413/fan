@@ -749,7 +749,41 @@ struct shaper_t{
     BlockEditQueue.Open();
     ShapeList.Open();
   }
-  void Close(){
+  void Close() {
+    ShapeTypes_t::nrtra_t traverse;
+    ShapeTypeIndex_t sti;
+    traverse.Open(&ShapeTypes, &sti);
+    while (traverse.Loop(&ShapeTypes, &sti)) {
+      auto& st = ShapeTypes[sti];
+
+    #if shaper_set_fan
+      if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
+        auto& gl = st.renderer.gl;
+        if (!gl.shader.iic()) {
+          fan::graphics::g_render_context_handle->shader_erase(fan::graphics::g_render_context_handle, gl.shader);
+        }
+        if (gl.m_vao.is_valid()) {
+          gl.m_vao.close(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)));
+        }
+        if (gl.m_vbo.is_valid()) {
+          gl.m_vbo.close(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)));
+        }
+      }
+    #if defined(fan_vulkan)
+      else if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::vulkan) {
+        auto& vk = st.renderer.vk;
+        vk.shape_data.m_descriptor.close(gloco->context.vk);
+        vk.shape_data.deallocate(gloco->context.vk);
+        vk.shape_data.close(gloco->context.vk);
+        vk.pipeline.close(gloco->context.vk);
+      }
+    #endif
+    #endif
+
+      st.BlockList.Close();
+    }
+    traverse.Close(&ShapeTypes);
+
     ShapeList.Close();
     BlockEditQueue.Close();
     BlockManager.Close();
