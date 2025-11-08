@@ -93,31 +93,34 @@ fi
 if [[ "$FORCE_REBUILD" == "true" ]] || [[ ! -f "$LIB_DIR/libfreetype.a" ]]; then
     echo "Building FreeType..."
     FREETYPE_DIR="$INSTALL_DIR/freetype"
-    
-    # Remove old sources if they exist
+
     rm -rf "$FREETYPE_DIR"
     rm -f freetype-2.13.2.tar.xz
-    
+
     wget -O freetype-2.13.2.tar.xz https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.xz
     tar -xf freetype-2.13.2.tar.xz
     mv freetype-2.13.2 "$FREETYPE_DIR"
     cd "$FREETYPE_DIR"
     mkdir build
     cd build
-    cmake -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
-          -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-          -DFT_DISABLE_HARFBUZZ=ON \
-          -DFT_DISABLE_BROTLI=ON \
-          -DFT_DISABLE_PNG=OFF \
-          -DFT_DISABLE_ZLIB=OFF \
-          -DFT_DISABLE_BZIP2=ON \
-          -DBUILD_SHARED_LIBS=OFF ..
+
+    cmake .. \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+        -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+        -DFT_DISABLE_HARFBUZZ=ON \
+        -DFT_DISABLE_BROTLI=ON \
+        -DFT_DISABLE_PNG=OFF \
+        -DFT_DISABLE_ZLIB=OFF \
+        -DFT_DISABLE_BZIP2=ON \
+        -DBUILD_SHARED_LIBS=OFF
+
     make -j$(nproc)
     make install
     cd ../..
-    rm -rf "$FREETYPE_DIR"
+
     rm -f freetype-2.13.2.tar.xz
-    echo "✓ FreeType built successfully"
+    echo "✓ FreeType built and installed (kept in $INSTALL_DIR)"
 else
     echo "✓ FreeType already exists, skipping build"
 fi
