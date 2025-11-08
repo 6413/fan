@@ -1476,6 +1476,8 @@ public:
 	}
 
 	void destroy() {
+    unload_engine_images();
+
 		if (window == nullptr) {
 			return;
 		}
