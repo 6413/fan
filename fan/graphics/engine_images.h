@@ -8,6 +8,7 @@ void load_engine_images() {
   fan::graphics::icons.settings = image_load("icons/settings.png");
 }
 
+// already removed in image_list iteration
 void unload_engine_images() {
   image_unload(default_texture);
 

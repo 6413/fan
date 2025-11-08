@@ -1481,7 +1481,7 @@ public:
 			return;
 		}
 
-    unload_engine_images();
+    //unload_engine_images();
 #if defined(fan_opengl)
     gl.close();
 #endif
