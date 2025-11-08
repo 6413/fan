@@ -1027,8 +1027,8 @@ export namespace fan {
 						}
 
 						if (wall_jump.normal && !on_ground && input_vector.x) {
-						//	colliding_wall_id.set_friction(0.f); // no friction when hugging wall
-							if (!jumping) {
+							colliding_wall_id.set_friction(0.f); // no friction when hugging wall
+							if (!jumping && velocity.y > 0) {
 								fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
 							}
 						}
@@ -1077,9 +1077,6 @@ export namespace fan {
 				void set_physics_position(const fan::vec2& p) {
 					fan::physics::entity_t::set_physics_position(p);
 					fan::graphics::shape_t::set_position(p);
-				}
-				fan::vec3 get_position() const {
-					return fan::graphics::shape_t::get_position();
 				}
 				fan::vec2 previous_movement_sign;
 				f32_t force = 40.f;

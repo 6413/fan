@@ -9,14 +9,14 @@ struct pile_t {
   pile_t();
 
   void step() {
+    player.step();
+    engine.physics_context.step(engine.delta_time);
+
     //player updates
     engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
-    player.step();
-    
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
 
     // physics step
-    engine.physics_context.step(engine.delta_time);
   }
   fan::graphics::engine_t engine;
   fte_renderer_t renderer;
@@ -40,6 +40,7 @@ lstd_defstruct(level_t)
 
 pile_t::pile_t() {
   engine.clear_color = fan::color::from_rgb(0x1A2A2E);
+
   engine.lighting.ambient = 1;
   fan::graphics::image_load_properties_t lp;
   lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_border;

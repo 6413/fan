@@ -2,8 +2,8 @@ struct player_t {
 
   player_t() {
     body.jump_impulse = 3;
-    body.force = 50;
-    body.max_speed = 30;
+    body.force = 100;
+    body.max_speed = 250;
   }
 
   void step() {
