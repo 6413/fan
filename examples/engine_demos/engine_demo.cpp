@@ -28,6 +28,9 @@ struct engine_demo_t {
   engine_demo_t() {  
     create_gui();
   }
+  ~engine_demo_t() {
+    engine.image_unload(image_tire);
+  }
 
   // ------------------------STATIC------------------------
   static void demo_shapes_init_capsule(engine_demo_t* engine_demo) {
