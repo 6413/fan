@@ -47,7 +47,7 @@ pile_t::pile_t() {
   lp.min_filter = fan::graphics::image_filter::nearest;
   lp.mag_filter = lp.min_filter;
 
-  engine.texture_pack.open_compiled("sample_texture_pack.ftp", lp);
+  engine.texture_pack.open_compiled("texture_pack.ftp", lp);
 
   renderer.open();
   
