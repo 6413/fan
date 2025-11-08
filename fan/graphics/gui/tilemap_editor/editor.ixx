@@ -1191,6 +1191,11 @@ export struct fte_t {
     editor_settings.hovered = fan::graphics::gui::is_window_hovered();
     fan::graphics::gui::end();
 
+    // ctrl + s save
+    if (fan::window::is_key_pressed(fan::key_s) && fan::window::is_key_down(fan::key_left_control)) {
+      fout(previous_file_name);
+    }
+
     if (fan::graphics::get_window().key_state(fan::key_shift) != -1) {
       fan::vec2 line_dst = fan::graphics::get_mouse_position(render_view->camera, render_view->viewport);
 
@@ -1950,6 +1955,7 @@ export struct fte_t {
 
     ostr["tiles"] = tiles;
     fan::io::file::write(filename, ostr.dump(2), std::ios_base::binary);
+    fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).string());
 #else
     fan::throw_error("fan_json not enabled");
     __unreachable();
