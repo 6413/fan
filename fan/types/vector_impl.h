@@ -85,7 +85,7 @@ make_operators(%);
 template <typename T>
   requires (!std::is_arithmetic_v<T>)
 constexpr bool operator ==(const T& rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
+  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
     if ((*this)[i] != rhs[i]) {
       return false;
     }
@@ -231,6 +231,14 @@ constexpr vec_t rotate(value_type_t angle) const {
   else {
     return *this;
   }
+}
+
+constexpr vec_t snap_to_grid(f32_t grid_size) const {
+  return (*this / grid_size + 0.5f).floor() * grid_size;
+}
+
+constexpr vec_t snap_to_grid(const vec_t& grid_size) const {
+  return (*this / grid_size + 0.5f).floor() * grid_size;
 }
 
 template <typename T>

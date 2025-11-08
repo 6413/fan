@@ -1347,7 +1347,6 @@ export namespace fan::graphics {
 			fan::vec3 get_src() {
 				return g_shapes->shape_functions[get_shape_type()].get_src(this);
 			}
-
 			fan::vec3 get_dst() {
 				return g_shapes->shape_functions[get_shape_type()].get_dst(this);
 			}
