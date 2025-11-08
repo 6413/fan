@@ -34,7 +34,9 @@ struct settings_menu_t {
         {
           static const char* renderers[] = {
             "OpenGL",
+          #if defined(fan_vulkan)
             "Vulkan",
+          #endif
           };
           ImGui::TableNextColumn();
           ImGui::Text("Renderer");
