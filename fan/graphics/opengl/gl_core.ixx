@@ -1583,6 +1583,7 @@ export namespace fan {
             return;
           }
           fan_opengl_call(glDeleteVertexArrays(1, &m_buffer));
+          m_buffer = -1;
         }
 
         void bind(fan::opengl::context_t& context) const {
@@ -1590,6 +1591,10 @@ export namespace fan {
         }
         void unbind(fan::opengl::context_t& context) const {
           fan_opengl_call(glBindVertexArray(0));
+        }
+
+        bool is_valid() const {
+          return m_buffer != (GLuint)-1;
         }
 
         GLuint m_buffer = (GLuint)-1;
@@ -1610,6 +1615,11 @@ export namespace fan {
           }
 #endif
           fan_opengl_call(glDeleteBuffers(1, &m_buffer));
+          m_buffer = -1;
+        }
+
+        bool is_valid() const {
+          return m_buffer != (GLuint)-1;
         }
 
         void bind(fan::opengl::context_t& context) const {

@@ -123,6 +123,10 @@ void open() {
   }
 }
 
+void close() {
+  blur.close();
+}
+
 void init_framebuffer() {
   if (!((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3))) {
     return;

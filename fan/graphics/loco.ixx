@@ -1476,11 +1476,16 @@ public:
 	}
 
 	void destroy() {
-    unload_engine_images();
 
 		if (window == nullptr) {
 			return;
 		}
+
+    unload_engine_images();
+#if defined(fan_opengl)
+    gl.close();
+#endif
+
 #if defined(fan_gui)
 		console.commands.func_table.clear();
 		console.close();
@@ -2954,7 +2959,6 @@ public:
 
 		fan::graphics::g_shapes->shaper.SetShapeType(shape_type, bp);
 	}
-
 
 #if defined(loco_sprite)
 	fan::graphics::shader_t get_sprite_vertex_shader(const std::string& fragment) {
