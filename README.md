@@ -95,7 +95,7 @@
 
 Check out the [examples](examples/) directory for sample projects demonstrating various features of the library.
 
-[Engine demo that is kept up to date with newest library usage.](examples/engine_demos/engine_demo.cpp)
+[Engine Demo](examples/engine_demos/engine_demo.cpp) that is kept up to date with newest library usage.
 
 ## Demos
 
