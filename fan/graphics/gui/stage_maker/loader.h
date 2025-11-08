@@ -121,7 +121,9 @@ public:
     return open_stage<T>(stage_open_properties_t());
   }
 
+#if __has_include(_PATH_QUOTE(stage_loader_path/stages_compile/stage.h))
   #include _PATH_QUOTE(stage_loader_path/stages_compile/stage.h)
+#endif
 
 protected:
   #define BLL_set_declare_NodeReference 0

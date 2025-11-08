@@ -25,6 +25,10 @@ struct engine_demo_t {
     .renderer= fan::graphics::renderer_t::opengl,
   }};
 
+  engine_demo_t() {  
+    create_gui();
+  }
+
   // ------------------------STATIC------------------------
   static void demo_shapes_init_capsule(engine_demo_t* engine_demo) {
     engine_demo->shapes.resize(engine_demo->shape_count);
@@ -1311,9 +1315,13 @@ struct library_usage_t {
 
 int main() {
   engine_demo_t demo;
-  demo.create_gui();
 
   fan_window_loop{
     demo.update();
   };
+/*  Optionally
+  demo.engine.loop([&]{
+    demo.update();
+  });
+*/
 }
