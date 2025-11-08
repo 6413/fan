@@ -1,6 +1,9 @@
 module;
 
+#if defined(fan_network)
+
 #include <fan/utility.h>
+
 
 #include <uv.h>
 #undef min
@@ -31,7 +34,11 @@ module;
 
 #include <openssl/sha.h>
 
+#endif
+
 export module fan.network;
+
+#if defined(fan_network)
 
 import fan.utility;
 export import fan.event;
@@ -2636,3 +2643,5 @@ fan::network::client_handler_t::nr_t fan::network::client_handler_t::add_client(
 }
 
 //bool fan::network::async_http_request_awaitable::await_ready() noexcept { return req->completed; }
+
+#endif
