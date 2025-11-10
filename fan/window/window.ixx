@@ -138,7 +138,7 @@ export namespace fan {
     struct mouse_buttons_cb_data_t {
       fan::window_t* window;
       uint16_t button;
-      fan::mouse_state state;
+      int state;
     };
     using mouse_buttons_cb_t = std::function<void(const mouse_buttons_cb_data_t&)>;
 
@@ -912,7 +912,7 @@ void fan::window::mouse_button_callback(GLFWwindow* wnd, int button, int action,
     fan::window_t::mouse_buttons_cb_data_t cbd;
     cbd.window = window;
     cbd.button = button;
-    cbd.state = static_cast<fan::mouse_state>(action);
+    cbd.state = action;
     window->m_buttons_callback[it].data(cbd);
 
     it = it.Next(&window->m_buttons_callback);

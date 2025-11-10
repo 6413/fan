@@ -14,6 +14,7 @@
 
 import fan;
 import fan.graphics.opengl3D.objects.model;
+import fan.physics.collision.rectangle;
 
 
 void draw_world_orientation_axes(const fan::vec2& origin, const fan::vec2& window_pos, const fan::vec2& window_size, const fan::vec2& viewport_size, const fan::mat4& view, float size = 1.0f) {
@@ -377,13 +378,13 @@ struct pile_t {
           {
             auto& camera = get_editor().camera;
             fan::ray3_t ray = get_loco().convert_mouse_to_ray(
-              get_loco().get_mouse_position() - get_editor().render_view.viewport_position,
-              get_editor().render_view.viewport_size,
+             /* get_loco().get_mouse_position() - get_editor().render_view.viewport_position,
+              get_editor().render_view.viewport_size,*/
               camera.position,
               camera.m_projection, 
               camera.m_view
             );
-            bool hovering_on_model = get_loco().is_ray_intersecting_cube(
+            bool hovering_on_model = fan_3d::is_ray_intersecting_cube(
               ray, 
               it->second.model->user_transform.get_translation() + it->second.model->aabbmin,
               it->second.model->aabbmax - it->second.model->aabbmin
@@ -428,8 +429,8 @@ struct pile_t {
           if (get_editor().skeleton_properties.render_bones) {
             auto& camera = get_editor().camera;
             fan::ray3_t ray = loco.convert_mouse_to_ray(
-              loco.get_mouse_position() - get_editor().render_view.viewport_position,
-              get_editor().render_view.viewport_size,
+              /*loco.get_mouse_position() - get_editor().render_view.viewport_position,
+              get_editor().render_view.viewport_size,*/
               camera.position,
               camera.m_projection, 
               camera.m_view
@@ -438,10 +439,10 @@ struct pile_t {
             get_editor().skeleton_properties.visual_bones.clear();
             bool picked = false;
             for (auto& [name, bone] : e.model->bone_map) {
-              loco_t::rectangle3d_t::properties_t rp;
+              fan::graphics::shapes::rectangle3d_t::properties_t rp;
               rp.position = (bone->bone_transform).get_translation() + e.model->user_transform.get_translation();
               rp.size = e.model->user_transform.get_scale().max() * get_editor().skeleton_properties.bone_scale;
-              bool hovering_on_bone = loco.is_ray_intersecting_cube(ray, rp.position, rp.size);
+              bool hovering_on_bone = fan_3d::is_ray_intersecting_cube(ray, rp.position, rp.size);
               if (hovering_on_bone && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !picked) 
               {
                 if (selected_bone == bone) {
@@ -631,11 +632,11 @@ struct pile_t {
             }
             else {
               fan::graphics::model_t& model = *get_editor().entities.selected_entity->second.model;
-              fan::graphics::gui::drag_float("light_position", &model.light_position, 0.2);
+              fan::graphics::gui::drag("light_position", &model.light_position, 0.2);
               ImGui::ColorEdit3("model->light_color", model.light_color.data());
-              fan::graphics::gui::drag_float("light_intensity", &model.light_intensity, 0.1);
+              fan::graphics::gui::drag("light_intensity", &model.light_intensity, 0.1);
               static f32_t specular_strength = 0.5;
-              if (fan::graphics::gui::drag_float("specular_strength", &specular_strength, 0.01)) {
+              if (fan::graphics::gui::drag("specular_strength", &specular_strength, 0.01)) {
                 get_loco().shader_set_value(model.m_shader, "specular_strength", specular_strength);
               }
             }
@@ -730,7 +731,7 @@ struct pile_t {
     // 0 == invisible, 1 == visible
     int cursor_mode = 1;
 
-    loco_t::camera_t camera_nr;
+    fan::graphics::camera_t camera_nr;
     fan::graphics::viewport_t viewport_nr;
     fan::graphics::context_camera_t& camera;
     fan::graphics::context_viewport_t& viewport;

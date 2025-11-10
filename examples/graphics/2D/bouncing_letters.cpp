@@ -1,4 +1,4 @@
-#include <fan/pch.h>
+import fan;
 
 // disable ETC_BCOL_set_DynamicDeltaFunction in collider.h to make this work
 

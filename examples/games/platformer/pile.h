@@ -39,6 +39,7 @@ lstd_defstruct(level_t)
 };
 
 pile_t::pile_t() {
+  fan::graphics::physics::debug_draw(true);
   engine.clear_color = fan::color::from_rgb(0x1A2A2E);
 
   engine.lighting.ambient = 1;
@@ -55,4 +56,6 @@ pile_t::pile_t() {
   engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
 
   current_stage = pile.stage_loader.open_stage<level_t>();
+
+  engine.physics_context.set_gravity(engine.physics_context.get_gravity() / 1.5f);
 }

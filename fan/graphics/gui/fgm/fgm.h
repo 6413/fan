@@ -208,7 +208,7 @@ struct fgm_t {
       global_t(uint16_t shape_type, fgm_t* fgm, const T& obj, bool shape_add = true) : fan::graphics::gui::imgui_element_t() {
         T temp = obj;
         this->shape_type = shape_type;
-        typename loco_t::vfi_t::properties_t vfip;
+        typename fan::graphics::shapes::vfi_t::properties_t vfip;
         vfip.shape.rectangle->position = temp.get_position();
         vfip.shape.rectangle->position.z += shape_add ? fgm->current_z++ : 0;
         vfip.shape.rectangle->size = temp.get_size();
@@ -262,7 +262,7 @@ struct fgm_t {
     using namespace fan::graphics;
 
 
-    std::string shape_str = std::string("Shape name:") + gloco->shape_names[shape->children[0].get_shape_type()];
+    std::string shape_str = std::string("Shape name:") + fan::graphics::g_shapes->shape_names[shape->children[0].get_shape_type()];
     gui::text(shape_str);
     {// common
       fan::vec3 pos = shape->get_position();
@@ -277,7 +277,7 @@ struct fgm_t {
       }
     }
     auto sti = shape->children[0].get_shape_type();
-    if (sti == loco_t::shape_type_t::particles) {
+    if (sti == fan::graphics::shapes::shape_type_t::particles) {
       gui::shape_properties(shape->children[0]);
     }
     else {
@@ -319,8 +319,8 @@ struct fgm_t {
       }
     }
     switch (shape->children[0].get_shape_type()) {
-    case loco_t::shape_type_t::unlit_sprite:
-    case loco_t::shape_type_t::sprite: {
+    case fan::graphics::shapes::shape_type_t::unlit_sprite:
+    case fan::graphics::shapes::shape_type_t::sprite: {
       {
         auto current_image = shape->children[0].get_image();
         fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
@@ -421,17 +421,17 @@ struct fgm_t {
       std::string str = current;
       if (gui::input_text("image name", &str)) {
         if (gui::is_item_deactivated_after_edit()) {
-          loco_t::texturepack_t::ti_t ti;
+          fan::graphics::texture_pack::ti_t ti;
           if (gloco->texture_pack.qti(str.c_str(), &ti)) {
             fan::print_no_space("failed to load texture:", str);
           }
           else {
             current = str.substr(0, std::strlen(str.c_str()));
             auto& data = gloco->texture_pack.get_pixel_data(ti.unique_id);
-            if (shape->children[0].get_shape_type() == loco_t::shape_type_t::sprite) {
+            if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
               shape->children[0].load_tp(&ti);
             }
-            else if (shape->children[0].get_shape_type() == loco_t::shape_type_t::unlit_sprite) {
+            else if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::unlit_sprite) {
               shape->children[0].load_tp(&ti);
             }
           }
@@ -446,22 +446,22 @@ struct fgm_t {
     auto nr = shape_list.NewNodeLast();
 
     switch (shape_type) {
-    case loco_t::shape_type_t::sprite: {
+    case fan::graphics::shapes::shape_type_t::sprite: {
       shape_list[nr] = new shapes_t::global_t{
-        loco_t::shape_type_t::sprite,
+        fan::graphics::shapes::shape_type_t::sprite,
         this, fan::graphics::sprite_t{{
           .render_view = &render_view,
           .position = pos,
           .size = size
         }} };
-      auto* ri = ((loco_t::sprite_t::ri_t*)shape_list[nr]->children[0].GetData(gloco->shaper));
+      auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape_list[nr]->children[0].GetData(fan::graphics::g_shapes->shaper));
       animations_application.current_animation_nr = ri->current_animation;
       animations_application.current_animation_shape_nr = ri->shape_animations;
       break;
     }
-    case loco_t::shape_type_t::unlit_sprite: {
+    case fan::graphics::shapes::shape_type_t::unlit_sprite: {
       shape_list[nr] = new shapes_t::global_t{
-        loco_t::shape_type_t::unlit_sprite,
+        fan::graphics::shapes::shape_type_t::unlit_sprite,
         this, fan::graphics::unlit_sprite_t{{
           .render_view = &render_view,
           .position = pos,
@@ -469,9 +469,9 @@ struct fgm_t {
         }} };
       break;
     }
-    case loco_t::shape_type_t::rectangle: {
+    case fan::graphics::shapes::shape_type_t::rectangle: {
       shape_list[nr] = new shapes_t::global_t{
-        loco_t::shape_type_t::rectangle,
+        fan::graphics::shapes::shape_type_t::rectangle,
         this, fan::graphics::rectangle_t{{
           .render_view = &render_view,
           .position = pos,
@@ -479,9 +479,9 @@ struct fgm_t {
         }} };
       break;
     }
-    case loco_t::shape_type_t::light: {
+    case fan::graphics::shapes::shape_type_t::light: {
       shape_list[nr] = new shapes_t::global_t{
-        loco_t::shape_type_t::light,
+        fan::graphics::shapes::shape_type_t::light,
         this, fan::graphics::light_t{{
           .render_view = &render_view,
           .position = pos,
@@ -563,7 +563,7 @@ struct fgm_t {
         (void*)(intptr_t)child.NRI,
         node_flags,
         "%s %u",
-        gloco->shape_names[child.get_shape_type()],
+        fan::graphics::g_shapes->shape_names[child.get_shape_type()],
         child.NRI
       );
 
@@ -636,8 +636,8 @@ struct fgm_t {
         {
           hit_any = true;
           // change sprite image in animation viewer when clicking other element
-          if (shape->children[0].get_shape_type() == loco_t::shape_type_t::sprite) {
-            auto* ri = ((loco_t::sprite_t::ri_t*)shape->children[0].GetData(gloco->shaper));
+          if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
+            auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape->children[0].GetData(fan::graphics::g_shapes->shaper));
             animations_application.current_animation_nr = ri->current_animation;
             animations_application.current_animation_shape_nr = ri->shape_animations;
           }
@@ -759,13 +759,13 @@ struct fgm_t {
           fan::vec2 initial_size = 128.f;
           fan::vec2 original_size = gloco->image_get_data(image).size;
           initial_size.x *= (original_size.x / original_size.y);
-          auto nr = push_shape(loco_t::shape_type_t::sprite, get_mouse_position(), initial_size);
+          auto nr = push_shape(fan::graphics::shapes::shape_type_t::sprite, get_mouse_position(), initial_size);
           shape_list[nr]->children[0].set_image(image);
         }
         });
 
       gui::receive_drag_drop_target("FGM_TEXTUREPACK_DROP", [&](const std::string& path) {
-        loco_t::texturepack_t::ti_t ti;
+        fan::graphics::texture_pack_t::ti_t ti;
         if (gloco->texture_pack.qti(path, &ti)) {
           fan::print_no_space("non texturepack texture or failed to load texture:", path);
         }
@@ -784,7 +784,7 @@ struct fgm_t {
           }
           initial_size.x *= found->aspect_ratio;
 
-          auto nr = push_shape(loco_t::shape_type_t::sprite, get_mouse_position(), initial_size);
+          auto nr = push_shape(fan::graphics::shapes::shape_type_t::sprite, get_mouse_position(), initial_size);
           auto& node = shape_list[nr];
           node->children[0].load_tp(&ti);
           node->children[0].get_image_data().image_path = path;
@@ -886,12 +886,12 @@ struct fgm_t {
         gui::begin_child("properties_animations", 0, 1);
         gui::text("Animations");
         auto& shape = current_shape->children[0];
-        loco_t::animation_shape_nr_t* shape_animation_nr = 0;
-        if (shape.get_shape_type() == loco_t::shape_type_t::sprite) {
-          auto* ri = ((loco_t::sprite_t::ri_t*)shape.GetData(gloco->shaper));
+        fan::graphics::animation_shape_nr_t* shape_animation_nr = 0;
+        if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
+          auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper));
           shape_animation_nr = &ri->shape_animations;
           if (animations_application.current_animation_nr) {
-            auto& anim = gloco->get_sprite_sheet_animation(animations_application.current_animation_nr);
+            auto& anim = fan::graphics::get_sprite_sheet_animation(animations_application.current_animation_nr);
           }
         }
         if (shape_animation_nr == nullptr) {
@@ -899,16 +899,16 @@ struct fgm_t {
         }
         {
           bool animation_changed = animations_application.render("CONTENT_BROWSER_ITEMS", *shape_animation_nr);
-          if (shape.get_shape_type() == loco_t::shape_type_t::sprite && animations_application.current_animation_nr) {
-            auto* ri = ((loco_t::sprite_t::ri_t*)shape.GetData(gloco->shaper));
+          if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite && animations_application.current_animation_nr) {
+            auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper));
             if (animations_application.current_animation_nr && animations_application.current_animation_shape_nr == *shape_animation_nr) {
               ri->current_animation = animations_application.current_animation_nr;
             }
           }
           if (*shape_animation_nr && animations_application.current_animation_shape_nr == *shape_animation_nr && (animations_application.toggle_play_animation || animations_application.play_animation || animation_changed)) {
-            if (shape.get_shape_type() == loco_t::shape_type_t::sprite) {
+            if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
 
-              auto& anim = gloco->get_sprite_sheet_animation(animations_application.current_animation_nr);
+              auto& anim = fan::graphics::get_sprite_sheet_animation(animations_application.current_animation_nr);
               if (animation_changed && animations_application.current_animation_nr && animations_application.play_animation) {
                 if (gloco->is_image_valid(shape.get_image()) == false) {
                   shape.set_tc_position(0);
@@ -953,13 +953,13 @@ struct fgm_t {
         if (fan::graphics::gui::begin_menu("Create")) {
           if (fan::graphics::gui::begin_menu("Shapes")) {
             if (fan::graphics::gui::menu_item("Sprite")) {
-              push_shape(loco_t::shape_type_t::sprite, 0);
+              push_shape(fan::graphics::shapes::shape_type_t::sprite, 0);
             }
             fan::graphics::gui::end_menu();
           }
           if (fan::graphics::gui::begin_menu("Lights")) {
             if (fan::graphics::gui::menu_item("Circle")) {
-              push_shape(loco_t::shape_type_t::light, 0);
+              push_shape(fan::graphics::shapes::shape_type_t::light, 0);
             }
             fan::graphics::gui::end_menu();
           }
@@ -1016,14 +1016,14 @@ struct fgm_t {
 
     fan::json ostr;
     ostr["version"] = current_version;
-    if (gloco->lighting.ambient != loco_t::lighting_t().ambient) {
+    if (gloco->lighting.ambient != fan::graphics::lighting_t().ambient) {
       ostr["lighting.ambient"] = gloco->lighting.ambient;
     }
     if (gloco->clear_color != fan::colors::black) {
       ostr["clear_color"] = gloco->clear_color;
     }
     {
-      auto animations_json = gloco->sprite_sheet_serialize();
+      auto animations_json = fan::graphics::sprite_sheet_serialize();
       if (animations_json.empty() == false) {
         ostr.update(animations_json, true);
       }
@@ -1053,7 +1053,7 @@ struct fgm_t {
   }
 
   void load_tp(fgm_t::shape_list_NodeData_t& node) {
-    loco_t::texturepack_t::ti_t ti;
+    fan::graphics::texture_pack_t::ti_t ti;
     if (gloco->texture_pack.qti(node->children[0].get_image_data().image_path, &ti)) {
       fan::print_no_space("non texturepack texture or failed to load texture:", node->children[0].get_image_data().image_path);
     }
@@ -1094,7 +1094,7 @@ struct fgm_t {
       gloco->clear_color = json_in["clear_color"];
     }
     if (json_in.contains("animations")) {
-      gloco->parse_animations(json_in);
+      fan::graphics::parse_animations(json_in);
     }
     fan::graphics::shape_deserialize_t iterator;
     fan::graphics::shape_t shape;
@@ -1121,9 +1121,9 @@ struct fgm_t {
       auto it = shape_list.NewNodeLast();
       auto& node = shape_list[it];
       switch (shape.get_shape_type()) {
-      case loco_t::shape_type_t::sprite: {
+      case fan::graphics::shapes::shape_type_t::sprite: {
         node = new fgm_t::shapes_t::global_t(
-          loco_t::shape_type_t::sprite,
+          fan::graphics::shapes::shape_type_t::sprite,
           this,
           shape,
           false
@@ -1132,9 +1132,9 @@ struct fgm_t {
         node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
         break;
       }
-      case loco_t::shape_type_t::unlit_sprite: {
+      case fan::graphics::shapes::shape_type_t::unlit_sprite: {
         node = new fgm_t::shapes_t::global_t(
-          loco_t::shape_type_t::unlit_sprite,
+          fan::graphics::shapes::shape_type_t::unlit_sprite,
           this,
           shape,
           false
@@ -1143,18 +1143,18 @@ struct fgm_t {
         node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
         break;
       }
-      case loco_t::shape_type_t::rectangle: {
+      case fan::graphics::shapes::shape_type_t::rectangle: {
         node = new fgm_t::shapes_t::global_t(
-          loco_t::shape_type_t::rectangle,
+          fan::graphics::shapes::shape_type_t::rectangle,
           this,
           shape,
           false
         );
         break;
       }
-      case loco_t::shape_type_t::light: {
+      case fan::graphics::shapes::shape_type_t::light: {
         node = new fgm_t::shapes_t::global_t(
-          loco_t::shape_type_t::light,
+          fan::graphics::shapes::shape_type_t::light,
           this,
           shape,
           false
@@ -1168,9 +1168,9 @@ struct fgm_t {
         } });
         break;
       }
-      case loco_t::shape_type_t::particles: {
+      case fan::graphics::shapes::shape_type_t::particles: {
         node = new fgm_t::shapes_t::global_t(
-          loco_t::shape_type_t::particles,
+          fan::graphics::shapes::shape_type_t::particles,
           this,
           shape,
           false
