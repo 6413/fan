@@ -1253,6 +1253,12 @@ export namespace fan::graphics {
 				g_shapes->shape_functions[get_shape_type()].set_viewport(this, viewport);
 			}
 
+      render_view_t get_render_view() const {
+        render_view_t r;
+        r.camera = get_camera();
+        r.viewport = get_viewport();
+        return r;
+      }
 			void set_render_view(const fan::graphics::render_view_t& render_view) {
 				set_camera(render_view.camera);
 				set_viewport(render_view.viewport);
@@ -1338,22 +1344,23 @@ export namespace fan::graphics {
 				return g_shapes->shape_functions[st].set_flags(this, flag);
 			}
 
-			f32_t get_radius() {
+			f32_t get_radius() const {
 				return g_shapes->shape_functions[get_shape_type()].get_radius(this);
 			}
 
-			fan::vec3 get_src() {
+			fan::vec3 get_src() const {
 				return g_shapes->shape_functions[get_shape_type()].get_src(this);
 			}
-			fan::vec3 get_dst() {
+
+      fan::vec3 get_dst() const {
 				return g_shapes->shape_functions[get_shape_type()].get_dst(this);
 			}
 
-			f32_t get_outline_size() {
+			f32_t get_outline_size() const {
 				return g_shapes->shape_functions[get_shape_type()].get_outline_size(this);
 			}
 
-			fan::color get_outline_color() {
+			fan::color get_outline_color() const {
 				return g_shapes->shape_functions[get_shape_type()].get_outline_color(this);
 			}
 
@@ -4384,12 +4391,6 @@ export namespace fan {
 				}
 			}
 		}
-
-    struct tilemap_t {
-      std::vector<std::vector<fan::vec2>> positions;
-      std::vector<std::vector<fan::graphics::shapes::shape_t>> shapes;
-      fan::vec2 size;
-    };
 	}
 }
 

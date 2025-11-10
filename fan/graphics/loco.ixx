@@ -1516,8 +1516,8 @@ public:
 	}
 
   using mouse_click_callback_t   = std::function<void(fan::vec2, int)>;
+  using mouse_down_callback_t = std::function<void(fan::vec2)>;
   using mouse_release_callback_t = std::function<void(fan::vec2, int)>;
-  using mouse_drag_callback_t    = std::function<void(fan::vec2, fan::vec2, int)>;
   using mouse_move_callback_t    = std::function<void(fan::vec2, fan::vec2)>;
   using key_press_callback_t     = std::function<void(int)>;
   using key_release_callback_t   = std::function<void(int)>;
@@ -1526,6 +1526,11 @@ public:
 private:
   #define BLL_set_prefix mouse_click_callbacks
   #define BLL_set_NodeData mouse_click_callback_t data;
+  #include <fan/window/cb_list_builder_settings.h>
+  #include <BLL/BLL.h>
+
+  #define BLL_set_prefix mouse_down_callbacks
+  #define BLL_set_NodeData mouse_down_callback_t data;
   #include <fan/window/cb_list_builder_settings.h>
   #include <BLL/BLL.h>
 
@@ -1556,6 +1561,7 @@ private:
 public:
 
   mouse_click_callbacks_t    m_mouse_click_callbacks;
+  mouse_down_callbacks_t     m_mouse_down_callbacks;
   mouse_release_callbacks_t  m_mouse_release_callbacks;
   mouse_move_callbacks_t     m_mouse_move_callbacks;
   key_press_callbacks_t      m_key_press_callbacks;
@@ -1563,9 +1569,9 @@ public:
   key_repeat_callbacks_t     m_key_repeat_callbacks;
 
   using mouse_click_nr_t    = mouse_click_callbacks_NodeReference_t;
-  using mouse_down_nr_t     = mouse_move_callbacks_NodeReference_t;
+  using mouse_down_nr_t     = mouse_down_callbacks_NodeReference_t;
   using mouse_release_nr_t  = mouse_release_callbacks_NodeReference_t;
-  using mouse_move_nr_t     = mouse_down_nr_t;
+  using mouse_move_nr_t     = mouse_move_callbacks_NodeReference_t;
   using key_press_nr_t      = key_press_callbacks_NodeReference_t;
   using key_release_nr_t    = key_release_callbacks_NodeReference_t;
   using key_repeat_nr_t     = key_repeat_callbacks_NodeReference_t;
@@ -2242,6 +2248,19 @@ public:
 	bool process_loop(const std::function<void()>& lambda = [] {}) {
 		window.handle_events();
 
+    {
+      auto it = m_mouse_down_callbacks.GetNodeFirst();
+      while (it != m_mouse_down_callbacks.dst) {
+        m_mouse_down_callbacks.StartSafeNext(it);
+        for (int i = 0; i < 3; ++i) {
+          if (fan::window::is_key_down(i)) {
+            m_mouse_down_callbacks[it].data(fan::window::get_mouse_position());
+          }
+        }
+        it = m_mouse_down_callbacks.EndSafeNext();
+      }
+    }
+
 		if (should_close()) {
 			return 1;
 		}
@@ -2825,18 +2844,18 @@ public:
   void remove_on_mouse_clicked(mouse_click_nr_t nr) {
     m_mouse_click_callbacks.unlrec(nr);
   }
-  mouse_move_nr_t on_mouse_down(int button, const std::function<void(fan::vec2)>& cb) {
-    auto nr = m_mouse_move_callbacks.NewNodeLast();
-    m_mouse_move_callbacks[nr].data = [this, cb, button](fan::vec2 pos, fan::vec2) {
+  mouse_down_nr_t on_mouse_down(int button, mouse_down_callback_t cb) {
+    auto nr = m_mouse_down_callbacks.NewNodeLast();
+    m_mouse_down_callbacks[nr].data = [this, cb, button](fan::vec2 pos) {
       int state = window.key_state(button);
       if (state == fan::mouse_state::press || state == fan::mouse_state::repeat) {
         cb(pos);
       }
-      };
+    };
     return nr;
   }
-  void remove_on_mouse_down(mouse_move_nr_t nr) {
-    m_mouse_move_callbacks.unlrec(nr);
+  void remove_on_mouse_down(mouse_down_nr_t nr) {
+    m_mouse_down_callbacks.unlrec(nr);
   }
   mouse_release_nr_t on_mouse_released(mouse_release_callback_t cb) {
     auto nr = m_mouse_release_callbacks.NewNodeLast();

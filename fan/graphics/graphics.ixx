@@ -13,6 +13,7 @@ module;
 #include <filesystem>
 #include <source_location>
 #include <cmath>
+#include <unordered_set>
 
 #define loco_vfi
 #define loco_line
@@ -36,6 +37,7 @@ export import fan.window;
 export import fan.window.input_action;
 export import fan.texture_pack.tp0;
 export import fan.graphics.algorithm.raycast_grid;
+export import fan.graphics.algorithm.pathfind;
 
 
 import fan.graphics.opengl.core;
@@ -576,7 +578,7 @@ export namespace fan {
         fan::vec3 src = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
         fan::vec2 dst = fan::vec2(1, 1);
         fan::color color = fan::color(1, 1, 1, 1);
-        f32_t thickness = 2.0f;
+        f32_t thickness = 4.0f;
         bool blending = true;
         uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
       };
@@ -1046,8 +1048,9 @@ export namespace fan {
     }
   };
 
-  void add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s) {
+  fan::graphics::shapes::shape_t& add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s) {
     fan::graphics::get_shapes().immediate_render_list->emplace_back(std::move(s));
+    return fan::graphics::get_shapes().immediate_render_list->back();
   }
   auto add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s) {
     auto ret = s.NRI;
@@ -1058,58 +1061,58 @@ export namespace fan {
     fan::graphics::get_shapes().static_render_list->erase(s.NRI);
   }
 
-  // immediate mode draw functions
-  void rectangle(const rectangle_properties_t& props = {}) {
-    add_shape_to_immediate_draw(rectangle_t(props));
+  // immediate mode draw functions. Dont store the references of shapes given by the immediate draw, they are destroyed after end of current frame
+  fan::graphics::shapes::shape_t& rectangle(const rectangle_properties_t& props = {}) {
+    return add_shape_to_immediate_draw(rectangle_t(props));
   }
-  void rectangle(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
-    add_shape_to_immediate_draw(rectangle_t(rectangle_properties_t{
+  fan::graphics::shapes::shape_t& rectangle(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
+    return add_shape_to_immediate_draw(rectangle_t(rectangle_properties_t{
       .render_view = render_view,
       .position = position,
       .size = size,
       .color = color
       }));
   }
-  void sprite(const sprite_properties_t& props = {}) {
-    add_shape_to_immediate_draw(sprite_t(props));
+  fan::graphics::shapes::shape_t& sprite(const sprite_properties_t& props = {}) {
+    return add_shape_to_immediate_draw(sprite_t(props));
   }
-  void unlit_sprite(const unlit_sprite_properties_t& props = {}) {
-    add_shape_to_immediate_draw(unlit_sprite_t(props));
+  fan::graphics::shapes::shape_t& unlit_sprite(const unlit_sprite_properties_t& props = {}) {
+    return add_shape_to_immediate_draw(unlit_sprite_t(props));
   }
-  void line(const line_properties_t& props = {}) {
-    add_shape_to_immediate_draw(line_t(props));
+  fan::graphics::shapes::shape_t& line(const line_properties_t& props = {}) {
+    return add_shape_to_immediate_draw(line_t(props));
   }
-  void line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
-    add_shape_to_immediate_draw(line_t(line_properties_t{
+  fan::graphics::shapes::shape_t& line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
+    return add_shape_to_immediate_draw(line_t(line_properties_t{
       .render_view = render_view,
       .src = src,
       .dst = dst,
       .color = color,
       .thickness = thickness
-    }));
+      }));
   }
-  void light(const light_properties_t& props = {}) {
-    add_shape_to_immediate_draw(light_t(props));
+  fan::graphics::shapes::shape_t& light(const light_properties_t& props = {}) {
+    return add_shape_to_immediate_draw(light_t(props));
   }
-  void circle(const circle_properties_t& props = {}) {
-    add_shape_to_immediate_draw(circle_t(props));
+  fan::graphics::shapes::shape_t& circle(const circle_properties_t& props = {}) {
+    return add_shape_to_immediate_draw(circle_t(props));
   }
-  void circle(const fan::vec3& position, float radius, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
-    add_shape_to_immediate_draw(circle_t(circle_properties_t{
+  fan::graphics::shapes::shape_t& circle(const fan::vec3& position, float radius, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
+    return add_shape_to_immediate_draw(circle_t(circle_properties_t{
       .render_view = render_view,
       .position = position,
       .radius = radius,
       .color = color
-    }));
+      }));
   }
-  void capsule(const capsule_properties_t& props = {}) {
-    add_shape_to_immediate_draw(capsule_t(props));
+  fan::graphics::shapes::shape_t& capsule(const capsule_properties_t& props = {}) {
+    return add_shape_to_immediate_draw(capsule_t(props));
   }
-  void polygon(const polygon_properties_t& props = {}) {
-    add_shape_to_immediate_draw(polygon_t(props));
+  fan::graphics::shapes::shape_t& polygon(const polygon_properties_t& props = {}) {
+    return add_shape_to_immediate_draw(polygon_t(props));
   }
-  void grid(const grid_properties_t& props = {}) {
-    add_shape_to_immediate_draw(grid_t(props));
+  fan::graphics::shapes::shape_t& grid(const grid_properties_t& props = {}) {
+    return add_shape_to_immediate_draw(grid_t(props));
   }
   void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1)) {
     fan::graphics::line({ .src = {b.min, depth}, .dst = {b.max.x, b.min.y}, .color = c });
@@ -1122,9 +1125,9 @@ export namespace fan {
   }
 
   fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color) {
-  fan::graphics::shapes::polygon_t::properties_t pp;
-  // for triangle strip
-  for (int i = 0; i < 6; ++i) {
+    fan::graphics::shapes::polygon_t::properties_t pp;
+    // for triangle strip
+    for (int i = 0; i < 6; ++i) {
     pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(0, 0, 0), color });
 
     f32_t angle1 = 2 * fan::math::pi * i / 6;
@@ -1809,71 +1812,223 @@ export namespace fan {
       return std::floor((position.y) / tile_size_y) + (0xFAAA - 2) / 2 + 18.f;
     }
 
+    struct tilemap_t {
 
-    tilemap_t create_grid(
-      const fan::vec2& tile_size,
-      const fan::color& color,
-      const fan::vec2& area = fan::window::get_size(),
-      const fan::vec2& offset = fan::vec2(0, 0),
-      render_view_t* render_view = fan::graphics::g_render_context_handle.orthographic_render_view
-    ) {
-      fan::vec2 map_size(
-        std::floor(area.x / tile_size.x),
-        std::floor(area.y / tile_size.y)
-      );
+      tilemap_t() = default;
+      tilemap_t(const fan::vec2& tile_size,
+        const fan::color& color,
+        const fan::vec2& area = fan::window::get_size(),
+        const fan::vec2& offset = fan::vec2(0, 0),
+        render_view_t* render_view = fan::graphics::g_render_context_handle.orthographic_render_view) {
+        create(tile_size, color, area, offset, render_view);
+      }
 
-      tilemap_t tilemap;
-      tilemap.size = map_size;
-      tilemap.positions.resize(map_size.y, std::vector<fan::vec2>(map_size.x));
-      tilemap.shapes.resize(map_size.y, std::vector<fan::graphics::shape_t>(map_size.x));
+      fan::vec2i get_cell_count() {
+        return fan::vec2i(
+          shapes.empty() ? 0 : (int)shapes[0].size(),
+          (int)shapes.size()
+        );
+      }
 
-      for (int i = 0; i < map_size.y; i++) {
-        for (int j = 0; j < map_size.x; j++) {
-          tilemap.positions[i][j] = offset + tile_size / 2 + fan::vec2(j * tile_size.x, i * tile_size.y);
+      template <typename T>
+      fan::graphics::shapes::shape_t& operator[](const fan::vec2_wrap_t<T>& v) {
+        return shapes[v.y][v.x];
+      }
 
-          tilemap.shapes[i][j] = fan::graphics::rectangle_t{ {
-            .render_view = render_view,
-            .position = fan::vec3(tilemap.positions[i][j], 0),
-            .size = tile_size / 2,
-            .color = color
-          } };
+      void add_wall(const fan::vec2i& cell, fan::graphics::algorithm::pathfind::generator& gen) {
+        if (wall_cells.find(cell) == wall_cells.end()) {
+          gen.add_collision(cell);
+          wall_cells.insert(cell);
+          shapes[cell.y][cell.x].set_color(fan::colors::gray / 3);
         }
       }
-      return tilemap;
-    }
-
-    void reset_grid_colors(tilemap_t& tilemap, const fan::color& color) {
-
-      for (int i = 0; i < tilemap.size.y; i++) {
-        for (int j = 0; j < tilemap.size.x; j++) {
-          tilemap.shapes[i][j].set_color(color);
+      void remove_wall(const fan::vec2i& cell, fan::graphics::algorithm::pathfind::generator& gen) {
+        if (wall_cells.find(cell) != wall_cells.end()) {
+          gen.remove_collision(cell);
+          wall_cells.erase(cell);
+          shapes[cell.y][cell.x].set_color(fan::colors::gray);
         }
       }
-    }
 
-    void highlight_raycast(
-      const fan::vec2& src,
-      const fan::vec2& dst,
-      const fan::vec2& tile_size,
-      tilemap_t& grid,
-      const fan::color& color,
-      render_view_t* render_view = fan::graphics::g_render_context_handle.orthographic_render_view
-    ) {
-      // top left
-      fan::vec2 camera_position = fan::graphics::camera_get_position(render_view->camera);
-      auto raycast_positions = fan::graphics::algorithm::grid_raycast({ camera_position + src, camera_position + dst }, tile_size);
-
-      for (auto& pos : raycast_positions) {
-        if (pos.x < 0 || pos.x >= grid.size.x) {
-          continue;
+      void reset_colors(const fan::color& color) {
+        for (int i = 0; i < size.y; i++) {
+          for (int j = 0; j < size.x; j++) {
+            fan::vec2i cell(j, i);
+            if (wall_cells.contains(cell)) {
+              continue;
+            }
+            shapes[i][j].set_color(color);
+          }
         }
-        if (pos.y < 0 || pos.y >= grid.size.y) {
-          continue;
-        }
-        grid.shapes[pos.y][pos.x].set_color(color);
       }
-    }
+      void set_source(const fan::vec2i& cell, const fan::color& color) {
+        if (!wall_cells.contains(cell) &&
+          cell.x >= 0 && cell.x < shapes[0].size() &&
+          cell.y >= 0 && cell.y < shapes.size()) {
+          shapes[cell.y][cell.x].set_color(color);
+        }
+      }
+      void set_destination(const fan::vec2i& cell, const fan::color& color) {
+        if (!wall_cells.contains(cell) &&
+          cell.x >= 0 && cell.x < shapes[0].size() &&
+          cell.y >= 0 && cell.y < shapes.size()) {
+          shapes[cell.y][cell.x].set_color(color);
+        }
+      }
+      void highlight_path(
+        const fan::graphics::algorithm::pathfind::coordinate_list& path,
+        const fan::color& color
+      ) {
+        for (const auto& p : path) {
+          if (!wall_cells.contains(p) &&
+            p.x >= 0 && p.x < shapes[0].size() &&
+            p.y >= 0 && p.y < shapes.size()) {
+            shapes[p.y][p.x].set_color(color);
+          }
+        }
+      }
 
+      fan::graphics::algorithm::pathfind::coordinate_list find_path(
+        const fan::vec2i& src,
+        const fan::vec2i& dst,
+        fan::graphics::algorithm::pathfind::generator& gen,
+        fan::graphics::algorithm::pathfind::heuristic_function heuristic,
+        bool diagonal
+      ) {
+        gen.set_heuristic(heuristic);
+        gen.set_diagonal_movement(diagonal);
+        return gen.find_path(src, dst);
+      }
+
+      void create(
+        const fan::vec2& tile_size,
+        const fan::color& color,
+        const fan::vec2& area = fan::window::get_size(),
+        const fan::vec2& offset = fan::vec2(0, 0),
+        render_view_t* render_view = fan::graphics::g_render_context_handle.orthographic_render_view
+      ) {
+        fan::vec2 map_size(
+          std::floor(area.x / tile_size.x),
+          std::floor(area.y / tile_size.y)
+        );
+
+        size = map_size;
+        this->tile_size = tile_size;
+        positions.resize(map_size.y, std::vector<fan::vec2>(map_size.x));
+        shapes.resize(map_size.y, std::vector<fan::graphics::shape_t>(map_size.x));
+
+        for (int i = 0; i < map_size.y; i++) {
+          for (int j = 0; j < map_size.x; j++) {
+            positions[i][j] = offset + tile_size / 2 + fan::vec2(j * tile_size.x, i * tile_size.y);
+
+            shapes[i][j] = fan::graphics::rectangle_t{ {
+              .render_view = render_view,
+              .position = fan::vec3(positions[i][j], 0),
+              .size = tile_size / 2,
+              .color = color
+            } };
+          }
+        }
+      }
+      void set_tile_color(const fan::vec2i& pos, const fan::color& c) {
+        if (pos.x < 0 || pos.x >= size.x) return;
+        if (pos.y < 0 || pos.y >= size.y) return;
+        shapes[pos.y][pos.x].set_color(c);
+      }
+
+      static constexpr f32_t circle_overlap(f32_t r, f32_t i0, f32_t i1) {
+        if (i0 <= 0 && i1 >= 0) return r;
+        f32_t y = std::min(std::min(fabs(i0), fabs(i1)) / r, 1.f);
+        return std::sqrt(1.f - y * y) * r;
+      }
+
+      void highlight_circle(const fan::graphics::shapes::shape_t& circle,
+        const fan::color& highlight_color) {
+        fan::vec2 wp = circle.get_position();
+        f32_t r = circle.get_radius();
+        auto gi = fan::cast<sint32_t>(decltype(wp){});
+
+        constexpr auto recurse = []<uint32_t d>(const auto& self,
+          tilemap_t & tilemap,
+          auto& gi,
+          fan::vec2 wp,
+          f32_t r,
+          f32_t er,
+          const fan::color & hc
+        ) {
+          f32_t cell_size = tilemap.tile_size[d];
+
+          if constexpr (d + 1 < wp.size()) {
+            gi[d] = (wp[d] - er) / cell_size;
+            f32_t sp = (f32_t)gi[d] * cell_size;
+            while (true) {
+              f32_t rp = sp - wp[d];
+              f32_t roff = circle_overlap(r, rp, rp + cell_size);
+              self.template operator()<d + 1>(self, tilemap, gi, wp, r, roff, hc);
+              gi[d]++;
+              sp += cell_size;
+              if (sp > wp[d] + er) break;
+            }
+          }
+          else if constexpr (d < wp.size()) {
+            gi[d] = (wp[d] - er) / cell_size;
+            sint32_t to = (wp[d] + er) / cell_size;
+            for (; gi[d] <= to; gi[d]++) {
+              fan::vec2i pos{ gi[0], gi[1] };
+              tilemap.set_tile_color(pos, hc);
+            }
+          }
+        };
+
+        recurse.template operator()<0>(recurse, *this, gi, wp, r, r, highlight_color);
+      }
+
+
+      void highlight_line(const fan::graphics::shapes::shape_t& line,
+        const fan::color& color,
+        render_view_t* render_view = fan::graphics::g_render_context_handle.orthographic_render_view) {
+        fan::vec2 src = line.get_src();
+        fan::vec2 dst = line.get_dst();
+
+        auto raycast_positions = fan::graphics::algorithm::grid_raycast(
+          { src, dst },
+          tile_size
+        );
+
+        for (auto& pos : raycast_positions) {
+          set_tile_color(pos, color);
+        }
+      }
+      void highlight(const fan::graphics::shapes::shape_t& shape,
+        const fan::color& color)
+      {
+        using namespace fan::graphics;
+
+        switch (shape.get_shape_type()) {
+        case shapes::shape_type_t::circle:
+          highlight_circle(shape, color);
+          break;
+        case shapes::shape_type_t::line:
+          highlight_line(shape, color);
+          break;
+        default:
+          fan::throw_error("method not implemented");
+          break;
+        }
+      }
+
+      std::vector<std::vector<fan::vec2>> positions;
+      std::vector<std::vector<fan::graphics::shapes::shape_t>> shapes;
+      fan::vec2 size;
+      fan::vec2 tile_size;
+
+      struct vec2i_hash {
+        size_t operator()(const fan::vec2i& v) const noexcept {
+          return std::hash<int>()(v.x) ^ (std::hash<int>()(v.y) << 1);
+        }
+      };
+      std::unordered_set<fan::vec2i, vec2i_hash> wall_cells;
+    };
   } // namespace graphics
 
   struct movement_e {
