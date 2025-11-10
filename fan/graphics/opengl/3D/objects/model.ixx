@@ -37,7 +37,7 @@ export namespace fan {
         std::string fs = fan::graphics::read_shader("shaders/opengl/3D/objects/model.fs");
         m_shader = fan::graphics::shader_create();
         fan::graphics::shader_set_vertex(m_shader, vs);
-        fan::graphics::shader_set_vertex(m_shader, fs);
+        fan::graphics::shader_set_fragment(m_shader, fs);
         fan::graphics::shader_compile(m_shader);
         
         // load textures

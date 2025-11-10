@@ -37,10 +37,12 @@ export namespace fan {
   };
   using keyboard_state_t = decltype(keyboard_state::release);
 
-  enum class mouse_state {
-    release = GLFW_RELEASE,
-    press = GLFW_PRESS,
-    repeat = GLFW_REPEAT
+  struct mouse_state{
+    enum {
+      release = GLFW_RELEASE,
+      press = GLFW_PRESS,
+      repeat = GLFW_REPEAT
+    };
   };
 
   enum input {

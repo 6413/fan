@@ -18,7 +18,6 @@ export module fan.graphics.gui.tilemap_editor.loader;
 import fan.print;
 import fan.utility;
 import fan.graphics;
-import fan.physics.b2_integration;
 import fan.graphics.physics_shapes;
 import fan.io.file;
 import fan.types.json;
@@ -189,7 +188,7 @@ public:
     compiled_map.map_size = json["map_size"];
     compiled_map.tile_size = json["tile_size"];
     if (json.contains("gravity")) {
-      gphysics->set_gravity(json["gravity"]);
+      fan::physics::gphysics->set_gravity(json["gravity"]);
     }
 
     compiled_map.compiled_shapes.resize(compiled_map.map_size.y);

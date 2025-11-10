@@ -1,7 +1,7 @@
 {
   "gravity": [
     0.0,
-    19.600000381469727
+    5017.60009765625
   ],
   "layer_info": [
     {
@@ -143,24 +143,6 @@
       "texture_pack_name": "tile385"
     },
     {
-      "id": "spikes",
-      "position": [
-        9728.0,
-        2624.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.3359375,
-        0.8984375
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile1152"
-    },
-    {
       "position": [
         8512.0,
         2688.0,
@@ -178,21 +160,22 @@
       "texture_pack_name": "tile385"
     },
     {
+      "id": "spikes",
       "position": [
-        8576.0,
-        2688.0,
+        9728.0,
+        2624.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
-        0.6171875,
-        0.6640625
+        0.3359375,
+        0.8984375
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile385"
+      "texture_pack_name": "tile1152"
     },
     {
       "position": [
@@ -213,7 +196,7 @@
     },
     {
       "position": [
-        8640.0,
+        8576.0,
         2688.0,
         32084.0
       ],
@@ -247,7 +230,7 @@
     },
     {
       "position": [
-        8704.0,
+        8640.0,
         2688.0,
         32084.0
       ],
@@ -264,7 +247,7 @@
     },
     {
       "position": [
-        8768.0,
+        8704.0,
         2688.0,
         32084.0
       ],
@@ -298,7 +281,7 @@
     },
     {
       "position": [
-        8832.0,
+        8768.0,
         2688.0,
         32084.0
       ],
@@ -315,7 +298,7 @@
     },
     {
       "position": [
-        8896.0,
+        8832.0,
         2688.0,
         32084.0
       ],
@@ -349,7 +332,7 @@
     },
     {
       "position": [
-        8960.0,
+        8896.0,
         2688.0,
         32084.0
       ],
@@ -383,7 +366,7 @@
     },
     {
       "position": [
-        9024.0,
+        8960.0,
         2688.0,
         32084.0
       ],
@@ -417,25 +400,8 @@
     },
     {
       "position": [
-        9088.0,
+        9024.0,
         2688.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.6171875,
-        0.6640625
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile385"
-    },
-    {
-      "position": [
-        8960.0,
-        2560.0,
         32084.0
       ],
       "shape": "sprite",
@@ -465,6 +431,40 @@
         0.03125
       ],
       "texture_pack_name": "tile771"
+    },
+    {
+      "position": [
+        8960.0,
+        2560.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.6171875,
+        0.6640625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile385"
+    },
+    {
+      "position": [
+        9088.0,
+        2688.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.6171875,
+        0.6640625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile385"
     },
     {
       "position": [
@@ -502,23 +502,6 @@
     },
     {
       "position": [
-        9280.0,
-        2688.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.6171875,
-        0.6640625
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile385"
-    },
-    {
-      "position": [
         10368.0,
         2496.0,
         32084.0
@@ -533,6 +516,23 @@
         0.03125
       ],
       "texture_pack_name": "tile771"
+    },
+    {
+      "position": [
+        9280.0,
+        2688.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.6171875,
+        0.6640625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile385"
     },
     {
       "position": [
@@ -586,6 +586,23 @@
       "texture_pack_name": "tile385"
     },
     {
+      "position": [
+        9024.0,
+        2496.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.6171875,
+        0.6640625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile385"
+    },
+    {
       "id": "spikes",
       "position": [
         9664.0,
@@ -605,42 +622,8 @@
     },
     {
       "position": [
-        9024.0,
-        2496.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.6171875,
-        0.6640625
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile385"
-    },
-    {
-      "position": [
         9472.0,
         2496.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.6171875,
-        0.6640625
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile385"
-    },
-    {
-      "position": [
-        9472.0,
-        2688.0,
         32084.0
       ],
       "shape": "sprite",
@@ -673,7 +656,7 @@
     },
     {
       "position": [
-        9536.0,
+        9472.0,
         2688.0,
         32084.0
       ],
@@ -690,7 +673,7 @@
     },
     {
       "position": [
-        9600.0,
+        9536.0,
         2688.0,
         32084.0
       ],
@@ -724,7 +707,7 @@
     },
     {
       "position": [
-        9664.0,
+        9600.0,
         2688.0,
         32084.0
       ],
@@ -755,6 +738,23 @@
         0.03125
       ],
       "texture_pack_name": "tile771"
+    },
+    {
+      "position": [
+        9664.0,
+        2688.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.6171875,
+        0.6640625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile385"
     },
     {
       "position": [
@@ -1059,6 +1059,186 @@
         9376.0,
         2624.0,
         32079.0
+      ],
+      "shape": "sprite",
+      "size": [
+        384.0,
+        32.0
+      ],
+      "texture_pack_name": ""
+    },
+    {
+      "action": 0,
+      "id": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 1,
+      "object_names": [],
+      "physics_shape_data": {
+        "density": 0.10000000149011612,
+        "fixed_rotation": true,
+        "friction": 0.6000000238418579
+      },
+      "position": [
+        8576.0,
+        2688.0,
+        32077.0
+      ],
+      "shape": "sprite",
+      "size": [
+        352.0,
+        32.0
+      ],
+      "texture_pack_name": ""
+    },
+    {
+      "action": 0,
+      "id": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 1,
+      "object_names": [],
+      "physics_shape_data": {
+        "density": 0.10000000149011612,
+        "fixed_rotation": true,
+        "friction": 0.6000000238418579
+      },
+      "position": [
+        8896.0,
+        2624.0,
+        32077.0
+      ],
+      "shape": "sprite",
+      "texture_pack_name": ""
+    },
+    {
+      "action": 0,
+      "id": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 1,
+      "object_names": [],
+      "physics_shape_data": {
+        "density": 0.10000000149011612,
+        "fixed_rotation": true,
+        "friction": 0.6000000238418579
+      },
+      "position": [
+        8960.0,
+        2560.0,
+        32077.0
+      ],
+      "shape": "sprite",
+      "texture_pack_name": ""
+    },
+    {
+      "action": 0,
+      "id": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 1,
+      "object_names": [],
+      "physics_shape_data": {
+        "density": 0.10000000149011612,
+        "fixed_rotation": true,
+        "friction": 0.6000000238418579
+      },
+      "position": [
+        9024.0,
+        2496.0,
+        32077.0
+      ],
+      "shape": "sprite",
+      "texture_pack_name": ""
+    },
+    {
+      "action": 0,
+      "id": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 1,
+      "object_names": [],
+      "physics_shape_data": {
+        "density": 0.10000000149011612,
+        "fixed_rotation": true,
+        "friction": 0.6000000238418579
+      },
+      "position": [
+        9248.0,
+        2496.0,
+        32077.0
+      ],
+      "shape": "sprite",
+      "size": [
+        64.0,
+        32.0
+      ],
+      "texture_pack_name": ""
+    },
+    {
+      "action": 0,
+      "id": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 1,
+      "object_names": [],
+      "physics_shape_data": {
+        "density": 0.10000000149011612,
+        "fixed_rotation": true,
+        "friction": 0.6000000238418579
+      },
+      "position": [
+        9440.0,
+        2496.0,
+        32077.0
+      ],
+      "shape": "sprite",
+      "size": [
+        64.0,
+        32.0
+      ],
+      "texture_pack_name": ""
+    },
+    {
+      "action": 0,
+      "id": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 1,
+      "object_names": [],
+      "physics_shape_data": {
+        "density": 0.10000000149011612,
+        "fixed_rotation": true,
+        "friction": 0.6000000238418579
+      },
+      "position": [
+        9792.0,
+        2592.0,
+        32077.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        64.0
+      ],
+      "texture_pack_name": ""
+    },
+    {
+      "action": 0,
+      "id": "",
+      "key": 65535,
+      "key_state": 1,
+      "mesh_property": 1,
+      "object_names": [],
+      "physics_shape_data": {
+        "density": 0.10000000149011612,
+        "fixed_rotation": true,
+        "friction": 0.6000000238418579
+      },
+      "position": [
+        10144.0,
+        2496.0,
+        32077.0
       ],
       "shape": "sprite",
       "size": [

@@ -357,11 +357,11 @@ int main() {
         start_playback();
       }
       static f32_t playback_speed = 1.0;
-      if (fan::graphics::gui::drag_float("bpm", &playback_speed, 0.01, 0.01)) {
+      if (fan::graphics::gui::drag("bpm", &playback_speed, 0.01, 0.01, 1.0f)) {
         set_playback_speed(playback_speed);
       }
 
-      if (fan::graphics::gui::drag_float("volume", &volume, 0.01f, 0.0f, 1.0f)) {
+      if (fan::graphics::gui::drag("volume", &volume, 0.01f, 0.0f, 1.0f)) {
         fan::audio::set_volume(volume);
       }
     }

@@ -24,8 +24,8 @@ import fan.print;
 import fan.file_dialog;
 import fan.io.file;
 import fan.graphics;
-import fan.physics.b2_integration;
 import fan.random;
+import fan.physics.types;
 
 import fan.physics.collision.rectangle;
 
@@ -919,7 +919,7 @@ export struct fte_t {
     // loaded texturepack
     fan::graphics::get_shapes().texture_pack->iterate_loaded_images([this](auto& image) {
       tile_info_t ii;
-      ii.ti = fan::texture_pack::ti_t{
+      ii.ti = fan::graphics::texture_pack::ti_t{
         .unique_id = image.unique_id,
         .position = image.position,
         .size = image.size,
@@ -1733,9 +1733,9 @@ export struct fte_t {
 
   void handle_physics_settings_window() {
     if (fan::graphics::gui::begin("physics settings")) {
-      fan::vec2 gravity = gphysics->get_gravity();
+      fan::vec2 gravity = fan::physics::gphysics.get_gravity();
       if (fan::graphics::gui::drag("gravity", &gravity, 0.01)) {
-        gphysics->set_gravity(gravity);
+        fan::physics::gphysics.set_gravity(gravity);
       }
     }
     fan::graphics::gui::end();
@@ -1860,7 +1860,7 @@ export struct fte_t {
     ostr["map_size"] = map_size;
     ostr["tile_size"] = tile_size;
     ostr["lighting.ambient"] = fan::graphics::get_lighting().ambient;
-    ostr["gravity"] = gphysics->get_gravity();
+    ostr["gravity"] = fan::physics::gphysics.get_gravity();
 
     fan::json tiles = fan::json::array();
 
@@ -1990,7 +1990,7 @@ shape data{
     map_size = json["map_size"];
     tile_size = json["tile_size"];
     if (json.contains("gravity")) {
-      gphysics->set_gravity(json["gravity"]);
+      fan::physics::gphysics.set_gravity(json["gravity"]);
     }
     fan::graphics::get_lighting().set_target(json["lighting.ambient"]);
     map_tiles.clear();
@@ -2100,7 +2100,7 @@ shape data{
   fan::vec2i tile_size{ 32, 32 };
 
   struct tile_info_t {
-    fan::texture_pack::ti_t ti;
+    fan::graphics::texture_pack::ti_t ti;
     mesh_property_t mesh_property = mesh_property_t::none;
   };
 

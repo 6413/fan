@@ -79,7 +79,7 @@ struct vfi_t {
     vfi_t* vfi;
     fan::vec2 position;
     uint16_t button;
-    fan::mouse_state button_state;
+    int button_state;
     mouse_stage_e mouse_stage;
     focus_method_mouse_flag* flag;
   };
@@ -555,7 +555,7 @@ struct vfi_t {
     return;
   }
 
-  void feed_mouse_button(uint16_t button, fan::mouse_state state) {
+  void feed_mouse_button(uint16_t button, int state) {
     mouse_button_data_t mouse_button_data;
     mouse_button_data.vfi = this;
     if (focus.mouse.iic()) {

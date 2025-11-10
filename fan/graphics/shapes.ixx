@@ -41,7 +41,7 @@ import fan.graphics.vulkan.core;
 #endif
 
 #if defined(fan_physics)
-import fan.physics.b2_integration; // aabb
+import fan.physics.types; // aabb
 #endif
 
 export namespace fan::graphics {
@@ -1036,13 +1036,11 @@ export namespace fan::graphics {
 					return;
 				}
 				auto shape_type = get_shape_type();
-			#if defined(loco_vfi)
 				if (shape_type == fan::graphics::shapes::shape_type_t::vfi) {
-					vfi.erase(*this);
+					g_shapes->vfi.erase(*this);
 					sic();
 					return;
 				}
-			#endif
 				if (shape_type == fan::graphics::shapes::shape_type_t::polygon) {
 					auto ri = (polygon_t::ri_t*)GetData(g_shapes->shaper);
 					ri->vbo.close((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))));
@@ -1204,7 +1202,7 @@ export namespace fan::graphics {
 				g_shapes->shape_functions[get_shape_type()].set_tc_size(this, tc_size);
 			}
 
-			bool load_tp(fan::texture_pack::ti_t* ti) {
+			bool load_tp(fan::graphics::texture_pack::ti_t* ti) {
 				auto st = get_shape_type();
 				if (st == fan::graphics::shapes::shape_type_t::sprite ||
 					st == fan::graphics::shapes::shape_type_t::unlit_sprite) {
@@ -1226,8 +1224,8 @@ export namespace fan::graphics {
 				return true;
 			}
 
-			fan::texture_pack::ti_t get_tp() {
-				fan::texture_pack::ti_t ti;
+			fan::graphics::texture_pack::ti_t get_tp() {
+				fan::graphics::texture_pack::ti_t ti;
 				ti.image = fan::graphics::g_render_context_handle.default_texture;
 				ti.position = get_tc_position() * ti.image.get_size();
 				ti.size = get_tc_size() * ti.image.get_size();
@@ -1235,7 +1233,7 @@ export namespace fan::graphics {
 				//return g_shapes->shape_functions[g_shapes->shaper.GetSTI(*this)].get_tp(this);
 			}
 
-			bool set_tp(fan::texture_pack::ti_t* ti) {
+			bool set_tp(fan::graphics::texture_pack::ti_t* ti) {
 				return load_tp(ti);
 			}
 
@@ -1795,7 +1793,7 @@ export namespace fan::graphics {
 		#include <fan/graphics/gui/vfi.h>
 		vfi_t vfi;
 
-		fan::texture_pack_t* texture_pack = nullptr;
+		fan::graphics::texture_pack_t* texture_pack = nullptr;
 
 		struct light_t {
 
@@ -2035,7 +2033,7 @@ export namespace fan::graphics {
 			struct ri_t {
 				// main image + light buffer + 30
 				std::array<fan::graphics::image_t, 30> images; // what about tc_pos and tc_size
-				fan::texture_pack::unique_t texture_pack_unique_id;
+				fan::graphics::texture_pack::unique_t texture_pack_unique_id;
 
 				sprite_sheet_data_t sprite_sheet_data;
 
@@ -2071,11 +2069,11 @@ export namespace fan::graphics {
 				fan::vec2 tc_position = 0;
 				fan::vec2 tc_size = 1;
 				f32_t seed = 0;
-				fan::texture_pack::unique_t texture_pack_unique_id;
+				fan::graphics::texture_pack::unique_t texture_pack_unique_id;
 				animation_shape_nr_t shape_animations;
 				animation_nr_t current_animation;
 
-				bool load_tp(fan::texture_pack::ti_t* ti) {
+				bool load_tp(fan::graphics::texture_pack::ti_t* ti) {
 					auto& im = ti->image;
 					image = im;
 					auto& img = image_get_data(im);
@@ -2099,7 +2097,7 @@ export namespace fan::graphics {
 			shape_t push_back(const properties_t& properties) {
 
 				bool uses_texture_pack = properties.texture_pack_unique_id.iic() == false && g_shapes->texture_pack;
-				fan::texture_pack::ti_t ti;
+				fan::graphics::texture_pack::ti_t ti;
 				if (uses_texture_pack) {
 					uses_texture_pack = !g_shapes->texture_pack->qti((*g_shapes->texture_pack)[properties.texture_pack_unique_id].name, &ti);
 					if (uses_texture_pack) {
@@ -2206,7 +2204,7 @@ export namespace fan::graphics {
 			struct ri_t {
 				// main image + light buffer + 30
 				std::array<fan::graphics::image_t, 30> images;
-				fan::texture_pack::unique_t texture_pack_unique_id;
+				fan::graphics::texture_pack::unique_t texture_pack_unique_id;
 			};
 
 		#pragma pack(pop)
@@ -2247,9 +2245,9 @@ export namespace fan::graphics {
 
 				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
 				uint32_t vertex_count = 6;
-				fan::texture_pack::unique_t texture_pack_unique_id;
+				fan::graphics::texture_pack::unique_t texture_pack_unique_id;
 
-				bool load_tp(fan::texture_pack::ti_t* ti) {
+				bool load_tp(fan::graphics::texture_pack::ti_t* ti) {
 					auto& im = ti->image;
 					image = im;
 					tc_position = ti->position / im.get_size();
@@ -2262,7 +2260,7 @@ export namespace fan::graphics {
 			shape_t push_back(const properties_t& properties) {
 
 				bool uses_texture_pack = properties.texture_pack_unique_id.iic() == false && g_shapes->texture_pack;
-				fan::texture_pack::ti_t ti;
+				fan::graphics::texture_pack::ti_t ti;
 				if (uses_texture_pack) {
 					uses_texture_pack = !g_shapes->texture_pack->qti((*g_shapes->texture_pack)[properties.texture_pack_unique_id].name, &ti);
 					if (uses_texture_pack) {
@@ -4386,6 +4384,12 @@ export namespace fan {
 				}
 			}
 		}
+
+    struct tilemap_t {
+      std::vector<std::vector<fan::vec2>> positions;
+      std::vector<std::vector<fan::graphics::shapes::shape_t>> shapes;
+      fan::vec2 size;
+    };
 	}
 }
 

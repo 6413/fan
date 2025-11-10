@@ -14,6 +14,7 @@ export import fan.random;
 export import fan.graphics.loco;
 export import fan.graphics;
 export import fan.graphics.gui;
+export import fan.texture_pack.tp0;
 
 export import fan.network;
 

@@ -36,7 +36,7 @@ struct engine_demo_t {
   // ------------------------STATIC------------------------
   static void demo_shapes_init_capsule(engine_demo_t* engine_demo) {
     engine_demo->shapes.resize(engine_demo->shape_count);
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
       engine_demo->shapes[i] = fan::graphics::capsule_t{ {
         .render_view = &engine_demo->right_column_view,
@@ -50,7 +50,7 @@ struct engine_demo_t {
   }
   static void demo_shapes_init_circle(engine_demo_t* engine_demo) {
     engine_demo->shapes.resize(engine_demo->shape_count);
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
       engine_demo->shapes[i] = fan::graphics::circle_t{ {
         .render_view = &engine_demo->right_column_view,
@@ -62,7 +62,7 @@ struct engine_demo_t {
   }
   static void demo_shapes_init_gradient(engine_demo_t* engine_demo) {
     engine_demo->shapes.resize(engine_demo->shape_count);
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
       engine_demo->shapes[i] = fan::graphics::gradient_t{ {
         .render_view = &engine_demo->right_column_view,
@@ -79,7 +79,7 @@ struct engine_demo_t {
   }
 
   static void demo_shapes_init_grid(engine_demo_t* engine_demo) {
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     
     engine_demo->shapes.emplace_back(fan::graphics::grid_t{{
     .render_view = &engine_demo->right_column_view,
@@ -91,7 +91,7 @@ struct engine_demo_t {
   }
 
   static void demo_shapes_init_universal_image_renderer(engine_demo_t* engine_demo) {
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     engine_demo->shapes.emplace_back(fan::graphics::universal_image_renderer_t{{
       .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 0),    
@@ -108,7 +108,7 @@ struct engine_demo_t {
   fan::graphics::image_t image_tire = engine.image_load("images/tire.webp");
   static void demo_shapes_init_lighting(engine_demo_t* engine_demo) {
 
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     
     static auto image_background = engine_demo->engine.image_create(fan::color(0.5, 0.5, 0.5, 1));
     uint32_t lighting_flags = fan::graphics::light_flags_e::additive | fan::graphics::light_flags_e::circle;
@@ -160,7 +160,7 @@ struct engine_demo_t {
       return;
     }
     engine_demo->engine.lighting.ambient = 0.5;
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     engine_demo->shapes[0].set_position(viewport_size/2);
     engine_demo->shapes[0].set_size(viewport_size/2);
 
@@ -199,7 +199,7 @@ struct engine_demo_t {
 
   static void demo_shapes_init_polygon(engine_demo_t* engine_demo) {
     engine_demo->shapes.resize(engine_demo->shape_count);
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
 
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
       uint32_t sides = fan::random::value(3u, 12u);
@@ -257,7 +257,7 @@ struct engine_demo_t {
   static void demo_shapes_init_rectangle(engine_demo_t* engine_demo) {
     
     engine_demo->shapes.resize(engine_demo->shape_count);
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
       engine_demo->shapes[i] = fan::graphics::rectangle_t{ {
         .render_view = &engine_demo->right_column_view,
@@ -317,7 +317,7 @@ void main() {
       return;
     }
     
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
 
     fan::graphics::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
     engine_demo->shapes.emplace_back(fan::graphics::shader_shape_t{{
@@ -338,7 +338,7 @@ void main() {
 
   static void demo_shapes_init_sprite(engine_demo_t* engine_demo) {
     engine_demo->shapes.resize(engine_demo->shape_count);
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
       engine_demo->shapes[i] = fan::graphics::sprite_t{ {
         .render_view = &engine_demo->right_column_view,
@@ -401,7 +401,7 @@ void main() {
     data.shader = engine_demo->engine.get_sprite_vertex_shader(data.shader_code);
     fan::graphics::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
 
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     data.shader_shape = fan::graphics::shader_shape_t{ {
       .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 3),
@@ -472,7 +472,7 @@ void main() {
     } });
   }
   static void demo_physics_init_mirrors(engine_demo_t* engine_demo) {
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     engine_demo->demo_physics_mirrors_data = new demo_physics_mirrors_t();
     auto& mirror_data = *engine_demo->demo_physics_mirrors_data;
     static std::vector<vertex_t> triangle_vertices{
@@ -581,7 +581,7 @@ void main() {
   static void demo_physics_init_platformer(engine_demo_t* engine_demo) {
     engine_demo->demo_physics_platformer_data = new demo_physics_platformer_t();
     auto& data = *engine_demo->demo_physics_platformer_data;
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
 
     // Load highlight image
     data.highlight_image = engine_demo->engine.image_load("images/highlight_hover.webp");
@@ -683,6 +683,58 @@ void main() {
 
     // ------------------------PLATFORMER------------------------
 
+    // ------------------------GRID RAYCAST------------------------
+
+  struct demo_physics_grid_raycast_t {
+    fan::graphics::tilemap_t tilemap;
+    fan::vec2 tile_size = fan::vec2(32, 32);
+    fan::vec2 src = 0;
+    fan::vec2 dst = 0;
+    engine_t::mouse_down_nr_t mouse_down_nr[2];
+  }*demo_physics_grid_raycast_data = 0;
+
+  static void demo_physics_init_grid_raycast(engine_demo_t* engine_demo) {
+    engine_demo->demo_physics_grid_raycast_data = new demo_physics_grid_raycast_t();
+    auto& data = *engine_demo->demo_physics_grid_raycast_data;
+
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
+
+    // Create grid
+    data.tilemap = fan::graphics::create_grid(
+      data.tile_size,
+      fan::colors::black,
+      viewport_size,
+      { 0, 0 }, // pos
+      &engine_demo->right_column_view
+    );
+
+    // Mouse input
+    data.mouse_down_nr[0] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](fan::vec2 pos) {
+      data.src = fan::graphics::transform_position(pos, engine_demo->right_column_view);
+    });
+    data.mouse_down_nr[1] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](fan::vec2 pos) {
+      data.dst = fan::graphics::transform_position(pos, engine_demo->right_column_view);
+    });
+  }
+  static void demo_physics_update_grid_raycast(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_physics_grid_raycast_data;
+
+    fan::graphics::reset_grid_colors(data.tilemap, fan::colors::black);
+
+    fan::graphics::line(data.src, data.dst, fan::colors::red, 3.f, &engine_demo->right_column_view);
+
+    fan::graphics::highlight_raycast(data.src, data.dst, data.tile_size, data.tilemap, fan::colors::green);
+  }
+  static void demo_physics_cleanup_grid_raycast(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_physics_grid_raycast_data;
+    for (auto& i : data.mouse_down_nr) {
+      engine_demo->engine.remove_on_mouse_down(i);
+    }
+    delete &data;
+  }
+
+    // ------------------------GRID RAYCAST------------------------
+
   // ------------------------PHYSICS------------------------
 
 
@@ -741,7 +793,7 @@ void main() {
   static void demo_init_multithreaded_image_loading(engine_demo_t* engine_demo) {
     engine_demo->demo_multithreaded_image_loading_data = new demo_multithreaded_image_loading_t;
     auto& data = *engine_demo->demo_multithreaded_image_loading_data;
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get(engine_demo->right_column_view.viewport).viewport_size;
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     int height = viewport_size.y / 2;
     height -= height % 4;
     data.image_sprite = {{
@@ -835,6 +887,7 @@ void main() {
     demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     demo_t{.name = "Reflective Mirrors", .init_function = demo_physics_init_mirrors, .update_function = demo_physics_update_mirrors, .cleanup_function = demo_physics_cleanup_mirrors},
     demo_t{.name = "Platformer Builder", .init_function = demo_physics_init_platformer, .update_function = demo_physics_update_platformer, .cleanup_function = demo_physics_cleanup_platformer},
+    demo_t{.name = "Grid Raycast", .init_function = demo_physics_init_grid_raycast, .update_function = demo_physics_update_grid_raycast, .cleanup_function = demo_physics_cleanup_grid_raycast},
     demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     demo_t{.name = "Multithreaded image loading", .init_function = demo_init_multithreaded_image_loading, .update_function = demo_update_multithreaded_image_loading, .cleanup_function = demo_cleanup_multithreaded_image_loading},
   });
@@ -878,12 +931,6 @@ void main() {
 
     fan_graphics_gui_window("##Menu Engine Demo Right Content Bottom", 0, wnd_flags | gui::window_flags_no_inputs) {
       gui::set_viewport(engine_demo.right_column_view.viewport);
-      fan::vec2 viewport_size = engine_demo.engine.viewport_get(engine_demo.right_column_view.viewport).viewport_size;
-      engine_demo.engine.camera_set_ortho(
-        engine_demo.right_column_view.camera,
-        fan::vec2(0, viewport_size.x),
-        fan::vec2(0, viewport_size.y)
-      );
       if (engine_demo.interactive_camera.get_position() == fan::vec2(0.f)) {
         engine_demo.interactive_camera.set_position(engine_demo.engine.viewport_get_size(engine_demo.right_column_view.viewport) / 2.f);
       }

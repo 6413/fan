@@ -8,15 +8,15 @@ void load_map() {
   main_map_id = pile.renderer.add(&main_compiled_map, p);
 
   // Generate collisions for every tile in the map
-  for (auto& y : pile.renderer.map_list[main_map_id].compiled_map->compiled_shapes) {
-    for (auto& x : y) {
-      for (auto& tile : x) { // Depth
-        if (tile.id.empty()) {
-          collisions.emplace_back(pile.engine.physics_context.create_box(tile.position, tile.size, 0, fan::physics::body_type_e::static_body, {}));
-        }
-      }
-    }
-  }
+  //for (auto& y : pile.renderer.map_list[main_map_id].compiled_map->compiled_shapes) {
+  //  for (auto& x : y) {
+  //    for (auto& tile : x) { // Depth
+  //      if (tile.id.empty()) {
+  //        collisions.emplace_back(pile.engine.physics_context.create_box(tile.position, tile.size, 0, fan::physics::body_type_e::static_body, {}));
+  //      }
+  //    }
+  //  }
+  //}
 
   // Set player spawn
   pile.player.body.set_physics_position(pile.renderer.get_position(main_map_id, "player_spawn"));
@@ -44,11 +44,8 @@ void reload_map() {
 }
 
 void update() {
-
-  if (sensor_spikes) {
-    if (fan::physics::is_on_sensor(pile.player.body, sensor_spikes)) {
-      pile.player.body.set_physics_position(pile.renderer.get_position(main_map_id, "player_spawn"));
-    }
+  if (fan::physics::is_on_sensor(pile.player.body, sensor_spikes)) {
+    pile.player.body.set_physics_position(pile.renderer.get_position(main_map_id, "player_spawn"));
   }
 
   static bool pause = false;
@@ -63,8 +60,6 @@ void update() {
     return;
   }
   pile.step();
-
-
 }
 
 fte_loader_t::id_t main_map_id;

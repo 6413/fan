@@ -547,6 +547,9 @@ export namespace fan::graphics {
     tp += c.position;
     return tp;
   }
+  fan::vec2 transform_position(const fan::vec2& p, const render_view_t& render_view) {
+    return transform_position(p, render_view.viewport, render_view.camera);
+  }
 
   fan::vec2 get_mouse_position() {
     return fan::graphics::g_render_context_handle.window->get_mouse_position();

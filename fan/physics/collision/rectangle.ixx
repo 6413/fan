@@ -84,3 +84,21 @@ export namespace fan_2d {
 		}
 	}
 }
+
+export namespace fan_3d {
+	constexpr bool is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& position, const fan::vec3& size) {
+		fan::vec3 min_bounds = position - size;
+		fan::vec3 max_bounds = position + size;
+
+		fan::vec3 t_min = (min_bounds - ray.origin) / (ray.direction + fan::vec3(1e-6f));
+		fan::vec3 t_max = (max_bounds - ray.origin) / (ray.direction + fan::vec3(1e-6f));
+
+		fan::vec3 t1 = t_min.min(t_max);
+		fan::vec3 t2 = t_min.max(t_max);
+
+		f32_t t_near = std::max(t1.x, std::max(t1.y, t1.z));
+		f32_t t_far = std::min(t2.x, std::min(t2.y, t2.z));
+
+		return t_near <= t_far && t_far >= 0.0f;
+	}
+}

@@ -2471,7 +2471,7 @@ export namespace fan {
           invalidate_cache();
 
           for (auto& img : directory_cache) {
-            if (img.preview_image.iic() == false) {
+            if (fan::graphics::is_image_valid(img.preview_image)) {
               fan::graphics::image_unload(img.preview_image);
             }
           }
@@ -2809,7 +2809,7 @@ export namespace fan {
 
               bool item_clicked = fan::graphics::gui::image_button(
                 "##" + unique_id,
-                file_info.preview_image.iic() == false ? file_info.preview_image
+                fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
                 : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
                 ImVec2(thumbnail_size, thumbnail_size)
               );
@@ -2884,7 +2884,7 @@ export namespace fan {
 
               bool item_clicked = fan::graphics::gui::image_button(
                 "##" + file_info.filename,
-                file_info.preview_image.iic() == false ? file_info.preview_image
+                fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
                 : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
                 ImVec2(thumbnail_size, thumbnail_size)
               );
@@ -3016,7 +3016,7 @@ export namespace fan {
                 handle_right_click(str);
 
                 ImTextureID texture_id;
-                if (file_info.preview_image.iic() == false) {
+                if (fan::graphics::is_image_valid(file_info.preview_image)) {
                   texture_id = (ImTextureID)fan::graphics::image_get_handle(file_info.preview_image);
                 }
                 else {
@@ -3092,7 +3092,7 @@ export namespace fan {
                 handle_right_click(str);
 
                 ImTextureID texture_id;
-                if (file_info.preview_image.iic() == false) {
+                if (fan::graphics::is_image_valid(file_info.preview_image)) {
                   texture_id = (ImTextureID)fan::graphics::image_get_handle(file_info.preview_image);
                 }
                 else {

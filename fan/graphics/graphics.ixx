@@ -35,11 +35,12 @@ export import fan.time;
 export import fan.window;
 export import fan.window.input_action;
 export import fan.texture_pack.tp0;
+export import fan.graphics.algorithm.raycast_grid;
 
 
 import fan.graphics.opengl.core;
 #if defined(fan_physics)
-  import fan.physics.b2_integration;
+  import fan.physics.types;
 #endif
 
 // user friendly functions
@@ -351,7 +352,7 @@ export namespace fan {
       fan::graphics::ctx()->image_unload(fan::graphics::ctx(), nr);
     }
     bool is_image_valid(fan::graphics::image_nr_t nr) {
-      return is_image_valid(nr);
+      return nr != fan::graphics::ctx().default_texture && nr.iic() == false;
     }
     fan::graphics::image_t image_load_pixel_art(const std::string& path) {
       return image_load(path, image_presets::pixel_art());
@@ -646,7 +647,7 @@ export namespace fan {
       f32_t parallax_factor = 0;
       bool blending = true;
       uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
-      fan::texture_pack::unique_t texture_pack_unique_id;
+      fan::graphics::texture_pack::unique_t texture_pack_unique_id;
     };
 
 
@@ -1061,6 +1062,14 @@ export namespace fan {
   void rectangle(const rectangle_properties_t& props = {}) {
     add_shape_to_immediate_draw(rectangle_t(props));
   }
+  void rectangle(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
+    add_shape_to_immediate_draw(rectangle_t(rectangle_properties_t{
+      .render_view = render_view,
+      .position = position,
+      .size = size,
+      .color = color
+      }));
+  }
   void sprite(const sprite_properties_t& props = {}) {
     add_shape_to_immediate_draw(sprite_t(props));
   }
@@ -1070,11 +1079,28 @@ export namespace fan {
   void line(const line_properties_t& props = {}) {
     add_shape_to_immediate_draw(line_t(props));
   }
+  void line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
+    add_shape_to_immediate_draw(line_t(line_properties_t{
+      .render_view = render_view,
+      .src = src,
+      .dst = dst,
+      .color = color,
+      .thickness = thickness
+    }));
+  }
   void light(const light_properties_t& props = {}) {
     add_shape_to_immediate_draw(light_t(props));
   }
   void circle(const circle_properties_t& props = {}) {
     add_shape_to_immediate_draw(circle_t(props));
+  }
+  void circle(const fan::vec3& position, float radius, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
+    add_shape_to_immediate_draw(circle_t(circle_properties_t{
+      .render_view = render_view,
+      .position = position,
+      .radius = radius,
+      .color = color
+    }));
   }
   void capsule(const capsule_properties_t& props = {}) {
     add_shape_to_immediate_draw(capsule_t(props));
@@ -1612,9 +1638,9 @@ export namespace fan {
         int count_index;
       };
 
-      fan::texture_pack::internal_t::open_properties_t open_properties;
-      fan::texture_pack::internal_t e;
-      fan::texture_pack::internal_t::texture_properties_t texture_properties;
+      fan::graphics::texture_pack::internal_t::open_properties_t open_properties;
+      fan::graphics::texture_pack::internal_t e;
+      fan::graphics::texture_pack::internal_t::texture_properties_t texture_properties;
 
       //
       image_divider_t() {
@@ -1782,6 +1808,72 @@ export namespace fan {
     f32_t get_depth_from_y(const fan::vec2& position, f32_t tile_size_y) {
       return std::floor((position.y) / tile_size_y) + (0xFAAA - 2) / 2 + 18.f;
     }
+
+
+    tilemap_t create_grid(
+      const fan::vec2& tile_size,
+      const fan::color& color,
+      const fan::vec2& area = fan::window::get_size(),
+      const fan::vec2& offset = fan::vec2(0, 0),
+      render_view_t* render_view = fan::graphics::g_render_context_handle.orthographic_render_view
+    ) {
+      fan::vec2 map_size(
+        std::floor(area.x / tile_size.x),
+        std::floor(area.y / tile_size.y)
+      );
+
+      tilemap_t tilemap;
+      tilemap.size = map_size;
+      tilemap.positions.resize(map_size.y, std::vector<fan::vec2>(map_size.x));
+      tilemap.shapes.resize(map_size.y, std::vector<fan::graphics::shape_t>(map_size.x));
+
+      for (int i = 0; i < map_size.y; i++) {
+        for (int j = 0; j < map_size.x; j++) {
+          tilemap.positions[i][j] = offset + tile_size / 2 + fan::vec2(j * tile_size.x, i * tile_size.y);
+
+          tilemap.shapes[i][j] = fan::graphics::rectangle_t{ {
+            .render_view = render_view,
+            .position = fan::vec3(tilemap.positions[i][j], 0),
+            .size = tile_size / 2,
+            .color = color
+          } };
+        }
+      }
+      return tilemap;
+    }
+
+    void reset_grid_colors(tilemap_t& tilemap, const fan::color& color) {
+
+      for (int i = 0; i < tilemap.size.y; i++) {
+        for (int j = 0; j < tilemap.size.x; j++) {
+          tilemap.shapes[i][j].set_color(color);
+        }
+      }
+    }
+
+    void highlight_raycast(
+      const fan::vec2& src,
+      const fan::vec2& dst,
+      const fan::vec2& tile_size,
+      tilemap_t& grid,
+      const fan::color& color,
+      render_view_t* render_view = fan::graphics::g_render_context_handle.orthographic_render_view
+    ) {
+      // top left
+      fan::vec2 camera_position = fan::graphics::camera_get_position(render_view->camera);
+      auto raycast_positions = fan::graphics::algorithm::grid_raycast({ camera_position + src, camera_position + dst }, tile_size);
+
+      for (auto& pos : raycast_positions) {
+        if (pos.x < 0 || pos.x >= grid.size.x) {
+          continue;
+        }
+        if (pos.y < 0 || pos.y >= grid.size.y) {
+          continue;
+        }
+        grid.shapes[pos.y][pos.x].set_color(color);
+      }
+    }
+
   } // namespace graphics
 
   struct movement_e {
