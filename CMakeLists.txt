@@ -270,6 +270,7 @@ set(MODULE_FILES
   ${ROOT_PATH}/graphics/graphics.ixx
   ${ROOT_PATH}/graphics/file_dialog.ixx
   ${ROOT_PATH}/graphics/algorithm/raycast_grid.ixx
+	${ROOT_PATH}/graphics/algorithm/pathfind.ixx
   ${ROOT_PATH}/physics/collision/rectangle.ixx
   ${ROOT_PATH}/physics/collision/triangle.ixx
   ${ROOT_PATH}/window/window.ixx

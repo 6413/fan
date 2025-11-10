@@ -46,24 +46,24 @@ export namespace fan {
 			this->b = value;
 			this->a = value;
 		}
-		constexpr color_& operator&=(const color_& color_) {
-			r = (unsigned int)r & (unsigned int)color_.r;
-			g = (unsigned int)g & (unsigned int)color_.g;
-			b = (unsigned int)b & (unsigned int)color_.b;
-			a = (unsigned int)a & (unsigned int)color_.a;
+		constexpr color_& operator&=(const color_& c) {
+			r = (unsigned int)r & (unsigned int)c.r;
+			g = (unsigned int)g & (unsigned int)c.g;
+			b = (unsigned int)b & (unsigned int)c.b;
+			a = (unsigned int)a & (unsigned int)c.a;
 			return *this;
 		}
-		constexpr color_& operator^=(const color_& color_) {
-			r = (int)r ^ (int)color_.r;
-			g = (int)g ^ (int)color_.g;
-			b = (int)b ^ (int)color_.b;
+		constexpr color_& operator^=(const color_& c) {
+			r = (int)r ^ (int)c.r;
+			g = (int)g ^ (int)c.g;
+			b = (int)b ^ (int)c.b;
 			return *this;
 		}
-		constexpr bool operator!=(const color_& color_) const {
-			return r != color_.r || g != color_.g || b != color_.b;
+		constexpr bool operator!=(const color_& c) const {
+			return r != c.r || g != c.g || b != c.b;
 		}
-		constexpr bool operator==(const color_& color_) const {
-			return r == color_.r && g == color_.g && b == color_.b && a == color_.a;
+		constexpr bool operator==(const color_& c) const {
+			return r == c.r && g == c.g && b == c.b && a == c.a;
 		}
 		constexpr cf_t& operator[](size_t x) {
 			return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
@@ -71,17 +71,17 @@ export namespace fan {
 		constexpr cf_t operator[](size_t x) const {
 			return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
 		}
-		constexpr color_ operator-=(const color_& color_) {
-			return color_(r -= color_.r, g -= color_.g, b -= color_.b, a -= color_.a);
+		constexpr color_ operator-=(const color_& c) {
+			return color_(r -= c.r, g -= c.g, b -= c.b, a -= c.a);
 		}
 		constexpr color_ operator-() const {
 			return color_(-r, -g, -b, a);
 		}
-		constexpr color_ operator-(const color_& color_) const {
-			return color_(r - color_.r, g - color_.g, b - color_.b, color_.a != 1 ? a - color_.a : a);
+		constexpr color_ operator-(const color_& c) const {
+			return color_(r - c.r, g - c.g, b - c.b, c.a != 1 ? a - c.a : a);
 		}
-		constexpr color_ operator+(const color_& color_) const {
-			return color_(r + color_.r, g + color_.g, b + color_.b, a + color_.a);
+		constexpr color_ operator+(const color_& c) const {
+			return color_(r + c.r, g + c.g, b + c.b, a + c.a);
 		}
 		template <typename T>
 		constexpr color_ operator*(T value) const {
@@ -264,8 +264,8 @@ export namespace fan {
       return out;
     }
 
-		friend std::ostream& operator<<(std::ostream& os, const color_& color_) noexcept {
-			os << color_.to_string();
+		friend std::ostream& operator<<(std::ostream& os, const color_& c) noexcept {
+			os << c.to_string();
 
 			return os;
 		}
