@@ -16,53 +16,21 @@ export module fan.physics.b2_integration;
 
 #if defined(fan_physics)
 
+export import fan.physics.types;
 import fan.types.vector;
 import fan.print;
 import fan.physics.common_context;
-
+/// <summary>
+/// 
+/// </summary>
 export namespace fan {
   namespace physics {
     struct context_t;
   }
 }
 
-struct global_physics_t {
-
-  fan::physics::context_t* context = nullptr;
-
-  operator fan::physics::context_t* () {
-    return context;
-  }
-
-  global_physics_t& operator=(fan::physics::context_t* l) {
-    context = l;
-    return *this;
-  }
-  fan::physics::context_t* operator->() {
-    return context;
-  }
-};
-
-export inline thread_local global_physics_t gphysics;
-
 export namespace fan {
   namespace physics {
-
-    struct aabb_t {
-      fan::vec2 min;
-      fan::vec2 max;
-    };
-
-    inline double length_units_per_meter = 256.0;
-
-    fan::vec2d physics_to_render(const fan::vec2d& p) {
-      return p * fan::physics::length_units_per_meter;
-    }
-
-    fan::vec2d render_to_physics(const fan::vec2d& p) {
-      return p / fan::physics::length_units_per_meter;
-    }
-
 
     struct shapes_e {
       enum {
@@ -214,7 +182,7 @@ export namespace fan {
       }
 
       f32_t get_angular_velocity() const {
-        return b2Body_GetAngularVelocity(*this) * length_units_per_meter;
+        return b2Body_GetAngularVelocity(*this)/* * length_units_per_meter*/;
       }
 
       void set_angular_velocity(f32_t v) {
@@ -264,7 +232,7 @@ export namespace fan {
         return b2Shape_GetFriction(get_shape_id());
       }
       f32_t get_mass() const {
-        return b2Shape_GetMassData(get_shape_id()).mass;
+        return b2Shape_GetMassData(get_shape_id()).mass * (length_units_per_meter * length_units_per_meter);
       }
       f32_t get_restitution() const {
         return b2Shape_GetRestitution(get_shape_id());
@@ -340,35 +308,9 @@ export namespace fan {
       }
     };
 
-    struct shape_properties_t {
-      f32_t friction = 0.6f;
-      f32_t density = 0.1f;
-      f32_t restitution = 0.0f;
-      bool fixed_rotation = false;
-      bool presolve_events = false;
-      bool contact_events = false;
-      bool is_sensor = false;
-      f32_t linear_damping = 0.0f;
-      f32_t angular_damping = 0.0f;
-      fan::vec2 collision_multiplier = 1; // possibility to change multiplier of collision size
-      b2Filter filter = b2DefaultFilter();
-      bool fast_rotation = false;
-    };
-
     struct entity_t : body_id_t {
       using body_id_t::body_id_t;
     };
-
-    struct body_type_e {
-      enum : uint8_t {
-        static_body = b2_staticBody,
-        kinematic_body = b2_kinematicBody,
-        dynamic_body = b2_dynamicBody,
-        count = b2_bodyTypeCount
-      };
-    };
-
-    using body_type = b2BodyType;
 
     fan::vec2 check_wall_contact(body_id_t body_id, shape_id_t* colliding_wall = nullptr) {
       if (!body_id.is_valid()) {
@@ -406,12 +348,11 @@ export namespace fan {
       fan::vec2 velocity = body_id.get_linear_velocity();
       f32_t mass = body_id.get_mass();
 
-      // Only slow the fall if we're falling too fast
       if (velocity.y > slide_speed) {
 
-        // Compute required impulse to reach target slide speed
-        f32_t delta_v = slide_speed - velocity.y;   // negative value (downwards to slower)
-        fan::vec2 impulse = fan::vec2(0, delta_v * mass);
+        f32_t delta_v = slide_speed - velocity.y;
+        delta_v = std::max(delta_v, -velocity.y);
+        fan::vec2 impulse = fan::vec2(0, delta_v / mass);
 
         body_id.apply_linear_impulse_center(impulse);
       }
@@ -492,22 +433,31 @@ export namespace fan {
       struct properties_t {
         // clang
         properties_t() {};
-        fan::vec2 gravity{ 0, 9.8f / length_units_per_meter };
+        fan::vec2 gravity{ 0, 9.8f };
       };
       context_t(const properties_t& properties = properties_t()) {
         gphysics = this;
         //b2SetLengthUnitsPerMeter(properties.length_units_per_meter);
         b2WorldDef world_def = b2DefaultWorldDef();
-        world_def.gravity = properties.gravity * length_units_per_meter * 2;
+        world_def.gravity = properties.gravity;
 
-        b2SetLengthUnitsPerMeter(1.f / 512.f);
+        b2SetLengthUnitsPerMeter(1.f / length_units_per_meter);
         world_id = b2CreateWorld(&world_def);
+
+        gphysics.get_gravity = [this]() -> fan::vec2 {
+          return get_gravity();
+        };
+        gphysics.set_gravity = [this](const fan::vec2& new_gravity) -> void {
+          return set_gravity(new_gravity);
+        };
       }
       void set_gravity(const fan::vec2& gravity) {
-        b2World_SetGravity(world_id, gravity);
+        fan::print(gravity, gravity / length_units_per_meter);
+        b2World_SetGravity(world_id, gravity / length_units_per_meter);
       }
       fan::vec2 get_gravity() const {
-        return b2World_GetGravity(world_id);
+        fan::print(fan::vec2(b2World_GetGravity(world_id)) * length_units_per_meter);
+        return b2World_GetGravity(world_id) * length_units_per_meter;
       }
 
       void begin_frame(f32_t dt) {
@@ -714,31 +664,34 @@ export namespace fan {
           while (it != body_updates.end()) {
             auto& [id, data] = *it;
 
-            if (data.accumulated_impulse.x != 0.0f || data.accumulated_impulse.y != 0.0f) {
-              b2Body_ApplyLinearImpulseToCenter(id, data.accumulated_impulse / length_units_per_meter, true);
-              data.accumulated_impulse = { 0, 0 };
-            }
-            if (data.accumulated_angular_impulse != 0.0f) {
-              b2Body_ApplyAngularImpulse(id, data.accumulated_angular_impulse / length_units_per_meter, true);
-              data.accumulated_angular_impulse = 0.0f;
-            }
-            if (data.accumulated_force.x != 0.0f || data.accumulated_force.y != 0.0f) {
-              b2Body_ApplyLinearImpulseToCenter(id, data.accumulated_force / length_units_per_meter, true);
-              data.accumulated_force = { 0, 0 };
-            }
-
             if (data.has_linear_velocity) {
               b2Body_SetLinearVelocity(id, data.linear_velocity / length_units_per_meter);
               data.has_linear_velocity = false;
             }
             if (data.has_angular_velocity) {
-              b2Body_SetAngularVelocity(id, data.angular_velocity / length_units_per_meter);
+              b2Body_SetAngularVelocity(id, data.angular_velocity/* / length_units_per_meter*/);
               data.has_angular_velocity = false;
             }
             if (data.has_position) {
               b2Rot rotation = b2Body_GetRotation(id);
               b2Body_SetTransform(id, data.position, rotation);
               data.has_position = false;
+            }
+
+            if (data.accumulated_impulse.x != 0.0f || data.accumulated_impulse.y != 0.0f) {
+              b2Body_ApplyLinearImpulseToCenter(id, data.accumulated_impulse * physics_timestep / length_units_per_meter, true);
+              data.accumulated_impulse = { 0, 0 };
+            }
+           /* if (data.accumulated_angular_impulse != 0.0f) {
+              b2Body_ApplyAngularImpulse(id, data.accumulated_angular_impulse / length_units_per_meter, true);
+              data.accumulated_angular_impulse = 0.0f;
+            }*/
+            if (data.accumulated_angular_impulse != 0.0f) {
+              b2Body_ApplyAngularImpulse(id, data.accumulated_angular_impulse / (length_units_per_meter * length_units_per_meter), true);
+              data.accumulated_angular_impulse = 0.0f;
+            }
+            if (data.accumulated_force.x != 0.0f || data.accumulated_force.y != 0.0f) {
+              b2Body_ApplyLinearImpulseToCenter(id, data.accumulated_force/ length_units_per_meter, true);
             }
             if ((accumulator - physics_timestep) < physics_timestep && data.is_idle()) {
               it = body_updates.erase(it);
@@ -1021,6 +974,6 @@ void fan::physics::body_id_t::zero_linear_impulse_center() {
 
 void fan::physics::body_id_t::apply_force_center(const fan::vec2& v) {
   auto& data = body_updates[*this];
-  data.accumulated_force += v * gphysics->delta_time;
+  data.accumulated_force = v;
 }
 #endif

@@ -223,7 +223,7 @@ export namespace fan {
 					debug_draw_circle.clear();
 					debug_draw_line.clear();
 					debug_draw_capsule.clear();
-					b2World_Draw(gphysics->world_id, &fan::graphics::physics::box2d_debug_draw);
+					b2World_Draw(fan::physics::gphysics->world_id, &fan::graphics::physics::box2d_debug_draw);
 				};
 				return initialize_debug(false);
 				}();
@@ -360,7 +360,7 @@ export namespace fan {
 				}
 				base_shape_t(const base_shape_t& r) : fan::graphics::shape_t(r), fan::physics::entity_t(r) {
 					//if (this != )
-					fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gphysics->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
+					fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(fan::physics::gphysics->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
 					if (!B2_ID_EQUALS(r, (*this))) {
 						destroy();
 					}
@@ -401,7 +401,7 @@ export namespace fan {
 					if (this != &r) {
 						fan::graphics::shape_t::operator=(r);
 
-						fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(gphysics->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
+						fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(fan::physics::gphysics->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
 						if (!B2_ID_EQUALS(r, (*this))) {
 							destroy();
 						}
@@ -446,14 +446,14 @@ export namespace fan {
 					physics_update_nr.sic();
 				}
 
-				mass_data_t get_mass_data() const {
-					b2MassData md = b2Body_GetMassData(*dynamic_cast<const fan::physics::body_id_t*>(dynamic_cast<const fan::physics::entity_t*>(this)));
-					mass_data_t mass_data;
-					mass_data.mass = md.mass;
-					mass_data.center_of_mass = md.center;
-					mass_data.rotational_inertia = md.rotationalInertia;
-					return mass_data;
-				}
+        mass_data_t get_mass_data() const {
+          b2MassData md = b2Body_GetMassData(*this);
+          mass_data_t mass_data;
+          mass_data.mass = md.mass * (fan::physics::length_units_per_meter * fan::physics::length_units_per_meter);
+          mass_data.center_of_mass = md.center * fan::physics::length_units_per_meter;
+          mass_data.rotational_inertia = md.rotationalInertia * (fan::physics::length_units_per_meter * fan::physics::length_units_per_meter);
+          return mass_data;
+        }
 
 				f32_t get_mass() const {
 					return get_mass_data().mass;
@@ -461,7 +461,7 @@ export namespace fan {
 				
 				void set_draw_offset(fan::vec2 new_draw_offset) {
 					draw_offset = new_draw_offset;
-					(*gphysics->physics_updates)[physics_update_nr].draw_offset = new_draw_offset;
+					(*fan::physics::gphysics->physics_updates)[physics_update_nr].draw_offset = new_draw_offset;
 				}
 
         fan::vec3 get_position() const {
@@ -502,7 +502,7 @@ export namespace fan {
 				rectangle_t() = default;
 				rectangle_t(const properties_t& p) : base_shape_t(
 					fan::graphics::shape_t(fan::graphics::rectangle_t{ p }),
-					fan::physics::entity_t(gphysics->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
+					fan::physics::entity_t(fan::physics::gphysics->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
 					p.mass_data
 				) {
 				}
@@ -553,7 +553,7 @@ export namespace fan {
 				sprite_t() = default;
 				sprite_t(const properties_t& p) : base_shape_t(
 					fan::graphics::shape_t(fan::graphics::sprite_t{ p }),
-					fan::physics::entity_t(gphysics->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
+					fan::physics::entity_t(fan::physics::gphysics->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
 					p.mass_data
 				) {
 				}
@@ -596,7 +596,7 @@ export namespace fan {
 				circle_t() = default;
 				circle_t(const properties_t& p) : base_shape_t(
 					fan::graphics::shape_t(fan::graphics::circle_t{ p }),
-					fan::physics::entity_t(gphysics->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
+					fan::physics::entity_t(fan::physics::gphysics->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
 					p.mass_data
 				) {
 				}
@@ -641,7 +641,7 @@ export namespace fan {
 				circle_sprite_t() = default;
 				circle_sprite_t(const properties_t& p) : base_shape_t(
 					fan::graphics::shape_t(fan::graphics::sprite_t{ p }),
-					fan::physics::entity_t(gphysics->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
+					fan::physics::entity_t(fan::physics::gphysics->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
 					p.mass_data
 				) {
 				}
@@ -689,7 +689,7 @@ export namespace fan {
 				capsule_t() = default;
 				capsule_t(const properties_t& p) : base_shape_t(
 					fan::graphics::shape_t(fan::graphics::capsule_t{ p }),
-					fan::physics::entity_t(gphysics->create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.radius }, p.body_type, p.shape_properties)),
+					fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.radius }, p.body_type, p.shape_properties)),
 					p.mass_data
 				) {
 				}
@@ -744,7 +744,7 @@ export namespace fan {
 				capsule_sprite_t() = default;
 				capsule_sprite_t(const properties_t& p) : base_shape_t(
 					fan::graphics::shape_t(fan::graphics::sprite_t{ p }),
-					fan::physics::entity_t(gphysics->create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.size.max() / 2.f}, p.body_type, p.shape_properties)),
+					fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.size.max() / 2.f}, p.body_type, p.shape_properties)),
 					p.mass_data
 				) {
 				}
@@ -793,7 +793,7 @@ export namespace fan {
 							for (std::size_t i = 0; i < points.size(); ++i) {
 								points[i] = p.vertices[i].position;
 							}
-							return gphysics->create_polygon(
+							return fan::physics::gphysics->create_polygon(
 								p.position,
 								p.radius,
 								points, p.body_type, p.shape_properties
@@ -847,7 +847,7 @@ export namespace fan {
 							for (std::size_t i = 0; i < points.size(); ++i) {
 								points[i] = p.vertices[i].position;
 							}
-							return gphysics->create_segment(
+							return fan::physics::gphysics->create_segment(
 								p.position,
 								points, p.body_type, p.shape_properties
 							);
@@ -1016,9 +1016,10 @@ export namespace fan {
 
 					switch (movement) {
 					case movement_e::side_view: {
-						move_to_direction(fan::vec2(input_vector.x, 0));
-
 						bool on_ground = is_on_ground(*this, std::to_array(feet), jumping);
+            f32_t air_control_multiplier = on_ground ? 1.0f : 0.8f;
+						move_to_direction(fan::vec2(input_vector.x, 0) * air_control_multiplier);
+
 						bool can_jump = on_ground || (((fan::time::clock::now() - last_ground_time) / 1e+9 <= coyote_time) && !on_air_after_jump);
 
 						if (on_ground) {
@@ -1026,7 +1027,8 @@ export namespace fan {
 							on_air_after_jump = false;
 						}
 
-						if (wall_jump.normal && !on_ground && input_vector.x) {
+						if (wall_jump.normal.x && input_vector.x) {
+
 							colliding_wall_id.set_friction(0.f); // no friction when hugging wall
 							if (!jumping && velocity.y > 0) {
 								fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
@@ -1039,11 +1041,17 @@ export namespace fan {
 						bool move_up = fan::window::is_action_clicked("move_up");
 						if (move_up) {
 							if (wall_jump.normal && !on_ground) {
+                fan::vec2 vel = get_linear_velocity();
+                //f32_t clamped_x = std::clamp(vel.x, -max_speed, max_speed);
+                //set_linear_velocity(fan::vec2(vel.x, 0));
 								fan::physics::wall_jump(*this, wall_jump.normal, wall_jump.push_away_force, -jump_impulse);
 								on_air_after_jump = true;
 								jumping = true;
 							}
 							else if (can_jump && handle_jump) {
+                fan::vec2 vel = get_linear_velocity();
+                //f32_t clamped_x = std::clamp(vel.x, -max_speed, max_speed);
+                set_linear_velocity(fan::vec2(vel.x, 0));
 								on_air_after_jump = true;
 								apply_linear_impulse_center({ 0, -jump_impulse });
 								jumping = true;
@@ -1067,9 +1075,11 @@ export namespace fan {
 					//apply_force_center((fan::vec2(1.0) - (fan::vec2i(vel / max_speed).min(1)).abs()) * direction.sign() * force);
 					
 					fan::vec2 input_dir = direction.sign();
-					if (vel.dot(direction) < max_speed) {
-						apply_force_center(direction.sign() * force);
-					}
+					//if (vel.dot(direction) < max_speed) {
+						apply_force_center(direction * force);
+					//}
+          f32_t clamped_x = std::clamp(vel.x, -max_speed, max_speed);
+          set_linear_velocity(fan::vec2(clamped_x, vel.y));
 
 					previous_movement_sign = direction.sign(); // square_normalize?
 				}
@@ -1407,7 +1417,7 @@ export namespace fan {
 								static int x = 0;
 								if (!x) {
 									fan::vec2 pivot = fan::vec2(500, 300.f) / fan::physics::length_units_per_meter + bones[i].pivot * scale;
-									//     update_position(gphysics->world_id, bones[i].joint_id, pivot);
+									//     update_position(fan::physics::gphysics->world_id, bones[i].joint_id, pivot);
 									x++;
 								}
 
@@ -1424,8 +1434,8 @@ export namespace fan {
 						//quarter_pi *= 3; // why this is required?
 						//quarter_pi += fan::math::pi;
 						if (std::abs(torso_vel_x) / 130.f > 1.f && torso_vel_x) {
-							//   update_reference_angle(gphysics->world_id, blower_left_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
-						 //    update_reference_angle(gphysics->world_id, blower_right_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
+							//   update_reference_angle(fan::physics::gphysics->world_id, blower_left_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
+						 //    update_reference_angle(fan::physics::gphysics->world_id, blower_right_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
 							look_direction = vel_sgn;
 						}
 
@@ -1471,7 +1481,7 @@ export namespace fan {
 					f32_t frictionTorque = 0.03f;
 					f32_t hertz = 5.0f;
 					f32_t dampingRatio = 0.5f;
-					b2WorldId worldId = gphysics->world_id;
+					b2WorldId worldId = fan::physics::gphysics->world_id;
 
 					b2Filter filter = b2DefaultFilter();
 
@@ -1631,7 +1641,7 @@ export namespace fan {
 				mouse_joint_t() {
 
 					auto default_body = b2DefaultBodyDef();
-					dummy_body.set_body(b2CreateBody(gphysics->world_id, &default_body));
+					dummy_body.set_body(b2CreateBody(fan::physics::gphysics->world_id, &default_body));
 					nr = fan::graphics::ctx().update_callback->NewNodeLast();
 					// not copy safe
 					(*fan::graphics::ctx().update_callback)[nr] = [this](void* ptr) {
@@ -1645,7 +1655,7 @@ export namespace fan {
 								box.upperBound = b2Add(p, d);
 
 								QueryContext queryContext = { p, b2_nullBodyId };
-								b2World_OverlapAABB(gphysics->world_id, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
+								b2World_OverlapAABB(fan::physics::gphysics->world_id, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
 								if (B2_IS_NON_NULL(queryContext.bodyId)) {
 
 									b2MouseJointDef mouseDef = b2DefaultMouseJointDef();
@@ -1655,7 +1665,7 @@ export namespace fan {
 									mouseDef.hertz = 5.0f;
 									mouseDef.dampingRatio = 0.7f;
 									mouseDef.maxForce = 1000.0f * b2Body_GetMass(queryContext.bodyId);
-									mouse_joint = b2CreateMouseJoint(gphysics->world_id, &mouseDef);
+									mouse_joint = b2CreateMouseJoint(fan::physics::gphysics->world_id, &mouseDef);
 									b2Body_SetAwake(queryContext.bodyId, true);
 								}
 							}
@@ -1698,10 +1708,10 @@ void fan::graphics::physics::debug_draw(bool enabled) {
 
 export namespace fan::physics {
 	bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) {
-		return gphysics->is_on_sensor(test_id, sensor_id);
+		return fan::physics::gphysics->is_on_sensor(test_id, sensor_id);
 	}
 	fan::physics::ray_result_t raycast(const fan::vec2& src, const fan::vec2& dst) {
-		return gphysics->raycast(src, dst);
+		return fan::physics::gphysics->raycast(src, dst);
 	}
 }
 

@@ -106,7 +106,8 @@ extern "C" {
 export namespace fan {
   namespace audio {
 
-    thread_local inline fan::audio_t* g_audio = nullptr;
+    // doesnt use thread_local since audio has own thread
+    inline fan::audio_t* g_audio = nullptr;
     using sound_play_id_t = fan::audio_t::SoundPlayID_t;
     struct piece_t : fan::audio_t::piece_t {
       using fan::audio_t::piece_t::piece_t;

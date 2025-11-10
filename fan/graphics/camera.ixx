@@ -110,3 +110,29 @@ export namespace fan {
     fan::vec3 velocity = 0;
   };
 }
+
+export namespace fan::math {
+  constexpr fan::vec2 convert_position_ndc(const fan::vec2& mouse_position, const fan::vec2i& window_size) {
+    return fan::vec2((2.0f * mouse_position.x) / window_size[0] - 1.0f, 1.0f - (2.0f * mouse_position.y) / window_size[1]);
+  }
+  constexpr fan::ray3_t convert_position_to_ray(const fan::vec2i& mouse_position, const fan::vec2& screen_size, const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
+
+    fan::vec4 ray_ndc((2.0f * mouse_position[0]) / screen_size.x - 1.0f, 1.0f - (2.0f * mouse_position[1]) / screen_size.y, 1.0f, 1.0f);
+
+    fan::mat4 inverted_projection = projection.inverse();
+
+    fan::vec4 ray_clip = inverted_projection * ray_ndc;
+
+    ray_clip.z = -1.0f;
+    ray_clip.w = 0.0f;
+
+    fan::mat4 inverted_view = view.inverse();
+
+    fan::vec4 ray_world = inverted_view * ray_clip;
+
+    fan::vec3 ray_dir = fan::vec3(ray_world.x, ray_world.y, ray_world.z).normalized();
+
+    fan::vec3 ray_origin = camera_position;
+    return fan::ray3_t(ray_origin, ray_dir);
+  }
+}

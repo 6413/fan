@@ -14,7 +14,7 @@ import fan.graphics.opengl.core;
 import fan.io.file;
 import fan.types.fstring;
 
-export namespace fan {
+export namespace fan::graphics {
   struct texture_pack {
     struct ti_t;
 
@@ -48,7 +48,7 @@ export namespace fan {
         return image.iic() == false;
       }
 
-      fan::texture_pack::unique_t unique_id;
+      fan::graphics::texture_pack::unique_t unique_id;
       fan::vec2 position;
       fan::vec2 size;
       fan::graphics::image_t image;
