@@ -82,9 +82,25 @@ make_operators(*);
 make_operators(/);  
 make_operators(%);  
 
+#define make_operator_scalar_left(arithmetic) \
+  template <typename T> \
+  requires (std::is_arithmetic_v<T>) \
+  friend constexpr vec_t operator arithmetic(T lhs, const vec_t& rhs) { \
+    vec_t ret{}; \
+    for (access_type_t i = 0; i < rhs.size(); ++i) { \
+      ret[i] = lhs arithmetic rhs[i]; \
+    } \
+    return ret; \
+  }
+make_operator_scalar_left(+)
+make_operator_scalar_left(-)
+make_operator_scalar_left(*)
+make_operator_scalar_left(/)
+make_operator_scalar_left(%)
+
 template <typename T>
   requires (!std::is_arithmetic_v<T>)
-constexpr bool operator ==(const T& rhs) const {
+constexpr bool operator==(const T& rhs) const {
   for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
     if ((*this)[i] != rhs[i]) {
       return false;
@@ -96,20 +112,61 @@ constexpr bool operator ==(const T& rhs) const {
 
 template <typename T>
   requires (std::is_arithmetic_v<T>)
-constexpr bool operator ==(const T& rhs) const {
+constexpr bool operator==(const T& rhs) const {
   return (*this)[0] == rhs;
 }
 
 template <typename T>
   requires (!std::is_arithmetic_v<T>)
-constexpr bool operator !=(const T& rhs) const {
+constexpr bool operator!=(const T& rhs) const {
   return !(*this == rhs);
 }
 
 template <typename T>
   requires (std::is_arithmetic_v<T>)
-constexpr bool operator !=(const T& rhs) const {
+constexpr bool operator!=(const T& rhs) const {
   return !(*this == rhs);
+}
+
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator<(const T& rhs) const {
+  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
+    if (!((*this)[i] < rhs[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator>(const T& rhs) const {
+  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
+    if (!((*this)[i] > rhs[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator<(T rhs) const {
+  for (access_type_t i = 0; i < size(); ++i) {
+    if (!((*this)[i] < rhs)) {
+      return false;
+    }
+  }
+  return true;
+}
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator>(T rhs) const {
+  for (access_type_t i = 0; i < size(); ++i) {
+    if (!((*this)[i] > rhs)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 explicit constexpr operator bool() const {
@@ -313,6 +370,7 @@ value_type_t fan_coordinate(vec_n);
   value_type_t fan_coordinate(vec_n){};
 #endif
 
+#undef make_operator_scalar_left
 #undef make_operator_comparison
 #undef make_operator_const
 #undef make_operators

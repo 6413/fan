@@ -6,16 +6,13 @@
 #include <mutex>
 #include <atomic>
 #include <cmath>
-#include <unordered_map>
 #include <coroutine>
 #include <functional>
-#include <filesystem>
 
 import fan;
 
 // include macro extensions after import fan;
 #include <fan/graphics/types.h>
-
 
 using namespace fan::graphics;
 using menu_t = engine_t::settings_menu_t;
@@ -681,34 +678,54 @@ void main() {
     delete engine_demo->demo_physics_platformer_data;
   }
 
-    // ------------------------PLATFORMER------------------------
+  // ------------------------PLATFORMER------------------------
 
-    // ------------------------GRID RAYCAST------------------------
+  // ------------------------GRID HIGHLIGHT------------------------
 
-  struct demo_physics_grid_raycast_t {
+  struct demo_shapes_grid_highlight_t {
     fan::graphics::tilemap_t tilemap;
-    fan::vec2 tile_size = fan::vec2(32, 32);
-    fan::vec2 src = 0;
-    fan::vec2 dst = 0;
+    fan::graphics::shapes::shape_t shape;
+    enum mode_e { circle, line } mode = circle;
     engine_t::mouse_down_nr_t mouse_down_nr[2];
-  }*demo_physics_grid_raycast_data = 0;
+    fan::vec2 src = 0;
+    fan::vec2 dst = 300;
+  }*demo_shapes_grid_highlight_data = 0;
 
-  static void demo_physics_init_grid_raycast(engine_demo_t* engine_demo) {
-    engine_demo->demo_physics_grid_raycast_data = new demo_physics_grid_raycast_t();
-    auto& data = *engine_demo->demo_physics_grid_raycast_data;
+  static fan::graphics::circle_t make_circle(engine_demo_t* engine_demo, fan::vec2 pos) {
+    return fan::graphics::circle_t{ {
+      .render_view = &engine_demo->right_column_view,
+      .position = fan::vec3(pos, 3),
+      .radius = 128,
+      .color = fan::colors::blue.set_alpha(0.7)
+    } };
+  }
+  static fan::graphics::line_t make_line(engine_demo_t* engine_demo, fan::vec2 src, fan::vec2 dst) {
+    return fan::graphics::line_t{ {
+      .render_view = &engine_demo->right_column_view,
+      .src = src,
+      .dst = dst,
+      .color = fan::colors::blue,
+      .thickness = 5.f
+    } };
+  }
+
+  static void demo_shapes_init_grid_highlight(engine_demo_t* engine_demo) {
+    engine_demo->demo_shapes_grid_highlight_data = new demo_shapes_grid_highlight_t();
+    auto& data = *engine_demo->demo_shapes_grid_highlight_data;
 
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
 
-    // Create grid
-    data.tilemap = fan::graphics::create_grid(
-      data.tile_size,
-      fan::colors::black,
+    static constexpr fan::vec2 grid_size = fan::vec2(16, 16);
+    data.tilemap.create(
+      grid_size,
+      fan::colors::red,
       viewport_size,
-      { 0, 0 }, // pos
+      { 0, 0 },
       &engine_demo->right_column_view
     );
 
-    // Mouse input
+    data.shape = make_circle(engine_demo, { 0, 0 });
+
     data.mouse_down_nr[0] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](fan::vec2 pos) {
       data.src = fan::graphics::transform_position(pos, engine_demo->right_column_view);
     });
@@ -716,25 +733,132 @@ void main() {
       data.dst = fan::graphics::transform_position(pos, engine_demo->right_column_view);
     });
   }
-  static void demo_physics_update_grid_raycast(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_physics_grid_raycast_data;
+  static void demo_shapes_update_grid_highlight(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_shapes_grid_highlight_data;
 
-    fan::graphics::reset_grid_colors(data.tilemap, fan::colors::black);
+    if (data.mode == demo_shapes_grid_highlight_t::circle) {
+      fan::graphics::gui::text("Move mouse to highlight grid cells with circle");
+    }
+    else {
+      fan::graphics::gui::text("Left click sets line start");
+      fan::graphics::gui::text("Right click sets line end");
+    }
 
-    fan::graphics::line(data.src, data.dst, fan::colors::red, 3.f, &engine_demo->right_column_view);
+    fan::graphics::gui::text("Shape Mode:");
 
-    fan::graphics::highlight_raycast(data.src, data.dst, data.tile_size, data.tilemap, fan::colors::green);
+    data.tilemap.reset_colors(fan::colors::red);
+
+    const char* modes[] = { "Circle", "Line" };
+    int current = (data.mode == demo_shapes_grid_highlight_t::circle ? 0 : 1);
+    if (fan::graphics::gui::combo("Mode", &current, modes, 2)) {
+      data.mode = (current == 0 ? demo_shapes_grid_highlight_t::circle : demo_shapes_grid_highlight_t::line);
+    }
+
+    if (data.mode == demo_shapes_grid_highlight_t::circle) {
+      fan::vec2 world_pos = get_mouse_position(engine_demo->right_column_view);
+      data.shape = make_circle(engine_demo, world_pos);
+    }
+    else {
+      data.shape = make_line(engine_demo, data.src, data.dst);
+    }
+
+    data.tilemap.highlight(data.shape, fan::colors::green);
   }
-  static void demo_physics_cleanup_grid_raycast(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_physics_grid_raycast_data;
+
+  static void demo_shapes_cleanup_grid_highlight(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_shapes_grid_highlight_data;
     for (auto& i : data.mouse_down_nr) {
       engine_demo->engine.remove_on_mouse_down(i);
     }
-    delete &data;
+    delete engine_demo->demo_shapes_grid_highlight_data;
   }
 
-    // ------------------------GRID RAYCAST------------------------
+  // ------------------------GRID HIGHLIGHT------------------------
 
+
+    // ------------------------PATHFIND------------------------
+
+  struct demo_physics_pathfind_t {
+    fan::graphics::tilemap_t grid;
+    fan::graphics::algorithm::pathfind::generator generator;
+    fan::vec2 tile_size = fan::vec2(64, 64);
+    fan::vec2i src = 0;
+    fan::vec2i dst = 2;
+    engine_t::mouse_down_nr_t mouse_down_nr[2];
+  }*demo_physics_pathfind_data = 0;
+
+  static void demo_physics_init_pathfind(engine_demo_t* engine_demo) {
+    engine_demo->demo_physics_pathfind_data = new demo_physics_pathfind_t();
+    auto& data = *engine_demo->demo_physics_pathfind_data;
+
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
+
+    data.grid.create(
+      data.tile_size,
+      fan::colors::gray,
+      viewport_size,
+      { 0,0 },
+      &engine_demo->right_column_view
+    );
+
+    // Setup pathfind parameters
+    data.generator.set_world_size({ (int)data.grid.size.x, (int)data.grid.size.y });
+    data.generator.set_heuristic(fan::graphics::algorithm::pathfind::heuristic::euclidean);
+    data.generator.set_diagonal_movement(false);
+
+    data.mouse_down_nr[0] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](fan::vec2 pos) {
+      fan::vec2i cell = (fan::graphics::transform_position(pos, engine_demo->right_column_view) / data.tile_size).floor();
+      if (fan::window::is_key_down(fan::key_left_shift)) {
+        data.grid.add_wall(cell, data.generator);
+      }
+      else {
+        data.src = cell;
+        data.grid.set_source(data.src, fan::colors::green);
+      }
+    });
+    data.mouse_down_nr[1] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](fan::vec2 pos) {
+      fan::vec2i cell = (fan::graphics::transform_position(pos, engine_demo->right_column_view) / data.tile_size).floor();
+      if (fan::window::is_key_down(fan::key_left_shift)) {
+        data.grid.remove_wall(cell, data.generator);
+      }
+      else {
+        data.dst = cell;
+        data.grid.set_destination(data.dst, fan::colors::red);
+      }
+    });
+  }
+  static void demo_physics_update_pathfind(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_physics_pathfind_data;
+
+    data.grid.reset_colors(fan::colors::black);
+
+    auto path = data.grid.find_path(
+      data.src,
+      data.dst,
+      data.generator,
+      fan::graphics::algorithm::pathfind::heuristic::euclidean,
+      false
+    );
+
+    data.grid.highlight_path(path, fan::colors::cyan);
+    data.grid.set_source(data.src, fan::colors::green);
+    data.grid.set_destination(data.dst, fan::colors::red);
+
+    fan::graphics::gui::text("Left click: set source / add wall with Shift");
+    fan::graphics::gui::text("Right click: set destination / remove wall with Shift");
+  }
+
+  static void demo_physics_cleanup_pathfind(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_physics_pathfind_data;
+    for (auto& i : data.mouse_down_nr) {
+      engine_demo->engine.remove_on_mouse_down(i);
+    }
+    delete engine_demo->demo_physics_pathfind_data;
+  }
+
+  // ------------------------PATHFIND------------------------
+
+  //TODO sensors, car, ragdoll, bouncing letters
   // ------------------------PHYSICS------------------------
 
 
@@ -887,7 +1011,8 @@ void main() {
     demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     demo_t{.name = "Reflective Mirrors", .init_function = demo_physics_init_mirrors, .update_function = demo_physics_update_mirrors, .cleanup_function = demo_physics_cleanup_mirrors},
     demo_t{.name = "Platformer Builder", .init_function = demo_physics_init_platformer, .update_function = demo_physics_update_platformer, .cleanup_function = demo_physics_cleanup_platformer},
-    demo_t{.name = "Grid Raycast", .init_function = demo_physics_init_grid_raycast, .update_function = demo_physics_update_grid_raycast, .cleanup_function = demo_physics_cleanup_grid_raycast},
+    demo_t{.name = "Grid Highlight", .init_function = demo_shapes_init_grid_highlight, .update_function = demo_shapes_update_grid_highlight, .cleanup_function = demo_shapes_cleanup_grid_highlight},
+    demo_t{.name = "Pathfinding", .init_function = demo_physics_init_pathfind, .update_function = demo_physics_update_pathfind, .cleanup_function = demo_physics_cleanup_pathfind},
     demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     demo_t{.name = "Multithreaded image loading", .init_function = demo_init_multithreaded_image_loading, .update_function = demo_update_multithreaded_image_loading, .cleanup_function = demo_cleanup_multithreaded_image_loading},
   });
