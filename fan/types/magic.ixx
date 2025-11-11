@@ -174,8 +174,8 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
   constexpr bool is_printable_v = is_printable<T>::value;
 
   template <typename T>
-  fan::string struct_to_string(T& st) {
-    fan::string formatted_string = "{\n";
+  std::string struct_to_string(T& st) {
+    std::string formatted_string = "{\n";
     iterate_struct(st, [&formatted_string, &st]<std::size_t i, typename T2>(T2& v) {
       // static_assert(is_printable_v<T2>, "struct member missing operator<< or not printable");
       if constexpr (!is_printable_v<T2>) {
