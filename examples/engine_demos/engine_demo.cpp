@@ -680,16 +680,22 @@ void main() {
 
   // ------------------------PLATFORMER------------------------
 
-  // ------------------------GRID HIGHLIGHT------------------------
+  //TODO sensors, car, ragdoll, bouncing letters
+  // ------------------------PHYSICS------------------------
 
-  struct demo_shapes_grid_highlight_t {
+
+  // ------------------------ALGORITHMS------------------------
+
+    // ------------------------GRID HIGHLIGHT------------------------
+
+  struct demo_algorithm_grid_highlight_t {
     fan::graphics::tilemap_t tilemap;
     fan::graphics::shapes::shape_t shape;
     enum mode_e { circle, line } mode = circle;
     engine_t::mouse_down_nr_t mouse_down_nr[2];
     fan::vec2 src = 0;
     fan::vec2 dst = 300;
-  }*demo_shapes_grid_highlight_data = 0;
+  }*demo_algorithm_grid_highlight_data = 0;
 
   static fan::graphics::circle_t make_circle(engine_demo_t* engine_demo, fan::vec2 pos) {
     return fan::graphics::circle_t{ {
@@ -709,9 +715,9 @@ void main() {
     } };
   }
 
-  static void demo_shapes_init_grid_highlight(engine_demo_t* engine_demo) {
-    engine_demo->demo_shapes_grid_highlight_data = new demo_shapes_grid_highlight_t();
-    auto& data = *engine_demo->demo_shapes_grid_highlight_data;
+  static void demo_algorithm_init_grid_highlight(engine_demo_t* engine_demo) {
+    engine_demo->demo_algorithm_grid_highlight_data = new demo_algorithm_grid_highlight_t();
+    auto& data = *engine_demo->demo_algorithm_grid_highlight_data;
 
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
 
@@ -733,10 +739,10 @@ void main() {
       data.dst = fan::graphics::transform_position(pos, engine_demo->right_column_view);
     });
   }
-  static void demo_shapes_update_grid_highlight(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_shapes_grid_highlight_data;
+  static void demo_algorithm_update_grid_highlight(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_algorithm_grid_highlight_data;
 
-    if (data.mode == demo_shapes_grid_highlight_t::circle) {
+    if (data.mode == demo_algorithm_grid_highlight_t::circle) {
       fan::graphics::gui::text("Move mouse to highlight grid cells with circle");
     }
     else {
@@ -749,12 +755,12 @@ void main() {
     data.tilemap.reset_colors(fan::colors::red);
 
     const char* modes[] = { "Circle", "Line" };
-    int current = (data.mode == demo_shapes_grid_highlight_t::circle ? 0 : 1);
+    int current = (data.mode == demo_algorithm_grid_highlight_t::circle ? 0 : 1);
     if (fan::graphics::gui::combo("Mode", &current, modes, 2)) {
-      data.mode = (current == 0 ? demo_shapes_grid_highlight_t::circle : demo_shapes_grid_highlight_t::line);
+      data.mode = (current == 0 ? demo_algorithm_grid_highlight_t::circle : demo_algorithm_grid_highlight_t::line);
     }
 
-    if (data.mode == demo_shapes_grid_highlight_t::circle) {
+    if (data.mode == demo_algorithm_grid_highlight_t::circle) {
       fan::vec2 world_pos = get_mouse_position(engine_demo->right_column_view);
       data.shape = make_circle(engine_demo, world_pos);
     }
@@ -765,31 +771,30 @@ void main() {
     data.tilemap.highlight(data.shape, fan::colors::green);
   }
 
-  static void demo_shapes_cleanup_grid_highlight(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_shapes_grid_highlight_data;
+  static void demo_algorithm_cleanup_grid_highlight(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_algorithm_grid_highlight_data;
     for (auto& i : data.mouse_down_nr) {
       engine_demo->engine.remove_on_mouse_down(i);
     }
-    delete engine_demo->demo_shapes_grid_highlight_data;
+    delete engine_demo->demo_algorithm_grid_highlight_data;
   }
 
-  // ------------------------GRID HIGHLIGHT------------------------
-
+    // ------------------------GRID HIGHLIGHT------------------------
 
     // ------------------------PATHFIND------------------------
 
-  struct demo_physics_pathfind_t {
+  struct demo_algorithm_pathfind_t {
     fan::graphics::tilemap_t grid;
     fan::graphics::algorithm::pathfind::generator generator;
     fan::vec2 tile_size = fan::vec2(64, 64);
     fan::vec2i src = 0;
     fan::vec2i dst = 2;
     engine_t::mouse_down_nr_t mouse_down_nr[2];
-  }*demo_physics_pathfind_data = 0;
+  }*demo_algorithm_pathfind_data = 0;
 
-  static void demo_physics_init_pathfind(engine_demo_t* engine_demo) {
-    engine_demo->demo_physics_pathfind_data = new demo_physics_pathfind_t();
-    auto& data = *engine_demo->demo_physics_pathfind_data;
+  static void demo_algorithm_init_pathfind(engine_demo_t* engine_demo) {
+    engine_demo->demo_algorithm_pathfind_data = new demo_algorithm_pathfind_t();
+    auto& data = *engine_demo->demo_algorithm_pathfind_data;
 
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
 
@@ -827,8 +832,8 @@ void main() {
       }
     });
   }
-  static void demo_physics_update_pathfind(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_physics_pathfind_data;
+  static void demo_algorithm_update_pathfind(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_algorithm_pathfind_data;
 
     data.grid.reset_colors(fan::colors::black);
 
@@ -848,19 +853,174 @@ void main() {
     fan::graphics::gui::text("Right click: set destination / remove wall with Shift");
   }
 
-  static void demo_physics_cleanup_pathfind(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_physics_pathfind_data;
+  static void demo_algorithm_cleanup_pathfind(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_algorithm_pathfind_data;
     for (auto& i : data.mouse_down_nr) {
       engine_demo->engine.remove_on_mouse_down(i);
     }
-    delete engine_demo->demo_physics_pathfind_data;
+    delete engine_demo->demo_algorithm_pathfind_data;
   }
 
-  // ------------------------PATHFIND------------------------
+    // ------------------------PATHFIND------------------------
 
-  //TODO sensors, car, ragdoll, bouncing letters
-  // ------------------------PHYSICS------------------------
+    // ------------------------SORTING------------------------
 
+  struct demo_algorithm_sorting_t {
+    struct node_t {
+      fan::graphics::rectangle_t r;
+      int value;
+      fan::vec2 target_pos;
+    };
+
+    std::vector<node_t> lines;
+    int step = 0;
+    int i = 0;
+    int comparisons_per_frame = 200;
+  }*demo_sorting_data = 0;
+
+  static void demo_algorithm_sorting_init(engine_demo_t* engine_demo) {
+    engine_demo->demo_sorting_data = new demo_algorithm_sorting_t();
+    auto& data = *engine_demo->demo_sorting_data;
+
+    const fan::vec2 window = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
+    static constexpr f32_t count = 500;
+
+    auto calculate_position_and_size = [&](int value) {
+      fan::vec2 s = { window.x / count / 2.f, window.y * (1.f - (f32_t)value / count) / 2.f };
+      fan::vec2 p = { window.x - (f32_t)value / count * window.x - s.x, window.y - s.y };
+      return std::make_pair(p, s);
+    };
+
+    auto update_target_pos = [&](demo_algorithm_sorting_t::node_t& node) {
+      fan::vec2 old = node.r.get_position();
+      node.target_pos = { window.x - (f32_t)node.value / count * window.x, old.y };
+    };
+
+    data.lines.reserve(count);
+
+    for (int i = 0; i < count; ++i) {
+      auto [p, s] = calculate_position_and_size(i);
+      data.lines.push_back({
+        .r = fan::graphics::rectangle_t{{
+          .render_view = &engine_demo->right_column_view,
+          .position = p,
+          .size = s,
+          .color = fan::color::hsv((f32_t)i / count * 360, 100, 100)
+        }},
+        .value = i,
+        .target_pos = p
+      });
+    }
+
+    for (int i = data.lines.size() - 1; i > 0; --i) {
+      std::swap(data.lines[i].value, data.lines[fan::random::value_i64(0, i)].value);
+    }
+
+    for (auto& node : data.lines) {
+      update_target_pos(node);
+      node.r.set_position(node.target_pos);
+    }
+  }
+
+  static void demo_algorithm_sorting_update(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_sorting_data;
+
+    int comparisons = 0;
+    while (comparisons < data.comparisons_per_frame && data.step < data.lines.size()) {
+      if (data.i < data.lines.size() - 1 - data.step) {
+        if (data.lines[data.i].value > data.lines[data.i + 1].value) {
+          std::swap(data.lines[data.i].value, data.lines[data.i + 1].value);
+
+          const fan::vec2 window = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
+          auto update_target_pos = [&](demo_algorithm_sorting_t::node_t& node) {
+            fan::vec2 old = node.r.get_position();
+            node.target_pos = { window.x - (f32_t)node.value / data.lines.size() * window.x, old.y };
+            };
+          update_target_pos(data.lines[data.i]);
+          update_target_pos(data.lines[data.i + 1]);
+        }
+        data.i++;
+      }
+      else {
+        data.i = 0;
+        data.step++;
+      }
+      comparisons++;
+    }
+
+    for (auto& node : data.lines) {
+      fan::vec2 current = node.r.get_position();
+      fan::vec2 delta = node.target_pos - current;
+      node.r.set_position(fabs(delta.x) < 0.5f ? node.target_pos : current + delta * 0.25f);
+    }
+
+    fan::graphics::gui::text("Sorting visualization (bubble sort)", fan::colors::yellow);
+  }
+
+  static void demo_algorithm_sorting_cleanup(engine_demo_t* engine_demo) {
+    delete engine_demo->demo_sorting_data;
+  }
+
+    // ------------------------SORTING------------------------
+
+    // ------------------------TERRAIN GENERATION------------------------
+
+  struct demo_algorithm_terrain_t {
+    fan::noise_t noise;
+    fan::graphics::terrain_palette_t palette;
+    std::vector<fan::graphics::shape_t> built_mesh;
+    fan::vec2 noise_size = 256;
+    fan::graphics::image_t dirt;
+    engine_t::on_resize_nr_t resize_nr;
+  }*demo_algorithm_terrain_data = 0;
+
+  static void demo_algorithm_terrain_reload(engine_demo_t* engine_demo, fan::vec2 new_size) {
+    auto& data = *engine_demo->demo_algorithm_terrain_data;
+    data.built_mesh.clear();
+    data.noise.apply();
+    auto noise_data = data.noise.generate_data(data.noise_size);
+    fan::graphics::generate_mesh(data.noise_size, noise_data, data.dirt, data.built_mesh, data.palette);
+  }
+
+  static void demo_algorithm_terrain_init(engine_demo_t* engine_demo) {
+    engine_demo->demo_algorithm_terrain_data = new demo_algorithm_terrain_t();
+    auto& data = *engine_demo->demo_algorithm_terrain_data;
+
+    data.dirt = engine_demo->engine.image_create(fan::colors::white);
+
+    auto noise_data = data.noise.generate_data(data.noise_size);
+    fan::graphics::generate_mesh(data.noise_size, noise_data, data.dirt, data.built_mesh, data.palette);
+
+    data.resize_nr = engine_demo->engine.on_resize([engine_demo](fan::vec2 new_size) {
+      demo_algorithm_terrain_reload(engine_demo, new_size);
+    });
+  }
+
+  static void demo_algorithm_terrain_update(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_algorithm_terrain_data;
+
+    bool reload = false;
+    reload |= fan::graphics::gui::drag("seed", &data.noise.seed, 1);
+    reload |= fan::graphics::gui::drag("frequency", &data.noise.frequency, 0.001f);
+    reload |= fan::graphics::gui::drag("gain", &data.noise.gain, 0.01f);
+    reload |= fan::graphics::gui::drag("lacunarity", &data.noise.lacunarity, 0.01f);
+    reload |= fan::graphics::gui::drag("octaves", &data.noise.octaves, 1);
+
+    if (reload) {
+      demo_algorithm_terrain_reload(engine_demo, fan::window::get_size());
+    }
+  }
+
+  static void demo_algorithm_terrain_cleanup(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_algorithm_terrain_data;
+    engine_demo->engine.remove_on_resize(data.resize_nr);
+    delete engine_demo->demo_algorithm_terrain_data;
+  }
+
+    // ------------------------TERRAIN GENERATION------------------------
+
+
+  // ------------------------ALGORITHMS------------------------
 
   // ------------------------MULTITHREADING------------------------
 
@@ -1011,8 +1171,11 @@ void main() {
     demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     demo_t{.name = "Reflective Mirrors", .init_function = demo_physics_init_mirrors, .update_function = demo_physics_update_mirrors, .cleanup_function = demo_physics_cleanup_mirrors},
     demo_t{.name = "Platformer Builder", .init_function = demo_physics_init_platformer, .update_function = demo_physics_update_platformer, .cleanup_function = demo_physics_cleanup_platformer},
-    demo_t{.name = "Grid Highlight", .init_function = demo_shapes_init_grid_highlight, .update_function = demo_shapes_update_grid_highlight, .cleanup_function = demo_shapes_cleanup_grid_highlight},
-    demo_t{.name = "Pathfinding", .init_function = demo_physics_init_pathfind, .update_function = demo_physics_update_pathfind, .cleanup_function = demo_physics_cleanup_pathfind},
+    demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
+    demo_t{.name = "Grid Highlight", .init_function = demo_algorithm_init_grid_highlight, .update_function = demo_algorithm_update_grid_highlight, .cleanup_function = demo_algorithm_cleanup_grid_highlight},
+    demo_t{.name = "A* Pathfind", .init_function = demo_algorithm_init_pathfind, .update_function = demo_algorithm_update_pathfind, .cleanup_function = demo_algorithm_cleanup_pathfind},
+    demo_t{.name = "Sorting visualization", .init_function = demo_algorithm_sorting_init, .update_function = demo_algorithm_sorting_update, .cleanup_function = demo_algorithm_sorting_cleanup},
+    demo_t{.name = "Terrain Generation", .init_function = demo_algorithm_terrain_init, .update_function = demo_algorithm_terrain_update, .cleanup_function = demo_algorithm_terrain_cleanup},
     demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     demo_t{.name = "Multithreaded image loading", .init_function = demo_init_multithreaded_image_loading, .update_function = demo_update_multithreaded_image_loading, .cleanup_function = demo_cleanup_multithreaded_image_loading},
   });
@@ -1029,6 +1192,7 @@ void main() {
         "SHAPES",
         "GUI",
         "PHYSICS",
+        "ALGORITHMS",
         "MULTITHREADING"
       });
     }

@@ -281,6 +281,7 @@ set(MODULE_FILES
   ${ROOT_PATH}/event/event.ixx
   ${ROOT_PATH}/network/network.ixx
   ${ROOT_PATH}/graphics/graphics_network.ixx
+	${ROOT_PATH}/noise.ixx
   ${ROOT_PATH}/fan.ixx
 )
 

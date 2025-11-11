@@ -290,6 +290,19 @@ export namespace fan {
 			f32_t max_channel = std::max({ r, g, b });
 			return max_channel;
 		}
+    constexpr f32_t get_brightness() const {
+      return 0.299f * r + 0.587f * g + 0.114f * b;
+    }
+
+    constexpr color_ lerp(const color_& other, f32_t t) const {
+      return color_(
+        r + (other.r - r) * t,
+        g + (other.g - g) * t,
+        b + (other.b - b) * t,
+        a + (other.a - a) * t
+      );
+    }
+
 
 		value_type r = 0, g = 0, b = 0, a = 1;
 	};

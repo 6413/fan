@@ -187,7 +187,7 @@ struct neural_network_visualizer_t {
           .src = fan::vec3(input_positions[i], 0),
           .dst = fan::vec3(hidden_positions[h], 0),
           .color = fan::colors::white,
-          .thickness = engine_t::line_t::properties_t().thickness * scale
+          .thickness = fan::graphics::shapes::line_t::properties_t().thickness * scale
         } });
       }
     }
@@ -198,7 +198,7 @@ struct neural_network_visualizer_t {
           .src = fan::vec3(hidden_positions[h], 0),
           .dst = fan::vec3(output_positions[o], 0),
           .color = fan::colors::white,
-          .thickness = engine_t::line_t::properties_t().thickness * scale
+          .thickness = fan::graphics::shapes::line_t::properties_t().thickness * scale
         } });
       }
     }
@@ -316,8 +316,8 @@ struct neural_network_visualizer_t {
         network = neural_network_t();
       }
 
-      gui::slider_float("Speed", &train_interval, 0.01f, 1.0f);
-      gui::slider_float("Learning Rate", &network.learning_rate, 0.001f, 1.0f);
+      gui::slider("Speed", &train_interval, 0.01f, 1.0f);
+      gui::slider("Learning Rate", &network.learning_rate, 0.001f, 1.0f);
 
       gui::separator();
 
