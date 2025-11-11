@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
         ((audio_toggle++)& 1) == 0 ? fan::audio::pause() : fan::audio::resume();
 
       }
-      if (fan::graphics::gui::drag_float("volume", &volume, 0.01f, 0.0f, 1.0f)) {
+      if (fan::graphics::gui::drag("volume", &volume, 0.01f, 0.0f, 1.0f)) {
         fan::audio::set_volume(volume);
       }
     }

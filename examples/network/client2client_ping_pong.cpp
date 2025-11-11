@@ -1,5 +1,8 @@
 #include <string>
 #include <coroutine>
+#include <vector>
+
+import fan.print;
 import fan.network;
 
 
@@ -10,7 +13,7 @@ fan::event::task_t tcp_server_test() {
     network::message_t data;
     fan::print("client connected", client.socket->socket);
     while (data = co_await client.read()) {
-      json_data += data.buffer;
+      json_data.insert(json_data.end(), data.buffer.begin(), data.buffer.end());
       if (!data.done || json_data.empty()) {
         continue;
       }
@@ -44,7 +47,7 @@ fan::event::task_t tcp_client_test() {
         std::string json_data;
         network::message_t data;
         while (data = co_await server.read()) {
-          json_data += data.buffer;
+          json_data.insert(json_data.end(), data.buffer.begin(), data.buffer.end());
           if (!data.done || json_data.empty()) {
             continue;
           }

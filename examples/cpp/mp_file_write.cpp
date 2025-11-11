@@ -1,15 +1,23 @@
-#include <fan/pch.h>
+#include <string>
+
+import fan.types.masterpiece;
+import fan.types.vector;
+import fan.print;
+import fan.types.magic;
+import fan.io.file;
+import fan.types.fstring;
+
 
 struct ga_t {
   struct a_t {
     int a = 5;
     f32_t z = 10;
-    fan::string b = "a";
+    std::string b = "a";
   }a;
   struct b_t {
     int a = 10;
     f32_t z = 15;
-    fan::string b = "b";
+    std::string b = "b";
   }b;
 };
 
@@ -17,7 +25,7 @@ int main() {
 
   fan::mp_t<ga_t> a;
 
-  fan::string out;
+  std::string out;
   a.iterate([&]<auto i, typename T>(T & a) {
     fan::mp_t<T> inner;
     inner.iterate([&]<auto i0, typename T2>(T2 & b) {

@@ -1,4 +1,9 @@
-#include <fan/pch.h>
+#include <string>
+
+import fan.types.masterpiece;
+import fan.types.vector;
+import fan.print;
+import fan.types.magic;
 
 struct temp_t {
   int x;
@@ -44,7 +49,7 @@ struct iterate_c_t {
 
 struct random_t {
   fan::vec2 size;
-  fan::string id;
+  std::string id;
   uint32_t group_id;
 };
 
@@ -57,5 +62,6 @@ struct colors_t {
 };
 
 int main() {
-  fan::print(recursive2_t{});
+  recursive2_t r;
+  fan::print(fan::struct_to_string(r));
 }
