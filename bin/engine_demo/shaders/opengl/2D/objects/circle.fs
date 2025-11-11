@@ -9,16 +9,19 @@ in vec3 frag_position;
 in vec2 texture_coordinate;
 flat in uint flags;
 
+uniform float camera_zoom;
+
 out vec4 color;
 
 void main() {
-  vec3 lightDir = normalize(instance_position - frag_position);
   float distance = length(frag_position - instance_position);
   float radius = instance_radius;
-  float smooth_edge = 2.00;
-  float intensity = 1.0 - smoothstep(radius - smooth_edge, radius, distance);
-  vec4 color = instance_color * intensity;
+
+  float smooth_edge = 2.0 / camera_zoom;
+
+  float intensity = clamp(1.0 - smoothstep(radius - smooth_edge, radius, distance), 0.0, 1.0);
+  vec3 base_color = instance_color.rgb;
+  vec4 color = vec4(base_color, instance_color.a * intensity);
 
   o_attachment0 = color;
-  
 }

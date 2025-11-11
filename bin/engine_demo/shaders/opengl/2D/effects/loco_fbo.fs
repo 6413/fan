@@ -8,10 +8,13 @@ uniform sampler2D _t00; // HDR color texture
 uniform sampler2D _t01; // Bloom texture
 uniform sampler2D _t02; // Bloom texture
 uniform float bloom_strength = 0;
-uniform float gamma = 1.03;
+uniform float gamma = 1.00;
 uniform float gamma2 = 1.00;
 uniform float bloom_gamma = 1.03;
 uniform float exposure = 1.0;
+uniform float contrast = 1.0;
+
+uniform float framebuffer_alpha = 1.0;
 
 uniform float bloom_intensity = 1.0;
 uniform vec2 window_size;
@@ -31,11 +34,13 @@ vec3 uncharted2_tone_mapping(vec3 color) {
 }
 
 vec3 apply_bloom(vec3 hdrColor, vec3 bloomColor) {
-    float brightness = dot(bloomColor, vec3(0.2126, 0.7152, 0.0722));
+  float brightness = dot(bloomColor, vec3(0.2126, 0.7152, 0.0722));
+  
+  // Wide smoothstep and power for natural falloff
+  float bloomFactor = pow(smoothstep(0.6, 1.5, brightness), 1.2);
 
-    vec3 result = mix(hdrColor, bloomColor, bloom_strength);
-
-    return result;
+  vec3 result = hdrColor + bloomColor * bloomFactor * bloom_strength;
+  return result;
 }
 
 float vignette(vec2 uv) {
@@ -96,13 +101,26 @@ vec3 rgb_split(vec2 uv, vec3 color) {
     return vec3(r, g, b);
 }
 
+vec3 apply_contrast(vec3 color, float contrast_value) {
+  return clamp((color - 0.5) * contrast_value + 0.5, 0.0, 1.0);
+}
+
+vec3 apply_gamma(vec3 color, float gamma_value) {
+  return pow(max(color, vec3(0.0)), vec3(1.0 / gamma_value));
+}
+
+vec3 apply_exposure(vec3 color, float exposure_value) {
+  return color * exposure_value;
+}
+
+
 void main() {
 vec2 uv = gl_FragCoord.xy / window_size;
     vec3 hdrColor = texture(_t00, texture_coordinate).rgb;
     vec3 bloomColor = texture(_t01, texture_coordinate).rgb;
 
     // Apply bloom effect
-    vec3 color = vec3(1);
+    vec3 color = apply_bloom(hdrColor, bloomColor);
     // Apply vignette
  //   color *= vignette(texture_coordinate);
 
@@ -129,8 +147,10 @@ vec2 uv = gl_FragCoord.xy / window_size;
 
     // Apply RGB split
   //  color = rgb_split(texture_coordinate, color);
+    color = apply_exposure(color, exposure);
+    color = apply_contrast(color, contrast);
+    color = apply_gamma(color, gamma);
 
-    color = apply_bloom(hdrColor, bloomColor);
-    //color.rgb = 1.0 - exp(-color.rgb * exposure);
-    o_attachment0 = vec4(color, 1.0);
+
+    o_attachment0 = vec4(color, framebuffer_alpha);
 }
