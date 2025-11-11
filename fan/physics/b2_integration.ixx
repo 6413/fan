@@ -397,6 +397,11 @@ export namespace fan {
           end_touch_event_cb(ev);
           update_contact(b2Shape_GetBody(ev.sensorShapeId), b2Shape_GetBody(ev.visitorShapeId), false);
         }
+        contacts.erase(
+          std::remove_if(contacts.begin(), contacts.end(),
+            [](const sensor_contact_t& c) { return !c.is_in_contact; }),
+          contacts.end()
+        );
       }
 
       void update_contact(b2BodyId sensor_id, b2BodyId object_id, bool is_in_contact) {
@@ -464,7 +469,7 @@ export namespace fan {
         delta_time = dt;
       }
 
-      entity_t create_box(const fan::vec2& position, const fan::vec2& size, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
+      entity_t create_box(const fan::vec2& position, const fan::vec2& size, f32_t angle = 0, uint8_t body_type = body_type_e::static_body, const shape_properties_t& shape_properties = {}) {
         polygon_t shape = b2MakeBox(size.x / length_units_per_meter * shape_properties.collision_multiplier.x, size.y / length_units_per_meter * shape_properties.collision_multiplier.y);
         entity_t entity;
         b2BodyDef body_def = b2DefaultBodyDef();

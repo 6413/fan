@@ -1457,6 +1457,12 @@ export namespace fan {
       fan::window_t::mouse_motion_callback_t::nr_t mouse_motion_nr;
       fan::graphics::update_callback_nr_t uc_nr;
 
+      interactive_camera_t(const interactive_camera_t&) = delete;
+      interactive_camera_t(interactive_camera_t&&) = delete;
+
+      interactive_camera_t& operator=(interactive_camera_t&&) = delete;
+      interactive_camera_t& operator=(const interactive_camera_t&) = delete;
+
       void reset() {
         ignore = false;
         zoom_on_window_resize = true;
@@ -1483,12 +1489,15 @@ export namespace fan {
         );
       }
 
-      interactive_camera_t(
+      
+      void create(
         fan::graphics::camera_t camera_nr = fan::graphics::get_orthographic_render_view().camera,
         fan::graphics::viewport_t viewport_nr = fan::graphics::get_orthographic_render_view().viewport,
         f32_t new_zoom = 2
-      ) : reference_camera(camera_nr), reference_viewport(viewport_nr), zoom(new_zoom)
-      {
+      ) {
+        reference_camera = camera_nr;
+        reference_viewport = viewport_nr;
+        zoom = new_zoom;
         auto& window = fan::graphics::get_window();
         old_window_size = window.get_size();
 
@@ -1524,7 +1533,7 @@ export namespace fan {
         mouse_motion_nr = window.add_mouse_motion_callback([&](const auto& d) {
           auto state = d.window->key_state(fan::mouse_middle);
           if (state == (int)fan::mouse_state::press ||
-             state == (int)fan::mouse_state::repeat
+            state == (int)fan::mouse_state::repeat
             ) {
             if (pan_with_middle_mouse) {
               fan::vec2 viewport_size = fan::graphics::viewport_get_size(reference_viewport);
@@ -1534,10 +1543,20 @@ export namespace fan {
           }
         });
       }
+      void create(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 2.f) {
+        create(render_view.camera, render_view.viewport, new_zoom);
+      }
+
+      interactive_camera_t(
+        fan::graphics::camera_t camera_nr = fan::graphics::get_orthographic_render_view().camera,
+        fan::graphics::viewport_t viewport_nr = fan::graphics::get_orthographic_render_view().viewport,
+        f32_t new_zoom = 2
+      ) {
+        create(camera_nr, viewport_nr, new_zoom);
+      }
 
       interactive_camera_t(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 2.f) :
-        interactive_camera_t(render_view.camera, render_view.viewport, new_zoom)
-      {
+        interactive_camera_t(render_view.camera, render_view.viewport, new_zoom) {
 
       }
 

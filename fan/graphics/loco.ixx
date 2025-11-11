@@ -1477,6 +1477,9 @@ public:
 	}
 
 	void destroy() {
+    // TODO fix destruct order to not do manually, because shaper closes before them?
+    static_render_list.clear();
+    immediate_render_list.clear();
 
 		if (window == nullptr) {
 			return;
