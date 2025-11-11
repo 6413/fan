@@ -551,6 +551,36 @@ export namespace fan::graphics {
   fan::vec2 transform_position(const fan::vec2& p, const render_view_t& render_view) {
     return transform_position(p, render_view.viewport, render_view.camera);
   }
+  fan::vec2 inverse_transform_position(
+    const fan::vec2& p,
+    fan::graphics::viewport_t viewport,
+    fan::graphics::camera_t camera
+  ) {
+    auto v = g_render_context_handle->viewport_get(g_render_context_handle, viewport);
+    auto c = g_render_context_handle->camera_get(g_render_context_handle, camera);
+
+    fan::vec2 viewport_position = v.viewport_position;
+    fan::vec2 viewport_size = v.viewport_size;
+
+    f32_t l = c.coordinates.left;
+    f32_t r = c.coordinates.right;
+    f32_t t = c.coordinates.up;
+    f32_t b = c.coordinates.down;
+
+    fan::vec2 tp = p - c.position;
+
+    f32_t u = (tp.x - l) / (r - l);
+    f32_t vcoord = (tp.y - t) / (b - t);
+
+    tp = fan::vec2(u, vcoord) * viewport_size;
+    tp += viewport_position;
+
+    return tp;
+  }
+  fan::vec2 inverse_transform_position(const fan::vec2& p, const render_view_t& render_view) {
+    return inverse_transform_position(p, render_view.viewport, render_view.camera);
+  }
+
 
   fan::vec2 get_mouse_position() {
     return fan::graphics::g_render_context_handle.window->get_mouse_position();

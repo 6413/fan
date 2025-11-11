@@ -1611,6 +1611,9 @@ export namespace fan {
 				fan::physics::body_id_t dummy_body;
 				fan::graphics::update_callback_nr_t nr;
 
+        operator fan::physics::body_id_t& () { return dummy_body; }
+        operator const fan::physics::body_id_t& () const { return dummy_body; }
+
 				struct QueryContext {
 					b2Vec2 point;
 					b2BodyId bodyId = b2_nullBodyId;
@@ -1707,6 +1710,7 @@ void fan::graphics::physics::debug_draw(bool enabled) {
 }
 
 export namespace fan::physics {
+  using mouse_joint_t = fan::graphics::physics::mouse_joint_t;
 	bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) {
 		return fan::physics::gphysics->is_on_sensor(test_id, sensor_id);
 	}
@@ -1716,6 +1720,8 @@ export namespace fan::physics {
 }
 
 export namespace fan::graphics::physics {
+  using shape_t = fan::graphics::physics::base_shape_t;
+
   fan::graphics::physics::character2d_t character_circle(
     const fan::vec3& position,
     f32_t radius = 16.f,
