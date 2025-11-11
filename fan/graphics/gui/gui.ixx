@@ -38,6 +38,8 @@ export module fan.graphics.gui;
   import fan.io.directory;
   import fan.audio;
 
+  import fan.file_dialog;
+
 #endif
 
 
@@ -953,7 +955,7 @@ export namespace fan {
 
 
         template<typename T>
-        bool drag(const std::string& label, T* v, auto v_speed = 1, auto v_min = 0, auto v_max = 0, ImGuiSliderFlags flags = 0) {
+        bool drag(const std::string& label, T* v, f32_t v_speed = 1.f, f32_t v_min = 0, f32_t v_max = 0, ImGuiSliderFlags flags = 0) {
           if constexpr (get_component_count<T>() == 1) {
             T speed_val = static_cast<T>(v_speed);
             T min_val = static_cast<T>(v_min);
@@ -968,10 +970,10 @@ export namespace fan {
             return ImGui::DragScalarN(label.c_str(), get_imgui_data_type<component_type>(), v->data(), get_component_count<T>(), speed_val, &min_val, &max_val, get_default_format<component_type>(), flags);
           }
         }
-        template<typename T>
-        bool drag(const std::string& label, T* v, ImGuiSliderFlags flags = 0) {
-          return drag(label, v, 1, 0, 0, flags);
-        }
+        //template<typename T>
+        //bool drag(const std::string& label, T* v, ImGuiSliderFlags flags = 0) {
+        //  return drag(label, v, 1, 0, 0, flags);
+        //}
 
         f32_t calc_item_width() {
           return ImGui::CalcItemWidth();
@@ -3571,8 +3573,85 @@ export namespace fan {
           }
           fan::graphics::gui::end();
         }
-
       }
+
+
+      struct particle_editor_t {
+        fan::graphics::shapes::particles_t::ri_t& get_ri() {
+          return *(fan::graphics::shapes::particles_t::ri_t*)particle_shape.GetData(fan::graphics::g_shapes->shaper);
+        }
+
+        void handle_file_operations() {
+          if (open_file_dialog.is_finished()) {
+            if (filename.size() != 0) {
+              std::string data;
+              fan::io::file::read(filename, &data);
+              particle_shape = fan::json::parse(data);
+            }
+            open_file_dialog.finished = false;
+          }
+
+          if (save_file_dialog.is_finished()) {
+            if (filename.size() != 0) {
+              fan::json json_data = particle_shape;
+              fan::io::file::write(filename, json_data.dump(2), std::ios_base::binary);
+            }
+            save_file_dialog.finished = false;
+          }
+        }
+
+        void render_menu() {
+          if (fan::graphics::gui::begin_main_menu_bar()) {
+            if (fan::graphics::gui::begin_menu("File")) {
+              if (fan::graphics::gui::menu_item("Open..", "Ctrl+O")) {
+                open_file_dialog.load("json;fmm", &filename);
+              }
+              if (fan::graphics::gui::menu_item("Save as", "Ctrl+Shift+S")) {
+                save_file_dialog.save("json;fmm", &filename);
+              }
+              fan::graphics::gui::end_menu();
+            }
+            fan::graphics::gui::end_main_menu_bar();
+          }
+        }
+
+        void render_settings() {
+          fan::graphics::gui::begin("particle settings");
+          fan::graphics::gui::color_edit4("background color", &bg_color);
+          fan::graphics::gui::shape_properties(particle_shape);
+          fan::graphics::gui::end();
+        }
+
+        void render() {
+          render_menu();
+          handle_file_operations();
+          render_settings();
+        }
+
+        fan::graphics::shapes::shape_t particle_shape = fan::graphics::shapes::particles_t::properties_t{
+          .position = fan::vec3(32.108f, -1303.084f, 10.0f),
+          .size = 28.638f,
+          .color = fan::color::from_rgba(0x33333369),
+          .alive_time = 1768368768,
+          .count = 1191,
+          .position_velocity = fan::vec2(0.0f, 9104.127f),
+          .begin_angle = 0,
+          .end_angle = -0.16f,
+          .angle = fan::vec3(0.0f, 0.0f, -0.494f),
+          .gap_size = fan::vec2(400.899f, 1.0f),
+          .max_spread_size = fan::vec2(2648.021f, 1.0f),
+          .shape = fan::graphics::shapes::particles_t::shapes_e::rectangle,
+          .image = fan::graphics::image_load("images/waterdrop.webp")
+        };
+
+        fan::color bg_color = fan::color::from_rgba(0xB8C4BFFF);
+        fan::color base_color = fan::color::from_rgba(0x33333369);
+        f32_t color_intensity = 1.0f;
+        fan::graphics::file_save_dialog_t save_file_dialog{};
+        fan::graphics::file_open_dialog_t open_file_dialog{};
+        std::string filename{};
+      };
+
 
       struct dialogue_box_t {
 
