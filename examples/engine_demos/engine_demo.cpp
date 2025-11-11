@@ -1260,7 +1260,7 @@ void main() {
           gui::table_next_row();
           gui::table_next_column();
           f32_t row_height = gui::get_text_line_height_with_spacing() * 2;
-          if (gui::selectable(shape_info.name, false, 0, fan::vec2(0.0f, row_height))) {
+          if (gui::selectable(shape_info.name, engine_demo.current_demo == i, 0, fan::vec2(0.0f, row_height))) {
             if (demos[engine_demo.current_demo].cleanup_function) {
               demos[engine_demo.current_demo].cleanup_function(&engine_demo);
             }
