@@ -1,5 +1,7 @@
-#include <fan/pch.h>
+#include <fan/utility.h>
 #include <fftw/fftw3.h>
+
+import fan;
 
 int main() {
   loco_t loco;
@@ -34,7 +36,7 @@ int main() {
   auto smoke_texture = loco.image_load("images/smoke.webp");
 
   fan::vec2 window_size = loco.window.get_size();
-  loco_t::particles_t::properties_t p;
+  fan::graphics::shapes::particles_t::properties_t p;
   p.position = fan::vec3(window_size.x / 2, window_size.y / 2, 10);
   p.count = 8;
   p.size = 30;
@@ -107,7 +109,6 @@ int main() {
 
     float itemSpacing = 5;  // Set the spacing between items
 
-    ImVec2 startPos = ImGui::GetCursorPos();  // Get the starting position
     //shapes.clear();
 
     // Initialize current heights if not done already
@@ -137,7 +138,7 @@ int main() {
       rpos.x /= 2;
       rpos.y = window_size.y - box_size.x;
 
-      auto& ri = *(loco_t::particles_t::ri_t*)shapes[i].GetData(loco.shaper);
+      auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)shapes[i].GetData(fan::graphics::g_shapes->shaper);
 
       ri.position = rpos;
       ri.size = box_size.x / 2;

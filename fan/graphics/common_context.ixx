@@ -499,7 +499,8 @@ export namespace fan::graphics {
 
     void set(
       const fan::vec2& ortho_x, const fan::vec2& ortho_y,
-      const fan::vec2& viewport_position, const fan::vec2& viewport_size,
+      const fan::vec2& viewport_position, 
+      const fan::vec2& viewport_size,
       const fan::vec2& window_size
     ) {
       g_render_context_handle->camera_set_ortho(g_render_context_handle, camera, ortho_x, ortho_y);

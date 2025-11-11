@@ -63,8 +63,8 @@ void split_screen(fan::graphics::line_t& splitter) {
 
   splitter.set_line({mid_x, 0}, {mid_x, size.y});
 
-  server_render_view.set({0, mid_x}, {0, size.y}, {mid_x, 0}, {mid_x, size.y});
-  engine.orthographic_render_view.set({0, mid_x}, {0, size.y}, {0, 0}, {mid_x, size.y});
+  server_render_view.set({0, mid_x}, {0, size.y}, {mid_x, 0}, {mid_x, size.y}, fan::window::get_size());
+  engine.orthographic_render_view.set({0, mid_x}, {0, size.y}, {0, 0}, {mid_x, size.y}, fan::window::get_size());
   fan::graphics::gui::text("Local view");
   fan::graphics::gui::text_at("Peer view", fan::vec2(10.f + mid_x, 0));
 }
