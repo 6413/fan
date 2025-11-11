@@ -737,9 +737,9 @@ struct pile_t {
     fan::graphics::context_viewport_t& viewport;
     fan::graphics::gui::content_browser_t content_browser;
 
-    fan::graphics::image_t icon_video_camera = gloco->image_load("images_editor/video-camera.webp");
-    fan::graphics::image_t icon_lightbulb = gloco->image_load("images_editor/lightbulb.webp");
-    fan::graphics::image_t icon_skeleton = gloco->image_load("images_editor/skeleton.webp");
+    fan::graphics::image_t icon_video_camera = gloco->image_load("images/editor/video-camera.webp");
+    fan::graphics::image_t icon_lightbulb = gloco->image_load("images/editor/lightbulb.webp");
+    fan::graphics::image_t icon_skeleton = gloco->image_load("images/editor/skeleton.webp");
 
     void init_editor_theme() {
       ImGuiStyle& style = ImGui::GetStyle();

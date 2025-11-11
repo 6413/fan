@@ -2331,15 +2331,15 @@ export namespace fan {
 
         std::vector<file_info_t> directory_cache;
 
-        fan::graphics::image_t icon_arrow_left = fan::graphics::image_load("images_content_browser/arrow_left.webp");
-        fan::graphics::image_t icon_arrow_right = fan::graphics::image_load("images_content_browser/arrow_right.webp");
+        fan::graphics::image_t icon_arrow_left = fan::graphics::image_load("images/content_browser/arrow_left.webp");
+        fan::graphics::image_t icon_arrow_right = fan::graphics::image_load("images/content_browser/arrow_right.webp");
 
-        fan::graphics::image_t icon_file = fan::graphics::image_load("images_content_browser/file.webp");
-        fan::graphics::image_t icon_object = fan::graphics::image_load("images_content_browser/object.webp");
-        fan::graphics::image_t icon_directory = fan::graphics::image_load("images_content_browser/folder.webp");
+        fan::graphics::image_t icon_file = fan::graphics::image_load("images/content_browser/file.webp");
+        fan::graphics::image_t icon_object = fan::graphics::image_load("images/content_browser/object.webp");
+        fan::graphics::image_t icon_directory = fan::graphics::image_load("images/content_browser/folder.webp");
 
-        fan::graphics::image_t icon_files_list = fan::graphics::image_load("images_content_browser/files_list.webp");
-        fan::graphics::image_t icon_files_big_thumbnail = fan::graphics::image_load("images_content_browser/files_big_thumbnail.webp");
+        fan::graphics::image_t icon_files_list = fan::graphics::image_load("images/content_browser/files_list.webp");
+        fan::graphics::image_t icon_files_big_thumbnail = fan::graphics::image_load("images/content_browser/files_big_thumbnail.webp");
 
         bool item_right_clicked = false;
         std::string item_right_clicked_name;
