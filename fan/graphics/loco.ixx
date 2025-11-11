@@ -57,8 +57,6 @@ module;
 	#include <fan/imgui/implot.h>
 #endif
 
-//#include <fan/graphics/algorithm/FastNoiseLite.h>
-
 #if defined(fan_gui)
 #include <fan/imgui/imgui_internal.h>
 #include <fan/graphics/gui/imgui_themes.h>
@@ -108,6 +106,7 @@ export import fan.texture_pack.tp0;
 
 export import fan.io.file;
 export import fan.types.fstring;
+
 #if defined(fan_physics)
 	import fan.physics.b2_integration;
   import fan.physics.common_context;
@@ -133,6 +132,8 @@ export import fan.graphics.opengl.core;
 export import fan.graphics.shapes;
 
 export import fan.physics.collision.rectangle;
+
+export import fan.noise;
 
 #if defined(fan_json)
 
@@ -1210,7 +1211,7 @@ public:
 			f32_t font_size = fan::graphics::gui::font_sizes[i] * 2; // load 2x font size and possibly downscale for better quality
 
 			ImFontConfig main_cfg;
-			fan::graphics::gui::fonts[i] = io.Fonts->AddFontFromFileTTF("fonts/Roboto-Regular.ttf", font_size, &main_cfg);
+			fan::graphics::gui::fonts[i] = io.Fonts->AddFontFromFileTTF("fonts/SourceCodePro-Regular.ttf", font_size, &main_cfg);
 
 			ImFontConfig emoji_cfg;
 			emoji_cfg.MergeMode = true;
@@ -1516,12 +1517,13 @@ public:
 	}
 
   using mouse_click_callback_t   = std::function<void(fan::vec2, int)>;
-  using mouse_down_callback_t = std::function<void(fan::vec2)>;
+  using mouse_down_callback_t    = std::function<void(fan::vec2)>;
   using mouse_release_callback_t = std::function<void(fan::vec2, int)>;
   using mouse_move_callback_t    = std::function<void(fan::vec2, fan::vec2)>;
   using key_press_callback_t     = std::function<void(int)>;
   using key_release_callback_t   = std::function<void(int)>;
   using key_repeat_callback_t    = std::function<void(int)>;
+  using on_resize_callback_t     = std::function<void(fan::vec2)>; // window resize
 
 private:
   #define BLL_set_prefix mouse_click_callbacks
@@ -1558,6 +1560,12 @@ private:
   #define BLL_set_NodeData key_repeat_callback_t data;
   #include <fan/window/cb_list_builder_settings.h>
   #include <BLL/BLL.h>
+
+  #define BLL_set_prefix on_resize_callbacks
+  #define BLL_set_NodeData on_resize_callback_t data;
+  #include <fan/window/cb_list_builder_settings.h>
+  #include <BLL/BLL.h>
+
 public:
 
   mouse_click_callbacks_t    m_mouse_click_callbacks;
@@ -1567,6 +1575,7 @@ public:
   key_press_callbacks_t      m_key_press_callbacks;
   key_release_callbacks_t    m_key_release_callbacks;
   key_repeat_callbacks_t     m_key_repeat_callbacks;
+  on_resize_callbacks_t      m_on_resize_callbacks;
 
   using mouse_click_nr_t    = mouse_click_callbacks_NodeReference_t;
   using mouse_down_nr_t     = mouse_down_callbacks_NodeReference_t;
@@ -1575,6 +1584,7 @@ public:
   using key_press_nr_t      = key_press_callbacks_NodeReference_t;
   using key_release_nr_t    = key_release_callbacks_NodeReference_t;
   using key_repeat_nr_t     = key_repeat_callbacks_NodeReference_t;
+  using on_resize_nr_t      = on_resize_callbacks_NodeReference_t;
 
   void setup_input_callbacks() {
     // TODO callbacks leaking
@@ -1659,6 +1669,14 @@ public:
         }
       }
     );
+
+    window.add_resize_callback([this](const auto& d) {
+      auto it = m_on_resize_callbacks.GetNodeFirst();
+      while (it != m_on_resize_callbacks.dst) {
+        m_on_resize_callbacks[it].data(d.size);
+        it = it.Next(&m_on_resize_callbacks);
+      }
+    });
   }
 
 
@@ -2898,6 +2916,15 @@ public:
     m_key_repeat_callbacks.unlrec(nr);
   }
 
+  on_resize_nr_t on_resize(on_resize_callback_t cb) {
+    auto nr = m_on_resize_callbacks.NewNodeLast();
+    m_on_resize_callbacks[nr].data = std::move(cb);
+    return nr;
+  }
+  void remove_on_resize(on_resize_nr_t nr) {
+    m_on_resize_callbacks.unlrec(nr);
+  }
+
 	bool is_mouse_clicked(int button = fan::mouse_left) {
 		return window.key_state(button) == (int)fan::mouse_state::press;
 	}
@@ -3124,83 +3151,31 @@ public:
 	bool render_shapes_top = false;
 	//gui
 
-	std::vector<uint8_t> create_noise_image_data(const fan::vec2& image_size, int seed = fan::random::value_i64(0, ((uint32_t)-1) / 2)) {
-		fan::print("TODOO");
-		//FastNoiseLite noise;
-		//noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-		//noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-		//noise.SetFrequency(0.010);
-		//noise.SetFractalGain(0.5);
-		//noise.SetFractalLacunarity(2.0);
-		//noise.SetFractalOctaves(5);
-		//noise.SetSeed(seed);
-		//noise.SetFractalPingPongStrength(2.0);
-		f32_t noise_tex_min = -1;
-		f32_t noise_tex_max = 0.1;
+  fan::graphics::image_load_properties_t default_noise_image_properties() {
+    fan::graphics::image_load_properties_t lp;
+    lp.format = fan::graphics::image_format::rgb_unorm;
+    lp.internal_format = fan::graphics::image_format::rgb_unorm;
+    lp.min_filter = fan::graphics::image_filter::linear;
+    lp.mag_filter = fan::graphics::image_filter::linear;
+    lp.visual_output = fan::graphics::image_sampler_address_mode::mirrored_repeat;
+    return lp;
+  }
+  fan::graphics::image_t create_noise_image(const fan::vec2& size,
+    int seed = fan::random::value_i64(0, ((uint32_t)-1) / 2)) {
+    fan::noise_t noise(seed);
+    auto data = noise.generate_data(size);
 
-		std::vector<uint8_t> noise_data_rgb(image_size.multiply() * 3);
+    auto lp = default_noise_image_properties();
+    fan::image::info_t ii{ (void*)data.data(), size, 3 };
+    return image_load(ii, lp);
+  }
+  fan::graphics::image_t create_noise_image(const fan::vec2& size,
+    const std::vector<uint8_t>& data) {
+    auto lp = default_noise_image_properties();
+    fan::image::info_t ii{ (void*)data.data(), size, 3 };
+    return image_load(ii, lp);
+  }
 
-		//int index = 0;
-
-		//f32_t scale = 255.f / (noise_tex_max - noise_tex_min);
-
-		//for (int y = 0; y < image_size.y; y++)
-		//{
-		//  for (int x = 0; x < image_size.x; x++)
-		//  {
-		//    f32_t noiseValue = noise.GetNoise((f32_t)x, (f32_t)y);
-		//    unsigned char cNoise = (unsigned char)std::max(0.0f, std::min(255.0f, (noiseValue - noise_tex_min) * scale));
-		//    noise_data_rgb[index * 3 + 0] = cNoise;
-		//    noise_data_rgb[index * 3 + 1] = cNoise;
-		//    noise_data_rgb[index * 3 + 2] = cNoise;
-		//    index++;
-		//  }
-		//}
-
-		return noise_data_rgb;
-	}
-
-	fan::graphics::image_t create_noise_image(const fan::vec2& image_size) {
-
-		fan::graphics::image_load_properties_t lp;
-		lp.format = fan::graphics::image_format::rgb_unorm;
-		lp.internal_format = fan::graphics::image_format::rgb_unorm;
-		lp.min_filter = fan::graphics::image_filter::linear;
-		lp.mag_filter = fan::graphics::image_filter::linear;
-		lp.visual_output = fan::graphics::image_sampler_address_mode::mirrored_repeat;
-
-		fan::graphics::image_t image;
-
-		auto noise_data = create_noise_image_data(image_size);
-
-		fan::image::info_t ii;
-		ii.data = noise_data.data();
-		ii.size = image_size;
-		ii.channels = 3;
-
-		image = image_load(ii, lp);
-		return image;
-	}
-	fan::graphics::image_t create_noise_image(const fan::vec2& image_size, const std::vector<uint8_t>& noise_data) {
-
-		fan::graphics::image_load_properties_t lp;
-		lp.format = fan::graphics::image_format::rgb_unorm;
-		lp.internal_format = fan::graphics::image_format::rgb_unorm;
-		lp.min_filter = fan::graphics::image_filter::linear;
-		lp.mag_filter = fan::graphics::image_filter::linear;
-		lp.visual_output = fan::graphics::image_sampler_address_mode::mirrored_repeat;
-
-		fan::graphics::image_t image;
-
-		fan::image::info_t ii;
-		ii.data = (void*)noise_data.data();
-		ii.size = image_size;
-		ii.channels = 3;
-
-		image = image_load(ii, lp);
-		return image;
-	}
-	
 	fan::vec2 convert_mouse_to_ndc(const fan::vec2& mouse_position) const {
 		return fan::math::convert_position_ndc(mouse_position, gloco->window.get_size());
 	}

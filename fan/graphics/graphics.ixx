@@ -554,6 +554,8 @@ export namespace fan {
     struct light_t : fan::graphics::shapes::shape_t {
       using fan::graphics::shapes::shape_t::shape_t;
       using fan::graphics::shapes::shape_t::operator=;
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       light_t(light_properties_t p = light_properties_t()) {
         *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
@@ -586,6 +588,8 @@ export namespace fan {
       struct line_t : fan::graphics::shapes::shape_t {
         using fan::graphics::shapes::shape_t::shape_t;
         using fan::graphics::shapes::shape_t::operator=;
+        operator fan::graphics::shapes::shape_t& () { return *this; }
+        operator const fan::graphics::shapes::shape_t& () const { return *this; }
         line_t(line_properties_t p = line_properties_t()) {
           *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
             fan_init_struct(
@@ -619,6 +623,8 @@ export namespace fan {
     struct rectangle_t : fan::graphics::shapes::shape_t {
       using fan::graphics::shapes::shape_t::shape_t;
       using fan::graphics::shapes::shape_t::operator=;
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       rectangle_t(rectangle_properties_t p = rectangle_properties_t()) {
         *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
@@ -656,6 +662,8 @@ export namespace fan {
     struct sprite_t : fan::graphics::shapes::shape_t {
       using fan::graphics::shapes::shape_t::shape_t;
       using fan::graphics::shapes::shape_t::operator=;
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       sprite_t(sprite_properties_t p = sprite_properties_t()) {
         *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
@@ -694,6 +702,8 @@ export namespace fan {
     struct unlit_sprite_t : fan::graphics::shapes::shape_t {
       using fan::graphics::shapes::shape_t::shape_t;
       using fan::graphics::shapes::shape_t::operator=;
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       unlit_sprite_t(unlit_sprite_properties_t p = unlit_sprite_properties_t()) {
         *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
@@ -727,6 +737,8 @@ export namespace fan {
     struct circle_t : fan::graphics::shapes::shape_t {
       using fan::graphics::shapes::shape_t::shape_t;
       using fan::graphics::shapes::shape_t::operator=;
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       circle_t(circle_properties_t p = circle_properties_t()) {
         *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
@@ -760,6 +772,8 @@ export namespace fan {
     struct capsule_t : fan::graphics::shapes::shape_t {
       using fan::graphics::shapes::shape_t::shape_t;
       using fan::graphics::shapes::shape_t::operator=;
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       capsule_t(capsule_properties_t p = capsule_properties_t()) {
         *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
@@ -793,6 +807,8 @@ export namespace fan {
     struct polygon_t : fan::graphics::shapes::shape_t {
       using fan::graphics::shapes::shape_t::shape_t;
       using fan::graphics::shapes::shape_t::operator=;
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       polygon_t() = default;
       polygon_t(polygon_properties_t p) {
         *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
@@ -823,6 +839,8 @@ export namespace fan {
     struct grid_t : fan::graphics::shapes::shape_t {
       using fan::graphics::shapes::shape_t::shape_t;
       using fan::graphics::shapes::shape_t::operator=;
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       grid_t(grid_properties_t p = grid_properties_t()) {
         *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
@@ -860,6 +878,8 @@ export namespace fan {
     struct universal_image_renderer_t : fan::graphics::shapes::shape_t {
       using fan::graphics::shapes::shape_t::shape_t;
       using fan::graphics::shapes::shape_t::operator=;
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       universal_image_renderer_t(const universal_image_renderer_properties_t& p = universal_image_renderer_properties_t()) {
          *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
@@ -897,6 +917,10 @@ export namespace fan {
     };
 
     struct gradient_t : fan::graphics::shapes::shape_t{
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       gradient_t(const gradient_properties_t& p = gradient_properties_t()) {
         *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
@@ -950,7 +974,8 @@ export namespace fan {
     struct shadow_t : fan::graphics::shapes::shape_t {
       using fan::graphics::shapes::shape_t::shape_t;
       using fan::graphics::shapes::shape_t::operator=;
-
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       using shape_e = fan::graphics::shapes::shadow_t::shape_e;
 
       shadow_t(shadow_properties_t p = shadow_properties_t()) {
@@ -1008,6 +1033,10 @@ export namespace fan {
     };
 
     struct line3d_t : fan::graphics::shapes::shape_t {
+      using fan::graphics::shapes::shape_t::shape_t;
+      using fan::graphics::shapes::shape_t::operator=;
+      operator fan::graphics::shapes::shape_t& () { return *this; }
+      operator const fan::graphics::shapes::shape_t& () const { return *this; }
       line3d_t(line3d_properties_t p = line3d_properties_t()) {
         *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
           fan_init_struct(
@@ -2029,6 +2058,65 @@ export namespace fan {
       };
       std::unordered_set<fan::vec2i, vec2i_hash> wall_cells;
     };
+
+
+
+    struct terrain_palette_t {
+      std::vector<std::pair<int, fan::color>> stops;
+
+      constexpr terrain_palette_t() {
+        stops = {
+          { 50, fan::color::from_rgba(0x003eb2ff) }, // deep water
+          { 80, fan::color::from_rgba(0x0952c6ff) }, // shallow water
+          { 100, fan::color::from_rgba(0x726231ff) }, // coast
+          { 150, fan::color::from_rgba(0xa49463ff) }, // lowlands
+          { 200, fan::color::from_rgba(0x3c6114ff) }, // midlands
+          { 250, fan::color::from_rgba(0x4f6b31ff) }, // highlands
+          { 300, fan::color::from_rgba(0xffffffff) }  // snow
+        };
+      }
+
+      fan::color get(int value) const {
+        if (value <= stops.front().first) return stops.front().second;
+        if (value >= stops.back().first) return stops.back().second;
+
+        for (size_t i = 0; i < stops.size() - 1; ++i) {
+          if (value >= stops[i].first && value <= stops[i + 1].first) {
+            int v1 = stops[i].first;
+            int v2 = stops[i + 1].first;
+            auto c1 = stops[i].second;
+            auto c2 = stops[i + 1].second;
+            f32_t factor = (value - v1) / f32_t(v2 - v1);
+            return c1.lerp(c2, factor);
+          }
+        }
+        return fan::color::rgb(0, 0, 0);
+      }
+    };
+
+    void generate_mesh(
+      const vec2& noise_size,
+      const std::vector<uint8_t>& noise_data,
+      const fan::graphics::image_t& texture,
+      std::vector<fan::graphics::shape_t>& out_mesh,
+      const terrain_palette_t& palette) {
+      fan::graphics::shapes::sprite_t::properties_t sp;
+      sp.size = fan::window::get_size() / noise_size / 2;
+
+      for (int i = 0; i < noise_size.y; ++i) {
+        for (int j = 0; j < noise_size.x; ++j) {
+          int index = (i * noise_size.x + j) * 3;
+          int grayscale = noise_data[index];
+
+          sp.position = fan::vec2(i, j) * sp.size * 2;
+          sp.image = texture;
+          sp.color = palette.get(grayscale);
+          sp.color.a = 1;
+          out_mesh.push_back(sp);
+        }
+      }
+    }
+
   } // namespace graphics
 
   struct movement_e {
