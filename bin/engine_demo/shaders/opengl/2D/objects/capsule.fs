@@ -11,24 +11,35 @@ in vec2 texture_coordinate;
 in vec4 instance_outline_color;
 flat in uint flags;
 
-float sd_capsule(vec2 p, vec2 a, vec2 b, float r) {
-    vec2 pa = p - a, ba = b - a;
-    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-    return length(pa - ba * h) - r;
-}
+float smoothing = 2.0;
 
-const float smoothing = 1.0/2.0;
-const float outlineWidth = 3.0/16.0;
-const float outerEdgeCenter = 0.5 - outlineWidth;
+uniform float camera_zoom;
+
+float sd_capsule(vec2 p, vec2 a, vec2 b, float r) {
+  vec2 pa = p - a, ba = b - a;
+  float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+  return length(pa - ba * h) - r;
+}
 
 float cbrt(float x) {
   return pow(x, 1.0 / 3.0);
 }
 
 void main() {
+  smoothing /= camera_zoom;
+
   float distance = sd_capsule(frag_position.xy, instance_center0, instance_center1, instance_radius);
-  float intensity = 1.0 - smoothstep(-1, 1, distance);
-  float border = 1.0 - smoothstep(-cbrt(instance_radius*10) / 3 - smoothing, -cbrt(instance_radius*10) / 3 + smoothing, distance);
+  float intensity = smoothing > 0.0
+    ? 1.0 - smoothstep(-smoothing, smoothing, distance)
+    : (distance < 0.0 ? 1.0 : 0.0);
+
+  float edge = -cbrt(instance_radius * 10.0) / 3.0;
+  float border = smoothing > 0.0
+    ? 1.0 - smoothstep(edge - smoothing, edge + smoothing, distance)
+    : (distance < edge ? 1.0 : 0.0);
+
   vec4 color = vec4(mix(instance_outline_color.rgb, instance_color.rgb, border), intensity);
+  color.a *= instance_color.a;
+
   o_attachment0 = color;
 }
