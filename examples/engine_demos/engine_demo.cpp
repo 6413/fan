@@ -22,12 +22,8 @@ struct engine_demo_t {
     .renderer= fan::graphics::renderer_t::opengl,
   }};
 
-  engine_demo_t() {  
+  engine_demo_t() {
     create_gui();
-  }
-  ~engine_demo_t() {
-    engine.shader_erase(demo_shader_shape_shader);
-    engine.image_unload(image_tire);
   }
 
   // ------------------------STATIC------------------------
@@ -652,7 +648,6 @@ void main() {
       }
     }
 
-    // 
     // Iterate all blocks to delete block using right mouse click
     // In real implementation you would use constant time lookup and not iterate through all, but this is fine for demo
     if (fan::window::is_mouse_clicked(fan::mouse_right) && engine_demo->mouse_inside_demo_view) {
@@ -678,7 +673,69 @@ void main() {
     delete engine_demo->demo_physics_platformer_data;
   }
 
-  // ------------------------PLATFORMER------------------------
+    // ------------------------PLATFORMER------------------------
+
+    // ------------------------SENSORS------------------------
+
+  struct demo_physics_sensor_t {
+    fan::physics::entity_t sensors[3];
+    fan::graphics::rectangle_t visuals[3];
+    fan::physics::entity_t dummy;
+  }*demo_physics_sensor_data = 0;
+
+  static void demo_physics_init_sensor(engine_demo_t* engine_demo) {
+    engine_demo->demo_physics_sensor_data = new demo_physics_sensor_t();
+    auto& data = *engine_demo->demo_physics_sensor_data;
+
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
+
+    for (int i = 0; i < 3; ++i) {
+      fan::vec2 position = fan::vec2(viewport_size.x / 4 * (i + 1), viewport_size.y / 2);
+      fan::vec2 size = fan::vec2(64, 64);
+      data.sensors[i] = fan::physics::create_sensor_rectangle(position, size);
+
+      data.visuals[i] = fan::graphics::rectangle_t{ {
+        .render_view = &engine_demo->right_column_view,
+        .position = position,
+        .size = size,
+        .color = fan::colors::blue.set_alpha(0.5)
+      } };
+    }
+    data.dummy = engine_demo->engine.physics_context.create_box(0, 64, 0);
+  }
+
+  static void demo_physics_update_sensor(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_physics_sensor_data;
+
+    fan::graphics::gui::text("Sensor Demo", fan::colors::yellow);
+
+    data.dummy.set_physics_position(get_mouse_position(engine_demo->right_column_view));
+
+    fan::graphics::rectangle(fan::vec3(get_mouse_position(engine_demo->right_column_view), 10), 64, fan::colors::red, &engine_demo->right_column_view);
+
+    // IMPORTANT: physics step after creating test box and then check is on_sensor,
+    // because dummy id changes every frame so, you cannot check it on the next frame.
+    // Note that creating dummy every frame does not update the sensors properly
+    engine_demo->engine.update_physics();
+
+    for (int i = 0; i < 3; ++i) {
+      fan::vec2 pos = data.visuals[i].get_position();
+      if (fan::physics::is_on_sensor(data.dummy, data.sensors[i])) {
+        data.visuals[i].set_color(fan::colors::green.set_alpha(0.6));
+      }
+      else {
+        data.visuals[i].set_color(fan::colors::blue.set_alpha(0.5));
+      }
+    }
+  }
+
+  static void demo_physics_cleanup_sensor(engine_demo_t* engine_demo) {
+    auto& data = *engine_demo->demo_physics_sensor_data;
+    data.dummy.destroy();
+    delete engine_demo->demo_physics_sensor_data;
+  }
+
+  // ------------------------SENSORS------------------------
 
   //TODO sensors, car, ragdoll, bouncing letters, audio buttons, audio
   // ------------------------PHYSICS------------------------
@@ -1171,6 +1228,7 @@ void main() {
     demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     demo_t{.name = "Reflective Mirrors", .init_function = demo_physics_init_mirrors, .update_function = demo_physics_update_mirrors, .cleanup_function = demo_physics_cleanup_mirrors},
     demo_t{.name = "Platformer Builder", .init_function = demo_physics_init_platformer, .update_function = demo_physics_update_platformer, .cleanup_function = demo_physics_cleanup_platformer},
+    demo_t{.name = "Sensors", .init_function = demo_physics_init_sensor, .update_function = demo_physics_update_sensor, .cleanup_function = demo_physics_cleanup_sensor},
     demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
     demo_t{.name = "Grid Highlight", .init_function = demo_algorithm_init_grid_highlight, .update_function = demo_algorithm_update_grid_highlight, .cleanup_function = demo_algorithm_cleanup_grid_highlight},
     demo_t{.name = "A* Pathfind", .init_function = demo_algorithm_init_pathfind, .update_function = demo_algorithm_update_pathfind, .cleanup_function = demo_algorithm_cleanup_pathfind},
@@ -1210,6 +1268,8 @@ void main() {
       }
       window_size = gui::get_window_size();
     }
+
+    engine_demo.panel_right_render_position = next_window_position + fan::vec2(0, window_size.y);
 
     gui::set_next_window_pos(next_window_position + fan::vec2(0, window_size.y));
     gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y - window_size.y));
@@ -1306,10 +1366,10 @@ void main() {
       engine.settings_menu.pages.emplace_front(page);
     }
     right_column_view.create();
-    interactive_camera = {
+    interactive_camera.create(
       right_column_view.camera,
       right_column_view.viewport
-    };
+    );
     interactive_camera.pan_with_middle_mouse = true;
   }
 
@@ -1321,7 +1381,7 @@ void main() {
   }
 
   fan::graphics::render_view_t right_column_view;
-  bool mouse_inside_demo_view = false;;
+  bool mouse_inside_demo_view = false;
   // allows to move and zoom camera with mouse
   fan::graphics::interactive_camera_t interactive_camera;
   uint8_t current_demo = 0;
@@ -1329,6 +1389,7 @@ void main() {
   std::vector<fan::graphics::shape_t> shapes;
   static inline constexpr f32_t default_right_window_split_ratio = 0.2f;
   f32_t right_window_split_ratio = default_right_window_split_ratio;
+  fan::vec2 panel_right_render_position = 0.f;
   fan::vec2 panel_right_window_size = 0.f;
 };
 
