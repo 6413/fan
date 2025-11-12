@@ -462,6 +462,8 @@ export namespace fan::graphics {
     image_t(fan::graphics::image_nr_t image) : fan::graphics::image_nr_t(image) {
 
     }
+    image_t(const fan::color& color) 
+      : fan::graphics::image_nr_t(g_render_context_handle->image_create_color(g_render_context_handle, color)) {}
     image_t(const char* path, const std::source_location& callers_path = std::source_location::current())
       : image_t(std::string(path), callers_path) {
     }

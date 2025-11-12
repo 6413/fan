@@ -411,12 +411,12 @@ export namespace fan {
     uint32_t handle_events() {
       f64_t current_frame_time = glfwGetTime();
       m_delta_time = current_frame_time - last_frame_time;
-      if (m_delta_time >= 0.3) {
+      /*if (m_delta_time >= 0.3) {
       #if fan_debug >= 4
         fan::print("framerate too low, overriding delta time");
       #endif
         m_delta_time = 1.0 / 256.0;
-      }
+      }*/
       last_frame_time = current_frame_time;
 
       handle_key_states();

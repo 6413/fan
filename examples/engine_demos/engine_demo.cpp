@@ -569,6 +569,7 @@ void main() {
     std::array<physics::rectangle_t, 4> walls;
     fan::graphics::physics::character2d_t player;
     std::vector<physics::rectangle_t> placed_blocks;
+    fan::physics::physics_step_callback_nr_t physics_step_cb_nr;
   }*demo_physics_platformer_data = 0;
 
   static void demo_physics_init_platformer(engine_demo_t* engine_demo) {
@@ -599,7 +600,11 @@ void main() {
       .fixed_rotation = true
     }
     );
-    data.player.jump_impulse = 5.f;
+
+    data.physics_step_cb_nr = fan::physics::add_physics_step_callback([engine_demo] {
+      // Process player movement
+      engine_demo->demo_physics_platformer_data->player.process_movement();
+    });
   }
 
   static void demo_physics_update_platformer(engine_demo_t* engine_demo) {
@@ -659,15 +664,13 @@ void main() {
       }
     }
 
-    // Process player movement
-    data.player.process_movement();
-
     // Update physics
     engine_demo->engine.update_physics();
   }
 
   static void demo_physics_cleanup_platformer(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_physics_platformer_data;
+    fan::physics::remove_physics_step_callback(data.physics_step_cb_nr);
     // Unload highlight image
     engine_demo->engine.image_unload(data.highlight_image);
     delete engine_demo->demo_physics_platformer_data;

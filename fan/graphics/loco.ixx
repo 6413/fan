@@ -1519,13 +1519,13 @@ public:
 		destroy();
 	}
 
-  using mouse_click_callback_t   = std::function<void(fan::vec2, int)>;
-  using mouse_down_callback_t    = std::function<void(fan::vec2)>;
-  using mouse_release_callback_t = std::function<void(fan::vec2, int)>;
-  using mouse_move_callback_t    = std::function<void(fan::vec2, fan::vec2)>;
-  using key_press_callback_t     = std::function<void(int)>;
-  using key_release_callback_t   = std::function<void(int)>;
-  using key_repeat_callback_t    = std::function<void(int)>;
+  using mouse_click_callback_t   = std::function<void()>;
+  using mouse_down_callback_t    = std::function<void(fan::vec2 mouse_pos)>;
+  using mouse_release_callback_t = std::function<void()>;
+  using mouse_move_callback_t    = std::function<void(fan::vec2 mouse_pos, fan::vec2 delta)>;
+  using key_press_callback_t     = std::function<void(int button)>;
+  using key_release_callback_t   = std::function<void(int button)>;
+  using key_repeat_callback_t    = std::function<void(int button)>;
   using on_resize_callback_t     = std::function<void(fan::vec2)>; // window resize
 
 private:
@@ -1597,14 +1597,14 @@ public:
       if (d.state == fan::mouse_state::press && d.button < 3) {
         auto it = m_mouse_click_callbacks.GetNodeFirst();
         while (it != m_mouse_click_callbacks.dst) {
-          m_mouse_click_callbacks[it].data(pos, d.button);
+          m_mouse_click_callbacks[it].data();
           it = it.Next(&m_mouse_click_callbacks);
         }
       }
       else if (d.state == fan::mouse_state::release && d.button < 3) {
         auto it = m_mouse_release_callbacks.GetNodeFirst();
         while (it != m_mouse_release_callbacks.dst) {
-          m_mouse_release_callbacks[it].data(pos, d.button);
+          m_mouse_release_callbacks[it].data();
           it = it.Next(&m_mouse_release_callbacks);
         }
       }
@@ -2857,9 +2857,13 @@ public:
     return translate_position(p, orthographic_render_view.viewport, orthographic_render_view.camera);
   }
 
-  mouse_click_nr_t on_mouse_clicked(mouse_click_callback_t cb) {
+  mouse_click_nr_t on_mouse_clicked(int button, mouse_click_callback_t cb) {
     auto nr = m_mouse_click_callbacks.NewNodeLast();
-    m_mouse_click_callbacks[nr].data = std::move(cb);
+    m_mouse_click_callbacks[nr].data = [this, cb, button]() {
+      if (window.key_state(button) == fan::mouse_state::press) {
+        cb();
+      }
+    };
     return nr;
   }
   void remove_on_mouse_clicked(mouse_click_nr_t nr) {
@@ -2878,9 +2882,13 @@ public:
   void remove_on_mouse_down(mouse_down_nr_t nr) {
     m_mouse_down_callbacks.unlrec(nr);
   }
-  mouse_release_nr_t on_mouse_released(mouse_release_callback_t cb) {
+  mouse_release_nr_t on_mouse_released(int button, mouse_release_callback_t cb) {
     auto nr = m_mouse_release_callbacks.NewNodeLast();
-    m_mouse_release_callbacks[nr].data = std::move(cb);
+    m_mouse_release_callbacks[nr].data = [this, cb, button]() {
+      if (window.key_state(button) == fan::mouse_state::release) {
+        cb();
+      }
+    };
     return nr;
   }
   void remove_on_mouse_released(mouse_release_nr_t nr) {
