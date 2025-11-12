@@ -158,14 +158,7 @@ export namespace fan {
         *this = b2_nullBodyId;
       }
       
-      void destroy() {
-        if (!is_valid()) return;
-        b2BodyId id = *this;
-        queue_one_time_command([id]() {
-          b2DestroyBody(id);
-        });
-        invalidate();
-      }
+      void destroy();
       
       void erase() {
         destroy();
@@ -290,9 +283,7 @@ export namespace fan {
           return;
         }
         b2JointId id = *this;
-        queue_one_time_command([id]() {
-          b2DestroyJoint(id);
-        });
+        b2DestroyJoint(id);
         invalidate();
       }
       
@@ -378,13 +369,17 @@ export namespace fan {
 
         for (int i = 0; i < sensor_events.beginCount; ++i) {
           b2SensorBeginTouchEvent ev = sensor_events.beginEvents[i];
-          begin_touch_event_cb(ev);
-          update_contact(b2Shape_GetBody(ev.sensorShapeId), b2Shape_GetBody(ev.visitorShapeId), true);
+          if (b2Shape_IsValid(ev.visitorShapeId)) {
+            begin_touch_event_cb(ev);
+            update_contact(b2Shape_GetBody(ev.sensorShapeId), b2Shape_GetBody(ev.visitorShapeId), true);
+          }
         }
         for (int i = 0; i < sensor_events.endCount; ++i) {
           b2SensorEndTouchEvent ev = sensor_events.endEvents[i];
-          end_touch_event_cb(ev);
-          update_contact(b2Shape_GetBody(ev.sensorShapeId), b2Shape_GetBody(ev.visitorShapeId), false);
+          if (b2Shape_IsValid(ev.visitorShapeId)) {
+            end_touch_event_cb(ev);
+            update_contact(b2Shape_GetBody(ev.sensorShapeId), b2Shape_GetBody(ev.visitorShapeId), false);
+          }
         }
         contacts.erase(
           std::remove_if(contacts.begin(), contacts.end(),
@@ -405,6 +400,16 @@ export namespace fan {
           .object_id = object_id,
           .is_in_contact = is_in_contact
         });
+      }
+
+      void remove_body_contacts(b2BodyId body_id) {
+        contacts.erase(
+          std::remove_if(contacts.begin(), contacts.end(),
+            [body_id](const sensor_contact_t& c) {
+              return B2_ID_EQUALS(c.object_id, body_id) || B2_ID_EQUALS(c.sensor_id, body_id);
+            }),
+          contacts.end()
+        );
       }
 
       bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const {
@@ -488,11 +493,11 @@ export namespace fan {
         return entity;
       }
       
-      entity_t create_rectangle(const fan::vec2& position, const fan::vec2& size, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
+      entity_t create_rectangle(const fan::vec2& position, const fan::vec2& size, f32_t angle = 0, uint8_t body_type = body_type_e::static_body, const shape_properties_t& shape_properties = {}) {
         return create_box(position, size, angle, body_type, shape_properties);
       }
       
-      entity_t create_circle(const fan::vec2& position, f32_t radius, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
+      entity_t create_circle(const fan::vec2& position, f32_t radius, f32_t angle = 0, uint8_t body_type = body_type_e::static_body, const shape_properties_t& shape_properties = {}) {
         circle_t shape;
         shape.center = fan::vec2(0);
         shape.radius = radius / length_units_per_meter * shape_properties.collision_multiplier.x;
@@ -930,6 +935,16 @@ export namespace fan {
       gphysics->physics_updates->unlrec(nr);
     }
   }
+}
+
+      
+void fan::physics::body_id_t::destroy() {
+  if (!is_valid()) return;
+  b2BodyId id = *this;
+
+  gphysics->sensor_events.remove_body_contacts(id);
+  b2DestroyBody(id);
+  invalidate();
 }
 
 #endif
