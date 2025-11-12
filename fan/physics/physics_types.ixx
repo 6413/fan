@@ -28,7 +28,7 @@ export namespace fan::physics {
 
   struct shape_properties_t {
     f32_t friction = 0.6f;
-    f32_t density = 0.1f;
+    f32_t density = 1.0f;
     f32_t restitution = 0.0f;
     bool fixed_rotation = false;
     bool presolve_events = false;

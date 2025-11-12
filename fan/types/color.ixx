@@ -326,6 +326,7 @@ export namespace fan {
 		inline constexpr fan::color magenta = fan::color::from_rgba(0xFF00FFFF);
 		inline constexpr fan::color transparent = fan::color::from_rgba(0x00000000);
 		inline constexpr fan::color lime = fan::color(0.2f, 0.8f, 0.2f, 1.0f);
+    inline constexpr fan::color brown = fan::color::from_rgb(0x8B6A3E);
 	}
 	namespace random {
 		fan::color color() {

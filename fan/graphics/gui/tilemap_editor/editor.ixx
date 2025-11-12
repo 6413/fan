@@ -98,7 +98,7 @@ export struct fte_t {
   void resize_map() {
     grid_visualize.background.set_size(tile_size * map_size);
     grid_visualize.background.set_tc_size(fan::vec2(0.5) * map_size);
-    grid_visualize.background.set_position(fan::vec3(tile_size * 2 * map_size / 2 - tile_size, 0));
+    grid_visualize.background.set_position(fan::vec3(0, 0, 0));
     grid_visualize.grid.set_grid_size(
       map_size
     );

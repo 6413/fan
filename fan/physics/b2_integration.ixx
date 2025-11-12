@@ -2,13 +2,16 @@ module;
 
 #if defined(fan_physics)
 
+#include <fan/utility.h>
+
 #include <box2d/box2d.h>
 
-#include <cassert> // box2d
+#include <cassert>
 #include <functional>
 #include <unordered_set>
 #include <cmath>
 #include <algorithm>
+#include <vector>
 
 #endif
 
@@ -20,14 +23,23 @@ export import fan.physics.types;
 import fan.types.vector;
 import fan.print;
 import fan.physics.common_context;
-/// <summary>
-/// 
-/// </summary>
+
 export namespace fan {
   namespace physics {
     struct context_t;
   }
 }
+
+#define BLL_set_SafeNext 1
+#define BLL_set_AreWeInsideStruct 0
+#define BLL_set_prefix physics_step_callbacks
+#include <fan/fan_bll_preset.h>
+#define BLL_set_Link 1
+#define BLL_set_type_node uint16_t
+#define BLL_set_NodeDataType std::function<void()>
+#define BLL_set_CPP_CopyAtPointerChange 1
+#include <BLL/BLL.h>
+
 
 export namespace fan {
   namespace physics {
@@ -53,7 +65,6 @@ export namespace fan {
       using b2Circle::b2Circle;
       circle_t(const b2Circle& circle) : b2Circle(circle) {}
     };
-    /// A line segment with two-sided collision.
     struct segment_t : b2Segment {
       using b2Segment::b2Segment;
       segment_t(const b2Segment& segment) : b2Segment(segment) {}
@@ -69,38 +80,20 @@ export namespace fan {
         return hit;
       }
     };
-    // struct chain_segment_t : b2ChainSegment {
-    //   using b2ChainSegment::b2ChainSegment;
-    //   chain_segment_t(const b2ChainSegment& segment) : b2ChainSegment(segment) {}
-    // };
 
+    using physics_step_callback_nr_t = physics_step_callbacks_NodeReference_t;
+    
+    std::vector<std::function<void()>> one_time_commands;
 
-    struct body_update_data_t {
-      fan::vec2 linear_velocity{ 0 };
-      f32_t angular_velocity = 0;
-      fan::vec2 accumulated_force{ 0 };
-      fan::vec2 accumulated_impulse{ 0 };
-      f32_t accumulated_angular_impulse = 0;
-      fan::vec2 position{ 0 };
-
-      bool has_linear_velocity = false;
-      bool has_angular_velocity = false;
-      bool has_position = false;
-
-      bool is_idle() const {
-        return accumulated_force.x == 0.0f && accumulated_force.y == 0.0f &&
-          accumulated_impulse.x == 0.0f && accumulated_impulse.y == 0.0f &&
-          accumulated_angular_impulse == 0.0f &&
-          !has_linear_velocity && !has_angular_velocity && !has_position;
-      }
-    };
-
+    void queue_one_time_command(std::function<void()> callback) {
+      one_time_commands.push_back(std::move(callback));
+    }
 
     struct b2_body_id_hash_t {
       std::size_t operator()(const b2BodyId& id) const {
         return std::hash<uint64_t>{}(
           (uint64_t(id.index1) << 32) | (uint64_t(id.world0) << 16) | id.generation
-          );
+        );
       }
     };
 
@@ -110,18 +103,17 @@ export namespace fan {
       }
     };
 
-    std::unordered_map<b2BodyId, body_update_data_t, b2_body_id_hash_t, b2_body_id_equal_t> body_updates;
-
     inline constexpr f32_t default_physics_timestep = 1.0 / 256.f;
 
-    // opaque handle for now
     struct shape_id_t : b2ShapeId {
       using b2ShapeId::b2ShapeId;
       shape_id_t() : b2ShapeId(b2_nullShapeId) {}
       shape_id_t(const b2ShapeId& shape_id) : b2ShapeId(shape_id) {}
 
       void set_friction(f32_t friction) {
-        b2Shape_SetFriction(*this, friction);
+        queue_one_time_command([id = *this, friction]() {
+          b2Shape_SetFriction(id, friction);
+        });
       }
 
       bool is_valid() const {
@@ -132,7 +124,6 @@ export namespace fan {
       }
     };
 
-    // opaque handle
     struct body_id_t : b2BodyId {
       using b2BodyId::b2BodyId;
       body_id_t() : b2BodyId(b2_nullBodyId) {}
@@ -141,6 +132,7 @@ export namespace fan {
       void set_body(const body_id_t& b) {
         *this = b;
       }
+      
       bool operator==(const body_id_t& b) const {
         return B2_ID_EQUALS(static_cast<const b2BodyId&>(*this),
           static_cast<const b2BodyId&>(b));
@@ -149,24 +141,32 @@ export namespace fan {
       bool operator!=(const body_id_t& b) const {
         return !(*this == b);
       }
+      
       operator bool() const {
         return is_valid();
       }
+      
       operator b2ShapeId() const {
         return get_shape_id();
       }
+      
       bool is_valid() const {
         return b2Body_IsValid(static_cast<const b2BodyId&>(*this));
       }
+      
       void invalidate() {
         *this = b2_nullBodyId;
       }
+      
       void destroy() {
         if (!is_valid()) return;
-        body_updates.erase(*this);
-        b2DestroyBody(static_cast<b2BodyId>(*this));
+        b2BodyId id = *this;
+        queue_one_time_command([id]() {
+          b2DestroyBody(id);
+        });
         invalidate();
       }
+      
       void erase() {
         destroy();
       }
@@ -176,43 +176,46 @@ export namespace fan {
       }
 
       void set_linear_velocity(const fan::vec2& v) {
-        auto& data = body_updates[*this];
-        data.linear_velocity = v;
-        data.has_linear_velocity = true;
+        b2Body_SetLinearVelocity(*this, v / length_units_per_meter);
       }
 
       f32_t get_angular_velocity() const {
-        return b2Body_GetAngularVelocity(*this)/* * length_units_per_meter*/;
+        return b2Body_GetAngularVelocity(*this);
       }
 
       void set_angular_velocity(f32_t v) {
-        auto& data = body_updates[*this];
-        data.angular_velocity = v;
-        data.has_angular_velocity = true;
+        b2Body_SetAngularVelocity(*this, v);
       }
 
-      void apply_force_center(const fan::vec2& v);
+      void apply_force_center(const fan::vec2& v) {
+        b2Body_ApplyForceToCenter(*this, v / length_units_per_meter, true);
+      }
 
-      void apply_linear_impulse_center(const fan::vec2& v);
-      void zero_linear_impulse_center();
+      void apply_linear_impulse_center(const fan::vec2& v) {
+        b2Body_ApplyLinearImpulseToCenter(*this, v / length_units_per_meter, true);
+      }
+
+      void zero_linear_impulse_center() {
+        b2Body_SetLinearVelocity(*this, {0, 0});
+      }
 
       void apply_angular_impulse(f32_t v) {
-        auto& data = body_updates[*this];
-        data.accumulated_angular_impulse += v;
+        b2Body_ApplyAngularImpulse(*this, v / (length_units_per_meter * length_units_per_meter), true);
       }
 
       fan::vec2 get_physics_position() const {
         return fan::physics::physics_to_render(b2Body_GetPosition(*this));
       }
+      
       fan::vec2 get_position() const {
         return get_physics_position();
       }
 
       void set_physics_position(const fan::vec2& p) {
-        auto& data = body_updates[*this];
-        data.position = p / length_units_per_meter;
-        data.has_position = true;
+        b2Rot rotation = b2Body_GetRotation(*this);
+        b2Body_SetTransform(*this, p / length_units_per_meter, rotation);
       }
+      
       b2ShapeId get_shape_id() const {
         b2ShapeId shape_id = b2_nullShapeId;
       #if fan_debug >= fan_debug_medium
@@ -228,15 +231,19 @@ export namespace fan {
       f32_t get_density() const {
         return b2Shape_GetDensity(get_shape_id());
       }
+      
       f32_t get_friction() const {
         return b2Shape_GetFriction(get_shape_id());
       }
+      
       f32_t get_mass() const {
-        return b2Shape_GetMassData(get_shape_id()).mass * (length_units_per_meter * length_units_per_meter);
+        return b2Shape_GetMassData(get_shape_id()).mass * length_units_per_meter;
       }
+      
       f32_t get_restitution() const {
         return b2Shape_GetRestitution(get_shape_id());
       }
+      
       fan::physics::aabb_t get_aabb() const {
         b2AABB aabb = b2Shape_GetAABB(get_shape_id());
         return {
@@ -244,7 +251,7 @@ export namespace fan {
           fan::physics::physics_to_render(fan::vec2(aabb.upperBound.x, aabb.upperBound.y))
         };
       }
-      // half extents from center
+      
       fan::vec2 get_aabb_size() const {
         fan::physics::aabb_t aabb = get_aabb();
         fan::vec2 size = aabb.max - aabb.min;
@@ -252,59 +259,47 @@ export namespace fan {
       }
     };
 
-    struct joint_update_data_t {
-      f32_t motor_speed = 0;
-      bool has_motor_speed = false;
-    };
-
-    struct b2_joint_id_hash_t {
-      std::size_t operator()(const b2JointId& id) const {
-        return std::hash<uint64_t>{}(
-          (uint64_t(id.index1) << 32) | (uint64_t(id.world0) << 16) | id.generation
-          );
-      }
-    };
-    struct b2_joint_id_equal_t {
-      bool operator()(const b2JointId& a, const b2JointId& b) const {
-        return a.index1 == b.index1 && a.world0 == b.world0 && a.generation == b.generation;
-      }
-    };
-    inline std::unordered_map<b2JointId, joint_update_data_t, b2_joint_id_hash_t, b2_joint_id_equal_t> joint_updates;
-
-
     struct joint_id_t : b2JointId {
       using b2JointId::b2JointId;
       joint_id_t() : b2JointId(b2_nullJointId) {}
-      joint_id_t(const b2JointId& body_id) : b2JointId(body_id) {
-
-      }
+      joint_id_t(const b2JointId& body_id) : b2JointId(body_id) {}
+      
       void set_joint(const joint_id_t& b) {
         *this = b;
       }
+      
       bool operator==(const joint_id_t& b) const {
         b2JointId a = *this;
         return B2_ID_EQUALS(a, b);
       }
+      
       bool operator!=(const joint_id_t& b) const {
         return !this->operator==(b);
       }
+      
       bool is_valid() {
         return *this != b2_nullJointId;
       }
+      
       void invalidate() {
         *this = b2_nullJointId;
       }
+      
       void destroy() {
         if (is_valid() == false) {
           return;
         }
-        b2DestroyJoint(*this);
+        b2JointId id = *this;
+        queue_one_time_command([id]() {
+          b2DestroyJoint(id);
+        });
         invalidate();
       }
+      
       void revolute_joint_set_motor_speed(f32_t v) {
-        auto& data = joint_updates[*this];
-        data.motor_speed = v;
-        data.has_motor_speed = true;
+        queue_one_time_command([id = *this, v]() {
+          b2RevoluteJoint_SetMotorSpeed(id, v);
+        });
       }
     };
 
@@ -339,7 +334,6 @@ export namespace fan {
       return { 0, 0 };
     }
 
-
     void apply_wall_slide(body_id_t body_id, const fan::vec2& wall_normal, f32_t slide_speed = 20.0f) {
       if (!wall_normal) {
         return;
@@ -349,31 +343,24 @@ export namespace fan {
       f32_t mass = body_id.get_mass();
 
       if (velocity.y > slide_speed) {
-
         f32_t delta_v = slide_speed - velocity.y;
         delta_v = std::max(delta_v, -velocity.y);
         fan::vec2 impulse = fan::vec2(0, delta_v / mass);
-
         body_id.apply_linear_impulse_center(impulse);
       }
     }
 
+    void wall_jump(body_id_t body_id, const fan::vec2& wall_normal,
+      f32_t push_x = 2.f,
+      f32_t jump_speed_up = 15.f,
+      f32_t max_up_speed = 60.f) 
+    {
+      if (!wall_normal) return;
 
-    void wall_jump(body_id_t body_id, const fan::vec2& wall_normal, f32_t jump_force_x = 2, f32_t jump_force_y = -.5f, f32_t max_jump_speed = 60.f) {
-      if (!wall_normal) {
-        return;
-      }
+      f32_t desired_y_physics = -std::min(jump_speed_up, max_up_speed);
 
-      fan::vec2 jump_velocity;
-      if (wall_normal.x > 0) {
-        jump_velocity = fan::vec2(-jump_force_x, jump_force_y);
-      }
-      else {
-        jump_velocity = fan::vec2(jump_force_x, jump_force_y);
-      }
-      if (body_id.get_linear_velocity().y > -max_jump_speed) {
-        body_id.apply_linear_impulse_center(jump_velocity);
-      }
+      body_id.set_linear_velocity(fan::vec2(body_id.get_linear_velocity().x, 0));
+      body_id.apply_linear_impulse_center({ push_x, desired_y_physics });
     }
 
     struct sensor_events_t {
@@ -382,8 +369,10 @@ export namespace fan {
         fan::physics::body_id_t object_id;
         bool is_in_contact = 0;
       };
+      
       std::function<void(b2SensorBeginTouchEvent&)> begin_touch_event_cb = [](b2SensorBeginTouchEvent&) {};
       std::function<void(b2SensorEndTouchEvent&)> end_touch_event_cb = [](b2SensorEndTouchEvent&) {};
+      
       void update(b2WorldId world_id) {
         b2SensorEvents sensor_events = b2World_GetSensorEvents(world_id);
 
@@ -415,7 +404,7 @@ export namespace fan {
           .sensor_id = sensor_id,
           .object_id = object_id,
           .is_in_contact = is_in_contact
-          });
+        });
       }
 
       bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const {
@@ -426,6 +415,7 @@ export namespace fan {
         }
         return false;
       }
+      
       std::vector<sensor_contact_t> contacts;
     };
 
@@ -436,13 +426,12 @@ export namespace fan {
       }
 
       struct properties_t {
-        // clang
         properties_t() {};
         fan::vec2 gravity{ 0, 9.8f };
       };
+      
       context_t(const properties_t& properties = properties_t()) {
         gphysics = this;
-        //b2SetLengthUnitsPerMeter(properties.length_units_per_meter);
         b2WorldDef world_def = b2DefaultWorldDef();
         world_def.gravity = properties.gravity;
 
@@ -456,12 +445,12 @@ export namespace fan {
           return set_gravity(new_gravity);
         };
       }
+      
       void set_gravity(const fan::vec2& gravity) {
-        fan::print(gravity, gravity / length_units_per_meter);
         b2World_SetGravity(world_id, gravity / length_units_per_meter);
       }
+      
       fan::vec2 get_gravity() const {
-        fan::print(fan::vec2(b2World_GetGravity(world_id)) * length_units_per_meter);
         return b2World_GetGravity(world_id) * length_units_per_meter;
       }
 
@@ -494,15 +483,15 @@ export namespace fan {
         shape_def.material.restitution = shape_properties.restitution;
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
-
         shape_def.filter = shape_properties.filter;
-        //shape_def.rollingResistance = shape_properties.rolling_resistance;
         b2CreatePolygonShape(entity, &shape_def, &shape);
         return entity;
       }
+      
       entity_t create_rectangle(const fan::vec2& position, const fan::vec2& size, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
         return create_box(position, size, angle, body_type, shape_properties);
       }
+      
       entity_t create_circle(const fan::vec2& position, f32_t radius, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
         circle_t shape;
         shape.center = fan::vec2(0);
@@ -535,10 +524,10 @@ export namespace fan {
         shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
 
-        //shape_def.rollingResistance = shape_properties.rolling_resistance;
         b2CreateCircleShape(entity, &shape_def, &shape);
         return entity;
       }
+      
       fan::physics::entity_t create_capsule(const fan::vec2& position, f32_t angle, const b2Capsule& info, uint8_t body_type, const shape_properties_t& shape_properties) {
         capsule_t shape = info;
         shape.center1.x /= length_units_per_meter / shape_properties.collision_multiplier.x;
@@ -572,7 +561,6 @@ export namespace fan {
         shape_def.isSensor = shape_properties.is_sensor;
         shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
-        //shape_def.rollingResistance = shape_properties.rolling_resistance;
         b2CreateCapsuleShape(entity, &shape_def, &shape);
         return entity;
       }
@@ -608,7 +596,6 @@ export namespace fan {
           shape.point2 = points[i + 1] / length_units_per_meter;
           b2CreateSegmentShape(entity, &shape_def, &shape);
         }
-        // connnect last to first
         if (points.size() > 2) {
           segment_t shape;
           shape.point1 = points.back() / length_units_per_meter;
@@ -617,6 +604,7 @@ export namespace fan {
         }
         return entity;
       }
+      
       fan::physics::entity_t create_polygon(const fan::vec2& position, f32_t radius, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties) {
         entity_t entity;
         b2BodyDef body_def = b2DefaultBodyDef();
@@ -629,7 +617,6 @@ export namespace fan {
         entity = b2CreateBody(world_id, &body_def);
 
       #if fan_debug >= fan_debug_medium
-        // world probably locked
         if (entity.is_valid() == false) {
           fan::throw_error();
         }
@@ -655,6 +642,7 @@ export namespace fan {
         b2CreatePolygonShape(entity, &shape_def, &polygon);
         return entity;
       }
+      
       void step(f32_t dt) {
         static f32_t accumulator = 0.0f;
         accumulator += dt;
@@ -662,53 +650,22 @@ export namespace fan {
         f32_t physics_timestep = default_physics_timestep;
 
         while (accumulator >= physics_timestep) {
-
-          process_collision_events();
-
-          auto it = body_updates.begin();
-          while (it != body_updates.end()) {
-            auto& [id, data] = *it;
-
-            if (data.has_linear_velocity) {
-              b2Body_SetLinearVelocity(id, data.linear_velocity / length_units_per_meter);
-              data.has_linear_velocity = false;
-            }
-            if (data.has_angular_velocity) {
-              b2Body_SetAngularVelocity(id, data.angular_velocity/* / length_units_per_meter*/);
-              data.has_angular_velocity = false;
-            }
-            if (data.has_position) {
-              b2Rot rotation = b2Body_GetRotation(id);
-              b2Body_SetTransform(id, data.position, rotation);
-              data.has_position = false;
-            }
-
-            if (data.accumulated_impulse.x != 0.0f || data.accumulated_impulse.y != 0.0f) {
-              b2Body_ApplyLinearImpulseToCenter(id, data.accumulated_impulse * physics_timestep / length_units_per_meter, true);
-              data.accumulated_impulse = { 0, 0 };
-            }
-           /* if (data.accumulated_angular_impulse != 0.0f) {
-              b2Body_ApplyAngularImpulse(id, data.accumulated_angular_impulse / length_units_per_meter, true);
-              data.accumulated_angular_impulse = 0.0f;
-            }*/
-            if (data.accumulated_angular_impulse != 0.0f) {
-              b2Body_ApplyAngularImpulse(id, data.accumulated_angular_impulse / (length_units_per_meter * length_units_per_meter), true);
-              data.accumulated_angular_impulse = 0.0f;
-            }
-            if (data.accumulated_force.x != 0.0f || data.accumulated_force.y != 0.0f) {
-              b2Body_ApplyLinearImpulseToCenter(id, data.accumulated_force/ length_units_per_meter, true);
-            }
-            if ((accumulator - physics_timestep) < physics_timestep && data.is_idle()) {
-              it = body_updates.erase(it);
-            }
-            else {
-              ++it;
+          {
+            auto it = physics_step_callbacks.GetNodeFirst();
+            while (it != physics_step_callbacks.dst) {
+              physics_step_callbacks[it]();
+              it = it.Next(&physics_step_callbacks);
             }
           }
+          
+          for (auto& command : one_time_commands) {
+            command();
+          }
+          one_time_commands.clear();
 
+          process_collision_events();
           b2World_Step(world_id, physics_timestep, 4);
           sensor_events.update(world_id);
-
           accumulator -= physics_timestep;
         }
       }
@@ -717,7 +674,6 @@ export namespace fan {
         return sensor_events.is_on_sensor(test_id, sensor_id);
       }
 
-      // screen coordinates
       ray_result_t raycast(const fan::vec2& src_, const fan::vec2& dst_) {
         fan::vec2 src = src_ / fan::physics::length_units_per_meter;
         fan::vec2 dst = dst_ / fan::physics::length_units_per_meter;
@@ -760,6 +716,7 @@ export namespace fan {
         auto pair = std::minmax(get_shape_key(a), get_shape_key(b));
         active_collisions.erase(pair);
       }
+      
       void process_collision_events() {
         b2ContactEvents contact_events = b2World_GetContactEvents(world_id);
 
@@ -793,6 +750,7 @@ export namespace fan {
           fan::physics::shape_properties_t{ .is_sensor = true }
         );
       }
+      
       fan::physics::entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size) {
         return create_box(
           position,
@@ -807,19 +765,17 @@ export namespace fan {
       sensor_events_t sensor_events;
       f32_t delta_time = 0;
 
-
       struct pair_hash_t {
         size_t operator()(const std::pair<uint64_t, uint64_t>& p) const {
           return std::hash<uint64_t>{}(p.first) ^ (std::hash<uint64_t>{}(p.second) << 1);
         }
       };
+      
       std::unordered_set<std::pair<uint64_t, uint64_t>, pair_hash_t> active_collisions;
       fan::physics::physics_update_cbs_t* physics_updates = nullptr;
+      physics_step_callbacks_t physics_step_callbacks;
     };
 
-    // This callback must be thread-safe. It may be called multiple times simultaneously.
-// Notice how this method is constant and doesn't change any data. It also
-// does not try to access any values in the world that may be changing, such as contact data.
     bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body) {
       assert(b2Shape_IsValid(shapeIdA));
       assert(b2Shape_IsValid(shapeIdB));
@@ -832,7 +788,6 @@ export namespace fan {
         sign = -1.0f;
       }
       else {
-        // not colliding with the player, enable contact
         return true;
       }
 
@@ -848,11 +803,9 @@ export namespace fan {
       }
 
       if (separation > 0.1f * 64.f) {
-        // shallow overlap
         return true;
       }
 
-      // normal points down, disable contact
       return false;
     }
 
@@ -945,7 +898,6 @@ export namespace fan {
       b2World_SetPreSolveCallback(world_id, fcn, context);
     }
 
-    // .contact_events = true must be set
     bool is_colliding(const b2ShapeId& a, const b2ShapeId& b) {
       return gphysics->is_colliding(a, b);
     }
@@ -953,32 +905,31 @@ export namespace fan {
     fan::physics::entity_t create_sensor_circle(const fan::vec2& position, f32_t radius) {
       return gphysics->create_sensor_circle(position, radius);
     }
+    
     fan::physics::entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size) {
       return gphysics->create_sensor_rectangle(position, size);
     }
 
+    physics_step_callback_nr_t add_physics_step_callback(std::function<void()> callback) {
+      auto nr = gphysics->physics_step_callbacks.NewNodeLast();
+      gphysics->physics_step_callbacks[nr] = std::move(callback);
+      return nr;
+    }
+    void remove_physics_step_callback(physics_step_callback_nr_t nr) {
+      gphysics->physics_step_callbacks.unlrec(nr);
+    }
+
+    // for drawing physics shapes
     fan::physics::physics_update_cbs_t::nr_t add_physics_update(const fan::physics::physics_update_data_t& cb_data) {
       auto it = gphysics->physics_updates->NewNodeLast();
       (*gphysics->physics_updates)[it] = (fan::physics::physics_update_data_t)cb_data;
       return it;
     }
+    
     void remove_physics_update(fan::physics::physics_update_cbs_t::nr_t nr) {
       gphysics->physics_updates->unlrec(nr);
     }
   }
 }
 
-void fan::physics::body_id_t::apply_linear_impulse_center(const fan::vec2& v) {
-  auto& data = body_updates[*this];
-  data.accumulated_impulse += v;
-}
-void fan::physics::body_id_t::zero_linear_impulse_center() {
-  auto& data = body_updates[*this];
-  data.accumulated_impulse = 0;
-}
-
-void fan::physics::body_id_t::apply_force_center(const fan::vec2& v) {
-  auto& data = body_updates[*this];
-  data.accumulated_force = v;
-}
 #endif

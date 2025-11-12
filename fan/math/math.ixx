@@ -39,7 +39,7 @@ export namespace fan {
 
     template <typename T>
     T lerp(T src, T dst, double t) {
-      return { src + (dst - src) * t };
+      return T{ (T)(src + (dst - src) * t) };
     }
 
     template <typename T>

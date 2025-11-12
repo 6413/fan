@@ -948,12 +948,16 @@ export namespace fan {
 
 				struct wall_jump_t {
 					fan::vec2 normal;
-					f32_t slide_speed = 100.f;
+					f32_t slide_speed = 200.f;
 					f32_t push_away_force = 1.f;
 				}wall_jump;
 
 				character2d_t() = default;
-				character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {}
+				character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {
+          force = get_mass() * 0.05f;
+				  jump_impulse = get_mass() * 0.013f;
+				  max_speed = get_mass() * 0.1f;
+        }
 
 				void set_shape(fan::graphics::shape_t&& shape) {
 					physics::base_shape_t::set_shape(std::move(shape));
@@ -1044,7 +1048,7 @@ export namespace fan {
                 fan::vec2 vel = get_linear_velocity();
                 //f32_t clamped_x = std::clamp(vel.x, -max_speed, max_speed);
                 //set_linear_velocity(fan::vec2(vel.x, 0));
-								fan::physics::wall_jump(*this, wall_jump.normal, wall_jump.push_away_force, -jump_impulse);
+								fan::physics::wall_jump(*this, wall_jump.normal, wall_jump.push_away_force, jump_impulse);
 								on_air_after_jump = true;
 								jumping = true;
 							}
@@ -1069,29 +1073,33 @@ export namespace fan {
 						break;
 					}
 					}
-				}
-				void move_to_direction(const fan::vec2& direction) {
-					fan::vec2 vel = get_linear_velocity();
-					//apply_force_center((fan::vec2(1.0) - (fan::vec2i(vel / max_speed).min(1)).abs()) * direction.sign() * force);
-					
-					fan::vec2 input_dir = direction.sign();
-					//if (vel.dot(direction) < max_speed) {
-						apply_force_center(direction * force);
-					//}
-          f32_t clamped_x = std::clamp(vel.x, -max_speed, max_speed);
-          set_linear_velocity(fan::vec2(clamped_x, vel.y));
+        }
 
-					previous_movement_sign = direction.sign(); // square_normalize?
-				}
+        void move_to_direction(const fan::vec2& direction) {
+          fan::vec2 input_dir = direction.sign();
+          fan::vec2 vel = get_linear_velocity();
+
+          if (input_dir.x != 0) {
+            vel.x += input_dir.x * force;
+            vel.x = std::clamp(vel.x, -max_speed, max_speed);
+          }
+          else {
+            f32_t deceleration_factor = 0.05f; // 5% per step
+            vel.x = fan::math::lerp(vel.x, 0.f, deceleration_factor);
+          }
+
+          set_linear_velocity({ vel.x, vel.y });
+          previous_movement_sign = input_dir;
+        }
 
 				void set_physics_position(const fan::vec2& p) {
 					fan::physics::entity_t::set_physics_position(p);
 					fan::graphics::shape_t::set_position(p);
 				}
 				fan::vec2 previous_movement_sign;
-				f32_t force = 40.f;
-				f32_t jump_impulse = 3.2f;
-				f32_t max_speed = 300.f;
+				f32_t force = 160.f;
+				f32_t jump_impulse = 20.f;
+				f32_t max_speed = 800.f;
 				f32_t jump_delay = 0.25f;
 				bool jumping = false;
 				fan::physics::body_id_t feet[2];
