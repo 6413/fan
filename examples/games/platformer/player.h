@@ -10,21 +10,24 @@ struct player_t {
     },
     {
       .friction = 0.6f,
-      .density = 0.1f,
       .fixed_rotation = true
     });
     light.set_position(body.get_position());
     f32_t mass = body.get_mass();
     body.jump_impulse = 0.013 * mass;
-    body.force = mass /10.0;
-    body.max_speed = 0.0001;
-    body.wall_jump.push_away_force = 0.013 * mass;
+    body.force = mass * 0.1f;
+    body.max_speed = mass * 0.5f;
+    body.wall_jump.push_away_force = 1.0f;
     body.wall_jump.slide_speed = 200;
-    
+    p_step_nr = fan::physics::add_physics_step_callback([&] {
+      body.process_movement(fan::graphics::physics::character2d_t::movement_e::side_view);
+    });
+  }
+  ~player_t() {
+    fan::physics::remove_physics_step_callback(p_step_nr);
   }
 
   void step() {
-    body.process_movement(fan::graphics::physics::character2d_t::movement_e::side_view);
     light.set_position(fan::vec2(body.get_position()));
   }
 
@@ -34,4 +37,5 @@ struct player_t {
     .color = fan::colors::white/*,
     .flags = 3*/
   } };
+  fan::physics::physics_step_callback_nr_t p_step_nr;
 };

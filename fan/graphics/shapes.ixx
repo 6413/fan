@@ -2660,7 +2660,7 @@ export namespace fan::graphics {
 				fan::color color = fan::colors::white;
 				fan::vec3 angle = 0;
 
-				bool blending = false;
+				bool blending = true;
 
 				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
 				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;

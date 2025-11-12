@@ -82,7 +82,7 @@ void main() {
 
 	mat4 m = mat4(1);
 	m = translate(m, -vec3(in_rotation_point, 0));
-	m = rotate(m, in_angle); 
+	m = rotate(m, in_angle);
 	m = translate(m, vec3(in_rotation_point, 0));
 	vec2 rotated = vec4(m * vec4(rp * in_size, 0, 1)).xy;
 
@@ -93,5 +93,5 @@ void main() {
 
 	instance_color = in_color;
 	texture_coordinate = tc[id];
-	grid_size = in_grid_size / 2;
+	grid_size = in_grid_size;
 }
