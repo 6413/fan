@@ -683,7 +683,8 @@ void main() {
   struct demo_physics_sensor_t {
     fan::physics::entity_t sensors[3];
     fan::graphics::rectangle_t visuals[3];
-    fan::physics::entity_t dummy;
+    fan::physics::entity_t sensor1;
+    fan::physics::entity_t sensor2;
   }*demo_physics_sensor_data = 0;
 
   static void demo_physics_init_sensor(engine_demo_t* engine_demo) {
@@ -704,7 +705,7 @@ void main() {
         .color = fan::colors::blue.set_alpha(0.5)
       } };
     }
-    data.dummy = engine_demo->engine.physics_context.create_box(0, 64, 0);
+    data.sensor1 = engine_demo->engine.physics_context.create_box(0, 64);
   }
 
   static void demo_physics_update_sensor(engine_demo_t* engine_demo) {
@@ -712,18 +713,25 @@ void main() {
 
     fan::graphics::gui::text("Sensor Demo", fan::colors::yellow);
 
-    data.dummy.set_physics_position(get_mouse_position(engine_demo->right_column_view));
+    data.sensor1.set_physics_position(get_mouse_position(engine_demo->right_column_view));
 
-    fan::graphics::rectangle(fan::vec3(get_mouse_position(engine_demo->right_column_view), 10), 64, fan::colors::red, &engine_demo->right_column_view);
+    fan::graphics::rectangle(fan::vec3(get_mouse_position(engine_demo->right_column_view), 10), 64, fan::colors::red.set_alpha(0.6), &engine_demo->right_column_view);
 
+    fan::graphics::circle(fan::vec3(get_mouse_position(engine_demo->right_column_view)+ fan::vec2(128, 0), 10), 64, fan::colors::red.set_alpha(0.6), &engine_demo->right_column_view);
+
+    if (data.sensor2) {
+      data.sensor2.erase();
+    }
+    data.sensor2 = engine_demo->engine.physics_context.create_circle(get_mouse_position(engine_demo->right_column_view) + fan::vec2(128, 0), 64);
     // IMPORTANT: physics step after creating test box and then check is on_sensor,
     // because dummy id changes every frame so, you cannot check it on the next frame.
-    // Note that creating dummy every frame does not update the sensors properly
     engine_demo->engine.update_physics();
 
     for (int i = 0; i < 3; ++i) {
       fan::vec2 pos = data.visuals[i].get_position();
-      if (fan::physics::is_on_sensor(data.dummy, data.sensors[i])) {
+      if (fan::physics::is_on_sensor(data.sensor1, data.sensors[i]) ||
+          fan::physics::is_on_sensor(data.sensor2, data.sensors[i])) 
+      {
         data.visuals[i].set_color(fan::colors::green.set_alpha(0.6));
       }
       else {
@@ -734,7 +742,7 @@ void main() {
 
   static void demo_physics_cleanup_sensor(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_physics_sensor_data;
-    data.dummy.destroy();
+    //data.dummy.destroy();
     delete engine_demo->demo_physics_sensor_data;
   }
 
@@ -871,7 +879,7 @@ void main() {
     data.generator.set_heuristic(fan::graphics::algorithm::pathfind::heuristic::euclidean);
     data.generator.set_diagonal_movement(false);
 
-    data.mouse_down_nr[0] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](fan::vec2 pos) {
+    data.mouse_down_nr[0] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](fan::vec2 pos) {
       fan::vec2i cell = (fan::graphics::transform_position(pos, engine_demo->right_column_view) / data.tile_size).floor();
       if (fan::window::is_key_down(fan::key_left_shift)) {
         data.grid.add_wall(cell, data.generator);
@@ -881,7 +889,7 @@ void main() {
         data.grid.set_source(data.src, fan::colors::green);
       }
     });
-    data.mouse_down_nr[1] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](fan::vec2 pos) {
+    data.mouse_down_nr[1] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](fan::vec2 pos) {
       fan::vec2i cell = (fan::graphics::transform_position(pos, engine_demo->right_column_view) / data.tile_size).floor();
       if (fan::window::is_key_down(fan::key_left_shift)) {
         data.grid.remove_wall(cell, data.generator);
@@ -909,8 +917,8 @@ void main() {
     data.grid.set_source(data.src, fan::colors::green);
     data.grid.set_destination(data.dst, fan::colors::red);
 
-    fan::graphics::gui::text("Left click: set source / add wall with Shift");
-    fan::graphics::gui::text("Right click: set destination / remove wall with Shift");
+    fan::graphics::gui::text("Left click: set line ending point / add wall with Shift");
+    fan::graphics::gui::text("Right click: set line starting point / remove wall with Shift");
   }
 
   static void demo_algorithm_cleanup_pathfind(engine_demo_t* engine_demo) {

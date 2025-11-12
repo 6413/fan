@@ -616,7 +616,7 @@ export namespace fan {
       fan::color outline_color = color;
       fan::vec3 angle = 0;
       fan::vec2 rotation_point = 0;
-      bool blending = false;
+      bool blending = true;
     };
 
     // make sure you dont do position = vec2
