@@ -45,6 +45,9 @@ std::vector<fan::graphics::polygon_t> debug_draw_solid_polygon;
 std::vector<fan::graphics::circle_t> debug_draw_circle;
 std::vector<fan::graphics::line_t> debug_draw_line;
 std::vector<fan::graphics::capsule_t> debug_draw_capsule;
+
+// could add debug_draw_render_view for custom view
+
 /// Draw a closed polygon provided in CCW order.
 void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, void* context) {
 	if (z_depth == 2) {
