@@ -402,7 +402,7 @@ void main() {
       .shader = data.shader,
       .image = image,
     } };
-    engine_demo->interactive_camera.set_zoom(engine_demo->right_window_split_ratio * 2.f * 1.2f);
+    engine_demo->interactive_camera.set_zoom(engine_demo->right_window_split_ratio * 1.2f);
     engine_demo->interactive_camera.set_position(viewport_size / 2.f + 
       fan::vec2(
        0,
@@ -1381,7 +1381,6 @@ void main() {
       right_column_view.camera,
       right_column_view.viewport
     );
-    interactive_camera.pan_with_middle_mouse = true;
   }
 
   void update() {

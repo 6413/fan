@@ -891,8 +891,8 @@ export namespace fan {
       return glfw_window;
     }
 
-    int prev_key_states[fan::last]{};
-    int key_states[fan::last]{};
+    int prev_key_states[fan::key_last + 1]{};
+    int key_states[fan::key_last + 1]{};
     GLFWwindow* glfw_window = nullptr;
 
     fan::vec2d previous_mouse_position = -0xfff;

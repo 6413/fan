@@ -46,7 +46,7 @@ export namespace fan {
   };
 
   enum input {
-    first = GLFW_KEY_SPACE - 1,
+    key_first = GLFW_KEY_SPACE,
     key_space = GLFW_KEY_SPACE,
     key_0 = GLFW_KEY_0,
     key_1 = GLFW_KEY_1,
@@ -169,11 +169,13 @@ export namespace fan {
     key_right_alt = GLFW_KEY_RIGHT_ALT,
     key_right_super = GLFW_KEY_RIGHT_SUPER,
     key_menu = GLFW_KEY_MENU,
+    mouse_first = GLFW_MOUSE_BUTTON_LEFT,
     mouse_left = GLFW_MOUSE_BUTTON_LEFT,
     mouse_right = GLFW_MOUSE_BUTTON_RIGHT,
     mouse_middle = GLFW_MOUSE_BUTTON_MIDDLE,
     mouse_scroll_up = GLFW_MOUSE_BUTTON_LAST + 1,
     mouse_scroll_down = GLFW_MOUSE_BUTTON_LAST + 2,
+    mouse_last = mouse_scroll_down,
     gamepad_a = GLFW_KEY_LAST + 1,
     gamepad_b,
     gamepad_x,
@@ -189,7 +191,7 @@ export namespace fan {
     gamepad_down,
     gamepad_left,
     gamepad_guide,
-    gamepad_last = gamepad_guide + 1,
+    gamepad_last = gamepad_guide,
     gamepad_cross = gamepad_a,
     gamepad_circle = gamepad_b,
     gamepad_square = gamepad_x,
@@ -197,7 +199,7 @@ export namespace fan {
     gamepad_l2,
     gamepad_r2,
     key_invalid = GLFW_KEY_UNKNOWN,
-    last = gamepad_last + 1
+    key_last = gamepad_last
   };
   
   inline int input_enum_to_array_index(int key) {
@@ -341,9 +343,7 @@ export namespace fan {
     case input::gamepad_down: return 139;
     case input::gamepad_left: return 140;
     case input::gamepad_guide: return 141;
-    case input::gamepad_last: return 142;
     case input::key_invalid: return 149;
-    case input::last: return 150;
     default: return -1; // or some other error code
     }
   }
@@ -500,7 +500,6 @@ export namespace fan {
         case 147: return input::gamepad_l2;
         case 148: return input::gamepad_r2;
         case 149: return input::key_invalid;
-        case 150: return input::last;
         default: return -1; // or some other error code
     }
   }
