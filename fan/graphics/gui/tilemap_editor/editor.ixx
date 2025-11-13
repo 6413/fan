@@ -217,10 +217,12 @@ export struct fte_t {
     grid_visualize.background.set_size(tile_size * map_size);
     grid_visualize.background.set_tc_size(fan::vec2(0.5) * map_size);
     grid_visualize.background.set_position(fan::vec3(tile_size * 2 * map_size / 2 - tile_size, 0));
-    grid_visualize.grid.set_grid_size(map_size);
+
+    grid_visualize.grid.set_position(fan::vec2(map_size * (tile_size * 2.f) / 2.f - tile_size));
+    grid_visualize.grid.set_grid_size(map_size / 2.f);
 
     if (grid_visualize.render_grid) {
-      grid_visualize.grid.set_size(map_size * (tile_size / 2) * 2);
+      grid_visualize.grid.set_size(map_size * (tile_size * 2.f) / 2.f);
     }
     else {
       grid_visualize.grid.set_size(0);
@@ -318,7 +320,7 @@ export struct fte_t {
             fan::vec2 pos = (fan::graphics::get_window().get_mouse_position() - viewport_settings.window_related_mouse_pos);
             pos /= fan::graphics::get_window().get_size();
             pos *= viewport_settings.size / 2;
-            viewport_settings.zoom_offset += pos / viewport_settings.zoom;
+            //viewport_settings.zoom_offset += pos / viewport_settings.zoom;
           }
           return;
         }
@@ -410,10 +412,9 @@ export struct fte_t {
     fan::graphics::shapes::grid_t::properties_t gp;
     gp.viewport = render_view->viewport;
     gp.camera = render_view->camera;
-    gp.position = fan::vec3(0, 0, shape_depths_t::cursor_highlight_depth + 1);
+    gp.position = fan::vec3(map_size * (tile_size * 2.f) / 2.f - tile_size, shape_depths_t::cursor_highlight_depth + 1);
     gp.size = 0;
     gp.color = fan::color::rgb(0, 128, 255);
-
     grid_visualize.grid = gp;
     resize_map();
 
@@ -1306,7 +1307,7 @@ export struct fte_t {
 
       if (fan::graphics::gui::checkbox("render grid", &grid_visualize.render_grid)) {
         if (grid_visualize.render_grid) {
-          grid_visualize.grid.set_size(map_size * (tile_size / 2) * 2);
+          grid_visualize.grid.set_size(map_size * (tile_size * 2.f) / 2.f);
         }
         else {
           grid_visualize.grid.set_size(0);
@@ -1708,7 +1709,7 @@ export struct fte_t {
     }
   }
 
-  void handle_imgui() {
+  void handle_gui() {
     fan::vec2 editor_size;
 
     if (handle_editor_window(editor_size)) {
@@ -1737,10 +1738,12 @@ export struct fte_t {
 
     handle_tile_brush();
     fan::graphics::gui::end();
+
+    terrain_generator.render();
   }
 
   void render() {
-    handle_imgui();
+    handle_gui();
   }
 
   void fout(std::string filename) {
@@ -1982,6 +1985,175 @@ export struct fte_t {
     __unreachable();
 #endif
   }
+
+  #define editor OFFSETLESS(this, fte_t, terrain_generator)
+
+  struct terrain_generator_t {
+    terrain_generator_t()
+      : dirt_image(fan::color::from_rgb(0x492201)),
+      background_image(fan::color::from_rgb(0x20a7db))
+    {
+      init();
+    }
+
+    void init() {
+      render_view.create();
+      ic.reference_camera = render_view.camera;
+      ic.reference_viewport = render_view.viewport;
+      ic.set_zoom(0.5f);
+
+      tile_world.init();
+      fan::vec2 map_size = tile_world.map_size;
+      f32_t cell_size = tile_world.cell_size;
+
+      rects.reserve(map_size.x * map_size.y);
+      for (int y = 0; y < map_size.y; y++) {
+        for (int x = 0; x < map_size.x; x++) {
+          rects.push_back(fan::graphics::sprite_t{ {
+            .render_view = &render_view,
+            .position = fan::vec3(fan::vec2(x * cell_size, y * cell_size) + cell_size / 2.f, 0xFFFA),
+            .size = fan::vec2(cell_size, cell_size) / 2.f,
+            .image = dirt_image
+          } });
+        }
+      }
+
+      visual_grid = fan::graphics::grid_t{ {
+        .render_view = &render_view,
+        .position = fan::vec3(fan::vec2(map_size.x * cell_size, map_size.y * cell_size) / 2.f, 0xFFFA),
+        .size = fan::vec2(map_size.x * cell_size, map_size.y * cell_size) / 2.f,
+        .grid_size = fan::vec2(map_size.x, map_size.y),
+        .color = fan::colors::black.set_alpha(0.4)
+      } };
+
+      ic.pan_with_middle_mouse = true;
+      ic.set_position(tile_world.map_size * tile_world.cell_size / 2.f);
+
+      rebuild_colors();
+    }
+
+    void rebuild_colors() {
+      for (int y = 0; y < tile_world.map_size.y; y++) {
+        for (int x = 0; x < tile_world.map_size.x; x++) {
+          rects[x + y * tile_world.map_size.x].set_image(
+            tile_world.is_solid(x, y) ? dirt_image : background_image
+          );
+        }
+      }
+    }
+
+    void iterate() {
+      tile_world.iterate();
+      rebuild_colors();
+    }
+
+    void reset() {
+      tile_world.init_tile_world();
+      rebuild_colors();
+    }
+
+    void render() {
+      fan::graphics::gui::set_next_window_bg_alpha(0);
+      if (fan::graphics::gui::begin("Terrain Generator", nullptr,
+        fan::graphics::gui::window_flags_no_background)) 
+      {
+        {
+          if (fan::graphics::gui::button("Iterate")) iterate();
+          if (fan::graphics::gui::button("Reset")) reset();
+          if (fan::graphics::gui::button("Insert to map")) {
+            fan::graphics::gui::open_popup("Confirm Insert");
+          }
+        }
+        {
+          if (fan::graphics::gui::is_popup_open("Confirm Insert")) {
+            fan::graphics::gui::set_next_window_pos(fan::window::get_size() / 2.0f, fan::graphics::gui::cond_once, 0.5);
+          }
+
+          if (fan::graphics::gui::begin_popup_modal("Confirm Insert", fan::graphics::gui::window_flags_always_auto_resize)) {
+            fan::graphics::gui::text("Insert tiles into map at depth " + std::to_string((int)editor->brush.depth - shape_depths_t::max_layer_depth / 2) + 
+              "?", fan::colors::yellow
+            );
+            fan::graphics::gui::text("It might overwrite tiles at the depth level.", fan::colors::yellow);
+
+            if (fan::graphics::gui::button("Cancel")) {
+              fan::graphics::gui::close_current_popup();
+            }
+            fan::graphics::gui::same_line();
+            if (fan::graphics::gui::button("Confirm")) {
+              insert_selected_tiles(editor->brush.depth);
+              fan::graphics::gui::close_current_popup();
+            }
+
+            fan::graphics::gui::end_popup();
+          }
+        }
+        {
+          fan::vec2 need_init = !prev_viewport_size
+            || prev_viewport_size != fan::graphics::gui::get_window_size();
+          fan::graphics::gui::set_viewport(render_view.viewport);
+          if (need_init) {
+            ic.update();
+          }
+          prev_viewport_size = fan::graphics::gui::get_window_size();
+        }
+      }
+      else {
+        fan::graphics::viewport_zero(render_view.viewport);
+      }
+      fan::graphics::gui::end();
+    }
+
+    void insert_selected_tiles(int depth) {
+      fan::vec2i map_size = tile_world.map_size;
+      if (editor->map_size.x < map_size.x || editor->map_size.y < map_size.y) {
+        editor->map_size.x = std::max(editor->map_size.x, map_size.x);
+        editor->map_size.y = std::max(editor->map_size.y, map_size.y);
+        editor->resize_map();
+      }
+
+      for (int y = 0; y < map_size.y; ++y) {
+        for (int x = 0; x < map_size.x; ++x) {
+          fan::vec2i grid_pos(x, y);
+          auto& layers = editor->map_tiles[grid_pos].layers;
+
+          uint32_t idx = editor->find_layer_shape(layers);
+          if (idx == fte_t::invalid) {
+            layers.resize(layers.size() + 1);
+            idx = layers.size() - 1;
+          }
+
+          auto& layer = layers[idx];
+          layer.tile.position = fan::vec3(grid_pos * editor->tile_size * 2, depth);
+          layer.tile.size = editor->tile_size;
+          layer.tile.mesh_property = fte_t::mesh_property_t::none;
+
+          fan::graphics::image_t img = rects[x + y * map_size.x].get_image();
+
+          layer.shape = fan::graphics::sprite_t{ {
+            .render_view = editor->render_view,
+            .position = layer.tile.position,
+            .size = layer.tile.size,
+            .image = img,
+            .blending = true
+          } };
+
+          editor->visual_layers[depth].positions[grid_pos] = true;
+        }
+      }
+    }
+
+    fan::graphics::tile_world_generator_t tile_world;
+    std::vector<fan::graphics::sprite_t> rects;
+    fan::graphics::image_t dirt_image;
+    fan::graphics::image_t background_image;
+    fan::graphics::grid_t visual_grid;
+    fan::graphics::interactive_camera_t ic;
+    fan::graphics::render_view_t render_view;
+    fan::vec2 prev_viewport_size = 0;
+  }terrain_generator;
+
+#undef editor
+
 
   std::string file_name = "tilemap_editor.json";
   fan::vec2i map_size{6, 6};
