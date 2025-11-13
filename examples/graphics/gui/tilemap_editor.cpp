@@ -1,249 +1,182 @@
-import fan;
-
-import fan.graphics.gui.tilemap_editor.renderer;
-import fan.graphics.gui.tilemap_editor.editor;
-
 #include <box2d/box2d.h>
 
-// editor
-fan::graphics::render_view_t render_view0;
-// program
-fan::graphics::render_view_t render_view1;
+import fan;
+import fan.graphics.gui.tilemap_editor.renderer;
+import fan.graphics.gui.tilemap_editor.editor;
+import fan.graphics.event;
+
+struct render_context_t {
+  fan::graphics::render_view_t editor;
+  fan::graphics::render_view_t program;
+};
+
+std::string add_temp_before_ext(const std::string& filename) {
+  size_t pos = filename.find_last_of('.');
+  if (pos == std::string::npos || pos == 0)
+      return filename + "temp";
+  return filename.substr(0, pos) + "temp" + filename.substr(pos);
+}
 
 struct player_t {
-   player_t() {
-    fan::physics::set_pre_solve_callback(gloco->physics_context.world_id, presolve_static, this);
-    gloco->input_action.edit(fan::key_w, "move_up");
+  player_t(const fan::vec2& spawn_position, fan::graphics::render_view_t* view) : character(spawn_position, view) {}
+
+  void update_light() {
+    character.light.set_position(
+      character.player.get_position() - character.player.get_size()
+    );
   }
-  static bool presolve_static(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, void* context) {
-    player_t* pl = static_cast<player_t*>(context);
-    return pl->presolve(shapeIdA, shapeIdB, manifold);
+
+  void set_position(const fan::vec3& pos) {
+    character.player.set_position(pos);
+    update_light();
   }
-  bool presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold) const {
-    return fan::physics::presolve_oneway_collision(shapeIdA, shapeIdB, manifold, player);
-  }
-  fan::graphics::physics::character2d_t player{ fan::graphics::physics::circle_t{{
-    .render_view = &render_view1,
-    .position = fan::vec3(400, 400, 10),
-    .radius = 16.f,
-    .color = fan::color::from_rgba(0x715a5eff),
-    .blending = true,
-    .body_type = fan::physics::body_type_e::dynamic_body,
-    .mass_data{.mass = 0.01f},
-    .shape_properties{
-      .friction = 0.6f, 
-      .density = 0.1f, 
-      .fixed_rotation = true,
-      .linear_damping = 30,
-      .collision_multiplier = fan::vec2(1, 1)
-    },
-  }}};
-  fan::graphics::shape_t player_light = fan::graphics::light_t{ {
-    .render_view = &render_view1,
-    .position = player.get_position(),
-    .size = player.get_size()*8,
-    .color = fan::color::from_rgba(0xe8c170ff)
-  }};
+
+  struct character_wrapper_t {
+    character_wrapper_t(const fan::vec2& spawn_position, fan::graphics::render_view_t* view) :
+      player(fan::graphics::physics::character_capsule({
+        .render_view = view,
+        .position = fan::vec3(spawn_position, 10),
+        },
+        {.fixed_rotation=true}
+      )),
+      light(fan::graphics::light_t{ {
+        .render_view = view,
+        .position = player.get_position(),
+        .size = player.get_size() * 8,
+        .color = fan::color::from_rgba(0xe8c170ff)
+      } })
+    {
+    }
+
+    fan::graphics::physics::character2d_t player;
+    fan::graphics::shape_t light;
+  };
+
+  character_wrapper_t character;
 };
-int main(int argc, char** argv) {
-  loco_t loco;
-  
- // loco.window.set_windowed_fullscreen();
 
-  render_view0.camera = loco.camera_create();
-  render_view1.camera = loco.camera_create();
-  fan::vec2 window_size = loco.window.get_size();
-  loco.camera_set_ortho(
-    render_view0.camera,
-    fan::vec2(-window_size.x, window_size.x),
-    fan::vec2(-window_size.y, window_size.y)
-  );
-  loco.camera_set_ortho(
-    render_view1.camera,
-    fan::vec2(-window_size.x, window_size.x),
-    fan::vec2(-window_size.y, window_size.y)
-  );
+struct scene_manager_t {
+  void setup_camera(fan::graphics::engine_t& engine, fan::graphics::render_view_t& view) {
+    fan::vec2 window_size = engine.window.get_size();
+    view.camera = engine.camera_create();
+    engine.camera_set_ortho(
+      view.camera,
+      fan::vec2(-window_size.x / 2.f, window_size.x / 2.f),
+      fan::vec2(-window_size.y / 2.f, window_size.y / 2.f)
+    );
+    view.viewport = engine.open_viewport(0, { 1, 1 });
+  }
 
-  render_view0.viewport = loco.open_viewport(
-    0,
-    { 1, 1 }
-  );
-  render_view1.viewport = loco.open_viewport(
-    0,
-    { 1, 1 }
-  );
+  void reload_scene(fte_t& fte, fan::graphics::render_view_t* view) {
+    renderer = std::make_unique<fte_renderer_t>();
+    renderer->open();
 
-  fan::graphics::interactive_camera_t ic(render_view1.camera, render_view1.viewport);
+    static fte_loader_t::compiled_map_t compiled_map;
+    compiled_map = renderer->compile(add_temp_before_ext(fte.file_name));
 
-  fte_t fte;//
-  fte.original_image_width = 2048;
-  fte_t::properties_t p;
-  p.camera = &render_view0;
-  fte.open(p);
- // fte.fin("map_game0_1.json");
+    fte_loader_t::properties_t p;
+    p.position = fan::vec3(0, 0, 0);
+    p.size = fan::vec2i(16, 9);
+    p.render_view = view;
+    map_id = std::make_unique<fte_renderer_t::id_t>(renderer->add(&compiled_map, p));
+  }
+
+  void clear_scene() {
+    if (map_id) {
+      renderer->clear(renderer->map_list[*map_id]);
+    }
+    map_id.reset();
+    renderer.reset();
+    player.reset();
+  }
+
+  void toggle_scene(fte_t& fte, fan::graphics::engine_t& engine, fan::graphics::render_view_t* view) {
+    render_scene = !render_scene;
+    if (render_scene) {
+      player = std::make_unique<player_t>(fan::vec2(fte.map_size.x * fte.tile_size.x / 2.f, 0), view);
+      fte.fout(add_temp_before_ext(fte.file_name));
+      reload_scene(fte, view);
+      engine.set_vsync(0);
+    }
+    else {
+      clear_scene();
+    }
+  }
 
   std::unique_ptr<player_t> player;
   std::unique_ptr<fte_renderer_t> renderer;
+  std::unique_ptr<fte_renderer_t::id_t> map_id;
   bool render_scene = false;
-  std::unique_ptr<fte_renderer_t::id_t> map_id0_t;
+};
 
-  auto reload_scene = [&] {
-    {
-      renderer = std::make_unique<fte_renderer_t>();
+int main(int argc, char** argv) {
+  fan::graphics::engine_t engine;
+  render_context_t views;
+  scene_manager_t scene;
 
-      fan::graphics::image_load_properties_t lp;
-      lp.visual_output = loco_t::image_sampler_address_mode::clamp_to_border;
-      lp.min_filter = fan::graphics::image_filter::nearest;
-      lp.mag_filter = fan::graphics::image_filter::nearest;
-      renderer->open();
+  scene.setup_camera(engine, views.editor);
+  scene.setup_camera(engine, views.program);
 
-      // STATIC POINTER
-      static fte_loader_t::compiled_map_t compiled_map;
-      compiled_map = renderer->compile(fte.file_name + "temp");
-      fan::vec2i render_size(16, 9);
-      //render_size *= 2;
-      //render_size += 3;
+  fan::graphics::interactive_camera_t ic(views.program.camera, views.program.viewport);
+  ic.set_zoom(1);
 
-      fte_loader_t::properties_t p;
+  fte_t fte;
+  fte.original_image_width = 2048;
+  fte_t::properties_t p;
+  p.camera = &views.editor;
+  fte.open(p);
 
-      p.position = fan::vec3(0, 0, 0);
-      p.size = (render_size);
-      p.render_view = &render_view1;
-      map_id0_t = std::make_unique<fte_renderer_t::id_t>(renderer->add(&compiled_map, p));
-
-      loco.set_vsync(0);
-      //loco.window.set_max_fps(3);
-      f32_t total_delta = 0;
-    }
-  };
-
-  loco.window.add_keys_callback([&](const auto& d) {
+  engine.window.add_keys_callback([&](const auto& d) {
     if (d.state != fan::keyboard_state::press) {
       return;
     }
-    switch (d.key) {
-      case fan::key_f5: {
-        render_scene = !render_scene;
-        if (render_scene) {
-          player = std::make_unique<player_t>();
-          fte.fout(fte.file_name + "temp");
-          reload_scene();
-        }
-        else {
-          if (map_id0_t) {
-            renderer.get()->clear(renderer.get()->map_list[*map_id0_t.get()]);
-          }
-          map_id0_t.reset();
-          renderer.reset();
-          player.reset();
-        }
-        break;
-      }
+    if (d.key == fan::key_f5) {
+      scene.toggle_scene(fte, engine, &views.program);
     }
   });
 
   fte.modify_cb = [&](int mode) {
-    if (map_id0_t) {
-      renderer.get()->clear(renderer.get()->map_list[*map_id0_t.get()]);
-    }
-    map_id0_t.reset();
-    renderer.reset();
-    fte.fout(fte.file_name + "temp");
-    reload_scene();
+    scene.clear_scene();
+    fte.fout(add_temp_before_ext(fte.file_name));
+    scene.reload_scene(fte, &views.program);
   };
 
-  loco.set_vsync(0);
 
-  //fte.fin("examples/games/forest game/forest.json");
-  f32_t z = 17;
-
-  //fan::graphics::physics_shapes::physics_update_cb = [&](fan::graphics::shape_t& shape, const fan::vec3& p, const fan::vec2& size, f32_t radians) {
-  //  fan::graphics::physics_shapes::hitbox_visualize[&shape] = fan::graphics::rectangle_t{ {
-  //    .camera = &render_view1,
-  //    .position = fan::vec3(fan::vec2(p), 60000),
-  //    .size=size,
-  //    .color = fan::color(0, 1, 0, 0.2),
-  //    .outline_color=fan::color(0, 1, 0, 0.2)*2,
-  //    .angle = fan::vec3(0, 0, radians),
-  //    .blending=true
-  //  }};
-  //};
-
-  fan::event::fs_watcher_t fs_watcher("examples/games/forest game/");
-
-  fs_watcher.start([&](const std::string& filename, int events) {
-    if (!(events & fan::fs_change)) {
-      return;
-    }
-    if (filename.contains("tileset.png")) {
-      std::string image_path = fs_watcher.watch_path + "tileset.png";
-      fan::graphics::image_t img = loco.image_load(image_path);
-      auto& img_data = loco.image_get_data(img);
-      fan::vec2 size = img_data.size;
-      fan::vec2 img_size = size;
-      size = img_size / 32;
-      loco.image_unload(img);
-      std::string str = (std::string("image2texturepack.exe ") + 
-        std::to_string(size.x) + " " + std::to_string(size.y) + 
-         " \"" + image_path + "\"" +
-         " \"" + gloco->texture_pack.file_path + "\""
+  auto physics_step_id = fan::physics::add_physics_step_callback([&] {
+    if (scene.player) {
+      scene.player->character.player.process_movement(
+        fan::graphics::physics::character2d_t::movement_e::top_view
       );
-      system(str.c_str());
-      fte.open_texturepack(gloco->texture_pack.file_path);
-      if (fte.previous_file_name.size()) {
-        fte.fin(fte.previous_file_name);
-      }
     }
   });
 
-  //fan::graphics::gui::get_io().ConfigFlags |= ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  const f32_t z = 17;
 
-  loco.loop([&] {
-    
+  engine.loop([&] {
     fte.render();
-    
-    if (render_scene) {/*
-      for (auto& i : fan::graphics::physics_shapes::hitbox_visualize) {
-        i.second.set_camera(render_view1.camera);
-        i.second.set_viewport(render_view1.viewport);
-      }*/
+
+    if (scene.render_scene && scene.player) {
       if (fan::graphics::gui::begin("Program", 0, fan::graphics::gui::window_flags_no_background)) {
-        fan::vec2 s = fan::graphics::gui::get_content_region_avail();
-        fan::vec2 dst = player->player.get_position();
-        fan::vec2 src = loco.camera_get_position(render_view1.camera);
+        fan::graphics::gui::set_viewport(views.program.viewport);
+        engine.update_physics();
+        engine.viewport_zero(views.editor.viewport);
 
-        loco.camera_set_position(
-          render_view1.camera,
-          dst
+        fan::vec2 position = scene.player->character.player.get_position();
+        scene.renderer->update(*scene.map_id, position);
+        scene.player->set_position(
+          fan::vec3(position, floor(position.y / 64) + (0xFAAA - 2) / 2) + z
         );
-        fan::vec2 position = player->player.get_position();
-        player->player.set_position(fan::vec3(position, floor(position.y / 64) + (0xFAAA - 2) / 2) +z);
-        fan::color c = player->player_light.get_color();
-        if (fan::graphics::gui::color_edit4("color", &c)) {
-          player->player_light.set_color(c);
-        }
-        fan::vec2 size = player->player_light.get_size();
-        if (fan::graphics::gui::drag("size", & size, 0.1)) {
-          player->player_light.set_size(size);
-        }
-        player->player_light.set_position(player->player.get_position()-player->player.get_size());
-        player->player.process_movement(fan::graphics::physics::character2d_t::movement_e::top_view);
-        renderer->update(*map_id0_t, dst);
-        fan::graphics::gui::set_viewport(render_view1.viewport);
-        loco.physics_context.step(loco.delta_time);
+        ic.set_position(position);
 
-        loco.viewport_zero(
-          render_view0.viewport
-        );
       }
       else {
-        loco.viewport_zero(
-          render_view1.viewport
-        );
+        engine.viewport_zero(views.program.viewport);
       }
       fan::graphics::gui::end();
     }
   });
-  //
+
+  fan::physics::remove_physics_step_callback(physics_step_id);
+
   return 0;
 }
