@@ -39,6 +39,7 @@ export import fan.texture_pack.tp0;
 export import fan.graphics.algorithm.raycast_grid;
 export import fan.graphics.algorithm.pathfind;
 
+import fan.random;
 
 import fan.graphics.opengl.core;
 #if defined(fan_physics)
@@ -1444,19 +1445,6 @@ void init_imgui();
 export namespace fan {
   namespace graphics {
     struct interactive_camera_t {
-      f32_t zoom = 2;
-      bool ignore = false;
-      bool zoom_on_window_resize = true;
-      bool pan_with_middle_mouse = false;
-      fan::vec2 old_window_size{};
-      fan::vec2 camera_offset{};
-      fan::graphics::camera_t reference_camera;
-      fan::graphics::viewport_t reference_viewport;
-      fan::window_t::resize_callback_NodeReference_t resize_callback_nr;
-      fan::window_t::buttons_callback_t::nr_t button_cb_nr;
-      fan::window_t::mouse_motion_callback_t::nr_t mouse_motion_nr;
-      fan::graphics::update_callback_nr_t uc_nr;
-
       interactive_camera_t(const interactive_camera_t&) = delete;
       interactive_camera_t(interactive_camera_t&&) = delete;
 
@@ -1522,11 +1510,27 @@ export namespace fan {
           if (ignore) {
             return;
           }
-          if (d.button == fan::mouse_scroll_up) {
-            zoom *= 1.2;
+
+          bool mouse_inside_viewport = fan::graphics::inside(
+            reference_viewport,
+            fan::window::get_mouse_position()
+          );
+          if (mouse_inside_viewport) {
+            if (d.button == fan::mouse_scroll_up) {
+              zoom *= 1.2;
+              update();
+            }
+            else if (d.button == fan::mouse_scroll_down) {
+              zoom /= 1.2;
+              update();
+            }
           }
-          else if (d.button == fan::mouse_scroll_down) {
-            zoom /= 1.2;
+          auto state = d.window->key_state(fan::mouse_middle);
+          if (state == (int)fan::mouse_state::press) {
+            clicked_inside_viewport = mouse_inside_viewport;
+          }
+          else if (state == (int)fan::mouse_state::release) {
+            clicked_inside_viewport = false;
           }
         });
 
@@ -1535,7 +1539,7 @@ export namespace fan {
           if (state == (int)fan::mouse_state::press ||
             state == (int)fan::mouse_state::repeat
             ) {
-            if (pan_with_middle_mouse) {
+            if (pan_with_middle_mouse && clicked_inside_viewport) {
               fan::vec2 viewport_size = fan::graphics::viewport_get_size(reference_viewport);
               camera_offset -= (d.motion * viewport_size / (viewport_size * zoom)) * 2.f;
               fan::graphics::camera_set_position(reference_camera, camera_offset);
@@ -1596,6 +1600,24 @@ export namespace fan {
           fan::graphics::g_render_context_handle,
           reference_camera);
       }
+      fan::vec2 get_viewport_size() const {
+        return fan::graphics::viewport_get_size(reference_viewport);
+      }
+
+
+      f32_t zoom = 2;
+      bool ignore = false;
+      bool zoom_on_window_resize = true;
+      bool pan_with_middle_mouse = false;
+      bool clicked_inside_viewport = false;
+      fan::vec2 old_window_size{};
+      fan::vec2 camera_offset{};
+      fan::graphics::camera_t reference_camera;
+      fan::graphics::viewport_t reference_viewport;
+      fan::window_t::resize_callback_NodeReference_t resize_callback_nr;
+      fan::window_t::buttons_callback_t::nr_t button_cb_nr;
+      fan::window_t::mouse_motion_callback_t::nr_t mouse_motion_nr;
+      fan::graphics::update_callback_nr_t uc_nr;
     };
 
     struct animator_t {
@@ -2185,4 +2207,53 @@ export namespace fan::image {
     }
     return result;
   }
+}
+
+export namespace fan::graphics {
+  struct tile_world_generator_t {
+
+    bool is_solid(int x, int y) {
+      if (x < 0 || x >= map_size.x || y < 0 || y >= map_size.y) {
+        return true;
+      }
+      return tiles[x + y * map_size.x];
+    }
+
+    int count_neighbors(int x, int y) {
+      int c = 0;
+      for (int j = -1; j <= 1; j++) {
+        for (int i = -1; i <= 1; i++) {
+          if (is_solid(x + i, y + j)) {
+            c++;
+          }
+        }
+      }
+      return c;
+    }
+
+    void iterate() {
+      std::vector<bool> nt(map_size.x * map_size.y);
+      for (int y = 0; y < map_size.y; y++) {
+        for (int x = 0; x < map_size.x; x++) {
+          nt[x + y * map_size.x] = count_neighbors(x, y) >= 5;
+        }
+      }
+      tiles = std::move(nt);
+    }
+
+    void init_tile_world() {
+      tiles.resize(map_size.x * map_size.y);
+      for (int i = 0; i < map_size.x * map_size.y; i++) {
+        tiles[i] = fan::random::value(0.f, 1.0f) < 0.45f;
+      }
+    }
+
+    void init() {
+      init_tile_world();
+    }
+
+    fan::vec2i map_size = 64;
+    f32_t cell_size = 32;
+    std::vector<bool> tiles;
+  };
 }
