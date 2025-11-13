@@ -1181,8 +1181,8 @@ export namespace fan {
           cond_appearing = ImGuiCond_Appearing,   // Set the variable if the object/window is appearing after being hidden/inactive (or the first time)
         };
 
-        void set_next_window_pos(const fan::vec2& position, cond_t cond = cond_none) {
-          ImGui::SetNextWindowPos(position, cond);
+        void set_next_window_pos(const fan::vec2& position, cond_t cond = cond_none, const fan::vec2& pivot = 0) {
+          ImGui::SetNextWindowPos(position, cond, pivot);
         }
 
         void set_next_window_size(const fan::vec2& size, cond_t cond = cond_none) {
@@ -3251,6 +3251,9 @@ export namespace fan {
       }
       void close_current_popup() {
         ImGui::CloseCurrentPopup();
+      }
+      bool is_popup_open(const std::string& id) {
+        return ImGui::IsPopupOpen(id.c_str());
       }
 
 
