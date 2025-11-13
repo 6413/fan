@@ -837,6 +837,7 @@ public:
 	};
 
 	fan::time::timer start_time;
+  f32_t time = 0;
 
 	void add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s) {
 		immediate_render_list.emplace_back(std::move(s));
@@ -1521,11 +1522,11 @@ public:
 
   using mouse_click_callback_t   = std::function<void()>;
   using mouse_down_callback_t    = std::function<void(fan::vec2 mouse_pos)>;
-  using mouse_release_callback_t = std::function<void()>;
+  using mouse_up_callback_t      = std::function<void()>;
   using mouse_move_callback_t    = std::function<void(fan::vec2 mouse_pos, fan::vec2 delta)>;
-  using key_press_callback_t     = std::function<void(int button)>;
-  using key_release_callback_t   = std::function<void(int button)>;
-  using key_repeat_callback_t    = std::function<void(int button)>;
+  using key_click_callback_t     = std::function<void()>;
+  using key_up_callback_t        = std::function<void()>;
+  using key_down_callback_t      = std::function<void()>;
   using on_resize_callback_t     = std::function<void(fan::vec2)>; // window resize
 
 private:
@@ -1539,8 +1540,8 @@ private:
   #include <fan/window/cb_list_builder_settings.h>
   #include <BLL/BLL.h>
 
-  #define BLL_set_prefix mouse_release_callbacks
-  #define BLL_set_NodeData mouse_release_callback_t data;
+  #define BLL_set_prefix mouse_up_callbacks
+  #define BLL_set_NodeData mouse_up_callback_t data;
   #include <fan/window/cb_list_builder_settings.h>
   #include <BLL/BLL.h>
 
@@ -1549,18 +1550,18 @@ private:
   #include <fan/window/cb_list_builder_settings.h>
   #include <BLL/BLL.h>
 
-  #define BLL_set_prefix key_press_callbacks
-  #define BLL_set_NodeData key_press_callback_t data;
+  #define BLL_set_prefix key_click_callbacks
+  #define BLL_set_NodeData key_click_callback_t data;
   #include <fan/window/cb_list_builder_settings.h>
   #include <BLL/BLL.h>
 
-  #define BLL_set_prefix key_release_callbacks
-  #define BLL_set_NodeData key_release_callback_t data;
+  #define BLL_set_prefix key_up_callbacks
+  #define BLL_set_NodeData key_up_callback_t data;
   #include <fan/window/cb_list_builder_settings.h>
   #include <BLL/BLL.h>
 
-  #define BLL_set_prefix key_repeat_callbacks
-  #define BLL_set_NodeData key_repeat_callback_t data;
+  #define BLL_set_prefix key_down_callbacks
+  #define BLL_set_NodeData key_down_callback_t data;
   #include <fan/window/cb_list_builder_settings.h>
   #include <BLL/BLL.h>
 
@@ -1573,20 +1574,20 @@ public:
 
   mouse_click_callbacks_t    m_mouse_click_callbacks;
   mouse_down_callbacks_t     m_mouse_down_callbacks;
-  mouse_release_callbacks_t  m_mouse_release_callbacks;
+  mouse_up_callbacks_t       m_mouse_up_callbacks;
   mouse_move_callbacks_t     m_mouse_move_callbacks;
-  key_press_callbacks_t      m_key_press_callbacks;
-  key_release_callbacks_t    m_key_release_callbacks;
-  key_repeat_callbacks_t     m_key_repeat_callbacks;
+  key_click_callbacks_t      m_key_click_callbacks;
+  key_up_callbacks_t         m_key_up_callbacks;
+  key_down_callbacks_t       m_key_down_callbacks;
   on_resize_callbacks_t      m_on_resize_callbacks;
 
   using mouse_click_nr_t    = mouse_click_callbacks_NodeReference_t;
   using mouse_down_nr_t     = mouse_down_callbacks_NodeReference_t;
-  using mouse_release_nr_t  = mouse_release_callbacks_NodeReference_t;
+  using mouse_up_nr_t       = mouse_up_callbacks_NodeReference_t;
   using mouse_move_nr_t     = mouse_move_callbacks_NodeReference_t;
-  using key_press_nr_t      = key_press_callbacks_NodeReference_t;
-  using key_release_nr_t    = key_release_callbacks_NodeReference_t;
-  using key_repeat_nr_t     = key_repeat_callbacks_NodeReference_t;
+  using key_click_nr_t      = key_click_callbacks_NodeReference_t;
+  using key_up_nr_t         = key_up_callbacks_NodeReference_t;
+  using key_down_nr_t       = key_down_callbacks_NodeReference_t;
   using on_resize_nr_t      = on_resize_callbacks_NodeReference_t;
 
   void setup_input_callbacks() {
@@ -1602,10 +1603,10 @@ public:
         }
       }
       else if (d.state == fan::mouse_state::release && d.button < 3) {
-        auto it = m_mouse_release_callbacks.GetNodeFirst();
-        while (it != m_mouse_release_callbacks.dst) {
-          m_mouse_release_callbacks[it].data();
-          it = it.Next(&m_mouse_release_callbacks);
+        auto it = m_mouse_up_callbacks.GetNodeFirst();
+        while (it != m_mouse_up_callbacks.dst) {
+          m_mouse_up_callbacks[it].data();
+          it = it.Next(&m_mouse_up_callbacks);
         }
       }
 
@@ -1616,24 +1617,17 @@ public:
 
     window.add_keys_callback([&](const fan::window_t::keyboard_keys_cb_data_t& d) {
       if (d.state == fan::keyboard_state_t::press) {
-        auto it = m_key_press_callbacks.GetNodeFirst();
-        while (it != m_key_press_callbacks.dst) {
-          m_key_press_callbacks[it].data(d.key);
-          it = it.Next(&m_key_press_callbacks);
+        auto it = m_key_click_callbacks.GetNodeFirst();
+        while (it != m_key_click_callbacks.dst) {
+          m_key_click_callbacks[it].data();
+          it = it.Next(&m_key_click_callbacks);
         }
       }
       else if (d.state == fan::keyboard_state_t::release) {
-        auto it = m_key_release_callbacks.GetNodeFirst();
-        while (it != m_key_release_callbacks.dst) {
-          m_key_release_callbacks[it].data(d.key);
-          it = it.Next(&m_key_release_callbacks);
-        }
-      }
-      else if (d.state == fan::keyboard_state_t::repeat) {
-        auto it = m_key_repeat_callbacks.GetNodeFirst();
-        while (it != m_key_repeat_callbacks.dst) {
-          m_key_repeat_callbacks[it].data(d.key);
-          it = it.Next(&m_key_repeat_callbacks);
+        auto it = m_key_up_callbacks.GetNodeFirst();
+        while (it != m_key_up_callbacks.dst) {
+          m_key_up_callbacks[it].data();
+          it = it.Next(&m_key_up_callbacks);
         }
       }
     #if defined(loco_vfi)
@@ -1643,7 +1637,7 @@ public:
 
     window.add_mouse_move_callback([&](const fan::window_t::mouse_move_cb_data_t& d) {
       fan::vec2 pos = fan::vec2(d.position);
-      fan::vec2 delta = pos - d.window->get_mouse_position();
+      fan::vec2 delta = pos - d.window->previous_mouse_position;
 
       auto it = m_mouse_move_callbacks.GetNodeFirst();
       while (it != m_mouse_move_callbacks.dst) {
@@ -2268,17 +2262,32 @@ public:
 
 	bool process_loop(const std::function<void()>& lambda = [] {}) {
 		window.handle_events();
+    time = start_time.seconds();
 
-    {
-      auto it = m_mouse_down_callbacks.GetNodeFirst();
-      while (it != m_mouse_down_callbacks.dst) {
-        m_mouse_down_callbacks.StartSafeNext(it);
-        for (int i = 0; i < 3; ++i) {
-          if (fan::window::is_key_down(i)) {
-            m_mouse_down_callbacks[it].data(fan::window::get_mouse_position());
+    { // these require manual calling per frame, since key down callback gives repeat delay
+      {
+        auto it = m_mouse_down_callbacks.GetNodeFirst();
+        while (it != m_mouse_down_callbacks.dst) {
+          m_mouse_down_callbacks.StartSafeNext(it);
+          for (int i = 0; i < 3; ++i) {
+            if (fan::window::is_key_down(i)) {
+              m_mouse_down_callbacks[it].data(fan::window::get_mouse_position());
+            }
           }
+          it = m_mouse_down_callbacks.EndSafeNext();
         }
-        it = m_mouse_down_callbacks.EndSafeNext();
+      }
+      {
+        auto it = m_key_down_callbacks.GetNodeFirst();
+        while (it != m_key_down_callbacks.dst) {
+          m_key_down_callbacks.StartSafeNext(it);
+          for (int i = fan::key_first; i <= fan::key_last; ++i) {
+            if (fan::window::is_key_down(i)) {
+              m_key_down_callbacks[it].data();
+            }
+          }
+          it = m_key_down_callbacks.EndSafeNext();
+        }
       }
     }
 
@@ -2857,7 +2866,7 @@ public:
     return translate_position(p, orthographic_render_view.viewport, orthographic_render_view.camera);
   }
 
-  mouse_click_nr_t on_mouse_clicked(int button, mouse_click_callback_t cb) {
+  mouse_click_nr_t on_mouse_click(int button, mouse_click_callback_t cb) {
     auto nr = m_mouse_click_callbacks.NewNodeLast();
     m_mouse_click_callbacks[nr].data = [this, cb, button]() {
       if (window.key_state(button) == fan::mouse_state::press) {
@@ -2866,7 +2875,7 @@ public:
     };
     return nr;
   }
-  void remove_on_mouse_clicked(mouse_click_nr_t nr) {
+  void remove_on_mouse_click(mouse_click_nr_t nr) {
     m_mouse_click_callbacks.unlrec(nr);
   }
   mouse_down_nr_t on_mouse_down(int button, mouse_down_callback_t cb) {
@@ -2882,17 +2891,17 @@ public:
   void remove_on_mouse_down(mouse_down_nr_t nr) {
     m_mouse_down_callbacks.unlrec(nr);
   }
-  mouse_release_nr_t on_mouse_released(int button, mouse_release_callback_t cb) {
-    auto nr = m_mouse_release_callbacks.NewNodeLast();
-    m_mouse_release_callbacks[nr].data = [this, cb, button]() {
-      if (window.key_state(button) == fan::mouse_state::release) {
+  mouse_up_nr_t on_mouse_up(int button, mouse_up_callback_t cb) {
+    auto nr = m_mouse_up_callbacks.NewNodeLast();
+    m_mouse_up_callbacks[nr].data = [this, cb, button]() {
+      if (window.key_state(button) == fan::mouse_state::press) {
         cb();
       }
     };
     return nr;
   }
-  void remove_on_mouse_released(mouse_release_nr_t nr) {
-    m_mouse_release_callbacks.unlrec(nr);
+  void remove_on_mouse_up(mouse_up_nr_t nr) {
+    m_mouse_up_callbacks.unlrec(nr);
   }
   mouse_move_nr_t on_mouse_move(mouse_move_callback_t cb) {
     auto nr = m_mouse_move_callbacks.NewNodeLast();
@@ -2902,29 +2911,44 @@ public:
   void remove_on_mouse_move(mouse_move_nr_t nr) {
     m_mouse_move_callbacks.unlrec(nr);
   }
-  key_press_nr_t on_key_pressed(key_press_callback_t cb) {
-    auto nr = m_key_press_callbacks.NewNodeLast();
-    m_key_press_callbacks[nr].data = std::move(cb);
+  key_click_nr_t on_key_click(int key, key_click_callback_t cb) {
+    auto nr = m_key_click_callbacks.NewNodeLast();
+    m_key_click_callbacks[nr].data = [this, cb, key]() {
+      int state = window.key_state(key);
+      if (state == fan::keyboard_state::press) {
+        cb();
+      }
+    };
     return nr;
   }
-  void remove_on_key_pressed(key_press_nr_t nr) {
-    m_key_press_callbacks.unlrec(nr);
+  void remove_on_key_click(key_click_nr_t nr) {
+    m_key_click_callbacks.unlrec(nr);
   }
-  key_release_nr_t on_key_released(key_release_callback_t cb) {
-    auto nr = m_key_release_callbacks.NewNodeLast();
-    m_key_release_callbacks[nr].data = std::move(cb);
+  key_up_nr_t on_key_up(int key, key_up_callback_t cb) {
+    auto nr = m_key_up_callbacks.NewNodeLast();
+    m_key_up_callbacks[nr].data = [this, cb, key]() {
+      int state = window.key_state(key);
+      if (state == fan::keyboard_state::release) {
+        cb();
+      }
+    };
     return nr;
   }
-  void remove_on_key_released(key_release_nr_t nr) {
-    m_key_release_callbacks.unlrec(nr);
+  void remove_on_key_up(key_up_nr_t nr) {
+    m_key_up_callbacks.unlrec(nr);
   }
-  key_repeat_nr_t on_key_repeat(key_repeat_callback_t cb) {
-    auto nr = m_key_repeat_callbacks.NewNodeLast();
-    m_key_repeat_callbacks[nr].data = std::move(cb);
+  key_down_nr_t on_key_down(int key, key_down_callback_t cb) {
+    auto nr = m_key_down_callbacks.NewNodeLast();
+    m_key_down_callbacks[nr].data = [this, cb, key]() {
+      int state = window.key_state(key);
+      if (state == fan::keyboard_state::press || state == fan::keyboard_state::repeat) {
+        cb();
+      }
+    };
     return nr;
   }
-  void remove_on_key_repeat(key_repeat_nr_t nr) {
-    m_key_repeat_callbacks.unlrec(nr);
+  void remove_on_key_down(key_down_nr_t nr) {
+    m_key_down_callbacks.unlrec(nr);
   }
 
   on_resize_nr_t on_resize(on_resize_callback_t cb) {
