@@ -570,7 +570,16 @@ export namespace fan {
             .color = p.color,
             .flags = p.flags,
             .angle = p.angle
-          ));
+          )
+        );
+      }
+      light_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
+        : light_t(light_properties_t{
+          .render_view = render_view,
+          .position = position,
+          .size = size,
+          .color = color
+          }) {
       }
     };
 
@@ -604,6 +613,15 @@ export namespace fan {
               .blending = p.blending,
               .draw_mode = p.draw_mode
             ));
+        }
+        line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& color, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
+          : line_t(line_properties_t{
+            .render_view = render_view,
+            .src = src,
+            .dst = dst,
+            .color = color,
+            .thickness = thickness
+          }) {
         }
       };
     #endif
@@ -641,6 +659,14 @@ export namespace fan {
             .blending = p.blending
           )
         );
+      }
+      rectangle_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
+        : rectangle_t(rectangle_properties_t{
+          .render_view = render_view,
+          .position = position,
+          .size = size,
+          .color = color
+        }) {
       }
     };
 
@@ -682,7 +708,16 @@ export namespace fan {
             .blending = p.blending,
             .flags = p.flags,
             .texture_pack_unique_id = p.texture_pack_unique_id
-          ));
+          )
+        );
+      }
+      sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
+        : sprite_t(sprite_properties_t{
+          .render_view = render_view,
+          .position = position,
+          .size = size,
+          .image = image
+        }) {
       }
     };
 
@@ -721,7 +756,16 @@ export namespace fan {
             .tc_size = p.tc_size,
             .rotation_point = p.rotation_point,
             .blending = p.blending
-          ));
+          )
+        );
+      }
+      unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
+        : unlit_sprite_t(unlit_sprite_properties_t{
+          .render_view = render_view,
+          .position = position,
+          .size = size,
+          .image = image
+         }) {
       }
     };
 #if defined(loco_circle)
@@ -752,7 +796,16 @@ export namespace fan {
             .color = p.color,
             .blending = p.blending,
             .flags = p.flags
-          ));
+          )
+        );
+      }
+      circle_t(const fan::vec3& position, float radius, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
+        : circle_t(circle_properties_t{
+          .render_view = render_view,
+          .position = position,
+          .radius = radius,
+          .color = color
+          }) {
       }
     };
 #endif
@@ -1127,7 +1180,7 @@ export namespace fan {
   fan::graphics::shapes::shape_t& circle(const circle_properties_t& props = {}) {
     return add_shape_to_immediate_draw(circle_t(props));
   }
-  fan::graphics::shapes::shape_t& circle(const fan::vec3& position, float radius, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
+  fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
     return add_shape_to_immediate_draw(circle_t(circle_properties_t{
       .render_view = render_view,
       .position = position,
@@ -1458,7 +1511,7 @@ export namespace fan {
         reset_view();
       }
       void reset_view() {
-        zoom = 2;
+        zoom = 1;
         camera_offset = {};
         update();
       }
@@ -1472,8 +1525,8 @@ export namespace fan {
         fan::graphics::g_render_context_handle->camera_set_ortho(
           fan::graphics::g_render_context_handle,
           reference_camera,
-          fan::vec2(-ortho_size.x, ortho_size.x),
-          fan::vec2(-ortho_size.y, ortho_size.y)
+          fan::vec2(-ortho_size.x / 2.f, ortho_size.x / 2.f),
+          fan::vec2(-ortho_size.y / 2.f, ortho_size.y / 2.f)
         );
       }
 
@@ -1541,7 +1594,7 @@ export namespace fan {
             ) {
             if (pan_with_middle_mouse && clicked_inside_viewport) {
               fan::vec2 viewport_size = fan::graphics::viewport_get_size(reference_viewport);
-              camera_offset -= (d.motion * viewport_size / (viewport_size * zoom)) * 2.f;
+              camera_offset -= (d.motion * viewport_size / (viewport_size * zoom));
               fan::graphics::camera_set_position(reference_camera, camera_offset);
             }
           }
@@ -1554,7 +1607,7 @@ export namespace fan {
       interactive_camera_t(
         fan::graphics::camera_t camera_nr = fan::graphics::get_orthographic_render_view().camera,
         fan::graphics::viewport_t viewport_nr = fan::graphics::get_orthographic_render_view().viewport,
-        f32_t new_zoom = 2
+        f32_t new_zoom = 1
       ) {
         create(camera_nr, viewport_nr, new_zoom);
       }
@@ -1605,7 +1658,7 @@ export namespace fan {
       }
 
 
-      f32_t zoom = 2;
+      f32_t zoom = 1;
       bool ignore = false;
       bool zoom_on_window_resize = true;
       bool pan_with_middle_mouse = false;
