@@ -1260,233 +1260,225 @@ export namespace fan {
 
   // REQUIRES to be allocated by new since lambda captures this
     // also container that it's stored in, must not change pointers
-    template <typename T>
-    struct vfi_root_custom_t {
-      using shape_t = fan::graphics::shapes::shape_t;
+  template <typename T>
+  struct vfi_root_custom_t {
+    using shape_t = fan::graphics::shapes::shape_t;
 
-      void enable_highlight() {
-        apply_highlight([](auto& h, const fan::line3& line, fan::graphics::render_view_t& render_view) {
-          h = fan::graphics::line_t{ {
-            .render_view = &render_view,
-            .src = line[0],
-            .dst = line[1],
-            .color = fan::color(1, 0.5, 0, 1)
-          } };
-          });
-      }
+    void enable_highlight() {
+      apply_highlight([](auto& h, const fan::line3& line, fan::graphics::render_view_t& rv) {
+        h = fan::graphics::line_t{ {&rv, line[0], line[1], fan::color(1, 0.5, 0, 1)} };
+      });
+    }
 
-      void disable_highlight() {
-        fan::vec3 op = children[0].get_position();
-        fan::vec2 os = children[0].get_size();
-        for (auto& row : highlight) {
-          for (size_t i = 0; i < row.size(); ++i) {
-            auto& h = row[i];
-            if (!h.iic()) {
-              h.set_line(0, 0);
-            }
-          }
+    void disable_highlight() {
+      apply_highlight([](auto& h, const fan::line3&, fan::graphics::render_view_t&) {
+        if (!h.iic()) {
+          h.set_line(0, 0);
         }
-      }
+      });
+    }
 
-      void set_root(const fan::graphics::shapes::vfi_t::properties_t& p) {
-        fan::graphics::vfi_t::properties_t in = p;
-        in.shape_type = fan::graphics::shapes::vfi_t::shape_t::rectangle;
-        in.shape.rectangle->camera = p.shape.rectangle->camera;
-        in.shape.rectangle->viewport = p.shape.rectangle->viewport;
+    void set_root(const fan::graphics::shapes::vfi_t::properties_t& p) {
+      fan::graphics::vfi_t::properties_t in = p;
+      in.shape_type = fan::graphics::shapes::vfi_t::shape_t::rectangle;
+      in.shape.rectangle->camera = p.shape.rectangle->camera;
+      in.shape.rectangle->viewport = p.shape.rectangle->viewport;
 
-        in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) {
-          resize = (d.key == fan::key_c &&
-            (d.keyboard_state == fan::keyboard_state::press ||
-              d.keyboard_state == fan::keyboard_state::repeat));
-          return resize ? user_cb(d) : 0;
+      in.keyboard_cb = [this, user_cb = p.keyboard_cb](const auto& d) {
+        resize = d.key == fan::key_c &&
+          (d.keyboard_state == fan::keyboard_state::press ||
+            d.keyboard_state == fan::keyboard_state::repeat);
+        return resize ? user_cb(d) : 0;
         };
 
-        in.mouse_button_cb = [this, user_cb = p.mouse_button_cb](const auto& d) {
-          if (g_ignore_mouse || d.button != fan::mouse_left) return 0;
-          if (d.button_state != fan::mouse_state::press) {
-            move = moving_object = false;
-            d.flag->ignore_move_focus_check = false;
-            if (previous_click_position == d.position) {
-              for (auto& i : selected_objects) i->disable_highlight();
-              selected_objects = { this };
-              enable_highlight();
+      in.mouse_button_cb = [this, user_cb = p.mouse_button_cb](const auto& d) {
+        if (g_ignore_mouse || d.button != fan::mouse_left) {
+          return 0;
+        }
+
+        if (d.button_state != fan::mouse_state::press) {
+          move = moving_object = false;
+          d.flag->ignore_move_focus_check = false;
+          if (previous_click_position == d.position) {
+            for (auto& i : selected_objects) {
+              i->disable_highlight();
             }
-            return 0;
-          }
-
-          if (d.mouse_stage != fan::graphics::shapes::vfi_t::mouse_stage_e::viewport_inside) return 0;
-
-          if (previous_focus && previous_focus != this) {
-            for (std::size_t i = 0; i < previous_focus->highlight[0].size(); ++i) {
-              if (previous_focus->highlight[0][i].iic() == false) {
-                previous_focus->highlight[0][i].set_line(0, 0);
-              }
-            }
-
-            // if only changing focus from one to another
-            // if there is multiple objects selected, don't remove the previous focus
-            if (selected_objects.size() == 1) {
-              if (selected_objects.back() == previous_focus) {
-                selected_objects.erase(selected_objects.begin());
-              }
-            }
-          }
-
-          if (std::find(selected_objects.begin(), selected_objects.end(), this) == selected_objects.end()) {
-            selected_objects.push_back(this);
-          }
-
-          enable_highlight();
-          previous_focus = this;
-
-          if (move_and_resize_auto) {
-            previous_click_position = d.position;
-            click_offset = get_position() - d.position;
-            move = moving_object = true;
-            d.flag->ignore_move_focus_check = true;
-            fan::graphics::g_shapes->vfi.set_focus_keyboard(d.vfi->focus.mouse);
-          }
-
-          return user_cb(d);
-        };
-
-        in.mouse_move_cb = [this, user_cb = p.mouse_move_cb](const auto& d) {
-          if (g_ignore_mouse) return 0;
-          if (!move_and_resize_auto) return user_cb(d);
-
-          if (resize && move) {
-            fan::vec2 old_size = get_size();
-            f32_t aspect_ratio = old_size.x / old_size.y;
-            fan::vec2 drag_delta = d.position - get_position();
-            if (snap) {
-              drag_delta = (drag_delta / snap).round() * snap;
-            }
-            drag_delta = drag_delta.abs();
-            fan::vec2 new_size = fan::vec2(drag_delta.x, drag_delta.x / aspect_ratio);
-            if (new_size.x < 1.0f) {
-              new_size.x = 1.0f;
-              new_size.y = 1.0f / aspect_ratio;
-            }
-            if (new_size.y < 1.0f) {
-              new_size.y = 1.0f;
-              new_size.x = aspect_ratio;
-            }
-            set_size(new_size);
-            update_highlight_position(this);
-          }
-          else if (move) {
-            fan::vec3 new_pos = fan::vec3(d.position + click_offset, get_position().z);
-            if (snap) {
-              new_pos = (new_pos / snap).round() * snap;
-            }
-            set_position(new_pos, false);
-          }
-          if (user_cb) {
-            return user_cb(d);
+            selected_objects = { this };
+            enable_highlight();
           }
           return 0;
-        };
-
-        vfi_root = in;
-      }
-
-      void push_child(const shape_t& shape) {
-        children.push_back({ shape });
-      }
-
-      fan::vec3 get_position() {
-        return vfi_root.get_position();
-      }
-
-      void set_position(const fan::vec3& position, bool modify_depth = true) {
-        fan::vec3 old_root_pos = vfi_root.get_position();
-        fan::vec2 delta = fan::vec2(position - old_root_pos);
-        vfi_root.set_position(position);
-
-        for (auto& child : children) {
-          fan::vec3 child_pos = child.get_position();
-          child.set_position(fan::vec3(fan::vec2(child_pos) + delta, modify_depth ? position.z : child_pos.z));
         }
-        update_highlight_position(this);
 
-        for (auto* i : selected_objects) {
-          if (i == this) continue;
-
-          fan::vec3 other_old_pos = i->vfi_root.get_position();
-          fan::vec2 other_delta = fan::vec2(position - old_root_pos);
-          i->vfi_root.set_position(fan::vec3(fan::vec2(other_old_pos) + other_delta, modify_depth ? position.z : other_old_pos.z));
-
-          for (auto& child : i->children) {
-            fan::vec3 child_pos = child.get_position();
-            child.set_position(fan::vec3(fan::vec2(child_pos) + other_delta, modify_depth ? position.z : child_pos.z));
-          }
-          update_highlight_position(i);
+        if (d.mouse_stage != fan::graphics::shapes::vfi_t::mouse_stage_e::viewport_inside) {
+          return 0;
         }
-      }
 
-
-      fan::vec2 get_size() {
-        return vfi_root.get_size();
-      }
-
-      void set_size(const fan::vec2& size) {
-        fan::vec2 offset = size - vfi_root.get_size();
-        vfi_root.set_size(size);
-        for (auto& child : children) {
-          child.set_size(child.get_size() + offset);
-        }
-      }
-
-      fan::color get_color() {
-        return children.empty() ? fan::color(1) : children[0].get_color();
-      }
-
-      void set_color(const fan::color& c) {
-        for (auto& child : children) child.set_color(c);
-      }
-
-      static void update_highlight_position(vfi_root_custom_t<T>* instance) {
-        instance->apply_highlight([](auto& h, const fan::line3& line, fan::graphics::render_view_t&) {
-          if (!h.iic()) h.set_line(line[0], line[1]);
-          });
-      }
-
-      template<typename F>
-      void apply_highlight(F&& func) {
-        fan::vec3 op = children[0].get_position();
-        fan::vec2 os = children[0].get_size();
-        fan::graphics::render_view_t render_view{ children[0].get_camera(), children[0].get_viewport() };
-        for (size_t j = 0; j < highlight.size(); ++j) {
-          for (size_t i = 0; i < highlight[0].size(); ++i) {
-            auto& h = highlight[j][i];
-            auto line = get_highlight_positions(op, os, i);
-            func(h, line, render_view);
+        if (previous_focus && previous_focus != this) {
+          previous_focus->disable_highlight();
+          if (selected_objects.size() == 1 && selected_objects.back() == previous_focus) {
+            selected_objects.erase(selected_objects.begin());
           }
         }
+
+        if (std::find(selected_objects.begin(), selected_objects.end(), this) == selected_objects.end()) {
+          selected_objects.push_back(this);
+        }
+
+        enable_highlight();
+        previous_focus = this;
+
+        if (move_and_resize_auto) {
+          previous_click_position = d.position;
+          click_offset = get_position() - d.position;
+          move = moving_object = true;
+          d.flag->ignore_move_focus_check = true;
+          fan::graphics::g_shapes->vfi.set_focus_keyboard(d.vfi->focus.mouse);
+        }
+
+        return user_cb(d);
+      };
+
+      in.mouse_move_cb = [this, user_cb = p.mouse_move_cb](const auto& d) {
+        if (g_ignore_mouse || !move_and_resize_auto) {
+          return user_cb ? user_cb(d) : 0;
+        }
+
+        if (resize && move) {
+          fan::vec2 old_size = get_size();
+          f32_t aspect_ratio = old_size.x / old_size.y;
+          fan::vec2 drag_delta = d.position - get_position();
+          if (snap) {
+            drag_delta = (drag_delta / snap).round() * snap;
+          }
+          drag_delta = drag_delta.abs();
+          fan::vec2 new_size(drag_delta.x, drag_delta.x / aspect_ratio);
+          if (new_size.x < 1.0f) {
+            new_size = { 1.0f, 1.0f / aspect_ratio };
+          }
+          if (new_size.y < 1.0f) {
+            new_size = { aspect_ratio, 1.0f };
+          }
+          set_size(new_size);
+          update_highlight_position(this);
+        }
+        else if (move) {
+          fan::vec3 new_pos(d.position + click_offset, get_position().z);
+          if (snap) {
+            new_pos = (new_pos / snap).round() * snap;
+          }
+          set_position(new_pos, false);
+          for (auto& child : children) {
+      auto c = child.get_color();
+      auto i = child.get_image();
+      if (c.a != 1.0f) {
+        fan::print("Alpha changed during drag:", c.a);
+        c.a = 1.0f;
+        child.set_color(c);
       }
+    }
+        }
+        return user_cb ? user_cb(d) : 0;
+      };
 
-      inline static bool g_ignore_mouse = false;
-      inline static bool moving_object = false;
+      vfi_root = in;
+    }
 
-      fan::vec2 click_offset = 0;
-      fan::vec2 previous_click_position;
-      bool move = false;
-      bool resize = false;
-      bool move_and_resize_auto = true;
+    void push_child(const shape_t& shape) {
+      children.push_back({ shape });
+    }
 
-      shape_t vfi_root;
+    fan::vec3 get_position() {
+      return vfi_root.get_position();
+    }
 
-      struct child_data_t : shape_t, T {};
-      std::vector<child_data_t> children;
+    void set_position(const fan::vec3& position, bool modify_depth = true) {
+      fan::vec2 delta = fan::vec2(position - vfi_root.get_position());
+      modify_depth ? vfi_root.set_position(position) : vfi_root.set_position(fan::vec2(position));
 
-      inline static std::vector<vfi_root_custom_t<T>*> selected_objects;
-      inline static vfi_root_custom_t<T>* previous_focus = nullptr;
+      for (auto& child : children) {
+        fan::vec3 cp = child.get_position();
+        fan::vec3 new_pos = fan::vec3(fan::vec2(cp) + delta, modify_depth ? position.z : cp.z);
+        modify_depth ? child.set_position(new_pos) : child.set_position(fan::vec2(new_pos));
+      }
+      update_highlight_position(this);
 
-      std::vector<std::array<shape_t, 4>> highlight{ 1 };
-      inline static f32_t snap = 32.f;
-    };
+      for (auto* i : selected_objects) {
+        if (i == this) {
+          continue;
+        }
+        fan::vec3 old_pos = i->vfi_root.get_position();
+        fan::vec3 new_pos = fan::vec3(fan::vec2(old_pos) + delta, modify_depth ? position.z : old_pos.z);
+        modify_depth ? i->vfi_root.set_position(new_pos) : i->vfi_root.set_position(fan::vec2(new_pos));
 
-    using vfi_root_t = vfi_root_custom_t<__empty_struct>;
+        for (auto& child : i->children) {
+          fan::vec3 cp = child.get_position();
+          fan::vec3 new_child_pos = fan::vec3(fan::vec2(cp) + delta, modify_depth ? position.z : cp.z);
+          modify_depth ? child.set_position(new_child_pos) : child.set_position(fan::vec2(new_child_pos));
+        }
+        update_highlight_position(i);
+      }
+    }
+
+    fan::vec2 get_size() {
+      return vfi_root.get_size();
+    }
+
+    void set_size(const fan::vec2& size) {
+      fan::vec2 offset = size - vfi_root.get_size();
+      vfi_root.set_size(size);
+      for (auto& child : children) {
+        child.set_size(child.get_size() + offset);
+      }
+    }
+
+    fan::color get_color() {
+      return children.empty() ? fan::color(1) : children[0].get_color();
+    }
+
+    void set_color(const fan::color& c) {
+      for (auto& child : children) {
+        child.set_color(c);
+      }
+    }
+
+    static void update_highlight_position(vfi_root_custom_t<T>* instance) {
+      instance->apply_highlight([](auto& h, const fan::line3& line, fan::graphics::render_view_t&) {
+        if (!h.iic()) {
+          h.set_line(line[0], line[1]);
+        }
+        });
+    }
+
+    template<typename F>
+    void apply_highlight(F&& func) {
+      fan::vec3 op = children[0].get_position();
+      fan::vec2 os = children[0].get_size();
+      fan::graphics::render_view_t rv{ children[0].get_camera(), children[0].get_viewport() };
+      for (size_t j = 0; j < highlight.size(); ++j) {
+        for (size_t i = 0; i < highlight[0].size(); ++i) {
+          func(highlight[j][i], get_highlight_positions(op, os, i), rv);
+        }
+      }
+    }
+
+    inline static bool g_ignore_mouse = false;
+    inline static bool moving_object = false;
+    inline static std::vector<vfi_root_custom_t<T>*> selected_objects;
+    inline static vfi_root_custom_t<T>* previous_focus = nullptr;
+    inline static f32_t snap = 32.f;
+
+    fan::vec2 click_offset = 0;
+    fan::vec2 previous_click_position;
+    bool move = false;
+    bool resize = false;
+    bool move_and_resize_auto = true;
+    shape_t vfi_root;
+    struct child_data_t : shape_t, T {};
+    std::vector<child_data_t> children;
+    std::vector<std::array<shape_t, 4>> highlight{ 1 };
+  };
+
+  using vfi_root_t = vfi_root_custom_t<__empty_struct>;
 
   #endif
 //#endif
