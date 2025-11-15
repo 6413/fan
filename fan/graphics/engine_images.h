@@ -6,6 +6,9 @@ void load_engine_images() {
   fan::graphics::icons.play = image_load("icons/play.png");
   fan::graphics::icons.pause = image_load("icons/pause.png");
   fan::graphics::icons.settings = image_load("icons/settings.png");
+
+  fan::graphics::tile_world_images::dirt = fan::color::from_rgb(0x492201);
+  fan::graphics::tile_world_images::background = fan::color::from_rgb(0x20a7db);
 }
 
 // already removed in image_list iteration

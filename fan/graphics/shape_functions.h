@@ -226,14 +226,14 @@ struct shape_functions_t {
 
 	template <typename ret_t, typename... args_t>
 	static auto universal_callback(args_t&&... args) -> ret_t {
-		fan::print("[universal_callback] called with ", sizeof...(args_t), " arguments");
+		fan::print_throttled("[universal_callback] called with " + std::to_string(sizeof...(args_t)) + " arguments");
 
 		if constexpr (sizeof...(args_t) > 0) {
 			using first_arg_t = std::tuple_element_t<0, std::tuple<args_t...>>;
 			if constexpr (std::is_same_v<first_arg_t, shape_t*> ||
 				std::is_same_v<first_arg_t, const shape_t*>) {
 				auto* s = const_cast<shape_t*>(std::get<0>(std::forward_as_tuple(args...)));
-				fan::print("  for shape ", fan::graphics::shapes::shape_names[s->get_shape_type()]);
+				fan::print_throttled("  for shape " + fan::graphics::shapes::shape_names[s->get_shape_type()]);
 			}
 		}
 
