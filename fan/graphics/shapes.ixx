@@ -729,7 +729,7 @@ export namespace fan::graphics {
 	#endif
 
 	#define TO_ENUM(x) x,
-	#define TO_STRING(x) #x,
+	#define TO_STRING(x) std::string(#x),
 
 	#define GEN_SHAPES(X, SKIP) \
 		X(sprite) X(text) SKIP(X(hitbox)) SKIP(X(mark)) X(line) X(rectangle) \
@@ -747,7 +747,7 @@ export namespace fan::graphics {
 				last
 			};
 		};
-		inline static constexpr const char* shape_names[] = {
+		inline static std::string shape_names[] = {
 			GEN_SHAPES(TO_STRING, GEN_SHAPES_SKIP_STRING)
 		};
 

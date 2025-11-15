@@ -2,7 +2,6 @@ module;
 
 #if defined(fan_physics) && defined(fan_gui)
 
-
 #include <functional>
 #include <unordered_map>
 #include <string>
@@ -16,6 +15,7 @@ export module fan.graphics.gui.tilemap_editor.renderer;
 
 export import fan.graphics.gui.tilemap_editor.loader;
 
+import fan.utility;
 import fan.print;
 import fan.graphics;
 import fan.graphics.physics_shapes;
@@ -185,6 +185,14 @@ export struct fte_renderer_t : fte_loader_t {
   };
 
   void add_tile(node_t& node, fte_t::tile_t& j, int x, int y, uint32_t depth) {
+
+    // temporary
+    {
+      if (fan::get_hash(j.id.c_str()) == fan::get_hash("##tile_world_dirt")) {
+        fan::physics::gphysics->create_box(node.position + fan::vec2(j.position) * node.size, j.size * node.size);
+      }
+    }
+
     fan::vec3i tile_key(x, y, depth);
     int additional_depth = y + node.compiled_map->tile_size.y / 2;
     switch (j.mesh_property) {
@@ -200,6 +208,16 @@ export struct fte_renderer_t : fte_loader_t {
           .flags = j.flags,
           .texture_pack_unique_id = j.texture_pack_unique_id
         } };
+        switch (fan::get_hash(j.id.c_str())) {
+        case fan::get_hash("##tile_world_background"): {
+          node.rendered_tiles[tile_key].set_image(fan::graphics::tile_world_images::background);
+          break;
+        }
+        case fan::get_hash("##tile_world_dirt"): {
+          node.rendered_tiles[tile_key].set_image(fan::graphics::tile_world_images::dirt);
+          break;
+        }
+        }
         break;
       }
       case fte_t::mesh_property_t::light: {

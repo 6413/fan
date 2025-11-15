@@ -35,7 +35,7 @@ struct player_t {
     character_wrapper_t(const fan::vec2& spawn_position, fan::graphics::render_view_t* view) :
       player(fan::graphics::physics::character_capsule({
         .render_view = view,
-        .position = fan::vec3(spawn_position, 10),
+        .position = fan::vec3(spawn_position, 0xfffA),
         },
         {.fixed_rotation=true}
       )),
@@ -93,7 +93,11 @@ struct scene_manager_t {
   void toggle_scene(fte_t& fte, fan::graphics::engine_t& engine, fan::graphics::render_view_t* view) {
     render_scene = !render_scene;
     if (render_scene) {
-      player = std::make_unique<player_t>(fan::vec2(fte.map_size.x * fte.tile_size.x / 2.f, 0), view);
+      player = std::make_unique<player_t>(
+        /*fan::vec2(fte.map_size.x * fte.tile_size.x / 2.f, 0),*/
+        fte.map_size * fte.tile_size,
+        view
+      );
       fte.fout(add_temp_before_ext(fte.file_name));
       reload_scene(fte, view);
       engine.set_vsync(0);
@@ -121,7 +125,7 @@ int main(int argc, char** argv) {
   ic.set_zoom(1);
 
   fte_t fte;
-  fte.original_image_width = 2048;
+  fte.original_image_width = 1024;
   fte_t::properties_t p;
   p.camera = &views.editor;
   fte.open(p);
@@ -144,9 +148,7 @@ int main(int argc, char** argv) {
 
   auto physics_step_id = fan::physics::add_physics_step_callback([&] {
     if (scene.player) {
-      scene.player->character.player.process_movement(
-        fan::graphics::physics::character2d_t::movement_e::top_view
-      );
+      scene.player->character.player.process_movement();
     }
   });
 
@@ -163,8 +165,11 @@ int main(int argc, char** argv) {
 
         fan::vec2 position = scene.player->character.player.get_position();
         scene.renderer->update(*scene.map_id, position);
+        /*scene.player->set_position( // can be problematic for player shapes that are longer than 1-2 tiles 
+          fan::vec3(position, floor(position.y / (fte.tile_size.y * 2.f)) + (0xFAAA - 2) / 2) + z
+        );*/
         scene.player->set_position(
-          fan::vec3(position, floor(position.y / 64) + (0xFAAA - 2) / 2) + z
+          fan::vec3(position, floor(position.y / (fte.tile_size.y * 2.f)) + (0xFAAA - 2) / 2) + z + 1
         );
         ic.set_position(position);
 

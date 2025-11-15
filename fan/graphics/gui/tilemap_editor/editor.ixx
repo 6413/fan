@@ -183,7 +183,7 @@ export struct fte_t {
     fan::graphics::image_t highlight_color;
     fan::graphics::image_t collider_color;
     fan::graphics::image_t light_color;
-    bool render_grid = false;
+    bool render_grid = true;
   };
 
   struct properties_t {
@@ -407,14 +407,14 @@ export struct fte_t {
     p = ((p - tile_size) / tile_size).floor() * tile_size;
     grid_visualize.highlight_hover.set_position(p);
 
-    fan::graphics::camera_set_position(render_view->camera, viewport_settings.pos);
+    fan::graphics::camera_set_position(render_view->camera, viewport_settings.pos + tile_size * 2.f * map_size / 2.f);
 
     fan::graphics::shapes::grid_t::properties_t gp;
     gp.viewport = render_view->viewport;
     gp.camera = render_view->camera;
-    gp.position = fan::vec3(map_size * (tile_size * 2.f) / 2.f - tile_size, shape_depths_t::cursor_highlight_depth + 1);
+    gp.position = fan::vec3(map_size * (tile_size * 2.f) / 2.f - tile_size, shape_depths_t::cursor_highlight_depth - 1);
     gp.size = 0;
-    gp.color = fan::color::rgb(0, 128, 255);
+    gp.color = fan::colors::black.set_alpha(0.4);
     grid_visualize.grid = gp;
     resize_map();
 
@@ -1990,8 +1990,6 @@ export struct fte_t {
 
   struct terrain_generator_t {
     terrain_generator_t()
-      : dirt_image(fan::color::from_rgb(0x492201)),
-      background_image(fan::color::from_rgb(0x20a7db))
     {
       init();
     }
@@ -2000,7 +1998,7 @@ export struct fte_t {
       render_view.create();
       ic.reference_camera = render_view.camera;
       ic.reference_viewport = render_view.viewport;
-      ic.set_zoom(0.5f);
+      ic.set_zoom(0.15f);
 
       tile_world.init();
       fan::vec2 map_size = tile_world.map_size;
@@ -2011,23 +2009,23 @@ export struct fte_t {
         for (int x = 0; x < map_size.x; x++) {
           rects.push_back(fan::graphics::sprite_t{ {
             .render_view = &render_view,
-            .position = fan::vec3(fan::vec2(x * cell_size, y * cell_size) + cell_size / 2.f, 0xFFFA),
-            .size = fan::vec2(cell_size, cell_size) / 2.f,
-            .image = dirt_image
+            .position = fan::vec3(fan::vec2(x, y) * cell_size * 2.f + cell_size, 0xFFFA),
+            .size = fan::vec2(cell_size, cell_size),
+            .image = fan::graphics::tile_world_images::dirt
           } });
         }
       }
 
       visual_grid = fan::graphics::grid_t{ {
         .render_view = &render_view,
-        .position = fan::vec3(fan::vec2(map_size.x * cell_size, map_size.y * cell_size) / 2.f, 0xFFFA),
-        .size = fan::vec2(map_size.x * cell_size, map_size.y * cell_size) / 2.f,
-        .grid_size = fan::vec2(map_size.x, map_size.y),
+        .position = fan::vec3(fan::vec2(map_size.x, map_size.y) * cell_size, 0xFFFA),
+        .size = fan::vec2(map_size.x, map_size.y) * cell_size,
+        .grid_size = fan::vec2(map_size.x, map_size.y) / 2.f,
         .color = fan::colors::black.set_alpha(0.4)
       } };
 
       ic.pan_with_middle_mouse = true;
-      ic.set_position(tile_world.map_size * tile_world.cell_size / 2.f);
+      ic.set_position(tile_world.map_size * tile_world.cell_size);
 
       rebuild_colors();
     }
@@ -2036,7 +2034,7 @@ export struct fte_t {
       for (int y = 0; y < tile_world.map_size.y; y++) {
         for (int x = 0; x < tile_world.map_size.x; x++) {
           rects[x + y * tile_world.map_size.x].set_image(
-            tile_world.is_solid(x, y) ? dirt_image : background_image
+            tile_world.is_solid(x, y) ? fan::graphics::tile_world_images::dirt : fan::graphics::tile_world_images::background
           );
         }
       }
@@ -2128,6 +2126,12 @@ export struct fte_t {
           layer.tile.mesh_property = fte_t::mesh_property_t::none;
 
           fan::graphics::image_t img = rects[x + y * map_size.x].get_image();
+          if (img == fan::graphics::tile_world_images::dirt) {
+            layer.tile.id = "##tile_world_dirt";
+          }
+          else if (img == fan::graphics::tile_world_images::background) {
+            layer.tile.id = "##tile_world_background";
+          }
 
           layer.shape = fan::graphics::sprite_t{ {
             .render_view = editor->render_view,
@@ -2144,8 +2148,7 @@ export struct fte_t {
 
     fan::graphics::tile_world_generator_t tile_world;
     std::vector<fan::graphics::sprite_t> rects;
-    fan::graphics::image_t dirt_image;
-    fan::graphics::image_t background_image;
+
     fan::graphics::grid_t visual_grid;
     fan::graphics::interactive_camera_t ic;
     fan::graphics::render_view_t render_view;

@@ -599,6 +599,10 @@ export namespace fan::graphics {
     image_t pause;
     image_t settings;
   }icons;
+  struct tile_world_images {
+    inline static fan::graphics::image_t dirt;
+    inline static fan::graphics::image_t background;
+  };
 }
 
 #if defined(fan_gui)
