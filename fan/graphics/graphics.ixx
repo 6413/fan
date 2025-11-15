@@ -1148,7 +1148,7 @@ export namespace fan {
   fan::graphics::shapes::shape_t& rectangle(const rectangle_properties_t& props = {}) {
     return add_shape_to_immediate_draw(rectangle_t(props));
   }
-  fan::graphics::shapes::shape_t& rectangle(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
+  fan::graphics::shapes::shape_t& rectangle(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) {
     return add_shape_to_immediate_draw(rectangle_t(rectangle_properties_t{
       .render_view = render_view,
       .position = position,
