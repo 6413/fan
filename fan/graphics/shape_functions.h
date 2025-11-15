@@ -268,6 +268,7 @@ struct shape_functions_t {
 	X(shape, get_position, fan::vec3(*)(const shape_t*)) \
 	X(shape, set_position2, void(*)(shape_t*, const fan::vec2&)) \
 	X(shape, set_position3, void(*)(shape_t*, const fan::vec3&)) \
+  X(shape, set_position3_impl, void(*)(shape_t*, const fan::vec3&)) \
 	X(shape, get_size, fan::vec2(*)(const shape_t*)) \
 	X(shape, get_size3, fan::vec3(*)(const shape_t*)) \
 	X(shape, set_size, void(*)(shape_t*, const fan::vec2&)) \
@@ -431,9 +432,10 @@ struct shape_functions_t {
 
 	#define GENERATE_WRAPPERS(shape) \
 	GENERATE_SETTER_ACTUAL(position2, shape, position) \
+  GENERATE_SETTER_ACTUAL(position3_impl, shape, position) \
 	static void CONCAT2(set_position3_, shape)(shape_t* s, const fan::vec3& pos) { \
 		set_position(s, pos); \
-		CONCAT2(set_position2_, shape)(s, pos); \
+		CONCAT2(set_position3_impl_, shape)(s, pos); \
 	} \
 	static fan::graphics::camera_t CONCAT2(get_camera_, shape)(const shape_t* s) { \
 		return get_camera(const_cast<shape_t*>(s)); \
