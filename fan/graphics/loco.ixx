@@ -1288,6 +1288,7 @@ public:
 	loco_t(const properties_t& p) {
 
         // init globals
+
     fan::graphics::ctx().render_functions = &context_functions;
     fan::graphics::ctx().render_context = &context;
     fan::graphics::ctx().image_list = &image_list;

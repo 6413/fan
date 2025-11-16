@@ -204,7 +204,6 @@ b2DebugDraw initialize_debug(bool enabled) {
 	};
 }
 
-
 export namespace fan {
 	namespace graphics {
 		namespace physics {

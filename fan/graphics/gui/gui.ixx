@@ -28,6 +28,7 @@ export module fan.graphics.gui;
   import fan.types.color;
   import fan.types.quaternion;
   import fan.types.fstring;
+  import fan.types.json;
   import fan.utility;
   import fan.event;
   import fan.fmt;

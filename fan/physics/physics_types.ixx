@@ -10,6 +10,7 @@ export module fan.physics.types;
 export import fan.types.vector;
 
 #if defined(fan_physics)
+
 export namespace fan::physics {
   struct aabb_t {
     fan::vec2 min;
@@ -51,30 +52,5 @@ export namespace fan::physics {
   };
 
   using body_type = b2BodyType;
-
-  struct context_t;
-
-  struct global_physics_t {
-
-    fan::physics::context_t* context = nullptr;
-
-    operator fan::physics::context_t* () {
-      return context;
-    }
-
-    global_physics_t& operator=(fan::physics::context_t* l) {
-      context = l;
-      return *this;
-    }
-    fan::physics::context_t* operator->() {
-      return context;
-    }
-
-    // tiny compile boost xd
-    std::function<fan::vec2()> get_gravity;
-    std::function<void(const fan::vec2&)> set_gravity;
-  };
-
-  export inline thread_local global_physics_t gphysics;
 }
 #endif

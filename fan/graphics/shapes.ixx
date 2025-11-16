@@ -25,6 +25,7 @@ import fan.window;
 import fan.time;
 import fan.utility;
 import fan.physics.collision.rectangle;
+import fan.physics.collision.circle;
 
 import fan.types.fstring;
 
@@ -1594,7 +1595,7 @@ export namespace fan::graphics {
 				}
 			}
 
-			bool intersects(const fan::graphics::shapes::shape_t& shape) {
+			bool intersects(const fan::graphics::shapes::shape_t& shape) const {
 				switch (get_shape_type()) {
 				case shape_type_t::capsule: // inaccurate
 				case shape_type_t::shader_shape:
@@ -1614,8 +1615,35 @@ export namespace fan::graphics {
 				fan::throw_error("todo");
 				return true;
 			}
-			bool collides(const fan::graphics::shapes::shape_t& shape) {
+			bool collides(const fan::graphics::shapes::shape_t& shape) const {
 				return intersects(shape);
+			}
+      bool point_inside(const fan::vec2& point) const {
+				switch (get_shape_type()) {
+				case shape_type_t::capsule: // inaccurate
+				case shape_type_t::shader_shape:
+				case shape_type_t::unlit_sprite:
+				case shape_type_t::sprite:
+				case shape_type_t::rectangle: {
+					fan::physics::aabb_t aabb = get_aabb();
+          fan::vec2 size = aabb.max - aabb.min;
+					return fan_2d::collision::rectangle::point_inside(
+            aabb.min,
+            fan::vec2(aabb.min.x + size.x, aabb.min.y),
+            aabb.max,
+            fan::vec2(aabb.min.x, aabb.min.y + size.y),
+            point
+          );
+				}
+        case shape_type_t::circle: {
+          return fan_2d::collision::circle::point_inside(point, get_position(), get_radius());
+        }
+				}
+				fan::throw_error("todo");
+				return true;
+			}
+      bool collides(const fan::vec2& point) const {
+				return point_inside(point);
 			}
 
 			void add_existing_animation(animation_nr_t nr) {

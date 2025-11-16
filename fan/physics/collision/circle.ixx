@@ -1,8 +1,10 @@
-#pragma once
+module;
 
-#include _FAN_PATH(types/vector.h)
+export module fan.physics.collision.circle;
 
-namespace fan_2d {
+import fan.types.vector;
+
+export namespace fan_2d {
 	namespace collision {
 		namespace circle {
 
