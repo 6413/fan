@@ -1,6 +1,7 @@
 module;
 
 #include <cstdint>
+#include <algorithm>
 
 export module fan.physics.collision.rectangle;
 
@@ -13,6 +14,12 @@ export namespace fan_2d {
 	namespace collision {
 
 		namespace rectangle {
+      /*
+        p1 ---- p2
+        |       |
+        |       |
+        p3 ---- p4
+      */
       constexpr bool point_inside(const fan::vec2& p1, const fan::vec2& p2, const fan::vec2& p3, const fan::vec2& p4, const fan::vec2& point) {
 				return fan_2d::collision::triangle::point_inside(p1, p2, p4, point) || fan_2d::collision::triangle::point_inside(p1, p3, p4, point);
 			}

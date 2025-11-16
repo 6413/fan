@@ -8,6 +8,7 @@
 #include <cmath>
 #include <coroutine>
 #include <functional>
+#include <filesystem>
 
 import fan;
 

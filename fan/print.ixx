@@ -166,9 +166,17 @@ export namespace fan {
   constexpr void print_no_space(const Args&... args) {
     std::cout << format_args_no_space(args...) << '\n';
   }
+  void print_success(const std::string& message) {
+    print_color(fan::colors::green, message);
+  }
   void print_warning(const std::string& message) {
   #ifndef fan_disable_warnings
-    print_color(fan::colors::yellow, format_warning(message));
+    print_color(fan::colors::yellow, message);
+  #endif
+  }
+  void print_error(const std::string& message) {
+  #ifndef fan_disable_errors
+    print_color(fan::colors::red, message);
   #endif
   }
   void print_warning_no_space(const std::string& message) {

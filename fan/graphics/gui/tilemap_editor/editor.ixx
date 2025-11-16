@@ -24,7 +24,7 @@ import fan.file_dialog;
 import fan.io.file;
 import fan.graphics;
 import fan.random;
-import fan.physics.types;
+import fan.physics.b2_integration;
 import fan.physics.collision.rectangle;
 
 export struct fte_t {

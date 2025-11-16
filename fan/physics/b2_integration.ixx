@@ -24,12 +24,6 @@ import fan.types.vector;
 import fan.print;
 import fan.physics.common_context;
 
-export namespace fan {
-  namespace physics {
-    struct context_t;
-  }
-}
-
 #define BLL_set_SafeNext 1
 #define BLL_set_AreWeInsideStruct 0
 #define BLL_set_prefix physics_step_callbacks
@@ -40,6 +34,32 @@ export namespace fan {
 #define BLL_set_CPP_CopyAtPointerChange 1
 #include <BLL/BLL.h>
 
+export namespace fan::physics {
+  struct context_t;
+
+  struct global_physics_t {
+
+    context_t* context = nullptr;
+
+    operator context_t* () {
+      return context;
+    }
+
+    global_physics_t& operator=(context_t* l) {
+      context = l;
+      return *this;
+    }
+    context_t* operator->() {
+      return context;
+    }
+
+    std::function<fan::vec2()> get_gravity;
+    std::function<void(const fan::vec2&)> set_gravity;
+  };
+
+    // tiny compile boost xd
+  inline thread_local global_physics_t gphysics;
+}
 
 export namespace fan {
   namespace physics {
