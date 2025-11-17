@@ -217,17 +217,16 @@ export namespace fan {
 				}
 				init_ = false;
 				box2d_debug_draw = [] {
-				auto it = fan::graphics::ctx().update_callback->NewNodeLast();
-				(*fan::graphics::ctx().update_callback)[it] = [](void* ptr) {
-					z_depth = 0;
-					debug_draw_polygon.clear();
-					debug_draw_solid_polygon.clear();
-					debug_draw_circle.clear();
-					debug_draw_line.clear();
-					debug_draw_capsule.clear();
-					b2World_Draw(fan::physics::gphysics->world_id, &fan::graphics::physics::box2d_debug_draw);
-				};
-				return initialize_debug(false);
+				  fan::physics::gphysics->debug_draw_cb = []() {
+					  z_depth = 0;
+					  debug_draw_polygon.clear();
+					  debug_draw_solid_polygon.clear();
+					  debug_draw_circle.clear();
+					  debug_draw_line.clear();
+					  debug_draw_capsule.clear();
+					  b2World_Draw(fan::physics::gphysics->world_id, &fan::graphics::physics::box2d_debug_draw);
+				  };
+				  return initialize_debug(false);
 				}();
 			}
 
@@ -1044,8 +1043,13 @@ export namespace fan {
 							colliding_wall_id.set_friction(fan::physics::shape_properties_t().friction);
 						}
 
-						bool move_up = fan::window::is_action_clicked("move_up");
-						if (move_up) {
+						bool move_up = fan::window::is_action_down("move_up");
+    
+            if (!move_up) {
+              jump_consumed = false;
+              jumping = false;
+            }
+						if (move_up && !jump_consumed && handle_jump) {
 							if (wall_jump.normal && !on_ground) {
                 fan::vec2 vel = get_linear_velocity();
                 //f32_t clamped_x = std::clamp(vel.x, -max_speed, max_speed);
@@ -1053,14 +1057,16 @@ export namespace fan {
 								fan::physics::wall_jump(*this, wall_jump.normal, wall_jump.push_away_force, jump_impulse);
 								on_air_after_jump = true;
 								jumping = true;
+                jump_consumed = true;
 							}
-							else if (can_jump && handle_jump) {
+							else if (can_jump) {
                 fan::vec2 vel = get_linear_velocity();
                 //f32_t clamped_x = std::clamp(vel.x, -max_speed, max_speed);
                 set_linear_velocity(fan::vec2(vel.x, 0));
 								on_air_after_jump = true;
 								apply_linear_impulse_center({ 0, -jump_impulse });
 								jumping = true;
+                jump_consumed = true;
 							}
 						}
 						else {
@@ -1110,6 +1116,7 @@ export namespace fan {
 				f32_t walk_force = 0;
 				bool handle_jump = true;
 				bool on_air_after_jump = false;
+        bool jump_consumed = false;
 			};
 
 			struct bone_e {
