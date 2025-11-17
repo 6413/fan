@@ -1612,18 +1612,6 @@ export namespace fan {
       }
 
       ~interactive_camera_t() {
-        if (resize_callback_nr.iic() == false) {
-          fan::graphics::g_render_context_handle.window->remove_resize_callback(resize_callback_nr);
-          resize_callback_nr.sic();
-        }
-        if (button_cb_nr.iic() == false) {
-          fan::graphics::g_render_context_handle.window->remove_buttons_callback(button_cb_nr);
-          button_cb_nr.sic();
-        }
-        if (mouse_motion_nr.iic() == false) {
-          fan::graphics::g_render_context_handle.window->remove_mouse_motion_callback(mouse_motion_nr);
-          mouse_motion_nr.sic();
-        }
         if (uc_nr.iic() == false) {
           fan::graphics::ctx().update_callback->unlrec(uc_nr);
           uc_nr.sic();

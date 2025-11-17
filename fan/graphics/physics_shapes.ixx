@@ -948,76 +948,10 @@ export namespace fan {
         );
       }
 
-      struct physics_callback_raii {
-        fan::physics::physics_step_callback_nr_t id{};
-        bool active = false;
-        std::function<void()> callback_factory;
-
-        physics_callback_raii() = default;
-
-        template<typename F>
-        void register_callback(F&& f) {
-          unregister();
-          callback_factory = std::forward<F>(f);
-          id = fan::physics::add_physics_step_callback(callback_factory);
-          active = true;
-        }
-
-        void unregister() {
-          if (active && !id.iic()) {
-            fan::physics::remove_physics_step_callback(id);
-            id.sic();
-            active = false;
-          }
-        }
-
-        ~physics_callback_raii() {
-          unregister();
-        }
-
-        physics_callback_raii(const physics_callback_raii& o)
-          : active(o.active), callback_factory(o.callback_factory) {
-          if (active && callback_factory) {
-            id = fan::physics::add_physics_step_callback(callback_factory);
-          }
-        }
-
-        physics_callback_raii& operator=(const physics_callback_raii& o) {
-          if (this != &o) {
-            unregister();
-            active = o.active;
-            callback_factory = o.callback_factory;
-            if (active && callback_factory) {
-              id = fan::physics::add_physics_step_callback(callback_factory);
-            }
-          }
-          return *this;
-        }
-
-        physics_callback_raii(physics_callback_raii&& o) noexcept
-          : active(o.active), callback_factory(std::move(o.callback_factory)) {
-          if (active && callback_factory) {
-            id = fan::physics::add_physics_step_callback(callback_factory);
-          }
-          o.unregister();
-        }
-
-        physics_callback_raii& operator=(physics_callback_raii&& o) noexcept {
-          if (this != &o) {
-            unregister();
-            active = o.active;
-            callback_factory = std::move(o.callback_factory);
-            if (active && callback_factory) {
-              id = fan::physics::add_physics_step_callback(callback_factory);
-            }
-            o.unregister();
-          }
-          return *this;
-        }
-      };
-
       struct character2d_t : physics::base_shape_t {
         using physics::base_shape_t::base_shape_t;
+
+        using movement_callback_handle_t = bll_nr_t<fan::physics::physics_step_callback_nr_t, character2d_t>;
 
         struct movement_e {
           enum {
@@ -1036,77 +970,73 @@ export namespace fan {
         character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {}
 
         character2d_t(const character2d_t& o)
-          : base_shape_t(o), wall_jump(o.wall_jump), movement_cb(o.movement_cb) {
-          anim_controller = o.anim_controller;
+          : base_shape_t(o),
+          wall_jump(o.wall_jump),
+          movement_cb(o.movement_cb),
+          anim_controller(o.anim_controller)
+        {
           std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
             offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
-          if (movement_enabled) {
-            movement_cb.register_callback([this] { process_movement(movement_type); });
-          }
-        }
 
+          movement_cb.rebind(this);
+        }
         character2d_t(character2d_t&& o) noexcept
-          : base_shape_t(std::move(o)), wall_jump(std::move(o.wall_jump)), movement_cb(std::move(o.movement_cb)) {
-          anim_controller = std::move(o.anim_controller);
+          : base_shape_t(std::move(o)),
+          wall_jump(std::move(o.wall_jump)),
+          movement_cb(std::move(o.movement_cb)),
+          anim_controller(std::move(o.anim_controller))
+        {
           std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
             offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
-
-          if (movement_enabled) {
-            movement_cb.register_callback([this] { process_movement(movement_type); });
-          }
-          o.movement_enabled = false;
+          
+          movement_cb.rebind(this);
         }
-
-        character2d_t& operator=(const character2d_t& o) {
+        character2d_t& operator=(const character2d_t& o)
+        {
           if (this != &o) {
             base_shape_t::operator=(o);
-            anim_controller = o.anim_controller;
             wall_jump = o.wall_jump;
             movement_cb = o.movement_cb;
+            anim_controller = o.anim_controller;
+
             std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
               offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
 
-            movement_cb.unregister();
-            if (movement_enabled) {
-              movement_cb.register_callback([this] { process_movement(movement_type); });
-            }
+            movement_cb.rebind(this);
           }
           return *this;
         }
-
-        character2d_t& operator=(character2d_t&& o) noexcept {
+        character2d_t& operator=(character2d_t&& o) noexcept
+        {
           if (this != &o) {
-            anim_controller = std::move(o.anim_controller);
             base_shape_t::operator=(std::move(o));
             wall_jump = std::move(o.wall_jump);
             movement_cb = std::move(o.movement_cb);
+            anim_controller = std::move(o.anim_controller);
+
             std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
               offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
 
-            movement_cb.unregister();
-            if (movement_enabled) {
-              movement_cb.register_callback([this] { process_movement(movement_type); });
-            }
-            o.movement_enabled = false;
+            movement_cb.rebind(this);
           }
           return *this;
         }
 
-        ~character2d_t() {
-          movement_cb.unregister();
-        }
 
         void set_shape(fan::graphics::shape_t&& shape) {
           bool movement_was_enabled = movement_enabled;
           uint8_t saved_movement_type = movement_type;
 
-          movement_cb.unregister();
+          movement_cb.remove();
           physics::base_shape_t::set_shape(std::move(shape));
 
           if (movement_was_enabled) {
             movement_enabled = true;
             movement_type = saved_movement_type;
-            movement_cb.register_callback([this] { process_movement(movement_type); });
+            movement_cb.rebind(this);
+            movement_cb = add_movement_callback([](character2d_t* s) {
+              s->process_movement(s->movement_type);
+            });
           }
         }
 
@@ -1268,10 +1198,16 @@ export namespace fan {
           fan::graphics::shape_t::set_position(p);
         }
 
-        void enable_default_movement(uint8_t movement = movement_e::side_view) {
+        void enable_default_movement(uint8_t movement = movement_e::side_view)
+        {
           movement_enabled = true;
           movement_type = movement;
-          movement_cb.register_callback([this, movement] { process_movement(movement); });
+
+          movement_cb = add_movement_callback(
+            [movement] (character2d_t* self) {
+              self->process_movement(movement);
+            }
+          );
         }
 
         void update_animations() {
@@ -1383,6 +1319,33 @@ export namespace fan {
 
         static character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
 
+        movement_callback_handle_t add_movement_callback(std::function<void(character2d_t*)> fn)
+        {
+          using handle_t = movement_callback_handle_t;
+          using fn_t = typename handle_t::fn_t;
+          using add_fn = typename handle_t::add_fn;
+          using rem_fn = typename handle_t::remove_fn;
+
+          add_fn add = [](character2d_t* self, fn_t cb) {
+            return fan::physics::add_physics_step_callback(
+              [cb, self]() { cb(self); }
+            );
+          };
+
+          rem_fn remove = [](character2d_t*, fan::physics::physics_step_callback_nr_t nr) {
+            fan::physics::remove_physics_step_callback(nr);
+          };
+
+          return handle_t(
+            this,
+            std::move(add),
+            std::move(remove),
+            [fn](character2d_t* self) {
+              fn(self);
+            }
+          );
+        }
+
         fan::vec2 previous_movement_sign = 0;
         f32_t force = 120.f;
         f32_t jump_impulse = 75.f;
@@ -1399,7 +1362,7 @@ export namespace fan {
         bool current_animation_requires_velocity_fps = false;
         bool auto_update_animations = false;
         uint8_t movement_type = movement_e::side_view;
-        physics_callback_raii movement_cb;
+        movement_callback_handle_t movement_cb;
       };
 
 			struct bone_e {
