@@ -1,6 +1,6 @@
 // All stages are included here
 
-#include "player.h"
+#include "player/player.h"
 
 #define stage_loader_path .
 #include <fan/graphics/gui/stage_maker/loader.h>
@@ -39,16 +39,10 @@ lstd_defstruct(level_t)
 };
 
 pile_t::pile_t() {
-  fan::graphics::physics::debug_draw(true);
   engine.clear_color = fan::color::from_rgb(0x1A2A2E);
 
   engine.lighting.ambient = 1;
-  fan::graphics::image_load_properties_t lp;
-  lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_border;
-  lp.min_filter = fan::graphics::image_filter::nearest;
-  lp.mag_filter = lp.min_filter;
-
-  engine.texture_pack.open_compiled("texture_pack.ftp", lp);
+  engine.texture_pack.open_compiled("texture_pack.ftp", fan::graphics::image_presets::pixel_art());
 
   renderer.open();
   
@@ -56,6 +50,4 @@ pile_t::pile_t() {
   engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
 
   current_stage = pile.stage_loader.open_stage<level_t>();
-
-  engine.physics_context.set_gravity(engine.physics_context.get_gravity() / 1.5f);
 }
