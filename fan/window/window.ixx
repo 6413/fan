@@ -2,6 +2,8 @@ module;
 
 #include <fan/utility.h>
 
+#include <fan/types/bll_raii.h>
+
 #if defined(fan_vulkan)
 #include <vulkan/vulkan.h>
 #endif
@@ -194,7 +196,6 @@ export namespace fan {
     struct keyboard_cb_store_t {
       int key;
       keyboard_state_t state;
-
       keyboard_key_cb_t function;
     };
 
@@ -426,101 +427,83 @@ export namespace fan {
       return 0;
     }
 
-    buttons_callback_NodeReference_t add_buttons_callback(mouse_buttons_cb_t function) {
-      auto nr = m_buttons_callback.NewNodeLast();
-
-      m_buttons_callback[nr].data = function;
-      return nr;
-    }
-    void remove_buttons_callback(buttons_callback_NodeReference_t id) {
-      m_buttons_callback.Unlink(id);
-      m_buttons_callback.Recycle(id);
-    }
-
-    keys_callback_NodeReference_t add_keys_callback(keyboard_keys_cb_t function) {
-      auto nr = m_keys_callback.NewNodeLast();
-      m_keys_callback[nr].data = function;
-      return nr;
-    }
-    void remove_keys_callback(keys_callback_NodeReference_t id) {
-      m_keys_callback.Unlink(id);
-      m_keys_callback.Recycle(id);
-    }
-
-    key_callback_NodeReference_t add_key_callback(int key, keyboard_state_t state, keyboard_key_cb_t function) {
-      auto nr = m_key_callback.NewNodeLast();
-      m_key_callback[nr].data = keyboard_cb_store_t{ key, state, function, };
-      return nr;
-    }
-    void edit_key_callback(key_callback_NodeReference_t id, int key, keyboard_state_t state) {
-      m_key_callback[id].data.key = key;
-      m_key_callback[id].data.state = state;
-    }
-    void remove_key_callback(key_callback_NodeReference_t id) {
-      m_key_callback.unlrec(id);
+  #define FAN_DEFINE_CB_RAII(NAME, STORAGE, NODE_REF, PARAM_TYPE)                         \
+    using NAME##_callback_handle_t =                                                      \
+      bll_nr_t<NODE_REF, window_t, const PARAM_TYPE&>;                                    \
+                                                                                          \
+    NAME##_callback_handle_t add_##NAME##_callback(std::function<void(const PARAM_TYPE&)> fn) \
+    {                                                                                     \
+      using handle_t = NAME##_callback_handle_t;                                          \
+      using fn_t     = typename handle_t::fn_t;                                           \
+      using add_fn   = typename handle_t::add_fn;                                         \
+      using rem_fn   = typename handle_t::remove_fn;                                      \
+                                                                                          \
+      add_fn add = [](window_t* w, fn_t cb) {                                             \
+        auto nr = w->STORAGE.NewNodeLast();                                               \
+        w->STORAGE[nr].data = [cb](const PARAM_TYPE& d){ cb(nullptr, d); };               \
+        return nr;                                                                        \
+      };                                                                                  \
+                                                                                          \
+      rem_fn remove = [](window_t* w, NODE_REF nr) {                                      \
+        w->STORAGE.Unlink(nr);                                                            \
+        w->STORAGE.Recycle(nr);                                                           \
+      };                                                                                  \
+                                                                                          \
+      return handle_t(                                                                    \
+        this,                                                                             \
+        std::move(add),                                                                   \
+        std::move(remove),                                                                \
+        [fn](window_t*, const PARAM_TYPE& d){ fn(d); }                                    \
+      );                                                                                  \
     }
 
-    text_callback_NodeReference_t add_text_callback(text_cb_t function) {
-      auto nr = m_text_callback.NewNodeLast();
-      m_text_callback[nr].data = function;
-      return nr;
-    }
-    void remove_text_callback(text_callback_NodeReference_t id) {
-      m_text_callback.Unlink(id);
-      m_text_callback.Recycle(id);
+
+
+    FAN_DEFINE_CB_RAII(buttons, m_buttons_callback, buttons_callback_NodeReference_t, mouse_buttons_cb_data_t);
+    FAN_DEFINE_CB_RAII(keys, m_keys_callback, keys_callback_NodeReference_t, keyboard_keys_cb_data_t);
+    FAN_DEFINE_CB_RAII(text, m_text_callback, text_callback_NodeReference_t, text_cb_data_t);
+    FAN_DEFINE_CB_RAII(move, m_move_callback, move_callback_NodeReference_t, move_cb_data_t);
+    FAN_DEFINE_CB_RAII(resize, m_resize_callback, resize_callback_NodeReference_t, resize_cb_data_t);
+    FAN_DEFINE_CB_RAII(close, m_close_callback, close_callback_NodeReference_t, close_cb_data_t);
+    FAN_DEFINE_CB_RAII(mouse_move, m_mouse_position_callback, mouse_position_callback_NodeReference_t, mouse_move_cb_data_t);
+    FAN_DEFINE_CB_RAII(mouse_motion, m_mouse_motion_callback, mouse_motion_callback_NodeReference_t, mouse_motion_cb_data_t);
+
+    using key_callback_handle_t =
+      bll_nr_t<key_callback_NodeReference_t, window_t, const keyboard_key_cb_data_t&>;
+
+    key_callback_handle_t add_key_callback(int key, keyboard_state_t st,
+      std::function<void(const keyboard_key_cb_data_t&)> fn)
+    {
+      using handle_t = key_callback_handle_t;
+      using fn_t = typename handle_t::fn_t;
+      using add_fn = typename handle_t::add_fn;
+      using rem_fn = typename handle_t::remove_fn;
+
+      add_fn add = [key, st](window_t* w, fn_t cb) {
+        auto nr = w->m_key_callback.NewNodeLast();
+        w->m_key_callback[nr].data.key = key;
+        w->m_key_callback[nr].data.state = st;
+        w->m_key_callback[nr].data.function =
+          [cb](const keyboard_key_cb_data_t& d) { cb(nullptr, d); };
+        return nr;
+        };
+
+      rem_fn remove = [](window_t* w, key_callback_NodeReference_t nr) {
+        w->m_key_callback.Unlink(nr);
+        w->m_key_callback.Recycle(nr);
+        };
+
+      return handle_t(
+        this,
+        std::move(add),
+        std::move(remove),
+        [fn](window_t*, const keyboard_key_cb_data_t& d) { fn(d); }
+      );
     }
 
-    close_callback_NodeReference_t add_close_callback(close_cb_t function) {
-      auto nr = m_close_callback.NewNodeLast();
-      m_close_callback[nr].data = function;
-      return nr;
-    }
-    void remove_close_callback(close_callback_NodeReference_t id) {
-      m_close_callback.Unlink(id);
-      m_close_callback.Recycle(id);
-    }
 
-    mouse_position_callback_NodeReference_t add_mouse_move_callback(mouse_move_cb_t function) {
-      auto nr = m_mouse_position_callback.NewNodeLast();
-      m_mouse_position_callback[nr].data = function;
-      return nr;
-    }
-    void remove_mouse_move_callback(mouse_position_callback_NodeReference_t id) {
-      m_mouse_position_callback.Unlink(id);
-      m_mouse_position_callback.Recycle(id);
-    }
+    #undef FAN_DEFINE_CB_RAII
 
-    mouse_motion_callback_NodeReference_t add_mouse_motion_callback(mouse_motion_cb_t function) {
-      auto nr = m_mouse_motion_callback.NewNodeLast();
-      m_mouse_motion_callback[nr].data = function;
-      return nr;
-    }
-
-    void remove_mouse_motion_callback(mouse_motion_callback_NodeReference_t id) {
-      m_mouse_motion_callback.Unlink(id);
-      m_mouse_motion_callback.Recycle(id);
-    }
-
-    resize_callback_NodeReference_t add_resize_callback(resize_cb_t function) {
-      auto nr = m_resize_callback.NewNodeLast();
-      m_resize_callback[nr].data = function;
-      return nr;
-    }
-
-    void remove_resize_callback(resize_callback_NodeReference_t id) {
-      m_resize_callback.Unlink(id);
-      m_resize_callback.Recycle(id);
-    }
-
-    move_callback_NodeReference_t add_move_callback(move_cb_t function) {
-      auto nr = m_move_callback.NewNodeLast();
-      m_move_callback[nr].data = function;
-      return nr;
-    }
-
-    void remove_move_callback(move_callback_NodeReference_t idt) {
-      m_move_callback.unlrec(idt);
-    }
 
     fan::vec2i get_size() const {
       fan::vec2i window_size;
@@ -745,6 +728,10 @@ export namespace fan {
       icon.height = icon_info.size.y;
       icon.pixels = (decltype(icon.pixels))icon_info.data;
       glfwSetWindowIcon(glfw_window, 1, &icon);
+    }
+
+    void swap_buffers() {
+      glfwSwapBuffers(glfw_window);
     }
 
 #if defined(fan_platform_windows)

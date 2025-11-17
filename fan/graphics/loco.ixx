@@ -2272,7 +2272,7 @@ public:
 			i();
 		}
 		if (window.renderer == fan::window_t::renderer_t::opengl) {
-			glfwSwapBuffers(window);
+      window.swap_buffers();
 		}
 #if defined(fan_vulkan)
 		else if (window.renderer == fan::window_t::renderer_t::vulkan) {

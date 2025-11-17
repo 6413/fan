@@ -189,7 +189,6 @@ public:
 
   void erase_stage(nr_t id) {
     auto* sc = (stage_common_t*)stage_list[id].stage;
-    gloco->window.remove_resize_callback(stage_list[id].resize_id);
     gloco->m_update_callback.unlrec(stage_list[id].update_nr);
     sc->close(stage_list[id].stage);
     stage_list.unlrec(id);
