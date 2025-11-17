@@ -273,6 +273,8 @@ set(MODULE_FILES
 	${ROOT_PATH}/graphics/algorithm/pathfind.ixx
   ${ROOT_PATH}/physics/collision/rectangle.ixx
   ${ROOT_PATH}/physics/collision/triangle.ixx
+	${ROOT_PATH}/physics/collision/circle.ixx
+	${ROOT_PATH}/physics/physics_types.ixx
   ${ROOT_PATH}/window/window.ixx
   ${ROOT_PATH}/window/input_common.ixx
   ${ROOT_PATH}/window/input.ixx
@@ -533,6 +535,15 @@ if(BUILD_MAIN)
     add_executable(a.exe ${MAIN})
     target_compile_definitions(a.exe PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   endif()
+
+	add_library(custom_files STATIC
+		${ROOT_PATH}/graphics/algorithm/AStar.cpp
+	)
+
+	apply_common_compile_options(custom_files)
+	target_link_libraries(custom_files PRIVATE fan_modules)
+
+	target_link_libraries(a.exe PRIVATE custom_files)
 
   if(DEFINED CUSTOM_LIBS)
     target_link_libraries(fan_modules PRIVATE ${CUSTOM_LIBS})
