@@ -553,7 +553,7 @@ export namespace fan {
         return entity;
       }
       
-      fan::physics::entity_t create_capsule(const fan::vec2& position, f32_t angle, const b2Capsule& info, uint8_t body_type, const shape_properties_t& shape_properties) {
+      fan::physics::entity_t create_capsule(const fan::vec2& position, f32_t angle, const fan::physics::capsule_t& info, uint8_t body_type, const shape_properties_t& shape_properties) {
         capsule_t shape = info;
         shape.center1.x /= length_units_per_meter / shape_properties.collision_multiplier.x;
         shape.center1.y /= length_units_per_meter / shape_properties.collision_multiplier.y;

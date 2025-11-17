@@ -270,6 +270,7 @@ export namespace fan {
     namespace image_presets {
       image_load_properties_t pixel_art() {
         image_load_properties_t props;
+        props.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_border;
         props.min_filter = image_filter::nearest;
         props.mag_filter = image_filter::nearest;
         return props;
@@ -277,6 +278,7 @@ export namespace fan {
 
       image_load_properties_t smooth() {
         image_load_properties_t props;
+        props.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_border;
         props.min_filter = image_filter::linear;
         props.mag_filter = image_filter::linear;
         return props;

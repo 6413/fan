@@ -11,6 +11,9 @@ module;
 #include <string>
 #include <functional>
 #include <cstdlib>
+#include <cstring>
+#include <cstddef>
+#include <source_location>
 
 #endif
 
@@ -25,6 +28,7 @@ import fan.utility;
 import fan.physics.b2_integration;
 import fan.physics.common_context;
 import fan.window.input_action;
+import fan.types.json;
 
 #if (fan_gui)
 	import fan.graphics;
@@ -251,7 +255,7 @@ export namespace fan {
 				f32_t radians = b2Rot_GetAngle(rotation);
 
 				fan::graphics::shape_t& shape = *(fan::graphics::shape_t*)&data.shape_id;
-				shape.set_position(fan::vec2((p) * fan::physics::length_units_per_meter + fan::vec2(data.draw_offset.x, -data.draw_offset.y)));
+				shape.set_position(fan::vec2((p) * fan::physics::length_units_per_meter + data.draw_offset));
 				shape.set_angle(fan::vec3(0, 0, radians));
 				b2ShapeId id[1];
 				if (b2Body_GetShapes(*(b2BodyId*)&data.body_id, id, 1)) {
@@ -311,28 +315,28 @@ export namespace fan {
 			struct base_shape_t : fan::graphics::shape_t, fan::physics::entity_t {
 				base_shape_t() = default;
 				
-				void set_shape(fan::graphics::shape_t&& shape) {
-					bool is_valid = iic() == false;
-					fan::vec3 prev_pos;
-					if (is_valid) {
-						prev_pos = fan::graphics::shape_t::get_position();
-					}
-					if (physics_update_nr.iic() == false) {
-						fan::physics::remove_physics_update(physics_update_nr);
-					}
-					*dynamic_cast<fan::graphics::shape_t*>(this) = std::move(shape);
-					static_assert(sizeof(fan::graphics::shaper_t::ShapeID_t) < sizeof(uint64_t), "physics update shape_id too small");
-					uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
-						physics_update_nr = fan::physics::add_physics_update({
-						.shape_id = *(uint64_t*)this,
-						.draw_offset = draw_offset,
-						.body_id = body_id_data,
-						.cb = (void*)shape_physics_update
-					});
-					if (is_valid) {
-						set_position(prev_pos);
-					}
-				}
+        void set_shape(fan::graphics::shape_t&& shape) {
+          bool is_valid = iic() == false;
+          /*fan::vec3 prev_pos;
+          if (is_valid) {
+            prev_pos = fan::graphics::shape_t::get_position();
+          }*/
+          if (physics_update_nr.iic() == false) {
+            fan::physics::remove_physics_update(physics_update_nr);
+          }
+          *dynamic_cast<fan::graphics::shape_t*>(this) = std::move(shape);
+          static_assert(sizeof(fan::graphics::shaper_t::ShapeID_t) < sizeof(uint64_t), "physics update shape_id too small");
+          uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
+          physics_update_nr = fan::physics::add_physics_update({
+              .shape_id = *(uint64_t*)this,
+              .draw_offset = draw_offset,
+              .body_id = body_id_data,
+              .cb = (void*)shape_physics_update
+            });
+          /*if (is_valid) {
+            set_position(prev_pos);
+          }*/
+        }
 				base_shape_t(fan::graphics::shape_t&& shape, fan::physics::entity_t&& entity, const mass_data_t& mass_data) :
 					fan::graphics::shape_t(std::move(shape)),
 					fan::physics::entity_t(std::move(entity)) {
@@ -467,7 +471,8 @@ export namespace fan {
 
         fan::vec3 get_position() const {
           // The visual position might have not been updated (maybe) so use physics position but visual Z position
-          return fan::vec3(fan::physics::entity_t::get_position(), fan::graphics::shape_t::get_position().z);
+          //return fan::vec3(fan::physics::entity_t::get_position(), fan::graphics::shape_t::get_position().z);
+          return fan::graphics::shape_t::get_position();
         }
 
 				fan::vec2 draw_offset = 0;
@@ -690,7 +695,8 @@ export namespace fan {
 				capsule_t() = default;
 				capsule_t(const properties_t& p) : base_shape_t(
 					fan::graphics::shape_t(fan::graphics::capsule_t{ p }),
-					fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.radius }, p.body_type, p.shape_properties)),
+					fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z, 
+            b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.radius }, p.body_type, p.shape_properties)),
 					p.mass_data
 				) {
 				}
@@ -715,6 +721,7 @@ export namespace fan {
 					fan::vec2 size = 64.0f;
 					fan::vec3 angle = 0;
 					fan::color color = fan::color(1, 1, 1, 1);
+          fan::vec2 aabb_scale = 1.0;
 					fan::vec2 rotation_point = 0;
 					fan::graphics::image_t image = fan::graphics::get_default_texture();
 					std::array<fan::graphics::image_t, 30> images;
@@ -745,7 +752,11 @@ export namespace fan {
 				capsule_sprite_t() = default;
 				capsule_sprite_t(const properties_t& p) : base_shape_t(
 					fan::graphics::shape_t(fan::graphics::sprite_t{ p }),
-					fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z, b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.size.max() / 2.f}, p.body_type, p.shape_properties)),
+					fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z, b2Capsule{ 
+            .center1 = p.center0 * p.aabb_scale, 
+            .center2 = p.center1 * p.aabb_scale, 
+            .radius = p.size.max() / 2.f * p.aabb_scale.max()
+          }, p.body_type, p.shape_properties)),
 					p.mass_data
 				) {
 				}
@@ -894,193 +905,345 @@ export namespace fan {
 				walls[1] = fan::graphics::physics::rectangle_t{ {
 						.position = fan::vec2(center_position.x, center_position.y + half_size.y),
 						.size = fan::vec2(half_size.x * 2, thickness),
-						.color = wall_color,
-						.outline_color = wall_color,
-						.shape_properties = shape_properties[1]
-					} };
-				// left
-				walls[2] = fan::graphics::physics::rectangle_t{ {
-						.position = fan::vec2(center_position.x - half_size.x, center_position.y),
-						.size = fan::vec2(thickness, half_size.y * 2),
-						.color = wall_color,
-						.outline_color = wall_outline,
-						.shape_properties = shape_properties[2]
-					} };
-				// right
-				walls[3] = fan::graphics::physics::rectangle_t{ {
-						.position = fan::vec2(center_position.x + half_size.x, center_position.y),
-						.size = fan::vec2(thickness, half_size.y * 2),
-						.color = wall_color,
-						.outline_color = wall_outline,
-						.shape_properties = shape_properties[3]
-					} };
-				return walls;
-			}
+            .color = wall_color,
+            .outline_color = wall_color,
+            .shape_properties = shape_properties[1]
+          } };
+        // left
+        walls[2] = fan::graphics::physics::rectangle_t{ {
+            .position = fan::vec2(center_position.x - half_size.x, center_position.y),
+            .size = fan::vec2(thickness, half_size.y * 2),
+            .color = wall_color,
+            .outline_color = wall_outline,
+            .shape_properties = shape_properties[2]
+          } };
+        // right
+        walls[3] = fan::graphics::physics::rectangle_t{ {
+            .position = fan::vec2(center_position.x + half_size.x, center_position.y),
+            .size = fan::vec2(thickness, half_size.y * 2),
+            .color = wall_color,
+            .outline_color = wall_outline,
+            .shape_properties = shape_properties[3]
+          } };
+        return walls;
+      }
 
-			std::array<rectangle_t, 4> create_walls(
-				const fan::vec2& bounds,
-				f32_t thickness,
-				const fan::color& wall_color = fan::color::from_rgba(0x6e8d6eff),
-				std::array<fan::physics::shape_properties_t, 4> shape_properties = { {
-					{.friction = 0  },  // top
-					{.friction = 0.6},  // bottom
-					{.friction = 0  },  // left
-					{.friction = 0  }   // right
-				} }
-			) {
-				return create_stroked_rectangle(
-					bounds,
-					bounds,
-					thickness,
-					wall_color,
-					shape_properties
-				);
-			}
+      std::array<rectangle_t, 4> create_walls(
+        const fan::vec2& bounds,
+        f32_t thickness,
+        const fan::color& wall_color = fan::color::from_rgba(0x6e8d6eff),
+        std::array<fan::physics::shape_properties_t, 4> shape_properties = { {
+          {.friction = 0  },  // top
+          {.friction = 0.6},  // bottom
+          {.friction = 0  },  // left
+          {.friction = 0  }   // right
+        } }
+      ) {
+        return create_stroked_rectangle(
+          bounds,
+          bounds,
+          thickness,
+          wall_color,
+          shape_properties
+        );
+      }
 
-			struct character2d_t : physics::base_shape_t {
-				using physics::base_shape_t::base_shape_t;
+      struct physics_callback_raii {
+        fan::physics::physics_step_callback_nr_t id{};
+        bool active = false;
+        std::function<void()> callback_factory;
 
-				struct movement_e {
-					enum {
-						side_view, // left, right, space to jump
-						top_view // left, right, down, up wasd
-					};
-				};
+        physics_callback_raii() = default;
 
-				struct wall_jump_t {
-					fan::vec2 normal;
-					f32_t slide_speed = 200.f;
-					f32_t push_away_force = 1.f;
-				}wall_jump;
-
-				character2d_t() = default;
-				character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {
-          force = get_mass() * 0.05f;
-				  jump_impulse = get_mass() * 0.013f;
-				  max_speed = get_mass() * 0.1f;
+        template<typename F>
+        void register_callback(F&& f) {
+          unregister();
+          callback_factory = std::forward<F>(f);
+          id = fan::physics::add_physics_step_callback(callback_factory);
+          active = true;
         }
 
-				void set_shape(fan::graphics::shape_t&& shape) {
-					physics::base_shape_t::set_shape(std::move(shape));
-				}
+        void unregister() {
+          if (active && !id.iic()) {
+            fan::physics::remove_physics_step_callback(id);
+            id.sic();
+            active = false;
+          }
+        }
 
-				void update_animation() {
-					// update player animation based on velocity
-					f32_t animation_fps = (get_linear_velocity().x / max_speed) * 30.f;
-					if (has_animation()) {
-						set_sprite_sheet_fps(std::abs(animation_fps));
-					}
+        ~physics_callback_raii() {
+          unregister();
+        }
 
-					// set uv sign based on movement
-					if (previous_movement_sign.x) {
-						fan::vec2 uvp = get_tc_position();
-						fan::vec2 uvs = get_tc_size();
-						set_tc_size(fan::vec2(std::abs(uvs.x) * previous_movement_sign.x, uvs.y));
-					}
-				}
+        physics_callback_raii(const physics_callback_raii& o)
+          : active(o.active), callback_factory(o.callback_factory) {
+          if (active && callback_factory) {
+            id = fan::physics::add_physics_step_callback(callback_factory);
+          }
+        }
 
-				static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping) {
-					for (int i = 0; i < 2; ++i) {
-						fan::physics::body_id_t body_id = feet[i];
-						if (body_id.is_valid() == false) {
-							body_id = main;
-						}
-						b2Vec2 velocity = b2Body_GetLinearVelocity(body_id);
-						if (jumping == false && velocity.y < 0.01f) {
-							int capacity = b2Body_GetContactCapacity(body_id);
-							capacity = b2MinInt(capacity, 4);
-							b2ContactData contactData[4];
-							int count = b2Body_GetContactData(body_id, contactData, capacity);
-							for (int i = 0; i < count; ++i) {
-								b2BodyId bodyIdA = b2Shape_GetBody(contactData[i].shapeIdA);
-								f32_t sign = 0.0f;
-								if (B2_ID_EQUALS(bodyIdA, body_id)) {
-									// normal points from A to B
-									sign = -1.0f;
-								}
-								else {
-									sign = 1.0f;
-								}
-								if (sign * contactData[i].manifold.normal.y < -0.9f) {
-									return true;
-								}
-							}
-						}
-					}
-					return false;
-				}
-				void process_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12) {
-					fan::vec2 velocity = get_linear_velocity();
+        physics_callback_raii& operator=(const physics_callback_raii& o) {
+          if (this != &o) {
+            unregister();
+            active = o.active;
+            callback_factory = o.callback_factory;
+            if (active && callback_factory) {
+              id = fan::physics::add_physics_step_callback(callback_factory);
+            }
+          }
+          return *this;
+        }
 
-					fan::physics::shape_id_t colliding_wall_id;
-					wall_jump.normal = fan::physics::check_wall_contact(*this, &colliding_wall_id);
+        physics_callback_raii(physics_callback_raii&& o) noexcept
+          : active(o.active), callback_factory(std::move(o.callback_factory)) {
+          if (active && callback_factory) {
+            id = fan::physics::add_physics_step_callback(callback_factory);
+          }
+          o.unregister();
+        }
 
-					walk_force = 0;
+        physics_callback_raii& operator=(physics_callback_raii&& o) noexcept {
+          if (this != &o) {
+            unregister();
+            active = o.active;
+            callback_factory = std::move(o.callback_factory);
+            if (active && callback_factory) {
+              id = fan::physics::add_physics_step_callback(callback_factory);
+            }
+            o.unregister();
+          }
+          return *this;
+        }
+      };
 
-					fan::vec2 input_vector = fan::window::get_input_vector();
+      struct character2d_t : physics::base_shape_t {
+        using physics::base_shape_t::base_shape_t;
 
-					switch (movement) {
-					case movement_e::side_view: {
-						bool on_ground = is_on_ground(*this, std::to_array(feet), jumping);
+        struct movement_e {
+          enum {
+            side_view, // left, right, space to jump
+            top_view   // left, right, down, up wasd
+          };
+        };
+
+        struct wall_jump_t {
+          fan::vec2 normal;
+          f32_t slide_speed = 200.f;
+          f32_t push_away_force = 1.f;
+        } wall_jump;
+
+        character2d_t() = default;
+        character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {}
+
+        character2d_t(const character2d_t& o)
+          : base_shape_t(o), wall_jump(o.wall_jump), movement_cb(o.movement_cb) {
+          anim_controller = o.anim_controller;
+          std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
+            offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
+          if (movement_enabled) {
+            movement_cb.register_callback([this] { process_movement(movement_type); });
+          }
+        }
+
+        character2d_t(character2d_t&& o) noexcept
+          : base_shape_t(std::move(o)), wall_jump(std::move(o.wall_jump)), movement_cb(std::move(o.movement_cb)) {
+          anim_controller = std::move(o.anim_controller);
+          std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
+            offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
+
+          if (movement_enabled) {
+            movement_cb.register_callback([this] { process_movement(movement_type); });
+          }
+          o.movement_enabled = false;
+        }
+
+        character2d_t& operator=(const character2d_t& o) {
+          if (this != &o) {
+            base_shape_t::operator=(o);
+            anim_controller = o.anim_controller;
+            wall_jump = o.wall_jump;
+            movement_cb = o.movement_cb;
+            std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
+              offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
+
+            movement_cb.unregister();
+            if (movement_enabled) {
+              movement_cb.register_callback([this] { process_movement(movement_type); });
+            }
+          }
+          return *this;
+        }
+
+        character2d_t& operator=(character2d_t&& o) noexcept {
+          if (this != &o) {
+            anim_controller = std::move(o.anim_controller);
+            base_shape_t::operator=(std::move(o));
+            wall_jump = std::move(o.wall_jump);
+            movement_cb = std::move(o.movement_cb);
+            std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
+              offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
+
+            movement_cb.unregister();
+            if (movement_enabled) {
+              movement_cb.register_callback([this] { process_movement(movement_type); });
+            }
+            o.movement_enabled = false;
+          }
+          return *this;
+        }
+
+        ~character2d_t() {
+          movement_cb.unregister();
+        }
+
+        void set_shape(fan::graphics::shape_t&& shape) {
+          bool movement_was_enabled = movement_enabled;
+          uint8_t saved_movement_type = movement_type;
+
+          movement_cb.unregister();
+          physics::base_shape_t::set_shape(std::move(shape));
+
+          if (movement_was_enabled) {
+            movement_enabled = true;
+            movement_type = saved_movement_type;
+            movement_cb.register_callback([this] { process_movement(movement_type); });
+          }
+        }
+
+        void set_physics_body(fan::physics::entity_t&& entity) {
+          if (physics_update_nr.iic() == false) {
+            fan::physics::remove_physics_update(physics_update_nr);
+          }
+
+          *static_cast<fan::physics::entity_t*>(this) = std::move(entity);
+
+          uint64_t body_id_data = *reinterpret_cast<uint64_t*>(static_cast<fan::physics::body_id_t*>(this));
+          physics_update_nr = fan::physics::add_physics_update({
+            .shape_id = *(uint64_t*)static_cast<fan::graphics::shape_t*>(this),
+            .draw_offset = draw_offset,
+            .body_id = body_id_data,
+            .cb = (void*)shape_physics_update
+            });
+        }
+
+        void update_animation() {
+          f32_t animation_fps = (get_linear_velocity().x / max_speed) * 30.f;
+          if (current_animation_requires_velocity_fps) {
+            if (has_animation()) {
+              set_sprite_sheet_fps(std::abs(animation_fps));
+            }
+          }
+
+          if (previous_movement_sign.x) {
+            fan::vec2 uvp = get_tc_position();
+            fan::vec2 uvs = get_tc_size();
+            set_tc_size(fan::vec2(std::abs(uvs.x) * previous_movement_sign.x, uvs.y));
+          }
+        }
+
+        static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping) {
+          for (int i = 0; i < 2; ++i) {
+            fan::physics::body_id_t body_id = feet[i];
+            if (body_id.is_valid() == false) {
+              body_id = main;
+            }
+            b2Vec2 velocity = b2Body_GetLinearVelocity(body_id);
+            if (jumping == false && velocity.y < 0.01f) {
+              int capacity = b2Body_GetContactCapacity(body_id);
+              capacity = b2MinInt(capacity, 4);
+              b2ContactData contactData[4];
+              int count = b2Body_GetContactData(body_id, contactData, capacity);
+              for (int i = 0; i < count; ++i) {
+                b2BodyId bodyIdA = b2Shape_GetBody(contactData[i].shapeIdA);
+                f32_t sign = 0.0f;
+                if (B2_ID_EQUALS(bodyIdA, body_id)) {
+                  sign = -1.0f;
+                }
+                else {
+                  sign = 1.0f;
+                }
+                if (sign * contactData[i].manifold.normal.y < -0.9f) {
+                  return true;
+                }
+              }
+            }
+          }
+          return false;
+        }
+
+        void process_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12) {
+          fan::vec2 velocity = get_linear_velocity();
+
+          fan::physics::shape_id_t colliding_wall_id;
+          wall_jump.normal = fan::physics::check_wall_contact(*this, &colliding_wall_id);
+
+          fan::vec2 input_vector = fan::window::get_input_vector();
+
+          switch (movement) {
+          case movement_e::side_view: {
+            bool on_ground = is_on_ground(*this, std::to_array(feet), jumping);
             f32_t air_control_multiplier = on_ground ? 1.0f : 0.8f;
-						move_to_direction(fan::vec2(input_vector.x, 0) * air_control_multiplier);
+            move_to_direction(fan::vec2(input_vector.x, 0) * air_control_multiplier);
 
-						bool can_jump = on_ground || (((fan::time::clock::now() - last_ground_time) / 1e+9 <= coyote_time) && !on_air_after_jump);
+            bool can_jump = on_ground || (((fan::time::clock::now() - last_ground_time) / 1e+9 <= coyote_time) && !on_air_after_jump);
 
-						if (on_ground) {
-							last_ground_time = fan::time::clock::now();
-							on_air_after_jump = false;
-						}
+            if (on_ground) {
+              last_ground_time = fan::time::clock::now();
+              on_air_after_jump = false;
+            }
 
-						if (wall_jump.normal.x && input_vector.x) {
+            if (wall_jump.normal.x && input_vector.x) {
+              colliding_wall_id.set_friction(0.f);
+              if (!jumping && velocity.y > 0) {
+                fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
+              }
+            }
+            else if (colliding_wall_id) {
+              colliding_wall_id.set_friction(fan::physics::shape_properties_t().friction);
+            }
 
-							colliding_wall_id.set_friction(0.f); // no friction when hugging wall
-							if (!jumping && velocity.y > 0) {
-								fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
-							}
-						}
-						else if (colliding_wall_id) {
-							colliding_wall_id.set_friction(fan::physics::shape_properties_t().friction);
-						}
+            bool move_up = fan::window::is_action_down("move_up");
 
-						bool move_up = fan::window::is_action_down("move_up");
-    
             if (!move_up) {
               jump_consumed = false;
               jumping = false;
             }
-						if (move_up && !jump_consumed && handle_jump) {
-							if (wall_jump.normal && !on_ground) {
-                fan::vec2 vel = get_linear_velocity();
-                //f32_t clamped_x = std::clamp(vel.x, -max_speed, max_speed);
-                //set_linear_velocity(fan::vec2(vel.x, 0));
-								fan::physics::wall_jump(*this, wall_jump.normal, wall_jump.push_away_force, jump_impulse);
-								on_air_after_jump = true;
-								jumping = true;
-                jump_consumed = true;
-							}
-							else if (can_jump) {
-                fan::vec2 vel = get_linear_velocity();
-                //f32_t clamped_x = std::clamp(vel.x, -max_speed, max_speed);
-                set_linear_velocity(fan::vec2(vel.x, 0));
-								on_air_after_jump = true;
-								apply_linear_impulse_center({ 0, -jump_impulse });
-								jumping = true;
-                jump_consumed = true;
-							}
-						}
-						else {
-							jumping = false;
-						}
 
-						jump_delay = 0;
-						break;
-					}
-					case movement_e::top_view: {
-						move_to_direction(input_vector);
-						break;
-					}
-					}
+            if (move_up && !jump_consumed && handle_jump) {
+              if (wall_jump.normal && !on_ground) {
+                fan::vec2 vel = get_linear_velocity();
+                fan::physics::wall_jump(*this, wall_jump.normal, wall_jump.push_away_force, jump_impulse);
+                on_air_after_jump = true;
+                jumping = true;
+                jump_consumed = true;
+              }
+              else if (can_jump) {
+                fan::vec2 vel = get_linear_velocity();
+                set_linear_velocity(fan::vec2(vel.x, 0));
+                on_air_after_jump = true;
+                apply_linear_impulse_center({ 0, -jump_impulse });
+                jumping = true;
+                jump_consumed = true;
+              }
+            }
+            else {
+              jumping = false;
+            }
+
+            jump_delay = 0;
+            break;
+          }
+
+          case movement_e::top_view: {
+            move_to_direction(input_vector);
+            break;
+          }
+          }
+
+          if (auto_update_animations) {
+            anim_controller.update(*this);
+            update_animation();
+          }
         }
 
         void move_to_direction(const fan::vec2& direction) {
@@ -1092,7 +1255,7 @@ export namespace fan {
             vel.x = std::clamp(vel.x, -max_speed, max_speed);
           }
           else {
-            f32_t deceleration_factor = 0.05f; // 5% per step
+            f32_t deceleration_factor = 0.05f;
             vel.x = fan::math::lerp(vel.x, 0.f, deceleration_factor);
           }
 
@@ -1100,24 +1263,144 @@ export namespace fan {
           previous_movement_sign = input_dir;
         }
 
-				void set_physics_position(const fan::vec2& p) {
-					fan::physics::entity_t::set_physics_position(p);
-					fan::graphics::shape_t::set_position(p);
-				}
-				fan::vec2 previous_movement_sign;
-				f32_t force = 160.f;
-				f32_t jump_impulse = 20.f;
-				f32_t max_speed = 800.f;
-				f32_t jump_delay = 0.25f;
-				bool jumping = false;
-				fan::physics::body_id_t feet[2];
-				f32_t coyote_time = 0.1f;
-				f32_t last_ground_time = 0.f;
-				f32_t walk_force = 0;
-				bool handle_jump = true;
-				bool on_air_after_jump = false;
+        void set_physics_position(const fan::vec2& p) {
+          fan::physics::entity_t::set_physics_position(p);
+          fan::graphics::shape_t::set_position(p);
+        }
+
+        void enable_default_movement(uint8_t movement = movement_e::side_view) {
+          movement_enabled = true;
+          movement_type = movement;
+          movement_cb.register_callback([this, movement] { process_movement(movement); });
+        }
+
+        void update_animations() {
+          if (auto_update_animations) {
+            anim_controller.update(*this);
+            update_animation();
+          }
+        }
+
+        void setup_default_animations() {
+          auto anims = get_all_animations();
+
+          struct anim_t {
+            int fps = 0;
+            fan::graphics::animation_nr_t id{};
+          } attack, idle, run, hurt;
+
+          for (auto& [name, anim_id] : anims) {
+            auto& a = fan::graphics::all_animations[anim_id];
+
+            if (name == "attack0") attack = { a.fps, anim_id };
+            else if (name == "idle") idle = { a.fps, anim_id };
+            else if (name == "run") run = { a.fps, anim_id };
+            else if (name == "hurt") hurt = { a.fps, anim_id };
+          }
+
+          if (attack.fps) {
+            anim_controller.add_state("attack0", {
+              .animation_id = attack.id,
+              .fps = attack.fps,
+              .condition = [attack, was_mouse_clicked = false](character2d_t& c) mutable -> bool { 
+                if (fan::window::is_mouse_clicked() && !was_mouse_clicked) {
+                  c.reset_current_sprite_sheet_animation();
+                  was_mouse_clicked = true;
+                }
+                if (was_mouse_clicked) {
+                  if (c.is_animation_finished(attack.id)) {
+                    was_mouse_clicked = false;
+                  }
+                  return true;
+                }
+                return false;
+              }
+            });
+          }
+          if (hurt.fps) {
+            anim_controller.add_state("hurt", {
+              .animation_id = hurt.id,
+              .fps = hurt.fps,
+              .condition = [](character2d_t& c) { return  false /*todo*/; }
+            });
+          }
+          if (idle.fps) {
+            anim_controller.add_state("idle", {
+              .animation_id = idle.id,
+              .fps = idle.fps,
+              .condition = [](character2d_t& c) { return std::abs(c.get_linear_velocity().x) < 10.f; }
+            });
+            set_current_animation_id(idle.id);
+          }
+          if (run.fps) {
+            anim_controller.add_state("run", {
+              .animation_id = run.id,
+              .fps = run.fps,
+              .condition = [](character2d_t& c) { return std::abs(c.get_linear_velocity().x) >= 10.f; }
+            });
+          }
+          auto_update_animations = true;
+        }
+
+
+        struct animation_controller_t {
+          struct animation_state_t {
+            fan::graphics::animation_nr_t animation_id;
+            int fps = 15;
+            bool velocity_based_fps = false;
+            std::function<bool(character2d_t&)> condition;
+          };
+
+          void add_state(const std::string& name, const animation_state_t& state) {
+            states[name] = state;
+          }
+
+          void update(character2d_t& character) {
+            for (auto& [name, state] : states) {
+              if (state.condition(character) && state.animation_id) {
+                character.set_current_animation_id(state.animation_id);
+                character.current_animation_requires_velocity_fps = state.velocity_based_fps;
+                if (!state.velocity_based_fps) {
+                  character.set_sprite_sheet_fps(state.fps);
+                }
+                return;
+              }
+            }
+          }
+
+          std::unordered_map<std::string, animation_state_t> states;
+        } anim_controller;
+
+        struct character_config_t {
+          std::string json_path;
+          f32_t aabb_scale = 1.0f;
+          uint8_t movement_type = character2d_t::movement_e::side_view;
+          fan::vec2 draw_offset_override = { 0,0 };
+          bool auto_draw_offset = true;
+          bool auto_animations = true;
+          fan::physics::shape_properties_t physics_properties = { .fixed_rotation = true };
+        };
+
+        static character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
+
+        fan::vec2 previous_movement_sign = 0;
+        f32_t force = 120.f;
+        f32_t jump_impulse = 75.f;
+        f32_t max_speed = 600.f;
+        f32_t jump_delay = 0.25f;
+        bool jumping = false;
+        fan::physics::body_id_t feet[2];
+        f32_t coyote_time = 0.1f;
+        f32_t last_ground_time = 0.f;
+        bool handle_jump = true;
+        bool on_air_after_jump = false;
         bool jump_consumed = false;
-			};
+        bool movement_enabled = false;
+        bool current_animation_requires_velocity_fps = false;
+        bool auto_update_animations = false;
+        uint8_t movement_type = movement_e::side_view;
+        physics_callback_raii movement_cb;
+      };
 
 			struct bone_e {
 				enum {
@@ -1742,7 +2025,7 @@ export namespace fan::graphics::physics {
   fan::graphics::physics::character2d_t character_circle(
     const fan::vec3& position,
     f32_t radius = 16.f,
-    const fan::physics::shape_properties_t& shape_properties = {}
+    const fan::physics::shape_properties_t& shape_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::character2d_t character{ fan::graphics::physics::circle_t{{
       .position = position,
@@ -1754,7 +2037,7 @@ export namespace fan::graphics::physics {
   }
   fan::graphics::physics::character2d_t character_circle(
     const fan::graphics::physics::circle_t::properties_t& visual_properties,
-    const fan::physics::shape_properties_t& physics_properties = {}
+    const fan::physics::shape_properties_t& physics_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::circle_t::properties_t p = visual_properties;
     p.shape_properties = physics_properties;
@@ -1765,7 +2048,7 @@ export namespace fan::graphics::physics {
     const fan::vec3& position,
     f32_t radius = 16.f,
     const fan::graphics::image_t& image = fan::graphics::get_default_texture(),
-    const fan::physics::shape_properties_t& shape_properties = {}
+    const fan::physics::shape_properties_t& shape_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::character2d_t character{ fan::graphics::physics::circle_sprite_t{{
       .position = position,
@@ -1778,7 +2061,7 @@ export namespace fan::graphics::physics {
   }
   fan::graphics::physics::character2d_t character_circle_sprite(
     const fan::graphics::physics::circle_sprite_t::properties_t& visual_properties,
-    const fan::physics::shape_properties_t& physics_properties = {}
+    const fan::physics::shape_properties_t& physics_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::circle_sprite_t::properties_t p = visual_properties;
     p.shape_properties = physics_properties;
@@ -1802,9 +2085,27 @@ export namespace fan::graphics::physics {
     }} };
     return character;
   }
+  // creates physics body for visual shape
+  fan::physics::entity_t character_capsule(
+    const fan::graphics::shape_t& shape,
+    f32_t shape_size_multiplier = 1.0,
+    const fan::physics::shape_properties_t& physics_properties = { 
+      .fixed_rotation = true
+    }, uint8_t body_type = fan::physics::body_type_e::dynamic_body) {
+    f32_t half_height = shape.get_size().y * shape_size_multiplier;
+    return fan::physics::gphysics->create_capsule(
+      shape.get_position(),
+      shape.get_angle().z,
+      b2Capsule{
+        .center1 = fan::vec2(0, -half_height),
+        .center2 = fan::vec2(0, half_height),
+        .radius = half_height,
+      }, body_type, physics_properties
+    );
+  }
   fan::graphics::physics::character2d_t character_capsule(
     const fan::graphics::physics::capsule_t::properties_t& visual_properties,
-    const fan::physics::shape_properties_t& physics_properties = {}
+    const fan::physics::shape_properties_t& physics_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::capsule_t::properties_t p = visual_properties;
     p.shape_properties = physics_properties;
@@ -1817,7 +2118,7 @@ export namespace fan::graphics::physics {
     const fan::vec2& center1 = { 0, 32.f },
     const fan::vec2& size = { 64.f, 64.f },
     const fan::graphics::image_t& image = fan::graphics::get_default_texture(),
-    const fan::physics::shape_properties_t& shape_properties = {}
+    const fan::physics::shape_properties_t& shape_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::character2d_t character{ fan::graphics::physics::capsule_sprite_t{{
       .position = position,
@@ -1832,7 +2133,7 @@ export namespace fan::graphics::physics {
   }
   fan::graphics::physics::character2d_t character_capsule_sprite(
     const fan::graphics::physics::capsule_sprite_t::properties_t& visual_properties,
-    const fan::physics::shape_properties_t& physics_properties = {}
+    const fan::physics::shape_properties_t& physics_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::capsule_sprite_t::properties_t p = visual_properties;
     p.shape_properties = physics_properties;
@@ -1843,7 +2144,7 @@ export namespace fan::graphics::physics {
   fan::graphics::physics::character2d_t character_rectangle(
     const fan::vec3& position,
     const fan::vec2& size = { 32.f, 32.f },
-    const fan::physics::shape_properties_t& shape_properties = {}
+    const fan::physics::shape_properties_t& shape_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::character2d_t character{ fan::graphics::physics::rectangle_t{{
       .position = position,
@@ -1855,7 +2156,7 @@ export namespace fan::graphics::physics {
   }
   fan::graphics::physics::character2d_t character_rectangle(
     const fan::graphics::physics::rectangle_t::properties_t& visual_properties,
-    const fan::physics::shape_properties_t& physics_properties = {}
+    const fan::physics::shape_properties_t& physics_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::rectangle_t::properties_t p = visual_properties;
     p.shape_properties = physics_properties;
@@ -1866,7 +2167,7 @@ export namespace fan::graphics::physics {
     const fan::vec3& position,
     const fan::vec2& size = { 32.f, 32.f },
     const fan::graphics::image_t& image = fan::graphics::get_default_texture(),
-    const fan::physics::shape_properties_t& shape_properties = {}
+    const fan::physics::shape_properties_t& shape_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::character2d_t character{ fan::graphics::physics::sprite_t{{
       .position = position,
@@ -1879,7 +2180,7 @@ export namespace fan::graphics::physics {
   }
   fan::graphics::physics::character2d_t character_sprite(
     const fan::graphics::physics::sprite_t::properties_t& visual_properties,
-    const fan::physics::shape_properties_t& physics_properties = {}
+    const fan::physics::shape_properties_t& physics_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::sprite_t::properties_t p = visual_properties;
     p.shape_properties = physics_properties;
@@ -1890,7 +2191,7 @@ export namespace fan::graphics::physics {
     const fan::vec3& position,
     const std::vector<fan::graphics::vertex_t>& vertices,
     f32_t radius = 0.005f,
-    const fan::physics::shape_properties_t& shape_properties = {}
+    const fan::physics::shape_properties_t& shape_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::character2d_t character{ fan::graphics::physics::polygon_t{{
       .position = position,
@@ -1903,13 +2204,50 @@ export namespace fan::graphics::physics {
   }
   fan::graphics::physics::character2d_t character_polygon(
     const fan::graphics::physics::polygon_t::properties_t& visual_properties,
-    const fan::physics::shape_properties_t& physics_properties = {}
+    const fan::physics::shape_properties_t& physics_properties = {.fixed_rotation = true}
   ) {
     fan::graphics::physics::polygon_t::properties_t p = visual_properties;
     p.shape_properties = physics_properties;
     p.body_type = fan::physics::body_type_e::dynamic_body;
     return fan::graphics::physics::polygon_t(p);
   }
+}
+
+fan::graphics::physics::character2d_t fan::graphics::physics::character2d_t::from_json(
+  const fan::graphics::physics::character2d_t::character_config_t& config,
+  const std::source_location& callers_path
+) {
+
+  fan::json json_data = fan::graphics::read_json(config.json_path, callers_path);
+  fan::graphics::parse_animations(json_data, callers_path);
+
+  auto shape = fan::graphics::extract_single_shape(json_data, callers_path);
+  fan::graphics::physics::character2d_t character;
+  character.set_shape(std::move(shape));
+  character.set_physics_body(
+    fan::graphics::physics::character_capsule(
+      character,
+      config.aabb_scale,
+      config.physics_properties
+    )
+  );
+
+  if (config.auto_draw_offset && config.draw_offset_override == fan::vec2(0, 0)) {
+    fan::vec2 size = character.get_size();
+    character.set_draw_offset(fan::vec2(0, -size.y * 0.3f));
+  }
+  else if (config.draw_offset_override != fan::vec2(0, 0)) {
+    character.set_draw_offset(config.draw_offset_override);
+  }
+
+  if (config.auto_animations) {
+    character.setup_default_animations();
+  }
+
+  character.enable_default_movement(config.movement_type);
+  character.start_sprite_sheet_animation();
+
+  return character;
 }
 
 #endif

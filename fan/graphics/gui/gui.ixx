@@ -2707,8 +2707,13 @@ export namespace fan {
               ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.3f));
 
               if (fan::graphics::gui::image_button("##icon_arrow_left", icon_arrow_left, fan::vec2(32))) {
-                if (!std::filesystem::equivalent(current_directory, asset_path)) {
+                /*if (!std::filesystem::equivalent(current_directory, asset_path)) {
                   current_directory = current_directory.parent_path();
+                  update_directory_cache();
+                }*/
+                auto absolute_path = std::filesystem::canonical(std::filesystem::absolute(current_directory));
+                if (absolute_path.has_parent_path()) {
+                  current_directory = std::filesystem::canonical(absolute_path.parent_path());
                   update_directory_cache();
                 }
               }
@@ -3453,7 +3458,7 @@ export namespace fan {
           gui::same_line(0, 20.f);
 
           gui::slider_flags_t slider_flags = fan::graphics::gui::slider_flags_always_clamp | gui::slider_flags_no_speed_tweaks;
-          list_changed |= gui::drag("fps", &current_animation->second.fps, 0.03f, 0, 244, slider_flags);
+          list_changed |= gui::drag("fps", &current_animation->second.fps, 1, 0, 244, slider_flags);
           if (gui::button("add sprite sheet")) {
             adding_sprite_sheet = true;
           }
@@ -3468,8 +3473,8 @@ export namespace fan {
               }
               });
 
-            gui::drag("Horizontal frames", &hframes, 0.03f, 0, 1024, slider_flags);
-            gui::drag("Vertical frames", &vframes, 0.03f, 0, 1024, slider_flags);
+            gui::drag("Horizontal frames", &hframes, 1, 0, 1024, slider_flags);
+            gui::drag("Vertical frames", &vframes, 1, 0, 1024, slider_flags);
 
             if (!sprite_sheet_drag_drop_name.empty()) {
               gui::separator();
