@@ -328,8 +328,7 @@ export namespace fan::graphics {
 		}
 
 		std::string path = image_json["image_path"];
-
-		if (!fan::io::file::exists(path)) {
+		if (!fan::io::file::exists(fan::io::file::find_relative_path(path, callers_path).string())) {
 			return fan::graphics::g_render_context_handle.default_texture;
 		}
 
@@ -383,8 +382,8 @@ export namespace fan::graphics {
 				return j;
 			}
 
-			sprite_sheet_animation_t::image_t& operator=(const fan::json& j) {
-				image = fan::graphics::json_to_image(j);
+			sprite_sheet_animation_t::image_t& assign(const fan::json& j, const std::source_location& callers_path = std::source_location::current()) {
+				image = fan::graphics::json_to_image(j, callers_path);
 				if (j.contains("hframes")) {
 					hframes = j.at("hframes");
 				}
@@ -459,7 +458,7 @@ export namespace fan::graphics {
 	sprite_sheet_animation_t& get_sprite_sheet_animation(animation_nr_t nr) {
 		auto found_anim = fan::graphics::all_animations.find(nr);
 		if (found_anim == fan::graphics::all_animations.end()) {
-			fan::throw_error("animation not found");
+			fan::throw_error("Animation not found");
 		}
 		return found_anim->second;
 	}
@@ -482,17 +481,17 @@ export namespace fan::graphics {
 		auto found = std::find_if(previous_anims.begin(), previous_anims.end(), [old_name](const animation_nr_t nr) {
 			auto found = fan::graphics::all_animations.find(nr);
 			if (found == fan::graphics::all_animations.end()) {
-				fan::throw_error("animation nr expired (bug)");
+				fan::throw_error("Animation nr expired (bug)");
 			}
 			return found->second.name == old_name;
 			});
 		if (found == previous_anims.end()) {
-			fan::throw_error("animation:" + old_name, ", not found");
+			fan::throw_error("Animation:" + old_name, ", not found");
 		}
 		animation_nr_t previous_anim_nr = *found;
 		auto prev_found = fan::graphics::all_animations.find(previous_anim_nr);
 		if (prev_found == fan::graphics::all_animations.end()) {
-			fan::throw_error("animation nr expried (bug)");
+			fan::throw_error("Animation nr expired (bug)");
 		}
 		auto& previous_anim = prev_found->second;
 		{
@@ -535,6 +534,11 @@ export namespace fan::graphics {
 		return add_existing_sprite_sheet_shape_animation(new_anim_nr, shape_animation_id, new_anim);
 	}
 
+  bool is_animation_finished(animation_nr_t nr, const fan::graphics::sprite_sheet_data_t& sd) {
+    auto& animation = fan::graphics::get_sprite_sheet_animation(nr);
+    return sd.current_frame == animation.selected_frames.size() - 1;
+  }
+
 #if defined(fan_json)
 	fan::json sprite_sheet_serialize() {
 		fan::json result = fan::json::object();
@@ -565,7 +569,7 @@ export namespace fan::graphics {
 		return result;
 	}
 
-	void sprite_sheet_deserialize(fan::json& json) {
+	void sprite_sheet_deserialize(fan::json& json, const std::source_location& callers_path = std::source_location::current()) {
 		animation_nr_t counter_offset = all_animations_counter;
 
 		if (json.contains("animations")) {
@@ -580,7 +584,7 @@ export namespace fan::graphics {
 					if (item.contains("images")) {
 						for (const auto& frame_json : item["images"]) {
 							sprite_sheet_animation_t::image_t img;
-							img = frame_json;
+							img.assign(frame_json, callers_path);
 							anim.images.push_back(img);
 						}
 					}
@@ -614,23 +618,8 @@ export namespace fan::graphics {
 #endif
 
 #if defined(fan_json)
-	void parse_animations(fan::json& json_in) {
-		sprite_sheet_deserialize(json_in);
-
-		for (auto& item : json_in["animations"]) {
-			sprite_sheet_animation_t anim;
-			anim.name = item.value("name", std::string{});
-			anim.selected_frames = item.value("selected_frames", std::vector<int>{});
-			for (const auto& frame_json : item["images"]) {
-				sprite_sheet_animation_t::image_t img;
-				img = frame_json;
-				anim.images.push_back(img);
-			}
-			anim.fps = item.value("fps", 0.0f);
-
-			animation_nr_t id = item.value("id", uint32_t());
-			all_animations[id] = anim;
-		}
+	void parse_animations(fan::json& json_in, const std::source_location& callers_path = std::source_location::current()) {
+		sprite_sheet_deserialize(json_in, callers_path);
 	}
 #endif
 
@@ -1658,6 +1647,19 @@ export namespace fan::graphics {
 				}
 			}
 
+      bool is_animation_finished(animation_nr_t nr) const {
+        auto& animation = fan::graphics::get_sprite_sheet_animation(nr);
+        auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+        fan::graphics::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+        return sheet_data.current_frame == animation.selected_frames.size() - 1;
+      }
+
+      void reset_current_sprite_sheet_animation() {
+        auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+        ri.sprite_sheet_data.current_frame = 0;
+        ri.sprite_sheet_data.update_timer.restart();
+      }
+
 			// sprite sheet - sprite specific
 			void set_sprite_sheet_next_frame(int advance = 1) {
 				if (get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
@@ -1666,8 +1668,13 @@ export namespace fan::graphics {
 					if (found == fan::graphics::all_animations.end()) {
 						fan::throw_error("current_animation not found");
 					}
+
+
 					auto& animation = found->second;
 					fan::graphics::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+          if (sheet_data.current_frame >= animation.selected_frames.size()) {
+            sheet_data.current_frame = 0;
+          }
 					int actual_frame = animation.selected_frames[sheet_data.current_frame];
 
 					// Find which image this frame belongs to and the local frame within that image
@@ -1687,7 +1694,9 @@ export namespace fan::graphics {
 
 					auto& current_image = animation.images[image_index];
 					set_image(current_image.image);
+          int before = sheet_data.current_frame;
 					sheet_data.current_frame += advance;
+          int before2 = sheet_data.current_frame;
 					sheet_data.current_frame %= animation.selected_frames.size();
 					sheet_data.update_timer.restart();
 
@@ -1705,6 +1714,20 @@ export namespace fan::graphics {
 					fan::throw_error("Unimplemented for this shape");
 				}
 			}
+
+      animation_shape_nr_t get_shape_animations_id() const {
+        return ((sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))->shape_animations;
+      }
+      std::unordered_map<std::string, fan::graphics::animation_nr_t> get_all_animations() const {
+        std::unordered_map<std::string, fan::graphics::animation_nr_t> result;
+
+        for (auto& animation_nrs : fan::graphics::shape_animations[get_shape_animations_id()]) {
+          auto& anim = fan::graphics::all_animations[animation_nrs];
+          result[anim.name] = animation_nrs;
+        }
+        return result;
+      }
+
 			// Takes in seconds
 			void set_sprite_sheet_fps(f32_t fps) {
 				if (get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
@@ -1756,6 +1779,18 @@ export namespace fan::graphics {
 					fan::throw_error("Unimplemented for this shape");
 				}
 			}
+
+      animation_nr_t& get_current_animation_id() {
+        return shape_get_ri(sprite).current_animation;
+      }
+      void set_current_animation_id(animation_nr_t animation_id) {
+      #if fan_debug >= fan_debug_medium
+        if (!animation_id) {
+          fan::throw_error("invalid animation id");
+        }
+      #endif
+        get_current_animation_id() = animation_id;
+      }
 
 			void set_light_position(const fan::vec3& new_pos) {
 				if (get_shape_type() != fan::graphics::shapes::shape_type_t::shadow) {
@@ -3869,7 +3904,7 @@ export namespace fan {
 				}
 				if (in.contains("images") && in["images"].is_array()) {
 					for (const auto [i, image_json] : fan::enumerate(in["images"])) {
-						fan::graphics::image_t image = fan::graphics::json_to_image(image_json);
+						fan::graphics::image_t image = fan::graphics::json_to_image(image_json, callers_path);
 						if (i == 0) {
 							shape->set_image(image);
 						}
@@ -4068,7 +4103,7 @@ export namespace fan {
 				if (in.contains("blending")) {
 					p.blending = in["blending"];
 				}
-				p.image = fan::graphics::json_to_image(in);
+				p.image = fan::graphics::json_to_image(in, callers_path);
 				*shape = p;
 				break;
 			}
@@ -4361,7 +4396,7 @@ export namespace fan {
 			bool init = false;
 			bool was_object = false;
 
-			bool iterate(const fan::json& json, fan::graphics::shapes::shape_t* shape) {
+			bool iterate(const fan::json& json, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path = std::source_location::current()) {
 				if (init == false) {
 					data.it = json.cbegin();
 					init = true;
@@ -4370,12 +4405,12 @@ export namespace fan {
 					return 0;
 				}
 				if (json.type() == fan::json::value_t::object) {
-					json_to_shape(json, shape);
+					json_to_shape(json, shape, callers_path);
 					was_object = true;
 					return 1;
 				}
 				else {
-					json_to_shape(*data.it, shape);
+					json_to_shape(*data.it, shape, callers_path);
 					++data.it;
 				}
 				return 1;
@@ -4393,10 +4428,10 @@ export namespace fan {
 		};
 
 
-		fan::graphics::shapes::shape_t extract_single_shape(const fan::json& json_data) {
+		fan::graphics::shapes::shape_t extract_single_shape(const fan::json& json_data, const std::source_location& callers_path = std::source_location::current()) {
 			fan::graphics::shape_deserialize_t iterator;
 			fan::graphics::shapes::shape_t shape;
-			iterator.iterate(json_data["shapes"], &shape);
+			iterator.iterate(json_data["shapes"], &shape, callers_path);
 			return shape;
 		}
 		fan::json read_json(const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
@@ -4436,7 +4471,7 @@ fan::graphics::shapes::shape_t::operator std::string() {
 	fan::graphics::shape_to_json(*this, &out);
 	return out.dump(2);
 }
-fan::graphics::shapes::shape_t::shape_t(const fan::json& json) {
+fan::graphics::shapes::shape_t::shape_t(const fan::json& json) : fan::graphics::shapes::shape_t() {
 	fan::graphics::json_to_shape(json, this);
 }
 fan::graphics::shapes::shape_t::shape_t(const std::string& json_string) : fan::graphics::shapes::shape_t() {

@@ -304,6 +304,9 @@ if(FAN_GUI)
     ${ROOT_PATH}/graphics/gui/text_logger.ixx
     ${ROOT_PATH}/graphics/gui/gui.ixx
     ${ROOT_PATH}/graphics/gui/console.ixx
+		${ROOT_PATH}/graphics/gui/tilemap_editor/loader.ixx
+		${ROOT_PATH}/graphics/gui/tilemap_editor/renderer0.ixx
+		
   )
 endif()
 
@@ -328,6 +331,10 @@ target_sources(fan_modules
 
 set_target_properties(fan_modules PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 apply_common_compile_options(fan_modules)
+
+target_compile_options(fan_modules PRIVATE
+  -fprebuilt-module-path=${CMAKE_BINARY_DIR}/CMakeFiles/fan_modules.dir
+)
 
 if(FAN_GUI)
   set(IMGUI_SOURCES
@@ -536,14 +543,10 @@ if(BUILD_MAIN)
     target_compile_definitions(a.exe PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   endif()
 
-	add_library(custom_files STATIC
+	target_sources(a.exe PRIVATE
 		${ROOT_PATH}/graphics/algorithm/AStar.cpp
 	)
 
-	apply_common_compile_options(custom_files)
-	target_link_libraries(custom_files PRIVATE fan_modules)
-
-	target_link_libraries(a.exe PRIVATE custom_files)
 
   if(DEFINED CUSTOM_LIBS)
     target_link_libraries(fan_modules PRIVATE ${CUSTOM_LIBS})

@@ -1139,7 +1139,7 @@ public:
 		auto& input_map = ImPlot::GetInputMap();
 		input_map.Pan = ImGuiMouseButton_Middle;
 
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -1183,47 +1183,7 @@ public:
 		}
 #endif
 
-		load_fonts(fan::graphics::gui::fonts_bold, "fonts/SourceCodePro-Bold.ttf");
-
-		ImFontConfig emoji_cfg;
-		emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_Bitmap;
-
-		// TODO
-		static const ImWchar emoji_ranges[] = {
-			//0x2600, 0x26FF,    // Miscellaneous Symbols
-			//0x2700, 0x27BF,    // Dingbats
-			//0x2B00, 0x2BFF,  
-			//0x1F300, 0x1F5FF,  // Miscellaneous Symbols and Pictographs
-			//0x1F600, 0x1F64F,  // Emoticons
-			//0x1F680, 0x1F6FF,  // Transport and Map Symbols
-			//0x1F900, 0x1F9FF,  // Supplemental Symbols and Pictographs
-			//0x1FA70, 0x1FAFF,  // Symbols and Pictographs Extended-A
-			//0
-			0x2600, 0x26FF,    // Miscellaneous Symbols
-			0x2B00, 0x2BFF, // Miscellaneous Symbols and Arrows
-			0x1F600, 0x1F64F,  // Emoticons
-			0
-		};
-
-		io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
-		io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-		
-		for (std::size_t i = 0; i < std::size(fan::graphics::gui::fonts); ++i) {
-			f32_t font_size = fan::graphics::gui::font_sizes[i] * 2; // load 2x font size and possibly downscale for better quality
-
-			ImFontConfig main_cfg;
-			fan::graphics::gui::fonts[i] = io.Fonts->AddFontFromFileTTF("fonts/SourceCodePro-Regular.ttf", font_size, &main_cfg);
-
-			ImFontConfig emoji_cfg;
-			emoji_cfg.MergeMode = true;
-			emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-			emoji_cfg.SizePixels = 0;
-			emoji_cfg.RasterizerDensity = 1.0f;
-			emoji_cfg.GlyphMinAdvanceX = font_size;
-			io.Fonts->AddFontFromFileTTF("fonts/seguiemj.ttf", font_size, &emoji_cfg, emoji_ranges);
-		}
-		build_fonts();
-		io.FontDefault = fan::graphics::gui::fonts[9];
+    init_fonts();
 
 		input_action.add(fan::key_escape, "open_settings");
 		input_action.add(fan::key_a, "move_left");
@@ -1233,7 +1193,81 @@ public:
 		input_action.add(fan::key_space, "move_up");
 		global_imgui_initialized = true;
 		imgui_initialized = true;
-	}
+  }
+
+  void init_fonts() {
+    ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
+    io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+
+    for (std::size_t i = 0; i < std::size(fan::graphics::gui::fonts); ++i) {
+      float font_size = fan::graphics::gui::font_sizes[i] * 2;
+      ImFontConfig main_cfg;
+      main_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+      fan::graphics::gui::fonts[i] = io.Fonts->AddFontFromFileTTF(
+        "fonts/SourceCodePro-Regular.ttf", font_size, &main_cfg
+      );
+    }
+
+    build_fonts();
+
+    io.FontDefault = fan::graphics::gui::fonts[9];
+  }
+
+  void load_emoticons() {
+    ImFontConfig emoji_cfg;
+    emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_Bitmap;
+
+    // TODO: expand ranges if needed
+    static const ImWchar emoji_ranges[] = {
+      //0x2600, 0x26FF,    // Miscellaneous Symbols
+      //0x2700, 0x27BF,    // Dingbats
+      //0x2B00, 0x2BFF,    
+      //0x1F300, 0x1F5FF,  // Miscellaneous Symbols and Pictographs
+      //0x1F600, 0x1F64F,  // Emoticons
+      //0x1F680, 0x1F6FF,  // Transport and Map Symbols
+      //0x1F900, 0x1F9FF,  // Supplemental Symbols and Pictographs
+      //0x1FA70, 0x1FAFF,  // Symbols and Pictographs Extended-A
+      //0
+
+      0x2600, 0x26FF,    // Miscellaneous Symbols
+      0x2B00, 0x2BFF,    // Miscellaneous Symbols and Arrows
+      0x1F600, 0x1F64F,  // Emoticons
+      0
+    };
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->Clear();
+    io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
+    io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+
+    for (std::size_t i = 0; i < std::size(fan::graphics::gui::fonts); ++i) {
+      f32_t font_size = fan::graphics::gui::font_sizes[i] * 2;
+      // load 2x font size and possibly downscale for better quality
+
+      ImFontConfig main_cfg;
+      fan::graphics::gui::fonts[i] = io.Fonts->AddFontFromFileTTF(
+        "fonts/SourceCodePro-Regular.ttf", font_size, &main_cfg
+      );
+
+      ImFontConfig emoji_cfg;
+      emoji_cfg.MergeMode = true;
+      emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+      emoji_cfg.SizePixels = 0;
+      emoji_cfg.RasterizerDensity = 1.0f;
+      emoji_cfg.GlyphMinAdvanceX = font_size;
+
+      io.Fonts->AddFontFromFileTTF(
+        "fonts/seguiemj.ttf", font_size, &emoji_cfg, emoji_ranges
+      );
+    }
+
+    build_fonts();
+    io.FontDefault = fan::graphics::gui::fonts[9];
+
+  }
+
+
 	void destroy_imgui() {
 		if (!imgui_initialized || !global_imgui_initialized) {
 			return;

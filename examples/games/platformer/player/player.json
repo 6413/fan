@@ -1,0 +1,133 @@
+{
+  "animations": [
+    {
+      "fps": 15,
+      "id": 0,
+      "images": [
+        {
+          "hframes": 10,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "IDLE.png",
+          "vframes": 1
+        }
+      ],
+      "name": "idle",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    {
+      "fps": 15,
+      "id": 1,
+      "images": [
+        {
+          "hframes": 16,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "RUN.png",
+          "vframes": 1
+        }
+      ],
+      "name": "run",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ]
+    },
+    {
+      "fps": 60,
+      "id": 2,
+      "images": [
+        {
+          "hframes": 7,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "ATTACK 1.png",
+          "vframes": 1
+        }
+      ],
+      "name": "attack0",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "fps": 15,
+      "id": 3,
+      "images": [
+        {
+          "hframes": 4,
+          "image_path": "HURT.png",
+          "vframes": 1
+        }
+      ],
+      "name": "hurt",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "shapes": [
+    {
+      "animations": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "images": [
+        {
+          "image_path": "HURT.png"
+        }
+      ],
+      "position": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "sprite",
+      "size": [
+        128.0,
+        128.0
+      ],
+      "tc_size": [
+        0.25,
+        1.0
+      ]
+    }
+  ],
+  "version": 1
+}

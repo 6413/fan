@@ -21,6 +21,8 @@ import fan.graphics;
 import fan.graphics.physics_shapes;
 import fan.io.file;
 import fan.types.json;
+import fan.physics.types;
+import fan.physics.b2_integration;
 
 export struct fte_loader_t {
 

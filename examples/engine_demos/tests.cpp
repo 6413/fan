@@ -969,6 +969,8 @@ struct shape_tester_t {
     test_coordinate_conversion();
     test_shape_independence();
 
+    // todo: add copy and move constructor verification to shape_t, base_shape_t, character2d_t
+
     print_test_results();
   }
 

@@ -50,6 +50,8 @@
     using value_type = T;
     using dme_type_t = __dme_t<value_type, __dme_empty_string, 0>;
     constexpr auto* NA(uintptr_t I) { return &((dme_type_t *)this)[I]; }
+    constexpr auto& operator[](uintptr_t I) { return *NA(I); }
+    constexpr const auto& operator[](uintptr_t I) const { return *NA(I); }
     static constexpr uintptr_t GetMemberAmount() { return sizeof(main_t) / sizeof(dme_type_t); }
     static constexpr uintptr_t size() { return GetMemberAmount(); }
     static constexpr auto DME_INTERNAL__BEG = index;
