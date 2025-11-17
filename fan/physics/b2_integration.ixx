@@ -693,6 +693,7 @@ export namespace fan {
           sensor_events.update(world_id);
           accumulator -= physics_timestep;
         }
+        debug_draw_cb();
       }
 
       bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) const {
@@ -799,6 +800,7 @@ export namespace fan {
       std::unordered_set<std::pair<uint64_t, uint64_t>, pair_hash_t> active_collisions;
       fan::physics::physics_update_cbs_t* physics_updates = nullptr;
       physics_step_callbacks_t physics_step_callbacks;
+      std::function<void()> debug_draw_cb = [] {};
     };
 
     bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body) {
