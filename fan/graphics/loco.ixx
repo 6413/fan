@@ -84,7 +84,9 @@ module;
 export module fan.graphics.loco;
 
 import fan.utility;
-import fan.graphics.gui.text_logger;
+#if defined(fan_gui)
+  import fan.graphics.gui.text_logger;
+#endif
 export import fan.fmt;
 
 export import fan.event;
@@ -298,6 +300,9 @@ export namespace fan {
 		};
 
 		// cbs called every time engine opens
+  #if !defined(fan_compiler_msvc)
+    inline 
+  #endif
 	  engine_init_t::init_callback_t engine_init_cbs;
 
 		inline uint32_t get_draw_mode(uint8_t internal_draw_mode);
