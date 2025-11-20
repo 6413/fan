@@ -58,6 +58,9 @@ export namespace fan::physics {
   };
 
     // tiny compile boost xd
+#if !defined(fan_compiler_msvc)
+  inline
+#endif
   thread_local global_physics_t gphysics;
 }
 

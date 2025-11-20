@@ -37,6 +37,15 @@ export namespace fan {
 export namespace fan {
   namespace math {
 
+    template<typename T>
+    const T& min(const T& a, const T& b) {
+      return (b < a) ? b : a;
+    }
+    template<typename T> 
+    const T& max(const T& a, const T& b) {
+      return (a < b) ? b : a;
+    }
+
     template <typename T>
     T lerp(T src, T dst, double t) {
       return T{ (T)(src + (dst - src) * t) };

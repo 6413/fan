@@ -429,6 +429,9 @@ export namespace fan::graphics {
   #endif
   };
 
+#if !defined(fan_compiler_msvc)
+  inline 
+#endif
   thread_local render_context_handle_t g_render_context_handle;
 
   fan::window_t& get_window() {
