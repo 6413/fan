@@ -40,6 +40,7 @@ export import fan.texture_pack.tp0;
 export import fan.graphics.algorithm.raycast_grid;
 export import fan.graphics.algorithm.pathfind;
 export import fan.event;
+export import fan.math;
 
 import fan.random;
 
@@ -2046,7 +2047,7 @@ export namespace fan {
 
       static constexpr f32_t circle_overlap(f32_t r, f32_t i0, f32_t i1) {
         if (i0 <= 0 && i1 >= 0) return r;
-        f32_t y = std::min(std::min(fabs(i0), fabs(i1)) / r, 1.f);
+        f32_t y = fan::math::min(fan::math::min(std::fabs(i0), std::fabs(i1)) / r, 1.f);
         return std::sqrt(1.f - y * y) * r;
       }
 

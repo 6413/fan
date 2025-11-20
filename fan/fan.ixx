@@ -8,15 +8,21 @@ export import fan.types.matrix;
 export import fan.types.fstring;
 export import fan.io.file;
 export import fan.io.directory;
-export import fan.types.json;
+#if defined(fan_json)
+  export import fan.types.json;
+#endif
 export import fan.random;
 
 export import fan.graphics.loco;
 export import fan.graphics;
-export import fan.graphics.gui;
+#if defined(fan_gui)
+  export import fan.graphics.gui;
+#endif
 export import fan.texture_pack.tp0;
 
-export import fan.network;
+#if defined(fan_network)
+  export import fan.network;
+#endif
 
 export import fan.event;
 
