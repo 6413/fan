@@ -50,8 +50,6 @@
 #ifndef FASTNOISELITE_H
 #define FASTNOISELITE_H
 
-#include <cmath>
-
 class FastNoiseLite
 {
 public:

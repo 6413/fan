@@ -3,6 +3,7 @@ module;
 #include <vector>
 #include <cstdint>
 #include <algorithm>
+#include <cmath>
 
 export module fan.noise;
 

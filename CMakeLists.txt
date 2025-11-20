@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.31.1)
 
-set(FAN_PHYSICS ON)
-set(FAN_GUI ON)
-set(FAN_JSON ON)
+set(FAN_PHYSICS OFF)
+set(FAN_GUI OFF)
+set(FAN_JSON OFF)
 set(FAN_3D OFF)
 set(FAN_OPENGL ON)
 set(FAN_VULKAN OFF)
 set(FAN_FMT ON)
-set(FAN_WAYLAND_SCREEN ON)
+set(FAN_WAYLAND_SCREEN OFF)
 set(FAN_NETWORK OFF)
 
 set(BUILD_MAIN ON)
@@ -16,6 +16,9 @@ set(BUILD_FAN_LIBRARY OFF CACHE STRING "Build fan as library: OFF, STATIC, or SH
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
+
+set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "0e5b6991-d74f-4b3d-a41c-cf096e0b2508")
+set(CMAKE_CXX_MODULE_STD ON)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -50,7 +53,7 @@ else()
   endif()
 
   set(CMAKE_C_COMPILER "/usr/bin/clang")
-  set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+  set(CMAKE_CXX_COMPILER "/usr/bin/clang++-20")
   set(CMAKE_CXX_FLAGS_DEBUG "-gdwarf-4 -D_DEBUG=4")
   set(CMAKE_CXX_FLAGS_RELEASE "-O3")
   set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "-Wl,--strip-all")
@@ -58,11 +61,18 @@ else()
   set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
   set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=gold")
   set(CMAKE_MODULE_LINKER_FLAGS "-fuse-ld=gold")
-  set(CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS "/usr/bin/clang-scan-deps")
+  set(CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS "/usr/bin/clang-scan-deps-20")
   set(CMAKE_CXX_SCAN_FOR_MODULES ON)
   set(CMAKE_CXX_MODULE_MAP_FLAG "-fmodule-mapper=")
   set(CMAKE_CXX_MODULE_BMI_ONLY_FLAG "-fmodule-only")
 endif()
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
+
+set(CMAKE_CXX_FLAGS_INIT "-stdlib=libc++")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "-stdlib=libc++ -lc++abi")
+set(CMAKE_SHARED_LINKER_FLAGS_INIT "-stdlib=libc++ -lc++abi")
+set(CMAKE_MODULE_LINKER_FLAGS_INIT "-stdlib=libc++ -lc++abi")
 
 project(fan)
 
@@ -217,7 +227,7 @@ function(apply_common_compile_options target)
       -D_ITERATOR_DEBUG_LEVEL=0 -DGLEW_STATIC -DSTBI_NO_SIMD)
   else()
     target_compile_options(${target} PRIVATE ${COMMON_WARNINGS}
-      -MT -stdlib=libstdc++ -fsized-deallocation -pthread -DSTBI_NO_SIMD
+      -MT -fsized-deallocation -DSTBI_NO_SIMD
       -fmacro-backtrace-limit=0)
   endif()
 endfunction()
@@ -238,6 +248,11 @@ else()
   add_library(fan_modules STATIC)
   message(STATUS "Building fan for executable only (internal static)")
 endif()
+
+set_target_properties(fan_modules PROPERTIES
+	CXX_MODULE_DIRECTORY ${OUTPUT_PATH}
+	UNITY_BUILD OFF
+)
 
 apply_fan_definitions(fan_modules)
 
@@ -288,6 +303,20 @@ set(MODULE_FILES
   ${ROOT_PATH}/fan.ixx
 )
 
+foreach(m ${MODULE_FILES})
+  # Replace .ixx → _impl.cpp
+  get_filename_component(MDIR ${m} DIRECTORY)
+  get_filename_component(MNAME ${m} NAME_WE)
+
+  set(IMPL_FILE "${MDIR}/${MNAME}_impl.cpp")
+
+  if(EXISTS "${IMPL_FILE}")
+    list(APPEND IMPL_SOURCES "${IMPL_FILE}")
+  endif()
+endforeach()
+
+message(STATUS "Found impl sources: ${IMPL_SOURCES}")
+
 if(FAN_WAYLAND_SCREEN)
   list(APPEND MODULE_FILES ${ROOT_PATH}/video/screen_codec.ixx)
 endif()
@@ -307,7 +336,6 @@ if(FAN_GUI)
     ${ROOT_PATH}/graphics/gui/console.ixx
 		${ROOT_PATH}/graphics/gui/tilemap_editor/loader.ixx
 		${ROOT_PATH}/graphics/gui/tilemap_editor/renderer0.ixx
-		
   )
 endif()
 
@@ -326,11 +354,16 @@ if(FAN_3D)
   )
 endif()
 
+foreach(f ${IMPL_SOURCES})
+  set_source_files_properties(${f} PROPERTIES UNITY_BUILD OFF)
+endforeach()
+
 target_sources(fan_modules
   PUBLIC FILE_SET CXX_MODULES BASE_DIRS ${ROOT_PATH} FILES ${MODULE_FILES}
+  PRIVATE ${IMPL_SOURCES}
 )
 
-set_target_properties(fan_modules PROPERTIES CXX_SCAN_FOR_MODULES OFF)
+set_target_properties(fan_modules PROPERTIES CXX_SCAN_FOR_MODULES ON)
 apply_common_compile_options(fan_modules)
 
 target_compile_options(fan_modules PRIVATE

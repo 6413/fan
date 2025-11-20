@@ -19,8 +19,12 @@ module;
 #include <memory>
 #include <functional>
 #include <set>
-#include <stacktrace>
 #include <map>
+#include <cstdlib>
+
+#if defined(fan_std23)
+  #include <stacktrace>
+#endif
 
 #include <fan/types/bll_raii.h>
 
@@ -133,19 +137,8 @@ export import fan.noise;
 #endif
 
 #include <fan/memory/memory.h>
-#ifndef __generic_malloc
-	#define __generic_malloc(n) malloc(n)
-#endif
 
-#ifndef __generic_realloc
-	#define __generic_realloc(ptr, n) realloc(ptr, n)
-#endif
-
-#ifndef __generic_free
-	#define __generic_free(ptr) free(ptr)
-#endif
-
-#if defined(fa_json)
+#if defined(fan_json)
 
 export namespace fan {
 	struct json_stream_parser_t {
