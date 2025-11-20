@@ -761,7 +761,7 @@ void main() {
     fan::graphics::tilemap_t tilemap;
     fan::graphics::shapes::shape_t shape;
     enum mode_e { circle, line } mode = circle;
-    engine_t::mouse_down_nr_t mouse_down_nr[2];
+    engine_t::mouse_down_handle_t mouse_down_handle[2];
     fan::vec2 src = 0;
     fan::vec2 dst = 300;
   }*demo_algorithm_grid_highlight_data = 0;
@@ -801,11 +801,11 @@ void main() {
 
     data.shape = make_circle(engine_demo, { 0, 0 });
 
-    data.mouse_down_nr[0] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](fan::vec2 pos) {
-      data.src = fan::graphics::transform_position(pos, engine_demo->right_column_view);
+    data.mouse_down_handle[0] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](const engine_t::button_data_t& bdata) {
+      data.src = fan::graphics::transform_position(bdata.position, engine_demo->right_column_view);
     });
-    data.mouse_down_nr[1] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](fan::vec2 pos) {
-      data.dst = fan::graphics::transform_position(pos, engine_demo->right_column_view);
+    data.mouse_down_handle[1] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](const engine_t::button_data_t& bdata) {
+      data.dst = fan::graphics::transform_position(bdata.position, engine_demo->right_column_view);
     });
   }
   static void demo_algorithm_update_grid_highlight(engine_demo_t* engine_demo) {
@@ -842,9 +842,6 @@ void main() {
 
   static void demo_algorithm_cleanup_grid_highlight(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_algorithm_grid_highlight_data;
-    for (auto& i : data.mouse_down_nr) {
-      engine_demo->engine.remove_on_mouse_down(i);
-    }
     delete engine_demo->demo_algorithm_grid_highlight_data;
   }
 
@@ -858,7 +855,7 @@ void main() {
     fan::vec2 tile_size = fan::vec2(64, 64);
     fan::vec2i src = 0;
     fan::vec2i dst = 2;
-    engine_t::mouse_down_nr_t mouse_down_nr[2];
+    engine_t::mouse_down_handle_t mouse_down_handle[2];
   }*demo_algorithm_pathfind_data = 0;
 
   static void demo_algorithm_init_pathfind(engine_demo_t* engine_demo) {
@@ -880,8 +877,8 @@ void main() {
     data.generator.set_heuristic(fan::graphics::algorithm::pathfind::heuristic::euclidean);
     data.generator.set_diagonal_movement(false);
 
-    data.mouse_down_nr[0] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](fan::vec2 pos) {
-      fan::vec2i cell = (fan::graphics::transform_position(pos, engine_demo->right_column_view) / data.tile_size).floor();
+    data.mouse_down_handle[0] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](const engine_t::mouse_down_data_t& bdata) {
+      fan::vec2i cell = (fan::graphics::transform_position(bdata.position, engine_demo->right_column_view) / data.tile_size).floor();
       if (fan::window::is_key_down(fan::key_left_shift)) {
         data.grid.add_wall(cell, data.generator);
       }
@@ -890,8 +887,8 @@ void main() {
         data.grid.set_source(data.src, fan::colors::green);
       }
     });
-    data.mouse_down_nr[1] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](fan::vec2 pos) {
-      fan::vec2i cell = (fan::graphics::transform_position(pos, engine_demo->right_column_view) / data.tile_size).floor();
+    data.mouse_down_handle[1] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](const engine_t::mouse_down_data_t& bdata) {
+      fan::vec2i cell = (fan::graphics::transform_position(bdata.position, engine_demo->right_column_view) / data.tile_size).floor();
       if (fan::window::is_key_down(fan::key_left_shift)) {
         data.grid.remove_wall(cell, data.generator);
       }
@@ -924,9 +921,6 @@ void main() {
 
   static void demo_algorithm_cleanup_pathfind(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_algorithm_pathfind_data;
-    for (auto& i : data.mouse_down_nr) {
-      engine_demo->engine.remove_on_mouse_down(i);
-    }
     delete engine_demo->demo_algorithm_pathfind_data;
   }
 
@@ -1040,7 +1034,7 @@ void main() {
     std::vector<fan::graphics::shape_t> built_mesh;
     fan::vec2 noise_size = 256;
     fan::graphics::image_t dirt;
-    engine_t::on_resize_nr_t resize_nr;
+    engine_t::resize_handle_t resize_handle;
   }*demo_algorithm_terrain_data = 0;
 
   static void demo_algorithm_terrain_reload(engine_demo_t* engine_demo, fan::vec2 new_size) {
@@ -1060,8 +1054,8 @@ void main() {
     auto noise_data = data.noise.generate_data(data.noise_size);
     fan::graphics::generate_mesh(data.noise_size, noise_data, data.dirt, data.built_mesh, data.palette);
 
-    data.resize_nr = engine_demo->engine.on_resize([engine_demo](fan::vec2 new_size) {
-      demo_algorithm_terrain_reload(engine_demo, new_size);
+    data.resize_handle = engine_demo->engine.on_resize([engine_demo](const engine_t::resize_data_t& rdata) {
+      demo_algorithm_terrain_reload(engine_demo, rdata.size);
     });
   }
 
@@ -1082,7 +1076,6 @@ void main() {
 
   static void demo_algorithm_terrain_cleanup(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_algorithm_terrain_data;
-    engine_demo->engine.remove_on_resize(data.resize_nr);
     delete engine_demo->demo_algorithm_terrain_data;
   }
 
@@ -1382,6 +1375,7 @@ void main() {
       right_column_view.camera,
       right_column_view.viewport
     );
+    interactive_camera.pan_with_middle_mouse = true;
   }
 
   void update() {

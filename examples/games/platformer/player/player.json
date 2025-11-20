@@ -8,7 +8,7 @@
           "hframes": 10,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "IDLE.png",
+          "image_path": "examples/games/platformer/player/IDLE.png",
           "vframes": 1
         }
       ],
@@ -27,14 +27,14 @@
       ]
     },
     {
-      "fps": 15,
+      "fps": 30,
       "id": 1,
       "images": [
         {
           "hframes": 16,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "RUN.png",
+          "image_path": "examples/games/platformer/player/RUN.png",
           "vframes": 1
         }
       ],
@@ -66,7 +66,7 @@
           "hframes": 7,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "ATTACK 1.png",
+          "image_path": "examples/games/platformer/player/ATTACK 1.png",
           "vframes": 1
         }
       ],
@@ -87,7 +87,7 @@
       "images": [
         {
           "hframes": 4,
-          "image_path": "HURT.png",
+          "image_path": "examples/games/platformer/player/HURT.png",
           "vframes": 1
         }
       ],
@@ -110,7 +110,7 @@
       ],
       "images": [
         {
-          "image_path": "HURT.png"
+          "image_path": "examples/games/platformer/player/HURT.png"
         }
       ],
       "position": [

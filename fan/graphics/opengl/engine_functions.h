@@ -132,10 +132,6 @@ void init_framebuffer() {
   if (!((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3))) {
     return;
   }
-  loco.window.add_resize_callback([&](const auto& d) {
-    loco.viewport_set(loco.orthographic_render_view.viewport, fan::vec2(0, 0), d.size);
-    loco.viewport_set(loco.perspective_render_view.viewport, fan::vec2(0, 0), d.size);
-  });
 
 #if defined(loco_framebuffer)
   loco.gl.m_framebuffer.open(loco.context.gl);
@@ -175,7 +171,10 @@ void init_framebuffer() {
     load_texture(image_info, loco.gl.color_buffers[i], GL_COLOR_ATTACHMENT0 + i);
   }
 
-  loco.window.add_resize_callback([&](const auto& d) {
+  window_resize_handle = loco.window.add_resize_callback([&](const auto& d) {
+    loco.viewport_set(loco.orthographic_render_view.viewport, fan::vec2(0, 0), d.size);
+    loco.viewport_set(loco.perspective_render_view.viewport, fan::vec2(0, 0), d.size);
+
     fan::image::info_t image_info;
     image_info.data = nullptr;
     image_info.size = loco.window.get_size();
@@ -894,7 +893,7 @@ void draw_shapes() {
           loco.shader_set_value(
             shader,
             "_time",
-            f32_t((fan::time::clock::now() - loco.start_time) / 1e+9)
+            f32_t((fan::time::now() - loco.start_time) / 1e+9)
           );
           loco.shader_set_value(
             shader,
@@ -906,7 +905,7 @@ void draw_shapes() {
             "camera_zoom",
             loco.camera_get_zoom(camera, viewport)
           );
-          //fan::print(fan::time::clock::now() / 1e+9);
+          //fan::print(fan::time::now() / 1e+9);
         }
         loco.shader_set_value(shader, fan::graphics::lighting_t::ambient_name, gloco->lighting.ambient);
 
@@ -963,7 +962,7 @@ void draw_shapes() {
           fan::graphics::shapes::particles_t::ri_t* pri = (fan::graphics::shapes::particles_t::ri_t*)BlockTraverse.GetData(fan::graphics::g_shapes->shaper);
           for (int i = 0; i < BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper); ++i) {
             auto& ri = pri[i];
-            loco.shader_set_value(shader, "time", (f32_t)((fan::time::clock::now() - ri.begin_time) / 1e+9));
+            loco.shader_set_value(shader, "time", (f32_t)((fan::time::now() - ri.begin_time) / 1e+9));
             loco.shader_set_value(shader, "vertex_count", 6);
             loco.shader_set_value(shader, "count", ri.count);
             loco.shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time / 1e+9));

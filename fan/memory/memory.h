@@ -1,14 +1,16 @@
 // include before all, because it uses some macros which override default allocation functions
+/*
+* include these before using
+* #include <fan/utility.h>
 
-#include <fan/utility.h>
+  #include <source_location>
+  #include <set>
+  #include <stacktrace>
+  #include <map>
+  
+*/
 
 #if defined(fan_std23)
-
-#include <source_location>
-#include <set>
-#include <map>
-
-#include <stacktrace>
 
 export namespace fan {
   struct heap_profiler_t {
