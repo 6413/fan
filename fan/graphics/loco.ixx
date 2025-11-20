@@ -298,7 +298,7 @@ export namespace fan {
 		};
 
 		// cbs called every time engine opens
-	 inline engine_init_t::init_callback_t engine_init_cbs;
+	  engine_init_t::init_callback_t engine_init_cbs;
 
 		inline uint32_t get_draw_mode(uint8_t internal_draw_mode);
 
