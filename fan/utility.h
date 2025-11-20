@@ -597,3 +597,23 @@ enum class name { __VA_ARGS__ }
 #ifndef __abort
   #define __abort fan::throw_error_impl
 #endif
+
+#ifndef __generic_malloc
+	#define __generic_malloc(n) std::malloc(n)
+#endif
+#ifndef __generic_realloc
+	#define __generic_realloc(ptr, n) std::realloc(ptr, n)
+#endif
+#ifndef __generic_free
+	#define __generic_free(ptr) std::free(ptr)
+#endif
+
+#ifndef bcontainer_set_alloc_open
+    #define bcontainer_set_alloc_open(n) std::malloc(n)
+#endif
+#ifndef bcontainer_set_alloc_resize
+  #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
+#endif
+#ifndef bcontainer_set_alloc_close
+    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
+#endif

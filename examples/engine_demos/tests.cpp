@@ -10,7 +10,7 @@ import fan;
 
 using namespace fan::graphics;
 
-struct test_result_t {
+struct test_result_t {//
   std::string name;
   bool passed;
   std::string error_message;

@@ -1,6 +1,8 @@
 module;
 
-#include <memory>
+#include <fan/utility.h>
+
+#include <cstdlib>
 #include <cstring>
 #include <source_location>
 
