@@ -425,7 +425,7 @@ export namespace fan::graphics {
   #endif
   };
 
-  thread_local inline render_context_handle_t g_render_context_handle;
+  thread_local render_context_handle_t g_render_context_handle;
 
   fan::window_t& get_window() {
     return *fan::graphics::g_render_context_handle.window;
