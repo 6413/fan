@@ -1,7 +1,12 @@
-#include <string>
-#include <algorithm>
+module;
+#if defined(fan_gui)
+  #include <string>
+  #include <algorithm>
+#endif
 
 export module fan.ascii_renderer;
+
+#if defined(fan_gui)
 
 import fan.graphics;
 import fan.graphics.gui;
@@ -100,3 +105,4 @@ export struct ascii_renderer_t {
   properties_t properties;
   std::string line_buffer;
 };
+#endif

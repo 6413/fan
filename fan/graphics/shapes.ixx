@@ -1151,6 +1151,7 @@ export namespace fan::graphics {
 				return m;
 			}
 
+      #if defined(fan_physics)
 			fan::physics::aabb_t get_aabb() const {
 				fan::vec2 pos = get_position();
 				fan::vec2 he = get_size(); // half extents
@@ -1174,6 +1175,7 @@ export namespace fan::graphics {
 
 				return { minp, maxp };
 			}
+      #endif
 
 			fan::vec2 get_tc_position() {
 				return g_shapes->shape_functions[get_shape_type()].get_tc_position(this);
@@ -1583,7 +1585,7 @@ export namespace fan::graphics {
 				}
 				}
 			}
-
+      #if defined(fan_physics)
 			bool intersects(const fan::graphics::shapes::shape_t& shape) const {
 				switch (get_shape_type()) {
 				case shape_type_t::capsule: // inaccurate
@@ -1634,6 +1636,7 @@ export namespace fan::graphics {
       bool collides(const fan::vec2& point) const {
 				return point_inside(point);
 			}
+    #endif
 
 			void add_existing_animation(animation_nr_t nr) {
 				if (get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {

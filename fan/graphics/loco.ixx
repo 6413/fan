@@ -1352,7 +1352,9 @@ public:
     shapes.immediate_render_list = &immediate_render_list;
     shapes.static_render_list = &static_render_list;
 
+  #if defined(fan_physics)
     physics_context.physics_updates = &shape_physics_update_cbs;
+  #endif
 
     input_action.is_active_func = [this] (int key) -> int{
       return window.key_state(key);
@@ -2081,6 +2083,7 @@ public:
       return { avg, low, high };
     }
 
+  #if defined(fan_gui)
     void plot(const char* label) {
       if (valid_samples == 0) return;
       static std::array<f32_t, buffer_size> plot_data{};
@@ -2100,6 +2103,7 @@ public:
         ImPlot::PlotLine(label, plot_data.data(), valid_samples);
       }
     }
+  #endif
   };
   time_monitor_t frame_monitor;
   time_monitor_t shape_monitor;

@@ -337,12 +337,14 @@ export namespace fan::graphics{
   using update_callback_t = bll_builds::update_callback_t;
   using update_callback_nr_t = bll_builds::update_callback_NodeReference_t;
 
+#if defined(fan_gui)
   using gui_draw_cb_t = bll_builds::gui_draw_cb_t;
   using gui_draw_cb_nr_t = bll_builds::gui_draw_cb_NodeReference_t;
   
   bool gui_draw_cb_inric(gui_draw_cb_nr_t nr) {
     return bll_builds::gui_draw_cb_inric(nr);
   }
+#endif
 }
 
 export namespace fan::graphics {
@@ -414,7 +416,9 @@ export namespace fan::graphics {
     update_callback_t* update_callback = nullptr;
 
     fan::window::input_action_t* input_action = nullptr;
+  #if defined(fan_gui)
     fan::console_t* console = nullptr;
+  #endif
 
     lighting_t* lighting = nullptr;
 
@@ -450,10 +454,12 @@ export namespace fan::graphics {
     return *ctx().lighting;
   }
 
+#if defined(fan_gui)
   gui_draw_cb_t& get_gui_draw_cbs() {
     return *ctx().gui_draw_cbs;
   }
-  
+#endif
+
   struct image_t : fan::graphics::image_nr_t {
     using fan::graphics::image_nr_t::image_nr_t;
     // for no gloco access
