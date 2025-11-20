@@ -63,6 +63,11 @@ export namespace fan::physics {
 
 export namespace fan {
   namespace physics {
+    struct body_id_t;
+
+    void fill_shape_proxy(b2ShapeProxy& proxy, b2ShapeId shape_id, body_id_t body_id);
+    bool test_overlap(body_id_t body_a, body_id_t body_b);
+    void on_overlap(body_id_t body_a, body_id_t body_b, std::function<void()> callback);
 
     struct shapes_e {
       enum {
@@ -103,6 +108,15 @@ export namespace fan {
 
     using physics_step_callback_nr_t = physics_step_callbacks_NodeReference_t;
     
+    struct overlap_test_context_t {
+      bool found_overlap = false;
+      b2ShapeId target_shape = b2_nullShapeId;
+    };
+    struct overlap_callback_context_t {
+      std::function<void()> callback;
+      b2ShapeId target_shape = b2_nullShapeId;
+    };
+
     std::vector<std::function<void()>> one_time_commands;
 
     void queue_one_time_command(std::function<void()> callback) {
@@ -203,32 +217,25 @@ export namespace fan {
       void apply_force_center(const fan::vec2& v) {
         b2Body_ApplyForceToCenter(*this, v / length_units_per_meter, true);
       }
-
       void apply_linear_impulse_center(const fan::vec2& v) {
         b2Body_ApplyLinearImpulseToCenter(*this, v / length_units_per_meter, true);
       }
-
       void zero_linear_impulse_center() {
         b2Body_SetLinearVelocity(*this, {0, 0});
       }
-
       void apply_angular_impulse(f32_t v) {
         b2Body_ApplyAngularImpulse(*this, v / (length_units_per_meter * length_units_per_meter), true);
       }
-
       fan::vec2 get_physics_position() const {
         return fan::physics::physics_to_render(b2Body_GetPosition(*this));
       }
-      
       fan::vec2 get_position() const {
         return get_physics_position();
       }
-
       void set_physics_position(const fan::vec2& p) {
         b2Rot rotation = b2Body_GetRotation(*this);
         b2Body_SetTransform(*this, p / length_units_per_meter, rotation);
       }
-      
       b2ShapeId get_shape_id() const {
         b2ShapeId shape_id = b2_nullShapeId;
       #if fan_debug >= fan_debug_medium
@@ -240,23 +247,18 @@ export namespace fan {
       #endif
         return shape_id;
       }
-
       f32_t get_density() const {
         return b2Shape_GetDensity(get_shape_id());
       }
-      
       f32_t get_friction() const {
         return b2Shape_GetFriction(get_shape_id());
       }
-      
       f32_t get_mass() const {
         return b2Shape_GetMassData(get_shape_id()).mass * length_units_per_meter;
       }
-      
       f32_t get_restitution() const {
         return b2Shape_GetRestitution(get_shape_id());
       }
-      
       fan::physics::aabb_t get_aabb() const {
         b2AABB aabb = b2Shape_GetAABB(get_shape_id());
         return {
@@ -264,11 +266,16 @@ export namespace fan {
           fan::physics::physics_to_render(fan::vec2(aabb.upperBound.x, aabb.upperBound.y))
         };
       }
-      
       fan::vec2 get_aabb_size() const {
         fan::physics::aabb_t aabb = get_aabb();
         fan::vec2 size = aabb.max - aabb.min;
         return size * 0.5f;
+      }
+      bool test_overlap(const body_id_t& other) const {
+        return fan::physics::test_overlap(*this, other);
+      }
+      void on_overlap(const body_id_t& other, std::function<void()> callback) {
+        fan::physics::on_overlap(*this, other, std::move(callback));
       }
     };
 
@@ -630,7 +637,14 @@ export namespace fan {
         return entity;
       }
       
-      fan::physics::entity_t create_polygon(const fan::vec2& position, f32_t radius, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties) {
+      fan::physics::entity_t create_polygon(
+        const fan::vec2& position,
+        f32_t radius,
+        const fan::vec2* points,
+        int count,
+        uint8_t body_type,
+        const shape_properties_t& shape_properties
+      ) {
         entity_t entity;
         b2BodyDef body_def = b2DefaultBodyDef();
         body_def.position = position / length_units_per_meter;
@@ -656,18 +670,32 @@ export namespace fan {
         shape_def.enableSensorEvents = true;
         shape_def.filter = shape_properties.filter;
 
-        std::vector<b2Vec2> b2_points(points.size());
-        for (std::size_t i = 0; i < b2_points.size(); ++i) {
+        b2Vec2 b2_points[B2_MAX_POLYGON_VERTICES];
+        int n = count;
+
+        for (int i = 0; i < n; i++) {
           b2_points[i] = points[i] / length_units_per_meter;
         }
 
-        b2Hull hull = b2ComputeHull(b2_points.data(), b2_points.size());
+        b2Hull hull = b2ComputeHull(b2_points, n);
         b2Polygon polygon = b2MakePolygon(&hull, radius);
 
         b2CreatePolygonShape(entity, &shape_def, &polygon);
         return entity;
       }
-      
+      // a, b and c are local offsets from 'position' (center)
+      entity_t create_triangle(
+        const fan::vec2& position,
+        const fan::vec2& a,
+        const fan::vec2& b,
+        const fan::vec2& c,
+        uint8_t body_type,
+        const shape_properties_t& shape_properties
+      ) {
+        fan::vec2 pts[] = { a, b, c };
+        return create_polygon(position, 0.0f, pts, std::size(pts), body_type, shape_properties);
+      }
+
       void step(f32_t dt) {
         static f32_t accumulator = 0.0f;
         accumulator += dt;
@@ -945,21 +973,116 @@ export namespace fan {
     void remove_physics_step_callback(physics_step_callback_nr_t nr) {
       gphysics->physics_step_callbacks.unlrec(nr);
     }
-
     // for drawing physics shapes
     fan::physics::physics_update_cbs_t::nr_t add_physics_update(const fan::physics::physics_update_data_t& cb_data) {
       auto it = gphysics->physics_updates->NewNodeLast();
       (*gphysics->physics_updates)[it] = (fan::physics::physics_update_data_t)cb_data;
       return it;
     }
-    
     void remove_physics_update(fan::physics::physics_update_cbs_t::nr_t nr) {
       gphysics->physics_updates->unlrec(nr);
     }
+
+    bool overlap_result_callback(b2ShapeId shape_id, void* context) {
+      overlap_test_context_t* ctx = static_cast<overlap_test_context_t*>(context);
+      if (B2_ID_EQUALS(shape_id, ctx->target_shape)) {
+        ctx->found_overlap = true;
+        return false;
+      }
+      return true;
+    }
+    bool overlap_callback_fcn(b2ShapeId shape_id, void* context) {
+      overlap_callback_context_t* ctx = static_cast<overlap_callback_context_t*>(context);
+      if (B2_ID_EQUALS(shape_id, ctx->target_shape)) {
+        ctx->callback();
+        return false;
+      }
+      return true;
+    }
+    void fill_shape_proxy(b2ShapeProxy& proxy, b2ShapeId shape_id, body_id_t body_id) {
+      b2ShapeType shape_type = b2Shape_GetType(shape_id);
+      b2Transform transform = b2Body_GetTransform(body_id);
+
+      switch (shape_type) {
+      case b2_circleShape: {
+        b2Circle circle = b2Shape_GetCircle(shape_id);
+        proxy.points[0] = b2TransformPoint(transform, circle.center);
+        proxy.count = 1;
+        proxy.radius = circle.radius;
+        break;
+      }
+      case b2_capsuleShape: {
+        b2Capsule capsule = b2Shape_GetCapsule(shape_id);
+        proxy.points[0] = b2TransformPoint(transform, capsule.center1);
+        proxy.points[1] = b2TransformPoint(transform, capsule.center2);
+        proxy.count = 2;
+        proxy.radius = capsule.radius;
+        break;
+      }
+      case b2_polygonShape: {
+        b2Polygon polygon = b2Shape_GetPolygon(shape_id);
+        proxy.count = polygon.count;
+        for (int i = 0; i < polygon.count; ++i) {
+          proxy.points[i] = b2TransformPoint(transform, polygon.vertices[i]);
+        }
+        proxy.radius = polygon.radius;
+        break;
+      }
+      case b2_segmentShape: {
+        b2Segment segment = b2Shape_GetSegment(shape_id);
+        proxy.points[0] = b2TransformPoint(transform, segment.point1);
+        proxy.points[1] = b2TransformPoint(transform, segment.point2);
+        proxy.count = 2;
+        proxy.radius = 0.0f;
+        break;
+      }
+      }
+    }
+    bool test_overlap(body_id_t body_a, body_id_t body_b) {
+      if (!body_a.is_valid() || !body_b.is_valid()) {
+        return false;
+      }
+
+      b2ShapeId shape_b = body_b.get_shape_id();
+      if (!b2Shape_IsValid(shape_b)) {
+        return false;
+      }
+
+      b2ShapeProxy proxy;
+      fill_shape_proxy(proxy, shape_b, body_b);
+
+      overlap_test_context_t context;
+      context.target_shape = body_a.get_shape_id();
+      context.found_overlap = false;
+
+      b2QueryFilter filter = b2DefaultQueryFilter();
+      b2World_OverlapShape(gphysics->world_id, &proxy, filter, overlap_result_callback, &context);
+
+      return context.found_overlap;
+    }
+    void on_overlap(body_id_t body_a, body_id_t body_b, std::function<void()> callback) {
+      if (!body_a.is_valid() || !body_b.is_valid()) {
+        return;
+      }
+
+      b2ShapeId shape_b = body_b.get_shape_id();
+      if (!b2Shape_IsValid(shape_b)) {
+        return;
+      }
+
+      b2ShapeProxy proxy;
+      fill_shape_proxy(proxy, shape_b, body_b);
+
+      overlap_callback_context_t context;
+      context.callback = std::move(callback);
+      context.target_shape = body_a.get_shape_id();
+
+      b2QueryFilter filter = b2DefaultQueryFilter();
+      b2World_OverlapShape(gphysics->world_id, &proxy, filter, overlap_callback_fcn, &context);
+    }
   }
 }
-
-      
+     
 void fan::physics::body_id_t::destroy() {
   if (!is_valid()) return;
   b2BodyId id = *this;

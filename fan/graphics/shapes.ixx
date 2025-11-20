@@ -10,6 +10,7 @@ module;
 #include <cmath>
 #include <float.h>
 #include <memory>
+#include <coroutine>
 
 #if defined(fan_opengl)
 #include <fan/graphics/opengl/init.h>
@@ -622,7 +623,6 @@ export namespace fan::graphics {
 		sprite_sheet_deserialize(json_in, callers_path);
 	}
 #endif
-
 	//-----------------------sprite sheet animations-----------------------
 
 	std::string read_shader(const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
@@ -1669,7 +1669,6 @@ export namespace fan::graphics {
 						fan::throw_error("current_animation not found");
 					}
 
-
 					auto& animation = found->second;
 					fan::graphics::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
           if (sheet_data.current_frame >= animation.selected_frames.size()) {
@@ -1694,9 +1693,7 @@ export namespace fan::graphics {
 
 					auto& current_image = animation.images[image_index];
 					set_image(current_image.image);
-          int before = sheet_data.current_frame;
 					sheet_data.current_frame += advance;
-          int before2 = sheet_data.current_frame;
 					sheet_data.current_frame %= animation.selected_frames.size();
 					sheet_data.update_timer.restart();
 
@@ -1790,6 +1787,35 @@ export namespace fan::graphics {
         }
       #endif
         get_current_animation_id() = animation_id;
+      }
+      sprite_sheet_animation_t& get_current_animation() {
+        auto found = all_animations.find(get_current_animation_id());
+        #if fan_debug >= fan_debug_medium
+        if (found == all_animations.end()) {
+          fan::throw_error("animation not found");
+        }
+        #endif
+        return found->second;
+      }
+      int get_current_animation_frame() const {
+        auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+        return ri.sprite_sheet_data.current_frame;
+      }
+      // dont store the pointer
+      sprite_sheet_animation_t* get_animation(const std::string& name) {
+        auto anims = get_all_animations();
+        for (const auto& anim : anims) {
+          if (anim.first == name) {
+            auto found = all_animations.find(anim.second);
+          #if fan_debug >= fan_debug_medium
+            if (found == all_animations.end()) {
+              fan::throw_error("animation not found, animation list (corruption)");
+            }
+          #endif
+            return &found->second;
+          }
+        }
+        return nullptr;
       }
 
 			void set_light_position(const fan::vec3& new_pos) {
@@ -2843,7 +2869,7 @@ export namespace fan::graphics {
 				ri.size = properties.size;
 				ri.color = properties.color;
 
-				ri.begin_time = fan::time::clock::now();
+				ri.begin_time = fan::time::now();
 				ri.alive_time = properties.alive_time;
 				ri.respawn_time = properties.respawn_time;
 				ri.count = properties.count;

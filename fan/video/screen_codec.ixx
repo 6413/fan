@@ -1616,7 +1616,7 @@ export namespace fan {
 
       void sleep_thread() {
         uint64_t target_frame_time_ns = 1000000000ULL / config_.frame_rate;
-        uint64_t current_time = fan::time::clock::now();
+        uint64_t current_time = fan::time::now();
         uint64_t time_diff = current_time - frame_process_start_time_;
 
         if (time_diff > target_frame_time_ns) {
@@ -1630,7 +1630,7 @@ export namespace fan {
             if (sleep_time > 2000000) {
               fan::event::sleep((sleep_time - 1000000) / 1000000);
             }
-            while (fan::time::clock::now() < frame_process_start_time_) {
+            while (fan::time::now() < frame_process_start_time_) {
               std::this_thread::yield();
             }
           }
@@ -1638,7 +1638,7 @@ export namespace fan {
             if (sleep_time > 1000000) {
               fan::event::sleep((sleep_time - 500000) / 1000000);
             }
-            while (fan::time::clock::now() < frame_process_start_time_) {
+            while (fan::time::now() < frame_process_start_time_) {
               std::this_thread::yield();
             }
           }
@@ -1696,7 +1696,7 @@ export namespace fan {
       std::mutex mutex;
 
       int64_t frame_timestamp_ = 0;
-      uint64_t encoder_start_time_ = fan::time::clock::now();
+      uint64_t encoder_start_time_ = fan::time::now();
       uint64_t frame_process_start_time_ = encoder_start_time_;
     };
 

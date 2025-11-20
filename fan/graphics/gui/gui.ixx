@@ -52,7 +52,7 @@ export namespace fan {
       namespace gui {
 
         using dock_flag_t = int;
-        enum {
+        enum dock_flags_e {
           dock_space = ImGuiDockNodeFlags_DockSpace,
           dock_central_node = ImGuiDockNodeFlags_CentralNode,
           dock_no_tab_bar = ImGuiDockNodeFlags_NoTabBar,
@@ -79,7 +79,7 @@ export namespace fan {
 
 
         using window_flags_t = int;
-        enum {
+        enum window_flags_e {
           window_flags_none = ImGuiWindowFlags_None,
           window_flags_no_title_bar = ImGuiWindowFlags_NoTitleBar,   
           window_flags_no_resize = ImGuiWindowFlags_NoResize,   
@@ -106,7 +106,7 @@ export namespace fan {
           window_flags_no_inputs = ImGuiWindowFlags_NoInputs
         };
         using child_window_flags_t = int;
-        enum {
+        enum child_flags_e {
           child_flags_none = ImGuiChildFlags_None,
           child_flags_borders = ImGuiChildFlags_Borders,
           child_flags_always_use_window_padding = ImGuiChildFlags_AlwaysUseWindowPadding,
@@ -267,7 +267,7 @@ export namespace fan {
         }
           
         using tab_item_flags_t = int;
-        enum {
+        enum tab_item_flags_e{
           tab_item_flags_none = ImGuiTabItemFlags_None,
           tab_item_flags_unsaved_document = ImGuiTabItemFlags_UnsavedDocument,
           tab_item_flags_set_selected = ImGuiTabItemFlags_SetSelected,
@@ -282,7 +282,7 @@ export namespace fan {
 
 
         using hovered_flag_t = int;
-        enum {
+        enum hover_flags_e {
           hovered_flags_none = ImGuiHoveredFlags_None,                          // Return true if directly over the item/window, not obstructed by another window, not obstructed by an active popup or modal blocking inputs under them.
           hovered_flags_child_windows = ImGuiHoveredFlags_ChildWindows,                 // IsWindowHovered() only: Return true if any children of the window is hovered
           hovered_flags_root_window = ImGuiHoveredFlags_RootWindow,                   // IsWindowHovered() only: Test from root window (top most parent of the current hierarchy)
@@ -344,7 +344,7 @@ export namespace fan {
         }
 
         using selectable_flag_t = int;
-        enum {
+        enum selectable_flags_e {
           selectable_flags_none = ImGuiSelectableFlags_None,
           selectable_flags_no_auto_close_popups = ImGuiSelectableFlags_NoAutoClosePopups,  // Clicking this doesn't close parent popup window (overrides ImGuiItemFlags_AutoClosePopups).
           selectable_flags_span_all_columns = ImGuiSelectableFlags_SpanAllColumns,     // Frame will span all columns of its container table (text will still fit in current column).
@@ -366,7 +366,7 @@ export namespace fan {
         }
 
         using table_flags_t = int;
-        enum {
+        enum table_flags_e {
           table_flags_none = ImGuiTableFlags_None,
           table_flags_resizable = ImGuiTableFlags_Resizable,                  // Enable resizing columns.
           table_flags_reorderable = ImGuiTableFlags_Reorderable,                // Enable reordering columns in header row (need calling TableSetupColumn() + TableHeadersRow() to display headers).
@@ -424,13 +424,13 @@ export namespace fan {
 
         using table_row_flags_t = int;
         // Flags for ImGui::TableNextRow()
-        enum {
+        enum table_row_flags_e {
           table_row_flags_none = ImGuiTableRowFlags_None,
           table_row_flags_headers = ImGuiTableRowFlags_Headers,   // Identify header row (set default background color + width of its contents accounted differently for auto column width)
         };
 
         using table_column_flags_t = int;
-        enum {
+        enum table_column_flags_e {
           table_column_flags_none = ImGuiTableColumnFlags_None,
           table_column_flags_disabled = ImGuiTableColumnFlags_Disabled,              // Overriding/master disable flag: hide column, won't show in context menu (unlike calling TableSetColumnEnabled() which manipulates the user accessible state).
           table_column_flags_default_hide = ImGuiTableColumnFlags_DefaultHide,           // Default as a hidden/disabled column.
@@ -894,7 +894,7 @@ export namespace fan {
         }
 
         using slider_flags_t = int;
-        enum {
+        enum slider_flags_e {
           slider_flags_none = ImGuiSliderFlags_None,
           slider_flags_logarithmic = ImGuiSliderFlags_Logarithmic,       // Make the widget logarithmic (linear otherwise). Consider using ImGuiSliderFlags_NoRoundToFormat with this if using a format-string with small amount of digits.
           slider_flags_no_round_to_format = ImGuiSliderFlags_NoRoundToFormat,    // Disable rounding underlying value to match precision of the display format string (e.g. %.3f values are rounded to those 3 digits).
@@ -985,7 +985,7 @@ export namespace fan {
         }
 
         using input_text_flags_t = int;
-        enum {
+        enum input_text_flags_e {
           input_text_flags_none = ImGuiInputTextFlags_None,
           input_text_flags_chars_decimal = ImGuiInputTextFlags_CharsDecimal,        // Allow 0123456789.+-*/
           input_text_flags_chars_hexadecimal = ImGuiInputTextFlags_CharsHexadecimal,    // Allow 0123456789ABCDEFabcdef
@@ -1022,7 +1022,7 @@ export namespace fan {
         };
 
         using input_flags_t = int;
-        enum {
+        enum input_flags_e {
           input_flags_none = ImGuiInputFlags_None,
           input_flags_repeat = ImGuiInputFlags_Repeat,                  // Enable repeat. Return true on successive repeats. Default for legacy IsKeyPressed(). NOT Default for legacy IsMouseClicked(). MUST BE == 1.
 
@@ -1120,7 +1120,7 @@ export namespace fan {
         }
 
         using color_edit_flags_t = int;
-        enum {
+        enum color_edit_flags_e {
           color_edit_flags_none = ImGuiColorEditFlags_None,
           color_edit_flags_no_alpha = ImGuiColorEditFlags_NoAlpha,         // ColorEdit, ColorPicker, ColorButton: ignore Alpha component (will only read 3 components from the input pointer).
           color_edit_flags_no_picker = ImGuiColorEditFlags_NoPicker,        // ColorEdit: disable picker when clicking on color square.
@@ -1174,7 +1174,7 @@ export namespace fan {
 
 
         using cond_t = int;
-        enum {
+        enum cond_e {
           cond_none = ImGuiCond_None,        // No condition (always set the variable), same as _Always
           cond_always = ImGuiCond_Always,   // No condition (always set the variable), same as _None
           cond_once = ImGuiCond_Once,   // Set the variable once per runtime session (only the first call will succeed)
@@ -1207,7 +1207,7 @@ export namespace fan {
         }
 
         using col_t = int;
-        enum {
+        enum col_e {
           col_text = ImGuiCol_Text,
           col_text_disabled = ImGuiCol_TextDisabled,
           col_window_bg = ImGuiCol_WindowBg,              // Background of normal windows
@@ -1270,7 +1270,7 @@ export namespace fan {
         };
 
         using cursor_t = int;
-        enum {
+        enum cursor_e {
           mouse_cursor_none = ImGuiMouseCursor_None,
           mouse_cursor_arrow = ImGuiMouseCursor_Arrow,
           mouse_cursor_text_input = ImGuiMouseCursor_TextInput,           // When hovering over InputText, etc.
@@ -1314,7 +1314,7 @@ export namespace fan {
         }
 
         using style_var_t = int;
-        enum {
+        enum style_var_e {
           style_var_alpha = ImGuiStyleVar_Alpha,                    // float     Alpha
           style_var_disabled_alpha = ImGuiStyleVar_DisabledAlpha,            // float     DisabledAlpha
           style_var_window_padding = ImGuiStyleVar_WindowPadding,            // ImVec2    WindowPadding
@@ -1354,7 +1354,7 @@ export namespace fan {
 
         using tree_node_flags_t = int;
 
-        enum {
+        enum tree_node_flags_e {
           tree_node_flags_none = 0,
           tree_node_flags_selected = 1 << 0,   // Draw as selected
           tree_node_flags_framed = 1 << 1,   // Draw frame with background (e.g. for CollapsingHeader)
@@ -1569,7 +1569,7 @@ export namespace fan {
           return ImGui::GetCurrentWindow();
         }
 
-        enum {
+        enum config_flags_e {
           config_flags_none = ImGuiConfigFlags_None,
           config_flags_nav_enable_keyboard = ImGuiConfigFlags_NavEnableKeyboard,
           config_flags_nav_enable_gamepad = ImGuiConfigFlags_NavEnableGamepad,
@@ -1881,7 +1881,7 @@ export namespace fan {
         }
         namespace plot {
           using flags_t = int;
-          enum {
+          enum flags_e{
             flags_none = ImPlotFlags_None,
             flags_no_title = ImPlotFlags_NoTitle,
             flags_no_legend = ImPlotFlags_NoLegend,
@@ -1896,7 +1896,7 @@ export namespace fan {
           };
 
           using axis_flags_t = int;
-          enum {
+          enum axis_flags_e {
             axis_flags_none = ImPlotAxisFlags_None,
             axis_flags_no_label = ImPlotAxisFlags_NoLabel,
             axis_flags_no_grid_lines = ImPlotAxisFlags_NoGridLines,
@@ -1920,7 +1920,7 @@ export namespace fan {
           };
 
           using line_flags_t = int;
-          enum {
+          enum line_flags_e {
             line_flags_none = ImPlotLineFlags_None,
             line_flags_segments = ImPlotLineFlags_Segments,
             line_flags_loop = ImPlotLineFlags_Loop,
@@ -1930,33 +1930,33 @@ export namespace fan {
           };
 
           using scatter_flags_t = int;
-          enum {
+          enum scatter_flags_e {
             scatter_flags_none = ImPlotScatterFlags_None,
             scatter_flags_no_clip = ImPlotScatterFlags_NoClip
           };
 
           using bars_flags_t = int;
-          enum {
+          enum bar_flags_e {
             bars_flags_none = ImPlotBarsFlags_None,
             bars_flags_horizontal = ImPlotBarsFlags_Horizontal
           };
 
           using item_flags_t = int;
-          enum {
+          enum item_flags_e {
             item_flags_none = ImPlotItemFlags_None,
             item_flags_no_legend = ImPlotItemFlags_NoLegend,
             item_flags_no_fit = ImPlotItemFlags_NoFit
           };
 
           using cond_t = int;
-          enum {
+          enum cond_e {
             cond_none = ImPlotCond_None,
             cond_always = ImPlotCond_Always,
             cond_once = ImPlotCond_Once
           };
 
           using col_t = int;
-          enum {
+          enum col_e {
             col_line = ImPlotCol_Line,
             col_fill = ImPlotCol_Fill,
             col_marker_outline = ImPlotCol_MarkerOutline,
@@ -1981,7 +1981,7 @@ export namespace fan {
           };
 
           using marker_t = int;
-          enum {
+          enum marker_e {
             marker_none = ImPlotMarker_None,
             marker_circle = ImPlotMarker_Circle,
             marker_square = ImPlotMarker_Square,
@@ -1996,7 +1996,7 @@ export namespace fan {
           };
 
           using location_t = int;
-          enum {
+          enum location_e {
             location_center = ImPlotLocation_Center,
             location_north = ImPlotLocation_North,
             location_south = ImPlotLocation_South,
@@ -2009,7 +2009,7 @@ export namespace fan {
           };
 
           using axis_t = int;
-          enum {
+          enum axis_e {
             axis_x1 = ImAxis_X1,
             axis_x2 = ImAxis_X2,
             axis_x3 = ImAxis_X3,

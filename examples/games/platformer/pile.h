@@ -1,11 +1,16 @@
 // All stages are included here
 
-#include "player/player.h"
+struct pile_t;
+
+pile_t* pile = 0;
 
 #define stage_loader_path .
 #include <fan/graphics/gui/stage_maker/loader.h>
 
 struct pile_t {
+  #include "player/player.h"
+  #include "entity.h"
+
   pile_t();
 
   void step() {
@@ -30,7 +35,8 @@ struct pile_t {
   };
 
   player_t player;
-}pile;
+  entity_t entity;
+};
 
 lstd_defstruct(level_t)
   #include <fan/graphics/gui/stage_maker/preset.h>
@@ -39,6 +45,7 @@ lstd_defstruct(level_t)
 };
 
 pile_t::pile_t() {
+//  fan::graphics::physics::debug_draw(true);
   engine.clear_color = fan::color::from_rgb(0x1A2A2E);
 
   engine.lighting.ambient = 1;
@@ -49,5 +56,7 @@ pile_t::pile_t() {
   player.body.set_physics_position(player.body.get_position());
   engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
 
-  current_stage = pile.stage_loader.open_stage<level_t>();
+  current_stage = pile->stage_loader.open_stage<level_t>();
+
+  entity = entity_t(player.body.get_position() + fan::vec2(150, 0));
 }

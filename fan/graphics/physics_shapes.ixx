@@ -14,6 +14,7 @@ module;
 #include <cstring>
 #include <cstddef>
 #include <source_location>
+#include <fan/types/bll_raii.h>
 
 #endif
 
@@ -29,6 +30,7 @@ import fan.physics.b2_integration;
 import fan.physics.common_context;
 import fan.window.input_action;
 import fan.types.json;
+import fan.math;
 
 #if (fan_gui)
 	import fan.graphics;
@@ -808,7 +810,7 @@ export namespace fan {
 							return fan::physics::gphysics->create_polygon(
 								p.position,
 								p.radius,
-								points, p.body_type, p.shape_properties
+								points.data(), points.size(), p.body_type, p.shape_properties
 							);
 						}()),
 					p.mass_data
@@ -1115,10 +1117,10 @@ export namespace fan {
             f32_t air_control_multiplier = on_ground ? 1.0f : 0.8f;
             move_to_direction(fan::vec2(input_vector.x, 0) * air_control_multiplier);
 
-            bool can_jump = on_ground || (((fan::time::clock::now() - last_ground_time) / 1e+9 <= coyote_time) && !on_air_after_jump);
+            bool can_jump = on_ground || (((fan::time::now() - last_ground_time) / 1e+9 <= coyote_time) && !on_air_after_jump);
 
             if (on_ground) {
-              last_ground_time = fan::time::clock::now();
+              last_ground_time = fan::time::now();
               on_air_after_jump = false;
             }
 
@@ -1182,7 +1184,7 @@ export namespace fan {
 
           if (input_dir.x != 0) {
             vel.x += input_dir.x * force;
-            vel.x = std::clamp(vel.x, -max_speed, max_speed);
+            vel.x = fan::math::clamp(vel.x, -max_speed, max_speed);
           }
           else {
             f32_t deceleration_factor = 0.05f;

@@ -14,6 +14,7 @@ module;
 #include <source_location>
 #include <cmath>
 #include <unordered_set>
+#include <coroutine>
 
 #define loco_vfi
 #define loco_line
@@ -38,6 +39,7 @@ export import fan.window.input_action;
 export import fan.texture_pack.tp0;
 export import fan.graphics.algorithm.raycast_grid;
 export import fan.graphics.algorithm.pathfind;
+export import fan.event;
 
 import fan.random;
 
@@ -1580,7 +1582,6 @@ export namespace fan {
             clicked_inside_viewport = false;
           }
         });
-
         mouse_motion_nr = window.add_mouse_motion_callback([&](const auto& d) {
           auto state = d.window->key_state(fan::mouse_middle);
           if (state == (int)fan::mouse_state::press ||
@@ -1650,8 +1651,8 @@ export namespace fan {
       fan::graphics::camera_t reference_camera;
       fan::graphics::viewport_t reference_viewport;
       fan::window_t::resize_callback_NodeReference_t resize_callback_nr;
-      fan::window_t::buttons_callback_t::nr_t button_cb_nr;
-      fan::window_t::mouse_motion_callback_t::nr_t mouse_motion_nr;
+      fan::window_t::buttons_handle_t button_cb_nr;
+      fan::window_t::mouse_motion_handle_t mouse_motion_nr;
       fan::graphics::update_callback_nr_t uc_nr;
     };
 
@@ -1825,7 +1826,7 @@ export namespace fan {
         if (should_reset) {
           trails.resize(trails.size() + 1);
           trails.back().vertices.clear();
-          trails.back().creation_time = fan::time::clock::now();
+          trails.back().creation_time = fan::time::now();
           trails.back().base_alpha = 0.2f + (drift_intensity * 0.6f);
         }
 
@@ -1841,7 +1842,7 @@ export namespace fan {
         if (start_new_trail) {
           trails.resize(trails.size() + 1);
           trails.back().vertices.clear();
-          trails.back().creation_time = fan::time::clock::now();
+          trails.back().creation_time = fan::time::now();
           trails.back().base_alpha = 0.2f + (drift_intensity * 0.6f);
         }
 
@@ -1877,7 +1878,7 @@ export namespace fan {
       }
 
       void update() {
-        uint64_t current_time = fan::time::clock::now();
+        uint64_t current_time = fan::time::now();
 
         for (auto& trail : trails) {
           uint64_t age = current_time - trail.creation_time;
@@ -2290,5 +2291,53 @@ export namespace fan::graphics {
     fan::vec2i map_size = 64;
     f32_t cell_size = 32;
     std::vector<bool> tiles;
+  };
+}
+
+// graphics event wrappers
+export namespace fan::event {
+  template <typename derived_t>
+  struct callback_awaiter : fan::event::condition_awaiter<derived_t> {
+    template<typename promise_t>
+    void await_suspend(std::coroutine_handle<promise_t> h) {
+      auto* callbacks = fan::graphics::g_render_context_handle.update_callback;
+      node = callbacks->NewNodeLast();
+      (*callbacks)[node] = [this, h](void*) {
+        if (static_cast<const derived_t*>(this)->check_condition()) {
+          unlink();
+          fan::event::schedule_resume(h);
+        }
+      };
+    }
+    void unlink() {
+      if (node) {
+        fan::graphics::g_render_context_handle.update_callback->unlrec(node);
+        node.sic();
+      }
+    }
+    ~callback_awaiter() {
+      unlink();
+    }
+  private:
+    fan::graphics::update_callback_nr_t node;
+  };
+}
+
+// graphics awaiters
+export namespace fan::graphics {
+  struct animation_frame_awaiter : fan::event::callback_awaiter<animation_frame_awaiter> {
+    animation_frame_awaiter(
+      fan::graphics::shapes::shape_t* sprite_,
+      const std::string& anim_,
+      int frame_
+    ) : sprite(sprite_), animation_name(anim_), target_frame(frame_) {
+    }
+    bool check_condition() const {
+      return sprite && sprite->get_current_animation_frame() >= (target_frame - 1) &&
+        sprite->get_current_animation().name == animation_name;
+    }
+    fan::graphics::shapes::shape_t* sprite = nullptr;
+    std::string animation_name;
+    int target_frame = 0;
   };
 }

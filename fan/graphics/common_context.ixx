@@ -80,7 +80,7 @@ export namespace fan {
       nearest_mipmap_linear,
       linear_mipmap_linear,
     };
-    enum {
+    enum data_types {
       fan_unsigned_byte,
       fan_byte,
       fan_unsigned_int,

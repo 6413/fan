@@ -77,7 +77,7 @@ struct bll_nr_t : nr_t {
     state.remove_cb = std::move(remove);
     state.user_fn =
       [f = std::forward<fn_raw_t>(fn_raw)]
-      (user_t* self, params... ps) { f(self, ps...); };
+      (user_t* self, auto... ps) { f(self, ps...); };
     create_new();
   }
 

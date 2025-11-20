@@ -399,7 +399,7 @@ export namespace fan {
           }
           shader.id = fan::uninitialized;
           });
-        delete static_cast<fan::opengl::context_t::shader_t*>(__fan_internal_shader_list[nr].internal);
+        operator delete(static_cast<fan::opengl::context_t::shader_t*>(__fan_internal_shader_list[nr].internal));
         __fan_internal_shader_list.Recycle(nr);
       }
 

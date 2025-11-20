@@ -11,5 +11,7 @@ import fan.graphics.gui.tilemap_editor.renderer;
 #include "pile.h"
 
 int main() {
-  pile.engine.loop();
+  pile = (pile_t*)malloc(sizeof(pile_t));
+  std::construct_at(pile);
+  pile->engine.loop();
 }

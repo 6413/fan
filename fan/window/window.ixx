@@ -137,113 +137,6 @@ export namespace fan {
     };
     int current_resolution = 8;
 
-    struct mouse_buttons_cb_data_t {
-      fan::window_t* window;
-      uint16_t button;
-      int state;
-    };
-    using mouse_buttons_cb_t = std::function<void(const mouse_buttons_cb_data_t&)>;
-
-    struct keyboard_keys_cb_data_t {
-      fan::window_t* window;
-      int key;
-      fan::keyboard_state_t state;
-      uint16_t scancode;
-    };
-    using keyboard_keys_cb_t = std::function<void(const keyboard_keys_cb_data_t&)>;
-
-    struct keyboard_key_cb_data_t {
-      fan::window_t* window;
-      int key;
-    };
-    using keyboard_key_cb_t = std::function<void(const keyboard_key_cb_data_t&)>;
-
-    struct text_cb_data_t {
-      fan::window_t* window;
-      uint32_t character;
-      fan::keyboard_state_t state;
-    };
-    using text_cb_t = std::function<void(const text_cb_data_t&)>;
-
-    struct mouse_move_cb_data_t {
-      fan::window_t* window;
-      fan::vec2d position;
-    };
-    using mouse_move_cb_t = std::function<void(const mouse_move_cb_data_t&)>;
-
-    struct mouse_motion_cb_data_t {
-      fan::window_t* window;
-      fan::vec2d motion;
-    };
-    using mouse_motion_cb_t = std::function<void(const mouse_motion_cb_data_t&)>;
-
-    struct close_cb_data_t {
-      fan::window_t* window;
-    };
-    using close_cb_t = std::function<void(const close_cb_data_t&)>;
-
-    struct resize_cb_data_t {
-      fan::window_t* window;
-      fan::vec2i size;
-    };
-    using resize_cb_t = std::function<void(const resize_cb_data_t&)>;
-
-    struct move_cb_data_t {
-      fan::window_t* window;
-    };
-    using move_cb_t = std::function<void(const move_cb_data_t&)>;
-
-    struct keyboard_cb_store_t {
-      int key;
-      keyboard_state_t state;
-      keyboard_key_cb_t function;
-    };
-
-    #define BLL_set_prefix buttons_callback
-    #define BLL_set_NodeData mouse_buttons_cb_t data;
-    #include "cb_list_builder_settings.h"
-    #include <BLL/BLL.h>
-
-    #define BLL_set_prefix keys_callback
-    #define BLL_set_NodeData keyboard_keys_cb_t data;
-    #include "cb_list_builder_settings.h"
-    #include <BLL/BLL.h>
-
-    #define BLL_set_prefix key_callback
-    #define BLL_set_NodeData keyboard_cb_store_t data;
-    #include "cb_list_builder_settings.h"
-    #include <BLL/BLL.h>
-
-    #define BLL_set_prefix text_callback
-    #define BLL_set_NodeData text_cb_t data;
-    #include "cb_list_builder_settings.h"
-    #include <BLL/BLL.h>
-
-    #define BLL_set_prefix move_callback
-    #define BLL_set_NodeData move_cb_t data;
-    #include "cb_list_builder_settings.h"
-    #include <BLL/BLL.h>
-
-    #define BLL_set_prefix resize_callback
-    #define BLL_set_NodeData resize_cb_t data;
-    #include "cb_list_builder_settings.h"
-    #include <BLL/BLL.h>
-
-    #define BLL_set_prefix close_callback
-    #define BLL_set_NodeData close_cb_t data;
-    #include "cb_list_builder_settings.h"
-    #include <BLL/BLL.h>
-
-    #define BLL_set_prefix mouse_position_callback
-    #define BLL_set_NodeData mouse_move_cb_t data;
-    #include "cb_list_builder_settings.h"
-    #include <BLL/BLL.h>
-
-    #define BLL_set_prefix mouse_motion_callback
-    #define BLL_set_NodeData mouse_motion_cb_t data;
-    #include "cb_list_builder_settings.h"
-    #include <BLL/BLL.h>
-
     struct flags {
       static constexpr uint64_t no_mouse = 1 << 0;
       static constexpr uint64_t no_resize = 1 << 1;
@@ -408,6 +301,43 @@ export namespace fan {
           }
         }
       }
+
+      {
+        auto it = m_mouse_down_callbacks.GetNodeFirst();
+        while (it != m_mouse_down_callbacks.dst) {
+          m_mouse_down_callbacks.StartSafeNext(it);
+          for (int b = 0; b < 3; ++b) {
+            int state = key_state(b);
+            if (state == fan::keyboard_state::press || state == fan::keyboard_state::repeat) {
+              buttons_data_t cbd;
+              cbd.window = this;
+              cbd.position = get_mouse_position();
+              cbd.button = b;
+              cbd.state = state;
+              m_mouse_down_callbacks[it](cbd);
+            }
+          }
+          it = m_mouse_down_callbacks.EndSafeNext();
+        }
+      }
+      {
+        auto it = m_key_down_callbacks.GetNodeFirst();
+        while (it != m_key_down_callbacks.dst) {
+          m_key_down_callbacks.StartSafeNext(it);
+          for (int k = fan::key_first; k <= fan::key_last; ++k) {
+            int ks = key_state(k);
+            if (ks == fan::keyboard_state::press || ks == fan::keyboard_state::repeat) {
+              fan::window_t::keys_data_t cbd;
+              cbd.window = this;
+              cbd.scancode = fan::window::input::convert_fan_to_scancode(k);
+              cbd.key = k;
+              cbd.state = (decltype(cbd.state))ks;
+              m_key_down_callbacks[it](cbd);
+            }
+          }
+          it = m_key_down_callbacks.EndSafeNext();
+        }
+      }
     }
     uint32_t handle_events() {
       f64_t current_frame_time = glfwGetTime();
@@ -427,83 +357,253 @@ export namespace fan {
       return 0;
     }
 
-  #define FAN_DEFINE_CB_RAII(NAME, STORAGE, NODE_REF, PARAM_TYPE)                         \
-    using NAME##_callback_handle_t =                                                      \
-      bll_nr_t<NODE_REF, window_t, const PARAM_TYPE&>;                                    \
-                                                                                          \
-    NAME##_callback_handle_t add_##NAME##_callback(std::function<void(const PARAM_TYPE&)> fn) \
-    {                                                                                     \
-      using handle_t = NAME##_callback_handle_t;                                          \
-      using fn_t     = typename handle_t::fn_t;                                           \
-      using add_fn   = typename handle_t::add_fn;                                         \
-      using rem_fn   = typename handle_t::remove_fn;                                      \
-                                                                                          \
-      add_fn add = [](window_t* w, fn_t cb) {                                             \
-        auto nr = w->STORAGE.NewNodeLast();                                               \
-        w->STORAGE[nr].data = [cb](const PARAM_TYPE& d){ cb(nullptr, d); };               \
-        return nr;                                                                        \
-      };                                                                                  \
-                                                                                          \
-      rem_fn remove = [](window_t* w, NODE_REF nr) {                                      \
-        w->STORAGE.Unlink(nr);                                                            \
-        w->STORAGE.Recycle(nr);                                                           \
-      };                                                                                  \
-                                                                                          \
-      return handle_t(                                                                    \
-        this,                                                                             \
-        std::move(add),                                                                   \
-        std::move(remove),                                                                \
-        [fn](window_t*, const PARAM_TYPE& d){ fn(d); }                                    \
-      );                                                                                  \
-    }
+     struct buttons_data_t {
+      fan::window_t* window;
+      uint16_t button;
+      fan::vec2 position;
+      int state;
+    };
+    using buttons_cb_t = std::function<void(const buttons_data_t&)>;
 
+    struct keys_data_t {
+      fan::window_t* window;
+      int key;
+      fan::keyboard_state_t state;
+      uint16_t scancode;
+    };
+    using keys_cb_t = std::function<void(const keys_data_t&)>;
 
+    struct key_data_t {
+      fan::window_t* window;
+    };
+    using key_cb_t = std::function<void(const key_data_t&)>;
 
-    FAN_DEFINE_CB_RAII(buttons, m_buttons_callback, buttons_callback_NodeReference_t, mouse_buttons_cb_data_t);
-    FAN_DEFINE_CB_RAII(keys, m_keys_callback, keys_callback_NodeReference_t, keyboard_keys_cb_data_t);
-    FAN_DEFINE_CB_RAII(text, m_text_callback, text_callback_NodeReference_t, text_cb_data_t);
-    FAN_DEFINE_CB_RAII(move, m_move_callback, move_callback_NodeReference_t, move_cb_data_t);
-    FAN_DEFINE_CB_RAII(resize, m_resize_callback, resize_callback_NodeReference_t, resize_cb_data_t);
-    FAN_DEFINE_CB_RAII(close, m_close_callback, close_callback_NodeReference_t, close_cb_data_t);
-    FAN_DEFINE_CB_RAII(mouse_move, m_mouse_position_callback, mouse_position_callback_NodeReference_t, mouse_move_cb_data_t);
-    FAN_DEFINE_CB_RAII(mouse_motion, m_mouse_motion_callback, mouse_motion_callback_NodeReference_t, mouse_motion_cb_data_t);
+    struct text_data_t {
+      fan::window_t* window;
+      uint32_t character;
+      fan::keyboard_state_t state;
+    };
+    using text_cb_t = std::function<void(const text_data_t&)>;
 
-    using key_callback_handle_t =
-      bll_nr_t<key_callback_NodeReference_t, window_t, const keyboard_key_cb_data_t&>;
+    struct mouse_move_data_t {
+      fan::window_t* window;
+      fan::vec2d position;
+    };
+    using mouse_move_cb_t = std::function<void(const mouse_move_data_t&)>;
 
-    key_callback_handle_t add_key_callback(int key, keyboard_state_t st,
-      std::function<void(const keyboard_key_cb_data_t&)> fn)
+    struct mouse_motion_data_t {
+      fan::window_t* window;
+      fan::vec2d motion;
+    };
+    using mouse_motion_cb_t = std::function<void(const mouse_motion_data_t&)>;
+
+    struct close_data_t {
+      fan::window_t* window;
+    };
+    using close_cb_t = std::function<void(const close_data_t&)>;
+
+    struct resize_data_t {
+      fan::window_t* window;
+      fan::vec2i size;
+    };
+    using resize_cb_t = std::function<void(const resize_data_t&)>;
+
+    struct move_data_t {
+      fan::window_t* window;
+    };
+    using move_cb_t = std::function<void(const move_data_t&)>;
+
+    #define BLL_set_prefix buttons_callback
+    #define BLL_set_NodeDataType buttons_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
+    #define BLL_set_prefix keys_callback
+    #define BLL_set_NodeDataType keys_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
+    #define BLL_set_prefix key_callback
+    #define BLL_set_NodeDataType key_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
+    #define BLL_set_prefix text_callback
+    #define BLL_set_NodeDataType text_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
+    #define BLL_set_prefix move_callback
+    #define BLL_set_NodeDataType move_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
+    #define BLL_set_prefix resize_callback
+    #define BLL_set_NodeDataType resize_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
+    #define BLL_set_prefix close_callback
+    #define BLL_set_NodeDataType close_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
+    #define BLL_set_prefix mouse_position_callback
+    #define BLL_set_NodeDataType mouse_move_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
+    #define BLL_set_prefix mouse_motion_callback
+    #define BLL_set_NodeDataType mouse_motion_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
+    #define BLL_set_prefix mouse_down_callbacks
+    #define BLL_set_NodeDataType buttons_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
+    #define BLL_set_prefix key_down_callbacks
+    #define BLL_set_NodeDataType keys_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
+    #define FAN_DEFINE_CB_RAII(NAME, STORAGE, NODE_REF, PARAM_TYPE)                         \
+      using NAME##_handle_t = bll_nr_t<NODE_REF, window_t, const PARAM_TYPE&>;              \
+                                                                                            \
+      NAME##_handle_t add_##NAME##_callback(                                                \
+        std::function<void(const PARAM_TYPE&)> fn)                                          \
+      {                                                                                     \
+        using handle_t = NAME##_handle_t;                                                   \
+        using fn_t     = typename handle_t::fn_t;                                           \
+        using add_fn   = typename handle_t::add_fn;                                         \
+        using rem_fn   = typename handle_t::remove_fn;                                      \
+                                                                                            \
+        add_fn add = [](window_t* w, fn_t cb) {                                             \
+          auto nr = w->STORAGE.NewNodeLast();                                               \
+          w->STORAGE[nr] = [cb](const PARAM_TYPE& d){ cb(nullptr, d); };                    \
+          return nr;                                                                        \
+        };                                                                                  \
+                                                                                            \
+        rem_fn remove = [](window_t* w, NODE_REF nr) {                                      \
+          w->STORAGE.unlrec(nr);                                                            \
+        };                                                                                  \
+                                                                                            \
+        return handle_t(                                                                    \
+          this,                                                                             \
+          std::move(add),                                                                   \
+          std::move(remove),                                                                \
+          [fn](window_t*, const PARAM_TYPE& d){ fn(d); }                                    \
+        );                                                                                  \
+      }
+
+    // Note that buttons callback, the button state will never be repeat, instead use on_button_down
+    FAN_DEFINE_CB_RAII(buttons, m_buttons_callback, buttons_callback_NodeReference_t, buttons_data_t);
+    FAN_DEFINE_CB_RAII(keys, m_keys_callback, keys_callback_NodeReference_t, keys_data_t);
+    FAN_DEFINE_CB_RAII(text, m_text_callback, text_callback_NodeReference_t, text_data_t);
+    FAN_DEFINE_CB_RAII(move, m_move_callback, move_callback_NodeReference_t, move_data_t);
+    FAN_DEFINE_CB_RAII(resize, m_resize_callback, resize_callback_NodeReference_t, resize_data_t);
+    FAN_DEFINE_CB_RAII(close, m_close_callback, close_callback_NodeReference_t, close_data_t);
+    FAN_DEFINE_CB_RAII(mouse_move, m_mouse_position_callback, mouse_position_callback_NodeReference_t, mouse_move_data_t);
+    FAN_DEFINE_CB_RAII(mouse_motion, m_mouse_motion_callback, mouse_motion_callback_NodeReference_t, mouse_motion_data_t);
+
+    FAN_DEFINE_CB_RAII(key_down, m_key_down_callbacks, key_down_callbacks_NodeReference_t, keys_data_t);
+    FAN_DEFINE_CB_RAII(mouse_down, m_mouse_down_callbacks, mouse_down_callbacks_NodeReference_t, buttons_data_t);
+
+    using key_handle_t = bll_nr_t<key_callback_NodeReference_t, window_t, const key_data_t&>;
+
+    using button_data_t = buttons_data_t;
+    using mouse_down_data_t = buttons_data_t;
+    using mouse_up_data_t = buttons_data_t;
+    using mouse_click_data_t = buttons_data_t;
+    using key_down_data_t = key_data_t;
+    using key_up_data_t = key_data_t;
+    using key_click_data_t = key_data_t;
+
+    // Note key state in this cb will give keyboard repeat delay, if you want instant call on key down, use on_key_down
+    key_handle_t add_key_callback(int key, keyboard_state_t st,
+      std::function<void(const key_data_t&)> fn)
     {
-      using handle_t = key_callback_handle_t;
+      using handle_t = key_handle_t;
       using fn_t = typename handle_t::fn_t;
       using add_fn = typename handle_t::add_fn;
       using rem_fn = typename handle_t::remove_fn;
 
       add_fn add = [key, st](window_t* w, fn_t cb) {
         auto nr = w->m_key_callback.NewNodeLast();
-        w->m_key_callback[nr].data.key = key;
-        w->m_key_callback[nr].data.state = st;
-        w->m_key_callback[nr].data.function =
-          [cb](const keyboard_key_cb_data_t& d) { cb(nullptr, d); };
+        w->m_key_callback[nr] = [cb, key, st](const key_data_t& d) { 
+          if (d.window->key_state(key) == st) {
+            cb(d.window, d);
+          }
+        };
         return nr;
-        };
-
+      };
       rem_fn remove = [](window_t* w, key_callback_NodeReference_t nr) {
-        w->m_key_callback.Unlink(nr);
-        w->m_key_callback.Recycle(nr);
-        };
-
+        w->m_key_callback.unlrec(nr);
+      };
       return handle_t(
         this,
         std::move(add),
         std::move(remove),
-        [fn](window_t*, const keyboard_key_cb_data_t& d) { fn(d); }
+        [fn](window_t*, const key_data_t& d) { fn(d); }
       );
     }
+    buttons_handle_t on_mouse_click(uint16_t button, buttons_cb_t fn) {
+      return add_buttons_callback([=](const buttons_data_t& d) {
+        if (d.button == button && d.state == fan::mouse_state::press) {
+          fn(d);
+        }
+      });
+    }
+    mouse_down_handle_t on_mouse_down(uint16_t button, buttons_cb_t fn) {
+      using handle_t = mouse_down_handle_t;
+      using fn_t = typename handle_t::fn_t;
+      using add_fn = typename handle_t::add_fn;
+      using rem_fn = typename handle_t::remove_fn;
 
-
+      add_fn add = [button](window_t* w, fn_t cb) {
+        auto nr = w->m_mouse_down_callbacks.NewNodeLast();
+        w->m_mouse_down_callbacks[nr] = [cb, button](const buttons_data_t& d) { 
+          int ks = d.window->key_state(button);
+          if (ks == fan::mouse_state::press || ks == fan::mouse_state::repeat) {
+            cb(d.window, d);
+          }
+        };
+        return nr;
+      };
+      rem_fn remove = [](window_t* w, mouse_down_callbacks_NodeReference_t nr) {
+        w->m_mouse_down_callbacks.unlrec(nr);
+      };
+      return handle_t(
+        this,
+        std::move(add),
+        std::move(remove),
+        [fn](window_t*, const buttons_data_t& d) { fn(d); }
+      );
+    }
+    buttons_handle_t on_mouse_up(uint16_t button, buttons_cb_t fn) {
+      return add_buttons_callback([=](const buttons_data_t& d) {
+        if (d.button == button && d.state == fan::mouse_state::release) {
+          fn(d);
+        }
+      });
+    }
+    key_handle_t on_key_click(int key, key_cb_t fn) {
+      return add_key_callback(key, fan::keyboard_state::press, fn);
+    }
+    key_handle_t on_key_down(int key, key_cb_t fn) {
+      return add_key_callback(key, fan::keyboard_state::repeat, fn);
+    }
+    key_handle_t on_key_up(int key, key_cb_t fn) {
+      return add_key_callback(key, fan::keyboard_state::release, fn);
+    }
+    mouse_move_handle_t on_mouse_move(mouse_move_cb_t fn) {
+      return add_mouse_move_callback(fn);
+    }
+    resize_handle_t on_resize(resize_cb_t fn) {
+      return add_resize_callback(fn);
+    }
     #undef FAN_DEFINE_CB_RAII
-
 
     fan::vec2i get_size() const {
       fan::vec2i window_size;
@@ -867,6 +967,8 @@ export namespace fan {
     close_callback_t m_close_callback;
     mouse_position_callback_t m_mouse_position_callback;
     mouse_motion_callback_t m_mouse_motion_callback;
+    mouse_down_callbacks_t m_mouse_down_callbacks;
+    key_down_callbacks_t m_key_down_callbacks;
 
     uint64_t flags = 0;
     uint8_t m_antialiasing_samples = 0;
@@ -896,11 +998,12 @@ void fan::window::mouse_button_callback(GLFWwindow* wnd, int button, int action,
   auto it = window->m_buttons_callback.GetNodeFirst();
 
   while (it != window->m_buttons_callback.dst) {
-    fan::window_t::mouse_buttons_cb_data_t cbd;
+    fan::window_t::buttons_data_t cbd;
     cbd.window = window;
     cbd.button = button;
     cbd.state = action;
-    window->m_buttons_callback[it].data(cbd);
+    cbd.position = window->get_mouse_position();
+    window->m_buttons_callback[it](cbd);
 
     it = it.Next(&window->m_buttons_callback);
   }
@@ -918,12 +1021,12 @@ void fan::window::keyboard_keys_callback(GLFWwindow* wnd, int key, int scancode,
     auto it = window->m_keys_callback.GetNodeFirst();
 
     while (it != window->m_keys_callback.dst) {
-      fan::window_t::keyboard_keys_cb_data_t cbd;
+      fan::window_t::keys_data_t cbd;
       cbd.window = window;
       cbd.key = key;
       cbd.state = static_cast<fan::keyboard_state_t>(action);
       cbd.scancode = scancode;
-      window->m_keys_callback[it].data(cbd);
+      window->m_keys_callback[it](cbd);
       it = it.Next(&window->m_keys_callback);
     }
   }
@@ -932,15 +1035,11 @@ void fan::window::keyboard_keys_callback(GLFWwindow* wnd, int key, int scancode,
 
     while (it != window->m_key_callback.dst) {
         
-      fan::window_t::keyboard_key_cb_data_t cbd;
+      fan::window_t::key_data_t cbd;
       cbd.window = window;
-      cbd.key = key;
-      if (window->m_key_callback[it].data.key == key && (int)window->m_key_callback[it].data.state == action) {
-        window->m_key_callback[it].data.function(cbd);
-      }
+      window->m_key_callback[it](cbd);
       it = it.Next(&window->m_key_callback);
     }
-      
   }
 }
 
@@ -949,11 +1048,11 @@ void fan::window::text_callback(GLFWwindow* wnd, unsigned int codepoint) {
   auto it = window->m_text_callback.GetNodeFirst();
 
   while (it != window->m_text_callback.dst) {
-    fan::window_t::text_cb_data_t cbd;
+    fan::window_t::text_data_t cbd;
     cbd.window = window;
     cbd.character = codepoint;
     cbd.state = fan::keyboard_state::press;
-    window->m_text_callback[it].data(cbd);
+    window->m_text_callback[it](cbd);
 
     it = it.Next(&window->m_text_callback);
   }
@@ -964,12 +1063,12 @@ void fan::window::mouse_position_callback(GLFWwindow* wnd, double xpos, double y
   {
     auto it = window->m_mouse_position_callback.GetNodeFirst();
 
-    fan::window_t::mouse_move_cb_data_t cbd;
+    fan::window_t::mouse_move_data_t cbd;
     cbd.window = window;
     cbd.position = fan::vec2d(xpos, ypos);
 
     while (it != window->m_mouse_position_callback.dst) {
-      window->m_mouse_position_callback[it].data(cbd);
+      window->m_mouse_position_callback[it](cbd);
 
       it = it.Next(&window->m_mouse_position_callback);
     }
@@ -978,12 +1077,12 @@ void fan::window::mouse_position_callback(GLFWwindow* wnd, double xpos, double y
     window->previous_mouse_position = fan::vec2d(xpos, ypos);
   }
   {
-    fan::window_t::mouse_motion_cb_data_t cbd;
+    fan::window_t::mouse_motion_data_t cbd;
     cbd.window = window;
     cbd.motion = fan::vec2d(xpos, ypos) - window->previous_mouse_position;
     auto it = window->m_mouse_motion_callback.GetNodeFirst();
     while (it != window->m_mouse_motion_callback.dst) {
-      window->m_mouse_motion_callback[it].data(cbd);
+      window->m_mouse_motion_callback[it](cbd);
 
       it = it.Next(&window->m_mouse_motion_callback);
     }
@@ -996,9 +1095,9 @@ void fan::window::close_callback(GLFWwindow* wnd) {
   auto it = window->m_close_callback.GetNodeFirst();
 
   while (it != window->m_close_callback.dst) {
-    fan::window_t::close_cb_data_t cbd;
+    fan::window_t::close_data_t cbd;
     cbd.window = window;
-    window->m_close_callback[it].data(cbd);
+    window->m_close_callback[it](cbd);
 
     it = it.Next(&window->m_close_callback);
   }
@@ -1009,10 +1108,10 @@ void fan::window::resize_callback(GLFWwindow* wnd, int width, int height) {
   auto it = window->m_resize_callback.GetNodeFirst();
 
   while (it != window->m_resize_callback.dst) {
-    fan::window_t::resize_cb_data_t cbd;
+    fan::window_t::resize_data_t cbd;
     cbd.window = window;
     cbd.size = fan::vec2i(width, height);
-    window->m_resize_callback[it].data(cbd);
+    window->m_resize_callback[it](cbd);
 
     it = it.Next(&window->m_resize_callback);
   }
@@ -1023,9 +1122,9 @@ void fan::window::move_callback(GLFWwindow* wnd, int xpos, int ypos) {
   auto it = window->m_move_callback.GetNodeFirst();
 
   while (it != window->m_move_callback.dst) {
-    fan::window_t::move_cb_data_t cbd;
+    fan::window_t::move_data_t cbd;
     cbd.window = window;
-    window->m_move_callback[it].data(cbd);
+    window->m_move_callback[it](cbd);
 
     it = it.Next(&window->m_move_callback);
   }
@@ -1041,11 +1140,12 @@ void fan::window::scroll_callback(GLFWwindow* wnd, double xoffset, double yoffse
   window->key_states[button] = (int)fan::mouse_state::press;
 
   while (it != window->m_buttons_callback.dst) {
-    fan::window_t::mouse_buttons_cb_data_t cbd;
+    fan::window_t::buttons_data_t cbd;
     cbd.window = window;
     cbd.button = button;
     cbd.state = fan::mouse_state::press;
-    window->m_buttons_callback[it].data(cbd);
+    cbd.position = window->get_mouse_position();
+    window->m_buttons_callback[it](cbd);
 
     it = it.Next(&window->m_buttons_callback);
   }

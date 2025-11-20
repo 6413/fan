@@ -9,6 +9,7 @@ module;
 #include <algorithm>
 #include <cstring>
 #include <thread>
+#include <vector>
 
 #include <uv.h>
 #undef min
@@ -222,25 +223,22 @@ struct task_value_wrap_t<void, suspend_type_t> {
 template<typename T, typename suspend_t>
 task_value_wrap_t<T, suspend_t>
 task_value_promise_t<T, suspend_t>::get_return_object() {
-    using promise_type = task_value_promise_t<T, suspend_t>;
-    auto h = std::coroutine_handle<promise_type>::from_promise(*this);
-    auto own = std::make_shared<coroutine_handle_owner<promise_type>>(h);
-    // Critical: self-own at construction
-    self_keepalive = own;
-    return task_value_wrap_t<T, suspend_t>{ std::move(own) };
+  using promise_type = task_value_promise_t<T, suspend_t>;
+  auto h = std::coroutine_handle<promise_type>::from_promise(*this);
+  auto own = std::make_shared<coroutine_handle_owner<promise_type>>(h);
+  self_keepalive = own;
+  return task_value_wrap_t<T, suspend_t>{ std::move(own) };
 }
 
 template<typename suspend_t>
 task_value_wrap_t<void, suspend_t>
 task_value_promise_t<void, suspend_t>::get_return_object() {
-    using promise_type = task_value_promise_t<void, suspend_t>;
-    auto h = std::coroutine_handle<promise_type>::from_promise(*this);
-    auto own = std::make_shared<coroutine_handle_owner<promise_type>>(h);
-    self_keepalive = own;
-    return task_value_wrap_t<void, suspend_t>{ std::move(own) };
+  using promise_type = task_value_promise_t<void, suspend_t>;
+  auto h = std::coroutine_handle<promise_type>::from_promise(*this);
+  auto own = std::make_shared<coroutine_handle_owner<promise_type>>(h);
+  self_keepalive = own;
+  return task_value_wrap_t<void, suspend_t>{ std::move(own) };
 }
-
-
 
 export namespace fan {
   namespace event {
@@ -294,7 +292,7 @@ export namespace fan {
         void operator()(timer_data* data) const noexcept {
           uv_close(reinterpret_cast<uv_handle_t*>(&data->timer_handle), [](uv_handle_t* timer_handle) {
             delete static_cast<timer_data*>(timer_handle->data);
-            });
+          });
         }
       };
 
@@ -320,7 +318,7 @@ export namespace fan {
           if (data->co_handle) {
             data->co_handle();
           }
-          }, timeout, repeat);
+        }, timeout, repeat);
       }
       error_code_t again() noexcept {
         return uv_timer_again(&data->timer_handle);
@@ -352,6 +350,45 @@ export namespace fan {
     using task_value_resume_t = task_value_wrap_t<T, std::suspend_never>;
 
     using task_t = task_resume_t;
+
+    struct deferred_resume_t {
+      struct queued_resume_t {
+        std::shared_ptr<void> keepalive;
+        std::coroutine_handle<> h;
+      };
+
+      template<typename promise_t>
+      static void schedule_resume(std::coroutine_handle<promise_t> h) {
+        auto& p = h.promise();
+        std::shared_ptr<void> keepalive(p.self_keepalive, p.self_keepalive.get());
+        resume_queue.push_back(queued_resume_t{ keepalive, h });
+      }
+
+      static void process_resumes() {
+        for (auto& e : resume_queue) {
+          if (e.h) {
+            e.h.resume();
+          }
+        }
+        resume_queue.clear();
+      }
+
+      static inline std::vector<queued_resume_t> resume_queue;
+    };
+
+    template<typename promise_t>
+    void schedule_resume(std::coroutine_handle<promise_t> h) {
+      deferred_resume_t::schedule_resume(h);
+    }
+
+    // requires the derived function to have "check_condition" function
+    template <typename derived_t>
+    struct condition_awaiter {
+      bool await_ready() const {
+        return static_cast<const derived_t*>(this)->check_condition();
+      }
+      void await_resume() {}
+    };
 
     using idle_id_t = uv_idle_t*;
 
@@ -959,7 +996,6 @@ export namespace fan::io {
     void await_resume() noexcept {}
   };
 
-
   struct async_directory_iterator_t {
     std::vector<std::filesystem::directory_entry> entries;
     std::function<fan::event::task_t(const std::filesystem::directory_entry&)> callback;
@@ -993,91 +1029,90 @@ export namespace fan::io {
   }
 
   void async_directory_iterate(async_directory_iterator_t* state, const std::string& path) {
-      if (state->operation_in_progress) {
-        state->stopped = true;
-        state->switch_requested = true;
-        state->next_path = path;
-        return;
-      }
+    if (state->operation_in_progress) {
+      state->stopped = true;
+      state->switch_requested = true;
+      state->next_path = path;
+      return;
+    }
 
-      state->operation_in_progress = true;
-      state->stopped = false;
-      state->switch_requested = false;
-      state->base_path = path;
-      state->entries.clear();
-      state->current_index = 0;
+    state->operation_in_progress = true;
+    state->stopped = false;
+    state->switch_requested = false;
+    state->base_path = path;
+    state->entries.clear();
+    state->current_index = 0;
 
-      uv_fs_t* req = new uv_fs_t;
-      memset(req, 0, sizeof(uv_fs_t));
-      req->data = state;
+    uv_fs_t* req = new uv_fs_t;
+    memset(req, 0, sizeof(uv_fs_t));
+    req->data = state;
 
-      int ret = uv_fs_scandir(fan::event::get_loop(), req, path.c_str(), 0,
-        [](uv_fs_t* req) {
-          auto* state = static_cast<async_directory_iterator_t*>(req->data);
+    int ret = uv_fs_scandir(fan::event::get_loop(), req, path.c_str(), 0, [](uv_fs_t* req) {
+      auto* state = static_cast<async_directory_iterator_t*>(req->data);
 
-          if (!state->stopped) {
-            uv_dirent_t ent;
-            while (uv_fs_scandir_next(req, &ent) != fan::eof) {
-              std::filesystem::path full_path = std::filesystem::path(state->base_path) / ent.name;
-              try {
-                state->entries.emplace_back(full_path);
+      if (!state->stopped) {
+        uv_dirent_t ent;
+        while (uv_fs_scandir_next(req, &ent) != fan::eof) {
+          std::filesystem::path full_path = std::filesystem::path(state->base_path) / ent.name;
+          try {
+            state->entries.emplace_back(full_path);
+          }
+          catch (...) {}
+        }
+
+        if (state->sort_alphabetically) {
+          std::sort(state->entries.begin(), state->entries.end(),
+            [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) -> bool {
+              if (a.is_directory() == b.is_directory()) {
+                std::string a_stem = a.path().stem().string();
+                std::string b_stem = b.path().stem().string();
+                std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(),
+                  [](unsigned char c) { return std::tolower(c); });
+                std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(),
+                  [](unsigned char c) { return std::tolower(c); });
+                return a_stem < b_stem;
               }
-              catch(...) {}
+              return a.is_directory() && !b.is_directory();
             }
+          );
+        }
 
-            if (state->sort_alphabetically) {
-              std::sort(state->entries.begin(), state->entries.end(),
-                [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) -> bool {
-                  if (a.is_directory() == b.is_directory()) {
-                    std::string a_stem = a.path().stem().string();
-                    std::string b_stem = b.path().stem().string();
-                    std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(),
-                      [](unsigned char c) { return std::tolower(c); });
-                    std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(),
-                      [](unsigned char c) { return std::tolower(c); });
-                    return a_stem < b_stem;
-                  }
-                  return a.is_directory() && !b.is_directory();
-                }
-              );
-            }
-
-            if (!state->stopped) {
-              state->iteration_task = iterate_directory(state);
-            }
-          }
-
-          uv_fs_req_cleanup(req);
-          delete req;
-
-          state->operation_in_progress = false;
-
-          if (state->switch_requested) {
-            std::string new_path = state->next_path;
-            state->switch_requested = false;
-
-            uv_idle_t* idle = new uv_idle_t;
-            idle->data = state;
-            uv_idle_init(fan::event::get_loop(), idle);
-            uv_idle_start(idle, [](uv_idle_t* handle) {
-              auto* state = static_cast<async_directory_iterator_t*>(handle->data);
-              std::string path = state->next_path;
-
-              uv_idle_stop(handle);
-              uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t* h) {
-                delete reinterpret_cast<uv_idle_t*>(h);
-              });
-
-              async_directory_iterate(state, path);
-            });
-          }
-        });
-
-      if (ret < 0) {
-        delete req;
-        state->operation_in_progress = false;
-        fan::throw_error("error fs_scandir:"_str + fan::event::strerror(ret));
+        if (!state->stopped) {
+          state->iteration_task = iterate_directory(state);
+        }
       }
+
+      uv_fs_req_cleanup(req);
+      delete req;
+
+      state->operation_in_progress = false;
+
+      if (state->switch_requested) {
+        std::string new_path = state->next_path;
+        state->switch_requested = false;
+
+        uv_idle_t* idle = new uv_idle_t;
+        idle->data = state;
+        uv_idle_init(fan::event::get_loop(), idle);
+        uv_idle_start(idle, [](uv_idle_t* handle) {
+          auto* state = static_cast<async_directory_iterator_t*>(handle->data);
+          std::string path = state->next_path;
+
+          uv_idle_stop(handle);
+          uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t* h) {
+            delete reinterpret_cast<uv_idle_t*>(h);
+            });
+
+          async_directory_iterate(state, path);
+          });
+      }
+    });
+
+    if (ret < 0) {
+      delete req;
+      state->operation_in_progress = false;
+      fan::throw_error("error fs_scandir:"_str + fan::event::strerror(ret));
+    }
   }
 }
 

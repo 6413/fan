@@ -32,26 +32,29 @@ module;
 
 export module fan.time;
 
+import fan.types;
+
 export namespace fan {
 	namespace time {
-    namespace clock {
-      // returns time in nanoseconds
-      uint64_t now() {
-#if defined(fan_platform_windows)
-        LARGE_INTEGER freq;
-        QueryPerformanceFrequency(&freq);
-        double nanoseconds_per_count = 1.0e9 / static_cast<double>(freq.QuadPart);
+    // returns time in nanoseconds
+    uint64_t now() {
+    #if defined(fan_platform_windows)
+      LARGE_INTEGER freq;
+      QueryPerformanceFrequency(&freq);
+      double nanoseconds_per_count = 1.0e9 / static_cast<double>(freq.QuadPart);
 
-        LARGE_INTEGER time;
-        QueryPerformanceCounter(&time);
-        return (uint64_t)((double)time.QuadPart * nanoseconds_per_count);
-#elif defined(fan_platform_unix)
-        struct timespec t;
-        clock_gettime(CLOCK_MONOTONIC, &t);
+      LARGE_INTEGER time;
+      QueryPerformanceCounter(&time);
+      return (uint64_t)((double)time.QuadPart * nanoseconds_per_count);
+    #elif defined(fan_platform_unix)
+      struct timespec t;
+      clock_gettime(CLOCK_MONOTONIC, &t);
 
-        return (uint64_t)t.tv_sec * 1000000000 + t.tv_nsec;
-#endif
-      }
+      return (uint64_t)t.tv_sec * 1000000000 + t.tv_nsec;
+    #endif
+    }
+    f64_t seconds() {
+      return fan::time::now() / 1e9;
     }
 
 		struct timer {
@@ -74,7 +77,7 @@ export namespace fan {
         return count();
       }
 			void start() {
-				m_timer = fan::time::clock::now();
+				m_timer = fan::time::now();
 			}
       void start(uint64_t time) {
         m_time = time;
@@ -98,7 +101,7 @@ export namespace fan {
 			}
 			// returns elapsed time since start in nanoseconds
 			uint64_t elapsed() const {
-				return m_timer == 0 ? 0 : fan::time::clock::now() - m_timer;
+				return m_timer == 0 ? 0 : fan::time::now() - m_timer;
 			}
       // returns elapsed time since start in seconds
       double seconds() const {
