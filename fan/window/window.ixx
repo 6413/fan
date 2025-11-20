@@ -486,7 +486,7 @@ export namespace fan {
         };                                                                                  \
                                                                                             \
         rem_fn remove = [](window_t* w, NODE_REF nr) {                                      \
-          w->STORAGE.unlrec(nr);                                                            \
+          if (w->STORAGE.NodeList.Current) w->STORAGE.unlrec(nr);                           \
         };                                                                                  \
                                                                                             \
         return handle_t(                                                                    \
