@@ -1,16 +1,17 @@
 module;
 
+#if defined(fan_gui)
 #include <string>
 #include <vector>
 #include <sstream>
 #include <ranges>
 
-#if defined(fan_gui)
  #include <fan/imgui/imgui.h>
 #endif
 
 export module fan.graphics.gui.text_logger;
 
+#if defined(fan_gui)
 import fan.types.color;
 import fan.types.vector;
 import fan.fmt;
@@ -340,3 +341,4 @@ export namespace fan::graphics::gui {
     }
   };
 }
+#endif

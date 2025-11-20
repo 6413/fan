@@ -598,6 +598,7 @@ struct shape_tester_t {
     });
   }
 
+  #if defined(fan_physics)
   void test_collision_detection() {
     run_test("Rectangle AABB Intersection", [&]() {
       rectangle_t rect1{ {
@@ -649,6 +650,7 @@ struct shape_tester_t {
       assert_true(!rect.point_inside(fan::vec2(200, 200)), "Exterior point should be outside");
     });
   }
+#endif
 
   void test_image_assignment() {
     run_test("Image Creation and Validation", [&]() {
@@ -706,6 +708,7 @@ struct shape_tester_t {
       assert_true(std::abs(basis.right.y - 1.0f) < tolerance, "Right.y should be ~1 at 90deg");
     });
 
+  #if defined(fan_physics)
     run_test("Shape AABB Calculation", [&]() {
       rectangle_t rect{ {
         .position = fan::vec3(100, 100, 0),
@@ -726,6 +729,7 @@ struct shape_tester_t {
       assert_true(aabb.max.x > 100 + expected_extent * 0.9f, "Rotated AABB should be larger");
       assert_true(aabb.min.x < 100 - expected_extent * 0.9f, "Rotated AABB should be larger");
     });
+  #endif
   }
 
   void test_render_view_assignment() {
@@ -962,7 +966,9 @@ struct shape_tester_t {
 
     test_camera_position();
     test_viewport_resize();
+  #if defined(fan_physics)
     test_collision_detection();
+  #endif
     test_image_assignment();
     test_rotation_matrix();
     test_render_view_assignment();
@@ -997,7 +1003,7 @@ int main() {
 
   tester.run_all_tests();
   tester.run_all_benchmarks();
-
+  //
   fan::print_success("\n=== ALL TESTS AND BENCHMARKS COMPLETE ===\n");
 
   return 0;

@@ -1201,6 +1201,7 @@ export namespace fan {
   fan::graphics::shapes::shape_t& grid(const grid_properties_t& props = {}) {
     return add_shape_to_immediate_draw(grid_t(props));
   }
+  #if defined(fan_physics)
   void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1)) {
     fan::graphics::line({ .src = {b.min, depth}, .dst = {b.max.x, b.min.y}, .color = c });
     fan::graphics::line({ .src = {b.max.x, b.min.y, depth}, .dst = {b.max}, .color = c });
@@ -1210,6 +1211,7 @@ export namespace fan {
   void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1)) {
     fan::graphics::aabb(s.get_aabb(), depth, c);
   }
+  #endif
 
   fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color) {
     fan::graphics::shapes::polygon_t::properties_t pp;
