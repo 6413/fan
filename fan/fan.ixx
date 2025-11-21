@@ -1,6 +1,8 @@
 export module fan;
 
 export import fan.types;
+export import fan.types.vector;
+export import fan.time;
 export import fan.print;
 export import fan.utility;
 export import fan.types.masterpiece;
@@ -34,10 +36,10 @@ export import fan.event;
   export import fan.file_dialog;
   //export import fan.graphics.gui.tilemap_editor.renderer;
   //export import fan.graphics.gui.tilemap_editor.editor;
-//export import fan.graphics.gui;
+  //export import fan.graphics.gui;
 #endif
 #if defined(fan_physics)
-export import fan.physics.collision.rectangle;
-export import fan.physics.b2_integration;
-export import fan.graphics.physics_shapes;
+  export import fan.physics.collision.rectangle;
+  export import fan.physics.b2_integration;
+  export import fan.graphics.physics_shapes;
 #endif

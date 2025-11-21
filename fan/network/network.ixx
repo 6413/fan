@@ -16,21 +16,6 @@ module;
   #include <curl/curl.h>
   #include <curl/multi.h>
 #endif
-#include <cstring>
-#include <stdexcept>
-#include <memory>
-#include <coroutine>
-#include <functional>
-#include <unordered_map>
-#include <array>
-#include <string>
-#include <list>
-#include <expected>
-#include <cstdlib>
-#include <atomic>
-
-#include <mutex>
-#include <cstdint>
 
 #include <openssl/sha.h>
 
@@ -39,6 +24,8 @@ module;
 export module fan.network;
 
 #if defined(fan_network)
+
+import std;
 
 import fan.utility;
 export import fan.event;

@@ -1,19 +1,12 @@
 module;
 
-#if defined(fan_physics) && defined(fan_gui)
-
-#include <functional>
-#include <unordered_map>
-#include <string>
-#include <variant>
-
-#endif
-
 export module fan.graphics.gui.tilemap_editor.renderer;
 
 #if defined(fan_physics) && defined(fan_gui)
 
 export import fan.graphics.gui.tilemap_editor.loader;
+
+import std;
 
 import fan.utility;
 import fan.print;
@@ -119,7 +112,7 @@ export struct fte_renderer_t : fte_loader_t {
         if (grid_pos.x < 0 || grid_pos.y < 0) {
           continue;
         }
-        if (grid_pos.y >= (int64_t)map_tiles.size() || grid_pos.x >= (int64_t)map_tiles[grid_pos.y].size()) {
+        if (grid_pos.y >= (std::int64_t)map_tiles.size() || grid_pos.x >= (std::int64_t)map_tiles[grid_pos.y].size()) {
           continue;
         }
         if (map_tiles[grid_pos.y][grid_pos.x].empty()) {
@@ -184,7 +177,7 @@ export struct fte_renderer_t : fte_loader_t {
     int key_state;
   };
 
-  void add_tile(node_t& node, fte_t::tile_t& j, int x, int y, uint32_t depth) {
+  void add_tile(node_t& node, fte_t::tile_t& j, int x, int y, std::uint32_t depth) {
 
     // temporary
     {
@@ -334,7 +327,7 @@ export struct fte_renderer_t : fte_loader_t {
         if (x < 0 || y < 0) {
           continue;
         }
-        if (y >= (int64_t)map_tiles.size() || x >= (int64_t)map_tiles[y].size()) {
+        if (y >= (std::int64_t)map_tiles.size() || x >= (std::int64_t)map_tiles[y].size()) {
           continue;
         }
         if (map_tiles[y][x].empty()) {

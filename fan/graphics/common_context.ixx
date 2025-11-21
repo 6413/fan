@@ -4,18 +4,13 @@ module;
 
 #include <fan/graphics/common_context_functions_declare.h>
 
-#include <unordered_map>
-#include <memory>
-#include <string>
-#include <vector>
-#include <source_location>
-#include <functional>
-
 #if defined(fan_gui)
 	#include <fan/imgui/imgui.h>
 #endif
 
 export module fan.graphics.common_context;
+
+import std;
 
 export import fan.types.color;
 export import fan.graphics.image_load;
@@ -378,7 +373,7 @@ export namespace fan::graphics {
 		operator void* ();
 		uint8_t get_renderer();
 
-		context_functions_t* render_functions = nullptr;
+		context_functions_t* context_functions = nullptr;
 		void* render_context = nullptr;
 
 		// common data
@@ -483,24 +478,24 @@ export namespace fan::graphics::gui {
 #endif
 
 export namespace fan {
-  namespace window {
-    fan::vec2 get_input_vector(
-      const std::string& forward = "move_forward",
-      const std::string& back = "move_back",
-      const std::string& left = "move_left",
-      const std::string& right = "move_right"
-    );
-    fan::vec2 get_size();
-    void set_size(const fan::vec2& size);
-    fan::vec2 get_mouse_position();
-    bool is_mouse_clicked(int button = fan::mouse_left);
-    bool is_mouse_down(int button = fan::mouse_left);
-    bool is_mouse_released(int button = fan::mouse_left);
-    fan::vec2 get_mouse_drag(int button = fan::mouse_left);
-    bool is_key_pressed(int key);
-    bool is_key_down(int key);
-    bool is_key_released(int key);
-  }
+	namespace window {
+		fan::vec2 get_input_vector(
+			const std::string& forward = "move_forward",
+			const std::string& back = "move_back",
+			const std::string& left = "move_left",
+			const std::string& right = "move_right"
+		);
+		fan::vec2 get_size();
+		void set_size(const fan::vec2& size);
+		fan::vec2 get_mouse_position();
+		bool is_mouse_clicked(int button = fan::mouse_left);
+		bool is_mouse_down(int button = fan::mouse_left);
+		bool is_mouse_released(int button = fan::mouse_left);
+		fan::vec2 get_mouse_drag(int button = fan::mouse_left);
+		bool is_key_pressed(int key);
+		bool is_key_down(int key);
+		bool is_key_released(int key);
+	}
 }
 
 
