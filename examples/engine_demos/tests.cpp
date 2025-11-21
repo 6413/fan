@@ -1,16 +1,12 @@
 #include <fan/utility.h>
-#include <vector>
-#include <string>
-#include <functional>
-#include <iomanip>
 #include <fan/graphics/opengl/init.h>
-#include <fstream>
 
+import std;
 import fan;
 
 using namespace fan::graphics;
 
-struct test_result_t {//
+struct test_result_t {////
   std::string name;
   bool passed;
   std::string error_message;
@@ -1007,4 +1003,4 @@ int main() {
   fan::print_success("\n=== ALL TESTS AND BENCHMARKS COMPLETE ===\n");
 
   return 0;
-}
+}////

@@ -30,11 +30,11 @@ namespace fan::graphics {
   }
 
   void render_context_handle_t::set_context(context_functions_t& ctx, void* context) {
-    render_functions = &ctx;
+    context_functions = &ctx;
     render_context = context;
   }
   context_functions_t* render_context_handle_t::operator->() {
-    return render_functions;
+    return context_functions;
   }
   render_context_handle_t::operator void* () {
     return render_context;

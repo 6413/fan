@@ -2,15 +2,13 @@ module;
 
 #include <fan/utility.h>
 
-#include <memory>
-#include <functional>
-
 export module fan.physics.common_context;
 
-import fan.types.vector;
-
-
 #if defined(fan_physics)
+
+import std;
+
+import fan.types.vector;
 
 export namespace fan::physics {
   struct physics_update_data_t {

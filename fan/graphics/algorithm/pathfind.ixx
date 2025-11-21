@@ -14,14 +14,8 @@ export namespace fan::graphics::algorithm::pathfind {
     uint H;
     vec2i coordinates;
     node* parent;
-
-    node(vec2i coord_, node* parent_ = nullptr)
-      : G(0), H(0), coordinates(coord_), parent(parent_) {
-    }
-
-    uint get_score() {
-      return G + H;
-    }
+    node(vec2i coord_, node* parent_ = nullptr);
+    uint get_score();
   };
 
   using node_set = ::AStar::NodeSet;
@@ -29,51 +23,19 @@ export namespace fan::graphics::algorithm::pathfind {
   struct generator {
     ::AStar::Generator impl;
 
-    void set_world_size(vec2i world_size) {
-      impl.setWorldSize(::AStar::Vec2i(world_size));
-    }
-
-    void set_diagonal_movement(bool enable) {
-      impl.setDiagonalMovement(enable);
-    }
-
-    void set_heuristic(heuristic_function h) {
-      impl.setHeuristic(h);
-    }
-
-    coordinate_list find_path(vec2i src, vec2i dst) {
-      return impl.findPath(::AStar::Vec2i(src), ::AStar::Vec2i(dst));
-    }
-
-    void add_collision(vec2i c) {
-      impl.addCollision(::AStar::Vec2i(c));
-    }
-
-    void remove_collision(vec2i c) {
-      impl.removeCollision(::AStar::Vec2i(c));
-    }
-
-    void clear_collisions() {
-      impl.clearCollisions();
-    }
-
-    coordinate_list& get_walls() {
-      return impl.getWalls();
-    }
+    void set_world_size(vec2i world_size);
+    void set_diagonal_movement(bool enable);
+    void set_heuristic(heuristic_function h);
+    coordinate_list find_path(vec2i src, vec2i dst);
+    void add_collision(vec2i c);
+    void remove_collision(vec2i c);
+    void clear_collisions();
+    coordinate_list& get_walls();
   };
 
   struct heuristic {
-    static uint manhattan(vec2i a, vec2i b) {
-      return ::AStar::Heuristic::manhattan(::AStar::Vec2i(a), ::AStar::Vec2i(b));
-    }
-
-    static uint euclidean(vec2i a, vec2i b) {
-      return ::AStar::Heuristic::euclidean(::AStar::Vec2i(a), ::AStar::Vec2i(b));
-    }
-
-    static uint octagonal(vec2i a, vec2i b) {
-      return ::AStar::Heuristic::octagonal(::AStar::Vec2i(a), ::AStar::Vec2i(b));
-    }
+    static uint manhattan(vec2i a, vec2i b);
+    static uint euclidean(vec2i a, vec2i b);
+    static uint octagonal(vec2i a, vec2i b);
   };
-
 }
