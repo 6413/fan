@@ -1543,6 +1543,29 @@ export namespace fan::graphics {
   }
 }
 
+export namespace fan::graphics {
+  struct shape_deserialize_t {
+    struct {
+      // json::iterator doesnt support union
+      // i dont want to use variant either so i accept few extra bytes
+    #if defined(fan_json)
+      json::const_iterator it;
+    #endif
+      uint64_t offset = 0;
+    }data;
+    bool init = false;
+    bool was_object = false;
+  #if defined(fan_json)
+    bool iterate(const fan::json& json, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path = std::source_location::current());
+  #endif
+    bool iterate(const std::vector<uint8_t>& bin_data, fan::graphics::shapes::shape_t* shape);
+  };
+
+  bool shape_to_bin(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* data);
+  bool bin_to_shape(const std::vector<uint8_t>& in, fan::graphics::shapes::shape_t* shape, uint64_t& offset, const std::source_location& callers_path = std::source_location::current());
+  bool shape_serialize(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* out);
+}
+
 #if defined(fan_json)
 export namespace fan::graphics {
   bool shape_to_json(fan::graphics::shapes::shape_t& shape, fan::json* json);
@@ -1551,25 +1574,6 @@ export namespace fan::graphics {
 }
 
 export namespace fan::graphics {
-  bool shape_to_bin(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* data);
-  bool bin_to_shape(const std::vector<uint8_t>& in, fan::graphics::shapes::shape_t* shape, uint64_t& offset, const std::source_location& callers_path = std::source_location::current());
-  bool shape_serialize(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* out);
-
-	struct shape_deserialize_t {
-		struct {
-			// json::iterator doesnt support union
-			// i dont want to use variant either so i accept few extra bytes
-			json::const_iterator it;
-			uint64_t offset = 0;
-		}data;
-		bool init = false;
-		bool was_object = false;
-
-    bool iterate(const fan::json& json, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path = std::source_location::current());
-    bool iterate(const std::vector<uint8_t>& bin_data, fan::graphics::shapes::shape_t* shape);
-	};
-
-
   fan::graphics::shapes::shape_t extract_single_shape(const fan::json& json_data, const std::source_location& callers_path = std::source_location::current());
   fan::json read_json(const std::string& path, const std::source_location& callers_path = std::source_location::current());
 	struct animation_t {

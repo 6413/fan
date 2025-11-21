@@ -3105,7 +3105,7 @@ namespace fan::graphics {
   bool shape_serialize(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* out) {
 		return shape_to_bin(shape, out);
 	}
-
+#if defined(fan_physics)
   bool shape_deserialize_t::iterate(const fan::json& json, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path) {
     if (init == false) {
       data.it = json.cbegin();
@@ -3125,6 +3125,7 @@ namespace fan::graphics {
     }
     return 1;
   }
+#endif
   bool shape_deserialize_t::iterate(const std::vector<uint8_t>& bin_data, fan::graphics::shapes::shape_t* shape) {
     if (bin_data.empty()) {
       return 0;
@@ -3135,6 +3136,7 @@ namespace fan::graphics {
     bin_to_shape(bin_data, shape, data.offset);
     return 1;
   }
+#if defined(fan_physics)
   fan::graphics::shapes::shape_t extract_single_shape(const fan::json& json_data, const std::source_location& callers_path) {
     fan::graphics::shape_deserialize_t iterator;
     fan::graphics::shapes::shape_t shape;
@@ -3146,6 +3148,7 @@ namespace fan::graphics {
     fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &json_bytes);
     return fan::json::parse(json_bytes);
   }
+#endif
 }
 
 #if defined(fan_json)
