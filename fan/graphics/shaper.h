@@ -216,6 +216,15 @@ struct shaper_t{
   KeyTypeAmount_t KeyTypeAmount;
 
   bool _InformCapacity;
+  #ifndef bcontainer_set_alloc_open
+    #define bcontainer_set_alloc_open(n) std::malloc(n)
+  #endif
+  #ifndef bcontainer_set_alloc_resize
+    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
+  #endif
+  #ifndef bcontainer_set_alloc_close
+    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
+  #endif
   #define BLL_set_Clear 1
   #define BLL_set_nrtra 1
   #define BLL_set_prefix BlockList
@@ -254,7 +263,7 @@ struct shaper_t{
       fan::opengl::core::vao_t m_vao;
       fan::opengl::core::vbo_t m_vbo;
 
-      std::vector<shape_gl_init_t>* locations;
+      std::vector<fan::graphics::shape_gl_init_t>* locations;
       fan::graphics::shader_nr_t shader;
       bool instanced = true;
       int vertex_count = 6;
@@ -352,6 +361,15 @@ struct shaper_t{
       return (MaxElementPerBlock_t)MaxElementPerBlock_m1 + 1;
     }
   };
+  #ifndef bcontainer_set_alloc_open
+    #define bcontainer_set_alloc_open(n) std::malloc(n)
+  #endif
+  #ifndef bcontainer_set_alloc_resize
+    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
+  #endif
+  #ifndef bcontainer_set_alloc_close
+    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
+  #endif
   #define BLL_set_prefix ShapeTypes
   #define BLL_set_Link 0
   #define BLL_set_Recycle 0
@@ -366,6 +384,15 @@ struct shaper_t{
   #include <BLL/BLL.h>
   ShapeTypes_t ShapeTypes;
 
+  #ifndef bcontainer_set_alloc_open
+    #define bcontainer_set_alloc_open(n) std::malloc(n)
+  #endif
+  #ifndef bcontainer_set_alloc_resize
+    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
+  #endif
+  #ifndef bcontainer_set_alloc_close
+    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
+  #endif
   #define BLL_set_prefix BlockManager
   #define BLL_set_CPP_Node_ConstructDestruct 1
   #define BLL_set_Link 0
@@ -393,6 +420,15 @@ struct shaper_t{
     };
   #pragma pack(pop)
 
+  #ifndef bcontainer_set_alloc_open
+    #define bcontainer_set_alloc_open(n) std::malloc(n)
+  #endif
+  #ifndef bcontainer_set_alloc_resize
+    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
+  #endif
+  #ifndef bcontainer_set_alloc_close
+    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
+  #endif
   #define BLL_set_Usage 1
   #define BLL_set_prefix ShapeList
   #define BLL_set_Link 0
@@ -400,9 +436,27 @@ struct shaper_t{
   #define BLL_set_AreWeInsideStruct 1
   // actually it needs to be uint24_t
   #define BLL_set_type_node uint32_t
+  #ifndef bcontainer_set_alloc_open
+    #define bcontainer_set_alloc_open(n) std::malloc(n)
+  #endif
+  #ifndef bcontainer_set_alloc_resize
+    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
+  #endif
+  #ifndef bcontainer_set_alloc_close
+    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
+  #endif
   #include <BLL/BLL.h>
   ShapeList_t ShapeList;
 
+  #ifndef bcontainer_set_alloc_open
+    #define bcontainer_set_alloc_open(n) std::malloc(n)
+  #endif
+  #ifndef bcontainer_set_alloc_resize
+    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
+  #endif
+  #ifndef bcontainer_set_alloc_close
+    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
+  #endif
   #define BLL_set_Clear 1
   #define BLL_set_prefix BlockEditQueue
   #define BLL_set_Link 1
@@ -601,13 +655,13 @@ struct shaper_t{
       fan::opengl::core::vbo_t doesnt_happen;
       return doesnt_happen;
     }
-    std::vector<shape_gl_init_t>& GetLocations(ShapeTypeIndex_t sti) {
+    std::vector<fan::graphics::shape_gl_init_t>& GetLocations(ShapeTypeIndex_t sti) {
       auto& st = ShapeTypes[sti];
       if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
         return *st.renderer.gl.locations;
       }
       fan::throw_error("Unsupported renderer type");
-      static std::vector<shape_gl_init_t> doesnt_happen;
+      static std::vector<fan::graphics::shape_gl_init_t> doesnt_happen;
       return doesnt_happen;
     }
     ShapeTypes_NodeData_t& GetShapeTypes(ShapeTypeIndex_t sti) {
@@ -708,7 +762,7 @@ struct shaper_t{
     #if shaper_set_fan
     struct gl_t {
       gl_t() = default;
-      std::vector<shape_gl_init_t>* locations;
+      std::vector<fan::graphics::shape_gl_init_t>* locations;
       fan::graphics::shader_nr_t shader;
       bool instanced = true;
       GLuint draw_mode = GL_TRIANGLES;

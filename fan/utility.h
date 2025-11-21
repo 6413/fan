@@ -71,7 +71,7 @@
 // override to utf-8 - if file already utf8 it breaks somehow, probably msvc bug
 #if defined(fan_platform_windows)
 	#pragma execution_character_set("utf-8")
-  #include <cstdlib>
+	#include <cstdlib>
 #endif
 
 #define __FAN__FOREACH_1(f, x) f(x, 0)
@@ -159,7 +159,7 @@
 		function; \
 	}
 
-  // prints warning if value is -1
+	// prints warning if value is -1
 #define fan_validate_value(value, text) if (value == (decltype(value))fan::uninitialized) { fan::throw_error(text); }
 
 #ifndef OFFSETLESS
@@ -202,13 +202,13 @@ using DWORD = unsigned long;
 
 #if defined(_MSC_VER)
 	#ifndef __builtin_memset
-		#define __builtin_memset memset
+		#define __builtin_memset std::memset
 	#endif
 	#ifndef __builtin_memcpy
-		#define __builtin_memcpy memcpy
+		#define __builtin_memcpy std::memcpy
 	#endif
 	#ifndef __builtin_memmove
-		#define __builtin_memmove memmove
+		#define __builtin_memmove std::memmove
 	#endif
 #endif
 
@@ -321,10 +321,10 @@ static uint8_t __clz(uintptr_t p0) {
 
 // gets the current file's directory path
 #define fan_get_current_directory() [] { \
-  std::string dir_path = __FILE__; \
-  return dir_path.substr(0, dir_path.rfind((char)std::filesystem::path::preferred_separator)) +  \
-    (char)std::filesystem::path::preferred_separator; \
-  }()
+	std::string dir_path = __FILE__; \
+	return dir_path.substr(0, dir_path.rfind((char)std::filesystem::path::preferred_separator)) +  \
+		(char)std::filesystem::path::preferred_separator; \
+	}()
 
 #ifndef ENDIAN
 	#if defined(__BYTE_ORDER)
@@ -424,9 +424,9 @@ enum class name { __VA_ARGS__ }
 
 #ifndef __forceinline
 #if defined(fan_compiler_clang) || defined(fan_compiler_gcc)
-  #define __forceinline __attribute__((always_inline))
+	#define __forceinline __attribute__((always_inline))
 #elif defined(fan_compiler_msvc)
-  // already defined
+	// already defined
 #else
 	#define __forceinline inline __attribute__((always_inline))
 #endif
@@ -437,165 +437,164 @@ enum class name { __VA_ARGS__ }
 
 // WITCH compatibility
 #ifndef __compile_time_64log2
-  #define __compile_time_64log2(v) ( \
-    (v) >= 0x8000000000000000 ? 0x3f : \
-    (v) >= 0x4000000000000000 ? 0x3e : \
-    (v) >= 0x2000000000000000 ? 0x3d : \
-    (v) >= 0x1000000000000000 ? 0x3c : \
-    (v) >= 0x0800000000000000 ? 0x3b : \
-    (v) >= 0x0400000000000000 ? 0x3a : \
-    (v) >= 0x0200000000000000 ? 0x39 : \
-    (v) >= 0x0100000000000000 ? 0x38 : \
-    (v) >= 0x0080000000000000 ? 0x37 : \
-    (v) >= 0x0040000000000000 ? 0x36 : \
-    (v) >= 0x0020000000000000 ? 0x35 : \
-    (v) >= 0x0010000000000000 ? 0x34 : \
-    (v) >= 0x0008000000000000 ? 0x33 : \
-    (v) >= 0x0004000000000000 ? 0x32 : \
-    (v) >= 0x0002000000000000 ? 0x31 : \
-    (v) >= 0x0001000000000000 ? 0x30 : \
-    (v) >= 0x0000800000000000 ? 0x2f : \
-    (v) >= 0x0000400000000000 ? 0x2e : \
-    (v) >= 0x0000200000000000 ? 0x2d : \
-    (v) >= 0x0000100000000000 ? 0x2c : \
-    (v) >= 0x0000080000000000 ? 0x2b : \
-    (v) >= 0x0000040000000000 ? 0x2a : \
-    (v) >= 0x0000020000000000 ? 0x29 : \
-    (v) >= 0x0000010000000000 ? 0x28 : \
-    (v) >= 0x0000008000000000 ? 0x27 : \
-    (v) >= 0x0000004000000000 ? 0x26 : \
-    (v) >= 0x0000002000000000 ? 0x25 : \
-    (v) >= 0x0000001000000000 ? 0x24 : \
-    (v) >= 0x0000000800000000 ? 0x23 : \
-    (v) >= 0x0000000400000000 ? 0x22 : \
-    (v) >= 0x0000000200000000 ? 0x21 : \
-    (v) >= 0x0000000100000000 ? 0x20 : \
-    (v) >= 0x0000000080000000 ? 0x1f : \
-    (v) >= 0x0000000040000000 ? 0x1e : \
-    (v) >= 0x0000000020000000 ? 0x1d : \
-    (v) >= 0x0000000010000000 ? 0x1c : \
-    (v) >= 0x0000000008000000 ? 0x1b : \
-    (v) >= 0x0000000004000000 ? 0x1a : \
-    (v) >= 0x0000000002000000 ? 0x19 : \
-    (v) >= 0x0000000001000000 ? 0x18 : \
-    (v) >= 0x0000000000800000 ? 0x17 : \
-    (v) >= 0x0000000000400000 ? 0x16 : \
-    (v) >= 0x0000000000200000 ? 0x15 : \
-    (v) >= 0x0000000000100000 ? 0x14 : \
-    (v) >= 0x0000000000080000 ? 0x13 : \
-    (v) >= 0x0000000000040000 ? 0x12 : \
-    (v) >= 0x0000000000020000 ? 0x11 : \
-    (v) >= 0x0000000000010000 ? 0x10 : \
-    (v) >= 0x0000000000008000 ? 0x0f : \
-    (v) >= 0x0000000000004000 ? 0x0e : \
-    (v) >= 0x0000000000002000 ? 0x0d : \
-    (v) >= 0x0000000000001000 ? 0x0c : \
-    (v) >= 0x0000000000000800 ? 0x0b : \
-    (v) >= 0x0000000000000400 ? 0x0a : \
-    (v) >= 0x0000000000000200 ? 0x09 : \
-    (v) >= 0x0000000000000100 ? 0x08 : \
-    (v) >= 0x0000000000000080 ? 0x07 : \
-    (v) >= 0x0000000000000040 ? 0x06 : \
-    (v) >= 0x0000000000000020 ? 0x05 : \
-    (v) >= 0x0000000000000010 ? 0x04 : \
-    (v) >= 0x0000000000000008 ? 0x03 : \
-    (v) >= 0x0000000000000004 ? 0x02 : \
-    (v) >= 0x0000000000000002 ? 0x01 : \
-    0 \
-  )
+	#define __compile_time_64log2(v) ( \
+		(v) >= 0x8000000000000000 ? 0x3f : \
+		(v) >= 0x4000000000000000 ? 0x3e : \
+		(v) >= 0x2000000000000000 ? 0x3d : \
+		(v) >= 0x1000000000000000 ? 0x3c : \
+		(v) >= 0x0800000000000000 ? 0x3b : \
+		(v) >= 0x0400000000000000 ? 0x3a : \
+		(v) >= 0x0200000000000000 ? 0x39 : \
+		(v) >= 0x0100000000000000 ? 0x38 : \
+		(v) >= 0x0080000000000000 ? 0x37 : \
+		(v) >= 0x0040000000000000 ? 0x36 : \
+		(v) >= 0x0020000000000000 ? 0x35 : \
+		(v) >= 0x0010000000000000 ? 0x34 : \
+		(v) >= 0x0008000000000000 ? 0x33 : \
+		(v) >= 0x0004000000000000 ? 0x32 : \
+		(v) >= 0x0002000000000000 ? 0x31 : \
+		(v) >= 0x0001000000000000 ? 0x30 : \
+		(v) >= 0x0000800000000000 ? 0x2f : \
+		(v) >= 0x0000400000000000 ? 0x2e : \
+		(v) >= 0x0000200000000000 ? 0x2d : \
+		(v) >= 0x0000100000000000 ? 0x2c : \
+		(v) >= 0x0000080000000000 ? 0x2b : \
+		(v) >= 0x0000040000000000 ? 0x2a : \
+		(v) >= 0x0000020000000000 ? 0x29 : \
+		(v) >= 0x0000010000000000 ? 0x28 : \
+		(v) >= 0x0000008000000000 ? 0x27 : \
+		(v) >= 0x0000004000000000 ? 0x26 : \
+		(v) >= 0x0000002000000000 ? 0x25 : \
+		(v) >= 0x0000001000000000 ? 0x24 : \
+		(v) >= 0x0000000800000000 ? 0x23 : \
+		(v) >= 0x0000000400000000 ? 0x22 : \
+		(v) >= 0x0000000200000000 ? 0x21 : \
+		(v) >= 0x0000000100000000 ? 0x20 : \
+		(v) >= 0x0000000080000000 ? 0x1f : \
+		(v) >= 0x0000000040000000 ? 0x1e : \
+		(v) >= 0x0000000020000000 ? 0x1d : \
+		(v) >= 0x0000000010000000 ? 0x1c : \
+		(v) >= 0x0000000008000000 ? 0x1b : \
+		(v) >= 0x0000000004000000 ? 0x1a : \
+		(v) >= 0x0000000002000000 ? 0x19 : \
+		(v) >= 0x0000000001000000 ? 0x18 : \
+		(v) >= 0x0000000000800000 ? 0x17 : \
+		(v) >= 0x0000000000400000 ? 0x16 : \
+		(v) >= 0x0000000000200000 ? 0x15 : \
+		(v) >= 0x0000000000100000 ? 0x14 : \
+		(v) >= 0x0000000000080000 ? 0x13 : \
+		(v) >= 0x0000000000040000 ? 0x12 : \
+		(v) >= 0x0000000000020000 ? 0x11 : \
+		(v) >= 0x0000000000010000 ? 0x10 : \
+		(v) >= 0x0000000000008000 ? 0x0f : \
+		(v) >= 0x0000000000004000 ? 0x0e : \
+		(v) >= 0x0000000000002000 ? 0x0d : \
+		(v) >= 0x0000000000001000 ? 0x0c : \
+		(v) >= 0x0000000000000800 ? 0x0b : \
+		(v) >= 0x0000000000000400 ? 0x0a : \
+		(v) >= 0x0000000000000200 ? 0x09 : \
+		(v) >= 0x0000000000000100 ? 0x08 : \
+		(v) >= 0x0000000000000080 ? 0x07 : \
+		(v) >= 0x0000000000000040 ? 0x06 : \
+		(v) >= 0x0000000000000020 ? 0x05 : \
+		(v) >= 0x0000000000000010 ? 0x04 : \
+		(v) >= 0x0000000000000008 ? 0x03 : \
+		(v) >= 0x0000000000000004 ? 0x02 : \
+		(v) >= 0x0000000000000002 ? 0x01 : \
+		0 \
+	)
 #endif
 
 #ifndef __compile_time_32log2
-  #define __compile_time_32log2(v) ( \
-    (v) >= 0x80000000 ? 0x1f : \
-    (v) >= 0x40000000 ? 0x1e : \
-    (v) >= 0x20000000 ? 0x1d : \
-    (v) >= 0x10000000 ? 0x1c : \
-    (v) >= 0x08000000 ? 0x1b : \
-    (v) >= 0x04000000 ? 0x1a : \
-    (v) >= 0x02000000 ? 0x19 : \
-    (v) >= 0x01000000 ? 0x18 : \
-    (v) >= 0x00800000 ? 0x17 : \
-    (v) >= 0x00400000 ? 0x16 : \
-    (v) >= 0x00200000 ? 0x15 : \
-    (v) >= 0x00100000 ? 0x14 : \
-    (v) >= 0x00080000 ? 0x13 : \
-    (v) >= 0x00040000 ? 0x12 : \
-    (v) >= 0x00020000 ? 0x11 : \
-    (v) >= 0x00010000 ? 0x10 : \
-    (v) >= 0x00008000 ? 0x0f : \
-    (v) >= 0x00004000 ? 0x0e : \
-    (v) >= 0x00002000 ? 0x0d : \
-    (v) >= 0x00001000 ? 0x0c : \
-    (v) >= 0x00000800 ? 0x0b : \
-    (v) >= 0x00000400 ? 0x0a : \
-    (v) >= 0x00000200 ? 0x09 : \
-    (v) >= 0x00000100 ? 0x08 : \
-    (v) >= 0x00000080 ? 0x07 : \
-    (v) >= 0x00000040 ? 0x06 : \
-    (v) >= 0x00000020 ? 0x05 : \
-    (v) >= 0x00000010 ? 0x04 : \
-    (v) >= 0x00000008 ? 0x03 : \
-    (v) >= 0x00000004 ? 0x02 : \
-    (v) >= 0x00000002 ? 0x01 : \
-    0 \
-  )
+	#define __compile_time_32log2(v) ( \
+		(v) >= 0x80000000 ? 0x1f : \
+		(v) >= 0x40000000 ? 0x1e : \
+		(v) >= 0x20000000 ? 0x1d : \
+		(v) >= 0x10000000 ? 0x1c : \
+		(v) >= 0x08000000 ? 0x1b : \
+		(v) >= 0x04000000 ? 0x1a : \
+		(v) >= 0x02000000 ? 0x19 : \
+		(v) >= 0x01000000 ? 0x18 : \
+		(v) >= 0x00800000 ? 0x17 : \
+		(v) >= 0x00400000 ? 0x16 : \
+		(v) >= 0x00200000 ? 0x15 : \
+		(v) >= 0x00100000 ? 0x14 : \
+		(v) >= 0x00080000 ? 0x13 : \
+		(v) >= 0x00040000 ? 0x12 : \
+		(v) >= 0x00020000 ? 0x11 : \
+		(v) >= 0x00010000 ? 0x10 : \
+		(v) >= 0x00008000 ? 0x0f : \
+		(v) >= 0x00004000 ? 0x0e : \
+		(v) >= 0x00002000 ? 0x0d : \
+		(v) >= 0x00001000 ? 0x0c : \
+		(v) >= 0x00000800 ? 0x0b : \
+		(v) >= 0x00000400 ? 0x0a : \
+		(v) >= 0x00000200 ? 0x09 : \
+		(v) >= 0x00000100 ? 0x08 : \
+		(v) >= 0x00000080 ? 0x07 : \
+		(v) >= 0x00000040 ? 0x06 : \
+		(v) >= 0x00000020 ? 0x05 : \
+		(v) >= 0x00000010 ? 0x04 : \
+		(v) >= 0x00000008 ? 0x03 : \
+		(v) >= 0x00000004 ? 0x02 : \
+		(v) >= 0x00000002 ? 0x01 : \
+		0 \
+	)
 #endif
 
 #ifndef __compile_time_log2
-  #define __compile_time_log2 CONCAT3(__compile_time_,SYSTEM_BIT,log2)
+	#define __compile_time_log2 CONCAT3(__compile_time_,SYSTEM_BIT,log2)
 #endif
 
 #ifndef __fast_8log2
-  #define __fast_8log2 __fast_8log2
-  inline std::uint8_t __fast_8log2(std::uint8_t v){
-    return 31 - __clz32(v);
-  }
+	#define __fast_8log2 __fast_8log2
+	inline std::uint8_t __fast_8log2(std::uint8_t v){
+		return 31 - __clz32(v);
+	}
 #endif
 #ifndef __fast_16log2
-  #define __fast_16log2 __fast_16log2
-  inline std::uint8_t __fast_16log2(std::uint16_t v){
-    return 31 - __clz32(v);
-  }
+	#define __fast_16log2 __fast_16log2
+	inline std::uint8_t __fast_16log2(std::uint16_t v){
+		return 31 - __clz32(v);
+	}
 #endif
 #ifndef __fast_32log2
-  #define __fast_32log2 __fast_32log2
-  inline std::uint8_t __fast_32log2(std::uint32_t v){
-    return 31 - __clz32(v);
-  }
+	#define __fast_32log2 __fast_32log2
+	inline std::uint8_t __fast_32log2(std::uint32_t v){
+		return 31 - __clz32(v);
+	}
 #endif
 #ifndef __fast_64log2
-  #define __fast_64log2 __fast_64log2
-  inline std::uint8_t __fast_64log2(std::uint64_t v){
-    return 63 - __clz64(v);
-  }
+	#define __fast_64log2 __fast_64log2
+	inline std::uint8_t __fast_64log2(std::uint64_t v){
+		return 63 - __clz64(v);
+	}
 #endif
 #ifndef __fast_log2
-  #define __fast_log2 CONCAT3(__fast_,SYSTEM_BIT,log2)
+	#define __fast_log2 CONCAT3(__fast_,SYSTEM_BIT,log2)
 #endif
 
 #ifndef __throw_error_impl
-  namespace fan {
-    struct exception_t {
-      const char* reason;
-    };
+	namespace fan {
+		struct exception_t {
+			const char* reason;
+		};
 
-    inline void throw_error_impl(const char* reason = "") {
-      printf("%s\n", reason);
+		inline void throw_error_impl(const char* reason = "") {
+			printf("%s\n", reason);
 #ifdef fan_compiler_msvc
-      //system("pause");
+			//system("pause");
 #endif
 #if __cpp_exceptions
-      throw exception_t{ .reason = reason };
+			throw exception_t{ .reason = reason };
 #endif
-    }
-  }
-  #define __throw_error_impl
+		}
+	}
+	#define __throw_error_impl
 #endif
-
 
 #ifndef __abort
-  #define __abort fan::throw_error_impl
+	#define __abort fan::throw_error_impl
 #endif
 
 #ifndef __generic_malloc
@@ -606,14 +605,4 @@ enum class name { __VA_ARGS__ }
 #endif
 #ifndef __generic_free
 	#define __generic_free(ptr) std::free(ptr)
-#endif
-
-#ifndef bcontainer_set_alloc_open
-    #define bcontainer_set_alloc_open(n) std::malloc(n)
-#endif
-#ifndef bcontainer_set_alloc_resize
-  #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
-#endif
-#ifndef bcontainer_set_alloc_close
-    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
 #endif

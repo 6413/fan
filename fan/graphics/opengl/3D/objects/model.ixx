@@ -7,8 +7,6 @@ export module fan.graphics.opengl3D.objects.model;
 #include <iomanip>
 
 #include <fan/graphics/opengl/init.h>
-#include <fan/imgui/imgui.h>
-
 
 export module fan.graphics.opengl3D.objects.model;
 export import fan.graphics;
@@ -146,12 +144,12 @@ export namespace fan {
       void draw(const fan::mat4& model_transform = fan::mat4(1), const std::vector<fan::mat4>& bone_transforms = {}) {
         auto viewport = fan::graphics::viewport_get(viewport_nr);
         fan::graphics::viewport_set(viewport.viewport_position, viewport.viewport_size);
-        fan::graphics::shader_set_value(m_shader, "model", m_transform * user_transform);
-        fan::graphics::shader_set_value(m_shader, "use_cpu", p.use_cpu);
-        fan::graphics::shader_set_camera(m_shader, camera_nr);
-        fan::graphics::shader_set_value(m_shader, "light_position", light_position);
-        fan::graphics::shader_set_value(m_shader, "light_color", light_color);
-        fan::graphics::shader_set_value(m_shader, "light_intensity", light_intensity);
+        fan::graphics::get_gl_context().shader_set_value(m_shader, "model", m_transform * user_transform);
+        fan::graphics::get_gl_context().shader_set_value(m_shader, "use_cpu", p.use_cpu);
+        fan::graphics::get_gl_context().shader_set_camera(m_shader, camera_nr);
+        fan::graphics::get_gl_context().shader_set_value(m_shader, "light_position", light_position);
+        fan::graphics::get_gl_context().shader_set_value(m_shader, "light_color", light_color);
+        fan::graphics::get_gl_context().shader_set_value(m_shader, "light_intensity", light_intensity);
         fan::graphics::get_gl_context().set_depth_test(true);
         fan_opengl_call(glDisable(GL_BLEND));
         for (int mesh_index = 0; mesh_index < meshes.size(); ++mesh_index) {
@@ -170,7 +168,7 @@ export namespace fan {
           }
           meshes[mesh_index].vao.bind(fan::graphics::get_gl_context());
           fan::vec3 camera_position = fan::graphics::camera_get_position(camera_nr);
-          fan::graphics::shader_set_value(m_shader, "view_p", camera_position);
+          fan::graphics::get_gl_context().shader_set_value(m_shader, "view_p", camera_position);
           { // texture binding
             int tex_index = 0;
             
@@ -179,7 +177,7 @@ export namespace fan {
               oss << "_t" << std::setw(2) << std::setfill('0') << (int)tex_index;
               if (tex.empty()) {
                 fan_opengl_call(glActiveTexture(GL_TEXTURE0 + tex_index));
-                fan::graphics::shader_set_value(m_shader, oss.str(), tex_index);
+                fan::graphics::get_gl_context().shader_set_value(m_shader, oss.str(), tex_index);
                 fan::graphics::image_bind(fan::graphics::get_default_texture());
                 ++tex_index;
                 continue;
@@ -187,7 +185,7 @@ export namespace fan {
 
               //tex.second.texture_datas
               fan_opengl_call(glActiveTexture(GL_TEXTURE0 + tex_index));
-              fan::graphics::shader_set_value(m_shader, oss.str(), tex_index);
+              fan::graphics::get_gl_context().shader_set_value(m_shader, oss.str(), tex_index);
               if (fan_3d::model::cached_images[tex].iic()) {
                 fan_3d::model::cached_images[tex] = fan::graphics::get_default_texture();
               }
@@ -195,7 +193,7 @@ export namespace fan {
               ++tex_index;
             }
           }
-          fan::graphics::shader_set_value(m_shader, "bone_count", (int)std::min((std::size_t)200, bone_transforms.size()));
+          fan::graphics::get_gl_context().shader_set_value(m_shader, "bone_count", (int)std::min((std::size_t)200, bone_transforms.size()));
           GLint location = fan_opengl_call(glGetUniformLocation(shader.id, "bone_transforms"));
           fan_opengl_call(glUniformMatrix4fv(
             location,
@@ -215,23 +213,25 @@ export namespace fan {
       }
 #if defined(fan_gui)
       void draw_cached_images() {
-        ImGui::Begin("test");
-        float cursor_pos_x = 64 + ImGui::GetStyle().ItemSpacing.x;
+        using namespace fan::graphics;
+        gui::begin("test");
+        auto& style = gui::get_style();
+        f32_t cursor_pos_x = 64 + style.ItemSpacing.x;
 
         for (auto& i : fan_3d::model::cached_images) {
           ImVec2 imageSize(64, 64);
           fan::graphics::gui::image(i.second, imageSize);
 
-          if (cursor_pos_x + imageSize.x > ImGui::GetContentRegionAvail().x) {
-            ImGui::NewLine();
-            cursor_pos_x = imageSize.x + ImGui::GetStyle().ItemSpacing.x;
+          if (cursor_pos_x + imageSize.x > gui::get_content_region_avail().x) {
+            gui::new_line();
+            cursor_pos_x = imageSize.x + style.ItemSpacing.x;
           }
           else {
-            ImGui::SameLine();
-            cursor_pos_x += imageSize.x + ImGui::GetStyle().ItemSpacing.x;
+            gui::new_line();
+            cursor_pos_x += imageSize.x + style.ItemSpacing.x;
           }
         }
-        ImGui::End();
+        gui::end();
       }
 #endif
 

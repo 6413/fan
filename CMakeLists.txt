@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.31.1)
 
-set(FAN_PHYSICS OFF)
-set(FAN_GUI OFF)
-set(FAN_JSON OFF)
+set(FAN_PHYSICS ON)
+set(FAN_GUI ON)
+set(FAN_JSON ON)
 set(FAN_3D OFF)
 set(FAN_OPENGL ON)
 set(FAN_VULKAN OFF)
@@ -24,8 +24,11 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
-set(CMAKE_UNITY_BUILD ON)
+set(CMAKE_UNITY_BUILD OFF)
 set(CMAKE_UNITY_BUILD_BATCH_SIZE 2)
+set(CMAKE_BUILD_PARALLEL_LEVEL 8)
+
+set(STDLIB_FLAGS "-stdlib=libc++ -lc++abi")
 
 if(WIN32)
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftime-trace")
@@ -43,38 +46,36 @@ if(WIN32)
   set(CMAKE_EXE_LINKER_FLAGS "-Wl,/FORCE:MULTIPLE -Wl,--gc-sections ")
   set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-Wl,/FORCE:MULTIPLE -Wl,--gc-sections -s")
   set(CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS "clang-scan-deps")
-  set(CMAKE_CXX_SCAN_FOR_MODULES ON)
-  set(CMAKE_CXX_MODULE_MAP_FLAG "-fmodule-mapper=")
-  set(CMAKE_CXX_MODULE_BMI_ONLY_FLAG "-fmodule-only")
 else()
   find_program(CCACHE_PROGRAM ccache NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH)
   if(CCACHE_PROGRAM)
     set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
   endif()
 
-  set(CMAKE_C_COMPILER "/usr/bin/clang")
+  set(CMAKE_C_COMPILER "/usr/bin/clang-20")
   set(CMAKE_CXX_COMPILER "/usr/bin/clang++-20")
-  set(CMAKE_CXX_FLAGS_DEBUG "-gdwarf-4 -D_DEBUG=4")
-  set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+  set(CMAKE_CXX_FLAGS_DEBUG "-gdwarf-4 -D_DEBUG=4 -pthread")
+  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -pthread")
   set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "-Wl,--strip-all")
   set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=gold")
   set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
   set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=gold")
   set(CMAKE_MODULE_LINKER_FLAGS "-fuse-ld=gold")
   set(CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS "/usr/bin/clang-scan-deps-20")
-  set(CMAKE_CXX_SCAN_FOR_MODULES ON)
-  set(CMAKE_CXX_MODULE_MAP_FLAG "-fmodule-mapper=")
-  set(CMAKE_CXX_MODULE_BMI_ONLY_FLAG "-fmodule-only")
 endif()
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
-
+set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+set(CMAKE_CXX_MODULE_MAP_FLAG "-fmodule-mapper=")
+set(CMAKE_CXX_MODULE_BMI_ONLY_FLAG "-fmodule-only")
 set(CMAKE_CXX_FLAGS_INIT "-stdlib=libc++")
-set(CMAKE_EXE_LINKER_FLAGS_INIT "-stdlib=libc++ -lc++abi")
-set(CMAKE_SHARED_LINKER_FLAGS_INIT "-stdlib=libc++ -lc++abi")
-set(CMAKE_MODULE_LINKER_FLAGS_INIT "-stdlib=libc++ -lc++abi")
+set(CMAKE_EXE_LINKER_FLAGS_INIT ${STDLIB_FLAGS})
+set(CMAKE_SHARED_LINKER_FLAGS_INIT ${STDLIB_FLAGS})
+set(CMAKE_MODULE_LINKER_FLAGS_INIT ${STDLIB_FLAGS})
 
 project(fan)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STDLIB_FLAGS}")
 
 set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(ROOT_PATH ${SOURCE_DIR}/fan/)
@@ -96,36 +97,39 @@ else()
   link_directories(${THIRDPARTY_PATH}/lib)
 endif()
 
+function(setup_library lib_name lib_path include_path)
+  find_library(${lib_name}_LIBRARY ${lib_name} PATHS ${lib_path} NO_DEFAULT_PATH)
+  if(NOT ${lib_name}_LIBRARY)
+    if(ARGC GREATER 3)
+      message(${ARGV3} "${lib_name} library not found")
+      set(${lib_name}_FOUND FALSE PARENT_SCOPE)
+      return()
+    else()
+      message(FATAL_ERROR "${lib_name} not found")
+    endif()
+  endif()
+  add_library(${lib_name} STATIC IMPORTED)
+  set_target_properties(${lib_name} PROPERTIES
+    IMPORTED_LOCATION ${${lib_name}_LIBRARY}
+    INTERFACE_INCLUDE_DIRECTORIES ${include_path}
+  )
+  set(${lib_name}_FOUND TRUE PARENT_SCOPE)
+  message(STATUS "Using ${lib_name} from ${${lib_name}_LIBRARY}")
+endfunction()
+
 if(FAN_GUI)
   if(WIN32)
-    find_library(FREETYPE_LIBRARY freetype PATHS ${SOURCE_DIR}/lib/freetype NO_DEFAULT_PATH)
-    if(NOT FREETYPE_LIBRARY)
-      message(FATAL_ERROR "FreeType library not found in lib/freetype/")
-    endif()
-
+    setup_library(freetype ${SOURCE_DIR}/lib/freetype ${SOURCE_DIR}/include)
     set(Freetype_VERSION "2.13.2")
-    set(FREETYPE_INCLUDE_DIRS ${SOURCE_DIR}/include)
+    add_library(Freetype::Freetype ALIAS freetype)
+    message(STATUS "Using Windows FreeType ${Freetype_VERSION}")
 
-    add_library(Freetype::Freetype STATIC IMPORTED)
-    set_target_properties(Freetype::Freetype PROPERTIES
-      IMPORTED_LOCATION ${FREETYPE_LIBRARY}
-      INTERFACE_INCLUDE_DIRECTORIES ${FREETYPE_INCLUDE_DIRS}
-    )
-
-    message(STATUS "Using Windows FreeType ${Freetype_VERSION} from ${FREETYPE_LIBRARY}")
-
-    find_library(LUNASVG_LIBRARY lunasvg PATHS ${SOURCE_DIR}/lib NO_DEFAULT_PATH)
-    if(NOT LUNASVG_LIBRARY)
+    setup_library(lunasvg ${SOURCE_DIR}/lib ${SOURCE_DIR}/include WARNING)
+    if(NOT lunasvg_FOUND)
       message(WARNING "LunaSVG library not found - SVG glyph support disabled")
       set(LUNASVG_FOUND FALSE)
     else()
-      add_library(lunasvg STATIC IMPORTED)
-      set_target_properties(lunasvg PROPERTIES
-        IMPORTED_LOCATION ${LUNASVG_LIBRARY}
-        INTERFACE_INCLUDE_DIRECTORIES ${SOURCE_DIR}/include
-      )
       set(LUNASVG_FOUND TRUE)
-      message(STATUS "Using Windows LunaSVG from ${LUNASVG_LIBRARY}")
     endif()
 
     add_compile_definitions(__HAVE_WIN32_GUI=1)
@@ -165,19 +169,8 @@ if(FAN_GUI)
 
     message(STATUS "Using FreeType ${Freetype_VERSION}")
 
-    find_library(LUNASVG_LIBRARY lunasvg PATHS ${THIRDPARTY_PATH}/lib NO_DEFAULT_PATH)
-    if(NOT LUNASVG_LIBRARY)
-      message(FATAL_ERROR "LunaSVG not found. Please run: ./install.sh")
-    endif()
-
-    add_library(lunasvg STATIC IMPORTED)
-    set_target_properties(lunasvg PROPERTIES
-      IMPORTED_LOCATION ${LUNASVG_LIBRARY}
-      INTERFACE_INCLUDE_DIRECTORIES ${THIRDPARTY_PATH}/include
-    )
+    setup_library(lunasvg ${THIRDPARTY_PATH}/lib ${THIRDPARTY_PATH}/include)
     set(LUNASVG_FOUND TRUE)
-
-    message(STATUS "Using LunaSVG from ${LUNASVG_LIBRARY}")
 
     set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH OFF)
     find_package(PkgConfig REQUIRED)
@@ -199,7 +192,15 @@ else()
   set(BUILD_SHARED_LIBS ON)
 endif()
 
+function(apply_imgui_definitions target)
+  target_compile_definitions(${target} PRIVATE
+    IMGUI_IMPL_OPENGL_LOADER_CUSTOM IMGUI_DEFINE_MATH_OPERATORS
+    IMGUI_DISABLE_SSE IMGUI_ENABLE_FREETYPE
+  )
+endfunction()
+
 function(apply_fan_definitions target)
+  apply_imgui_definitions(${target})
   target_compile_definitions(${target} PRIVATE
     $<$<BOOL:${FAN_OPENGL}>:fan_opengl>
     $<$<BOOL:${FAN_GUI}>:fan_gui>
@@ -210,8 +211,6 @@ function(apply_fan_definitions target)
 		$<$<BOOL:${FAN_NETWORK}>:fan_network>
     loco_line loco_rectangle loco_sprite loco_light loco_circle
     loco_responsive_text loco_universal_image_renderer
-    IMGUI_IMPL_OPENGL_LOADER_CUSTOM IMGUI_DEFINE_MATH_OPERATORS
-    IMGUI_DISABLE_SSE IMGUI_ENABLE_FREETYPE
   )
 endfunction()
 
@@ -227,22 +226,15 @@ function(apply_common_compile_options target)
       -D_ITERATOR_DEBUG_LEVEL=0 -DGLEW_STATIC -DSTBI_NO_SIMD)
   else()
     target_compile_options(${target} PRIVATE ${COMMON_WARNINGS}
-      -MT -fsized-deallocation -DSTBI_NO_SIMD
-      -fmacro-backtrace-limit=0)
+      -MT -fsized-deallocation -DSTBI_NO_SIMD -fmacro-backtrace-limit=0)
   endif()
 endfunction()
 
 if(BUILD_FAN_LIBRARY STREQUAL "STATIC")
   add_library(fan_modules STATIC)
-	set_target_properties(fan_modules PROPERTIES
-		CXX_MODULE_DIRECTORY ${OUTPUT_PATH}
-	)
   message(STATUS "Building fan as STATIC library")
 elseif(BUILD_FAN_LIBRARY STREQUAL "SHARED")
   add_library(fan_modules SHARED)
-	set_target_properties(fan_modules PROPERTIES
-		CXX_MODULE_DIRECTORY ${OUTPUT_PATH}
-	)
   message(STATUS "Building fan as SHARED library")
 else()
   add_library(fan_modules STATIC)
@@ -296,26 +288,13 @@ set(MODULE_FILES
   ${ROOT_PATH}/window/input.ixx
 	${ROOT_PATH}/window/input_action.ixx
   ${ROOT_PATH}/audio/audio.ixx
+	${ROOT_PATH}/event/event_types.ixx
   ${ROOT_PATH}/event/event.ixx
   ${ROOT_PATH}/network/network.ixx
   ${ROOT_PATH}/graphics/graphics_network.ixx
 	${ROOT_PATH}/noise.ixx
   ${ROOT_PATH}/fan.ixx
 )
-
-foreach(m ${MODULE_FILES})
-  # Replace .ixx → _impl.cpp
-  get_filename_component(MDIR ${m} DIRECTORY)
-  get_filename_component(MNAME ${m} NAME_WE)
-
-  set(IMPL_FILE "${MDIR}/${MNAME}_impl.cpp")
-
-  if(EXISTS "${IMPL_FILE}")
-    list(APPEND IMPL_SOURCES "${IMPL_FILE}")
-  endif()
-endforeach()
-
-message(STATUS "Found impl sources: ${IMPL_SOURCES}")
 
 if(FAN_WAYLAND_SCREEN)
   list(APPEND MODULE_FILES ${ROOT_PATH}/video/screen_codec.ixx)
@@ -332,6 +311,7 @@ endif()
 if(FAN_GUI)
   list(APPEND MODULE_FILES
     ${ROOT_PATH}/graphics/gui/text_logger.ixx
+		${ROOT_PATH}/graphics/gui/gui_types.ixx
     ${ROOT_PATH}/graphics/gui/gui.ixx
     ${ROOT_PATH}/graphics/gui/console.ixx
 		${ROOT_PATH}/graphics/gui/tilemap_editor/loader.ixx
@@ -348,19 +328,27 @@ if(FAN_PHYSICS)
 endif()
 
 if(FAN_3D)
-  list(APPEND MODULE_FILES
+	list(APPEND MODULE_FILES
     ${ROOT_PATH}/graphics/opengl/3D/objects/fms.ixx
     ${ROOT_PATH}/graphics/opengl/3D/objects/model.ixx
   )
 endif()
 
-foreach(f ${IMPL_SOURCES})
-  set_source_files_properties(${f} PROPERTIES UNITY_BUILD OFF)
+foreach(m ${MODULE_FILES})
+  get_filename_component(MDIR ${m} DIRECTORY)
+  get_filename_component(MNAME ${m} NAME_WE)
+  set(IMPL_FILE "${MDIR}/${MNAME}_impl.cpp")
+  if(EXISTS "${IMPL_FILE}")
+    list(APPEND IMPL_SOURCES "${IMPL_FILE}")
+    set_source_files_properties("${IMPL_FILE}" PROPERTIES UNITY_BUILD OFF)
+  endif()
 endforeach()
+
+message(STATUS "Found impl sources: ${IMPL_SOURCES}")
 
 target_sources(fan_modules
   PUBLIC FILE_SET CXX_MODULES BASE_DIRS ${ROOT_PATH} FILES ${MODULE_FILES}
-  PRIVATE ${IMPL_SOURCES}
+  PRIVATE ${IMPL_SOURCES} ${ROOT_PATH}/graphics/algorithm/AStar.cpp
 )
 
 set_target_properties(fan_modules PROPERTIES CXX_SCAN_FOR_MODULES ON)
@@ -391,12 +379,14 @@ if(FAN_GUI)
   endif()
 
   add_library(imgui STATIC ${IMGUI_SOURCES})
+	
   apply_common_compile_options(imgui)
   set_target_properties(imgui PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     UNITY_BUILD OFF
     ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_PATH}
     OUTPUT_NAME "imgui"
+		CXX_SCAN_FOR_MODULES OFF
   )
   target_include_directories(imgui PRIVATE
     ${ROOT_PATH}/imgui
@@ -408,20 +398,15 @@ if(FAN_GUI)
     target_link_libraries(imgui PRIVATE lunasvg)
     target_compile_definitions(imgui PRIVATE IMGUI_ENABLE_FREETYPE_LUNASVG)
   endif()
-  target_compile_definitions(imgui PRIVATE
-    IMGUI_IMPL_OPENGL_LOADER_CUSTOM IMGUI_DEFINE_MATH_OPERATORS
-    IMGUI_DISABLE_SSE IMGUI_ENABLE_FREETYPE
-  )
+  apply_imgui_definitions(imgui)
   apply_fan_definitions(imgui)
-endif()
 
-if(FAN_GUI)
   if(UNIX)
     set(NFD_SOURCES
       ${ROOT_PATH}/nativefiledialog/nfd_common.c
       ${ROOT_PATH}/nativefiledialog/nfd_gtk.c
     )
-  elseif(WIN32)
+  else()
     set(NFD_SOURCES
       ${ROOT_PATH}/nativefiledialog/nfd_common.c
       ${ROOT_PATH}/nativefiledialog/nfd_win.cpp
@@ -492,7 +477,7 @@ function(link_common_libs target visibility)
       endif()
       target_link_libraries(${target} ${visibility} Vulkan::Vulkan ${SHADERC_LIB})
     endif()
-  elseif(WIN32)
+  else()
     target_link_libraries(${target} ${visibility}
       opengl32
       ${SOURCE_DIR}/lib/GLFW/glfw3_mt.lib
@@ -533,26 +518,24 @@ function(link_common_libs target visibility)
       endif()
     endif()
     if(FAN_WAYLAND_SCREEN)
-      target_link_libraries(${target} ${visibility}
-        DXGI D3D11
-        ${SOURCE_DIR}/lib/libx264/libx264.lib
+      set(OPENH264_LIBS
         ${SOURCE_DIR}/lib/openh264/welsdcore.lib
         ${SOURCE_DIR}/lib/openh264/welsecore.lib
         ${SOURCE_DIR}/lib/openh264/WelsDecPlus.lib
         ${SOURCE_DIR}/lib/openh264/WelsEncPlus.lib
         ${SOURCE_DIR}/lib/openh264/WelsVP.lib
       )
+      target_link_libraries(${target} ${visibility}
+        DXGI D3D11
+        ${SOURCE_DIR}/lib/libx264/libx264.lib
+        ${OPENH264_LIBS}
+      )
     endif()
   endif()
 endfunction()
 
 if(BUILD_FAN_LIBRARY STREQUAL "STATIC" OR BUILD_FAN_LIBRARY STREQUAL "SHARED")
-  if(BUILD_FAN_LIBRARY STREQUAL "SHARED")
-    link_common_libs(fan_modules PUBLIC)
-  else()
-    link_common_libs(fan_modules PUBLIC)
-  endif()
-
+  link_common_libs(fan_modules PUBLIC)
   set_target_properties(fan_modules PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_PATH}
     LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_PATH}
@@ -561,6 +544,7 @@ if(BUILD_FAN_LIBRARY STREQUAL "STATIC" OR BUILD_FAN_LIBRARY STREQUAL "SHARED")
 endif()
 
 if(BUILD_MAIN)
+
   if(NOT DEFINED MAIN)
     set(MAIN ${SOURCE_DIR}/examples/engine_demos/engine_demo.cpp)
   endif()
@@ -577,10 +561,9 @@ if(BUILD_MAIN)
     target_compile_definitions(a.exe PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   endif()
 
-	target_sources(a.exe PRIVATE
-		${ROOT_PATH}/graphics/algorithm/AStar.cpp
-	)
-
+	# target_sources(a.exe PRIVATE
+		# ${ROOT_PATH}/graphics/algorithm/AStar.cpp
+	# )
 
   if(DEFINED CUSTOM_LIBS)
     target_link_libraries(fan_modules PRIVATE ${CUSTOM_LIBS})
@@ -608,14 +591,17 @@ if(BUILD_MAIN)
       endif()
     endif()
     if(WIN32 AND FAN_WAYLAND_SCREEN)
-      target_link_libraries(a.exe PRIVATE
-        DXGI.lib D3D11.lib
-        ${SOURCE_DIR}/lib/libx264/libx264.lib
+      set(OPENH264_LIBS
         ${SOURCE_DIR}/lib/openh264/welsdcore.lib
         ${SOURCE_DIR}/lib/openh264/welsecore.lib
         ${SOURCE_DIR}/lib/openh264/WelsDecPlus.lib
         ${SOURCE_DIR}/lib/openh264/WelsEncPlus.lib
         ${SOURCE_DIR}/lib/openh264/WelsVP.lib
+      )
+      target_link_libraries(a.exe PRIVATE
+        DXGI.lib D3D11.lib
+        ${SOURCE_DIR}/lib/libx264/libx264.lib
+        ${OPENH264_LIBS}
         ${SOURCE_DIR}/lib/openh264/encConsole.lib
       )
     endif()

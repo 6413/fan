@@ -320,16 +320,16 @@ export namespace fan {
 
 #include <fan/imgui/imgui.h>
 
-namespace fan {
-  static void* ImGuiMallocWrapper(size_t size, void* user_data) {
+export namespace fan {
+  void* ImGuiMallocWrapper(size_t size, void* user_data) {
     return heap_profiler_t::instance().allocate_memory(size);
   }
 
-  static void ImGuiFreeWrapper(void* ptr, void* user_data) {
+  void ImGuiFreeWrapper(void* ptr, void* user_data) {
     heap_profiler_t::instance().deallocate_memory(ptr);
   }
 
-  inline void setup_imgui_with_heap_profiler() {
+  void setup_imgui_with_heap_profiler() {
     ImGui::SetAllocatorFunctions(ImGuiMallocWrapper, ImGuiFreeWrapper, nullptr);
   }
 }
