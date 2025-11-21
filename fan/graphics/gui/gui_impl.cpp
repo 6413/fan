@@ -22,6 +22,7 @@ module fan.graphics.gui;
 import fan.audio;
 #endif
 
+#if defined(fan_gui)
 namespace fan::graphics::gui {
   bool begin(const std::string& window_name, bool* p_open, window_flags_t window_flags) {
 
@@ -2993,3 +2994,4 @@ namespace fan::graphics::gui {
     }
   }
 }
+#endif

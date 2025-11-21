@@ -7,6 +7,8 @@ module;
 
 module fan.graphics.physics_shapes;
 
+#if defined(fan_physics)
+
 import fan.types;
 
 // higher the draw depth, less debug draws will be if maximum depth is 2^16
@@ -1719,3 +1721,5 @@ namespace fan::physics {
     return fan::physics::gphysics->raycast(src, dst);
   }
 }
+
+#endif
