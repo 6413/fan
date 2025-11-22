@@ -1,6 +1,5 @@
 module;
 
-
 #if defined(fan_gui)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_internal.h>
@@ -10,7 +9,7 @@ module;
 
 #include <string>
 
-export module fan.graphics.gui:types;
+export module fan.graphics.gui.types;
 
 #if defined(fan_gui)
 export namespace fan::graphics::gui {
@@ -38,6 +37,20 @@ export namespace fan::graphics::gui {
     dock_transfer_mask = ImGuiDockNodeFlags_LocalFlagsTransferMask_,
     dock_saved_mask = ImGuiDockNodeFlags_SavedFlagsMask_,
   };
+
+
+  enum dock_node_flags_e {
+    dock_node_flags_none = ImGuiDockNodeFlags_None,                   
+    dock_node_flags_keep_alive_only = ImGuiDockNodeFlags_KeepAliveOnly,   //       // Don't display the dockspace node but keep it alive. Windows docked into this dockspace node won't be undocked.
+    //dock_node_flags_none =    ImGuiDockNodeFlags_NoCentralNode        ,   //       // Disable Central Node (the node which can stay empty)
+    dock_node_flags_no_docking_over_cenrtal_node = ImGuiDockNodeFlags_NoDockingOverCentralNode,   //       // Disable docking over the Central Node, which will be always kept empty.
+    dock_node_flags_passthru_central_node = ImGuiDockNodeFlags_PassthruCentralNode,   //       // Enable passthru dockspace: 1) DockSpace() will render a ImGuiCol_WindowBg background covering everything excepted the Central Node when empty. Meaning the host window should probably use SetNextWindowBgAlpha(0.0f) prior to Begin() when using this. 2) When Central Node is empty: let inputs pass-through + won't display a DockingEmptyBg background. See demo for detaiodee_s_keflagls.
+    dock_node_flags_no_docking_split = ImGuiDockNodeFlags_NoDockingSplit,   //       // Disable other windows/nodes from splitting this node.
+    dock_node_flags_no_resize = ImGuiDockNodeFlags_NoResize,   // Saved // Disable resizing node using the splitter/separators. Useful with programmatically setup dockspaces.
+    dock_node_flags_auto_hide_tab_bar = ImGuiDockNodeFlags_AutoHideTabBar,   //       // Tab bar will automatically hide when there is a single window in the dock node.
+    dock_node_flags_no_undocking = ImGuiDockNodeFlags_NoUndocking,   //       // Disable undocking this node.
+  };
+
   enum window_flags_e {
     window_flags_none = ImGuiWindowFlags_None,
     window_flags_no_title_bar = ImGuiWindowFlags_NoTitleBar,   
@@ -478,6 +491,17 @@ export namespace fan::graphics::gui {
 
   };
 
+  enum item_flags_e {
+    item_flags_none = ImGuiItemFlags_None,        // (Default)
+    item_flags_no_tab_stop = ImGuiItemFlags_NoTabStop,   // false    // Disable keyboard tabbing. This is a "lighter" version of ImGuiItemFlags_NoNav.
+    item_flags_no_nav = ImGuiItemFlags_NoNav,   // false    // Disable any form of focusing (keyboard/gamepad directional navigation and SetKeyboardFocusHere() calls).
+    item_flags_no_nav_default_focus = ImGuiItemFlags_NoNavDefaultFocus,   // false    // Disable item being a candidate for default focus (e.g. used by title bar items).
+    item_flags_button_repeat = ImGuiItemFlags_ButtonRepeat,   // false    // Any button-like behavior will have repeat mode enabled (based on io.KeyRepeatDelay and io.KeyRepeatRate values). Note that you can also call IsItemActive() after any button to tell if it is being held.
+    item_flags_auto_close_popups = ImGuiItemFlags_AutoClosePopups,   // true     // MenuItem()/Selectable() automatically close their parent popup window.
+    item_flags_allow_duplicate_id = ImGuiItemFlags_AllowDuplicateId,   // false    // Allow submitting an item with the same identifier as an item already submitted this frame without triggering a warning tooltip if io.ConfigDebugHighlightIdConflicts is set.
+  };
+
+  using window_handle_t = ImGuiWindow;
   using io_t = ImGuiIO;
   using input_text_callback_t = ImGuiInputTextCallback;
   using draw_list_t = ImDrawList;
@@ -501,6 +525,31 @@ export namespace fan::graphics::gui {
   using table_flags_t = int;
   using table_row_flags_t = int;
   using style_var_t = int;
+  using id_t = ImGuiID;
+  using viewport_t = ImGuiViewport;
+  using data_type_t = ImGuiDataType;
+  using texture_id_t = ImTextureID;
+  using rect_t = ImRect;
+  using item_flags_t = ImGuiItemFlags;
+  using key_t = ImGuiKey;
+  using class_t = ImGuiWindowClass;
+  using payload_t = ImGuiPayload;
+  using storage_t = ImGuiStorage;
+  using draw_data_t = ImDrawData;
+
+  struct dir_t {
+    constexpr dir_t(ImGuiDir dir) : d(dir) {}
+    constexpr operator ImGuiDir&() { return d; }
+    constexpr operator const ImGuiDir&() const { return d; }
+    ImGuiDir d;
+  };
+
+  inline constexpr dir_t dir_none = ImGuiDir_None;
+  inline constexpr dir_t dir_left = ImGuiDir_Left;
+  inline constexpr dir_t dir_right = ImGuiDir_Right;
+  inline constexpr dir_t dir_up = ImGuiDir_Up;
+  inline constexpr dir_t dir_down = ImGuiDir_Down;
+  inline constexpr dir_t dir_count = ImGuiDir_COUNT;
 
   struct InputTextCallback_UserData {
     std::string* Str;
@@ -509,7 +558,7 @@ export namespace fan::graphics::gui {
   };
 }
 
-namespace fan::graphics::gui::plot {
+export namespace fan::graphics::gui::plot {
   using flags_t = int;
   using line_flags_t = int;
   using axis_flags_t = int;
@@ -520,7 +569,10 @@ namespace fan::graphics::gui::plot {
   using col_t = int;
   using marker_t = int;
   using location_t = int;
-  using axis_t = int;
+  using axis_t = ImAxis;
+  using formatter_t = ImPlotFormatter;
+  using point_t = ImPlotPoint;
+  inline constexpr int plot_auto = IMPLOT_AUTO;
 
   enum flags_e{
     flags_none = ImPlotFlags_None,
@@ -637,6 +689,38 @@ namespace fan::graphics::gui::plot {
     axis_y1 = ImAxis_Y1,
     axis_y2 = ImAxis_Y2,
     axis_y3 = ImAxis_Y3
+  };
+  enum style_var_e {
+    // item styling variables
+    style_var_line_weight = ImPlotStyleVar_LineWeight,         // float,  plot item line weight in pixels
+    style_var_marker = ImPlotStyleVar_Marker,                  // int,    marker specification
+    style_var_marker_size = ImPlotStyleVar_MarkerSize,         // float,  marker size in pixels (roughly the marker's "radius")
+    style_var_marker_weight = ImPlotStyleVar_MarkerWeight,     // float,  plot outline weight of markers in pixels
+    style_var_fill_alpha = ImPlotStyleVar_FillAlpha,           // float,  alpha modifier applied to all plot item fills
+    style_var_error_bar_size = ImPlotStyleVar_ErrorBarSize,    // float,  error bar whisker width in pixels
+    style_var_error_bar_weight = ImPlotStyleVar_ErrorBarWeight,// float,  error bar whisker weight in pixels
+    style_var_digital_bit_height = ImPlotStyleVar_DigitalBitHeight, // float,  digital channels bit height (at 1) in pixels
+    style_var_digital_bit_gap = ImPlotStyleVar_DigitalBitGap,  // float,  digital channels bit padding gap in pixels
+    // plot styling variables
+    style_var_plot_border_size = ImPlotStyleVar_PlotBorderSize,     // float,  thickness of border around plot area
+    style_var_minor_alpha = ImPlotStyleVar_MinorAlpha,         // float,  alpha multiplier applied to minor axis grid lines
+    style_var_major_tick_len = ImPlotStyleVar_MajorTickLen,       // ImVec2, major tick lengths for X and Y axes
+    style_var_minor_tick_len = ImPlotStyleVar_MinorTickLen,       // ImVec2, minor tick lengths for X and Y axes
+    style_var_major_tick_size = ImPlotStyleVar_MajorTickSize,      // ImVec2, line thickness of major ticks
+    style_var_minor_tick_size = ImPlotStyleVar_MinorTickSize,      // ImVec2, line thickness of minor ticks
+    style_var_major_grid_size = ImPlotStyleVar_MajorGridSize,      // ImVec2, line thickness of major grid lines
+    style_var_minor_grid_size = ImPlotStyleVar_MinorGridSize,      // ImVec2, line thickness of minor grid lines
+    style_var_plot_padding = ImPlotStyleVar_PlotPadding,        // ImVec2, padding between widget frame and plot area, labels, or outside legends (i.e. main padding)
+    style_var_label_padding = ImPlotStyleVar_LabelPadding,       // ImVec2, padding between axes labels, tick labels, and plot edge
+    style_var_legend_padding = ImPlotStyleVar_LegendPadding,      // ImVec2, legend padding from plot edges
+    style_var_legend_inner_padding = ImPlotStyleVar_LegendInnerPadding, // ImVec2, legend inner padding from legend edges
+    style_var_legend_spacing = ImPlotStyleVar_LegendSpacing,      // ImVec2, spacing between legend entries
+    style_var_mouse_pos_padding = ImPlotStyleVar_MousePosPadding,    // ImVec2, padding between plot edge and interior info text
+    style_var_annotation_padding = ImPlotStyleVar_AnnotationPadding,  // ImVec2, text padding around annotation labels
+    style_var_fit_padding = ImPlotStyleVar_FitPadding,         // ImVec2, additional fit padding as a percentage of the fit extents (e.g. ImVec2(0.1f,0.1f) adds 10% to the fit extents of X and Y)
+    style_var_plot_default_size = ImPlotStyleVar_PlotDefaultSize,    // ImVec2, default size used when ImVec2(0,0) is passed to BeginPlot
+    style_var_plot_min_size = ImPlotStyleVar_PlotMinSize,        // ImVec2, minimum size plot frame can be when shrunk
+    style_var_count = ImPlotStyleVar_COUNT
   };
 } // namespace plot
 

@@ -21,45 +21,12 @@ loco_responsive_text
 
 #define loco_opengl
 
-#ifndef camera_list
-	#define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)&gloco->context))
-#endif
-
-#ifndef shader_list
-	#define __fan_internal_shader_list (*(fan::graphics::shader_list_t*)fan::graphics::get_shader_list((uint8_t*)&gloco->context))
-#endif
-
-#ifndef image_list
-	#define __fan_internal_image_list (*(fan::graphics::image_list_t*)fan::graphics::get_image_list((uint8_t*)&gloco->context))
-#endif
-
-#ifndef viewport_list
-	#define __fan_internal_viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)&gloco->context))
-#endif
-
 // shaper
 
 #if defined(fan_compiler_msvc)
 	#ifndef fan_std23
 		#define fan_std23
 	#endif
-#endif
-
-
-#if defined(fan_gui)
-	#include <fan/imgui/imgui.h>
-	#include <fan/imgui/misc/freetype/imgui_freetype.h>
-	#include <fan/imgui/imgui_impl_opengl3.h>
-	#if defined(fan_vulkan)
-		#include <fan/imgui/imgui_impl_vulkan.h>
-	#endif
-	#include <fan/imgui/imgui_impl_glfw.h>
-	#include <fan/imgui/implot.h>
-#endif
-
-#if defined(fan_gui)
-#include <fan/imgui/imgui_internal.h>
-#include <fan/graphics/gui/imgui_themes.h>
 #endif
 
 #include <fan/event/types.h>
@@ -113,6 +80,7 @@ export import fan.io.file;
 #endif
 
 #if defined(fan_gui)
+  import fan.imgui;
 	export import fan.console;
 #endif
 
@@ -236,21 +204,13 @@ export namespace fan::graphics {
 	engine_init_t::init_callback_t engine_init_cbs;
 
 	uint32_t get_draw_mode(uint8_t internal_draw_mode);
-
-  #if defined(fan_gui)
-    namespace gui {
-      bool render_blank_window(const std::string& name);
-    }
-  #endif
 }
 
 //#include <fan/graphics/vulkan/ssbo.h>
 export struct loco_t {
   fan::window_t window; // destruct last
 
-  bool initialize_lists();
   uint8_t get_renderer();
-  bool fan__init_list = initialize_lists();
 
 // for shaper_get_* functions
 private:
@@ -481,15 +441,8 @@ public:
 #endif
 
 #if defined(fan_gui)
-  void load_fonts(ImFont* (&fonts)[std::size(fan::graphics::gui::font_sizes)], const std::string& name, ImFontConfig* cfg = nullptr);
-  void build_fonts();
-  ImFont* get_font(f32_t font_size, bool bold = false);
-
-  void init_imgui();
-
-  void init_fonts();
-  void load_emoticons();
-  void destroy_imgui();
+  void init_gui();
+  void destroy_gui();
   bool enable_overlay = true;
 #endif
   void init_framebuffer();
@@ -931,8 +884,7 @@ public:
 
 	bool allow_docking = true;
 
-	bool imgui_initialized = false;
-	static inline bool global_imgui_initialized = false;
+	bool gui_initialized = false;
 
 	fan::graphics::gui::text_logger_t text_logger;
 

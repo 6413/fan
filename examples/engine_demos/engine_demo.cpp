@@ -1,10 +1,6 @@
 // This file is meant to stay up-to-date. More library usage will be implemented and showcased over time
 #include <fan/utility.h> // OFFSETLESS
 
-#if !defined(fan_gui)
-#ERRERER
-#endif
-
 #include <vector>
 #include <string>
 #include <array>////
@@ -1699,7 +1695,7 @@ struct library_usage_t {
         void close() {
           fan::print("closed");
         }
-        void window_resize() {
+        void window_resize() {////
           fan::print("resized");
         }
         void update() {
