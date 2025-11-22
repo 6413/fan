@@ -826,10 +826,10 @@ struct shaper_t{
     #if defined(fan_vulkan)
       else if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::vulkan) {
         auto& vk = st.renderer.vk;
-        vk.shape_data.m_descriptor.close(gloco->context.vk);
-        vk.shape_data.deallocate(gloco->context.vk);
-        vk.shape_data.close(gloco->context.vk);
-        vk.pipeline.close(gloco->context.vk);
+        vk.shape_data.m_descriptor.close(fan::graphics::get_vk_context());
+        //vk.shape_data.deallocate(gloco->context.vk);
+        vk.shape_data.close(fan::graphics::get_vk_context());
+        vk.pipeline.close(fan::graphics::get_vk_context());
       }
     #endif
     #endif

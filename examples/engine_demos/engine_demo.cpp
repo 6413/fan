@@ -21,7 +21,7 @@ using menu_t = engine_t::settings_menu_t;
 
 struct engine_demo_t {
   engine_t engine{{ // initialize before everything
-    .renderer= fan::graphics::renderer_t::opengl,
+    .renderer= fan::graphics::renderer_t::vulkan,
   }};
 
   engine_demo_t() {
@@ -75,7 +75,6 @@ struct engine_demo_t {
 
   static void demo_shapes_init_grid(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
-    
     engine_demo->shapes.emplace_back(fan::graphics::grid_t{{
     .render_view = &engine_demo->right_column_view,
     .position = fan::vec3(-8, -8, 0),
@@ -307,6 +306,7 @@ void main() {
   fan::graphics::shader_t demo_shader_shape_shader{engine.get_sprite_vertex_shader(demo_shader_shape_fragment_shader)};
   fan::color custom_color = fan::colors::red;
   static void demo_shapes_init_shader_shape(engine_demo_t* engine_demo) {
+    // if engine is initially initialized with vulkan, the nr valu doesnt update
     if (engine_demo->demo_shader_shape_shader.iic()) {
       fan::throw_error("failed to compile custom shader");
       return;

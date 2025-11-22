@@ -511,7 +511,5 @@ namespace fan::graphics {
 }
 
 export namespace fan::graphics {
-#if defined(fan_opengl)
   fan::opengl::context_t& get_gl_context();
-#endif
 }
