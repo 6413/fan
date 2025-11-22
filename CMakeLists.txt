@@ -15,10 +15,7 @@ set(BUILD_FAN_LIBRARY OFF CACHE STRING "Build fan as library: OFF, STATIC, or SH
 
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_VERBOSE_MAKEFILE ON)
-
-set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "0e5b6991-d74f-4b3d-a41c-cf096e0b2508")
-set(CMAKE_CXX_MODULE_STD ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,7 +23,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
 set(CMAKE_UNITY_BUILD OFF)
 set(CMAKE_UNITY_BUILD_BATCH_SIZE 2)
-set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 
 set(STDLIB_FLAGS "-stdlib=libc++ -lc++abi")
 
@@ -50,6 +46,8 @@ else()
   find_program(CCACHE_PROGRAM ccache NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH)
   if(CCACHE_PROGRAM)
     set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    set(ENV{CCACHE_SLOPPINESS} "include_file_mtime,modules")
+    set(ENV{CCACHE_DEPEND} "1")
   endif()
 
   set(CMAKE_C_COMPILER "/usr/bin/clang-20")
@@ -64,7 +62,7 @@ else()
   set(CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS "/usr/bin/clang-scan-deps-20")
 endif()
 
-set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 set(CMAKE_CXX_MODULE_MAP_FLAG "-fmodule-mapper=")
 set(CMAKE_CXX_MODULE_BMI_ONLY_FLAG "-fmodule-only")
 set(CMAKE_CXX_FLAGS_INIT "-stdlib=libc++")
@@ -209,8 +207,7 @@ function(apply_fan_definitions target)
     $<$<BOOL:${FAN_PHYSICS}>:fan_physics>
     $<$<BOOL:${FAN_VULKAN}>:fan_vulkan>
 		$<$<BOOL:${FAN_NETWORK}>:fan_network>
-    loco_line loco_rectangle loco_sprite loco_light loco_circle
-    loco_responsive_text loco_universal_image_renderer
+		$<$<BOOL:${FAN_FMT}>:fan_fmt>
   )
 endfunction()
 
@@ -248,52 +245,87 @@ set_target_properties(fan_modules PROPERTIES
 
 apply_fan_definitions(fan_modules)
 
-set(MODULE_FILES
+set(LAYER1_MODULES
   ${ROOT_PATH}/types/types.ixx
+  ${ROOT_PATH}/types/magic.ixx
+  ${ROOT_PATH}/time.ixx
+  ${ROOT_PATH}/utility.ixx
+)
+
+set(LAYER2_MODULES
   ${ROOT_PATH}/types/color.ixx
   ${ROOT_PATH}/types/vector.ixx
   ${ROOT_PATH}/types/quaternion.ixx
-  ${ROOT_PATH}/types/matrix.ixx
-  ${ROOT_PATH}/types/magic.ixx
-  ${ROOT_PATH}/types/masterpiece.ixx
   ${ROOT_PATH}/types/fstring.ixx
-  ${ROOT_PATH}/math/math.ixx
-  ${ROOT_PATH}/time.ixx
-  ${ROOT_PATH}/utility.ixx
   ${ROOT_PATH}/print.ixx
   ${ROOT_PATH}/random.ixx
+)
+
+set(LAYER3_MODULES
+  ${ROOT_PATH}/types/matrix.ixx
+  ${ROOT_PATH}/types/masterpiece.ixx
+  ${ROOT_PATH}/math/math.ixx
   ${ROOT_PATH}/io/directory.ixx
   ${ROOT_PATH}/io/file.ixx
+)
+
+set(LAYER4_MODULES
   ${ROOT_PATH}/graphics/common_types.ixx
   ${ROOT_PATH}/graphics/camera.ixx
-  ${ROOT_PATH}/graphics/image_load.ixx
-  ${ROOT_PATH}/graphics/webp.ixx
   ${ROOT_PATH}/graphics/stb.ixx
+  ${ROOT_PATH}/graphics/webp.ixx
+  ${ROOT_PATH}/graphics/image_load.ixx
+)
+
+set(LAYER5_MODULES
   ${ROOT_PATH}/graphics/common_context.ixx
   ${ROOT_PATH}/graphics/opengl/gl_core.ixx
   ${ROOT_PATH}/graphics/opengl/uniform_block.ixx
-	${ROOT_PATH}/texture_pack/tp0.ixx
-	${ROOT_PATH}/graphics/shapes.ixx
+  ${ROOT_PATH}/texture_pack/tp0.ixx
+)
+
+set(LAYER6_MODULES
+  ${ROOT_PATH}/graphics/shapes.ixx
   ${ROOT_PATH}/graphics/loco.ixx
-  ${ROOT_PATH}/graphics/graphics.ixx
   ${ROOT_PATH}/graphics/file_dialog.ixx
   ${ROOT_PATH}/graphics/algorithm/raycast_grid.ixx
-	${ROOT_PATH}/graphics/algorithm/pathfind.ixx
+  ${ROOT_PATH}/graphics/algorithm/pathfind.ixx
+)
+
+set(LAYER7_MODULES
   ${ROOT_PATH}/physics/collision/rectangle.ixx
   ${ROOT_PATH}/physics/collision/triangle.ixx
-	${ROOT_PATH}/physics/collision/circle.ixx
-	${ROOT_PATH}/physics/physics_types.ixx
-  ${ROOT_PATH}/window/window.ixx
+  ${ROOT_PATH}/physics/collision/circle.ixx
+  ${ROOT_PATH}/physics/physics_types.ixx
   ${ROOT_PATH}/window/input_common.ixx
-  ${ROOT_PATH}/window/input.ixx
-	${ROOT_PATH}/window/input_action.ixx
   ${ROOT_PATH}/audio/audio.ixx
-	${ROOT_PATH}/event/event_types.ixx
+  ${ROOT_PATH}/event/event_types.ixx
+)
+
+set(LAYER8_MODULES
+  ${ROOT_PATH}/window/input.ixx
+  ${ROOT_PATH}/window/input_action.ixx
+  ${ROOT_PATH}/window/window.ixx
   ${ROOT_PATH}/event/event.ixx
   ${ROOT_PATH}/network/network.ixx
+  ${ROOT_PATH}/noise.ixx
+)
+
+set(LAYER9_MODULES
+  ${ROOT_PATH}/graphics/graphics.ixx
   ${ROOT_PATH}/graphics/graphics_network.ixx
-	${ROOT_PATH}/noise.ixx
-  ${ROOT_PATH}/fan.ixx
+)
+
+set(MODULE_FILES
+  ${LAYER1_MODULES}
+  ${LAYER2_MODULES}
+  ${LAYER3_MODULES}
+  ${LAYER4_MODULES}
+  ${LAYER5_MODULES}
+  ${LAYER6_MODULES}
+  ${LAYER7_MODULES}
+  ${LAYER8_MODULES}
+  ${LAYER9_MODULES}
 )
 
 if(FAN_WAYLAND_SCREEN)
@@ -333,6 +365,8 @@ if(FAN_3D)
     ${ROOT_PATH}/graphics/opengl/3D/objects/model.ixx
   )
 endif()
+
+list(APPEND MODULE_FILES ${ROOT_PATH}/fan.ixx)
 
 foreach(m ${MODULE_FILES})
   get_filename_component(MDIR ${m} DIRECTORY)
@@ -561,17 +595,15 @@ if(BUILD_MAIN)
     target_compile_definitions(a.exe PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   endif()
 
-	# target_sources(a.exe PRIVATE
-		# ${ROOT_PATH}/graphics/algorithm/AStar.cpp
-	# )
-
   if(DEFINED CUSTOM_LIBS)
     target_link_libraries(fan_modules PRIVATE ${CUSTOM_LIBS})
     target_link_libraries(a.exe PRIVATE ${CUSTOM_LIBS})
   endif()
 
   add_dependencies(a.exe fan_modules)
-  set_target_properties(a.exe PROPERTIES CXX_SCAN_FOR_MODULES ON)
+  set_target_properties(a.exe PROPERTIES 
+    CXX_SCAN_FOR_MODULES ON
+  )
   apply_common_compile_options(a.exe)
   target_link_libraries(a.exe PRIVATE fan_modules)
   apply_fan_definitions(a.exe)
@@ -607,3 +639,6 @@ if(BUILD_MAIN)
     endif()
   endif()
 endif()
+
+message(STATUS "\n\nCMAKE_CXX_SCAN_FOR_MODULES: ${CMAKE_CXX_SCAN_FOR_MODULES}\n\n")
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF CACHE BOOL "Disable C++ module scanning")

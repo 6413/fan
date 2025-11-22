@@ -1,18 +1,25 @@
 #include <fan/utility.h>
 #include <fan/graphics/opengl/init.h>
 
-import std;
+#include <vector>
+#include <string>
+#include <functional>
+#include <iomanip>
+#include <fan/graphics/opengl/init.h>
+#include <fstream>
+#include <cmath>
+
 import fan;
 
 using namespace fan::graphics;
 
-struct test_result_t {////
+struct test_result_t {
   std::string name;
   bool passed;
   std::string error_message;
   double duration_ms;
 };
-
+//
 struct benchmark_result_t {
   std::string name;
   uint64_t iterations;

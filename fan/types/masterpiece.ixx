@@ -1,14 +1,18 @@
 module;
 
-#include <cstdint>
-#include <type_traits>
-#include <variant>
-#include <ostream>
-#include <tuple>
+#if defined(fan_fmt)
+  #include <cstdint>
+  #include <type_traits>
+  #include <variant>
+  #include <ostream>
+  #include <tuple>
+#endif
 
 export module fan.types.masterpiece;
 
 import fan.types.magic;
+
+#if defined(fan_fmt)
 
 export namespace fan {
   #pragma pack(push, 1)
@@ -60,7 +64,7 @@ export namespace fan {
   template <typename T, typename ...Rest>
   struct masterpiece_reversed_t<T, Rest...> : masterpiece_reversed_t<Rest...> {
 
-    static constexpr uint32_t count = sizeof...(Rest);
+    static constexpr std::uint32_t count = sizeof...(Rest);
 
     using value_type = T;
 
@@ -69,10 +73,10 @@ export namespace fan {
     using base = masterpiece_reversed_t<Rest...>;
 
   protected:
-    template <uint32_t N, typename... Ts>
+    template <std::uint32_t N, typename... Ts>
     struct get;
 
-    template <uint32_t N, typename T2, typename... Ts>
+    template <std::uint32_t N, typename T2, typename... Ts>
     struct get<N, fan::masterpiece_reversed_t<T2, Ts...>>
     {
       using type = typename get<N + 1, fan::masterpiece_reversed_t<Ts...>>::type;
@@ -92,9 +96,9 @@ export namespace fan {
     template <int N>
     using get_type_t = typename get_type<N>::type;
 
-    template <typename _T2, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
+    template <typename _T2, typename _Ty = masterpiece_reversed_t<T, Rest...>, std::uint32_t depth = count>
     constexpr auto get_value(_Ty* a = nullptr) {
-      constexpr uint32_t i = get_index_with_type<_T2>();
+      constexpr std::uint32_t i = get_index_with_type<_T2>();
       if constexpr (depth == count) {
         a = this;
       }
@@ -106,7 +110,7 @@ export namespace fan {
       }
     }
 
-    template <uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
+    template <std::uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, std::uint32_t depth = count>
     constexpr auto get_value(_Ty* a = nullptr) {
       if constexpr (depth == count) {
         a = this;
@@ -119,7 +123,7 @@ export namespace fan {
       }
     }
 
-    //template <uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
+    //template <std::uint32_t i, typename _Ty = masterpiece_reversed_t<T, Rest...>, std::uint32_t depth = count>
     //constexpr auto get_value(_Ty* a = nullptr) const {
     //  return get_value<i, _Ty>(a);
     //}
@@ -138,8 +142,8 @@ export namespace fan {
       internal_get_runtime_value(std::make_index_sequence<size()>{}, idx, lambda);
     }
 
-    template <typename get_type, typename _Ty = masterpiece_reversed_t<T, Rest...>, uint32_t depth = count>
-    static constexpr uint32_t get_index_with_type() {
+    template <typename get_type, typename _Ty = masterpiece_reversed_t<T, Rest...>, std::uint32_t depth = count>
+    static constexpr std::uint32_t get_index_with_type() {
       if constexpr (std::is_same<get_type, typename _Ty::value_type>::value) {
         return depth;
       }
@@ -151,49 +155,49 @@ export namespace fan {
       }
       return -1;
     }
-    template <uint32_t depth = 0>
+    template <std::uint32_t depth = 0>
     constexpr int iterate_ret(auto lambda){
       if constexpr(depth > count) {
         return depth;
       }
       else {
-        if (lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
+        if (lambda(std::integral_constant<std::uint32_t, depth>{}, get_value<depth>())) {
           return depth;
         }
         return iterate_ret<depth + 1>(lambda);
       }
       return depth;
     }
-    template <uint32_t depth = 0>
+    template <std::uint32_t depth = 0>
     constexpr void iterate(auto lambda) {
       if constexpr(depth > count) {
         return;
       }
       else {
-        lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
+        lambda(std::integral_constant<std::uint32_t, depth>{}, get_value<depth>());
         return iterate<depth + 1>(lambda);
       }
     }
-    template <uint32_t depth = count>
+    template <std::uint32_t depth = count>
     constexpr int reverse_iterate_ret(auto lambda) {
-      if constexpr (depth == (uint32_t)-1) {
+      if constexpr (depth == (std::uint32_t)-1) {
         return depth;
       }
       else {
-        if (lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
+        if (lambda(std::integral_constant<std::uint32_t, depth>{}, get_value<depth>())) {
           return depth;
         }
         return reverse_iterate_ret<depth - 1>(lambda);
       }
       return depth;
     }
-    template <uint32_t depth = count>
+    template <std::uint32_t depth = count>
     constexpr void reverse_iterate(auto lambda) {
-      if constexpr (depth == (uint32_t)-1) {
+      if constexpr (depth == (std::uint32_t)-1) {
         return;
       }
       else {
-        lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
+        lambda(std::integral_constant<std::uint32_t, depth>{}, get_value<depth>());
         return reverse_iterate<depth - 1>(lambda);
       }
     }
@@ -206,11 +210,11 @@ export namespace fan {
   struct masterpiece_reversed_t<T> {
     T x_;
 
-    static constexpr uint32_t count = 1;
+    static constexpr std::uint32_t count = 1;
 
     using value_type = T;
 
-    template <uint32_t i>
+    template <std::uint32_t i>
     constexpr auto get_value() {
       return &x_;
     }
@@ -237,10 +241,10 @@ export namespace fan {
 
 
   protected:
-    template <uint32_t N, typename... Ts>
+    template <std::uint32_t N, typename... Ts>
     struct get;
 
-    template <uint32_t N, typename T2, typename... Ts>
+    template <std::uint32_t N, typename T2, typename... Ts>
     struct get<N, fan::masterpiece_reversed_t<T2, Ts...>>
     {
       using type = typename get<N + 1, fan::masterpiece_reversed_t<Ts...>>::type;
@@ -261,36 +265,36 @@ export namespace fan {
     using get_type_t = T;
 
     constexpr void iterate(auto lambda) {
-      lambda(std::integral_constant<uint32_t, 0>{}, get_value<0>());
+      lambda(std::integral_constant<std::uint32_t, 0>{}, get_value<0>());
     }
 
-    template <uint32_t depth = 0>
+    template <std::uint32_t depth = 0>
     constexpr int iterate_ret(auto lambda){
-      if (lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
+      if (lambda(std::integral_constant<std::uint32_t, depth>{}, get_value<depth>())) {
         return depth;
       }
       return count;
     }
-    template <uint32_t depth = 0>
+    template <std::uint32_t depth = 0>
     constexpr int reverse_iterate_ret(auto lambda) {
-      if constexpr (depth == (uint32_t)-1) {
+      if constexpr (depth == (std::uint32_t)-1) {
         return depth;
       }
       else {
-        if (lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>())) {
+        if (lambda(std::integral_constant<std::uint32_t, depth>{}, get_value<depth>())) {
           return depth;
         }
         return reverse_iterate_ret<depth - 1>(lambda);
       }
       return depth;
     }
-    template <uint32_t depth = 0>
+    template <std::uint32_t depth = 0>
     constexpr void reverse_iterate(auto lambda) {
-      if constexpr (depth == (uint32_t)-1) {
+      if constexpr (depth == (std::uint32_t)-1) {
         return;
       }
       else {
-        lambda(std::integral_constant<uint32_t, depth>{}, get_value<depth>());
+        lambda(std::integral_constant<std::uint32_t, depth>{}, get_value<depth>());
         return reverse_iterate<depth - 1>(lambda);
       }
     }
@@ -476,7 +480,7 @@ export namespace fan {
     }
     constexpr auto end() {
       constexpr std::size_t n = std::tuple_size_v<decltype(get_tuple())>;
-      return (decltype(begin()))((uint8_t*)begin() + sizeof(T) - sizeof(decltype(std::get<n - 1>(get_tuple()))) + sizeof(std::remove_pointer_t<decltype(begin())>));
+      return (decltype(begin()))((std::uint8_t*)begin() + sizeof(T) - sizeof(decltype(std::get<n - 1>(get_tuple()))) + sizeof(std::remove_pointer_t<decltype(begin())>));
     }
 
     static constexpr std::size_t size() {
@@ -524,8 +528,8 @@ export namespace fan {
 
   //template <typename in_type_t>
   //struct union_mp {
-  //  uint8_t m_data[get_biggest_sizeof<in_type_t>()];
-  //  uint32_t m_current = -1;
+  //  std::uint8_t m_data[get_biggest_sizeof<in_type_t>()];
+  //  std::uint32_t m_current = -1;
 
   //  constexpr auto get_tuple() {
   //    return fan::make_struct_tuple_ref(*(in_type_t*)this);
@@ -582,3 +586,5 @@ export namespace fan {
   using union_mp = decltype((*(decltype(make_union_mp<T>)*)nullptr)());;
 
 }
+
+#endif

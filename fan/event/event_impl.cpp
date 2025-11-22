@@ -1,5 +1,11 @@
 module;
 
+#include <coroutine>
+#include <functional>
+#include <chrono>
+#include <filesystem>
+#include <algorithm>
+
 #include <uv.h>
 #undef min
 #undef max

@@ -20,6 +20,7 @@ module;
 
 #include <regex>
 #include <source_location>
+#include <sstream>
 
 module fan.graphics.opengl.core;
 
@@ -912,16 +913,16 @@ namespace fan::opengl {
 
   uint32_t context_t::opengl_to_global_filter(uintptr_t filter) {
     using namespace fan::graphics;
-    if (filter == GL_NEAREST) return image_filter::nearest;
-    if (filter == GL_LINEAR) return image_filter::linear;
-    if (filter == GL_NEAREST_MIPMAP_NEAREST) return image_filter::nearest_mipmap_nearest;
-    if (filter == GL_LINEAR_MIPMAP_NEAREST) return image_filter::linear_mipmap_nearest;
-    if (filter == GL_NEAREST_MIPMAP_LINEAR) return image_filter::nearest_mipmap_linear;
-    if (filter == GL_LINEAR_MIPMAP_LINEAR) return image_filter::linear_mipmap_linear;
+    if (filter == GL_NEAREST) return fan::graphics::image_filter::nearest;
+    if (filter == GL_LINEAR) return fan::graphics::image_filter::linear;
+    if (filter == GL_NEAREST_MIPMAP_NEAREST) return fan::graphics::image_filter::nearest_mipmap_nearest;
+    if (filter == GL_LINEAR_MIPMAP_NEAREST) return fan::graphics::image_filter::linear_mipmap_nearest;
+    if (filter == GL_NEAREST_MIPMAP_LINEAR) return fan::graphics::image_filter::nearest_mipmap_linear;
+    if (filter == GL_LINEAR_MIPMAP_LINEAR) return fan::graphics::image_filter::linear_mipmap_linear;
   #if fan_debug >= fan_debug_high
     fan::throw_error("Invalid OpenGL filter value.");
   #endif
-    return image_filter::nearest;
+    return fan::graphics::image_filter::nearest;
   }
 
   void context_t::close(fan::opengl::context_t& context) {

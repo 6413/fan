@@ -1,15 +1,16 @@
-module;
+module; // slow module to use
 
-#include <fan/utility.h>
-
-#include <tuple>
-#include <ostream>
-#include <string>
-#include <functional>
-
-// slow header to use
+#if defined(fan_fmt)
+  #include <fan/utility.h>
+  #include <tuple>
+  #include <ostream>
+  #include <string>
+  #include <functional>
+#endif
 
 export module fan.types.magic;
+
+#if defined(fan_fmt)
 
 import fan.fmt;
 import fan.print;
@@ -208,3 +209,5 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
     fan::print(struct_to_string(st));
   }
 }
+
+#endif

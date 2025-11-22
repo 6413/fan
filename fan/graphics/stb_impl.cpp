@@ -1,6 +1,8 @@
 module;
 
+#include <string>
 #include <source_location>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <fan/stb/stb_image.h>
 

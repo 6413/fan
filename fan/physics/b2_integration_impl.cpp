@@ -5,6 +5,12 @@ module;
   #include <box2d/box2d.h>
 #endif
 
+#include <utility>
+#include <functional>
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+
 module fan.physics.b2_integration;
 
 #if defined(fan_physics)

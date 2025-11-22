@@ -2,11 +2,13 @@ module;
 
 #include <fan/utility.h>
 
+#include <cstdlib>
+#include <cstring>
+#include <vector>
+
 export module fan.physics.common_context;
 
 #if defined(fan_physics)
-
-import std;
 
 import fan.types.vector;
 

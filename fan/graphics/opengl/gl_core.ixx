@@ -1,11 +1,9 @@
 module;
 
 #include <fan/graphics/opengl/init.h>
-
+#include <source_location>
 
 export module fan.graphics.opengl.core;
-
-import std;
 
 import fan.physics.collision.rectangle;
 
