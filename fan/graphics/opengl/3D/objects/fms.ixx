@@ -23,8 +23,6 @@ export module fan.graphics.opengl3D.objects.fms;
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
 
-#include <fan/imgui/imgui.h>
-
 //#define STB_IMAGE_IMPLEMENTATION
 #include <fan/stb/stb_image.h>
 export module fan.graphics.opengl3D.objects.fms;
@@ -36,6 +34,8 @@ export import fan.graphics;
 #if defined(fan_opengl)
   import fan.graphics.opengl.core;
 #endif
+
+import fan.graphics.gui.base;
 
 
 #undef fan_3d
@@ -1408,43 +1408,47 @@ export namespace fan_3d {
 
       // ---------------------gui---------------------
 
+
       void print_bone_recursive(bone_t* bone, int depth = 0) {
+        using namespace fan::graphics;
+
         if (!bone) {
           return;
         }
 
-        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_Framed;
+        gui::tree_node_flags_t flags = gui::tree_node_flags_open_on_arrow | gui::tree_node_flags_framed;
         if (bone->children.empty()) {
-          flags |= ImGuiTreeNodeFlags_Leaf;
+          flags |= gui::tree_node_flags_leaf;
         }
 
         if (depth > 0) {
-          ImGui::Indent(10.0f);
+          gui::indent(10.0f);
         }
 
-        bool node_open = ImGui::TreeNodeEx((bone->name + " | parent " + (bone->parent ? bone->parent->name : "N/A")).c_str(), flags);
+        bool node_open = gui::tree_node_ex(bone->name + " | parent " + (bone->parent ? bone->parent->name : "N/A"), flags);
 
         if (node_open) {
-          // Print children
           for (bone_t* child : bone->children) {
             print_bone_recursive(child, depth + 1);
           }
-          ImGui::TreePop();
+          gui::tree_pop();
         }
 
         if (depth > 0) {
-          ImGui::Unindent(10.0f);
+          gui::unindent(10.0f);
         }
       }
+
       void print_bones(bone_t* root_bone) {
+        using namespace fan::graphics;
         if (!root_bone) {
-          ImGui::TextDisabled("No skeleton loaded");
+          gui::text_disabled("No skeleton loaded");
           return;
         }
 
-        ImGui::Begin("Bone Hierarchy");
+        gui::begin("Bone Hierarchy");
 
-        if (ImGui::Button("Reset All Rotations")) {
+        if (gui::button("Reset All Rotations")) {
           std::function<void(bone_t*)> reset_rotations = [&](bone_t* bone) {
             if (bone) {
               bone->rotation = fan::quat();
@@ -1452,92 +1456,92 @@ export namespace fan_3d {
                 reset_rotations(child);
               }
             }
-            };
+          };
           reset_rotations(root_bone);
         }
 
-        ImGui::Separator();
+        gui::separator();
         print_bone_recursive(root_bone);
-        ImGui::End();
+        gui::end();
       }
+
       void display_animations() {
+        using namespace fan::graphics;
         for (auto& anim_pair : animation_list) {
-          bool nodeOpen = ImGui::TreeNode(anim_pair.first.c_str());
+          bool nodeOpen = gui::tree_node(anim_pair.first);
           if (nodeOpen) {
             auto& anim = anim_pair.second;
-            bool time_stamps_open = ImGui::TreeNode("timestamps");
+
+            bool time_stamps_open = gui::tree_node("timestamps");
             if (time_stamps_open) {
               iterate_bones(*root_bone, [&](fan_3d::model::bone_t& bone) {
                 auto& bt = anim.bone_transform_tracks[bone.id];
                 uint32_t data_count = bt.rotation_timestamps.size();
                 if (data_count) {
-                  bool node_open = ImGui::TreeNode(bone.name.c_str());
+                  bool node_open = gui::tree_node(bone.name);
                   if (node_open) {
                     for (int i = 0; i < bt.rotation_timestamps.size(); ++i) {
-                      ImGui::DragFloat(
-                        ("rotation:" + std::to_string(i)).c_str(),
-                        &bt.rotation_timestamps[i]
-                      );
+                      gui::drag("rotation:" + std::to_string(i), &bt.rotation_timestamps[i]);
                     }
-                    ImGui::TreePop();
+                    gui::tree_pop();
                   }
                 }
-                });
-              ImGui::TreePop();
+              });
+              gui::tree_pop();
             }
-            bool properties_open = ImGui::TreeNode("properties");
+
+            bool properties_open = gui::tree_node("properties");
             if (properties_open) {
               iterate_bones(*root_bone, [&](fan_3d::model::bone_t& bone) {
                 auto& bt = anim.bone_transform_tracks[bone.id];
                 uint32_t data_count = bt.rotations.size();
                 if (data_count) {
-                  bool node_open = ImGui::TreeNode(bone.name.c_str());
+                  bool node_open = gui::tree_node(bone.name);
                   if (node_open) {
                     for (int i = 0; i < bt.rotations.size(); ++i) {
-                      ImGui::DragFloat4(
-                        ("rotation:" + std::to_string(i)).c_str(),
-                        bt.rotations[i].data()
-                      );
+                      gui::drag("rotation:" + std::to_string(i), bt.rotations[i].data());
                     }
-                    ImGui::TreePop();
+                    gui::tree_pop();
                   }
                 }
-                });
-              ImGui::TreePop();
+              });
+              gui::tree_pop();
             }
-            ImGui::TreePop();
+
+            gui::tree_pop();
           }
         }
       }
 
       void mouse_modify_joint(f32_t ddt) {
+        using namespace fan::graphics;
         static constexpr f64_t delta_time_divier = 1e+6;
-        ImGui::DragFloat("current time", &dt, 1, 0, std::max(longest_animation, 1.f));
-        //ImGui::Text(fan::format("camera pos: {}\ntotal time: {:.2f}", gloco->default_camera_3d->camera.position, fms.default_animation.duration).c_str());
 
-        if (ImGui::Checkbox("play animation", &play_animation)) {
+        gui::drag("current time", &dt, 1, 0, std::max(longest_animation, 1.f));
+
+        if (gui::checkbox("play animation", &play_animation)) {
           showing_temp_rot = false;
         }
         if (play_animation) {
           dt += ddt * 1000;
         }
 
-
         int current_id = get_active_animation_id();
         std::vector<const char*> animations;
         for (auto& i : animation_list) {
           animations.push_back(i.first.c_str());
         }
-        if (ImGui::ListBox("animation list", &current_id, animations.data(), animations.size())) {
+        if (gui::list_box("animation list", &current_id, animations.data(), animations.size())) {
           active_anim = animations[current_id];
         }
-        ImGui::DragFloat("animation weight", &animation_list[active_anim].weight, 0.01, 0, 1);
+
+        gui::drag("animation weight", &animation_list[active_anim].weight, 0.01, 0, 1);
 
         if (active_bone != -1) {
           auto& anim = get_active_animation();
           auto& bt = anim.bone_transform_tracks[active_bone];
           for (int i = 0; i < bt.rotations.size(); ++i) {
-            ImGui::DragFloat4(("rotations:" + std::to_string(i)).c_str(), bt.rotations[i].data(), 0.01);
+            gui::drag("rotations:" + std::to_string(i), bt.rotations[i].data(), 0.01);
           }
 
           static int32_t current_frame = 0;
@@ -1557,11 +1561,11 @@ export namespace fan_3d {
           int32_t start_frame = 0;
           int32_t end_frame = std::ceil(anim.duration);
           if (end_frame <= start_frame) {
-            ImGui::Text("No bones in current animation");
+            gui::text("No bones in current animation");
             return;
           }
 
-          if (ImGui::Button("save keyframe")) {
+          if (gui::button("save keyframe")) {
             fk_set_rot(active_anim, active_bone, current_frame / 1000.f, anim.bone_poses[active_bone].rotation);
           }
         }

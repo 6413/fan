@@ -75,6 +75,17 @@ namespace fan {
 }
 #endif
 
+#if defined(fan_gui)
+namespace fan {
+  namespace graphics {
+    namespace gui {
+      void render_allocations_plot();
+      void process_loop();
+    }
+  }
+}
+#endif
+
 namespace fan::graphics {
   std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode) {
     if (gloco->get_renderer() == fan::window_t::renderer_t::opengl) {

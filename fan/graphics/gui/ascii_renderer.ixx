@@ -12,7 +12,7 @@ import fan.graphics;
 import fan.types.color;
 import fan.graphics.gui.types;
 
-import fan.imgui;
+import fan.graphics.gui.base;
 
 export struct ascii_renderer_t {
 

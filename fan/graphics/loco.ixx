@@ -80,7 +80,7 @@ export import fan.io.file;
 #endif
 
 #if defined(fan_gui)
-  import fan.imgui;
+  import fan.graphics.gui.base;
 	export import fan.console;
 #endif
 
@@ -120,17 +120,6 @@ export namespace fan {
 
     void clear() noexcept;
   };
-}
-#endif
-
-#if defined(fan_gui)
-namespace fan {
-	namespace graphics {
-		namespace gui {
-			void render_allocations_plot();
-			void process_loop();
-		}
-	}
 }
 #endif
 

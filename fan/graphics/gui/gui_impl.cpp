@@ -14,7 +14,7 @@ module fan.graphics.gui;
 
 import fan.types.vector;
 
-import fan.imgui;
+import fan.graphics.gui.base;
 
 #if defined(fan_audio)
 import fan.audio;

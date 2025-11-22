@@ -5,8 +5,6 @@ module;
 #include <vector>
 #include <sstream>
 #include <ranges>
-
- #include <fan/imgui/imgui.h>
 #endif
 
 export module fan.graphics.gui.text_logger;
@@ -17,6 +15,7 @@ import fan.types.vector;
 import fan.fmt;
 import fan.time;
 import fan.math;
+import fan.graphics.gui.base;
 
 export namespace fan::graphics::gui {
   struct text_logger_t {
@@ -108,7 +107,7 @@ export namespace fan::graphics::gui {
             max_column_widths.push_back(0);
           }
           for (size_t i = 0; i < entry.raw_columns.size(); ++i) {
-            fan::vec2 text_size = ImGui::CalcTextSize(entry.raw_columns[i].c_str());
+            fan::vec2 text_size = gui::calc_text_size(entry.raw_columns[i]);
             max_column_widths[i] = std::max(max_column_widths[i], text_size.x);
           }
         }
@@ -154,7 +153,7 @@ export namespace fan::graphics::gui {
     // hardcoded
     std::string format_with_max_widths(const std::vector<std::string>& columns, std::streamsize tab_width) {
       std::ostringstream oss;
-      fan::vec2 space_size = ImGui::CalcTextSize(" ");
+      fan::vec2 space_size = gui::calc_text_size(" ");
       f32_t min_column_width = tab_width;
 
       for (size_t i = 0; i < columns.size(); ++i) {
@@ -173,7 +172,7 @@ export namespace fan::graphics::gui {
         oss << s;
 
         if (i < columns.size() - 1 && i < max_column_widths.size()) {
-          fan::vec2 text_size = ImGui::CalcTextSize(s.c_str());
+          fan::vec2 text_size = gui::calc_text_size(s);
           f32_t target_width = std::max(max_column_widths[i], min_column_width);
           f32_t padding_needed = target_width - text_size.x;
           if (padding_needed > 0) {
@@ -266,7 +265,7 @@ export namespace fan::graphics::gui {
     }
     //-------------------------------------Static text-------------------------------------
 
-    int render_text_with_background(ImDrawList* draw_list, const std::string& text, const fan::color& color, fan::vec2 position) {
+    int render_text_with_background(gui::draw_list_t* draw_list, const std::string& text, const fan::color& color, fan::vec2 position) {
       std::vector<std::string> lines;
       f32_t max_width = 0;
       size_t pos = 0;
@@ -278,18 +277,17 @@ export namespace fan::graphics::gui {
         std::string line = text.substr(pos, newline_pos - pos);
         lines.push_back(line);
         if (!line.empty()) {
-          fan::vec2 text_size = ImGui::CalcTextSize(line.c_str());
+          fan::vec2 text_size = gui::calc_text_size(line);
           max_width = std::max(max_width, text_size.x);
         }
         pos = newline_pos + 1;
       }
       if (!lines.empty() && max_width > 0) {
-        f32_t line_height = ImGui::GetTextLineHeight();
+        f32_t line_height = gui::get_text_line_height();
         f32_t total_height = lines.size() * line_height;
         fan::vec2 bg_min = position + fan::vec2(-5, -5);
         fan::vec2 bg_max = position + fan::vec2(max_width + 5, total_height + 5);
-        ImU32 bg_color = IM_COL32(0, 0, 0, (int)(244 * color.a));
-        draw_list->AddRectFilled(bg_min, bg_max, bg_color, 3.0f);
+        draw_list->AddRectFilled(bg_min, bg_max, fan::color(0, 0, 0, (int)(244 * color.a)).get_imgui_color(), 3.0f);
         for (int i = 0; i < lines.size(); ++i) {
           if (!lines[i].empty()) {
             fan::vec2 line_pos = position + fan::vec2(0, i * line_height);
@@ -301,41 +299,46 @@ export namespace fan::graphics::gui {
     }
     void render() {
       flush_pending();
-      
-      ImDrawList* draw_list = ImGui::GetForegroundDrawList();
-      fan::vec2 window_pos = ImGui::GetWindowPos();
-      fan::vec2 window_size = ImGui::GetWindowSize();
-      f32_t line_height = ImGui::GetTextLineHeight();
+
+      auto* draw_list = gui::get_foreground_draw_list();
+      fan::vec2 window_pos = gui::get_window_pos();
+      fan::vec2 window_size = gui::get_window_size();
+      f32_t line_height = gui::get_text_line_height();
       f32_t box_spacing = 12.0f;
       f32_t current_y = window_size.y - 40;
+
       for (const auto& msg : static_texts | std::ranges::views::reverse) {
         fan::vec2 position = window_pos + fan::vec2(20, current_y);
-        position.y -= ImGui::CalcTextSize(msg.text.c_str()).y;
+        position.y -= gui::calc_text_size(msg.text).y;
         int lines_count = render_text_with_background(draw_list, msg.text, msg.color, position);
         current_y -= lines_count * line_height + box_spacing;
       }
+
       for (auto it = floating_texts.rbegin(); it != floating_texts.rend();) {
         if (it->fade_time.finished()) {
-          it = std::vector<decltype(floating_texts)::value_type>::reverse_iterator(floating_texts.erase((++it).base()));
+          it = std::vector<decltype(floating_texts)::value_type>::reverse_iterator(
+            floating_texts.erase((++it).base())
+          );
           continue;
         }
+
         uint64_t elapsed = it->fade_time.elapsed();
         f32_t progress = (f64_t)elapsed / it->fade_time.duration();
         fan::color color = it->color;
         f32_t alpha = 1.0f;
-        // fade-in
-        /*if (progress < 0.05f) {
-          alpha = progress / 0.05f;
-        }*/
-        //fade-out
+
         if (progress > 0.8f) {
           alpha = (1.0f - progress) / 0.2f;
         }
+
         color.a *= fan::math::clamp(alpha, 0.0f, 1.0f);
+
         fan::vec2 position = window_pos + fan::vec2(20, current_y);
-        position.y -= ImGui::CalcTextSize(it->text.c_str()).y;
+        position.y -= gui::calc_text_size(it->text).y;
+
         int lines_count = render_text_with_background(draw_list, it->text, color, position);
         current_y -= lines_count * line_height + box_spacing;
+
         ++it;
       }
     }
