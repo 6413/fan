@@ -2,7 +2,12 @@ module;
 
 #include <fan/utility.h>
 
+// TODO REMOVE
 #include <fan/graphics/opengl/init.h>
+#if defined(fan_vulkan)
+  // TODO REMOVE
+  #include <vulkan/vulkan.h>
+#endif
 
 #include <uv.h>
 #undef min
@@ -728,7 +733,7 @@ void loco_t::generate_commands(loco_t* loco) {
 }
 
 #if defined(fan_vulkan)
-static void check_vk_result(VkResult err) {
+void loco_t::check_vk_result(VkResult err) {
   if (err != VK_SUCCESS) {
     fan::print("vkerr", (int)err);
   }
@@ -1483,10 +1488,11 @@ void loco_t::process_gui() {
     render_shapes_top
   #if defined(fan_vulkan)
     ,
+    &fan::graphics::get_vk_context(),
     clear_color,
     vk.image_error,
     context.vk.command_buffers[context.vk.current_frame],
-    context.vk.ImGuiFrameRender
+    fan::vulkan::context_t::ImGuiFrameRender
   #endif
   );
 #endif

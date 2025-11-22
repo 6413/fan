@@ -8,7 +8,9 @@ module;
 #include <optional>
 #include <vector>
 #include <set>
-
+#include <functional>
+#include <source_location>
+#include <sstream>
 
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -25,8 +27,6 @@ module;
 #include <vulkan/vulkan.h>
 #include <shaderc/shaderc.hpp>
 
-
-#include <vulkan/vulkan.h>
 #if defined(fan_platform_windows)
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
@@ -58,27 +58,15 @@ export import fan.print;
 export import fan.graphics.image_load;
 export import fan.graphics.common_context;
 
-#ifndef camera_list
-  #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)this))
-#endif
-
-#ifndef shader_list
-  #define __fan_internal_shader_list (*(fan::graphics::shader_list_t*)fan::graphics::get_shader_list((uint8_t*)this))
-#endif
-
-#ifndef image_list
-  #define __fan_internal_image_list (*(fan::graphics::image_list_t*)fan::graphics::get_image_list((uint8_t*)this))
-#endif
-
-#ifndef viewport_list
-  #define __fan_internal_viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)this))
-#endif
+#define __fan_internal_camera_list (*fan::graphics::ctx().camera_list)
+#define __fan_internal_shader_list (*fan::graphics::ctx().shader_list)
+#define __fan_internal_image_list (*fan::graphics::ctx().image_list)
+#define __fan_internal_viewport_list (*fan::graphics::ctx().viewport_list)
 
 #if defined(fan_compiler_msvc)
   #pragma comment(lib, "vulkan-1.lib")
   #pragma comment(lib, "shaderc_combined_mt.lib")
 #endif
-
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -378,7 +366,7 @@ export namespace fan {
           destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         }
         else {
-          throw std::invalid_argument("unsupported layout transition!");
+          fan::throw_error("unsupported layout transition!");
         }
 
         vkCmdPipelineBarrier(
@@ -837,7 +825,7 @@ export namespace fan {
           destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         }
         else {
-          throw std::invalid_argument("unsupported layout transition!");
+          fan::throw_error("unsupported layout transition!");
         }
 
         vkCmdPipelineBarrier(
@@ -916,7 +904,7 @@ export namespace fan {
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
         if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create texture sampler!");
+          fan::throw_error("failed to create texture sampler!");
         }
       }
 
@@ -1566,7 +1554,7 @@ export namespace fan {
       }
     #if defined(loco_window)
       void open(fan::window_t& window) {
-        window.add_resize_callback([&](const fan::window_t::resize_cb_data_t& d) {
+        window.add_resize_callback([&](const fan::window_t::resize_data_t& d) {
           SwapChainRebuild = true;
           recreate_swap_chain(d.window, VK_ERROR_OUT_OF_DATE_KHR);
           });
@@ -1815,7 +1803,7 @@ export namespace fan {
           }
         }
         else if (err != VK_SUCCESS) {
-          throw std::runtime_error("failed to present swap chain image");
+          fan::throw_error("failed to present swap chain image");
         }
       }
 
@@ -1874,7 +1862,7 @@ export namespace fan {
       #endif
 
         if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create instance!");
+          fan::throw_error("failed to create instance!");
         }
       }
 
@@ -1899,14 +1887,14 @@ export namespace fan {
         populate_debug_messenger_create_info(createInfo);
 
         if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debug_messenger) != VK_SUCCESS) {
-          throw std::runtime_error("failed to set up debug messenger!");
+          fan::throw_error("failed to set up debug messenger!");
         }
       }
 
 #if defined(loco_window)
       void create_surface(GLFWwindow* window) {
         if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create window surface!");
+          fan::throw_error("failed to create window surface!");
         }
       }
 #endif
@@ -1916,7 +1904,7 @@ export namespace fan {
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
         if (deviceCount == 0) {
-          throw std::runtime_error("failed to find GPUs with Vulkan support!");
+          fan::throw_error("failed to find GPUs with Vulkan support!");
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
@@ -1930,7 +1918,7 @@ export namespace fan {
         }
 
         if (physical_device == VK_NULL_HANDLE) {
-          throw std::runtime_error("failed to find a suitable GPU!");
+          fan::throw_error("failed to find a suitable GPU!");
         }
       }
 
@@ -2012,7 +2000,7 @@ export namespace fan {
       #endif
 
         if (vkCreateDevice(physical_device, &createInfo, nullptr, &device) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create logical device!");
+          fan::throw_error("failed to create logical device!");
         }
 
         vkGetDeviceQueue(device, indices.graphics_family.value(), 0, &graphics_queue);
@@ -2067,7 +2055,7 @@ export namespace fan {
         //createInfo.imageUsage = ;
 
         if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swap_chain) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create swap chain!");
+          fan::throw_error("failed to create swap chain!");
         }
 
         vkGetSwapchainImagesKHR(device, swap_chain, &imageCount, nullptr);
@@ -2094,7 +2082,7 @@ export namespace fan {
 
         VkImageView imageView;
         if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create texture image view!");
+          fan::throw_error("failed to create texture image view!");
         }
 
         return imageView;
@@ -2258,7 +2246,7 @@ export namespace fan {
         renderPassInfo.pDependencies = dependencies;
 
         if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &render_pass) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create render pass");
+          fan::throw_error("failed to create render pass");
         }
       }
 
@@ -2282,7 +2270,7 @@ export namespace fan {
           framebufferInfo.layers = 1;
 
           if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swap_chain_framebuffers[i]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create framebuffer!");
+            fan::throw_error("failed to create framebuffer!");
           }
         }
       }
@@ -2296,7 +2284,7 @@ export namespace fan {
         poolInfo.queueFamilyIndex = queueFamilyIndices.graphics_family.value();
 
         if (vkCreateCommandPool(device, &poolInfo, nullptr, &command_pool) != VK_SUCCESS) {
-          throw std::runtime_error("failed to create graphics command pool!");
+          fan::throw_error("failed to create graphics command pool!");
         }
 }
 
@@ -2313,7 +2301,7 @@ export namespace fan {
           }
         }
 
-        throw std::runtime_error("failed to find supported format!");
+        fan::throw_error("failed to find supported format!");
       }
 
       VkFormat find_depth_format() {
@@ -2416,7 +2404,7 @@ export namespace fan {
         allocInfo.commandBufferCount = (uint32_t)command_buffers.size();
 
         if (vkAllocateCommandBuffers(device, &allocInfo, command_buffers.data()) != VK_SUCCESS) {
-          throw std::runtime_error("failed to allocate command buffers!");
+          fan::throw_error("failed to allocate command buffers!");
         }
       }
 
@@ -2481,7 +2469,7 @@ export namespace fan {
           if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &image_available_semaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(device, &semaphoreInfo, nullptr, &render_finished_semaphores[i]) != VK_SUCCESS ||
             vkCreateFence(device, &fenceInfo, nullptr, &in_flight_fences[i]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create synchronization objects for a frame!");
+            fan::throw_error("failed to create synchronization objects for a frame!");
           }
         }
       }
@@ -2505,17 +2493,18 @@ export namespace fan {
         update_swapchain_dependencies();
       }
 
-      void ImGuiFrameRender(VkResult next_image_khr_err, fan::color clear_color) {
-        ImGui_ImplVulkanH_Window* wd = &MainWindowData;
+      static void ImGuiFrameRender(void* ctx, VkResult next_image_khr_err, fan::color clear_color) {
+        fan::vulkan::context_t& context = *(fan::vulkan::context_t*)ctx;
+        ImGui_ImplVulkanH_Window* wd = &context.MainWindowData;
         VkResult err = next_image_khr_err;
         if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR)
-          SwapChainRebuild = true;
+          context.SwapChainRebuild = true;
         if (err == VK_ERROR_OUT_OF_DATE_KHR)
           return;
         if (err != VK_SUBOPTIMAL_KHR)
           fan::vulkan::validate(err);
 
-        wd->FrameIndex = image_index;
+        wd->FrameIndex = context.image_index;
 
         ImGui_ImplVulkanH_Frame* fd = &wd->Frames[wd->FrameIndex];
 
@@ -2526,10 +2515,10 @@ export namespace fan {
         info.renderArea.extent.width = wd->Width;
         info.renderArea.extent.height = wd->Height;
 
-        vkCmdBeginRenderPass(command_buffers[current_frame], &info, VK_SUBPASS_CONTENTS_INLINE);
-        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffers[current_frame]);
+        vkCmdBeginRenderPass(context.command_buffers[context.current_frame], &info, VK_SUBPASS_CONTENTS_INLINE);
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), context.command_buffers[context.current_frame]);
 
-        vkCmdEndRenderPass(command_buffers[current_frame]);
+        vkCmdEndRenderPass(context.command_buffers[context.current_frame]);
       }
       //----------------------------------------------imgui stuff----------------------------------------------
 #endif
@@ -2561,7 +2550,7 @@ export namespace fan {
         submitInfo.pSignalSemaphores = signalSemaphores;
 
         if (vkQueueSubmit(graphics_queue, 1, &submitInfo, in_flight_fences[current_frame]) != VK_SUCCESS) {
-          throw std::runtime_error("failed to submit draw command buffer!");
+          fan::throw_error("failed to submit draw command buffer!");
         }
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -2611,7 +2600,7 @@ export namespace fan {
         submitInfo.pCommandBuffers = &command_buffers[current_frame];
 
         if (vkQueueSubmit(graphics_queue, 1, &submitInfo, in_flight_fences[current_frame]) != VK_SUCCESS) {
-          throw std::runtime_error("failed to submit draw command buffer!");
+          fan::throw_error("failed to submit draw command buffer!");
         }
       }
 
@@ -2651,8 +2640,8 @@ export namespace fan {
             framebuffer_size.y
           };
 
-          actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-          actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+          actualExtent.width = fan::math::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+          actualExtent.height = fan::math::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
           return actualExtent;
         }
@@ -2760,7 +2749,7 @@ export namespace fan {
         uint32_t extensions_count = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr);
         if (extensions_count == 0) {
-          throw std::runtime_error("Could not get the number of Instance extensions.");
+          fan::throw_error("Could not get the number of Instance extensions.");
         }
 
         std::vector<VkExtensionProperties> available_extensions;
@@ -2770,7 +2759,7 @@ export namespace fan {
         vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, &available_extensions[0]);
 
         if (extensions_count == 0) {
-          throw std::runtime_error("Could not enumerate Instance extensions.");
+          fan::throw_error("Could not enumerate Instance extensions.");
         }
 
         std::vector<std::string> extension_str(available_extensions.size());
@@ -2948,7 +2937,7 @@ void fan::vulkan::image_create(const fan::vulkan::context_t& context, const fan:
   imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   if (vkCreateImage(context.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create image!");
+    fan::throw_error("failed to create image!");
   }
 
   VkMemoryRequirements memRequirements;
@@ -2960,7 +2949,7 @@ void fan::vulkan::image_create(const fan::vulkan::context_t& context, const fan:
   allocInfo.memoryTypeIndex = context.find_memory_type(memRequirements.memoryTypeBits, properties);
 
   if (vkAllocateMemory(context.device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate image memory!");
+    fan::throw_error("failed to allocate image memory!");
   }
 
   vkBindImageMemory(context.device, image, imageMemory, 0);
@@ -3162,4 +3151,12 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
   };
   return cf;
 }
+
+
+export namespace fan::graphics {
+  fan::vulkan::context_t& get_vk_context() {
+    return (*static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)));
+  }
+}
+
 #endif

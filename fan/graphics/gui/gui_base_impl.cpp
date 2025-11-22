@@ -1074,6 +1074,8 @@ namespace fan::graphics::gui {
     imgui_themes::dark();
 
     fan::graphics::gui::init_fonts();
+
+    g_gui_initialized = true;
   }
 
   void init_graphics_context(
@@ -1216,7 +1218,7 @@ namespace fan::graphics::gui {
     int opengl_renderer_definition,  // todo bad
     int vulkan_renderer_definition  //  todo bad
   #if defined(fan_vulkan)
-    , VkDevice device = VK_NULL_HANDLE
+    , VkDevice device
   #endif
   ) {
     if (renderer == opengl_renderer_definition) {
@@ -1263,8 +1265,9 @@ namespace fan::graphics::gui {
     bool render_shapes_top
   #if defined(fan_vulkan)
     ,
-    VkClearColorValue clear_color,
-    VkImageError& image_error,
+    void* context,
+    const fan::color& clear_color,
+    VkResult& image_error,
     VkCommandBuffer& cmd_buffer,
     ImGuiFrameRenderFunc render_func
   #endif
@@ -1276,7 +1279,7 @@ namespace fan::graphics::gui {
     }
   #if defined(fan_vulkan)
     else if (renderer == vulkan_renderer_definition) {
-      if (image_error == (decltype(image_error))-0xfff) {
+      if (image_error == (VkResult)-0xfff) {
         image_error = VK_SUCCESS;
       }
       if (!render_shapes_top) {
@@ -1285,7 +1288,7 @@ namespace fan::graphics::gui {
       ImDrawData* draw_data = ImGui::GetDrawData();
       const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
       if (!is_minimized) {
-        render_func(image_error, clear_color);
+        render_func(context, image_error, clear_color);
       }
     }
   #endif
