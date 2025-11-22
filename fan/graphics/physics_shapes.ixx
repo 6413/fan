@@ -26,7 +26,6 @@ import fan.math;
 
 #if (fan_gui)
   import fan.graphics;
-  import fan.graphics.gui;
   import fan.graphics.common_context;
   import fan.graphics.shapes;
 #else

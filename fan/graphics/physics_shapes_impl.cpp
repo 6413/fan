@@ -14,6 +14,7 @@ module fan.graphics.physics_shapes;
 #if defined(fan_physics)
 
 import fan.types;
+import fan.imgui;
 
 // higher the draw depth, less debug draws will be if maximum depth is 2^16
 // so make sure your game objects do not pass this depth
@@ -1522,7 +1523,6 @@ namespace fan::graphics::physics {
     nr = fan::graphics::ctx().update_callback->NewNodeLast();
     // not copy safe
     (*fan::graphics::ctx().update_callback)[nr] = [this](void* ptr) {
-    #if defined(fan_gui)
       if (fan::window::is_mouse_down()) {
         fan::vec2 p = fan::window::get_mouse_position() / fan::physics::length_units_per_meter;
         if (!B2_IS_NON_NULL(mouse_joint)) {
@@ -1558,7 +1558,6 @@ namespace fan::graphics::physics {
           mouse_joint = b2_nullJointId;
         }
       }
-    #endif
     };
   }
 

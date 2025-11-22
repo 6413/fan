@@ -15,7 +15,8 @@ export module fan.graphics.gui.tilemap_editor.editor;
 
 #if defined(fan_gui) && defined(fan_physics)
 
-export import fan.graphics.gui;
+import fan.imgui;
+import fan.graphics.gui;
 
 import fan.graphics.algorithm.raycast_grid;
 import fan.types.color;

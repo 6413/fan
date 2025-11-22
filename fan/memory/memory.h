@@ -314,25 +314,4 @@ export namespace fan {
 
 #define fan_track_allocations_start() \
   fan::heap_profiler_t::instance().enabled = true;
-
-
-#if defined(fan_gui)
-
-#include <fan/imgui/imgui.h>
-
-export namespace fan {
-  void* ImGuiMallocWrapper(size_t size, void* user_data) {
-    return heap_profiler_t::instance().allocate_memory(size);
-  }
-
-  void ImGuiFreeWrapper(void* ptr, void* user_data) {
-    heap_profiler_t::instance().deallocate_memory(ptr);
-  }
-
-  void setup_imgui_with_heap_profiler() {
-    ImGui::SetAllocatorFunctions(ImGuiMallocWrapper, ImGuiFreeWrapper, nullptr);
-  }
-}
-#endif
-
 #endif

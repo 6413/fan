@@ -4,10 +4,6 @@ module;
 
 #include <fan/graphics/common_context_functions_declare.h>
 
-#if defined(fan_gui)
-	#include <fan/imgui/imgui.h>
-#endif
-
 #include <cstring>
 #include <string>
 #include <unordered_map>
@@ -28,6 +24,7 @@ import fan.print;
 import fan.utility;
 
 #if defined(fan_gui)
+  import fan.graphics.gui.types;
 	import fan.console;
 	import fan.graphics.gui.text_logger;
 #endif
@@ -133,18 +130,6 @@ export namespace fan {
 			image_load_properties_t image_settings;
 			void* internal;
 		};
-
-
-		typedef uint8_t* (*this_offset_camera_list_t)(uint8_t* context);
-		typedef uint8_t* (*this_offset_shader_list_t)(uint8_t* context);
-		typedef uint8_t* (*this_offset_image_list_t)(uint8_t* context);
-		typedef uint8_t* (*this_offset_viewport_list_t)(uint8_t* context);
-
-		// TODO REMOVE
-		inline this_offset_camera_list_t get_camera_list;
-		inline this_offset_shader_list_t get_shader_list;
-		inline this_offset_image_list_t get_image_list;
-		inline this_offset_viewport_list_t get_viewport_list;
 
 		struct shader_data_t {
 			std::string svertex, sfragment;
@@ -384,8 +369,10 @@ export namespace fan::graphics {
 
 		// common data
 		fan::graphics::image_nr_t default_texture;
-		image_list_t* image_list = nullptr;
+    camera_list_t* camera_list = nullptr;
 		shader_list_t* shader_list = nullptr;
+		image_list_t* image_list = nullptr;
+    viewport_list_t* viewport_list = nullptr;
 		fan::window_t* window = nullptr;
 
 		fan::graphics::render_view_t* orthographic_render_view = nullptr;
@@ -470,18 +457,6 @@ export namespace fan::graphics {
 		inline static fan::graphics::image_t background;
 	};
 }
-
-#if defined(fan_gui)
-export namespace fan::graphics::gui {
-	inline constexpr f32_t font_sizes[] = {
-	4, 5, 6, 7, 8, 9, 10, 11, 12, 14,
-	16, 18, 20, 22, 24, 28,
-	32, 36, 48, 60, 72
-	};
-	ImFont* fonts[std::size(font_sizes)]{};
-	ImFont* fonts_bold[std::size(font_sizes)]{};
-}
-#endif
 
 export namespace fan {
 	namespace window {

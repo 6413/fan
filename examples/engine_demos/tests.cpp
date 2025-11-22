@@ -5,7 +5,6 @@
 #include <string>
 #include <functional>
 #include <iomanip>
-#include <fan/graphics/opengl/init.h>
 #include <fstream>
 #include <cmath>
 

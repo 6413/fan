@@ -1674,7 +1674,7 @@ export namespace fan {
       }
 
     public:
-      void imgui_close() {
+      void gui_close() {
         vkFreeCommandBuffers(device, command_pool, command_buffers.size(), command_buffers.data());
         cleanup_swap_chain_dependencies();
         descriptor_pool.close(*this);

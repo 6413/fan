@@ -4,22 +4,6 @@ module;
 
 #include <fan/graphics/opengl/init.h>
 
-#if defined(fan_gui)
-  #include <fan/imgui/imgui.h>
-  #include <fan/imgui/misc/freetype/imgui_freetype.h>
-  #include <fan/imgui/imgui_impl_opengl3.h>
-#if defined(fan_vulkan)
-  #include <fan/imgui/imgui_impl_vulkan.h>
-#endif
-  #include <fan/imgui/imgui_impl_glfw.h>
-  #include <fan/imgui/implot.h>
-#endif
-
-#if defined(fan_gui)
-  #include <fan/imgui/imgui_internal.h>
-  #include <fan/graphics/gui/imgui_themes.h>
-#endif
-
 #include <uv.h>
 #undef min
 #undef max
@@ -31,23 +15,6 @@ module;
 
 #if defined(fan_std23)
   #include <stacktrace>
-#endif
-
-//TODO REMOVE
-#ifndef camera_list
-#define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)&gloco->context))
-#endif
-
-#ifndef shader_list
-#define __fan_internal_shader_list (*(fan::graphics::shader_list_t*)fan::graphics::get_shader_list((uint8_t*)&gloco->context))
-#endif
-
-#ifndef image_list
-#define __fan_internal_image_list (*(fan::graphics::image_list_t*)fan::graphics::get_image_list((uint8_t*)&gloco->context))
-#endif
-
-#ifndef viewport_list
-#define __fan_internal_viewport_list (*(fan::graphics::viewport_list_t*)fan::graphics::get_viewport_list((uint8_t*)&gloco->context))
 #endif
 
 module fan.graphics.loco;
@@ -125,38 +92,6 @@ namespace fan::graphics {
   #endif
     return -1;
   }
-
-#if defined(fan_gui)
-  namespace gui {
-    bool render_blank_window(const std::string& name) {
-      ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-      ImGui::SetNextWindowPos(ImVec2(0, 0));
-      return ImGui::Begin(name.c_str(), 0,
-        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
-        ImGuiWindowFlags_NoResize |
-        ImGuiWindowFlags_NoTitleBar
-      );
-    }
-  }
-#endif
-}
-
-// loco
-bool loco_t::initialize_lists() {
-  fan::graphics::get_camera_list = [](uint8_t* context) -> uint8_t* {
-    auto ptr = OFFSETLESS(context, loco_t, context);
-    return (uint8_t*)&ptr->camera_list;
-  };
-  fan::graphics::get_shader_list = [](uint8_t* context) -> uint8_t* {
-    return (uint8_t*)&OFFSETLESS(context, loco_t, context)->shader_list;
-  };
-  fan::graphics::get_image_list = [](uint8_t* context) -> uint8_t* {
-    return (uint8_t*)&OFFSETLESS(context, loco_t, context)->image_list;
-  };
-  fan::graphics::get_viewport_list = [](uint8_t* context) -> uint8_t* {
-    return (uint8_t*)&OFFSETLESS(context, loco_t, context)->viewport_list;
-  };
-  return 0;
 }
 
 uint8_t loco_t::get_renderer() {
@@ -475,7 +410,6 @@ std::string loco_t::read_shader(const std::string& path, const std::source_locat
 
 void loco_t::use() {
   gloco = this;
-  fan__init_list = initialize_lists();
   window.make_context_current();
 }
 
@@ -693,23 +627,23 @@ void loco_t::generate_commands(loco_t* loco) {
     }
     if (nr.iic() && std::stoi(args[0])) {
       nr = loco->console.push_frame_process([] {
-        ImGui::SetNextWindowBgAlpha(0.99f);
+        fan::graphics::gui::set_next_window_bg_alpha(0.99f);
         static int init = 0;
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing;
+        fan::graphics::gui::window_flags_t window_flags = fan::graphics::gui::window_flags_no_title_bar | fan::graphics::gui::window_flags_no_focus_on_appearing;
         if (init == 0) {
-          ImGui::SetNextWindowSize(fan::vec2(600, 300));
-          //window_flags |= ImGuiWindowFlags_AlwaysAutoResize;
+          fan::graphics::gui::set_next_window_size(fan::vec2(600, 300));
           init = 1;
         }
-        ImGui::Begin("fan_memory_dbg_wnd", 0, window_flags);
+        fan::graphics::gui::begin("fan_memory_dbg_wnd", nullptr, window_flags);
         fan::graphics::gui::render_allocations_plot();
-        ImGui::End();
+        fan::graphics::gui::end();
       });
     }
     else if (!nr.iic() && !std::stoi(args[0])) {
       loco->console.erase_frame_process(nr);
     }
   }).description = "opens memory debug window";
+
   loco->console.commands.add("set_clear_color", [](const fan::commands_t::arg_t& args) {
     if (args.size() != 1) {
       gloco->console.commands.print_invalid_arg_count();
@@ -782,38 +716,6 @@ void loco_t::generate_commands(loco_t* loco) {
 #endif
 }
 
-#if defined(fan_gui)
-void loco_t::load_fonts(ImFont* (&fonts)[std::size(fan::graphics::gui::font_sizes)], const std::string& name, ImFontConfig* cfg) {
-  ImGuiIO& io = ImGui::GetIO();
-  for (std::size_t i = 0; i < std::size(fonts); ++i) {
-    fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), fan::graphics::gui::font_sizes[i] * 2, cfg);
-
-    if (fonts[i] == nullptr) {
-      fan::throw_error(std::string("failed to load font:") + name);
-    }
-  }
-}
-void loco_t::build_fonts() {
-  ImGuiIO& io = ImGui::GetIO();
-  io.Fonts->Build();
-}
-
-ImFont* loco_t::get_font(f32_t font_size, bool bold) {
-  font_size /= 2;
-  int best_index = 0;
-  f32_t best_diff = std::abs(fan::graphics::gui::font_sizes[0] - font_size);
-
-  for (std::size_t i = 1; i < std::size(fan::graphics::gui::font_sizes); ++i) {
-    f32_t diff = std::abs(fan::graphics::gui::font_sizes[i] - font_size);
-    if (diff < best_diff) {
-      best_diff = diff;
-      best_index = i;
-    }
-  }
-
-  return !bold ? fan::graphics::gui::fonts[best_index] : fan::graphics::gui::fonts_bold[best_index];
-}
-
 #if defined(fan_vulkan)
 static void check_vk_result(VkResult err) {
   if (err != VK_SUCCESS) {
@@ -822,186 +724,62 @@ static void check_vk_result(VkResult err) {
 }
 #endif
 
-void loco_t::init_imgui() {
-  if (loco_t::global_imgui_initialized) {
-    loco_t::imgui_initialized = true;
+#if defined(fan_gui)
+
+void loco_t::init_gui() {
+  if (fan::graphics::gui::g_gui_initialized) {
+    gui_initialized = true;
     return;
   }
-
-  ImGui::CreateContext();
-  ImPlot::CreateContext();
-  auto& input_map = ImPlot::GetInputMap();
-  input_map.Pan = ImGuiMouseButton_Middle;
-
-  ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-  //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-  ///    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-
-  ImGuiStyle& style = ImGui::GetStyle();
-  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-  {
-    style.WindowRounding = 0.;
-  }
-  style.FrameRounding = 5.f;
-  style.FramePadding = ImVec2(12.f, 5.f);
-  style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-
-  imgui_themes::dark();
-
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    glfwMakeContextCurrent(window);
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    const char* glsl_version = "#version 120";
-    ImGui_ImplOpenGL3_Init(glsl_version);
-  }
-#if defined(fan_vulkan)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    ImGui_ImplGlfw_InitForVulkan(window, true);
-    ImGui_ImplVulkan_InitInfo init_info = {};
-    init_info.Instance = context.vk.instance;
-    init_info.PhysicalDevice = context.vk.physical_device;
-    init_info.Device = context.vk.device;
-    init_info.QueueFamily = context.vk.queue_family;
-    init_info.Queue = context.vk.graphics_queue;
-    init_info.DescriptorPool = context.vk.descriptor_pool.m_descriptor_pool;
-    init_info.RenderPass = context.vk.MainWindowData.RenderPass;
-    init_info.Subpass = 0;
-    init_info.MinImageCount = context.vk.MinImageCount;
-    init_info.ImageCount = context.vk.MainWindowData.ImageCount;
-    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-    init_info.CheckVkResultFn = check_vk_result;
-
-    ImGui_ImplVulkan_Init(&init_info);
-  }
-#endif
-
-  init_fonts();
-
-  input_action.add(fan::key_escape, "open_settings");
-  input_action.add(fan::key_a, "move_left");
-  input_action.add(fan::key_d, "move_right");
-  input_action.add(fan::key_w, "move_forward");
-  input_action.add(fan::key_s, "move_back");
-  input_action.add(fan::key_space, "move_up");
-  global_imgui_initialized = true;
-  imgui_initialized = true;
-}
-
-void loco_t::init_fonts() {
-  ImGuiIO& io = ImGui::GetIO();
-  io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
-  io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-
-  for (std::size_t i = 0; i < std::size(fan::graphics::gui::fonts); ++i) {
-    float font_size = fan::graphics::gui::font_sizes[i] * 2;
-    ImFontConfig main_cfg;
-    main_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-    fan::graphics::gui::fonts[i] = io.Fonts->AddFontFromFileTTF(
-      "fonts/SourceCodePro-Regular.ttf", font_size, &main_cfg
-    );
-  }
-
-  build_fonts();
-
-  io.FontDefault = fan::graphics::gui::fonts[9];
-}
-
-void loco_t::load_emoticons() {
-  ImFontConfig emoji_cfg;
-  emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_Bitmap;
-
-  // TODO: expand ranges if needed
-  static const ImWchar emoji_ranges[] = {
-    //0x2600, 0x26FF,    // Miscellaneous Symbols
-    //0x2700, 0x27BF,    // Dingbats
-    //0x2B00, 0x2BFF,    
-    //0x1F300, 0x1F5FF,  // Miscellaneous Symbols and Pictographs
-    //0x1F600, 0x1F64F,  // Emoticons
-    //0x1F680, 0x1F6FF,  // Transport and Map Symbols
-    //0x1F900, 0x1F9FF,  // Supplemental Symbols and Pictographs
-    //0x1FA70, 0x1FAFF,  // Symbols and Pictographs Extended-A
-    //0
-
-    0x2600, 0x26FF,    // Miscellaneous Symbols
-    0x2B00, 0x2BFF,    // Miscellaneous Symbols and Arrows
-    0x1F600, 0x1F64F,  // Emoticons
-    0
-  };
-
-  ImGuiIO& io = ImGui::GetIO();
-  io.Fonts->Clear();
-  io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
-  io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-
-  for (std::size_t i = 0; i < std::size(fan::graphics::gui::fonts); ++i) {
-    f32_t font_size = fan::graphics::gui::font_sizes[i] * 2;
-    // load 2x font size and possibly downscale for better quality
-
-    ImFontConfig main_cfg;
-    fan::graphics::gui::fonts[i] = io.Fonts->AddFontFromFileTTF(
-      "fonts/SourceCodePro-Regular.ttf", font_size, &main_cfg
-    );
-
-    ImFontConfig emoji_cfg;
-    emoji_cfg.MergeMode = true;
-    emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-    emoji_cfg.SizePixels = 0;
-    emoji_cfg.RasterizerDensity = 1.0f;
-    emoji_cfg.GlyphMinAdvanceX = font_size;
-
-    io.Fonts->AddFontFromFileTTF(
-      "fonts/seguiemj.ttf", font_size, &emoji_cfg, emoji_ranges
-    );
-  }
-
-  build_fonts();
-  io.FontDefault = fan::graphics::gui::fonts[9];
-}
-
-void loco_t::destroy_imgui() {
-  if (!imgui_initialized || !global_imgui_initialized) {
-    return;
-  }
-
-  if (reload_renderer_to != (decltype(reload_renderer_to))-1) {
-    if (window.renderer == fan::window_t::renderer_t::opengl) {
-      ImGui_ImplOpenGL3_Shutdown();
-    }
+  fan::graphics::gui::init(
+    window,
+    window.renderer,
+    fan::window_t::renderer_t::opengl,
+    fan::window_t::renderer_t::vulkan
   #if defined(fan_vulkan)
-    else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-      vkDeviceWaitIdle(context.vk.device);
-      ImGui_ImplVulkan_Shutdown();
-    }
+    ,
+    context.vk.instance,
+    context.vk.physical_device,
+    context.vk.device,
+    context.vk.queue_family,
+    context.vk.graphics_queue,
+    context.vk.descriptor_pool,
+    context.vk.MainWindowData.RenderPass,
+    context.vk.MainWindowData.ImageCount,
+    context.vk.MinImageCount,
+    VK_SAMPLE_COUNT_1_BIT,
+    check_vk_result
   #endif
-    imgui_initialized = false;
+  );
+  gui_initialized = true;
+}
+
+void loco_t::destroy_gui() {
+  if (!gui_initialized || !fan::graphics::gui::g_gui_initialized) {
     return;
   }
 
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    ImGui_ImplOpenGL3_Shutdown();
+  fan::graphics::gui::shutdown_graphics_context(
+    window.renderer,
+    fan::window_t::renderer_t::opengl,
+    fan::window_t::renderer_t::vulkan
+  #if defined(fan_vulkan)
+    , context.vk.device
+  #endif
+  );
+  if (reload_renderer_to != (decltype(reload_renderer_to))-1) {
+    gui_initialized = false;
+    return;
   }
-#if defined(fan_vulkan)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    vkDeviceWaitIdle(context.vk.device);
-    ImGui_ImplVulkan_Shutdown();
-  }
-#endif
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
-  ImPlot::DestroyContext();
 #if defined(fan_vulkan)
   if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    context.vk.imgui_close();
+    context.vk.gui_close(); // TODO remove
   }
 #endif
 
-  global_imgui_initialized = false;
-  imgui_initialized = false;
+  fan::graphics::gui::destroy();
+  gui_initialized = false;
 }
-
-bool enable_overlay = true;
 #endif
 
 void loco_t::init_framebuffer() {
@@ -1015,21 +793,26 @@ loco_t::loco_t() : loco_t(loco_t::properties_t()) {
 }
 
 loco_t::loco_t(const loco_t::properties_t& p) {
+
+  auto& ctx = fan::graphics::ctx();
+
   // init globals
-  fan::graphics::ctx().context_functions = &context_functions;
-  fan::graphics::ctx().render_context = &context;
-  fan::graphics::ctx().image_list = &image_list;
-  fan::graphics::ctx().shader_list = &shader_list;
-  fan::graphics::ctx().window = &window;
-  fan::graphics::ctx().orthographic_render_view = &orthographic_render_view;
-  fan::graphics::ctx().perspective_render_view = &perspective_render_view;
-  fan::graphics::ctx().update_callback = &m_update_callback;
-  fan::graphics::ctx().input_action = &input_action;
-  fan::graphics::ctx().lighting = &lighting;
+  ctx.context_functions = &context_functions;
+  ctx.render_context = &context;
+  ctx.camera_list = &camera_list;
+  ctx.shader_list = &shader_list;
+  ctx.image_list = &image_list;
+  ctx.viewport_list = &viewport_list;
+  ctx.window = &window;
+  ctx.orthographic_render_view = &orthographic_render_view;
+  ctx.perspective_render_view = &perspective_render_view;
+  ctx.update_callback = &m_update_callback;
+  ctx.input_action = &input_action;
+  ctx.lighting = &lighting;
 
 #if defined(fan_gui)
-  fan::graphics::ctx().console = &console;
-  fan::graphics::ctx().text_logger = &text_logger;
+  ctx.console = &console;
+  ctx.text_logger = &text_logger;
 #endif
 
   shapes.texture_pack = &texture_pack;
@@ -1052,7 +835,15 @@ loco_t::loco_t(const loco_t::properties_t& p) {
   fan::graphics::g_shapes = &shapes;
 
 #if defined(fan_gui) && defined(fan_std23)
-  fan::setup_imgui_with_heap_profiler();
+  
+  fan::graphics::gui::profile_heap(
+    [](size_t size, void* user_data) -> void* {
+      return fan::heap_profiler_t::instance().allocate_memory(size); // malloc
+    },
+    [](void* ptr, void* user_data) {
+    fan::heap_profiler_t::instance().deallocate_memory(ptr); // free
+    }
+  );
 #endif
 
 #if defined(fan_platform_windows)
@@ -1166,15 +957,20 @@ loco_t::loco_t(const loco_t::properties_t& p) {
 #endif
 
 #if defined(fan_gui)
-  init_imgui();
+  init_gui();
   generate_commands(this);
+
+  settings_menu.open();
+  input_action.add(fan::key_escape, "open_settings");
 #endif
+
+  input_action.add(fan::key_a, "move_left");
+  input_action.add(fan::key_d, "move_right");
+  input_action.add(fan::key_w, "move_forward");
+  input_action.add(fan::key_s, "move_back");
+  input_action.add(fan::key_space, "move_up");
 
   setup_input_callbacks();
-
-#if defined(fan_gui)
-  settings_menu.open();
-#endif
 
   auto it = fan::graphics::engine_init_cbs.GetNodeFirst();
   while (it != fan::graphics::engine_init_cbs.dst) {
@@ -1232,7 +1028,7 @@ void loco_t::destroy() {
 #endif
   fan::graphics::g_shapes->shaper.Close();
 #if defined(fan_gui)
-  destroy_imgui();
+  destroy_gui();
 #endif
   window.close();
 #if defined(fan_audio)
@@ -1291,7 +1087,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
   uint64_t flags = window.flags;
 
 #if defined(fan_gui)
-  bool was_imgui_init = imgui_initialized;
+  bool was_imgui_init = gui_initialized;
 #endif
 
   {// close
@@ -1324,18 +1120,17 @@ void loco_t::switch_renderer(uint8_t renderer) {
       }
 
   #if defined(fan_gui)
-    if (imgui_initialized) {
-      if (window.renderer == fan::window_t::renderer_t::opengl) {
-        ImGui_ImplOpenGL3_Shutdown();
-      }
-    #if defined(fan_vulkan)
-      else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-        vkDeviceWaitIdle(context.vk.device);
-        ImGui_ImplVulkan_Shutdown();
-      }
-    #endif
-      ImGui_ImplGlfw_Shutdown();
-      imgui_initialized = false;
+    if (gui_initialized) {
+      fan::graphics::gui::shutdown_graphics_context(
+        window.renderer,
+        fan::window_t::renderer_t::opengl,
+        fan::window_t::renderer_t::vulkan
+      #if defined(fan_vulkan)
+        , context.vk.device
+      #endif
+      );
+      fan::graphics::gui::shutdown_window_context();
+      gui_initialized = false;
     }
   #endif
 
@@ -1370,30 +1165,30 @@ void loco_t::switch_renderer(uint8_t renderer) {
       {
         fan::graphics::camera_list_t::nrtra_t nrtra;
         fan::graphics::camera_nr_t nr;
-        nrtra.Open(&__fan_internal_camera_list, &nr);
-        while (nrtra.Loop(&__fan_internal_camera_list, &nr)) {
-          auto& cam = __fan_internal_camera_list[nr];
+        nrtra.Open(&camera_list, &nr);
+        while (nrtra.Loop(&camera_list, &nr)) {
+          auto& cam = camera_list[nr];
           camera_set_ortho(
             nr,
             fan::vec2(cam.coordinates.left, cam.coordinates.right),
             fan::vec2(cam.coordinates.up, cam.coordinates.down)
           );
         }
-        nrtra.Close(&__fan_internal_camera_list);
+        nrtra.Close(&camera_list);
       }
       {
         fan::graphics::viewport_list_t::nrtra_t nrtra;
         fan::graphics::viewport_nr_t nr;
-        nrtra.Open(&__fan_internal_viewport_list, &nr);
-        while (nrtra.Loop(&__fan_internal_viewport_list, &nr)) {
-          auto& viewport = __fan_internal_viewport_list[nr];
+        nrtra.Open(&viewport_list, &nr);
+        while (nrtra.Loop(&viewport_list, &nr)) {
+          auto& viewport = viewport_list[nr];
           viewport_set(
             nr,
             viewport.viewport_position,
             viewport.viewport_size
           );
         }
-        nrtra.Close(&__fan_internal_viewport_list);
+        nrtra.Close(&viewport_list);
       }
     }
 
@@ -1438,19 +1233,19 @@ void loco_t::switch_renderer(uint8_t renderer) {
         {
           fan::graphics::shader_list_t::nrtra_t nrtra;
           fan::graphics::shader_nr_t nr;
-          nrtra.Open(&__fan_internal_shader_list, &nr);
-          while (nrtra.Loop(&__fan_internal_shader_list, &nr)) {
+          nrtra.Open(&shader_list, &nr);
+          while (nrtra.Loop(&shader_list, &nr)) {
             if (window.renderer == fan::window_t::renderer_t::opengl) {
-              __fan_internal_shader_list[nr].internal = new fan::opengl::context_t::shader_t;
+              shader_list[nr].internal = new fan::opengl::context_t::shader_t;
             }
           #if defined(fan_vulkan)
             else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-              __fan_internal_shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
-              ((fan::vulkan::context_t::shader_t*)__fan_internal_shader_list[nr].internal)->projection_view_block = new std::remove_pointer_t<decltype(fan::vulkan::context_t::shader_t::projection_view_block)>;
+              shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
+              ((fan::vulkan::context_t::shader_t*)shader_list[nr].internal)->projection_view_block = new std::remove_pointer_t<decltype(fan::vulkan::context_t::shader_t::projection_view_block)>;
             }
           #endif
           }
-          nrtra.Close(&__fan_internal_shader_list);
+          nrtra.Close(&shader_list);
         }
       }
       fan::image::info_t info;
@@ -1478,33 +1273,28 @@ void loco_t::switch_renderer(uint8_t renderer) {
   #endif
 
   #if defined(fan_gui)
-    if (was_imgui_init && global_imgui_initialized) {
-      if (window.renderer == fan::window_t::renderer_t::opengl) {
-        glfwMakeContextCurrent(window);
-        ImGui_ImplGlfw_InitForOpenGL(window, true);
-        const char* glsl_version = "#version 120";
-        ImGui_ImplOpenGL3_Init(glsl_version);
-      }
-    #if defined(fan_vulkan)
-      else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-        ImGui_ImplGlfw_InitForVulkan(window, true);
-        ImGui_ImplVulkan_InitInfo init_info = {};
-        init_info.Instance = context.vk.instance;
-        init_info.PhysicalDevice = context.vk.physical_device;
-        init_info.Device = context.vk.device;
-        init_info.QueueFamily = context.vk.queue_family;
-        init_info.Queue = context.vk.graphics_queue;
-        init_info.DescriptorPool = context.vk.descriptor_pool.m_descriptor_pool;
-        init_info.RenderPass = context.vk.MainWindowData.RenderPass;
-        init_info.Subpass = 0;
-        init_info.MinImageCount = context.vk.MinImageCount;
-        init_info.ImageCount = context.vk.MainWindowData.ImageCount;
-        init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-        init_info.CheckVkResultFn = check_vk_result;
-        ImGui_ImplVulkan_Init(&init_info);
-      }
-    #endif
-      imgui_initialized = true;
+    if (was_imgui_init && fan::graphics::gui::g_gui_initialized) {
+      fan::graphics::gui::init_graphics_context(
+        window,
+        window.renderer,
+        fan::window_t::renderer_t::opengl,
+        fan::window_t::renderer_t::vulkan
+      #if defined(fan_vulkan)
+        ,
+        context.vk.instance,
+        context.vk.physical_device,
+        context.vk.device,
+        context.vk.queue_family,
+        context.vk.graphics_queue,
+        context.vk.descriptor_pool,
+        context.vk.MainWindowData.RenderPass,
+        context.vk.MainWindowData.ImageCount,
+        context.vk.MinImageCount,
+        VK_SAMPLE_COUNT_1_BIT,
+        check_vk_result
+      #endif
+      );
+      gui_initialized = true;
       settings_menu.set_settings_theme();
     }
   #endif
@@ -1584,16 +1374,17 @@ void loco_t::process_shapes() {
 #endif
 }
 void loco_t::process_gui() {
+  using namespace fan::graphics;
   gui_draw_timer.start();
 #if defined(fan_gui)
   fan::graphics::gui::process_loop();
 
   // append
-  ImGui::Begin("##global_renderer");
+  gui::begin("##global_renderer");
   text_logger.render();
-  ImGui::End();
+  gui::end();
 
-  if (ImGui::IsKeyPressed(ImGuiKey_F3, false)) {
+  if (fan::window::is_key_pressed(fan::key_f3)) {
     render_console = !render_console;
 
     // force focus xd
@@ -1613,14 +1404,15 @@ void loco_t::process_gui() {
   }
 
   if (show_fps) {
-    ImGui::SetNextWindowBgAlpha(0.99f);
+    using namespace fan::graphics;
 
-    ImGuiWindowFlags window_flags =
-      ImGuiWindowFlags_NoTitleBar |
-      ImGuiWindowFlags_NoFocusOnAppearing;
+    gui::window_flags_t window_flags =
+      gui::window_flags_no_title_bar |
+      gui::window_flags_no_focus_on_appearing;
 
-    ImGui::SetNextWindowSize(fan::vec2(831.0000, 693.0000), ImGuiCond_Once);
-    ImGui::Begin("Performance window", nullptr, window_flags);
+    gui::set_next_window_bg_alpha(0.99f);
+    gui::set_next_window_size(fan::vec2(831.0000, 693.0000), gui::cond_once);
+    gui::begin("Performance window", nullptr, window_flags);
 
     frame_monitor.update(delta_time);
     shape_monitor.update(shape_draw_time_s);
@@ -1630,76 +1422,62 @@ void loco_t::process_gui() {
     auto shape_stats = shape_monitor.calculate_stats(shape_draw_time_s);
     auto gui_stats = gui_monitor.calculate_stats(gui_draw_time_s);
 
-    ImGui::Text("FPS: %d", (int)(1.f / delta_time));
-    ImGui::Text("Frame Time Avg: %.4f ms", frame_stats.average * 1e3);
-    ImGui::Text("Shape Draw Avg: %.4f ms", shape_stats.average * 1e3);
-    ImGui::Text("GUI Draw Avg: %.4f ms", gui_stats.average * 1e3);
+    gui::text("FPS:", (int)(1.f / delta_time));
+    gui::text("Frame Time Avg: ", fan::format("{:.4f} ms", frame_stats.average * 1e3));
+    gui::text("Shape Draw Avg: ", fan::format("{:.4f} ms", shape_stats.average * 1e3));
+    gui::text("GUI Draw Avg: ", fan::format("{:.4f} ms", gui_stats.average * 1e3));
 
-    ImGui::Text("Lowest FPS: %.4f", frame_stats.lowest);
-    ImGui::Text("Highest FPS: %.4f", frame_stats.highest);
+    gui::text("Lowest FPS: ", fan::format("{:.4f}", frame_stats.lowest));
+    gui::text("Highest FPS: ", fan::format("{:.4f}", frame_stats.highest));
 
-    if (ImGui::Button(frame_monitor.paused ? "Continue" : "Pause")) {
+    if (gui::button(frame_monitor.paused ? "Continue" : "Pause")) {
       frame_monitor.paused = !frame_monitor.paused;
       shape_monitor.paused = frame_monitor.paused;
       gui_monitor.paused = frame_monitor.paused;
     }
 
-    if (ImGui::Button("Reset data")) {
+    if (gui::button("Reset data")) {
       frame_monitor.reset();
       shape_monitor.reset();
       gui_monitor.reset();
     }
 
-    if (ImPlot::BeginPlot("Times", ImVec2(-1, 0),
-      ImPlotFlags_NoFrame)) {
-      ImPlot::SetupAxes("Frame Index", "Frame Time (ms)",
-        ImPlotAxisFlags_AutoFit,
-        ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit
+    if (gui::plot::begin_plot("Times", fan::vec2(-1, 0), gui::plot::flags_no_frame)) {
+      gui::plot::setup_axes("Frame Index", "Frame Time (ms)",
+        gui::plot::axis_flags_auto_fit,
+        gui::plot::axis_flags_auto_fit | gui::plot::axis_flags_range_fit
       );
-      ImPlot::SetupAxisTicks(ImAxis_Y1, 0.0, 10.0, 11);
+      gui::plot::setup_axis_ticks(gui::plot::axis_y1, 0.0, 10.0, 11);
       frame_monitor.plot("Frame Draw Time");
       shape_monitor.plot("Shape Draw Time");
       gui_monitor.plot("GUI Draw Time");
-      ImPlot::EndPlot();
+      gui::plot::end_plot();
     }
 
-    ImGui::Text("Frame Draw Time: %.4f ms", delta_time * 1e3);
-    ImGui::Text("Shape Draw Time: %.4f ms", shape_draw_time_s * 1e3);
-    ImGui::Text("GUI Draw Time: %.4f ms", gui_draw_time_s * 1e3);
+    gui::text("Frame Draw Time: ", fan::format("{:.4f} ms", delta_time * 1e3));
+    gui::text("Shape Draw Time: ", fan::format("{:.4f} ms", shape_draw_time_s * 1e3));
+    gui::text("GUI Draw Time: ", fan::format("{:.4f} ms", gui_draw_time_s * 1e3));
 
-    ImGui::End();
+    gui::end();
   }
 
 #if defined(loco_framebuffer)
 
 #endif
 
-  ImGui::Render();
-
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    //glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    //glClear(GL_COLOR_BUFFER_BIT);
-
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-  }
-#if defined(fan_vulkan)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
-    // did draw
-    if (vk.image_error == (decltype(vk.image_error))-0xfff) {
-      vk.image_error = VK_SUCCESS;
-    }
-    if (render_shapes_top == false) {
-      vkCmdEndRenderPass(cmd_buffer);
-    }
-
-    ImDrawData* draw_data = ImGui::GetDrawData();
-    const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
-    if (!is_minimized) {
-      context.vk.ImGuiFrameRender(vk.image_error, clear_color);
-    }
-  }
-#endif
+  fan::graphics::gui::render(
+    window.renderer,
+    fan::window_t::renderer_t::opengl,
+    fan::window_t::renderer_t::vulkan,
+    render_shapes_top
+  #if defined(fan_vulkan)
+    ,
+    clear_color,
+    vk.image_error,
+    context.vk.command_buffers[context.vk.current_frame],
+    context.vk.ImGuiFrameRender
+  #endif
+  );
 #endif
   gui_draw_time_s = gui_draw_timer.seconds();
 }
@@ -1745,6 +1523,7 @@ loco_t::time_monitor_t::stats_t loco_t::time_monitor_t::calculate_stats(f32_t la
 
 #if defined(fan_gui)
 void loco_t::time_monitor_t::plot(const char* label) {
+  using namespace fan::graphics;
   if (valid_samples == 0) return;
   static std::array<f32_t, buffer_size> plot_data{};
   int plot_count = std::min(valid_samples, buffer_size);
@@ -1754,13 +1533,13 @@ void loco_t::time_monitor_t::plot(const char* label) {
       int src_index = (insert_index + i) % buffer_size;
       plot_data[i] = samples[src_index] * 1e3f;
     }
-    ImPlot::PlotLine(label, plot_data.data(), buffer_size);
+    gui::plot::plot_line(label, plot_data.data(), buffer_size);
   }
   else {
     for (int i = 0; i < valid_samples; ++i) {
       plot_data[i] = samples[i] * 1e3f;
     }
-    ImPlot::PlotLine(label, plot_data.data(), valid_samples);
+    gui::plot::plot_line(label, plot_data.data(), valid_samples);
   }
 }
 #endif
@@ -1800,7 +1579,7 @@ void loco_t::process_frame() {
   single_queue.clear();
 
 #if defined(fan_gui)
-  ImGui::End();
+  fan::graphics::gui::end();
 #endif
 
   fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
@@ -1867,48 +1646,44 @@ bool loco_t::process_loop(const std::function<void()>& cb) {
     switch_renderer(reload_renderer_to);
   }
 
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    ImGui_ImplOpenGL3_NewFrame();
-  }
-#if defined(fan_vulkan)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    ImGui_ImplVulkan_NewFrame();
-  }
-#endif
-
   lighting.update(delta_time);
 
-  ImGui_ImplGlfw_NewFrame();
-  ImGui::NewFrame();
+  fan::graphics::gui::new_frame(
+    window.renderer,
+    fan::window_t::renderer_t::opengl,
+    fan::window_t::renderer_t::vulkan
+  );
 
-  auto& style = ImGui::GetStyle();
-  ImVec4* colors = style.Colors;
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-  ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ImVec4(0, 0, 0, 0));
-  ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+  using namespace fan::graphics;
+
+  auto& style = gui::get_style();
+
+  gui::push_style_color(gui::col_window_bg, fan::color(0, 0, 0, 0));
+  gui::push_style_color(gui::col_docking_empty_bg, fan::color(0, 0, 0, 0));
+  gui::dock_space_over_viewport(0, gui::get_main_viewport());
 
   if (allow_docking || is_key_down(fan::key_left_control)) {
-    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    gui::get_io().ConfigFlags |= gui::config_flags_docking_enable;
   }
   else {
-    ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_DockingEnable;
+    gui::get_io().ConfigFlags &= ~gui::config_flags_docking_enable;
   }
 
-  ImGui::PopStyleColor(2);
-  ImGui::SetNextWindowPos(ImVec2(0, 0));
-  ImGui::SetNextWindowSize(fan::vec2(window.get_size()));
+  gui::pop_style_color(2);
+  gui::set_next_window_pos(fan::vec2(0, 0));
+  gui::set_next_window_size(fan::vec2(window.get_size()));
 
-  int flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings |
-    ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMove |
-    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground |
-    ImGuiWindowFlags_NoResize | ImGuiDockNodeFlags_NoDockingSplit |
-    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
+  int flags = gui::window_flags_no_docking | gui::window_flags_no_saved_settings |
+    gui::window_flags_no_focus_on_appearing | gui::window_flags_no_move |
+    gui::window_flags_no_collapse | gui::window_flags_no_background |
+    gui::window_flags_no_resize | gui::dock_node_flags_no_docking_split |
+    gui::window_flags_no_title_bar | gui::window_flags_no_bring_to_front_on_focus;
 
   if (!enable_overlay) {
-    flags |= ImGuiWindowFlags_NoNav;
+    flags |= gui::window_flags_no_nav;
   }
 
-  ImGui::Begin("##global_renderer", 0, flags);
+  gui::begin("##global_renderer", nullptr, flags);
 #endif
 
   cb();
@@ -2006,7 +1781,7 @@ fan::vec2 loco_t::ndc_to_screen(const fan::vec2& ndc_position) {
 void loco_t::set_vsync(bool flag) {
   vsync = flag;
   // vulkan vsync is enabled by presentation mode in swap chain
-  if ( window.renderer == fan::window_t::renderer_t::opengl ) {
+  if (window.renderer == fan::window_t::renderer_t::opengl) {
     context.gl.set_vsync(&window, flag);
   }
 }
@@ -2517,7 +2292,7 @@ bool loco_t::shader_update_fragment(uint16_t shape_type, const std::string& frag
 namespace fan::graphics::gui {
   void process_loop() {
     auto it = gloco->gui_draw_cb.GetNodeFirst();
-    while ( it != gloco->gui_draw_cb.dst ) {
+    while (it != gloco->gui_draw_cb.dst) {
       gloco->gui_draw_cb.StartSafeNext(it);
       gloco->gui_draw_cb[it]();
       it = gloco->gui_draw_cb.EndSafeNext();
@@ -2526,74 +2301,70 @@ namespace fan::graphics::gui {
   // fan_track_allocations() must be called in global scope before calling this function
   void render_allocations_plot() {
   #if defined(fan_std23)
+    using namespace fan::graphics;
+
     static std::vector<f32_t> allocation_sizes;
     static std::vector<fan::heap_profiler_t::memory_data_t> allocations;
 
     allocation_sizes.clear();
     allocations.clear();
 
-
     f32_t max_y = 0;
-    for ( const auto& entry : fan::heap_profiler_t::instance().memory_map ) {
+    for (const auto& entry : fan::heap_profiler_t::instance().memory_map) {
       f32_t v = (f32_t)entry.second.n / (1024 * 1024);
-      /*if (v < 0.001) {
-      continue;
-      }*/
       allocation_sizes.push_back(v);
       max_y = std::max(max_y, v);
       allocations.push_back(entry.second);
     }
-    static std::stacktrace stack;
-    if ( allocation_sizes.size() && ImPlot::BeginPlot("Memory Allocations", ImGui::GetWindowSize(), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend) ) {
-      f32_t max_allocation = *std::max_element(allocation_sizes.begin(), allocation_sizes.end());
-      ImPlot::SetupAxis(ImAxis_Y1, "Memory (MB)");
-      ImPlot::SetupAxisLimits(ImAxis_Y1, 0, max_y);
-      ImPlot::SetupAxis(ImAxis_X1, "Allocations");
-      ImPlot::SetupAxisLimits(ImAxis_X1, 0, static_cast<double>(allocation_sizes.size()));
 
-      ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
-      ImPlot::PlotBars("Allocations", allocation_sizes.data(), allocation_sizes.size());
-      //if (ImPlot::IsPlotHovered()) {
-      //  fan::print("A");
-      //}
-      ImPlot::PopStyleVar();
+    static std::stacktrace stack;
+    if (allocation_sizes.size() && gui::plot::begin_plot("Memory Allocations", get_window_size(), gui::plot::flags_no_frame | gui::plot::flags_no_legend)) {
+      f32_t max_allocation = *std::max_element(allocation_sizes.begin(), allocation_sizes.end());
+      gui::plot::setup_axis(gui::plot::axis_y1, "Memory (MB)");
+      gui::plot::setup_axis_limits(gui::plot::axis_y1, 0, max_y);
+      gui::plot::setup_axis(gui::plot::axis_x1, "Allocations");
+      gui::plot::setup_axis_limits(gui::plot::axis_x1, 0, static_cast<double>(allocation_sizes.size()));
+
+      gui::plot::push_style_var(gui::plot::style_var_fill_alpha, 0.25f);
+      gui::plot::plot_bars("Allocations", allocation_sizes.data(), allocation_sizes.size());
+      gui::plot::pop_style_var();
 
       bool hovered = false;
-      if ( ImPlot::IsPlotHovered() ) {
-        ImPlotPoint mouse = ImPlot::GetPlotMousePos();
+      if (gui::plot::is_plot_hovered()) {
+        gui::plot::point_t mouse = gui::plot::get_plot_mouse_pos();
         f32_t half_width = 0.25;
-        //mouse.x             = ImPlot::RoundTime(ImPlotTime::FromDouble(mouse.x), ImPlotTimeUnit_Day).ToDouble();
         mouse.x = (int)mouse.x;
-        f32_t  tool_l = ImPlot::PlotToPixels(mouse.x - half_width * 1.5, mouse.y).x;
-        f32_t  tool_r = ImPlot::PlotToPixels(mouse.x + half_width * 1.5, mouse.y).x;
-        f32_t  tool_t = ImPlot::GetPlotPos().y;
-        f32_t  tool_b = tool_t + ImPlot::GetPlotSize().y;
-        ImPlot::PushPlotClipRect();
-        auto draw_list = ImGui::GetWindowDrawList();
-        draw_list->AddRectFilled(ImVec2(tool_l, tool_t), ImVec2(tool_r, tool_b), IM_COL32(128, 128, 128, 64));
-        ImPlot::PopPlotClipRect();
+        f32_t tool_l = gui::plot::plot_to_pixels(mouse.x - half_width * 1.5, mouse.y).x;
+        f32_t tool_r = gui::plot::plot_to_pixels(mouse.x + half_width * 1.5, mouse.y).x;
+        f32_t tool_t = gui::plot::get_plot_pos().y;
+        f32_t tool_b = tool_t + gui::plot::get_plot_size().y;
+        gui::plot::push_plot_clip_rect();
+        auto draw_list = gui::get_window_draw_list();
+        draw_list->AddRectFilled(fan::vec2(tool_l, tool_t), fan::vec2(tool_r, tool_b), fan::color(128, 128, 128, 64).get_imgui_color());
+        gui::plot::pop_plot_clip_rect();
 
-        if ( mouse.x >= 0 && mouse.x < allocation_sizes.size() ) {
-          if ( ImGui::IsMouseClicked(0) ) {
-            ImGui::OpenPopup("view stack");
+        if (mouse.x >= 0 && mouse.x < allocation_sizes.size()) {
+          if (fan::window::is_mouse_clicked()) {
+            open_popup("view stack");
           }
           stack = allocations[(int)mouse.x].line_data;
           hovered = true;
         }
       }
-      if ( hovered ) {
-        ImGui::BeginTooltip();
+
+      if (hovered) {
+        begin_tooltip();
         std::ostringstream oss;
         oss << stack;
         std::string stack_str = oss.str();
         std::string final_str;
         std::size_t pos = 0;
-        while ( true ) {
+        while (true) {
           auto end = stack_str.find(')', pos);
-          if ( end != std::string::npos ) {
+          if (end != std::string::npos) {
             end += 1;
             auto begin = stack_str.rfind('\\', end);
-            if ( begin != std::string::npos ) {
+            if (begin != std::string::npos) {
               begin += 1;
               final_str += stack_str.substr(begin, end - begin);
               final_str += "\n";
@@ -2607,23 +2378,24 @@ namespace fan::graphics::gui {
             break;
           }
         }
-        ImGui::TextUnformatted(final_str.c_str());
-        ImGui::EndTooltip();
+        text_unformatted(final_str.c_str());
+        end_tooltip();
       }
-      if ( ImGui::BeginPopup("view stack", ImGuiWindowFlags_AlwaysHorizontalScrollbar) ) {
+
+      if (begin_popup("view stack", gui::window_flags_always_horizontal_scrollbar)) {
         std::ostringstream oss;
         oss << stack;
-        ImGui::TextUnformatted(oss.str().c_str());
-        ImGui::EndPopup();
+        text_unformatted(oss.str().c_str());
+        end_popup();
       }
-      ImPlot::EndPlot();
-    }
 
+      gui::plot::end_plot();
+    }
   #else
-    ImGui::Text("std::stacktrace not supported");
+    gui::text("std::stacktrace not supported");
   #endif
   }
-}
+} // namespace fan::graphics::gui
 #endif
 
 void fan::graphics::shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr) {
