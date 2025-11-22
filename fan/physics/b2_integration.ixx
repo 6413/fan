@@ -5,13 +5,15 @@ module;
   #include <box2d/box2d.h>
 #endif
 
+#include <functional>
+#include <cstdlib>
+#include <unordered_set>
+
 export module fan.physics.b2_integration;
 
 #if defined(fan_physics)
 
 export import fan.physics.types;
-
-import std;
 
 import fan.types.vector;
 import fan.print;

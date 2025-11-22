@@ -1,6 +1,12 @@
-export module fan.file_dialog;
+module;
 
-import std;
+#include <atomic>
+#include <string>
+#include <mutex>
+#include <thread>
+#include <vector>
+
+export module fan.file_dialog;
 
 export namespace fan::graphics {
   struct file_open_dialog_t {

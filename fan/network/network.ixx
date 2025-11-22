@@ -4,6 +4,8 @@ module;
 
 #include <fan/utility.h>
 
+#include <expected>
+#include <coroutine>
 
 #include <uv.h>
 #undef min
@@ -24,8 +26,6 @@ module;
 export module fan.network;
 
 #if defined(fan_network)
-
-import std;
 
 import fan.utility;
 export import fan.event;

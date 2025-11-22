@@ -1,6 +1,10 @@
-export module fan.io.directory;
+module;
 
-import std;
+#include <filesystem>
+#include <string>
+#include <functional>
+
+export module fan.io.directory;
 
 export namespace fan {
   namespace io {

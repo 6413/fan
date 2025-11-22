@@ -1,12 +1,16 @@
 module;
 
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+#include <functional>
+#include <cstdlib>
+
 export module fan.graphics.gui.tilemap_editor.renderer;
 
 #if defined(fan_physics) && defined(fan_gui)
 
 export import fan.graphics.gui.tilemap_editor.loader;
-
-import std;
 
 import fan.utility;
 import fan.print;

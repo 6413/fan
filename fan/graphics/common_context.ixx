@@ -8,9 +8,15 @@ module;
 	#include <fan/imgui/imgui.h>
 #endif
 
-export module fan.graphics.common_context;
+#include <cstring>
+#include <string>
+#include <unordered_map>
+#include <source_location>
+#include <functional>
+#include <cstdlib>
+#include <sstream>
 
-import std;
+export module fan.graphics.common_context;
 
 export import fan.types.color;
 export import fan.graphics.image_load;

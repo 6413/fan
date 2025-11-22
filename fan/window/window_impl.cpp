@@ -20,6 +20,7 @@ module;
 #include <GLFW/glfw3native.h>
 
 #include <functional>
+#include <algorithm>
 
 module fan.window;
 
