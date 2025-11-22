@@ -21,7 +21,7 @@ module;
   #include <GLFW/glfw3.h>
 #endif
 
-module fan.imgui;
+module fan.graphics.gui.base;
 
 import fan.utility;
 
@@ -416,6 +416,9 @@ namespace fan::graphics::gui {
     ImGui::TextUnformatted(text.c_str(), text_end);
   }
 
+  void text_disabled(const std::string& text) {
+    ImGui::TextDisabled(text.c_str());
+  }
   /// <summary>
   /// Draws text centered horizontally.
   /// </summary>
@@ -717,8 +720,15 @@ namespace fan::graphics::gui {
     return ImGui::GetIO();
   }
 
+  bool tree_node_ex(const std::string& label, tree_node_flags_t flags) {
+    return ImGui::TreeNodeEx(label.c_str(), flags);
+  }
   void tree_pop() {
     ImGui::TreePop();
+  }
+
+  bool tree_node(const std::string& label) {
+    return ImGui::TreeNode(label.c_str());
   }
 
   bool is_item_toggled_open() {
@@ -752,7 +762,9 @@ namespace fan::graphics::gui {
   draw_list_t* get_window_draw_list() {
     return ImGui::GetWindowDrawList();
   }
-
+  draw_list_t* get_foreground_draw_list() {
+    return ImGui::GetForegroundDrawList();
+  }
   draw_list_t* get_background_draw_list() {
     return ImGui::GetBackgroundDrawList();
   }

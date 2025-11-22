@@ -11,8 +11,7 @@ module;
   #include <functional>
 #endif
 
-export module fan.imgui;
-
+export module fan.graphics.gui.base;
 
 #if defined(fan_gui)
 
@@ -206,6 +205,7 @@ export namespace fan::graphics::gui {
 
   void text_wrapped(const std::string& text, const fan::color& color = fan::colors::white);
   void text_unformatted(const std::string& text, const char* text_end = NULL);
+  void text_disabled(const std::string& text);
 
   /// <summary>
   /// Draws text centered horizontally.
@@ -308,7 +308,10 @@ export namespace fan::graphics::gui {
   bool tree_node_ex(void* id, tree_node_flags_t flags, const char* fmt, Args&&... args) {
     return ImGui::TreeNodeEx(id, flags, fmt, std::forward<Args>(args)...);
   }
+  bool tree_node_ex(const std::string& label, tree_node_flags_t flags = 0);
   void tree_pop();
+
+  bool tree_node(const std::string& label);
 
   bool is_item_toggled_open();
 
@@ -325,6 +328,7 @@ export namespace fan::graphics::gui {
   void dummy(const fan::vec2& size);
 
   draw_list_t* get_window_draw_list();
+  draw_list_t* get_foreground_draw_list();
   draw_list_t* get_background_draw_list();
 
   window_handle_t* get_current_window();

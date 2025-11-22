@@ -11,7 +11,6 @@ export module fan.graphics.opengl3D.objects.model;
 export module fan.graphics.opengl3D.objects.model;
 export import fan.graphics;
 export import fan.graphics.opengl3D.objects.fms;
-export import fan.imgui;
 export import fan.graphics.gui;
 import fan.graphics.opengl.core;
 

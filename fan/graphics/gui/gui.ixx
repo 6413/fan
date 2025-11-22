@@ -34,7 +34,7 @@ export module fan.graphics.gui;
 
   import fan.file_dialog;
 
-  export import fan.imgui;
+  export import fan.graphics.gui.base;
 #endif
 
 
