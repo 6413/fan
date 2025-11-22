@@ -14,7 +14,7 @@ module fan.graphics.physics_shapes;
 #if defined(fan_physics)
 
 import fan.types;
-import fan.imgui;
+import fan.graphics.gui.base;
 
 // higher the draw depth, less debug draws will be if maximum depth is 2^16
 // so make sure your game objects do not pass this depth
