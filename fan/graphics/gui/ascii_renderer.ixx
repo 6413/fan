@@ -9,8 +9,10 @@ export module fan.ascii_renderer;
 #if defined(fan_gui)
 
 import fan.graphics;
-import fan.graphics.gui;
 import fan.types.color;
+import fan.graphics.gui.types;
+
+import fan.imgui;
 
 export struct ascii_renderer_t {
 

@@ -342,6 +342,7 @@ endif()
 
 if(FAN_GUI)
   list(APPEND MODULE_FILES
+		${ROOT_PATH}/imgui/imgui.ixx
     ${ROOT_PATH}/graphics/gui/text_logger.ixx
 		${ROOT_PATH}/graphics/gui/gui_types.ixx
     ${ROOT_PATH}/graphics/gui/gui.ixx
@@ -639,6 +640,3 @@ if(BUILD_MAIN)
     endif()
   endif()
 endif()
-
-message(STATUS "\n\nCMAKE_CXX_SCAN_FOR_MODULES: ${CMAKE_CXX_SCAN_FOR_MODULES}\n\n")
-set(CMAKE_CXX_SCAN_FOR_MODULES OFF CACHE BOOL "Disable C++ module scanning")
