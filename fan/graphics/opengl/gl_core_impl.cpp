@@ -1,5 +1,6 @@
 module;
 
+#if defined(fan_opengl)
 #include <fan/graphics/opengl/init.h>
 
 #define __fan_internal_camera_list (*fan::graphics::ctx().camera_list)
@@ -7,11 +8,14 @@ module;
 #define __fan_internal_image_list (*fan::graphics::ctx().image_list)
 #define __fan_internal_viewport_list (*fan::graphics::ctx().viewport_list)
 
-#include <regex>
-#include <source_location>
-#include <sstream>
+  #include <regex>
+  #include <source_location>
+  #include <sstream>
+#endif
 
 module fan.graphics.opengl.core;
+
+#if defined(fan_opengl)
 
 namespace fan::opengl {
 
@@ -1314,7 +1318,6 @@ namespace fan::graphics {
   }
 }
 
-#if defined(fan_opengl)
 fan::opengl::context_t& fan::graphics::get_gl_context() {
   return (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)));
 }

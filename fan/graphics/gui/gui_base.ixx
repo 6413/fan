@@ -11,6 +11,10 @@ module;
   #include <functional>
 #endif
 
+#if defined(fan_vulkan)
+  #include <vulkan/vulkan.h>
+#endif
+
 export module fan.graphics.gui.base;
 
 #if defined(fan_gui)
@@ -454,7 +458,7 @@ export namespace fan::graphics::gui {
     int opengl_renderer_definition,  // todo bad
     int vulkan_renderer_definition  //  todo bad
   #if defined(fan_vulkan)
-    , VkDevice device = VK_NULL_HANDLE
+    , VkDevice device
   #endif
   );
   void shutdown_window_context();
@@ -467,7 +471,7 @@ export namespace fan::graphics::gui {
   );
 
 #if defined(fan_vulkan)
-  typedef void (*ImGuiFrameRenderFunc)(VkResult, fan::color);
+  typedef void (*ImGuiFrameRenderFunc)(void* context, VkResult, fan::color);
 #endif
 
   void render(
@@ -477,8 +481,9 @@ export namespace fan::graphics::gui {
     bool render_shapes_top
   #if defined(fan_vulkan)
     ,
-    VkClearColorValue clear_color,
-    VkImageError& image_error,
+    void* context,
+    const fan::color& clear_color,
+    VkResult& image_error,
     VkCommandBuffer& cmd_buffer,
     ImGuiFrameRenderFunc render_func
   #endif

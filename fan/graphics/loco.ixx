@@ -2,6 +2,10 @@ module;
 
 #include <fan/graphics/opengl/init.h>
 
+#if defined(fan_vulkan)
+  #include <vulkan/vulkan.h>
+#endif
+
 #define loco_framebuffer
 #define loco_post_process
 #define loco_vfi
