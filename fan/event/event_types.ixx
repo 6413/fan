@@ -1,12 +1,14 @@
 module;
 
+#include <coroutine>
+#include <memory>
+#include <exception>
+
 #include <uv.h>
 #undef min
 #undef max
 
 export module fan.event:types;
-
-import std;
 
 export namespace fan{
   constexpr int fs_o_append      = UV_FS_O_APPEND;

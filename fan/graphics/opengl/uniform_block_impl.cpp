@@ -1,6 +1,7 @@
 module;
 
 #include <cstdint>
+#include <algorithm>
 
 module fan.graphics.opengl.uniform_block;
 

@@ -20,13 +20,14 @@ module;
 #include <GLFW/glfw3native.h>
 
 #include <functional>
+#include <cstdlib>
 
 export module fan.window;
 
-import std;
 import fan.print;
 export import fan.graphics.image_load;
 export import fan.window.input_common;
+export import fan.window.input_action;
 
 export import fan.types.vector;
 

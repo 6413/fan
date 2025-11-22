@@ -76,27 +76,32 @@ loco_responsive_text
 #undef min
 #undef max
 
-export module fan.graphics.loco;
+#include <source_location>
+#include <deque>
+#include <cstdlib>
+#include <sstream>
+#include <set>
+#include <iostream>
 
-import std;
+#if defined(fan_std23)
+  #include <stacktrace>
+#endif
+
+export module fan.graphics.loco;
 
 import fan.utility;
 #if defined(fan_gui)
   import fan.graphics.gui.text_logger;
 #endif
-export import fan.fmt;
 
 export import fan.event;
-export import fan.file_dialog;
 
 export import fan.window;
-export import fan.window.input_action;
 export import fan.types.color;
 export import fan.random;
 export import fan.texture_pack.tp0;
 
 export import fan.io.file;
-export import fan.types.fstring;
 
 #if defined(fan_physics)
 	import fan.physics.b2_integration;
@@ -110,8 +115,6 @@ export import fan.types.fstring;
 #if defined(fan_gui)
 	export import fan.console;
 #endif
-
-import fan.graphics.webp;
 
 export import fan.graphics.opengl.core;
 

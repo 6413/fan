@@ -5,6 +5,10 @@ module;
 #include <cstdlib>
 #include <cstring>
 #include <source_location>
+#include <memory>
+#include <fstream>
+#include <string>
+#include <sstream>
 
 #include <fan/graphics/opengl/init.h>
 
@@ -15,6 +19,7 @@ import fan.graphics.webp;
 import fan.graphics.opengl.core;
 import fan.io.file;
 import fan.types.fstring;
+import fan.types.vector;
 
 export namespace fan::graphics {
   struct texture_pack {

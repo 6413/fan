@@ -1,7 +1,20 @@
 // This file is meant to stay up-to-date. More library usage will be implemented and showcased over time
 #include <fan/utility.h> // OFFSETLESS
 
-import std;
+#if !defined(fan_gui)
+#ERRERER
+#endif
+
+#include <vector>
+#include <string>
+#include <array>////
+#include <mutex>
+#include <atomic>
+#include <cmath>
+#include <coroutine>
+#include <functional>
+#include <filesystem>
+//
 import fan;
 
 // include macro extensions after import fan;
@@ -1690,7 +1703,7 @@ struct library_usage_t {
           fan::print("resized");
         }
         void update() {
-          //fan::print("update");
+          fan::print("update");
         }
       };
       stage_loader_t* stage_loader;
@@ -1707,12 +1720,12 @@ struct library_usage_t {
       void update() {
         fan::graphics::gui::text("Custom stage running");
       }
-    };
+    };//
   };
   //-------------------------------------------------------------------
-};
+};//
 
-int main() {
+int main() {////
   engine_demo_t demo;
 
   fan_window_loop{

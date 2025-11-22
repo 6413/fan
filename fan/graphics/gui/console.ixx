@@ -5,11 +5,12 @@ module;
   #include <fan/imgui/text_editor.h>
 #endif
 
+#include <functional>
+#include <vector>
+
 export module fan.console;
 
 #if defined(fan_gui)
-
-import std;
 
 export import fan.types.color;
 

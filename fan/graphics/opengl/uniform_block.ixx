@@ -2,9 +2,11 @@ module;
 
 #include <fan/utility.h>
 
+#include <cstdlib>
+#include <functional>
+
 export module fan.graphics.opengl.uniform_block;
 
-import std;
 import fan.graphics.opengl.core;
 
 namespace detail{

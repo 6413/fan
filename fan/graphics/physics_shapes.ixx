@@ -8,11 +8,11 @@ module;
   #include <fan/types/bll_raii.h>
 #endif
 
+#include <source_location>
+
 export module fan.graphics.physics_shapes;
 
 #if defined(fan_physics)
-
-import std;
 
 import fan.types.vector;
 import fan.types.color;

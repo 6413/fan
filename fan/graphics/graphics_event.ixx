@@ -1,8 +1,10 @@
 module;
 
+#include <functional>
+#include <string>
+
 export module fan.graphics.event;
 
-import std;
 import fan.event;
 import fan.types.vector;
 import fan.graphics;

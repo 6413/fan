@@ -4,7 +4,9 @@ module;
 #include <fan/graphics/opengl/init.h>
 #include <fan/event/types.h>
 
-import std;
+#include <coroutine>
+#include <source_location>
+#include <unordered_set>
 
 #define loco_vfi
 #define loco_line

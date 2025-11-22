@@ -4,6 +4,12 @@ module;
   #include <fan/graphics/opengl/init.h>
 #endif
 
+#include <source_location>
+#include <cmath>
+#include <string>
+#include <cstdlib>
+#include <fstream>
+
 #define shaper_get_key_safe(return_type, kps_type, variable) \
 	[key_pack] ()-> auto& { \
 		auto o = g_shapes->shaper.GetKeyOffset( \
@@ -1270,6 +1276,7 @@ namespace fan::graphics{
 			break;
 		}
 		}
+    return false;
 	}
 
 #if defined(fan_physics)

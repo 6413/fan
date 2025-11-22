@@ -1,7 +1,14 @@
+module;
+
+#include <cstdint>
+#include <source_location>
+#include <cstddef>
+#include <string>
+
 export module fan.graphics.webp;
 
-import std;
 import fan.types.vector;
+
 
 export namespace fan {
   namespace webp {

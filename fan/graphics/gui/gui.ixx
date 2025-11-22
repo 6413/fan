@@ -10,7 +10,13 @@ module;
   #include <fan/imgui/implot.h>
 #endif
 
-import std;
+#include <string>
+#include <ios>
+#include <functional>
+#include <filesystem>
+#include <queue>
+#include <cmath>
+#include <algorithm>
 
 export module fan.graphics.gui;
 
@@ -369,11 +375,16 @@ export namespace fan::graphics::gui {
 
   template<typename T>
   bool drag(const std::string& label, T* v, f32_t v_speed = 1.f, f32_t v_min = 0, f32_t v_max = 0, ImGuiSliderFlags flags = 0) {
+    T min_val = static_cast<T>(std::round(v_min));
+    T max_val = static_cast<T>(std::round(v_max));
+
+    min_val = std::clamp(min_val, std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+    max_val = std::clamp(max_val, std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+
+    min_val = std::min(min_val, max_val);
+    max_val = std::max(min_val, max_val);
     if constexpr (get_component_count<T>() == 1) {
-      T speed_val = static_cast<T>(v_speed);
-      T min_val = static_cast<T>(v_min);
-      T max_val = static_cast<T>(v_max);
-      return ImGui::DragScalar(label.c_str(), get_imgui_data_type<T>(), v, speed_val, &min_val, &max_val, get_default_format<T>(), flags);
+      return ImGui::DragScalar(label.c_str(), get_imgui_data_type<T>(), v, v_speed, &min_val, &max_val, get_default_format<T>(), flags);
     }
     else {
       using component_type = component_type_t<T>;

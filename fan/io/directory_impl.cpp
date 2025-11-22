@@ -2,6 +2,8 @@ module;
 
 #include <string>
 #include <filesystem>
+#include <algorithm>
+#include <functional>
 
 module fan.io.directory;
 

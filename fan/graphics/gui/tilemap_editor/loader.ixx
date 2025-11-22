@@ -9,6 +9,8 @@ module;
 #include <string>
 #include <variant>
 #include <source_location>
+#include <sstream>
+#include <fstream>
 
 #endif
 

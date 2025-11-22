@@ -8,6 +8,8 @@ module;
 #include <string>
 #include <vector>
 #include <source_location>
+#include <sstream>
+#include <fstream>
 
 export module fan.graphics.gui.tilemap_editor.editor;
 

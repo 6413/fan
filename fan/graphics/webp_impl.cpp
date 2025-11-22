@@ -5,6 +5,10 @@ module;
 #include <webp/decode.h>
 
 #include <source_location>
+#include <string>
+#include <cstddef>
+#include <sstream>
+#include <fstream>
 
 module fan.graphics.webp;
 

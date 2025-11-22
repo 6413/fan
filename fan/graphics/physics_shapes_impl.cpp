@@ -5,6 +5,10 @@ module;
   #include <box2d/box2d.h>
 #endif
 
+#include <vector>
+#include <utility>
+#include <functional>
+
 module fan.graphics.physics_shapes;
 
 #if defined(fan_physics)

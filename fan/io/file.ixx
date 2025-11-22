@@ -9,9 +9,15 @@ module;
   #include <limits.h>
 #endif
 
+#include <fstream>
+#include <string>
+#include <iostream>
+#include <filesystem>
+#include <source_location>
+
+
 export module fan.io.file;
 
-import std;
 import fan.print;
 
 export namespace fan {

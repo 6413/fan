@@ -2,6 +2,7 @@ module;
 
 #include <cstdint>
 #include <cmath>
+#include <functional>
 
 module fan.graphics.algorithm.raycast_grid;
 

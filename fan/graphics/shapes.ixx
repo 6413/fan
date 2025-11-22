@@ -2,14 +2,17 @@ module;
 
 #include <fan/utility.h>
 
-#if defined(fan_opengl)
-  #include <fan/graphics/opengl/init.h>
-#endif
+ #include <fan/graphics/opengl/init.h>
+
+#include <source_location>
+#include <cstdlib>
+#include <utility>
+#include <vector>
+#include <functional>
 
 export module fan.graphics.shapes;
 
-import std;
-
+import fan.graphics.opengl.core;
 import fan.types.vector;
 import fan.texture_pack.tp0;
 import fan.graphics.common_context;
@@ -322,6 +325,19 @@ export namespace fan::graphics {
     };
   };
 
+  template <typename... Ts>
+  struct last_sizeof;
+
+  template <typename T>
+  struct last_sizeof<T> {
+    static constexpr uintptr_t value = sizeof(T);
+  };
+
+  template <typename T, typename... Rest>
+  struct last_sizeof<T, Rest...> {
+    static constexpr uintptr_t value = last_sizeof<Rest...>::value;
+  };
+
   struct shapes {
     struct shape_t;
     
@@ -351,8 +367,9 @@ export namespace fan::graphics {
 
       constexpr uintptr_t count = (!!(sizeof(Ts) + 1) + ...);
       static_assert(count % 2 == 0);
-      constexpr uintptr_t last_sizeof = (static_cast<uintptr_t>(0), ..., sizeof(Ts));
-      uintptr_t LastKeyOffset = s - last_sizeof - 1;
+      constexpr uintptr_t last_sizeof_v = last_sizeof<Ts...>::value;
+
+      uintptr_t LastKeyOffset = s - last_sizeof_v - 1;
       fan::graphics::g_shapes->shaper.PrepareKeysForAdd(&a, LastKeyOffset);
       return fan::graphics::g_shapes->shaper.add(sti, &a, s, &rd, &d);
     }

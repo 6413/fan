@@ -1,6 +1,10 @@
-export module fan.graphics.stb;
+module;
 
-import std;
+#include <cstdint>
+#include <source_location>
+#include <string>
+
+export module fan.graphics.stb;
 
 import fan.types.vector;
 

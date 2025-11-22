@@ -1,4 +1,6 @@
 module;
+
+
 #if defined(fan_gui)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_internal.h>
@@ -6,9 +8,9 @@ module;
   #include <fan/imgui/implot.h>
 #endif
 
-export module fan.graphics.gui:types;
+#include <string>
 
-import std;
+export module fan.graphics.gui:types;
 
 #if defined(fan_gui)
 export namespace fan::graphics::gui {

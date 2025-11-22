@@ -1,7 +1,7 @@
 module;
 
 #include <fan/utility.h>
-#include <stdio.h>
+#include <cstdio>
 
 #if defined(fan_platform_windows)
   #include <Windows.h>
@@ -9,6 +9,11 @@ module;
   #include <unistd.h>
   #include <limits.h>
 #endif
+
+#include <string>
+#include <fstream>
+#include <source_location>
+#include <filesystem>
 
 module fan.io.file;
 

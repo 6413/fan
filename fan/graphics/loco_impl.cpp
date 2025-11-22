@@ -24,6 +24,15 @@ module;
 #undef min
 #undef max
 
+#include <source_location>
+#include <cstdlib>
+#include <cmath>
+#include <fstream>
+
+#if defined(fan_std23)
+  #include <stacktrace>
+#endif
+
 //TODO REMOVE
 #ifndef camera_list
 #define __fan_internal_camera_list (*(fan::graphics::camera_list_t*)fan::graphics::get_camera_list((uint8_t*)&gloco->context))
@@ -42,6 +51,10 @@ module;
 #endif
 
 module fan.graphics.loco;
+
+#if defined(fan_fmt)
+  import fan.fmt;
+#endif
 
 #if defined(fan_json)
 namespace fan {

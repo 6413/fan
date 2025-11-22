@@ -1,8 +1,10 @@
 module;
 
+#include <functional>
+#include <vector>
+
 export module fan.graphics.algorithm.raycast_grid;
 
-import std;
 import fan.types.vector;
 import fan.utility;
 import fan.graphics.common_types;

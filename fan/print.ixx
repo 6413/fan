@@ -2,32 +2,23 @@ module;
 
 #include <fan/utility.h>
 
-// With windows clang build there can be msvc and clang both defined
-#if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
-
-#else
-
+#include <sstream>
 #include <iostream>
 #include <string>
 #include <string_view>
-//#include <stacktrace>
-#include <sstream>
+#if defined(fan_std23)
+  #include <stacktrace>
+#endif
 #include <ostream>
 #include <iomanip>
 #include <unordered_map>
 #include <chrono>
-
-#endif
 
 export module fan.print;
 
 import fan.utility;
 // for colored prints
 import fan.types.color;
-
-#if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
-import std;
-#endif
 
 export namespace fan {
   template <typename ...Args>
