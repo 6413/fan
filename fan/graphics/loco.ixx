@@ -246,6 +246,7 @@ export namespace fan::graphics {
 
 //#include <fan/graphics/vulkan/ssbo.h>
 export struct loco_t {
+  fan::window_t window; // destruct last
 
   bool initialize_lists();
   uint8_t get_renderer();
@@ -583,8 +584,6 @@ public:
 
 	fan::graphics::render_view_t orthographic_render_view;
 	fan::graphics::render_view_t perspective_render_view;
-
-	fan::window_t window;
 
   fan::graphics::shapes shapes;
 
