@@ -966,13 +966,13 @@ export namespace fan::graphics {
     fan::vec2 get_size() const;
     fan::vec2 get_viewport_size() const;
 
-    f32_t zoom;
-    bool ignore;
-    bool zoom_on_window_resize;
-    bool pan_with_middle_mouse;
-    bool clicked_inside_viewport;
-    fan::vec2 old_window_size;
-    fan::vec2 camera_offset;
+    f32_t zoom = 1;
+    bool ignore = false;
+    bool zoom_on_window_resize = true;
+    bool pan_with_middle_mouse = false;
+    bool clicked_inside_viewport = false;
+    fan::vec2 old_window_size{};
+    fan::vec2 camera_offset{};
     fan::graphics::camera_t reference_camera;
     fan::graphics::viewport_t reference_viewport;
     fan::window_t::resize_callback_NodeReference_t resize_callback_nr;

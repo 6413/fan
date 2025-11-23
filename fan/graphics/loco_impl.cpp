@@ -338,9 +338,6 @@ void loco_t::camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offse
 }
 
 void loco_t::camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
-  f32_t screen_height = window.get_size()[1];
-  f32_t pixels_from_bottom = 400.0f;
-
   fan::vec2 src = camera_get_position(orthographic_render_view.camera);
   camera_set_position(
     orthographic_render_view.camera,
@@ -1921,6 +1918,10 @@ fan::physics::physics_update_cbs_t::nr_t loco_t::add_physics_update(const fan::p
   auto it = shape_physics_update_cbs.NewNodeLast();
   shape_physics_update_cbs[it] = (fan::physics::physics_update_data_t)cb_data;
   return it;
+}
+
+fan::physics::physics_update_cbs_t::nd_t& loco_t::get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr) {
+  return shape_physics_update_cbs[nr];
 }
 
 void loco_t::remove_physics_update(fan::physics::physics_update_cbs_t::nr_t nr) {

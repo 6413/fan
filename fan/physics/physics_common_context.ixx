@@ -16,6 +16,7 @@ export namespace fan::physics {
   struct physics_update_data_t {
     uint64_t shape_id;
     fan::vec2 draw_offset = 0;
+    bool sync_visual_angle = true;
     uint64_t body_id;
     void* cb;
   };

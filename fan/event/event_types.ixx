@@ -206,6 +206,13 @@ struct task_value_wrap_t<void, suspend_type_t> {
       std::rethrow_exception(p.exception);
     }
   }
+
+  bool valid() const {
+    return owner && !owner->h.done();
+  }
+  void destroy() {
+    *this = {};
+  }
 };
 
 template<typename T, typename suspend_t>

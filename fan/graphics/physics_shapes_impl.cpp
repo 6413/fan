@@ -225,7 +225,9 @@ namespace fan::graphics::physics {
 
     fan::graphics::shape_t& shape = *(fan::graphics::shape_t*)&data.shape_id;
     shape.set_position(fan::vec2((p)*fan::physics::length_units_per_meter + data.draw_offset));
-    shape.set_angle(fan::vec3(0, 0, radians));
+    if (data.sync_visual_angle) {
+      shape.set_angle(fan::vec3(0, 0, radians));
+    }
     b2ShapeId id[1];
     if ( b2Body_GetShapes(*(b2BodyId*)&data.body_id, id, 1) ) {
       auto aabb = b2Shape_GetAABB(id[0]);
@@ -430,9 +432,16 @@ namespace fan::graphics::physics {
     return get_mass_data().mass;
   }
 
+  fan::vec2 base_shape_t::get_draw_offset() const {
+    return (*fan::physics::gphysics->physics_updates)[physics_update_nr].draw_offset;
+  }
   void base_shape_t::set_draw_offset(fan::vec2 new_draw_offset) {
     draw_offset = new_draw_offset;
     (*fan::physics::gphysics->physics_updates)[physics_update_nr].draw_offset = new_draw_offset;
+  }
+
+  void base_shape_t::sync_visual_angle(bool flag) {
+    (*fan::physics::gphysics->physics_updates)[physics_update_nr].sync_visual_angle = flag;
   }
 
   fan::vec3 base_shape_t::get_position() const {
@@ -826,6 +835,10 @@ namespace fan::graphics::physics {
     return false;
   }
 
+  bool character2d_t::is_on_ground() const {
+    return is_on_ground(*this, std::to_array(feet), jumping);
+  }
+
   void character2d_t::process_movement(uint8_t movement, f32_t friction) {
     fan::vec2 velocity = get_linear_velocity();
 
@@ -836,7 +849,7 @@ namespace fan::graphics::physics {
 
     switch (movement) {
     case movement_e::side_view: {
-      bool on_ground = is_on_ground(*this, std::to_array(feet), jumping);
+      bool on_ground = is_on_ground();
       f32_t air_control_multiplier = on_ground ? 1.0f : 0.8f;
       move_to_direction(fan::vec2(input_vector.x, 0) * air_control_multiplier);
 
@@ -905,12 +918,14 @@ namespace fan::graphics::physics {
     fan::vec2 input_dir = direction.sign();
     fan::vec2 vel = get_linear_velocity();
 
+    f32_t dt = fan::physics::default_physics_timestep;
+
     if (input_dir.x != 0) {
-      vel.x += input_dir.x * force;
+      vel.x += input_dir.x * force * dt * 100.f;
       vel.x = fan::math::clamp(vel.x, -max_speed, max_speed);
     }
     else {
-      f32_t deceleration_factor = 0.05f;
+      f32_t deceleration_factor = 0.1f * dt * 100.f;
       vel.x = fan::math::lerp(vel.x, 0.f, deceleration_factor);
     }
 
@@ -1017,6 +1032,43 @@ namespace fan::graphics::physics {
         return;
       }
     }
+  }
+
+  fan::graphics::physics::character2d_t fan::graphics::physics::character2d_t::from_json(
+    const fan::graphics::physics::character2d_t::character_config_t& config,
+    const std::source_location& callers_path
+  ) {
+
+    fan::json json_data = fan::graphics::read_json(config.json_path, callers_path);
+    fan::graphics::parse_animations(json_data, callers_path);
+
+    auto shape = fan::graphics::extract_single_shape(json_data, callers_path);
+    fan::graphics::physics::character2d_t character;
+    character.set_shape(std::move(shape));
+    character.set_physics_body(
+      fan::graphics::physics::character_capsule(
+        character,
+        config.aabb_scale,
+        config.physics_properties
+      )
+    );
+
+    if (config.auto_draw_offset && config.draw_offset_override == fan::vec2(0, 0)) {
+      fan::vec2 size = character.get_size();
+      character.set_draw_offset(fan::vec2(0, -size.y * 0.3f));
+    }
+    else if (config.draw_offset_override != fan::vec2(0, 0)) {
+      character.set_draw_offset(config.draw_offset_override);
+    }
+
+    if (config.auto_animations) {
+      character.setup_default_animations();
+    }
+
+    character.enable_default_movement(config.movement_type);
+    character.start_sprite_sheet_animation();
+
+    return character;
   }
 
   character2d_t::movement_callback_handle_t character2d_t::add_movement_callback(std::function<void(character2d_t*)> fn) {

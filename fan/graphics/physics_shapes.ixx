@@ -110,7 +110,11 @@ export namespace fan {
 
         f32_t get_mass() const;
 
+        fan::vec2 get_draw_offset() const;
         void set_draw_offset(fan::vec2 new_draw_offset);
+
+        // set whether to sync angle given by collisions or manually adjust it visually 
+        void sync_visual_angle(bool flag);
 
         fan::vec3 get_position() const;
 
@@ -449,6 +453,7 @@ export namespace fan {
         void set_physics_body(fan::physics::entity_t&& entity);
         void update_animation();
         static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping);
+        bool is_on_ground() const;
         void process_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12);
         void move_to_direction(const fan::vec2& direction);
         void set_physics_position(const fan::vec2& p);

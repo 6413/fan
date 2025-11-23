@@ -868,7 +868,7 @@ namespace fan::graphics{
 	}
 #endif
 
-	fan::vec2 shapes::shape_t::get_tc_position() {
+	fan::vec2 shapes::shape_t::get_tc_position() const {
 		return g_shapes->shape_functions[get_shape_type()].get_tc_position(this);
 	}
 
@@ -877,7 +877,7 @@ namespace fan::graphics{
 		g_shapes->shape_functions[st].set_tc_position(this, tc_position);
 	}
 
-	fan::vec2 shapes::shape_t::get_tc_size() {
+	fan::vec2 shapes::shape_t::get_tc_size() const {
 		return g_shapes->shape_functions[get_shape_type()].get_tc_size(this);
 	}
 
@@ -971,7 +971,7 @@ namespace fan::graphics{
 		return g_shapes->shape_functions[get_shape_type()].get_image_data(this);
 	}
 
-	std::array<fan::graphics::image_t, 30> shapes::shape_t::get_images() {
+	std::array<fan::graphics::image_t, 30> shapes::shape_t::get_images() const {
 		auto shape_type = get_shape_type();
 		if (shape_type == shape_type_t::sprite) {
 			return ((sprite_t::ri_t*)ShapeID_t::GetData(fan::graphics::g_shapes->shaper))->images;
@@ -1007,7 +1007,7 @@ namespace fan::graphics{
 	#endif
 	}
 
-	f32_t shapes::shape_t::get_parallax_factor() {
+	f32_t shapes::shape_t::get_parallax_factor() const {
 		return g_shapes->shape_functions[get_shape_type()].get_parallax_factor(this);
 	}
 
@@ -1015,7 +1015,7 @@ namespace fan::graphics{
 		g_shapes->shape_functions[get_shape_type()].set_parallax_factor(this, parallax_factor);
 	}
 
-	uint32_t shapes::shape_t::get_flags() {
+	uint32_t shapes::shape_t::get_flags() const {
 		auto f = g_shapes->shape_functions[get_shape_type()].get_flags;
 		if (f) {
 			return f(this);
@@ -1335,6 +1335,10 @@ namespace fan::graphics{
 	}
 #endif
 
+  fan::vec2 shapes::shape_t::get_image_sign() const {
+    return get_tc_size().sign();
+  }
+
 	void shapes::shape_t::add_existing_animation(animation_nr_t nr) {
 		if (get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
 			auto& ri = shape_get_ri(sprite);
@@ -1404,8 +1408,7 @@ namespace fan::graphics{
 				frame_x * tc_size.x,
 				frame_y * tc_size.y
 			));
-			fan::vec2 sign = get_tc_size().sign();
-			set_tc_size(tc_size * sign);
+			set_tc_size(tc_size * get_image_sign());
 		}
 		else {
 			fan::throw_error("Unimplemented for this shape");

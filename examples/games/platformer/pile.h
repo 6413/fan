@@ -18,9 +18,8 @@ struct pile_t {
     engine.physics_context.step(engine.delta_time);
 
     //player updates
-    engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
+    engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position() - player.body.get_draw_offset(), 0);
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
-
     // physics step
   }
   fan::graphics::engine_t engine;
