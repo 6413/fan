@@ -812,6 +812,7 @@ public:
 	fan::physics::context_t physics_context{ {} };
   void update_physics();
   fan::physics::physics_update_cbs_t::nr_t add_physics_update(const fan::physics::physics_update_data_t& cb_data);
+  fan::physics::physics_update_cbs_t::nd_t& get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr);
   void remove_physics_update(fan::physics::physics_update_cbs_t::nr_t nr);
 	
 	fan::physics::physics_update_cbs_t shape_physics_update_cbs;

@@ -482,9 +482,9 @@ export namespace fan::graphics {
     #if defined(fan_physics)
       fan::physics::aabb_t get_aabb() const;
     #endif
-      fan::vec2 get_tc_position();
+      fan::vec2 get_tc_position() const;
       void set_tc_position(const fan::vec2& tc_position);
-      fan::vec2 get_tc_size();
+      fan::vec2 get_tc_size() const;
       void set_tc_size(const fan::vec2& tc_size);
       bool load_tp(fan::graphics::texture_pack::ti_t* ti);
       fan::graphics::texture_pack::ti_t get_tp();
@@ -500,11 +500,11 @@ export namespace fan::graphics {
       fan::graphics::image_t get_image() const;
       void set_image(fan::graphics::image_t image);
       fan::graphics::image_data_t& get_image_data();
-      std::array<fan::graphics::image_t, 30> get_images();
+      std::array<fan::graphics::image_t, 30> get_images() const;
       void set_images(const std::array<fan::graphics::image_t, 30>& images);
-      f32_t get_parallax_factor();
+      f32_t get_parallax_factor() const;
       void set_parallax_factor(f32_t parallax_factor);
-      uint32_t get_flags();
+      uint32_t get_flags() const;
       void set_flags(uint32_t flag);
       f32_t get_radius() const;
       fan::vec3 get_src() const;
@@ -524,6 +524,8 @@ export namespace fan::graphics {
       bool point_inside(const fan::vec2& point) const;
       bool collides(const fan::vec2& point) const;
     #endif
+      // Returns the sign (+1 or −1) of each UV axis, indicating their orientation.
+      fan::vec2 get_image_sign() const;
       void add_existing_animation(animation_nr_t nr);
       bool is_animation_finished(animation_nr_t nr) const;
       void reset_current_sprite_sheet_animation();

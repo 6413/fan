@@ -4,6 +4,8 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <coroutine>
+#include <array>
 
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
@@ -11,7 +13,7 @@ import fan.graphics.gui.tilemap_editor.renderer;
 #include "pile.h"
 
 int main() {
-  pile = (pile_t*)malloc(sizeof(pile_t));
+  pile = (pile_t*)std::malloc(sizeof(pile_t));
   std::construct_at(pile);
   pile->engine.loop();
 }
