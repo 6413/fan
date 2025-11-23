@@ -9,6 +9,7 @@ module;
   #include <string>
   #include <string>
   #include <functional>
+  #include <cstdint>
 #endif
 
 #if defined(fan_vulkan)
