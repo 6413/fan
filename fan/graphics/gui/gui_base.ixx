@@ -167,14 +167,14 @@ export namespace fan::graphics::gui {
 
   template<typename T>
   constexpr data_type_t get_imgui_data_type() {
-    if constexpr (std::is_same_v<T, int8_t>) return ImGuiDataType_S8;
-    else if constexpr (std::is_same_v<T, uint8_t>) return ImGuiDataType_U8;
-    else if constexpr (std::is_same_v<T, int16_t>) return ImGuiDataType_S16;
-    else if constexpr (std::is_same_v<T, uint16_t>) return ImGuiDataType_U16;
-    else if constexpr (std::is_same_v<T, int32_t> || std::is_same_v<T, int>) return ImGuiDataType_S32;
-    else if constexpr (std::is_same_v<T, uint32_t>) return ImGuiDataType_U32;
-    else if constexpr (std::is_same_v<T, int64_t>) return ImGuiDataType_S64;
-    else if constexpr (std::is_same_v<T, uint64_t>) return ImGuiDataType_U64;
+    if constexpr (std::is_same_v<T, std::int8_t>) return ImGuiDataType_S8;
+    else if constexpr (std::is_same_v<T, std::uint8_t>) return ImGuiDataType_U8;
+    else if constexpr (std::is_same_v<T, std::int16_t>) return ImGuiDataType_S16;
+    else if constexpr (std::is_same_v<T, std::uint16_t>) return ImGuiDataType_U16;
+    else if constexpr (std::is_same_v<T, std::int32_t> || std::is_same_v<T, int>) return ImGuiDataType_S32;
+    else if constexpr (std::is_same_v<T, std::uint32_t>) return ImGuiDataType_U32;
+    else if constexpr (std::is_same_v<T, std::int64_t>) return ImGuiDataType_S64;
+    else if constexpr (std::is_same_v<T, std::uint64_t>) return ImGuiDataType_U64;
     else if constexpr (std::is_same_v<T, f32_t>) return ImGuiDataType_Float;
     else if constexpr (std::is_same_v<T, double>) return ImGuiDataType_Double;
     else static_assert(false, "Unsupported type for ImGui");

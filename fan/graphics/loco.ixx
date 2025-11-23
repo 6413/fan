@@ -1,41 +1,18 @@
 module;
 
-#include <fan/graphics/opengl/init.h>
-
-#if defined(fan_vulkan)
-  #include <vulkan/vulkan.h>
-#endif
-
 #define loco_framebuffer
 #define loco_post_process
 #define loco_vfi
 
-#define loco_physics
-
-/*
-loco_line
-loco_rectangle
-loco_sprite
-loco_light
-loco_circle
-loco_responsive_text
-*/
-
-#include <fan/types/bll_raii.h>
-
-#define loco_opengl
-
-// shaper
-
-#if defined(fan_compiler_msvc)
-	#ifndef fan_std23
-		#define fan_std23
-	#endif
+#include <fan/graphics/opengl/init.h>
+#if defined(fan_vulkan)
+  #include <vulkan/vulkan.h>
 #endif
-
+#include <fan/types/bll_raii.h>
 #include <fan/event/types.h>
 #include <uv.h>
-
+#undef min
+#undef max
 // +cuda
 #if __has_include("cuda.h")
 	//#include "cuda_runtime.h"
@@ -44,16 +21,12 @@ loco_responsive_text
 	//#define loco_cuda
 #endif
 
-#undef min
-#undef max
-
 #include <source_location>
 #include <deque>
 #include <cstdlib>
 #include <sstream>
 #include <set>
 #include <iostream>
-
 #if defined(fan_std23)
   #include <stacktrace>
 #endif
@@ -64,46 +37,34 @@ import fan.utility;
 #if defined(fan_gui)
   import fan.graphics.gui.text_logger;
 #endif
-
 export import fan.event;
-
 export import fan.window;
 export import fan.types.color;
 export import fan.random;
 export import fan.texture_pack.tp0;
-
 export import fan.io.file;
-
 #if defined(fan_physics)
 	import fan.physics.b2_integration;
   import fan.physics.common_context;
 #endif
-
 #if defined(fan_audio)
 	export import fan.audio;
 #endif
-
 #if defined(fan_gui)
   import fan.graphics.gui.base;
 	export import fan.console;
 #endif
-
 export import fan.graphics.opengl.core;
-
 #if defined(fan_vulkan)
 	export import fan.graphics.vulkan.core;
 #endif
-
 export import fan.graphics.shapes;
-
 export import fan.physics.collision.rectangle;
-
 export import fan.noise;
-
 #if defined(fan_json)
 	export import fan.types.json;
 #endif
-
+// include memory. after, it expands
 #include <fan/memory/memory.h>
 
 #if defined(fan_json)
@@ -148,22 +109,16 @@ export extern "C" {
 	extern __host__ cudaError_t CUDARTAPI cudaGraphicsGLRegisterImage(struct cudaGraphicsResource** resource, GLuint image, GLenum target, unsigned int flags);
 }
 #endif
-
 // -cuda
-
+// 
 //#define debug_shape_t
 
 export struct loco_t;
 
 // to set new loco use gloco = new_loco;
 struct global_loco_t {
-
 	loco_t* loco = nullptr;
-
-	operator loco_t* () {
-		return loco;
-	}
-
+	operator loco_t* () { return loco; }
 	global_loco_t& operator=(loco_t* l) {
 		loco = l;
 		return *this;
@@ -189,7 +144,6 @@ export namespace fan::graphics {
 
 		using init_callback_nr_t = init_callback_NodeReference_t;
 	};
-
 	// cbs called every time engine opens
 #if !defined(fan_compiler_msvc)
   inline 
@@ -199,12 +153,8 @@ export namespace fan::graphics {
 	uint32_t get_draw_mode(uint8_t internal_draw_mode);
 }
 
-//#include <fan/graphics/vulkan/ssbo.h>
 export struct loco_t {
   fan::window_t window; // destruct last
-
-  uint8_t get_renderer();
-
 // for shaper_get_* functions
 private:
 	using shader_t = fan::graphics::shader_nr_t;
@@ -216,6 +166,7 @@ public:
 
 	using image_sampler_address_mode = fan::graphics::image_sampler_address_mode;
 
+  uint8_t get_renderer();
   fan::graphics::shader_nr_t shader_create();
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr);
   void shader_erase(fan::graphics::shader_nr_t nr);
@@ -401,12 +352,10 @@ public:
 		}
 #endif
 	}
-
 public:
 
 	std::vector<std::function<void()>> m_pre_draw;
 	std::vector<std::function<void()>> m_post_draw;
-
 
 	struct properties_t {
 		bool render_shapes_top = false;
@@ -448,9 +397,7 @@ public:
   void close();
   void setup_input_callbacks();
 
-
-	// for renderer switch
-	// input fan::window_t::renderer_t::
+	// to change renderer, pass: fan::window_t::renderer_t::*
   void switch_renderer(std::uint8_t renderer);
   void draw_shapes();
   void process_shapes();
@@ -521,9 +468,7 @@ public:
   );
 
 	fan::window::input_action_t input_action;
-
 	fan::graphics::update_callback_t m_update_callback;
-
 	std::vector<std::function<void()>> single_queue;
 
 	#include "engine_images.h"
@@ -636,7 +581,6 @@ public:
 
 	using get_viewport_cb = fan::graphics::viewport_t(*)(const fan::graphics::shapes::shape_t*);
 	using set_viewport_cb = void (*)(fan::graphics::shapes::shape_t*, fan::graphics::viewport_t);
-
 
 	using get_image_cb = fan::graphics::image_t(*)(fan::graphics::shapes::shape_t*);
 	using set_image_cb = void (*)(fan::graphics::shapes::shape_t*, fan::graphics::image_t);
@@ -838,7 +782,6 @@ public:
 
 	// ShapeID_t must be at the beginning of fan::graphics::shapes::shape_t's memory since there are reinterpret_casts,
 	// which assume that
-
 
 	// pointer
 	using shape_shader_locations_t = decltype(fan::graphics::shaper_t::BlockProperties_t::gl_t::locations);

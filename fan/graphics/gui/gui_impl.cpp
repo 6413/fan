@@ -9,6 +9,7 @@ module;
 #include <coroutine>
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 module fan.graphics.gui;
 
@@ -687,7 +688,7 @@ namespace fan::graphics::gui {
           search_changed = true;
         }
 
-        if (search_changed || strcmp(old_search, search_buffer.data()) != 0) {
+        if (search_changed || std::strcmp(old_search, search_buffer.data()) != 0) {
           strcpy(old_search, search_buffer.data());
           start_search(search_buffer.data(), true);
         }
