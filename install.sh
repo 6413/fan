@@ -143,7 +143,7 @@ if [[ "$FORCE_REBUILD" == "true" ]] || [[ ! -f "$LIB_DIR/liblunasvg.a" ]]; then
     cmake -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
           -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
           -DBUILD_SHARED_LIBS=OFF \
-          -DLUNASVG_BUILD_EXAMPLES=OFF \
+          -DLUNASVG_BUILD_EXAMPLES=OFF .. \
     make -j$(nproc)
     make install
     cd ../..
