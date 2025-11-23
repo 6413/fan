@@ -242,9 +242,9 @@ if has_config("fan_gui") then
             "fan/imgui",
             "fan/imgui/misc/freetype",
             "thirdparty/fan/include",
-            "thirdparty/fan/include/freetype2"
+            "thirdparty/fan/include/freetype2",
 						"/usr/include/glib-2.0",           
-						"/usr/lib/glib-2.0/include"        
+						"/usr/lib/glib-2.0/include" 
         )
         
         add_files(
