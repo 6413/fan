@@ -63,12 +63,12 @@ if type(get_config) == "function" then
 end
 
 if os.isdir(llvm_sdk) then
-    add_cxxflags("-stdlib=libc++", "-I" .. llvm_sdk .. "/include/c++/v1", {force = true})
+    add_cxxflags("-stdlib=libstdc++", "-I" .. llvm_sdk .. "/include/c++/v1", {force = true})
     add_cxxflags("-resource-dir=" .. llvm_sdk .. "/lib/clang/20", {force = true})
     add_ldflags("-L" .. llvm_sdk .. "/lib", "-lc++", "-lc++abi", {force = true})
 else
-    add_cxxflags("-stdlib=libc++", {force = true})
-    add_ldflags("-stdlib=libc++ -lc++abi", {force = true})
+    add_cxxflags("-lstdc++", {force = true})
+    add_ldflags("-lstdc++", {force = true})
 end
 
 set_values("c++.modules.std", false)
