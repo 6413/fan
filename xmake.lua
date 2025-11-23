@@ -243,6 +243,8 @@ if has_config("fan_gui") then
             "fan/imgui/misc/freetype",
             "thirdparty/fan/include",
             "thirdparty/fan/include/freetype2"
+						"/usr/include/glib-2.0",           
+						"/usr/lib/glib-2.0/include"        
         )
         
         add_files(
@@ -302,6 +304,7 @@ if has_config("fan_gui") then
                 "/usr/include/blkid",
                 "/usr/include/glib-2.0",
                 "/usr/lib/x86_64-linux-gnu/glib-2.0/include"
+								"/usr/lib/glib-2.0/include"
             )
             
             add_links("gtk-3", "gdk-3", "pangocairo-1.0", "pango-1.0", 
