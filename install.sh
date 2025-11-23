@@ -144,11 +144,6 @@ if [[ "$FORCE_REBUILD" == "true" ]] || [[ ! -f "$LIB_DIR/liblunasvg.a" ]]; then
           -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
           -DBUILD_SHARED_LIBS=OFF \
           -DLUNASVG_BUILD_EXAMPLES=OFF \
-          -DCMAKE_C_COMPILER=/usr/bin/clang \
-          -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
-          -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-          -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libc++ -lc++abi" \
-          -DCMAKE_SHARED_LINKER_FLAGS="-stdlib=libc++ -lc++abi" ..
     make -j$(nproc)
     make install
     cd ../..
