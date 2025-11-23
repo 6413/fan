@@ -1,7 +1,7 @@
 set_project("fan")
 set_languages("cxx23")
 
-set_toolchains("clang-20")
+set_toolchains("clang")
 
 rule("mode.mode_none") rule_end()
 
@@ -56,7 +56,7 @@ if has_config("fan_fmt") then
 end
 
 -- LLVM SDK setup
-local llvm_sdk = "/usr/lib/llvm-20"
+local llvm_sdk = "/usr/lib/llvm"
 if type(get_config) == "function" then
     local cfgsdk = get_config("sdk")
     if cfgsdk and cfgsdk ~= "" then llvm_sdk = cfgsdk end
