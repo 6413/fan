@@ -127,7 +127,7 @@ export namespace fan {
       bool operator()(const b2BodyId& a, const b2BodyId& b) const;
     };
 
-    inline constexpr f32_t default_physics_timestep = 1.0 / 256.f;
+    inline constexpr f32_t default_physics_timestep = 1.0 / 244.f;
 
     struct shape_id_t : b2ShapeId {
       using b2ShapeId::b2ShapeId;
