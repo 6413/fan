@@ -20,7 +20,10 @@ module;
 #include <GLFW/glfw3native.h>
 
 #include <functional>
+#include <string>
 #include <algorithm>
+#include <cstring>
+#include <sstream>
 
 module fan.window;
 
@@ -333,7 +336,7 @@ namespace fan {
     if (key_states[fan::mouse_scroll_down] == 1) {
       key_states[fan::mouse_scroll_down] = 0;
     }
-    memcpy(prev_key_states, key_states, sizeof(key_states));
+    std::memcpy(prev_key_states, key_states, sizeof(key_states));
     for (std::size_t i = 0; i < std::size(key_states); ++i) {
       if (key_states[i] == GLFW_PRESS && prev_key_states[i] == GLFW_PRESS) {
         key_states[i] = GLFW_REPEAT;

@@ -7,6 +7,7 @@ module;
 #include <source_location>
 #include <cmath>
 #include <string>
+#include <cstring>
 #include <cstdlib>
 #include <fstream>
 

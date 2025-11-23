@@ -5,6 +5,7 @@ module;
 #include <chrono>
 #include <filesystem>
 #include <algorithm>
+#include <cstring>
 
 #include <uv.h>
 #undef min

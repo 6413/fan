@@ -21,6 +21,7 @@ module;
 
 #include <functional>
 #include <cstdlib>
+#include <string>
 
 export module fan.window;
 
@@ -339,7 +340,7 @@ export namespace fan {
       m_antialiasing_samples = samples;
 
       if (glfw_window != nullptr) {
-        fan::throw_error("Call before making window");
+        fan::throw_error_impl("Call before making window");
       }
     }
     void set_name(const std::string& name) {

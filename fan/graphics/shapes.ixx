@@ -9,6 +9,8 @@ module;
 #include <utility>
 #include <vector>
 #include <functional>
+#include <memory>
+#include <cstring>
 
 export module fan.graphics.shapes;
 

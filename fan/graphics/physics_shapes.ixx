@@ -9,6 +9,7 @@ module;
 #endif
 
 #include <source_location>
+#include <string>
 
 export module fan.graphics.physics_shapes;
 

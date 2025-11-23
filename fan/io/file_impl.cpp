@@ -14,6 +14,7 @@ module;
 #include <fstream>
 #include <source_location>
 #include <filesystem>
+#include <vector>
 
 module fan.io.file;
 
