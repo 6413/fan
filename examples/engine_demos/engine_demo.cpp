@@ -21,7 +21,7 @@ using menu_t = engine_t::settings_menu_t;
 
 struct engine_demo_t {
   engine_t engine{{ // initialize before everything
-    .renderer= fan::graphics::renderer_t::vulkan,
+    .renderer= fan::graphics::renderer_t::opengl,
   }};
 
   engine_demo_t() {
