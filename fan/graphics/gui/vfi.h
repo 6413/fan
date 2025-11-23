@@ -112,7 +112,7 @@ struct vfi_t {
         always_t() = default;
         using base_t = shape_data_always_t;
         always_t(shape_data_always_t& b) {
-          memcpy(data, &b, sizeof(base_t));
+          std::memcpy(data, &b, sizeof(base_t));
         }
         inline operator shape_data_always_t&() {
           return *(shape_data_always_t*)data;
@@ -132,7 +132,7 @@ struct vfi_t {
         rectangle_t() = default;
         using base_t = shape_data_rectangle_t;
         rectangle_t(shape_data_rectangle_t& b) {
-          memcpy(data, &b, sizeof(shape_data_rectangle_t));
+          std::memcpy(data, &b, sizeof(shape_data_rectangle_t));
         }
         operator shape_data_rectangle_t&() {
           return *(shape_data_rectangle_t*)data;
@@ -164,7 +164,7 @@ struct vfi_t {
         always_t() = default;
         using base_t = shape_properties_always_t;
         always_t(shape_properties_always_t& b) {
-          memcpy(data, &b, sizeof(base_t));
+          std::memcpy(data, &b, sizeof(base_t));
         }
         operator shape_properties_always_t&() {
           return *(shape_properties_always_t*)data;
@@ -184,7 +184,7 @@ struct vfi_t {
         rectangle_t() = default;
         using base_t = shape_properties_rectangle_t;
         rectangle_t(shape_properties_rectangle_t& b) {
-          memcpy(data, &b, sizeof(shape_properties_rectangle_t));
+          std::memcpy(data, &b, sizeof(shape_properties_rectangle_t));
         }
         operator shape_properties_rectangle_t& () {
           return *reinterpret_cast<shape_properties_rectangle_t*>(data);

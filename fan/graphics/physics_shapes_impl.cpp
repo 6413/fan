@@ -8,6 +8,9 @@ module;
 #include <vector>
 #include <utility>
 #include <functional>
+#include <string>
+#include <cstring>
+#include <source_location>
 
 module fan.graphics.physics_shapes;
 
