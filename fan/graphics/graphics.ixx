@@ -7,6 +7,7 @@ module;
 #include <coroutine>
 #include <source_location>
 #include <unordered_set>
+#include <algorithm>
 
 #define loco_vfi
 #define loco_line

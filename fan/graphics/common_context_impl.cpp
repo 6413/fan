@@ -3,6 +3,7 @@ module;
 #include <vector>
 #include <string>
 #include <source_location>
+#include <cstdint>
 
 module fan.graphics.common_context;
 
@@ -39,7 +40,7 @@ namespace fan::graphics {
   render_context_handle_t::operator void* () {
     return render_context;
   }
-  uint8_t render_context_handle_t::get_renderer() {
+  std::uint8_t render_context_handle_t::get_renderer() {
     return window->renderer;
   }
 
