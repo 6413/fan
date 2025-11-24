@@ -1054,7 +1054,7 @@ void main() {
     auto& data = *engine_demo->demo_algorithm_terrain_data;
     data.built_mesh.clear();
     data.noise.apply();
-    auto noise_data = data.noise.generate_data(data.noise_size);
+    //auto noise_data = data.noise.generate_data(data.noise_size);
     // wait for task to finish
     data.task_gen_mesh.stop_and_join();
     data.task_gen_mesh = fan::graphics::async_generate_mesh(
