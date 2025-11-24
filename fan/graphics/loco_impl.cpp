@@ -6,7 +6,7 @@ module;
 #include <fan/graphics/opengl/init.h>
 #if defined(fan_vulkan)
   // TODO REMOVE
-  #include <vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 #endif
 
 #include <uv.h>
@@ -17,22 +17,23 @@ module;
 #include <cstdlib>
 #include <cmath>
 #include <fstream>
+#include <sstream>
 
 #if defined(fan_std23)
   #include <stacktrace>
 #endif
 
-module fan.graphics.loco;
-
-#if defined(fan_fmt)
-  import fan.fmt;
+#if defined(fan_gui)
+  #include <iomanip>
 #endif
+
+module fan.graphics.loco;
 
 #if defined(fan_json)
 namespace fan {
   std::pair<size_t, size_t> json_stream_parser_t::find_next_json_bounds(std::string_view s, size_t pos) const noexcept {
     pos = s.find('{', pos);
-    if (pos == std::string::npos) return { pos, pos };
+    if (pos == std::string::npos) return {pos, pos};
 
     int depth = 0;
     bool in_str = false;
@@ -42,10 +43,10 @@ namespace fan {
       if (c == '"' && (i == 0 || s[i - 1] != '\\')) in_str = !in_str;
       else if (!in_str) {
         if (c == '{') depth++;
-        else if (c == '}' && --depth == 0) return { pos, i + 1 };
+        else if (c == '}' && --depth == 0) return {pos, i + 1};
       }
     }
-    return { pos, std::string::npos };
+    return {pos, std::string::npos};
   }
 
   std::vector<json_stream_parser_t::parsed_result> json_stream_parser_t::process(std::string_view chunk) {
@@ -62,10 +63,10 @@ namespace fan {
       }
 
       try {
-        results.push_back({ true, fan::json::parse(buf.data() + start, buf.data() + end - start), "" });
+        results.push_back({true, fan::json::parse(buf.data() + start, buf.data() + end - start), ""});
       }
       catch (const fan::json::parse_error& e) {
-        results.push_back({ false, fan::json{}, e.what() });
+        results.push_back({false, fan::json{}, e.what()});
       }
 
       pos = buf.find('{', end);
@@ -85,7 +86,7 @@ namespace fan {
   namespace graphics {
     namespace gui {
       void render_allocations_plot();
-      void process_loop();
+      void process_frame();
     }
   }
 }
@@ -120,11 +121,11 @@ fan::graphics::shader_nr_t loco_t::shader_create() {
 
 fan::graphics::context_shader_t loco_t::shader_get(fan::graphics::shader_nr_t nr) {
   fan::graphics::context_shader_t context_shader;
-  if ( window.renderer == fan::window_t::renderer_t::opengl ) {
+  if (window.renderer == fan::window_t::renderer_t::opengl) {
     context_shader.gl = *(fan::opengl::context_t::shader_t*)context_functions.shader_get(&context, nr);
   }
 #if defined(fan_vulkan)
-  else if ( window.renderer == fan::window_t::renderer_t::vulkan ) {
+  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
     context_shader.vk = *(fan::vulkan::context_t::shader_t*)context_functions.shader_get(&context, nr);
   }
 #endif 
@@ -152,11 +153,11 @@ bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
 }
 
 void loco_t::shader_set_camera(shader_t nr, camera_t camera_nr) {
-  if ( window.renderer == fan::window_t::renderer_t::opengl ) {
+  if (window.renderer == fan::window_t::renderer_t::opengl) {
     context.gl.shader_set_camera(nr, camera_nr);
   }
 #if defined(fan_vulkan)
-  else if ( window.renderer == fan::window_t::renderer_t::vulkan ) {
+  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
     fan::throw_error("todo");
   }
 #endif 
@@ -171,7 +172,7 @@ fan::graphics::shader_list_t::nd_t& loco_t::shader_get_data(uint16_t shape_type)
 }
 
 std::vector<uint8_t> loco_t::image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp, fan::vec2 uvs) {
-  if ( window.renderer == fan::window_t::renderer_t::opengl ) {
+  if (window.renderer == fan::window_t::renderer_t::opengl) {
     return context_functions.image_get_pixel_data(&context, nr, fan::opengl::context_t::global_to_opengl_format(image_format), uvp, uvs);
   }
   else {
@@ -186,11 +187,11 @@ fan::graphics::image_nr_t loco_t::image_create() {
 
 fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_nr_t nr) {
   fan::graphics::context_image_t img;
-  if ( window.renderer == fan::window_t::renderer_t::opengl ) {
+  if (window.renderer == fan::window_t::renderer_t::opengl) {
     img.gl = *(fan::opengl::context_t::image_t*)context_functions.image_get(&context, nr);
   }
 #if defined(fan_vulkan)
-  else if ( window.renderer == fan::window_t::renderer_t::vulkan ) {
+  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
     img.vk = *(fan::vulkan::context_t::image_t*)context_functions.image_get(&context, nr);
   }
 #endif 
@@ -430,48 +431,48 @@ void loco_t::camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_
   camera.velocity /= friction * dt + 1;
   static constexpr auto minimum_velocity = 0.001;
   static constexpr f32_t camera_rotate_speed = 100;
-  if ( camera.velocity.x < minimum_velocity && camera.velocity.x > -minimum_velocity ) {
+  if (camera.velocity.x < minimum_velocity && camera.velocity.x > -minimum_velocity) {
     camera.velocity.x = 0;
   }
-  if ( camera.velocity.y < minimum_velocity && camera.velocity.y > -minimum_velocity ) {
+  if (camera.velocity.y < minimum_velocity && camera.velocity.y > -minimum_velocity) {
     camera.velocity.y = 0;
   }
-  if ( camera.velocity.z < minimum_velocity && camera.velocity.z > -minimum_velocity ) {
+  if (camera.velocity.z < minimum_velocity && camera.velocity.z > -minimum_velocity) {
     camera.velocity.z = 0;
   }
 
   f64_t msd = (movement_speed * dt);
-  if ( gloco->window.key_pressed(fan::input::key_w) ) {
+  if (gloco->window.key_pressed(fan::input::key_w)) {
     camera.velocity += camera.m_front * msd;
   }
-  if ( gloco->window.key_pressed(fan::input::key_s) ) {
+  if (gloco->window.key_pressed(fan::input::key_s)) {
     camera.velocity -= camera.m_front * msd;
   }
-  if ( gloco->window.key_pressed(fan::input::key_a) ) {
+  if (gloco->window.key_pressed(fan::input::key_a)) {
     camera.velocity -= camera.m_right * msd;
   }
-  if ( gloco->window.key_pressed(fan::input::key_d) ) {
+  if (gloco->window.key_pressed(fan::input::key_d)) {
     camera.velocity += camera.m_right * msd;
   }
 
-  if ( gloco->window.key_pressed(fan::input::key_space) ) {
+  if (gloco->window.key_pressed(fan::input::key_space)) {
     camera.velocity.y += msd;
   }
-  if ( gloco->window.key_pressed(fan::input::key_left_shift) ) {
+  if (gloco->window.key_pressed(fan::input::key_left_shift)) {
     camera.velocity.y -= msd;
   }
 
   f64_t rotate = camera.sensitivity * camera_rotate_speed * gloco->delta_time;
-  if ( gloco->window.key_pressed(fan::input::key_left) ) {
+  if (gloco->window.key_pressed(fan::input::key_left)) {
     camera.set_yaw(camera.get_yaw() - rotate);
   }
-  if ( gloco->window.key_pressed(fan::input::key_right) ) {
+  if (gloco->window.key_pressed(fan::input::key_right)) {
     camera.set_yaw(camera.get_yaw() + rotate);
   }
-  if ( gloco->window.key_pressed(fan::input::key_up) ) {
+  if (gloco->window.key_pressed(fan::input::key_up)) {
     camera.set_pitch(camera.get_pitch() + rotate);
   }
-  if ( gloco->window.key_pressed(fan::input::key_down) ) {
+  if (gloco->window.key_pressed(fan::input::key_down)) {
     camera.set_pitch(camera.get_pitch() - rotate);
   }
 
@@ -686,13 +687,10 @@ void loco_t::generate_commands(loco_t* loco) {
         fan::colors::green
       );
       gloco->console.println(
-        fan::format(
-          "  id: {}\n  position {}\n  size {}\n  color {}",
-          NRI,
-          props.position,
-          props.size,
-          props.color
-        ),
+        "  id: " + std::to_string(NRI) +
+        "\n  position " + props.position.to_string() +
+        "\n  size " + props.size.to_string() +
+        "\n  color " + props.color.to_string(),
         fan::graphics::highlight_e::info
       );
     }
@@ -713,7 +711,7 @@ void loco_t::generate_commands(loco_t* loco) {
       fan::graphics::shapes::shape_t* s = reinterpret_cast<fan::graphics::shapes::shape_t*>(&shape_id);
       gloco->remove_static_shape_draw(*s);
       gloco->console.println_colored(
-        fan::format("Removed shape with id {}", shape_id),
+        "Removed shape with id {}" + std::to_string(shape_id),
         fan::colors::green
       );
     }
@@ -836,7 +834,7 @@ loco_t::loco_t(const loco_t::properties_t& p) {
   physics_context.physics_updates = &shape_physics_update_cbs;
 #endif
 
-  input_action.is_active_func = [this] (int key) -> int{
+  input_action.is_active_func = [this](int key) -> int {
     return window.key_state(key);
   };
 
@@ -848,14 +846,14 @@ loco_t::loco_t(const loco_t::properties_t& p) {
   fan::graphics::g_shapes = &shapes;
 
 #if defined(fan_gui) && defined(fan_std23)
-  
+
   fan::graphics::gui::profile_heap(
     [](size_t size, void* user_data) -> void* {
-      return fan::heap_profiler_t::instance().allocate_memory(size); // malloc
-    },
+    return fan::heap_profiler_t::instance().allocate_memory(size); // malloc
+  },
     [](void* ptr, void* user_data) {
     fan::heap_profiler_t::instance().deallocate_memory(ptr); // free
-    }
+  }
   );
 #endif
 
@@ -1390,7 +1388,7 @@ void loco_t::process_gui() {
   using namespace fan::graphics;
   gui_draw_timer.start();
 #if defined(fan_gui)
-  fan::graphics::gui::process_loop();
+  fan::graphics::gui::process_frame();
 
   // append
   gui::begin("##global_renderer");
@@ -1435,13 +1433,20 @@ void loco_t::process_gui() {
     auto shape_stats = shape_monitor.calculate_stats(shape_draw_time_s);
     auto gui_stats = gui_monitor.calculate_stats(gui_draw_time_s);
 
-    gui::text("FPS:", (int)(1.f / delta_time));
-    gui::text("Frame Time Avg: ", fan::format("{:.4f} ms", frame_stats.average * 1e3));
-    gui::text("Shape Draw Avg: ", fan::format("{:.4f} ms", shape_stats.average * 1e3));
-    gui::text("GUI Draw Avg: ", fan::format("{:.4f} ms", gui_stats.average * 1e3));
+    static auto format_val = [](f64_t v, int prec = 4) {
+      std::ostringstream oss;
+      oss << std::fixed << std::setprecision(prec) << v;
+      return oss.str();
+    };
 
-    gui::text("Lowest FPS: ", fan::format("{:.4f}", frame_stats.lowest));
-    gui::text("Highest FPS: ", fan::format("{:.4f}", frame_stats.highest));
+    gui::text("FPS:", std::to_string(static_cast<int>(1.f / delta_time)));
+    gui::text("Frame Time Avg: ", format_val(frame_stats.average * 1e3) + " ms");
+    gui::text("Shape Draw Avg: ", format_val(shape_stats.average * 1e3) + " ms");
+    gui::text("GUI Draw Avg: ", format_val(gui_stats.average * 1e3) + " ms");
+
+    gui::text("Lowest FPS: ", format_val(frame_stats.lowest));
+    gui::text("Highest FPS: ", format_val(frame_stats.highest));
+
 
     if (gui::button(frame_monitor.paused ? "Continue" : "Pause")) {
       frame_monitor.paused = !frame_monitor.paused;
@@ -1467,9 +1472,9 @@ void loco_t::process_gui() {
       gui::plot::end_plot();
     }
 
-    gui::text("Frame Draw Time: ", fan::format("{:.4f} ms", delta_time * 1e3));
-    gui::text("Shape Draw Time: ", fan::format("{:.4f} ms", shape_draw_time_s * 1e3));
-    gui::text("GUI Draw Time: ", fan::format("{:.4f} ms", gui_draw_time_s * 1e3));
+    gui::text("Frame Draw Time: ", format_val(delta_time * 1e3) + " ms");
+    gui::text("Shape Draw Time: ", format_val(shape_draw_time_s * 1e3) + " ms");
+    gui::text("GUI Draw Time: ", format_val(gui_draw_time_s * 1e3) + " ms");
 
     gui::end();
   }
@@ -1532,14 +1537,14 @@ loco_t::time_monitor_t::stats_t loco_t::time_monitor_t::calculate_stats(f32_t la
   f32_t avg = (sample_count > 0) ? running_sum / sample_count : last_value;
   f32_t low = (running_max > 0) ? 1.0f / running_max : 0.0f;
   f32_t high = (running_min < std::numeric_limits<f32_t>::max()) ? 1.0f / running_min : 0.0f;
-  return { avg, low, high };
+  return {avg, low, high};
 }
 
 #if defined(fan_gui)
 void loco_t::time_monitor_t::plot(const char* label) {
   using namespace fan::graphics;
   if (valid_samples == 0) return;
-  static std::array<f32_t, buffer_size> plot_data{};
+  static std::array<f32_t, buffer_size> plot_data {};
   int plot_count = std::min(valid_samples, buffer_size);
 
   if (valid_samples >= buffer_size) {
@@ -1558,7 +1563,7 @@ void loco_t::time_monitor_t::plot(const char* label) {
 }
 #endif
 
-void loco_t::process_frame() {
+void loco_t::process_render() {
 
   if (window.renderer == fan::window_t::renderer_t::opengl) {
     gl.begin_process_frame();
@@ -1641,7 +1646,7 @@ bool loco_t::should_close() {
   return glfwWindowShouldClose(window);
 }
 
-bool loco_t::process_loop(const std::function<void()>& cb) {
+bool loco_t::process_frame(const std::function<void()>& cb) {
   window.handle_events();
   time = start_time.seconds();
 
@@ -1707,7 +1712,7 @@ bool loco_t::process_loop(const std::function<void()>& cb) {
     return 1;
   }
 
-  process_frame();
+  process_render();
 
   return 0;
 }
@@ -1737,7 +1742,7 @@ g_loop:
   }
 
   uv_run(fan::event::get_loop(), UV_RUN_DEFAULT);
-  if ( should_close() == false ) {
+  if (should_close() == false) {
     goto g_loop;
   }
 }
@@ -1802,16 +1807,16 @@ void loco_t::set_vsync(bool flag) {
 
 void loco_t::start_timer() {
   double delay;
-  if ( target_fps <= 0 ) {
+  if (target_fps <= 0) {
     delay = 0;
   }
   else {
     delay = std::round(1.0 / target_fps * 1000.0);
   }
-  if ( delay > 0 ) {
+  if (delay > 0) {
     uv_timer_start(&timer_handle, [](uv_timer_t* handle) {
       loco_t* loco = static_cast<loco_t*>(handle->data);
-      if ( loco->process_loop(loco->main_loop) ) {
+      if (loco->process_frame(loco->main_loop)) {
         uv_timer_stop(handle);
         uv_stop(fan::event::get_loop());
       }
@@ -1821,14 +1826,14 @@ void loco_t::start_timer() {
 
 void loco_t::idle_cb(uv_idle_t* handle) {
   loco_t* loco = static_cast<loco_t*>(handle->data);
-  if ( loco->process_loop(loco->main_loop) ) {
+  if (loco->process_frame(loco->main_loop)) {
     uv_idle_stop(handle);
     uv_stop(fan::event::get_loop());
   }
 }
 
 void loco_t::start_idle(bool start_idle) {
-  if ( !start_idle ) {
+  if (!start_idle) {
     return;
   }
   uv_idle_start(&idle_handle, idle_cb);
@@ -1836,19 +1841,19 @@ void loco_t::start_idle(bool start_idle) {
 
 void loco_t::update_timer_interval(bool idle) {
   double delay;
-  if ( target_fps <= 0 ) {
+  if (target_fps <= 0) {
     delay = 0;
   }
   else {
     delay = std::round(1.0 / target_fps * 1000.0);
   }
 
-  if ( delay > 0 ) {
-    if ( idle_init ) {
+  if (delay > 0) {
+    if (idle_init) {
       uv_idle_stop(&idle_handle);
     }
 
-    if ( timer_enabled == false ) {
+    if (timer_enabled == false) {
       start_timer();
       timer_enabled = true;
     }
@@ -1856,12 +1861,12 @@ void loco_t::update_timer_interval(bool idle) {
     uv_timer_again(&timer_handle);
   }
   else {
-    if ( timer_init ) {
+    if (timer_init) {
       uv_timer_stop(&timer_handle);
       timer_enabled = false;
     }
 
-    if ( idle_init && idle ) {
+    if (idle_init && idle) {
       uv_idle_start(&idle_handle, idle_cb);
     }
   }
@@ -2054,7 +2059,7 @@ void loco_t::shape_open(
     vk.shape_data.open(gloco->context.vk, 1);
     vk.shape_data.allocate(gloco->context.vk, 0xffffff);
 
-    std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties{ {{0}} };
+    std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties {{{0}}};
     {
       ds_properties[0].binding = 0;
       ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -2070,7 +2075,7 @@ void loco_t::shape_open(
       ds_properties[1].range = shaderd.projection_view_block->m_size;
       ds_properties[1].dst_binding = 1;
 
-      VkDescriptorImageInfo imageInfo{};
+      VkDescriptorImageInfo imageInfo {};
       auto img = gloco->image_get(gloco->default_texture).vk;
       imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       imageInfo.imageView = img.image_view;
@@ -2100,7 +2105,7 @@ void loco_t::shape_open(
       //}
     }
 
-    vk.shape_data.open_descriptors(gloco->context.vk, { ds_properties.begin(), ds_properties.end() });
+    vk.shape_data.open_descriptors(gloco->context.vk, {ds_properties.begin(), ds_properties.end()});
     vk.shape_data.m_descriptor.update(context.vk, 3, 0);
     fan::vulkan::context_t::pipeline_t p;
     fan::vulkan::context_t::pipeline_t::properties_t pipe_p;
@@ -2164,13 +2169,13 @@ fan::graphics::image_t loco_t::create_noise_image(const fan::vec2& size, int see
   fan::noise_t noise(seed);
   auto data = noise.generate_data(size);
   auto lp = default_noise_image_properties();
-  fan::image::info_t ii{ (void*)data.data(), size, 3 };
+  fan::image::info_t ii {(void*)data.data(), size, 3};
   return image_load(ii, lp);
 }
 
 fan::graphics::image_t loco_t::create_noise_image(const fan::vec2& size, const std::vector<uint8_t>& data) {
   auto lp = default_noise_image_properties();
-  fan::image::info_t ii{ (void*)data.data(), size, 3 };
+  fan::image::info_t ii {(void*)data.data(), size, 3};
   return image_load(ii, lp);
 }
 
@@ -2217,12 +2222,14 @@ void loco_t::cuda_textures_t::resize(loco_t* loco, fan::graphics::shapes::shape_
     for (uint32_t i = 0; i < image_amount; ++i) {
       if (i == 0) {
         wresources[i].open(gloco->image_get_handle(vi_image));
-      } else {
+      }
+      else {
         wresources[i].open(gloco->image_get_handle(ri.images_rest[i - 1]));
       }
     }
     inited = true;
-  } else {
+  }
+  else {
     if (gloco->image_get_data(vi_image).size == size) {
       return;
     }
@@ -2237,7 +2244,8 @@ void loco_t::cuda_textures_t::resize(loco_t* loco, fan::graphics::shapes::shape_
     for (uint32_t i = 0; i < image_amount; ++i) {
       if (i == 0) {
         wresources[i].open(gloco->image_get_handle(vi_image));
-      } else {
+      }
+      else {
         wresources[i].open(gloco->image_get_handle(ri.images_rest[i - 1]));
       }
     }
@@ -2308,7 +2316,7 @@ bool loco_t::shader_update_fragment(uint16_t shape_type, const std::string& frag
 
 #if defined(fan_gui)
 namespace fan::graphics::gui {
-  void process_loop() {
+  void process_frame() {
     auto it = gloco->gui_draw_cb.GetNodeFirst();
     while (it != gloco->gui_draw_cb.dst) {
       gloco->gui_draw_cb.StartSafeNext(it);

@@ -376,8 +376,8 @@ struct shape_tester_t {
     fan::vec2 ws = engine.window.get_size();
     float tol = 0.09f;
 
-    engine.process_loop();
-    engine.process_loop([&] {
+    engine.process_frame();
+    engine.process_frame([&] {
       try {
         engine.gl.m_framebuffer.bind(engine.context.gl);
         glReadBuffer(GL_COLOR_ATTACHMENT0);
@@ -501,8 +501,8 @@ struct shape_tester_t {
         .color = fan::colors::green
       } };
 
-      engine.process_loop();
-      engine.process_loop([&] {
+      engine.process_frame();
+      engine.process_frame([&] {
         try {
           engine.gl.m_framebuffer.bind(engine.context.gl);
           glReadBuffer(GL_COLOR_ATTACHMENT0);
@@ -529,8 +529,8 @@ struct shape_tester_t {
 
       red_rect.set_position(fan::vec3(center_pos.x - 20, center_pos.y - 20, 10));
 
-      engine.process_loop();
-      engine.process_loop([&] {
+      engine.process_frame();
+      engine.process_frame([&] {
         try {
           engine.gl.m_framebuffer.bind(engine.context.gl);
           glReadBuffer(GL_COLOR_ATTACHMENT0);

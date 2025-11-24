@@ -5,7 +5,7 @@ export import fan.types.vector;
 export import fan.time;
 export import fan.print;
 export import fan.utility;
-export import fan.types.masterpiece;
+//export import fan.types.masterpiece;
 export import fan.types.matrix;
 export import fan.types.fstring;
 export import fan.io.file;
