@@ -6,6 +6,7 @@ module;
 #include <source_location>
 #include <cmath>
 #include <coroutine>
+#include <algorithm>
 
 #define loco_vfi
 #define loco_line

@@ -142,8 +142,6 @@ local module_files = {
   "fan/audio/audio.ixx",
   "fan/event/event_types.ixx",
   "fan/event/event.ixx",
-  "fan/network/network.ixx",
-  "fan/graphics/graphics_network.ixx",
   "fan/noise.ixx"
 }
 
@@ -167,6 +165,11 @@ if has_config("fan_gui") then
   table.insert(module_files, "fan/graphics/gui/console.ixx")
   table.insert(module_files, "fan/graphics/gui/tilemap_editor/loader.ixx")
   table.insert(module_files, "fan/graphics/gui/tilemap_editor/renderer0.ixx")
+end
+
+if has_config("fan_network") then
+	table.insert(module_files, "fan/network/network.ixx")
+	table.insert(module_files, "fan/graphics/graphics_network.ixx")
 end
 
 if has_config("fan_physics") then
