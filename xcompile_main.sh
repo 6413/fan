@@ -8,42 +8,62 @@ NC='\033[0m'
 
 set -e
 
+MODE=""
+if [[ "$1" == "--debug" ]]; then
+  MODE="debug"
+  shift
+elif [[ "$1" == "--release" ]]; then
+  MODE="release"
+  shift
+fi
+
 echo ""
 read -p "Delete build folder? (Y/n) " ANSWER
 ANSWER=${ANSWER,,}
 
 if [[ "$ANSWER" != "n" && "$ANSWER" != "no" ]]; then
-    echo -e "${BLUE}[1/3]${NC} Cleaning build directory..."
-    rm -rf build .xmake
+  echo -e "${BLUE}[1/3]${NC} Cleaning build directory..."
+  rm -rf build .xmake
 else
-    echo -e "${YELLOW}Skipping build cleanup.${NC}"
+  echo -e "${YELLOW}Skipping build cleanup.${NC}"
 fi
 
 echo ""
 echo -e "${BLUE}[2/3]${NC} Configuring XMake..."
-if ! xmake f -c; then
+
+if [[ -n "$MODE" ]]; then
+  if ! xmake f -c -m "$MODE" "$@"; then
     echo -e "${RED}✗ XMake clean configuration failed!${NC}"
     exit 1
-fi
-
-if ! xmake f --toolchain=clang --cc=clang-20 --cxx=clang++-20; then
+  fi
+else
+  if ! xmake f -c "$@"; then
+    echo -e "${RED}✗ XMake clean configuration failed!${NC}"
+    exit 1
+  fi
+  if ! xmake f --toolchain=clang --cc=clang-20 --cxx=clang++-20 "$@"; then
     echo -e "${RED}✗ XMake configuration failed!${NC}"
     exit 1
+  fi
 fi
 
 echo ""
-xmake -vD
+echo -e "${BLUE}[3/3]${NC} Building..."
+if ! xmake "$@" -vD; then
+  echo -e "${RED}✗ XMake build failed!${NC}"
+  exit 1
+fi
 
 target_name=$(grep -E 'target\("([^"]+\.exe)"' xmake.lua | sed -E 's/target\("([^"]+\.exe)".*/\1/' | head -n1)
 if [ -z "$target_name" ]; then
-    echo -e "${RED}Error: Could not find target name ending with .exe in xmake.lua${NC}"
-    exit 1
+  echo -e "${RED}Error: Could not find target name ending with .exe in xmake.lua${NC}"
+  exit 1
 fi
 
 exe_path=$(find build -type f -name "${target_name}" | head -n1)
 if [ -z "$exe_path" ]; then
-    echo -e "${RED}Error: Built executable for target '${target_name}' not found${NC}"
-    exit 1
+  echo -e "${RED}Error: Built executable for target '${target_name}' not found${NC}"
+  exit 1
 fi
 
 cp "$exe_path" .

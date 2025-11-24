@@ -10,7 +10,7 @@ set -e
 
 echo -e "${BLUE}Starting build…${NC}"
 
-xmake
+xmake "$@"
 
 target_name=$(grep -E 'target\("([^"]+\.exe)"' xmake.lua | sed -E 's/target\("([^"]+\.exe)".*/\1/' | head -n1)
 if [ -z "$target_name" ]; then
@@ -21,7 +21,7 @@ echo -e "${CYAN}Detected target:${NC} ${target_name}"
 
 exe_path=$(find build -type f -name "${target_name}" | head -n1)
 if [ -z "$exe_path" ]; then
-  echo -e "${RED}Error:${NC} Built executable for target '${target_name}' not found"
+	echo -e "${RED}Error:${NC} Built executable for target '${target_name}' not found"
   exit 1
 fi
 
