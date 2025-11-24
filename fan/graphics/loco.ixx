@@ -436,10 +436,10 @@ public:
 
 	std::vector<std::function<void()>> draw_end_cb;
 
-  void process_frame();
+  void process_render();
   bool should_close();
 
-  bool process_loop(const std::function<void()>& cb = [] {});
+  bool process_frame(const std::function<void()>& cb = [] {});
   void loop(const std::function<void()>& cb = [] {});
   camera_t open_camera(const fan::vec2& x, const fan::vec2& y);
   camera_t open_camera_perspective(f32_t fov = 90.0f);

@@ -121,13 +121,30 @@ struct final_awaiter {
 template<typename T, typename suspend_type_t>
 struct task_value_wrap_t;
 
+template <typename promise_type>
+struct cancel_tag_t {
+  promise_type* p;
+  bool await_ready() const noexcept {
+    return !p->cancelled;
+  }
+  bool await_suspend(std::coroutine_handle<promise_type>) const noexcept {
+    return false;
+  }
+  bool await_resume() const noexcept {
+    return p->cancelled;
+  }
+};
+
+struct cancel_task_impl {};
+
 template<typename T, typename suspend_type_t>
 struct task_value_promise_t {
   T value;
   std::exception_ptr exception = nullptr;
   std::coroutine_handle<> continuation = nullptr;
-
   std::shared_ptr<coroutine_handle_owner<task_value_promise_t>> self_keepalive;
+
+  bool cancelled = false;
 
   task_value_wrap_t<T, suspend_type_t> get_return_object();
   suspend_type_t initial_suspend() noexcept { return {}; }
@@ -137,14 +154,23 @@ struct task_value_promise_t {
   void return_value(T&& val) { value = std::move(val); }
   void return_value(const T& val) { value = val; }
   void unhandled_exception() { exception = std::current_exception(); }
+
+  auto await_transform(cancel_task_impl) noexcept {
+    return cancel_tag_t<task_value_promise_t<T, suspend_type_t>>{ this };
+  }
+  template<typename awaitable>
+  decltype(auto) await_transform(awaitable&& a) noexcept {
+    return std::forward<awaitable>(a);
+  }
 };
 
 template<typename suspend_type_t>
 struct task_value_promise_t<void, suspend_type_t> {
   std::exception_ptr exception = nullptr;
   std::coroutine_handle<> continuation = nullptr;
-
   std::shared_ptr<coroutine_handle_owner<task_value_promise_t>> self_keepalive;
+
+  bool cancelled = false;
 
   task_value_wrap_t<void, suspend_type_t> get_return_object();
   suspend_type_t initial_suspend() noexcept { return {}; }
@@ -153,8 +179,15 @@ struct task_value_promise_t<void, suspend_type_t> {
   }
   void return_void() {}
   void unhandled_exception() { exception = std::current_exception(); }
-};
 
+  auto await_transform(cancel_task_impl) noexcept {
+    return cancel_tag_t<task_value_promise_t<void, suspend_type_t>>{ this };
+  }
+  template<typename awaitable>
+  decltype(auto) await_transform(awaitable&& a) noexcept {
+    return std::forward<awaitable>(a);
+  }
+};
 
 template<typename T, typename suspend_type_t>
 struct task_value_wrap_t {
@@ -192,7 +225,6 @@ struct task_value_wrap_t<void, suspend_type_t> {
   bool await_ready() const noexcept {
     return owner && owner->h.done();
   }
-
   void await_suspend(std::coroutine_handle<> cont) noexcept {
     auto& p = owner->h.promise();
     p.continuation = cont;
@@ -206,9 +238,26 @@ struct task_value_wrap_t<void, suspend_type_t> {
       std::rethrow_exception(p.exception);
     }
   }
-
   bool valid() const {
     return owner && !owner->h.done();
+  }
+  void join() {
+    if (!owner) return;
+    auto& h = owner->h;
+    while (!h.done()) {
+      h.resume();
+    }
+  }
+  void request_stop() {
+    if (!owner) return;
+    owner->h.promise().cancelled = true;
+  }
+  // use fan::event::cancel_task to use this function
+  void stop_and_join() {
+    if (valid()) {
+      request_stop();
+      join();
+    }
   }
   void destroy() {
     *this = {};
@@ -249,4 +298,5 @@ export namespace fan::event {
   using task_value_resume_t = task_value_wrap_t<T, std::suspend_never>;
 
   using task_t = task_resume_t;
+  using cancel_task = cancel_task_impl;
 }

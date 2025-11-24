@@ -265,7 +265,7 @@ export namespace fan::event {
   void thread_create(cb_t&& cb, args_t&&... args) {
     std::jthread([cb = std::forward<cb_t>(cb), args = std::make_tuple(std::forward<args_t>(args)...)]() mutable {
       std::apply(cb, args);
-      }).detach();
+    }).detach();
   }
 }
 
