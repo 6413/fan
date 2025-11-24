@@ -1014,7 +1014,20 @@ namespace fan::graphics::physics {
       anim_controller.add_state("run", {
         .animation_id = run.id,
         .fps = run.fps,
-        .condition = [](character2d_t& c) { return std::abs(c.get_linear_velocity().x) >= 10.f; }
+        .condition = [](character2d_t& c) {
+          bool cond = std::abs(c.get_linear_velocity().x) >= 10.f;
+          fan::vec2 s = c.get_tc_size();
+          int vel_sign = c.get_linear_velocity().sign().x;
+          if (cond) {
+            if (vel_sign < 0) {
+              c.set_tc_size(fan::vec2(-std::abs(s.x), s.y));
+            }
+            else {
+              c.set_tc_size(fan::vec2(std::abs(s.x), s.y));
+            }
+          }
+          return cond;
+        }
         });
     }
     auto_update_animations = true;
@@ -1068,7 +1081,6 @@ namespace fan::graphics::physics {
       character.setup_default_animations();
     }
 
-    character.enable_default_movement(config.movement_type);
     character.start_sprite_sheet_animation();
 
     return character;

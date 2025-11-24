@@ -150,7 +150,7 @@ export namespace fan::graphics {
 #endif
 	engine_init_t::init_callback_t engine_init_cbs;
 
-	uint32_t get_draw_mode(uint8_t internal_draw_mode);
+	std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode);
 }
 
 export struct loco_t {
@@ -166,7 +166,7 @@ public:
 
 	using image_sampler_address_mode = fan::graphics::image_sampler_address_mode;
 
-  uint8_t get_renderer();
+  std::uint8_t get_renderer();
   fan::graphics::shader_nr_t shader_create();
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr);
   void shader_erase(fan::graphics::shader_nr_t nr);
@@ -192,7 +192,7 @@ public:
 	fan::graphics::image_list_t image_list;
 	fan::graphics::viewport_list_t viewport_list;
 
-  std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
+  std::vector<std::uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
   fan::graphics::image_nr_t image_create();
   fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr);
   uint64_t image_get_handle(fan::graphics::image_nr_t nr);
@@ -284,8 +284,8 @@ public:
 		GLenum blend_src_factor = GL_SRC_ALPHA;
 		GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
 
-		uint32_t fb_vao;
-		uint32_t fb_vbo;
+		std::uint32_t fb_vao;
+		std::uint32_t fb_vbo;
 
 #undef loco
 	}gl;
@@ -362,8 +362,8 @@ public:
 		bool vsync = true;
 		fan::vec2 window_size = -1;
 		uint64_t window_flags = 0;
-		uint8_t renderer = fan::window_t::renderer_t::opengl;
-		uint8_t samples = 0;
+		std::uint8_t renderer = fan::window_t::renderer_t::opengl;
+		std::uint8_t samples = 0;
 	};
 
 	fan::time::timer start_time;
@@ -375,7 +375,7 @@ public:
 
   static void generate_commands(loco_t* loco);
 	// -1 no reload, opengl = 0 etc
-	uint8_t reload_renderer_to = -1;
+	std::uint8_t reload_renderer_to = -1;
 
 #if defined(fan_vulkan)
   // todo move to vulkan context
@@ -589,8 +589,8 @@ public:
 
 	using get_parallax_factor_cb = f32_t(*)(fan::graphics::shapes::shape_t*);
 	using set_parallax_factor_cb = void (*)(fan::graphics::shapes::shape_t*, f32_t);
-	using get_flags_cb = uint32_t(*)(fan::graphics::shapes::shape_t*);
-	using set_flags_cb = void(*)(fan::graphics::shapes::shape_t*, uint32_t);
+	using get_flags_cb = std::uint32_t(*)(fan::graphics::shapes::shape_t*);
+	using set_flags_cb = void(*)(fan::graphics::shapes::shape_t*, std::uint32_t);
 	//
 	using get_radius_cb = f32_t(*)(fan::graphics::shapes::shape_t*);
 	using get_src_cb = fan::vec3(*)(fan::graphics::shapes::shape_t*);
@@ -599,9 +599,9 @@ public:
 	using get_outline_color_cb = fan::color(*)(const fan::graphics::shapes::shape_t*);
 	using set_outline_color_cb = void(*)(fan::graphics::shapes::shape_t*, const fan::color&);
 
-	using reload_cb = void (*)(fan::graphics::shapes::shape_t*, uint8_t format, void** image_data, const fan::vec2& image_size, uint32_t filter);
+	using reload_cb = void (*)(fan::graphics::shapes::shape_t*, std::uint8_t format, void** image_data, const fan::vec2& image_size, std::uint32_t filter);
 
-	using draw_cb = void (*)(uint8_t draw_range);
+	using draw_cb = void (*)(std::uint8_t draw_range);
 
 	using set_line_cb = void (*)(fan::graphics::shapes::shape_t*, const fan::vec3&, const fan::vec3&);
 	using set_line3_cb = void (*)(fan::graphics::shapes::shape_t*, const fan::vec3&, const fan::vec3&);
@@ -764,7 +764,7 @@ public:
 
 	// clears shapes after drawing, good for debug draw, not best for performance
 	std::vector<fan::graphics::shapes::shape_t> immediate_render_list;
-	std::unordered_map<uint32_t, fan::graphics::shapes::shape_t> static_render_list;
+	std::unordered_map<std::uint32_t, fan::graphics::shapes::shape_t> static_render_list;
 
   fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport) const;
   fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view) const;
@@ -835,8 +835,8 @@ public:
 	//gui
 
   fan::graphics::image_load_properties_t default_noise_image_properties();
-  fan::graphics::image_t create_noise_image(const fan::vec2& size, int seed = fan::random::value_i64(0, ((uint32_t)-1) / 2));
-  fan::graphics::image_t create_noise_image(const fan::vec2& size, const std::vector<uint8_t>& data);
+  fan::graphics::image_t create_noise_image(const fan::vec2& size, int seed = fan::random::value_i64(0, ((std::uint32_t)-1) / 2));
+  fan::graphics::image_t create_noise_image(const fan::vec2& size, const std::vector<std::uint8_t>& data);
   fan::vec2 convert_mouse_to_ndc(const fan::vec2& mouse_position) const;
   fan::vec2 convert_mouse_to_ndc() const;
   fan::ray3_t convert_mouse_to_ray(const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view);
@@ -844,8 +844,8 @@ public:
 #if defined(loco_cuda)
   struct cuda_textures_t {
     void close(loco_t* loco, fan::graphics::shapes::shape_t& cid);
-    void resize(loco_t* loco, fan::graphics::shapes::shape_t& id, uint8_t format, fan::vec2ui size);
-    cudaArray_t& get_array(uint32_t index_t);
+    void resize(loco_t* loco, fan::graphics::shapes::shape_t& id, std::uint8_t format, fan::vec2ui size);
+    cudaArray_t& get_array(std::uint32_t index_t);
     bool inited = false;
     struct graphics_resource_t {
       void open(int texture_id);

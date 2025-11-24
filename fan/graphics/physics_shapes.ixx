@@ -477,7 +477,6 @@ export namespace fan {
         struct character_config_t {
           std::string json_path;
           f32_t aabb_scale = 1.0f;
-          uint8_t movement_type = character2d_t::movement_e::side_view;
           fan::vec2 draw_offset_override = { 0,0 };
           bool auto_draw_offset = true;
           bool auto_animations = true;
