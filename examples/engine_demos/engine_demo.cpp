@@ -26,6 +26,12 @@ struct engine_demo_t {
 
   engine_demo_t() {
     create_gui();
+
+    // Process one frame before setting demo to
+    // initialize window positions, sizes, etc. for (immediate mode gui)
+    // and then demo uses the acquired window properties to apply shape properties
+    engine.process_frame([this] { update(); });
+    clear_and_set_demo(current_demo_index);
   }
 
   // ------------------------STATIC------------------------
@@ -722,7 +728,7 @@ void main() {
     fan::graphics::circle(fan::vec3(get_mouse_position(engine_demo->right_column_view)+ fan::vec2(128, 0), 10), 64, fan::colors::red.set_alpha(0.6), &engine_demo->right_column_view);
 
     if (data.sensor2) {
-      data.sensor2.erase();
+      data.sensor2.destroy();
     }
     data.sensor2 = engine_demo->engine.physics_context.create_circle(get_mouse_position(engine_demo->right_column_view) + fan::vec2(128, 0), 64);
     // IMPORTANT: physics step after creating test box and then check is on_sensor,
@@ -744,7 +750,11 @@ void main() {
 
   static void demo_physics_cleanup_sensor(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_physics_sensor_data;
-    //data.dummy.destroy();
+    for (auto& sensor : data.sensors) {
+      sensor.destroy();
+    }
+    data.sensor1.destroy();
+    data.sensor2.destroy();
     delete engine_demo->demo_physics_sensor_data;
   }
 
@@ -881,7 +891,7 @@ void main() {
     data.mouse_down_handle[0] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](const engine_t::mouse_down_data_t& bdata) {
       fan::vec2i cell = (fan::graphics::transform_position(bdata.position, engine_demo->right_column_view) / data.tile_size).floor();
       if (fan::window::is_key_down(fan::key_left_shift)) {
-        data.grid.add_wall(cell, data.generator);
+        data.grid.remove_wall(cell, data.generator);
       }
       else {
         data.src = cell;
@@ -891,7 +901,7 @@ void main() {
     data.mouse_down_handle[1] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](const engine_t::mouse_down_data_t& bdata) {
       fan::vec2i cell = (fan::graphics::transform_position(bdata.position, engine_demo->right_column_view) / data.tile_size).floor();
       if (fan::window::is_key_down(fan::key_left_shift)) {
-        data.grid.remove_wall(cell, data.generator);
+        data.grid.add_wall(cell, data.generator);
       }
       else {
         data.dst = cell;
@@ -1036,6 +1046,8 @@ void main() {
     fan::vec2 noise_size = 256;
     fan::graphics::image_t dirt;
     engine_t::resize_handle_t resize_handle;
+    fan::event::task_t task_gen_mesh;
+    std::vector<uint8_t> noise_data;
   }*demo_algorithm_terrain_data = 0;
 
   static void demo_algorithm_terrain_reload(engine_demo_t* engine_demo, fan::vec2 new_size) {
@@ -1043,18 +1055,33 @@ void main() {
     data.built_mesh.clear();
     data.noise.apply();
     auto noise_data = data.noise.generate_data(data.noise_size);
-    fan::graphics::generate_mesh(data.noise_size, noise_data, data.dirt, data.built_mesh, data.palette);
+    // wait for task to finish
+    data.task_gen_mesh.stop_and_join();
+    data.task_gen_mesh = fan::graphics::async_generate_mesh(
+      data.noise_size, 
+      data.noise_data, 
+      data.dirt, 
+      data.built_mesh, 
+      data.palette,
+      {.render_view = &engine_demo->right_column_view}
+    );
   }
 
   static void demo_algorithm_terrain_init(engine_demo_t* engine_demo) {
     engine_demo->demo_algorithm_terrain_data = new demo_algorithm_terrain_t();
     auto& data = *engine_demo->demo_algorithm_terrain_data;
-
     data.dirt = engine_demo->engine.image_create(fan::colors::white);
-
-    auto noise_data = data.noise.generate_data(data.noise_size);
-    fan::graphics::generate_mesh(data.noise_size, noise_data, data.dirt, data.built_mesh, data.palette);
-
+    // save noise_data so stack doesnt die in async func
+    data.noise_data = data.noise.generate_data(data.noise_size);
+    // coroutine
+    data.task_gen_mesh = fan::graphics::async_generate_mesh(
+      data.noise_size, 
+      data.noise_data, 
+      data.dirt, 
+      data.built_mesh, 
+      data.palette,
+      {.render_view = &engine_demo->right_column_view}
+    );
     data.resize_handle = engine_demo->engine.on_resize([engine_demo](const engine_t::resize_data_t& rdata) {
       demo_algorithm_terrain_reload(engine_demo, rdata.size);
     });
@@ -1076,8 +1103,10 @@ void main() {
   }
 
   static void demo_algorithm_terrain_cleanup(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_algorithm_terrain_data;
-    delete engine_demo->demo_algorithm_terrain_data;
+    auto data = engine_demo->demo_algorithm_terrain_data;
+    // wait for task to finish
+    data->task_gen_mesh.stop_and_join();
+    delete data;
   }
 
     // ------------------------TERRAIN GENERATION------------------------
@@ -1114,6 +1143,7 @@ void main() {
     }
     for (uint32_t y = 0; y < data->image_size.y; ++y) {
       if (data->should_quit) {
+        data->generation_complete.store(true);
         return;
       }
       {
@@ -1139,17 +1169,17 @@ void main() {
 
   static void demo_init_multithreaded_image_loading(engine_demo_t* engine_demo) {
     engine_demo->demo_multithreaded_image_loading_data = new demo_multithreaded_image_loading_t;
-    auto& data = *engine_demo->demo_multithreaded_image_loading_data;
+    auto* data = engine_demo->demo_multithreaded_image_loading_data;
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     int height = viewport_size.y / 2;
     height -= height % 4;
-    data.image_sprite = {{
+    data->image_sprite = {{
       .render_view = &engine_demo->right_column_view,
       .position = viewport_size / 2,
       .size = viewport_size.y / 2
     } };
 
-    data.needs_update.store(false);
+    data->needs_update.store(false);
 
     fan::vec2ui texture_size(1024, 1024);
     std::vector<uint8_t> initial_texture(texture_size.x * texture_size.y * 3, 0);
@@ -1157,45 +1187,46 @@ void main() {
     fan::image::info_t image_info;
     image_info.data = initial_texture.data();
     image_info.size = texture_size;
-    data.procedural_image = engine_demo->engine.image_load(image_info, data.image_load_properties);
+    data->procedural_image = engine_demo->engine.image_load(image_info, data->image_load_properties);
 
-    data.image_sprite.set_image(data.procedural_image);
+    data->image_sprite.set_image(data->procedural_image);
 
-    fan::event::thread_create([engine_demo, &data] {
-      engine_demo->demo_generate_procedural_image(&data);
+    fan::event::thread_create([engine_demo, data] {
+      engine_demo->demo_generate_procedural_image(data);
     });
   }
   static void demo_update_multithreaded_image_loading(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_multithreaded_image_loading_data;
-    if (data.needs_update.load()) {
-      uint32_t current_rows = data.generated_rows.load();
+    auto* data = engine_demo->demo_multithreaded_image_loading_data;
+    if (data->needs_update.load()) {
+      uint32_t current_rows = data->generated_rows.load();
 
       std::vector<uint8_t> temp_data;
       {
-        std::lock_guard<std::mutex> lock(data.data_mutex);
-        temp_data = data.rgb_data;
+        std::lock_guard<std::mutex> lock(data->data_mutex);
+        temp_data = data->rgb_data;
       }
 
       fan::image::info_t update_info;
       update_info.data = temp_data.data();
-      update_info.size = data.image_size;
+      update_info.size = data->image_size;
 
-      engine_demo->engine.image_reload(data.procedural_image, update_info, data.image_load_properties);
+      engine_demo->engine.image_reload(data->procedural_image, update_info, data->image_load_properties);
 
-      data.needs_update.store(false);
+      data->needs_update.store(false);
 
-      f32_t progress = ceil((f32_t)current_rows / data.image_size.y * 100.0f);
-      data.progress_message = "Generating image: " + std::to_string(int(progress)) + "%";
+      f32_t progress = ceil((f32_t)current_rows / data->image_size.y * 100.0f);
+      data->progress_message = "Generating image: " + std::to_string(int(progress)) + "%";
     }
 
-    gui::text(data.progress_message);
+    gui::text(data->progress_message);
     gui::text_wrapped("Generates the image procedurally in a background thread while rendering it on the main thread as it's being generated");
     gui::text("The image is purposefully generated slowly to simulate load", fan::colors::yellow);
   }
   static void demo_cleanup_multithreaded_image_loading(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_multithreaded_image_loading_data;
-    data.should_quit = true;
-    delete &data;
+    auto data = engine_demo->demo_multithreaded_image_loading_data;
+    data->should_quit = true;
+    while (!data->generation_complete) {}
+    delete data;
   }
 
   // ------------------------MULTITHREADING------------------------
@@ -1268,9 +1299,9 @@ void main() {
     fan::vec2 window_size;
     fan_graphics_gui_window("##Menu Engine Demo Right Top", 0, wnd_flags) {
       engine_demo.engine.lighting.ambient = 1;
-      auto& shape_info = demos[engine_demo.current_demo];
-      if (shape_info.update_function) {
-        shape_info.update_function(&engine_demo);
+      auto& demo = demos[engine_demo.current_demo_index];
+      if (demo.update_function) {
+        demo.update_function(&engine_demo);
       }
       window_size = gui::get_window_size();
     }
@@ -1309,8 +1340,8 @@ void main() {
     ) {
       {
         gui::push_style_var(gui::style_var_selectable_text_align, fan::vec2(0, 0.5));
-        for (auto [i, shape_info] : fan::enumerate(demos)) {
-          if (shape_info.name == "_next") {
+        for (auto [demo_index, demo] : fan::enumerate(demos)) {
+          if (demo.name == "_next") {
             ++title_index;
             title = titles[title_index];
             gui::end_table();
@@ -1326,14 +1357,8 @@ void main() {
           gui::table_next_row();
           gui::table_next_column();
           f32_t row_height = gui::get_text_line_height_with_spacing() * 2;
-          if (gui::selectable(shape_info.name, engine_demo.current_demo == i, 0, fan::vec2(0.0f, row_height))) {
-            if (demos[engine_demo.current_demo].cleanup_function) {
-              demos[engine_demo.current_demo].cleanup_function(&engine_demo);
-            }
-            engine_demo.shapes.clear();
-            engine_demo.interactive_camera.reset_view();
-            shape_info.init_function(&engine_demo);
-            engine_demo.current_demo = i;
+          if (gui::selectable(demo.name, engine_demo.current_demo_index == demo_index, 0, fan::vec2(0.0f, row_height))) {
+            engine_demo.clear_and_set_demo(demo_index);
           }
         }
         gui::pop_style_var();
@@ -1345,13 +1370,13 @@ void main() {
 
   static void menus_engine_demo_render_element_count(menu_t* menu) {
     if (gui::drag("Shape count", &engine_demo.shape_count, 1, 0, std::numeric_limits<int>::max())) {
-      auto& shape_info = demos[engine_demo.current_demo];
-      if (shape_info.cleanup_function) {
-        shape_info.cleanup_function(&engine_demo);
+      auto& demo = demos[engine_demo.current_demo_index];
+      if (demo.cleanup_function) {
+        demo.cleanup_function(&engine_demo);
       }
       engine_demo.shapes.clear();
-      if (shape_info.init_function) {
-        shape_info.init_function(&engine_demo);
+      if (demo.init_function) {
+        demo.init_function(&engine_demo);
       }
     }
   }
@@ -1386,11 +1411,22 @@ void main() {
     }
   }
 
+  void clear_and_set_demo(size_t demo_index) {
+    engine_demo_t::demo_t& demo = demos[demo_index];
+    if (demos[current_demo_index].cleanup_function) {
+      demos[current_demo_index].cleanup_function(this);
+    }
+    shapes.clear();
+    interactive_camera.reset_view();
+    demo.init_function(this);
+    current_demo_index = demo_index;
+  }
+
   fan::graphics::render_view_t right_column_view;
   bool mouse_inside_demo_view = false;
   // allows to move and zoom camera with mouse
   fan::graphics::interactive_camera_t interactive_camera;
-  uint8_t current_demo = 0;
+  uint16_t current_demo_index = 0;
   int shape_count = 10;
   std::vector<fan::graphics::shape_t> shapes;
   static inline constexpr f32_t default_right_window_split_ratio = 0.2f;

@@ -5,6 +5,7 @@ module;
 
 #include <source_location>
 #include <cmath>
+#include <coroutine>
 
 #define loco_vfi
 #define loco_line
@@ -49,7 +50,7 @@ namespace fan::window {
 
 namespace fan::graphics {
   fan::graphics::image_t invalid_image = [] {
-    image_t image{false};
+    image_t image {false};
     image.sic();
     return image;
   }();
@@ -362,13 +363,13 @@ namespace fan::graphics {
     );
   }
 
-  light_t::light_t(const fan::vec3& position,const fan::vec2& size,const fan::color& color,render_view_t* render_view)
-    : light_t(light_properties_t{
+  light_t::light_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view)
+    : light_t(light_properties_t {
     .render_view = render_view,
     .position = position,
     .size = size,
     .color = color
-  }) {}
+      }) {}
 
 #if defined(loco_line)
   line_t::line_t(line_properties_t p) {
@@ -387,14 +388,14 @@ namespace fan::graphics {
     );
   }
 
-  line_t::line_t(const fan::vec3& src,const fan::vec3& dst,const fan::color& color,f32_t thickness,render_view_t* render_view)
-    : line_t(line_properties_t{
+  line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& color, f32_t thickness, render_view_t* render_view)
+    : line_t(line_properties_t {
     .render_view = render_view,
     .src = src,
     .dst = dst,
     .color = color,
     .thickness = thickness
-  }) {}
+      }) {}
 #endif
 
   rectangle_t::rectangle_t(rectangle_properties_t p) {
@@ -420,7 +421,7 @@ namespace fan::graphics {
     .position = position,
     .size = size,
     .color = color
-  }) {}
+      }) {}
 
   sprite_t::sprite_t(sprite_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
@@ -443,13 +444,13 @@ namespace fan::graphics {
     );
   }
 
-  sprite_t::sprite_t(const fan::vec3& position,const fan::vec2& size,const fan::graphics::image_t& image,render_view_t* render_view)
-    : sprite_t(sprite_properties_t{
+  sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view)
+    : sprite_t(sprite_properties_t {
     .render_view = render_view,
     .position = position,
     .size = size,
     .image = image
-  }) {}
+      }) {}
 
   unlit_sprite_t::unlit_sprite_t(unlit_sprite_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
@@ -471,13 +472,13 @@ namespace fan::graphics {
     );
   }
 
-  unlit_sprite_t::unlit_sprite_t(const fan::vec3& position,const fan::vec2& size,const fan::graphics::image_t& image,render_view_t* render_view)
-    : unlit_sprite_t(unlit_sprite_properties_t{
+  unlit_sprite_t::unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view)
+    : unlit_sprite_t(unlit_sprite_properties_t {
     .render_view = render_view,
     .position = position,
     .size = size,
     .image = image
-  }) {}
+      }) {}
 
   fan::graphics::shapes::shape_t& add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s) {
     fan::graphics::get_shapes().immediate_render_list->emplace_back(std::move(s));
@@ -499,7 +500,7 @@ namespace fan::graphics {
   }
 
   fan::graphics::shapes::shape_t& rectangle(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(rectangle_t(rectangle_properties_t{
+    return add_shape_to_immediate_draw(rectangle_t(rectangle_properties_t {
       .render_view = render_view,
       .position = position,
       .size = size,
@@ -520,7 +521,7 @@ namespace fan::graphics {
   }
 
   fan::graphics::shapes::shape_t& line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color, f32_t thickness, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(line_t(line_properties_t{
+    return add_shape_to_immediate_draw(line_t(line_properties_t {
       .render_view = render_view,
       .src = src,
       .dst = dst,
@@ -538,7 +539,7 @@ namespace fan::graphics {
   }
 
   fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius, const fan::color& color, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(circle_t(circle_properties_t{
+    return add_shape_to_immediate_draw(circle_t(circle_properties_t {
       .render_view = render_view,
       .position = position,
       .radius = radius,
@@ -560,10 +561,10 @@ namespace fan::graphics {
 
 #if defined(fan_physics)
   void aabb(const fan::physics::aabb_t& b, f32_t depth, const fan::color& c) {
-    fan::graphics::line({ .src = {b.min, depth}, .dst = {b.max.x, b.min.y}, .color = c });
-    fan::graphics::line({ .src = {b.max.x, b.min.y, depth}, .dst = {b.max}, .color = c });
-    fan::graphics::line({ .src = {b.max, depth}, .dst = {b.min.x, b.max.y}, .color = c });
-    fan::graphics::line({ .src = {b.min.x, b.max.y, depth}, .dst = {b.min}, .color = c });
+    fan::graphics::line({.src = {b.min, depth}, .dst = {b.max.x, b.min.y}, .color = c});
+    fan::graphics::line({.src = {b.max.x, b.min.y, depth}, .dst = {b.max}, .color = c});
+    fan::graphics::line({.src = {b.max, depth}, .dst = {b.min.x, b.max.y}, .color = c});
+    fan::graphics::line({.src = {b.min.x, b.max.y, depth}, .dst = {b.min}, .color = c});
   }
 
   void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth, const fan::color& c) {
@@ -574,15 +575,15 @@ namespace fan::graphics {
   fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color) {
     fan::graphics::shapes::polygon_t::properties_t pp;
     for (int i = 0; i < 6; ++i) {
-      pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(0, 0, 0), color });
+      pp.vertices.push_back(fan::graphics::vertex_t {fan::vec3(0, 0, 0), color});
       f32_t angle1 = 2 * fan::math::pi * i / 6;
       f32_t x1 = radius * std::cos(angle1);
       f32_t y1 = radius * std::sin(angle1);
-      pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(fan::vec2(x1, y1), 0), color });
+      pp.vertices.push_back(fan::graphics::vertex_t {fan::vec3(fan::vec2(x1, y1), 0), color});
       f32_t angle2 = 2 * fan::math::pi * ((i + 1) % 6) / 6;
       f32_t x2 = radius * std::cos(angle2);
       f32_t y2 = radius * std::sin(angle2);
-      pp.vertices.push_back(fan::graphics::vertex_t{ fan::vec3(fan::vec2(x2, y2), 0), color });
+      pp.vertices.push_back(fan::graphics::vertex_t {fan::vec3(fan::vec2(x2, y2), 0), color});
     }
     return pp;
   }
@@ -726,8 +727,7 @@ namespace fan::graphics {
   }
 
   interactive_camera_t::interactive_camera_t(const fan::graphics::render_view_t& render_view, f32_t new_zoom) :
-    interactive_camera_t(render_view.camera, render_view.viewport, new_zoom) {
-  }
+    interactive_camera_t(render_view.camera, render_view.viewport, new_zoom) {}
 
   interactive_camera_t::~interactive_camera_t() {
     if (uc_nr.iic() == false) {
@@ -807,7 +807,7 @@ namespace fan::graphics {
   }
 
   trail_t::~trail_t() {
-    if ( !update_callback_nr ) {
+    if (!update_callback_nr) {
       return;
     }
     fan::graphics::ctx().update_callback->unlrec(update_callback_nr);
@@ -818,7 +818,7 @@ namespace fan::graphics {
     static fan::time::timer timer {300000000ULL, true};
     bool should_reset = trails.empty() || timer;
 
-    if ( should_reset ) {
+    if (should_reset) {
       trails.resize(trails.size() + 1);
       trails.back().vertices.clear();
       trails.back().creation_time = fan::time::now();
@@ -826,15 +826,15 @@ namespace fan::graphics {
     }
 
     bool start_new_trail = false;
-    if ( !trails.empty() && !trails.back().vertices.empty() ) {
+    if (!trails.empty() && !trails.back().vertices.empty()) {
       fan::vec3 last_point = trails.back().vertices.back().position;
       f32_t distance = std::sqrt(std::pow(point.x - last_point.x, 2) + std::pow(point.y - last_point.y, 2));
-      if ( distance > 50.0f ) {
+      if (distance > 50.0f) {
         start_new_trail = true;
       }
     }
 
-    if ( start_new_trail ) {
+    if (start_new_trail) {
       trails.resize(trails.size() + 1);
       trails.back().vertices.clear();
       trails.back().creation_time = fan::time::now();
@@ -842,12 +842,12 @@ namespace fan::graphics {
     }
 
     fan::vec2 direction = fan::vec2(1, 0);
-    if ( trails.back().vertices.size() >= 2 ) {
+    if (trails.back().vertices.size() >= 2) {
       fan::vec3 last_point = trails.back().vertices[trails.back().vertices.size() - 2].position;
       fan::vec3 diff = point - last_point;
       direction = fan::vec2(diff.x, diff.y);
       f32_t len = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-      if ( len > 0 ) {
+      if (len > 0) {
         direction.x /= len;
         direction.y /= len;
       }
@@ -875,16 +875,16 @@ namespace fan::graphics {
   void trail_t::update() {
     uint64_t current_time = fan::time::now();
 
-    for ( auto& trail : trails ) {
+    for (auto& trail : trails) {
       uint64_t age = current_time - trail.creation_time;
       f32_t fade_factor = 1.0f;
 
-      if ( age > fade_duration ) {
+      if (age > fade_duration) {
         fade_factor = std::max(0.0f, 1.0f - static_cast<f32_t>(age - fade_duration) / static_cast<f32_t>(max_trail_lifetime - fade_duration));
       }
       f32_t current_alpha = trail.base_alpha * fade_factor;
 
-      for ( size_t i = 0; i < trail.vertices.size(); i += 2 ) {
+      for (size_t i = 0; i < trail.vertices.size(); i += 2) {
         f32_t position_factor = static_cast<f32_t>(i) / static_cast<f32_t>(trail.vertices.size() - 2);
         f32_t vertex_alpha = current_alpha * (0.2f + 0.8f * position_factor);
 
@@ -933,7 +933,7 @@ namespace fan::graphics {
   }
 
   void tilemap_t::add_wall(const fan::vec2i& cell, fan::graphics::algorithm::pathfind::generator& gen) {
-    if ( wall_cells.find(cell) == wall_cells.end() ) {
+    if (wall_cells.find(cell) == wall_cells.end()) {
       gen.add_collision(cell);
       wall_cells.insert(cell);
       shapes[cell.y][cell.x].set_color(fan::colors::gray / 3);
@@ -941,7 +941,7 @@ namespace fan::graphics {
   }
 
   void tilemap_t::remove_wall(const fan::vec2i& cell, fan::graphics::algorithm::pathfind::generator& gen) {
-    if ( wall_cells.find(cell) != wall_cells.end() ) {
+    if (wall_cells.find(cell) != wall_cells.end()) {
       gen.remove_collision(cell);
       wall_cells.erase(cell);
       shapes[cell.y][cell.x].set_color(fan::colors::gray);
@@ -949,10 +949,10 @@ namespace fan::graphics {
   }
 
   void tilemap_t::reset_colors(const fan::color& color) {
-    for ( int i = 0; i < size.y; i++ ) {
-      for ( int j = 0; j < size.x; j++ ) {
+    for (int i = 0; i < size.y; i++) {
+      for (int j = 0; j < size.x; j++) {
         fan::vec2i cell(j, i);
-        if ( wall_cells.contains(cell) ) {
+        if (wall_cells.contains(cell)) {
           continue;
         }
         shapes[i][j].set_color(color);
@@ -961,17 +961,17 @@ namespace fan::graphics {
   }
 
   void tilemap_t::set_source(const fan::vec2i& cell, const fan::color& color) {
-    if ( !wall_cells.contains(cell) &&
+    if (!wall_cells.contains(cell) &&
       cell.x >= 0 && cell.x < shapes[0].size() &&
-      cell.y >= 0 && cell.y < shapes.size() ) {
+      cell.y >= 0 && cell.y < shapes.size()) {
       shapes[cell.y][cell.x].set_color(color);
     }
   }
 
   void tilemap_t::set_destination(const fan::vec2i& cell, const fan::color& color) {
-    if ( !wall_cells.contains(cell) &&
+    if (!wall_cells.contains(cell) &&
       cell.x >= 0 && cell.x < shapes[0].size() &&
-      cell.y >= 0 && cell.y < shapes.size() ) {
+      cell.y >= 0 && cell.y < shapes.size()) {
       shapes[cell.y][cell.x].set_color(color);
     }
   }
@@ -980,10 +980,10 @@ namespace fan::graphics {
     const fan::graphics::algorithm::pathfind::coordinate_list& path,
     const fan::color& color
   ) {
-    for ( const auto& p : path ) {
-      if ( !wall_cells.contains(p) &&
+    for (const auto& p : path) {
+      if (!wall_cells.contains(p) &&
         p.x >= 0 && p.x < shapes[0].size() &&
-        p.y >= 0 && p.y < shapes.size() ) {
+        p.y >= 0 && p.y < shapes.size()) {
         shapes[p.y][p.x].set_color(color);
       }
     }
@@ -1022,24 +1022,24 @@ namespace fan::graphics {
       for (int j = 0; j < map_size.x; j++) {
         positions[i][j] = offset + tile_size / 2 + fan::vec2(j * tile_size.x, i * tile_size.y);
 
-        shapes[i][j] = fan::graphics::rectangle_t{ {
+        shapes[i][j] = fan::graphics::rectangle_t {{
             .render_view = render_view,
             .position = fan::vec3(positions[i][j], 0),
             .size = tile_size / 2,
             .color = color
-          } };
+          }};
       }
     }
   }
 
   void tilemap_t::set_tile_color(const fan::vec2i& pos, const fan::color& c) {
-    if ( pos.x < 0 || pos.x >= size.x ) return;
-    if ( pos.y < 0 || pos.y >= size.y ) return;
+    if (pos.x < 0 || pos.x >= size.x) return;
+    if (pos.y < 0 || pos.y >= size.y) return;
     shapes[pos.y][pos.x].set_color(c);
   }
 
   constexpr f32_t tilemap_t::circle_overlap(f32_t r, f32_t i0, f32_t i1) {
-    if ( i0 <= 0 && i1 >= 0 ) return r;
+    if (i0 <= 0 && i1 >= 0) return r;
     f32_t y = fan::math::min(fan::math::min(std::fabs(i0), std::fabs(i1)) / r, 1.f);
     return std::sqrt(1.f - y * y) * r;
   }
@@ -1061,22 +1061,22 @@ namespace fan::graphics {
       ) {
       f32_t cell_size = tilemap.tile_size[d];
 
-      if constexpr ( d + 1 < wp.size() ) {
+      if constexpr (d + 1 < wp.size()) {
         gi[d] = (wp[d] - er) / cell_size;
         f32_t sp = (f32_t)gi[d] * cell_size;
-        while ( true ) {
+        while (true) {
           f32_t rp = sp - wp[d];
           f32_t roff = circle_overlap(r, rp, rp + cell_size);
           self.template operator() < d + 1 > (self, tilemap, gi, wp, r, roff, hc);
           gi[d]++;
           sp += cell_size;
-          if ( sp > wp[d] + er ) break;
+          if (sp > wp[d] + er) break;
         }
       }
-      else if constexpr ( d < wp.size() ) {
+      else if constexpr (d < wp.size()) {
         gi[d] = (wp[d] - er) / cell_size;
         sint32_t to = (wp[d] + er) / cell_size;
-        for ( ; gi[d] <= to; gi[d]++ ) {
+        for (; gi[d] <= to; gi[d]++) {
           fan::vec2i pos {gi[0], gi[1]};
           tilemap.set_tile_color(pos, hc);
         }
@@ -1098,7 +1098,7 @@ namespace fan::graphics {
       tile_size
     );
 
-    for ( auto& pos : raycast_positions ) {
+    for (auto& pos : raycast_positions) {
       set_tile_color(pos, color);
     }
   }
@@ -1108,7 +1108,7 @@ namespace fan::graphics {
   ) {
     using namespace fan::graphics;
 
-    switch ( shape.get_shape_type() ) {
+    switch (shape.get_shape_type()) {
     case shapes::shape_type_t::circle:
       highlight_circle(shape, color);
       break;
@@ -1127,11 +1127,11 @@ namespace fan::graphics {
 
 
   fan::color terrain_palette_t::get(int value) const {
-    if ( value <= stops.front().first ) return stops.front().second;
-    if ( value >= stops.back().first ) return stops.back().second;
+    if (value <= stops.front().first) return stops.front().second;
+    if (value >= stops.back().first) return stops.back().second;
 
-    for ( size_t i = 0; i < stops.size() - 1; ++i ) {
-      if ( value >= stops[i].first && value <= stops[i + 1].first ) {
+    for (size_t i = 0; i < stops.size() - 1; ++i) {
+      if (value >= stops[i].first && value <= stops[i + 1].first) {
         int v1 = stops[i].first;
         int v2 = stops[i + 1].first;
         auto c1 = stops[i].second;
@@ -1143,26 +1143,62 @@ namespace fan::graphics {
     return fan::color::rgb(0, 0, 0);
   }
 
+  static void generate_mesh_cell(
+    int i, int j,
+    const vec2& noise_size,
+    const std::vector<uint8_t>& noise_data,
+    const fan::graphics::image_t& texture,
+    const terrain_palette_t& palette,
+    sprite_properties_t& sp,
+    std::vector<fan::graphics::shape_t>& out_mesh
+  ) {
+    int index = (i * noise_size.x + j) * 3;
+    int grayscale = noise_data[index];
+
+    sp.position = fan::vec2(i, j) * sp.size * 2;
+    sp.image = texture;
+    sp.color = palette.get(grayscale);
+    sp.color.a = 1;
+
+    out_mesh[i * noise_size.x + j] = fan::graphics::sprite_t(sp);
+  }
+
   void generate_mesh(
     const vec2& noise_size,
     const std::vector<uint8_t>& noise_data,
     const fan::graphics::image_t& texture,
     std::vector<fan::graphics::shape_t>& out_mesh,
-    const terrain_palette_t& palette) {
-    fan::graphics::shapes::sprite_t::properties_t sp;
-    sp.size = fan::window::get_size() / noise_size / 2;
-
-    for ( int i = 0; i < noise_size.y; ++i ) {
-      for ( int j = 0; j < noise_size.x; ++j ) {
-        int index = (i * noise_size.x + j) * 3;
-        int grayscale = noise_data[index];
-
-        sp.position = fan::vec2(i, j) * sp.size * 2;
-        sp.image = texture;
-        sp.color = palette.get(grayscale);
-        sp.color.a = 1;
-        out_mesh.push_back(sp);
+    const terrain_palette_t& palette,
+    const sprite_properties_t& cp
+  ) {
+    sprite_properties_t sp = cp;
+    sp.size = fan::graphics::viewport_get_size(sp.render_view->viewport) / noise_size / 2;
+    out_mesh.resize(noise_size.multiply());
+    for (int i = 0; i < noise_size.y; ++i) {
+      for (int j = 0; j < noise_size.x; ++j) {
+        generate_mesh_cell(i, j, noise_size, noise_data, texture, palette, sp, out_mesh);
       }
+    }
+  }
+  fan::event::task_t async_generate_mesh(
+    const vec2& noise_size, 
+    const std::vector<uint8_t>& noise_data, 
+    const fan::graphics::image_t& texture, 
+    std::vector<fan::graphics::shape_t>& out_mesh, 
+    const terrain_palette_t& palette,
+    const sprite_properties_t& cp
+    ) {
+    sprite_properties_t sp = cp;
+    sp.size = fan::graphics::viewport_get_size(sp.render_view->viewport) / noise_size / 2;
+    out_mesh.resize(noise_size.multiply());
+    for (int i = 0; i < noise_size.y; ++i) {
+      // check if cancel called
+      if (co_await fan::event::cancel_task {}) co_return;
+
+      for (int j = 0; j < noise_size.x; ++j) {
+        generate_mesh_cell(i, j, noise_size, noise_data, texture, palette, sp, out_mesh);
+      }
+      co_await fan::co_sleep(1);
     }
   }
 }
@@ -1170,7 +1206,7 @@ namespace fan::image {
   plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, const fan::graphics::image_format& format) {
     plane_split_t result;
     uint64_t offset = 0;
-    if ( format == fan::graphics::image_format::yuv420p ) {
+    if (format == fan::graphics::image_format::yuv420p) {
       result.planes[0] = pixel_data;
       result.planes[1] = (uint8_t*)pixel_data + (offset += size.multiply());
       result.planes[2] = (uint8_t*)pixel_data + (offset += size.multiply() / 4);
@@ -1184,7 +1220,7 @@ namespace fan::image {
 
 namespace fan::graphics {
   bool tile_world_generator_t::is_solid(int x, int y) {
-    if ( x < 0 || x >= map_size.x || y < 0 || y >= map_size.y ) {
+    if (x < 0 || x >= map_size.x || y < 0 || y >= map_size.y) {
       return true;
     }
     return tiles[x + y * map_size.x];
@@ -1192,9 +1228,9 @@ namespace fan::graphics {
 
   int tile_world_generator_t::count_neighbors(int x, int y) {
     int c = 0;
-    for ( int j = -1; j <= 1; j++ ) {
-      for ( int i = -1; i <= 1; i++ ) {
-        if ( is_solid(x + i, y + j) ) {
+    for (int j = -1; j <= 1; j++) {
+      for (int i = -1; i <= 1; i++) {
+        if (is_solid(x + i, y + j)) {
           c++;
         }
       }
@@ -1204,8 +1240,8 @@ namespace fan::graphics {
 
   void tile_world_generator_t::iterate() {
     std::vector<bool> nt(map_size.x * map_size.y);
-    for ( int y = 0; y < map_size.y; y++ ) {
-      for ( int x = 0; x < map_size.x; x++ ) {
+    for (int y = 0; y < map_size.y; y++) {
+      for (int x = 0; x < map_size.x; x++) {
         nt[x + y * map_size.x] = count_neighbors(x, y) >= 5;
       }
     }
@@ -1214,7 +1250,7 @@ namespace fan::graphics {
 
   void tile_world_generator_t::init_tile_world() {
     tiles.resize(map_size.x * map_size.y);
-    for ( int i = 0; i < map_size.x * map_size.y; i++ ) {
+    for (int i = 0; i < map_size.x * map_size.y; i++) {
       tiles[i] = fan::random::value(0.f, 1.0f) < 0.45f;
     }
   }

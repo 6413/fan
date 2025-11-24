@@ -1110,7 +1110,17 @@ export namespace fan::graphics {
     const std::vector<uint8_t>& noise_data,
     const fan::graphics::image_t& texture,
     std::vector<fan::graphics::shape_t>& out_mesh,
-    const terrain_palette_t& palette
+    const terrain_palette_t& palette,
+    const sprite_properties_t& cp = {}
+  );
+
+  fan::event::task_t async_generate_mesh(
+    const vec2& noise_size,
+    const std::vector<uint8_t>& noise_data,
+    const fan::graphics::image_t& texture,
+    std::vector<fan::graphics::shape_t>& out_mesh,
+    const terrain_palette_t& palette,
+    const sprite_properties_t& cp = {}
   );
 }
 
