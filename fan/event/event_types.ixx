@@ -86,11 +86,11 @@ export namespace fan{
   constexpr int eof = UV_EOF;
 }
 
-template <typename Promise>
+template <typename promise_type>
 struct coroutine_handle_owner {
-  std::coroutine_handle<Promise> h;
+  std::coroutine_handle<promise_type> h;
 
-  explicit coroutine_handle_owner(std::coroutine_handle<Promise> hh) : h(hh) {}
+  explicit coroutine_handle_owner(std::coroutine_handle<promise_type> hh) : h(hh) {}
   coroutine_handle_owner(const coroutine_handle_owner&) = delete;
   coroutine_handle_owner& operator=(const coroutine_handle_owner&) = delete;
 
@@ -137,6 +137,36 @@ struct cancel_tag_t {
 
 struct cancel_task_impl {};
 
+struct task_cancelled_exception {};
+
+template<typename awaitable, typename promise_type>
+struct cancellable_awaitable_t {
+  awaitable awaitable;
+  promise_type* promise;
+
+  auto await_ready() {
+    if (promise->cancelled) {
+      throw task_cancelled_exception{};
+    }
+    return awaitable.await_ready();
+  }
+
+  template<typename handle>
+  auto await_suspend(handle h) {
+    if (promise->cancelled) {
+      throw task_cancelled_exception{};
+    }
+    return awaitable.await_suspend(h);
+  }
+
+  auto await_resume() {
+    if (promise->cancelled) {
+      throw task_cancelled_exception{};
+    }
+    return awaitable.await_resume();
+  }
+};
+
 template<typename T, typename suspend_type_t>
 struct task_value_promise_t {
   T value;
@@ -153,14 +183,25 @@ struct task_value_promise_t {
   }
   void return_value(T&& val) { value = std::move(val); }
   void return_value(const T& val) { value = val; }
-  void unhandled_exception() { exception = std::current_exception(); }
+  void unhandled_exception() { 
+    try {
+      std::rethrow_exception(std::current_exception());
+    } catch (const task_cancelled_exception&) {
+      return;
+    } catch (...) {
+      exception = std::current_exception();
+    }
+  }
 
   auto await_transform(cancel_task_impl) noexcept {
     return cancel_tag_t<task_value_promise_t<T, suspend_type_t>>{ this };
   }
+
   template<typename awaitable>
-  decltype(auto) await_transform(awaitable&& a) noexcept {
-    return std::forward<awaitable>(a);
+  auto await_transform(awaitable&& a) noexcept {
+    return cancellable_awaitable_t<awaitable, task_value_promise_t<T, suspend_type_t>>{
+      std::forward<awaitable>(a), this
+    };
   }
 };
 
@@ -178,14 +219,25 @@ struct task_value_promise_t<void, suspend_type_t> {
     return final_awaiter<task_value_promise_t<void, suspend_type_t>>{};
   }
   void return_void() {}
-  void unhandled_exception() { exception = std::current_exception(); }
+  void unhandled_exception() { 
+    try {
+      std::rethrow_exception(std::current_exception());
+    } catch (const task_cancelled_exception&) {
+      return;
+    } catch (...) {
+      exception = std::current_exception();
+    }
+  }
 
   auto await_transform(cancel_task_impl) noexcept {
     return cancel_tag_t<task_value_promise_t<void, suspend_type_t>>{ this };
   }
+
   template<typename awaitable>
-  decltype(auto) await_transform(awaitable&& a) noexcept {
-    return std::forward<awaitable>(a);
+  auto await_transform(awaitable&& a) noexcept {
+    return cancellable_awaitable_t<awaitable, task_value_promise_t<void, suspend_type_t>>{
+      std::forward<awaitable>(a), this
+    };
   }
 };
 
@@ -252,7 +304,6 @@ struct task_value_wrap_t<void, suspend_type_t> {
     if (!owner) return;
     owner->h.promise().cancelled = true;
   }
-  // use fan::event::cancel_task to use this function
   void stop_and_join() {
     if (valid()) {
       request_stop();
