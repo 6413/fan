@@ -3,8 +3,8 @@ static void vi_move(uint16_t shape_type, void* vi) {
 }
 
 static void ri_move(uint16_t sti, void* ri) {
-	if (sti == shape_type_t::sprite) {
-		((sprite_t::ri_t*)ri)->sprite_sheet_data.frame_update_nr.sic();
+	if (sti == fan::graphics::shapes::shape_type_t::sprite) {
+		((fan::graphics::shapes::sprite_t::ri_t*)ri)->sprite_sheet_data.frame_update_nr.sic();
 	}
 }
 
@@ -17,25 +17,25 @@ enum class shape_category_t {
 
 inline static constexpr shape_category_t get_shape_category(uint16_t sti) {
 	switch (sti) {
-	case shape_type_t::light:
+	case fan::graphics::shapes::shape_type_t::light:
 		return shape_category_t::light;
 
-	case shape_type_t::capsule:
-	case shape_type_t::gradient:
-	case shape_type_t::grid:
-	case shape_type_t::circle:
-	case shape_type_t::rectangle:
+	case fan::graphics::shapes::shape_type_t::capsule:
+	case fan::graphics::shapes::shape_type_t::gradient:
+	case fan::graphics::shapes::shape_type_t::grid:
+	case fan::graphics::shapes::shape_type_t::circle:
+	case fan::graphics::shapes::shape_type_t::rectangle:
 	#if defined(fan_3D)
-	case shape_type_t::rectangle3d:
+	case fan::graphics::shapes::shape_type_t::rectangle3d:
 	#endif
-	case shape_type_t::line:
+	case fan::graphics::shapes::shape_type_t::line:
 		return shape_category_t::common;
 
-	case shape_type_t::particles:
-	case shape_type_t::universal_image_renderer:
-	case shape_type_t::unlit_sprite:
-	case shape_type_t::sprite:
-	case shape_type_t::shader_shape:
+	case fan::graphics::shapes::shape_type_t::particles:
+	case fan::graphics::shapes::shape_type_t::universal_image_renderer:
+	case fan::graphics::shapes::shape_type_t::unlit_sprite:
+	case fan::graphics::shapes::shape_type_t::sprite:
+	case fan::graphics::shapes::shape_type_t::shader_shape:
 		return shape_category_t::texture;
 
 	default:
@@ -48,19 +48,19 @@ template <typename modifier_t>
 inline static void update_shape(shape_t* shape, modifier_t&& modifier_fn) {
 	auto sti = shape->get_shape_type();
 
-	auto key_pack_size_t = fan::graphics::g_shapes->shaper.GetKeysSize(*shape);
+	auto key_pack_size_t = g_shapes->shaper.GetKeysSize(*shape);
 	std::unique_ptr<uint8_t[]> key_pack(new uint8_t[key_pack_size_t]);
-	fan::graphics::g_shapes->shaper.WriteKeys(*shape, key_pack.get());
+	g_shapes->shaper.WriteKeys(*shape, key_pack.get());
 
 	modifier_fn(sti, key_pack.get());
 
-	auto _vi = shape->GetRenderData(fan::graphics::g_shapes->shaper);
-	auto vlen_t = fan::graphics::g_shapes->shaper.GetRenderDataSize(sti);
+	auto _vi = shape->GetRenderData(g_shapes->shaper);
+	auto vlen_t = g_shapes->shaper.GetRenderDataSize(sti);
 	std::unique_ptr<uint8_t[]> vi(new uint8_t[vlen_t]);
 	std::memcpy(vi.get(), _vi, vlen_t);
 
-	auto _ri = shape->GetData(fan::graphics::g_shapes->shaper);
-	auto rlen_t = fan::graphics::g_shapes->shaper.GetDataSize(sti);
+	auto _ri = shape->GetData(g_shapes->shaper);
+	auto rlen_t = g_shapes->shaper.GetDataSize(sti);
 	std::unique_ptr<uint8_t[]> ri(new uint8_t[rlen_t]);
 	std::memcpy(ri.get(), _ri, rlen_t);
 
@@ -68,7 +68,7 @@ inline static void update_shape(shape_t* shape, modifier_t&& modifier_fn) {
 	ri_move(sti, _ri);
 
 	shape->remove();
-	*shape = fan::graphics::g_shapes->shaper.add(sti, key_pack.get(), key_pack_size_t, vi.get(), ri.get());
+	*shape = g_shapes->shaper.add(sti, key_pack.get(), key_pack_size_t, vi.get(), ri.get());
 
 #if defined(debug_shape_t)
 	fan::print("+", shape->nri);
@@ -99,7 +99,7 @@ inline static void set_position(shape_t* shape, const fan::vec3& position) {
 
 inline static fan::graphics::camera_t get_camera(const shape_t* shape) {
 	auto sti = shape->get_shape_type();
-	uint8_t* key_pack = fan::graphics::g_shapes->shaper.GetKeys(*shape);
+	uint8_t* key_pack = g_shapes->shaper.GetKeys(*shape);
 
 	switch (get_shape_category(sti)) {
 		case shape_category_t::light:
@@ -140,7 +140,7 @@ inline static void set_camera(shape_t* shape, fan::graphics::camera_t camera) {
 
 inline static fan::graphics::viewport_t get_viewport(const shape_t* shape) {
 	auto sti = shape->get_shape_type();
-	uint8_t* key_pack = fan::graphics::g_shapes->shaper.GetKeys(*shape);
+	uint8_t* key_pack = g_shapes->shaper.GetKeys(*shape);
 
 	switch (get_shape_category(sti)) {
 		case shape_category_t::light:
@@ -180,8 +180,8 @@ inline static void set_viewport(shape_t* shape, fan::graphics::viewport_t viewpo
 }
 
 inline static fan::graphics::image_t get_image(shape_t* shape) {
-	auto sti = fan::graphics::g_shapes->shaper.ShapeList[*shape].sti;
-	uint8_t* key_pack = fan::graphics::g_shapes->shaper.GetKeys(*shape);
+	auto sti = g_shapes->shaper.ShapeList[*shape].sti;
+	uint8_t* key_pack = g_shapes->shaper.GetKeys(*shape);
 
 	if (get_shape_category(sti) == shape_category_t::texture) {
 		return shaper_get_key_safe(image_t, texture_t, image);
@@ -351,10 +351,10 @@ struct shape_functions_t {
 		return []<typename T>(const shape_t* s) -> return_t { \
 			if constexpr (requires { typename T::vi_t; } && requires { std::declval<typename T::vi_t>().op; }) { \
 				using vi_t = typename T::vi_t; \
-				return get_field_value(reinterpret_cast<vi_t*>(s->GetRenderData(fan::graphics::g_shapes->shaper))); \
+				return get_field_value(reinterpret_cast<vi_t*>(s->GetRenderData(g_shapes->shaper))); \
 			} else if constexpr (requires { typename T::ri_t; } && requires { std::declval<typename T::ri_t>().op; }) { \
 				using ri_t = typename T::ri_t; \
-				return get_field_value(reinterpret_cast<ri_t*>(s->GetData(fan::graphics::g_shapes->shaper))); \
+				return get_field_value(reinterpret_cast<ri_t*>(s->GetData(g_shapes->shaper))); \
 			} else { \
 				return make_universal<func_type>::fn(s); \
 			} \
@@ -377,8 +377,8 @@ struct shape_functions_t {
 				field.fill(value); \
 			} else { \
 				field = value; \
-				auto& sldata = fan::graphics::g_shapes->shaper.ShapeList[*s]; \
-				fan::graphics::g_shapes->shaper.ElementIsPartiallyEdited( \
+				auto& sldata = g_shapes->shaper.ShapeList[*s]; \
+				g_shapes->shaper.ElementIsPartiallyEdited( \
 					sldata.sti, sldata.blid, sldata.ElementIndex, fan::member_offset(member_ptr), sizeof(field)); \
 			} \
 		}; \
@@ -386,10 +386,10 @@ struct shape_functions_t {
 		[]<typename T>(shape_t* s, value_t v) { \
 			if constexpr (requires { typename T::vi_t; } && requires { std::declval<typename T::vi_t>().actual_op_name; }) { \
 				using vi_t = typename T::vi_t; \
-				set_field(s, reinterpret_cast<vi_t*>(s->GetRenderData(fan::graphics::g_shapes->shaper)), v, &vi_t::actual_op_name); \
+				set_field(s, reinterpret_cast<vi_t*>(s->GetRenderData(g_shapes->shaper)), v, &vi_t::actual_op_name); \
 			} else if constexpr (requires { typename T::ri_t; } && requires { std::declval<typename T::ri_t>().actual_op_name; }) { \
 				using ri_t = typename T::ri_t; \
-				set_field(s, reinterpret_cast<ri_t*>(s->GetData(fan::graphics::g_shapes->shaper)), v, &ri_t::actual_op_name); \
+				set_field(s, reinterpret_cast<ri_t*>(s->GetData(g_shapes->shaper)), v, &ri_t::actual_op_name); \
 			} else { \
 				make_universal<func_type>::fn(s, v); \
 			} \
@@ -515,7 +515,7 @@ struct shape_functions_t {
 		}
 		{ // polygon
 			SHAPE_FUNCTION_OVERRIDE(shape_type_t::polygon, get_position, +[] (const shape_t* shape) {
-				auto ri = (polygon_t::ri_t*)shape->GetData(fan::graphics::g_shapes->shaper);
+				auto ri = (polygon_t::ri_t*)shape->GetData(g_shapes->shaper);
 				fan::vec3 position = 0;
 				fan::opengl::core::get_glbuffer(
 					(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))),
@@ -528,7 +528,7 @@ struct shape_functions_t {
 				return position;
 			});
 			SHAPE_FUNCTION_OVERRIDE(shape_type_t::polygon, set_position2, +[](shape_t* shape, const fan::vec2& position) {
-				auto ri = (polygon_t::ri_t*)shape->GetData(fan::graphics::g_shapes->shaper);
+				auto ri = (polygon_t::ri_t*)shape->GetData(g_shapes->shaper);
 				ri->vao.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))));
 				ri->vbo.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))));
 				uint32_t vertex_count = ri->buffer_size / sizeof(polygon_vertex_t);
@@ -544,7 +544,7 @@ struct shape_functions_t {
 				}
 			});
 			SHAPE_FUNCTION_OVERRIDE(shape_type_t::polygon, set_angle, +[] (shape_t* shape, const fan::vec3& angle) {
-				auto ri = (polygon_t::ri_t*)shape->GetData(fan::graphics::g_shapes->shaper);
+				auto ri = (polygon_t::ri_t*)shape->GetData(g_shapes->shaper);
 				ri->vao.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))));
 				ri->vbo.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))));
 				uint32_t vertex_count = ri->buffer_size / sizeof(polygon_vertex_t);

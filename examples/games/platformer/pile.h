@@ -15,6 +15,7 @@ struct pile_t {
 
   void step() {
     player.step();
+    entity.update();
     engine.physics_context.step(engine.delta_time);
 
     //player updates
@@ -56,6 +57,4 @@ pile_t::pile_t() {
   engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
 
   current_stage = pile->stage_loader.open_stage<level_t>();
-
-  entity = entity_t(player.body.get_position() + fan::vec2(150, 0));
 }

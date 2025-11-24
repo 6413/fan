@@ -19,12 +19,15 @@ struct player_t {
       .aabb_scale = aabb_scale,
       .draw_offset_override = draw_offset
     });
+    body.enable_default_movement();
     // jump changes angle visually
     body.sync_visual_angle(false);
 
     mouse_click_handle = pile->engine.on_mouse_click(fan::mouse_left, [this](const auto& bdata) {
       task_attack = attack();
     });
+
+    
   }
 
   fan::event::task_t jump() {
