@@ -64,6 +64,11 @@ export namespace fan {
           start(time);
         }
       }
+      explicit timer(f64_t time, bool start_timer) {
+        if (start_timer) {
+          start(time);
+        }
+      }
       explicit timer(bool start_timer) {
         if (start_timer) {
           start();

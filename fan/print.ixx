@@ -214,13 +214,13 @@ export namespace fan {
     return os;
   }
 
-  template <typename T>
-  constexpr void print_throttled(const T& value, int throttle_ms = 1000) {
+  template <int throttle_ms = 1000>
+  constexpr void print_throttled(const auto&... args) {
     static std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_print_time;
     static std::unordered_map<std::string, int> count_map;
 
     std::ostringstream oss;
-    oss << value;
+    oss << fan::format_args(args...);
     std::string key = oss.str();
 
     auto now = std::chrono::steady_clock::now();

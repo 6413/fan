@@ -26,8 +26,6 @@ struct player_t {
     mouse_click_handle = pile->engine.on_mouse_click(fan::mouse_left, [this](const auto& bdata) {
       task_attack = attack();
     });
-
-    
   }
 
   fan::event::task_t jump() {
@@ -43,7 +41,6 @@ struct player_t {
   }
   fan::event::task_t attack() {
     co_await fan::graphics::animation_frame_awaiter(&body, "attack0", attack_hitbox_frame);
-
     auto points = get_hitbox_points(fan::math::sgn(body.get_tc_size().x));
     fan::physics::entity_t hitbox = pile->engine.physics_context.create_polygon(
       get_center(),
@@ -65,7 +62,8 @@ struct player_t {
     if (body.is_on_ground()) {
       jump_cancelled = true;
     }
-    if (fan::window::is_input_action_active("move_up")) {
+    if (fan::window::is_action_clicked("move_up")) {
+      //body.set_linear_velocity(fan::vec2(body.get_linear_velocity().x, -100.f));
       task_jump = jump();
     }
     body.update_animations();
@@ -73,6 +71,9 @@ struct player_t {
 
   fan::vec2 get_center() const {
     return body.get_position() - draw_offset;
+  }
+  fan::vec2 get_physics_pos() {
+    return body.get_physics_position();
   }
 
   fan::graphics::physics::character2d_t body;

@@ -227,8 +227,17 @@ export namespace fan::event {
     void stop();
   };
 
-
-  fan::event::task_t task_timer(uint64_t time, auto l) {
+  // call callback after given 'time'
+  fan::event::task_t after(uint64_t time, auto l) {
+    co_await fan::event::timer_t(time);
+    if constexpr (fan::is_awaitable_v<decltype(l())>) {
+      co_await l();
+    } else {
+      l();
+    }
+  }
+  // repeat task every given 'time' period
+  fan::event::task_t every(uint64_t time, auto l) {
     while (true) {
       if constexpr (fan::is_awaitable_v<decltype(l())>) {
         bool ret = co_await l();
@@ -244,7 +253,6 @@ export namespace fan::event {
       co_await event::timer_t(time);
     }
   }
-
 
   struct fd_waiter_t {
     uv_poll_t poll_handle;

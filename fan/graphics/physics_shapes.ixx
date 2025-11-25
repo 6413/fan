@@ -118,6 +118,7 @@ export namespace fan {
         void sync_visual_angle(bool flag);
 
         fan::vec3 get_position() const;
+        fan::vec3 get_physics_position() const;
 
         fan::vec2 draw_offset = 0;
         fan::physics::physics_update_cbs_t::nr_t physics_update_nr;
@@ -456,23 +457,11 @@ export namespace fan {
         static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping);
         bool is_on_ground() const;
         void process_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12);
+        void perform_jump(bool jump_condition, fan::vec2* wall_jump_normal = nullptr);
         void move_to_direction(const fan::vec2& direction);
         void set_physics_position(const fan::vec2& p);
         void enable_default_movement(uint8_t movement = movement_e::side_view);
         void update_animations();
-        void setup_default_animations();
-        struct animation_controller_t {
-          struct animation_state_t {
-            fan::graphics::animation_nr_t animation_id;
-            int fps = 15;
-            bool velocity_based_fps = false;
-            std::function<bool(character2d_t&)> condition;
-          };
-
-          void add_state(const std::string& name, const animation_state_t& state);
-          void update(character2d_t& character);
-          std::unordered_map<std::string, animation_state_t> states;
-        } anim_controller;
 
         struct character_config_t {
           std::string json_path;
@@ -480,15 +469,32 @@ export namespace fan {
           fan::vec2 draw_offset_override = { 0,0 };
           bool auto_draw_offset = true;
           bool auto_animations = true;
+          std::function<bool(character2d_t&)> attack_cb;
           fan::physics::shape_properties_t physics_properties = { .fixed_rotation = true };
         };
+
+        void setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config);
+        struct animation_controller_t {
+          struct animation_state_t {
+            std::string name;
+            fan::graphics::animation_nr_t animation_id;
+            int fps = 15;
+            bool velocity_based_fps = false;
+            std::function<bool(character2d_t&)> condition;
+          };
+
+          void add_state(const animation_state_t& state);
+          void update(character2d_t& character);
+          std::vector<animation_state_t> states;
+          fan::graphics::animation_nr_t prev_animation_id;
+        } anim_controller;
 
         static character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
 
         movement_callback_handle_t add_movement_callback(std::function<void(character2d_t*)> fn);
 
         fan::vec2 previous_movement_sign = 0;
-        f32_t force = 120.f;
+        f32_t accelerate_force = 120.f;
         f32_t jump_impulse = 75.f;
         f32_t max_speed = 600.f;
         f32_t jump_delay = 0.25f;

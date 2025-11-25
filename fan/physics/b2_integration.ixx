@@ -349,6 +349,7 @@ export namespace fan {
     bool overlap_result_callback(b2ShapeId shape_id, void* context);
     bool overlap_callback_fcn(b2ShapeId shape_id, void* context);
     void fill_shape_proxy(b2ShapeProxy& proxy, b2ShapeId shape_id, body_id_t body_id);
+    bool is_point_overlapping(const fan::vec2& position, const fan::vec2& point_size = 0.5f);
     bool test_overlap(body_id_t body_a, body_id_t body_b);
     void on_overlap(body_id_t body_a, body_id_t body_b, std::function<void()> callback);
     void queue_one_time_command(std::function<void()> callback);

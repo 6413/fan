@@ -139,9 +139,9 @@ struct cancel_task_impl {};
 
 struct task_cancelled_exception {};
 
-template<typename awaitable, typename promise_type>
+template<typename awaitable_t, typename promise_type>
 struct cancellable_awaitable_t {
-  awaitable awaitable;
+  awaitable_t awaitable;
   promise_type* promise;
 
   auto await_ready() {

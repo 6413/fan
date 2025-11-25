@@ -529,6 +529,7 @@ export namespace fan::graphics {
       // Returns the sign (+1 or −1) of each UV axis, indicating their orientation.
       fan::vec2 get_image_sign() const;
       void add_existing_animation(animation_nr_t nr);
+      bool is_animation_finished() const;
       bool is_animation_finished(animation_nr_t nr) const;
       void reset_current_sprite_sheet_animation();
       // sprite sheet - sprite specific
@@ -546,10 +547,11 @@ export namespace fan::graphics {
       void set_sprite_sheet_animation(const sprite_sheet_animation_t& animation);
       void add_sprite_sheet_animation(const sprite_sheet_animation_t& animation);
       void set_sprite_sheet_frames(uint32_t image_index, int horizontal_frames, int vertical_frames);
-      animation_nr_t& get_current_animation_id();
+      animation_nr_t& get_current_animation_id() const;
       void set_current_animation_id(animation_nr_t animation_id);
       sprite_sheet_animation_t& get_current_animation();
       int get_current_animation_frame() const;
+      void set_current_animation_frame(int frame_id);
       // dont store the pointer
       sprite_sheet_animation_t* get_animation(const std::string& name);
       void set_light_position(const fan::vec3& new_pos);
