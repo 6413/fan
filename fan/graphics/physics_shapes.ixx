@@ -443,6 +443,68 @@ export namespace fan {
           f32_t push_away_force = 1.f;
         } wall_jump;
 
+        struct attack_state_t {
+          fan::time::timer cooldown_timer;
+          f32_t cooldown_duration = 0.5e9;
+          fan::vec2 attack_range = {100, 50};
+          bool is_attacking = false;
+          std::function<void()> on_attack_start;
+          std::function<void()> on_attack_end;
+
+          bool try_attack(const fan::vec2& target_distance);
+          void end_attack();
+        };
+
+        struct ai_behavior_t {
+          enum behavior_type_e {
+            none,
+            follow_target,
+            flee_from_target,
+            patrol
+          };
+
+          fan::vec2 get_target_distance(const character2d_t* self) const;
+          bool should_move(const fan::vec2& distance) const;
+
+          behavior_type_e type = none;
+          character2d_t* target = nullptr;
+          fan::vec2 trigger_distance = {300, 50};
+          fan::vec2 closeup_distance = {100, 50};
+          bool auto_flip_to_target = true;
+          bool auto_jump_obstacles = true;
+          f32_t obstacle_lookahead = 1.5f;
+          std::vector<fan::vec2> patrol_points;
+          size_t current_patrol_index = 0;
+        };
+
+        struct hit_response_t {
+          void apply_hit(character2d_t* character, const fan::vec2& hit_direction);
+          bool update();
+
+          bool is_stunned = false;
+          f32_t knockback_force = 50.f;
+          f32_t stun_duration = 500;
+          fan::time::timer stun_timer;
+          std::function<void(const fan::vec2&)> on_hit_callback;
+        };
+
+        struct navigation_helper_t {
+          bool detect_and_handle_obstacles(
+            character2d_t* character,
+            const fan::vec2& direction,
+            fan::vec2 tile_size
+          );
+
+          bool auto_jump_obstacles = true;
+          f32_t jump_lookahead_tiles = 1.5f;
+          f32_t stuck_threshold = 0.5f;
+          fan::time::timer stuck_timer{0.1e9, true};
+          fan::time::timer wall_hit_timer {0.3e9, true};
+          f32_t prev_x = 0;
+          bool was_jumping = false;
+          bool is_stuck_state = false;
+        };
+
         character2d_t() = default;
         character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {}
 
@@ -476,15 +538,23 @@ export namespace fan {
         void setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config);
         struct animation_controller_t {
           struct animation_state_t {
+            enum trigger_type_e {
+              continuous,  // keeps checking condition every frame
+              one_shot,    // plays once when triggered, then resets
+              manual       // user manually controls start/end
+            };
             std::string name;
             fan::graphics::animation_nr_t animation_id;
             int fps = 15;
             bool velocity_based_fps = false;
+            trigger_type_e trigger_type = continuous;
             std::function<bool(character2d_t&)> condition;
+            bool is_playing = false;
           };
 
           void add_state(const animation_state_t& state);
           void update(character2d_t& character);
+          void cancel_current();
           std::vector<animation_state_t> states;
           fan::graphics::animation_nr_t prev_animation_id;
         } anim_controller;
@@ -493,6 +563,23 @@ export namespace fan {
 
         movement_callback_handle_t add_movement_callback(std::function<void(character2d_t*)> fn);
 
+        void enable_ai_follow(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance);
+        void enable_ai_flee(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance);
+        void enable_ai_patrol(const std::vector<fan::vec2>& points);
+        void setup_attack(f32_t cooldown_seconds, const fan::vec2& range, 
+          std::function<bool(character2d_t&)> condition = nullptr);
+        void update_ai(fan::vec2 tile_size);
+        void take_hit(const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
+        fan::vec2 get_center() const;
+        void cancel_animations();
+
+
+        attack_state_t attack_state;
+        ai_behavior_t ai_behavior;
+        hit_response_t hit_response;
+        navigation_helper_t navigation;
+
+        // memcpy start
         fan::vec2 previous_movement_sign = 0;
         f32_t accelerate_force = 120.f;
         f32_t jump_impulse = 75.f;
@@ -508,7 +595,7 @@ export namespace fan {
         bool movement_enabled = false;
         bool current_animation_requires_velocity_fps = false;
         bool auto_update_animations = false;
-        uint8_t movement_type = movement_e::side_view;
+        uint8_t movement_type = movement_e::side_view; // memcpy end
         movement_callback_handle_t movement_cb;
       };
 
