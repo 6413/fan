@@ -7,7 +7,7 @@ void load_map() {
   p.position = pile->player.body.get_position();
   main_map_id = pile->renderer.add(&main_compiled_map, p);
   // Set player spawn
-  pile->player.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn"));
+  pile->player.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn") + fan::vec2(300, -200));
   pile->entity.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn"));
 
   sensor_spikes = pile->renderer.get_physics_body(main_map_id, "sensor_spikes");

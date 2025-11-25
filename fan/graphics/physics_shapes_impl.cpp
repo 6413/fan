@@ -709,6 +709,102 @@ namespace fan::graphics::physics {
     );
   }
 
+  bool character2d_t::attack_state_t::try_attack(const fan::vec2& target_distance) {
+    if (is_attacking){
+      return true;
+    }
+    if (cooldown_timer && 
+      std::abs(target_distance.x) <= attack_range.x && 
+      std::abs(target_distance.y) < attack_range.y){
+      is_attacking = true;
+      cooldown_timer.restart();
+      if (on_attack_start){
+        on_attack_start();
+      }
+      return true;
+    }
+    return false;
+  }
+  void character2d_t::attack_state_t::end_attack() {
+    if (is_attacking && on_attack_end){
+      on_attack_end();
+    }
+    is_attacking = false;
+  }
+
+  fan::vec2 character2d_t::ai_behavior_t::get_target_distance(const character2d_t* self) const {
+    if (!target){
+      return fan::vec2(0);
+    }
+    return target->get_physics_position() - self->get_physics_position();
+  }
+  bool character2d_t::ai_behavior_t::should_move(const fan::vec2& distance) const {
+    return (std::abs(distance.x) < trigger_distance.x || 
+      std::abs(distance.y) < trigger_distance.y) && 
+      (
+        std::abs(distance.x) > std::abs(closeup_distance.x) ||
+        std::abs(distance.y) > std::abs(closeup_distance.y)
+      );
+  }
+  void character2d_t::hit_response_t::apply_hit(character2d_t* character, const fan::vec2& hit_direction){
+    is_stunned = true;
+    character->apply_linear_impulse_center(hit_direction * knockback_force);
+    stun_timer.start(stun_duration * 1e6);
+    if (on_hit_callback){
+      on_hit_callback(hit_direction);
+    }
+  }
+  bool character2d_t::hit_response_t::update(){
+    if (is_stunned && stun_timer.finished()){
+      is_stunned = false;
+      return true;
+    }
+    return false;
+  }
+
+  bool character2d_t::navigation_helper_t::detect_and_handle_obstacles(character2d_t* character, const fan::vec2& distance, fan::vec2 tile_size){
+    if (!auto_jump_obstacles){
+      return false;
+    }
+
+    fan::vec2 physics_pos = character->get_physics_position();
+    fan::vec2 current_vel = character->get_linear_velocity();
+
+    // cliff/gap
+    tile_size.x = std::copysign(tile_size.x / jump_lookahead_tiles, distance.x);
+    bool is_cliff = !fan::physics::is_point_overlapping(physics_pos + tile_size);
+
+    // trying to move, but movement blocked
+    bool trying_to_move = std::abs(distance.x) > 0.1f;
+    bool velocity_blocked = std::abs(current_vel.x) < 10.f;
+    bool is_hitting_obstacle = trying_to_move && velocity_blocked;
+
+    if (prev_x == distance.x && character->jumping){
+      was_jumping = true;
+    }
+    else if (!character->jumping){
+      was_jumping = false;
+    }
+    is_stuck_state = character->jumping && was_jumping;
+
+    if (prev_x != distance.x){
+      is_stuck_state = false;
+      stuck_timer.restart();
+    }
+
+    if (is_cliff && !is_stuck_state){
+      character->perform_jump(true);
+    }
+    // jump over obstacle
+    else if (is_hitting_obstacle && stuck_timer.finished()){
+      character->perform_jump(true);
+      stuck_timer.restart();
+    }
+
+    prev_x = distance.x;
+    return is_stuck_state;
+  }
+
   character2d_t::character2d_t(const character2d_t& o)
     : base_shape_t(o),
     wall_jump(o.wall_jump),
@@ -717,6 +813,11 @@ namespace fan::graphics::physics {
   {
     std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
       offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
+
+    attack_state = o.attack_state;
+    ai_behavior = o.ai_behavior;
+    hit_response = o.hit_response;
+    navigation = o.navigation;
 
     movement_cb.rebind(this);
   }
@@ -729,6 +830,11 @@ namespace fan::graphics::physics {
   {
     std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
       offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
+
+    attack_state = std::move(o.attack_state);
+    ai_behavior = std::move(o.ai_behavior);
+    hit_response = std::move(o.hit_response);
+    navigation = std::move(o.navigation);
 
     movement_cb.rebind(this);
   }
@@ -743,6 +849,11 @@ namespace fan::graphics::physics {
 
       std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
         offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
+
+      attack_state = o.attack_state;
+      ai_behavior = o.ai_behavior;
+      hit_response = o.hit_response;
+      navigation = o.navigation;
 
       movement_cb.rebind(this);
     }
@@ -759,6 +870,11 @@ namespace fan::graphics::physics {
 
       std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
         offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
+
+      attack_state = std::move(o.attack_state);
+      ai_behavior = std::move(o.ai_behavior);
+      hit_response = std::move(o.hit_response);
+      navigation = std::move(o.navigation);
 
       movement_cb.rebind(this);
     }
@@ -967,80 +1083,80 @@ namespace fan::graphics::physics {
     }
   }
 
-  void character2d_t::setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config) {
+  void character2d_t::setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config
+  ) {
     auto anims = get_all_animations();
-
     struct anim_t {
       int fps = 0;
       fan::graphics::animation_nr_t id{};
     } attack, idle, run, hurt;
 
-    for (auto& [name, anim_id] : anims) {
+    for (auto& [name, anim_id] : anims){
       auto& a = fan::graphics::all_animations[anim_id];
-
-      if (name == "attack0") attack = { a.fps, anim_id };
-      else if (name == "idle") idle = { a.fps, anim_id };
-      else if (name == "run") run = { a.fps, anim_id };
-      else if (name == "hurt") hurt = { a.fps, anim_id };
+      if (name == "attack0"){
+        attack = { a.fps, anim_id };
+      }
+      else if (name == "idle"){
+        idle = { a.fps, anim_id };
+      }
+      else if (name == "run"){
+        run = { a.fps, anim_id };
+      }
+      else if (name == "hurt"){
+        hurt = { a.fps, anim_id };
+      }
     }
 
-    if (attack.fps) {
+    if (attack.fps){
       anim_controller.add_state({
         .name = "attack0",
         .animation_id = attack.id,
         .fps = attack.fps,
-        .condition = config.attack_cb ? config.attack_cb : [attack, was_mouse_clicked = false](character2d_t& c) mutable -> bool {
-          if (fan::window::is_mouse_clicked() && !was_mouse_clicked) {
-            c.reset_current_sprite_sheet_animation();
-            was_mouse_clicked = true;
-          }
-          if (was_mouse_clicked) {
-            if (c.is_animation_finished(attack.id)) {
-              was_mouse_clicked = false;
-            }
-            return true;
-          }
-          return false;
+        .trigger_type = animation_controller_t::animation_state_t::one_shot,
+        .condition = config.attack_cb ? config.attack_cb : 
+          [](character2d_t& c) -> bool {
+          return fan::window::is_mouse_clicked();
         }
-      });
+        });
     }
-    if (hurt.fps) {
+    if (hurt.fps){
       anim_controller.add_state({
         .name = "hurt",
         .animation_id = hurt.id,
         .fps = hurt.fps,
-        .condition = [](character2d_t& c) { return  false /*todo*/; }
-      });
+        .trigger_type = animation_controller_t::animation_state_t::one_shot,
+        .condition = [](character2d_t& c){ return false; }
+        });
     }
-    if (idle.fps) {
+    if (idle.fps){
       anim_controller.add_state({
         .name = "idle",
         .animation_id = idle.id,
         .fps = idle.fps,
-        .condition = [](character2d_t& c) { return std::abs(c.get_linear_velocity().x) < 10.f; }
-      });
+        .condition = [](character2d_t& c){ return std::abs(c.get_linear_velocity().x) < 10.f; }
+        });
       set_current_animation_id(idle.id);
     }
-    if (run.fps) {
+    if (run.fps){
       anim_controller.add_state({
         .name = "run",
         .animation_id = run.id,
         .fps = run.fps,
-        .condition = [](character2d_t& c) {
-          bool cond = std::abs(c.get_linear_velocity().x) >= 10.f;
-          fan::vec2 s = c.get_tc_size();
-          int vel_sign = c.get_linear_velocity().sign().x;
-          if (cond) {
-            if (vel_sign < 0) {
-              c.set_tc_size(fan::vec2(-std::abs(s.x), s.y));
-            }
-            else {
-              c.set_tc_size(fan::vec2(std::abs(s.x), s.y));
-            }
+        .condition = [](character2d_t& c){
+        bool cond = std::abs(c.get_linear_velocity().x) >= 10.f;
+        fan::vec2 s = c.get_tc_size();
+        int vel_sign = c.get_linear_velocity().sign().x;
+        if (cond){
+          if (vel_sign < 0){
+            c.set_tc_size(fan::vec2(-std::abs(s.x), s.y));
           }
-          return cond;
+          else{
+            c.set_tc_size(fan::vec2(std::abs(s.x), s.y));
+          }
         }
-      });
+        return cond;
+      }
+        });
     }
     auto_update_animations = true;
   }
@@ -1049,20 +1165,48 @@ namespace fan::graphics::physics {
     states.emplace_back(state);
   }
 
-  void character2d_t::animation_controller_t::update(character2d_t& character) {
-    for (auto& state : states) {
-      if (state.condition(character) && state.animation_id) {
-        if (prev_animation_id != state.animation_id) {
+  void character2d_t::animation_controller_t::update(character2d_t& character){
+    for (auto& state : states){
+      bool triggered = state.condition(character);
+
+      if (state.trigger_type == animation_state_t::one_shot){
+        if (triggered && !state.is_playing){
+          state.is_playing = true;
+          if (prev_animation_id != state.animation_id){
+            character.set_current_animation_id(state.animation_id);
+            character.reset_current_sprite_sheet_animation();
+            character.current_animation_requires_velocity_fps = state.velocity_based_fps;
+            if (!state.velocity_based_fps){
+              character.set_sprite_sheet_fps(state.fps);
+            }
+            prev_animation_id = state.animation_id;
+          }
+        }
+        if (state.is_playing && character.is_animation_finished(state.animation_id)){
+          state.is_playing = false;
+          continue;
+        }
+        if (state.is_playing){
+          return;
+        }
+      }
+      else if (triggered){
+        if (prev_animation_id != state.animation_id){
           character.set_current_animation_id(state.animation_id);
           character.reset_current_sprite_sheet_animation();
           character.current_animation_requires_velocity_fps = state.velocity_based_fps;
-          if (!state.velocity_based_fps) {
+          if (!state.velocity_based_fps){
             character.set_sprite_sheet_fps(state.fps);
           }
         }
         prev_animation_id = state.animation_id;
         return;
       }
+    }
+  }
+  void character2d_t::animation_controller_t::cancel_current(){
+    for (auto& state : states){
+      state.is_playing = false;
     }
   }
 
@@ -1128,6 +1272,125 @@ namespace fan::graphics::physics {
     );
   }
 
+  void character2d_t::enable_ai_follow(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance) {
+    ai_behavior.type = ai_behavior_t::follow_target;
+    ai_behavior.target = target;
+    ai_behavior.trigger_distance = trigger_distance;
+    ai_behavior.closeup_distance = closeup_distance;
+  }
+
+  void character2d_t::enable_ai_flee(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance) {
+    ai_behavior.type = ai_behavior_t::flee_from_target;
+    ai_behavior.target = target;
+    ai_behavior.trigger_distance = trigger_distance;
+    ai_behavior.closeup_distance = closeup_distance;
+  }
+
+  void character2d_t::enable_ai_patrol(const std::vector<fan::vec2>& points) {
+    ai_behavior.type = ai_behavior_t::patrol;
+    ai_behavior.patrol_points = points;
+  }
+
+  void character2d_t::setup_attack(f32_t cooldown_seconds, const fan::vec2& range, std::function<bool(character2d_t&)> condition) {
+    attack_state.cooldown_duration = cooldown_seconds * 1e9;
+    attack_state.cooldown_timer = fan::time::timer(attack_state.cooldown_duration, true);
+    attack_state.attack_range = range;
+    if (condition) {
+      anim_controller.add_state({
+        .name = "attack0",
+        .animation_id = {},
+        .trigger_type = animation_controller_t::animation_state_t::one_shot,
+        .condition = condition
+      });
+    }
+  }
+
+  void character2d_t::update_ai(fan::vec2 tile_size) {
+    if (hit_response.is_stunned) {
+      if (hit_response.update()) {
+        // stun ended
+      }
+      return;
+    }
+    fan::vec2 movement_direction(0);
+
+    switch (ai_behavior.type) {
+    case ai_behavior_t::follow_target:
+    {
+      if (!ai_behavior.target) {
+        break;
+      }
+      fan::vec2 distance = ai_behavior.get_target_distance(this);
+      if (attack_state.try_attack(distance)) {
+        if (is_animation_finished()) {
+          attack_state.end_attack();
+        }
+      }
+      if (ai_behavior.should_move(distance)) {
+        movement_direction.x = distance.sign().x;
+        if (!navigation.detect_and_handle_obstacles(this, distance, tile_size)) {
+          move_to_direction(movement_direction);
+        }
+      }
+      if (ai_behavior.auto_flip_to_target) {
+        fan::vec2 tc = get_tc_size();
+        fan::vec2 new_tc {std::copysign(std::abs(tc.x), distance.x), tc.y};
+        if (new_tc != tc) {
+          set_tc_size(new_tc);
+        }
+      }
+      break;
+    }
+    case ai_behavior_t::flee_from_target:
+    {
+      if (!ai_behavior.target) {
+        break;
+      }
+      fan::vec2 distance = ai_behavior.get_target_distance(this);
+      if (ai_behavior.should_move(distance)) {
+        movement_direction.x = -distance.sign().x;
+        move_to_direction(movement_direction);
+      }
+      break;
+    }
+    case ai_behavior_t::patrol:
+    {
+      if (ai_behavior.patrol_points.empty()) {
+        break;
+      }
+      fan::vec2 target_pos = ai_behavior.patrol_points[ai_behavior.current_patrol_index];
+      fan::vec2 distance = target_pos - get_center();
+      if (std::abs(distance.x) < 10.f) {
+        ai_behavior.current_patrol_index =
+          (ai_behavior.current_patrol_index + 1) % ai_behavior.patrol_points.size();
+      }
+      else {
+        movement_direction.x = distance.sign().x;
+        move_to_direction(movement_direction);
+      }
+      break;
+    }
+    }
+    if (auto_update_animations) {
+      anim_controller.update(*this);
+      update_animation();
+    }
+  }
+
+  void character2d_t::take_hit(const fan::vec2& hit_direction, f32_t knockback_multiplier) {
+    f32_t original_force = hit_response.knockback_force;
+    hit_response.knockback_force *= knockback_multiplier;
+    hit_response.apply_hit(this, hit_direction);
+    hit_response.knockback_force = original_force;
+  }
+
+  fan::vec2 character2d_t::get_center() const {
+    return get_position() - get_draw_offset();
+  }
+
+  void character2d_t::cancel_animations() {
+    anim_controller.cancel_current();
+  }
 
   void update_reference_angle(b2WorldId world, fan::physics::joint_id_t& joint_id, f32_t new_reference_angle) {
     b2BodyId bodyIdA = b2Joint_GetBodyA(joint_id);
