@@ -691,10 +691,10 @@ export namespace fan::graphics {
   fan::graphics::shapes::shape_t& sprite(const sprite_properties_t& props = {});
   fan::graphics::shapes::shape_t& unlit_sprite(const unlit_sprite_properties_t& props = {});
   fan::graphics::shapes::shape_t& line(const line_properties_t& props = {});
-  fan::graphics::shapes::shape_t& line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+  fan::graphics::shapes::shape_t& line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color =  fan::colors::white, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& light(const light_properties_t& props = {});
   fan::graphics::shapes::shape_t& circle(const circle_properties_t& props = {});
-  fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+  fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius, const fan::color& color =  fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& capsule(const capsule_properties_t& props = {});
   fan::graphics::shapes::shape_t& polygon(const polygon_properties_t& props = {});
   fan::graphics::shapes::shape_t& grid(const grid_properties_t& props = {});
@@ -702,7 +702,7 @@ export namespace fan::graphics {
   void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1));
   void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1));
 #endif
-  fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color);
+  fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color =  fan::colors::white);
 
 
 

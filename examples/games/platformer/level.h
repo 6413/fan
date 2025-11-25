@@ -30,6 +30,9 @@ void update() {
   if (fan::physics::is_on_sensor(pile->player.body, sensor_spikes)) {
     pile->player.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn"));
   }
+  if (fan::physics::is_on_sensor(pile->entity.body, sensor_spikes)) {
+    pile->entity.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn"));
+  }
 
   static bool pause = false;
   if (fan::window::is_key_pressed(fan::key_e)) {

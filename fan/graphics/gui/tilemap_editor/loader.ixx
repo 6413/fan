@@ -258,6 +258,16 @@ public:
     return ((p / node.size) / (node.compiled_map->tile_size)).floor();
   }
 
+  fan::vec2 get_tile_size(id_t id) {
+    const auto& node = map_list[id];
+    return node.compiled_map->tile_size;
+  }
+  // returns map's tile count
+  fan::vec2 get_map_size(id_t id) {
+    const auto& node = map_list[id];
+    return node.compiled_map->map_size;
+  }
+
   struct properties_t {
     fan::vec3 position = 0;
     fan::vec2 size = 1;

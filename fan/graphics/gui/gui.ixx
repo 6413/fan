@@ -552,6 +552,12 @@ export namespace fan::graphics::gui {
 
   void text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0);
 }
+
+export namespace fan {
+  void gprint(const auto& ...args) {
+    fan::graphics::gui::print(args...);
+  }
+}
 /*
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
   fan::graphics::shader_t shader_nr,

@@ -8,21 +8,30 @@ pile_t* pile = 0;
 #include <fan/graphics/gui/stage_maker/loader.h>
 
 struct pile_t {
+  lstd_defstruct(level_t)
+    #include <fan/graphics/gui/stage_maker/preset.h>
+    static constexpr auto stage_name = "";
+    #include "level.h"
+  };
+
   #include "player/player.h"
   #include "entity.h"
 
   pile_t();
 
   void step() {
+    engine.physics_context.step(engine.delta_time);
     player.step();
     entity.update();
-    engine.physics_context.step(engine.delta_time);
 
-    //player updates
-    engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position() - player.body.get_draw_offset(), 0);
+    engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos(), 0);
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
-    // physics step
   }
+
+  level_t& get_level() {
+    return stage_loader.get_stage_data<level_t>(current_stage);
+  }
+
   fan::graphics::engine_t engine;
   fte_renderer_t renderer;
 
@@ -38,11 +47,7 @@ struct pile_t {
   entity_t entity;
 };
 
-lstd_defstruct(level_t)
-  #include <fan/graphics/gui/stage_maker/preset.h>
-  static constexpr auto stage_name = "";
-  #include "level.h"
-};
+
 
 pile_t::pile_t() {
 //  fan::graphics::physics::debug_draw(true);

@@ -1352,6 +1352,9 @@ namespace fan::graphics{
 		}
 	}
 
+  bool shapes::shape_t::is_animation_finished() const {
+    return is_animation_finished(get_current_animation_id());
+  }
 	bool shapes::shape_t::is_animation_finished(animation_nr_t nr) const {
 		auto& animation = fan::graphics::get_sprite_sheet_animation(nr);
 		auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
@@ -1472,7 +1475,7 @@ namespace fan::graphics{
 		}
 	}
 
-	animation_nr_t& shapes::shape_t::get_current_animation_id() {
+	animation_nr_t& shapes::shape_t::get_current_animation_id() const {
 		return shape_get_ri(sprite).current_animation;
 	}
 
@@ -1499,6 +1502,10 @@ namespace fan::graphics{
 		auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
 		return ri.sprite_sheet_data.current_frame;
 	}
+  void shapes::shape_t::set_current_animation_frame(int frame_id) {
+    auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+    ri.sprite_sheet_data.current_frame = frame_id;
+  }
 
 	// dont store the pointer
 	sprite_sheet_animation_t* shapes::shape_t::get_animation(const std::string& name) {

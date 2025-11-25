@@ -1193,9 +1193,6 @@ namespace fan::graphics {
     sp.size = fan::graphics::viewport_get_size(sp.render_view->viewport) / noise_size / 2;
     out_mesh.resize(noise_size.multiply());
     for (int i = 0; i < noise_size.y; ++i) {
-      // check if cancel called
-      if (co_await fan::event::cancel_task {}) co_return;
-
       for (int j = 0; j < noise_size.x; ++j) {
         generate_mesh_cell(i, j, noise_size, noise_data, texture, palette, sp, out_mesh);
       }
