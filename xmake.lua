@@ -34,6 +34,7 @@ option("fan_vulkan") set_default(false) option_end()
 option("fan_fmt") set_default(true) option_end()
 option("fan_wayland_screen") set_default(false) option_end()
 option("fan_network") set_default(false) option_end()
+option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
 add_defines("fan_opengl")
 if has_config("fan_gui") then
@@ -309,7 +310,7 @@ target("a.exe")
     add_deps("imgui", "nfd")
   end
   add_files(module_files)
-  add_files("examples/engine_demos/engine_demo.cpp", {module = false})
+  add_files(get_config("main") or "examples/engine_demos/engine_demo.cpp", {module = false})
   add_includedirs(".", {public = true})
   add_linkdirs("thirdparty/fan/lib")
 

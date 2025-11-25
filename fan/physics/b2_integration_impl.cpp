@@ -702,8 +702,18 @@ namespace fan::physics {
 
     b2QueryFilter filter = b2DefaultQueryFilter();
     b2World_OverlapShape(gphysics->world_id, &proxy, filter, overlap_result_callback, &context);
-
     return context.found_overlap;
+  }
+
+  // point size = half size
+  bool is_point_overlapping(const fan::vec2& position, const fan::vec2& point_size) {
+    b2AABB aabb;
+    aabb.lowerBound = fan::physics::render_to_physics(position) - fan::physics::render_to_physics(point_size);
+    aabb.upperBound = fan::physics::render_to_physics(position) + fan::physics::render_to_physics(point_size);
+    b2QueryFilter filter = b2DefaultQueryFilter();
+    bool hit = false;
+    b2World_OverlapAABB(gphysics->world_id, aabb, filter, [](b2ShapeId shapeId, void* ctx) { return *(bool*)ctx = true; }, &hit);
+    return hit;
   }
 
   void on_overlap(body_id_t body_a, body_id_t body_b, std::function<void()> callback) {
