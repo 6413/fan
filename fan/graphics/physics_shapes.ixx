@@ -74,12 +74,14 @@ export namespace fan {
     namespace physics {
 
       b2DebugDraw box2d_debug_draw{};
+      fan::graphics::render_view_t debug_render_view;
 
       void init();
 
       void step(f32_t dt);
 
       void debug_draw(bool enabled);
+      bool get_debug_draw();
       // position & aabb & angle
       std::function<void(fan::graphics::shape_t&, const fan::vec3&, const fan::vec2&, f32_t)> physics_update_cb =
         [](fan::graphics::shape_t&, const fan::vec3&, const fan::vec2&, f32_t) {};
@@ -444,16 +446,18 @@ export namespace fan {
         } wall_jump;
 
         struct attack_state_t {
-          fan::time::timer cooldown_timer;
-          f32_t cooldown_duration = 0.5e9;
-          fan::vec2 attack_range = {100, 50};
-          bool is_attacking = false;
-          std::function<void()> on_attack_start;
-          std::function<void()> on_attack_end;
-
           bool can_attack(const fan::vec2& target_distance);
           bool try_attack(const fan::vec2& target_distance);
           void end_attack();
+
+          fan::time::timer cooldown_timer;
+          f32_t cooldown_duration = 0.5e9;
+          f32_t knockback_force = 50.f;
+          fan::vec2 attack_range = {100, 50};
+          bool is_attacking = false;
+          character2d_t* target = nullptr;
+          std::function<void()> on_attack_start;
+          std::function<void()> on_attack_end;
         };
 
         struct ai_behavior_t {
@@ -464,7 +468,7 @@ export namespace fan {
             patrol
           };
 
-          fan::vec2 get_target_distance(const character2d_t* self) const;
+          fan::vec2 get_target_distance() const;
           bool should_move(const fan::vec2& distance) const;
 
           behavior_type_e type = none;
@@ -478,16 +482,16 @@ export namespace fan {
           size_t current_patrol_index = 0;
         };
 
-        struct hit_response_t {
-          void apply_hit(character2d_t* character, const fan::vec2& hit_direction);
-          bool update();
+        //struct hit_response_t {
+        //  void apply_hit(character2d_t* character, const fan::vec2& hit_direction);
+        //  bool update();
 
-          bool is_stunned = false;
-          f32_t knockback_force = 50.f;
-          f32_t stun_duration = 500;
-          fan::time::timer stun_timer;
-          std::function<void(const fan::vec2&)> on_hit_callback;
-        };
+        //  bool is_stunned = false;
+        //  f32_t knockback_force = 50.f;
+        //  f32_t stun_duration = 500;
+        //  fan::time::timer stun_timer;
+        //  std::function<void(const fan::vec2&)> on_hit_callback;
+        //};
 
         struct navigation_helper_t {
           bool detect_and_handle_obstacles(
@@ -537,6 +541,7 @@ export namespace fan {
         };
 
         void setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config);
+
         struct animation_controller_t {
           struct animation_state_t {
             enum trigger_type_e {
@@ -554,7 +559,7 @@ export namespace fan {
           };
 
           void add_state(const animation_state_t& state);
-          void update(character2d_t& character);
+          void update();
           void cancel_current();
           std::vector<animation_state_t> states;
           fan::graphics::animation_nr_t prev_animation_id;
@@ -570,20 +575,19 @@ export namespace fan {
         void setup_attack(f32_t cooldown_seconds, const fan::vec2& range, 
           std::function<bool(character2d_t&)> condition = nullptr);
         void update_ai(fan::vec2 tile_size);
-        void take_hit(const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
+        void take_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
         fan::vec2 get_center() const;
         void cancel_animations();
 
 
         attack_state_t attack_state;
         ai_behavior_t ai_behavior;
-        hit_response_t hit_response;
         navigation_helper_t navigation;
 
         // memcpy start
         fan::vec2 previous_movement_sign = 0;
         f32_t accelerate_force = 120.f;
-        f32_t jump_impulse = 75.f;
+        f32_t jump_impulse = 40.f;
         f32_t max_speed = 600.f;
         f32_t jump_delay = 0.25f;
         bool jumping = false;

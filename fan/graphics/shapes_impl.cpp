@@ -907,7 +907,7 @@ namespace fan::graphics{
 
 	fan::graphics::texture_pack::ti_t shapes::shape_t::get_tp() {
 		fan::graphics::texture_pack::ti_t ti;
-		ti.image = fan::graphics::g_render_context_handle.default_texture;
+		ti.image = get_image();
 		ti.position = get_tc_position() * ti.image.get_size();
 		ti.size = get_tc_size() * ti.image.get_size();
 		return ti;

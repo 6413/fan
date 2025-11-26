@@ -100,7 +100,7 @@ struct fgm_t {
 
     open_texturepack(texturepack_name);
 
-    gloco->window.add_keys_callback([this](const auto& d) {
+    key_handle = gloco->window.add_keys_callback([this](const auto& d) {
       if (d.state != fan::keyboard_state::press || gui::is_any_item_active()) {
         return;
       }
@@ -112,7 +112,7 @@ struct fgm_t {
     gloco->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_space}, "toggle_content_browser");
     gloco->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_f}, "set_windowed_fullscreen");
 
-    gloco->window.add_mouse_move_callback([this](const auto& d) {
+    mouse_move_handle = gloco->window.add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom;
         auto camera_pos = viewport_settings.pos - move_off;
@@ -120,7 +120,7 @@ struct fgm_t {
       }
     });
 
-    gloco->window.add_buttons_callback([this](const auto& d) {
+    button_handle = gloco->window.add_buttons_callback([this](const auto& d) {
       f32_t old_zoom = viewport_settings.zoom;
 
       switch (d.button) {
@@ -1540,4 +1540,7 @@ struct shape_keyframe_animation_t {
   fan::graphics::sprite_t background;
   std::vector<fan::graphics::shape_t> copy_buffer;
   std::string previous_file_name;
+  fan::graphics::engine_t::keys_handle_t key_handle;
+  fan::graphics::engine_t::mouse_move_handle_t mouse_move_handle;
+  fan::graphics::engine_t::buttons_handle_t button_handle;
 };

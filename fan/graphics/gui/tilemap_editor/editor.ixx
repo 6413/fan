@@ -28,6 +28,7 @@ import fan.graphics;
 import fan.random;
 import fan.physics.b2_integration;
 import fan.physics.collision.rectangle;
+import fan.graphics.physics_shapes;
 
 export struct fte_t {
   static constexpr int max_id_len = 48;
@@ -272,7 +273,7 @@ export struct fte_t {
       render_view = properties.camera;
     }
 
-    fan::graphics::get_window().add_mouse_move_callback([this](const auto& d) {
+    mouse_move_handle = fan::graphics::get_window().add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom;
         fan::graphics::camera_set_position(render_view->camera, viewport_settings.pos - move_off);
@@ -289,7 +290,7 @@ export struct fte_t {
       }
     });
 
-    fan::graphics::get_window().add_buttons_callback([this](const auto& d) {
+    buttons_handle = fan::graphics::get_window().add_buttons_callback([this](const auto& d) {
       if (d.button == fan::mouse_left && d.state == fan::mouse_state::release) {
         prev_grid_position = -999999;
       }
@@ -346,7 +347,7 @@ export struct fte_t {
       }
     });
 
-    fan::graphics::get_window().add_keys_callback([this](const auto& d) {
+    keys_handle = fan::graphics::get_window().add_keys_callback([this](const auto& d) {
       if (d.state != fan::keyboard_state::press) {
         return;
       }
@@ -850,7 +851,8 @@ export struct fte_t {
         bool is_ctrl_pressed = fan::graphics::get_window().key_pressed(fan::key_left_control);
         bool is_shift_pressed = fan::graphics::get_window().key_pressed(fan::key_left_shift);
 
-        if (is_mouse_left_down && !is_ctrl_pressed && !is_shift_pressed) {
+        if (is_mouse_left_down && !is_ctrl_pressed && 
+          !is_shift_pressed && !fan::key_t && !fan::key_5) {
           handle_tile_action(position, [this](auto...args) {
             return handle_tile_push(args...);
           });
@@ -2186,6 +2188,9 @@ export struct fte_t {
   std::function<void(int)> modify_cb = [](int) {};
   std::string previous_file_name;
   fan::graphics::shape_t visual_line;
+  fan::window_t::buttons_handle_t buttons_handle;
+  fan::window_t::keys_handle_t keys_handle;
+  fan::window_t::mouse_move_handle_t mouse_move_handle;
   int original_image_width = 2048;
   inline static fan::graphics::file_save_dialog_t save_file_dialog;
   inline static fan::graphics::file_open_dialog_t open_file_dialog, open_tp_dialog;
