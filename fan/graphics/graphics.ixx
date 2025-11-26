@@ -39,7 +39,7 @@ import fan.random;
 import fan.graphics.opengl.core;
 
 #if defined(fan_physics)
-  import fan.physics.types;
+import fan.physics.types;
 #endif
 
 // user friendly functions
@@ -73,7 +73,7 @@ export namespace fan {
       std::ostringstream oss;
       oss << value;
       fan::graphics::ctx().console->print(oss.str() + " ", 0);
-      }(values), ...);
+    }(values), ...);
   #endif
   }
   void printcl(auto&&... values) {
@@ -89,25 +89,25 @@ export namespace fan {
       std::ostringstream oss;
       oss << value;
       fan::graphics::ctx().console->print(oss.str() + " ", highlight);
-      }(values), ...);
+    }(values), ...);
   #endif
   }
 
   void printclh(int highlight, auto&&... values) {
-#if defined(fan_gui)
+  #if defined(fan_gui)
     printclnnh(highlight, values...);
     fan::graphics::ctx().console->print("\n", highlight);
-#endif
+  #endif
   }
   inline void printcl_err(auto&&... values) {
-#if defined(fan_gui)
+  #if defined(fan_gui)
     printclh(fan::graphics::highlight_e::error, values...);
-#endif
+  #endif
   }
   inline void printcl_warn(auto&&... values) {
-#if defined(fan_gui)
+  #if defined(fan_gui)
     printclh(fan::graphics::highlight_e::warning, values...);
-#endif
+  #endif
   }
 }
 
@@ -115,9 +115,9 @@ bool init_fan_track_opengl_print = []() {
   fan_opengl_track_print = [](std::string func_name, uint64_t elapsed) {
     fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":");
     fan::printclh(fan::graphics::highlight_e::warning, std::to_string(elapsed / 1e+6f)/*fan::to_string(elapsed / 1e+6)*/ + "ms");
-    };
+  };
   return 1;
-  }();
+}();
 
 export namespace fan::graphics {
   namespace image_presets {
@@ -693,10 +693,10 @@ export namespace fan::graphics {
   fan::graphics::shapes::shape_t& sprite(const sprite_properties_t& props = {});
   fan::graphics::shapes::shape_t& unlit_sprite(const unlit_sprite_properties_t& props = {});
   fan::graphics::shapes::shape_t& line(const line_properties_t& props = {});
-  fan::graphics::shapes::shape_t& line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color =  fan::colors::white, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+  fan::graphics::shapes::shape_t& line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color = fan::colors::white, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& light(const light_properties_t& props = {});
   fan::graphics::shapes::shape_t& circle(const circle_properties_t& props = {});
-  fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius, const fan::color& color =  fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+  fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& capsule(const capsule_properties_t& props = {});
   fan::graphics::shapes::shape_t& polygon(const polygon_properties_t& props = {});
   fan::graphics::shapes::shape_t& grid(const grid_properties_t& props = {});
@@ -704,7 +704,7 @@ export namespace fan::graphics {
   void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1));
   void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1));
 #endif
-  fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color =  fan::colors::white);
+  fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color = fan::colors::white);
 
 
 
@@ -726,7 +726,7 @@ export namespace fan::graphics {
 
     void disable_highlight() {
       apply_highlight([](auto& h, const fan::line3&, fan::graphics::render_view_t&) {
-        if ( !h.iic() ) {
+        if (!h.iic()) {
           h.set_line(0, 0);
         }
       });
@@ -746,15 +746,15 @@ export namespace fan::graphics {
       };
 
       in.mouse_button_cb = [this, user_cb = p.mouse_button_cb](const auto& d) {
-        if ( g_ignore_mouse || d.button != fan::mouse_left ) {
+        if (g_ignore_mouse || d.button != fan::mouse_left) {
           return 0;
         }
 
-        if ( d.button_state != fan::mouse_state::press ) {
+        if (d.button_state != fan::mouse_state::press) {
           move = moving_object = false;
           d.flag->ignore_move_focus_check = false;
-          if ( previous_click_position == d.position ) {
-            for ( auto& i : selected_objects ) {
+          if (previous_click_position == d.position) {
+            for (auto& i : selected_objects) {
               i->disable_highlight();
             }
             selected_objects = {this};
@@ -763,25 +763,25 @@ export namespace fan::graphics {
           return 0;
         }
 
-        if ( d.mouse_stage != fan::graphics::shapes::vfi_t::mouse_stage_e::viewport_inside ) {
+        if (d.mouse_stage != fan::graphics::shapes::vfi_t::mouse_stage_e::viewport_inside) {
           return 0;
         }
 
-        if ( previous_focus && previous_focus != this ) {
+        if (previous_focus && previous_focus != this) {
           previous_focus->disable_highlight();
-          if ( selected_objects.size() == 1 && selected_objects.back() == previous_focus ) {
+          if (selected_objects.size() == 1 && selected_objects.back() == previous_focus) {
             selected_objects.erase(selected_objects.begin());
           }
         }
 
-        if ( std::find(selected_objects.begin(), selected_objects.end(), this) == selected_objects.end() ) {
+        if (std::find(selected_objects.begin(), selected_objects.end(), this) == selected_objects.end()) {
           selected_objects.push_back(this);
         }
 
         enable_highlight();
         previous_focus = this;
 
-        if ( move_and_resize_auto ) {
+        if (move_and_resize_auto) {
           previous_click_position = d.position;
           click_offset = get_position() - d.position;
           move = moving_object = true;
@@ -793,38 +793,38 @@ export namespace fan::graphics {
       };
 
       in.mouse_move_cb = [this, user_cb = p.mouse_move_cb](const auto& d) {
-        if ( g_ignore_mouse || !move_and_resize_auto ) {
+        if (g_ignore_mouse || !move_and_resize_auto) {
           return user_cb ? user_cb(d) : 0;
         }
 
-        if ( resize && move ) {
+        if (resize && move) {
           fan::vec2 old_size = get_size();
           f32_t aspect_ratio = old_size.x / old_size.y;
           fan::vec2 drag_delta = d.position - get_position();
-          if ( snap ) {
+          if (snap) {
             drag_delta = (drag_delta / snap).round() * snap;
           }
           drag_delta = drag_delta.abs();
           fan::vec2 new_size(drag_delta.x, drag_delta.x / aspect_ratio);
-          if ( new_size.x < 1.0f ) {
+          if (new_size.x < 1.0f) {
             new_size = {1.0f, 1.0f / aspect_ratio};
           }
-          if ( new_size.y < 1.0f ) {
+          if (new_size.y < 1.0f) {
             new_size = {aspect_ratio, 1.0f};
           }
           set_size(new_size);
           update_highlight_position(this);
         }
-        else if ( move ) {
+        else if (move) {
           fan::vec3 new_pos(d.position + click_offset, get_position().z);
-          if ( snap ) {
+          if (snap) {
             new_pos = (new_pos / snap).round() * snap;
           }
           set_position(new_pos, false);
-          for ( auto& child : children ) {
+          for (auto& child : children) {
             auto c = child.get_color();
             auto i = child.get_image();
-            if ( c.a != 1.0f ) {
+            if (c.a != 1.0f) {
               fan::print("Alpha changed during drag:", c.a);
               c.a = 1.0f;
               child.set_color(c);
@@ -849,22 +849,22 @@ export namespace fan::graphics {
       fan::vec2 delta = fan::vec2(position - vfi_root.get_position());
       modify_depth ? vfi_root.set_position(position) : vfi_root.set_position(fan::vec2(position));
 
-      for ( auto& child : children ) {
+      for (auto& child : children) {
         fan::vec3 cp = child.get_position();
         fan::vec3 new_pos = fan::vec3(fan::vec2(cp) + delta, modify_depth ? position.z : cp.z);
         modify_depth ? child.set_position(new_pos) : child.set_position(fan::vec2(new_pos));
       }
       update_highlight_position(this);
 
-      for ( auto* i : selected_objects ) {
-        if ( i == this ) {
+      for (auto* i : selected_objects) {
+        if (i == this) {
           continue;
         }
         fan::vec3 old_pos = i->vfi_root.get_position();
         fan::vec3 new_pos = fan::vec3(fan::vec2(old_pos) + delta, modify_depth ? position.z : old_pos.z);
         modify_depth ? i->vfi_root.set_position(new_pos) : i->vfi_root.set_position(fan::vec2(new_pos));
 
-        for ( auto& child : i->children ) {
+        for (auto& child : i->children) {
           fan::vec3 cp = child.get_position();
           fan::vec3 new_child_pos = fan::vec3(fan::vec2(cp) + delta, modify_depth ? position.z : cp.z);
           modify_depth ? child.set_position(new_child_pos) : child.set_position(fan::vec2(new_child_pos));
@@ -880,7 +880,7 @@ export namespace fan::graphics {
     void set_size(const fan::vec2& size) {
       fan::vec2 offset = size - vfi_root.get_size();
       vfi_root.set_size(size);
-      for ( auto& child : children ) {
+      for (auto& child : children) {
         child.set_size(child.get_size() + offset);
       }
     }
@@ -890,14 +890,14 @@ export namespace fan::graphics {
     }
 
     void set_color(const fan::color& c) {
-      for ( auto& child : children ) {
+      for (auto& child : children) {
         child.set_color(c);
       }
     }
 
     static void update_highlight_position(vfi_root_custom_t<T>* instance) {
       instance->apply_highlight([](auto& h, const fan::line3& line, fan::graphics::render_view_t&) {
-        if ( !h.iic() ) {
+        if (!h.iic()) {
           h.set_line(line[0], line[1]);
         }
       });
@@ -908,8 +908,8 @@ export namespace fan::graphics {
       fan::vec3 op = children[0].get_position();
       fan::vec2 os = children[0].get_size();
       fan::graphics::render_view_t rv {children[0].get_camera(), children[0].get_viewport()};
-      for ( size_t j = 0; j < highlight.size(); ++j ) {
-        for ( size_t i = 0; i < highlight[0].size(); ++i ) {
+      for (size_t j = 0; j < highlight.size(); ++j) {
+        for (size_t i = 0; i < highlight[0].size(); ++i) {
           func(highlight[j][i], get_highlight_positions(op, os, i), rv);
         }
       }
@@ -974,8 +974,8 @@ export namespace fan::graphics {
     bool zoom_on_window_resize = true;
     bool pan_with_middle_mouse = false;
     bool clicked_inside_viewport = false;
-    fan::vec2 old_window_size{};
-    fan::vec2 camera_offset{};
+    fan::vec2 old_window_size {};
+    fan::vec2 camera_offset {};
     fan::graphics::camera_t reference_camera;
     fan::graphics::viewport_t reference_viewport;
     fan::window_t::resize_callback_NodeReference_t resize_callback_nr;
@@ -1188,14 +1188,14 @@ export namespace fan::event {
       auto* callbacks = fan::graphics::g_render_context_handle.update_callback;
       node = callbacks->NewNodeLast();
       (*callbacks)[node] = [this, h](void*) {
-        if ( static_cast<const derived_t*>(this)->check_condition() ) {
+        if (static_cast<const derived_t*>(this)->check_condition()) {
           unlink();
           fan::event::schedule_resume(h);
         }
       };
     }
     void unlink() {
-      if ( node ) {
+      if (node) {
         fan::graphics::g_render_context_handle.update_callback->unlrec(node);
         node.sic();
       }

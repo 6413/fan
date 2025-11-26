@@ -23,7 +23,7 @@ struct player_t {
     body.enable_default_movement();
     // jump changes angle visually
     body.sync_visual_angle(false);
-    body.hit_response.knockback_force = 10.f;
+    body.attack_state.knockback_force = 20.f;
 
     mouse_click_handle = pile->engine.on_mouse_click(fan::mouse_left, [this](const auto& bdata) {
       task_attack = attack();
@@ -53,8 +53,10 @@ struct player_t {
       { .is_sensor = true }
     );
 
-    if (hitbox.test_overlap(pile->entity.body)) {
-      pile->entity.on_hit((pile->entity.body.get_position() - body.get_position()).normalized());
+    for (auto& enemy : pile->entity) {
+      if (hitbox.test_overlap(enemy.body)) {
+        enemy.on_hit(&body, (enemy.body.get_position() - body.get_position()).normalized());
+      }
     }
 
     hitbox.destroy();
@@ -78,8 +80,8 @@ struct player_t {
     return body.get_physics_position();
   }
 
-  void on_hit(const fan::vec2& hit_direction) {
-    body.take_hit(hit_direction);
+  void on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
+    body.take_hit(source, hit_direction);
   }
 
   fan::graphics::physics::character2d_t body;

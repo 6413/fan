@@ -135,6 +135,19 @@ public:
     });
     return body;
   }
+  // finds all bodies that have this id. useful if there are shared ids like 'spikes'
+  std::vector<fan::physics::body_id_t> get_physics_bodies(id_t map_id, const std::string& id) {
+    std::vector<fan::physics::body_id_t> bodies;
+    iterate_physics_entities(map_id,
+      [&]<typename T>(auto& entity, T & entity_visual) -> bool {
+      fan::print(entity.id);
+      if (entity.id == id) {
+        bodies.emplace_back(entity_visual);
+      }
+      return false;
+    });
+    return bodies;
+  }
 
   bool get_body(id_t map_id, const std::string& id, fte_t::tile_t& tile) {
     auto& node = map_list[map_id];
@@ -162,6 +175,60 @@ public:
       }
     }
     return false;
+  }
+  bool get_bodies(id_t map_id, const std::string& id, std::vector<fte_t::tile_t>& tiles) {
+    auto& node = map_list[map_id];
+    {
+      auto& shapes = node.compiled_map->physics_shapes;
+      for (auto& shape : shapes) {
+        if (shape.physics_shapes.id == id) {
+          fte_t::tile_t tile;
+          tile.position = shape.position;
+          tile.size = shape.size;
+          tiles.emplace_back(std::move(tile));
+        }
+      }
+    }
+    {
+      auto& shapes = node.compiled_map->compiled_shapes;
+      for (auto& i : shapes) {
+        for (auto& j : i) {
+          for (auto& k : j) {
+            if (id == k.id) {
+              fte_t::tile_t tile;
+              tile = k;
+              tiles.emplace_back(std::move(tile));
+            }
+          }
+        }
+      }
+    }
+    return tiles.size();
+  }
+  bool get_player_spawn_position(id_t map_id, fan::vec3* pos) {
+    auto body = get_physics_body(map_id, "player_spawn");
+    if (body) {
+      *pos = body.get_physics_position();
+      return true;
+    }
+    return false;
+  }
+  bool get_visual_bodies(id_t map_id, const std::string& id, std::vector<fte_t::tile_t>* tiles) {
+    auto& node = map_list[map_id];
+
+    auto& shapes = node.compiled_map->compiled_shapes;
+    for (auto& i : shapes) {
+      for (auto& j : i) {
+        for (auto& k : j) {
+          if (id == k.id) {
+            fte_t::tile_t tile;
+            tile = k;
+            tiles->emplace_back(std::move(tile));
+          }
+        }
+      }
+    }
+    return tiles->size();
   }
 
   fan::vec3 get_position(id_t map_id, const std::string& id) {

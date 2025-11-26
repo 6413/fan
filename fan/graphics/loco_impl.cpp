@@ -1054,41 +1054,26 @@ void loco_t::close() {
 
 void loco_t::setup_input_callbacks() {
   // TODO callbacks leaking
-  window.add_buttons_callback([this](const fan::window_t::buttons_data_t& d) {
+  buttons_handle = window.add_buttons_callback([this](const fan::window_t::buttons_data_t& d) {
     fan::vec2 pos = fan::vec2(d.window->get_mouse_position());
-  #if defined(loco_vfi)
     fan::graphics::g_shapes->vfi.feed_mouse_button(d.button, d.state);
-  #endif
   });
 
-  window.add_keys_callback([&](const fan::window_t::keys_data_t& d) {
-  #if defined(loco_vfi)
+  keys_handle = window.add_keys_callback([&, windowed = true](const fan::window_t::keys_data_t& d) mutable {
     fan::graphics::g_shapes->vfi.feed_keyboard(d.key, d.state);
-  #endif
-  });
-
-  window.add_mouse_move_callback([&](const fan::window_t::mouse_move_data_t& d) {
-  #if defined(loco_vfi)
-    fan::graphics::g_shapes->vfi.feed_mouse_move(d.position);
-  #endif
-  });
-
-  window.add_text_callback([&](const fan::window_t::text_data_t& d) {
-  #if defined(loco_vfi)
-    fan::graphics::g_shapes->vfi.feed_text(d.character);
-  #endif
-  });
-
-  bool windowed = true;
-  // free this xd
-  gloco->window.add_keys_callback(
-    [windowed](const fan::window_t::keys_data_t& data) mutable {
-    if (data.key == fan::key_enter && data.state == fan::keyboard_state::press && gloco->window.key_pressed(fan::key_left_alt)) {
+    if (d.key == fan::key_enter && d.state == fan::keyboard_state::press && gloco->window.key_pressed(fan::key_left_alt)) {
       windowed = !windowed;
       gloco->window.set_display_mode(windowed ? fan::window_t::mode::windowed : fan::window_t::mode::borderless);
     }
-  }
-  );
+  });
+
+  mouse_move_handle = window.add_mouse_move_callback([&](const fan::window_t::mouse_move_data_t& d) {
+    fan::graphics::g_shapes->vfi.feed_mouse_move(d.position);
+  });
+
+  text_callback_handle = window.add_text_callback([&](const fan::window_t::text_data_t& d) {
+    fan::graphics::g_shapes->vfi.feed_text(d.character);
+  });
 }
 
 void loco_t::switch_renderer(uint8_t renderer) {

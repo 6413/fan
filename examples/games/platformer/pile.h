@@ -22,8 +22,10 @@ struct pile_t {
   void step() {
     engine.physics_context.step(engine.delta_time);
     player.step();
-    entity.update();
-
+    for (auto& enemy : pile->entity) {
+      enemy.update();
+    }
+    
     engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos(), 0);
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
   }
@@ -44,14 +46,16 @@ struct pile_t {
   };
 
   player_t player;
-  entity_t entity;
+  std::vector<entity_t> entity;
 };
 
 
 
 pile_t::pile_t() {
 //  fan::graphics::physics::debug_draw(true);
-  engine.clear_color = fan::color::from_rgb(0x1A2A2E);
+  ic.zoom = 2.f;
+  //engine.clear_color = fan::color::from_rgb(0x1A2A2E);
+  engine.clear_color = 0;
 
   engine.lighting.ambient = 1;
   engine.texture_pack.open_compiled("texture_pack.ftp", fan::graphics::image_presets::pixel_art());

@@ -5,8 +5,10 @@
 #include <functional>
 #include <filesystem>
 #include <cstring>
+#include <fstream>
 
 import fan;
+import fan.fmt;
 
 #include <fan/graphics/gui/model_maker/maker.h>
 

@@ -517,6 +517,7 @@ public:
 
   using key_cb_t = fan::window_t::key_cb_t;
   using key_handle_t = fan::window_t::key_handle_t;
+  using keys_handle_t = fan::window_t::keys_handle_t;
   using buttons_handle_t = fan::window_t::buttons_handle_t;
   using mouse_down_handle_t = fan::window_t::mouse_down_handle_t;
   using resize_handle_t = fan::window_t::resize_handle_t;
@@ -532,6 +533,7 @@ public:
   using key_down_data_t = fan::window_t::key_down_data_t;
   using key_up_data_t = fan::window_t::key_up_data_t;
   using key_click_data_t = fan::window_t::key_click_data_t;
+  using text_callback_handle_t = fan::window_t::text_callback_handle_t;
 
   using buttons_cb_t = fan::window_t::buttons_cb_t;
 
@@ -544,6 +546,11 @@ public:
 
   FORWARD_CB_TO_WINDOW_NOARG(mouse_move, mouse_move_handle_t, mouse_move_cb_t);
   FORWARD_CB_TO_WINDOW_NOARG(resize, resize_handle_t, resize_cb_t);
+
+  buttons_handle_t buttons_handle;
+  keys_handle_t keys_handle;
+  mouse_move_handle_t mouse_move_handle;
+  text_callback_handle_t text_callback_handle;
 
 #if defined(fan_physics)
 	fan::physics::context_t physics_context{ {} };
