@@ -1,8 +1,8 @@
 module;
 
 #if defined(fan_physics)
-  #include <fan/utility.h>
-  #include <box2d/box2d.h>
+#include <fan/utility.h>
+#include <box2d/box2d.h>
 #endif
 
 #include <utility>
@@ -43,7 +43,7 @@ namespace fan::physics {
   }
 
   void joint_id_t::destroy() {
-    if ( is_valid() == false ) {
+    if (is_valid() == false) {
       return;
     }
     b2JointId id = *this;
@@ -173,7 +173,7 @@ namespace fan::physics {
   b2ShapeId body_id_t::get_shape_id() const {
     b2ShapeId shape_id = b2_nullShapeId;
   #if fan_debug >= fan_debug_medium
-    if ( !b2Body_GetShapes(*this, &shape_id, 1) ) {
+    if (!b2Body_GetShapes(*this, &shape_id, 1)) {
       fan::throw_error();
     }
   #else
@@ -277,7 +277,7 @@ namespace fan::physics {
     body_def.allowFastRotation = shape_properties.fast_rotation;
     entity = b2CreateBody(world_id, &body_def);
   #if fan_debug >= fan_debug_medium
-    if ( entity.is_valid() == false ) {
+    if (entity.is_valid() == false) {
       fan::throw_error();
     }
   #endif
@@ -315,7 +315,7 @@ namespace fan::physics {
 
     entity = b2CreateBody(world_id, &body_def);
   #if fan_debug >= fan_debug_medium
-    if ( entity.is_valid() == false ) {
+    if (entity.is_valid() == false) {
       fan::throw_error();
     }
   #endif
@@ -354,7 +354,7 @@ namespace fan::physics {
     body_def.allowFastRotation = shape_properties.fast_rotation;
     entity = b2CreateBody(world_id, &body_def);
   #if fan_debug >= fan_debug_medium
-    if ( entity.is_valid() == false ) {
+    if (entity.is_valid() == false) {
       fan::throw_error();
     }
   #endif
@@ -382,7 +382,7 @@ namespace fan::physics {
     body_def.allowFastRotation = shape_properties.fast_rotation;
     entity = b2CreateBody(world_id, &body_def);
   #if fan_debug >= fan_debug_medium
-    if ( entity.is_valid() == false ) {
+    if (entity.is_valid() == false) {
       fan::throw_error();
     }
   #endif
@@ -396,13 +396,13 @@ namespace fan::physics {
     shape_def.enableSensorEvents = true;
     shape_def.filter = shape_properties.filter;
 
-    for ( std::size_t i = 0; i < points.size() - 1; ++i ) {
+    for (std::size_t i = 0; i < points.size() - 1; ++i) {
       segment_t shape;
       shape.point1 = points[i] / length_units_per_meter;
       shape.point2 = points[i + 1] / length_units_per_meter;
       b2CreateSegmentShape(entity, &shape_def, &shape);
     }
-    if ( points.size() > 2 ) {
+    if (points.size() > 2) {
       segment_t shape;
       shape.point1 = points.back() / length_units_per_meter;
       shape.point2 = points.front() / length_units_per_meter;
@@ -423,7 +423,7 @@ namespace fan::physics {
     entity = b2CreateBody(world_id, &body_def);
 
   #if fan_debug >= fan_debug_medium
-    if ( entity.is_valid() == false ) {
+    if (entity.is_valid() == false) {
       fan::throw_error();
     }
   #endif
@@ -440,7 +440,7 @@ namespace fan::physics {
     b2Vec2 b2_points[B2_MAX_POLYGON_VERTICES];
     int n = count;
 
-    for ( int i = 0; i < n; i++ ) {
+    for (int i = 0; i < n; i++) {
       b2_points[i] = points[i] / length_units_per_meter;
     }
 
@@ -464,16 +464,16 @@ namespace fan::physics {
 
     f32_t physics_timestep = default_physics_timestep;
 
-    while ( accumulator >= physics_timestep ) {
+    while (accumulator >= physics_timestep) {
       {
         auto it = physics_step_callbacks.GetNodeFirst();
-        while ( it != physics_step_callbacks.dst ) {
+        while (it != physics_step_callbacks.dst) {
           physics_step_callbacks[it]();
           it = it.Next(&physics_step_callbacks);
         }
       }
 
-      for ( auto& command : one_time_commands ) {
+      for (auto& command : one_time_commands) {
         command();
       }
       one_time_commands.clear();
@@ -535,17 +535,17 @@ namespace fan::physics {
   void context_t::process_collision_events() {
     b2ContactEvents contact_events = b2World_GetContactEvents(world_id);
 
-    for ( int i = 0; i < contact_events.beginCount; ++i ) {
+    for (int i = 0; i < contact_events.beginCount; ++i) {
       const b2ContactBeginTouchEvent& event = contact_events.beginEvents[i];
       on_begin_touch(event.shapeIdA, event.shapeIdB);
     }
 
-    for ( int i = 0; i < contact_events.endCount; ++i ) {
+    for (int i = 0; i < contact_events.endCount; ++i) {
       const b2ContactEndTouchEvent& event = contact_events.endEvents[i];
       on_end_touch(event.shapeIdA, event.shapeIdB);
     }
 
-    for ( int i = 0; i < contact_events.hitCount; ++i ) {
+    for (int i = 0; i < contact_events.hitCount; ++i) {
       const b2ContactHitEvent& event = contact_events.hitEvents[i];
       on_hit(event.shapeIdA, event.shapeIdB, event.approachSpeed);
     }
@@ -579,16 +579,16 @@ namespace fan::physics {
   void sensor_events_t::update(b2WorldId world_id) {
     b2SensorEvents sensor_events = b2World_GetSensorEvents(world_id);
 
-    for ( int i = 0; i < sensor_events.beginCount; ++i ) {
+    for (int i = 0; i < sensor_events.beginCount; ++i) {
       b2SensorBeginTouchEvent ev = sensor_events.beginEvents[i];
-      if ( b2Shape_IsValid(ev.visitorShapeId) ) {
+      if (b2Shape_IsValid(ev.visitorShapeId)) {
         begin_touch_event_cb(ev);
         update_contact(b2Shape_GetBody(ev.sensorShapeId), b2Shape_GetBody(ev.visitorShapeId), true);
       }
     }
-    for ( int i = 0; i < sensor_events.endCount; ++i ) {
+    for (int i = 0; i < sensor_events.endCount; ++i) {
       b2SensorEndTouchEvent ev = sensor_events.endEvents[i];
-      if ( b2Shape_IsValid(ev.visitorShapeId) ) {
+      if (b2Shape_IsValid(ev.visitorShapeId)) {
         end_touch_event_cb(ev);
         update_contact(b2Shape_GetBody(ev.sensorShapeId), b2Shape_GetBody(ev.visitorShapeId), false);
       }
@@ -601,8 +601,8 @@ namespace fan::physics {
   }
 
   void sensor_events_t::update_contact(b2BodyId sensor_id, b2BodyId object_id, bool is_in_contact) {
-    for ( auto& contact : contacts ) {
-      if ( B2_ID_EQUALS(contact.sensor_id, sensor_id) && B2_ID_EQUALS(contact.object_id, object_id) ) {
+    for (auto& contact : contacts) {
+      if (B2_ID_EQUALS(contact.sensor_id, sensor_id) && B2_ID_EQUALS(contact.object_id, object_id)) {
         contact.is_in_contact = is_in_contact;
         return;
       }
@@ -625,8 +625,8 @@ namespace fan::physics {
   }
 
   bool sensor_events_t::is_on_sensor(body_id_t test_id, body_id_t sensor_id) const {
-    for ( const auto& contact : contacts ) {
-      if ( B2_ID_EQUALS(contact.sensor_id, sensor_id) && B2_ID_EQUALS(contact.object_id, test_id) ) {
+    for (const auto& contact : contacts) {
+      if (B2_ID_EQUALS(contact.sensor_id, sensor_id) && B2_ID_EQUALS(contact.object_id, test_id)) {
         return contact.is_in_contact;
       }
     }
@@ -648,14 +648,16 @@ namespace fan::physics {
     b2Transform transform = b2Body_GetTransform(body_id);
 
     switch (shape_type) {
-    case b2_circleShape: {
+    case b2_circleShape:
+    {
       b2Circle circle = b2Shape_GetCircle(shape_id);
       proxy.points[0] = b2TransformPoint(transform, circle.center);
       proxy.count = 1;
       proxy.radius = circle.radius;
       break;
     }
-    case b2_capsuleShape: {
+    case b2_capsuleShape:
+    {
       b2Capsule capsule = b2Shape_GetCapsule(shape_id);
       proxy.points[0] = b2TransformPoint(transform, capsule.center1);
       proxy.points[1] = b2TransformPoint(transform, capsule.center2);
@@ -663,7 +665,8 @@ namespace fan::physics {
       proxy.radius = capsule.radius;
       break;
     }
-    case b2_polygonShape: {
+    case b2_polygonShape:
+    {
       b2Polygon polygon = b2Shape_GetPolygon(shape_id);
       proxy.count = polygon.count;
       for (int i = 0; i < polygon.count; ++i) {
@@ -672,7 +675,8 @@ namespace fan::physics {
       proxy.radius = polygon.radius;
       break;
     }
-    case b2_segmentShape: {
+    case b2_segmentShape:
+    {
       b2Segment segment = b2Shape_GetSegment(shape_id);
       proxy.points[0] = b2TransformPoint(transform, segment.point1);
       proxy.points[1] = b2TransformPoint(transform, segment.point2);
@@ -740,14 +744,14 @@ namespace fan::physics {
     one_time_commands.push_back(std::move(callback));
   }
   fan::vec2 check_wall_contact(body_id_t body_id, shape_id_t* colliding_wall) {
-    if ( !body_id.is_valid() ) {
+    if (!body_id.is_valid()) {
       return {0, 0};
     }
 
     b2ContactData contacts[16];
     int contact_count = b2Body_GetContactData(body_id, contacts, 16);
 
-    for ( int i = 0; i < contact_count; ++i ) {
+    for (int i = 0; i < contact_count; ++i) {
       const b2ContactData& contact = contacts[i];
       fan::vec2 normal = contact.manifold.normal;
 
@@ -755,10 +759,10 @@ namespace fan::physics {
       f32_t sign = B2_ID_EQUALS(body_a, body_id) ? 1.0f : -1.0f;
       normal = normal * sign;
 
-      if ( colliding_wall ) {
+      if (colliding_wall) {
         *colliding_wall = contact.shapeIdA;
       }
-      if ( std::abs(normal.x) > 0.7f && contact.manifold.pointCount > 0 ) {
+      if (std::abs(normal.x) > 0.7f && contact.manifold.pointCount > 0) {
         return normal;
       }
     }
@@ -766,14 +770,14 @@ namespace fan::physics {
     return {0, 0};
   }
   void apply_wall_slide(body_id_t body_id, const fan::vec2& wall_normal, f32_t slide_speed) {
-    if ( !wall_normal ) {
+    if (!wall_normal) {
       return;
     }
 
     fan::vec2 velocity = body_id.get_linear_velocity();
     f32_t mass = body_id.get_mass();
 
-    if ( velocity.y > slide_speed ) {
+    if (velocity.y > slide_speed) {
       f32_t delta_v = slide_speed - velocity.y;
       delta_v = std::max(delta_v, -velocity.y);
       fan::vec2 impulse = fan::vec2(0, delta_v / mass);
@@ -781,7 +785,7 @@ namespace fan::physics {
     }
   }
   void wall_jump(body_id_t body_id, const fan::vec2& wall_normal, f32_t push_x, f32_t jump_speed_up, f32_t max_up_speed) {
-    if ( !wall_normal ) return;
+    if (!wall_normal) return;
 
     f32_t desired_y_physics = -std::min(jump_speed_up, max_up_speed);
 
@@ -790,7 +794,7 @@ namespace fan::physics {
   }
   bool overlap_callback_fcn(b2ShapeId shape_id, void* context) {
     overlap_callback_context_t* ctx = static_cast<overlap_callback_context_t*>(context);
-    if ( B2_ID_EQUALS(shape_id, ctx->target_shape) ) {
+    if (B2_ID_EQUALS(shape_id, ctx->target_shape)) {
       ctx->callback();
       return false;
     }
@@ -814,18 +818,18 @@ namespace fan::physics {
     gphysics->physics_step_callbacks.unlrec(nr);
   }
   bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body) {
-    if ( !b2Shape_IsValid(shapeIdA) ) {
+    if (!b2Shape_IsValid(shapeIdA)) {
       fan::throw_error("Shape invalid");
     }
-    if ( !b2Shape_IsValid(shapeIdB) ) {
+    if (!b2Shape_IsValid(shapeIdB)) {
       fan::throw_error("Shape invalid");
     }
 
     f32_t sign = 0.0f;
-    if ( B2_ID_EQUALS(shapeIdA, character_body) ) {
+    if (B2_ID_EQUALS(shapeIdA, character_body)) {
       sign = 1.0f;
     }
-    else if ( B2_ID_EQUALS(shapeIdB, character_body) ) {
+    else if (B2_ID_EQUALS(shapeIdB, character_body)) {
       sign = -1.0f;
     }
     else {
@@ -833,24 +837,24 @@ namespace fan::physics {
     }
 
     b2Vec2 normal = manifold->normal;
-    if ( sign * normal.y > 0.95f ) {
+    if (sign * normal.y > 0.95f) {
       return true;
     }
 
     f32_t separation = 0.0f;
-    for ( int i = 0; i < manifold->pointCount; ++i ) {
+    for (int i = 0; i < manifold->pointCount; ++i) {
       f32_t s = manifold->points[i].separation;
       separation = separation < s ? separation : s;
     }
 
-    if ( separation > 0.1f * 64.f ) {
+    if (separation > 0.1f * 64.f) {
       return true;
     }
 
     return false;
   }
   fan::physics::body_id_t deep_copy_body(b2WorldId worldId, fan::physics::body_id_t sourceBodyId) {
-    if ( !b2Body_IsValid(sourceBodyId) ) {
+    if (!b2Body_IsValid(sourceBodyId)) {
       return b2_nullBodyId;
     }
 
@@ -872,7 +876,7 @@ namespace fan::physics {
     bodyDef.userData = b2Body_GetUserData(sourceBodyId);
 
     b2BodyId newBodyId = b2CreateBody(worldId, &bodyDef);
-    if ( !b2Body_IsValid(newBodyId) ) {
+    if (!b2Body_IsValid(newBodyId)) {
       return b2_nullBodyId;
     }
 
@@ -880,11 +884,11 @@ namespace fan::physics {
     b2Body_SetMassData(newBodyId, massData);
 
     const int shapeCount = b2Body_GetShapeCount(sourceBodyId);
-    if ( shapeCount > 0 ) {
+    if (shapeCount > 0) {
       std::vector<b2ShapeId> shapes(shapeCount);
       b2Body_GetShapes(sourceBodyId, shapes.data(), shapeCount);
 
-      for ( b2ShapeId sourceShapeId : shapes ) {
+      for (b2ShapeId sourceShapeId : shapes) {
         b2ShapeDef shape_def = b2DefaultShapeDef();
 
         shape_def.density = b2Shape_GetDensity(sourceShapeId);
@@ -898,7 +902,7 @@ namespace fan::physics {
         b2ShapeId newShapeId;
         b2ShapeType shapeType = b2Shape_GetType(sourceShapeId);
 
-        switch ( shapeType ) {
+        switch (shapeType) {
         case b2_circleShape:
         {
           b2Circle circle = b2Shape_GetCircle(sourceShapeId);
@@ -927,7 +931,7 @@ namespace fan::physics {
           continue;
         }
 
-        if ( b2Shape_IsValid(newShapeId) ) {
+        if (b2Shape_IsValid(newShapeId)) {
           b2Shape_EnableSensorEvents(newShapeId, b2Shape_AreSensorEventsEnabled(sourceShapeId));
           b2Shape_EnableContactEvents(newShapeId, b2Shape_AreContactEventsEnabled(sourceShapeId));
           b2Shape_EnablePreSolveEvents(newShapeId, b2Shape_ArePreSolveEventsEnabled(sourceShapeId));
@@ -953,7 +957,7 @@ namespace fan::physics {
   }
   bool overlap_result_callback(b2ShapeId shape_id, void* context) {
     overlap_test_context_t* ctx = static_cast<overlap_test_context_t*>(context);
-    if ( B2_ID_EQUALS(shape_id, ctx->target_shape) ) {
+    if (B2_ID_EQUALS(shape_id, ctx->target_shape)) {
       ctx->found_overlap = true;
       return false;
     }

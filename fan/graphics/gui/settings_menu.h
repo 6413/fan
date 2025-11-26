@@ -216,7 +216,7 @@ struct settings_menu_t {
       for (int i = 0; i < std::size(display_mode_names); ++i) {
         bool is_selected = (gloco->window.display_mode - 1 == i);
         if (gui::selectable(display_mode_names[i], is_selected)) {
-          gloco->window.set_display_mode((fan::window_t::mode)(i + 1));
+          gloco->window.set_display_mode(i + 1);
         }
         if (is_selected) {
           gui::set_item_default_focus();

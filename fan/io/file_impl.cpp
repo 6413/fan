@@ -173,15 +173,25 @@ bool fan::io::file::try_write(std::string path, const std::string& data, fs_mode
 std::string fan::io::file::get_exe_path() {
 #if defined(fan_platform_windows)
   char buffer[MAX_PATH];
-  GetModuleFileNameA(NULL, buffer, MAX_PATH);
-  return std::filesystem::path(buffer).parent_path().string() + "/";
+  DWORD len = GetModuleFileNameA(NULL, buffer, MAX_PATH);
+  if (len == 0 || len == MAX_PATH) {
+    return {};  // failure
+  }
+  return std::filesystem::path(buffer).parent_path().string();
+
 #elif defined(fan_platform_unix)
   char buffer[PATH_MAX];
-  ssize_t count = readlink("/proc/self/exe", buffer, PATH_MAX);
-  return std::filesystem::path(std::string(buffer, count)).parent_path().string() + "/";
-#endif
-  fan::throw_error("not implemented");
+  ssize_t count = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+  if (count <= 0) {
+    return {};  // failure
+  }
+  buffer[count] = '\0';
+  return std::filesystem::path(buffer).parent_path().string();
+
+#else
+  fan::throw_error("get_exe_path not implemented on this platform");
   __unreachable();
+#endif
 }
 
 std::filesystem::path fan::io::file::find_relative_path(const std::string& file_path, const std::source_location& location) {
@@ -224,6 +234,16 @@ std::filesystem::path fan::io::file::find_relative_path(const std::string& file_
       if (fs::equivalent(search_path, exe_dir, ec) && !ec) {
         break;
       }
+    }
+  }
+  {
+    fs::path src_dir = fs::path(location.file_name()).parent_path();
+    fs::path filename_only = fs::path(file_path).filename();
+    fs::path candidate = src_dir / filename_only;
+
+    if (fs::is_regular_file(candidate, ec) && !ec) {
+      fs::path relative = fs::relative(candidate, current_dir, ec);
+      return ec ? candidate : relative;
     }
   }
   return {};

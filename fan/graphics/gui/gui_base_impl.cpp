@@ -299,6 +299,9 @@ namespace fan::graphics::gui {
   bool is_window_focused() {
     return ImGui::IsWindowFocused();
   }
+  void set_next_window_focus() {
+    return ImGui::SetNextWindowFocus();
+  }
   fan::vec2 get_window_content_region_min() {
     return ImGui::GetWindowContentRegionMin();
   }

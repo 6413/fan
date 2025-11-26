@@ -874,7 +874,7 @@ loco_t::loco_t(const loco_t::properties_t& p) {
   }
 
   window.set_antialiasing(p.samples);
-  window.open(p.window_size, fan::window_t::default_window_name, p.window_flags);
+  window.open(p.window_size, fan::window_t::default_window_name, p.window_flags, p.window_open_mode);
   gloco = this;
 
 

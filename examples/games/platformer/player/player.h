@@ -16,10 +16,11 @@ struct player_t {
 
   player_t() {
     body = fan::graphics::physics::character2d_t::from_json({
-      .json_path = "player.json",
+      .json_path = "player/player.json",
       .aabb_scale = aabb_scale,
       .draw_offset_override = draw_offset
     });
+    body.jump_impulse = 75.f;
     body.enable_default_movement();
     // jump changes angle visually
     body.sync_visual_angle(false);

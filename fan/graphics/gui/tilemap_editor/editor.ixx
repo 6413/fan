@@ -996,24 +996,28 @@ export struct fte_t {
     }
   }
 
-  void open_texturepack(const std::string& path) {
-    fan::graphics::get_shapes().texture_pack->open_compiled(path);
-    texturepack_images.clear();
-    texturepack_images.reserve(fan::graphics::get_shapes().texture_pack->size());
+  void open_texture_pack(const std::string& path) {
+    // TODO make multi tps
+    if (texture_packs.empty()) {
+      texture_packs.resize(1);
+    }
+    texture_packs[0]->open_compiled(path);
+    texture_pack_images.clear();
+    texture_pack_images.reserve(texture_packs[0]->size());
 
-    fan::graphics::get_shapes().texture_pack->iterate_loaded_images([this](auto& image) {
+    texture_packs[0]->iterate_loaded_images([this](auto& image) {
       tile_info_t ii;
       ii.ti = fan::graphics::texture_pack::ti_t{
         .unique_id = image.unique_id,
         .position = image.position,
         .size = image.size,
-        .image = fan::graphics::get_shapes().texture_pack->get_pixel_data(image.unique_id).image
+        .image = texture_packs[0]->get_pixel_data(image.unique_id).image
       };
 
-      auto& img_data = fan::graphics::image_get_data(fan::graphics::get_shapes().texture_pack->get_pixel_data(image.unique_id).image);
+      auto& img_data = fan::graphics::image_get_data(texture_packs[0]->get_pixel_data(image.unique_id).image);
       fan::vec2 size = img_data.size;
 
-      texturepack_images.push_back(ii);
+      texture_pack_images.push_back(ii);
       texturepack_size = texturepack_size.max(fan::vec2(size));
       texturepack_single_image_size = texturepack_single_image_size.max(fan::vec2(image.size));
     });
@@ -1077,7 +1081,7 @@ export struct fte_t {
       }
       if (open_tp_dialog.is_finished()) {
         if (fn.size() != 0) {
-          open_texturepack(fn);
+          open_texture_pack(fn);
           fn.clear();
         }
         open_tp_dialog.finished = false;
@@ -1352,7 +1356,7 @@ export struct fte_t {
       style.ItemSpacing = fan::vec2(0);
       current_tile_brush_count = 0;
 
-      int total_images = texturepack_images.size();
+      int total_images = texture_pack_images.size();
       int images_per_row = (original_image_width / (texturepack_single_image_size.x));
 
       if (images_per_row == 0) {
@@ -1385,8 +1389,8 @@ export struct fte_t {
       fan::vec2 initial_pos = fan::graphics::gui::get_cursor_screen_pos();
       auto* draw_list = fan::graphics::gui::get_window_draw_list();
 
-      for (uint32_t i = 0; i < texturepack_images.size(); i++) {
-        auto& node = texturepack_images[i];
+      for (uint32_t i = 0; i < texture_pack_images.size(); i++) {
+        auto& node = texture_pack_images[i];
         fan::vec2i grid_index(i % images_per_row, i / images_per_row);
 
         fan::vec2 cursor_pos_global = fan::graphics::gui::get_cursor_screen_pos();
@@ -1493,7 +1497,7 @@ export struct fte_t {
           x = 0;
           y++;
         }
-        current_tile_images[y].push_back(texturepack_images[i.second]);
+        current_tile_images[y].push_back(texture_pack_images[i.second]);
         x++;
       }
       current_tile_brush_count.x = std::max(current_tile_brush_count.x, x);
@@ -1504,7 +1508,7 @@ export struct fte_t {
   }
 
   void handle_tile_settings_window() {
-    if (fan::graphics::gui::begin("Tile settings")) {
+    if (fan::graphics::gui::begin("Tile settings", nullptr, fan::graphics::gui::window_flags_no_focus_on_appearing)) {
       if (current_tile.layer != nullptr) {
         auto& layer = current_tile.layer[current_tile.layer_index];
 
@@ -1554,7 +1558,7 @@ export struct fte_t {
   }
 
   void handle_brush_settings_window() {
-    if (fan::graphics::gui::begin("Brush settings")) {
+    if (fan::graphics::gui::begin("Brush settings", nullptr, fan::graphics::gui::window_flags_no_focus_on_appearing)) {
       int idx = (int)brush.depth - shape_depths_t::max_layer_depth / 2;
       if (fan::graphics::gui::drag("depth", (int*)&idx, 1, 0, shape_depths_t::max_layer_depth)) {
         brush.depth = idx + shape_depths_t::max_layer_depth / 2;
@@ -1644,7 +1648,7 @@ export struct fte_t {
   }
 
   void handle_lighting_settings_window() {
-    if (fan::graphics::gui::begin("lighting settings")) {
+    if (fan::graphics::gui::begin("lighting settings", nullptr, fan::graphics::gui::window_flags_no_focus_on_appearing)) {
       static fan::vec3 ambient = fan::graphics::get_lighting().ambient;
       if (fan::graphics::gui::color_edit3("ambient", &ambient)) {
         fan::graphics::get_lighting().set_target(ambient);
@@ -1654,7 +1658,7 @@ export struct fte_t {
   }
 
   void handle_physics_settings_window() {
-    if (fan::graphics::gui::begin("physics settings")) {
+    if (fan::graphics::gui::begin("physics settings", nullptr, fan::graphics::gui::window_flags_no_focus_on_appearing)) {
       fan::vec2 gravity = fan::physics::gphysics.get_gravity();
       if (fan::graphics::gui::drag("gravity", &gravity, 0.01)) {
         fan::physics::gphysics.set_gravity(gravity);
@@ -1766,6 +1770,11 @@ export struct fte_t {
     ostr["tile_size"] = tile_size;
     ostr["lighting.ambient"] = fan::graphics::get_lighting().ambient;
     ostr["gravity"] = fan::physics::gphysics.get_gravity();
+    fan::json jtps = fan::json::array();
+    for (auto* tp : texture_packs) {
+      jtps.push_back(tp->file_path);
+    }
+    ostr["texture_packs"] = jtps;
 
     fan::json tiles = fan::json::array();
 
@@ -1869,19 +1878,25 @@ export struct fte_t {
   }
 
   void fin(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
-#if defined(fan_json)
-    if (fan::graphics::get_shapes().texture_pack->size() == 0) {
-      fan::print("open valid texturepack");
-      return;
-    }
-    invalidate_selection();
-    previous_file_name = filename;
     std::string out;
     fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &out);
     fan::json json = fan::json::parse(out);
     if (json["version"] != 1) {
       fan::throw_error("version mismatch");
     }
+    if (json.contains("texture_packs")) {
+      std::vector<std::string> tp_paths = json["texture_packs"];
+      for (auto& path : tp_paths) {
+        open_texture_pack(path);
+      }
+    }
+#if defined(fan_json)
+    else if (texture_packs[0]->size() == 0) {
+      fan::print("open valid texturepack");
+      return;
+    }
+    invalidate_selection();
+    previous_file_name = filename;
 
     map_size = json["map_size"];
     tile_size = json["tile_size"];
@@ -2057,7 +2072,7 @@ export struct fte_t {
     void render() {
       fan::graphics::gui::set_next_window_bg_alpha(0);
       if (fan::graphics::gui::begin("Terrain Generator", nullptr,
-        fan::graphics::gui::window_flags_no_background)) 
+        fan::graphics::gui::window_flags_no_background | fan::graphics::gui::window_flags_no_focus_on_appearing)) 
       {
         {
           if (fan::graphics::gui::button("Iterate")) iterate();
@@ -2175,7 +2190,7 @@ export struct fte_t {
   std::map<uint16_t, visual_layer_t> visual_layers;
   fan::vec2 texturepack_size{};
   fan::vec2 texturepack_single_image_size{};
-  std::vector<tile_info_t> texturepack_images;
+  std::vector<tile_info_t> texture_pack_images;
   grid_visualize_t grid_visualize;
   brush_t brush;
   viewport_settings_t viewport_settings;
@@ -2195,6 +2210,7 @@ export struct fte_t {
   inline static fan::graphics::file_save_dialog_t save_file_dialog;
   inline static fan::graphics::file_open_dialog_t open_file_dialog, open_tp_dialog;
   inline static fan::graphics::file_open_dialog_t models_open_file_dialog;
+  std::vector<fan::graphics::texture_pack_t*> texture_packs;
 };
 
 #endif

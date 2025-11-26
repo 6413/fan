@@ -39,7 +39,7 @@ namespace fan::opengl {
       return;
     }
     fan::print("window error " + std::to_string(error) + ": " + description);
-    __abort();
+    //__abort();
   }
 
   void context_t::open(const properties_t&) {

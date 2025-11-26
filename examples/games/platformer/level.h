@@ -10,7 +10,6 @@ static inline constexpr std::array<fan::vec2, 3> get_spike_points() {
 }
 
 void load_map() {
-  fan::graphics::physics::debug_draw(true);
   main_compiled_map = pile->renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
   //render_size /= 0.01;
@@ -25,27 +24,24 @@ void load_map() {
   pile->entity[1].body.set_physics_position(pile->renderer.get_position(main_map_id, "enemy1"));
 
   std::vector<fte_loader_t::tile_t> tiles;
-  if (!pile->renderer.get_visual_bodies(main_map_id, "sensor_spikes", &tiles)) {
-    fan::throw_error("spikes not found");
-  }
 
-  spike_sensors.resize(tiles.size());
-
-  for (auto [i, spike] : fan::enumerate(tiles)) {
-    auto points = get_spike_points();
-    spike_sensors[i] = pile->engine.physics_context.create_polygon(
-      spike.position,
-      0.0f,
-      points.data(),
-      points.size(),
-      fan::physics::body_type_e::static_body,
-      { .is_sensor = true }
-    );
-  }
+  pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) {
+    if (pile->engine.texture_pack[tile.texture_pack_unique_id].name == "tile1152") {
+      auto points = get_spike_points();
+      spike_sensors.emplace_back(pile->engine.physics_context.create_polygon(
+        tile.position,
+        0.0f,
+        points.data(),
+        points.size(),
+        fan::physics::body_type_e::static_body,
+        {.is_sensor = true}
+      ));
+    }
+  });
 }
 
 void open(void* sod) {
-  load_map();
+
 }
 
 void close() {

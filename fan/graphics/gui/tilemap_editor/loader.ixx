@@ -11,6 +11,7 @@ module;
 #include <source_location>
 #include <sstream>
 #include <fstream>
+#include <functional>
 
 #endif
 
@@ -119,6 +120,17 @@ public:
       }, i.visual);
       if (stop) {
         break;
+      }
+    }
+  }
+  void iterate_visual(id_t map_id, std::function<void(fte_t::tile_t&)> cb) {
+    auto& node = map_list[map_id];
+    auto& shapes = node.compiled_map->compiled_shapes;
+    for (auto& i : shapes) {
+      for (auto& j : i) {
+        for (auto& k : j) {
+          cb(k);
+        }
       }
     }
   }
