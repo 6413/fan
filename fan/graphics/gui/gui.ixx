@@ -114,12 +114,12 @@ export namespace fan::graphics::gui {
 
     void invalidate();
 
-    void set(const auto& lambda);
+    void set(const std::function<void()>& lambda);
   };
 
   struct imgui_element_t : imgui_element_nr_t {
     imgui_element_t() = default;
-    imgui_element_t(const auto& lambda);
+    imgui_element_t(const std::function<void()>& lambda);
   };
 
   const char* item_getter1(const std::vector<std::string>& items, int index);
@@ -314,7 +314,7 @@ export namespace fan::graphics::gui {
     void handle_item_interaction(const file_info_t& file_info, size_t original_index);
 
     // [](const std::filesystem::path& path) {}
-    void receive_drag_drop_target(auto receive_func);
+    void receive_drag_drop_target(std::function<void(const std::filesystem::path& fs)> receive_func);
   };
 
   struct sprite_animations_t {
@@ -450,7 +450,7 @@ export namespace fan::graphics::gui {
     int get_button_choice();
 
     fan::event::task_t wait_user_input();
-    void render(const std::string& window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const auto& inside_window_cb);
+    void render(const std::string& window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb);
 
     void render(const std::string& window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing);
 
@@ -475,7 +475,7 @@ export namespace fan::graphics::gui {
     const fan::vec2& start_pos,
     const fan::vec2& target_pos,
     bool trigger_popup,
-    auto content_cb,
+    std::function<void()> content_cb,
     const f32_t anim_duration = 0.25f,
     const f32_t hide_delay = 0.5f
   );

@@ -271,11 +271,11 @@ namespace fan::graphics::gui {
     *(base_t*)this = fan::graphics::get_gui_draw_cbs().gnric();
   }
 
-  void imgui_element_nr_t::set(const auto& lambda) {
+  void imgui_element_nr_t::set(const std::function<void()>& lambda) {
     fan::graphics::get_gui_draw_cbs()[*this] = lambda;
   }
 
-  imgui_element_t::imgui_element_t(const auto& lambda) {
+  imgui_element_t::imgui_element_t(const std::function<void()>& lambda) {
     imgui_element_nr_t::init();
     imgui_element_nr_t::set(lambda);
   }
@@ -1126,7 +1126,7 @@ namespace fan::graphics::gui {
   }
 
   // [](const std::filesystem::path& path) {}
-  void content_browser_t::receive_drag_drop_target(auto receive_func) {
+  void content_browser_t::receive_drag_drop_target(std::function<void(const std::filesystem::path& fs)> receive_func) {
     dummy(get_content_region_avail());
 
     if (begin_drag_drop_target()) {
@@ -1182,7 +1182,7 @@ namespace fan::graphics::gui {
   }
 
   // called inside window begin end
-  void animated_popup_window(const std::string& popup_id, const fan::vec2& popup_size, const fan::vec2& start_pos, const fan::vec2& target_pos, bool trigger_popup, auto content_cb, const f32_t anim_duration, const f32_t hide_delay) {
+  void animated_popup_window(const std::string& popup_id, const fan::vec2& popup_size, const fan::vec2& start_pos, const fan::vec2& target_pos, bool trigger_popup, std::function<void()> content_cb, const f32_t anim_duration, const f32_t hide_delay) {
     storage_t* storage = get_state_storage();
     id_t anim_time_id = get_id(popup_id + "_anim_time");
     id_t hide_timer_id = get_id(popup_id + "_hide_timer");
@@ -1765,7 +1765,7 @@ namespace fan::graphics::gui {
     }
   }
 
-  void dialogue_box_t::render(const std::string& window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const auto& inside_window_cb) {
+  void dialogue_box_t::render(const std::string& window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb) {
     push_font(font);
 
     fan::vec2 root_window_size = get_window_size();

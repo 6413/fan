@@ -284,6 +284,7 @@ export namespace fan {
     FAN_DEFINE_CB_RAII(mouse_down, m_mouse_down_callbacks, mouse_down_callbacks_NodeReference_t, buttons_data_t);
 
     using key_handle_t = bll_nr_t<key_callback_NodeReference_t, window_t, const key_data_t&>;
+    using text_callback_handle_t = bll_nr_t<text_callback_NodeReference_t, window_t, const text_data_t&>;
 
     using button_data_t = buttons_data_t;
     using mouse_down_data_t = buttons_data_t;

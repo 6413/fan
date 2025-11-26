@@ -1,5 +1,3 @@
-#include <box2d/box2d.h>
-
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
 import fan.graphics.gui.tilemap_editor.editor;
@@ -90,16 +88,22 @@ struct scene_manager_t {
     player.reset();
   }
 
-  void toggle_scene(fte_t& fte, fan::graphics::engine_t& engine, fan::graphics::render_view_t* view) {
+  void toggle_scene(fte_t& fte, fan::graphics::engine_t& engine, scene_manager_t& scene, fan::graphics::render_view_t* view) {
     render_scene = !render_scene;
     if (render_scene) {
-      player = std::make_unique<player_t>(
-        /*fan::vec2(fte.map_size.x * fte.tile_size.x / 2.f, 0),*/
-        fte.map_size * fte.tile_size,
-        view
-      );
       fte.fout(add_temp_before_ext(fte.file_name));
       reload_scene(fte, view);
+      fan::vec3 pos;
+      if (!scene.renderer->get_player_spawn_position(*scene.map_id, &pos)) {
+        fan::gprint("failed to find player spawn position, using fte.map_size * fte.tile_size");
+        pos = fte.map_size * fte.tile_size;
+      }
+      player = std::make_unique<player_t>(
+        pos,
+        /*fan::vec2(fte.map_size.x * fte.tile_size.x / 2.f, 0),*/
+        //fte.map_size * fte.tile_size,
+        view
+      );
       engine.set_vsync(0);
     }
     else {
@@ -130,12 +134,18 @@ int main(int argc, char** argv) {
   p.camera = &views.editor;
   fte.open(p);
 
-  engine.window.add_keys_callback([&](const auto& d) {
+  auto keys_handle = engine.window.add_keys_callback([&](const auto& d) {
     if (d.state != fan::keyboard_state::press) {
       return;
     }
     if (d.key == fan::key_f5) {
-      scene.toggle_scene(fte, engine, &views.program);
+      scene.toggle_scene(fte, engine, scene, &views.program);
+    }
+    if (d.key == fan::key_5) {
+      if (fan::window::is_key_down(fan::key_left_control)) {
+        fan::graphics::physics::debug_render_view = views.program;
+        fan::graphics::physics::debug_draw(!fan::graphics::physics::get_debug_draw());
+      }
     }
   });
 
