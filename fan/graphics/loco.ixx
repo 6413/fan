@@ -362,6 +362,7 @@ public:
 		bool vsync = true;
 		fan::vec2 window_size = -1;
 		uint64_t window_flags = 0;
+    int window_open_mode = fan::window_t::mode::windowed;
 		std::uint8_t renderer = fan::window_t::renderer_t::opengl;
 		std::uint8_t samples = 0;
 	};

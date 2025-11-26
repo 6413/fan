@@ -756,12 +756,52 @@ namespace fan::graphics::physics {
     return target->get_physics_position() - OFFSETLESS(this, character2d_t, ai_behavior)->get_physics_position();
   }
   bool character2d_t::ai_behavior_t::should_move(const fan::vec2& distance) const {
-    return (std::abs(distance.x) < trigger_distance.x || 
-      std::abs(distance.y) < trigger_distance.y) && 
-      (
-        std::abs(distance.x) > std::abs(closeup_distance.x) ||
-        std::abs(distance.y) > std::abs(closeup_distance.y)
-      );
+    return
+      (std::abs(distance.x) < trigger_distance.x &&
+        std::abs(distance.y) < trigger_distance.y) &&
+
+      !(std::abs(distance.x) < closeup_distance.x &&
+        std::abs(distance.y) < closeup_distance.y);
+  }
+
+  void ai_perform_jump(character2d_t& c, bool jump_condition, fan::vec2* wall_jump_normal = 0) {
+    bool on_ground = c.is_on_ground();
+    bool allow_coyote_jump = ((fan::time::now() - c.last_ground_time) / 1e+9 <= c.coyote_time);
+    bool can_jump = on_ground || allow_coyote_jump;
+    fan::physics::shape_id_t colliding_wall_id;
+    if (!wall_jump_normal) {
+      c.wall_jump.normal = fan::physics::check_wall_contact(c, &colliding_wall_id);
+    }
+
+    if (on_ground) {
+      c.last_ground_time = fan::time::now();
+      c.on_air_after_jump = false;
+      c.jump_consumed = false;
+    }
+    else {
+      c.jumping = false;
+    }
+
+    if (jump_condition && (can_jump) && !c.jump_consumed && c.handle_jump) {
+      if (c.wall_jump.normal.x && c.wall_jump.normal.y && !on_ground) {
+        fan::vec2 vel = c.get_linear_velocity();
+        fan::physics::wall_jump(c, c.wall_jump.normal, c.wall_jump.push_away_force, c.jump_impulse);
+        c.on_air_after_jump = true;
+        c.jumping = true;
+        c.jump_consumed = true;
+      }
+      else if (can_jump) {
+        fan::vec2 vel = c.get_linear_velocity();
+        c.set_linear_velocity(fan::vec2(vel.x, 0));
+        c.on_air_after_jump = true;
+        c.apply_linear_impulse_center({0, -c.jump_impulse});
+        c.jumping = true;
+        c.jump_consumed = true;
+      }
+    }
+    else {
+      c.jumping = false;
+    }
   }
 
   bool character2d_t::navigation_helper_t::detect_and_handle_obstacles(character2d_t* character, const fan::vec2& distance, fan::vec2 tile_size){
@@ -795,14 +835,14 @@ namespace fan::graphics::physics {
     }
 
     if (is_cliff && !is_stuck_state){
-      character->perform_jump(true);
+      ai_perform_jump(*character, true);
     }
     // jump over obstacle
     else if (is_hitting_obstacle && stuck_timer.finished()){
-      character->perform_jump(true);
+      ai_perform_jump(*character, true);
       stuck_timer.restart();
     }
-
+    
     prev_x = distance.x;
     return is_stuck_state;
   }
@@ -963,41 +1003,44 @@ namespace fan::graphics::physics {
 
   void character2d_t::perform_jump(bool jump_condition, fan::vec2* wall_jump_normal) {
     bool on_ground = is_on_ground();
-    bool allow_coyote_jump = ((fan::time::now() - last_ground_time) / 1e+9 <= coyote_time);
-    bool can_jump = on_ground || allow_coyote_jump;
-    fan::physics::shape_id_t colliding_wall_id;
-    if (!wall_jump_normal) {
-      wall_jump.normal = fan::physics::check_wall_contact(*this, &colliding_wall_id);
-    }
-
     if (on_ground) {
       last_ground_time = fan::time::now();
       on_air_after_jump = false;
       jump_consumed = false;
-    }
-    else {
       jumping = false;
     }
 
-    if (jump_condition && (can_jump) && !jump_consumed && handle_jump) {
-      if (wall_jump.normal.x && wall_jump.normal.y && !on_ground) {
-        fan::vec2 vel = get_linear_velocity();
-        fan::physics::wall_jump(*this, wall_jump.normal, wall_jump.push_away_force, jump_impulse);
-        on_air_after_jump = true;
+    if (!jump_condition || !handle_jump) {
+      jumping = false;
+      return;
+    }
+
+    fan::physics::shape_id_t colliding_wall_id;
+    fan::vec2 wall_normal = wall_jump_normal ? *wall_jump_normal 
+      : fan::physics::check_wall_contact(*this, &colliding_wall_id);
+
+    bool touching_wall = (wall_normal.x != 0 || wall_normal.y != 0);
+    bool allow_coyote = ((fan::time::now() - last_ground_time) / 1e+9 <= coyote_time);
+
+    if (touching_wall && !on_ground) {
+      fan::vec2 input = fan::window::get_input_vector();
+
+      bool pushing_into_wall = fan::math::sgn(input.x) == fan::math::sgn(wall_normal.x);
+      if (pushing_into_wall) {
+        fan::physics::wall_jump(*this, wall_normal, wall_jump.push_away_force, jump_impulse);
         jumping = true;
         jump_consumed = true;
-      }
-      else if (can_jump) {
-        fan::vec2 vel = get_linear_velocity();
-        set_linear_velocity(fan::vec2(vel.x, 0));
         on_air_after_jump = true;
-        apply_linear_impulse_center({0, -jump_impulse});
-        jumping = true;
-        jump_consumed = true;
+        return;
       }
     }
-    else {
-      jumping = false;
+    if ((on_ground || allow_coyote) && !jump_consumed) {
+      fan::vec2 vel = get_linear_velocity();
+      set_linear_velocity(fan::vec2(vel.x, 0));
+      apply_linear_impulse_center({0, -jump_impulse});
+      jumping = true;
+      jump_consumed = true;
+      on_air_after_jump = true;
     }
   }
 
@@ -1304,6 +1347,12 @@ namespace fan::graphics::physics {
       });
     }
   }
+  void character2d_t::setup_default_ai_update(fan::vec2 tile_size) {
+    movement_cb = add_movement_callback(
+      [tile_size](character2d_t* self) {
+      self->update_ai(tile_size);
+    });
+  }
 
   void character2d_t::update_ai(fan::vec2 tile_size) {
     //if (hit_response.is_stunned) {
@@ -1329,7 +1378,13 @@ namespace fan::graphics::physics {
       if (ai_behavior.should_move(distance)) {
         movement_direction.x = distance.sign().x;
         if (!navigation.detect_and_handle_obstacles(this, distance, tile_size)) {
-          move_to_direction(movement_direction);
+          //move_to_direction(movement_direction);
+          if (!(get_linear_velocity().y > 0.1 && get_linear_velocity().y < 40.f) || !(get_linear_velocity().x < 0.1f)) {// HARDCODED
+            move_to_direction(movement_direction);
+          }
+          else {
+            move_to_direction(-movement_direction);
+          }
         }
       }
       if (ai_behavior.auto_flip_to_target) {

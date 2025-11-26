@@ -118,7 +118,8 @@ struct scene_manager_t {
 };
 
 int main(int argc, char** argv) {
-  fan::graphics::engine_t engine;
+  fan::graphics::engine_t engine {{.window_open_mode = fan::window_t::mode::windowed_fullscreen}};
+  
   render_context_t views;
   scene_manager_t scene;
 
@@ -129,7 +130,7 @@ int main(int argc, char** argv) {
   ic.set_zoom(1);
 
   fte_t fte;
-  fte.original_image_width = 1024;
+  fte.texture_packs.push_back(&engine.texture_pack);
   fte_t::properties_t p;
   p.camera = &views.editor;
   fte.open(p);
