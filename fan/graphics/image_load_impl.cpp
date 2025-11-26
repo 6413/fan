@@ -17,7 +17,7 @@ bool fan::image::valid(const std::string& path, const std::source_location& call
 
 bool fan::image::load(const std::string& file, info_t* image_info, const std::source_location& callers_path) {
   bool ret;
-  if (fan::webp::validate(file)) {
+  if (fan::webp::validate(file, callers_path)) {
     ret = fan::webp::load(file, (fan::webp::info_t*)image_info, callers_path);
     image_info->type = image_type_e::webp;
   }
