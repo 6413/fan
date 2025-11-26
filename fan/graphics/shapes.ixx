@@ -568,7 +568,6 @@ export namespace fan::graphics {
   #include <fan/graphics/gui/vfi.h>
     vfi_t vfi;
 
-    
 		fan::graphics::texture_pack_t* texture_pack = nullptr;
 
 		struct light_t {

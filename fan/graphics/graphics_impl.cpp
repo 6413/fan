@@ -818,7 +818,7 @@ namespace fan::graphics {
   }
 
   void trail_t::set_point(const fan::vec3& point, f32_t drift_intensity) {
-    static fan::time::timer timer {300000000ULL, true};
+    static fan::time::timer timer {(double)300000000ULL, true};
     bool should_reset = trails.empty() || timer;
 
     if (should_reset) {

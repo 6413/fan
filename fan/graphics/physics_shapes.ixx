@@ -574,6 +574,7 @@ export namespace fan {
         void enable_ai_patrol(const std::vector<fan::vec2>& points);
         void setup_attack(f32_t cooldown_seconds, const fan::vec2& range, 
           std::function<bool(character2d_t&)> condition = nullptr);
+        void setup_default_ai_update(fan::vec2 tile_size);
         void update_ai(fan::vec2 tile_size);
         void take_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
         fan::vec2 get_center() const;

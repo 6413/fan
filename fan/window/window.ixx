@@ -67,18 +67,20 @@ namespace fan {
 export namespace fan {
   struct window_t {
 
-    enum class mode {
-      not_set,
-      windowed,
-      borderless,
-      windowed_fullscreen,
-      full_screen,
-      count
+    struct mode{
+      enum {
+        not_set,
+        windowed,
+        borderless,
+        windowed_fullscreen,
+        full_screen,
+        count
+      };
     };
 
     static constexpr const char* default_window_name = "window";
     static constexpr fan::vec2i default_window_size = fan::vec2i(800, 600);
-    static constexpr mode default_size_mode = mode::windowed;
+    static constexpr int default_size_mode = mode::windowed;
 
     static constexpr fan::vec2i resolutions[] = {
       {800, 600},
@@ -295,7 +297,7 @@ export namespace fan {
     using key_click_data_t = key_data_t;
 
     void open(std::uint64_t flags);
-    void open(fan::vec2i window_size, const std::string& name, std::uint64_t flags = 0);
+    void open(fan::vec2i window_size, const std::string& name, std::uint64_t flags = 0, int open_mode = mode::windowed);
     void close();
     void make_context_current();
     void handle_key_states(); // can be 1 or 2 aka press or repeat
@@ -324,7 +326,7 @@ export namespace fan {
     void set_borderless();
     void set_cursor(int flag);
     void toggle_cursor();
-    void set_display_mode(const mode& mode);
+    void set_display_mode(int mode);
     fan::vec2d get_mouse_position() const;
     int key_state(int key) const;
     bool key_pressed(int key, int press = fan::keyboard_state::press) const;

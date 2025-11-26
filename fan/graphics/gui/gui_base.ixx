@@ -145,6 +145,7 @@ export namespace fan::graphics::gui {
 
   bool is_window_hovered(hovered_flag_t hovered_flags = 0);
   bool is_window_focused();
+  void set_next_window_focus();
 
   fan::vec2 get_window_content_region_min();
   fan::vec2 get_window_content_region_max();

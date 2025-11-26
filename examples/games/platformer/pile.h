@@ -34,7 +34,7 @@ struct pile_t {
     return stage_loader.get_stage_data<level_t>(current_stage);
   }
 
-  fan::graphics::engine_t engine;
+  fan::graphics::engine_t engine {{.window_open_mode=fan::window_t::mode::borderless}};
   fte_renderer_t renderer;
 
   stage_loader_t stage_loader;
@@ -66,4 +66,6 @@ pile_t::pile_t() {
   engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
 
   current_stage = pile->stage_loader.open_stage<level_t>();
+  // init map after setting current_stage
+  get_level().load_map();
 }

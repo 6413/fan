@@ -242,46 +242,95 @@ namespace fan::window {
 namespace fan {
 
   void window_t::open(std::uint64_t flags) {
-    fan::window_t::open(default_window_size, default_window_name, flags);
+    fan::window_t::open(default_window_size, default_window_name, flags, mode::windowed);
   }
 
-  void window_t::open(fan::vec2i window_size, const std::string& name, std::uint64_t flags) {
+  void window_t::open(fan::vec2i window_size, const std::string& name, std::uint64_t flags, int open_mode) {
     this->flags = flags;
     std::fill(key_states, key_states + std::size(key_states), -1);
     std::fill(prev_key_states, prev_key_states + std::size(prev_key_states), -1);
+
     if (window_size.x == -1 && window_size.y == -1) {
-      const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+      const GLFWvidmode* mode0 = glfwGetVideoMode(glfwGetPrimaryMonitor());
       window_size = resolutions[current_resolution];
     }
+
   #if fan_debug >= fan_debug_high
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
   #endif
+
     if (m_antialiasing_samples > 0) {
       glfwWindowHint(GLFW_SAMPLES, m_antialiasing_samples);
     }
-    if (!(flags & flags::hidden)) {
-      glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
-    }
-    else {
-      glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-    }
+
+    glfwWindowHint(GLFW_VISIBLE, !(flags & flags::hidden));
+
     if (flags & flags::transparent) {
       glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
       glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
     }
-    using namespace fan::window;
+
     if (renderer == renderer_t::vulkan) {
       glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     }
     else if (renderer == renderer_t::opengl) {
       glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
     }
-    glfw_window = glfwCreateWindow(window_size.x, window_size.y, name.c_str(), NULL, NULL);
+
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+    int mx, my;
+    glfwGetMonitorPos(monitor, &mx, &my);
+
+    int w = window_size.x;
+    int h = window_size.y;
+    int x = mx;
+    int y = my;
+    GLFWmonitor* use_mon = nullptr;
+
+    if (open_mode == mode::windowed) {
+      w = mode->width / 2;
+      h = mode->height / 2;
+      x = mx + mode->width / 8;
+      y = my + mode->height / 8;
+    }
+    else if (open_mode == mode::full_screen) {
+      w = mode->width;
+      h = mode->height;
+      x = 0;
+      y = 0;
+      use_mon = monitor;
+    }
+    else if (open_mode == mode::windowed_fullscreen) {
+      int wx, wy, ww, wh;
+      glfwGetMonitorWorkarea(monitor, &wx, &wy, &ww, &wh);
+      w = ww;
+      h = wh;
+      x = wx;
+      y = wy;
+    }
+    else if (open_mode == mode::borderless) {
+      glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+      w = mode->width;
+      h = mode->height;
+      x = mx;
+      y = my;
+    }
+
+    glfw_window = glfwCreateWindow(w, h, name.c_str(), use_mon, nullptr);
+
+    if (use_mon == nullptr) {
+      glfwSetWindowPos(glfw_window, x, y);
+    }
+
     if (glfw_window == nullptr) {
       glfwTerminate();
       fan::throw_error("failed to create window");
     }
+
     glfwSetWindowUserPointer(glfw_window, this);
+
   #if defined(fan_platform_windows)
     apply_window_theme();
     if (flags & flags::topmost) {
@@ -291,8 +340,8 @@ namespace fan {
       make_click_through();
     }
   #endif
+
     GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
     fan::vec2 screen_size = fan::vec2(mode->width, mode->height);
     fan::vec2 window_pos = (screen_size - window_size) / 2;
     //glfwSetWindowPos(glfw_window, window_pos.x, window_pos.y);
@@ -635,7 +684,7 @@ namespace fan {
     set_cursor(disabled);
   }
 
-  void window_t::set_display_mode(const mode& mode) {
+  void window_t::set_display_mode(int mode) {
     switch (mode) {
     case mode::windowed: {
       set_windowed();
