@@ -709,18 +709,22 @@ namespace fan::graphics::physics {
     );
   }
 
+  bool character2d_t::attack_state_t::can_attack(const fan::vec2& target_distance) {
+    return cooldown_timer &&
+      std::abs(target_distance.x) <= attack_range.x &&
+      std::abs(target_distance.y) <= attack_range.y;
+  }
+
   bool character2d_t::attack_state_t::try_attack(const fan::vec2& target_distance) {
     if (is_attacking){
       return true;
     }
-    if (cooldown_timer && 
-      std::abs(target_distance.x) <= attack_range.x && 
-      std::abs(target_distance.y) < attack_range.y){
+    if (can_attack(target_distance)){
       is_attacking = true;
-      cooldown_timer.restart();
       if (on_attack_start){
         on_attack_start();
       }
+      cooldown_timer.restart();
       return true;
     }
     return false;
@@ -1133,8 +1137,11 @@ namespace fan::graphics::physics {
         .name = "idle",
         .animation_id = idle.id,
         .fps = idle.fps,
-        .condition = [](character2d_t& c){ return std::abs(c.get_linear_velocity().x) < 10.f; }
-        });
+        .condition = [](character2d_t& c){ 
+          bool cond = std::abs(c.get_linear_velocity().x) < 10.f;
+          return cond;
+        }
+      });
       set_current_animation_id(idle.id);
     }
     if (run.fps){
@@ -1143,20 +1150,20 @@ namespace fan::graphics::physics {
         .animation_id = run.id,
         .fps = run.fps,
         .condition = [](character2d_t& c){
-        bool cond = std::abs(c.get_linear_velocity().x) >= 10.f;
-        fan::vec2 s = c.get_tc_size();
-        int vel_sign = c.get_linear_velocity().sign().x;
-        if (cond){
-          if (vel_sign < 0){
-            c.set_tc_size(fan::vec2(-std::abs(s.x), s.y));
+          bool cond = std::abs(c.get_linear_velocity().x) >= 10.f;
+          fan::vec2 s = c.get_tc_size();
+          int vel_sign = c.get_linear_velocity().sign().x;
+          if (cond){
+            if (vel_sign < 0){
+              c.set_tc_size(fan::vec2(-std::abs(s.x), s.y));
+            }
+            else{
+              c.set_tc_size(fan::vec2(std::abs(s.x), s.y));
+            }
           }
-          else{
-            c.set_tc_size(fan::vec2(std::abs(s.x), s.y));
-          }
+          return cond;
         }
-        return cond;
-      }
-        });
+      });
     }
     auto_update_animations = true;
   }
@@ -1191,7 +1198,9 @@ namespace fan::graphics::physics {
         }
       }
       else if (triggered){
-        if (prev_animation_id != state.animation_id){
+        if (prev_animation_id != state.animation_id || 
+            character.get_current_animation_id() != state.animation_id)
+        {
           character.set_current_animation_id(state.animation_id);
           character.reset_current_sprite_sheet_animation();
           character.current_animation_requires_velocity_fps = state.velocity_based_fps;
