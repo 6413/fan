@@ -18,6 +18,8 @@ module;
 
 module fan.io.file;
 
+import fan;
+
 std::string fan::io::file::extension(const std::string& file_path) {
   size_t dotPosition = file_path.find_last_of('.');
   size_t sepPosition = file_path.find_last_of("/\\");
@@ -194,58 +196,115 @@ std::string fan::io::file::get_exe_path() {
 #endif
 }
 
-std::filesystem::path fan::io::file::find_relative_path(const std::string& file_path, const std::source_location& location) {
+std::filesystem::path fan::io::file::find_relative_path(const std::string& file_path,
+  const std::source_location& location) {
   namespace fs = std::filesystem;
+
   if (file_path.empty()) {
     return {};
   }
+
   std::error_code ec;
   fs::path current_dir = fs::current_path(ec);
-  if (ec) return {};
-  if (fs::is_regular_file(file_path, ec) && !ec) {
-    return file_path;
+  if (ec) {
+    return {};
   }
-  fs::path candidate = fs::path(location.file_name()).parent_path() / file_path;
-  if (fs::is_regular_file(candidate, ec) && !ec) {
-    fs::path relative = fs::relative(candidate, current_dir, ec);
-    return ec ? candidate : relative;
+
+  auto try_candidate = [&](const fs::path& p) {
+    if (fs::is_regular_file(p, ec) && !ec) {
+      fs::path r = fs::relative(p, current_dir, ec);
+      return ec ? p : r;
+    }
+    return fs::path {};
+  };
+
+  if (auto r = try_candidate(file_path); !r.empty()) {
+    return r;
   }
-  candidate = current_dir / file_path;
-  if (fs::is_regular_file(candidate, ec) && !ec) {
-    return file_path;
-  }
+
+  fs::path src_dir = fs::path(location.file_name()).parent_path();
   fs::path exe_dir = get_exe_path();
+
+  auto try_all = [&](const fs::path& base, const fs::path& name) {
+    if (base.empty()) {
+      return fs::path {};
+    }
+    return try_candidate(base / name);
+  };
+
+  if (auto r = try_all(src_dir, file_path); !r.empty()) {
+    return r;
+  }
+  if (auto r = try_all(current_dir, file_path); !r.empty()) {
+    return r;
+  }
   if (!exe_dir.empty() && exe_dir != current_dir) {
-    candidate = exe_dir / file_path;
-    if (fs::is_regular_file(candidate, ec) && !ec) {
-      fs::path relative = fs::relative(candidate, current_dir, ec);
-      return ec ? candidate : relative;
+    if (auto r = try_all(exe_dir, file_path); !r.empty()) {
+      return r;
     }
   }
+
   if (!exe_dir.empty()) {
-    fs::path search_path = current_dir;
-    while (search_path.has_parent_path() && search_path != search_path.parent_path()) {
-      search_path = search_path.parent_path();
-      candidate = search_path / file_path;
-      if (fs::is_regular_file(candidate, ec) && !ec) {
-        fs::path relative = fs::relative(candidate, current_dir, ec);
-        return ec ? candidate : relative;
+    fs::path p = current_dir;
+    while (p.has_parent_path()) {
+      fs::path next = p.parent_path();
+      if (next == p) {
+        break;
       }
-      if (fs::equivalent(search_path, exe_dir, ec) && !ec) {
+      p = next;
+      if (auto r = try_all(p, file_path); !r.empty()) {
+        return r;
+      }
+      if (fs::equivalent(p, exe_dir, ec) && !ec) {
         break;
       }
     }
   }
-  {
-    fs::path src_dir = fs::path(location.file_name()).parent_path();
-    fs::path filename_only = fs::path(file_path).filename();
-    fs::path candidate = src_dir / filename_only;
 
-    if (fs::is_regular_file(candidate, ec) && !ec) {
-      fs::path relative = fs::relative(candidate, current_dir, ec);
-      return ec ? candidate : relative;
+  {
+    fs::path name_only = fs::path(file_path).filename();
+    if (auto r = try_all(src_dir, name_only); !r.empty()) {
+      return r;
     }
   }
+
+  {
+    std::error_code ec2;
+    fs::path fp = fs::path(file_path);
+
+    if (fs::is_regular_file(fp, ec2)) {
+      return fs::relative(fp, current_dir, ec2);
+    }
+
+    fs::path p = src_dir;
+    while (p.has_parent_path()) {
+      fs::path next = p.parent_path();
+      if (next == p) {
+        break;
+      }
+      if (auto r = try_candidate(p.filename() / fp); !r.empty()) {
+        return r;
+      }
+      p = next;
+    }
+  }
+
+  {
+    fs::path name = fs::path(file_path);
+    fs::path p = src_dir;
+    while (p.has_parent_path()) {
+      if (auto r = try_all(p, name); !r.empty()) {
+        return r;
+      }
+      fs::path next = p.parent_path();
+      if (next == p) {
+        break;
+      }
+      p = next;
+    }
+  }
+
+  fan::print("failed to find path for:", file_path, ". called from", src_dir.string());
   return {};
 }
 
