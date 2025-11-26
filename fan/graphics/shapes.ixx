@@ -548,6 +548,8 @@ export namespace fan::graphics {
       void add_sprite_sheet_animation(const sprite_sheet_animation_t& animation);
       void set_sprite_sheet_frames(uint32_t image_index, int horizontal_frames, int vertical_frames);
       animation_nr_t& get_current_animation_id() const;
+      bool animation_on(const std::string& name, int frame_index);
+      bool animation_on(const std::string& name, const std::initializer_list<int>& arr);
       void set_current_animation_id(animation_nr_t animation_id);
       sprite_sheet_animation_t& get_current_animation();
       int get_current_animation_frame() const;

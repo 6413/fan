@@ -224,8 +224,6 @@ namespace fan::graphics {
     return h1 ^ (h2 << 1);
   }
 
-
-
   std::unordered_map<animation_nr_t, sprite_sheet_animation_t, animation_nr_hash_t> all_animations;
   animation_nr_t all_animations_counter = 0;
   std::unordered_map<std::pair<animation_shape_nr_t, std::string>, animation_nr_t, animation_pair_hash_t> shape_animation_lookup_table;
@@ -373,7 +371,6 @@ namespace fan::graphics {
 
         animation_nr_t original_id = item.value("id", uint32_t());
         animation_nr_t new_id = original_id.id + counter_offset.id;
-
         all_animations[new_id] = anim;
         all_animations_counter = std::max(all_animations_counter.id, static_cast<uint32_t>(new_id.id + 1));
       }
@@ -1408,11 +1405,20 @@ namespace fan::graphics{
 			fan::vec2 tc_size = fan::vec2(1.0 / current_image.hframes, 1.0 / current_image.vframes);
 			int frame_x = local_frame % current_image.hframes;
 			int frame_y = local_frame / current_image.hframes;
-			set_tc_position(fan::vec2(
-				frame_x * tc_size.x,
-				frame_y * tc_size.y
-			));
-			set_tc_size(tc_size * get_image_sign());
+
+      fan::vec2 pos(
+        frame_x * tc_size.x,
+        frame_y * tc_size.y
+      );
+      fan::vec2 sign = get_image_sign();
+      if (sign.x < 0) {
+        pos.x += tc_size.x;
+      }
+      if (sign.y < 0) {
+        pos.y += tc_size.y;
+      }
+			set_tc_position(pos);
+			set_tc_size(tc_size * sign);
 		}
 		else {
 			fan::throw_error("Unimplemented for this shape");
@@ -1478,6 +1484,22 @@ namespace fan::graphics{
 	animation_nr_t& shapes::shape_t::get_current_animation_id() const {
 		return shape_get_ri(sprite).current_animation;
 	}
+
+  bool shapes::shape_t::animation_on(const std::string& name, int frame_index) {
+    auto cur_frame = get_current_animation_frame();
+    return cur_frame == frame_index && name == get_current_animation().name;
+  }
+
+  bool shapes::shape_t::animation_on(const std::string& name, const std::initializer_list<int>& arr) {
+    auto cur_frame = get_current_animation_frame();
+    bool str_eq = name == get_current_animation().name;
+    for (auto& i : arr) {
+      if (cur_frame == i && str_eq) {
+        return true;
+      }
+    }
+    return false;
+  }
 
 	void shapes::shape_t::set_current_animation_id(animation_nr_t animation_id) {
 	#if fan_debug >= fan_debug_medium

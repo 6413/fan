@@ -435,6 +435,8 @@ namespace fan::graphics {
         .size = p.size,
         .angle = p.angle,
         .image = p.image,
+        .tc_position = p.tc_position,
+        .tc_size = p.tc_size,
         .images = p.images,
         .color = p.color,
         .rotation_point = p.rotation_point,

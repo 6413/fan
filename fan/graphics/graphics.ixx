@@ -282,6 +282,8 @@ export namespace fan::graphics {
     fan::color color = fan::color(1, 1, 1, 1);
     fan::vec2 rotation_point = 0;
     fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+    fan::vec2 tc_position = 0;
+    fan::vec2 tc_size = 1;
     std::array<fan::graphics::image_t, 30> images;
     f32_t parallax_factor = 0;
     bool blending = true;

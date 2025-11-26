@@ -169,6 +169,48 @@ constexpr bool operator>(T rhs) const {
   return true;
 }
 
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator<=(const T& rhs) const {
+  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
+    if (!((*this)[i] <= rhs[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator<=(T rhs) const {
+  for (access_type_t i = 0; i < size(); ++i) {
+    if (!((*this)[i] <= rhs)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator>=(const T& rhs) const {
+  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
+    if (!((*this)[i] >= rhs[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator>=(T rhs) const {
+  for (access_type_t i = 0; i < size(); ++i) {
+    if (!((*this)[i] >= rhs)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 explicit constexpr operator bool() const {
   return (*this != value_type_t(0));
 }
@@ -304,6 +346,15 @@ static auto val_to_string(const T a_value, const int n = 2) {
   out.precision(n);
   out << std::fixed << a_value;
   return out.str();
+}
+
+constexpr bool in_range(const vec_t& lo, const vec_t& hi) const {
+  for (access_type_t i = 0; i < size(); ++i) {
+    if ((*this)[i] < lo[i] || (*this)[i] > hi[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 std::string to_string(int precision = 4) const {
